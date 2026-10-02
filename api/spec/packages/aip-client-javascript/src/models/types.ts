@@ -1155,6 +1155,11 @@ export interface UpdateResourceReference {
   id: string
 }
 
+/** NotificationChannel reference. */
+export interface NotificationChannelReference {
+  id: string
+}
+
 /** A reference to the feature of an entitlement notification event. */
 export interface NotificationEventFeatureReference {
   /** The unique identifier of the feature. */
@@ -2689,6 +2694,17 @@ export interface UpdateBillingNotificationChannelRequest {
   signingSecret?: string
 }
 
+/**
+ * A balance threshold of a notification rule. Crossing it generates an
+ * `entitlements.balance.threshold` event.
+ */
+export interface NotificationBalanceThreshold {
+  /** What the threshold value is measured against. */
+  type: 'balance_value' | 'usage_percentage' | 'usage_value'
+  /** The threshold value. */
+  value: number
+}
+
 /** A reference to the notification rule that generated an event. */
 export interface NotificationRuleReference {
   /** The unique identifier of the rule. */
@@ -2711,17 +2727,6 @@ export interface NotificationEventDeliveryAttempt {
   response: NotificationEventDeliveryAttemptResponse
   /** When the attempt was made. */
   timestamp: Date
-}
-
-/**
- * A balance threshold of a notification rule. Crossing it generates an
- * `entitlements.balance.threshold` event.
- */
-export interface NotificationBalanceThreshold {
-  /** What the threshold value is measured against. */
-  type: 'balance_value' | 'usage_percentage' | 'usage_value'
-  /** The threshold value. */
-  value: number
 }
 
 /** App customer data. */
@@ -3396,6 +3401,163 @@ export interface UpdateTaxCodeConfig {
   code?: UpdateResourceReference
 }
 
+/** A rule that generates an event when an entitlement usage period is reset. */
+export interface NotificationRuleEntitlementReset {
+  id: string
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  labels?: Labels
+  /** An ISO-8601 timestamp representation of entity creation date. */
+  createdAt: Date
+  /** An ISO-8601 timestamp representation of entity last update date. */
+  updatedAt: Date
+  /** An ISO-8601 timestamp representation of entity deletion date. */
+  deletedAt?: Date
+  /** The type of event the rule generates. Immutable after creation. */
+  type: 'entitlements.reset'
+  /** Whether the rule is disabled. Disabled rules do not generate events. */
+  disabled: boolean
+  /**
+   * The channels the rule delivers its events to. At least one and at most five
+   * channels are required. Responses omit channels that have since been disabled or
+   * deleted.
+   */
+  channels: NotificationChannelReference[]
+  /**
+   * The features the rule applies to. When omitted, the rule applies to every
+   * feature.
+   */
+  features?: FeatureReference[]
+}
+
+/** A rule that generates an event when an invoice is created. */
+export interface NotificationRuleInvoiceCreated {
+  id: string
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  labels?: Labels
+  /** An ISO-8601 timestamp representation of entity creation date. */
+  createdAt: Date
+  /** An ISO-8601 timestamp representation of entity last update date. */
+  updatedAt: Date
+  /** An ISO-8601 timestamp representation of entity deletion date. */
+  deletedAt?: Date
+  /** The type of event the rule generates. Immutable after creation. */
+  type: 'invoice.created'
+  /** Whether the rule is disabled. Disabled rules do not generate events. */
+  disabled: boolean
+  /**
+   * The channels the rule delivers its events to. At least one and at most five
+   * channels are required. Responses omit channels that have since been disabled or
+   * deleted.
+   */
+  channels: NotificationChannelReference[]
+}
+
+/** A rule that generates an event when an invoice is updated. */
+export interface NotificationRuleInvoiceUpdated {
+  id: string
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  labels?: Labels
+  /** An ISO-8601 timestamp representation of entity creation date. */
+  createdAt: Date
+  /** An ISO-8601 timestamp representation of entity last update date. */
+  updatedAt: Date
+  /** An ISO-8601 timestamp representation of entity deletion date. */
+  deletedAt?: Date
+  /** The type of event the rule generates. Immutable after creation. */
+  type: 'invoice.updated'
+  /** Whether the rule is disabled. Disabled rules do not generate events. */
+  disabled: boolean
+  /**
+   * The channels the rule delivers its events to. At least one and at most five
+   * channels are required. Responses omit channels that have since been disabled or
+   * deleted.
+   */
+  channels: NotificationChannelReference[]
+}
+
+/** Request body for an entitlement reset rule. */
+export interface NotificationRuleEntitlementResetRequest {
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  labels?: Labels
+  /** The type of event the rule generates. Immutable after creation. */
+  type: 'entitlements.reset'
+  /** Whether the rule is disabled. Disabled rules do not generate events. */
+  disabled: boolean
+  /**
+   * The channels the rule delivers its events to. At least one and at most five
+   * channels are required. Responses omit channels that have since been disabled or
+   * deleted.
+   */
+  channels: NotificationChannelReference[]
+  /**
+   * The features the rule applies to. When omitted, the rule applies to every
+   * feature.
+   */
+  features?: FeatureReference[]
+}
+
+/** Request body for an invoice created rule. */
+export interface NotificationRuleInvoiceCreatedRequest {
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  labels?: Labels
+  /** The type of event the rule generates. Immutable after creation. */
+  type: 'invoice.created'
+  /** Whether the rule is disabled. Disabled rules do not generate events. */
+  disabled: boolean
+  /**
+   * The channels the rule delivers its events to. At least one and at most five
+   * channels are required. Responses omit channels that have since been disabled or
+   * deleted.
+   */
+  channels: NotificationChannelReference[]
+}
+
+/** Request body for an invoice updated rule. */
+export interface NotificationRuleInvoiceUpdatedRequest {
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  labels?: Labels
+  /** The type of event the rule generates. Immutable after creation. */
+  type: 'invoice.updated'
+  /** Whether the rule is disabled. Disabled rules do not generate events. */
+  disabled: boolean
+  /**
+   * The channels the rule delivers its events to. At least one and at most five
+   * channels are required. Responses omit channels that have since been disabled or
+   * deleted.
+   */
+  channels: NotificationChannelReference[]
+}
+
 /**
  * The entitlement, feature, and subject an entitlement notification event refers
  * to.
@@ -3521,6 +3683,21 @@ export interface ListNotificationChannelsParamsFilter {
   disabled?: BooleanFieldFilter
   createdAt?: DateTimeFieldFilter
   updatedAt?: DateTimeFieldFilter
+}
+
+/** Filter options for listing notification rules. */
+export interface ListNotificationRulesParamsFilter {
+  id?: UlidFieldFilter
+  name?: StringFieldFilter
+  type?: StringFieldFilterExact
+  disabled?: BooleanFieldFilter
+  createdAt?: DateTimeFieldFilter
+  updatedAt?: DateTimeFieldFilter
+  /**
+   * Filter by an assigned channel. Matches rules that deliver to at least one of the
+   * given channels. Only `eq` and `oeq` are supported.
+   */
+  channelId?: UlidFieldFilter
 }
 
 /** Filter options for listing notification events. */
@@ -4556,6 +4733,88 @@ export interface NotificationChannelPagePaginatedResponse {
 }
 
 /**
+ * A rule that generates an event when an entitlement balance crosses one of its
+ * thresholds.
+ */
+export interface NotificationRuleBalanceThreshold {
+  id: string
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  labels?: Labels
+  /** An ISO-8601 timestamp representation of entity creation date. */
+  createdAt: Date
+  /** An ISO-8601 timestamp representation of entity last update date. */
+  updatedAt: Date
+  /** An ISO-8601 timestamp representation of entity deletion date. */
+  deletedAt?: Date
+  /** The type of event the rule generates. Immutable after creation. */
+  type: 'entitlements.balance.threshold'
+  /** Whether the rule is disabled. Disabled rules do not generate events. */
+  disabled: boolean
+  /**
+   * The channels the rule delivers its events to. At least one and at most five
+   * channels are required. Responses omit channels that have since been disabled or
+   * deleted.
+   */
+  channels: NotificationChannelReference[]
+  /** The thresholds that generate an event when crossed. Between 1 and 10 thresholds. */
+  thresholds: NotificationBalanceThreshold[]
+  /**
+   * The features the rule applies to. When omitted, the rule applies to every
+   * feature.
+   */
+  features?: FeatureReference[]
+}
+
+/** Request body for a balance threshold rule. */
+export interface NotificationRuleBalanceThresholdRequest {
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  labels?: Labels
+  /** The type of event the rule generates. Immutable after creation. */
+  type: 'entitlements.balance.threshold'
+  /** Whether the rule is disabled. Disabled rules do not generate events. */
+  disabled: boolean
+  /**
+   * The channels the rule delivers its events to. At least one and at most five
+   * channels are required. Responses omit channels that have since been disabled or
+   * deleted.
+   */
+  channels: NotificationChannelReference[]
+  /** The thresholds that generate an event when crossed. Between 1 and 10 thresholds. */
+  thresholds: NotificationBalanceThreshold[]
+  /**
+   * The features the rule applies to. When omitted, the rule applies to every
+   * feature.
+   */
+  features?: FeatureReference[]
+}
+
+/** The entities and threshold a balance threshold event refers to. */
+export interface NotificationEventBalanceThresholdData {
+  /** The identifier of the entitlement that triggered the event. */
+  entitlementId: string
+  /** The feature the entitlement grants access to. */
+  feature: NotificationEventFeatureReference
+  /** The key of the subject the entitlement belongs to. */
+  subjectKey: string
+  /** The identifier of the customer the subject belongs to, if any. */
+  customerId?: string
+  /** The entitlement balance at the time the event was generated. */
+  value: NotificationEventEntitlementValue
+  /** The threshold the balance crossed. */
+  threshold: NotificationBalanceThreshold
+}
+
+/**
  * The delivery status of a notification event for one channel of the generating
  * rule.
  */
@@ -4575,22 +4834,6 @@ export interface NotificationEventDeliveryStatus {
   nextAttempt?: Date
   /** The delivery attempts made so far, most recent first. */
   attempts: NotificationEventDeliveryAttempt[]
-}
-
-/** The entities and threshold a balance threshold event refers to. */
-export interface NotificationEventBalanceThresholdData {
-  /** The identifier of the entitlement that triggered the event. */
-  entitlementId: string
-  /** The feature the entitlement grants access to. */
-  feature: NotificationEventFeatureReference
-  /** The key of the subject the entitlement belongs to. */
-  subjectKey: string
-  /** The identifier of the customer the subject belongs to, if any. */
-  customerId?: string
-  /** The entitlement balance at the time the event was generated. */
-  value: NotificationEventEntitlementValue
-  /** The threshold the balance crossed. */
-  threshold: NotificationBalanceThreshold
 }
 
 /** Billing customer data. */
@@ -6032,6 +6275,12 @@ export interface EntitlementAccessQueryResponse {
    * response would exceed server-side limits.
    */
   meta: CursorMeta
+}
+
+/** Page paginated response. */
+export interface NotificationRulePagePaginatedResponse {
+  data: NotificationRule[]
+  meta: PaginatedMeta
 }
 
 /** A rate card defines the pricing and entitlement of a feature or service. */
@@ -7844,6 +8093,27 @@ export type Entitlement =
 export type WorkflowCollectionAlignment =
   WorkflowCollectionAlignmentSubscription | WorkflowCollectionAlignmentAnchored
 
+/**
+ * A notification rule selects the type of event to generate, the conditions
+ * specific to that type, and the channels to deliver the events to.
+ */
+export type NotificationRule =
+  | NotificationRuleBalanceThreshold
+  | NotificationRuleEntitlementReset
+  | NotificationRuleInvoiceCreated
+  | NotificationRuleInvoiceUpdated
+
+/**
+ * Request body for creating or updating a notification rule. Updates replace the
+ * rule's mutable state: omitting `disabled`, `labels`, or `features` resets them
+ * to their defaults. The `type` must match the existing rule on update.
+ */
+export type NotificationRuleRequest =
+  | NotificationRuleBalanceThresholdRequest
+  | NotificationRuleEntitlementResetRequest
+  | NotificationRuleInvoiceCreatedRequest
+  | NotificationRuleInvoiceUpdatedRequest
+
 /** Price. */
 export type Price =
   PriceFree | PriceFlat | PriceUnit | PriceGraduated | PriceVolume
@@ -8406,6 +8676,163 @@ export interface UpdateBillingNotificationChannelRequestInput {
   signingSecret?: string
 }
 
+/** A rule that generates an event when an entitlement usage period is reset. */
+export interface NotificationRuleEntitlementResetInput {
+  id: string
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  labels?: Labels
+  /** An ISO-8601 timestamp representation of entity creation date. */
+  createdAt: Date
+  /** An ISO-8601 timestamp representation of entity last update date. */
+  updatedAt: Date
+  /** An ISO-8601 timestamp representation of entity deletion date. */
+  deletedAt?: Date
+  /** The type of event the rule generates. Immutable after creation. */
+  type: 'entitlements.reset'
+  /** Whether the rule is disabled. Disabled rules do not generate events. */
+  disabled?: boolean
+  /**
+   * The channels the rule delivers its events to. At least one and at most five
+   * channels are required. Responses omit channels that have since been disabled or
+   * deleted.
+   */
+  channels: NotificationChannelReference[]
+  /**
+   * The features the rule applies to. When omitted, the rule applies to every
+   * feature.
+   */
+  features?: FeatureReference[]
+}
+
+/** A rule that generates an event when an invoice is created. */
+export interface NotificationRuleInvoiceCreatedInput {
+  id: string
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  labels?: Labels
+  /** An ISO-8601 timestamp representation of entity creation date. */
+  createdAt: Date
+  /** An ISO-8601 timestamp representation of entity last update date. */
+  updatedAt: Date
+  /** An ISO-8601 timestamp representation of entity deletion date. */
+  deletedAt?: Date
+  /** The type of event the rule generates. Immutable after creation. */
+  type: 'invoice.created'
+  /** Whether the rule is disabled. Disabled rules do not generate events. */
+  disabled?: boolean
+  /**
+   * The channels the rule delivers its events to. At least one and at most five
+   * channels are required. Responses omit channels that have since been disabled or
+   * deleted.
+   */
+  channels: NotificationChannelReference[]
+}
+
+/** A rule that generates an event when an invoice is updated. */
+export interface NotificationRuleInvoiceUpdatedInput {
+  id: string
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  labels?: Labels
+  /** An ISO-8601 timestamp representation of entity creation date. */
+  createdAt: Date
+  /** An ISO-8601 timestamp representation of entity last update date. */
+  updatedAt: Date
+  /** An ISO-8601 timestamp representation of entity deletion date. */
+  deletedAt?: Date
+  /** The type of event the rule generates. Immutable after creation. */
+  type: 'invoice.updated'
+  /** Whether the rule is disabled. Disabled rules do not generate events. */
+  disabled?: boolean
+  /**
+   * The channels the rule delivers its events to. At least one and at most five
+   * channels are required. Responses omit channels that have since been disabled or
+   * deleted.
+   */
+  channels: NotificationChannelReference[]
+}
+
+/** Request body for an entitlement reset rule. */
+export interface NotificationRuleEntitlementResetRequestInput {
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  labels?: Labels
+  /** The type of event the rule generates. Immutable after creation. */
+  type: 'entitlements.reset'
+  /** Whether the rule is disabled. Disabled rules do not generate events. */
+  disabled?: boolean
+  /**
+   * The channels the rule delivers its events to. At least one and at most five
+   * channels are required. Responses omit channels that have since been disabled or
+   * deleted.
+   */
+  channels: NotificationChannelReference[]
+  /**
+   * The features the rule applies to. When omitted, the rule applies to every
+   * feature.
+   */
+  features?: FeatureReference[]
+}
+
+/** Request body for an invoice created rule. */
+export interface NotificationRuleInvoiceCreatedRequestInput {
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  labels?: Labels
+  /** The type of event the rule generates. Immutable after creation. */
+  type: 'invoice.created'
+  /** Whether the rule is disabled. Disabled rules do not generate events. */
+  disabled?: boolean
+  /**
+   * The channels the rule delivers its events to. At least one and at most five
+   * channels are required. Responses omit channels that have since been disabled or
+   * deleted.
+   */
+  channels: NotificationChannelReference[]
+}
+
+/** Request body for an invoice updated rule. */
+export interface NotificationRuleInvoiceUpdatedRequestInput {
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  labels?: Labels
+  /** The type of event the rule generates. Immutable after creation. */
+  type: 'invoice.updated'
+  /** Whether the rule is disabled. Disabled rules do not generate events. */
+  disabled?: boolean
+  /**
+   * The channels the rule delivers its events to. At least one and at most five
+   * channels are required. Responses omit channels that have since been disabled or
+   * deleted.
+   */
+  channels: NotificationChannelReference[]
+}
+
 /** An ingested metering event with ingestion metadata. */
 export interface IngestedEventInput {
   /** The original event ingested. */
@@ -8613,6 +9040,72 @@ export interface UpdateBillingInvoiceWorkflowInput {
 export interface NotificationChannelPagePaginatedResponseInput {
   data: NotificationChannelInput[]
   meta: PaginatedMeta
+}
+
+/**
+ * A rule that generates an event when an entitlement balance crosses one of its
+ * thresholds.
+ */
+export interface NotificationRuleBalanceThresholdInput {
+  id: string
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  labels?: Labels
+  /** An ISO-8601 timestamp representation of entity creation date. */
+  createdAt: Date
+  /** An ISO-8601 timestamp representation of entity last update date. */
+  updatedAt: Date
+  /** An ISO-8601 timestamp representation of entity deletion date. */
+  deletedAt?: Date
+  /** The type of event the rule generates. Immutable after creation. */
+  type: 'entitlements.balance.threshold'
+  /** Whether the rule is disabled. Disabled rules do not generate events. */
+  disabled?: boolean
+  /**
+   * The channels the rule delivers its events to. At least one and at most five
+   * channels are required. Responses omit channels that have since been disabled or
+   * deleted.
+   */
+  channels: NotificationChannelReference[]
+  /** The thresholds that generate an event when crossed. Between 1 and 10 thresholds. */
+  thresholds: NotificationBalanceThreshold[]
+  /**
+   * The features the rule applies to. When omitted, the rule applies to every
+   * feature.
+   */
+  features?: FeatureReference[]
+}
+
+/** Request body for a balance threshold rule. */
+export interface NotificationRuleBalanceThresholdRequestInput {
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  labels?: Labels
+  /** The type of event the rule generates. Immutable after creation. */
+  type: 'entitlements.balance.threshold'
+  /** Whether the rule is disabled. Disabled rules do not generate events. */
+  disabled?: boolean
+  /**
+   * The channels the rule delivers its events to. At least one and at most five
+   * channels are required. Responses omit channels that have since been disabled or
+   * deleted.
+   */
+  channels: NotificationChannelReference[]
+  /** The thresholds that generate an event when crossed. Between 1 and 10 thresholds. */
+  thresholds: NotificationBalanceThreshold[]
+  /**
+   * The features the rule applies to. When omitted, the rule applies to every
+   * feature.
+   */
+  features?: FeatureReference[]
 }
 
 /** Purchase and payment terms of the grant. */
@@ -9233,6 +9726,12 @@ export interface ChargeRealizationInvoiceInput {
   sentToCustomerAt?: Date
   /** Workflow configuration snapshot captured at invoice creation time. */
   workflow: InvoiceWorkflowSettingsInput
+}
+
+/** Page paginated response. */
+export interface NotificationRulePagePaginatedResponseInput {
+  data: NotificationRuleInput[]
+  meta: PaginatedMeta
 }
 
 /** A rate card defines the pricing and entitlement of a feature or service. */
@@ -10785,6 +11284,27 @@ export type RateCardEntitlementInput =
 /** An entitlement grants a customer access to a feature. */
 export type EntitlementInput =
   EntitlementMeteredInput | EntitlementStatic | EntitlementBoolean
+
+/**
+ * A notification rule selects the type of event to generate, the conditions
+ * specific to that type, and the channels to deliver the events to.
+ */
+export type NotificationRuleInput =
+  | NotificationRuleBalanceThresholdInput
+  | NotificationRuleEntitlementResetInput
+  | NotificationRuleInvoiceCreatedInput
+  | NotificationRuleInvoiceUpdatedInput
+
+/**
+ * Request body for creating or updating a notification rule. Updates replace the
+ * rule's mutable state: omitting `disabled`, `labels`, or `features` resets them
+ * to their defaults. The `type` must match the existing rule on update.
+ */
+export type NotificationRuleRequestInput =
+  | NotificationRuleBalanceThresholdRequestInput
+  | NotificationRuleEntitlementResetRequestInput
+  | NotificationRuleInvoiceCreatedRequestInput
+  | NotificationRuleInvoiceUpdatedRequestInput
 
 /** Entitlement create request. */
 export type CreateEntitlementRequestInput =
