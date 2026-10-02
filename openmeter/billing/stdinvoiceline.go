@@ -1001,6 +1001,12 @@ func (c StandardLines) GetByChildUniqueReferenceID(id string) *StandardLine {
 	})
 }
 
+func (c StandardLines) WithoutDeletedLines() StandardLines {
+	return lo.Filter(c, func(line *StandardLine, _ int) bool {
+		return line.DeletedAt == nil
+	})
+}
+
 func ValidateStandardLineIDsMatchExactly(expected StandardLines, actual StandardLines) error {
 	expectedIDs := lo.Map(expected, func(line *StandardLine, _ int) string {
 		return line.ID
