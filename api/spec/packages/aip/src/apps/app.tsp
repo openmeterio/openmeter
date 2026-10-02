@@ -72,6 +72,41 @@ model AppBase<T extends AppType> {
    */
   @visibility(Lifecycle.Read)
   status: AppStatus;
+
+  /**
+   * Actions the operator should take to bring the app up to date. Omitted when no
+   * action is required.
+   */
+  @visibility(Lifecycle.Read)
+  actions?: AppAction[];
+}
+
+/**
+ * An action the operator should take on an installed app.
+ */
+@friendlyName("BillingAppAction")
+model AppAction {
+  /**
+   * The action type.
+   */
+  type: AppActionType;
+
+  /**
+   * Human readable explanation of why the action is needed.
+   */
+  description: string;
+}
+
+/**
+ * App action type.
+ */
+@friendlyName("BillingAppActionType")
+enum AppActionType {
+  /**
+   * The Stripe webhook endpoint was registered with an older event set than the
+   * current app version handles; the webhook events must be reconciled.
+   */
+  ReconcileWebhookEvents: "reconcile_webhook_events",
 }
 
 /**

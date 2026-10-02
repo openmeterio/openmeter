@@ -415,6 +415,14 @@ type AppBase struct {
 	AppData
 }
 
+const (
+	AppActionTypeReconcileWebhookEvents app.AppActionType = "reconcile_webhook_events"
+)
+
+// LatestWebhookSchemaVersion is persisted on newly installed Stripe apps and identifies the
+// webhook event set SetupWebhook registered. Bump it whenever that event list changes.
+const LatestWebhookSchemaVersion = 2
+
 // AppData represents the Stripe associated data for the app
 type AppData struct {
 	StripeAccountID string                `json:"stripeAccountId"`

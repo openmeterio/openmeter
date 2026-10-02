@@ -2332,6 +2332,14 @@ export interface AppCapability {
   description: string
 }
 
+/** An action the operator should take on an installed app. */
+export interface AppAction {
+  /** The action type. */
+  type: 'reconcile_webhook_events'
+  /** Human readable explanation of why the action is needed. */
+  description: string
+}
+
 /** AppStripe update request. */
 export interface UpdateAppStripeRequest {
   /**
@@ -5009,6 +5017,11 @@ export interface AppStripe {
   definition: AppCatalogItem
   /** Status of the app connection. */
   status: 'ready' | 'unauthorized'
+  /**
+   * Actions the operator should take to bring the app up to date. Omitted when no
+   * action is required.
+   */
+  actions?: AppAction[]
   /** The Stripe account ID associated with the connected Stripe account. */
   accountId: string
   /** Indicates whether the app is connected to a live Stripe account. */
@@ -5045,6 +5058,11 @@ export interface AppSandbox {
   definition: AppCatalogItem
   /** Status of the app connection. */
   status: 'ready' | 'unauthorized'
+  /**
+   * Actions the operator should take to bring the app up to date. Omitted when no
+   * action is required.
+   */
+  actions?: AppAction[]
 }
 
 /**
@@ -5093,6 +5111,11 @@ export interface AppExternalInvoicing {
   definition: AppCatalogItem
   /** Status of the app connection. */
   status: 'ready' | 'unauthorized'
+  /**
+   * Actions the operator should take to bring the app up to date. Omitted when no
+   * action is required.
+   */
+  actions?: AppAction[]
   /**
    * Enable draft synchronization hook.
    *
@@ -5153,6 +5176,11 @@ export interface InstalledAppStripe {
   definition: AppCatalogItem
   /** Status of the app connection. */
   status: 'ready' | 'unauthorized'
+  /**
+   * Actions the operator should take to bring the app up to date. Omitted when no
+   * action is required.
+   */
+  actions?: AppAction[]
   /** The Stripe account ID associated with the connected Stripe account. */
   accountId: string
   /** Indicates whether the app is connected to a live Stripe account. */
@@ -5197,6 +5225,11 @@ export interface InstalledAppSandbox {
   definition: AppCatalogItem
   /** Status of the app connection. */
   status: 'ready' | 'unauthorized'
+  /**
+   * Actions the operator should take to bring the app up to date. Omitted when no
+   * action is required.
+   */
+  actions?: AppAction[]
   /** Default capabilities of the installed app. */
   defaultForCapabilityTypes: (
     | 'report_usage'
@@ -5235,6 +5268,11 @@ export interface InstalledAppExternalInvoicing {
   definition: AppCatalogItem
   /** Status of the app connection. */
   status: 'ready' | 'unauthorized'
+  /**
+   * Actions the operator should take to bring the app up to date. Omitted when no
+   * action is required.
+   */
+  actions?: AppAction[]
   /**
    * Enable draft synchronization hook.
    *

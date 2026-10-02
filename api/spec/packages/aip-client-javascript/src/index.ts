@@ -237,6 +237,7 @@ export type {
   SubscriptionEditRemovePhase,
   TaxCodeAppMapping,
   AppCapability,
+  AppAction,
   UpdateAppStripeRequest,
   UpdateAppSandboxRequest,
   UpdateAppExternalInvoicingRequest,

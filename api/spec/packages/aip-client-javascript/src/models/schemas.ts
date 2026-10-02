@@ -1052,6 +1052,10 @@ export const appStatus = z
   .enum(['ready', 'unauthorized'])
   .describe('Connection status of an installed app.')
 
+export const appActionType = z
+  .enum(['reconcile_webhook_events'])
+  .describe('App action type.')
+
 export const updateLabels = z
   .record(z.string(), z.string())
 
@@ -3471,6 +3475,15 @@ export const appCapability = z
   })
   .describe('App capability describes a function that an App can perform.')
 
+export const appAction = z
+  .object({
+    type: appActionType,
+    description: z
+      .string()
+      .describe('Human readable explanation of why the action is needed.'),
+  })
+  .describe('An action the operator should take on an installed app.')
+
 export const updateAppStripeRequest = z
   .object({
     name: z
@@ -5864,6 +5877,13 @@ export const appStripe = z
     type: z.literal('stripe').describe('The app type.'),
     definition: appCatalogItem,
     status: appStatus,
+    actions: z
+      .array(appAction)
+      .optional()
+
+      .describe(
+        'Actions the operator should take to bring the app up to date. Omitted when no action is required.',
+      ),
     accountId: z
       .string()
 
@@ -5908,6 +5928,13 @@ export const appSandbox = z
     type: z.literal('sandbox').describe('The app type.'),
     definition: appCatalogItem,
     status: appStatus,
+    actions: z
+      .array(appAction)
+      .optional()
+
+      .describe(
+        'Actions the operator should take to bring the app up to date. Omitted when no action is required.',
+      ),
   })
   .describe('Sandbox app can be used for testing billing features.')
 
@@ -5934,6 +5961,13 @@ export const appExternalInvoicing = z
     type: z.literal('external_invoicing').describe('The app type.'),
     definition: appCatalogItem,
     status: appStatus,
+    actions: z
+      .array(appAction)
+      .optional()
+
+      .describe(
+        'Actions the operator should take to bring the app up to date. Omitted when no action is required.',
+      ),
     enableDraftSyncHook: z
       .boolean()
 
@@ -5982,6 +6016,13 @@ export const installedAppStripe = z
     type: z.literal('stripe').describe('The app type.'),
     definition: appCatalogItem,
     status: appStatus,
+    actions: z
+      .array(appAction)
+      .optional()
+
+      .describe(
+        'Actions the operator should take to bring the app up to date. Omitted when no action is required.',
+      ),
     accountId: z
       .string()
 
@@ -6029,6 +6070,13 @@ export const installedAppSandbox = z
     type: z.literal('sandbox').describe('The app type.'),
     definition: appCatalogItem,
     status: appStatus,
+    actions: z
+      .array(appAction)
+      .optional()
+
+      .describe(
+        'Actions the operator should take to bring the app up to date. Omitted when no action is required.',
+      ),
     defaultForCapabilityTypes: z
       .array(appCapabilityType)
       .describe('Default capabilities of the installed app.'),
@@ -6058,6 +6106,13 @@ export const installedAppExternalInvoicing = z
     type: z.literal('external_invoicing').describe('The app type.'),
     definition: appCatalogItem,
     status: appStatus,
+    actions: z
+      .array(appAction)
+      .optional()
+
+      .describe(
+        'Actions the operator should take to bring the app up to date. Omitted when no action is required.',
+      ),
     enableDraftSyncHook: z
       .boolean()
 
@@ -10039,6 +10094,10 @@ export const appStatusWire = z
   .enum(['ready', 'unauthorized'])
   .describe('Connection status of an installed app.')
 
+export const appActionTypeWire = z
+  .enum(['reconcile_webhook_events'])
+  .describe('App action type.')
+
 export const updateLabelsWire = z
   .record(z.string(), z.string())
 
@@ -12444,6 +12503,15 @@ export const appCapabilityWire = z
   })
   .describe('App capability describes a function that an App can perform.')
 
+export const appActionWire = z
+  .strictObject({
+    type: appActionTypeWire,
+    description: z
+      .string()
+      .describe('Human readable explanation of why the action is needed.'),
+  })
+  .describe('An action the operator should take on an installed app.')
+
 export const updateAppStripeRequestWire = z
   .strictObject({
     name: z
@@ -14823,6 +14891,13 @@ export const appStripeWire = z
     type: z.literal('stripe').describe('The app type.'),
     definition: appCatalogItemWire,
     status: appStatusWire,
+    actions: z
+      .array(appActionWire)
+      .optional()
+
+      .describe(
+        'Actions the operator should take to bring the app up to date. Omitted when no action is required.',
+      ),
     account_id: z
       .string()
 
@@ -14867,6 +14942,13 @@ export const appSandboxWire = z
     type: z.literal('sandbox').describe('The app type.'),
     definition: appCatalogItemWire,
     status: appStatusWire,
+    actions: z
+      .array(appActionWire)
+      .optional()
+
+      .describe(
+        'Actions the operator should take to bring the app up to date. Omitted when no action is required.',
+      ),
   })
   .describe('Sandbox app can be used for testing billing features.')
 
@@ -14893,6 +14975,13 @@ export const appExternalInvoicingWire = z
     type: z.literal('external_invoicing').describe('The app type.'),
     definition: appCatalogItemWire,
     status: appStatusWire,
+    actions: z
+      .array(appActionWire)
+      .optional()
+
+      .describe(
+        'Actions the operator should take to bring the app up to date. Omitted when no action is required.',
+      ),
     enable_draft_sync_hook: z
       .boolean()
 
@@ -14941,6 +15030,13 @@ export const installedAppStripeWire = z
     type: z.literal('stripe').describe('The app type.'),
     definition: appCatalogItemWire,
     status: appStatusWire,
+    actions: z
+      .array(appActionWire)
+      .optional()
+
+      .describe(
+        'Actions the operator should take to bring the app up to date. Omitted when no action is required.',
+      ),
     account_id: z
       .string()
 
@@ -14988,6 +15084,13 @@ export const installedAppSandboxWire = z
     type: z.literal('sandbox').describe('The app type.'),
     definition: appCatalogItemWire,
     status: appStatusWire,
+    actions: z
+      .array(appActionWire)
+      .optional()
+
+      .describe(
+        'Actions the operator should take to bring the app up to date. Omitted when no action is required.',
+      ),
     default_for_capability_types: z
       .array(appCapabilityTypeWire)
       .describe('Default capabilities of the installed app.'),
@@ -15017,6 +15120,13 @@ export const installedAppExternalInvoicingWire = z
     type: z.literal('external_invoicing').describe('The app type.'),
     definition: appCatalogItemWire,
     status: appStatusWire,
+    actions: z
+      .array(appActionWire)
+      .optional()
+
+      .describe(
+        'Actions the operator should take to bring the app up to date. Omitted when no action is required.',
+      ),
     enable_draft_sync_hook: z
       .boolean()
 

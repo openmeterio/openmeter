@@ -23,6 +23,7 @@ type App interface {
 	GetStatus() AppStatus
 	GetMetadata() models.Metadata
 	GetListing() MarketplaceListing
+	Actions() []AppAction
 
 	GetEventAppData() (EventAppData, error)
 
