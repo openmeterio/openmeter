@@ -15,6 +15,40 @@ type Driver interface {
 	SavePoint() error
 }
 
+type afterCommitScope struct {
+	parent    *afterCommitScope
+	rooted    bool
+	callbacks []func()
+}
+
+type afterCommitContextKey struct{}
+
+// AfterCommit schedules work after the outermost transaction.Run commits.
+// Callbacks are discarded when their transaction scope rolls back.
+func AfterCommit(ctx context.Context, callback func()) error {
+	scope, ok := ctx.Value(afterCommitContextKey{}).(*afterCommitScope)
+	if !ok || !scope.rooted {
+		return errors.New("after-commit callback requires a transaction.Run root")
+	}
+	if callback == nil {
+		return errors.New("after-commit callback is nil")
+	}
+
+	scope.callbacks = append(scope.callbacks, callback)
+	return nil
+}
+
+func (s *afterCommitScope) complete() {
+	if s.parent != nil {
+		s.parent.callbacks = append(s.parent.callbacks, s.callbacks...)
+		return
+	}
+
+	for _, callback := range s.callbacks {
+		callback()
+	}
+}
+
 // Able to start a new transaction
 type Creator interface {
 	Tx(ctx context.Context) (context.Context, Driver, error)
@@ -31,6 +65,8 @@ func RunWithNoValue(ctx context.Context, creator Creator, cb func(ctx context.Co
 // Runs the callback inside a transaction
 func Run[R any](ctx context.Context, creator Creator, cb func(ctx context.Context) (R, error)) (R, error) {
 	var def R
+	parent, _ := ctx.Value(afterCommitContextKey{}).(*afterCommitScope)
+	_, existingDriverErr := GetDriverFromContext(ctx)
 	// Make sure we have a transaction
 	ctx, tx, err := getTx(ctx, creator)
 	if err != nil {
@@ -42,11 +78,20 @@ func Run[R any](ctx context.Context, creator Creator, cb func(ctx context.Contex
 	if _, ok := err.(*DriverConflictError); !ok && err != nil {
 		return def, fmt.Errorf("unknown error %w", err)
 	}
+	scope := &afterCommitScope{
+		parent: parent,
+		rooted: (parent != nil && parent.rooted) || existingDriverErr != nil,
+	}
+	ctx = context.WithValue(ctx, afterCommitContextKey{}, scope)
 
 	// Execute the callback and manage the transaction
-	return manage(ctx, tx, func(ctx context.Context, tx Driver) (R, error) {
+	result, err := manage(ctx, tx, func(ctx context.Context, tx Driver) (R, error) {
 		return cb(ctx)
 	})
+	if err == nil && scope.rooted {
+		scope.complete()
+	}
+	return result, err
 }
 
 // RunInNewTransaction starts and commits a transaction independently of any
@@ -71,10 +116,16 @@ func RunInNewTransaction[R any](ctx context.Context, creator Creator, cb func(ct
 	}
 
 	ctx = withDriver(ctx, tx)
+	scope := &afterCommitScope{rooted: true}
+	ctx = context.WithValue(ctx, afterCommitContextKey{}, scope)
 
-	return manage(ctx, tx, func(ctx context.Context, tx Driver) (R, error) {
+	result, err := manage(ctx, tx, func(ctx context.Context, tx Driver) (R, error) {
 		return cb(ctx)
 	})
+	if err == nil {
+		scope.complete()
+	}
+	return result, err
 }
 
 // Returns the current transaction from the context or creates a new one
