@@ -215,10 +215,12 @@ interface FeaturesEndpoints extends Features.FeatureOperations {}
 @tag(Shared.FeaturesTag)
 interface FeatureCostEndpoints extends Features.FeatureCostOperations {}
 
+#deprecated "Not supported anymore"
 @route("/openmeter/llm-cost/prices")
 @tag(Shared.LLMCostTag)
 interface LLMCostPricesEndpoints extends LLMCost.LLMCostPricesOperations {}
 
+#deprecated "Not supported anymore"
 @route("/openmeter/llm-cost/overrides")
 @tag(Shared.LLMCostTag)
 interface LLMCostOverridesEndpoints
