@@ -1065,10 +1065,26 @@ func (e *LineEngine) OnInvoiceIssued(ctx context.Context, input billing.OnInvoic
 			return err
 		}
 
-		if err := stateMachine.FireAndAdvanceUntilStable(ctx, meta.TriggerInvoiceIssued, billing.StandardLineWithInvoiceHeader{
+		lineWithHeader := billing.StandardLineWithInvoiceHeader{
 			Line:    stdLine,
 			Invoice: input.Invoice,
-		}); err != nil {
+		}
+		charge := stateMachine.GetCharge()
+		// Billing retries invoice_issued for every line when any line callback fails.
+		// A preceding line can therefore have committed its charge and ledger updates.
+		// Immutable is persisted only after that work succeeds, so a matching run is
+		// already complete and must not receive invoice_issued again.
+		// See TestCreditThenInvoiceTestSuite/TestFlatFeeIssuingRetryPreservesCompletedChargeBooking.
+		run, err := charge.Realizations.GetByLineID(stdLine.ID)
+		if err == nil && run.Immutable {
+			if run.InvoiceID == nil || *run.InvoiceID != input.Invoice.ID {
+				return fmt.Errorf("issued realization run[%s] invoice does not match invoice[%s]", run.ID.ID, input.Invoice.ID)
+			}
+
+			continue
+		}
+
+		if err := stateMachine.FireAndAdvanceUntilStable(ctx, meta.TriggerInvoiceIssued, lineWithHeader); err != nil {
 			return fmt.Errorf("triggering invoice_issued for charge[%s]: %w", stateMachine.GetCharge().ID, err)
 		}
 	}

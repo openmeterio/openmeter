@@ -3497,13 +3497,13 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditThenInvoiceFullyCreditedDo
 		s.Len(flatFeeWithDetailedLines.Realizations.CurrentRun.DetailedLines.OrEmpty(), len(invoice.Lines.OrEmpty()[0].DetailedLines))
 	})
 
+	lineEngine := s.Charges.flatFeeService.GetLineEngine()
 	s.Run("finalize invoice without invoice usage accrual", func() {
 		defer s.FlatFeeTestHandler.Reset()
 
 		invoiceUsageAccruedCallback := newCountedLedgerTransactionCallback[flatfee.OnInvoiceUsageAccruedInput]()
 		s.FlatFeeTestHandler.onInvoiceUsageAccrued = invoiceUsageAccruedCallback.Handler(s.T())
 
-		lineEngine := s.Charges.flatFeeService.GetLineEngine()
 		lines, err := lineEngine.OnCollectionCompleted(ctx, billing.OnCollectionCompletedInput{
 			Invoice: invoice,
 			Lines:   invoice.Lines.OrEmpty(),
@@ -3544,6 +3544,24 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditThenInvoiceFullyCreditedDo
 		s.NoError(err)
 		s.Equal(0, invoiceUsageAccruedCallback.nrInvocations)
 		updatedFlatFeeCharge = s.mustGetFlatFeeChargeByIDWithDetailedLines(flatFeeChargeID)
+		s.Equal(flatfee.StatusFinal, updatedFlatFeeCharge.Status)
+		s.Require().NotNil(updatedFlatFeeCharge.Realizations.CurrentRun)
+		s.True(updatedFlatFeeCharge.Realizations.CurrentRun.Immutable)
+	})
+
+	s.Run("replay issued callback without invoice usage accrual", func() {
+		defer s.FlatFeeTestHandler.Reset()
+
+		invoiceUsageAccruedCallback := newCountedLedgerTransactionCallback[flatfee.OnInvoiceUsageAccruedInput]()
+		s.FlatFeeTestHandler.onInvoiceUsageAccrued = invoiceUsageAccruedCallback.Handler(s.T())
+
+		err := lineEngine.OnInvoiceIssued(ctx, billing.OnInvoiceIssuedInput{
+			Invoice: invoice,
+			Lines:   invoice.Lines.OrEmpty(),
+		})
+		s.NoError(err)
+		s.Equal(0, invoiceUsageAccruedCallback.nrInvocations)
+		updatedFlatFeeCharge := s.mustGetFlatFeeChargeByIDWithDetailedLines(flatFeeChargeID)
 		s.Equal(flatfee.StatusFinal, updatedFlatFeeCharge.Status)
 		s.Require().NotNil(updatedFlatFeeCharge.Realizations.CurrentRun)
 		s.True(updatedFlatFeeCharge.Realizations.CurrentRun.Immutable)

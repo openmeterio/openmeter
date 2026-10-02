@@ -211,6 +211,10 @@ invoice validation issue.
   written under the lifecycle transaction. Retry safety comes from persisted
   lifecycle facts checked before handlers run, not from the
   [ledger](../../ledger/README.md#transaction-invariants).
+- Invoice issuance retries acknowledge an immutable flat-fee or usage-based
+  realization for the same invoice and line without booking another ledger
+  transaction. The immutable realization is the durable fact that issuance
+  already completed. Credit purchases have no invoice-issuance effect.
 - Invoice authorization retries for flat-fee, usage-based, and credit-purchase
   charges acknowledge an existing valid, non-deleted payment only when its
   namespace, invoice, line, and amount match. Authorized and settled payments
