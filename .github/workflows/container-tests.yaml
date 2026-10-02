@@ -151,16 +151,19 @@ jobs:
             runner: ubuntu-24.04
             go_cache: true
             verify_depot_cache: false
+            dependency_source: upstream
           - name: Base E2E
             suite: base
             runner: depot-ubuntu-24.04-8
             go_cache: false
             verify_depot_cache: true
+            dependency_source: depot
           - name: Credits-disabled E2E
             suite: credits-disabled
             runner: ubuntu-24.04
             go_cache: true
             verify_depot_cache: false
+            dependency_source: upstream
     runs-on: ${{ matrix.runner }}
     permissions:
       contents: read
@@ -209,13 +212,6 @@ jobs:
           DEPOT_PROJECT: ${{ vars.DEPOT_PROJECT }}
         run: depot pull-token --project "${DEPOT_PROJECT}" | docker login registry.depot.dev --username x-token --password-stdin
 
-      - name: Log in to Depot dependency registry
-        if: matrix.suite != 'quickstart'
-        env:
-          DEPOT_PROJECT: ${{ vars.DEPOT_PROJECT }}
-          DEPOT_REGISTRY: 6drdc68833.registry.depot.dev
-        run: depot pull-token --project "${DEPOT_PROJECT}" | docker login "${DEPOT_REGISTRY}" --username x-token --password-stdin
-
       - name: Run ${{ matrix.name }}
         env:
           OPENMETER_IMAGE: ${{ needs.registry-image.outputs.image }}
@@ -225,7 +221,7 @@ jobs:
               bash .github/scripts/run-quickstart.sh "${OPENMETER_IMAGE}" always
               ;;
             base|credits-disabled)
-              bash .github/scripts/run-e2e.sh "${{ matrix.suite }}" "${OPENMETER_IMAGE}" always depot
+              bash .github/scripts/run-e2e.sh "${{ matrix.suite }}" "${OPENMETER_IMAGE}" always "${{ matrix.dependency_source }}"
               ;;
           esac
 
