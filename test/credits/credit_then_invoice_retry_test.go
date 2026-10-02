@@ -567,6 +567,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeIssuingRetryPreservesCompletedCh
 
 	var fixture issuingRetryInvoice
 	s.Run("create an invoice with two flat fee charges", func() {
+		// given an invoice with two independently bookable flat fee charges
 		t := s.T()
 		fixture = s.setupFlatFeeIssuingRetryInvoice()
 		require.Equal(t, float64(15), fixture.Invoice.Totals.Total.InexactFloat64())
@@ -575,6 +576,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeIssuingRetryPreservesCompletedCh
 	var completedBeforeRetry completedIssuingBooking
 	var ledgerBeforeRetry LedgerSnapshot
 	s.Run("fail issuance after the first charge booking completes", func() {
+		// when invoice issuance fails after the first charge booking commits
 		t := s.T()
 		clock.FreezeTime(fixture.Invoice.DraftUntil.Add(time.Second))
 		defer clock.UnFreeze()
@@ -592,6 +594,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeIssuingRetryPreservesCompletedCh
 	})
 
 	s.Run("retry books only the remaining charge", func() {
+		// then retry preserves the completed booking and books the remaining charge
 		t := s.T()
 		retried, err := s.BillingService.RetryInvoice(ctx, fixture.Invoice.GetInvoiceID())
 		require.NoError(t, err)
@@ -617,6 +620,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedIssuingRetryPreservesComplete
 
 	var fixture issuingRetryInvoice
 	s.Run("create an invoice with two usage based charges", func() {
+		// given an invoice with two independently bookable usage based charges
 		t := s.T()
 		fixture = s.setupUsageBasedIssuingRetryInvoice()
 		require.Equal(t, float64(15), fixture.Invoice.Totals.Total.InexactFloat64())
@@ -625,6 +629,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedIssuingRetryPreservesComplete
 	var completedBeforeRetry completedIssuingBooking
 	var ledgerBeforeRetry LedgerSnapshot
 	s.Run("fail issuance after the first charge booking completes", func() {
+		// when invoice issuance fails after the first charge booking commits
 		t := s.T()
 		clock.FreezeTime(fixture.Invoice.DraftUntil.Add(time.Second))
 		defer clock.UnFreeze()
@@ -642,6 +647,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedIssuingRetryPreservesComplete
 	})
 
 	s.Run("retry books only the remaining charge", func() {
+		// then retry preserves the completed booking and books the remaining charge
 		t := s.T()
 		retried, err := s.BillingService.RetryInvoice(ctx, fixture.Invoice.GetInvoiceID())
 		require.NoError(t, err)
