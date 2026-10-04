@@ -297,6 +297,10 @@ func (s *Server) UpdateApp(w http.ResponseWriter, r *http.Request, appId api.ULI
 	s.appsHandler.UpdateApp().With(appId).ServeHTTP(w, r)
 }
 
+func (s *Server) ExecuteAppAction(w http.ResponseWriter, r *http.Request, appId api.ULID) {
+	s.appsHandler.ExecuteAppAction().With(appId).ServeHTTP(w, r)
+}
+
 func (s *Server) ListAppCatalog(w http.ResponseWriter, r *http.Request, params api.ListAppCatalogParams) {
 	s.appsHandler.ListAppCatalog().With(params).ServeHTTP(w, r)
 }

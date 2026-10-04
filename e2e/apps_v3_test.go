@@ -133,3 +133,48 @@ func TestV3AppUninstall(t *testing.T) {
 		require.NotNil(t, gotten.DeletedAt, "expected deleted_at to be set after uninstall")
 	})
 }
+
+// TestV3AppExecuteAction exercises POST /api/v3/openmeter/apps/{appId}/action.
+// Only Stripe apps can offer actions, and installing one needs a real API key,
+// so the live-server coverage is limited to the rejection paths; the Stripe
+// reconcile flow is covered in test/app/stripe.
+func TestV3AppExecuteAction(t *testing.T) {
+	c := newV3Client(t)
+
+	req, err := v3sdk.InstallAppRequestFromInstallAppExternalInvoicing(v3sdk.InstallAppExternalInvoicing{
+		Type:                 v3sdk.AppTypeExternalInvoicing,
+		Name:                 gofakeit.LoremIpsumSentence(3),
+		CreateBillingProfile: false,
+	})
+	require.NoError(t, err)
+	installResp, err := c.Apps.Install(t.Context(), req)
+	require.NoError(t, err)
+
+	installed, err := installResp.AsInstalledAppExternalInvoicing()
+	require.NoError(t, err)
+
+	t.Run("Should reject an action the app does not offer", func(t *testing.T) {
+		action, err := v3sdk.AppActionRequestFromAppReconcileWebhookEventsActionRequest(v3sdk.AppReconcileWebhookEventsActionRequest{})
+		require.NoError(t, err)
+
+		_, err = c.Apps.ExecuteAction(t.Context(), installed.ID, action)
+		problem := requireProblem(t, err, http.StatusBadRequest)
+		assertProblemDetail(t, problem, "does not support action reconcile_webhook_events")
+	})
+
+	t.Run("Should reject an unknown action type", func(t *testing.T) {
+		status, _, problem := c.doMalformedRequest(http.MethodPost, "/apps/"+installed.ID+"/action", map[string]any{
+			"action_type": "no_such_action",
+		})
+		require.Equal(t, http.StatusBadRequest, status)
+		assertProblemDetail(t, problem, `discriminator property "action_type" has invalid value`)
+	})
+
+	t.Run("Should return not found for an unknown app", func(t *testing.T) {
+		action, err := v3sdk.AppActionRequestFromAppReconcileWebhookEventsActionRequest(v3sdk.AppReconcileWebhookEventsActionRequest{})
+		require.NoError(t, err)
+
+		_, err = c.Apps.ExecuteAction(t.Context(), "01JZZZZZZZZZZZZZZZZZZZZZZZ", action)
+		requireProblem(t, err, http.StatusNotFound)
+	})
+}

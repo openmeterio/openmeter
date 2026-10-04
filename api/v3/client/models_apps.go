@@ -121,6 +121,63 @@ type AppAction struct {
 	Description string `json:"description"`
 }
 
+// Request to execute an operator action on an installed app.
+//
+// AppActionRequest is a JSON-preserving tagged union: its zero value marshals as JSON null, and values must be built with the AppActionRequestFrom* constructors.
+// The exported ActionType field is decode-side metadata; MarshalJSON round-trips the original payload and ignores writes to it.
+type AppActionRequest struct {
+	ActionType string `json:"action_type"`
+	raw        json.RawMessage
+}
+
+func (u *AppActionRequest) UnmarshalJSON(data []byte) error {
+	u.raw = append([]byte(nil), data...)
+	if string(data) == "null" {
+		u.ActionType = ""
+		return nil
+	}
+
+	var envelope struct {
+		Value string `json:"action_type"`
+	}
+	if err := json.Unmarshal(data, &envelope); err != nil {
+		return err
+	}
+	u.ActionType = envelope.Value
+	return nil
+}
+
+func (u AppActionRequest) MarshalJSON() ([]byte, error) {
+	if len(u.raw) == 0 {
+		return []byte("null"), nil
+	}
+	return append([]byte(nil), u.raw...), nil
+}
+
+func (u AppActionRequest) AsAppReconcileWebhookEventsActionRequest() (*AppReconcileWebhookEventsActionRequest, error) {
+	if u.ActionType != "reconcile_webhook_events" {
+		return nil, fmt.Errorf("AppActionRequest: expected action_type %q, got %q", "reconcile_webhook_events", u.ActionType)
+	}
+	var value AppReconcileWebhookEventsActionRequest
+	if err := json.Unmarshal(u.raw, &value); err != nil {
+		return nil, err
+	}
+	return &value, nil
+}
+
+func AppActionRequestFromAppReconcileWebhookEventsActionRequest(value AppReconcileWebhookEventsActionRequest) (AppActionRequest, error) {
+	value.ActionType = "reconcile_webhook_events"
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return AppActionRequest{}, err
+	}
+	var result AppActionRequest
+	if err := result.UnmarshalJSON(raw); err != nil {
+		return AppActionRequest{}, err
+	}
+	return result, nil
+}
+
 // App action type.
 type AppActionType string
 
@@ -281,6 +338,13 @@ func (value AppInstallMethods) Valid() bool {
 type AppPagePaginatedResponse struct {
 	Data []App         `json:"data"`
 	Meta PaginatedMeta `json:"meta"`
+}
+
+// Request to reconcile the app's webhook events with the latest supported event
+// set.
+type AppReconcileWebhookEventsActionRequest struct {
+	// The action to execute.
+	ActionType AppActionType `json:"action_type"`
 }
 
 // Sandbox app can be used for testing billing features.

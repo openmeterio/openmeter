@@ -14,6 +14,29 @@ func NewAppDeletedError(appID AppID) error {
 	return fmt.Errorf("app %s: %w", appID.ID, ErrAppDeleted)
 }
 
+// AppActionUnsupportedError is returned when an app does not currently offer the requested action.
+func NewAppActionUnsupportedError(appID AppID, actionType AppActionType) *AppActionUnsupportedError {
+	return &AppActionUnsupportedError{
+		err: models.NewGenericValidationError(
+			fmt.Errorf("app %s does not support action %s", appID.ID, actionType),
+		),
+	}
+}
+
+var _ models.GenericError = (*AppActionUnsupportedError)(nil)
+
+type AppActionUnsupportedError struct {
+	err error
+}
+
+func (e AppActionUnsupportedError) Error() string {
+	return e.err.Error()
+}
+
+func (e AppActionUnsupportedError) Unwrap() error {
+	return e.err
+}
+
 // AppNotFoundError
 func NewAppNotFoundError(appID AppID) *AppNotFoundError {
 	return &AppNotFoundError{

@@ -29,6 +29,8 @@ func (m *minimalApp) GetEventAppData() (app.EventAppData, error) { return app.Ev
 
 func (m *minimalApp) UpdateAppConfig(_ context.Context, _ app.AppConfigUpdate) error { return nil }
 
+func (m *minimalApp) ExecuteAction(_ context.Context, _ app.ExecuteAppActionInput) error { return nil }
+
 func (m *minimalApp) GetCustomerData(_ context.Context, _ app.GetAppInstanceCustomerDataInput) (app.CustomerData, error) {
 	return nil, nil
 }

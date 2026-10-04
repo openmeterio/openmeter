@@ -304,6 +304,15 @@ export interface SubscriptionEditUnscheduleEdit {
  */
 export type UpdateLabels = Record<string, string>
 
+/**
+ * Request to reconcile the app's webhook events with the latest supported event
+ * set.
+ */
+export interface AppReconcileWebhookEventsActionRequest {
+  /** The action to execute. */
+  actionType: 'reconcile_webhook_events'
+}
+
 /** Model for installing an app from the catalog with an API key. */
 export interface InstallAppStripeWithApiKey {
   /** Type of the app. */
@@ -7516,6 +7525,9 @@ export type SubscriptionCreateTiming = 'immediate' | Date
  * returned.
  */
 export type SubscriptionEditTiming = 'immediate' | 'next_billing_cycle' | Date
+
+/** Request to execute an operator action on an installed app. */
+export type AppActionRequest = AppReconcileWebhookEventsActionRequest
 
 /** Request to install an app from the catalog. */
 export type InstallAppRequest =

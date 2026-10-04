@@ -3,6 +3,7 @@ package appservice
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
@@ -148,6 +149,29 @@ func (s *Service) UninstallApp(ctx context.Context, input app.UninstallAppInput)
 	}
 
 	return nil
+}
+
+func (s *Service) ExecuteAppAction(ctx context.Context, input app.ExecuteAppActionInput) (app.App, error) {
+	if err := input.Validate(); err != nil {
+		return nil, err
+	}
+
+	existingApp, err := s.adapter.GetApp(ctx, input.AppID)
+	if err != nil {
+		return nil, err
+	}
+
+	if !slices.ContainsFunc(existingApp.Actions(), func(action app.AppAction) bool {
+		return action.Type == input.Type
+	}) {
+		return nil, app.NewAppActionUnsupportedError(existingApp.GetID(), input.Type)
+	}
+
+	if err := existingApp.ExecuteAction(ctx, input); err != nil {
+		return nil, err
+	}
+
+	return s.adapter.GetApp(ctx, input.AppID)
 }
 
 func (s *Service) UpdateAppStatus(ctx context.Context, input app.UpdateAppStatusInput) error {

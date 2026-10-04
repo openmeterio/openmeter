@@ -1568,6 +1568,10 @@ func (n NoopAppService) UninstallApp(ctx context.Context, input app.UninstallApp
 	return nil
 }
 
+func (n NoopAppService) ExecuteAppAction(ctx context.Context, input app.ExecuteAppActionInput) (app.App, error) {
+	return nil, nil
+}
+
 func (n NoopAppService) ListCustomerData(ctx context.Context, input app.ListCustomerInput) (pagination.Result[app.CustomerApp], error) {
 	return pagination.Result[app.CustomerApp]{}, nil
 }
@@ -1585,6 +1589,10 @@ var _ appstripe.Service = (*NoopAppStripeService)(nil)
 type NoopAppStripeService struct{}
 
 func (n NoopAppStripeService) UpdateAPIKey(ctx context.Context, input appstripe.UpdateAPIKeyInput) error {
+	return nil
+}
+
+func (n NoopAppStripeService) UpdateWebhookSchemaVersion(ctx context.Context, input appstripe.UpdateWebhookSchemaVersionInput) error {
 	return nil
 }
 

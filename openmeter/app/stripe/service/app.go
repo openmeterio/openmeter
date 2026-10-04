@@ -29,6 +29,12 @@ func (s *Service) UpdateAPIKey(ctx context.Context, input appstripe.UpdateAPIKey
 	})
 }
 
+func (s *Service) UpdateWebhookSchemaVersion(ctx context.Context, input appstripe.UpdateWebhookSchemaVersionInput) error {
+	return transaction.RunWithNoValue(ctx, s.adapter, func(ctx context.Context) error {
+		return s.adapter.UpdateWebhookSchemaVersion(ctx, input)
+	})
+}
+
 func (s *Service) CreateCheckoutSession(ctx context.Context, input appstripe.CreateCheckoutSessionInput) (appstripe.CreateCheckoutSessionOutput, error) {
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (appstripe.CreateCheckoutSessionOutput, error) {
 		// Create the checkout session

@@ -153,6 +153,30 @@ func (s *AppsService) Update(ctx context.Context, appID string, request UpdateAp
 	return &out, nil
 }
 
+// Execute an operator action on an installed app. The action must be listed in the
+// app's `actions`; otherwise the request is rejected.
+func (s *AppsService) ExecuteAction(ctx context.Context, appID string, request AppActionRequest) (*App, error) {
+	if appID == "" {
+		return nil, fmt.Errorf("openmeter: %s must not be empty: %w", "appID", ErrEmptyID)
+	}
+
+	path := "/openmeter/apps/{appId}/action"
+
+	path = replacePathParam(path, "appId", appID)
+
+	req, err := s.client.newRequestWithContentType(ctx, http.MethodPost, path, nil, request, "application/json", "application/json")
+	if err != nil {
+		return nil, err
+	}
+
+	var out App
+	if err := s.client.doJSON(req, &out); err != nil {
+		return nil, err
+	}
+
+	return &out, nil
+}
+
 // List available apps.
 func (s *AppsService) ListCatalog(ctx context.Context, params AppCatalogItemListParams) (*AppCatalogItemPagePaginatedResponse, error) {
 	path := "/openmeter/app-catalog"
