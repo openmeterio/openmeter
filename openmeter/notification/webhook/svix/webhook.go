@@ -11,6 +11,7 @@ import (
 	"github.com/samber/lo"
 	svix "github.com/svix/svix-webhooks/go"
 	svixmodels "github.com/svix/svix-webhooks/go/models"
+	svixutils "github.com/svix/svix-webhooks/go/utils"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 
@@ -256,15 +257,15 @@ func (h svixHandler) UpdateWebhook(ctx context.Context, params webhook.UpdateWeb
 			}
 		}
 
-		input := svix.EndpointUpsertIn{
-			Uid:          &params.ID,
-			Description:  lo.EmptyableToPtr(lo.FromPtr(params.Description)),
-			Url:          params.URL,
+		input := svix.EndpointPatch{
+			Uid:          svixutils.NewNullable(params.ID),
+			Description:  params.Description,
+			Url:          &params.URL,
 			Disabled:     &params.Disabled,
-			ThrottleRate: params.RateLimit,
-			EventTypes:   params.EventTypes,
-			Channels:     params.Channels,
-			Metadata:     lo.EmptyableToPtr(params.Metadata),
+			ThrottleRate: svixutils.NewNullableFromPtr(params.RateLimit),
+			EventTypes:   svixutils.NewNullable(params.EventTypes),
+			Channels:     svixutils.NewNullable(params.Channels),
+			Metadata:     &params.Metadata,
 		}
 
 		span := trace.SpanFromContext(ctx)
@@ -277,7 +278,7 @@ func (h svixHandler) UpdateWebhook(ctx context.Context, params webhook.UpdateWeb
 
 		span.AddEvent("updating endpoint", trace.WithAttributes(spanAttrs...))
 
-		endpoint, err := h.client.Endpoint().Upsert(ctx, app.Id, params.ID, input)
+		endpoint, err := h.client.Endpoint().Patch(ctx, app.Id, params.ID, input)
 		if err = internal.WrapSvixError(err); err != nil {
 			return nil, fmt.Errorf("failed to update Svix endpoint: %w", err)
 		}
