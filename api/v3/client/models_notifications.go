@@ -149,8 +149,8 @@ type NotificationEventBalanceThresholdData struct {
 	SubjectKey string `json:"subject_key"`
 	// The identifier of the customer the subject belongs to, if any.
 	CustomerID *string `json:"customer_id,omitempty"`
-	// The entitlement balance at the time the event was generated.
-	Value NotificationEventEntitlementValue `json:"value"`
+	// The entitlement value at the time the event was generated.
+	Value EntitlementValueResult `json:"value"`
 	// The threshold the balance crossed.
 	Threshold NotificationBalanceThreshold `json:"threshold"`
 }
@@ -240,21 +240,8 @@ type NotificationEventEntitlementData struct {
 	SubjectKey string `json:"subject_key"`
 	// The identifier of the customer the subject belongs to, if any.
 	CustomerID *string `json:"customer_id,omitempty"`
-	// The entitlement balance at the time the event was generated.
-	Value NotificationEventEntitlementValue `json:"value"`
-}
-
-// The entitlement balance at the time the event was generated.
-type NotificationEventEntitlementValue struct {
-	// Whether the subject had access to the feature. The balance never goes below
-	// zero, so access can be lost while the balance is still reported as zero.
-	HasAccess bool `json:"has_access"`
-	// The remaining balance of the entitlement.
-	Balance *float64 `json:"balance,omitempty"`
-	// The total feature usage in the current usage period.
-	Usage *float64 `json:"usage,omitempty"`
-	// The usage not covered by any grant.
-	Overage *float64 `json:"overage,omitempty"`
+	// The entitlement value at the time the event was generated.
+	Value EntitlementValueResult `json:"value"`
 }
 
 // A reference to the feature of an entitlement notification event.

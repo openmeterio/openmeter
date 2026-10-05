@@ -176,8 +176,18 @@ func TestToAPIEvent_BalanceThreshold(t *testing.T) {
 	assert.Equal(t, "gpt4_tokens", payload.Data.Feature.Key)
 	assert.Equal(t, "customer-1", payload.Data.SubjectKey)
 	assert.Equal(t, "01ARZ3NDEKTSV4RRFFQ69G5FAZ", lo.FromPtr(payload.Data.CustomerId))
-	assert.True(t, payload.Data.Value.HasAccess)
-	assert.Equal(t, 100.0, lo.FromPtr(payload.Data.Value.Balance))
+	assert.Equal(t, api.BillingEntitlementValueResult{
+		Type:       api.BillingEntitlementTypeMetered,
+		FeatureKey: "gpt4_tokens",
+		HasAccess:  true,
+		Value: &api.BillingEntitlementAccessValue{
+			Balance:                   "100",
+			Usage:                     "900",
+			Overage:                   "0",
+			TotalAvailableGrantAmount: "0",
+			GrantBalances:             map[string]api.Numeric{},
+		},
+	}, payload.Data.Value)
 	assert.Equal(t, api.BillingNotificationBalanceThresholdTypeUsagePercentage, payload.Data.Threshold.Type)
 	assert.Equal(t, 90.0, payload.Data.Threshold.Value)
 }

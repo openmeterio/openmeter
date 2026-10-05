@@ -1,4 +1,5 @@
 import "../shared/index.tsp";
+import "../entitlements/index.tsp";
 import "./rule.tsp";
 
 namespace Notifications;
@@ -186,37 +187,6 @@ model NotificationEventDeliveryStatus {
 }
 
 /**
- * The entitlement balance at the time the event was generated.
- */
-@friendlyName("BillingNotificationEventEntitlementValue")
-model NotificationEventEntitlementValue {
-  /**
-   * Whether the subject had access to the feature. The balance never goes below
-   * zero, so access can be lost while the balance is still reported as zero.
-   */
-  @visibility(Lifecycle.Read)
-  has_access: boolean;
-
-  /**
-   * The remaining balance of the entitlement.
-   */
-  @visibility(Lifecycle.Read)
-  balance?: float64;
-
-  /**
-   * The total feature usage in the current usage period.
-   */
-  @visibility(Lifecycle.Read)
-  usage?: float64;
-
-  /**
-   * The usage not covered by any grant.
-   */
-  @visibility(Lifecycle.Read)
-  overage?: float64;
-}
-
-/**
  * A reference to the feature of an entitlement notification event.
  */
 @friendlyName("BillingNotificationEventFeatureReference")
@@ -265,10 +235,10 @@ model NotificationEventEntitlementData {
   customer_id?: Shared.ULID;
 
   /**
-   * The entitlement balance at the time the event was generated.
+   * The entitlement value at the time the event was generated.
    */
   @visibility(Lifecycle.Read)
-  value: NotificationEventEntitlementValue;
+  value: Entitlements.EntitlementValueResult;
 }
 
 /**

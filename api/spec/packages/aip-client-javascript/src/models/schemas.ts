@@ -1391,29 +1391,6 @@ export const notificationEventDeliveryAttemptResponse = z
     'The response the recipient returned for a delivery attempt. For webhook channels this is the HTTP response.',
   )
 
-export const notificationEventEntitlementValue = z
-  .object({
-    hasAccess: z
-      .boolean()
-
-      .describe(
-        'Whether the subject had access to the feature. The balance never goes below zero, so access can be lost while the balance is still reported as zero.',
-      ),
-    balance: z
-      .number()
-      .optional()
-      .describe('The remaining balance of the entitlement.'),
-    usage: z
-      .number()
-      .optional()
-      .describe('The total feature usage in the current usage period.'),
-    overage: z
-      .number()
-      .optional()
-      .describe('The usage not covered by any grant.'),
-  })
-  .describe('The entitlement balance at the time the event was generated.')
-
 export const notificationBalanceThresholdType = z
   .enum(['balance_value', 'usage_percentage', 'usage_value'])
   .describe('What a balance threshold is measured against.')
@@ -4523,21 +4500,6 @@ export const updateTaxCodeConfig = z
     'Tax configuration for a billable resource. Applies a tax code and tax behavior to the resulting invoice line items. When not set, the applicable default is used: the billing profile default tax configuration, then the organization default tax code.',
   )
 
-export const notificationEventEntitlementData = z
-  .object({
-    entitlementId: ulid,
-    feature: notificationEventFeatureReference,
-    subjectKey: z
-      .string()
-      .describe('The key of the subject the entitlement belongs to.'),
-    customerId: ulid.optional(),
-    value: notificationEventEntitlementValue,
-  })
-
-  .describe(
-    'The entitlement, feature, and subject an entitlement notification event refers to.',
-  )
-
 export const notificationEventInvoiceData = z
   .object({
     invoice: notificationEventInvoiceReference,
@@ -5547,19 +5509,6 @@ export const notificationEventDeliveryStatus = z
     'The delivery status of a notification event for one channel of the generating rule.',
   )
 
-export const notificationEventBalanceThresholdData = z
-  .object({
-    entitlementId: ulid,
-    feature: notificationEventFeatureReference,
-    subjectKey: z
-      .string()
-      .describe('The key of the subject the entitlement belongs to.'),
-    customerId: ulid.optional(),
-    value: notificationEventEntitlementValue,
-    threshold: notificationBalanceThreshold,
-  })
-  .describe('The entities and threshold a balance threshold event refers to.')
-
 export const customerData = z
   .object({
     billingProfile: profileReference.optional(),
@@ -5612,6 +5561,34 @@ export const listCustomerEntitlementAccessResponseData = z
       .describe('The list of entitlement access results.'),
   })
   .describe('List customer entitlement access response data.')
+
+export const notificationEventBalanceThresholdData = z
+  .object({
+    entitlementId: ulid,
+    feature: notificationEventFeatureReference,
+    subjectKey: z
+      .string()
+      .describe('The key of the subject the entitlement belongs to.'),
+    customerId: ulid.optional(),
+    value: entitlementValueResult,
+    threshold: notificationBalanceThreshold,
+  })
+  .describe('The entities and threshold a balance threshold event refers to.')
+
+export const notificationEventEntitlementData = z
+  .object({
+    entitlementId: ulid,
+    feature: notificationEventFeatureReference,
+    subjectKey: z
+      .string()
+      .describe('The key of the subject the entitlement belongs to.'),
+    customerId: ulid.optional(),
+    value: entitlementValueResult,
+  })
+
+  .describe(
+    'The entitlement, feature, and subject an entitlement notification event refers to.',
+  )
 
 export const priceGraduated = z
   .object({
@@ -5794,15 +5771,6 @@ export const planAddonPagePaginatedResponse = z
     meta: paginatedMeta,
   })
   .describe('Page paginated response.')
-
-export const notificationEventResetPayload = z
-  .object({
-    id: ulid,
-    type: z.literal('entitlements.reset').describe('The type of the event.'),
-    timestamp: dateTime,
-    data: notificationEventEntitlementData,
-  })
-  .describe('An entitlement reset notification event payload.')
 
 export const notificationEventInvoiceCreatedPayload = z
   .object({
@@ -6458,6 +6426,15 @@ export const notificationEventBalanceThresholdPayload = z
     data: notificationEventBalanceThresholdData,
   })
   .describe('A balance threshold notification event payload.')
+
+export const notificationEventResetPayload = z
+  .object({
+    id: ulid,
+    type: z.literal('entitlements.reset').describe('The type of the event.'),
+    timestamp: dateTime,
+    data: notificationEventEntitlementData,
+  })
+  .describe('An entitlement reset notification event payload.')
 
 export const price = z
   .discriminatedUnion('type', [
@@ -10772,29 +10749,6 @@ export const notificationEventDeliveryAttemptResponseWire = z
     'The response the recipient returned for a delivery attempt. For webhook channels this is the HTTP response.',
   )
 
-export const notificationEventEntitlementValueWire = z
-  .strictObject({
-    has_access: z
-      .boolean()
-
-      .describe(
-        'Whether the subject had access to the feature. The balance never goes below zero, so access can be lost while the balance is still reported as zero.',
-      ),
-    balance: z
-      .number()
-      .optional()
-      .describe('The remaining balance of the entitlement.'),
-    usage: z
-      .number()
-      .optional()
-      .describe('The total feature usage in the current usage period.'),
-    overage: z
-      .number()
-      .optional()
-      .describe('The usage not covered by any grant.'),
-  })
-  .describe('The entitlement balance at the time the event was generated.')
-
 export const notificationBalanceThresholdTypeWire = z
   .enum(['balance_value', 'usage_percentage', 'usage_value'])
   .describe('What a balance threshold is measured against.')
@@ -13887,21 +13841,6 @@ export const updateTaxCodeConfigWire = z
     'Tax configuration for a billable resource. Applies a tax code and tax behavior to the resulting invoice line items. When not set, the applicable default is used: the billing profile default tax configuration, then the organization default tax code.',
   )
 
-export const notificationEventEntitlementDataWire = z
-  .strictObject({
-    entitlement_id: ulidWire,
-    feature: notificationEventFeatureReferenceWire,
-    subject_key: z
-      .string()
-      .describe('The key of the subject the entitlement belongs to.'),
-    customer_id: ulidWire.optional(),
-    value: notificationEventEntitlementValueWire,
-  })
-
-  .describe(
-    'The entitlement, feature, and subject an entitlement notification event refers to.',
-  )
-
 export const notificationEventInvoiceDataWire = z
   .strictObject({
     invoice: notificationEventInvoiceReferenceWire,
@@ -14910,19 +14849,6 @@ export const notificationEventDeliveryStatusWire = z
     'The delivery status of a notification event for one channel of the generating rule.',
   )
 
-export const notificationEventBalanceThresholdDataWire = z
-  .strictObject({
-    entitlement_id: ulidWire,
-    feature: notificationEventFeatureReferenceWire,
-    subject_key: z
-      .string()
-      .describe('The key of the subject the entitlement belongs to.'),
-    customer_id: ulidWire.optional(),
-    value: notificationEventEntitlementValueWire,
-    threshold: notificationBalanceThresholdWire,
-  })
-  .describe('The entities and threshold a balance threshold event refers to.')
-
 export const customerDataWire = z
   .strictObject({
     billing_profile: profileReferenceWire.optional(),
@@ -14975,6 +14901,34 @@ export const listCustomerEntitlementAccessResponseDataWire = z
       .describe('The list of entitlement access results.'),
   })
   .describe('List customer entitlement access response data.')
+
+export const notificationEventBalanceThresholdDataWire = z
+  .strictObject({
+    entitlement_id: ulidWire,
+    feature: notificationEventFeatureReferenceWire,
+    subject_key: z
+      .string()
+      .describe('The key of the subject the entitlement belongs to.'),
+    customer_id: ulidWire.optional(),
+    value: entitlementValueResultWire,
+    threshold: notificationBalanceThresholdWire,
+  })
+  .describe('The entities and threshold a balance threshold event refers to.')
+
+export const notificationEventEntitlementDataWire = z
+  .strictObject({
+    entitlement_id: ulidWire,
+    feature: notificationEventFeatureReferenceWire,
+    subject_key: z
+      .string()
+      .describe('The key of the subject the entitlement belongs to.'),
+    customer_id: ulidWire.optional(),
+    value: entitlementValueResultWire,
+  })
+
+  .describe(
+    'The entitlement, feature, and subject an entitlement notification event refers to.',
+  )
 
 export const priceGraduatedWire = z
   .strictObject({
@@ -15156,15 +15110,6 @@ export const planAddonPagePaginatedResponseWire = z
     meta: paginatedMetaWire,
   })
   .describe('Page paginated response.')
-
-export const notificationEventResetPayloadWire = z
-  .strictObject({
-    id: ulidWire,
-    type: z.literal('entitlements.reset').describe('The type of the event.'),
-    timestamp: dateTimeWire,
-    data: notificationEventEntitlementDataWire,
-  })
-  .describe('An entitlement reset notification event payload.')
 
 export const notificationEventInvoiceCreatedPayloadWire = z
   .strictObject({
@@ -15816,6 +15761,15 @@ export const notificationEventBalanceThresholdPayloadWire = z
     data: notificationEventBalanceThresholdDataWire,
   })
   .describe('A balance threshold notification event payload.')
+
+export const notificationEventResetPayloadWire = z
+  .strictObject({
+    id: ulidWire,
+    type: z.literal('entitlements.reset').describe('The type of the event.'),
+    timestamp: dateTimeWire,
+    data: notificationEventEntitlementDataWire,
+  })
+  .describe('An entitlement reset notification event payload.')
 
 export const priceWire = z
   .discriminatedUnion('type', [

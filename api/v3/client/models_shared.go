@@ -1300,6 +1300,24 @@ func EntitlementFromEntitlementBoolean(value EntitlementBoolean) (Entitlement, e
 	return result, nil
 }
 
+// Balance details of a metered entitlement at the evaluation time, which is the
+// `at` query parameter when given and the current time otherwise.
+type EntitlementAccessValue struct {
+	// The remaining balance of the entitlement in the usage period at the evaluation
+	// time.
+	Balance Numeric `json:"balance"`
+	// The usage recorded in the usage period at the evaluation time.
+	Usage Numeric `json:"usage"`
+	// The usage exceeding the available balance in the usage period at the evaluation
+	// time.
+	Overage Numeric `json:"overage"`
+	// The total amount granted and available to the entitlement at the evaluation
+	// time.
+	TotalAvailableGrantAmount Numeric `json:"total_available_grant_amount"`
+	// The remaining balance of each grant, keyed by grant ID.
+	GrantBalances map[string]Numeric `json:"grant_balances"`
+}
+
 // A boolean entitlement grants access to a feature.
 type EntitlementBoolean struct {
 	ID string `json:"id"`
@@ -1492,6 +1510,23 @@ func (value EntitlementType) Valid() bool {
 	default:
 		return false
 	}
+}
+
+// Entitlement value result.
+type EntitlementValueResult struct {
+	// The type of the entitlement.
+	Type EntitlementType `json:"type"`
+	// The feature key being evaluated.
+	FeatureKey string `json:"feature_key"`
+	// Whether the customer has access to the feature. Always true for `boolean` and
+	// `static` entitlements. Depends on balance for `metered` entitlements.
+	HasAccess bool `json:"has_access"`
+	// Only available for static entitlements. Config is the JSON parsable
+	// configuration of the entitlement. Useful to describe per customer configuration.
+	Config *string `json:"config,omitempty"`
+	// Only available for metered entitlements. The balance details of the entitlement
+	// at the evaluation time. Requires the `value` expand.
+	Value *EntitlementAccessValue `json:"value,omitempty"`
 }
 
 // A capability or billable dimension offered by a provider.

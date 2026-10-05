@@ -478,21 +478,6 @@ export interface NotificationEventDeliveryAttemptResponse {
   url?: string
 }
 
-/** The entitlement balance at the time the event was generated. */
-export interface NotificationEventEntitlementValue {
-  /**
-   * Whether the subject had access to the feature. The balance never goes below
-   * zero, so access can be lost while the balance is still reported as zero.
-   */
-  hasAccess: boolean
-  /** The remaining balance of the entitlement. */
-  balance?: number
-  /** The total feature usage in the current usage period. */
-  usage?: number
-  /** The usage not covered by any grant. */
-  overage?: number
-}
-
 /**
  * A query filter for an integer attribute. Operators are mutually exclusive, only
  * one operator is allowed at a time.
@@ -3413,23 +3398,6 @@ export interface UpdateTaxCodeConfig {
   code?: UpdateResourceReference
 }
 
-/**
- * The entitlement, feature, and subject an entitlement notification event refers
- * to.
- */
-export interface NotificationEventEntitlementData {
-  /** The identifier of the entitlement that triggered the event. */
-  entitlementId: string
-  /** The feature the entitlement grants access to. */
-  feature: NotificationEventFeatureReference
-  /** The key of the subject the entitlement belongs to. */
-  subjectKey: string
-  /** The identifier of the customer the subject belongs to, if any. */
-  customerId?: string
-  /** The entitlement balance at the time the event was generated. */
-  value: NotificationEventEntitlementValue
-}
-
 /** The invoice an invoice notification event refers to. */
 export interface NotificationEventInvoiceData {
   /** The invoice the event was generated for. */
@@ -4594,22 +4562,6 @@ export interface NotificationEventDeliveryStatus {
   attempts: NotificationEventDeliveryAttempt[]
 }
 
-/** The entities and threshold a balance threshold event refers to. */
-export interface NotificationEventBalanceThresholdData {
-  /** The identifier of the entitlement that triggered the event. */
-  entitlementId: string
-  /** The feature the entitlement grants access to. */
-  feature: NotificationEventFeatureReference
-  /** The key of the subject the entitlement belongs to. */
-  subjectKey: string
-  /** The identifier of the customer the subject belongs to, if any. */
-  customerId?: string
-  /** The entitlement balance at the time the event was generated. */
-  value: NotificationEventEntitlementValue
-  /** The threshold the balance crossed. */
-  threshold: NotificationBalanceThreshold
-}
-
 /** Billing customer data. */
 export interface CustomerData {
   /**
@@ -4679,6 +4631,39 @@ export interface ChargeFlatFeeSystemIntent {
 export interface ListCustomerEntitlementAccessResponseData {
   /** The list of entitlement access results. */
   data: EntitlementValueResult[]
+}
+
+/** The entities and threshold a balance threshold event refers to. */
+export interface NotificationEventBalanceThresholdData {
+  /** The identifier of the entitlement that triggered the event. */
+  entitlementId: string
+  /** The feature the entitlement grants access to. */
+  feature: NotificationEventFeatureReference
+  /** The key of the subject the entitlement belongs to. */
+  subjectKey: string
+  /** The identifier of the customer the subject belongs to, if any. */
+  customerId?: string
+  /** The entitlement value at the time the event was generated. */
+  value: EntitlementValueResult
+  /** The threshold the balance crossed. */
+  threshold: NotificationBalanceThreshold
+}
+
+/**
+ * The entitlement, feature, and subject an entitlement notification event refers
+ * to.
+ */
+export interface NotificationEventEntitlementData {
+  /** The identifier of the entitlement that triggered the event. */
+  entitlementId: string
+  /** The feature the entitlement grants access to. */
+  feature: NotificationEventFeatureReference
+  /** The key of the subject the entitlement belongs to. */
+  subjectKey: string
+  /** The identifier of the customer the subject belongs to, if any. */
+  customerId?: string
+  /** The entitlement value at the time the event was generated. */
+  value: EntitlementValueResult
 }
 
 /**
@@ -4928,18 +4913,6 @@ export interface CreditTransactionPaginatedResponse {
 export interface PlanAddonPagePaginatedResponse {
   data: PlanAddon[]
   meta: PaginatedMeta
-}
-
-/** An entitlement reset notification event payload. */
-export interface NotificationEventResetPayload {
-  /** The identifier of the event the payload belongs to. */
-  id: string
-  /** The type of the event. */
-  type: 'entitlements.reset'
-  /** When the event was generated. */
-  timestamp: Date
-  /** The entities the event refers to. */
-  data: NotificationEventEntitlementData
 }
 
 /** An invoice created notification event payload. */
@@ -5648,6 +5621,18 @@ export interface NotificationEventBalanceThresholdPayload {
   timestamp: Date
   /** The entities and threshold the event refers to. */
   data: NotificationEventBalanceThresholdData
+}
+
+/** An entitlement reset notification event payload. */
+export interface NotificationEventResetPayload {
+  /** The identifier of the event the payload belongs to. */
+  id: string
+  /** The type of the event. */
+  type: 'entitlements.reset'
+  /** When the event was generated. */
+  timestamp: Date
+  /** The entities the event refers to. */
+  data: NotificationEventEntitlementData
 }
 
 /** A capability or billable dimension offered by a provider. */

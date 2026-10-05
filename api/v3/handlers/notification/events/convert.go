@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
 	v1api "github.com/openmeterio/openmeter/api"
@@ -193,7 +194,7 @@ func setAPIEventPayload(event *api.BillingNotificationEvent, e notification.Even
 				},
 				SubjectKey: e.Payload.BalanceThreshold.Subject.Key,
 				CustomerId: lo.EmptyableToPtr(e.Payload.BalanceThreshold.Customer.Id),
-				Value:      toAPIEntitlementValue(e.Payload.BalanceThreshold.Value),
+				Value:      toAPIEntitlementValue(e.Payload.BalanceThreshold.Feature.Key, e.Payload.BalanceThreshold.Value),
 				Threshold: api.BillingNotificationBalanceThreshold{
 					Type:  thresholdType,
 					Value: e.Payload.BalanceThreshold.Threshold.Value,
@@ -218,7 +219,7 @@ func setAPIEventPayload(event *api.BillingNotificationEvent, e notification.Even
 				},
 				SubjectKey: e.Payload.EntitlementReset.Subject.Key,
 				CustomerId: lo.EmptyableToPtr(e.Payload.EntitlementReset.Customer.Id),
-				Value:      toAPIEntitlementValue(e.Payload.EntitlementReset.Value),
+				Value:      toAPIEntitlementValue(e.Payload.EntitlementReset.Feature.Key, e.Payload.EntitlementReset.Value),
 			},
 		})
 
@@ -251,12 +252,19 @@ func setAPIEventPayload(event *api.BillingNotificationEvent, e notification.Even
 	}
 }
 
-func toAPIEntitlementValue(v v1api.EntitlementValue) api.BillingNotificationEventEntitlementValue {
-	return api.BillingNotificationEventEntitlementValue{
-		HasAccess: v.HasAccess,
-		Balance:   v.Balance,
-		Usage:     v.Usage,
-		Overage:   v.Overage,
+func toAPIEntitlementValue(featureKey string, v v1api.EntitlementValue) api.BillingEntitlementValueResult {
+	return api.BillingEntitlementValueResult{
+		Type:       api.BillingEntitlementTypeMetered,
+		FeatureKey: featureKey,
+		HasAccess:  v.HasAccess,
+		Config:     v.Config,
+		Value: &api.BillingEntitlementAccessValue{
+			Balance:                   alpacadecimal.NewFromFloat(lo.FromPtr(v.Balance)).String(),
+			Usage:                     alpacadecimal.NewFromFloat(lo.FromPtr(v.Usage)).String(),
+			Overage:                   alpacadecimal.NewFromFloat(lo.FromPtr(v.Overage)).String(),
+			TotalAvailableGrantAmount: alpacadecimal.NewFromFloat(lo.FromPtr(v.TotalAvailableGrantAmount)).String(),
+			GrantBalances:             map[string]api.Numeric{},
+		},
 	}
 }
 
