@@ -51,6 +51,8 @@ facts stored independently from the journal.
   currency's precision.
 - `CommitGroup` validates the whole input, locks every affected parent account,
   and books the group atomically in the caller's database transaction.
+- IDs can be assigned to resolved postings before commit; `ledger.PreassignIDs`
+  generates missing transaction and entry IDs without posting.
 - Default routing rules constrain allowed account-type combinations, flow
   direction, authorization stages, route compatibility, and dimension scope.
   A balanced transaction can still be invalid.
