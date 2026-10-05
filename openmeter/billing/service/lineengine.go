@@ -33,8 +33,7 @@ func (s *Service) runInTransactionWithValidationWarningsAllowed[T any](
 		return result, nil
 	})
 	if err != nil {
-		var empty T
-		return empty, nil, err
+		return lo.Empty[T](), nil, err
 	}
 
 	return result, warnings, nil
