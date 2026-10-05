@@ -83,7 +83,7 @@ func (s *CreditThenInvoiceTestSuite) TestPaymentBookingRetryPreservesCompletedSe
 		clock.FreezeTime(time.Date(2026, time.February, 1, 0, 0, 0, 0, time.UTC))
 		defer clock.UnFreeze()
 
-		// given the real settlement completes before a one-time callback failure is reported
+		// given a one-time callback failure occurs after settlement writes within the attempt
 		fixture := s.setupPaymentBookingInvoice()
 		engine := s.FlatFeeSvc.GetLineEngine()
 		fault := &failOnceAfterPaymentSettlementLineEngine{LineEngine: engine}
@@ -105,6 +105,24 @@ func (s *CreditThenInvoiceTestSuite) TestPaymentBookingRetryPreservesCompletedSe
 		require.True(t, failed.HasCriticalValidationIssues())
 		require.Len(t, failed.ValidationIssues, 1)
 		require.Equal(t, "test_post_settlement_callback_failed", failed.ValidationIssues[0].Code)
+		rolledBack := s.RequireFlatFeeChargeStatus(fixture.Charge, flatfee.StatusActiveAwaitingPaymentSettlement)
+		require.NotNil(t, rolledBack.Realizations.CurrentRun)
+		require.Nil(t, rolledBack.Realizations.CurrentRun.Payment)
+		transactionsAfterFailure, err := s.Ledger.ListTransactions(ctx, ledger.ListTransactionsInput{Namespace: fixture.Customer.Namespace, Limit: 100})
+		require.NoError(t, err)
+		require.Len(t, transactionsAfterFailure.Items, 1)
+
+		// This completed payment represents an old database state; new attempts are atomic.
+		// The setup is only needed to verify recovery from data written before that guarantee.
+		require.NoError(t, engine.OnPaymentAuthorized(ctx, billing.OnPaymentAuthorizedInput{
+			Invoice: failed,
+			Lines:   fixture.Invoice.Lines.OrEmpty(),
+		}))
+		require.NoError(t, engine.OnPaymentSettled(ctx, billing.OnPaymentSettledInput{
+			Invoice: failed,
+			Lines:   fixture.Invoice.Lines.OrEmpty(),
+		}))
+
 		booked := s.requireSettledPaymentBookings(fixture)
 		before, err := s.Ledger.ListTransactions(ctx, ledger.ListTransactionsInput{Namespace: fixture.Customer.Namespace, Limit: 100})
 		require.NoError(t, err)
@@ -135,7 +153,7 @@ func (s *CreditThenInvoiceTestSuite) TestPaymentBookingRetryPreservesCompletedSe
 			defer clock.UnFreeze()
 			defer s.MockStreamingConnector.Reset()
 
-			// given real settlement completes for both lines before a one-time callback failure
+			// given a one-time callback failure occurs after settlement writes within the attempt
 			fixture := s.setupPaymentRetryInvoice(chargeType)
 			engine := s.bookingRetryLineEngine(chargeType)
 			fault := &failOnceAfterPaymentSettlementLineEngine{LineEngine: engine}
@@ -146,6 +164,23 @@ func (s *CreditThenInvoiceTestSuite) TestPaymentBookingRetryPreservesCompletedSe
 			require.True(t, failed.HasCriticalValidationIssues())
 			require.Len(t, failed.ValidationIssues, 1)
 			require.Equal(t, "test_post_settlement_callback_failed", failed.ValidationIssues[0].Code)
+			rolledBack := s.bookingRetryProgress(fixture)
+			for _, line := range rolledBack {
+				require.Nil(t, line.Payment)
+			}
+			require.Len(t, s.bookingRetryTransactionIDs(fixture), 2)
+
+			// This completed payment represents an old database state; new attempts are atomic.
+			// The setup is only needed to verify recovery from data written before that guarantee.
+			require.NoError(t, engine.OnPaymentAuthorized(ctx, billing.OnPaymentAuthorizedInput{
+				Invoice: failed,
+				Lines:   fixture.Invoice.Lines.OrEmpty(),
+			}))
+			require.NoError(t, engine.OnPaymentSettled(ctx, billing.OnPaymentSettledInput{
+				Invoice: failed,
+				Lines:   fixture.Invoice.Lines.OrEmpty(),
+			}))
+
 			before := s.bookingRetryProgress(fixture)
 			for _, line := range before {
 				require.NotNil(t, line.Payment)

@@ -4,15 +4,15 @@ The issues below are grouped by the lifecycle boundary and regression cases wort
 
 ## 1. Issuance callbacks: deleted lines and persisted partial progress
 
-Fix deleted-line dispatch during `invoice_issued` and persisted partial preparation during `invoice_finalizing`. The completed `invoice_issued` retry is handled by the base branch and is covered there for flat-fee and usage-based charges.
+Fix persisted partial preparation during `invoice_finalizing`. Deleted-line dispatch is fixed on `main`, and new `invoice_issued` attempts are atomic. Retry coverage for completed issuance now recreates only historical partial state written before that guarantee.
 
-### Deleted invoice lines are dispatched during issuance
+### Deleted invoice lines are skipped during issuance
 
-- [ ] Exclude deleted invoice lines from `invoice_issued` dispatch.
+- [x] Exclude deleted invoice lines from `invoice_issued` dispatch.
 
-An invoice retains a deleted line whose charge cannot accept `invoice_issued`. Dispatching that line fails with `unsupported operation` and leaves the invoice in `issuing.charge_booking_failed`, blocking its live lines.
+An invoice can retain a deleted line whose charge cannot accept `invoice_issued`. Current dispatch excludes that line so it cannot leave the invoice in `issuing.charge_booking_failed` or block its live lines.
 
-Reproducer: `TestIssuingSkipsDeletedChargeLine` in [issuing tests](test/credits/credit_then_invoice_issuing_test.go), with flat-fee and usage-based variants.
+Passing regression: `TestIssuingSkipsDeletedChargeLine` in [issuing tests](test/credits/credit_then_invoice_issuing_test.go), with flat-fee and usage-based variants.
 
 ### Finalization retry replays completed line preparation
 
@@ -28,11 +28,11 @@ Reproducer: `TestInvoiceFinalizationRetryPreservesCompletedLinePreparation` in [
 
 A later shrink can mark a booked run `invalid_due_to_unsupported_credit_note` while the immutable invoice retains the line and ledger booking. Recovery must preserve that history. This drift cannot explain the initial booking failure, and the retry tests do not establish a correction policy.
 
-Passing characterization: `TestIssuingFailedInvoicePreservesUnsupportedCorrectionHistory` in [issuing tests](test/credits/credit_then_invoice_issuing_test.go). It confirms preservation of invoice history and accounting, not a separate demonstrated booking failure.
+Passing characterization: `TestIssuingFailedInvoicePreservesUnsupportedCorrectionHistory` in [issuing tests](test/credits/credit_then_invoice_issuing_test.go). It first verifies that a new failed issuance rolls back, then recreates a historical completed booking and confirms preservation of invoice history and accounting. It does not establish a separate current booking failure.
 
 ## 2. Payment booking: resume settlement from persisted progress
 
-The base branch makes authorization retry-safe across flat-fee, usage-based, and invoice-funded credit-purchase charges. Settlement helpers and charge transitions still reject existing settlements, and a completed settlement reported alongside a callback failure still leaves the invoice unable to recover.
+New authorization, settlement, and combined payment attempts are atomic across flat-fee, usage-based, and invoice-funded credit-purchase charges. Settlement helpers and charge transitions still reject settlements persisted before that guarantee, and an invoice with a historical completed settlement still cannot recover.
 
 - [ ] Recognize a matching persisted settlement before replaying the corresponding booking or charge transition.
 - [ ] Preserve payment identity, realization identity, and original ledger references; book only missing work.
@@ -43,12 +43,12 @@ The journal does not deduplicate repeated bookings. Retry safety must use persis
 
 | Distinct issue | Persisted state before retry and current failure | Expected recovery | Reproducer and variants |
 | --- | --- | --- | --- |
-| Partial settlement | Both lines authorized, first already settled. `payment_processing.booking_settled_failed` retries the first settlement and gets `payment already settled` for flat-fee/usage or `unsupported operation` for credit purchases. | Settle only the remaining line; reach `paid`. | `TestPaymentSettlementRetryPreservesCompletedLineBooking` in [retry tests](test/credits/credit_then_invoice_retry_test.go): all three charge types. |
-| Combined booking already completed settlement | Real settlement completes before a one-time callback failure is reported. The invoice is in `payment_processing.booking_authorized_and_settled_failed` with settled payments. Retry safely recognizes authorization but replays settlement, getting `payment already settled` for flat-fee/usage or `unsupported operation` for credit purchases. | Reach `paid` with the same payments and no new ledger transactions. | `TestPaymentBookingRetryPreservesCompletedSettlement` in [payment tests](test/credits/credit_then_invoice_payment_test.go): all three charge types. |
+| Historical partial settlement | Both lines authorized, first already settled. `payment_processing.booking_settled_failed` retries the first settlement and gets `payment already settled` for flat-fee/usage or `unsupported operation` for credit purchases. | Settle only the remaining line; reach `paid`. | `TestPaymentSettlementRetryPreservesCompletedLineBooking` in [retry tests](test/credits/credit_then_invoice_retry_test.go): all three charge types. |
+| Historical combined booking with completed settlement | The invoice is in `payment_processing.booking_authorized_and_settled_failed` with settled payments. Retry safely recognizes authorization but replays settlement, getting `payment already settled` for flat-fee/usage or `unsupported operation` for credit purchases. | Reach `paid` with the same payments and no new ledger transactions. | `TestPaymentBookingRetryPreservesCompletedSettlement` in [payment tests](test/credits/credit_then_invoice_payment_test.go): all three charge types. |
 
-These cases use real service calls and one-time callback faults, without SQL updates or adapter edits to manufacture state. They reload the charge facts and follow payment references to the journal, checking posting amounts, accounting stages, provenance, and transaction preservation. The original $21 flat-fee case also checks the complete accrual/authorization/settlement references and balances. Existing bookings remain intact on retry, but the invoice cannot recover and missing work remains unbooked.
+These cases first use real service calls and one-time callback faults to verify that current attempts roll back. They then invoke the real line-engine callbacks directly to recreate historical partial state without SQL updates or adapter edits. They reload the charge facts and follow payment references to the journal, checking posting amounts, accounting stages, provenance, and transaction preservation. The original $21 flat-fee case also checks the complete accrual/authorization/settlement references and balances. Existing historical bookings remain intact on retry, but the invoice cannot recover and missing work remains unbooked.
 
-The two remaining payment cases plus the finalization case cover eight charge-type variants, all intentionally failing on recovery. `TestCombinedPaymentBookingRetryResumesAfterAuthorization` now passes on the base branch, confirming that completed authorization can resume into settlement. The existing direct-paid and partial-credit payment lifecycle tests, and the correction-history characterization, also pass.
+The two remaining payment cases plus the finalization case cover eight charge-type variants, all intentionally failing on recovery. `TestCombinedPaymentBookingRetryResumesAfterAuthorization` first verifies that a new direct-paid failure rolls back authorization, then recreates historical authorized state and confirms that retry resumes into settlement. The existing direct-paid and partial-credit payment lifecycle tests, and the correction-history characterization, also pass.
 
 ## 3. Provider errors: reconcile superseded failures before evaluating success
 

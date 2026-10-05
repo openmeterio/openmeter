@@ -33,7 +33,6 @@ func (s *CreditThenInvoiceTestSuite) TestIssuingSkipsDeletedChargeLine() {
 			// given a two-charge draft whose automatic approval deadline has passed
 			fixture := s.setupChargeBookingInvoice(chargeType)
 			clock.FreezeTime(fixture.Invoice.DraftUntil.Add(time.Second))
-			defer clock.UnFreeze()
 
 			// when deleting the first charge causes the remaining invoice to issue
 			s.MustRefundCharge(ctx, fixture.Customer, fixture.Charges[0])
@@ -66,24 +65,44 @@ func (s *CreditThenInvoiceTestSuite) TestIssuingFailedInvoicePreservesUnsupporte
 	clock.FreezeTime(time.Date(2026, time.February, 1, 0, 0, 0, 0, time.UTC))
 	defer clock.UnFreeze()
 
-	// given an immutable invoice failed after booking its retained flat fee
+	// given an immutable invoice whose issuance fails after a line-engine write
 	fixture := s.setupChargeBookingInvoice(meta.ChargeTypeFlatFee)
 	clock.FreezeTime(fixture.Invoice.DraftUntil.Add(time.Second))
-	defer clock.UnFreeze()
-	fault := s.failIssuingAfterFirstBooking(fixture.Invoice, s.FlatFeeSvc.GetLineEngine())
-	before, err := s.BillingService.AdvanceInvoice(ctx, fixture.Invoice.GetInvoiceID())
-	require.NoError(t, err)
-	require.True(t, fault.Failed)
-	require.Equal(t, billing.StandardInvoiceStatusIssuingChargeBookingFailed, before.Status)
-	require.True(t, before.StatusDetails.Immutable)
-	require.True(t, before.HasCriticalValidationIssues())
-	booked := s.requireCompletedChargeBooking(fixture)
+	engine := s.FlatFeeSvc.GetLineEngine()
+	invoiceLines := fixture.Invoice.Lines.OrEmpty()
+	fault := &failOnceIssuingLineEngine{
+		LineEngine:        engine,
+		CompletedLineName: invoiceLines[0].Name,
+		FailLineName:      invoiceLines[1].Name,
+	}
+	s.replaceLineEngine(t, engine, fault)
 	ledgerInput := LedgerSnapshotInput{
 		Namespace: fixture.Customer.Namespace,
 		Customer:  fixture.Customer,
 		Currency:  USD,
 		CostBasis: mo.None[*alpacadecimal.Decimal](),
 	}
+	ledgerBeforeAttempt := s.CreateLedgerSnapshot(ledgerInput)
+	before, err := s.BillingService.AdvanceInvoice(ctx, fixture.Invoice.GetInvoiceID())
+	require.NoError(t, err)
+	require.True(t, fault.Failed)
+	require.Equal(t, billing.StandardInvoiceStatusIssuingChargeBookingFailed, before.Status)
+	require.True(t, before.StatusDetails.Immutable)
+	require.True(t, before.HasCriticalValidationIssues())
+	rolledBackCharge := s.RequireFlatFeeChargeStatus(fixture.Charges[0], flatfee.StatusActiveRealizationIssuing)
+	require.NotNil(t, rolledBackCharge.Realizations.CurrentRun)
+	require.Nil(t, rolledBackCharge.Realizations.CurrentRun.AccruedUsage)
+	s.AssertLedgerSnapshotUnchanged(ledgerInput, ledgerBeforeAttempt)
+
+	// This partial booking represents an old database state; new attempts are atomic.
+	// The setup is only needed to verify recovery from data written before that guarantee.
+	line := before.Lines.GetByID(invoiceLines[0].ID)
+	require.NotNil(t, line)
+	require.NoError(t, engine.OnInvoiceIssued(ctx, billing.OnInvoiceIssuedInput{
+		Invoice: before,
+		Lines:   billing.StandardLines{line},
+	}))
+	booked := s.requireCompletedChargeBooking(fixture)
 	bookedLedger := s.CreateLedgerSnapshot(ledgerInput)
 	require.Equal(t, float64(5), bookedLedger.Accrued.InexactFloat64())
 
@@ -240,10 +259,12 @@ func (s *CreditThenInvoiceTestSuite) setupChargeBookingInvoice(chargeType meta.C
 	invoice := invoices[0]
 	if chargeType == meta.ChargeTypeUsageBased {
 		require.Equal(t, billing.StandardInvoiceStatusDraftWaitingForCollection, invoice.Status)
+		// The clock stores one global frozen value, so restore the caller's test time.
+		callerTime := clock.Now()
 		clock.FreezeTime(invoice.DefaultCollectionAtForStandardInvoice())
-		defer clock.UnFreeze()
 		invoice, err = s.BillingService.AdvanceInvoice(ctx, invoice.GetInvoiceID())
 		require.NoError(t, err)
+		clock.FreezeTime(callerTime)
 	}
 
 	require.Equal(t, billing.StandardInvoiceStatusDraftWaitingAutoApproval, invoice.Status)

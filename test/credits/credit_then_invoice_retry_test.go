@@ -1404,7 +1404,7 @@ func (s *CreditThenInvoiceTestSuite) TestPaymentSettlementRetryPreservesComplete
 			defer clock.UnFreeze()
 			defer s.MockStreamingConnector.Reset()
 
-			// given both lines are authorized but only the first settlement commits before failure
+			// given both lines are authorized and settlement fails after the first line writes
 			fixture := s.setupPaymentRetryInvoice(chargeType)
 			authorized := s.triggerBookingRetryPayment(fixture, billing.TriggerAuthorized)
 			require.Equal(t, billing.StandardInvoiceStatusPaymentProcessingAuthorized, authorized.Status)
@@ -1414,6 +1414,21 @@ func (s *CreditThenInvoiceTestSuite) TestPaymentSettlementRetryPreservesComplete
 			failed := s.triggerBookingRetryPayment(fixture, billing.TriggerPaid)
 			require.True(t, fault.Failed)
 			require.Equal(t, billing.StandardInvoiceStatusPaymentProcessingBookingSettledFailed, failed.Status)
+			rolledBack := s.bookingRetryProgress(fixture)
+			for _, line := range rolledBack {
+				require.NotNil(t, line.Payment)
+				require.Equal(t, payment.StatusAuthorized, line.Payment.Status)
+				require.Nil(t, line.Payment.Settled)
+			}
+			require.Len(t, s.bookingRetryTransactionIDs(fixture), 4)
+
+			// This partial booking represents an old database state; new attempts are atomic.
+			// The setup is only needed to verify recovery from data written before that guarantee.
+			require.NoError(t, engine.OnPaymentSettled(ctx, billing.OnPaymentSettledInput{
+				Invoice: failed,
+				Lines:   billing.StandardLines{fixture.Invoice.Lines.OrEmpty()[0]},
+			}))
+
 			before := s.bookingRetryProgress(fixture)
 			require.NotNil(t, before[0].Payment)
 			require.Equal(t, payment.StatusSettled, before[0].Payment.Status)
@@ -1458,7 +1473,7 @@ func (s *CreditThenInvoiceTestSuite) TestCombinedPaymentBookingRetryResumesAfter
 			defer clock.UnFreeze()
 			defer s.MockStreamingConnector.Reset()
 
-			// given combined booking completes authorization before settlement fails without progress
+			// given combined booking fails during settlement after authorization writes
 			fixture := s.setupPaymentRetryInvoice(chargeType)
 			engine := s.bookingRetryLineEngine(chargeType)
 			fault := &failOncePaymentLineEngine{LineEngine: engine, SettlementLineID: fixture.Invoice.Lines.OrEmpty()[0].ID}
@@ -1466,6 +1481,19 @@ func (s *CreditThenInvoiceTestSuite) TestCombinedPaymentBookingRetryResumesAfter
 			failed := s.triggerBookingRetryPayment(fixture, billing.TriggerPaid)
 			require.True(t, fault.Failed)
 			require.Equal(t, billing.StandardInvoiceStatusPaymentProcessingBookingAuthorizedAndSettledFailed, failed.Status)
+			rolledBack := s.bookingRetryProgress(fixture)
+			for _, line := range rolledBack {
+				require.Nil(t, line.Payment)
+			}
+			require.Len(t, s.bookingRetryTransactionIDs(fixture), 2)
+
+			// This partial booking represents an old database state; new attempts are atomic.
+			// The setup is only needed to verify recovery from data written before that guarantee.
+			require.NoError(t, engine.OnPaymentAuthorized(ctx, billing.OnPaymentAuthorizedInput{
+				Invoice: failed,
+				Lines:   fixture.Invoice.Lines.OrEmpty(),
+			}))
+
 			before := s.bookingRetryProgress(fixture)
 			for _, line := range before {
 				require.NotNil(t, line.Payment)
