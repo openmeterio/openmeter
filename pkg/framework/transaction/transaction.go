@@ -2,6 +2,7 @@ package transaction
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -124,6 +125,12 @@ func manage[R any](ctx context.Context, tx Driver, cb func(ctx context.Context, 
 	// commit the transaction
 	err = tx.Commit()
 	if err != nil {
+		// database/sql can finish its automatic rollback before Commit observes
+		// cancellation, returning ErrTxDone instead of the context error.
+		if err == sql.ErrTxDone && ctx.Err() != nil {
+			err = errors.Join(ctx.Err(), err)
+		}
+
 		if rerr := tx.Rollback(); rerr != nil {
 			err = errors.Join(err, rerr)
 		}

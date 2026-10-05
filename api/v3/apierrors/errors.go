@@ -3,11 +3,14 @@ package apierrors
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
 
 	"github.com/openmeterio/openmeter/api/v3/render"
+	"github.com/openmeterio/openmeter/pkg/contextx"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // BaseAPIError is the schema for all API apierrors.
@@ -180,5 +183,10 @@ func (bae *BaseAPIError) HandleAPIError(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
+	if errors.Is(r.Context().Err(), context.Canceled) && contextx.IsCanceledError(bae) {
+		w.WriteHeader(models.StatusClientClosedRequest)
+		return
+	}
+
 	_ = render.RenderJSON(w, bae, render.WithContentType(ContentTypeProblemValue), render.WithStatus(bae.Status))
 }
