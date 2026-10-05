@@ -263,7 +263,6 @@ func toAPIEntitlementValue(featureKey string, v v1api.EntitlementValue) api.Bill
 			Usage:                     alpacadecimal.NewFromFloat(lo.FromPtr(v.Usage)).String(),
 			Overage:                   alpacadecimal.NewFromFloat(lo.FromPtr(v.Overage)).String(),
 			TotalAvailableGrantAmount: alpacadecimal.NewFromFloat(lo.FromPtr(v.TotalAvailableGrantAmount)).String(),
-			GrantBalances:             map[string]api.Numeric{},
 		},
 	}
 }
