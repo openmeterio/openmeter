@@ -1,7 +1,6 @@
 package notification
 
 import (
-	"context"
 	"crypto/rand"
 	"errors"
 	"fmt"
@@ -120,8 +119,9 @@ const (
 	DefaultSvixJWTSigningSecret = "DUMMY_JWT_SECRET"
 )
 
-func NewTestEnv(t *testing.T, ctx context.Context, namespace string) (TestEnv, error) {
+func NewTestEnv(t *testing.T, namespace string) (TestEnv, error) {
 	t.Helper()
+
 	logger := slog.Default().WithGroup("notification")
 
 	tracer := noop.NewTracerProvider().Tracer("test")

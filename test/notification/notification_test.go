@@ -13,7 +13,7 @@ func TestNotification(t *testing.T) {
 
 	namespace := NewTestNamespace(t)
 
-	env, err := NewTestEnv(t, ctx, namespace)
+	env, err := NewTestEnv(t, namespace)
 	require.NoError(t, err, "NotificationTestEnv() failed")
 	t.Cleanup(func() {
 		if env != nil {
