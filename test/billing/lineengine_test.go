@@ -1240,7 +1240,7 @@ func (s *LineEngineTestSuite) TestOnInvoiceIssuedFailureTransitionsToRetryableIs
 		mockEngine.onInvoiceIssued = func(_ context.Context, input ombilling.OnInvoiceIssuedInput) error {
 			onInvoiceIssuedCnt++
 			s.Equal(input.Invoice.ID, invoice.ID)
-			return errors.New("simulated invoice issued failure")
+			return ombilling.NewValidationError("test_line_engine_callback_failed", "simulated invoice issued failure")
 		}
 
 		clock.SetTime(collectionAt.Add(time.Minute))
@@ -1341,7 +1341,7 @@ func (s *LineEngineTestSuite) TestOnPaymentAuthorizedIsCalled() {
 
 		mockEngine.onInvoiceIssued = func(_ context.Context, input ombilling.OnInvoiceIssuedInput) error {
 			s.Equal(invoice.ID, input.Invoice.ID)
-			return nil
+			return ombilling.NewValidationWarning("prior_warning", "warning from an earlier invoice step")
 		}
 
 		mockEngine.onPaymentAuthorized = func(_ context.Context, input ombilling.OnPaymentAuthorizedInput) error {
@@ -1351,7 +1351,7 @@ func (s *LineEngineTestSuite) TestOnPaymentAuthorizedIsCalled() {
 			s.Len(input.Lines, 1)
 			s.Equal(invoice.ID, input.Lines[0].InvoiceID)
 			s.Equal(mockEngine.GetLineEngineType(), input.Lines[0].Engine)
-			return nil
+			return ombilling.NewValidationWarning("callback_warning", "payment authorization warning")
 		}
 
 		clock.SetTime(collectionAt.Add(time.Minute))
@@ -1364,9 +1364,17 @@ func (s *LineEngineTestSuite) TestOnPaymentAuthorizedIsCalled() {
 		invoice, err = s.BillingService.ApproveInvoice(ctx, invoice.GetInvoiceID())
 		s.Require().NoError(err)
 		s.Equal(ombilling.StandardInvoiceStatusPaymentProcessingPending, invoice.Status)
+		s.Require().Len(invoice.ValidationIssues, 1)
+		s.Equal("prior_warning", invoice.ValidationIssues[0].Code)
 
 		invoice = s.markInvoiceAuthorized(ctx, invoice.GetInvoiceID())
 		s.Equal(ombilling.StandardInvoiceStatusPaymentProcessingAuthorized, invoice.Status)
+		issueCodes := lo.Map(invoice.ValidationIssues, func(issue ombilling.ValidationIssue, _ int) string {
+			return issue.Code
+		})
+		s.Contains(issueCodes, "prior_warning")
+		s.Contains(issueCodes, "callback_warning")
+		s.False(invoice.HasCriticalValidationIssues())
 	})
 
 	s.Run("Then the payment-authorized hook is called once", func() {
@@ -1440,10 +1448,11 @@ func (s *LineEngineTestSuite) TestOnPaymentAuthorizedFailureTransitionsToRetryab
 			return nil
 		}
 
+		systemErr := errors.New("simulated payment authorized system failure")
 		mockEngine.onPaymentAuthorized = func(_ context.Context, input ombilling.OnPaymentAuthorizedInput) error {
 			onPaymentAuthorizedCnt++
 			s.Equal(invoice.ID, input.Invoice.ID)
-			return errors.New("simulated payment authorized failure")
+			return systemErr
 		}
 
 		clock.SetTime(collectionAt.Add(time.Minute))
@@ -1457,6 +1466,27 @@ func (s *LineEngineTestSuite) TestOnPaymentAuthorizedFailureTransitionsToRetryab
 		s.Require().NoError(err)
 		s.Equal(ombilling.StandardInvoiceStatusPaymentProcessingPending, invoice.Status)
 
+		err = s.BillingService.TriggerInvoice(ctx, ombilling.InvoiceTriggerServiceInput{
+			InvoiceTriggerInput: ombilling.InvoiceTriggerInput{
+				Invoice: invoice.GetInvoiceID(),
+				Trigger: ombilling.TriggerAuthorized,
+			},
+			AppType:    app.AppTypeCustomInvoicing,
+			Capability: app.CapabilityTypeCollectPayments,
+		})
+		s.Require().ErrorIs(err, systemErr)
+		invoice, err = s.BillingService.GetStandardInvoiceById(ctx, ombilling.GetStandardInvoiceByIdInput{
+			Invoice: invoice.GetInvoiceID(),
+		})
+		s.Require().NoError(err)
+		s.Equal(ombilling.StandardInvoiceStatusPaymentProcessingPending, invoice.Status)
+		s.Empty(invoice.ValidationIssues)
+
+		mockEngine.onPaymentAuthorized = func(_ context.Context, input ombilling.OnPaymentAuthorizedInput) error {
+			onPaymentAuthorizedCnt++
+			s.Equal(invoice.ID, input.Invoice.ID)
+			return ombilling.NewValidationError("test_line_engine_callback_failed", "simulated payment authorized failure")
+		}
 		invoice = s.markInvoiceAuthorized(ctx, invoice.GetInvoiceID())
 
 		s.Equal(ombilling.StandardInvoiceStatusPaymentProcessingBookingAuthorizedFailed, invoice.Status)
@@ -1479,7 +1509,7 @@ func (s *LineEngineTestSuite) TestOnPaymentAuthorizedFailureTransitionsToRetryab
 		var err error
 		invoice, err = s.BillingService.RetryInvoice(ctx, invoice.GetInvoiceID())
 		s.Require().NoError(err)
-		s.Equal(2, onPaymentAuthorizedCnt)
+		s.Equal(3, onPaymentAuthorizedCnt)
 		s.Contains(
 			[]ombilling.StandardInvoiceStatus{
 				ombilling.StandardInvoiceStatusPaymentProcessingAuthorized,
@@ -1641,7 +1671,7 @@ func (s *LineEngineTestSuite) TestOnPaymentSettledFailureTransitionsToRetryableP
 		mockEngine.onPaymentSettled = func(_ context.Context, input ombilling.OnPaymentSettledInput) error {
 			onPaymentSettledCnt++
 			s.Equal(invoice.ID, input.Invoice.ID)
-			return errors.New("simulated payment settled failure")
+			return ombilling.NewValidationError("test_line_engine_callback_failed", "simulated payment settled failure")
 		}
 
 		clock.SetTime(collectionAt.Add(time.Minute))
@@ -1842,7 +1872,7 @@ func (s *LineEngineTestSuite) TestOnPaymentSettledFailureAfterAuthorizationTrans
 			onPaymentSettledCnt++
 			s.Equal(ombilling.StandardInvoiceStatusPaymentProcessingBookingSettled, input.Invoice.Status)
 			s.Equal(invoice.ID, input.Invoice.ID)
-			return errors.New("simulated payment settled failure")
+			return ombilling.NewValidationError("test_line_engine_callback_failed", "simulated payment settled failure")
 		}
 
 		clock.SetTime(collectionAt.Add(time.Minute))

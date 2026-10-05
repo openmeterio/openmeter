@@ -9,7 +9,37 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
+
+// runInTransactionWithValidationWarningsAllowed runs one line-engine attempt in a
+// savepoint. Warning-only results release the savepoint and are returned beside
+// the usable result. Every other error rolls the whole attempt back.
+func (s *Service) runInTransactionWithValidationWarningsAllowed[T any](
+	ctx context.Context,
+	callback func(context.Context) (T, error),
+) (T, billing.ValidationIssues, error) {
+	var warnings billing.ValidationIssues
+
+	result, err := transaction.Run(ctx, s.adapter, func(ctx context.Context) (T, error) {
+		result, callbackErr := callback(ctx)
+
+		var extractionErr error
+		warnings, extractionErr = billing.ToValidationIssues(callbackErr, billing.RequireWarningsOnly())
+		if extractionErr != nil {
+			var empty T
+			return empty, callbackErr
+		}
+
+		return result, nil
+	})
+	if err != nil {
+		var empty T
+		return empty, nil, err
+	}
+
+	return result, warnings, nil
+}
 
 type engineRegistry struct {
 	mu               sync.RWMutex

@@ -107,6 +107,16 @@ result. API-originated line edits and system-originated reconciliation are
 different change sources: API edits may change manual ownership, while system
 edits preserve the ownership contract of their source.
 
+Invoice-issued, payment-authorized, and payment-settled callbacks form one
+local transaction attempt across every live line and line engine. Warning-only
+results commit and remain attached to the invoice. A critical validation issue
+rolls back every line-engine write from that attempt before billing persists the
+retryable failed invoice state. A system error rolls back the attempt and aborts
+the invoice operation. When a payment provider reports a direct paid event,
+authorization and settlement share the same attempt, so a settlement failure
+also rolls back authorization created by that event. Facts committed by an
+earlier attempt remain available to idempotent retry handling.
+
 ## Validation issues alongside successful results
 
 Typed validation issues can accompany usable results through an `error` return.

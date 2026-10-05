@@ -96,12 +96,30 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeePaymentAuthorizationRetryPreserv
 		})
 	})
 
-	s.Run("given authorization fails after the first line commits", func() {
+	s.Run("when authorization fails after the first line writes", func() {
 		t := s.T()
 
 		failed = s.authorizeInvoiceWithSecondLineFailure(invoice, s.FlatFeeSvc.GetLineEngine())
 		require.Equal(t, billing.StandardInvoiceStatusPaymentProcessingBookingAuthorizedFailed, failed.Status)
 		require.True(t, failed.HasCriticalValidationIssues())
+		firstBeforeRetry = s.requireFlatFeeInvoiceRun(lines[0])
+		secondBeforeRetry = s.requireFlatFeeInvoiceRun(lines[1])
+		require.Nil(t, firstBeforeRetry.Payment)
+		require.Nil(t, secondBeforeRetry.Payment)
+		beforeTransactionIDs = s.paymentAuthorizationTransactionIDs(ns)
+		require.Len(t, beforeTransactionIDs, 2)
+	})
+
+	s.Run("given a historical first-line authorization committed before retry", func() {
+		// This partial booking represents an old database state; new attempts are atomic.
+		// The setup is only needed to verify recovery from data written before that guarantee.
+		t := s.T()
+		ctx := t.Context()
+
+		require.NoError(t, s.FlatFeeSvc.GetLineEngine().OnPaymentAuthorized(ctx, billing.OnPaymentAuthorizedInput{
+			Invoice: failed,
+			Lines:   billing.StandardLines{lines[0]},
+		}))
 		firstBeforeRetry = s.requireFlatFeeInvoiceRun(lines[0])
 		secondBeforeRetry = s.requireFlatFeeInvoiceRun(lines[1])
 		s.requireInvoiceAuthorizationBooking(lines[0], firstBeforeRetry.Payment)
@@ -224,12 +242,30 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedPaymentAuthorizationRetryPres
 		})
 	})
 
-	s.Run("given authorization fails after the first line commits", func() {
+	s.Run("when authorization fails after the first line writes", func() {
 		t := s.T()
 
 		failed = s.authorizeInvoiceWithSecondLineFailure(invoice, s.UsageBasedSvc.GetLineEngine())
 		require.Equal(t, billing.StandardInvoiceStatusPaymentProcessingBookingAuthorizedFailed, failed.Status)
 		require.True(t, failed.HasCriticalValidationIssues())
+		firstBeforeRetry = s.requireUsageBasedInvoiceRun(lines[0])
+		secondBeforeRetry = s.requireUsageBasedInvoiceRun(lines[1])
+		require.Nil(t, firstBeforeRetry.Payment)
+		require.Nil(t, secondBeforeRetry.Payment)
+		beforeTransactionIDs = s.paymentAuthorizationTransactionIDs(ns)
+		require.Len(t, beforeTransactionIDs, 2)
+	})
+
+	s.Run("given a historical first-line authorization committed before retry", func() {
+		// This partial booking represents an old database state; new attempts are atomic.
+		// The setup is only needed to verify recovery from data written before that guarantee.
+		t := s.T()
+		ctx := t.Context()
+
+		require.NoError(t, s.UsageBasedSvc.GetLineEngine().OnPaymentAuthorized(ctx, billing.OnPaymentAuthorizedInput{
+			Invoice: failed,
+			Lines:   billing.StandardLines{lines[0]},
+		}))
 		firstBeforeRetry = s.requireUsageBasedInvoiceRun(lines[0])
 		secondBeforeRetry = s.requireUsageBasedInvoiceRun(lines[1])
 		s.requireInvoiceAuthorizationBooking(lines[0], firstBeforeRetry.Payment)
@@ -347,12 +383,30 @@ func (s *CreditThenInvoiceTestSuite) TestCreditPurchasePaymentAuthorizationRetry
 		})
 	})
 
-	s.Run("given authorization fails after the first line commits", func() {
+	s.Run("when authorization fails after the first line writes", func() {
 		t := s.T()
 
 		failed = s.authorizeInvoiceWithSecondLineFailure(invoice, s.CreditPurchaseSvc.GetLineEngine())
 		require.Equal(t, billing.StandardInvoiceStatusPaymentProcessingBookingAuthorizedFailed, failed.Status)
 		require.True(t, failed.HasCriticalValidationIssues())
+		firstBeforeRetry = s.requireInvoiceFundedCreditPurchase(lines[0])
+		secondBeforeRetry = s.requireInvoiceFundedCreditPurchase(lines[1])
+		require.Nil(t, firstBeforeRetry.Realizations.InvoiceSettlement)
+		require.Nil(t, secondBeforeRetry.Realizations.InvoiceSettlement)
+		beforeTransactionIDs = s.paymentAuthorizationTransactionIDs(ns)
+		require.Len(t, beforeTransactionIDs, 2)
+	})
+
+	s.Run("given a historical first-line authorization committed before retry", func() {
+		// This partial booking represents an old database state; new attempts are atomic.
+		// The setup is only needed to verify recovery from data written before that guarantee.
+		t := s.T()
+		ctx := t.Context()
+
+		require.NoError(t, s.CreditPurchaseSvc.GetLineEngine().OnPaymentAuthorized(ctx, billing.OnPaymentAuthorizedInput{
+			Invoice: failed,
+			Lines:   billing.StandardLines{lines[0]},
+		}))
 		firstBeforeRetry = s.requireInvoiceFundedCreditPurchase(lines[0])
 		secondBeforeRetry = s.requireInvoiceFundedCreditPurchase(lines[1])
 		s.requireInvoiceAuthorizationBooking(lines[0], firstBeforeRetry.Realizations.InvoiceSettlement)
@@ -403,18 +457,245 @@ func (s *CreditThenInvoiceTestSuite) TestCreditPurchasePaymentAuthorizationRetry
 	})
 }
 
+func (s *CreditThenInvoiceTestSuite) TestFlatFeePaymentSettlementFailureRollsBackEveryLine() {
+	clock.FreezeTime(time.Date(2026, time.February, 1, 0, 0, 0, 0, time.UTC))
+	defer clock.UnFreeze()
+
+	t := s.T()
+	ctx := t.Context()
+	ns := s.GetUniqueNamespace("flat-fee-payment-settlement-atomic")
+	invoice := s.setupTwoFlatFeePaymentInvoice(ns)
+	lines := invoice.Lines.OrEmpty()
+	require.Len(t, lines, 2)
+
+	var err error
+	invoice, err = s.BillingService.PaymentAuthorized(ctx, invoice.GetInvoiceID())
+	require.NoError(t, err)
+	require.Equal(t, billing.StandardInvoiceStatusPaymentProcessingAuthorized, invoice.Status)
+	for _, line := range lines {
+		run := s.requireFlatFeeInvoiceRun(line)
+		s.requireInvoiceAuthorizationBooking(line, run.Payment)
+	}
+	beforeSettlementTransactionIDs := s.paymentAuthorizationTransactionIDs(ns)
+
+	engine := s.FlatFeeSvc.GetLineEngine()
+	fault := &failOncePaymentSettlementLineEngine{LineEngine: engine, FailLineID: lines[1].ID}
+	s.replaceLineEngine(t, engine, fault)
+
+	require.NoError(t, s.BillingService.TriggerInvoice(ctx, billing.InvoiceTriggerServiceInput{
+		InvoiceTriggerInput: billing.InvoiceTriggerInput{Invoice: invoice.GetInvoiceID(), Trigger: billing.TriggerPaid},
+		AppType:             app.AppTypeCustomInvoicing,
+		Capability:          app.CapabilityTypeCollectPayments,
+	}))
+	require.True(t, fault.Failed)
+
+	failed, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{Invoice: invoice.GetInvoiceID()})
+	require.NoError(t, err)
+	require.Equal(t, billing.StandardInvoiceStatusPaymentProcessingBookingSettledFailed, failed.Status)
+	require.True(t, failed.HasCriticalValidationIssues())
+	for _, line := range lines {
+		run := s.requireFlatFeeInvoiceRun(line)
+		s.requireInvoiceAuthorizationBooking(line, run.Payment)
+	}
+	require.ElementsMatch(t, beforeSettlementTransactionIDs, s.paymentAuthorizationTransactionIDs(ns))
+}
+
+func (s *CreditThenInvoiceTestSuite) TestFlatFeeDirectPaymentFailureRollsBackAuthorizationAndSettlement() {
+	clock.FreezeTime(time.Date(2026, time.February, 1, 0, 0, 0, 0, time.UTC))
+	defer clock.UnFreeze()
+
+	t := s.T()
+	ctx := t.Context()
+	ns := s.GetUniqueNamespace("flat-fee-direct-payment-atomic")
+	invoice := s.setupTwoFlatFeePaymentInvoice(ns)
+	lines := invoice.Lines.OrEmpty()
+	require.Len(t, lines, 2)
+	beforePaymentTransactionIDs := s.paymentAuthorizationTransactionIDs(ns)
+
+	engine := s.FlatFeeSvc.GetLineEngine()
+	fault := &failOncePaymentSettlementLineEngine{LineEngine: engine, FailLineID: lines[1].ID}
+	s.replaceLineEngine(t, engine, fault)
+
+	require.NoError(t, s.BillingService.TriggerInvoice(ctx, billing.InvoiceTriggerServiceInput{
+		InvoiceTriggerInput: billing.InvoiceTriggerInput{Invoice: invoice.GetInvoiceID(), Trigger: billing.TriggerPaid},
+		AppType:             app.AppTypeCustomInvoicing,
+		Capability:          app.CapabilityTypeCollectPayments,
+	}))
+	require.True(t, fault.Failed)
+
+	failed, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{Invoice: invoice.GetInvoiceID()})
+	require.NoError(t, err)
+	require.Equal(t, billing.StandardInvoiceStatusPaymentProcessingBookingAuthorizedAndSettledFailed, failed.Status)
+	require.True(t, failed.HasCriticalValidationIssues())
+	for _, line := range lines {
+		run := s.requireFlatFeeInvoiceRun(line)
+		require.Nil(t, run.Payment)
+	}
+	require.ElementsMatch(t, beforePaymentTransactionIDs, s.paymentAuthorizationTransactionIDs(ns))
+}
+
+func (s *CreditThenInvoiceTestSuite) TestPaymentAuthorizationFailureRollsBackAcrossLineEngines() {
+	clock.FreezeTime(time.Date(2026, time.February, 1, 0, 0, 0, 0, time.UTC))
+	defer clock.UnFreeze()
+	defer s.MockStreamingConnector.Reset()
+
+	t := s.T()
+	ctx := t.Context()
+	ns := s.GetUniqueNamespace("payment-authorization-cross-engine-atomic")
+	invoice := s.setupMixedPaymentInvoice(ns)
+	clock.FreezeTime(invoice.DefaultCollectionAtForStandardInvoice())
+	defer clock.UnFreeze()
+
+	var err error
+	invoice, err = s.BillingService.AdvanceInvoice(ctx, invoice.GetInvoiceID())
+	require.NoError(t, err)
+	invoice, err = s.BillingService.ApproveInvoice(ctx, invoice.GetInvoiceID())
+	require.NoError(t, err)
+	require.Equal(t, billing.StandardInvoiceStatusPaymentProcessingPending, invoice.Status)
+	require.Len(t, invoice.Lines.OrEmpty(), 2)
+	beforeAuthorizationTransactionIDs := s.paymentAuthorizationTransactionIDs(ns)
+
+	state := &failSecondPaymentAuthorizationState{}
+	flatFeeEngine := s.FlatFeeSvc.GetLineEngine()
+	usageBasedEngine := s.UsageBasedSvc.GetLineEngine()
+	s.replaceLineEngine(t, flatFeeEngine, &failSecondPaymentAuthorizationLineEngine{LineEngine: flatFeeEngine, State: state})
+	s.replaceLineEngine(t, usageBasedEngine, &failSecondPaymentAuthorizationLineEngine{LineEngine: usageBasedEngine, State: state})
+
+	require.NoError(t, s.BillingService.TriggerInvoice(ctx, billing.InvoiceTriggerServiceInput{
+		InvoiceTriggerInput: billing.InvoiceTriggerInput{Invoice: invoice.GetInvoiceID(), Trigger: billing.TriggerAuthorized},
+		AppType:             app.AppTypeCustomInvoicing,
+		Capability:          app.CapabilityTypeCollectPayments,
+	}))
+	require.True(t, state.Failed)
+	require.Equal(t, 2, state.Calls)
+
+	failed, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{Invoice: invoice.GetInvoiceID()})
+	require.NoError(t, err)
+	require.Equal(t, billing.StandardInvoiceStatusPaymentProcessingBookingAuthorizedFailed, failed.Status)
+	require.True(t, failed.HasCriticalValidationIssues())
+	for _, line := range invoice.Lines.OrEmpty() {
+		switch line.Engine {
+		case billing.LineEngineTypeChargeFlatFee:
+			run := s.requireFlatFeeInvoiceRun(line)
+			require.Nil(t, run.Payment)
+		case billing.LineEngineTypeChargeUsageBased:
+			run := s.requireUsageBasedInvoiceRun(line)
+			require.Nil(t, run.Payment)
+		default:
+			require.Failf(t, "unexpected line engine", "engine=%s", line.Engine)
+		}
+	}
+	require.ElementsMatch(t, beforeAuthorizationTransactionIDs, s.paymentAuthorizationTransactionIDs(ns))
+}
+
+func (s *CreditThenInvoiceTestSuite) setupTwoFlatFeePaymentInvoice(namespace string) billing.StandardInvoice {
+	t := s.T()
+	t.Helper()
+	ctx := t.Context()
+
+	s.ProvisionDefaultTaxCodes(ctx, namespace)
+	invoicing := s.SetupCustomInvoicing(namespace)
+	cust := s.CreateLedgerBackedCustomer(namespace, "test-subject")
+	s.ProvisionBillingProfile(ctx, namespace, invoicing.App.GetID())
+	period := timeutil.ClosedPeriod{From: clock.Now(), To: clock.Now().AddDate(0, 1, 0)}
+	intents := make([]charges.ChargeIntent, 0, 2)
+	for i, amount := range []int64{5, 10} {
+		intents = append(intents, s.CreateMockChargeIntent(CreateMockChargeIntentInput{
+			Customer:       cust.GetID(),
+			Currency:       USD,
+			ServicePeriod:  period,
+			SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      alpacadecimal.NewFromInt(amount),
+				PaymentTerm: productcatalog.InAdvancePaymentTerm,
+			}),
+			ProRating:         productcatalog.ProRatingConfig{Enabled: true, Mode: productcatalog.ProRatingModeProratePrices},
+			Name:              fmt.Sprintf("charge %d", i),
+			ManagedBy:         billing.SubscriptionManagedLine,
+			UniqueReferenceID: fmt.Sprintf("charge-%d", i),
+		}))
+	}
+	created, err := s.Charges.Create(ctx, charges.CreateInput{Namespace: namespace, Intents: charges.NewCreateChargeIntents(intents...)})
+	require.NoError(t, err)
+	require.Len(t, created, 2)
+	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		Customer: cust.GetID(),
+		AsOf:     lo.ToPtr(clock.Now()),
+	})
+	require.NoError(t, err)
+	require.Len(t, invoices, 1)
+
+	invoice, err := s.BillingService.ApproveInvoice(ctx, invoices[0].GetInvoiceID())
+	require.NoError(t, err)
+	require.Equal(t, billing.StandardInvoiceStatusPaymentProcessingPending, invoice.Status)
+	require.Equal(t, float64(15), invoice.Totals.Total.InexactFloat64())
+
+	return invoice
+}
+
+func (s *CreditThenInvoiceTestSuite) setupMixedPaymentInvoice(namespace string) billing.StandardInvoice {
+	t := s.T()
+	t.Helper()
+	ctx := t.Context()
+
+	s.ProvisionDefaultTaxCodes(ctx, namespace)
+	invoicing := s.SetupCustomInvoicing(namespace)
+	cust := s.CreateLedgerBackedCustomer(namespace, "test-subject")
+	s.ProvisionBillingProfile(ctx, namespace, invoicing.App.GetID())
+	feature := s.SetupApiRequestsTotalFeature(ctx, namespace)
+	period := timeutil.ClosedPeriod{From: clock.Now().AddDate(0, -1, 0), To: clock.Now()}
+	s.MockStreamingConnector.AddSimpleEvent(feature.Feature.Key, 5, period.From.Add(15*24*time.Hour))
+	created, err := s.Charges.Create(ctx, charges.CreateInput{
+		Namespace: namespace,
+		Intents: charges.NewCreateChargeIntents(
+			s.CreateMockChargeIntent(CreateMockChargeIntentInput{
+				Customer:       cust.GetID(),
+				Currency:       USD,
+				ServicePeriod:  period,
+				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+				Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+					Amount:      alpacadecimal.NewFromInt(5),
+					PaymentTerm: productcatalog.InArrearsPaymentTerm,
+				}),
+				ProRating:         productcatalog.ProRatingConfig{Enabled: true, Mode: productcatalog.ProRatingModeProratePrices},
+				Name:              "flat fee charge",
+				ManagedBy:         billing.SubscriptionManagedLine,
+				UniqueReferenceID: "flat-fee-charge",
+			}),
+			s.CreateMockChargeIntent(CreateMockChargeIntentInput{
+				Customer:          cust.GetID(),
+				Currency:          USD,
+				ServicePeriod:     period,
+				SettlementMode:    productcatalog.CreditThenInvoiceSettlementMode,
+				Price:             productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromInt(2)}),
+				ProRating:         productcatalog.ProRatingConfig{Enabled: true, Mode: productcatalog.ProRatingModeProratePrices},
+				FeatureKey:        feature.Feature.Key,
+				Name:              "usage based charge",
+				ManagedBy:         billing.SubscriptionManagedLine,
+				UniqueReferenceID: "usage-based-charge",
+			}),
+		),
+	})
+	require.NoError(t, err)
+	require.Len(t, created, 2)
+	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		Customer: cust.GetID(),
+		AsOf:     lo.ToPtr(clock.Now()),
+	})
+	require.NoError(t, err)
+	require.Len(t, invoices, 1)
+	require.Equal(t, billing.StandardInvoiceStatusDraftWaitingForCollection, invoices[0].Status)
+
+	return invoices[0]
+}
+
 func (s *CreditThenInvoiceTestSuite) authorizeInvoiceWithSecondLineFailure(invoice billing.StandardInvoice, engine billing.LineEngine) billing.StandardInvoice {
 	t := s.T()
 	t.Helper()
 	ctx := t.Context()
 	fault := &failOncePaymentAuthorizationLineEngine{LineEngine: engine, FailLineID: invoice.Lines.OrEmpty()[1].ID}
-	require.NoError(t, s.BillingService.DeregisterLineEngine(engine.GetLineEngineType()))
-	require.NoError(t, s.BillingService.RegisterLineEngine(fault))
-	restoration := paymentAuthorizationLineEngineRestoration{T: t, Billing: s.BillingService, Engine: engine}
-	t.Cleanup(restoration.restore)
+	s.replaceLineEngine(t, engine, fault)
 
-	// The app boundary persists validation failures with prior line progress;
-	// the custom-invoicing convenience method would roll the transaction back.
 	require.NoError(t, s.BillingService.TriggerInvoice(ctx, billing.InvoiceTriggerServiceInput{
 		InvoiceTriggerInput: billing.InvoiceTriggerInput{Invoice: invoice.GetInvoiceID(), Trigger: billing.TriggerAuthorized},
 		AppType:             app.AppTypeCustomInvoicing,
@@ -426,13 +707,22 @@ func (s *CreditThenInvoiceTestSuite) authorizeInvoiceWithSecondLineFailure(invoi
 	return failed
 }
 
-type paymentAuthorizationLineEngineRestoration struct {
+func (s *CreditThenInvoiceTestSuite) replaceLineEngine(t *testing.T, original, replacement billing.LineEngine) {
+	t.Helper()
+	require.Equal(t, original.GetLineEngineType(), replacement.GetLineEngineType())
+	require.NoError(t, s.BillingService.DeregisterLineEngine(original.GetLineEngineType()))
+	require.NoError(t, s.BillingService.RegisterLineEngine(replacement))
+	restoration := lineEngineRestoration{T: t, Billing: s.BillingService, Engine: original}
+	t.Cleanup(restoration.restore)
+}
+
+type lineEngineRestoration struct {
 	T       *testing.T
 	Billing billing.Service
 	Engine  billing.LineEngine
 }
 
-func (r paymentAuthorizationLineEngineRestoration) restore() {
+func (r lineEngineRestoration) restore() {
 	require.NoError(r.T, r.Billing.DeregisterLineEngine(r.Engine.GetLineEngineType()))
 	require.NoError(r.T, r.Billing.RegisterLineEngine(r.Engine))
 }
@@ -535,6 +825,61 @@ type failOncePaymentAuthorizationLineEngine struct {
 	Failed     bool
 }
 
+type failOncePaymentSettlementLineEngine struct {
+	billing.LineEngine
+	FailLineID string
+	Failed     bool
+}
+
+type failSecondPaymentAuthorizationState struct {
+	Calls  int
+	Failed bool
+}
+
+type failSecondPaymentAuthorizationLineEngine struct {
+	billing.LineEngine
+	State *failSecondPaymentAuthorizationState
+}
+
+func (e *failSecondPaymentAuthorizationLineEngine) OnPaymentAuthorized(ctx context.Context, input billing.OnPaymentAuthorizedInput) error {
+	e.State.Calls++
+	if e.State.Calls == 2 {
+		e.State.Failed = true
+		return billing.ValidationIssue{
+			Severity: billing.ValidationIssueSeverityCritical,
+			Code:     "test_cross_engine_callback_failed",
+			Message:  "second line engine callback failed",
+		}
+	}
+
+	return e.LineEngine.OnPaymentAuthorized(ctx, input)
+}
+
+func (e *failOncePaymentSettlementLineEngine) OnPaymentSettled(ctx context.Context, input billing.OnPaymentSettledInput) error {
+	if e.Failed {
+		return e.LineEngine.OnPaymentSettled(ctx, input)
+	}
+
+	for _, line := range input.Lines {
+		if line.ID == e.FailLineID {
+			e.Failed = true
+			return billing.ValidationIssue{
+				Severity: billing.ValidationIssueSeverityCritical,
+				Code:     "test_transient_line_callback_failed",
+				Message:  "transient line callback failure after prior progress",
+			}
+		}
+
+		one := input
+		one.Lines = billing.StandardLines{line}
+		if err := e.LineEngine.OnPaymentSettled(ctx, one); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (e *failOncePaymentAuthorizationLineEngine) OnPaymentAuthorized(ctx context.Context, input billing.OnPaymentAuthorizedInput) error {
 	if e.Failed {
 		return e.LineEngine.OnPaymentAuthorized(ctx, input)
@@ -546,7 +891,7 @@ func (e *failOncePaymentAuthorizationLineEngine) OnPaymentAuthorized(ctx context
 			return billing.ValidationIssue{
 				Severity: billing.ValidationIssueSeverityCritical,
 				Code:     "test_transient_line_callback_failed",
-				Message:  "transient line callback failure after prior progress committed",
+				Message:  "transient line callback failure after prior progress",
 			}
 		}
 
@@ -571,27 +916,51 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeIssuingRetryPreservesCompletedCh
 	defer clock.UnFreeze()
 
 	var fixture issuingRetryInvoice
+	var ledgerBeforeAttempt LedgerSnapshot
 	s.Run("create an invoice with two flat fee charges", func() {
 		// given an invoice with two independently bookable flat fee charges
 		t := s.T()
 		fixture = s.setupFlatFeeIssuingRetryInvoice()
 		require.Equal(t, float64(15), fixture.Invoice.Totals.Total.InexactFloat64())
+		ledgerBeforeAttempt = s.CreateLedgerSnapshot(fixture.ledgerSnapshotInput())
 	})
 
+	var failedInvoice billing.StandardInvoice
 	var completedBeforeRetry completedIssuingBooking
 	var ledgerBeforeRetry LedgerSnapshot
-	s.Run("fail issuance after the first charge booking completes", func() {
-		// when invoice issuance fails after the first charge booking commits
+	s.Run("fail issuance after the first charge booking writes", func() {
+		// when invoice issuance fails after the first charge booking writes
+		// then the complete line-engine attempt is rolled back
 		t := s.T()
 		clock.FreezeTime(fixture.Invoice.DraftUntil.Add(time.Second))
 		defer clock.UnFreeze()
 
 		fault := s.failIssuingAfterCompletedChargeBooking(s.FlatFeeSvc.GetLineEngine())
-		failedInvoice, err := s.BillingService.AdvanceInvoice(ctx, fixture.Invoice.GetInvoiceID())
+		var err error
+		failedInvoice, err = s.BillingService.AdvanceInvoice(ctx, fixture.Invoice.GetInvoiceID())
 		require.NoError(t, err)
 		require.True(t, fault.Failed)
 		require.Equal(t, billing.StandardInvoiceStatusIssuingChargeBookingFailed, failedInvoice.Status)
 		require.True(t, failedInvoice.HasCriticalValidationIssues())
+
+		chargeID := fixture.ChargesByLineName[issuingCompletedLineName]
+		charge := s.RequireFlatFeeChargeStatus(chargeID, flatfee.StatusActiveRealizationIssuing)
+		require.NotNil(t, charge.Realizations.CurrentRun)
+		require.Nil(t, charge.Realizations.CurrentRun.AccruedUsage)
+		require.Nil(t, charge.Realizations.CurrentRun.Payment)
+		s.AssertLedgerSnapshotUnchanged(fixture.ledgerSnapshotInput(), ledgerBeforeAttempt)
+	})
+
+	s.Run("record a historical first-charge booking before retry", func() {
+		// This partial booking represents an old database state; new attempts are atomic.
+		// The setup is only needed to verify recovery from data written before that guarantee.
+		t := s.T()
+		line := fixture.LinesByName[issuingCompletedLineName]
+		require.NotNil(t, line)
+		require.NoError(t, s.FlatFeeSvc.GetLineEngine().OnInvoiceIssued(ctx, billing.OnInvoiceIssuedInput{
+			Invoice: failedInvoice,
+			Lines:   billing.StandardLines{line},
+		}))
 
 		completedBeforeRetry = s.requireCompletedFlatFeeIssuingBooking(fixture)
 		ledgerBeforeRetry = s.CreateLedgerSnapshot(fixture.ledgerSnapshotInput())
@@ -624,27 +993,53 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedIssuingRetryPreservesComplete
 	defer s.MockStreamingConnector.Reset()
 
 	var fixture issuingRetryInvoice
+	var ledgerBeforeAttempt LedgerSnapshot
 	s.Run("create an invoice with two usage based charges", func() {
 		// given an invoice with two independently bookable usage based charges
 		t := s.T()
 		fixture = s.setupUsageBasedIssuingRetryInvoice()
 		require.Equal(t, float64(15), fixture.Invoice.Totals.Total.InexactFloat64())
+		ledgerBeforeAttempt = s.CreateLedgerSnapshot(fixture.ledgerSnapshotInput())
 	})
 
+	var failedInvoice billing.StandardInvoice
 	var completedBeforeRetry completedIssuingBooking
 	var ledgerBeforeRetry LedgerSnapshot
-	s.Run("fail issuance after the first charge booking completes", func() {
-		// when invoice issuance fails after the first charge booking commits
+	s.Run("fail issuance after the first charge booking writes", func() {
+		// when invoice issuance fails after the first charge booking writes
+		// then the complete line-engine attempt is rolled back
 		t := s.T()
 		clock.FreezeTime(fixture.Invoice.DraftUntil.Add(time.Second))
 		defer clock.UnFreeze()
 
 		fault := s.failIssuingAfterCompletedChargeBooking(s.UsageBasedSvc.GetLineEngine())
-		failedInvoice, err := s.BillingService.AdvanceInvoice(ctx, fixture.Invoice.GetInvoiceID())
+		var err error
+		failedInvoice, err = s.BillingService.AdvanceInvoice(ctx, fixture.Invoice.GetInvoiceID())
 		require.NoError(t, err)
 		require.True(t, fault.Failed)
 		require.Equal(t, billing.StandardInvoiceStatusIssuingChargeBookingFailed, failedInvoice.Status)
 		require.True(t, failedInvoice.HasCriticalValidationIssues())
+
+		chargeID := fixture.ChargesByLineName[issuingCompletedLineName]
+		charge := s.RequireUsageBasedChargeStatus(chargeID, usagebased.StatusActiveRealizationIssuing)
+		require.NotNil(t, charge.State.CurrentRealizationRunID)
+		currentRun, err := charge.Realizations.GetByID(*charge.State.CurrentRealizationRunID)
+		require.NoError(t, err)
+		require.Nil(t, currentRun.InvoiceUsage)
+		require.Nil(t, currentRun.Payment)
+		s.AssertLedgerSnapshotUnchanged(fixture.ledgerSnapshotInput(), ledgerBeforeAttempt)
+	})
+
+	s.Run("record a historical first-charge booking before retry", func() {
+		// This partial booking represents an old database state; new attempts are atomic.
+		// The setup is only needed to verify recovery from data written before that guarantee.
+		t := s.T()
+		line := fixture.LinesByName[issuingCompletedLineName]
+		require.NotNil(t, line)
+		require.NoError(t, s.UsageBasedSvc.GetLineEngine().OnInvoiceIssued(ctx, billing.OnInvoiceIssuedInput{
+			Invoice: failedInvoice,
+			Lines:   billing.StandardLines{line},
+		}))
 
 		completedBeforeRetry = s.requireCompletedUsageBasedIssuingBooking(fixture)
 		ledgerBeforeRetry = s.CreateLedgerSnapshot(fixture.ledgerSnapshotInput())
@@ -914,23 +1309,9 @@ func (s *CreditThenInvoiceTestSuite) failIssuingAfterCompletedChargeBooking(engi
 		CompletedLineName: issuingCompletedLineName,
 		FailLineName:      issuingRemainingLineName,
 	}
-	require.NoError(t, s.BillingService.DeregisterLineEngine(engine.GetLineEngineType()))
-	require.NoError(t, s.BillingService.RegisterLineEngine(fault))
-	restoration := issuingLineEngineRestoration{T: t, Billing: s.BillingService, Engine: engine}
-	t.Cleanup(restoration.restore)
+	s.replaceLineEngine(t, engine, fault)
 
 	return fault
-}
-
-type issuingLineEngineRestoration struct {
-	T       *testing.T
-	Billing billing.Service
-	Engine  billing.LineEngine
-}
-
-func (r issuingLineEngineRestoration) restore() {
-	require.NoError(r.T, r.Billing.DeregisterLineEngine(r.Engine.GetLineEngineType()))
-	require.NoError(r.T, r.Billing.RegisterLineEngine(r.Engine))
 }
 
 type failOnceIssuingLineEngine struct {

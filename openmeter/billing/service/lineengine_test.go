@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	billingtestutils "github.com/openmeterio/openmeter/openmeter/billing/testutils"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -687,4 +688,182 @@ func lineIDs(lines billing.StandardLines) []string {
 	}
 
 	return ids
+}
+func TestRunInTransactionWithValidationWarningsAllowed(t *testing.T) {
+	warning := billing.NewValidationWarning("warning", "warning")
+	critical := billing.NewValidationError("critical", "critical")
+	systemErr := errors.New("system error")
+
+	tests := []struct {
+		name             string
+		callbackErr      error
+		expectedResult   string
+		expectedWarnings billing.ValidationIssues
+		expectedErr      error
+		expectedCommit   bool
+		expectedRollback bool
+	}{
+		{
+			name:           "success",
+			expectedResult: "result",
+			expectedCommit: true,
+		},
+		{
+			name:             "warnings preserve result",
+			callbackErr:      warning,
+			expectedResult:   "result",
+			expectedWarnings: billing.ValidationIssues{warning},
+			expectedCommit:   true,
+		},
+		{
+			name:             "critical validation issue rolls back",
+			callbackErr:      critical,
+			expectedErr:      critical,
+			expectedRollback: true,
+		},
+		{
+			name:             "system error rolls back",
+			callbackErr:      systemErr,
+			expectedErr:      systemErr,
+			expectedRollback: true,
+		},
+		{
+			name:             "warning joined with system error rolls back",
+			callbackErr:      errors.Join(warning, systemErr),
+			expectedErr:      systemErr,
+			expectedRollback: true,
+		},
+		{
+			name:             "mixed validation issues roll back",
+			callbackErr:      errors.Join(warning, critical),
+			expectedErr:      critical,
+			expectedRollback: true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			driver := &validationWarningTransactionDriver{}
+			service := Service{adapter: validationWarningBillingAdapter{Driver: driver}}
+
+			result, warnings, err := service.runInTransactionWithValidationWarningsAllowed(
+				t.Context(),
+				func(context.Context) (string, error) {
+					return "result", test.callbackErr
+				},
+			)
+
+			if test.expectedErr == nil {
+				require.NoError(t, err)
+			} else {
+				require.ErrorIs(t, err, test.expectedErr)
+			}
+			require.Equal(t, test.expectedResult, result)
+			require.Equal(t, test.expectedWarnings, warnings)
+			require.True(t, driver.SavePointCalled)
+			require.Equal(t, test.expectedCommit, driver.CommitCalled)
+			require.Equal(t, test.expectedRollback, driver.RollbackCalled)
+		})
+	}
+}
+
+func TestRunInTransactionWithValidationWarningsAllowedTransactionFailure(t *testing.T) {
+	transactionErr := errors.New("commit failed")
+	driver := &validationWarningTransactionDriver{CommitErr: transactionErr}
+	service := Service{adapter: validationWarningBillingAdapter{Driver: driver}}
+
+	result, warnings, err := service.runInTransactionWithValidationWarningsAllowed(
+		t.Context(),
+		func(context.Context) (string, error) {
+			return "result", billing.NewValidationWarning("warning", "warning")
+		},
+	)
+
+	require.ErrorIs(t, err, transactionErr)
+	require.Empty(t, result)
+	require.Nil(t, warnings)
+	require.True(t, driver.SavePointCalled)
+	require.True(t, driver.CommitCalled)
+	require.True(t, driver.RollbackCalled)
+}
+
+func TestRunInTransactionWithValidationWarningsAllowedSavePointFailure(t *testing.T) {
+	transactionErr := errors.New("savepoint failed")
+	driver := &validationWarningTransactionDriver{SavePointErr: transactionErr}
+	service := Service{adapter: validationWarningBillingAdapter{Driver: driver}}
+	callbackCalled := false
+
+	result, warnings, err := service.runInTransactionWithValidationWarningsAllowed(
+		t.Context(),
+		func(context.Context) (string, error) {
+			callbackCalled = true
+			return "result", nil
+		},
+	)
+
+	require.ErrorIs(t, err, transactionErr)
+	require.Empty(t, result)
+	require.Nil(t, warnings)
+	require.False(t, callbackCalled)
+	require.True(t, driver.SavePointCalled)
+	require.False(t, driver.CommitCalled)
+	require.False(t, driver.RollbackCalled)
+}
+
+func TestRunInTransactionWithValidationWarningsAllowedRollbackFailure(t *testing.T) {
+	critical := billing.NewValidationError("critical", "critical")
+	transactionErr := errors.New("rollback failed")
+	driver := &validationWarningTransactionDriver{RollbackErr: transactionErr}
+	service := Service{adapter: validationWarningBillingAdapter{Driver: driver}}
+
+	result, warnings, err := service.runInTransactionWithValidationWarningsAllowed(
+		t.Context(),
+		func(context.Context) (string, error) {
+			return "result", critical
+		},
+	)
+
+	require.ErrorIs(t, err, critical)
+	require.ErrorIs(t, err, transactionErr)
+	require.Empty(t, result)
+	require.Nil(t, warnings)
+	issues, systemErr := billing.ToValidationIssues(err)
+	require.Nil(t, issues)
+	require.Equal(t, err, systemErr)
+	require.True(t, driver.SavePointCalled)
+	require.False(t, driver.CommitCalled)
+	require.True(t, driver.RollbackCalled)
+}
+
+type validationWarningBillingAdapter struct {
+	billing.Adapter
+	Driver transaction.Driver
+}
+
+func (c validationWarningBillingAdapter) Tx(ctx context.Context) (context.Context, transaction.Driver, error) {
+	return ctx, c.Driver, nil
+}
+
+type validationWarningTransactionDriver struct {
+	SavePointCalled bool
+	CommitCalled    bool
+	RollbackCalled  bool
+	SavePointErr    error
+	CommitErr       error
+	RollbackErr     error
+}
+
+func (d *validationWarningTransactionDriver) SavePoint() error {
+	d.SavePointCalled = true
+	return d.SavePointErr
+}
+
+func (d *validationWarningTransactionDriver) Commit() error {
+	d.CommitCalled = true
+	return d.CommitErr
+}
+
+func (d *validationWarningTransactionDriver) Rollback() error {
+	d.RollbackCalled = true
+	return d.RollbackErr
 }
