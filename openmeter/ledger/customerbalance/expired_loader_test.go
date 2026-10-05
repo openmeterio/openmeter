@@ -2,11 +2,13 @@ package customerbalance
 
 import (
 	"cmp"
+	"context"
 	"slices"
 	"testing"
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 	"github.com/samber/mo"
 	"github.com/stretchr/testify/require"
@@ -16,11 +18,13 @@ import (
 	chargemeta "github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
+	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -138,14 +142,12 @@ func TestListCreditTransactionsExpiredBreakagePreservesCustomCurrencyIdentity(t 
 		env.bookFBOBalanceInCurrencyReferenceWithFeatures(t, amount, grant.currency, nil)
 		env.fundOpenReceivableInCurrencyReferenceWithFeatures(t, amount, grant.currency, nil)
 
-		inputs, pending, err := env.BreakageService.PlanIssuance(t.Context(), ledgerbreakage.PlanIssuanceInput{
+		env.bookBreakageIssuance(t, ledgerbreakage.PlanIssuanceInput{
 			CustomerID: env.CustomerID,
 			Amount:     amount,
 			Currency:   grant.currency,
 			ExpiresAt:  expiresAt,
 		})
-		require.NoError(t, err)
-		env.commitBreakageRecords(t, inputs, pending)
 	}
 
 	expiredType := CreditTransactionTypeExpired
@@ -198,15 +200,13 @@ func TestListCreditTransactionsExpiredBreakageFeatureFilter(t *testing.T) {
 		env.bookFBOBalanceWithFeatures(t, amount, spec.features)
 		env.fundOpenReceivableInCurrencyWithFeatures(t, amount, env.Currency, spec.features)
 
-		inputs, pending, err := env.BreakageService.PlanIssuance(t.Context(), ledgerbreakage.PlanIssuanceInput{
+		env.bookBreakageIssuance(t, ledgerbreakage.PlanIssuanceInput{
 			CustomerID: env.CustomerID,
 			Amount:     amount,
 			Currency:   env.CurrencyReference(),
 			Filters:    ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: spec.features},
 			ExpiresAt:  expiresAt,
 		})
-		require.NoError(t, err)
-		env.commitBreakageRecords(t, inputs, pending)
 	}
 
 	expiredType := CreditTransactionTypeExpired
@@ -624,15 +624,12 @@ func (e *testEnv) bookExpiredListingState(t *testing.T, issuedAt time.Time, spec
 	e.fundOpenReceivable(t, total)
 
 	for _, spec := range specs {
-		inputs, pending, err := e.BreakageService.PlanIssuance(t.Context(), ledgerbreakage.PlanIssuanceInput{
+		e.bookBreakageIssuance(t, ledgerbreakage.PlanIssuanceInput{
 			CustomerID: e.CustomerID,
 			Amount:     alpacadecimal.NewFromInt(spec.amount),
 			Currency:   e.CurrencyReference(),
 			ExpiresAt:  issuedAt.Add(spec.expiresAfter),
 		})
-		require.NoError(t, err)
-
-		e.commitBreakageRecords(t, inputs, pending)
 	}
 
 	plans, err := e.BreakageService.ListPlans(t.Context(), ledgerbreakage.ListPlansInput{
@@ -656,14 +653,21 @@ func (e *testEnv) bookExpiredListingState(t *testing.T, issuedAt time.Time, spec
 		t.Cleanup(clock.UnFreeze)
 		e.bookFBOUsage(t, usageAt, plan.FBOAddress, releaseAmount)
 
-		releaseInput, releaseRecord, err := e.BreakageService.ReleasePlan(t.Context(), ledgerbreakage.ReleasePlanInput{
-			Plan:       plan,
-			Amount:     releaseAmount,
-			SourceKind: ledgerbreakage.SourceKindUsage,
+		releaseGroupID := e.commitBreakagePostings(t, func(ctx context.Context, posting ledgerbreakage.PostingInput) ([]ledger.TransactionInput, error) {
+			input, err := e.BreakageService.ReleasePlan(ctx, ledgerbreakage.ReleasePlanInput{
+				PostingInput: posting,
+				Plan:         plan,
+				Amount:       releaseAmount,
+				SourceKind:   ledgerbreakage.SourceKindUsage,
+			})
+			return []ledger.TransactionInput{input}, err
+		})
+		releases, err := e.BreakageService.ListReleases(t.Context(), ledgerbreakage.ListReleasesInput{
+			CustomerID:               e.CustomerID,
+			SourceTransactionGroupID: []string{releaseGroupID},
 		})
 		require.NoError(t, err)
-
-		e.commitBreakageRecords(t, []ledger.TransactionInput{releaseInput}, []ledgerbreakage.PendingRecord{releaseRecord})
+		require.Len(t, releases, 1)
 
 		if spec.reopen == 0 {
 			continue
@@ -677,19 +681,15 @@ func (e *testEnv) bookExpiredListingState(t *testing.T, issuedAt time.Time, spec
 		e.bookFBORestore(t, reopenAt, reopenAmount)
 		e.fundOpenReceivable(t, reopenAmount)
 
-		reopenInput, reopenRecord, err := e.BreakageService.ReopenRelease(t.Context(), ledgerbreakage.ReopenReleaseInput{
-			Release: ledgerbreakage.Release{
-				Record:          releaseRecord.Record,
-				OpenAmount:      releaseAmount,
-				FBOAddress:      plan.FBOAddress,
-				BreakageAddress: plan.BreakageAddress,
-			},
-			Amount:     reopenAmount,
-			SourceKind: ledgerbreakage.SourceKindUsageCorrection,
+		e.commitBreakagePostings(t, func(ctx context.Context, posting ledgerbreakage.PostingInput) ([]ledger.TransactionInput, error) {
+			input, err := e.BreakageService.ReopenRelease(ctx, ledgerbreakage.ReopenReleaseInput{
+				PostingInput: posting,
+				Release:      releases[0],
+				Amount:       reopenAmount,
+				SourceKind:   ledgerbreakage.SourceKindUsageCorrection,
+			})
+			return []ledger.TransactionInput{input}, err
 		})
-		require.NoError(t, err)
-
-		e.commitBreakageRecords(t, []ledger.TransactionInput{reopenInput}, []ledgerbreakage.PendingRecord{reopenRecord})
 	}
 }
 
@@ -753,12 +753,31 @@ func (e *testEnv) createPromotionalCreditFunding(t *testing.T, fundedAt time.Tim
 	return result.Charge
 }
 
-func (e *testEnv) commitBreakageRecords(t *testing.T, inputs []ledger.TransactionInput, pending []ledgerbreakage.PendingRecord) {
+func (e *testEnv) bookBreakageIssuance(t *testing.T, input ledgerbreakage.PlanIssuanceInput) {
 	t.Helper()
 
-	group, err := e.Deps.HistoricalLedger.CommitGroup(t.Context(), transactions.GroupInputs(e.Namespace, nil, inputs...))
+	e.commitBreakagePostings(t, func(ctx context.Context, posting ledgerbreakage.PostingInput) ([]ledger.TransactionInput, error) {
+		input.PostingInput = posting
+		return e.BreakageService.PlanIssuance(ctx, input)
+	})
+}
+
+func (e *testEnv) commitBreakagePostings(t *testing.T, resolve func(context.Context, ledgerbreakage.PostingInput) ([]ledger.TransactionInput, error)) string {
+	t.Helper()
+
+	groupID := ulid.Make().String()
+	err := transaction.RunWithNoValue(t.Context(), enttx.NewCreator(e.DB), func(ctx context.Context) error {
+		inputs, err := resolve(ctx, ledgerbreakage.PostingInput{TransactionGroupID: groupID})
+		if err != nil {
+			return err
+		}
+
+		_, err = e.Deps.HistoricalLedger.CommitGroup(ctx, ledger.WithGroupID(transactions.GroupInputs(e.Namespace, nil, inputs...), groupID))
+		return err
+	})
 	require.NoError(t, err)
-	require.NoError(t, e.BreakageService.PersistCommittedRecords(t.Context(), pending, group))
+
+	return groupID
 }
 
 func (e *testEnv) bookFBOUsage(t *testing.T, at time.Time, address ledger.PostingAddress, amount alpacadecimal.Decimal) {

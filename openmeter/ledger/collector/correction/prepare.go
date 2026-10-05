@@ -7,19 +7,16 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
-	"github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type correctionPlan struct {
-	inputs          []ledger.TransactionInput
-	breakagePending []breakage.PendingRecord
-	realizations    creditrealization.CreateCorrectionInputs
+	inputs       []ledger.TransactionInput
+	realizations creditrealization.CreateCorrectionInputs
 }
 
 func (p *correctionPlan) append(other correctionPlan) {
 	p.inputs = append(p.inputs, other.inputs...)
-	p.breakagePending = append(p.breakagePending, other.breakagePending...)
 	p.realizations = append(p.realizations, other.realizations...)
 }
 

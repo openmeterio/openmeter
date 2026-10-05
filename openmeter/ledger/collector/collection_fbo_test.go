@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
@@ -915,24 +916,41 @@ func bookExpiringCreditWithFeatures(
 	)
 	require.NoError(t, err)
 
-	breakageInputs, pending, err := breakageService.PlanIssuance(t.Context(), ledgerbreakage.PlanIssuanceInput{
-		CustomerID:     env.CustomerID,
-		Amount:         creditAmount,
-		Currency:       env.CurrencyReference(),
-		CreditPriority: &priority,
-		Filters:        ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: features},
-		ExpiresAt:      expiresAt,
-		SourceChargeID: sourceChargeID,
+	groupID := ulid.Make().String()
+	err = transaction.RunWithNoValue(t.Context(), enttx.NewCreator(env.DB), func(ctx context.Context) error {
+		breakageInputs, err := breakageService.PlanIssuance(ctx, ledgerbreakage.PlanIssuanceInput{
+			PostingInput:   ledgerbreakage.PostingInput{TransactionGroupID: groupID},
+			CustomerID:     env.CustomerID,
+			Amount:         creditAmount,
+			Currency:       env.CurrencyReference(),
+			CreditPriority: &priority,
+			Filters:        ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: features},
+			ExpiresAt:      expiresAt,
+			SourceChargeID: sourceChargeID,
+		})
+		if err != nil {
+			return err
+		}
+
+		inputs = append(inputs, breakageInputs...)
+		_, err = env.Deps.HistoricalLedger.CommitGroup(ctx, ledger.WithGroupID(transactions.GroupInputs(env.Namespace, nil, inputs...), groupID))
+		return err
 	})
 	require.NoError(t, err)
-	require.Len(t, pending, 1)
 
-	inputs = append(inputs, breakageInputs...)
-	group, err := env.Deps.HistoricalLedger.CommitGroup(t.Context(), transactions.GroupInputs(env.Namespace, nil, inputs...))
+	plans, err := breakageService.ListPlans(t.Context(), ledgerbreakage.ListPlansInput{
+		CustomerID: env.CustomerID,
+		Currency:   env.Currency,
+		AsOf:       env.Now(),
+	})
 	require.NoError(t, err)
-	require.NoError(t, breakageService.PersistCommittedRecords(t.Context(), pending, group))
-
-	return pending[0].ID.ID
+	for _, plan := range plans {
+		if plan.BreakageTransactionGroupID == groupID {
+			return plan.ID.ID
+		}
+	}
+	t.Fatal("issued credit has no breakage plan")
+	return ""
 }
 
 func bookFutureFBOCollection(t *testing.T, env *ledgertestutils.IntegrationEnv, priority int, amount int64, at time.Time) {

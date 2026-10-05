@@ -13,16 +13,16 @@ type NoopService struct{}
 
 var _ Service = NoopService{}
 
-func (NoopService) PlanIssuance(context.Context, PlanIssuanceInput) ([]ledger.TransactionInput, []PendingRecord, error) {
-	return nil, nil, nil
+func (NoopService) PlanIssuance(context.Context, PlanIssuanceInput) ([]ledger.TransactionInput, error) {
+	return nil, nil
 }
 
-func (NoopService) ReleasePlan(context.Context, ReleasePlanInput) (ledger.TransactionInput, PendingRecord, error) {
-	return nil, PendingRecord{}, nil
+func (NoopService) ReleasePlan(context.Context, ReleasePlanInput) (ledger.TransactionInput, error) {
+	return nil, nil
 }
 
-func (NoopService) ReopenRelease(context.Context, ReopenReleaseInput) (ledger.TransactionInput, PendingRecord, error) {
-	return nil, PendingRecord{}, nil
+func (NoopService) ReopenRelease(context.Context, ReopenReleaseInput) (ledger.TransactionInput, error) {
+	return nil, nil
 }
 
 func (NoopService) ListPlans(context.Context, ListPlansInput) ([]Plan, error) {
@@ -39,10 +39,6 @@ func (NoopService) ListExpiredRecords(context.Context, ListExpiredRecordsInput) 
 
 func (NoopService) ListExpiredBreakageImpacts(context.Context, ListExpiredBreakageImpactsInput) (ListExpiredBreakageImpactsResult, error) {
 	return ListExpiredBreakageImpactsResult{}, nil
-}
-
-func (NoopService) PersistCommittedRecords(context.Context, []PendingRecord, ledger.TransactionGroup) error {
-	return nil
 }
 
 // NewNoopService returns a breakage service that never plans or releases

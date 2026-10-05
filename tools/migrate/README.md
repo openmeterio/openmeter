@@ -1,3 +1,8 @@
+## Schema source
+
+Atlas loads Ent's schema through `entschema`, including deferred FK definitions
+from `deferred_constraints.sql` that Ent cannot express.
+
 ## View SQL Helper
 
 Generate SQL definitions for `ent.View` schemas:
