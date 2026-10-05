@@ -109,14 +109,20 @@ func (r *repo) BookTransaction(ctx context.Context, groupID models.NamespacedID,
 	if input == nil {
 		return nil, ledger.ErrTransactionInputRequired
 	}
+	if err := ledger.ValidateAssignedID(input.AssignedID()); err != nil {
+		return nil, fmt.Errorf("transaction ID: %w", err)
+	}
 
 	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, tx *repo) (*ledgerhistorical.Transaction, error) {
-		entity, err := tx.db.LedgerTransaction.Create().
+		create := tx.db.LedgerTransaction.Create().
 			SetNamespace(groupID.Namespace).
 			SetGroupID(groupID.ID).
 			SetAnnotations(input.Annotations()).
-			SetBookedAt(input.BookedAt()).
-			Save(ctx)
+			SetBookedAt(input.BookedAt())
+		if id := input.AssignedID(); id != "" {
+			create.SetID(id)
+		}
+		entity, err := create.Save(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create ledger transaction: %w", err)
 		}
@@ -128,7 +134,13 @@ func (r *repo) BookTransaction(ctx context.Context, groupID models.NamespacedID,
 		routeKeyVersionBySubAccountID := make(map[string]ledger.RoutingKeyVersion, len(entryInputs))
 		routeBySubAccountID := make(map[string]ledger.Route, len(entryInputs))
 		createInputs := make([]*db.LedgerEntryCreate, 0, len(entryInputs))
-		for _, entryInput := range entryInputs {
+		for idx, entryInput := range entryInputs {
+			if entryInput == nil {
+				return nil, fmt.Errorf("entries[%d]: entry is required", idx)
+			}
+			if err := ledger.ValidateAssignedID(entryInput.AssignedID()); err != nil {
+				return nil, fmt.Errorf("entries[%d] ID: %w", idx, err)
+			}
 			subAccountID := entryInput.PostingAddress().SubAccountID()
 			route := entryInput.PostingAddress().Route()
 			accountTypesBySubAccountID[subAccountID] = entryInput.PostingAddress().AccountType()
@@ -137,7 +149,7 @@ func (r *repo) BookTransaction(ctx context.Context, groupID models.NamespacedID,
 			routeKeyVersionBySubAccountID[subAccountID] = route.RoutingKey().Version()
 			routeBySubAccountID[subAccountID] = route.Route()
 
-			createInputs = append(createInputs, tx.db.LedgerEntry.Create().
+			create := tx.db.LedgerEntry.Create().
 				SetNamespace(groupID.Namespace).
 				SetSubAccountID(subAccountID).
 				SetIdentityKey(entryInput.IdentityKey()).
@@ -147,7 +159,11 @@ func (r *repo) BookTransaction(ctx context.Context, groupID models.NamespacedID,
 				SetNillableCollectionOriginID(entryInput.Provenance().CollectionOriginID).
 				SetAnnotations(entryInput.Annotations()).
 				SetAmount(entryInput.Amount()).
-				SetTransactionID(entity.ID))
+				SetTransactionID(entity.ID)
+			if id := entryInput.AssignedID(); id != "" {
+				create.SetID(id)
+			}
+			createInputs = append(createInputs, create)
 		}
 
 		createdEntries := make([]*db.LedgerEntry, 0, len(createInputs))
@@ -201,11 +217,17 @@ func (r *repo) BookTransaction(ctx context.Context, groupID models.NamespacedID,
 }
 
 func (r *repo) CreateTransactionGroup(ctx context.Context, transactionGroup ledgerhistorical.CreateTransactionGroupInput) (ledgerhistorical.TransactionGroupData, error) {
+	if err := transactionGroup.Validate(); err != nil {
+		return ledgerhistorical.TransactionGroupData{}, err
+	}
 	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, tx *repo) (ledgerhistorical.TransactionGroupData, error) {
-		entity, err := tx.db.LedgerTransactionGroup.Create().
+		create := tx.db.LedgerTransactionGroup.Create().
 			SetNamespace(transactionGroup.Namespace).
-			SetAnnotations(transactionGroup.Annotations).
-			Save(ctx)
+			SetAnnotations(transactionGroup.Annotations)
+		if transactionGroup.ID != "" {
+			create.SetID(transactionGroup.ID)
+		}
+		entity, err := create.Save(ctx)
 		if err != nil {
 			return ledgerhistorical.TransactionGroupData{}, fmt.Errorf("failed to create transaction group: %w", err)
 		}

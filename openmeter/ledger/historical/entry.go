@@ -91,6 +91,10 @@ func (e *Entry) ID() models.NamespacedID {
 	return models.NamespacedID{Namespace: e.data.Namespace, ID: e.data.ID}
 }
 
+func (e *Entry) AssignedID() string {
+	return e.data.ID
+}
+
 func (e *Entry) TransactionID() models.NamespacedID {
 	return models.NamespacedID{Namespace: e.data.Namespace, ID: e.data.TransactionID}
 }

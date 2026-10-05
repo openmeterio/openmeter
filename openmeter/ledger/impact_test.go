@@ -390,6 +390,10 @@ func (e impactTestEntry) ID() models.NamespacedID {
 	return e.id
 }
 
+func (e impactTestEntry) AssignedID() string {
+	return e.id.ID
+}
+
 func (e impactTestEntry) TransactionID() models.NamespacedID {
 	return e.txID
 }

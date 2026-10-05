@@ -80,6 +80,9 @@ type Account interface {
 // ----------------------------------------------------------------------------
 
 type EntryInput interface {
+	// AssignedID is an optional database ID, distinct from accounting identity.
+	// Empty IDs are generated when the entry is committed.
+	AssignedID() string
 	PostingAddress() PostingAddress
 	Amount() alpacadecimal.Decimal
 	IdentityKey() string
@@ -103,6 +106,8 @@ type Entry interface {
 }
 
 type TransactionInput interface {
+	// AssignedID is preserved on commit; empty IDs are generated at persistence.
+	AssignedID() string
 	BookedAt() time.Time
 	EntryInputs() []EntryInput
 	Annotations() models.Annotations
@@ -169,6 +174,8 @@ func (c TransactionCursor) Validate() error {
 }
 
 type TransactionGroupInput interface {
+	// AssignedID is preserved on commit; empty IDs are generated at persistence.
+	AssignedID() string
 	Namespace() string
 	Transactions() []TransactionInput
 	Annotations() models.Annotations

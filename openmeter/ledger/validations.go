@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/currencies"
@@ -58,6 +59,13 @@ func ValidateEntryInput(ctx context.Context, entry EntryInput) error {
 	if entry == nil {
 		return ErrEntryInvalid.WithAttrs(models.Attributes{
 			"reason": "entry_required",
+		})
+	}
+
+	if err := ValidateAssignedID(entry.AssignedID()); err != nil {
+		return ErrEntryInvalid.WithAttrs(models.Attributes{
+			"reason": "invalid_id",
+			"error":  err,
 		})
 	}
 
@@ -149,6 +157,10 @@ func ValidateTransactionInputWith(ctx context.Context, transaction TransactionIn
 		return ErrTransactionInputRequired
 	}
 
+	if err := ValidateAssignedID(transaction.AssignedID()); err != nil {
+		return models.NewGenericValidationError(fmt.Errorf("transaction ID: %w", err))
+	}
+
 	entries := lo.Map(transaction.EntryInputs(), func(e EntryInput, _ int) EntryInput {
 		return e
 	})
@@ -174,6 +186,68 @@ func ValidateTransactionInputWith(ctx context.Context, transaction TransactionIn
 	}
 
 	return nil
+}
+
+// ValidateAssignedID permits omission for generated IDs and rejects supplied
+// values that cannot represent the ledger's ULID primary keys.
+func ValidateAssignedID(id string) error {
+	if id == "" {
+		return nil
+	}
+	if _, err := ulid.ParseStrict(id); err != nil {
+		return fmt.Errorf("invalid ledger ID: %w", err)
+	}
+	return nil
+}
+
+// ValidateTransactionGroupInputWith validates all postings and supplied IDs before
+// persistence. IDs are unique per entity type, so duplicate entry IDs are checked
+// across transactions as well as within each transaction.
+func ValidateTransactionGroupInputWith(ctx context.Context, group TransactionGroupInput, routingValidator RoutingValidator) error {
+	if group == nil {
+		return models.NewGenericValidationError(errors.New("transaction group is required"))
+	}
+
+	var errs []error
+	if group.Namespace() == "" {
+		errs = append(errs, errors.New("namespace is required"))
+	}
+	if err := ValidateAssignedID(group.AssignedID()); err != nil {
+		errs = append(errs, fmt.Errorf("group ID: %w", err))
+	}
+
+	inputs := group.Transactions()
+	if len(inputs) == 0 {
+		errs = append(errs, ErrTransactionGroupEmpty)
+	}
+	transactionIDs := make(map[string]struct{}, len(inputs))
+	entryIDs := make(map[string]struct{})
+	for idx, input := range inputs {
+		if err := ValidateTransactionInputWith(ctx, input, routingValidator); err != nil {
+			errs = append(errs, fmt.Errorf("transactions[%d]: %w", idx, err))
+		}
+		if input == nil {
+			continue
+		}
+		if id := input.AssignedID(); id != "" {
+			if _, exists := transactionIDs[id]; exists {
+				errs = append(errs, fmt.Errorf("transactions[%d]: duplicate transaction ID %s", idx, id))
+			}
+			transactionIDs[id] = struct{}{}
+		}
+		for entryIdx, entry := range input.EntryInputs() {
+			if entry == nil {
+				continue
+			}
+			if id := entry.AssignedID(); id != "" {
+				if _, exists := entryIDs[id]; exists {
+					errs = append(errs, fmt.Errorf("transactions[%d].entries[%d]: duplicate entry ID %s", idx, entryIdx, id))
+				}
+				entryIDs[id] = struct{}{}
+			}
+		}
+	}
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 // ValidateOriginProvenance prevents a balanced transaction from silently moving
