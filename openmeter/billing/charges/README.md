@@ -297,6 +297,12 @@ facts in order. An invoice-settled credit purchase has one standard invoice
 line; duplicate lines for the same charge are rejected before lifecycle events
 because the transition and its payment realization are bound to that line.
 
+Billing owns the transaction boundary for invoice-issued, payment-authorized,
+and payment-settled line-engine attempts. Charge engines can keep replay
+handling for historical partial state, but a newly failed attempt does not
+leave a subset of charge or ledger writes committed. A direct-paid attempt
+commits authorization and settlement together.
+
 Payment-backed credit purchases also carry a charge-level cost basis. Fiat
 credit uses a fixed scalar intent in the charge currency and materializes its
 deterministic resolved state at charge creation. Custom-currency credit reuses

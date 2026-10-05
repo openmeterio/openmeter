@@ -1136,84 +1136,81 @@ func (m *InvoiceStateMachine) onInvoiceFinalizing(ctx context.Context) error {
 }
 
 func (m *InvoiceStateMachine) onInvoiceIssued(ctx context.Context) error {
-	groupedLines, err := m.Service.lineEngines.groupStandardLinesByEngine(m.Invoice.Lines.OrEmpty().WithoutDeletedLines())
-	if err != nil {
-		return fmt.Errorf("grouping standard lines by engine: %w", err)
-	}
-
-	for _, grouped := range groupedLines {
-		input := billing.OnInvoiceIssuedInput{
-			Invoice: m.Invoice,
-			Lines:   grouped.Lines,
-		}
-		if err := input.Validate(); err != nil {
-			return fmt.Errorf("validating invoice issued input for engine %s: %w", grouped.Engine.GetLineEngineType(), err)
-		}
-
-		if err := grouped.Engine.OnInvoiceIssued(ctx, input); err != nil {
-			// Charge booking runs after provider finalization and is retry-only; classification
-			// preserves issuing.charge_booking_failed instead of rolling issuance back.
-			return billing.WrapAsValidationIssue(billing.NewLineEngineValidationError(grouped.Engine, err))
-		}
-	}
-
-	return nil
+	return m.runLineEngineInvoiceSteps(ctx, func(ctx context.Context, engine billing.LineEngine, input billing.StandardLineEventInput) error {
+		return engine.OnInvoiceIssued(ctx, input)
+	})
 }
 
 func (m *InvoiceStateMachine) onPaymentAuthorized(ctx context.Context) error {
-	groupedLines, err := m.Service.lineEngines.groupStandardLinesByEngine(m.Invoice.Lines.OrEmpty().WithoutDeletedLines())
-	if err != nil {
-		return fmt.Errorf("grouping standard lines by engine: %w", err)
-	}
-
-	for _, grouped := range groupedLines {
-		input := billing.OnPaymentAuthorizedInput{
-			Invoice: m.Invoice,
-			Lines:   grouped.Lines,
-		}
-		if err := input.Validate(); err != nil {
-			return fmt.Errorf("validating payment authorized input for engine %s: %w", grouped.Engine.GetLineEngineType(), err)
-		}
-
-		if err := grouped.Engine.OnPaymentAuthorized(ctx, input); err != nil {
-			// Payment authorization has already happened outside billing; classification preserves
-			// the booking-authorized failure state so only ledger booking is retried.
-			return billing.WrapAsValidationIssue(billing.NewLineEngineValidationError(grouped.Engine, err))
-		}
-	}
-
-	return nil
+	return m.runLineEngineInvoiceSteps(ctx, func(ctx context.Context, engine billing.LineEngine, input billing.StandardLineEventInput) error {
+		return engine.OnPaymentAuthorized(ctx, input)
+	})
 }
 
 func (m *InvoiceStateMachine) onPaymentAuthorizedAndSettled(ctx context.Context) error {
-	if err := m.onPaymentAuthorized(ctx); err != nil {
-		return err
-	}
-
-	return m.onPaymentSettled(ctx)
+	return m.runLineEngineInvoiceSteps(
+		ctx,
+		func(ctx context.Context, engine billing.LineEngine, input billing.StandardLineEventInput) error {
+			return engine.OnPaymentAuthorized(ctx, input)
+		},
+		func(ctx context.Context, engine billing.LineEngine, input billing.StandardLineEventInput) error {
+			return engine.OnPaymentSettled(ctx, input)
+		},
+	)
 }
 
 func (m *InvoiceStateMachine) onPaymentSettled(ctx context.Context) error {
-	groupedLines, err := m.Service.lineEngines.groupStandardLinesByEngine(m.Invoice.Lines.OrEmpty().WithoutDeletedLines())
+	return m.runLineEngineInvoiceSteps(ctx, func(ctx context.Context, engine billing.LineEngine, input billing.StandardLineEventInput) error {
+		return engine.OnPaymentSettled(ctx, input)
+	})
+}
+
+func (m *InvoiceStateMachine) runLineEngineInvoiceSteps(
+	ctx context.Context,
+	steps ...func(context.Context, billing.LineEngine, billing.StandardLineEventInput) error,
+) error {
+	attemptInvoice, err := m.Invoice.Clone()
+	if err != nil {
+		return fmt.Errorf("cloning invoice for line engine steps: %w", err)
+	}
+
+	groupedLines, err := m.Service.lineEngines.groupStandardLinesByEngine(attemptInvoice.Lines.OrEmpty().WithoutDeletedLines())
 	if err != nil {
 		return fmt.Errorf("grouping standard lines by engine: %w", err)
 	}
 
-	for _, grouped := range groupedLines {
-		input := billing.OnPaymentSettledInput{
-			Invoice: m.Invoice,
-			Lines:   grouped.Lines,
-		}
-		if err := input.Validate(); err != nil {
-			return fmt.Errorf("validating payment settled input for engine %s: %w", grouped.Engine.GetLineEngineType(), err)
-		}
+	attemptInvoice, warnings, err := m.Service.runInTransactionWithValidationWarningsAllowed(
+		ctx,
+		func(ctx context.Context) (billing.StandardInvoice, error) {
+			recorder := billing.ValidationIssueRecorder{}
 
-		if err := grouped.Engine.OnPaymentSettled(ctx, input); err != nil {
-			// Payment settlement has already happened outside billing; classification preserves
-			// the booking-settled failure state so only ledger booking is retried.
-			return billing.WrapAsValidationIssue(billing.NewLineEngineValidationError(grouped.Engine, err))
-		}
+			for _, step := range steps {
+				for _, grouped := range groupedLines {
+					input := billing.StandardLineEventInput{
+						Invoice: attemptInvoice,
+						Lines:   grouped.Lines,
+					}
+					if err := input.Validate(); err != nil {
+						return billing.StandardInvoice{}, fmt.Errorf("validating line engine input for engine %s: %w", grouped.Engine.GetLineEngineType(), err)
+					}
+
+					if err := recorder.RecordWarnings(
+						billing.NewLineEngineValidationError(grouped.Engine, step(ctx, grouped.Engine, input)),
+					); err != nil {
+						return billing.StandardInvoice{}, err
+					}
+				}
+			}
+
+			return attemptInvoice, recorder.ErrorsOrNil()
+		},
+	)
+	if err != nil {
+		return err
 	}
+
+	attemptInvoice.ValidationIssues = append(attemptInvoice.ValidationIssues, warnings...)
+	m.Invoice = attemptInvoice
 
 	return nil
 }
