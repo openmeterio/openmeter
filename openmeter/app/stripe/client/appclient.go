@@ -230,6 +230,7 @@ func (c *stripeAppClient) UpdateWebhook(ctx context.Context, input UpdateWebhook
 	}
 
 	_, err := c.client.WebhookEndpoints.Update(input.StripeWebhookID, &stripe.WebhookEndpointParams{
+		Params:        stripe.Params{Context: ctx},
 		EnabledEvents: stripe.StringSlice(input.EnabledEvents),
 	})
 	if err != nil {

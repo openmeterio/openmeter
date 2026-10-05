@@ -210,6 +210,10 @@ func (s *AppHandlerTestSuite) TestUninstall(ctx context.Context, t *testing.T) {
 	require.Empty(t, deletedStripeApp.APIKey.ID)
 	require.Empty(t, deletedStripeApp.WebhookSecret.ID)
 	require.ErrorIs(t, deleted.ValidateCapabilities(app.CapabilityTypeInvoiceCustomers), app.ErrAppDeleted)
+	require.ErrorAs(t, s.Env.AppStripe().UpdateWebhookSchemaVersion(ctx, appstripe.UpdateWebhookSchemaVersionInput{
+		AppID:                createApp.GetID(),
+		WebhookSchemaVersion: appstripe.LatestWebhookSchemaVersion,
+	}), new(*app.AppNotFoundError), "schema version must not be written to a deleted app")
 	s.Env.Secret().AssertExpectations(t)
 }
 

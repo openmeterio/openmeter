@@ -102,19 +102,21 @@ type UpdateWebhookInput struct {
 }
 
 func (i UpdateWebhookInput) Validate() error {
+	var errs []error
+
 	if err := i.AppID.Validate(); err != nil {
-		return fmt.Errorf("error validating app id: %w", err)
+		errs = append(errs, fmt.Errorf("error validating app id: %w", err))
 	}
 
 	if i.StripeWebhookID == "" {
-		return errors.New("stripe webhook id is required")
+		errs = append(errs, errors.New("stripe webhook id is required"))
 	}
 
 	if len(i.EnabledEvents) == 0 {
-		return errors.New("enabled events are required")
+		errs = append(errs, errors.New("enabled events are required"))
 	}
 
-	return nil
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type CreateStripeCustomerInput struct {

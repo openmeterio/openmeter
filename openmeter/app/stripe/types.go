@@ -296,15 +296,17 @@ type UpdateWebhookSchemaVersionInput struct {
 }
 
 func (i UpdateWebhookSchemaVersionInput) Validate() error {
+	var errs []error
+
 	if err := i.AppID.Validate(); err != nil {
-		return fmt.Errorf("error validating app id: %w", err)
+		errs = append(errs, fmt.Errorf("error validating app id: %w", err))
 	}
 
 	if i.WebhookSchemaVersion < 1 || i.WebhookSchemaVersion > LatestWebhookSchemaVersion {
-		return fmt.Errorf("webhook schema version must be between 1 and %d", LatestWebhookSchemaVersion)
+		errs = append(errs, fmt.Errorf("webhook schema version must be between 1 and %d", LatestWebhookSchemaVersion))
 	}
 
-	return nil
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type UpdateAPIKeyAdapterInput struct {

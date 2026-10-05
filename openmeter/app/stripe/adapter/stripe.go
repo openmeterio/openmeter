@@ -188,13 +188,18 @@ func (a *adapter) UpdateWebhookSchemaVersion(ctx context.Context, input appstrip
 	}
 
 	return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, repo *adapter) error {
-		err := repo.db.AppStripe.Update().
+		updated, err := repo.db.AppStripe.Update().
 			Where(appstripedb.Namespace(input.AppID.Namespace)).
 			Where(appstripedb.ID(input.AppID.ID)).
+			Where(appstripedb.DeletedAtIsNil()).
 			SetWebhookSchemaVersion(input.WebhookSchemaVersion).
-			Exec(ctx)
+			Save(ctx)
 		if err != nil {
 			return fmt.Errorf("failed to update webhook schema version: %w", err)
+		}
+
+		if updated == 0 {
+			return app.NewAppNotFoundError(input.AppID)
 		}
 
 		return nil
