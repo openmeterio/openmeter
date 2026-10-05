@@ -1,0 +1,94 @@
+name: Benthos Collector
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  depot:
+    name: Build
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.user.login != 'dependabot[bot]' }}
+    runs-on: depot-ubuntu-24.04-4
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        with:
+          egress-policy: audit
+          use-policy-store: ${{ secrets.STEP_SECURITY_API_KEY != '' }}
+          api-key: ${{ secrets.STEP_SECURITY_API_KEY }}
+
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Depot CLI
+        uses: depot/setup-action@91bc8495a33ebfc504ffc89e5674379ccf23c29c # v1.7.2
+
+      - name: Build Benthos Collector image
+        uses: depot/build-push-action@98e78adca7817480b8185f474a400b451d74e287 # v1.18.0
+        with:
+          context: .
+          file: benthos-collector.Dockerfile
+          build-args: VERSION=${{ github.sha }}
+          platforms: linux/amd64
+          tags: benthos-collector:ci
+          push: false
+          project: ${{ vars.DEPOT_PROJECT }}
+
+  fork:
+    name: Build (Fork)
+    if: ${{ github.event.pull_request.head.repo.full_name != github.repository || github.event.pull_request.user.login == 'dependabot[bot]' }}
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+
+    steps:
+      - uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        with:
+          egress-policy: audit
+          use-policy-store: ${{ secrets.STEP_SECURITY_API_KEY != '' }}
+          api-key: ${{ secrets.STEP_SECURITY_API_KEY }}
+
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Build Benthos Collector image
+        run: docker build --file benthos-collector.Dockerfile --build-arg "VERSION=${GITHUB_SHA}" --tag benthos-collector:ci .
+
+  # Preserve one check name while selecting the cached Depot build for
+  # same-repository pull requests and the credentialless build for forks.
+  result:
+    name: Result
+    needs:
+      - depot
+      - fork
+    if: always()
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Verify Benthos Collector build
+        env:
+          DEPOT_RESULT: ${{ needs.depot.result }}
+          FORK_RESULT: ${{ needs.fork.result }}
+        run: |
+          case "${DEPOT_RESULT}:${FORK_RESULT}" in
+            success:skipped|skipped:success)
+              exit 0
+              ;;
+            *)
+              echo "Benthos Collector build did not complete successfully"
+              exit 1
+              ;;
+          esac

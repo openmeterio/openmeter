@@ -1,0 +1,139 @@
+name: Nix
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - .github/workflows/nix.yaml
+      - flake.lock
+      - "**/*.nix"
+
+permissions:
+  contents: read
+
+concurrency:
+  # Supersede stale pull request runs without grouping distinct main pushes.
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  nix:
+    name: Build Nix environment
+    runs-on: depot-ubuntu-24.04-16
+    env:
+      # Nix namespaces GOCACHE by its Go toolchain and dynamic loader. Depot's
+      # shared Go cache does not include those Nix store identities.
+      GOCACHEPROG: ""
+
+    steps:
+      - uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        with:
+          egress-policy: audit
+          use-policy-store: ${{ secrets.STEP_SECURITY_API_KEY != '' }}
+          api-key: ${{ secrets.STEP_SECURITY_API_KEY }}
+
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Nix
+        uses: nixbuild/nix-quick-install-action@9f63be77f412a248c9d9a65a4c82cf066cdf8f0c # v35
+        with:
+          # Authenticate public flake fetches to avoid GitHub API rate limits,
+          # but never expose the token to fork or Dependabot code.
+          github_access_token: ${{ (github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.user.login != 'dependabot[bot]')) && github.token || null }}
+          nix_conf: |
+            keep-env-derivations = true
+            keep-outputs = true
+            # Nix defaults to one local build at a time. Balance independent
+            # builds with per-build parallelism across this 16-vCPU runner.
+            max-jobs = 8
+            cores = 2
+
+      - name: Build nix environment
+        run: |
+          nix flake check --impure
+          nix develop --impure .#ci
+          git diff --exit-code -- .nvmrc .go-version .golangci.version .pre-commit-config.yaml
+
+      - name: Restore Go module cache
+        id: go-module-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-openmeter-go-modules-${{ hashFiles('go.*', 'collector/go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
+          restore-keys: |
+            ${{ runner.os }}-openmeter-go-modules-
+
+      - name: Populate Go module cache
+        if: steps.go-module-cache.outputs.cache-hit != 'true'
+        run: |
+          nix develop --impure .#ci -c sh -eu -c '
+            go mod download
+            go -C collector mod download
+            go -C api/v3/client mod download
+            go -C e2e mod download
+          '
+
+      - name: Save Go module cache
+        if: steps.go-module-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ steps.go-module-cache.outputs.cache-primary-key }}
+
+      - name: Verify Go runtime loader
+        run: |
+          runtime_dir="${RUNNER_TEMP}/openmeter-go-runtime"
+          mkdir -p "${runtime_dir}/go-tmp"
+
+          GOTMPDIR="${runtime_dir}/go-tmp" nix develop --impure .#ci -c env GOCACHEPROG= bash -euo pipefail <<'EOF'
+            runtime_probe="${RUNNER_TEMP}/openmeter-go-runtime/client.test"
+            expected_interpreter="$(cat "${NIX_CC}/nix-support/dynamic-linker")"
+            go env -json GOCACHE GOCACHEPROG GOROOT GOTOOLDIR
+            printf 'GO_LDSO=%s\n' "${GO_LDSO:-<unset>}"
+
+            if [[ -n "$(go env GOCACHEPROG)" ]]; then
+              echo "Nix builds must not use Depot's loader-agnostic remote Go cache"
+              exit 1
+            fi
+
+            if [[ "${GO_LDSO:-}" != "${expected_interpreter}" ]]; then
+              echo "GO_LDSO uses ${GO_LDSO:-<unset>}; expected ${expected_interpreter}"
+              exit 1
+            fi
+
+            # GO_LDSO is not part of Go's link-action key. Start publication from
+            # an empty namespace so the assertion exercises the wrapped linker.
+            go clean -cache
+            go -C api/v3/client test -c -o "${runtime_probe}" .
+
+            # A cached Go link action can retain the loader from an older Nixpkgs
+            # generation. Never publish a cache containing such an executable.
+            interpreter="$(readelf -l "${runtime_probe}" | sed -n 's/.*interpreter: \(.*\)]/\1/p')"
+            if [[ "${interpreter}" != "${expected_interpreter}" ]]; then
+              echo "Go runtime probe uses ${interpreter:-<none>}; expected ${expected_interpreter}"
+              exit 1
+            fi
+
+            "${runtime_probe}" -test.run '^$'
+          EOF
+
+      - name: Build components in Nix environment
+        run: |
+          mkdir -p \
+            "$GITHUB_WORKSPACE/.tmp/go-work" \
+            "$GITHUB_WORKSPACE/.tmp/system"
+          env \
+            GOTMPDIR="$GITHUB_WORKSPACE/.tmp/go-work" \
+            TMPDIR="$GITHUB_WORKSPACE/.tmp/system" \
+            nix develop --impure .#ci -c env GOCACHEPROG= make -j 4 build
+
+      - name: Save Nix store cache
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: nix-community/cache-nix-action/save@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
+        with:
+          primary-key: ${{ runner.os }}-openmeter-nix-build-v5-main-${{ hashFiles('.github/workflows/nix.yaml', 'flake.lock', '**/*.nix') }}
+          save: "true"
