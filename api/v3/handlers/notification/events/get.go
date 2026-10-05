@@ -49,7 +49,6 @@ func (h *handler) GetNotificationEvent() GetNotificationEventHandler {
 			h.options,
 			httptransport.WithOperationName("get-notification-event"),
 			httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),
-			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)
 }

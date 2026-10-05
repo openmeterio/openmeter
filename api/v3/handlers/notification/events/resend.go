@@ -53,7 +53,6 @@ func (h *handler) ResendNotificationEvent() ResendNotificationEventHandler {
 			h.options,
 			httptransport.WithOperationName("resend-notification-event"),
 			httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),
-			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)
 }

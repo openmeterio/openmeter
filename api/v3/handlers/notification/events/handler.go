@@ -24,9 +24,13 @@ func New(
 	service notification.Service,
 	options ...httptransport.HandlerOption,
 ) Handler {
+	sharedOptions := make([]httptransport.HandlerOption, 0, len(options)+1)
+	sharedOptions = append(sharedOptions, httptransport.WithErrorEncoder(errorEncoder()))
+	sharedOptions = append(sharedOptions, options...)
+
 	return &handler{
 		resolveNamespace: resolveNamespace,
 		service:          service,
-		options:          options,
+		options:          sharedOptions,
 	}
 }

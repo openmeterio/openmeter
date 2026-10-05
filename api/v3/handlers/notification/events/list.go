@@ -115,7 +115,6 @@ func (h *handler) ListNotificationEvents() ListNotificationEventsHandler {
 			h.options,
 			httptransport.WithOperationName("list-notification-events"),
 			httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),
-			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)
 }
