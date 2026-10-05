@@ -50,6 +50,15 @@ func (c *StripeAppClientMock) DeleteWebhook(ctx context.Context, input stripecli
 	return args.Error(0)
 }
 
+func (c *StripeAppClientMock) UpdateWebhook(ctx context.Context, input stripeclient.UpdateWebhookInput) error {
+	if err := input.Validate(); err != nil {
+		return err
+	}
+
+	args := c.Called(input)
+	return args.Error(0)
+}
+
 func (c *StripeAppClientMock) GetAccount(ctx context.Context) (stripeclient.StripeAccount, error) {
 	args := c.Called()
 	return args.Get(0).(stripeclient.StripeAccount), args.Error(1)

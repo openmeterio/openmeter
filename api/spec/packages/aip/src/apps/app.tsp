@@ -110,6 +110,28 @@ enum AppActionType {
 }
 
 /**
+ * Request to reconcile the app's webhook events with the latest supported event
+ * set.
+ */
+@friendlyName("BillingAppReconcileWebhookEventsActionRequest")
+model AppReconcileWebhookEventsActionRequest {
+  /**
+   * The action to execute.
+   */
+  action_type: AppActionType.ReconcileWebhookEvents;
+}
+
+/**
+ * Request to execute an operator action on an installed app.
+ */
+@friendlyName("BillingAppActionRequest")
+@discriminated(#{ envelope: "none", discriminatorPropertyName: "action_type" })
+union AppActionRequest {
+  @summary("Reconcile webhook events")
+  reconcile_webhook_events: AppReconcileWebhookEventsActionRequest,
+}
+
+/**
  * Installed application.
  */
 @friendlyName("BillingApp")

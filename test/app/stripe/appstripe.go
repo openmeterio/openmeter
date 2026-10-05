@@ -210,6 +210,10 @@ func (s *AppHandlerTestSuite) TestUninstall(ctx context.Context, t *testing.T) {
 	require.Empty(t, deletedStripeApp.APIKey.ID)
 	require.Empty(t, deletedStripeApp.WebhookSecret.ID)
 	require.ErrorIs(t, deleted.ValidateCapabilities(app.CapabilityTypeInvoiceCustomers), app.ErrAppDeleted)
+	require.ErrorAs(t, s.Env.AppStripe().UpdateWebhookSchemaVersion(ctx, appstripe.UpdateWebhookSchemaVersionInput{
+		AppID:                createApp.GetID(),
+		WebhookSchemaVersion: appstripe.LatestWebhookSchemaVersion,
+	}), new(*app.AppNotFoundError), "schema version must not be written to a deleted app")
 	s.Env.Secret().AssertExpectations(t)
 }
 
@@ -1010,4 +1014,61 @@ func (s *AppHandlerTestSuite) TestUpdateAPIKey(ctx context.Context, t *testing.T
 
 	require.NoError(t, err, "Get app must not return error")
 	require.Equal(t, testApp.GetStatus(), app.AppStatusReady, "App status must be ready")
+}
+
+// TestExecuteAction tests the reconcile_webhook_events action lifecycle on a stripe app
+func (s *AppHandlerTestSuite) TestExecuteAction(ctx context.Context, t *testing.T) {
+	testApp, err := s.Env.Fixture().setupApp(ctx, s.namespace)
+	require.NoError(t, err, "setup fixture must not return error")
+
+	defer s.Env.StripeAppClient().Restore()
+
+	reconcile := app.ExecuteAppActionInput{
+		AppID: testApp.GetID(),
+		Type:  appstripe.AppActionTypeReconcileWebhookEvents,
+	}
+
+	// given a freshly installed app on the latest schema version
+	// when the reconcile action is executed
+	// then it is rejected without touching Stripe
+	_, err = s.Env.App().ExecuteAppAction(ctx, reconcile)
+	require.ErrorAs(t, err, new(*app.AppActionUnsupportedError))
+	s.Env.StripeAppClient().AssertNotCalled(t, "UpdateWebhook", mock.Anything)
+
+	// given an app registered with an older webhook event set
+	err = s.Env.AppStripe().UpdateWebhookSchemaVersion(ctx, appstripe.UpdateWebhookSchemaVersionInput{
+		AppID:                testApp.GetID(),
+		WebhookSchemaVersion: 1,
+	})
+	require.NoError(t, err, "Update webhook schema version must not return error")
+
+	testApp, err = s.Env.App().GetApp(ctx, testApp.GetID())
+	require.NoError(t, err, "Get app must not return error")
+	require.Equal(t, []app.AppAction{{
+		Type:        appstripe.AppActionTypeReconcileWebhookEvents,
+		Description: "The Stripe webhook endpoint is registered with an outdated event set. Reconcile the webhook to receive all supported events.",
+	}}, testApp.Actions())
+
+	stripeApp, err := s.Env.AppStripe().GetStripeAppData(ctx, appstripe.GetStripeAppDataInput{AppID: testApp.GetID()})
+	require.NoError(t, err, "Get stripe app data must not return error")
+
+	s.Env.StripeAppClient().
+		On("UpdateWebhook", stripeclient.UpdateWebhookInput{
+			AppID:           testApp.GetID(),
+			StripeWebhookID: stripeApp.StripeWebhookID,
+			EnabledEvents:   stripeclient.WebhookEnabledEvents,
+		}).
+		Return(nil)
+
+	// when the reconcile action is executed
+	// then the endpoint is re-registered and the action is no longer reported
+	testApp, err = s.Env.App().ExecuteAppAction(ctx, reconcile)
+	require.NoError(t, err, "Execute app action must not return error")
+	require.Empty(t, testApp.Actions())
+
+	stripeApp, err = s.Env.AppStripe().GetStripeAppData(ctx, appstripe.GetStripeAppDataInput{AppID: testApp.GetID()})
+	require.NoError(t, err, "Get stripe app data must not return error")
+	require.Equal(t, appstripe.LatestWebhookSchemaVersion, stripeApp.WebhookSchemaVersion)
+
+	s.Env.StripeAppClient().AssertExpectations(t)
 }

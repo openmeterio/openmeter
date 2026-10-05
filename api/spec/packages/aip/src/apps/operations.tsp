@@ -95,6 +95,25 @@ interface AppsOperations {
     | Shared.UpdateResponse<App>
     | Common.NotFound
     | Common.ErrorResponses;
+
+  /**
+   * Execute an operator action on an installed app. The action must be listed in the
+   * app's `actions`; otherwise the request is rejected.
+   *
+   * @returns Action executed successfully; the response carries the updated app.
+   */
+  @post
+  @route("/{appId}/action")
+  @operationId("execute-app-action")
+  @summary("Execute app action")
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
+  @extension(Shared.PrivateExtension, true)
+  @extension(Shared.RPCEndpointExtension, true)
+  executeAction(@path appId: Shared.ULID, @body body: AppActionRequest):
+    | Shared.UpdateResponse<App>
+    | Common.NotFound
+    | Common.ErrorResponses;
 }
 
 interface AppCatalogOperations {

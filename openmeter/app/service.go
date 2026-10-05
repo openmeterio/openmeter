@@ -28,6 +28,7 @@ type AppService interface {
 	ListApps(ctx context.Context, input ListAppInput) (pagination.Result[App], error)
 	RegisterHook(name string, hook servicehooks.Hook[LifecycleEvent]) error
 	UninstallApp(ctx context.Context, input UninstallAppInput) error
+	ExecuteAppAction(ctx context.Context, input ExecuteAppActionInput) (App, error)
 
 	// Customer data
 	ListCustomerData(ctx context.Context, input ListCustomerInput) (pagination.Result[CustomerApp], error)

@@ -486,6 +486,46 @@ paths:
             schema:
               $ref: '#/components/schemas/BillingUpdateAppRequest'
       x-unstable: true
+  /openmeter/apps/{appId}/action:
+    post:
+      operationId: execute-app-action
+      summary: Execute app action
+      description: |-
+        Execute an operator action on an installed app. The action must be listed in the
+        app's `actions`; otherwise the request is rejected.
+      parameters:
+        - name: appId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: App updated response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingApp'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Apps
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BillingAppActionRequest'
+      x-rpc-endpoint: true
+      x-private: true
+      x-internal: true
+      x-unstable: true
   /openmeter/billing/invoices:
     get:
       operationId: list-invoices
@@ -5129,6 +5169,15 @@ components:
           description: Human readable explanation of why the action is needed.
       additionalProperties: false
       description: An action the operator should take on an installed app.
+    BillingAppActionRequest:
+      type: object
+      oneOf:
+        - $ref: '#/components/schemas/BillingAppReconcileWebhookEventsActionRequest'
+      discriminator:
+        propertyName: action_type
+        mapping:
+          reconcile_webhook_events: '#/components/schemas/BillingAppReconcileWebhookEventsActionRequest'
+      description: Request to execute an operator action on an installed app.
     BillingAppActionType:
       type: string
       enum:
@@ -5414,6 +5463,20 @@ components:
         - with_api_key
         - no_credentials_required
       description: Supported installation methods for an app.
+    BillingAppReconcileWebhookEventsActionRequest:
+      type: object
+      required:
+        - action_type
+      properties:
+        action_type:
+          type: string
+          enum:
+            - reconcile_webhook_events
+          description: The action to execute.
+      additionalProperties: false
+      description: |-
+        Request to reconcile the app's webhook events with the latest supported event
+        set.
     BillingAppReference:
       type: object
       required:

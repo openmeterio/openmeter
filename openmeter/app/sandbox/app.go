@@ -103,6 +103,10 @@ func (a appOperations) UpdateAppConfig(ctx context.Context, input app.AppConfigU
 	return nil
 }
 
+func (a appOperations) ExecuteAction(ctx context.Context, input app.ExecuteAppActionInput) error {
+	return app.NewAppActionUnsupportedError(a.appBase.GetID(), input.Type)
+}
+
 func (a appOperations) UpsertStandardInvoice(ctx context.Context, invoice billing.StandardInvoice) (*billing.UpsertStandardInvoiceResult, error) {
 	return billing.NewUpsertStandardInvoiceResult(), nil
 }

@@ -290,6 +290,25 @@ func (i UpdateAPIKeyInput) Validate() error {
 	return nil
 }
 
+type UpdateWebhookSchemaVersionInput struct {
+	AppID                app.AppID
+	WebhookSchemaVersion int
+}
+
+func (i UpdateWebhookSchemaVersionInput) Validate() error {
+	var errs []error
+
+	if err := i.AppID.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("error validating app id: %w", err))
+	}
+
+	if i.WebhookSchemaVersion < 1 || i.WebhookSchemaVersion > LatestWebhookSchemaVersion {
+		errs = append(errs, fmt.Errorf("webhook schema version must be between 1 and %d", LatestWebhookSchemaVersion))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
 type UpdateAPIKeyAdapterInput struct {
 	UpdateAPIKeyInput
 
@@ -419,8 +438,9 @@ const (
 	AppActionTypeReconcileWebhookEvents app.AppActionType = "reconcile_webhook_events"
 )
 
-// LatestWebhookSchemaVersion is persisted on newly installed Stripe apps and identifies the
-// webhook event set SetupWebhook registered. Bump it whenever that event list changes.
+// LatestWebhookSchemaVersion identifies the event set in stripeclient.WebhookEnabledEvents.
+// It is persisted on install and by the reconcile_webhook_events action; bump it whenever
+// that event list changes.
 const LatestWebhookSchemaVersion = 2
 
 // AppData represents the Stripe associated data for the app
@@ -432,7 +452,7 @@ type AppData struct {
 	StripeWebhookID string                `json:"stripeWebhookId"`
 	WebhookSecret   secretentity.SecretID `json:"-"`
 	// WebhookSchemaVersion records the event set the Stripe endpoint was registered with.
-	// It is fixed at install time because there is no webhook update path.
+	// Set at install time and advanced by the reconcile_webhook_events action.
 	WebhookSchemaVersion int `json:"webhookSchemaVersion"`
 }
 

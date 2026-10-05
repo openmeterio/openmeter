@@ -1063,6 +1063,17 @@ export const updateLabels = z
     'Labels store metadata of an entity that can be used for filtering an entity list or for searching across entity types. Keys must be of length 1-63 characters, and cannot start with "kong", "konnect", "mesh", "kic", or "\\_".',
   )
 
+export const appReconcileWebhookEventsActionRequest = z
+  .object({
+    actionType: z
+      .literal('reconcile_webhook_events')
+      .describe('The action to execute.'),
+  })
+
+  .describe(
+    "Request to reconcile the app's webhook events with the latest supported event set.",
+  )
+
 export const installAppStripeWithApiKey = z
   .object({
     type: z.literal('stripe').describe('Type of the app.'),
@@ -3559,6 +3570,10 @@ export const updateAppExternalInvoicingRequest = z
       ),
   })
   .describe('AppExternalInvoicing update request.')
+
+export const appActionRequest = z
+  .discriminatedUnion('actionType', [appReconcileWebhookEventsActionRequest])
+  .describe('Request to execute an operator action on an installed app.')
 
 export const installAppRequest = z
   .discriminatedUnion('type', [
@@ -8438,6 +8453,14 @@ export const updateAppBody = updateAppRequest
 
 export const updateAppResponse = app
 
+export const executeAppActionPathParams = z.object({
+  appId: ulid,
+})
+
+export const executeAppActionBody = appActionRequest
+
+export const executeAppActionResponse = app
+
 export const listAppCatalogQueryParams = z.object({
   page: z
     .object({
@@ -10103,6 +10126,17 @@ export const updateLabelsWire = z
 
   .describe(
     'Labels store metadata of an entity that can be used for filtering an entity list or for searching across entity types. Keys must be of length 1-63 characters, and cannot start with "kong", "konnect", "mesh", "kic", or "\\_".',
+  )
+
+export const appReconcileWebhookEventsActionRequestWire = z
+  .strictObject({
+    action_type: z
+      .literal('reconcile_webhook_events')
+      .describe('The action to execute.'),
+  })
+
+  .describe(
+    "Request to reconcile the app's webhook events with the latest supported event set.",
   )
 
 export const installAppStripeWithApiKeyWire = z
@@ -12587,6 +12621,12 @@ export const updateAppExternalInvoicingRequestWire = z
       ),
   })
   .describe('AppExternalInvoicing update request.')
+
+export const appActionRequestWire = z
+  .discriminatedUnion('action_type', [
+    appReconcileWebhookEventsActionRequestWire,
+  ])
+  .describe('Request to execute an operator action on an installed app.')
 
 export const installAppRequestWire = z
   .discriminatedUnion('type', [
@@ -17522,6 +17562,14 @@ export const updateAppPathParamsWire = z.object({
 export const updateAppBodyWire = updateAppRequestWire
 
 export const updateAppResponseWire = appWire
+
+export const executeAppActionPathParamsWire = z.object({
+  appId: ulidWire,
+})
+
+export const executeAppActionBodyWire = appActionRequestWire
+
+export const executeAppActionResponseWire = appWire
 
 export const listAppCatalogQueryParamsWire = z.object({
   page: z

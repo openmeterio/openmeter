@@ -15,6 +15,7 @@ type Handler interface {
 	GetApp() GetAppHandler
 	UninstallApp() UninstallAppHandler
 	UpdateApp() UpdateAppHandler
+	ExecuteAppAction() ExecuteAppActionHandler
 
 	CatalogHandler
 }

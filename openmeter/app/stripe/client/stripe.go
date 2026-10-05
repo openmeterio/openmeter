@@ -94,6 +94,31 @@ func (i DeleteWebhookInput) Validate() error {
 	return nil
 }
 
+type UpdateWebhookInput struct {
+	AppID           app.AppID
+	StripeWebhookID string
+	// EnabledEvents replaces the endpoint's event set wholesale, so callers must pass the full list.
+	EnabledEvents []string
+}
+
+func (i UpdateWebhookInput) Validate() error {
+	var errs []error
+
+	if err := i.AppID.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("error validating app id: %w", err))
+	}
+
+	if i.StripeWebhookID == "" {
+		errs = append(errs, errors.New("stripe webhook id is required"))
+	}
+
+	if len(i.EnabledEvents) == 0 {
+		errs = append(errs, errors.New("enabled events are required"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
 type CreateStripeCustomerInput struct {
 	AppID      app.AppID
 	CustomerID customer.CustomerID

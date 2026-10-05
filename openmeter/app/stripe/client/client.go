@@ -78,46 +78,16 @@ func NewStripeClient(config StripeClientConfig) (StripeClient, error) {
 	}, nil
 }
 
-// SetupWebhook registers the Stripe webhook endpoint for an app. The registered event set is
-// tracked by appstripe.LatestWebhookSchemaVersion; bump it whenever this list changes.
+// SetupWebhook registers the Stripe webhook endpoint for an app with WebhookEnabledEvents.
 func (c *stripeClient) SetupWebhook(ctx context.Context, input SetupWebhookInput) (StripeWebhookEndpoint, error) {
 	if err := input.Validate(); err != nil {
 		return StripeWebhookEndpoint{}, fmt.Errorf("invalid input: %w", err)
 	}
 
 	params := &stripe.WebhookEndpointParams{
-		EnabledEvents: []*string{
-			// Setup intents
-			lo.ToPtr(WebhookEventTypeSetupIntentSucceeded),
-			lo.ToPtr(WebhookEventTypeSetupIntentFailed),
-			lo.ToPtr(WebhookEventTypeSetupIntentRequiresAction),
-
-			// Invoices
-			lo.ToPtr(WebhookEventTypeInvoiceFinalizationFailed),
-			lo.ToPtr(WebhookEventTypeInvoiceMarkedUncollectible),
-			lo.ToPtr(WebhookEventTypeInvoiceOverdue),
-			lo.ToPtr(WebhookEventTypeInvoicePaid),
-			lo.ToPtr(WebhookEventTypeInvoicePaymentActionRequired),
-			lo.ToPtr(WebhookEventTypeInvoicePaymentFailed),
-			lo.ToPtr(WebhookEventTypeInvoicePaymentSucceeded),
-			lo.ToPtr(WebhookEventTypeInvoiceSent),
-			lo.ToPtr(WebhookEventTypeInvoiceVoided),
-
-			// Schema version 2
-			lo.ToPtr(WebhookEventTypePaymentIntentSucceeded),
-			lo.ToPtr(WebhookEventTypePaymentIntentCanceled),
-			lo.ToPtr(WebhookEventTypePaymentIntentPaymentFailed),
-			lo.ToPtr(WebhookEventTypePaymentIntentRequiresAction),
-			lo.ToPtr(WebhookEventTypeCreditNoteCreated),
-			lo.ToPtr(WebhookEventTypeCreditNoteUpdated),
-			lo.ToPtr(WebhookEventTypeCreditNoteVoided),
-			lo.ToPtr(WebhookEventTypeRefundCreated),
-			lo.ToPtr(WebhookEventTypeRefundUpdated),
-			lo.ToPtr(WebhookEventTypeRefundFailed),
-			lo.ToPtr(WebhookEventTypeInvoiceFinalized),
-		},
-		URL:         lo.ToPtr(input.WebhookURL),
-		Description: lo.ToPtr("OpenMeter Stripe Webhook, do not delete or modify manually"),
+		EnabledEvents: stripe.StringSlice(WebhookEnabledEvents),
+		URL:           lo.ToPtr(input.WebhookURL),
+		Description:   lo.ToPtr("OpenMeter Stripe Webhook, do not delete or modify manually"),
 		Metadata: map[string]string{
 			StripeMetadataNamespace: input.AppID.Namespace,
 			StripeMetadataAppID:     input.AppID.ID,

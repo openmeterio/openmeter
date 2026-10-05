@@ -233,6 +233,7 @@ The full call path, HTTP route, and a short description are listed below.
 | `om.Apps.Get` | `GET /openmeter/apps/{appId}` | Get an installed app. |
 | `om.Apps.Uninstall` | `DELETE /openmeter/apps/{appId}` | Uninstall an app by ID. |
 | `om.Apps.Update` | `PUT /openmeter/apps/{appId}` | Update an installed app. |
+| `om.Apps.ExecuteAction` | `POST /openmeter/apps/{appId}/action` | Execute an operator action on an installed app. The action must be listed in the app's `actions`; otherwise the request is rejected. |
 | `om.Apps.ListCatalog` | `GET /openmeter/app-catalog` | List available apps. |
 | `om.Apps.GetCatalogItem` | `GET /openmeter/app-catalog/{appType}` | Get an app catalog item by type. |
 | `om.Apps.Install` | `POST /openmeter/app-catalog/install` | Install an app from the catalog. |

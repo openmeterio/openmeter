@@ -180,6 +180,32 @@ func (a *adapter) UpdateAPIKey(ctx context.Context, input appstripe.UpdateAPIKey
 	})
 }
 
+func (a *adapter) UpdateWebhookSchemaVersion(ctx context.Context, input appstripe.UpdateWebhookSchemaVersionInput) error {
+	if err := input.Validate(); err != nil {
+		return models.NewGenericValidationError(
+			fmt.Errorf("error update webhook schema version: %w", err),
+		)
+	}
+
+	return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, repo *adapter) error {
+		updated, err := repo.db.AppStripe.Update().
+			Where(appstripedb.Namespace(input.AppID.Namespace)).
+			Where(appstripedb.ID(input.AppID.ID)).
+			Where(appstripedb.DeletedAtIsNil()).
+			SetWebhookSchemaVersion(input.WebhookSchemaVersion).
+			Save(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to update webhook schema version: %w", err)
+		}
+
+		if updated == 0 {
+			return app.NewAppNotFoundError(input.AppID)
+		}
+
+		return nil
+	})
+}
+
 // GetStripeAppData gets stripe customer data
 func (a *adapter) GetStripeAppData(ctx context.Context, input appstripe.GetStripeAppDataInput) (appstripe.AppData, error) {
 	if err := input.Validate(); err != nil {

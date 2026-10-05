@@ -75,5 +75,9 @@ func TestAppStripe(t *testing.T) {
 		t.Run("TestUpdateAPIKey", func(t *testing.T) {
 			testSuite.TestUpdateAPIKey(ctx, t)
 		})
+
+		t.Run("TestExecuteAction", func(t *testing.T) {
+			testSuite.TestExecuteAction(ctx, t)
+		})
 	})
 }

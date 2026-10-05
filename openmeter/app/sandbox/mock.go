@@ -56,6 +56,10 @@ func (m *MockApp) UpdateAppConfig(ctx context.Context, input app.AppConfigUpdate
 	return nil
 }
 
+func (m *MockApp) ExecuteAction(appID app.AppID, input app.ExecuteAppActionInput) error {
+	return app.NewAppActionUnsupportedError(appID, input.Type)
+}
+
 func (m *MockApp) ValidateCustomer(appID string, customer *customer.Customer, capabilities []app.CapabilityType) error {
 	m.validateCustomerCalled = true
 	return m.validateCustomerResponse.MustGet()
@@ -193,6 +197,10 @@ func (m *mockAppInstance) DeleteCustomerData(ctx context.Context, input app.Dele
 
 func (m *mockAppInstance) UpdateAppConfig(ctx context.Context, input app.AppConfigUpdate) error {
 	return m.parent.UpdateAppConfig(ctx, input)
+}
+
+func (m *mockAppInstance) ExecuteAction(ctx context.Context, input app.ExecuteAppActionInput) error {
+	return m.parent.ExecuteAction(m.GetID(), input)
 }
 
 func (m *mockAppInstance) ValidateCustomer(ctx context.Context, customer *customer.Customer, capabilities []app.CapabilityType) error {

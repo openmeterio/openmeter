@@ -26,6 +26,10 @@ func TestDeletedAppPreservesIdentityAndRejectsOperations(t *testing.T) {
 	require.Equal(t, appBase.GetID(), deleted.GetID())
 	require.Equal(t, app.AppTypeStripe, deleted.GetType())
 	require.ErrorIs(t, deleted.ValidateCapabilities(app.CapabilityTypeInvoiceCustomers), app.ErrAppDeleted)
+	require.ErrorIs(t, deleted.ExecuteAction(t.Context(), app.ExecuteAppActionInput{
+		AppID: appBase.GetID(),
+		Type:  AppActionTypeReconcileWebhookEvents,
+	}), app.ErrAppDeleted)
 	require.ErrorIs(t, deleted.DeleteStandardInvoice(t.Context(), billing.StandardInvoice{}), billing.WarnInvoiceWorkflowAppDeleteSkipped)
 }
 
