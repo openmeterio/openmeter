@@ -10,6 +10,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"syscall"
 	"testing"
@@ -169,6 +170,8 @@ func TestResponseWriteCancellationPreservesCommittedStatus(t *testing.T) {
 		{"closed connection", net.ErrClosed, true, "WARN"},
 		{"opaque protocol error", errors.New("stream closed"), true, "WARN"},
 		{"active request write failure", syscall.EPIPE, false, "ERROR"},
+		{"server write deadline", os.ErrDeadlineExceeded, true, "ERROR"},
+		{"dependency write deadline", context.DeadlineExceeded, true, "ERROR"},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			ctx, cancel := context.WithCancel(t.Context())

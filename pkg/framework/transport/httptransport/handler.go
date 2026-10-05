@@ -3,6 +3,7 @@ package httptransport
 import (
 	"context"
 	"errors"
+	"net"
 	"net/http"
 	"sync/atomic"
 
@@ -139,7 +140,11 @@ func (h handler[Request, Response]) ServeHTTP(w http.ResponseWriter, r *http.Req
 		// Headers may already be committed. Preserve them, but report a failed write
 		// to a disconnected caller as cancellation rather than a server failure.
 		var writeErr *encoder.ResponseWriteError
-		if errors.Is(r.Context().Err(), context.Canceled) && errors.As(err, &writeErr) {
+		var networkErr net.Error
+		// A server write deadline can also cancel the request context.
+		// Keep that timeout as a failure even though the connection is now closed.
+		if errors.Is(r.Context().Err(), context.Canceled) && errors.As(err, &writeErr) &&
+			(!errors.As(err, &networkErr) || !networkErr.Timeout()) {
 			err = errors.Join(context.Canceled, err)
 		}
 

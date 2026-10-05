@@ -95,4 +95,5 @@ changes it. Request cancellation diagnostics are warnings.
 If a response write fails after headers are committed, the handler preserves the
 status already sent. Encoders mark connection write errors with
 `encoder.ResponseWriteError`; these are reported as cancellation only when the
-request context is canceled too. Serialization failures remain server errors.
+request context is canceled too. Serialization failures and server write timeouts
+remain server errors.
