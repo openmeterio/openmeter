@@ -27,8 +27,7 @@ func (s *Service) runInTransactionWithValidationWarningsAllowed[T any](
 		var extractionErr error
 		warnings, extractionErr = billing.ToValidationIssues(callbackErr, billing.RequireWarningsOnly())
 		if extractionErr != nil {
-			var empty T
-			return empty, callbackErr
+			return lo.Empty[T](), callbackErr
 		}
 
 		return result, nil
