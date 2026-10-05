@@ -393,9 +393,8 @@ func NewSubscriptionView(
 			return item.Key
 		})
 
-		// Let's sort the items by start time
+		// Intended starts preserve revision identity when cancellation clips future items.
 		for key := range phaseItemsByKey {
-			// Any arbitrary time works as long as its consistent for the comparisons
 			slices.SortStableFunc(phaseItemsByKey[key], func(i, j SubscriptionItem) int {
 				iT, jT := phase.ActiveFrom, phase.ActiveFrom
 				if i.ActiveFromOverrideRelativeToPhaseStart != nil {
@@ -406,7 +405,26 @@ func NewSubscriptionView(
 					jT, _ = j.ActiveFromOverrideRelativeToPhaseStart.AddTo(phase.ActiveFrom)
 				}
 
-				return int(iT.Sub(jT))
+				if diff := iT.Compare(jT); diff != 0 {
+					return diff
+				}
+
+				iEmpty := i.AsPeriod().IsEmpty()
+				jEmpty := j.AsPeriod().IsEmpty()
+				switch {
+				case iEmpty && !jEmpty:
+					return -1
+				case !iEmpty && jEmpty:
+					return 1
+				case iEmpty && jEmpty:
+					// Patch IDs survive recreation; row IDs and CreatedAt do not.
+					// An unmarked plan-origin revision precedes edits at the same start.
+					iPatchID, _ := i.Annotations[AnnotationEditUniqueKey].(string)
+					jPatchID, _ := j.Annotations[AnnotationEditUniqueKey].(string)
+					return strings.Compare(iPatchID, jPatchID)
+				default:
+					return 0
+				}
 			})
 		}
 

@@ -105,10 +105,18 @@ func (t CadenceList[T]) sort() {
 		aC := a.GetCadence()
 		bC := b.GetCadence()
 
+		if diff := aC.ActiveFrom.Compare(bC.ActiveFrom); diff != 0 {
+			return diff
+		}
+
+		// Empty intervals precede intervals active at the same start so overlap
+		// checks do not mistake replacement history for concurrent activity.
+		aEmpty := aC.AsPeriod().IsEmpty()
+		bEmpty := bC.AsPeriod().IsEmpty()
 		switch {
-		case aC.ActiveFrom.Before(bC.ActiveFrom):
+		case aEmpty && !bEmpty:
 			return -1
-		case aC.ActiveFrom.After(bC.ActiveFrom):
+		case !aEmpty && bEmpty:
 			return 1
 		default:
 			return 0

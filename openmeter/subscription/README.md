@@ -25,6 +25,11 @@ Its complete desired shape is a `SubscriptionSpec`:
 `ItemsByKey[key]` is a time-ordered version history. Its slice index identifies
 a logical revision of the item; it is not quantity. Removing or inserting an
 element changes the identity used by downstream subscription reconciliation.
+Views order revisions by intended start, then put zero-length revisions before
+nonempty ones at the same start. Tied zero-length edits use the existing patch
+ULID order, with an unmarked plan-origin revision first. Item row IDs and
+creation timestamps can change during materialization and do not define this
+order.
 
 A `SubscriptionView` is the hydrated read model: the subscription, its current
 spec, customer, phases, items, features, and entitlements. The spec is the

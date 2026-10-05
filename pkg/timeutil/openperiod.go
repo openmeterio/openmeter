@@ -12,6 +12,12 @@ type OpenPeriod struct {
 
 var _ Period = OpenPeriod{}
 
+// IsEmpty reports whether bounded endpoints leave no time in the period.
+// An unbounded period is never empty.
+func (p OpenPeriod) IsEmpty() bool {
+	return p.From != nil && p.To != nil && !p.From.Before(*p.To)
+}
+
 func (p OpenPeriod) Validate() error {
 	if p.From != nil && p.To != nil && !p.From.Before(*p.To) {
 		return fmt.Errorf("from must be before to")
