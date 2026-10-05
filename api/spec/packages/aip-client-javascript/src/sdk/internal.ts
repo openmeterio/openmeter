@@ -7,6 +7,7 @@ import {
   createSubscriptionAddon,
   updateSubscriptionAddon,
 } from '../funcs/subscriptions.js'
+import { executeAppAction } from '../funcs/apps.js'
 import {
   listNotificationEvents,
   getNotificationEvent,
@@ -18,6 +19,10 @@ import type {
   UpdateSubscriptionAddonRequest,
   UpdateSubscriptionAddonResponse,
 } from '../models/operations/subscriptions.js'
+import type {
+  ExecuteAppActionRequest,
+  ExecuteAppActionResponse,
+} from '../models/operations/apps.js'
 import type {
   ListNotificationEventsRequest,
   ListNotificationEventsResponse,
@@ -39,6 +44,11 @@ export class Internal {
   private _subscriptions?: InternalSubscriptions
   get subscriptions(): InternalSubscriptions {
     return (this._subscriptions ??= new InternalSubscriptions(this._client))
+  }
+
+  private _apps?: InternalApps
+  get apps(): InternalApps {
+    return (this._apps ??= new InternalApps(this._client))
   }
 
   private _notifications?: InternalNotifications
@@ -78,6 +88,25 @@ export class InternalSubscriptions {
     options?: RequestOptions,
   ): Promise<UpdateSubscriptionAddonResponse> {
     return unwrap(await updateSubscriptionAddon(this._client, request, options))
+  }
+}
+
+export class InternalApps {
+  constructor(private readonly _client: Client) {}
+
+  /**
+   * Execute app action
+   *
+   * Execute an operator action on an installed app. The action must be listed in the
+   * app's `actions`; otherwise the request is rejected.
+   *
+   * POST /openmeter/apps/{appId}/action
+   */
+  async executeAction(
+    request: ExecuteAppActionRequest,
+    options?: RequestOptions,
+  ): Promise<ExecuteAppActionResponse> {
+    return unwrap(await executeAppAction(this._client, request, options))
   }
 }
 

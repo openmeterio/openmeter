@@ -42,6 +42,7 @@ TypeSpec definitions and ships fully-typed request and response models.
   - [Notifications](#notifications)
 - [Internal Operations](#internal-operations)
   - [Internal Subscriptions](#internal-subscriptions)
+  - [Internal Apps](#internal-apps)
   - [Internal Notifications](#internal-notifications)
 - [Runtime Validation (validate option)](#runtime-validation-validate-option)
 - [Zod Schemas (./zod export)](#zod-schemas-zod-export)
@@ -502,6 +503,12 @@ they can change or be removed without notice or semver consideration.
 | ------------------------------------------- | ------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `client.internal.subscriptions.createAddon` | `POST /openmeter/subscriptions/{subscriptionId}/addons`                        | Add add-on to a subscription.                                                                                                                                         |
 | `client.internal.subscriptions.updateAddon` | `PATCH /openmeter/subscriptions/{subscriptionId}/addons/{subscriptionAddonId}` | Update a subscription add-on. Only the quantity is mutable; the timing controls when the new quantity takes effect. A new entry is appended to the add-on's timeline. |
+
+### Internal Apps
+
+| Method                               | HTTP                                  | Description                                                                                                                          |
+| ------------------------------------ | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `client.internal.apps.executeAction` | `POST /openmeter/apps/{appId}/action` | Execute an operator action on an installed app. The action must be listed in the app's `actions`; otherwise the request is rejected. |
 
 ### Internal Notifications
 
