@@ -95,13 +95,11 @@ func (h *handler) ListNotificationEvents() ListNotificationEventsHandler {
 				return ListNotificationEventsResponse{}, fmt.Errorf("failed to list notification events: %w", err)
 			}
 
-			items := make([]api.BillingNotificationEvent, 0, len(result.Items))
-			for _, item := range result.Items {
-				apiEvent, err := ToAPIEvent(item)
-				if err != nil {
-					return ListNotificationEventsResponse{}, err
-				}
-				items = append(items, apiEvent)
+			items, err := lo.MapErr(result.Items, func(item notification.Event, _ int) (api.BillingNotificationEvent, error) {
+				return ToAPIEvent(item)
+			})
+			if err != nil {
+				return ListNotificationEventsResponse{}, err
 			}
 
 			return response.NewPagePaginationResponse(items, response.PageMetaPage{
