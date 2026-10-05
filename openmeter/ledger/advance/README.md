@@ -57,5 +57,6 @@ the purchase was fully consumed by backfill and issued no ordinary FBO credit.
 
 `PlanLegacyCorrection` uses original transaction groups for legacy histories.
 It returns deferred template corrections so the collector can merge selections
-against the same transaction before resolving them. Both paths return breakage
-records for the caller to persist with the committed group; neither writes lineage.
+against the same transaction before resolving them. Both paths write breakage
+bookkeeping in the caller's transaction and return its postings for the same group;
+neither writes lineage.

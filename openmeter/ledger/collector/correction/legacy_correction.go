@@ -94,7 +94,7 @@ func (b *legacyCorrectionBatch) resolve(ctx context.Context) (correctionPlan, er
 	}
 
 	for _, correction := range corrections {
-		breakageInputs, pending, err := b.corrector.resolveBreakageReopenInputs(ctx, b.input, correction)
+		breakageInputs, err := b.corrector.resolveBreakageReopenInputs(ctx, b.input, correction)
 		if err != nil {
 			return correctionPlan{}, err
 		}
@@ -106,7 +106,6 @@ func (b *legacyCorrectionBatch) resolve(ctx context.Context) (correctionPlan, er
 
 		plan.inputs = append(plan.inputs, breakageInputs...)
 		plan.inputs = append(plan.inputs, postings...)
-		plan.breakagePending = append(plan.breakagePending, pending...)
 	}
 
 	return plan, nil
@@ -488,6 +487,7 @@ func (c *Corrector) planUntrackedCorrection(ctx context.Context, input Input, so
 
 func (c *Corrector) planLegacyAdvanceCorrection(ctx context.Context, input Input, source collectedSource, backingGroupID *string, amount alpacadecimal.Decimal) (legacyCorrectionPlan, error) {
 	plan, err := c.advance.PlanLegacyCorrection(ctx, advance.LegacyCorrectionInput{
+		BreakagePosting: input.breakagePosting,
 		CustomerID: customer.CustomerID{
 			Namespace: input.Namespace,
 			ID:        input.CustomerID,
@@ -506,8 +506,7 @@ func (c *Corrector) planLegacyAdvanceCorrection(ctx context.Context, input Input
 
 	return legacyCorrectionPlan{
 		correctionPlan: correctionPlan{
-			inputs:          plan.Inputs,
-			breakagePending: plan.BreakagePending,
+			inputs: plan.Inputs,
 		},
 		legacyCorrections: plan.LegacyCorrections,
 	}, nil
