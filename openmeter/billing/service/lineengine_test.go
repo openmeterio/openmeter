@@ -689,6 +689,7 @@ func lineIDs(lines billing.StandardLines) []string {
 
 	return ids
 }
+
 func TestRunInTransactionWithValidationWarningsAllowed(t *testing.T) {
 	warning := billing.NewValidationWarning("warning", "warning")
 	critical := billing.NewValidationError("critical", "critical")
