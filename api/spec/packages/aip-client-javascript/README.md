@@ -42,7 +42,7 @@ TypeSpec definitions and ships fully-typed request and response models.
   - [Notifications](#notifications)
 - [Internal Operations](#internal-operations)
   - [Internal Subscriptions](#internal-subscriptions)
-  - [Internal Apps](#internal-apps)
+  - [Internal Notifications](#internal-notifications)
 - [Runtime Validation (validate option)](#runtime-validation-validate-option)
 - [Zod Schemas (./zod export)](#zod-schemas-zod-export)
 - [Error Handling](#error-handling)
@@ -503,11 +503,13 @@ they can change or be removed without notice or semver consideration.
 | `client.internal.subscriptions.createAddon` | `POST /openmeter/subscriptions/{subscriptionId}/addons`                        | Add add-on to a subscription.                                                                                                                                         |
 | `client.internal.subscriptions.updateAddon` | `PATCH /openmeter/subscriptions/{subscriptionId}/addons/{subscriptionAddonId}` | Update a subscription add-on. Only the quantity is mutable; the timing controls when the new quantity takes effect. A new entry is appended to the add-on's timeline. |
 
-### Internal Apps
+### Internal Notifications
 
-| Method                               | HTTP                                  | Description                                                                                                                          |
-| ------------------------------------ | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `client.internal.apps.executeAction` | `POST /openmeter/apps/{appId}/action` | Execute an operator action on an installed app. The action must be listed in the app's `actions`; otherwise the request is rejected. |
+| Method                                      | HTTP                                                               | Description                                                                                                                                                                                                                                                               |
+| ------------------------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `client.internal.notifications.listEvents`  | `GET /openmeter/notification/events`                               | List all notification events.                                                                                                                                                                                                                                             |
+| `client.internal.notifications.getEvent`    | `GET /openmeter/notification/events/{notificationEventId}`         | Get a notification event by id.                                                                                                                                                                                                                                           |
+| `client.internal.notifications.resendEvent` | `POST /openmeter/notification/events/{notificationEventId}/resend` | Resend a notification event to the channels of the rule that generated it. Delivery is asynchronous: the request marks the selected channels for redelivery and returns immediately. Channels whose delivery is still pending or already being resent are left untouched. |
 
 ## Runtime Validation (validate option)
 
