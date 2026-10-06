@@ -358,6 +358,11 @@ one.
 
 ## Realization and time semantics
 
+- Usage-based charges with a configured percentage discount or maximum spend
+  are invoiced only at period end, even when progressive billing is enabled.
+  Discount reconciliation between progressively billed runs is currently
+  unsupported.
+  Usage discounts and minimum spend do not impose this restriction.
 - Shrink and extend patches describe the direction of service coverage through
   `ServicePeriod.To`. Full-service, billing-period, and invoice timing reconcile
   to their target values independently; charge-type lifecycles use the service

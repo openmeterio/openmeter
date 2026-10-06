@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditpurchase"
+	chargedetailedline "github.com/openmeterio/openmeter/openmeter/billing/charges/models/detailedline"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -298,6 +299,7 @@ func mapFlatFeeDetailedLines(stdLine *billing.StandardLine, run flatfee.Realizat
 				Base:      base,
 				InvoiceID: stdLine.InvoiceID,
 			},
+			AmountDiscounts: chargedetailedline.MapAmountDiscountsToBilling(line.AmountDiscounts),
 		}
 	}), nil
 }

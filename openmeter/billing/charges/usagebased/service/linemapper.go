@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditpurchase"
+	chargedetailedline "github.com/openmeterio/openmeter/openmeter/billing/charges/models/detailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating/service/mutator"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
@@ -412,6 +413,7 @@ func mapUsageBasedDetailedLines(
 				Base:      base,
 				InvoiceID: stdLine.InvoiceID,
 			},
+			AmountDiscounts: chargedetailedline.MapAmountDiscountsToBilling(line.AmountDiscounts),
 		}
 	}))
 

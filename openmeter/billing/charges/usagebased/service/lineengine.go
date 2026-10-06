@@ -64,14 +64,20 @@ func (e *LineEngine) AreLinesBillableAsOf(ctx context.Context, input billing.Are
 
 	return slicesx.MapWithErrPreservingResults(input.Lines, func(line billing.GatheringLine, index int) (billing.IsLineBillableAsOfResult, error) {
 		var errs []error
+		// TODO: Temporary regression - we need to exclude amount discounts from progressive billing,
+		// until we make sure that delta rating properly preserves the discount amount.
 		charge := charges[index]
-		featureMeter, err := featureMeters.Get(charge)
+		price := charge.Intent.GetEffectivePrice()
+
+		hasAmountDiscounts := charge.Intent.GetEffectiveDiscounts().Percentage != nil ||
+			price.GetCommitments().MaximumAmount != nil
 
 		ratingInput := rating.ResolveBillablePeriodInput{
 			Line:               line,
-			ProgressiveBilling: input.ProgressiveBilling,
+			ProgressiveBilling: input.ProgressiveBilling && !hasAmountDiscounts,
 			AsOf:               input.AsOf,
 		}
+		featureMeter, err := featureMeters.Get(charge)
 		if err != nil {
 			// This becomes a validation issue on the resulting standard invoice, but we still need to provide
 			// the result too.

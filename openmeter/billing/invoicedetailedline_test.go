@@ -21,6 +21,27 @@ func TestDetailedLineValidateAllowsNegativeQuantity(t *testing.T) {
 	require.NoError(t, line.Validate())
 }
 
+func TestDetailedLineValidateRejectsNegativeDiscountAmount(t *testing.T) {
+	line := validDetailedLineForValidation()
+	line.Quantity = alpacadecimal.NewFromInt(-1)
+	line.AmountDiscounts = AmountLineDiscountsManaged{{
+		AmountLineDiscount: AmountLineDiscount{
+			LineDiscountBase: LineDiscountBase{Reason: NewDiscountReasonFrom(MaximumSpendDiscount{})},
+			Amount:           alpacadecimal.NewFromInt(-50),
+			RoundingAmount:   alpacadecimal.NewFromFloat(-0.01),
+		},
+	}}
+	require.ErrorContains(t, line.Validate(), "amount should be positive or zero")
+
+	line.AmountDiscounts[0].Amount = alpacadecimal.Zero
+	require.NoError(t, line.Validate())
+	line.AmountDiscounts[0].Amount = alpacadecimal.NewFromInt(50)
+	require.NoError(t, line.Validate())
+
+	line.AmountDiscounts[0].Reason = DiscountReason{}
+	require.ErrorContains(t, line.Validate(), "invalid discount type")
+}
+
 func TestDetailedLineValidateRejectsNegativePerUnitAmount(t *testing.T) {
 	line := validDetailedLineForValidation()
 	line.PerUnitAmount = alpacadecimal.NewFromInt(-1)
