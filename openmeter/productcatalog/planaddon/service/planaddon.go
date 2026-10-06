@@ -139,10 +139,12 @@ func (s service) CreatePlanAddon(ctx context.Context, params planaddon.CreatePla
 		if params.RejectUnitConfig && (p.HasUnitConfig() || a.AsProductCatalogAddon().HasUnitConfig()) {
 			return nil, productcatalog.ErrUnitConfigNotRepresentable
 		}
+
 		if params.RejectUnrepresentableCurrencies {
 			if p.Currency.IsCustom() || a.Currency.IsCustom() {
 				return nil, productcatalog.ErrCurrencyNotRepresentable
 			}
+
 			if p.HasCurrencyOverrides() || a.AsProductCatalogAddon().HasCurrencyOverrides() {
 				return nil, productcatalog.ErrRateCardCurrencyNotRepresentable
 			}
@@ -404,10 +406,12 @@ func (s service) UpdatePlanAddon(ctx context.Context, params planaddon.UpdatePla
 			(p.HasUnitConfig() || a.AsProductCatalogAddon().HasUnitConfig()) {
 			return nil, productcatalog.ErrUnitConfigNotRepresentable
 		}
+
 		if params.RejectUnrepresentableCurrencies {
 			if p.Currency.IsCustom() || a.Currency.IsCustom() {
 				return nil, productcatalog.ErrCurrencyNotRepresentable
 			}
+
 			if p.HasCurrencyOverrides() || a.AsProductCatalogAddon().HasCurrencyOverrides() {
 				return nil, productcatalog.ErrRateCardCurrencyNotRepresentable
 			}

@@ -36,6 +36,7 @@ func TestSubscriptionCustomCurrencyBackfillAcrossPeriods(t *testing.T) {
 		_, err := f.chargesService.AdvanceCharges(ctx, charges.AdvanceChargesInput{Customer: f.view.Customer.GetID()})
 		require.NoError(t, err)
 	}
+
 	ids := listSubscriptionChargeIDs(t, f.testDeps, f.view.Subscription.ID)
 	require.Len(t, ids, 4)
 
@@ -52,6 +53,7 @@ func TestSubscriptionCustomCurrencyBackfillAcrossPeriods(t *testing.T) {
 
 		chargeByMonth[charge.Intent.GetEffectiveServicePeriod().From.Month()] = id
 	}
+
 	require.Len(t, chargeByMonth, 4)
 
 	// when: a late purchase can cover all of April and only half of May.
@@ -131,6 +133,7 @@ func TestSubscriptionCustomCurrencyBackfillAcrossPeriods(t *testing.T) {
 
 		booked[lo.FromPtr(bucket.GroupByValues[ledger.BalanceBucketGroupBySpendChargeID])] += bucket.SettledAmount.InexactFloat64()
 	}
+
 	require.Equal(t, expected, booked)
 
 	roots, err := f.lineageService.LoadLineagesByCustomer(ctx, legacylineage.LoadLineagesByCustomerInput{
@@ -169,6 +172,7 @@ func TestSubscriptionCustomCurrencyBackfillAcrossPeriods(t *testing.T) {
 
 		uncovered[lo.FromPtr(bucket.GroupByValues[ledger.BalanceBucketGroupBySpendChargeID])] -= bucket.SettledAmount.InexactFloat64()
 	}
+
 	require.Equal(t, map[string]float64{chargeByMonth[time.May]: 5}, uncovered)
 
 	requireCustomCurrencyAccountBalance(t, f, f.business.EarningsAccount, 35)

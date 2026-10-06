@@ -33,6 +33,7 @@ func (s *concurrentErrorBillingService) InvoicePendingLines(
 	if s.entered.Add(1) == s.total {
 		close(s.ready)
 	}
+
 	<-s.ready
 
 	return nil, fmt.Errorf("synthetic invoice failure for %s", input.Customer.ID)

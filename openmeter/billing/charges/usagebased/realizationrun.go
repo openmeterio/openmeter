@@ -39,6 +39,7 @@ func (t RealizationRunType) Validate() error {
 	if !slices.Contains(t.Values(), string(t)) {
 		return models.NewGenericValidationError(fmt.Errorf("invalid realization run type: %s", t))
 	}
+
 	return nil
 }
 
@@ -482,6 +483,7 @@ func (r RealizationRuns) Validate() error {
 			errs = append(errs, fmt.Errorf("realization run[%d]: %w", idx, err))
 		}
 	}
+
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
@@ -498,6 +500,7 @@ func (r RealizationRuns) GetByID(id string) (RealizationRun, error) {
 			return run, nil
 		}
 	}
+
 	return RealizationRun{}, fmt.Errorf("realization run not found [id=%s]", id)
 }
 
@@ -525,5 +528,6 @@ func (r *RealizationRuns) SetRealizationRun(updatedRun RealizationRun) error {
 			return nil
 		}
 	}
+
 	return fmt.Errorf("realization run not found [id=%s]", updatedRun.ID.ID)
 }

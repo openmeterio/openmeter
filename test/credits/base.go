@@ -306,6 +306,7 @@ func (s *BaseSuite) CreateMockChargeIntent(input CreateMockChargeIntentInput) ch
 			FeatureKey:     lo.EmptyableToPtr(input.FeatureKey),
 			SettlementMode: lo.CoalesceOrEmpty(input.SettlementMode, productcatalog.CreditThenInvoiceSettlementMode),
 		}
+
 		return charges.NewChargeIntent(flatFeeIntent)
 	}
 

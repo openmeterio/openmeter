@@ -104,6 +104,7 @@ func (s *RuleTestSuite) Setup(ctx context.Context, t *testing.T) {
 	if _, ok := lo.ErrorsAs[*feature.FeatureNotFoundError](err); !ok {
 		require.NoError(t, err, "Getting feature must not return error")
 	}
+
 	if feat != nil {
 		s.feature = *feat
 	} else {
@@ -115,6 +116,7 @@ func (s *RuleTestSuite) Setup(ctx context.Context, t *testing.T) {
 			MeterGroupByFilters: feature.ConvertMapStringToMeterGroupByFilters(meter.GroupBy),
 		})
 	}
+
 	require.NoError(t, err, "Creating feature must not return error")
 
 	input := NewCreateChannelInput(s.Env.Namespace(), "NotificationRuleTest")

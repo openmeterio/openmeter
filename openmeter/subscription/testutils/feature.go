@@ -57,13 +57,16 @@ func (c *testFeatureConnector) CreateExampleFeatures(t *testing.T, meterID strin
 	if err != nil {
 		t.Fatalf("failed to create feature: %v", err)
 	}
+
 	feat2, err := c.FeatureConnector.CreateFeature(context.Background(), ExampleFeature2(meterID))
 	if err != nil {
 		t.Fatalf("failed to create feature: %v", err)
 	}
+
 	feat3, err := c.FeatureConnector.CreateFeature(context.Background(), ExampleFeature3(meterID))
 	if err != nil {
 		t.Fatalf("failed to create feature: %v", err)
 	}
+
 	return []feature.Feature{feat1, feat2, feat3}
 }

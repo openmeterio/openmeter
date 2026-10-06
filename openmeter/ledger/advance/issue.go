@@ -52,5 +52,6 @@ func (i IssueInput) Validate() error {
 	if err := i.Filters.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("filters: %w", err))
 	}
+
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }

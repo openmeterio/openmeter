@@ -107,6 +107,7 @@ func TestRouteValidateCostBasisCurrency(t *testing.T) {
 				require.ErrorIs(t, err, ErrCurrencyInvalid)
 				return
 			}
+
 			require.NoError(t, err)
 		})
 	}
@@ -771,6 +772,7 @@ func TestPlanFiltersUseDistinctCanonicalRoutingKeys(t *testing.T) {
 		_, err := build(route)
 		require.ErrorContains(t, err, "V5")
 	}
+
 	different := route
 	different.Filters = CreditFilters{Features: route.Filters.Features, Plans: []PlanFilter{{Key: "starter"}}}
 	other, err := BuildRoutingKey(different)

@@ -1221,7 +1221,6 @@ func runSubtractRatedRunDetailsTestCases(
 			// - a usage-based price for the testcase
 			// - a previously booked cumulative metered quantity, rated without minimum commitment
 			// - a newer cumulative metered quantity for the same period, rated with default mutators
-
 			previousWithMinimumCommitmentIgnored := rateRunDetailsForTest(t, ratingService, rateRunDetailsForTestInput{
 				ServicePeriod:   servicePeriod,
 				Price:           tc.price,

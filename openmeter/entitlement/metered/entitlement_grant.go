@@ -73,9 +73,11 @@ func (e *connector) CreateGrant(ctx context.Context, namespace string, customerI
 	if _, ok := lo.ErrorsAs[*entitlement.NotFoundError](err); ok {
 		ent, err = e.entitlementRepo.GetActiveEntitlementOfCustomerAt(ctx, namespace, customerID, entitlementIdOrFeatureKey, clock.Now())
 	}
+
 	if err != nil {
 		return EntitlementGrant{}, err
 	}
+
 	metered, err := ParseFromGenericEntitlement(ent)
 	if err != nil {
 		return EntitlementGrant{}, err
@@ -108,6 +110,7 @@ func (e *connector) CreateGrant(ctx context.Context, namespace string, customerI
 	}
 
 	eg, err := GrantFromCreditGrant(*g, clock.Now())
+
 	return *eg, err
 }
 
@@ -124,6 +127,7 @@ func (e *connector) ListEntitlementGrants(ctx context.Context, namespace string,
 	if _, ok := lo.ErrorsAs[*entitlement.NotFoundError](err); ok {
 		ent, err = e.entitlementRepo.GetActiveEntitlementOfCustomerAt(ctx, namespace, params.CustomerID, params.EntitlementIDOrFeatureKey, clock.Now())
 	}
+
 	if err != nil {
 		return def, err
 	}
@@ -147,6 +151,7 @@ func (e *connector) ListEntitlementGrants(ctx context.Context, namespace string,
 		if err != nil {
 			return EntitlementGrant{}, err
 		}
+
 		return *g, nil
 	})
 }
@@ -173,12 +178,15 @@ func GrantFromCreditGrant(grant grant.Grant, now time.Time) (*EntitlementGrant, 
 		if err != nil {
 			return nil, err
 		}
+
 		g.NextRecurrence = &next
 	}
+
 	g.Grant = grant
 	g.EntitlementID = grant.OwnerID
 	g.MaxRolloverAmount = grant.ResetMaxRollover
 	g.MinRolloverAmount = grant.ResetMinRollover
+
 	return g, nil
 }
 

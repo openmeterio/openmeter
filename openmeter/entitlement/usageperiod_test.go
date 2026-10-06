@@ -175,7 +175,6 @@ func TestUsagePeriodGetPeriodAt(t *testing.T) {
 
 	t.Run("should find the correct recurrence to use when multiple are present", func(t *testing.T) {
 		// lets fuzz this a bit
-
 		for i := 0; i < 300; i++ {
 			now := time.Date(2025, 6, 18, 11, 23, 0, 0, time.UTC)
 			startOfDay := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())

@@ -69,6 +69,7 @@ func (r *engineRegistry) Register(eng billing.LineEngine) error {
 	}
 
 	r.engines[engineType] = eng
+
 	return nil
 }
 
@@ -150,6 +151,7 @@ func (r *engineRegistry) populateGatheringLineEngine(line *billing.GatheringLine
 	}
 
 	line.Engine = billing.LineEngineTypeInvoice
+
 	return nil
 }
 
@@ -159,6 +161,7 @@ func (r *engineRegistry) populateStandardLineEngine(line *billing.StandardLine) 
 	}
 
 	line.Engine = billing.LineEngineTypeInvoice
+
 	return nil
 }
 
@@ -204,6 +207,7 @@ func (s *Service) areGatheringLinesBillableAsOf(ctx context.Context, input billi
 		if err != nil && !billing.IsValidationIssueOnly(err) {
 			return nil, fmt.Errorf("checking line billability with engine %s: %w", engineType, err)
 		}
+
 		errs = append(errs, billing.NewLineEngineValidationError(grouped.Engine, err))
 
 		if len(results) != len(grouped.Lines) {

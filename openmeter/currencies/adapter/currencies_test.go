@@ -506,6 +506,7 @@ func TestGetCostBasisAt(t *testing.T) {
 			if testCase.notFound {
 				require.Error(t, err)
 				assert.True(t, models.IsGenericNotFoundError(err))
+
 				return
 			}
 

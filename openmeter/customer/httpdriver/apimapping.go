@@ -234,6 +234,7 @@ func MapEntitlementValueToAPIV2(v entitlement.EntitlementValue) (EntitlementValu
 		for k, val := range metered.GrantBalances {
 			copied[k] = val
 		}
+
 		result.GrantBalances = &copied
 	}
 

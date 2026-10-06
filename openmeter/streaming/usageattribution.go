@@ -79,6 +79,7 @@ func (ua CustomerUsageAttribution) Equal(other CustomerUsageAttribution) bool {
 	if (ua.Key == nil) != (other.Key == nil) {
 		return false
 	}
+
 	if ua.Key != nil && *ua.Key != *other.Key {
 		return false
 	}

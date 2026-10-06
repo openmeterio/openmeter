@@ -96,6 +96,7 @@ func TestV3SubscriptionAddonAttach(t *testing.T) {
 		for i, rc := range subAddon.RateCards {
 			assert.NotNil(t, rc.AffectedSubscriptionItemIds, "rate_cards[%d].affected_subscription_item_ids must not be null", i)
 		}
+
 		// Timeline must be a non-nil array with at least one segment for an active addon.
 		require.NotNil(t, subAddon.Timeline)
 		require.NotEmpty(t, subAddon.Timeline)
@@ -163,9 +164,11 @@ func TestV3SubscriptionAddonAttach(t *testing.T) {
 				found = true
 				assert.NotNil(t, sa.RateCards, "LIST: rate_cards must not be null")
 				assert.NotNil(t, sa.Timeline, "LIST: timeline must not be null")
+
 				break
 			}
 		}
+
 		assert.True(t, found, "attached subscription addon not found in list")
 	})
 }

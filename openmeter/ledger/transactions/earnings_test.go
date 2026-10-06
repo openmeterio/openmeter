@@ -511,6 +511,7 @@ func requireEarningsBalanceBuckets(t *testing.T, env *transactionsTestEnv, expec
 			bucket.GroupByValues[ledger.BalanceBucketGroupBySpendChargeID],
 		)] = bucket.SettledAmount.InexactFloat64()
 	}
+
 	require.Equal(t, expected, actual)
 }
 
@@ -536,5 +537,6 @@ func findForwardTransaction(t *testing.T, group ledger.TransactionGroup, templat
 	}
 
 	t.Fatalf("forward transaction for %s not found in group", name)
+
 	return nil
 }

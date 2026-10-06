@@ -233,6 +233,7 @@ func (s InvoiceShortStatus) Values() []InvoiceShortStatus {
 		StandardInvoiceStatusDeleteFailed,
 		StandardInvoiceStatusDeleted,
 	}
+
 	return lo.Uniq(lo.Map(lo.Without(validStatuses, unsupportedStatuses...), func(st StandardInvoiceStatus, _ int) InvoiceShortStatus {
 		return InvoiceShortStatus(st.ShortStatus())
 	}))
@@ -443,6 +444,7 @@ func (i *StandardInvoice) SetLines(lines []GenericInvoiceLine) error {
 	}
 
 	i.Lines = NewStandardInvoiceLines(mappedLines)
+
 	return nil
 }
 
@@ -514,7 +516,6 @@ func (i *StandardInvoice) getLeafLines() DetailedLines {
 
 	for _, line := range i.Lines.OrEmpty() {
 		// Skip non leaf nodes
-
 		out = append(out, line.DetailedLines...)
 	}
 
@@ -557,6 +558,7 @@ func (i StandardInvoice) Clone() (StandardInvoice, error) {
 	if err != nil {
 		return StandardInvoice{}, fmt.Errorf("cloning validation issues: %w", err)
 	}
+
 	clone.Totals = i.Totals
 
 	return clone, nil
@@ -662,6 +664,7 @@ func (c *StandardInvoiceLines) ReplaceByID(id string, newLine *StandardLine) boo
 
 			lines[i] = newLine
 			lines[i].DBState = originalDBState
+
 			return true
 		}
 	}

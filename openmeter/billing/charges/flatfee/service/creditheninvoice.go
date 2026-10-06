@@ -256,9 +256,11 @@ func (s *CreditThenInvoiceStateMachine) ActiveClearOverride(ctx context.Context)
 	if err != nil {
 		return err
 	}
+
 	if !cleared {
 		return nil
 	}
+
 	if s.Charge.Intent.GetDeletedAt() != nil {
 		return errors.New("clearing flat-fee override unexpectedly restored a deleted base intent")
 	}
@@ -283,6 +285,7 @@ func (s *CreditThenInvoiceStateMachine) ActiveClearOverride(ctx context.Context)
 	}
 
 	s.AddInvoicePatch(invoiceupdater.NewUpsertGatheringLineByChargeIDPatch(s.Charge.ID, gatheringLine))
+
 	return nil
 }
 
@@ -294,6 +297,7 @@ func (s *CreditThenInvoiceStateMachine) cancelCurrentRealization(ctx context.Con
 	if currentRun == nil {
 		return nil
 	}
+
 	run := *currentRun
 
 	shouldCorrect := false
@@ -306,6 +310,7 @@ func (s *CreditThenInvoiceStateMachine) cancelCurrentRealization(ctx context.Con
 		if err != nil {
 			return fmt.Errorf("calculating fiat overage for realization run[%s]: %w", run.ID.ID, err)
 		}
+
 		shouldCorrect = !fiatOverage.ShouldOmitInvoiceLine
 	}
 
@@ -324,6 +329,7 @@ func (s *CreditThenInvoiceStateMachine) cancelCurrentRealization(ctx context.Con
 			if err != nil {
 				return fmt.Errorf("correcting prepared realization run[%s]: %w", run.ID.ID, err)
 			}
+
 			run = correctedRun
 		} else if err := s.Realizations.CorrectAllCreditRealizations(ctx, correctionInput); err != nil {
 			return fmt.Errorf("correcting realization run[%s]: %w", run.ID.ID, err)
@@ -340,6 +346,7 @@ func (s *CreditThenInvoiceStateMachine) cancelCurrentRealization(ctx context.Con
 		if err != nil {
 			return fmt.Errorf("marking realization run[%s] deleted: %w", run.ID.ID, err)
 		}
+
 		run.RealizationRunBase = runBase
 	}
 
@@ -377,6 +384,7 @@ func (s *CreditThenInvoiceStateMachine) ClearDeletedChargeOverride(ctx context.C
 	if err != nil {
 		return err
 	}
+
 	if !cleared {
 		return nil
 	}
@@ -394,6 +402,7 @@ func (s *CreditThenInvoiceStateMachine) DeleteCharge(ctx context.Context, patch 
 	if err != nil {
 		return fmt.Errorf("getting patch target layer: %w", err)
 	}
+
 	if err := s.rejectHiddenIntentTarget(target); err != nil {
 		return err
 	}
@@ -453,6 +462,7 @@ func (s *CreditThenInvoiceStateMachine) LineManualEdit(ctx context.Context, patc
 	if err != nil {
 		return fmt.Errorf("getting patch target layer: %w", err)
 	}
+
 	if err := s.rejectHiddenIntentTarget(target); err != nil {
 		return err
 	}
@@ -489,6 +499,7 @@ func (s *CreditThenInvoiceStateMachine) LineManualEdit(ctx context.Context, patc
 		if currentRun.Immutable {
 			return fmt.Errorf("immutable current run [charge_id=%s,run_id=%s]: %w", s.Charge.ID, currentRun.ID.ID, billing.ErrCannotUpdateChargeManagedLine)
 		}
+
 		if currentRun.LineID == nil || *currentRun.LineID != editedLine.GetID() {
 			return fmt.Errorf("run line mismatch [charge_id=%s,run_id=%s,line_id=%s,run_line_id=%s]: %w",
 				s.Charge.ID,
@@ -554,6 +565,7 @@ func (s *CreditThenInvoiceStateMachine) applyPeriodPatch(patch periodPatch) (rec
 	if err != nil {
 		return reconcileInvoicingStateInput{}, fmt.Errorf("getting patch target layer: %w", err)
 	}
+
 	if err := s.rejectHiddenIntentTarget(target); err != nil {
 		return reconcileInvoicingStateInput{}, err
 	}
@@ -566,6 +578,7 @@ func (s *CreditThenInvoiceStateMachine) applyPeriodPatch(patch periodPatch) (rec
 	if err := patch.ValidateWith(targetIntent.IntentMutableFields.IntentMutableFields); err != nil {
 		return reconcileInvoicingStateInput{}, fmt.Errorf("validate %s patch: %w", patch.Op(), err)
 	}
+
 	intent := s.Charge.Intent
 	if err := intent.Mutate(target, func(fields *flatfee.IntentMutableFields) {
 		fields.ServicePeriod.To = patch.GetNewServicePeriodTo()
@@ -747,9 +760,11 @@ func (s *CreditThenInvoiceStateMachine) FinalizeInvoice(ctx context.Context, inp
 	if currentRun == nil {
 		return fmt.Errorf("no realization run in progress [charge_id=%s]", s.Charge.ID)
 	}
+
 	if currentRun.LineID == nil || *currentRun.LineID != input.Line.ID {
 		return fmt.Errorf("realization run[%s] line does not match finalizing line[%s]", currentRun.ID.ID, input.Line.ID)
 	}
+
 	if currentRun.InvoiceID == nil || *currentRun.InvoiceID != input.Invoice.ID {
 		return fmt.Errorf("realization run[%s] invoice does not match finalizing invoice[%s]", currentRun.ID.ID, input.Invoice.ID)
 	}
@@ -789,6 +804,7 @@ func (s *CreditThenInvoiceStateMachine) FinalizeInvoice(ctx context.Context, inp
 		if err != nil {
 			return fmt.Errorf("preparing custom-currency overage for finalizing line[%s]: %w", line.ID, err)
 		}
+
 		run = prepared.Run
 		s.Charge.Realizations.CurrentRun = &run
 	}
@@ -802,6 +818,7 @@ func (s *CreditThenInvoiceStateMachine) FinalizeInvoice(ctx context.Context, inp
 		if err != nil {
 			return fmt.Errorf("allocating fiat overage credits for finalizing line[%s]: %w", line.ID, err)
 		}
+
 		run = allocated.Run
 		s.Charge.Realizations.CurrentRun = &run
 	}
@@ -837,6 +854,7 @@ func (s *CreditThenInvoiceStateMachine) InvoiceIssued(ctx context.Context, input
 		if currentRun.AccruedUsage == nil {
 			return fmt.Errorf("realization run[%s] has not been prepared for invoice issuance", currentRun.ID.ID)
 		}
+
 		if !currentRun.FiatOverageCreditAllocationCompleted {
 			return fmt.Errorf("realization run[%s] has not completed fiat overage credit allocation", currentRun.ID.ID)
 		}
@@ -845,6 +863,7 @@ func (s *CreditThenInvoiceStateMachine) InvoiceIssued(ctx context.Context, input
 	if currentRun.LineID == nil || *currentRun.LineID != input.Line.ID {
 		return fmt.Errorf("prepared realization run[%s] line does not match issued line[%s]", currentRun.ID.ID, input.Line.ID)
 	}
+
 	if currentRun.InvoiceID == nil || *currentRun.InvoiceID != input.Invoice.ID {
 		return fmt.Errorf("prepared realization run[%s] invoice does not match issued invoice[%s]", currentRun.ID.ID, input.Invoice.ID)
 	}
@@ -857,6 +876,7 @@ func (s *CreditThenInvoiceStateMachine) InvoiceIssued(ctx context.Context, input
 		if err != nil {
 			return fmt.Errorf("accruing issued invoice usage: %w", err)
 		}
+
 		run = result.Run
 	}
 
@@ -938,6 +958,7 @@ func (s *CreditThenInvoiceStateMachine) reconcileInvoicingState(ctx context.Cont
 	if err := s.correctReversibleCurrentRun(ctx, input.Op); err != nil {
 		return err
 	}
+
 	currentRun := s.Charge.Realizations.CurrentRun
 
 	// TODO(credit-note support): this branch is a temporary fallback for
@@ -1005,6 +1026,7 @@ func (s *CreditThenInvoiceStateMachine) reconcileInvoicingState(ctx context.Cont
 			s.AddInvoicePatch(invoiceupdater.NewDeleteGatheringLineByChargeIDPatch(s.Charge.ID))
 			s.Charge.Status = flatfee.StatusFinal
 			s.Charge.State.AdvanceAfter = nil
+
 			return nil
 		}
 
@@ -1018,6 +1040,7 @@ func (s *CreditThenInvoiceStateMachine) reconcileInvoicingState(ctx context.Cont
 		// back to created so normal invoice_at advancement and invoicing can
 		// recreate the CTI lifecycle.
 		s.Charge.Status = flatfee.StatusCreated
+
 		return s.AdvanceAfterInvoiceAt(ctx)
 	}
 
@@ -1085,6 +1108,7 @@ func (s *CreditThenInvoiceStateMachine) reconcileInvoicingState(ctx context.Cont
 		}
 
 		s.AddInvoicePatch(invoiceupdater.NewUpdateLinePatch(genericLine))
+
 		return nil
 	}
 
@@ -1103,6 +1127,7 @@ func (s *CreditThenInvoiceStateMachine) reconcileInvoicingState(ctx context.Cont
 	s.AddInvoicePatch(invoiceupdater.NewCreateLinePatch(updatedGatheringLine))
 
 	s.Charge.Status = flatfee.StatusCreated
+
 	return s.AdvanceAfterInvoiceAt(ctx)
 }
 

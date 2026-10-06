@@ -169,15 +169,18 @@ func (r *repo) ListSubAccounts(ctx context.Context, input ledgeraccount.ListSubA
 				if err != nil {
 					return nil, fmt.Errorf("failed to serialize route currency filter prefix: %w", err)
 				}
+
 				routePredicates = append(routePredicates, dbledgersubaccountroute.CurrencyHasPrefix(string(prefix)))
 			} else {
 				currency, err := normalizedRoute.Currency.MarshalText()
 				if err != nil {
 					return nil, fmt.Errorf("failed to serialize route currency filter: %w", err)
 				}
+
 				routePredicates = append(routePredicates, dbledgersubaccountroute.Currency(string(currency)))
 			}
 		}
+
 		if normalizedRoute.CostBasisCurrency.IsPresent() {
 			costBasisCurrency, _ := normalizedRoute.CostBasisCurrency.Get()
 			if costBasisCurrency != nil {
@@ -186,11 +189,13 @@ func (r *repo) ListSubAccounts(ctx context.Context, input ledgeraccount.ListSubA
 				routePredicates = append(routePredicates, dbledgersubaccountroute.CostBasisCurrencyIsNil())
 			}
 		}
+
 		if normalizedRoute.CreditPriority != nil {
 			routePredicates = append(routePredicates,
 				dbledgersubaccountroute.CreditPriority(*normalizedRoute.CreditPriority),
 			)
 		}
+
 		if normalizedRoute.TaxCode.IsPresent() {
 			tc, _ := normalizedRoute.TaxCode.Get()
 			if tc != nil {
@@ -199,15 +204,19 @@ func (r *repo) ListSubAccounts(ctx context.Context, input ledgeraccount.ListSubA
 				routePredicates = append(routePredicates, dbledgersubaccountroute.TaxCodeIsNil())
 			}
 		}
+
 		if exact, ok := normalizedRoute.CreditFilters.Get(); ok {
 			routePredicates = append(routePredicates, func(s *sql.Selector) { s.Where(routequery.ExactFiltersPredicate(s.C, exact)) })
 		}
+
 		if features, ok := normalizedRoute.Features.Get(); ok {
 			routePredicates = append(routePredicates, func(s *sql.Selector) { s.Where(routequery.ExactFeaturesPredicate(s.C, features)) })
 		}
+
 		if normalizedRoute.MatchFeature != "" {
 			routePredicates = append(routePredicates, func(s *sql.Selector) { s.Where(routequery.MatchFeaturePredicate(s.C, normalizedRoute.MatchFeature)) })
 		}
+
 		if normalizedRoute.CostBasis.IsPresent() {
 			costBasis, _ := normalizedRoute.CostBasis.Get()
 			if costBasis != nil {
@@ -216,6 +225,7 @@ func (r *repo) ListSubAccounts(ctx context.Context, input ledgeraccount.ListSubA
 				routePredicates = append(routePredicates, dbledgersubaccountroute.CostBasisIsNil())
 			}
 		}
+
 		if normalizedRoute.TaxBehavior.IsPresent() {
 			tb, _ := normalizedRoute.TaxBehavior.Get()
 			if tb != nil {
@@ -224,9 +234,11 @@ func (r *repo) ListSubAccounts(ctx context.Context, input ledgeraccount.ListSubA
 				routePredicates = append(routePredicates, dbledgersubaccountroute.TaxBehaviorIsNil())
 			}
 		}
+
 		if normalizedRoute.TransactionAuthorizationStatus != nil {
 			routePredicates = append(routePredicates, dbledgersubaccountroute.TransactionAuthorizationStatus(*normalizedRoute.TransactionAuthorizationStatus))
 		}
+
 		if len(routePredicates) > 0 {
 			predicates = append(predicates, dbledgersubaccount.HasRouteWith(routePredicates...))
 		}
@@ -246,6 +258,7 @@ func (r *repo) ListSubAccounts(ctx context.Context, input ledgeraccount.ListSubA
 			if err != nil {
 				return nil, fmt.Errorf("failed to map sub-account data: %w", err)
 			}
+
 			out = append(out, &subAccountData)
 		}
 
@@ -257,6 +270,7 @@ func MapSubAccountData(entity *db.LedgerSubAccount) (ledgeraccount.SubAccountDat
 	if entity.Edges.Account == nil {
 		return ledgeraccount.SubAccountData{}, fmt.Errorf("account edge is required")
 	}
+
 	if entity.Edges.Route == nil {
 		return ledgeraccount.SubAccountData{}, fmt.Errorf("route edge is required")
 	}

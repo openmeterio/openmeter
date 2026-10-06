@@ -26,9 +26,11 @@ func AdoptLegacyEnt(ctx context.Context, db *sql.DB, connectionString string, lo
 	if db == nil {
 		return errors.New("database is required")
 	}
+
 	if connectionString == "" {
 		return errors.New("connection string is required")
 	}
+
 	if logger == nil {
 		return errors.New("logger is required")
 	}
@@ -42,6 +44,7 @@ func AdoptLegacyEnt(ctx context.Context, db *sql.DB, connectionString string, lo
 	if _, err := lockConn.ExecContext(ctx, `SELECT pg_advisory_lock(hashtext('openmeter.legacy-ent-adoption'))`); err != nil {
 		return fmt.Errorf("acquire legacy Ent migration lock: %w", err)
 	}
+
 	defer func() {
 		if _, err := lockConn.ExecContext(context.WithoutCancel(ctx), `SELECT pg_advisory_unlock(hashtext('openmeter.legacy-ent-adoption'))`); err != nil {
 			logger.Error("failed to release legacy Ent migration lock", "error", err)
@@ -63,6 +66,7 @@ func AdoptLegacyEnt(ctx context.Context, db *sql.DB, connectionString string, lo
 		if err := legacyent.MigrateToBaseline(ctx, db); err != nil {
 			return err
 		}
+
 		if err := legacyent.Reconcile(ctx, db); err != nil {
 			return fmt.Errorf("reconcile legacy Ent database: %w", err)
 		}
@@ -92,6 +96,7 @@ func inspectDatabaseMigrationState(ctx context.Context, db *sql.DB) (databaseMig
 	if err := db.QueryRowContext(ctx, `SELECT to_regclass('schema_om') IS NOT NULL`).Scan(&hasMigrationTable); err != nil {
 		return 0, fmt.Errorf("inspect migration state table: %w", err)
 	}
+
 	if hasMigrationTable {
 		return databaseMigrationStateVersioned, nil
 	}
@@ -105,6 +110,7 @@ func inspectDatabaseMigrationState(ctx context.Context, db *sql.DB) (databaseMig
 	`).Scan(&hasLegacyFingerprint); err != nil {
 		return 0, fmt.Errorf("inspect legacy Ent database fingerprint: %w", err)
 	}
+
 	if hasLegacyFingerprint {
 		return databaseMigrationStateLegacyEnt, nil
 	}
@@ -113,6 +119,7 @@ func inspectDatabaseMigrationState(ctx context.Context, db *sql.DB) (databaseMig
 	if err := db.QueryRowContext(ctx, `SELECT count(*) FROM pg_tables WHERE schemaname = ANY(current_schemas(false))`).Scan(&tableCount); err != nil {
 		return 0, fmt.Errorf("inspect database tables: %w", err)
 	}
+
 	if tableCount == 0 {
 		return databaseMigrationStateEmpty, nil
 	}

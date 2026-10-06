@@ -134,8 +134,10 @@ func (u *usageQuerier) getValueFromRows(rows []meter.MeterQueryRow) (float64, er
 	if len(rows) > 1 {
 		return 0.0, fmt.Errorf("expected 1 row, got %d", len(rows))
 	}
+
 	if len(rows) == 0 {
 		return 0.0, nil
 	}
+
 	return rows[0].Value, nil
 }

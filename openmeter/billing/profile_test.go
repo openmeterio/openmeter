@@ -66,6 +66,7 @@ func TestInvoicingConfigWithDeprecatedTaxCodeEnforced(t *testing.T) {
 		if stripeCode != "" {
 			tc.Stripe = &productcatalog.StripeTaxConfig{Code: stripeCode}
 		}
+
 		return tc
 	}
 

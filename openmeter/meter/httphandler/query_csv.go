@@ -223,6 +223,7 @@ func (a *queryMeterCSVResult) Records() [][]string {
 			hasSubjectHeader = true
 			continue
 		}
+
 		groupByKeys = append(groupByKeys, k)
 	}
 
@@ -245,6 +246,7 @@ func (a *queryMeterCSVResult) Records() [][]string {
 	if len(groupByKeys) > 0 {
 		headers = append(headers, groupByKeys...)
 	}
+
 	headers = append(headers, "value")
 
 	records = append(records, headers)
@@ -274,8 +276,10 @@ func (a *queryMeterCSVResult) Records() [][]string {
 			if row.GroupBy[k] != nil {
 				groupByValue = *row.GroupBy[k]
 			}
+
 			data = append(data, groupByValue)
 		}
+
 		data = append(data, fmt.Sprintf("%f", row.Value))
 		records = append(records, data)
 	}

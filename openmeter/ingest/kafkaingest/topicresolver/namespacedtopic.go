@@ -22,6 +22,7 @@ func NewNamespacedTopicResolver(template string) (*NamespacedTopicResolver, erro
 	if template == "" {
 		return nil, errors.New("topic name template cannot be empty")
 	}
+
 	return &NamespacedTopicResolver{
 		template: template,
 	}, nil

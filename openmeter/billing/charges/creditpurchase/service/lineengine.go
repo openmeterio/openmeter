@@ -285,6 +285,7 @@ func (e *LineEngine) OnPaymentAuthorized(ctx context.Context, input billing.OnPa
 	}
 
 	_, err := e.fireInvoiceLifecycleTriggerForLines(ctx, billing.TriggerAuthorized, input)
+
 	return err
 }
 
@@ -294,6 +295,7 @@ func (e *LineEngine) OnPaymentSettled(ctx context.Context, input billing.OnPayme
 	}
 
 	_, err := e.fireInvoiceLifecycleTriggerForLines(ctx, billing.TriggerPaid, input)
+
 	return err
 }
 

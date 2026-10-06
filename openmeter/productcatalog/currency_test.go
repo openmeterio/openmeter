@@ -127,6 +127,7 @@ func TestValidateCurrencyWithOverrideCostBasisPolicy(t *testing.T) {
 			if tt.expected != nil {
 				require.ErrorIs(t, err, tt.expected)
 			}
+
 			if tt.errorContains != "" {
 				require.ErrorContains(t, err, tt.errorContains)
 			}

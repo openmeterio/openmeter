@@ -41,6 +41,7 @@ func (h handlerWithArgs[Request, Response, ArgType]) With(arg ArgType) Handler[R
 	res.decodeRequest = func(ctx context.Context, r *http.Request) (Request, error) {
 		return h.requestDecoder(ctx, r, arg)
 	}
+
 	return res
 }
 

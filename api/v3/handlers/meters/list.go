@@ -62,6 +62,7 @@ func (h *handler) ListMeters() ListMetersHandler {
 						{Field: "filter[key]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 					})
 				}
+
 				req.Key = key
 
 				name, err := filters.FromAPIFilterString(params.Filter.Name)
@@ -70,6 +71,7 @@ func (h *handler) ListMeters() ListMetersHandler {
 						{Field: "filter[name]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 					})
 				}
+
 				req.Name = name
 			}
 
@@ -80,10 +82,12 @@ func (h *handler) ListMeters() ListMetersHandler {
 						{Field: "sort", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 					})
 				}
+
 				orderBy, err := FromAPIMeterSortField(ctx, sort.Field)
 				if err != nil {
 					return ListMetersRequest{}, err
 				}
+
 				req.OrderBy = orderBy
 				req.Order = sort.Order.ToSortxOrder()
 			}

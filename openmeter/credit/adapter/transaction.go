@@ -21,6 +21,7 @@ func (e *grantDBADapter) Tx(ctx context.Context) (context.Context, transaction.D
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to hijack transaction: %w", err)
 	}
+
 	return txCtx, entutils.NewTxDriver(eDriver, rawConfig), nil
 }
 
@@ -40,6 +41,7 @@ func (e *balanceSnapshotRepo) Tx(ctx context.Context) (context.Context, transact
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to hijack transaction: %w", err)
 	}
+
 	return txCtx, entutils.NewTxDriver(eDriver, rawConfig), nil
 }
 

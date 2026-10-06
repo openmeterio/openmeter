@@ -79,6 +79,7 @@ func FromAPIBillingAppType(source api.BillingAppType) app.AppType {
 	if source == "external_invoicing" {
 		return app.AppTypeCustomInvoicing
 	}
+
 	return app.AppType(source)
 }
 
@@ -88,6 +89,7 @@ func ToAPIBillingAppType(source app.AppType) api.BillingAppType {
 	if source == app.AppTypeCustomInvoicing {
 		return "external_invoicing"
 	}
+
 	return api.BillingAppType(source)
 }
 
@@ -101,6 +103,7 @@ func TaxCodeReferenceToIDString(ref *api.TaxCodeReference) string {
 	if ref == nil {
 		return ""
 	}
+
 	return ref.Id
 }
 
@@ -118,5 +121,6 @@ func ToAPIBillingTaxCodeAppMappings(source taxcode.TaxCodeAppMappings) []api.Bil
 			TaxCode: mapping.TaxCode,
 		}
 	}
+
 	return result
 }

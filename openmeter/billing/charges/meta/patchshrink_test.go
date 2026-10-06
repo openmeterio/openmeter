@@ -182,5 +182,6 @@ func mustNewPatchShrink(t *testing.T, input NewPatchShrinkInput) PatchShrink {
 
 	patch, err := NewPatchShrink(input)
 	require.NoError(t, err)
+
 	return patch
 }

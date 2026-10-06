@@ -160,6 +160,7 @@ func TestRepo_BookTransaction_CreatesTransactionAndEntries(t *testing.T) {
 		addressesBySubAccount[addr.SubAccountID()] = addr
 		entriesBySubAccountFromTx[addr.SubAccountID()] = entry
 	}
+
 	require.Equal(t, subAccountA.RouteMeta.RoutingKey, addressesBySubAccount[subAccountA.ID].Route().RoutingKey().Value())
 	require.Equal(t, ledger.RoutingKeyVersionV1, addressesBySubAccount[subAccountA.ID].Route().RoutingKey().Version())
 	require.Equal(t, subAccountB.RouteMeta.RoutingKey, addressesBySubAccount[subAccountB.ID].Route().RoutingKey().Value())

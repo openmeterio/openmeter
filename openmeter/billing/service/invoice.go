@@ -171,7 +171,6 @@ func (s *Service) calculateGatheringInvoiceAsStandardInvoice(ctx context.Context
 	if !invoice.Expands.Has(billing.GatheringInvoiceExpandSplitLineHierarchy) && wasLinesPresent {
 		// If the invoice has lines and the splitline hierarchy is not expanded, we need to check if there are any progressive billed lines
 		// and reload the invoice as price calculations depend on the presence of the split line hierarchy.
-
 		progressiveBilledLineCount := lo.CountBy(invoice.Lines.OrEmpty(), func(line billing.GatheringLine) bool {
 			if line.DeletedAt != nil {
 				return false
@@ -457,6 +456,7 @@ func (s *Service) advanceUntilStateStable(ctx context.Context, sm *InvoiceStateM
 	}
 
 	sm.Invoice.ValidationIssues = validationIssues
+
 	return nil
 }
 
@@ -770,6 +770,7 @@ func (s *Service) DeleteInvoice(ctx context.Context, input billing.DeleteInvoice
 			if input.DeletionSource != billing.ChangeSourceAPIRequest {
 				return nil
 			}
+
 			// Charge cleanup committed before invoice-app synchronization. A retry
 			// must not validate or dispatch those already-applied line deletions.
 			if sm.Invoice.DeletedAt != nil {
@@ -893,6 +894,7 @@ func (s Service) SimulateInvoice(ctx context.Context, input billing.SimulateInvo
 			if line.ID == "" {
 				line.ID = ulid.Make().String()
 			}
+
 			line.CreatedAt = now
 			line.UpdatedAt = now
 			line.Currency = input.Currency
@@ -949,6 +951,7 @@ func (s Service) SimulateInvoice(ctx context.Context, input billing.SimulateInvo
 		if validationIssue.Severity == billing.ValidationIssueSeverityCritical {
 			invoice.Status = billing.StandardInvoiceStatusDraftInvalid
 			invoice.StatusDetails.Failed = true
+
 			break
 		}
 	}

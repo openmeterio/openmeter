@@ -45,6 +45,7 @@ func (p CustomerFBORouteParams) Validate() error {
 	if err := ValidateCreditPriority(p.CreditPriority); err != nil {
 		return fmt.Errorf("credit priority: %w", err)
 	}
+
 	return nil
 }
 

@@ -220,6 +220,7 @@ func (c *stripeAppClient) DeleteWebhook(ctx context.Context, input DeleteWebhook
 
 		return c.providerError(err)
 	}
+
 	return nil
 }
 

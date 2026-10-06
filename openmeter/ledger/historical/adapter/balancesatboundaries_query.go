@@ -17,6 +17,7 @@ func (q balancesAtBoundariesQuery) SQL() (string, []any, error) {
 		if err != nil {
 			return "", nil, err
 		}
+
 		selector.AppendSelectExpr(sql.ExprFunc(func(b *sql.Builder) {
 			b.Arg(idx).WriteString("::integer AS boundary_index")
 		}))
@@ -26,6 +27,8 @@ func (q balancesAtBoundariesQuery) SQL() (string, []any, error) {
 			combined.UnionAll(selector)
 		}
 	}
+
 	query, args := combined.Query()
+
 	return query, args, nil
 }

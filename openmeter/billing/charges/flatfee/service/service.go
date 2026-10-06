@@ -153,5 +153,6 @@ func (s *service) SetCreditNotesSupportedByLineUpdater(t *testing.T, supported b
 
 	t.Helper()
 	s.creditNotesSupported.Store(supported)
+
 	return nil
 }

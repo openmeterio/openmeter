@@ -86,6 +86,7 @@ func (c *txCallbacks) SavePoint(stage txSavepoint) {
 	if c.marks == nil {
 		c.marks = make(map[txSavepoint]int)
 	}
+
 	c.marks[stage] = len(c.callbacks)
 }
 
@@ -141,9 +142,11 @@ func (t *TxDriver) Commit() error {
 	if err != nil {
 		return err
 	}
+
 	for _, callback := range callbacks {
 		callback()
 	}
+
 	return nil
 }
 
@@ -167,6 +170,7 @@ func (t *TxDriver) commit() ([]func(), error) {
 			t.err = err
 			t.afterCommit = txCallbacks{}
 		}
+
 		return nil, t.err
 	}
 
@@ -174,6 +178,7 @@ func (t *TxDriver) commit() ([]func(), error) {
 	callbacks := t.afterCommit.callbacks
 	t.afterCommit = txCallbacks{}
 	t.finished = true
+
 	return callbacks, t.err
 }
 
@@ -255,11 +260,13 @@ func (t *TxDriver) AfterCommit(callback func()) error {
 	if t.err != nil {
 		return t.err
 	}
+
 	if t.finished {
 		return fmt.Errorf("transaction already finished")
 	}
 
 	t.afterCommit.callbacks = append(t.afterCommit.callbacks, callback)
+
 	return nil
 }
 
@@ -323,6 +330,7 @@ func TransactingRepoWithNoValue[T any](
 	_, err := TransactingRepo(ctx, repo, func(ctx context.Context, rep T) (interface{}, error) {
 		return nil, cb(ctx, rep)
 	})
+
 	return err
 }
 
@@ -331,6 +339,7 @@ func asEntDriver(drv transaction.Driver) (*TxDriver, error) {
 	if !ok {
 		return nil, fmt.Errorf("tx driver is not ent tx driver")
 	}
+
 	return entTxDriver, nil
 }
 
@@ -340,5 +349,6 @@ func GetDriverFromContext(ctx context.Context) (*TxDriver, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return asEntDriver(driver)
 }

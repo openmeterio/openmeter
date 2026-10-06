@@ -40,6 +40,7 @@ func (m *MockMeterService) GetMeterByIDOrSlug(ctx context.Context, input meter.G
 	if met, ok := m.meters[key]; ok {
 		return met, nil
 	}
+
 	return meter.Meter{}, meter.NewMeterNotFoundError(input.IDOrSlug)
 }
 
@@ -241,6 +242,7 @@ func TestExportSyntheticMeterData(t *testing.T) {
 			if tt.wantErr {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), tt.wantErrMsg)
+
 				return
 			}
 
@@ -261,6 +263,7 @@ func TestExportSyntheticMeterData(t *testing.T) {
 			for e := range errCh {
 				errs = append(errs, e)
 			}
+
 			require.Empty(t, errs, "unexpected errors: %v", errs)
 
 			// Verify events
@@ -389,6 +392,7 @@ func TestExportSyntheticMeterData_ContextCancellation(t *testing.T) {
 				contextCanceledCount++
 			}
 		}
+
 		assert.Equal(t, 1, contextCanceledCount, "expected exactly one context.Canceled error, got %d in: %v", contextCanceledCount, errs)
 	})
 
@@ -450,6 +454,7 @@ func TestExportSyntheticMeterData_ContextCancellation(t *testing.T) {
 				contextCanceledCount++
 			}
 		}
+
 		assert.Equal(t, 1, contextCanceledCount, "expected exactly one context.Canceled error, got %d in: %v", contextCanceledCount, errs)
 	})
 }
@@ -561,6 +566,7 @@ func TestExportSyntheticMeterDataIter(t *testing.T) {
 				errs = append(errs, err)
 				continue
 			}
+
 			events = append(events, event)
 		}
 
@@ -616,6 +622,7 @@ func TestExportSyntheticMeterDataIter(t *testing.T) {
 			if err != nil {
 				continue
 			}
+
 			count++
 			_ = event
 			if count >= 3 {

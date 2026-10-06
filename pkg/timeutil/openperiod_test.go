@@ -387,6 +387,7 @@ func TestOpenPeriod(t *testing.T) {
 					if result != nil {
 						t.Errorf("Expected nil result, got %+v", *result)
 					}
+
 					return
 				}
 
@@ -613,6 +614,7 @@ func TestOpenPeriod(t *testing.T) {
 					// Add current monotonic time to get a time with monotonic clock
 					now := time.Now()
 					t := baseTime.Add(now.Sub(now.Truncate(0)))
+
 					return OpenPeriod{From: &t, To: nil}
 				}(),
 				period2: func() OpenPeriod {
@@ -635,6 +637,7 @@ func TestOpenPeriod(t *testing.T) {
 					baseTime := time.Date(2025, 4, 1, 0, 0, 1, 0, time.UTC)
 					now := time.Now()
 					t := baseTime.Add(now.Sub(now.Truncate(0)))
+
 					return OpenPeriod{From: &t, To: nil}
 				}(),
 				expected: true, // Current implementation correctly handles monotonic clocks
@@ -822,6 +825,7 @@ func TestOpenPeriod(t *testing.T) {
 							t.Errorf("OverlapsInclusive() = %v, want %v", result, expected)
 						}
 					}
+
 					// Second direction
 					{
 						expected := tt.period2.OverlapsInclusive(tt.period1)
@@ -876,6 +880,7 @@ func TestOpenPeriod(t *testing.T) {
 							t.Errorf("OverlapsInclusive() = %v, want %v", result, tt.expected)
 						}
 					}
+
 					// Second direction
 					{
 						result := tt.period2.OverlapsInclusive(tt.period1)

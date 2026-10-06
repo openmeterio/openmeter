@@ -29,6 +29,7 @@ func NewClampedStandardLineAccessor(in StandardLineAccessor) (ClampedStandardLin
 	if err != nil {
 		return ClampedStandardLineAccessor{}, err
 	}
+
 	if meteredQuantity != nil && meteredQuantity.IsNegative() {
 		meteredQuantity = lo.ToPtr(alpacadecimal.Zero)
 		errs = append(errs, billing.WarnNegativeMeteredQuantityClamped)
@@ -38,6 +39,7 @@ func NewClampedStandardLineAccessor(in StandardLineAccessor) (ClampedStandardLin
 	if err != nil {
 		return ClampedStandardLineAccessor{}, err
 	}
+
 	if meteredPreLinePeriodQuantity != nil && meteredPreLinePeriodQuantity.IsNegative() {
 		meteredPreLinePeriodQuantity = lo.ToPtr(alpacadecimal.Zero)
 		errs = append(errs, billing.WarnNegativePreLinePeriodMeteredQuantityClamped)
@@ -75,6 +77,7 @@ func getValidationWarnings(in StandardLineAccessor, errs []error) error {
 	if err != nil {
 		return errors.Join(warnings, fmt.Errorf("getting original metered quantity: %w", err))
 	}
+
 	if meteredQuantity != nil {
 		attributes["original_metered_quantity"] = meteredQuantity.String()
 	}
@@ -83,6 +86,7 @@ func getValidationWarnings(in StandardLineAccessor, errs []error) error {
 	if err != nil {
 		return errors.Join(warnings, fmt.Errorf("getting original pre-line metered quantity: %w", err))
 	}
+
 	if meteredPreLinePeriodQuantity != nil {
 		attributes["original_pre_line_metered_quantity"] = meteredPreLinePeriodQuantity.String()
 	}

@@ -91,6 +91,7 @@ func TestV3PlanAddonAttachLifecycle(t *testing.T) {
 				break
 			}
 		}
+
 		assert.True(t, found, "attached plan-addon not found in list")
 	})
 
@@ -428,9 +429,11 @@ func TestV3PlanAddonPublishWithAttachedAddon(t *testing.T) {
 		if pa.ID == planAddonID {
 			found = true
 			assert.Equal(t, addon.ID, pa.Addon.ID)
+
 			break
 		}
 	}
+
 	assert.True(t, found, "attached plan-addon missing after plan publish")
 }
 
@@ -449,12 +452,14 @@ func makePlanWithStatus(t *testing.T, c *v3Client, keyPrefix string, target v3sd
 	case v3sdk.PlanStatusActive:
 		plan, err = c.Plans.Publish(t.Context(), plan.ID)
 		c.requireStatus(http.StatusOK, err)
+
 		return plan
 	case v3sdk.PlanStatusArchived:
 		plan, err = c.Plans.Publish(t.Context(), plan.ID)
 		c.requireStatus(http.StatusOK, err)
 		plan, err = c.Plans.Archive(t.Context(), plan.ID)
 		c.requireStatus(http.StatusOK, err)
+
 		return plan
 	default:
 		t.Fatalf("unsupported plan target status %q", target)
@@ -477,12 +482,14 @@ func makeAddonWithStatus(t *testing.T, c *v3Client, keyPrefix string, target v3s
 	case v3sdk.AddonStatusActive:
 		addon, err = c.Addons.Publish(t.Context(), addon.ID)
 		c.requireStatus(http.StatusOK, err)
+
 		return addon
 	case v3sdk.AddonStatusArchived:
 		addon, err = c.Addons.Publish(t.Context(), addon.ID)
 		c.requireStatus(http.StatusOK, err)
 		addon, err = c.Addons.Archive(t.Context(), addon.ID)
 		c.requireStatus(http.StatusOK, err)
+
 		return addon
 	default:
 		t.Fatalf("unsupported addon target status %q", target)

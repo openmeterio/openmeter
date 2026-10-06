@@ -57,6 +57,7 @@ func (s *chargeReplacementGuardBillingServiceStub) ListStandardInvoices(_ contex
 			response.Items = append(response.Items, invoice)
 		}
 	}
+
 	response.Items = append(response.Items, s.extra...)
 
 	return response, nil

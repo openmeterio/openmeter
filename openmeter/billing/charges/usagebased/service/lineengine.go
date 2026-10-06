@@ -119,6 +119,7 @@ func (e *LineEngine) GateInvoiceAssignment(ctx context.Context, input billing.Ga
 		if _, ok := linesByChargeID[*line.ChargeID]; !ok {
 			chargeIDs = append(chargeIDs, *line.ChargeID)
 		}
+
 		linesByChargeID[*line.ChargeID] = append(linesByChargeID[*line.ChargeID], line)
 	}
 
@@ -155,6 +156,7 @@ func (e *LineEngine) GateInvoiceAssignment(ctx context.Context, input billing.Ga
 		if err != nil {
 			return nil, fmt.Errorf("checking feature meter availability for usage based charge[%s]: %w", charge.ID, err)
 		}
+
 		var changed bool
 		validationIssues, changed = replaceValidationIssueComponent(
 			validationIssues,
@@ -169,6 +171,7 @@ func (e *LineEngine) GateInvoiceAssignment(ctx context.Context, input billing.Ga
 		if err != nil {
 			return nil, fmt.Errorf("checking current realization run for usage based charge[%s]: %w", charge.ID, err)
 		}
+
 		validationIssues, changed = replaceValidationIssueComponent(
 			validationIssues,
 			usagebased.ValidationIssueComponentLineEngine,
@@ -784,6 +787,7 @@ func (e *LineEngine) validateInvoiceLineDeleteViaAPI(ctx context.Context, invoic
 		if err != nil {
 			return usagebased.Charge{}, fmt.Errorf("getting usage based realization run for line[%s]: %w", line.GetID(), err)
 		}
+
 		if charge.Intent.GetEffectiveIntent().Currency.IsCustom() {
 			if err := validateCustomCurrencyInvoiceLineDelete(invoice, line, run); err != nil {
 				return usagebased.Charge{}, err
@@ -1026,6 +1030,7 @@ func (e *LineEngine) reconcileDeletedStandardLines(ctx context.Context, input bi
 		if err != nil {
 			return nil, fmt.Errorf("calculating fiat overage for usage based realization run[%s]: %w", run.ID.ID, err)
 		}
+
 		if fiatOverage.ShouldOmitInvoiceLine {
 			continue
 		}
@@ -1119,6 +1124,7 @@ func (e *LineEngine) validateDeletedStandardLines(ctx context.Context, input bil
 		if err != nil {
 			return fmt.Errorf("calculating fiat overage for usage based realization run[%s]: %w", run.ID.ID, err)
 		}
+
 		if fiatOverage.ShouldOmitInvoiceLine {
 			continue
 		}
@@ -1246,6 +1252,7 @@ func (e *LineEngine) OnInvoiceFinalizing(ctx context.Context, input billing.OnIn
 		if err != nil {
 			return nil, fmt.Errorf("validating finalizing update for line[%s]: %w", stdLine.ID, err)
 		}
+
 		if updatedLine == nil {
 			return stdLine, nil
 		}
@@ -1345,6 +1352,7 @@ func (e *LineEngine) fireLineTrigger(ctx context.Context, input fireLineTriggerI
 		if err != nil {
 			return err
 		}
+
 		charge := stateMachine.GetCharge()
 
 		if input.ShouldSkipFn != nil {
@@ -1352,6 +1360,7 @@ func (e *LineEngine) fireLineTrigger(ctx context.Context, input fireLineTriggerI
 			if err != nil {
 				return fmt.Errorf("checking whether to skip %s for charge[%s]: %w", input.Trigger, charge.ID, err)
 			}
+
 			if shouldSkip {
 				continue
 			}

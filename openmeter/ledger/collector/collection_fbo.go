@@ -145,6 +145,7 @@ func reserveSourcesForBreakagePlan(
 	if !route.Currency.Equal(currency) {
 		return nil
 	}
+
 	if !route.Filters.Matches(targetRoute) {
 		return nil
 	}
@@ -198,6 +199,7 @@ func (c *accrualCollector) listCustomerFBOBalanceBucketSources(
 		if !route.Filters.Matches(targetRoute) {
 			continue
 		}
+
 		source := fboCollectionSource{
 			address:        bucket.Address,
 			sourceChargeID: bucket.GroupByValues[ledger.BalanceBucketGroupBySourceChargeID],
@@ -229,6 +231,7 @@ func reserveSourceIdentifiedBreakagePlan(sources []fboCollectionSource, plan bre
 		if sources[i].address.SubAccountID() != plan.FBOSubAccountID {
 			continue
 		}
+
 		if sources[i].sourceChargeID == nil || *sources[i].sourceChargeID != *plan.SourceChargeID {
 			continue
 		}
@@ -254,6 +257,7 @@ func reserveSourceUnknownBreakagePlan(sources []fboCollectionSource, plan breaka
 		if !remaining.IsPositive() {
 			return reservedSources
 		}
+
 		if sources[i].address.SubAccountID() != plan.FBOSubAccountID {
 			continue
 		}
@@ -279,10 +283,12 @@ func reserveFBOBalanceBucketSource(source *fboCollectionSource, amount alpacadec
 	if reserved.GreaterThan(amount) {
 		reserved = amount
 	}
+
 	source.available = source.available.Sub(reserved)
 
 	out := *source
 	out.available = reserved
+
 	return out, true
 }
 

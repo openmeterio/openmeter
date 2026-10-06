@@ -91,6 +91,7 @@ func (i CreditGrantInput) Validate() error {
 	if err := i.Charge.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("charge: %w", err))
 	}
+
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 

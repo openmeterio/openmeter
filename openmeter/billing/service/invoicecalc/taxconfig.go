@@ -29,6 +29,7 @@ func SnapshotTaxConfigIntoLines(invoice *billing.StandardInvoice, deps StandardI
 		if line.TaxConfig.TaxCodeID == nil {
 			line.TaxConfig.TaxCodeID = lo.ToPtr(tc.ID)
 		}
+
 		line.TaxConfig.TaxCode = tc
 	}
 

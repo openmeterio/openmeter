@@ -159,6 +159,7 @@ func advanceBackfillCandidates(roots []legacylineage.Lineage, balances []unattri
 		if !filters.Matches(ledger.Route{Filters: ledger.CreditFilters{Features: root.AdvanceFeatures}}) {
 			continue
 		}
+
 		candidates = append(candidates, advanceBackfillCandidate{
 			recordedAt: root.CreatedAt,
 			id:         root.ID,

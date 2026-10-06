@@ -24,6 +24,7 @@ func (h *handler) GetOrganizationDefaultTaxCodes() GetOrganizationDefaultTaxCode
 			if err != nil {
 				return GetOrganizationDefaultTaxCodesRequest{}, err
 			}
+
 			return GetOrganizationDefaultTaxCodesRequest{Namespace: ns}, nil
 		},
 		func(ctx context.Context, request GetOrganizationDefaultTaxCodesRequest) (GetOrganizationDefaultTaxCodesResponse, error) {
@@ -31,6 +32,7 @@ func (h *handler) GetOrganizationDefaultTaxCodes() GetOrganizationDefaultTaxCode
 			if err != nil {
 				return GetOrganizationDefaultTaxCodesResponse{}, err
 			}
+
 			return ToAPIOrganizationDefaultTaxCodes(cfg)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[GetOrganizationDefaultTaxCodesResponse](http.StatusOK),

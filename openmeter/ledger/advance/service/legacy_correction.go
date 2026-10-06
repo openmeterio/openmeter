@@ -168,6 +168,7 @@ func (s *service) resolveAdvanceBackfillBreakageReopenInputs(ctx context.Context
 		if releaseFacts.SpendChargeID != nil && *releaseFacts.SpendChargeID != input.ChargeID {
 			continue
 		}
+
 		reopenInput, reopenRecord, err := s.breakage.ReopenRelease(ctx, breakage.ReopenReleaseInput{
 			Release:        release,
 			Amount:         reopenAmount,
@@ -202,6 +203,7 @@ func breakageReleaseFactsByTransactionID(group ledger.TransactionGroup) map[stri
 					SpendChargeID:  entry.Provenance().SpendChargeID,
 				},
 			}
+
 			break
 		}
 	}

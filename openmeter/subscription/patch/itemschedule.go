@@ -32,14 +32,17 @@ func (p patchItemSchedule) ApplyTo(spec *subscription.SubscriptionSpec, actx sub
 	if p.at.Before(actx.CurrentTime) {
 		return &subscription.PatchForbiddenError{Msg: "cannot replace an item schedule in the past"}
 	}
+
 	phase, ok := spec.Phases[p.phaseKey]
 	if !ok {
 		return &subscription.PatchValidationError{Msg: "phase not found"}
 	}
+
 	cadence, err := spec.GetPhaseCadence(p.phaseKey)
 	if err != nil {
 		return err
 	}
+
 	// Keep earlier and unchanged versions at their existing indexes.
 	items := p.preservedPrefix(phase.ItemsByKey[p.itemKey], cadence)
 	items = append(items, p.replacementSuffix(cadence)...)
@@ -48,6 +51,7 @@ func (p patchItemSchedule) ApplyTo(spec *subscription.SubscriptionSpec, actx sub
 	} else {
 		phase.ItemsByKey[p.itemKey] = items
 	}
+
 	return nil
 }
 
@@ -60,12 +64,15 @@ func (p patchItemSchedule) preservedPrefix(current []*subscription.SubscriptionI
 		if !c.ActiveFrom.Before(p.at) {
 			break
 		}
+
 		kept := *item
 		if c.ActiveTo == nil || c.ActiveTo.After(p.at) {
 			kept.ActiveToOverrideRelativeToPhaseStart = lo.ToPtr(datetime.ISODurationBetween(cadence.ActiveFrom, p.at))
 		}
+
 		items = append(items, &kept)
 	}
+
 	return items
 }
 
@@ -78,13 +85,16 @@ func (p patchItemSchedule) replacementSuffix(cadence models.CadencedModel) []*su
 		if c.ActiveTo != nil && !c.ActiveTo.After(p.at) {
 			continue
 		}
+
 		next := *item
 		next.RateCard = item.RateCard.Clone()
 		next.Annotations = maps.Clone(item.Annotations)
 		if c.ActiveFrom.Before(p.at) {
 			next.ActiveFromOverrideRelativeToPhaseStart = lo.ToPtr(datetime.ISODurationBetween(cadence.ActiveFrom, p.at))
 		}
+
 		items = append(items, &next)
 	}
+
 	return items
 }

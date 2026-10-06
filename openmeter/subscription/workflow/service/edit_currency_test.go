@@ -76,6 +76,7 @@ func TestEditRunningItemCurrency(t *testing.T) {
 			if tt.settlementMode != "" {
 				planInput.Plan.SettlementMode = tt.settlementMode
 			}
+
 			plan := deps.PlanHelper.CreatePlan(t, planInput)
 			created, err := deps.WorkflowService.CreateFromPlan(t.Context(), subscriptionworkflow.CreateSubscriptionWorkflowInput{
 				ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
@@ -97,6 +98,7 @@ func TestEditRunningItemCurrency(t *testing.T) {
 				if tt.updated != "" {
 					meta.Currency = lo.ToPtr(currencies.NewCurrencyReference(tt.updated))
 				}
+
 				return meta, nil
 			}))
 			_, err = deps.WorkflowService.EditRunning(t.Context(), created.Subscription.NamespacedID, []subscription.Patch{
@@ -122,8 +124,10 @@ func TestEditRunningItemCurrency(t *testing.T) {
 				loaded, err := deps.SubscriptionService.GetView(t.Context(), created.Subscription.NamespacedID)
 				require.NoError(t, err)
 				subscriptiontestutils.SpecsEqual(t, created.Spec, loaded.Spec)
+
 				return
 			}
+
 			require.NoError(t, err)
 			loaded, err := deps.SubscriptionService.GetView(t.Context(), created.Subscription.NamespacedID)
 			require.NoError(t, err)

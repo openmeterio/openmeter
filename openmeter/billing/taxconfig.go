@@ -94,6 +94,7 @@ func (c TaxConfig) Clone() TaxConfig {
 		if c.TaxCode.Description != nil {
 			tc.Description = lo.ToPtr(*c.TaxCode.Description)
 		}
+
 		out.TaxCode = &tc
 	}
 

@@ -71,6 +71,7 @@ func ConcatenateApplyPatchesInputs(inputs ...ApplyPatchesInput) (ApplyPatchesInp
 			if _, exists := result.PatchesByChargeID[chargeID]; exists {
 				return ApplyPatchesInput{}, fmt.Errorf("duplicate charge ID: %s", chargeID)
 			}
+
 			result.PatchesByChargeID[chargeID] = patch
 		}
 	}

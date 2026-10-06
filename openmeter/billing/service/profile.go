@@ -87,6 +87,7 @@ func (s *Service) CreateProfile(ctx context.Context, input billing.CreateProfile
 		if err != nil {
 			return nil, err
 		}
+
 		input.WorkflowConfig.Invoicing = normalizedInvoicing
 
 		profile, err := s.adapter.CreateProfile(ctx, input)
@@ -241,8 +242,10 @@ func (s *Service) ListProfiles(ctx context.Context, input billing.ListProfilesIn
 			if err != nil {
 				return billing.ListProfilesResult{}, fmt.Errorf("error resolving profile: %w", err)
 			}
+
 			finalProfile = *resolvedProfile
 		}
+
 		response.Items = append(response.Items, finalProfile)
 	}
 
@@ -291,6 +294,7 @@ func (s *Service) UpdateProfile(ctx context.Context, input billing.UpdateProfile
 		if targetState.WorkflowConfig.Invoicing.SubscriptionEndProrationMode == "" {
 			targetState.WorkflowConfig.Invoicing.SubscriptionEndProrationMode = profile.WorkflowConfig.Invoicing.SubscriptionEndProrationMode
 		}
+
 		if err := targetState.Validate(); err != nil {
 			return nil, billing.ValidationError{
 				Err: err,
@@ -301,6 +305,7 @@ func (s *Service) UpdateProfile(ctx context.Context, input billing.UpdateProfile
 		if err != nil {
 			return nil, err
 		}
+
 		targetState.WorkflowConfig.Invoicing = normalizedInvoicing
 
 		// Resolution must run after the deprecation gate and cannot be removed: legacy clients
@@ -402,6 +407,7 @@ func (s *Service) ProvisionDefaultBillingProfile(ctx context.Context, namespace 
 	if err != nil {
 		return fmt.Errorf("error creating default profile: %w", err)
 	}
+
 	return nil
 }
 
@@ -429,6 +435,7 @@ func (s *Service) resolveProfileApps(ctx context.Context, input *billing.BasePro
 	if err != nil {
 		return nil, fmt.Errorf("cannot resolve tax app: %w", err)
 	}
+
 	out.Apps.Tax = taxApp
 
 	invoiceApp, err := s.appService.GetApp(ctx, app.GetAppInput{
@@ -438,6 +445,7 @@ func (s *Service) resolveProfileApps(ctx context.Context, input *billing.BasePro
 	if err != nil {
 		return nil, fmt.Errorf("cannot resolve invoicing app: %w", err)
 	}
+
 	out.Apps.Invoicing = invoiceApp
 
 	paymentApp, err := s.appService.GetApp(ctx, app.GetAppInput{
@@ -447,6 +455,7 @@ func (s *Service) resolveProfileApps(ctx context.Context, input *billing.BasePro
 	if err != nil {
 		return nil, fmt.Errorf("cannot resolve payments app: %w", err)
 	}
+
 	out.Apps.Payment = paymentApp
 
 	return &out, nil
@@ -539,6 +548,7 @@ func (s *Service) handleDefaultProfileChange(ctx context.Context, input defaultP
 			"namespace", oldProfile.Namespace,
 			"invoicing_app_type", oldProfile.Apps.Invoicing.GetType(),
 		)
+
 		return nil
 	}
 

@@ -55,6 +55,7 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge creditpurchase.Charge
 		if err != nil {
 			return creditpurchase.ChargeBase{}, err
 		}
+
 		if err := tx.loadCostBasisEdge(ctx, dbCreditPurchase); err != nil {
 			return creditpurchase.ChargeBase{}, err
 		}
@@ -97,6 +98,7 @@ func (a *adapter) CreateCharge(ctx context.Context, in creditpurchase.CreateChar
 				if err != nil {
 					return creditpurchase.Charge{}, err
 				}
+
 				create.SetInitialPaymentSettlementStatus(externalSettlement.InitialStatus)
 			}
 
@@ -125,6 +127,7 @@ func (a *adapter) CreateCharge(ctx context.Context, in creditpurchase.CreateChar
 		if err != nil {
 			return creditpurchase.Charge{}, metaadapter.MapChargeConstraintError(err)
 		}
+
 		dbCreditPurchase.Edges.CostBasis = costBasis
 
 		err = tx.metaAdapter.RegisterCharges(ctx, meta.RegisterChargesInput{
@@ -186,6 +189,7 @@ func (a *adapter) applyCostBasis(ctx context.Context, in applyCostBasisInput) (*
 		if err != nil {
 			return nil, fmt.Errorf("getting custom-currency cost basis: %w", err)
 		}
+
 		costBasisCreate, err := costbasis.Create(a.db.ChargeCreditPurchaseCostBasis.Create(), costbasis.CreateInput{
 			NamespacedID: models.NamespacedID{
 				Namespace: in.Charge.Namespace,
@@ -225,6 +229,7 @@ func (a *adapter) MarkVoided(ctx context.Context, input creditpurchase.MarkVoide
 		if err != nil {
 			return creditpurchase.ChargeBase{}, fmt.Errorf("marking credit purchase charge voided [id=%s]: %w", input.Charge.ID, err)
 		}
+
 		if err := tx.loadCostBasisEdge(ctx, dbCreditPurchase); err != nil {
 			return creditpurchase.ChargeBase{}, err
 		}
@@ -363,5 +368,6 @@ func withExpands(query *db.ChargeCreditPurchaseQuery, expands meta.Expands) *db.
 	if expands.Has(meta.ExpandRealizations) {
 		query = query.WithCreditGrant().WithExternalPayment().WithInvoicedPayment()
 	}
+
 	return query
 }

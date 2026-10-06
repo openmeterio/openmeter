@@ -119,6 +119,7 @@ func (e AppCreateEvent) Validate() error {
 	if e.AppBase.ID == "" {
 		return fmt.Errorf("app base is required")
 	}
+
 	return nil
 }
 

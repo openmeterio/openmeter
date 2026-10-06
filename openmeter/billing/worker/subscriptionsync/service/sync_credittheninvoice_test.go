@@ -419,6 +419,7 @@ func (s *CreditThenInvoiceTestSuite) TestSubscriptionSyncPersistsMissingFeatureU
 			return meta, nil
 		}))
 	}
+
 	item.Feature = nil
 	subsView.Phases[0].ItemsByKey[itemKey][0] = item
 
@@ -907,6 +908,7 @@ func (s *CreditThenInvoiceTestSuite) TestSubscriptionHappyPath() {
 		if err != nil {
 			fmt.Printf("current time: %s\n", clock.Now().Format(time.RFC3339))
 		}
+
 		s.NoError(err)
 		s.Len(invoices, 1)
 		invoice := invoices[0]
@@ -4092,6 +4094,7 @@ func (s *CreditThenInvoiceTestSuite) TestGatheringManualEditSync() {
 
 				updatedLine, err = line.Clone()
 				s.NoError(err)
+
 				return nil
 			},
 		})
@@ -4706,6 +4709,7 @@ func (s *CreditThenInvoiceTestSuite) TestGatheringManualDeleteSync() {
 
 				deletedLine, err = line.Clone()
 				s.NoError(err)
+
 				return nil
 			},
 			IncludeDeletedLines: true,
@@ -4862,6 +4866,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedGatheringManualDeleteWithoutR
 				clonedLine, err := line.Clone()
 				s.NoError(err)
 				deletedLine = clonedLine
+
 				return nil
 			},
 			IncludeDeletedLines: true,
@@ -5109,6 +5114,7 @@ func (s *CreditThenInvoiceTestSuite) TestStandardInvoiceManualEditSync() {
 
 			updatedLine, err = line.Clone()
 			s.NoError(err)
+
 			return nil
 		},
 	})
@@ -5292,6 +5298,7 @@ func (s *CreditThenInvoiceTestSuite) TestStandardInvoiceManualDiscountEditSync()
 
 			updatedLine, err = line.Clone()
 			s.NoError(err)
+
 			return nil
 		},
 	})
@@ -5978,6 +5985,7 @@ func (s *CreditThenInvoiceTestSuite) TestStandardInvoiceManualDeleteSync() {
 
 			deletedLine, err = line.Clone()
 			s.NoError(err)
+
 			return nil
 		},
 		IncludeDeletedLines: true,
@@ -8695,7 +8703,6 @@ func (s *CreditThenInvoiceTestSuite) TestRateCardTaxSyncFlatFee() {
 
 	s.Run("gathering invoice after edit", func() {
 		// Given we edit the subscription the tax config is carried over to the lines
-
 		clock.FreezeTime(s.mustParseTime("2024-01-02T00:00:00Z"))
 		var err error
 		updatedSubsView, err = s.SubscriptionWorkflowService.EditRunning(ctx, subsView.Subscription.NamespacedID, []subscription.Patch{
@@ -8741,6 +8748,7 @@ func (s *CreditThenInvoiceTestSuite) TestRateCardTaxSyncFlatFee() {
 			})
 			s.NoError(err)
 		}
+
 		clock.FreezeTime(draftAt)
 
 		draftInvoices, err = s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
@@ -8766,6 +8774,7 @@ func (s *CreditThenInvoiceTestSuite) TestRateCardTaxSyncFlatFee() {
 			s.DebugDumpInvoice(fmt.Sprintf("issued invoice %d", idx), issuedInvoice)
 			s.assertStandardLineTaxConfigs(issuedInvoice.Lines.OrEmpty(), taxConfig)
 		}
+
 		s.assertCreditThenInvoiceBalances(expectedCreditThenInvoiceBalances{
 			AccruedAll:     24.68,
 			AccruedInvoice: 24.68,
@@ -8861,7 +8870,6 @@ func (s *CreditThenInvoiceTestSuite) TestRateCardTaxSyncUsageBased() {
 
 	s.Run("gathering invoice after edit", func() {
 		// Given we edit the subscription the tax config is carried over to the lines
-
 		clock.FreezeTime(s.mustParseTime("2024-01-02T00:00:00Z"))
 		var err error
 		updatedSubsView, err = s.SubscriptionWorkflowService.EditRunning(ctx, subsView.Subscription.NamespacedID, []subscription.Patch{
@@ -8930,6 +8938,7 @@ func (s *CreditThenInvoiceTestSuite) TestRateCardTaxSyncUsageBased() {
 			s.DebugDumpInvoice(fmt.Sprintf("issued invoice %d", idx), issuedInvoice)
 			s.assertStandardLineTaxConfigs(issuedInvoice.Lines.OrEmpty(), taxConfig)
 		}
+
 		s.assertCreditThenInvoiceBalances(expectedCreditThenInvoiceBalances{
 			AccruedAll:     60,
 			AccruedInvoice: 60,
@@ -9323,6 +9332,7 @@ func (s *CreditThenInvoiceTestSuite) TestDiscountSynchronization() {
 				invoiceAsGathering, err := invoice.AsGatheringInvoice()
 				s.NoError(err)
 				gatheringInvoice = &invoiceAsGathering
+
 				continue
 			}
 
@@ -9567,6 +9577,7 @@ func (s *CreditThenInvoiceTestSuite) TestDiscountSynchronizationWithPartialDisco
 				invoiceAsGathering, err := invoice.AsGatheringInvoice()
 				s.NoError(err)
 				gatheringInvoice = &invoiceAsGathering
+
 				continue
 			}
 
@@ -10141,6 +10152,7 @@ func (s *CreditThenInvoiceTestSuite) TestSynchronizeSubscriptionPeriodAlgorithmC
 			invoice.Lines = billing.NewGatheringInvoiceLines([]billing.GatheringLine{
 				line,
 			})
+
 			return nil
 		},
 	})
@@ -10243,7 +10255,6 @@ func (s *CreditThenInvoiceTestSuite) TestDeletedCustomerHandling() {
 	// Then
 	//  we can still sync the subscription
 	//  and the deleted customer is billed for the outstanding amount
-
 	ctx := s.T().Context()
 	clock.FreezeTime(s.mustParseTime("2025-01-01T00:00:00Z"))
 	defer clock.UnFreeze()
@@ -11056,6 +11067,7 @@ func (s *CreditThenInvoiceTestSuite) assertFlatFeeIntent(label string, actual fl
 		s.Equal(expected.PercentageDiscounts.Percentage, actual.PercentageDiscounts.Percentage, "%s: percentage discount", label)
 		s.Equal(expected.PercentageDiscounts.CorrelationID, actual.PercentageDiscounts.CorrelationID, "%s: percentage discount correlation id", label)
 	}
+
 	s.assertTaxCodeConfigEqual(expected.TaxConfig, actual.TaxConfig, label)
 }
 

@@ -51,7 +51,6 @@ func (s *BillingAnchorTestSuite) TestBillingAnchorSinglePhase() {
 	//    - 2025-07-10T15:00:00Z - 2025-07-31T15:00:00Z
 	//    - 2025-07-31T15:00:00Z - 2025-08-31T15:00:00Z
 	//    - 2025-08-31T15:00:00Z - 2025-09-30T15:00:00Z
-
 	ctx := s.T().Context()
 	defer clock.UnFreeze()
 	clock.FreezeTime(testutils.GetRFC3339Time(s.T(), "2025-06-30T15:00:00Z"))
@@ -227,7 +226,6 @@ func (s *BillingAnchorTestSuite) TestBillingAnchorMultiPhase() {
 	//  - the gathering invoice should have the following service periods:
 	//    - 2025-08-10T15:00:00Z - 2025-08-31T15:00:00Z
 	//    - 2025-08-31T15:00:00Z - 2025-09-30T15:00:00Z
-
 	ctx := s.T().Context()
 	defer clock.UnFreeze()
 	clock.FreezeTime(testutils.GetRFC3339Time(s.T(), "2025-06-30T15:00:00Z"))

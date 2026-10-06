@@ -54,6 +54,7 @@ func (h *handler) UpdateBillingInvoice() UpdateBillingInvoiceHandler {
 			if err != nil {
 				return UpdateBillingInvoiceResponse{}, err
 			}
+
 			if existing.Type() != billing.InvoiceTypeStandard {
 				return UpdateBillingInvoiceResponse{}, billing.NotFoundError{
 					ID:     request.Invoice.ID,
@@ -68,6 +69,7 @@ func (h *handler) UpdateBillingInvoice() UpdateBillingInvoiceHandler {
 					{Field: "body.type", Reason: err.Error(), Source: apierrors.InvalidParamSourceBody},
 				})
 			}
+
 			switch invoiceType {
 			case string(api.BillingInvoiceStandardTypeStandard):
 				req, err := request.Update.AsUpdateInvoiceStandardRequest()
@@ -85,9 +87,11 @@ func (h *handler) UpdateBillingInvoice() UpdateBillingInvoiceHandler {
 				if err != nil {
 					return UpdateBillingInvoiceResponse{}, err
 				}
+
 				return ToAPIBillingInvoice(billing.NewInvoice(updated))
 			default:
 				err := fmt.Errorf("unsupported invoice type: %s", invoiceType)
+
 				return UpdateBillingInvoiceResponse{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
 					{Field: "body", Reason: err.Error(), Source: apierrors.InvalidParamSourceBody},
 				})

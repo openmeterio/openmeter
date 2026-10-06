@@ -297,6 +297,7 @@ func TestCreateInlineCustomCurrencyMaterializesManagedIdentity(t *testing.T) {
 			}
 		}
 	}
+
 	require.Positive(t, pricedItems)
 }
 

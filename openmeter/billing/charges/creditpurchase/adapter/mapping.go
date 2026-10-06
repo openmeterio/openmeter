@@ -128,6 +128,7 @@ func fromDBCostBasis(dbEntity *entdb.ChargeCreditPurchase, currency currencies.C
 		if dbEntity.FiatCostBasis == nil {
 			return mappedCostBasis{}, errors.New("fiat cost basis is required")
 		}
+
 		if dbEntity.CostBasisID != nil || dbEntity.Edges.CostBasis != nil {
 			return mappedCostBasis{}, errors.New("fiat credit purchase contains custom-currency cost-basis state")
 		}
@@ -146,12 +147,15 @@ func fromDBCostBasis(dbEntity *entdb.ChargeCreditPurchase, currency currencies.C
 	if dbEntity.FiatCostBasis != nil {
 		return mappedCostBasis{}, errors.New("custom-currency credit purchase contains fiat cost-basis state")
 	}
+
 	if dbEntity.CostBasisID == nil {
 		return mappedCostBasis{}, errors.New("custom-currency cost basis ID is required")
 	}
+
 	if dbEntity.Edges.CostBasis == nil {
 		return mappedCostBasis{}, fmt.Errorf("custom-currency cost basis not loaded [cost_basis_id=%s]", *dbEntity.CostBasisID)
 	}
+
 	if dbEntity.Edges.CostBasis.ID != *dbEntity.CostBasisID {
 		return mappedCostBasis{}, fmt.Errorf("custom-currency cost basis ID mismatch [cost_basis_id=%s,edge_id=%s]", *dbEntity.CostBasisID, dbEntity.Edges.CostBasis.ID)
 	}
@@ -164,6 +168,7 @@ func fromDBCostBasis(dbEntity *entdb.ChargeCreditPurchase, currency currencies.C
 	if mappedCustomCostBasis.CurrencyID != currency.ID {
 		return mappedCostBasis{}, fmt.Errorf("custom-currency cost basis currency mismatch [currency_id=%s,cost_basis_currency_id=%s]", currency.ID, mappedCustomCostBasis.CurrencyID)
 	}
+
 	return mappedCostBasis{
 		CostBasis:         creditpurchase.NewCostBasis(mappedCustomCostBasis.Intent),
 		ChargeCostBasisID: dbEntity.CostBasisID,

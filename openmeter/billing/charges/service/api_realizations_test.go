@@ -266,6 +266,7 @@ func TestResolveUsageBasedRealizations(t *testing.T) {
 	newDeletedRun := func(id string, prior usagebased.RealizationRun, servicePeriodTo time.Time, meteredQuantity int64) usagebased.RealizationRun {
 		run := chainAfter(newUsageBasedRealizationRun(id, usagebased.RealizationRunTypePartialInvoice, servicePeriodTo, meteredQuantity), prior)
 		run.DeletedAt = &deletedAt
+
 		return run
 	}
 

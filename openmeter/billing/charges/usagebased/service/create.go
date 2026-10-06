@@ -87,6 +87,7 @@ func (s *service) Create(ctx context.Context, input usagebased.CreateInput) ([]u
 			if featureMeter.Feature.ID != "" {
 				chargeIntent.FeatureKey = featureMeter.Feature.Key
 			}
+
 			if chargeIntent.FeatureID != "" && featureMeter.Feature.ID != "" {
 				featureID = featureMeter.Feature.ID
 			}
@@ -151,6 +152,7 @@ func gatheringLineFromUsageBasedChargeForPeriod(charge usagebased.Charge, servic
 		if clonedAnnotations == nil {
 			clonedAnnotations = models.Annotations{}
 		}
+
 		clonedAnnotations[billing.AnnotationKeyReason] = lo.ToPtr(billing.AnnotationValueReasonOveragePlaceholder)
 	}
 

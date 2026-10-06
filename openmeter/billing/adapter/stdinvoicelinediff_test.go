@@ -419,6 +419,7 @@ func getDetailedLineByID(l *billing.StandardLine, id string) *billing.DetailedLi
 			return &l.DetailedLines[idx]
 		}
 	}
+
 	return nil
 }
 
@@ -431,5 +432,6 @@ func removeDetailedLineByID(l *billing.StandardLine, id string) bool {
 	l.DetailedLines = lo.Filter(l.DetailedLines, func(dl billing.DetailedLine, _ int) bool {
 		return dl.ID != id
 	})
+
 	return true
 }

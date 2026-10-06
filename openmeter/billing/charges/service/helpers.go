@@ -114,6 +114,7 @@ func (s *service) newInvocableCharges(si charges.ChargeSearchItems) (map[string]
 			return nil, fmt.Errorf("unsupported charge type: %s", si.Type)
 		}
 	}
+
 	return result, nil
 }
 

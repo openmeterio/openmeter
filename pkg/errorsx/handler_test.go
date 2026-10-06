@@ -35,6 +35,7 @@ func TestSlogHandlerCancellation(t *testing.T) {
 			if test.canceled {
 				cancel()
 			}
+
 			var output bytes.Buffer
 			handler := NewSlogHandler(slog.New(slog.NewTextHandler(&output, nil)))
 			handler.HandleContext(ctx, test.err)

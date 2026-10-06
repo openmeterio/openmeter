@@ -52,6 +52,7 @@ func (i Input) Validate() error {
 			intentServicePeriod.From.Format(time.RFC3339), intentServicePeriod.To.Format(time.RFC3339),
 			i.CurrentPeriod.ServicePeriod.From.Format(time.RFC3339), i.CurrentPeriod.ServicePeriod.To.Format(time.RFC3339)))
 	}
+
 	if err := i.CurrentPeriod.ServicePeriod.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("current period service period: %w", err))
 	}
@@ -64,6 +65,7 @@ func (i Input) Validate() error {
 				intentServicePeriod.From.Format(time.RFC3339), intentServicePeriod.To.Format(time.RFC3339),
 				priorPeriod.ServicePeriod.From.Format(time.RFC3339), priorPeriod.ServicePeriod.To.Format(time.RFC3339)))
 		}
+
 		if err := priorPeriod.ServicePeriod.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("prior periods[%d] service period: %w", idx, err))
 		}

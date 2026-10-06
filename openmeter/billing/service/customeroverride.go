@@ -293,6 +293,7 @@ func (v resolveCustomerOverrideWithDetailsInput) GetCustomerFromCache(id string)
 	}
 
 	customer, found := v.CustomersByIdCache[id]
+
 	return customer, found
 }
 

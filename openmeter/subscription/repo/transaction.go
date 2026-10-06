@@ -17,6 +17,7 @@ func (r *subscriptionRepo) Tx(ctx context.Context) (context.Context, transaction
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to hijack transaction: %w", err)
 	}
+
 	return txCtx, entutils.NewTxDriver(eDriver, rawConfig), nil
 }
 
@@ -36,6 +37,7 @@ func (r *subscriptionPhaseRepo) Tx(ctx context.Context) (context.Context, transa
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to hijack transaction: %w", err)
 	}
+
 	return txCtx, entutils.NewTxDriver(eDriver, rawConfig), nil
 }
 
@@ -55,6 +57,7 @@ func (r *subscriptionItemRepo) Tx(ctx context.Context) (context.Context, transac
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to hijack transaction: %w", err)
 	}
+
 	return txCtx, entutils.NewTxDriver(eDriver, rawConfig), nil
 }
 

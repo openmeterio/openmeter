@@ -116,6 +116,7 @@ func NewCloudEvent(ev Event) (cloudevents.Event, error) {
 	if err := cloudEvent.SetData("application/json", ev); err != nil {
 		return cloudevents.Event{}, err
 	}
+
 	return cloudEvent, nil
 }
 

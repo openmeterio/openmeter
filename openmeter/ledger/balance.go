@@ -82,14 +82,17 @@ func (i GetBalancesAtBoundariesInput) Validate() error {
 	if len(i.Queries) == 0 {
 		errs = append(errs, errors.New("at least one balance boundary is required"))
 	}
+
 	for idx, query := range i.Queries {
 		if err := query.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("boundary %d: %w", idx, err))
 		}
+
 		if query.Filters.After == nil && query.Filters.AsOf == nil {
 			errs = append(errs, fmt.Errorf("boundary %d: cursor or asOf is required", idx))
 		}
 	}
+
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 

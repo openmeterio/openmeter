@@ -57,6 +57,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 		currentUsagePeriod, err := input.UsagePeriod.GetValue().GetPeriodAt(time.Now()) // This should be calculated properly when testing batch resets
 		require.NoError(t, err)
 		input.CurrentUsagePeriod = &currentUsagePeriod
+
 		return input
 	}
 
@@ -961,6 +962,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 				yesterdayMidnight := func() time.Time {
 					t.Helper()
 					now := clock.Now().UTC()
+
 					return time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC).AddDate(0, 0, -1)
 				}()
 

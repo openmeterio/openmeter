@@ -549,6 +549,7 @@ func collectCustomerFBOForFeatureForTest(
 		if featureKey != "" {
 			filters.Features = []string{featureKey}
 		}
+
 		selections, err := collector.collectCustomerFBOSelections(ctx, env.CustomerID, env.CurrencyReference(), ledger.Route{Filters: filters}, target, asOf)
 		if err != nil {
 			return nil, err
@@ -809,11 +810,13 @@ func requireFBOBalanceBucketsWithAsOf(t *testing.T, env *ledgertestutils.Integra
 		if bucket.SettledAmount.IsZero() {
 			continue
 		}
+
 		actual[sourceSpendChargeKey(
 			bucket.GroupByValues[ledger.BalanceBucketGroupBySourceChargeID],
 			nil,
 		)] = bucket.SettledAmount.InexactFloat64()
 	}
+
 	require.Equal(t, expected, actual)
 }
 
@@ -846,11 +849,13 @@ func requireBalanceBuckets(t *testing.T, env *ledgertestutils.IntegrationEnv, ac
 		if bucket.SettledAmount.IsZero() {
 			continue
 		}
+
 		actual[sourceSpendChargeKey(
 			bucket.GroupByValues[ledger.BalanceBucketGroupBySourceChargeID],
 			bucket.GroupByValues[ledger.BalanceBucketGroupBySpendChargeID],
 		)] = bucket.SettledAmount.InexactFloat64()
 	}
+
 	require.Equal(t, expected, actual)
 }
 

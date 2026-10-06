@@ -192,6 +192,7 @@ func TestMapAPIChannelTypeFilter(t *testing.T) {
 				require.Error(t, err)
 				return
 			}
+
 			require.NoError(t, err)
 			assert.Equal(t, tc.want, got)
 		})
@@ -223,12 +224,14 @@ func TestFromAPIChannelSortField(t *testing.T) {
 		if name == "" {
 			name = "empty"
 		}
+
 		t.Run(name, func(t *testing.T) {
 			got, err := FromAPIChannelSortField(t.Context(), tc.field)
 			if tc.wantErr {
 				require.Error(t, err)
 				return
 			}
+
 			require.NoError(t, err)
 			assert.Equal(t, tc.want, got)
 		})

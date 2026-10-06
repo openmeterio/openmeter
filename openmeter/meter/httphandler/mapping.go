@@ -99,6 +99,7 @@ func ToRequestFromQueryParamsPOSTBody(apiParams api.QueryMeterParams) api.QueryM
 		for k, v := range *apiParams.FilterGroupBy {
 			filterGroupBy[k] = []string{v}
 		}
+
 		request.FilterGroupBy = &filterGroupBy
 	}
 
@@ -163,6 +164,7 @@ func (h *handler) toQueryParamsFromRequest(ctx context.Context, m meter.Meter, r
 			err := fmt.Errorf("invalid time zone: %w", err)
 			return params, models.NewGenericValidationError(err)
 		}
+
 		params.WindowTimeZone = tz
 	}
 
@@ -186,6 +188,7 @@ func (h *handler) toQueryParamsFromRequest(ctx context.Context, m meter.Meter, r
 						In: lo.ToPtr(v),
 					}
 				}
+
 				continue
 			} else {
 				err := fmt.Errorf("invalid group by filter: %s", k)

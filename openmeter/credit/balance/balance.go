@@ -42,6 +42,7 @@ func (g Map) Clone() Map {
 	for k, v := range g {
 		r[k] = v
 	}
+
 	return r
 }
 
@@ -60,6 +61,7 @@ func (g Map) Balance() float64 {
 	for _, v := range g {
 		balance += v
 	}
+
 	return balance
 }
 
@@ -81,6 +83,7 @@ func (g Map) ExactlyForGrants(grants []grant.Grant) bool {
 			return false
 		}
 	}
+
 	return true
 }
 
@@ -137,6 +140,7 @@ func (s Snapshot) Clone() Snapshot {
 		usageSnapshot := *s.UsageSnapshot
 		cloned.UsageSnapshot = &usageSnapshot
 	}
+
 	if s.UnitConfig != nil {
 		unitConfig := s.UnitConfig.Clone()
 		cloned.UnitConfig = &unitConfig

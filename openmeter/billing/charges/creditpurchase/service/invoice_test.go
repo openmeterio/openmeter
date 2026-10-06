@@ -241,13 +241,16 @@ func TestInvoiceCreditPurchaseAuthorizationRetryRecognizesMatchingBooking(t *tes
 			if tc.mutate != nil {
 				tc.mutate(booked)
 			}
+
 			if tc.invoiceAmount != nil {
 				input.Line.Totals.Total = *tc.invoiceAmount
 			}
+
 			charge.Realizations.InvoiceSettlement = booked
 			if booked.Status == payment.StatusSettled {
 				charge.Status = creditpurchase.StatusFinal
 			}
+
 			adapter := &externalStateMachineAdapter{}
 			handler := &externalStateMachineHandler{}
 			svc := &service{
@@ -278,6 +281,7 @@ func TestInvoiceCreditPurchaseAuthorizationRetryRecognizesMatchingBooking(t *tes
 				require.NoError(t, err)
 				require.Equal(t, charge, result)
 			}
+
 			handler.AssertNotCalled(t, "OnCreditPurchasePaymentAuthorized", mock.Anything, mock.Anything)
 			require.Zero(t, adapter.updateChargeCalls)
 			require.Zero(t, adapter.updateInvoicedPaymentCalls)

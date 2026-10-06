@@ -90,6 +90,7 @@ func (a PatchAddPhase) ApplyTo(spec *subscription.SubscriptionSpec, actx subscri
 			if err != nil {
 				return fmt.Errorf("failed to calculate difference between phases: %w", err)
 			}
+
 			diff, err = a.Value().Duration.Subtract(tillNextPhase)
 			if err != nil {
 				return fmt.Errorf("failed to calculate difference between phases: %w", err)
@@ -102,6 +103,7 @@ func (a PatchAddPhase) ApplyTo(spec *subscription.SubscriptionSpec, actx subscri
 			if err != nil {
 				return fmt.Errorf("failed to adjust phase %s start time: %w", p.PhaseKey, err)
 			}
+
 			sortedPhases[i].StartAfter = sa
 		}
 	}

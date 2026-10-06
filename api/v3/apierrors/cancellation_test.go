@@ -35,6 +35,7 @@ func TestHandleAPIErrorCancellation(t *testing.T) {
 			if test.canceled {
 				cancel()
 			}
+
 			// The context stored in an API error can differ from the original request.
 			errorCtx, cancelError := context.WithCancel(t.Context())
 			cancelError()

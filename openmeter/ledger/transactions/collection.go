@@ -155,6 +155,7 @@ func collectFromAttributableCustomerAccrued(
 
 		leftIdentity, _ := sources[i].identity.Text()
 		rightIdentity, _ := sources[j].identity.Text()
+
 		return cmp.Compare(string(leftIdentity), string(rightIdentity)) < 0
 	})
 

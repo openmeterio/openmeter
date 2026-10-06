@@ -184,6 +184,7 @@ func TestV3AddonV1PriceReadFallback(t *testing.T) {
 					Amount:             "10",
 					QuantityPerPackage: "1000",
 				}))
+
 				return p
 			},
 			wantUnitAmount:       "10",
@@ -199,6 +200,7 @@ func TestV3AddonV1PriceReadFallback(t *testing.T) {
 					Type:       api.DynamicPriceWithCommitmentsTypeDynamic,
 					Multiplier: lo.ToPtr(api.Numeric("1.2")),
 				}))
+
 				return p
 			},
 			wantUnitAmount:       "1",

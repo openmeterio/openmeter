@@ -82,6 +82,7 @@ func NewService(baseURL, appID, appSecret string, logger *service.Logger, config
 				} else if matched, err := regexp.MatchString("/api/v1/workloads", path); err == nil && matched {
 					path = "/api/v1/workloads"
 				}
+
 				config.TimingMetrics.Timing(response.Time().Nanoseconds(), path, fmt.Sprintf("%d", response.StatusCode()))
 			}
 

@@ -338,6 +338,7 @@ func (s *Service) AllocateFiatOverageCredits(
 	if err != nil {
 		return AllocateFiatOverageCreditsResult{}, fmt.Errorf("get invoice currency: %w", err)
 	}
+
 	grossFiatAmount := in.Run.AccruedUsage.Totals.Total
 
 	run := in.Run
@@ -363,10 +364,12 @@ func (s *Service) AllocateFiatOverageCredits(
 	if err != nil {
 		return AllocateFiatOverageCreditsResult{}, fmt.Errorf("create invoice currency calculator: %w", err)
 	}
+
 	allocated := fiatCurrencyCalculator.RoundToPrecision(run.FiatOverageCreditRealizations.Sum())
 	if allocated.GreaterThan(grossFiatAmount) {
 		return AllocateFiatOverageCreditsResult{}, fmt.Errorf("fiat overage credit allocations exceed prepared gross amount: %s > %s", allocated, grossFiatAmount)
 	}
+
 	remainingFiatOverage := fiatCurrencyCalculator.RoundToPrecision(grossFiatAmount.Sub(allocated))
 	runBase, err := s.adapter.UpdateRealizationRun(ctx, flatfee.UpdateRealizationRunInput{
 		ID:                                   run.ID,
@@ -431,6 +434,7 @@ func (s *Service) CorrectPreparedCustomCurrencyInvoiceRealizations(
 	if err != nil {
 		return flatfee.RealizationRun{}, err
 	}
+
 	input.Run = run
 
 	if err := s.correctChargeCurrencyCreditRealizations(ctx, input); err != nil {
@@ -444,6 +448,7 @@ func (s *Service) CorrectPreparedCustomCurrencyInvoiceRealizations(
 	if err != nil {
 		return flatfee.RealizationRun{}, fmt.Errorf("reset invoice preparation state: %w", err)
 	}
+
 	input.Run.RealizationRunBase = runBase
 
 	return input.Run, nil

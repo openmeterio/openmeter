@@ -1119,6 +1119,7 @@ func cloneBillingTaxConfigForTest(taxConfig *billing.TaxConfig) *billing.TaxConf
 	}
 
 	cloned := taxConfig.Clone()
+
 	return &cloned
 }
 

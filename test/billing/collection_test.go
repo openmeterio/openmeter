@@ -64,7 +64,6 @@ func (s *CollectionTestSuite) TestUncollectableCollection() {
 	//  invoice pending lines is called
 	// Then
 	//  ErrInvoiceCreateNoLines is returned
-
 	namespace := "ns-uncollectable-collection"
 	ctx := s.T().Context()
 
@@ -619,6 +618,7 @@ func (s *CollectionTestSuite) TestCollectionFlowWithFlatFeeEditing() {
 					PaymentTerm:   productcatalog.InArrearsPaymentTerm,
 				}),
 			)
+
 			return nil
 		},
 	})
@@ -982,6 +982,7 @@ func (s *CollectionTestSuite) TestCollectionFlowWithUBPEditingExtendingCollectio
 						MeteredPreLinePeriodQuantity: lo.ToPtr(alpacadecimal.NewFromFloat(0)),
 					},
 				})
+
 				return nil
 			},
 		})

@@ -311,6 +311,7 @@ func (s *service) resolveCustomers(ctx context.Context, input entitlementaccess.
 					Code:        entitlementaccess.QueryErrorCustomerNotFound,
 					Message:     "customer not found",
 				})
+
 				continue
 			}
 

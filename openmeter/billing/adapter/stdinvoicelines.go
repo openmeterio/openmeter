@@ -37,7 +37,6 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 	// handle the upserting of the data in a more complex way. We will first upsert
 	// all items that yield an ID into their parent structs then we will create the
 	// parents.
-
 	if err := inputIn.Validate(); err != nil {
 		return nil, err
 	}
@@ -172,6 +171,7 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 			if err := tx.upsertDetailedLines(ctx, lineDiffs.DetailedLine); err != nil {
 				return nil, fmt.Errorf("upserting detailed lines: %w", err)
 			}
+
 			// detailed line amount discounts
 			err = tx.upsertDetailedLineAmountDiscounts(ctx, lineDiffs.DetailedLineAmountDiscounts)
 			if err != nil {
@@ -181,6 +181,7 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 			if err := tx.upsertDetailedLinesV2(ctx, lineDiffs.DetailedLine); err != nil {
 				return nil, fmt.Errorf("upserting detailed lines: %w", err)
 			}
+
 			// detailed line amount discounts
 			err = tx.upsertDetailedLineAmountDiscountsV2(ctx, lineDiffs.DetailedLineAmountDiscounts)
 			if err != nil {
@@ -286,6 +287,7 @@ func (a *adapter) upsertFeeLineConfig(ctx context.Context, in detailedLineDiff) 
 				SetPaymentTerm(line.PaymentTerm).
 				SetID(line.FeeLineConfigID).
 				SetNillableIndex(line.Index)
+
 			return create, nil
 		},
 		UpsertItems: func(ctx context.Context, tx *db.Client, items []*db.BillingInvoiceFlatFeeLineConfigCreate) error {

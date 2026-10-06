@@ -45,6 +45,7 @@ func (m *mockHandler) HandleDLQ(msg *message.Message) error {
 	slog.Info("message arrived at DLQ (final)")
 
 	args := m.Called(msg)
+
 	return args.Error(0)
 }
 

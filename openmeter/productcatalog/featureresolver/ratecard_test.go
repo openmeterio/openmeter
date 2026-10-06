@@ -57,6 +57,7 @@ func Test_ResolveFeaturesForRateCards(t *testing.T) {
 
 		features = append(features, feat)
 	}
+
 	require.NotEmptyf(t, features, "list of Features must not be empty")
 	require.Lenf(t, features, len(meters), "list of Features must have the same length as the list of Meters")
 

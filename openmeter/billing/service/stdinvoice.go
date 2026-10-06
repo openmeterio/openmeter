@@ -63,6 +63,7 @@ func (s *Service) UpdateStandardInvoice(ctx context.Context, input billing.Updat
 				if err != nil {
 					return fmt.Errorf("converting edited invoice to standard invoice: %w", err)
 				}
+
 				sm.Invoice = standardInvoice
 
 			case billing.ChangeSourceSystem:

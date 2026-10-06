@@ -307,6 +307,7 @@ func (in *kubernetesResourcesInput) Close(ctx context.Context) error {
 		// Trigger graceful shutdown of the manager
 		in.cancel()
 	}
+
 	// Wait for the manager's goroutine to exit or for the context to be canceled.
 	select {
 	case <-in.done:
@@ -315,5 +316,6 @@ func (in *kubernetesResourcesInput) Close(ctx context.Context) error {
 		in.logger.Info("context canceled")
 		return ctx.Err()
 	}
+
 	return nil
 }

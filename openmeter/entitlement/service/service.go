@@ -176,6 +176,7 @@ func (c *service) GetEntitlementWithCustomer(ctx context.Context, namespace stri
 		if err != nil {
 			return nil, err
 		}
+
 		return &entitlement.EntitlementWithCustomer{Entitlement: lo.FromPtr(ent), Customer: lo.FromPtr(cust)}, nil
 	})
 }
@@ -215,6 +216,7 @@ func (c *service) DeleteEntitlement(ctx context.Context, namespace string, id st
 	}
 
 	_, err := transaction.Run(ctx, c.entitlementRepo, doInTx)
+
 	return err
 }
 
@@ -233,6 +235,7 @@ func (c *service) GetEntitlementsOfCustomer(ctx context.Context, namespace strin
 	if err != nil {
 		return nil, err
 	}
+
 	return ents.Items, nil
 }
 
@@ -425,6 +428,7 @@ func (c *service) GetAccess(ctx context.Context, namespace string, customerId st
 		}
 
 		finalResult[k] = v
+
 		return true
 	})
 

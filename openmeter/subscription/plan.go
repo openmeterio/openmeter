@@ -22,12 +22,15 @@ func (p PlanRef) Equal(p2 PlanRef) bool {
 	if p.Id != p2.Id {
 		return false
 	}
+
 	if p.Key != p2.Key {
 		return false
 	}
+
 	if p.Version != p2.Version {
 		return false
 	}
+
 	return true
 }
 
@@ -35,6 +38,7 @@ func (p *PlanRef) NilEqual(p2 *PlanRef) bool {
 	if p == nil && p2 == nil {
 		return true
 	}
+
 	if p != nil && p2 != nil {
 		return p.Equal(*p2)
 	}

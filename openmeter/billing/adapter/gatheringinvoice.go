@@ -80,6 +80,7 @@ func (a *adapter) CreateGatheringInvoice(ctx context.Context, input billing.Crea
 		if usageAttr := mapCustomerUsageAttributionToDB(input.Customer); usageAttr != nil {
 			createMut = createMut.SetCustomerUsageAttribution(usageAttr)
 		}
+
 		createMut = createMut.
 			SetCustomerName(customer.Name)
 

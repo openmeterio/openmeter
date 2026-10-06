@@ -165,6 +165,7 @@ func TestCalculateFiatOverageForRun(t *testing.T) {
 			if test.conversionFails {
 				charge.State.ResolvedCostBasis = nil
 			}
+
 			run := newFlatFeeCustomCurrencyRunForTest(
 				servicePeriod,
 				test.runTotals,
@@ -178,8 +179,10 @@ func TestCalculateFiatOverageForRun(t *testing.T) {
 			if test.conversionFails {
 				require.ErrorContains(t, err, "resolved cost basis is required")
 				require.False(t, fiatOverage.ShouldOmitInvoiceLine)
+
 				return
 			}
+
 			require.NoError(t, err)
 			require.Equal(t, test.expectFiatOverage, fiatOverage.FiatOverage.InexactFloat64())
 			require.Equal(t, test.expectOmitInvoiceLine, fiatOverage.ShouldOmitInvoiceLine)
@@ -402,6 +405,7 @@ func newFlatFeeCustomCurrencyRunForTest(
 
 func newFlatFeeStandardLineForTest(servicePeriod timeutil.ClosedPeriod) *billing.StandardLine {
 	chargeID := "charge-id"
+
 	return &billing.StandardLine{
 		StandardLineBase: billing.StandardLineBase{
 			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{

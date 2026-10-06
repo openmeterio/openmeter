@@ -50,6 +50,7 @@ func (h *handler) CreateFeature() CreateFeatureHandler {
 				if err != nil {
 					return CreateFeatureRequest{}, err
 				}
+
 				meterID = &m.ID
 
 				// Validate meter filters.
@@ -91,5 +92,6 @@ func validateMeterFilters(filters map[string]api.QueryFilterStringMapItem, m met
 			)
 		}
 	}
+
 	return nil
 }

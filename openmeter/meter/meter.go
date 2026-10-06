@@ -56,6 +56,7 @@ func (MeterAggregation) Values() (kinds []string) {
 	} {
 		kinds = append(kinds, string(s))
 	}
+
 	return kinds
 }
 
@@ -95,6 +96,7 @@ func (WindowSize) Values() (kinds []string) {
 	} {
 		kinds = append(kinds, string(s))
 	}
+
 	return kinds
 }
 
@@ -312,20 +314,25 @@ func validateMeterGroupBy(valueProperty *string, groupBy map[string]string) erro
 		if !strings.HasPrefix(value, "$") {
 			return fmt.Errorf("meter group by value must start with $ for key %s", key)
 		}
+
 		if strings.TrimSpace(key) == "" {
 			return fmt.Errorf("meter group by key cannot be empty")
 		}
+
 		if !groupByKeyRegExp.MatchString(key) {
 			return fmt.Errorf("meter group by key %s is invalid, only alphanumeric and underscore characters are allowed", key)
 		}
+
 		if valueProperty != nil && value == *valueProperty {
 			return fmt.Errorf("meter group by value %s cannot be the same as value property", key)
 		}
+
 		// keys must be unique
 		seen := make(map[string]struct{}, len(groupBy))
 		if _, ok := seen[key]; ok {
 			return fmt.Errorf("meter group by key %s is not unique", key)
 		}
+
 		seen[key] = struct{}{}
 	}
 

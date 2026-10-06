@@ -46,6 +46,7 @@ func TestForEachUntilWithErr(t *testing.T) {
 			if callCount == 2 {
 				return false, expectedErr
 			}
+
 			return false, nil
 		})
 		assert.Equal(t, expectedErr, err)

@@ -137,6 +137,7 @@ func (h *featureHandlers) CreateFeature() CreateFeatureHandler {
 				if err != nil {
 					return emptyFeature, err
 				}
+
 				meterID = &m.ID
 			}
 
@@ -147,6 +148,7 @@ func (h *featureHandlers) CreateFeature() CreateFeatureHandler {
 			if err != nil {
 				return api.Feature{}, err
 			}
+
 			return MapFeatureToResponse(createdFeature)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[api.Feature](http.StatusCreated),
@@ -223,6 +225,7 @@ func (h *featureHandlers) ListFeatures() ListFeaturesHandler {
 				if err != nil {
 					return response, err
 				}
+
 				mapped = append(mapped, resp)
 			}
 

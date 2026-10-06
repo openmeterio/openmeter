@@ -433,6 +433,7 @@ func assertPlanRateCardBehavior(t *testing.T, db *sql.DB, rateCardID, wantBehavi
 	if wantBehavior == "" {
 		require.False(t, behavior.Valid)
 		require.False(t, embeddedBehavior.Valid)
+
 		return
 	}
 

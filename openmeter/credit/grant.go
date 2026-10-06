@@ -38,9 +38,11 @@ func (i CreateGrantInput) Validate() error {
 	if i.Amount <= 0 {
 		return ErrGrantAmountMustBePositive.WithAttr("amount", i.Amount)
 	}
+
 	if i.EffectiveAt.IsZero() {
 		return ErrGrantEffectiveAtMustBeSet.WithAttr("effective_at", i.EffectiveAt)
 	}
+
 	return nil
 }
 
@@ -64,11 +66,13 @@ func (m *connector) CreateGrant(ctx context.Context, ownerID models.NamespacedID
 		if err != nil {
 			return nil, fmt.Errorf("failed to describe owner: %w", err)
 		}
+
 		granularity := time.Minute
 		input.EffectiveAt = input.EffectiveAt.Truncate(granularity)
 		if input.Recurrence != nil {
 			input.Recurrence.Anchor = input.Recurrence.Anchor.Truncate(granularity)
 		}
+
 		periodStart, err := m.OwnerConnector.GetUsagePeriodStartAt(ctx, ownerID, clock.Now())
 		if err != nil {
 			return nil, err
@@ -82,6 +86,7 @@ func (m *connector) CreateGrant(ctx context.Context, ownerID models.NamespacedID
 		if err != nil {
 			return nil, err
 		}
+
 		repoInp := grant.RepoCreateInput{
 			OwnerID:          ownerID.ID,
 			Namespace:        ownerID.Namespace,
@@ -141,6 +146,7 @@ func (m *connector) VoidGrant(ctx context.Context, grantID models.NamespacedID, 
 	if at != nil {
 		voidAt = *at
 	}
+
 	voidAt = voidAt.Truncate(m.Granularity)
 
 	// Validate: at must not be in the future
@@ -155,6 +161,7 @@ func (m *connector) VoidGrant(ctx context.Context, grantID models.NamespacedID, 
 	if err != nil {
 		return err
 	}
+
 	if voidAt.Before(periodStart) {
 		return models.NewGenericValidationError(fmt.Errorf("void time %s is before the current usage period start %s", voidAt, periodStart))
 	}
@@ -188,6 +195,7 @@ func (m *connector) VoidGrant(ctx context.Context, grantID models.NamespacedID, 
 
 		return nil, m.Publisher.Publish(ctx, grant.NewVoidedEventV2FromGrant(g, owner.StreamingCustomer, voidAt))
 	})
+
 	return err
 }
 

@@ -864,6 +864,7 @@ func (s *BillingAdapterTestSuite) TestStandardLineOptionalFieldMutability() {
 		})
 		require.NoError(s.T(), err)
 		require.Len(s.T(), readBack, 1)
+
 		return readBack[0].Description
 	}
 
@@ -1028,6 +1029,7 @@ func (s *BillingAdapterTestSuite) TestDiscountHandling() {
 			break
 		}
 	}
+
 	require.NotEmpty(s.T(), existingDiscountID)
 
 	childLine.AmountDiscounts = billing.AmountLineDiscountsManaged{
@@ -1159,6 +1161,7 @@ func (s *BillingAdapterTestSuite) findAmountDiscountByDescription(discounts []bi
 	}
 
 	s.T().Fatalf("discount not found: %s", description)
+
 	return billing.AmountLineDiscountManaged{}
 }
 

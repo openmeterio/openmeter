@@ -20,6 +20,7 @@ func RootCommand() *cobra.Command {
 			if migrationMode == "ent" {
 				return fmt.Errorf("ent migration is no longer supported; run 'openmeter-jobs migrate adopt-ent' once, then set migration mode to 'migration'")
 			}
+
 			if !migrationMode.Enabled() {
 				return fmt.Errorf("migration mode is disabled")
 			}

@@ -23,6 +23,7 @@ func (m Meta) Actions() []app.AppAction {
 	if m.DeletedAt != nil {
 		return nil
 	}
+
 	if m.WebhookSchemaVersion < LatestWebhookSchemaVersion {
 		return []app.AppAction{
 			{

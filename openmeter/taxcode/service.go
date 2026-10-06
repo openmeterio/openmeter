@@ -226,6 +226,7 @@ func (i DeleteTaxCodeInput) Validate() error {
 	if err := i.NamespacedID.Validate(); err != nil {
 		errs = append(errs, err)
 	}
+
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 

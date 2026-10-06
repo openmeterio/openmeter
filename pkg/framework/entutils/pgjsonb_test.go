@@ -61,6 +61,7 @@ func TestJSONBFilterString(t *testing.T) {
 				require.Error(t, err)
 				return
 			}
+
 			require.NoError(t, err)
 			if tt.wantNil {
 				require.Nil(t, pred)

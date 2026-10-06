@@ -212,6 +212,7 @@ func (t TransferCustomerFBOToAccruedTemplate) resolveAccruedSubAccByRoutePairing
 			if err != nil {
 				return nil, fmt.Errorf("failed to get accrued sub-account: %w", err)
 			}
+
 			current.Address = accruedSubAccount.Address()
 			current.Identity = ledger.EntryIdentityParts{
 				Provenance: source.Identity.Provenance,

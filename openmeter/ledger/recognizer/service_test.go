@@ -417,6 +417,7 @@ func TestRecognizeEarnings_AccruedSourceIsolation(t *testing.T) {
 				require.Equal(t, &source, entry.SourceChargeID)
 				require.Equal(t, &spend, entry.SpendChargeID)
 			}
+
 			require.Equal(t, float64(10), env.SumBalance(t, env.AccruedSubAccountWithCostBasis(t, &costBasis)).InexactFloat64())
 
 			roots, err := env.lineage.LoadLineagesByCustomer(t.Context(), legacylineage.LoadLineagesByCustomerInput{
@@ -436,6 +437,7 @@ func TestRecognizeEarnings_AccruedSourceIsolation(t *testing.T) {
 					require.Equal(t, creditrealization.LineageSegmentStateRealCredit, *segment.SourceState)
 				}
 			}
+
 			require.Equal(t, float64(40-tc.alreadyRecognized), amounts[creditrealization.LineageSegmentStateEarningsRecognized])
 			require.Equal(t, float64(tc.alreadyRecognized), amounts[creditrealization.LineageSegmentStateRealCredit])
 

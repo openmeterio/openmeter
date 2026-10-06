@@ -370,12 +370,14 @@ func NewDiscountReasonFrom[T PercentageDiscount | UsageDiscount | MaximumSpendDi
 	switch d := any(in).(type) {
 	case PercentageDiscount:
 		percentage := any(d).(PercentageDiscount)
+
 		return DiscountReason{
 			t:          RatecardPercentageDiscountReason,
 			percentage: &percentage,
 		}
 	case UsageDiscount:
 		usage := any(d).(UsageDiscount)
+
 		return DiscountReason{
 			t:     RatecardUsageDiscountReason,
 			usage: &usage,

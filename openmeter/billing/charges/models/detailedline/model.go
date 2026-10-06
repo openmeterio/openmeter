@@ -105,6 +105,7 @@ func MapAmountDiscountsFromBilling(discounts billing.AmountLineDiscountsManaged)
 func MapAmountDiscountsToBilling(discounts AmountDiscounts) billing.AmountLineDiscountsManaged {
 	return lo.Map(discounts, func(discount AmountDiscount, _ int) billing.AmountLineDiscountManaged {
 		discount = discount.Clone()
+
 		return billing.AmountLineDiscountManaged{
 			AmountLineDiscount: billing.AmountLineDiscount{
 				LineDiscountBase: billing.LineDiscountBase{

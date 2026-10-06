@@ -161,6 +161,7 @@ func TestRateCardFeatureReferenceConstraintsMigration(t *testing.T) {
 		_, err = db.ExecContext(t.Context(), fmt.Sprintf(`DELETE FROM %s`, table.name))
 		require.NoError(t, err)
 	}
+
 	require.NoError(t, migrator.Migrate(targetVersion))
 
 	for _, table := range tables {

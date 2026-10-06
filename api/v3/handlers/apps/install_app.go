@@ -47,6 +47,7 @@ func (h *handler) InstallApp() InstallAppHandler {
 
 			if !convertedType.Valid() {
 				err := fmt.Errorf("invalid app type: %s", discType)
+
 				return InstallAppRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
 					{Field: "type", Reason: err.Error(), Source: apierrors.InvalidParamSourceBody},
 				})
@@ -153,6 +154,7 @@ func (h *handler) createBillingProfile(ctx context.Context, installedApp app.App
 		if err := h.billingService.ProvisionDefaultBillingProfile(ctx, namespace); err != nil {
 			return nil, fmt.Errorf("provision default billing profile: %w", err)
 		}
+
 		return []app.CapabilityType{
 			app.CapabilityTypeCalculateTax,
 			app.CapabilityTypeInvoiceCustomers,

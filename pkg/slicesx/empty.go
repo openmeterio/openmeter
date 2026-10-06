@@ -7,5 +7,6 @@ func EmptyAsNil[T any](s []T) []T {
 	if len(s) == 0 {
 		return nil
 	}
+
 	return s
 }

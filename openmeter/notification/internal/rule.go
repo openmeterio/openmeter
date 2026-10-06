@@ -77,6 +77,7 @@ func (t *TestEventGenerator) newTestBalanceThresholdPayload() notification.Event
 			Value: 50,
 		},
 	}
+
 	return payload
 }
 

@@ -48,7 +48,6 @@ func (v Validator) AfterUpdate(ctx context.Context, view subscription.Subscripti
 func (v Validator) validateBillingSetup(ctx context.Context, view subscription.SubscriptionView) error {
 	// If a subscription is going to be billed (e.g. there are phases with ratecards having prices)
 	// let's make sure that the billing setup is valid for the customer
-
 	if !v.hasBillableItems(view) {
 		return nil
 	}

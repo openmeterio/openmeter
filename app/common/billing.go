@@ -302,6 +302,7 @@ func NewBillingRegistry(
 	if err != nil {
 		return BillingRegistry{}, err
 	}
+
 	subscriptionSyncService, err := NewBillingSubscriptionSyncService(logger, subscriptionServices, billingRegistry, subscriptionSyncAdapter, tracer, creditsConfig, fsConfig, featureGate)
 	if err != nil {
 		return BillingRegistry{}, err

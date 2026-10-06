@@ -20,6 +20,7 @@ func (v *ULID) ULIDPointer() *ulid.ULID {
 	if v == nil {
 		return nil
 	}
+
 	return &v.ULID
 }
 

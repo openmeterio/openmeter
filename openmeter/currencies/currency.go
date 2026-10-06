@@ -195,17 +195,20 @@ func (r *CurrencyReference) UnmarshalText(value []byte) error {
 		if err := reference.Validate(); err != nil {
 			return err
 		}
+
 		if !reference.IsFiat() {
 			return errors.New("custom currency reference snapshot is required")
 		}
 
 		*r = reference
+
 		return nil
 	}
 
 	if len(segments) != 5 || segments[0] != "custom" {
 		return fmt.Errorf("invalid currency reference %q", serialized)
 	}
+
 	if segments[1] != currencyReferenceSerializationVersionV1 {
 		return fmt.Errorf("unsupported currency reference version %q", segments[1])
 	}
@@ -214,6 +217,7 @@ func (r *CurrencyReference) UnmarshalText(value []byte) error {
 	if !code.IsCustom() {
 		return fmt.Errorf("custom currency reference requires a custom currency code: %q", code)
 	}
+
 	if segments[3] == "" {
 		return errors.New("custom currency id is required")
 	}
@@ -238,6 +242,7 @@ func (r *CurrencyReference) UnmarshalText(value []byte) error {
 	}
 
 	*r = currency.Reference()
+
 	return nil
 }
 

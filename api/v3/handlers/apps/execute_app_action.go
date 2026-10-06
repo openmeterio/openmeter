@@ -36,6 +36,7 @@ func (h *handler) ExecuteAppAction() ExecuteAppActionHandler {
 			if err == nil && !api.BillingAppActionType(actionType).Valid() {
 				err = fmt.Errorf("invalid action type: %s", actionType)
 			}
+
 			if err != nil {
 				return ExecuteAppActionRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
 					{

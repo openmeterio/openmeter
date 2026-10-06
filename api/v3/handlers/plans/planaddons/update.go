@@ -53,6 +53,7 @@ func (h *handler) UpdatePlanAddon() UpdatePlanAddonHandler {
 				if err != nil {
 					return UpdatePlanAddonRequest{}, err
 				}
+
 				req.Metadata = &m
 			}
 

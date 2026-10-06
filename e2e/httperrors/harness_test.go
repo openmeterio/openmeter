@@ -57,6 +57,7 @@ func serveErrors(t *testing.T, http2 bool, factory func(httptransport.ErrorHandl
 		if (r.ProtoMajor == 2) != http2 {
 			t.Errorf("unexpected protocol %s", r.Proto)
 		}
+
 		writer := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
 		var body bytes.Buffer
 		writer.Tee(&body)
@@ -72,11 +73,13 @@ func serveErrors(t *testing.T, http2 bool, factory func(httptransport.ErrorHandl
 	} else {
 		server.Start()
 	}
+
 	server.Client().Timeout = 5 * time.Second
 	t.Cleanup(func() {
 		server.CloseClientConnections()
 		server.Close()
 	})
+
 	return server, completed
 }
 
@@ -88,6 +91,7 @@ func receive[T any](t *testing.T, events <-chan T) T {
 	case <-time.After(5 * time.Second):
 		t.Fatal("timed out waiting for the request lifecycle")
 		var zero T
+
 		return zero
 	}
 }
@@ -118,14 +122,17 @@ func cancelRequest(t *testing.T, server *httptest.Server, http2 bool, started <-
 		if reset {
 			require.NoError(t, tcp.SetLinger(0))
 			require.NoError(t, tcp.Close())
+
 			return nil
 		}
+
 		require.NoError(t, tcp.CloseWrite())
 		response, err := http.ReadResponse(bufio.NewReader(conn), nil)
 		require.NoError(t, err)
 		defer response.Body.Close()
 		body, err := io.ReadAll(response.Body)
 		require.NoError(t, err)
+
 		return &wireResponse{status: response.StatusCode, header: response.Header.Clone(), body: body}
 	}
 
@@ -140,13 +147,16 @@ func cancelRequest(t *testing.T, server *httptest.Server, http2 bool, started <-
 			if err == nil {
 				_, err = io.Copy(io.Discard, response.Body)
 			}
+
 			_ = response.Body.Close()
 		}
+
 		clientDone <- err
 	}()
 	receive(t, started)
 	cancel()
 	require.ErrorIs(t, receive(t, clientDone), context.Canceled)
+
 	return nil
 }
 

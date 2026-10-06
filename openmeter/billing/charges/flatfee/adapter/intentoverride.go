@@ -165,6 +165,7 @@ func (a *adapter) createIntentOverride(ctx context.Context, chargeID meta.Charge
 	if normalized.Metadata != nil {
 		create = create.SetMetadata(&normalized.Metadata)
 	}
+
 	if normalized.PercentageDiscounts != nil {
 		create = create.SetDiscounts(&billing.Discounts{Percentage: normalized.PercentageDiscounts})
 	}
@@ -204,6 +205,7 @@ func (a *adapter) updateIntentOverride(ctx context.Context, chargeID meta.Charge
 	} else {
 		update = update.SetMetadata(&normalized.Metadata)
 	}
+
 	if normalized.PercentageDiscounts == nil {
 		update = update.ClearDiscounts()
 	} else {

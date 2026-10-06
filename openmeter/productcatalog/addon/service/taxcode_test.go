@@ -48,11 +48,13 @@ func newTestAddonInput(t *testing.T, namespace string, rcs ...productcatalog.Rat
 func getFirstAddonRCTaxConfig(t *testing.T, a *addon.Addon) *productcatalog.TaxConfig {
 	t.Helper()
 	require.NotEmpty(t, a.RateCards)
+
 	return a.RateCards[0].AsMeta().TaxConfig
 }
 
 func findAddonTaxCodeByStripeCode(t *testing.T, ctx context.Context, svc taxcode.Service, namespace string, stripeCode string) (taxcode.TaxCode, error) {
 	t.Helper()
+
 	return svc.GetTaxCodeByAppMapping(ctx, taxcode.GetTaxCodeByAppMappingInput{
 		Namespace: namespace,
 		AppType:   app.AppTypeStripe,
@@ -708,6 +710,7 @@ func TestAddonWithPlanTaxCode(t *testing.T) {
 				break
 			}
 		}
+
 		require.NotNil(t, backfillRC, "backfill plan rate card must be present in addon response")
 
 		tc := backfillRC.AsMeta().TaxConfig

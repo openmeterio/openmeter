@@ -537,6 +537,7 @@ func TestOnFlatFeePaymentAuthorized(t *testing.T) {
 			require.True(t, bookedAt.UTC().Equal(eventTime.UTC()))
 			require.False(t, bookedAt.UTC().Equal(charge.Intent.GetEffectiveInvoiceAt().UTC()))
 		}
+
 		for _, entry := range env.TransactionGroupEntries(t, ref.TransactionGroupID) {
 			require.Nil(t, entry.SourceChargeID)
 			require.NotNil(t, entry.SpendChargeID)
@@ -672,6 +673,7 @@ func TestOnFlatFeePaymentSettled(t *testing.T) {
 			require.True(t, bookedAt.UTC().Equal(eventTime.UTC()))
 			require.False(t, bookedAt.UTC().Equal(charge.Intent.GetEffectiveInvoiceAt().UTC()))
 		}
+
 		for _, entry := range env.TransactionGroupEntries(t, ref.TransactionGroupID) {
 			require.Nil(t, entry.SourceChargeID)
 			require.NotNil(t, entry.SpendChargeID)
@@ -1105,6 +1107,7 @@ func (e *flatFeeHandlerTestEnv) authorizedReceivableSubAccount(t *testing.T) led
 func (e *flatFeeHandlerTestEnv) creditAccruedSubAccount(t *testing.T) ledger.SubAccount {
 	zeroCostBasis := alpacadecimal.Zero
 	taxCodeID := testChargeTaxCodeID
+
 	return e.AccruedSubAccountWithCostBasisAndTaxCode(t, &zeroCostBasis, &taxCodeID)
 }
 
@@ -1135,6 +1138,7 @@ func (e *flatFeeHandlerTestEnv) invoiceAccruedSubAccount(t *testing.T) ledger.Su
 func (e *flatFeeHandlerTestEnv) creditEarningsSubAccount(t *testing.T) ledger.SubAccount {
 	zeroCostBasis := alpacadecimal.Zero
 	taxCodeID := testChargeTaxCodeID
+
 	return e.EarningsSubAccountWithCostBasisAndTaxCode(t, &zeroCostBasis, &taxCodeID)
 }
 

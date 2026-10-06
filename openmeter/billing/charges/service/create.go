@@ -86,6 +86,7 @@ func (s *service) validateTaxCodesExist(ctx context.Context, namespace string, i
 		if _, ok := seen[taxCodeID]; ok {
 			continue
 		}
+
 		seen[taxCodeID] = struct{}{}
 
 		_, err = s.taxCodeService.GetTaxCode(ctx, taxcode.GetTaxCodeInput{
@@ -141,6 +142,7 @@ func (s *service) create(ctx context.Context, input charges.CreateInput) (*charg
 	if err != nil {
 		return nil, err
 	}
+
 	input.Intents = intentsWithDefaults
 
 	if err := input.Validate(); err != nil {
@@ -330,6 +332,7 @@ func (s *service) autoAdvanceCreatedCharges(ctx context.Context, created charges
 			customerIDs = append(customerIDs, ff.GetCustomerID())
 		}
 	}
+
 	customerIDs = lo.Uniq(customerIDs)
 
 	if len(customerIDs) == 0 {
@@ -350,6 +353,7 @@ func (s *service) autoAdvanceCreatedCharges(ctx context.Context, created charges
 			if err != nil {
 				return nil, err
 			}
+
 			advancedByID[chargeID.ID] = advanced
 		}
 	}
@@ -464,6 +468,7 @@ func (s *service) createGatheringLines(ctx context.Context, gatheringLinesToCrea
 		if err != nil {
 			return createGatheringLinesResult{}, fmt.Errorf("creating pending invoice lines for charges: %w", err)
 		}
+
 		if result == nil {
 			return createGatheringLinesResult{}, fmt.Errorf("creating pending invoice lines for charges: result is nil")
 		}

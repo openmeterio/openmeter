@@ -221,6 +221,7 @@ func readCreditPurchaseStatuses(t *testing.T, tx *sql.Tx) map[string][2]string {
 		require.NoError(t, rows.Scan(&id, &status, &statusDetailed))
 		got[id] = [2]string{status, statusDetailed}
 	}
+
 	require.NoError(t, rows.Err())
 
 	return got

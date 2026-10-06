@@ -20,6 +20,7 @@ func ObservePoolMetrics(meter metric.Meter, pool *pgxpool.Pool, additionalAttrib
 	if err != nil {
 		return err
 	}
+
 	allMetrics = append(allMetrics, acquireCountMetric)
 
 	acquiredDurationMetric, err := meter.Int64ObservableGauge(
@@ -30,6 +31,7 @@ func ObservePoolMetrics(meter metric.Meter, pool *pgxpool.Pool, additionalAttrib
 	if err != nil {
 		return err
 	}
+
 	allMetrics = append(allMetrics, acquiredDurationMetric)
 
 	avgAcquiredDurationMetric, err := meter.Int64ObservableGauge(
@@ -40,6 +42,7 @@ func ObservePoolMetrics(meter metric.Meter, pool *pgxpool.Pool, additionalAttrib
 	if err != nil {
 		return err
 	}
+
 	allMetrics = append(allMetrics, avgAcquiredDurationMetric)
 
 	acquiredConnsMetric, err := meter.Int64ObservableGauge(
@@ -49,6 +52,7 @@ func ObservePoolMetrics(meter metric.Meter, pool *pgxpool.Pool, additionalAttrib
 	if err != nil {
 		return err
 	}
+
 	allMetrics = append(allMetrics, acquiredConnsMetric)
 
 	canceledAcquireCountMetric, err := meter.Int64ObservableCounter(
@@ -58,6 +62,7 @@ func ObservePoolMetrics(meter metric.Meter, pool *pgxpool.Pool, additionalAttrib
 	if err != nil {
 		return err
 	}
+
 	allMetrics = append(allMetrics, canceledAcquireCountMetric)
 
 	constructingConnsMetric, err := meter.Int64ObservableGauge(
@@ -67,6 +72,7 @@ func ObservePoolMetrics(meter metric.Meter, pool *pgxpool.Pool, additionalAttrib
 	if err != nil {
 		return err
 	}
+
 	allMetrics = append(allMetrics, constructingConnsMetric)
 
 	emptyAcquireCountMetric, err := meter.Int64ObservableCounter(
@@ -76,6 +82,7 @@ func ObservePoolMetrics(meter metric.Meter, pool *pgxpool.Pool, additionalAttrib
 	if err != nil {
 		return err
 	}
+
 	allMetrics = append(allMetrics, emptyAcquireCountMetric)
 
 	idleConnsMetric, err := meter.Int64ObservableGauge(
@@ -85,6 +92,7 @@ func ObservePoolMetrics(meter metric.Meter, pool *pgxpool.Pool, additionalAttrib
 	if err != nil {
 		return err
 	}
+
 	allMetrics = append(allMetrics, idleConnsMetric)
 
 	maxConns, err := meter.Int64ObservableGauge(
@@ -94,6 +102,7 @@ func ObservePoolMetrics(meter metric.Meter, pool *pgxpool.Pool, additionalAttrib
 	if err != nil {
 		return err
 	}
+
 	allMetrics = append(allMetrics, maxConns)
 
 	totalConns, err := meter.Int64ObservableGauge(
@@ -103,6 +112,7 @@ func ObservePoolMetrics(meter metric.Meter, pool *pgxpool.Pool, additionalAttrib
 	if err != nil {
 		return err
 	}
+
 	allMetrics = append(allMetrics, totalConns)
 
 	newConnsCount, err := meter.Int64ObservableCounter(
@@ -112,6 +122,7 @@ func ObservePoolMetrics(meter metric.Meter, pool *pgxpool.Pool, additionalAttrib
 	if err != nil {
 		return err
 	}
+
 	allMetrics = append(allMetrics, newConnsCount)
 
 	maxLifetimeDestroyCount, err := meter.Int64ObservableCounter(
@@ -121,6 +132,7 @@ func ObservePoolMetrics(meter metric.Meter, pool *pgxpool.Pool, additionalAttrib
 	if err != nil {
 		return err
 	}
+
 	allMetrics = append(allMetrics, maxLifetimeDestroyCount)
 
 	maxIdleDestroyCount, err := meter.Int64ObservableCounter(
@@ -130,6 +142,7 @@ func ObservePoolMetrics(meter metric.Meter, pool *pgxpool.Pool, additionalAttrib
 	if err != nil {
 		return err
 	}
+
 	allMetrics = append(allMetrics, maxIdleDestroyCount)
 
 	_, err = meter.RegisterCallback(func(_ context.Context, o metric.Observer) error {
@@ -144,6 +157,7 @@ func ObservePoolMetrics(meter metric.Meter, pool *pgxpool.Pool, additionalAttrib
 		if acquireCount > 0 {
 			o.ObserveInt64(avgAcquiredDurationMetric, acquireDurationMS/acquireCount, metric.WithAttributes(additionalAttributes...))
 		}
+
 		o.ObserveInt64(acquiredConnsMetric, int64(stat.AcquiredConns()), metric.WithAttributes(additionalAttributes...))
 		o.ObserveInt64(canceledAcquireCountMetric, stat.CanceledAcquireCount(), metric.WithAttributes(additionalAttributes...))
 		o.ObserveInt64(constructingConnsMetric, int64(stat.ConstructingConns()), metric.WithAttributes(additionalAttributes...))

@@ -50,6 +50,7 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 			// Validate that either customer ID or customer key is provided
 			if body.Customer.Id == nil && body.Customer.Key == nil {
 				reason := "one of customer.id or customer.key is required"
+
 				return CreateSubscriptionRequest{}, apierrors.NewBadRequestError(
 					ctx,
 					errors.New(reason),
@@ -88,6 +89,7 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 				if err != nil {
 					return CreateSubscriptionRequest{}, err
 				}
+
 				planInput.FromInput(&customPlan)
 				subscriptionName = customPlan.Name
 			}
@@ -98,6 +100,7 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 				if err != nil {
 					return CreateSubscriptionRequest{}, fmt.Errorf("failed to get plan: %w", err)
 				}
+
 				planInput.FromRef(&plansubscription.PlanRefInput{
 					Key:     planEntity.Key,
 					Version: &planEntity.Version,

@@ -427,5 +427,6 @@ func requireReceivableBalanceBuckets(t *testing.T, env *transactionsTestEnv, exp
 			bucket.GroupByValues[ledger.BalanceBucketGroupBySpendChargeID],
 		)] = bucket.SettledAmount.InexactFloat64()
 	}
+
 	require.Equal(t, expected, actual)
 }

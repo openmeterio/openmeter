@@ -62,6 +62,7 @@ func (g grantEventV2GrantLiteral) Validate() error {
 	if err := domainGrant.Validate(); err != nil {
 		return err
 	}
+
 	return nil
 }
 

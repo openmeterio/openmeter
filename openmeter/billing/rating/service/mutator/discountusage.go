@@ -21,7 +21,6 @@ func (m *DiscountUsage) Mutate(l rate.PricerCalculateInput) (rate.PricerCalculat
 	//
 	// This means that we need to ensure that the mutator always keeps the line discounts in sync with the
 	// usage based line's rate card discounts.
-
 	usage, err := l.GetUsage()
 	if err != nil {
 		return l, err

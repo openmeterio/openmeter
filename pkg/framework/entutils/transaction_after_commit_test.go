@@ -87,6 +87,7 @@ func TestAfterCommitDiscardedOnOuterFailure(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 			}
+
 			require.False(t, called)
 			require.Error(t, tx.AfterCommit(func() {}))
 		})
@@ -110,5 +111,6 @@ func TestAfterCommitRunsOutsideDriverLock(t *testing.T) {
 	case <-time.After(time.Second):
 		t.Fatal("after-commit callback ran while holding the transaction lock")
 	}
+
 	require.NoError(t, <-commitDone)
 }

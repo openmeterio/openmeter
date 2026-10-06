@@ -136,6 +136,7 @@ func TestV3ProductCatalogSmoke(t *testing.T) {
 				break
 			}
 		}
+
 		require.NotNil(t, usageRC, "usage rate card missing after update")
 		require.NotNil(t, usageRC.Feature, "usage rate card lost its feature binding after update")
 		assert.Equal(t, usage.Feature.ID, usageRC.Feature.ID)
@@ -204,6 +205,7 @@ func TestV3ProductCatalogSmoke(t *testing.T) {
 		for _, e := range got.ValidationErrors {
 			codes = append(codes, e.Code)
 		}
+
 		assert.Contains(t, codes, "rate_card_billing_cadence_unaligned")
 
 		// Publish should reject with the same code.
@@ -289,6 +291,7 @@ func TestV3ProductCatalogSmoke(t *testing.T) {
 				break
 			}
 		}
+
 		assert.True(t, found, "attached plan-addon missing after plan publish")
 	})
 }

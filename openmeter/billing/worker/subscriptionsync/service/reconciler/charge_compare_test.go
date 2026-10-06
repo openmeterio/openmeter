@@ -152,6 +152,7 @@ func TestFlatFeeIntentBillingTermsMatch(t *testing.T) {
 				if existing.Annotations == nil {
 					existing.Annotations = models.Annotations{}
 				}
+
 				existing.Annotations[subscriptionworkflow.AnnotationEditUniqueKey] = "patch-id"
 			},
 			expectedMatch: true,
@@ -439,6 +440,7 @@ func TestUsageBasedIntentBillingTermsMatch(t *testing.T) {
 				if existing.Annotations == nil {
 					existing.Annotations = models.Annotations{}
 				}
+
 				existing.Annotations[subscriptionworkflow.AnnotationEditUniqueKey] = "patch-id"
 			},
 			expectedMatch: true,
@@ -542,6 +544,7 @@ func TestServiceDiffItemUsageBasedSubscriptionReferenceChange(t *testing.T) {
 			if tt.update != nil {
 				tt.update(&existingIntent)
 			}
+
 			existing := newUsageBasedComparisonTestItem(t, target, "usage-based-charge", existingIntent)
 			collection := newUsageBasedChargeCollection(1)
 			referencePatches := make(ChargeReferencePatches, 1)
@@ -552,8 +555,10 @@ func TestServiceDiffItemUsageBasedSubscriptionReferenceChange(t *testing.T) {
 				require.ErrorContains(t, err, tt.expectError)
 				require.True(t, referencePatches.IsEmpty())
 				require.True(t, collection.Patches().IsEmpty())
+
 				return
 			}
+
 			require.NoError(t, err)
 
 			// Then the plan repairs the reference, patches the period, or replaces the charge.
@@ -575,6 +580,7 @@ func TestServiceDiffItemUsageBasedSubscriptionReferenceChange(t *testing.T) {
 				require.True(t, ok)
 				require.Equal(t, tt.expectedPatch, patch.Op())
 			}
+
 			if tt.expectCreate {
 				require.Len(t, chargePatches.Creates, 1)
 			} else {
@@ -613,6 +619,7 @@ func newFlatFeeComparisonTestIntent(t *testing.T) chargesflatfee.Intent {
 	t.Helper()
 
 	target := newChargePatchTestTarget(t, productcatalog.CreditOnlySettlementMode, newChargePatchTestFlatRateCard())
+
 	return newFlatFeeComparisonTestIntentFromTarget(t, target)
 }
 
@@ -677,10 +684,12 @@ func cloneFlatFeeComparisonTestIntent(intent chargesflatfee.Intent) chargesflatf
 		featureKey := *intent.FeatureKey
 		out.FeatureKey = &featureKey
 	}
+
 	if intent.FeatureID != nil {
 		featureID := *intent.FeatureID
 		out.FeatureID = &featureID
 	}
+
 	if intent.CostBasis != nil {
 		costBasis := intent.CostBasis.Clone()
 		out.CostBasis = &costBasis
@@ -1109,9 +1118,11 @@ func assertCostBasisBillingTerms(t *testing.T, name string, existingBasis, targe
 	if existingBasis != nil {
 		flatExisting.CostBasis = ptr(existingBasis.Clone())
 	}
+
 	if targetBasis != nil {
 		flatTarget.CostBasis = ptr(targetBasis.Clone())
 	}
+
 	assertFlatFeeBillingTerms(t, name+" flat fee", flatExisting, flatTarget, want)
 
 	usageTargetState := newChargePatchTestTarget(t, productcatalog.CreditThenInvoiceSettlementMode, newChargePatchTestUsageRateCard())
@@ -1122,9 +1133,11 @@ func assertCostBasisBillingTerms(t *testing.T, name string, existingBasis, targe
 	if existingBasis != nil {
 		usageExisting.CostBasis = ptr(existingBasis.Clone())
 	}
+
 	if targetBasis != nil {
 		usageTarget.CostBasis = ptr(targetBasis.Clone())
 	}
+
 	assertUsageBillingTerms(t, name+" usage", usageExisting, usageTarget, want)
 }
 

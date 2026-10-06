@@ -82,6 +82,7 @@ func (s Service) CreateChannel(ctx context.Context, params notification.CreateCh
 			if err != nil {
 				return nil, fmt.Errorf("failed to update channel: %w", err)
 			}
+
 			logger.Debug("channel is updated in database with webhook configuration")
 		default:
 			return nil, fmt.Errorf("invalid channel type: %s", channel.Type)

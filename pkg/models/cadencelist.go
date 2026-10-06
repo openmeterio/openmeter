@@ -63,6 +63,7 @@ func (t CadenceList[T]) GetOverlaps() []OverlapDetail[T] {
 				Item1:  item1,
 				Item2:  item2,
 			})
+
 			continue
 		}
 

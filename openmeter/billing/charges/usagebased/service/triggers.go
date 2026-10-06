@@ -32,6 +32,7 @@ func (s *service) AdvanceCharge(ctx context.Context, input usagebased.AdvanceCha
 		if err != nil {
 			return nil, fmt.Errorf("charge state trigger failed with: %w", err)
 		}
+
 		if !canAdvance {
 			return nil, nil
 		}
@@ -40,6 +41,7 @@ func (s *service) AdvanceCharge(ctx context.Context, input usagebased.AdvanceCha
 		if err != nil {
 			return nil, fmt.Errorf("error advance the invoice patches: %w", err)
 		}
+
 		canAdvance, err = stateMachine.CanFire(ctx, meta.TriggerNext)
 		if err != nil {
 			return nil, fmt.Errorf("check next transition: %w", err)
@@ -116,6 +118,7 @@ func (s *service) TriggerPatch(ctx context.Context, chargeID meta.ChargeID, patc
 		if err != nil {
 			return nil, err
 		}
+
 		canAdvance, err := stateMachine.CanFire(ctx, meta.TriggerNext)
 		if err != nil {
 			return nil, fmt.Errorf("check next transition: %w", err)
@@ -151,6 +154,7 @@ func applyBaseIntentPatchForOverriddenCharge(charge usagebased.Charge, patch met
 		if err := charge.Intent.Mutate(meta.ChangeTargetBase, func(fields *usagebased.IntentMutableFields) error {
 			deletedAt := clock.Now()
 			fields.IntentDeletedAt = &deletedAt
+
 			return nil
 		}); err != nil {
 			return nil, fmt.Errorf("mutating base intent for %s patch: %w", patch.Op(), err)

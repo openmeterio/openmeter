@@ -146,6 +146,7 @@ func TestListEvents_WithoutNamespaceIsAllowed(t *testing.T) {
 	for _, item := range result.Items {
 		ids = append(ids, item.ID)
 	}
+
 	assert.Contains(t, ids, event.ID)
 }
 

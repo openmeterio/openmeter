@@ -26,12 +26,15 @@ func (i resolveCreditTransactionBalancesInput) Validate() error {
 	if err := i.CustomerID.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("customer ID: %w", err))
 	}
+
 	if i.Accounts.FBO == "" || i.Accounts.Receivable == "" {
 		errs = append(errs, errors.New("customer balance accounts are required"))
 	}
+
 	if err := ValidateFeatureFilter(i.FeatureFilter); err != nil {
 		errs = append(errs, fmt.Errorf("feature filter: %w", err))
 	}
+
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
@@ -42,6 +45,7 @@ func (s *service) resolveCreditTransactionBalances(ctx context.Context, input re
 	if err := input.Validate(); err != nil {
 		return err
 	}
+
 	if len(input.Items) == 0 {
 		return nil
 	}
@@ -72,14 +76,17 @@ func (s *service) resolveCreditTransactionBalances(ctx context.Context, input re
 			})
 		}
 	}
+
 	balances, err := s.BalanceQuerier.GetBalancesAtBoundaries(ctx, ledger.GetBalancesAtBoundariesInput{Queries: queries})
 	if err != nil {
 		return fmt.Errorf("get credit transaction balances: %w", err)
 	}
+
 	for idx := range input.Items {
 		item := &input.Items[idx]
 		item.Balance.After = balances[2*idx].Add(balances[2*idx+1]).Add(item.balanceOffset)
 		item.Balance.Before = item.Balance.After.Sub(lo.FromPtrOr(item.balanceImpact, item.Amount))
 	}
+
 	return nil
 }

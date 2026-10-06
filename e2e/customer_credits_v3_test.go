@@ -250,6 +250,7 @@ func TestV3CreateCreditGrantMissingTaxCode(t *testing.T) {
 			mentionsTaxCode = true
 		}
 	}
+
 	assert.True(t, mentionsTaxCode, "response should name the missing tax code, problem: %+v", problem)
 }
 
@@ -265,6 +266,7 @@ func TestV3CreateCreditGrantIdempotencyKey(t *testing.T) {
 		})
 		c.requireStatus(http.StatusCreated, err)
 		require.NotNil(t, customer)
+
 		return customer.ID
 	}
 
@@ -462,6 +464,7 @@ func TestV3VoidCreditGrant(t *testing.T) {
 				fundedByID[tx.ID] = tx
 			}
 		}
+
 		assert.Equal(t, 2, typeCounts[v3sdk.CreditTransactionTypeFunded])
 		assert.Equal(t, 1, typeCounts[txType])
 

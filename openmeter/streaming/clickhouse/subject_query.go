@@ -47,5 +47,6 @@ func (d listSubjectsQuery) toSQL() (string, []interface{}) {
 	}
 
 	sql, args := sb.Build()
+
 	return sql, args
 }

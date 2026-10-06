@@ -63,6 +63,7 @@ func (h *handler) GetSubscription() GetSubscriptionHandler {
 			if view.Spec.HasUnitConfig() {
 				return def, productcatalog.ErrUnitConfigNotRepresentable
 			}
+
 			if view.Spec.HasCustomCurrencyBillables() {
 				return def, productcatalog.ErrCurrencyNotRepresentable
 			}
@@ -153,6 +154,7 @@ func (h *handler) ListCustomerSubscriptions() ListCustomerSubscriptionsHandler {
 					if len(statusFilter) == 0 {
 						return nil
 					}
+
 					return statusFilter
 				}(),
 			}, nil

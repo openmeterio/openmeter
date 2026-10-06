@@ -57,10 +57,12 @@ func (h *handler) ListCurrencies() ListCurrenciesHandler {
 						{Field: "sort", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 					})
 				}
+
 				orderBy, err = FromAPICurrencySortField(ctx, sort.Field)
 				if err != nil {
 					return ListCurrenciesRequest{}, err
 				}
+
 				order = sort.Order.ToSortxOrder()
 			}
 
@@ -83,6 +85,7 @@ func (h *handler) ListCurrencies() ListCurrenciesHandler {
 						{Field: "filter[code]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 					})
 				}
+
 				req.Code = code
 			}
 
@@ -104,6 +107,7 @@ func (h *handler) ListCurrencies() ListCurrenciesHandler {
 				if err != nil {
 					return ListCurrenciesResponse{}, err
 				}
+
 				items = append(items, item)
 			}
 

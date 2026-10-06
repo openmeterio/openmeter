@@ -42,6 +42,7 @@ func MapSubscriptionAddon(
 		if err != nil {
 			return subscriptionaddon.SubscriptionAddon{}, err
 		}
+
 		base.Addon = *add
 	}
 
@@ -57,6 +58,7 @@ func MapSubscriptionAddon(
 		if err != nil {
 			return subscriptionaddon.SubscriptionAddon{}, err
 		}
+
 		base.RateCards = rateCards
 	}
 
@@ -122,5 +124,6 @@ func MapSubscriptionAddonQuantities(entities []*db.SubscriptionAddonQuantity) []
 	for i, entity := range entities {
 		quantities[i] = MapSubscriptionAddonQuantity(entity)
 	}
+
 	return quantities
 }

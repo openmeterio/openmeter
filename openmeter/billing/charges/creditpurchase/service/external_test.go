@@ -244,6 +244,7 @@ type externalStateMachineAdapter struct {
 func (a *externalStateMachineAdapter) UpdateCharge(ctx context.Context, charge creditpurchase.ChargeBase) (creditpurchase.ChargeBase, error) {
 	a.updateChargeCalls++
 	a.updatedBaseStatuses = append(a.updatedBaseStatuses, charge.Status)
+
 	return charge, nil
 }
 
@@ -259,6 +260,7 @@ func (a *externalStateMachineAdapter) CreateCreditGrant(ctx context.Context, _ m
 func (a *externalStateMachineAdapter) CreateExternalPayment(ctx context.Context, _ meta.ChargeID, input payment.ExternalCreateInput) (payment.External, error) {
 	a.createExternalPaymentCalls++
 	a.createdExternalPayment = input
+
 	return payment.External{
 		Payment: payment.Payment{
 			NamespacedID: models.NamespacedID{

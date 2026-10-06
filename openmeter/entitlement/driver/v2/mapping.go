@@ -44,39 +44,48 @@ func (parserV2) ToAPIGenericV2(e *entitlement.Entitlement, customerId string, cu
 		if err != nil {
 			return nil, err
 		}
+
 		v, err := ParserV2.ToMeteredV2(m, e, customerId, customerKey)
 		if err != nil {
 			return nil, err
 		}
+
 		if err := res.FromEntitlementMeteredV2(*v); err != nil {
 			return nil, err
 		}
+
 		return res, nil
 	case entitlement.EntitlementTypeStatic:
 		s, err := staticentitlement.ParseFromGenericEntitlement(e)
 		if err != nil {
 			return nil, err
 		}
+
 		v, err := ParserV2.ToStaticV2(s, e, customerId, customerKey)
 		if err != nil {
 			return nil, err
 		}
+
 		if err := res.FromEntitlementStaticV2(*v); err != nil {
 			return nil, err
 		}
+
 		return res, nil
 	case entitlement.EntitlementTypeBoolean:
 		b, err := booleanentitlement.ParseFromGenericEntitlement(e)
 		if err != nil {
 			return nil, err
 		}
+
 		v, err := ParserV2.ToBooleanV2(b, e, customerId, customerKey)
 		if err != nil {
 			return nil, err
 		}
+
 		if err := res.FromEntitlementBooleanV2(*v); err != nil {
 			return nil, err
 		}
+
 		return res, nil
 	default:
 		return nil, fmt.Errorf("unsupported entitlement type: %s", e.EntitlementType)
@@ -108,6 +117,7 @@ func (parserV2) ToMeteredV2(m *meteredentitlement.Entitlement, e *entitlement.En
 					Priority: m.IssueAfterReset.Priority,
 				}
 			}
+
 			return nil
 		}(),
 		LastReset:              m.LastReset,
@@ -118,6 +128,7 @@ func (parserV2) ToMeteredV2(m *meteredentitlement.Entitlement, e *entitlement.En
 		UpdatedAt:              m.UpdatedAt,
 		UsagePeriod:            mapUsagePeriodValue(e.UsagePeriod),
 	}
+
 	return &v, nil
 }
 
@@ -167,6 +178,7 @@ func (parserV2) ToBooleanV2(b *booleanentitlement.Entitlement, e *entitlement.En
 		CurrentUsagePeriod: mapPeriodPtr(b.CurrentUsagePeriod),
 		UsagePeriod:        mapUsagePeriodPtr(e.UsagePeriod),
 	}
+
 	return &v, nil
 }
 
@@ -175,7 +187,9 @@ func mapUsagePeriodValue(u *entitlement.UsagePeriod) api.RecurringPeriod {
 	if u == nil {
 		return api.RecurringPeriod{}
 	}
+
 	origi := u.GetOriginalValueAsUsagePeriodInput().GetValue()
+
 	return api.RecurringPeriod{
 		Anchor:      origi.Anchor,
 		Interval:    entitlementdriver.MapRecurrenceToAPI(origi.Interval),
@@ -187,7 +201,9 @@ func mapUsagePeriodPtr(u *entitlement.UsagePeriod) *api.RecurringPeriod {
 	if u == nil {
 		return nil
 	}
+
 	v := mapUsagePeriodValue(u)
+
 	return &v
 }
 
@@ -195,6 +211,7 @@ func mapPeriodPtr(p *timeutil.ClosedPeriod) *api.Period {
 	if p == nil {
 		return nil
 	}
+
 	return &api.Period{From: p.From, To: p.To}
 }
 
@@ -202,6 +219,7 @@ func mapPeriodValue(p *timeutil.ClosedPeriod) api.Period {
 	if p == nil {
 		return api.Period{}
 	}
+
 	return api.Period{From: p.From, To: p.To}
 }
 
@@ -304,6 +322,7 @@ func ParseAPICreateInputV2(inp *api.EntitlementV2CreateInputs, ns string, usageA
 				if err != nil {
 					return entCreateInp, grantsInp, err
 				}
+
 				grantsInp = gs
 			}
 		}
@@ -311,6 +330,7 @@ func ParseAPICreateInputV2(inp *api.EntitlementV2CreateInputs, ns string, usageA
 		if v.Metadata != nil {
 			entCreateInp.Metadata = *v.Metadata
 		}
+
 		if v.MeasureUsageFrom != nil {
 			measureUsageFrom := &entitlement.MeasureUsageFromInput{}
 			apiTime, err := v.MeasureUsageFrom.AsMeasureUsageFromTime()
@@ -340,6 +360,7 @@ func ParseAPICreateInputV2(inp *api.EntitlementV2CreateInputs, ns string, usageA
 					return entCreateInp, grantsInp, err
 				}
 			}
+
 			entCreateInp.MeasureUsageFrom = measureUsageFrom
 		}
 	case api.EntitlementStaticCreateInputs:
@@ -375,6 +396,7 @@ func ParseAPICreateInputV2(inp *api.EntitlementV2CreateInputs, ns string, usageA
 				Interval: iv,
 			}))
 		}
+
 		if v.Metadata != nil {
 			entCreateInp.Metadata = *v.Metadata
 		}
@@ -399,6 +421,7 @@ func ParseAPICreateInputV2(inp *api.EntitlementV2CreateInputs, ns string, usageA
 				Interval: iv,
 			}))
 		}
+
 		if v.Metadata != nil {
 			entCreateInp.Metadata = *v.Metadata
 		}
@@ -451,6 +474,7 @@ func MapAPIGrantV2ToCreateGrantInput(g api.EntitlementGrantCreateInputV2) (meter
 		if err != nil {
 			return grantInput, err
 		}
+
 		grantInput.Recurrence = &timeutil.Recurrence{
 			Interval: iv,
 			Anchor:   defaultx.WithDefault(g.Recurrence.Anchor, g.EffectiveAt),

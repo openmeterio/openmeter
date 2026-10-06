@@ -19,5 +19,6 @@ func TestClock(t *testing.T) {
 	if diff < 0 {
 		diff = -diff
 	}
+
 	assert.True(t, diff < time.Second)
 }

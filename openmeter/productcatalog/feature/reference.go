@@ -164,6 +164,7 @@ func (f Feature) Clone() Feature {
 		for key, value := range f.MeterGroupByFilters {
 			filters[key] = cloneFilterString(value)
 		}
+
 		f.MeterGroupByFilters = filters
 	}
 
@@ -172,9 +173,11 @@ func (f Feature) Clone() Feature {
 		if unitCost.Manual != nil {
 			unitCost.Manual = lo.ToPtr(*unitCost.Manual)
 		}
+
 		if unitCost.LLM != nil {
 			unitCost.LLM = lo.ToPtr(*unitCost.LLM)
 		}
+
 		f.UnitCost = &unitCost
 	}
 
@@ -215,21 +218,26 @@ func cloneFilterString(value filter.FilterString) filter.FilterString {
 	if value.In != nil {
 		clone.In = lo.ToPtr(slices.Clone(*value.In))
 	}
+
 	if value.Nin != nil {
 		clone.Nin = lo.ToPtr(slices.Clone(*value.Nin))
 	}
+
 	if value.And != nil {
 		and := make([]filter.FilterString, len(*value.And))
 		for idx, nested := range *value.And {
 			and[idx] = cloneFilterString(nested)
 		}
+
 		clone.And = &and
 	}
+
 	if value.Or != nil {
 		or := make([]filter.FilterString, len(*value.Or))
 		for idx, nested := range *value.Or {
 			or[idx] = cloneFilterString(nested)
 		}
+
 		clone.Or = &or
 	}
 

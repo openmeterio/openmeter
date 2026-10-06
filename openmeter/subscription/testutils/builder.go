@@ -91,6 +91,7 @@ func (b *testSubscriptionSpecBuilder) AddPhase(dur *datetime.ISODuration, rcs ..
 		if cad.ActiveTo == nil {
 			b.t.Fatalf("phase %s has no active to, cannot add new phase without specifying duration for previous", phases[idx-1].PhaseKey)
 		}
+
 		startAfter = datetime.ISODurationBetween(b.s.ActiveFrom, *cad.ActiveTo)
 	}
 

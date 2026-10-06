@@ -167,6 +167,7 @@ func (d *diffable) getApplyForRateCard(rc subscriptionaddon.SubscriptionAddonRat
 						return fmt.Errorf("failed to extend rate card %s: %w", rc.AddonRateCard.Key(), err)
 					}
 				}
+
 				if priceIntroducedByAddon {
 					addonCurrency := rc.AddonRateCard.AsMeta().EffectiveCurrency(d.addon.Addon.Currency)
 					if err := materializeAddonRateCardCurrency(&inst, addonCurrency, spec.InvoiceCurrency); err != nil {
@@ -198,6 +199,7 @@ func (d *diffable) getApplyForRateCard(rc subscriptionaddon.SubscriptionAddonRat
 						return fmt.Errorf("failed to extend gap rate card %s: %w", rc.AddonRateCard.Key(), err)
 					}
 				}
+
 				addonCurrency := rc.AddonRateCard.AsMeta().EffectiveCurrency(d.addon.Addon.Currency)
 				if err := materializeAddonRateCardCurrency(&inst, addonCurrency, spec.InvoiceCurrency); err != nil {
 					return fmt.Errorf("failed to materialize currency for new rate card %s: %w", rc.AddonRateCard.Key(), err)

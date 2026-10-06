@@ -29,24 +29,31 @@ func TestAPIErrorParsesRFC7807(t *testing.T) {
 	if apiErr.StatusCode != http.StatusNotFound {
 		t.Errorf("StatusCode = %d, want 404", apiErr.StatusCode)
 	}
+
 	if apiErr.Status != 404 {
 		t.Errorf("Status = %d, want 404", apiErr.Status)
 	}
+
 	if apiErr.Type != "https://openmeter.io/problems/not-found" {
 		t.Errorf("Type = %q, want the problem type", apiErr.Type)
 	}
+
 	if apiErr.Title != "Not Found" {
 		t.Errorf("Title = %q, want %q", apiErr.Title, "Not Found")
 	}
+
 	if apiErr.Detail != "meter not found" {
 		t.Errorf("Detail = %q, want %q", apiErr.Detail, "meter not found")
 	}
+
 	if apiErr.Instance != "kong:trace:abc123" {
 		t.Errorf("Instance = %q, want %q", apiErr.Instance, "kong:trace:abc123")
 	}
+
 	if string(apiErr.RawBody) != body {
 		t.Errorf("RawBody = %q, want the undecoded body", apiErr.RawBody)
 	}
+
 	if want := "openmeter: 404 Not Found: meter not found"; apiErr.Error() != want {
 		t.Errorf("Error() = %q, want %q", apiErr.Error(), want)
 	}
@@ -62,6 +69,7 @@ func TestAPIErrorTitleOnly(t *testing.T) {
 	if !ok {
 		t.Fatalf("error %v is not an *APIError", err)
 	}
+
 	if want := "openmeter: 418 Teapot"; apiErr.Error() != want {
 		t.Errorf("Error() = %q, want %q", apiErr.Error(), want)
 	}
@@ -79,9 +87,11 @@ func TestAPIErrorNonJSONBodyFallsBackToRawEcho(t *testing.T) {
 		if !ok {
 			t.Fatalf("error %v is not an *APIError", err)
 		}
+
 		if apiErr.Title != "" {
 			t.Errorf("Title = %q, want empty for a non-problem body", apiErr.Title)
 		}
+
 		if want := "openmeter: unexpected status 502: " + body; apiErr.Error() != want {
 			t.Errorf("Error() = %q, want %q", apiErr.Error(), want)
 		}
@@ -101,6 +111,7 @@ func TestAPIErrorNonJSONBodyFallsBackToRawEcho(t *testing.T) {
 		if apiErr.Error() != want {
 			t.Errorf("Error() = %q, want %q", apiErr.Error(), want)
 		}
+
 		// The message is truncated; RawBody still carries the full payload.
 		if len(apiErr.RawBody) != 600 {
 			t.Errorf("len(RawBody) = %d, want the full 600 bytes", len(apiErr.RawBody))
@@ -123,6 +134,7 @@ func TestAsAPIError(t *testing.T) {
 	if !ok {
 		t.Fatalf("AsAPIError did not find the APIError inside %v", wrapped)
 	}
+
 	if apiErr.StatusCode != http.StatusInternalServerError {
 		t.Errorf("StatusCode = %d, want 500", apiErr.StatusCode)
 	}
@@ -152,9 +164,11 @@ func TestDecodeAPIError(t *testing.T) {
 		if decodeErr != nil {
 			t.Fatalf("DecodeAPIError: %v", decodeErr)
 		}
+
 		if !ok {
 			t.Fatal("DecodeAPIError reported the error is not an APIError")
 		}
+
 		if problem.Status != 400 || problem.Title != "Bad Request" || len(problem.Errors) != 2 || problem.Errors[1].Field != "name" {
 			t.Errorf("decoded problem = %+v, want the typed body", problem)
 		}
@@ -175,6 +189,7 @@ func TestDecodeAPIError(t *testing.T) {
 		if !ok {
 			t.Fatal("DecodeAPIError reported the error is not an APIError")
 		}
+
 		if decodeErr == nil {
 			t.Error("DecodeAPIError returned nil error for a non-JSON body")
 		}
@@ -239,9 +254,11 @@ func TestEmptyIDGuard(t *testing.T) {
 			if err == nil {
 				t.Fatal("call with empty ID returned nil error")
 			}
+
 			if !errors.Is(err, openmeter.ErrEmptyID) {
 				t.Errorf("errors.Is(err, ErrEmptyID) = false for %v", err)
 			}
+
 			if !strings.Contains(err.Error(), tc.wantParam) {
 				t.Errorf("error %q does not name the parameter %q", err, tc.wantParam)
 			}

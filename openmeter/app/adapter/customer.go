@@ -205,6 +205,7 @@ func (a *adapter) DeleteCustomer(ctx context.Context, input app.DeleteCustomerIn
 
 			return nil, nil
 		})
+
 		return err
 	})
 }

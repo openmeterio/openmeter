@@ -186,6 +186,7 @@ func toAPIInvoiceCustomer(c billing.InvoiceCustomer) api.BillingInvoiceCustomer 
 		if c.BillingAddress.Country != nil {
 			country = lo.ToPtr(api.CountryCode(*c.BillingAddress.Country))
 		}
+
 		out.BillingAddress = &api.Address{
 			City:        c.BillingAddress.City,
 			Country:     country,
@@ -218,6 +219,7 @@ func toAPIWorkflow(w billing.InvoiceWorkflow) (api.BillingInvoiceWorkflowSetting
 		}); err != nil {
 			return api.BillingInvoiceWorkflowSettings{}, fmt.Errorf("converting payment settings: %w", err)
 		}
+
 		payment = &p
 	case billing.CollectionMethodSendInvoice:
 		p := api.BillingWorkflowPaymentSettings{}
@@ -227,6 +229,7 @@ func toAPIWorkflow(w billing.InvoiceWorkflow) (api.BillingInvoiceWorkflowSetting
 		}); err != nil {
 			return api.BillingInvoiceWorkflowSettings{}, fmt.Errorf("converting payment settings: %w", err)
 		}
+
 		payment = &p
 	}
 
@@ -401,6 +404,7 @@ func mapDetailedLines(dls billing.DetailedLines) ([]api.BillingInvoiceDetailedLi
 		if err != nil {
 			return api.BillingInvoiceDetailedLine{}, fmt.Errorf("mapping detailed line[%s]: %w", dl.ID, err)
 		}
+
 		return mapped, nil
 	})
 }
@@ -535,6 +539,7 @@ func mergeStandardInvoiceFromAPI(inv *billing.StandardInvoice, req api.UpdateInv
 	if err != nil {
 		return fmt.Errorf("converting labels: %w", err)
 	}
+
 	inv.Metadata = metadata
 
 	inv.Supplier = mergeInvoiceSupplierFromAPI(inv.Supplier, req.Supplier)
@@ -544,12 +549,14 @@ func mergeStandardInvoiceFromAPI(inv *billing.StandardInvoice, req api.UpdateInv
 	if err != nil {
 		return fmt.Errorf("merging workflow: %w", err)
 	}
+
 	inv.Workflow = workflow
 
 	lines, err := mergeStandardInvoiceLinesFromAPI(inv, req.Lines)
 	if err != nil {
 		return fmt.Errorf("merging lines: %w", err)
 	}
+
 	inv.Lines = lines
 
 	return nil
@@ -609,6 +616,7 @@ func mergeInvoiceWorkflowFromAPI(existing billing.InvoiceWorkflow, updated api.U
 			if err != nil {
 				return existing, billing.ValidationError{Err: fmt.Errorf("failed to parse draft period: %w", err)}
 			}
+
 			existing.Config.Invoicing.DraftPeriod = period
 		}
 	}
@@ -638,6 +646,7 @@ func mergeInvoiceWorkflowFromAPI(existing billing.InvoiceWorkflow, updated api.U
 				if err != nil {
 					return existing, billing.ValidationError{Err: fmt.Errorf("failed to parse due after: %w", err)}
 				}
+
 				existing.Config.Invoicing.DueAfter = period
 			}
 		default:
@@ -680,6 +689,7 @@ func mergeStandardInvoiceLinesFromAPI(inv *billing.StandardInvoice, lines *[]api
 					Err: fmt.Errorf("duplicate line ID %q in request", id),
 				}
 			}
+
 			processedIDs.Add(id)
 		}
 
@@ -789,6 +799,7 @@ func mergeStandardLineFromAPI(existing *billing.StandardLine, line api.UpdateInv
 	if existing.UsageBased == nil {
 		return nil, fmt.Errorf("existing line %s has no usage-based pricing", existing.ID)
 	}
+
 	existing.UsageBased.Price = price
 	existing.UsageBased.FeatureKey = featureKey
 

@@ -139,5 +139,6 @@ func mustNewPatchExtend(t *testing.T, input NewPatchExtendInput) PatchExtend {
 
 	patch, err := NewPatchExtend(input)
 	require.NoError(t, err)
+
 	return patch
 }

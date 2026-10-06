@@ -66,6 +66,7 @@ func TestSubscriptionItemCustomCurrencyPersistence(t *testing.T) {
 	require.NoError(t, unmaterializedInput.RateCard.ChangeMeta(func(meta productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
 		meta.Key = unmaterializedInput.Key
 		meta.Currency = nil
+
 		return meta, nil
 	}))
 	_, err = deps.ItemRepo.Create(t.Context(), unmaterializedInput)
@@ -89,6 +90,7 @@ func TestSubscriptionItemCustomCurrencyPersistence(t *testing.T) {
 	require.NoError(t, customRateCard.ChangeMeta(func(meta productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
 		meta.Key = customRateCardKey
 		meta.Name = "Custom currency rate card"
+
 		return meta, nil
 	}))
 
@@ -136,6 +138,7 @@ func TestSubscriptionItemCustomCurrencyPersistence(t *testing.T) {
 			Code:             managedCurrency.GetCode(),
 			CustomCurrencyID: &unresolvedCurrencyID,
 		}
+
 		return meta, nil
 	}))
 	_, err = deps.ItemRepo.Create(t.Context(), unresolvedInput)

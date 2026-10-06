@@ -136,6 +136,7 @@ func (i PlanIssuanceInput) Validate() error {
 		if release.Amount.IsNegative() {
 			errs = append(errs, fmt.Errorf("immediate releases[%d]: amount cannot be negative", idx))
 		}
+
 		immediateReleaseAmount = immediateReleaseAmount.Add(release.Amount)
 	}
 
@@ -645,6 +646,7 @@ func (s *service) PersistCommittedRecords(ctx context.Context, pending []Pending
 		if record.SourceTransactionGroupID == nil {
 			record.SourceTransactionGroupID = &groupID
 		}
+
 		if pendingRecord.SourceEntryIdentityKey != "" {
 			sourceEntry, ok := sourceEntriesByIdentity[pendingRecord.SourceEntryIdentityKey]
 			if !ok {

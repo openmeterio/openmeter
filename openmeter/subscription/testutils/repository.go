@@ -14,6 +14,7 @@ import (
 func NewSubscriptionRepo(t *testing.T, dbDeps *DBDeps) testSubscriptionRepo {
 	t.Helper()
 	repo := repository.NewSubscriptionRepo(dbDeps.DBClient)
+
 	return testSubscriptionRepo{
 		repo,
 	}
@@ -31,6 +32,7 @@ func (r *testSubscriptionRepo) CreateExampleSubscription(t *testing.T, customerI
 	if err != nil {
 		t.Fatalf("failed to create example subscription: %v", err)
 	}
+
 	return s
 }
 
@@ -49,6 +51,7 @@ func getExampleCreateSubscriptionInput(customerId string, planRef subscription.P
 func NewSubscriptionPhaseRepo(t *testing.T, dbDeps *DBDeps) testSubscriptionPhaseRepo {
 	t.Helper()
 	repo := repository.NewSubscriptionPhaseRepo(dbDeps.DBClient)
+
 	return testSubscriptionPhaseRepo{
 		repo,
 	}
@@ -61,6 +64,7 @@ type testSubscriptionPhaseRepo struct {
 func NewSubscriptionItemRepo(t *testing.T, dbDeps *DBDeps) testSubscriptionItemRepo {
 	t.Helper()
 	repo := repository.NewSubscriptionItemRepo(dbDeps.DBClient)
+
 	return testSubscriptionItemRepo{
 		repo,
 	}

@@ -301,6 +301,7 @@ func (in *prometheusInput) Connect(ctx context.Context) error {
 				if running {
 					_ = in.scheduler.StopJobs()
 				}
+
 				return
 			case <-time.After(1 * time.Second):
 				switch leaderelection.IsLeader(in.resources) {
@@ -310,6 +311,7 @@ func (in *prometheusInput) Connect(ctx context.Context) error {
 						if err != nil {
 							in.logger.Errorf("error stopping jobs: %v", err)
 						}
+
 						running = false
 					}
 				case true:

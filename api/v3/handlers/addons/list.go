@@ -60,6 +60,7 @@ func (h *handler) ListAddons() ListAddonsHandler {
 						{Field: "filter[id]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 					})
 				}
+
 				req.ID = id
 
 				key, err := filters.FromAPIFilterString(params.Filter.Key)
@@ -68,6 +69,7 @@ func (h *handler) ListAddons() ListAddonsHandler {
 						{Field: "filter[key]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 					})
 				}
+
 				req.Key = key
 
 				name, err := filters.FromAPIFilterString(params.Filter.Name)
@@ -76,6 +78,7 @@ func (h *handler) ListAddons() ListAddonsHandler {
 						{Field: "filter[name]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 					})
 				}
+
 				req.Name = name
 
 				currency, err := filters.FromAPIFilterStringExact(params.Filter.Currency)
@@ -84,6 +87,7 @@ func (h *handler) ListAddons() ListAddonsHandler {
 						{Field: "filter[currency]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 					})
 				}
+
 				req.Currency = currency
 
 				status, err := filters.FromAPIStatusFilter[productcatalog.AddonStatus](ctx, params.Filter.Status)
@@ -92,6 +96,7 @@ func (h *handler) ListAddons() ListAddonsHandler {
 						{Field: "filter[status]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 					})
 				}
+
 				req.Status = status
 			}
 
@@ -102,10 +107,12 @@ func (h *handler) ListAddons() ListAddonsHandler {
 						{Field: "sort", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 					})
 				}
+
 				orderBy, err := FromAPIAddonSortField(ctx, sort.Field)
 				if err != nil {
 					return ListAddonsRequest{}, err
 				}
+
 				req.OrderBy = orderBy
 				req.Order = sort.Order.ToSortxOrder()
 			}
@@ -124,6 +131,7 @@ func (h *handler) ListAddons() ListAddonsHandler {
 				if err != nil {
 					return ListAddonsResponse{}, fmt.Errorf("failed to convert add-on: %w", err)
 				}
+
 				items = append(items, apiAddon)
 			}
 

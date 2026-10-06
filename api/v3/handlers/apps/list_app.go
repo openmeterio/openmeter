@@ -66,6 +66,7 @@ func (h *handler) ListApps() ListAppsHandler {
 						{Field: "filter[id]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 					})
 				}
+
 				req.ID = id
 
 				name, err := filters.FromAPIFilterString(params.Filter.Name)
@@ -74,6 +75,7 @@ func (h *handler) ListApps() ListAppsHandler {
 						{Field: "filter[name]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 					})
 				}
+
 				req.Name = name
 
 				appType, err := filters.FromAPIFilterStringExact(params.Filter.Type)
@@ -82,6 +84,7 @@ func (h *handler) ListApps() ListAppsHandler {
 						{Field: "filter[type]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 					})
 				}
+
 				req.Type = appType
 
 				status, err := filters.FromAPIFilterStringExact(params.Filter.Status)
@@ -90,6 +93,7 @@ func (h *handler) ListApps() ListAppsHandler {
 						{Field: "filter[status]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 					})
 				}
+
 				req.Status = status
 			}
 
@@ -104,6 +108,7 @@ func (h *handler) ListApps() ListAppsHandler {
 						},
 					})
 				}
+
 				req.OrderBy = app.AppOrderBy(sort.Field)
 				req.Order = sort.Order.ToSortxOrder()
 			}

@@ -21,6 +21,7 @@ func TestV3OrganizationDefaultTaxCodesMissingReferences(t *testing.T) {
 				fields = append(fields, e.Field)
 			}
 		}
+
 		return fields
 	}
 

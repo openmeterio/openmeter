@@ -75,6 +75,7 @@ func (s *service) Create(ctx context.Context, input creditpurchase.CreateInput) 
 		default:
 			return creditpurchase.ChargeWithGatheringLine{}, fmt.Errorf("invalid credit purchase settlement type: %s", charge.Intent.Settlement.Type())
 		}
+
 		if err != nil {
 			return creditpurchase.ChargeWithGatheringLine{}, err
 		}

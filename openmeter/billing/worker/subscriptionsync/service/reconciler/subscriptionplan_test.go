@@ -41,11 +41,13 @@ func TestNewChargesSnapshotCurrentPlanVersion(t *testing.T) {
 				require.NoError(t, err)
 				plan = value.SubscriptionPlan
 			}
+
 			// then: the stored attribution is the current plan version and is detached from later subscription changes.
 			if tc.plan == nil {
 				require.Nil(t, plan)
 				return
 			}
+
 			require.Equal(t, &chargesmeta.SubscriptionPlan{Key: "pro", Version: 2}, plan)
 			target.Subscription.PlanRef.Version = 99
 			require.Equal(t, 2, plan.Version)

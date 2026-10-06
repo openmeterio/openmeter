@@ -58,6 +58,7 @@ func TestMigrateToPlanAddons(t *testing.T) {
 					return meta, nil
 				}))
 			}
+
 			p2, err := deps.PlanService.CreatePlan(ctx, nextInput)
 			require.NoError(t, err)
 			if scenario != "incompatible" {
@@ -65,12 +66,14 @@ func TestMigrateToPlanAddons(t *testing.T) {
 				if scenario == "quantity limit" {
 					maxQuantity = lo.ToPtr(1)
 				}
+
 				_, err := deps.PlanAddonService.CreatePlanAddon(ctx, planaddon.CreatePlanAddonInput{
 					NamespacedModel: models.NamespacedModel{Namespace: addon.Namespace}, PlanID: p2.ID, AddonID: addon.ID,
 					FromPlanPhase: "test_phase_1", MaxQuantity: maxQuantity,
 				})
 				require.NoError(t, err)
 			}
+
 			p2, err = deps.PlanService.PublishPlan(ctx, plan.PublishPlanInput{
 				NamespacedID:    p2.NamespacedID,
 				EffectivePeriod: productcatalog.EffectivePeriod{EffectiveFrom: lo.ToPtr(at)},
@@ -92,8 +95,10 @@ func TestMigrateToPlanAddons(t *testing.T) {
 				persistedJSON, err := json.Marshal(persisted)
 				require.NoError(t, err)
 				require.JSONEq(t, string(beforeJSON), string(persistedJSON))
+
 				return
 			}
+
 			require.NoError(t, err)
 			key := subscriptiontestutils.ExampleFeatureKey2
 			require.Equal(t, before.Subscription.ID, after.Subscription.ID)
@@ -107,6 +112,7 @@ func TestMigrateToPlanAddons(t *testing.T) {
 					require.Equal(t, item.SubscriptionItem.CadencedModel, actual.CadencedModel)
 				}
 			}
+
 			// when removing the addon later, restoration must retain the migrated base price
 			removeAt := start.Add(24 * 24 * time.Hour)
 			clock.FreezeTime(removeAt)
@@ -118,6 +124,7 @@ func TestMigrateToPlanAddons(t *testing.T) {
 			if scenario == "changed base" {
 				expected = 200
 			}
+
 			active, ok := lo.Find(removed.Phases[0].ItemsByKey[key], func(item subscription.SubscriptionItemView) bool {
 				return item.SubscriptionItem.IsActiveAt(removeAt)
 			})

@@ -355,6 +355,7 @@ func (i Intent) GetFeatureRef() ref.IDOrKey {
 	if i.FeatureID != "" {
 		return ref.IDOrKey{ID: i.FeatureID}
 	}
+
 	return ref.IDOrKey{Key: i.FeatureKey}
 }
 

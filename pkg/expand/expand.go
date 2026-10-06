@@ -37,6 +37,7 @@ func (e Expand[T]) Has(value T) bool {
 func (e Expand[T]) Clone() Expand[T] {
 	out := make(Expand[T], len(e))
 	copy(out, e)
+
 	return out
 }
 

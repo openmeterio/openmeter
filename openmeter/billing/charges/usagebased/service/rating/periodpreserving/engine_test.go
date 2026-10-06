@@ -1318,6 +1318,7 @@ func runLateEventRatingTestCase(t *testing.T, tc lateEventRatingTestCase) {
 		if runID == "" {
 			runID = ulid.Make().String()
 		}
+
 		phaseRunIDs[phaseIdx] = usagebased.RealizationRunID{
 			Namespace: "ns",
 			ID:        runID,
@@ -1353,6 +1354,7 @@ func runLateEventRatingTestCase(t *testing.T, tc lateEventRatingTestCase) {
 			if phase.mutateBookedDetailedLines != nil {
 				bookedDetailedLines = phase.mutateBookedDetailedLines(bookedDetailedLines)
 			}
+
 			for idx := range bookedDetailedLines {
 				bookedDetailedLines[idx].ID = "phase-" + strconv.Itoa(phaseIdx+1) + "-line-" + strconv.Itoa(idx+1)
 			}

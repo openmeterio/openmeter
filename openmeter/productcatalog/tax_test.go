@@ -481,6 +481,7 @@ func TestMergeTaxConfigs(t *testing.T) {
 			if test.Left == nil && test.Right != nil {
 				assert.NotSame(t, test.Right, merged, "MergeTaxConfigs with nil base must return independent copy")
 			}
+
 			if test.Right == nil && test.Left != nil {
 				assert.NotSame(t, test.Left, merged, "MergeTaxConfigs with nil overrides must return independent copy")
 			}
@@ -531,6 +532,7 @@ func TestBackfillTaxConfig(t *testing.T) {
 				{AppType: app.AppTypeStripe, TaxCode: stripeCode},
 			}
 		}
+
 		return tc
 	}
 

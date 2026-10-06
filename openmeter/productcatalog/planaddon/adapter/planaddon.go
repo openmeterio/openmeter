@@ -46,6 +46,7 @@ func (a *adapter) ListPlanAddons(ctx context.Context, params planaddon.ListPlanA
 			for key, version := range params.PlanKeyVersions {
 				planKeyVersionPreds = append(planKeyVersionPreds, plandb.And(plandb.Key(key), plandb.VersionIn(version...)))
 			}
+
 			planPreds = append(planPreds, plandb.Or(planKeyVersionPreds...))
 		}
 
@@ -65,6 +66,7 @@ func (a *adapter) ListPlanAddons(ctx context.Context, params planaddon.ListPlanA
 			for key, version := range params.AddonKeyVersions {
 				addonKeyVersionPreds = append(addonKeyVersionPreds, addondb.And(addondb.Key(key), addondb.VersionIn(version...)))
 			}
+
 			addonPreds = append(addonPreds, addondb.Or(addonKeyVersionPreds...))
 		}
 

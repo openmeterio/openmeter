@@ -27,6 +27,7 @@ func (a *adapter) UpsertCustomerLock(ctx context.Context, input billing.UpsertCu
 			return nil
 		}
 	}
+
 	return nil
 }
 

@@ -26,6 +26,7 @@ func New(repo account.Repo, locker *lockr.Locker) account.Service {
 		locker: locker,
 	}
 	svc.live = account.AccountLiveServices{SubAccountService: svc}
+
 	return svc
 }
 
@@ -89,6 +90,7 @@ func (s *service) ListSubAccounts(ctx context.Context, input ledger.ListSubAccou
 		if err != nil {
 			return nil, fmt.Errorf("failed to map sub-account: %w", err)
 		}
+
 		subAccounts = append(subAccounts, subAccount)
 	}
 
@@ -107,6 +109,7 @@ func (s *service) ListAccounts(ctx context.Context, input ledger.ListAccountsInp
 		if err != nil {
 			return nil, fmt.Errorf("failed to map account: %w", err)
 		}
+
 		accounts = append(accounts, acc)
 	}
 

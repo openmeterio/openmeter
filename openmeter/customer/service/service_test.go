@@ -245,6 +245,7 @@ func Test_GetCustomersByUsageAttribution(t *testing.T) {
 			},
 		})
 		require.NoError(t, err)
+
 		return cus
 	}
 

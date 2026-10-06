@@ -49,6 +49,7 @@ func (c *accrualCollector) collectToAccrued(ctx context.Context, input CollectTo
 		if err != nil {
 			return nil, err
 		}
+
 		inputs := resolved.inputs
 
 		// Credit-only: if the wallet didn't cover the full accrual, issue advance and
@@ -121,6 +122,7 @@ func (c *accrualCollector) collectToReceivable(ctx context.Context, input Collec
 		if err != nil {
 			return nil, err
 		}
+
 		if len(resolved.inputs) == 0 {
 			return nil, nil
 		}
@@ -174,6 +176,7 @@ func (c *accrualCollector) resolveCoveredReceivableInputs(ctx context.Context, i
 	if err != nil {
 		return resolvedCollectedInputs{}, fmt.Errorf("collect customer FBO: %w", err)
 	}
+
 	if len(selections) == 0 {
 		return resolvedCollectedInputs{}, nil
 	}
@@ -219,6 +222,7 @@ func (c *accrualCollector) resolveCollectedInputs(ctx context.Context, input Col
 	if err := input.Currency.Validate(); err != nil {
 		return resolvedCollectedInputs{}, fmt.Errorf("currency: %w", err)
 	}
+
 	if input.Currency.IsCustom() && !input.Currency.IsResolved() {
 		return resolvedCollectedInputs{}, fmt.Errorf("currency: custom currency must be resolved")
 	}
@@ -279,11 +283,13 @@ func (c *accrualCollector) resolveCollectionBreakageInputs(ctx context.Context, 
 		if !ok {
 			remaining = plan.OpenAmount
 		}
+
 		// Legacy source-less plans can reserve multiple selected source slices,
 		// so guard the aggregate release amount before writing release records.
 		if selection.amount.GreaterThan(remaining) {
 			return nil, nil, fmt.Errorf("breakage release amount %s exceeds remaining plan amount %s for plan %s", selection.amount, remaining, plan.ID.ID)
 		}
+
 		releaseRemainingByPlanID[plan.ID.ID] = remaining.Sub(selection.amount)
 
 		releaseInput, releaseRecord, err := c.breakage.ReleasePlan(ctx, breakage.ReleasePlanInput{
@@ -360,6 +366,7 @@ func (i collectedInputs) toCreditRealizations(servicePeriod timeutil.ClosedPerio
 				if _, ok := amountsBySubAccountID[subAccountID]; !ok {
 					subAccountOrder = append(subAccountOrder, subAccountID)
 				}
+
 				amountsBySubAccountID[subAccountID] = amountsBySubAccountID[subAccountID].Add(entry.Amount().Abs())
 			}
 		}
@@ -390,6 +397,7 @@ func (i collectedInputs) collectedFBOAmount() alpacadecimal.Decimal {
 		if input == nil {
 			continue
 		}
+
 		for _, entry := range input.EntryInputs() {
 			if entry.Amount().IsNegative() && entry.PostingAddress().AccountType() == ledger.AccountTypeCustomerFBO {
 				total = total.Add(entry.Amount().Abs())

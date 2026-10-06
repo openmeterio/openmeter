@@ -59,6 +59,7 @@ func TestCustomCurrencyRecognizedCorrectionPreservesSpend(t *testing.T) {
 				if i == 1 && tc.differentBasis {
 					basis = alpacadecimal.NewFromFloat(0.8)
 				}
+
 				for range tc.sources {
 					sourceID := ulid.Make().String()
 					inputs, err := transactions.ResolveTransactions(
@@ -82,6 +83,7 @@ func TestCustomCurrencyRecognizedCorrectionPreservesSpend(t *testing.T) {
 					_, err = env.Deps.HistoricalLedger.CommitGroup(t.Context(), transactions.GroupInputs(env.Namespace, nil, inputs...))
 					require.NoError(t, err)
 				}
+
 				input := env.newAssignmentInputWithMode(amount, productcatalog.CreditOnlySettlementMode)
 				input.Charge.ID = ulid.Make().String()
 				allocations, err := env.handler.OnAllocateCredits(t.Context(), input)
@@ -96,6 +98,7 @@ func TestCustomCurrencyRecognizedCorrectionPreservesSpend(t *testing.T) {
 				env.createInitialLineages(t, charge.ID, charge.Realizations.CurrentRun.CreditRealizations)
 				charges[charge.ID] = charge
 			}
+
 			groupID := env.recognizeCreditAccrued(t, amount.Mul(alpacadecimal.NewFromInt(2)))
 			recognitionGroup, err := env.Deps.HistoricalLedger.GetTransactionGroup(t.Context(), models.NamespacedID{
 				Namespace: env.Namespace,
@@ -107,6 +110,7 @@ func TestCustomCurrencyRecognizedCorrectionPreservesSpend(t *testing.T) {
 			for _, tx := range recognitionGroup.Transactions() {
 				entries = append(entries, tx.Entries()...)
 			}
+
 			var spends []string
 			for _, entry := range entries {
 				if entry.PostingAddress().AccountType() == ledger.AccountTypeCustomerAccrued && entry.Amount().IsNegative() {
@@ -117,6 +121,7 @@ func TestCustomCurrencyRecognizedCorrectionPreservesSpend(t *testing.T) {
 					}
 				}
 			}
+
 			require.Len(t, spends, 2)
 
 			// Correct the first spend in the shared recognition transaction.
@@ -147,6 +152,7 @@ func TestCustomCurrencyRecognizedCorrectionPreservesSpend(t *testing.T) {
 				for _, tx := range correctionGroup.Transactions() {
 					correctionEntries = append(correctionEntries, tx.Entries()...)
 				}
+
 				for _, entry := range correctionEntries {
 					if entry.PostingAddress().AccountType() == ledger.AccountTypeEarnings && entry.Amount().IsNegative() {
 						require.NotNil(t, entry.Provenance().SpendChargeID)
@@ -172,12 +178,14 @@ func TestCustomCurrencyRecognizedCorrectionPreservesSpend(t *testing.T) {
 						}
 					}
 				}
+
 				require.Equal(t, float64(0), balances[charge.ID].InexactFloat64())
 
 				expected := float64(0)
 				if accountType == ledger.AccountTypeEarnings {
 					expected = 30
 				}
+
 				require.Equal(t, expected, balances[spends[1]].InexactFloat64())
 			}
 		})

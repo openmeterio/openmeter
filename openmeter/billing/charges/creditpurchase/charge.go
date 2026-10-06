@@ -152,9 +152,11 @@ func (c Charge) ValidateSettlementAmount() error {
 	if err != nil {
 		return err
 	}
+
 	if !amount.IsPositive() {
 		return models.NewGenericValidationError(errors.New("purchase amount must be positive after rounding to settlement currency precision"))
 	}
+
 	return nil
 }
 

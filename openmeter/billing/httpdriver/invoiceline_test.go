@@ -269,6 +269,7 @@ func standardInvoiceLineForMergeTest(t *testing.T, period timeutil.ClosedPeriod)
 	t.Helper()
 
 	featureKey := "feature-key"
+
 	return &billing.StandardLine{
 		StandardLineBase: billing.StandardLineBase{
 			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
@@ -294,6 +295,7 @@ func gatheringInvoiceLineForMergeTest(t *testing.T, period timeutil.ClosedPeriod
 	t.Helper()
 
 	featureKey := "feature-key"
+
 	return billing.GatheringLine{
 		GatheringLineBase: billing.GatheringLineBase{
 			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{

@@ -55,12 +55,15 @@ func Parse(qs url.Values, target any) error {
 		if v.Type().Elem().Kind() != reflect.Struct {
 			return fmt.Errorf("Parse: target must point to a struct or *struct, got **%s", v.Type().Elem().Kind())
 		}
+
 		if !hasFilterKeys(qs) {
 			return nil
 		}
+
 		if v.IsNil() {
 			v.Set(reflect.New(v.Type().Elem()))
 		}
+
 		v = v.Elem()
 	}
 
@@ -99,6 +102,7 @@ func parseFiltersValue(qs url.Values, v reflect.Value) error {
 			knownFields[name] = struct{}{}
 		}
 	}
+
 	if err := checkUnknownFilterKeys(qs, knownFields); err != nil {
 		return err
 	}
@@ -121,14 +125,17 @@ func parseFiltersValue(qs url.Values, v reflect.Value) error {
 			if err != nil {
 				return err
 			}
+
 			if labels == nil {
 				continue
 			}
+
 			if fieldVal.Type() == filterLabelsPtrType {
 				fieldVal.Set(reflect.ValueOf(&labels))
 			} else {
 				fieldVal.Set(reflect.ValueOf(labels))
 			}
+
 			continue
 		}
 
@@ -142,6 +149,7 @@ func parseFiltersValue(qs url.Values, v reflect.Value) error {
 			if err != nil {
 				return err
 			}
+
 			fieldVal.Set(reflect.ValueOf(&parsed))
 
 		case filterStringExactType:
@@ -149,6 +157,7 @@ func parseFiltersValue(qs url.Values, v reflect.Value) error {
 			if err != nil {
 				return err
 			}
+
 			fieldVal.Set(reflect.ValueOf(&parsed))
 
 		case FilterULIDType:
@@ -156,6 +165,7 @@ func parseFiltersValue(qs url.Values, v reflect.Value) error {
 			if err != nil {
 				return err
 			}
+
 			fieldVal.Set(reflect.ValueOf(&parsed))
 
 		case filterNumericType:
@@ -163,6 +173,7 @@ func parseFiltersValue(qs url.Values, v reflect.Value) error {
 			if err != nil {
 				return err
 			}
+
 			fieldVal.Set(reflect.ValueOf(&parsed))
 
 		case filterDateTimeType:
@@ -170,6 +181,7 @@ func parseFiltersValue(qs url.Values, v reflect.Value) error {
 			if err != nil {
 				return err
 			}
+
 			fieldVal.Set(reflect.ValueOf(&parsed))
 
 		case filterBooleanType:
@@ -177,12 +189,14 @@ func parseFiltersValue(qs url.Values, v reflect.Value) error {
 			if err != nil {
 				return err
 			}
+
 			fieldVal.Set(reflect.ValueOf(&parsed))
 
 		case stringPtrType:
 			if hasOperatorStyleKeys(qs, name) {
 				return fmt.Errorf("filter[%s]: operator-style keys are not supported for this field", name)
 			}
+
 			if err := parseStringPtr(qs, name, fieldVal); err != nil {
 				return err
 			}
@@ -194,6 +208,7 @@ func parseFiltersValue(qs url.Values, v reflect.Value) error {
 				if hasOperatorStyleKeys(qs, name) {
 					return fmt.Errorf("filter[%s]: operator-style keys are not supported for this field", name)
 				}
+
 				if err := parseStringPtrTyped(qs, name, fieldVal); err != nil {
 					return err
 				}
@@ -202,6 +217,7 @@ func parseFiltersValue(qs url.Values, v reflect.Value) error {
 				if hasOperatorStyleKeys(qs, name) {
 					return fmt.Errorf("filter[%s]: operator-style keys are not supported for this field", name)
 				}
+
 				if err := parseTextUnmarshalerPtr(qs, name, fieldVal); err != nil {
 					return err
 				}
@@ -222,15 +238,19 @@ func parseStringPtr(qs url.Values, name string, fieldVal reflect.Value) error {
 		if key != prefix {
 			continue
 		}
+
 		val, err := singleValue(key, values)
 		if err != nil {
 			return err
 		}
+
 		if val != "" {
 			fieldVal.Set(reflect.ValueOf(&val))
 		}
+
 		break
 	}
+
 	return nil
 }
 
@@ -241,17 +261,21 @@ func parseStringPtrTyped(qs url.Values, name string, fieldVal reflect.Value) err
 		if key != prefix {
 			continue
 		}
+
 		val, err := singleValue(key, values)
 		if err != nil {
 			return err
 		}
+
 		if val != "" {
 			ptr := reflect.New(fieldVal.Type().Elem())
 			ptr.Elem().SetString(val)
 			fieldVal.Set(ptr)
 		}
+
 		break
 	}
+
 	return nil
 }
 
@@ -263,10 +287,12 @@ func parseTextUnmarshalerPtr(qs url.Values, name string, fieldVal reflect.Value)
 		if key != prefix {
 			continue
 		}
+
 		val, err := singleValue(key, values)
 		if err != nil {
 			return err
 		}
+
 		if val == "" {
 			return fmt.Errorf("filter[%s]: empty value", name)
 		}
@@ -282,8 +308,10 @@ func parseTextUnmarshalerPtr(qs url.Values, name string, fieldVal reflect.Value)
 		}
 
 		fieldVal.Set(ptr)
+
 		break
 	}
+
 	return nil
 }
 
@@ -317,28 +345,33 @@ func parseFilterString(qs url.Values, field string) (FilterString, error) {
 			if err != nil {
 				return err
 			}
+
 			f.Oeq = items
 		case OpOcontains:
 			items, err := parseCommaSeparatedField(field, p.op, p.value)
 			if err != nil {
 				return err
 			}
+
 			f.Ocontains = items
 		case OpExists:
 			exists, err := parseOptionalBool(field, OpExists, p.value)
 			if err != nil {
 				return err
 			}
+
 			f.Exists = &exists
 		case OpNexists:
 			nexists, err := parseOptionalBool(field, OpNexists, p.value)
 			if err != nil {
 				return err
 			}
+
 			f.Exists = lo.ToPtr(!nexists)
 		default:
 			return fieldError(field, p.op, ErrUnsupportedOperator)
 		}
+
 		return nil
 	})
 
@@ -373,10 +406,12 @@ func parseFilterStringExact(qs url.Values, field string) (FilterStringExact, err
 			if err != nil {
 				return err
 			}
+
 			f.Oeq = items
 		default:
 			return fieldError(field, p.op, ErrUnsupportedOperator)
 		}
+
 		return nil
 	})
 
@@ -398,10 +433,12 @@ func parseFilterULID(qs url.Values, field string) (FilterULID, error) {
 			if err != nil {
 				return err
 			}
+
 			f.Oeq = items
 		default:
 			return fieldError(field, p.op, ErrUnsupportedOperator)
 		}
+
 		return nil
 	})
 
@@ -435,13 +472,16 @@ func parseFilterNumeric(qs url.Values, field string) (FilterNumeric, error) {
 			if err != nil {
 				return err
 			}
+
 			for _, s := range items {
 				v, err := strconv.ParseFloat(s, 64)
 				if err != nil {
 					return fmt.Errorf("filter[%s][oeq]: invalid number %q: %w", field, s, err)
 				}
+
 				f.Oeq = append(f.Oeq, v)
 			}
+
 			return nil
 		default:
 			return fieldError(field, p.op, ErrUnsupportedOperator)
@@ -490,7 +530,9 @@ func parseFilterBoolean(qs url.Values, field string) (FilterBoolean, error) {
 			if err != nil {
 				return fmt.Errorf("filter[%s][eq]: invalid boolean %q: %w", field, p.value, err)
 			}
+
 			f.Eq = &v
+
 			return nil
 		default:
 			return fieldError(field, p.op, ErrUnsupportedOperator)
@@ -515,16 +557,19 @@ func applyLabelOp(f *FilterLabel, labelField string, p parsedFilterParam) error 
 		if err != nil {
 			return err
 		}
+
 		f.Oeq = items
 	case OpOcontains:
 		items, err := parseCommaSeparatedField(labelField, p.op, p.value)
 		if err != nil {
 			return err
 		}
+
 		f.Ocontains = items
 	default:
 		return fieldError(labelField, p.op, ErrUnsupportedOperator)
 	}
+
 	return nil
 }
 
@@ -549,6 +594,7 @@ func parseFilterLabels(qs url.Values, field string) (FilterLabels, error) {
 			if end <= 0 {
 				continue
 			}
+
 			labelKey = tail[:end]
 			rest = tail[end+1:]
 		case strings.HasPrefix(key, nestedPrefix):
@@ -557,6 +603,7 @@ func parseFilterLabels(qs url.Values, field string) (FilterLabels, error) {
 			if end <= 0 {
 				continue
 			}
+
 			labelKey = tail[:end]
 			rest = tail[end+1:]
 		default:
@@ -582,12 +629,14 @@ func parseFilterLabels(qs url.Values, field string) (FilterLabels, error) {
 		}); err != nil {
 			return nil, err
 		}
+
 		result[labelKey] = current
 	}
 
 	if len(result) == 0 {
 		return nil, nil
 	}
+
 	return result, nil
 }
 
@@ -597,7 +646,9 @@ func parseFloat(field string, p parsedFilterParam, dst **float64) error {
 	if err != nil {
 		return fieldError(field, p.op, ErrInvalidNumber)
 	}
+
 	*dst = &v
+
 	return nil
 }
 
@@ -607,7 +658,9 @@ func parseTime(field string, p parsedFilterParam, dst **time.Time) error {
 	if err != nil {
 		return fieldError(field, p.op, ErrInvalidDateTime)
 	}
+
 	*dst = &v
+
 	return nil
 }
 
@@ -617,6 +670,7 @@ func parseCommaSeparatedField(field, op, value string) ([]string, error) {
 	if err != nil {
 		return nil, fieldError(field, op, err)
 	}
+
 	return items, nil
 }
 
@@ -666,6 +720,7 @@ func hasFilterKeys(qs url.Values) bool {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -677,6 +732,7 @@ func hasOperatorStyleKeys(qs url.Values, name string) bool {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -688,6 +744,7 @@ func hasFieldKeys(qs url.Values, field string) bool {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -701,17 +758,21 @@ func checkUnknownFilterKeys(qs url.Values, knownFields map[string]struct{}) erro
 		if !ok {
 			continue
 		}
+
 		// Dot-notation: match base segment ("labels" in "labels.env").
 		base := name
 		if dot := strings.IndexByte(name, '.'); dot > 0 {
 			base = name[:dot]
 		}
+
 		if _, known := knownFields[base]; known {
 			continue
 		}
+
 		if _, already := seen[name]; already {
 			continue
 		}
+
 		seen[name] = struct{}{}
 		unknown = append(unknown, name)
 	}
@@ -719,7 +780,9 @@ func checkUnknownFilterKeys(qs url.Values, knownFields map[string]struct{}) erro
 	if len(unknown) == 0 {
 		return nil
 	}
+
 	sort.Strings(unknown)
+
 	return fmt.Errorf("unknown filter field(s): %s", strings.Join(unknown, ", "))
 }
 
@@ -729,11 +792,13 @@ func filterFieldName(key string) (string, bool) {
 	if !strings.HasPrefix(key, prefix) {
 		return "", false
 	}
+
 	rest := key[len(prefix):]
 	end := strings.IndexByte(rest, ']')
 	if end <= 0 {
 		return "", false
 	}
+
 	return rest[:end], true
 }
 
@@ -743,7 +808,9 @@ func jsonFieldName(f reflect.StructField) string {
 	if tag == "" {
 		return ""
 	}
+
 	name, _, _ := strings.Cut(tag, ",")
+
 	return name
 }
 
@@ -752,13 +819,16 @@ func parseOperator(rest string) (string, error) {
 	if rest == "" {
 		return OpEq, nil
 	}
+
 	if !strings.HasPrefix(rest, "[") || !strings.HasSuffix(rest, "]") {
 		return "", fmt.Errorf("malformed operator segment %q", rest)
 	}
+
 	op := rest[1 : len(rest)-1]
 	if op == "" {
 		return "", fmt.Errorf("empty operator in %q", rest)
 	}
+
 	return op, nil
 }
 
@@ -769,11 +839,13 @@ func parseCommaSeparated(value string) ([]string, error) {
 		if s == "" {
 			return "", false
 		}
+
 		return s, true
 	})
 	if len(items) > maxCommaSeparatedItems {
 		return nil, ErrTooManyItems
 	}
+
 	return items, nil
 }
 
@@ -782,12 +854,15 @@ func singleValue(key string, values []string) (string, error) {
 	if len(values) > 1 {
 		return "", fmt.Errorf("filter parameter %q: repeated query parameter not allowed (got %d values)", key, len(values))
 	}
+
 	if len(values) == 0 {
 		return "", nil
 	}
+
 	v := values[0]
 	if len(v) > maxFilterValueLength {
 		return "", fmt.Errorf("filter parameter %q: value too long (max %d bytes)", key, maxFilterValueLength)
 	}
+
 	return v, nil
 }

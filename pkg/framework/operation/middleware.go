@@ -11,6 +11,7 @@ func Chain[Request any, Response any](outer Middleware[Request, Response], other
 		for i := len(others) - 1; i >= 0; i-- { // reverse
 			next = others[i](next)
 		}
+
 		return outer(next)
 	}
 }

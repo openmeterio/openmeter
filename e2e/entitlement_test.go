@@ -51,6 +51,7 @@ func TestEntitlementV2(t *testing.T) {
 			require.NoError(t, err)
 			require.Equal(t, http.StatusOK, resp.StatusCode())
 		}
+
 		var v2CustomerID string
 		{
 			resp, err := client.CreateCustomerWithResponse(ctx, api.CreateCustomerJSONRequestBody{
@@ -431,6 +432,7 @@ func TestVoidGrantAtParam(t *testing.T) {
 		})
 		require.NoError(t, err)
 		require.Equal(t, http.StatusCreated, resp.StatusCode(), "body: %s", resp.Body)
+
 		return resp.JSON201.Id
 	}
 

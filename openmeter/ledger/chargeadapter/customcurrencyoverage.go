@@ -250,6 +250,7 @@ func (h *customCurrencyOverageHandler) correct(ctx context.Context, input correc
 		if err != nil {
 			return fmt.Errorf("get original transaction direction: %w", err)
 		}
+
 		if direction != ledger.TransactionDirectionForward {
 			return fmt.Errorf("original transaction %s is not forward", transaction.ID().ID)
 		}
@@ -258,6 +259,7 @@ func (h *customCurrencyOverageHandler) correct(ctx context.Context, input correc
 		if err != nil {
 			return fmt.Errorf("get original transaction template code: %w", err)
 		}
+
 		if templateCode != expectedForwardOrder[idx] {
 			return fmt.Errorf("unexpected transaction template %s at index %d in custom-currency overage group, expected %s", templateCode, idx, expectedForwardOrder[idx])
 		}

@@ -43,6 +43,7 @@ func (c WorkflowServiceConfig) Validate() error {
 	if c.AddonService == nil {
 		errs = append(errs, errors.New("subscription add-on service is required"))
 	}
+
 	if c.PlanAddonService == nil {
 		errs = append(errs, errors.New("plan add-on service is required"))
 	}

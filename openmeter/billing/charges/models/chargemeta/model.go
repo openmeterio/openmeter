@@ -115,10 +115,12 @@ func Create[T Creator[T]](creator Creator[T], in CreateInput) (T, error) {
 	if in.Intent.Subscription != nil {
 		subscriptionID = &in.Intent.Subscription.SubscriptionID
 	}
+
 	var subscriptionPhaseID *string
 	if in.Intent.Subscription != nil {
 		subscriptionPhaseID = &in.Intent.Subscription.PhaseID
 	}
+
 	var subscriptionItemID *string
 	if in.Intent.Subscription != nil {
 		subscriptionItemID = &in.Intent.Subscription.ItemID
@@ -151,6 +153,7 @@ func Create[T Creator[T]](creator Creator[T], in CreateInput) (T, error) {
 	if in.Intent.SubscriptionPlan != nil {
 		creator = creator.SetSubscriptionPlan(in.Intent.SubscriptionPlan)
 	}
+
 	return creator.
 		SetNamespace(in.Namespace).
 		SetName(in.IntentMutableFields.Name).

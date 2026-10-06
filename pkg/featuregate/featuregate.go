@@ -52,6 +52,7 @@ func (r contextResolver) Credits(ctx context.Context) bool {
 	if !found {
 		return true
 	}
+
 	return value
 }
 
@@ -65,6 +66,7 @@ func (f *Flags) Validate() error {
 	if f == nil || len(*f) == 0 {
 		return errors.New("featuregate is enabled but missing flags setup")
 	}
+
 	keys := f.Keys()
 
 	for k := range *f {
@@ -80,10 +82,12 @@ func (f *Flags) Credits() string {
 	if f == nil {
 		return ""
 	}
+
 	value, ok := (*f)[CtxKeyCredits]
 	if !ok {
 		return ""
 	}
+
 	return value
 }
 
@@ -128,9 +132,11 @@ func (h *FeatureGateChecker) Enabled(ns string, flag string) (bool, error) {
 	if h == nil {
 		return true, nil
 	}
+
 	if h.Gate == nil {
 		return true, nil
 	}
+
 	if flag == "" {
 		return true, nil
 	}
@@ -143,7 +149,9 @@ func (h *FeatureGateChecker) Enabled(ns string, flag string) (bool, error) {
 		if err != nil {
 			return false, err
 		}
+
 		h.addToCache(cacheKey, enabled)
+
 		return enabled, nil
 	}
 
@@ -183,11 +191,13 @@ func NewMiddleware[Request any, Response any](getNamespace func(ctx context.Cont
 					ctx = context.WithValue(ctx, contextFlagKey, false)
 					continue
 				}
+
 				configFlagKey := checker.Flags[contextFlagKey]
 				result, err := checker.Enabled(ns, configFlagKey)
 				if err != nil {
 					return lo.Empty[Response](), err
 				}
+
 				ctx = context.WithValue(ctx, contextFlagKey, result)
 			}
 

@@ -32,9 +32,11 @@ func assertValidationError(t *testing.T, err error, wantErr error) {
 		assert.NoError(t, err)
 		return
 	}
+
 	if !assert.Error(t, err) {
 		return
 	}
+
 	assert.True(t, models.IsGenericValidationError(err), "expected a models.GenericValidationError, got %T: %v", err, err)
 	assert.True(t, errors.Is(err, wantErr), "expected error to wrap %v, got %v", wantErr, err)
 }
@@ -2701,6 +2703,7 @@ func TestFilterString_Match(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 			}
+
 			assert.Equal(t, tt.want, got)
 		})
 	}
@@ -2760,6 +2763,7 @@ func TestFilterULID_SelectAndSelectWhereExpr_RecursesIntoAndOr(t *testing.T) {
 			if !assert.NotEmpty(t, expr, "SQL expression should not be empty") {
 				return
 			}
+
 			q.Where(expr)
 			exprSQL, exprArgs := q.Build()
 			assert.Equal(t, tt.wantExprSQL, exprSQL)
@@ -2769,6 +2773,7 @@ func TestFilterULID_SelectAndSelectWhereExpr_RecursesIntoAndOr(t *testing.T) {
 			if !assert.NotNil(t, predicate, "predicate should not be nil") {
 				return
 			}
+
 			s := newSelectBuilder()
 			predicate(s)
 			entSQL, entArgs := s.Query()
@@ -2830,6 +2835,7 @@ func TestFilterStringMap(t *testing.T) {
 		if v == "bad" {
 			return "", errors.New("bad value")
 		}
+
 		return strings.ToUpper(v), nil
 	}
 

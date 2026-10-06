@@ -167,11 +167,13 @@ func (i Intent) GetCreditFilters(featureKey string) ledger.CreditFilters {
 	if featureKey != "" {
 		filters.Features = []string{featureKey}
 	}
+
 	if i.SubscriptionPlan != nil {
 		filters.Plans = []ledger.PlanFilter{{
 			Key:     i.SubscriptionPlan.Key,
 			Version: &ledger.VersionFilter{Eq: lo.ToPtr(i.SubscriptionPlan.Version)},
 		}}
 	}
+
 	return filters
 }

@@ -64,6 +64,7 @@ func (r *requestValidatorRegistry) Register(v RequestValidator) {
 func (r *requestValidatorRegistry) ValidateDeleteCustomer(ctx context.Context, input DeleteCustomerInput) error {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
+
 	return errors.Join(
 		lo.Map(r.validators, func(v RequestValidator, _ int) error {
 			return v.ValidateDeleteCustomer(ctx, input)
@@ -74,6 +75,7 @@ func (r *requestValidatorRegistry) ValidateDeleteCustomer(ctx context.Context, i
 func (r *requestValidatorRegistry) ValidateCreateCustomer(ctx context.Context, input CreateCustomerInput) error {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
+
 	return errors.Join(
 		lo.Map(r.validators, func(v RequestValidator, _ int) error {
 			return v.ValidateCreateCustomer(ctx, input)
@@ -84,6 +86,7 @@ func (r *requestValidatorRegistry) ValidateCreateCustomer(ctx context.Context, i
 func (r *requestValidatorRegistry) ValidateUpdateCustomer(ctx context.Context, input UpdateCustomerInput) error {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
+
 	return errors.Join(
 		lo.Map(r.validators, func(v RequestValidator, _ int) error {
 			return v.ValidateUpdateCustomer(ctx, input)

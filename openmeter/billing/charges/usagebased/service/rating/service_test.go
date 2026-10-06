@@ -429,6 +429,7 @@ func TestGetTotalsForUsageMinimumCommitment(t *testing.T) {
 						MinimumAmount: lo.ToPtr(alpacadecimal.NewFromInt(100)),
 					},
 				})
+
 				return nil
 			})
 			require.NoError(t, err)

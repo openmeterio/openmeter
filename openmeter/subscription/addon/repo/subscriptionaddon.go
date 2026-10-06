@@ -135,6 +135,7 @@ func (r *subscriptionAddonRepo) List(ctx context.Context, namespace string, filt
 			if err != nil {
 				return pagination.Result[subscriptionaddon.SubscriptionAddon]{}, err
 			}
+
 			return pagination.Result[subscriptionaddon.SubscriptionAddon]{
 				Items:      items,
 				Page:       pagination.NewPage(1, len(items)),

@@ -165,6 +165,7 @@ func TestListCreditTransactionsExpiredBreakagePreservesCustomCurrencyIdentity(t 
 		require.NotNil(t, item.CustomCurrencyID)
 		expiredByCurrencyID[*item.CustomCurrencyID] = item
 	}
+
 	require.Equal(t, float64(-10), expiredByCurrencyID[alpha.ID].Amount.InexactFloat64())
 	require.Equal(t, float64(10), expiredByCurrencyID[alpha.ID].Balance.Before.InexactFloat64())
 	require.Equal(t, float64(0), expiredByCurrencyID[alpha.ID].Balance.After.InexactFloat64())

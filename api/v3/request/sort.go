@@ -61,6 +61,7 @@ func (s *SortBy) UnmarshalText(text []byte) error {
 	if len(parts) == 0 {
 		return ErrSortByInvalid
 	}
+
 	if len(parts) > 2 {
 		return ErrSortByInvalid
 	}

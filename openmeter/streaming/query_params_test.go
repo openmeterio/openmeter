@@ -67,6 +67,7 @@ func TestQueryParamsValidate(t *testing.T) {
 		if tt.paramWindowSize != nil {
 			paramWindowSize = string(*tt.paramWindowSize)
 		}
+
 		name := fmt.Sprintf("%s/%s", paramWindowSize, tt.name)
 		t.Run(name, func(t *testing.T) {
 			from, err := time.Parse(time.RFC3339, tt.paramFrom)
@@ -74,6 +75,7 @@ func TestQueryParamsValidate(t *testing.T) {
 				t.Fatal(fmt.Errorf("failed to parse from: %w", err))
 				return
 			}
+
 			to, err := time.Parse(time.RFC3339, tt.paramTo)
 			if err != nil {
 				t.Fatal(fmt.Errorf("failed to parse to: %w", err))

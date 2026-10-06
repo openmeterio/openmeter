@@ -81,6 +81,7 @@ func getPricerFor(line rating.PriceAccessor, opts rating.GenerateDetailedLinesOp
 	} else {
 		preCalculationMutators = append(preCalculationMutators, &mutator.ForbidUnitConfig{})
 	}
+
 	preCalculationMutators = append(preCalculationMutators, &mutator.DiscountUsage{})
 
 	// This priceMutator captures the calculation flow for discounts and commitments:

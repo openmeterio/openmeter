@@ -71,6 +71,7 @@ func (a *adapter) SetResolvedCostBasis(ctx context.Context, input costbasis.SetR
 					fmt.Errorf("usage based cost basis not found: %s", input.ID),
 				)
 			}
+
 			if getErr != nil {
 				return costbasis.CostBasis{}, fmt.Errorf("get usage based cost basis after conditional resolution: %w", getErr)
 			}
@@ -88,6 +89,7 @@ func (a *adapter) SetResolvedCostBasis(ctx context.Context, input costbasis.SetR
 				fmt.Errorf("usage based cost basis is not an unresolved dynamic cost basis: %s", input.ID),
 			)
 		}
+
 		if err != nil {
 			return costbasis.CostBasis{}, fmt.Errorf("set resolved usage based cost basis: %w", err)
 		}

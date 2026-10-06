@@ -33,6 +33,7 @@ func (v *NullDecimal) Scan(src any) error {
 	if d, ok := src.(decimal.Decimal); ok {
 		v.Valid = true
 		v.Decimal = d
+
 		return nil
 	}
 
@@ -101,6 +102,7 @@ func (d *queryMeter) toCountRowSQL() (string, []interface{}) {
 	query = d.whereByOrderedColumns(query)
 
 	sql, args := query.Build()
+
 	return sql, args
 }
 
@@ -229,6 +231,7 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 		if groupByKey == "subject" {
 			selectColumns = append(selectColumns, getColumn("subject"))
 			groupByColumns = append(groupByColumns, "subject")
+
 			continue
 		}
 
@@ -272,6 +275,7 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 		for k := range d.FilterGroupBy {
 			groupByKeys = append(groupByKeys, k)
 		}
+
 		sort.Strings(groupByKeys)
 
 		dataColumn := getColumn("data")
@@ -376,6 +380,7 @@ func stringFilterWhereExpr(field sqlbuilder.Builder, f filter.FilterString) sqlb
 		if *f.Exists {
 			return sqlbuilder.Buildf("%v IS NOT NULL", field)
 		}
+
 		return sqlbuilder.Buildf("%v IS NULL", field)
 	case f.In != nil:
 		return sqlbuilder.Buildf("%v IN (%v)", field, *f.In)

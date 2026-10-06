@@ -40,6 +40,7 @@ func (p *SpecPath) UnmarshalJSON(data []byte) error {
 	}
 
 	*p = path
+
 	return nil
 }
 

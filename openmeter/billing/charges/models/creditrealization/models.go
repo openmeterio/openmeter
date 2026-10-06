@@ -49,6 +49,7 @@ func (t Type) Validate() error {
 	if !slices.Contains(t.Values(), string(t)) {
 		return models.NewGenericValidationError(fmt.Errorf("invalid credit realization type: %s", t))
 	}
+
 	return nil
 }
 
@@ -108,6 +109,7 @@ func (i CreateInputs) Sum() alpacadecimal.Decimal {
 	for _, input := range i {
 		sum = sum.Add(input.Amount)
 	}
+
 	return sum
 }
 

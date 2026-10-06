@@ -46,6 +46,7 @@ func (s *service) syncPrepared(ctx context.Context, view subscription.Subscripti
 		if err := plan.Execute(ctx, s, view.Customer); err != nil {
 			return def, err
 		}
+
 		if !view.Subscription.PlanRef.NilEqual(newSpec.Plan) {
 			// validateSyncTarget has already checked a later version of the same
 			// plan. Persist its reference atomically with the materialized items.
@@ -66,10 +67,12 @@ func validateSyncTarget(view subscription.SubscriptionView, newSpec subscription
 	if view.Subscription.CustomerId != newSpec.CustomerId {
 		return fmt.Errorf("cannot change customer id")
 	}
+
 	if !view.Subscription.PlanRef.NilEqual(newSpec.Plan) {
 		if view.Subscription.PlanRef == nil || newSpec.Plan == nil {
 			return fmt.Errorf("cannot change plan")
 		}
+
 		if err := (subscription.AdvancePlanReferenceInput{
 			SubscriptionID: view.Subscription.NamespacedID,
 			CurrentPlan:    *view.Subscription.PlanRef,
@@ -78,9 +81,11 @@ func validateSyncTarget(view subscription.SubscriptionView, newSpec subscription
 			return fmt.Errorf("cannot change plan: %w", err)
 		}
 	}
+
 	if !view.Subscription.ActiveFrom.Equal(newSpec.ActiveFrom) {
 		return fmt.Errorf("cannot change subscription start")
 	}
+
 	if view.Subscription.SettlementMode != newSpec.SettlementMode {
 		return fmt.Errorf("cannot change settlement mode")
 	}

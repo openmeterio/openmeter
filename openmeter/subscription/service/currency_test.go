@@ -120,6 +120,7 @@ func TestResolveCostBasisRequirements(t *testing.T) {
 			require.Equal(t, customCurrencyID, input.CurrencyID)
 			require.Equal(t, currencyx.Code("USD"), input.FiatCode)
 			require.Equal(t, at, input.At)
+
 			return currencies.CostBasis{
 				NamespacedID: models.NamespacedID{Namespace: namespace, ID: costBasisID},
 				CurrencyID:   customCurrencyID,

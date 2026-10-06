@@ -613,6 +613,7 @@ func validateCustomCurrencyInvoiceLineDelete(invoice billing.GenericInvoiceReade
 	if standardInvoice.Namespace != charge.Namespace || line.GetLineID().Namespace != charge.Namespace {
 		return fmt.Errorf("custom-currency flat fee line[%s] namespace does not match charge[%s]: %w", line.GetID(), charge.ID, billing.ErrCannotUpdateChargeManagedLine)
 	}
+
 	if line.GetChargeID() == nil || *line.GetChargeID() != charge.ID {
 		return fmt.Errorf("custom-currency flat fee line[%s] does not match charge[%s]: %w", line.GetID(), charge.ID, billing.ErrCannotUpdateChargeManagedLine)
 	}
@@ -883,6 +884,7 @@ func (e *LineEngine) validateDeletedStandardLines(ctx context.Context, input bil
 		if err != nil {
 			return fmt.Errorf("calculating fiat overage for flat fee realization run[%s]: %w", run.ID.ID, err)
 		}
+
 		if fiatOverage.ShouldOmitInvoiceLine {
 			continue
 		}
@@ -1046,6 +1048,7 @@ func (e *LineEngine) OnInvoiceFinalizing(ctx context.Context, input billing.OnIn
 		if err != nil {
 			return nil, fmt.Errorf("validating finalizing update for line[%s]: %w", stdLine.ID, err)
 		}
+
 		if updatedLine == nil {
 			return stdLine, nil
 		}

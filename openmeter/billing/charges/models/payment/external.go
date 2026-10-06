@@ -49,6 +49,7 @@ func CreateExternal[T Creator[T]](creator Creator[T], payment ExternalCreateInpu
 
 func MapExternalFromDB(dbEntity Getter) External {
 	payment := mapPaymentFromDB(dbEntity)
+
 	return External{
 		Payment: payment,
 	}

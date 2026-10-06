@@ -218,6 +218,7 @@ func NewServer(config *Config) (*Server, error) {
 				},
 			}))
 		}
+
 		r.Use(render.SetContentType(render.ContentTypeJSON))
 		r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 			models.NewStatusProblem(r.Context(), nil, http.StatusNotFound).Respond(w)
@@ -293,6 +294,7 @@ func collectMiddlewareHooks(hooks []MiddlewareHook) []server.MiddlewareFunc {
 	for _, hook := range hooks {
 		hook(c)
 	}
+
 	return c.middlewares
 }
 

@@ -129,6 +129,7 @@ func TestCreateCostBasisPinEntityInputValidate(t *testing.T) {
 			if tt.expectedCause != "" {
 				require.ErrorContains(t, err, tt.expectedCause)
 			}
+
 			require.True(t, models.IsGenericValidationError(err))
 		})
 	}

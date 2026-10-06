@@ -27,6 +27,7 @@ func makeResolver(prices map[string]*cost.ResolvedUnitCost) costResolverFunc {
 		if r, ok := prices[key]; ok {
 			return r, "", nil
 		}
+
 		return nil, fmt.Sprintf("price not found for %v", groupByValues), nil
 	}
 }
@@ -659,6 +660,7 @@ func TestBuildCacheKey(t *testing.T) {
 			}
 			keys[buildCacheKey(m)] = struct{}{}
 		}
+
 		assert.Len(t, keys, 1, "cache key should be deterministic")
 	})
 
@@ -906,6 +908,7 @@ func (m *mockLLMCostServiceWithPrices) ResolvePrice(_ context.Context, input llm
 			},
 		}, nil
 	}
+
 	return llmcost.Price{}, llmcost.NewPriceNotFoundError(string(input.Provider), input.ModelID)
 }
 

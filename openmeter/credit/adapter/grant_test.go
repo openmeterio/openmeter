@@ -66,6 +66,7 @@ func TestListGrantsMapsCustomerIDAndBreaksSortTiesByID(t *testing.T) {
 		require.NoError(t, err)
 		ids = append(ids, g.ID)
 	}
+
 	slices.Sort(ids)
 
 	listPaged := func(t *testing.T, order sortx.Order) []string {
@@ -84,6 +85,7 @@ func TestListGrantsMapsCustomerIDAndBreaksSortTiesByID(t *testing.T) {
 			require.Equal(t, customer.ID, *res.Items[0].CustomerID)
 			listed = append(listed, res.Items[0].ID)
 		}
+
 		return listed
 	}
 

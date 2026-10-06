@@ -1503,6 +1503,7 @@ func (s *CustomerChargeAPISetOverrideTestSuite) TestSetAndClearReconcileRealized
 
 		s.FlatFeeTestHandler.onAllocateCredits = func(_ context.Context, input flatfee.OnAllocateCreditsInput) (creditrealization.CreateAllocationInputs, error) {
 			allocationAmounts = append(allocationAmounts, input.PreTaxAmountToAllocate.InexactFloat64())
+
 			return creditrealization.CreateAllocationInputs{{
 				ServicePeriod: input.ServicePeriod,
 				Amount:        input.PreTaxAmountToAllocate,
@@ -1514,6 +1515,7 @@ func (s *CustomerChargeAPISetOverrideTestSuite) TestSetAndClearReconcileRealized
 		s.FlatFeeTestHandler.onCorrectCreditAllocations = func(_ context.Context, input flatfee.CorrectCreditAllocationsInput) (creditrealization.CreateCorrectionInputs, error) {
 			return lo.Map(input.Corrections, func(item creditrealization.CorrectionRequestItem, _ int) creditrealization.CreateCorrectionInput {
 				correctionAmounts = append(correctionAmounts, item.Amount.InexactFloat64())
+
 				return creditrealization.CreateCorrectionInput{
 					Amount:                item.Amount,
 					CorrectsRealizationID: item.Allocation.ID,
@@ -1963,6 +1965,7 @@ func (s *CustomerChargeAPISetOverrideTestSuite) TestSetAndClearRebuildUsageBased
 		}
 		s.UsageBasedTestHandler.onCreditsOnlyUsageAccruedCorrection = func(_ context.Context, input usagebased.CreditsOnlyUsageAccruedCorrectionInput) (creditrealization.CreateCorrectionInputs, error) {
 			correctionCalls++
+
 			return lo.Map(input.Corrections, func(item creditrealization.CorrectionRequestItem, _ int) creditrealization.CreateCorrectionInput {
 				return creditrealization.CreateCorrectionInput{
 					Amount:                item.Amount,

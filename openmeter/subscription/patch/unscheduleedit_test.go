@@ -37,6 +37,7 @@ func TestUnscheduleEdit(t *testing.T) {
 				GetSpec: func(t *testing.T) *subscription.SubscriptionSpec {
 					s := getSpec(t)
 					delete(s.Phases, "test_phase_1")
+
 					return s
 				},
 				Ctx: subscription.ApplyContext{CurrentTime: now},
@@ -62,6 +63,7 @@ func TestUnscheduleEdit(t *testing.T) {
 					items = append(items, &futureItem)
 
 					phase.ItemsByKey[subscriptiontestutils.ExampleFeatureKey] = items
+
 					return s
 				},
 				Ctx: subscription.ApplyContext{CurrentTime: now},
@@ -69,6 +71,7 @@ func TestUnscheduleEdit(t *testing.T) {
 					s := getSpec(t)
 					// The future edit should be removed, leaving only the original item
 					require.Len(t, s.Phases["test_phase_1"].ItemsByKey[subscriptiontestutils.ExampleFeatureKey], 1)
+
 					return *s
 				},
 			},
@@ -114,6 +117,7 @@ func TestUnscheduleEdit(t *testing.T) {
 					s := getSpec(t)
 					// All future edits should be removed, leaving only the original item
 					require.Len(t, s.Phases["test_phase_1"].ItemsByKey[subscriptiontestutils.ExampleFeatureKey], 1)
+
 					return *s
 				},
 			},
@@ -163,6 +167,7 @@ func TestUnscheduleEdit(t *testing.T) {
 
 					// All future edits should be removed, leaving only the original item + the future edit
 					require.Len(t, s.Phases["test_phase_1"].ItemsByKey[subscriptiontestutils.ExampleFeatureKey], 2)
+
 					return *s
 				},
 			},

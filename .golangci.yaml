@@ -15,9 +15,18 @@ linters:
     # FIXME: re-enable following linters
     #- unparam
     #- unused
-    - whitespace
-    #- wsl
+    - wsl_v5
   settings:
+    wsl_v5:
+      # Keep assignment and defer grouping discretionary.
+      default: none
+      branch-max-lines: 2
+      enable:
+        - leading-whitespace
+        - trailing-whitespace
+        - after-block
+        - branch
+        - return
     misspell:
       locale: US
     nolintlint:

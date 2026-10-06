@@ -44,6 +44,7 @@ func (h *handler) EditSubscription() EditSubscriptionHandler {
 
 			if len(body.Customizations) == 0 {
 				reason := "at least one customization is required"
+
 				return EditSubscriptionRequest{}, apierrors.NewBadRequestError(
 					ctx,
 					errors.New(reason),

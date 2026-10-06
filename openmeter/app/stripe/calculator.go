@@ -58,6 +58,7 @@ func (c StripeCalculator) FormatQuantity(quantity alpacadecimal.Decimal) string 
 	}
 
 	f, _ := quantity.Float64()
+
 	return c.printer.Sprintf("%.2f", f)
 }
 

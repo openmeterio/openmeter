@@ -42,6 +42,7 @@ func (o *BrokerOptions) Validate() error {
 	if o.MetricMeter == nil {
 		return errors.New("metric meter is required")
 	}
+
 	return nil
 }
 

@@ -53,6 +53,7 @@ func (p *recordingPublisher) Publish(topic string, messages ...*message.Message)
 		for key, value := range msg.Metadata {
 			attempt.metadata[key] = value
 		}
+
 		p.mu.Lock()
 		p.attempts = append(p.attempts, attempt)
 		onSend := p.onSend
@@ -63,10 +64,12 @@ func (p *recordingPublisher) Publish(topic string, messages ...*message.Message)
 				return err
 			}
 		}
+
 		p.mu.Lock()
 		p.delivered = append(p.delivered, attempt)
 		p.mu.Unlock()
 	}
+
 	return nil
 }
 
@@ -80,6 +83,7 @@ func (p *recordingPublisher) Close() error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	p.closed = true
+
 	return nil
 }
 
@@ -92,6 +96,7 @@ func (p *recordingPublisher) attemptsFor(id string) []publishedMessage {
 			matches = append(matches, attempt)
 		}
 	}
+
 	return matches
 }
 
@@ -102,6 +107,7 @@ func (p *recordingPublisher) deliveredIDs() []string {
 	for i, delivered := range p.delivered {
 		ids[i] = delivered.id
 	}
+
 	return ids
 }
 
@@ -126,6 +132,7 @@ func newTestPublisher(t *testing.T, raw *recordingPublisher) (*Publisher, *db.Cl
 	})
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, p.Close()) })
+
 	return p, client
 }
 
@@ -135,7 +142,9 @@ func testMessage(ctx context.Context, id, messageKey string) *message.Message {
 	if messageKey != "" {
 		msg.Metadata.Set("x-kafka-partition-key", messageKey)
 	}
+
 	msg.SetContext(ctx)
+
 	return msg
 }
 
@@ -181,6 +190,7 @@ func TestPublisherDeliversOnlyAfterOuterCommit(t *testing.T) {
 		require.NoError(t, err)
 		require.Zero(t, count, "other connections must not see uncommitted outbox rows")
 		noAttempt(t, raw)
+
 		return nil
 	})
 	require.NoError(t, err)
@@ -209,6 +219,7 @@ func TestPublisherDiscardsRolledBackEvents(t *testing.T) {
 			return rollback
 		})
 		require.ErrorIs(t, err, rollback)
+
 		return nil
 	})
 	require.NoError(t, err)
@@ -248,6 +259,7 @@ func TestPublisherFailureDoesNotBlockOtherRows(t *testing.T) {
 		if attempt.id == "failed" {
 			return errors.New("broker unavailable for this key")
 		}
+
 		return nil
 	})
 	p, client := newTestPublisher(t, raw)
@@ -314,6 +326,7 @@ func TestConcurrentEnqueueDoesNotSerializeMessageKey(t *testing.T) {
 		require.NoError(t, p.Publish(testTopic, testMessage(independent, "second", "customer-1")))
 		require.Equal(t, "second", nextAttempt(t, raw).id)
 		noAttempt(t, raw)
+
 		return nil
 	})
 
@@ -334,6 +347,7 @@ func TestConcurrentPublishersCanSendSameKeyIndependently(t *testing.T) {
 		if attempt.id == "first" {
 			<-releaseFirst
 		}
+
 		return nil
 	})
 	p1, client := newTestPublisher(t, raw)
@@ -375,6 +389,7 @@ func TestPublisherKeepsLargeTransactionTogether(t *testing.T) {
 		for i := range messages {
 			messages[i] = testMessage(ctx, fmt.Sprintf("event-%03d", i), "customer-1")
 		}
+
 		return p.Publish(testTopic, messages...)
 	})
 	require.NoError(t, err)
@@ -387,6 +402,7 @@ func TestPublisherKeepsLargeTransactionTogether(t *testing.T) {
 	for i := range expected {
 		expected[i] = fmt.Sprintf("event-%03d", i)
 	}
+
 	require.Equal(t, expected, raw.deliveredIDs())
 }
 

@@ -974,6 +974,7 @@ func (s *CustomCurrencyLedgerIntegrationTestSuite) requireChargeTransactionTempl
 		s.Require().NoError(err)
 		actual = append(actual, templateCode)
 	}
+
 	s.ElementsMatch(expected, actual)
 }
 
@@ -991,6 +992,7 @@ func (s *CustomCurrencyLedgerIntegrationTestSuite) requireTransactionTemplates(n
 		s.Require().NoError(err)
 		actual = append(actual, templateCode)
 	}
+
 	s.Equal(expected, actual)
 }
 

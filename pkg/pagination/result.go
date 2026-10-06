@@ -11,6 +11,7 @@ type Result[T any] struct {
 // Implement json.Marshaler interface to flatten the Page struct
 func (p Result[T]) MarshalJSON() ([]byte, error) {
 	type Alias Result[T]
+
 	return json.Marshal(&struct {
 		PageSize   int `json:"pageSize"`
 		PageNumber int `json:"page"`

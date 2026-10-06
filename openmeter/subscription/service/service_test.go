@@ -379,6 +379,7 @@ func TestCancellation(t *testing.T) {
 							if foundItemCadence.ActiveTo != nil && foundItemCadence.ActiveTo.Equal(*phaseCadence.ActiveTo) {
 								satisfies = true
 							}
+
 							// - their ActiveTo time set to the cancel time (if they started before the cancel time)
 						} else if foundItemCadence.ActiveTo != nil && foundItemCadence.ActiveTo.Equal(expectedCancelTime) {
 							satisfies = true
@@ -1383,6 +1384,7 @@ func TestTaxCodeResolution(t *testing.T) {
 					if meta.Key != "taxcodeid-only-rc" {
 						continue
 					}
+
 					found = true
 					require.NotNil(t, meta.TaxConfig)
 					require.NotNil(t, meta.TaxConfig.TaxCodeID)
@@ -1392,6 +1394,7 @@ func TestTaxCodeResolution(t *testing.T) {
 				}
 			}
 		}
+
 		require.True(t, found, "item taxcodeid-only-rc must be present in the subscription view")
 	})
 
@@ -1448,6 +1451,7 @@ func TestTaxCodeResolution(t *testing.T) {
 						m.TaxConfig = &productcatalog.TaxConfig{
 							TaxCodeID: lo.ToPtr("01JNON_EXISTENT_TAX_CODE_ID"),
 						}
+
 						return m, nil
 					})
 					require.NoError(t, err)

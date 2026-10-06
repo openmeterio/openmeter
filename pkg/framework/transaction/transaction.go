@@ -26,6 +26,7 @@ func RunWithNoValue(ctx context.Context, creator Creator, cb func(ctx context.Co
 	_, err := Run(ctx, creator, func(ctx context.Context) (interface{}, error) {
 		return nil, cb(ctx)
 	})
+
 	return err
 }
 
@@ -86,10 +87,12 @@ func getTx(ctx context.Context, creator Creator) (context.Context, Driver, error
 		if _, ok := err.(*DriverNotFoundError); !ok {
 			slog.Debug("failed to get transaction from context", "transaction_error", err)
 		}
+
 		ctx, tx, err := creator.Tx(ctx)
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to start transaction: %w", err)
 		}
+
 		return ctx, tx, err
 	}
 }
@@ -134,6 +137,7 @@ func manage[R any](ctx context.Context, tx Driver, cb func(ctx context.Context, 
 		if rerr := tx.Rollback(); rerr != nil {
 			err = errors.Join(err, rerr)
 		}
+
 		return def, err
 	}
 

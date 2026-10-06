@@ -281,6 +281,7 @@ func newChargePatchTestFlatFeeItem(t *testing.T, target targetstate.StateItem, i
 	t.Helper()
 
 	existingIntent := newChargePatchTestExistingFlatFeeIntent(target)
+
 	return newChargePatchTestFlatFeeItemWithIntent(t, target, id, existingIntent)
 }
 
@@ -513,6 +514,7 @@ func newChargePatchTestUsageRateCard() productcatalog.RateCard {
 
 func newChargePatchTestFlatRateCard() productcatalog.RateCard {
 	billingCadence := datetime.NewISODuration(0, 1, 0, 0, 0, 0, 0)
+
 	return &productcatalog.FlatFeeRateCard{
 		RateCardMeta: productcatalog.RateCardMeta{
 			Key:  "flat-rate-card",

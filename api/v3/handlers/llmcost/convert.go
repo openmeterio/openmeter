@@ -138,6 +138,7 @@ func apiPricingToDomain(p api.LLMCostModelPricing) (llmcost.ModelPricing, error)
 				fmt.Errorf("invalid cache_read_per_token: %w", err),
 			)
 		}
+
 		out.CacheReadPerToken = &d
 	}
 
@@ -148,6 +149,7 @@ func apiPricingToDomain(p api.LLMCostModelPricing) (llmcost.ModelPricing, error)
 				fmt.Errorf("invalid reasoning_per_token: %w", err),
 			)
 		}
+
 		out.ReasoningPerToken = &d
 	}
 
@@ -158,6 +160,7 @@ func apiPricingToDomain(p api.LLMCostModelPricing) (llmcost.ModelPricing, error)
 				fmt.Errorf("invalid cache_write_per_token: %w", err),
 			)
 		}
+
 		out.CacheWritePerToken = &d
 	}
 

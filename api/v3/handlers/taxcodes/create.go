@@ -36,6 +36,7 @@ func (h *handler) CreateTaxCode() CreateTaxCodeHandler {
 			if err != nil {
 				return CreateTaxCodeRequest{}, err
 			}
+
 			return req, nil
 		},
 		func(ctx context.Context, request CreateTaxCodeRequest) (CreateTaxCodeResponse, error) {

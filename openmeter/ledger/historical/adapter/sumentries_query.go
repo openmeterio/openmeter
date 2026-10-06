@@ -36,7 +36,9 @@ func (b *sumEntriesQuery) SQL() (string, []any, error) {
 	if err != nil {
 		return "", nil, err
 	}
+
 	query, args := selector.Query()
+
 	return query, args, nil
 }
 
@@ -48,9 +50,11 @@ func (b *sumEntriesQuery) selector() (*sql.Selector, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	for _, predicate := range entryPredicates {
 		predicate(selector)
 	}
+
 	return selector, nil
 }
 
@@ -69,9 +73,11 @@ func (b *sumEntriesQuery) entryPredicates() ([]predicate.LedgerEntry, error) {
 		if b.query.Filters.BookedAtPeriod.From != nil {
 			transactionPredicates = append(transactionPredicates, ledgertransactiondb.BookedAtGTE(*b.query.Filters.BookedAtPeriod.From))
 		}
+
 		if b.query.Filters.BookedAtPeriod.To != nil {
 			transactionPredicates = append(transactionPredicates, ledgertransactiondb.BookedAtLT(*b.query.Filters.BookedAtPeriod.To))
 		}
+
 		if len(transactionPredicates) > 0 {
 			entryPredicates = append(entryPredicates, ledgerentrydb.HasTransactionWith(transactionPredicates...))
 		}
@@ -106,6 +112,7 @@ func (b *sumEntriesQuery) entryPredicates() ([]predicate.LedgerEntry, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	if len(subAccountPredicates) > 0 {
 		entryPredicates = append(entryPredicates, ledgerentrydb.HasSubAccountWith(subAccountPredicates...))
 	}
@@ -118,6 +125,7 @@ func (b *sumEntriesQuery) subAccountPredicates() ([]predicate.LedgerSubAccount, 
 	if b.query.Filters.AccountID != nil {
 		subAccountPredicates = append(subAccountPredicates, ledgersubaccountdb.AccountID(*b.query.Filters.AccountID))
 	}
+
 	normalizedRoute, err := b.query.Filters.Route.Normalize()
 	if err != nil {
 		return nil, ledger.ErrLedgerQueryInvalid.WithAttrs(models.Attributes{
@@ -134,15 +142,18 @@ func (b *sumEntriesQuery) subAccountPredicates() ([]predicate.LedgerSubAccount, 
 			if err != nil {
 				return nil, fmt.Errorf("serialize route currency filter prefix: %w", err)
 			}
+
 			routePredicates = append(routePredicates, ledgersubaccountroutedb.CurrencyHasPrefix(string(prefix)))
 		} else {
 			serialized, err := normalizedRoute.Currency.MarshalText()
 			if err != nil {
 				return nil, fmt.Errorf("serialize route currency filter: %w", err)
 			}
+
 			routePredicates = append(routePredicates, ledgersubaccountroutedb.Currency(string(serialized)))
 		}
 	}
+
 	if normalizedRoute.CostBasisCurrency.IsPresent() {
 		costBasisCurrency, _ := normalizedRoute.CostBasisCurrency.Get()
 		if costBasisCurrency != nil {
@@ -151,11 +162,13 @@ func (b *sumEntriesQuery) subAccountPredicates() ([]predicate.LedgerSubAccount, 
 			routePredicates = append(routePredicates, ledgersubaccountroutedb.CostBasisCurrencyIsNil())
 		}
 	}
+
 	if normalizedRoute.CreditPriority != nil {
 		routePredicates = append(routePredicates,
 			ledgersubaccountroutedb.CreditPriority(*normalizedRoute.CreditPriority),
 		)
 	}
+
 	if normalizedRoute.TaxCode.IsPresent() {
 		tc, _ := normalizedRoute.TaxCode.Get()
 		if tc != nil {
@@ -164,15 +177,19 @@ func (b *sumEntriesQuery) subAccountPredicates() ([]predicate.LedgerSubAccount, 
 			routePredicates = append(routePredicates, ledgersubaccountroutedb.TaxCodeIsNil())
 		}
 	}
+
 	if exact, ok := normalizedRoute.CreditFilters.Get(); ok {
 		routePredicates = append(routePredicates, func(s *sql.Selector) { s.Where(routequery.ExactFiltersPredicate(s.C, exact)) })
 	}
+
 	if features, ok := normalizedRoute.Features.Get(); ok {
 		routePredicates = append(routePredicates, func(s *sql.Selector) { s.Where(routequery.ExactFeaturesPredicate(s.C, features)) })
 	}
+
 	if normalizedRoute.MatchFeature != "" {
 		routePredicates = append(routePredicates, func(s *sql.Selector) { s.Where(routequery.MatchFeaturePredicate(s.C, normalizedRoute.MatchFeature)) })
 	}
+
 	if normalizedRoute.CostBasis.IsPresent() {
 		costBasis, _ := normalizedRoute.CostBasis.Get()
 		if costBasis != nil {
@@ -181,6 +198,7 @@ func (b *sumEntriesQuery) subAccountPredicates() ([]predicate.LedgerSubAccount, 
 			routePredicates = append(routePredicates, ledgersubaccountroutedb.CostBasisIsNil())
 		}
 	}
+
 	if normalizedRoute.TaxBehavior.IsPresent() {
 		tb, _ := normalizedRoute.TaxBehavior.Get()
 		if tb != nil {
@@ -189,6 +207,7 @@ func (b *sumEntriesQuery) subAccountPredicates() ([]predicate.LedgerSubAccount, 
 			routePredicates = append(routePredicates, ledgersubaccountroutedb.TaxBehaviorIsNil())
 		}
 	}
+
 	if normalizedRoute.TransactionAuthorizationStatus != nil {
 		routePredicates = append(routePredicates, ledgersubaccountroutedb.TransactionAuthorizationStatus(*normalizedRoute.TransactionAuthorizationStatus))
 	}

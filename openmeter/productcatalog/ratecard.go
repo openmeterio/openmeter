@@ -534,6 +534,7 @@ func (r *FlatFeeRateCard) UnmarshalJSON(data []byte) error {
 	if serde.FeatureID != nil || serde.FeatureKey != nil {
 		r.Feature = &FeatureReference{ID: serde.FeatureID, Key: serde.FeatureKey}
 	}
+
 	r.BillingCadence = serde.BillingCadence
 
 	return nil
@@ -708,6 +709,7 @@ func (r *UsageBasedRateCard) UnmarshalJSON(data []byte) error {
 	if serde.FeatureID != nil || serde.FeatureKey != nil {
 		r.Feature = &FeatureReference{ID: serde.FeatureID, Key: serde.FeatureKey}
 	}
+
 	r.BillingCadence = serde.BillingCadence
 
 	return nil
@@ -725,6 +727,7 @@ func (c RateCards) Clone() RateCards {
 	for i, rc := range c {
 		clone[i] = rc.Clone()
 	}
+
 	return clone
 }
 

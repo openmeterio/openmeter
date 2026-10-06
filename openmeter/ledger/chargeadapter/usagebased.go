@@ -216,6 +216,7 @@ func (h *usageBasedHandler) OnCustomCurrencyOverageAccruedCorrection(ctx context
 	if err := input.Validate(); err != nil {
 		return err
 	}
+
 	if input.Run.InvoiceUsage == nil || input.Run.InvoiceUsage.LedgerTransaction == nil {
 		return nil
 	}
@@ -246,6 +247,7 @@ func (h *usageBasedHandler) OnAllocateFiatOverageCredits(ctx context.Context, in
 	}
 
 	intent := input.Charge.Intent
+
 	return h.collector.CollectToReceivable(ctx, collector.CollectToReceivableInput{
 		Namespace:         input.Charge.Namespace,
 		ChargeID:          input.Charge.ID,
@@ -384,6 +386,7 @@ func (h *usageBasedHandler) OnCreditsOnlyUsageAccrued(ctx context.Context, input
 	if err != nil {
 		return nil, err
 	}
+
 	if len(realizations) == 0 {
 		return nil, nil
 	}

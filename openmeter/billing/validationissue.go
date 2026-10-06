@@ -230,6 +230,7 @@ func (a attributesWrapper) Error() string {
 	for key := range a.attributes {
 		keys = append(keys, key)
 	}
+
 	slices.Sort(keys)
 
 	attributes := make([]string, 0, len(keys))
@@ -541,6 +542,7 @@ func toValidationIssue(err error, fieldPrefix string, component ComponentName, m
 			if err != nil {
 				return nil, err
 			}
+
 			if len(out) > 0 {
 				issues = append(issues, out...)
 			}
@@ -682,6 +684,7 @@ func (r *ValidationIssueRecorder) Record(err error, options ...ValidationIssueRe
 	for _, option := range options {
 		option.apply(&appliedOptions)
 	}
+
 	err = appliedOptions.wrap(err)
 
 	if !IsValidationIssueOnly(err) {
@@ -690,6 +693,7 @@ func (r *ValidationIssueRecorder) Record(err error, options ...ValidationIssueRe
 
 	// At this point we know that the errors are all validation issues
 	r.issues = append(r.issues, err)
+
 	return nil
 }
 

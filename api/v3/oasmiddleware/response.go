@@ -27,6 +27,7 @@ func NewResponseWriterWrapper(w http.ResponseWriter) ResponseWriterWrapper {
 		buf        bytes.Buffer
 		statusCode = 200
 	)
+
 	return ResponseWriterWrapper{
 		w:          &w,
 		body:       &buf,

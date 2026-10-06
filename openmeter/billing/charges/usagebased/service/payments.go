@@ -121,6 +121,7 @@ func areAllRealizationRunsSettled(charge usagebased.Charge) (bool, error) {
 		if err != nil {
 			return false, fmt.Errorf("calculating fiat overage for realization run[%s]: %w", run.ID.ID, err)
 		}
+
 		if isFinalRunInPeriod(charge, timeutil.ClosedPeriod{
 			From: charge.Intent.GetEffectiveServicePeriod().From,
 			To:   run.ServicePeriodTo,

@@ -120,6 +120,7 @@ func allocateCorrectionLegs(
 		if coalesce {
 			postingsByIdentity[coalesceKey] = len(postings)
 		}
+
 		postings = append(postings, correctionPosting{
 			address:  address,
 			amount:   amount,

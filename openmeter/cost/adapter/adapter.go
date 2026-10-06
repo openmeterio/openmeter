@@ -95,9 +95,11 @@ func (a *adapter) QueryFeatureCost(ctx context.Context, input cost.QueryFeatureC
 		for k, v := range params.FilterGroupBy {
 			merged[k] = v
 		}
+
 		for k, v := range feat.MeterGroupByFilters {
 			merged[k] = v
 		}
+
 		params.FilterGroupBy = merged
 	}
 
@@ -232,8 +234,10 @@ func (a *adapter) makeCostResolver(ctx context.Context, feat *feature.Feature, p
 			if models.IsGenericNotFoundError(err) {
 				return nil, err.Error(), nil
 			}
+
 			return nil, "", fmt.Errorf("failed to resolve unit cost: %w", err)
 		}
+
 		return resolved, "", nil
 	}
 }

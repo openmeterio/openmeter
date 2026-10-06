@@ -123,21 +123,25 @@ func (i ListPlansInput) Validate() error {
 			errs = append(errs, err)
 		}
 	}
+
 	if i.Name != nil {
 		if err := i.Name.Validate(); err != nil {
 			errs = append(errs, err)
 		}
 	}
+
 	if i.Currency != nil {
 		if err := i.Currency.Validate(); err != nil {
 			errs = append(errs, err)
 		}
 	}
+
 	if i.OrderBy != "" {
 		if err := i.OrderBy.Validate(); err != nil {
 			errs = append(errs, err)
 		}
 	}
+
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
@@ -337,10 +341,12 @@ func (i UpdatePlanInput) ValidateWithPlan(p productcatalog.Plan) error {
 	if i.RejectUnitConfig && p.HasUnitConfig() {
 		return productcatalog.ErrUnitConfigNotRepresentable
 	}
+
 	if i.RejectUnrepresentableCurrencies {
 		if p.Currency.IsCustom() {
 			return productcatalog.ErrCurrencyNotRepresentable
 		}
+
 		if p.HasCurrencyOverrides() {
 			return productcatalog.ErrRateCardCurrencyNotRepresentable
 		}
@@ -351,10 +357,12 @@ func (i UpdatePlanInput) ValidateWithPlan(p productcatalog.Plan) error {
 	if i.RejectUnitConfig && p.HasUnitConfig() {
 		return productcatalog.ErrUnitConfigNotRepresentable
 	}
+
 	if i.RejectUnrepresentableCurrencies {
 		if p.Currency.IsCustom() {
 			return productcatalog.ErrCurrencyNotRepresentable
 		}
+
 		if p.HasCurrencyOverrides() {
 			return productcatalog.ErrRateCardCurrencyNotRepresentable
 		}
@@ -546,6 +554,7 @@ func (i ArchivePlanInput) Validate() error {
 	if i.ID == "" {
 		errs = append(errs, productcatalog.ErrIDEmpty)
 	}
+
 	if i.EffectiveTo.IsZero() {
 		errs = append(errs, errors.New("invalid EffectiveTo: must not be empty"))
 	}

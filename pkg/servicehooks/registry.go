@@ -189,6 +189,7 @@ func (r *Registry[T]) sealAndGetRegistrations() []registration[T] {
 
 		return registrations
 	}
+
 	r.mu.RUnlock()
 
 	r.mu.Lock()

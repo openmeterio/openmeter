@@ -12,6 +12,7 @@ func (i ISODurationString) Parse() (ISODuration, error) {
 	if err != nil {
 		return ISODuration{}, NewDurationParseError(string(i), err)
 	}
+
 	return ISODuration{res}, nil
 }
 

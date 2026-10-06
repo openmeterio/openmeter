@@ -144,6 +144,7 @@ func (s *service) ListCreditTransactions(ctx context.Context, input ListCreditTr
 	if err != nil {
 		return ListCreditTransactionsResult{}, fmt.Errorf("resolve customer balance accounts: %w", err)
 	}
+
 	if accountIDs.FBO == "" {
 		return emptyCreditTransactions(), nil
 	}
@@ -280,6 +281,7 @@ func creditTransactionFromLedgerTransaction(tx ledger.Transaction) (CreditTransa
 	if err != nil {
 		return CreditTransaction{}, err
 	}
+
 	cursor := tx.Cursor()
 
 	return CreditTransaction{
@@ -311,6 +313,7 @@ func creditTransactionFBOImpact(tx ledger.Transaction) (alpacadecimal.Decimal, c
 		if currency.Code == "" {
 			currency = entryCurrency
 		}
+
 		if !currency.Equal(entryCurrency) {
 			return alpacadecimal.Decimal{}, currencies.CurrencyReference{}, fmt.Errorf("transaction %s has multiple customer FBO currencies", tx.ID().ID)
 		}
@@ -342,6 +345,7 @@ func (tx CreditTransaction) balanceQuery() ledger.BalanceQuery {
 	}
 
 	asOf := tx.BookedAt
+
 	return ledger.BalanceQuery{AsOf: &asOf}
 }
 

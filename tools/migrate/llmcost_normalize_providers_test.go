@@ -186,6 +186,7 @@ func TestLLMCostNormalizeProvidersMigration(t *testing.T) {
 					if alias1Deleted.Valid {
 						survivorID = aliasOnlyNanoGpt2.String()
 					}
+
 					err = db.QueryRow(`SELECT provider FROM llm_cost_prices WHERE id = $1`, survivorID).Scan(&provider)
 					require.NoError(t, err)
 					require.Equal(t, "nanogpt", provider, "surviving alias should be renamed to canonical provider")

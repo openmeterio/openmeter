@@ -88,6 +88,7 @@ func (r *subscriptionItemRepo) GetForSubscriptionAt(ctx context.Context, input s
 			if err != nil {
 				return nil, err
 			}
+
 			result = append(result, r)
 		}
 
@@ -120,6 +121,7 @@ func (r *subscriptionItemRepo) GetForSubscriptionsAt(ctx context.Context, input 
 			if err != nil {
 				return nil, err
 			}
+
 			result = append(result, r)
 		}
 

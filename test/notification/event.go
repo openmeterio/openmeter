@@ -22,6 +22,7 @@ import (
 func NewBalanceThresholdPayload() notification.EventPayload {
 	month := &api.RecurringPeriodInterval{}
 	_ = month.FromRecurringPeriodIntervalEnum(api.RecurringPeriodIntervalEnumMONTH)
+
 	return notification.EventPayload{
 		EventPayloadMeta: notification.EventPayloadMeta{
 			Type: notification.EventTypeBalanceThreshold,
@@ -94,6 +95,7 @@ func NewBalanceThresholdPayload() notification.EventPayload {
 func NewEntitlementResetPayload() notification.EventPayload {
 	month := &api.RecurringPeriodInterval{}
 	_ = month.FromRecurringPeriodIntervalEnum(api.RecurringPeriodIntervalEnumMONTH)
+
 	return notification.EventPayload{
 		EventPayloadMeta: notification.EventPayloadMeta{
 			Type: notification.EventTypeEntitlementReset,
@@ -190,6 +192,7 @@ func (s *EventTestSuite) Setup(ctx context.Context, t *testing.T) {
 	if _, ok := lo.ErrorsAs[*feature.FeatureNotFoundError](err); !ok {
 		require.NoError(t, err, "Getting feature must not return error")
 	}
+
 	if feat != nil {
 		s.feature = *feat
 	} else {
@@ -201,6 +204,7 @@ func (s *EventTestSuite) Setup(ctx context.Context, t *testing.T) {
 			MeterGroupByFilters: feature.ConvertMapStringToMeterGroupByFilters(m.GroupBy),
 		})
 	}
+
 	require.NoError(t, err, "Creating feature must not return error")
 
 	s.subjectKey = TestSubjectKey

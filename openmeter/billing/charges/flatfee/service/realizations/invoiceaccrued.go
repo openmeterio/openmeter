@@ -102,9 +102,11 @@ func (s *Service) AccrueInvoiceUsage(ctx context.Context, in AccrueInvoiceUsageI
 				if err != nil {
 					return AccrueInvoiceUsageResult{}, fmt.Errorf("on flat fee custom currency overage accrued: %w", err)
 				}
+
 				if err := handlerResult.Validate(); err != nil {
 					return AccrueInvoiceUsageResult{}, fmt.Errorf("validating custom currency overage accrued result: %w", err)
 				}
+
 				if !handlerResult.TotalFiatAmount.Equal(line.Totals.Total) {
 					return AccrueInvoiceUsageResult{}, fmt.Errorf(
 						"custom currency overage booked fiat amount does not match line total: %s != %s",
@@ -214,6 +216,7 @@ func (s *Service) CorrectAccruedUsage(ctx context.Context, input CorrectAccruedU
 	if err := correctionInput.Validate(); err != nil {
 		return flatfee.RealizationRun{}, fmt.Errorf("validate custom-currency overage accrual correction: %w", err)
 	}
+
 	if err := s.handler.OnCustomCurrencyOverageAccruedCorrection(ctx, correctionInput); err != nil {
 		return flatfee.RealizationRun{}, fmt.Errorf("correct custom-currency overage accrual: %w", err)
 	}

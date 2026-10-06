@@ -59,9 +59,11 @@ func TestV3Addon(t *testing.T) {
 				assert.NotEmpty(t, a.Currency)
 				assert.NotEmpty(t, a.Status)
 				assert.NotEmpty(t, a.RateCards)
+
 				break
 			}
 		}
+
 		assert.True(t, found, "created addon not found in list")
 	})
 
@@ -452,6 +454,7 @@ func TestV3AddonUnitPriceWithoutBillingCadence(t *testing.T) {
 		for _, e := range got.ValidationErrors {
 			codes = append(codes, e.Code)
 		}
+
 		assert.Contains(t, codes, "billing_cadence_invalid_value")
 	})
 

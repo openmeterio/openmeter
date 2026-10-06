@@ -30,6 +30,7 @@ func (c *StripeClientMock) SetupWebhook(ctx context.Context, input stripeclient.
 	}
 
 	args := c.Called(input)
+
 	return args.Get(0).(stripeclient.StripeWebhookEndpoint), args.Error(1)
 }
 
@@ -47,6 +48,7 @@ func (c *StripeAppClientMock) DeleteWebhook(ctx context.Context, input stripecli
 	}
 
 	args := c.Called(input)
+
 	return args.Error(0)
 }
 
@@ -56,6 +58,7 @@ func (c *StripeAppClientMock) UpdateWebhook(ctx context.Context, input stripecli
 	}
 
 	args := c.Called(input)
+
 	return args.Error(0)
 }
 
@@ -75,6 +78,7 @@ func (c *StripeAppClientMock) CreateCustomer(ctx context.Context, input stripecl
 	}
 
 	args := c.Called(input)
+
 	return args.Get(0).(stripeclient.StripeCustomer), args.Error(1)
 }
 
@@ -84,6 +88,7 @@ func (c *StripeAppClientMock) CreateCheckoutSession(ctx context.Context, input s
 	}
 
 	args := c.Called(input)
+
 	return args.Get(0).(stripeclient.StripeCheckoutSession), args.Error(1)
 }
 
@@ -100,6 +105,7 @@ func (c *StripeAppClientMock) CreateInvoice(ctx context.Context, input stripecli
 	}
 
 	args := c.Called(input)
+
 	return args.Get(0).(*stripe.Invoice), args.Error(1)
 }
 
@@ -109,6 +115,7 @@ func (c *StripeAppClientMock) GetInvoice(ctx context.Context, input stripeclient
 	}
 
 	args := c.Called(input)
+
 	return args.Get(0).(*stripe.Invoice), args.Error(1)
 }
 
@@ -118,6 +125,7 @@ func (c *StripeAppClientMock) UpdateInvoice(ctx context.Context, input stripecli
 	}
 
 	args := c.Called(input)
+
 	return args.Get(0).(*stripe.Invoice), args.Error(1)
 }
 
@@ -127,6 +135,7 @@ func (c *StripeAppClientMock) DeleteInvoice(ctx context.Context, input stripecli
 	}
 
 	args := c.Called(input)
+
 	return args.Error(1)
 }
 
@@ -136,6 +145,7 @@ func (c *StripeAppClientMock) FinalizeInvoice(ctx context.Context, input stripec
 	}
 
 	args := c.Called(input)
+
 	return args.Get(0).(*stripe.Invoice), args.Error(1)
 }
 
@@ -153,6 +163,7 @@ func (c *StripeAppClientMock) AddInvoiceLines(ctx context.Context, input stripec
 	c.StableSortInvoiceItemParams(input.Lines)
 
 	args := c.Called(input)
+
 	return args.Get(0).([]stripeclient.StripeInvoiceItemWithLineID), args.Error(1)
 }
 
@@ -170,6 +181,7 @@ func (c *StripeAppClientMock) UpdateInvoiceLines(ctx context.Context, input stri
 	c.StableSortStripeInvoiceItemWithID(input.Lines)
 
 	args := c.Called(input)
+
 	return args.Get(0).([]*stripe.InvoiceItem), args.Error(1)
 }
 
@@ -185,6 +197,7 @@ func (c *StripeAppClientMock) RemoveInvoiceLines(ctx context.Context, input stri
 	}
 
 	args := c.Called(input)
+
 	return args.Error(0)
 }
 
@@ -195,5 +208,6 @@ func (c *StripeAppClientMock) CreatePortalSession(ctx context.Context, input str
 	}
 
 	args := c.Called(input)
+
 	return args.Get(0).(stripeclient.PortalSession), args.Error(1)
 }

@@ -92,6 +92,7 @@ func (r PatchRemovePhase) ApplyTo(spec *subscription.SubscriptionSpec, actx subs
 				if err != nil {
 					return fmt.Errorf("failed to shift phase %s: %w", p.PhaseKey, err)
 				}
+
 				sortedPhases[i].StartAfter = sa
 			}
 		}

@@ -46,6 +46,7 @@ func (h *mergeHeap) Pop() any {
 	last := len(old) - 1
 	node := old[last]
 	h.nodes = old[:last]
+
 	return node
 }
 

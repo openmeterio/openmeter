@@ -77,6 +77,7 @@ func NewService(res *service.Resources, cfg Config) (*Service, error) {
 	if leaseHealthCheckTimeout == 0 {
 		leaseHealthCheckTimeout = cfg.LeaseDuration + cfg.LeaseDuration/2
 	}
+
 	healthzAdaptor := leaderelection.NewLeaderHealthzAdaptor(leaseHealthCheckTimeout)
 
 	leaderElectionConfig := &leaderelection.LeaderElectionConfig{
@@ -192,6 +193,7 @@ func GetLeaderElectionCLIOpts(ctx context.Context) []service.CLIOptFunc {
 					LeaseHealthCheckTimeout: ctx.Duration(leaseHealthCheckTimeoutFlag),
 					Identity:                ctx.String(leaseLockIdentityFlag),
 				}
+
 				return nil
 			}),
 		service.CLIOptOnConfigParse(func(conf *service.ParsedConfig) error {

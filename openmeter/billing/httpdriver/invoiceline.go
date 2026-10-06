@@ -853,6 +853,7 @@ func (h *handler) mergeStandardInvoiceLinesFromAPI(_ context.Context, invoice *b
 			}
 
 			out = append(out, newLine)
+
 			continue
 		}
 
@@ -900,6 +901,7 @@ func (h *handler) mergeGatheringInvoiceLinesFromAPI(ctx context.Context, invoice
 			}
 
 			out = append(out, newLine)
+
 			continue
 		}
 

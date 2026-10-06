@@ -97,6 +97,7 @@ func newBookPaymentAuthorizedInput(t testing.TB) BookInvoicedPaymentAuthorizedIn
 
 	lineID := "line-1"
 	now := time.Now().UTC()
+
 	return BookInvoicedPaymentAuthorizedInput{
 		Charge: newUsageBasedCharge(t),
 		Run:    newUsageBasedRun(lineID),
@@ -213,6 +214,7 @@ func newUsageBasedCharge(t testing.TB) usagebased.Charge {
 
 func newUsageBasedRun(lineID string) usagebased.RealizationRun {
 	now := time.Now().UTC()
+
 	return usagebased.RealizationRun{
 		RealizationRunBase: usagebased.RealizationRunBase{
 			ID:              usagebased.RealizationRunID(models.NamespacedID{Namespace: "ns", ID: "run-1"}),
@@ -304,9 +306,11 @@ func TestBookInvoicedPaymentAuthorizedRecognizesMatchingBooking(t *testing.T) {
 			if tc.mutate != nil {
 				tc.mutate(booked)
 			}
+
 			if tc.invoiceAmount != nil {
 				in.Line.Totals.Total = *tc.invoiceAmount
 			}
+
 			handler := &authorizationReplayHandler{}
 			svc := &Service{handler: handler}
 
@@ -324,6 +328,7 @@ func TestBookInvoicedPaymentAuthorizedRecognizesMatchingBooking(t *testing.T) {
 				require.Equal(t, in.Run, result.Run)
 				require.Same(t, booked, result.Payment)
 			}
+
 			require.False(t, handler.called)
 		})
 	}

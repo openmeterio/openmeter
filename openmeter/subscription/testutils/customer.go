@@ -94,6 +94,7 @@ func (a *testCustomerRepo) CreateExampleCustomer(t *testing.T) *customer.Custome
 	if err != nil {
 		t.Fatalf("failed to create example customer: %v", err)
 	}
+
 	return c
 }
 

@@ -64,6 +64,7 @@ func ConvertFeatureToAPI(f feature.Feature) (api.Feature, error) {
 		if err != nil {
 			return api.Feature{}, fmt.Errorf("failed to convert unit cost: %w", err)
 		}
+
 		resp.UnitCost = &apiUnitCost
 	}
 
@@ -96,6 +97,7 @@ func convertCreateRequestToDomain(ns string, body api.CreateFeatureRequest, mete
 		if err != nil {
 			return feature.CreateFeatureInputs{}, fmt.Errorf("invalid unit cost: %w", err)
 		}
+
 		inputs.UnitCost = unitCost
 	}
 
@@ -115,10 +117,12 @@ func convertUpdateRequestToDomain(ns string, featureID string, body api.UpdateFe
 		if err != nil {
 			return feature.UpdateFeatureInputs{}, fmt.Errorf("invalid unit cost: %w", err)
 		}
+
 		unitCost, err := convertUnitCostFromAPI(&v)
 		if err != nil {
 			return feature.UpdateFeatureInputs{}, fmt.Errorf("invalid unit cost: %w", err)
 		}
+
 		input.UnitCost = nullable.NewNullableWithValue(*unitCost)
 	}
 
@@ -140,21 +144,27 @@ func convertUnitCostToAPI(u *feature.UnitCost) (api.BillingFeatureUnitCost, erro
 		if u.LLM.ProviderProperty != "" {
 			llmCost.ProviderProperty = lo.ToPtr(u.LLM.ProviderProperty)
 		}
+
 		if u.LLM.Provider != "" {
 			llmCost.Provider = lo.ToPtr(u.LLM.Provider)
 		}
+
 		if u.LLM.ModelProperty != "" {
 			llmCost.ModelProperty = lo.ToPtr(u.LLM.ModelProperty)
 		}
+
 		if u.LLM.Model != "" {
 			llmCost.Model = lo.ToPtr(u.LLM.Model)
 		}
+
 		if u.LLM.TokenTypeProperty != "" {
 			llmCost.TokenTypeProperty = lo.ToPtr(u.LLM.TokenTypeProperty)
 		}
+
 		if u.LLM.TokenType != "" {
 			llmCost.TokenType = lo.ToPtr(api.BillingFeatureLLMTokenType(u.LLM.TokenType))
 		}
+
 		if err := out.FromBillingFeatureLLMUnitCost(llmCost); err != nil {
 			return out, fmt.Errorf("failed to convert LLM unit cost: %w", err)
 		}
@@ -262,6 +272,7 @@ func resolveLLMPricing(ctx context.Context, svc llmcost.Service, feat *feature.F
 	if provider == "" {
 		provider = extractEqFilterValue(feat.MeterGroupByFilters, llmConf.ProviderProperty)
 	}
+
 	if provider == "" {
 		return nil
 	}
@@ -270,6 +281,7 @@ func resolveLLMPricing(ctx context.Context, svc llmcost.Service, feat *feature.F
 	if model == "" {
 		model = extractEqFilterValue(feat.MeterGroupByFilters, llmConf.ModelProperty)
 	}
+
 	if model == "" {
 		return nil
 	}
@@ -304,6 +316,7 @@ func convertFiltersFromAPI(apiFilters map[string]api.QueryFilterStringMapItem) f
 	for k, v := range apiFilters {
 		result[k] = request.ConvertQueryFilterStringMapItem(v)
 	}
+
 	return result
 }
 
@@ -312,6 +325,7 @@ func convertFiltersToAPI(filters feature.MeterGroupByFilters) map[string]api.Que
 	for k, v := range filters {
 		result[k] = convertFilterStringToAPIMapItem(v)
 	}
+
 	return result
 }
 
@@ -333,10 +347,12 @@ func convertFilterStringListToAPI(filters *[]filter.FilterString) *[]api.QueryFi
 	if filters == nil {
 		return nil
 	}
+
 	result := make([]api.QueryFilterString, len(*filters))
 	for i, f := range *filters {
 		result[i] = convertFilterStringToAPIQueryFilter(f)
 	}
+
 	return &result
 }
 

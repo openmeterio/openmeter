@@ -72,6 +72,7 @@ func (h *handler) ListSubscriptionAddons() ListSubscriptionAddonsHandler {
 				if err != nil {
 					return ListSubscriptionAddonsRequest{}, err
 				}
+
 				input.OrderBy = orderBy
 				input.Order = sort.Order.ToSortxOrder()
 			}

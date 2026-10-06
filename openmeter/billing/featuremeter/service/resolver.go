@@ -157,6 +157,7 @@ func (r Resolver) RequireFeatureMeters[T billingfeaturemeter.FeatureReferenceGet
 		}
 
 		_, err := featureMeters.Get(target)
+
 		return err
 	})
 

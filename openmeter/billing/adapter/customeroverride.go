@@ -238,7 +238,6 @@ func (a *adapter) ListCustomerOverrides(ctx context.Context, input billing.ListC
 			query = query.Where(dbcustomer.Not(dbcustomer.HasBillingCustomerOverrideWith(customerOverrideFilters...)))
 		} else {
 			// We need to understand if the default profile is being queried for or not
-
 			shouldIncludeDefaultProfile := false
 			if len(input.BillingProfiles) == 0 {
 				shouldIncludeDefaultProfile = true
@@ -378,6 +377,7 @@ func (a *adapter) BulkAssignCustomersToProfile(ctx context.Context, input billin
 		if err != nil {
 			return err
 		}
+
 		if !profileExists {
 			return billing.NotFoundError{Err: billing.ErrProfileNotFound}
 		}
@@ -394,6 +394,7 @@ func (a *adapter) BulkAssignCustomersToProfile(ctx context.Context, input billin
 		if err != nil {
 			return err
 		}
+
 		if customerCount != len(customerIDs) {
 			return billing.NotFoundError{Err: billing.ErrCustomerNotFound}
 		}
@@ -460,6 +461,7 @@ func (a *adapter) mapCustomerOverrideFromDB(ctx context.Context, dbOverride *db.
 			"expected_namespace", dbOverride.Namespace,
 			"tax_code_id", *dbOverride.TaxCodeID,
 		)
+
 		return nil, taxcode.NewTaxCodeNotFoundError(*dbOverride.TaxCodeID)
 	}
 

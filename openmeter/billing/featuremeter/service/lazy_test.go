@@ -74,6 +74,7 @@ func TestResolverResolveLazy(t *testing.T) {
 				hasResults <- resolved.Has(target)
 			}()
 		}
+
 		waitGroup.Wait()
 		close(hasResults)
 		for has := range hasResults {

@@ -46,7 +46,9 @@ func (e ErrorWithHTTPStatusCode) EncodeError(ctx context.Context, w http.Respons
 	for _, ext := range e.Extensions {
 		ext.apply(problem.Extensions)
 	}
+
 	problem.Respond(w)
+
 	return true
 }
 
@@ -68,7 +70,9 @@ func HandleErrorIfTypeMatches[T error](ctx context.Context, statusCode int, err 
 				return f(err)
 			})
 		}
+
 		NewHTTPError(statusCode, err, extendedProblemFuncs...).EncodeError(ctx, w)
+
 		return true
 	}
 

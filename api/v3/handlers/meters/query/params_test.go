@@ -159,6 +159,7 @@ func TestBuildQueryParams_SubjectFilter(t *testing.T) {
 				count++
 			}
 		}
+
 		assert.Equal(t, 1, count)
 	})
 }
@@ -177,6 +178,7 @@ func TestBuildQueryParams_CustomerFilter(t *testing.T) {
 					},
 				})
 			}
+
 			return customers, nil
 		}
 

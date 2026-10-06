@@ -391,6 +391,7 @@ func (a *creditsOnlyStateMachineAdapter) UpdateRealizationRun(_ context.Context,
 	}
 
 	a.runs[input.ID.ID] = run
+
 	return run, nil
 }
 

@@ -72,6 +72,7 @@ func (a *adapter) ListEvents(ctx context.Context, params notification.ListEvents
 		if err != nil {
 			return pagination.Result[notification.Event]{}, err
 		}
+
 		query = query.Where(annotationPreds...)
 
 		if len(params.DeduplicationHashes) > 0 {
@@ -330,9 +331,11 @@ func eventAnnotationPredicates(params notification.ListEventsInput) ([]predicate
 		if err != nil {
 			return err
 		}
+
 		if p != nil {
 			preds = append(preds, p)
 		}
+
 		return nil
 	}
 
@@ -341,16 +344,19 @@ func eventAnnotationPredicates(params notification.ListEventsInput) ([]predicate
 			return nil, err
 		}
 	}
+
 	if params.SubjectID != nil {
 		if err := add(entutils.JSONBFilterULID(eventdb.FieldAnnotations, notification.AnnotationEventSubjectID, *params.SubjectID)); err != nil {
 			return nil, err
 		}
 	}
+
 	if params.FeatureKey != nil {
 		if err := add(entutils.JSONBFilterString(eventdb.FieldAnnotations, notification.AnnotationEventFeatureKey, *params.FeatureKey)); err != nil {
 			return nil, err
 		}
 	}
+
 	if params.FeatureID != nil {
 		if err := add(entutils.JSONBFilterULID(eventdb.FieldAnnotations, notification.AnnotationEventFeatureID, *params.FeatureID)); err != nil {
 			return nil, err

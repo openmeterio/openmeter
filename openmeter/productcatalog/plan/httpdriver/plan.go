@@ -298,9 +298,11 @@ func (h *handler) GetPlan() GetPlanHandler {
 			if p.HasUnitConfig() {
 				return GetPlanResponse{}, productcatalog.ErrUnitConfigNotRepresentable
 			}
+
 			if p.Currency.IsCustom() {
 				return GetPlanResponse{}, productcatalog.ErrCurrencyNotRepresentable
 			}
+
 			if p.HasCurrencyOverrides() {
 				return GetPlanResponse{}, productcatalog.ErrRateCardCurrencyNotRepresentable
 			}

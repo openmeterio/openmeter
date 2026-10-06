@@ -136,5 +136,6 @@ func (a Annotations) Equal(other Annotations) bool {
 			return false
 		}
 	}
+
 	return true
 }

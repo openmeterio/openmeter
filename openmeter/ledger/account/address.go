@@ -31,9 +31,11 @@ func newSubAccountRouteFromAddressData(data AddressData) (ledger.SubAccountRoute
 	if data.SubAccountID == "" {
 		return ledger.SubAccountRoute{}, errors.New("sub-account id is required")
 	}
+
 	if err := data.AccountType.Validate(); err != nil {
 		return ledger.SubAccountRoute{}, fmt.Errorf("account type: %w", err)
 	}
+
 	if data.RouteID == "" {
 		return ledger.SubAccountRoute{}, errors.New("route id is required")
 	}

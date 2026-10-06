@@ -138,8 +138,10 @@ func (a *adapter) createWorkflowConfig(ctx context.Context, ns string, input bil
 			if db.IsNotFound(err) {
 				return nil, taxcode.NewTaxCodeNotFoundError(*saved.TaxCodeID)
 			}
+
 			return nil, fmt.Errorf("fetching tax code edge after workflow config create: %w", err)
 		}
+
 		saved.Edges.TaxCode = tc
 	}
 
@@ -462,8 +464,10 @@ func (a *adapter) updateWorkflowConfig(ctx context.Context, ns string, id string
 			if db.IsNotFound(err) {
 				return nil, taxcode.NewTaxCodeNotFoundError(*saved.TaxCodeID)
 			}
+
 			return nil, fmt.Errorf("fetching tax code edge after workflow config update: %w", err)
 		}
+
 		saved.Edges.TaxCode = tc
 	}
 
@@ -524,6 +528,7 @@ func (a *adapter) mapWorkflowConfigFromDB(ctx context.Context, namespace string,
 		a.logger.ErrorContext(ctx, "billing workflow config namespace isolation violation",
 			"expected_namespace", namespace,
 		)
+
 		return billing.WorkflowConfig{}, models.NewGenericNotFoundError(fmt.Errorf("billing workflow config not found"))
 	}
 
@@ -534,6 +539,7 @@ func (a *adapter) mapWorkflowConfigFromDB(ctx context.Context, namespace string,
 			"expected_namespace", namespace,
 			"tax_code_id", *dbWC.TaxCodeID,
 		)
+
 		return billing.WorkflowConfig{}, taxcode.NewTaxCodeNotFoundError(*dbWC.TaxCodeID)
 	}
 

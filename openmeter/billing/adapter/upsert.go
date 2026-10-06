@@ -28,7 +28,6 @@ func upsertWithOptions[T entitydiff.Entity, CreateBulkType any](ctx context.Cont
 	if len(itemDiff.Delete) > 0 && opts.MarkDeleted != nil {
 		// We formulate delete as a soft delete update, so that any changes happening alongside the deletion are persisted
 		// to the database.
-
 		toDelete, err := slicesx.MapWithErr(itemDiff.Delete, func(item T) (T, error) {
 			return opts.MarkDeleted(ctx, item)
 		})

@@ -12,8 +12,18 @@ linters:
     - sloglint
     - staticcheck
     - unconvert
-    - whitespace
+    - wsl_v5
   settings:
+    wsl_v5:
+      # Keep assignment and defer grouping discretionary.
+      default: none
+      branch-max-lines: 2
+      enable:
+        - leading-whitespace
+        - trailing-whitespace
+        - after-block
+        - branch
+        - return
     misspell:
       locale: US
     nolintlint:

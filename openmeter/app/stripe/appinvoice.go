@@ -530,6 +530,7 @@ func getDiscountStripeAddInvoiceItemParams(calculator StripeCalculator, line bil
 	params := getDiscountStripeInvoiceItemParams(calculator, line, discount)
 	// Customer is required for adds
 	params.Customer = stripe.String(stripeCustomerID)
+
 	return params
 }
 
@@ -568,6 +569,7 @@ func getCreditStripeAddInvoiceItemParams(calculator StripeCalculator, line billi
 	params := getCreditStripeInvoiceItemParams(calculator, line, credit)
 	// Customer is required for adds
 	params.Customer = stripe.String(stripeCustomerID)
+
 	return params
 }
 
@@ -638,6 +640,7 @@ func getStripeInvoiceItemParams(line billing.DetailedLineWithResolvedTaxConfig, 
 func getStripeAddInvoiceItemParams(line billing.DetailedLineWithResolvedTaxConfig, calculator StripeCalculator, stripeCustomerID string) *stripe.InvoiceItemParams {
 	params := getStripeInvoiceItemParams(line, calculator)
 	params.Customer = stripe.String(stripeCustomerID)
+
 	return params
 }
 
@@ -701,7 +704,6 @@ func addResultExternalIDs(
 	result *billing.UpsertStandardInvoiceResult,
 ) error {
 	// Check if we have the same number of params and new lines
-
 	for idx, stripeLine := range newLines {
 		// Get the line ID from the param metadata
 		// We always read it from params as it's our source of truth

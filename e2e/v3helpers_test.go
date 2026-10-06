@@ -75,12 +75,14 @@ func (t *statusCapturingTransport) RoundTrip(req *http.Request) (*http.Response,
 		t.lastStatus = resp.StatusCode
 		t.mu.Unlock()
 	}
+
 	return resp, err
 }
 
 func (t *statusCapturingTransport) last() int {
 	t.mu.Lock()
 	defer t.mu.Unlock()
+
 	return t.lastStatus
 }
 
@@ -124,16 +126,20 @@ func (p *v3Problem) ValidationErrors() []v3ValidationError {
 	if p == nil || p.Extensions == nil {
 		return nil
 	}
+
 	raw, ok := p.Extensions["validationErrors"]
 	if !ok {
 		return nil
 	}
+
 	b, err := json.Marshal(raw)
 	if err != nil {
 		return nil
 	}
+
 	var out []v3ValidationError
 	_ = json.Unmarshal(b, &out)
+
 	return out
 }
 
@@ -202,23 +208,29 @@ func requireProblem(t testing.TB, err error, wantStatus int) *v3Problem {
 	if len(apiErr.RawBody) > 0 {
 		_ = apiErr.Decode(problem)
 	}
+
 	if problem.Status == 0 {
 		problem.Status = apiErr.StatusCode
 	}
+
 	if problem.Title == "" {
 		problem.Title = apiErr.Title
 	}
+
 	if problem.Detail == "" {
 		problem.Detail = apiErr.Detail
 	}
+
 	if problem.Type == "" {
 		problem.Type = apiErr.Type
 	}
+
 	if problem.Instance == "" {
 		problem.Instance = apiErr.Instance
 	}
 
 	require.Equal(t, wantStatus, apiErr.StatusCode, "problem: %+v", problem)
+
 	return problem
 }
 
@@ -228,6 +240,7 @@ func requireProblem(t testing.TB, err error, wantStatus int) *v3Problem {
 func queryMeterV3(t testing.TB, meterID string, body v3sdk.MeterQueryRequest) (*v3sdk.MeterQueryResult, error) {
 	t.Helper()
 	c := newV3Client(t)
+
 	return c.Meters.Query(t.Context(), meterID, body)
 }
 
@@ -262,6 +275,7 @@ func validPlanPhase(keyPrefix string, isLast bool) v3sdk.PlanPhaseInput {
 	if !isLast {
 		phase.Duration = lo.ToPtr("P1M")
 	}
+
 	return phase
 }
 
@@ -355,10 +369,12 @@ func assertValidationCode(t *testing.T, problem *v3Problem, code string) {
 			return
 		}
 	}
+
 	codes := make([]string, 0, len(errs))
 	for _, e := range errs {
 		codes = append(codes, e.Code)
 	}
+
 	assert.Failf(t, "validation code not found", "expected %q, got %v", code, codes)
 }
 
@@ -386,10 +402,12 @@ func assertInvalidParameterRule(t *testing.T, problem *v3Problem, rule string) {
 			return
 		}
 	}
+
 	rules := make([]string, 0, len(problem.InvalidParameters))
 	for _, p := range problem.InvalidParameters {
 		rules = append(rules, p.Rule)
 	}
+
 	assert.Failf(t, "invalid parameter rule not found", "expected %q, got %v", rule, rules)
 }
 
@@ -408,6 +426,7 @@ func findRateCardByKey(t *testing.T, plan *v3sdk.Plan, key string) *v3sdk.RateCa
 	}
 
 	require.FailNow(t, "rate card not found", "key=%s", key)
+
 	return nil
 }
 

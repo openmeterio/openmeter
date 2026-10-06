@@ -1186,6 +1186,7 @@ func TestCorrectRecognizedBackfillSelectsOriginalSpend(t *testing.T) {
 			},
 		)
 	}
+
 	scope := transactions.ResolutionScope{
 		Namespace:  env.Namespace,
 		CustomerID: env.CustomerID,
@@ -1245,6 +1246,7 @@ func TestCorrectRecognizedBackfillSelectsOriginalSpend(t *testing.T) {
 			}
 		}
 	}
+
 	require.Equal(t, float64(30), earnings[spends[0]].InexactFloat64())
 	require.Equal(t, float64(0), earnings[spends[1]].InexactFloat64())
 }

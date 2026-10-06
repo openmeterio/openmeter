@@ -75,6 +75,7 @@ func TestDiffItems(t *testing.T) {
 			next.ActiveFromOverrideRelativeToPhaseStart = &offset
 			spec.Phases["test_phase_1"].ItemsByKey[key] = append(spec.Phases["test_phase_1"].ItemsByKey[key], &next)
 		}
+
 		require.NoError(t, target.Phases["test_phase_1"].ItemsByKey[key][1].RateCard.ChangeMeta(func(meta productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
 			meta.Name = "future amendment"
 			return meta, nil

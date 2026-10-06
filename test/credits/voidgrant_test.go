@@ -349,6 +349,7 @@ func (s *VoidGrantTestSuite) TestVoidFilteredGrantPreservesProvenance() {
 			filters.Version = ledger.CreditFiltersVersion2
 			filters.Plans = []ledger.PlanFilter{{Key: "pro", Version: &ledger.VersionFilter{Gte: lo.ToPtr(2)}}}
 		}
+
 		s.Run(name, func() {
 			// given:
 			// - a feature-restricted promotional grant of 100
@@ -689,9 +690,11 @@ func (s *VoidGrantTestSuite) TestConcurrentVoidsDoNotDoubleBook() {
 				}),
 			})
 			errs[i] = err
+
 			return nil
 		})
 	}
+
 	s.Require().NoError(group.Wait())
 
 	succeeded := 0
@@ -700,8 +703,10 @@ func (s *VoidGrantTestSuite) TestConcurrentVoidsDoNotDoubleBook() {
 			succeeded++
 			continue
 		}
+
 		s.True(models.IsGenericConflictError(err), "losing voids must conflict, got: %v", err)
 	}
+
 	s.Equal(1, succeeded)
 
 	s.Equal(float64(0), s.MustBreakageBalanceAsOf(ns, USD, mo.None[*alpacadecimal.Decimal](), clock.Now()).InexactFloat64())

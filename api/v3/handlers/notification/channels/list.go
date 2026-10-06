@@ -72,6 +72,7 @@ func (h *handler) ListNotificationChannels() ListNotificationChannelsHandler {
 				if err != nil {
 					return ListNotificationChannelsRequest{}, err
 				}
+
 				req.OrderBy = orderBy
 				req.Order = sort.Order.ToSortxOrder()
 			}
@@ -83,6 +84,7 @@ func (h *handler) ListNotificationChannels() ListNotificationChannelsHandler {
 						{Field: "filter[id]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 					})
 				}
+
 				req.ID = id
 
 				name, err := filters.FromAPIFilterString(params.Filter.Name)
@@ -91,6 +93,7 @@ func (h *handler) ListNotificationChannels() ListNotificationChannelsHandler {
 						{Field: "filter[name]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 					})
 				}
+
 				req.Name = name
 
 				typeFilter, err := filters.FromAPIFilterStringExact(params.Filter.Type)
@@ -99,6 +102,7 @@ func (h *handler) ListNotificationChannels() ListNotificationChannelsHandler {
 						{Field: "filter[type]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 					})
 				}
+
 				// Translate the wire-format type value(s) ("webhook") into the
 				// domain/DB value ("WEBHOOK") before this reaches the adapter.
 				typeFilter, err = mapAPIChannelTypeFilter(typeFilter)
@@ -107,6 +111,7 @@ func (h *handler) ListNotificationChannels() ListNotificationChannelsHandler {
 						{Field: "filter[type]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 					})
 				}
+
 				req.Type = typeFilter
 
 				disabled, err := filters.FromAPIFilterBoolean(params.Filter.Disabled)
@@ -115,6 +120,7 @@ func (h *handler) ListNotificationChannels() ListNotificationChannelsHandler {
 						{Field: "filter[disabled]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 					})
 				}
+
 				req.Disabled = disabled
 
 				createdAt, err := filters.FromAPIFilterDateTime(params.Filter.CreatedAt)
@@ -123,6 +129,7 @@ func (h *handler) ListNotificationChannels() ListNotificationChannelsHandler {
 						{Field: "filter[created_at]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 					})
 				}
+
 				req.CreatedAt = createdAt
 
 				updatedAt, err := filters.FromAPIFilterDateTime(params.Filter.UpdatedAt)
@@ -131,6 +138,7 @@ func (h *handler) ListNotificationChannels() ListNotificationChannelsHandler {
 						{Field: "filter[updated_at]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 					})
 				}
+
 				req.UpdatedAt = updatedAt
 			}
 
@@ -148,6 +156,7 @@ func (h *handler) ListNotificationChannels() ListNotificationChannelsHandler {
 				if err != nil {
 					return ListNotificationChannelsResponse{}, err
 				}
+
 				items = append(items, apiChannel)
 			}
 

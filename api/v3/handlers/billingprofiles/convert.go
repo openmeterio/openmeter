@@ -98,9 +98,11 @@ func toAPIBillingTaxConfigFull(config *productcatalog.TaxConfig) (*api.BillingTa
 	if err != nil || result == nil {
 		return result, err
 	}
+
 	if result.TaxCodeId != nil {
 		result.TaxCode = &api.TaxCodeReference{Id: *result.TaxCodeId}
 	}
+
 	return result, nil
 }
 
@@ -111,9 +113,11 @@ func fromAPIBillingTaxConfigFull(config *api.BillingTaxConfig) (*productcatalog.
 	if err != nil || result == nil {
 		return result, err
 	}
+
 	if config.TaxCode != nil {
 		result.TaxCodeID = &config.TaxCode.Id
 	}
+
 	return result, nil
 }
 
@@ -212,6 +216,7 @@ func ToAPIBillingWorkflow(config billing.WorkflowConfig) (api.BillingWorkflow, e
 		if err != nil {
 			return api.BillingWorkflow{}, err
 		}
+
 		workflow.Collection.Alignment = &alignment
 	case billing.AlignmentKindAnchored:
 		if config.Collection.AnchoredAlignmentDetail != nil {
@@ -226,6 +231,7 @@ func ToAPIBillingWorkflow(config billing.WorkflowConfig) (api.BillingWorkflow, e
 			if err != nil {
 				return api.BillingWorkflow{}, err
 			}
+
 			workflow.Collection.Alignment = &alignment
 		}
 	}
@@ -243,6 +249,7 @@ func ToAPIBillingWorkflow(config billing.WorkflowConfig) (api.BillingWorkflow, e
 	if err != nil {
 		return api.BillingWorkflow{}, err
 	}
+
 	workflow.Tax = &api.BillingWorkflowTaxSettings{
 		Enabled:          lo.ToPtr(config.Tax.Enabled),
 		Enforced:         lo.ToPtr(config.Tax.Enforced),
@@ -259,6 +266,7 @@ func ToAPIBillingWorkflow(config billing.WorkflowConfig) (api.BillingWorkflow, e
 		if err != nil {
 			return api.BillingWorkflow{}, err
 		}
+
 		workflow.Payment = &payment
 	case billing.CollectionMethodSendInvoice:
 		payment := api.BillingWorkflowPaymentSettings{}
@@ -269,6 +277,7 @@ func ToAPIBillingWorkflow(config billing.WorkflowConfig) (api.BillingWorkflow, e
 		if err != nil {
 			return api.BillingWorkflow{}, err
 		}
+
 		workflow.Payment = &payment
 	}
 
@@ -293,12 +302,15 @@ func fromAPIBillingWorkflow(workflow api.BillingWorkflow, defaultSubscriptionEnd
 	if workflow.Collection == nil {
 		workflow.Collection = &api.BillingWorkflowCollectionSettings{}
 	}
+
 	if workflow.Invoicing == nil {
 		workflow.Invoicing = &api.BillingWorkflowInvoicingSettings{}
 	}
+
 	if workflow.Payment == nil {
 		workflow.Payment = &api.BillingWorkflowPaymentSettings{}
 	}
+
 	if workflow.Tax == nil {
 		workflow.Tax = &api.BillingWorkflowTaxSettings{}
 	}

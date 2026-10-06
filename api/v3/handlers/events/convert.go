@@ -37,6 +37,7 @@ func toAPIMeteringIngestedEvent(e meterevent.Event) (api.MeteringIngestedEvent, 
 		if err := json.Unmarshal([]byte(e.Data), &data); err != nil {
 			return api.MeteringIngestedEvent{}, fmt.Errorf("parse event data as json: %w", err)
 		}
+
 		event.Data = nullable.NewNullableWithValue(data)
 		event.Datacontenttype = nullable.NewNullableWithValue[api.MeteringEventDatacontenttype](api.MeteringEventDatacontenttype("application/json"))
 	}
@@ -54,6 +55,7 @@ func toAPICustomerReference(id *string) *api.CustomerReference {
 	if id == nil || *id == "" {
 		return nil
 	}
+
 	return &api.CustomerReference{Id: *id}
 }
 
@@ -91,6 +93,7 @@ func fromAPICustomerIDFilter(ctx context.Context, f *api.ULIDFieldFilter) (*filt
 
 	if f.Neq != nil {
 		err := errors.New("only eq and oeq operators are supported")
+
 		return nil, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
 			{
 				Field:  "filter[customer_id]",
@@ -104,6 +107,7 @@ func fromAPICustomerIDFilter(ctx context.Context, f *api.ULIDFieldFilter) (*filt
 	if f.Eq != nil {
 		values = append(values, *f.Eq)
 	}
+
 	if len(f.Oeq) > 0 {
 		values = append(values, f.Oeq...)
 	}

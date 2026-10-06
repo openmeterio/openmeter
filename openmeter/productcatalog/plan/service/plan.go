@@ -355,6 +355,7 @@ func (s service) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (*
 			if err = currencyresolver.ResolveCurrenciesForPlan(ctx, s.currencyResolver.WithNamespace(params.Namespace), &candidate); err != nil {
 				return nil, fmt.Errorf("failed to resolve currencies in plan [plan.id=%s]: %w", params.ID, err)
 			}
+
 			*params.Phases = candidate.Phases
 		}
 
@@ -368,9 +369,11 @@ func (s service) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (*
 		if params.SettlementMode != nil {
 			currencyCandidate.SettlementMode = *params.SettlementMode
 		}
+
 		if params.Phases != nil {
 			currencyCandidate.Phases = *params.Phases
 		}
+
 		if err = validatePlanCurrencies(currencyCandidate, params.IgnoreNonCriticalIssues); err != nil {
 			return nil, fmt.Errorf("invalid plan currencies: %w", err)
 		}
@@ -455,10 +458,12 @@ func (s service) PublishPlan(ctx context.Context, params plan.PublishPlanInput) 
 		if params.RejectUnitConfig && p.HasUnitConfig() {
 			return nil, productcatalog.ErrUnitConfigNotRepresentable
 		}
+
 		if params.RejectUnrepresentableCurrencies {
 			if p.Currency.IsCustom() {
 				return nil, productcatalog.ErrCurrencyNotRepresentable
 			}
+
 			if p.HasCurrencyOverrides() {
 				return nil, productcatalog.ErrRateCardCurrencyNotRepresentable
 			}
@@ -636,10 +641,12 @@ func (s service) ArchivePlan(ctx context.Context, params plan.ArchivePlanInput) 
 		if params.RejectUnitConfig && p.HasUnitConfig() {
 			return nil, productcatalog.ErrUnitConfigNotRepresentable
 		}
+
 		if params.RejectUnrepresentableCurrencies {
 			if p.Currency.IsCustom() {
 				return nil, productcatalog.ErrCurrencyNotRepresentable
 			}
+
 			if p.HasCurrencyOverrides() {
 				return nil, productcatalog.ErrRateCardCurrencyNotRepresentable
 			}
@@ -792,10 +799,12 @@ func (s service) NextPlan(ctx context.Context, params plan.NextPlanInput) (*plan
 		if params.RejectUnitConfig && sourcePlan.HasUnitConfig() {
 			return nil, productcatalog.ErrUnitConfigNotRepresentable
 		}
+
 		if params.RejectUnrepresentableCurrencies {
 			if sourcePlan.Currency.IsCustom() {
 				return nil, productcatalog.ErrCurrencyNotRepresentable
 			}
+
 			if sourcePlan.HasCurrencyOverrides() {
 				return nil, productcatalog.ErrRateCardCurrencyNotRepresentable
 			}

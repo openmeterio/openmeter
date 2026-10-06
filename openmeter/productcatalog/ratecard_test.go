@@ -1574,8 +1574,10 @@ func TestRateCardBillingCadenceMinimum(t *testing.T) {
 					require.Equal(t, models.ErrorSeverityWarning, issues[0].Severity())
 				}
 			}
+
 			require.Equal(t, tc.cadence, cadence.String())
 		})
 	}
+
 	require.NoError(t, (&FlatFeeRateCard{}).Validate())
 }

@@ -51,6 +51,7 @@ func TestCustomerLifecycleThroughEventBus(t *testing.T) {
 				_, err := client.ExecContext(t.Context(), "ALTER TABLE event_outboxes ADD CONSTRAINT reject_test_event CHECK (topic <> 'system-events')")
 				require.NoError(t, err)
 			}
+
 			var created *customer.Customer
 			rollbackErr := errors.New("outer operation failed")
 
@@ -64,10 +65,12 @@ func TestCustomerLifecycleThroughEventBus(t *testing.T) {
 				if err != nil {
 					return err
 				}
+
 				noAttempt(t, raw)
 				if scenario.rollback {
 					return rollbackErr
 				}
+
 				return nil
 			})
 
@@ -78,6 +81,7 @@ func TestCustomerLifecycleThroughEventBus(t *testing.T) {
 				} else {
 					require.ErrorContains(t, err, "enqueue system event")
 				}
+
 				noAttempt(t, raw)
 				count, err := client.Customer.Query().Count(t.Context())
 				require.NoError(t, err)
@@ -96,6 +100,7 @@ func TestCustomerLifecycleThroughEventBus(t *testing.T) {
 				require.NoError(t, err)
 				require.Equal(t, created.Name, stored.Name)
 			}
+
 			eventuallyRowCount(t, client, 0)
 		})
 	}

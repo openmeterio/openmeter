@@ -23,6 +23,7 @@ func NewSinkBuffer() *SinkBuffer {
 func (b *SinkBuffer) Size() int {
 	b.mu.Lock()
 	defer b.mu.Unlock()
+
 	return len(b.data)
 }
 
@@ -81,6 +82,7 @@ func topicPartitionKey(partition kafka.TopicPartition) string {
 	if partition.Topic != nil {
 		topic = *partition.Topic
 	}
+
 	return partitionKey(topic, partition.Partition)
 }
 

@@ -189,6 +189,7 @@ func (s *DiscountsTestSuite) TestCorrelationIDHandling() {
 						Quantity: alpacadecimal.NewFromFloat(10),
 					},
 				}
+
 				return nil
 			},
 		})
@@ -289,7 +290,6 @@ func (s *DiscountsTestSuite) TestUnitDiscountProgressiveBilling() {
 	// Then:
 	// - The line in the draft invoice will have 30 quantity, 30 metered quantity
 	// - The line will not have an unit line discount
-
 	namespace := "ns-discounts-usage-progressive"
 	ctx := context.Background()
 

@@ -47,6 +47,7 @@ func (o OperationType) Validate() error {
 	if !slices.Contains(o.Values(), o) {
 		return fmt.Errorf("invalid operation type: %s", o)
 	}
+
 	return nil
 }
 

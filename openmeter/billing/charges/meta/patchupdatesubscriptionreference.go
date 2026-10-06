@@ -32,9 +32,11 @@ func (r SubscriptionReference) AsPatchUpdateSubscriptionReference(existing Subsc
 	if err := r.Validate(); err != nil {
 		return PatchUpdateSubscriptionReference{}, fmt.Errorf("target subscription reference: %w", err)
 	}
+
 	if err := existing.Validate(); err != nil {
 		return PatchUpdateSubscriptionReference{}, fmt.Errorf("existing subscription reference: %w", err)
 	}
+
 	if r.SubscriptionID != existing.SubscriptionID {
 		return PatchUpdateSubscriptionReference{}, errors.New("subscription ID cannot be updated")
 	}
@@ -43,6 +45,7 @@ func (r SubscriptionReference) AsPatchUpdateSubscriptionReference(existing Subsc
 	if r.PhaseID != existing.PhaseID {
 		input.PhaseID = lo.ToPtr(r.PhaseID)
 	}
+
 	if r.ItemID != existing.ItemID {
 		input.SubscriptionItemID = lo.ToPtr(r.ItemID)
 	}
@@ -56,6 +59,7 @@ func NewPatchUpdateSubscriptionReference(input NewPatchUpdateSubscriptionReferen
 		phaseID := *input.PhaseID
 		patch.phaseID = &phaseID
 	}
+
 	if input.SubscriptionItemID != nil {
 		subscriptionItemID := *input.SubscriptionItemID
 		patch.subscriptionItemID = &subscriptionItemID

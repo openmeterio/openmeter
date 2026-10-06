@@ -111,6 +111,7 @@ func (m *MigrationsConfig) Validate() error {
 	if m.FS == nil {
 		errs = append(errs, errors.New("fs is required"))
 	}
+
 	if m.FSPath == "" {
 		errs = append(errs, errors.New("fs path is required"))
 	}
@@ -220,6 +221,7 @@ func (m *Migrate) WaitForMigrationJob(waitOpts ...WaitForMigrationOption) error 
 		if err != nil {
 			return err
 		}
+
 		if dirty {
 			return fmt.Errorf("database is dirty, please run migrations manually")
 		}

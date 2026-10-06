@@ -66,6 +66,7 @@ func TestV3PlanLifecycle(t *testing.T) {
 				break
 			}
 		}
+
 		assert.True(t, found, "created plan not found in list")
 	})
 
@@ -224,6 +225,7 @@ func TestV3PlanInvalidDraftLifecycle(t *testing.T) {
 		for _, e := range got.ValidationErrors {
 			codes = append(codes, e.Code)
 		}
+
 		assert.Contains(t, codes, "plan_phase_has_no_rate_cards")
 	})
 
@@ -319,6 +321,7 @@ func TestV3PlanUnitPriceWithoutBillingCadence(t *testing.T) {
 		for _, e := range got.ValidationErrors {
 			codes = append(codes, e.Code)
 		}
+
 		assert.Contains(t, codes, "billing_cadence_invalid_value")
 	})
 
@@ -691,6 +694,7 @@ func TestV3PlanReadTranslatesV1DynamicAndPackagePrices(t *testing.T) {
 				break
 			}
 		}
+
 		require.NotNil(t, found, "created plan not in list response (the v3 list handler should no longer skip plans with v1 dynamic/package prices)")
 
 		dynRC := findRateCardByKey(t, found, dynamicRCKey)

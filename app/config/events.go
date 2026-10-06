@@ -32,6 +32,7 @@ func (c EventsConfiguration) Validate() error {
 	if err := c.BalanceWorkerEvents.Validate(); err != nil {
 		errs = append(errs, errorsx.WithPrefix(err, "balance worker events"))
 	}
+
 	if err := c.Outbox.Validate(); err != nil {
 		errs = append(errs, errorsx.WithPrefix(err, "outbox"))
 	}
@@ -59,18 +60,23 @@ func (c OutboxConfiguration) Validate() error {
 	if c.MaxAttempts <= 0 {
 		errs = append(errs, errors.New("max attempts must be greater than 0"))
 	}
+
 	if c.DrainLimit <= 0 {
 		errs = append(errs, errors.New("drain limit must be greater than 0"))
 	}
+
 	if c.DrainTimeout <= 0 {
 		errs = append(errs, errors.New("drain timeout must be greater than 0"))
 	}
+
 	if c.DrainConcurrency <= 0 {
 		errs = append(errs, errors.New("drain concurrency must be greater than 0"))
 	}
+
 	if c.RetryInterval <= 0 {
 		errs = append(errs, errors.New("retry interval must be greater than 0"))
 	}
+
 	return errors.Join(errs...)
 }
 

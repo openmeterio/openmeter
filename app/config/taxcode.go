@@ -57,6 +57,7 @@ func (c TaxCodeConfiguration) Validate() error {
 			if _, exists := keys[trimmedKey]; exists {
 				errs = append(errs, fmt.Errorf("seed[%d]: duplicate key %q", i, seed.Key))
 			}
+
 			keys[trimmedKey] = struct{}{}
 		}
 

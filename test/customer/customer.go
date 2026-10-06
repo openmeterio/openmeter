@@ -815,6 +815,7 @@ func (s *CustomerHandlerTestSuite) TestListBillingProfileFilter(ctx context.Cont
 		for _, c := range items {
 			ids = append(ids, c.ID)
 		}
+
 		return ids
 	}
 

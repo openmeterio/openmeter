@@ -29,6 +29,7 @@ func TestToCloudEventsKafkaPayload(t *testing.T) {
 				ev.SetTime(tm)
 				err := ev.SetData(event.ApplicationJSON, map[string]string{"key": "value"})
 				assert.Nil(t, err)
+
 				return ev
 			},
 			want: CloudEventsKafkaPayload{
@@ -49,6 +50,7 @@ func TestToCloudEventsKafkaPayload(t *testing.T) {
 				ev.SetType("test")
 				ev.SetSubject("test")
 				ev.SetTime(tm)
+
 				return ev
 			},
 			want: CloudEventsKafkaPayload{
@@ -72,6 +74,7 @@ func TestToCloudEventsKafkaPayload(t *testing.T) {
 				// We use byte array otherwise SetData validates the data
 				err := ev.SetData(event.ApplicationJSON, []byte("invalid"))
 				assert.Nil(t, err)
+
 				return ev
 			},
 			want:  CloudEventsKafkaPayload{},
@@ -125,6 +128,7 @@ func TestFromKafkaPayloadToCloudEvents(t *testing.T) {
 				ev.SetTime(tm)
 				err := ev.SetData(event.ApplicationJSON, map[string]string{"key": "value"})
 				assert.Nil(t, err)
+
 				return ev
 			},
 		},
@@ -145,6 +149,7 @@ func TestFromKafkaPayloadToCloudEvents(t *testing.T) {
 				ev.SetType("test")
 				ev.SetSubject("test")
 				ev.SetTime(tm)
+
 				return ev
 			},
 		},
@@ -167,6 +172,7 @@ func TestFromKafkaPayloadToCloudEvents(t *testing.T) {
 				ev.SetTime(tm)
 				err := ev.SetData(event.ApplicationJSON, nil)
 				assert.Nil(t, err)
+
 				return ev
 			},
 		},

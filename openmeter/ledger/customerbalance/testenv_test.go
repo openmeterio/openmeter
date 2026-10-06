@@ -779,9 +779,11 @@ func (l chargeStore) GetByIDs(ctx context.Context, input charges.GetByIDsInput) 
 	for _, charge := range creditPurchaseCharges {
 		chargesByID[charge.ID] = charges.NewCharge(charge)
 	}
+
 	for _, charge := range flatFeeCharges {
 		chargesByID[charge.ID] = charges.NewCharge(charge)
 	}
+
 	for _, charge := range usageBasedCharges {
 		chargesByID[charge.ID] = charges.NewCharge(charge)
 	}
@@ -850,9 +852,11 @@ func (l chargeStore) ListCharges(ctx context.Context, input charges.ListChargesI
 	for _, charge := range creditPurchaseCharges {
 		chargesByID[charge.ID] = charges.NewCharge(charge)
 	}
+
 	for _, charge := range flatFeeCharges {
 		chargesByID[charge.ID] = charges.NewCharge(charge)
 	}
+
 	for _, charge := range usageBasedCharges {
 		chargesByID[charge.ID] = charges.NewCharge(charge)
 	}

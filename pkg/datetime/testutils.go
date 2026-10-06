@@ -15,6 +15,7 @@ func MustLoadLocation(t *testing.T, name string) *time.Location {
 	if err != nil {
 		t.Fatalf("failed to load timezone location %q: %v", name, err)
 	}
+
 	return loc
 }
 
@@ -23,6 +24,7 @@ func MustParseDateTime(t *testing.T, timeStr string) DateTime {
 	t.Helper()
 	dt, err := Parse(timeStr)
 	assert.NoError(t, err, "failed to parse time string %q", timeStr)
+
 	return dt
 }
 
@@ -31,6 +33,7 @@ func MustParseTimeInLocation(t *testing.T, timeStr string, loc *time.Location) D
 	t.Helper()
 	parsedTime, err := time.Parse(time.RFC3339, timeStr)
 	assert.NoError(t, err, "failed to parse time string %q", timeStr)
+
 	return DateTime{Time: parsedTime.In(loc)}
 }
 

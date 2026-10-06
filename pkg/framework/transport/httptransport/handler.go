@@ -120,7 +120,6 @@ func (h handler[Request, Response]) ServeHTTP(w http.ResponseWriter, r *http.Req
 	if err != nil {
 		// Might be a client error (can be encoded, non-terminal)
 		// Might be a server error (terminal)
-
 		h.handleError(ctx, err, w, r)
 
 		return
@@ -130,7 +129,6 @@ func (h handler[Request, Response]) ServeHTTP(w http.ResponseWriter, r *http.Req
 	if err != nil {
 		// Might be a client error (can be encoded, non-terminal)
 		// Might be a server error (terminal)
-
 		h.handleError(ctx, err, w, r)
 
 		return
@@ -149,6 +147,7 @@ func (h handler[Request, Response]) ServeHTTP(w http.ResponseWriter, r *http.Req
 		}
 
 		h.errorHandler.HandleContext(ctx, err)
+
 		return
 	}
 }
@@ -159,6 +158,7 @@ func (h handler[Request, Response]) handleError(ctx context.Context, err error, 
 	if contextx.IsCanceledError(err) && errors.Is(r.Context().Err(), context.Canceled) {
 		w.WriteHeader(models.StatusClientClosedRequest)
 		h.errorHandler.HandleContext(ctx, err)
+
 		return
 	}
 

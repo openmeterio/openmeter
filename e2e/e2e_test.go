@@ -497,6 +497,7 @@ func TestQuery(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, resp.StatusCode())
 	}
+
 	paths := []string{"/", "/about", "/users", "/contact"}
 	faker := gofakeit.New(8675309)
 	randTime := faker.DateRange(time.Date(2023, time.May, 6, 0, 0, 0, 0, time.UTC), faker.FutureDate().UTC())

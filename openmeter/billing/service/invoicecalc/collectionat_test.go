@@ -178,6 +178,7 @@ func TestGatheringInvoiceCollectionAt(t *testing.T) {
 			if tt.wantErr != "" {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), tt.wantErr)
+
 				return
 			}
 
@@ -334,6 +335,7 @@ func TestStandardInvoiceCollectionAt(t *testing.T) {
 			if tt.wantErr != "" {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), tt.wantErr)
+
 				return
 			}
 

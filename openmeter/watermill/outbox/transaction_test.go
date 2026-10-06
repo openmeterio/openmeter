@@ -24,6 +24,7 @@ func newManualTestPublisher(t *testing.T) (*Publisher, *db.Client, *recordingPub
 	p, client := newTestPublisher(t, raw)
 	p.cancel()
 	p.workers.Wait()
+
 	return p, client, raw
 }
 
@@ -34,6 +35,7 @@ func enqueueTransaction(t *testing.T, p *Publisher, ids ...string) {
 		for i, id := range ids {
 			messages[i] = testMessage(ctx, id, "same-key")
 		}
+
 		return p.Publish(testTopic, messages...)
 	}))
 }
@@ -44,6 +46,7 @@ func enqueueMixedTopicTransaction(t *testing.T, p *Publisher) {
 	require.NoError(t, transaction.RunWithNoValue(t.Context(), enttx.NewCreator(p.cfg.DB), func(ctx context.Context) error {
 		require.NoError(t, p.Publish(testTopic, testMessage(ctx, "A", "same-key")))
 		require.NoError(t, p.Publish("second-topic", testMessage(ctx, "B", "same-key")))
+
 		return p.Publish(testTopic, testMessage(ctx, "C", "same-key"))
 	}))
 }
@@ -63,6 +66,7 @@ func TestPublisherRoutesConfiguredTopics(t *testing.T) {
 		count, err := client.EventOutbox.Query().Count(t.Context())
 		require.NoError(t, err)
 		require.Zero(t, count, "queued events stay invisible until commit")
+
 		return nil
 	}))
 
@@ -96,6 +100,7 @@ func TestPublisherPersistsOuterTransactionIdentity(t *testing.T) {
 			return rollback
 		})
 		require.ErrorIs(t, err, rollback)
+
 		return p.Publish(testTopic, testMessage(ctx, "after-rollback", "key"))
 	}))
 
@@ -111,6 +116,7 @@ func TestPublisherPersistsOuterTransactionIdentity(t *testing.T) {
 		require.Equal(t, id, rows[i].MessageID)
 		require.Equal(t, transactionID, rows[i].TransactionID)
 	}
+
 	require.NotEqual(t, transactionID, rows[3].TransactionID)
 }
 
@@ -125,6 +131,7 @@ func TestPublisherRetriesOnlyUnsentTransactionSuffix(t *testing.T) {
 		if msg.id == "B" {
 			return brokerErr
 		}
+
 		return nil
 	})
 
@@ -159,6 +166,7 @@ func TestPublisherAbandonsExhaustedEventAndContinuesTransaction(t *testing.T) {
 		if msg.id == "B" {
 			return brokerErr
 		}
+
 		return nil
 	})
 
@@ -197,6 +205,7 @@ func TestConcurrentPublishersClaimWholeTransactions(t *testing.T) {
 		if msg.id == "A" {
 			<-releaseFirst
 		}
+
 		return nil
 	})
 
@@ -219,6 +228,7 @@ func TestConcurrentPublishersClaimWholeTransactions(t *testing.T) {
 	case <-time.After(5 * time.Second):
 		t.Fatal("transaction drain did not finish")
 	}
+
 	require.Equal(t, []string{"D", "A", "B", "C"}, raw.deliveredIDs())
 	count, err := client.EventOutbox.Query().Count(t.Context())
 	require.NoError(t, err)

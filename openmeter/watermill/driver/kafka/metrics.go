@@ -36,6 +36,7 @@ func SaramaMetricRenamer(role string) metrics.TransformMetricsNameToOtel {
 		}
 
 		res.Attributes = attribute.NewSet(attributes...)
+
 		return res
 	}
 }
