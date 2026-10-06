@@ -49,6 +49,11 @@ the calculated price components beneath it, such as tier or flat-fee
 components. They are derived calculation output, not another source of
 subscription intent.
 
+Invoice amount discounts must be non-negative. Charge snapshots may carry signed
+corrections, but invoicing rejects negative discount amounts until credit-note
+handling is supported. Charge engines map discount facts into billing-managed
+resources and reuse their identities through stable child references.
+
 ## Time has distinct meanings
 
 - a line's service period is when the service was provided

@@ -133,6 +133,140 @@ func TestAreLinesBillableAsOfRequiresChargeID(t *testing.T) {
 	require.ErrorContains(t, err, "charge id is required")
 }
 
+func TestAreLinesBillableAsOfDefersAmountDiscountsUntilPeriodEnd(t *testing.T) {
+	t.Parallel()
+
+	period := timeutil.ClosedPeriod{
+		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		To:   time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
+	}
+	partialPeriod := timeutil.ClosedPeriod{
+		From: period.From,
+		To:   period.From.Add(15 * 24 * time.Hour),
+	}
+
+	for _, test := range []struct {
+		name                    string
+		discounts               billing.Discounts
+		commitments             productcatalog.Commitments
+		expectedPartialBillable bool
+	}{
+		{
+			name:                    "no discounts",
+			expectedPartialBillable: true,
+		},
+		{
+			name: "percentage discount",
+			discounts: billing.Discounts{
+				Percentage: &billing.PercentageDiscount{
+					PercentageDiscount: productcatalog.PercentageDiscount{Percentage: models.NewPercentage(50)},
+					CorrelationID:      "percentage-discount",
+				},
+			},
+		},
+		{
+			name: "configured zero percentage discount",
+			discounts: billing.Discounts{
+				Percentage: &billing.PercentageDiscount{
+					PercentageDiscount: productcatalog.PercentageDiscount{Percentage: models.NewPercentage(0)},
+					CorrelationID:      "zero-percentage-discount",
+				},
+			},
+		},
+		{
+			name: "maximum spend before any discount applies",
+			commitments: productcatalog.Commitments{
+				MaximumAmount: lo.ToPtr(alpacadecimal.NewFromInt(100)),
+			},
+		},
+		{
+			name: "configured zero maximum spend",
+			commitments: productcatalog.Commitments{
+				MaximumAmount: lo.ToPtr(alpacadecimal.Zero),
+			},
+		},
+		{
+			name: "usage discount",
+			discounts: billing.Discounts{
+				Usage: &billing.UsageDiscount{
+					UsageDiscount: productcatalog.UsageDiscount{Quantity: alpacadecimal.NewFromInt(10)},
+					CorrelationID: "usage-discount",
+				},
+			},
+			expectedPartialBillable: true,
+		},
+		{
+			name: "minimum spend",
+			commitments: productcatalog.Commitments{
+				MinimumAmount: lo.ToPtr(alpacadecimal.NewFromInt(100)),
+			},
+			expectedPartialBillable: true,
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			// Given a charge whose effective intent owns the discount configuration.
+			line := newUsageBasedBillabilityLine("namespace", "line", "charge", period)
+			charge := newUsageBasedBillabilityCharge("namespace", "charge", "feature")
+			charge.Intent = usagebased.Intent{IntentMutableFields: usagebased.IntentMutableFields{
+				Price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+					Amount:      alpacadecimal.NewFromInt(1),
+					Commitments: test.commitments,
+				}),
+				Discounts: test.discounts,
+			}}.AsOverridableIntent()
+			featureMeterResolver, err := featuremeterservice.New(featuremeterservice.Config{
+				FeatureService: usageBasedBillabilityFeatureService{features: []feature.Feature{{
+					Namespace: "namespace",
+					ID:        "feature",
+					Key:       "feature",
+					MeterID:   lo.ToPtr("meter"),
+				}}},
+				MeterService: usageBasedBillabilityMeterService{meters: []meter.Meter{
+					newUsageBasedBillabilityMeter("namespace", "meter"),
+				}},
+				Logger: slog.Default(),
+			})
+			require.NoError(t, err)
+			engine := &LineEngine{service: &service{
+				adapter:              &usageBasedBillabilityAdapter{charges: []usagebased.Charge{charge}},
+				featureMeterResolver: featureMeterResolver,
+				ratingService:        billingratingservice.New(billingratingservice.Config{}),
+			}}
+			ctx, err := transaction.SetDriverOnContext(t.Context(), usageBasedBillabilityTransaction{})
+			require.NoError(t, err)
+			invoice := billing.GatheringInvoice{GatheringInvoiceBase: billing.GatheringInvoiceBase{
+				ManagedResource: models.ManagedResource{
+					NamespacedModel: models.NamespacedModel{Namespace: line.Namespace},
+					ID:              line.InvoiceID,
+				},
+			}}
+
+			for _, asOf := range []time.Time{partialPeriod.To, period.To, period.To.Add(24 * time.Hour)} {
+				// When invoice collection requests progressive billing.
+				results, err := engine.AreLinesBillableAsOf(ctx, billing.AreLinesBillableAsOfInput{
+					Invoice:            invoice,
+					AsOf:               asOf,
+					ProgressiveBilling: true,
+					Lines:              billing.GatheringLines{line},
+				})
+				require.NoError(t, err)
+
+				// Then amount discounts defer the whole period, while other charges
+				// remain progressively billable and all charges are billable at period end.
+				expected := billing.IsLineBillableAsOfResult{Billable: true, BillablePeriod: period}
+				if asOf.Equal(partialPeriod.To) {
+					if test.expectedPartialBillable {
+						expected.BillablePeriod = partialPeriod
+					} else {
+						expected = billing.IsLineBillableAsOfResult{}
+					}
+				}
+				require.Equal(t, []billing.IsLineBillableAsOfResult{expected}, results)
+			}
+		})
+	}
+}
+
 func TestAreLinesBillableAsOfFallsBackWhenChargeFeatureIsMissing(t *testing.T) {
 	period := timeutil.ClosedPeriod{
 		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),

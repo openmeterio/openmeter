@@ -17,6 +17,75 @@ import (
 	billingtest "github.com/openmeterio/openmeter/test/billing"
 )
 
+func (s *CreditThenInvoiceTestSuite) TestFlatFeeInvoiceDiscountEditPreservesDetailedDiscounts() {
+	// given: a subscription-managed flat fee has already been collected without a discount
+	// when: an API-originated draft edit adds a percentage discount
+	result := s.createAndDiscountFlatFeeDraft(timeutil.ClosedPeriod{
+		From: time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC),
+		To:   time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC),
+	})
+
+	// then: the invoice retains the discount breakdown calculated by the charge
+	s.RequireTotals(billingtest.ExpectedTotals{Amount: 100, Total: 100}, result.Before.Totals)
+	s.RequireTotals(billingtest.ExpectedTotals{Amount: 100, DiscountsTotal: 50, Total: 50}, result.After.Totals)
+	s.Require().NotNil(result.Charge.Realizations.CurrentRun)
+	runDetails := result.Charge.Realizations.CurrentRun.DetailedLines.OrEmpty()
+	s.Require().Len(runDetails, 1)
+	s.Require().Len(runDetails[0].AmountDiscounts, 1)
+	s.Equal(float64(50), runDetails[0].AmountDiscounts[0].Amount.InexactFloat64())
+
+	details := result.After.Lines.OrEmpty()[0].DetailedLines
+	s.Require().Len(details, 1)
+	s.Equal(float64(50), details[0].Totals.DiscountsTotal.InexactFloat64())
+	s.Require().Len(details[0].AmountDiscounts, 1, "invoice mapping must preserve the charge's discount breakdown")
+	discount := details[0].AmountDiscounts[0]
+	s.Require().NoError(details[0].Validate())
+	s.NotEmpty(details[0].ChildUniqueReferenceID)
+	s.NotEmpty(discount.ID, "the invoice discount must be persisted as a billing-managed resource")
+	s.Equal(runDetails[0].AmountDiscounts[0].ChildUniqueReferenceID, lo.FromPtr(discount.ChildUniqueReferenceID))
+	s.Equal(runDetails[0].AmountDiscounts[0].Reason, discount.Reason)
+	s.Equal(float64(50), discount.Amount.InexactFloat64())
+
+	// when: a subsequent edit changes the percentage without changing its correlation
+	ctx := s.T().Context()
+	lineID := result.After.Lines.OrEmpty()[0].ID
+	_, err := s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
+		Invoice:      result.After.GetInvoiceID(),
+		ChangeSource: billing.ChangeSourceAPIRequest,
+		EditFn: func(invoice *billing.StandardInvoice) error {
+			invoice.Lines.GetByID(lineID).RateCardDiscounts.Percentage.Percentage = models.NewPercentage(25)
+			return nil
+		},
+	})
+	s.Require().NoError(err)
+	updated, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
+		Invoice: result.After.GetInvoiceID(),
+		Expand:  billing.StandardInvoiceExpands{billing.StandardInvoiceExpandLines},
+	})
+	s.Require().NoError(err)
+
+	// then: billing updates the same child and discount resources with the new amount
+	s.RequireTotals(billingtest.ExpectedTotals{Amount: 100, DiscountsTotal: 25, Total: 75}, updated.Totals)
+	s.Require().Len(updated.Lines.OrEmpty(), 1)
+	updatedLine := updated.Lines.OrEmpty()[0]
+	s.Equal(lineID, updatedLine.ID)
+	s.Require().Len(updatedLine.DetailedLines, 1)
+	updatedDetail := updatedLine.DetailedLines[0]
+	s.Require().NoError(updatedDetail.Validate())
+	s.Equal(details[0].ID, updatedDetail.ID)
+	s.Equal(details[0].ChildUniqueReferenceID, updatedDetail.ChildUniqueReferenceID)
+	s.Require().Len(updatedDetail.AmountDiscounts, 1)
+	updatedDiscount := updatedDetail.AmountDiscounts[0]
+	s.Equal(discount.ID, updatedDiscount.ID)
+	s.Equal(discount.CreatedAt, updatedDiscount.CreatedAt)
+	s.Equal(discount.ChildUniqueReferenceID, updatedDiscount.ChildUniqueReferenceID)
+	s.Nil(updatedDiscount.DeletedAt)
+	s.Equal(float64(25), updatedDiscount.Amount.InexactFloat64())
+	percentage, err := updatedDiscount.Reason.AsRatecardPercentage()
+	s.Require().NoError(err)
+	s.Equal(float64(25), percentage.Percentage.InexactFloat64())
+}
+
 func (s *CreditThenInvoiceTestSuite) TestFlatFeeInvoiceDiscountEditDoesNotProrateTwice() {
 	// given: a subscription-managed flat fee covers half of its full service period
 	// when: an API-originated draft edit changes only the percentage discount
