@@ -112,14 +112,62 @@ interface FeatureOperations {
 interface FeatureCostOperations {
   /**
    * Query the cost of a feature.
+   *
+   * Set `Accept: application/json` (the default) for JSON, or `Accept: text/csv` to
+   * download a CSV file. CSV columns, in order:
+   *
+   * `from, to, [subject,] [customer_id, customer_key, customer_name,] <dimensions...>, usage, cost, currency, detail`
+   *
+   * Subject and customer columns are included when the query groups by those
+   * dimensions, including grouping implied by their filters. Other dimensions follow
+   * the query's grouping order. Unavailable cost is an empty cell, not zero. Detail
+   * is retained for both unavailable and partially priced costs.
    */
   @extension(Shared.UnstableExtension, true)
   @post
   @route("/query")
   @operationId("query-feature-cost")
   @summary("Query feature cost")
+  @sharedRoute
   queryCost(
     @path featureId: Shared.ULID,
     @body request?: Meters.MeterQueryRequest,
-  ): FeatureCostQueryResult | Common.NotFound | Common.ErrorResponses;
+  ):
+    | {
+        @header contentType: "application/json";
+        @body _: FeatureCostQueryResult;
+      }
+    | Common.NotFound
+    | Common.ErrorResponses;
+
+  #suppress "@openmeter/api-spec-aip/operation-summary" "Avoid duplicating the summary in OpenAPI yaml"
+  @opExample(
+    #{
+      returnType: #{
+        contentType: "text/csv",
+        _: """
+          from,to,model,usage,cost,currency,detail
+          2023-01-01T00:00:00Z,2023-01-02T00:00:00Z,gpt-4-turbo,100,0.001,USD,
+          2023-01-01T00:00:00Z,2023-01-02T00:00:00Z,unknown-model,20,,,Pricing unavailable
+          """,
+      },
+    },
+    #{ title: "Grouped by model with unavailable pricing" }
+  )
+  @extension(Shared.UnstableExtension, true)
+  @friendlyName("queryFeatureCostCsv")
+  @post
+  @route("/query")
+  @operationId("query-feature-cost")
+  @sharedRoute
+  queryCostCsv(
+    @path featureId: Shared.ULID,
+    // The JSON sibling owns the shared request body, as with meter CSV.
+  ):
+    | {
+        @header contentType: "text/csv";
+        @body _: string;
+      }
+    | Common.NotFound
+    | Common.ErrorResponses;
 }

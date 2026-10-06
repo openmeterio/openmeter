@@ -296,7 +296,9 @@ The full call path, HTTP route, and a short description are listed below.
 | `om.Features.Get` | `GET /openmeter/features/{featureId}` | Get a feature by id. |
 | `om.Features.Update` | `PATCH /openmeter/features/{featureId}` | Update a feature by id. Currently only the unit_cost field can be updated. |
 | `om.Features.Delete` | `DELETE /openmeter/features/{featureId}` | Delete a feature by id. |
-| `om.Features.QueryCost` | `POST /openmeter/features/{featureId}/cost/query` | Query the cost of a feature. |
+| `om.Features.QueryCost` | `POST /openmeter/features/{featureId}/cost/query` | Query the cost of a feature. Set `Accept: application/json` (the default) for JSON, or `Accept: text/csv` to download a CSV file. CSV columns, in order: `from, to, [subject,] [customer_id, customer_key, customer_name,] <dimensions...>, usage, cost, currency, detail` Subject and customer columns are included when the query groups by those dimensions, including grouping implied by their filters. Other dimensions follow the query's grouping order. Unavailable cost is an empty cell, not zero. Detail is retained for both unavailable and partially priced costs. |
+| `om.Features.QueryCostCSV` | `POST /openmeter/features/{featureId}/cost/query` |  |
+| `om.Features.QueryCostCSVStream` | `POST /openmeter/features/{featureId}/cost/query` | Streaming variant of `QueryCostCSV` returning an `io.ReadCloser`. |
 
 ### LLMCost
 

@@ -464,6 +464,12 @@ func (s *Server) DeleteFeature(w http.ResponseWriter, r *http.Request, featureId
 // Feature Cost
 
 func (s *Server) QueryFeatureCost(w http.ResponseWriter, r *http.Request, featureId api.ULID) {
+	mediatype, _ := commonhttp.GetMediaType(r)
+	if mediatype == "text/csv" {
+		s.featureCostHandler.QueryFeatureCostCSV().With(featureId).ServeHTTP(w, r)
+		return
+	}
+
 	s.featureCostHandler.QueryFeatureCost().With(featureId).ServeHTTP(w, r)
 }
 
