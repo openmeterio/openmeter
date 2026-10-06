@@ -1859,6 +1859,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/VoidCreditGrantRequest'
+      x-rpc-endpoint: true
       x-unstable: true
   /openmeter/customers/{customerId}/credits/transactions:
     get:
@@ -2634,6 +2635,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/EntitlementAccessQueryRequest'
+      x-rpc-endpoint: true
   /openmeter/entitlements:
     get:
       operationId: list-entitlements
