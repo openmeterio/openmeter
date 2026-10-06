@@ -126,12 +126,14 @@ func applyAPIRuleFilters(ctx context.Context, req *ListNotificationRulesRequest,
 	if err != nil {
 		return badRequest("filter[id]", err)
 	}
+
 	req.ID = id
 
 	name, err := filters.FromAPIFilterString(params.Name)
 	if err != nil {
 		return badRequest("filter[name]", err)
 	}
+
 	req.Name = name
 
 	typeFilter, err := filters.FromAPIFilterStringExact(params.Type)
@@ -145,24 +147,28 @@ func applyAPIRuleFilters(ctx context.Context, req *ListNotificationRulesRequest,
 	if err != nil {
 		return badRequest("filter[type]", err)
 	}
+
 	req.Type = typeFilter
 
 	disabled, err := filters.FromAPIFilterBoolean(params.Disabled)
 	if err != nil {
 		return badRequest("filter[disabled]", err)
 	}
+
 	req.Disabled = disabled
 
 	createdAt, err := filters.FromAPIFilterDateTime(params.CreatedAt)
 	if err != nil {
 		return badRequest("filter[created_at]", err)
 	}
+
 	req.CreatedAt = createdAt
 
 	updatedAt, err := filters.FromAPIFilterDateTime(params.UpdatedAt)
 	if err != nil {
 		return badRequest("filter[updated_at]", err)
 	}
+
 	req.UpdatedAt = updatedAt
 
 	channelID, err := filters.FromAPIFilterULID(params.ChannelId)
