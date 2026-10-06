@@ -2,6 +2,7 @@ package lineengine
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"log/slog"
 	"testing"
@@ -33,6 +34,37 @@ func TestConfigValidateReturnsAllErrors(t *testing.T) {
 	require.ErrorContains(t, err, "feature meter resolver is required")
 	require.ErrorContains(t, err, "streaming connector is required")
 	require.ErrorContains(t, err, "max parallel quantity snapshots must be greater than 0")
+}
+
+func TestSnapshotLineQuantityRejectsNonLegacyLinesBeforeSnapshotting(t *testing.T) {
+	for _, engineType := range []billing.LineEngineType{
+		billing.LineEngineTypeChargeFlatFee,
+		billing.LineEngineTypeChargeUsageBased,
+		billing.LineEngineTypeChargeCreditPurchase,
+	} {
+		t.Run(string(engineType), func(t *testing.T) {
+			// Given a charge-owned line and no legacy snapshot dependencies.
+			line := standardLineForLineEngineOverrideTest(t, lineEngineOverrideTestPeriod())
+			line.Engine = engineType
+			invoice := quantitySnapshotTestInvoice()
+			before, err := json.Marshal(line)
+			require.NoError(t, err)
+
+			// When the legacy engine is asked to snapshot that line.
+			result, err := (&Engine{}).SnapshotLineQuantity(t.Context(), SnapshotLineQuantityInput{
+				Invoice: &invoice,
+				Line:    line,
+			})
+
+			// Then ownership validation rejects it before any snapshot or mutation.
+			require.ErrorAs(t, err, &billing.ValidationError{})
+			require.ErrorContains(t, err, "line must be owned by the legacy invoice engine")
+			require.Nil(t, result)
+			after, err := json.Marshal(line)
+			require.NoError(t, err)
+			require.JSONEq(t, string(before), string(after))
+		})
+	}
 }
 
 type quantitySnapshotFeatureServiceStub struct {

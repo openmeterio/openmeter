@@ -2,6 +2,7 @@ package billing
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/rand/v2"
@@ -77,6 +78,36 @@ func (s *InvoicingTestSuite) TestSimulateInvoiceFeatureMeterValidation() {
 			ManagedBy:     billing.ManuallyManagedLine,
 		}, billing.WithFeatureKey(featureKey))
 	}
+
+	s.Run("rating warnings preserve caller input", func() {
+		// Given supplied negative usage and a missing feature on a transient line.
+		line := newLine("missing-feature")
+		line.UsageBased.MeteredQuantity = lo.ToPtr(alpacadecimal.NewFromInt(-5))
+		line.UsageBased.MeteredPreLinePeriodQuantity = lo.ToPtr(alpacadecimal.Zero)
+		before, err := json.Marshal(line)
+		s.Require().NoError(err)
+
+		// When simulation validates the feature and rates supplied quantities.
+		invoice, err := s.BillingService.SimulateInvoice(ctx, billing.SimulateInvoiceInput{
+			Namespace: namespace, CustomerID: &customerEntity.ID, Currency: currencyx.FiatCode(currency.USD),
+			Lines: billing.NewStandardInvoiceLines(billing.StandardLines{line}),
+		})
+		s.Require().NoError(err)
+
+		// Then both issue channels survive, and normalization leaves the input intact.
+		s.Equal(billing.StandardInvoiceStatusDraftInvalid, invoice.Status)
+		s.Equal(float64(10), invoice.Totals.Total.InexactFloat64())
+		s.Require().Len(invoice.ValidationIssues, 2)
+		warning, found := lo.Find(invoice.ValidationIssues, func(issue billing.ValidationIssue) bool {
+			return issue.Code == billing.WarnNegativeMeteredQuantityClamped.Code
+		})
+		s.Require().True(found)
+		s.Equal(billing.LineEngineValidationComponent(billing.LineEngineTypeInvoice), warning.Component)
+		s.Equal(invoice.Lines.OrEmpty()[0].ID, warning.Attributes[billing.AttributeKeyLineID])
+		after, err := json.Marshal(line)
+		s.Require().NoError(err)
+		s.JSONEq(string(before), string(after))
+	})
 
 	s.Run("missing feature", func() {
 		// given:
@@ -4792,7 +4823,7 @@ func (s *InvoicingTestSuite) TestSnapshotQuantityMissingFeature() {
 	defer clock.UnFreeze()
 
 	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
-	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
+	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID(), WithCollectionInterval(datetime.MustParseDuration(s.T(), "PT1H")))
 
 	testFeature := s.SetupApiRequestsTotalFeature(ctx, namespace)
 	defer testFeature.Cleanup()
@@ -4832,6 +4863,15 @@ func (s *InvoicingTestSuite) TestSnapshotQuantityMissingFeature() {
 	)
 	s.Require().NoError(err)
 
+	// A live preview currently rejects the incomplete builder output before it
+	// can expose the missing-feature issue. Preserve this independent limitation.
+	_, err = s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
+		Namespace: namespace,
+		Expand: billing.InvoiceExpands{}.
+			With(billing.InvoiceExpandCalculateGatheringInvoiceWithLiveData),
+	})
+	s.Require().ErrorContains(err, "validating build standard invoice lines with live data ids")
+
 	// when:
 	// - billing collects the line after the feature can no longer be resolved
 	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
@@ -4856,10 +4896,33 @@ func (s *InvoicingTestSuite) TestSnapshotQuantityMissingFeature() {
 	s.Equal(billing.LineEngineValidationComponent(billing.LineEngineTypeInvoice), issue.Component)
 	s.Equal(fmt.Sprintf("/lines/%s", pendingLineID), issue.Path)
 
+	// Retrying before the cutoff permits waiting, but forcing an incomplete
+	// snapshot still fails without replacing the persisted lines or issues.
+	queuedBillingService := s.BillingService.WithAdvancementStrategy(billing.QueuedAdvancementStrategy)
+	invoice, err = queuedBillingService.RetryInvoice(ctx, invoice.GetInvoiceID())
+	s.Require().NoError(err)
+	invoice, err = s.BillingService.AdvanceInvoice(ctx, invoice.GetInvoiceID())
+	s.Require().NoError(err)
+	s.Equal(billing.StandardInvoiceStatusDraftWaitingForCollection, invoice.Status)
+	_, err = s.BillingService.ForceCollectInvoice(ctx, invoice.GetInvoiceID())
+	s.Require().ErrorContains(err, "metered quantity is required")
+	invoice, err = s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
+		Invoice: invoice.GetInvoiceID(),
+		Expand:  billing.StandardInvoiceExpandAll,
+	})
+	s.Require().NoError(err)
+	s.Nil(invoice.QuantitySnapshotedAt)
+	s.Nil(invoice.Lines.OrEmpty()[0].UsageBased.MeteredQuantity)
+	s.Require().Len(invoice.ValidationIssues, 1)
+	s.Equal(billing.ValidationIssueSeverityWarning, invoice.ValidationIssues[0].Severity)
+
 	// when:
 	// - collection is retried while the feature is still missing
-	clock.SetTime(invoice.DefaultCollectionAtForStandardInvoice().Add(time.Minute))
-	queuedBillingService := s.BillingService.WithAdvancementStrategy(billing.QueuedAdvancementStrategy)
+	clock.FreezeTime(invoice.DefaultCollectionAtForStandardInvoice().Add(time.Minute))
+	defer clock.UnFreeze()
+	invoice, err = s.BillingService.AdvanceInvoice(ctx, invoice.GetInvoiceID())
+	s.Require().NoError(err)
+	s.Equal(billing.StandardInvoiceStatusDraftInvalidCreated, invoice.Status)
 	invoice, err = queuedBillingService.RetryInvoice(ctx, invoice.GetInvoiceID())
 	s.Require().NoError(err)
 	s.Equal(billing.StandardInvoiceStatusDraftCreated, invoice.Status)

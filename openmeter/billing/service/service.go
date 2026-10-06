@@ -10,7 +10,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingfeaturemeterservice "github.com/openmeterio/openmeter/openmeter/billing/featuremeter/service"
 	billinglineengine "github.com/openmeterio/openmeter/openmeter/billing/lineengine"
-	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/billing/sequence"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -31,7 +30,6 @@ type Service struct {
 	logger               *slog.Logger
 	invoiceCalculator    invoicecalc.Calculator
 	lineEngines          *engineRegistry
-	ratingService        rating.Service
 	featureMeterResolver *billingfeaturemeterservice.Resolver
 
 	publisher eventbus.Publisher
@@ -48,7 +46,6 @@ type Config struct {
 	CustomerService         customer.Service
 	AppService              app.Service
 	TaxCodeService          taxcode.Service
-	RatingService           rating.Service
 	LegacyBillingLineEngine *billinglineengine.Engine
 	Logger                  *slog.Logger
 	FeatureMeterResolver    *billingfeaturemeterservice.Resolver
@@ -76,10 +73,6 @@ func (c Config) Validate() error {
 
 	if c.TaxCodeService == nil {
 		return errors.New("tax code service cannot be null")
-	}
-
-	if c.RatingService == nil {
-		return errors.New("rating service cannot be null")
 	}
 
 	if c.LegacyBillingLineEngine == nil {
@@ -117,7 +110,6 @@ func New(config Config) (*Service, error) {
 		appService:           config.AppService,
 		taxCodeService:       config.TaxCodeService,
 		logger:               config.Logger,
-		ratingService:        config.RatingService,
 		featureMeterResolver: config.FeatureMeterResolver,
 		publisher:            config.Publisher,
 		advancementStrategy:  config.AdvancementStrategy,

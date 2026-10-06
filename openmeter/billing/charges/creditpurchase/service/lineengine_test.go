@@ -16,14 +16,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
-func TestLineEngineDoesNotImplementLineCalculator(t *testing.T) {
-	lineEngine := (&service{}).GetLineEngine()
-
-	require.Equal(t, billing.LineEngineTypeChargeCreditPurchase, lineEngine.GetLineEngineType())
-	_, implementsLineCalculator := lineEngine.(billing.LineCalculator)
-	require.False(t, implementsLineCalculator)
-}
-
 func TestAreLinesBillableAsOfPreservesResultsWithValidationIssues(t *testing.T) {
 	// Given a batch with valid credit-purchase lines around an unsupported split line.
 	firstPeriod := timeutil.ClosedPeriod{

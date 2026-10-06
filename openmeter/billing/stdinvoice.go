@@ -357,6 +357,7 @@ func (i StandardInvoiceBase) GetCustomerID() customer.CustomerID {
 }
 
 var _ GenericInvoice = (*StandardInvoice)(nil)
+var _ ValidationIssueAppender = (*StandardInvoice)(nil)
 
 type StandardInvoice struct {
 	StandardInvoiceBase `json:",inline"`
@@ -450,6 +451,10 @@ func (i *StandardInvoice) SetLines(lines []GenericInvoiceLine) error {
 
 func (i *StandardInvoice) UnsetLines() {
 	i.Lines = StandardInvoiceLines{}
+}
+
+func (i *StandardInvoice) AppendValidationIssues(issues ...ValidationIssue) {
+	i.ValidationIssues = append(i.ValidationIssues, issues...)
 }
 
 func (i *StandardInvoice) MergeValidationIssues(errIn error, reportingComponent ComponentName) error {
@@ -1281,17 +1286,10 @@ type CreateStandardInvoiceFromGatheringLinesInput struct {
 	Currency    currencyx.FiatCode
 	Description *string
 
-	Lines                       GatheringLines
-	ValidationIssues            ValidationIssues
-	PostCreationCalculationHook PostCreationCalculationHook
-	ForceAsyncAdvance           bool
+	Lines             GatheringLines
+	ValidationIssues  ValidationIssues
+	ForceAsyncAdvance bool
 }
-
-type (
-	PostCreationCalculationHook func(StandardInvoice, StandardLine) (LineMutators, error)
-	LineMutator                 func(*StandardLine) error
-	LineMutators                = []LineMutator
-)
 
 func (i CreateStandardInvoiceFromGatheringLinesInput) Validate() error {
 	var errs []error
@@ -1329,10 +1327,3 @@ type (
 	StandardInvoiceHook  = models.ServiceHook[StandardInvoice]
 	StandardInvoiceHooks = models.ServiceHookRegistry[StandardInvoice]
 )
-
-func NewSetCreditsAppliedOperation(creditsApplied CreditsApplied) LineMutator {
-	return func(line *StandardLine) error {
-		line.CreditsApplied = creditsApplied
-		return nil
-	}
-}

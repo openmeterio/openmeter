@@ -601,9 +601,25 @@ func (s *Service) applyAPIInvoiceLineEdits(
 			return nil, fmt.Errorf("validating API invoice line edit input for engine %s: %w", engine.GetLineEngineType(), err)
 		}
 
-		engineResult, err := engine.OnMutableInvoiceLinesEditedViaAPI(ctx, input)
+		engineResult, warnings, err := s.runInTransactionWithValidationWarningsAllowed(ctx, func(ctx context.Context) (billing.OnMutableInvoiceUpdateResult, error) {
+			return engine.OnMutableInvoiceLinesEditedViaAPI(ctx, input)
+		})
 		if err != nil {
 			return nil, billing.NewLineEngineValidationError(engine, err)
+		}
+
+		if len(warnings) > 0 {
+			warningErr := errors.Join(lo.Map(warnings, func(issue billing.ValidationIssue, _ int) error { return issue })...)
+			if appender, ok := edited.(billing.ValidationIssueAppender); ok {
+				issues, err := billing.ToValidationIssues(billing.NewLineEngineValidationError(engine, warningErr))
+				if err != nil {
+					return nil, fmt.Errorf("extracting API line edit warnings: %w", err)
+				}
+
+				appender.AppendValidationIssues(issues...)
+			} else {
+				return nil, billing.NewLineEngineValidationError(engine, warningErr)
+			}
 		}
 
 		if err := validateLineEngineResult(input.Created, engineResult.CreatedLines); err != nil {

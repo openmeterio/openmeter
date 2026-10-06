@@ -260,10 +260,6 @@ func (m *mockCollectionCompletedLineEngine) OnPaymentSettled(ctx context.Context
 	return m.onPaymentSettled(ctx, input)
 }
 
-func (m *mockCollectionCompletedLineEngine) CalculateLines(input ombilling.CalculateLinesInput) (ombilling.StandardLines, error) {
-	return input.Lines, nil
-}
-
 func (m *mockCollectionCompletedLineEngine) Reset() {
 	*m = mockCollectionCompletedLineEngine{
 		engineType: m.engineType,

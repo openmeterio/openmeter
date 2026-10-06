@@ -80,6 +80,12 @@ and standard invoices. If subscription state disagrees with an immutable
 standard invoice, sync records validation issues; it does not rewrite the
 invoice.
 
+Mutable legacy standard-line updates snapshot and rate through billing's
+legacy engine before submission. Immutable comparisons retain snapshot-only
+behavior; they do not change calculated invoice history. See
+[Billing line ownership](../../README.md#line-ownership) for the calculation
+and validation-issue contract.
+
 Charge-backed patches operate on the charge intent. Charge-managed invoice
 lines are projections of charge state and are deliberately excluded from the
 subscription-sync invoice read model. A customer-facing charge override also

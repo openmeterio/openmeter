@@ -9,7 +9,6 @@ import (
 var _ billing.LineEngine = NoopLineEngine{}
 
 // NoopLineEngine is a test helper intended for embedding in line-engine fakes.
-// It intentionally does not implement billing.LineCalculator.
 type NoopLineEngine struct {
 	EngineType billing.LineEngineType
 }

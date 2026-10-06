@@ -120,6 +120,23 @@ result. API-originated line edits and system-originated reconciliation are
 different change sources: API edits may change manual ownership, while system
 edits preserve the ownership contract of their source.
 
+Line owners return calculated details, discounts, and totals. Invoice
+calculation aggregates these totals and derives invoice dates, service periods,
+and tax metadata. The legacy engine rates at materialization, collection,
+standard API edits, and transient preview/simulation boundaries. Mutable
+subscription updates snapshot and rate through that engine; immutable
+comparisons only snapshot quantities. Repeated rating starts from raw metered
+usage and retains matching detail and discount identities.
+
+Snapshotting and rating run on clones so a failed collection attempt cannot
+modify the prior invoice lines. Complete snapshots follow the existing reuse
+timing policy.
+
+Legacy rating issues belong to the legacy engine component. Lifecycle rating
+uses billing's existing component-wide replacement; standard API edits append
+returned warnings for every line engine. Invoice-level issues retain the
+calculator's replacement lifecycle.
+
 Invoice-issued, payment-authorized, and payment-settled callbacks form one
 local transaction attempt across every live line and line engine. Warning-only
 results commit and remain attached to the invoice. A critical validation issue
@@ -146,7 +163,16 @@ boundary:
 Gathering-invoice live previews accept line-engine validation issues of any
 severity and attach them to the projected standard invoice while preserving
 the usable lines. The projection is not persisted; system errors still fail
-the preview.
+the preview. The legacy preview builder currently returns no lines on snapshot
+failure, so its exact-ID check fails for missing snapshot dependencies.
+
+Standard API edits accept calculated output accompanied only by warnings and
+persist those issues on the invoice. Critical callback issues and system errors
+reject the whole edit, including mixed-engine writes. Gathering edits and
+invoice-deletion cleanup keep their rejection semantics for every callback error.
+Simulation validates feature/meter references and explicitly rates supplied
+legacy quantities on clones without persisting the transient result.
+Charge simulation is unsupported; supplied charge projections are not rerated.
 
 `ValidationIssueRecorder.Record` collects validation issues of any severity;
 successful extraction alone does not mean an operation may advance. Where only
