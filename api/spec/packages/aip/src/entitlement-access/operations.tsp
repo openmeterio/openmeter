@@ -26,6 +26,7 @@ interface EntitlementAccessOperations {
   @route("/query")
   @operationId("query-entitlement-access")
   @summary("Query entitlement access")
+  @extension(Shared.RPCEndpointExtension, true)
   query(
     ...Common.CursorPaginationQuery,
     @body _: EntitlementAccessQueryRequest,
