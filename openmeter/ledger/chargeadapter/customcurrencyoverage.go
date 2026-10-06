@@ -265,9 +265,11 @@ func (h *customCurrencyOverageHandler) correct(ctx context.Context, input correc
 		if !slices.Contains(expectedTemplateCodes, templateCode) {
 			return fmt.Errorf("unexpected transaction template %s in custom-currency overage group", templateCode)
 		}
+
 		if _, seen := seenTemplates[templateCode]; seen {
 			return fmt.Errorf("duplicate transaction template %s in custom-currency overage group", templateCode)
 		}
+
 		seenTemplates[templateCode] = struct{}{}
 	}
 

@@ -78,9 +78,11 @@ func (i CreateTransactionGroupInput) Validate() error {
 	if i.Namespace == "" {
 		errs = append(errs, errors.New("namespace is required"))
 	}
+
 	if err := ledger.ValidateAssignedID(i.ID); err != nil {
 		errs = append(errs, fmt.Errorf("ID: %w", err))
 	}
+
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 

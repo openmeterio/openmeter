@@ -126,6 +126,7 @@ func (c *accrualCollector) collectToReceivable(ctx context.Context, input Collec
 		if err != nil {
 			return nil, err
 		}
+
 		if len(inputs) == 0 {
 			return nil, nil
 		}
@@ -306,16 +307,19 @@ func (c *accrualCollector) resolveCollectionBreakageInputs(ctx context.Context, 
 		if err != nil {
 			return nil, err
 		}
+
 		inputs[idx] = identified
 
 		for _, entry := range identified.EntryInputs() {
 			if entry.PostingAddress().AccountType() != ledger.AccountTypeCustomerFBO || !entry.Amount().IsNegative() {
 				continue
 			}
+
 			originID := lo.FromPtr(entry.Provenance().CollectionOriginID)
 			if _, exists := sourcesByOrigin[originID]; exists {
 				return nil, fmt.Errorf("collection origin %s has multiple FBO source entries", originID)
 			}
+
 			sourcesByOrigin[originID] = sourcePostingIDs{transactionID: identified.AssignedID(), entryID: entry.AssignedID()}
 		}
 	}

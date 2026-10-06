@@ -274,6 +274,7 @@ func TestOnFlatFeeCustomCurrencyOverageAccruedCorrection_TransactionOrder(t *tes
 			for idx, originalIdx := range tc.order {
 				orderedInputs[idx] = inputs[originalIdx]
 			}
+
 			group, err := env.Deps.HistoricalLedger.CommitGroup(t.Context(), transactions.GroupInputs(env.Namespace, nil, orderedInputs...))
 			require.NoError(t, err)
 			group, err = env.Deps.HistoricalLedger.GetTransactionGroup(t.Context(), group.ID())
@@ -282,6 +283,7 @@ func TestOnFlatFeeCustomCurrencyOverageAccruedCorrection_TransactionOrder(t *tes
 			for idx, transaction := range group.Transactions() {
 				require.Equal(t, orderedInputs[idx].Annotations()[ledger.AnnotationTransactionTemplateCode], transaction.Annotations()[ledger.AnnotationTransactionTemplateCode])
 			}
+
 			run.AccruedUsage = &invoicedusage.AccruedUsage{
 				ServicePeriod: run.ServicePeriod,
 				Totals:        totals.Totals{Amount: alpacadecimal.NewFromInt(10), Total: alpacadecimal.NewFromInt(10)},
@@ -307,8 +309,10 @@ func TestOnFlatFeeCustomCurrencyOverageAccruedCorrection_TransactionOrder(t *tes
 				})
 				require.NoError(t, err)
 				require.Empty(t, corrections.Items)
+
 				return
 			}
+
 			require.NoError(t, err)
 
 			// then: every native and fiat leg is reversed regardless of enumeration order

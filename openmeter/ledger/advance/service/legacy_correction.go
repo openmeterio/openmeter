@@ -167,6 +167,7 @@ func (s *service) resolveAdvanceBackfillBreakageReopenInputs(ctx context.Context
 		if releaseFacts.SpendChargeID != nil && *releaseFacts.SpendChargeID != input.ChargeID {
 			continue
 		}
+
 		reopenInput, err := s.breakage.ReopenRelease(ctx, breakage.ReopenReleaseInput{
 			PostingInput:   input.BreakagePosting,
 			Release:        release,

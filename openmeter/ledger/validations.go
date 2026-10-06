@@ -194,9 +194,11 @@ func ValidateAssignedID(id string) error {
 	if id == "" {
 		return nil
 	}
+
 	if _, err := ulid.ParseStrict(id); err != nil {
 		return fmt.Errorf("invalid ledger ID: %w", err)
 	}
+
 	return nil
 }
 
@@ -212,6 +214,7 @@ func ValidateTransactionGroupInputWith(ctx context.Context, group TransactionGro
 	if group.Namespace() == "" {
 		errs = append(errs, errors.New("namespace is required"))
 	}
+
 	if err := ValidateAssignedID(group.AssignedID()); err != nil {
 		errs = append(errs, fmt.Errorf("group ID: %w", err))
 	}
@@ -220,33 +223,41 @@ func ValidateTransactionGroupInputWith(ctx context.Context, group TransactionGro
 	if len(inputs) == 0 {
 		errs = append(errs, ErrTransactionGroupEmpty)
 	}
+
 	transactionIDs := make(map[string]struct{}, len(inputs))
 	entryIDs := make(map[string]struct{})
 	for idx, input := range inputs {
 		if err := ValidateTransactionInputWith(ctx, input, routingValidator); err != nil {
 			errs = append(errs, fmt.Errorf("transactions[%d]: %w", idx, err))
 		}
+
 		if input == nil {
 			continue
 		}
+
 		if id := input.AssignedID(); id != "" {
 			if _, exists := transactionIDs[id]; exists {
 				errs = append(errs, fmt.Errorf("transactions[%d]: duplicate transaction ID %s", idx, id))
 			}
+
 			transactionIDs[id] = struct{}{}
 		}
+
 		for entryIdx, entry := range input.EntryInputs() {
 			if entry == nil {
 				continue
 			}
+
 			if id := entry.AssignedID(); id != "" {
 				if _, exists := entryIDs[id]; exists {
 					errs = append(errs, fmt.Errorf("transactions[%d].entries[%d]: duplicate entry ID %s", idx, entryIdx, id))
 				}
+
 				entryIDs[id] = struct{}{}
 			}
 		}
 	}
+
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 

@@ -660,6 +660,7 @@ func (e *testEnv) bookExpiredListingState(t *testing.T, issuedAt time.Time, spec
 				Amount:       releaseAmount,
 				SourceKind:   ledgerbreakage.SourceKindUsage,
 			})
+
 			return []ledger.TransactionInput{input}, err
 		})
 		releases, err := e.BreakageService.ListReleases(t.Context(), ledgerbreakage.ListReleasesInput{
@@ -688,6 +689,7 @@ func (e *testEnv) bookExpiredListingState(t *testing.T, issuedAt time.Time, spec
 				Amount:       reopenAmount,
 				SourceKind:   ledgerbreakage.SourceKindUsageCorrection,
 			})
+
 			return []ledger.TransactionInput{input}, err
 		})
 	}
@@ -773,6 +775,7 @@ func (e *testEnv) commitBreakagePostings(t *testing.T, resolve func(context.Cont
 		}
 
 		_, err = e.Deps.HistoricalLedger.CommitGroup(ctx, ledger.WithGroupID(transactions.GroupInputs(e.Namespace, nil, inputs...), groupID))
+
 		return err
 	})
 	require.NoError(t, err)

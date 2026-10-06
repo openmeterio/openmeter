@@ -934,6 +934,7 @@ func bookExpiringCreditWithFeatures(
 
 		inputs = append(inputs, breakageInputs...)
 		_, err = env.Deps.HistoricalLedger.CommitGroup(ctx, ledger.WithGroupID(transactions.GroupInputs(env.Namespace, nil, inputs...), groupID))
+
 		return err
 	})
 	require.NoError(t, err)
@@ -949,7 +950,9 @@ func bookExpiringCreditWithFeatures(
 			return plan.ID.ID
 		}
 	}
+
 	t.Fatal("issued credit has no breakage plan")
+
 	return ""
 }
 

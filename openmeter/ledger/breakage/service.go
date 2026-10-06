@@ -205,6 +205,7 @@ func (i ReleasePlanInput) Validate() error {
 	if i.SourceEntryID != nil && i.SourceTransactionID == nil {
 		errs = append(errs, errors.New("source entry requires a source transaction"))
 	}
+
 	for field, id := range map[string]*string{
 		"source transaction id": i.SourceTransactionID,
 		"source entry id":       i.SourceEntryID,
@@ -212,6 +213,7 @@ func (i ReleasePlanInput) Validate() error {
 		if id == nil {
 			continue
 		}
+
 		if *id == "" {
 			errs = append(errs, fmt.Errorf("%s cannot be empty", field))
 		} else if err := ledger.ValidateAssignedID(*id); err != nil {
@@ -659,6 +661,7 @@ func (s *service) recordPosting(ctx context.Context, input PostingInput, record 
 	if err != nil {
 		return nil, fmt.Errorf("assign breakage posting IDs: %w", err)
 	}
+
 	posting = transactions.WithAnnotations(posting, input.Annotations)
 
 	record.BreakageTransactionGroupID = input.TransactionGroupID
