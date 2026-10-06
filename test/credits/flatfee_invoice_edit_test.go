@@ -155,6 +155,21 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeInvoiceManualEditsKeepAbsoluteAm
 		s.Equal(float64(100), charge.Intent.GetEffectiveIntent().AmountBeforeProration.InexactFloat64())
 		s.Equal(float64(50), charge.State.AmountAfterProration.InexactFloat64())
 		s.Equal(servicePeriod, charge.Intent.GetEffectiveServicePeriod())
+
+		invoice, err := s.BillingService.GetStandardInvoiceById(s.T().Context(), billing.GetStandardInvoiceByIdInput{
+			Invoice: result.After.GetInvoiceID(),
+			Expand:  billing.StandardInvoiceExpands{billing.StandardInvoiceExpandLines},
+		})
+		s.Require().NoError(err)
+		s.Empty(invoice.Lines.OrEmpty(), "clearing the override must remove the manually edited draft line")
+
+		gatheringLine := s.mustSingleActiveGatheringLineForCharge(result.Charge.Namespace, base.CustomerID, result.Charge.ID)
+		price, err := gatheringLine.Price.AsFlat()
+		s.Require().NoError(err)
+		s.Equal(float64(50), price.Amount.InexactFloat64())
+		s.Equal(servicePeriod, gatheringLine.ServicePeriod)
+		s.Equal(billing.SubscriptionManagedLine, gatheringLine.ManagedBy)
+		s.Nil(gatheringLine.RateCardDiscounts.Percentage)
 	})
 }
 
