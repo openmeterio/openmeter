@@ -14,6 +14,10 @@ const (
 
 	AnnotationOwnerSubSystem = "subscription.owner"
 
+	// AnnotationEditUniqueKey identifies an add-item action across item recreation.
+	// Its ULID order breaks ties between zero-length revisions.
+	AnnotationEditUniqueKey = "subscription.workflow.patchid"
+
 	AnnotationBooleanEntitlementCount = "subscription.entitlement.boolean.count"
 
 	// AnnotationPreviousSubscriptionID is the ID of the subscription that was superseded by this subscription

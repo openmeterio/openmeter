@@ -81,13 +81,7 @@ func (t CadenceList[T]) GetOverlaps() []OverlapDetail[T] {
 }
 
 func (t CadenceList[T]) IsSorted() bool {
-	for i := 1; i < len(t); i++ {
-		if t[i-1].GetCadence().ActiveFrom.After(t[i].GetCadence().ActiveFrom) {
-			return false
-		}
-	}
-
-	return true
+	return slices.IsSortedFunc(t, t.compare)
 }
 
 func (t CadenceList[T]) IsContinuous() bool {
@@ -101,17 +95,27 @@ func (t CadenceList[T]) IsContinuous() bool {
 }
 
 func (t CadenceList[T]) sort() {
-	slices.SortStableFunc(t, func(a, b T) int {
-		aC := a.GetCadence()
-		bC := b.GetCadence()
+	slices.SortStableFunc(t, t.compare)
+}
 
-		switch {
-		case aC.ActiveFrom.Before(bC.ActiveFrom):
-			return -1
-		case aC.ActiveFrom.After(bC.ActiveFrom):
-			return 1
-		default:
-			return 0
-		}
-	})
+func (t CadenceList[T]) compare(a, b T) int {
+	aC := a.GetCadence()
+	bC := b.GetCadence()
+
+	if diff := aC.ActiveFrom.Compare(bC.ActiveFrom); diff != 0 {
+		return diff
+	}
+
+	// Empty intervals precede intervals active at the same start so overlap
+	// checks do not mistake replacement history for concurrent activity.
+	aEmpty := aC.AsPeriod().IsEmpty()
+	bEmpty := bC.AsPeriod().IsEmpty()
+	switch {
+	case aEmpty && !bEmpty:
+		return -1
+	case !aEmpty && bEmpty:
+		return 1
+	default:
+		return 0
+	}
 }

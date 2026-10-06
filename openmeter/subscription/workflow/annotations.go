@@ -3,11 +3,12 @@ package subscriptionworkflow
 import (
 	"github.com/oklog/ulid/v2"
 
+	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 const (
-	AnnotationEditUniqueKey = "subscription.workflow.patchid"
+	AnnotationEditUniqueKey = subscription.AnnotationEditUniqueKey
 )
 
 type annotationParser struct{}

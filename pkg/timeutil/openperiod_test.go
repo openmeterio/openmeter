@@ -3,7 +3,30 @@ package timeutil
 import (
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 )
+
+func TestOpenPeriodIsEmpty(t *testing.T) {
+	start := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	end := start.Add(time.Hour)
+	for _, tc := range []struct {
+		name   string
+		period OpenPeriod
+		empty  bool
+	}{
+		{name: "unbounded"},
+		{name: "open start", period: OpenPeriod{To: &end}},
+		{name: "open end", period: OpenPeriod{From: &start}},
+		{name: "nonempty", period: OpenPeriod{From: &start, To: &end}},
+		{name: "zero length", period: OpenPeriod{From: &start, To: &start}, empty: true},
+		{name: "reversed", period: OpenPeriod{From: &end, To: &start}, empty: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			require.Equal(t, tc.empty, tc.period.IsEmpty())
+		})
+	}
+}
 
 func TestOpenPeriod(t *testing.T) {
 	now := time.Now()
