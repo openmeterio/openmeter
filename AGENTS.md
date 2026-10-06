@@ -24,8 +24,11 @@
 
 ## Repository invariants
 
-- The repository has three Go modules: the production root, the publishable
-  `api/v3/client` SDK, and the test-only `e2e` module.
+- The repository has four Go modules: the production root, `collector`, the
+  publishable `api/v3/client` SDK, and the test-only `e2e` module.
+- Shared package imports can expand nested module dependency graphs. Run
+  `make mod` and module-aware checks for affected consumers; root-module checks
+  do not validate `collector` or `e2e` dependency metadata.
 - The root module must never require `api/v3/client`. The nested SDK is not
   independently tagged, and local `replace` directives are invisible to
   downstream consumers.

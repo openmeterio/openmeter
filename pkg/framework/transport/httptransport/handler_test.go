@@ -11,6 +11,7 @@ import (
 
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/operation"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type recordingErrorHandler struct {
@@ -68,7 +69,7 @@ func TestHandlerRecordsClientClosedRequest(t *testing.T) {
 			request := httptest.NewRequest(http.MethodGet, "/", nil).WithContext(ctx)
 			handler.ServeHTTP(writer, request)
 
-			require.Equal(t, statusClientClosedRequest, writer.Code)
+			require.Equal(t, models.StatusClientClosedRequest, writer.Code)
 			require.Empty(t, writer.Body.Bytes())
 			require.ErrorIs(t, errorHandler.err, context.Canceled)
 		})
@@ -96,7 +97,7 @@ func TestHandlerDoesNotRecordInternalCancellationAsClientClosedRequest(t *testin
 	request := httptest.NewRequest(http.MethodGet, "/", nil)
 	handler.ServeHTTP(writer, request)
 
-	require.Equal(t, http.StatusRequestTimeout, writer.Code)
+	require.Equal(t, http.StatusBadRequest, writer.Code)
 	require.NotEmpty(t, writer.Body.Bytes())
 	require.Nil(t, errorHandler.err)
 	require.NoError(t, request.Context().Err())

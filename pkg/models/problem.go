@@ -4,15 +4,21 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/go-chi/chi/v5/middleware"
+
+	"github.com/openmeterio/openmeter/pkg/contextx"
 )
 
 // ProblemContentType is the default content type for a Problem response
 const ProblemContentType = "application/problem+json"
+
+// StatusClientClosedRequest is the conventional status for a request canceled by
+// its caller. It is not part of the HTTP standard or Go's net/http constants.
+const StatusClientClosedRequest = 499
 
 // ProblemType contains a URI that identifies the problem type. This URI will,
 // ideally, contain human-readable documentation for the problem when
@@ -87,6 +93,11 @@ func (p *StatusProblem) Respond(w http.ResponseWriter) {
 
 // Respond will render the problem as JSON to the provided ResponseWriter.
 func RespondProblem(problem Problem, w http.ResponseWriter) {
+	if problem.ProblemStatus() == StatusClientClosedRequest {
+		w.WriteHeader(StatusClientClosedRequest)
+		return
+	}
+
 	// Respond
 	buf := &bytes.Buffer{}
 	enc := json.NewEncoder(buf)
@@ -99,8 +110,8 @@ func RespondProblem(problem Problem, w http.ResponseWriter) {
 }
 
 // NewStatusProblem will generate a problem for the provided HTTP status
-// code. The Problem's Status field will be set to match the status argument,
-// and the Title will be set to the default Go status text for that code.
+// code, or 499 when a cancellation error coincides with a canceled caller context.
+// The Title is the default Go status text, or "Client Closed Request" for 499.
 func NewStatusProblem(ctx context.Context, err error, status int) *StatusProblem {
 	var instance string
 	reqID := middleware.GetReqID(ctx)
@@ -108,12 +119,12 @@ func NewStatusProblem(ctx context.Context, err error, status int) *StatusProblem
 		instance = fmt.Sprintf("urn:request:%s", reqID)
 	}
 
-	// Set context canceled errors to 408.
-	// Context canceled errors either happen when the client cancels the request or when a timeout happens in dependency.
-	// If client cancels the request, the status code doesn't matter, because the client will not see the response.
-	// If timeout happens in dependency, we want to return 408 to the client.
-	if err != nil && strings.Contains(err.Error(), "context canceled") {
-		status = http.StatusRequestTimeout
+	if errors.Is(ctx.Err(), context.Canceled) && contextx.IsCanceledError(err) {
+		status = StatusClientClosedRequest
+	}
+	title := http.StatusText(status)
+	if status == StatusClientClosedRequest {
+		title = "Client Closed Request"
 	}
 
 	var detail string
@@ -128,7 +139,7 @@ func NewStatusProblem(ctx context.Context, err error, status int) *StatusProblem
 	return &StatusProblem{
 		Err:        err,
 		Type:       ProblemTypeDefault,
-		Title:      http.StatusText(status),
+		Title:      title,
 		Status:     status,
 		Detail:     detail,
 		Instance:   instance,

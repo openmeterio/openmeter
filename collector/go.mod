@@ -344,6 +344,7 @@ require (
 	github.com/parquet-go/parquet-go v0.29.0 // indirect
 	github.com/paulmach/orb v0.13.0 // indirect
 	github.com/pebbe/zmq4 v1.4.0 // indirect
+	github.com/peterbourgon/ctxdata/v4 v4.0.0 // indirect
 	github.com/petermattis/goid v0.0.0-20260226131333-17d1149c6ac6 // indirect
 	github.com/pgvector/pgvector-go v0.3.0 // indirect
 	github.com/pierrec/lz4 v2.6.1+incompatible // indirect

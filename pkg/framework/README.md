@@ -84,3 +84,16 @@ func NewOperationHandler(errorHandler httptransport.ErrorHandler) http.Handler {
 ```
 
 Register the HTTP handler in the router.
+
+## Request cancellation
+
+HTTP handlers record 499 with no response body when both the original request
+context and a typed Go or gRPC error indicate cancellation. Internal cancellation
+and deadline errors retain their error encoder's status; error text alone never
+changes it. Request cancellation diagnostics are warnings.
+
+If a response write fails after headers are committed, the handler preserves the
+status already sent. Encoders mark connection write errors with
+`encoder.ResponseWriteError`; these are reported as cancellation only when the
+request context is canceled too. Serialization failures and server write timeouts
+remain server errors.
