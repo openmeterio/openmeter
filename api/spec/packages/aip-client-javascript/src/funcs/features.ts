@@ -25,6 +25,8 @@ import type {
   DeleteFeatureResponse,
   QueryFeatureCostRequest,
   QueryFeatureCostResponse,
+  QueryFeatureCostCsvRequest,
+  QueryFeatureCostCsvResponse,
 } from '../models/operations/features.js'
 
 /**
@@ -217,6 +219,16 @@ export function deleteFeature(
  *
  * Query the cost of a feature.
  *
+ * Set `Accept: application/json` (the default) for JSON, or `Accept: text/csv` to
+ * download a CSV file. CSV columns, in order:
+ *
+ * `from, to, [subject,] [customer_id, customer_key, customer_name,] <dimensions...>, usage, cost, currency, detail`
+ *
+ * Subject and customer columns are included when the query groups by those
+ * dimensions, including grouping implied by their filters. Other dimensions follow
+ * the query's grouping order. Unavailable cost is an empty cell, not zero. Detail
+ * is retained for both unavailable and partially priced costs.
+ *
  * POST /openmeter/features/{featureId}/cost/query
  */
 export function queryFeatureCost(
@@ -253,5 +265,39 @@ export function queryFeatureCost(
         }
         return fromWire(data, schemas.queryFeatureCostResponse)
       })
+  })
+}
+
+/** POST /openmeter/features/{featureId}/cost/query */
+export function queryFeatureCostCsv(
+  client: Client,
+  req: QueryFeatureCostCsvRequest,
+  options?: RequestOptions,
+): Promise<Result<QueryFeatureCostCsvResponse>> {
+  const headers = new Headers(options?.headers as HeadersInit | undefined)
+  headers.set('accept', 'text/csv')
+  return request(() => {
+    const pathParamsInput = {
+      featureId: req.featureId,
+    }
+    const pathParams = client._options.validate
+      ? toPathWire(pathParamsInput, schemas.queryFeatureCostCsvPathParams)
+      : pathParamsInput
+    if (client._options.validate) {
+      assertValid(schemas.queryFeatureCostCsvPathParamsWire, pathParams)
+    }
+    const path = `openmeter/features/${(() => {
+      if (pathParams.featureId === undefined) {
+        throw new Error('missing path parameter: featureId')
+      }
+      return encodeURIComponent(String(pathParams.featureId))
+    })()}/cost/query`
+    const body = toWire(req.body, schemas.queryFeatureCostCsvBody)
+    if (client._options.validate) {
+      assertValid(schemas.queryFeatureCostCsvBodyWire, body)
+    }
+    return http(client)
+      .post(path, { ...options, json: body, headers })
+      .text()
   })
 }
