@@ -6,13 +6,9 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
-
-// We implement entuitls.TxUser[T] and entuitls.TxCreator here
-// There ought to be a better way....
 
 func (e *featureDBAdapter) Tx(ctx context.Context) (context.Context, transaction.Driver, error) {
 	txCtx, rawConfig, eDriver, err := e.db.HijackTx(ctx, &sql.TxOptions{
@@ -24,11 +20,14 @@ func (e *featureDBAdapter) Tx(ctx context.Context) (context.Context, transaction
 	return txCtx, entutils.NewTxDriver(eDriver, rawConfig), nil
 }
 
-func (e *featureDBAdapter) WithTx(ctx context.Context, tx *entutils.TxDriver) feature.FeatureRepo {
+func (e *featureDBAdapter) WithTx(ctx context.Context, tx *entutils.TxDriver) *featureDBAdapter {
 	txClient := db.NewTxClientFromRawConfig(ctx, *tx.GetConfig())
-	return NewPostgresFeatureRepo(txClient.Client(), e.logger)
+	return &featureDBAdapter{
+		db:     txClient.Client(),
+		logger: e.logger,
+	}
 }
 
-func (e *featureDBAdapter) Self() feature.FeatureRepo {
+func (e *featureDBAdapter) Self() *featureDBAdapter {
 	return e
 }

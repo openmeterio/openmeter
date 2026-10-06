@@ -27,7 +27,8 @@ import (
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
-// Adapter implements remote connector interface as driven port.
+var _ feature.FeatureRepo = (*featureDBAdapter)(nil)
+
 type featureDBAdapter struct {
 	logger *slog.Logger
 	db     *db.Client
@@ -41,333 +42,345 @@ func NewPostgresFeatureRepo(db *db.Client, logger *slog.Logger) feature.FeatureR
 }
 
 func (c *featureDBAdapter) CreateFeature(ctx context.Context, feat feature.CreateFeatureInputs) (feature.Feature, error) {
-	query := c.db.Feature.Create().
-		SetName(feat.Name).
-		SetNillableDescription(feat.Description).
-		SetKey(feat.Key).
-		SetNamespace(feat.Namespace).
-		SetMetadata(feat.Metadata).
-		SetNillableMeterID(feat.MeterID)
+	return entutils.TransactingRepo(ctx, c, func(ctx context.Context, repo *featureDBAdapter) (feature.Feature, error) {
+		query := repo.db.Feature.Create().
+			SetName(feat.Name).
+			SetNillableDescription(feat.Description).
+			SetKey(feat.Key).
+			SetNamespace(feat.Namespace).
+			SetMetadata(feat.Metadata).
+			SetNillableMeterID(feat.MeterID)
 
-	if len(feat.MeterGroupByFilters) > 0 {
-		query = query.
-			SetAdvancedMeterGroupByFilters(feat.MeterGroupByFilters).
-			SetMeterGroupByFilters(feature.ConvertMeterGroupByFiltersToMapString(feat.MeterGroupByFilters))
-	}
+		if len(feat.MeterGroupByFilters) > 0 {
+			query = query.
+				SetAdvancedMeterGroupByFilters(feat.MeterGroupByFilters).
+				SetMeterGroupByFilters(feature.ConvertMeterGroupByFiltersToMapString(feat.MeterGroupByFilters))
+		}
 
-	if feat.UnitCost != nil {
-		query = query.SetUnitCostType(string(feat.UnitCost.Type))
-		switch feat.UnitCost.Type {
-		case feature.UnitCostTypeManual:
-			if feat.UnitCost.Manual != nil {
-				query = query.SetUnitCostManualAmount(feat.UnitCost.Manual.Amount)
-			}
-		case feature.UnitCostTypeLLM:
-			if feat.UnitCost.LLM != nil {
-				query = query.
-					SetNillableUnitCostLlmProviderProperty(lo.EmptyableToPtr(feat.UnitCost.LLM.ProviderProperty)).
-					SetNillableUnitCostLlmProvider(lo.EmptyableToPtr(feat.UnitCost.LLM.Provider)).
-					SetNillableUnitCostLlmModelProperty(lo.EmptyableToPtr(feat.UnitCost.LLM.ModelProperty)).
-					SetNillableUnitCostLlmModel(lo.EmptyableToPtr(feat.UnitCost.LLM.Model)).
-					SetNillableUnitCostLlmTokenTypeProperty(lo.EmptyableToPtr(feat.UnitCost.LLM.TokenTypeProperty)).
-					SetNillableUnitCostLlmTokenType(lo.EmptyableToPtr(feat.UnitCost.LLM.TokenType))
+		if feat.UnitCost != nil {
+			query = query.SetUnitCostType(string(feat.UnitCost.Type))
+			switch feat.UnitCost.Type {
+			case feature.UnitCostTypeManual:
+				if feat.UnitCost.Manual != nil {
+					query = query.SetUnitCostManualAmount(feat.UnitCost.Manual.Amount)
+				}
+			case feature.UnitCostTypeLLM:
+				if feat.UnitCost.LLM != nil {
+					query = query.
+						SetNillableUnitCostLlmProviderProperty(lo.EmptyableToPtr(feat.UnitCost.LLM.ProviderProperty)).
+						SetNillableUnitCostLlmProvider(lo.EmptyableToPtr(feat.UnitCost.LLM.Provider)).
+						SetNillableUnitCostLlmModelProperty(lo.EmptyableToPtr(feat.UnitCost.LLM.ModelProperty)).
+						SetNillableUnitCostLlmModel(lo.EmptyableToPtr(feat.UnitCost.LLM.Model)).
+						SetNillableUnitCostLlmTokenTypeProperty(lo.EmptyableToPtr(feat.UnitCost.LLM.TokenTypeProperty)).
+						SetNillableUnitCostLlmTokenType(lo.EmptyableToPtr(feat.UnitCost.LLM.TokenType))
+				}
 			}
 		}
-	}
 
-	entity, err := query.
-		Save(ctx)
-	if err != nil {
-		return feature.Feature{}, err
-	}
-
-	// Re-fetch with meter edge for MeterSlug backward compatibility
-	if entity.MeterID != nil {
-		entity, err = c.db.Feature.Query().
-			Where(dbfeature.ID(entity.ID)).
-			WithMeter(func(mq *db.MeterQuery) {
-				mq.Select(dbmeter.FieldID, dbmeter.FieldKey)
-			}).
-			Only(ctx)
+		entity, err := query.
+			Save(ctx)
 		if err != nil {
 			return feature.Feature{}, err
 		}
-	}
 
-	return MapFeatureEntity(entity), nil
+		// Re-fetch with meter edge for MeterSlug backward compatibility
+		if entity.MeterID != nil {
+			entity, err = repo.db.Feature.Query().
+				Where(dbfeature.ID(entity.ID)).
+				WithMeter(func(mq *db.MeterQuery) {
+					mq.Select(dbmeter.FieldID, dbmeter.FieldKey)
+				}).
+				Only(ctx)
+			if err != nil {
+				return feature.Feature{}, err
+			}
+		}
+
+		return MapFeatureEntity(entity), nil
+	})
 }
 
 func (c *featureDBAdapter) UpdateFeature(ctx context.Context, input feature.UpdateFeatureInputs) (feature.Feature, error) {
-	query := c.db.Feature.Update().
-		Where(
-			dbfeature.Or(dbfeature.ID(input.ID), dbfeature.Key(input.ID)),
-			dbfeature.Namespace(input.Namespace),
-			dbfeature.ArchivedAtIsNil(),
-		)
+	return entutils.TransactingRepo(ctx, c, func(ctx context.Context, repo *featureDBAdapter) (feature.Feature, error) {
+		query := repo.db.Feature.Update().
+			Where(
+				dbfeature.Or(dbfeature.ID(input.ID), dbfeature.Key(input.ID)),
+				dbfeature.Namespace(input.Namespace),
+				dbfeature.ArchivedAtIsNil(),
+			)
 
-	// Handle unit cost: null means clear, value means set
-	if input.UnitCost.IsNull() {
-		query = query.
-			ClearUnitCostType().
-			ClearUnitCostManualAmount().
-			ClearUnitCostLlmProviderProperty().
-			ClearUnitCostLlmProvider().
-			ClearUnitCostLlmModelProperty().
-			ClearUnitCostLlmModel().
-			ClearUnitCostLlmTokenTypeProperty().
-			ClearUnitCostLlmTokenType()
-	} else if input.UnitCost.IsSpecified() {
-		unitCost, _ := input.UnitCost.Get()
-		// Always clear the "other type" fields to handle type switches cleanly
-		switch unitCost.Type {
-		case feature.UnitCostTypeManual:
-			// Clear LLM fields, set manual fields
+		// Handle unit cost: null means clear, value means set
+		if input.UnitCost.IsNull() {
 			query = query.
+				ClearUnitCostType().
+				ClearUnitCostManualAmount().
 				ClearUnitCostLlmProviderProperty().
 				ClearUnitCostLlmProvider().
 				ClearUnitCostLlmModelProperty().
 				ClearUnitCostLlmModel().
 				ClearUnitCostLlmTokenTypeProperty().
-				ClearUnitCostLlmTokenType().
-				SetUnitCostType(string(unitCost.Type))
-			if unitCost.Manual != nil {
-				query = query.SetUnitCostManualAmount(unitCost.Manual.Amount)
-			}
-		case feature.UnitCostTypeLLM:
-			// Clear manual fields, set LLM fields
-			query = query.
-				ClearUnitCostManualAmount().
-				SetUnitCostType(string(unitCost.Type))
-			if unitCost.LLM != nil {
+				ClearUnitCostLlmTokenType()
+		} else if input.UnitCost.IsSpecified() {
+			unitCost, _ := input.UnitCost.Get()
+			// Always clear the "other type" fields to handle type switches cleanly
+			switch unitCost.Type {
+			case feature.UnitCostTypeManual:
+				// Clear LLM fields, set manual fields
 				query = query.
-					SetNillableUnitCostLlmProviderProperty(lo.EmptyableToPtr(unitCost.LLM.ProviderProperty)).
-					SetNillableUnitCostLlmProvider(lo.EmptyableToPtr(unitCost.LLM.Provider)).
-					SetNillableUnitCostLlmModelProperty(lo.EmptyableToPtr(unitCost.LLM.ModelProperty)).
-					SetNillableUnitCostLlmModel(lo.EmptyableToPtr(unitCost.LLM.Model)).
-					SetNillableUnitCostLlmTokenTypeProperty(lo.EmptyableToPtr(unitCost.LLM.TokenTypeProperty)).
-					SetNillableUnitCostLlmTokenType(lo.EmptyableToPtr(unitCost.LLM.TokenType))
+					ClearUnitCostLlmProviderProperty().
+					ClearUnitCostLlmProvider().
+					ClearUnitCostLlmModelProperty().
+					ClearUnitCostLlmModel().
+					ClearUnitCostLlmTokenTypeProperty().
+					ClearUnitCostLlmTokenType().
+					SetUnitCostType(string(unitCost.Type))
+				if unitCost.Manual != nil {
+					query = query.SetUnitCostManualAmount(unitCost.Manual.Amount)
+				}
+			case feature.UnitCostTypeLLM:
+				// Clear manual fields, set LLM fields
+				query = query.
+					ClearUnitCostManualAmount().
+					SetUnitCostType(string(unitCost.Type))
+				if unitCost.LLM != nil {
+					query = query.
+						SetNillableUnitCostLlmProviderProperty(lo.EmptyableToPtr(unitCost.LLM.ProviderProperty)).
+						SetNillableUnitCostLlmProvider(lo.EmptyableToPtr(unitCost.LLM.Provider)).
+						SetNillableUnitCostLlmModelProperty(lo.EmptyableToPtr(unitCost.LLM.ModelProperty)).
+						SetNillableUnitCostLlmModel(lo.EmptyableToPtr(unitCost.LLM.Model)).
+						SetNillableUnitCostLlmTokenTypeProperty(lo.EmptyableToPtr(unitCost.LLM.TokenTypeProperty)).
+						SetNillableUnitCostLlmTokenType(lo.EmptyableToPtr(unitCost.LLM.TokenType))
+				}
 			}
 		}
-	}
 
-	n, err := query.Save(ctx)
-	if err != nil {
-		return feature.Feature{}, fmt.Errorf("failed to update feature: %w", err)
-	}
+		n, err := query.Save(ctx)
+		if err != nil {
+			return feature.Feature{}, fmt.Errorf("failed to update feature: %w", err)
+		}
 
-	if n == 0 {
-		return feature.Feature{}, &feature.FeatureNotFoundError{ID: input.ID}
-	}
+		if n == 0 {
+			return feature.Feature{}, &feature.FeatureNotFoundError{ID: input.ID}
+		}
 
-	result, err := c.GetByIdOrKey(ctx, input.Namespace, input.ID, false)
-	if err != nil {
-		return feature.Feature{}, err
-	}
+		result, err := repo.GetByIdOrKey(ctx, input.Namespace, input.ID, false)
+		if err != nil {
+			return feature.Feature{}, err
+		}
 
-	return *result, nil
+		return *result, nil
+	})
 }
 
 func (c *featureDBAdapter) GetByIdOrKey(ctx context.Context, namespace string, idOrKey string, includeArchived bool) (*feature.Feature, error) {
-	query := c.db.Feature.Query().
-		// We only need Meter Key for v1 API backward compatibility
-		WithMeter(func(mq *db.MeterQuery) {
-			mq.Select(dbmeter.FieldID, dbmeter.FieldKey)
-		}).
-		Where(dbfeature.Namespace(namespace)).
-		Where(dbfeature.Or(dbfeature.Key(idOrKey), dbfeature.ID(idOrKey)))
+	return entutils.TransactingRepo(ctx, c, func(ctx context.Context, repo *featureDBAdapter) (*feature.Feature, error) {
+		query := repo.db.Feature.Query().
+			// We only need Meter Key for v1 API backward compatibility
+			WithMeter(func(mq *db.MeterQuery) {
+				mq.Select(dbmeter.FieldID, dbmeter.FieldKey)
+			}).
+			Where(dbfeature.Namespace(namespace)).
+			Where(dbfeature.Or(dbfeature.Key(idOrKey), dbfeature.ID(idOrKey)))
 
-	if !includeArchived {
-		query = query.Where(dbfeature.ArchivedAtIsNil())
-	}
+		if !includeArchived {
+			query = query.Where(dbfeature.ArchivedAtIsNil())
+		}
 
-	// This ensures that the first item is the most recent one
-	query = query.Order(dbfeature.ByArchivedAt(sql.OrderDesc(), sql.OrderNullsFirst()))
+		// This ensures that the first item is the most recent one
+		query = query.Order(dbfeature.ByArchivedAt(sql.OrderDesc(), sql.OrderNullsFirst()))
 
-	entities, err := query.All(ctx)
-	if err != nil {
-		return nil, err
-	}
+		entities, err := query.All(ctx)
+		if err != nil {
+			return nil, err
+		}
 
-	// FIXME: use models.NewGenericNotFoundError instead of feature.FeatureNotFoundError
-	if len(entities) == 0 {
-		return nil, &feature.FeatureNotFoundError{ID: idOrKey}
-	}
+		// FIXME: use models.NewGenericNotFoundError instead of feature.FeatureNotFoundError
+		if len(entities) == 0 {
+			return nil, &feature.FeatureNotFoundError{ID: idOrKey}
+		}
 
-	res := MapFeatureEntity(entities[0])
+		res := MapFeatureEntity(entities[0])
 
-	return &res, nil
+		return &res, nil
+	})
 }
 
 func (c *featureDBAdapter) ArchiveFeature(ctx context.Context, params feature.ArchiveFeatureInput) error {
-	f, err := c.GetByIdOrKey(ctx, params.Namespace, params.ID, true)
-	if err != nil {
-		return err
-	}
-
-	archivedAt := clock.Now()
-	if params.At != nil {
-		if params.At.Before(f.UpdatedAt) {
-			return &feature.ForbiddenError{Msg: "cannot archive feature at a time before it was last updated", ID: f.ID}
+	return entutils.TransactingRepoWithNoValue(ctx, c, func(ctx context.Context, repo *featureDBAdapter) error {
+		f, err := repo.GetByIdOrKey(ctx, params.Namespace, params.ID, true)
+		if err != nil {
+			return err
 		}
 
-		archivedAt = *params.At
-	}
+		archivedAt := clock.Now()
+		if params.At != nil {
+			if params.At.Before(f.UpdatedAt) {
+				return &feature.ForbiddenError{Msg: "cannot archive feature at a time before it was last updated", ID: f.ID}
+			}
 
-	// FIXME: (OM-1055) we should marry productcatalog/plan with feature so we can do this check outside the db layer
-	planReferencesIt, err := c.db.Plan.Query().
-		WithPhases(func(qp *db.PlanPhaseQuery) {
-			qp.WithRatecards()
-		}).
-		Where(
-			dbplan.Namespace(params.Namespace),
-			dbplan.EffectiveFromNotNil(),
-			dbplan.Or(dbplan.EffectiveToGT(clock.Now()), dbplan.EffectiveToIsNil()),
-			dbplan.HasPhasesWith(dbplanphase.HasRatecardsWith(
-				dbratecard.Or(dbratecard.FeatureID(f.ID), dbratecard.FeatureKey(f.Key)),
-			)),
-		).
-		Exist(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to check for plan references: %w", err)
-	}
+			archivedAt = *params.At
+		}
 
-	subsReferencesIt, err := c.db.Subscription.Query().
-		WithPhases(func(qp *db.SubscriptionPhaseQuery) {
-			qp.WithItems()
-		}).
-		Where(
-			subscriptionrepo.SubscriptionActiveAfter(clock.Now())...,
-		).
-		Where(
-			dbsub.Namespace(params.Namespace),
-			dbsub.HasPhasesWith(dbsubphase.HasItemsWith(dbsubitem.FeatureKey(f.Key))),
-		).
-		Exist(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to check for subscription references: %w", err)
-	}
+		// FIXME: (OM-1055) we should marry productcatalog/plan with feature so we can do this check outside the db layer
+		planReferencesIt, err := repo.db.Plan.Query().
+			WithPhases(func(qp *db.PlanPhaseQuery) {
+				qp.WithRatecards()
+			}).
+			Where(
+				dbplan.Namespace(params.Namespace),
+				dbplan.EffectiveFromNotNil(),
+				dbplan.Or(dbplan.EffectiveToGT(clock.Now()), dbplan.EffectiveToIsNil()),
+				dbplan.HasPhasesWith(dbplanphase.HasRatecardsWith(
+					dbratecard.Or(dbratecard.FeatureID(f.ID), dbratecard.FeatureKey(f.Key)),
+				)),
+			).
+			Exist(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to check for plan references: %w", err)
+		}
 
-	// As currently features are referenced by IDs instead of Keys, and there's no way to publish a new feature version in a single action,
-	// using subscriptions/productcatalog bricks referenced features either way as they can no longer be updated.
-	if planReferencesIt {
-		return &feature.ForbiddenError{Msg: "feature is referenced by active plan, it cannot be archived", ID: f.ID}
-	}
+		subsReferencesIt, err := repo.db.Subscription.Query().
+			WithPhases(func(qp *db.SubscriptionPhaseQuery) {
+				qp.WithItems()
+			}).
+			Where(
+				subscriptionrepo.SubscriptionActiveAfter(clock.Now())...,
+			).
+			Where(
+				dbsub.Namespace(params.Namespace),
+				dbsub.HasPhasesWith(dbsubphase.HasItemsWith(dbsubitem.FeatureKey(f.Key))),
+			).
+			Exist(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to check for subscription references: %w", err)
+		}
 
-	if subsReferencesIt {
-		return &feature.ForbiddenError{Msg: "feature is referenced by active subscription, it cannot be archived", ID: f.ID}
-	}
+		// As currently features are referenced by IDs instead of Keys, and there's no way to publish a new feature version in a single action,
+		// using subscriptions/productcatalog bricks referenced features either way as they can no longer be updated.
+		if planReferencesIt {
+			return &feature.ForbiddenError{Msg: "feature is referenced by active plan, it cannot be archived", ID: f.ID}
+		}
 
-	err = c.db.Feature.Update().
-		SetArchivedAt(archivedAt).
-		Where(dbfeature.ID(params.ID)).
-		Where(dbfeature.Namespace(params.Namespace)).
-		Exec(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to archive feature: %w", err)
-	}
+		if subsReferencesIt {
+			return &feature.ForbiddenError{Msg: "feature is referenced by active subscription, it cannot be archived", ID: f.ID}
+		}
 
-	return nil
+		err = repo.db.Feature.Update().
+			SetArchivedAt(archivedAt).
+			Where(dbfeature.ID(params.ID)).
+			Where(dbfeature.Namespace(params.Namespace)).
+			Exec(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to archive feature: %w", err)
+		}
+
+		return nil
+	})
 }
 
 func (c *featureDBAdapter) HasActiveFeatureForMeter(ctx context.Context, namespace string, meterID string) (bool, error) {
-	exists, err := c.db.Feature.Query().
-		Where(dbfeature.Namespace(namespace)).
-		Where(dbfeature.MeterID(meterID)).
-		Where(dbfeature.Or(dbfeature.ArchivedAtIsNil(), dbfeature.ArchivedAtGT(clock.Now()))).
-		Exist(ctx)
-	if err != nil {
-		return false, err
-	}
+	return entutils.TransactingRepo(ctx, c, func(ctx context.Context, repo *featureDBAdapter) (bool, error) {
+		exists, err := repo.db.Feature.Query().
+			Where(dbfeature.Namespace(namespace)).
+			Where(dbfeature.MeterID(meterID)).
+			Where(dbfeature.Or(dbfeature.ArchivedAtIsNil(), dbfeature.ArchivedAtGT(clock.Now()))).
+			Exist(ctx)
+		if err != nil {
+			return false, err
+		}
 
-	return exists, nil
+		return exists, nil
+	})
 }
 
 func (c *featureDBAdapter) ListFeatures(ctx context.Context, params feature.ListFeaturesParams) (pagination.Result[feature.Feature], error) {
-	query := c.db.Feature.Query().
-		// We only need Meter Key for v1 API backward compatibility
-		WithMeter(func(mq *db.MeterQuery) {
-			mq.Select(dbmeter.FieldID, dbmeter.FieldKey)
-		}).
-		Where(dbfeature.Namespace(params.Namespace))
+	return entutils.TransactingRepo(ctx, c, func(ctx context.Context, repo *featureDBAdapter) (pagination.Result[feature.Feature], error) {
+		query := repo.db.Feature.Query().
+			// We only need Meter Key for v1 API backward compatibility
+			WithMeter(func(mq *db.MeterQuery) {
+				mq.Select(dbmeter.FieldID, dbmeter.FieldKey)
+			}).
+			Where(dbfeature.Namespace(params.Namespace))
 
-	query = filter.ApplyToQuery(query, params.Key, dbfeature.FieldKey)
-	query = filter.ApplyToQuery(query, params.Name, dbfeature.FieldName)
-	query = filter.ApplyToQuery(query, params.MeterIDs, dbfeature.FieldMeterID)
+		query = filter.ApplyToQuery(query, params.Key, dbfeature.FieldKey)
+		query = filter.ApplyToQuery(query, params.Name, dbfeature.FieldName)
+		query = filter.ApplyToQuery(query, params.MeterIDs, dbfeature.FieldMeterID)
 
-	if len(params.MeterSlugs) > 0 {
-		query = query.Where(dbfeature.HasMeterWith(dbmeter.KeyIn(params.MeterSlugs...)))
-	}
-
-	if len(params.IDsOrKeys) > 0 {
-		query = query.Where(dbfeature.Or(dbfeature.IDIn(params.IDsOrKeys...), dbfeature.KeyIn(params.IDsOrKeys...)))
-	}
-
-	if !params.IncludeArchived {
-		query = query.Where(dbfeature.Or(dbfeature.ArchivedAtIsNil(), dbfeature.ArchivedAtGT(clock.Now())))
-	}
-
-	if params.OrderBy != "" {
-		order := []sql.OrderTermOption{}
-		if !params.Order.IsDefaultValue() {
-			order = entutils.GetOrdering(params.Order)
+		if len(params.MeterSlugs) > 0 {
+			query = query.Where(dbfeature.HasMeterWith(dbmeter.KeyIn(params.MeterSlugs...)))
 		}
 
-		switch params.OrderBy {
-		case feature.FeatureOrderByKey:
-			query = query.Order(dbfeature.ByKey(order...))
-		case feature.FeatureOrderByName:
-			query = query.Order(dbfeature.ByName(order...))
-		case feature.FeatureOrderByCreatedAt:
-			query = query.Order(dbfeature.ByCreatedAt(order...))
-		case feature.FeatureOrderByUpdatedAt:
-			query = query.Order(dbfeature.ByUpdatedAt(order...))
-		default:
-			query = query.Order(dbfeature.ByCreatedAt(order...))
-		}
-	}
-
-	response := pagination.Result[feature.Feature]{
-		Page: params.Page,
-	}
-
-	// we're using limit and offset
-	if params.Page.IsZero() {
-		if params.Limit > 0 {
-			query = query.Limit(params.Limit)
-		}
-		if params.Offset > 0 {
-			query = query.Offset(params.Offset)
+		if len(params.IDsOrKeys) > 0 {
+			query = query.Where(dbfeature.Or(dbfeature.IDIn(params.IDsOrKeys...), dbfeature.KeyIn(params.IDsOrKeys...)))
 		}
 
-		entities, err := query.All(ctx)
+		if !params.IncludeArchived {
+			query = query.Where(dbfeature.Or(dbfeature.ArchivedAtIsNil(), dbfeature.ArchivedAtGT(clock.Now())))
+		}
+
+		if params.OrderBy != "" {
+			order := []sql.OrderTermOption{}
+			if !params.Order.IsDefaultValue() {
+				order = entutils.GetOrdering(params.Order)
+			}
+
+			switch params.OrderBy {
+			case feature.FeatureOrderByKey:
+				query = query.Order(dbfeature.ByKey(order...))
+			case feature.FeatureOrderByName:
+				query = query.Order(dbfeature.ByName(order...))
+			case feature.FeatureOrderByCreatedAt:
+				query = query.Order(dbfeature.ByCreatedAt(order...))
+			case feature.FeatureOrderByUpdatedAt:
+				query = query.Order(dbfeature.ByUpdatedAt(order...))
+			default:
+				query = query.Order(dbfeature.ByCreatedAt(order...))
+			}
+		}
+
+		response := pagination.Result[feature.Feature]{
+			Page: params.Page,
+		}
+
+		// we're using limit and offset
+		if params.Page.IsZero() {
+			if params.Limit > 0 {
+				query = query.Limit(params.Limit)
+			}
+			if params.Offset > 0 {
+				query = query.Offset(params.Offset)
+			}
+
+			entities, err := query.All(ctx)
+			if err != nil {
+				return response, err
+			}
+
+			mapped := make([]feature.Feature, 0, len(entities))
+			for _, entity := range entities {
+				mapped = append(mapped, MapFeatureEntity(entity))
+			}
+
+			response.Items = mapped
+			return response, nil
+		}
+
+		paged, err := query.Paginate(ctx, params.Page)
 		if err != nil {
 			return response, err
 		}
 
-		mapped := make([]feature.Feature, 0, len(entities))
-		for _, entity := range entities {
-			mapped = append(mapped, MapFeatureEntity(entity))
+		list := make([]feature.Feature, 0, len(paged.Items))
+		for _, entity := range paged.Items {
+			f := MapFeatureEntity(entity)
+			list = append(list, f)
 		}
 
-		response.Items = mapped
+		response.Items = list
+		response.TotalCount = paged.TotalCount
+
 		return response, nil
-	}
-
-	paged, err := query.Paginate(ctx, params.Page)
-	if err != nil {
-		return response, err
-	}
-
-	list := make([]feature.Feature, 0, len(paged.Items))
-	for _, entity := range paged.Items {
-		f := MapFeatureEntity(entity)
-		list = append(list, f)
-	}
-
-	response.Items = list
-	response.TotalCount = paged.TotalCount
-
-	return response, nil
+	})
 }
 
 // mapFeatureEntity maps a database feature entity to a feature model.

@@ -73,7 +73,7 @@ func (e *entitlementGrantOwner) DescribeOwner(ctx context.Context, id models.Nam
 		return def, err
 	}
 
-	feature, err := getRepoMaybeInTx(ctx, e.featureRepo, e.featureRepo).GetByIdOrKey(ctx, id.Namespace, ent.FeatureID, true)
+	feature, err := e.featureRepo.GetByIdOrKey(ctx, id.Namespace, ent.FeatureID, true)
 	if err != nil {
 		return def, fmt.Errorf("failed to get feature of entitlement: %w", err)
 	}
@@ -311,14 +311,4 @@ func (e *entitlementGrantOwner) LockOwnerForTx(ctx context.Context, owner models
 		return fmt.Errorf("lock owner for tx must be called in a transaction: %w", err)
 	}
 	return e.entitlementRepo.LockEntitlementForTx(ctx, tx, owner, wait)
-}
-
-// FIXME: this is a terrible hack to conditionally catch transactions
-func getRepoMaybeInTx[T any](ctx context.Context, repo T, txUser entutils.TxUser[T]) T {
-	if ctxTx, err := entutils.GetDriverFromContext(ctx); err == nil {
-		// we're already in a tx
-		return txUser.WithTx(ctx, ctxTx)
-	} else {
-		return repo
-	}
 }

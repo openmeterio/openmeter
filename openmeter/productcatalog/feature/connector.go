@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/filter"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
@@ -180,181 +181,187 @@ func NewFeatureConnector(
 
 // CreateFeature creates a new feature
 func (c *featureConnector) CreateFeature(ctx context.Context, feature CreateFeatureInputs) (Feature, error) {
-	// Validate meter configuration
-	var resolvedMeter *meterpkg.Meter
+	return transaction.Run(ctx, c.featureRepo, func(ctx context.Context) (Feature, error) {
+		// Validate meter configuration
+		var resolvedMeter *meterpkg.Meter
 
-	if feature.MeterID != nil {
-		meterID := *feature.MeterID
+		if feature.MeterID != nil {
+			meterID := *feature.MeterID
 
-		// nosemgrep: trailofbits.go.invalid-usage-of-modified-variable.invalid-usage-of-modified-variable
-		meter, err := c.meterService.GetMeterByIDOrSlug(ctx, meterpkg.GetMeterInput{
-			Namespace: feature.Namespace,
-			IDOrSlug:  meterID,
-		})
-		if err != nil {
-			if meterpkg.IsMeterNotFoundError(err) {
-				return Feature{}, meterpkg.NewMeterNotFoundError(meterID)
-			}
-			return Feature{}, fmt.Errorf("get meter %s: %w", meterID, err)
-		}
-
-		// Normalize to meter ID
-		feature.MeterID = &meter.ID
-
-		resolvedMeter = &meter
-
-		if !slices.Contains(c.validMeterAggregations, meter.Aggregation) {
-			return Feature{}, &FeatureInvalidMeterAggregationError{Aggregation: meter.Aggregation, MeterSlug: meter.Key, ValidAggregations: c.validMeterAggregations}
-		}
-
-		if feature.MeterGroupByFilters != nil {
-			if err = feature.MeterGroupByFilters.Validate(meter); err != nil {
-				return Feature{}, err
-			}
-		}
-	}
-
-	// Validate unit cost
-	if feature.UnitCost != nil {
-		if err := feature.UnitCost.Validate(); err != nil {
-			return Feature{}, models.NewGenericValidationError(err)
-		}
-
-		if feature.UnitCost.Type == UnitCostTypeLLM {
-			if resolvedMeter == nil {
-				return Feature{}, models.NewGenericValidationError(
-					fmt.Errorf("LLM unit cost requires a meter to be associated with the feature"),
-				)
+			// nosemgrep: trailofbits.go.invalid-usage-of-modified-variable.invalid-usage-of-modified-variable
+			meter, err := c.meterService.GetMeterByIDOrSlug(ctx, meterpkg.GetMeterInput{
+				Namespace: feature.Namespace,
+				IDOrSlug:  meterID,
+			})
+			if err != nil {
+				if meterpkg.IsMeterNotFoundError(err) {
+					return Feature{}, meterpkg.NewMeterNotFoundError(meterID)
+				}
+				return Feature{}, fmt.Errorf("get meter %s: %w", meterID, err)
 			}
 
-			if err := feature.UnitCost.ValidateWithMeter(*resolvedMeter); err != nil {
+			// Normalize to meter ID
+			feature.MeterID = &meter.ID
+
+			resolvedMeter = &meter
+
+			if !slices.Contains(c.validMeterAggregations, meter.Aggregation) {
+				return Feature{}, &FeatureInvalidMeterAggregationError{Aggregation: meter.Aggregation, MeterSlug: meter.Key, ValidAggregations: c.validMeterAggregations}
+			}
+
+			if feature.MeterGroupByFilters != nil {
+				if err = feature.MeterGroupByFilters.Validate(meter); err != nil {
+					return Feature{}, err
+				}
+			}
+		}
+
+		// Validate unit cost
+		if feature.UnitCost != nil {
+			if err := feature.UnitCost.Validate(); err != nil {
 				return Feature{}, models.NewGenericValidationError(err)
 			}
+
+			if feature.UnitCost.Type == UnitCostTypeLLM {
+				if resolvedMeter == nil {
+					return Feature{}, models.NewGenericValidationError(
+						fmt.Errorf("LLM unit cost requires a meter to be associated with the feature"),
+					)
+				}
+
+				if err := feature.UnitCost.ValidateWithMeter(*resolvedMeter); err != nil {
+					return Feature{}, models.NewGenericValidationError(err)
+				}
+			}
 		}
-	}
 
-	// Validate feature key
-	if _, err := ulid.Parse(feature.Key); err == nil {
-		return Feature{}, models.NewGenericValidationError(fmt.Errorf("Feature key cannot be a valid ULID"))
-	}
+		// Validate feature key
+		if _, err := ulid.Parse(feature.Key); err == nil {
+			return Feature{}, models.NewGenericValidationError(fmt.Errorf("Feature key cannot be a valid ULID"))
+		}
 
-	// Check key is not taken
-	found, err := c.featureRepo.GetByIdOrKey(ctx, feature.Namespace, feature.Key, false)
-	if err != nil {
-		if _, ok := err.(*FeatureNotFoundError); !ok {
+		// Check key is not taken
+		found, err := c.featureRepo.GetByIdOrKey(ctx, feature.Namespace, feature.Key, false)
+		if err != nil {
+			if _, ok := err.(*FeatureNotFoundError); !ok {
+				return Feature{}, err
+			}
+		} else {
+			return Feature{}, &FeatureWithNameAlreadyExistsError{Name: feature.Key, ID: found.ID}
+		}
+
+		// Create the feature
+		createdFeature, err := c.featureRepo.CreateFeature(ctx, feature)
+		if err != nil {
 			return Feature{}, err
 		}
-	} else {
-		return Feature{}, &FeatureWithNameAlreadyExistsError{Name: feature.Key, ID: found.ID}
-	}
 
-	// Create the feature
-	createdFeature, err := c.featureRepo.CreateFeature(ctx, feature)
-	if err != nil {
-		return Feature{}, err
-	}
+		// Populate MeterSlug from resolved meter for v1 API backward compat
+		if resolvedMeter != nil {
+			createdFeature.MeterSlug = &resolvedMeter.Key
+		}
 
-	// Populate MeterSlug from resolved meter for v1 API backward compat
-	if resolvedMeter != nil {
-		createdFeature.MeterSlug = &resolvedMeter.Key
-	}
+		// Publish the feature created event
+		featureCreatedEvent := NewFeatureCreateEvent(ctx, &createdFeature)
+		if err := c.publisher.Publish(ctx, featureCreatedEvent); err != nil {
+			return createdFeature, fmt.Errorf("failed to publish feature created event: %w", err)
+		}
 
-	// Publish the feature created event
-	featureCreatedEvent := NewFeatureCreateEvent(ctx, &createdFeature)
-	if err := c.publisher.Publish(ctx, featureCreatedEvent); err != nil {
-		return createdFeature, fmt.Errorf("failed to publish feature created event: %w", err)
-	}
-
-	return createdFeature, nil
+		return createdFeature, nil
+	})
 }
 
 // UpdateFeature updates a feature's unit cost
 func (c *featureConnector) UpdateFeature(ctx context.Context, input UpdateFeatureInputs) (Feature, error) {
-	if err := input.Validate(); err != nil {
-		return Feature{}, err
-	}
+	return transaction.Run(ctx, c.featureRepo, func(ctx context.Context) (Feature, error) {
+		if err := input.Validate(); err != nil {
+			return Feature{}, err
+		}
 
-	// Get the feature (rejects archived/not found)
-	feat, err := c.GetFeature(ctx, input.Namespace, input.ID, IncludeArchivedFeatureFalse)
-	if err != nil {
-		return Feature{}, err
-	}
-
-	// Validate unit cost if a value is provided (not null/clear)
-	if !input.UnitCost.IsNull() {
-		unitCost, err := input.UnitCost.Get()
+		// Get the feature (rejects archived/not found)
+		feat, err := c.GetFeature(ctx, input.Namespace, input.ID, IncludeArchivedFeatureFalse)
 		if err != nil {
-			return Feature{}, models.NewGenericValidationError(err)
+			return Feature{}, err
 		}
 
-		if err := unitCost.Validate(); err != nil {
-			return Feature{}, models.NewGenericValidationError(err)
-		}
-
-		if unitCost.Type == UnitCostTypeLLM {
-			if feat.MeterSlug == nil {
-				return Feature{}, models.NewGenericValidationError(
-					fmt.Errorf("LLM unit cost requires a meter to be associated with the feature"),
-				)
-			}
-
-			meter, err := c.meterService.GetMeterByIDOrSlug(ctx, meterpkg.GetMeterInput{
-				Namespace: input.Namespace,
-				IDOrSlug:  *feat.MeterSlug,
-			})
+		// Validate unit cost if a value is provided (not null/clear)
+		if !input.UnitCost.IsNull() {
+			unitCost, err := input.UnitCost.Get()
 			if err != nil {
-				return Feature{}, err
-			}
-
-			if err := unitCost.ValidateWithMeter(meter); err != nil {
 				return Feature{}, models.NewGenericValidationError(err)
 			}
+
+			if err := unitCost.Validate(); err != nil {
+				return Feature{}, models.NewGenericValidationError(err)
+			}
+
+			if unitCost.Type == UnitCostTypeLLM {
+				if feat.MeterSlug == nil {
+					return Feature{}, models.NewGenericValidationError(
+						fmt.Errorf("LLM unit cost requires a meter to be associated with the feature"),
+					)
+				}
+
+				meter, err := c.meterService.GetMeterByIDOrSlug(ctx, meterpkg.GetMeterInput{
+					Namespace: input.Namespace,
+					IDOrSlug:  *feat.MeterSlug,
+				})
+				if err != nil {
+					return Feature{}, err
+				}
+
+				if err := unitCost.ValidateWithMeter(meter); err != nil {
+					return Feature{}, models.NewGenericValidationError(err)
+				}
+			}
 		}
-	}
 
-	updatedFeature, err := c.featureRepo.UpdateFeature(ctx, input)
-	if err != nil {
-		return Feature{}, err
-	}
+		updatedFeature, err := c.featureRepo.UpdateFeature(ctx, input)
+		if err != nil {
+			return Feature{}, err
+		}
 
-	// Publish the feature updated event
-	featureUpdatedEvent := NewFeatureUpdateEvent(ctx, &updatedFeature)
-	if err := c.publisher.Publish(ctx, featureUpdatedEvent); err != nil {
-		return updatedFeature, fmt.Errorf("failed to publish feature updated event: %w", err)
-	}
+		// Publish the feature updated event
+		featureUpdatedEvent := NewFeatureUpdateEvent(ctx, &updatedFeature)
+		if err := c.publisher.Publish(ctx, featureUpdatedEvent); err != nil {
+			return updatedFeature, fmt.Errorf("failed to publish feature updated event: %w", err)
+		}
 
-	return updatedFeature, nil
+		return updatedFeature, nil
+	})
 }
 
 // ArchiveFeature archives a feature
 func (c *featureConnector) ArchiveFeature(ctx context.Context, featureID models.NamespacedID) error {
-	// Get the feature
-	feat, err := c.GetFeature(ctx, featureID.Namespace, featureID.ID, false)
-	if err != nil {
-		return err
-	}
+	return transaction.RunWithNoValue(ctx, c.featureRepo, func(ctx context.Context) error {
+		// Get the feature
+		feat, err := c.GetFeature(ctx, featureID.Namespace, featureID.ID, false)
+		if err != nil {
+			return err
+		}
 
-	archivedAt := lo.ToPtr(clock.Now())
+		archivedAt := lo.ToPtr(clock.Now())
 
-	// Archive the feature
-	err = c.featureRepo.ArchiveFeature(ctx, ArchiveFeatureInput{
-		Namespace: feat.Namespace,
-		ID:        feat.ID,
-		At:        archivedAt,
+		// Archive the feature
+		err = c.featureRepo.ArchiveFeature(ctx, ArchiveFeatureInput{
+			Namespace: feat.Namespace,
+			ID:        feat.ID,
+			At:        archivedAt,
+		})
+		if err != nil {
+			return err
+		}
+
+		feat.ArchivedAt = archivedAt
+
+		// Publish the feature archived event
+		featureArchivedEvent := NewFeatureArchiveEvent(ctx, feat)
+		if err := c.publisher.Publish(ctx, featureArchivedEvent); err != nil {
+			return fmt.Errorf("failed to publish feature archived event: %w", err)
+		}
+
+		return nil
 	})
-	if err != nil {
-		return err
-	}
-
-	feat.ArchivedAt = archivedAt
-
-	// Publish the feature archived event
-	featureArchivedEvent := NewFeatureArchiveEvent(ctx, feat)
-	if err := c.publisher.Publish(ctx, featureArchivedEvent); err != nil {
-		return fmt.Errorf("failed to publish feature archived event: %w", err)
-	}
-
-	return nil
 }
 
 // ListFeatures lists features

@@ -43,5 +43,4 @@ type FeatureRepo interface {
 
 	GetByIdOrKey(ctx context.Context, namespace string, idOrKey string, includeArchived bool) (*Feature, error)
 	entutils.TxCreator
-	entutils.TxUser[FeatureRepo]
 }
