@@ -50,6 +50,8 @@ func (s *CreditThenInvoiceStateMachine) intentMutableFieldsFromLineManualEdit(li
 	}
 	out.PaymentTerm = flatPrice.PaymentTerm
 	out.AmountBeforeProration = flatPrice.Amount
+	// Manual line edits own the displayed gross, including any proration already applied.
+	out.ProRating.Enabled = false
 	out.PercentageDiscounts = line.GetRateCardDiscounts().Percentage.CloneOrNil()
 
 	out = out.Normalized(effectiveIntent.Currency)
