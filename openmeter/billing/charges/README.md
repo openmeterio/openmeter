@@ -106,7 +106,8 @@ absolute gross amount and disable proration on the selected mutable layer.
 Discount-, name-, and period-only edits capture the current gross; later period
 edits do not scale it. The subscription-owned base retains its proration
 configuration, and clearing the override restores that source behavior. Direct
-customer charge overrides retain their explicitly supplied proration settings.
+customer charge overrides retain their explicitly supplied proration settings
+until an invoice-line edit captures the displayed gross and disables proration.
 
 Effective deletion and base-intent deletion are therefore different query
 concepts. Subscription reconciliation must be able to find a base intent even
