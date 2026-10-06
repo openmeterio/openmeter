@@ -169,7 +169,7 @@ func (c *accrualCollector) resolveCoveredReceivableInputs(ctx context.Context, i
 		input.Currency,
 		ledger.Route{Filters: input.Filters},
 		input.Amount,
-		input.SourceBalanceAsOf,
+		input.BookedAt,
 	)
 	if err != nil {
 		return resolvedCollectedInputs{}, fmt.Errorf("collect customer FBO: %w", err)
@@ -223,7 +223,7 @@ func (c *accrualCollector) resolveCollectedInputs(ctx context.Context, input Col
 		return resolvedCollectedInputs{}, fmt.Errorf("currency: custom currency must be resolved")
 	}
 
-	selections, err := c.collectCustomerFBOSelections(ctx, c.customerID(input), input.Currency, ledger.Route{Filters: input.Filters}, amount, input.SourceBalanceAsOf)
+	selections, err := c.collectCustomerFBOSelections(ctx, c.customerID(input), input.Currency, ledger.Route{Filters: input.Filters}, amount, input.BookedAt)
 	if err != nil {
 		return resolvedCollectedInputs{}, fmt.Errorf("collect customer FBO: %w", err)
 	}

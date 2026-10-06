@@ -778,8 +778,8 @@ func (e *flatFeeHandlerTestEnv) newAllocateCreditsInputForCharge(charge chargefl
 func (e *flatFeeHandlerTestEnv) newAssignmentInputWithMode(amount alpacadecimal.Decimal, mode productcatalog.SettlementMode) chargeflatfee.OnAllocateCreditsInput {
 	now := e.Now()
 	servicePeriod := timeutil.ClosedPeriod{
-		From: now.Add(-time.Hour),
-		To:   now,
+		From: now,
+		To:   now.Add(time.Hour),
 	}
 
 	return chargeflatfee.OnAllocateCreditsInput{
@@ -811,7 +811,7 @@ func (e *flatFeeHandlerTestEnv) newAssignmentInputWithMode(amount alpacadecimal.
 							FullServicePeriod: servicePeriod,
 							BillingPeriod:     servicePeriod,
 						},
-						InvoiceAt:             now,
+						InvoiceAt:             now.Add(-time.Hour),
 						PaymentTerm:           productcatalog.InAdvancePaymentTerm,
 						ProRating:             productcatalog.ProRatingConfig{},
 						AmountBeforeProration: amount,
@@ -930,8 +930,8 @@ func (e *flatFeeHandlerTestEnv) newAccrualInput(total alpacadecimal.Decimal) cha
 func (e *flatFeeHandlerTestEnv) newCreditsOnlyCharge(amount alpacadecimal.Decimal) chargeflatfee.Charge {
 	now := e.Now()
 	servicePeriod := timeutil.ClosedPeriod{
-		From: now.Add(-time.Hour),
-		To:   now,
+		From: now,
+		To:   now.Add(time.Hour),
 	}
 
 	charge := e.newBaseCharge(servicePeriod, amount)
