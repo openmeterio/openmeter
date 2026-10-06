@@ -14,7 +14,6 @@ type ErrorInvalidContentType struct {
 
 func (e ErrorInvalidContentType) Error() string {
 	// return "invalid content type"
-
 	return "invalid content type: " + e.ContentType
 }
 
@@ -34,7 +33,6 @@ type ErrorInvalidEvent struct {
 
 func (e ErrorInvalidEvent) Error() string {
 	// return "invalid event"
-
 	return "invalid event: " + e.Err.Error()
 }
 

@@ -8,5 +8,6 @@ func resolveCustomerFBOCreditPriority(configured *int) int {
 	if configured != nil {
 		return *configured
 	}
+
 	return ledger.DefaultCustomerFBOPriority
 }

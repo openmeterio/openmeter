@@ -27,8 +27,10 @@ func (a *adapter) GetInvoiceDefaultSchemaLevel(ctx context.Context) (int, error)
 			if entdb.IsNotFound(err) {
 				return DefaultInvoiceWriteSchemaLevel, nil
 			}
+
 			return 0, err
 		}
+
 		return record.SchemaLevel, nil
 	})
 }

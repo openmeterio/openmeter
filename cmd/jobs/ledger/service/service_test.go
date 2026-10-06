@@ -178,6 +178,7 @@ func (f fakeCustomerLister) ListCustomers(_ context.Context, input ListCustomers
 		if input.CreatedBefore != nil && !item.CreatedAt.Before(*input.CreatedBefore) {
 			continue
 		}
+
 		filtered = append(filtered, item)
 	}
 
@@ -185,9 +186,11 @@ func (f fakeCustomerLister) ListCustomers(_ context.Context, input ListCustomers
 		if a.CreatedAt.Before(b.CreatedAt) {
 			return -1
 		}
+
 		if a.CreatedAt.After(b.CreatedAt) {
 			return 1
 		}
+
 		return stringsCompare(a.ID, b.ID)
 	})
 
@@ -198,10 +201,12 @@ func (f fakeCustomerLister) ListCustomers(_ context.Context, input ListCustomers
 				start = idx
 				break
 			}
+
 			if item.CreatedAt.Equal(input.Cursor.Time) && stringsCompare(item.ID, input.Cursor.ID) > 0 {
 				start = idx
 				break
 			}
+
 			start = idx + 1
 		}
 	}
@@ -245,6 +250,7 @@ func stringsCompare(a string, b string) int {
 	if a < b {
 		return -1
 	}
+
 	if a > b {
 		return 1
 	}

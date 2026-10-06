@@ -61,6 +61,7 @@ func (m *MeteredEntitlementValue) HasAccess() bool {
 	if m.isSoftLimit {
 		return true
 	}
+
 	return m.Balance > 0
 }
 
@@ -253,5 +254,6 @@ func (c *connector) AfterCreate(ctx context.Context, end *entitlement.Entitlemen
 			return err
 		}
 	}
+
 	return nil
 }

@@ -36,6 +36,7 @@ func (a *Router) QueryPortalMeter(w http.ResponseWriter, r *http.Request, meterS
 	if !ok {
 		err := fmt.Errorf("not authenticated")
 		models.NewStatusProblem(ctx, err, http.StatusUnauthorized).Respond(w)
+
 		return
 	}
 

@@ -39,6 +39,7 @@ func (s SubscriptionView) GetPhaseByKey(key string) (*SubscriptionPhaseView, boo
 			return &phase, true
 		}
 	}
+
 	return nil, false
 }
 
@@ -52,6 +53,7 @@ func (s *SubscriptionView) Validate(includePhases bool) error {
 	if spec.ActiveFrom.Compare(s.Subscription.ActiveFrom) != 0 {
 		return fmt.Errorf("subscription active from %v does not match spec active from %v", s.Subscription.ActiveFrom, spec.ActiveFrom)
 	}
+
 	if (spec.ActiveTo == nil && s.Subscription.ActiveTo != nil) ||
 		(spec.ActiveTo != nil && s.Subscription.ActiveTo == nil) || (spec.ActiveTo != nil && s.Subscription.ActiveTo != nil && spec.ActiveTo.Compare(*s.Subscription.ActiveTo) != 0) {
 		return fmt.Errorf("subscription active to %v does not match spec active to %v", s.Subscription.ActiveTo, spec.ActiveTo)
@@ -77,6 +79,7 @@ func (s *SubscriptionView) Validate(includePhases bool) error {
 		if err := pin.Validate(); err != nil {
 			return fmt.Errorf("subscription cost basis pin is invalid: %w", err)
 		}
+
 		if pin.Namespace != s.Subscription.Namespace || pin.InvoiceCurrency != s.Subscription.InvoiceCurrency {
 			return fmt.Errorf("subscription cost basis pin does not belong to subscription invoice currency")
 		}
@@ -121,6 +124,7 @@ func (s *SubscriptionPhaseView) Validate(includeItems bool) error {
 			}
 		}
 	}
+
 	return nil
 }
 
@@ -397,9 +401,11 @@ func NewSubscriptionView(
 				if i.ActiveFromOverrideRelativeToPhaseStart != nil {
 					iT, _ = i.ActiveFromOverrideRelativeToPhaseStart.AddTo(phase.ActiveFrom)
 				}
+
 				if j.ActiveFromOverrideRelativeToPhaseStart != nil {
 					jT, _ = j.ActiveFromOverrideRelativeToPhaseStart.AddTo(phase.ActiveFrom)
 				}
+
 				return int(iT.Sub(jT))
 			})
 		}

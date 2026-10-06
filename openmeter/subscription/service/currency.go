@@ -90,10 +90,12 @@ func (s *service) resolveCostBasisRequirements(
 	for pair := range pairs {
 		orderedPairs = append(orderedPairs, pair)
 	}
+
 	slices.SortFunc(orderedPairs, func(a, b costBasisPair) int {
 		if a.customCurrencyID == b.customCurrencyID {
 			return strings.Compare(a.invoiceCurrency, b.invoiceCurrency)
 		}
+
 		return strings.Compare(a.customCurrencyID, b.customCurrencyID)
 	})
 

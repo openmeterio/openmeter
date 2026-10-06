@@ -32,6 +32,7 @@ func TestV3SubscriptionCreateCustomPlan(t *testing.T) {
 		})
 		c.requireStatus(http.StatusCreated, err)
 		require.NotNil(t, cust)
+
 		return cust
 	}
 
@@ -118,6 +119,7 @@ func TestV3SubscriptionStartingPhase(t *testing.T) {
 		})
 		c.requireStatus(http.StatusCreated, err)
 		require.NotNil(t, cust)
+
 		return cust
 	}
 
@@ -160,7 +162,9 @@ func TestV3SubscriptionStartingPhase(t *testing.T) {
 				return p
 			}
 		}
+
 		t.Fatalf("phase %q not found on subscription", key)
+
 		return v3sdk.SubscriptionPhase{}
 	}
 

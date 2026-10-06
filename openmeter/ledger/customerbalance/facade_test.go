@@ -340,6 +340,7 @@ func TestFacadeGetBalancesKeepsCustomCurrencyIdentitiesSeparate(t *testing.T) {
 		require.NotNil(t, reference.CustomCurrencyID)
 		settledByID[*reference.CustomCurrencyID] = balance.Balance.Settled().InexactFloat64()
 	}
+
 	require.Equal(t, map[string]float64{
 		alpha.ID:   40,
 		beta.ID:    60,

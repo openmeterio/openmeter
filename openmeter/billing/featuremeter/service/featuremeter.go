@@ -33,6 +33,7 @@ func (f FeatureMeterCollection) Get(reference billingfeaturemeter.FeatureReferen
 	} else {
 		featureMeter, exists = f.ByKey[featureRef.IDOrKey.Key]
 	}
+
 	if !exists {
 		return billingfeaturemeter.FeatureMeter{}, newFeatureNotFoundValidationIssue(reference)
 	}

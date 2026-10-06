@@ -407,6 +407,7 @@ func (s *BaseSuite) requireDeletedCustomCurrencyOverageLine(in requireDeletedCus
 	default:
 		s.Fail("overage reason annotation has an unexpected type")
 	}
+
 	s.Empty(in.line.DetailedLines)
 	s.RequireTotals(in.expectFiatTotals, in.line.Totals)
 }
@@ -499,6 +500,7 @@ func (s *BaseSuite) createMockChargeIntent(input createMockChargeIntentInput) ch
 			FeatureKey:     lo.EmptyableToPtr(input.featureKey),
 			SettlementMode: lo.CoalesceOrEmpty(input.settlementMode, productcatalog.CreditThenInvoiceSettlementMode),
 		}
+
 		return charges.NewChargeIntent(flatFeeIntent)
 	}
 
@@ -513,6 +515,7 @@ func (s *BaseSuite) createMockChargeIntent(input createMockChargeIntentInput) ch
 		},
 		SettlementMode: lo.CoalesceOrEmpty(input.settlementMode, productcatalog.CreditThenInvoiceSettlementMode),
 	}
+
 	return charges.NewChargeIntent(usageBasedIntent)
 }
 
@@ -629,6 +632,7 @@ func (s *BaseSuite) mustGetChargeByID(chargeID meta.ChargeID) charges.Charge {
 		},
 	})
 	s.NoError(err)
+
 	return charge
 }
 

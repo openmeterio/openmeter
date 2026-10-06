@@ -29,6 +29,7 @@ func BuildQueryParams(ctx context.Context, m meter.Meter, body api.MeterQueryReq
 		if err != nil {
 			return params, err
 		}
+
 		params.WindowSize = &ws
 	}
 
@@ -37,6 +38,7 @@ func BuildQueryParams(ctx context.Context, m meter.Meter, body api.MeterQueryReq
 		if err != nil {
 			return params, NewInvalidTimeZoneError(*body.TimeZone)
 		}
+
 		params.WindowTimeZone = tz
 	}
 
@@ -45,6 +47,7 @@ func BuildQueryParams(ctx context.Context, m meter.Meter, body api.MeterQueryReq
 			if !IsSupportedGroupByDimension(m, groupBy) {
 				return params, NewInvalidGroupByError(groupBy)
 			}
+
 			if !slices.Contains(params.GroupBy, groupBy) {
 				params.GroupBy = append(params.GroupBy, groupBy)
 			}
@@ -90,13 +93,16 @@ func BuildQueryParams(ctx context.Context, m meter.Meter, body api.MeterQueryReq
 					if _, ok := m.GroupBy[k]; !ok {
 						return params, NewInvalidDimensionFilterError(k)
 					}
+
 					f := request.ConvertQueryFilterStringMapItem(v)
 					if err := f.ValidateWithComplexity(maxGroupByFilterComplexityDepth); err != nil {
 						return params, models.NewGenericValidationError(fmt.Errorf("dimension filter %q: %w", k, err))
 					}
+
 					if params.FilterGroupBy == nil {
 						params.FilterGroupBy = make(map[string]filter.FilterString)
 					}
+
 					params.FilterGroupBy[k] = f
 				}
 			}

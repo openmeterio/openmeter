@@ -34,6 +34,7 @@ func TestPostgresAutoRollbackCancellation(t *testing.T) {
 	if dsn == "" {
 		t.Skip("OPENMETER_E2E_POSTGRES_URL not set")
 	}
+
 	for _, http2 := range []bool{false, true} {
 		t.Run(fmt.Sprintf("http2=%t", http2), func(t *testing.T) {
 			// given an HTTP operation using a real PostgreSQL transaction
@@ -52,9 +53,11 @@ func TestPostgresAutoRollbackCancellation(t *testing.T) {
 							if err != nil {
 								return struct{}{}, err
 							}
+
 							if _, err := driver.(sqlDriver).ExecContext(ctx, "SELECT 1"); err != nil {
 								return struct{}{}, err
 							}
+
 							close(started)
 							<-ctx.Done()
 							// Returning the sole connection to the pool proves automatic rollback
@@ -70,6 +73,7 @@ func TestPostgresAutoRollbackCancellation(t *testing.T) {
 									return struct{}{}, errors.New("automatic rollback did not complete")
 								}
 							}
+
 							return struct{}{}, nil
 						})
 					}, commonhttp.JSONResponseEncoder[struct{}],

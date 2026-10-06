@@ -97,6 +97,7 @@ func NewRoutingKey(version RoutingKeyVersion, value string) (RoutingKey, error) 
 	if err := version.Validate(); err != nil {
 		return RoutingKey{}, err
 	}
+
 	if value == "" {
 		return RoutingKey{}, errors.New("routing key is required")
 	}
@@ -134,6 +135,7 @@ func NewSubAccountRouteFromData(data SubAccountRouteData) (SubAccountRoute, erro
 	if data.ID == "" {
 		return SubAccountRoute{}, errors.New("route id is required")
 	}
+
 	if err := data.Route.Validate(); err != nil {
 		return SubAccountRoute{}, fmt.Errorf("route: %w", err)
 	}
@@ -224,6 +226,7 @@ func (r Route) validateDimensionsOnly() error {
 			"error":    err,
 		})
 	}
+
 	if err := ValidateCostBasisCurrency(r.Currency.Code, r.CostBasisCurrency, r.CostBasis); err != nil {
 		return err
 	}
@@ -279,12 +282,15 @@ func (r Route) Matches(filter RouteFilter) bool {
 	if exact, ok := filter.CreditFilters.Get(); ok && !r.Filters.Equal(exact) {
 		return false
 	}
+
 	if filter.Currency.Code != "" && r.Currency.Code != filter.Currency.Code {
 		return false
 	}
+
 	if filter.Currency.CustomCurrencyID != nil && !r.Currency.Equal(filter.Currency) {
 		return false
 	}
+
 	if filter.CostBasisCurrency.IsPresent() {
 		costBasisCurrency, _ := filter.CostBasisCurrency.Get()
 		switch {
@@ -296,6 +302,7 @@ func (r Route) Matches(filter RouteFilter) bool {
 			return false
 		}
 	}
+
 	if filter.TaxCode.IsPresent() {
 		taxCode, _ := filter.TaxCode.Get()
 		switch {
@@ -307,6 +314,7 @@ func (r Route) Matches(filter RouteFilter) bool {
 			return false
 		}
 	}
+
 	if filter.TaxBehavior.IsPresent() {
 		taxBehavior, _ := filter.TaxBehavior.Get()
 		switch {
@@ -318,17 +326,20 @@ func (r Route) Matches(filter RouteFilter) bool {
 			return false
 		}
 	}
+
 	if filter.Features.IsPresent() {
 		features, _ := filter.Features.Get()
 		if !slices.Equal(SortedFeatures(r.Filters.Features), SortedFeatures(features)) {
 			return false
 		}
 	}
+
 	if filter.MatchFeature != "" {
 		if len(r.Filters.Features) > 0 && !slices.Contains(r.Filters.Features, filter.MatchFeature) {
 			return false
 		}
 	}
+
 	if filter.CostBasis.IsPresent() {
 		costBasis, _ := filter.CostBasis.Get()
 		switch {
@@ -340,9 +351,11 @@ func (r Route) Matches(filter RouteFilter) bool {
 			return false
 		}
 	}
+
 	if filter.CreditPriority != nil && (r.CreditPriority == nil || *r.CreditPriority != *filter.CreditPriority) {
 		return false
 	}
+
 	if filter.TransactionAuthorizationStatus != nil && (r.TransactionAuthorizationStatus == nil || *r.TransactionAuthorizationStatus != *filter.TransactionAuthorizationStatus) {
 		return false
 	}
@@ -363,6 +376,7 @@ func (r Route) Normalize() (Route, error) {
 	if normalized.CostBasisCurrency != nil && *normalized.CostBasisCurrency == "" {
 		normalized.CostBasisCurrency = nil
 	}
+
 	normalized.Filters = r.Filters.Normalize()
 	normalized.Version = selectRoutingKeyVersion(normalized)
 
@@ -375,19 +389,24 @@ func (f RouteFilter) Normalize() (RouteFilter, error) {
 		if err := exact.Validate(); err != nil {
 			return RouteFilter{}, err
 		}
+
 		f.CreditFilters = mo.Some(exact.Normalize())
 	}
+
 	if f.Currency.Code == "" && f.CostBasisCurrency.IsAbsent() && f.TaxCode.IsAbsent() && f.Features.IsAbsent() && f.MatchFeature == "" && f.CostBasis.IsAbsent() && f.CreditPriority == nil && f.TransactionAuthorizationStatus == nil && f.TaxBehavior.IsAbsent() {
 		return f, nil
 	}
+
 	if f.Features.IsPresent() && f.MatchFeature != "" {
 		return RouteFilter{}, errors.New("features and match feature filters cannot be combined")
 	}
+
 	if f.MatchFeature != "" {
 		if err := validateFeatures([]string{f.MatchFeature}); err != nil {
 			return RouteFilter{}, fmt.Errorf("match feature: %w", err)
 		}
 	}
+
 	if f.Currency.Code != "" {
 		if err := f.Currency.Validate(); err != nil {
 			return RouteFilter{}, fmt.Errorf("currency: %w", err)
@@ -412,9 +431,11 @@ func (f RouteFilter) Normalize() (RouteFilter, error) {
 	if err := route.validateDimensionsOnly(); err != nil {
 		return RouteFilter{}, err
 	}
+
 	if route.CostBasisCurrency != nil && *route.CostBasisCurrency == "" {
 		route.CostBasisCurrency = nil
 	}
+
 	normalized := route
 	normalized.Filters.Features = SortedFeatures(route.Filters.Features)
 
@@ -485,6 +506,7 @@ func selectRoutingKeyVersion(route Route) RoutingKeyVersion {
 			return req.version
 		}
 	}
+
 	return RoutingKeyVersionV1
 }
 
@@ -510,10 +532,12 @@ func BuildRoutingKey(route Route) (RoutingKey, error) {
 		if err != nil {
 			return RoutingKey{}, err
 		}
+
 		filters, err := json.Marshal(normalizedRoute.Filters)
 		if err != nil {
 			return RoutingKey{}, fmt.Errorf("marshal filters: %w", err)
 		}
+
 		return NewRoutingKey(RoutingKeyVersionV5, base.Value()+"|filters:"+string(filters))
 	default:
 		return RoutingKey{}, ErrRoutingKeyVersionUnsupported.WithAttrs(models.Attributes{
@@ -529,16 +553,20 @@ func BuildRoutingKeyV1(route Route) (RoutingKey, error) {
 	if len(route.Filters.Plans) > 0 {
 		return RoutingKey{}, errors.New("plan filters require a V5 routing key; use BuildRoutingKey")
 	}
+
 	if route.TaxBehavior != nil {
 		return RoutingKey{}, fmt.Errorf("TaxBehavior requires a V2 routing key; use BuildRoutingKey to select the version automatically")
 	}
+
 	normalizedRoute, err := route.Normalize()
 	if err != nil {
 		return RoutingKey{}, err
 	}
+
 	if normalizedRoute.CostBasisCurrency != nil {
 		return RoutingKey{}, fmt.Errorf("CostBasisCurrency requires a V3 routing key; use BuildRoutingKey to select the version automatically")
 	}
+
 	return buildRoutingKeyV1Normalized(normalizedRoute)
 }
 
@@ -547,13 +575,16 @@ func BuildRoutingKeyV2(route Route) (RoutingKey, error) {
 	if len(route.Filters.Plans) > 0 {
 		return RoutingKey{}, errors.New("plan filters require a V5 routing key; use BuildRoutingKey")
 	}
+
 	normalizedRoute, err := route.Normalize()
 	if err != nil {
 		return RoutingKey{}, err
 	}
+
 	if normalizedRoute.CostBasisCurrency != nil {
 		return RoutingKey{}, fmt.Errorf("CostBasisCurrency requires a V3 routing key; use BuildRoutingKey to select the version automatically")
 	}
+
 	return buildRoutingKeyV2Normalized(normalizedRoute)
 }
 
@@ -562,13 +593,16 @@ func BuildRoutingKeyV3(route Route) (RoutingKey, error) {
 	if len(route.Filters.Plans) > 0 {
 		return RoutingKey{}, errors.New("plan filters require a V5 routing key; use BuildRoutingKey")
 	}
+
 	normalizedRoute, err := route.Normalize()
 	if err != nil {
 		return RoutingKey{}, err
 	}
+
 	if normalizedRoute.Currency.IsCustom() {
 		return RoutingKey{}, fmt.Errorf("custom currency requires a V4 routing key; use BuildRoutingKey to select the version automatically")
 	}
+
 	return buildRoutingKeyV3Normalized(normalizedRoute)
 }
 
@@ -577,10 +611,12 @@ func BuildRoutingKeyV4(route Route) (RoutingKey, error) {
 	if len(route.Filters.Plans) > 0 {
 		return RoutingKey{}, errors.New("plan filters require a V5 routing key; use BuildRoutingKey")
 	}
+
 	normalizedRoute, err := route.Normalize()
 	if err != nil {
 		return RoutingKey{}, err
 	}
+
 	return buildRoutingKeyV4Normalized(normalizedRoute)
 }
 
@@ -675,6 +711,7 @@ func ValidateCreditPriority(value int) error {
 			"credit_priority": value,
 		})
 	}
+
 	return nil
 }
 
@@ -748,9 +785,11 @@ func SortedFeatures(features []string) []string {
 	if len(features) == 0 {
 		return nil
 	}
+
 	sorted := make([]string, len(features))
 	copy(sorted, features)
 	sort.Strings(sorted)
+
 	return sorted
 }
 
@@ -792,6 +831,7 @@ func optionalStringValue(s *string) string {
 	if s == nil || *s == "" {
 		return "null"
 	}
+
 	return *s
 }
 
@@ -799,6 +839,7 @@ func optionalIntValue(v *int) string {
 	if v == nil {
 		return "null"
 	}
+
 	return strconv.Itoa(*v)
 }
 
@@ -806,5 +847,6 @@ func optionalDecimalValue(v *alpacadecimal.Decimal) string {
 	if v == nil {
 		return "null"
 	}
+
 	return v.String()
 }

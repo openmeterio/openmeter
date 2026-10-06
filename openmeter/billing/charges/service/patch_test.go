@@ -64,6 +64,7 @@ func TestApplyInvocableChargePatchesBatchesEachInvoiceEffectRound(t *testing.T) 
 			require.NoError(t, err)
 			chargeIDs = append(chargeIDs, deletePatch.ChargeID)
 		}
+
 		appliedBatches = append(appliedBatches, chargeIDs)
 
 		return nil
@@ -187,6 +188,7 @@ func (c *scriptedInvocableCharge) AdvanceCharge(context.Context) (TriggerPatchRe
 
 	result := c.advanceResults[c.advanceCalls]
 	c.advanceCalls++
+
 	return result, nil
 }
 

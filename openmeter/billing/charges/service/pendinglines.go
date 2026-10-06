@@ -56,6 +56,7 @@ func (s *service) CreatePendingInvoiceLines(ctx context.Context, input charges.C
 		if err != nil {
 			return nil, err
 		}
+
 		if result == nil {
 			return nil, fmt.Errorf("create charges for pending invoice lines: result is nil")
 		}
@@ -67,6 +68,7 @@ func (s *service) CreatePendingInvoiceLines(ctx context.Context, input charges.C
 		if len(result.pendingLineResults) == 0 {
 			return nil, fmt.Errorf("create charges for pending invoice lines: no gathering lines were created")
 		}
+
 		if len(result.pendingLineResults) > 1 {
 			return nil, fmt.Errorf("create charges for pending invoice lines: expected one pending-line result, got %d", len(result.pendingLineResults))
 		}
@@ -79,6 +81,7 @@ func (s *service) CreatePendingInvoiceLines(ctx context.Context, input charges.C
 		if err != nil {
 			return nil, fmt.Errorf("validating pending line results: %w", err)
 		}
+
 		pendingLineResult.Lines = orderedLines
 
 		return pendingLineResult, nil
@@ -122,6 +125,7 @@ func mapPendingInvoiceLinesToChargeIntents(input charges.CreatePendingInvoiceLin
 	if err != nil {
 		return nil, fmt.Errorf("resolving fiat currency %q: %w", input.Currency, err)
 	}
+
 	resolvedCurrency := currencies.Currency{Currency: currency}
 
 	intents := make(charges.ChargeIntents, 0, len(input.Lines))

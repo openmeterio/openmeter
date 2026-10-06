@@ -662,6 +662,7 @@ func TestParse_CommaSeparatedCapEnforced(t *testing.T) {
 		for i := range maxCommaSeparatedItems {
 			items = append(items, fmt.Sprintf("v%d", i))
 		}
+
 		value := strings.Join(items, ",")
 
 		var f testFilter
@@ -675,6 +676,7 @@ func TestParse_CommaSeparatedCapEnforced(t *testing.T) {
 		for i := range maxCommaSeparatedItems + 1 {
 			items = append(items, fmt.Sprintf("v%d", i))
 		}
+
 		value := strings.Join(items, ",")
 
 		var f testFilter
@@ -688,6 +690,7 @@ func TestParse_CommaSeparatedCapEnforced(t *testing.T) {
 		for i := range maxCommaSeparatedItems + 1 {
 			items = append(items, fmt.Sprintf("v%d", i))
 		}
+
 		value := strings.Join(items, ",")
 
 		var f testFilter
@@ -701,6 +704,7 @@ func TestParse_CommaSeparatedCapEnforced(t *testing.T) {
 		for i := range maxCommaSeparatedItems + 1 {
 			items = append(items, strconv.Itoa(i))
 		}
+
 		value := strings.Join(items, ",")
 
 		var f testFilter
@@ -901,6 +905,7 @@ func TestParse_FilterLabels(t *testing.T) {
 		for i := range maxCommaSeparatedItems + 1 {
 			items = append(items, fmt.Sprintf("v%d", i))
 		}
+
 		var f testFilterWithLabels
 		err := Parse(url.Values{"filter[labels.env][oeq]": {strings.Join(items, ",")}}, &f)
 		require.Error(t, err)

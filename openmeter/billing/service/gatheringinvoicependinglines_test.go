@@ -336,6 +336,7 @@ func TestResolvePendingLineCollectionCutoff(t *testing.T) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), test.wantErr)
 				require.True(t, got.IsZero())
+
 				return
 			}
 

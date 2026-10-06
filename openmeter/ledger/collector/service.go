@@ -60,18 +60,23 @@ func (c Config) Validate() error {
 	if c.Ledger == nil {
 		errs = append(errs, fmt.Errorf("ledger is required"))
 	}
+
 	if c.Dependencies.AccountService == nil {
 		errs = append(errs, fmt.Errorf("account service is required"))
 	}
+
 	if c.Dependencies.AccountCatalog == nil {
 		errs = append(errs, fmt.Errorf("account catalog is required"))
 	}
+
 	if c.Dependencies.BalanceQuerier == nil {
 		errs = append(errs, fmt.Errorf("balance querier is required"))
 	}
+
 	if c.AccountLocker == nil {
 		errs = append(errs, fmt.Errorf("account locker is required"))
 	}
+
 	if c.TransactionManager == nil {
 		errs = append(errs, fmt.Errorf("transaction manager is required"))
 	}
@@ -119,23 +124,29 @@ func (i CollectToReceivableInput) Validate() error {
 	if err := (models.NamespacedID{Namespace: i.Namespace, ID: i.ChargeID}).Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("charge: %w", err))
 	}
+
 	if err := (customer.CustomerID{Namespace: i.Namespace, ID: i.CustomerID}).Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("customer: %w", err))
 	}
+
 	if i.BookedAt.IsZero() {
 		errs = append(errs, errors.New("booked at is required"))
 	}
+
 	if i.SourceBalanceAsOf.IsZero() {
 		errs = append(errs, errors.New("source balance as of is required"))
 	}
+
 	if err := i.Currency.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("currency: %w", err))
 	} else if !i.Currency.IsFiat() {
 		errs = append(errs, errors.New("currency must be fiat"))
 	}
+
 	if err := i.ServicePeriod.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("service period: %w", err))
 	}
+
 	if i.Amount.IsNegative() {
 		errs = append(errs, errors.New("amount cannot be negative"))
 	} else if i.Amount.IsPositive() {
@@ -162,16 +173,20 @@ func (i CorrectCollectedReceivableInput) Validate() error {
 	if err := (models.NamespacedID{Namespace: i.Namespace, ID: i.ChargeID}).Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("charge: %w", err))
 	}
+
 	if err := (customer.CustomerID{Namespace: i.Namespace, ID: i.CustomerID}).Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("customer: %w", err))
 	}
+
 	if i.AllocateAt.IsZero() {
 		errs = append(errs, errors.New("allocate at is required"))
 	}
+
 	for idx, correction := range i.Corrections {
 		if err := correction.Allocation.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("corrections[%d].allocation: %w", idx, err))
 		}
+
 		if correction.Amount.IsPositive() {
 			errs = append(errs, fmt.Errorf("corrections[%d].amount must not be positive", idx))
 		}
@@ -219,6 +234,7 @@ func (s *service) CollectToAccrued(ctx context.Context, input CollectToAccruedIn
 	if input.BookedAt.IsZero() {
 		return nil, fmt.Errorf("booked at is required")
 	}
+
 	if input.SourceBalanceAsOf.IsZero() {
 		return nil, fmt.Errorf("source balance as of is required")
 	}

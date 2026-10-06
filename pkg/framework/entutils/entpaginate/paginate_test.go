@@ -40,11 +40,13 @@ func TestPaginate(t *testing.T) {
 			t.Fatalf("failed to insert item %d: %s", i, err)
 		}
 	}
+
 	// total
 	total, err := dbClient.Example1.Query().Count(ctx)
 	if err != nil {
 		t.Fatalf("failed to count: %s", err)
 	}
+
 	assert.Equal(10, total)
 
 	t.Run("Should return first item", func(t *testing.T) {

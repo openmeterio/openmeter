@@ -34,6 +34,7 @@ func fromAPICustomerCreditFeatureFilter(f *api.StringFieldFilter) (mo.Option[cre
 	if f.Eq != nil {
 		features = append(features, *f.Eq)
 	}
+
 	features = append(features, f.Oeq...)
 
 	if len(features) == 0 {

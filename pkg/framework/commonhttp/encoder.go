@@ -104,6 +104,7 @@ func csvResponseEncoder[Response CSVResponse](w http.ResponseWriter, statusCode 
 	if err := writer.WriteAll(response.Records()); err != nil {
 		return fmt.Errorf("writing record to csv: %w", err)
 	}
+
 	if err := writer.Error(); err != nil {
 		return fmt.Errorf("writing csv: %w", err)
 	}
@@ -115,6 +116,7 @@ func csvResponseEncoder[Response CSVResponse](w http.ResponseWriter, statusCode 
 	if _, err := w.Write(buf.Bytes()); err != nil {
 		return &encoder.ResponseWriteError{Err: err}
 	}
+
 	return nil
 }
 

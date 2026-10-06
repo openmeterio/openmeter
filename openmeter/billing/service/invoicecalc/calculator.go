@@ -61,10 +61,12 @@ func (t TaxCodes) Get(stripeCode string) (*taxcode.TaxCode, bool) {
 	if t == nil {
 		return nil, false
 	}
+
 	tc, ok := t[stripeCode]
 	if !ok {
 		return nil, false
 	}
+
 	return &tc, true
 }
 

@@ -91,6 +91,7 @@ func jsonBodyDecoder(body io.Reader, header http.Header, schema *openapi3.Schema
 	if err := json.NewDecoder(body).Decode(&value); err != nil {
 		return nil, &openapi3filter.ParseError{Kind: openapi3filter.KindInvalidFormat, Cause: err}
 	}
+
 	return value, nil
 }
 

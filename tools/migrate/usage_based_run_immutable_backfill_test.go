@@ -345,6 +345,7 @@ func seedUsageBasedRunImmutableBackfillCase(
 	if tc.sentToCustomer {
 		sentToCustomerAt = &base.now
 	}
+
 	var issuedAt *time.Time
 	if tc.issuedAt {
 		value := base.now.Add(time.Hour)
@@ -471,6 +472,7 @@ func queryUsageBasedRunImmutableBackfillStates(
 
 		states[runID] = state
 	}
+
 	require.NoError(t, rows.Err())
 
 	return states

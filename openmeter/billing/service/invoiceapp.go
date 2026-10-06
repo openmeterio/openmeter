@@ -46,6 +46,7 @@ func (s *Service) TriggerInvoice(ctx context.Context, input billing.InvoiceTrigg
 				}
 
 				_, err := s.adapter.UpdateStandardInvoice(ctx, sm.Invoice)
+
 				return err
 			},
 		})

@@ -219,6 +219,7 @@ func TestListChannels_ServiceFilters(t *testing.T) {
 			for _, item := range result.Items {
 				gotIDs = append(gotIDs, item.ID)
 			}
+
 			assert.ElementsMatch(t, tc.wantIDs, gotIDs)
 		})
 	}

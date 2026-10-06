@@ -44,6 +44,7 @@ func (a *adapter) ListAddons(ctx context.Context, params addon.ListAddonsInput) 
 			for key, version := range params.KeyVersions {
 				kvFilters = append(kvFilters, addondb.And(addondb.Key(key), addondb.VersionIn(version...)))
 			}
+
 			query = query.Where(addondb.Or(kvFilters...))
 		}
 

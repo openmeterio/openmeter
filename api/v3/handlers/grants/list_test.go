@@ -65,6 +65,7 @@ func TestListGrantsHandler(t *testing.T) {
 		res := serveListGrants(t, fakeService{
 			listGrants: func(_ context.Context, input entitlement.ListNamespaceGrantsInput) (pagination.Result[grant.Grant], error) {
 				received = input
+
 				return pagination.Result[grant.Grant]{
 					Items: []grant.Grant{{
 						ID:          "01K4WAQ0J99ZZ0MD75HXR112HB",

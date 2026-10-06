@@ -119,6 +119,7 @@ func TestStandardInvoiceLineTaxConfigBackfillMigration(t *testing.T) {
 		require.NoError(t, rows.Scan(&name, &isValidated))
 		validated[name] = isValidated
 	}
+
 	require.NoError(t, rows.Err())
 	require.Equal(t, map[string]bool{
 		"billing_invoice_line_tax_behavior_consistency": true,

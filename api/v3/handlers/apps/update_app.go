@@ -51,6 +51,7 @@ func (h *handler) UpdateApp() UpdateAppHandler {
 
 			if !convertedType.Valid() {
 				err := fmt.Errorf("invalid app type: %s", discType)
+
 				return UpdateAppRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
 					{
 						Field:  "type",
@@ -163,6 +164,7 @@ func (h *handler) UpdateApp() UpdateAppHandler {
 				}, nil
 			default:
 				err := fmt.Errorf("unsupported app type: %s", discType)
+
 				return UpdateAppRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
 					{
 						Field:  "type",

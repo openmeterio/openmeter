@@ -251,6 +251,7 @@ func (s *Service) upsertGatheringInvoiceForCurrency(ctx context.Context, currenc
 				if l.DeletedAt == nil {
 					l.DeletedAt = lo.ToPtr(clock.Now())
 				}
+
 				return l
 			})
 		}

@@ -57,6 +57,7 @@ func (e *connector) ResetEntitlementUsage(ctx context.Context, entitlementID mod
 			if _, ok := lo.ErrorsAs[*grant.OwnerNotFoundError](err); ok {
 				return nil, &entitlement.NotFoundError{EntitlementID: entitlementID}
 			}
+
 			return nil, err
 		}
 
@@ -118,5 +119,6 @@ func (c *connector) ResetEntitlementsWithExpiredUsagePeriod(ctx context.Context,
 
 		result = append(result, namespacedID)
 	}
+
 	return result, finalError
 }

@@ -115,14 +115,17 @@ func (i buildMigratedSpecInput) Validate() error {
 	}).Validate(); err != nil {
 		errs = append(errs, err)
 	}
+
 	if i.At.IsZero() || !i.Current.Subscription.IsActiveAt(i.At) {
 		errs = append(errs, errors.New("subscription must be active at migration time"))
 	}
+
 	if !i.Current.Spec.BillingCadence.Equal(&i.Target.BillingCadence) ||
 		i.Current.Spec.SettlementMode != i.Target.SettlementMode ||
 		!reflect.DeepEqual(i.Current.Spec.ProRatingConfig, i.Target.ProRatingConfig) {
 		errs = append(errs, errors.New("migration cannot change billing cadence, settlement mode, or proration configuration in place; provide startingPhase or use subscription change to replace the subscription, which may produce billing adjustments and does not transfer addons"))
 	}
+
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
@@ -130,10 +133,12 @@ func buildMigratedSpec(i buildMigratedSpecInput) (subscription.SubscriptionSpec,
 	if err := i.Validate(); err != nil {
 		return subscription.SubscriptionSpec{}, err
 	}
+
 	patches, err := patch.DiffItems(patch.DiffItemsInput{Current: i.Current.Spec, Target: i.Target, At: i.At})
 	if err != nil {
 		return subscription.SubscriptionSpec{}, models.NewGenericValidationError(fmt.Errorf("cannot migrate in place: %w; provide startingPhase or use subscription change to replace the subscription, which may produce billing adjustments and does not transfer addons", err))
 	}
+
 	// Patches replace entries in phase item maps. Copy those maps so the
 	// caller's view still describes the subscription before migration.
 	spec := i.Current.AsSpec()
@@ -143,9 +148,11 @@ func buildMigratedSpec(i buildMigratedSpecInput) (subscription.SubscriptionSpec,
 		copied.ItemsByKey = maps.Clone(phase.ItemsByKey)
 		spec.Phases[key] = &copied
 	}
+
 	if err := spec.ApplyMany(lo.Map(patches, subscription.ToApplies), subscription.ApplyContext{CurrentTime: i.At}); err != nil {
 		return subscription.SubscriptionSpec{}, subscriptionworkflow.MapSubscriptionErrors(err)
 	}
+
 	spec.Plan = i.Target.Plan
 	if err := spec.ValidateAlignment(); err != nil {
 		return subscription.SubscriptionSpec{}, err

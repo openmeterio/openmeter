@@ -71,6 +71,7 @@ func TestMapUsageBasedDetailedLinesPreservesDiscountSnapshots(t *testing.T) {
 			} else {
 				require.NoError(t, detail.Validate())
 			}
+
 			require.Equal(t, snapshot.Totals, detail.Totals)
 			require.Equal(t, line.InvoiceID, detail.InvoiceID)
 			require.Equal(t, snapshot.ChildUniqueReferenceID, detail.ChildUniqueReferenceID)

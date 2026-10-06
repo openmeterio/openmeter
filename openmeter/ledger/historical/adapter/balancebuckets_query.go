@@ -83,6 +83,7 @@ func (q balanceBucketsQuery) SQL() (string, []any, error) {
 	selector.SetDialect(dialect.Postgres)
 
 	sqlQuery, args := selector.Query()
+
 	return sqlQuery, args, nil
 }
 
@@ -96,6 +97,7 @@ func (q balanceBucketsQuery) bucketSelector() (*sql.Selector, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	for key, value := range q.query.ExcludeAnnotationFilters {
 		entryPredicates = append(entryPredicates,
 			ledgerentrydb.HasTransactionWith(transactionAnnotationNotEqual(key, value)),
@@ -120,6 +122,7 @@ func (q balanceBucketsQuery) bucketSelector() (*sql.Selector, error) {
 	if slices.Contains(q.query.GroupBy, ledger.BalanceBucketGroupBySourceChargeID) {
 		groupColumns = append(groupColumns, entries.C(ledgerentrydb.FieldSourceChargeID))
 	}
+
 	if slices.Contains(q.query.GroupBy, ledger.BalanceBucketGroupBySpendChargeID) {
 		groupColumns = append(groupColumns, entries.C(ledgerentrydb.FieldSpendChargeID))
 	}

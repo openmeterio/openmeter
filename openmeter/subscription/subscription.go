@@ -73,6 +73,7 @@ func (s Subscription) GetStatusAt(at time.Time) SubscriptionStatus {
 		if s.ActiveTo == nil {
 			return SubscriptionStatusActive
 		}
+
 		// ...and it has been canceled, it is canceled
 		if s.ActiveTo.After(at) {
 			return SubscriptionStatusCanceled

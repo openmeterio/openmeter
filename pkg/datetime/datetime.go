@@ -86,6 +86,7 @@ func (d DateTime) AddYearsNoOverflow(years int) DateTime {
 	if day > lastDay {
 		day = lastDay
 	}
+
 	return d.shiftClockTo(time.Date(lastYear, lastMonth, day, hour, minute, second, nanosecond, d.Location()))
 }
 
@@ -99,6 +100,7 @@ func (d DateTime) AddMonthsNoOverflow(months int) DateTime {
 	if day > lastDay {
 		day = lastDay
 	}
+
 	return d.shiftClockTo(time.Date(lastYear, lastMonth, day, hour, minute, second, nanosecond, d.Location()))
 }
 
@@ -132,5 +134,6 @@ func (d DateTime) AddSeconds(seconds alpacadecimal.Decimal) DateTime {
 func (d DateTime) shiftClockTo(t time.Time) DateTime {
 	wallTimeDiff := t.Sub(d.Time.Round(0))
 	d.Time = d.Time.Add(wallTimeDiff)
+
 	return d
 }

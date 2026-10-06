@@ -117,6 +117,7 @@ func (a *adapter) ListApps(ctx context.Context, params app.ListAppInput) (pagina
 			if !params.Order.IsDefaultValue() {
 				order = entutils.GetOrdering(params.Order)
 			}
+
 			switch params.OrderBy {
 			case app.AppOrderByID:
 				query = query.Order(appdb.ByID(order...))

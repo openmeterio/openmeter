@@ -39,6 +39,7 @@ func (e *IntegrationEnv) CustomCurrencyForRoute(currency currencyx.Code) currenc
 	if e.CustomCurrency != nil {
 		return e.CustomCurrency.Reference()
 	}
+
 	if !currency.IsCustom() {
 		return currencies.NewCurrencyReference(currency)
 	}

@@ -70,6 +70,7 @@ func snapshotFeatureMeterReference(reference billingfeaturemeter.FeatureReferenc
 	if !ok {
 		return snapshot
 	}
+
 	identity := owner.GetFeatureMeterOwner()
 	if identity.Kind == "" || identity.ID == "" {
 		return snapshot

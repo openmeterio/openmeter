@@ -173,6 +173,7 @@ func (s *stateMachine) clearOverrideIntent(ctx context.Context) (bool, error) {
 	}
 
 	s.Charge.ChargeBase = base
+
 	return true, nil
 }
 
@@ -185,6 +186,7 @@ func (s *stateMachine) ClearOverrideFromDeletedBase(ctx context.Context, _ meta.
 	if err != nil {
 		return err
 	}
+
 	if !cleared {
 		return nil
 	}

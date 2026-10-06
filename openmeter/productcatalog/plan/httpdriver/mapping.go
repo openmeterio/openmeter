@@ -112,6 +112,7 @@ func AsCreatePlanRequest(a api.PlanCreate, namespace string) (CreatePlanRequest,
 	if err = currencyCode.Validate(); err != nil {
 		return req, fmt.Errorf("invalid CurrencyCode: %w", err)
 	}
+
 	req.Currency = currencies.NewCurrencyReference(currencyx.Code(currencyCode))
 
 	req.PlanMeta.BillingCadence, err = datetime.ISODurationString(a.BillingCadence).Parse()
@@ -218,6 +219,7 @@ func AsUpdatePlanRequest(a api.PlanReplaceUpdate, namespace string, planID strin
 
 		phases = append(phases, planPhase)
 	}
+
 	req.Phases = &phases
 
 	return req, nil

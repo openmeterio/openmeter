@@ -32,5 +32,6 @@ func TestCallbacksRollbackToAncestor(t *testing.T) {
 	for _, callback := range callbacks.callbacks {
 		callback()
 	}
+
 	require.Equal(t, []string{"outer", "retained"}, called)
 }

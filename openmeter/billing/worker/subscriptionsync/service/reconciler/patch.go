@@ -66,6 +66,7 @@ func (p ChargeReferencePatches) add(chargeID chargesmeta.ChargeID, patch charges
 	if err := chargeID.Validate(); err != nil {
 		return fmt.Errorf("invalid charge ID: %w", err)
 	}
+
 	if err := patch.Validate(); err != nil {
 		return fmt.Errorf("invalid subscription reference patch: %w", err)
 	}
@@ -85,9 +86,11 @@ func (p ChargeReferencePatches) asApplyPatchesInput(customerID customer.Customer
 		if err := chargeID.Validate(); err != nil {
 			return charges.ApplyPatchesInput{}, fmt.Errorf("invalid charge ID: %w", err)
 		}
+
 		if chargeID.Namespace != customerID.Namespace {
 			return charges.ApplyPatchesInput{}, fmt.Errorf("charge[%s] namespace does not match customer namespace", chargeID.ID)
 		}
+
 		if err := patch.Validate(); err != nil {
 			return charges.ApplyPatchesInput{}, fmt.Errorf("invalid subscription reference patch for charge[%s]: %w", chargeID.ID, err)
 		}
@@ -184,6 +187,7 @@ func (c patchCollectionRouter) isCreditsEnabled(ns string) (bool, error) {
 	if !c.creditsEnabled {
 		return false, nil
 	}
+
 	return c.featureGate.Enabled(ns, c.featureGate.Flags.Credits())
 }
 

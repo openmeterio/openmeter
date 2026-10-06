@@ -30,6 +30,7 @@ func (c *service) ScheduleEntitlement(ctx context.Context, input entitlement.Cre
 		if featureIdOrKey == nil {
 			featureIdOrKey = input.FeatureKey
 		}
+
 		if featureIdOrKey == nil {
 			return nil, models.NewGenericValidationError(fmt.Errorf("feature ID or Key is required"))
 		}
@@ -87,6 +88,7 @@ func (c *service) ScheduleEntitlement(ctx context.Context, input entitlement.Cre
 					// inconsistency error
 					return nil, fmt.Errorf("inconsistency error: scheduled entitlements don't meet uniqueness constraint %w", cErr)
 				}
+
 				conflict := cErr.E1
 				if conflict.ID == newEntitlementId {
 					conflict = cErr.E2
@@ -112,6 +114,7 @@ func (c *service) ScheduleEntitlement(ctx context.Context, input entitlement.Cre
 		if err != nil {
 			return nil, err
 		}
+
 		repoInputs, err := connector.BeforeCreate(input, *feat)
 		if err != nil {
 			return nil, err
@@ -161,6 +164,7 @@ func (c *service) SupersedeEntitlement(ctx context.Context, entitlementId string
 		if featureIdOrKey == nil {
 			featureIdOrKey = input.FeatureKey
 		}
+
 		if featureIdOrKey == nil {
 			return nil, models.NewGenericValidationError(fmt.Errorf("feature ID or Key is required"))
 		}

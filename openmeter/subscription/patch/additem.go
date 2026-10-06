@@ -165,5 +165,6 @@ func (a PatchAddItem) ApplyTo(spec *subscription.SubscriptionSpec, actx subscrip
 	// Finally, we simply add it as the last Spec for its key in the phase
 
 	phase.ItemsByKey[a.ItemKey] = append(phase.ItemsByKey[a.ItemKey], &a.CreateInput)
+
 	return nil
 }

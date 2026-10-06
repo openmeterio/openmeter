@@ -29,6 +29,7 @@ func TestCreditFilterStorageCutover(t *testing.T) {
    (4, ARRAY['stale'], '{"schema_version":1,"features":["existing"]}');`, tc.table, tc.legacy, tc.filters, tc.table, tc.legacy, tc.filters))
 		require.NoError(t, err)
 	}
+
 	// When backfilled and rerun, existing envelopes and accounting identities survive.
 	up := readMigration(t, "20260921133354_credit_filter_cutover.up.sql")
 	_, err = conn.ExecContext(t.Context(), up)
@@ -46,11 +47,13 @@ func TestCreditFilterStorageCutover(t *testing.T) {
 			require.Equal(t, ledger.CreditFiltersVersion1, decoded.Version)
 			require.Equal(t, "unchanged", key)
 		}
+
 		_, err = conn.ExecContext(t.Context(), fmt.Sprintf(`INSERT INTO %s (id,%s) VALUES (5,'{"schema_version":1,"features":["new"]}')`, tc.table, tc.filters))
 		require.NoError(t, err)
 		_, err = conn.ExecContext(t.Context(), fmt.Sprintf(`INSERT INTO %s (id) VALUES (6)`, tc.table))
 		require.ErrorContains(t, err, "not-null constraint")
 	}
+
 	// Then rollback reconstructs feature projections, including rows written after cutover.
 	down := readMigration(t, "20260921133354_credit_filter_cutover.down.sql")
 	_, err = conn.ExecContext(t.Context(), down)
@@ -61,6 +64,7 @@ func TestCreditFilterStorageCutover(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, "{new}", features)
 	}
+
 	// Unsupported versions and dimensions must never be reinterpreted on rollback.
 	for _, tc := range tables {
 		for _, filters := range []string{
@@ -75,6 +79,7 @@ func TestCreditFilterStorageCutover(t *testing.T) {
 			_, err = conn.ExecContext(t.Context(), "ROLLBACK")
 			require.NoError(t, err)
 		}
+
 		_, err = conn.ExecContext(t.Context(), fmt.Sprintf(`UPDATE %s SET filters='{"schema_version":1,"features":["new"]}' WHERE id=5`, tc.table))
 		require.NoError(t, err)
 	}

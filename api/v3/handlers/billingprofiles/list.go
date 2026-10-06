@@ -66,6 +66,7 @@ func (h *handler) ListBillingProfiles() ListBillingProfilesHandler {
 						{Field: "filter[id]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 					})
 				}
+
 				req.ID = id
 
 				name, err := filters.FromAPIFilterString(params.Filter.Name)
@@ -74,6 +75,7 @@ func (h *handler) ListBillingProfiles() ListBillingProfilesHandler {
 						{Field: "filter[name]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 					})
 				}
+
 				req.Name = name
 			}
 
@@ -84,6 +86,7 @@ func (h *handler) ListBillingProfiles() ListBillingProfilesHandler {
 						{Field: "sort", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 					})
 				}
+
 				req.OrderBy = billing.ProfileOrderBy(sort.Field)
 				req.Order = sort.Order.ToSortxOrder()
 			}

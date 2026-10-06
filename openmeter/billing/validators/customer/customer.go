@@ -40,7 +40,6 @@ type Validator struct {
 
 func (v *Validator) ValidateDeleteCustomer(ctx context.Context, input customer.DeleteCustomerInput) error {
 	// A customer can only be deleted if all of his invocies are in final state
-
 	if err := input.Validate(); err != nil {
 		return err
 	}

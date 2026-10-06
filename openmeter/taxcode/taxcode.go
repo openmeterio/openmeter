@@ -141,6 +141,7 @@ func (t TaxCode) IsManagedBySystem() bool {
 	if !ok {
 		return false
 	}
+
 	s, ok := v.(string)
 
 	return ok && s == AnnotationValueManagedBySystem

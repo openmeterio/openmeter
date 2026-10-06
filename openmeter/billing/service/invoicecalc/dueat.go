@@ -12,7 +12,6 @@ func CalculateDueAt(i *billing.StandardInvoice) error {
 	if !i.Workflow.Config.Invoicing.AutoAdvance {
 		// In case of manual approval dueAt is started from the moment of the invoice is issued
 		// to prevent the invoice from being overdue on issuance
-
 		if i.IssuedAt == nil {
 			// If we don't know when the invoice was issued we cannot calculate the dueAt
 			return nil

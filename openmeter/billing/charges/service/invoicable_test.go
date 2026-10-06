@@ -440,6 +440,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyCreditThenInvoiceL
 						if amount.GreaterThan(creditsAllocated) {
 							amount = creditsAllocated
 						}
+
 						if amount.IsZero() {
 							return nil
 						}
@@ -489,6 +490,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyCreditThenInvoiceL
 						expectFiatTotals:   test.expectDraftInvoiceTotals,
 					})
 				}
+
 				s.Equal(overageName, line.Name)
 				s.Empty(line.RateCardDiscounts)
 				s.Empty(line.Discounts)
@@ -524,6 +526,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyCreditThenInvoiceL
 				if test.creditsAllocated > 0 {
 					expectedCreditsApplied = 1
 				}
+
 				s.Len(run.CreditRealizations, expectedCreditsApplied)
 				s.Len(run.DetailedLines.OrEmpty()[0].CreditsApplied, expectedCreditsApplied)
 				s.Equal(test.expectLineDeleted, run.NoFiatTransactionRequired)
@@ -630,6 +633,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyCreditThenInvoiceL
 				if expectedFiatCreditsAllocated > 0 {
 					expectedFiatRealizations = 1
 				}
+
 				s.Len(run.FiatOverageCreditRealizations, expectedFiatRealizations)
 
 				if !test.expectLineDeleted {
@@ -672,6 +676,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyCreditThenInvoiceL
 				if test.expectLineDeleted {
 					expectedInvoiceStatus = billing.StandardInvoiceStatusDeleted
 				}
+
 				s.Equal(expectedInvoiceStatus, activeInvoice.Status)
 				s.Equal(currencyx.FiatCode(USD), activeInvoice.Currency)
 				s.RequireTotals(test.expectInvoiceTotals, activeInvoice.Totals)
@@ -774,7 +779,6 @@ func (s *InvoicableChargesTestSuite) runFlatFeeCustomCurrencyFiatOverageAfterInv
 	// - issuing is retried after the invoicing app recovers
 	// then:
 	// - issuing reuses the persisted allocation without invoking allocation again
-
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-flatfee-fiat-overage-sync-retry")
 
@@ -1242,6 +1246,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyCreditThenInvoiceR
 		if amount.GreaterThan(chargeCurrencyCreditsAvailable) {
 			amount = chargeCurrencyCreditsAvailable
 		}
+
 		if amount.IsZero() {
 			return nil, nil
 		}
@@ -1821,6 +1826,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyGatheringPreviewAn
 					lines := invoice.Lines.OrEmpty()
 					s.Require().Len(lines, 1)
 					test.mutate(&lines[0])
+
 					return nil
 				},
 				IncludeDeletedLines: true,
@@ -1930,6 +1936,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyGatheringPreviewAn
 					lines := invoice.Lines.OrEmpty()
 					s.Require().Len(lines, 1)
 					test.mutate(lines[0])
+
 					return nil
 				},
 				IncludeDeletedLines: true,
@@ -1954,6 +1961,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyGatheringPreviewAn
 				s.Equal(flatfee.StatusDeleted, charge.Status)
 				s.Nil(charge.Realizations.CurrentRun)
 				s.Equal(1, allocationCallback.nrInvocations)
+
 				return
 			}
 
@@ -2120,6 +2128,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyInvalidAccrualResu
 				accrualCalls++
 				s.Equal(chargeID.ID, input.Charge.ID)
 				s.Equal(runID, input.Run.ID)
+
 				return test.accrualResult, nil
 			}
 
@@ -2756,6 +2765,7 @@ func runFlatFeeCreditThenInvoiceImmutableProrationScenario(s *BaseSuite, expectR
 			s.Require().Len(activeGatheringLines, 1)
 			s.Equal(servicePeriod.From, activeGatheringLines[0].ServicePeriod.From)
 			s.Equal(shrunkServicePeriodTo, activeGatheringLines[0].ServicePeriod.To)
+
 			return
 		}
 
@@ -3669,6 +3679,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditThenInvoiceZeroAmountNonZe
 		for idx := range lines[0].DetailedLines {
 			lines[0].DetailedLines[idx].Totals = lines[0].Totals
 		}
+
 		invoice.Lines = billing.NewStandardInvoiceLines(lines)
 
 		lineEngine := s.Charges.flatFeeService.GetLineEngine()
@@ -4924,7 +4935,6 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditThenInvoiceDirectPaidFl
 	// Then
 	// - billing should run the usage-based payment authorization and settlement hooks in order
 	//   and persist the finalized payment state on the realization run.
-
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-usage-based-credit-then-invoice-direct-paid")
 	s.ProvisionDefaultTaxCodes(ctx, ns)

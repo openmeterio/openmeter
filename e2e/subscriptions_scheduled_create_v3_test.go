@@ -33,6 +33,7 @@ func TestV3SubscriptionScheduledCreate(t *testing.T) {
 		})
 		c.requireStatus(http.StatusCreated, err)
 		require.NotNil(t, cust)
+
 		return cust
 	}
 
@@ -43,6 +44,7 @@ func TestV3SubscriptionScheduledCreate(t *testing.T) {
 		require.NotNil(t, plan)
 		_, err = c.Plans.Publish(t.Context(), plan.ID)
 		c.requireStatus(http.StatusOK, err)
+
 		return plan
 	}
 

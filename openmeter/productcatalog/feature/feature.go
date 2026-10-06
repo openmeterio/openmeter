@@ -49,8 +49,10 @@ func (e *FeatureInvalidMeterAggregationError) Error() string {
 		if i > 0 {
 			validAggregations += ", "
 		}
+
 		validAggregations += string(validAggregation)
 	}
+
 	return fmt.Sprintf("meter %s's aggregation is %s but features can only be created for %s", e.MeterSlug, e.Aggregation, validAggregations)
 }
 
@@ -73,6 +75,7 @@ func (f MeterGroupByFilters) Validate(meter meter.Meter) error {
 			for k := range meter.GroupBy {
 				meterGroupByColumns = append(meterGroupByColumns, k)
 			}
+
 			return &FeatureInvalidFiltersError{
 				RequestedFilters:    f,
 				MeterGroupByColumns: meterGroupByColumns,
@@ -113,6 +116,7 @@ func ConvertMeterGroupByFiltersToMapString(f MeterGroupByFilters) map[string]str
 		if v.Eq == nil {
 			return nil
 		}
+
 		result[k] = *v.Eq
 	}
 

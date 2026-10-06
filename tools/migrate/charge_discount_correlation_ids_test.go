@@ -315,6 +315,7 @@ func scanDiscounts(t *testing.T, rows *sql.Rows) map[string]string {
 		require.NoError(t, rows.Scan(&key, &discounts))
 		result[key] = discounts
 	}
+
 	require.NoError(t, rows.Err())
 
 	return result

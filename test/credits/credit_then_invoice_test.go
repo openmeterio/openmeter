@@ -573,6 +573,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceCollectionPe
 		issueFeatureKeys = append(issueFeatureKeys, featureKey)
 		s.Len(s.mustGatheringLinesForCharge(ns, cust.ID, usageBasedCharge.ID, false), 1)
 	}
+
 	s.ElementsMatch([]string{
 		apiRequestsTotal.Feature.Key,
 		aiTokens.Key,

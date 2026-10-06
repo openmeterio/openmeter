@@ -582,6 +582,7 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeCreditOnlyHandlerReceivesTaxCon
 	var capturedInput flatfee.OnAllocateCreditsInput
 	s.FlatFeeTestHandler.onAllocateCredits = func(_ context.Context, input flatfee.OnAllocateCreditsInput) (creditrealization.CreateAllocationInputs, error) {
 		capturedInput = input
+
 		return creditrealization.CreateAllocationInputs{
 			{
 				ServicePeriod: input.Charge.Intent.GetEffectiveServicePeriod(),
@@ -665,6 +666,7 @@ func (s *TaxCodePersistenceTestSuite) TestUsageBasedCreditOnlyHandlerReceivesTax
 	var capturedInput usagebased.CreditsOnlyUsageAccruedInput
 	s.UsageBasedTestHandler.onCreditsOnlyUsageAccrued = func(_ context.Context, input usagebased.CreditsOnlyUsageAccruedInput) (creditrealization.CreateAllocationInputs, error) {
 		capturedInput = input
+
 		return creditrealization.CreateAllocationInputs{
 			{
 				ServicePeriod: input.Charge.Intent.GetEffectiveServicePeriod(),
@@ -1485,6 +1487,7 @@ func (s *TaxCodePersistenceTestSuite) createTestTaxCode(ctx context.Context, ns,
 		Name:      "Test Tax Code " + key,
 	})
 	s.Require().NoError(err, "creating test tax code must succeed")
+
 	return tc
 }
 
@@ -1499,5 +1502,6 @@ func (s *TaxCodePersistenceTestSuite) createTestTaxCodeWithStripeMapping(ctx con
 		},
 	})
 	s.Require().NoError(err, "creating test tax code with stripe mapping must succeed")
+
 	return tc
 }

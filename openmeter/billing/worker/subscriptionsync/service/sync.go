@@ -170,6 +170,7 @@ func (s *Service) synchronizeSubscription(ctx context.Context, refOrView subscri
 			if customerOverride.Customer != nil {
 				customerDeletedAt = convert.SafeToUTC(customerOverride.Customer.GetDeletedAt())
 			}
+
 			subscriptionEndProrationMode = customerOverride.MergedProfile.WorkflowConfig.Invoicing.SubscriptionEndProrationMode
 
 			if customerOverride.Customer != nil && customerOverride.Customer.DeletedAt != nil && !customerOverride.Customer.DeletedAt.After(subsView.Spec.ActiveFrom) {
@@ -186,6 +187,7 @@ func (s *Service) synchronizeSubscription(ctx context.Context, refOrView subscri
 				}
 
 				s.logger.WarnContext(ctx, "customer deleted before subscription start, skipping sync", "subscription_id", subscriptionID.ID, "customer_id", customerID.ID)
+
 				return res, nil
 			}
 		}
@@ -273,6 +275,7 @@ func withBillingLock[T any](ctx context.Context, s *Service, customerID customer
 	err := s.billingService.WithLock(ctx, customerID, func(ctx context.Context) error {
 		var err error
 		out, err = fn(ctx)
+
 		return err
 	})
 	if err != nil {

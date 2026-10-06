@@ -85,6 +85,7 @@ func (r SubscriptionItemWithPeriods) GetInvoiceAt() time.Time {
 		if paymentTerm == "" {
 			paymentTerm = productcatalog.DefaultPaymentTerm
 		}
+
 		if paymentTerm == productcatalog.InAdvancePaymentTerm {
 			// In advance invoicing
 			// For in advance invoicing we attempt to incoice at the start of the billing period

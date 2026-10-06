@@ -178,6 +178,7 @@ func (i MarkVoidedInput) Validate() error {
 	if err := i.ChargeID.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("charge ID: %w", err))
 	}
+
 	if i.VoidedAt.IsZero() {
 		errs = append(errs, errors.New("voided at is required"))
 	}
@@ -196,6 +197,7 @@ func (i MarkVoidedAdapterInput) Validate() error {
 	if err := i.Charge.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("charge: %w", err))
 	}
+
 	if i.VoidedAt.IsZero() {
 		errs = append(errs, errors.New("voided at is required"))
 	}

@@ -113,6 +113,7 @@ func applyPaging(ctx context.Context, req *QueryEntitlementAccessRequest, params
 		if err != nil {
 			return err
 		}
+
 		req.After = cursor
 	}
 
@@ -121,6 +122,7 @@ func applyPaging(ctx context.Context, req *QueryEntitlementAccessRequest, params
 		if err != nil {
 			return err
 		}
+
 		req.Before = cursor
 	}
 

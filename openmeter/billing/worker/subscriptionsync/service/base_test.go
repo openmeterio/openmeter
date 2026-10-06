@@ -197,6 +197,7 @@ func (s *SuiteBase) gatheringInvoice(ctx context.Context, namespace string, cust
 
 	s.NoError(err)
 	s.Len(invoices.Items, 1, "expected 1 gathering invoice")
+
 	return invoices.Items[0]
 }
 
@@ -219,6 +220,7 @@ func (s *SuiteBase) expectNoGatheringInvoice(ctx context.Context, namespace stri
 			s.DebugDumpInvoice(fmt.Sprintf("unexpected gathering invoice[%s]", invoice.ID), invoice)
 		}
 	}
+
 	s.Len(invoices.Items, 0)
 }
 
@@ -289,6 +291,7 @@ func (s *SuiteBase) getPhaseByKey(t *testing.T, subsView subscription.Subscripti
 	}
 
 	t.Fatalf("phase with key %s not found", key)
+
 	return subscription.SubscriptionPhaseView{}
 }
 
@@ -463,9 +466,11 @@ func (s *SuiteBase) assertCharges(ctx context.Context, subsView subscription.Sub
 		if len(expectedCharge.InvoiceAt) > 0 {
 			s.Require().Len(expectedCharge.InvoiceAt, len(childIDs), "expected charge invoice at")
 		}
+
 		if len(expectedCharge.FullServicePeriods) > 0 {
 			s.Require().Len(expectedCharge.FullServicePeriods, len(childIDs), "expected charge full service periods")
 		}
+
 		if len(expectedCharge.BillingPeriods) > 0 {
 			s.Require().Len(expectedCharge.BillingPeriods, len(childIDs), "expected charge billing periods")
 		}
@@ -510,15 +515,19 @@ func (s *SuiteBase) assertCharge(ctx context.Context, charge charges.Charge, sub
 		if len(expectedCharge.FullServicePeriods) > 0 {
 			s.Equal(expectedCharge.FullServicePeriods[idx], baseIntent.FullServicePeriod, "%s: full service period", childID)
 		}
+
 		if len(expectedCharge.BillingPeriods) > 0 {
 			s.Equal(expectedCharge.BillingPeriods[idx], baseIntent.BillingPeriod, "%s: billing period", childID)
 		}
+
 		if expectedCharge.Price != nil {
 			s.Truef(expectedCharge.Price.Equal(&baseIntent.Price), "%s: price expected %v, got %v", childID, expectedCharge.Price, baseIntent.Price)
 		}
+
 		if len(expectedCharge.InvoiceAt) > idx && expectedCharge.InvoiceAt[idx] != nil {
 			s.Equal(*expectedCharge.InvoiceAt[idx], baseIntent.InvoiceAt, "%s: invoice at", childID)
 		}
+
 		s.Require().NotNil(subscription, "%s: subscription", childID)
 		s.Equal(subsView.Subscription.ID, subscription.SubscriptionID, "%s: subscription id", childID)
 		s.Equal(phase.SubscriptionPhase.ID, subscription.PhaseID, "%s: phase id", childID)
@@ -531,6 +540,7 @@ func (s *SuiteBase) assertCharge(ctx context.Context, charge charges.Charge, sub
 				expectedFeatureKey = lo.FromPtrOr(feature.Key, itemKey)
 			}
 		}
+
 		s.Equal(expectedFeatureKey, baseIntent.FeatureKey, "%s: feature key", childID)
 	case chargesmeta.ChargeTypeFlatFee:
 		flatFeeCharge, err := charge.AsFlatFeeCharge()
@@ -546,17 +556,21 @@ func (s *SuiteBase) assertCharge(ctx context.Context, charge charges.Charge, sub
 		if len(expectedCharge.FullServicePeriods) > 0 {
 			s.Equal(expectedCharge.FullServicePeriods[idx], baseIntent.FullServicePeriod, "%s: full service period", childID)
 		}
+
 		if len(expectedCharge.BillingPeriods) > 0 {
 			s.Equal(expectedCharge.BillingPeriods[idx], baseIntent.BillingPeriod, "%s: billing period", childID)
 		}
+
 		if expectedCharge.Price != nil {
 			expectedFlatPrice, err := expectedCharge.Price.AsFlat()
 			s.NoError(err)
 			require.Equal(s.T(), expectedFlatPrice.Amount.InexactFloat64(), baseIntent.AmountBeforeProration.InexactFloat64(), fmt.Sprintf("%s: amount before proration", childID))
 		}
+
 		if len(expectedCharge.InvoiceAt) > idx && expectedCharge.InvoiceAt[idx] != nil {
 			s.Equal(*expectedCharge.InvoiceAt[idx], baseIntent.InvoiceAt, "%s: invoice at", childID)
 		}
+
 		s.Require().NotNil(subscription, "%s: subscription", childID)
 		s.Equal(subsView.Subscription.ID, subscription.SubscriptionID, "%s: subscription id", childID)
 		s.Equal(phase.SubscriptionPhase.ID, subscription.PhaseID, "%s: phase id", childID)
@@ -602,12 +616,14 @@ func (s *SuiteBase) assertCharge(ctx context.Context, charge charges.Charge, sub
 			s.Failf("realization not found", "realization not found for charge %s with status %s and period %s", childID, expectedRealization.Status, expectedRealization.Period)
 			continue
 		}
+
 		remainingActualRealizations = slices.Delete(remainingActualRealizations, idx, idx+1)
 
 		expectedPrice := expectedRealization.Price
 		if expectedPrice == nil {
 			expectedPrice = expectedCharge.Price
 		}
+
 		if expectedPrice != nil {
 			s.Truef(expectedPrice.Equal(actualRealization.Price), "%s: realization price expected %v, got %v", childID, expectedPrice, actualRealization.Price)
 		}
@@ -686,6 +702,7 @@ func (s *SuiteBase) assertPaymentLedgerTransactions(ctx context.Context, namespa
 	if payment.Authorized != nil && payment.Authorized.TransactionGroupID != "" {
 		s.assertLedgerTransactionGroupBookedAt(ctx, namespace, payment.Authorized.TransactionGroupID, payment.Authorized.Time, fmt.Sprintf("%s: payment authorization", childID))
 	}
+
 	if payment.Settled != nil && payment.Settled.TransactionGroupID != "" {
 		s.assertLedgerTransactionGroupBookedAt(ctx, namespace, payment.Settled.TransactionGroupID, payment.Settled.Time, fmt.Sprintf("%s: payment settlement", childID))
 	}
@@ -757,15 +774,18 @@ func (s *SuiteBase) assertChargeGatheringLines(ctx context.Context, charge charg
 			s.Failf("gathering line not found", "gathering line not found for charge %s with period %s", childID, expectedLine.Period)
 			continue
 		}
+
 		remainingActualLines = slices.Delete(remainingActualLines, idx, idx+1)
 
 		expectedPrice := expectedLine.Price
 		if expectedPrice == nil {
 			expectedPrice = chargePrice
 		}
+
 		if expectedPrice != nil {
 			s.Truef(expectedPrice.Equal(actualLine.Price), "%s: gathering line price expected %v, got %v", childID, expectedPrice, actualLine.Price)
 		}
+
 		if expectedLine.InvoiceAt != nil {
 			s.Equal(*expectedLine.InvoiceAt, actualLine.InvoiceAt, "%s: gathering line invoice at", childID)
 		}
@@ -847,6 +867,7 @@ func (s *SuiteBase) chargeRealizations(ctx context.Context, charge charges.Charg
 			if run.DeletedAt != nil {
 				continue
 			}
+
 			if run.InvoiceID == nil || run.LineID == nil {
 				continue
 			}
@@ -873,6 +894,7 @@ func (s *SuiteBase) chargeRealizations(ctx context.Context, charge charges.Charg
 			if run.DeletedAt != nil {
 				continue
 			}
+
 			if run.InvoiceID == nil || run.LineID == nil {
 				continue
 			}
@@ -905,6 +927,7 @@ func (s *SuiteBase) usageBasedRunLedgerTransactionGroups(run usagebased.Realizat
 			Label: fmt.Sprintf("usage-based credit realization %s", realization.ID),
 		})
 	}
+
 	if run.InvoiceUsage != nil && run.InvoiceUsage.LedgerTransaction != nil && run.InvoiceUsage.LedgerTransaction.TransactionGroupID != "" {
 		out = append(out, actualChargeLedgerTransactionGroup{
 			ID:    run.InvoiceUsage.LedgerTransaction.TransactionGroupID,
@@ -929,6 +952,7 @@ func (s *SuiteBase) flatFeeRunLedgerTransactionGroups(run flatfee.RealizationRun
 			Label: fmt.Sprintf("flat fee credit realization %s", realization.ID),
 		})
 	}
+
 	if run.AccruedUsage != nil && run.AccruedUsage.LedgerTransaction != nil && run.AccruedUsage.LedgerTransaction.TransactionGroupID != "" {
 		out = append(out, actualChargeLedgerTransactionGroup{
 			ID:    run.AccruedUsage.LedgerTransaction.TransactionGroupID,
@@ -1157,6 +1181,7 @@ func (s *SuiteBase) generatePeriods(startStr, endStr string, cadenceStr string, 
 
 		n--
 	}
+
 	return out
 }
 
@@ -1259,5 +1284,6 @@ func (s *SuiteBase) createSubscriptionFromPlanAt(planInput plan.CreatePlanInput,
 
 	s.NoError(err)
 	s.NotNil(subsView)
+
 	return subsView
 }

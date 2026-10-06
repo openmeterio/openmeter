@@ -26,6 +26,7 @@ func ConvertISO8601DurationToWindowSize(duration string) (meter.WindowSize, erro
 	if !ok {
 		return "", NewInvalidWindowSizeError(duration)
 	}
+
 	return ws, nil
 }
 
@@ -33,6 +34,7 @@ func ConvertWindowSizeToISO8601Duration(ws meter.WindowSize) (string, error) {
 	if d, ok := windowSizeToISO8601[ws]; ok {
 		return d, nil
 	}
+
 	return "", fmt.Errorf("unknown WindowSize: %q", ws)
 }
 
@@ -48,6 +50,7 @@ func ExtractStringsFromQueryFilter(f *api.QueryFilterString, fieldPath ...string
 		f.And != nil || f.Or != nil {
 		return nil, NewUnsupportedFilterOperatorError(fieldPath...)
 	}
+
 	if f.Eq != nil && f.In != nil {
 		return nil, NewUnsupportedFilterOperatorError(fieldPath...)
 	}
@@ -56,9 +59,11 @@ func ExtractStringsFromQueryFilter(f *api.QueryFilterString, fieldPath ...string
 	if f.Eq != nil {
 		result = append(result, *f.Eq)
 	}
+
 	if f.In != nil {
 		result = append(result, *f.In...)
 	}
+
 	return result, nil
 }
 
@@ -74,6 +79,7 @@ func ExtractStringsFromQueryFilterMapItem(f *api.QueryFilterStringMapItem, field
 		f.And != nil || f.Or != nil || f.Exists != nil {
 		return nil, NewUnsupportedFilterOperatorError(fieldPath...)
 	}
+
 	if f.Eq != nil && f.In != nil {
 		return nil, NewUnsupportedFilterOperatorError(fieldPath...)
 	}
@@ -82,8 +88,10 @@ func ExtractStringsFromQueryFilterMapItem(f *api.QueryFilterStringMapItem, field
 	if f.Eq != nil {
 		result = append(result, *f.Eq)
 	}
+
 	if f.In != nil {
 		result = append(result, *f.In...)
 	}
+
 	return result, nil
 }

@@ -34,6 +34,7 @@ func (r Realizations) Sum() alpacadecimal.Decimal {
 	for _, realization := range r {
 		sum = sum.Add(realization.Amount)
 	}
+
 	return sum
 }
 
@@ -110,6 +111,7 @@ func (r Realizations) CreateCorrectionRequest(amount alpacadecimal.Decimal, curr
 			})
 
 			amountToCorrect = alpacadecimal.Zero
+
 			break
 		}
 
@@ -150,6 +152,7 @@ func (r Realizations) Correct(amount alpacadecimal.Decimal, currency currencyx.C
 	if err != nil {
 		return nil, err
 	}
+
 	corrections = corrections.NormalizeWith(currency)
 
 	if err := corrections.ValidateWith(r, amount.Abs(), currency); err != nil {
@@ -182,7 +185,6 @@ type allocationWithCorrections struct {
 // the return value is sorted by creation order (reverts should happen in reverse order).
 func (r Realizations) allocationsWithCorrections() ([]allocationWithCorrections, error) {
 	// let's collect the corrections by allocation ID
-
 	corrections := lo.Filter(r, func(realization Realization, _ int) bool {
 		return realization.Type == TypeCorrection
 	})

@@ -48,6 +48,7 @@ func (s *CreditThenInvoiceStateMachine) intentMutableFieldsFromLineManualEdit(li
 		// keep the current effective charge intent's invoice-at for standard-line edits.
 		out.InvoiceAt = s.Charge.Intent.GetEffectiveInvoiceAt()
 	}
+
 	out.PaymentTerm = flatPrice.PaymentTerm
 	out.AmountBeforeProration = flatPrice.Amount
 	// Manual line edits own the displayed gross, including any proration already applied.
@@ -84,6 +85,7 @@ func intentFromManualCreatedLine(
 	if err != nil {
 		return flatfee.Intent{}, fmt.Errorf("resolving fiat currency %q: %w", line.GetCurrency(), err)
 	}
+
 	currency := currencies.Currency{Currency: fiatCurrency}
 
 	if chargeID := line.GetChargeID(); chargeID != nil && *chargeID != "" {

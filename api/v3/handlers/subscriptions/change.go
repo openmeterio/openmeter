@@ -73,6 +73,7 @@ func (h *handler) ChangeSubscription() ChangeSubscriptionHandler {
 				if err != nil {
 					return ChangeSubscriptionRequest{}, err
 				}
+
 				planInput.FromInput(&customPlan)
 			}
 
@@ -82,6 +83,7 @@ func (h *handler) ChangeSubscription() ChangeSubscriptionHandler {
 				if err != nil {
 					return ChangeSubscriptionRequest{}, err
 				}
+
 				planInput.FromRef(&plansubscription.PlanRefInput{
 					Key:     planEntity.Key,
 					Version: &planEntity.Version,

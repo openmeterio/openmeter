@@ -234,6 +234,7 @@ func (s *CreditOnlyValidationSuite) TestUsageBasedCreditOnlyNegativeUsageKeepsRa
 		s.Require().NoError(err)
 		charge, err := result.AsUsageBasedCharge()
 		s.Require().NoError(err)
+
 		return charge
 	}
 

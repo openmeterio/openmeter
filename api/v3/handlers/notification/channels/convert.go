@@ -177,6 +177,7 @@ func mapAPIChannelTypeFilter(f *filter.FilterString) (*filter.FilterString, erro
 		if err != nil {
 			return nil, err
 		}
+
 		mapped.Eq = lo.ToPtr(string(v))
 	}
 
@@ -185,6 +186,7 @@ func mapAPIChannelTypeFilter(f *filter.FilterString) (*filter.FilterString, erro
 		if err != nil {
 			return nil, err
 		}
+
 		mapped.Ne = lo.ToPtr(string(v))
 	}
 
@@ -195,8 +197,10 @@ func mapAPIChannelTypeFilter(f *filter.FilterString) (*filter.FilterString, erro
 			if err != nil {
 				return nil, err
 			}
+
 			values = append(values, string(v))
 		}
+
 		mapped.In = &values
 	}
 

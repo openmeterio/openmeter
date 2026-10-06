@@ -91,6 +91,7 @@ func (a *adapter) GetEventDeliveryStatus(ctx context.Context, params notificatio
 
 			return nil, fmt.Errorf("failed to get notification event delivery status: %w", err)
 		}
+
 		if queryRow == nil {
 			return nil, errors.New("invalid query response: no delivery status received")
 		}

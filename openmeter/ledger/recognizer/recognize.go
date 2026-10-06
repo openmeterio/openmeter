@@ -68,6 +68,7 @@ func (s *service) RecognizeEarnings(ctx context.Context, in RecognizeEarningsInp
 		if err != nil {
 			return RecognizeEarningsResult{}, fmt.Errorf("plan recognition: %w", err)
 		}
+
 		actualAmount := alpacadecimal.Zero
 		for _, allocation := range allocations {
 			actualAmount = actualAmount.Add(allocation.amount)
@@ -109,6 +110,7 @@ func (s *service) RecognizeEarnings(ctx context.Context, in RecognizeEarningsInp
 				}
 			}
 		}
+
 		if len(resolved) == 0 {
 			return RecognizeEarningsResult{}, nil
 		}
@@ -207,6 +209,7 @@ func (s *service) allocateRecognition(ctx context.Context, allocations []recogni
 			return fmt.Errorf("create recognized segment: %w", err)
 		}
 	}
+
 	return nil
 }
 

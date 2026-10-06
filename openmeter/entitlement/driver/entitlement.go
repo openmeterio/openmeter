@@ -118,6 +118,7 @@ func (h *entitlementHandler) CreateEntitlement() CreateEntitlementHandler {
 			if err != nil {
 				return nil, err
 			}
+
 			return Parser.ToAPIGeneric(&entitlement.EntitlementWithCustomer{Entitlement: lo.FromPtr(res), Customer: *cust})
 		},
 		commonhttp.JSONResponseEncoderWithStatus[CreateEntitlementHandlerResponse](http.StatusCreated),
@@ -188,6 +189,7 @@ func (h *entitlementHandler) OverrideEntitlement() OverrideEntitlementHandler {
 			if err != nil {
 				return nil, err
 			}
+
 			return Parser.ToAPIGeneric(&entitlement.EntitlementWithCustomer{Entitlement: lo.FromPtr(res), Customer: *cust})
 		},
 		commonhttp.JSONResponseEncoderWithStatus[OverrideEntitlementHandlerResponse](http.StatusCreated),
@@ -246,6 +248,7 @@ func (h *entitlementHandler) GetEntitlementValue() GetEntitlementValueHandler {
 			if err != nil {
 				return api.EntitlementValue{}, err
 			}
+
 			return MapEntitlementValueToAPI(entitlementValue)
 		},
 		commonhttp.JSONResponseEncoder[api.EntitlementValue],
@@ -323,6 +326,7 @@ func (h *entitlementHandler) GetEntitlementsOfSubjectHandler() GetEntitlementsOf
 				if err != nil {
 					return nil, err
 				}
+
 				res = append(res, *ent)
 			}
 
@@ -429,6 +433,7 @@ func (h *entitlementHandler) ListEntitlements() ListEntitlementsHandler {
 				if err != nil {
 					return response, err
 				}
+
 				mapped = append(mapped, *ent)
 			}
 

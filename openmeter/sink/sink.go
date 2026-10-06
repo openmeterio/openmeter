@@ -288,6 +288,7 @@ func (s *Sink) flush(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to pause partitions before flush: %w", err)
 	}
+
 	defer func() {
 		err = s.resume()
 		if err != nil {
@@ -309,8 +310,10 @@ func (s *Sink) flush(ctx context.Context) error {
 		dedupeSpan.RecordError(err)
 		dedupeSpan.SetStatus(codes.Error, "deduplication and meter resolution failure")
 		dedupeSpan.End()
+
 		return err
 	}
+
 	dedupeSpan.End()
 
 	// 1. Persist to storage
@@ -372,6 +375,7 @@ func (s *Sink) flush(ctx context.Context) error {
 	if err != nil {
 		flushSpan.SetStatus(codes.Error, "failed to report flush metrics")
 		flushSpan.RecordError(err)
+
 		return fmt.Errorf("failed to report flush metrics: %w", err)
 	}
 
@@ -444,6 +448,7 @@ func (s *Sink) persistToStorage(ctx context.Context, messages []sinkmodels.SinkM
 		default:
 			return fmt.Errorf("unknown state type: %s", message.Status.State.String())
 		}
+
 		batch = append(batch, message)
 	}
 
@@ -456,8 +461,10 @@ func (s *Sink) persistToStorage(ctx context.Context, messages []sinkmodels.SinkM
 			// Returning and error means we will retry the whole batch again
 			storageSpan.SetStatus(codes.Error, "failure")
 			storageSpan.RecordError(err)
+
 			return fmt.Errorf("failed to sink to storage: %s", err)
 		}
+
 		logger.Debug("succeeded to sink to storage", "buffer size", len(messages))
 	}
 
@@ -485,7 +492,6 @@ func (s *Sink) dedupeSet(ctx context.Context, messages []sinkmodels.SinkMessage)
 			// Let's not insert already dropped messages into the deduplicator as this signals
 			// that we had a problem validating the message, we could redo any validation as needed
 			// later but if any error was transient let's retry the message if it's sent again.
-
 			if s.config.LogDroppedEvents {
 				logger.WarnContext(
 					ctx, "event dropped",
@@ -537,10 +543,13 @@ func (s *Sink) dedupeSet(ctx context.Context, messages []sinkmodels.SinkMessage)
 		dedupeSet.SetStatus(codes.Error, "dedupe set failure")
 		dedupeSet.RecordError(err)
 		dedupeSet.End()
+
 		return fmt.Errorf("failed to sink to redis: %s", err)
 	}
+
 	dedupeSet.End()
 	logger.Debug("succeeded to sink to redis", "buffer size", len(messages))
+
 	return nil
 }
 
@@ -657,6 +666,7 @@ func (s *Sink) Run(ctx context.Context) error {
 			return fmt.Errorf("failed to start flush event handler: %w", err)
 		}
 	}
+
 	logger.Info("starting sink")
 
 	// Fetch namespaces and meters and subscribe to them
@@ -698,6 +708,7 @@ func (s *Sink) Run(ctx context.Context) error {
 			if err := s.flush(ctx); err != nil {
 				return fmt.Errorf("failed to flush: %w", err)
 			}
+
 			continue
 
 		default:
@@ -778,6 +789,7 @@ func (s *Sink) Run(ctx context.Context) error {
 	}
 
 	logger.Info("closing sink")
+
 	return s.Close()
 }
 
@@ -787,10 +799,12 @@ func (s *Sink) pause() error {
 	if err != nil {
 		return fmt.Errorf("failed to get assigned partitions: %w", err)
 	}
+
 	err = s.config.Consumer.Pause(assignedPartitions)
 	if err != nil {
 		return fmt.Errorf("failed to pause partitions before flush: %w", err)
 	}
+
 	return nil
 }
 
@@ -799,6 +813,7 @@ func (s *Sink) resume() error {
 	if err != nil {
 		return fmt.Errorf("failed to get assigned partitions: %w", err)
 	}
+
 	err = s.config.Consumer.Resume(assignedPartitions)
 	if err != nil {
 		return fmt.Errorf("failed to resume partitions after flush: %w", err)
@@ -980,6 +995,7 @@ func (s *Sink) deduplicateAndResolveMeters(ctx context.Context, messages []sinkm
 				State:     sinkmodels.DROP,
 				DropError: errors.New("skipping non unique message"),
 			}
+
 			continue
 		}
 

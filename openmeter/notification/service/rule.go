@@ -263,6 +263,7 @@ func (s Service) UpdateRule(ctx context.Context, params notification.UpdateRuleI
 		if err != nil {
 			return nil, fmt.Errorf("failed to list channels for rule: %w", err)
 		}
+
 		logger.Debug("fetched all affected channels", "channels", channels.Items)
 
 		// Update affected channels

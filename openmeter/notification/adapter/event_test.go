@@ -314,6 +314,7 @@ func TestListEvents_Filters(t *testing.T) {
 			for _, item := range result.Items {
 				gotIDs = append(gotIDs, item.ID)
 			}
+
 			assert.ElementsMatch(t, tc.wantIDs, gotIDs)
 		})
 	}
@@ -380,12 +381,14 @@ func TestListEvents_AnnotationFilterOperators(t *testing.T) {
 				require.Error(t, err)
 				return
 			}
+
 			require.NoError(t, err)
 
 			gotIDs := make([]string, 0, len(result.Items))
 			for _, item := range result.Items {
 				gotIDs = append(gotIDs, item.ID)
 			}
+
 			assert.ElementsMatch(t, tc.wantIDs, gotIDs)
 		})
 	}

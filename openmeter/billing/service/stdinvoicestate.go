@@ -1060,6 +1060,7 @@ func (m *InvoiceStateMachine) onCollectionCompleted(ctx context.Context) error {
 			if err := m.Invoice.MergeValidationIssues(billing.NewLineEngineValidationError(grouped.Engine, err), component); err != nil {
 				return err
 			}
+
 			continue
 		}
 
@@ -1222,6 +1223,7 @@ func (m *InvoiceStateMachine) canDraftSyncAdvance() bool {
 			m.Logger.Error("error checking if we can advance the draft invoice", "error", err)
 			return false
 		}
+
 		return can
 	}
 
@@ -1243,6 +1245,7 @@ func (m *InvoiceStateMachine) canIssuingSyncAdvance() bool {
 			m.Logger.Error("error checking if we can advance the issuing invoice", "error", err)
 			return false
 		}
+
 		return can
 	}
 

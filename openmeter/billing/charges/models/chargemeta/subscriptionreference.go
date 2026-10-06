@@ -43,6 +43,7 @@ func UpdateSubscriptionReference[
 	if err != nil {
 		return fmt.Errorf("update subscription reference: %w", err)
 	}
+
 	if updatedCharges != 1 {
 		return models.NewGenericPreConditionFailedError(fmt.Errorf(
 			"expected to update one charge, updated %d",

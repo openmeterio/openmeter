@@ -45,6 +45,7 @@ func grpcDependency(t *testing.T, check func(context.Context) error) grpc_health
 	conn, err := grpc.NewClient(listener.Addr().String(), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = conn.Close() })
+
 	return grpc_health_v1.NewHealthClient(conn)
 }
 
@@ -80,9 +81,11 @@ func TestCallerCancellation(t *testing.T) {
 					dependency = grpcDependency(t, func(ctx context.Context) error {
 						close(started)
 						<-ctx.Done()
+
 						return status.FromContextError(ctx.Err()).Err()
 					})
 				}
+
 				failure := func(ctx context.Context) error {
 					var err error
 					if test.grpc {
@@ -92,12 +95,15 @@ func TestCallerCancellation(t *testing.T) {
 						<-ctx.Done()
 						err = ctx.Err()
 					}
+
 					if test.joined {
 						err = errors.Join(status.Error(codes.Internal, "cleanup failed"), err)
 					}
+
 					if test.api {
 						err = apierrors.NewInternalError(ctx, err)
 					}
+
 					return fmt.Errorf("dependency: %w", err)
 				}
 				server, completed := serveErrors(t, http2, func(diagnostics httptransport.ErrorHandler) http.Handler {
@@ -111,11 +117,13 @@ func TestCallerCancellation(t *testing.T) {
 							}
 						})
 					}
+
 					return httptransport.NewHandler(
 						func(ctx context.Context, _ *http.Request) (struct{}, error) {
 							if test.decode {
 								return struct{}{}, failure(ctx)
 							}
+
 							return struct{}{}, nil
 						},
 						func(ctx context.Context, _ struct{}) (struct{}, error) {
@@ -123,6 +131,7 @@ func TestCallerCancellation(t *testing.T) {
 							if test.self {
 								return struct{}{}, commonhttp.NewHTTPError(http.StatusServiceUnavailable, err)
 							}
+
 							return struct{}{}, err
 						},
 						commonhttp.JSONResponseEncoder[struct{}],
@@ -143,6 +152,7 @@ func TestCallerCancellation(t *testing.T) {
 					require.Equal(t, 499, response.status)
 					require.Empty(t, response.body)
 				}
+
 				if test.direct == "" && !test.self {
 					requireLogLevel(t, observed, "WARN")
 					if test.grpc && !test.joined {

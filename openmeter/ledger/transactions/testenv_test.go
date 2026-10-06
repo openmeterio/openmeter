@@ -75,6 +75,7 @@ func (e *transactionsTestEnv) resolveAndCommit(t *testing.T, templates ...Transa
 
 	inputs := e.resolve(t, templates...)
 	e.commit(t, inputs...)
+
 	return inputs
 }
 

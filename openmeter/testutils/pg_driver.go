@@ -99,6 +99,7 @@ func (m atlasMigrator) Hash() (string, error) {
 	if err != nil {
 		return "", err
 	}
+
 	hash.Add(atlasSum)
 
 	return hash.String(), nil

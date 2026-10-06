@@ -338,6 +338,7 @@ func NewServer(config *Config) (*Server, error) {
 		ledgerService = ledgernoop.Ledger{}
 		accountResolver = ledgernoop.AccountResolver{}
 	}
+
 	customersCreditsHandler := customerscreditshandler.New(resolveNamespace, config.CustomerService, customerBalanceFacade, creditGrantService, ledgerService, accountResolver, httptransport.WithErrorHandler(config.ErrorHandler))
 	customersEntitlementHandler := customersentitlementhandler.New(resolveNamespace, config.EntitlementService, httptransport.WithErrorHandler(config.ErrorHandler))
 	customersEntitlementsHandler := customersentitlementshandler.New(resolveNamespace, config.EntitlementService, httptransport.WithErrorHandler(config.ErrorHandler))
@@ -434,6 +435,7 @@ func (s *Server) RegisterRoutes(r chi.Router) error {
 		for _, mw := range s.Middlewares {
 			r.Use(mw)
 		}
+
 		r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 			apierrors.
 				NewNotFoundError(r.Context(), errors.New("route not found"), "route").
@@ -503,13 +505,16 @@ func buildResponseValidationRouteFilter(cfg config.ResponseValidationConfig) fun
 	if cfg.Mode != config.ResponseValidationModeUnstable {
 		return nil
 	}
+
 	return func(route *routers.Route) bool {
 		if route.Operation == nil {
 			return false
 		}
+
 		// kin-openapi unmarshals JSON booleans directly into map[string]any,
 		// so the extension value is a plain bool here.
 		v, _ := route.Operation.Extensions["x-unstable"].(bool)
+
 		return v
 	}
 }

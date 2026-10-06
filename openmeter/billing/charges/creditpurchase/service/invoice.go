@@ -79,6 +79,7 @@ func (s *InvoiceCreditPurchaseStateMachine) GrantCredits(ctx context.Context) er
 	}
 
 	s.Charge = updatedCharge
+
 	return nil
 }
 
@@ -92,6 +93,7 @@ func (s *InvoiceCreditPurchaseStateMachine) AuthorizeInvoicedPayment(ctx context
 	}
 
 	s.Charge = updatedCharge
+
 	return nil
 }
 
@@ -102,6 +104,7 @@ func (s *InvoiceCreditPurchaseStateMachine) SettleInvoicedPayment(ctx context.Co
 	}
 
 	s.Charge = updatedCharge
+
 	return nil
 }
 

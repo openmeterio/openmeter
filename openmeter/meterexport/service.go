@@ -101,6 +101,7 @@ func (c *DataExportConfig) UnmarshalJSON(data []byte) error {
 		if err != nil {
 			return fmt.Errorf("invalid timezone %q: %w", raw.ExportWindowTimeZone, err)
 		}
+
 		c.ExportWindowTimeZone = loc
 	}
 

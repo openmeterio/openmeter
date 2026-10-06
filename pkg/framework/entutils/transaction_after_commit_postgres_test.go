@@ -26,6 +26,7 @@ func newAfterCommitPostgresFixture(t *testing.T) *afterCommitPostgresFixture {
 	t.Cleanup(func() { database.Close(t) })
 	client := db1.NewClient(db1.Driver(database.EntDriver.Driver()))
 	require.NoError(t, client.Schema.Create(t.Context()))
+
 	return &afterCommitPostgresFixture{t: t, client: client, adapter: &db1Adapter{db: client}}
 }
 
@@ -66,6 +67,7 @@ func TestAfterCommitWithPostgres(t *testing.T) {
 				return nil
 			}))
 			f.assertCommitted()
+
 			return nil
 		})
 
@@ -88,6 +90,7 @@ func TestAfterCommitWithPostgres(t *testing.T) {
 			})
 			require.ErrorIs(t, err, operationErr)
 			f.writeAndRegister(ctx, "after", "after value")
+
 			return nil
 		})
 
@@ -110,9 +113,11 @@ func TestAfterCommitWithPostgres(t *testing.T) {
 					f.writeAndRegister(ctx, "child", "child value")
 					return nil
 				}))
+
 				return operationErr
 			})
 			require.ErrorIs(t, err, operationErr)
+
 			return nil
 		})
 
@@ -133,6 +138,7 @@ func TestAfterCommitWithPostgres(t *testing.T) {
 				f.writeAndRegister(ctx, "nested", "nested value")
 				return nil
 			}))
+
 			return operationErr
 		})
 
@@ -152,6 +158,7 @@ func TestAfterCommitWithPostgres(t *testing.T) {
 		err = transaction.RunWithNoValue(t.Context(), f.adapter, func(ctx context.Context) error {
 			f.writeAndRegister(ctx, "first", "duplicate")
 			f.writeAndRegister(ctx, "second", "duplicate")
+
 			return nil
 		})
 

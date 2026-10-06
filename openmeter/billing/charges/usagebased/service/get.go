@@ -102,6 +102,7 @@ func (s *service) expandChargesUsage(ctx context.Context, namespace string, char
 		if err != nil {
 			return nil, err
 		}
+
 		customerOverridesById[customerID] = customerOverride
 	}
 
@@ -199,6 +200,7 @@ func (s *service) expandChargesUsage(ctx context.Context, namespace string, char
 
 		charge.Expands.RealtimeUsage = &rated.Usage.Totals
 		charge.Expands.RealtimeQuantity = &rated.Usage.MeteredQuantity
+
 		return withRealtimeValidationIssues(charge, rated.ValidationIssues), nil
 	})
 }

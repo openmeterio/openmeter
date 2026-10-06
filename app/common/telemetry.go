@@ -327,9 +327,11 @@ func NewTelemetryRouterHook(meterProvider metric.MeterProvider, tracerProvider t
 							route = rctx.RoutePattern()
 						}
 					}
+
 					if route == "" || strings.Contains(route, "*") {
 						route = lowCardinalityPath(r.URL.Path)
 					}
+
 					return r.Method + " " + route
 				}),
 			)
@@ -373,6 +375,7 @@ func lowCardinalityPath(path string) string {
 	if truncated {
 		out += "/..."
 	}
+
 	return out
 }
 
@@ -382,15 +385,19 @@ func isHighCardinalitySegment(seg string) bool {
 	if len(seg) > maxRouteSegmentLen {
 		return true
 	}
+
 	if isAllDigits(seg) {
 		return true
 	}
+
 	if _, err := ulid.ParseStrict(seg); err == nil {
 		return true
 	}
+
 	if _, err := uuid.Parse(seg); err == nil {
 		return true
 	}
+
 	return false
 }
 
@@ -398,11 +405,13 @@ func isAllDigits(s string) bool {
 	if s == "" {
 		return false
 	}
+
 	for _, r := range s {
 		if r < '0' || r > '9' {
 			return false
 		}
 	}
+
 	return true
 }
 
@@ -421,6 +430,7 @@ func NewRuntimeMetricsCollector(
 	}
 
 	logger.Debug("started collecting runtime metrics")
+
 	return RuntimeMetricsCollector{}, nil
 }
 

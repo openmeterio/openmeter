@@ -194,6 +194,7 @@ func TestRetryContextCancellation(t *testing.T) {
 		if attempts == 2 {
 			cancel()
 		}
+
 		return "", io.ErrUnexpectedEOF
 	})
 

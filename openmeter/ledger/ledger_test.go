@@ -109,6 +109,7 @@ func TestMultiAccountTransaction(t *testing.T) {
 			}
 		}
 	}
+
 	require.True(t, found, "expected validation issue not found, got %v", err)
 }
 

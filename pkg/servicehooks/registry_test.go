@@ -68,6 +68,7 @@ func TestRegistryStopsAtFirstHookError(t *testing.T) {
 	if !errors.Is(err, boom) {
 		t.Fatalf("expected hook error, got %v", err)
 	}
+
 	if secondInvoked {
 		t.Error("expected invocation to stop before the second hook")
 	}
@@ -76,6 +77,7 @@ func TestRegistryStopsAtFirstHookError(t *testing.T) {
 	if !errors.As(err, &invocationError) {
 		t.Fatalf("expected InvocationError, got %T", err)
 	}
+
 	if invocationError.HookName != "first" {
 		t.Errorf("unexpected hook name: got %q, expected %q", invocationError.HookName, "first")
 	}
@@ -212,12 +214,15 @@ func TestRegistryReportsCyclesByDefaultBeforeNestedHooksRun(t *testing.T) {
 	if !errors.As(err, &cycleError) {
 		t.Fatalf("expected CycleError, got %T", err)
 	}
+
 	if cycleError.HookName != "recursive" {
 		t.Errorf("unexpected cyclic hook: got %q, expected %q", cycleError.HookName, "recursive")
 	}
+
 	if recursiveCalls != 1 {
 		t.Errorf("unexpected recursive hook calls: got %d, expected 1", recursiveCalls)
 	}
+
 	if tailCalls != 0 {
 		t.Errorf("nested invocation ran hooks before reporting the cycle: tail calls=%d", tailCalls)
 	}
@@ -258,6 +263,7 @@ func TestRegistryCanSkipOnlyTheActiveRegistration(t *testing.T) {
 	if recursiveCalls != 1 {
 		t.Errorf("unexpected recursive hook calls: got %d, expected 1", recursiveCalls)
 	}
+
 	if tailCalls != 2 {
 		t.Errorf("expected tail hook in nested and outer invocation: got %d calls", tailCalls)
 	}
@@ -280,9 +286,11 @@ func TestRegistryDeactivatesCycleFrameAfterHookReturns(t *testing.T) {
 	if err := registry.Invoke(t.Context(), 1); err != nil {
 		t.Fatalf("first invocation: %v", err)
 	}
+
 	if err := registry.Invoke(retained, 2); err != nil {
 		t.Fatalf("invocation with retained context: %v", err)
 	}
+
 	if calls != 2 {
 		t.Errorf("unexpected hook calls: got %d, expected 2", calls)
 	}
@@ -303,6 +311,7 @@ func TestRegistryDoesNotHoldLockWhileInvokingHook(t *testing.T) {
 	if err := registry.Invoke(t.Context(), struct{}{}); err != nil {
 		t.Fatalf("invoking hook: %v", err)
 	}
+
 	if !errors.Is(registrationErr, ErrRegistrySealed) {
 		t.Fatalf("expected late registration to return ErrRegistrySealed, got %v", registrationErr)
 	}
@@ -327,6 +336,7 @@ func TestRegistryHonorsContextCancellation(t *testing.T) {
 	if !errors.Is(err, context.Canceled) {
 		t.Fatalf("expected context cancellation, got %v", err)
 	}
+
 	if invoked {
 		t.Error("hook ran after context cancellation")
 	}
@@ -357,6 +367,7 @@ func TestRegistryStopsWhenContextIsCanceledBetweenHooks(t *testing.T) {
 	if !errors.Is(err, context.Canceled) {
 		t.Fatalf("expected context cancellation, got %v", err)
 	}
+
 	if secondInvoked {
 		t.Error("second hook ran after context cancellation")
 	}
@@ -371,6 +382,7 @@ func TestRegistryRejectsNilContext(t *testing.T) {
 	if !errors.Is(err, ErrContextRequired) {
 		t.Fatalf("expected ErrContextRequired, got %v", err)
 	}
+
 	if registry.IsSealed() {
 		t.Error("invalid invocation sealed the registry")
 	}

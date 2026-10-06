@@ -111,6 +111,7 @@ func (r RequireFlowDirectionRule) Validate(tx TxView) error {
 			if allEntriesPositive(fromEntries) && allEntriesNegative(toEntries) {
 				return nil
 			}
+
 			return ledger.ErrRoutingRuleViolated.WithAttrs(models.Attributes{
 				"reason":       "invalid_flow_direction",
 				"account_type": r.From,
@@ -125,6 +126,7 @@ func (r RequireFlowDirectionRule) Validate(tx TxView) error {
 			if allEntriesPositive(fromEntries) && allEntriesNegative(toEntries) {
 				return nil
 			}
+
 			return ledger.ErrRoutingRuleViolated.WithAttrs(models.Attributes{
 				"reason":       "invalid_flow_direction",
 				"account_type": r.To,
@@ -476,6 +478,7 @@ func requireMatchingRouteFields(leftEntries, rightEntries []EntryView, leftType,
 		if err != nil {
 			return err
 		}
+
 		if !matched {
 			return ledger.ErrRoutingRuleViolated.WithAttrs(models.Attributes{
 				"reason":     "route_field_mismatch",
@@ -491,6 +494,7 @@ func requireMatchingRouteFields(leftEntries, rightEntries []EntryView, leftType,
 		if err != nil {
 			return err
 		}
+
 		if !matched {
 			return ledger.ErrRoutingRuleViolated.WithAttrs(models.Attributes{
 				"reason":     "route_field_mismatch",
@@ -512,11 +516,13 @@ func hasMatchingRouteFields(entry EntryView, candidates []EntryView, fields []Ro
 			if err != nil {
 				return false, err
 			}
+
 			if !same {
 				matches = false
 				break
 			}
 		}
+
 		if matches {
 			return true, nil
 		}

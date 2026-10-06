@@ -22,9 +22,11 @@ func GetAccessFromContext(ctx context.Context) (AccessConfig, error) {
 	if !ok {
 		return nil, ErrContextMissing
 	}
+
 	if access == nil {
 		return nil, ErrContextMissing
 	}
+
 	return access, nil
 }
 

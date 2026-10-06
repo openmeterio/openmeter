@@ -40,6 +40,7 @@ func TestNewUpdateLinePatchInputValidate(t *testing.T) {
 			input: func() NewUpdateLinePatchInput {
 				input := validIdentity
 				input.ServicePeriod = mo.Some(period)
+
 				return input
 			}(),
 		},
@@ -48,6 +49,7 @@ func TestNewUpdateLinePatchInputValidate(t *testing.T) {
 			input: func() NewUpdateLinePatchInput {
 				input := validIdentity
 				input.DeletedAt = mo.Some[*time.Time](nil)
+
 				return input
 			}(),
 		},
@@ -68,6 +70,7 @@ func TestNewUpdateLinePatchInputValidate(t *testing.T) {
 			input: func() NewUpdateLinePatchInput {
 				input := validIdentity
 				input.InvoiceAt = mo.Some(time.Time{})
+
 				return input
 			}(),
 			errorString: "invoice at is required",
@@ -77,6 +80,7 @@ func TestNewUpdateLinePatchInputValidate(t *testing.T) {
 			input: func() NewUpdateLinePatchInput {
 				input := validIdentity
 				input.FlatFeePerUnitAmount = mo.Some(alpacadecimal.NewFromInt(-1))
+
 				return input
 			}(),
 			errorString: "flat fee per unit amount must not be negative",

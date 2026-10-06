@@ -119,6 +119,7 @@ func TestV3GetCustomerEntitlementHistory(t *testing.T) {
 			require.NoError(t, err)
 			usage += value
 		}
+
 		require.Equal(t, 2.0, usage)
 
 		// The default grant is consumed by the usage in the last segment.

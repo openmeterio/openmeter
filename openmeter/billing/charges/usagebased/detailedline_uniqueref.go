@@ -22,6 +22,7 @@ func (l DetailedLines) StripServicePeriodFromUniqueReferenceID() (DetailedLines,
 
 		line = line.Clone()
 		line.ChildUniqueReferenceID = referenceID
+
 		return line, nil
 	})
 }

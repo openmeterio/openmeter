@@ -62,8 +62,10 @@ func (r *repo) GetBalanceBuckets(ctx context.Context, query ledger.BalanceBucket
 			if err != nil {
 				return nil, err
 			}
+
 			buckets = append(buckets, bucket)
 		}
+
 		if err := rows.Err(); err != nil {
 			return nil, fmt.Errorf("ledger balance bucket rows: %w", err)
 		}
@@ -110,6 +112,7 @@ func (r balanceBucketRow) toBalanceBucket(groupBy []string) (ledger.BalanceBucke
 	if err := json.Unmarshal([]byte(r.Filters), &filters); err != nil {
 		return ledger.BalanceBucket{}, fmt.Errorf("decode route filters: %w", err)
 	}
+
 	costBasis, err := nullableDecimalValue(r.CostBasis)
 	if err != nil {
 		return ledger.BalanceBucket{}, fmt.Errorf("sub-account %s cost basis: %w", r.SubAccountID, err)

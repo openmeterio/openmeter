@@ -1564,6 +1564,7 @@ func TestCatalogRateCardBillingCadenceAuthoring(t *testing.T) {
 			for _, err := range []error{planErr, addonErr, planUpdate.Validate(), addonUpdate.Validate()} {
 				require.NoError(t, err)
 			}
+
 			input.IgnoreNonCriticalIssues = false
 			addInput.IgnoreNonCriticalIssues = false
 			planUpdate.IgnoreNonCriticalIssues = false
@@ -1572,6 +1573,7 @@ func TestCatalogRateCardBillingCadenceAuthoring(t *testing.T) {
 				for _, err := range []error{input.Validate(), addInput.Validate(), planUpdate.Validate(), addonUpdate.Validate()} {
 					require.ErrorContains(t, err, "rate card billing cadence must be at least 24 hours")
 				}
+
 				for _, check := range []struct {
 					err   error
 					field string
@@ -1589,6 +1591,7 @@ func TestCatalogRateCardBillingCadenceAuthoring(t *testing.T) {
 							found = true
 						}
 					}
+
 					require.True(t, found)
 				}
 			}

@@ -264,6 +264,7 @@ func TestRepo_SubAccountRouteUniquenessConstraints(t *testing.T) {
 			SetNillableCreditPriority(creditPriority)
 
 		_, err = create.Save(ctx)
+
 		return err
 	}
 
@@ -404,6 +405,7 @@ func TestRepoExactFiltersSeparateFeatureAndPlanRoutes(t *testing.T) {
 			require.Equal(t, tc.id, found[0].ID)
 		}
 	}
+
 	// then: resolving the feature-only route reuses its original bucket.
 	again, err := env.repo.EnsureSubAccount(ctx, ledgeraccount.CreateSubAccountInput{Namespace: namespace, AccountID: account.ID.ID, Route: featureRoute})
 	require.NoError(t, err)

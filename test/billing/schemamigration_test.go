@@ -347,6 +347,7 @@ func (s *SchemaMigrationTestSuite) withoutDetailedFeeLineConfigID(in *billing.St
 	for i := range out.DetailedLines {
 		out.DetailedLines[i].FeeLineConfigID = ""
 	}
+
 	return out, nil
 }
 
@@ -357,6 +358,8 @@ func (s *SchemaMigrationTestSuite) getLineByName(inv billing.StandardInvoice, na
 			return l
 		}
 	}
+
 	s.FailNowf("line not found", "invoice does not contain a line with name %q", name)
+
 	return nil
 }

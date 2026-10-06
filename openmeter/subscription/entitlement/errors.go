@@ -17,9 +17,11 @@ func (e *NotFoundError) Error() string {
 	if e.ItemID.ID != "" {
 		msg = fmt.Sprintf("%s for item %s", msg, e.ItemID.ID)
 	}
+
 	if e.ItemID.Namespace != "" {
 		msg = fmt.Sprintf("%s in namespace %s", msg, e.ItemID.Namespace)
 	}
+
 	if !e.At.IsZero() {
 		msg = fmt.Sprintf("%s at %s", msg, e.At)
 	}

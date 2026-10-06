@@ -160,6 +160,7 @@ func ToAPIBillingSubscription(view subscription.SubscriptionView) (api.BillingSu
 
 		phases = append(phases, phase)
 	}
+
 	result.Phases = phases
 
 	return result, nil
@@ -184,6 +185,7 @@ func toAPIBillingSubscriptionPhase(view subscription.SubscriptionView, phaseView
 	if err != nil {
 		return api.BillingSubscriptionPhase{}, fmt.Errorf("failed to get cadence for phase %q: %w", phase.Key, err)
 	}
+
 	activeTo := cadence.ActiveTo
 
 	// Classify the phase relative to now to decide which item version to surface.
@@ -419,6 +421,7 @@ func FromAPIBillingSubscriptionEditOperation(op api.BillingSubscriptionEditOpera
 			if err != nil {
 				return nil, models.NewGenericValidationError(fmt.Errorf("failed to read add_phase start_after: %w", err))
 			}
+
 			startAfter, err = datetime.ISODurationString(sa).Parse()
 			if err != nil {
 				return nil, models.NewGenericValidationError(fmt.Errorf("failed to parse add_phase start_after: %w", err))
@@ -431,6 +434,7 @@ func FromAPIBillingSubscriptionEditOperation(op api.BillingSubscriptionEditOpera
 			if err != nil {
 				return nil, models.NewGenericValidationError(fmt.Errorf("failed to parse add_phase duration: %w", err))
 			}
+
 			duration = &d
 		}
 
@@ -527,6 +531,7 @@ func FromAPIBillingSubscriptionCustomPlan(namespace string, body api.BillingSubs
 	if err != nil {
 		return req, fmt.Errorf("invalid billing cadence: %w", err)
 	}
+
 	req.BillingCadence = billingCadence
 
 	if len(body.Phases) > 0 {
@@ -536,6 +541,7 @@ func FromAPIBillingSubscriptionCustomPlan(namespace string, body api.BillingSubs
 			if err != nil {
 				return req, fmt.Errorf("failed to convert phase: %w", err)
 			}
+
 			req.Phases = append(req.Phases, p)
 		}
 	}

@@ -101,9 +101,11 @@ func (c Timing) ValidateForMigration(spec SubscriptionSpec) error {
 	if at.Before(now) {
 		errs = append(errs, errors.New("cannot migrate a subscription in the past"))
 	}
+
 	if c.Custom != nil && !c.isDateAlignedWithBillingCadence(spec, at) {
 		errs = append(errs, errors.New("custom migration timing must align with the subscription billing cadence"))
 	}
+
 	if !(models.CadencedModel{ActiveFrom: spec.ActiveFrom, ActiveTo: spec.ActiveTo}).IsActiveAt(at) {
 		errs = append(errs, errors.New("subscription must be active at migration time"))
 	}

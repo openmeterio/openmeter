@@ -480,6 +480,7 @@ func requireAccruedBalanceBuckets(t *testing.T, env *transactionsTestEnv, expect
 			bucket.GroupByValues[ledger.BalanceBucketGroupBySpendChargeID],
 		)] = bucket.SettledAmount.InexactFloat64()
 	}
+
 	require.Equal(t, expected, actual)
 }
 
@@ -513,6 +514,7 @@ func requireFBOBalanceBuckets(t *testing.T, env *transactionsTestEnv, expected m
 			nil,
 		)] = bucket.SettledAmount.InexactFloat64()
 	}
+
 	require.Equal(t, expected, actual)
 }
 

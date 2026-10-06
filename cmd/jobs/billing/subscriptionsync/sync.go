@@ -91,5 +91,6 @@ var AllCmd = func() *cobra.Command {
 	cmd.PersistentFlags().StringSliceVar(&customerIDs, "c", nil, "filter by customer ids")
 	cmd.PersistentFlags().DurationVar(&lookback, "l", defaultLookback, "lookback period")
 	cmd.PersistentFlags().BoolVar(&force, "f", false, "force reconciliation (even if the sync state would not necessarily require it)")
+
 	return cmd
 }

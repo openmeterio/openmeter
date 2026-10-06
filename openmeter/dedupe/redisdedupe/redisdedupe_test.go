@@ -31,9 +31,11 @@ func (h *lookupHook) ProcessHook(_ redis.ProcessHook) redis.ProcessHook {
 		if h.latency > 0 {
 			time.Sleep(h.latency)
 		}
+
 		if h.err != nil {
 			return h.err
 		}
+
 		switch cmd := cmd.(type) {
 		case *redis.SliceCmd:
 			values := make([]any, len(cmd.Args())-1)
@@ -42,6 +44,7 @@ func (h *lookupHook) ProcessHook(_ redis.ProcessHook) redis.ProcessHook {
 					values[i] = ""
 				}
 			}
+
 			cmd.SetVal(values)
 		case *redis.IntCmd:
 			var count int64
@@ -50,10 +53,12 @@ func (h *lookupHook) ProcessHook(_ redis.ProcessHook) redis.ProcessHook {
 					count++
 				}
 			}
+
 			cmd.SetVal(count)
 		default:
 			return errors.New("unexpected Redis command")
 		}
+
 		return nil
 	}
 }
@@ -108,11 +113,13 @@ func BenchmarkUniquenessChecks(b *testing.B) {
 	for i := range items {
 		items[i] = dedupe.Item{Namespace: "ns", Source: "source", ID: strconv.Itoa(i)}
 	}
+
 	for _, batched := range []bool{false, true} {
 		name := "per-message-plus-batch"
 		if batched {
 			name = "batch-only"
 		}
+
 		b.Run(name, func(b *testing.B) {
 			client := redis.NewClient(&redis.Options{})
 			b.Cleanup(func() { require.NoError(b, client.Close()) })
@@ -129,11 +136,13 @@ func BenchmarkUniquenessChecks(b *testing.B) {
 						}
 					}
 				}
+
 				_, err := d.CheckUniqueBatch(b.Context(), items)
 				if err != nil {
 					b.Fatal(err)
 				}
 			}
+
 			b.ReportMetric(float64(hook.calls)/float64(b.N), "redis-calls/batch")
 		})
 	}

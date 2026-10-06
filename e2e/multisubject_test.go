@@ -260,6 +260,7 @@ func TestMultiSubject(t *testing.T) {
 		for _, grantBalance := range *ent.GrantBalances {
 			grantBalancesSum += grantBalance
 		}
+
 		assert.Equal(t, *ent.Balance, grantBalancesSum)
 	})
 }

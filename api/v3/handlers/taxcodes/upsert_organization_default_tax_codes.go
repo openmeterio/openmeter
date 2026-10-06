@@ -38,6 +38,7 @@ func (h *handler) UpsertOrganizationDefaultTaxCodes() UpsertOrganizationDefaultT
 			if err != nil {
 				return UpsertOrganizationDefaultTaxCodesResponse{}, err
 			}
+
 			return ToAPIOrganizationDefaultTaxCodes(cfg)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[UpsertOrganizationDefaultTaxCodesResponse](http.StatusOK),

@@ -77,6 +77,7 @@ func (h *handler) ListNotificationEvents() ListNotificationEventsHandler {
 				if err != nil {
 					return ListNotificationEventsRequest{}, err
 				}
+
 				req.OrderBy = orderBy
 				req.Order = sort.Order.ToSortxOrder()
 			}
@@ -128,36 +129,42 @@ func applyAPIEventFilters(ctx context.Context, req *ListNotificationEventsReques
 	if err != nil {
 		return badRequest("filter[id]", err)
 	}
+
 	req.ID = id
 
 	typeFilter, err := filters.FromAPIFilterStringExact(params.Type)
 	if err != nil {
 		return badRequest("filter[type]", err)
 	}
+
 	typeFilter, err = typeFilter.Map(func(v string) (string, error) {
 		return v, notification.EventType(v).Validate()
 	})
 	if err != nil {
 		return badRequest("filter[type]", err)
 	}
+
 	req.Type = typeFilter
 
 	createdAt, err := filters.FromAPIFilterDateTime(params.CreatedAt)
 	if err != nil {
 		return badRequest("filter[created_at]", err)
 	}
+
 	req.CreatedAt = createdAt
 
 	ruleID, err := filters.FromAPIFilterULID(params.RuleId)
 	if err != nil {
 		return badRequest("filter[rule_id]", err)
 	}
+
 	req.RuleID = ruleID
 
 	channelID, err := filters.FromAPIFilterULID(params.ChannelId)
 	if err != nil {
 		return badRequest("filter[channel_id]", err)
 	}
+
 	if channelID != nil {
 		req.ChannelID = &channelID.FilterString
 	}
@@ -166,6 +173,7 @@ func applyAPIEventFilters(ctx context.Context, req *ListNotificationEventsReques
 	if err != nil {
 		return badRequest("filter[delivery_status]", err)
 	}
+
 	deliveryStatus, err = deliveryStatus.Map(func(v string) (string, error) {
 		domain, err := FromAPIBillingNotificationEventDeliveryState(api.BillingNotificationEventDeliveryState(v))
 		return string(domain), err
@@ -173,30 +181,35 @@ func applyAPIEventFilters(ctx context.Context, req *ListNotificationEventsReques
 	if err != nil {
 		return badRequest("filter[delivery_status]", err)
 	}
+
 	req.DeliveryStatus = deliveryStatus
 
 	subjectKey, err := filters.FromAPIFilterStringExact(params.SubjectKey)
 	if err != nil {
 		return badRequest("filter[subject_key]", err)
 	}
+
 	req.SubjectKey = subjectKey
 
 	subjectID, err := filters.FromAPIFilterULID(params.SubjectId)
 	if err != nil {
 		return badRequest("filter[subject_id]", err)
 	}
+
 	req.SubjectID = subjectID
 
 	featureKey, err := filters.FromAPIFilterStringExact(params.FeatureKey)
 	if err != nil {
 		return badRequest("filter[feature_key]", err)
 	}
+
 	req.FeatureKey = featureKey
 
 	featureID, err := filters.FromAPIFilterULID(params.FeatureId)
 	if err != nil {
 		return badRequest("filter[feature_id]", err)
 	}
+
 	req.FeatureID = featureID
 
 	return nil

@@ -166,6 +166,7 @@ func TestPostInvoicePaymentAuthorizedRecognizesMatchingBooking(t *testing.T) {
 			default:
 				require.NoError(t, err)
 			}
+
 			require.False(t, handler.called)
 		})
 	}

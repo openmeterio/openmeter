@@ -76,6 +76,7 @@ func (s *Service) InstallApp(ctx context.Context, input app.InstallAppV3Input) (
 			if input.CreateDefaultBillingProfileFn == nil {
 				return app.InstallAppV3Output{}, errors.New("create default billing profile function is required when CreateDefaultBillingProfile is true")
 			}
+
 			defaultForCapabilityTypes, err := input.CreateDefaultBillingProfileFn(ctx, installedApp)
 			if err != nil {
 				return app.InstallAppV3Output{}, fmt.Errorf("create billing profile: %w", err)

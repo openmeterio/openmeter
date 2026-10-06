@@ -417,6 +417,7 @@ func assertBillingWorkflowBehavior(t *testing.T, db *sql.DB, workflowConfigID, w
 	if wantBehavior == "" {
 		require.False(t, behavior.Valid)
 		require.False(t, embeddedBehavior.Valid)
+
 		return
 	}
 

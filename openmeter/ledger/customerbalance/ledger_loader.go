@@ -73,6 +73,7 @@ func (l *ledgerCreditTransactionLoader) Load(ctx context.Context, input creditTr
 			after = result.NextCursor
 		}
 	}
+
 	if len(txs) > input.Limit {
 		txs = txs[:input.Limit]
 	}

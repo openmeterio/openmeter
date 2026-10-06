@@ -44,6 +44,7 @@ func (s *service) HandleCreditPurchaseExternalPaymentStateTransition(ctx context
 		default:
 			return creditpurchase.Charge{}, fmt.Errorf("invalid target payment state: %s", input.TargetPaymentState)
 		}
+
 		if err != nil {
 			return creditpurchase.Charge{}, err
 		}

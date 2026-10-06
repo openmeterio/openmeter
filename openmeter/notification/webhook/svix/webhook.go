@@ -90,6 +90,7 @@ func (h svixHandler) GetOrUpdateEndpointSecret(ctx context.Context, appID, endpo
 		if err != nil {
 			return resp, fmt.Errorf("failed to get Svix endpoint secret: %w", err)
 		}
+
 		if secretOut == nil {
 			return resp, fmt.Errorf("failed to get Svix endpoint secret: %w", err)
 		}
@@ -129,6 +130,7 @@ func (h svixHandler) CreateWebhook(ctx context.Context, params webhook.CreateWeb
 		if err := params.Validate(); err != nil {
 			return nil, fmt.Errorf("failed to validate CreateWebhookInput: %w", err)
 		}
+
 		// Ensure that application is created for namespace
 		app, err := h.CreateApplication(ctx, params.Namespace)
 		if err != nil {
@@ -166,6 +168,7 @@ func (h svixHandler) CreateWebhook(ctx context.Context, params webhook.CreateWeb
 			if err != nil {
 				return nil, fmt.Errorf("failed to generate ULID for webhook: %w", err)
 			}
+
 			endpointUID = uid.String()
 		}
 

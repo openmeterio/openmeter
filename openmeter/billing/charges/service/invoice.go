@@ -24,6 +24,7 @@ func (s *service) handleStandardInvoiceUpdate(ctx context.Context, invoice billi
 	if err != nil {
 		return fmt.Errorf("resolving fiat invoice currency %q: %w", invoice.Currency, err)
 	}
+
 	currency := currencies.Currency{Currency: fiatCurrency}
 
 	return s.recognizeCustomerEarnings(ctx, invoice.CustomerID(), currency)

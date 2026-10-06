@@ -75,7 +75,6 @@ func (b *EntitlementSnapshotHandler) handleAsSnapshotEvent(ctx context.Context, 
 
 func (b *EntitlementSnapshotHandler) handleRule(ctx context.Context, balSnapshot snapshot.SnapshotEvent, rule notification.Rule) error {
 	// Check 1: do we have a threshold we should create an event for?
-
 	thresholds, err := getActiveThresholdsWithHighestPriority(rule.Config.BalanceThreshold.Thresholds, *balSnapshot.Value)
 	if err != nil {
 		return fmt.Errorf("failed to calculate active thresholds: %w", err)
@@ -492,6 +491,7 @@ func getActiveThresholdsWithHighestPriority(thresholds []notification.BalanceThr
 			} else if balance.ThresholdValue > numThreshold.ThresholdValue {
 				balance = numThreshold
 			}
+
 		// Deprecated: obsoleted by api.NotificationRuleBalanceThresholdValueTypeUsagePercentage
 		case api.NotificationRuleBalanceThresholdValueTypePercent:
 			fallthrough
@@ -501,6 +501,7 @@ func getActiveThresholdsWithHighestPriority(thresholds []notification.BalanceThr
 			} else if usage.ThresholdValue <= numThreshold.ThresholdValue {
 				usage = numThreshold
 			}
+
 		// Deprecated: obsoleted by api.NotificationRuleBalanceThresholdValueTypeUsageValue
 		case api.NotificationRuleBalanceThresholdValueTypeNumber:
 			fallthrough

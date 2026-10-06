@@ -308,7 +308,6 @@ func (s *UsageBasedChargesTestSuite) runUsageBasedCustomCurrencyFiatOverageAfter
 	// - issuing is retried after the invoicing app recovers
 	// then:
 	// - retry reuses gross preparation, and sync retry reuses completed settlement
-
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-usage-based-fiat-overage-sync-retry")
 
@@ -1362,6 +1361,7 @@ func (s *UsageBasedChargesTestSuite) runUsageBasedCustomCurrencyCreditThenInvoic
 			if realizationVariant.enableProgressiveBilling {
 				profileOptions = append(profileOptions, billingtest.WithProgressiveBilling())
 			}
+
 			_ = s.ProvisionBillingProfile(
 				ctx,
 				ns,
@@ -1525,6 +1525,7 @@ func (s *UsageBasedChargesTestSuite) runUsageBasedCustomCurrencyCreditThenInvoic
 				if test.expectLineDeleted {
 					expectedStatus = realizationVariant.expectedChargeStatusAfterPayment
 				}
+
 				s.Equal(expectedStatus, charge.Status)
 
 				var collectedRun usagebased.RealizationRun
@@ -1538,6 +1539,7 @@ func (s *UsageBasedChargesTestSuite) runUsageBasedCustomCurrencyCreditThenInvoic
 					collectedRun, err = charge.GetCurrentRealizationRun()
 					s.Require().NoError(err)
 				}
+
 				s.Equal(realizationVariant.expectedRunType, collectedRun.Type)
 				s.Equal(test.onRunCreated.usageAdded+test.onCollectionComplete.usageAdded, collectedRun.MeteredQuantity.InexactFloat64())
 				s.RequireTotals(test.onCollectionComplete.expectRunTotals, collectedRun.Totals)
@@ -1568,6 +1570,7 @@ func (s *UsageBasedChargesTestSuite) runUsageBasedCustomCurrencyCreditThenInvoic
 						line.CreditsApplied.SumAmount(fiatCurrency).InexactFloat64(),
 					)
 				}
+
 				s.RequireTotals(test.onCollectionComplete.expectInvoiceTotals, invoice.Totals)
 			})
 
@@ -1706,6 +1709,7 @@ func (s *UsageBasedChargesTestSuite) runUsageBasedCustomCurrencyCreditThenInvoic
 					} else {
 						s.Equal(1, customCurrencyOverageAccruedInvocations)
 					}
+
 					s.Nil(realizedRun.Payment)
 					s.True(realizedRun.NoFiatTransactionRequired)
 				}
@@ -1719,6 +1723,7 @@ func (s *UsageBasedChargesTestSuite) runUsageBasedCustomCurrencyCreditThenInvoic
 				if test.expectLineDeleted {
 					expectedInvoiceStatus = billing.StandardInvoiceStatusDeleted
 				}
+
 				s.Equal(expectedInvoiceStatus, activeInvoice.Status)
 
 				if test.expectLineDeleted {

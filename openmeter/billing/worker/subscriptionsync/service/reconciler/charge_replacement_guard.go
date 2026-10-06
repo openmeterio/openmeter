@@ -42,6 +42,7 @@ func (s *Service) ensureChargeCanBeReplaced(ctx context.Context, existing persis
 		if flatFee.Realizations.CurrentRun != nil {
 			runs = append(runs, *flatFee.Realizations.CurrentRun)
 		}
+
 		invoiceIDs = lo.FilterMap(runs, func(run flatfee.RealizationRun, _ int) (string, bool) {
 			if run.InvoiceID == nil {
 				return "", false
@@ -70,6 +71,7 @@ func (s *Service) ensureChargeCanBeReplaced(ctx context.Context, existing persis
 	if len(invoiceIDs) == 0 {
 		return nil
 	}
+
 	slices.Sort(invoiceIDs)
 
 	invoices, err := s.billingService.ListStandardInvoices(ctx, billing.ListStandardInvoicesInput{
@@ -85,12 +87,15 @@ func (s *Service) ensureChargeCanBeReplaced(ctx context.Context, existing persis
 	for _, id := range invoiceIDs {
 		requestedIDs[id] = struct{}{}
 	}
+
 	for _, invoice := range invoices.Items {
 		if _, ok := requestedIDs[invoice.ID]; !ok {
 			return fmt.Errorf("unexpected realization invoice[%s] for charge replacement", invoice.ID)
 		}
+
 		delete(requestedIDs, invoice.ID)
 	}
+
 	if len(requestedIDs) != 0 {
 		return fmt.Errorf("only %d of %d realization invoices were returned", len(invoiceIDs)-len(requestedIDs), len(invoiceIDs))
 	}

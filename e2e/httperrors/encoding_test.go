@@ -37,6 +37,7 @@ func TestDisconnectDuringResponseWrite(t *testing.T) {
 							if err := http.NewResponseController(w).Flush(); err != nil {
 								return err
 							}
+
 							close(started)
 							<-ctx.Done()
 							switch format {
@@ -77,6 +78,7 @@ func TestSerializationFailureAfterCallerCancellation(t *testing.T) {
 					func(ctx context.Context, w http.ResponseWriter, r *http.Request, response chan struct{}) error {
 						close(started)
 						<-ctx.Done()
+
 						return commonhttp.JSONResponseEncoder(ctx, w, r, response)
 					}, httptransport.WithErrorHandler(diagnostics),
 				)
@@ -109,9 +111,11 @@ func TestServerWriteDeadlineRemainsFailure(t *testing.T) {
 						if err := controller.Flush(); err != nil {
 							return err
 						}
+
 						if err := controller.SetWriteDeadline(time.Now().Add(-time.Second)); err != nil {
 							return err
 						}
+
 						return commonhttp.PlainTextResponseEncoder(ctx, w, r, response)
 					}, httptransport.WithErrorHandler(diagnostics),
 				)

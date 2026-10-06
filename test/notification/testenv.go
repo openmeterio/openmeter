@@ -134,6 +134,7 @@ func NewTestEnv(t *testing.T, namespace string) (TestEnv, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to create meter service: %w", err)
 	}
+
 	if err := meterService.SetDBClient(entClient); err != nil {
 		return nil, fmt.Errorf("failed to set meter DB client: %w", err)
 	}

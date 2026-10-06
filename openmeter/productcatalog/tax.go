@@ -281,6 +281,7 @@ func ResolveTaxConfig(ctx context.Context, svc taxcode.Service, namespace string
 			if taxcode.IsTaxCodeNotFoundError(err) {
 				return models.NewGenericValidationError(fmt.Errorf("tax code %s not found", *cfg.TaxCodeID))
 			}
+
 			return fmt.Errorf("resolving tax code %s: %w", *cfg.TaxCodeID, err)
 		}
 

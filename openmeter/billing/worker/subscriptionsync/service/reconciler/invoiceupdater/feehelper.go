@@ -58,5 +58,6 @@ func SetFlatFeePerUnitAmount(line billing.GenericInvoiceLine, perUnitAmount alpa
 
 	flatPrice.Amount = perUnitAmount
 	line.SetPrice(lo.FromPtr(productcatalog.NewPriceFrom(flatPrice)))
+
 	return nil
 }

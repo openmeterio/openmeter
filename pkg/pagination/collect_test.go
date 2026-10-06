@@ -18,10 +18,12 @@ func TestCollectAll_MultiplePages(t *testing.T) {
 		if end > total {
 			end = total
 		}
+
 		items := make([]int, 0, max(0, end-start))
 		for i := start; i < end; i++ {
 			items = append(items, i)
 		}
+
 		return Result[int]{
 			Page:  page,
 			Items: items,
@@ -73,11 +75,13 @@ func TestCollectAll_ErrorMidway(t *testing.T) {
 		if page.PageNumber == 2 {
 			return Result[int]{}, wantErr
 		}
+
 		// return a full page for page 1 so we attempt page 2 next
 		items := make([]int, page.PageSize)
 		for i := 0; i < page.PageSize; i++ {
 			items[i] = i
 		}
+
 		return Result[int]{
 			Page:  page,
 			Items: items,
@@ -88,9 +92,11 @@ func TestCollectAll_ErrorMidway(t *testing.T) {
 	if err == nil {
 		t.Fatalf("expected error, got nil")
 	}
+
 	if err.Error() != wantErr.Error() {
 		t.Fatalf("expected error %q, got %q", wantErr.Error(), err.Error())
 	}
+
 	if items != nil {
 		t.Fatalf("expected nil items on error, got %v", items)
 	}
@@ -105,6 +111,7 @@ func TestCollectAll_MaxSafeIter(t *testing.T) {
 		for i := 0; i < page.PageSize; i++ {
 			items[i] = i
 		}
+
 		return Result[int]{
 			Page:  page,
 			Items: items,
@@ -115,9 +122,11 @@ func TestCollectAll_MaxSafeIter(t *testing.T) {
 	if err == nil {
 		t.Fatalf("expected error, got nil")
 	}
+
 	if want := fmt.Sprintf("max safe iter reached: %d", MAX_SAFE_ITER+1); err.Error() != want {
 		t.Fatalf("expected error %q, got %q", want, err.Error())
 	}
+
 	if items != nil {
 		t.Fatalf("expected nil items on error, got %v", items)
 	}
@@ -127,5 +136,6 @@ func max(a, b int) int {
 	if a > b {
 		return a
 	}
+
 	return b
 }

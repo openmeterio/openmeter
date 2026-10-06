@@ -143,6 +143,7 @@ func ConvertMetadataToLabels(source models.Metadata) *api.Labels {
 	for k, v := range source {
 		labels[k] = v
 	}
+
 	return &labels
 }
 
@@ -161,6 +162,7 @@ func ToAPIMeterQueryRow(row meter.MeterQueryRow) api.MeterQueryRow {
 		if key == query.DimensionSubject || key == query.DimensionCustomerID {
 			continue
 		}
+
 		if value != nil {
 			dimensions[key] = *value
 		}

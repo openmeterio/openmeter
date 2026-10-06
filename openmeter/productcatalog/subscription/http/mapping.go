@@ -231,6 +231,7 @@ func MapSubscriptionItemToAPI(item subscription.SubscriptionItemView) (api.Subsc
 		if err != nil {
 			return api.SubscriptionItem{}, fmt.Errorf("failed to map feature to API: %w", err)
 		}
+
 		included = &api.SubscriptionItemIncluded{
 			Feature: feature,
 		}
@@ -510,6 +511,7 @@ func CustomPlanToCreatePlanRequest(a api.CustomPlanInput, namespace string) (pla
 	if err = currencyCode.Validate(); err != nil {
 		return req, fmt.Errorf("invalid CurrencyCode: %w", err)
 	}
+
 	req.Currency = currencies.NewCurrencyReference(currencyx.Code(currencyCode))
 
 	req.PlanMeta.BillingCadence, err = datetime.ISODurationString(a.BillingCadence).Parse()
@@ -542,6 +544,7 @@ func asProRatingConfig(p *api.ProRatingConfig) productcatalog.ProRatingConfig {
 			Mode:    productcatalog.ProRatingModeProratePrices,
 		}
 	}
+
 	return productcatalog.ProRatingConfig{
 		Enabled: p.Enabled,
 		Mode:    productcatalog.ProRatingMode(p.Mode),

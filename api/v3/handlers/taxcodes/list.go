@@ -68,6 +68,7 @@ func (h *handler) ListTaxCodes() ListTaxCodesHandler {
 				if err != nil {
 					return ListTaxCodesResponse{}, err
 				}
+
 				taxcodes = append(taxcodes, apiTaxCode)
 			}
 

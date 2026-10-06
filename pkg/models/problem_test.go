@@ -37,6 +37,7 @@ func TestStatusProblemCancellation(t *testing.T) {
 			if test.canceled {
 				cancel()
 			}
+
 			problem := NewStatusProblem(ctx, test.err, test.status)
 			writer := httptest.NewRecorder()
 			problem.Respond(writer)

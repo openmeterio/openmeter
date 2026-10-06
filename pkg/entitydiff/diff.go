@@ -108,6 +108,7 @@ func diffByID[T Entity](expectedState, dbState []T) speculativeDiff[T] {
 
 			// If the expected state is not deleted, we need to create it
 			diff.Create = append(diff.Create, expected)
+
 			continue
 		}
 
@@ -120,6 +121,7 @@ func diffByID[T Entity](expectedState, dbState []T) speculativeDiff[T] {
 
 			// If the expected state is not deleted, but we don't have it in the db, we need to create it
 			diff.Create = append(diff.Create, expected)
+
 			continue
 		}
 
@@ -131,7 +133,6 @@ func diffByID[T Entity](expectedState, dbState []T) speculativeDiff[T] {
 				//
 				// For example if you delete a line that is subscription synced, the edit will cause managedBy to become manual
 				// in the same change as the deleted_at change.
-
 				diff.Delete = append(diff.Delete, expected)
 				continue
 			}

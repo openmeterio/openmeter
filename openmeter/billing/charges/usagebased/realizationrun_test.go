@@ -113,6 +113,7 @@ func TestRealizationRuns_MapToBillingMeteredQuantity(t *testing.T) {
 						18,
 					)
 					run.DeletedAt = &periodStart
+
 					return run
 				}(),
 				newRealizationRunForBillingMeteredQuantityTest(
@@ -406,6 +407,7 @@ func TestCharge_BisectRealizationRunsByTimestamp(t *testing.T) {
 				1,
 			)
 			run.DeletedAt = &deletedAt
+
 			return run
 		}(),
 		newRealizationRunForBillingMeteredQuantityTest(

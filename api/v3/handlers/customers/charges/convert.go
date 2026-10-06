@@ -328,6 +328,7 @@ func convertFeatureIDToReference(id *string) *api.FeatureReference {
 	if id == nil {
 		return nil
 	}
+
 	return &api.FeatureReference{
 		Id: *id,
 	}
@@ -337,10 +338,12 @@ func convertSubscriptionToReference(source *meta.SubscriptionReference) (*api.Su
 	if source == nil {
 		return nil, nil
 	}
+
 	var result api.SubscriptionOrReference
 	if err := result.FromBillingSubscriptionReference(ConvertSubscriptionRefToAPI(*source)); err != nil {
 		return nil, fmt.Errorf("converting subscription reference: %w", err)
 	}
+
 	return &result, nil
 }
 
@@ -412,6 +415,7 @@ func convertFlatFeeRealizationsToAPI(realizations []billingcharges.CustomerCharg
 				ServicePeriod: ConvertClosedPeriodToAPI(resolved.ServicePeriod),
 				Type:          api.BillingChargeRealizationTypeOutstanding,
 			})
+
 			continue
 		}
 
@@ -466,6 +470,7 @@ func convertUsageBasedRealizationsToAPI(realizations []billingcharges.CustomerCh
 				Type:          api.BillingChargeRealizationTypeOutstanding,
 				Usage:         lo.ToPtr(resolved.Quantity.String()),
 			})
+
 			continue
 		}
 
@@ -701,6 +706,7 @@ func convertChargeToAPI(charge billingcharges.CustomerCharge, expands meta.Expan
 		if err != nil {
 			return out, err
 		}
+
 		if err := out.FromBillingChargeFlatFee(apiFF); err != nil {
 			return out, fmt.Errorf("setting flat fee charge union: %w", err)
 		}
@@ -710,6 +716,7 @@ func convertChargeToAPI(charge billingcharges.CustomerCharge, expands meta.Expan
 		if err != nil {
 			return out, err
 		}
+
 		if err := out.FromBillingChargeUsageBased(apiUB); err != nil {
 			return out, fmt.Errorf("setting usage based charge union: %w", err)
 		}
@@ -775,6 +782,7 @@ func toAPIBillingUsageBasedRatingConfiguration(intent usagebased.IntentMutableFi
 	if err != nil {
 		return apiUsageBasedRatingConfiguration{}, fmt.Errorf("converting unit config: %w", err)
 	}
+
 	result.UnitConfig = legacyUnitConfig
 
 	return result, nil
@@ -785,7 +793,9 @@ func convertFlatFeeDiscounts(pd *billing.PercentageDiscount) *api.BillingChargeF
 	if pd == nil {
 		return nil
 	}
+
 	pct := float32(pd.Percentage.InexactFloat64())
+
 	return &api.BillingChargeFlatFeeDiscounts{Percentage: &pct}
 }
 
@@ -794,15 +804,18 @@ func convertUsageBasedDiscounts(d billing.Discounts) *api.BillingRateCardDiscoun
 	if d.Percentage == nil && d.Usage == nil {
 		return nil
 	}
+
 	result := &api.BillingRateCardDiscounts{}
 	if d.Percentage != nil {
 		pct := float32(d.Percentage.Percentage.InexactFloat64())
 		result.Percentage = &pct
 	}
+
 	if d.Usage != nil {
 		s := d.Usage.Quantity.String()
 		result.Usage = &s
 	}
+
 	return result
 }
 
@@ -813,6 +826,7 @@ func ConvertUsageBasedStatusToAPI(status usagebased.Status) (*api.BillingChargeS
 	if err != nil {
 		return nil, fmt.Errorf("converting usage-based status to charge status: %w", err)
 	}
+
 	return lo.ToPtr(api.BillingChargeStatus(s)), nil
 }
 
@@ -840,6 +854,7 @@ func ConvertProRatingConfigToAPI(c productcatalog.ProRatingConfig) api.BillingRa
 			Mode: api.BillingRateCardProrationModeNoProration,
 		}
 	}
+
 	return api.BillingRateCardProrationConfiguration{
 		Mode: api.BillingRateCardProrationMode(c.Mode),
 	}
@@ -929,6 +944,7 @@ func fromAPICreateChargeFlatFeeRequest(namespace, customerID string, flatFee api
 			Percentage: models.NewPercentage(float64(lo.FromPtr(flatFee.Discounts.Percentage))),
 		}
 	}
+
 	billingDiscount := billing.PercentageDiscountFromProductCatalog(percentageDiscount)
 
 	var proRating productcatalog.ProRatingConfig
@@ -1002,16 +1018,19 @@ func fromAPICreateChargeUsageBasedRequest(namespace, customerID string, usageBas
 				Percentage: models.NewPercentage(float64(lo.FromPtr(usageBasedFee.Discounts.Percentage))),
 			}
 		}
+
 		if usageBasedFee.Discounts.Usage != nil {
 			quantity, err := alpacadecimal.NewFromString(lo.FromPtr(usageBasedFee.Discounts.Usage))
 			if err != nil {
 				return zero, fmt.Errorf("invalid usage discount quantity: %w", err)
 			}
+
 			discounts.Usage = &productcatalog.UsageDiscount{
 				Quantity: quantity,
 			}
 		}
 	}
+
 	billingDiscounts := billing.DiscountsFromProductCatalog(discounts)
 
 	price, err := plans.FromAPIBillingPriceUsageBased(usageBasedFee.Price, usageBasedFee.Commitments)
@@ -1092,6 +1111,7 @@ func fromAPIListChargesParams(ctx context.Context, namespace string, pageQuery *
 		if err != nil {
 			return billingcharges.ListCustomerChargesInput{}, newInvalidQueryParamError(ctx, "expand", err)
 		}
+
 		expands = expands.With(chargesExpands...)
 	}
 
@@ -1110,10 +1130,12 @@ func fromAPIListChargesParams(ctx context.Context, namespace string, pageQuery *
 		if err != nil {
 			return billingcharges.ListCustomerChargesInput{}, newInvalidQueryParamError(ctx, "sort", err)
 		}
+
 		orderBy, err := FromAPICustomerChargesSortField(ctx, sort.Field)
 		if err != nil {
 			return billingcharges.ListCustomerChargesInput{}, err
 		}
+
 		req.OrderBy = orderBy
 		req.Order = sort.Order.ToSortxOrder()
 	}
@@ -1126,12 +1148,14 @@ func fromAPIListChargesParamsFilter(ctx context.Context, f *api.ListChargesParam
 	if err != nil {
 		return newInvalidQueryParamError(ctx, "filter[customer_id]", err)
 	}
+
 	req.CustomerID = customerID
 
 	status, err := filters.FromAPIFilterStringExact(f.Status)
 	if err != nil {
 		return newInvalidQueryParamError(ctx, "filter[status]", err)
 	}
+
 	req.Status = status
 
 	// The search adapter hides deleted charges unless the request opts in,
@@ -1154,24 +1178,28 @@ func fromAPIListChargesParamsFilter(ctx context.Context, f *api.ListChargesParam
 	if err != nil {
 		return newInvalidQueryParamError(ctx, "filter[feature_id]", err)
 	}
+
 	req.FeatureID = featureID
 
 	featureKey, err := filters.FromAPIFilterStringExact(f.FeatureKey)
 	if err != nil {
 		return newInvalidQueryParamError(ctx, "filter[feature_key]", err)
 	}
+
 	req.FeatureKey = featureKey
 
 	servicePeriodFrom, err := filters.FromAPIFilterDateTime(f.ServicePeriodFrom)
 	if err != nil {
 		return newInvalidQueryParamError(ctx, "filter[service_period_from]", err)
 	}
+
 	req.ServicePeriodFrom = servicePeriodFrom
 
 	servicePeriodTo, err := filters.FromAPIFilterDateTime(f.ServicePeriodTo)
 	if err != nil {
 		return newInvalidQueryParamError(ctx, "filter[service_period_to]", err)
 	}
+
 	req.ServicePeriodTo = servicePeriodTo
 
 	return nil

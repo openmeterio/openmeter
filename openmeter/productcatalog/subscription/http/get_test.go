@@ -50,6 +50,7 @@ func TestV1SubscriptionReadsExcludeCustomCurrency(t *testing.T) {
 			if kind == "mixed" {
 				meta.Currency = lo.ToPtr(managedCurrency.Reference())
 			}
+
 			return meta, nil
 		}))
 		input := subscriptiontestutils.BuildTestPlanInput(t).AddPhase(nil, card).Build()
@@ -57,9 +58,11 @@ func TestV1SubscriptionReadsExcludeCustomCurrency(t *testing.T) {
 		if kind == "custom" {
 			input.Currency = managedCurrency.Reference()
 		}
+
 		if kind == "mixed" {
 			input.Phases[0].RateCards = append(input.Phases[0].RateCards, subscriptiontestutils.ExampleRateCard2.Clone())
 		}
+
 		view, err := deps.WorkflowService.CreateFromPlan(ctx, subscriptionworkflow.CreateSubscriptionWorkflowInput{
 			ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
 				Timing: subscription.Timing{Custom: lo.ToPtr(now.Add(-time.Second))},
@@ -72,6 +75,7 @@ func TestV1SubscriptionReadsExcludeCustomCurrency(t *testing.T) {
 		require.Nil(t, view.Subscription.PlanRef, "visibility must use subscription items, including inline plans")
 		views[kind] = view
 	}
+
 	decoder := namespacedriver.StaticNamespaceDecoder(ns)
 	handler := subscriptionhttp.NewHandler(subscriptionhttp.HandlerConfig{
 		SubscriptionService: deps.SubscriptionService,
@@ -163,10 +167,12 @@ func TestV1SubscriptionReadsExcludeCustomCurrency(t *testing.T) {
 			require.NoError(t, replacement.RateCard.ChangeMeta(func(meta productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
 				meta.Key = replacement.ItemKey
 				meta.Currency = lo.ToPtr(currencies.NewCurrencyReference(currencyx.Code("USD")))
+
 				return meta, nil
 			}))
 			phase.ItemsByKey = map[string][]*subscription.SubscriptionItemSpec{replacement.ItemKey: {&replacement}}
 		}
+
 		// when: the service persists the replacement and soft-deletes the old item.
 		_, err := deps.SubscriptionService.Update(ctx, view.Subscription.NamespacedID, target)
 		require.NoError(t, err)

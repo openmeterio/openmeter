@@ -29,6 +29,7 @@ func containsFilter(value *string) *filter.FilterString {
 	if value == nil {
 		return nil
 	}
+
 	return &filter.FilterString{Contains: value}
 }
 
@@ -38,6 +39,7 @@ func eqFilter(value *string) *filter.FilterString {
 	if value == nil {
 		return nil
 	}
+
 	return &filter.FilterString{Eq: value}
 }
 

@@ -19,10 +19,12 @@ func TestDrainBudgetCommitsSuccessfulPrefix(t *testing.T) {
 	for len(p.wake) > 0 {
 		<-p.wake
 	}
+
 	raw.setOnSend(func(msg publishedMessage) error {
 		if msg.id == "B" {
 			time.Sleep(p.cfg.DrainTimeout)
 		}
+
 		return nil
 	})
 
@@ -52,6 +54,7 @@ func TestDrainBudgetPersistsLateFailure(t *testing.T) {
 			time.Sleep(p.cfg.DrainTimeout)
 			return brokerErr
 		}
+
 		return nil
 	})
 
@@ -84,6 +87,7 @@ func TestWorkerBudgetAllowsRetryExhaustion(t *testing.T) {
 			time.Sleep(cfg.DrainTimeout)
 			return errors.New("slow broker failure")
 		}
+
 		return nil
 	})
 	p, err := NewPublisher(t.Context(), cfg)

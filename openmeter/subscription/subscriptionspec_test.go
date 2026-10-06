@@ -244,6 +244,7 @@ func TestSubscriptionSpecHasUnitConfig(t *testing.T) {
 func TestSubscriptionSpecValidateRateCardBillingCadence(t *testing.T) {
 	makeSpec := func(cadence string) subscription.SubscriptionSpec {
 		period := datetime.MustParseDuration(t, cadence)
+
 		return subscription.SubscriptionSpec{
 			CreateSubscriptionPlanInput:     subscription.CreateSubscriptionPlanInput{BillingCadence: datetime.MustParseDuration(t, "P1D")},
 			CreateSubscriptionCustomerInput: subscription.CreateSubscriptionCustomerInput{InvoiceCurrency: "USD", BillingAnchor: time.Now()},
@@ -275,6 +276,7 @@ func TestSubscriptionSpecValidateRateCardBillingCadence(t *testing.T) {
 			found = true
 		}
 	}
+
 	require.True(t, found)
 	daily := makeSpec("P1D")
 	require.NoError(t, daily.Validate())

@@ -528,6 +528,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestSchedulingFutureReplacemen
 	originalCharge, found := lo.Find(initialCharges.Items, func(charge charges.Charge) bool {
 		uniqueReferenceID, err := charge.GetUniqueReferenceID()
 		s.Require().NoError(err)
+
 		return lo.FromPtr(uniqueReferenceID) == childID
 	})
 	s.Require().True(found)
@@ -685,6 +686,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestRecreatingFuturePhaseRepai
 			break
 		}
 	}
+
 	s.Require().NotEmpty(originalCharge.ID)
 	s.Require().NotNil(originalCharge.Intent.GetSubscription())
 	s.Equal(originalSecondPhaseID, originalCharge.Intent.GetSubscription().PhaseID)
@@ -775,6 +777,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestRecreatingFuturePhaseRepai
 			break
 		}
 	}
+
 	s.Require().NotEmpty(reconciledCharge.ID)
 	s.Equal(originalCharge.ID, reconciledCharge.ID)
 	s.Require().NotNil(reconciledCharge.Intent.GetSubscription())
@@ -2094,6 +2097,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) assertExpectedFlatFeeCharges(c
 			if !found {
 				s.T().Fatalf("expected[%d] charge[%d] not found with child unique reference id %s", expectedIdx, periodIdx, childID)
 			}
+
 			expectedPhaseID := s.getExpectedPhaseIDForChildReference(ctx, subscriptionID, childID)
 
 			s.NotNilf(charge.Intent.GetUniqueReferenceID(), "expected[%d] charge[%d] should have child unique reference id", expectedIdx, periodIdx)
@@ -2156,6 +2160,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) assertExpectedUsageBasedCharge
 			if !found {
 				s.T().Fatalf("expected[%d] charge[%d] not found with child unique reference id %s", expectedIdx, periodIdx, childID)
 			}
+
 			expectedPhaseID := s.getExpectedPhaseIDForChildReference(ctx, subscriptionID, childID)
 
 			s.NotNilf(charge.Intent.GetUniqueReferenceID(), "expected[%d] charge[%d] should have child unique reference id", expectedIdx, periodIdx)

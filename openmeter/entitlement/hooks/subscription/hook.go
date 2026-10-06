@@ -37,6 +37,7 @@ func (h *hook) PreDelete(ctx context.Context, ent *entitlement.Entitlement) erro
 	if subscription.AnnotationParser.HasSubscription(ent.Annotations) {
 		return models.NewGenericForbiddenError(fmt.Errorf("entitlement is managed by subscription"))
 	}
+
 	return nil
 }
 
@@ -49,5 +50,6 @@ func (h *hook) PreUpdate(ctx context.Context, ent *entitlement.Entitlement) erro
 	if subscription.AnnotationParser.HasSubscription(ent.Annotations) {
 		return models.NewGenericForbiddenError(fmt.Errorf("entitlement is managed by subscription"))
 	}
+
 	return nil
 }

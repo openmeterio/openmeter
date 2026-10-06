@@ -44,6 +44,7 @@ func TestNamespaceHandler(t *testing.T) {
 			TransactionManager: env.Adapter,
 		})
 		require.NoError(t, err)
+
 		return h
 	}
 

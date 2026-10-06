@@ -40,6 +40,7 @@ func hydrateHistoricalTransaction(tx *db.LedgerTransaction) (*ledgerhistorical.T
 		if err != nil {
 			return ledgerhistorical.EntryData{}, fmt.Errorf("entry %s sub-account %s missing account edge: %w", entry.ID, subAccount.ID, err)
 		}
+
 		route, err := subAccount.Edges.RouteOrErr()
 		if err != nil {
 			return ledgerhistorical.EntryData{}, fmt.Errorf("entry %s sub-account %s missing route edge: %w", entry.ID, subAccount.ID, err)
@@ -316,6 +317,7 @@ func (r *repo) ListTransactions(ctx context.Context, input ledger.ListTransactio
 				if input.ReturnOnlyMatchingEntries && len(entryPredicates) > 0 {
 					q.Where(entryPredicates...)
 				}
+
 				q.Order(
 					ledgerentrydb.ByCreatedAt(),
 					ledgerentrydb.ByID(),
@@ -329,6 +331,7 @@ func (r *repo) ListTransactions(ctx context.Context, input ledger.ListTransactio
 		if input.TransactionID != nil {
 			query = query.Where(ledgertransactiondb.ID(input.TransactionID.ID))
 		}
+
 		if input.AsOf != nil {
 			query = query.Where(ledgertransactiondb.BookedAtLTE(*input.AsOf))
 		}
@@ -354,6 +357,7 @@ func (r *repo) ListTransactions(ctx context.Context, input ledger.ListTransactio
 			if err != nil {
 				return ledger.ListTransactionsResult{}, err
 			}
+
 			if pred != nil {
 				query = query.Where(pred)
 			}
@@ -375,6 +379,7 @@ func (r *repo) ListTransactions(ctx context.Context, input ledger.ListTransactio
 		if err != nil {
 			return ledger.ListTransactionsResult{}, fmt.Errorf("failed to list transactions: %w", err)
 		}
+
 		if len(dbItems) == 0 {
 			return ledger.ListTransactionsResult{
 				Items: []ledger.Transaction{},
@@ -448,6 +453,7 @@ func listTransactionsSubAccountPredicates(accountIDs []string, currency *currenc
 	if err != nil {
 		return nil, err
 	}
+
 	if len(routePredicates) > 0 {
 		subAccountPredicates = append(
 			subAccountPredicates,
@@ -467,6 +473,7 @@ func listTransactionsRoutePredicates(currency *currencyx.Code, route ledger.Rout
 			if err != nil {
 				return nil, fmt.Errorf("serialize currency filter prefix: %w", err)
 			}
+
 			routePredicates = append(routePredicates, ledgersubaccountroutedb.CurrencyHasPrefix(string(prefix)))
 		} else {
 			routePredicates = append(routePredicates, ledgersubaccountroutedb.Currency(string(*currency)))
@@ -479,12 +486,14 @@ func listTransactionsRoutePredicates(currency *currencyx.Code, route ledger.Rout
 			if err != nil {
 				return nil, fmt.Errorf("serialize route currency filter prefix: %w", err)
 			}
+
 			routePredicates = append(routePredicates, ledgersubaccountroutedb.CurrencyHasPrefix(string(prefix)))
 		} else {
 			serialized, err := route.Currency.MarshalText()
 			if err != nil {
 				return nil, fmt.Errorf("serialize route currency filter: %w", err)
 			}
+
 			routePredicates = append(routePredicates, ledgersubaccountroutedb.Currency(string(serialized)))
 		}
 	}
@@ -501,9 +510,11 @@ func listTransactionsRoutePredicates(currency *currencyx.Code, route ledger.Rout
 	if exact, ok := route.CreditFilters.Get(); ok {
 		routePredicates = append(routePredicates, func(s *sql.Selector) { s.Where(routequery.ExactFiltersPredicate(s.C, exact)) })
 	}
+
 	if features, ok := route.Features.Get(); ok {
 		routePredicates = append(routePredicates, func(s *sql.Selector) { s.Where(routequery.ExactFeaturesPredicate(s.C, features)) })
 	}
+
 	if route.MatchFeature != "" {
 		routePredicates = append(routePredicates, func(s *sql.Selector) { s.Where(routequery.MatchFeaturePredicate(s.C, route.MatchFeature)) })
 	}
@@ -625,6 +636,7 @@ func scopedFBOMovementTransactionSelector(
 	if err != nil {
 		return nil, err
 	}
+
 	if len(routePredicates) > 0 {
 		selector.
 			Join(routes).
@@ -658,6 +670,7 @@ func scopedRouteSelectorPredicates(input scopedRouteSelectorPredicatesInput) ([]
 			if err != nil {
 				return nil, fmt.Errorf("serialize currency filter prefix: %w", err)
 			}
+
 			predicates = append(predicates, sql.Like(routeColumn(ledgersubaccountroutedb.FieldCurrency), string(prefix)+"%"))
 		} else {
 			predicates = append(predicates, sql.EQ(routeColumn(ledgersubaccountroutedb.FieldCurrency), string(*currency)))
@@ -670,12 +683,14 @@ func scopedRouteSelectorPredicates(input scopedRouteSelectorPredicatesInput) ([]
 			if err != nil {
 				return nil, fmt.Errorf("serialize route currency filter prefix: %w", err)
 			}
+
 			predicates = append(predicates, sql.Like(routeColumn(ledgersubaccountroutedb.FieldCurrency), string(prefix)+"%"))
 		} else {
 			serialized, err := route.Currency.MarshalText()
 			if err != nil {
 				return nil, fmt.Errorf("serialize route currency filter: %w", err)
 			}
+
 			predicates = append(predicates, sql.EQ(routeColumn(ledgersubaccountroutedb.FieldCurrency), string(serialized)))
 		}
 	}
@@ -692,12 +707,15 @@ func scopedRouteSelectorPredicates(input scopedRouteSelectorPredicatesInput) ([]
 	if exact, ok := route.CreditFilters.Get(); ok {
 		predicates = append(predicates, routequery.ExactFiltersPredicate(routeColumn, exact))
 	}
+
 	if features, ok := route.Features.Get(); ok {
 		predicates = append(predicates, routequery.ExactFeaturesPredicate(routeColumn, features))
 	}
+
 	if route.MatchFeature != "" {
 		predicates = append(predicates, routequery.MatchFeaturePredicate(routeColumn, route.MatchFeature))
 	}
+
 	return predicates, nil
 }
 

@@ -154,6 +154,7 @@ func FromAddonRateCardRow(r entdb.AddonRateCard) (*addon.RateCard, error) {
 			if err != nil {
 				return nil, fmt.Errorf("invalid resolved feature reference: %w", err)
 			}
+
 			meta.Feature = &resolvedReference
 		}
 	}
@@ -411,6 +412,7 @@ func FromPlanRateCardRow(r entdb.PlanRateCard) (productcatalog.RateCard, error) 
 			if err != nil {
 				return nil, fmt.Errorf("invalid resolved feature reference: %w", err)
 			}
+
 			meta.Feature = &resolvedReference
 		}
 	}

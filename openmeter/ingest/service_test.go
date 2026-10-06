@@ -54,6 +54,7 @@ func TestIngestEventsRecordsRequestEventCount(t *testing.T) {
 			}
 		}
 	}
+
 	require.True(t, found)
 
 	require.Len(t, histogram.DataPoints, 1)

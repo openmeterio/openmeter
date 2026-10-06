@@ -40,6 +40,7 @@ func (o Status) Validate() error {
 	if !slices.Contains(o.Values(), string(o)) {
 		return models.NewGenericValidationError(fmt.Errorf("invalid payment settlement status: %s", o))
 	}
+
 	return nil
 }
 

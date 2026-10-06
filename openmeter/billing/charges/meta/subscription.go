@@ -66,8 +66,10 @@ func (p SubscriptionPlan) Validate() error {
 	if p.Key == "" {
 		errs = append(errs, errors.New("plan key is required"))
 	}
+
 	if p.Version < 1 {
 		errs = append(errs, errors.New("plan version must be positive"))
 	}
+
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }

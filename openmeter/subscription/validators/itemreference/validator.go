@@ -24,12 +24,15 @@ func (i ValidateInput) Validate() error {
 	if i.Namespace == "" {
 		errs = append(errs, errors.New("namespace is required"))
 	}
+
 	if i.SubscriptionID == "" {
 		errs = append(errs, errors.New("subscription ID is required"))
 	}
+
 	if i.PhaseID == "" {
 		errs = append(errs, errors.New("phase ID is required"))
 	}
+
 	if i.ItemID == "" {
 		errs = append(errs, errors.New("item ID is required"))
 	}

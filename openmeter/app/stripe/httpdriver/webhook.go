@@ -46,7 +46,6 @@ func (h *handler) AppStripeWebhook() AppStripeWebhookHandler {
 			// Note that the webhook handler has no namespace resolver
 			// We only know the namespace from the app id. Which we trust because
 			// we validate the payload signature with the app's webhook secret.
-
 			payload, err := io.ReadAll(http.MaxBytesReader(nil, r.Body, appStripeWebhookMaxBodyBytes))
 			if err != nil {
 				err = fmt.Errorf("cannot read payload: %w", err)
@@ -477,5 +476,6 @@ func unmarshalInvoiceEvent(data []byte) (stripe.Invoice, error) {
 			fmt.Errorf("failed to unmarshal invoice: %w", err),
 		)
 	}
+
 	return invoice, nil
 }

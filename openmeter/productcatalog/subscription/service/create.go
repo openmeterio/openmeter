@@ -28,6 +28,7 @@ func (s *service) Create(ctx context.Context, request plansubscription.CreateSub
 		if request.SettlementMode != nil {
 			planInput.SettlementMode = *request.SettlementMode
 		}
+
 		// Gate custom currencies behind the credits feature before resolving them, so
 		// a deployment without credits returns a clear "not enabled" error rather than
 		// the downstream "currency does not exist" that resolution would raise for an

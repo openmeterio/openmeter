@@ -443,6 +443,7 @@ func (u *updater) updateMutableStandardInvoice(ctx context.Context, invoice bill
 				if line == nil {
 					return fmt.Errorf("line[%s] not found in the invoice, cannot delete", lineID)
 				}
+
 				if err := ensureLineHasChargeID(line, deletePatch.op); err != nil {
 					return err
 				}
@@ -461,9 +462,11 @@ func (u *updater) updateMutableStandardInvoice(ctx context.Context, invoice bill
 				if line == nil {
 					return fmt.Errorf("line[%s] not found in the invoice, cannot update", targetStandardLine.ID)
 				}
+
 				if err := ensureLineHasChargeID(line, updatePatch.op); err != nil {
 					return err
 				}
+
 				if err := ensureLineHasChargeID(&targetStandardLine, updatePatch.op); err != nil {
 					return err
 				}
@@ -524,6 +527,7 @@ func (u *updater) updateGatheringInvoice(ctx context.Context, invoiceID billing.
 				if !ok {
 					return fmt.Errorf("line[%s] not found in the invoice, cannot delete", lineID)
 				}
+
 				if err := ensureLineHasChargeID(&line, deletePatch.op); err != nil {
 					return err
 				}
@@ -541,6 +545,7 @@ func (u *updater) updateGatheringInvoice(ctx context.Context, invoiceID billing.
 				if err != nil {
 					return fmt.Errorf("line[%s] is not a gathering line, cannot update: %w", targetStateGeneric.GetID(), err)
 				}
+
 				if err := ensureLineHasChargeID(&targetGatheringLine, updatePatch.op); err != nil {
 					return err
 				}
@@ -576,6 +581,7 @@ func (u *updater) updateImmutableInvoice(ctx context.Context, invoice billing.St
 				return err
 			}
 		}
+
 		validationIssues = append(validationIssues,
 			newValidationIssueOnLine(line, "line should be deleted, but the invoice is immutable"),
 		)
@@ -591,6 +597,7 @@ func (u *updater) updateImmutableInvoice(ctx context.Context, invoice billing.St
 		if existingLine == nil {
 			return fmt.Errorf("line[%s] not found in the invoice, cannot update", targetState.GetID())
 		}
+
 		if err := ensureLineHasChargeID(existingLine, updatePatch.op); err != nil {
 			return err
 		}
@@ -599,6 +606,7 @@ func (u *updater) updateImmutableInvoice(ctx context.Context, invoice billing.St
 		if err != nil {
 			return fmt.Errorf("line[%s] is not a standard line, cannot update: %w", targetState.GetID(), err)
 		}
+
 		if err := ensureLineHasChargeID(&targetStandardLine, updatePatch.op); err != nil {
 			return err
 		}

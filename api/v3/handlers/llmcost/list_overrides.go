@@ -60,6 +60,7 @@ func (h *handler) ListOverrides() ListOverridesHandler {
 						{Field: "filter[provider]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 					})
 				}
+
 				req.Provider = provider
 				modelID, err := filters.FromAPIFilterString(params.Filter.ModelId)
 				if err != nil {
@@ -67,6 +68,7 @@ func (h *handler) ListOverrides() ListOverridesHandler {
 						{Field: "filter[model_id]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 					})
 				}
+
 				req.ModelID = modelID
 				modelName, err := filters.FromAPIFilterString(params.Filter.ModelName)
 				if err != nil {
@@ -74,6 +76,7 @@ func (h *handler) ListOverrides() ListOverridesHandler {
 						{Field: "filter[model_name]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 					})
 				}
+
 				req.ModelName = modelName
 				currency, err := filters.FromAPIFilterString(params.Filter.Currency)
 				if err != nil {
@@ -81,6 +84,7 @@ func (h *handler) ListOverrides() ListOverridesHandler {
 						{Field: "filter[currency]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 					})
 				}
+
 				req.Currency = currency
 			}
 

@@ -70,6 +70,7 @@ func (c *Corrector) collectedSourcesForGroup(group ledger.TransactionGroup) ([]c
 		if direction != ledger.TransactionDirectionForward {
 			continue
 		}
+
 		// Advance-backed collection comes with a receivable issue in the same group.
 		var advanceReceivableIssueTransaction ledger.Transaction
 
@@ -88,6 +89,7 @@ func (c *Corrector) collectedSourcesForGroup(group ledger.TransactionGroup) ([]c
 					out[idx].entries = append(out[idx].entries, entry)
 					continue
 				}
+
 				sourceIndexBySubAccount[subAccountID] = len(out)
 				out = append(out, collectedSource{
 					entries:                           []ledger.Entry{entry},

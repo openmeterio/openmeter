@@ -279,9 +279,11 @@ func (i Intent) GetFeatureMeterRef() *billingfeaturemeter.FeatureMeterRef {
 	if i.FeatureID != nil {
 		featureRef.ID = *i.FeatureID
 	}
+
 	if i.FeatureKey != nil {
 		featureRef.Key = *i.FeatureKey
 	}
+
 	if lo.IsEmpty(featureRef) {
 		return nil
 	}

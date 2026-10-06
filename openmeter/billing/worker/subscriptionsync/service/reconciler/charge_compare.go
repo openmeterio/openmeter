@@ -48,6 +48,7 @@ func flatFeeIntentBillingTermsMatch(existing, target chargesflatfee.Intent) bool
 	if existingPaymentTerm == "" {
 		existingPaymentTerm = productcatalog.DefaultPaymentTerm
 	}
+
 	targetPaymentTerm := target.PaymentTerm
 	if targetPaymentTerm == "" {
 		targetPaymentTerm = productcatalog.DefaultPaymentTerm
@@ -56,6 +57,7 @@ func flatFeeIntentBillingTermsMatch(existing, target chargesflatfee.Intent) bool
 	if existingPaymentTerm != targetPaymentTerm {
 		return false
 	}
+
 	if target.ProRating.Enabled {
 		if existing.ProRating.Mode != target.ProRating.Mode {
 			return false
@@ -98,6 +100,7 @@ func chargeBillingTermsMatch(existing, target chargesmeta.Intent) bool {
 	if !existing.Currency.Reference().Equal(target.Currency.Reference()) {
 		return false
 	}
+
 	// An omitted target tax-code ID uses the system default for new charges. The
 	// existing charge's persisted ID remains compatible with that source intent.
 	if target.TaxConfig.TaxCodeID != "" {

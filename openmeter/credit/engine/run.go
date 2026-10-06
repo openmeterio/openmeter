@@ -133,6 +133,7 @@ func (e *engine) runBetweenResets(ctx context.Context, params inbetweenRunParams
 	if err != nil {
 		return RunResult{}, fmt.Errorf("failed to get burn phases: %w", err)
 	}
+
 	phases := phasePlan.phases
 
 	PrioritizeGrants(grants)
@@ -155,8 +156,10 @@ func (e *engine) runBetweenResets(ctx context.Context, params inbetweenRunParams
 			if !ok {
 				return fmt.Errorf("failed to get grant with id %s", grantID)
 			}
+
 			balancesAtPhaseStart.Set(grant.ID, grant.RecurrenceBalance(balancesAtPhaseStart[grantID]))
 		}
+
 		return nil
 	}
 
@@ -182,6 +185,7 @@ func (e *engine) runBetweenResets(ctx context.Context, params inbetweenRunParams
 			if err := applyRecurrences(recurredGrants); err != nil {
 				return RunResult{}, err
 			}
+
 			recurredGrants = nil
 		}
 
@@ -226,6 +230,7 @@ func (e *engine) runBetweenResets(ctx context.Context, params inbetweenRunParams
 		if err != nil {
 			return RunResult{}, fmt.Errorf("failed to get feature usage for period %s - %s: %w", period.From, period.To, err)
 		}
+
 		balancesAtPhaseStart, segment.GrantUsages, overage = e.burnDownGrants(balancesAtPhaseStart, activeGrants, usage+overage)
 
 		segment.TotalUsage = usage
@@ -237,6 +242,7 @@ func (e *engine) runBetweenResets(ctx context.Context, params inbetweenRunParams
 		if phase.priorityChange {
 			rePrioritize = true
 		}
+
 		if len(phase.grantsRecurredAtEnd) > 0 {
 			recurredGrants = phase.grantsRecurredAtEnd
 		}
@@ -294,6 +300,7 @@ func (m *engine) burnDownGrants(startingBalances balance.Map, prioritized []gran
 		if grantBalance == 0 {
 			continue
 		}
+
 		exactBalance := alpacadecimal.NewFromFloat(grantBalance)
 		// if grant balance is less than usage, burn the grant and subtract the balance from usage
 		if exactBalance.LessThanOrEqual(exactUsage) {

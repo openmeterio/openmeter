@@ -42,6 +42,7 @@ func (h *handler) ListCreditTransactions() ListCreditTransactionsHandler {
 
 			if size < 1 {
 				err := fmt.Errorf("must be greater than 0")
+
 				return ListCreditTransactionsRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
 					{
 						Field:  "page.size",
@@ -131,6 +132,7 @@ func (h *handler) ListCreditTransactions() ListCreditTransactionsHandler {
 				if err != nil {
 					return ListCreditTransactionsResponse{}, fmt.Errorf("encode next cursor: %w", err)
 				}
+
 				meta.Page.Next = nullable.NewNullableWithValue(next)
 			}
 
@@ -139,6 +141,7 @@ func (h *handler) ListCreditTransactions() ListCreditTransactionsHandler {
 				if err != nil {
 					return ListCreditTransactionsResponse{}, fmt.Errorf("encode previous cursor: %w", err)
 				}
+
 				meta.Page.Previous = nullable.NewNullableWithValue(previous)
 			}
 

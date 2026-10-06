@@ -146,6 +146,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeInvoiceManualEditsKeepAbsoluteAm
 					Amount:      alpacadecimal.NewFromInt(80),
 					PaymentTerm: productcatalog.InAdvancePaymentTerm,
 				}))
+
 				return nil
 			},
 			expectedTotals: billingtest.ExpectedTotals{Amount: 80, DiscountsTotal: 40, Total: 40},
@@ -321,6 +322,7 @@ func (s *CreditThenInvoiceTestSuite) createAndDiscountFlatFeeDraft(servicePeriod
 					CorrelationID:      "draft-edit-percentage",
 				},
 			}
+
 			return nil
 		},
 	})

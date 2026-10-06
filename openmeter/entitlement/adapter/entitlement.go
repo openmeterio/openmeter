@@ -71,6 +71,7 @@ func (a *entitlementDBAdapter) GetEntitlement(ctx context.Context, entitlementID
 				if db.IsNotFound(err) {
 					return nil, &entitlement.NotFoundError{EntitlementID: entitlementID}
 				}
+
 				return nil, err
 			}
 
@@ -105,6 +106,7 @@ func (a *entitlementDBAdapter) GetActiveEntitlementOfCustomerAt(ctx context.Cont
 						},
 					}
 				}
+
 				return nil, err
 			}
 
@@ -213,6 +215,7 @@ func (a *entitlementDBAdapter) CreateEntitlement(ctx context.Context, ent entitl
 						fmt.Errorf("entitlement with id %s not found in %s namespace", res.ID, res.Namespace),
 					)
 				}
+
 				return nil, fmt.Errorf("failed to query created entitlement with edges: %w", err)
 			}
 
@@ -233,12 +236,15 @@ func (a *entitlementDBAdapter) DeleteEntitlement(ctx context.Context, entitlemen
 			if err != nil {
 				return nil, err
 			}
+
 			if affectedCount == 0 {
 				return nil, &entitlement.NotFoundError{EntitlementID: entitlementID}
 			}
+
 			return nil, nil
 		},
 	)
+
 	return err
 }
 
@@ -446,6 +452,7 @@ func (a *entitlementDBAdapter) ListEntitlements(ctx context.Context, params enti
 				if len(customerIDs) == 0 {
 					response.Items = []entitlement.Entitlement{}
 					response.TotalCount = 0
+
 					return response, nil
 				}
 
@@ -527,6 +534,7 @@ func (a *entitlementDBAdapter) ListEntitlements(ctx context.Context, params enti
 				if !params.Order.IsDefaultValue() {
 					order = entutils.GetOrdering(params.Order)
 				}
+
 				// Timestamps are not unique, so the ID keeps offset pagination stable.
 				switch params.OrderBy {
 				case entitlement.ListEntitlementsOrderByCreatedAt:
@@ -541,6 +549,7 @@ func (a *entitlementDBAdapter) ListEntitlements(ctx context.Context, params enti
 				if params.Limit > 0 {
 					query = query.Limit(params.Limit)
 				}
+
 				if params.Offset > 0 {
 					query = query.Offset(params.Offset)
 				}
@@ -556,11 +565,13 @@ func (a *entitlementDBAdapter) ListEntitlements(ctx context.Context, params enti
 					if err != nil {
 						return response, err
 					}
+
 					mapped = append(mapped, *mappedEnt)
 				}
 
 				response.Items = mapped
 				response.TotalCount = len(mapped)
+
 				return response, nil
 			}
 
@@ -575,6 +586,7 @@ func (a *entitlementDBAdapter) ListEntitlements(ctx context.Context, params enti
 				if err != nil {
 					return response, err
 				}
+
 				result = append(result, *mapped)
 			}
 
@@ -706,9 +718,11 @@ func (a *entitlementDBAdapter) UpdateEntitlementUsagePeriod(ctx context.Context,
 				SetCurrentUsagePeriodEnd(params.CurrentUsagePeriod.To)
 
 			_, err := update.Save(ctx)
+
 			return nil, err
 		},
 	)
+
 	return err
 }
 
@@ -878,6 +892,7 @@ func (a *entitlementDBAdapter) LockEntitlementForTx(ctx context.Context, tx *ent
 	if tx == nil {
 		return fmt.Errorf("lock entitlement for tx called from outside a transaction")
 	}
+
 	_, err := a.WithTx(ctx, tx).db.Entitlement.
 		Query().
 		Where(db_entitlement.ID(entitlementID.ID), db_entitlement.Namespace(entitlementID.Namespace)).
@@ -981,12 +996,14 @@ func (a *entitlementDBAdapter) GetScheduledEntitlements(ctx context.Context, nam
 				if err != nil {
 					return nil, err
 				}
+
 				result = append(result, *mapped)
 			}
 
 			return &result, nil
 		},
 	)
+
 	return defaultx.WithDefault(res, nil), err
 }
 

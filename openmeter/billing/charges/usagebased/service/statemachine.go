@@ -304,6 +304,7 @@ func (s *stateMachine) SyncFeatureIDFromFeatureMeter(ctx context.Context) error 
 	if s.Charge.State.FeatureID == "" {
 		s.Charge.State.FeatureID = featureMeter.Feature.ID
 	}
+
 	s.Charge.ValidationIssues = s.Charge.ValidationIssues.WithoutComponent(billing.ValidationComponentProductCatalog)
 
 	return nil
@@ -338,6 +339,7 @@ func (s *stateMachine) IsAfterCollectionPeriod(ctx context.Context, _ ...any) bo
 func (s *stateMachine) getFinalRunStoredAtLT() (time.Time, error) {
 	collectionPeriod := s.CustomerOverride.MergedProfile.WorkflowConfig.Collection.Interval
 	storedAtLT, _ := collectionPeriod.AddTo(s.Charge.Intent.GetEffectiveServicePeriod().To)
+
 	return meta.NormalizeTimestamp(storedAtLT), nil
 }
 

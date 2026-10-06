@@ -133,6 +133,7 @@ func (h *creditPurchaseHandler) OnCreditPurchasePaymentAuthorized(ctx context.Co
 			SourceChargeID: &charge.ID,
 		})
 	}
+
 	templates = append(templates, transactions.AuthorizeCustomerReceivablePaymentTemplate{
 		At:             input.EventAt,
 		Amount:         paymentPosting.amount,

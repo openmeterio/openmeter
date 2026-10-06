@@ -25,6 +25,7 @@ func (o OrderBy) Validate() error {
 	case OrderByID, OrderByActiveFrom, OrderByActiveTo:
 		return nil
 	}
+
 	return fmt.Errorf("invalid order by: %s", o)
 }
 

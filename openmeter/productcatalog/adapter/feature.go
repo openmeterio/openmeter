@@ -335,6 +335,7 @@ func (c *featureDBAdapter) ListFeatures(ctx context.Context, params feature.List
 		if params.Limit > 0 {
 			query = query.Limit(params.Limit)
 		}
+
 		if params.Offset > 0 {
 			query = query.Offset(params.Offset)
 		}
@@ -350,6 +351,7 @@ func (c *featureDBAdapter) ListFeatures(ctx context.Context, params feature.List
 		}
 
 		response.Items = mapped
+
 		return response, nil
 	}
 
@@ -404,6 +406,7 @@ func MapFeatureEntity(entity *db.Feature) feature.Feature {
 			if entity.UnitCostManualAmount != nil {
 				amount = *entity.UnitCostManualAmount
 			}
+
 			f.UnitCost = &feature.UnitCost{
 				Type: feature.UnitCostTypeManual,
 				Manual: &feature.ManualUnitCost{

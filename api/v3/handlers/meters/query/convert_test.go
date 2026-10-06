@@ -33,6 +33,7 @@ func TestConvertISO8601DurationToWindowSize(t *testing.T) {
 				require.Error(t, err)
 				return
 			}
+
 			require.NoError(t, err)
 			assert.Equal(t, tt.want, got)
 		})
@@ -60,6 +61,7 @@ func TestConvertWindowSizeToISO8601Duration(t *testing.T) {
 				require.Error(t, err)
 				return
 			}
+
 			require.NoError(t, err)
 			assert.Equal(t, tt.want, got)
 		})
@@ -139,6 +141,7 @@ func TestExtractStringsFromQueryFilter(t *testing.T) {
 				require.Error(t, err)
 				return
 			}
+
 			require.NoError(t, err)
 			assert.Equal(t, tt.want, got)
 		})

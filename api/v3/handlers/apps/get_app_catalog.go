@@ -32,6 +32,7 @@ func (h *handler) GetAppCatalog() GetAppCatalogHandler {
 					},
 				})
 			}
+
 			return GetAppCatalogRequest{
 				Type: typ,
 			}, nil

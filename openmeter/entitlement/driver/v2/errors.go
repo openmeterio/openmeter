@@ -13,10 +13,12 @@ import (
 func getErrorEncoder() encoder.ErrorEncoder {
 	v1 := entitlementdriver.GetErrorEncoder()
 	generic := commonhttp.GenericErrorEncoder()
+
 	return func(ctx context.Context, err error, w http.ResponseWriter, r *http.Request) bool {
 		if v1(ctx, err, w, r) {
 			return true
 		}
+
 		return generic(ctx, err, w, r)
 	}
 }

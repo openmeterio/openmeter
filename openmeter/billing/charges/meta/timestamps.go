@@ -21,6 +21,7 @@ func NormalizeOptionalTimestamp(t *time.Time) *time.Time {
 	}
 
 	normalized := NormalizeTimestamp(*t)
+
 	return &normalized
 }
 

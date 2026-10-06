@@ -17,6 +17,7 @@ func MapToPointer[T comparable, U any](value map[T]U) *map[T]U {
 	if len(value) == 0 {
 		return nil
 	}
+
 	return &value
 }
 
@@ -26,6 +27,7 @@ func SliceToPointer[T any](value []T) *[]T {
 	if len(value) == 0 {
 		return nil
 	}
+
 	return &value
 }
 
@@ -33,6 +35,7 @@ func ToStringLike[Source, Dest ~string](value *Source) *Dest {
 	if value == nil {
 		return nil
 	}
+
 	return ToPointer(Dest(*value))
 }
 
@@ -41,6 +44,7 @@ func SafeDeRef[T any, U any](value *T, fn func(T) *U) *U {
 	if value == nil {
 		return nil
 	}
+
 	return fn(*value)
 }
 
@@ -60,6 +64,7 @@ func DerefHeaderPtr[E any, T Header[E]](header *T) T {
 	if header == nil {
 		return nil
 	}
+
 	return *header
 }
 
@@ -69,5 +74,6 @@ func StringerPtrToStringPtr[T fmt.Stringer](value *T) *string {
 	if value == nil {
 		return nil
 	}
+
 	return lo.ToPtr((*value).String())
 }

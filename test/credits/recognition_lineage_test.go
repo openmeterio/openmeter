@@ -267,6 +267,7 @@ func (s *CustomCurrencyCreditsSuite) TestPaidBackfillRecognitionLeavesPromotiona
 						s.Equal(recognitionByBacking[backing], lo.FromPtr(segment.BackingTransactionGroupID))
 						seen[backing] = segment.Amount.InexactFloat64()
 					}
+
 					s.Equal(amountByBacking, seen)
 				default:
 					t.Fatalf("unexpected lineage origin %q", root.OriginKind)

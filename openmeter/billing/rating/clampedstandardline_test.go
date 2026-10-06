@@ -87,6 +87,7 @@ func TestClampedStandardLineAccessor(t *testing.T) {
 				for _, expectedWarning := range tc.expectedWarnings {
 					require.ErrorIs(t, warnings, expectedWarning)
 				}
+
 				issues, systemErr := billing.ToValidationIssues(warnings)
 				require.NoError(t, systemErr)
 				require.Len(t, issues, len(tc.expectedWarnings))

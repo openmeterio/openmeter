@@ -117,6 +117,7 @@ func (h *grantHandler) ListGrants() ListGrantsHandler {
 				if err != nil {
 					return response, err
 				}
+
 				// FIXME: not elegant but good for now, entitlement grants are all we have...
 				apiGrant := entitlement_httpdriver.MapEntitlementGrantToAPI(entitlementGrant)
 
@@ -145,8 +146,10 @@ func (h *grantHandler) ListGrants() ListGrantsHandler {
 						http.StatusBadRequest,
 						err,
 					).EncodeError(ctx, w)
+
 					return true
 				}
+
 				return commonhttp.HandleErrorIfTypeMatches[*pagination.InvalidError](ctx, http.StatusBadRequest, err, w)
 			}),
 		)...,
@@ -199,15 +202,19 @@ func (h *grantHandler) VoidGrant() VoidGrantHandler {
 						http.StatusBadRequest,
 						err,
 					).EncodeError(ctx, w)
+
 					return true
 				}
+
 				if _, ok := err.(*credit.GrantNotFoundError); ok {
 					commonhttp.NewHTTPError(
 						http.StatusNotFound,
 						err,
 					).EncodeError(ctx, w)
+
 					return true
 				}
+
 				return false
 			}),
 		)...,
@@ -298,6 +305,7 @@ func (h *grantHandler) ListGrantsV2() ListGrantsV2Handler {
 				if err != nil {
 					return ListGrantsV2HandlerResponse{}, err
 				}
+
 				a := entitlement_httpdriverv2.MapEntitlementGrantToAPIV2(entitlementGrant)
 				apiGrants = append(apiGrants, a)
 			}
@@ -318,8 +326,10 @@ func (h *grantHandler) ListGrantsV2() ListGrantsV2Handler {
 						http.StatusBadRequest,
 						err,
 					).EncodeError(ctx, w)
+
 					return true
 				}
+
 				return commonhttp.HandleErrorIfTypeMatches[*pagination.InvalidError](ctx, http.StatusBadRequest, err, w)
 			}),
 		)...,

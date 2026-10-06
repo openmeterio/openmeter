@@ -68,6 +68,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeePaymentAuthorizationRetryPreserv
 				UniqueReferenceID: fmt.Sprintf("charge-%d", i),
 			}))
 		}
+
 		created, err := s.Charges.Create(ctx, charges.CreateInput{Namespace: ns, Intents: charges.NewCreateChargeIntents(intents...)})
 		require.NoError(t, err)
 		require.Len(t, created, 2)
@@ -209,6 +210,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedPaymentAuthorizationRetryPres
 				UniqueReferenceID: fmt.Sprintf("charge-%d", i),
 			}))
 		}
+
 		created, err := s.Charges.Create(ctx, charges.CreateInput{Namespace: ns, Intents: charges.NewCreateChargeIntents(intents...)})
 		require.NoError(t, err)
 		require.Len(t, created, 2)
@@ -358,6 +360,7 @@ func (s *CreditThenInvoiceTestSuite) TestCreditPurchasePaymentAuthorizationRetry
 			})
 			require.NoError(t, err)
 		}
+
 		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
 			Customer: cust.GetID(), AsOf: lo.ToPtr(clock.Now()),
 		})
@@ -476,6 +479,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeePaymentSettlementFailureRollsBac
 		run := s.requireFlatFeeInvoiceRun(line)
 		s.requireInvoiceAuthorizationBooking(line, run.Payment)
 	}
+
 	beforeSettlementTransactionIDs := s.paymentAuthorizationTransactionIDs(ns)
 
 	engine := s.FlatFeeSvc.GetLineEngine()
@@ -497,6 +501,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeePaymentSettlementFailureRollsBac
 		run := s.requireFlatFeeInvoiceRun(line)
 		s.requireInvoiceAuthorizationBooking(line, run.Payment)
 	}
+
 	require.ElementsMatch(t, beforeSettlementTransactionIDs, s.paymentAuthorizationTransactionIDs(ns))
 }
 
@@ -531,6 +536,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeDirectPaymentFailureRollsBackAut
 		run := s.requireFlatFeeInvoiceRun(line)
 		require.Nil(t, run.Payment)
 	}
+
 	require.ElementsMatch(t, beforePaymentTransactionIDs, s.paymentAuthorizationTransactionIDs(ns))
 }
 
@@ -585,6 +591,7 @@ func (s *CreditThenInvoiceTestSuite) TestPaymentAuthorizationFailureRollsBackAcr
 			require.Failf(t, "unexpected line engine", "engine=%s", line.Engine)
 		}
 	}
+
 	require.ElementsMatch(t, beforeAuthorizationTransactionIDs, s.paymentAuthorizationTransactionIDs(ns))
 }
 
@@ -615,6 +622,7 @@ func (s *CreditThenInvoiceTestSuite) setupTwoFlatFeePaymentInvoice(namespace str
 			UniqueReferenceID: fmt.Sprintf("charge-%d", i),
 		}))
 	}
+
 	created, err := s.Charges.Create(ctx, charges.CreateInput{Namespace: namespace, Intents: charges.NewCreateChargeIntents(intents...)})
 	require.NoError(t, err)
 	require.Len(t, created, 2)
@@ -704,6 +712,7 @@ func (s *CreditThenInvoiceTestSuite) authorizeInvoiceWithSecondLineFailure(invoi
 	require.True(t, fault.Failed)
 	failed, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{Invoice: invoice.GetInvoiceID()})
 	require.NoError(t, err)
+
 	return failed
 }
 
@@ -738,6 +747,7 @@ func (s *CreditThenInvoiceTestSuite) requireFlatFeeInvoiceRun(line *billing.Stan
 	require.Nil(t, run.DeletedAt)
 	require.NotNil(t, run.AccruedUsage)
 	require.NotNil(t, run.AccruedUsage.LedgerTransaction)
+
 	return run
 }
 
@@ -751,6 +761,7 @@ func (s *CreditThenInvoiceTestSuite) requireUsageBasedInvoiceRun(line *billing.S
 	require.Nil(t, run.DeletedAt)
 	require.NotNil(t, run.InvoiceUsage)
 	require.NotNil(t, run.InvoiceUsage.LedgerTransaction)
+
 	return run
 }
 
@@ -761,6 +772,7 @@ func (s *CreditThenInvoiceTestSuite) requireInvoiceFundedCreditPurchase(line *bi
 	charge, err := s.MustGetChargeByID(meta.ChargeID{Namespace: line.Namespace, ID: *line.ChargeID}).AsCreditPurchaseCharge()
 	require.NoError(t, err)
 	require.NotNil(t, charge.Realizations.CreditGrantRealization)
+
 	return charge
 }
 
@@ -792,6 +804,7 @@ func (s *CreditThenInvoiceTestSuite) requireInvoiceAuthorizationBooking(line *bi
 		} else {
 			require.Equal(t, line.ChargeID, entry.Provenance().SpendChargeID)
 		}
+
 		address := entry.PostingAddress()
 		route := address.Route().Route()
 		require.Equal(t, USD, route.Currency.GetCode())
@@ -799,6 +812,7 @@ func (s *CreditThenInvoiceTestSuite) requireInvoiceAuthorizationBooking(line *bi
 		key := string(address.AccountType()) + "/" + string(*route.TransactionAuthorizationStatus)
 		postings[key] += entry.Amount().InexactFloat64()
 	}
+
 	amount := line.Totals.Total.InexactFloat64()
 	require.Equal(t, map[string]float64{
 		"customer_receivable/open":       amount,
@@ -816,6 +830,7 @@ func (s *CreditThenInvoiceTestSuite) paymentAuthorizationTransactionIDs(namespac
 	for _, transaction := range transactions.Items {
 		ids = append(ids, transaction.ID().ID)
 	}
+
 	return ids
 }
 
@@ -845,6 +860,7 @@ func (e *failSecondPaymentAuthorizationLineEngine) OnPaymentAuthorized(ctx conte
 	e.State.Calls++
 	if e.State.Calls == 2 {
 		e.State.Failed = true
+
 		return billing.ValidationIssue{
 			Severity: billing.ValidationIssueSeverityCritical,
 			Code:     "test_cross_engine_callback_failed",
@@ -863,6 +879,7 @@ func (e *failOncePaymentSettlementLineEngine) OnPaymentSettled(ctx context.Conte
 	for _, line := range input.Lines {
 		if line.ID == e.FailLineID {
 			e.Failed = true
+
 			return billing.ValidationIssue{
 				Severity: billing.ValidationIssueSeverityCritical,
 				Code:     "test_transient_line_callback_failed",
@@ -888,6 +905,7 @@ func (e *failOncePaymentAuthorizationLineEngine) OnPaymentAuthorized(ctx context
 	for _, line := range input.Lines {
 		if line.ID == e.FailLineID {
 			e.Failed = true
+
 			return billing.ValidationIssue{
 				Severity: billing.ValidationIssueSeverityCritical,
 				Code:     "test_transient_line_callback_failed",
@@ -1333,6 +1351,7 @@ func (e *failOnceIssuingLineEngine) OnInvoiceIssued(ctx context.Context, input b
 	if !ok {
 		return fmt.Errorf("completed line %q is missing", e.CompletedLineName)
 	}
+
 	if _, ok := linesByName[e.FailLineName]; !ok {
 		return fmt.Errorf("failing line %q is missing", e.FailLineName)
 	}

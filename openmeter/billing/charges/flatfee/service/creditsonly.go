@@ -108,6 +108,7 @@ func (s *CreditsOnlyStateMachine) AdvanceAfterBookedAt(ctx context.Context) erro
 		s.Charge.Intent.GetEffectivePaymentTerm(),
 		s.Charge.Intent.GetEffectiveServicePeriod(),
 	)))
+
 	return nil
 }
 
@@ -120,6 +121,7 @@ func (s *CreditsOnlyStateMachine) SetOverride(ctx context.Context, patch flatfee
 	if err != nil {
 		return err
 	}
+
 	s.Charge.State.AmountAfterProration = ratingResult.Intent.AmountAfterProration
 
 	if s.Charge.Realizations.CurrentRun == nil {
@@ -138,9 +140,11 @@ func (s *CreditsOnlyStateMachine) ActiveClearOverride(ctx context.Context) error
 	if err != nil {
 		return err
 	}
+
 	if !cleared {
 		return nil
 	}
+
 	if s.Charge.Intent.GetDeletedAt() != nil {
 		return errors.New("clearing flat-fee override unexpectedly restored a deleted base intent")
 	}
@@ -149,6 +153,7 @@ func (s *CreditsOnlyStateMachine) ActiveClearOverride(ctx context.Context) error
 	if err != nil {
 		return err
 	}
+
 	s.Charge.State.AmountAfterProration = ratingResult.Intent.AmountAfterProration
 
 	if s.Charge.Realizations.CurrentRun != nil {
@@ -177,6 +182,7 @@ func (s *CreditsOnlyStateMachine) ClearDeletedChargeOverride(ctx context.Context
 	if err != nil {
 		return err
 	}
+
 	if !cleared {
 		return nil
 	}
@@ -193,6 +199,7 @@ func (s *CreditsOnlyStateMachine) AllocateCredits(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+
 	s.Charge.State.AmountAfterProration = ratingResult.Intent.AmountAfterProration
 
 	if s.Charge.Realizations.CurrentRun == nil {
@@ -232,6 +239,7 @@ func (s *CreditsOnlyStateMachine) reconcileCurrentRun(ctx context.Context, ratin
 	}
 
 	s.Charge.Realizations.CurrentRun = &reconciledRun
+
 	return nil
 }
 
@@ -292,6 +300,7 @@ func (s *CreditsOnlyStateMachine) applyPeriodPatch(ctx context.Context, patch pe
 	if err != nil {
 		return err
 	}
+
 	s.Charge.State.AmountAfterProration = ratingResult.Intent.AmountAfterProration
 
 	if s.Charge.Realizations.CurrentRun == nil {

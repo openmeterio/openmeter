@@ -24,6 +24,7 @@ func TestPaginateWalksPagesUntilTotal(t *testing.T) {
 		if size != 2 {
 			t.Errorf("fetch size = %d, want 2", size)
 		}
+
 		pagesFetched = append(pagesFetched, page)
 		switch page {
 		case 1:
@@ -42,12 +43,14 @@ func TestPaginateWalksPagesUntilTotal(t *testing.T) {
 		if err != nil {
 			t.Fatalf("iteration error: %v", err)
 		}
+
 		got = append(got, item)
 	}
 
 	if want := []int{1, 2, 3, 4, 5}; fmt.Sprint(got) != fmt.Sprint(want) {
 		t.Errorf("items = %v, want %v", got, want)
 	}
+
 	if want := []int{1, 2, 3}; fmt.Sprint(pagesFetched) != fmt.Sprint(want) {
 		t.Errorf("pages fetched = %v, want %v", pagesFetched, want)
 	}
@@ -63,6 +66,7 @@ func TestPaginateStopsOnEmptyPage(t *testing.T) {
 		if page == 1 {
 			return []int{1, 2}, 0, nil
 		}
+
 		return nil, 0, nil
 	})
 
@@ -71,12 +75,14 @@ func TestPaginateStopsOnEmptyPage(t *testing.T) {
 		if err != nil {
 			t.Fatalf("iteration error: %v", err)
 		}
+
 		got = append(got, item)
 	}
 
 	if len(got) != 2 {
 		t.Errorf("items = %v, want 2 items", got)
 	}
+
 	if fetches != 2 {
 		t.Errorf("fetches = %d, want 2 (stop right after the empty page)", fetches)
 	}
@@ -90,6 +96,7 @@ func TestPaginateStartsFromRequestedPage(t *testing.T) {
 		if first == 0 {
 			first = page
 		}
+
 		return nil, 0, nil
 	})
 	for _, err := range seq {
@@ -121,18 +128,22 @@ func TestPaginateMaxPagesGuard(t *testing.T) {
 			finalErr = err
 			break
 		}
+
 		items++
 	}
 
 	if finalErr == nil {
 		t.Fatal("pagination terminated without error, want the maxPages guard to fire")
 	}
+
 	if !strings.Contains(finalErr.Error(), "did not terminate within") {
 		t.Errorf("guard error = %q, want it to mention non-termination", finalErr)
 	}
+
 	if fetches != maxPages {
 		t.Errorf("fetches = %d, want exactly maxPages (%d)", fetches, maxPages)
 	}
+
 	if items != maxPages {
 		t.Errorf("items = %d, want %d", items, maxPages)
 	}
@@ -146,13 +157,16 @@ func TestPaginateCursorForwardFollowsNext(t *testing.T) {
 		if before != nil {
 			t.Errorf("forward paging sent before=%q, want nil", *before)
 		}
+
 		afters = append(afters, after)
 		if after == nil {
 			return []string{"a", "b"}, String("c2"), nil, nil
 		}
+
 		if *after == "c2" {
 			return []string{"c"}, nil, String("c1"), nil
 		}
+
 		return nil, nil, nil, fmt.Errorf("unexpected after cursor %q", *after)
 	})
 
@@ -161,12 +175,14 @@ func TestPaginateCursorForwardFollowsNext(t *testing.T) {
 		if err != nil {
 			t.Fatalf("iteration error: %v", err)
 		}
+
 		got = append(got, item)
 	}
 
 	if want := "a b c"; strings.Join(got, " ") != want {
 		t.Errorf("items = %v, want %q", got, want)
 	}
+
 	if len(afters) != 2 || afters[0] != nil || afters[1] == nil || *afters[1] != "c2" {
 		t.Errorf("after cursors sent = %v, want [nil c2]", afters)
 	}
@@ -183,9 +199,11 @@ func TestPaginateCursorBackwardFollowsPrevious(t *testing.T) {
 		if after != nil {
 			t.Errorf("backward paging sent after=%q, want nil", *after)
 		}
+
 		if before == nil {
 			t.Fatal("backward paging sent no before cursor")
 		}
+
 		befores = append(befores, *before)
 		switch *before {
 		case "c9":
@@ -203,12 +221,14 @@ func TestPaginateCursorBackwardFollowsPrevious(t *testing.T) {
 		if err != nil {
 			t.Fatalf("iteration error: %v", err)
 		}
+
 		got = append(got, item)
 	}
 
 	if want := "x y z"; strings.Join(got, " ") != want {
 		t.Errorf("items = %v, want %q", got, want)
 	}
+
 	if want := "c9 c8"; strings.Join(befores, " ") != want {
 		t.Errorf("before cursors sent = %v, want %q", befores, want)
 	}
@@ -230,6 +250,7 @@ func TestPaginateCursorRejectsBothCursors(t *testing.T) {
 	if len(errs) != 1 || errs[0] == nil {
 		t.Fatalf("yields = %v, want exactly one error", errs)
 	}
+
 	if !strings.Contains(errs[0].Error(), "cannot use both after and before") {
 		t.Errorf("error = %q, want it to reject the after+before combination", errs[0])
 	}
@@ -248,6 +269,7 @@ func TestPaginateCursorEarlyBreakStopsFetching(t *testing.T) {
 		if err != nil {
 			t.Fatalf("iteration error: %v", err)
 		}
+
 		if item == "a" {
 			break
 		}
@@ -272,12 +294,14 @@ func TestPaginateCursorMaxPagesGuard(t *testing.T) {
 			finalErr = err
 			break
 		}
+
 		items++
 	}
 
 	if finalErr == nil || !strings.Contains(finalErr.Error(), "did not terminate within") {
 		t.Fatalf("final error = %v, want the maxPages guard to fire", finalErr)
 	}
+
 	if items != maxPages {
 		t.Errorf("items = %d, want %d", items, maxPages)
 	}
@@ -294,6 +318,7 @@ func newHTTPTestClient(t *testing.T, handler http.HandlerFunc) *Client {
 	if err != nil {
 		t.Fatalf("New(%q): %v", srv.URL, err)
 	}
+
 	return c
 }
 
@@ -306,6 +331,7 @@ func TestMetersListAllWalksPagesOverHTTP(t *testing.T) {
 		if got := r.URL.Query().Get("page[size]"); got != "2" {
 			t.Errorf("page[size] = %q, want %q", got, "2")
 		}
+
 		w.Header().Set("Content-Type", "application/json")
 		switch page := r.URL.Query().Get("page[number]"); page {
 		case "1":
@@ -324,12 +350,14 @@ func TestMetersListAllWalksPagesOverHTTP(t *testing.T) {
 		if err != nil {
 			t.Fatalf("ListAll: %v", err)
 		}
+
 		keys = append(keys, meter.Key)
 	}
 
 	if want := "m1 m2 m3"; strings.Join(keys, " ") != want {
 		t.Errorf("meter keys = %v, want %q", keys, want)
 	}
+
 	if got := hits.Load(); got != 2 {
 		t.Errorf("server hits = %d, want 2", got)
 	}
@@ -349,6 +377,7 @@ func TestMetersListAllEarlyBreakStopsRequests(t *testing.T) {
 		if err != nil {
 			t.Fatalf("ListAll: %v", err)
 		}
+
 		break
 	}
 
@@ -366,9 +395,11 @@ func TestEventsListAllFollowsNextCursorOverHTTP(t *testing.T) {
 		if got := r.URL.Query().Get("page[before]"); got != "" {
 			t.Errorf("forward paging sent page[before]=%q, want none", got)
 		}
+
 		if got := r.URL.Query().Get("page[size]"); got != "2" {
 			t.Errorf("page[size] = %q, want %q", got, "2")
 		}
+
 		w.Header().Set("Content-Type", "application/json")
 		switch after := r.URL.Query().Get("page[after]"); after {
 		case "":
@@ -387,12 +418,14 @@ func TestEventsListAllFollowsNextCursorOverHTTP(t *testing.T) {
 		if err != nil {
 			t.Fatalf("ListAll: %v", err)
 		}
+
 		ids = append(ids, event.Event.ID)
 	}
 
 	if want := "e1 e2 e3"; strings.Join(ids, " ") != want {
 		t.Errorf("event ids = %v, want %q", ids, want)
 	}
+
 	if got := hits.Load(); got != 2 {
 		t.Errorf("server hits = %d, want 2", got)
 	}
@@ -407,6 +440,7 @@ func TestEventsListAllFollowsPreviousCursorWithBefore(t *testing.T) {
 		if got := r.URL.Query().Get("page[after]"); got != "" {
 			t.Errorf("backward paging sent page[after]=%q, want none", got)
 		}
+
 		w.Header().Set("Content-Type", "application/json")
 		switch before := r.URL.Query().Get("page[before]"); before {
 		case "cur9":
@@ -425,12 +459,14 @@ func TestEventsListAllFollowsPreviousCursorWithBefore(t *testing.T) {
 		if err != nil {
 			t.Fatalf("ListAll: %v", err)
 		}
+
 		ids = append(ids, event.Event.ID)
 	}
 
 	if want := "e9a e9b e8"; strings.Join(ids, " ") != want {
 		t.Errorf("event ids = %v, want %q", ids, want)
 	}
+
 	if got := hits.Load(); got != 2 {
 		t.Errorf("server hits = %d, want 2", got)
 	}

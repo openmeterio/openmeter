@@ -96,6 +96,7 @@ func ResolveFeaturesForRateCards(
 			errs = append(errs, models.ErrorWithFieldPrefix(fieldSelector,
 				fmt.Errorf("feature not found [ratecard.key=%s]: %w", rc.Key(), productcatalog.ErrRateCardFeatureNotFound),
 			))
+
 			continue
 		}
 
@@ -105,6 +106,7 @@ func ResolveFeaturesForRateCards(
 				fmt.Errorf("feature reference conflict [ratecard.key=%s feature.id=%s feature.key=%s]: %w",
 					rc.Key(), lo.FromPtr(reference.ID), lo.FromPtr(reference.Key), productcatalog.ErrRateCardFeatureMismatch),
 			))
+
 			continue
 		}
 

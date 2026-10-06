@@ -101,6 +101,7 @@ func validateEntryAmountPrecision(entry EntryInput) error {
 				"reason":   "custom_currency_reference_must_be_resolved",
 			})
 		}
+
 		currency = resolved.Currency
 	} else {
 		built, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
@@ -112,6 +113,7 @@ func validateEntryAmountPrecision(entry EntryInput) error {
 				"error":    err,
 			})
 		}
+
 		currency = built
 	}
 

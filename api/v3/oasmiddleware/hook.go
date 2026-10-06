@@ -20,8 +20,10 @@ func OasRouteNotFoundErrorHook(err error, w http.ResponseWriter, r *http.Request
 		apierrors.
 			NewNotFoundError(r.Context(), ErrRouteNotFound, "route").
 			HandleAPIError(w, r)
+
 		return true
 	}
+
 	return false
 }
 
@@ -41,6 +43,7 @@ func OasValidationErrorHook(ctx context.Context, err error, w http.ResponseWrite
 				break
 			}
 		}
+
 		if sourcePath {
 			apierrors.
 				NewNotFoundError(ctx, err, "entity").
@@ -50,18 +53,22 @@ func OasValidationErrorHook(ctx context.Context, err error, w http.ResponseWrite
 				NewBadRequestError(ctx, SanitizeSensitiveFieldValues(err), invalidParams).
 				HandleAPIError(w, r)
 		}
+
 		return true
 	case *openapi3filter.RequestError:
 		if err.Parameter != nil && err.Parameter.In == "path" {
 			apierrors.
 				NewNotFoundError(ctx, err, "entity").
 				HandleAPIError(w, r)
+
 			return true
 		}
 	}
+
 	apierrors.
 		NewBadRequestError(ctx, err, nil).
 		HandleAPIError(w, r)
+
 	return true
 }
 
@@ -74,6 +81,7 @@ func SanitizeSensitiveFieldValues(err error) error {
 		for _, vErr := range err {
 			sanitizedMultiErr = append(sanitizedMultiErr, SanitizeSensitiveFieldValues(vErr))
 		}
+
 		return sanitizedMultiErr
 	case *openapi3filter.RequestError:
 		err.Err = SanitizeSensitiveFieldValues(err.Err)
@@ -85,6 +93,7 @@ func SanitizeSensitiveFieldValues(err error) error {
 				err.Value = "********"
 			}
 		}
+
 		return err
 	default:
 		return err
@@ -97,6 +106,7 @@ func isSensitive(sensitive any) bool {
 		if v == "true" {
 			return true
 		}
+
 		return false
 	case bool:
 		return v

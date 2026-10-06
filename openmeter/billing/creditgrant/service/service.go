@@ -453,6 +453,7 @@ func toSettlement(input creditgrant.CreateInput) creditpurchase.Settlement {
 		settlement := creditpurchase.ExternalSettlement{
 			InitialStatus: initialStatus,
 		}
+
 		return creditpurchase.NewSettlement(settlement)
 
 	default: // FundingMethodNone → promotional

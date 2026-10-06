@@ -242,6 +242,7 @@ func (a *adapter) mapStandardInvoiceLineUsageDiscountFromDB(dbDiscount *db.Billi
 		if dbDiscount.ReasonDetails == nil {
 			return billing.UsageLineDiscountManaged{}, fmt.Errorf("mapping invoice line discount[%s] failed: reason details is nil", dbDiscount.ID)
 		}
+
 		base.Reason = *dbDiscount.ReasonDetails
 	}
 
@@ -278,6 +279,7 @@ func (a *adapter) mapStandardInvoiceLineAmountDiscountFromDB(dbDiscount *db.Bill
 		if dbDiscount.SourceDiscount == nil {
 			return billing.AmountLineDiscountManaged{}, fmt.Errorf("mapping invoice line discount[%s] failed: reason details is nil", dbDiscount.ID)
 		}
+
 		base.Reason = *dbDiscount.SourceDiscount
 	}
 
@@ -377,6 +379,7 @@ func (a *adapter) mapStandardInvoiceDetailedLineAmountDiscountFromDB(dbDiscount 
 		if dbDiscount.SourceDiscount == nil {
 			return billing.AmountLineDiscountManaged{}, fmt.Errorf("mapping invoice line discount[%s] failed: reason details is nil", dbDiscount.ID)
 		}
+
 		base.Reason = *dbDiscount.SourceDiscount
 	}
 

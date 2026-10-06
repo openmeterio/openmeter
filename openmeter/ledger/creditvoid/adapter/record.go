@@ -56,11 +56,13 @@ func (a *adapter) ListRecords(ctx context.Context, input creditvoid.ListRecordsI
 	if err := input.CustomerID.Validate(); err != nil {
 		return nil, fmt.Errorf("customer id: %w", err)
 	}
+
 	if input.Currency != nil {
 		if err := input.Currency.Validate(); err != nil {
 			return nil, fmt.Errorf("currency: %w", err)
 		}
 	}
+
 	if input.AsOf.IsZero() {
 		return nil, fmt.Errorf("as of is required")
 	}
@@ -76,10 +78,12 @@ func (a *adapter) ListRecords(ctx context.Context, input creditvoid.ListRecordsI
 		if input.Currency != nil {
 			predicates = append(predicates, dbledgercreditvoidrecord.CurrencyEQ(*input.Currency))
 		}
+
 		routePredicate, err := voidRecordRoutePredicate(input.Route)
 		if err != nil {
 			return nil, fmt.Errorf("build route predicate: %w", err)
 		}
+
 		if routePredicate != nil {
 			predicates = append(predicates, routePredicate)
 		}

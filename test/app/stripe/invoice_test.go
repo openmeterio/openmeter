@@ -1150,7 +1150,6 @@ func (s *StripeInvoiceTestSuite) TestEmptyInvoiceGenerationZeroUsage() {
 	// Given we have a test customer and an UBP line without usage priced at 0
 	// we can create the invoice and even if there are no detailed lines the validation
 	// errors should be empty
-
 	namespace := "ns-empty-invoice-generation"
 	ctx := context.Background()
 	periodStart := lo.Must(time.Parse(time.RFC3339, "2024-09-02T12:13:14Z"))
@@ -1528,7 +1527,6 @@ func (s *StripeInvoiceTestSuite) TestSendInvoice() {
 	// Given we have a test customer and a billing profile with send_invoice collection method
 	// we can create an invoice that will be sent to the customer instead of charged automatically.
 	// In this test we should see due date set and collection method set to send_invoice.
-
 	namespace := "ns-send-invoice"
 	ctx := context.Background()
 	periodStart := lo.Must(time.Parse(time.RFC3339, "2024-09-02T12:13:14Z"))

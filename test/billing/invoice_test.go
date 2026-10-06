@@ -241,7 +241,6 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 
 	s.T().Run("CreateInvoiceItems", func(t *testing.T) {
 		// When we create invoice items
-
 		res, err := s.BillingService.CreatePendingInvoiceLines(ctx,
 			billing.CreatePendingInvoiceLinesInput{
 				Customer: customerEntity.GetID(),
@@ -2267,6 +2266,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 					line.UsageBased.Price = productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 						Amount: alpacadecimal.NewFromFloat(250),
 					})
+
 					return nil
 				},
 			})
@@ -2317,6 +2317,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 					}
 
 					line.DeletedAt = lo.ToPtr(clock.Now())
+
 					return nil
 				},
 				IncludeDeletedLines: true,
@@ -2701,6 +2702,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 		for _, line := range []*billing.StandardLine{flatPerUnit, tieredGraduated} {
 			require.True(s.T(), expectedPeriod.Equal(line.Period), "period should be changed for the line items")
 		}
+
 		require.True(s.T(), tieredVolume.Period.Equal(lines.tieredVolume.ServicePeriod), "period should be unchanged for the tiered volume line")
 		require.True(s.T(), flatFee.Period.Equal(lines.flatFee.ServicePeriod), "period should be unchanged for the flat line")
 
@@ -3009,7 +3011,6 @@ func (s *InvoicingTestSuite) TestUBPGraduatingFlatFeeTier1() {
 
 	s.Run("create new invoice, with usage", func() {
 		// Period
-
 		s.MockStreamingConnector.AddSimpleEvent("tiered-graduated", 15, periodStart.Add(time.Minute*130)) // 2h10m
 
 		asOf := periodStart.Add(3 * time.Hour)
@@ -3497,6 +3498,7 @@ func (s *InvoicingTestSuite) lineInSameSplitLineGroup(lines []*billing.StandardL
 	}
 
 	require.Fail(s.T(), "line with parent not found")
+
 	return nil
 }
 
@@ -3509,6 +3511,7 @@ func (s *InvoicingTestSuite) lineByID(lines []*billing.StandardLine, id string) 
 	}
 
 	require.Fail(s.T(), "line not found")
+
 	return nil
 }
 
@@ -3792,7 +3795,6 @@ func (s *InvoicingTestSuite) TestEmptyInvoiceGenerationZeroUsage() {
 	// Given we have a test customer and an UBP line without usage priced at 0
 	// we can create the invoice and even if there are no detailed lines the validation
 	// errors should be empty
-
 	namespace := "ns-empty-invoice-generation"
 	ctx := context.Background()
 	periodStart := lo.Must(time.Parse(time.RFC3339, "2024-09-02T12:13:14Z"))
@@ -3911,7 +3913,6 @@ func (s *InvoicingTestSuite) TestEmptyInvoiceGenerationZeroPrice() {
 	// Given we have a test customer and an UBP line with usage priced at 0
 	// we can create the invoice and there should be one detailed line with 0 total
 	// amount and no validation issues
-
 	namespace := "ns-empty-invoice-generation-zero-price"
 	ctx := context.Background()
 	periodStart := lo.Must(time.Parse(time.RFC3339, "2024-09-02T12:13:14Z"))
@@ -4522,7 +4523,6 @@ func (s *InvoicingTestSuite) TestSortLines() {
 func (s *InvoicingTestSuite) TestGatheringInvoicePeriodPersisting() {
 	// When a gathering invoice has been created
 	// Then the period is persisted into the database (so that we can filter/sort by it)
-
 	namespace := "ns-gathering-invoice-period-persisting"
 	ctx := context.Background()
 
@@ -5359,6 +5359,7 @@ func (s *InvoicingTestSuite) TestUpdateInvoice() {
 					}
 
 					line.DeletedAt = lo.ToPtr(clock.Now())
+
 					return nil
 				},
 			})

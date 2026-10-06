@@ -240,6 +240,7 @@ func (a *adapter) DeleteStripeCustomerData(ctx context.Context, input appstripe.
 
 		return nil, nil
 	})
+
 	return err
 }
 

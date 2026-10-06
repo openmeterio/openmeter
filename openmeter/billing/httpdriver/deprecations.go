@@ -102,7 +102,6 @@ type invoiceLineRateCardParsed struct {
 func mapAndValidateInvoiceLineRateCardDeprecatedFields(in invoiceLineRateCardItems) (*invoiceLineRateCardParsed, error) {
 	if in.RateCard == nil {
 		// No rate card, so let's use the deprecated fields
-
 		if err := in.ValidateDeprecatedFields(); err != nil {
 			return nil, billing.ValidationError{
 				Err: err,

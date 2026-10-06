@@ -46,19 +46,24 @@ func (t RecognizeEarningsFromAttributableAccruedTemplate) Validate() error {
 			if source.Address == nil || source.Address.AccountType() != ledger.AccountTypeCustomerAccrued {
 				return fmt.Errorf("sources[%d]: customer accrued address is required", i)
 			}
+
 			route := source.Address.Route().Route()
 			if !route.Currency.Equal(t.Currency) || route.CostBasis == nil || !isCreditBackedAccruedIdentity(source.Identity) {
 				return fmt.Errorf("sources[%d]: known-cost credit-backed accrued in the recognition currency is required", i)
 			}
+
 			if err := ledger.ValidateTransactionAmount(source.Amount); err != nil {
 				return fmt.Errorf("sources[%d]: %w", i, err)
 			}
+
 			total = total.Add(source.Amount)
 		}
+
 		if !total.Equal(t.Amount) {
 			return fmt.Errorf("source total %s does not match recognition amount %s", total, t.Amount)
 		}
 	}
+
 	return nil
 }
 
@@ -151,6 +156,7 @@ func (t RecognizeEarningsFromAttributableAccruedTemplate) resolve(ctx context.Co
 			collections = append(collections, postingAddressAmount{address: source.Address, amount: source.Amount, identity: source.Identity})
 		}
 	}
+
 	if len(collections) == 0 {
 		return nil, nil
 	}
@@ -196,6 +202,7 @@ func (t RecognizeEarningsFromAttributableAccruedTemplate) resolveEarningsSubAccB
 			if err != nil {
 				return nil, fmt.Errorf("failed to get earnings sub-account: %w", err)
 			}
+
 			current.address = earnings.Address()
 			current.identity = collection.identity
 		}

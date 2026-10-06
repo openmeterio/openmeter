@@ -14,6 +14,7 @@ func GetSortOrder[TInput comparable](asc TInput, inp *TInput) sortx.Order {
 				if o == asc {
 					return convert.ToPointer(sortx.OrderAsc)
 				}
+
 				return convert.ToPointer(sortx.OrderDesc)
 			},
 		),

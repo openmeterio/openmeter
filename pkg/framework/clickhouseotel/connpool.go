@@ -205,6 +205,7 @@ func (m *ConnPoolMetrics) ping(ctx context.Context) {
 	if pingTimeout > 5*time.Second {
 		pingTimeout = 5 * time.Second
 	}
+
 	if pingTimeout <= 0 {
 		pingTimeout = 5 * time.Second
 	}
@@ -217,6 +218,7 @@ func (m *ConnPoolMetrics) ping(ctx context.Context) {
 		m.logger.WarnContext(ctx, "clickhouse ping failed", "error", err)
 		m.pingFailures.Add(ctx, 1)
 	}
+
 	m.pingTime.Record(ctx, time.Since(start).Milliseconds())
 }
 

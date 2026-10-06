@@ -574,6 +574,7 @@ func newChargesRegistry(
 	if err := billingService.RegisterLineEngine(creditPurchaseSvc.GetLineEngine()); err != nil {
 		return nil, fmt.Errorf("failed to register charges credit purchase line engine: %w", err)
 	}
+
 	createLineRouter, err := chargeslinerouter.New(chargeslinerouter.Config{
 		CreditsEnabled:           creditsConfig.Enabled,
 		CreditThenInvoiceEnabled: creditsConfig.EnableCreditThenInvoice,

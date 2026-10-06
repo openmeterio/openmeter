@@ -139,9 +139,11 @@ func TestRepairUsageBasedDeletedInvoiceRunsMigration(t *testing.T) {
 						if cases[idx].customerID == "" {
 							cases[idx].customerID = customerID
 						}
+
 						if cases[idx].gatheringInvoiceID == "" {
 							cases[idx].gatheringInvoiceID = gatheringInvoiceID
 						}
+
 						cases[idx].chargeID = ulid.Make().String()
 						cases[idx].invoiceID = ulid.Make().String()
 						cases[idx].invoiceWorkflowID = ulid.Make().String()
@@ -495,6 +497,7 @@ func assertRepairUsageBasedDeletedInvoiceRunCase(t *testing.T, db *sql.DB, tc re
 	if !tc.wantRunDeleted {
 		require.Equal(t, tc.runID, currentRunID.String)
 	}
+
 	if tc.wantChargeDeleted {
 		require.Equal(t, "deleted", chargeStatus)
 		require.Equal(t, "deleted", chargeDetailedStatus)

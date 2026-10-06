@@ -55,13 +55,17 @@ func TestActiveRequestFailures(t *testing.T) {
 						if test.cause == "grpc-deadline" {
 							expired, cancel := context.WithDeadline(ctx, time.Now().Add(-time.Second))
 							defer cancel()
+
 							return status.FromContextError(expired.Err()).Err()
 						}
+
 						canceled, cancel := context.WithCancel(ctx)
 						cancel()
+
 						return status.FromContextError(canceled.Err()).Err()
 					})
 				}
+
 				var cause error
 				server, completed := serveErrors(t, http2, func(diagnostics httptransport.ErrorHandler) http.Handler {
 					failure := func(ctx context.Context) error {
@@ -69,10 +73,12 @@ func TestActiveRequestFailures(t *testing.T) {
 						case "cancel":
 							canceled, cancel := context.WithCancel(ctx)
 							cancel()
+
 							return canceled.Err()
 						case "deadline":
 							expired, cancel := context.WithDeadline(ctx, time.Now().Add(-time.Second))
 							defer cancel()
+
 							return expired.Err()
 						case "text":
 							return errors.New("dependency context canceled")
@@ -91,20 +97,24 @@ func TestActiveRequestFailures(t *testing.T) {
 								if test.render == "self" {
 									return struct{}{}, commonhttp.NewHTTPError(test.status, cause)
 								}
+
 								return struct{}{}, cause
 							}, commonhttp.JSONResponseEncoder[struct{}],
 							httptransport.WithErrorHandler(diagnostics),
 						)
 					}
+
 					return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 						cause = failure(r.Context())
 						if test.render == "legacy" {
 							models.NewStatusProblem(r.Context(), cause, test.status).Respond(w)
 							return
 						}
+
 						if test.render == "bare-log" {
 							diagnostics.(errorsx.Handler).Handle(cause)
 						}
+
 						// A canceled context stored in the error must not change the original
 						// request's status while that caller remains connected.
 						stored, cancel := context.WithCancel(r.Context())
@@ -136,11 +146,13 @@ func TestActiveRequestFailures(t *testing.T) {
 				} else if test.render == "v3" || test.render == "bare-log" {
 					detail = apierrors.InternalDetail
 				}
+
 				requireWireProblem(t, response, test.status, detail)
 				require.Equal(t, test.status, observed.status)
 				if test.status == http.StatusInternalServerError {
 					require.NotContains(t, string(observed.body), cause.Error())
 				}
+
 				switch test.render {
 				case "transport":
 					requireLogLevel(t, observed, "ERROR")
@@ -169,6 +181,7 @@ func TestUnrelatedFailureAfterCallerCancellation(t *testing.T) {
 						func(ctx context.Context, _ struct{}) (struct{}, error) {
 							close(started)
 							<-ctx.Done()
+
 							return struct{}{}, cause
 						}, commonhttp.JSONResponseEncoder[struct{}],
 						httptransport.WithErrorHandler(diagnostics),

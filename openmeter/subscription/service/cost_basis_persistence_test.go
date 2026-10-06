@@ -223,6 +223,7 @@ func TestSubscriptionUpdatePinsNewCostBasisPairAtEffectiveTime(t *testing.T) {
 	for _, pin := range loaded.CostBasisPins {
 		pinsByCustomCurrencyID[pin.CustomCurrencyID] = pin
 	}
+
 	require.Equal(t, originalPinID, pinsByCustomCurrencyID[creditsCurrency.ID].ID)
 	require.Equal(t, creditsCostBasisID, pinsByCustomCurrencyID[creditsCurrency.ID].CostBasis.ID)
 	require.Equal(t, newPointsCostBasisID, pinsByCustomCurrencyID[pointsCurrency.ID].CostBasis.ID)
@@ -233,6 +234,7 @@ func newCostBasisTestRateCard(t *testing.T, key string, currencyReference *curre
 	t.Helper()
 
 	billingCadence := datetime.MustParseDuration(t, "P1M")
+
 	return &productcatalog.FlatFeeRateCard{
 		RateCardMeta: productcatalog.RateCardMeta{
 			Key:      key,

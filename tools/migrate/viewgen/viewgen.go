@@ -67,6 +67,7 @@ func CollectViews(schemas []*load.Schema, dialectName string) ([]ViewDef, error)
 		if err != nil {
 			return nil, fmt.Errorf("%s: decode EntSQL annotation: %w", s.Name, err)
 		}
+
 		if ant == nil {
 			continue
 		}
@@ -75,6 +76,7 @@ func CollectViews(schemas []*load.Schema, dialectName string) ([]ViewDef, error)
 		if query == "" {
 			query = strings.TrimSpace(ant.ViewAs)
 		}
+
 		if query == "" {
 			continue
 		}
@@ -83,6 +85,7 @@ func CollectViews(schemas []*load.Schema, dialectName string) ([]ViewDef, error)
 		if name == "" {
 			name = s.Config.Table
 		}
+
 		if name == "" {
 			name = strcase.CamelToSnake(inflect.Pluralize(s.Name))
 		}
@@ -108,9 +111,12 @@ func RenderSQL(views []ViewDef) []byte {
 		if i > 0 {
 			buf.WriteString("\n\n")
 		}
+
 		fmt.Fprintf(&buf, "CREATE VIEW %q AS\n%s;", view.Name, view.Query)
 	}
+
 	buf.WriteByte('\n')
+
 	return buf.Bytes()
 }
 

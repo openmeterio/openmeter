@@ -319,5 +319,6 @@ func (i CreateCheckoutSessionInput) Validate() error {
 			}
 		}
 	}
+
 	return nil
 }

@@ -58,6 +58,7 @@ func RenderJSON[O any](w http.ResponseWriter, o O, opts ...Option) error {
 	}
 
 	_, err = w.Write(body)
+
 	return err
 }
 
@@ -82,5 +83,6 @@ func RenderYAML[O any](w http.ResponseWriter, o O, opts ...Option) error {
 	}
 
 	_, err = w.Write(body)
+
 	return err
 }

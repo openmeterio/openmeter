@@ -35,6 +35,7 @@ func (c *Corrector) correctedSourceAmounts(ctx context.Context, input Input) (ma
 				if !entry.Amount().IsPositive() {
 					continue
 				}
+
 				_, identity, err := ledger.EntryIdentityKeyText(entry.IdentityKey()).Parse()
 				if err != nil {
 					return nil, fmt.Errorf("parse correction entry identity: %w", err)

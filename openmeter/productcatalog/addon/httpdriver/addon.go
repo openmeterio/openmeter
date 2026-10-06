@@ -65,9 +65,11 @@ func (h *handler) ListAddons() ListAddonsHandler {
 			if params.Id != nil {
 				req.ID = &filter.FilterULID{FilterString: filter.FilterString{In: params.Id}}
 			}
+
 			if params.Key != nil {
 				req.Key = &filter.FilterString{In: params.Key}
 			}
+
 			if params.Currency != nil {
 				req.Currency = &filter.FilterString{In: params.Currency}
 			}
@@ -297,9 +299,11 @@ func (h *handler) GetAddon() GetAddonHandler {
 			if a.AsProductCatalogAddon().HasUnitConfig() {
 				return GetAddonResponse{}, productcatalog.ErrUnitConfigNotRepresentable
 			}
+
 			if a.Currency.IsCustom() {
 				return GetAddonResponse{}, productcatalog.ErrCurrencyNotRepresentable
 			}
+
 			if a.AsProductCatalogAddon().HasCurrencyOverrides() {
 				return GetAddonResponse{}, productcatalog.ErrRateCardCurrencyNotRepresentable
 			}

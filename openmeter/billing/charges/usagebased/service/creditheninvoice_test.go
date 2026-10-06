@@ -119,6 +119,7 @@ func TestCalculateFiatOverageForRun(t *testing.T) {
 			if test.conversionFails {
 				charge.State.ResolvedCostBasis = nil
 			}
+
 			run := usagebased.RealizationRun{
 				RealizationRunBase: usagebased.RealizationRunBase{
 					Totals:                    test.runTotals,
@@ -133,8 +134,10 @@ func TestCalculateFiatOverageForRun(t *testing.T) {
 			if test.conversionFails {
 				require.ErrorContains(t, err, "resolved cost basis is required")
 				require.False(t, fiatOverage.ShouldOmitInvoiceLine)
+
 				return
 			}
+
 			require.NoError(t, err)
 			require.Equal(t, test.expectFiatOverage, fiatOverage.FiatOverage.InexactFloat64())
 			require.Equal(t, test.expectOmitInvoiceLine, fiatOverage.ShouldOmitInvoiceLine)
@@ -732,11 +735,13 @@ func (a *creditThenInvoiceStateMachineAdapter) UpdateRealizationRun(_ context.Co
 	if input.Type.IsPresent() {
 		run.Type = input.Type.OrEmpty()
 	}
+
 	if input.Immutable.IsPresent() {
 		run.Immutable = input.Immutable.OrEmpty()
 	}
 
 	a.runs[input.ID.ID] = run
+
 	return run, nil
 }
 

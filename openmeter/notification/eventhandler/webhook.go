@@ -55,6 +55,7 @@ func (h *Handler) reconcileWebhookEvent(ctx context.Context, event *notification
 		if len(sortedActiveStatuses) == 0 {
 			return nil
 		}
+
 		var err error
 
 		// Fetch the list of webhook endpoints for the active delivery statuses.
@@ -137,7 +138,6 @@ func (h *Handler) reconcileWebhookEvent(ctx context.Context, event *notification
 				switch {
 				case webhook.IsMessageAlreadyExistsError(err):
 					// Event is sent to the provider but has not been processed yet. Keep it in pending state and update the next attempt.
-
 					span.AddEvent("webhook message is already sent to provider but it has not been processed",
 						trace.WithAttributes(spanAttrs...),
 						trace.WithAttributes(deliveryStatusAttrs...),
@@ -152,7 +152,6 @@ func (h *Handler) reconcileWebhookEvent(ctx context.Context, event *notification
 					}
 				case webhook.IsUnrecoverableError(err), webhook.IsValidationError(err):
 					// Unrecoverable error happened, no retry is possible.
-
 					span.AddEvent("fetching webhook message from provider returned unrecoverable error",
 						trace.WithAttributes(spanAttrs...),
 						trace.WithAttributes(deliveryStatusAttrs...),
@@ -176,7 +175,6 @@ func (h *Handler) reconcileWebhookEvent(ctx context.Context, event *notification
 					}
 				case err != nil:
 					// Transient error happened, retry after a short delay.
-
 					span.AddEvent("fetching webhook message from provider returned transient error",
 						trace.WithAttributes(spanAttrs...),
 						trace.WithAttributes(deliveryStatusAttrs...),
@@ -209,7 +207,6 @@ func (h *Handler) reconcileWebhookEvent(ctx context.Context, event *notification
 				case msg != nil:
 					// Event fetched from the provider successfully, however, the event delivery states might be missing in case
 					// the provider has not populated the delivery statuses mostly because the event has not been processed yet.
-
 					span.AddEvent("webhook message fetched from provider",
 						trace.WithAttributes(spanAttrs...),
 						trace.WithAttributes(deliveryStatusAttrs...),

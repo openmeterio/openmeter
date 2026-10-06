@@ -132,6 +132,7 @@ func (s *CreditThenInvoiceTestSuite) TestCancellationReconcilesPeriodsByServiceD
 				if tc.disableProRating {
 					proRatingConfig = productcatalog.ProRatingConfig{}
 				}
+
 				subsView = s.createSubscriptionFromPlan(plan.CreatePlanInput{
 					NamespacedModel: models.NamespacedModel{
 						Namespace: s.Namespace,
@@ -345,7 +346,6 @@ func (s *CreditThenInvoiceTestSuite) testCancellationRetainsPaidMonthlyFlatFees(
 	// given: a mid-month subscription has three paid monthly in-advance periods.
 	// when: cancellation rematerializes its item, with or without historical annotation drift.
 	// then: paid periods retain their charges and invoice lines without new collectible work.
-
 	ctx := s.T().Context()
 	start := s.mustParseTime("2024-01-21T00:00:00Z")
 	boundaries := []time.Time{
@@ -498,6 +498,7 @@ func (s *CreditThenInvoiceTestSuite) testCancellationRetainsPaidMonthlyFlatFees(
 		if input.legacyAnnotationDrift {
 			s.Require().Equal(itemAnnotations[migrationAnnotation], canceledView.Phases[0].ItemsByKey[itemKey][0].SubscriptionItem.Annotations[migrationAnnotation])
 		}
+
 		s.Require().NoError(s.Service.SyncByViewAndInvoiceCustomer(ctx, canceledView, boundaries[3]))
 	})
 
@@ -532,9 +533,11 @@ func (s *CreditThenInvoiceTestSuite) assertPaidCancellationHistory(subscriptionI
 	for _, charge := range activeCharges.Items {
 		snapshot.chargeIDs = append(snapshot.chargeIDs, charge.GetID())
 	}
+
 	for _, original := range paid {
 		originalChargeIDs = append(originalChargeIDs, original.chargeID)
 	}
+
 	s.ElementsMatch(originalChargeIDs, snapshot.chargeIDs, "paid charge identities must survive cancellation")
 
 	for _, original := range paid {
@@ -576,12 +579,15 @@ func (s *CreditThenInvoiceTestSuite) assertPaidCancellationHistory(subscriptionI
 			snapshot.lineIDs = append(snapshot.lineIDs, line.ID)
 		}
 	}
+
 	originalLineIDs := make([]string, 0, len(paid))
 	for _, original := range paid {
 		originalLineIDs = append(originalLineIDs, original.lineID)
 	}
+
 	s.ElementsMatch(originalLineIDs, snapshot.lineIDs, "no second collectible line for a paid period")
 	s.expectNoGatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+
 	return snapshot
 }
 
@@ -691,6 +697,7 @@ func (s *CreditThenInvoiceTestSuite) TestChargeReplacementRejectsPaidFlatFeeWith
 				referenceOnlyChargeID = chargesmeta.ChargeID{Namespace: s.Namespace, ID: charge.GetID()}
 			}
 		}
+
 		s.Require().Contains(originalChargeIDs, chargeID.ID)
 		s.Require().NotEmpty(referenceOnlyChargeID.ID)
 	})
@@ -738,6 +745,7 @@ func (s *CreditThenInvoiceTestSuite) TestChargeReplacementRejectsPaidFlatFeeWith
 		for _, charge := range allCharges.Items {
 			chargeIDsAfter = append(chargeIDsAfter, charge.GetID())
 		}
+
 		s.ElementsMatch(originalChargeIDs, chargeIDsAfter)
 		referenceOnlyCharge, err := s.Charges.GetByID(ctx, charges.GetByIDInput{ChargeID: referenceOnlyChargeID})
 		s.Require().NoError(err)

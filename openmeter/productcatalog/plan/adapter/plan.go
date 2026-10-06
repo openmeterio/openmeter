@@ -530,6 +530,7 @@ func (a *adapter) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (
 
 			phases[idx] = *planPhase
 		}
+
 		p.Phases = phases
 
 		return p, nil

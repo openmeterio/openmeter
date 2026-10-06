@@ -68,6 +68,7 @@ func (h *handler) ListPlanAddons() ListPlanAddonsHandler {
 						{Field: "filter[id]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 					})
 				}
+
 				req.ID = id
 
 				planKey, err := filters.FromAPIFilterString(params.Params.Filter.PlanKey)
@@ -76,6 +77,7 @@ func (h *handler) ListPlanAddons() ListPlanAddonsHandler {
 						{Field: "filter[plan_key]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 					})
 				}
+
 				req.PlanKey = planKey
 
 				addonID, err := filters.FromAPIFilterULID(params.Params.Filter.AddonId)
@@ -84,6 +86,7 @@ func (h *handler) ListPlanAddons() ListPlanAddonsHandler {
 						{Field: "filter[addon_id]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 					})
 				}
+
 				req.AddonID = addonID
 
 				addonKey, err := filters.FromAPIFilterString(params.Params.Filter.AddonKey)
@@ -92,6 +95,7 @@ func (h *handler) ListPlanAddons() ListPlanAddonsHandler {
 						{Field: "filter[addon_key]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 					})
 				}
+
 				req.AddonKey = addonKey
 
 				addonName, err := filters.FromAPIFilterString(params.Params.Filter.AddonName)
@@ -100,6 +104,7 @@ func (h *handler) ListPlanAddons() ListPlanAddonsHandler {
 						{Field: "filter[addon_name]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 					})
 				}
+
 				req.AddonName = addonName
 
 				planCurrency, err := filters.FromAPIFilterString(params.Params.Filter.PlanCurrency)
@@ -108,6 +113,7 @@ func (h *handler) ListPlanAddons() ListPlanAddonsHandler {
 						{Field: "filter[plan_currency]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 					})
 				}
+
 				req.PlanCurrency = planCurrency
 			}
 
@@ -118,6 +124,7 @@ func (h *handler) ListPlanAddons() ListPlanAddonsHandler {
 						{Field: "sort", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 					})
 				}
+
 				req.OrderBy = planaddon.OrderBy(sort.Field)
 				req.Order = sort.Order.ToSortxOrder()
 			}

@@ -81,6 +81,7 @@ func TestEngineValidatesStartingUsageSnapshot(t *testing.T) {
 			if tt.valid {
 				require.NoError(t, err)
 				assert.True(t, usageQueried)
+
 				return
 			}
 

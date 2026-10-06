@@ -86,6 +86,7 @@ func FindLegacyBackfillTransaction(input LegacyBackfillTransactionInput) (ledger
 			}
 
 			found = tx
+
 			break
 		}
 	}

@@ -18,9 +18,11 @@ func (s SubscriptionEntitlement) Validate() error {
 	if s.Entitlement.ActiveFrom == nil {
 		return fmt.Errorf("entitlement active from is nil")
 	}
+
 	if !s.Cadence.ActiveFrom.Equal(*s.Entitlement.ActiveFrom) {
 		return fmt.Errorf("entitlement active from %v does not match cadence active from %v", s.Entitlement.ActiveFrom, s.Cadence.ActiveFrom)
 	}
+
 	if s.Entitlement.ActiveTo == nil {
 		if s.Cadence.ActiveTo != nil {
 			return fmt.Errorf("entitlement active to is nil, but cadence active to is %v", s.Cadence.ActiveTo)
@@ -29,10 +31,12 @@ func (s SubscriptionEntitlement) Validate() error {
 		if s.Cadence.ActiveTo == nil {
 			return fmt.Errorf("entitlement active to is %v, but cadence active to is nil", s.Entitlement.ActiveTo)
 		}
+
 		if !s.Entitlement.ActiveTo.Equal(*s.Cadence.ActiveTo) {
 			return fmt.Errorf("entitlement active to %v does not match cadence active to %v", s.Entitlement.ActiveTo, s.Cadence.ActiveTo)
 		}
 	}
+
 	return nil
 }
 

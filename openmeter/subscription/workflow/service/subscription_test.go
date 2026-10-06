@@ -572,7 +572,6 @@ func TestEditRunning(t *testing.T) {
 				patch1 := subscriptiontestutils.TestPatch{
 					ApplyToFn: func(spec *subscription.SubscriptionSpec, c subscription.ApplyContext) error {
 						// Let's set the new values
-
 						spec.CreateSubscriptionPlanInput = returnedSpec.CreateSubscriptionPlanInput
 						spec.CreateSubscriptionCustomerInput = returnedSpec.CreateSubscriptionCustomerInput
 						spec.Phases = returnedSpec.Phases

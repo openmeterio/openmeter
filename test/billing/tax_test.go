@@ -135,6 +135,7 @@ func (s *InvoicingTaxTestSuite) TestDefaultTaxConfigProfileSnapshotting() {
 						Code: "txcd_30000000",
 					},
 				}
+
 				return nil
 			},
 		})

@@ -49,12 +49,14 @@ func TestCancellationBeforeErrorEncoders(t *testing.T) {
 			if test.canceled {
 				cancel()
 			}
+
 			var output bytes.Buffer
 			handler := httptransport.NewHandler(
 				func(context.Context, *http.Request) (struct{}, error) {
 					if test.decode {
 						return struct{}{}, test.err
 					}
+
 					return struct{}{}, nil
 				},
 				func(context.Context, struct{}) (struct{}, error) { return struct{}{}, test.err },
@@ -98,6 +100,7 @@ func TestClientDisconnect(t *testing.T) {
 				func(ctx context.Context, _ struct{}) (struct{}, error) {
 					close(started)
 					<-ctx.Done()
+
 					return struct{}{}, fmt.Errorf("query: %w", status.FromContextError(ctx.Err()).Err())
 				},
 				commonhttp.EmptyResponseEncoder[struct{}](http.StatusOK),
@@ -106,6 +109,7 @@ func TestClientDisconnect(t *testing.T) {
 				if (r.ProtoMajor == 2) != http2 {
 					t.Errorf("unexpected protocol %s", r.Proto)
 				}
+
 				writer := &recordingStatusWriter{ResponseWriter: w}
 				handler.ServeHTTP(writer, r)
 				completed <- writer.status
@@ -123,6 +127,7 @@ func TestClientDisconnect(t *testing.T) {
 				if response != nil {
 					_ = response.Body.Close()
 				}
+
 				clientDone <- err
 			}()
 			select {
@@ -141,6 +146,7 @@ func TestClientDisconnect(t *testing.T) {
 			case <-time.After(5 * time.Second):
 				t.Fatal("client did not finish")
 			}
+
 			select {
 			case code := <-completed:
 				require.Equal(t, models.StatusClientClosedRequest, code)
@@ -179,6 +185,7 @@ func TestResponseWriteCancellationPreservesCommittedStatus(t *testing.T) {
 			if test.canceled {
 				cancel()
 			}
+
 			var output bytes.Buffer
 			handler := httptransport.NewHandler(
 				func(context.Context, *http.Request) (struct{}, error) { return struct{}{}, nil },
@@ -222,6 +229,7 @@ func TestHTTP2DisconnectDuringResponseWrite(t *testing.T) {
 		func(ctx context.Context, w http.ResponseWriter, r *http.Request, response string) error {
 			close(started)
 			<-ctx.Done()
+
 			return commonhttp.PlainTextResponseEncoder(ctx, w, r, response)
 		},
 		httptransport.WithErrorHandler(errorsx.NewSlogHandler(slog.New(slog.NewTextHandler(&output, nil)))),
@@ -230,6 +238,7 @@ func TestHTTP2DisconnectDuringResponseWrite(t *testing.T) {
 		if r.ProtoMajor != 2 {
 			t.Errorf("unexpected protocol %s", r.Proto)
 		}
+
 		handler.ServeHTTP(w, r)
 		close(completed)
 	}))
@@ -246,6 +255,7 @@ func TestHTTP2DisconnectDuringResponseWrite(t *testing.T) {
 		if response != nil {
 			_ = response.Body.Close()
 		}
+
 		clientDone <- err
 	}()
 	select {
@@ -264,6 +274,7 @@ func TestHTTP2DisconnectDuringResponseWrite(t *testing.T) {
 	case <-time.After(5 * time.Second):
 		t.Fatal("client did not finish")
 	}
+
 	select {
 	case <-completed:
 		require.Contains(t, output.String(), "level=WARN")

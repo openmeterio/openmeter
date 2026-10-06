@@ -85,6 +85,7 @@ func TestFromAPIBillingSubscriptionCreateTiming(t *testing.T) {
 			api.BillingSubscriptionCreate{Timing: timing},
 		)
 		require.NoError(t, err)
+
 		return result.Timing
 	}
 
@@ -177,6 +178,7 @@ func TestToAPIBillingSubscriptionViewRoundtrip(t *testing.T) {
 			foundItem = true
 		}
 	}
+
 	require.True(t, foundItem, "expected at least one resolved item across phases")
 
 	// then: the current aligned billing period is populated for the active subscription

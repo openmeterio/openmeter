@@ -552,6 +552,7 @@ func TestCurrenciesService(t *testing.T) {
 					activeCostBasisID = costBasis.ID
 				}
 			}
+
 			require.NotEmpty(t, activeCostBasisID)
 
 			_, err = env.Client.CustomCurrency.UpdateOneID(deletedCurrency.ID).

@@ -391,6 +391,7 @@ func TestCreditGrantPlanFilterMapping(t *testing.T) {
 			require.Equal(t, version.Lte, actual.Lte)
 		}
 	}
+
 	for _, version := range []*api.CreateVersionFilter{
 		{}, {Oeq: lo.ToPtr([]int32{})}, {Eq: lo.ToPtr(int32(0))}, {Oeq: lo.ToPtr([]int32{-1})}, {Eq: lo.ToPtr(int32(2)), Gte: lo.ToPtr(int32(1))},
 	} {

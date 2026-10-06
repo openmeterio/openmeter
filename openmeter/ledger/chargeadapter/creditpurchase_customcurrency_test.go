@@ -205,6 +205,7 @@ func TestOnCreditPurchaseInitiated_CustomCurrency_FractionalPurchaseBacksOldestA
 				uncovered += segment.Amount.InexactFloat64()
 			}
 		}
+
 		require.Equal(t, []float64{0.05, 0, 0}[i], backed)
 		require.Equal(t, []float64{0.95, 1, 1}[i], uncovered)
 	}
@@ -435,6 +436,7 @@ func TestOnCreditPurchaseInitiated_CustomCurrency_ExpiringCreditReleasesAdvanceC
 	for _, row := range rows {
 		byKind[row.Kind] = row.Amount
 	}
+
 	require.True(t, byKind[ledger.BreakageKindPlan].Equal(alpacadecimal.NewFromInt(100)))
 	require.True(t, byKind[ledger.BreakageKindRelease].Equal(alpacadecimal.NewFromInt(40)))
 
@@ -507,6 +509,7 @@ func (e *creditPurchaseHandlerTestEnv) newExternalChargeCustomCurrency(
 	}
 	fiatCurrency, err := currencyx.NewFiatCurrency(settlementCurrency)
 	require.NoError(t, err)
+
 	return chargecreditpurchase.Charge{
 		ChargeBase: chargecreditpurchase.ChargeBase{
 			ManagedResource: meta.ManagedResource{

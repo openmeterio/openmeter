@@ -23,18 +23,21 @@ func (e *engine) getGrantActivityChanges(grants []grant.Grant, period timeutil.C
 		if period.Contains(grant.EffectiveAt) {
 			activityChanges = append(activityChanges, grant.EffectiveAt)
 		}
+
 		// grants that expire in the period
 		if grant.ExpiresAt != nil {
 			if period.Contains(*grant.ExpiresAt) {
 				activityChanges = append(activityChanges, *grant.ExpiresAt)
 			}
 		}
+
 		// grants that are deleted in the period
 		if grant.DeletedAt != nil {
 			if period.Contains(*grant.DeletedAt) {
 				activityChanges = append(activityChanges, *grant.DeletedAt)
 			}
 		}
+
 		// grants that are voided in the period
 		if grant.VoidedAt != nil {
 			if period.Contains(*grant.VoidedAt) {
@@ -150,6 +153,7 @@ func (e *engine) getGrantRecurrenceTimes(grants []grant.Grant, period timeutil.C
 			deduped[len(deduped)-1].grantIDs = append(deduped[len(deduped)-1].grantIDs, t.grantID)
 		}
 	}
+
 	return deduped, nil
 }
 

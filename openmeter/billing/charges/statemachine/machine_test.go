@@ -119,6 +119,7 @@ func TestMachine_FireAndAdvanceUntilStableUpdatesStatus(t *testing.T) {
 		func(ctx context.Context, base fakeBase) (fakeBase, error) {
 			updateCalls++
 			base.Revision++
+
 			return base, nil
 		},
 		func(ctx context.Context, chargeID meta.ChargeID) (fakeCharge, error) { return fakeCharge{}, nil },
@@ -552,6 +553,7 @@ func TestMachine_AdvanceUntilStableWalksTransitionsAndPersistsReturnedBase(t *te
 		func(ctx context.Context, base fakeBase) (fakeBase, error) {
 			updateCalls++
 			base.Revision++
+
 			return base, nil
 		},
 		func(ctx context.Context, chargeID meta.ChargeID) (fakeCharge, error) { return fakeCharge{}, nil },
@@ -584,6 +586,7 @@ func TestMachine_AdvanceUntilStablePersistsPostActivationBase(t *testing.T) {
 		func(ctx context.Context, base fakeBase) (fakeBase, error) {
 			observedBase = base
 			base.Revision++
+
 			return base, nil
 		},
 		func(ctx context.Context, chargeID meta.ChargeID) (fakeCharge, error) { return fakeCharge{}, nil },
@@ -766,6 +769,7 @@ func TestMachine_RefetchChargeReplacesTheInMemoryCharge(t *testing.T) {
 			charge := newFakeCharge(fakeStatusFinal)
 			charge.Base = fakeBase{Revision: 11}
 			charge.Marker = "refetched"
+
 			return charge, nil
 		},
 	)

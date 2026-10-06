@@ -39,6 +39,7 @@ func queryUsageBasedRunPriorLineageStates(t testing.TB, db *sql.DB) map[string]u
 		require.NoError(t, rows.Scan(&id, &state.SchemaLevel, &state.PriorRunID))
 		states[id] = state
 	}
+
 	require.NoError(t, rows.Err())
 
 	return states

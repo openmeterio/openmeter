@@ -28,6 +28,7 @@ import (
 func getAnchor(t *testing.T) time.Time {
 	t.Helper()
 	now := clock.Now().UTC()
+
 	return datetime.NewDateTime(time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)).AddDateNoOverflow(0, -1, 0).Time
 }
 
@@ -65,6 +66,7 @@ func TestGetEntitlementBalance(t *testing.T) {
 		currentUsagePeriod, err := input.UsagePeriod.GetValue().GetPeriodAt(time.Now())
 		require.NoError(t, err)
 		input.CurrentUsagePeriod = &currentUsagePeriod
+
 		return input
 	}
 
@@ -895,6 +897,7 @@ func TestGetEntitlementHistory(t *testing.T) {
 		currentUsagePeriod, err := input.UsagePeriod.GetValue().GetPeriodAt(time.Now())
 		require.NoError(t, err)
 		input.CurrentUsagePeriod = &currentUsagePeriod
+
 		return input
 	}
 

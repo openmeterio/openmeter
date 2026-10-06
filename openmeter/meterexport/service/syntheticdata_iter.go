@@ -32,6 +32,7 @@ func (s *service) ExportSyntheticMeterDataIter(ctx context.Context, params meter
 			if err := s.ExportSyntheticMeterData(ctx, params, resultCh, errCh); err != nil {
 				startupErrCh <- err
 			}
+
 			close(startupErrCh)
 		}()
 
@@ -44,6 +45,7 @@ func (s *service) ExportSyntheticMeterDataIter(ctx context.Context, params meter
 					yield(streaming.RawEvent{}, err)
 					return
 				}
+
 				// Channel closed without error - nil it out so we don't keep selecting it
 				startupErrCh = nil
 			case event, ok := <-resultCh:
@@ -54,8 +56,10 @@ func (s *service) ExportSyntheticMeterDataIter(ctx context.Context, params meter
 							return
 						}
 					}
+
 					return
 				}
+
 				if !yield(event, nil) {
 					return // Caller stopped iterating, context will be canceled by defer
 				}
@@ -67,8 +71,10 @@ func (s *service) ExportSyntheticMeterDataIter(ctx context.Context, params meter
 							return
 						}
 					}
+
 					return
 				}
+
 				if !yield(streaming.RawEvent{}, err) {
 					return // Caller stopped iterating
 				}

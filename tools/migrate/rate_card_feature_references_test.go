@@ -61,6 +61,7 @@ func queryRateCardFeatureReferenceMigrationStates(
 
 		states[id] = state
 	}
+
 	require.NoError(t, rows.Err())
 
 	return states
@@ -414,6 +415,7 @@ func TestBackfillRateCardFeatureReferencesMigration(t *testing.T) {
 	} {
 		require.NotContains(t, state.Annotations, rateCardFeatureReferenceBackfillAnnotation)
 	}
+
 	require.False(t, planStates[planUnresolvedRateCardID].FeatureID.Valid)
 	require.False(t, planStates[planAmbiguousRateCardID].FeatureID.Valid)
 	require.False(t, planStates[planDeletedFeatureRateCardID].FeatureID.Valid)
@@ -515,6 +517,7 @@ func TestBackfillRateCardFeatureReferencesMigration(t *testing.T) {
 	} {
 		require.NotContains(t, state.Annotations, rateCardFeatureReferenceBackfillAnnotation)
 	}
+
 	require.Nil(t, planStates[planIDOnlyRateCardID].Annotations)
 	require.Equal(t, "preserved", planStates[planKeyOnlyRateCardID].Annotations["existing"])
 	require.Nil(t, addonStates[addonIDOnlyRateCardID].Annotations)

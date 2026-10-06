@@ -37,18 +37,23 @@ func (c Config) Validate() error {
 	if c.Ledger == nil {
 		errs = append(errs, errors.New("ledger is required"))
 	}
+
 	if c.Dependencies.AccountService == nil {
 		errs = append(errs, errors.New("account service is required"))
 	}
+
 	if c.Dependencies.AccountCatalog == nil {
 		errs = append(errs, errors.New("account catalog is required"))
 	}
+
 	if c.Dependencies.BalanceQuerier == nil {
 		errs = append(errs, errors.New("balance querier is required"))
 	}
+
 	if c.Lineage == nil {
 		errs = append(errs, errors.New("lineage service is required"))
 	}
+
 	if c.TransactionManager == nil {
 		errs = append(errs, errors.New("transaction manager is required"))
 	}
@@ -89,6 +94,7 @@ func (i RecognizeEarningsInput) Validate() error {
 	if err := i.CustomerID.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("customer id: %w", err))
 	}
+
 	if i.At.IsZero() {
 		errs = append(errs, errors.New("at is required"))
 	}

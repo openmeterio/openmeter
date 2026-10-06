@@ -161,6 +161,7 @@ func (h *handler) ResendEvent() ResendEventHandler {
 			if err != nil {
 				return nil, fmt.Errorf("failed to resend event: %w", err)
 			}
+
 			return nil, nil
 		},
 		commonhttp.EmptyResponseEncoder[ResendEventResponse](http.StatusAccepted),

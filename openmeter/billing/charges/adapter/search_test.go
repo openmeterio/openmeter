@@ -303,6 +303,7 @@ func (s *ListCustomersToAdvanceSuite) TestStableOrdering() {
 		if expected[i].Namespace != expected[j].Namespace {
 			return expected[i].Namespace < expected[j].Namespace
 		}
+
 		return expected[i].ID < expected[j].ID
 	})
 
@@ -320,6 +321,7 @@ func (s *ListCustomersToAdvanceSuite) TestPagination() {
 	for i := 0; i < 5; i++ {
 		custIDs = append(custIDs, s.createCustomer(ns))
 	}
+
 	sort.Strings(custIDs)
 
 	for _, id := range custIDs {

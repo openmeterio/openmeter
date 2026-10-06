@@ -125,6 +125,7 @@ func (s *ExternalCreditPurchaseStateMachine) GrantCredits(ctx context.Context) e
 	}
 
 	s.Charge = updatedCharge
+
 	return nil
 }
 
@@ -135,6 +136,7 @@ func (s *ExternalCreditPurchaseStateMachine) AuthorizeExternalPayment(ctx contex
 	}
 
 	s.Charge = updatedCharge
+
 	return nil
 }
 
@@ -145,6 +147,7 @@ func (s *ExternalCreditPurchaseStateMachine) SettleExternalPayment(ctx context.C
 	}
 
 	s.Charge = updatedCharge
+
 	return nil
 }
 

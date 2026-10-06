@@ -179,6 +179,7 @@ func (s *FlatFeeIntentOverrideAdapterSuite) TestUpdateAndReadIntentOverride() {
 	if updated.Intent.GetBaseIntent().FeatureKey != nil {
 		expectedFeatureKey = *updated.Intent.GetBaseIntent().FeatureKey
 	}
+
 	s.Equal(expectedFeatureKey, fetched.Intent.GetFeatureKey())
 
 	fetchedByIDs, err := s.adapter.GetByIDs(ctx, flatfee.GetByIDsInput{

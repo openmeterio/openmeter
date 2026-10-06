@@ -22,6 +22,7 @@ func NewTransactionFromData(data TransactionData, entries []EntryData) (*Transac
 		if err != nil {
 			return nil, fmt.Errorf("entry %s: %w", e.ID, err)
 		}
+
 		ents = append(ents, entry)
 	}
 

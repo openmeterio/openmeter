@@ -51,6 +51,7 @@ func (t IssueCustomerReceivableTemplate) Validate() error {
 	if err := t.Currency.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("currency: %w", err))
 	}
+
 	if err := ledger.ValidateCostBasisCurrency(t.Currency.Code, t.CostBasisCurrency, t.CostBasis); err != nil {
 		errs = append(errs, fmt.Errorf("cost basis currency: %w", err))
 	}
@@ -624,9 +625,11 @@ func (t CoverCustomerReceivableTemplate) Validate() error {
 		if !t.Amount.IsZero() {
 			errs = append(errs, errors.New("amount must be zero when sources are provided"))
 		}
+
 		if t.CostBasis != nil {
 			errs = append(errs, errors.New("cost basis must be nil when sources are provided"))
 		}
+
 		if t.CreditPriority != nil {
 			errs = append(errs, errors.New("credit priority must be nil when sources are provided"))
 		}
@@ -636,12 +639,15 @@ func (t CoverCustomerReceivableTemplate) Validate() error {
 				errs = append(errs, fmt.Errorf("sources[%d]: address is required", i))
 				continue
 			}
+
 			if source.Address.AccountType() != ledger.AccountTypeCustomerFBO {
 				errs = append(errs, fmt.Errorf("sources[%d]: account type must be customer_fbo", i))
 			}
+
 			if !source.Address.Route().Route().Currency.Equal(t.Currency) {
 				errs = append(errs, fmt.Errorf("sources[%d]: currency must be %s", i, t.Currency))
 			}
+
 			if err := ledger.ValidateTransactionAmount(source.Amount); err != nil {
 				errs = append(errs, fmt.Errorf("sources[%d].amount: %w", i, err))
 			}

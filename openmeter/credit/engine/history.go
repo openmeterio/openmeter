@@ -37,6 +37,7 @@ func (GrantUsageTerminationReason) IsValid(reason GrantUsageTerminationReason) b
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -98,6 +99,7 @@ func (s GrantBurnDownHistorySegment) ApplyUsage() balance.Map {
 	for _, u := range s.GrantUsages {
 		balance.Burn(u.GrantID, u.Usage)
 	}
+
 	return balance
 }
 
@@ -302,6 +304,7 @@ func (g *GrantBurnDownHistory) TotalUsageInHistory() float64 {
 	for _, s := range g.segments {
 		total += s.TotalUsage
 	}
+
 	return total
 }
 

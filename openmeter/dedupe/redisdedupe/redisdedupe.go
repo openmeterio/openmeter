@@ -26,6 +26,7 @@ func (m DedupeMode) Validate() error {
 	case DedupeModeRawKey, DedupeModeKeyHash, DedupeModeKeyHashMigration:
 		return nil
 	}
+
 	return fmt.Errorf("invalid dedupe mode: %s", m)
 }
 
@@ -95,6 +96,7 @@ func (d Deduplicator) setKey(ctx context.Context, key string) (bool, error) {
 	if status == "" {
 		return false, nil
 	}
+
 	// Key did not exist before, so it's unique
 	if status == "OK" {
 		return true, nil
@@ -145,6 +147,7 @@ func (d Deduplicator) Set(ctx context.Context, items ...dedupe.Item) ([]dedupe.I
 				return err
 			}
 		}
+
 		return nil
 	})
 	if err != nil && !errors.Is(err, redis.Nil) {

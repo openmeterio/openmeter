@@ -252,6 +252,7 @@ func (s *Service) prepareBillableLines(ctx context.Context, input billing.Prepar
 					if systemErr != nil {
 						return nil, fmt.Errorf("checking selected gathering line billability: %w", systemErr)
 					}
+
 					billabilityValidationIssues = selectedValidationIssues
 				}
 
@@ -367,6 +368,7 @@ func (s *Service) gatherInScopeLines(ctx context.Context, in gatherInScopeLineIn
 		if systemErr != nil {
 			return gatherInScopeLinesResult{}, fmt.Errorf("checking gathering line billability: %w", systemErr)
 		}
+
 		if len(validationIssues) > 0 {
 			res.ValidationIssuesByCurrency[currency] = validationIssues
 			s.logger.WarnContext(
@@ -376,6 +378,7 @@ func (s *Service) gatherInScopeLines(ctx context.Context, in gatherInScopeLineIn
 				"error", err,
 			)
 		}
+
 		linesWithResolvedPeriods := lo.Map(billabilityResults, func(result gatheringLineBillabilityResult, index int) gatheringLineWithBillablePeriod {
 			if !result.Billable {
 				return gatheringLineWithBillablePeriod{
@@ -406,7 +409,6 @@ func (s *Service) gatherInScopeLines(ctx context.Context, in gatherInScopeLineIn
 	// but only if all the requested lines are billable.
 	if in.LinesToInclude.IsPresent() {
 		// Step 1: Let's validate that all the requested lines are billable.
-
 		nonBillableLineIDs := make([]string, 0, len(billableLineIDs))
 		for _, lineID := range in.LinesToInclude.OrEmpty() {
 			if _, ok := billableLineIDs[lineID]; !ok {
@@ -657,6 +659,7 @@ func (s *Service) prepareLinesToBill(ctx context.Context, input prepareLinesToBi
 					"original_period_start", currentLine.ServicePeriod.From,
 					"original_period_end", currentLine.ServicePeriod.To,
 					"split_at", line.BillablePeriod.To)
+
 				continue
 			}
 
@@ -765,6 +768,7 @@ func (s *Service) CreateStandardInvoiceFromGatheringLines(ctx context.Context, i
 	if err != nil {
 		return nil, fmt.Errorf("cloning validation issues: %w", err)
 	}
+
 	invoice.ValidationIssues = append(invoice.ValidationIssues, validationIssues...)
 
 	linesWithEngines, err := s.lineEngines.groupGatheringLinesByEngine(in.Lines)
@@ -973,6 +977,7 @@ func (s *Service) invokeOnStandardInvoiceCreated(ctx context.Context, invoice bi
 		if errors.As(err, &requestValidationError) {
 			return billing.StandardInvoice{}, err
 		}
+
 		validationIssues, systemErr := billing.ToValidationIssues(err)
 		if systemErr != nil {
 			return billing.StandardInvoice{}, fmt.Errorf("standard invoice created for engine %s: %w", grouped.Engine.GetLineEngineType(), systemErr)

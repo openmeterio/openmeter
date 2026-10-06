@@ -35,6 +35,7 @@ func (m *Credits) Mutate(i rate.PricerCalculateInput, pricerResult rating.Detail
 				pricerResult[idx].CreditsApplied = append(pricerResult[idx].CreditsApplied, creditToApply.CloneWithAmount(creditValueRemaining))
 
 				creditValueRemaining = alpacadecimal.Zero
+
 				break
 			}
 		}
@@ -43,7 +44,6 @@ func (m *Credits) Mutate(i rate.PricerCalculateInput, pricerResult rating.Detail
 			// TODO: Error code/validation error?
 			// This is critical, as it means that charges/ledger has allocated more credits than the line is worth
 			// thus we would charge the customer more credits that we actually have usage for.
-
 			return pricerResult, billing.ErrInvoiceLineCreditsNotConsumedFully
 		}
 	}

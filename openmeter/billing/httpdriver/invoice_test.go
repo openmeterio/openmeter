@@ -333,6 +333,7 @@ func (s *InvoicingTestSuite) TestGatheringInvoiceSerialization() {
 				}
 
 				_, err = ulid.Parse(strValue)
+
 				return err
 			},
 		},
@@ -351,6 +352,7 @@ func (s *InvoicingTestSuite) TestGatheringInvoiceSerialization() {
 				}
 
 				_, err = time.Parse(time.RFC3339, timeString)
+
 				return err
 			},
 		},

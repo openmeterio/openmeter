@@ -29,6 +29,7 @@ func TestFilterQuerySerialization(t *testing.T) {
 	if got := q.Get("filter[key][oeq]"); got != "tokens,requests" {
 		t.Errorf("filter[key][oeq] = %q, want %q", got, "tokens,requests")
 	}
+
 	if got := q.Get("filter[name][contains]"); got != "gpt" {
 		t.Errorf("filter[name][contains] = %q, want %q", got, "gpt")
 	}

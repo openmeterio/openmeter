@@ -173,6 +173,7 @@ func TestRoutes(t *testing.T) {
 					e.SetType("type")
 					e.SetSubject("subject")
 					e.SetSource("source")
+
 					return &e
 				}(),
 			},
@@ -779,10 +780,12 @@ func TestRoutes(t *testing.T) {
 			if tt.req.body != nil {
 				reqBody, _ = json.Marshal(tt.req.body)
 			}
+
 			req := httptest.NewRequest(tt.req.method, tt.req.path, bytes.NewReader(reqBody))
 			if tt.req.accept != "" {
 				req.Header.Set("Accept", tt.req.accept)
 			}
+
 			if tt.req.contentType != "" {
 				req.Header.Set("Content-Type", tt.req.contentType)
 			}
@@ -937,6 +940,7 @@ func getTestServer(t *testing.T, opts ...func(*router.Config)) (*Server, *MockSt
 	// Create server
 	server, err := NewServer(config)
 	assert.NoError(t, err, "failed to create server")
+
 	return server, mockStreamingConnector
 }
 
@@ -1152,6 +1156,7 @@ func (c *MockStreamingConnector) ListEvents(ctx context.Context, namespace strin
 			StoredAt:   time.Time{},
 		},
 	}
+
 	return events, nil
 }
 
@@ -1168,6 +1173,7 @@ func (c *MockStreamingConnector) ListEventsV2(ctx context.Context, params stream
 			StoredAt:   time.Time{},
 		},
 	}
+
 	return events, nil
 }
 

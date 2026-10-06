@@ -65,6 +65,7 @@ func (a *adapter) SetResolvedCostBasis(ctx context.Context, input creditpurchase
 				),
 			)
 		}
+
 		if err != nil {
 			return costbasis.State{}, fmt.Errorf(
 				"setting resolved credit purchase cost basis [charge_id=%s,cost_basis_id=%s]: %w",

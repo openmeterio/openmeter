@@ -311,7 +311,6 @@ type lineIdToSplitLineHierarchy map[string]*billing.SplitLineHierarchy
 // the hierarchy.
 func (a *adapter) expandSplitLineHierarchy(ctx context.Context, namespace string, lines []billing.GenericInvoiceLine) (lineIdToSplitLineHierarchy, error) {
 	// Let's collect all the lines with a parent line id set
-
 	lineToGroupIDs := map[string]string{}
 
 	for _, line := range lines {

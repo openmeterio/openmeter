@@ -51,6 +51,7 @@ func (s *Service) HandleCancelledEvent(ctx context.Context, event *subscription.
 		if current.ActiveTo == nil {
 			return nil
 		}
+
 		refOrView = newSubscriptionReferenceOrView(current.NamespacedID)
 		asOf = *current.ActiveTo
 	}
@@ -111,5 +112,6 @@ func (s *Service) HandleDeletedEvent(ctx context.Context, event *subscription.De
 		newSubscriptionReferenceOrView(event.Subscription.NamespacedID),
 		clock.Now(),
 	)
+
 	return err
 }

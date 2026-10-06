@@ -99,6 +99,7 @@ func (r *resolver) BatchResolveCurrencies(ctx context.Context, namespace string,
 			codes = append(codes, ref.Code.String())
 		}
 	}
+
 	ids = lo.Uniq(ids)
 	codes = lo.Uniq(codes)
 

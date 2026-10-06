@@ -272,11 +272,13 @@ func subscriptionHasItem(sub *v3sdk.BillingSubscription, phaseKey, itemKey strin
 		if phase.Key != phaseKey {
 			continue
 		}
+
 		for _, item := range phase.Items {
 			if item.RateCard.Key == itemKey {
 				return true
 			}
 		}
 	}
+
 	return false
 }

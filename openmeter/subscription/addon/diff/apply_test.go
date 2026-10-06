@@ -1097,6 +1097,7 @@ func withTaxCodeIDAndCurrency(rc *productcatalog.FlatFeeRateCard, taxCodeID *str
 	if clone.TaxConfig != nil {
 		clone.TaxConfig.TaxCodeID = taxCodeID
 	}
+
 	currencyReference := currencies.NewCurrencyReference(currencyx.Code(currencyCode))
 	clone.Currency = &currencyReference
 

@@ -444,6 +444,7 @@ func TestOnCreditPurchaseInitiated_ExpiringCreditReleasesAdvanceCoverage(t *test
 	for _, row := range rows {
 		byKind[row.Kind] = row.Amount
 	}
+
 	require.True(t, byKind[ledger.BreakageKindPlan].Equal(alpacadecimal.NewFromInt(100)))
 	require.True(t, byKind[ledger.BreakageKindRelease].Equal(alpacadecimal.NewFromInt(40)))
 
@@ -791,6 +792,7 @@ func (e *creditPurchaseHandlerTestEnv) newExternalCharge(amount, costBasis alpac
 		From: now.Add(-time.Hour),
 		To:   now,
 	}
+
 	return chargecreditpurchase.Charge{
 		ChargeBase: chargecreditpurchase.ChargeBase{
 			ManagedResource: meta.ManagedResource{
@@ -1096,6 +1098,7 @@ func (e *creditPurchaseHandlerTestEnv) grantCredits(t *testing.T, charge chargec
 		for i := range roots {
 			roots[i].OriginalTransactionGroupID = e.originalAdvanceGroups[roots[i].RootRealizationID]
 		}
+
 		input := chargecreditpurchase.CreditGrantInput{
 			Charge:          charge,
 			AdvanceLineages: roots,
@@ -1106,6 +1109,7 @@ func (e *creditPurchaseHandlerTestEnv) grantCredits(t *testing.T, charge chargec
 		} else {
 			result, err = e.handler.OnCreditPurchaseInitiated(ctx, input)
 		}
+
 		if err != nil || result.TransactionGroupID == "" {
 			return result, err
 		}
@@ -1119,6 +1123,7 @@ func (e *creditPurchaseHandlerTestEnv) grantCredits(t *testing.T, charge chargec
 			BackingTransactionGroupID: result.TransactionGroupID,
 			Allocations:               result.BackfillAllocations,
 		})
+
 		return result, err
 	})
 }
@@ -1336,6 +1341,7 @@ func TestCreditPurchaseBackfillsOnlyMatchingPlanVersion(t *testing.T) {
 		_, err = env.Deps.HistoricalLedger.CommitGroup(t.Context(), transactions.GroupInputs(env.Namespace, nil, inputs...))
 		require.NoError(t, err)
 	}
+
 	costBasis := mustDecimal(t, "0.5")
 	charge := env.newExternalCharge(alpacadecimal.NewFromInt(100), costBasis)
 	charge.Intent.Filters = ledger.CreditFilters{Version: ledger.CreditFiltersVersion2, Features: []string{"api-calls"}, Plans: []ledger.PlanFilter{{Key: "pro", Version: &ledger.VersionFilter{Gte: lo.ToPtr(2)}}}}
@@ -1356,8 +1362,10 @@ func TestCreditPurchaseBackfillsOnlyMatchingPlanVersion(t *testing.T) {
 		if i == 1 {
 			expected = 0
 		}
+
 		require.Equal(t, expected, env.sumBalance(t, account).InexactFloat64())
 	}
+
 	fbo, err := env.CustomerAccounts.FBOAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerFBORouteParams{
 		Currency: env.currency.Reference(), CostBasis: &costBasis, CreditPriority: lo.FromPtrOr(charge.Intent.Priority, ledger.DefaultCustomerFBOPriority), Filters: charge.Intent.Filters,
 	})

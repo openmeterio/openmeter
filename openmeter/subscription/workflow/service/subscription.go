@@ -146,6 +146,7 @@ func (s *service) resolveEditPatchRateCardReferences(ctx context.Context, namesp
 		if value == nil {
 			return nil, errors.New("add-item patch is required")
 		}
+
 		addItem = value
 		returnsPointer = true
 	default:
@@ -162,6 +163,7 @@ func (s *service) resolveEditPatchRateCardReferences(ctx context.Context, namesp
 	if err := featureresolver.ResolveFeaturesForRateCards(ctx, s.FeatureResolver, namespace, &rateCards); err != nil {
 		return nil, fmt.Errorf("resolving add-item feature: %w", err)
 	}
+
 	rateCard = rateCards[0]
 
 	if rateCard.AsMeta().Price != nil {
@@ -178,6 +180,7 @@ func (s *service) resolveEditPatchRateCardReferences(ctx context.Context, namesp
 		if err := productcatalogcurrencyresolver.ResolveCurrenciesForRateCards(ctx, s.CurrencyResolver.WithNamespace(namespace), &rateCards); err != nil {
 			return nil, fmt.Errorf("resolving add-item currency: %w", err)
 		}
+
 		rateCard = rateCards[0]
 	}
 
@@ -186,6 +189,7 @@ func (s *service) resolveEditPatchRateCardReferences(ctx context.Context, namesp
 	if returnsPointer {
 		return addItem, nil
 	}
+
 	return *addItem, nil
 }
 
@@ -216,6 +220,7 @@ func (s *service) EditRunning(ctx context.Context, subscriptionID models.Namespa
 				if ap.CreateInput.CreateSubscriptionItemInput.Annotations == nil {
 					ap.CreateInput.CreateSubscriptionItemInput.Annotations = models.Annotations{}
 				}
+
 				_, _ = subscription.AnnotationParser.AddOwnerSubSystem(ap.CreateInput.CreateSubscriptionItemInput.Annotations, subscription.OwnerSubscriptionSubSystem)
 
 				subscriptionworkflow.AnnotationParser.SetUniquePatchID(ap.CreateInput.CreateSubscriptionItemInput.Annotations)
@@ -227,6 +232,7 @@ func (s *service) EditRunning(ctx context.Context, subscriptionID models.Namespa
 				if ap.CreateInput.CreateSubscriptionItemInput.Annotations == nil {
 					ap.CreateInput.CreateSubscriptionItemInput.Annotations = models.Annotations{}
 				}
+
 				_, _ = subscription.AnnotationParser.AddOwnerSubSystem(ap.CreateInput.CreateSubscriptionItemInput.Annotations, subscription.OwnerSubscriptionSubSystem)
 
 				subscriptionworkflow.AnnotationParser.SetUniquePatchID(ap.CreateInput.CreateSubscriptionItemInput.Annotations)
@@ -249,6 +255,7 @@ func (s *service) EditRunning(ctx context.Context, subscriptionID models.Namespa
 			if err != nil {
 				return subscription.SubscriptionView{}, models.ErrorWithComponent(models.ComponentName(fmt.Sprintf("patch[%d]", i)), err)
 			}
+
 			customizations[i] = resolved
 		}
 
@@ -338,14 +345,17 @@ func (s *service) ChangeToPlan(ctx context.Context, subscriptionID models.Namesp
 		} else {
 			currAnnotations = maps.Clone(currAnnotations)
 		}
+
 		currAnnotations, err = subscription.AnnotationParser.SetSupersedingSubscriptionID(currAnnotations, new.Subscription.ID)
 		if err != nil {
 			return res{}, fmt.Errorf("failed to set superseding subscription ID: %w", err)
 		}
+
 		updatedCurr, err := s.Service.UpdateAnnotations(ctx, curr.NamespacedID, currAnnotations)
 		if err != nil {
 			return res{}, fmt.Errorf("failed to update current subscription annotations: %w", err)
 		}
+
 		curr = *updatedCurr
 
 		// Let's just return after a great success

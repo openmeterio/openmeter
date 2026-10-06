@@ -65,6 +65,7 @@ func (a *AutoAdvancer) All(ctx context.Context, namespaces []string, batchSize i
 
 		wg.Wait()
 	}
+
 	closeErrChan()
 
 	var errs []error

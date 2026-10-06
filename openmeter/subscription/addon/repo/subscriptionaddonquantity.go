@@ -35,6 +35,7 @@ func (r *subscriptionAddonQuantityRepo) Create(ctx context.Context, subscription
 		}
 
 		quantity := MapSubscriptionAddonQuantity(entity)
+
 		return &quantity, nil
 	})
 }

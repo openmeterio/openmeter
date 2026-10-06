@@ -44,6 +44,7 @@ func (a *adapter) RegisterCharges(ctx context.Context, in meta.RegisterChargesIn
 		}
 
 		_, err = tx.db.Charge.CreateBulk(creates...).Save(ctx)
+
 		return err
 	})
 }

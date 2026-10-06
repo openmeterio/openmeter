@@ -15,6 +15,7 @@ func (r *repo) GetBalancesAtBoundaries(ctx context.Context, input ledger.GetBala
 		if err != nil {
 			return nil, err
 		}
+
 		rows, err := tx.db.QueryContext(ctx, query, args...)
 		if err != nil {
 			return nil, fmt.Errorf("query balance boundaries: %w", err)
@@ -28,15 +29,19 @@ func (r *repo) GetBalancesAtBoundaries(ctx context.Context, input ledger.GetBala
 			if err := rows.Scan(&amount, &idx); err != nil {
 				return nil, fmt.Errorf("scan balance boundary: %w", err)
 			}
+
 			balance, err := decimalFromNullString(amount)
 			if err != nil {
 				return nil, fmt.Errorf("parse balance boundary %d: %w", idx, err)
 			}
+
 			balances[idx] = balance
 		}
+
 		if err := rows.Err(); err != nil {
 			return nil, fmt.Errorf("read balance boundaries: %w", err)
 		}
+
 		return balances, nil
 	})
 }

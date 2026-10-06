@@ -21,6 +21,7 @@ func (e *featureDBAdapter) Tx(ctx context.Context) (context.Context, transaction
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to hijack transaction: %w", err)
 	}
+
 	return txCtx, entutils.NewTxDriver(eDriver, rawConfig), nil
 }
 

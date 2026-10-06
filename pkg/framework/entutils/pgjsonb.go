@@ -23,8 +23,10 @@ func JSONBIn(field string, key string, values []string) func(*sql.Selector) {
 			s.Where(sql.P(func(b *sql.Builder) {
 				b.WriteString("false")
 			}))
+
 			return
 		}
+
 		s.Where(sql.P(func(b *sql.Builder) {
 			b.WriteString("(")
 			b.WriteString(field)
@@ -104,6 +106,7 @@ func JSONBFilterString(field string, key string, f filter.FilterString) (func(*s
 		if len(*f.In) == 0 {
 			return pred(func(_ *sql.Selector, b *sql.Builder) { b.WriteString("FALSE") }), nil
 		}
+
 		return pred(func(s *sql.Selector, b *sql.Builder) {
 			accessor(s, b)
 			b.WriteString(" IN (").Args(slicesx.Map(*f.In, func(v string) any { return v })...).WriteString(")")
@@ -142,15 +145,19 @@ func jsonbCombine[F filter.FilterString | filter.FilterULID](
 		case filter.FilterULID:
 			p, err = JSONBFilterULID(field, key, c)
 		}
+
 		if err != nil {
 			return nil, err
 		}
+
 		if p != nil {
 			preds = append(preds, p)
 		}
 	}
+
 	if len(preds) == 0 {
 		return nil, nil
 	}
+
 	return combine(preds...), nil
 }

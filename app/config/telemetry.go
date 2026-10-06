@@ -388,6 +388,7 @@ func kongReplaceAttr(groups []string, a slog.Attr) slog.Attr {
 	if len(groups) > 0 {
 		return a
 	}
+
 	switch a.Key {
 	case slog.TimeKey:
 		a.Key = "ts"
@@ -403,6 +404,7 @@ func kongReplaceAttr(groups []string, a slog.Attr) slog.Attr {
 	case "error", "err":
 		a.Key = "error.message"
 	}
+
 	return a
 }
 
@@ -591,6 +593,7 @@ func (e *fileExporter) Export(ctx context.Context, logs []sdklog.Record) error {
 		// Let's add retries eventually
 		_ = e.handler.Handle(ctx, rec)
 	}
+
 	return nil
 }
 

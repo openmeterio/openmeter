@@ -272,6 +272,7 @@ func NewServices(t testing.TB, config Config) (*Services, error) {
 	if err := config.BillingService.RegisterLineEngine(creditPurchaseService.GetLineEngine()); err != nil {
 		return nil, fmt.Errorf("registering credit purchase line engine: %w", err)
 	}
+
 	if err := config.BillingService.RegisterCreateLineRouter(NewChargesEnabledLineRouter(t)); err != nil {
 		return nil, fmt.Errorf("registering charges create line router: %w", err)
 	}

@@ -109,10 +109,12 @@ func (f EntitlementFilters) WithMetrics(meter metric.Meter) (*EntitlementFilters
 	if err != nil {
 		return nil, err
 	}
+
 	res.meterEntitlementsFilterMatchesTotal, err = meter.Int64Counter(metricNameEntitlementsFilterMatchesTotal)
 	if err != nil {
 		return nil, err
 	}
+
 	res.meterEntitlementsFilterFilteredTotal, err = meter.Int64Counter(metricNameEntitlementsFilterFilteredTotal)
 	if err != nil {
 		return nil, err

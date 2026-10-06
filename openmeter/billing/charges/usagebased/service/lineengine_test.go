@@ -261,6 +261,7 @@ func TestAreLinesBillableAsOfDefersAmountDiscountsUntilPeriodEnd(t *testing.T) {
 						expected = billing.IsLineBillableAsOfResult{}
 					}
 				}
+
 				require.Equal(t, []billing.IsLineBillableAsOfResult{expected}, results)
 			}
 		})

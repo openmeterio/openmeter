@@ -1474,6 +1474,7 @@ func (s *SanitySuite) assertBreakageRowsByExpiry(ctx context.Context, namespace 
 			s.Require().NotNil(releasePlanIDByExpiry[key])
 			s.Equal(planIDByExpiry[key], *releasePlanIDByExpiry[key])
 		}
+
 		if expectedItem.reopenAmount.IsPositive() {
 			s.Require().NotNil(reopenPlanIDByExpiry[key])
 			s.Require().NotNil(reopenReleaseIDByExpiry[key])
@@ -1515,6 +1516,7 @@ func (s *SanitySuite) setupExpiringCreditBreakage(namespaceSuffix string, opts .
 	for _, opt := range opts {
 		opt(&setup)
 	}
+
 	setup.unusedAmount = setup.grantAmount.Sub(setup.usedAmount)
 
 	return setup

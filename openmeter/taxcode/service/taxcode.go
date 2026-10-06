@@ -118,8 +118,10 @@ func (s *Service) GetOrCreateByAppMapping(ctx context.Context, input taxcode.Get
 						// after auto-creation (orphaned key). Avoid poisoning the pg tx.
 						return taxcode.TaxCode{}, fmt.Errorf("resolving orphaned tax code key for %q: %w", input.TaxCode, taxcode.ErrTaxCodeOrphanedKey)
 					}
+
 					return taxcode.TaxCode{}, retryErr
 				}
+
 				return tc, nil
 			}
 

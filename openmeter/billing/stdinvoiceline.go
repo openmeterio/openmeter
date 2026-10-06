@@ -75,6 +75,7 @@ func (i StandardLineBase) GetParentID() (string, bool) {
 	if i.ParentLineID == nil {
 		return "", false
 	}
+
 	return *i.ParentLineID, true
 }
 
@@ -570,6 +571,7 @@ func (i StandardLine) RemoveMetaForCompare() (*StandardLine, error) {
 
 	out.DetailedLines = nil
 	out.DBState = nil
+
 	return out, nil
 }
 
@@ -704,6 +706,7 @@ func (i *StandardLine) SaveDBSnapshot() error {
 	}
 
 	i.DBState = cloned
+
 	return nil
 }
 

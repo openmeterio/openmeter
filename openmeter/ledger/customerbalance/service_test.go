@@ -147,6 +147,7 @@ func TestGetBalanceServiceInputValidate(t *testing.T) {
 				if tt.wantErrIs != nil {
 					require.ErrorIs(t, err, tt.wantErrIs)
 				}
+
 				return
 			}
 
@@ -851,6 +852,7 @@ func TestIsPendingCreditGrantAt(t *testing.T) {
 			From: future,
 			To:   future,
 		}
+
 		return creditpurchase.Charge{
 			ChargeBase: creditpurchase.ChargeBase{
 				ManagedResource: chargemeta.ManagedResource{

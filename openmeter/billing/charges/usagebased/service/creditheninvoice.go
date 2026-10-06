@@ -444,6 +444,7 @@ func (s *CreditThenInvoiceStateMachine) cancelRealizationRun(ctx context.Context
 		if err != nil {
 			return fmt.Errorf("calculating fiat overage for realization run[%s]: %w", run.ID.ID, err)
 		}
+
 		shouldCorrect = !fiatOverage.ShouldOmitInvoiceLine
 	}
 
@@ -462,6 +463,7 @@ func (s *CreditThenInvoiceStateMachine) cancelRealizationRun(ctx context.Context
 			if err != nil {
 				return fmt.Errorf("correcting prepared realization run[%s]: %w", run.ID.ID, err)
 			}
+
 			run = correctedRun
 		} else if err := s.Runs.CorrectAllCreditRealizations(ctx, correctionInput); err != nil {
 			return fmt.Errorf("correcting realization run[%s]: %w", run.ID.ID, err)
@@ -474,6 +476,7 @@ func (s *CreditThenInvoiceStateMachine) cancelRealizationRun(ctx context.Context
 		if err != nil {
 			return fmt.Errorf("marking realization run[%s] deleted: %w", run.ID.ID, err)
 		}
+
 		run.RealizationRunBase = runBase
 		s.Charge.Realizations = s.Charge.Realizations.Without(run.ID)
 	}
@@ -497,6 +500,7 @@ func (s *CreditThenInvoiceStateMachine) cancelRealizationRun(ctx context.Context
 		if err != nil {
 			return fmt.Errorf("detaching realization run[%s]: %w", run.ID.ID, err)
 		}
+
 		s.Charge.ChargeBase = updatedChargeBase
 	}
 
@@ -660,6 +664,7 @@ func (s *CreditThenInvoiceStateMachine) ShrinkToRealizedPeriod(ctx context.Conte
 	if !ok {
 		return fmt.Errorf("cannot shrink usage-based charge %s to realized period without realization runs: %w", s.Charge.ID, billing.ErrCannotEditProgressivelyBilledUsageBasedLine)
 	}
+
 	newServicePeriodTo := meta.NormalizeTimestamp(patch.GetNewServicePeriodEnd())
 	latestRunServicePeriodTo := meta.NormalizeTimestamp(latestRun.ServicePeriodTo)
 
@@ -680,6 +685,7 @@ func (s *CreditThenInvoiceStateMachine) ShrinkToRealizedPeriod(ctx context.Conte
 		}
 
 		fields.ServicePeriod.To = patch.GetNewServicePeriodEnd()
+
 		return nil
 	}); err != nil {
 		return fmt.Errorf("mutating %s intent: %w", target, err)
@@ -735,6 +741,7 @@ func (s *CreditThenInvoiceStateMachine) applyPeriodPatch(ctx context.Context, pa
 		fields.FullServicePeriod.To = patch.GetNewFullServicePeriodTo()
 		fields.BillingPeriod.To = patch.GetNewBillingPeriodTo()
 		fields.InvoiceAt = patch.GetNewInvoiceAt()
+
 		return nil
 	}); err != nil {
 		return creditThenInvoiceApplyPeriodPatchResult{}, fmt.Errorf("mutating %s intent: %w", target, err)
@@ -756,6 +763,7 @@ func (s *CreditThenInvoiceStateMachine) correctReversibleInvoicePreparation(ctx 
 	if err != nil {
 		return fmt.Errorf("getting current realization run before %s: %w", op, err)
 	}
+
 	if currentRun.Immutable || currentRun.InvoiceUsage == nil {
 		return nil
 	}
@@ -958,11 +966,13 @@ func (s *CreditThenInvoiceStateMachine) updateStateAfterShrink(
 		if err != nil {
 			return err
 		}
+
 		if allSettled {
 			s.Charge.Status = usagebased.StatusFinal
 		} else if s.Charge.Status != usagebased.StatusFinal {
 			s.Charge.Status = usagebased.StatusActiveAwaitingPaymentSettlement
 		}
+
 		s.Charge.State.AdvanceAfter = nil
 
 		return nil
@@ -1091,6 +1101,7 @@ func (s *CreditThenInvoiceStateMachine) StartInvoiceRun(
 		if err != nil {
 			return fmt.Errorf("get stored at lt: %w", err)
 		}
+
 		servicePeriodTo = meta.NormalizeTimestamp(s.Charge.Intent.GetEffectiveServicePeriod().To)
 	}
 
@@ -1121,6 +1132,7 @@ func (s *CreditThenInvoiceStateMachine) StartInvoiceRun(
 		billing.ValidationComponentBillingRating,
 		ratingIssues,
 	)
+
 	return nil
 }
 
@@ -1261,9 +1273,11 @@ func (s *CreditThenInvoiceStateMachine) FinalizeInvoice(ctx context.Context, inp
 	if err != nil {
 		return fmt.Errorf("get current realization run: %w", err)
 	}
+
 	if currentRun.LineID == nil || *currentRun.LineID != input.Line.ID {
 		return fmt.Errorf("realization run[%s] line does not match finalizing line[%s]", currentRun.ID.ID, input.Line.ID)
 	}
+
 	if currentRun.InvoiceID == nil || *currentRun.InvoiceID != input.Invoice.ID {
 		return fmt.Errorf("realization run[%s] invoice does not match finalizing invoice[%s]", currentRun.ID.ID, input.Invoice.ID)
 	}
@@ -1295,6 +1309,7 @@ func (s *CreditThenInvoiceStateMachine) FinalizeInvoice(ctx context.Context, inp
 			if err != nil {
 				return fmt.Errorf("preparing custom-currency overage for finalizing line[%s]: %w", line.ID, err)
 			}
+
 			currentRun = prepared.Run
 		}
 
@@ -1307,6 +1322,7 @@ func (s *CreditThenInvoiceStateMachine) FinalizeInvoice(ctx context.Context, inp
 			if err != nil {
 				return fmt.Errorf("allocating fiat overage credits for finalizing line[%s]: %w", line.ID, err)
 			}
+
 			s.Charge = allocated.Charge
 			currentRun = allocated.Run
 		}
@@ -1318,6 +1334,7 @@ func (s *CreditThenInvoiceStateMachine) FinalizeInvoice(ctx context.Context, inp
 		}); err != nil {
 			return fmt.Errorf("populating finalizing line[%s] from run[%s]: %w", line.ID, currentRun.ID.ID, err)
 		}
+
 		s.AddInvoicePatch(invoiceupdater.NewUpdateLinePatch(line.AsGenericLine()))
 	}
 
@@ -1341,17 +1358,21 @@ func (s *CreditThenInvoiceStateMachine) InvoiceIssued(ctx context.Context, input
 	if err != nil {
 		return fmt.Errorf("get current realization run: %w", err)
 	}
+
 	if s.Charge.Intent.GetCurrency().IsCustom() {
 		if currentRun.InvoiceUsage == nil {
 			return fmt.Errorf("realization run[%s] has not been prepared for invoice issuance", currentRun.ID.ID)
 		}
+
 		if !currentRun.FiatOverageCreditAllocationCompleted {
 			return fmt.Errorf("realization run[%s] has not completed fiat overage credit allocation", currentRun.ID.ID)
 		}
 	}
+
 	if currentRun.LineID == nil || *currentRun.LineID != input.Line.ID {
 		return fmt.Errorf("prepared realization run[%s] line does not match issued line[%s]", currentRun.ID.ID, input.Line.ID)
 	}
+
 	if currentRun.InvoiceID == nil || *currentRun.InvoiceID != input.Invoice.ID {
 		return fmt.Errorf("prepared realization run[%s] invoice does not match issued invoice[%s]", currentRun.ID.ID, input.Invoice.ID)
 	}
@@ -1365,6 +1386,7 @@ func (s *CreditThenInvoiceStateMachine) InvoiceIssued(ctx context.Context, input
 		if err != nil {
 			return fmt.Errorf("accruing issued invoice usage: %w", err)
 		}
+
 		currentRun = accrueResult.Run
 	}
 

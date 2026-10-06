@@ -88,10 +88,12 @@ func BenchmarkEntitlementAccessQueryNamespaceScale(b *testing.B) {
 				if _, err := v3.EntitlementAccess.Query(b.Context(), reqBody, v3sdk.EntitlementAccessQueryResultListParams{}); err != nil {
 					b.Fatalf("entitlement access query failed: %v", err)
 				}
+
 				if s := v3.statuses.last(); s != http.StatusOK {
 					b.Fatalf("entitlement access query returned %d", s)
 				}
 			}
+
 			b.StopTimer()
 			b.ReportMetric(float64(target), "decoys")
 		})

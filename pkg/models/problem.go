@@ -122,6 +122,7 @@ func NewStatusProblem(ctx context.Context, err error, status int) *StatusProblem
 	if errors.Is(ctx.Err(), context.Canceled) && contextx.IsCanceledError(err) {
 		status = StatusClientClosedRequest
 	}
+
 	title := http.StatusText(status)
 	if status == StatusClientClosedRequest {
 		title = "Client Closed Request"

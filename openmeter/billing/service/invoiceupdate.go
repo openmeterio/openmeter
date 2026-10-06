@@ -82,6 +82,7 @@ func diffMutableInvoiceLines(
 			}
 
 			diff.Created = append(diff.Created, item)
+
 			return nil
 		},
 		HandleDelete: func(item billing.GenericInvoiceLine) error {
@@ -95,6 +96,7 @@ func diffMutableInvoiceLines(
 			}
 
 			diff.Deleted = append(diff.Deleted, item)
+
 			return nil
 		},
 		HandleUpdate: func(item entitydiff.DiffUpdate[billing.GenericInvoiceLine]) error {
@@ -111,6 +113,7 @@ func diffMutableInvoiceLines(
 				// for example when a cancellation shrinks the deleted split-line period.
 				// Keep them out of line-engine callbacks so delete side effects do not run twice.
 				diff.Unchanged = append(diff.Unchanged, afterLine)
+
 				return nil
 			}
 
@@ -135,6 +138,7 @@ func diffMutableInvoiceLines(
 
 				deletedLine.SetDeletedAt(afterLine.GetDeletedAt())
 				diff.Deleted = append(diff.Deleted, deletedLine)
+
 				return nil
 			}
 
@@ -281,6 +285,7 @@ func (s *Service) sanitizeInvoiceLineTaxConfigForDiff(
 		}
 
 		standardLine.TaxConfig = taxConfig
+
 		return standardLine.AsGenericLine(), nil
 
 	case billing.InvoiceLineTypeGathering:
@@ -290,6 +295,7 @@ func (s *Service) sanitizeInvoiceLineTaxConfigForDiff(
 		}
 
 		gatheringLine.TaxConfig = taxConfig.ToProductCatalog()
+
 		return gatheringLine.AsGenericLine(), nil
 
 	default:
@@ -603,12 +609,14 @@ func (s *Service) applyAPIInvoiceLineEdits(
 		if err := validateLineEngineResult(input.Created, engineResult.CreatedLines); err != nil {
 			return nil, fmt.Errorf("validating API invoice line edit created output for engine %s: %w", engine.GetLineEngineType(), err)
 		}
+
 		// API-created inputs are stamped before engine dispatch, but engines may
 		// return replacement line instances. Billing owns the API ownership
 		// transition, so created outputs are stamped here as well.
 		for _, line := range engineResult.CreatedLines {
 			line.SetManagedBy(billing.ManuallyManagedLine)
 		}
+
 		resultingLines = append(resultingLines, engineResult.CreatedLines...)
 
 		if err := validateLineEngineResult(lo.Map(input.Updated, func(override billing.InvoiceLineOverride, _ int) billing.GenericInvoiceLine {
@@ -616,12 +624,14 @@ func (s *Service) applyAPIInvoiceLineEdits(
 		}), engineResult.UpdatedLines); err != nil {
 			return nil, fmt.Errorf("validating API invoice line edit updated output for engine %s: %w", engine.GetLineEngineType(), err)
 		}
+
 		// Updated lines are stamped after the engine runs. This lets engines see
 		// whether the API edit is system/subscription -> manual or manual -> manual,
 		// while billing still owns the API ownership transition.
 		for _, line := range engineResult.UpdatedLines {
 			line.SetManagedBy(billing.ManuallyManagedLine)
 		}
+
 		resultingLines = append(resultingLines, engineResult.UpdatedLines...)
 	}
 
@@ -631,6 +641,7 @@ func (s *Service) applyAPIInvoiceLineEdits(
 	for _, line := range lineDiff.Deleted {
 		line.SetManagedBy(billing.ManuallyManagedLine)
 	}
+
 	resultingLines = append(resultingLines, lineDiff.Deleted...)
 
 	if err := edited.SetLines(resultingLines); err != nil {
@@ -709,6 +720,7 @@ func (s *Service) defaultInvoicingTaxCodeIDForInvoiceUpdate(
 		if err != nil {
 			return "", fmt.Errorf("resolving standard invoice default tax config: %w", err)
 		}
+
 		if taxCodeID != "" {
 			return taxCodeID, nil
 		}
@@ -723,6 +735,7 @@ func (s *Service) defaultInvoicingTaxCodeIDForInvoiceUpdate(
 	if err != nil {
 		return "", fmt.Errorf("resolving customer billing profile default tax config: %w", err)
 	}
+
 	if taxCodeID != "" {
 		return taxCodeID, nil
 	}
@@ -879,6 +892,7 @@ func validateLineEngineResult(expectedLines []billing.GenericInvoiceLine, actual
 		}
 
 		id := line.GetID()
+
 		return id, id != ""
 	})
 
@@ -889,6 +903,7 @@ func validateLineEngineResult(expectedLines []billing.GenericInvoiceLine, actual
 		}
 
 		id := line.GetID()
+
 		return id, id != ""
 	})
 
@@ -976,6 +991,7 @@ func (s *Service) groupAPIStandardLineDeletionsByEngine(invoice billing.Standard
 			errs = append(errs, fmt.Errorf("line[%s]: inferring engine: %w", stdLine.GetID(), err))
 		}
 	}
+
 	if err := errors.Join(errs...); err != nil {
 		return nil, err
 	}

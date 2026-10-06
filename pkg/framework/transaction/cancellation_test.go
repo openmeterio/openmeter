@@ -27,6 +27,7 @@ func TestRunPreservesCancellationAfterSQLAutoRollback(t *testing.T) {
 		case <-time.After(5 * time.Second):
 			t.Fatal("automatic rollback did not complete")
 		}
+
 		return struct{}{}, nil
 	})
 
@@ -59,6 +60,7 @@ func TestCommitFailureClassification(t *testing.T) {
 				defer cancel()
 				ctx = expired
 			}
+
 			_, err := Run(ctx, &noopCreator{driver: commitFailureDriver{test.err}}, func(context.Context) (struct{}, error) {
 				return struct{}{}, nil
 			})

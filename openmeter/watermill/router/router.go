@@ -142,6 +142,7 @@ func NewDefaultRouter(opts Options) (*message.Router, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	router.AddMiddleware(handlerMetrics)
 
 	return router, nil

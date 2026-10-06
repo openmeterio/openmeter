@@ -411,6 +411,7 @@ func TestSubscriptionSyncCustomCurrencyBilling(t *testing.T) {
 				expectedAllocated = 10
 				assertNoSubscriptionInvoices(t, deps, customer.ID)
 			}
+
 			balance, err := deps.ledgerDeps.HistoricalLedger.GetAccountBalance(t.Context(), accounts.FBOAccount, ledger.RouteFilter{Currency: customCurrency.Reference()}, ledger.BalanceQuery{})
 			require.NoError(t, err)
 			require.Equal(t, float64(0), balance.InexactFloat64())
@@ -450,6 +451,7 @@ func TestSubscriptionSyncCustomCurrencyBilling(t *testing.T) {
 				collectionOrigins[lo.FromPtr(bucket.GroupByValues[ledger.BalanceBucketGroupByCollectionOriginID])] = true
 				allocated = allocated.Add(bucket.SettledAmount)
 			}
+
 			require.Equal(t, expectedAllocated, allocated.InexactFloat64())
 
 			// Retrying synchronization and advancement must preserve the journal,
@@ -515,6 +517,7 @@ func TestSubscriptionSyncCustomCurrencyBilling(t *testing.T) {
 					})
 					require.NoError(t, err)
 				}
+
 				advance, err := deps.ledgerDeps.HistoricalLedger.GetAccountBalance(t.Context(), accounts.ReceivableAccount, ledger.RouteFilter{Currency: customCurrency.Reference()}, ledger.BalanceQuery{})
 				require.NoError(t, err)
 				require.Equal(t, float64(0), advance.InexactFloat64())
@@ -571,6 +574,7 @@ func TestSubscriptionSyncCustomCurrencyBilling(t *testing.T) {
 
 					require.Equal(t, map[string]float64{expected.sourceID: expected.amount}, bySource)
 				}
+
 				beforeEntries, err = deps.DBDeps.DBClient.LedgerEntry.Query().Count(t.Context())
 				require.NoError(t, err)
 
@@ -618,6 +622,7 @@ func createUsageSubscriptionPlan(t *testing.T, deps testDeps, input usageSubscri
 	if input.CustomItem && input.PlanCurrency != input.CustomCurrency.GetCode() {
 		customRateCard.RateCardMeta.Currency = lo.ToPtr(input.CustomCurrency.Reference())
 	}
+
 	require.True(t, customItem)
 
 	rateCards := productcatalog.RateCards{customRateCard}
@@ -738,6 +743,7 @@ func assertSubscriptionChargeCurrenciesAndCostBasis(
 		if charge.Intent.GetCurrency().IsFiat() {
 			fiatCharges++
 			require.Nil(t, charge.Intent.GetCostBasisIntent())
+
 			continue
 		}
 
@@ -757,6 +763,7 @@ func assertSubscriptionChargeCurrenciesAndCostBasis(
 			require.Equal(t, expectPinnedCostBasisID, pinned.CurrencyCostBasisID)
 		}
 	}
+
 	require.Positive(t, customCharges)
 	if fiatCharges > 0 {
 		require.Equal(t, costbasis.ModePinned, expectKind)
@@ -774,6 +781,7 @@ func assertCustomCurrencyInvoice(t *testing.T, invoice billing.StandardInvoice, 
 	if expectedFiatTotal > 0 {
 		expectedLineCount++
 	}
+
 	require.Len(t, lines, expectedLineCount)
 
 	customLine, found := lo.Find(lines, func(line *billing.StandardLine) bool {

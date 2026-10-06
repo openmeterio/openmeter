@@ -21,6 +21,7 @@ func CalculateStandardInvoiceServicePeriod(invoice *billing.StandardInvoice) err
 				From: line.Period.From,
 				To:   line.Period.To,
 			}
+
 			continue
 		}
 

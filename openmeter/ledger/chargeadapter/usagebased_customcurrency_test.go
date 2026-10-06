@@ -85,6 +85,7 @@ func TestOnUsageBasedCustomCurrencyOverageAccrued(t *testing.T) {
 		require.NoError(t, err)
 		templateCodes = append(templateCodes, templateCode)
 	}
+
 	require.ElementsMatch(t, []string{
 		transactions.TemplateCode(transactions.IssueCustomerReceivableTemplate{}),
 		transactions.TemplateCode(transactions.TransferCustomerFBOAdvanceToAccruedTemplate{}),
@@ -101,6 +102,7 @@ func TestOnUsageBasedCustomCurrencyOverageAccrued(t *testing.T) {
 	if issueEntry.Amount.IsNegative() {
 		issueEntry, consumeEntry = consumeEntry, issueEntry
 	}
+
 	require.True(t, issueEntry.Amount.IsPositive())
 	require.NotNil(t, issueEntry.SourceChargeID)
 	require.Equal(t, charge.ID, strings.TrimSpace(*issueEntry.SourceChargeID))
@@ -190,6 +192,7 @@ func TestOnUsageBasedCustomCurrencyOverageAccruedCorrection(t *testing.T) {
 		require.NoError(t, err)
 		templateCodes = append(templateCodes, templateCode)
 	}
+
 	require.ElementsMatch(t, []string{
 		transactions.TemplateCode(transactions.ConvertCurrencyTemplate{}),
 		transactions.TemplateCode(transactions.TransferCustomerFBOAdvanceToAccruedTemplate{}),
@@ -897,6 +900,7 @@ func (e *usageBasedHandlerTestEnv) newCustomCurrencyCreditThenInvoiceCharge(t *t
 func (e *usageBasedHandlerTestEnv) newCustomOverageRun(overageTotals totals.Totals) chargeusagebased.RealizationRun {
 	run := e.newRun()
 	run.Totals = overageTotals
+
 	return run
 }
 

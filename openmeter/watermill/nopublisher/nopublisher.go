@@ -20,6 +20,7 @@ func HandlerFuncToNoPublisherHandler(h message.HandlerFunc) message.NoPublishHan
 		if len(outMessages) > 0 {
 			return ErrMessagesProduced
 		}
+
 		return err
 	}
 }

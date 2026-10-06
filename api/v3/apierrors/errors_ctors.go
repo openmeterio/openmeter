@@ -154,6 +154,7 @@ func NewNotFoundError(ctx context.Context, err error, entityType string) *BaseAP
 			ctx:             ctx,
 		}
 	}
+
 	return &BaseAPIError{
 		Type:            NotFoundType,
 		Status:          http.StatusNotFound,
@@ -200,6 +201,7 @@ func NewBadRequestError(ctx context.Context, err error, invalidFields InvalidPar
 	if len(invalidFields) > 0 {
 		detail = fmt.Sprintf("%s: %s", BadRequestTitle, invalidFields.String())
 	}
+
 	return &BaseAPIError{
 		Type:              BadRequestType,
 		Status:            http.StatusBadRequest,
@@ -219,6 +221,7 @@ func NewBadRequestError(ctx context.Context, err error, invalidFields InvalidPar
 // without re-wrapping.
 func NewUnsupportedSortFieldError(ctx context.Context, field string, supported ...string) *BaseAPIError {
 	err := fmt.Errorf("unsupported sort field: %s", field)
+
 	return NewBadRequestError(ctx, err, InvalidParameters{
 		{
 			Field: "sort",
@@ -313,6 +316,7 @@ func MakeSentenceCase(msg string) string {
 	if msg == "" {
 		return ""
 	}
+
 	return strings.ToUpper(msg[:1]) + msg[1:]
 }
 
@@ -323,5 +327,6 @@ func instance(ctx context.Context) string {
 	if reqID != "" {
 		return fmt.Sprintf("urn:request:%s", reqID)
 	}
+
 	return ""
 }

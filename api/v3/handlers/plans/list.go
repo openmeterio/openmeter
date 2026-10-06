@@ -63,6 +63,7 @@ func (h *handler) ListPlans() ListPlansHandler {
 						{Field: "filter[key]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 					})
 				}
+
 				req.Key = key
 
 				name, err := filters.FromAPIFilterString(params.Filter.Name)
@@ -71,6 +72,7 @@ func (h *handler) ListPlans() ListPlansHandler {
 						{Field: "filter[name]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 					})
 				}
+
 				req.Name = name
 
 				currency, err := filters.FromAPIFilterStringExact(params.Filter.Currency)
@@ -79,6 +81,7 @@ func (h *handler) ListPlans() ListPlansHandler {
 						{Field: "filter[currency]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 					})
 				}
+
 				req.Currency = currency
 
 				status, err := filters.FromAPIStatusFilter[productcatalog.PlanStatus](ctx, params.Filter.Status)
@@ -87,6 +90,7 @@ func (h *handler) ListPlans() ListPlansHandler {
 						{Field: "filter[status]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 					})
 				}
+
 				req.Status = status
 			}
 
@@ -97,10 +101,12 @@ func (h *handler) ListPlans() ListPlansHandler {
 						{Field: "sort", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 					})
 				}
+
 				orderBy, err := FromAPIPlanSortField(ctx, sort.Field)
 				if err != nil {
 					return ListPlansRequest{}, err
 				}
+
 				req.OrderBy = orderBy
 				req.Order = sort.Order.ToSortxOrder()
 			}

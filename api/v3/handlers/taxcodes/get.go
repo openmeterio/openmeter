@@ -40,6 +40,7 @@ func (h *handler) GetTaxCode() GetTaxCodeHandler {
 			if err != nil {
 				return GetTaxCodeResponse{}, err
 			}
+
 			// Convert to API response type
 			return ToAPIBillingTaxCode(taxCode)
 		},

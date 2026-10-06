@@ -147,6 +147,7 @@ func (m *Machine[CHARGE, BASE, STATUS]) GetCharge() CHARGE {
 func (m *Machine[CHARGE, BASE, STATUS]) drainInvoicePatches() invoiceupdater.Patches {
 	patches := m.invoicePatches
 	m.invoicePatches = nil
+
 	return patches
 }
 
@@ -253,6 +254,7 @@ func (m *Machine[CHARGE, BASE, STATUS]) AdvanceUntilInvoicePatchesOrStable(ctx c
 		if err != nil {
 			return nil, err
 		}
+
 		if !canFire {
 			return nil, nil
 		}
@@ -272,6 +274,7 @@ func (m *Machine[CHARGE, BASE, STATUS]) FireAndAdvanceUntilStable(ctx context.Co
 	if err != nil {
 		return err
 	}
+
 	if len(patches) > 0 {
 		return fmt.Errorf("%w: trigger %v produced %d invoice patches", ErrUnhandledInvoicePatches, trigger, len(patches))
 	}
@@ -287,6 +290,7 @@ func (m *Machine[CHARGE, BASE, STATUS]) AdvanceUntilStable(ctx context.Context) 
 	if err != nil {
 		return err
 	}
+
 	if len(patches) > 0 {
 		return fmt.Errorf("%w: transition produced %d invoice patches", ErrUnhandledInvoicePatches, len(patches))
 	}
@@ -303,5 +307,6 @@ func (m *Machine[CHARGE, BASE, STATUS]) RefetchCharge(ctx context.Context) error
 	}
 
 	m.Charge = charge
+
 	return nil
 }

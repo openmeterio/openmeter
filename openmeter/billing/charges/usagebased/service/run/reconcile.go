@@ -149,6 +149,7 @@ func (s *Service) ReconcileRatedRun(
 	}); err != nil {
 		return ReconcileRatedRunResult{}, fmt.Errorf("upsert run detailed lines: %w", err)
 	}
+
 	run.DetailedLines = mo.Some(detailedLines)
 	run.DetailedLinesIncludeCreditAllocations = detailedLinesIncludeCreditAllocations
 

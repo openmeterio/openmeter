@@ -223,6 +223,7 @@ func advancePromotionalChargeUntilStable(t *testing.T, stateMachine *Promotional
 	}
 
 	charge := stateMachine.GetCharge()
+
 	return &charge, nil
 }
 
@@ -336,6 +337,7 @@ type promotionalStateMachineAdapter struct {
 func (a *promotionalStateMachineAdapter) UpdateCharge(ctx context.Context, charge creditpurchase.ChargeBase) (creditpurchase.ChargeBase, error) {
 	a.updateChargeCalls++
 	a.updatedBase = charge
+
 	return charge, nil
 }
 
@@ -343,6 +345,7 @@ func (a *promotionalStateMachineAdapter) CreateCreditGrant(ctx context.Context, 
 	a.createCreditGrantCalls++
 	a.createdGrantChargeID = chargeID
 	a.createdGrantInput = input
+
 	return ledgertransaction.TimedGroupReference{
 		GroupReference: ledgertransaction.GroupReference{
 			TransactionGroupID: input.TransactionGroupID,

@@ -70,12 +70,14 @@ func (s *service) Create(ctx context.Context, input flatfee.CreateInput) ([]flat
 			if err != nil {
 				return flatfee.IntentWithInitialStatus{}, fmt.Errorf("getting feature ref: %w", err)
 			}
+
 			var featureID *string
 			if featureRef != nil {
 				featureMeter, err := featureMeters.Get(chargeIntent)
 				if err != nil {
 					return flatfee.IntentWithInitialStatus{}, fmt.Errorf("resolve flat fee feature %+v: %w", *featureRef, err)
 				}
+
 				featureID = lo.ToPtr(featureMeter.Feature.ID)
 				// note: we must set the feature key on the intent, because no other place is setting it
 				// and we want to persist it
@@ -199,6 +201,7 @@ func buildFlatFeeGatheringLine(input buildFlatFeeGatheringLineInput) (billing.Ga
 		if clonedAnnotations == nil {
 			clonedAnnotations = models.Annotations{}
 		}
+
 		clonedAnnotations[billing.AnnotationKeyReason] = lo.ToPtr(billing.AnnotationValueReasonOveragePlaceholder)
 
 		lineName = "overage"

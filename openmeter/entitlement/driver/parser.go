@@ -152,30 +152,36 @@ func (p parser) ToAPIGeneric(e *entitlement.EntitlementWithCustomer) (*api.Entit
 		if err != nil {
 			return nil, err
 		}
+
 		err = res.FromEntitlementMetered(*c)
 		if err != nil {
 			return nil, err
 		}
+
 		return res, nil
 	case entitlement.EntitlementTypeStatic:
 		c, err := p.ToStatic(e)
 		if err != nil {
 			return nil, err
 		}
+
 		err = res.FromEntitlementStatic(*c)
 		if err != nil {
 			return nil, err
 		}
+
 		return res, nil
 	case entitlement.EntitlementTypeBoolean:
 		c, err := p.ToBoolean(e)
 		if err != nil {
 			return nil, err
 		}
+
 		err = res.FromEntitlementBoolean(*c)
 		if err != nil {
 			return nil, err
 		}
+
 		return res, nil
 	default:
 		return nil, fmt.Errorf("unsupported entitlement type: %s", e.EntitlementType)
@@ -233,6 +239,7 @@ func mapPeriod(u *timeutil.ClosedPeriod) *api.Period {
 	if u == nil {
 		return nil
 	}
+
 	return &api.Period{
 		From: u.From,
 		To:   u.To,
@@ -277,6 +284,7 @@ func ParseAPICreateInput(inp *api.EntitlementCreateInputs, ns string, usageAttri
 		if v.Metadata != nil {
 			request.Metadata = *v.Metadata
 		}
+
 		if v.MeasureUsageFrom != nil {
 			measureUsageFrom := &entitlement.MeasureUsageFromInput{}
 			apiTime, err := v.MeasureUsageFrom.AsMeasureUsageFromTime()
@@ -306,6 +314,7 @@ func ParseAPICreateInput(inp *api.EntitlementCreateInputs, ns string, usageAttri
 					return request, err
 				}
 			}
+
 			request.MeasureUsageFrom = measureUsageFrom
 		}
 	case api.EntitlementStaticCreateInputs:
@@ -341,6 +350,7 @@ func ParseAPICreateInput(inp *api.EntitlementCreateInputs, ns string, usageAttri
 				Interval: iv,
 			}))
 		}
+
 		if v.Metadata != nil {
 			request.Metadata = *v.Metadata
 		}
@@ -365,6 +375,7 @@ func ParseAPICreateInput(inp *api.EntitlementCreateInputs, ns string, usageAttri
 				Interval: iv,
 			}))
 		}
+
 		if v.Metadata != nil {
 			request.Metadata = *v.Metadata
 		}

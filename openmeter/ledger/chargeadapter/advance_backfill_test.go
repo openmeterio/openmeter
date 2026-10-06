@@ -137,6 +137,7 @@ func TestAdvanceBackfillInterleavedRunsAndRecognizedCorrection(t *testing.T) {
 				BackingTransactionGroupID: result.TransactionGroupID,
 				Allocations:               result.BackfillAllocations,
 			})
+
 			return result, err
 		})
 		require.NoError(t, err)
@@ -173,8 +174,10 @@ func TestAdvanceBackfillInterleavedRunsAndRecognizedCorrection(t *testing.T) {
 			for _, bucket := range buckets {
 				backed += bucket.SettledAmount.InexactFloat64()
 			}
+
 			require.Equal(t, scenario.perRun[i], backed, "run %d", i)
 		}
+
 		buckets, err := env.Deps.HistoricalLedger.GetBalanceBuckets(t.Context(), ledger.BalanceBucketQuery{
 			Namespace: env.Namespace,
 			Filters: ledger.Filters{
@@ -191,6 +194,7 @@ func TestAdvanceBackfillInterleavedRunsAndRecognizedCorrection(t *testing.T) {
 		for _, bucket := range buckets {
 			booked[lo.FromPtr(bucket.GroupByValues[ledger.BalanceBucketGroupBySpendChargeID])] += bucket.SettledAmount.InexactFloat64()
 		}
+
 		require.Equal(t, scenario.perRun[0]+scenario.perRun[2], booked[chargeA.ID])
 		require.Equal(t, scenario.perRun[1], booked[chargeB.ID])
 	}
@@ -225,6 +229,7 @@ func TestAdvanceBackfillInterleavedRunsAndRecognizedCorrection(t *testing.T) {
 		}))
 		require.Len(t, corrections, 1)
 	}
+
 	require.Empty(t, env.activeSegmentsByRealization(t, runs[1].CreditsAllocated)[runs[1].CreditsAllocated[0].ID])
 
 	for accountType, expected := range map[ledger.AccountType]map[string]float64{
@@ -235,6 +240,7 @@ func TestAdvanceBackfillInterleavedRunsAndRecognizedCorrection(t *testing.T) {
 		if accountType == ledger.AccountTypeCustomerAccrued {
 			accountID = env.CustomerAccounts.AccruedAccount.ID().ID
 		}
+
 		buckets, err := env.Deps.HistoricalLedger.GetBalanceBuckets(t.Context(), ledger.BalanceBucketQuery{
 			Namespace: env.Namespace,
 			Filters:   ledger.Filters{AccountID: &accountID},
@@ -248,8 +254,10 @@ func TestAdvanceBackfillInterleavedRunsAndRecognizedCorrection(t *testing.T) {
 				actual[lo.FromPtr(bucket.GroupByValues[ledger.BalanceBucketGroupBySpendChargeID])] += bucket.SettledAmount.InexactFloat64()
 			}
 		}
+
 		require.Equal(t, expected, actual)
 	}
+
 	require.Equal(t, float64(5), env.SumBalance(t, purchaseEnv.fboSubAccount(t, alpacadecimal.NewFromFloat(0.8))).InexactFloat64())
 	require.Equal(t, float64(15), env.SumBalance(t, purchaseEnv.fboSubAccount(t, alpacadecimal.NewFromFloat(1.1))).InexactFloat64())
 }
@@ -338,6 +346,7 @@ func TestAdvanceBackfillSortsSuppliedRootsByCollectionTimeThenID(t *testing.T) {
 		if sameTime {
 			name = "ID breaks equal collection times"
 		}
+
 		t.Run(name, func(t *testing.T) {
 			env := newCreditPurchaseHandlerTestEnv(t)
 			ctx := t.Context()
@@ -372,6 +381,7 @@ func TestAdvanceBackfillSortsSuppliedRootsByCollectionTimeThenID(t *testing.T) {
 			for i := range roots {
 				roots[i].OriginalTransactionGroupID = env.originalAdvanceGroups[roots[i].RootRealizationID]
 			}
+
 			slices.Reverse(roots)
 			originalOrder := lo.Map(roots, func(root legacylineage.Lineage, _ int) string { return root.ID })
 
@@ -397,6 +407,7 @@ func TestAdvanceBackfillSortsSuppliedRootsByCollectionTimeThenID(t *testing.T) {
 					BackingTransactionGroupID: result.TransactionGroupID,
 					Allocations:               result.BackfillAllocations,
 				})
+
 				return result, err
 			})
 			require.NoError(t, err)
@@ -407,6 +418,7 @@ func TestAdvanceBackfillSortsSuppliedRootsByCollectionTimeThenID(t *testing.T) {
 			if sameTime {
 				first, second = chargeB, chargeA
 			}
+
 			require.Len(t, result.BackfillAllocations, 2)
 			require.Equal(t, byCharge[first].Segments[0].ID, result.BackfillAllocations[0].SegmentID)
 			require.Equal(t, float64(20), result.BackfillAllocations[0].Amount.InexactFloat64())
@@ -462,6 +474,7 @@ func TestAdvanceBackfillStaleSelectionRollsBackPurchase(t *testing.T) {
 		if err != nil {
 			return err
 		}
+
 		rejectedGroupID = result.TransactionGroupID
 
 		return env.lineage.BackfillAdvanceLineageSegments(ctx, legacylineage.BackfillAdvanceLineageSegmentsInput{

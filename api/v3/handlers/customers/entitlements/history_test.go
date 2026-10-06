@@ -57,6 +57,7 @@ func TestGetCustomerEntitlementHistoryHandler(t *testing.T) {
 		response := serveGetCustomerEntitlementHistory(t, fakeService{
 			history: func(_ context.Context, input entitlement.GetCustomerEntitlementHistoryInput) (entitlement.CustomerEntitlementHistory, error) {
 				received = input
+
 				return entitlement.CustomerEntitlementHistory{
 					Windows: []entitlement.BalanceHistoryWindow{
 						{From: from, To: from.Add(time.Hour), UsageInPeriod: 1, BalanceAtStart: 10},

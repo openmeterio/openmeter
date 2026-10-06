@@ -156,6 +156,7 @@ func (h *creditPurchaseTestHandler) OnPromotionalCreditPurchase(ctx context.Cont
 	}
 
 	ref, err := h.onPromotionalCreditPurchase(ctx, input.Charge)
+
 	return creditpurchase.CreditGrantResult{GroupReference: ref}, err
 }
 
@@ -165,6 +166,7 @@ func (h *creditPurchaseTestHandler) OnCreditPurchaseInitiated(ctx context.Contex
 	}
 
 	ref, err := h.onCreditPurchaseInitiated(ctx, input.Charge)
+
 	return creditpurchase.CreditGrantResult{GroupReference: ref}, err
 }
 
@@ -343,6 +345,7 @@ func (c *countedLedgerTransactionCallback[T]) Handler(t *testing.T, asserts ...a
 		for _, assert := range asserts {
 			assert(t, arg)
 		}
+
 		return ledgertransaction.GroupReference{
 			TransactionGroupID: c.id,
 		}, nil

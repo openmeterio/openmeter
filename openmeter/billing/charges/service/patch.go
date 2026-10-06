@@ -102,6 +102,7 @@ func (s *service) applyInvocableChargePatches(
 		if err != nil {
 			return err
 		}
+
 		if err := result.requireInvoicePatchesIfAdvanceable(); err != nil {
 			return fmt.Errorf("charge %s: %w", chargeID, err)
 		}
@@ -113,6 +114,7 @@ func (s *service) applyInvocableChargePatches(
 	}
 
 	_, err := s.advanceChargesAndApplyInvoicePatches(ctx, customerID, pendingAdvancement, invoicePatches)
+
 	return err
 }
 
@@ -137,6 +139,7 @@ func (s *service) advanceChargesAndApplyInvoicePatches(
 		if err := s.invoiceUpdater.ApplyPatches(ctx, customerID, invoicePatches); err != nil {
 			return nil, fmt.Errorf("applying invoice patches: %w", err)
 		}
+
 		if len(pendingAdvancement) == 0 {
 			return latestResults, nil
 		}
@@ -148,9 +151,11 @@ func (s *service) advanceChargesAndApplyInvoicePatches(
 			if err != nil {
 				return nil, fmt.Errorf("advancing charge %s after invoice patches: %w", chargeID, err)
 			}
+
 			if err := result.requireInvoicePatchesIfAdvanceable(); err != nil {
 				return nil, fmt.Errorf("charge %s: %w", chargeID, err)
 			}
+
 			latestResults[chargeID] = result
 
 			invoicePatches = append(invoicePatches, result.InvoicePatches...)

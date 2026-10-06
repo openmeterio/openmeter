@@ -641,6 +641,7 @@ func (e *recordingLineEngine) OnMutableInvoiceLinesEditedViaAPI(_ context.Contex
 	for _, line := range input.Created {
 		e.apiEditCreatedManagedBy = append(e.apiEditCreatedManagedBy, line.GetManagedBy())
 	}
+
 	for _, line := range input.Deleted {
 		e.apiEditDeletedManagedBy = append(e.apiEditDeletedManagedBy, line.GetManagedBy())
 	}
@@ -759,6 +760,7 @@ func TestRunInTransactionWithValidationWarningsAllowed(t *testing.T) {
 			} else {
 				require.ErrorIs(t, err, test.expectedErr)
 			}
+
 			require.Equal(t, test.expectedResult, result)
 			require.Equal(t, test.expectedWarnings, warnings)
 			require.True(t, driver.SavePointCalled)

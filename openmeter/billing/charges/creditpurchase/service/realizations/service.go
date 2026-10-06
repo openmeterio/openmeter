@@ -76,6 +76,7 @@ func (s *Service) GrantPromotionalCredits(ctx context.Context, charge creditpurc
 	if err != nil {
 		return creditpurchase.Charge{}, err
 	}
+
 	ledgerTransactionGroupReference, err := s.handler.OnPromotionalCreditPurchase(ctx, creditpurchase.CreditGrantInput{Charge: charge, AdvanceLineages: advanceLineages})
 	if err != nil {
 		return creditpurchase.Charge{}, err
@@ -135,6 +136,7 @@ func (s *Service) GrantCredits(ctx context.Context, charge creditpurchase.Charge
 	if err != nil {
 		return creditpurchase.Charge{}, err
 	}
+
 	ledgerTransactionGroupReference, err := s.handler.OnCreditPurchaseInitiated(ctx, creditpurchase.CreditGrantInput{Charge: charge, AdvanceLineages: advanceLineages})
 	if err != nil {
 		return creditpurchase.Charge{}, err

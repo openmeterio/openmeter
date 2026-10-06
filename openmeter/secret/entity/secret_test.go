@@ -81,6 +81,7 @@ func TestUpdateAppSecretInputValidateBindsSecretReference(t *testing.T) {
 			if testCase.wantErr {
 				require.Error(t, err)
 				require.True(t, models.IsGenericValidationError(err))
+
 				return
 			}
 

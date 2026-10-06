@@ -205,6 +205,7 @@ func (g *GatheringInvoice) SetLines(lines []GenericInvoiceLine) error {
 	}
 
 	g.Lines = NewGatheringInvoiceLines(mappedLines)
+
 	return nil
 }
 
@@ -279,6 +280,7 @@ func (l GatheringLines) Validate() error {
 			if err != nil {
 				return fmt.Errorf("line[%s]: %w", l.ID, err)
 			}
+
 			return nil
 		})...,
 	)
@@ -782,6 +784,7 @@ func (g GatheringLine) WithoutDBState() (GatheringLine, error) {
 	}
 
 	clone.DBState = nil
+
 	return clone, nil
 }
 

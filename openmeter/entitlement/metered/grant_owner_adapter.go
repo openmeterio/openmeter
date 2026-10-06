@@ -241,6 +241,7 @@ func (e *entitlementGrantOwner) EndCurrentUsagePeriod(ctx context.Context, owner
 		if err != nil {
 			return nil, fmt.Errorf("failed to get current usage period start time: %w", err)
 		}
+
 		if params.At.Before(currentStartAt) {
 			return nil, models.NewGenericValidationError(fmt.Errorf("cannot end usage period before current period start time"))
 		}
@@ -298,6 +299,7 @@ func (e *entitlementGrantOwner) EndCurrentUsagePeriod(ctx context.Context, owner
 
 		return nil, nil
 	})
+
 	return err
 }
 
@@ -310,6 +312,7 @@ func (e *entitlementGrantOwner) LockOwnerForTx(ctx context.Context, owner models
 	if err != nil {
 		return fmt.Errorf("lock owner for tx must be called in a transaction: %w", err)
 	}
+
 	return e.entitlementRepo.LockEntitlementForTx(ctx, tx, owner, wait)
 }
 

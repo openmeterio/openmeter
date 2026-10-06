@@ -89,6 +89,7 @@ func TestGetEntitlementBalanceConsistency(t *testing.T) {
 		currentUsagePeriod, err := input.UsagePeriod.GetValue().GetPeriodAt(clock.Now())
 		assert.NoError(t, err)
 		input.CurrentUsagePeriod = &currentUsagePeriod
+
 		return input
 	}
 

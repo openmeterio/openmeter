@@ -67,9 +67,11 @@ func (n *Node[T]) DeepClone() *Node[T] {
 		if child == nil {
 			continue
 		}
+
 		childClone := child.DeepClone()
 		clone.AddChild(childClone)
 	}
+
 	return clone
 }
 

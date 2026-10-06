@@ -113,7 +113,9 @@ func TestStateItemGetExpectedLineValidatesFeatureReference(t *testing.T) {
 				if tt.wantErrorDetail != "" {
 					require.ErrorContains(t, err, tt.wantErrorDetail)
 				}
+
 				require.Nil(t, line)
+
 				return
 			}
 

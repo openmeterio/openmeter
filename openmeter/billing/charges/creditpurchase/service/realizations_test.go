@@ -84,6 +84,7 @@ func TestRealizationsAuthorizeExternalPaymentRoundsFiatAmount(t *testing.T) {
 					ResolvedAt: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
 				}
 			}
+
 			handler := &externalStateMachineHandler{}
 			handler.On("OnCreditPurchasePaymentAuthorized", mock.Anything, mock.Anything).
 				Run(func(args mock.Arguments) {

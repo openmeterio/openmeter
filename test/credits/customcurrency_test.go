@@ -988,33 +988,43 @@ func (i customCurrencyUsageChargeInput) Validate() error {
 	if i.Namespace == "" {
 		errs = append(errs, errors.New("namespace is required"))
 	}
+
 	if err := i.Customer.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("customer: %w", err))
 	}
+
 	if i.Customer.Namespace != i.Namespace {
 		errs = append(errs, errors.New("customer namespace must match input namespace"))
 	}
+
 	if err := i.Currency.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("currency: %w", err))
 	}
+
 	if !i.Currency.IsCustom() {
 		errs = append(errs, errors.New("currency must be custom"))
 	}
+
 	if err := i.ServicePeriod.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("service period: %w", err))
 	}
+
 	if i.FeatureKey == "" {
 		errs = append(errs, errors.New("feature key is required"))
 	}
+
 	if !i.UnitPrice.IsPositive() {
 		errs = append(errs, errors.New("unit price must be positive"))
 	}
+
 	if err := i.SettlementMode.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("settlement mode: %w", err))
 	}
+
 	if i.Name == "" {
 		errs = append(errs, errors.New("name is required"))
 	}
+
 	if err := i.TaxConfig.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("tax config: %w", err))
 	}
@@ -1082,36 +1092,47 @@ func (i customCurrencyFlatFeeChargeInput) Validate() error {
 	if i.Namespace == "" {
 		errs = append(errs, errors.New("namespace is required"))
 	}
+
 	if err := i.Customer.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("customer: %w", err))
 	}
+
 	if i.Customer.Namespace != i.Namespace {
 		errs = append(errs, errors.New("customer namespace must match input namespace"))
 	}
+
 	if err := i.Currency.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("currency: %w", err))
 	}
+
 	if !i.Currency.IsCustom() {
 		errs = append(errs, errors.New("currency must be custom"))
 	}
+
 	if err := i.ServicePeriod.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("service period: %w", err))
 	}
+
 	if i.InvoiceAt.IsZero() {
 		errs = append(errs, errors.New("invoice at is required"))
 	}
+
 	if !i.Amount.IsPositive() {
 		errs = append(errs, errors.New("amount must be positive"))
 	}
+
 	if err := i.PaymentTerm.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("payment term: %w", err))
 	}
+
 	if err := i.SettlementMode.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("settlement mode: %w", err))
 	}
+
 	if i.Name == "" {
 		errs = append(errs, errors.New("name is required"))
 	}
+
 	if err := i.TaxConfig.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("tax config: %w", err))
 	}
@@ -1177,30 +1198,39 @@ func (i customCurrencyCreditPurchaseInput) Validate() error {
 	if i.Namespace == "" {
 		errs = append(errs, errors.New("namespace is required"))
 	}
+
 	if err := i.Customer.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("customer: %w", err))
 	}
+
 	if i.Customer.Namespace != i.Namespace {
 		errs = append(errs, errors.New("customer namespace must match input namespace"))
 	}
+
 	if err := i.Currency.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("currency: %w", err))
 	}
+
 	if !i.Currency.IsCustom() {
 		errs = append(errs, errors.New("currency must be custom"))
 	}
+
 	if !i.Amount.IsPositive() {
 		errs = append(errs, errors.New("amount must be positive"))
 	}
+
 	if i.At.IsZero() {
 		errs = append(errs, errors.New("at is required"))
 	}
+
 	if i.Name == "" {
 		errs = append(errs, errors.New("name is required"))
 	}
+
 	if err := i.Settlement.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("settlement: %w", err))
 	}
+
 	if i.Filters.Version != 0 || !i.Filters.IsEmpty() {
 		if err := i.Filters.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("filters: %w", err))
@@ -1264,23 +1294,29 @@ func (i settledFiatCreditPurchaseInput) Validate() error {
 	if i.Namespace == "" {
 		errs = append(errs, errors.New("namespace is required"))
 	}
+
 	if err := i.Customer.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("customer: %w", err))
 	}
+
 	if i.Customer.Namespace != i.Namespace {
 		errs = append(errs, errors.New("customer namespace must match input namespace"))
 	}
+
 	if !i.Amount.IsPositive() {
 		errs = append(errs, errors.New("amount must be positive"))
 	}
+
 	if i.At.IsZero() {
 		errs = append(errs, errors.New("at is required"))
 	}
+
 	if i.Filters.Version != 0 || !i.Filters.IsEmpty() {
 		if err := i.Filters.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("filters: %w", err))
 		}
 	}
+
 	if err := i.TaxConfig.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("tax config: %w", err))
 	}

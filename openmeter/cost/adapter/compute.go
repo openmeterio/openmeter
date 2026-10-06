@@ -100,6 +100,7 @@ func computeCostRows(rows []meter.MeterQueryRow, internalGroupByKeys []string, r
 			if err != nil {
 				return nil, "", err
 			}
+
 			cache[cacheKey] = cachedResult{resolved: resolved, detail: detail}
 		}
 
@@ -203,6 +204,7 @@ func filterGroupBy(groupBy map[string]*string, excludeKeys []string) (filtered m
 			if values == nil {
 				values = make(map[string]string)
 			}
+
 			values[k] = *v
 		}
 	}
@@ -222,16 +224,19 @@ func costPerTokenForType(pricing llmcost.ModelPricing, tokenType feature.LLMToke
 		if pricing.CacheReadPerToken == nil {
 			return alpacadecimal.Decimal{}, fmt.Errorf("no cache_read pricing available for this model")
 		}
+
 		return *pricing.CacheReadPerToken, nil
 	case feature.LLMTokenTypeCacheWrite:
 		if pricing.CacheWritePerToken == nil {
 			return alpacadecimal.Decimal{}, fmt.Errorf("no cache_write pricing available for this model")
 		}
+
 		return *pricing.CacheWritePerToken, nil
 	case feature.LLMTokenTypeReasoning:
 		if pricing.ReasoningPerToken == nil {
 			return alpacadecimal.Decimal{}, fmt.Errorf("no reasoning pricing available for this model")
 		}
+
 		return *pricing.ReasoningPerToken, nil
 	default:
 		return alpacadecimal.Decimal{}, fmt.Errorf("unknown LLM token type: %s", tokenType)
@@ -245,6 +250,7 @@ func buildCacheKey(groupByValues map[string]string) string {
 	for k := range groupByValues {
 		sortedKeys = append(sortedKeys, k)
 	}
+
 	slices.Sort(sortedKeys)
 
 	var b strings.Builder
