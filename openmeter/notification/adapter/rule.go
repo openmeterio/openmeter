@@ -41,15 +41,7 @@ func (a *adapter) ListRules(ctx context.Context, params notification.ListRulesIn
 			)).                                        // Do not return deleted Rules
 			WithChannels(EagerLoadActiveChannels(now)) // Eager load active Channels
 
-		// TODO: reject inputs that set both Namespace and Namespaces once every caller
-		// has moved to the singular form.
-		if params.Namespace != "" {
-			query = query.Where(ruledb.Namespace(params.Namespace))
-		}
-
-		if len(params.Namespaces) > 0 {
-			query = query.Where(ruledb.NamespaceIn(params.Namespaces...))
-		}
+		query = query.Where(ruledb.Namespace(params.Namespace))
 
 		if !params.IncludeDisabled {
 			query = query.Where(ruledb.Disabled(false))

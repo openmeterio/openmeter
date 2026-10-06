@@ -182,12 +182,9 @@ func (s *RuleTestSuite) TestList(ctx context.Context, t *testing.T) {
 	require.NotNil(t, rule2, "Rule must not be nil")
 
 	list, err := service.ListRules(ctx, notification.ListRulesInput{
-		Namespaces: []string{
-			createIn1.Namespace,
-			createIn2.Namespace,
-		},
-		ID:      &filter.FilterULID{FilterString: filter.FilterString{In: lo.ToPtr([]string{rule1.ID, rule2.ID})}},
-		OrderBy: "id",
+		Namespace: s.Env.Namespace(),
+		ID:        &filter.FilterULID{FilterString: filter.FilterString{In: lo.ToPtr([]string{rule1.ID, rule2.ID})}},
+		OrderBy:   "id",
 	})
 	require.NoError(t, err, "Listing rules must not return error")
 	assert.NotEmpty(t, list.Items, "List of rules must not be empty")

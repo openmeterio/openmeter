@@ -2,22 +2,16 @@ package service
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
-	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
 func (s Service) ListRuleViews(ctx context.Context, params notification.ListRulesInput) (pagination.Result[notification.RuleView], error) {
-	if params.Namespace == "" {
-		return pagination.Result[notification.RuleView]{}, models.NewGenericValidationError(errors.New("namespace is required"))
-	}
-
 	result, err := s.ListRules(ctx, params)
 	if err != nil {
 		return pagination.Result[notification.RuleView]{}, err

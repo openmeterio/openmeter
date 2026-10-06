@@ -175,7 +175,7 @@ func TestListRules_Filters(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			input := tc.input
-			input.Namespaces = []string{ns}
+			input.Namespace = ns
 			input.IncludeDisabled = true
 			input.Page = pagination.NewPage(1, 20)
 

@@ -30,11 +30,11 @@ func (h *InvoiceEventHandler) Handle(ctx context.Context, event billing.EventSta
 
 	// List active rules available for this event type in namespace
 	rules, err := h.Notification.ListRules(ctx, notification.ListRulesInput{
-		Namespaces: []string{event.Invoice.Namespace},
-		Type:       &filter.FilterString{Eq: lo.ToPtr(string(eventType))},
-		Disabled:   &filter.FilterBoolean{Eq: lo.ToPtr(false)},
-		OrderBy:    notification.OrderByID,
-		Order:      sortx.OrderDefault,
+		Namespace: event.Invoice.Namespace,
+		Type:      &filter.FilterString{Eq: lo.ToPtr(string(eventType))},
+		Disabled:  &filter.FilterBoolean{Eq: lo.ToPtr(false)},
+		OrderBy:   notification.OrderByID,
+		Order:     sortx.OrderDefault,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to list rules for event type [namespace=%s event.type=%s]: %w",

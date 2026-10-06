@@ -28,8 +28,8 @@ func TestListRules_InvalidFilterCombinationRejected(t *testing.T) {
 	env := newServiceTestEnv(t)
 
 	_, err := env.service.ListRules(t.Context(), notification.ListRulesInput{
-		Namespaces: []string{ulid.Make().String()},
-		Page:       pagination.NewPage(1, 20),
+		Namespace: ulid.Make().String(),
+		Page:      pagination.NewPage(1, 20),
 		Name: &filter.FilterString{
 			Eq:       lo.ToPtr("a"),
 			Contains: lo.ToPtr("b"),

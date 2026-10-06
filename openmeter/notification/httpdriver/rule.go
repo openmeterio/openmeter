@@ -34,7 +34,7 @@ func (h *handler) ListRules() ListRulesHandler {
 			}
 
 			req := ListRulesRequest{
-				Namespaces:      []string{ns},
+				Namespace:       ns,
 				IncludeDisabled: lo.FromPtrOr(params.IncludeDisabled, notification.DefaultDisabled),
 				OrderBy:         notification.OrderBy(lo.FromPtrOr(params.OrderBy, api.NotificationRuleOrderById)),
 				Order:           sortx.Order(lo.FromPtrOr(params.Order, api.SortOrderASC)),

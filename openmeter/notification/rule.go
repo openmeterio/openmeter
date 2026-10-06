@@ -143,10 +143,7 @@ var (
 type ListRulesInput struct {
 	pagination.Page
 
-	// Namespace scopes the list to one tenant; Namespaces is the multi-tenant form the
-	// workers use. One of them is required.
-	Namespace  string
-	Namespaces []string
+	Namespace string
 
 	OrderBy OrderBy
 	Order   sortx.Order
@@ -179,7 +176,7 @@ func (i ListRulesInput) Validate() error {
 
 	// The adapter skips tenant scoping entirely without a namespace, which would turn
 	// the query into a cross-tenant list, so an unscoped list must never reach it.
-	if i.Namespace == "" && len(i.Namespaces) == 0 {
+	if i.Namespace == "" {
 		errs = append(errs, errors.New("namespace is required"))
 	}
 
