@@ -1,7 +1,8 @@
 ## Schema source
 
-Atlas loads Ent's schema through `entschema`, including deferred FK definitions
-from `deferred_constraints.sql` that Ent cannot express.
+Atlas runs `cmd/entschema`, which uses the reusable `entschema.GenerateSQL`
+exporter with a schema path, PostgreSQL version, and supplemental DDL.
+`deferred_constraints.sql` supplies FK definitions that Ent cannot express.
 
 ## View SQL Helper
 
@@ -11,4 +12,6 @@ Generate SQL definitions for `ent.View` schemas:
 make generate-view-sql
 ```
 
-This writes `tools/migrate/views.sql` by loading `openmeter/ent/schema` via Ent's schema loader and emitting Postgres `CREATE VIEW` statements from `EntSQL` view annotations.
+`viewgen.GenerateSQL` returns PostgreSQL `CREATE VIEW` statements from EntSQL
+annotations. The command adds the regeneration header and writes
+`tools/migrate/views.sql`.

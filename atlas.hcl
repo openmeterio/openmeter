@@ -1,5 +1,5 @@
 data "external_schema" "ent" {
-  program = ["go", "run", "-mod=readonly", "./tools/migrate/entschema"]
+  program = ["go", "run", "-mod=readonly", "./tools/migrate/cmd/entschema"]
 }
 
 env "local" {
