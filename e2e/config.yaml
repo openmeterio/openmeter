@@ -38,7 +38,8 @@ sink:
     brokerAddressFamily: v4
 
 postgres:
-  url: postgres://postgres:postgres@postgres:5432/postgres?sslmode=disable
+  # Keep pool capacity independent of the CI runner CPU count.
+  url: postgres://postgres:postgres@postgres:5432/postgres?sslmode=disable&pool_max_conns=64
   autoMigrate: migration
 
 # Credits are enabled for the default e2e suite so billing flows run in the same
