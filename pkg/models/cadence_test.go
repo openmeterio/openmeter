@@ -39,8 +39,14 @@ func TestNewSortedCadenceListZeroLengthRevisions(t *testing.T) {
 		current := MockCadenceItem{ActiveFrom: replacedAt, ActiveTo: activeTo}
 		items := []MockCadenceItem{current, empty, previous, empty}
 
+		require.False(t, (CadenceList[MockCadenceItem]{previous, current, empty}).IsSorted())
+		require.True(t, (CadenceList[MockCadenceItem]{previous, empty, current}).IsSorted())
+		require.True(t, (CadenceList[MockCadenceItem]{empty, empty}).IsSorted())
+		require.True(t, (CadenceList[MockCadenceItem]{current, current}).IsSorted())
+
 		timeline := NewSortedCadenceList(items)
 
+		require.True(t, timeline.IsSorted())
 		require.Equal(t, []MockCadenceItem{previous, empty, empty, current}, timeline.Cadences())
 		require.Empty(t, timeline.GetOverlaps())
 		require.True(t, timeline.IsContinuous())

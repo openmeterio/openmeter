@@ -421,6 +421,7 @@ func NewSubscriptionView(
 					// An unmarked plan-origin revision precedes edits at the same start.
 					iPatchID, _ := i.Annotations[AnnotationEditUniqueKey].(string)
 					jPatchID, _ := j.Annotations[AnnotationEditUniqueKey].(string)
+
 					return strings.Compare(iPatchID, jPatchID)
 				default:
 					return 0

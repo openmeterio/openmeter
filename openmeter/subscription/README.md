@@ -30,6 +30,8 @@ nonempty ones at the same start. Tied zero-length edits use the existing patch
 ULID order, with an unmarked plan-origin revision first. Item row IDs and
 creation timestamps can change during materialization and do not define this
 order.
+Patch ULIDs use wall-clock creation time; same-millisecond IDs from different
+processes do not guarantee action order.
 
 A `SubscriptionView` is the hydrated read model: the subscription, its current
 spec, customer, phases, items, features, and entitlements. The spec is the

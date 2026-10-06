@@ -93,43 +93,56 @@ func TestEditRunningPreservesZeroLengthItemHistory(t *testing.T) {
 				if i > 0 {
 					require.NotEmpty(t, patchIDs[i])
 				}
+
 				if i == 1 || i == 2 || (i == 0 && tc.editOffset == 0) {
 					require.NotNil(t, item.SubscriptionItem.ActiveTo)
 					require.True(t, item.SubscriptionItem.AsPeriod().IsEmpty())
 				}
 			}
+
 			require.Nil(t, patchIDs[0])
 
-			// when: changing each rate card recreates all materialized item rows
-			spec := view.AsSpec()
-			for i, item := range spec.Phases[phaseKey].ItemsByKey[itemKey] {
-				expectedNames[i] += " recreated"
-				item.RateCard = item.RateCard.Clone()
-				require.NoError(t, item.RateCard.ChangeMeta(func(meta productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
-					meta.Name = expectedNames[i]
-					return meta, nil
-				}))
-			}
-			_, err = deps.SubscriptionService.Update(t.Context(), view.Subscription.NamespacedID, spec)
-			require.NoError(t, err)
-			items, err := deps.ItemRepo.GetForSubscriptionsAt(t.Context(), []subscription.GetForSubscriptionAtInput{{
-				Namespace: view.Subscription.Namespace, SubscriptionID: view.Subscription.ID, At: clock.Now(),
-			}})
-			require.NoError(t, err)
-			require.Len(t, items, 4)
-			// Put the live row first and empty revisions in reverse action order.
-			slices.SortFunc(items, func(a, b subscription.SubscriptionItem) int { return strings.Compare(b.Name, a.Name) })
-			phases := lo.Map(view.Phases, func(phase subscription.SubscriptionPhaseView, _ int) subscription.SubscriptionPhase {
-				return phase.SubscriptionPhase
-			})
-			rebuilt, err := subscription.NewSubscriptionView(view.Subscription, view.Customer, phases, items, nil, nil, nil)
-			require.NoError(t, err)
+			// when: first one empty revision, then all revisions, are recreated
+			for _, recreateIndexes := range [][]int{{1}, {0, 1, 2, 3}} {
+				spec := view.AsSpec()
+				for _, i := range recreateIndexes {
+					item := spec.Phases[phaseKey].ItemsByKey[itemKey][i]
+					expectedNames[i] += " recreated"
+					item.RateCard = item.RateCard.Clone()
+					require.NoError(t, item.RateCard.ChangeMeta(func(meta productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
+						meta.Name = expectedNames[i]
+						return meta, nil
+					}))
+				}
 
-			// then: logical versions and patch IDs survive row recreation and shuffled reads
-			for i, item := range rebuilt.Phases[0].ItemsByKey[itemKey] {
-				require.Equal(t, expectedNames[i], item.Spec.RateCard.AsMeta().Name)
-				require.Equal(t, patchIDs[i], item.Spec.Annotations[subscription.AnnotationEditUniqueKey])
-				require.NotEqual(t, history[i].SubscriptionItem.ID, item.SubscriptionItem.ID)
+				_, err = deps.SubscriptionService.Update(t.Context(), view.Subscription.NamespacedID, spec)
+				require.NoError(t, err)
+				items, err := deps.ItemRepo.GetForSubscriptionsAt(t.Context(), []subscription.GetForSubscriptionAtInput{{
+					Namespace: view.Subscription.Namespace, SubscriptionID: view.Subscription.ID, At: clock.Now(),
+				}})
+				require.NoError(t, err)
+				require.Len(t, items, 4)
+				// Put the live row first and empty revisions in reverse action order.
+				slices.SortFunc(items, func(a, b subscription.SubscriptionItem) int { return strings.Compare(b.Name, a.Name) })
+				phases := lo.Map(view.Phases, func(phase subscription.SubscriptionPhaseView, _ int) subscription.SubscriptionPhase {
+					return phase.SubscriptionPhase
+				})
+				rebuilt, err := subscription.NewSubscriptionView(view.Subscription, view.Customer, phases, items, nil, nil, nil)
+				require.NoError(t, err)
+
+				// then: logical versions and patch IDs survive partial and complete recreation
+				for i, item := range rebuilt.Phases[0].ItemsByKey[itemKey] {
+					require.Equal(t, expectedNames[i], item.Spec.RateCard.AsMeta().Name)
+					require.Equal(t, patchIDs[i], item.Spec.Annotations[subscription.AnnotationEditUniqueKey])
+					if slices.Contains(recreateIndexes, i) {
+						require.NotEqual(t, history[i].SubscriptionItem.ID, item.SubscriptionItem.ID)
+					} else {
+						require.Equal(t, history[i].SubscriptionItem.ID, item.SubscriptionItem.ID)
+					}
+				}
+
+				view = *rebuilt
+				history = view.Phases[0].ItemsByKey[itemKey]
 			}
 		})
 	}
