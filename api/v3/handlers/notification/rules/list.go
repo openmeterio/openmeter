@@ -93,7 +93,7 @@ func (h *handler) ListNotificationRules() ListNotificationRulesHandler {
 			}
 
 			items, err := lo.MapErr(result.Items, func(item notification.RuleView, _ int) (api.BillingNotificationRule, error) {
-				return ToAPIRule(item)
+				return ToAPIBillingNotificationRule(item)
 			})
 			if err != nil {
 				return ListNotificationRulesResponse{}, err

@@ -82,7 +82,7 @@ model NotificationRuleBalanceThreshold {
   ...NotificationRuleBase<NotificationEventType.EntitlementsBalanceThreshold>;
 
   /**
-   * The thresholds that generate an event when crossed. Between 1 and 10 thresholds.
+   * The thresholds that generate an event when crossed.
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @minItems(1)

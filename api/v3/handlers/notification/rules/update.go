@@ -40,7 +40,7 @@ func (h *handler) UpdateNotificationRule() UpdateNotificationRuleHandler {
 				return UpdateNotificationRuleResponse{}, err
 			}
 
-			return ToAPIRule(rule)
+			return ToAPIBillingNotificationRule(rule)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[UpdateNotificationRuleResponse](http.StatusOK),
 		httptransport.AppendOptions(

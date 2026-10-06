@@ -5764,10 +5764,7 @@ export const notificationRuleBalanceThreshold = z
       .array(notificationBalanceThreshold)
       .min(1)
       .max(10)
-
-      .describe(
-        'The thresholds that generate an event when crossed. Between 1 and 10 thresholds.',
-      ),
+      .describe('The thresholds that generate an event when crossed.'),
     features: z
       .array(featureReference)
       .optional()
@@ -5814,10 +5811,7 @@ export const notificationRuleBalanceThresholdRequest = z
       .array(notificationBalanceThreshold)
       .min(1)
       .max(10)
-
-      .describe(
-        'The thresholds that generate an event when crossed. Between 1 and 10 thresholds.',
-      ),
+      .describe('The thresholds that generate an event when crossed.'),
     features: z
       .array(featureReference)
       .optional()
@@ -15517,10 +15511,7 @@ export const notificationRuleBalanceThresholdWire = z
       .array(notificationBalanceThresholdWire)
       .min(1)
       .max(10)
-
-      .describe(
-        'The thresholds that generate an event when crossed. Between 1 and 10 thresholds.',
-      ),
+      .describe('The thresholds that generate an event when crossed.'),
     features: z
       .array(featureReferenceWire)
       .optional()
@@ -15566,10 +15557,7 @@ export const notificationRuleBalanceThresholdRequestWire = z
       .array(notificationBalanceThresholdWire)
       .min(1)
       .max(10)
-
-      .describe(
-        'The thresholds that generate an event when crossed. Between 1 and 10 thresholds.',
-      ),
+      .describe('The thresholds that generate an event when crossed.'),
     features: z
       .array(featureReferenceWire)
       .optional()

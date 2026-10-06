@@ -11762,7 +11762,7 @@ components:
             $ref: '#/components/schemas/BillingNotificationBalanceThreshold'
           minItems: 1
           maxItems: 10
-          description: The thresholds that generate an event when crossed. Between 1 and 10 thresholds.
+          description: The thresholds that generate an event when crossed.
         features:
           type: array
           items:
@@ -11816,7 +11816,7 @@ components:
             $ref: '#/components/schemas/BillingNotificationBalanceThreshold'
           minItems: 1
           maxItems: 10
-          description: The thresholds that generate an event when crossed. Between 1 and 10 thresholds.
+          description: The thresholds that generate an event when crossed.
         features:
           type: array
           items:

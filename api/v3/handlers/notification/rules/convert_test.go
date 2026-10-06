@@ -45,9 +45,9 @@ func TestFromAPIRuleSortField(t *testing.T) {
 	}
 }
 
-// TestToDomainBalanceThresholdType pins that the v3 values map onto the stored v1
+// TestFromAPIBillingNotificationBalanceThresholdType pins that the v3 values map onto the stored v1
 // constants and that the deprecated v1 aliases are not accepted on the v3 write path.
-func TestToDomainBalanceThresholdType(t *testing.T) {
+func TestFromAPIBillingNotificationBalanceThresholdType(t *testing.T) {
 	testCases := []struct {
 		in   api.BillingNotificationBalanceThresholdType
 		want v1api.NotificationRuleBalanceThresholdValueType
@@ -59,7 +59,7 @@ func TestToDomainBalanceThresholdType(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(string(tc.in), func(t *testing.T) {
-			got, err := ToDomainBalanceThresholdType(tc.in)
+			got, err := FromAPIBillingNotificationBalanceThresholdType(tc.in)
 			require.NoError(t, err)
 			assert.Equal(t, tc.want, got)
 		})
@@ -67,7 +67,7 @@ func TestToDomainBalanceThresholdType(t *testing.T) {
 
 	for _, legacy := range []string{"NUMBER", "PERCENT", "nonsense"} {
 		t.Run(legacy+" is rejected", func(t *testing.T) {
-			_, err := ToDomainBalanceThresholdType(api.BillingNotificationBalanceThresholdType(legacy))
+			_, err := FromAPIBillingNotificationBalanceThresholdType(api.BillingNotificationBalanceThresholdType(legacy))
 			require.Error(t, err)
 			assert.True(t, models.IsGenericValidationError(err))
 		})
@@ -154,7 +154,7 @@ func TestFromAPIRuleRequest_UnknownTypeIsRejected(t *testing.T) {
 	assert.True(t, models.IsGenericValidationError(err))
 }
 
-func TestToAPIRule_BalanceThreshold(t *testing.T) {
+func TestToAPIBillingNotificationRule_BalanceThreshold(t *testing.T) {
 	createdAt := time.Date(2024, 5, 1, 12, 0, 0, 0, time.UTC)
 
 	rule := notification.Rule{
@@ -180,7 +180,7 @@ func TestToAPIRule_BalanceThreshold(t *testing.T) {
 		},
 	}
 
-	got, err := ToAPIRule(notification.RuleView{Rule: rule, Features: []feature.Feature{{ID: "01ARZ3NDEKTSV4RRFFQ69G5FAX", Key: "gpt4_tokens"}}})
+	got, err := ToAPIBillingNotificationRule(notification.RuleView{Rule: rule, Features: []feature.Feature{{ID: "01ARZ3NDEKTSV4RRFFQ69G5FAX", Key: "gpt4_tokens"}}})
 	require.NoError(t, err)
 
 	discriminator, err := got.Discriminator()
@@ -202,7 +202,7 @@ func TestToAPIRule_BalanceThreshold(t *testing.T) {
 	}, v.Thresholds)
 }
 
-func TestToAPIRule_EntitlementResetOmitsEmptyFeatures(t *testing.T) {
+func TestToAPIBillingNotificationRule_EntitlementResetOmitsEmptyFeatures(t *testing.T) {
 	rule := notification.Rule{
 		NamespacedID: models.NamespacedID{Namespace: "ns", ID: "01ARZ3NDEKTSV4RRFFQ69G5FAV"},
 		Type:         notification.EventTypeEntitlementReset,
@@ -213,7 +213,7 @@ func TestToAPIRule_EntitlementResetOmitsEmptyFeatures(t *testing.T) {
 		},
 	}
 
-	got, err := ToAPIRule(notification.RuleView{Rule: rule})
+	got, err := ToAPIBillingNotificationRule(notification.RuleView{Rule: rule})
 	require.NoError(t, err)
 
 	v, err := got.AsBillingNotificationRuleEntitlementReset()
@@ -223,10 +223,10 @@ func TestToAPIRule_EntitlementResetOmitsEmptyFeatures(t *testing.T) {
 	assert.False(t, lo.FromPtr(v.Disabled))
 }
 
-func TestToAPIRule_Invoice(t *testing.T) {
+func TestToAPIBillingNotificationRule_Invoice(t *testing.T) {
 	for _, ruleType := range []notification.EventType{notification.EventTypeInvoiceCreated, notification.EventTypeInvoiceUpdated} {
 		t.Run(string(ruleType), func(t *testing.T) {
-			got, err := ToAPIRule(notification.RuleView{Rule: notification.Rule{
+			got, err := ToAPIBillingNotificationRule(notification.RuleView{Rule: notification.Rule{
 				NamespacedID: models.NamespacedID{Namespace: "ns", ID: "01ARZ3NDEKTSV4RRFFQ69G5FAV"},
 				Type:         ruleType,
 				Name:         "invoice rule",
@@ -244,8 +244,8 @@ func TestToAPIRule_Invoice(t *testing.T) {
 	}
 }
 
-func TestToAPIRule_MissingConfigIsRejected(t *testing.T) {
-	_, err := ToAPIRule(notification.RuleView{Rule: notification.Rule{
+func TestToAPIBillingNotificationRule_MissingConfigIsRejected(t *testing.T) {
+	_, err := ToAPIBillingNotificationRule(notification.RuleView{Rule: notification.Rule{
 		NamespacedID: models.NamespacedID{Namespace: "ns", ID: "01ARZ3NDEKTSV4RRFFQ69G5FAV"},
 		Type:         notification.EventTypeBalanceThreshold,
 		Config:       notification.RuleConfig{RuleConfigMeta: notification.RuleConfigMeta{Type: notification.EventTypeBalanceThreshold}},

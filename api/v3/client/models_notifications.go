@@ -623,7 +623,7 @@ type NotificationRuleBalanceThreshold struct {
 	// channels are required. Responses omit channels that have since been disabled or
 	// deleted.
 	Channels []NotificationChannelReference `json:"channels"`
-	// The thresholds that generate an event when crossed. Between 1 and 10 thresholds.
+	// The thresholds that generate an event when crossed.
 	Thresholds []NotificationBalanceThreshold `json:"thresholds"`
 	// The features the rule applies to. When omitted, the rule applies to every
 	// feature.
@@ -645,7 +645,7 @@ type NotificationRuleBalanceThresholdRequest struct {
 	// channels are required. Responses omit channels that have since been disabled or
 	// deleted.
 	Channels []NotificationChannelReference `json:"channels"`
-	// The thresholds that generate an event when crossed. Between 1 and 10 thresholds.
+	// The thresholds that generate an event when crossed.
 	Thresholds []NotificationBalanceThreshold `json:"thresholds"`
 	// The features the rule applies to. When omitted, the rule applies to every
 	// feature.

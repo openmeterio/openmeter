@@ -35,8 +35,8 @@ func FromAPIRuleSortField(ctx context.Context, field string) (notification.Order
 
 // The stored value is the v1 API model. Its deprecated aliases `NUMBER` and `PERCENT`
 // are not part of the v3 enum, so they are rejected on write even though reads still
-// normalize them (events.ToAPIBalanceThresholdType).
-func ToDomainBalanceThresholdType(v api.BillingNotificationBalanceThresholdType) (v1api.NotificationRuleBalanceThresholdValueType, error) {
+// normalize them (events.ToAPIBillingNotificationBalanceThresholdType).
+func FromAPIBillingNotificationBalanceThresholdType(v api.BillingNotificationBalanceThresholdType) (v1api.NotificationRuleBalanceThresholdValueType, error) {
 	switch v {
 	case api.BillingNotificationBalanceThresholdTypeBalanceValue:
 		return v1api.NotificationRuleBalanceThresholdValueTypeBalanceValue, nil
@@ -49,15 +49,15 @@ func ToDomainBalanceThresholdType(v api.BillingNotificationBalanceThresholdType)
 	}
 }
 
-func toDomainBalanceThresholds(thresholds []api.BillingNotificationBalanceThreshold) ([]notification.BalanceThreshold, error) {
+func fromAPIBillingNotificationBalanceThresholds(thresholds []api.BillingNotificationBalanceThreshold) ([]notification.BalanceThreshold, error) {
 	return lo.MapErr(thresholds, func(threshold api.BillingNotificationBalanceThreshold, _ int) (notification.BalanceThreshold, error) {
-		thresholdType, err := ToDomainBalanceThresholdType(threshold.Type)
+		thresholdType, err := FromAPIBillingNotificationBalanceThresholdType(threshold.Type)
 
 		return notification.BalanceThreshold{Type: thresholdType, Value: threshold.Value}, err
 	})
 }
 
-func toAPIBalanceThresholds(thresholds []notification.BalanceThreshold) ([]api.BillingNotificationBalanceThreshold, error) {
+func toAPIBillingNotificationBalanceThresholds(thresholds []notification.BalanceThreshold) ([]api.BillingNotificationBalanceThreshold, error) {
 	return lo.MapErr(thresholds, func(threshold notification.BalanceThreshold, _ int) (api.BillingNotificationBalanceThreshold, error) {
 		thresholdType, err := events.ToAPIBillingNotificationBalanceThresholdType(threshold.Type)
 
@@ -129,7 +129,7 @@ func fromAPIRuleRequest(body api.BillingNotificationRuleRequest) (ruleRequest, e
 			return ruleRequest{}, models.NewGenericValidationError(fmt.Errorf("invalid balance threshold rule: %w", err))
 		}
 
-		thresholds, err := toDomainBalanceThresholds(v.Thresholds)
+		thresholds, err := fromAPIBillingNotificationBalanceThresholds(v.Thresholds)
 		if err != nil {
 			return ruleRequest{}, err
 		}
@@ -137,7 +137,7 @@ func fromAPIRuleRequest(body api.BillingNotificationRuleRequest) (ruleRequest, e
 		return newRuleRequest(ruleType, v.Name, v.Disabled, v.Channels, v.Labels, notification.RuleConfig{
 			RuleConfigMeta: notification.RuleConfigMeta{Type: ruleType},
 			BalanceThreshold: &notification.BalanceThresholdRuleConfig{
-				Features:   fromAPIFeatures(v.Features),
+				Features:   fromAPIFeatureReferences(v.Features),
 				Thresholds: thresholds,
 			},
 		})
@@ -150,7 +150,7 @@ func fromAPIRuleRequest(body api.BillingNotificationRuleRequest) (ruleRequest, e
 		return newRuleRequest(ruleType, v.Name, v.Disabled, v.Channels, v.Labels, notification.RuleConfig{
 			RuleConfigMeta: notification.RuleConfigMeta{Type: ruleType},
 			EntitlementReset: &notification.EntitlementResetRuleConfig{
-				Features: fromAPIFeatures(v.Features),
+				Features: fromAPIFeatureReferences(v.Features),
 			},
 		})
 	case notification.EventTypeInvoiceCreated:
@@ -197,13 +197,13 @@ func newRuleRequest(ruleType notification.EventType, name string, disabled *bool
 
 // Only the rule's active channels are loaded on the domain object, so channels omits
 // those disabled or deleted since the assignment; features were resolved by the service.
-func ToAPIRule(r notification.RuleView) (api.BillingNotificationRule, error) {
+func ToAPIBillingNotificationRule(r notification.RuleView) (api.BillingNotificationRule, error) {
 	var rule api.BillingNotificationRule
 
 	channels := lo.Map(r.Channels, func(channel notification.Channel, _ int) api.NotificationChannelReference {
 		return api.NotificationChannelReference{Id: channel.ID}
 	})
-	features := toAPIFeatures(r.Features)
+	features := toAPIFeatureReferences(r.Features)
 	ruleLabels := labels.FromMetadataAnnotations(r.Metadata, r.Annotations)
 
 	switch r.Type {
@@ -212,7 +212,7 @@ func ToAPIRule(r notification.RuleView) (api.BillingNotificationRule, error) {
 			return rule, fmt.Errorf("missing balance threshold config on notification rule %s", r.ID)
 		}
 
-		thresholds, err := toAPIBalanceThresholds(r.Config.BalanceThreshold.Thresholds)
+		thresholds, err := toAPIBillingNotificationBalanceThresholds(r.Config.BalanceThreshold.Thresholds)
 		if err != nil {
 			return rule, err
 		}
@@ -276,7 +276,7 @@ func ToAPIRule(r notification.RuleView) (api.BillingNotificationRule, error) {
 	}
 }
 
-func fromAPIFeatures(refs *[]api.FeatureReference) []string {
+func fromAPIFeatureReferences(refs *[]api.FeatureReference) []string {
 	if refs == nil {
 		return nil
 	}
@@ -284,7 +284,7 @@ func fromAPIFeatures(refs *[]api.FeatureReference) []string {
 	return lo.Map(*refs, func(ref api.FeatureReference, _ int) string { return ref.Id })
 }
 
-func toAPIFeatures(features []feature.Feature) *[]api.FeatureReference {
+func toAPIFeatureReferences(features []feature.Feature) *[]api.FeatureReference {
 	if len(features) == 0 {
 		return nil
 	}

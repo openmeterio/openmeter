@@ -4746,7 +4746,7 @@ export interface NotificationRuleBalanceThreshold {
    * deleted.
    */
   channels: NotificationChannelReference[]
-  /** The thresholds that generate an event when crossed. Between 1 and 10 thresholds. */
+  /** The thresholds that generate an event when crossed. */
   thresholds: NotificationBalanceThreshold[]
   /**
    * The features the rule applies to. When omitted, the rule applies to every
@@ -4774,7 +4774,7 @@ export interface NotificationRuleBalanceThresholdRequest {
    * deleted.
    */
   channels: NotificationChannelReference[]
-  /** The thresholds that generate an event when crossed. Between 1 and 10 thresholds. */
+  /** The thresholds that generate an event when crossed. */
   thresholds: NotificationBalanceThreshold[]
   /**
    * The features the rule applies to. When omitted, the rule applies to every
@@ -9106,7 +9106,7 @@ export interface NotificationRuleBalanceThresholdInput {
    * deleted.
    */
   channels: NotificationChannelReference[]
-  /** The thresholds that generate an event when crossed. Between 1 and 10 thresholds. */
+  /** The thresholds that generate an event when crossed. */
   thresholds: NotificationBalanceThreshold[]
   /**
    * The features the rule applies to. When omitted, the rule applies to every
@@ -9134,7 +9134,7 @@ export interface NotificationRuleBalanceThresholdRequestInput {
    * deleted.
    */
   channels: NotificationChannelReference[]
-  /** The thresholds that generate an event when crossed. Between 1 and 10 thresholds. */
+  /** The thresholds that generate an event when crossed. */
   thresholds: NotificationBalanceThreshold[]
   /**
    * The features the rule applies to. When omitted, the rule applies to every

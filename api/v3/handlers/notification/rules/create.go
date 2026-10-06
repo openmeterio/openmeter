@@ -39,7 +39,7 @@ func (h *handler) CreateNotificationRule() CreateNotificationRuleHandler {
 				return CreateNotificationRuleResponse{}, err
 			}
 
-			return ToAPIRule(rule)
+			return ToAPIBillingNotificationRule(rule)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[CreateNotificationRuleResponse](http.StatusCreated),
 		httptransport.AppendOptions(
