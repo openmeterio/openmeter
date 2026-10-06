@@ -102,6 +102,7 @@ func (e *transactionsTestEnv) requireCommittedIDs(t *testing.T, input ledger.Tra
 	if groupID != "" {
 		require.Equal(t, groupID, group.ID().ID)
 	}
+
 	require.NotEmpty(t, group.ID().ID)
 	require.NoError(t, ledger.ValidateAssignedID(group.ID().ID))
 	require.Equal(t, groupInput.Annotations(), group.Annotations())
@@ -111,6 +112,7 @@ func (e *transactionsTestEnv) requireCommittedIDs(t *testing.T, input ledger.Tra
 	if input.AssignedID() != "" {
 		require.Equal(t, input.AssignedID(), committed.ID().ID)
 	}
+
 	require.NotEmpty(t, committed.ID().ID)
 	require.NoError(t, ledger.ValidateAssignedID(committed.ID().ID))
 	require.Equal(t, input.Annotations(), committed.Annotations())
@@ -129,6 +131,7 @@ func (e *transactionsTestEnv) requireCommittedIDs(t *testing.T, input ledger.Tra
 		if entryInput.AssignedID() != "" {
 			require.Equal(t, entryInput.AssignedID(), matched.ID().ID)
 		}
+
 		require.NotEmpty(t, matched.ID().ID)
 		require.NoError(t, ledger.ValidateAssignedID(matched.ID().ID))
 		require.Equal(t, entryInput.Amount().InexactFloat64(), matched.Amount().InexactFloat64())

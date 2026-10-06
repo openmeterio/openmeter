@@ -28,6 +28,7 @@ func main() {
 			}
 
 			_, err = fmt.Fprint(cmd.OutOrStdout(), ddl)
+
 			return err
 		},
 	}

@@ -52,8 +52,10 @@ func TestBreakageBookkeepingPrecedesPosting(t *testing.T) {
 		if err != nil {
 			return err
 		}
+
 		inputs = append(issue, inputs...)
 		_, err = env.Deps.HistoricalLedger.CommitGroup(ctx, ledger.WithGroupID(transactions.GroupInputs(env.Namespace, nil, inputs...), groupID))
+
 		return err
 	})
 	require.NoError(t, err)
@@ -74,12 +76,15 @@ func TestBreakageReferencesDistinctPostingsWithIdenticalAccountingIdentity(t *te
 		if err != nil {
 			return err
 		}
+
 		issue, err := resolveCreditIssuance(ctx, env)
 		if err != nil {
 			return err
 		}
+
 		inputs = append(issue, inputs...)
 		_, err = env.Deps.HistoricalLedger.CommitGroup(ctx, ledger.WithGroupID(transactions.GroupInputs(env.Namespace, nil, inputs...), issueGroupID))
+
 		return err
 	})
 	require.NoError(t, err)
@@ -117,6 +122,7 @@ func TestBreakageReferencesDistinctPostingsWithIdenticalAccountingIdentity(t *te
 				}
 			}
 		}
+
 		require.Len(t, sourceEntries, 2)
 		require.Equal(t, sourceEntries[0].IdentityKey(), sourceEntries[1].IdentityKey())
 
@@ -142,6 +148,7 @@ func TestBreakageReferencesDistinctPostingsWithIdenticalAccountingIdentity(t *te
 		require.Equal(t, 6.0, plans[0].OpenAmount.InexactFloat64())
 
 		_, err = env.Deps.HistoricalLedger.CommitGroup(ctx, ledger.WithGroupID(transactions.GroupInputs(env.Namespace, nil, inputs...), groupID))
+
 		return err
 	})
 	require.NoError(t, err)
@@ -160,6 +167,7 @@ func TestBreakageReferencesDistinctPostingsWithIdenticalAccountingIdentity(t *te
 				break
 			}
 		}
+
 		require.NotNil(t, matched)
 		require.Equal(t, sourceTransactions[idx], *matched.SourceTransactionID)
 	}
@@ -215,6 +223,7 @@ func TestBreakagePostingFailureRollsBackBookkeeping(t *testing.T) {
 
 		// when: the ledger rejects the posting.
 		_, err = env.Deps.HistoricalLedger.CommitGroup(ctx, ledger.WithGroupID(transactions.GroupInputs(env.Namespace, nil, inputs...), groupID))
+
 		return err
 	})
 

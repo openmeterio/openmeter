@@ -63,6 +63,7 @@ func (l *Ledger) CommitGroup(ctx context.Context, group ledger.TransactionGroupI
 	if err := ledger.ValidateTransactionGroupInputWith(ctx, group, l.routingValidator); err != nil {
 		return nil, fmt.Errorf("failed to validate transaction group: %w", err)
 	}
+
 	txInputs := group.Transactions()
 
 	return transaction.Run(ctx, l.repo, func(ctx context.Context) (*TransactionGroup, error) {

@@ -34,6 +34,7 @@ func PreassignIDs(input TransactionInput) (TransactionInput, error) {
 	if input == nil {
 		return nil, ErrTransactionInputRequired
 	}
+
 	if err := ValidateAssignedID(input.AssignedID()); err != nil {
 		return nil, fmt.Errorf("transaction ID: %w", err)
 	}
@@ -44,9 +45,11 @@ func PreassignIDs(input TransactionInput) (TransactionInput, error) {
 		if entry == nil {
 			return nil, fmt.Errorf("entries[%d]: entry is required", idx)
 		}
+
 		if err := ValidateAssignedID(entry.AssignedID()); err != nil {
 			return nil, fmt.Errorf("entries[%d] ID: %w", idx, err)
 		}
+
 		identifiedEntries[idx] = entry
 		if entry.AssignedID() == "" {
 			identifiedEntries[idx] = WithEntryID(entry, ulid.Make().String())
@@ -57,6 +60,7 @@ func PreassignIDs(input TransactionInput) (TransactionInput, error) {
 	if id == "" {
 		id = ulid.Make().String()
 	}
+
 	return &identifiedTransactionInput{TransactionInput: input, id: id, entries: identifiedEntries}, nil
 }
 
@@ -96,6 +100,7 @@ func (i *identifiedTransactionInput) AsGroupInput(namespace string, annotations 
 	// Reuse the underlying group metadata, but retain this wrapper as its
 	// transaction so grouping cannot discard assigned IDs or entry overrides.
 	group := i.TransactionInput.AsGroupInput(namespace, annotations)
+
 	return &identifiedGroupInput{
 		TransactionGroupInput: group,
 		id:                    group.AssignedID(),

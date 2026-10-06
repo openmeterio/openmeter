@@ -109,6 +109,7 @@ func (r *repo) BookTransaction(ctx context.Context, groupID models.NamespacedID,
 	if input == nil {
 		return nil, ledger.ErrTransactionInputRequired
 	}
+
 	if err := ledger.ValidateAssignedID(input.AssignedID()); err != nil {
 		return nil, fmt.Errorf("transaction ID: %w", err)
 	}
@@ -122,6 +123,7 @@ func (r *repo) BookTransaction(ctx context.Context, groupID models.NamespacedID,
 		if id := input.AssignedID(); id != "" {
 			create.SetID(id)
 		}
+
 		entity, err := create.Save(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create ledger transaction: %w", err)
@@ -138,9 +140,11 @@ func (r *repo) BookTransaction(ctx context.Context, groupID models.NamespacedID,
 			if entryInput == nil {
 				return nil, fmt.Errorf("entries[%d]: entry is required", idx)
 			}
+
 			if err := ledger.ValidateAssignedID(entryInput.AssignedID()); err != nil {
 				return nil, fmt.Errorf("entries[%d] ID: %w", idx, err)
 			}
+
 			subAccountID := entryInput.PostingAddress().SubAccountID()
 			route := entryInput.PostingAddress().Route()
 			accountTypesBySubAccountID[subAccountID] = entryInput.PostingAddress().AccountType()
@@ -163,6 +167,7 @@ func (r *repo) BookTransaction(ctx context.Context, groupID models.NamespacedID,
 			if id := entryInput.AssignedID(); id != "" {
 				create.SetID(id)
 			}
+
 			createInputs = append(createInputs, create)
 		}
 
@@ -220,6 +225,7 @@ func (r *repo) CreateTransactionGroup(ctx context.Context, transactionGroup ledg
 	if err := transactionGroup.Validate(); err != nil {
 		return ledgerhistorical.TransactionGroupData{}, err
 	}
+
 	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, tx *repo) (ledgerhistorical.TransactionGroupData, error) {
 		create := tx.db.LedgerTransactionGroup.Create().
 			SetNamespace(transactionGroup.Namespace).
@@ -227,6 +233,7 @@ func (r *repo) CreateTransactionGroup(ctx context.Context, transactionGroup ledg
 		if transactionGroup.ID != "" {
 			create.SetID(transactionGroup.ID)
 		}
+
 		entity, err := create.Save(ctx)
 		if err != nil {
 			return ledgerhistorical.TransactionGroupData{}, fmt.Errorf("failed to create transaction group: %w", err)
