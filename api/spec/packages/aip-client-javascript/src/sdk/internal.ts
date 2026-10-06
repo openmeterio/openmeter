@@ -2,11 +2,17 @@
 
 import { type Client } from '../core.js'
 import { unwrap, type RequestOptions } from '../lib/types.js'
+import { paginatePages } from '../lib/paginate.js'
 import {
   createSubscriptionAddon,
   updateSubscriptionAddon,
 } from '../funcs/subscriptions.js'
 import { executeAppAction } from '../funcs/apps.js'
+import {
+  listNotificationEvents,
+  getNotificationEvent,
+  resendNotificationEvent,
+} from '../funcs/notifications.js'
 import type {
   CreateSubscriptionAddonRequest,
   CreateSubscriptionAddonResponse,
@@ -17,6 +23,15 @@ import type {
   ExecuteAppActionRequest,
   ExecuteAppActionResponse,
 } from '../models/operations/apps.js'
+import type {
+  ListNotificationEventsRequest,
+  ListNotificationEventsResponse,
+  GetNotificationEventRequest,
+  GetNotificationEventResponse,
+  ResendNotificationEventRequest,
+  ResendNotificationEventResponse,
+} from '../models/operations/notifications.js'
+import type { NotificationEvent } from '../models/types.js'
 
 /**
  * Operations marked internal in the API definition. They are not part of
@@ -34,6 +49,11 @@ export class Internal {
   private _apps?: InternalApps
   get apps(): InternalApps {
     return (this._apps ??= new InternalApps(this._client))
+  }
+
+  private _notifications?: InternalNotifications
+  get notifications(): InternalNotifications {
+    return (this._notifications ??= new InternalNotifications(this._client))
   }
 }
 
@@ -87,5 +107,75 @@ export class InternalApps {
     options?: RequestOptions,
   ): Promise<ExecuteAppActionResponse> {
     return unwrap(await executeAppAction(this._client, request, options))
+  }
+}
+
+export class InternalNotifications {
+  constructor(private readonly _client: Client) {}
+
+  /**
+   * List notification events
+   *
+   * List all notification events.
+   *
+   * GET /openmeter/notification/events
+   */
+  async listEvents(
+    request?: ListNotificationEventsRequest,
+    options?: RequestOptions,
+  ): Promise<ListNotificationEventsResponse> {
+    return unwrap(await listNotificationEvents(this._client, request, options))
+  }
+
+  /**
+   * List notification events
+   *
+   * List all notification events.
+   *
+   * Iterates every item across all pages, fetching more as the returned iterable is consumed.
+   *
+   * GET /openmeter/notification/events
+   */
+  listEventsAll(
+    request?: ListNotificationEventsRequest,
+    options?: RequestOptions,
+  ): AsyncIterable<NotificationEvent> {
+    return paginatePages(
+      (req, opts) => listNotificationEvents(this._client, req, opts),
+      request ?? {},
+      options,
+    )
+  }
+
+  /**
+   * Get notification event
+   *
+   * Get a notification event by id.
+   *
+   * GET /openmeter/notification/events/{notificationEventId}
+   */
+  async getEvent(
+    request: GetNotificationEventRequest,
+    options?: RequestOptions,
+  ): Promise<GetNotificationEventResponse> {
+    return unwrap(await getNotificationEvent(this._client, request, options))
+  }
+
+  /**
+   * Resend notification event
+   *
+   * Resend a notification event to the channels of the rule that generated it.
+   *
+   * Delivery is asynchronous: the request marks the selected channels for redelivery
+   * and returns immediately. Channels whose delivery is still pending or already
+   * being resent are left untouched.
+   *
+   * POST /openmeter/notification/events/{notificationEventId}/resend
+   */
+  async resendEvent(
+    request: ResendNotificationEventRequest,
+    options?: RequestOptions,
+  ): Promise<ResendNotificationEventResponse> {
+    return unwrap(await resendNotificationEvent(this._client, request, options))
   }
 }

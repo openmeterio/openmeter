@@ -3652,6 +3652,133 @@ paths:
       tags:
         - OpenMeter Notifications
       x-unstable: true
+  /openmeter/notification/events:
+    get:
+      operationId: list-notification-events
+      summary: List notification events
+      description: List all notification events.
+      parameters:
+        - $ref: '#/components/parameters/PagePaginationQuery'
+        - name: sort
+          in: query
+          required: false
+          description: |-
+            Sort notification events returned in the response. Supported sort attributes
+            are:
+
+            - `created_at` (default)
+            - `id`
+            - `type`
+
+            The `asc` suffix is optional as the default sort order is ascending. The `desc`
+            suffix is used to specify a descending order. Without a `sort` parameter, events
+            are returned newest first.
+          schema:
+            $ref: '#/components/schemas/SortQuery'
+          explode: false
+          style: form
+        - name: filter
+          in: query
+          required: false
+          description: |-
+            Filter notification events returned in the response.
+
+            Examples:
+
+            - `filter[type]=invoice.created`
+            - `filter[delivery_status]=failed`
+            - `filter[subject_key]=customer-1`
+          schema:
+            $ref: '#/components/schemas/ListNotificationEventsParamsFilter'
+          style: deepObject
+      responses:
+        '200':
+          description: Page paginated response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationEventPagePaginatedResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      tags:
+        - OpenMeter Notifications
+      x-private: true
+      x-internal: true
+      x-unstable: true
+  /openmeter/notification/events/{notificationEventId}:
+    get:
+      operationId: get-notification-event
+      summary: Get notification event
+      description: Get a notification event by id.
+      parameters:
+        - name: notificationEventId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: NotificationEvent response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingNotificationEvent'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Notifications
+      x-private: true
+      x-internal: true
+      x-unstable: true
+  /openmeter/notification/events/{notificationEventId}/resend:
+    post:
+      operationId: resend-notification-event
+      summary: Resend notification event
+      description: |-
+        Resend a notification event to the channels of the rule that generated it.
+
+        Delivery is asynchronous: the request marks the selected channels for redelivery
+        and returns immediately. Channels whose delivery is still pending or already
+        being resent are left untouched.
+      parameters:
+        - name: notificationEventId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '202':
+          description: Accepted response.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Notifications
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResendBillingNotificationEventRequest'
+      x-rpc-endpoint: true
+      x-private: true
+      x-internal: true
+      x-unstable: true
   /openmeter/plans:
     get:
       operationId: list-plans
@@ -10785,6 +10912,31 @@ components:
         - `system`: The resource lifecycle is controlled by OpenMeter.
         - `manual`: The resource lifecycle was manually overridden by the API user.
       title: Lifecycle controller
+    BillingNotificationBalanceThreshold:
+      type: object
+      required:
+        - type
+        - value
+      properties:
+        type:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationBalanceThresholdType'
+          description: What the threshold value is measured against.
+        value:
+          type: number
+          format: double
+          description: The threshold value.
+      additionalProperties: false
+      description: |-
+        A balance threshold of a notification rule. Crossing it generates an
+        `entitlements.balance.threshold` event.
+    BillingNotificationBalanceThresholdType:
+      type: string
+      enum:
+        - balance_value
+        - usage_percentage
+        - usage_value
+      description: What a balance threshold is measured against.
     BillingNotificationChannel:
       type: object
       required:
@@ -10868,6 +11020,476 @@ components:
         anticipates additional channel types (e.g. email, Slack) in the future, so this
         is modeled as an enum rather than a boolean/constant even though it has a single
         member today.
+    BillingNotificationEvent:
+      type: object
+      required:
+        - id
+        - type
+        - created_at
+        - rule
+        - delivery_status
+        - payload
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: The unique identifier of the event.
+          readOnly: true
+        type:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventType'
+          description: The type of the event.
+          readOnly: true
+        created_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: When the event was generated.
+          readOnly: true
+        rule:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationRuleReference'
+          description: The rule that generated the event.
+          readOnly: true
+        delivery_status:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingNotificationEventDeliveryStatus'
+          description: The delivery status of the event, one entry per channel of the rule.
+          readOnly: true
+        payload:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventPayload'
+          description: The payload delivered to the channels.
+          readOnly: true
+      additionalProperties: false
+      description: |-
+        A notification event records that a notification rule fired and tracks the
+        delivery of its payload to each channel of the rule. Events are created by the
+        system and cannot be modified.
+    BillingNotificationEventBalanceThresholdData:
+      type: object
+      required:
+        - entitlement_id
+        - feature
+        - subject_key
+        - value
+        - threshold
+      properties:
+        entitlement_id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: The identifier of the entitlement that triggered the event.
+          readOnly: true
+        feature:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventFeatureReference'
+          description: The feature the entitlement grants access to.
+          readOnly: true
+        subject_key:
+          type: string
+          description: The key of the subject the entitlement belongs to.
+          readOnly: true
+        customer_id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: The identifier of the customer the subject belongs to, if any.
+          readOnly: true
+        value:
+          allOf:
+            - $ref: '#/components/schemas/BillingEntitlementValueResult'
+          description: The entitlement value at the time the event was generated.
+          readOnly: true
+        threshold:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationBalanceThreshold'
+          description: The threshold the balance crossed.
+          readOnly: true
+      additionalProperties: false
+      description: The entities and threshold a balance threshold event refers to.
+    BillingNotificationEventBalanceThresholdPayload:
+      type: object
+      required:
+        - id
+        - type
+        - timestamp
+        - data
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: The identifier of the event the payload belongs to.
+          readOnly: true
+        type:
+          type: string
+          enum:
+            - entitlements.balance.threshold
+          description: The type of the event.
+          readOnly: true
+        timestamp:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: When the event was generated.
+          readOnly: true
+        data:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventBalanceThresholdData'
+          description: The entities and threshold the event refers to.
+          readOnly: true
+      additionalProperties: false
+      description: A balance threshold notification event payload.
+    BillingNotificationEventDeliveryAttempt:
+      type: object
+      required:
+        - state
+        - response
+        - timestamp
+      properties:
+        state:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventDeliveryState'
+          description: The delivery state reached by this attempt.
+          readOnly: true
+        response:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventDeliveryAttemptResponse'
+          description: The response returned by the recipient.
+          readOnly: true
+        timestamp:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: When the attempt was made.
+          readOnly: true
+      additionalProperties: false
+      description: A single delivery attempt to a channel.
+    BillingNotificationEventDeliveryAttemptResponse:
+      type: object
+      required:
+        - body
+        - duration_ms
+      properties:
+        status_code:
+          type: integer
+          format: int32
+          description: |-
+            The HTTP status code returned by the recipient. Absent when no response was
+            received.
+          readOnly: true
+        body:
+          type: string
+          description: The response body returned by the recipient. Empty when no body was received.
+          readOnly: true
+        duration_ms:
+          type: integer
+          format: int64
+          description: How long the delivery attempt took, in milliseconds.
+          readOnly: true
+        url:
+          type: string
+          description: The URL the event was delivered to. Only set for webhook channels.
+          readOnly: true
+      additionalProperties: false
+      description: |-
+        The response the recipient returned for a delivery attempt. For webhook channels
+        this is the HTTP response.
+    BillingNotificationEventDeliveryState:
+      type: string
+      enum:
+        - success
+        - failed
+        - sending
+        - pending
+        - resending
+      description: The delivery state of a notification event for a single channel.
+    BillingNotificationEventDeliveryStatus:
+      type: object
+      required:
+        - channel_id
+        - state
+        - reason
+        - updated_at
+        - attempts
+      properties:
+        channel_id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: The identifier of the channel this delivery status belongs to.
+          readOnly: true
+        state:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventDeliveryState'
+          description: The current delivery state.
+          readOnly: true
+        reason:
+          type: string
+          description: The reason for the last state change. Empty for successful deliveries.
+          readOnly: true
+        updated_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: When the delivery state was last updated.
+          readOnly: true
+        next_attempt:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: |-
+            When the next delivery attempt is scheduled. Absent when no further attempts
+            will be made.
+          readOnly: true
+        attempts:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingNotificationEventDeliveryAttempt'
+          description: The delivery attempts made so far, most recent first.
+          readOnly: true
+      additionalProperties: false
+      description: |-
+        The delivery status of a notification event for one channel of the generating
+        rule.
+    BillingNotificationEventEntitlementData:
+      type: object
+      required:
+        - entitlement_id
+        - feature
+        - subject_key
+        - value
+      properties:
+        entitlement_id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: The identifier of the entitlement that triggered the event.
+          readOnly: true
+        feature:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventFeatureReference'
+          description: The feature the entitlement grants access to.
+          readOnly: true
+        subject_key:
+          type: string
+          description: The key of the subject the entitlement belongs to.
+          readOnly: true
+        customer_id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: The identifier of the customer the subject belongs to, if any.
+          readOnly: true
+        value:
+          allOf:
+            - $ref: '#/components/schemas/BillingEntitlementValueResult'
+          description: The entitlement value at the time the event was generated.
+          readOnly: true
+      additionalProperties: false
+      description: |-
+        The entitlement, feature, and subject an entitlement notification event refers
+        to.
+    BillingNotificationEventFeatureReference:
+      type: object
+      required:
+        - id
+        - key
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: The unique identifier of the feature.
+          readOnly: true
+        key:
+          type: string
+          description: The immutable key of the feature.
+          readOnly: true
+      additionalProperties: false
+      description: A reference to the feature of an entitlement notification event.
+    BillingNotificationEventInvoiceCreatedPayload:
+      type: object
+      required:
+        - id
+        - type
+        - timestamp
+        - data
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: The identifier of the event the payload belongs to.
+          readOnly: true
+        type:
+          type: string
+          enum:
+            - invoice.created
+          description: The type of the event.
+          readOnly: true
+        timestamp:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: When the event was generated.
+          readOnly: true
+        data:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventInvoiceData'
+          description: The invoice the event refers to.
+          readOnly: true
+      additionalProperties: false
+      description: An invoice created notification event payload.
+    BillingNotificationEventInvoiceData:
+      type: object
+      required:
+        - invoice
+        - currency
+        - status
+        - total
+      properties:
+        invoice:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventInvoiceReference'
+          description: The invoice the event was generated for.
+          readOnly: true
+        customer_id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: The identifier of the customer the invoice was issued to.
+          readOnly: true
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          description: The currency the invoice is denominated in.
+          readOnly: true
+        status:
+          type: string
+          description: The status of the invoice at the time the event was generated.
+          readOnly: true
+        total:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The invoice total, including taxes, at the time the event was generated.
+          readOnly: true
+      additionalProperties: false
+      description: The invoice an invoice notification event refers to.
+    BillingNotificationEventInvoiceReference:
+      type: object
+      required:
+        - id
+        - number
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: The unique identifier of the invoice.
+          readOnly: true
+        number:
+          type: string
+          description: The human-readable invoice number.
+          readOnly: true
+      additionalProperties: false
+      description: A reference to the invoice of an invoice notification event.
+    BillingNotificationEventInvoiceUpdatedPayload:
+      type: object
+      required:
+        - id
+        - type
+        - timestamp
+        - data
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: The identifier of the event the payload belongs to.
+          readOnly: true
+        type:
+          type: string
+          enum:
+            - invoice.updated
+          description: The type of the event.
+          readOnly: true
+        timestamp:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: When the event was generated.
+          readOnly: true
+        data:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventInvoiceData'
+          description: The invoice the event refers to.
+          readOnly: true
+      additionalProperties: false
+      description: An invoice updated notification event payload.
+    BillingNotificationEventPayload:
+      type: object
+      oneOf:
+        - $ref: '#/components/schemas/BillingNotificationEventBalanceThresholdPayload'
+        - $ref: '#/components/schemas/BillingNotificationEventResetPayload'
+        - $ref: '#/components/schemas/BillingNotificationEventInvoiceCreatedPayload'
+        - $ref: '#/components/schemas/BillingNotificationEventInvoiceUpdatedPayload'
+      discriminator:
+        propertyName: type
+        mapping:
+          entitlements.balance.threshold: '#/components/schemas/BillingNotificationEventBalanceThresholdPayload'
+          entitlements.reset: '#/components/schemas/BillingNotificationEventResetPayload'
+          invoice.created: '#/components/schemas/BillingNotificationEventInvoiceCreatedPayload'
+          invoice.updated: '#/components/schemas/BillingNotificationEventInvoiceUpdatedPayload'
+      description: The payload delivered to the channels, discriminated by the event type.
+    BillingNotificationEventResetPayload:
+      type: object
+      required:
+        - id
+        - type
+        - timestamp
+        - data
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: The identifier of the event the payload belongs to.
+          readOnly: true
+        type:
+          type: string
+          enum:
+            - entitlements.reset
+          description: The type of the event.
+          readOnly: true
+        timestamp:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: When the event was generated.
+          readOnly: true
+        data:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventEntitlementData'
+          description: The entities the event refers to.
+          readOnly: true
+      additionalProperties: false
+      description: An entitlement reset notification event payload.
+    BillingNotificationEventType:
+      type: string
+      enum:
+        - entitlements.balance.threshold
+        - entitlements.reset
+        - invoice.created
+        - invoice.updated
+      description: |-
+        The type of a notification event. It determines which payload variant the event
+        carries.
+    BillingNotificationRuleReference:
+      type: object
+      required:
+        - id
+        - type
+        - name
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: The unique identifier of the rule.
+          readOnly: true
+        type:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventType'
+          description: The type of event the rule generates.
+          readOnly: true
+        name:
+          type: string
+          description: The user-provided name of the rule.
+          readOnly: true
+      additionalProperties: false
+      description: A reference to the notification rule that generated an event.
     BillingParty:
       type: object
       properties:
@@ -16188,6 +16810,55 @@ components:
           $ref: '#/components/schemas/DateTimeFieldFilter'
       additionalProperties: false
       description: Filter options for listing notification channels.
+    ListNotificationEventsParamsFilter:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/ULIDFieldFilter'
+        type:
+          $ref: '#/components/schemas/StringFieldFilterExact'
+        created_at:
+          $ref: '#/components/schemas/DateTimeFieldFilter'
+        rule_id:
+          $ref: '#/components/schemas/ULIDFieldFilter'
+        channel_id:
+          allOf:
+            - $ref: '#/components/schemas/ULIDFieldFilter'
+          description: |-
+            Filter by a channel of the generating rule. Matches events whose rule targets at
+            least one of the given channels. Only `eq` and `oeq` are supported.
+        delivery_status:
+          allOf:
+            - $ref: '#/components/schemas/StringFieldFilterExact'
+          description: |-
+            Filter by delivery state. Matches events where delivery to at least one channel
+            is in one of the given states. Only `eq` and `oeq` are supported.
+        subject_key:
+          allOf:
+            - $ref: '#/components/schemas/StringFieldFilterExact'
+          description: |-
+            Filter by the key of the subject the event refers to. Events without a subject
+            never match, not even with `neq`.
+        subject_id:
+          allOf:
+            - $ref: '#/components/schemas/ULIDFieldFilter'
+          description: |-
+            Filter by the id of the subject the event refers to. Events without a subject
+            never match, not even with `neq`.
+        feature_key:
+          allOf:
+            - $ref: '#/components/schemas/StringFieldFilterExact'
+          description: |-
+            Filter by the key of the feature the event refers to. Events without a feature
+            never match, not even with `neq`.
+        feature_id:
+          allOf:
+            - $ref: '#/components/schemas/ULIDFieldFilter'
+          description: |-
+            Filter by the id of the feature the event refers to. Events without a feature
+            never match, not even with `neq`.
+      additionalProperties: false
+      description: Filter options for listing notification events.
     ListPlanAddonsParamsFilter:
       type: object
       properties:
@@ -16658,6 +17329,20 @@ components:
           $ref: '#/components/schemas/PaginatedMeta'
       additionalProperties: false
       description: Page paginated response.
+    NotificationEventPagePaginatedResponse:
+      type: object
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingNotificationEvent'
+        meta:
+          $ref: '#/components/schemas/PaginatedMeta'
+      additionalProperties: false
+      description: Page paginated response.
     Numeric:
       type: string
       pattern: ^\-?[0-9]+(\.[0-9]+)?$
@@ -16984,6 +17669,19 @@ components:
       description: |-
         Recurring period input. The anchor is optional; the owning resource defines the
         default, typically its creation time.
+    ResendBillingNotificationEventRequest:
+      type: object
+      properties:
+        channels:
+          type: array
+          items:
+            $ref: '#/components/schemas/ULID'
+          description: |-
+            The channels to resend the event to. When omitted or empty, the event is resent
+            to every enabled channel of the rule. Channels not targeted by the rule or
+            disabled are rejected.
+      additionalProperties: false
+      description: Request body for resending a notification event.
     ResetCustomerEntitlementUsageRequest:
       type: object
       properties:

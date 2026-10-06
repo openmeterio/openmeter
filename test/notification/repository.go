@@ -4,9 +4,11 @@ import (
 	"context"
 	"testing"
 
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/notification"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
@@ -168,7 +170,7 @@ func (s *RepositoryTestSuite) TestFilterEventByFeature(t *testing.T) {
 
 	listedEvents, err := repo.ListEvents(ctx, notification.ListEventsInput{
 		Namespaces: []string{s.namespace},
-		Features:   []string{TestFeatureID},
+		FeatureID:  &filter.FilterULID{FilterString: filter.FilterString{Eq: lo.ToPtr(TestFeatureID)}},
 	})
 
 	require.NoError(err)
@@ -177,7 +179,7 @@ func (s *RepositoryTestSuite) TestFilterEventByFeature(t *testing.T) {
 
 	listedEvents, err = repo.ListEvents(ctx, notification.ListEventsInput{
 		Namespaces: []string{s.namespace},
-		Features:   []string{TestFeatureKey},
+		FeatureKey: &filter.FilterString{Eq: lo.ToPtr(TestFeatureKey)},
 	})
 
 	require.NoError(err)
@@ -186,7 +188,7 @@ func (s *RepositoryTestSuite) TestFilterEventByFeature(t *testing.T) {
 
 	listedEvents, err = repo.ListEvents(ctx, notification.ListEventsInput{
 		Namespaces: []string{s.namespace},
-		Features:   []string{"invalid-feature"},
+		FeatureKey: &filter.FilterString{Eq: lo.ToPtr("invalid-feature")},
 	})
 
 	require.NoError(err)
@@ -201,7 +203,7 @@ func (s *RepositoryTestSuite) TestFilterEventBySubject(t *testing.T) {
 
 	listedEvents, err := repo.ListEvents(ctx, notification.ListEventsInput{
 		Namespaces: []string{s.namespace},
-		Subjects:   []string{TestSubjectID},
+		SubjectID:  &filter.FilterULID{FilterString: filter.FilterString{Eq: lo.ToPtr(TestSubjectID)}},
 	})
 
 	require.NoError(err)
@@ -210,7 +212,7 @@ func (s *RepositoryTestSuite) TestFilterEventBySubject(t *testing.T) {
 
 	listedEvents, err = repo.ListEvents(ctx, notification.ListEventsInput{
 		Namespaces: []string{s.namespace},
-		Subjects:   []string{TestSubjectID},
+		SubjectKey: &filter.FilterString{Eq: lo.ToPtr(TestSubjectKey)},
 	})
 
 	require.NoError(err)
@@ -219,7 +221,7 @@ func (s *RepositoryTestSuite) TestFilterEventBySubject(t *testing.T) {
 
 	listedEvents, err = repo.ListEvents(ctx, notification.ListEventsInput{
 		Namespaces: []string{s.namespace},
-		Subjects:   []string{"invalid-subject"},
+		SubjectKey: &filter.FilterString{Eq: lo.ToPtr("invalid-subject")},
 	})
 
 	require.NoError(err)
