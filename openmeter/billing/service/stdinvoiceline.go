@@ -27,6 +27,7 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 	for i := range input.Lines {
 		input.Lines[i].Namespace = input.Customer.Namespace
 		input.Lines[i].Currency = input.Currency
+		input.Lines[i].RateCardDiscounts = input.Lines[i].RateCardDiscounts.UpsertCorrelationIDs()
 
 		if input.Lines[i].ChargeID != nil && input.Lines[i].Engine == "" {
 			// Charge-backed pending lines must set their engine explicitly. Defaulting them

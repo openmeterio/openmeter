@@ -27,6 +27,7 @@ func (s *service) CreatePendingInvoiceLines(ctx context.Context, input charges.C
 	for i := range input.Lines {
 		input.Lines[i].Namespace = input.Customer.Namespace
 		input.Lines[i].Currency = input.Currency
+		input.Lines[i].RateCardDiscounts = input.Lines[i].RateCardDiscounts.UpsertCorrelationIDs()
 		if input.Lines[i].Engine == billing.LineEngineTypeInvoice {
 			input.Lines[i].Engine = ""
 		}

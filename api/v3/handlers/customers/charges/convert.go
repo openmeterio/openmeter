@@ -923,16 +923,13 @@ func fromAPICreateChargeFlatFeeRequest(namespace, customerID string, flatFee api
 		metadata = models.Metadata(*flatFee.Labels)
 	}
 
-	var discount *billing.PercentageDiscount
+	var percentageDiscount *productcatalog.PercentageDiscount
 	if flatFee.Discounts != nil && flatFee.Discounts.Percentage != nil {
-		discount = billing.Discounts{
-			Percentage: &billing.PercentageDiscount{
-				PercentageDiscount: productcatalog.PercentageDiscount{
-					Percentage: models.NewPercentage(float64(lo.FromPtr(flatFee.Discounts.Percentage))),
-				},
-			},
-		}.UpsertCorrelationIDs().Percentage
+		percentageDiscount = &productcatalog.PercentageDiscount{
+			Percentage: models.NewPercentage(float64(lo.FromPtr(flatFee.Discounts.Percentage))),
+		}
 	}
+	billingDiscount := billing.PercentageDiscountFromProductCatalog(percentageDiscount)
 
 	var proRating productcatalog.ProRatingConfig
 	if flatFee.ProrationConfiguration.Mode == api.BillingRateCardProrationModeProratePrices {
@@ -975,7 +972,7 @@ func fromAPICreateChargeFlatFeeRequest(namespace, customerID string, flatFee api
 				},
 				InvoiceAt:             flatFee.InvoiceAt,
 				PaymentTerm:           productcatalog.PaymentTermType(flatFee.PaymentTerm),
-				PercentageDiscounts:   discount,
+				PercentageDiscounts:   billingDiscount,
 				ProRating:             proRating,
 				AmountBeforeProration: amountBeforeProration,
 			},
@@ -998,13 +995,11 @@ func fromAPICreateChargeUsageBasedRequest(namespace, customerID string, usageBas
 		metadata = models.Metadata(*usageBasedFee.Labels)
 	}
 
-	var discounts billing.Discounts
+	var discounts productcatalog.Discounts
 	if usageBasedFee.Discounts != nil {
 		if usageBasedFee.Discounts.Percentage != nil {
-			discounts.Percentage = &billing.PercentageDiscount{
-				PercentageDiscount: productcatalog.PercentageDiscount{
-					Percentage: models.NewPercentage(float64(lo.FromPtr(usageBasedFee.Discounts.Percentage))),
-				},
+			discounts.Percentage = &productcatalog.PercentageDiscount{
+				Percentage: models.NewPercentage(float64(lo.FromPtr(usageBasedFee.Discounts.Percentage))),
 			}
 		}
 		if usageBasedFee.Discounts.Usage != nil {
@@ -1012,14 +1007,12 @@ func fromAPICreateChargeUsageBasedRequest(namespace, customerID string, usageBas
 			if err != nil {
 				return zero, fmt.Errorf("invalid usage discount quantity: %w", err)
 			}
-			discounts.Usage = &billing.UsageDiscount{
-				UsageDiscount: productcatalog.UsageDiscount{
-					Quantity: quantity,
-				},
+			discounts.Usage = &productcatalog.UsageDiscount{
+				Quantity: quantity,
 			}
 		}
-		discounts = discounts.UpsertCorrelationIDs()
 	}
+	billingDiscounts := billing.DiscountsFromProductCatalog(discounts)
 
 	price, err := plans.FromAPIBillingPriceUsageBased(usageBasedFee.Price, usageBasedFee.Commitments)
 	if err != nil {
@@ -1058,7 +1051,7 @@ func fromAPICreateChargeUsageBasedRequest(namespace, customerID string, usageBas
 				},
 				InvoiceAt:  usageBasedFee.InvoiceAt,
 				Price:      *price,
-				Discounts:  discounts,
+				Discounts:  billingDiscounts,
 				UnitConfig: unitConfig,
 			},
 			FeatureID:      usageBasedFee.Feature.Id,
