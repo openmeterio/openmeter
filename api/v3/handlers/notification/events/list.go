@@ -96,7 +96,7 @@ func (h *handler) ListNotificationEvents() ListNotificationEventsHandler {
 			}
 
 			items, err := lo.MapErr(result.Items, func(item notification.Event, _ int) (api.BillingNotificationEvent, error) {
-				return ToAPIEvent(item)
+				return ToAPIBillingNotificationEvent(item)
 			})
 			if err != nil {
 				return ListNotificationEventsResponse{}, err
@@ -167,7 +167,7 @@ func applyAPIEventFilters(ctx context.Context, req *ListNotificationEventsReques
 		return badRequest("filter[delivery_status]", err)
 	}
 	deliveryStatus, err = deliveryStatus.Map(func(v string) (string, error) {
-		domain, err := ToDomainDeliveryState(api.BillingNotificationEventDeliveryState(v))
+		domain, err := FromAPIBillingNotificationEventDeliveryState(api.BillingNotificationEventDeliveryState(v))
 		return string(domain), err
 	})
 	if err != nil {

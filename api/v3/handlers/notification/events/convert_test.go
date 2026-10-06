@@ -45,7 +45,7 @@ func TestFromAPIEventSortField(t *testing.T) {
 }
 
 // TestEventTypeWireEqualsDomain pins that the v3 enum reuses the domain values, which is
-// what lets ToAPIEvent cast between the two types instead of mapping them.
+// what lets ToAPIBillingNotificationEvent cast between the two types instead of mapping them.
 func TestEventTypeWireEqualsDomain(t *testing.T) {
 	testCases := []struct {
 		wire   api.BillingNotificationEventType
@@ -78,23 +78,23 @@ func TestDeliveryStateCasing(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(string(tc.wire), func(t *testing.T) {
-			domain, err := ToDomainDeliveryState(tc.wire)
+			domain, err := FromAPIBillingNotificationEventDeliveryState(tc.wire)
 			require.NoError(t, err)
 			assert.Equal(t, tc.domain, domain)
 
-			wire, err := ToAPIDeliveryState(tc.domain)
+			wire, err := ToAPIBillingNotificationEventDeliveryState(tc.domain)
 			require.NoError(t, err)
 			assert.Equal(t, tc.wire, wire)
 		})
 	}
 
 	t.Run("uppercase wire value is rejected", func(t *testing.T) {
-		_, err := ToDomainDeliveryState(api.BillingNotificationEventDeliveryState("FAILED"))
+		_, err := FromAPIBillingNotificationEventDeliveryState(api.BillingNotificationEventDeliveryState("FAILED"))
 		require.Error(t, err)
 	})
 }
 
-func TestToAPIBalanceThresholdType(t *testing.T) {
+func TestToAPIBillingNotificationBalanceThresholdType(t *testing.T) {
 	testCases := []struct {
 		in   v1api.NotificationRuleBalanceThresholdValueType
 		want api.BillingNotificationBalanceThresholdType
@@ -108,19 +108,19 @@ func TestToAPIBalanceThresholdType(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(string(tc.in), func(t *testing.T) {
-			got, err := ToAPIBalanceThresholdType(tc.in)
+			got, err := ToAPIBillingNotificationBalanceThresholdType(tc.in)
 			require.NoError(t, err)
 			assert.Equal(t, tc.want, got)
 		})
 	}
 
 	t.Run("unknown value is rejected", func(t *testing.T) {
-		_, err := ToAPIBalanceThresholdType(v1api.NotificationRuleBalanceThresholdValueType("nonsense"))
+		_, err := ToAPIBillingNotificationBalanceThresholdType(v1api.NotificationRuleBalanceThresholdValueType("nonsense"))
 		require.Error(t, err)
 	})
 }
 
-func TestToAPIEvent_BalanceThreshold(t *testing.T) {
+func TestToAPIBillingNotificationEvent_BalanceThreshold(t *testing.T) {
 	createdAt := time.Date(2024, 5, 1, 12, 0, 0, 0, time.UTC)
 
 	event := notification.Event{
@@ -156,7 +156,7 @@ func TestToAPIEvent_BalanceThreshold(t *testing.T) {
 		},
 	}
 
-	got, err := ToAPIEvent(event)
+	got, err := ToAPIBillingNotificationEvent(event)
 	require.NoError(t, err)
 
 	assert.Equal(t, event.ID, got.Id)
@@ -192,7 +192,7 @@ func TestToAPIEvent_BalanceThreshold(t *testing.T) {
 	assert.Equal(t, 90.0, payload.Data.Threshold.Value)
 }
 
-func TestToAPIEvent_EntitlementReset(t *testing.T) {
+func TestToAPIBillingNotificationEvent_EntitlementReset(t *testing.T) {
 	event := notification.Event{
 		NamespacedID: models.NamespacedID{Namespace: "ns", ID: "01ARZ3NDEKTSV4RRFFQ69G5FAV"},
 		Type:         notification.EventTypeEntitlementReset,
@@ -212,7 +212,7 @@ func TestToAPIEvent_EntitlementReset(t *testing.T) {
 		},
 	}
 
-	got, err := ToAPIEvent(event)
+	got, err := ToAPIBillingNotificationEvent(event)
 	require.NoError(t, err)
 
 	payload, err := got.Payload.AsBillingNotificationEventResetPayload()
@@ -226,7 +226,7 @@ func TestToAPIEvent_EntitlementReset(t *testing.T) {
 	assert.Nil(t, payload.Data.CustomerId)
 }
 
-func TestToAPIEvent_InvoiceCreated(t *testing.T) {
+func TestToAPIBillingNotificationEvent_InvoiceCreated(t *testing.T) {
 	event := notification.Event{
 		NamespacedID: models.NamespacedID{Namespace: "ns", ID: "01ARZ3NDEKTSV4RRFFQ69G5FAV"},
 		Type:         notification.EventTypeInvoiceCreated,
@@ -252,7 +252,7 @@ func TestToAPIEvent_InvoiceCreated(t *testing.T) {
 		},
 	}
 
-	got, err := ToAPIEvent(event)
+	got, err := ToAPIBillingNotificationEvent(event)
 	require.NoError(t, err)
 
 	payload, err := got.Payload.AsBillingNotificationEventInvoiceCreatedPayload()
@@ -267,7 +267,7 @@ func TestToAPIEvent_InvoiceCreated(t *testing.T) {
 	assert.Equal(t, "123.45", payload.Data.Total)
 }
 
-func TestToAPIEvent_MissingPayloadIsRejected(t *testing.T) {
+func TestToAPIBillingNotificationEvent_MissingPayloadIsRejected(t *testing.T) {
 	event := notification.Event{
 		NamespacedID: models.NamespacedID{Namespace: "ns", ID: "01ARZ3NDEKTSV4RRFFQ69G5FAV"},
 		Type:         notification.EventTypeBalanceThreshold,
@@ -277,19 +277,19 @@ func TestToAPIEvent_MissingPayloadIsRejected(t *testing.T) {
 		},
 	}
 
-	_, err := ToAPIEvent(event)
+	_, err := ToAPIBillingNotificationEvent(event)
 	require.Error(t, err)
 }
 
-// TestToAPIDeliveryStatuses covers the two behaviors that differ from v1: the channel is
+// TestToAPIBillingNotificationEventDeliveryStatuses covers the two behaviors that differ from v1: the channel is
 // reported by id only (no lookup into the rule's channel list), and attempts come back
 // newest first.
-func TestToAPIDeliveryStatuses(t *testing.T) {
+func TestToAPIBillingNotificationEventDeliveryStatuses(t *testing.T) {
 	older := time.Date(2024, 5, 1, 10, 0, 0, 0, time.UTC)
 	newer := time.Date(2024, 5, 1, 11, 0, 0, 0, time.UTC)
 	nextAttempt := time.Date(2024, 5, 1, 12, 0, 0, 0, time.UTC)
 
-	got, err := ToAPIDeliveryStatuses([]notification.EventDeliveryStatus{
+	got, err := ToAPIBillingNotificationEventDeliveryStatuses([]notification.EventDeliveryStatus{
 		{
 			ChannelID:   "01ARZ3NDEKTSV4RRFFQ69G5FAV",
 			State:       notification.EventDeliveryStatusStateFailed,

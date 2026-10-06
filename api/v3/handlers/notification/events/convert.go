@@ -31,7 +31,7 @@ func FromAPIEventSortField(ctx context.Context, field string) (notification.Orde
 
 // The v3 wire value is lowercase ("failed") while the column keeps the uppercase value
 // written by v1 ("FAILED").
-func ToDomainDeliveryState(v api.BillingNotificationEventDeliveryState) (notification.EventDeliveryStatusState, error) {
+func FromAPIBillingNotificationEventDeliveryState(v api.BillingNotificationEventDeliveryState) (notification.EventDeliveryStatusState, error) {
 	switch v {
 	case api.BillingNotificationEventDeliveryStateSuccess:
 		return notification.EventDeliveryStatusStateSuccess, nil
@@ -48,7 +48,7 @@ func ToDomainDeliveryState(v api.BillingNotificationEventDeliveryState) (notific
 	}
 }
 
-func ToAPIDeliveryState(v notification.EventDeliveryStatusState) (api.BillingNotificationEventDeliveryState, error) {
+func ToAPIBillingNotificationEventDeliveryState(v notification.EventDeliveryStatusState) (api.BillingNotificationEventDeliveryState, error) {
 	switch v {
 	case notification.EventDeliveryStatusStateSuccess:
 		return api.BillingNotificationEventDeliveryStateSuccess, nil
@@ -68,7 +68,7 @@ func ToAPIDeliveryState(v notification.EventDeliveryStatusState) (api.BillingNot
 // The stored value is the v1 API model, where `NUMBER` and `PERCENT` are deprecated
 // aliases of `usage_value` and `usage_percentage`; events written before the rename
 // must not leak the legacy spelling.
-func ToAPIBalanceThresholdType(v v1api.NotificationRuleBalanceThresholdValueType) (api.BillingNotificationBalanceThresholdType, error) {
+func ToAPIBillingNotificationBalanceThresholdType(v v1api.NotificationRuleBalanceThresholdValueType) (api.BillingNotificationBalanceThresholdType, error) {
 	switch v {
 	case v1api.NotificationRuleBalanceThresholdValueTypeBalanceValue:
 		return api.BillingNotificationBalanceThresholdTypeBalanceValue, nil
@@ -83,8 +83,8 @@ func ToAPIBalanceThresholdType(v v1api.NotificationRuleBalanceThresholdValueType
 	}
 }
 
-func ToAPIEvent(e notification.Event) (api.BillingNotificationEvent, error) {
-	deliveryStatus, err := ToAPIDeliveryStatuses(e.DeliveryStatus)
+func ToAPIBillingNotificationEvent(e notification.Event) (api.BillingNotificationEvent, error) {
+	deliveryStatus, err := ToAPIBillingNotificationEventDeliveryStatuses(e.DeliveryStatus)
 	if err != nil {
 		return api.BillingNotificationEvent{}, err
 	}
@@ -110,16 +110,16 @@ func ToAPIEvent(e notification.Event) (api.BillingNotificationEvent, error) {
 
 // Unlike v1, the channel is reported by id only, so a channel that has since been
 // disabled or deleted is still reported.
-func ToAPIDeliveryStatuses(statuses []notification.EventDeliveryStatus) ([]api.BillingNotificationEventDeliveryStatus, error) {
+func ToAPIBillingNotificationEventDeliveryStatuses(statuses []notification.EventDeliveryStatus) ([]api.BillingNotificationEventDeliveryStatus, error) {
 	result := make([]api.BillingNotificationEventDeliveryStatus, 0, len(statuses))
 
 	for _, status := range statuses {
-		state, err := ToAPIDeliveryState(status.State)
+		state, err := ToAPIBillingNotificationEventDeliveryState(status.State)
 		if err != nil {
 			return nil, err
 		}
 
-		attempts, err := ToAPIDeliveryAttempts(status.Attempts)
+		attempts, err := ToAPIBillingNotificationEventDeliveryAttempts(status.Attempts)
 		if err != nil {
 			return nil, err
 		}
@@ -137,13 +137,13 @@ func ToAPIDeliveryStatuses(statuses []notification.EventDeliveryStatus) ([]api.B
 	return result, nil
 }
 
-func ToAPIDeliveryAttempts(attempts []notification.EventDeliveryAttempt) ([]api.BillingNotificationEventDeliveryAttempt, error) {
+func ToAPIBillingNotificationEventDeliveryAttempts(attempts []notification.EventDeliveryAttempt) ([]api.BillingNotificationEventDeliveryAttempt, error) {
 	notification.SortEventDeliveryAttemptsInDescOrder(attempts)
 
 	result := make([]api.BillingNotificationEventDeliveryAttempt, 0, len(attempts))
 
 	for _, attempt := range attempts {
-		state, err := ToAPIDeliveryState(attempt.State)
+		state, err := ToAPIBillingNotificationEventDeliveryState(attempt.State)
 		if err != nil {
 			return nil, err
 		}
@@ -177,7 +177,7 @@ func setAPIEventPayload(event *api.BillingNotificationEvent, e notification.Even
 			return fmt.Errorf("missing balance threshold payload on notification event %s", e.ID)
 		}
 
-		thresholdType, err := ToAPIBalanceThresholdType(e.Payload.BalanceThreshold.Threshold.Type)
+		thresholdType, err := ToAPIBillingNotificationBalanceThresholdType(e.Payload.BalanceThreshold.Threshold.Type)
 		if err != nil {
 			return err
 		}

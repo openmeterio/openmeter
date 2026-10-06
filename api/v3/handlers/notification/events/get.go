@@ -42,7 +42,7 @@ func (h *handler) GetNotificationEvent() GetNotificationEventHandler {
 				return GetNotificationEventResponse{}, fmt.Errorf("failed to get notification event: nil event returned")
 			}
 
-			return ToAPIEvent(*event)
+			return ToAPIBillingNotificationEvent(*event)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[GetNotificationEventResponse](http.StatusOK),
 		httptransport.AppendOptions(
