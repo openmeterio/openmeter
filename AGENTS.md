@@ -69,6 +69,9 @@
 
 ## Testing conventions
 
+- Meter and feature-cost queries grouped by `customer_id` require a customer
+  filter to resolve usage attribution. Include the filter in e2e fixtures;
+  creating a customer with subject keys alone does not satisfy this requirement.
 - PostgreSQL-backed tests require PostgreSQL and
   `POSTGRES_HOST=127.0.0.1`; otherwise many suites silently skip.
 - Root-package tests using `confluent-kafka-go` require `-tags=dynamic`. The
