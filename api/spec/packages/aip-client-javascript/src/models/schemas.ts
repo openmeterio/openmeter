@@ -9426,6 +9426,14 @@ export const queryFeatureCostBody = meterQueryRequest
 
 export const queryFeatureCostResponse = featureCostQueryResult
 
+export const queryFeatureCostCsvPathParams = z.object({
+  featureId: ulid,
+})
+
+export const queryFeatureCostCsvBody = meterQueryRequest
+
+export const queryFeatureCostCsvResponse = z.string()
+
 export const listLlmCostPricesQueryParams = z.object({
   filter: listLlmCostPricesParamsFilter.optional(),
   sort: sortQuery.optional(),
@@ -19275,6 +19283,14 @@ export const queryFeatureCostPathParamsWire = z.object({
 export const queryFeatureCostBodyWire = meterQueryRequestWire
 
 export const queryFeatureCostResponseWire = featureCostQueryResultWire
+
+export const queryFeatureCostCsvPathParamsWire = z.object({
+  featureId: ulidWire,
+})
+
+export const queryFeatureCostCsvBodyWire = meterQueryRequestWire
+
+export const queryFeatureCostCsvResponseWire = z.string()
 
 export const listLlmCostPricesQueryParamsWire = z.object({
   filter: listLlmCostPricesParamsFilterWire.optional(),

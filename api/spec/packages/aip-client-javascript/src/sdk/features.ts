@@ -10,6 +10,7 @@ import {
   updateFeature,
   deleteFeature,
   queryFeatureCost,
+  queryFeatureCostCsv,
 } from '../funcs/features.js'
 import type {
   ListFeaturesRequest,
@@ -24,6 +25,8 @@ import type {
   DeleteFeatureResponse,
   QueryFeatureCostRequest,
   QueryFeatureCostResponse,
+  QueryFeatureCostCsvRequest,
+  QueryFeatureCostCsvResponse,
 } from '../models/operations/features.js'
 import type { Feature } from '../models/types.js'
 
@@ -125,6 +128,16 @@ export class Features {
    *
    * Query the cost of a feature.
    *
+   * Set `Accept: application/json` (the default) for JSON, or `Accept: text/csv` to
+   * download a CSV file. CSV columns, in order:
+   *
+   * `from, to, [subject,] [customer_id, customer_key, customer_name,] <dimensions...>, usage, cost, currency, detail`
+   *
+   * Subject and customer columns are included when the query groups by those
+   * dimensions, including grouping implied by their filters. Other dimensions follow
+   * the query's grouping order. Unavailable cost is an empty cell, not zero. Detail
+   * is retained for both unavailable and partially priced costs.
+   *
    * POST /openmeter/features/{featureId}/cost/query
    */
   async queryCost(
@@ -132,5 +145,13 @@ export class Features {
     options?: RequestOptions,
   ): Promise<QueryFeatureCostResponse> {
     return unwrap(await queryFeatureCost(this._client, request, options))
+  }
+
+  /** POST /openmeter/features/{featureId}/cost/query */
+  async queryCostCsv(
+    request: QueryFeatureCostCsvRequest,
+    options?: RequestOptions,
+  ): Promise<QueryFeatureCostCsvResponse> {
+    return unwrap(await queryFeatureCostCsv(this._client, request, options))
   }
 }
