@@ -820,7 +820,7 @@ func mapRateCardFromAPI(rc api.UpdateInvoiceLineRateCard) (*productcatalog.Price
 	// fallback.
 	pcTaxConfig, err := addons.FromAPITaxCodeConfig(fromAPIUpdateTaxCodeConfig(rc.TaxConfig))
 	if err != nil {
-		return nil, nil, "", billing.Discounts{}, billing.ValidationError{
+		return nil, nil, "", productcatalog.Discounts{}, billing.ValidationError{
 			Err: fmt.Errorf("mapping tax config: %w", err),
 		}
 	}

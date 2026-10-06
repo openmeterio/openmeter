@@ -366,7 +366,7 @@ type DiscountReason struct {
 	usage      *UsageDiscount
 }
 
-func NewDiscountReasonFrom[T PercentageDiscount | UsageDiscount | productcatalog.PercentageDiscount | productcatalog.UsageDiscount | MaximumSpendDiscount](in T) DiscountReason {
+func NewDiscountReasonFrom[T PercentageDiscount | UsageDiscount | MaximumSpendDiscount](in T) DiscountReason {
 	switch d := any(in).(type) {
 	case PercentageDiscount:
 		percentage := any(d).(PercentageDiscount)
@@ -374,27 +374,11 @@ func NewDiscountReasonFrom[T PercentageDiscount | UsageDiscount | productcatalog
 			t:          RatecardPercentageDiscountReason,
 			percentage: &percentage,
 		}
-	case productcatalog.PercentageDiscount:
-		percentage := any(d).(productcatalog.PercentageDiscount)
-		return DiscountReason{
-			t: RatecardPercentageDiscountReason,
-			percentage: &PercentageDiscount{
-				PercentageDiscount: percentage,
-			},
-		}
 	case UsageDiscount:
 		usage := any(d).(UsageDiscount)
 		return DiscountReason{
 			t:     RatecardUsageDiscountReason,
 			usage: &usage,
-		}
-	case productcatalog.UsageDiscount:
-		usage := any(d).(productcatalog.UsageDiscount)
-		return DiscountReason{
-			t: RatecardUsageDiscountReason,
-			usage: &UsageDiscount{
-				UsageDiscount: usage,
-			},
 		}
 	case MaximumSpendDiscount:
 		return DiscountReason{

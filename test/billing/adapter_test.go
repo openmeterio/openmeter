@@ -388,8 +388,11 @@ func (s *BillingAdapterTestSuite) TestInvoiceLineReadFiltersCrossNamespaceOption
 				Amount: alpacadecimal.NewFromInt(10),
 				LineDiscountBase: billing.LineDiscountBase{
 					Description: lo.ToPtr("detail discount"),
-					Reason: billing.NewDiscountReasonFrom(productcatalog.PercentageDiscount{
-						Percentage: models.NewPercentage(10),
+					Reason: billing.NewDiscountReasonFrom(billing.PercentageDiscount{
+						PercentageDiscount: productcatalog.PercentageDiscount{
+							Percentage: models.NewPercentage(10),
+						},
+						CorrelationID: "detail-discount",
 					}),
 				},
 			},
@@ -969,8 +972,11 @@ func (s *BillingAdapterTestSuite) TestDiscountHandling() {
 				Amount: alpacadecimal.NewFromFloat(30),
 				LineDiscountBase: billing.LineDiscountBase{
 					Description: lo.ToPtr(manualDiscountName),
-					Reason: billing.NewDiscountReasonFrom(productcatalog.PercentageDiscount{
-						Percentage: models.NewPercentage(10),
+					Reason: billing.NewDiscountReasonFrom(billing.PercentageDiscount{
+						PercentageDiscount: productcatalog.PercentageDiscount{
+							Percentage: models.NewPercentage(10),
+						},
+						CorrelationID: "manual-discount-3",
 					}),
 				},
 			},
@@ -1044,8 +1050,11 @@ func (s *BillingAdapterTestSuite) TestDiscountHandling() {
 				Amount: alpacadecimal.NewFromFloat(40),
 				LineDiscountBase: billing.LineDiscountBase{
 					Description: lo.ToPtr("Test Discount 3 - updated"),
-					Reason: billing.NewDiscountReasonFrom(productcatalog.PercentageDiscount{
-						Percentage: models.NewPercentage(10),
+					Reason: billing.NewDiscountReasonFrom(billing.PercentageDiscount{
+						PercentageDiscount: productcatalog.PercentageDiscount{
+							Percentage: models.NewPercentage(10),
+						},
+						CorrelationID: "manual-discount-3",
 					}),
 				},
 			},
@@ -1055,8 +1064,11 @@ func (s *BillingAdapterTestSuite) TestDiscountHandling() {
 				Amount: alpacadecimal.NewFromFloat(50),
 				LineDiscountBase: billing.LineDiscountBase{
 					Description: lo.ToPtr("Test Discount 4 - manual"),
-					Reason: billing.NewDiscountReasonFrom(productcatalog.PercentageDiscount{
-						Percentage: models.NewPercentage(20),
+					Reason: billing.NewDiscountReasonFrom(billing.PercentageDiscount{
+						PercentageDiscount: productcatalog.PercentageDiscount{
+							Percentage: models.NewPercentage(20),
+						},
+						CorrelationID: "manual-discount-4",
 					}),
 				},
 			},
