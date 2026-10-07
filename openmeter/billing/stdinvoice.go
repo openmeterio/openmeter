@@ -356,8 +356,10 @@ func (i StandardInvoiceBase) GetCustomerID() customer.CustomerID {
 	}
 }
 
-var _ GenericInvoice = (*StandardInvoice)(nil)
-var _ ValidationIssueAppender = (*StandardInvoice)(nil)
+var (
+	_ GenericInvoice          = (*StandardInvoice)(nil)
+	_ ValidationIssueAppender = (*StandardInvoice)(nil)
+)
 
 type StandardInvoice struct {
 	StandardInvoiceBase `json:",inline"`

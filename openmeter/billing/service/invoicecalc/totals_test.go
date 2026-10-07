@@ -1,12 +1,14 @@
 package invoicecalc
 
 import (
-	"github.com/alpacahq/alpacadecimal"
-	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
-	"github.com/stretchr/testify/require"
 	"testing"
 	"time"
+
+	"github.com/alpacahq/alpacadecimal"
+	"github.com/stretchr/testify/require"
+
+	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 )
 
 func TestRecalculateTotalsAggregatesExistingLinesWithoutLineEngines(t *testing.T) {

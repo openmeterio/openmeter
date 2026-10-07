@@ -2,9 +2,11 @@ package invoicecalc
 
 import (
 	"errors"
+
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
-	"github.com/samber/lo"
 )
 
 // RecalculateTotals aggregates already-calculated standard lines without
