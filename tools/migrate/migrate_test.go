@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"net/url"
 	"slices"
 	"strings"
 	"testing"
@@ -216,4 +217,25 @@ func (r runner) purgeDB(t *testing.T, db *testutils.TestDB) {
 
 	err = tx.Commit()
 	require.NoError(t, err)
+}
+
+func TestNewWithPoolMaxConns(t *testing.T) {
+	// given a database URL that configures the application's pgx pool
+	testDB := testutils.InitPostgresDB(t, testutils.PostgresDBStateEmpty)
+	defer testDB.PGDriver.Close()
+
+	connectionURL, err := url.Parse(testDB.URL)
+	require.NoError(t, err)
+	query := connectionURL.Query()
+	query.Set("pool_max_conns", "64")
+	connectionURL.RawQuery = query.Encode()
+
+	// when the same URL is used by the migration client
+	migrator, err := migrate.New(migrate.MigrateOptions{
+		ConnectionString: connectionURL.String(),
+		Migrations:       migrate.OMMigrationsConfig,
+		Logger:           testutils.NewLogger(t),
+	})
+	require.NoError(t, err)
+	defer migrator.CloseOrLogError()
 }
