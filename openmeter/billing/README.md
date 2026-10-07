@@ -24,6 +24,14 @@ invoicing, and payment. A namespace has one default profile. A customer
 override may select another profile and replace supported parts of its
 workflow.
 
+Installing a Custom Invoicing app with automatic profile creation uses Cloud's
+initial Auto Collection preset: the installed app handles tax, invoicing, and
+payment, with the standard billing workflow and an OpenMeter supplier in the US
+(postal code 94114). This supplier is a placeholder that callers can edit. The
+profile is not made the namespace default, even when no default exists. App
+installation and profile creation commit together; profile creation failures
+roll back the installation.
+
 The merged customer configuration is resolved when a standard invoice is
 created. The invoice keeps the customer, supplier, workflow configuration, and
 app references needed to finish its lifecycle. Customer-visible invoice

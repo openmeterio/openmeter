@@ -1082,7 +1082,7 @@ export const installAppStripeWithApiKey = z
       .boolean()
 
       .describe(
-        'If true, a billing profile will be created for the app. The Stripe app will be also set as the default billing profile if the current default is a Sandbox app. Automatic billing profile creation is not supported for External Invoicing apps. Set this to false and create a profile separately.',
+        'If true, a billing profile will be created for the app. The Stripe app will be also set as the default billing profile if the current default is a Sandbox app.',
       ),
     apiKey: z.string().describe('API key for the app.'),
   })
@@ -1096,7 +1096,7 @@ export const installAppSandbox = z
       .boolean()
 
       .describe(
-        'If true, a billing profile will be created for the app. The Stripe app will be also set as the default billing profile if the current default is a Sandbox app. Automatic billing profile creation is not supported for External Invoicing apps. Set this to false and create a profile separately.',
+        'If true, a billing profile will be created for the app. The Stripe app will be also set as the default billing profile if the current default is a Sandbox app.',
       ),
   })
   .describe('Base model for installing an app from the catalog.')
@@ -1109,10 +1109,10 @@ export const installAppExternalInvoicing = z
       .boolean()
 
       .describe(
-        'If true, a billing profile will be created for the app. The Stripe app will be also set as the default billing profile if the current default is a Sandbox app. Automatic billing profile creation is not supported for External Invoicing apps. Set this to false and create a profile separately.',
+        'If true, creates the Auto Collection preset with an OpenMeter supplier in the US (postal code 94114), without replacing the default profile.',
       ),
   })
-  .describe('Base model for installing an app from the catalog.')
+  .describe('Model for installing an External Invoicing app from the catalog.')
 
 export const workflowCollectionAlignmentSubscription = z
   .object({
@@ -10443,7 +10443,7 @@ export const installAppStripeWithApiKeyWire = z
       .boolean()
 
       .describe(
-        'If true, a billing profile will be created for the app. The Stripe app will be also set as the default billing profile if the current default is a Sandbox app. Automatic billing profile creation is not supported for External Invoicing apps. Set this to false and create a profile separately.',
+        'If true, a billing profile will be created for the app. The Stripe app will be also set as the default billing profile if the current default is a Sandbox app.',
       ),
     api_key: z.string().describe('API key for the app.'),
   })
@@ -10457,7 +10457,7 @@ export const installAppSandboxWire = z
       .boolean()
 
       .describe(
-        'If true, a billing profile will be created for the app. The Stripe app will be also set as the default billing profile if the current default is a Sandbox app. Automatic billing profile creation is not supported for External Invoicing apps. Set this to false and create a profile separately.',
+        'If true, a billing profile will be created for the app. The Stripe app will be also set as the default billing profile if the current default is a Sandbox app.',
       ),
   })
   .describe('Base model for installing an app from the catalog.')
@@ -10470,10 +10470,10 @@ export const installAppExternalInvoicingWire = z
       .boolean()
 
       .describe(
-        'If true, a billing profile will be created for the app. The Stripe app will be also set as the default billing profile if the current default is a Sandbox app. Automatic billing profile creation is not supported for External Invoicing apps. Set this to false and create a profile separately.',
+        'If true, creates the Auto Collection preset with an OpenMeter supplier in the US (postal code 94114), without replacing the default profile.',
       ),
   })
-  .describe('Base model for installing an app from the catalog.')
+  .describe('Model for installing an External Invoicing app from the catalog.')
 
 export const workflowCollectionAlignmentSubscriptionWire = z
   .strictObject({

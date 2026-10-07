@@ -1,4 +1,4 @@
-// Package billingprofile provisions the default billing profile created when an app
+// Package billingprofile provisions the billing profile created when an app
 // is installed with CreateDefaultBillingProfile set. It is shared by every HTTP driver
 // that installs apps (currently the v1 marketplace endpoints and the v3 apps endpoint)
 // so the provisioning rules stay identical across API versions.
@@ -16,7 +16,8 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-// CreateDefault creates a default billing profile for the installed app based on its type.
+// CreateDefault creates a billing profile for the installed app based on its type.
+// Custom Invoicing profiles preserve the namespace default, matching Cloud.
 // Assign it to app.InstallAppV3Input.CreateDefaultBillingProfileFn (bound to concrete
 // billingService/stripeAppService instances) to enable CreateDefaultBillingProfile.
 func CreateDefault(ctx context.Context, billingService billing.Service, stripeAppService appstripe.Service, installedApp app.App) ([]app.CapabilityType, error) {
@@ -28,13 +29,14 @@ func CreateDefault(ctx context.Context, billingService billing.Service, stripeAp
 		if err := billingService.ProvisionDefaultBillingProfile(ctx, namespace); err != nil {
 			return nil, fmt.Errorf("provision default billing profile: %w", err)
 		}
+
 		return []app.CapabilityType{
 			app.CapabilityTypeCalculateTax,
 			app.CapabilityTypeInvoiceCustomers,
 			app.CapabilityTypeCollectPayments,
 		}, nil
 	case app.AppTypeCustomInvoicing:
-		return nil, models.NewGenericValidationError(app.ErrCustomInvoicingAutoProvisioningUnsupported)
+		return makeCustomInvoicingBillingProfile(ctx, billingService, installedApp)
 	default:
 		return nil, fmt.Errorf("unknown app type: %s", installedApp.GetType())
 	}
@@ -95,4 +97,34 @@ func makeStripeDefaultBillingApp(ctx context.Context, billingService billing.Ser
 	}
 
 	return defaultForCapabilityTypes, nil
+}
+
+// makeCustomInvoicingBillingProfile matches Cloud's initial Auto Collection preset.
+// Its placeholder supplier can be edited later; creating the profile does not replace
+// the namespace's default profile.
+func makeCustomInvoicingBillingProfile(ctx context.Context, billingService billing.Service, installedApp app.App) ([]app.CapabilityType, error) {
+	appID := installedApp.GetID()
+	_, err := billingService.CreateProfile(ctx, billing.CreateProfileInput{
+		Namespace: appID.Namespace,
+		Name:      installedApp.GetName() + " (Auto Collection)",
+		Default:   false,
+		Supplier: billing.SupplierContact{
+			Name: "OpenMeter",
+			Address: models.Address{
+				Country:    lo.ToPtr(models.CountryCode("US")),
+				PostalCode: lo.ToPtr("94114"),
+			},
+		},
+		WorkflowConfig: billing.DefaultWorkflowConfig,
+		Apps: billing.ProfileAppReferences{
+			Tax:       appID,
+			Invoicing: appID,
+			Payment:   appID,
+		},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("create billing profile for custom invoicing app %s: %w", appID.ID, err)
+	}
+
+	return []app.CapabilityType{}, nil
 }

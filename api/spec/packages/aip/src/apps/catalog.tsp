@@ -106,7 +106,7 @@ union InstallAppRequest {
   sandbox: InstallAppBase<AppType.Sandbox>,
 
   @summary("External Invoicing")
-  external_invoicing: InstallAppBase<AppType.ExternalInvoicing>,
+  external_invoicing: InstallAppExternalInvoicing,
 }
 
 /**
@@ -127,8 +127,23 @@ model InstallAppBase<T extends AppType> {
   /**
    * If true, a billing profile will be created for the app. The Stripe app will be
    * also set as the default billing profile if the current default is a Sandbox app.
-   * Automatic billing profile creation is not supported for External Invoicing apps.
-   * Set this to false and create a profile separately.
+   */
+  create_billing_profile: boolean;
+}
+
+/**
+ * Model for installing an External Invoicing app from the catalog.
+ */
+@friendlyName("BillingInstallAppExternalInvoicing")
+model InstallAppExternalInvoicing {
+  ...OmitProperties<
+    InstallAppBase<AppType.ExternalInvoicing>,
+    "create_billing_profile"
+  >;
+
+  /**
+   * If true, creates the Auto Collection preset with an OpenMeter supplier in the US
+   * (postal code 94114), without replacing the default profile.
    */
   create_billing_profile: boolean;
 }

@@ -9645,12 +9645,10 @@ components:
         create_billing_profile:
           type: boolean
           description: |-
-            If true, a billing profile will be created for the app. The Stripe app will be
-            also set as the default billing profile if the current default is a Sandbox app.
-            Automatic billing profile creation is not supported for External Invoicing apps.
-            Set this to false and create a profile separately.
+            If true, creates the Auto Collection preset with an OpenMeter supplier in the US
+            (postal code 94114), without replacing the default profile.
       additionalProperties: false
-      description: Base model for installing an app from the catalog.
+      description: Model for installing an External Invoicing app from the catalog.
     BillingInstallAppRequest:
       type: object
       oneOf:
@@ -9697,8 +9695,6 @@ components:
           description: |-
             If true, a billing profile will be created for the app. The Stripe app will be
             also set as the default billing profile if the current default is a Sandbox app.
-            Automatic billing profile creation is not supported for External Invoicing apps.
-            Set this to false and create a profile separately.
       additionalProperties: false
       description: Base model for installing an app from the catalog.
     BillingInstallAppStripeWithApiKey:
@@ -9722,8 +9718,6 @@ components:
           description: |-
             If true, a billing profile will be created for the app. The Stripe app will be
             also set as the default billing profile if the current default is a Sandbox app.
-            Automatic billing profile creation is not supported for External Invoicing apps.
-            Set this to false and create a profile separately.
         api_key:
           type: string
           format: password
