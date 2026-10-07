@@ -478,24 +478,6 @@ func (i *StandardInvoice) HasCriticalValidationIssues() bool {
 	return found
 }
 
-// HasLineSnapshotValidationIssueForComponent reports whether a line engine has
-// incomplete output because quantity snapshotting failed. Retry downgrades old
-// critical issues to warnings, but the lines remain incomplete until collection
-// clears the issue after a successful snapshot.
-func (i *StandardInvoice) HasLineSnapshotValidationIssueForComponent(component ComponentName) bool {
-	_, found := lo.Find(i.ValidationIssues, func(issue ValidationIssue) bool {
-		if issue.Component != component {
-			return false
-		}
-
-		return issue.Code == ErrInvoiceLineFeatureNotFound.Code ||
-			issue.Code == ErrInvoiceLineFeatureHasNoMeters.Code ||
-			issue.Code == ErrInvoiceLineSnapshotFailed.Code
-	})
-
-	return found
-}
-
 // RemoveMetaForCompare returns a copy of the invoice without the fields that are not relevant for higher level
 // tests that compare invoices. What gets removed:
 // - Line's DB state
