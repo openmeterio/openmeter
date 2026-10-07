@@ -472,7 +472,8 @@ jobs:
           make lint-helm
 
       - name: Validate commit messages
-        if: github.event_name == 'pull_request'
+        # Fork contributions are squash-merged, so their individual commit messages need not conform.
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
