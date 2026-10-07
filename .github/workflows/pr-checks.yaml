@@ -8,9 +8,7 @@ permissions:
   actions: read
   checks: read
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+# PR cancellation is ordered by run number in cancel-stale-pr-runs.yaml.
 
 jobs:
   migration-atlas-sum:
@@ -31,6 +29,9 @@ jobs:
 
       - name: Run atlas.sum check unit tests
         run: python3 -m unittest discover -s .github/tools/migrate -p 'test_*.py'
+
+      - name: Test PR run cancellation ordering
+        run: python3 -m unittest discover -s .github/tools/ci -p 'test_*.py'
 
       - name: Check atlas.sum is append-only
         # base.sha is always a hex SHA, but route it via env for consistency

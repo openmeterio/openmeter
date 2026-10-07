@@ -6,9 +6,7 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
+# PR cancellation is ordered by run number in cancel-stale-pr-runs.yaml.
 
 jobs:
   depot:
@@ -74,7 +72,7 @@ jobs:
     needs:
       - depot
       - fork
-    if: always()
+    if: always() && !cancelled()
     runs-on: ubuntu-24.04
 
     steps:
