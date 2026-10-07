@@ -341,15 +341,15 @@ export interface InstallAppSandbox {
   createBillingProfile: boolean
 }
 
-/** Base model for installing an app from the catalog. */
+/** Model for installing an External Invoicing app from the catalog. */
 export interface InstallAppExternalInvoicing {
   /** Type of the app. */
   type: 'external_invoicing'
   /** Name of the app. */
   name: string
   /**
-   * If true, a billing profile will be created for the app. The Stripe app will be
-   * also set as the default billing profile if the current default is a Sandbox app.
+   * If true, creates the Auto Collection preset with an OpenMeter supplier in the US
+   * (postal code 94114), without replacing the default profile.
    */
   createBillingProfile: boolean
 }

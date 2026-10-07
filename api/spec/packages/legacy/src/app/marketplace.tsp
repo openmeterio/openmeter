@@ -135,6 +135,8 @@ model MarketplaceInstallRequestPayload {
   /**
    * If true, a billing profile will be created for the app.
    * The Stripe app will be also set as the default billing profile if the current default is a Sandbox app.
+   * Custom Invoicing apps use the Auto Collection preset with an OpenMeter supplier
+   * in the US (postal code 94114), without replacing the default profile.
    */
   createBillingProfile?: boolean = true;
 }

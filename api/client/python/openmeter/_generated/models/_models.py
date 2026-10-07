@@ -7385,7 +7385,8 @@ class InstallWithApiKeyRequest(_Model):  # pylint: disable=docstring-keyword-sho
     :vartype name: str
     :ivar create_billing_profile: If true, a billing profile will be created for the app. The
      Stripe app will be also set as the default billing profile if the current default is a Sandbox
-     app.
+     app. Custom Invoicing apps use the Auto Collection preset with an OpenMeter supplier in the US
+     (postal code 94114), without replacing the default profile.
     :vartype create_billing_profile: bool
     :ivar api_key: The API key for the provider. For example, the Stripe API key. Required.
     :vartype api_key: str
@@ -7399,7 +7400,9 @@ class InstallWithApiKeyRequest(_Model):  # pylint: disable=docstring-keyword-sho
         name="createBillingProfile", visibility=["read", "create", "update", "delete", "query"]
     )
     """If true, a billing profile will be created for the app. The Stripe app will be also set as the
-     default billing profile if the current default is a Sandbox app."""
+     default billing profile if the current default is a Sandbox app. Custom Invoicing apps use the
+     Auto Collection preset with an OpenMeter supplier in the US (postal code 94114), without
+     replacing the default profile."""
     api_key: str = rest_field(name="apiKey", visibility=["read", "create", "update", "delete", "query"])
     """The API key for the provider. For example, the Stripe API key. Required."""
 
@@ -9510,7 +9513,8 @@ class MarketplaceInstallRequestPayload(_Model):  # pylint: disable=docstring-key
     :vartype name: str
     :ivar create_billing_profile: If true, a billing profile will be created for the app. The
      Stripe app will be also set as the default billing profile if the current default is a Sandbox
-     app.
+     app. Custom Invoicing apps use the Auto Collection preset with an OpenMeter supplier in the US
+     (postal code 94114), without replacing the default profile.
     :vartype create_billing_profile: bool
     """
 
@@ -9522,7 +9526,9 @@ class MarketplaceInstallRequestPayload(_Model):  # pylint: disable=docstring-key
         name="createBillingProfile", visibility=["read", "create", "update", "delete", "query"]
     )
     """If true, a billing profile will be created for the app. The Stripe app will be also set as the
-     default billing profile if the current default is a Sandbox app."""
+     default billing profile if the current default is a Sandbox app. Custom Invoicing apps use the
+     Auto Collection preset with an OpenMeter supplier in the US (postal code 94114), without
+     replacing the default profile."""
 
     @overload
     def __init__(
