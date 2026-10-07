@@ -87,6 +87,7 @@ func (s *negativeUsageSuite) TestLegacyAPIEditRecordsFreshRatingWarnings() {
 			line.UsageBased.Price = productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount: alpacadecimal.NewFromInt(2),
 			})
+
 			return nil
 		},
 	})

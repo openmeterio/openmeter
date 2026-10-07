@@ -45,6 +45,7 @@ func TestInvoicePipelinesAggregateAuthoritativeLines(t *testing.T) {
 			} else {
 				err = New().Calculate(&invoice, StandardInvoiceCalculatorDependencies{})
 			}
+
 			require.NoError(t, err)
 
 			// Then the invoice sums authoritative live lines without rerating them.

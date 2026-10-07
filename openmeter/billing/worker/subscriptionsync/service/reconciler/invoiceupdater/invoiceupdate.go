@@ -388,6 +388,7 @@ func (u *Updater) updateMutableStandardInvoice(ctx context.Context, invoice bill
 			}
 
 			component := billing.LineEngineValidationComponent(u.lineEngine.GetLineEngineType())
+
 			return invoice.MergeValidationIssues(
 				billing.ValidationWithComponent(component, recorder.ErrorsOrNil()),
 				component,

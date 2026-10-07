@@ -71,6 +71,7 @@ func TestCollectionRatesReusedAndNewSnapshotsWithoutMutatingInput(t *testing.T) 
 			case "early force collection":
 				invoice.CollectionAt = lo.ToPtr(line.Period.To.Add(time.Hour))
 			}
+
 			clock.FreezeTime(line.Period.To)
 			defer clock.UnFreeze()
 			engine, _ := newQuantitySnapshotTestEngine(t, nil, nil, nil)
@@ -93,6 +94,7 @@ func TestCollectionRatesReusedAndNewSnapshotsWithoutMutatingInput(t *testing.T) 
 			} else {
 				require.Equal(t, float64(7), lines[0].UsageBased.MeteredQuantity.InexactFloat64())
 			}
+
 			after, err := json.Marshal(invoice)
 			require.NoError(t, err)
 			require.JSONEq(t, string(before), string(after))
@@ -301,6 +303,7 @@ func TestRateStandardLinesFailuresLeaveTheWholeInputUnchanged(t *testing.T) {
 				line.UsageBased.MeteredPreLinePeriodQuantity = lo.ToPtr(alpacadecimal.Zero)
 				line.RateCardDiscounts = usageDiscountForLineEngineOverrideTest("2")
 			}
+
 			tc.invalidate(lines[1])
 			before, err := json.Marshal(lines)
 			require.NoError(t, err)
