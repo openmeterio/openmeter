@@ -35,10 +35,7 @@ on:
     - cron: "32 3 * * 0"
   workflow_dispatch:
 
-permissions:
-  contents: read
-  security-events: write
-  packages: read
+permissions: {}
 
 concurrency:
   # PR runs must not cancel each other in GitHub's unordered concurrency queue.
@@ -46,8 +43,20 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  cancel-older-runs:
+    # Fork and Dependabot tokens cannot cancel runs in this repository.
+    if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.user.login != 'dependabot[bot]' }}
+    permissions:
+      contents: read
+      actions: write # Required by the cancellation job; other jobs retain their own permissions.
+    uses: $/.github/workflows/cancel-stale-pr-runs.yaml
+
   analyze:
     name: Analyze (${{ matrix.language }})
+    permissions:
+      contents: read
+      security-events: write # Required to upload CodeQL results.
+      packages: read # Required for private CodeQL packs.
     if: ${{ github.event_name != 'pull_request' || !github.event.pull_request.draft }}
     runs-on: depot-ubuntu-latest-4
     timeout-minutes: 30

@@ -2,7 +2,8 @@
 
 import json
 import os
-from urllib.error import HTTPError
+import time
+from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
@@ -22,9 +23,26 @@ class GitHubAPI:
                 "X-GitHub-Api-Version": "2022-11-28",
             },
         )
-        with urlopen(request, timeout=30) as response:
-            body = response.read()
-            return json.loads(body) if body else None
+        # A cancellation whose response was lost can be retried: the controller
+        # already handles the resulting 409 if GitHub accepted the first call.
+        for attempt in range(3):
+            try:
+                with urlopen(request, timeout=30) as response:
+                    body = response.read()
+                    return json.loads(body) if body else None
+            except HTTPError as error:
+                # Handle HTTPError before URLError, its parent, so permission
+                # failures and cancellation conflicts remain immediate.
+                if attempt == 2 or not (error.code == 408 or 500 <= error.code < 600):
+                    raise
+                error.close()
+            except (URLError, TimeoutError, ConnectionError):
+                if attempt == 2:
+                    raise
+
+            delay = 2 ** attempt
+            print(f"Temporary GitHub API failure; retrying in {delay}s (attempt {attempt + 2}/3)")
+            time.sleep(delay)
 
     def pages(self, path, parameters, key=None):
         page = 1
@@ -38,28 +56,20 @@ class GitHubAPI:
             page += 1
 
 
-def cancel_stale_pr_runs(api, source):
+def cancel_stale_pr_runs(api, source, pull):
     if source["event"] != "pull_request" or not source.get("head_repository"):
         return
 
-    # Fork runs omit pull_requests in the Actions API. Resolve their source
-    # branch through the PR API rather than assuming branch names are unique.
     head_repository = source["head_repository"]
-    head = f"{head_repository['owner']['login']}:{source['head_branch']}"
-    pulls = [
-        pull for pull in api.pages("pulls", {"head": head, "state": "open"})
-        if pull["head"]["repo"]
-        and pull["head"]["repo"]["id"] == head_repository["id"]
-        and pull["head"]["ref"] == source["head_branch"]
-    ]
-    source_numbers = {pull["number"] for pull in source["pull_requests"]}
-    if source_numbers:
-        pulls = [pull for pull in pulls if pull["number"] in source_numbers]
-    if len(pulls) != 1:
-        print("Skipping cancellation: run cannot be assigned to one open PR")
+    if (
+        not pull["head"]["repo"]
+        or pull["head"]["repo"]["id"] != pull["base"]["repo"]["id"]
+        or head_repository["id"] != pull["base"]["repo"]["id"]
+        or source["head_branch"] != pull["head"]["ref"]
+    ):
+        print("Skipping cancellation: run is not from this repository's PR branch")
         return
 
-    pull = pulls[0]
     runs = [
         run for run in api.pages(
             f"actions/workflows/{source['workflow_id']}/runs",
@@ -75,13 +85,10 @@ def cancel_stale_pr_runs(api, source):
         and run["head_branch"] == source["head_branch"]
         and run.get("head_repository")
         and run["head_repository"]["id"] == head_repository["id"]
-        and (not run["pull_requests"] or any(
-            candidate["number"] == pull["number"]
-            for candidate in run["pull_requests"]
-        ))
+        and any(candidate["number"] == pull["number"] for candidate in run["pull_requests"])
     ]
-    # The event's run may not yet appear in the list endpoint. Use its latest
-    # state so a delayed requested event cannot cancel a completed attempt.
+    # The calling run may not yet appear in the list endpoint. Include its
+    # latest state so delayed cancellation jobs still preserve newer runs.
     runs = [run for run in runs if run["id"] != source["id"]] + [source]
     newest = max(runs, key=lambda run: run["run_number"])
     print(f"Keeping workflow run {newest['run_number']} for PR {pull['number']}")
@@ -99,13 +106,27 @@ def cancel_stale_pr_runs(api, source):
             print(f"Run {run['run_number']} is no longer cancellable")
 
 
-if __name__ == "__main__":
+def main():
     with open(os.environ["GITHUB_EVENT_PATH"]) as event_file:
         event = json.load(event_file)
+    pull = event.get("pull_request")
+    if (
+        not pull
+        or not pull["head"]["repo"]
+        or pull["head"]["repo"]["id"] != pull["base"]["repo"]["id"]
+        or pull["user"]["login"] == "dependabot[bot]"
+    ):
+        print("Skipping cancellation: only internal, non-Dependabot PRs are supported")
+        return
+
     api = GitHubAPI(
         os.environ["GITHUB_REPOSITORY"],
         os.environ["GITHUB_TOKEN"],
         os.environ["GITHUB_API_URL"],
     )
-    source = api.request(f"actions/runs/{event['workflow_run']['id']}")
-    cancel_stale_pr_runs(api, source)
+    source = api.request(f"actions/runs/{os.environ['GITHUB_RUN_ID']}")
+    cancel_stale_pr_runs(api, source, pull)
+
+
+if __name__ == "__main__":
+    main()

@@ -29,8 +29,7 @@ permissions:
   packages: read
 
 concurrency:
-  # PR runs must not cancel each other in GitHub's unordered concurrency queue.
-  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.run_id || github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:

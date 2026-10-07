@@ -1,19 +1,17 @@
 name: Cancel stale PR runs
 
 on:
-  workflow_run:
-    workflows: [CI, Container Tests, Benthos Collector, PR Checks, Nix, CodeQL, CodeQL Go]
-    # requested handles queued runs; in_progress also handles manual reruns.
-    types: [requested, in_progress]
+  workflow_call:
 
-permissions:
-  contents: read
-  pull-requests: read
-  actions: write
+permissions: {}
 
 jobs:
   cancel:
-    if: github.event.workflow_run.event == 'pull_request'
+    # Fork and Dependabot PRs have read-only tokens and are intentionally skipped.
+    if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.user.login != 'dependabot[bot]' }}
+    permissions:
+      contents: read
+      actions: write # Required to cancel older runs of the calling workflow.
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
@@ -21,11 +19,8 @@ jobs:
         with:
           egress-policy: audit
 
-      # workflow_run uses the default branch. Never check out the triggering
-      # PR's code or download its artifacts with this write-capable token.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.sha }}
           persist-credentials: false
           sparse-checkout: .github/tools/ci
 

@@ -12,9 +12,15 @@ on:
 permissions:
   contents: read
 
-# PR cancellation is ordered by run number in cancel-stale-pr-runs.yaml.
-
 jobs:
+  cancel-older-runs:
+    # Fork and Dependabot tokens cannot cancel runs in this repository.
+    if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.user.login != 'dependabot[bot]' }}
+    permissions:
+      contents: read
+      actions: write # Required by the cancellation job; other jobs retain their own permissions.
+    uses: $/.github/workflows/cancel-stale-pr-runs.yaml
+
   nix:
     name: Build Nix environment
     runs-on: depot-ubuntu-24.04-16
