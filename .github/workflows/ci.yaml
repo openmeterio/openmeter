@@ -8,10 +8,7 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  # Supersede stale pull request runs without grouping distinct main pushes.
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+# PR cancellation is ordered by run number in cancel-stale-pr-runs.yaml.
 
 jobs:
   generators-openapi:
