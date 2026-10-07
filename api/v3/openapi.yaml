@@ -2966,14 +2966,25 @@ paths:
   /openmeter/features/{featureId}/cost/query:
     post:
       operationId: query-feature-cost
-      summary: Query feature cost
-      description: Query the cost of a feature.
       parameters:
         - name: featureId
           in: path
           required: true
           schema:
             $ref: '#/components/schemas/ULID'
+      description: |-
+        Query the cost of a feature.
+
+        Set `Accept: application/json` (the default) for JSON, or `Accept: text/csv` to
+        download a CSV file. CSV columns, in order:
+
+        `from, to, [subject,] [customer_id, customer_key, customer_name,] <dimensions...>, usage, cost, currency, detail`
+
+        Subject and customer columns are included when the query groups by those
+        dimensions, including grouping implied by their filters. Other dimensions follow
+        the query's grouping order. Unavailable cost is an empty cell, not zero. Detail
+        is retained for both unavailable and partially priced costs.
+      summary: Query feature cost
       responses:
         '200':
           description: The request has succeeded.
@@ -2981,6 +2992,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/FeatureCostQueryResult'
+            text/csv:
+              schema:
+                type: string
+              examples:
+                Grouped by model with unavailable pricing:
+                  summary: Grouped by model with unavailable pricing
+                  value: |-
+                    from,to,model,usage,cost,currency,detail
+                    2023-01-01T00:00:00Z,2023-01-02T00:00:00Z,gpt-4-turbo,100,0.001,USD,
+                    2023-01-01T00:00:00Z,2023-01-02T00:00:00Z,unknown-model,20,,,Pricing unavailable
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -2989,6 +3010,7 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+      x-unstable: true
       tags:
         - OpenMeter Features
       requestBody:
@@ -2997,7 +3019,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/MeterQueryRequest'
-      x-unstable: true
   /openmeter/grants:
     get:
       operationId: list-grants

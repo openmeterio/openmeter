@@ -12,6 +12,7 @@ import (
 
 type Handler interface {
 	QueryFeatureCost() QueryFeatureCostHandler
+	QueryFeatureCostCSV() QueryFeatureCostCSVHandler
 }
 
 type handler struct {

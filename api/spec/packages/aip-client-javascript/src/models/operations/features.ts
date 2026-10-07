@@ -65,3 +65,9 @@ export type QueryFeatureCostRequest = AcceptDateStrings<{
   body: MeterQueryRequestInput
 }>
 export type QueryFeatureCostResponse = FeatureCostQueryResult
+
+export type QueryFeatureCostCsvRequest = AcceptDateStrings<{
+  featureId: string
+  body: MeterQueryRequestInput
+}>
+export type QueryFeatureCostCsvResponse = string

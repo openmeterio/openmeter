@@ -5,6 +5,7 @@ package openmeter
 import (
 	"context"
 	"fmt"
+	"io"
 	"iter"
 	"net/http"
 	"net/url"
@@ -157,6 +158,16 @@ func (s *FeaturesService) Delete(ctx context.Context, featureID string) error {
 }
 
 // Query the cost of a feature.
+//
+// Set `Accept: application/json` (the default) for JSON, or `Accept: text/csv` to
+// download a CSV file. CSV columns, in order:
+//
+// `from, to, [subject,] [customer_id, customer_key, customer_name,] <dimensions...>, usage, cost, currency, detail`
+//
+// Subject and customer columns are included when the query groups by those
+// dimensions, including grouping implied by their filters. Other dimensions follow
+// the query's grouping order. Unavailable cost is an empty cell, not zero. Detail
+// is retained for both unavailable and partially priced costs.
 func (s *FeaturesService) QueryCost(ctx context.Context, featureID string, request *MeterQueryRequest) (*FeatureCostQueryResult, error) {
 	if featureID == "" {
 		return nil, fmt.Errorf("openmeter: %s must not be empty: %w", "featureID", ErrEmptyID)
@@ -177,4 +188,43 @@ func (s *FeaturesService) QueryCost(ctx context.Context, featureID string, reque
 	}
 
 	return &out, nil
+}
+
+func (s *FeaturesService) QueryCostCSV(ctx context.Context, featureID string, request MeterQueryRequest) ([]byte, error) {
+	if featureID == "" {
+		return nil, fmt.Errorf("openmeter: %s must not be empty: %w", "featureID", ErrEmptyID)
+	}
+
+	path := "/openmeter/features/{featureId}/cost/query"
+
+	path = replacePathParam(path, "featureId", featureID)
+
+	req, err := s.client.newRequestWithContentType(ctx, http.MethodPost, path, nil, request, "application/json", "text/csv")
+	if err != nil {
+		return nil, err
+	}
+
+	return s.client.doRaw(req)
+}
+
+func (s *FeaturesService) QueryCostCSVStream(ctx context.Context, featureID string, request MeterQueryRequest) (io.ReadCloser, error) {
+	if featureID == "" {
+		return nil, fmt.Errorf("openmeter: %s must not be empty: %w", "featureID", ErrEmptyID)
+	}
+
+	path := "/openmeter/features/{featureId}/cost/query"
+
+	path = replacePathParam(path, "featureId", featureID)
+
+	req, err := s.client.newRequestWithContentType(ctx, http.MethodPost, path, nil, request, "application/json", "text/csv")
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := s.client.doStream(req)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Body, nil
 }

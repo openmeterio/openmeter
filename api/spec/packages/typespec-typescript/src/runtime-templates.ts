@@ -23,6 +23,7 @@ const RUNTIME_FILES: Record<string, string> = {
   'src/models/errors.ts': 'runtime/errors.ts',
   'tests/client.spec.ts': 'tests/client.spec.ts',
   'tests/meters.spec.ts': 'tests/meters.spec.ts',
+  'tests/feature-cost-csv.spec.ts': 'tests/feature-cost-csv.spec.ts',
   'tests/errors.spec.ts': 'tests/errors.spec.ts',
   'tests/nesting.spec.ts': 'tests/nesting.spec.ts',
   'tests/internal.spec.ts': 'tests/internal.spec.ts',
