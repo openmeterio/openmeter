@@ -5,6 +5,8 @@ import unittest
 from contextlib import redirect_stdout
 from unittest import mock
 from urllib.error import HTTPError, URLError
+from urllib.request import HTTPSHandler
+from urllib.response import addinfourl
 
 import cancel_stale_pr_runs as controller
 from cancel_stale_pr_runs import GitHubAPI, cancel_stale_pr_runs
@@ -139,7 +141,7 @@ class CancelStalePRRunsTest(unittest.TestCase):
             self.cancel()
 
     def test_runs_on_later_api_pages_are_included(self):
-        api = GitHubAPI("owner/repo", "test-token", "https://api.github.com")
+        api = GitHubAPI("owner/repo", "test-token")
         with mock.patch.object(api, "request", side_effect=[
             {"workflow_runs": list(range(100))},
             {"workflow_runs": [100]},
@@ -160,14 +162,14 @@ class CancellationEntryPointTest(unittest.TestCase):
             "GITHUB_EVENT_PATH": "event.json",
             "GITHUB_REPOSITORY": "openmeterio/openmeter",
             "GITHUB_TOKEN": "test-token",
-            "GITHUB_API_URL": "https://api.github.com",
+            "GITHUB_API_URL": "http://127.0.0.1:9999",
             "GITHUB_RUN_ID": "200",
         }, clear=True):
             with mock.patch("builtins.open", return_value=io.StringIO(json.dumps({"pull_request": PULL}))):
                 with mock.patch.object(controller, "GitHubAPI", return_value=api) as constructor:
                     with redirect_stdout(io.StringIO()):
                         controller.main()
-        constructor.assert_called_once_with("openmeterio/openmeter", "test-token", "https://api.github.com")
+        constructor.assert_called_once_with("openmeterio/openmeter", "test-token")
         self.assertEqual(api.request.call_args_list, [
             mock.call("actions/runs/200"),
             mock.call("actions/runs/300/cancel", method="POST"),
@@ -192,9 +194,40 @@ class CancellationEntryPointTest(unittest.TestCase):
 
 class GitHubAPIRequestTest(unittest.TestCase):
     def setUp(self):
-        self.api = GitHubAPI("owner/repo", "test-token", "https://api.github.com")
+        self.api = GitHubAPI("owner/repo", "test-token")
         self.response = mock.MagicMock()
         self.response.__enter__.return_value.read.return_value = b'{"ok": true}'
+
+    def test_requests_use_fixed_github_origin(self):
+        with mock.patch.dict(controller.os.environ, {"GITHUB_API_URL": "http://127.0.0.1:9999"}):
+            api = GitHubAPI("owner/repo", "test-token")
+            with mock.patch.object(api.opener, "open", return_value=self.response) as transport:
+                self.assertEqual(api.request("actions/runs/200"), {"ok": True})
+        request = transport.call_args.args[0]
+        self.assertEqual(request.full_url, "https://api.github.com/repos/owner/repo/actions/runs/200")
+        self.assertEqual(request.get_header("Authorization"), "Bearer test-token")
+        self.assertEqual(transport.call_args.kwargs, {"timeout": 30})
+
+    def test_redirects_fail_without_following_or_retrying(self):
+        # Exercise the real opener and redirect handler; mock only HTTPS transport.
+        for code in (301, 302, 303, 307, 308):
+            for target in ("https://attacker.example/", "http://127.0.0.1/", "/repos/another/repository"):
+                with self.subTest(code=code, target=target):
+                    response = addinfourl(io.BytesIO(), {"Location": target}, "https://api.github.com", code)
+                    response.msg = "Redirect"
+                    self.addCleanup(response.close)
+                    with mock.patch.object(HTTPSHandler, "https_open", return_value=response) as transport:
+                        with mock.patch("time.sleep") as sleep:
+                            with self.assertRaises(HTTPError) as raised:
+                                self.api.request("actions/runs/200")
+                    self.addCleanup(raised.exception.close)
+                    self.assertEqual(raised.exception.code, code)
+                    transport.assert_called_once()
+                    self.assertEqual(
+                        transport.call_args.args[0].full_url,
+                        "https://api.github.com/repos/owner/repo/actions/runs/200",
+                    )
+                    sleep.assert_not_called()
 
     def test_recovers_from_transient_http_and_network_errors(self):
         errors = [
@@ -205,7 +238,7 @@ class GitHubAPIRequestTest(unittest.TestCase):
             if isinstance(error, HTTPError):
                 self.addCleanup(error.close)
             with self.subTest(error=repr(error)):
-                with mock.patch.object(controller, "urlopen", side_effect=[error, self.response]) as request:
+                with mock.patch.object(self.api.opener, "open", side_effect=[error, self.response]) as request:
                     with mock.patch("time.sleep") as sleep:
                         self.assertEqual(self.api.request("pulls"), {"ok": True})
                 self.assertEqual(request.call_count, 2)
@@ -216,7 +249,7 @@ class GitHubAPIRequestTest(unittest.TestCase):
             if isinstance(error, HTTPError):
                 self.addCleanup(error.close)
             with self.subTest(error=repr(error)):
-                with mock.patch.object(controller, "urlopen", side_effect=error) as request:
+                with mock.patch.object(self.api.opener, "open", side_effect=error) as request:
                     with mock.patch("time.sleep") as sleep:
                         with self.assertRaises(type(error)) as raised:
                             self.api.request("pulls")
@@ -229,7 +262,7 @@ class GitHubAPIRequestTest(unittest.TestCase):
             with self.subTest(code=code):
                 error = HTTPError("url", code, "Client error", {}, io.BytesIO())
                 self.addCleanup(error.close)
-                with mock.patch.object(controller, "urlopen", side_effect=error) as request:
+                with mock.patch.object(self.api.opener, "open", side_effect=error) as request:
                     with mock.patch("time.sleep") as sleep:
                         with self.assertRaises(HTTPError) as raised:
                             self.api.request("pulls")
@@ -240,7 +273,7 @@ class GitHubAPIRequestTest(unittest.TestCase):
     def test_timeout_reading_response_is_retried(self):
         interrupted = mock.MagicMock()
         interrupted.__enter__.return_value.read.side_effect = TimeoutError()
-        with mock.patch.object(controller, "urlopen", side_effect=[interrupted, self.response]) as request:
+        with mock.patch.object(self.api.opener, "open", side_effect=[interrupted, self.response]) as request:
             with mock.patch("time.sleep"):
                 self.assertEqual(self.api.request("pulls"), {"ok": True})
         self.assertEqual(request.call_count, 2)
@@ -252,7 +285,7 @@ class GitHubAPIRequestTest(unittest.TestCase):
         conflict = HTTPError("url", 409, "Already cancelled", {}, io.BytesIO())
         self.addCleanup(conflict.close)
         with mock.patch.object(self.api, "pages", return_value=[older, SOURCE]):
-            with mock.patch.object(controller, "urlopen", side_effect=[
+            with mock.patch.object(self.api.opener, "open", side_effect=[
                 TimeoutError(), conflict,
             ]) as request:
                 with mock.patch("time.sleep"):

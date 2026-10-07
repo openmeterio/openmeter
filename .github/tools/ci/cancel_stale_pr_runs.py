@@ -5,13 +5,21 @@ import os
 import time
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
-from urllib.request import Request, urlopen
+from urllib.request import HTTPRedirectHandler, Request, build_opener
+
+
+class RejectRedirects(HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        # Keep authenticated requests on the original GitHub API destination.
+        raise HTTPError(req.full_url, code, "GitHub API redirects are disabled", headers, fp)
 
 
 class GitHubAPI:
-    def __init__(self, repository, token, api_url):
-        self.base_url = f"{api_url}/repos/{repository}"
+    def __init__(self, repository, token):
+        # This controller runs on GitHub.com; alternative API hosts are unsupported.
+        self.base_url = f"https://api.github.com/repos/{repository}"
         self.token = token
+        self.opener = build_opener(RejectRedirects())
 
     def request(self, path, method="GET"):
         request = Request(
@@ -27,7 +35,7 @@ class GitHubAPI:
         # already handles the resulting 409 if GitHub accepted the first call.
         for attempt in range(3):
             try:
-                with urlopen(request, timeout=30) as response:
+                with self.opener.open(request, timeout=30) as response:
                     body = response.read()
                     return json.loads(body) if body else None
             except HTTPError as error:
@@ -122,7 +130,6 @@ def main():
     api = GitHubAPI(
         os.environ["GITHUB_REPOSITORY"],
         os.environ["GITHUB_TOKEN"],
-        os.environ["GITHUB_API_URL"],
     )
     source = api.request(f"actions/runs/{os.environ['GITHUB_RUN_ID']}")
     cancel_stale_pr_runs(api, source, pull)
