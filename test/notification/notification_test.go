@@ -110,6 +110,10 @@ func TestNotification(t *testing.T) {
 		t.Run("Get", func(t *testing.T) {
 			testSuite.TestGet(ctx, t)
 		})
+
+		t.Run("CreateView", func(t *testing.T) {
+			testSuite.TestCreateView(ctx, t)
+		})
 	})
 
 	// Test suite covering notification events
