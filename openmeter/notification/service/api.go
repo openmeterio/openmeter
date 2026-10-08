@@ -55,6 +55,10 @@ func (s Service) CreateRuleView(ctx context.Context, params notification.CreateR
 		return notification.RuleView{}, err
 	}
 
+	if err := validateRuleFeatures(params.Config.Features(), features); err != nil {
+		return notification.RuleView{}, err
+	}
+
 	rule, err := s.CreateRule(ctx, params)
 	if err != nil {
 		return notification.RuleView{}, err
@@ -73,6 +77,10 @@ func (s Service) UpdateRuleView(ctx context.Context, params notification.UpdateR
 		return notification.RuleView{}, err
 	}
 
+	if err := validateRuleFeatures(params.Config.Features(), features); err != nil {
+		return notification.RuleView{}, err
+	}
+
 	rule, err := s.UpdateRule(ctx, params)
 	if err != nil {
 		return notification.RuleView{}, err
@@ -85,10 +93,23 @@ func (s Service) UpdateRuleView(ctx context.Context, params notification.UpdateR
 	return s.mergeRuleFeatures(*rule, features), nil
 }
 
-// Archived features are included so views stay faithful to the stored rule; when a
-// key was reused after archiving, the live feature wins. Writes resolve before
-// mutating so a failed lookup never surfaces as an error for an already committed
-// rule; missing features are rejected by the rule validation before any write.
+// Archived features count as missing, matching the rule validation.
+func validateRuleFeatures(idsOrKeys []string, features []feature.Feature) error {
+	missing := lo.Filter(lo.Uniq(idsOrKeys), func(idOrKey string, _ int) bool {
+		return !lo.ContainsBy(features, func(f feature.Feature) bool {
+			return f.ArchivedAt == nil && (f.ID == idOrKey || f.Key == idOrKey)
+		})
+	})
+
+	if len(missing) > 0 {
+		return models.NewGenericValidationError(fmt.Errorf("non-existing features: %v", missing))
+	}
+
+	return nil
+}
+
+// Archived features are included to keep views faithful to the stored rule; when a
+// key was reused after archiving, the live feature wins.
 func (s Service) resolveRuleFeatures(ctx context.Context, namespace string, idsOrKeys []string) ([]feature.Feature, error) {
 	idsOrKeys = lo.Uniq(idsOrKeys)
 	if len(idsOrKeys) == 0 {
