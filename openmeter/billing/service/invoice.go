@@ -10,6 +10,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/lineengine"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -289,9 +290,7 @@ func (s *Service) calculateGatheringInvoiceAsStandardInvoice(ctx context.Context
 	}
 
 	if err := s.invoiceCalculator.CalculateGatheringInvoiceWithLiveData(out, invoicecalc.StandardInvoiceCalculatorDependencies{
-		RatingService: s.ratingService,
-		TaxCodes:      taxCodes,
-		LineEngines:   s.lineEngines,
+		TaxCodes: taxCodes,
 	}); err != nil {
 		return nil, fmt.Errorf("calculating invoice: %w", err)
 	}
@@ -886,7 +885,10 @@ func (s Service) SimulateInvoice(ctx context.Context, input billing.SimulateInvo
 		},
 	}
 
-	inputLines := input.Lines.OrEmpty()
+	inputLines, err := input.Lines.OrEmpty().Clone()
+	if err != nil {
+		return billing.StandardInvoice{}, fmt.Errorf("cloning simulation lines: %w", err)
+	}
 
 	invoice.Lines = billing.NewStandardInvoiceLines(
 		lo.Map(inputLines, func(line *billing.StandardLine, _ int) *billing.StandardLine {
@@ -910,7 +912,7 @@ func (s Service) SimulateInvoice(ctx context.Context, input billing.SimulateInvo
 		}
 	}
 
-	err := errors.Join(lo.Map(invoice.Lines.OrEmpty(), func(line *billing.StandardLine, _ int) error {
+	err = errors.Join(lo.Map(invoice.Lines.OrEmpty(), func(line *billing.StandardLine, _ int) error {
 		return line.Validate()
 	})...)
 	if err != nil {
@@ -938,11 +940,35 @@ func (s Service) SimulateInvoice(ctx context.Context, input billing.SimulateInvo
 		return billing.StandardInvoice{}, fmt.Errorf("resolving tax codes: %w", err)
 	}
 
-	// Let's simulate a recalculation of the invoice
+	groupedLines, err := s.lineEngines.groupStandardLinesByEngine(invoice.Lines.OrEmpty().WithoutDeletedLines())
+	if err != nil {
+		return billing.StandardInvoice{}, fmt.Errorf("grouping simulation lines: %w", err)
+	}
+
+	for _, grouped := range groupedLines {
+		legacyEngine, ok := grouped.Engine.(*lineengine.Engine)
+		if !ok {
+			// Charge simulation is not feasible yet: charge rating requires persisted
+			// realizations and lifecycle actions. Keep the supplied projection unchanged.
+			continue
+		}
+
+		ratedLines, ratingErr := legacyEngine.RateStandardLines(grouped.Lines)
+		if err := invoice.MergeValidationIssues(billing.NewLineEngineValidationError(legacyEngine, ratingErr), billing.LineEngineValidationComponent(legacyEngine.GetLineEngineType())); err != nil {
+			return billing.StandardInvoice{}, fmt.Errorf("rating simulation lines: %w", err)
+		}
+
+		if err := invoice.Lines.ReplaceExact(billing.ReplaceExactLinesInput{
+			Existing:    grouped.Lines,
+			Replacement: ratedLines,
+		}); err != nil {
+			return billing.StandardInvoice{}, fmt.Errorf("replacing simulation lines: %w", err)
+		}
+	}
+
+	// Owners supply calculated lines; the invoice calculator derives aggregate fields.
 	if err := s.invoiceCalculator.Calculate(&invoice, invoicecalc.StandardInvoiceCalculatorDependencies{
-		RatingService: s.ratingService,
-		TaxCodes:      taxCodes,
-		LineEngines:   s.lineEngines,
+		TaxCodes: taxCodes,
 	}); err != nil {
 		return billing.StandardInvoice{}, err
 	}

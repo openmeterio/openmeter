@@ -884,18 +884,6 @@ func (s *Service) CreateStandardInvoiceFromGatheringLines(ctx context.Context, i
 				return fmt.Errorf("activating invoice state machine: %w", err)
 			}
 
-			if in.PostCreationCalculationHook != nil {
-				err := s.invokePostCreationHooks(sm.Invoice, in.PostCreationCalculationHook)
-				if err != nil {
-					return fmt.Errorf("invoking post creation calculation hook: %w", err)
-				}
-
-				// Let's recalculate the invoice so that any adjustments made in the hook are respresented in the calculations.
-				if err := sm.calculateInvoice(ctx); err != nil {
-					return fmt.Errorf("recalculating invoice: %w", err)
-				}
-			}
-
 			// If the invoice has critical validation issues => trigger a failed state
 			if sm.Invoice.HasCriticalValidationIssues() {
 				if err := sm.TriggerFailed(ctx); err != nil {
@@ -1016,9 +1004,7 @@ func (s *Service) recalculateStandardInvoice(ctx context.Context, invoice billin
 	}
 
 	if err := s.invoiceCalculator.Calculate(&invoice, invoicecalc.StandardInvoiceCalculatorDependencies{
-		RatingService: s.ratingService,
-		TaxCodes:      taxCodes,
-		LineEngines:   s.lineEngines,
+		TaxCodes: taxCodes,
 	}); err != nil {
 		return billing.StandardInvoice{}, fmt.Errorf("recalculating target invoice: %w", err)
 	}
@@ -1029,27 +1015,6 @@ func (s *Service) recalculateStandardInvoice(ctx context.Context, invoice billin
 	}
 
 	return invoice, nil
-}
-
-func (s *Service) invokePostCreationHooks(invoice billing.StandardInvoice, hook billing.PostCreationCalculationHook) error {
-	for _, line := range invoice.Lines.OrEmpty() {
-		ops, err := hook(invoice, lo.FromPtr(line))
-		if err != nil {
-			return fmt.Errorf("invoking post creation hook: %w", err)
-		}
-
-		if len(ops) == 0 {
-			continue
-		}
-
-		for _, op := range ops {
-			if err := op(line); err != nil {
-				return fmt.Errorf("invoking post creation hook: %w", err)
-			}
-		}
-	}
-
-	return nil
 }
 
 // updateGatheringInvoice updates the gathering invoice's state and if it contains no lines, it will be deleted.

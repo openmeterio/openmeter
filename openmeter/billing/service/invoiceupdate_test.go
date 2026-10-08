@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -754,6 +755,42 @@ func TestWithLineEngineInvoiceLineChangesReturnsEngineValidationIssue(t *testing
 	}, issues)
 }
 
+func TestWithLineEngineInvoiceLineChangesAcceptsWarningOutput(t *testing.T) {
+	// Given an engine that returns a usable edit alongside a typed warning.
+	warning := billing.NewValidationWarning("engine_warning", "engine warning")
+	engine := &recordingLineEngine{
+		NoopLineEngine: billingtestutils.NoopLineEngine{EngineType: billing.LineEngineTypeInvoice},
+		changeErr:      warning,
+	}
+	svc := serviceForInvoiceTaxConfigDiffTest()
+	require.NoError(t, svc.RegisterLineEngine(engine))
+	invoice := billing.StandardInvoice{
+		StandardInvoiceBase: billing.StandardInvoiceBase{Namespace: "ns", ID: "invoice-1"},
+		Lines: billing.NewStandardInvoiceLines(billing.StandardLines{
+			newStandardLineForLineEngineTest("line-1", billing.LineEngineTypeInvoice, false),
+		}),
+	}
+	edited, err := invoice.Clone()
+	require.NoError(t, err)
+	edited.Lines.OrEmpty()[0].Name = "edited name"
+	lineDiff, err := svc.diffMutableInvoiceLines(t.Context(), &invoice, &edited, billing.ChangeSourceAPIRequest)
+	require.NoError(t, err)
+
+	// When dispatch accepts warning-only output and checks its exact line IDs.
+	result, err := svc.applyAPIInvoiceLineEdits(t.Context(), applyAPIInvoiceLineEditsInput{
+		EditedInvoice: edited,
+		LineDiff:      lineDiff,
+	})
+	require.NoError(t, err)
+
+	// Then the changed line and owning issue are returned together.
+	resultInvoice, err := result.AsInvoice().AsStandardInvoice()
+	require.NoError(t, err)
+	require.Equal(t, "edited name", resultInvoice.Lines.GetByID("line-1").Name)
+	warning.Component = billing.LineEngineValidationComponent(billing.LineEngineTypeInvoice)
+	require.Equal(t, billing.ValidationIssues{warning}, resultInvoice.ValidationIssues)
+}
+
 func TestDispatchAPIStandardLineDeletionsRecordsEngineErrorsAsValidationIssues(t *testing.T) {
 	errEngineFailed := errors.New("engine failed")
 	invoiceEngine := &recordingLineEngine{
@@ -1125,6 +1162,7 @@ func cloneBillingTaxConfigForTest(taxConfig *billing.TaxConfig) *billing.TaxConf
 
 func serviceForInvoiceTaxConfigDiffTest() *Service {
 	return &Service{
+		adapter:     preallocatingInvoiceLineAdapter{},
 		lineEngines: newEngineRegistry(),
 		taxCodeService: &invoiceUpdateTaxCodeService{
 			taxCodes: map[string]taxcode.TaxCode{
@@ -1207,6 +1245,10 @@ func (s *invoiceUpdateTaxCodeService) UpsertOrganizationDefaultTaxCodes(context.
 
 type preallocatingInvoiceLineAdapter struct {
 	billing.Adapter
+}
+
+func (preallocatingInvoiceLineAdapter) Tx(ctx context.Context) (context.Context, transaction.Driver, error) {
+	return ctx, &validationWarningTransactionDriver{}, nil
 }
 
 func (preallocatingInvoiceLineAdapter) UpsertInvoiceLines(_ context.Context, input billing.UpsertInvoiceLinesAdapterInput) ([]*billing.StandardLine, error) {

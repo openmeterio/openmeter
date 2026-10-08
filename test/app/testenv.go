@@ -302,7 +302,6 @@ func InitBillingService(t *testing.T, ctx context.Context, in InitBillingService
 	return billingservice.New(billingservice.Config{
 		Adapter:                 billingAdapter,
 		SequenceService:         billingSequenceService,
-		RatingService:           billingRatingService,
 		LegacyBillingLineEngine: legacyBillingLineEngine,
 		CustomerService:         in.CustomerService,
 		AppService:              in.AppService,

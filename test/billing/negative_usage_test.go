@@ -1,6 +1,7 @@
 package billing
 
 import (
+	"errors"
 	"testing"
 	"time"
 
@@ -53,6 +54,63 @@ func (s *negativeUsageSuite) TestLegacyFinalCollectionClampsNegativeUsage() {
 	s.Zero(line.Totals.Amount.InexactFloat64())
 	s.Zero(line.Totals.Total.InexactFloat64())
 	s.requireNegativeUsageWarning(invoices[0], billing.WarnNegativeMeteredQuantityClamped.Code, "-5", "0")
+}
+
+func (s *negativeUsageSuite) TestLegacyAPIEditRecordsFreshRatingWarnings() {
+	ctx := s.T().Context()
+	fixture := s.setupLegacyUsageLine()
+
+	// Given a manually editable legacy invoice with negative metered usage.
+	s.MockStreamingConnector.AddSimpleEvent(fixture.featureKey, -5, fixture.servicePeriod.From.Add(time.Hour))
+	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		Customer: fixture.customer,
+	})
+	s.Require().NoError(err)
+	s.Require().Len(invoices, 1)
+	invoice := invoices[0]
+	s.Equal(billing.StandardInvoiceStatusDraftManualApprovalNeeded, invoice.Status)
+	s.Require().Len(invoice.Lines.OrEmpty(), 1)
+	lineID := invoice.Lines.OrEmpty()[0].ID
+	s.Equal(billing.LineEngineTypeInvoice, invoice.Lines.OrEmpty()[0].Engine)
+	s.ProvisionProviderDefaultTaxCode(ctx, invoice.Namespace)
+
+	// When an API edit changes its unit price and rating emits the same warning.
+	updated, err := s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
+		Invoice:      invoice.GetInvoiceID(),
+		ChangeSource: billing.ChangeSourceAPIRequest,
+		EditFn: func(invoice *billing.StandardInvoice) error {
+			line := invoice.Lines.GetByID(lineID)
+			if line == nil {
+				return errors.New("line not found")
+			}
+
+			line.UsageBased.Price = productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+				Amount: alpacadecimal.NewFromInt(2),
+			})
+
+			return nil
+		},
+	})
+	s.Require().NoError(err)
+
+	// Then the edit succeeds, and its rated state and warning survive persistence.
+	s.Equal(billing.StandardInvoiceStatusDraftManualApprovalNeeded, updated.Status)
+	s.requireNegativeUsageWarning(updated, billing.WarnNegativeMeteredQuantityClamped.Code, "-5", "0")
+	reloaded, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
+		Invoice: invoice.GetInvoiceID(),
+		Expand:  billing.StandardInvoiceExpands{billing.StandardInvoiceExpandLines},
+	})
+	s.Require().NoError(err)
+	s.Equal(billing.StandardInvoiceStatusDraftManualApprovalNeeded, reloaded.Status)
+	s.requireNegativeUsageWarning(reloaded, billing.WarnNegativeMeteredQuantityClamped.Code, "-5", "0")
+	line := reloaded.Lines.GetByID(lineID)
+	s.Require().NotNil(line)
+	price, err := line.UsageBased.Price.AsUnit()
+	s.Require().NoError(err)
+	s.Equal(float64(2), price.Amount.InexactFloat64())
+	s.requireUsageQuantities(line, -5, 0, 0, 0)
+	s.Zero(line.Totals.Total.InexactFloat64())
+	s.Zero(reloaded.Totals.Total.InexactFloat64())
 }
 
 func (s *negativeUsageSuite) TestLegacyProgressiveBillingClampsNegativeUsageAndPrePeriodUsage() {
@@ -166,6 +224,7 @@ func (s *negativeUsageSuite) requireNegativeUsageWarning(invoice billing.Standar
 	})
 	s.Require().True(found, "expected validation warning %q", code)
 	s.Equal(billing.ValidationIssueSeverityWarning, issue.Severity)
+	s.Equal(billing.LineEngineValidationComponent(billing.LineEngineTypeInvoice), issue.Component)
 	s.Equal(originalQuantity, issue.Attributes["original_metered_quantity"])
 	s.Equal(originalPrePeriodQuantity, issue.Attributes["original_pre_line_metered_quantity"])
 }

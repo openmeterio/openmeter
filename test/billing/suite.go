@@ -270,7 +270,6 @@ func (s *BaseSuite) setupSuite() {
 	billingService, err := billingservice.New(billingservice.Config{
 		Adapter:                 billingAdapter,
 		SequenceService:         billingSequenceService,
-		RatingService:           billingRatingService,
 		LegacyBillingLineEngine: legacyBillingLineEngine,
 		CustomerService:         s.CustomerService,
 		AppService:              s.AppService,

@@ -356,7 +356,10 @@ func (i StandardInvoiceBase) GetCustomerID() customer.CustomerID {
 	}
 }
 
-var _ GenericInvoice = (*StandardInvoice)(nil)
+var (
+	_ GenericInvoice          = (*StandardInvoice)(nil)
+	_ ValidationIssueAppender = (*StandardInvoice)(nil)
+)
 
 type StandardInvoice struct {
 	StandardInvoiceBase `json:",inline"`
@@ -452,6 +455,10 @@ func (i *StandardInvoice) UnsetLines() {
 	i.Lines = StandardInvoiceLines{}
 }
 
+func (i *StandardInvoice) AppendValidationIssues(issues ...ValidationIssue) {
+	i.ValidationIssues = append(i.ValidationIssues, issues...)
+}
+
 func (i *StandardInvoice) MergeValidationIssues(errIn error, reportingComponent ComponentName) error {
 	i.ValidationIssues = lo.Filter(i.ValidationIssues, func(issue ValidationIssue, _ int) bool {
 		return issue.Component != reportingComponent
@@ -468,24 +475,6 @@ func (i *StandardInvoice) MergeValidationIssues(errIn error, reportingComponent 
 func (i *StandardInvoice) HasCriticalValidationIssues() bool {
 	_, found := lo.Find(i.ValidationIssues, func(issue ValidationIssue) bool {
 		return issue.Severity == ValidationIssueSeverityCritical
-	})
-
-	return found
-}
-
-// HasLineSnapshotValidationIssueForComponent reports whether a line engine has
-// incomplete output because quantity snapshotting failed. Retry downgrades old
-// critical issues to warnings, but the lines remain incomplete until collection
-// clears the issue after a successful snapshot.
-func (i *StandardInvoice) HasLineSnapshotValidationIssueForComponent(component ComponentName) bool {
-	_, found := lo.Find(i.ValidationIssues, func(issue ValidationIssue) bool {
-		if issue.Component != component {
-			return false
-		}
-
-		return issue.Code == ErrInvoiceLineFeatureNotFound.Code ||
-			issue.Code == ErrInvoiceLineFeatureHasNoMeters.Code ||
-			issue.Code == ErrInvoiceLineSnapshotFailed.Code
 	})
 
 	return found
@@ -1281,17 +1270,10 @@ type CreateStandardInvoiceFromGatheringLinesInput struct {
 	Currency    currencyx.FiatCode
 	Description *string
 
-	Lines                       GatheringLines
-	ValidationIssues            ValidationIssues
-	PostCreationCalculationHook PostCreationCalculationHook
-	ForceAsyncAdvance           bool
+	Lines             GatheringLines
+	ValidationIssues  ValidationIssues
+	ForceAsyncAdvance bool
 }
-
-type (
-	PostCreationCalculationHook func(StandardInvoice, StandardLine) (LineMutators, error)
-	LineMutator                 func(*StandardLine) error
-	LineMutators                = []LineMutator
-)
 
 func (i CreateStandardInvoiceFromGatheringLinesInput) Validate() error {
 	var errs []error
@@ -1329,10 +1311,3 @@ type (
 	StandardInvoiceHook  = models.ServiceHook[StandardInvoice]
 	StandardInvoiceHooks = models.ServiceHookRegistry[StandardInvoice]
 )
-
-func NewSetCreditsAppliedOperation(creditsApplied CreditsApplied) LineMutator {
-	return func(line *StandardLine) error {
-		line.CreditsApplied = creditsApplied
-		return nil
-	}
-}

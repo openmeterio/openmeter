@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 )
 
@@ -20,7 +19,7 @@ var InvoiceCalculations = invoiceCalculatorsByType{
 		WithNoDependencies(CalculateDraftUntil),
 		WithNoDependencies(CalculateDueAt),
 		WithNoDependencies(UpsertDiscountCorrelationIDs),
-		RecalculateDetailedLinesAndTotals,
+		WithNoDependencies(RecalculateTotals),
 		WithNoDependencies(CalculateStandardInvoiceServicePeriod),
 		SnapshotTaxConfigIntoLines,
 	},
@@ -33,7 +32,7 @@ var InvoiceCalculations = invoiceCalculatorsByType{
 	GatheringInvoiceWithLiveData: []StandardInvoiceCalculation{
 		WithNoDependencies(UpsertDiscountCorrelationIDs),
 		WithNoDependencies(StandardInvoiceCollectionAt),
-		RecalculateDetailedLinesAndTotals,
+		WithNoDependencies(RecalculateTotals),
 		WithNoDependencies(CalculateStandardInvoiceServicePeriod),
 		SnapshotTaxConfigIntoLines,
 		WithNoDependencies(FillGatheringDetailedLineMeta),
@@ -71,17 +70,11 @@ func (t TaxCodes) Get(stripeCode string) (*taxcode.TaxCode, bool) {
 }
 
 type StandardInvoiceCalculatorDependencies struct {
-	RatingService rating.Service
-	TaxCodes      TaxCodes
-	LineEngines   LineEngineResolver
+	TaxCodes TaxCodes
 }
 
 type GatheringInvoiceCalculatorDependencies struct {
 	Collection billing.CollectionConfig
-}
-
-type LineEngineResolver interface {
-	Get(billing.LineEngineType) (billing.LineEngine, error)
 }
 
 type calculator struct{}

@@ -161,7 +161,6 @@ func setup(t *testing.T, config setupConfig) testDeps {
 	billingService, err := billingservice.New(billingservice.Config{
 		Adapter:                 billingAdapter,
 		SequenceService:         billingSequenceService,
-		RatingService:           billingRatingService,
 		LegacyBillingLineEngine: legacyBillingLineEngine,
 		CustomerService:         deps.CustomerService,
 		AppService:              appService,

@@ -79,9 +79,9 @@ func New(config Config) (*Service, error) {
 	}
 
 	invoiceUpdater, err := invoiceupdater.New(invoiceupdater.Config{
-		BillingService:      config.BillingService,
-		QuantitySnapshotter: config.LegacyBillingLineEngine,
-		Logger:              config.Logger,
+		BillingService: config.BillingService,
+		LineEngine:     config.LegacyBillingLineEngine,
+		Logger:         config.Logger,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("creating invoice updater: %w", err)

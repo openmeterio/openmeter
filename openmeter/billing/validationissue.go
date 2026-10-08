@@ -310,6 +310,11 @@ func WrapAsValidationIssue(err error, options ...WrapAsValidationIssueOption) er
 
 type ValidationIssues []ValidationIssue
 
+// ValidationIssueAppender adds issues without replacing existing issues or components.
+type ValidationIssueAppender interface {
+	AppendValidationIssues(issues ...ValidationIssue)
+}
+
 func (v ValidationIssues) AllWarnings() bool {
 	return len(v) > 0 && !slices.ContainsFunc(v, func(issue ValidationIssue) bool {
 		return issue.Severity != ValidationIssueSeverityWarning
