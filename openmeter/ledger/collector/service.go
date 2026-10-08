@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger/advance"
 	"github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	"github.com/openmeterio/openmeter/openmeter/ledger/collector/correction"
+	"github.com/openmeterio/openmeter/openmeter/ledger/fbo"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
@@ -217,13 +218,21 @@ func NewService(config Config) (Service, error) {
 		return nil, fmt.Errorf("create correction service: %w", err)
 	}
 
+	fboService, err := fbo.NewService(fbo.Config{
+		Logger:        config.Logger,
+		Advance:       config.Advance,
+		Dependencies:  config.Dependencies,
+		Breakage:      config.Breakage,
+		AccountLocker: config.AccountLocker,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("create FBO service: %w", err)
+	}
+
 	return &service{
 		collector: &accrualCollector{
 			ledger:             config.Ledger,
-			advance:            config.Advance,
-			deps:               config.Dependencies,
-			breakage:           config.Breakage,
-			accountLocker:      config.AccountLocker,
+			fbo:                fboService,
 			transactionManager: config.TransactionManager,
 		},
 		corrector: corrector,
