@@ -1,4 +1,4 @@
-package collector
+package fbo
 
 import (
 	"cmp"
@@ -16,7 +16,7 @@ import (
 
 // FBO Sources for Prioritization
 
-type fboCollectionSource struct {
+type source struct {
 	address        ledger.PostingAddress
 	sourceChargeID *string
 	available      alpacadecimal.Decimal
@@ -27,11 +27,11 @@ type fboCollectionSource struct {
 	breakagePlan   *breakage.Plan
 }
 
-var _ cmpx.Comparable[fboCollectionSource] = fboCollectionSource{}
+var _ cmpx.Comparable[source] = source{}
 
 // TODO: Version this contract before changing it. Corrections and breakage
 // releases depend on collection selecting sources deterministically.
-func (s fboCollectionSource) Compare(other fboCollectionSource) int {
+func (s source) Compare(other source) int {
 	if c := cmp.Compare(s.creditPriority, other.creditPriority); c != 0 {
 		return c
 	}
@@ -64,15 +64,15 @@ func (s fboCollectionSource) Compare(other fboCollectionSource) int {
 
 // Selections for Consumption Plan
 
-type fboCollectionSelection struct {
+type selection struct {
 	collectionOriginID *string
-	source             fboCollectionSource
+	source             source
 	amount             alpacadecimal.Decimal
 }
 
-type fboCollectionSelections []fboCollectionSelection
+type selectionList []selection
 
-func (s fboCollectionSelections) postingAmounts(spendChargeID *string) []transactions.PostingAmount {
+func (s selectionList) postingAmounts(spendChargeID *string) []transactions.PostingAmount {
 	out := make([]transactions.PostingAmount, 0, len(s))
 
 	for idx, selection := range s {

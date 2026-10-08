@@ -1,54 +1,26 @@
-package collector
+package fbo
 
 import (
 	"context"
 	"fmt"
 	"slices"
-	"time"
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/currencies"
-	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	"github.com/openmeterio/openmeter/pkg/cmpx"
 )
 
-// collectCustomerFBOSelections builds the sources used by FBO->accrued
-// collection:
-// - query live FBO balance at route + source-charge granularity
-// - if breakage is enabled, attach open breakage plans to matching source slices
-// - select up to target from the prioritized sources
-func (c *accrualCollector) collectCustomerFBOSelections(
+func (c *service) listCustomerFBOSources(
 	ctx context.Context,
-	customerID customer.CustomerID,
-	currency currencies.CurrencyReference,
-	targetRoute ledger.Route,
-	target alpacadecimal.Decimal,
-	asOf time.Time,
-) ([]fboCollectionSelection, error) {
-	sources, err := c.listCustomerFBOSources(ctx, customerID, currency, targetRoute, asOf)
-	if err != nil {
-		return nil, err
-	}
-
-	// prioritize FBO sources before final collection.
-	slices.SortStableFunc(sources, cmpx.Compare[fboCollectionSource])
-
-	return selectFBOSources(sources, target), nil
-}
-
-func (c *accrualCollector) listCustomerFBOSources(
-	ctx context.Context,
-	customerID customer.CustomerID,
-	currency currencies.CurrencyReference,
-	targetRoute ledger.Route,
-	asOf time.Time,
-) ([]fboCollectionSource, error) {
-	customerAccounts, err := c.deps.AccountService.GetCustomerAccounts(ctx, customerID)
+	query SourceQuery,
+	scope *Scope,
+) ([]source, error) {
+	customerAccounts, err := c.dependencies.AccountService.GetCustomerAccounts(ctx, query.CustomerID)
 	if err != nil {
 		return nil, fmt.Errorf("get customer accounts: %w", err)
 	}
@@ -59,47 +31,55 @@ func (c *accrualCollector) listCustomerFBOSources(
 
 	sources, err := c.listCustomerFBOBalanceBucketSources(
 		ctx,
-		customerID.Namespace,
+		query,
 		customerAccounts.FBOAccount.ID().ID,
-		currency,
-		targetRoute,
-		asOf,
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	// prioritize FBO sources before breakage reserves source balances.
-	slices.SortStableFunc(sources, cmpx.Compare[fboCollectionSource])
+	if scope != nil {
+		for idx := range sources {
+			key := keyForSource(sources[idx].address, sources[idx].sourceChargeID)
+			sources[idx].available = sources[idx].available.Sub(scope.reserved[key])
+		}
+	}
 
-	return c.mapBreakagePlansToFBOCollectionSources(ctx, customerID, currency, targetRoute, asOf, sources)
+	// prioritize FBO sources before breakage reserves source balances.
+	slices.SortStableFunc(sources, cmpx.Compare[source])
+
+	sources, err = c.mapBreakagePlansToFBOCollectionSources(ctx, query, sources)
+	if err != nil {
+		return nil, err
+	}
+
+	slices.SortStableFunc(sources, cmpx.Compare[source])
+
+	return sources, nil
 }
 
-func (c *accrualCollector) mapBreakagePlansToFBOCollectionSources(
+func (c *service) mapBreakagePlansToFBOCollectionSources(
 	ctx context.Context,
-	customerID customer.CustomerID,
-	currency currencies.CurrencyReference,
-	targetRoute ledger.Route,
-	asOf time.Time,
-	sources []fboCollectionSource,
-) ([]fboCollectionSource, error) {
+	query SourceQuery,
+	sources []source,
+) ([]source, error) {
 	// Breakage plans decide which expiring credit is considered first. The FBO
 	// balance buckets decide whether that plan still has live source balance
 	// available to collect.
 	openPlans, err := c.breakage.ListPlans(ctx, breakage.ListPlansInput{
-		CustomerID: customerID,
-		Currency:   currency.Code,
-		AsOf:       asOf,
+		CustomerID: query.CustomerID,
+		Currency:   query.Currency.Code,
+		AsOf:       query.AsOf,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("list open breakage plans: %w", err)
 	}
 
-	breakageSources := make([]fboCollectionSource, 0, len(openPlans)+len(sources))
+	breakageSources := make([]source, 0, len(openPlans)+len(sources))
 	for _, plan := range openPlans {
-		// ponytail: ListPlans filters by code; keep the exact managed identity
+		// ListPlans filters by code; keep the exact managed identity
 		// check here until same-code plan locking warrants an adapter-level filter.
-		reservedSources := reserveSourcesForBreakagePlan(sources, plan, currency, targetRoute)
+		reservedSources := reserveSourcesForBreakagePlan(sources, plan, query.Currency, ledger.Route{Filters: query.Filters})
 		if len(reservedSources) == 0 {
 			continue
 		}
@@ -108,7 +88,7 @@ func (c *accrualCollector) mapBreakagePlansToFBOCollectionSources(
 		expiresAt := plan.ExpiresAt
 		route := plan.FBOAddress.Route().Route()
 		for _, reservedSource := range reservedSources {
-			breakageSources = append(breakageSources, fboCollectionSource{
+			breakageSources = append(breakageSources, source{
 				address:        plan.FBOAddress,
 				sourceChargeID: reservedSource.sourceChargeID,
 				available:      reservedSource.available,
@@ -136,11 +116,11 @@ func (c *accrualCollector) mapBreakagePlansToFBOCollectionSources(
 // to one open breakage plan in memory. The ledger write happens later, when the
 // selected source is collected and its attached plan is released.
 func reserveSourcesForBreakagePlan(
-	sources []fboCollectionSource,
+	sources []source,
 	plan breakage.Plan,
 	currency currencies.CurrencyReference,
 	targetRoute ledger.Route,
-) []fboCollectionSource {
+) []source {
 	route := plan.FBOAddress.Route().Route()
 	if !route.Currency.Equal(currency) {
 		return nil
@@ -157,30 +137,28 @@ func reserveSourcesForBreakagePlan(
 	return reserveSourceUnknownBreakagePlan(sources, plan)
 }
 
-func (c *accrualCollector) listCustomerFBOBalanceBucketSources(
+func (c *service) listCustomerFBOBalanceBucketSources(
 	ctx context.Context,
-	namespace string,
+	query SourceQuery,
 	accountID string,
-	currency currencies.CurrencyReference,
-	targetRoute ledger.Route,
-	asOf time.Time,
-) ([]fboCollectionSource, error) {
+) ([]source, error) {
 	// Query at source-charge granularity. Route/sub-account balance alone is too
 	// coarse once multiple purchased credit sources share the same FBO route.
 	route := ledger.RouteFilter{
-		Currency: currency,
+		Currency: query.Currency,
 	}
+	targetRoute := ledger.Route{Filters: query.Filters}
 	if len(targetRoute.Filters.Features) == 1 {
 		route.MatchFeature = targetRoute.Filters.Features[0]
 	} else if len(targetRoute.Filters.Features) == 0 {
 		route.Features = mo.Some([]string(nil))
 	}
 
-	buckets, err := c.deps.BalanceQuerier.GetBalanceBuckets(ctx, ledger.BalanceBucketQuery{
-		Namespace: namespace,
+	buckets, err := c.dependencies.BalanceQuerier.GetBalanceBuckets(ctx, ledger.BalanceBucketQuery{
+		Namespace: query.CustomerID.Namespace,
 		Filters: ledger.Filters{
 			AccountID: &accountID,
-			AsOf:      &asOf,
+			AsOf:      &query.AsOf,
 			Route:     route,
 		},
 		GroupBy: []string{ledger.BalanceBucketGroupBySourceChargeID},
@@ -189,7 +167,7 @@ func (c *accrualCollector) listCustomerFBOBalanceBucketSources(
 		return nil, fmt.Errorf("get FBO balance buckets: %w", err)
 	}
 
-	sources := make([]fboCollectionSource, 0, len(buckets))
+	sources := make([]source, 0, len(buckets))
 	for _, bucket := range buckets {
 		if !bucket.SettledAmount.IsPositive() {
 			continue
@@ -200,13 +178,13 @@ func (c *accrualCollector) listCustomerFBOBalanceBucketSources(
 			continue
 		}
 
-		source := fboCollectionSource{
+		source := source{
 			address:        bucket.Address,
 			sourceChargeID: bucket.GroupByValues[ledger.BalanceBucketGroupBySourceChargeID],
 			available:      bucket.SettledAmount,
 			creditPriority: customerFBOPriority(route),
 			restricted:     !route.Filters.IsEmpty(),
-			cursor:         fboBalanceBucketCursor(bucket),
+			cursor:         balanceBucketCursor(bucket),
 		}
 		sources = append(sources, source)
 	}
@@ -214,7 +192,7 @@ func (c *accrualCollector) listCustomerFBOBalanceBucketSources(
 	return sources, nil
 }
 
-func fboBalanceBucketCursor(bucket ledger.BalanceBucket) string {
+func balanceBucketCursor(bucket ledger.BalanceBucket) string {
 	sourceChargeID := lo.FromPtrOr(bucket.GroupByValues[ledger.BalanceBucketGroupBySourceChargeID], "null")
 
 	return bucket.Address.SubAccountID() + ":" + sourceChargeID
@@ -222,7 +200,7 @@ func fboBalanceBucketCursor(bucket ledger.BalanceBucket) string {
 
 // reserveSourceIdentifiedBreakagePlan maps to at most one live source bucket
 // because FBO balance buckets are grouped by sub-account + source_charge_id.
-func reserveSourceIdentifiedBreakagePlan(sources []fboCollectionSource, plan breakage.Plan) []fboCollectionSource {
+func reserveSourceIdentifiedBreakagePlan(sources []source, plan breakage.Plan) []source {
 	if plan.SourceChargeID == nil {
 		return nil
 	}
@@ -241,7 +219,7 @@ func reserveSourceIdentifiedBreakagePlan(sources []fboCollectionSource, plan bre
 			return nil
 		}
 
-		return []fboCollectionSource{reserved}
+		return []source{reserved}
 	}
 
 	return nil
@@ -250,9 +228,9 @@ func reserveSourceIdentifiedBreakagePlan(sources []fboCollectionSource, plan bre
 // reserveSourceUnknownBreakagePlan handles source-less breakage records. Without
 // source_charge_id, the plan may reserve from multiple live source buckets in
 // its FBO sub-account, but the total reservation is capped by plan.OpenAmount.
-func reserveSourceUnknownBreakagePlan(sources []fboCollectionSource, plan breakage.Plan) []fboCollectionSource {
+func reserveSourceUnknownBreakagePlan(sources []source, plan breakage.Plan) []source {
 	remaining := plan.OpenAmount
-	reservedSources := make([]fboCollectionSource, 0)
+	reservedSources := make([]source, 0)
 	for i := range sources {
 		if !remaining.IsPositive() {
 			return reservedSources
@@ -274,27 +252,27 @@ func reserveSourceUnknownBreakagePlan(sources []fboCollectionSource, plan breaka
 	return reservedSources
 }
 
-func reserveFBOBalanceBucketSource(source *fboCollectionSource, amount alpacadecimal.Decimal) (fboCollectionSource, bool) {
-	if !source.available.IsPositive() || !amount.IsPositive() {
-		return fboCollectionSource{}, false
+func reserveFBOBalanceBucketSource(bucketSource *source, amount alpacadecimal.Decimal) (source, bool) {
+	if !bucketSource.available.IsPositive() || !amount.IsPositive() {
+		return source{}, false
 	}
 
-	reserved := source.available
+	reserved := bucketSource.available
 	if reserved.GreaterThan(amount) {
 		reserved = amount
 	}
 
-	source.available = source.available.Sub(reserved)
+	bucketSource.available = bucketSource.available.Sub(reserved)
 
-	out := *source
+	out := *bucketSource
 	out.available = reserved
 
 	return out, true
 }
 
-func selectFBOSources(sources []fboCollectionSource, target alpacadecimal.Decimal) []fboCollectionSelection {
+func selectFBOSources(sources []source, target alpacadecimal.Decimal) []selection {
 	remaining := target
-	out := make([]fboCollectionSelection, 0, len(sources))
+	out := make([]selection, 0, len(sources))
 
 	for _, source := range sources {
 		if !remaining.IsPositive() {
@@ -310,7 +288,7 @@ func selectFBOSources(sources []fboCollectionSource, target alpacadecimal.Decima
 			amount = remaining
 		}
 
-		out = append(out, fboCollectionSelection{
+		out = append(out, selection{
 			source: source,
 			amount: amount,
 		})

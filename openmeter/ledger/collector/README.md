@@ -2,15 +2,16 @@
 
 This package turns selected customer FBO credit into accrued value and, for
 custom-currency `credit_then_invoice` overage, fiat receivable coverage.
-Credit-only accrual asks [advance](../advance/README.md) to create an advance for
-an uncovered amount. Source order is preserved so correction and breakage can
-undo the same collected amounts.
+The [FBO service](../fbo/README.md) plans source selection, consumption, expiry
+release, and credit-only advance for an uncovered amount. The collector commits
+the complete group and maps its postings to billing allocations. Source order
+is preserved so correction and breakage can undo the same collected amounts.
 
 ## Vocab
 
 - `BookedAt`: timestamp used for the ledger transactions being written.
 - `SourceBalanceAsOf`: timestamp used to decide which FBO sources are available.
-- `source`: one spendable FBO slice selected by the collector.
+- `source`: one eligible FBO slice selected by the FBO service.
 - `source entry`: the concrete negative FBO ledger entry created by collection.
 - `allocation`: billing's collapsed record of collected credit.
 - `advance`: value moved through FBO/accrued before real credit exists to cover it.
@@ -42,7 +43,8 @@ stable cursor asc
 
 Non-expiring credit sorts after expiring credit with the same priority.
 
-This order must match breakage release order. If the collector consumes an expiring source, it also asks breakage to release the matching planned breakage for that same source.
+This order must match breakage release order. Consuming an expiring source also
+releases the matching planned breakage for that source.
 
 ## Forward Collection Example
 

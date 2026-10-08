@@ -35,9 +35,9 @@ facts stored independently from the journal.
 - `chargeadapter` translates charge lifecycle events into ledger templates.
   Charges decide when an effect is due; the ledger decides how that effect is
   represented and validated. See the [charges domain](../billing/charges/README.md).
-- The collector owns source selection and correction unwind order. Callers
-  provide the target amount and attribution; they must not recreate collection
-  policy.
+- [FBO](fbo/README.md) owns consumption source selection, expiry release, and
+  advance coordination. The collector maps plans to billing allocations, commits
+  their group, and owns correction unwind order.
 - `customerbalance` is a customer-facing projection over booked ledger state,
   breakage, and not-yet-booked charge impacts. It does not own posting,
   collection, or correction rules.
