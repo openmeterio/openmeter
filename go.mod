@@ -75,7 +75,7 @@ require (
 	github.com/spf13/viper v1.21.0
 	github.com/stretchr/testify v1.12.1
 	github.com/stripe/stripe-go/v80 v80.2.1
-	github.com/svix/svix-webhooks v1.99.2-0.20260930185206-e5d8da05eb8c
+	github.com/svix/svix-webhooks/v2 v2.7.0
 	github.com/wI2L/jsondiff v0.7.1
 	github.com/xdg-go/scram v1.2.0
 	github.com/zeebo/xxh3 v1.1.0

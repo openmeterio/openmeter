@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/samber/lo"
-	svix "github.com/svix/svix-webhooks/go"
+	svix "github.com/svix/svix-webhooks/v2/go"
 
 	"github.com/openmeterio/openmeter/openmeter/notification/webhook"
 )

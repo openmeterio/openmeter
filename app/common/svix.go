@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"net/url"
 
-	svix "github.com/svix/svix-webhooks/go"
+	svix "github.com/svix/svix-webhooks/v2/go"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel/metric"
 	semconv "go.opentelemetry.io/otel/semconv/v1.37.0"
