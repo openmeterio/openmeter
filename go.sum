@@ -387,8 +387,8 @@ github.com/prometheus/client_golang v1.24.1 h1:JnJkREXzWxUdCuPFpIWZiPispT9xVV59u
 github.com/prometheus/client_golang v1.24.1/go.mod h1:F+oSRECHg4sse5ucfYpYDeIv/hu68Zo0uoHKetWnzcE=
 github.com/prometheus/client_model v0.6.3 h1:O0jaTVAYNxTHYInEPFJt5I3+sN8zqBtVMPTB1qyxiEo=
 github.com/prometheus/client_model v0.6.3/go.mod h1:gpN5P9S7Rr6Yr92PiQ+Ixvhf6JZEkF1dnxsYL2aPBEM=
-github.com/prometheus/common v0.71.0 h1:9KDAKb7Mj3HEVKyFCK6Dc/HIwlBzZIN2l7/lrHl3KK8=
-github.com/prometheus/common v0.71.0/go.mod h1:CLJ5H8TEsGX8bl31BdMkfhIZ+QmZ9tBPPotUxUbfcmk=
+github.com/prometheus/common v0.72.0 h1:tAYsE+sPJxIncDAobm4H5aQjmox9ZxEIIqPbiffa8G4=
+github.com/prometheus/common v0.72.0/go.mod h1:77NWqAQ2tXT7BIK40qjJdw5Acrsrg1TlHAnsQi3i6mk=
 github.com/prometheus/otlptranslator v1.0.0 h1:s0LJW/iN9dkIH+EnhiD3BlkkP5QVIUVEoIwkU+A6qos=
 github.com/prometheus/otlptranslator v1.0.0/go.mod h1:vRYWnXvI6aWGpsdY/mOT/cbeVRBlPWtBNDb7kGR3uKM=
 github.com/prometheus/procfs v0.21.1 h1:GljZCt+zSTS+NZq88cyQ1LjZ+RCHp3uVuabBWA5+OJI=
@@ -475,8 +475,6 @@ github.com/stripe/stripe-go/v80 v80.2.1 h1:1FQP5a/gpC4i0ezS8EPqdme3K/H9UlNWswqNH
 github.com/stripe/stripe-go/v80 v80.2.1/go.mod h1:n7tsDvdltYlzOLGXlseMSJM6ik5uv3guptqtae/VSak=
 github.com/subosito/gotenv v1.6.0 h1:9NlTDc1FTs4qu0DDq7AEtTPNw6SVm7uBMsUCUjABIf8=
 github.com/subosito/gotenv v1.6.0/go.mod h1:Dk4QP5c2W3ibzajGcXpNraDfq2IrhjMIvMSWPKKo0FU=
-github.com/svix/svix-webhooks v1.99.1 h1:Wbi3/kn5Sm2sgGZ7mKDjO/eJD/DQj9YdXhCF4VB13qA=
-github.com/svix/svix-webhooks v1.99.1/go.mod h1:ngWxEvc1ll097e5kjOQfLz6PqjZTep6ORvGsV4s6mYg=
 github.com/svix/svix-webhooks v1.99.2-0.20260930185206-e5d8da05eb8c h1:BQdTuut89RbM1ar4g5j85AUsFpnEjGyhRE6WfcLRVLg=
 github.com/svix/svix-webhooks v1.99.2-0.20260930185206-e5d8da05eb8c/go.mod h1:ngWxEvc1ll097e5kjOQfLz6PqjZTep6ORvGsV4s6mYg=
 github.com/tidwall/gjson v1.14.2/go.mod h1:/wbyibRr2FHMks5tjHJ5F8dMZh3AcwJEMf5vlfC0lxk=
