@@ -486,9 +486,10 @@ func NewSubscriptionView(
 				}
 
 				if itemFeat != nil {
+					// Resolving a persisted feature must preserve legacy short-cadence reads.
 					if err := item.RateCard.ChangeMeta(func(meta productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
 						return withResolvedFeatureReference(meta, itemFeat)
-					}); err != nil {
+					}); err != nil && !errorsx.IsOnly(err, productcatalog.ErrRateCardBillingCadenceTooShort) {
 						return nil, fmt.Errorf("failed to resolve feature reference for item %s: %w", item.ID, err)
 					}
 				}

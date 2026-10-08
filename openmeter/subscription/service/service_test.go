@@ -1505,3 +1505,55 @@ func TestBillingCadenceLegacyCancellation(t *testing.T) {
 	_, err = deps.SubscriptionService.Cancel(t.Context(), sub.NamespacedID, subscription.Timing{Enum: lo.ToPtr(subscription.TimingNextBillingCycle)})
 	require.NoError(t, err)
 }
+
+func TestBillingCadenceLegacyFeatureResolution(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		rateCard productcatalog.RateCard
+	}{
+		{name: "flat fee with item feature", rateCard: subscriptiontestutils.ExampleAddonRateCard4.Clone()},
+		{name: "usage based with entitlement feature", rateCard: subscriptiontestutils.ExampleRateCard1.Clone()},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			// given: a persisted weekly subscription whose feature-linked item predates the cadence minimum
+			now := time.Date(2026, time.January, 1, 12, 0, 0, 0, time.UTC)
+			clock.FreezeTime(now)
+			defer clock.UnFreeze()
+			dbDeps := subscriptiontestutils.SetupDBDeps(t)
+			t.Cleanup(func() { dbDeps.Cleanup(t) })
+			deps := subscriptiontestutils.NewService(t, dbDeps)
+			customer := deps.CustomerAdapter.CreateExampleCustomer(t)
+			deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
+			spec, err := subscriptiontestutils.BuildTestSubscriptionSpec(t).AddPhase(nil, tc.rateCard).Build()
+			require.NoError(t, err)
+			spec.Plan = nil
+			spec.CustomerId = customer.ID
+			spec.ActiveFrom = now.Add(-time.Hour)
+			spec.BillingAnchor = spec.ActiveFrom
+			spec.BillingCadence = datetime.MustParseDuration(t, "P1W")
+			sub, err := deps.SubscriptionService.Create(t.Context(), subscriptiontestutils.ExampleNamespace, spec)
+			require.NoError(t, err)
+			view, err := deps.SubscriptionService.GetView(t.Context(), sub.NamespacedID)
+			require.NoError(t, err)
+			itemID := view.Phases[0].ItemsByKey[tc.rateCard.Key()][0].SubscriptionItem.ID
+			_, err = dbDeps.DBClient.SubscriptionItem.UpdateOneID(itemID).SetBillingCadence(datetime.ISODurationString("PT1H")).Save(t.Context())
+			require.NoError(t, err)
+
+			// when: the service loads the legacy item and resolves its feature
+			view, err = deps.SubscriptionService.GetView(t.Context(), sub.NamespacedID)
+
+			// then: reads and cancellation work, but unrelated updates still reject the short cadence
+			require.NoError(t, err)
+			item := view.Phases[0].ItemsByKey[tc.rateCard.Key()][0]
+			require.NotNil(t, item.Feature)
+			require.True(t, item.Spec.RateCard.AsMeta().Feature.IsResolved())
+			require.Equal(t, "PT1H", item.Spec.RateCard.GetBillingCadence().String())
+			require.Equal(t, "P1W", view.Subscription.BillingCadence.String())
+			view.Spec.Phases["test_phase_1"].Name = "Renamed phase"
+			_, err = deps.SubscriptionService.Update(t.Context(), sub.NamespacedID, view.Spec)
+			require.ErrorIs(t, err, productcatalog.ErrRateCardBillingCadenceTooShort)
+			_, err = deps.SubscriptionService.Cancel(t.Context(), sub.NamespacedID, subscription.Timing{Enum: lo.ToPtr(subscription.TimingNextBillingCycle)})
+			require.NoError(t, err)
+		})
+	}
+}
