@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/samber/lo"
@@ -18,10 +19,14 @@ func (s Service) ListRuleViews(ctx context.Context, params notification.ListRule
 		return pagination.Result[notification.RuleView]{}, err
 	}
 
-	views, err := s.resolveRuleViews(ctx, params.Namespace, result.Items)
+	features, err := s.resolveRuleFeatures(ctx, params.Namespace, lo.FlatMap(result.Items, func(r notification.Rule, _ int) []string {
+		return r.Config.Features()
+	}))
 	if err != nil {
 		return pagination.Result[notification.RuleView]{}, err
 	}
+
+	views := s.mergeRulesFeatures(result.Items, features)
 
 	return pagination.Result[notification.RuleView]{Page: result.Page, TotalCount: result.TotalCount, Items: views}, nil
 }
@@ -32,7 +37,16 @@ func (s Service) GetRuleView(ctx context.Context, params notification.GetRuleInp
 		return notification.RuleView{}, err
 	}
 
-	return s.resolveRuleView(ctx, rule)
+	if rule == nil {
+		return notification.RuleView{}, notification.NotFoundError{NamespacedID: models.NamespacedID{Namespace: params.Namespace, ID: params.ID}}
+	}
+
+	features, err := s.resolveRuleFeatures(ctx, params.Namespace, rule.Config.Features())
+	if err != nil {
+		return notification.RuleView{}, err
+	}
+
+	return s.mergeRuleFeatures(*rule, features), nil
 }
 
 func (s Service) CreateRuleView(ctx context.Context, params notification.CreateRuleInput) (notification.RuleView, error) {
@@ -47,10 +61,10 @@ func (s Service) CreateRuleView(ctx context.Context, params notification.CreateR
 	}
 
 	if rule == nil {
-		return notification.RuleView{}, fmt.Errorf("nil rule returned")
+		return notification.RuleView{}, errors.New("unable to create rule")
 	}
 
-	return notification.RuleView{Rule: *rule, Features: features}, nil
+	return s.mergeRuleFeatures(*rule, features), nil
 }
 
 func (s Service) UpdateRuleView(ctx context.Context, params notification.UpdateRuleInput) (notification.RuleView, error) {
@@ -65,102 +79,63 @@ func (s Service) UpdateRuleView(ctx context.Context, params notification.UpdateR
 	}
 
 	if rule == nil {
-		return notification.RuleView{}, fmt.Errorf("nil rule returned")
+		return notification.RuleView{}, errors.New("unable to update rule")
 	}
 
-	return notification.RuleView{Rule: *rule, Features: features}, nil
+	return s.mergeRuleFeatures(*rule, features), nil
 }
 
-// Writes resolve their features up front so a missing feature or a failed lookup
-// rejects the request before anything is committed to the database or Svix.
+// Archived features are included so views stay faithful to the stored rule; when a
+// key was reused after archiving, the live feature wins. Writes resolve before
+// mutating so a failed lookup never surfaces as an error for an already committed
+// rule; missing features are rejected by the rule validation before any write.
 func (s Service) resolveRuleFeatures(ctx context.Context, namespace string, idsOrKeys []string) ([]feature.Feature, error) {
 	idsOrKeys = lo.Uniq(idsOrKeys)
 	if len(idsOrKeys) == 0 {
 		return nil, nil
 	}
 
-	features, err := s.ListFeature(ctx, namespace, idsOrKeys...)
+	features, err := s.feature.ListFeatures(ctx, feature.ListFeaturesParams{
+		Namespace:       namespace,
+		IDsOrKeys:       idsOrKeys,
+		IncludeArchived: true,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve notification rule features: %w", err)
 	}
 
-	featuresByIDOrKey := make(map[string]feature.Feature, 2*len(features))
-	for _, f := range features {
+	featuresByIDOrKey := make(map[string]feature.Feature, 2*len(features.Items))
+	for _, f := range features.Items {
 		featuresByIDOrKey[f.ID] = f
-		featuresByIDOrKey[f.Key] = f
-	}
 
-	var missing []string
-
-	resolved := make([]feature.Feature, 0, len(idsOrKeys))
-
-	for _, idOrKey := range idsOrKeys {
-		f, ok := featuresByIDOrKey[idOrKey]
-		if !ok {
-			missing = append(missing, idOrKey)
-			continue
+		if existing, ok := featuresByIDOrKey[f.Key]; !ok || existing.ArchivedAt != nil {
+			featuresByIDOrKey[f.Key] = f
 		}
-
-		resolved = append(resolved, f)
 	}
 
-	if len(missing) > 0 {
-		return nil, models.NewGenericValidationError(fmt.Errorf("non-existing features: %v", missing))
-	}
+	resolved := lo.FilterMap(idsOrKeys, func(idOrKey string, _ int) (feature.Feature, bool) {
+		f, ok := featuresByIDOrKey[idOrKey]
+		return f, ok
+	})
 
 	return lo.UniqBy(resolved, func(f feature.Feature) string { return f.ID }), nil
 }
 
-func (s Service) resolveRuleView(ctx context.Context, rule *notification.Rule) (notification.RuleView, error) {
-	if rule == nil {
-		return notification.RuleView{}, fmt.Errorf("nil rule returned")
-	}
-
-	views, err := s.resolveRuleViews(ctx, rule.Namespace, []notification.Rule{*rule})
-	if err != nil {
-		return notification.RuleView{}, err
-	}
-
-	return views[0], nil
+func (s Service) mergeRulesFeatures(rules []notification.Rule, features []feature.Feature) []notification.RuleView {
+	return lo.Map(rules, func(r notification.Rule, _ int) notification.RuleView {
+		return s.mergeRuleFeatures(r, features)
+	})
 }
 
-// Archived features are included to keep the view faithful to the stored rule; when a
-// key was reused after archiving, the live feature wins.
-func (s Service) resolveRuleViews(ctx context.Context, namespace string, rules []notification.Rule) ([]notification.RuleView, error) {
-	idsOrKeys := lo.Uniq(lo.FlatMap(rules, func(r notification.Rule, _ int) []string {
-		return r.Config.Features()
-	}))
-
-	featuresByIDOrKey := make(map[string]feature.Feature, 2*len(idsOrKeys))
-
-	if len(idsOrKeys) > 0 {
-		features, err := s.feature.ListFeatures(ctx, feature.ListFeaturesParams{
-			Namespace:       namespace,
-			IDsOrKeys:       idsOrKeys,
-			IncludeArchived: true,
+func (s Service) mergeRuleFeatures(rule notification.Rule, features []feature.Feature) notification.RuleView {
+	ruleViewFeatures := lo.Filter(features, func(feature feature.Feature, _ int) bool {
+		return lo.ContainsBy(rule.Config.Features(), func(idOrKey string) bool {
+			return idOrKey == feature.ID || idOrKey == feature.Key
 		})
-		if err != nil {
-			return nil, fmt.Errorf("failed to resolve notification rule features: %w", err)
-		}
+	})
 
-		for _, f := range features.Items {
-			featuresByIDOrKey[f.ID] = f
-
-			if existing, ok := featuresByIDOrKey[f.Key]; !ok || existing.ArchivedAt != nil {
-				featuresByIDOrKey[f.Key] = f
-			}
-		}
+	return notification.RuleView{
+		Rule:     rule,
+		Features: lo.UniqBy(ruleViewFeatures, func(f feature.Feature) string { return f.ID }),
 	}
-
-	return lo.Map(rules, func(r notification.Rule, _ int) notification.RuleView {
-		resolved := lo.FilterMap(r.Config.Features(), func(idOrKey string, _ int) (feature.Feature, bool) {
-			f, ok := featuresByIDOrKey[idOrKey]
-			return f, ok
-		})
-
-		return notification.RuleView{
-			Rule:     r,
-			Features: lo.UniqBy(resolved, func(f feature.Feature) string { return f.ID }),
-		}
-	}), nil
 }
