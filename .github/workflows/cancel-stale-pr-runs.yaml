@@ -1,0 +1,30 @@
+name: Cancel stale PR runs
+
+on:
+  workflow_call:
+
+permissions: {}
+
+jobs:
+  cancel:
+    # Fork and Dependabot PRs have read-only tokens and are intentionally skipped.
+    if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.user.login != 'dependabot[bot]' }}
+    permissions:
+      contents: read
+      actions: write # Required to cancel older runs of the calling workflow.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: .github/tools/ci
+
+      - name: Cancel older runs of the same PR workflow
+        run: python3 .github/tools/ci/cancel_stale_pr_runs.py
+        env:
+          GITHUB_TOKEN: ${{ github.token }}

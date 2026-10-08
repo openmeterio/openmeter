@@ -8,11 +8,15 @@ permissions:
   actions: read
   checks: read
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
+  cancel-older-runs:
+    # Fork and Dependabot tokens cannot cancel runs in this repository.
+    if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.user.login != 'dependabot[bot]' }}
+    permissions:
+      contents: read
+      actions: write # Required by the cancellation job; other jobs retain their own permissions.
+    uses: $/.github/workflows/cancel-stale-pr-runs.yaml
+
   migration-atlas-sum:
     name: Migration atlas.sum append-only
     runs-on: ubuntu-latest
@@ -31,6 +35,9 @@ jobs:
 
       - name: Run atlas.sum check unit tests
         run: python3 -m unittest discover -s .github/tools/migrate -p 'test_*.py'
+
+      - name: Test PR run cancellation ordering
+        run: python3 -m unittest discover -s .github/tools/ci -p 'test_*.py'
 
       - name: Check atlas.sum is append-only
         # base.sha is always a hex SHA, but route it via env for consistency
