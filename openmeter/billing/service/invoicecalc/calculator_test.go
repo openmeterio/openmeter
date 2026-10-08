@@ -26,7 +26,8 @@ func TestInvoicePipelinesAggregateAuthoritativeLines(t *testing.T) {
 				Currency:      "USD",
 				InvoiceID:     "invoice",
 				Period:        timeutil.ClosedPeriod{From: now.Add(-time.Hour), To: now},
-				PerUnitAmount: alpacadecimal.NewFromInt(100), PaymentTerm: productcatalog.InAdvancePaymentTerm,
+				PerUnitAmount: alpacadecimal.NewFromInt(100),
+				PaymentTerm:   productcatalog.InAdvancePaymentTerm,
 			})
 			line.Totals = totals.Totals{Amount: alpacadecimal.NewFromInt(12), Total: alpacadecimal.NewFromInt(12)}
 			chargeLine, err := line.Clone()

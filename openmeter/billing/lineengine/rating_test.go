@@ -57,7 +57,8 @@ func TestCollectionRatesReusedAndNewSnapshotsWithoutMutatingInput(t *testing.T) 
 			// Given a flat line whose prior calculated state is stale.
 			line := standardLineForLineEngineOverrideTest(t, lineEngineOverrideTestPeriod())
 			line.UsageBased.Price = productcatalog.NewPriceFrom(productcatalog.FlatPrice{
-				Amount: alpacadecimal.NewFromInt(12), PaymentTerm: productcatalog.InAdvancePaymentTerm,
+				Amount:      alpacadecimal.NewFromInt(12),
+				PaymentTerm: productcatalog.InAdvancePaymentTerm,
 			})
 			line.UsageBased.FeatureKey = ""
 			line.UsageBased.MeteredQuantity = lo.ToPtr(alpacadecimal.NewFromInt(7))
@@ -81,7 +82,8 @@ func TestCollectionRatesReusedAndNewSnapshotsWithoutMutatingInput(t *testing.T) 
 
 			// When collection either snapshots or reuses the existing quantity.
 			lines, err := engine.OnCollectionCompleted(t.Context(), billing.OnCollectionCompletedInput{
-				Invoice: invoice, Lines: invoice.Lines.OrEmpty(),
+				Invoice: invoice,
+				Lines:   invoice.Lines.OrEmpty(),
 			})
 			require.NoError(t, err)
 
@@ -108,7 +110,8 @@ func TestCollectionRatingFailureRetainsOriginalSnapshot(t *testing.T) {
 			// Given prior quantities and a rating failure after a fresh flat snapshot.
 			line := standardLineForLineEngineOverrideTest(t, lineEngineOverrideTestPeriod())
 			line.UsageBased.Price = productcatalog.NewPriceFrom(productcatalog.FlatPrice{
-				Amount: alpacadecimal.NewFromInt(12), PaymentTerm: productcatalog.InAdvancePaymentTerm,
+				Amount:      alpacadecimal.NewFromInt(12),
+				PaymentTerm: productcatalog.InAdvancePaymentTerm,
 			})
 			line.UsageBased.FeatureKey = ""
 			line.UsageBased.MeteredQuantity = lo.ToPtr(alpacadecimal.NewFromInt(7))
@@ -124,7 +127,8 @@ func TestCollectionRatingFailureRetainsOriginalSnapshot(t *testing.T) {
 
 			// When rating fails, collection must not leak the attempted quantity.
 			_, err = engine.OnCollectionCompleted(t.Context(), billing.OnCollectionCompletedInput{
-				Invoice: invoice, Lines: invoice.Lines.OrEmpty(),
+				Invoice: invoice,
+				Lines:   invoice.Lines.OrEmpty(),
 			})
 			require.ErrorIs(t, err, ratingErr)
 			after, err := json.Marshal(invoice)
@@ -138,7 +142,8 @@ func TestCollectionSnapshotFailureRetainsAllOriginalLines(t *testing.T) {
 	// Given a flat line that can snapshot and a metered line missing its feature.
 	flatLine := standardLineForLineEngineOverrideTest(t, lineEngineOverrideTestPeriod())
 	flatLine.UsageBased.Price = productcatalog.NewPriceFrom(productcatalog.FlatPrice{
-		Amount: alpacadecimal.NewFromInt(12), PaymentTerm: productcatalog.InAdvancePaymentTerm,
+		Amount:      alpacadecimal.NewFromInt(12),
+		PaymentTerm: productcatalog.InAdvancePaymentTerm,
 	})
 	flatLine.UsageBased.FeatureKey = ""
 	flatLine.UsageBased.MeteredQuantity = lo.ToPtr(alpacadecimal.NewFromInt(7))
@@ -153,7 +158,8 @@ func TestCollectionSnapshotFailureRetainsAllOriginalLines(t *testing.T) {
 
 	// When the batch snapshot fails after another line has successfully snapshotted.
 	lines, err := engine.OnCollectionCompleted(t.Context(), billing.OnCollectionCompletedInput{
-		Invoice: invoice, Lines: invoice.Lines.OrEmpty(),
+		Invoice: invoice,
+		Lines:   invoice.Lines.OrEmpty(),
 	})
 	issues, systemErr := billing.ToValidationIssues(err)
 	require.NoError(t, systemErr)

@@ -778,7 +778,8 @@ func TestWithLineEngineInvoiceLineChangesAcceptsWarningOutput(t *testing.T) {
 
 	// When dispatch accepts warning-only output and checks its exact line IDs.
 	result, err := svc.applyAPIInvoiceLineEdits(t.Context(), applyAPIInvoiceLineEditsInput{
-		EditedInvoice: edited, LineDiff: lineDiff,
+		EditedInvoice: edited,
+		LineDiff:      lineDiff,
 	})
 	require.NoError(t, err)
 

@@ -89,8 +89,10 @@ func (s *InvoicingTestSuite) TestSimulateInvoiceFeatureMeterValidation() {
 
 		// When simulation validates the feature and rates supplied quantities.
 		invoice, err := s.BillingService.SimulateInvoice(ctx, billing.SimulateInvoiceInput{
-			Namespace: namespace, CustomerID: &customerEntity.ID, Currency: currencyx.FiatCode(currency.USD),
-			Lines: billing.NewStandardInvoiceLines(billing.StandardLines{line}),
+			Namespace:  namespace,
+			CustomerID: &customerEntity.ID,
+			Currency:   currencyx.FiatCode(currency.USD),
+			Lines:      billing.NewStandardInvoiceLines(billing.StandardLines{line}),
 		})
 		s.Require().NoError(err)
 
