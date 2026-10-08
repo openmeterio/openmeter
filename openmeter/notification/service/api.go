@@ -8,6 +8,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
@@ -35,21 +36,79 @@ func (s Service) GetRuleView(ctx context.Context, params notification.GetRuleInp
 }
 
 func (s Service) CreateRuleView(ctx context.Context, params notification.CreateRuleInput) (notification.RuleView, error) {
+	features, err := s.resolveRuleFeatures(ctx, params.Namespace, params.Config.Features())
+	if err != nil {
+		return notification.RuleView{}, err
+	}
+
 	rule, err := s.CreateRule(ctx, params)
 	if err != nil {
 		return notification.RuleView{}, err
 	}
 
-	return s.resolveRuleView(ctx, rule)
+	if rule == nil {
+		return notification.RuleView{}, fmt.Errorf("nil rule returned")
+	}
+
+	return notification.RuleView{Rule: *rule, Features: features}, nil
 }
 
 func (s Service) UpdateRuleView(ctx context.Context, params notification.UpdateRuleInput) (notification.RuleView, error) {
+	features, err := s.resolveRuleFeatures(ctx, params.Namespace, params.Config.Features())
+	if err != nil {
+		return notification.RuleView{}, err
+	}
+
 	rule, err := s.UpdateRule(ctx, params)
 	if err != nil {
 		return notification.RuleView{}, err
 	}
 
-	return s.resolveRuleView(ctx, rule)
+	if rule == nil {
+		return notification.RuleView{}, fmt.Errorf("nil rule returned")
+	}
+
+	return notification.RuleView{Rule: *rule, Features: features}, nil
+}
+
+// Writes resolve their features up front so a missing feature or a failed lookup
+// rejects the request before anything is committed to the database or Svix.
+func (s Service) resolveRuleFeatures(ctx context.Context, namespace string, idsOrKeys []string) ([]feature.Feature, error) {
+	idsOrKeys = lo.Uniq(idsOrKeys)
+	if len(idsOrKeys) == 0 {
+		return nil, nil
+	}
+
+	features, err := s.ListFeature(ctx, namespace, idsOrKeys...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve notification rule features: %w", err)
+	}
+
+	featuresByIDOrKey := make(map[string]feature.Feature, 2*len(features))
+	for _, f := range features {
+		featuresByIDOrKey[f.ID] = f
+		featuresByIDOrKey[f.Key] = f
+	}
+
+	var missing []string
+
+	resolved := make([]feature.Feature, 0, len(idsOrKeys))
+
+	for _, idOrKey := range idsOrKeys {
+		f, ok := featuresByIDOrKey[idOrKey]
+		if !ok {
+			missing = append(missing, idOrKey)
+			continue
+		}
+
+		resolved = append(resolved, f)
+	}
+
+	if len(missing) > 0 {
+		return nil, models.NewGenericValidationError(fmt.Errorf("non-existing features: %v", missing))
+	}
+
+	return lo.UniqBy(resolved, func(f feature.Feature) string { return f.ID }), nil
 }
 
 func (s Service) resolveRuleView(ctx context.Context, rule *notification.Rule) (notification.RuleView, error) {
