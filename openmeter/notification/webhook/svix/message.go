@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/samber/lo"
-	svix "github.com/svix/svix-webhooks/go"
-	svixmodels "github.com/svix/svix-webhooks/go/models"
+	svix "github.com/svix/svix-webhooks/v2/go"
+	svixmodels "github.com/svix/svix-webhooks/v2/go/models"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 

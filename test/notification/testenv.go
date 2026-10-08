@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/oklog/ulid/v2"
-	svix "github.com/svix/svix-webhooks/go"
+	svix "github.com/svix/svix-webhooks/v2/go"
 	"go.opentelemetry.io/otel/trace/noop"
 
 	"github.com/openmeterio/openmeter/openmeter/meter"

@@ -6,7 +6,7 @@ import (
 	"math/rand/v2"
 
 	"github.com/google/wire"
-	svix "github.com/svix/svix-webhooks/go"
+	svix "github.com/svix/svix-webhooks/v2/go"
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/app/config"

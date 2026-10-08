@@ -9,9 +9,9 @@ import (
 
 	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
-	svix "github.com/svix/svix-webhooks/go"
-	svixmodels "github.com/svix/svix-webhooks/go/models"
-	svixutils "github.com/svix/svix-webhooks/go/utils"
+	svix "github.com/svix/svix-webhooks/v2/go"
+	svixmodels "github.com/svix/svix-webhooks/v2/go/models"
+	svixutils "github.com/svix/svix-webhooks/v2/go/utils"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 
@@ -109,7 +109,7 @@ func (h svixHandler) GetOrUpdateEndpointSecret(ctx context.Context, appID, endpo
 
 			span.AddEvent("rotating endpoint secret", trace.WithAttributes(spanAttrs...))
 
-			err = h.client.Endpoint().RotateSecret(ctx, appID, endpointID, input, &svix.EndpointRotateSecretOptions{
+			_, err = h.client.Endpoint().RotateSecret(ctx, appID, endpointID, input, &svix.EndpointRotateSecretOptions{
 				IdempotencyKey: &idempotencyKey,
 			})
 			if err = internal.WrapSvixError(err); err != nil {
