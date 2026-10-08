@@ -96,7 +96,8 @@ func (t *Generator) newTestEntitlementResetPayload() notification.EventPayload {
 
 	return notification.EventPayload{
 		EventPayloadMeta: notification.EventPayloadMeta{
-			Type: notification.EventTypeBalanceThreshold,
+			Type:    notification.EventTypeEntitlementReset,
+			Version: notification.EventPayloadVersionCurrent,
 		},
 		EntitlementReset: &notification.EntitlementResetPayload{
 			Entitlement: api.EntitlementMetered{
