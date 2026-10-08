@@ -21,12 +21,8 @@ func RecalculateTotals(invoice *billing.StandardInvoice) error {
 	}
 
 	invoice.Totals = totals.Sum(
-		lo.Map(invoice.Lines.OrEmpty(), func(line *billing.StandardLine, _ int) totals.Totals {
-			if line.IsDeleted() {
-				return totals.Totals{}
-			}
-
-			return line.Totals
+		lo.FilterMap(invoice.Lines.OrEmpty(), func(line *billing.StandardLine, _ int) (totals.Totals, bool) {
+			return line.Totals, !line.IsDeleted()
 		})...,
 	)
 

@@ -108,13 +108,13 @@ func (e *Engine) RateStandardLines(lines billing.StandardLines) (billing.Standar
 	return ratedLines, validationRecorder.ErrorsOrNil()
 }
 
-func newDetailedLines(line *billing.StandardLine, inputs ...rating.DetailedLine) (billing.DetailedLines, error) {
+func newDetailedLines(stdLine *billing.StandardLine, inputs ...rating.DetailedLine) (billing.DetailedLines, error) {
 	return slicesx.MapWithErr(inputs, func(in rating.DetailedLine) (billing.DetailedLine, error) {
 		if err := in.Validate(); err != nil {
 			return billing.DetailedLine{}, err
 		}
 
-		period := line.Period
+		period := stdLine.Period
 		if in.Period != nil {
 			period = timeutil.ClosedPeriod{
 				From: in.Period.From,
@@ -126,9 +126,9 @@ func newDetailedLines(line *billing.StandardLine, inputs ...rating.DetailedLine)
 			in.Category = stddetailedline.CategoryRegular
 		}
 
-		line := billing.DetailedLine{
-			InvoiceID:              line.InvoiceID,
-			Namespace:              line.Namespace,
+		detailedLine := billing.DetailedLine{
+			InvoiceID:              stdLine.InvoiceID,
+			Namespace:              stdLine.Namespace,
 			Name:                   in.Name,
 			ServicePeriod:          period,
 			ChildUniqueReferenceID: in.ChildUniqueReferenceID,
@@ -141,11 +141,11 @@ func newDetailedLines(line *billing.StandardLine, inputs ...rating.DetailedLine)
 			AmountDiscounts:        in.AmountDiscounts,
 		}
 
-		if err := line.Validate(); err != nil {
+		if err := detailedLine.Validate(); err != nil {
 			return billing.DetailedLine{}, err
 		}
 
-		return line, nil
+		return detailedLine, nil
 	})
 }
 

@@ -20,7 +20,11 @@ func TestInvoicePipelinesAggregateAuthoritativeLines(t *testing.T) {
 			// Given authoritative line totals that differ from the supplied flat price.
 			now := time.Now().UTC()
 			line := billing.NewFlatFeeLine(billing.NewFlatFeeLineInput{
-				ID: "legacy", Name: "legacy", Currency: "USD", InvoiceID: "invoice",
+				ID:            "legacy",
+				Namespace:     "namespace",
+				Name:          "legacy",
+				Currency:      "USD",
+				InvoiceID:     "invoice",
 				Period:        timeutil.ClosedPeriod{From: now.Add(-time.Hour), To: now},
 				PerUnitAmount: alpacadecimal.NewFromInt(100), PaymentTerm: productcatalog.InAdvancePaymentTerm,
 			})
