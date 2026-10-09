@@ -239,6 +239,10 @@ type validationEntryInput struct {
 	collectionOriginID *string
 }
 
+func (validationEntryInput) AssignedID() string {
+	return ""
+}
+
 func (e validationEntryInput) PostingAddress() ledger.PostingAddress {
 	return e.address
 }

@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 
 	chargecreditpurchase "github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
@@ -326,33 +327,29 @@ func (h *creditPurchaseHandler) issueCreditPurchase(ctx context.Context, input c
 			return chargecreditpurchase.CreditGrantResult{}, fmt.Errorf("resolve transactions: %w", err)
 		}
 
-		var pendingBreakage []breakage.PendingRecord
+		groupID := ulid.Make().String()
 
 		if breakageInput := issuance.mapBreakageInput(); breakageInput != nil {
-			breakageInputs, pending, err := h.breakage.PlanIssuance(ctx, *breakageInput)
+			breakageInput.PostingInput = breakage.PostingInput{TransactionGroupID: groupID, Annotations: annotations}
+			breakageInputs, err := h.breakage.PlanIssuance(ctx, *breakageInput)
 			if err != nil {
 				return chargecreditpurchase.CreditGrantResult{}, fmt.Errorf("resolve breakage plan: %w", err)
 			}
 
 			inputs = append(inputs, breakageInputs...)
-			pendingBreakage = pending
 		}
 
 		if len(inputs) == 0 {
 			return chargecreditpurchase.CreditGrantResult{}, nil
 		}
 
-		transactionGroup, err := h.commitTransactions(ctx, transactions.GroupInputs(
+		transactionGroup, err := h.commitTransactions(ctx, ledger.WithGroupID(transactions.GroupInputs(
 			charge.Namespace,
 			annotations,
 			inputs...,
-		))
+		), groupID))
 		if err != nil {
 			return chargecreditpurchase.CreditGrantResult{}, err
-		}
-
-		if err := h.breakage.PersistCommittedRecords(ctx, pendingBreakage, transactionGroup); err != nil {
-			return chargecreditpurchase.CreditGrantResult{}, fmt.Errorf("persist breakage records: %w", err)
 		}
 
 		return chargecreditpurchase.CreditGrantResult{
@@ -372,7 +369,7 @@ func (h *creditPurchaseHandler) commitTransactions(ctx context.Context, group le
 		}
 	}
 
-	committed, err := h.ledger.CommitGroup(ctx, transactions.GroupInputs(group.Namespace(), group.Annotations(), inputs...))
+	committed, err := h.ledger.CommitGroup(ctx, ledger.WithGroupID(transactions.GroupInputs(group.Namespace(), group.Annotations(), inputs...), group.AssignedID()))
 	if err != nil {
 		return nil, fmt.Errorf("commit ledger transaction group: %w", err)
 	}

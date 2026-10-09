@@ -11,6 +11,7 @@ import (
 )
 
 type EntryInput struct {
+	id          string
 	amount      alpacadecimal.Decimal
 	address     ledger.PostingAddress
 	identity    ledger.EntryIdentityParts
@@ -22,6 +23,10 @@ type EntryInput struct {
 // ----------------------------------------------------------------------------
 
 var _ ledger.EntryInput = (*EntryInput)(nil)
+
+func (e *EntryInput) AssignedID() string {
+	return e.id
+}
 
 func (e *EntryInput) PostingAddress() ledger.PostingAddress {
 	return e.address
@@ -53,6 +58,7 @@ func (e *EntryInput) Annotations() models.Annotations {
 }
 
 type TransactionInput struct {
+	id          string
 	bookedAt    time.Time
 	entryInputs []*EntryInput
 	annotations models.Annotations
@@ -63,6 +69,10 @@ type TransactionInput struct {
 // ----------------------------------------------------------------------------
 
 var _ ledger.TransactionInput = (*TransactionInput)(nil)
+
+func (t *TransactionInput) AssignedID() string {
+	return t.id
+}
 
 func (t *TransactionInput) BookedAt() time.Time {
 	return t.bookedAt
@@ -122,13 +132,22 @@ func (a *annotatedTransactionInput) Annotations() models.Annotations {
 	return a.annotations
 }
 
+func (a *annotatedTransactionInput) AsGroupInput(namespace string, annotations models.Annotations) ledger.TransactionGroupInput {
+	return GroupInputs(namespace, annotations, a)
+}
+
 type TransactionGroupInput struct {
+	id           string
 	namespace    string
 	transactions []ledger.TransactionInput
 	annotations  models.Annotations
 }
 
 var _ ledger.TransactionGroupInput = (*TransactionGroupInput)(nil)
+
+func (t *TransactionGroupInput) AssignedID() string {
+	return t.id
+}
 
 // ----------------------------------------------------------------------------
 // Let's implement ledger.TransactionGroupInput interface

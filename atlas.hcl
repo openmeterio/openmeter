@@ -1,3 +1,7 @@
+data "external_schema" "ent" {
+  program = ["go", "run", "-mod=readonly", "./tools/migrate/cmd/entschema"]
+}
+
 env "local" {
   src = "${local.schema_src}"
 
@@ -45,7 +49,7 @@ env "ci" {
 
 locals {
     // Define the directory where the schema definition resides.
-    schema_src = "ent://openmeter/ent/schema"
+    schema_src = data.external_schema.ent.url
     // Define the initial migration timestamp
     init_migration_ts = "20240826120919"
     // Define the directory where the migrations are stored.

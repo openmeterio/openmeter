@@ -4,6 +4,12 @@ This package keeps future credit-expiration ledger entries aligned with actual c
 
 The ledger is the accounting source of truth. Breakage records are an allocation/index layer: they let later collection and correction flows find open planned breakage, reopen released breakage, and project customer-visible expired credit.
 
+Breakage operations write complete bookkeeping using preassigned ledger IDs and
+return postings for the caller's group. Both must run in one database transaction;
+deferred ledger FKs reject unposted references at commit. Later operations in that
+transaction see the updated bookkeeping. Source links are typed record fields;
+annotations provide context and backlinks.
+
 ## Notation
 
 - `FBO(r)` is the customer credit account route.
@@ -54,13 +60,13 @@ would leave the wrong credit available.
 
 Use route dimensions for fields that define collection eligibility, ordering, or routing validation.
 
-Use annotations or breakage records for metadata and links.
+Use breakage records for accounting links and annotations for context.
 
 That means:
 
 - `credit_priority` is a route dimension because it affects normal FBO collection.
 - `expires_at` is represented by planned breakage `booked_at`.
-- breakage kind and source links are annotations/record data.
+- breakage records own source links; annotations identify breakage activity.
 - breakage account routes should carry only dimensions relevant to breakage accounting/revenue recognition.
 
 Breakage-generated FBO entries must not be treated as normal credit issuance or usage. They are marked as breakage activity:

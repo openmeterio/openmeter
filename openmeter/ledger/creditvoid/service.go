@@ -345,10 +345,10 @@ func (s *service) openExpiryPlansBySubAccount(ctx context.Context, input VoidCre
 func (s *service) executeVoid(ctx context.Context, input VoidCreditPurchaseInput, plan voidPlan) (VoidCreditPurchaseResult, error) {
 	var (
 		inputs             []ledger.TransactionInput
-		pendingBreakage    []breakage.PendingRecord
 		pendingVoidRecords []pendingVoidRecord
 	)
 	amount := alpacadecimal.Zero
+	groupID := ulid.Make().String()
 
 	for _, slice := range plan.slices {
 		voidTx, voidRecord, err := s.resolveVoidSlice(ctx, input, plan.voidedAt, slice)
@@ -364,7 +364,8 @@ func (s *service) executeVoid(ctx context.Context, input VoidCreditPurchaseInput
 			continue
 		}
 
-		releaseTx, releaseRecord, err := s.breakage.ReleasePlan(ctx, breakage.ReleasePlanInput{
+		releaseTx, err := s.breakage.ReleasePlan(ctx, breakage.ReleasePlanInput{
+			PostingInput:   breakage.PostingInput{TransactionGroupID: groupID, Annotations: input.Annotations},
 			Plan:           *slice.expiryPlan,
 			Amount:         slice.amount,
 			SourceKind:     breakage.SourceKindCreditPurchase,
@@ -375,7 +376,6 @@ func (s *service) executeVoid(ctx context.Context, input VoidCreditPurchaseInput
 		}
 
 		inputs = append(inputs, releaseTx)
-		pendingBreakage = append(pendingBreakage, releaseRecord)
 	}
 
 	for i, txInput := range inputs {
@@ -384,17 +384,13 @@ func (s *service) executeVoid(ctx context.Context, input VoidCreditPurchaseInput
 		}
 	}
 
-	transactionGroup, err := s.ledger.CommitGroup(ctx, transactions.GroupInputs(
+	transactionGroup, err := s.ledger.CommitGroup(ctx, ledger.WithGroupID(transactions.GroupInputs(
 		input.CustomerID.Namespace,
 		input.Annotations,
 		inputs...,
-	))
+	), groupID))
 	if err != nil {
 		return VoidCreditPurchaseResult{}, fmt.Errorf("commit ledger transaction group: %w", err)
-	}
-
-	if err := s.breakage.PersistCommittedRecords(ctx, pendingBreakage, transactionGroup); err != nil {
-		return VoidCreditPurchaseResult{}, fmt.Errorf("persist breakage records: %w", err)
 	}
 
 	if err := s.persistCommittedVoidRecords(ctx, pendingVoidRecords, transactionGroup); err != nil {

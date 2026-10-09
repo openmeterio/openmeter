@@ -60,18 +60,11 @@ func (l *Ledger) GetTransactionGroup(ctx context.Context, id models.NamespacedID
 }
 
 func (l *Ledger) CommitGroup(ctx context.Context, group ledger.TransactionGroupInput) (ledger.TransactionGroup, error) {
+	if err := ledger.ValidateTransactionGroupInputWith(ctx, group, l.routingValidator); err != nil {
+		return nil, fmt.Errorf("failed to validate transaction group: %w", err)
+	}
+
 	txInputs := group.Transactions()
-
-	if len(txInputs) == 0 {
-		return nil, ledger.ErrTransactionGroupEmpty
-	}
-
-	// 1. Validate each transaction sequentially
-	for idx, txInput := range txInputs {
-		if err := ledger.ValidateTransactionInputWith(ctx, txInput, l.routingValidator); err != nil {
-			return nil, fmt.Errorf("failed to validate transaction at index %d in group: %w", idx, err)
-		}
-	}
 
 	return transaction.Run(ctx, l.repo, func(ctx context.Context) (*TransactionGroup, error) {
 		// 1.1  (lock everything preemptively, not by sub-txs)
@@ -88,6 +81,7 @@ func (l *Ledger) CommitGroup(ctx context.Context, group ledger.TransactionGroupI
 
 		// 3. Create the transactions & the group
 		txG, err := l.repo.CreateTransactionGroup(ctx, CreateTransactionGroupInput{
+			ID:          group.AssignedID(),
 			Namespace:   group.Namespace(),
 			Annotations: group.Annotations(),
 		})
