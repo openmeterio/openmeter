@@ -108,8 +108,20 @@ func validateRuleFeatures(idsOrKeys []string, features []feature.Feature) error 
 	return nil
 }
 
-// Archived features are included to keep views faithful to the stored rule; when a
-// key was reused after archiving, the live feature wins.
+// Features are listed without an order, so key collisions are settled explicitly:
+// a live feature beats an archived one, and the most recently archived wins otherwise.
+func supersedesByKey(candidate, existing feature.Feature) bool {
+	switch {
+	case existing.ArchivedAt == nil:
+		return false
+	case candidate.ArchivedAt == nil:
+		return true
+	default:
+		return candidate.ArchivedAt.After(*existing.ArchivedAt)
+	}
+}
+
+// Archived features are included to keep views faithful to the stored rule.
 func (s Service) resolveRuleFeatures(ctx context.Context, namespace string, idsOrKeys []string) ([]feature.Feature, error) {
 	idsOrKeys = lo.Uniq(idsOrKeys)
 	if len(idsOrKeys) == 0 {
@@ -129,7 +141,7 @@ func (s Service) resolveRuleFeatures(ctx context.Context, namespace string, idsO
 	for _, f := range features.Items {
 		featuresByIDOrKey[f.ID] = f
 
-		if existing, ok := featuresByIDOrKey[f.Key]; !ok || existing.ArchivedAt != nil {
+		if existing, ok := featuresByIDOrKey[f.Key]; !ok || supersedesByKey(f, existing) {
 			featuresByIDOrKey[f.Key] = f
 		}
 	}
