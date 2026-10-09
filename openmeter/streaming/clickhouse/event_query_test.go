@@ -41,7 +41,7 @@ func TestCreateEventsTableAddsStoreRowID(t *testing.T) {
 	}
 
 	assert.Equal(t, "ALTER TABLE openmeter.om_events ADD COLUMN IF NOT EXISTS store_row_id String", table.addStoreRowIDSQL())
-	assert.Equal(t, "SELECT count() FROM system.columns WHERE database = 'openmeter' AND table = 'om_events' AND name = 'store_row_id'", table.hasStoreRowIDColumnSQL())
+	assert.Equal(t, "SELECT count() FROM system.columns WHERE database = ? AND table = ? AND name = 'store_row_id'", table.hasStoreRowIDColumnSQL())
 	assert.Equal(t, "ALTER TABLE openmeter.om_events UPDATE store_row_id = toString(generateUUIDv4()) WHERE store_row_id = ''", table.backfillStoreRowIDSQL())
 }
 

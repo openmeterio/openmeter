@@ -3,6 +3,7 @@ package clickhouse
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"testing"
 	"time"
@@ -47,50 +48,45 @@ func GetMockConnector(t *testing.T, opts ...MockConnectorOption) (*Connector, *M
 	return connector, mockClickhouse
 }
 
-// stubRowFunc adapts a Scan function to driver.Row.
-type stubRowFunc func(dest ...any) error
-
-func (f stubRowFunc) Scan(dest ...any) error {
-	return f(dest...)
+type schemaColumnRow struct {
+	value uint64
+	err   error
 }
 
-func (f stubRowFunc) Err() error {
+var _ driver.Row = schemaColumnRow{}
+
+func (r schemaColumnRow) Scan(dest ...any) error {
+	if r.err != nil {
+		return r.err
+	}
+	if len(dest) != 1 {
+		return fmt.Errorf("expected one schema column count destination, got %d", len(dest))
+	}
+	count, ok := dest[0].(*uint64)
+	if !ok {
+		return fmt.Errorf("unsupported schema column count destination %T", dest[0])
+	}
+	*count = r.value
 	return nil
 }
 
-func (f stubRowFunc) ScanStruct(dest any) error {
-	return nil
+func (r schemaColumnRow) Err() error {
+	return r.err
+}
+
+func (r schemaColumnRow) ScanStruct(dest any) error {
+	return fmt.Errorf("unsupported schema column count struct destination %T", dest)
 }
 
 func TestConnectorCreateEventsTable(t *testing.T) {
 	table := createEventsTable{Database: "testdb", EventsTableName: "events"}
-
-	// stubRow satisfies driver.Row with a fixed value or error for Scan.
-	type stubRow struct {
-		value uint64
-		err   error
-	}
-
-	row := func(r stubRow) driver.Row {
-		return stubRowFunc(func(dest ...any) error {
-			if r.err != nil {
-				return r.err
-			}
-			if len(dest) > 0 {
-				if p, ok := dest[0].(*uint64); ok {
-					*p = r.value
-				}
-			}
-			return nil
-		})
-	}
 
 	t.Run("skips add and backfill when store_row_id column exists", func(t *testing.T) {
 		// given a table that already has store_row_id
 		mockCH := NewMockClickHouse()
 		mock.InOrder(
 			mockCH.On("Exec", mock.Anything, table.toSQL(), mock.Anything).Return(nil).Once(),
-			mockCH.On("QueryRow", mock.Anything, table.hasStoreRowIDColumnSQL(), mock.Anything).Return(row(stubRow{value: 1})).Once(),
+			mockCH.On("QueryRow", mock.Anything, table.hasStoreRowIDColumnSQL(), []any{table.Database, table.EventsTableName}).Return(schemaColumnRow{value: 1}).Once(),
 		)
 
 		connector := &Connector{config: Config{ClickHouse: mockCH, Database: table.Database, EventsTableName: table.EventsTableName}}
@@ -109,7 +105,7 @@ func TestConnectorCreateEventsTable(t *testing.T) {
 		mockCH := NewMockClickHouse()
 		mock.InOrder(
 			mockCH.On("Exec", mock.Anything, table.toSQL(), mock.Anything).Return(nil).Once(),
-			mockCH.On("QueryRow", mock.Anything, table.hasStoreRowIDColumnSQL(), mock.Anything).Return(row(stubRow{value: 0})).Once(),
+			mockCH.On("QueryRow", mock.Anything, table.hasStoreRowIDColumnSQL(), []any{table.Database, table.EventsTableName}).Return(schemaColumnRow{}).Once(),
 			mockCH.On("Exec", mock.Anything, table.addStoreRowIDSQL(), mock.Anything).Return(nil).Once(),
 			mockCH.On("Exec", mock.Anything, table.backfillStoreRowIDSQL(), mock.Anything).Return(nil).Once(),
 		)
@@ -127,7 +123,7 @@ func TestConnectorCreateEventsTable(t *testing.T) {
 		mockCH := NewMockClickHouse()
 		mock.InOrder(
 			mockCH.On("Exec", mock.Anything, table.toSQL(), mock.Anything).Return(nil).Once(),
-			mockCH.On("QueryRow", mock.Anything, table.hasStoreRowIDColumnSQL(), mock.Anything).Return(row(stubRow{value: 0})).Once(),
+			mockCH.On("QueryRow", mock.Anything, table.hasStoreRowIDColumnSQL(), []any{table.Database, table.EventsTableName}).Return(schemaColumnRow{}).Once(),
 			mockCH.On("Exec", mock.Anything, table.addStoreRowIDSQL(), mock.Anything).Return(nil).Once(),
 			mockCH.On("Exec", mock.Anything, table.backfillStoreRowIDSQL(), mock.Anything).Return(errors.New("backfill failed")).Once(),
 		)

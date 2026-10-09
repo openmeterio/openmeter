@@ -53,11 +53,7 @@ func (d createEventsTable) addStoreRowIDSQL() string {
 }
 
 func (d createEventsTable) hasStoreRowIDColumnSQL() string {
-	return fmt.Sprintf(
-		"SELECT count() FROM system.columns WHERE database = '%s' AND table = '%s' AND name = 'store_row_id'",
-		d.Database,
-		d.EventsTableName,
-	)
+	return "SELECT count() FROM system.columns WHERE database = ? AND table = ? AND name = 'store_row_id'"
 }
 
 func (d createEventsTable) backfillStoreRowIDSQL() string {
