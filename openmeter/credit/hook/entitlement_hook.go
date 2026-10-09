@@ -6,6 +6,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
+	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -38,5 +39,7 @@ func (h *entitlementHook) PreDelete(ctx context.Context, ent *entitlement.Entitl
 		return nil
 	}
 
-	return h.grantRepo.DeleteOwnerGrants(ctx, models.NamespacedID{Namespace: meteredEnt.Namespace, ID: meteredEnt.ID})
+	return entutils.TransactingRepoWithNoValue(ctx, h.grantRepo, func(ctx context.Context, repo grant.Repo) error {
+		return repo.DeleteOwnerGrants(ctx, models.NamespacedID{Namespace: meteredEnt.Namespace, ID: meteredEnt.ID})
+	})
 }
