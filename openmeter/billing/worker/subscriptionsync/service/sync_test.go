@@ -41,6 +41,64 @@ func TestSubscriptionHandlerScenarios(t *testing.T) {
 	suite.Run(t, new(SubscriptionHandlerTestSuite))
 }
 
+func (s *SubscriptionHandlerTestSuite) TestSyncByIDWithLegacyItemCadence() {
+	ctx := s.T().Context()
+	start := s.mustParseTime("2024-01-01T00:00:00Z")
+	clock.FreezeTime(start)
+	defer clock.UnFreeze()
+	itemKey := s.APIRequestsTotalFeature.Key
+
+	// given: a persisted weekly subscription with a legacy hourly usage item
+	view := s.createSubscriptionFromPlanPhases([]productcatalog.Phase{
+		{
+			PhaseMeta: s.phaseMeta("default", ""),
+			RateCards: productcatalog.RateCards{
+				&productcatalog.UsageBasedRateCard{
+					RateCardMeta: productcatalog.RateCardMeta{
+						Key: itemKey, Name: itemKey,
+						Feature: productcatalog.NewFeatureReference(nil, lo.ToPtr(itemKey)),
+						Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+							Amount: alpacadecimal.NewFromInt(1),
+						}),
+					},
+					BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+				},
+			},
+		},
+	})
+	itemID := view.Phases[0].ItemsByKey[itemKey][0].SubscriptionItem.ID
+	_, err := s.DBClient.SubscriptionItem.UpdateOneID(itemID).SetBillingCadence(datetime.ISODurationString("PT1H")).Save(ctx)
+	s.Require().NoError(err)
+	_, err = s.DBClient.Subscription.UpdateOneID(view.Subscription.ID).SetBillingCadence(datetime.ISODurationString("P1W")).Save(ctx)
+	s.Require().NoError(err)
+
+	// when: billing sync loads the view by ID and resolves its feature
+	asOf := start.Add(time.Minute)
+	s.Require().NoError(s.Service.SyncByID(ctx, view.Subscription.NamespacedID, asOf))
+
+	// then: it generates the hourly periods through the weekly horizon and advances sync state
+	invoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+	lines := invoice.Lines.OrEmpty()
+	s.Require().Len(lines, 7*24)
+	for _, line := range lines {
+		s.Equal(itemKey, line.FeatureKey)
+		s.Equal(time.Hour, line.ServicePeriod.To.Sub(line.ServicePeriod.From))
+	}
+
+	states, err := s.Adapter.GetSyncStates(ctx, subscriptionsync.GetSyncStatesInput{view.Subscription.NamespacedID})
+	s.Require().NoError(err)
+	s.Require().Len(states, 1)
+	s.True(states[0].HasBillables)
+	s.Require().NotNil(states[0].NextSyncAfter)
+	s.Equal(start.AddDate(0, 0, 7), *states[0].NextSyncAfter)
+
+	// and: repeating the sync preserves the generated line identities
+	s.Require().NoError(s.Service.SyncByID(ctx, view.Subscription.NamespacedID, asOf))
+	repeated := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+	s.ElementsMatch(lo.Map(lines, func(line billing.GatheringLine, _ int) string { return line.ID }),
+		lo.Map(repeated.Lines.OrEmpty(), func(line billing.GatheringLine, _ int) string { return line.ID }))
+}
+
 func (s *SubscriptionHandlerTestSuite) TestLegacyBackendCreatesGatheringLineBeforeSurfacingMissingFeature() {
 	ctx := s.testContext()
 	start := s.mustParseTime("2024-01-01T00:00:00Z")
