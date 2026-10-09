@@ -62,8 +62,8 @@ func New(config Config) (*Service, error) {
 
 func (s Service) ListFeature(ctx context.Context, namespace string, features ...string) ([]feature.Feature, error) {
 	resp, err := s.feature.ListFeatures(ctx, feature.ListFeaturesParams{
-		IDsOrKeys:       features,
 		Namespace:       namespace,
+		IDsOrKeys:       features,
 		IncludeArchived: false,
 	})
 	if err != nil {

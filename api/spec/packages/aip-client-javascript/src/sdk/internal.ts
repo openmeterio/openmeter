@@ -9,6 +9,12 @@ import {
 } from '../funcs/subscriptions.js'
 import { executeAppAction } from '../funcs/apps.js'
 import {
+  listNotificationRules,
+  createNotificationRule,
+  getNotificationRule,
+  updateNotificationRule,
+  deleteNotificationRule,
+  testNotificationRule,
   listNotificationEvents,
   getNotificationEvent,
   resendNotificationEvent,
@@ -24,6 +30,18 @@ import type {
   ExecuteAppActionResponse,
 } from '../models/operations/apps.js'
 import type {
+  ListNotificationRulesRequest,
+  ListNotificationRulesResponse,
+  CreateNotificationRuleRequest,
+  CreateNotificationRuleResponse,
+  GetNotificationRuleRequest,
+  GetNotificationRuleResponse,
+  UpdateNotificationRuleRequest,
+  UpdateNotificationRuleResponse,
+  DeleteNotificationRuleRequest,
+  DeleteNotificationRuleResponse,
+  TestNotificationRuleRequest,
+  TestNotificationRuleResponse,
   ListNotificationEventsRequest,
   ListNotificationEventsResponse,
   GetNotificationEventRequest,
@@ -31,7 +49,7 @@ import type {
   ResendNotificationEventRequest,
   ResendNotificationEventResponse,
 } from '../models/operations/notifications.js'
-import type { NotificationEvent } from '../models/types.js'
+import type { NotificationEvent, NotificationRule } from '../models/types.js'
 
 /**
  * Operations marked internal in the API definition. They are not part of
@@ -112,6 +130,112 @@ export class InternalApps {
 
 export class InternalNotifications {
   constructor(private readonly _client: Client) {}
+
+  /**
+   * List notification rules
+   *
+   * List all notification rules.
+   *
+   * GET /openmeter/notification/rules
+   */
+  async listRules(
+    request?: ListNotificationRulesRequest,
+    options?: RequestOptions,
+  ): Promise<ListNotificationRulesResponse> {
+    return unwrap(await listNotificationRules(this._client, request, options))
+  }
+
+  /**
+   * List notification rules
+   *
+   * List all notification rules.
+   *
+   * Iterates every item across all pages, fetching more as the returned iterable is consumed.
+   *
+   * GET /openmeter/notification/rules
+   */
+  listRulesAll(
+    request?: ListNotificationRulesRequest,
+    options?: RequestOptions,
+  ): AsyncIterable<NotificationRule> {
+    return paginatePages(
+      (req, opts) => listNotificationRules(this._client, req, opts),
+      request ?? {},
+      options,
+    )
+  }
+
+  /**
+   * Create notification rule
+   *
+   * Create a notification rule.
+   *
+   * POST /openmeter/notification/rules
+   */
+  async createRule(
+    request: CreateNotificationRuleRequest,
+    options?: RequestOptions,
+  ): Promise<CreateNotificationRuleResponse> {
+    return unwrap(await createNotificationRule(this._client, request, options))
+  }
+
+  /**
+   * Get notification rule
+   *
+   * Get a notification rule by id.
+   *
+   * GET /openmeter/notification/rules/{notificationRuleId}
+   */
+  async getRule(
+    request: GetNotificationRuleRequest,
+    options?: RequestOptions,
+  ): Promise<GetNotificationRuleResponse> {
+    return unwrap(await getNotificationRule(this._client, request, options))
+  }
+
+  /**
+   * Update notification rule
+   *
+   * Update a notification rule by id.
+   *
+   * PUT /openmeter/notification/rules/{notificationRuleId}
+   */
+  async updateRule(
+    request: UpdateNotificationRuleRequest,
+    options?: RequestOptions,
+  ): Promise<UpdateNotificationRuleResponse> {
+    return unwrap(await updateNotificationRule(this._client, request, options))
+  }
+
+  /**
+   * Delete notification rule
+   *
+   * Delete a notification rule by id.
+   *
+   * DELETE /openmeter/notification/rules/{notificationRuleId}
+   */
+  async deleteRule(
+    request: DeleteNotificationRuleRequest,
+    options?: RequestOptions,
+  ): Promise<DeleteNotificationRuleResponse> {
+    return unwrap(await deleteNotificationRule(this._client, request, options))
+  }
+
+  /**
+   * Test notification rule
+   *
+   * Test a notification rule by generating an event with sample data and delivering
+   * it to the rule's channels. The test event is persisted and listed like any other
+   * event.
+   *
+   * POST /openmeter/notification/rules/{notificationRuleId}/test
+   */
+  async testRule(
+    request: TestNotificationRuleRequest,
+    options?: RequestOptions,
+  ): Promise<TestNotificationRuleResponse> {
+    return unwrap(await testNotificationRule(this._client, request, options))
+  }
 
   /**
    * List notification events

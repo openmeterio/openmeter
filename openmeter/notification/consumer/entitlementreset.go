@@ -33,8 +33,9 @@ func (b *EntitlementSnapshotHandler) isEntitlementResetEvent(event snapshot.Snap
 
 func (b *EntitlementSnapshotHandler) handleAsEntitlementResetEvent(ctx context.Context, event snapshot.SnapshotEvent) error {
 	affectedRulesPaged, err := b.Notification.ListRules(ctx, notification.ListRulesInput{
-		Namespaces: []string{event.Namespace.ID},
-		Types:      []notification.EventType{notification.EventTypeEntitlementReset},
+		Namespace: event.Namespace.ID,
+		Type:      &filter.FilterString{Eq: lo.ToPtr(string(notification.EventTypeEntitlementReset))},
+		Disabled:  &filter.FilterBoolean{Eq: lo.ToPtr(false)},
 	})
 	if err != nil {
 		return fmt.Errorf("failed to list notification rules: %w", err)

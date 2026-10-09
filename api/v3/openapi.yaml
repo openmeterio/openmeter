@@ -27,7 +27,7 @@ servers:
     variables: {}
 tags:
   - name: OpenMeter Notifications
-    description: Notification channels deliver notification events, such as entitlement balance threshold crossings, to external systems.
+    description: Notification rules generate notification events, such as entitlement balance threshold crossings, and notification channels deliver them to external systems.
   - name: OpenMeter Defaults
     description: Organization-level default configuration.
   - name: OpenMeter Product Catalog
@@ -3775,6 +3775,220 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/ResendBillingNotificationEventRequest'
+      x-rpc-endpoint: true
+      x-private: true
+      x-internal: true
+      x-unstable: true
+  /openmeter/notification/rules:
+    get:
+      operationId: list-notification-rules
+      summary: List notification rules
+      description: List all notification rules.
+      parameters:
+        - $ref: '#/components/parameters/PagePaginationQuery'
+        - name: sort
+          in: query
+          required: false
+          description: |-
+            Sort notification rules returned in the response. Supported sort attributes are:
+
+            - `id` (default)
+            - `type`
+            - `created_at`
+            - `updated_at`
+
+            The `asc` suffix is optional as the default sort order is ascending. The `desc`
+            suffix is used to specify a descending order.
+          schema:
+            $ref: '#/components/schemas/SortQuery'
+          explode: false
+          style: form
+        - name: filter
+          in: query
+          required: false
+          description: |-
+            Filter notification rules returned in the response.
+
+            Examples:
+
+            - `filter[type]=entitlements.balance.threshold`
+            - `filter[disabled]=false`
+            - `filter[channel_id]=01ARZ3NDEKTSV4RRFFQ69G5FAV`
+          schema:
+            $ref: '#/components/schemas/ListNotificationRulesParamsFilter'
+          style: deepObject
+      responses:
+        '200':
+          description: Page paginated response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationRulePagePaginatedResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      tags:
+        - OpenMeter Notifications
+      x-private: true
+      x-internal: true
+      x-unstable: true
+    post:
+      operationId: create-notification-rule
+      summary: Create notification rule
+      description: Create a notification rule.
+      responses:
+        '201':
+          description: NotificationRule created response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingNotificationRule'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      tags:
+        - OpenMeter Notifications
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BillingNotificationRuleRequest'
+      x-private: true
+      x-internal: true
+      x-unstable: true
+  /openmeter/notification/rules/{notificationRuleId}:
+    get:
+      operationId: get-notification-rule
+      summary: Get notification rule
+      description: Get a notification rule by id.
+      parameters:
+        - name: notificationRuleId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: NotificationRule response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingNotificationRule'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Notifications
+      x-private: true
+      x-internal: true
+      x-unstable: true
+    put:
+      operationId: update-notification-rule
+      summary: Update notification rule
+      description: Update a notification rule by id.
+      parameters:
+        - name: notificationRuleId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: NotificationRule updated response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingNotificationRule'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+      tags:
+        - OpenMeter Notifications
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BillingNotificationRuleRequest'
+      x-private: true
+      x-internal: true
+      x-unstable: true
+    delete:
+      operationId: delete-notification-rule
+      summary: Delete notification rule
+      description: Delete a notification rule by id.
+      parameters:
+        - name: notificationRuleId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '204':
+          description: Deleted response.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Notifications
+      x-private: true
+      x-internal: true
+      x-unstable: true
+  /openmeter/notification/rules/{notificationRuleId}/test:
+    post:
+      operationId: test-notification-rule
+      summary: Test notification rule
+      description: |-
+        Test a notification rule by generating an event with sample data and delivering
+        it to the rule's channels. The test event is persisted and listed like any other
+        event.
+      parameters:
+        - name: notificationRuleId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '201':
+          description: NotificationEvent created response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingNotificationEvent'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Notifications
       x-rpc-endpoint: true
       x-private: true
       x-internal: true
@@ -11467,6 +11681,453 @@ components:
       description: |-
         The type of a notification event. It determines which payload variant the event
         carries.
+    BillingNotificationRule:
+      type: object
+      oneOf:
+        - $ref: '#/components/schemas/BillingNotificationRuleBalanceThreshold'
+        - $ref: '#/components/schemas/BillingNotificationRuleEntitlementReset'
+        - $ref: '#/components/schemas/BillingNotificationRuleInvoiceCreated'
+        - $ref: '#/components/schemas/BillingNotificationRuleInvoiceUpdated'
+      discriminator:
+        propertyName: type
+        mapping:
+          entitlements.balance.threshold: '#/components/schemas/BillingNotificationRuleBalanceThreshold'
+          entitlements.reset: '#/components/schemas/BillingNotificationRuleEntitlementReset'
+          invoice.created: '#/components/schemas/BillingNotificationRuleInvoiceCreated'
+          invoice.updated: '#/components/schemas/BillingNotificationRuleInvoiceUpdated'
+      description: |-
+        A notification rule selects the type of event to generate, the conditions
+        specific to that type, and the channels to deliver the events to.
+    BillingNotificationRuleBalanceThreshold:
+      type: object
+      required:
+        - id
+        - name
+        - created_at
+        - updated_at
+        - type
+        - channels
+        - thresholds
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          readOnly: true
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        created_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity creation date.
+          readOnly: true
+        updated_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity last update date.
+          readOnly: true
+        deleted_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity deletion date.
+          readOnly: true
+        type:
+          type: string
+          enum:
+            - entitlements.balance.threshold
+          description: The type of event the rule generates. Immutable after creation.
+        disabled:
+          type: boolean
+          description: Whether the rule is disabled. Disabled rules do not generate events.
+          default: false
+        channels:
+          type: array
+          items:
+            $ref: '#/components/schemas/NotificationChannelReference'
+          maxItems: 5
+          description: |-
+            The channels the rule delivers its events to. At least one and at most five
+            channels are required. Responses omit channels that have since been disabled or
+            deleted.
+        thresholds:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingNotificationBalanceThreshold'
+          minItems: 1
+          maxItems: 10
+          description: The thresholds that generate an event when crossed.
+        features:
+          type: array
+          items:
+            $ref: '#/components/schemas/FeatureReference'
+          description: |-
+            The features the rule applies to. When omitted, the rule applies to every
+            feature.
+      additionalProperties: false
+      description: |-
+        A rule that generates an event when an entitlement balance crosses one of its
+        thresholds.
+    BillingNotificationRuleBalanceThresholdRequest:
+      type: object
+      required:
+        - name
+        - type
+        - channels
+        - thresholds
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        type:
+          type: string
+          enum:
+            - entitlements.balance.threshold
+          description: The type of event the rule generates. Immutable after creation.
+        disabled:
+          type: boolean
+          description: Whether the rule is disabled. Disabled rules do not generate events.
+          default: false
+        channels:
+          type: array
+          items:
+            $ref: '#/components/schemas/NotificationChannelReference'
+          maxItems: 5
+          description: |-
+            The channels the rule delivers its events to. At least one and at most five
+            channels are required. Responses omit channels that have since been disabled or
+            deleted.
+        thresholds:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingNotificationBalanceThreshold'
+          minItems: 1
+          maxItems: 10
+          description: The thresholds that generate an event when crossed.
+        features:
+          type: array
+          items:
+            $ref: '#/components/schemas/FeatureReference'
+          description: |-
+            The features the rule applies to. When omitted, the rule applies to every
+            feature.
+      additionalProperties: false
+      description: Request body for a balance threshold rule.
+    BillingNotificationRuleEntitlementReset:
+      type: object
+      required:
+        - id
+        - name
+        - created_at
+        - updated_at
+        - type
+        - channels
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          readOnly: true
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        created_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity creation date.
+          readOnly: true
+        updated_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity last update date.
+          readOnly: true
+        deleted_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity deletion date.
+          readOnly: true
+        type:
+          type: string
+          enum:
+            - entitlements.reset
+          description: The type of event the rule generates. Immutable after creation.
+        disabled:
+          type: boolean
+          description: Whether the rule is disabled. Disabled rules do not generate events.
+          default: false
+        channels:
+          type: array
+          items:
+            $ref: '#/components/schemas/NotificationChannelReference'
+          maxItems: 5
+          description: |-
+            The channels the rule delivers its events to. At least one and at most five
+            channels are required. Responses omit channels that have since been disabled or
+            deleted.
+        features:
+          type: array
+          items:
+            $ref: '#/components/schemas/FeatureReference'
+          description: |-
+            The features the rule applies to. When omitted, the rule applies to every
+            feature.
+      additionalProperties: false
+      description: A rule that generates an event when an entitlement usage period is reset.
+    BillingNotificationRuleEntitlementResetRequest:
+      type: object
+      required:
+        - name
+        - type
+        - channels
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        type:
+          type: string
+          enum:
+            - entitlements.reset
+          description: The type of event the rule generates. Immutable after creation.
+        disabled:
+          type: boolean
+          description: Whether the rule is disabled. Disabled rules do not generate events.
+          default: false
+        channels:
+          type: array
+          items:
+            $ref: '#/components/schemas/NotificationChannelReference'
+          maxItems: 5
+          description: |-
+            The channels the rule delivers its events to. At least one and at most five
+            channels are required. Responses omit channels that have since been disabled or
+            deleted.
+        features:
+          type: array
+          items:
+            $ref: '#/components/schemas/FeatureReference'
+          description: |-
+            The features the rule applies to. When omitted, the rule applies to every
+            feature.
+      additionalProperties: false
+      description: Request body for an entitlement reset rule.
+    BillingNotificationRuleInvoiceCreated:
+      type: object
+      required:
+        - id
+        - name
+        - created_at
+        - updated_at
+        - type
+        - channels
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          readOnly: true
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        created_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity creation date.
+          readOnly: true
+        updated_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity last update date.
+          readOnly: true
+        deleted_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity deletion date.
+          readOnly: true
+        type:
+          type: string
+          enum:
+            - invoice.created
+          description: The type of event the rule generates. Immutable after creation.
+        disabled:
+          type: boolean
+          description: Whether the rule is disabled. Disabled rules do not generate events.
+          default: false
+        channels:
+          type: array
+          items:
+            $ref: '#/components/schemas/NotificationChannelReference'
+          maxItems: 5
+          description: |-
+            The channels the rule delivers its events to. At least one and at most five
+            channels are required. Responses omit channels that have since been disabled or
+            deleted.
+      additionalProperties: false
+      description: A rule that generates an event when an invoice is created.
+    BillingNotificationRuleInvoiceCreatedRequest:
+      type: object
+      required:
+        - name
+        - type
+        - channels
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        type:
+          type: string
+          enum:
+            - invoice.created
+          description: The type of event the rule generates. Immutable after creation.
+        disabled:
+          type: boolean
+          description: Whether the rule is disabled. Disabled rules do not generate events.
+          default: false
+        channels:
+          type: array
+          items:
+            $ref: '#/components/schemas/NotificationChannelReference'
+          maxItems: 5
+          description: |-
+            The channels the rule delivers its events to. At least one and at most five
+            channels are required. Responses omit channels that have since been disabled or
+            deleted.
+      additionalProperties: false
+      description: Request body for an invoice created rule.
+    BillingNotificationRuleInvoiceUpdated:
+      type: object
+      required:
+        - id
+        - name
+        - created_at
+        - updated_at
+        - type
+        - channels
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          readOnly: true
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        created_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity creation date.
+          readOnly: true
+        updated_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity last update date.
+          readOnly: true
+        deleted_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity deletion date.
+          readOnly: true
+        type:
+          type: string
+          enum:
+            - invoice.updated
+          description: The type of event the rule generates. Immutable after creation.
+        disabled:
+          type: boolean
+          description: Whether the rule is disabled. Disabled rules do not generate events.
+          default: false
+        channels:
+          type: array
+          items:
+            $ref: '#/components/schemas/NotificationChannelReference'
+          maxItems: 5
+          description: |-
+            The channels the rule delivers its events to. At least one and at most five
+            channels are required. Responses omit channels that have since been disabled or
+            deleted.
+      additionalProperties: false
+      description: A rule that generates an event when an invoice is updated.
+    BillingNotificationRuleInvoiceUpdatedRequest:
+      type: object
+      required:
+        - name
+        - type
+        - channels
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        type:
+          type: string
+          enum:
+            - invoice.updated
+          description: The type of event the rule generates. Immutable after creation.
+        disabled:
+          type: boolean
+          description: Whether the rule is disabled. Disabled rules do not generate events.
+          default: false
+        channels:
+          type: array
+          items:
+            $ref: '#/components/schemas/NotificationChannelReference'
+          maxItems: 5
+          description: |-
+            The channels the rule delivers its events to. At least one and at most five
+            channels are required. Responses omit channels that have since been disabled or
+            deleted.
+      additionalProperties: false
+      description: Request body for an invoice updated rule.
     BillingNotificationRuleReference:
       type: object
       required:
@@ -11490,6 +12151,24 @@ components:
           readOnly: true
       additionalProperties: false
       description: A reference to the notification rule that generated an event.
+    BillingNotificationRuleRequest:
+      type: object
+      oneOf:
+        - $ref: '#/components/schemas/BillingNotificationRuleBalanceThresholdRequest'
+        - $ref: '#/components/schemas/BillingNotificationRuleEntitlementResetRequest'
+        - $ref: '#/components/schemas/BillingNotificationRuleInvoiceCreatedRequest'
+        - $ref: '#/components/schemas/BillingNotificationRuleInvoiceUpdatedRequest'
+      discriminator:
+        propertyName: type
+        mapping:
+          entitlements.balance.threshold: '#/components/schemas/BillingNotificationRuleBalanceThresholdRequest'
+          entitlements.reset: '#/components/schemas/BillingNotificationRuleEntitlementResetRequest'
+          invoice.created: '#/components/schemas/BillingNotificationRuleInvoiceCreatedRequest'
+          invoice.updated: '#/components/schemas/BillingNotificationRuleInvoiceUpdatedRequest'
+      description: |-
+        Request body for creating or updating a notification rule. Updates replace the
+        rule's mutable state: omitting `disabled`, `labels`, or `features` resets them
+        to their defaults. The `type` must match the existing rule on update.
     BillingParty:
       type: object
       properties:
@@ -16859,6 +17538,29 @@ components:
             never match, not even with `neq`.
       additionalProperties: false
       description: Filter options for listing notification events.
+    ListNotificationRulesParamsFilter:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/ULIDFieldFilter'
+        name:
+          $ref: '#/components/schemas/StringFieldFilter'
+        type:
+          $ref: '#/components/schemas/StringFieldFilterExact'
+        disabled:
+          $ref: '#/components/schemas/BooleanFieldFilter'
+        created_at:
+          $ref: '#/components/schemas/DateTimeFieldFilter'
+        updated_at:
+          $ref: '#/components/schemas/DateTimeFieldFilter'
+        channel_id:
+          allOf:
+            - $ref: '#/components/schemas/ULIDFieldFilter'
+          description: |-
+            Filter by an assigned channel. Matches rules that deliver to at least one of the
+            given channels. Only `eq` and `oeq` are supported.
+      additionalProperties: false
+      description: Filter options for listing notification rules.
     ListPlanAddonsParamsFilter:
       type: object
       properties:
@@ -17329,6 +18031,15 @@ components:
           $ref: '#/components/schemas/PaginatedMeta'
       additionalProperties: false
       description: Page paginated response.
+    NotificationChannelReference:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          $ref: '#/components/schemas/ULID'
+      additionalProperties: false
+      description: NotificationChannel reference.
     NotificationEventPagePaginatedResponse:
       type: object
       required:
@@ -17339,6 +18050,20 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/BillingNotificationEvent'
+        meta:
+          $ref: '#/components/schemas/PaginatedMeta'
+      additionalProperties: false
+      description: Page paginated response.
+    NotificationRulePagePaginatedResponse:
+      type: object
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingNotificationRule'
         meta:
           $ref: '#/components/schemas/PaginatedMeta'
       additionalProperties: false

@@ -10,7 +10,7 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/notification"
-	"github.com/openmeterio/openmeter/openmeter/notification/internal"
+	"github.com/openmeterio/openmeter/openmeter/notification/testevent"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -34,7 +34,7 @@ func (h *handler) ListRules() ListRulesHandler {
 			}
 
 			req := ListRulesRequest{
-				Namespaces:      []string{ns},
+				Namespace:       ns,
 				IncludeDisabled: lo.FromPtrOr(params.IncludeDisabled, notification.DefaultDisabled),
 				OrderBy:         notification.OrderBy(lo.FromPtrOr(params.OrderBy, api.NotificationRuleOrderById)),
 				Order:           sortx.Order(lo.FromPtrOr(params.Order, api.SortOrderASC)),
@@ -315,7 +315,7 @@ func (h *handler) TestRule() TestRuleHandler {
 				return TestRuleResponse{}, fmt.Errorf("failed to get rule: %w", err)
 			}
 
-			testEvent, err := h.testEventGenerator.Generate(ctx, internal.EventGeneratorInput{
+			testEvent, err := h.testEventGenerator.Generate(ctx, testevent.GeneratorInput{
 				Namespace: request.Namespace,
 				EventType: rule.Type,
 			})
