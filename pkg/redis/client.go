@@ -3,6 +3,7 @@ package redis
 import (
 	"crypto/tls"
 	"fmt"
+	"strings"
 
 	"github.com/redis/go-redis/extra/redisotel/v9"
 	"github.com/redis/go-redis/v9"
@@ -57,9 +58,19 @@ func NewClient(o Options, opts ...Option) (*redis.Client, error) {
 	// Initialize Redis Client
 	var client *redis.Client
 	if o.Sentinel.Enabled {
+		// Address may be a comma-separated list of sentinel nodes.
+		var sentinelAddrs []string
+		for _, a := range strings.Split(o.Address, ",") {
+			if trimmed := strings.TrimSpace(a); trimmed != "" {
+				sentinelAddrs = append(sentinelAddrs, trimmed)
+			}
+		}
+		if len(sentinelAddrs) == 0 {
+			return nil, fmt.Errorf("sentinel mode enabled but no valid sentinel addresses provided")
+		}
 		client = redis.NewFailoverClient(&redis.FailoverOptions{
 			MasterName:    o.Sentinel.MasterName,
-			SentinelAddrs: []string{o.Address},
+			SentinelAddrs: sentinelAddrs,
 			DB:            o.Database,
 			Username:      o.Username,
 			Password:      o.Password,
