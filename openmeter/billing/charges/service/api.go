@@ -179,6 +179,7 @@ func (s *service) SetCustomerChargeOverride(ctx context.Context, input charges.S
 	default:
 		return charges.Charge{}, fmt.Errorf("unsupported charge type: %s", existing.Type())
 	}
+
 	if err != nil {
 		return charges.Charge{}, fmt.Errorf("creating charge override patch: %w", err)
 	}
@@ -442,6 +443,7 @@ func collectCustomerChargeReferences(items charges.Charges) (customerChargeRefer
 			if ff.Realizations.CurrentRun != nil {
 				runs = append(slices.Clone(runs), *ff.Realizations.CurrentRun)
 			}
+
 			for _, run := range runs {
 				if run.InvoiceID != nil {
 					out.invoiceIDs = append(out.invoiceIDs, *run.InvoiceID)

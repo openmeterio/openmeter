@@ -40,6 +40,7 @@ func (c *lineHierarchyPatchCollection) AddDelete(uniqueID string, existing persi
 	if err != nil {
 		return err
 	}
+
 	patches := make([]invoiceupdater.Patch, 0, 1+len(group.Lines))
 
 	for _, line := range group.Lines {
@@ -72,6 +73,7 @@ func (c *lineHierarchyPatchCollection) AddShrink(uniqueID string, existing persi
 	if err != nil {
 		return err
 	}
+
 	expectedLine, err := target.GetExpectedLineOrErr()
 	if err != nil {
 		return err
@@ -140,6 +142,7 @@ func (c *lineHierarchyPatchCollection) AddExtend(existing persistedstate.Item, t
 	if err != nil {
 		return err
 	}
+
 	expectedLine, err := target.GetExpectedLineOrErr()
 	if err != nil {
 		return err

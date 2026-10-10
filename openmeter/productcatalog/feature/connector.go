@@ -122,26 +122,31 @@ func (p ListFeaturesParams) Validate() error {
 	if p.Namespace == "" {
 		errs = append(errs, errors.New("namespace is required"))
 	}
+
 	if p.MeterIDs != nil {
 		if err := p.MeterIDs.Validate(); err != nil {
 			errs = append(errs, err)
 		}
 	}
+
 	if !p.Page.IsZero() {
 		if err := p.Page.Validate(); err != nil {
 			errs = append(errs, err)
 		}
 	}
+
 	if p.Key != nil {
 		if err := p.Key.Validate(); err != nil {
 			errs = append(errs, err)
 		}
 	}
+
 	if p.Name != nil {
 		if err := p.Name.Validate(); err != nil {
 			errs = append(errs, err)
 		}
 	}
+
 	if p.OrderBy != "" {
 		if err := p.OrderBy.Validate(); err != nil {
 			errs = append(errs, err)
@@ -195,6 +200,7 @@ func (c *featureConnector) CreateFeature(ctx context.Context, feature CreateFeat
 			if meterpkg.IsMeterNotFoundError(err) {
 				return Feature{}, meterpkg.NewMeterNotFoundError(meterID)
 			}
+
 			return Feature{}, fmt.Errorf("get meter %s: %w", meterID, err)
 		}
 
@@ -372,5 +378,6 @@ func (c *featureConnector) GetFeature(ctx context.Context, namespace string, idO
 	if err != nil {
 		return nil, err
 	}
+
 	return feature, nil
 }

@@ -137,7 +137,7 @@ func (s *Service) InstallAppWithAPIKey(ctx context.Context, input app.AppFactory
 		MaskedAPIKey:         s.generateMaskedSecretAPIKey(input.APIKey),
 		StripeWebhookID:      stripeWebhookEndpoint.EndpointID,
 		WebhookSecret:        webhookSecretID,
-		WebhookSchemaVersion: LatestWebhookSchemaVersion,
+		WebhookSchemaVersion: appstripe.LatestWebhookSchemaVersion,
 	}
 
 	if err := createStripeAppInput.Validate(); err != nil {

@@ -190,6 +190,7 @@ func (r *Recalculator) ListInScopeEntitlements(ctx context.Context, ns string) (
 	if err != nil {
 		return nil, fmt.Errorf("failed to check if namespace is in scope: %w", err)
 	}
+
 	if !inScope {
 		return nil, nil
 	}
@@ -246,6 +247,7 @@ func (r *Recalculator) ProcessEntitlements(ctx context.Context, entitlements []e
 		if err != nil {
 			return fmt.Errorf("failed to check if entitlement is in scope: %w", err)
 		}
+
 		if !inScope {
 			continue
 		}

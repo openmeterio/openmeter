@@ -22,6 +22,7 @@ func creditRealizationLineageNow() time.Time {
 	return clock.Now().Truncate(time.Microsecond)
 }
 
+// Deprecated: Use ledger collection provenance.
 type CreditRealizationLineage struct {
 	ent.Schema
 }
@@ -106,6 +107,7 @@ func (CreditRealizationLineage) Indexes() []ent.Index {
 	}
 }
 
+// Deprecated: Use ledger collection provenance.
 type CreditRealizationLineageSegment struct {
 	ent.Schema
 }

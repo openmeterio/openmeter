@@ -25,6 +25,10 @@ func (a DeletedApp) UpdateAppConfig(context.Context, AppConfigUpdate) error {
 	return NewAppDeletedError(a.appID)
 }
 
+func (a DeletedApp) ExecuteAction(context.Context, ExecuteAppActionInput) error {
+	return NewAppDeletedError(a.appID)
+}
+
 func (a DeletedApp) ValidateCapabilities(...CapabilityType) error {
 	return NewAppDeletedError(a.appID)
 }

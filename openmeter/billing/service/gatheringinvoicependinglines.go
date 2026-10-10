@@ -12,8 +12,10 @@ import (
 	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/billing/sequence"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/cmpx"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -250,6 +252,7 @@ func (s *Service) prepareBillableLines(ctx context.Context, input billing.Prepar
 					if systemErr != nil {
 						return nil, fmt.Errorf("checking selected gathering line billability: %w", systemErr)
 					}
+
 					billabilityValidationIssues = selectedValidationIssues
 				}
 
@@ -365,6 +368,7 @@ func (s *Service) gatherInScopeLines(ctx context.Context, in gatherInScopeLineIn
 		if systemErr != nil {
 			return gatherInScopeLinesResult{}, fmt.Errorf("checking gathering line billability: %w", systemErr)
 		}
+
 		if len(validationIssues) > 0 {
 			res.ValidationIssuesByCurrency[currency] = validationIssues
 			s.logger.WarnContext(
@@ -374,6 +378,7 @@ func (s *Service) gatherInScopeLines(ctx context.Context, in gatherInScopeLineIn
 				"error", err,
 			)
 		}
+
 		linesWithResolvedPeriods := lo.Map(billabilityResults, func(result gatheringLineBillabilityResult, index int) gatheringLineWithBillablePeriod {
 			if !result.Billable {
 				return gatheringLineWithBillablePeriod{
@@ -404,7 +409,6 @@ func (s *Service) gatherInScopeLines(ctx context.Context, in gatherInScopeLineIn
 	// but only if all the requested lines are billable.
 	if in.LinesToInclude.IsPresent() {
 		// Step 1: Let's validate that all the requested lines are billable.
-
 		nonBillableLineIDs := make([]string, 0, len(billableLineIDs))
 		for _, lineID := range in.LinesToInclude.OrEmpty() {
 			if _, ok := billableLineIDs[lineID]; !ok {
@@ -655,6 +659,7 @@ func (s *Service) prepareLinesToBill(ctx context.Context, input prepareLinesToBi
 					"original_period_start", currentLine.ServicePeriod.From,
 					"original_period_end", currentLine.ServicePeriod.To,
 					"split_at", line.BillablePeriod.To)
+
 				continue
 			}
 
@@ -736,7 +741,7 @@ func (s *Service) CreateStandardInvoiceFromGatheringLines(ctx context.Context, i
 		return nil, fmt.Errorf("generating invoice number: %w", err)
 	}
 
-	if err := s.resolveDefaultTaxCode(ctx, in.Customer.Namespace, profile.MergedProfile.WorkflowConfig.Invoicing.DefaultTaxConfig); err != nil {
+	if err := productcatalog.ResolveTaxConfig(ctx, s.taxCodeService, in.Customer.Namespace, profile.MergedProfile.WorkflowConfig.Invoicing.DefaultTaxConfig); err != nil {
 		return nil, fmt.Errorf("resolving default tax code: %w", err)
 	}
 
@@ -763,6 +768,7 @@ func (s *Service) CreateStandardInvoiceFromGatheringLines(ctx context.Context, i
 	if err != nil {
 		return nil, fmt.Errorf("cloning validation issues: %w", err)
 	}
+
 	invoice.ValidationIssues = append(invoice.ValidationIssues, validationIssues...)
 
 	linesWithEngines, err := s.lineEngines.groupGatheringLinesByEngine(in.Lines)
@@ -878,18 +884,6 @@ func (s *Service) CreateStandardInvoiceFromGatheringLines(ctx context.Context, i
 				return fmt.Errorf("activating invoice state machine: %w", err)
 			}
 
-			if in.PostCreationCalculationHook != nil {
-				err := s.invokePostCreationHooks(sm.Invoice, in.PostCreationCalculationHook)
-				if err != nil {
-					return fmt.Errorf("invoking post creation calculation hook: %w", err)
-				}
-
-				// Let's recalculate the invoice so that any adjustments made in the hook are respresented in the calculations.
-				if err := sm.calculateInvoice(ctx); err != nil {
-					return fmt.Errorf("recalculating invoice: %w", err)
-				}
-			}
-
 			// If the invoice has critical validation issues => trigger a failed state
 			if sm.Invoice.HasCriticalValidationIssues() {
 				if err := sm.TriggerFailed(ctx); err != nil {
@@ -961,11 +955,17 @@ func (s *Service) invokeOnStandardInvoiceCreated(ctx context.Context, invoice bi
 			return billing.StandardInvoice{}, fmt.Errorf("validating standard invoice created input for engine %s: %w", grouped.Engine.GetLineEngineType(), err)
 		}
 
-		var requestValidationError billing.ValidationError
 		lines, err := grouped.Engine.OnStandardInvoiceCreated(ctx, input)
+		// An existing realization is an action precondition, not an invoice defect to persist.
+		if errors.Is(err, usagebased.ErrActiveRealizationRunAlreadyExists) {
+			return billing.StandardInvoice{}, err
+		}
+
+		var requestValidationError billing.ValidationError
 		if errors.As(err, &requestValidationError) {
 			return billing.StandardInvoice{}, err
 		}
+
 		validationIssues, systemErr := billing.ToValidationIssues(err)
 		if systemErr != nil {
 			return billing.StandardInvoice{}, fmt.Errorf("standard invoice created for engine %s: %w", grouped.Engine.GetLineEngineType(), systemErr)
@@ -1004,9 +1004,7 @@ func (s *Service) recalculateStandardInvoice(ctx context.Context, invoice billin
 	}
 
 	if err := s.invoiceCalculator.Calculate(&invoice, invoicecalc.StandardInvoiceCalculatorDependencies{
-		RatingService: s.ratingService,
-		TaxCodes:      taxCodes,
-		LineEngines:   s.lineEngines,
+		TaxCodes: taxCodes,
 	}); err != nil {
 		return billing.StandardInvoice{}, fmt.Errorf("recalculating target invoice: %w", err)
 	}
@@ -1017,27 +1015,6 @@ func (s *Service) recalculateStandardInvoice(ctx context.Context, invoice billin
 	}
 
 	return invoice, nil
-}
-
-func (s *Service) invokePostCreationHooks(invoice billing.StandardInvoice, hook billing.PostCreationCalculationHook) error {
-	for _, line := range invoice.Lines.OrEmpty() {
-		ops, err := hook(invoice, lo.FromPtr(line))
-		if err != nil {
-			return fmt.Errorf("invoking post creation hook: %w", err)
-		}
-
-		if len(ops) == 0 {
-			continue
-		}
-
-		for _, op := range ops {
-			if err := op(line); err != nil {
-				return fmt.Errorf("invoking post creation hook: %w", err)
-			}
-		}
-	}
-
-	return nil
 }
 
 // updateGatheringInvoice updates the gathering invoice's state and if it contains no lines, it will be deleted.

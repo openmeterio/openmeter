@@ -64,7 +64,7 @@ spec:
                   containerPort: 10000
                   protocol: TCP
               resources:
-                {{- toYaml .Values.resources | nindent 16 }}
+                {{- toYaml (.Values.jobs.subscriptionSync.resources | default .Values.resources) | nindent 16 }}
               volumeMounts:
                 - name: config
                   mountPath: /etc/openmeter
@@ -82,15 +82,15 @@ spec:
               configMap:
                 name: ca-certificates
             {{- end }}
-          {{- with .Values.nodeSelector }}
+          {{- with (.Values.jobs.subscriptionSync.nodeSelector | default .Values.nodeSelector) }}
           nodeSelector:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          {{- with .Values.affinity }}
+          {{- with (.Values.jobs.subscriptionSync.affinity | default .Values.affinity) }}
           affinity:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          {{- with .Values.tolerations }}
+          {{- with (.Values.jobs.subscriptionSync.tolerations | default .Values.tolerations) }}
           tolerations:
             {{- toYaml . | nindent 12 }}
           {{- end }}
@@ -160,7 +160,7 @@ spec:
                   containerPort: 10000
                   protocol: TCP
               resources:
-                {{- toYaml .Values.resources | nindent 16 }}
+                {{- toYaml (.Values.jobs.billingCollectInvoices.resources | default .Values.resources) | nindent 16 }}
               volumeMounts:
                 - name: config
                   mountPath: /etc/openmeter
@@ -178,15 +178,15 @@ spec:
               configMap:
                 name: ca-certificates
             {{- end }}
-          {{- with .Values.nodeSelector }}
+          {{- with (.Values.jobs.billingCollectInvoices.nodeSelector | default .Values.nodeSelector) }}
           nodeSelector:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          {{- with .Values.affinity }}
+          {{- with (.Values.jobs.billingCollectInvoices.affinity | default .Values.affinity) }}
           affinity:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          {{- with .Values.tolerations }}
+          {{- with (.Values.jobs.billingCollectInvoices.tolerations | default .Values.tolerations) }}
           tolerations:
             {{- toYaml . | nindent 12 }}
           {{- end }}
@@ -256,7 +256,7 @@ spec:
                   containerPort: 10000
                   protocol: TCP
               resources:
-                {{- toYaml .Values.resources | nindent 16 }}
+                {{- toYaml (.Values.jobs.billingAdvanceInvoices.resources | default .Values.resources) | nindent 16 }}
               volumeMounts:
                 - name: config
                   mountPath: /etc/openmeter
@@ -274,15 +274,15 @@ spec:
               configMap:
                 name: ca-certificates
             {{- end }}
-          {{- with .Values.nodeSelector }}
+          {{- with (.Values.jobs.billingAdvanceInvoices.nodeSelector | default .Values.nodeSelector) }}
           nodeSelector:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          {{- with .Values.affinity }}
+          {{- with (.Values.jobs.billingAdvanceInvoices.affinity | default .Values.affinity) }}
           affinity:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          {{- with .Values.tolerations }}
+          {{- with (.Values.jobs.billingAdvanceInvoices.tolerations | default .Values.tolerations) }}
           tolerations:
             {{- toYaml . | nindent 12 }}
           {{- end }}

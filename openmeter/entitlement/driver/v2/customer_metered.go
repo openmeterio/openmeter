@@ -188,6 +188,7 @@ func (h *entitlementHandler) CreateCustomerEntitlementGrant() CreateCustomerEnti
 				Namespace:                 ns,
 				GrantInput:                grantInput,
 			}
+
 			return req, nil
 		},
 		func(ctx context.Context, request CreateCustomerEntitlementGrantHandlerRequest) (CreateCustomerEntitlementGrantHandlerResponse, error) {
@@ -195,6 +196,7 @@ func (h *entitlementHandler) CreateCustomerEntitlementGrant() CreateCustomerEnti
 			if err != nil {
 				return CreateCustomerEntitlementGrantHandlerResponse{}, err
 			}
+
 			return MapEntitlementGrantToAPIV2(&g), nil
 		},
 		commonhttp.JSONResponseEncoderWithStatus[CreateCustomerEntitlementGrantHandlerResponse](http.StatusCreated),
@@ -273,6 +275,7 @@ func (h *entitlementHandler) GetCustomerEntitlementHistory() GetCustomerEntitlem
 				if err != nil {
 					return api.WindowedBalanceHistory{}, commonhttp.NewHTTPError(http.StatusBadRequest, err)
 				}
+
 				tLocation = tz
 			}
 
@@ -302,6 +305,7 @@ func (h *entitlementHandler) GetCustomerEntitlementHistory() GetCustomerEntitlem
 				for _, usage := range segment.GrantUsages {
 					usages = append(usages, api.GrantUsageRecord{GrantId: usage.GrantID, Usage: usage.Usage})
 				}
+
 				burndown = append(burndown, api.GrantBurnDownHistorySegment{
 					BalanceAtEnd:         segment.ApplyUsage().Balance(),
 					BalanceAtStart:       segment.BalanceAtStart.Balance(),
@@ -395,6 +399,7 @@ func (h *entitlementHandler) ResetCustomerEntitlementUsage() ResetCustomerEntitl
 				RetainAnchor:    req.RetainAnchor,
 				PreserveOverage: req.PreserveOverage,
 			})
+
 			return nil, err
 		},
 		commonhttp.EmptyResponseEncoder[ResetCustomerEntitlementUsageHandlerResponse](http.StatusNoContent),

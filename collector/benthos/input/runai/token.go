@@ -79,6 +79,7 @@ func (s *Service) NewToken(ctx context.Context) (string, error) {
 	}
 
 	result := resp.Result().(*TokenResponse)
+
 	return result.AccessToken, nil
 }
 

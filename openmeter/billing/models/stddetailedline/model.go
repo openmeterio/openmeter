@@ -150,17 +150,21 @@ func Compare[T Comparable](a, b T) int {
 	if a.GetIndex() == nil && b.GetIndex() != nil {
 		return 1
 	}
+
 	if a.GetIndex() != nil && b.GetIndex() == nil {
 		return -1
 	}
+
 	if a.GetIndex() != nil && b.GetIndex() != nil {
 		if c := cmp.Compare(*a.GetIndex(), *b.GetIndex()); c != 0 {
 			return c
 		}
 	}
+
 	if c := a.GetCreatedAt().Compare(b.GetCreatedAt()); c != 0 {
 		return c
 	}
+
 	return cmp.Compare(a.GetID(), b.GetID())
 }
 
@@ -224,6 +228,7 @@ func (l Bases) WithCreditsApplied(
 			if totalAmount.LessThan(creditValueRemaining) {
 				amountToApply = totalAmount
 			}
+
 			detailedLines[idx].CreditsApplied = append(detailedLines[idx].CreditsApplied, creditToApply.CloneWithAmount(amountToApply))
 			detailedLines[idx].Totals.CreditsTotal = currency.RoundToPrecision(detailedLines[idx].Totals.CreditsTotal.Add(amountToApply))
 			detailedLines[idx].Totals.Total = currency.RoundToPrecision(detailedLines[idx].Totals.Total.Sub(amountToApply))

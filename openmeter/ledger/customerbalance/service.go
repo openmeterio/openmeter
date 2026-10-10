@@ -158,6 +158,7 @@ func (i GetBalanceServiceInput) balanceQuery() ledger.BalanceQuery {
 
 	asOf := clock.Now()
 	query.AsOf = &asOf
+
 	return query
 }
 
@@ -179,6 +180,7 @@ func (i GetBalanceCurrenciesInput) Validate() error {
 	if err := i.Currencies.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("currencies: %w", err))
 	}
+
 	for _, code := range i.Currencies.Codes {
 		if err := ledger.ValidateCurrency(code); err != nil {
 			errs = append(errs, fmt.Errorf("currency %q is not supported by ledger: %w", code, err))
@@ -266,6 +268,7 @@ func New(config Config) (*service, error) {
 	if breakageService == nil {
 		breakageService = ledgerbreakage.NewNoopService()
 	}
+
 	creditVoidService := config.CreditVoid
 	if creditVoidService == nil {
 		creditVoidService = creditvoid.NewNoopService()
@@ -397,8 +400,8 @@ func (s liveBalanceSource) Compare(other liveBalanceSource) int {
 		return c
 	}
 
-	leftRestricted := len(s.route.Features) > 0
-	rightRestricted := len(other.route.Features) > 0
+	leftRestricted := !s.route.Filters.IsEmpty()
+	rightRestricted := !other.route.Filters.IsEmpty()
 	if leftRestricted != rightRestricted {
 		if leftRestricted {
 			return -1
@@ -443,6 +446,7 @@ func (s *service) GetBalanceCurrencies(ctx context.Context, input GetBalanceCurr
 	if err := input.Validate(); err != nil {
 		return nil, err
 	}
+
 	asOf := input.pendingGrantAsOf()
 	if len(input.Currencies.Codes) > 0 {
 		return s.getRequestedBalanceCurrencies(ctx, input.CustomerID, dedupeCurrencies(input.Currencies.Codes), asOf)
@@ -469,6 +473,7 @@ func (s *service) GetBalanceCurrencies(ctx context.Context, input GetBalanceCurr
 		if err != nil {
 			return nil, err
 		}
+
 		references = append(references, liveCurrencies...)
 	}
 
@@ -509,6 +514,7 @@ func (s *service) getRequestedBalanceCurrencies(ctx context.Context, customerID 
 		if err != nil {
 			return nil, fmt.Errorf("list requested custom currencies: %w", err)
 		}
+
 		for _, currency := range catalogCurrencies {
 			code := currency.GetCode()
 			referencesByCode[code] = append(referencesByCode[code], currency.Reference())
@@ -518,10 +524,12 @@ func (s *service) getRequestedBalanceCurrencies(ctx context.Context, customerID 
 		if err != nil {
 			return nil, err
 		}
+
 		for _, reference := range ledgerCurrencies {
 			if !slices.Contains(customCodes, reference.GetCode()) {
 				continue
 			}
+
 			referencesByCode[reference.GetCode()] = append(referencesByCode[reference.GetCode()], reference.Clone())
 		}
 	}
@@ -593,6 +601,7 @@ func (s *service) getLedgerBalanceCurrencies(ctx context.Context, customerID cus
 				if query.nilCostBasisOnly && bucketRoute.CostBasis != nil {
 					continue
 				}
+
 				references = append(references, bucketRoute.Currency.Clone())
 			}
 		}
@@ -625,7 +634,7 @@ func (s *service) getPendingGrantCurrencies(
 			continue
 		}
 
-		if !featureFilterMatchesCreditPurchase(featureFilter, creditPurchaseCharge.Intent.FeatureFilters) {
+		if !featureFilterMatchesCreditPurchase(featureFilter, creditPurchaseCharge.Intent.Filters.Features) {
 			continue
 		}
 
@@ -674,7 +683,7 @@ func (s *service) getPendingGrantAmount(
 			continue
 		}
 
-		if !featureFilterMatchesCreditPurchase(featureFilter, creditPurchaseCharge.Intent.FeatureFilters) {
+		if !featureFilterMatchesCreditPurchase(featureFilter, creditPurchaseCharge.Intent.Filters.Features) {
 			continue
 		}
 
@@ -813,10 +822,12 @@ func (s *service) getChargeLiveBalanceCurrencies(ctx context.Context, customerID
 		if err != nil {
 			return nil, err
 		}
+
 		impact, err := s.getChargeLiveBalanceImpact(ctx, charge, reference, featureFilter)
 		if err != nil {
 			return nil, err
 		}
+
 		// credit_then_invoice overage does not change credit balance after its
 		// eligible FBO sources are exhausted. Any such source already provides a
 		// ledger-backed currency identity, so only credit_only can introduce a
@@ -863,12 +874,14 @@ func (s *service) chargeCurrencyReference(charge charges.Charge) (currencies.Cur
 		if err != nil {
 			return currencies.CurrencyReference{}, fmt.Errorf("map flat fee charge: %w", err)
 		}
+
 		return flatFeeCharge.Intent.GetCurrency().Reference(), nil
 	case meta.ChargeTypeUsageBased:
 		usageBasedCharge, err := charge.AsUsageBasedCharge()
 		if err != nil {
 			return currencies.CurrencyReference{}, fmt.Errorf("map usage based charge: %w", err)
 		}
+
 		return usageBasedCharge.Intent.GetCurrency().Reference(), nil
 	default:
 		return currencies.CurrencyReference{}, fmt.Errorf("charge type %s does not affect live credit balance", charge.Type())

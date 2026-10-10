@@ -61,6 +61,15 @@ High-fan-out requests emit thousands of SQL spans; bump Tempo's `max_bytes_per_t
 
 ## Standard e2e tests
 
+`make test-http-errors` runs the shared error handling contract through real HTTP/1,
+HTTP/2, gRPC, and PostgreSQL connections. The test handlers provide controlled
+failures without adding fault injection to production endpoints. These scenarios
+start their own HTTP/gRPC servers and run as part of `make test-base`.
+
+For an existing PostgreSQL instance, override `OPENMETER_E2E_POSTGRES_URL`; the
+default is the local compose instance. Without that variable, direct
+`go test ./httperrors` runs the protocol scenarios and skips the SQL scenario.
+
 ```sh
 make test-local        # full down → up → go test ./... → down
 ```

@@ -270,7 +270,7 @@ type InvoiceLineRateCard struct {
 	// The price definition used to calculate charges for this line.
 	Price Price `json:"price"`
 	// Tax configuration snapshot for this line.
-	TaxConfig *RateCardTaxConfig `json:"tax_config,omitempty"`
+	TaxConfig *TaxCodeConfig `json:"tax_config,omitempty"`
 	// The feature key associated with this line's rate card.
 	FeatureKey *string `json:"feature_key,omitempty"`
 	// Discount configuration from the rate card.
@@ -551,7 +551,7 @@ type UpdateInvoiceLineRateCard struct {
 	// The price definition used to calculate charges for this line.
 	Price Price `json:"price"`
 	// Tax configuration snapshot for this line.
-	TaxConfig *RateCardTaxConfig `json:"tax_config,omitempty"`
+	TaxConfig *TaxCodeConfig `json:"tax_config,omitempty"`
 	// The feature key associated with this line's rate card.
 	FeatureKey *string `json:"feature_key,omitempty"`
 	// Discount configuration from the rate card.

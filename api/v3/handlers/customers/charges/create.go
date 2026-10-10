@@ -87,6 +87,7 @@ func (h *handler) CreateCustomerCharge() CreateCustomerChargesHandler {
 
 				if usageBasedFee.UnitConfig != nil && !h.unitConfigEnabled {
 					err := models.NewGenericValidationError(errors.New("unit_config is not enabled on this deployment of OpenMeter"))
+
 					return CreateCustomerChargesRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
 						{
 							Field:  "unit_config",
@@ -108,6 +109,7 @@ func (h *handler) CreateCustomerCharge() CreateCustomerChargesHandler {
 				}
 			default:
 				err := fmt.Errorf("invalid charge type: %s", discriminator)
+
 				return CreateCustomerChargesRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
 					{
 						Field:  "params",

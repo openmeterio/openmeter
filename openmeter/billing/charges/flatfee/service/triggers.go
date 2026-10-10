@@ -31,6 +31,7 @@ func (s *service) AdvanceCharge(ctx context.Context, input flatfee.AdvanceCharge
 		if err != nil {
 			return nil, err
 		}
+
 		if !canAdvance {
 			return nil, nil
 		}
@@ -39,6 +40,7 @@ func (s *service) AdvanceCharge(ctx context.Context, input flatfee.AdvanceCharge
 		if err != nil {
 			return nil, err
 		}
+
 		canAdvance, err = stateMachine.CanFire(ctx, meta.TriggerNext)
 		if err != nil {
 			return nil, fmt.Errorf("check next transition: %w", err)
@@ -114,6 +116,7 @@ func (s *service) TriggerPatch(ctx context.Context, chargeID meta.ChargeID, patc
 		if err != nil {
 			return nil, fmt.Errorf("failed to advance charge: %w", err)
 		}
+
 		canAdvance, err := stateMachine.CanFire(ctx, meta.TriggerNext)
 		if err != nil {
 			return nil, fmt.Errorf("check next transition: %w", err)

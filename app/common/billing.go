@@ -138,7 +138,6 @@ func newBillingService(
 	logger *slog.Logger,
 	appService app.Service,
 	billingAdapter billing.Adapter,
-	billingRatingService rating.Service,
 	legacyBillingLineEngine *billinglineengine.Engine,
 	sequenceService billingsequence.Service,
 	customerService customer.Service,
@@ -154,7 +153,6 @@ func newBillingService(
 	service, err := billingservice.New(billingservice.Config{
 		Adapter:                 billingAdapter,
 		SequenceService:         sequenceService,
-		RatingService:           billingRatingService,
 		LegacyBillingLineEngine: legacyBillingLineEngine,
 		AppService:              appService,
 		CustomerService:         customerService,
@@ -231,7 +229,6 @@ func NewBillingRegistry(
 		logger,
 		appService,
 		billingAdapter,
-		billingRatingService,
 		legacyBillingLineEngine,
 		sequenceService,
 		customerService,
@@ -302,6 +299,7 @@ func NewBillingRegistry(
 	if err != nil {
 		return BillingRegistry{}, err
 	}
+
 	subscriptionSyncService, err := NewBillingSubscriptionSyncService(logger, subscriptionServices, billingRegistry, subscriptionSyncAdapter, tracer, creditsConfig, fsConfig, featureGate)
 	if err != nil {
 		return BillingRegistry{}, err

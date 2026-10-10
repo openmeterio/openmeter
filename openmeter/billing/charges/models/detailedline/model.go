@@ -100,6 +100,26 @@ func MapAmountDiscountsFromBilling(discounts billing.AmountLineDiscountsManaged)
 	})
 }
 
+// MapAmountDiscountsToBilling maps signed snapshot facts into new billing
+// resources. Billing allocates managed IDs and reuses them by child reference.
+func MapAmountDiscountsToBilling(discounts AmountDiscounts) billing.AmountLineDiscountsManaged {
+	return lo.Map(discounts, func(discount AmountDiscount, _ int) billing.AmountLineDiscountManaged {
+		discount = discount.Clone()
+
+		return billing.AmountLineDiscountManaged{
+			AmountLineDiscount: billing.AmountLineDiscount{
+				LineDiscountBase: billing.LineDiscountBase{
+					ChildUniqueReferenceID: lo.ToPtr(discount.ChildUniqueReferenceID),
+					Description:            discount.Description,
+					Reason:                 discount.Reason,
+				},
+				Amount:         discount.Amount,
+				RoundingAmount: discount.RoundingAmount,
+			},
+		}
+	})
+}
+
 func (d AmountDiscounts) Clone() AmountDiscounts {
 	if d == nil {
 		return nil

@@ -9,8 +9,9 @@ import (
 
 	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
-	svix "github.com/svix/svix-webhooks/go"
-	svixmodels "github.com/svix/svix-webhooks/go/models"
+	svix "github.com/svix/svix-webhooks/v2/go"
+	svixmodels "github.com/svix/svix-webhooks/v2/go/models"
+	svixutils "github.com/svix/svix-webhooks/v2/go/utils"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 
@@ -40,14 +41,14 @@ func (h svixHandler) GetOrUpdateEndpointHeaders(ctx context.Context, appID, endp
 			attribute.String("svix.endpoint_id", endpointID),
 		}
 
-		if len(headers) > 0 {
+		if headers != nil {
 			span.AddEvent("updating endpoint headers", trace.WithAttributes(spanAttrs...))
 
 			input := svix.EndpointHeadersIn{
 				Headers: headers,
 			}
 
-			err := h.client.Endpoint.UpdateHeaders(ctx, appID, endpointID, input)
+			err := h.client.Endpoint().SetHeaders(ctx, appID, endpointID, input)
 			if err = internal.WrapSvixError(err); err != nil {
 				return nil, fmt.Errorf("failed to set custom headers for Svix endpoint: %w", err)
 			}
@@ -56,7 +57,7 @@ func (h svixHandler) GetOrUpdateEndpointHeaders(ctx context.Context, appID, endp
 		} else {
 			span.AddEvent("fetching endpoint headers", trace.WithAttributes(spanAttrs...))
 
-			out, err := h.client.Endpoint.GetHeaders(ctx, appID, endpointID)
+			out, err := h.client.Endpoint().GetHeaders(ctx, appID, endpointID)
 			if err = internal.WrapSvixError(err); err != nil || out == nil {
 				return nil, fmt.Errorf("failed to get custom headers for Svix endpoint: %w", err)
 			}
@@ -85,10 +86,11 @@ func (h svixHandler) GetOrUpdateEndpointSecret(ctx context.Context, appID, endpo
 
 		span.AddEvent("getting endpoint secret", trace.WithAttributes(spanAttrs...))
 
-		secretOut, err := h.client.Endpoint.GetSecret(ctx, appID, endpointID)
+		secretOut, err := h.client.Endpoint().GetSecret(ctx, appID, endpointID)
 		if err != nil {
 			return resp, fmt.Errorf("failed to get Svix endpoint secret: %w", err)
 		}
+
 		if secretOut == nil {
 			return resp, fmt.Errorf("failed to get Svix endpoint secret: %w", err)
 		}
@@ -107,7 +109,7 @@ func (h svixHandler) GetOrUpdateEndpointSecret(ctx context.Context, appID, endpo
 
 			span.AddEvent("rotating endpoint secret", trace.WithAttributes(spanAttrs...))
 
-			err = h.client.Endpoint.RotateSecret(ctx, appID, endpointID, input, &svix.EndpointRotateSecretOptions{
+			_, err = h.client.Endpoint().RotateSecret(ctx, appID, endpointID, input, &svix.EndpointRotateSecretOptions{
 				IdempotencyKey: &idempotencyKey,
 			})
 			if err = internal.WrapSvixError(err); err != nil {
@@ -128,6 +130,7 @@ func (h svixHandler) CreateWebhook(ctx context.Context, params webhook.CreateWeb
 		if err := params.Validate(); err != nil {
 			return nil, fmt.Errorf("failed to validate CreateWebhookInput: %w", err)
 		}
+
 		// Ensure that application is created for namespace
 		app, err := h.CreateApplication(ctx, params.Namespace)
 		if err != nil {
@@ -165,19 +168,20 @@ func (h svixHandler) CreateWebhook(ctx context.Context, params webhook.CreateWeb
 			if err != nil {
 				return nil, fmt.Errorf("failed to generate ULID for webhook: %w", err)
 			}
+
 			endpointUID = uid.String()
 		}
 
 		input := svix.EndpointIn{
-			Uid:         &endpointUID,
-			Description: lo.EmptyableToPtr(lo.FromPtr(params.Description)),
-			Url:         params.URL,
-			Disabled:    &params.Disabled,
-			RateLimit:   params.RateLimit,
-			Secret:      params.Secret,
-			FilterTypes: params.EventTypes,
-			Channels:    params.Channels,
-			Metadata:    lo.EmptyableToPtr(params.Metadata),
+			Uid:          &endpointUID,
+			Description:  lo.EmptyableToPtr(lo.FromPtr(params.Description)),
+			Url:          params.URL,
+			Disabled:     &params.Disabled,
+			ThrottleRate: params.RateLimit,
+			Secret:       params.Secret,
+			EventTypes:   params.EventTypes,
+			Channels:     params.Channels,
+			Metadata:     lo.EmptyableToPtr(params.Metadata),
 		}
 
 		idempotencyKey, err := idempotency.Key()
@@ -196,7 +200,7 @@ func (h svixHandler) CreateWebhook(ctx context.Context, params webhook.CreateWeb
 
 		span.AddEvent("creating endpoint", trace.WithAttributes(spanAttrs...))
 
-		endpoint, err := h.client.Endpoint.Create(ctx, app.Id, input, &svix.EndpointCreateOptions{
+		endpoint, err := h.client.Endpoint().Create(ctx, app.Id, input, &svix.EndpointCreateOptions{
 			IdempotencyKey: &idempotencyKey,
 		})
 		if err = internal.WrapSvixError(err); err != nil {
@@ -256,15 +260,15 @@ func (h svixHandler) UpdateWebhook(ctx context.Context, params webhook.UpdateWeb
 			}
 		}
 
-		input := svix.EndpointUpdate{
-			Uid:         &params.ID,
-			Description: lo.EmptyableToPtr(lo.FromPtr(params.Description)),
-			Url:         params.URL,
-			Disabled:    &params.Disabled,
-			RateLimit:   params.RateLimit,
-			FilterTypes: params.EventTypes,
-			Channels:    params.Channels,
-			Metadata:    lo.EmptyableToPtr(params.Metadata),
+		input := svix.EndpointPatch{
+			Uid:          svixutils.NewNullable(params.ID),
+			Description:  params.Description,
+			Url:          &params.URL,
+			Disabled:     &params.Disabled,
+			ThrottleRate: svixutils.NewNullableFromPtr(params.RateLimit),
+			EventTypes:   svixutils.NewNullable(params.EventTypes),
+			Channels:     svixutils.NewNullable(params.Channels),
+			Metadata:     &params.Metadata,
 		}
 
 		span := trace.SpanFromContext(ctx)
@@ -277,7 +281,7 @@ func (h svixHandler) UpdateWebhook(ctx context.Context, params webhook.UpdateWeb
 
 		span.AddEvent("updating endpoint", trace.WithAttributes(spanAttrs...))
 
-		endpoint, err := h.client.Endpoint.Update(ctx, app.Id, params.ID, input)
+		endpoint, err := h.client.Endpoint().Patch(ctx, app.Id, params.ID, input)
 		if err = internal.WrapSvixError(err); err != nil {
 			return nil, fmt.Errorf("failed to update Svix endpoint: %w", err)
 		}
@@ -295,13 +299,13 @@ func (h svixHandler) UpdateWebhook(ctx context.Context, params webhook.UpdateWeb
 			return nil, err
 		}
 
-		// Set custom HTTP headers for webhook endpoint if provided
+		// Replace the custom HTTP headers of the webhook endpoint. The update replaces
+		// the whole webhook config, so an omitted or emptied header set clears the
+		// headers in Svix as well.
 
-		if len(params.CustomHeaders) > 0 {
-			wh.CustomHeaders, err = h.GetOrUpdateEndpointHeaders(ctx, app.Id, endpoint.Id, params.CustomHeaders)
-			if err != nil {
-				return nil, err
-			}
+		wh.CustomHeaders, err = h.GetOrUpdateEndpointHeaders(ctx, app.Id, endpoint.Id, params.CustomHeaders)
+		if err != nil {
+			return nil, err
 		}
 
 		return wh, nil
@@ -394,7 +398,7 @@ func (h svixHandler) DeleteWebhook(ctx context.Context, params webhook.DeleteWeb
 
 		span.AddEvent("deleting endpoint", trace.WithAttributes(spanAttrs...))
 
-		err := h.client.Endpoint.Delete(ctx, params.Namespace, params.ID)
+		err := h.client.Endpoint().Delete(ctx, params.Namespace, params.ID)
 		if err = internal.WrapSvixError(err); err != nil {
 			if webhook.IsNotFoundError(err) {
 				return nil
@@ -424,7 +428,7 @@ func (h svixHandler) GetWebhook(ctx context.Context, params webhook.GetWebhookIn
 
 		span.AddEvent("fetching endpoint", trace.WithAttributes(spanAttrs...))
 
-		endpoint, err := h.client.Endpoint.Get(ctx, params.Namespace, params.ID)
+		endpoint, err := h.client.Endpoint().Get(ctx, params.Namespace, params.ID)
 		if err = internal.WrapSvixError(err); err != nil {
 			return nil, fmt.Errorf("failed to get Svix endpoint: %w", err)
 		}
@@ -479,7 +483,7 @@ func (h svixHandler) ListWebhooks(ctx context.Context, params webhook.ListWebhoo
 
 			span.AddEvent("fetching endpoints in batch", trace.WithAttributes(spanAttrs...))
 
-			out, err := h.client.Endpoint.List(ctx, params.Namespace, opts)
+			out, err := h.client.Endpoint().List(ctx, params.Namespace, opts)
 			if err = internal.WrapSvixError(err); err != nil {
 				return nil, fmt.Errorf("failed to list Svix endpoints: %w", err)
 			}
@@ -497,9 +501,9 @@ func (h svixHandler) ListWebhooks(ctx context.Context, params webhook.ListWebhoo
 					return true
 				}
 
-				if o.FilterTypes != nil {
+				if o.EventTypes != nil {
 					for _, eventType := range params.EventTypes {
-						if slices.Contains(o.FilterTypes, eventType) {
+						if slices.Contains(o.EventTypes, eventType) {
 							return true
 						}
 					}
@@ -558,9 +562,9 @@ func WebhookFromSvixEndpointOut(e *svix.EndpointOut) *webhook.Webhook {
 		ID:          lo.FromPtr(e.Uid),
 		URL:         e.Url,
 		Disabled:    lo.FromPtrOr(e.Disabled, false),
-		RateLimit:   e.RateLimit,
+		RateLimit:   e.ThrottleRate,
 		Description: e.Description,
-		EventTypes:  e.FilterTypes,
+		EventTypes:  e.EventTypes,
 		Channels: lo.Filter(e.Channels, func(s string, _ int) bool {
 			return s != NullChannel
 		}),

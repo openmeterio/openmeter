@@ -43,10 +43,6 @@ func (i BookInvoicedPaymentAuthorizedInput) Validate() error {
 		return fmt.Errorf("run %s already linked to a different line", i.Run.ID.ID)
 	}
 
-	if i.Run.Payment != nil {
-		return payment.ErrPaymentAlreadyAuthorized.WithAttrs(i.Charge.ErrorAttributes())
-	}
-
 	return nil
 }
 
@@ -61,6 +57,20 @@ func (s *Service) BookInvoicedPaymentAuthorized(ctx context.Context, in BookInvo
 	}
 
 	fiatAmount := in.Line.Totals.Total
+	if booked := in.Run.Payment; booked != nil {
+		if booked.DeletedAt == nil &&
+			booked.Namespace == in.Charge.Namespace &&
+			booked.InvoiceID == in.Invoice.ID &&
+			booked.LineID == in.Line.ID &&
+			booked.FiatAmount.Equal(fiatAmount) {
+			return BookInvoicedPaymentAuthorizedResult{Run: in.Run, Payment: booked}, nil
+		}
+
+		return BookInvoicedPaymentAuthorizedResult{}, payment.ErrPaymentAlreadyAuthorized.
+			WithAttrs(in.Charge.ErrorAttributes()).
+			WithAttrs(booked.ErrorAttributes())
+	}
+
 	if in.Run.NoFiatTransactionRequired || fiatAmount.IsZero() {
 		return BookInvoicedPaymentAuthorizedResult{
 			Run: in.Run,

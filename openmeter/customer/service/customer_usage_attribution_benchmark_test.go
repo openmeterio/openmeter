@@ -89,6 +89,7 @@ func BenchmarkCustomerUsageAttributionLookup(b *testing.B) {
 				if err != nil {
 					return "", err
 				}
+
 				return c.ID, nil
 			}
 
@@ -96,6 +97,7 @@ func BenchmarkCustomerUsageAttributionLookup(b *testing.B) {
 			if err != nil {
 				b.Fatalf("warm up lookup: %v", err)
 			}
+
 			if customerID != targetCustomerID {
 				b.Fatalf("warm up lookup returned customer %q, expected %q", customerID, targetCustomerID)
 			}
@@ -107,6 +109,7 @@ func BenchmarkCustomerUsageAttributionLookup(b *testing.B) {
 					b.Fatalf("lookup customer: %v", err)
 				}
 			}
+
 			b.StopTimer()
 			b.ReportMetric(float64(customerCount), "customers")
 		})
@@ -135,12 +138,14 @@ func BenchmarkCustomersUsageAttributionBulkLookup(b *testing.B) {
 		if err != nil {
 			return 0, err
 		}
+
 		matched := 0
 		for _, c := range resolved {
 			if c != nil {
 				matched++
 			}
 		}
+
 		return matched, nil
 	}
 
@@ -148,6 +153,7 @@ func BenchmarkCustomersUsageAttributionBulkLookup(b *testing.B) {
 	if err != nil {
 		b.Fatalf("warm up lookup: %v", err)
 	}
+
 	if count != uabench.BulkKeyCount {
 		b.Fatalf("warm up lookup resolved %d customers, expected %d", count, uabench.BulkKeyCount)
 	}
@@ -162,6 +168,7 @@ func BenchmarkCustomersUsageAttributionBulkLookup(b *testing.B) {
 				b.Fatalf("lookup customers: %v", err)
 			}
 		}
+
 		b.StopTimer()
 		b.ReportMetric(float64(customerCount), "customers")
 		b.ReportMetric(float64(uabench.BulkKeyCount), "keys")

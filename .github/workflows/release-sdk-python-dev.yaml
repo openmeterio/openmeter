@@ -1,0 +1,59 @@
+name: Python SDK Beta Release
+
+permissions:
+  contents: read
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  release-beta-sdk:
+    name: Python SDK Beta Release
+    runs-on: depot-ubuntu-latest-8
+    environment: dev
+
+    steps:
+      - uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        with:
+          egress-policy: audit
+          use-policy-store: ${{ secrets.STEP_SECURITY_API_KEY != '' }}
+          api-key: ${{ secrets.STEP_SECURITY_API_KEY }}
+
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Get short SHA
+        id: get-short-sha
+        run: |
+          echo "id=${GITHUB_SHA:0:12}" >> "$GITHUB_OUTPUT"
+
+      # If you keep using Nix for your dev shell / tooling, retain these steps
+      - name: Set up Nix
+        uses: nixbuild/nix-quick-install-action@9f63be77f412a248c9d9a65a4c82cf066cdf8f0c # v35
+        with:
+          # Authenticate public flake fetches to avoid GitHub API rate limits.
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+          nix_conf: |
+            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+            keep-env-derivations = true
+            keep-outputs = true
+
+      - name: Restore Nix store
+        uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
+        with:
+          primary-key: ${{ runner.os }}-openmeter-nix-build-v5-main-${{ hashFiles('.github/workflows/nix.yaml', 'flake.lock', '**/*.nix') }}
+          restore-prefixes-first-match: |
+            ${{ runner.os }}-openmeter-nix-build-v5-main-
+
+      - name: Publish Python package via Nix make target
+        run: |
+          nix develop --impure .#ci -c make -C api/client/python publish-python-sdk
+        env:
+          PY_SDK_RELEASE_TAG: alpha
+          COMMIT_SHORT_SHA: ${{ steps.get-short-sha.outputs.id }}
+          POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_TOKEN }}

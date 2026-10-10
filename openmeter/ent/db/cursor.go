@@ -2614,6 +2614,57 @@ func (_m *EntitlementQuery) Cursor(ctx context.Context, cursor *pagination.Curso
 
 // Cursor runs the query and returns a cursor-paginated response.
 // Ordering is always by created_at asc, id asc.
+func (_m *EventOutboxQuery) Cursor(ctx context.Context, cursor *pagination.Cursor) (pagination.Result[*EventOutbox], error) {
+	if cursor != nil {
+		if err := cursor.Validate(); err != nil {
+			return pagination.Result[*EventOutbox]{}, fmt.Errorf("invalid cursor: %w", err)
+		}
+
+		_m.Where(func(s *sql.Selector) {
+			s.Where(
+				sql.Or(
+					sql.GT(s.C("created_at"), cursor.Time),
+					sql.And(
+						sql.EQ(s.C("created_at"), cursor.Time),
+						sql.P(func(b *sql.Builder) {
+							b.WriteString("CAST(")
+							b.WriteString(s.C("id"))
+							b.WriteString(" AS TEXT) > ")
+							b.Args(cursor.ID)
+						}),
+					),
+				),
+			)
+		})
+	}
+
+	_m.Order(func(s *sql.Selector) {
+		s.OrderBy(sql.Asc(s.C("created_at")), sql.Asc(s.C("id")))
+	})
+
+	items, err := _m.All(ctx)
+	if err != nil {
+		return pagination.Result[*EventOutbox]{}, err
+	}
+
+	if items == nil {
+		items = make([]*EventOutbox, 0)
+	}
+
+	result := pagination.Result[*EventOutbox]{
+		Items: items,
+	}
+
+	if len(items) > 0 {
+		last := items[len(items)-1]
+		result.NextCursor = lo.ToPtr(pagination.NewCursor(last.CreatedAt, fmt.Sprint(last.ID)))
+	}
+
+	return result, nil
+}
+
+// Cursor runs the query and returns a cursor-paginated response.
+// Ordering is always by created_at asc, id asc.
 func (_m *FeatureQuery) Cursor(ctx context.Context, cursor *pagination.Cursor) (pagination.Result[*Feature], error) {
 	if cursor != nil {
 		if err := cursor.Validate(); err != nil {

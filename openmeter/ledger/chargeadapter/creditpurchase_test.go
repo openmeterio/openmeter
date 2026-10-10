@@ -13,9 +13,9 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	chargecreditpurchase "github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
-	lineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/adapter"
-	lineageservice "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/service"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
+	legacylineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage/adapter"
+	legacylineageservice "github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage/service"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	chargecostbasis "github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
@@ -28,6 +28,8 @@ import (
 	ledgertransactiongroupdb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransactiongroup"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	"github.com/openmeterio/openmeter/openmeter/ledger/advance"
+	advancetestutils "github.com/openmeterio/openmeter/openmeter/ledger/advance/testutils"
 	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	ledgerbreakageadapter "github.com/openmeterio/openmeter/openmeter/ledger/breakage/adapter"
 	"github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
@@ -154,7 +156,7 @@ func TestOnCreditPurchaseInitiated_BackfillsOnlyMatchingFeatureAdvances(t *testi
 	costBasis := mustDecimal(t, "0.5")
 	featureFilters := chargecreditpurchase.FeatureFilters{"api-calls"}
 	charge := env.newExternalCharge(alpacadecimal.NewFromInt(100), costBasis)
-	charge.Intent.FeatureFilters = featureFilters
+	charge.Intent.Filters.Features = featureFilters
 
 	ref, err := env.grantCredits(t, charge)
 	require.NoError(t, err)
@@ -180,7 +182,7 @@ func TestOnCreditPurchaseInitiated_RestrictedCreditDoesNotBackfillFeaturelessAdv
 	costBasis := mustDecimal(t, "0.5")
 	featureFilters := chargecreditpurchase.FeatureFilters{"api-calls"}
 	charge := env.newExternalCharge(alpacadecimal.NewFromInt(100), costBasis)
-	charge.Intent.FeatureFilters = featureFilters
+	charge.Intent.Filters.Features = featureFilters
 
 	ref, err := env.grantCredits(t, charge)
 	require.NoError(t, err)
@@ -375,7 +377,7 @@ func TestOnCreditPurchaseInitiated_UsesFeatureRestrictedFBO(t *testing.T) {
 	costBasis := mustDecimal(t, "0.5")
 	featureFilters := chargecreditpurchase.FeatureFilters{"api-calls", "storage"}
 	charge := env.newExternalCharge(alpacadecimal.NewFromInt(100), costBasis)
-	charge.Intent.FeatureFilters = featureFilters
+	charge.Intent.Filters.Features = featureFilters
 
 	ref, err := env.grantCredits(t, charge)
 	require.NoError(t, err)
@@ -442,6 +444,7 @@ func TestOnCreditPurchaseInitiated_ExpiringCreditReleasesAdvanceCoverage(t *test
 	for _, row := range rows {
 		byKind[row.Kind] = row.Amount
 	}
+
 	require.True(t, byKind[ledger.BreakageKindPlan].Equal(alpacadecimal.NewFromInt(100)))
 	require.True(t, byKind[ledger.BreakageKindRelease].Equal(alpacadecimal.NewFromInt(40)))
 
@@ -686,8 +689,9 @@ func TestOnCreditPurchasePaymentSettled_BacksAdvanceBeforeTopUp(t *testing.T) {
 type creditPurchaseHandlerTestEnv struct {
 	*ledgertestutils.IntegrationEnv
 	handler               chargecreditpurchase.Handler
+	breakage              ledgerbreakage.Service
 	currency              currencies.Currency
-	lineage               lineage.Service
+	lineage               legacylineage.Service
 	originalAdvanceGroups map[string]string
 }
 
@@ -708,24 +712,29 @@ func newCreditPurchaseHandlerTestEnv(t *testing.T) *creditPurchaseHandlerTestEnv
 	})
 	require.NoError(t, err)
 
-	handler, err := chargeadapter.NewCreditPurchaseHandler(
-		base.Deps.HistoricalLedger,
-		base.Deps.HistoricalLedger,
-		base.Deps.ResolversService,
-		base.Deps.AccountService,
-		breakageService,
-		enttx.NewCreator(base.DB),
-	)
+	advanceService := advancetestutils.NewService(t, base.Deps, breakageService)
+
+	handler, err := chargeadapter.NewCreditPurchaseHandler(chargeadapter.CreditPurchaseHandlerConfig{
+		Ledger:             base.Deps.HistoricalLedger,
+		BalanceQuerier:     base.Deps.HistoricalLedger,
+		AccountResolver:    base.Deps.ResolversService,
+		AccountCatalog:     base.Deps.AccountService,
+		AdvanceService:     advanceService,
+		BreakageService:    breakageService,
+		TransactionManager: enttx.NewCreator(base.DB),
+	})
 	require.NoError(t, err)
 
-	lineageAdapter, err := lineageadapter.New(lineageadapter.Config{Client: base.DB})
+	lineageAdapter, err := legacylineageadapter.New(legacylineageadapter.Config{Client: base.DB})
 	require.NoError(t, err)
-	lineageService, err := lineageservice.New(lineageservice.Config{Adapter: lineageAdapter})
+
+	lineageService, err := legacylineageservice.New(legacylineageservice.Config{Adapter: lineageAdapter})
 	require.NoError(t, err)
 
 	return &creditPurchaseHandlerTestEnv{
 		IntegrationEnv:        base,
 		handler:               handler,
+		breakage:              breakageService,
 		lineage:               lineageService,
 		originalAdvanceGroups: map[string]string{},
 		currency:              currenciestestutils.NewFiatCurrency(t, "USD"),
@@ -761,6 +770,7 @@ func (e *creditPurchaseHandlerTestEnv) newPromotionalCharge(amount alpacadecimal
 					},
 				},
 				IntentMutableFields: chargecreditpurchase.IntentMutableFields{
+					Filters: ledger.CreditFilters{Version: ledger.CreditFiltersVersion1},
 					IntentMutableFields: meta.IntentMutableFields{
 						Name:              "Promotional Credit Purchase",
 						ServicePeriod:     servicePeriod,
@@ -782,6 +792,7 @@ func (e *creditPurchaseHandlerTestEnv) newExternalCharge(amount, costBasis alpac
 		From: now.Add(-time.Hour),
 		To:   now,
 	}
+
 	return chargecreditpurchase.Charge{
 		ChargeBase: chargecreditpurchase.ChargeBase{
 			ManagedResource: meta.ManagedResource{
@@ -804,6 +815,7 @@ func (e *creditPurchaseHandlerTestEnv) newExternalCharge(amount, costBasis alpac
 					},
 				},
 				IntentMutableFields: chargecreditpurchase.IntentMutableFields{
+					Filters: ledger.CreditFilters{Version: ledger.CreditFiltersVersion1},
 					IntentMutableFields: meta.IntentMutableFields{
 						Name:              "External Credit Purchase",
 						ServicePeriod:     servicePeriod,
@@ -843,7 +855,7 @@ func (e *creditPurchaseHandlerTestEnv) fboSubAccountWithFeatures(t *testing.T, c
 		Currency:       e.CurrencyReference(),
 		CostBasis:      &costBasis,
 		CreditPriority: ledger.DefaultCustomerFBOPriority,
-		Features:       features,
+		Filters:        ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: features},
 	})
 	require.NoError(t, err)
 
@@ -861,7 +873,7 @@ func (e *creditPurchaseHandlerTestEnv) unknownReceivableSubAccountWithFeatures(t
 
 	subAccount, err := e.CustomerAccounts.ReceivableAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerReceivableRouteParams{
 		Currency:                       e.CurrencyReference(),
-		Features:                       features,
+		Filters:                        ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: features},
 		CostBasis:                      nil,
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
 	})
@@ -905,7 +917,7 @@ func (e *creditPurchaseHandlerTestEnv) receivableSubAccountWithFeatures(t *testi
 
 	subAccount, err := e.CustomerAccounts.ReceivableAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerReceivableRouteParams{
 		Currency:                       e.CurrencyReference(),
-		Features:                       features,
+		Filters:                        ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: features},
 		CostBasis:                      &costBasis,
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
 	})
@@ -986,54 +998,79 @@ func (e *creditPurchaseHandlerTestEnv) createAdvanceExposureWithFeatures(t *test
 
 func (e *creditPurchaseHandlerTestEnv) createAdvanceExposureForSpend(t *testing.T, amount alpacadecimal.Decimal, features []string, spendChargeID *string) {
 	t.Helper()
-	e.createAdvance(t, advanceExposureInput{Currency: e.currency, Amount: amount, Features: features, SpendChargeID: spendChargeID})
+	e.createAdvance(t, advanceExposureInput{Currency: e.currency, Amount: amount, Filters: ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: features}, SpendChargeID: spendChargeID})
 }
 
 type advanceExposureInput struct {
 	Currency      currencies.Currency
 	Amount        alpacadecimal.Decimal
-	Features      []string
+	Filters       ledger.CreditFilters
 	SpendChargeID *string
 	TaxCode       *string
 }
 
-// createAdvance persists the original journal with its uncovered lineage.
+// createAdvance persists the original journal with its uncovered legacylineage.
 // Nil spend provenance exercises legacy entries through that same lineage path.
 func (e *creditPurchaseHandlerTestEnv) createAdvance(t *testing.T, input advanceExposureInput) {
 	t.Helper()
+
 	ctx := t.Context()
-	inputs, err := transactions.ResolveTransactions(ctx, transactions.ResolverDependencies{
-		AccountService: e.Deps.ResolversService,
-		AccountCatalog: e.Deps.AccountService,
-		BalanceQuerier: e.Deps.HistoricalLedger,
-	}, transactions.ResolutionScope{CustomerID: e.CustomerID, Namespace: e.Namespace},
+	inputs, err := transactions.ResolveTransactions(
+		ctx,
+		transactions.ResolverDependencies{
+			AccountService: e.Deps.ResolversService,
+			AccountCatalog: e.Deps.AccountService,
+			BalanceQuerier: e.Deps.HistoricalLedger,
+		},
+		transactions.ResolutionScope{
+			CustomerID: e.CustomerID,
+			Namespace:  e.Namespace,
+		},
 		transactions.IssueCustomerReceivableTemplate{
-			At: e.Now(), Amount: input.Amount, Currency: input.Currency.Reference(),
-			Features: input.Features, SpendChargeID: input.SpendChargeID,
+			At:            e.Now(),
+			Amount:        input.Amount,
+			Currency:      input.Currency.Reference(),
+			Filters:       input.Filters,
+			SpendChargeID: input.SpendChargeID,
 		},
 		transactions.TransferCustomerFBOAdvanceToAccruedTemplate{
-			At: e.Now(), Amount: input.Amount, Currency: input.Currency.Reference(),
-			Features: input.Features, SpendChargeID: input.SpendChargeID, TaxCode: input.TaxCode,
+			At:            e.Now(),
+			Amount:        input.Amount,
+			Currency:      input.Currency.Reference(),
+			Filters:       input.Filters,
+			SpendChargeID: input.SpendChargeID,
+			TaxCode:       input.TaxCode,
 		},
 	)
 	require.NoError(t, err)
+
 	group, err := e.Deps.HistoricalLedger.CommitGroup(ctx, transactions.GroupInputs(e.Namespace, nil, inputs...))
 	require.NoError(t, err)
 
 	chargeID := lo.FromPtrOr(input.SpendChargeID, ulid.Make().String())
 	_, err = e.DB.Charge.Create().SetID(chargeID).SetNamespace(e.Namespace).SetType(meta.ChargeTypeUsageBased).Save(ctx)
 	require.NoError(t, err)
+
 	realizationID := ulid.Make().String()
-	require.NoError(t, e.lineage.CreateInitialLineages(ctx, lineage.CreateInitialLineagesInput{
-		Namespace: e.Namespace, CustomerID: e.CustomerID.ID, ChargeID: chargeID,
-		Currency: input.Currency, Features: input.Features,
+	require.NoError(t, e.lineage.CreateInitialLineages(ctx, legacylineage.CreateInitialLineagesInput{
+		Namespace:  e.Namespace,
+		CustomerID: e.CustomerID.ID,
+		ChargeID:   chargeID,
+		Currency:   input.Currency,
+		Features:   input.Filters.Features,
 		Realizations: creditrealization.Realizations{{CreateInput: creditrealization.CreateInput{
-			ID: realizationID, Type: creditrealization.TypeAllocation, Amount: input.Amount,
-			ServicePeriod:     timeutil.ClosedPeriod{From: e.Now(), To: e.Now()},
+			ID:     realizationID,
+			Type:   creditrealization.TypeAllocation,
+			Amount: input.Amount,
+			ServicePeriod: timeutil.ClosedPeriod{
+				From: e.Now(),
+				To:   e.Now(),
+			},
 			LedgerTransaction: ledgertransaction.GroupReference{TransactionGroupID: group.ID().ID},
 			Annotations:       creditrealization.LineageAnnotations(creditrealization.LineageOriginKindAdvance),
 		}}},
 	}))
+
 	e.originalAdvanceGroups[realizationID] = group.ID().ID
 }
 
@@ -1041,37 +1078,52 @@ func (e *creditPurchaseHandlerTestEnv) createAdvance(t *testing.T, input advance
 // sequence, so repeated purchases observe the persisted remainder.
 func (e *creditPurchaseHandlerTestEnv) grantCredits(t *testing.T, charge chargecreditpurchase.Charge) (chargecreditpurchase.CreditGrantResult, error) {
 	t.Helper()
+
 	return transaction.Run(t.Context(), enttx.NewCreator(e.DB), func(ctx context.Context) (chargecreditpurchase.CreditGrantResult, error) {
-		roots, err := e.lineage.LoadLineagesByCustomer(ctx, lineage.LoadLineagesByCustomerInput{
-			Namespace: e.Namespace, CustomerID: e.CustomerID.ID, Currency: charge.Intent.Currency.Reference(),
+		roots, err := e.lineage.LoadLineagesByCustomer(ctx, legacylineage.LoadLineagesByCustomerInput{
+			Namespace:         e.Namespace,
+			CustomerID:        e.CustomerID.ID,
+			Currency:          charge.Intent.Currency.Reference(),
 			OriginKind:        lo.ToPtr(creditrealization.LineageOriginKindAdvance),
 			HasActiveSegments: true,
 			SegmentState:      lo.ToPtr(creditrealization.LineageSegmentStateAdvanceUncovered),
-			FeatureFilters:    charge.Intent.FeatureFilters.Normalize(),
+			FeatureFilters:    charge.Intent.Filters.Normalize().Features,
 		})
 		if err != nil {
 			return chargecreditpurchase.CreditGrantResult{}, err
 		}
+
 		// The charge service hydrates this reference from allocation rows. These
 		// handler fixtures retain the groups returned when creating each advance.
 		for i := range roots {
 			roots[i].OriginalTransactionGroupID = e.originalAdvanceGroups[roots[i].RootRealizationID]
 		}
-		input := chargecreditpurchase.CreditGrantInput{Charge: charge, AdvanceLineages: roots}
+
+		input := chargecreditpurchase.CreditGrantInput{
+			Charge:          charge,
+			AdvanceLineages: roots,
+		}
 		var result chargecreditpurchase.CreditGrantResult
 		if charge.Intent.Settlement.Type() == chargecreditpurchase.SettlementTypePromotional {
 			result, err = e.handler.OnPromotionalCreditPurchase(ctx, input)
 		} else {
 			result, err = e.handler.OnCreditPurchaseInitiated(ctx, input)
 		}
+
 		if err != nil || result.TransactionGroupID == "" {
 			return result, err
 		}
-		err = e.lineage.BackfillAdvanceLineageSegments(ctx, lineage.BackfillAdvanceLineageSegmentsInput{
-			Namespace: e.Namespace, CustomerID: e.CustomerID.ID, Currency: charge.Intent.Currency,
-			Amount: charge.Intent.CreditAmount, FeatureFilters: charge.Intent.FeatureFilters.Normalize(),
-			BackingTransactionGroupID: result.TransactionGroupID, Allocations: result.BackfillAllocations,
+
+		err = e.lineage.BackfillAdvanceLineageSegments(ctx, legacylineage.BackfillAdvanceLineageSegmentsInput{
+			Namespace:                 e.Namespace,
+			CustomerID:                e.CustomerID.ID,
+			Currency:                  charge.Intent.Currency,
+			Amount:                    charge.Intent.CreditAmount,
+			FeatureFilters:            charge.Intent.Filters.Normalize().Features,
+			BackingTransactionGroupID: result.TransactionGroupID,
+			Allocations:               result.BackfillAllocations,
 		})
+
 		return result, err
 	})
 }
@@ -1238,7 +1290,9 @@ func (e *creditPurchaseHandlerTestEnv) requireTransactionGroupEntriesSourceCharg
 	require.NotEmpty(t, entries)
 
 	expectedIdentityKey, _ := ledger.EntryIdentityParts{
-		SourceChargeID: &sourceChargeID,
+		Provenance: ledger.Provenance{
+			SourceChargeID: &sourceChargeID,
+		},
 	}.Text()
 
 	for _, entry := range entries {
@@ -1268,4 +1322,55 @@ func mustDecimal(t *testing.T, raw string) alpacadecimal.Decimal {
 	require.NoError(t, err)
 
 	return value
+}
+
+func TestCreditPurchaseBackfillsOnlyMatchingPlanVersion(t *testing.T) {
+	// given: otherwise identical advances belong to different plan versions.
+	env := newCreditPurchaseHandlerTestEnv(t)
+	plans := []ledger.CreditFilters{
+		{Version: ledger.CreditFiltersVersion2, Features: []string{"api-calls"}, Plans: []ledger.PlanFilter{{Key: "pro", Version: &ledger.VersionFilter{Eq: lo.ToPtr(1)}}}},
+		{Version: ledger.CreditFiltersVersion2, Features: []string{"api-calls"}, Plans: []ledger.PlanFilter{{Key: "pro", Version: &ledger.VersionFilter{Eq: lo.ToPtr(2)}}}},
+	}
+	advanceService := advancetestutils.NewService(t, env.Deps, env.breakage)
+	for _, filters := range plans {
+		inputs, err := advanceService.PlanIssue(t.Context(), advance.IssueInput{
+			CustomerID: env.CustomerID, ChargeID: ulid.Make().String(), At: env.Now(),
+			Currency: env.currency.Reference(), Amount: alpacadecimal.NewFromInt(40), Filters: filters,
+		})
+		require.NoError(t, err)
+		_, err = env.Deps.HistoricalLedger.CommitGroup(t.Context(), transactions.GroupInputs(env.Namespace, nil, inputs...))
+		require.NoError(t, err)
+	}
+
+	costBasis := mustDecimal(t, "0.5")
+	charge := env.newExternalCharge(alpacadecimal.NewFromInt(100), costBasis)
+	charge.Intent.Filters = ledger.CreditFilters{Version: ledger.CreditFiltersVersion2, Features: []string{"api-calls"}, Plans: []ledger.PlanFilter{{Key: "pro", Version: &ledger.VersionFilter{Gte: lo.ToPtr(2)}}}}
+
+	// when: purchased credit matches v2 and later versions.
+	result, err := env.grantCredits(t, charge)
+	require.NoError(t, err)
+	require.NotEmpty(t, result.TransactionGroupID)
+
+	// then: v1 remains uncovered, v2 is backfilled, and excess keeps the grant's full filters.
+	for i, filters := range plans {
+		account, err := env.CustomerAccounts.ReceivableAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerReceivableRouteParams{
+			Currency: env.currency.Reference(), Filters: filters,
+			TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
+		})
+		require.NoError(t, err)
+		expected := float64(-40)
+		if i == 1 {
+			expected = 0
+		}
+
+		require.Equal(t, expected, env.sumBalance(t, account).InexactFloat64())
+	}
+
+	fbo, err := env.CustomerAccounts.FBOAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerFBORouteParams{
+		Currency: env.currency.Reference(), CostBasis: &costBasis, CreditPriority: lo.FromPtrOr(charge.Intent.Priority, ledger.DefaultCustomerFBOPriority), Filters: charge.Intent.Filters,
+	})
+	require.NoError(t, err)
+	require.Equal(t, float64(60), env.sumBalance(t, fbo).InexactFloat64())
+	require.Equal(t, float64(40), env.sumBalance(t, env.unknownAccruedSubAccount(t)).InexactFloat64())
+	require.Equal(t, float64(40), env.sumBalance(t, env.accruedSubAccount(t, costBasis)).InexactFloat64())
 }

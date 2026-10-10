@@ -1,6 +1,7 @@
 import "../../shared/index.tsp";
 import "../../currencies/index.tsp";
 import "../../billing/validationissue.tsp";
+import "../../tax/codes.tsp";
 
 namespace Customers;
 
@@ -107,26 +108,6 @@ enum CreditGrantVoidPaymentAdjustment {
 }
 
 /**
- * Tax configuration for a credit grant.
- *
- * Tax configuration should be provided to ensure correct revenue recognition,
- * including for externally funded grants.
- */
-@friendlyName("BillingCreditGrantTaxConfig")
-@summary("Tax configuration for a credit grant")
-model CreditGrantTaxConfig {
-  /**
-   * Tax behavior applied to the invoice line item.
-   */
-  behavior?: Common.BillingRoot.TaxBehavior;
-
-  /**
-   * Tax code applied to the invoice line item.
-   */
-  tax_code?: Shared.ResourceReference<Tax.TaxCode>;
-}
-
-/**
  * A credit grant allocates credits to a customer.
  *
  * Credits are drawn down against charges according to the settlement mode
@@ -174,7 +155,7 @@ model CreditGrant {
    * is used.
    */
   @visibility(Lifecycle.Read, Lifecycle.Create)
-  tax_config?: CreditGrantTaxConfig;
+  tax_config?: Tax.TaxCodeConfig;
 
   /**
    * Available when `funding_method` is `invoice`.
@@ -352,6 +333,29 @@ model CreditGrantFilters {
    */
   @example(#["input_tokens", "output_tokens"])
   features?: Shared.ResourceKey[];
+
+  /**
+   * Limit credits to charges from these plans. Entries are alternatives; when
+   * features are also specified, both dimensions must match. Omission or an empty
+   * list leaves plans unrestricted.
+   */
+  plans?: CreditGrantPlanFilter[];
+}
+
+/**
+ * A plan key and an optional version constraint for matching credit grants.
+ */
+@friendlyName("BillingCreditGrantPlanFilter")
+model CreditGrantPlanFilter {
+  /**
+   * The plan key in the customer's namespace.
+   */
+  key: Shared.ResourceKey;
+
+  /**
+   * Omission matches all versions, including future versions.
+   */
+  version?: Shared.VersionFilter;
 }
 
 /**

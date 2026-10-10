@@ -20,6 +20,7 @@ func (p *TestPatch) ApplyTo(s *subscription.SubscriptionSpec, c subscription.App
 	if p.ApplyToFn != nil {
 		return p.ApplyToFn(s, c)
 	}
+
 	return nil
 }
 
@@ -35,6 +36,7 @@ func (p *TestPatch) Validate() error {
 	if p.ValdiateFn != nil {
 		return p.ValdiateFn()
 	}
+
 	return nil
 }
 

@@ -50,6 +50,7 @@ func MapDBSubscription(sub *db.Subscription) (subscription.Subscription, error) 
 		if err != nil {
 			return subscription.Subscription{}, fmt.Errorf("mapping subscription cost basis pin: %w", err)
 		}
+
 		costBasisPins = append(costBasisPins, mapped)
 	}
 
@@ -196,6 +197,7 @@ func MapDBSubscriptionItem(item *db.SubscriptionItem) (subscription.Subscription
 			if err != nil {
 				return subscription.SubscriptionItem{}, fmt.Errorf("invalid subscription item currency: %w", err)
 			}
+
 			if customCurrency.Namespace != item.Namespace {
 				return subscription.SubscriptionItem{}, fmt.Errorf(
 					"invalid subscription item currency: namespace mismatch [subscription_item.namespace=%s currency.namespace=%s currency.id=%s]",
@@ -257,6 +259,7 @@ func MapDBSubscriptionItem(item *db.SubscriptionItem) (subscription.Subscription
 		if cadence == nil {
 			return subscription.SubscriptionItem{}, fmt.Errorf("billing cadence is required for usage based rate cards")
 		}
+
 		rc = &productcatalog.UsageBasedRateCard{
 			BillingCadence: *cadence,
 			RateCardMeta:   rcMeta,

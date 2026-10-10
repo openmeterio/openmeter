@@ -52,6 +52,7 @@ func BulkKeys(customerCount int) []string {
 	for i := 1; i <= half; i++ {
 		keys = append(keys, fmt.Sprintf("customer-%d", i))
 	}
+
 	for i := half + 1; i <= 2*half; i++ {
 		keys = append(keys, fmt.Sprintf("subject-%d", i))
 	}
@@ -99,6 +100,7 @@ func Seed(tb testing.TB, client *entdb.Client, namespace string, customerCount i
 	if _, err = client.ExecContext(ctx, "ANALYZE customers"); err != nil {
 		tb.Fatalf("analyze customers: %v", err)
 	}
+
 	if _, err = client.ExecContext(ctx, "ANALYZE customer_subjects"); err != nil {
 		tb.Fatalf("analyze customer subjects: %v", err)
 	}

@@ -5,11 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"slices"
-	"strings"
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
-	"github.com/samber/lo"
+	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -20,15 +19,16 @@ import (
 
 // IssueCustomerReceivableTemplate is a transaction increasing the customer's balance against an outstanding receivable account
 type IssueCustomerReceivableTemplate struct {
-	At                time.Time
-	Amount            alpacadecimal.Decimal
-	Currency          currencies.CurrencyReference
-	CostBasisCurrency *currencyx.Code
-	TaxCode           *string
-	CostBasis         *alpacadecimal.Decimal
-	Features          []string
-	SourceChargeID    *string
-	SpendChargeID     *string
+	At                 time.Time
+	Amount             alpacadecimal.Decimal
+	Currency           currencies.CurrencyReference
+	CostBasisCurrency  *currencyx.Code
+	TaxCode            *string
+	CostBasis          *alpacadecimal.Decimal
+	Filters            ledger.CreditFilters
+	SourceChargeID     *string
+	SpendChargeID      *string
+	CollectionOriginID *string
 	// Optional, defaults to ledger.DefaultCustomerFBOPriority.
 	CreditPriority *int
 }
@@ -51,6 +51,7 @@ func (t IssueCustomerReceivableTemplate) Validate() error {
 	if err := t.Currency.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("currency: %w", err))
 	}
+
 	if err := ledger.ValidateCostBasisCurrency(t.Currency.Code, t.CostBasisCurrency, t.CostBasis); err != nil {
 		errs = append(errs, fmt.Errorf("cost basis currency: %w", err))
 	}
@@ -93,13 +94,13 @@ func (t IssueCustomerReceivableTemplate) correct(scope CorrectionInput) ([]ledge
 		case entry.PostingAddress().AccountType() == ledger.AccountTypeCustomerFBO && entry.Amount().IsPositive():
 			fboAddress = entry.PostingAddress()
 			fboAmount = fboAmount.Add(entry.Amount())
-			sourceChargeID = entry.SourceChargeID()
-			spendChargeID = entry.SpendChargeID()
+			sourceChargeID = entry.Provenance().SourceChargeID
+			spendChargeID = entry.Provenance().SpendChargeID
 		case entry.PostingAddress().AccountType() == ledger.AccountTypeCustomerReceivable && entry.Amount().IsNegative():
 			receivableAddress = entry.PostingAddress()
 			receivableAmount = receivableAmount.Add(entry.Amount().Abs())
-			sourceChargeID = entry.SourceChargeID()
-			spendChargeID = entry.SpendChargeID()
+			sourceChargeID = entry.Provenance().SourceChargeID
+			spendChargeID = entry.Provenance().SpendChargeID
 		}
 	}
 
@@ -119,16 +120,20 @@ func (t IssueCustomerReceivableTemplate) correct(scope CorrectionInput) ([]ledge
 					address: fboAddress,
 					amount:  scope.Amount.Neg(),
 					identity: ledger.EntryIdentityParts{
-						SourceChargeID: sourceChargeID,
-						SpendChargeID:  spendChargeID,
+						Provenance: ledger.Provenance{
+							SourceChargeID: sourceChargeID,
+							SpendChargeID:  spendChargeID,
+						},
 					},
 				},
 				{
 					address: receivableAddress,
 					amount:  scope.Amount,
 					identity: ledger.EntryIdentityParts{
-						SourceChargeID: sourceChargeID,
-						SpendChargeID:  spendChargeID,
+						Provenance: ledger.Provenance{
+							SourceChargeID: sourceChargeID,
+							SpendChargeID:  spendChargeID,
+						},
 					},
 				},
 			},
@@ -148,7 +153,7 @@ func (t IssueCustomerReceivableTemplate) resolve(ctx context.Context, customerID
 		Currency:          t.Currency,
 		CostBasisCurrency: t.CostBasisCurrency,
 		CostBasis:         t.CostBasis,
-		Features:          t.Features,
+		Filters:           t.Filters,
 		CreditPriority:    priority,
 	})
 	if err != nil {
@@ -158,7 +163,7 @@ func (t IssueCustomerReceivableTemplate) resolve(ctx context.Context, customerID
 	rec, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
 		Currency:                       t.Currency,
 		CostBasisCurrency:              t.CostBasisCurrency,
-		Features:                       t.Features,
+		Filters:                        t.Filters,
 		CostBasis:                      t.CostBasis,
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
 	})
@@ -173,16 +178,22 @@ func (t IssueCustomerReceivableTemplate) resolve(ctx context.Context, customerID
 				address: fbo.Address(),
 				amount:  t.Amount,
 				identity: ledger.EntryIdentityParts{
-					SourceChargeID: t.SourceChargeID,
-					SpendChargeID:  t.SpendChargeID,
+					Provenance: ledger.Provenance{
+						SourceChargeID:     t.SourceChargeID,
+						CollectionOriginID: t.CollectionOriginID,
+						SpendChargeID:      t.SpendChargeID,
+					},
 				},
 			},
 			{
 				address: rec.Address(),
 				amount:  t.Amount.Neg(),
 				identity: ledger.EntryIdentityParts{
-					SourceChargeID: t.SourceChargeID,
-					SpendChargeID:  t.SpendChargeID,
+					Provenance: ledger.Provenance{
+						SourceChargeID:     t.SourceChargeID,
+						CollectionOriginID: t.CollectionOriginID,
+						SpendChargeID:      t.SpendChargeID,
+					},
 				},
 			},
 		},
@@ -198,7 +209,7 @@ type SettleCustomerReceivableFromPaymentTemplate struct {
 	CostBasisCurrency *currencyx.Code
 	TaxCode           *string
 	CostBasis         *alpacadecimal.Decimal
-	Features          []string
+	Filters           ledger.CreditFilters
 	SourceChargeID    *string
 	SpendChargeID     *string
 }
@@ -254,7 +265,7 @@ func (t SettleCustomerReceivableFromPaymentTemplate) resolve(ctx context.Context
 	rec, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
 		Currency:                       t.Currency,
 		CostBasisCurrency:              t.CostBasisCurrency,
-		Features:                       t.Features,
+		Filters:                        t.Filters,
 		CostBasis:                      t.CostBasis,
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusAuthorized,
 	})
@@ -283,16 +294,20 @@ func (t SettleCustomerReceivableFromPaymentTemplate) resolve(ctx context.Context
 				address: wash.Address(),
 				amount:  t.Amount.Neg(),
 				identity: ledger.EntryIdentityParts{
-					SourceChargeID: t.SourceChargeID,
-					SpendChargeID:  t.SpendChargeID,
+					Provenance: ledger.Provenance{
+						SourceChargeID: t.SourceChargeID,
+						SpendChargeID:  t.SpendChargeID,
+					},
 				},
 			},
 			{
 				address: rec.Address(),
 				amount:  t.Amount,
 				identity: ledger.EntryIdentityParts{
-					SourceChargeID: t.SourceChargeID,
-					SpendChargeID:  t.SpendChargeID,
+					Provenance: ledger.Provenance{
+						SourceChargeID: t.SourceChargeID,
+						SpendChargeID:  t.SpendChargeID,
+					},
 				},
 			},
 		},
@@ -301,6 +316,7 @@ func (t SettleCustomerReceivableFromPaymentTemplate) resolve(ctx context.Context
 
 // AuthorizeCustomerReceivablePaymentTemplate moves open receivable into the
 // authorized receivable route without moving funds across the external cash boundary.
+
 type AuthorizeCustomerReceivablePaymentTemplate struct {
 	At                time.Time
 	Amount            alpacadecimal.Decimal
@@ -308,7 +324,7 @@ type AuthorizeCustomerReceivablePaymentTemplate struct {
 	CostBasisCurrency *currencyx.Code
 	TaxCode           *string
 	CostBasis         *alpacadecimal.Decimal
-	Features          []string
+	Filters           ledger.CreditFilters
 	SourceChargeID    *string
 	SpendChargeID     *string
 }
@@ -364,7 +380,7 @@ func (t AuthorizeCustomerReceivablePaymentTemplate) resolve(ctx context.Context,
 	authorizedReceivable, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
 		Currency:                       t.Currency,
 		CostBasisCurrency:              t.CostBasisCurrency,
-		Features:                       t.Features,
+		Filters:                        t.Filters,
 		CostBasis:                      t.CostBasis,
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusAuthorized,
 	})
@@ -375,7 +391,7 @@ func (t AuthorizeCustomerReceivablePaymentTemplate) resolve(ctx context.Context,
 	openReceivable, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
 		Currency:                       t.Currency,
 		CostBasisCurrency:              t.CostBasisCurrency,
-		Features:                       t.Features,
+		Filters:                        t.Filters,
 		CostBasis:                      t.CostBasis,
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
 	})
@@ -390,16 +406,20 @@ func (t AuthorizeCustomerReceivablePaymentTemplate) resolve(ctx context.Context,
 				address: authorizedReceivable.Address(),
 				amount:  t.Amount.Neg(),
 				identity: ledger.EntryIdentityParts{
-					SourceChargeID: t.SourceChargeID,
-					SpendChargeID:  t.SpendChargeID,
+					Provenance: ledger.Provenance{
+						SourceChargeID: t.SourceChargeID,
+						SpendChargeID:  t.SpendChargeID,
+					},
 				},
 			},
 			{
 				address: openReceivable.Address(),
 				amount:  t.Amount,
 				identity: ledger.EntryIdentityParts{
-					SourceChargeID: t.SourceChargeID,
-					SpendChargeID:  t.SpendChargeID,
+					Provenance: ledger.Provenance{
+						SourceChargeID: t.SourceChargeID,
+						SpendChargeID:  t.SpendChargeID,
+					},
 				},
 			},
 		},
@@ -408,6 +428,7 @@ func (t AuthorizeCustomerReceivablePaymentTemplate) resolve(ctx context.Context,
 
 // AttributeCustomerAdvanceReceivableCostBasisTemplate attributes existing open advance
 // receivable (`cost_basis=nil`) into a known purchase cost-basis bucket.
+
 type AttributeCustomerAdvanceReceivableCostBasisTemplate struct {
 	At                 time.Time
 	Amount             alpacadecimal.Decimal
@@ -415,10 +436,11 @@ type AttributeCustomerAdvanceReceivableCostBasisTemplate struct {
 	CostBasisCurrency  *currencyx.Code
 	TaxCode            *string
 	CostBasis          *alpacadecimal.Decimal
-	AdvanceFeatures    []string
-	AttributedFeatures []string
+	AdvanceFilters     ledger.CreditFilters
+	AttributedFilters  ledger.CreditFilters
 	SourceChargeID     *string
 	SpendChargeID      *string
+	CollectionOriginID *string
 }
 
 func (t AttributeCustomerAdvanceReceivableCostBasisTemplate) Validate() error {
@@ -474,12 +496,12 @@ func (t AttributeCustomerAdvanceReceivableCostBasisTemplate) correct(scope Corre
 		case entry.Amount().IsPositive():
 			advanceReceivableAddress = entry.PostingAddress()
 			advanceReceivableAmount = advanceReceivableAmount.Add(entry.Amount())
-			spendChargeID = entry.SpendChargeID()
+			spendChargeID = entry.Provenance().SpendChargeID
 		case entry.Amount().IsNegative():
 			attributedReceivableAddress = entry.PostingAddress()
 			attributedReceivableAmount = attributedReceivableAmount.Add(entry.Amount().Abs())
-			sourceChargeID = entry.SourceChargeID()
-			spendChargeID = entry.SpendChargeID()
+			sourceChargeID = entry.Provenance().SourceChargeID
+			spendChargeID = entry.Provenance().SpendChargeID
 		}
 	}
 
@@ -499,15 +521,19 @@ func (t AttributeCustomerAdvanceReceivableCostBasisTemplate) correct(scope Corre
 					address: advanceReceivableAddress,
 					amount:  scope.Amount.Neg(),
 					identity: ledger.EntryIdentityParts{
-						SpendChargeID: spendChargeID,
+						Provenance: ledger.Provenance{
+							SpendChargeID: spendChargeID,
+						},
 					},
 				},
 				{
 					address: attributedReceivableAddress,
 					amount:  scope.Amount,
 					identity: ledger.EntryIdentityParts{
-						SourceChargeID: sourceChargeID,
-						SpendChargeID:  spendChargeID,
+						Provenance: ledger.Provenance{
+							SourceChargeID: sourceChargeID,
+							SpendChargeID:  spendChargeID,
+						},
 					},
 				},
 			},
@@ -523,7 +549,7 @@ func (t AttributeCustomerAdvanceReceivableCostBasisTemplate) resolve(ctx context
 
 	advanceReceivable, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
 		Currency:                       t.Currency,
-		Features:                       t.AdvanceFeatures,
+		Filters:                        t.AdvanceFilters,
 		CostBasis:                      nil,
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
 	})
@@ -534,7 +560,7 @@ func (t AttributeCustomerAdvanceReceivableCostBasisTemplate) resolve(ctx context
 	attributedReceivable, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
 		Currency:                       t.Currency,
 		CostBasisCurrency:              t.CostBasisCurrency,
-		Features:                       t.AttributedFeatures,
+		Filters:                        t.AttributedFilters,
 		CostBasis:                      t.CostBasis,
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
 	})
@@ -549,15 +575,21 @@ func (t AttributeCustomerAdvanceReceivableCostBasisTemplate) resolve(ctx context
 				address: advanceReceivable.Address(),
 				amount:  t.Amount,
 				identity: ledger.EntryIdentityParts{
-					SpendChargeID: t.SpendChargeID,
+					Provenance: ledger.Provenance{
+						CollectionOriginID: t.CollectionOriginID,
+						SpendChargeID:      t.SpendChargeID,
+					},
 				},
 			},
 			{
 				address: attributedReceivable.Address(),
 				amount:  t.Amount.Neg(),
 				identity: ledger.EntryIdentityParts{
-					SourceChargeID: t.SourceChargeID,
-					SpendChargeID:  t.SpendChargeID,
+					Provenance: ledger.Provenance{
+						SourceChargeID:     t.SourceChargeID,
+						CollectionOriginID: t.CollectionOriginID,
+						SpendChargeID:      t.SpendChargeID,
+					},
 				},
 			},
 		},
@@ -593,9 +625,11 @@ func (t CoverCustomerReceivableTemplate) Validate() error {
 		if !t.Amount.IsZero() {
 			errs = append(errs, errors.New("amount must be zero when sources are provided"))
 		}
+
 		if t.CostBasis != nil {
 			errs = append(errs, errors.New("cost basis must be nil when sources are provided"))
 		}
+
 		if t.CreditPriority != nil {
 			errs = append(errs, errors.New("credit priority must be nil when sources are provided"))
 		}
@@ -605,12 +639,15 @@ func (t CoverCustomerReceivableTemplate) Validate() error {
 				errs = append(errs, fmt.Errorf("sources[%d]: address is required", i))
 				continue
 			}
+
 			if source.Address.AccountType() != ledger.AccountTypeCustomerFBO {
 				errs = append(errs, fmt.Errorf("sources[%d]: account type must be customer_fbo", i))
 			}
+
 			if !source.Address.Route().Route().Currency.Equal(t.Currency) {
 				errs = append(errs, fmt.Errorf("sources[%d]: currency must be %s", i, t.Currency))
 			}
+
 			if err := ledger.ValidateTransactionAmount(source.Amount); err != nil {
 				errs = append(errs, fmt.Errorf("sources[%d].amount: %w", i, err))
 			}
@@ -741,7 +778,7 @@ func (t CoverCustomerReceivableTemplate) resolvePreselectedSources(ctx context.C
 			receivable, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
 				Currency:                       sourceRoute.Currency,
 				CostBasisCurrency:              sourceRoute.CostBasisCurrency,
-				Features:                       sourceRoute.Features,
+				Filters:                        sourceRoute.Filters,
 				CostBasis:                      sourceRoute.CostBasis,
 				TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
 			})
@@ -751,8 +788,7 @@ func (t CoverCustomerReceivableTemplate) resolvePreselectedSources(ctx context.C
 
 			current.Address = receivable.Address()
 			current.Identity = ledger.EntryIdentityParts{
-				SourceChargeID: source.Identity.SourceChargeID,
-				SpendChargeID:  source.Identity.SpendChargeID,
+				Provenance: source.Identity.Provenance,
 			}
 		}
 
@@ -794,24 +830,26 @@ func (t CoverCustomerReceivableTemplate) routePairingKey(address ledger.PostingA
 
 	return routePairingKey{
 		currency:          route.Currency.IdentityKey(),
-		costBasisCurrency: string(lo.FromPtrOr(route.CostBasisCurrency, currencyx.Code(""))),
-		features:          strings.Join(route.Features, "\x00"),
+		costBasisCurrency: mo.PointerToOption(route.CostBasisCurrency),
+		filters:           route.Filters.String(),
 		costBasis:         costBasisKey(route.CostBasis),
 	}
 }
 
 func (t CoverCustomerReceivableTemplate) entryRoutePairingKey(entry ledger.Entry) routePairingKey {
 	key := t.routePairingKey(entry.PostingAddress())
-	key.sourceChargeID = lo.FromPtrOr(entry.SourceChargeID(), "null")
-	key.spendChargeID = lo.FromPtrOr(entry.SpendChargeID(), "null")
+	key.sourceChargeID = mo.PointerToOption(entry.Provenance().SourceChargeID)
+	key.spendChargeID = mo.PointerToOption(entry.Provenance().SpendChargeID)
+	key.collectionOriginID = mo.PointerToOption(entry.Provenance().CollectionOriginID)
 
 	return key
 }
 
 func (t CoverCustomerReceivableTemplate) sourceRoutePairingKey(source PostingAmount) routePairingKey {
 	key := t.routePairingKey(source.Address)
-	key.sourceChargeID = lo.FromPtrOr(source.Identity.SourceChargeID, "null")
-	key.spendChargeID = lo.FromPtrOr(source.Identity.SpendChargeID, "null")
+	key.sourceChargeID = mo.PointerToOption(source.Identity.SourceChargeID)
+	key.spendChargeID = mo.PointerToOption(source.Identity.SpendChargeID)
+	key.collectionOriginID = mo.PointerToOption(source.Identity.CollectionOriginID)
 
 	return key
 }

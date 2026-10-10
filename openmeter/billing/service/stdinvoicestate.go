@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/statelessx"
 )
 
@@ -75,6 +76,15 @@ func allocateStateMachine() *InvoiceStateMachine {
 		},
 		stateless.FiringImmediate,
 	)
+	stateMachine.OnUnhandledTrigger(func(_ context.Context, state stateless.State, trigger stateless.Trigger, _ []string) error {
+		return billing.ValidationWithAttributes(
+			models.Annotations{
+				billing.AttributeKeyInvoiceStatus:  state,
+				billing.AttributeKeyInvoiceTrigger: trigger,
+			},
+			billing.ErrInvoiceActionNotAvailable,
+		)
+	})
 
 	// Draft states
 
@@ -224,7 +234,12 @@ func allocateStateMachine() *InvoiceStateMachine {
 	stateMachine.Configure(billing.StandardInvoiceStatusDeleteFailed).
 		Permit(billing.TriggerDelete, billing.StandardInvoiceStatusDeleteInProgress)
 
-	stateMachine.Configure(billing.StandardInvoiceStatusDeleted)
+	stateMachine.Configure(billing.StandardInvoiceStatusDeleted).
+		// Terminal delete replays are intentionally side-effect free, as deletion is
+		// idempotent.
+		InternalTransition(billing.TriggerDelete, statelessx.WithParameters(func(_ context.Context, _ billing.DeleteInvoiceTriggerInput) error {
+			return nil
+		}))
 
 	// Issuing state. Line finalization handlers can persist durable preparation
 	// before returning. Preparation failures remain retry-only, while invoice-app
@@ -674,8 +689,9 @@ func (m *InvoiceStateMachine) withInvoicingApp(op billing.StandardInvoiceOperati
 
 	component := billing.AppTypeCapabilityToComponent(invocingBase.GetType(), app.CapabilityTypeInvoiceCustomers, string(op))
 
-	// Anything returned by the validation is considered a validation issue, thus in case of an error
-	// we wouldn't roll back the state transitions.
+	// The component identifies the app boundary without changing error classification. Callbacks
+	// explicitly mark provider failures as validation issues while local preparation failures remain
+	// system errors and roll back the transition.
 	return m.Invoice.MergeValidationIssues(
 		billing.ValidationWithComponent(
 			component,
@@ -695,7 +711,9 @@ func (m *InvoiceStateMachine) triggerPostAdvanceHooks(ctx context.Context) error
 
 			res, err := hook.PostAdvanceStandardInvoiceHook(ctx, clonedInvoice)
 			if err != nil {
-				return nil, err
+				// Compatibility: post-advance hooks still return plain errors, which have historically
+				// been persisted on the stable invoice instead of rolling the completed transition back.
+				return nil, billing.WrapAsValidationIssue(err)
 			}
 
 			if res == nil {
@@ -751,7 +769,9 @@ func (m *InvoiceStateMachine) HandleInvoiceTrigger(ctx context.Context, trigger 
 	}
 
 	if trigger.ValidationErrors != nil {
-		return errors.Join(trigger.ValidationErrors.Errors...)
+		// ValidationErrors accepts plain errors for compatibility with trigger producers, so
+		// classify them before returning from the transition they are intended to annotate.
+		return billing.WrapAsValidationIssue(errors.Join(trigger.ValidationErrors.Errors...))
 	}
 
 	return nil
@@ -773,7 +793,9 @@ func (m *InvoiceStateMachine) validateDraftInvoice(ctx context.Context) error {
 			return nil, err
 		}
 
-		return nil, app.ValidateStandardInvoice(ctx, clonedInvoice)
+		// The app validation interface returns error rather than typed validation issues, so
+		// explicitly classify plain validation failures as part of the draft validation result.
+		return nil, billing.WrapAsValidationIssue(app.ValidateStandardInvoice(ctx, clonedInvoice))
 	})
 }
 
@@ -788,9 +810,7 @@ func (m *InvoiceStateMachine) calculateInvoice(ctx context.Context) error {
 	}
 
 	return m.Calculator.Calculate(&m.Invoice, invoicecalc.StandardInvoiceCalculatorDependencies{
-		RatingService: m.Service.ratingService,
-		TaxCodes:      taxCodes,
-		LineEngines:   m.Service.lineEngines,
+		TaxCodes: taxCodes,
 	})
 }
 
@@ -809,7 +829,9 @@ func (m *InvoiceStateMachine) syncDraftInvoice(ctx context.Context) error {
 
 		results, err := app.UpsertStandardInvoice(ctx, clonedInvoice)
 		if err != nil {
-			return nil, err
+			// A provider sync failure is the result recorded by draft.sync_failed; classification
+			// prevents the activation error from rolling that retryable transition back.
+			return nil, billing.WrapAsValidationIssue(err)
 		}
 
 		if results == nil {
@@ -835,7 +857,9 @@ func (m *InvoiceStateMachine) finalizeInvoice(ctx context.Context) error {
 		// First we sync the invoice
 		upsertResults, err := app.UpsertStandardInvoice(ctx, clonedInvoice)
 		if err != nil {
-			return nil, err
+			// Issuing sync is retried after line finalization has been persisted; classification
+			// preserves issuing.sync_failed instead of rolling back to the prior lifecycle state.
+			return nil, billing.WrapAsValidationIssue(err)
 		}
 
 		if upsertResults != nil {
@@ -861,7 +885,9 @@ func (m *InvoiceStateMachine) finalizeInvoice(ctx context.Context) error {
 
 		results, err := app.FinalizeStandardInvoice(ctx, clonedInvoice)
 		if err != nil {
-			return nil, err
+			// Provider finalization can be retried from issuing.sync_failed; classification keeps
+			// that failure state instead of rolling back the issuing transition.
+			return nil, billing.WrapAsValidationIssue(err)
 		}
 
 		if results != nil {
@@ -886,7 +912,9 @@ func (m *InvoiceStateMachine) syncDeletedInvoice(ctx context.Context) error {
 			return nil, err
 		}
 
-		return nil, app.DeleteStandardInvoice(ctx, clonedInvoice)
+		// Provider deletion is retried from delete.failed after local cleanup; classification
+		// preserves that state instead of rolling the deletion transition back.
+		return nil, billing.WrapAsValidationIssue(app.DeleteStandardInvoice(ctx, clonedInvoice))
 	})
 }
 
@@ -951,9 +979,7 @@ func (m *InvoiceStateMachine) deleteInvoice(ctx context.Context, input billing.D
 		if err := m.Service.dispatchAPIStandardLineDeletions(
 			ctx,
 			m.Invoice,
-			lo.Filter(m.Invoice.Lines.OrEmpty(), func(line *billing.StandardLine, _ int) bool {
-				return line != nil && line.DeletedAt == nil
-			}),
+			m.Invoice.Lines.OrEmpty().WithoutDeletedLines(),
 		); err != nil {
 			return err
 		}
@@ -964,9 +990,7 @@ func (m *InvoiceStateMachine) deleteInvoice(ctx context.Context, input billing.D
 		if err := m.Service.dispatchSystemStandardLineDeletions(
 			ctx,
 			m.Invoice,
-			lo.Filter(m.Invoice.Lines.OrEmpty(), func(line *billing.StandardLine, _ int) bool {
-				return line != nil && line.DeletedAt == nil
-			}).AsGenericLines(),
+			m.Invoice.Lines.OrEmpty().WithoutDeletedLines().AsGenericLines(),
 		); err != nil {
 			return err
 		}
@@ -1010,13 +1034,12 @@ func (m *InvoiceStateMachine) isReadyForCollection() bool {
 }
 
 func (m *InvoiceStateMachine) onCollectionCompleted(ctx context.Context) error {
-	groupedLines, err := m.Service.lineEngines.groupStandardLinesByEngine(m.Invoice.Lines.OrEmpty())
+	groupedLines, err := m.Service.lineEngines.groupStandardLinesByEngine(m.Invoice.Lines.OrEmpty().WithoutDeletedLines())
 	if err != nil {
 		return fmt.Errorf("grouping standard lines by engine: %w", err)
 	}
 
 	var hadValidationErr bool
-
 	for _, grouped := range groupedLines {
 		component := billing.LineEngineValidationComponent(grouped.Engine.GetLineEngineType())
 
@@ -1029,11 +1052,13 @@ func (m *InvoiceStateMachine) onCollectionCompleted(ctx context.Context) error {
 		}
 
 		lines, err := grouped.Engine.OnCollectionCompleted(ctx, input)
-		if err != nil {
+		recorder := billing.ValidationIssueRecorder{}
+		if err := recorder.RecordWarnings(err); err != nil {
 			hadValidationErr = true
 			if err := m.Invoice.MergeValidationIssues(billing.NewLineEngineValidationError(grouped.Engine, err), component); err != nil {
 				return err
 			}
+
 			continue
 		}
 
@@ -1044,8 +1069,8 @@ func (m *InvoiceStateMachine) onCollectionCompleted(ctx context.Context) error {
 			return fmt.Errorf("replacing collection completed lines for engine %s: %w", grouped.Engine.GetLineEngineType(), err)
 		}
 
-		if err := m.Invoice.MergeValidationIssues(nil, component); err != nil {
-			return fmt.Errorf("clearing collection completed validation issues for engine %s: %w", grouped.Engine.GetLineEngineType(), err)
+		if err := m.Invoice.MergeValidationIssues(billing.NewLineEngineValidationError(grouped.Engine, recorder.ErrorsOrNil()), component); err != nil {
+			return fmt.Errorf("merging collection completed validation issues for engine %s: %w", grouped.Engine.GetLineEngineType(), err)
 		}
 	}
 
@@ -1066,7 +1091,7 @@ func (m *InvoiceStateMachine) onInvoiceFinalizing(ctx context.Context) error {
 		return fmt.Errorf("cloning invoice for line finalization: %w", err)
 	}
 
-	groupedLines, err := m.Service.lineEngines.groupStandardLinesByEngine(finalizedInvoice.Lines.OrEmpty())
+	groupedLines, err := m.Service.lineEngines.groupStandardLinesByEngine(finalizedInvoice.Lines.OrEmpty().WithoutDeletedLines())
 	if err != nil {
 		return fmt.Errorf("grouping standard lines by engine: %w", err)
 	}
@@ -1082,17 +1107,21 @@ func (m *InvoiceStateMachine) onInvoiceFinalizing(ctx context.Context) error {
 
 		lines, err := grouped.Engine.OnInvoiceFinalizing(ctx, input)
 		if err != nil {
-			return billing.NewLineEngineValidationError(grouped.Engine, err)
+			// Line finalization is retry-only. The engine wrapper adds metadata but not
+			// classification, so mark the error to preserve issuing.line_finalization_failed.
+			return billing.WrapAsValidationIssue(billing.NewLineEngineValidationError(grouped.Engine, err))
 		}
 
 		if err := finalizedInvoice.Lines.ReplaceExact(billing.ReplaceExactLinesInput{
 			Existing:    grouped.Lines,
 			Replacement: lines,
 		}); err != nil {
-			return billing.NewLineEngineValidationError(
+			// Invalid engine output belongs to the same retry-only finalization boundary, so keep
+			// the invoice in issuing.line_finalization_failed instead of rolling the attempt back.
+			return billing.WrapAsValidationIssue(billing.NewLineEngineValidationError(
 				grouped.Engine,
 				fmt.Errorf("replacing invoice finalizing lines: %w", err),
-			)
+			))
 		}
 	}
 
@@ -1106,78 +1135,81 @@ func (m *InvoiceStateMachine) onInvoiceFinalizing(ctx context.Context) error {
 }
 
 func (m *InvoiceStateMachine) onInvoiceIssued(ctx context.Context) error {
-	groupedLines, err := m.Service.lineEngines.groupStandardLinesByEngine(m.Invoice.Lines.OrEmpty())
-	if err != nil {
-		return fmt.Errorf("grouping standard lines by engine: %w", err)
-	}
-
-	for _, grouped := range groupedLines {
-		input := billing.OnInvoiceIssuedInput{
-			Invoice: m.Invoice,
-			Lines:   grouped.Lines,
-		}
-		if err := input.Validate(); err != nil {
-			return fmt.Errorf("validating invoice issued input for engine %s: %w", grouped.Engine.GetLineEngineType(), err)
-		}
-
-		if err := grouped.Engine.OnInvoiceIssued(ctx, input); err != nil {
-			return billing.NewLineEngineValidationError(grouped.Engine, err)
-		}
-	}
-
-	return nil
+	return m.runLineEngineInvoiceSteps(ctx, func(ctx context.Context, engine billing.LineEngine, input billing.StandardLineEventInput) error {
+		return engine.OnInvoiceIssued(ctx, input)
+	})
 }
 
 func (m *InvoiceStateMachine) onPaymentAuthorized(ctx context.Context) error {
-	groupedLines, err := m.Service.lineEngines.groupStandardLinesByEngine(m.Invoice.Lines.OrEmpty())
-	if err != nil {
-		return fmt.Errorf("grouping standard lines by engine: %w", err)
-	}
-
-	for _, grouped := range groupedLines {
-		input := billing.OnPaymentAuthorizedInput{
-			Invoice: m.Invoice,
-			Lines:   grouped.Lines,
-		}
-		if err := input.Validate(); err != nil {
-			return fmt.Errorf("validating payment authorized input for engine %s: %w", grouped.Engine.GetLineEngineType(), err)
-		}
-
-		if err := grouped.Engine.OnPaymentAuthorized(ctx, input); err != nil {
-			return billing.NewLineEngineValidationError(grouped.Engine, err)
-		}
-	}
-
-	return nil
+	return m.runLineEngineInvoiceSteps(ctx, func(ctx context.Context, engine billing.LineEngine, input billing.StandardLineEventInput) error {
+		return engine.OnPaymentAuthorized(ctx, input)
+	})
 }
 
 func (m *InvoiceStateMachine) onPaymentAuthorizedAndSettled(ctx context.Context) error {
-	if err := m.onPaymentAuthorized(ctx); err != nil {
-		return err
-	}
-
-	return m.onPaymentSettled(ctx)
+	return m.runLineEngineInvoiceSteps(
+		ctx,
+		func(ctx context.Context, engine billing.LineEngine, input billing.StandardLineEventInput) error {
+			return engine.OnPaymentAuthorized(ctx, input)
+		},
+		func(ctx context.Context, engine billing.LineEngine, input billing.StandardLineEventInput) error {
+			return engine.OnPaymentSettled(ctx, input)
+		},
+	)
 }
 
 func (m *InvoiceStateMachine) onPaymentSettled(ctx context.Context) error {
-	groupedLines, err := m.Service.lineEngines.groupStandardLinesByEngine(m.Invoice.Lines.OrEmpty())
+	return m.runLineEngineInvoiceSteps(ctx, func(ctx context.Context, engine billing.LineEngine, input billing.StandardLineEventInput) error {
+		return engine.OnPaymentSettled(ctx, input)
+	})
+}
+
+func (m *InvoiceStateMachine) runLineEngineInvoiceSteps(
+	ctx context.Context,
+	steps ...func(context.Context, billing.LineEngine, billing.StandardLineEventInput) error,
+) error {
+	attemptInvoice, err := m.Invoice.Clone()
+	if err != nil {
+		return fmt.Errorf("cloning invoice for line engine steps: %w", err)
+	}
+
+	groupedLines, err := m.Service.lineEngines.groupStandardLinesByEngine(attemptInvoice.Lines.OrEmpty().WithoutDeletedLines())
 	if err != nil {
 		return fmt.Errorf("grouping standard lines by engine: %w", err)
 	}
 
-	for _, grouped := range groupedLines {
-		input := billing.OnPaymentSettledInput{
-			Invoice: m.Invoice,
-			Lines:   grouped.Lines,
-		}
-		if err := input.Validate(); err != nil {
-			return fmt.Errorf("validating payment settled input for engine %s: %w", grouped.Engine.GetLineEngineType(), err)
-		}
+	attemptInvoice, warnings, err := m.Service.runInTransactionWithValidationWarningsAllowed(
+		ctx,
+		func(ctx context.Context) (billing.StandardInvoice, error) {
+			recorder := billing.ValidationIssueRecorder{}
 
-		if err := grouped.Engine.OnPaymentSettled(ctx, input); err != nil {
-			return billing.NewLineEngineValidationError(grouped.Engine, err)
-		}
+			for _, step := range steps {
+				for _, grouped := range groupedLines {
+					input := billing.StandardLineEventInput{
+						Invoice: attemptInvoice,
+						Lines:   grouped.Lines,
+					}
+					if err := input.Validate(); err != nil {
+						return billing.StandardInvoice{}, fmt.Errorf("validating line engine input for engine %s: %w", grouped.Engine.GetLineEngineType(), err)
+					}
+
+					if err := recorder.RecordWarnings(
+						billing.NewLineEngineValidationError(grouped.Engine, step(ctx, grouped.Engine, input)),
+					); err != nil {
+						return billing.StandardInvoice{}, err
+					}
+				}
+			}
+
+			return attemptInvoice, recorder.ErrorsOrNil()
+		},
+	)
+	if err != nil {
+		return err
 	}
+
+	attemptInvoice.ValidationIssues = append(attemptInvoice.ValidationIssues, warnings...)
+	m.Invoice = attemptInvoice
 
 	return nil
 }
@@ -1189,6 +1221,7 @@ func (m *InvoiceStateMachine) canDraftSyncAdvance() bool {
 			m.Logger.Error("error checking if we can advance the draft invoice", "error", err)
 			return false
 		}
+
 		return can
 	}
 
@@ -1210,6 +1243,7 @@ func (m *InvoiceStateMachine) canIssuingSyncAdvance() bool {
 			m.Logger.Error("error checking if we can advance the issuing invoice", "error", err)
 			return false
 		}
+
 		return can
 	}
 

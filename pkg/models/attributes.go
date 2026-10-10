@@ -31,6 +31,7 @@ func (a Attributes) AsStringMap() map[string]any {
 		if t == nil {
 			continue
 		}
+
 		if t.Comparable() {
 			key := fmt.Sprintf("%T:%v", k, k)
 			out[key] = v

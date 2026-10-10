@@ -26,6 +26,8 @@ servers:
     description: OpenMeter Cloud
     variables: {}
 tags:
+  - name: OpenMeter Notifications
+    description: Notification rules generate notification events, such as entitlement balance threshold crossings, and notification channels deliver them to external systems.
   - name: OpenMeter Defaults
     description: Organization-level default configuration.
   - name: OpenMeter Product Catalog
@@ -100,7 +102,6 @@ paths:
           $ref: '#/components/responses/Forbidden'
       tags:
         - OpenMeter Product Catalog
-      x-unstable: true
     post:
       operationId: create-addon
       summary: Create add-on
@@ -126,7 +127,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateAddonRequest'
-      x-unstable: true
   /openmeter/addons/{addonId}:
     put:
       operationId: update-addon
@@ -163,7 +163,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/UpsertAddonRequest'
-      x-unstable: true
     get:
       operationId: get-addon
       summary: Get add-on
@@ -193,7 +192,6 @@ paths:
           $ref: '#/components/responses/Gone'
       tags:
         - OpenMeter Product Catalog
-      x-unstable: true
     delete:
       operationId: delete-addon
       summary: Soft delete add-on
@@ -217,7 +215,6 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Product Catalog
-      x-unstable: true
   /openmeter/addons/{addonId}/archive:
     post:
       operationId: archive-addon
@@ -246,7 +243,7 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Product Catalog
-      x-unstable: true
+      x-rpc-endpoint: true
   /openmeter/addons/{addonId}/publish:
     post:
       operationId: publish-addon
@@ -275,7 +272,7 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Product Catalog
-      x-unstable: true
+      x-rpc-endpoint: true
   /openmeter/app-catalog:
     get:
       operationId: list-app-catalog
@@ -298,8 +295,6 @@ paths:
           $ref: '#/components/responses/Forbidden'
       tags:
         - OpenMeter Apps
-      x-private: true
-      x-internal: true
       x-unstable: true
   /openmeter/app-catalog/install:
     post:
@@ -328,8 +323,6 @@ paths:
             schema:
               $ref: '#/components/schemas/BillingInstallAppRequest'
       x-rpc-endpoint: true
-      x-private: true
-      x-internal: true
       x-unstable: true
   /openmeter/app-catalog/{appType}:
     get:
@@ -359,8 +352,6 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Apps
-      x-private: true
-      x-internal: true
       x-unstable: true
   /openmeter/apps:
     get:
@@ -409,9 +400,6 @@ paths:
           $ref: '#/components/responses/Forbidden'
       tags:
         - OpenMeter Apps
-      x-private: true
-      x-internal: true
-      x-unstable: true
   /openmeter/apps/{appId}:
     get:
       operationId: get-app
@@ -463,8 +451,6 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Apps
-      x-private: true
-      x-internal: true
       x-unstable: true
     put:
       operationId: update-app
@@ -499,6 +485,44 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/BillingUpdateAppRequest'
+      x-unstable: true
+  /openmeter/apps/{appId}/action:
+    post:
+      operationId: execute-app-action
+      summary: Execute app action
+      description: |-
+        Execute an operator action on an installed app. The action must be listed in the
+        app's `actions`; otherwise the request is rejected.
+      parameters:
+        - name: appId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: App updated response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingApp'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Apps
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BillingAppActionRequest'
+      x-rpc-endpoint: true
       x-private: true
       x-internal: true
       x-unstable: true
@@ -559,9 +583,6 @@ paths:
           $ref: '#/components/responses/Forbidden'
       tags:
         - OpenMeter Billing Settings
-      x-private: true
-      x-internal: true
-      x-unstable: true
   /openmeter/billing/invoices/{invoiceId}:
     get:
       operationId: get-invoice
@@ -594,9 +615,6 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Billing Settings
-      x-private: true
-      x-internal: true
-      x-unstable: true
     put:
       operationId: update-invoice
       summary: Update a billing invoice
@@ -637,9 +655,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/UpdateInvoiceRequest'
-      x-private: true
-      x-internal: true
-      x-unstable: true
     delete:
       operationId: delete-invoice
       summary: Delete a billing invoice
@@ -667,9 +682,6 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Billing Settings
-      x-private: true
-      x-internal: true
-      x-unstable: true
   /openmeter/billing/invoices/{invoiceId}/advance:
     post:
       operationId: advance-invoice
@@ -704,9 +716,6 @@ paths:
       tags:
         - OpenMeter Billing Settings
       x-rpc-endpoint: true
-      x-private: true
-      x-internal: true
-      x-unstable: true
   /openmeter/billing/invoices/{invoiceId}/approve:
     post:
       operationId: approve-invoice
@@ -747,9 +756,6 @@ paths:
       tags:
         - OpenMeter Billing Settings
       x-rpc-endpoint: true
-      x-private: true
-      x-internal: true
-      x-unstable: true
   /openmeter/billing/invoices/{invoiceId}/retry:
     post:
       operationId: retry-invoice
@@ -785,9 +791,6 @@ paths:
       tags:
         - OpenMeter Billing Settings
       x-rpc-endpoint: true
-      x-private: true
-      x-internal: true
-      x-unstable: true
   /openmeter/billing/invoices/{invoiceId}/snapshot-quantities:
     post:
       operationId: snapshot-quantities-invoice
@@ -826,9 +829,6 @@ paths:
       tags:
         - OpenMeter Billing Settings
       x-rpc-endpoint: true
-      x-private: true
-      x-internal: true
-      x-unstable: true
   /openmeter/charges:
     get:
       operationId: list-charges
@@ -914,8 +914,6 @@ paths:
           $ref: '#/components/responses/Forbidden'
       tags:
         - OpenMeter Billing Settings
-      x-internal: true
-      x-private: true
       x-unstable: true
   /openmeter/currencies:
     get:
@@ -977,7 +975,6 @@ paths:
           $ref: '#/components/responses/Forbidden'
       tags:
         - OpenMeter Currencies
-      x-internal: true
       x-unstable: true
   /openmeter/currencies/custom:
     post:
@@ -1007,7 +1004,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateCurrencyCustomRequest'
-      x-internal: true
       x-unstable: true
   /openmeter/currencies/custom/{currencyId}:
     get:
@@ -1035,7 +1031,6 @@ paths:
           $ref: '#/components/responses/Forbidden'
       tags:
         - OpenMeter Currencies
-      x-internal: true
       x-unstable: true
   /openmeter/currencies/custom/{currencyId}/cost-bases:
     get:
@@ -1079,7 +1074,6 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Currencies
-      x-internal: true
       x-unstable: true
     post:
       operationId: create-cost-basis
@@ -1112,7 +1106,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateCostBasisRequest'
-      x-internal: true
       x-unstable: true
   /openmeter/customers:
     post:
@@ -1542,8 +1535,6 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Customers
-      x-internal: true
-      x-private: true
       x-unstable: true
     post:
       operationId: create-customer-charges
@@ -1576,8 +1567,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateChargeRequest'
-      x-internal: true
-      x-private: true
       x-unstable: true
   /openmeter/customers/{customerId}/credits/adjustments:
     post:
@@ -1870,8 +1859,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/VoidCreditGrantRequest'
-      x-internal: true
-      x-private: true
+      x-rpc-endpoint: true
       x-unstable: true
   /openmeter/customers/{customerId}/credits/transactions:
     get:
@@ -1958,6 +1946,42 @@ paths:
           required: true
           schema:
             $ref: '#/components/schemas/ResourceKey'
+      responses:
+        '200':
+          description: EntitlementAccessCheckResult response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingEntitlementAccessCheckResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Entitlements
+      x-unstable: true
+  /openmeter/customers/{customerId}/entitlement-access/features/{featureKey}/value:
+    get:
+      operationId: get-customer-entitlement-value-by-feature-key
+      summary: Get customer entitlement value by feature key
+      description: |-
+        Get the customer's entitlement value for a feature at a point in time. Without
+        an active entitlement, the result denies access and omits the type.
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+        - name: featureKey
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ResourceKey'
         - name: expand
           in: query
           required: false
@@ -1974,13 +1998,21 @@ paths:
               $ref: '#/components/schemas/BillingEntitlementAccessExpand'
           explode: false
           style: form
+        - name: at
+          in: query
+          required: false
+          description: The point in time to evaluate the entitlement at. Defaults to the current time.
+          schema:
+            $ref: '#/components/schemas/DateTime'
+          explode: false
+          style: form
       responses:
         '200':
-          description: EntitlementAccessResult response.
+          description: EntitlementFeatureValueResult response.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BillingEntitlementAccessResult'
+                $ref: '#/components/schemas/BillingEntitlementFeatureValueResult'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -1991,6 +2023,533 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Entitlements
+      x-unstable: true
+  /openmeter/customers/{customerId}/entitlements:
+    post:
+      operationId: create-customer-entitlement
+      summary: Create customer entitlement
+      description: |-
+        Create an entitlement for the customer.
+
+        A customer can have only one active entitlement per feature. The feature must be
+        compatible with the entitlement type. Entitlements cannot be modified after
+        creation, only deleted.
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '201':
+          description: Entitlement created response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingEntitlement'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+      tags:
+        - OpenMeter Entitlements
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEntitlementRequest'
+      x-unstable: true
+    get:
+      operationId: list-customer-entitlements
+      summary: List customer entitlements
+      description: |-
+        List the entitlements of the customer that are active at the time of the
+        request. For checking entitlement access, use the entitlement access endpoints
+        instead.
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+        - $ref: '#/components/parameters/PagePaginationQuery'
+        - name: sort
+          in: query
+          required: false
+          description: |-
+            Sort entitlements returned in the response. Supported sort attributes are:
+
+            - `created_at` (default)
+            - `updated_at`
+
+            The `asc` suffix is optional as the default sort order is ascending. The `desc`
+            suffix is used to specify a descending order.
+          schema:
+            $ref: '#/components/schemas/SortQuery'
+          explode: false
+          style: form
+        - name: filter
+          in: query
+          required: false
+          description: |-
+            Filter entitlements returned in the response.
+
+            To filter entitlements by feature key add the following query param:
+            `filter[feature_key]=my-feature`
+          schema:
+            $ref: '#/components/schemas/ListCustomerEntitlementsParamsFilter'
+          style: deepObject
+      responses:
+        '200':
+          description: Page paginated response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EntitlementPagePaginatedResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+      tags:
+        - OpenMeter Entitlements
+      x-unstable: true
+  /openmeter/customers/{customerId}/entitlements/{entitlementId}:
+    get:
+      operationId: get-customer-entitlement
+      summary: Get customer entitlement
+      description: |-
+        Get an entitlement of the customer by ID. For checking entitlement access, use
+        the entitlement access endpoints instead.
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+        - name: entitlementId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: Entitlement response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingEntitlement'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+      tags:
+        - OpenMeter Entitlements
+      x-unstable: true
+    delete:
+      operationId: delete-customer-entitlement
+      summary: Delete customer entitlement
+      description: |-
+        Deletes the entitlement and revokes access to its feature. A customer can hold
+        only one active entitlement per feature, so migrating a feature requires
+        deleting the previous entitlement first.
+
+        Deletion sets the `deleted_at` timestamp instead of removing history. Access and
+        status queries for earlier points in time still treat the entitlement as active,
+        so access changes are never retroactive.
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+        - name: entitlementId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '204':
+          description: Deleted response.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+      tags:
+        - OpenMeter Entitlements
+      x-unstable: true
+  /openmeter/customers/{customerId}/entitlements/{entitlementId}/grants:
+    post:
+      operationId: create-customer-entitlement-grant
+      summary: Create customer entitlement grant
+      description: |-
+        Issue a grant for a metered entitlement of the customer. Boolean and static
+        entitlements cannot have grants, so the request is rejected for them.
+
+        Grants are immutable. The amount is added to the balance from `effective_at`,
+        which cannot be earlier than the start of the current usage period.
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+        - name: entitlementId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '201':
+          description: EntitlementGrant created response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingEntitlementGrant'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+      tags:
+        - OpenMeter Entitlements
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BillingEntitlementGrantCreateRequest'
+      x-unstable: true
+    get:
+      operationId: list-customer-entitlement-grants
+      summary: List customer entitlement grants
+      description: |-
+        List the grants issued for an entitlement of the customer. Grants only exist for
+        metered entitlements, so the list is empty for boolean and static entitlements.
+
+        Deleted grants are excluded unless `include_deleted` is set. Voided and expired
+        grants are always included, as they are part of the balance history.
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+        - name: entitlementId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+        - $ref: '#/components/parameters/PagePaginationQuery'
+        - name: sort
+          in: query
+          required: false
+          description: |-
+            Sort grants returned in the response. Supported sort attributes are:
+
+            - `created_at` (default)
+            - `updated_at`
+            - `effective_at`
+            - `expires_at`
+
+            The `asc` suffix is optional as the default sort order is ascending. The `desc`
+            suffix is used to specify a descending order.
+          schema:
+            $ref: '#/components/schemas/SortQuery'
+          explode: false
+          style: form
+        - name: include_deleted
+          in: query
+          required: false
+          description: Include deleted grants in the response.
+          schema:
+            type: boolean
+          explode: false
+          style: form
+      responses:
+        '200':
+          description: Page paginated response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EntitlementGrantPagePaginatedResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+      tags:
+        - OpenMeter Entitlements
+      x-unstable: true
+  /openmeter/customers/{customerId}/entitlements/{entitlementId}/history:
+    get:
+      operationId: get-customer-entitlement-history
+      summary: Get customer entitlement history
+      description: |-
+        Get the balance and usage history of a metered entitlement. The queried range
+        may span multiple usage periods.
+
+        `windowed_history` groups usage into windows of the requested size and reports
+        the balance at the start of each window. `burndown_history` lists the periods in
+        which grants were consumed in a fixed order, together with the usage taken from
+        each grant.
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+        - name: entitlementId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+        - name: from
+          in: query
+          required: false
+          description: |-
+            The start of the queried range. Defaults to the last reset. Truncated to the
+            minute. The range may span at most 1000 windows.
+          schema:
+            $ref: '#/components/schemas/DateTime'
+          explode: false
+          style: form
+        - name: to
+          in: query
+          required: false
+          description: |-
+            The end of the queried range. Defaults to the current time. Truncated to the
+            minute unless it is the current time.
+          schema:
+            $ref: '#/components/schemas/DateTime'
+          explode: false
+          style: form
+        - name: window_size
+          in: query
+          required: true
+          description: The size of the windows the usage is grouped into.
+          schema:
+            $ref: '#/components/schemas/BillingEntitlementHistoryWindowSize'
+          explode: false
+          style: form
+        - name: time_zone
+          in: query
+          required: false
+          description: The IANA time zone the windows are aligned to.
+          schema:
+            type: string
+            default: UTC
+          explode: false
+          style: form
+      responses:
+        '200':
+          description: EntitlementHistory response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingEntitlementHistory'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+      tags:
+        - OpenMeter Entitlements
+      x-unstable: true
+  /openmeter/customers/{customerId}/entitlements/{entitlementId}/override:
+    put:
+      operationId: override-customer-entitlement
+      summary: Override customer entitlement
+      description: |-
+        Override an entitlement of the customer with a new one.
+
+        The referenced entitlement ends and the new one starts at the same instant, so
+        access continues without a gap. Both must belong to the same feature. Use this
+        for upgrades and downgrades.
+
+        Fails if the referenced entitlement does not exist, is deleted, or is no longer
+        active.
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+        - name: entitlementId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '201':
+          description: Entitlement created response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingEntitlement'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+      tags:
+        - OpenMeter Entitlements
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEntitlementRequest'
+      x-unstable: true
+  /openmeter/customers/{customerId}/entitlements/{entitlementId}/reset:
+    post:
+      operationId: reset-customer-entitlement-usage
+      summary: Reset customer entitlement usage
+      description: |-
+        Reset the usage of a metered entitlement. The reset starts a new usage period:
+        usage is zeroed and grants roll over according to their rollover settings.
+
+        Usage is reset automatically at the end of each usage period. Use this operation
+        to reset it earlier, for example to align the entitlement with the customer's
+        billing period. The usage period anchor can be moved at the same time.
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+        - name: entitlementId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '204':
+          description: Deleted response.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+      tags:
+        - OpenMeter Entitlements
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetCustomerEntitlementUsageRequest'
+      x-rpc-endpoint: true
+      x-unstable: true
+  /openmeter/customers/{customerId}/entitlements/{entitlementId}/value:
+    get:
+      operationId: get-customer-entitlement-value
+      summary: Get customer entitlement value
+      description: |-
+        Get the customer's access through a single entitlement, optionally evaluated at
+        a point in time.
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+        - name: entitlementId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+        - name: expand
+          in: query
+          required: false
+          description: |-
+            Expand computed fields.
+
+            Supported values are:
+
+            - `value`: Expand the balance details of a metered entitlement; it sets the
+            `value` field.
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/BillingEntitlementAccessExpand'
+          explode: false
+          style: form
+        - name: at
+          in: query
+          required: false
+          description: The point in time to evaluate the entitlement at. Defaults to the current time.
+          schema:
+            $ref: '#/components/schemas/DateTime'
+          explode: false
+          style: form
+      responses:
+        '200':
+          description: EntitlementValueResult response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingEntitlementValueResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Entitlements
+      x-unstable: true
   /openmeter/defaults/tax-codes:
     get:
       operationId: get-organization-default-tax-codes
@@ -2076,8 +2635,89 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/EntitlementAccessQueryRequest'
-      x-private: true
-      x-internal: true
+      x-rpc-endpoint: true
+  /openmeter/entitlements:
+    get:
+      operationId: list-entitlements
+      summary: List entitlements
+      description: |-
+        List the active entitlements of all customers. Intended for administrative use.
+        To list the entitlements of a single customer, use the customer entitlements
+        endpoints; to check entitlement access, use the entitlement access endpoints.
+      parameters:
+        - $ref: '#/components/parameters/PagePaginationQuery'
+        - name: sort
+          in: query
+          required: false
+          description: |-
+            Sort entitlements returned in the response. Supported sort attributes are:
+
+            - `created_at` (default)
+            - `updated_at`
+
+            The `asc` suffix is optional as the default sort order is ascending. The `desc`
+            suffix is used to specify a descending order.
+          schema:
+            $ref: '#/components/schemas/SortQuery'
+          explode: false
+          style: form
+        - name: filter
+          in: query
+          required: false
+          description: |-
+            Filter entitlements returned in the response.
+
+            To filter entitlements by customer, add the following query param:
+            `filter[customer_id]=01K4WAQ0J99ZZ0MD75HXR112H8`
+          schema:
+            $ref: '#/components/schemas/ListEntitlementsParamsFilter'
+          style: deepObject
+      responses:
+        '200':
+          description: Page paginated response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EntitlementPagePaginatedResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      tags:
+        - OpenMeter Entitlements
+      x-unstable: true
+  /openmeter/entitlements/{entitlementId}:
+    get:
+      operationId: get-entitlement
+      summary: Get entitlement
+      description: |-
+        Get an entitlement by ID. To check entitlement access, use the entitlement
+        access endpoints instead.
+      parameters:
+        - name: entitlementId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: Entitlement response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingEntitlement'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Entitlements
       x-unstable: true
   /openmeter/events:
     get:
@@ -2358,6 +2998,107 @@ paths:
             schema:
               $ref: '#/components/schemas/MeterQueryRequest'
       x-unstable: true
+  /openmeter/grants:
+    get:
+      operationId: list-grants
+      summary: List grants
+      description: |-
+        List the grants of all customers and entitlements. To list the grants of a
+        single entitlement, use the customer entitlement grants endpoint.
+
+        Deleted grants are excluded unless `include_deleted` is set. Voided and expired
+        grants are always included, as they are part of the balance history.
+      parameters:
+        - $ref: '#/components/parameters/PagePaginationQuery'
+        - name: sort
+          in: query
+          required: false
+          description: |-
+            Sort grants returned in the response. Supported sort attributes are:
+
+            - `created_at` (default)
+            - `updated_at`
+            - `effective_at`
+            - `expires_at`
+
+            The `asc` suffix is optional as the default sort order is ascending. The `desc`
+            suffix is used to specify a descending order.
+          schema:
+            $ref: '#/components/schemas/SortQuery'
+          explode: false
+          style: form
+        - name: filter
+          in: query
+          required: false
+          description: |-
+            Filter grants returned in the response.
+
+            To filter grants by customer, add the following query param:
+            `filter[customer_id]=01K4WAQ0J99ZZ0MD75HXR112H8`
+          schema:
+            $ref: '#/components/schemas/ListGrantsParamsFilter'
+          style: deepObject
+        - name: include_deleted
+          in: query
+          required: false
+          description: Include deleted grants in the response.
+          schema:
+            type: boolean
+          explode: false
+          style: form
+      responses:
+        '200':
+          description: Page paginated response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EntitlementGrantPagePaginatedResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      tags:
+        - OpenMeter Entitlements
+      x-unstable: true
+  /openmeter/grants/{grantId}:
+    delete:
+      operationId: void-grant
+      summary: Void grant
+      description: |-
+        Void a grant so it no longer adds to the balance. Usage already deducted from
+        the grant is kept.
+      parameters:
+        - name: grantId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+        - name: voided_at
+          in: query
+          required: false
+          description: |-
+            The time the grant is voided from. Defaults to now; it cannot be in the future
+            or before the start of the current usage period.
+          schema:
+            $ref: '#/components/schemas/DateTime'
+          explode: false
+          style: form
+      responses:
+        '204':
+          description: Deleted response.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Entitlements
+      x-unstable: true
   /openmeter/llm-cost/overrides:
     get:
       operationId: list-llm-cost-overrides
@@ -2386,6 +3127,7 @@ paths:
           $ref: '#/components/responses/Forbidden'
       tags:
         - OpenMeter LLM Cost
+      deprecated: true
       x-unstable: true
     post:
       operationId: create-llm-cost-override
@@ -2412,6 +3154,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/LLMCostOverrideCreate'
+      deprecated: true
       x-unstable: true
   /openmeter/llm-cost/overrides/{priceId}:
     delete:
@@ -2437,6 +3180,7 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter LLM Cost
+      deprecated: true
       x-unstable: true
   /openmeter/llm-cost/prices:
     get:
@@ -2485,6 +3229,7 @@ paths:
           $ref: '#/components/responses/Forbidden'
       tags:
         - OpenMeter LLM Cost
+      deprecated: true
       x-unstable: true
   /openmeter/llm-cost/prices/{priceId}:
     get:
@@ -2516,6 +3261,7 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter LLM Cost
+      deprecated: true
       x-unstable: true
   /openmeter/meters:
     post:
@@ -2739,6 +3485,514 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/MeterQueryRequest'
+  /openmeter/notification/channels:
+    get:
+      operationId: list-notification-channels
+      summary: List notification channels
+      description: List all notification channels.
+      parameters:
+        - $ref: '#/components/parameters/PagePaginationQuery'
+        - name: sort
+          in: query
+          required: false
+          description: |-
+            Sort notification channels returned in the response. Supported sort attributes
+            are:
+
+            - `id` (default)
+            - `type`
+            - `created_at`
+            - `updated_at`
+
+            The `asc` suffix is optional as the default sort order is ascending. The `desc`
+            suffix is used to specify a descending order.
+          schema:
+            $ref: '#/components/schemas/SortQuery'
+          explode: false
+          style: form
+        - name: filter
+          in: query
+          required: false
+          description: |-
+            Filter notification channels returned in the response.
+
+            To filter notification channels by type add the following query param:
+            filter[type]=webhook
+          schema:
+            $ref: '#/components/schemas/ListNotificationChannelsParamsFilter'
+          style: deepObject
+      responses:
+        '200':
+          description: Page paginated response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationChannelPagePaginatedResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      tags:
+        - OpenMeter Notifications
+      x-unstable: true
+    post:
+      operationId: create-notification-channel
+      summary: Create notification channel
+      description: Create a notification channel.
+      responses:
+        '201':
+          description: NotificationChannel created response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingNotificationChannel'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      tags:
+        - OpenMeter Notifications
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateNotificationChannelRequest'
+      x-unstable: true
+  /openmeter/notification/channels/{notificationChannelId}:
+    get:
+      operationId: get-notification-channel
+      summary: Get notification channel
+      description: Get a notification channel by id.
+      parameters:
+        - name: notificationChannelId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: NotificationChannel response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingNotificationChannel'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Notifications
+      x-unstable: true
+    put:
+      operationId: update-notification-channel
+      summary: Update notification channel
+      description: Update a notification channel by id.
+      parameters:
+        - name: notificationChannelId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: NotificationChannel updated response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingNotificationChannel'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+      tags:
+        - OpenMeter Notifications
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateBillingNotificationChannelRequest'
+      x-unstable: true
+    delete:
+      operationId: delete-notification-channel
+      summary: Delete notification channel
+      description: Delete a notification channel by id.
+      parameters:
+        - name: notificationChannelId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '204':
+          description: Deleted response.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Notifications
+      x-unstable: true
+  /openmeter/notification/events:
+    get:
+      operationId: list-notification-events
+      summary: List notification events
+      description: List all notification events.
+      parameters:
+        - $ref: '#/components/parameters/PagePaginationQuery'
+        - name: sort
+          in: query
+          required: false
+          description: |-
+            Sort notification events returned in the response. Supported sort attributes
+            are:
+
+            - `created_at` (default)
+            - `id`
+            - `type`
+
+            The `asc` suffix is optional as the default sort order is ascending. The `desc`
+            suffix is used to specify a descending order. Without a `sort` parameter, events
+            are returned newest first.
+          schema:
+            $ref: '#/components/schemas/SortQuery'
+          explode: false
+          style: form
+        - name: filter
+          in: query
+          required: false
+          description: |-
+            Filter notification events returned in the response.
+
+            Examples:
+
+            - `filter[type]=invoice.created`
+            - `filter[delivery_status]=failed`
+            - `filter[subject_key]=customer-1`
+          schema:
+            $ref: '#/components/schemas/ListNotificationEventsParamsFilter'
+          style: deepObject
+      responses:
+        '200':
+          description: Page paginated response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationEventPagePaginatedResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      tags:
+        - OpenMeter Notifications
+      x-private: true
+      x-internal: true
+      x-unstable: true
+  /openmeter/notification/events/{notificationEventId}:
+    get:
+      operationId: get-notification-event
+      summary: Get notification event
+      description: Get a notification event by id.
+      parameters:
+        - name: notificationEventId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: NotificationEvent response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingNotificationEvent'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Notifications
+      x-private: true
+      x-internal: true
+      x-unstable: true
+  /openmeter/notification/events/{notificationEventId}/resend:
+    post:
+      operationId: resend-notification-event
+      summary: Resend notification event
+      description: |-
+        Resend a notification event to the channels of the rule that generated it.
+
+        Delivery is asynchronous: the request marks the selected channels for redelivery
+        and returns immediately. Channels whose delivery is still pending or already
+        being resent are left untouched.
+      parameters:
+        - name: notificationEventId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '202':
+          description: Accepted response.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Notifications
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResendBillingNotificationEventRequest'
+      x-rpc-endpoint: true
+      x-private: true
+      x-internal: true
+      x-unstable: true
+  /openmeter/notification/rules:
+    get:
+      operationId: list-notification-rules
+      summary: List notification rules
+      description: List all notification rules.
+      parameters:
+        - $ref: '#/components/parameters/PagePaginationQuery'
+        - name: sort
+          in: query
+          required: false
+          description: |-
+            Sort notification rules returned in the response. Supported sort attributes are:
+
+            - `id` (default)
+            - `type`
+            - `created_at`
+            - `updated_at`
+
+            The `asc` suffix is optional as the default sort order is ascending. The `desc`
+            suffix is used to specify a descending order.
+          schema:
+            $ref: '#/components/schemas/SortQuery'
+          explode: false
+          style: form
+        - name: filter
+          in: query
+          required: false
+          description: |-
+            Filter notification rules returned in the response.
+
+            Examples:
+
+            - `filter[type]=entitlements.balance.threshold`
+            - `filter[disabled]=false`
+            - `filter[channel_id]=01ARZ3NDEKTSV4RRFFQ69G5FAV`
+          schema:
+            $ref: '#/components/schemas/ListNotificationRulesParamsFilter'
+          style: deepObject
+      responses:
+        '200':
+          description: Page paginated response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationRulePagePaginatedResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      tags:
+        - OpenMeter Notifications
+      x-private: true
+      x-internal: true
+      x-unstable: true
+    post:
+      operationId: create-notification-rule
+      summary: Create notification rule
+      description: Create a notification rule.
+      responses:
+        '201':
+          description: NotificationRule created response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingNotificationRule'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      tags:
+        - OpenMeter Notifications
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BillingNotificationRuleRequest'
+      x-private: true
+      x-internal: true
+      x-unstable: true
+  /openmeter/notification/rules/{notificationRuleId}:
+    get:
+      operationId: get-notification-rule
+      summary: Get notification rule
+      description: Get a notification rule by id.
+      parameters:
+        - name: notificationRuleId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: NotificationRule response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingNotificationRule'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Notifications
+      x-private: true
+      x-internal: true
+      x-unstable: true
+    put:
+      operationId: update-notification-rule
+      summary: Update notification rule
+      description: Update a notification rule by id.
+      parameters:
+        - name: notificationRuleId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: NotificationRule updated response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingNotificationRule'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+      tags:
+        - OpenMeter Notifications
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BillingNotificationRuleRequest'
+      x-private: true
+      x-internal: true
+      x-unstable: true
+    delete:
+      operationId: delete-notification-rule
+      summary: Delete notification rule
+      description: Delete a notification rule by id.
+      parameters:
+        - name: notificationRuleId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '204':
+          description: Deleted response.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Notifications
+      x-private: true
+      x-internal: true
+      x-unstable: true
+  /openmeter/notification/rules/{notificationRuleId}/test:
+    post:
+      operationId: test-notification-rule
+      summary: Test notification rule
+      description: |-
+        Test a notification rule by generating an event with sample data and delivering
+        it to the rule's channels. The test event is persisted and listed like any other
+        event.
+      parameters:
+        - name: notificationRuleId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '201':
+          description: NotificationEvent created response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingNotificationEvent'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Notifications
+      x-rpc-endpoint: true
+      x-private: true
+      x-internal: true
+      x-unstable: true
   /openmeter/plans:
     get:
       operationId: list-plans
@@ -2783,7 +4037,6 @@ paths:
           $ref: '#/components/responses/Forbidden'
       tags:
         - OpenMeter Product Catalog
-      x-unstable: true
     post:
       operationId: create-plan
       summary: Create plan
@@ -2809,7 +4062,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreatePlanRequest'
-      x-unstable: true
   /openmeter/plans/{planId}:
     put:
       operationId: update-plan
@@ -2846,7 +4098,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/UpsertPlanRequest'
-      x-unstable: true
     get:
       operationId: get-plan
       summary: Get plan
@@ -2876,7 +4127,6 @@ paths:
           $ref: '#/components/responses/Gone'
       tags:
         - OpenMeter Product Catalog
-      x-unstable: true
     delete:
       operationId: delete-plan
       summary: Delete plan
@@ -2900,7 +4150,6 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Product Catalog
-      x-unstable: true
   /openmeter/plans/{planId}/addons:
     get:
       operationId: list-plan-addons
@@ -2953,7 +4202,6 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Product Catalog
-      x-internal: true
       x-unstable: true
     post:
       operationId: create-plan-addon
@@ -3119,7 +4367,7 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Product Catalog
-      x-unstable: true
+      x-rpc-endpoint: true
   /openmeter/plans/{planId}/publish:
     post:
       operationId: publish-plan
@@ -3148,7 +4396,7 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Product Catalog
-      x-unstable: true
+      x-rpc-endpoint: true
   /openmeter/profiles:
     get:
       operationId: list-billing-profiles
@@ -3457,6 +4705,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateSubscriptionAddonRequest'
+      x-internal: true
       x-unstable: true
     get:
       operationId: list-subscription-addons
@@ -3744,7 +4993,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/BillingSubscriptionMigrate'
-      x-internal: true
       x-rpc-endpoint: true
       x-unstable: true
   /openmeter/subscriptions/{subscriptionId}/restore:
@@ -3782,8 +5030,6 @@ paths:
       tags:
         - OpenMeter Subscriptions
       x-rpc-endpoint: true
-      x-private: true
-      x-internal: true
       x-unstable: true
   /openmeter/subscriptions/{subscriptionId}/unschedule:
     post:
@@ -3815,8 +5061,6 @@ paths:
       tags:
         - OpenMeter Subscriptions
       x-rpc-endpoint: true
-      x-private: true
-      x-internal: true
       x-unstable: true
   /openmeter/subscriptions/{subscriptionId}/unschedule-cancelation:
     post:
@@ -3873,7 +5117,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateTaxCodeRequest'
-      x-unstable: true
     get:
       operationId: list-tax-codes
       summary: List tax codes
@@ -3902,7 +5145,6 @@ paths:
           $ref: '#/components/responses/Forbidden'
       tags:
         - OpenMeter Tax
-      x-unstable: true
   /openmeter/tax-codes/{taxCodeId}:
     get:
       operationId: get-tax-code
@@ -3930,7 +5172,6 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Tax
-      x-unstable: true
     put:
       operationId: upsert-tax-code
       summary: Upsert tax code
@@ -3965,7 +5206,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/UpsertTaxCodeRequest'
-      x-unstable: true
     delete:
       operationId: delete-tax-code
       summary: Delete tax code
@@ -3988,7 +5228,6 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Tax
-      x-unstable: true
 components:
   parameters:
     CursorPaginationQuery:
@@ -4258,6 +5497,35 @@ components:
           sandbox: '#/components/schemas/BillingAppSandbox'
           external_invoicing: '#/components/schemas/BillingAppExternalInvoicing'
       description: Installed application.
+    BillingAppAction:
+      type: object
+      required:
+        - type
+        - description
+      properties:
+        type:
+          allOf:
+            - $ref: '#/components/schemas/BillingAppActionType'
+          description: The action type.
+        description:
+          type: string
+          description: Human readable explanation of why the action is needed.
+      additionalProperties: false
+      description: An action the operator should take on an installed app.
+    BillingAppActionRequest:
+      type: object
+      oneOf:
+        - $ref: '#/components/schemas/BillingAppReconcileWebhookEventsActionRequest'
+      discriminator:
+        propertyName: action_type
+        mapping:
+          reconcile_webhook_events: '#/components/schemas/BillingAppReconcileWebhookEventsActionRequest'
+      description: Request to execute an operator action on an installed app.
+    BillingAppActionType:
+      type: string
+      enum:
+        - reconcile_webhook_events
+      description: App action type.
     BillingAppCapability:
       type: object
       required:
@@ -4480,6 +5748,14 @@ components:
             - $ref: '#/components/schemas/BillingAppStatus'
           description: Status of the app connection.
           readOnly: true
+        actions:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingAppAction'
+          description: |-
+            Actions the operator should take to bring the app up to date. Omitted when no
+            action is required.
+          readOnly: true
         enable_draft_sync_hook:
           type: boolean
           description: |-
@@ -4530,6 +5806,20 @@ components:
         - with_api_key
         - no_credentials_required
       description: Supported installation methods for an app.
+    BillingAppReconcileWebhookEventsActionRequest:
+      type: object
+      required:
+        - action_type
+      properties:
+        action_type:
+          type: string
+          enum:
+            - reconcile_webhook_events
+          description: The action to execute.
+      additionalProperties: false
+      description: |-
+        Request to reconcile the app's webhook events with the latest supported event
+        set.
     BillingAppReference:
       type: object
       required:
@@ -4603,6 +5893,14 @@ components:
             - $ref: '#/components/schemas/BillingAppStatus'
           description: Status of the app connection.
           readOnly: true
+        actions:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingAppAction'
+          description: |-
+            Actions the operator should take to bring the app up to date. Omitted when no
+            action is required.
+          readOnly: true
       additionalProperties: false
       description: Sandbox app can be used for testing billing features.
     BillingAppStatus:
@@ -4675,6 +5973,14 @@ components:
           allOf:
             - $ref: '#/components/schemas/BillingAppStatus'
           description: Status of the app connection.
+          readOnly: true
+        actions:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingAppAction'
+          description: |-
+            Actions the operator should take to bring the app up to date. Omitted when no
+            action is required.
           readOnly: true
         account_id:
           type: string
@@ -6809,7 +8115,7 @@ components:
           description: Present when a funding workflow applies (funding_method is not `none`).
         tax_config:
           allOf:
-            - $ref: '#/components/schemas/BillingCreditGrantTaxConfig'
+            - $ref: '#/components/schemas/TaxCodeConfig'
           description: |-
             Tax configuration for the grant.
 
@@ -6896,6 +8202,14 @@ components:
           example:
             - input_tokens
             - output_tokens
+        plans:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingCreditGrantPlanFilter'
+          description: |-
+            Limit credits to charges from these plans. Entries are alternatives; when
+            features are also specified, both dimensions must match. Omission or an empty
+            list leaves plans unrestricted.
       additionalProperties: false
       description: Filters for the credit grant.
     BillingCreditGrantInvoiceReference:
@@ -6918,6 +8232,21 @@ components:
           readOnly: true
       additionalProperties: false
       description: Invoice references for the grant.
+    BillingCreditGrantPlanFilter:
+      type: object
+      required:
+        - key
+      properties:
+        key:
+          allOf:
+            - $ref: '#/components/schemas/ResourceKey'
+          description: The plan key in the customer's namespace.
+        version:
+          allOf:
+            - $ref: '#/components/schemas/VersionFilter'
+          description: Omission matches all versions, including future versions.
+      additionalProperties: false
+      description: A plan key and an optional version constraint for matching credit grants.
     BillingCreditGrantPurchase:
       type: object
       required:
@@ -6994,24 +8323,6 @@ components:
         `expires_at` time has passed.
         - `voided`: The credit block was voided. Remaining balance is forfeited.
       title: Credit grant lifecycle status
-    BillingCreditGrantTaxConfig:
-      type: object
-      properties:
-        behavior:
-          allOf:
-            - $ref: '#/components/schemas/BillingTaxBehavior'
-          description: Tax behavior applied to the invoice line item.
-        tax_code:
-          allOf:
-            - $ref: '#/components/schemas/TaxCodeReference'
-          description: Tax code applied to the invoice line item.
-      additionalProperties: false
-      description: |-
-        Tax configuration for a credit grant.
-
-        Tax configuration should be provided to ensure correct revenue recognition,
-        including for externally funded grants.
-      title: Tax configuration for a credit grant
     BillingCreditGrantVoidPaymentAdjustment:
       type: string
       enum:
@@ -7088,10 +8399,10 @@ components:
             - $ref: '#/components/schemas/BillingCurrencyCode'
           description: Currency of the balance affected by the transaction.
           readOnly: true
-        custom_currency_id:
+        custom_currency:
           allOf:
-            - $ref: '#/components/schemas/ULID'
-          description: Immutable managed currency identifier. Present only for custom currencies.
+            - $ref: '#/components/schemas/CurrencyCustomReference'
+          description: Managed currency reference. Present only for custom currencies.
           readOnly: true
         amount:
           allOf:
@@ -7465,6 +8776,49 @@ components:
       description: |-
         Mapping to attribute metered usage to the customer. One customer can have zero
         or more subjects, but one subject can only belong to one customer.
+    BillingEntitlement:
+      type: object
+      oneOf:
+        - $ref: '#/components/schemas/BillingEntitlementMetered'
+        - $ref: '#/components/schemas/BillingEntitlementStatic'
+        - $ref: '#/components/schemas/BillingEntitlementBoolean'
+      discriminator:
+        propertyName: type
+        mapping:
+          metered: '#/components/schemas/BillingEntitlementMetered'
+          static: '#/components/schemas/BillingEntitlementStatic'
+          boolean: '#/components/schemas/BillingEntitlementBoolean'
+      description: An entitlement grants a customer access to a feature.
+    BillingEntitlementAccessCheckResult:
+      type: object
+      required:
+        - has_access
+      properties:
+        has_access:
+          type: boolean
+          description: |-
+            Whether the customer has access to the feature. Always true for `boolean` and
+            `static` entitlements. Depends on balance for `metered` entitlements.
+          example: true
+          readOnly: true
+        config:
+          type: string
+          description: |-
+            Only available for static entitlements. Config is the JSON parsable
+            configuration of the entitlement. Useful to describe per customer configuration.
+          example: '{ "availableModels": ["gpt-5", "gpt-4o"] }'
+          readOnly: true
+        type:
+          allOf:
+            - $ref: '#/components/schemas/BillingEntitlementType'
+          description: |-
+            The type of the entitlement.
+
+            If not provided, the feature has no entitlement defined (has access is always
+            false in this case)
+          readOnly: true
+      additionalProperties: false
+      description: Entitlement access check result.
     BillingEntitlementAccessExpand:
       type: string
       enum:
@@ -7477,23 +8831,238 @@ components:
         - `value`: The balance details of a metered entitlement; it sets the `value`
         field.
       title: Customer entitlement access expands
-    BillingEntitlementAccessResult:
+    BillingEntitlementAccessValue:
       type: object
       required:
+        - balance
+        - usage
+        - overage
+        - total_available_grant_amount
+        - grant_balances
+      properties:
+        balance:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: |-
+            The remaining balance of the entitlement in the usage period at the evaluation
+            time.
+          readOnly: true
+        usage:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The usage recorded in the usage period at the evaluation time.
+          readOnly: true
+        overage:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: |-
+            The usage exceeding the available balance in the usage period at the evaluation
+            time.
+          readOnly: true
+        total_available_grant_amount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: |-
+            The total amount granted and available to the entitlement at the evaluation
+            time.
+          readOnly: true
+        grant_balances:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/Numeric'
+          description: The remaining balance of each grant, keyed by grant ID.
+          readOnly: true
+      additionalProperties: false
+      description: |-
+        Balance details of a metered entitlement at the evaluation time, which is the
+        `at` query parameter when given and the current time otherwise.
+      example:
+        balance: '100'
+        usage: '50'
+        overage: '0'
+        total_available_grant_amount: '100'
+        grant_balances:
+          additional_property: '1'
+    BillingEntitlementBoolean:
+      type: object
+      required:
+        - id
         - type
+        - feature
+        - customer
+        - active_from
+        - created_at
+        - updated_at
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          readOnly: true
+        type:
+          type: string
+          enum:
+            - boolean
+          description: The type of the entitlement.
+          title: Type
+        feature:
+          allOf:
+            - $ref: '#/components/schemas/FeatureReference'
+          description: The feature the customer is entitled to use.
+          title: Feature
+        customer:
+          allOf:
+            - $ref: '#/components/schemas/CustomerReference'
+          description: The customer the entitlement belongs to.
+          title: Customer
+          readOnly: true
+        labels:
+          allOf:
+            - $ref: '#/components/schemas/Labels'
+          title: Labels
+        usage_period:
+          allOf:
+            - $ref: '#/components/schemas/RecurringPeriod'
+          description: The usage period of the entitlement.
+          title: Usage period
+          readOnly: true
+        current_usage_period:
+          allOf:
+            - $ref: '#/components/schemas/ClosedPeriod'
+          description: The current usage period of the entitlement.
+          title: Current usage period
+          readOnly: true
+        active_from:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: The time from which the entitlement is active.
+          title: Active from
+          readOnly: true
+        active_to:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: |-
+            The time until which the entitlement is active. If not set, the entitlement is
+            active until deleted.
+          title: Active to
+          readOnly: true
+        created_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: The time the entitlement was created.
+          readOnly: true
+        updated_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: The time the entitlement was last updated.
+          readOnly: true
+        deleted_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: The time the entitlement was deleted.
+          readOnly: true
+      additionalProperties: false
+      description: A boolean entitlement grants access to a feature.
+    BillingEntitlementBurndownBalance:
+      type: object
+      required:
+        - start
+        - end
+      properties:
+        start:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The balance at the start of the segment.
+          example: '100'
+          readOnly: true
+        end:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The balance at the end of the segment.
+          example: '50'
+          readOnly: true
+      additionalProperties: false
+      description: Entitlement balance at the boundaries of a burndown segment.
+    BillingEntitlementBurndownGrantBalances:
+      type: object
+      required:
+        - start
+        - end
+      properties:
+        start:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/Numeric'
+          description: The balance of each active grant at the start of the segment.
+          example:
+            01G65Z755AFWAKHE12NY0CQ9FH: '100'
+          readOnly: true
+        end:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/Numeric'
+          description: The balance of each active grant at the end of the segment.
+          example:
+            01G65Z755AFWAKHE12NY0CQ9FH: '50'
+          readOnly: true
+      additionalProperties: false
+      description: Grant balances at the boundaries of a burndown segment, keyed by grant ID.
+    BillingEntitlementBurndownSegment:
+      type: object
+      required:
+        - period
+        - usage
+        - overage
+        - balance
+        - grant_balances
+        - grant_usages
+      properties:
+        period:
+          allOf:
+            - $ref: '#/components/schemas/ClosedPeriod'
+          description: The period the segment covers.
+          readOnly: true
+        usage:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The usage recorded in the segment.
+          example: '100'
+          readOnly: true
+        overage:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The usage in the segment not covered by any grant.
+          example: '0'
+          readOnly: true
+        balance:
+          allOf:
+            - $ref: '#/components/schemas/BillingEntitlementBurndownBalance'
+          description: The entitlement balance at the start and at the end of the segment.
+          readOnly: true
+        grant_balances:
+          allOf:
+            - $ref: '#/components/schemas/BillingEntitlementBurndownGrantBalances'
+          description: |-
+            The balance of each active grant at the start and at the end of the segment,
+            keyed by grant ID.
+          readOnly: true
+        grant_usages:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingEntitlementGrantUsage'
+          description: The grants consumed in the segment and the usage taken from each.
+          readOnly: true
+      additionalProperties: false
+      description: A period in which grants were consumed in a fixed order.
+    BillingEntitlementFeatureValueResult:
+      type: object
+      required:
         - feature_key
         - has_access
       properties:
-        type:
-          allOf:
-            - $ref: '#/components/schemas/BillingEntitlementType'
-          description: The type of the entitlement.
-          example: static
-          readOnly: true
         feature_key:
           allOf:
             - $ref: '#/components/schemas/ResourceKey'
-          description: The feature key of the entitlement.
+          description: The feature key being evaluated.
           example: available_models
           readOnly: true
         has_access:
@@ -7514,55 +9083,579 @@ components:
           allOf:
             - $ref: '#/components/schemas/BillingEntitlementAccessValue'
           description: |-
-            Only available for metered entitlements. The current balance details of the
-            entitlement. Requires the `value` expand.
+            Only available for metered entitlements. The balance details of the entitlement
+            at the evaluation time. Requires the `value` expand.
+          readOnly: true
+        type:
+          allOf:
+            - $ref: '#/components/schemas/BillingEntitlementType'
+          description: |-
+            The type of the entitlement.
+
+            If not provided, the feature has no entitlement defined (has access is always
+            false in this case)
           readOnly: true
       additionalProperties: false
-      description: Entitlement access result.
-    BillingEntitlementAccessValue:
+      description: |-
+        Entitlement value looked up by feature key. A missing entitlement has no type
+        and does not grant access.
+    BillingEntitlementGrant:
       type: object
       required:
-        - balance
-        - usage
-        - overage
-        - total_available_grant_amount
-        - grant_balances
+        - id
+        - entitlement_id
+        - amount
+        - priority
+        - effective_at
+        - max_rollover_amount
+        - min_rollover_amount
+        - created_at
+        - updated_at
       properties:
-        balance:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          readOnly: true
+        entitlement_id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: The ID of the entitlement the grant belongs to.
+          title: Entitlement ID
+          readOnly: true
+        customer_id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: The ID of the customer the grant belongs to.
+          title: Customer ID
+          readOnly: true
+        amount:
           allOf:
             - $ref: '#/components/schemas/Numeric'
-          description: The remaining balance of the entitlement in the current usage period.
+          description: The granted amount, in the feature's unit.
+          title: Amount
+          example: '100'
+          readOnly: true
+        priority:
+          type: integer
+          format: uint8
+          description: |-
+            The priority of the grant. Lower values are consumed first: a grant with
+            priority 1 is consumed before one with priority 2. Among equal priorities, the
+            grant closest to expiration is consumed first, then the earliest created.
+          title: Priority
+          example: 1
+          readOnly: true
+        effective_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: The time the grant takes effect.
+          title: Effective at
+          example: '2023-01-01T01:01:01.001Z'
+          readOnly: true
+        expires_after:
+          allOf:
+            - $ref: '#/components/schemas/ISO8601Duration'
+          description: |-
+            The duration after which the grant expires, counted from `effective_at`. Always
+            a single-unit duration (for example `PT12H`, `P7D`, `P2W`, `P3M`, `P1Y`). Absent
+            when the grant never expires.
+          title: Expires after
+          example: P1M
+          readOnly: true
+        expires_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: |-
+            The time the grant expires, calculated from `effective_at` and `expires_after`.
+            The grant is no longer in effect from this time. Absent when the grant never
+            expires.
+          title: Expires at
+          example: '2023-02-01T01:01:01.001Z'
+          readOnly: true
+        max_rollover_amount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: |-
+            The maximum balance the grant carries over at reset. The balance after a reset
+            is `MIN(max_rollover_amount, MAX(balance_before_reset, min_rollover_amount))`.
+          title: Max rollover amount
+          example: '100'
+          readOnly: true
+        min_rollover_amount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: |-
+            The minimum balance the grant carries over at reset. The balance after a reset
+            is `MIN(max_rollover_amount, MAX(balance_before_reset, min_rollover_amount))`.
+          title: Min rollover amount
+          example: '0'
+          readOnly: true
+        recurrence:
+          allOf:
+            - $ref: '#/components/schemas/RecurringPeriod'
+          description: |-
+            The recurrence of the grant. When set, the grant amount is re-issued every
+            interval from the anchor, which defaults to `effective_at`. Absent for
+            non-recurring grants.
+          title: Recurrence
+          readOnly: true
+        next_recurrence:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: The next time the grant recurs. Absent for non-recurring grants.
+          title: Next recurrence
+          example: '2023-02-01T01:01:01.001Z'
+          readOnly: true
+        voided_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: |-
+            The time the grant was voided. A voided grant is no longer in effect from this
+            time.
+          title: Voided at
+          example: '2023-01-15T01:01:01.001Z'
+          readOnly: true
+        labels:
+          allOf:
+            - $ref: '#/components/schemas/Labels'
+          title: Labels
+          readOnly: true
+        created_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity creation date.
+          readOnly: true
+        updated_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity last update date.
+          readOnly: true
+        deleted_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity deletion date.
+          readOnly: true
+      additionalProperties: false
+      description: |-
+        A grant issued for a metered entitlement. Each grant adds its amount to the
+        entitlement's balance from its effective time until it expires, and usage is
+        deducted from the grants in priority order.
+
+        Grants are immutable, so the balance is deterministic regardless of when it is
+        queried. Deleting a grant ends it at the time of the deletion.
+    BillingEntitlementGrantCreateRequest:
+      type: object
+      required:
+        - amount
+        - effective_at
+      properties:
+        amount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The amount to grant, in the feature's unit. Must be positive.
+          title: Amount
+          example: '100'
+        priority:
+          type: integer
+          format: uint8
+          minimum: 1
+          maximum: 255
+          description: |-
+            The priority of the grant. Lower values have higher priority. Grants are
+            consumed in priority order, then by closest expiration, then by earliest
+            creation.
+          title: Priority
+          example: 1
+        effective_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: |-
+            The time the grant becomes effective and the anchor for recurring grants. The
+            value is truncated to the start of the minute.
+          title: Effective at
+          example: '2023-01-01T01:01:01.001Z'
+        expires_after:
+          allOf:
+            - $ref: '#/components/schemas/ISO8601Duration'
+          description: |-
+            The duration after which the grant expires, counted from `effective_at`. Only
+            single-unit durations are accepted, such as `PT12H`, `P7D`, `P2W`, `P3M`, or
+            `P1Y`. If omitted, the grant never expires.
+          title: Expires after
+          example: P1M
+        max_rollover_amount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: |-
+            The maximum balance carried over at reset. The balance after a reset is
+            `MIN(max_rollover_amount, MAX(balance_before_reset, min_rollover_amount))`.
+            Defaults to `amount`.
+          title: Max rollover amount
+          example: '100'
+        min_rollover_amount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: |-
+            The minimum balance carried over at reset. The balance after a reset is
+            `MIN(max_rollover_amount, MAX(balance_before_reset, min_rollover_amount))`.
+            Defaults to `0`.
+          title: Min rollover amount
+          example: '0'
+        labels:
+          allOf:
+            - $ref: '#/components/schemas/Labels'
+          title: Labels
+        recurrence:
+          allOf:
+            - $ref: '#/components/schemas/RecurringPeriodInput'
+          description: |-
+            The recurrence of the grant. When set, the amount is issued again every
+            interval. The anchor defaults to `effective_at`.
+          title: Recurrence
+      additionalProperties: false
+      description: A grant to issue for a metered entitlement.
+    BillingEntitlementGrantUsage:
+      type: object
+      required:
+        - grant_id
+        - usage
+      properties:
+        grant_id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: The ID of the grant.
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
           readOnly: true
         usage:
           allOf:
             - $ref: '#/components/schemas/Numeric'
-          description: The usage recorded in the current usage period.
-          readOnly: true
-        overage:
-          allOf:
-            - $ref: '#/components/schemas/Numeric'
-          description: The usage exceeding the available balance in the current usage period.
-          readOnly: true
-        total_available_grant_amount:
-          allOf:
-            - $ref: '#/components/schemas/Numeric'
-          description: The total amount granted and currently available to the entitlement.
-          readOnly: true
-        grant_balances:
-          type: object
-          additionalProperties:
-            $ref: '#/components/schemas/Numeric'
-          description: The remaining balance of each grant, keyed by grant ID.
+          description: The usage taken from the grant.
+          example: '50'
           readOnly: true
       additionalProperties: false
-      description: Balance details of a metered entitlement.
-      example:
-        balance: '100'
-        usage: '50'
-        overage: '0'
-        total_available_grant_amount: '100'
-        grant_balances:
-          additional_property: '1'
+      description: Usage taken from a single grant.
+    BillingEntitlementHistory:
+      type: object
+      required:
+        - windowed_history
+        - burndown_history
+      properties:
+        windowed_history:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingEntitlementHistoryWindow'
+          description: |-
+            Usage in half-open windows of the requested size, aligned to the requested time
+            zone. Empty windows are included; windows before usage measurement began are
+            omitted.
+          readOnly: true
+        burndown_history:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingEntitlementBurndownSegment'
+          description: |-
+            Periods in which grants were consumed in a fixed order. A new segment starts
+            whenever grant priorities change or a usage period starts.
+          readOnly: true
+      additionalProperties: false
+      description: Balance and usage history of a metered entitlement.
+    BillingEntitlementHistoryWindow:
+      type: object
+      required:
+        - period
+        - usage
+        - balance_at_start
+      properties:
+        period:
+          allOf:
+            - $ref: '#/components/schemas/ClosedPeriod'
+          description: The period the window covers.
+          readOnly: true
+        usage:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The usage recorded in the window.
+          example: '100'
+          readOnly: true
+        balance_at_start:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The entitlement balance at the start of the window.
+          example: '100'
+          readOnly: true
+      additionalProperties: false
+      description: Usage and balance of a single history window.
+    BillingEntitlementHistoryWindowSize:
+      type: string
+      enum:
+        - PT1H
+        - P1D
+      description: |-
+        The meter query granularities the usage history can be grouped into. Sub-hour
+        windows are too expensive to compute and monthly windows are not supported.
+    BillingEntitlementIssueAfterReset:
+      type: object
+      required:
+        - amount
+      properties:
+        amount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The amount granted after each reset, in the feature's unit.
+          title: Initial grant amount
+          example: '100'
+        priority:
+          type: integer
+          format: uint8
+          minimum: 1
+          maximum: 255
+          description: |-
+            The priority of the grant created after each reset. Lower values have higher
+            priority.
+          title: Issue grant after reset priority
+          default: 1
+      additionalProperties: false
+      description: |-
+        Usage granted automatically after each reset of a metered entitlement. The
+        balance returns to `amount` after every reset.
+    BillingEntitlementMeasureUsageFrom:
+      oneOf:
+        - $ref: '#/components/schemas/BillingEntitlementMeasureUsageFromPreset'
+        - $ref: '#/components/schemas/DateTime'
+      description: The time from which usage is measured, as a preset or an explicit timestamp.
+      example: current_period_start
+    BillingEntitlementMeasureUsageFromPreset:
+      type: string
+      enum:
+        - current_period_start
+        - now
+      description: |-
+        Preset for the time from which usage is measured.
+
+        - `current_period_start`: the start of the current usage period.
+        - `now`: the entitlement creation time.
+    BillingEntitlementMetered:
+      type: object
+      required:
+        - id
+        - type
+        - feature
+        - customer
+        - active_from
+        - created_at
+        - updated_at
+        - usage_period
+        - current_usage_period
+        - measure_usage_from
+        - last_reset
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          readOnly: true
+        type:
+          type: string
+          enum:
+            - metered
+          description: The type of the entitlement.
+          title: Type
+        feature:
+          allOf:
+            - $ref: '#/components/schemas/FeatureReference'
+          description: The feature the customer is entitled to use.
+          title: Feature
+        customer:
+          allOf:
+            - $ref: '#/components/schemas/CustomerReference'
+          description: The customer the entitlement belongs to.
+          title: Customer
+          readOnly: true
+        labels:
+          allOf:
+            - $ref: '#/components/schemas/Labels'
+          title: Labels
+        active_from:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: The time from which the entitlement is active.
+          title: Active from
+          readOnly: true
+        active_to:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: |-
+            The time until which the entitlement is active. If not set, the entitlement is
+            active until deleted.
+          title: Active to
+          readOnly: true
+        created_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: The time the entitlement was created.
+          readOnly: true
+        updated_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: The time the entitlement was last updated.
+          readOnly: true
+        deleted_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: The time the entitlement was deleted.
+          readOnly: true
+        usage_period:
+          allOf:
+            - $ref: '#/components/schemas/RecurringPeriod'
+          description: |-
+            The usage period of the entitlement. The balance resets at the start of every
+            period.
+          title: Usage period
+          readOnly: true
+        current_usage_period:
+          allOf:
+            - $ref: '#/components/schemas/ClosedPeriod'
+          description: The current usage period of the entitlement.
+          title: Current usage period
+          readOnly: true
+        is_soft_limit:
+          type: boolean
+          description: |-
+            If true, the customer keeps access to the feature after the balance is
+            exhausted.
+          title: Soft limit
+          default: false
+        issue:
+          allOf:
+            - $ref: '#/components/schemas/BillingEntitlementIssueAfterReset'
+          description: Usage granted automatically after each reset. Cannot be combined with `grants`.
+          title: Issue after reset
+        issue_after_reset:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The amount granted automatically after each reset.
+          title: Initial grant amount
+          deprecated: true
+          example: '100'
+        issue_after_reset_priority:
+          type: integer
+          format: uint8
+          minimum: 1
+          maximum: 255
+          description: The priority of the grant created after each reset.
+          title: Issue grant after reset priority
+          deprecated: true
+          default: 1
+        preserve_overage_at_reset:
+          type: boolean
+          description: If true, the overage is preserved at reset. If false, the usage is reset to 0.
+          title: Preserve overage at reset
+          default: false
+        measure_usage_from:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: The time from which usage is measured.
+          title: Measure usage from
+          readOnly: true
+        last_reset:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: The time of the last reset.
+          title: Last reset
+          readOnly: true
+      additionalProperties: false
+      description: |-
+        A metered entitlement grants a usage allowance for a feature. Access is
+        determined by the balance: the allowance provided by grants is burnt down by
+        usage.
+    BillingEntitlementStatic:
+      type: object
+      required:
+        - id
+        - type
+        - feature
+        - customer
+        - active_from
+        - created_at
+        - updated_at
+        - config
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          readOnly: true
+        type:
+          type: string
+          enum:
+            - static
+          description: The type of the entitlement.
+          title: Type
+        feature:
+          allOf:
+            - $ref: '#/components/schemas/FeatureReference'
+          description: The feature the customer is entitled to use.
+          title: Feature
+        customer:
+          allOf:
+            - $ref: '#/components/schemas/CustomerReference'
+          description: The customer the entitlement belongs to.
+          title: Customer
+          readOnly: true
+        labels:
+          allOf:
+            - $ref: '#/components/schemas/Labels'
+          title: Labels
+        usage_period:
+          allOf:
+            - $ref: '#/components/schemas/RecurringPeriod'
+          description: The usage period of the entitlement.
+          title: Usage period
+          readOnly: true
+        current_usage_period:
+          allOf:
+            - $ref: '#/components/schemas/ClosedPeriod'
+          description: The current usage period of the entitlement.
+          title: Current usage period
+          readOnly: true
+        active_from:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: The time from which the entitlement is active.
+          title: Active from
+          readOnly: true
+        active_to:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: |-
+            The time until which the entitlement is active. If not set, the entitlement is
+            active until deleted.
+          title: Active to
+          readOnly: true
+        created_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: The time the entitlement was created.
+          readOnly: true
+        updated_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: The time the entitlement was last updated.
+          readOnly: true
+        deleted_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: The time the entitlement was deleted.
+          readOnly: true
+        config:
+          description: |-
+            The entitlement configuration as a JSON value. Returned when checking
+            entitlement access.
+          title: Config
+          example:
+            integrations:
+              - github
+          x-go-type: json.RawMessage
+      additionalProperties: false
+      description: A static entitlement grants access to a feature together with a configuration.
     BillingEntitlementType:
       type: string
       enum:
@@ -7570,6 +9663,48 @@ components:
         - static
         - boolean
       description: The type of the entitlement.
+    BillingEntitlementValueResult:
+      type: object
+      required:
+        - type
+        - feature_key
+        - has_access
+      properties:
+        type:
+          allOf:
+            - $ref: '#/components/schemas/BillingEntitlementType'
+          description: The type of the entitlement.
+          example: static
+          readOnly: true
+        feature_key:
+          allOf:
+            - $ref: '#/components/schemas/ResourceKey'
+          description: The feature key being evaluated.
+          example: available_models
+          readOnly: true
+        has_access:
+          type: boolean
+          description: |-
+            Whether the customer has access to the feature. Always true for `boolean` and
+            `static` entitlements. Depends on balance for `metered` entitlements.
+          example: true
+          readOnly: true
+        config:
+          type: string
+          description: |-
+            Only available for static entitlements. Config is the JSON parsable
+            configuration of the entitlement. Useful to describe per customer configuration.
+          example: '{ "availableModels": ["gpt-5", "gpt-4o"] }'
+          readOnly: true
+        value:
+          allOf:
+            - $ref: '#/components/schemas/BillingEntitlementAccessValue'
+          description: |-
+            Only available for metered entitlements. The balance details of the entitlement
+            at the evaluation time. Requires the `value` expand.
+          readOnly: true
+      additionalProperties: false
+      description: Entitlement value result.
     BillingFeatureLLMTokenType:
       type: string
       enum:
@@ -7724,10 +9859,10 @@ components:
         create_billing_profile:
           type: boolean
           description: |-
-            If true, a billing profile will be created for the app. The Stripe app will be
-            also set as the default billing profile if the current default is a Sandbox app.
+            If true, creates the Auto Collection preset with an OpenMeter supplier in the US
+            (postal code 94114), without replacing the default profile.
       additionalProperties: false
-      description: Base model for installing an app from the catalog.
+      description: Model for installing an External Invoicing app from the catalog.
     BillingInstallAppRequest:
       type: object
       oneOf:
@@ -7861,6 +9996,13 @@ components:
           allOf:
             - $ref: '#/components/schemas/BillingAppStatus'
           description: Status of the app connection.
+        actions:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingAppAction'
+          description: |-
+            Actions the operator should take to bring the app up to date. Omitted when no
+            action is required.
         enable_draft_sync_hook:
           type: boolean
           description: |-
@@ -7948,6 +10090,13 @@ components:
           allOf:
             - $ref: '#/components/schemas/BillingAppStatus'
           description: Status of the app connection.
+        actions:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingAppAction'
+          description: |-
+            Actions the operator should take to bring the app up to date. Omitted when no
+            action is required.
         default_for_capability_types:
           type: array
           items:
@@ -8014,6 +10163,13 @@ components:
           allOf:
             - $ref: '#/components/schemas/BillingAppStatus'
           description: Status of the app connection.
+        actions:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingAppAction'
+          description: |-
+            Actions the operator should take to bring the app up to date. Omitted when no
+            action is required.
         account_id:
           type: string
           description: The Stripe account ID associated with the connected Stripe account.
@@ -8376,7 +10532,7 @@ components:
           title: Price
         tax_config:
           allOf:
-            - $ref: '#/components/schemas/BillingRateCardTaxConfig'
+            - $ref: '#/components/schemas/TaxCodeConfig'
           description: Tax configuration snapshot for this line.
           title: Tax config
         feature_key:
@@ -8970,6 +11126,1049 @@ components:
         - `system`: The resource lifecycle is controlled by OpenMeter.
         - `manual`: The resource lifecycle was manually overridden by the API user.
       title: Lifecycle controller
+    BillingNotificationBalanceThreshold:
+      type: object
+      required:
+        - type
+        - value
+      properties:
+        type:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationBalanceThresholdType'
+          description: What the threshold value is measured against.
+        value:
+          type: number
+          format: double
+          description: The threshold value.
+      additionalProperties: false
+      description: |-
+        A balance threshold of a notification rule. Crossing it generates an
+        `entitlements.balance.threshold` event.
+    BillingNotificationBalanceThresholdType:
+      type: string
+      enum:
+        - balance_value
+        - usage_percentage
+        - usage_value
+      description: What a balance threshold is measured against.
+    BillingNotificationChannel:
+      type: object
+      required:
+        - id
+        - name
+        - created_at
+        - updated_at
+        - type
+        - url
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          readOnly: true
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        created_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity creation date.
+          readOnly: true
+        updated_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity last update date.
+          readOnly: true
+        deleted_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity deletion date.
+          readOnly: true
+        type:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationChannelType'
+          description: The type of the channel. Immutable after creation.
+        disabled:
+          type: boolean
+          description: |-
+            Whether the channel is disabled. Disabled channels do not receive notification
+            events.
+          default: false
+        url:
+          type: string
+          description: The URL that webhook notification events are delivered to.
+        custom_headers:
+          type: object
+          additionalProperties:
+            type: string
+          description: |-
+            Custom HTTP headers to include on every webhook delivery request, keyed by
+            header name.
+        signing_secret:
+          type: string
+          description: |-
+            Secret used to sign outgoing webhook payloads so recipients can verify their
+            authenticity. If omitted on create, a secret is generated automatically by the
+            delivery provider. This is a sensitive credential returned in responses (unlike
+            most secrets) specifically so clients can retrieve a server-generated value and
+            verify webhook signatures; handle it with the same care as any other credential.
+      additionalProperties: false
+      description: |-
+        A notification channel delivers notification events, such as entitlement balance
+        threshold crossings, to an external system. Today the only supported channel
+        type is a webhook delivered via Svix.
+    BillingNotificationChannelType:
+      type: string
+      enum:
+        - webhook
+      description: |-
+        The type of a notification channel.
+
+        Currently the only supported channel type is `webhook`; the domain model
+        anticipates additional channel types (e.g. email, Slack) in the future, so this
+        is modeled as an enum rather than a boolean/constant even though it has a single
+        member today.
+    BillingNotificationEvent:
+      type: object
+      required:
+        - id
+        - type
+        - created_at
+        - rule
+        - delivery_status
+        - payload
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: The unique identifier of the event.
+          readOnly: true
+        type:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventType'
+          description: The type of the event.
+          readOnly: true
+        created_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: When the event was generated.
+          readOnly: true
+        rule:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationRuleReference'
+          description: The rule that generated the event.
+          readOnly: true
+        delivery_status:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingNotificationEventDeliveryStatus'
+          description: The delivery status of the event, one entry per channel of the rule.
+          readOnly: true
+        payload:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventPayload'
+          description: The payload delivered to the channels.
+          readOnly: true
+      additionalProperties: false
+      description: |-
+        A notification event records that a notification rule fired and tracks the
+        delivery of its payload to each channel of the rule. Events are created by the
+        system and cannot be modified.
+    BillingNotificationEventBalanceThresholdData:
+      type: object
+      required:
+        - entitlement_id
+        - feature
+        - subject_key
+        - value
+        - threshold
+      properties:
+        entitlement_id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: The identifier of the entitlement that triggered the event.
+          readOnly: true
+        feature:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventFeatureReference'
+          description: The feature the entitlement grants access to.
+          readOnly: true
+        subject_key:
+          type: string
+          description: The key of the subject the entitlement belongs to.
+          readOnly: true
+        customer_id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: The identifier of the customer the subject belongs to, if any.
+          readOnly: true
+        value:
+          allOf:
+            - $ref: '#/components/schemas/BillingEntitlementValueResult'
+          description: The entitlement value at the time the event was generated.
+          readOnly: true
+        threshold:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationBalanceThreshold'
+          description: The threshold the balance crossed.
+          readOnly: true
+      additionalProperties: false
+      description: The entities and threshold a balance threshold event refers to.
+    BillingNotificationEventBalanceThresholdPayload:
+      type: object
+      required:
+        - id
+        - type
+        - timestamp
+        - data
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: The identifier of the event the payload belongs to.
+          readOnly: true
+        type:
+          type: string
+          enum:
+            - entitlements.balance.threshold
+          description: The type of the event.
+          readOnly: true
+        timestamp:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: When the event was generated.
+          readOnly: true
+        data:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventBalanceThresholdData'
+          description: The entities and threshold the event refers to.
+          readOnly: true
+      additionalProperties: false
+      description: A balance threshold notification event payload.
+    BillingNotificationEventDeliveryAttempt:
+      type: object
+      required:
+        - state
+        - response
+        - timestamp
+      properties:
+        state:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventDeliveryState'
+          description: The delivery state reached by this attempt.
+          readOnly: true
+        response:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventDeliveryAttemptResponse'
+          description: The response returned by the recipient.
+          readOnly: true
+        timestamp:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: When the attempt was made.
+          readOnly: true
+      additionalProperties: false
+      description: A single delivery attempt to a channel.
+    BillingNotificationEventDeliveryAttemptResponse:
+      type: object
+      required:
+        - body
+        - duration_ms
+      properties:
+        status_code:
+          type: integer
+          format: int32
+          description: |-
+            The HTTP status code returned by the recipient. Absent when no response was
+            received.
+          readOnly: true
+        body:
+          type: string
+          description: The response body returned by the recipient. Empty when no body was received.
+          readOnly: true
+        duration_ms:
+          type: integer
+          format: int64
+          description: How long the delivery attempt took, in milliseconds.
+          readOnly: true
+        url:
+          type: string
+          description: The URL the event was delivered to. Only set for webhook channels.
+          readOnly: true
+      additionalProperties: false
+      description: |-
+        The response the recipient returned for a delivery attempt. For webhook channels
+        this is the HTTP response.
+    BillingNotificationEventDeliveryState:
+      type: string
+      enum:
+        - success
+        - failed
+        - sending
+        - pending
+        - resending
+      description: The delivery state of a notification event for a single channel.
+    BillingNotificationEventDeliveryStatus:
+      type: object
+      required:
+        - channel_id
+        - state
+        - reason
+        - updated_at
+        - attempts
+      properties:
+        channel_id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: The identifier of the channel this delivery status belongs to.
+          readOnly: true
+        state:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventDeliveryState'
+          description: The current delivery state.
+          readOnly: true
+        reason:
+          type: string
+          description: The reason for the last state change. Empty for successful deliveries.
+          readOnly: true
+        updated_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: When the delivery state was last updated.
+          readOnly: true
+        next_attempt:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: |-
+            When the next delivery attempt is scheduled. Absent when no further attempts
+            will be made.
+          readOnly: true
+        attempts:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingNotificationEventDeliveryAttempt'
+          description: The delivery attempts made so far, most recent first.
+          readOnly: true
+      additionalProperties: false
+      description: |-
+        The delivery status of a notification event for one channel of the generating
+        rule.
+    BillingNotificationEventEntitlementData:
+      type: object
+      required:
+        - entitlement_id
+        - feature
+        - subject_key
+        - value
+      properties:
+        entitlement_id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: The identifier of the entitlement that triggered the event.
+          readOnly: true
+        feature:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventFeatureReference'
+          description: The feature the entitlement grants access to.
+          readOnly: true
+        subject_key:
+          type: string
+          description: The key of the subject the entitlement belongs to.
+          readOnly: true
+        customer_id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: The identifier of the customer the subject belongs to, if any.
+          readOnly: true
+        value:
+          allOf:
+            - $ref: '#/components/schemas/BillingEntitlementValueResult'
+          description: The entitlement value at the time the event was generated.
+          readOnly: true
+      additionalProperties: false
+      description: |-
+        The entitlement, feature, and subject an entitlement notification event refers
+        to.
+    BillingNotificationEventFeatureReference:
+      type: object
+      required:
+        - id
+        - key
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: The unique identifier of the feature.
+          readOnly: true
+        key:
+          type: string
+          description: The immutable key of the feature.
+          readOnly: true
+      additionalProperties: false
+      description: A reference to the feature of an entitlement notification event.
+    BillingNotificationEventInvoiceCreatedPayload:
+      type: object
+      required:
+        - id
+        - type
+        - timestamp
+        - data
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: The identifier of the event the payload belongs to.
+          readOnly: true
+        type:
+          type: string
+          enum:
+            - invoice.created
+          description: The type of the event.
+          readOnly: true
+        timestamp:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: When the event was generated.
+          readOnly: true
+        data:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventInvoiceData'
+          description: The invoice the event refers to.
+          readOnly: true
+      additionalProperties: false
+      description: An invoice created notification event payload.
+    BillingNotificationEventInvoiceData:
+      type: object
+      required:
+        - invoice
+        - currency
+        - status
+        - total
+      properties:
+        invoice:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventInvoiceReference'
+          description: The invoice the event was generated for.
+          readOnly: true
+        customer_id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: The identifier of the customer the invoice was issued to.
+          readOnly: true
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          description: The currency the invoice is denominated in.
+          readOnly: true
+        status:
+          type: string
+          description: The status of the invoice at the time the event was generated.
+          readOnly: true
+        total:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The invoice total, including taxes, at the time the event was generated.
+          readOnly: true
+      additionalProperties: false
+      description: The invoice an invoice notification event refers to.
+    BillingNotificationEventInvoiceReference:
+      type: object
+      required:
+        - id
+        - number
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: The unique identifier of the invoice.
+          readOnly: true
+        number:
+          type: string
+          description: The human-readable invoice number.
+          readOnly: true
+      additionalProperties: false
+      description: A reference to the invoice of an invoice notification event.
+    BillingNotificationEventInvoiceUpdatedPayload:
+      type: object
+      required:
+        - id
+        - type
+        - timestamp
+        - data
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: The identifier of the event the payload belongs to.
+          readOnly: true
+        type:
+          type: string
+          enum:
+            - invoice.updated
+          description: The type of the event.
+          readOnly: true
+        timestamp:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: When the event was generated.
+          readOnly: true
+        data:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventInvoiceData'
+          description: The invoice the event refers to.
+          readOnly: true
+      additionalProperties: false
+      description: An invoice updated notification event payload.
+    BillingNotificationEventPayload:
+      type: object
+      oneOf:
+        - $ref: '#/components/schemas/BillingNotificationEventBalanceThresholdPayload'
+        - $ref: '#/components/schemas/BillingNotificationEventResetPayload'
+        - $ref: '#/components/schemas/BillingNotificationEventInvoiceCreatedPayload'
+        - $ref: '#/components/schemas/BillingNotificationEventInvoiceUpdatedPayload'
+      discriminator:
+        propertyName: type
+        mapping:
+          entitlements.balance.threshold: '#/components/schemas/BillingNotificationEventBalanceThresholdPayload'
+          entitlements.reset: '#/components/schemas/BillingNotificationEventResetPayload'
+          invoice.created: '#/components/schemas/BillingNotificationEventInvoiceCreatedPayload'
+          invoice.updated: '#/components/schemas/BillingNotificationEventInvoiceUpdatedPayload'
+      description: The payload delivered to the channels, discriminated by the event type.
+    BillingNotificationEventResetPayload:
+      type: object
+      required:
+        - id
+        - type
+        - timestamp
+        - data
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: The identifier of the event the payload belongs to.
+          readOnly: true
+        type:
+          type: string
+          enum:
+            - entitlements.reset
+          description: The type of the event.
+          readOnly: true
+        timestamp:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: When the event was generated.
+          readOnly: true
+        data:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventEntitlementData'
+          description: The entities the event refers to.
+          readOnly: true
+      additionalProperties: false
+      description: An entitlement reset notification event payload.
+    BillingNotificationEventType:
+      type: string
+      enum:
+        - entitlements.balance.threshold
+        - entitlements.reset
+        - invoice.created
+        - invoice.updated
+      description: |-
+        The type of a notification event. It determines which payload variant the event
+        carries.
+    BillingNotificationRule:
+      type: object
+      oneOf:
+        - $ref: '#/components/schemas/BillingNotificationRuleBalanceThreshold'
+        - $ref: '#/components/schemas/BillingNotificationRuleEntitlementReset'
+        - $ref: '#/components/schemas/BillingNotificationRuleInvoiceCreated'
+        - $ref: '#/components/schemas/BillingNotificationRuleInvoiceUpdated'
+      discriminator:
+        propertyName: type
+        mapping:
+          entitlements.balance.threshold: '#/components/schemas/BillingNotificationRuleBalanceThreshold'
+          entitlements.reset: '#/components/schemas/BillingNotificationRuleEntitlementReset'
+          invoice.created: '#/components/schemas/BillingNotificationRuleInvoiceCreated'
+          invoice.updated: '#/components/schemas/BillingNotificationRuleInvoiceUpdated'
+      description: |-
+        A notification rule selects the type of event to generate, the conditions
+        specific to that type, and the channels to deliver the events to.
+    BillingNotificationRuleBalanceThreshold:
+      type: object
+      required:
+        - id
+        - name
+        - created_at
+        - updated_at
+        - type
+        - channels
+        - thresholds
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          readOnly: true
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        created_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity creation date.
+          readOnly: true
+        updated_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity last update date.
+          readOnly: true
+        deleted_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity deletion date.
+          readOnly: true
+        type:
+          type: string
+          enum:
+            - entitlements.balance.threshold
+          description: The type of event the rule generates. Immutable after creation.
+        disabled:
+          type: boolean
+          description: Whether the rule is disabled. Disabled rules do not generate events.
+          default: false
+        channels:
+          type: array
+          items:
+            $ref: '#/components/schemas/NotificationChannelReference'
+          maxItems: 5
+          description: |-
+            The channels the rule delivers its events to. At least one and at most five
+            channels are required. Responses omit channels that have since been disabled or
+            deleted.
+        thresholds:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingNotificationBalanceThreshold'
+          minItems: 1
+          maxItems: 10
+          description: The thresholds that generate an event when crossed.
+        features:
+          type: array
+          items:
+            $ref: '#/components/schemas/FeatureReference'
+          description: |-
+            The features the rule applies to. When omitted, the rule applies to every
+            feature.
+      additionalProperties: false
+      description: |-
+        A rule that generates an event when an entitlement balance crosses one of its
+        thresholds.
+    BillingNotificationRuleBalanceThresholdRequest:
+      type: object
+      required:
+        - name
+        - type
+        - channels
+        - thresholds
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        type:
+          type: string
+          enum:
+            - entitlements.balance.threshold
+          description: The type of event the rule generates. Immutable after creation.
+        disabled:
+          type: boolean
+          description: Whether the rule is disabled. Disabled rules do not generate events.
+          default: false
+        channels:
+          type: array
+          items:
+            $ref: '#/components/schemas/NotificationChannelReference'
+          maxItems: 5
+          description: |-
+            The channels the rule delivers its events to. At least one and at most five
+            channels are required. Responses omit channels that have since been disabled or
+            deleted.
+        thresholds:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingNotificationBalanceThreshold'
+          minItems: 1
+          maxItems: 10
+          description: The thresholds that generate an event when crossed.
+        features:
+          type: array
+          items:
+            $ref: '#/components/schemas/FeatureReference'
+          description: |-
+            The features the rule applies to. When omitted, the rule applies to every
+            feature.
+      additionalProperties: false
+      description: Request body for a balance threshold rule.
+    BillingNotificationRuleEntitlementReset:
+      type: object
+      required:
+        - id
+        - name
+        - created_at
+        - updated_at
+        - type
+        - channels
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          readOnly: true
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        created_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity creation date.
+          readOnly: true
+        updated_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity last update date.
+          readOnly: true
+        deleted_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity deletion date.
+          readOnly: true
+        type:
+          type: string
+          enum:
+            - entitlements.reset
+          description: The type of event the rule generates. Immutable after creation.
+        disabled:
+          type: boolean
+          description: Whether the rule is disabled. Disabled rules do not generate events.
+          default: false
+        channels:
+          type: array
+          items:
+            $ref: '#/components/schemas/NotificationChannelReference'
+          maxItems: 5
+          description: |-
+            The channels the rule delivers its events to. At least one and at most five
+            channels are required. Responses omit channels that have since been disabled or
+            deleted.
+        features:
+          type: array
+          items:
+            $ref: '#/components/schemas/FeatureReference'
+          description: |-
+            The features the rule applies to. When omitted, the rule applies to every
+            feature.
+      additionalProperties: false
+      description: A rule that generates an event when an entitlement usage period is reset.
+    BillingNotificationRuleEntitlementResetRequest:
+      type: object
+      required:
+        - name
+        - type
+        - channels
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        type:
+          type: string
+          enum:
+            - entitlements.reset
+          description: The type of event the rule generates. Immutable after creation.
+        disabled:
+          type: boolean
+          description: Whether the rule is disabled. Disabled rules do not generate events.
+          default: false
+        channels:
+          type: array
+          items:
+            $ref: '#/components/schemas/NotificationChannelReference'
+          maxItems: 5
+          description: |-
+            The channels the rule delivers its events to. At least one and at most five
+            channels are required. Responses omit channels that have since been disabled or
+            deleted.
+        features:
+          type: array
+          items:
+            $ref: '#/components/schemas/FeatureReference'
+          description: |-
+            The features the rule applies to. When omitted, the rule applies to every
+            feature.
+      additionalProperties: false
+      description: Request body for an entitlement reset rule.
+    BillingNotificationRuleInvoiceCreated:
+      type: object
+      required:
+        - id
+        - name
+        - created_at
+        - updated_at
+        - type
+        - channels
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          readOnly: true
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        created_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity creation date.
+          readOnly: true
+        updated_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity last update date.
+          readOnly: true
+        deleted_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity deletion date.
+          readOnly: true
+        type:
+          type: string
+          enum:
+            - invoice.created
+          description: The type of event the rule generates. Immutable after creation.
+        disabled:
+          type: boolean
+          description: Whether the rule is disabled. Disabled rules do not generate events.
+          default: false
+        channels:
+          type: array
+          items:
+            $ref: '#/components/schemas/NotificationChannelReference'
+          maxItems: 5
+          description: |-
+            The channels the rule delivers its events to. At least one and at most five
+            channels are required. Responses omit channels that have since been disabled or
+            deleted.
+      additionalProperties: false
+      description: A rule that generates an event when an invoice is created.
+    BillingNotificationRuleInvoiceCreatedRequest:
+      type: object
+      required:
+        - name
+        - type
+        - channels
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        type:
+          type: string
+          enum:
+            - invoice.created
+          description: The type of event the rule generates. Immutable after creation.
+        disabled:
+          type: boolean
+          description: Whether the rule is disabled. Disabled rules do not generate events.
+          default: false
+        channels:
+          type: array
+          items:
+            $ref: '#/components/schemas/NotificationChannelReference'
+          maxItems: 5
+          description: |-
+            The channels the rule delivers its events to. At least one and at most five
+            channels are required. Responses omit channels that have since been disabled or
+            deleted.
+      additionalProperties: false
+      description: Request body for an invoice created rule.
+    BillingNotificationRuleInvoiceUpdated:
+      type: object
+      required:
+        - id
+        - name
+        - created_at
+        - updated_at
+        - type
+        - channels
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          readOnly: true
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        created_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity creation date.
+          readOnly: true
+        updated_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity last update date.
+          readOnly: true
+        deleted_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity deletion date.
+          readOnly: true
+        type:
+          type: string
+          enum:
+            - invoice.updated
+          description: The type of event the rule generates. Immutable after creation.
+        disabled:
+          type: boolean
+          description: Whether the rule is disabled. Disabled rules do not generate events.
+          default: false
+        channels:
+          type: array
+          items:
+            $ref: '#/components/schemas/NotificationChannelReference'
+          maxItems: 5
+          description: |-
+            The channels the rule delivers its events to. At least one and at most five
+            channels are required. Responses omit channels that have since been disabled or
+            deleted.
+      additionalProperties: false
+      description: A rule that generates an event when an invoice is updated.
+    BillingNotificationRuleInvoiceUpdatedRequest:
+      type: object
+      required:
+        - name
+        - type
+        - channels
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        type:
+          type: string
+          enum:
+            - invoice.updated
+          description: The type of event the rule generates. Immutable after creation.
+        disabled:
+          type: boolean
+          description: Whether the rule is disabled. Disabled rules do not generate events.
+          default: false
+        channels:
+          type: array
+          items:
+            $ref: '#/components/schemas/NotificationChannelReference'
+          maxItems: 5
+          description: |-
+            The channels the rule delivers its events to. At least one and at most five
+            channels are required. Responses omit channels that have since been disabled or
+            deleted.
+      additionalProperties: false
+      description: Request body for an invoice updated rule.
+    BillingNotificationRuleReference:
+      type: object
+      required:
+        - id
+        - type
+        - name
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: The unique identifier of the rule.
+          readOnly: true
+        type:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventType'
+          description: The type of event the rule generates.
+          readOnly: true
+        name:
+          type: string
+          description: The user-provided name of the rule.
+          readOnly: true
+      additionalProperties: false
+      description: A reference to the notification rule that generated an event.
+    BillingNotificationRuleRequest:
+      type: object
+      oneOf:
+        - $ref: '#/components/schemas/BillingNotificationRuleBalanceThresholdRequest'
+        - $ref: '#/components/schemas/BillingNotificationRuleEntitlementResetRequest'
+        - $ref: '#/components/schemas/BillingNotificationRuleInvoiceCreatedRequest'
+        - $ref: '#/components/schemas/BillingNotificationRuleInvoiceUpdatedRequest'
+      discriminator:
+        propertyName: type
+        mapping:
+          entitlements.balance.threshold: '#/components/schemas/BillingNotificationRuleBalanceThresholdRequest'
+          entitlements.reset: '#/components/schemas/BillingNotificationRuleEntitlementResetRequest'
+          invoice.created: '#/components/schemas/BillingNotificationRuleInvoiceCreatedRequest'
+          invoice.updated: '#/components/schemas/BillingNotificationRuleInvoiceUpdatedRequest'
+      description: |-
+        Request body for creating or updating a notification rule. Updates replace the
+        rule's mutable state: omitting `disabled`, `labels`, or `features` resets them
+        to their defaults. The `type` must match the existing rule on update.
     BillingParty:
       type: object
       properties:
@@ -9598,7 +12797,7 @@ components:
           title: Discounts
         tax_config:
           allOf:
-            - $ref: '#/components/schemas/BillingRateCardTaxConfig'
+            - $ref: '#/components/schemas/TaxCodeConfig'
           description: The tax config of the rate card.
           title: Tax config
         entitlement:
@@ -9737,17 +12936,6 @@ components:
           title: Config
       additionalProperties: false
       description: The entitlement template of a static entitlement.
-    BillingRateCardTaxConfig:
-      type: object
-      required:
-        - code
-      properties:
-        behavior:
-          $ref: '#/components/schemas/BillingTaxBehavior'
-        code:
-          $ref: '#/components/schemas/TaxCodeReference'
-      additionalProperties: false
-      description: The tax config of the rate card.
     BillingSettlementMode:
       type: string
       enum:
@@ -11654,6 +14842,22 @@ components:
       additionalProperties: false
       description: Tax settings for a billing workflow.
       title: Workflow tax settings
+    BooleanFieldFilter:
+      anyOf:
+        - type: boolean
+        - type: object
+          properties:
+            eq:
+              type: boolean
+              description: Value strictly equals the given boolean value.
+          required:
+            - eq
+          additionalProperties: false
+      description: Filter by a boolean value (true/false).
+      title: Boolean Field Filter
+      x-go-type-import:
+        path: github.com/openmeterio/openmeter/api/v3/filters
+      x-go-type: filters.FilterBoolean
     ChargePagePaginatedResponse:
       type: object
       required:
@@ -12229,8 +15433,31 @@ components:
           example:
             - input_tokens
             - output_tokens
+        plans:
+          type: array
+          items:
+            $ref: '#/components/schemas/CreateCreditGrantPlanFilter'
+          description: |-
+            Limit credits to charges from these plans. Entries are alternatives; when
+            features are also specified, both dimensions must match. Omission or an empty
+            list leaves plans unrestricted.
       additionalProperties: false
       description: Filters for the credit grant.
+    CreateCreditGrantPlanFilter:
+      type: object
+      required:
+        - key
+      properties:
+        key:
+          allOf:
+            - $ref: '#/components/schemas/ResourceKey'
+          description: The plan key in the customer's namespace.
+        version:
+          allOf:
+            - $ref: '#/components/schemas/CreateVersionFilter'
+          description: Omission matches all versions, including future versions.
+      additionalProperties: false
+      description: A plan key and an optional version constraint for matching credit grants.
     CreateCreditGrantPurchase:
       type: object
       required:
@@ -12329,7 +15556,7 @@ components:
           description: Present when a funding workflow applies (funding_method is not `none`).
         tax_config:
           allOf:
-            - $ref: '#/components/schemas/CreateCreditGrantTaxConfig'
+            - $ref: '#/components/schemas/CreateTaxCodeConfig'
           description: |-
             Tax configuration for the grant.
 
@@ -12371,24 +15598,6 @@ components:
             safe to retry. The same key may be reused across different customers.
       additionalProperties: false
       description: CreditGrant create request.
-    CreateCreditGrantTaxConfig:
-      type: object
-      properties:
-        behavior:
-          allOf:
-            - $ref: '#/components/schemas/BillingTaxBehavior'
-          description: Tax behavior applied to the invoice line item.
-        tax_code:
-          allOf:
-            - $ref: '#/components/schemas/CreateResourceReference'
-          description: Tax code applied to the invoice line item.
-      additionalProperties: false
-      description: |-
-        Tax configuration for a credit grant.
-
-        Tax configuration should be provided to ensure correct revenue recognition,
-        including for externally funded grants.
-      title: Tax configuration for a credit grant
     CreateCurrencyCode:
       oneOf:
         - $ref: '#/components/schemas/CurrencyCode'
@@ -12488,6 +15697,166 @@ components:
           title: Billing Address
       additionalProperties: false
       description: Customer create request.
+    CreateEntitlementBooleanRequest:
+      type: object
+      required:
+        - type
+        - feature
+      properties:
+        type:
+          type: string
+          enum:
+            - boolean
+          description: The type of the entitlement.
+          title: Type
+        feature:
+          allOf:
+            - $ref: '#/components/schemas/FeatureReference'
+          description: The feature the customer is entitled to use.
+          title: Feature
+        labels:
+          allOf:
+            - $ref: '#/components/schemas/Labels'
+          title: Labels
+        usage_period:
+          allOf:
+            - $ref: '#/components/schemas/RecurringPeriodInput'
+          description: |-
+            The usage period of the entitlement. The anchor defaults to the entitlement
+            creation time.
+          title: Usage period
+      additionalProperties: false
+      description: Boolean entitlement create request.
+    CreateEntitlementMeteredRequest:
+      type: object
+      required:
+        - type
+        - feature
+        - usage_period
+      properties:
+        type:
+          type: string
+          enum:
+            - metered
+          description: The type of the entitlement.
+          title: Type
+        feature:
+          allOf:
+            - $ref: '#/components/schemas/FeatureReference'
+          description: The feature the customer is entitled to use.
+          title: Feature
+        labels:
+          allOf:
+            - $ref: '#/components/schemas/Labels'
+          title: Labels
+        is_soft_limit:
+          type: boolean
+          description: |-
+            If true, the customer keeps access to the feature after the balance is
+            exhausted.
+          title: Soft limit
+          default: false
+        issue:
+          allOf:
+            - $ref: '#/components/schemas/BillingEntitlementIssueAfterReset'
+          description: Usage granted automatically after each reset. Cannot be combined with `grants`.
+          title: Issue after reset
+        issue_after_reset:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The amount granted automatically after each reset.
+          title: Initial grant amount
+          deprecated: true
+          example: '100'
+        issue_after_reset_priority:
+          type: integer
+          format: uint8
+          minimum: 1
+          maximum: 255
+          description: The priority of the grant created after each reset.
+          title: Issue grant after reset priority
+          deprecated: true
+          default: 1
+        preserve_overage_at_reset:
+          type: boolean
+          description: If true, the overage is preserved at reset. If false, the usage is reset to 0.
+          title: Preserve overage at reset
+          default: false
+        usage_period:
+          allOf:
+            - $ref: '#/components/schemas/RecurringPeriodInput'
+          description: |-
+            The usage period of the entitlement. The balance resets at the start of every
+            period. The anchor defaults to the entitlement creation time.
+          title: Usage period
+        measure_usage_from:
+          allOf:
+            - $ref: '#/components/schemas/BillingEntitlementMeasureUsageFrom'
+          description: |-
+            The time from which usage is measured. Defaults to the entitlement creation
+            time.
+          title: Measure usage from
+        grants:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingEntitlementGrantCreateRequest'
+          description: Grants created together with the entitlement. Cannot be combined with `issue`.
+          title: Grants
+      additionalProperties: false
+      description: Metered entitlement create request.
+    CreateEntitlementRequest:
+      type: object
+      oneOf:
+        - $ref: '#/components/schemas/CreateEntitlementMeteredRequest'
+        - $ref: '#/components/schemas/CreateEntitlementStaticRequest'
+        - $ref: '#/components/schemas/CreateEntitlementBooleanRequest'
+      discriminator:
+        propertyName: type
+        mapping:
+          metered: '#/components/schemas/CreateEntitlementMeteredRequest'
+          static: '#/components/schemas/CreateEntitlementStaticRequest'
+          boolean: '#/components/schemas/CreateEntitlementBooleanRequest'
+      description: Entitlement create request.
+    CreateEntitlementStaticRequest:
+      type: object
+      required:
+        - type
+        - feature
+        - config
+      properties:
+        type:
+          type: string
+          enum:
+            - static
+          description: The type of the entitlement.
+          title: Type
+        feature:
+          allOf:
+            - $ref: '#/components/schemas/FeatureReference'
+          description: The feature the customer is entitled to use.
+          title: Feature
+        labels:
+          allOf:
+            - $ref: '#/components/schemas/Labels'
+          title: Labels
+        config:
+          description: |-
+            The entitlement configuration as a JSON value. Returned when checking
+            entitlement access.
+          title: Config
+          example:
+            integrations:
+              - github
+          x-go-type: json.RawMessage
+        usage_period:
+          allOf:
+            - $ref: '#/components/schemas/RecurringPeriodInput'
+          description: |-
+            The usage period of the entitlement. The anchor defaults to the entitlement
+            creation time.
+          title: Usage period
+      additionalProperties: false
+      description: Static entitlement create request.
     CreateFeatureRequest:
       type: object
       required:
@@ -12597,6 +15966,53 @@ components:
             type: $.type
       additionalProperties: false
       description: Meter create request.
+    CreateNotificationChannelRequest:
+      type: object
+      required:
+        - name
+        - type
+        - url
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        type:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationChannelType'
+          description: The type of the channel. Immutable after creation.
+        disabled:
+          type: boolean
+          description: |-
+            Whether the channel is disabled. Disabled channels do not receive notification
+            events.
+          default: false
+        url:
+          type: string
+          description: The URL that webhook notification events are delivered to.
+        custom_headers:
+          type: object
+          additionalProperties:
+            type: string
+          description: |-
+            Custom HTTP headers to include on every webhook delivery request, keyed by
+            header name.
+        signing_secret:
+          type: string
+          description: |-
+            Secret used to sign outgoing webhook payloads so recipients can verify their
+            authenticity. If omitted on create, a secret is generated automatically by the
+            delivery provider. This is a sensitive credential returned in responses (unlike
+            most secrets) specifically so clients can retrieve a server-generated value and
+            verify webhook signatures; handle it with the same care as any other credential.
+      additionalProperties: false
+      description: NotificationChannel create request.
     CreatePlanAddonRequest:
       type: object
       required:
@@ -12746,6 +16162,33 @@ components:
           title: Timing
       additionalProperties: false
       description: SubscriptionAddon create request.
+    CreateTaxCodeConfig:
+      type: object
+      properties:
+        behavior:
+          allOf:
+            - $ref: '#/components/schemas/BillingTaxBehavior'
+          description: |-
+            Tax behavior.
+
+            This enum is used to specify whether tax is included in the price or excluded
+            from the price. If not specified, the billing profile is used to determine the
+            tax behavior. If not specified in the billing profile, the provider's default
+            behavior is used.
+          title: Tax behavior
+        code:
+          allOf:
+            - $ref: '#/components/schemas/CreateResourceReference'
+          description: Tax code applied to the invoice line item.
+          title: Tax code
+      additionalProperties: false
+      description: |-
+        Tax configuration for a billable resource.
+
+        Applies a tax code and tax behavior to the resulting invoice line items. When
+        not set, the applicable default is used: the billing profile default tax
+        configuration, then the organization default tax code.
+      title: Tax code configuration
     CreateTaxCodeRequest:
       type: object
       required:
@@ -12780,6 +16223,34 @@ components:
           title: App type to tax code mappings
       additionalProperties: false
       description: TaxCode create request.
+    CreateVersionFilter:
+      type: object
+      properties:
+        eq:
+          type: integer
+          format: int32
+          minimum: 1
+          description: Match this exact version.
+        oeq:
+          type: array
+          items:
+            type: integer
+            format: int32
+          minItems: 1
+          maxItems: 100
+          description: Match one of these versions.
+        gte:
+          type: integer
+          format: int32
+          minimum: 1
+          description: Match this version and later versions.
+        lte:
+          type: integer
+          format: int32
+          minimum: 1
+          description: Match this version and earlier versions.
+      additionalProperties: false
+      description: An integer version comparison. Exactly one operator must be provided.
     CreditBalance:
       type: object
       required:
@@ -12792,10 +16263,10 @@ components:
           allOf:
             - $ref: '#/components/schemas/BillingCurrencyCode'
           readOnly: true
-        custom_currency_id:
+        custom_currency:
           allOf:
-            - $ref: '#/components/schemas/ULID'
-          description: Immutable managed currency identifier. Present only for custom currencies.
+            - $ref: '#/components/schemas/CurrencyCustomReference'
+          description: Managed currency reference. Present only for custom currencies.
           readOnly: true
         live:
           allOf:
@@ -12862,6 +16333,15 @@ components:
         currency code. Custom three-letter currency codes are also supported for
         convenience.
       example: USD
+    CurrencyCustomReference:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          $ref: '#/components/schemas/ULID'
+      additionalProperties: false
+      description: CurrencyCustom reference.
     CurrencyPagePaginatedResponse:
       type: object
       required:
@@ -13194,6 +16674,34 @@ components:
         - feature_not_found
         - no_credit_available
       description: Machine-readable reason code for denied feature access.
+    EntitlementGrantPagePaginatedResponse:
+      type: object
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingEntitlementGrant'
+        meta:
+          $ref: '#/components/schemas/PaginatedMeta'
+      additionalProperties: false
+      description: Page paginated response.
+    EntitlementPagePaginatedResponse:
+      type: object
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingEntitlement'
+        meta:
+          $ref: '#/components/schemas/PaginatedMeta'
+      additionalProperties: false
+      description: Page paginated response.
     ExternalResourceKey:
       type: string
       minLength: 1
@@ -13780,11 +17288,28 @@ components:
         data:
           type: array
           items:
-            $ref: '#/components/schemas/BillingEntitlementAccessResult'
+            $ref: '#/components/schemas/BillingEntitlementValueResult'
           description: The list of entitlement access results.
           readOnly: true
       additionalProperties: false
       description: List customer entitlement access response data.
+    ListCustomerEntitlementsParamsFilter:
+      type: object
+      properties:
+        feature_id:
+          allOf:
+            - $ref: '#/components/schemas/ULIDFieldFilter'
+          description: Filter entitlements by feature ID.
+        feature_key:
+          allOf:
+            - $ref: '#/components/schemas/StringFieldFilterExact'
+          description: Filter entitlements by feature key.
+        type:
+          allOf:
+            - $ref: '#/components/schemas/StringFieldFilterExact'
+          description: Filter entitlements by type (`metered`, `static` or `boolean`).
+      additionalProperties: false
+      description: Filter options for listing customer entitlements.
     ListCustomersParamsFilter:
       type: object
       properties:
@@ -13802,6 +17327,27 @@ components:
           $ref: '#/components/schemas/ULIDFieldFilter'
       additionalProperties: false
       description: Filter options for listing customers.
+    ListEntitlementsParamsFilter:
+      type: object
+      properties:
+        feature_id:
+          allOf:
+            - $ref: '#/components/schemas/ULIDFieldFilter'
+          description: Filter entitlements by feature ID.
+        feature_key:
+          allOf:
+            - $ref: '#/components/schemas/StringFieldFilterExact'
+          description: Filter entitlements by feature key.
+        type:
+          allOf:
+            - $ref: '#/components/schemas/StringFieldFilterExact'
+          description: Filter entitlements by type (`metered`, `static` or `boolean`).
+        customer_id:
+          allOf:
+            - $ref: '#/components/schemas/ULIDFieldFilter'
+          description: Filter entitlements by customer ID.
+      additionalProperties: false
+      description: Filter options for listing entitlements.
     ListEventsParamsFilter:
       type: object
       properties:
@@ -13850,6 +17396,19 @@ components:
           $ref: '#/components/schemas/StringFieldFilter'
       additionalProperties: false
       description: Filter options for listing features.
+    ListGrantsParamsFilter:
+      type: object
+      properties:
+        customer_id:
+          allOf:
+            - $ref: '#/components/schemas/ULIDFieldFilter'
+          description: Filter grants by the ID of the customer that owns the entitlement.
+        feature_id:
+          allOf:
+            - $ref: '#/components/schemas/ULIDFieldFilter'
+          description: Filter grants by the ID of the entitlement's feature.
+      additionalProperties: false
+      description: Filter options for listing grants.
     ListInvoicesParamsFilter:
       type: object
       properties:
@@ -13913,6 +17472,95 @@ components:
           description: Filter meters by name.
       additionalProperties: false
       description: Filter options for listing meters.
+    ListNotificationChannelsParamsFilter:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/ULIDFieldFilter'
+        name:
+          $ref: '#/components/schemas/StringFieldFilter'
+        type:
+          $ref: '#/components/schemas/StringFieldFilterExact'
+        disabled:
+          $ref: '#/components/schemas/BooleanFieldFilter'
+        created_at:
+          $ref: '#/components/schemas/DateTimeFieldFilter'
+        updated_at:
+          $ref: '#/components/schemas/DateTimeFieldFilter'
+      additionalProperties: false
+      description: Filter options for listing notification channels.
+    ListNotificationEventsParamsFilter:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/ULIDFieldFilter'
+        type:
+          $ref: '#/components/schemas/StringFieldFilterExact'
+        created_at:
+          $ref: '#/components/schemas/DateTimeFieldFilter'
+        rule_id:
+          $ref: '#/components/schemas/ULIDFieldFilter'
+        channel_id:
+          allOf:
+            - $ref: '#/components/schemas/ULIDFieldFilter'
+          description: |-
+            Filter by a channel of the generating rule. Matches events whose rule targets at
+            least one of the given channels. Only `eq` and `oeq` are supported.
+        delivery_status:
+          allOf:
+            - $ref: '#/components/schemas/StringFieldFilterExact'
+          description: |-
+            Filter by delivery state. Matches events where delivery to at least one channel
+            is in one of the given states. Only `eq` and `oeq` are supported.
+        subject_key:
+          allOf:
+            - $ref: '#/components/schemas/StringFieldFilterExact'
+          description: |-
+            Filter by the key of the subject the event refers to. Events without a subject
+            never match, not even with `neq`.
+        subject_id:
+          allOf:
+            - $ref: '#/components/schemas/ULIDFieldFilter'
+          description: |-
+            Filter by the id of the subject the event refers to. Events without a subject
+            never match, not even with `neq`.
+        feature_key:
+          allOf:
+            - $ref: '#/components/schemas/StringFieldFilterExact'
+          description: |-
+            Filter by the key of the feature the event refers to. Events without a feature
+            never match, not even with `neq`.
+        feature_id:
+          allOf:
+            - $ref: '#/components/schemas/ULIDFieldFilter'
+          description: |-
+            Filter by the id of the feature the event refers to. Events without a feature
+            never match, not even with `neq`.
+      additionalProperties: false
+      description: Filter options for listing notification events.
+    ListNotificationRulesParamsFilter:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/ULIDFieldFilter'
+        name:
+          $ref: '#/components/schemas/StringFieldFilter'
+        type:
+          $ref: '#/components/schemas/StringFieldFilterExact'
+        disabled:
+          $ref: '#/components/schemas/BooleanFieldFilter'
+        created_at:
+          $ref: '#/components/schemas/DateTimeFieldFilter'
+        updated_at:
+          $ref: '#/components/schemas/DateTimeFieldFilter'
+        channel_id:
+          allOf:
+            - $ref: '#/components/schemas/ULIDFieldFilter'
+          description: |-
+            Filter by an assigned channel. Matches rules that deliver to at least one of the
+            given channels. Only `eq` and `oeq` are supported.
+      additionalProperties: false
+      description: Filter options for listing notification rules.
     ListPlanAddonsParamsFilter:
       type: object
       properties:
@@ -14369,6 +18017,57 @@ components:
           readOnly: true
       additionalProperties: false
       description: Event validation errors.
+    NotificationChannelPagePaginatedResponse:
+      type: object
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingNotificationChannel'
+        meta:
+          $ref: '#/components/schemas/PaginatedMeta'
+      additionalProperties: false
+      description: Page paginated response.
+    NotificationChannelReference:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          $ref: '#/components/schemas/ULID'
+      additionalProperties: false
+      description: NotificationChannel reference.
+    NotificationEventPagePaginatedResponse:
+      type: object
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingNotificationEvent'
+        meta:
+          $ref: '#/components/schemas/PaginatedMeta'
+      additionalProperties: false
+      description: Page paginated response.
+    NotificationRulePagePaginatedResponse:
+      type: object
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingNotificationRule'
+        meta:
+          $ref: '#/components/schemas/PaginatedMeta'
+      additionalProperties: false
+      description: Page paginated response.
     Numeric:
       type: string
       pattern: ^\-?[0-9]+(\.[0-9]+)?$
@@ -14674,6 +18373,62 @@ components:
           example: P1M
       additionalProperties: false
       description: Recurring period with an anchor and an interval.
+    RecurringPeriodInput:
+      type: object
+      required:
+        - interval
+      properties:
+        interval:
+          allOf:
+            - $ref: '#/components/schemas/ISO8601Duration'
+          description: The interval duration in ISO 8601 format.
+          title: Interval in ISO 8601 duration format
+          example: P1M
+        anchor:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: A date-time anchor to base the recurring period on.
+          title: Anchor time
+          example: '2023-01-01T01:01:01.001Z'
+      additionalProperties: false
+      description: |-
+        Recurring period input. The anchor is optional; the owning resource defines the
+        default, typically its creation time.
+    ResendBillingNotificationEventRequest:
+      type: object
+      properties:
+        channels:
+          type: array
+          items:
+            $ref: '#/components/schemas/ULID'
+          description: |-
+            The channels to resend the event to. When omitted or empty, the event is resent
+            to every enabled channel of the rule. Channels not targeted by the rule or
+            disabled are rejected.
+      additionalProperties: false
+      description: Request body for resending a notification event.
+    ResetCustomerEntitlementUsageRequest:
+      type: object
+      properties:
+        effective_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: |-
+            The time the reset takes effect. Defaults to the current time and cannot be in
+            the future. Truncated to the minute.
+        retain_anchor:
+          type: boolean
+          description: |-
+            Whether the usage period anchor is kept. When false, the anchor moves to
+            `effective_at`.
+          default: false
+        preserve_overage:
+          type: boolean
+          description: |-
+            Whether overage carries over into the new usage period. Defaults to the
+            entitlement's own setting.
+      additionalProperties: false
+      description: Request body for resetting the usage of a metered entitlement.
     ResourceKey:
       type: string
       minLength: 1
@@ -14938,6 +18693,33 @@ components:
           $ref: '#/components/schemas/PaginatedMeta'
       additionalProperties: false
       description: Page paginated response.
+    TaxCodeConfig:
+      type: object
+      properties:
+        behavior:
+          allOf:
+            - $ref: '#/components/schemas/BillingTaxBehavior'
+          description: |-
+            Tax behavior.
+
+            This enum is used to specify whether tax is included in the price or excluded
+            from the price. If not specified, the billing profile is used to determine the
+            tax behavior. If not specified in the billing profile, the provider's default
+            behavior is used.
+          title: Tax behavior
+        code:
+          allOf:
+            - $ref: '#/components/schemas/TaxCodeReference'
+          description: Tax code applied to the invoice line item.
+          title: Tax code
+      additionalProperties: false
+      description: |-
+        Tax configuration for a billable resource.
+
+        Applies a tax code and tax behavior to the resulting invoice line items. When
+        not set, the applicable default is used: the billing profile default tax
+        configuration, then the organization default tax code.
+      title: Tax code configuration
     TaxCodePagePaginatedResponse:
       type: object
       required:
@@ -15189,6 +18971,59 @@ components:
         A subset of BillingWorkflowInvoicingSettings limited to fields that are
         meaningful per-invoice. progressive_billing is omitted as it is a gather-time /
         profile-level decision.
+    UpdateBillingNotificationChannelRequest:
+      type: object
+      required:
+        - name
+        - type
+        - url
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        type:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationChannelType'
+          description: The type of the channel. Immutable after creation.
+        url:
+          type: string
+          description: The URL that webhook notification events are delivered to.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        disabled:
+          type: boolean
+          description: |-
+            Whether the channel is disabled. Disabled channels do not receive notification
+            events.
+          default: false
+        custom_headers:
+          type: object
+          additionalProperties:
+            type: string
+          description: |-
+            Custom HTTP headers to include on every webhook delivery request, keyed by
+            header name.
+        signing_secret:
+          type: string
+          description: |-
+            Secret used to sign outgoing webhook payloads so recipients can verify their
+            authenticity. If omitted on create, a secret is generated automatically by the
+            delivery provider. This is a sensitive credential returned in responses (unlike
+            most secrets) specifically so clients can retrieve a server-generated value and
+            verify webhook signatures; handle it with the same care as any other credential.
+      additionalProperties: false
+      description: |-
+        Request body for updating a notification channel. Updates replace the channel's
+        mutable state rather than merging it: `type`, `name`, and `url` must always be
+        provided, and omitting `disabled`, `labels`, or `custom_headers` resets them to
+        their defaults (enabled, no labels, no custom headers). `signing_secret` is the
+        one exception: omitting it keeps the channel's current signing secret instead of
+        clearing the credential.
     UpdateBillingPartyAddresses:
       type: object
       required:
@@ -15415,7 +19250,7 @@ components:
           title: Price
         tax_config:
           allOf:
-            - $ref: '#/components/schemas/UpdateRateCardTaxConfig'
+            - $ref: '#/components/schemas/UpdateTaxCodeConfig'
           description: Tax configuration snapshot for this line.
           title: Tax config
         feature_key:
@@ -15777,17 +19612,6 @@ components:
 
         When UnitConfig is present on the containing resource, tier boundaries
         (up_to_amount) are expressed in converted billing units.
-    UpdateRateCardTaxConfig:
-      type: object
-      required:
-        - code
-      properties:
-        behavior:
-          $ref: '#/components/schemas/BillingTaxBehavior'
-        code:
-          $ref: '#/components/schemas/UpdateResourceReference'
-      additionalProperties: false
-      description: The tax config of the rate card.
     UpdateResourceReference:
       type: object
       required:
@@ -15823,6 +19647,33 @@ components:
         Structurally a read-only subset of `BillingParty` (the type configured on the
         billing profile), so the snapshot stays aligned with the source. `key` is
         omitted because it is not part of the snapshotted supplier data.
+    UpdateTaxCodeConfig:
+      type: object
+      properties:
+        behavior:
+          allOf:
+            - $ref: '#/components/schemas/BillingTaxBehavior'
+          description: |-
+            Tax behavior.
+
+            This enum is used to specify whether tax is included in the price or excluded
+            from the price. If not specified, the billing profile is used to determine the
+            tax behavior. If not specified in the billing profile, the provider's default
+            behavior is used.
+          title: Tax behavior
+        code:
+          allOf:
+            - $ref: '#/components/schemas/UpdateResourceReference'
+          description: Tax code applied to the invoice line item.
+          title: Tax code
+      additionalProperties: false
+      description: |-
+        Tax configuration for a billable resource.
+
+        Applies a tax code and tax behavior to the resulting invoice line items. When
+        not set, the applicable default is used: the billing profile default tax
+        configuration, then the organization default tax code.
+      title: Tax code configuration
     UpsertAddonRequest:
       type: object
       required:
@@ -16110,6 +19961,34 @@ components:
       type: string
       minLength: 1
       description: Subject key.
+    VersionFilter:
+      type: object
+      properties:
+        eq:
+          type: integer
+          format: int32
+          minimum: 1
+          description: Match this exact version.
+        oeq:
+          type: array
+          items:
+            type: integer
+            format: int32
+          minItems: 1
+          maxItems: 100
+          description: Match one of these versions.
+        gte:
+          type: integer
+          format: int32
+          minimum: 1
+          description: Match this version and later versions.
+        lte:
+          type: integer
+          format: int32
+          minimum: 1
+          description: Match this version and earlier versions.
+      additionalProperties: false
+      description: An integer version comparison. Exactly one operator must be provided.
     VoidCreditGrantRequest:
       type: object
       properties:

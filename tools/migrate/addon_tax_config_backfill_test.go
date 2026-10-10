@@ -348,6 +348,7 @@ func assertAddonRateCardBehavior(t *testing.T, db *sql.DB, rateCardID, wantBehav
 	if wantBehavior == "" {
 		require.False(t, behavior.Valid)
 		require.False(t, embeddedBehavior.Valid)
+
 		return
 	}
 

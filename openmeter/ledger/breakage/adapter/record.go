@@ -78,14 +78,17 @@ func (a *adapter) ListReleaseRecords(ctx context.Context, input breakage.ListRel
 		if len(input.SourceEntryID) > 0 {
 			sourcePredicates = append(sourcePredicates, dbledgerbreakagerecord.SourceEntryIDIn(input.SourceEntryID...))
 		}
+
 		if len(input.SourceTransactionGroupID) > 0 {
 			sourcePredicates = append(sourcePredicates, dbledgerbreakagerecord.SourceTransactionGroupIDIn(input.SourceTransactionGroupID...))
 		}
+
 		if len(sourcePredicates) == 1 {
 			releasePredicates = append(releasePredicates, sourcePredicates[0])
 		} else {
 			releasePredicates = append(releasePredicates, dbledgerbreakagerecord.Or(sourcePredicates...))
 		}
+
 		if len(input.ReleaseSourceKind) > 0 {
 			releasePredicates = append(releasePredicates, dbledgerbreakagerecord.SourceKindIn(input.ReleaseSourceKind...))
 		}
@@ -139,6 +142,7 @@ func (a *adapter) ListReleaseRecords(ctx context.Context, input breakage.ListRel
 		for _, row := range releaseRows {
 			out = append(out, mapRecordFromDB(row))
 		}
+
 		for _, row := range reopenRows {
 			out = append(out, mapRecordFromDB(row))
 		}
@@ -177,10 +181,12 @@ func (a *adapter) ListExpiredRecords(ctx context.Context, input breakage.ListExp
 		if input.Currency != nil {
 			predicates = append(predicates, dbledgerbreakagerecord.CurrencyEQ(*input.Currency))
 		}
+
 		routePredicate, err := expiredRecordRoutePredicate(input.Route)
 		if err != nil {
 			return nil, fmt.Errorf("build route predicate: %w", err)
 		}
+
 		if routePredicate != nil {
 			predicates = append(predicates, routePredicate)
 		}

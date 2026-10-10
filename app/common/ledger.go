@@ -2,6 +2,7 @@ package common
 
 import (
 	"context"
+	"log/slog"
 
 	"github.com/google/wire"
 
@@ -12,6 +13,9 @@ import (
 	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
 	accountadapter "github.com/openmeterio/openmeter/openmeter/ledger/account/adapter"
 	accountservice "github.com/openmeterio/openmeter/openmeter/ledger/account/service"
+	"github.com/openmeterio/openmeter/openmeter/ledger/advance"
+	advanceservice "github.com/openmeterio/openmeter/openmeter/ledger/advance/service"
+	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	historical "github.com/openmeterio/openmeter/openmeter/ledger/historical"
 	historicaladapter "github.com/openmeterio/openmeter/openmeter/ledger/historical/adapter"
 	ledgernoop "github.com/openmeterio/openmeter/openmeter/ledger/noop"
@@ -135,4 +139,22 @@ func NewLedgerNamespaceHandler(accountResolver ledger.AccountResolver) namespace
 	}
 
 	return resolvers.NewNamespaceHandler(accountResolver)
+}
+
+func NewLedgerAdvanceService(
+	logger *slog.Logger,
+	ledgerService ledger.Ledger,
+	balanceQuerier ledger.BalanceQuerier,
+	accountResolver ledger.AccountResolver,
+	accountCatalog ledger.AccountCatalog,
+	breakageService ledgerbreakage.Service,
+) (advance.Service, error) {
+	return advanceservice.New(advanceservice.Config{
+		Logger:          logger.With("subsystem", "ledger.advance"),
+		Ledger:          ledgerService,
+		BalanceQuerier:  balanceQuerier,
+		AccountResolver: accountResolver,
+		AccountCatalog:  accountCatalog,
+		Breakage:        breakageService,
+	})
 }

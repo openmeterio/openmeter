@@ -131,6 +131,7 @@ func (c CostBasis) MarshalJSON() ([]byte, error) {
 		if err != nil {
 			return nil, fmt.Errorf("getting custom-currency fiat currency: %w", err)
 		}
+
 		serde.FiatCurrency = lo.ToPtr(fiatCurrency.GetFiatCode())
 
 		switch serde.Mode {
@@ -140,12 +141,14 @@ func (c CostBasis) MarshalJSON() ([]byte, error) {
 			if err != nil {
 				return nil, err
 			}
+
 			serde.CurrencyCostBasisID = &intent.CurrencyCostBasisID
 		case chargecostbasis.ModeManual:
 			intent, err := c.customCurrency.AsManual()
 			if err != nil {
 				return nil, err
 			}
+
 			serde.Rate = &intent.Rate
 		default:
 			return nil, fmt.Errorf("unsupported custom-currency cost basis mode: %s", serde.Mode)
@@ -176,6 +179,7 @@ func (c *CostBasis) UnmarshalJSON(data []byte) error {
 		if serde.Rate == nil {
 			return errors.New("fiat cost basis rate is required")
 		}
+
 		if serde.Mode != "" || serde.FiatCurrency != nil || serde.CurrencyCostBasisID != nil {
 			return errors.New("fiat cost basis contains custom-currency fields")
 		}

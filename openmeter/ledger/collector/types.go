@@ -17,14 +17,14 @@ import (
 // FBO Sources for Prioritization
 
 type fboCollectionSource struct {
-	address           ledger.PostingAddress
-	sourceChargeID    *string
-	available         alpacadecimal.Decimal
-	creditPriority    int
-	featureRestricted bool
-	expiresAt         *time.Time
-	cursor            string
-	breakagePlan      *breakage.Plan
+	address        ledger.PostingAddress
+	sourceChargeID *string
+	available      alpacadecimal.Decimal
+	creditPriority int
+	restricted     bool
+	expiresAt      *time.Time
+	cursor         string
+	breakagePlan   *breakage.Plan
 }
 
 var _ cmpx.Comparable[fboCollectionSource] = fboCollectionSource{}
@@ -36,8 +36,8 @@ func (s fboCollectionSource) Compare(other fboCollectionSource) int {
 		return c
 	}
 
-	if s.featureRestricted != other.featureRestricted {
-		if s.featureRestricted {
+	if s.restricted != other.restricted {
+		if s.restricted {
 			return -1
 		}
 
@@ -65,8 +65,9 @@ func (s fboCollectionSource) Compare(other fboCollectionSource) int {
 // Selections for Consumption Plan
 
 type fboCollectionSelection struct {
-	source fboCollectionSource
-	amount alpacadecimal.Decimal
+	collectionOriginID *string
+	source             fboCollectionSource
+	amount             alpacadecimal.Decimal
 }
 
 type fboCollectionSelections []fboCollectionSelection
@@ -81,8 +82,11 @@ func (s fboCollectionSelections) postingAmounts(spendChargeID *string) []transac
 			Amount:  selection.amount,
 			Identity: ledger.EntryIdentityParts{
 				CollectionSource: &collectionSource,
-				SourceChargeID:   selection.source.sourceChargeID,
-				SpendChargeID:    spendChargeID,
+				Provenance: ledger.Provenance{
+					CollectionOriginID: selection.collectionOriginID,
+					SourceChargeID:     selection.source.sourceChargeID,
+					SpendChargeID:      spendChargeID,
+				},
 			},
 			Annotations: models.Annotations{
 				ledger.AnnotationCollectionSourceOrder: idx,

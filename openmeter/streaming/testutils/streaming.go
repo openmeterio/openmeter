@@ -21,6 +21,7 @@ func NewMockStreamingConnector(t testing.TB) *MockStreamingConnector {
 	t.Helper()
 	out := &MockStreamingConnector{}
 	out.Reset()
+
 	return out
 }
 
@@ -59,6 +60,7 @@ func (m *MockStreamingConnector) AddSimpleEvent(meterSlug string, value float64,
 	for _, opt := range opts {
 		opt(&event)
 	}
+
 	m.events[meterSlug] = append(m.events[meterSlug], event)
 	m.sortMeterEvents(meterSlug)
 }
@@ -67,6 +69,7 @@ func (m *MockStreamingConnector) SetSimpleEvents(meterSlug string, fn func(event
 	if _, ok := m.events[meterSlug]; !ok {
 		m.events[meterSlug] = []SimpleEvent{}
 	}
+
 	m.events[meterSlug] = fn(m.events[meterSlug])
 	m.sortMeterEvents(meterSlug)
 }
@@ -119,6 +122,7 @@ func (m *MockStreamingConnector) QueryMeter(ctx context.Context, namespace strin
 		if err != nil {
 			return rows, err
 		}
+
 		rows = append(rows, row...)
 	}
 
@@ -171,6 +175,7 @@ func filterStoredAt(f *filter.FilterTimeUnix, storedAt time.Time) bool {
 				return false
 			}
 		}
+
 		return true
 	case f.Or != nil:
 		for _, sub := range *f.Or {
@@ -178,6 +183,7 @@ func filterStoredAt(f *filter.FilterTimeUnix, storedAt time.Time) bool {
 				return true
 			}
 		}
+
 		return false
 	default:
 		return true
@@ -208,7 +214,8 @@ func (m *MockStreamingConnector) aggregateEvents(mm meter.Meter, params streamin
 	rows := make([]meter.MeterQueryRow, 0)
 
 	if params.WindowSize != nil && params.WindowTimeZone != nil {
-		// TODO: windowtimezone will be ignored
+		from = from.In(params.WindowTimeZone)
+		to = to.In(params.WindowTimeZone)
 
 		windowingStart, _ := params.WindowSize.Truncate(from) // The first truncated time that from query falls into
 		windowingEnd, _ := params.WindowSize.Truncate(to)     // The last truncated time that to query falls into
@@ -246,10 +253,16 @@ func (m *MockStreamingConnector) aggregateEvents(mm meter.Meter, params streamin
 		effectiveWindowSize := lo.FromPtrOr(params.WindowSize, streaming.MinimumWindowSize)
 
 		for _, event := range events {
-			eventWindowStart, err := effectiveWindowSize.Truncate(event.Time)
+			eventTime := event.Time
+			if params.WindowTimeZone != nil {
+				eventTime = eventTime.In(params.WindowTimeZone)
+			}
+
+			eventWindowStart, err := effectiveWindowSize.Truncate(eventTime)
 			if err != nil {
 				return nil, fmt.Errorf("failed to truncate by windowsize in event aggregation")
 			}
+
 			// windowend is exclusive when doing this rounding
 			eventWindowEnd, err := effectiveWindowSize.AddTo(eventWindowStart)
 			if err != nil {
@@ -268,6 +281,7 @@ func (m *MockStreamingConnector) aggregateEvents(mm meter.Meter, params streamin
 				}
 			}
 		}
+
 		rows[i].Value = value
 	}
 

@@ -207,6 +207,7 @@ func (s FieldDescriptor) Tree(cb func(t *FieldDescriptorTree) error) error {
 func newFieldDescriptor() *FieldDescriptor {
 	desc := &FieldDescriptor{}
 	desc.node = treex.NewNode(desc)
+
 	return desc
 }
 

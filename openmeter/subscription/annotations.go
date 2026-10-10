@@ -14,6 +14,10 @@ const (
 
 	AnnotationOwnerSubSystem = "subscription.owner"
 
+	// AnnotationEditUniqueKey identifies an add-item action across item recreation.
+	// Its ULID order breaks ties between zero-length revisions.
+	AnnotationEditUniqueKey = "subscription.workflow.patchid"
+
 	AnnotationBooleanEntitlementCount = "subscription.entitlement.boolean.count"
 
 	// AnnotationPreviousSubscriptionID is the ID of the subscription that was superseded by this subscription
@@ -55,6 +59,7 @@ func (a annotationParser) ListOwnerSubSystems(annotations models.Annotations) []
 		if !ok {
 			return nil
 		}
+
 		systemsStr = append(systemsStr, systemStr)
 	}
 
@@ -100,7 +105,9 @@ func (a annotationParser) SetBooleanEntitlementCount(annotations models.Annotati
 	if annotations == nil {
 		return nil, errors.New("annotations are nil")
 	}
+
 	annotations[AnnotationBooleanEntitlementCount] = count
+
 	return annotations, nil
 }
 
@@ -126,7 +133,9 @@ func (a annotationParser) SetPreviousSubscriptionID(annotations models.Annotatio
 	if annotations == nil {
 		return nil, errors.New("annotations are nil")
 	}
+
 	annotations[AnnotationPreviousSubscriptionID] = subscriptionID
+
 	return annotations, nil
 }
 
@@ -152,7 +161,9 @@ func (a annotationParser) SetSupersedingSubscriptionID(annotations models.Annota
 	if annotations == nil {
 		return nil, errors.New("annotations are nil")
 	}
+
 	annotations[AnnotationSupersedingSubscriptionID] = subscriptionID
+
 	return annotations, nil
 }
 
@@ -160,6 +171,8 @@ func (a annotationParser) ClearSupersedingSubscriptionID(annotations models.Anno
 	if annotations == nil {
 		return nil, errors.New("annotations are nil")
 	}
+
 	delete(annotations, AnnotationSupersedingSubscriptionID)
+
 	return annotations, nil
 }

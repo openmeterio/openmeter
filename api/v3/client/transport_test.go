@@ -63,6 +63,7 @@ func (rr *requestRecorder) last(t *testing.T) recordedRequest {
 	if len(rr.reqs) == 0 {
 		t.Fatal("no request recorded")
 	}
+
 	return rr.reqs[len(rr.reqs)-1]
 }
 
@@ -77,6 +78,7 @@ func newTestClient(t *testing.T, handler http.Handler, opts ...openmeter.Option)
 	if err != nil {
 		t.Fatalf("openmeter.New(%q): %v", srv.URL, err)
 	}
+
 	return c
 }
 
@@ -114,6 +116,7 @@ func TestBaseURLJoining(t *testing.T) {
 		if r.path != "/api/v3/openmeter/meters/m-1" {
 			t.Errorf("request path = %q, want %q", r.path, "/api/v3/openmeter/meters/m-1")
 		}
+
 		if got := r.query.Get("tenant"); got != "acme" {
 			t.Errorf("base query param tenant = %q, want %q", got, "acme")
 		}
@@ -140,9 +143,11 @@ func TestBaseURLJoining(t *testing.T) {
 		if got := q.Get("tenant"); got != "acme" {
 			t.Errorf("merged query tenant = %q, want %q", got, "acme")
 		}
+
 		if got := q.Get("page[size]"); got != "5" {
 			t.Errorf("merged query page[size] = %q, want %q (request must override base)", got, "5")
 		}
+
 		if got := q["page[size]"]; len(got) != 1 {
 			t.Errorf("page[size] has %d values %v, want exactly 1", len(got), got)
 		}
@@ -164,10 +169,12 @@ func TestRequestHeaders(t *testing.T) {
 		if got := r.header.Get("Authorization"); got != "Bearer test-token" {
 			t.Errorf("Authorization = %q, want %q", got, "Bearer test-token")
 		}
+
 		wantUA := "openmeter-go-sdk/" + openmeter.Version
 		if got := r.header.Get("User-Agent"); got != wantUA {
 			t.Errorf("User-Agent = %q, want %q", got, wantUA)
 		}
+
 		if got := r.header.Get("Accept"); got != "application/json" {
 			t.Errorf("Accept = %q, want %q", got, "application/json")
 		}
@@ -198,6 +205,7 @@ func TestRequestHeaders(t *testing.T) {
 		if got := r.header.Get("Accept"); got != "text/csv" {
 			t.Errorf("Accept = %q, want %q", got, "text/csv")
 		}
+
 		if got := r.header.Get("Content-Type"); got != "application/json" {
 			t.Errorf("Content-Type = %q, want %q", got, "application/json")
 		}
@@ -262,6 +270,7 @@ func TestIngestContentTypes(t *testing.T) {
 			if got := r.header.Get("Content-Type"); got != tc.wantCT {
 				t.Errorf("Content-Type = %q, want %q", got, tc.wantCT)
 			}
+
 			if len(r.body) == 0 || r.body[0] != tc.wantLead {
 				t.Errorf("request body %q does not start with %q", r.body, string(tc.wantLead))
 			}
@@ -283,12 +292,14 @@ func (rec *contextDeadlineRecorder) RoundTrip(req *http.Request) (*http.Response
 	rec.mu.Lock()
 	rec.deadline, rec.ok = deadline, ok
 	rec.mu.Unlock()
+
 	return http.DefaultTransport.RoundTrip(req)
 }
 
 func (rec *contextDeadlineRecorder) snapshot() (time.Time, bool) {
 	rec.mu.Lock()
 	defer rec.mu.Unlock()
+
 	return rec.deadline, rec.ok
 }
 
@@ -308,6 +319,7 @@ func TestDefaultRequestDeadline(t *testing.T) {
 		if err != nil {
 			t.Fatalf("openmeter.New: %v", err)
 		}
+
 		return om, rec
 	}
 
@@ -323,6 +335,7 @@ func TestDefaultRequestDeadline(t *testing.T) {
 		if !ok {
 			t.Fatal("transport saw no context deadline, want the 30s default applied")
 		}
+
 		if until := deadline.Sub(before); until < 29*time.Second || until > 40*time.Second {
 			t.Errorf("default deadline is %v away, want roughly 30s", until)
 		}
@@ -346,6 +359,7 @@ func TestDefaultRequestDeadline(t *testing.T) {
 		if !ok {
 			t.Fatal("transport saw no context deadline, want the caller's deadline")
 		}
+
 		if !deadline.Equal(want) {
 			t.Errorf("transport deadline = %v, want caller deadline %v unchanged", deadline, want)
 		}
@@ -381,6 +395,7 @@ func TestBufferedResponseCap(t *testing.T) {
 		if err == nil {
 			t.Fatal("QueryCSV returned nil error for a response over the buffered cap")
 		}
+
 		if !strings.Contains(err.Error(), "streaming") {
 			t.Errorf("error %q does not mention the streaming alternative", err)
 		}
@@ -396,6 +411,7 @@ func TestBufferedResponseCap(t *testing.T) {
 		if err != nil {
 			t.Fatalf("QueryCSV: %v", err)
 		}
+
 		if len(body) != bufferedCap {
 			t.Errorf("len(body) = %d, want %d", len(body), bufferedCap)
 		}
@@ -418,9 +434,11 @@ func TestErrorBodyCap(t *testing.T) {
 	if !ok {
 		t.Fatalf("error %v is not an *APIError", err)
 	}
+
 	if apiErr.StatusCode != http.StatusInternalServerError {
 		t.Errorf("StatusCode = %d, want %d", apiErr.StatusCode, http.StatusInternalServerError)
 	}
+
 	if len(apiErr.RawBody) != errorBodyCap {
 		t.Errorf("len(RawBody) = %d, want error bodies capped at %d", len(apiErr.RawBody), errorBodyCap)
 	}
@@ -446,6 +464,7 @@ func TestStream(t *testing.T) {
 		if err != nil {
 			t.Fatalf("reading stream: %v", err)
 		}
+
 		if len(body) != size {
 			t.Errorf("len(body) = %d, want %d (streams must not be capped)", len(body), size)
 		}
@@ -465,6 +484,7 @@ func TestStream(t *testing.T) {
 		if !ok {
 			t.Fatalf("error %v is not an *APIError", err)
 		}
+
 		if apiErr.StatusCode != http.StatusForbidden || apiErr.Title != "Forbidden" {
 			t.Errorf("APIError = status %d title %q, want 403 %q", apiErr.StatusCode, apiErr.Title, "Forbidden")
 		}

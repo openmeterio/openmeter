@@ -170,23 +170,37 @@ func TestDefaultValidator_AllowsDuplicateSubAccountEntriesWithUniqueProvenanceId
 	collectionSource := "collection-source"
 	identityKey1, _ := ledger.EntryIdentityParts{
 		CollectionSource: &collectionSource,
-		SourceChargeID:   &sourceChargeID1,
-		SpendChargeID:    &spendChargeID,
+		Provenance: ledger.Provenance{
+			SourceChargeID: &sourceChargeID1,
+			SpendChargeID:  &spendChargeID,
+		},
 	}.Text()
 	identityKey2, _ := ledger.EntryIdentityParts{
 		CollectionSource: &collectionSource,
-		SourceChargeID:   &sourceChargeID2,
-		SpendChargeID:    &spendChargeID,
+		Provenance: ledger.Provenance{
+			SourceChargeID: &sourceChargeID2,
+			SpendChargeID:  &spendChargeID,
+		},
 	}.Text()
 	costBasis := alpacadecimal.NewFromInt(1)
-	accruedAddress := addressForRoute(t, ledger.AccountTypeCustomerAccrued, "sub-source", ledger.Route{
-		Currency:  currencies.NewCurrencyReference(currencyx.Code("USD")),
-		CostBasis: &costBasis,
-	})
-	earningsAddress := addressForRoute(t, ledger.AccountTypeEarnings, "sub-earnings", ledger.Route{
-		Currency:  currencies.NewCurrencyReference(currencyx.Code("USD")),
-		CostBasis: &costBasis,
-	})
+	accruedAddress := addressForRoute(
+		t,
+		ledger.AccountTypeCustomerAccrued,
+		"sub-source",
+		ledger.Route{
+			Currency:  currencies.NewCurrencyReference(currencyx.Code("USD")),
+			CostBasis: &costBasis,
+		},
+	)
+	earningsAddress := addressForRoute(
+		t,
+		ledger.AccountTypeEarnings,
+		"sub-earnings",
+		ledger.Route{
+			Currency:  currencies.NewCurrencyReference(currencyx.Code("USD")),
+			CostBasis: &costBasis,
+		},
+	)
 
 	err := validator.ValidateEntries([]ledger.EntryInput{
 		&transactionstestutils.AnyEntryInput{
@@ -384,7 +398,7 @@ func TestDefaultValidator_AllowsReceivableCostBasisAttributionAcrossFeatures(t *
 		&transactionstestutils.AnyEntryInput{
 			Address: addressForRoute(t, ledger.AccountTypeCustomerReceivable, "sub-rec-advance", ledger.Route{
 				Currency:                       currencies.NewCurrencyReference(currencyx.Code("USD")),
-				Features:                       []string{"api-calls"},
+				Filters:                        ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: []string{"api-calls"}},
 				TransactionAuthorizationStatus: &openStatus,
 			}),
 			AmountValue: alpacadecimal.NewFromInt(20),
@@ -537,7 +551,7 @@ func TestDefaultValidator_RejectsFeaturesOnAccrued(t *testing.T) {
 		&transactionstestutils.AnyEntryInput{
 			Address: addressForRoute(t, ledger.AccountTypeCustomerAccrued, "sub-accrued-feature", ledger.Route{
 				Currency: currencies.NewCurrencyReference(currencyx.Code("USD")),
-				Features: []string{"api-calls"},
+				Filters:  ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: []string{"api-calls"}},
 			}),
 			AmountValue: alpacadecimal.NewFromInt(50),
 		},

@@ -136,9 +136,11 @@ func ValidatePlanAddonRateCardCurrencies() models.ValidatorFunc[PlanAddon] {
 		if pa.Plan.Currency.Code == "" {
 			errs = append(errs, models.ErrorWithFieldPrefix(planPrefix, ErrCurrencyInvalid))
 		}
+
 		if pa.Addon.Currency.Code == "" {
 			errs = append(errs, models.ErrorWithFieldPrefix(addonPrefix, ErrCurrencyInvalid))
 		}
+
 		if len(errs) > 0 {
 			return errors.Join(errs...)
 		}
@@ -236,6 +238,7 @@ func ValidatePlanAddonWithCurrencies() models.ValidatorFunc[PlanAddon] {
 		if pa.Plan.SettlementMode == CreditOnlySettlementMode {
 			validationOption = ValidationOptionCostBasisRequiredFalse
 		}
+
 		validateCurrencyOverride := ValidateCurrencyWithOverride(pa.Plan.Currency, validationOption)
 
 		var errs []error

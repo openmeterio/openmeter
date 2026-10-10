@@ -12,7 +12,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditreconciliation"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -46,7 +46,7 @@ func (i CreditReconciliationHandlerInput) Validate() error {
 }
 
 // chargeCurrencyCreditReconciliationHandler reconciles a flat-fee run's
-// allocations in the charge currency and preserves their realization lineage.
+// allocations in the charge currency and preserves their realization legacylineage.
 type chargeCurrencyCreditReconciliationHandler struct {
 	service *Service
 	CreditReconciliationHandlerInput
@@ -136,7 +136,7 @@ func (h *chargeCurrencyCreditReconciliationHandler) Create(
 }
 
 // fiatOverageCreditReconciliationHandler reconciles a custom-currency run's
-// overage allocations in settlement fiat and preserves their separate lineage.
+// overage allocations in settlement fiat and preserves their separate legacylineage.
 type fiatOverageCreditReconciliationHandler struct {
 	service *Service
 	CreditReconciliationHandlerInput
@@ -338,6 +338,7 @@ func (s *Service) AllocateFiatOverageCredits(
 	if err != nil {
 		return AllocateFiatOverageCreditsResult{}, fmt.Errorf("get invoice currency: %w", err)
 	}
+
 	grossFiatAmount := in.Run.AccruedUsage.Totals.Total
 
 	run := in.Run
@@ -363,10 +364,12 @@ func (s *Service) AllocateFiatOverageCredits(
 	if err != nil {
 		return AllocateFiatOverageCreditsResult{}, fmt.Errorf("create invoice currency calculator: %w", err)
 	}
+
 	allocated := fiatCurrencyCalculator.RoundToPrecision(run.FiatOverageCreditRealizations.Sum())
 	if allocated.GreaterThan(grossFiatAmount) {
 		return AllocateFiatOverageCreditsResult{}, fmt.Errorf("fiat overage credit allocations exceed prepared gross amount: %s > %s", allocated, grossFiatAmount)
 	}
+
 	remainingFiatOverage := fiatCurrencyCalculator.RoundToPrecision(grossFiatAmount.Sub(allocated))
 	runBase, err := s.adapter.UpdateRealizationRun(ctx, flatfee.UpdateRealizationRunInput{
 		ID:                                   run.ID,
@@ -431,6 +434,7 @@ func (s *Service) CorrectPreparedCustomCurrencyInvoiceRealizations(
 	if err != nil {
 		return flatfee.RealizationRun{}, err
 	}
+
 	input.Run = run
 
 	if err := s.correctChargeCurrencyCreditRealizations(ctx, input); err != nil {
@@ -444,6 +448,7 @@ func (s *Service) CorrectPreparedCustomCurrencyInvoiceRealizations(
 	if err != nil {
 		return flatfee.RealizationRun{}, fmt.Errorf("reset invoice preparation state: %w", err)
 	}
+
 	input.Run.RealizationRunBase = runBase
 
 	return input.Run, nil
@@ -478,7 +483,12 @@ func (s *Service) loadActiveCreditRealizationLineageSegments(
 	ctx context.Context,
 	charge flatfee.Charge,
 	realizations creditrealization.Realizations,
-) (lineage.ActiveSegmentsByRealizationID, error) {
+) (legacylineage.ActiveSegmentsByRealizationID, error) {
+	realizations = realizations.LegacyLineageRealizations()
+	if len(realizations) == 0 {
+		return legacylineage.ActiveSegmentsByRealizationID{}, nil
+	}
+
 	realizationIDs := lo.Map(realizations, func(realization creditrealization.Realization, _ int) string {
 		return realization.ID
 	})

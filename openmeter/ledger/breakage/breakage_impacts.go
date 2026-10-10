@@ -79,6 +79,7 @@ func (s *service) ListExpiredBreakageImpacts(ctx context.Context, input ListExpi
 		if record.FBOSubAccountID == "" {
 			continue
 		}
+
 		if _, ok := currencyReferences[record.FBOSubAccountID]; ok {
 			continue
 		}
@@ -95,6 +96,7 @@ func (s *service) ListExpiredBreakageImpacts(ctx context.Context, input ListExpi
 		if reference.GetCode() != record.Currency {
 			return ListExpiredBreakageImpactsResult{}, fmt.Errorf("breakage FBO sub-account %s currency %s does not match record currency %s", record.FBOSubAccountID, reference.GetCode(), record.Currency)
 		}
+
 		currencyReferences[record.FBOSubAccountID] = reference
 	}
 
@@ -104,6 +106,7 @@ func (s *service) ListExpiredBreakageImpacts(ctx context.Context, input ListExpi
 		if record.FBOSubAccountID != "" {
 			currencyReference = currencyReferences[record.FBOSubAccountID].Clone()
 		}
+
 		key := expiredBreakageImpactGroupKey{
 			expiresAt:        record.ExpiresAt,
 			currencyIdentity: currencyReference.IdentityKey(),
@@ -132,6 +135,7 @@ func (s *service) ListExpiredBreakageImpacts(ctx context.Context, input ListExpi
 			return ListExpiredBreakageImpactsResult{}, fmt.Errorf("unexpected breakage kind %q", record.Kind)
 		}
 	}
+
 	if len(groups) == 0 {
 		return ListExpiredBreakageImpactsResult{
 			Items: []BreakageImpact{},
@@ -144,9 +148,11 @@ func (s *service) ListExpiredBreakageImpacts(ctx context.Context, input ListExpi
 		if group.amount.IsZero() {
 			continue
 		}
+
 		if group.amount.IsNegative() {
 			return ListExpiredBreakageImpactsResult{}, fmt.Errorf("expired breakage amount is negative for %s %s", group.expiresAt, group.currency)
 		}
+
 		if group.cursorID.ID == "" {
 			return ListExpiredBreakageImpactsResult{}, fmt.Errorf("expired breakage impact has no plan record for %s %s", group.expiresAt, group.currency)
 		}
@@ -192,6 +198,7 @@ func (s *service) ListExpiredBreakageImpacts(ctx context.Context, input ListExpi
 			selected = append(selected, item)
 		}
 	}
+
 	items = selected
 	hasMore := len(items) > input.Limit
 	if hasMore {

@@ -5,6 +5,7 @@ import * as schemas from '../schemas.js'
 import type { AcceptDateStrings } from '../../lib/wire.js'
 import type {
   App,
+  AppActionRequest,
   AppCatalogItem,
   AppCatalogItemPagePaginatedResponse,
   AppPagePaginatedResponse,
@@ -54,6 +55,12 @@ export type UpdateAppRequest = AcceptDateStrings<{
   body: UpdateAppRequestBody
 }>
 export type UpdateAppResponse = App
+
+export type ExecuteAppActionRequest = AcceptDateStrings<{
+  appId: string
+  body: AppActionRequest
+}>
+export type ExecuteAppActionResponse = App
 
 export interface ListAppCatalogQuery {
   /** Determines which page of the collection to retrieve. */

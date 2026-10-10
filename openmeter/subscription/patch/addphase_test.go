@@ -41,6 +41,7 @@ func TestAddPhase(t *testing.T) {
 				GetSpec: func(t *testing.T) *subscription.SubscriptionSpec {
 					s, _ := getDefaultSpec(t, now)
 					require.GreaterOrEqual(t, len(s.Phases), 2)
+
 					return s
 				},
 				Ctx:           subscription.ApplyContext{CurrentTime: now},
@@ -77,6 +78,7 @@ func TestAddPhase(t *testing.T) {
 						},
 						ItemsByKey: make(map[string][]*subscription.SubscriptionItemSpec),
 					}
+
 					return *s
 				},
 			},

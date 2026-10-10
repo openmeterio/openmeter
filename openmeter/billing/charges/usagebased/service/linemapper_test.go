@@ -27,6 +27,68 @@ import (
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
+func TestMapUsageBasedDetailedLinesPreservesDiscountSnapshots(t *testing.T) {
+	t.Parallel()
+	for _, sign := range []int64{1, -1} {
+		t.Run(alpacadecimal.NewFromInt(sign).String(), func(t *testing.T) {
+			// given: a realization snapshot, including a possible discount reversal
+			period := timeutil.ClosedPeriod{
+				From: time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC),
+				To:   time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC),
+			}
+			line := newUsageBasedStandardLineForTest(period)
+			snapshot := newUsageBasedDetailedLineForTest("usage", period, alpacadecimal.NewFromInt(1))
+			snapshot.Quantity = alpacadecimal.NewFromInt(100 * sign)
+			snapshot.Totals = totals.Totals{
+				Amount:         alpacadecimal.NewFromInt(100 * sign),
+				DiscountsTotal: alpacadecimal.NewFromInt(50 * sign),
+				Total:          alpacadecimal.NewFromInt(50 * sign),
+			}
+			snapshot.AmountDiscounts = chargedetailedline.AmountDiscounts{{
+				ChildUniqueReferenceID: "discount-reference",
+				Description:            lo.ToPtr("percentage discount"),
+				Reason: billing.NewDiscountReasonFrom(billing.PercentageDiscount{
+					PercentageDiscount: productcatalog.PercentageDiscount{Percentage: models.NewPercentage(50)},
+					CorrelationID:      "percentage-discount",
+				}),
+				Amount:         alpacadecimal.NewFromFloat(49.99 * float64(sign)),
+				RoundingAmount: alpacadecimal.NewFromFloat(0.01 * float64(sign)),
+			}}
+			currency, err := line.Currency.AsFiatCurrency()
+			require.NoError(t, err)
+
+			// when: the charge facts are mapped into billing-managed resources
+			mapped, err := mapUsageBasedDetailedLines(line, usagebased.RealizationRun{
+				DetailedLines: mo.Some(usagebased.DetailedLines{snapshot}),
+			}, currency)
+			require.NoError(t, err)
+
+			// then: facts survive mapping, but invoice validation rejects negative discounts
+			require.Len(t, mapped, 1)
+			detail := mapped[0]
+			if sign < 0 {
+				require.ErrorContains(t, detail.Validate(), "amount should be positive or zero")
+			} else {
+				require.NoError(t, detail.Validate())
+			}
+
+			require.Equal(t, snapshot.Totals, detail.Totals)
+			require.Equal(t, line.InvoiceID, detail.InvoiceID)
+			require.Equal(t, snapshot.ChildUniqueReferenceID, detail.ChildUniqueReferenceID)
+			require.Len(t, detail.AmountDiscounts, 1)
+			discount := detail.AmountDiscounts[0]
+			require.Equal(t, models.ManagedModelWithID{}, discount.ManagedModelWithID)
+			require.Equal(t, "discount-reference", lo.FromPtr(discount.ChildUniqueReferenceID))
+			require.Equal(t, snapshot.AmountDiscounts[0].Reason, discount.Reason)
+			require.Equal(t, 49.99*float64(sign), discount.Amount.InexactFloat64())
+			require.Equal(t, 0.01*float64(sign), discount.RoundingAmount.InexactFloat64())
+			require.True(t, detail.AmountDiscounts.SumAmount(currency).Equal(detail.Totals.DiscountsTotal))
+			*discount.Description = "invoice-only description"
+			require.Equal(t, "percentage discount", *snapshot.AmountDiscounts[0].Description)
+		})
+	}
+}
+
 func TestPopulateUsageBasedStandardLineFromRunProjectsDetailsAndCredits(t *testing.T) {
 	period := timeutil.ClosedPeriod{
 		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
@@ -203,6 +265,44 @@ func TestPopulateUsageBasedStandardLineFromRunAppliesUsageDiscount(t *testing.T)
 	require.NoError(t, err)
 	require.Equal(t, "01ARZ3NDEKTSV4RRFFQ69G5FAV", reason.CorrelationID)
 	require.Equal(t, float64(10), reason.Quantity.InexactFloat64())
+}
+
+func TestPopulateUsageBasedStandardLineFromRunReconcilesNegativePriorSnapshot(t *testing.T) {
+	// Given a prior run with a negative raw cumulative snapshot and a later
+	// run whose cumulative snapshot has recovered to three.
+	period := timeutil.ClosedPeriod{
+		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		To:   time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
+	}
+	line := newUsageBasedStandardLineForTest(period)
+	priorRun := usagebased.RealizationRun{RealizationRunBase: usagebased.RealizationRunBase{
+		ID:              usagebased.RealizationRunID{Namespace: line.Namespace, ID: "prior-run"},
+		MeteredQuantity: alpacadecimal.NewFromInt(-5),
+	}}
+	run := usagebased.RealizationRun{
+		RealizationRunBase: usagebased.RealizationRunBase{
+			ID:              usagebased.RealizationRunID{Namespace: line.Namespace, ID: "current-run"},
+			PriorRunID:      lo.ToPtr(priorRun.ID),
+			StoredAtLT:      period.To,
+			MeteredQuantity: alpacadecimal.NewFromInt(3),
+		},
+		DetailedLines: mo.Some(usagebased.DetailedLines{}),
+	}
+
+	// When the charge run is projected onto its standard invoice line.
+	err := populateStandardLineFromRun(line, populateStandardLineFromRunInput{
+		Charge: usagebased.Charge{Realizations: usagebased.RealizationRuns{priorRun, run}},
+		Run:    run,
+		Stage:  standardLinePopulationStageInvoiceCreated,
+	})
+	require.NoError(t, err)
+
+	// Then audit quantities remain raw while the billable quantity reconciles
+	// the nonnegative cumulative snapshots.
+	require.Equal(t, float64(8), line.UsageBased.MeteredQuantity.InexactFloat64())
+	require.Equal(t, float64(-5), line.UsageBased.MeteredPreLinePeriodQuantity.InexactFloat64())
+	require.Equal(t, float64(3), line.UsageBased.Quantity.InexactFloat64())
+	require.Equal(t, float64(0), line.UsageBased.PreLinePeriodQuantity.InexactFloat64())
 }
 
 func TestPopulateUsageBasedStandardLineFromRunRequiresExpandedDetails(t *testing.T) {

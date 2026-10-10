@@ -5,7 +5,6 @@ import (
 
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
-	"github.com/lib/pq"
 
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	ledgerentrydb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgerentry"
@@ -14,6 +13,7 @@ import (
 	ledgertransactiondb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	"github.com/openmeterio/openmeter/openmeter/ledger/internal/routequery"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -36,7 +36,9 @@ func (b *sumEntriesQuery) SQL() (string, []any, error) {
 	if err != nil {
 		return "", nil, err
 	}
+
 	query, args := selector.Query()
+
 	return query, args, nil
 }
 
@@ -48,9 +50,11 @@ func (b *sumEntriesQuery) selector() (*sql.Selector, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	for _, predicate := range entryPredicates {
 		predicate(selector)
 	}
+
 	return selector, nil
 }
 
@@ -62,32 +66,18 @@ func (b *sumEntriesQuery) entryPredicates() ([]predicate.LedgerEntry, error) {
 		entryPredicates = append(entryPredicates, ledgerentrydb.TransactionID(*b.query.Filters.TransactionID))
 	}
 
-	if b.query.Filters.SourceChargeID.IsPresent() {
-		sourceChargeID, _ := b.query.Filters.SourceChargeID.Get()
-		if sourceChargeID != nil {
-			entryPredicates = append(entryPredicates, ledgerentrydb.SourceChargeID(*sourceChargeID))
-		} else {
-			entryPredicates = append(entryPredicates, ledgerentrydb.SourceChargeIDIsNil())
-		}
-	}
-
-	if b.query.Filters.SpendChargeID.IsPresent() {
-		spendChargeID, _ := b.query.Filters.SpendChargeID.Get()
-		if spendChargeID != nil {
-			entryPredicates = append(entryPredicates, ledgerentrydb.SpendChargeID(*spendChargeID))
-		} else {
-			entryPredicates = append(entryPredicates, ledgerentrydb.SpendChargeIDIsNil())
-		}
-	}
+	entryPredicates = append(entryPredicates, entryProvenancePredicates(b.query.Filters.Provenance)...)
 
 	if b.query.Filters.BookedAtPeriod != nil {
 		transactionPredicates := make([]predicate.LedgerTransaction, 0, 2)
 		if b.query.Filters.BookedAtPeriod.From != nil {
 			transactionPredicates = append(transactionPredicates, ledgertransactiondb.BookedAtGTE(*b.query.Filters.BookedAtPeriod.From))
 		}
+
 		if b.query.Filters.BookedAtPeriod.To != nil {
 			transactionPredicates = append(transactionPredicates, ledgertransactiondb.BookedAtLT(*b.query.Filters.BookedAtPeriod.To))
 		}
+
 		if len(transactionPredicates) > 0 {
 			entryPredicates = append(entryPredicates, ledgerentrydb.HasTransactionWith(transactionPredicates...))
 		}
@@ -122,6 +112,7 @@ func (b *sumEntriesQuery) entryPredicates() ([]predicate.LedgerEntry, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	if len(subAccountPredicates) > 0 {
 		entryPredicates = append(entryPredicates, ledgerentrydb.HasSubAccountWith(subAccountPredicates...))
 	}
@@ -134,6 +125,7 @@ func (b *sumEntriesQuery) subAccountPredicates() ([]predicate.LedgerSubAccount, 
 	if b.query.Filters.AccountID != nil {
 		subAccountPredicates = append(subAccountPredicates, ledgersubaccountdb.AccountID(*b.query.Filters.AccountID))
 	}
+
 	normalizedRoute, err := b.query.Filters.Route.Normalize()
 	if err != nil {
 		return nil, ledger.ErrLedgerQueryInvalid.WithAttrs(models.Attributes{
@@ -150,15 +142,18 @@ func (b *sumEntriesQuery) subAccountPredicates() ([]predicate.LedgerSubAccount, 
 			if err != nil {
 				return nil, fmt.Errorf("serialize route currency filter prefix: %w", err)
 			}
+
 			routePredicates = append(routePredicates, ledgersubaccountroutedb.CurrencyHasPrefix(string(prefix)))
 		} else {
 			serialized, err := normalizedRoute.Currency.MarshalText()
 			if err != nil {
 				return nil, fmt.Errorf("serialize route currency filter: %w", err)
 			}
+
 			routePredicates = append(routePredicates, ledgersubaccountroutedb.Currency(string(serialized)))
 		}
 	}
+
 	if normalizedRoute.CostBasisCurrency.IsPresent() {
 		costBasisCurrency, _ := normalizedRoute.CostBasisCurrency.Get()
 		if costBasisCurrency != nil {
@@ -167,11 +162,13 @@ func (b *sumEntriesQuery) subAccountPredicates() ([]predicate.LedgerSubAccount, 
 			routePredicates = append(routePredicates, ledgersubaccountroutedb.CostBasisCurrencyIsNil())
 		}
 	}
+
 	if normalizedRoute.CreditPriority != nil {
 		routePredicates = append(routePredicates,
 			ledgersubaccountroutedb.CreditPriority(*normalizedRoute.CreditPriority),
 		)
 	}
+
 	if normalizedRoute.TaxCode.IsPresent() {
 		tc, _ := normalizedRoute.TaxCode.Get()
 		if tc != nil {
@@ -180,17 +177,19 @@ func (b *sumEntriesQuery) subAccountPredicates() ([]predicate.LedgerSubAccount, 
 			routePredicates = append(routePredicates, ledgersubaccountroutedb.TaxCodeIsNil())
 		}
 	}
-	if normalizedRoute.Features.IsPresent() {
-		features, _ := normalizedRoute.Features.Get()
-		if len(features) == 0 {
-			routePredicates = append(routePredicates, ledgersubaccountroutedb.FeaturesIsNil())
-		} else {
-			routePredicates = append(routePredicates, ledgersubaccountroutedb.Features(pq.StringArray(features)))
-		}
+
+	if exact, ok := normalizedRoute.CreditFilters.Get(); ok {
+		routePredicates = append(routePredicates, func(s *sql.Selector) { s.Where(routequery.ExactFiltersPredicate(s.C, exact)) })
 	}
+
+	if features, ok := normalizedRoute.Features.Get(); ok {
+		routePredicates = append(routePredicates, func(s *sql.Selector) { s.Where(routequery.ExactFeaturesPredicate(s.C, features)) })
+	}
+
 	if normalizedRoute.MatchFeature != "" {
-		routePredicates = append(routePredicates, matchFeature(normalizedRoute.MatchFeature))
+		routePredicates = append(routePredicates, func(s *sql.Selector) { s.Where(routequery.MatchFeaturePredicate(s.C, normalizedRoute.MatchFeature)) })
 	}
+
 	if normalizedRoute.CostBasis.IsPresent() {
 		costBasis, _ := normalizedRoute.CostBasis.Get()
 		if costBasis != nil {
@@ -199,6 +198,7 @@ func (b *sumEntriesQuery) subAccountPredicates() ([]predicate.LedgerSubAccount, 
 			routePredicates = append(routePredicates, ledgersubaccountroutedb.CostBasisIsNil())
 		}
 	}
+
 	if normalizedRoute.TaxBehavior.IsPresent() {
 		tb, _ := normalizedRoute.TaxBehavior.Get()
 		if tb != nil {
@@ -207,6 +207,7 @@ func (b *sumEntriesQuery) subAccountPredicates() ([]predicate.LedgerSubAccount, 
 			routePredicates = append(routePredicates, ledgersubaccountroutedb.TaxBehaviorIsNil())
 		}
 	}
+
 	if normalizedRoute.TransactionAuthorizationStatus != nil {
 		routePredicates = append(routePredicates, ledgersubaccountroutedb.TransactionAuthorizationStatus(*normalizedRoute.TransactionAuthorizationStatus))
 	}
@@ -218,13 +219,35 @@ func (b *sumEntriesQuery) subAccountPredicates() ([]predicate.LedgerSubAccount, 
 	return subAccountPredicates, nil
 }
 
-func matchFeature(feature string) predicate.LedgerSubAccountRoute {
-	return func(s *sql.Selector) {
-		s.Where(sql.Or(
-			sql.IsNull(s.C(ledgersubaccountroutedb.FieldFeatures)),
-			sql.P(func(b *sql.Builder) {
-				b.Ident(s.C(ledgersubaccountroutedb.FieldFeatures)).WriteString(" @> ").Arg(pq.StringArray{feature})
-			}),
-		))
+func entryProvenancePredicates(filter ledger.ProvenanceFilter) []predicate.LedgerEntry {
+	entryPredicates := make([]predicate.LedgerEntry, 0, 3)
+
+	if filter.SourceChargeID.IsPresent() {
+		sourceChargeID, _ := filter.SourceChargeID.Get()
+		if sourceChargeID != nil {
+			entryPredicates = append(entryPredicates, ledgerentrydb.SourceChargeID(*sourceChargeID))
+		} else {
+			entryPredicates = append(entryPredicates, ledgerentrydb.SourceChargeIDIsNil())
+		}
 	}
+
+	if filter.SpendChargeID.IsPresent() {
+		spendChargeID, _ := filter.SpendChargeID.Get()
+		if spendChargeID != nil {
+			entryPredicates = append(entryPredicates, ledgerentrydb.SpendChargeID(*spendChargeID))
+		} else {
+			entryPredicates = append(entryPredicates, ledgerentrydb.SpendChargeIDIsNil())
+		}
+	}
+
+	if filter.CollectionOriginID.IsPresent() {
+		collectionOriginID, _ := filter.CollectionOriginID.Get()
+		if collectionOriginID != nil {
+			entryPredicates = append(entryPredicates, ledgerentrydb.CollectionOriginID(*collectionOriginID))
+		} else {
+			entryPredicates = append(entryPredicates, ledgerentrydb.CollectionOriginIDIsNil())
+		}
+	}
+
+	return entryPredicates
 }

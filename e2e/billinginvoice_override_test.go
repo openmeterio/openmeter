@@ -120,6 +120,7 @@ func TestInvoiceEditFlatFeeManualOverrides(t *testing.T) {
 			if profile.Workflow.Invoicing == nil {
 				profile.Workflow.Invoicing = &v3sdk.WorkflowInvoicingSettings{}
 			}
+
 			profile.Workflow.Invoicing.AutoAdvance = lo.ToPtr(false)
 
 			sendInvoice := lo.Must(v3sdk.WorkflowPaymentSettingsFromWorkflowPaymentSendInvoiceSettings(v3sdk.WorkflowPaymentSendInvoiceSettings{
@@ -213,6 +214,7 @@ func TestInvoiceEditFlatFeeManualOverrides(t *testing.T) {
 
 			replacementLines = append(replacementLines, lineUpdate)
 		}
+
 		replacementLines = append(replacementLines, api.InvoiceLineReplaceUpdate{
 			Name:        createdFlatFeeName,
 			Description: lo.ToPtr("Invoice Override Created Flat Fee " + prefix),
@@ -486,6 +488,7 @@ func waitForManualApprovalInvoice(t *testing.T, client *api.ClientWithResponses,
 	}, 2*time.Minute, time.Second)
 
 	require.NotEmpty(t, invoice.Id)
+
 	return getInvoiceWithDeletedLines(t, client, invoice.Id)
 }
 
@@ -595,6 +598,7 @@ func flatInvoiceLineRateCard(t *testing.T, amount string, source *api.InvoiceUsa
 		if featureKey == nil {
 			rateCard.FeatureKey = source.FeatureKey
 		}
+
 		rateCard.TaxConfig = source.TaxConfig
 	}
 
@@ -694,6 +698,7 @@ func requireFlatFeeChargeIntentMatchesLine(t *testing.T, charges map[string]invo
 		require.NoError(t, err)
 		assert.Equal(t, lo.FromPtr(line.FeatureKey), feature.Key)
 	}
+
 	assert.Equal(t, line.InvoiceAt, charge.InvoiceAt)
 	assert.Equal(t, line.Period.From, charge.ServicePeriod.From, "service period from")
 	assert.Equal(t, line.Period.To, charge.ServicePeriod.To, "service period to")
@@ -820,6 +825,7 @@ func requireCustomerCreditBalance(t *testing.T, balance *v3sdk.CreditBalances, c
 func numericToFloat(t require.TestingT, value string) float64 {
 	out, err := strconv.ParseFloat(value, 64)
 	require.NoError(t, err)
+
 	return out
 }
 

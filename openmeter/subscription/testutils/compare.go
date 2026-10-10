@@ -101,9 +101,11 @@ func ValidateSpecAndView(t *testing.T, expected subscription.SubscriptionSpec, f
 				if feature := specItem.RateCard.AsMeta().Feature; feature != nil {
 					expectedFeatureKey = feature.Key
 				}
+
 				if feature := foundItem.SubscriptionItem.RateCard.AsMeta().Feature; feature != nil {
 					actualFeatureKey = feature.Key
 				}
+
 				if actualFeatureKey != nil {
 					require.NotNil(t, expectedFeatureKey)
 					assert.Equal(t, expectedFeatureKey, actualFeatureKey)

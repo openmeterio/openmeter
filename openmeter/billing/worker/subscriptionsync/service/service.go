@@ -90,6 +90,7 @@ func New(config Config) (*Service, error) {
 	if err := config.Validate(); err != nil {
 		return nil, err
 	}
+
 	reconcilerSvc, err := reconciler.New(reconciler.Config{
 		BillingService:          config.BillingService,
 		LegacyBillingLineEngine: config.LegacyBillingLineEngine,
@@ -101,6 +102,7 @@ func New(config Config) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return &Service{
 		billingService:                config.BillingService,
 		chargesService:                config.ChargesService,

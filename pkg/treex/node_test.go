@@ -121,6 +121,7 @@ func TestNode_ShallowClone(t *testing.T) {
 	if len(p.Children()) > 0 {
 		assert.NotSame(t, &p.children[0], &clone.children[0])
 	}
+
 	// Child parent pointers should be updated to the clone
 	assert.Equal(t, clone, c1.Parent())
 	assert.Equal(t, clone, c2.Parent())

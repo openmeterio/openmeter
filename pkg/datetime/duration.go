@@ -76,10 +76,12 @@ func (p ISODuration) Add(p2 ISODuration) (ISODuration, error) {
 	if err != nil {
 		return ISODuration{}, err
 	}
+
 	p3, err := p.Period.Add(per2)
 	if err != nil {
 		return ISODuration{}, NewDurationArithmeticError(p.String(), err)
 	}
+
 	return ISODuration{p3}, nil
 }
 
@@ -89,10 +91,12 @@ func (p ISODuration) Subtract(p2 ISODuration) (ISODuration, error) {
 	if err != nil {
 		return ISODuration{}, err
 	}
+
 	p3, err := p.Period.Subtract(per2)
 	if err != nil {
 		return ISODuration{}, NewDurationArithmeticError(p.String(), err)
 	}
+
 	return ISODuration{p3}, nil
 }
 
@@ -152,6 +156,7 @@ func (d ISODuration) DivisibleBy(smaller ISODuration) (bool, error) {
 			if err != nil {
 				return false, err
 			}
+
 			if !remainder.IsZero() {
 				return false, nil
 			}
@@ -175,6 +180,7 @@ func (p ISODuration) Mul(n int) (ISODuration, error) {
 	if err != nil {
 		return ISODuration{}, err
 	}
+
 	return ISODuration{per}, nil
 }
 
@@ -256,22 +262,27 @@ func convertPeriodToSeconds(p period.Period, daysInMonth int, hoursInDays int) (
 	if err != nil {
 		return zero, err
 	}
+
 	result, err = result.Add(weeks)
 	if err != nil {
 		return zero, err
 	}
+
 	result, err = result.Add(days)
 	if err != nil {
 		return zero, err
 	}
+
 	result, err = result.Add(hours)
 	if err != nil {
 		return zero, err
 	}
+
 	result, err = result.Add(minutes)
 	if err != nil {
 		return zero, err
 	}
+
 	result, err = result.Add(seconds)
 	if err != nil {
 		return zero, err

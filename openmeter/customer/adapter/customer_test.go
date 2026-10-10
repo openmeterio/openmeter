@@ -170,6 +170,7 @@ func freezeTime(t *testing.T, at time.Time) time.Time {
 	frozen := at.UTC().Truncate(time.Microsecond)
 	clock.FreezeTime(frozen)
 	t.Cleanup(clock.UnFreeze)
+
 	return frozen
 }
 
@@ -373,6 +374,7 @@ func (e *testEnv) seedCustomerWithKey(namespace, key string, subjectKeys ...stri
 	if key != "" {
 		create = create.SetKey(key)
 	}
+
 	cust, err := create.Save(ctx)
 	require.NoError(e.t, err, "seeding customer must not fail")
 

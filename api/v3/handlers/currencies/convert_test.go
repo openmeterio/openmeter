@@ -61,6 +61,7 @@ func TestToAPIBillingCostBasisExposesIDAndEffectiveTo(t *testing.T) {
 				require.NotNil(t, got.EffectiveTo)
 				require.Equal(t, *tt.effectiveTo, *got.EffectiveTo)
 			}
+
 			require.Equal(t, createdAt, got.CreatedAt)
 		})
 	}

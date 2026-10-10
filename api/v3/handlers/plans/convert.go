@@ -3,6 +3,7 @@ package plans
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	decimal "github.com/alpacahq/alpacadecimal"
@@ -15,7 +16,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
-	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -119,7 +119,7 @@ func ToAPIBillingRateCard(rc productcatalog.RateCard) (api.BillingRateCard, erro
 		Name:        meta.Name,
 		Description: meta.Description,
 		Discounts:   ToAPIBillingRateCardDiscount(meta.Discounts),
-		TaxConfig:   ToAPIBillingRateCardTaxConfig(meta.TaxConfig, meta.TaxCode),
+		TaxConfig:   ToAPITaxCodeConfig(meta.TaxConfig),
 	}
 
 	if meta.Currency != nil {
@@ -531,15 +531,15 @@ func ToAPIBillingPriceTiers(tiers []productcatalog.PriceTier) []api.BillingPrice
 	return result
 }
 
-func ToAPIBillingRateCardTaxConfig(c *productcatalog.TaxConfig, tc *taxcode.TaxCode) *api.BillingRateCardTaxConfig {
-	if c == nil || tc == nil {
+func ToAPITaxCodeConfig(c *productcatalog.TaxConfig) *api.TaxCodeConfig {
+	if c == nil || (c.Behavior == nil && c.TaxCodeID == nil) {
 		return nil
 	}
 
-	result := &api.BillingRateCardTaxConfig{
-		Code: api.TaxCodeReference{
-			Id: tc.ID,
-		},
+	result := &api.TaxCodeConfig{}
+
+	if c.TaxCodeID != nil {
+		result.Code = &api.TaxCodeReference{Id: *c.TaxCodeID}
 	}
 
 	if c.Behavior != nil {
@@ -771,7 +771,12 @@ func FromAPIBillingRateCard(rc api.BillingRateCard) (productcatalog.RateCard, er
 	}
 
 	if rc.TaxConfig != nil {
-		meta.TaxConfig = FromAPIBillingRateCardTaxConfig(*rc.TaxConfig)
+		taxConfig, err := FromAPITaxCodeConfig(*rc.TaxConfig)
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert tax config: %w", err)
+		}
+
+		meta.TaxConfig = taxConfig
 	}
 
 	if rc.Discounts != nil {
@@ -1148,16 +1153,26 @@ func FromAPIBillingPriceTiers(tiers []api.BillingPriceTier) ([]productcatalog.Pr
 	return result, nil
 }
 
-func FromAPIBillingRateCardTaxConfig(tc api.BillingRateCardTaxConfig) *productcatalog.TaxConfig {
-	result := &productcatalog.TaxConfig{
-		TaxCodeID: &tc.Code.Id,
+func FromAPITaxCodeConfig(tc api.TaxCodeConfig) (*productcatalog.TaxConfig, error) {
+	if tc.Code != nil && tc.Code.Id == "" {
+		return nil, models.NewGenericValidationError(errors.New("tax_config.code.id must be set when tax_config.code is present"))
+	}
+
+	if tc.Code == nil && tc.Behavior == nil {
+		return nil, models.NewGenericValidationError(errors.New("tax_config.code.id or tax_config.behavior must be set"))
+	}
+
+	result := &productcatalog.TaxConfig{}
+
+	if tc.Code != nil {
+		result.TaxCodeID = &tc.Code.Id
 	}
 
 	if tc.Behavior != nil {
 		result.Behavior = lo.ToPtr(productcatalog.TaxBehavior(*tc.Behavior))
 	}
 
-	return result
+	return result, nil
 }
 
 func FromAPIBillingRateCardDiscounts(d api.BillingRateCardDiscounts) (productcatalog.Discounts, error) {

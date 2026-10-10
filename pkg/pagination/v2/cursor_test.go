@@ -67,6 +67,7 @@ func TestCursorEncodeDecode(t *testing.T) {
 				if tt.errMessage != "" {
 					assert.Equal(t, tt.errMessage, err.Error(), "error message should match expected")
 				}
+
 				return
 			}
 

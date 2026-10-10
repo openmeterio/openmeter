@@ -54,6 +54,7 @@ func (c NamespaceHandlerConfig) validate() error {
 		if invoicingCount != 1 {
 			errs = append(errs, fmt.Errorf("exactly one seed must have DefaultInvoicing=true, got %d", invoicingCount))
 		}
+
 		if creditGrantCount != 1 {
 			errs = append(errs, fmt.Errorf("exactly one seed must have DefaultCreditGrant=true, got %d", creditGrantCount))
 		}
@@ -100,6 +101,7 @@ func (h *NamespaceHandler) CreateNamespace(ctx context.Context, ns string) error
 		if err != nil {
 			return fmt.Errorf("list tax codes: %w", err)
 		}
+
 		existingByKey := lo.SliceToMap(listed.Items, func(tc TaxCode) (string, TaxCode) {
 			return tc.Key, tc
 		})

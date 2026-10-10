@@ -143,6 +143,7 @@ func (m *connector) buildEngineForOwner(ctx context.Context, params buildEngineF
 			if id != params.owner.NamespacedID {
 				return grant.Owner{}, fmt.Errorf("expected owner %s, got %s", params.owner.NamespacedID.ID, id.ID)
 			}
+
 			return params.owner, nil
 		},
 		GetUsagePeriodStartAt: func(_ context.Context, _ models.NamespacedID, at time.Time) (time.Time, error) {
@@ -152,6 +153,7 @@ func (m *connector) buildEngineForOwner(ctx context.Context, params buildEngineF
 					return period.From, nil
 				}
 			}
+
 			return time.Time{}, fmt.Errorf("no period start time found for %s, known periods: %+v", at, periodCache)
 		},
 	})
@@ -175,6 +177,7 @@ func (m *connector) buildEngineForOwner(ctx context.Context, params buildEngineF
 			return usageQuerier.QueryUsage(ctx, params.owner.NamespacedID, timeutil.ClosedPeriod{From: from, To: to})
 		},
 	})
+
 	return eng, nil
 }
 

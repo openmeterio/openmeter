@@ -110,12 +110,12 @@ cost-basis mode are copied as in subscription change.
 Migration compares the actual subscription offering against the target plan;
 customer edits that differ from the target are replaced from the effective time.
 It preserves phase metadata and rejects changes to phase keys/start times,
-billing cadence, settlement mode, and proration configuration. Invoice-currency
-and item-currency restrictions from ordinary updates still apply. Incompatible
-phase timelines return an error explaining how to explicitly request replacement;
-they never trigger automatic replacement. Use subscription change to select a
-different plan. The restrictions above apply to in-place migrations; explicit
-replacement uses subscription change validation.
+billing cadence, settlement mode, and proration configuration. Invoice currency
+remains unchanged; replacement item currencies follow normal subscription
+currency validation. Incompatible phase timelines return an error explaining
+how to explicitly request replacement; they never trigger automatic replacement.
+Use subscription change to select a different plan. The restrictions above apply
+to in-place migrations; explicit replacement uses subscription change validation.
 
 No database backfill or new schema is required. Existing subscriptions can use
 this workflow. Public audit-history endpoints and special treatment of

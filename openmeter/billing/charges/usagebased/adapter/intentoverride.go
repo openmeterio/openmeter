@@ -154,6 +154,7 @@ func (a *adapter) createIntentOverride(ctx context.Context, chargeID meta.Charge
 	if normalized.UnitConfig != nil {
 		create = create.SetUnitConfig(normalized.UnitConfig)
 	}
+
 	if normalized.Metadata != nil {
 		create = create.SetMetadata(&normalized.Metadata)
 	}
@@ -192,6 +193,7 @@ func (a *adapter) updateIntentOverride(ctx context.Context, chargeID meta.Charge
 	} else {
 		update = update.ClearUnitConfig()
 	}
+
 	if normalized.Metadata == nil {
 		update = update.ClearMetadata()
 	} else {

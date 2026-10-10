@@ -2309,7 +2309,8 @@ class InstallWithApiKeyRequest(TypedDict, total=False):
     :vartype name: str
     :ivar create_billing_profile: If true, a billing profile will be created for the app. The
      Stripe app will be also set as the default billing profile if the current default is a Sandbox
-     app.
+     app. Custom Invoicing apps use the Auto Collection preset with an OpenMeter supplier in the US
+     (postal code 94114), without replacing the default profile.
     :vartype create_billing_profile: bool
     :ivar api_key: The API key for the provider. For example, the Stripe API key. Required.
     :vartype api_key: str
@@ -2321,7 +2322,9 @@ class InstallWithApiKeyRequest(TypedDict, total=False):
      If name is not provided defaults to the marketplace listing's name."""
     createBillingProfile: bool
     """If true, a billing profile will be created for the app. The Stripe app will be also set as the
-     default billing profile if the current default is a Sandbox app."""
+     default billing profile if the current default is a Sandbox app. Custom Invoicing apps use the
+     Auto Collection preset with an OpenMeter supplier in the US (postal code 94114), without
+     replacing the default profile."""
     apiKey: Required[str]
     """The API key for the provider. For example, the Stripe API key. Required."""
 
@@ -2803,7 +2806,8 @@ class MarketplaceInstallRequestPayload(TypedDict, total=False):
     :vartype name: str
     :ivar create_billing_profile: If true, a billing profile will be created for the app. The
      Stripe app will be also set as the default billing profile if the current default is a Sandbox
-     app.
+     app. Custom Invoicing apps use the Auto Collection preset with an OpenMeter supplier in the US
+     (postal code 94114), without replacing the default profile.
     :vartype create_billing_profile: bool
     """
 
@@ -2813,7 +2817,9 @@ class MarketplaceInstallRequestPayload(TypedDict, total=False):
      If name is not provided defaults to the marketplace listing's name."""
     createBillingProfile: bool
     """If true, a billing profile will be created for the app. The Stripe app will be also set as the
-     default billing profile if the current default is a Sandbox app."""
+     default billing profile if the current default is a Sandbox app. Custom Invoicing apps use the
+     Auto Collection preset with an OpenMeter supplier in the US (postal code 94114), without
+     replacing the default profile."""
 
 
 class MarketplaceListing(TypedDict, total=False):

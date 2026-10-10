@@ -110,6 +110,7 @@ func (h *entitlementHandler) ListEntitlements() ListEntitlementsHandler {
 				}
 
 				r, err := ParserV2.ToAPIGenericV2(&e, cust.ID, cust.Key)
+
 				return lo.FromPtr(r), err
 			})
 		},

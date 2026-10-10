@@ -102,6 +102,7 @@ func (s *Service) BuildCreditThenInvoiceGatheringPreviewRun(ctx context.Context,
 		return BuildCreditThenInvoiceGatheringPreviewRunResult{}, err
 	}
 
+	recorder := billing.ValidationIssueRecorder{}
 	ratingResult, err := s.rater.GetDetailedRatingForUsage(ctx, usagebasedrating.GetDetailedRatingForUsageInput{
 		Charge:          in.Charge,
 		StoredAtLT:      in.StoredAtLT,
@@ -109,7 +110,7 @@ func (s *Service) BuildCreditThenInvoiceGatheringPreviewRun(ctx context.Context,
 		Customer:        in.CustomerOverride,
 		FeatureMeter:    in.FeatureMeter,
 	})
-	if err != nil {
+	if err := recorder.RecordWarnings(err); err != nil {
 		return BuildCreditThenInvoiceGatheringPreviewRunResult{}, fmt.Errorf("get detailed rating for usage: %w", err)
 	}
 
@@ -146,5 +147,5 @@ func (s *Service) BuildCreditThenInvoiceGatheringPreviewRun(ctx context.Context,
 	return BuildCreditThenInvoiceGatheringPreviewRunResult{
 		Run:  previewRun,
 		Runs: slices.Concat(in.Charge.Realizations, usagebased.RealizationRuns{previewRun}),
-	}, nil
+	}, recorder.ErrorsOrNil()
 }

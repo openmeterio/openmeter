@@ -29,6 +29,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
 	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
+	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -135,6 +136,12 @@ func (_c *ChargeCreditPurchaseCreate) SetNillableCustomCurrencyID(v *string) *Ch
 // SetManagedBy sets the "managed_by" field.
 func (_c *ChargeCreditPurchaseCreate) SetManagedBy(v billing.InvoiceLineManagedBy) *ChargeCreditPurchaseCreate {
 	_c.mutation.SetManagedBy(v)
+	return _c
+}
+
+// SetSubscriptionPlan sets the "subscription_plan" field.
+func (_c *ChargeCreditPurchaseCreate) SetSubscriptionPlan(v *meta.SubscriptionPlan) *ChargeCreditPurchaseCreate {
+	_c.mutation.SetSubscriptionPlan(v)
 	return _c
 }
 
@@ -404,6 +411,12 @@ func (_c *ChargeCreditPurchaseCreate) SetNillablePriority(v *int) *ChargeCreditP
 	return _c
 }
 
+// SetFilters sets the "filters" field.
+func (_c *ChargeCreditPurchaseCreate) SetFilters(v *ledger.CreditFilters) *ChargeCreditPurchaseCreate {
+	_c.mutation.SetFilters(v)
+	return _c
+}
+
 // SetFeatureFilters sets the "feature_filters" field.
 func (_c *ChargeCreditPurchaseCreate) SetFeatureFilters(v pq.StringArray) *ChargeCreditPurchaseCreate {
 	_c.mutation.SetFeatureFilters(v)
@@ -644,6 +657,10 @@ func (_c *ChargeCreditPurchaseCreate) defaults() {
 		v := chargecreditpurchase.DefaultSchemaLevel
 		_c.mutation.SetSchemaLevel(v)
 	}
+	if _, ok := _c.mutation.Filters(); !ok {
+		v := chargecreditpurchase.DefaultFilters()
+		_c.mutation.SetFilters(v)
+	}
 	if _, ok := _c.mutation.ID(); !ok {
 		v := chargecreditpurchase.DefaultID()
 		_c.mutation.SetID(v)
@@ -704,6 +721,11 @@ func (_c *ChargeCreditPurchaseCreate) check() error {
 			return &ValidationError{Name: "managed_by", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.managed_by": %w`, err)}
 		}
 	}
+	if v, ok := _c.mutation.SubscriptionPlan(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "subscription_plan", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.subscription_plan": %w`, err)}
+		}
+	}
 	if _, ok := _c.mutation.TaxCodeID(); !ok {
 		return &ValidationError{Name: "tax_code_id", err: errors.New(`db: missing required field "ChargeCreditPurchase.tax_code_id"`)}
 	}
@@ -750,6 +772,14 @@ func (_c *ChargeCreditPurchaseCreate) check() error {
 	if _, ok := _c.mutation.CreditAmount(); !ok {
 		return &ValidationError{Name: "credit_amount", err: errors.New(`db: missing required field "ChargeCreditPurchase.credit_amount"`)}
 	}
+	if _, ok := _c.mutation.Filters(); !ok {
+		return &ValidationError{Name: "filters", err: errors.New(`db: missing required field "ChargeCreditPurchase.filters"`)}
+	}
+	if v, ok := _c.mutation.Filters(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "filters", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.filters": %w`, err)}
+		}
+	}
 	if _, ok := _c.mutation.StatusDetailed(); !ok {
 		return &ValidationError{Name: "status_detailed", err: errors.New(`db: missing required field "ChargeCreditPurchase.status_detailed"`)}
 	}
@@ -771,7 +801,10 @@ func (_c *ChargeCreditPurchaseCreate) sqlSave(ctx context.Context) (*ChargeCredi
 	if err := _c.check(); err != nil {
 		return nil, err
 	}
-	_node, _spec := _c.createSpec()
+	_node, _spec, err := _c.createSpec()
+	if err != nil {
+		return nil, err
+	}
 	if err := sqlgraph.CreateNode(ctx, _c.driver, _spec); err != nil {
 		if sqlgraph.IsConstraintError(err) {
 			err = &ConstraintError{msg: err.Error(), wrap: err}
@@ -790,7 +823,7 @@ func (_c *ChargeCreditPurchaseCreate) sqlSave(ctx context.Context) (*ChargeCredi
 	return _node, nil
 }
 
-func (_c *ChargeCreditPurchaseCreate) createSpec() (*ChargeCreditPurchase, *sqlgraph.CreateSpec) {
+func (_c *ChargeCreditPurchaseCreate) createSpec() (*ChargeCreditPurchase, *sqlgraph.CreateSpec, error) {
 	var (
 		_node = &ChargeCreditPurchase{config: _c.config}
 		_spec = sqlgraph.NewCreateSpec(chargecreditpurchase.Table, sqlgraph.NewFieldSpec(chargecreditpurchase.FieldID, field.TypeString))
@@ -839,6 +872,14 @@ func (_c *ChargeCreditPurchaseCreate) createSpec() (*ChargeCreditPurchase, *sqlg
 	if value, ok := _c.mutation.ManagedBy(); ok {
 		_spec.SetField(chargecreditpurchase.FieldManagedBy, field.TypeEnum, value)
 		_node.ManagedBy = value
+	}
+	if value, ok := _c.mutation.SubscriptionPlan(); ok {
+		vv, err := chargecreditpurchase.ValueScanner.SubscriptionPlan.Value(value)
+		if err != nil {
+			return nil, nil, err
+		}
+		_spec.SetField(chargecreditpurchase.FieldSubscriptionPlan, field.TypeString, vv)
+		_node.SubscriptionPlan = value
 	}
 	if value, ok := _c.mutation.AdvanceAfter(); ok {
 		_spec.SetField(chargecreditpurchase.FieldAdvanceAfter, field.TypeTime, value)
@@ -915,6 +956,14 @@ func (_c *ChargeCreditPurchaseCreate) createSpec() (*ChargeCreditPurchase, *sqlg
 	if value, ok := _c.mutation.Priority(); ok {
 		_spec.SetField(chargecreditpurchase.FieldPriority, field.TypeInt, value)
 		_node.Priority = &value
+	}
+	if value, ok := _c.mutation.Filters(); ok {
+		vv, err := chargecreditpurchase.ValueScanner.Filters.Value(value)
+		if err != nil {
+			return nil, nil, err
+		}
+		_spec.SetField(chargecreditpurchase.FieldFilters, field.TypeString, vv)
+		_node.Filters = value
 	}
 	if value, ok := _c.mutation.FeatureFilters(); ok {
 		_spec.SetField(chargecreditpurchase.FieldFeatureFilters, field.TypeOther, value)
@@ -1119,7 +1168,7 @@ func (_c *ChargeCreditPurchaseCreate) createSpec() (*ChargeCreditPurchase, *sqlg
 		_node.CustomCurrencyID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	return _node, _spec
+	return _node, _spec, nil
 }
 
 // OnConflict allows configuring the `ON CONFLICT` / `ON DUPLICATE KEY` clause
@@ -1587,6 +1636,9 @@ func (u *ChargeCreditPurchaseUpsertOne) UpdateNewValues() *ChargeCreditPurchaseU
 		if _, exists := u.create.mutation.ManagedBy(); exists {
 			s.SetIgnore(chargecreditpurchase.FieldManagedBy)
 		}
+		if _, exists := u.create.mutation.SubscriptionPlan(); exists {
+			s.SetIgnore(chargecreditpurchase.FieldSubscriptionPlan)
+		}
 		if _, exists := u.create.mutation.SubscriptionID(); exists {
 			s.SetIgnore(chargecreditpurchase.FieldSubscriptionID)
 		}
@@ -1610,6 +1662,9 @@ func (u *ChargeCreditPurchaseUpsertOne) UpdateNewValues() *ChargeCreditPurchaseU
 		}
 		if _, exists := u.create.mutation.Priority(); exists {
 			s.SetIgnore(chargecreditpurchase.FieldPriority)
+		}
+		if _, exists := u.create.mutation.Filters(); exists {
+			s.SetIgnore(chargecreditpurchase.FieldFilters)
 		}
 		if _, exists := u.create.mutation.FeatureFilters(); exists {
 			s.SetIgnore(chargecreditpurchase.FieldFeatureFilters)
@@ -2167,7 +2222,10 @@ func (_c *ChargeCreditPurchaseCreateBulk) Save(ctx context.Context) ([]*ChargeCr
 				}
 				builder.mutation = mutation
 				var err error
-				nodes[i], specs[i] = builder.createSpec()
+				nodes[i], specs[i], err = builder.createSpec()
+				if err != nil {
+					return nil, err
+				}
 				if i < len(mutators)-1 {
 					_, err = mutators[i+1].Mutate(root, _c.builders[i+1].mutation)
 				} else {
@@ -2297,6 +2355,9 @@ func (u *ChargeCreditPurchaseUpsertBulk) UpdateNewValues() *ChargeCreditPurchase
 			if _, exists := b.mutation.ManagedBy(); exists {
 				s.SetIgnore(chargecreditpurchase.FieldManagedBy)
 			}
+			if _, exists := b.mutation.SubscriptionPlan(); exists {
+				s.SetIgnore(chargecreditpurchase.FieldSubscriptionPlan)
+			}
 			if _, exists := b.mutation.SubscriptionID(); exists {
 				s.SetIgnore(chargecreditpurchase.FieldSubscriptionID)
 			}
@@ -2320,6 +2381,9 @@ func (u *ChargeCreditPurchaseUpsertBulk) UpdateNewValues() *ChargeCreditPurchase
 			}
 			if _, exists := b.mutation.Priority(); exists {
 				s.SetIgnore(chargecreditpurchase.FieldPriority)
+			}
+			if _, exists := b.mutation.Filters(); exists {
+				s.SetIgnore(chargecreditpurchase.FieldFilters)
 			}
 			if _, exists := b.mutation.FeatureFilters(); exists {
 				s.SetIgnore(chargecreditpurchase.FieldFeatureFilters)

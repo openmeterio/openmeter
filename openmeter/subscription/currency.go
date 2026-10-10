@@ -76,6 +76,7 @@ func (p CostBasisPin) Validate() error {
 		if p.CostBasis.CurrencyID != p.CustomCurrencyID {
 			errs = append(errs, errors.New("cost basis custom currency does not match pin"))
 		}
+
 		if p.CostBasis.FiatCode != p.InvoiceCurrency {
 			errs = append(errs, errors.New("cost basis fiat currency does not match pin"))
 		}

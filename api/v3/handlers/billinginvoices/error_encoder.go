@@ -22,6 +22,7 @@ func encodeValidationIssue() encoder.ErrorEncoder {
 		if err == nil {
 			return false
 		}
+
 		issues, convertErr := billing.ToValidationIssues(err)
 		if convertErr != nil {
 			return false
@@ -32,6 +33,7 @@ func encodeValidationIssue() encoder.ErrorEncoder {
 		})
 
 		commonhttp.NewHTTPError(http.StatusBadRequest, errors.Join(errs...)).EncodeError(ctx, w)
+
 		return true
 	}
 }

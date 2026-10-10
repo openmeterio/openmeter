@@ -57,13 +57,15 @@ func (s *service) GetCurrentTotals(ctx context.Context, input usagebased.GetCurr
 		StoredAtLT:              now,
 		IgnoreMinimumCommitment: now.Before(charge.Intent.GetEffectiveServicePeriod().To),
 	})
+	issues, err := billing.ToValidationIssues(err, billing.RequireWarningsOnly())
 	if err != nil {
 		return usagebased.GetCurrentTotalsResult{}, fmt.Errorf("get totals for usage: %w", err)
 	}
 
 	return usagebased.GetCurrentTotalsResult{
-		Charge:          charge,
-		DueTotals:       dueTotals.Totals,
-		MeteredQuantity: dueTotals.MeteredQuantity,
+		Charge:           charge,
+		DueTotals:        dueTotals.Totals,
+		MeteredQuantity:  dueTotals.MeteredQuantity,
+		ValidationIssues: issues,
 	}, nil
 }

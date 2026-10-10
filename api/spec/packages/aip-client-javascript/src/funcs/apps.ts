@@ -21,6 +21,8 @@ import type {
   UninstallAppResponse,
   UpdateAppRequest,
   UpdateAppResponse,
+  ExecuteAppActionRequest,
+  ExecuteAppActionResponse,
   ListAppCatalogRequest,
   ListAppCatalogResponse,
   GetAppCatalogItemRequest,
@@ -181,6 +183,51 @@ export function updateApp(
           assertValid(schemas.updateAppResponseWire, data)
         }
         return fromWire(data, schemas.updateAppResponse)
+      })
+  })
+}
+
+/**
+ * Execute app action
+ *
+ * Execute an operator action on an installed app. The action must be listed in the
+ * app's `actions`; otherwise the request is rejected.
+ *
+ * POST /openmeter/apps/{appId}/action
+ */
+export function executeAppAction(
+  client: Client,
+  req: ExecuteAppActionRequest,
+  options?: RequestOptions,
+): Promise<Result<ExecuteAppActionResponse>> {
+  return request(() => {
+    const pathParamsInput = {
+      appId: req.appId,
+    }
+    const pathParams = client._options.validate
+      ? toPathWire(pathParamsInput, schemas.executeAppActionPathParams)
+      : pathParamsInput
+    if (client._options.validate) {
+      assertValid(schemas.executeAppActionPathParamsWire, pathParams)
+    }
+    const path = `openmeter/apps/${(() => {
+      if (pathParams.appId === undefined) {
+        throw new Error('missing path parameter: appId')
+      }
+      return encodeURIComponent(String(pathParams.appId))
+    })()}/action`
+    const body = toWire(req.body, schemas.executeAppActionBody)
+    if (client._options.validate) {
+      assertValid(schemas.executeAppActionBodyWire, body)
+    }
+    return http(client)
+      .post(path, { ...options, json: body })
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(schemas.executeAppActionResponseWire, data)
+        }
+        return fromWire(data, schemas.executeAppActionResponse)
       })
   })
 }

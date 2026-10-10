@@ -23,6 +23,7 @@ func NewTree[T any](root *Node[T]) (*Tree[T], error) {
 		if onStack[n] {
 			return ErrGraphHasCycle
 		}
+
 		if visited[n] {
 			return nil
 		}
@@ -33,11 +34,14 @@ func NewTree[T any](root *Node[T]) (*Tree[T], error) {
 			if child == nil {
 				return ErrNodeGraphInvalid
 			}
+
 			if err := dfs(child); err != nil {
 				return err
 			}
 		}
+
 		onStack[n] = false
+
 		return nil
 	}
 
@@ -63,6 +67,7 @@ func (t *Tree[T]) DFS(cb func(n *Node[T]) (stop bool, err error)) error {
 		if err != nil {
 			return err
 		}
+
 		if stop {
 			return nil
 		}
@@ -71,10 +76,12 @@ func (t *Tree[T]) DFS(cb func(n *Node[T]) (stop bool, err error)) error {
 			if child == nil {
 				return ErrNodeGraphInvalid
 			}
+
 			if err := walk(child); err != nil {
 				return err
 			}
 		}
+
 		return nil
 	}
 
@@ -89,6 +96,7 @@ func (t *Tree[T]) Leafs() []*Node[T] {
 		if n.IsLeaf() {
 			leafs = append(leafs, n)
 		}
+
 		return false, nil
 	})
 
@@ -112,5 +120,6 @@ func (t *Tree[T]) SwapNode(old *Node[T], new *Node[T]) error {
 	}
 
 	parent := old.Parent()
+
 	return parent.SwapChild(old, new)
 }

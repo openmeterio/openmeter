@@ -110,9 +110,11 @@ func (p ClosedPeriod) ValidateAsRequired() error {
 		if p.From.IsZero() {
 			err = append(err, errors.New("from is required"))
 		}
+
 		if p.To.IsZero() {
 			err = append(err, errors.New("to is required"))
 		}
+
 		return errors.Join(err...)
 	}
 

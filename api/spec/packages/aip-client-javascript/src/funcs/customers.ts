@@ -33,6 +33,24 @@ import type {
   CreateCustomerStripeCheckoutSessionResponse,
   CreateCustomerStripePortalSessionRequest,
   CreateCustomerStripePortalSessionResponse,
+  CreateCustomerEntitlementRequest,
+  CreateCustomerEntitlementResponse,
+  OverrideCustomerEntitlementRequest,
+  OverrideCustomerEntitlementResponse,
+  GetCustomerEntitlementHistoryRequest,
+  GetCustomerEntitlementHistoryResponse,
+  GetCustomerEntitlementRequest,
+  GetCustomerEntitlementResponse,
+  ListCustomerEntitlementsRequest,
+  ListCustomerEntitlementsResponse,
+  ResetCustomerEntitlementUsageRequest,
+  ResetCustomerEntitlementUsageResponse,
+  DeleteCustomerEntitlementRequest,
+  DeleteCustomerEntitlementResponse,
+  CreateCustomerEntitlementGrantRequest,
+  CreateCustomerEntitlementGrantResponse,
+  ListCustomerEntitlementGrantsRequest,
+  ListCustomerEntitlementGrantsResponse,
   CreateCreditGrantRequest,
   CreateCreditGrantResponse,
   GetCreditGrantRequest,
@@ -481,6 +499,523 @@ export function createCustomerStripePortalSession(
           )
         }
         return fromWire(data, schemas.createCustomerStripePortalSessionResponse)
+      })
+  })
+}
+
+/**
+ * Create customer entitlement
+ *
+ * Create an entitlement for the customer.
+ *
+ * A customer can have only one active entitlement per feature. The feature must be
+ * compatible with the entitlement type. Entitlements cannot be modified after
+ * creation, only deleted.
+ *
+ * POST /openmeter/customers/{customerId}/entitlements
+ */
+export function createCustomerEntitlement(
+  client: Client,
+  req: CreateCustomerEntitlementRequest,
+  options?: RequestOptions,
+): Promise<Result<CreateCustomerEntitlementResponse>> {
+  return request(() => {
+    const pathParamsInput = {
+      customerId: req.customerId,
+    }
+    const pathParams = client._options.validate
+      ? toPathWire(pathParamsInput, schemas.createCustomerEntitlementPathParams)
+      : pathParamsInput
+    if (client._options.validate) {
+      assertValid(schemas.createCustomerEntitlementPathParamsWire, pathParams)
+    }
+    const path = `openmeter/customers/${(() => {
+      if (pathParams.customerId === undefined) {
+        throw new Error('missing path parameter: customerId')
+      }
+      return encodeURIComponent(String(pathParams.customerId))
+    })()}/entitlements`
+    const body = toWire(req.body, schemas.createCustomerEntitlementBody)
+    if (client._options.validate) {
+      assertValid(schemas.createCustomerEntitlementBodyWire, body)
+    }
+    return http(client)
+      .post(path, { ...options, json: body })
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(schemas.createCustomerEntitlementResponseWire, data)
+        }
+        return fromWire(data, schemas.createCustomerEntitlementResponse)
+      })
+  })
+}
+
+/**
+ * Override customer entitlement
+ *
+ * Override an entitlement of the customer with a new one.
+ *
+ * The referenced entitlement ends and the new one starts at the same instant, so
+ * access continues without a gap. Both must belong to the same feature. Use this
+ * for upgrades and downgrades.
+ *
+ * Fails if the referenced entitlement does not exist, is deleted, or is no longer
+ * active.
+ *
+ * PUT /openmeter/customers/{customerId}/entitlements/{entitlementId}/override
+ */
+export function overrideCustomerEntitlement(
+  client: Client,
+  req: OverrideCustomerEntitlementRequest,
+  options?: RequestOptions,
+): Promise<Result<OverrideCustomerEntitlementResponse>> {
+  return request(() => {
+    const pathParamsInput = {
+      customerId: req.customerId,
+      entitlementId: req.entitlementId,
+    }
+    const pathParams = client._options.validate
+      ? toPathWire(
+          pathParamsInput,
+          schemas.overrideCustomerEntitlementPathParams,
+        )
+      : pathParamsInput
+    if (client._options.validate) {
+      assertValid(schemas.overrideCustomerEntitlementPathParamsWire, pathParams)
+    }
+    const path = `openmeter/customers/${(() => {
+      if (pathParams.customerId === undefined) {
+        throw new Error('missing path parameter: customerId')
+      }
+      return encodeURIComponent(String(pathParams.customerId))
+    })()}/entitlements/${(() => {
+      if (pathParams.entitlementId === undefined) {
+        throw new Error('missing path parameter: entitlementId')
+      }
+      return encodeURIComponent(String(pathParams.entitlementId))
+    })()}/override`
+    const body = toWire(req.body, schemas.overrideCustomerEntitlementBody)
+    if (client._options.validate) {
+      assertValid(schemas.overrideCustomerEntitlementBodyWire, body)
+    }
+    return http(client)
+      .put(path, { ...options, json: body })
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(schemas.overrideCustomerEntitlementResponseWire, data)
+        }
+        return fromWire(data, schemas.overrideCustomerEntitlementResponse)
+      })
+  })
+}
+
+/**
+ * Get customer entitlement history
+ *
+ * Get the balance and usage history of a metered entitlement. The queried range
+ * may span multiple usage periods.
+ *
+ * `windowed_history` groups usage into windows of the requested size and reports
+ * the balance at the start of each window. `burndown_history` lists the periods in
+ * which grants were consumed in a fixed order, together with the usage taken from
+ * each grant.
+ *
+ * GET /openmeter/customers/{customerId}/entitlements/{entitlementId}/history
+ */
+export function getCustomerEntitlementHistory(
+  client: Client,
+  req: GetCustomerEntitlementHistoryRequest,
+  options?: RequestOptions,
+): Promise<Result<GetCustomerEntitlementHistoryResponse>> {
+  return request(() => {
+    const pathParamsInput = {
+      customerId: req.customerId,
+      entitlementId: req.entitlementId,
+    }
+    const pathParams = client._options.validate
+      ? toPathWire(
+          pathParamsInput,
+          schemas.getCustomerEntitlementHistoryPathParams,
+        )
+      : pathParamsInput
+    if (client._options.validate) {
+      assertValid(
+        schemas.getCustomerEntitlementHistoryPathParamsWire,
+        pathParams,
+      )
+    }
+    const path = `openmeter/customers/${(() => {
+      if (pathParams.customerId === undefined) {
+        throw new Error('missing path parameter: customerId')
+      }
+      return encodeURIComponent(String(pathParams.customerId))
+    })()}/entitlements/${(() => {
+      if (pathParams.entitlementId === undefined) {
+        throw new Error('missing path parameter: entitlementId')
+      }
+      return encodeURIComponent(String(pathParams.entitlementId))
+    })()}/history`
+    const query = toWire(
+      {
+        from: req.from,
+        to: req.to,
+        windowSize: req.windowSize,
+        timeZone: req.timeZone,
+      },
+      schemas.getCustomerEntitlementHistoryQueryParams,
+    )
+    if (client._options.validate) {
+      assertValid(schemas.getCustomerEntitlementHistoryQueryParamsWire, query)
+    }
+    const searchParams = toURLSearchParams(query)
+    return http(client)
+      .get(path, { ...options, searchParams })
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(schemas.getCustomerEntitlementHistoryResponseWire, data)
+        }
+        return fromWire(data, schemas.getCustomerEntitlementHistoryResponse)
+      })
+  })
+}
+
+/**
+ * Get customer entitlement
+ *
+ * Get an entitlement of the customer by ID. For checking entitlement access, use
+ * the entitlement access endpoints instead.
+ *
+ * GET /openmeter/customers/{customerId}/entitlements/{entitlementId}
+ */
+export function getCustomerEntitlement(
+  client: Client,
+  req: GetCustomerEntitlementRequest,
+  options?: RequestOptions,
+): Promise<Result<GetCustomerEntitlementResponse>> {
+  return request(() => {
+    const pathParamsInput = {
+      customerId: req.customerId,
+      entitlementId: req.entitlementId,
+    }
+    const pathParams = client._options.validate
+      ? toPathWire(pathParamsInput, schemas.getCustomerEntitlementPathParams)
+      : pathParamsInput
+    if (client._options.validate) {
+      assertValid(schemas.getCustomerEntitlementPathParamsWire, pathParams)
+    }
+    const path = `openmeter/customers/${(() => {
+      if (pathParams.customerId === undefined) {
+        throw new Error('missing path parameter: customerId')
+      }
+      return encodeURIComponent(String(pathParams.customerId))
+    })()}/entitlements/${(() => {
+      if (pathParams.entitlementId === undefined) {
+        throw new Error('missing path parameter: entitlementId')
+      }
+      return encodeURIComponent(String(pathParams.entitlementId))
+    })()}`
+    return http(client)
+      .get(path, options)
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(schemas.getCustomerEntitlementResponseWire, data)
+        }
+        return fromWire(data, schemas.getCustomerEntitlementResponse)
+      })
+  })
+}
+
+/**
+ * List customer entitlements
+ *
+ * List the entitlements of the customer that are active at the time of the
+ * request. For checking entitlement access, use the entitlement access endpoints
+ * instead.
+ *
+ * GET /openmeter/customers/{customerId}/entitlements
+ */
+export function listCustomerEntitlements(
+  client: Client,
+  req: ListCustomerEntitlementsRequest,
+  options?: RequestOptions,
+): Promise<Result<ListCustomerEntitlementsResponse>> {
+  return request(() => {
+    const pathParamsInput = {
+      customerId: req.customerId,
+    }
+    const pathParams = client._options.validate
+      ? toPathWire(pathParamsInput, schemas.listCustomerEntitlementsPathParams)
+      : pathParamsInput
+    if (client._options.validate) {
+      assertValid(schemas.listCustomerEntitlementsPathParamsWire, pathParams)
+    }
+    const path = `openmeter/customers/${(() => {
+      if (pathParams.customerId === undefined) {
+        throw new Error('missing path parameter: customerId')
+      }
+      return encodeURIComponent(String(pathParams.customerId))
+    })()}/entitlements`
+    if (client._options.validate && req.sort !== undefined) {
+      assertValid(
+        schemas.listCustomerEntitlementsQueryParams.shape.sort,
+        req.sort,
+      )
+    }
+    const query = toWire(
+      {
+        page: req.page,
+        sort: encodeSort(req.sort, toSnakeCase),
+        filter: req.filter,
+      },
+      schemas.listCustomerEntitlementsQueryParams,
+    )
+    if (client._options.validate) {
+      assertValid(schemas.listCustomerEntitlementsQueryParamsWire, query)
+    }
+    const searchParams = toURLSearchParams(query)
+    return http(client)
+      .get(path, { ...options, searchParams })
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(schemas.listCustomerEntitlementsResponseWire, data)
+        }
+        return fromWire(data, schemas.listCustomerEntitlementsResponse)
+      })
+  })
+}
+
+/**
+ * Reset customer entitlement usage
+ *
+ * Reset the usage of a metered entitlement. The reset starts a new usage period:
+ * usage is zeroed and grants roll over according to their rollover settings.
+ *
+ * Usage is reset automatically at the end of each usage period. Use this operation
+ * to reset it earlier, for example to align the entitlement with the customer's
+ * billing period. The usage period anchor can be moved at the same time.
+ *
+ * POST /openmeter/customers/{customerId}/entitlements/{entitlementId}/reset
+ */
+export function resetCustomerEntitlementUsage(
+  client: Client,
+  req: ResetCustomerEntitlementUsageRequest,
+  options?: RequestOptions,
+): Promise<Result<ResetCustomerEntitlementUsageResponse>> {
+  return request(async () => {
+    const pathParamsInput = {
+      customerId: req.customerId,
+      entitlementId: req.entitlementId,
+    }
+    const pathParams = client._options.validate
+      ? toPathWire(
+          pathParamsInput,
+          schemas.resetCustomerEntitlementUsagePathParams,
+        )
+      : pathParamsInput
+    if (client._options.validate) {
+      assertValid(
+        schemas.resetCustomerEntitlementUsagePathParamsWire,
+        pathParams,
+      )
+    }
+    const path = `openmeter/customers/${(() => {
+      if (pathParams.customerId === undefined) {
+        throw new Error('missing path parameter: customerId')
+      }
+      return encodeURIComponent(String(pathParams.customerId))
+    })()}/entitlements/${(() => {
+      if (pathParams.entitlementId === undefined) {
+        throw new Error('missing path parameter: entitlementId')
+      }
+      return encodeURIComponent(String(pathParams.entitlementId))
+    })()}/reset`
+    const body = toWire(req.body, schemas.resetCustomerEntitlementUsageBody)
+    if (client._options.validate) {
+      assertValid(schemas.resetCustomerEntitlementUsageBodyWire, body)
+    }
+    await http(client).post(path, { ...options, json: body })
+  })
+}
+
+/**
+ * Delete customer entitlement
+ *
+ * Deletes the entitlement and revokes access to its feature. A customer can hold
+ * only one active entitlement per feature, so migrating a feature requires
+ * deleting the previous entitlement first.
+ *
+ * Deletion sets the `deleted_at` timestamp instead of removing history. Access and
+ * status queries for earlier points in time still treat the entitlement as active,
+ * so access changes are never retroactive.
+ *
+ * DELETE /openmeter/customers/{customerId}/entitlements/{entitlementId}
+ */
+export function deleteCustomerEntitlement(
+  client: Client,
+  req: DeleteCustomerEntitlementRequest,
+  options?: RequestOptions,
+): Promise<Result<DeleteCustomerEntitlementResponse>> {
+  return request(async () => {
+    const pathParamsInput = {
+      customerId: req.customerId,
+      entitlementId: req.entitlementId,
+    }
+    const pathParams = client._options.validate
+      ? toPathWire(pathParamsInput, schemas.deleteCustomerEntitlementPathParams)
+      : pathParamsInput
+    if (client._options.validate) {
+      assertValid(schemas.deleteCustomerEntitlementPathParamsWire, pathParams)
+    }
+    const path = `openmeter/customers/${(() => {
+      if (pathParams.customerId === undefined) {
+        throw new Error('missing path parameter: customerId')
+      }
+      return encodeURIComponent(String(pathParams.customerId))
+    })()}/entitlements/${(() => {
+      if (pathParams.entitlementId === undefined) {
+        throw new Error('missing path parameter: entitlementId')
+      }
+      return encodeURIComponent(String(pathParams.entitlementId))
+    })()}`
+    await http(client).delete(path, options)
+  })
+}
+
+/**
+ * Create customer entitlement grant
+ *
+ * Issue a grant for a metered entitlement of the customer. Boolean and static
+ * entitlements cannot have grants, so the request is rejected for them.
+ *
+ * Grants are immutable. The amount is added to the balance from `effective_at`,
+ * which cannot be earlier than the start of the current usage period.
+ *
+ * POST /openmeter/customers/{customerId}/entitlements/{entitlementId}/grants
+ */
+export function createCustomerEntitlementGrant(
+  client: Client,
+  req: CreateCustomerEntitlementGrantRequest,
+  options?: RequestOptions,
+): Promise<Result<CreateCustomerEntitlementGrantResponse>> {
+  return request(() => {
+    const pathParamsInput = {
+      customerId: req.customerId,
+      entitlementId: req.entitlementId,
+    }
+    const pathParams = client._options.validate
+      ? toPathWire(
+          pathParamsInput,
+          schemas.createCustomerEntitlementGrantPathParams,
+        )
+      : pathParamsInput
+    if (client._options.validate) {
+      assertValid(
+        schemas.createCustomerEntitlementGrantPathParamsWire,
+        pathParams,
+      )
+    }
+    const path = `openmeter/customers/${(() => {
+      if (pathParams.customerId === undefined) {
+        throw new Error('missing path parameter: customerId')
+      }
+      return encodeURIComponent(String(pathParams.customerId))
+    })()}/entitlements/${(() => {
+      if (pathParams.entitlementId === undefined) {
+        throw new Error('missing path parameter: entitlementId')
+      }
+      return encodeURIComponent(String(pathParams.entitlementId))
+    })()}/grants`
+    const body = toWire(req.body, schemas.createCustomerEntitlementGrantBody)
+    if (client._options.validate) {
+      assertValid(schemas.createCustomerEntitlementGrantBodyWire, body)
+    }
+    return http(client)
+      .post(path, { ...options, json: body })
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(schemas.createCustomerEntitlementGrantResponseWire, data)
+        }
+        return fromWire(data, schemas.createCustomerEntitlementGrantResponse)
+      })
+  })
+}
+
+/**
+ * List customer entitlement grants
+ *
+ * List the grants issued for an entitlement of the customer. Grants only exist for
+ * metered entitlements, so the list is empty for boolean and static entitlements.
+ *
+ * Deleted grants are excluded unless `include_deleted` is set. Voided and expired
+ * grants are always included, as they are part of the balance history.
+ *
+ * GET /openmeter/customers/{customerId}/entitlements/{entitlementId}/grants
+ */
+export function listCustomerEntitlementGrants(
+  client: Client,
+  req: ListCustomerEntitlementGrantsRequest,
+  options?: RequestOptions,
+): Promise<Result<ListCustomerEntitlementGrantsResponse>> {
+  return request(() => {
+    const pathParamsInput = {
+      customerId: req.customerId,
+      entitlementId: req.entitlementId,
+    }
+    const pathParams = client._options.validate
+      ? toPathWire(
+          pathParamsInput,
+          schemas.listCustomerEntitlementGrantsPathParams,
+        )
+      : pathParamsInput
+    if (client._options.validate) {
+      assertValid(
+        schemas.listCustomerEntitlementGrantsPathParamsWire,
+        pathParams,
+      )
+    }
+    const path = `openmeter/customers/${(() => {
+      if (pathParams.customerId === undefined) {
+        throw new Error('missing path parameter: customerId')
+      }
+      return encodeURIComponent(String(pathParams.customerId))
+    })()}/entitlements/${(() => {
+      if (pathParams.entitlementId === undefined) {
+        throw new Error('missing path parameter: entitlementId')
+      }
+      return encodeURIComponent(String(pathParams.entitlementId))
+    })()}/grants`
+    if (client._options.validate && req.sort !== undefined) {
+      assertValid(
+        schemas.listCustomerEntitlementGrantsQueryParams.shape.sort,
+        req.sort,
+      )
+    }
+    const query = toWire(
+      {
+        page: req.page,
+        sort: encodeSort(req.sort, toSnakeCase),
+        includeDeleted: req.includeDeleted,
+      },
+      schemas.listCustomerEntitlementGrantsQueryParams,
+    )
+    if (client._options.validate) {
+      assertValid(schemas.listCustomerEntitlementGrantsQueryParamsWire, query)
+    }
+    const searchParams = toURLSearchParams(query)
+    return http(client)
+      .get(path, { ...options, searchParams })
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(schemas.listCustomerEntitlementGrantsResponseWire, data)
+        }
+        return fromWire(data, schemas.listCustomerEntitlementGrantsResponse)
       })
   })
 }

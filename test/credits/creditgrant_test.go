@@ -15,8 +15,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	creditpurchaseadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase/adapter"
 	creditpurchaseservice "github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase/service"
-	lineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/adapter"
-	lineageservice "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/service"
+	legacylineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage/adapter"
+	legacylineageservice "github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage/service"
 	metaadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/meta/adapter"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	creditgrant "github.com/openmeterio/openmeter/openmeter/billing/creditgrant"
@@ -57,12 +57,12 @@ func (s *CreditGrantTestSuite) SetupSuite() {
 	})
 	s.Require().NoError(err)
 
-	lineageAdapter, err := lineageadapter.New(lineageadapter.Config{
+	lineageAdapter, err := legacylineageadapter.New(legacylineageadapter.Config{
 		Client: s.DBClient,
 	})
 	s.Require().NoError(err)
 
-	lineageService, err := lineageservice.New(lineageservice.Config{
+	lineageService, err := legacylineageservice.New(legacylineageservice.Config{
 		Adapter: lineageAdapter,
 	})
 	s.Require().NoError(err)
@@ -74,7 +74,15 @@ func (s *CreditGrantTestSuite) SetupSuite() {
 	})
 	s.Require().NoError(err)
 
-	creditPurchaseHandler, err := ledgerchargeadapter.NewCreditPurchaseHandler(s.Ledger, s.BalanceQuerier, s.LedgerResolver, s.LedgerAccountService, ledgerbreakage.NewNoopService(), enttx.NewCreator(s.DBClient))
+	creditPurchaseHandler, err := ledgerchargeadapter.NewCreditPurchaseHandler(ledgerchargeadapter.CreditPurchaseHandlerConfig{
+		Ledger:             s.Ledger,
+		BalanceQuerier:     s.BalanceQuerier,
+		AccountResolver:    s.LedgerResolver,
+		AccountCatalog:     s.LedgerAccountService,
+		AdvanceService:     s.AdvanceService,
+		BreakageService:    ledgerbreakage.NewNoopService(),
+		TransactionManager: enttx.NewCreator(s.DBClient),
+	})
 	s.Require().NoError(err)
 
 	s.CreditPurchaseService, err = creditpurchaseservice.New(creditpurchaseservice.Config{
@@ -258,6 +266,7 @@ func (s *CreditGrantTestSuite) TestCreateFeatureFilteredGrant() {
 		Amount:        alpacadecimal.NewFromInt(10),
 		FundingMethod: creditgrant.FundingMethodNone,
 		Filters: &creditgrant.GrantFilters{
+			Version:  ledger.CreditFiltersVersion1,
 			Features: []string{"api-calls"},
 		},
 	})
@@ -265,7 +274,7 @@ func (s *CreditGrantTestSuite) TestCreateFeatureFilteredGrant() {
 
 	s.Equal(creditpurchase.SettlementTypePromotional, grant.Intent.Settlement.Type())
 	s.Equal(creditpurchase.StatusFinal, grant.Status)
-	s.Equal(creditpurchase.FeatureFilters{"api-calls"}, grant.Intent.FeatureFilters)
+	s.Equal([]string{"api-calls"}, grant.Intent.Filters.Features)
 	s.NotNil(grant.Realizations.CreditGrantRealization)
 }
 
@@ -684,4 +693,26 @@ func (s *CreditGrantTestSuite) mustCreatePromotionalCreditGrant(ctx context.Cont
 	s.Require().NoError(err)
 
 	return grant
+}
+
+func (s *CreditGrantTestSuite) TestCreatePlanFilteredGrant() {
+	// given: a grant matches a feature and two versions of a plan.
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("creditgrant-plan-filters")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
+	filters := ledger.CreditFilters{Version: ledger.CreditFiltersVersion2, Features: []string{"api-calls"}, Plans: []ledger.PlanFilter{{Key: "pro", Version: &ledger.VersionFilter{In: []int{3, 2, 3}}}}}
+	// when: creation persists and realizes the grant.
+	grant, err := s.CreditGrantService.Create(ctx, creditgrant.CreateInput{
+		Namespace: ns, CustomerID: cust.ID, Name: "Plan restricted grant", Currency: USD,
+		Amount: alpacadecimal.NewFromInt(10), FundingMethod: creditgrant.FundingMethodNone, Filters: &filters,
+	})
+	s.Require().NoError(err)
+	// then: an independent read retains both dimensions and canonical versions.
+	loaded, err := s.CreditGrantService.Get(ctx, creditgrant.GetInput{Namespace: ns, CustomerID: cust.ID, ChargeID: grant.ID})
+	s.Require().NoError(err)
+	s.True(filters.Equal(loaded.Intent.Filters))
+	s.Require().Len(loaded.Intent.Filters.Plans, 1)
+	s.Equal([]int{2, 3}, loaded.Intent.Filters.Plans[0].Version.In)
+	s.NotNil(loaded.Realizations.CreditGrantRealization)
 }

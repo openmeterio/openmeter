@@ -4,8 +4,14 @@ import { z } from 'zod'
 import * as schemas from '../schemas.js'
 import type { AcceptDateStrings } from '../../lib/wire.js'
 import type {
-  EntitlementAccessResult,
+  Entitlement,
+  EntitlementAccessCheckResult,
+  EntitlementFeatureValueResult,
+  EntitlementPagePaginatedResponse,
+  EntitlementValueResult,
   ListCustomerEntitlementAccessResponseData,
+  ListEntitlementsParamsFilter,
+  SortQueryInput,
 } from '../types.js'
 
 export type ListCustomerEntitlementAccessRequest = {
@@ -14,7 +20,13 @@ export type ListCustomerEntitlementAccessRequest = {
 export type ListCustomerEntitlementAccessResponse =
   ListCustomerEntitlementAccessResponseData
 
-export interface GetCustomerEntitlementAccessQuery {
+export type GetCustomerEntitlementAccessRequest = {
+  customerId: string
+  featureKey: string
+}
+export type GetCustomerEntitlementAccessResponse = EntitlementAccessCheckResult
+
+export interface GetCustomerEntitlementValueByFeatureKeyQuery {
   /**
    * Expand computed fields.
    *
@@ -24,9 +36,67 @@ export interface GetCustomerEntitlementAccessQuery {
    * `value` field.
    */
   expand?: 'value'[]
+  /** The point in time to evaluate the entitlement at. Defaults to the current time. */
+  at?: Date
 }
 
-export type GetCustomerEntitlementAccessRequest = AcceptDateStrings<
-  GetCustomerEntitlementAccessQuery & { customerId: string; featureKey: string }
+export type GetCustomerEntitlementValueByFeatureKeyRequest = AcceptDateStrings<
+  GetCustomerEntitlementValueByFeatureKeyQuery & {
+    customerId: string
+    featureKey: string
+  }
 >
-export type GetCustomerEntitlementAccessResponse = EntitlementAccessResult
+export type GetCustomerEntitlementValueByFeatureKeyResponse =
+  EntitlementFeatureValueResult
+
+export interface ListEntitlementsQuery {
+  /** Determines which page of the collection to retrieve. */
+  page?: { size?: number; number?: number }
+  /**
+   * Sort entitlements returned in the response. Supported sort attributes are:
+   *
+   * - `created_at` (default)
+   * - `updated_at`
+   *
+   * The `asc` suffix is optional as the default sort order is ascending. The `desc`
+   * suffix is used to specify a descending order.
+   */
+  sort?: SortQueryInput
+  /**
+   * Filter entitlements returned in the response.
+   *
+   * To filter entitlements by customer, add the following query param:
+   * `filter[customer_id]=01K4WAQ0J99ZZ0MD75HXR112H8`
+   */
+  filter?: ListEntitlementsParamsFilter
+}
+
+export type ListEntitlementsRequest = AcceptDateStrings<ListEntitlementsQuery>
+export type ListEntitlementsResponse = EntitlementPagePaginatedResponse
+
+export type GetEntitlementRequest = {
+  entitlementId: string
+}
+export type GetEntitlementResponse = Entitlement
+
+export interface GetCustomerEntitlementValueQuery {
+  /**
+   * Expand computed fields.
+   *
+   * Supported values are:
+   *
+   * - `value`: Expand the balance details of a metered entitlement; it sets the
+   * `value` field.
+   */
+  expand?: 'value'[]
+  /** The point in time to evaluate the entitlement at. Defaults to the current time. */
+  at?: Date
+}
+
+export type GetCustomerEntitlementValueRequest = AcceptDateStrings<
+  GetCustomerEntitlementValueQuery & {
+    customerId: string
+    entitlementId: string
+  }
+>
+export type GetCustomerEntitlementValueResponse = EntitlementValueResult

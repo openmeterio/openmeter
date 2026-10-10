@@ -113,6 +113,87 @@ func AppFromAppExternalInvoicing(value AppExternalInvoicing) (App, error) {
 	return result, nil
 }
 
+// An action the operator should take on an installed app.
+type AppAction struct {
+	// The action type.
+	Type AppActionType `json:"type"`
+	// Human readable explanation of why the action is needed.
+	Description string `json:"description"`
+}
+
+// Request to execute an operator action on an installed app.
+//
+// AppActionRequest is a JSON-preserving tagged union: its zero value marshals as JSON null, and values must be built with the AppActionRequestFrom* constructors.
+// The exported ActionType field is decode-side metadata; MarshalJSON round-trips the original payload and ignores writes to it.
+type AppActionRequest struct {
+	ActionType string `json:"action_type"`
+	raw        json.RawMessage
+}
+
+func (u *AppActionRequest) UnmarshalJSON(data []byte) error {
+	u.raw = append([]byte(nil), data...)
+	if string(data) == "null" {
+		u.ActionType = ""
+		return nil
+	}
+
+	var envelope struct {
+		Value string `json:"action_type"`
+	}
+	if err := json.Unmarshal(data, &envelope); err != nil {
+		return err
+	}
+	u.ActionType = envelope.Value
+	return nil
+}
+
+func (u AppActionRequest) MarshalJSON() ([]byte, error) {
+	if len(u.raw) == 0 {
+		return []byte("null"), nil
+	}
+	return append([]byte(nil), u.raw...), nil
+}
+
+func (u AppActionRequest) AsAppReconcileWebhookEventsActionRequest() (*AppReconcileWebhookEventsActionRequest, error) {
+	if u.ActionType != "reconcile_webhook_events" {
+		return nil, fmt.Errorf("AppActionRequest: expected action_type %q, got %q", "reconcile_webhook_events", u.ActionType)
+	}
+	var value AppReconcileWebhookEventsActionRequest
+	if err := json.Unmarshal(u.raw, &value); err != nil {
+		return nil, err
+	}
+	return &value, nil
+}
+
+func AppActionRequestFromAppReconcileWebhookEventsActionRequest(value AppReconcileWebhookEventsActionRequest) (AppActionRequest, error) {
+	value.ActionType = "reconcile_webhook_events"
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return AppActionRequest{}, err
+	}
+	var result AppActionRequest
+	if err := result.UnmarshalJSON(raw); err != nil {
+		return AppActionRequest{}, err
+	}
+	return result, nil
+}
+
+// App action type.
+type AppActionType string
+
+const (
+	AppActionTypeReconcileWebhookEvents AppActionType = "reconcile_webhook_events"
+)
+
+func (value AppActionType) Valid() bool {
+	switch value {
+	case AppActionTypeReconcileWebhookEvents:
+		return true
+	default:
+		return false
+	}
+}
+
 // App capability describes a function that an App can perform.
 type AppCapability struct {
 	// Type of the capability.
@@ -210,6 +291,9 @@ type AppExternalInvoicing struct {
 	Definition AppCatalogItem `json:"definition"`
 	// Status of the app connection.
 	Status AppStatus `json:"status"`
+	// Actions the operator should take to bring the app up to date. Omitted when no
+	// action is required.
+	Actions []AppAction `json:"actions,omitempty"`
 	// Enable draft synchronization hook.
 	//
 	// When enabled, invoices will pause at the draft state and wait for the
@@ -256,6 +340,13 @@ type AppPagePaginatedResponse struct {
 	Meta PaginatedMeta `json:"meta"`
 }
 
+// Request to reconcile the app's webhook events with the latest supported event
+// set.
+type AppReconcileWebhookEventsActionRequest struct {
+	// The action to execute.
+	ActionType AppActionType `json:"action_type"`
+}
+
 // Sandbox app can be used for testing billing features.
 type AppSandbox struct {
 	ID string `json:"id"`
@@ -280,6 +371,9 @@ type AppSandbox struct {
 	Definition AppCatalogItem `json:"definition"`
 	// Status of the app connection.
 	Status AppStatus `json:"status"`
+	// Actions the operator should take to bring the app up to date. Omitted when no
+	// action is required.
+	Actions []AppAction `json:"actions,omitempty"`
 }
 
 // Connection status of an installed app.
@@ -323,6 +417,9 @@ type AppStripe struct {
 	Definition AppCatalogItem `json:"definition"`
 	// Status of the app connection.
 	Status AppStatus `json:"status"`
+	// Actions the operator should take to bring the app up to date. Omitted when no
+	// action is required.
+	Actions []AppAction `json:"actions,omitempty"`
 	// The Stripe account ID associated with the connected Stripe account.
 	AccountID string `json:"account_id"`
 	// Indicates whether the app is connected to a live Stripe account.
@@ -331,14 +428,14 @@ type AppStripe struct {
 	MaskedAPIKey string `json:"masked_api_key"`
 }
 
-// Base model for installing an app from the catalog.
+// Model for installing an External Invoicing app from the catalog.
 type InstallAppExternalInvoicing struct {
 	// Type of the app.
 	Type AppType `json:"type"`
 	// Name of the app.
 	Name string `json:"name"`
-	// If true, a billing profile will be created for the app. The Stripe app will be
-	// also set as the default billing profile if the current default is a Sandbox app.
+	// If true, creates the Auto Collection preset with an OpenMeter supplier in the US
+	// (postal code 94114), without replacing the default profile.
 	CreateBillingProfile bool `json:"create_billing_profile"`
 }
 
@@ -600,6 +697,9 @@ type InstalledAppExternalInvoicing struct {
 	Definition AppCatalogItem `json:"definition"`
 	// Status of the app connection.
 	Status AppStatus `json:"status"`
+	// Actions the operator should take to bring the app up to date. Omitted when no
+	// action is required.
+	Actions []AppAction `json:"actions,omitempty"`
 	// Enable draft synchronization hook.
 	//
 	// When enabled, invoices will pause at the draft state and wait for the
@@ -648,6 +748,9 @@ type InstalledAppSandbox struct {
 	Definition AppCatalogItem `json:"definition"`
 	// Status of the app connection.
 	Status AppStatus `json:"status"`
+	// Actions the operator should take to bring the app up to date. Omitted when no
+	// action is required.
+	Actions []AppAction `json:"actions,omitempty"`
 	// Default capabilities of the installed app.
 	DefaultForCapabilityTypes []AppCapabilityType `json:"default_for_capability_types"`
 }
@@ -676,6 +779,9 @@ type InstalledAppStripe struct {
 	Definition AppCatalogItem `json:"definition"`
 	// Status of the app connection.
 	Status AppStatus `json:"status"`
+	// Actions the operator should take to bring the app up to date. Omitted when no
+	// action is required.
+	Actions []AppAction `json:"actions,omitempty"`
 	// The Stripe account ID associated with the connected Stripe account.
 	AccountID string `json:"account_id"`
 	// Indicates whether the app is connected to a live Stripe account.

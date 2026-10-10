@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"github.com/samber/lo"
 	"github.com/samber/mo"
@@ -64,10 +65,12 @@ func (s *service) AdvanceCharges(ctx context.Context, input charges.AdvanceCharg
 			if err := mappedResult.requireInvoicePatchesIfAdvanceable(); err != nil {
 				return nil, fmt.Errorf("flat fee charge %s: %w", charge.ID, err)
 			}
+
 			if mappedResult.Charge != nil {
 				advancedChargesByID[charge.ID] = *mappedResult.Charge
 				advancedChargeIDs = append(advancedChargeIDs, charge.ID)
 			}
+
 			invoicePatches = append(invoicePatches, mappedResult.InvoicePatches...)
 
 			if mappedResult.CanAdvance {
@@ -99,6 +102,10 @@ func (s *service) AdvanceCharges(ctx context.Context, input charges.AdvanceCharg
 					FeatureMeters:    mo.Some(featureMeters),
 				})
 				if err != nil {
+					if isPersistedProductCatalogValidationError(err, charge.ValidationIssues) {
+						continue
+					}
+
 					return nil, fmt.Errorf("advance usage based charge %s: %w", charge.ID, err)
 				}
 
@@ -106,10 +113,12 @@ func (s *service) AdvanceCharges(ctx context.Context, input charges.AdvanceCharg
 				if err := mappedResult.requireInvoicePatchesIfAdvanceable(); err != nil {
 					return nil, fmt.Errorf("usage based charge %s: %w", charge.ID, err)
 				}
+
 				if mappedResult.Charge != nil {
 					advancedChargesByID[charge.ID] = *mappedResult.Charge
 					advancedChargeIDs = append(advancedChargeIDs, charge.ID)
 				}
+
 				invoicePatches = append(invoicePatches, mappedResult.InvoicePatches...)
 
 				if mappedResult.CanAdvance {
@@ -127,6 +136,7 @@ func (s *service) AdvanceCharges(ctx context.Context, input charges.AdvanceCharg
 		if err != nil {
 			return nil, err
 		}
+
 		for chargeID, result := range continuedResults {
 			if result.Charge != nil {
 				advancedChargesByID[chargeID] = *result.Charge
@@ -154,6 +164,29 @@ func (s *service) AdvanceCharges(ctx context.Context, input charges.AdvanceCharg
 	}
 
 	return advancedCharges, nil
+}
+
+// isPersistedProductCatalogValidationError identifies dependency failures that
+// are already represented by the charge's durable validation state. Returning
+// them as operation failures would turn a stable blocked charge into worker
+// retries even though there is no unrecorded failure to recover.
+func isPersistedProductCatalogValidationError(err error, persisted billing.ValidationIssues) bool {
+	if !billing.IsValidationIssueOnly(err) {
+		return false
+	}
+
+	issues, systemErr := billing.ToValidationIssues(
+		billing.ValidationWithComponent(billing.ValidationComponentProductCatalog, err),
+	)
+	if systemErr != nil || len(issues) == 0 {
+		return false
+	}
+
+	return lo.EveryBy(issues, func(issue billing.ValidationIssue) bool {
+		return issue.Code != "" && slices.ContainsFunc(persisted, func(persistedIssue billing.ValidationIssue) bool {
+			return persistedIssue.Component == issue.Component && persistedIssue.Code == issue.Code
+		})
+	})
 }
 
 // collectEarningsRecognitionCurrencies resolves the native currency of every

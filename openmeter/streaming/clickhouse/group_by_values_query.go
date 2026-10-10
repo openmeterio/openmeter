@@ -48,5 +48,6 @@ func (d listGroupByValuesQuery) toSQL() (string, []interface{}) {
 	}
 
 	sql, args := sb.Build()
+
 	return sql, args
 }

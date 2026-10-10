@@ -3,11 +3,14 @@ package apierrors
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
 
 	"github.com/openmeterio/openmeter/api/v3/render"
+	"github.com/openmeterio/openmeter/pkg/contextx"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // BaseAPIError is the schema for all API apierrors.
@@ -73,6 +76,7 @@ func (i InvalidParameterSource) String() string {
 	case InvalidParamSourceQuery:
 		return "query"
 	}
+
 	return ""
 }
 
@@ -87,6 +91,7 @@ func ToInvalid(s string) InvalidParameterSource {
 	case "header":
 		return InvalidParamSourceHeader
 	}
+
 	return InvalidParameterSource(0)
 }
 
@@ -99,7 +104,9 @@ func (i *InvalidParameterSource) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &source); err != nil {
 		return err
 	}
+
 	*i = ToInvalid(source)
+
 	return nil
 }
 
@@ -141,11 +148,13 @@ func (ips InvalidParameters) String() string {
 		if param.Rule != "" {
 			_, _ = fmt.Fprintf(out, " [%s]", param.Rule)
 		}
+
 		_, _ = fmt.Fprintf(out, ": %s", param.Reason)
 		if i != len(ips)-1 {
 			_, _ = fmt.Fprintf(out, ", ")
 		}
 	}
+
 	return out.String()
 }
 
@@ -159,9 +168,11 @@ func (bae *BaseAPIError) Error() string {
 	case bae.Detail != "":
 		return bae.Detail
 	}
+
 	if bae.UnderlyingError != nil {
 		return bae.UnderlyingError.Error()
 	}
+
 	return bae.Title
 }
 
@@ -180,5 +191,10 @@ func (bae *BaseAPIError) HandleAPIError(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
+	if errors.Is(r.Context().Err(), context.Canceled) && contextx.IsCanceledError(bae) {
+		w.WriteHeader(models.StatusClientClosedRequest)
+		return
+	}
+
 	_ = render.RenderJSON(w, bae, render.WithContentType(ContentTypeProblemValue), render.WithStatus(bae.Status))
 }

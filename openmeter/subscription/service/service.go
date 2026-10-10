@@ -245,12 +245,14 @@ func (s *service) Update(ctx context.Context, subscriptionID models.NamespacedID
 		if err := s.lockCustomer(ctx, view.Subscription.CustomerId); err != nil {
 			return def, err
 		}
+
 		// An edit may have read its spec before a concurrent migration acquired
 		// the customer lock. Do not apply those old terms over the migrated plan.
 		lockedSubscription, err := s.SubscriptionRepo.GetByID(ctx, subscriptionID)
 		if err != nil {
 			return def, err
 		}
+
 		if !lockedSubscription.PlanRef.NilEqual(view.Subscription.PlanRef) {
 			return def, models.NewGenericConflictError(errors.New("subscription plan changed during update; retry with the current subscription"))
 		}
@@ -507,6 +509,7 @@ func (s *service) Get(ctx context.Context, subscriptionID models.NamespacedID) (
 	if err != nil {
 		return subscription.Subscription{}, err
 	}
+
 	return sub, nil
 }
 
@@ -572,6 +575,7 @@ func (s *service) ExpandViews(ctx context.Context, subs []subscription.Subscript
 	if len(namespaces) != 1 {
 		return nil, fmt.Errorf("ExpandViews only supports a single namespace, got %d", len(namespaces))
 	}
+
 	namespace := namespaces[0]
 
 	// Batch-fetch every distinct customer on the set, then attach the right one to
@@ -660,6 +664,7 @@ func (s *service) ExpandViews(ctx context.Context, subs []subscription.Subscript
 				if reference == nil {
 					continue
 				}
+
 				fKey, fID := lo.FromPtr(reference.Key), lo.FromPtr(reference.ID)
 
 				if fKey != "" {
@@ -758,6 +763,7 @@ func (s *service) ExpandViews(ctx context.Context, subs []subscription.Subscript
 			if reference == nil {
 				continue
 			}
+
 			fKey, fID := lo.FromPtr(reference.Key), lo.FromPtr(reference.ID)
 
 			if fKey == "" && fID == "" {

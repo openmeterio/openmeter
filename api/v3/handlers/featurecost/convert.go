@@ -18,6 +18,7 @@ func ToAPIFeatureCostQueryResult(result *cost.CostQueryResult, body api.MeterQue
 			Data: []api.FeatureCostQueryRow{},
 		}
 	}
+
 	return api.FeatureCostQueryResult{
 		From: body.From,
 		To:   body.To,
@@ -42,6 +43,7 @@ func toAPIFeatureCostQueryRow(row cost.CostQueryRow) api.FeatureCostQueryRow {
 		if key == query.DimensionSubject || key == query.DimensionCustomerID {
 			continue
 		}
+
 		if value != nil {
 			dimensions[key] = *value
 		}

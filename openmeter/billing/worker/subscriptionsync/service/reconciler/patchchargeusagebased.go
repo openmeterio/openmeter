@@ -111,8 +111,14 @@ func newUsageBasedChargeIntent(target targetstate.StateItem) (charges.ChargeInte
 		return charges.ChargeIntent{}, fmt.Errorf("mapping cost basis: %w", err)
 	}
 
+	var subscriptionPlan *chargesmeta.SubscriptionPlan
+	if ref := target.Subscription.PlanRef; ref != nil {
+		subscriptionPlan = &chargesmeta.SubscriptionPlan{Key: ref.Key, Version: ref.Version}
+	}
+
 	return charges.NewChargeIntent(chargesusagebased.Intent{
 		Intent: chargesmeta.Intent{
+			SubscriptionPlan:  subscriptionPlan,
 			ManagedBy:         billing.SubscriptionManagedLine,
 			CustomerID:        target.Subscription.CustomerId,
 			Annotations:       annotations,

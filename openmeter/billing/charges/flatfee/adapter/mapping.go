@@ -59,6 +59,7 @@ func fromDBWithMeta(entity *entdb.ChargeFlatFee, mappedMeta meta.Charge, expands
 		if err != nil {
 			return flatfee.Charge{}, fmt.Errorf("mapping flat fee charge [id=%s]: %w", entity.ID, err)
 		}
+
 		charge.Realizations = realizations
 	}
 

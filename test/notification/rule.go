@@ -15,7 +15,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/convert"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
 func NewCreateRuleInput(namespace string, name string, channels ...string) notification.CreateRuleInput {
@@ -104,6 +106,7 @@ func (s *RuleTestSuite) Setup(ctx context.Context, t *testing.T) {
 	if _, ok := lo.ErrorsAs[*feature.FeatureNotFoundError](err); !ok {
 		require.NoError(t, err, "Getting feature must not return error")
 	}
+
 	if feat != nil {
 		s.feature = *feat
 	} else {
@@ -115,6 +118,7 @@ func (s *RuleTestSuite) Setup(ctx context.Context, t *testing.T) {
 			MeterGroupByFilters: feature.ConvertMapStringToMeterGroupByFilters(meter.GroupBy),
 		})
 	}
+
 	require.NoError(t, err, "Creating feature must not return error")
 
 	input := NewCreateChannelInput(s.Env.Namespace(), "NotificationRuleTest")
@@ -179,16 +183,9 @@ func (s *RuleTestSuite) TestList(ctx context.Context, t *testing.T) {
 	require.NotNil(t, rule2, "Rule must not be nil")
 
 	list, err := service.ListRules(ctx, notification.ListRulesInput{
-		Namespaces: []string{
-			createIn1.Namespace,
-			createIn2.Namespace,
-		},
-		Rules: []string{
-			rule1.ID,
-			rule2.ID,
-		},
-		OrderBy:         "id",
-		IncludeDisabled: false,
+		Namespace: s.Env.Namespace(),
+		ID:        &filter.FilterULID{FilterString: filter.FilterString{In: lo.ToPtr([]string{rule1.ID, rule2.ID})}},
+		OrderBy:   "id",
 	})
 	require.NoError(t, err, "Listing rules must not return error")
 	assert.NotEmpty(t, list.Items, "List of rules must not be empty")
@@ -301,4 +298,55 @@ func (s *RuleTestSuite) TestGet(ctx context.Context, t *testing.T) {
 	assert.EqualValues(t, rule.Config, rule2.Config, "Rule config must be the same")
 	assert.Equalf(t, rule.Annotations, rule2.Annotations, "Annotations must be the same")
 	assert.Equalf(t, rule.Metadata, rule2.Metadata, "Metadata must be the same")
+}
+
+func (s *RuleTestSuite) TestCreateView(ctx context.Context, t *testing.T) {
+	service := s.Env.Notification()
+
+	// given a rule referencing a feature that does not exist
+	// when creating its view
+	// then the request is rejected before any rule is written
+	rejectedIn := NewCreateRuleInput(s.Env.Namespace(), "NotificationCreateRuleViewRejected", s.channel.ID)
+	rejectedIn.Config.BalanceThreshold.Features = []string{s.feature.Key, "non-existing-feature"}
+
+	_, err := service.CreateRuleView(ctx, rejectedIn)
+	require.Error(t, err, "Creating rule view with a missing feature must fail")
+	assert.True(t, models.IsGenericValidationError(err), "expected a models.GenericValidationError, got: %v", err)
+
+	rules, err := service.ListRules(ctx, notification.ListRulesInput{
+		Namespace: s.Env.Namespace(),
+		Page:      pagination.NewPage(1, 10),
+		Name:      &filter.FilterString{Eq: lo.ToPtr(rejectedIn.Name)},
+	})
+	require.NoError(t, err, "Listing rules must not return error")
+	assert.Empty(t, rules.Items, "Rejected rule must not be persisted")
+
+	createIn := NewCreateRuleInput(s.Env.Namespace(), "NotificationCreateRuleView", s.channel.ID)
+	createIn.Config.BalanceThreshold.Features = []string{s.feature.Key, s.feature.ID}
+
+	view, err := service.CreateRuleView(ctx, createIn)
+	require.NoError(t, err, "Creating rule view must not return error")
+	require.NotEmpty(t, view.Rule.ID, "Rule ID must not be empty")
+	assert.EqualValues(t, createIn.Config, view.Rule.Config, "Rule config must be the same")
+
+	require.Len(t, view.Features, 1, "Key and ID references to the same feature must resolve once")
+	assert.Equal(t, s.feature.ID, view.Features[0].ID, "Resolved feature must match the referenced one")
+
+	updateIn := notification.UpdateRuleInput{
+		NamespacedID: models.NamespacedID{
+			Namespace: view.Rule.Namespace,
+			ID:        view.Rule.ID,
+		},
+		Type:     view.Rule.Type,
+		Name:     view.Rule.Name,
+		Config:   view.Rule.Config,
+		Channels: []string{s.channel.ID},
+	}
+	updateIn.Config.BalanceThreshold.Features = nil
+
+	updated, err := service.UpdateRuleView(ctx, updateIn)
+	require.NoError(t, err, "Updating rule view must not return error")
+	assert.Equal(t, view.Rule.ID, updated.Rule.ID, "Rule ID must be unchanged")
+	assert.Empty(t, updated.Rule.Config.Features(), "Rule must no longer be scoped to features")
+	assert.Empty(t, updated.Features, "View must resolve no features for an unscoped rule")
 }

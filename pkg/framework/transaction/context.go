@@ -13,6 +13,7 @@ func GetDriverFromContext(ctx context.Context) (Driver, error) {
 	if !ok {
 		return nil, &DriverNotFoundError{}
 	}
+
 	return tx, nil
 }
 
@@ -30,6 +31,7 @@ func SetDriverOnContext(ctx context.Context, tx Driver) (context.Context, error)
 	if _, err := GetDriverFromContext(ctx); err == nil {
 		return ctx, &DriverConflictError{}
 	}
+
 	return context.WithValue(ctx, contextKey, tx), nil
 }
 

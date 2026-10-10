@@ -178,9 +178,11 @@ func optionalDecimalsAgree(a, b *alpacadecimal.Decimal, tolerance alpacadecimal.
 	if a == nil && b == nil {
 		return true
 	}
+
 	if a == nil || b == nil {
 		return false
 	}
+
 	return decimalsAgree(*a, *b, tolerance)
 }
 
@@ -246,5 +248,6 @@ func averageOptionalDecimal(prices []llmcost.SourcePrice, count alpacadecimal.De
 	}
 
 	avg := sum.Div(count)
+
 	return &avg
 }

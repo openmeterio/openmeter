@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"time"
 
 	"github.com/samber/lo"
 
@@ -457,9 +458,8 @@ func (r *FlatFeeRateCard) Validate() error {
 			errs = append(errs, ErrBillingCadenceInvalidValue)
 		}
 
-		// Billing Cadence has to be at least 1 hour
-		if per, err := r.BillingCadence.Subtract(datetime.NewISODuration(0, 0, 0, 0, 1, 0, 0)); err == nil && per.Sign() == -1 {
-			errs = append(errs, ErrBillingCadenceInvalidValue)
+		if duration, _ := r.BillingCadence.Duration(); duration < 24*time.Hour {
+			errs = append(errs, ErrRateCardBillingCadenceTooShort)
 		}
 	}
 
@@ -534,6 +534,7 @@ func (r *FlatFeeRateCard) UnmarshalJSON(data []byte) error {
 	if serde.FeatureID != nil || serde.FeatureKey != nil {
 		r.Feature = &FeatureReference{ID: serde.FeatureID, Key: serde.FeatureKey}
 	}
+
 	r.BillingCadence = serde.BillingCadence
 
 	return nil
@@ -650,9 +651,8 @@ func (r *UsageBasedRateCard) Validate() error {
 		errs = append(errs, ErrBillingCadenceInvalidValue)
 	}
 
-	// Billing Cadence has to be at least 1 hour
-	if per, err := r.BillingCadence.Subtract(datetime.NewISODuration(0, 0, 0, 0, 1, 0, 0)); err == nil && per.Sign() == -1 {
-		errs = append(errs, ErrBillingCadenceInvalidValue)
+	if duration, _ := r.BillingCadence.Duration(); duration < 24*time.Hour {
+		errs = append(errs, ErrRateCardBillingCadenceTooShort)
 	}
 
 	if r.Price != nil && r.Price.Type() == FlatPriceType && r.Discounts.Usage != nil {
@@ -709,6 +709,7 @@ func (r *UsageBasedRateCard) UnmarshalJSON(data []byte) error {
 	if serde.FeatureID != nil || serde.FeatureKey != nil {
 		r.Feature = &FeatureReference{ID: serde.FeatureID, Key: serde.FeatureKey}
 	}
+
 	r.BillingCadence = serde.BillingCadence
 
 	return nil
@@ -726,6 +727,7 @@ func (c RateCards) Clone() RateCards {
 	for i, rc := range c {
 		clone[i] = rc.Clone()
 	}
+
 	return clone
 }
 

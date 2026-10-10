@@ -20,16 +20,10 @@ import (
 
 const subscriptionSyncComponentName billing.ComponentName = "subscription-sync"
 
-// TODO: Move invoiceupdater into billing/lineengine: invoice patches are only used by the legacy
-// invoicing backend, which is why this package declares the snapshotter dependency directly.
-type QuantitySnapshotter interface {
-	SnapshotLineQuantity(ctx context.Context, input billinglineengine.SnapshotLineQuantityInput) (*billing.StandardLine, error)
-}
-
 type Config struct {
-	BillingService      billing.Service
-	QuantitySnapshotter QuantitySnapshotter
-	Logger              *slog.Logger
+	BillingService billing.Service
+	LineEngine     *billinglineengine.Engine
+	Logger         *slog.Logger
 }
 
 func (c Config) Validate() error {
@@ -39,8 +33,8 @@ func (c Config) Validate() error {
 		errs = append(errs, errors.New("billing service is required"))
 	}
 
-	if c.QuantitySnapshotter == nil {
-		errs = append(errs, errors.New("quantity snapshotter is required"))
+	if c.LineEngine == nil {
+		errs = append(errs, errors.New("legacy line engine is required"))
 	}
 
 	if c.Logger == nil {
@@ -51,9 +45,9 @@ func (c Config) Validate() error {
 }
 
 type Updater struct {
-	billingService      billing.Service
-	quantitySnapshotter QuantitySnapshotter
-	logger              *slog.Logger
+	billingService billing.Service
+	lineEngine     *billinglineengine.Engine
+	logger         *slog.Logger
 }
 
 func New(config Config) (*Updater, error) {
@@ -62,9 +56,9 @@ func New(config Config) (*Updater, error) {
 	}
 
 	return &Updater{
-		billingService:      config.BillingService,
-		quantitySnapshotter: config.QuantitySnapshotter,
-		logger:              config.Logger,
+		billingService: config.BillingService,
+		lineEngine:     config.LineEngine,
+		logger:         config.Logger,
 	}, nil
 }
 
@@ -347,6 +341,8 @@ func (u *Updater) updateMutableStandardInvoice(ctx context.Context, invoice bill
 		ChangeSource:        billing.ChangeSourceSystem,
 		IncludeDeletedLines: true,
 		EditFn: func(invoice *billing.StandardInvoice) error {
+			recorder := billing.ValidationIssueRecorder{}
+
 			for _, lineID := range linePatches.deletedLines {
 				line := invoice.Lines.GetByID(lineID.ID)
 				if line == nil {
@@ -372,22 +368,31 @@ func (u *Updater) updateMutableStandardInvoice(ctx context.Context, invoice bill
 					return fmt.Errorf("line[%s] is not a standard line, cannot update: %w", update.Line.ID, err)
 				}
 
-				updatedQtyLine, err := u.quantitySnapshotter.SnapshotLineQuantity(ctx, billinglineengine.SnapshotLineQuantityInput{
+				updatedLine, err := u.lineEngine.RecalculateStandardLine(ctx, billinglineengine.RecalculateStandardLineInput{
 					Invoice: invoice,
 					Line:    &targetStandardLine,
 				})
-				if err != nil {
+				if updatedLine == nil {
 					return fmt.Errorf("recalculating line[%s]: %w", targetStandardLine.ID, err)
 				}
 
-				targetStandardLine = *updatedQtyLine
+				if err := recorder.Record(err); err != nil {
+					return fmt.Errorf("rating line[%s]: %w", targetStandardLine.ID, err)
+				}
+
+				targetStandardLine = *updatedLine
 
 				if ok := invoice.Lines.ReplaceByID(targetStandardLine.ID, &targetStandardLine); !ok {
 					return fmt.Errorf("line[%s/%s] not found in the invoice, cannot update", targetStandardLine.ID, lo.FromPtrOr(targetStandardLine.ChildUniqueReferenceID, "nil"))
 				}
 			}
 
-			return nil
+			component := billing.LineEngineValidationComponent(u.lineEngine.GetLineEngineType())
+
+			return invoice.MergeValidationIssues(
+				billing.ValidationWithComponent(component, recorder.ErrorsOrNil()),
+				component,
+			)
 		},
 	})
 	if err != nil {
@@ -531,7 +536,7 @@ func (u *Updater) updateImmutableInvoice(ctx context.Context, invoice billing.St
 				return fmt.Errorf("line[%s] is not a standard line, cannot update: %w", update.Line.ID, err)
 			}
 
-			targetStateWithUpdatedQty, err := u.quantitySnapshotter.SnapshotLineQuantity(ctx, billinglineengine.SnapshotLineQuantityInput{
+			targetStateWithUpdatedQty, err := u.lineEngine.SnapshotLineQuantity(ctx, billinglineengine.SnapshotLineQuantityInput{
 				Invoice: &invoice,
 				Line:    &targetStandardLine,
 			})

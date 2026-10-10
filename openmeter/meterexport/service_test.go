@@ -117,6 +117,7 @@ func TestDataExportConfig_UnmarshalJSON(t *testing.T) {
 			if tt.wantErr {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), tt.wantErrMsg)
+
 				return
 			}
 
@@ -136,5 +137,6 @@ func mustLoadLocation(t *testing.T, name string) *time.Location {
 	t.Helper()
 	loc, err := time.LoadLocation(name)
 	require.NoError(t, err)
+
 	return loc
 }

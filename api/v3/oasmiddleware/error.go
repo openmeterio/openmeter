@@ -31,6 +31,7 @@ func aipMapper(me openapi3.MultiError, parent *apierrors.InvalidParameter) []api
 		} else {
 			i = &apierrors.InvalidParameter{}
 		}
+
 		switch err := err.(type) {
 		case *openapi3.SchemaError:
 			i.Reason = err.Reason
@@ -40,13 +41,16 @@ func aipMapper(me openapi3.MultiError, parent *apierrors.InvalidParameter) []api
 				if err.Parameter.Name != "" {
 					i.Field = err.Parameter.Name
 				}
+
 				if err.Parameter.In != "" {
 					i.Source = apierrors.ToInvalid(err.Parameter.In)
 				}
+
 				if err.Parameter.Required {
 					i.Rule = "required"
 				}
 			}
+
 			i.Reason = err.Reason
 			if err.Reason == "" || err.RequestBody != nil {
 				i.Reason = err.Error()
@@ -64,15 +68,18 @@ func aipMapper(me openapi3.MultiError, parent *apierrors.InvalidParameter) []api
 					for _, v := range err.Schema.Enum {
 						i.Choices = append(i.Choices, fmt.Sprintf("%v", v))
 					}
+
 					i.Reason = fmt.Sprintf("must be one of: [%s]", strings.Join(i.Choices, ","))
 				} else if err.SchemaField == "oneOf" {
 					ipErrs = append(ipErrs, collectFromSchemaError(err)...)
 					continue
 				}
 			}
+
 			ipErrs = append(ipErrs, *i)
 		}
 	}
+
 	return ipErrs
 }
 
@@ -86,6 +93,7 @@ func collectFromSchemaError(se *openapi3.SchemaError) []apierrors.InvalidParamet
 			invalidParamFromSchemaError(se, nil),
 		}
 	}
+
 	return childParams
 }
 
@@ -106,6 +114,7 @@ func unwrapOriginError(schemaErr *openapi3.SchemaError) []apierrors.InvalidParam
 				result = append(result, collectFromSchemaError(subSE)...)
 			}
 		}
+
 		return result
 	}
 
@@ -131,13 +140,16 @@ func invalidParamFromSchemaError(
 			Reason: schemaErr.Reason,
 		}
 	}
+
 	if rule, ok := oasRuleToAip[schemaErr.SchemaField]; ok {
 		ip.Rule = rule
 	} else {
 		ip.Rule = schemaErr.SchemaField
 	}
+
 	if path := schemaErr.JSONPointer(); len(path) > 0 {
 		ip.Field = strings.Join(path, ".")
 	}
+
 	return *ip
 }

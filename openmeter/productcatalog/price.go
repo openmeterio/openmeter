@@ -269,6 +269,7 @@ func (p *Price) Equal(v *Price) bool {
 	if p.t != v.t {
 		return false
 	}
+
 	switch p.t {
 	case FlatPriceType:
 		return p.flat.Equal(v.flat)
@@ -670,6 +671,7 @@ func (t *TieredPrice) Validate() error {
 
 				continue
 			}
+
 			upToAmounts[uta.String()] = struct{}{}
 		}
 

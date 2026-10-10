@@ -83,6 +83,7 @@ func setup(t *testing.T) (deps deps, cleanup func()) {
 	if err != nil {
 		t.Fatalf("failed to create customer adapter: %v", err)
 	}
+
 	deps.customerRepo = custAdapter
 
 	// Create subject adapter and service
@@ -95,6 +96,7 @@ func setup(t *testing.T) (deps deps, cleanup func()) {
 	if err != nil {
 		t.Fatalf("failed to create subject service: %v", err)
 	}
+
 	deps.subjectRepo = subjectService
 
 	m.Lock()

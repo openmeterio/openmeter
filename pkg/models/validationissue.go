@@ -79,6 +79,7 @@ func (i ValidationIssue) With(opts ...ValidationIssueOption) ValidationIssue {
 	for _, opt := range opts {
 		opt(&v)
 	}
+
 	return v
 }
 

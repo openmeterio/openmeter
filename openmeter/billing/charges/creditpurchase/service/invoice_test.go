@@ -6,6 +6,7 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
@@ -164,5 +165,126 @@ func newAuthorizedInvoiceStateMachinePayment(charge creditpurchase.Charge, lineW
 		},
 		LineID:    lineWithHeader.Line.ID,
 		InvoiceID: lineWithHeader.Invoice.ID,
+	}
+}
+
+func TestInvoiceCreditPurchaseAuthorizationRetryRecognizesMatchingBooking(t *testing.T) {
+	for _, tc := range []struct {
+		name          string
+		mutate        func(*payment.Invoiced)
+		invoiceAmount *alpacadecimal.Decimal
+		expectedError error
+		invalidField  string
+	}{
+		{name: "matching authorization"},
+		{
+			name:          "zero invoice amount conflicts with existing authorization",
+			invoiceAmount: lo.ToPtr(alpacadecimal.NewFromInt(0)),
+			expectedError: payment.ErrPaymentAlreadyAuthorized,
+		},
+		{
+			name: "matching settled payment",
+			mutate: func(booked *payment.Invoiced) {
+				booked.Status = payment.StatusSettled
+				booked.Settled = &ledgertransaction.TimedGroupReference{
+					GroupReference: ledgertransaction.GroupReference{TransactionGroupID: "settlement-group"},
+					Time:           booked.Authorized.Time,
+				}
+			},
+		},
+		{
+			name: "different namespace", mutate: func(booked *payment.Invoiced) { booked.Namespace = "other-namespace" },
+			expectedError: payment.ErrPaymentAlreadyAuthorized,
+		},
+		{
+			name: "different invoice", mutate: func(booked *payment.Invoiced) { booked.InvoiceID = "other-invoice" },
+			expectedError: payment.ErrPaymentAlreadyAuthorized,
+		},
+		{
+			name: "different line", mutate: func(booked *payment.Invoiced) { booked.LineID = "other-line" },
+			expectedError: payment.ErrPaymentAlreadyAuthorized,
+		},
+		{
+			name: "different service period retains the same authorization", mutate: func(booked *payment.Invoiced) { booked.ServicePeriod.To = booked.ServicePeriod.To.Add(time.Hour) },
+		},
+		{
+			name: "different amount", mutate: func(booked *payment.Invoiced) { booked.FiatAmount = alpacadecimal.NewFromInt(6) },
+			expectedError: payment.ErrPaymentAlreadyAuthorized,
+		},
+		{
+			name: "deleted payment", mutate: func(booked *payment.Invoiced) { booked.DeletedAt = lo.ToPtr(booked.CreatedAt) },
+			expectedError: payment.ErrPaymentAlreadyAuthorized,
+		},
+		{
+			name: "missing authorization", mutate: func(booked *payment.Invoiced) { booked.Authorized = nil },
+			invalidField: "authorization transaction data is missing",
+		},
+		{
+			name: "empty authorization reference", mutate: func(booked *payment.Invoiced) { booked.Authorized.TransactionGroupID = "" },
+			invalidField: "transaction group ID is required",
+		},
+		{
+			name: "missing authorization time", mutate: func(booked *payment.Invoiced) { booked.Authorized.Time = time.Time{} },
+			invalidField: "time is required",
+		},
+		{
+			name: "invalid payment status", mutate: func(booked *payment.Invoiced) { booked.Status = "invalid" },
+			invalidField: "invalid payment settlement status",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			// given a credit purchase whose invoice authorization already committed
+			charge := newGrantedInvoiceStateMachineTestCharge(t, creditpurchase.StatusActivePaymentAuthorized)
+			input := newInvoiceStateMachineTestLine(t, charge, alpacadecimal.NewFromInt(5))
+			booked := newAuthorizedInvoiceStateMachinePayment(charge, input)
+			require.NoError(t, booked.Validate())
+			if tc.mutate != nil {
+				tc.mutate(booked)
+			}
+
+			if tc.invoiceAmount != nil {
+				input.Line.Totals.Total = *tc.invoiceAmount
+			}
+
+			charge.Realizations.InvoiceSettlement = booked
+			if booked.Status == payment.StatusSettled {
+				charge.Status = creditpurchase.StatusFinal
+			}
+
+			adapter := &externalStateMachineAdapter{}
+			handler := &externalStateMachineHandler{}
+			svc := &service{
+				adapter:           adapter,
+				realizations:      newExternalStateMachineRealizations(t, adapter, handler, &externalStateMachineLineage{}),
+				costbasisResolver: externalStateMachineCostBasisResolver{},
+			}
+
+			// when the invoice callback repeats authorization in an advanced lifecycle state
+			result, err := svc.handleInvoiceLifecycleTrigger(t.Context(), HandleInvoiceLifecycleTriggerInput{
+				Charge: charge, Trigger: billing.TriggerAuthorized, LineWithHeader: input,
+			})
+
+			// then only a matching valid booking succeeds and no payment or charge is written
+			switch {
+			case tc.expectedError != nil:
+				require.Error(t, err)
+				if booked.LineID != input.Line.ID {
+					require.ErrorContains(t, err, "payment line ID must match line")
+				} else if booked.InvoiceID != input.Invoice.ID {
+					require.ErrorContains(t, err, "payment invoice ID must match invoice")
+				} else {
+					require.ErrorIs(t, err, tc.expectedError)
+				}
+			case tc.invalidField != "":
+				require.ErrorContains(t, err, tc.invalidField)
+			default:
+				require.NoError(t, err)
+				require.Equal(t, charge, result)
+			}
+
+			handler.AssertNotCalled(t, "OnCreditPurchasePaymentAuthorized", mock.Anything, mock.Anything)
+			require.Zero(t, adapter.updateChargeCalls)
+			require.Zero(t, adapter.updateInvoicedPaymentCalls)
+		})
 	}
 }

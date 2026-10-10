@@ -55,10 +55,6 @@ func (i ReconcileRatedRunInput) Validate() error {
 		errs = append(errs, fmt.Errorf("rating detailed lines: %w", err))
 	}
 
-	if i.Rating.Quantity.IsNegative() {
-		errs = append(errs, errors.New("rating quantity must be zero or positive"))
-	}
-
 	if i.CurrencyCalculator == nil {
 		errs = append(errs, errors.New("currency calculator is required"))
 	} else if err := i.CurrencyCalculator.Validate(); err != nil {
@@ -153,6 +149,7 @@ func (s *Service) ReconcileRatedRun(
 	}); err != nil {
 		return ReconcileRatedRunResult{}, fmt.Errorf("upsert run detailed lines: %w", err)
 	}
+
 	run.DetailedLines = mo.Some(detailedLines)
 	run.DetailedLinesIncludeCreditAllocations = detailedLinesIncludeCreditAllocations
 

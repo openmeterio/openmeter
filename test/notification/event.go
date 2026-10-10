@@ -15,12 +15,14 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/convert"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func NewBalanceThresholdPayload() notification.EventPayload {
 	month := &api.RecurringPeriodInterval{}
 	_ = month.FromRecurringPeriodIntervalEnum(api.RecurringPeriodIntervalEnumMONTH)
+
 	return notification.EventPayload{
 		EventPayloadMeta: notification.EventPayloadMeta{
 			Type: notification.EventTypeBalanceThreshold,
@@ -93,6 +95,7 @@ func NewBalanceThresholdPayload() notification.EventPayload {
 func NewEntitlementResetPayload() notification.EventPayload {
 	month := &api.RecurringPeriodInterval{}
 	_ = month.FromRecurringPeriodIntervalEnum(api.RecurringPeriodIntervalEnumMONTH)
+
 	return notification.EventPayload{
 		EventPayloadMeta: notification.EventPayloadMeta{
 			Type: notification.EventTypeEntitlementReset,
@@ -189,6 +192,7 @@ func (s *EventTestSuite) Setup(ctx context.Context, t *testing.T) {
 	if _, ok := lo.ErrorsAs[*feature.FeatureNotFoundError](err); !ok {
 		require.NoError(t, err, "Getting feature must not return error")
 	}
+
 	if feat != nil {
 		s.feature = *feat
 	} else {
@@ -200,6 +204,7 @@ func (s *EventTestSuite) Setup(ctx context.Context, t *testing.T) {
 			MeterGroupByFilters: feature.ConvertMapStringToMeterGroupByFilters(m.GroupBy),
 		})
 	}
+
 	require.NoError(t, err, "Creating feature must not return error")
 
 	s.subjectKey = TestSubjectKey
@@ -265,9 +270,11 @@ func (s *EventTestSuite) TestListEvents(ctx context.Context, t *testing.T) {
 		Namespaces: []string{
 			event.Namespace,
 		},
-		Events: []string{event.ID},
-		From:   event.CreatedAt.Add(-time.Minute),
-		To:     event.CreatedAt.Add(time.Minute),
+		ID: &filter.FilterULID{FilterString: filter.FilterString{Eq: lo.ToPtr(event.ID)}},
+		CreatedAt: filter.NewFilterTime(
+			lo.ToPtr(event.CreatedAt.Add(-time.Minute)),
+			lo.ToPtr(event.CreatedAt.Add(time.Minute)),
+		),
 	}
 
 	events, err := service.ListEvents(ctx, listIn)

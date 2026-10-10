@@ -246,6 +246,10 @@ func (customerTestApp) UpdateAppConfig(context.Context, app.AppConfigUpdate) err
 	return nil
 }
 
+func (customerTestApp) ExecuteAction(context.Context, app.ExecuteAppActionInput) error {
+	return nil
+}
+
 func (customerTestApp) GetCustomerData(context.Context, app.GetAppInstanceCustomerDataInput) (app.CustomerData, error) {
 	return nil, nil
 }

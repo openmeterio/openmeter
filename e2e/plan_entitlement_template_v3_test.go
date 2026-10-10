@@ -131,7 +131,7 @@ func TestV3PlanRateCardEntitlementTemplateRepro(t *testing.T) {
 	c.requireStatus(http.StatusOK, err)
 	require.NotNil(t, access)
 
-	result, found := lo.Find(access.Data, func(r v3sdk.EntitlementAccessResult) bool {
+	result, found := lo.Find(access.Data, func(r v3sdk.EntitlementValueResult) bool {
 		return r.FeatureKey == featureKey
 	})
 	require.True(t, found,

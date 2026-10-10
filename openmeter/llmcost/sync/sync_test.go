@@ -167,6 +167,7 @@ func TestSyncJobRun(t *testing.T) {
 		for _, p := range adapter.upsertedPrices {
 			providers[string(p.Provider)] = true
 		}
+
 		assert.True(t, providers["azure"])
 		assert.True(t, providers["openai"])
 	})

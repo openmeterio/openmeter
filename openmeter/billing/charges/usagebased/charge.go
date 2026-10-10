@@ -16,8 +16,10 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/equal"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/ref"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -28,6 +30,7 @@ var (
 	_ billingfeaturemeter.FeatureReferenceGetter = Charge{}
 	_ billingfeaturemeter.FeatureReferenceOwner  = Charge{}
 	_ billingfeaturemeter.FeatureReferenceGetter = Intent{}
+	_ models.Equaler[Intent]                     = Intent{}
 )
 
 type ChargeBase struct {
@@ -301,6 +304,10 @@ type Intent struct {
 	CostBasis           *costbasis.Intent             `json:"costBasis,omitempty"`
 }
 
+func (i Intent) Equal(other Intent) bool {
+	return deriveEqualIntent(&i, &other)
+}
+
 // AsOverridableIntent maps the intent's mutable fields as the base layer.
 func (i Intent) AsOverridableIntent() OverridableIntent {
 	return OverridableIntent{
@@ -348,6 +355,7 @@ func (i Intent) GetFeatureRef() ref.IDOrKey {
 	if i.FeatureID != "" {
 		return ref.IDOrKey{ID: i.FeatureID}
 	}
+
 	return ref.IDOrKey{Key: i.FeatureKey}
 }
 
@@ -712,6 +720,20 @@ type IntentMutableFields struct {
 	UnitConfig *productcatalog.UnitConfig `json:"unitConfig,omitempty"`
 }
 
+func (f IntentMutableFields) Equal(other IntentMutableFields) bool {
+	return f.Name == other.Name &&
+		equal.ComparablePtrEqual(f.Description, other.Description) &&
+		f.Metadata.Equal(other.Metadata) &&
+		f.ServicePeriod.Equal(other.ServicePeriod) &&
+		f.FullServicePeriod.Equal(other.FullServicePeriod) &&
+		f.BillingPeriod.Equal(other.BillingPeriod) &&
+		equal.PtrEqual(f.IntentDeletedAt, other.IntentDeletedAt) &&
+		f.InvoiceAt.Equal(other.InvoiceAt) &&
+		(&f.Price).Equal(&other.Price) &&
+		f.Discounts.Equal(other.Discounts) &&
+		f.UnitConfig.Equal(other.UnitConfig)
+}
+
 func (f IntentMutableFields) Normalized() IntentMutableFields {
 	f.IntentMutableFields = f.IntentMutableFields.Normalized()
 	f.InvoiceAt = meta.NormalizeTimestamp(f.InvoiceAt)
@@ -823,4 +845,8 @@ func (e Expands) Validate() error {
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+func (i OverridableIntent) GetCreditFilters() ledger.CreditFilters {
+	return i.intent.GetCreditFilters(i.GetFeatureKey())
 }

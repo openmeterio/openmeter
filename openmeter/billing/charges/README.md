@@ -44,6 +44,9 @@ projection. The type-specific detailed status is the lifecycle state.
   request.
 - [Ledger charge adapters](../../ledger/README.md) translate requested economic
   effects into ledger transactions. They do not decide when a charge advances.
+- [Legacy lineage](legacylineage/README.md) is deprecated compatibility for
+  legacy lineage credit histories. Lineage reads and writes must stay confined
+  to legacy histories.
 - [Subscription sync](../worker/subscriptionsync/README.md) reconciles
   subscription-derived source intent, including item currency and subscription
   cost-basis selection. It does not treat API overrides as new subscription
@@ -51,6 +54,13 @@ projection. The type-specific detailed status is the lifecycle state.
 
 `AdvanceCharges` coordinates concrete services; it is not a second
 implementation of their state machines.
+
+Subscription-managed charges snapshot the current subscription plan key and
+version when created. A scheduled migration advances that reference immediately,
+so new charges can use the target version before its pricing takes effect,
+including charges created later for earlier service. Existing charges retain
+their snapshot across overrides, corrections, and later migrations. Charges
+without recorded attribution remain unattributed.
 
 ## Intent layers
 
@@ -90,6 +100,14 @@ override as appropriate. A state machine rejects a hidden base target while an
 override is active. Service-level sync may update that hidden source state, but
 does not emit invoice patches, rerate, or mutate customer-facing realizations
 for it.
+
+API edits to charge-backed flat-fee invoice lines treat the line price as an
+absolute gross amount and disable proration on the selected mutable layer.
+Discount-, name-, and period-only edits capture the current gross; later period
+edits do not scale it. The subscription-owned base retains its proration
+configuration, and clearing the override restores that source behavior. Direct
+customer charge overrides retain their explicitly supplied proration settings
+until an invoice-line edit captures the displayed gross and disables proration.
 
 Effective deletion and base-intent deletion are therefore different query
 concepts. Subscription reconciliation must be able to find a base intent even
@@ -154,6 +172,15 @@ invoice validation issue.
 - Each concrete state machine is the authority for reachable detailed states.
   Every reachable status validates, and every detailed status maps to its short
   meta status.
+- A new lifecycle status must represent distinct lifecycle or retry behavior;
+  moving data between callbacks is not sufficient justification. Explain what
+  must survive reconstructing the state machine and why existing state cannot
+  represent it.
+- Domain results that belong to persisted charge state must not be transported
+  through additional transient state-machine fields, getters, setters, or drain
+  operations. Keep intermediate calculations local and publish durable outcomes
+  through their owning aggregate. Explicit transition effects, including invoice
+  patches, retain their separate ownership contract below.
 - Invoice-backed charges remain in an `active.*` state while authorization or
   settlement is pending. `final` means the required payment lifecycle is
   complete, not merely that rating or line creation finished.
@@ -164,10 +191,13 @@ invoice validation issue.
   optional and may be meterless. Trusted subscription reconciliation may persist
   a credit-then-invoice usage charge whose dependency is unavailable; the charge
   records a product-catalog validation issue and its gathering line remains gated
-  until collection resolves the dependency. A usage-based charge created by key
-  persists only the canonical key and snapshots its feature ID when it activates.
-  An explicitly supplied feature ID is pinned at creation and activation preserves
-  it; when both are supplied, the key must match the feature resolved by ID.
+  until collection resolves the dependency. Automatic advancement treats that
+  persisted issue as a successful blocked state rather than an operation failure;
+  the charge remains unchanged and later attempts can resume after repair. A
+  usage-based charge created by key persists only the canonical key and snapshots
+  its feature ID when it activates. An explicitly supplied feature ID is pinned at
+  creation and activation preserves it; when both are supplied, the key must match
+  the feature resolved by ID.
 - Customer-charge reads resolve the current feature by key when a preactivation
   usage charge has no pinned ID. That ID is an API projection rather than
   persisted state and may change until activation snapshots it.
@@ -189,9 +219,63 @@ invoice validation issue.
   written under the lifecycle transaction. Retry safety comes from persisted
   lifecycle facts checked before handlers run, not from the
   [ledger](../../ledger/README.md#transaction-invariants).
+- Billing dispatches standard-invoice lifecycle callbacks only for live lines.
+  Deleted lines remain on the invoice for audit but have no lifecycle effect.
+- Invoice issuance retries acknowledge an immutable flat-fee or usage-based
+  realization for the same invoice and line without booking another ledger
+  transaction. The immutable realization is the durable fact that issuance
+  already completed. Credit purchases have no invoice-issuance effect.
+- Invoice authorization retries for flat-fee, usage-based, and credit-purchase
+  charges acknowledge an existing valid, non-deleted payment only when its
+  namespace, invoice, line, and amount match. Authorized and settled payments
+  retain their original authorization references without another booking.
+  Conflicting or invalid payment facts remain errors.
 - Due `credit_only` flat-fee and usage-based charges are persisted before
   post-create auto-advance, so worker retries do not lose the intent. Credit
   purchases follow their own creation and invoice-event lifecycle.
+
+### Validation issues alongside successful results
+
+Use billing's [validation issue boundary contracts](../README.md#validation-issues-alongside-successful-results)
+to distinguish warning transport from operation failure.
+
+Rating issues produced by a successful charge mutation belong to
+`Charge.ValidationIssues` for both credit-only and invoice-backed charges.
+Extract warning-only issues at the lifecycle action boundary, complete the run
+creation or reconciliation, then replace the charge's `billing.rating` component
+within the same transaction. An empty replacement clears stale rating issues;
+other components remain unchanged. A failed operation must not publish new
+issues. Return nil from the successful action: any action error aborts the
+transition and rolls back its transaction.
+
+Invoice callbacks forward only the charge's rating issues with the updated
+lines. They do not reconstruct warnings from quantities or forward unrelated
+charge issues. Billing records its invoice copy through the existing line-engine
+validation contract. Later clean charge rating does not remove warnings from an
+earlier invoice.
+
+For delta rating at $1/unit without discounts or commitments:
+
+| Operation | Result and issue lifetime |
+| --- | --- |
+| First cumulative snapshot is `-5` | Rate as zero; persist the charge warning and copy it to the invoice. |
+| Later cumulative snapshot is `3` | Reconcile to $3; clear the charge's old rating warning. The earlier invoice keeps its warning; the new invoice has none. |
+| A subsequent realization fails | Roll back its changes; do not publish new rating issues. |
+
+The [negative-usage lifecycle tests](../../../test/credits/negative_usage_test.go)
+cover successful persistence, recovery, and earlier invoice history. A negative
+prior quantity displayed for audit does not itself require a new warning:
+warnings describe the inputs actually clamped by the calculation. Legacy billing
+directly rates line-period and pre-line-period quantities; reuse its validation
+transport pattern without assuming its progressive arithmetic matches charge
+delta rating.
+
+Read-only current totals return live warnings in the result with a nil Go error.
+Realtime usage expansion replaces the returned charge's `billing.rating` issues
+with the live calculation's issues, including an empty result. Other components
+remain unchanged. This replacement is not persisted; unexpanded reads show stored
+issues. Critical issues and system errors fail the read. Consumers such as live
+balance projection need no warning-specific error suppression.
 
 ## Settlement semantics
 
@@ -221,6 +305,12 @@ facts in order. An invoice-settled credit purchase has one standard invoice
 line; duplicate lines for the same charge are rejected before lifecycle events
 because the transition and its payment realization are bound to that line.
 
+Billing owns the transaction boundary for invoice-issued, payment-authorized,
+and payment-settled line-engine attempts. Charge engines can keep replay
+handling for historical partial state, but a newly failed attempt does not
+leave a subset of charge or ledger writes committed. A direct-paid attempt
+commits authorization and settlement together.
+
 Payment-backed credit purchases also carry a charge-level cost basis. Fiat
 credit uses a fixed scalar intent in the charge currency and materializes its
 deterministic resolved state at charge creation. Custom-currency credit reuses
@@ -249,16 +339,18 @@ custom-currency purchases reference durable shared cost-basis state. Resolution
 time and charge creation time are not a validation invariant. The legacy
 settlement JSON column is deprecated and ignored.
 
-Purchases load only advance roots with active uncovered segments eligible for
-that purchase's feature filters; settled history is excluded in the database.
+For legacy collections, purchases load only advance roots with active uncovered
+segments eligible for that purchase's feature filters; settled history is excluded in the database.
 Finalized charges remain eligible while they have uncovered advances.
-Later purchases backfill eligible advances in original collection order. Each
+The ledger [advance service](../../ledger/advance/README.md#backfill) backfills
+eligible advances in original collection order. Each
 collection occurrence keeps its place after partial backfill or correction;
 charge IDs and replacement segment creation times do not define that order.
-The ledger returns the amounts actually booked for each uncovered segment, and
-lineage persists that same allocation. The purchase's lifecycle transaction
-rolls back if a selected segment changed before persistence. Ledger account
-locks still precede lineage locks.
+For origin-tracked collections, the ledger selects origin buckets directly,
+without lineage state. For legacy collections, it returns the amounts actually
+booked for each uncovered segment, and lineage persists that same allocation.
+The purchase's lifecycle transaction rolls back if a selected segment changed
+before persistence. Ledger account locks precede lineage locks.
 
 A credit grant, payment authorization, and payment settlement are separate
 durable facts. A later state cannot be inferred from the presence of an earlier
@@ -266,6 +358,11 @@ one.
 
 ## Realization and time semantics
 
+- Usage-based charges with a configured percentage discount or maximum spend
+  are invoiced only at period end, even when progressive billing is enabled.
+  Discount reconciliation between progressively billed runs is currently
+  unsupported.
+  Usage discounts and minimum spend do not impose this restriction.
 - Shrink and extend patches describe the direction of service coverage through
   `ServicePeriod.To`. Full-service, billing-period, and invoice timing reconcile
   to their target values independently; charge-type lifecycles use the service
@@ -283,9 +380,19 @@ one.
   covered by the run, not strict provenance for every event included in its
   metered quantity.
 - A usage-based run's metered quantity is cumulative from charge start to the run
-  boundary. A billing standard line expects line-period and pre-line-period
-  quantities, so charge mappers translate rather than copy it. Translation
-  reads the referenced run's persisted quantity, or zero for the first run.
+  boundary and preserves the raw meter snapshot, even when negative. A billing
+  standard line retains the signed line-period difference and preceding snapshot
+  as metered values. Its billable quantity instead uses the difference between
+  nonnegative cumulative snapshots, matching rating's reconciliation: a first
+  snapshot of `-5` rates to zero and a later snapshot of `3` rates to `3`.
+  The later line exposes raw interval `8` and raw prior `-5`, with billable
+  quantity `3` and billable prior `0` before unit conversion and discounts.
+  Translation reads the referenced run's persisted quantity, or zero for the
+  first run. Monetary totals come from rated detailed lines; a projection
+  mismatch alone does not demonstrate an incorrect charge amount. Clamping
+  cumulative snapshots does not clamp their signed difference: `8` followed by
+  `5` produces `-3` at this mapping boundary. Whether a negative-total run can
+  proceed is a separate realization constraint.
 - An invoice-backed usage-based charge with a current realization run excludes
   its gathering lines from assignment to another invoice. The charge records a
   critical validation issue identifying the current invoice and line; repeated
@@ -354,6 +461,14 @@ Within the charges domain, custom-currency `credit_then_invoice`:
 - retains the managed currency as charge identity rather than replacing it
   with the settlement fiat currency or display code
 
+Gathering-invoice live previews omit custom-currency flat-fee and usage-based
+lines. Their gathering lines are scheduling placeholders, and neither a
+cost-basis rate nor gross usage determines the invoiceable fiat overage before
+credit allocation. Credit-purchase previews use the persisted cost-basis
+snapshot when it exists and may resolve an unresolved dynamic rate effective at
+the purchase's service-period start only in the preview projection. Listing
+does not persist that resolution, advance the charge, or create realizations.
+
 Charge-currency and settlement-fiat allocations are separate realization and
 lineage domains. Rating and mutable rerating reconcile charge-currency facts;
 invoice finalization first persists the gross converted overage, then allocates
@@ -394,8 +509,8 @@ movements and are excluded from the customer-facing
 Settlement-fiat credits then cover part of that gross fiat receivable using the
 [collector's custom-currency CTI coverage rules](../../ledger/collector/README.md#custom-currency-cti-receivable-coverage).
 The invoice records the gross converted amount, credit coverage, and net amount
-due. Receivable-coverage lineage preserves the selected credit sources for
-correction but is excluded from earnings recognition because it represents no
+due. Receivable-coverage origins preserve the selected credit sources for
+correction but are excluded from earnings recognition because they represent no
 accrued value. Authorization and settlement move only the remaining receivable,
 using the invoice currency and the charge's persisted cost-basis route.
 
@@ -404,14 +519,13 @@ Charges persist no cross-run FX remainder, so later runs cannot carry or absorb
 an earlier run's rounding difference. Correction reverses the complete original
 conversion rather than partially recomputing it.
 
-Credit realization lineage identifies a managed currency by code and
-namespace-scoped currency ID, not display code alone. Advance, backfill, and
-earnings-recognized transitions therefore remain isolated when managed
-currencies reuse a code. `AdvanceCharges` recognizes credit-backed lineage in
-the charge's native currency only when accrued entries have distinct source-
-credit and spend-charge provenance. Accrued value without that provenance -
-including the same-charge custom overage and an unbackfilled advance - remains
-deferred.
+Origin-tracked and legacy lineage credit realizations identify managed currencies
+by namespace-scoped currency ID in addition to code. Advance, backfill, and
+recognition therefore remain isolated when managed currencies reuse a code.
+`AdvanceCharges` recognizes credit-backed value in the charge's native currency
+only when accrued entries have distinct source-credit and spend-charge
+provenance. Accrued value without that provenance - including the same-charge
+custom overage and an unbackfilled advance - remains deferred.
 
 If converting an uncovered custom-currency overage rounds to zero fiat, the
 charge layer omits the empty line during preview and collection. The ledger and

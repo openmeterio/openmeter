@@ -22,6 +22,7 @@ func NewTransactionFromData(data TransactionData, entries []EntryData) (*Transac
 		if err != nil {
 			return nil, fmt.Errorf("entry %s: %w", e.ID, err)
 		}
+
 		ents = append(ents, entry)
 	}
 
@@ -100,4 +101,11 @@ func (t *TransactionGroup) Transactions() []ledger.Transaction {
 
 func (t *TransactionGroup) Annotations() models.Annotations {
 	return t.data.Annotations
+}
+
+func (t *Transaction) GroupID() models.NamespacedID {
+	return models.NamespacedID{
+		Namespace: t.data.Namespace,
+		ID:        t.data.GroupID,
+	}
 }

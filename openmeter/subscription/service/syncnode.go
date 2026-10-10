@@ -109,6 +109,7 @@ func (n *phaseSyncNode) Archive(ctx context.Context, execution *syncExecution) e
 	}
 
 	delete(execution.refState.phases, n.Ref().Path)
+
 	return nil
 }
 
@@ -123,6 +124,7 @@ func (n *phaseSyncNode) Create(ctx context.Context, execution *syncExecution) er
 	}
 
 	execution.refState.phases[n.Ref().Path] = phase
+
 	return nil
 }
 
@@ -279,6 +281,7 @@ func (n *entitlementSyncNode) Archive(ctx context.Context, execution *syncExecut
 	}
 
 	delete(execution.refState.entitlements, n.Ref().Path)
+
 	return nil
 }
 
@@ -293,6 +296,7 @@ func (n *entitlementSyncNode) Create(ctx context.Context, execution *syncExecuti
 	}
 
 	execution.refState.entitlements[n.Ref().Path] = entitlement
+
 	return nil
 }
 
@@ -306,6 +310,7 @@ func normalizeEntitlementInput(
 	if input.Annotations == nil {
 		input.Annotations = models.Annotations{}
 	}
+
 	input.Annotations[subscription.AnnotationSubscriptionID] = subscriptionID
 
 	// Entitlement persistence stores the recurrence as effective from
@@ -339,6 +344,7 @@ func compareSyncNodePresence(
 	if err != nil {
 		return syncNodeChangeUnchanged, err
 	}
+
 	if isEqual {
 		return syncNodeChangeUnchanged, nil
 	}

@@ -204,6 +204,7 @@ func (s *service) Get(ctx context.Context, params subscriptionaddon.GetSubscript
 	if err := params.Validate(); err != nil {
 		return nil, models.NewGenericValidationError(err)
 	}
+
 	return s.cfg.SubAddRepo.Get(ctx, params)
 }
 

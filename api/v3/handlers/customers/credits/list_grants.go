@@ -74,6 +74,7 @@ func (h *handler) ListCreditGrants() ListCreditGrantsHandler {
 							},
 						})
 					}
+
 					req.Status = &status
 				}
 
@@ -92,6 +93,7 @@ func (h *handler) ListCreditGrants() ListCreditGrantsHandler {
 						},
 					})
 				}
+
 				req.Key = key
 			}
 

@@ -141,6 +141,7 @@ func TestV3CustomerChargeFlatFeeRealizations(t *testing.T) {
 			if ch.Type != string(v3sdk.ChargeTypeFlatFee) {
 				continue
 			}
+
 			candidate, err := ch.AsChargeFlatFee()
 			require.NoError(t, err)
 			if candidate.ID == chargeID {
@@ -148,6 +149,7 @@ func TestV3CustomerChargeFlatFeeRealizations(t *testing.T) {
 				break
 			}
 		}
+
 		require.NotNil(t, listed, "charge %s not found in list", chargeID)
 
 		// then:
@@ -278,6 +280,7 @@ func TestV3CustomerChargeUsageBasedRealizations(t *testing.T) {
 			if ch.Type != string(v3sdk.ChargeTypeUsageBased) {
 				continue
 			}
+
 			candidate, err := ch.AsChargeUsageBased()
 			require.NoError(t, err)
 			if candidate.ID == chargeID {
@@ -285,6 +288,7 @@ func TestV3CustomerChargeUsageBasedRealizations(t *testing.T) {
 				break
 			}
 		}
+
 		require.NotNil(t, listed, "charge %s not found in list", chargeID)
 
 		// then:

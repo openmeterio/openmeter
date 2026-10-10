@@ -28,10 +28,12 @@ func (s *CreditGrantTestSuite) TestRejectPurchaseRoundingToZeroBeforeIssuance() 
 				if code.IsCustom() {
 					s.CreateCustomCurrency(ns, code)
 				}
+
 				if funding == creditgrant.FundingMethodInvoice {
 					invoicing := s.SetupCustomInvoicing(ns)
 					s.ProvisionBillingProfile(ctx, ns, invoicing.App.GetID())
 				}
+
 				clock.FreezeTime(time.Date(2026, 4, 17, 11, 0, 0, 0, time.UTC))
 				defer clock.UnFreeze()
 

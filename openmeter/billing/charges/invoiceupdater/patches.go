@@ -26,6 +26,7 @@ func (p Patches) BisectByStandardInvoiceID(invoiceID string) (Patches, Patches, 
 			if err != nil {
 				return nil, nil, fmt.Errorf("failed to convert patch to delete line patch: %w", err)
 			}
+
 			if val.InvoiceID == invoiceID {
 				invoicePatches = append(invoicePatches, patch)
 			} else {
@@ -36,6 +37,7 @@ func (p Patches) BisectByStandardInvoiceID(invoiceID string) (Patches, Patches, 
 			if err != nil {
 				return nil, nil, fmt.Errorf("failed to convert patch to update line patch: %w", err)
 			}
+
 			if val.TargetState.GetInvoiceID() == invoiceID {
 				invoicePatches = append(invoicePatches, patch)
 			} else {
@@ -179,6 +181,7 @@ func CountLessThanOrEqualTo(c int) func(int) error {
 		if count > c {
 			return fmt.Errorf("expected less than or equal to %d, got %d", c, count)
 		}
+
 		return nil
 	}
 }

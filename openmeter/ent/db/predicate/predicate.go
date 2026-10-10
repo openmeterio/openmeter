@@ -200,6 +200,17 @@ type Charge func(*sql.Selector)
 // ChargeCreditPurchase is the predicate function for chargecreditpurchase builders.
 type ChargeCreditPurchase func(*sql.Selector)
 
+// ChargeCreditPurchaseOrErr calls the predicate only if the error is not nit.
+func ChargeCreditPurchaseOrErr(p ChargeCreditPurchase, err error) ChargeCreditPurchase {
+	return func(s *sql.Selector) {
+		if err != nil {
+			s.AddError(err)
+			return
+		}
+		p(s)
+	}
+}
+
 // ChargeCreditPurchaseCostBasis is the predicate function for chargecreditpurchasecostbasis builders.
 type ChargeCreditPurchaseCostBasis func(*sql.Selector)
 
@@ -313,6 +324,17 @@ type ChargeUsageBasedRuns func(*sql.Selector)
 // ChargesSearchV1 is the predicate function for chargessearchv1 builders.
 type ChargesSearchV1 func(*sql.Selector)
 
+// ChargesSearchV1OrErr calls the predicate only if the error is not nit.
+func ChargesSearchV1OrErr(p ChargesSearchV1, err error) ChargesSearchV1 {
+	return func(s *sql.Selector) {
+		if err != nil {
+			s.AddError(err)
+			return
+		}
+		p(s)
+	}
+}
+
 // CreditRealizationLineage is the predicate function for creditrealizationlineage builders.
 type CreditRealizationLineage func(*sql.Selector)
 
@@ -336,6 +358,20 @@ type Entitlement func(*sql.Selector)
 
 // EntitlementOrErr calls the predicate only if the error is not nit.
 func EntitlementOrErr(p Entitlement, err error) Entitlement {
+	return func(s *sql.Selector) {
+		if err != nil {
+			s.AddError(err)
+			return
+		}
+		p(s)
+	}
+}
+
+// EventOutbox is the predicate function for eventoutbox builders.
+type EventOutbox func(*sql.Selector)
+
+// EventOutboxOrErr calls the predicate only if the error is not nit.
+func EventOutboxOrErr(p EventOutbox, err error) EventOutbox {
 	return func(s *sql.Selector) {
 		if err != nil {
 			s.AddError(err)
@@ -385,6 +421,17 @@ type LedgerSubAccount func(*sql.Selector)
 
 // LedgerSubAccountRoute is the predicate function for ledgersubaccountroute builders.
 type LedgerSubAccountRoute func(*sql.Selector)
+
+// LedgerSubAccountRouteOrErr calls the predicate only if the error is not nit.
+func LedgerSubAccountRouteOrErr(p LedgerSubAccountRoute, err error) LedgerSubAccountRoute {
+	return func(s *sql.Selector) {
+		if err != nil {
+			s.AddError(err)
+			return
+		}
+		p(s)
+	}
+}
 
 // LedgerTransaction is the predicate function for ledgertransaction builders.
 type LedgerTransaction func(*sql.Selector)

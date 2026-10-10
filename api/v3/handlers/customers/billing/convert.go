@@ -96,6 +96,7 @@ func fromAPIBillingAppCustomerData(ctx context.Context, application app.App, dat
 			CustomerId:             &stripeData.StripeCustomerID,
 			DefaultPaymentMethodId: stripeData.StripeDefaultPaymentMethodID,
 		})
+
 		return appData, nil
 
 	case app.AppTypeCustomInvoicing:
@@ -112,6 +113,7 @@ func fromAPIBillingAppCustomerData(ctx context.Context, application app.App, dat
 		appData.ExternalInvoicing = nullable.NewNullableWithValue(api.BillingAppCustomerDataExternalInvoicing{
 			Labels: (*api.Labels)(lo.ToPtr(invoicingData.Metadata.ToMap())),
 		})
+
 		return appData, nil
 
 	case app.AppTypeSandbox:

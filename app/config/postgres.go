@@ -47,6 +47,7 @@ func (c PostgresConfig) AsURL() string {
 	if c.URL != "" {
 		return c.URL
 	}
+
 	return c.PostgresConnectionParams.AsURL()
 }
 

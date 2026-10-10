@@ -130,6 +130,15 @@ func (LedgerSubAccountRoute) Fields() []ent.Field {
 		field.String("tax_behavior").
 			GoType(ledger.TaxBehavior("")).
 			Optional().Nillable().Immutable(),
+		field.String("filters").
+			GoType(&ledger.CreditFilters{}).
+			ValueScanner(entutils.JSONStringValueScanner[*ledger.CreditFilters]()).
+			SchemaType(map[string]string{dialect.Postgres: "jsonb"}).
+			DefaultFunc(func() *ledger.CreditFilters {
+				return &ledger.CreditFilters{Version: ledger.CreditFiltersVersion1}
+			}).
+			Immutable(),
+		// Deprecated: unused legacy projection; application reads and writes filters.
 		field.Other("features", pq.StringArray{}).
 			Optional().
 			Immutable().

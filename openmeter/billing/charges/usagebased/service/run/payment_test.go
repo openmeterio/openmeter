@@ -1,6 +1,8 @@
 package run
 
 import (
+	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -25,30 +27,6 @@ import (
 func TestBookInvoicedPaymentAuthorizedInputValidate(t *testing.T) {
 	valid := newBookPaymentAuthorizedInput(t)
 	require.NoError(t, valid.Validate())
-
-	t.Run("rejects existing payment", func(t *testing.T) {
-		in := newBookPaymentAuthorizedInput(t)
-		in.Run.Payment = &payment.Invoiced{
-			Payment: payment.Payment{
-				NamespacedID: models.NamespacedID{Namespace: in.Charge.Namespace, ID: "payment-1"},
-				ManagedModel: models.ManagedModel{CreatedAt: time.Now().UTC(), UpdatedAt: time.Now().UTC()},
-				Base: payment.Base{
-					ServicePeriod: in.Line.Period,
-					Status:        payment.StatusAuthorized,
-					FiatAmount:    in.Line.Totals.Total,
-					Authorized: &ledgertransaction.TimedGroupReference{
-						GroupReference: ledgertransaction.GroupReference{
-							TransactionGroupID: "authorized-group",
-						},
-						Time: time.Now().UTC(),
-					},
-				},
-			},
-			LineID:    in.Line.ID,
-			InvoiceID: in.Invoice.ID,
-		}
-		require.ErrorContains(t, in.Validate(), "payment already authorized")
-	})
 
 	t.Run("rejects mismatched line id", func(t *testing.T) {
 		in := newBookPaymentAuthorizedInput(t)
@@ -119,6 +97,7 @@ func newBookPaymentAuthorizedInput(t testing.TB) BookInvoicedPaymentAuthorizedIn
 
 	lineID := "line-1"
 	now := time.Now().UTC()
+
 	return BookInvoicedPaymentAuthorizedInput{
 		Charge: newUsageBasedCharge(t),
 		Run:    newUsageBasedRun(lineID),
@@ -235,6 +214,7 @@ func newUsageBasedCharge(t testing.TB) usagebased.Charge {
 
 func newUsageBasedRun(lineID string) usagebased.RealizationRun {
 	now := time.Now().UTC()
+
 	return usagebased.RealizationRun{
 		RealizationRunBase: usagebased.RealizationRunBase{
 			ID:              usagebased.RealizationRunID(models.NamespacedID{Namespace: "ns", ID: "run-1"}),
@@ -252,4 +232,114 @@ func newUsageBasedRun(lineID string) usagebased.RealizationRun {
 			},
 		},
 	}
+}
+
+func TestBookInvoicedPaymentAuthorizedRecognizesMatchingBooking(t *testing.T) {
+	for _, tc := range []struct {
+		name          string
+		mutate        func(*payment.Invoiced)
+		invoiceAmount *alpacadecimal.Decimal
+		expectedError error
+		invalidField  string
+	}{
+		{name: "matching authorization"},
+		{
+			name:          "zero invoice amount conflicts with existing authorization",
+			invoiceAmount: lo.ToPtr(alpacadecimal.NewFromInt(0)),
+			expectedError: payment.ErrPaymentAlreadyAuthorized,
+		},
+		{
+			name: "matching settled payment",
+			mutate: func(booked *payment.Invoiced) {
+				booked.Status = payment.StatusSettled
+				booked.Settled = &ledgertransaction.TimedGroupReference{
+					GroupReference: ledgertransaction.GroupReference{TransactionGroupID: "settlement-group"},
+					Time:           booked.Authorized.Time,
+				}
+			},
+		},
+		{
+			name: "different namespace", mutate: func(booked *payment.Invoiced) { booked.Namespace = "other-namespace" },
+			expectedError: payment.ErrPaymentAlreadyAuthorized,
+		},
+		{
+			name: "different invoice", mutate: func(booked *payment.Invoiced) { booked.InvoiceID = "other-invoice" },
+			expectedError: payment.ErrPaymentAlreadyAuthorized,
+		},
+		{
+			name: "different line", mutate: func(booked *payment.Invoiced) { booked.LineID = "other-line" },
+			expectedError: payment.ErrPaymentAlreadyAuthorized,
+		},
+		{
+			name: "different service period retains the same authorization", mutate: func(booked *payment.Invoiced) { booked.ServicePeriod.To = booked.ServicePeriod.To.Add(time.Hour) },
+		},
+		{
+			name: "different amount", mutate: func(booked *payment.Invoiced) { booked.FiatAmount = alpacadecimal.NewFromInt(6) },
+			expectedError: payment.ErrPaymentAlreadyAuthorized,
+		},
+		{
+			name: "deleted payment", mutate: func(booked *payment.Invoiced) { booked.DeletedAt = lo.ToPtr(booked.CreatedAt) },
+			expectedError: payment.ErrPaymentAlreadyAuthorized,
+		},
+		{
+			name: "missing authorization", mutate: func(booked *payment.Invoiced) { booked.Authorized = nil },
+			invalidField: "authorization transaction data is missing",
+		},
+		{
+			name: "empty authorization reference", mutate: func(booked *payment.Invoiced) { booked.Authorized.TransactionGroupID = "" },
+			invalidField: "transaction group ID is required",
+		},
+		{
+			name: "missing authorization time", mutate: func(booked *payment.Invoiced) { booked.Authorized.Time = time.Time{} },
+			invalidField: "time is required",
+		},
+		{
+			name: "invalid payment status", mutate: func(booked *payment.Invoiced) { booked.Status = "invalid" },
+			invalidField: "invalid payment settlement status",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			// given an existing booking on a valid invoice-backed usage run
+			in := BookInvoicedPaymentAuthorizedInput(newSettlePaymentInput(t))
+			booked := in.Run.Payment
+			require.NoError(t, in.Validate())
+			if tc.mutate != nil {
+				tc.mutate(booked)
+			}
+
+			if tc.invoiceAmount != nil {
+				in.Line.Totals.Total = *tc.invoiceAmount
+			}
+
+			handler := &authorizationReplayHandler{}
+			svc := &Service{handler: handler}
+
+			// when authorization is replayed
+			result, err := svc.BookInvoicedPaymentAuthorized(t.Context(), in)
+
+			// then matching bookings retain their references without another journal call
+			switch {
+			case tc.expectedError != nil:
+				require.ErrorIs(t, err, tc.expectedError)
+			case tc.invalidField != "":
+				require.ErrorContains(t, err, tc.invalidField)
+			default:
+				require.NoError(t, err)
+				require.Equal(t, in.Run, result.Run)
+				require.Same(t, booked, result.Payment)
+			}
+
+			require.False(t, handler.called)
+		})
+	}
+}
+
+type authorizationReplayHandler struct {
+	usagebased.Handler
+	called bool
+}
+
+func (h *authorizationReplayHandler) OnPaymentAuthorized(context.Context, usagebased.OnPaymentAuthorizedInput) (ledgertransaction.GroupReference, error) {
+	h.called = true
+	return ledgertransaction.GroupReference{}, errors.New("unexpected authorization booking")
 }

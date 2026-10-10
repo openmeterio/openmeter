@@ -328,6 +328,8 @@ func (s *SubscriptionMixin) SetupEntitlements(t *testing.T, deps SubscriptionMix
 			MeteredEntitlementConnector: meteredEntitlementConnector,
 			StaticEntitlementConnector:  staticEntitlementConnector,
 			BooleanEntitlementConnector: booleanEntitlementConnector,
+			GrantRepo:                   grantRepo,
+			GrantConnector:              creditConnector,
 			Publisher:                   mockPublisher,
 			Locker:                      locker,
 		},

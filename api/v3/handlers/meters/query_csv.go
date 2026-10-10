@@ -113,8 +113,10 @@ func collectCustomerIDs(rows []meter.MeterQueryRow) []string {
 		if row.CustomerID == nil {
 			continue
 		}
+
 		ids = append(ids, *row.CustomerID)
 	}
+
 	return lo.Uniq(ids)
 }
 
@@ -170,9 +172,11 @@ func (r *queryMeterCSVResult) Records() [][]string {
 	if hasSubjectColumn {
 		headers = append(headers, query.DimensionSubject)
 	}
+
 	if hasCustomerColumns {
 		headers = append(headers, csvColumnCustomerID, csvColumnCustomerKey, csvColumnCustomerName)
 	}
+
 	headers = append(headers, otherDimensions...)
 	headers = append(headers, csvColumnValue)
 
@@ -199,6 +203,7 @@ func (r *queryMeterCSVResult) Records() [][]string {
 					name = c.Name
 				}
 			}
+
 			record = append(record,
 				id,
 				key,
@@ -211,6 +216,7 @@ func (r *queryMeterCSVResult) Records() [][]string {
 			if ptr, ok := row.GroupBy[k]; ok && ptr != nil {
 				v = *ptr
 			}
+
 			record = append(record, v)
 		}
 

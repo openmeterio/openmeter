@@ -44,6 +44,7 @@ func (h *handler) UpdateSubscriptionAddon() UpdateSubscriptionAddonHandler {
 			if body.Timing == nil {
 				return UpdateSubscriptionAddonRequest{}, errors.New("timing is required")
 			}
+
 			if body.Quantity == nil {
 				return UpdateSubscriptionAddonRequest{}, errors.New("quantity is required")
 			}

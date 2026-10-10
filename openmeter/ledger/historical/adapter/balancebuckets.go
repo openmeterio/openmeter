@@ -3,10 +3,11 @@ package adapter
 import (
 	"context"
 	stdsql "database/sql"
+	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/alpacahq/alpacadecimal"
-	"github.com/lib/pq"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/currencies"
@@ -17,9 +18,11 @@ import (
 )
 
 type balanceBucketRow struct {
+	OldestMatchingEntryCreatedAt   time.Time
 	SubAccountID                   string
 	SourceChargeID                 stdsql.NullString
 	SpendChargeID                  stdsql.NullString
+	CollectionOriginID             stdsql.NullString
 	SumAmount                      stdsql.NullString
 	RouteID                        string
 	AccountType                    string
@@ -29,7 +32,7 @@ type balanceBucketRow struct {
 	CostBasisCurrency              stdsql.NullString
 	TaxCode                        stdsql.NullString
 	TaxBehavior                    stdsql.NullString
-	Features                       pq.StringArray
+	Filters                        string
 	CostBasis                      stdsql.NullString
 	CreditPriority                 stdsql.NullInt64
 	TransactionAuthorizationStatus stdsql.NullString
@@ -59,8 +62,10 @@ func (r *repo) GetBalanceBuckets(ctx context.Context, query ledger.BalanceBucket
 			if err != nil {
 				return nil, err
 			}
+
 			buckets = append(buckets, bucket)
 		}
+
 		if err := rows.Err(); err != nil {
 			return nil, fmt.Errorf("ledger balance bucket rows: %w", err)
 		}
@@ -74,7 +79,9 @@ func (r *balanceBucketRow) destinations() []any {
 		&r.SubAccountID,
 		&r.SourceChargeID,
 		&r.SpendChargeID,
+		&r.CollectionOriginID,
 		&r.SumAmount,
+		&r.OldestMatchingEntryCreatedAt,
 		&r.RouteID,
 		&r.AccountType,
 		&r.RoutingKeyVersion,
@@ -83,7 +90,7 @@ func (r *balanceBucketRow) destinations() []any {
 		&r.CostBasisCurrency,
 		&r.TaxCode,
 		&r.TaxBehavior,
-		&r.Features,
+		&r.Filters,
 		&r.CostBasis,
 		&r.CreditPriority,
 		&r.TransactionAuthorizationStatus,
@@ -99,6 +106,11 @@ func (r balanceBucketRow) toBalanceBucket(groupBy []string) (ledger.BalanceBucke
 	routingKey, err := ledger.NewRoutingKey(ledger.RoutingKeyVersion(r.RoutingKeyVersion), r.RoutingKey)
 	if err != nil {
 		return ledger.BalanceBucket{}, fmt.Errorf("sub-account %s routing key: %w", r.SubAccountID, err)
+	}
+
+	var filters ledger.CreditFilters
+	if err := json.Unmarshal([]byte(r.Filters), &filters); err != nil {
+		return ledger.BalanceBucket{}, fmt.Errorf("decode route filters: %w", err)
 	}
 
 	costBasis, err := nullableDecimalValue(r.CostBasis)
@@ -119,7 +131,7 @@ func (r balanceBucketRow) toBalanceBucket(groupBy []string) (ledger.BalanceBucke
 			CostBasisCurrency:              nullableCurrencyCode(r.CostBasisCurrency),
 			TaxCode:                        nullableStringValue(r.TaxCode),
 			TaxBehavior:                    nullableTaxBehavior(r.TaxBehavior),
-			Features:                       []string(r.Features),
+			Filters:                        filters,
 			CostBasis:                      costBasis,
 			CreditPriority:                 nullableIntValue(r.CreditPriority),
 			TransactionAuthorizationStatus: nullableTransactionAuthorizationStatus(r.TransactionAuthorizationStatus),
@@ -132,10 +144,11 @@ func (r balanceBucketRow) toBalanceBucket(groupBy []string) (ledger.BalanceBucke
 	}
 
 	return ledger.BalanceBucket{
-		Address:       address,
-		GroupByValues: balanceBucketGroupByValues(groupBy, r),
-		SettledAmount: amount,
-		PendingAmount: amount,
+		Address:                      address,
+		OldestMatchingEntryCreatedAt: r.OldestMatchingEntryCreatedAt,
+		GroupByValues:                balanceBucketGroupByValues(groupBy, r),
+		SettledAmount:                amount,
+		PendingAmount:                amount,
 	}, nil
 }
 
@@ -146,6 +159,8 @@ func balanceBucketGroupByValues(groupBy []string, row balanceBucketRow) map[stri
 		switch dimension {
 		case ledger.BalanceBucketGroupBySourceChargeID:
 			values[dimension] = nullableStringValue(row.SourceChargeID)
+		case ledger.BalanceBucketGroupByCollectionOriginID:
+			values[dimension] = nullableStringValue(row.CollectionOriginID)
 		case ledger.BalanceBucketGroupBySpendChargeID:
 			values[dimension] = nullableStringValue(row.SpendChargeID)
 		}

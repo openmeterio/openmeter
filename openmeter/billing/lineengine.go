@@ -107,31 +107,6 @@ func (i BuildStandardInvoiceLinesInput) Validate() error {
 	return errors.Join(errs...)
 }
 
-type CalculateLinesInput struct {
-	// Invoice is the standard invoice owning the lines being recalculated.
-	Invoice StandardInvoice
-	// Lines are the standard invoice lines already assigned to this engine.
-	Lines StandardLines
-}
-
-func (i CalculateLinesInput) Validate() error {
-	var errs []error
-
-	if i.Invoice.ID == "" {
-		errs = append(errs, fmt.Errorf("invoice id is required"))
-	}
-
-	if len(i.Lines) == 0 {
-		errs = append(errs, fmt.Errorf("lines are required"))
-	}
-
-	if err := i.Lines.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("lines: %w", err))
-	}
-
-	return errors.Join(errs...)
-}
-
 type StandardLineEventInput struct {
 	// Invoice is the standard invoice whose lines are being processed for a lifecycle event.
 	Invoice StandardInvoice
@@ -344,15 +319,17 @@ type LineEngine interface {
 	// Can be used to reject edits that are not supported by the engine (including deletion, etc.) to prevent the
 	// invoice from entering an invalid state without recovery.
 	//
-	// Additional checks can be performed in OnMutableInvoiceLinesEditedViaAPI but those errors will become
-	// validation issues, thus alter the invoice state.
-	//
-	// For API requests it is better to reject and edit before, the existing validation issue logic is geared
-	// towards state machine failures.
+	// For API requests it is better to reject an edit here before any mutation. Business-rule failures
+	// discovered later by OnMutableInvoiceLinesEditedViaAPI must be returned as validation issues, while
+	// operational failures must remain ordinary errors.
 	//
 	// Implementations must not mutate invoice, charge, ledger, or external state from this hook.
 	ValidateMutableInvoiceLineEditViaAPI(ctx context.Context, input OnMutableInvoiceUpdateInput) error
 	// OnMutableInvoiceLinesEditedViaAPI is invoked after mutable invoice lines are edited through the API.
+	// Implementations must return business-rule failures as validation issues and operational failures as
+	// ordinary errors. Standard invoice edits accept usable output accompanied only by
+	// warnings; critical issues and system errors reject the entire edit. Gathering
+	// edits and invoice-deletion cleanup reject every non-nil error.
 	// Implementations must return exactly one CreatedLines entry for each input Created line and
 	// exactly one UpdatedLines entry for each input Updated override, even when they only accept
 	// the line unchanged.
@@ -372,11 +349,6 @@ type LineEngine interface {
 	OnPaymentAuthorized(ctx context.Context, input OnPaymentAuthorizedInput) error
 	// OnPaymentSettled is invoked when a standard invoice reaches the paid state.
 	OnPaymentSettled(ctx context.Context, input OnPaymentSettledInput) error
-}
-
-type LineCalculator interface {
-	// CalculateLines recalculates detailed lines and totals for standard-invoice lines owned by this engine.
-	CalculateLines(input CalculateLinesInput) (StandardLines, error)
 }
 
 func LineEngineValidationComponent(engineType LineEngineType) ComponentName {

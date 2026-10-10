@@ -60,6 +60,7 @@ func (s *service) ListCurrencies(ctx context.Context, params currencies.ListCurr
 			if err != nil {
 				return pagination.Result[currencies.Currency]{}, err
 			}
+
 			items = append(items, customResult.Items...)
 		}
 
@@ -119,10 +120,12 @@ func (s *service) ListCurrencies(ctx context.Context, params currencies.ListCurr
 					Items:      []currencies.Currency{},
 				}, nil
 			}
+
 			end := start + pageSize
 			if end > total {
 				end = total
 			}
+
 			items = items[start:end]
 		}
 
@@ -197,6 +200,7 @@ func (s *service) CreateCostBasis(ctx context.Context, params currencies.CreateC
 		if params.EffectiveFrom != nil {
 			effectiveFrom = *params.EffectiveFrom
 		}
+
 		params.EffectiveFrom = &effectiveFrom
 
 		if params.EffectiveTo != nil && !effectiveFrom.Before(*params.EffectiveTo) {

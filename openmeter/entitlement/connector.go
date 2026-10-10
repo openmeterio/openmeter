@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
@@ -41,8 +42,14 @@ type ListEntitlementsParams struct {
 	FeatureKeys      []string
 	FeatureIDsOrKeys []string
 	EntitlementTypes []EntitlementType
-	OrderBy          ListEntitlementsOrderBy
-	Order            sortx.Order
+
+	CustomerID      *filter.FilterULID
+	FeatureID       *filter.FilterULID
+	FeatureKey      *filter.FilterString
+	EntitlementType *filter.FilterString
+
+	OrderBy ListEntitlementsOrderBy
+	Order   sortx.Order
 	// TODO[galexi]: We should clean up how these 4 fields are used together.
 	IncludeDeleted      bool
 	IncludeDeletedAfter time.Time
@@ -61,6 +68,9 @@ type Service interface {
 
 	// Facade interfaces provide convenience helpers for the API layer.
 	CustomerEntitlementAccessAPIService
+	CustomerEntitlementAPIService
+	EntitlementAPIService
+	GrantAPIService
 
 	// Meant for API use primarily
 	CreateEntitlement(ctx context.Context, input CreateEntitlementInputs, grants []CreateEntitlementGrantInputs) (*Entitlement, error)

@@ -113,16 +113,19 @@ func (i ListAddonsInput) Validate() error {
 			errs = append(errs, err)
 		}
 	}
+
 	if i.Key != nil {
 		if err := i.Key.Validate(); err != nil {
 			errs = append(errs, err)
 		}
 	}
+
 	if i.Name != nil {
 		if err := i.Name.Validate(); err != nil {
 			errs = append(errs, err)
 		}
 	}
+
 	if i.Currency != nil {
 		if err := i.Currency.Validate(); err != nil {
 			errs = append(errs, err)
@@ -316,10 +319,12 @@ func (i UpdateAddonInput) ValidateWithAddon(a productcatalog.Addon) error {
 	if i.RejectUnitConfig && a.HasUnitConfig() {
 		return productcatalog.ErrUnitConfigNotRepresentable
 	}
+
 	if i.RejectUnrepresentableCurrencies {
 		if a.Currency.IsCustom() {
 			return productcatalog.ErrCurrencyNotRepresentable
 		}
+
 		if a.HasCurrencyOverrides() {
 			return productcatalog.ErrRateCardCurrencyNotRepresentable
 		}

@@ -3,7 +3,10 @@ import "@typespec/rest";
 import "@typespec/openapi";
 import "@typespec/openapi3";
 import "../common/error.tsp";
+import "../common/parameters.tsp";
 import "../shared/index.tsp";
+import "../customers/entitlements/entitlement.tsp";
+import "../customers/entitlements/operations.tsp";
 import "./access.tsp";
 
 using TypeSpec.Http;
@@ -29,7 +32,7 @@ model ListCustomerEntitlementAccessResponseData {
    * The list of entitlement access results.
    */
   @visibility(Lifecycle.Read)
-  data: EntitlementAccessResult[];
+  data: EntitlementValueResult[];
 }
 
 interface CustomerEntitlementsOperations {
@@ -48,7 +51,22 @@ interface CustomerEntitlementsOperations {
   @route("/features/{featureKey}")
   @operationId("get-customer-entitlement-access")
   @summary("Get customer entitlement access")
-  get(
+  @extension(Shared.UnstableExtension, true)
+  get(@path customerId: Shared.ULID, @path featureKey: Shared.ResourceKey):
+    | Shared.GetResponse<EntitlementAccessCheckResult>
+    | Common.NotFound
+    | Common.ErrorResponses;
+
+  /**
+   * Get the customer's entitlement value for a feature at a point in time. Without
+   * an active entitlement, the result denies access and omits the type.
+   */
+  @get
+  @route("/features/{featureKey}/value")
+  @operationId("get-customer-entitlement-value-by-feature-key")
+  @summary("Get customer entitlement value by feature key")
+  @extension(Shared.UnstableExtension, true)
+  getValueByFeatureKey(
     @path customerId: Shared.ULID,
     @path featureKey: Shared.ResourceKey,
 
@@ -62,8 +80,114 @@ interface CustomerEntitlementsOperations {
      */
     @query(#{ explode: false })
     expand?: EntitlementAccessExpand[],
+
+    /**
+     * The point in time to evaluate the entitlement at. Defaults to the current time.
+     */
+    @query
+    at?: Shared.DateTime,
   ):
-    | Shared.GetResponse<EntitlementAccessResult>
+    | Shared.GetResponse<EntitlementFeatureValueResult>
+    | Common.NotFound
+    | Common.ErrorResponses;
+}
+
+/**
+ * Filter options for listing entitlements.
+ */
+@friendlyName("ListEntitlementsParamsFilter")
+model ListEntitlementsParamsFilter {
+  ...Customers.ListCustomerEntitlementsParamsFilter;
+
+  /**
+   * Filter entitlements by customer ID.
+   */
+  customer_id?: Common.ULIDFieldFilter;
+}
+
+interface EntitlementsOperations {
+  /**
+   * List the active entitlements of all customers. Intended for administrative use.
+   * To list the entitlements of a single customer, use the customer entitlements
+   * endpoints; to check entitlement access, use the entitlement access endpoints.
+   */
+  @extension(Shared.UnstableExtension, true)
+  @get
+  @operationId("list-entitlements")
+  @summary("List entitlements")
+  list(
+    ...Common.PagePaginationQuery,
+
+    /**
+     * Sort entitlements returned in the response. Supported sort attributes are:
+     *
+     * - `created_at` (default)
+     * - `updated_at`
+     *
+     * The `asc` suffix is optional as the default sort order is ascending. The `desc`
+     * suffix is used to specify a descending order.
+     */
+    @query(#{ name: "sort" })
+    sort?: Common.SortQuery,
+
+    /**
+     * Filter entitlements returned in the response.
+     *
+     * To filter entitlements by customer, add the following query param:
+     * `filter[customer_id]=01K4WAQ0J99ZZ0MD75HXR112H8`
+     */
+    @query(#{ style: "deepObject", explode: true })
+    filter?: ListEntitlementsParamsFilter,
+  ):
+    | Shared.PagePaginatedResponse<Customers.Entitlement>
+    | Common.ErrorResponses;
+
+  /**
+   * Get an entitlement by ID. To check entitlement access, use the entitlement
+   * access endpoints instead.
+   */
+  @extension(Shared.UnstableExtension, true)
+  @get
+  @operationId("get-entitlement")
+  @summary("Get entitlement")
+  get(@path entitlementId: Shared.ULID):
+    | Shared.GetResponse<Customers.Entitlement>
+    | Common.NotFound
+    | Common.ErrorResponses;
+}
+
+interface CustomerEntitlementValueOperations {
+  /**
+   * Get the customer's access through a single entitlement, optionally evaluated at
+   * a point in time.
+   */
+  @get
+  @route("/{entitlementId}/value")
+  @operationId("get-customer-entitlement-value")
+  @summary("Get customer entitlement value")
+  @extension(Shared.UnstableExtension, true)
+  get(
+    @path customerId: Shared.ULID,
+    @path entitlementId: Shared.ULID,
+
+    /**
+     * Expand computed fields.
+     *
+     * Supported values are:
+     *
+     * - `value`: Expand the balance details of a metered entitlement; it sets the
+     *   `value` field.
+     */
+    @query(#{ explode: false })
+    expand?: EntitlementAccessExpand[],
+
+    /**
+     * The point in time to evaluate the entitlement at. Defaults to the current time.
+     */
+    @query
+    at?: Shared.DateTime,
+  ):
+    | Shared.GetResponse<EntitlementValueResult>
     | Common.NotFound
     | Common.ErrorResponses;
 }

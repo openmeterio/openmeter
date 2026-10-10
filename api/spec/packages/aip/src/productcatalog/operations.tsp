@@ -37,7 +37,6 @@ interface PlanOperations {
   @get
   @operationId("list-plans")
   @summary("List plans")
-  @extension(Shared.UnstableExtension, true)
   listPlans(
     ...Common.PagePaginationQuery,
 
@@ -66,7 +65,6 @@ interface PlanOperations {
   @post
   @operationId("create-plan")
   @summary("Create plan")
-  @extension(Shared.UnstableExtension, true)
   createPlan(@body plan: CreatePlanRequestBody):
     | Shared.CreateResponse<Plan>
     | Common.ErrorResponses;
@@ -78,7 +76,6 @@ interface PlanOperations {
   @route("/{planId}")
   @operationId("update-plan")
   @summary("Update plan")
-  @extension(Shared.UnstableExtension, true)
   updatePlan(@path planId: Shared.ULID, @body plan: UpsertPlanRequestBody):
     | Shared.UpsertResponse<Plan>
     | Common.ErrorResponses
@@ -92,7 +89,6 @@ interface PlanOperations {
   @route("/{planId}")
   @operationId("get-plan")
   @summary("Get plan")
-  @extension(Shared.UnstableExtension, true)
   getPlan(@path planId: Shared.ULID):
     | Shared.GetResponse<Plan>
     | Common.ErrorResponses
@@ -106,7 +102,6 @@ interface PlanOperations {
   @route("/{planId}")
   @operationId("delete-plan")
   @summary("Delete plan")
-  @extension(Shared.UnstableExtension, true)
   deletePlan(@path planId: Shared.ULID):
     | Shared.DeleteResponse
     | Common.ErrorResponses
@@ -119,7 +114,7 @@ interface PlanOperations {
   @route("/{planId}/archive")
   @operationId("archive-plan")
   @summary("Archive plan version")
-  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.RPCEndpointExtension, true)
   archivePlan(@path planId: Shared.ULID):
     | Shared.UpdateResponse<Plan>
     | Common.ErrorResponses
@@ -132,7 +127,7 @@ interface PlanOperations {
   @route("/{planId}/publish")
   @operationId("publish-plan")
   @summary("Publish plan version")
-  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.RPCEndpointExtension, true)
   publishPlan(@path planId: Shared.ULID):
     | Shared.UpdateResponse<Plan>
     | Common.ErrorResponses
@@ -163,7 +158,6 @@ interface AddonOperations {
   @get
   @operationId("list-addons")
   @summary("List add-ons")
-  @extension(Shared.UnstableExtension, true)
   listAddons(
     ...Common.PagePaginationQuery,
 
@@ -195,7 +189,6 @@ interface AddonOperations {
   @post
   @operationId("create-addon")
   @summary("Create add-on")
-  @extension(Shared.UnstableExtension, true)
   createAddon(@body addon: Shared.CreateRequest<Addon>):
     | Shared.CreateResponse<Addon>
     | Common.ErrorResponses;
@@ -207,7 +200,6 @@ interface AddonOperations {
   @route("/{addonId}")
   @operationId("update-addon")
   @summary("Update add-on")
-  @extension(Shared.UnstableExtension, true)
   updateAddon(
     @path addonId: Shared.ULID,
     @body addon: Shared.UpsertRequest<Addon>,
@@ -224,7 +216,6 @@ interface AddonOperations {
   @route("/{addonId}")
   @operationId("get-addon")
   @summary("Get add-on")
-  @extension(Shared.UnstableExtension, true)
   getAddon(@path addonId: Shared.ULID):
     | Shared.GetResponse<Addon>
     | Common.ErrorResponses
@@ -238,7 +229,6 @@ interface AddonOperations {
   @route("/{addonId}")
   @operationId("delete-addon")
   @summary("Soft delete add-on")
-  @extension(Shared.UnstableExtension, true)
   deleteAddon(@path addonId: Shared.ULID):
     | Shared.DeleteResponse
     | Common.ErrorResponses
@@ -251,7 +241,7 @@ interface AddonOperations {
   @route("/{addonId}/archive")
   @operationId("archive-addon")
   @summary("Archive add-on version")
-  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.RPCEndpointExtension, true)
   archiveAddon(@path addonId: Shared.ULID):
     | Shared.UpdateResponse<Addon>
     | Common.ErrorResponses
@@ -264,7 +254,7 @@ interface AddonOperations {
   @route("/{addonId}/publish")
   @operationId("publish-addon")
   @summary("Publish add-on version")
-  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.RPCEndpointExtension, true)
   publishAddon(@path addonId: Shared.ULID):
     | Shared.UpdateResponse<Addon>
     | Common.ErrorResponses
@@ -298,7 +288,6 @@ interface PlanAddonOperations {
   @operationId("list-plan-addons")
   @summary("List add-ons for plan")
   @extension(Shared.UnstableExtension, true)
-  @extension(Shared.InternalExtension, true)
   listPlanAddons(
     @path planId: Shared.ULID,
     ...Common.PagePaginationQuery,

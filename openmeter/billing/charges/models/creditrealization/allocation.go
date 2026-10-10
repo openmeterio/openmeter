@@ -83,5 +83,6 @@ func (i CreateAllocationInputs) Sum() alpacadecimal.Decimal {
 	for _, input := range i {
 		sum = sum.Add(input.Amount)
 	}
+
 	return sum
 }

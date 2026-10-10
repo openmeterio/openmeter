@@ -11,6 +11,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/rating/subtract"
 	billingrating "github.com/openmeterio/openmeter/openmeter/billing/rating"
@@ -51,6 +52,7 @@ func (i Input) Validate() error {
 			intentServicePeriod.From.Format(time.RFC3339), intentServicePeriod.To.Format(time.RFC3339),
 			i.CurrentPeriod.ServicePeriod.From.Format(time.RFC3339), i.CurrentPeriod.ServicePeriod.To.Format(time.RFC3339)))
 	}
+
 	if err := i.CurrentPeriod.ServicePeriod.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("current period service period: %w", err))
 	}
@@ -63,6 +65,7 @@ func (i Input) Validate() error {
 				intentServicePeriod.From.Format(time.RFC3339), intentServicePeriod.To.Format(time.RFC3339),
 				priorPeriod.ServicePeriod.From.Format(time.RFC3339), priorPeriod.ServicePeriod.To.Format(time.RFC3339)))
 		}
+
 		if err := priorPeriod.ServicePeriod.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("prior periods[%d] service period: %w", idx, err))
 		}
@@ -167,7 +170,8 @@ func (e Engine) Rate(ctx context.Context, in Input) (Result, error) {
 		return Result{}, err
 	}
 
-	detailedLinesByEpoch, err := e.buildDetailsByEpoch(ctx, in)
+	recorder := billing.ValidationIssueRecorder{}
+	detailedLinesByEpoch, err := e.buildDetailsByEpoch(ctx, in, &recorder)
 	if err != nil {
 		return Result{}, fmt.Errorf("full rating with epochs: %w", err)
 	}
@@ -179,10 +183,10 @@ func (e Engine) Rate(ctx context.Context, in Input) (Result, error) {
 
 	return Result{
 		DetailedLines: finalDetailedLines,
-	}, nil
+	}, recorder.ErrorsOrNil()
 }
 
-func (e Engine) buildDetailsByEpoch(ctx context.Context, in Input) (map[epochClosedPeriod]usagebased.DetailedLines, error) {
+func (e Engine) buildDetailsByEpoch(ctx context.Context, in Input, recorder *billing.ValidationIssueRecorder) (map[epochClosedPeriod]usagebased.DetailedLines, error) {
 	// We need to first generate the expected detailed lines for each invoice without taking the already billed lines into account.
 	fullRatingInput := make([]epochPeriodRatingInput, 0, len(in.PriorPeriods)+1)
 	// Note: this is only to make sure that the input is sorted (it should be already sorted by the caller, but it's a safety measure in
@@ -228,7 +232,7 @@ func (e Engine) buildDetailsByEpoch(ctx context.Context, in Input) (map[epochClo
 			ServicePeriod: epoch.epochClosedPeriod.AsClosedPeriod(),
 			MeterValue:    epoch.Quantity,
 		}, opts...)
-		if err != nil {
+		if err := recorder.RecordWarnings(err); err != nil {
 			return nil, fmt.Errorf("generating detailed lines: %w", err)
 		}
 

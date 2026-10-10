@@ -11,6 +11,7 @@ func GetRFC3339Time(t *testing.T, timeString string) time.Time {
 	if err != nil {
 		t.Fatalf("Failed to parse time: %v", err)
 	}
+
 	return t1
 }
 
@@ -19,5 +20,6 @@ func TimeEqualsApproximately(t *testing.T, expected time.Time, actual time.Time,
 	if expected.Before(actual.Add(tolerance)) && expected.After(actual.Add(-tolerance)) {
 		return
 	}
+
 	t.Fatalf("Expected %v but got %v, outside tolerance of %v", expected, actual, tolerance)
 }

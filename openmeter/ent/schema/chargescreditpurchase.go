@@ -13,6 +13,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
+	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
 
@@ -66,6 +67,15 @@ func (ChargeCreditPurchase) Fields() []ent.Field {
 			Optional().
 			Nillable().
 			Immutable(),
+		field.String("filters").
+			GoType(&ledger.CreditFilters{}).
+			ValueScanner(entutils.JSONStringValueScanner[*ledger.CreditFilters]()).
+			SchemaType(map[string]string{dialect.Postgres: "jsonb"}).
+			DefaultFunc(func() *ledger.CreditFilters {
+				return &ledger.CreditFilters{Version: ledger.CreditFiltersVersion1}
+			}).
+			Immutable(),
+		// Deprecated: unused legacy projection; application reads and writes filters.
 		field.Other("feature_filters", pq.StringArray{}).
 			Optional().
 			Immutable().

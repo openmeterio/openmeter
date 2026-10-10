@@ -82,10 +82,12 @@ func (i AdvancePlanReferenceInput) Validate() error {
 	if i.SubscriptionID.Namespace == "" || i.SubscriptionID.ID == "" {
 		errs = append(errs, errors.New("subscription namespace and ID are required"))
 	}
+
 	if i.CurrentPlan.Id == "" || i.TargetPlan.Id == "" || i.CurrentPlan.Key == "" ||
 		i.CurrentPlan.Key != i.TargetPlan.Key || i.TargetPlan.Version <= i.CurrentPlan.Version {
 		errs = append(errs, errors.New("migration requires a later version of the same plan"))
 	}
+
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
@@ -105,15 +107,19 @@ func (i CreateCostBasisPinEntityInput) Validate() error {
 	if i.Namespace == "" {
 		errs = append(errs, errors.New("namespace is required"))
 	}
+
 	if i.SubscriptionID == "" {
 		errs = append(errs, errors.New("subscription ID is required"))
 	}
+
 	if i.CustomCurrencyID == "" {
 		errs = append(errs, errors.New("custom currency ID is required"))
 	}
+
 	if i.CostBasisID == "" {
 		errs = append(errs, errors.New("cost basis ID is required"))
 	}
+
 	if err := i.InvoiceCurrency.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("invalid invoice currency %q: %w", i.InvoiceCurrency, err))
 	} else if !i.InvoiceCurrency.IsFiat() {

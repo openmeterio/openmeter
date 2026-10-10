@@ -62,6 +62,7 @@ func (r *repo) ListAccounts(ctx context.Context, input ledgeraccount.ListAccount
 			if err != nil {
 				return nil, fmt.Errorf("failed to map account data: %w", err)
 			}
+
 			out = append(out, accData)
 		}
 

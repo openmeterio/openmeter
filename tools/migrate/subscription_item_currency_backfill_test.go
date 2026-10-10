@@ -48,6 +48,7 @@ func querySubscriptionItemCurrencyMigrationStates(t testing.TB, db *sql.DB, phas
 
 		states[id] = state
 	}
+
 	require.NoError(t, rows.Err())
 
 	return states
@@ -186,6 +187,7 @@ func TestBackfillSubscriptionItemCurrenciesMigration(t *testing.T) {
 			require.Equal(t, migrationTimestamp, annotationTimestamp)
 		}
 	}
+
 	require.Equal(t, "preserved", states[legacyAnnotatedItemID].Annotations["existing"])
 	require.False(t, states[alreadyAnnotatedItemID].Currency.Valid)
 	require.False(t, states[alreadyAnnotatedItemID].CustomCurrencyID.Valid)
@@ -215,6 +217,7 @@ func TestBackfillSubscriptionItemCurrenciesMigration(t *testing.T) {
 		require.False(t, states[itemID].CustomCurrencyID.Valid)
 		require.NotContains(t, states[itemID].Annotations, subscriptionItemCurrencyBackfillAnnotation)
 	}
+
 	require.Nil(t, states[legacyItemID].Annotations)
 	require.Equal(t, "preserved", states[legacyAnnotatedItemID].Annotations["existing"])
 	require.Nil(t, states[deletedLegacyItemID].Annotations)

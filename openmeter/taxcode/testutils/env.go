@@ -32,6 +32,7 @@ func (e *TestEnv) Close(t *testing.T) {
 		if e.db == nil {
 			return
 		}
+
 		if e.Client != nil {
 			if err := e.Client.Close(); err != nil {
 				t.Errorf("failed to close ent client: %v", err)
@@ -56,16 +57,20 @@ func (e *TestEnv) CreateTaxCode(t *testing.T, namespace string, opts ...taxcode.
 	if len(opts) > 0 {
 		input = opts[0]
 	}
+
 	generated := testutils.NameGenerator.Generate()
 	input.Namespace = namespace
 	if input.Key == "" {
 		input.Key = generated.Key
 	}
+
 	if input.Name == "" {
 		input.Name = generated.Name
 	}
+
 	tc, err := e.Service.CreateTaxCode(t.Context(), input)
 	require.NoError(t, err)
+
 	return tc
 }
 

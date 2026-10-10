@@ -86,6 +86,11 @@ type AccountProvisioner interface {
 type AccountCatalog interface {
 	AccountReader
 	AccountProvisioner
+	AccountLocker
+}
+
+func (a CustomerAccounts) LockForPosting(ctx context.Context, locker AccountLocker) error {
+	return locker.LockAccountsForPosting(ctx, []Account{a.FBOAccount, a.ReceivableAccount, a.AccruedAccount})
 }
 
 type AccountLocker interface {

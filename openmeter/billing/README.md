@@ -24,6 +24,14 @@ invoicing, and payment. A namespace has one default profile. A customer
 override may select another profile and replace supported parts of its
 workflow.
 
+Installing a Custom Invoicing app with automatic profile creation uses Cloud's
+initial Auto Collection preset: the installed app handles tax, invoicing, and
+payment, with the standard billing workflow and an OpenMeter supplier in the US
+(postal code 94114). This supplier is a placeholder that callers can edit. The
+profile is not made the namespace default, even when no default exists. App
+installation and profile creation commit together; profile creation failures
+roll back the installation.
+
 The merged customer configuration is resolved when a standard invoice is
 created. The invoice keeps the customer, supplier, workflow configuration, and
 app references needed to finish its lifecycle. Customer-visible invoice
@@ -48,6 +56,11 @@ A standard line is the billable item on the invoice. Detailed lines explain
 the calculated price components beneath it, such as tier or flat-fee
 components. They are derived calculation output, not another source of
 subscription intent.
+
+Invoice amount discounts must be non-negative. Charge snapshots may carry signed
+corrections, but invoicing rejects negative discount amounts until credit-note
+handling is supported. Charge engines map discount facts into billing-managed
+resources and reuse their identities through stable child references.
 
 ## Time has distinct meanings
 
@@ -106,6 +119,90 @@ billing requires it to preserve the input line IDs before accepting the
 result. API-originated line edits and system-originated reconciliation are
 different change sources: API edits may change manual ownership, while system
 edits preserve the ownership contract of their source.
+
+Line owners return calculated details, discounts, and totals. Invoice
+calculation aggregates these totals and derives invoice dates, service periods,
+and tax metadata. The legacy engine rates at materialization, collection,
+standard API edits, and transient preview/simulation boundaries. Mutable
+subscription updates snapshot and rate through that engine; immutable
+comparisons only snapshot quantities. Repeated rating starts from raw metered
+usage and retains matching detail and discount identities.
+
+Snapshotting and rating run on clones so a failed collection attempt cannot
+modify the prior invoice lines. Complete snapshots follow the existing reuse
+timing policy.
+
+Legacy rating issues belong to the legacy engine component. Lifecycle rating
+uses billing's existing component-wide replacement; standard API edits append
+returned warnings for every line engine. Invoice-level issues retain the
+calculator's replacement lifecycle.
+
+Invoice-issued, payment-authorized, and payment-settled callbacks form one
+local transaction attempt across every live line and line engine. Warning-only
+results commit and remain attached to the invoice. A critical validation issue
+rolls back every line-engine write from that attempt before billing persists the
+retryable failed invoice state. A system error rolls back the attempt and aborts
+the invoice operation. When a payment provider reports a direct paid event,
+authorization and settlement share the same attempt, so a settlement failure
+also rolls back authorization created by that event. Facts committed by an
+earlier attempt remain available to idempotent retry handling.
+
+## Validation issues alongside successful results
+
+Typed validation issues can accompany usable results through an `error` return.
+Classify that error before discarding the result. Its meaning depends on the
+boundary:
+
+| Boundary | Successful result with warnings |
+| --- | --- |
+| Internal rating and rated-run operations | Preserve the result and propagate typed warnings through the existing `error` return. |
+| Charge lifecycle action | Extract warning-only issues, complete the operation, update charge-owned issues, and return nil so the transition succeeds. |
+| Charge line-engine callback | Return updated lines alongside the relevant charge rating issues through the existing callback contract. |
+| Public current-totals read | Return warnings in `result.ValidationIssues` with a nil Go error; consumers use the valid totals normally. |
+
+Gathering-invoice live previews accept line-engine validation issues of any
+severity and attach them to the projected standard invoice while preserving
+the usable lines. The projection is not persisted; system errors still fail
+the preview. The legacy preview builder currently returns no lines on snapshot
+failure, so its exact-ID check fails for missing snapshot dependencies.
+
+Standard API edits accept calculated output accompanied only by warnings and
+persist those issues on the invoice. Critical callback issues and system errors
+reject the whole edit, including mixed-engine writes. Gathering edits and
+invoice-deletion cleanup keep their rejection semantics for every callback error.
+Simulation validates feature/meter references and explicitly rates supplied
+legacy quantities on clones without persisting the transient result.
+Charge simulation is unsupported; supplied charge projections are not rerated.
+
+`ValidationIssueRecorder.Record` collects validation issues of any severity;
+successful extraction alone does not mean an operation may advance. Where only
+warnings permit continuation, use `RecordWarnings`. For example, a rating
+wrapper preserves the successful result and warning channel:
+
+```go
+recorder := billing.ValidationIssueRecorder{}
+result, err := rater.GenerateDetailedLines(input)
+if err := recorder.RecordWarnings(err); err != nil {
+    return rating.GenerateDetailedLinesResult{}, fmt.Errorf("rating line: %w", err)
+}
+
+return result, recorder.ErrorsOrNil()
+```
+
+Callers needing an issue slice use
+`ToValidationIssues(err, RequireWarningsOnly())`. Both warning-only helpers
+accept nil; any critical issue or system error rejects the entire supplied
+error tree. The recorder records no part of that rejected tree, and the caller
+keeps its existing failure path. Component, path, and attribute wrappers add
+context without converting system errors into validation issues; that conversion
+requires explicit `WrapAsValidationIssue` intent.
+
+At collection completion, warnings permit replacement lines and do not block
+advancement. Critical validation issues retain the previous lines and prevent
+completion; system errors abort the operation, including when joined with
+warnings. The [collection severity tests](../../test/billing/lineengine_test.go)
+cover these distinct outcomes. Charge persistence and read-time issue lifetimes
+are defined in [Charges](charges/README.md#validation-issues-alongside-successful-results).
 
 ## Invoice lifecycle and failure
 
@@ -171,6 +268,11 @@ retry operation for a retryable failure and its delete operation for the
 delete lifecycle; firing a generic state-machine trigger bypasses preparation
 and audit semantics owned by those operations.
 
+Deleting a standard invoice is idempotent within the billing service. Once it
+reaches the terminal `deleted` state, another service-level delete returns the
+existing invoice without repeating line-engine cleanup or invoicing-app
+synchronization. The AIP API treats a terminal deleted invoice as not found.
+
 Billing publishes created and updated standard-invoice snapshots for
 downstream consumers. [Notifications](../notification/README.md) maps those
 snapshots into its own API-shaped historical payloads and delivers them
@@ -184,6 +286,9 @@ the lifecycle operation.
 
 - invoice manipulation is serialized per customer and runs under the billing
   transaction and customer update lock
+- product-catalog discounts describe commercial configuration without billing
+  identity; once attached to a charge or invoice line, billing owns a stable,
+  non-empty correlation ID for every present discount
 - every invoice contains one fiat currency
 - a customer cannot have two active gathering invoices for the same currency
 - pending-line creation resolves every supplied feature, and metered prices

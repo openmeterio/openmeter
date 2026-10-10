@@ -167,6 +167,7 @@ func NewServer(config *Config) (*Server, error) {
 		TaxCodeService:              config.RouterConfig.TaxCodeService,
 		CostService:                 config.RouterConfig.CostService,
 		FeatureConnector:            config.RouterConfig.FeatureConnector,
+		NotificationService:         config.RouterConfig.Notification,
 		Middlewares:                 v3Middlewares,
 		PostAuthMiddlewares:         config.PostAuthMiddlewares,
 		ResponseValidation:          config.ResponseValidation,
@@ -217,6 +218,7 @@ func NewServer(config *Config) (*Server, error) {
 				},
 			}))
 		}
+
 		r.Use(render.SetContentType(render.ContentTypeJSON))
 		r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 			models.NewStatusProblem(r.Context(), nil, http.StatusNotFound).Respond(w)
@@ -292,6 +294,7 @@ func collectMiddlewareHooks(hooks []MiddlewareHook) []server.MiddlewareFunc {
 	for _, hook := range hooks {
 		hook(c)
 	}
+
 	return c.middlewares
 }
 

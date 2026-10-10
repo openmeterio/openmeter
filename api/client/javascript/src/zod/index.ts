@@ -8864,7 +8864,7 @@ export const MarketplaceAppInstallBody = zod
       .boolean()
       .default(marketplaceAppInstallBodyCreateBillingProfileDefault)
       .describe(
-        'If true, a billing profile will be created for the app.\nThe Stripe app will be also set as the default billing profile if the current default is a Sandbox app.',
+        'If true, a billing profile will be created for the app.\nThe Stripe app will be also set as the default billing profile if the current default is a Sandbox app.\nCustom Invoicing apps use the Auto Collection preset with an OpenMeter supplier\nin the US (postal code 94114), without replacing the default profile.',
       ),
     name: zod.coerce
       .string()
@@ -8897,7 +8897,7 @@ export const MarketplaceAppAPIKeyInstallBody = zod.object({
     .boolean()
     .default(marketplaceAppAPIKeyInstallBodyCreateBillingProfileDefault)
     .describe(
-      'If true, a billing profile will be created for the app.\nThe Stripe app will be also set as the default billing profile if the current default is a Sandbox app.',
+      'If true, a billing profile will be created for the app.\nThe Stripe app will be also set as the default billing profile if the current default is a Sandbox app.\nCustom Invoicing apps use the Auto Collection preset with an OpenMeter supplier\nin the US (postal code 94114), without replacing the default profile.',
     ),
   name: zod.coerce
     .string()

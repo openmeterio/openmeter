@@ -8,9 +8,11 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
@@ -43,6 +45,8 @@ const (
 	FieldCustomCurrencyID = "custom_currency_id"
 	// FieldManagedBy holds the string denoting the managed_by field in the database.
 	FieldManagedBy = "managed_by"
+	// FieldSubscriptionPlan holds the string denoting the subscription_plan field in the database.
+	FieldSubscriptionPlan = "subscription_plan"
 	// FieldSubscriptionID holds the string denoting the subscription_id field in the database.
 	FieldSubscriptionID = "subscription_id"
 	// FieldSubscriptionPhaseID holds the string denoting the subscription_phase_id field in the database.
@@ -89,6 +93,8 @@ const (
 	FieldExpiresAt = "expires_at"
 	// FieldPriority holds the string denoting the priority field in the database.
 	FieldPriority = "priority"
+	// FieldFilters holds the string denoting the filters field in the database.
+	FieldFilters = "filters"
 	// FieldFeatureFilters holds the string denoting the feature_filters field in the database.
 	FieldFeatureFilters = "feature_filters"
 	// FieldSettlement holds the string denoting the settlement field in the database.
@@ -219,6 +225,7 @@ var Columns = []string{
 	FieldFiatCurrencyCode,
 	FieldCustomCurrencyID,
 	FieldManagedBy,
+	FieldSubscriptionPlan,
 	FieldSubscriptionID,
 	FieldSubscriptionPhaseID,
 	FieldSubscriptionItemID,
@@ -242,6 +249,7 @@ var Columns = []string{
 	FieldEffectiveAt,
 	FieldExpiresAt,
 	FieldPriority,
+	FieldFilters,
 	FieldFeatureFilters,
 	FieldStatusDetailed,
 	FieldKey,
@@ -283,8 +291,15 @@ var (
 	UpdateDefaultUpdatedAt func() time.Time
 	// DefaultSchemaLevel holds the default value on creation for the "schema_level" field.
 	DefaultSchemaLevel int
+	// DefaultFilters holds the default value on creation for the "filters" field.
+	DefaultFilters func() *ledger.CreditFilters
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
+	// ValueScanner of all ChargeCreditPurchase fields.
+	ValueScanner struct {
+		SubscriptionPlan field.TypeValueScanner[*meta.SubscriptionPlan]
+		Filters          field.TypeValueScanner[*ledger.CreditFilters]
+	}
 )
 
 // StatusValidator is a validator for the "status" field enum values. It is called by the builders before save.
@@ -415,6 +430,11 @@ func ByManagedBy(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldManagedBy, opts...).ToFunc()
 }
 
+// BySubscriptionPlan orders the results by the subscription_plan field.
+func BySubscriptionPlan(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSubscriptionPlan, opts...).ToFunc()
+}
+
 // BySubscriptionID orders the results by the subscription_id field.
 func BySubscriptionID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldSubscriptionID, opts...).ToFunc()
@@ -513,6 +533,11 @@ func ByExpiresAt(opts ...sql.OrderTermOption) OrderOption {
 // ByPriority orders the results by the priority field.
 func ByPriority(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldPriority, opts...).ToFunc()
+}
+
+// ByFilters orders the results by the filters field.
+func ByFilters(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldFilters, opts...).ToFunc()
 }
 
 // ByFeatureFilters orders the results by the feature_filters field.

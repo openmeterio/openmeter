@@ -102,6 +102,7 @@ func (u *UnitCost) Validate() error {
 		if u.LLM.ProviderProperty == "" && u.LLM.Provider == "" {
 			errs = append(errs, errors.New("either provider_property or provider is required for LLM unit cost"))
 		}
+
 		if u.LLM.ProviderProperty != "" && u.LLM.Provider != "" {
 			errs = append(errs, errors.New("provider_property and provider are mutually exclusive"))
 		}
@@ -110,6 +111,7 @@ func (u *UnitCost) Validate() error {
 		if u.LLM.ModelProperty == "" && u.LLM.Model == "" {
 			errs = append(errs, errors.New("either model_property or model is required for LLM unit cost"))
 		}
+
 		if u.LLM.ModelProperty != "" && u.LLM.Model != "" {
 			errs = append(errs, errors.New("model_property and model are mutually exclusive"))
 		}
@@ -118,6 +120,7 @@ func (u *UnitCost) Validate() error {
 		if u.LLM.TokenTypeProperty == "" && u.LLM.TokenType == "" {
 			errs = append(errs, errors.New("either token_type_property or token_type is required for LLM unit cost"))
 		}
+
 		if u.LLM.TokenTypeProperty != "" && u.LLM.TokenType != "" {
 			errs = append(errs, errors.New("token_type_property and token_type are mutually exclusive"))
 		}

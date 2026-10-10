@@ -25,6 +25,13 @@ Its complete desired shape is a `SubscriptionSpec`:
 `ItemsByKey[key]` is a time-ordered version history. Its slice index identifies
 a logical revision of the item; it is not quantity. Removing or inserting an
 element changes the identity used by downstream subscription reconciliation.
+Views order revisions by intended start, then put zero-length revisions before
+nonempty ones at the same start. Tied zero-length edits use the existing patch
+ULID order, with an unmarked plan-origin revision first. Item row IDs and
+creation timestamps can change during materialization and do not define this
+order.
+Patch ULIDs use wall-clock creation time; same-millisecond IDs from different
+processes do not guarantee action order.
 
 A `SubscriptionView` is the hydrated read model: the subscription, its current
 spec, customer, phases, items, features, and entitlements. The spec is the
@@ -83,6 +90,8 @@ are clipped to phase and subscription boundaries. The plan workflow defaults
 the anchor to `ActiveFrom`, but the stored anchor is an explicit subscription
 fact and must be carried through replacements and plan changes.
 
+Subscription specs enforce the [product catalog rate-card minimum](../productcatalog/README.md), including for existing items. Cancellation permits legacy short cadences when the spec has no other validation errors; unrelated updates remain blocked until the cadences are changed.
+
 `Timing` describes when a command should take effect. It contains exactly one
 of a custom timestamp or a supported enum. `immediate` resolves from the
 subscription clock; `next_billing_cycle` resolves to the end of the aligned
@@ -108,7 +117,9 @@ and phase; do not persist a derived absolute end as independent source truth.
   subscription item. Recreating an item may recreate its entitlement.
 - Subscription commands publish lifecycle events. Successful subscription
   mutation means the desired schedule was committed; it does not mean billing
-  artifacts have already been reconciled.
+  artifacts have already been reconciled. Application wiring persists system
+  events through the [shared outbox](../watermill/outbox/README.md), with delivery
+  triggered after commit and retries driven by subsequent publishing activity.
 - Billing behavior such as line generation, invoice collection, charge
   realization, proration materialization, and immutable-invoice handling
   belongs outside this package.

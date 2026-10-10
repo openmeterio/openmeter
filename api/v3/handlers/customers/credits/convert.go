@@ -45,7 +45,7 @@ func toAPIBillingCreditGrant(charge creditpurchase.Charge) (api.BillingCreditGra
 	}
 	grant.ValidationIssues = billingcommon.ToAPIValidationIssues(charge.ValidationIssues)
 
-	grant.Filters = toAPIBillingCreditGrantFilters(charge.Intent.FeatureFilters)
+	grant.Filters = toAPIBillingCreditGrantFilters(charge.Intent.Filters)
 
 	if charge.Intent.Priority != nil {
 		p := int16(*charge.Intent.Priority)
@@ -56,8 +56,9 @@ func toAPIBillingCreditGrant(charge creditpurchase.Charge) (api.BillingCreditGra
 	if err != nil {
 		return grant, fmt.Errorf("converting purchase: %w", err)
 	}
+
 	grant.Purchase = purchase
-	grant.TaxConfig = toAPIBillingCreditGrantTaxConfig(charge)
+	grant.TaxConfig = toAPITaxCodeConfig(charge)
 
 	return grant, nil
 }
@@ -77,6 +78,7 @@ func toAPIBillingCreditGrantStatus(charge creditpurchase.Charge) api.BillingCred
 	if charge.State.VoidedAt != nil {
 		return api.BillingCreditGrantStatusVoided
 	}
+
 	if charge.Intent.ExpiresAt != nil && !charge.Intent.ExpiresAt.After(clock.Now()) {
 		return api.BillingCreditGrantStatusExpired
 	}
@@ -117,6 +119,7 @@ func toAPICreditGrantPurchase(charge creditpurchase.Charge) (*api.BillingCreditG
 		if err != nil {
 			return nil, fmt.Errorf("converting availability policy: %w", err)
 		}
+
 		availabilityPolicy = &policy
 
 		if charge.Realizations.ExternalPaymentSettlement != nil {
@@ -181,13 +184,13 @@ func toAPIBillingCreditAvailabilityPolicy(status creditpurchase.InitialPaymentSe
 	}
 }
 
-func toAPIBillingCreditGrantTaxConfig(charge creditpurchase.Charge) *api.BillingCreditGrantTaxConfig {
+func toAPITaxCodeConfig(charge creditpurchase.Charge) *api.TaxCodeConfig {
 	cfg := charge.Intent.TaxConfig
 	if lo.IsEmpty(cfg) {
 		return nil
 	}
 
-	tc := &api.BillingCreditGrantTaxConfig{}
+	tc := &api.TaxCodeConfig{}
 
 	if cfg.Behavior != nil {
 		behavior := api.BillingTaxBehavior(*cfg.Behavior)
@@ -195,24 +198,50 @@ func toAPIBillingCreditGrantTaxConfig(charge creditpurchase.Charge) *api.Billing
 	}
 
 	if cfg.TaxCodeID != "" {
-		tc.TaxCode = &api.TaxCodeReference{Id: cfg.TaxCodeID}
+		tc.Code = &api.TaxCodeReference{Id: cfg.TaxCodeID}
 	}
 
 	return tc
 }
 
-func toAPIBillingCreditGrantFilters(filters creditpurchase.FeatureFilters) *api.BillingCreditGrantFilters {
-	if len(filters) == 0 {
+func toAPIBillingCreditGrantFilters(filters ledger.CreditFilters) *api.BillingCreditGrantFilters {
+	if filters.IsEmpty() {
 		return nil
 	}
 
-	apiFeatures := lo.Map(filters.Normalize(), func(key string, _ int) api.ResourceKey {
-		return key
-	})
-
-	return &api.BillingCreditGrantFilters{
-		Features: &apiFeatures,
+	filters = filters.Normalize()
+	result := &api.BillingCreditGrantFilters{}
+	if len(filters.Features) > 0 {
+		result.Features = lo.ToPtr(filters.Features)
 	}
+
+	if len(filters.Plans) > 0 {
+		result.Plans = lo.ToPtr(lo.Map(filters.Plans, func(plan ledger.PlanFilter, _ int) api.BillingCreditGrantPlanFilter {
+			mapped := api.BillingCreditGrantPlanFilter{Key: plan.Key}
+			if v := plan.Version; v != nil {
+				mapped.Version = &api.VersionFilter{}
+				if v.Eq != nil {
+					mapped.Version.Eq = lo.ToPtr(int32(*v.Eq))
+				}
+
+				if v.Gte != nil {
+					mapped.Version.Gte = lo.ToPtr(int32(*v.Gte))
+				}
+
+				if v.Lte != nil {
+					mapped.Version.Lte = lo.ToPtr(int32(*v.Lte))
+				}
+
+				if v.In != nil {
+					mapped.Version.Oeq = lo.ToPtr(lo.Map(v.In, func(n int, _ int) int32 { return int32(n) }))
+				}
+			}
+
+			return mapped
+		}))
+	}
+
+	return result
 }
 
 func fromAPIBillingCreditFundingMethod(fm api.BillingCreditFundingMethod) creditgrant.FundingMethod {
@@ -235,7 +264,7 @@ func fromAPIBillingCreditAvailabilityPolicy(policy api.BillingCreditAvailability
 	}
 }
 
-func fromAPIBillingCreditGrantTaxConfig(tc *api.CreateCreditGrantTaxConfig) *productcatalog.TaxConfig {
+func fromAPITaxCodeConfig(tc *api.CreateTaxCodeConfig) *productcatalog.TaxConfig {
 	if tc == nil {
 		return nil
 	}
@@ -247,29 +276,49 @@ func fromAPIBillingCreditGrantTaxConfig(tc *api.CreateCreditGrantTaxConfig) *pro
 		config.Behavior = &behavior
 	}
 
-	if tc.TaxCode != nil {
-		config.TaxCodeID = &tc.TaxCode.Id
+	if tc.Code != nil {
+		config.TaxCodeID = &tc.Code.Id
 	}
 
 	return config
 }
 
 func fromAPIBillingCreditGrantFilters(filters *api.CreateCreditGrantFilters) (*creditgrant.GrantFilters, error) {
-	if filters == nil || filters.Features == nil || len(*filters.Features) == 0 {
+	if filters == nil {
 		return nil, nil
 	}
 
-	featureFilters := creditpurchase.FeatureFilters(lo.Map(*filters.Features, func(key api.ResourceKey, _ int) string {
-		return key
-	}))
+	result := &creditgrant.GrantFilters{Features: lo.FromPtr(filters.Features)}
+	if filters.Plans != nil {
+		result.Plans = lo.Map(*filters.Plans, func(plan api.CreateCreditGrantPlanFilter, _ int) ledger.PlanFilter {
+			mapped := ledger.PlanFilter{Key: plan.Key}
+			if v := plan.Version; v != nil {
+				mapped.Version = &ledger.VersionFilter{}
+				if v.Eq != nil {
+					mapped.Version.Eq = lo.ToPtr(int(*v.Eq))
+				}
 
-	if err := featureFilters.Validate(); err != nil {
-		return nil, err
+				if v.Gte != nil {
+					mapped.Version.Gte = lo.ToPtr(int(*v.Gte))
+				}
+
+				if v.Lte != nil {
+					mapped.Version.Lte = lo.ToPtr(int(*v.Lte))
+				}
+
+				if v.Oeq != nil {
+					mapped.Version.In = make([]int, len(*v.Oeq))
+					for i, n := range *v.Oeq {
+						mapped.Version.In[i] = int(n)
+					}
+				}
+			}
+
+			return mapped
+		})
 	}
 
-	return &creditgrant.GrantFilters{
-		Features: featureFilters.Normalize(),
-	}, nil
+	return result, nil
 }
 
 func fromAPIBillingCreditGrantStatus(status api.BillingCreditGrantStatus) (creditgrant.GrantStatus, error) {
@@ -388,6 +437,7 @@ func fromAPICreateCreditGrantRequest(ns string, customerID api.ULID, body api.Cr
 			if err != nil {
 				return creditgrant.CreateInput{}, err
 			}
+
 			purchase.AvailabilityPolicy = &policy
 		}
 
@@ -395,13 +445,14 @@ func fromAPICreateCreditGrantRequest(ns string, customerID api.ULID, body api.Cr
 	}
 
 	if body.TaxConfig != nil {
-		req.TaxConfig = fromAPIBillingCreditGrantTaxConfig(body.TaxConfig)
+		req.TaxConfig = fromAPITaxCodeConfig(body.TaxConfig)
 	}
 
 	filters, err := fromAPIBillingCreditGrantFilters(body.Filters)
 	if err != nil {
 		return creditgrant.CreateInput{}, fmt.Errorf("invalid filters: %w", err)
 	}
+
 	req.Filters = filters
 
 	return req, nil
@@ -439,6 +490,7 @@ func fromAPICreateChargeCostBasis(in *api.CreateChargeCostBasis) (*creditpurchas
 	if err != nil {
 		return nil, err
 	}
+
 	return new(creditpurchase.NewCostBasis(*costBasis)), nil
 }
 
@@ -512,7 +564,7 @@ func toAPICreditBalance(currency currencies.CurrencyReference, balance customerb
 		Pending:  balance.Pending().String(),
 	}
 	if currency.CustomCurrencyID != nil {
-		result.CustomCurrencyId = currency.CustomCurrencyID
+		result.CustomCurrency = &api.CurrencyCustomReference{Id: *currency.CustomCurrencyID}
 	}
 
 	return result
@@ -570,13 +622,14 @@ func toAPIBillingCreditTransaction(tx customerbalance.CreditTransaction) api.Bil
 		},
 	}
 	if currency.CustomCurrencyID != nil {
-		apiTx.CustomCurrencyId = currency.CustomCurrencyID
+		apiTx.CustomCurrency = &api.CurrencyCustomReference{Id: *currency.CustomCurrencyID}
 	}
 
 	labels := creditTransactionLabels(tx.Annotations)
 	if tx.Type == customerbalance.CreditTransactionTypeFunded && tx.GrantVoided {
 		labels["voided"] = "true"
 	}
+
 	if len(labels) > 0 {
 		apiLabels := api.Labels(labels)
 		apiTx.Labels = &apiLabels

@@ -37,6 +37,7 @@ func (e MeasureUsageFromEnum) Validate() error {
 	if !slices.Contains(e.Values(), e) {
 		return fmt.Errorf("invalid value")
 	}
+
 	return nil
 }
 
@@ -58,6 +59,7 @@ func (m *MeasureUsageFromInput) FromTime(t time.Time) error {
 	}
 
 	m.ts = t
+
 	return nil
 }
 
@@ -65,6 +67,7 @@ func (m *MeasureUsageFromInput) FromEnum(e MeasureUsageFromEnum, currPeriod time
 	if err := e.Validate(); err != nil {
 		return err
 	}
+
 	switch e {
 	case MeasureUsageFromCurrentPeriodStart:
 		m.ts = currPeriod.From
@@ -73,6 +76,7 @@ func (m *MeasureUsageFromInput) FromEnum(e MeasureUsageFromEnum, currPeriod time
 	default:
 		return fmt.Errorf("unsupported enum value")
 	}
+
 	return nil
 }
 
@@ -406,5 +410,6 @@ func (e GenericProperties) ActiveToTime() *time.Time {
 	if e.ActiveTo != nil {
 		return e.ActiveTo
 	}
+
 	return e.DeletedAt
 }

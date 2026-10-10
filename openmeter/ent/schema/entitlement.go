@@ -43,6 +43,7 @@ func (Entitlement) Fields() []ent.Field {
 			if _, err := ulid.Parse(fK); err == nil {
 				return fmt.Errorf("selected feature key cannot be a valid ULID")
 			}
+
 			return nil
 		}).Immutable(),
 		field.String("customer_id").Immutable().SchemaType(map[string]string{

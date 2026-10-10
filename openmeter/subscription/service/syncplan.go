@@ -78,6 +78,7 @@ func (p syncPlan) Execute(ctx context.Context, service *service, customer custom
 		default:
 			err = fmt.Errorf("unknown sync action %q", command.action)
 		}
+
 		if err != nil {
 			return fmt.Errorf(
 				"failed to %s %s at %s: %w",
@@ -107,6 +108,7 @@ func newSyncPlan(
 		if err != nil {
 			return syncPlan{}, fmt.Errorf("failed to compare %s at %s: %w", ref.Kind, ref.Path, err)
 		}
+
 		changes[ref] = change
 	}
 
@@ -158,6 +160,7 @@ func buildSyncNodes(
 	for key := range currentPhases {
 		phaseKeys[key] = struct{}{}
 	}
+
 	for key := range desiredSpec.Phases {
 		phaseKeys[key] = struct{}{}
 	}
@@ -175,6 +178,7 @@ func buildSyncNodes(
 			if err != nil {
 				return nil, syncReferences{}, fmt.Errorf("failed to get current cadence for phase %s: %w", phaseKey, err)
 			}
+
 			refState.phases[phasePath] = currentPhase.SubscriptionPhase
 		}
 
@@ -201,6 +205,7 @@ func buildSyncNodes(
 				itemKeys[key] = struct{}{}
 			}
 		}
+
 		if desiredPhase != nil {
 			for key := range desiredPhase.ItemsByKey {
 				itemKeys[key] = struct{}{}
@@ -258,6 +263,7 @@ func buildSyncNodes(
 					if err != nil {
 						return nil, syncReferences{}, fmt.Errorf("failed to derive entitlement for item %s: %w", itemPath, err)
 					}
+
 					if hasEntitlement {
 						desiredEntitlement = &input
 					}
@@ -296,6 +302,7 @@ func propagatePhaseChanges(
 			if childRef == ref || !ref.Path.IsParentOf(childRef.Path) {
 				continue
 			}
+
 			changes[childRef] = child.forceChange()
 		}
 	}

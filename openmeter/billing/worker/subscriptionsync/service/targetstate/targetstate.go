@@ -231,6 +231,7 @@ func (b Builder) collectUpcomingLines(ctx context.Context, subs subscription.Sub
 func withActiveTo(subs subscription.SubscriptionView, endAt time.Time) subscription.SubscriptionView {
 	subs.Subscription.ActiveTo = &endAt
 	subs.Spec.ActiveTo = &endAt
+
 	return subs
 }
 

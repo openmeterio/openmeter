@@ -15,6 +15,7 @@ func (c FeatureGateConfiguration) Validate() error {
 	if !c.Enabled {
 		return nil
 	}
+
 	return c.Flags.Validate()
 }
 

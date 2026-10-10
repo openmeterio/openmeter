@@ -35,13 +35,9 @@ type EntitlementBalance struct {
 	StartOfPeriod             time.Time          `json:"startOfPeriod"`
 }
 
-type EntitlementBalanceHistoryWindow struct {
-	From           time.Time
-	To             time.Time
-	UsageInPeriod  float64
-	BalanceAtStart float64
-	OverageAtStart float64
-}
+// EntitlementBalanceHistoryWindow lives in the entitlement package so the
+// customer-scoped API facade can return it without importing this package.
+type EntitlementBalanceHistoryWindow = entitlement.BalanceHistoryWindow
 
 type WindowSize string
 
@@ -155,10 +151,12 @@ func (e *connector) GetEntitlementBalanceHistory(ctx context.Context, entitlemen
 	// would mix units. Identity when the owner has no UnitConfig (feature off / no
 	// snapshot), so history is unchanged from before.
 
+	// Windows are aligned in the requested time zone both by the meter query and by
+	// the grid filled below, which truncates in the location the bounds carry.
 	// FIXME: remove truncation
 	fullPeriodTruncated := timeutil.ClosedPeriod{
-		From: params.From.Truncate(time.Minute),
-		To:   params.To.Truncate(time.Minute),
+		From: params.From.In(&params.WindowTimeZone).Truncate(time.Minute),
+		To:   params.To.In(&params.WindowTimeZone).Truncate(time.Minute),
 	}
 
 	// If `to` time is not truncated to minute we assume to query until the next minute so fresh usage data shows up

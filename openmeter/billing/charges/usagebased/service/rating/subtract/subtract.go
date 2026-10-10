@@ -126,6 +126,7 @@ func appendOrSumDetailedLineByPerUnitAmount(lines usagebased.DetailedLines, line
 
 		lines[idx].Quantity = lines[idx].Quantity.Add(line.Quantity)
 		lines[idx].Totals = lines[idx].Totals.Add(line.Totals)
+
 		return lines
 	}
 

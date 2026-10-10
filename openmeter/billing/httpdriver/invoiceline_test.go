@@ -189,6 +189,29 @@ func TestMergeStandardLineFromInvoiceLineReplaceUpdateDropsResolvedTaxCodeWhenTa
 	require.Equal(t, newTaxCodeID, *mergedLine.TaxConfig.TaxCodeID)
 }
 
+func TestMergeStandardLineFromInvoiceLineReplaceUpdatePreservesDiscountCorrelationID(t *testing.T) {
+	period := invoiceLineTestPeriod()
+	line := standardInvoiceLineForMergeTest(t, period)
+	line.RateCardDiscounts = billing.Discounts{
+		Percentage: &billing.PercentageDiscount{
+			PercentageDiscount: productcatalog.PercentageDiscount{Percentage: models.NewPercentage(10)},
+			CorrelationID:      "existing-percentage",
+		},
+	}
+
+	mergedLine, err := mergeStandardLineFromInvoiceLineReplaceUpdate(line, invoiceLineReplaceUpdateForMergeTest(t, period, line.UsageBased.FeatureKey, "1", func(update *api.InvoiceLineReplaceUpdate) {
+		update.RateCard.Discounts = &api.BillingDiscounts{
+			Percentage: &api.BillingDiscountPercentage{
+				Percentage:    models.NewPercentage(20),
+				CorrelationId: lo.ToPtr("client-supplied-correlation-id"),
+			},
+		}
+	}))
+	require.NoError(t, err)
+	require.Equal(t, models.NewPercentage(20), mergedLine.RateCardDiscounts.Percentage.Percentage)
+	require.Equal(t, "existing-percentage", mergedLine.RateCardDiscounts.Percentage.CorrelationID)
+}
+
 func TestMergeGatheringLineFromInvoiceLineReplaceUpdateAcceptsRateCardOnlyPrice(t *testing.T) {
 	period := invoiceLineTestPeriod()
 	line := gatheringInvoiceLineForMergeTest(t, period)
@@ -246,6 +269,7 @@ func standardInvoiceLineForMergeTest(t *testing.T, period timeutil.ClosedPeriod)
 	t.Helper()
 
 	featureKey := "feature-key"
+
 	return &billing.StandardLine{
 		StandardLineBase: billing.StandardLineBase{
 			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
@@ -271,6 +295,7 @@ func gatheringInvoiceLineForMergeTest(t *testing.T, period timeutil.ClosedPeriod
 	t.Helper()
 
 	featureKey := "feature-key"
+
 	return billing.GatheringLine{
 		GatheringLineBase: billing.GatheringLineBase{
 			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{

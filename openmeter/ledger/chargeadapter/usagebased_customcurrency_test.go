@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
@@ -85,6 +85,7 @@ func TestOnUsageBasedCustomCurrencyOverageAccrued(t *testing.T) {
 		require.NoError(t, err)
 		templateCodes = append(templateCodes, templateCode)
 	}
+
 	require.ElementsMatch(t, []string{
 		transactions.TemplateCode(transactions.IssueCustomerReceivableTemplate{}),
 		transactions.TemplateCode(transactions.TransferCustomerFBOAdvanceToAccruedTemplate{}),
@@ -101,6 +102,7 @@ func TestOnUsageBasedCustomCurrencyOverageAccrued(t *testing.T) {
 	if issueEntry.Amount.IsNegative() {
 		issueEntry, consumeEntry = consumeEntry, issueEntry
 	}
+
 	require.True(t, issueEntry.Amount.IsPositive())
 	require.NotNil(t, issueEntry.SourceChargeID)
 	require.Equal(t, charge.ID, strings.TrimSpace(*issueEntry.SourceChargeID))
@@ -190,6 +192,7 @@ func TestOnUsageBasedCustomCurrencyOverageAccruedCorrection(t *testing.T) {
 		require.NoError(t, err)
 		templateCodes = append(templateCodes, templateCode)
 	}
+
 	require.ElementsMatch(t, []string{
 		transactions.TemplateCode(transactions.ConvertCurrencyTemplate{}),
 		transactions.TemplateCode(transactions.TransferCustomerFBOAdvanceToAccruedTemplate{}),
@@ -221,7 +224,7 @@ func TestOnUsageBasedCustomCurrencyOverageAccruedCorrection_NoLedgerTransaction(
 
 func TestOnUsageBasedCustomCurrencyOverageUsesFiatCreditsToCoverReceivable(t *testing.T) {
 	env := newUsageBasedHandlerTestEnv(t)
-	sourceChargeID := "fiat-credit-source"
+	sourceChargeID := "01J00000000000000000000006"
 	fbo := env.fundPriorityForSource(t, 1, 6, sourceChargeID)
 
 	customCurrencyValue := currenciestestutils.NewCustomCurrency(t, "ACME", 2)
@@ -269,9 +272,11 @@ func TestOnUsageBasedCustomCurrencyOverageUsesFiatCreditsToCoverReceivable(t *te
 	// removes its receivable offset.
 	fiatCurrency, err := charge.Intent.GetCostBasisIntent().GetFiatCurrency()
 	require.NoError(t, err)
+
 	realizations := env.realizationsFromAllocations(allocations)
 	request, err := realizations.CreateCorrectionRequest(alpacadecimal.NewFromInt(-6), fiatCurrency)
 	require.NoError(t, err)
+
 	run.FiatOverageCreditRealizations = realizations
 
 	corrections, err := env.handler.OnCorrectFiatOverageCreditAllocations(t.Context(), chargeusagebased.CorrectFiatOverageCreditAllocationsInput{
@@ -660,7 +665,7 @@ func TestCreateInitialLineages_CustomCurrency(t *testing.T) {
 	firstRealizationID := env.createAdvanceLineage(t, firstChargeID, firstCurrency, alpacadecimal.NewFromInt(30))
 	secondRealizationID := env.createAdvanceLineage(t, secondChargeID, secondCurrency, alpacadecimal.NewFromInt(50))
 
-	firstLineages, err := env.lineage.LoadLineagesByCustomer(t.Context(), lineage.LoadLineagesByCustomerInput{
+	firstLineages, err := env.lineage.LoadLineagesByCustomer(t.Context(), legacylineage.LoadLineagesByCustomerInput{
 		Namespace:  env.Namespace,
 		CustomerID: env.CustomerID.ID,
 		Currency:   firstCurrency.Reference(),
@@ -670,7 +675,7 @@ func TestCreateInitialLineages_CustomCurrency(t *testing.T) {
 	require.True(t, firstLineages[0].Currency.Equal(firstCurrency.Reference()))
 	require.Equal(t, firstChargeID, firstLineages[0].ChargeID)
 
-	secondLineages, err := env.lineage.LoadLineagesByCustomer(t.Context(), lineage.LoadLineagesByCustomerInput{
+	secondLineages, err := env.lineage.LoadLineagesByCustomer(t.Context(), legacylineage.LoadLineagesByCustomerInput{
 		Namespace:  env.Namespace,
 		CustomerID: env.CustomerID.ID,
 		Currency:   secondCurrency.Reference(),
@@ -682,13 +687,43 @@ func TestCreateInitialLineages_CustomCurrency(t *testing.T) {
 
 	// Backfilling the first managed currency's uncovered advance must not touch
 	// the second managed currency's lineage, even though both share "ACME".
-	err = env.lineage.BackfillAdvanceLineageSegments(t.Context(), lineage.BackfillAdvanceLineageSegmentsInput{
-		Namespace:                 env.Namespace,
-		Allocations:               []lineage.AdvanceBackfillAllocation{{SegmentID: firstLineages[0].Segments[0].ID, Amount: alpacadecimal.NewFromInt(30)}},
+	// The compatibility transition is bounded by the actual legacy journal posting.
+	inputs, err := transactions.ResolveTransactions(
+		t.Context(),
+		transactions.ResolverDependencies{
+			AccountService: env.Deps.ResolversService,
+			AccountCatalog: env.Deps.AccountService,
+			BalanceQuerier: env.Deps.HistoricalLedger,
+		},
+		transactions.ResolutionScope{
+			CustomerID: env.CustomerID,
+			Namespace:  env.Namespace,
+		},
+		transactions.AttributeCustomerAdvanceReceivableCostBasisTemplate{
+			At:                env.Now(),
+			Amount:            alpacadecimal.NewFromInt(30),
+			Currency:          firstCurrency.Reference(),
+			CostBasis:         lo.ToPtr(alpacadecimal.NewFromFloat(.5)),
+			CostBasisCurrency: lo.ToPtr(currencyx.Code("USD")),
+			SpendChargeID:     &firstChargeID,
+			SourceChargeID:    lo.ToPtr(ulid.Make().String()),
+		},
+	)
+	require.NoError(t, err)
+
+	group, err := env.Deps.HistoricalLedger.CommitGroup(t.Context(), transactions.GroupInputs(env.Namespace, nil, inputs...))
+	require.NoError(t, err)
+
+	err = env.lineage.BackfillAdvanceLineageSegments(t.Context(), legacylineage.BackfillAdvanceLineageSegmentsInput{
+		Namespace: env.Namespace,
+		Allocations: []legacylineage.AdvanceBackfillAllocation{{
+			SegmentID: firstLineages[0].Segments[0].ID,
+			Amount:    alpacadecimal.NewFromInt(30),
+		}},
 		CustomerID:                env.CustomerID.ID,
 		Currency:                  firstCurrency,
 		Amount:                    alpacadecimal.NewFromInt(30),
-		BackingTransactionGroupID: ulid.Make().String(),
+		BackingTransactionGroupID: group.ID().ID,
 	})
 	require.NoError(t, err)
 
@@ -712,11 +747,17 @@ func (e *usageBasedHandlerTestEnv) createAdvanceLineage(t *testing.T, chargeID s
 	realizations := creditrealization.Realizations{
 		{
 			NamespacedModel: models.NamespacedModel{Namespace: e.Namespace},
-			ManagedModel:    models.ManagedModel{CreatedAt: now, UpdatedAt: now},
+			ManagedModel: models.ManagedModel{
+				CreatedAt: now,
+				UpdatedAt: now,
+			},
 			CreateInput: creditrealization.CreateInput{
-				ID:                realizationID,
-				Annotations:       creditrealization.LineageAnnotations(creditrealization.LineageOriginKindAdvance),
-				ServicePeriod:     timeutil.ClosedPeriod{From: now.Add(-time.Hour), To: now},
+				ID:          realizationID,
+				Annotations: creditrealization.LineageAnnotations(creditrealization.LineageOriginKindAdvance),
+				ServicePeriod: timeutil.ClosedPeriod{
+					From: now.Add(-time.Hour),
+					To:   now,
+				},
 				LedgerTransaction: ledgertransaction.GroupReference{TransactionGroupID: ulid.Make().String()},
 				Amount:            amount,
 				Type:              creditrealization.TypeAllocation,
@@ -724,7 +765,7 @@ func (e *usageBasedHandlerTestEnv) createAdvanceLineage(t *testing.T, chargeID s
 		},
 	}
 
-	err := e.lineage.CreateInitialLineages(t.Context(), lineage.CreateInitialLineagesInput{
+	err := e.lineage.CreateInitialLineages(t.Context(), legacylineage.CreateInitialLineagesInput{
 		Namespace:    e.Namespace,
 		ChargeID:     chargeID,
 		CustomerID:   e.CustomerID.ID,
@@ -756,7 +797,7 @@ func (e *usageBasedHandlerTestEnv) newCustomCurrencyCreditsOnlyCharge(t *testing
 					CreatedAt: now,
 					UpdatedAt: now,
 				},
-				ID: "usage-based-charge-cc",
+				ID: "01J00000000000000000000005",
 			},
 			Intent: chargeusagebased.Intent{
 				Intent: meta.Intent{
@@ -818,7 +859,7 @@ func (e *usageBasedHandlerTestEnv) newCustomCurrencyCreditThenInvoiceCharge(t *t
 					CreatedAt: now,
 					UpdatedAt: now,
 				},
-				ID: "usage-based-charge-cc-cti",
+				ID: "01J00000000000000000000004",
 			},
 			Intent: chargeusagebased.Intent{
 				Intent: meta.Intent{
@@ -859,6 +900,7 @@ func (e *usageBasedHandlerTestEnv) newCustomCurrencyCreditThenInvoiceCharge(t *t
 func (e *usageBasedHandlerTestEnv) newCustomOverageRun(overageTotals totals.Totals) chargeusagebased.RealizationRun {
 	run := e.newRun()
 	run.Totals = overageTotals
+
 	return run
 }
 
@@ -919,7 +961,7 @@ func (e *usageBasedHandlerTestEnv) customReceivableSubAccountForUsageBasedFeatur
 	subAccount, err := e.CustomerAccounts.ReceivableAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerReceivableRouteParams{
 		Currency:                       customCurrency,
 		CostBasis:                      nil,
-		Features:                       []string{featureKey},
+		Filters:                        ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: []string{featureKey}},
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
 	})
 	require.NoError(t, err)

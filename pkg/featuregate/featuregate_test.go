@@ -113,6 +113,7 @@ func TestFeatureGateChecker_Enabled(t *testing.T) {
 				require.Error(t, err)
 				return
 			}
+
 			require.NoError(t, err)
 			assert.Equal(t, tc.want, got)
 		})

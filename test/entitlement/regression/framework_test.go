@@ -116,6 +116,7 @@ func setupDependencies(t *testing.T) Dependencies {
 	if err != nil {
 		t.Fatalf("failed to create meter adapter: %v", err)
 	}
+
 	require.NoError(t, meterAdapter.SetDBClient(dbClient))
 
 	featureConnector := feature.NewFeatureConnector(featureRepo, meterAdapter, eventbus.NewMock(t)) // TODO: meter repo is needed
@@ -212,6 +213,8 @@ func setupDependencies(t *testing.T) Dependencies {
 			MeteredEntitlementConnector: meteredEntitlementConnector,
 			StaticEntitlementConnector:  staticEntitlementConnector,
 			BooleanEntitlementConnector: booleanEntitlementConnector,
+			GrantRepo:                   grantRepo,
+			GrantConnector:              creditConnector,
 			Publisher:                   mockPublisher,
 			Locker:                      locker,
 		},

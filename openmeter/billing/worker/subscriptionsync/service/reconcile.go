@@ -20,7 +20,6 @@ type buildSyncPlanInput struct {
 	CustomerDeletedAt            *time.Time
 	SubscriptionEndProrationMode billing.SubscriptionEndProrationMode
 	Currency                     currencyx.Currency
-	DryRun                       bool
 }
 
 // buildSyncPlan builds a sync plan for a subscription. If the subscription is deleted, SubscriptionView should be nil.
@@ -42,11 +41,6 @@ func (s *Service) buildSyncPlan(ctx context.Context, input buildSyncPlanInput) (
 			SubscriptionView:             input.SubscriptionView,
 			Persisted:                    persisted,
 		})
-		if err != nil {
-			return nil, err
-		}
-
-		persisted, err = s.repairChargeSubscriptionReferences(ctx, persisted, target, input.DryRun)
 		if err != nil {
 			return nil, err
 		}

@@ -82,6 +82,7 @@ func AsCreateAddonRequest(a api.AddonCreate, namespace string) (CreateAddonReque
 	if err = currencyCode.Validate(); err != nil {
 		return req, fmt.Errorf("invalid CurrencyCode: %w", err)
 	}
+
 	req.Currency = currencies.NewCurrencyReference(currencyx.Code(currencyCode))
 
 	req.RateCards, err = http.AsRateCards(a.RateCards)

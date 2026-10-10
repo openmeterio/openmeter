@@ -334,6 +334,7 @@ func (i SyncDraftStandardInvoiceInput) MergeIntoInvoice(invoice *StandardInvoice
 	if invoice == nil {
 		return fmt.Errorf("invoice is required")
 	}
+
 	if i.UpsertInvoiceResults != nil {
 		return i.UpsertInvoiceResults.MergeIntoInvoice(invoice)
 	}

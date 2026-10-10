@@ -7,20 +7,21 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
-	"github.com/samber/lo"
+	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
 // RecognizeEarningsFromAttributableAccruedTemplate recognizes up to Amount from accrued
 // routes that already have a known cost basis. Unknown-cost accrued balances are skipped.
 type RecognizeEarningsFromAttributableAccruedTemplate struct {
-	At       time.Time
-	Amount   alpacadecimal.Decimal
-	Currency currencies.CurrencyReference
+	// OriginTracked selects the provenance pool; false is the legacy pool.
+	OriginTracked bool
+	At            time.Time
+	Amount        alpacadecimal.Decimal
+	Currency      currencies.CurrencyReference
 	// Sources, when provided, are the accrued slices already selected by the
 	// caller within its transaction. Nil selects from attributable balances.
 	Sources []PostingAmount
@@ -45,19 +46,24 @@ func (t RecognizeEarningsFromAttributableAccruedTemplate) Validate() error {
 			if source.Address == nil || source.Address.AccountType() != ledger.AccountTypeCustomerAccrued {
 				return fmt.Errorf("sources[%d]: customer accrued address is required", i)
 			}
+
 			route := source.Address.Route().Route()
 			if !route.Currency.Equal(t.Currency) || route.CostBasis == nil || !isCreditBackedAccruedIdentity(source.Identity) {
 				return fmt.Errorf("sources[%d]: known-cost credit-backed accrued in the recognition currency is required", i)
 			}
+
 			if err := ledger.ValidateTransactionAmount(source.Amount); err != nil {
 				return fmt.Errorf("sources[%d]: %w", i, err)
 			}
+
 			total = total.Add(source.Amount)
 		}
+
 		if !total.Equal(t.Amount) {
 			return fmt.Errorf("source total %s does not match recognition amount %s", total, t.Amount)
 		}
 	}
+
 	return nil
 }
 
@@ -73,8 +79,8 @@ var _ CustomerTransactionTemplate = (RecognizeEarningsFromAttributableAccruedTem
 
 func (t RecognizeEarningsFromAttributableAccruedTemplate) correct(scope CorrectionInput) ([]ledger.TransactionInput, error) {
 	// Collect entries from the original recognition transaction:
-	// - positive earnings entries (credits to earnings)
-	// - negative accrued entries (debits from accrued)
+	// - positive earnings entries
+	// - negative accrued entries
 	positiveEarningsEntries := make([]ledger.Entry, 0)
 	negativeAccruedEntries := make([]ledger.Entry, 0)
 
@@ -113,20 +119,20 @@ func (t RecognizeEarningsFromAttributableAccruedTemplate) routePairingKey(addres
 	route := address.Route().Route()
 
 	return routePairingKey{
-		currency:          route.Currency.IdentityKey(),
-		costBasisCurrency: string(lo.FromPtrOr(route.CostBasisCurrency, currencyx.Code(""))),
-		taxCode:           lo.FromPtrOr(route.TaxCode, "null"),
-		taxBehavior:       string(lo.FromPtrOr(route.TaxBehavior, "null")),
-		costBasis:         costBasisKey(route.CostBasis),
-		sourceChargeID:    lo.FromPtrOr(identity.SourceChargeID, "null"),
-		spendChargeID:     lo.FromPtrOr(identity.SpendChargeID, "null"),
+		currency:           route.Currency.IdentityKey(),
+		costBasisCurrency:  mo.PointerToOption(route.CostBasisCurrency),
+		taxCode:            mo.PointerToOption(route.TaxCode),
+		taxBehavior:        mo.PointerToOption(route.TaxBehavior),
+		costBasis:          costBasisKey(route.CostBasis),
+		sourceChargeID:     mo.PointerToOption(identity.SourceChargeID),
+		spendChargeID:      mo.PointerToOption(identity.SpendChargeID),
+		collectionOriginID: mo.PointerToOption(identity.CollectionOriginID),
 	}
 }
 
 func (t RecognizeEarningsFromAttributableAccruedTemplate) entryRoutePairingKey(entry ledger.Entry) routePairingKey {
 	return t.routePairingKey(entry.PostingAddress(), ledger.EntryIdentityParts{
-		SourceChargeID: entry.SourceChargeID(),
-		SpendChargeID:  entry.SpendChargeID(),
+		Provenance: entry.Provenance(),
 	})
 }
 
@@ -134,7 +140,14 @@ func (t RecognizeEarningsFromAttributableAccruedTemplate) resolve(ctx context.Co
 	var collections []postingAddressAmount
 	if t.Sources == nil {
 		var err error
-		collections, err = collectFromAttributableCustomerAccrued(ctx, customerID, t.Currency, t.Amount, resolvers)
+
+		collections, err = collectFromAttributableCustomerAccrued(ctx, resolvers, collectFromAttributableCustomerAccruedInput{
+			CustomerID:    customerID,
+			Currency:      t.Currency,
+			Target:        t.Amount,
+			OriginTracked: t.OriginTracked,
+			AsOf:          t.At,
+		})
 		if err != nil {
 			return nil, fmt.Errorf("collect from attributable accrued: %w", err)
 		}
@@ -143,6 +156,7 @@ func (t RecognizeEarningsFromAttributableAccruedTemplate) resolve(ctx context.Co
 			collections = append(collections, postingAddressAmount{address: source.Address, amount: source.Amount, identity: source.Identity})
 		}
 	}
+
 	if len(collections) == 0 {
 		return nil, nil
 	}
@@ -188,6 +202,7 @@ func (t RecognizeEarningsFromAttributableAccruedTemplate) resolveEarningsSubAccB
 			if err != nil {
 				return nil, fmt.Errorf("failed to get earnings sub-account: %w", err)
 			}
+
 			current.address = earnings.Address()
 			current.identity = collection.identity
 		}

@@ -24,6 +24,7 @@ func NewAnnotationCleanupHook(subscriptionQueryService subscription.QueryService
 	if subscriptionQueryService == nil {
 		return nil, fmt.Errorf("subscription query service is required")
 	}
+
 	if subscriptionRepository == nil {
 		return nil, fmt.Errorf("subscription repository is required")
 	}
@@ -44,9 +45,11 @@ func (h *AnnotationCleanupHook) BeforeDelete(ctx context.Context, view subscript
 	if err := h.updateSupersedingSubscriptionAnnotations(ctx, view); err != nil {
 		return fmt.Errorf("failed to update superseding subscription annotations: %w", err)
 	}
+
 	if err := h.updatePreviousSubscriptionAnnotations(ctx, view); err != nil {
 		return fmt.Errorf("failed to update previous subscription annotations: %w", err)
 	}
+
 	return nil
 }
 
@@ -92,6 +95,7 @@ func (h *AnnotationCleanupHook) updateSupersedingSubscriptionAnnotations(ctx con
 		if err != nil {
 			return fmt.Errorf("failed to update superseding subscription's previous ID: %w", err)
 		}
+
 		_, err = h.subscriptionRepo.UpdateAnnotations(ctx, supersedingView.Subscription.NamespacedID, supersedingAnnotations)
 		if err != nil {
 			return fmt.Errorf("failed to update superseding subscription annotations: %w", err)
@@ -102,11 +106,13 @@ func (h *AnnotationCleanupHook) updateSupersedingSubscriptionAnnotations(ctx con
 			// Nothing to clear if annotations are nil, skip update
 			return nil
 		}
+
 		delete(supersedingAnnotations, subscription.AnnotationPreviousSubscriptionID)
 		// If the map is now empty, set it to nil
 		if len(supersedingAnnotations) == 0 {
 			supersedingAnnotations = nil
 		}
+
 		_, err = h.subscriptionRepo.UpdateAnnotations(ctx, supersedingView.Subscription.NamespacedID, supersedingAnnotations)
 		if err != nil {
 			return fmt.Errorf("failed to update superseding subscription annotations: %w", err)
@@ -156,6 +162,7 @@ func (h *AnnotationCleanupHook) updatePreviousSubscriptionAnnotations(ctx contex
 		if err != nil {
 			return fmt.Errorf("failed to update previous subscription's superseding ID: %w", err)
 		}
+
 		_, err = h.subscriptionRepo.UpdateAnnotations(ctx, previousView.Subscription.NamespacedID, previousAnnotations)
 		if err != nil {
 			return fmt.Errorf("failed to update previous subscription annotations: %w", err)
@@ -166,14 +173,17 @@ func (h *AnnotationCleanupHook) updatePreviousSubscriptionAnnotations(ctx contex
 			// Nothing to clear if annotations are nil, skip update
 			return nil
 		}
+
 		previousAnnotations, err = subscription.AnnotationParser.ClearSupersedingSubscriptionID(previousAnnotations)
 		if err != nil {
 			return fmt.Errorf("failed to clear previous subscription's superseding ID: %w", err)
 		}
+
 		// If the map is now empty, set it to nil
 		if len(previousAnnotations) == 0 {
 			previousAnnotations = nil
 		}
+
 		_, err = h.subscriptionRepo.UpdateAnnotations(ctx, previousView.Subscription.NamespacedID, previousAnnotations)
 		if err != nil {
 			return fmt.Errorf("failed to update previous subscription annotations: %w", err)

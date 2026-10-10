@@ -237,6 +237,7 @@ var ChannelConfigValueScanner = field.ValueScannerFunc[notification.ChannelConfi
 				},
 				Data: config.WebHook,
 			}
+
 			return json.Marshal(serde)
 		default:
 			return nil, fmt.Errorf("unknown channel type: %s", config.Type)

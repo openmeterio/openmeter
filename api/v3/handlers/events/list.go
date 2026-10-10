@@ -63,6 +63,7 @@ func (h *handler) ListMeteringEvents() ListMeteringEventsHandler {
 							},
 						})
 					}
+
 					req.Cursor = cursor
 				}
 
@@ -80,6 +81,7 @@ func (h *handler) ListMeteringEvents() ListMeteringEventsHandler {
 					},
 				})
 			}
+
 			req.Limit = lo.ToPtr(pageSize)
 
 			if params.Filter != nil {
@@ -92,6 +94,7 @@ func (h *handler) ListMeteringEvents() ListMeteringEventsHandler {
 			if err != nil {
 				return ListMeteringEventsRequest{}, err
 			}
+
 			req.SortBy = sortBy
 			req.SortOrder = sortOrder
 
@@ -136,6 +139,7 @@ func applyFilters(ctx context.Context, req *ListMeteringEventsRequest, f *api.Li
 			},
 		})
 	}
+
 	req.ID = id
 
 	source, err := filters.FromAPIFilterString(f.Source)
@@ -148,6 +152,7 @@ func applyFilters(ctx context.Context, req *ListMeteringEventsRequest, f *api.Li
 			},
 		})
 	}
+
 	req.Source = source
 
 	subject, err := filters.FromAPIFilterString(f.Subject)
@@ -160,6 +165,7 @@ func applyFilters(ctx context.Context, req *ListMeteringEventsRequest, f *api.Li
 			},
 		})
 	}
+
 	req.Subject = subject
 
 	typeFilter, err := filters.FromAPIFilterString(f.Type)
@@ -172,6 +178,7 @@ func applyFilters(ctx context.Context, req *ListMeteringEventsRequest, f *api.Li
 			},
 		})
 	}
+
 	req.Type = typeFilter
 
 	timeFilter, err := filters.FromAPIFilterDateTime(f.Time)
@@ -184,6 +191,7 @@ func applyFilters(ctx context.Context, req *ListMeteringEventsRequest, f *api.Li
 			},
 		})
 	}
+
 	req.Time = timeFilter
 
 	ingestedAt, err := filters.FromAPIFilterDateTime(f.IngestedAt)
@@ -196,6 +204,7 @@ func applyFilters(ctx context.Context, req *ListMeteringEventsRequest, f *api.Li
 			},
 		})
 	}
+
 	req.IngestedAt = ingestedAt
 
 	storedAt, err := filters.FromAPIFilterDateTime(f.StoredAt)
@@ -208,12 +217,14 @@ func applyFilters(ctx context.Context, req *ListMeteringEventsRequest, f *api.Li
 			},
 		})
 	}
+
 	req.StoredAt = storedAt
 
 	customerID, err := fromAPICustomerIDFilter(ctx, f.CustomerId)
 	if err != nil {
 		return err
 	}
+
 	req.CustomerID = customerID
 
 	return nil

@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
@@ -320,10 +321,13 @@ func (e *LineEngine) OnMutableInvoiceLinesEditedViaAPI(ctx context.Context, inpu
 		}
 
 		if charge.Intent.GetSettlementMode() != productcatalog.CreditThenInvoiceSettlementMode {
-			return nil, fmt.Errorf(
-				"flat fee line[%s]: unsupported settlement mode for API edit: %s",
-				override.ExistingLine.GetID(),
-				charge.Intent.GetSettlementMode(),
+			return nil, billing.ValidationWithAttributes(
+				models.Annotations{
+					billing.AttributeKeyLineID:         override.ExistingLine.GetID(),
+					billing.AttributeKeyOperation:      "edit",
+					billing.AttributeKeySettlementMode: charge.Intent.GetSettlementMode(),
+				},
+				billing.ErrInvoiceLineUnsupportedSettlementMode,
 			)
 		}
 
@@ -419,10 +423,13 @@ func (e *LineEngine) OnMutableInvoiceLinesEditedViaAPI(ctx context.Context, inpu
 		}
 
 		if charge.Intent.GetSettlementMode() != productcatalog.CreditThenInvoiceSettlementMode {
-			return billing.OnMutableInvoiceUpdateResult{}, fmt.Errorf(
-				"flat fee line[%s]: unsupported settlement mode for API delete: %s",
-				line.GetID(),
-				charge.Intent.GetSettlementMode(),
+			return billing.OnMutableInvoiceUpdateResult{}, billing.ValidationWithAttributes(
+				models.Annotations{
+					billing.AttributeKeyLineID:         line.GetID(),
+					billing.AttributeKeyOperation:      "delete",
+					billing.AttributeKeySettlementMode: charge.Intent.GetSettlementMode(),
+				},
+				billing.ErrInvoiceLineUnsupportedSettlementMode,
 			)
 		}
 
@@ -606,6 +613,7 @@ func validateCustomCurrencyInvoiceLineDelete(invoice billing.GenericInvoiceReade
 	if standardInvoice.Namespace != charge.Namespace || line.GetLineID().Namespace != charge.Namespace {
 		return fmt.Errorf("custom-currency flat fee line[%s] namespace does not match charge[%s]: %w", line.GetID(), charge.ID, billing.ErrCannotUpdateChargeManagedLine)
 	}
+
 	if line.GetChargeID() == nil || *line.GetChargeID() != charge.ID {
 		return fmt.Errorf("custom-currency flat fee line[%s] does not match charge[%s]: %w", line.GetID(), charge.ID, billing.ErrCannotUpdateChargeManagedLine)
 	}
@@ -876,6 +884,7 @@ func (e *LineEngine) validateDeletedStandardLines(ctx context.Context, input bil
 		if err != nil {
 			return fmt.Errorf("calculating fiat overage for flat fee realization run[%s]: %w", run.ID.ID, err)
 		}
+
 		if fiatOverage.ShouldOmitInvoiceLine {
 			continue
 		}
@@ -1039,6 +1048,7 @@ func (e *LineEngine) OnInvoiceFinalizing(ctx context.Context, input billing.OnIn
 		if err != nil {
 			return nil, fmt.Errorf("validating finalizing update for line[%s]: %w", stdLine.ID, err)
 		}
+
 		if updatedLine == nil {
 			return stdLine, nil
 		}
@@ -1058,10 +1068,26 @@ func (e *LineEngine) OnInvoiceIssued(ctx context.Context, input billing.OnInvoic
 			return err
 		}
 
-		if err := stateMachine.FireAndAdvanceUntilStable(ctx, meta.TriggerInvoiceIssued, billing.StandardLineWithInvoiceHeader{
+		lineWithHeader := billing.StandardLineWithInvoiceHeader{
 			Line:    stdLine,
 			Invoice: input.Invoice,
-		}); err != nil {
+		}
+		charge := stateMachine.GetCharge()
+		// Billing retries invoice_issued for every line when any line callback fails.
+		// A preceding line can therefore have committed its charge and ledger updates.
+		// Immutable is persisted only after that work succeeds, so a matching run is
+		// already complete and must not receive invoice_issued again.
+		// See TestCreditThenInvoiceTestSuite/TestFlatFeeIssuingRetryPreservesCompletedChargeBooking.
+		run, err := charge.Realizations.GetByLineID(stdLine.ID)
+		if err == nil && run.Immutable {
+			if run.InvoiceID == nil || *run.InvoiceID != input.Invoice.ID {
+				return fmt.Errorf("issued realization run[%s] invoice does not match invoice[%s]", run.ID.ID, input.Invoice.ID)
+			}
+
+			continue
+		}
+
+		if err := stateMachine.FireAndAdvanceUntilStable(ctx, meta.TriggerInvoiceIssued, lineWithHeader); err != nil {
 			return fmt.Errorf("triggering invoice_issued for charge[%s]: %w", stateMachine.GetCharge().ID, err)
 		}
 	}

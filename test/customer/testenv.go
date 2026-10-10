@@ -478,7 +478,6 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 	billingService, err := billingservice.New(billingservice.Config{
 		Adapter:                 billingAdapter,
 		SequenceService:         billingSequenceService,
-		RatingService:           billingRatingService,
 		LegacyBillingLineEngine: legacyBillingLineEngine,
 		CustomerService:         customerService,
 		AppService:              appService,

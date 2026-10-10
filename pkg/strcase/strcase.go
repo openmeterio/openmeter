@@ -33,6 +33,7 @@ func CamelToSnake(camel string) string {
 			if i > 0 {
 				snake.WriteRune('_')
 			}
+
 			snake.WriteRune(unicode.ToLower(ch))
 		} else {
 			snake.WriteRune(ch)

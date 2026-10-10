@@ -4,127 +4,52 @@ import { type Client } from '../core.js'
 import { unwrap, type RequestOptions } from '../lib/types.js'
 import { paginatePages } from '../lib/paginate.js'
 import {
-  voidCreditGrant,
-  listCustomerCharges,
-  createCustomerCharges,
-} from '../funcs/customers.js'
-import {
-  unscheduleSubscription,
-  restoreSubscription,
-  migrateSubscription,
+  createSubscriptionAddon,
   updateSubscriptionAddon,
 } from '../funcs/subscriptions.js'
+import { executeAppAction } from '../funcs/apps.js'
 import {
-  listApps,
-  uninstallApp,
-  updateApp,
-  listAppCatalog,
-  getAppCatalogItem,
-  installApp,
-} from '../funcs/apps.js'
-import {
-  listInvoices,
-  getInvoice,
-  updateInvoice,
-  deleteInvoice,
-  advanceInvoice,
-  approveInvoice,
-  retryInvoice,
-  snapshotQuantitiesInvoice,
-} from '../funcs/invoices.js'
-import { listCharges } from '../funcs/charges.js'
-import {
-  listCurrencies,
-  createCustomCurrency,
-  getCustomCurrency,
-  listCostBases,
-  createCostBasis,
-} from '../funcs/currencies.js'
-import { listPlanAddons } from '../funcs/planAddons.js'
-import { queryEntitlementAccess } from '../funcs/entitlementAccess.js'
+  listNotificationRules,
+  createNotificationRule,
+  getNotificationRule,
+  updateNotificationRule,
+  deleteNotificationRule,
+  testNotificationRule,
+  listNotificationEvents,
+  getNotificationEvent,
+  resendNotificationEvent,
+} from '../funcs/notifications.js'
 import type {
-  VoidCreditGrantRequest,
-  VoidCreditGrantResponse,
-  ListCustomerChargesRequest,
-  ListCustomerChargesResponse,
-  CreateCustomerChargesRequest,
-  CreateCustomerChargesResponse,
-} from '../models/operations/customers.js'
-import type {
-  UnscheduleSubscriptionRequest,
-  UnscheduleSubscriptionResponse,
-  RestoreSubscriptionRequest,
-  RestoreSubscriptionResponse,
-  MigrateSubscriptionRequest,
-  MigrateSubscriptionResponse,
+  CreateSubscriptionAddonRequest,
+  CreateSubscriptionAddonResponse,
   UpdateSubscriptionAddonRequest,
   UpdateSubscriptionAddonResponse,
 } from '../models/operations/subscriptions.js'
 import type {
-  ListAppsRequest,
-  ListAppsResponse,
-  UninstallAppRequest,
-  UninstallAppResponse,
-  UpdateAppRequest,
-  UpdateAppResponse,
-  ListAppCatalogRequest,
-  ListAppCatalogResponse,
-  GetAppCatalogItemRequest,
-  GetAppCatalogItemResponse,
-  InstallAppRequest,
-  InstallAppResponse,
+  ExecuteAppActionRequest,
+  ExecuteAppActionResponse,
 } from '../models/operations/apps.js'
 import type {
-  ListInvoicesRequest,
-  ListInvoicesResponse,
-  GetInvoiceRequest,
-  GetInvoiceResponse,
-  UpdateInvoiceRequest,
-  UpdateInvoiceResponse,
-  DeleteInvoiceRequest,
-  DeleteInvoiceResponse,
-  AdvanceInvoiceRequest,
-  AdvanceInvoiceResponse,
-  ApproveInvoiceRequest,
-  ApproveInvoiceResponse,
-  RetryInvoiceRequest,
-  RetryInvoiceResponse,
-  SnapshotQuantitiesInvoiceRequest,
-  SnapshotQuantitiesInvoiceResponse,
-} from '../models/operations/invoices.js'
-import type {
-  ListChargesRequest,
-  ListChargesResponse,
-} from '../models/operations/charges.js'
-import type {
-  ListCurrenciesRequest,
-  ListCurrenciesResponse,
-  CreateCustomCurrencyRequest,
-  CreateCustomCurrencyResponse,
-  GetCustomCurrencyRequest,
-  GetCustomCurrencyResponse,
-  ListCostBasesRequest,
-  ListCostBasesResponse,
-  CreateCostBasisRequest,
-  CreateCostBasisResponse,
-} from '../models/operations/currencies.js'
-import type {
-  ListPlanAddonsRequest,
-  ListPlanAddonsResponse,
-} from '../models/operations/planAddons.js'
-import type {
-  QueryEntitlementAccessRequest,
-  QueryEntitlementAccessResponse,
-} from '../models/operations/entitlementAccess.js'
-import type {
-  App,
-  AppCatalogItem,
-  Charge,
-  CostBasis,
-  Currency,
-  Invoice,
-  PlanAddon,
-} from '../models/types.js'
+  ListNotificationRulesRequest,
+  ListNotificationRulesResponse,
+  CreateNotificationRuleRequest,
+  CreateNotificationRuleResponse,
+  GetNotificationRuleRequest,
+  GetNotificationRuleResponse,
+  UpdateNotificationRuleRequest,
+  UpdateNotificationRuleResponse,
+  DeleteNotificationRuleRequest,
+  DeleteNotificationRuleResponse,
+  TestNotificationRuleRequest,
+  TestNotificationRuleResponse,
+  ListNotificationEventsRequest,
+  ListNotificationEventsResponse,
+  GetNotificationEventRequest,
+  GetNotificationEventResponse,
+  ResendNotificationEventRequest,
+  ResendNotificationEventResponse,
+} from '../models/operations/notifications.js'
+import type { NotificationEvent, NotificationRule } from '../models/types.js'
 
 /**
  * Operations marked internal in the API definition. They are not part of
@@ -133,11 +58,6 @@ import type {
  */
 export class Internal {
   constructor(private readonly _client: Client) {}
-
-  private _customers?: InternalCustomers
-  get customers(): InternalCustomers {
-    return (this._customers ??= new InternalCustomers(this._client))
-  }
 
   private _subscriptions?: InternalSubscriptions
   get subscriptions(): InternalSubscriptions {
@@ -149,138 +69,9 @@ export class Internal {
     return (this._apps ??= new InternalApps(this._client))
   }
 
-  private _invoices?: InternalInvoices
-  get invoices(): InternalInvoices {
-    return (this._invoices ??= new InternalInvoices(this._client))
-  }
-
-  private _charges?: InternalCharges
-  get charges(): InternalCharges {
-    return (this._charges ??= new InternalCharges(this._client))
-  }
-
-  private _currencies?: InternalCurrencies
-  get currencies(): InternalCurrencies {
-    return (this._currencies ??= new InternalCurrencies(this._client))
-  }
-
-  private _planAddons?: InternalPlanAddons
-  get planAddons(): InternalPlanAddons {
-    return (this._planAddons ??= new InternalPlanAddons(this._client))
-  }
-
-  private _entitlementAccess?: InternalEntitlementAccess
-  get entitlementAccess(): InternalEntitlementAccess {
-    return (this._entitlementAccess ??= new InternalEntitlementAccess(
-      this._client,
-    ))
-  }
-}
-
-export class InternalCustomers {
-  constructor(private readonly _client: Client) {}
-
-  private _credits?: InternalCustomersCredits
-  get credits(): InternalCustomersCredits {
-    return (this._credits ??= new InternalCustomersCredits(this._client))
-  }
-
-  private _charges?: InternalCustomersCharges
-  get charges(): InternalCustomersCharges {
-    return (this._charges ??= new InternalCustomersCharges(this._client))
-  }
-}
-
-export class InternalCustomersCredits {
-  constructor(private readonly _client: Client) {}
-
-  private _grants?: InternalCustomersCreditsGrants
-  get grants(): InternalCustomersCreditsGrants {
-    return (this._grants ??= new InternalCustomersCreditsGrants(this._client))
-  }
-}
-
-export class InternalCustomersCreditsGrants {
-  constructor(private readonly _client: Client) {}
-
-  /**
-   * Void credit grant
-   *
-   * Void a credit grant, forfeiting the remaining unused balance.
-   *
-   * Voiding is a forward-looking, irreversible operation. Credits already consumed
-   * by usage remain unaffected — only the remaining balance is forfeited. The grant
-   * reads as `voided` status afterwards. Payment state is not adjusted when
-   * `payment_adjustment` is `none`, so invoice-backed or externally collected
-   * payments may still collect the original amount. Only `active` grants can be
-   * voided; voiding a pending, expired, or fully consumed grant returns a conflict.
-   * Retrying a successful void is an idempotent success.
-   *
-   * POST /openmeter/customers/{customerId}/credits/grants/{creditGrantId}/void
-   */
-  async void(
-    request: VoidCreditGrantRequest,
-    options?: RequestOptions,
-  ): Promise<VoidCreditGrantResponse> {
-    return unwrap(await voidCreditGrant(this._client, request, options))
-  }
-}
-
-export class InternalCustomersCharges {
-  constructor(private readonly _client: Client) {}
-
-  /**
-   * List customer charges
-   *
-   * List customer charges.
-   *
-   * Returns the customer's charges that are represented as either flat fee or
-   * usage-based charges.
-   *
-   * GET /openmeter/customers/{customerId}/charges
-   */
-  async list(
-    request: ListCustomerChargesRequest,
-    options?: RequestOptions,
-  ): Promise<ListCustomerChargesResponse> {
-    return unwrap(await listCustomerCharges(this._client, request, options))
-  }
-
-  /**
-   * List customer charges
-   *
-   * List customer charges.
-   *
-   * Returns the customer's charges that are represented as either flat fee or
-   * usage-based charges.
-   *
-   * Iterates every item across all pages, fetching more as the returned iterable is consumed.
-   *
-   * GET /openmeter/customers/{customerId}/charges
-   */
-  listAll(
-    request: ListCustomerChargesRequest,
-    options?: RequestOptions,
-  ): AsyncIterable<Charge> {
-    return paginatePages(
-      (req, opts) => listCustomerCharges(this._client, req, opts),
-      request,
-      options,
-    )
-  }
-
-  /**
-   * Create customer charge
-   *
-   * Create customer charge.
-   *
-   * POST /openmeter/customers/{customerId}/charges
-   */
-  async create(
-    request: CreateCustomerChargesRequest,
-    options?: RequestOptions,
-  ): Promise<CreateCustomerChargesResponse> {
-    return unwrap(await createCustomerCharges(this._client, request, options))
+  private _notifications?: InternalNotifications
+  get notifications(): InternalNotifications {
+    return (this._notifications ??= new InternalNotifications(this._client))
   }
 }
 
@@ -288,59 +79,17 @@ export class InternalSubscriptions {
   constructor(private readonly _client: Client) {}
 
   /**
-   * Unschedule subscription
+   * Create a new subscription add-on
    *
-   * Deletes a scheduled subscription that has not yet become active, removing it and
-   * resolving any scheduling conflict it was holding. This is distinct from
-   * canceling: cancel ends a running subscription, whereas unscheduling removes a
-   * not-yet-active one. Only scheduled subscriptions can be unscheduled;
-   * unscheduling an active or already-started subscription is rejected.
+   * Add add-on to a subscription.
    *
-   * POST /openmeter/subscriptions/{subscriptionId}/unschedule
+   * POST /openmeter/subscriptions/{subscriptionId}/addons
    */
-  async unschedule(
-    request: UnscheduleSubscriptionRequest,
+  async createAddon(
+    request: CreateSubscriptionAddonRequest,
     options?: RequestOptions,
-  ): Promise<UnscheduleSubscriptionResponse> {
-    return unwrap(await unscheduleSubscription(this._client, request, options))
-  }
-
-  /**
-   * Restore subscription
-   *
-   * Restores the subscription by deleting any later-scheduled successor
-   * subscriptions and continuing this one indefinitely. This is the inverse of a
-   * future-dated change, which schedules a successor. Restore is not available when
-   * multi-subscription is enabled.
-   *
-   * POST /openmeter/subscriptions/{subscriptionId}/restore
-   */
-  async restore(
-    request: RestoreSubscriptionRequest,
-    options?: RequestOptions,
-  ): Promise<RestoreSubscriptionResponse> {
-    return unwrap(await restoreSubscription(this._client, request, options))
-  }
-
-  /**
-   * Migrate subscription
-   *
-   * Migrates to a later version of the current plan. With starting_phase omitted and
-   * billing_anchor omitted or unchanged, migration amends the subscription in place:
-   * unchanged items retain their service periods and both response entries have the
-   * same ID. Existing addons must remain compatible with the target plan.
-   * Incompatible phase timelines or billing settings return an error. Providing
-   * starting_phase or a different billing_anchor explicitly requests replacement,
-   * which resets the phase timeline, may produce billing adjustments, and does not
-   * transfer addons. Custom subscriptions cannot be migrated.
-   *
-   * POST /openmeter/subscriptions/{subscriptionId}/migrate
-   */
-  async migrate(
-    request: MigrateSubscriptionRequest,
-    options?: RequestOptions,
-  ): Promise<MigrateSubscriptionResponse> {
-    return unwrap(await migrateSubscription(this._client, request, options))
+  ): Promise<CreateSubscriptionAddonResponse> {
+    return unwrap(await createSubscriptionAddon(this._client, request, options))
   }
 
   /**
@@ -364,533 +113,193 @@ export class InternalApps {
   constructor(private readonly _client: Client) {}
 
   /**
-   * List apps
+   * Execute app action
    *
-   * List installed apps.
+   * Execute an operator action on an installed app. The action must be listed in the
+   * app's `actions`; otherwise the request is rejected.
    *
-   * GET /openmeter/apps
+   * POST /openmeter/apps/{appId}/action
    */
-  async list(
-    request?: ListAppsRequest,
+  async executeAction(
+    request: ExecuteAppActionRequest,
     options?: RequestOptions,
-  ): Promise<ListAppsResponse> {
-    return unwrap(await listApps(this._client, request, options))
+  ): Promise<ExecuteAppActionResponse> {
+    return unwrap(await executeAppAction(this._client, request, options))
+  }
+}
+
+export class InternalNotifications {
+  constructor(private readonly _client: Client) {}
+
+  /**
+   * List notification rules
+   *
+   * List all notification rules.
+   *
+   * GET /openmeter/notification/rules
+   */
+  async listRules(
+    request?: ListNotificationRulesRequest,
+    options?: RequestOptions,
+  ): Promise<ListNotificationRulesResponse> {
+    return unwrap(await listNotificationRules(this._client, request, options))
   }
 
   /**
-   * List apps
+   * List notification rules
    *
-   * List installed apps.
+   * List all notification rules.
    *
    * Iterates every item across all pages, fetching more as the returned iterable is consumed.
    *
-   * GET /openmeter/apps
+   * GET /openmeter/notification/rules
    */
-  listAll(
-    request?: ListAppsRequest,
+  listRulesAll(
+    request?: ListNotificationRulesRequest,
     options?: RequestOptions,
-  ): AsyncIterable<App> {
+  ): AsyncIterable<NotificationRule> {
     return paginatePages(
-      (req, opts) => listApps(this._client, req, opts),
+      (req, opts) => listNotificationRules(this._client, req, opts),
       request ?? {},
       options,
     )
   }
 
   /**
-   * Uninstall app
+   * Create notification rule
    *
-   * Uninstall an app by ID.
+   * Create a notification rule.
    *
-   * DELETE /openmeter/apps/{appId}
+   * POST /openmeter/notification/rules
    */
-  async uninstall(
-    request: UninstallAppRequest,
+  async createRule(
+    request: CreateNotificationRuleRequest,
     options?: RequestOptions,
-  ): Promise<UninstallAppResponse> {
-    return unwrap(await uninstallApp(this._client, request, options))
+  ): Promise<CreateNotificationRuleResponse> {
+    return unwrap(await createNotificationRule(this._client, request, options))
   }
 
   /**
-   * Update app
+   * Get notification rule
    *
-   * Update an installed app.
+   * Get a notification rule by id.
    *
-   * PUT /openmeter/apps/{appId}
+   * GET /openmeter/notification/rules/{notificationRuleId}
    */
-  async update(
-    request: UpdateAppRequest,
+  async getRule(
+    request: GetNotificationRuleRequest,
     options?: RequestOptions,
-  ): Promise<UpdateAppResponse> {
-    return unwrap(await updateApp(this._client, request, options))
+  ): Promise<GetNotificationRuleResponse> {
+    return unwrap(await getNotificationRule(this._client, request, options))
   }
 
   /**
-   * List app catalog
+   * Update notification rule
    *
-   * List available apps.
+   * Update a notification rule by id.
    *
-   * GET /openmeter/app-catalog
+   * PUT /openmeter/notification/rules/{notificationRuleId}
    */
-  async listCatalog(
-    request?: ListAppCatalogRequest,
+  async updateRule(
+    request: UpdateNotificationRuleRequest,
     options?: RequestOptions,
-  ): Promise<ListAppCatalogResponse> {
-    return unwrap(await listAppCatalog(this._client, request, options))
+  ): Promise<UpdateNotificationRuleResponse> {
+    return unwrap(await updateNotificationRule(this._client, request, options))
   }
 
   /**
-   * List app catalog
+   * Delete notification rule
    *
-   * List available apps.
+   * Delete a notification rule by id.
+   *
+   * DELETE /openmeter/notification/rules/{notificationRuleId}
+   */
+  async deleteRule(
+    request: DeleteNotificationRuleRequest,
+    options?: RequestOptions,
+  ): Promise<DeleteNotificationRuleResponse> {
+    return unwrap(await deleteNotificationRule(this._client, request, options))
+  }
+
+  /**
+   * Test notification rule
+   *
+   * Test a notification rule by generating an event with sample data and delivering
+   * it to the rule's channels. The test event is persisted and listed like any other
+   * event.
+   *
+   * POST /openmeter/notification/rules/{notificationRuleId}/test
+   */
+  async testRule(
+    request: TestNotificationRuleRequest,
+    options?: RequestOptions,
+  ): Promise<TestNotificationRuleResponse> {
+    return unwrap(await testNotificationRule(this._client, request, options))
+  }
+
+  /**
+   * List notification events
+   *
+   * List all notification events.
+   *
+   * GET /openmeter/notification/events
+   */
+  async listEvents(
+    request?: ListNotificationEventsRequest,
+    options?: RequestOptions,
+  ): Promise<ListNotificationEventsResponse> {
+    return unwrap(await listNotificationEvents(this._client, request, options))
+  }
+
+  /**
+   * List notification events
+   *
+   * List all notification events.
    *
    * Iterates every item across all pages, fetching more as the returned iterable is consumed.
    *
-   * GET /openmeter/app-catalog
+   * GET /openmeter/notification/events
    */
-  listCatalogAll(
-    request?: ListAppCatalogRequest,
+  listEventsAll(
+    request?: ListNotificationEventsRequest,
     options?: RequestOptions,
-  ): AsyncIterable<AppCatalogItem> {
+  ): AsyncIterable<NotificationEvent> {
     return paginatePages(
-      (req, opts) => listAppCatalog(this._client, req, opts),
+      (req, opts) => listNotificationEvents(this._client, req, opts),
       request ?? {},
       options,
     )
   }
 
   /**
-   * Get app catalog item by type
+   * Get notification event
    *
-   * Get an app catalog item by type.
+   * Get a notification event by id.
    *
-   * GET /openmeter/app-catalog/{appType}
+   * GET /openmeter/notification/events/{notificationEventId}
    */
-  async getCatalogItem(
-    request: GetAppCatalogItemRequest,
+  async getEvent(
+    request: GetNotificationEventRequest,
     options?: RequestOptions,
-  ): Promise<GetAppCatalogItemResponse> {
-    return unwrap(await getAppCatalogItem(this._client, request, options))
+  ): Promise<GetNotificationEventResponse> {
+    return unwrap(await getNotificationEvent(this._client, request, options))
   }
 
   /**
-   * Install app from the catalog
+   * Resend notification event
    *
-   * Install an app from the catalog.
+   * Resend a notification event to the channels of the rule that generated it.
    *
-   * POST /openmeter/app-catalog/install
+   * Delivery is asynchronous: the request marks the selected channels for redelivery
+   * and returns immediately. Channels whose delivery is still pending or already
+   * being resent are left untouched.
+   *
+   * POST /openmeter/notification/events/{notificationEventId}/resend
    */
-  async install(
-    request: InstallAppRequest,
+  async resendEvent(
+    request: ResendNotificationEventRequest,
     options?: RequestOptions,
-  ): Promise<InstallAppResponse> {
-    return unwrap(await installApp(this._client, request, options))
-  }
-}
-
-export class InternalInvoices {
-  constructor(private readonly _client: Client) {}
-
-  /**
-   * List billing invoices
-   *
-   * List billing invoices.
-   *
-   * Returns a page of invoices. Gathering invoices are never included. Use `filter`
-   * to narrow by status, customer, dates, or service period start. Use `sort` to
-   * control ordering.
-   *
-   * GET /openmeter/billing/invoices
-   */
-  async list(
-    request?: ListInvoicesRequest,
-    options?: RequestOptions,
-  ): Promise<ListInvoicesResponse> {
-    return unwrap(await listInvoices(this._client, request, options))
-  }
-
-  /**
-   * List billing invoices
-   *
-   * List billing invoices.
-   *
-   * Returns a page of invoices. Gathering invoices are never included. Use `filter`
-   * to narrow by status, customer, dates, or service period start. Use `sort` to
-   * control ordering.
-   *
-   * Iterates every item across all pages, fetching more as the returned iterable is consumed.
-   *
-   * GET /openmeter/billing/invoices
-   */
-  listAll(
-    request?: ListInvoicesRequest,
-    options?: RequestOptions,
-  ): AsyncIterable<Invoice> {
-    return paginatePages(
-      (req, opts) => listInvoices(this._client, req, opts),
-      request ?? {},
-      options,
-    )
-  }
-
-  /**
-   * Get a billing invoice
-   *
-   * Get a billing invoice by ID.
-   *
-   * Returns the full invoice resource including line items, status details, totals,
-   * and workflow configuration snapshot.
-   *
-   * GET /openmeter/billing/invoices/{invoiceId}
-   */
-  async get(
-    request: GetInvoiceRequest,
-    options?: RequestOptions,
-  ): Promise<GetInvoiceResponse> {
-    return unwrap(await getInvoice(this._client, request, options))
-  }
-
-  /**
-   * Update a billing invoice
-   *
-   * Update a billing invoice.
-   *
-   * Only the mutable fields of the invoice can be edited: description, labels,
-   * supplier, customer, workflow settings, and top-level lines. Top-level lines are
-   * matched by `id`; lines without an `id` are created, and existing lines omitted
-   * from `lines` are deleted. Detailed (child) lines are always computed and cannot
-   * be edited directly. Only invoices in draft status can be updated.
-   *
-   * PUT /openmeter/billing/invoices/{invoiceId}
-   */
-  async update(
-    request: UpdateInvoiceRequest,
-    options?: RequestOptions,
-  ): Promise<UpdateInvoiceResponse> {
-    return unwrap(await updateInvoice(this._client, request, options))
-  }
-
-  /**
-   * Delete a billing invoice
-   *
-   * Delete a billing invoice.
-   *
-   * Only standard invoices in draft status can be deleted. Deleting an invoice will
-   * also delete all associated line items and workflow configuration.
-   *
-   * DELETE /openmeter/billing/invoices/{invoiceId}
-   */
-  async delete(
-    request: DeleteInvoiceRequest,
-    options?: RequestOptions,
-  ): Promise<DeleteInvoiceResponse> {
-    return unwrap(await deleteInvoice(this._client, request, options))
-  }
-
-  /**
-   * Advance billing invoice's next status
-   *
-   * Advance a billing invoice.
-   *
-   * Advances the invoice to the next workflow state. The next state is determined by
-   * the invoice's current status and workflow configuration. Only invoices in draft
-   * or issued status can be advanced.
-   *
-   * POST /openmeter/billing/invoices/{invoiceId}/advance
-   */
-  async advance(
-    request: AdvanceInvoiceRequest,
-    options?: RequestOptions,
-  ): Promise<AdvanceInvoiceResponse> {
-    return unwrap(await advanceInvoice(this._client, request, options))
-  }
-
-  /**
-   * Send the invoice to the customer
-   *
-   * Approve a billing invoice.
-   *
-   * This call instantly sends the invoice to the customer using the configured
-   * billing profile app.
-   *
-   * This call is valid in two invoice statuses:
-   *
-   * - draft: the invoice will be sent to the customer, the invoice state becomes
-   * issued
-   * - manual_approval_needed: the invoice will be sent to the customer, the invoice
-   * state becomes issued
-   *
-   * POST /openmeter/billing/invoices/{invoiceId}/approve
-   */
-  async approve(
-    request: ApproveInvoiceRequest,
-    options?: RequestOptions,
-  ): Promise<ApproveInvoiceResponse> {
-    return unwrap(await approveInvoice(this._client, request, options))
-  }
-
-  /**
-   * Retry advancing the invoice after a failed attempt
-   *
-   * Retry sending a billing invoice.
-   *
-   * Retry advancing the invoice after a failed attempt.
-   *
-   * The action can be called when the invoice's statusDetails' actions field contain
-   * the "retry" action.
-   *
-   * POST /openmeter/billing/invoices/{invoiceId}/retry
-   */
-  async retry(
-    request: RetryInvoiceRequest,
-    options?: RequestOptions,
-  ): Promise<RetryInvoiceResponse> {
-    return unwrap(await retryInvoice(this._client, request, options))
-  }
-
-  /**
-   * Snapshot quantities for usage based line items
-   *
-   * Snapshot quantities for usage-based line items.
-   *
-   * This call will snapshot the quantities for all usage based line items in the
-   * invoice.
-   *
-   * This call is only valid in draft.waiting_for_collection status, where the
-   * collection period can be skipped using this action.
-   *
-   * POST /openmeter/billing/invoices/{invoiceId}/snapshot-quantities
-   */
-  async snapshotQuantities(
-    request: SnapshotQuantitiesInvoiceRequest,
-    options?: RequestOptions,
-  ): Promise<SnapshotQuantitiesInvoiceResponse> {
-    return unwrap(
-      await snapshotQuantitiesInvoice(this._client, request, options),
-    )
-  }
-}
-
-export class InternalCharges {
-  constructor(private readonly _client: Client) {}
-
-  /**
-   * List charges
-   *
-   * List charges.
-   *
-   * Returns the charges of every customer that are represented as either flat fee or
-   * usage-based charges.
-   *
-   * GET /openmeter/charges
-   */
-  async list(
-    request?: ListChargesRequest,
-    options?: RequestOptions,
-  ): Promise<ListChargesResponse> {
-    return unwrap(await listCharges(this._client, request, options))
-  }
-
-  /**
-   * List charges
-   *
-   * List charges.
-   *
-   * Returns the charges of every customer that are represented as either flat fee or
-   * usage-based charges.
-   *
-   * Iterates every item across all pages, fetching more as the returned iterable is consumed.
-   *
-   * GET /openmeter/charges
-   */
-  listAll(
-    request?: ListChargesRequest,
-    options?: RequestOptions,
-  ): AsyncIterable<Charge> {
-    return paginatePages(
-      (req, opts) => listCharges(this._client, req, opts),
-      request ?? {},
-      options,
-    )
-  }
-}
-
-export class InternalCurrencies {
-  constructor(private readonly _client: Client) {}
-
-  /**
-   * List currencies
-   *
-   * List currencies supported by the billing system.
-   *
-   * GET /openmeter/currencies
-   */
-  async list(
-    request?: ListCurrenciesRequest,
-    options?: RequestOptions,
-  ): Promise<ListCurrenciesResponse> {
-    return unwrap(await listCurrencies(this._client, request, options))
-  }
-
-  /**
-   * List currencies
-   *
-   * List currencies supported by the billing system.
-   *
-   * Iterates every item across all pages, fetching more as the returned iterable is consumed.
-   *
-   * GET /openmeter/currencies
-   */
-  listAll(
-    request?: ListCurrenciesRequest,
-    options?: RequestOptions,
-  ): AsyncIterable<Currency> {
-    return paginatePages(
-      (req, opts) => listCurrencies(this._client, req, opts),
-      request ?? {},
-      options,
-    )
-  }
-
-  /**
-   * Create custom currency
-   *
-   * Create a custom currency. This operation allows defining your own custom
-   * currency for billing purposes.
-   *
-   * POST /openmeter/currencies/custom
-   */
-  async createCustomCurrency(
-    request: CreateCustomCurrencyRequest,
-    options?: RequestOptions,
-  ): Promise<CreateCustomCurrencyResponse> {
-    return unwrap(await createCustomCurrency(this._client, request, options))
-  }
-
-  /**
-   * Get custom currency
-   *
-   * Get a custom currency.
-   *
-   * GET /openmeter/currencies/custom/{currencyId}
-   */
-  async getCustomCurrency(
-    request: GetCustomCurrencyRequest,
-    options?: RequestOptions,
-  ): Promise<GetCustomCurrencyResponse> {
-    return unwrap(await getCustomCurrency(this._client, request, options))
-  }
-
-  /**
-   * List cost bases
-   *
-   * List cost bases for a currency. For custom currencies, there can be multiple
-   * cost bases with different `effective_from` dates.
-   *
-   * GET /openmeter/currencies/custom/{currencyId}/cost-bases
-   */
-  async listCostBases(
-    request: ListCostBasesRequest,
-    options?: RequestOptions,
-  ): Promise<ListCostBasesResponse> {
-    return unwrap(await listCostBases(this._client, request, options))
-  }
-
-  /**
-   * List cost bases
-   *
-   * List cost bases for a currency. For custom currencies, there can be multiple
-   * cost bases with different `effective_from` dates.
-   *
-   * Iterates every item across all pages, fetching more as the returned iterable is consumed.
-   *
-   * GET /openmeter/currencies/custom/{currencyId}/cost-bases
-   */
-  listCostBasesAll(
-    request: ListCostBasesRequest,
-    options?: RequestOptions,
-  ): AsyncIterable<CostBasis> {
-    return paginatePages(
-      (req, opts) => listCostBases(this._client, req, opts),
-      request,
-      options,
-    )
-  }
-
-  /**
-   * Create cost basis
-   *
-   * Create a cost basis for a currency.
-   *
-   * POST /openmeter/currencies/custom/{currencyId}/cost-bases
-   */
-  async createCostBasis(
-    request: CreateCostBasisRequest,
-    options?: RequestOptions,
-  ): Promise<CreateCostBasisResponse> {
-    return unwrap(await createCostBasis(this._client, request, options))
-  }
-}
-
-export class InternalPlanAddons {
-  constructor(private readonly _client: Client) {}
-
-  /**
-   * List add-ons for plan
-   *
-   * List add-ons associated with a plan.
-   *
-   * GET /openmeter/plans/{planId}/addons
-   */
-  async list(
-    request: ListPlanAddonsRequest,
-    options?: RequestOptions,
-  ): Promise<ListPlanAddonsResponse> {
-    return unwrap(await listPlanAddons(this._client, request, options))
-  }
-
-  /**
-   * List add-ons for plan
-   *
-   * List add-ons associated with a plan.
-   *
-   * Iterates every item across all pages, fetching more as the returned iterable is consumed.
-   *
-   * GET /openmeter/plans/{planId}/addons
-   */
-  listAll(
-    request: ListPlanAddonsRequest,
-    options?: RequestOptions,
-  ): AsyncIterable<PlanAddon> {
-    return paginatePages(
-      (req, opts) => listPlanAddons(this._client, req, opts),
-      request,
-      options,
-    )
-  }
-}
-
-export class InternalEntitlementAccess {
-  constructor(private readonly _client: Client) {}
-
-  /**
-   * Query entitlement access
-   *
-   * Query feature access for a list of customers.
-   *
-   * The endpoint resolves each provided identifier to a customer and returns the
-   * access status for the requested features, plus optional credit balance
-   * availability.
-   *
-   * _Designed to be called on a fixed refresh interval and the query response is
-   * intended to be cached._
-   *
-   * POST /openmeter/entitlement-access/query
-   */
-  async query(
-    request: QueryEntitlementAccessRequest,
-    options?: RequestOptions,
-  ): Promise<QueryEntitlementAccessResponse> {
-    return unwrap(await queryEntitlementAccess(this._client, request, options))
+  ): Promise<ResendNotificationEventResponse> {
+    return unwrap(await resendNotificationEvent(this._client, request, options))
   }
 }

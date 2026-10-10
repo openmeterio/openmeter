@@ -62,6 +62,7 @@ func (h *handler) ListFeatures() ListFeaturesHandler {
 						{Field: "filter[meter_id]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 					})
 				}
+
 				req.MeterIDs = meterIDs
 
 				key, err := filters.FromAPIFilterString(params.Filter.Key)
@@ -70,6 +71,7 @@ func (h *handler) ListFeatures() ListFeaturesHandler {
 						{Field: "filter[key]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 					})
 				}
+
 				req.Key = key
 
 				name, err := filters.FromAPIFilterString(params.Filter.Name)
@@ -78,6 +80,7 @@ func (h *handler) ListFeatures() ListFeaturesHandler {
 						{Field: "filter[name]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 					})
 				}
+
 				req.Name = name
 			}
 
@@ -93,6 +96,7 @@ func (h *handler) ListFeatures() ListFeaturesHandler {
 				if err != nil {
 					return ListFeaturesRequest{}, err
 				}
+
 				req.OrderBy = orderBy
 				req.Order = sort.Order.ToSortxOrder()
 			}
@@ -111,6 +115,7 @@ func (h *handler) ListFeatures() ListFeaturesHandler {
 				if err != nil {
 					return ListFeaturesResponse{}, err
 				}
+
 				items = append(items, apiFeature)
 			}
 

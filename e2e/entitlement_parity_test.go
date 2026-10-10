@@ -274,6 +274,7 @@ func TestEntitlementParitySuite(t *testing.T) {
 		if !shouldRunSlowTests(t) {
 			t.Skip("Skipping slow test, please reenable when we have a second resolution for entitlements")
 		}
+
 		// Report usage for parity meter to validate values
 		t.Run("Report usage (parity meter)", func(t *testing.T) {
 			now := time.Now()
@@ -327,6 +328,7 @@ func TestEntitlementParitySuite(t *testing.T) {
 				for _, balance := range balances {
 					sum += balance
 				}
+
 				return sum
 			}
 

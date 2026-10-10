@@ -9,6 +9,7 @@ BENCHTIME ?= 20x
 # Number of times to repeat the whole benchmark (feed >1 into benchstat for variance).
 COUNT ?= 1
 OPENMETER_E2E_EXTRA_COMPOSE_FILES ?=
+OPENMETER_E2E_POSTGRES_URL ?= postgres://postgres:postgres@127.0.0.1:35432/postgres?sslmode=disable
 
 .PHONY: bench-entitlement-access
 bench-entitlement-access: ## Benchmark entitlement access query latency (1x1 baseline + 10/50/100 diagonal)
@@ -60,7 +61,13 @@ test-credits-disabled: ## Run e2e tests that require credits.enabled=false
 .PHONY: test-base
 test-base: ## Run the default e2e test package
 	$(call print-target)
+	$(MAKE) test-http-errors
 	TZ=UTC OPENMETER_ADDRESS=$(OPENMETER_ADDRESS) go test -count=1 -v ./
+
+.PHONY: test-http-errors
+test-http-errors: ## Run HTTP error handling scenarios with real HTTP, gRPC, and PostgreSQL connections
+	$(call print-target)
+	TZ=UTC OPENMETER_E2E_POSTGRES_URL='$(OPENMETER_E2E_POSTGRES_URL)' go test -race -count=1 -v ./httperrors
 
 .PHONY: wait-local
 wait-local:

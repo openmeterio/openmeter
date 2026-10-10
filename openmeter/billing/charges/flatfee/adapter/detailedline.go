@@ -54,6 +54,7 @@ func (a *adapter) FetchDetailedLines(ctx context.Context, charge flatfee.Charge)
 			if err != nil {
 				return flatfee.Charge{}, err
 			}
+
 			sortDetailedLines(lines)
 			charge.Realizations.CurrentRun.DetailedLines = mo.Some(lines)
 		}
@@ -63,6 +64,7 @@ func (a *adapter) FetchDetailedLines(ctx context.Context, charge flatfee.Charge)
 			if err != nil {
 				return flatfee.Charge{}, err
 			}
+
 			sortDetailedLines(lines)
 			charge.Realizations.PriorRuns[idx].DetailedLines = mo.Some(lines)
 		}

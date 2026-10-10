@@ -79,6 +79,7 @@ func (s *SubscriptionHandlerTestSuite) TestLegacyBackendCreatesGatheringLineBefo
 			return meta, nil
 		}))
 	}
+
 	item.Feature = nil
 	subsView.Phases[0].ItemsByKey[itemKey][0] = item
 
@@ -109,7 +110,8 @@ func (s *SubscriptionHandlerTestSuite) TestLegacyBackendCreatesGatheringLineBefo
 	s.Equal(billing.ValidationIssueSeverityCritical, issue.Severity)
 	s.Equal(billing.LineEngineValidationComponent(billing.LineEngineTypeInvoice), issue.Component)
 	s.Equal(fmt.Sprintf("/lines/%s", lines[0].ID), issue.Path)
-	s.Contains(issue.Message, missingFeatureKey)
+	s.Equal(billing.ErrInvoiceLineFeatureNotFound.Message, issue.Message)
+	s.Equal(missingFeatureKey, issue.Attributes["feature_key"])
 }
 
 func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
@@ -305,6 +307,7 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
 		if err != nil {
 			fmt.Printf("current time: %s\n", clock.Now().Format(time.RFC3339))
 		}
+
 		s.NoError(err)
 		s.Len(invoices, 1)
 		invoice := invoices[0]
@@ -3319,6 +3322,7 @@ func (s *SubscriptionHandlerTestSuite) TestGatheringManualEditSync() {
 
 			updatedLine, err = line.Clone()
 			s.NoError(err)
+
 			return nil
 		},
 	})
@@ -3409,6 +3413,7 @@ func (s *SubscriptionHandlerTestSuite) TestSplitLineManualEditSync() {
 
 			updatedLine, err = line.Clone()
 			s.NoError(err)
+
 			return nil
 		},
 	})
@@ -3499,6 +3504,7 @@ func (s *SubscriptionHandlerTestSuite) TestGatheringManualDeleteSync() {
 			line.DeletedAt = lo.ToPtr(clock.Now())
 
 			updatedLine = lo.Must(line.Clone())
+
 			return nil
 		},
 		IncludeDeletedLines: true,
@@ -3680,6 +3686,7 @@ func (s *SubscriptionHandlerTestSuite) TestManualIgnoringOfSyncedLines() {
 			child.FeeLineConfigID = ""
 			return child
 		})
+
 		return line
 	})
 
@@ -3881,6 +3888,7 @@ func (s *SubscriptionHandlerTestSuite) TestSplitLineManualDeleteSync() {
 			line.DeletedAt = lo.ToPtr(clock.Now())
 
 			updatedLine = lo.Must(line.Clone())
+
 			return nil
 		},
 	})
@@ -4241,6 +4249,7 @@ func (s *SubscriptionHandlerTestSuite) TestDiscountSynchronization() {
 			invoiceAsGathering, err := invoice.AsGatheringInvoice()
 			s.NoError(err)
 			gatheringInvoice = &invoiceAsGathering
+
 			continue
 		}
 
@@ -4634,6 +4643,7 @@ func (s *SubscriptionHandlerTestSuite) TestSynchronizeSubscriptionPeriodAlgorith
 			invoice.Lines = billing.NewGatheringInvoiceLines([]billing.GatheringLine{
 				line,
 			})
+
 			return nil
 		},
 	})
@@ -4717,7 +4727,6 @@ func (s *SubscriptionHandlerTestSuite) TestDeletedCustomerHandling() {
 	// Then
 	//  we can still sync the subscription
 	//  and the deleted customer is billed for the outstanding amount
-
 	ctx := s.T().Context()
 	clock.FreezeTime(s.mustParseTime("2025-01-01T00:00:00Z"))
 	defer clock.UnFreeze()

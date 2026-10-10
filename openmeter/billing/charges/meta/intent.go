@@ -10,14 +10,17 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
+	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/equal"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type Intent struct {
-	ManagedBy  billing.InvoiceLineManagedBy `json:"managedBy"`
-	CustomerID string                       `json:"customerID"`
+	SubscriptionPlan *SubscriptionPlan            `json:"subscriptionPlan,omitempty"`
+	ManagedBy        billing.InvoiceLineManagedBy `json:"managedBy"`
+	CustomerID       string                       `json:"customerID"`
 
 	Annotations models.Annotations `json:"annotations"`
 
@@ -28,8 +31,34 @@ type Intent struct {
 	Subscription      *SubscriptionReference `json:"subscription"`
 }
 
+var _ models.Equaler[Intent] = Intent{}
+
+// Equal compares currency identity without treating expanded currency data as intent.
+func (i Intent) Equal(other Intent) bool {
+	// Note: we don't want to hack a partial Equal method for the currency, that's why we have a custom
+	// Equal method for the intent.
+	if (i.Currency.Currency == nil) != (other.Currency.Currency == nil) {
+		return false
+	}
+
+	if i.Currency.Currency != nil && !i.Currency.Reference().Equal(other.Currency.Reference()) {
+		return false
+	}
+
+	return i.ManagedBy == other.ManagedBy &&
+		i.CustomerID == other.CustomerID &&
+		i.Annotations.Equal(other.Annotations) &&
+		i.TaxConfig.TaxCodeID == other.TaxConfig.TaxCodeID &&
+		equal.ComparablePtrEqual(i.TaxConfig.Behavior, other.TaxConfig.Behavior) &&
+		equal.ComparablePtrEqual(i.UniqueReferenceID, other.UniqueReferenceID) &&
+		equal.PtrEqual(i.Subscription, other.Subscription)
+}
+
 func (i Intent) Clone() Intent {
 	out := i
+	if i.SubscriptionPlan != nil {
+		out.SubscriptionPlan = lo.ToPtr(*i.SubscriptionPlan)
+	}
 
 	// Keep intent cloning infallible for developer ergonomics; annotations are
 	// only shallow-cloned here so GetEffectiveIntent does not need an error return.
@@ -53,6 +82,11 @@ func (i Intent) Clone() Intent {
 
 func (i Intent) Validate() error {
 	var errs []error
+	if i.SubscriptionPlan != nil {
+		if err := i.SubscriptionPlan.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("subscription plan: %w", err))
+		}
+	}
 
 	if !slices.Contains(billing.InvoiceLineManagedBy("").Values(), string(i.ManagedBy)) {
 		errs = append(errs, fmt.Errorf("invalid managed by %s", i.ManagedBy))
@@ -125,4 +159,21 @@ func (i IntentMutableFields) Validate() error {
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+// GetCreditFilters maps the charge's recorded attribution to concrete route dimensions.
+func (i Intent) GetCreditFilters(featureKey string) ledger.CreditFilters {
+	filters := ledger.CreditFilters{}
+	if featureKey != "" {
+		filters.Features = []string{featureKey}
+	}
+
+	if i.SubscriptionPlan != nil {
+		filters.Plans = []ledger.PlanFilter{{
+			Key:     i.SubscriptionPlan.Key,
+			Version: &ledger.VersionFilter{Eq: lo.ToPtr(i.SubscriptionPlan.Version)},
+		}}
+	}
+
+	return filters
 }

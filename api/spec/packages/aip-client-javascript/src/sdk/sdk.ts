@@ -5,16 +5,22 @@ import { Events } from './events.js'
 import { Meters } from './meters.js'
 import { Customers } from './customers.js'
 import { Entitlements } from './entitlements.js'
+import { Grants } from './grants.js'
 import { Subscriptions } from './subscriptions.js'
 import { Apps } from './apps.js'
 import { Billing } from './billing.js'
+import { Invoices } from './invoices.js'
+import { Charges } from './charges.js'
 import { Tax } from './tax.js'
+import { Currencies } from './currencies.js'
 import { Features } from './features.js'
 import { LLMCost } from './llmCost.js'
 import { Plans } from './plans.js'
 import { Addons } from './addons.js'
 import { PlanAddons } from './planAddons.js'
 import { Defaults } from './defaults.js'
+import { EntitlementAccess } from './entitlementAccess.js'
+import { Notifications } from './notifications.js'
 import { Internal } from './internal.js'
 
 export class OpenMeter extends Client {
@@ -38,6 +44,11 @@ export class OpenMeter extends Client {
     return (this._entitlements ??= new Entitlements(this))
   }
 
+  private _grants?: Grants
+  get grants(): Grants {
+    return (this._grants ??= new Grants(this))
+  }
+
   private _subscriptions?: Subscriptions
   get subscriptions(): Subscriptions {
     return (this._subscriptions ??= new Subscriptions(this))
@@ -53,9 +64,24 @@ export class OpenMeter extends Client {
     return (this._billing ??= new Billing(this))
   }
 
+  private _invoices?: Invoices
+  get invoices(): Invoices {
+    return (this._invoices ??= new Invoices(this))
+  }
+
+  private _charges?: Charges
+  get charges(): Charges {
+    return (this._charges ??= new Charges(this))
+  }
+
   private _tax?: Tax
   get tax(): Tax {
     return (this._tax ??= new Tax(this))
+  }
+
+  private _currencies?: Currencies
+  get currencies(): Currencies {
+    return (this._currencies ??= new Currencies(this))
   }
 
   private _features?: Features
@@ -86,6 +112,16 @@ export class OpenMeter extends Client {
   private _defaults?: Defaults
   get defaults(): Defaults {
     return (this._defaults ??= new Defaults(this))
+  }
+
+  private _entitlementAccess?: EntitlementAccess
+  get entitlementAccess(): EntitlementAccess {
+    return (this._entitlementAccess ??= new EntitlementAccess(this))
+  }
+
+  private _notifications?: Notifications
+  get notifications(): Notifications {
+    return (this._notifications ??= new Notifications(this))
   }
 
   private _internal?: Internal

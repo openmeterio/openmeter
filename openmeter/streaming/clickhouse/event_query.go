@@ -45,6 +45,7 @@ func (d createEventsTable) toSQL() string {
 	sb.SQL("ORDER BY (namespace, type, subject, toStartOfHour(time))")
 
 	sql, _ := sb.Build()
+
 	return sql
 }
 
@@ -99,6 +100,7 @@ func (d queryEventsTable) toCountRowSQL() (string, []interface{}) {
 	query = customersWhere(d.EventsTableName, customers, query)
 
 	sql, args := query.Build()
+
 	return sql, args
 }
 
@@ -133,12 +135,15 @@ func (d queryEventsTable) toSQL() (string, []interface{}) {
 	if d.To != nil {
 		query.Where(query.LessThan("time", d.To.Unix()))
 	}
+
 	if d.IngestedAtFrom != nil {
 		query.Where(query.GreaterEqualThan("ingested_at", d.IngestedAtFrom.Unix()))
 	}
+
 	if d.IngestedAtTo != nil {
 		query.Where(query.LessThan("ingested_at", d.IngestedAtTo.Unix()))
 	}
+
 	if d.ID != nil {
 		query.Where(query.Like("id", fmt.Sprintf("%%%s%%", *d.ID)))
 	}
@@ -188,6 +193,7 @@ func (d queryCountEvents) toSQL() (string, []interface{}) {
 	query.GroupBy("subject")
 
 	sql, args := query.Build()
+
 	return sql, args
 }
 
@@ -232,6 +238,7 @@ func (q InsertEventsQuery) ToSQL() (string, []interface{}) {
 	}
 
 	sql, args := query.Build()
+
 	return sql, args
 }
 

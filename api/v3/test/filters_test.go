@@ -89,6 +89,7 @@ func parseHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(target)
@@ -295,9 +296,11 @@ func TestFieldFilterValidation(t *testing.T) {
 			if tc.wantField != "" {
 				assert.Equal(t, tc.wantField, ip.Field)
 			}
+
 			if tc.wantRule != "" {
 				assert.Equal(t, tc.wantRule, ip.Rule)
 			}
+
 			if tc.wantReasonSubstr != "" {
 				assert.Contains(t, ip.Reason, tc.wantReasonSubstr)
 			}
@@ -643,6 +646,7 @@ func TestFieldFilterParse(t *testing.T) {
 				if tc.wantBodySubstr != "" {
 					assert.Contains(t, string(body), tc.wantBodySubstr)
 				}
+
 				return
 			}
 

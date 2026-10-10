@@ -19,8 +19,8 @@ import (
 )
 
 var (
-	createViewRE        = regexp.MustCompile(`(?is)CREATE\s+VIEW\s+"([^"]+)"\s+AS\s*(.+?);`)
-	viewMigrationStmtRE = regexp.MustCompile(`(?im)\b(?:CREATE|DROP)\s+(?:MATERIALIZED\s+)?VIEW\b`)
+	createViewRE        = regexp.MustCompile(`(?is)CREATE\s+(?:OR\s+REPLACE\s+)?VIEW\s+"([^"]+)"\s+AS\s*(.+?);`)
+	viewMigrationStmtRE = regexp.MustCompile(`(?im)\b(?:CREATE(?:\s+OR\s+REPLACE)?|DROP)\s+(?:MATERIALIZED\s+)?VIEW\b`)
 	whitespaceRE        = regexp.MustCompile(`\s+`)
 )
 
@@ -38,11 +38,14 @@ func stripSQLLineComments(sqlText string) string {
 		if strings.HasPrefix(trimmed, "--") {
 			continue
 		}
+
 		if b.Len() > 0 {
 			b.WriteByte('\n')
 		}
+
 		b.WriteString(line)
 	}
+
 	return b.String()
 }
 
@@ -74,6 +77,7 @@ func normalizeViewSQL(s string) string {
 	s = strings.TrimSpace(s)
 	s = strings.TrimSuffix(s, ";")
 	s = whitespaceRE.ReplaceAllString(s, " ")
+
 	return strings.TrimSpace(s)
 }
 
@@ -89,9 +93,11 @@ func stripViewStatements(sqlText string) string {
 		if trimmed == "" {
 			continue
 		}
+
 		if viewMigrationStmtRE.MatchString(trimmed) {
 			continue
 		}
+
 		kept = append(kept, part)
 	}
 
@@ -109,6 +115,7 @@ func buildMigrationsWithoutViews(cfg migrate.MigrationsConfig) (migrate.Migratio
 		if err != nil {
 			return err
 		}
+
 		if d.IsDir() {
 			return nil
 		}
@@ -125,6 +132,7 @@ func buildMigrationsWithoutViews(cfg migrate.MigrationsConfig) (migrate.Migratio
 				// Migration has only VIEW statements, exclude it entirely
 				return nil
 			}
+
 			data = []byte(stripped)
 		}
 
@@ -196,6 +204,7 @@ func loadPublicViewColumns(t *testing.T, db *sql.DB, viewName string) []viewColu
 		require.NoError(t, err)
 		out = append(out, c)
 	}
+
 	require.NoError(t, rows.Err())
 
 	return out
@@ -253,6 +262,7 @@ func TestViewDefinitionsMatchGeneratedSchemaSQL(t *testing.T) {
 	for name := range expectedBodies {
 		viewNames = append(viewNames, name)
 	}
+
 	slices.Sort(viewNames)
 
 	for _, viewName := range viewNames {

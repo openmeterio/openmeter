@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"entgo.io/ent/dialect/sql"
-	"github.com/lib/pq"
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
+	"github.com/openmeterio/openmeter/openmeter/ledger/internal/routequery"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -93,7 +94,7 @@ func (r *repo) resolveOrCreateRoute(ctx context.Context, input ledgeraccount.Cre
 		SetNillableCostBasisCurrency(normalizedRoute.CostBasisCurrency).
 		SetNillableTaxCode(normalizedRoute.TaxCode).
 		SetNillableTaxBehavior(normalizedRoute.TaxBehavior).
-		SetFeatures(pq.StringArray(normalizedRoute.Features)).
+		SetFilters(lo.ToPtr(normalizedRoute.Filters)).
 		SetNillableCostBasis(normalizedRoute.CostBasis).
 		SetNillableCreditPriority(normalizedRoute.CreditPriority).
 		SetNillableTransactionAuthorizationStatus(normalizedRoute.TransactionAuthorizationStatus)
@@ -168,15 +169,18 @@ func (r *repo) ListSubAccounts(ctx context.Context, input ledgeraccount.ListSubA
 				if err != nil {
 					return nil, fmt.Errorf("failed to serialize route currency filter prefix: %w", err)
 				}
+
 				routePredicates = append(routePredicates, dbledgersubaccountroute.CurrencyHasPrefix(string(prefix)))
 			} else {
 				currency, err := normalizedRoute.Currency.MarshalText()
 				if err != nil {
 					return nil, fmt.Errorf("failed to serialize route currency filter: %w", err)
 				}
+
 				routePredicates = append(routePredicates, dbledgersubaccountroute.Currency(string(currency)))
 			}
 		}
+
 		if normalizedRoute.CostBasisCurrency.IsPresent() {
 			costBasisCurrency, _ := normalizedRoute.CostBasisCurrency.Get()
 			if costBasisCurrency != nil {
@@ -185,11 +189,13 @@ func (r *repo) ListSubAccounts(ctx context.Context, input ledgeraccount.ListSubA
 				routePredicates = append(routePredicates, dbledgersubaccountroute.CostBasisCurrencyIsNil())
 			}
 		}
+
 		if normalizedRoute.CreditPriority != nil {
 			routePredicates = append(routePredicates,
 				dbledgersubaccountroute.CreditPriority(*normalizedRoute.CreditPriority),
 			)
 		}
+
 		if normalizedRoute.TaxCode.IsPresent() {
 			tc, _ := normalizedRoute.TaxCode.Get()
 			if tc != nil {
@@ -198,17 +204,19 @@ func (r *repo) ListSubAccounts(ctx context.Context, input ledgeraccount.ListSubA
 				routePredicates = append(routePredicates, dbledgersubaccountroute.TaxCodeIsNil())
 			}
 		}
-		if normalizedRoute.Features.IsPresent() {
-			features, _ := normalizedRoute.Features.Get()
-			if len(features) == 0 {
-				routePredicates = append(routePredicates, dbledgersubaccountroute.FeaturesIsNil())
-			} else {
-				routePredicates = append(routePredicates, dbledgersubaccountroute.Features(pq.StringArray(features)))
-			}
+
+		if exact, ok := normalizedRoute.CreditFilters.Get(); ok {
+			routePredicates = append(routePredicates, func(s *sql.Selector) { s.Where(routequery.ExactFiltersPredicate(s.C, exact)) })
 		}
+
+		if features, ok := normalizedRoute.Features.Get(); ok {
+			routePredicates = append(routePredicates, func(s *sql.Selector) { s.Where(routequery.ExactFeaturesPredicate(s.C, features)) })
+		}
+
 		if normalizedRoute.MatchFeature != "" {
-			routePredicates = append(routePredicates, matchFeature(normalizedRoute.MatchFeature))
+			routePredicates = append(routePredicates, func(s *sql.Selector) { s.Where(routequery.MatchFeaturePredicate(s.C, normalizedRoute.MatchFeature)) })
 		}
+
 		if normalizedRoute.CostBasis.IsPresent() {
 			costBasis, _ := normalizedRoute.CostBasis.Get()
 			if costBasis != nil {
@@ -217,6 +225,7 @@ func (r *repo) ListSubAccounts(ctx context.Context, input ledgeraccount.ListSubA
 				routePredicates = append(routePredicates, dbledgersubaccountroute.CostBasisIsNil())
 			}
 		}
+
 		if normalizedRoute.TaxBehavior.IsPresent() {
 			tb, _ := normalizedRoute.TaxBehavior.Get()
 			if tb != nil {
@@ -225,9 +234,11 @@ func (r *repo) ListSubAccounts(ctx context.Context, input ledgeraccount.ListSubA
 				routePredicates = append(routePredicates, dbledgersubaccountroute.TaxBehaviorIsNil())
 			}
 		}
+
 		if normalizedRoute.TransactionAuthorizationStatus != nil {
 			routePredicates = append(routePredicates, dbledgersubaccountroute.TransactionAuthorizationStatus(*normalizedRoute.TransactionAuthorizationStatus))
 		}
+
 		if len(routePredicates) > 0 {
 			predicates = append(predicates, dbledgersubaccount.HasRouteWith(routePredicates...))
 		}
@@ -247,6 +258,7 @@ func (r *repo) ListSubAccounts(ctx context.Context, input ledgeraccount.ListSubA
 			if err != nil {
 				return nil, fmt.Errorf("failed to map sub-account data: %w", err)
 			}
+
 			out = append(out, &subAccountData)
 		}
 
@@ -254,21 +266,11 @@ func (r *repo) ListSubAccounts(ctx context.Context, input ledgeraccount.ListSubA
 	})
 }
 
-func matchFeature(feature string) predicate.LedgerSubAccountRoute {
-	return func(s *sql.Selector) {
-		s.Where(sql.Or(
-			sql.IsNull(s.C(dbledgersubaccountroute.FieldFeatures)),
-			sql.P(func(b *sql.Builder) {
-				b.Ident(s.C(dbledgersubaccountroute.FieldFeatures)).WriteString(" @> ").Arg(pq.StringArray{feature})
-			}),
-		))
-	}
-}
-
 func MapSubAccountData(entity *db.LedgerSubAccount) (ledgeraccount.SubAccountData, error) {
 	if entity.Edges.Account == nil {
 		return ledgeraccount.SubAccountData{}, fmt.Errorf("account edge is required")
 	}
+
 	if entity.Edges.Route == nil {
 		return ledgeraccount.SubAccountData{}, fmt.Errorf("route edge is required")
 	}
@@ -292,7 +294,7 @@ func MapSubAccountData(entity *db.LedgerSubAccount) (ledgeraccount.SubAccountDat
 			CostBasisCurrency:              dbRoute.CostBasisCurrency,
 			TaxCode:                        dbRoute.TaxCode,
 			TaxBehavior:                    dbRoute.TaxBehavior,
-			Features:                       []string(dbRoute.Features),
+			Filters:                        *dbRoute.Filters,
 			CostBasis:                      dbRoute.CostBasis,
 			CreditPriority:                 dbRoute.CreditPriority,
 			TransactionAuthorizationStatus: dbRoute.TransactionAuthorizationStatus,

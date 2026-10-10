@@ -497,6 +497,7 @@ func TestMockStreamingConnector(t *testing.T) {
 				if !event.StoredAt.IsZero() {
 					opts = append(opts, WithStoredAt(event.StoredAt))
 				}
+
 				streamingConnector.AddSimpleEvent(event.MeterSlug, event.Value, event.Time, opts...)
 			}
 

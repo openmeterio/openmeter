@@ -21,6 +21,9 @@ type Grant struct {
 	// Generic Owner reference
 	OwnerID string `json:"owner"`
 
+	// Customer ID the grant belongs to
+	CustomerID *string `json:"customerId,omitempty"`
+
 	// Amount The amount to grant. Must be positive.
 	Amount float64 `json:"amount"`
 

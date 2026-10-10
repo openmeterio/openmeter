@@ -100,6 +100,10 @@ func (a appOperations) UpdateAppConfig(ctx context.Context, input app.AppConfigU
 	})
 }
 
+func (a appOperations) ExecuteAction(ctx context.Context, input app.ExecuteAppActionInput) error {
+	return app.NewAppActionUnsupportedError(a.GetID(), input.Type)
+}
+
 func (a App) GetEventAppData() (app.EventAppData, error) {
 	return app.NewEventAppData(a.Configuration)
 }

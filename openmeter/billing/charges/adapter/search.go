@@ -153,6 +153,7 @@ func (a *adapter) ListCustomersToAdvance(ctx context.Context, input charges.List
 		if start > totalCount {
 			start = totalCount
 		}
+
 		end := start + page.Limit()
 		if end > totalCount {
 			end = totalCount

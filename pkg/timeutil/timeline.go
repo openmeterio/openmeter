@@ -71,6 +71,7 @@ func (t Timeline[T]) After(at time.Time) Timeline[T] {
 			times = append(times, t)
 		}
 	}
+
 	return NewTimeline(times)
 }
 
@@ -81,6 +82,7 @@ func (t Timeline[T]) Before(at time.Time) Timeline[T] {
 			times = append(times, t)
 		}
 	}
+
 	return NewTimeline(times)
 }
 
@@ -89,6 +91,7 @@ func (t Timeline[T]) GetTimes() []time.Time {
 	for i, t := range t.times {
 		times[i] = t.GetTime()
 	}
+
 	return times
 }
 
@@ -143,6 +146,7 @@ func (t Timeline[T]) GetClosedPeriods() []ClosedPeriod {
 	for i := 0; i < len(t.times)-1; i++ {
 		periods = append(periods, ClosedPeriod{From: t.times[i].GetTime(), To: t.times[i+1].GetTime()})
 	}
+
 	return periods
 }
 

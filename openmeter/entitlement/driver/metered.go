@@ -140,6 +140,7 @@ func (h *meteredEntitlementHandler) CreateGrant() CreateGrantHandler {
 			if err != nil {
 				return api.EntitlementGrant{}, err
 			}
+
 			apiGrant := MapEntitlementGrantToAPI(&grant)
 
 			return apiGrant, nil
@@ -263,6 +264,7 @@ func (h *meteredEntitlementHandler) ResetEntitlementUsage() ResetEntitlementUsag
 				RetainAnchor:    request.RetainAnchor,
 				PreserveOverage: request.PreserveOverage,
 			})
+
 			return nil, err
 		},
 		commonhttp.EmptyResponseEncoder[interface{}](http.StatusNoContent),
@@ -303,6 +305,7 @@ func (h *meteredEntitlementHandler) GetEntitlementBalanceHistory() GetEntitlemen
 
 					return GetEntitlementBalanceHistoryHandlerRequest{}, err
 				}
+
 				tLocation = tz
 			}
 

@@ -3,3 +3,5 @@ paths:
     ignore:
     - 'label ".*" is unknown'
     - 'SC2046' # quoting issues on runners
+    # actionlint predates GitHub's $/ syntax; zizmor validates this self-repository reference.
+    - 'reusable workflow call "\$/\.github/workflows/cancel-stale-pr-runs\.yaml" at "uses" is not following the format'

@@ -33,5 +33,6 @@ import (
 func GetKeyHash(itemKey string) string {
 	hashBytes := xxh3.HashString128(itemKey).Bytes()
 	b64 := base64.RawURLEncoding.EncodeToString(hashBytes[:])
+
 	return b64
 }

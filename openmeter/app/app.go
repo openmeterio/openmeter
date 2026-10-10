@@ -23,10 +23,15 @@ type App interface {
 	GetStatus() AppStatus
 	GetMetadata() models.Metadata
 	GetListing() MarketplaceListing
+	Actions() []AppAction
 
 	GetEventAppData() (EventAppData, error)
 
 	UpdateAppConfig(ctx context.Context, input AppConfigUpdate) error
+
+	// ExecuteAction runs an operator action reported by Actions. App types without
+	// actions return an AppActionUnsupportedError.
+	ExecuteAction(ctx context.Context, input ExecuteAppActionInput) error
 
 	// ValidateCapabilities validates if the app can run for the given capabilities
 	ValidateCapabilities(capabilities ...CapabilityType) error
@@ -40,6 +45,7 @@ type App interface {
 // AppOperations contains behavior that must be implemented by all apps.
 type AppOperations interface {
 	UpdateAppConfig(ctx context.Context, input AppConfigUpdate) error
+	ExecuteAction(ctx context.Context, input ExecuteAppActionInput) error
 	ValidateCapabilities(capabilities ...CapabilityType) error
 	GetCustomerData(ctx context.Context, input GetAppInstanceCustomerDataInput) (CustomerData, error)
 	UpsertCustomerData(ctx context.Context, input UpsertAppInstanceCustomerDataInput) error
@@ -266,6 +272,26 @@ func (i ListAppInput) Validate() error {
 		if err := i.Status.Validate(); err != nil {
 			errs = append(errs, models.NewGenericValidationError(fmt.Errorf("invalid status filter: %w", err)))
 		}
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+// ExecuteAppActionInput is the input for executing an operator action on an installed app
+type ExecuteAppActionInput struct {
+	AppID AppID
+	Type  AppActionType
+}
+
+func (i ExecuteAppActionInput) Validate() error {
+	var errs []error
+
+	if err := i.AppID.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("error validating app id: %w", err))
+	}
+
+	if i.Type == "" {
+		errs = append(errs, errors.New("action type is required"))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))

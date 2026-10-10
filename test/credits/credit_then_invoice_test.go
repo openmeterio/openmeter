@@ -2,13 +2,13 @@ package credits
 
 import (
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 	"github.com/samber/mo"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
 	appcustominvoicing "github.com/openmeterio/openmeter/openmeter/app/custominvoicing"
@@ -244,10 +244,8 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceCollectionPe
 		s.Equal(billing.ErrInvoiceLineFeatureHasNoMeters.Code, issue.Code)
 		s.Equal(billing.ValidationComponentProductCatalog, issue.Component)
 		s.Equal("/charges/"+usageBasedChargeID.ID, issue.Path)
-		s.Equal(
-			fmt.Sprintf("feature[%s]: %s", apiRequestsTotal.Feature.Key, billing.ErrInvoiceLineFeatureHasNoMeters.Message),
-			issue.Message,
-		)
+		s.Equal(billing.ErrInvoiceLineFeatureHasNoMeters.Message, issue.Message)
+		s.Equal(apiRequestsTotal.Feature.Key, issue.Attributes["feature_key"])
 		s.Len(s.mustGatheringLinesForCharge(ns, cust.ID, usageBasedChargeID.ID, false), 1)
 
 		invoicesResult, err := s.BillingService.ListStandardInvoices(ctx, billing.ListStandardInvoicesInput{
@@ -417,10 +415,8 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceWaitingForCo
 		s.Equal(billing.ErrInvoiceLineFeatureHasNoMeters.Code, issue.Code)
 		s.Equal(billing.LineEngineValidationComponent(billing.LineEngineTypeChargeUsageBased), issue.Component)
 		s.Equal("/charges/"+usageBasedChargeID.ID, issue.Path)
-		s.Equal(
-			fmt.Sprintf("feature[%s]: %s", apiRequestsTotal.Feature.Key, billing.ErrInvoiceLineFeatureHasNoMeters.Message),
-			issue.Message,
-		)
+		s.Equal(billing.ErrInvoiceLineFeatureHasNoMeters.Message, issue.Message)
+		s.Equal(apiRequestsTotal.Feature.Key, issue.Attributes["feature_key"])
 
 		persistedInvoice, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
 			Invoice: invoice.GetInvoiceID(),
@@ -559,7 +555,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceCollectionPe
 	s.Require().NoError(err)
 	s.Empty(invoices)
 
-	issueMessages := make([]string, 0, len(created))
+	issueFeatureKeys := make([]string, 0, len(created))
 	for _, createdCharge := range created {
 		usageBasedCharge, err := createdCharge.AsUsageBasedCharge()
 		s.NoError(err)
@@ -571,13 +567,17 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceCollectionPe
 		s.Equal(billing.ErrInvoiceLineFeatureHasNoMeters.Code, issue.Code)
 		s.Equal(billing.ValidationComponentProductCatalog, issue.Component)
 		s.Equal("/charges/"+usageBasedCharge.ID, issue.Path)
-		issueMessages = append(issueMessages, issue.Message)
+		s.Equal(billing.ErrInvoiceLineFeatureHasNoMeters.Message, issue.Message)
+		featureKey, ok := issue.Attributes["feature_key"].(string)
+		s.Require().True(ok)
+		issueFeatureKeys = append(issueFeatureKeys, featureKey)
 		s.Len(s.mustGatheringLinesForCharge(ns, cust.ID, usageBasedCharge.ID, false), 1)
 	}
+
 	s.ElementsMatch([]string{
-		fmt.Sprintf("feature[%s]: %s", apiRequestsTotal.Feature.Key, billing.ErrInvoiceLineFeatureHasNoMeters.Message),
-		fmt.Sprintf("feature[%s]: %s", aiTokens.Key, billing.ErrInvoiceLineFeatureHasNoMeters.Message),
-	}, issueMessages)
+		apiRequestsTotal.Feature.Key,
+		aiTokens.Key,
+	}, issueFeatureKeys)
 
 	invoicesResult, err := s.BillingService.ListStandardInvoices(ctx, billing.ListStandardInvoicesInput{
 		Namespace: ns,
@@ -6161,4 +6161,222 @@ func (s *CreditThenInvoiceTestSuite) mustGetFlatFeeChargeByIDWithExpands(chargeI
 	s.NoError(err)
 
 	return flatFeeCharge
+}
+
+const (
+	deletedLineIssuanceDeletedLineName  = "deleted charge"
+	deletedLineIssuanceRetainedLineName = "retained charge"
+)
+
+func (s *CreditThenInvoiceTestSuite) TestFlatFeeIssuingSkipsDeletedChargeLine() {
+	t := s.T()
+	ctx := t.Context()
+	clock.FreezeTime(time.Date(2026, time.February, 1, 0, 0, 0, 0, time.UTC))
+	defer clock.UnFreeze()
+
+	// given a two-charge draft whose automatic approval deadline has passed
+	fixture := s.setupDeletedLineIssuanceInvoice(meta.ChargeTypeFlatFee)
+	clock.FreezeTime(fixture.Invoice.DraftUntil.Add(time.Second))
+	defer clock.UnFreeze()
+
+	// when deleting one charge causes the remaining invoice to issue
+	deletedChargeID, ok := fixture.ChargesByLineName[deletedLineIssuanceDeletedLineName]
+	require.True(t, ok)
+	deletedLine := fixture.LinesByName[deletedLineIssuanceDeletedLineName]
+	require.NotNil(t, deletedLine)
+	retainedChargeID, ok := fixture.ChargesByLineName[deletedLineIssuanceRetainedLineName]
+	require.True(t, ok)
+	retainedLine := fixture.LinesByName[deletedLineIssuanceRetainedLineName]
+	require.NotNil(t, retainedLine)
+	s.MustRefundCharge(ctx, fixture.Customer, deletedChargeID)
+	invoice, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
+		Invoice: fixture.Invoice.GetInvoiceID(),
+		Expand: billing.StandardInvoiceExpands{
+			billing.StandardInvoiceExpandLines,
+			billing.StandardInvoiceExpandDeletedLines,
+		},
+	})
+	require.NoError(t, err)
+	require.Len(t, invoice.Lines.OrEmpty(), 2)
+	deletedLine = invoice.Lines.GetByID(deletedLine.ID)
+	require.NotNil(t, deletedLine)
+	require.NotNil(t, deletedLine.DeletedAt)
+	s.RequireChargeStatus(deletedChargeID, meta.ChargeStatusDeleted)
+
+	// then the deleted charge does not block booking the retained line
+	s.Equal(billing.StandardInvoiceStatusPaymentProcessingPending, invoice.Status)
+	s.False(invoice.StatusDetails.Failed)
+	s.False(invoice.HasCriticalValidationIssues())
+	s.RequireTotals(billingtest.ExpectedTotals{Amount: 10, Total: 10}, invoice.Totals)
+	retainedCharge := s.RequireFlatFeeChargeStatus(retainedChargeID, flatfee.StatusActiveAwaitingPaymentSettlement)
+	retainedRun, err := retainedCharge.Realizations.GetByLineID(retainedLine.ID)
+	require.NoError(t, err)
+	require.True(t, retainedRun.Immutable)
+	require.Nil(t, retainedRun.DeletedAt)
+	require.Equal(t, invoice.ID, lo.FromPtr(retainedRun.InvoiceID))
+	require.Equal(t, retainedLine.ID, lo.FromPtr(retainedRun.LineID))
+	require.NotNil(t, retainedRun.AccruedUsage)
+	require.NotNil(t, retainedRun.AccruedUsage.LedgerTransaction)
+	require.Equal(t, float64(10), retainedRun.AccruedUsage.Totals.Total.InexactFloat64())
+}
+
+func (s *CreditThenInvoiceTestSuite) TestUsageBasedIssuingSkipsDeletedChargeLine() {
+	t := s.T()
+	ctx := t.Context()
+	clock.FreezeTime(time.Date(2026, time.February, 1, 0, 0, 0, 0, time.UTC))
+	defer clock.UnFreeze()
+	defer s.MockStreamingConnector.Reset()
+
+	// given a two-charge draft whose automatic approval deadline has passed
+	fixture := s.setupDeletedLineIssuanceInvoice(meta.ChargeTypeUsageBased)
+	clock.FreezeTime(fixture.Invoice.DraftUntil.Add(time.Second))
+	defer clock.UnFreeze()
+
+	// when deleting one charge causes the remaining invoice to issue
+	deletedChargeID, ok := fixture.ChargesByLineName[deletedLineIssuanceDeletedLineName]
+	require.True(t, ok)
+	deletedLine := fixture.LinesByName[deletedLineIssuanceDeletedLineName]
+	require.NotNil(t, deletedLine)
+	retainedChargeID, ok := fixture.ChargesByLineName[deletedLineIssuanceRetainedLineName]
+	require.True(t, ok)
+	retainedLine := fixture.LinesByName[deletedLineIssuanceRetainedLineName]
+	require.NotNil(t, retainedLine)
+	s.MustRefundCharge(ctx, fixture.Customer, deletedChargeID)
+	invoice, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
+		Invoice: fixture.Invoice.GetInvoiceID(),
+		Expand: billing.StandardInvoiceExpands{
+			billing.StandardInvoiceExpandLines,
+			billing.StandardInvoiceExpandDeletedLines,
+		},
+	})
+	require.NoError(t, err)
+	require.Len(t, invoice.Lines.OrEmpty(), 2)
+	deletedLine = invoice.Lines.GetByID(deletedLine.ID)
+	require.NotNil(t, deletedLine)
+	require.NotNil(t, deletedLine.DeletedAt)
+	s.RequireChargeStatus(deletedChargeID, meta.ChargeStatusDeleted)
+
+	// then the deleted charge does not block booking the retained line
+	s.Equal(billing.StandardInvoiceStatusPaymentProcessingPending, invoice.Status)
+	s.False(invoice.StatusDetails.Failed)
+	s.False(invoice.HasCriticalValidationIssues())
+	s.RequireTotals(billingtest.ExpectedTotals{Amount: 10, Total: 10}, invoice.Totals)
+	retainedCharge := s.RequireUsageBasedChargeStatus(retainedChargeID, usagebased.StatusActiveAwaitingPaymentSettlement)
+	retainedRun, err := retainedCharge.Realizations.GetByLineID(retainedLine.ID)
+	require.NoError(t, err)
+	require.True(t, retainedRun.Immutable)
+	require.Nil(t, retainedRun.DeletedAt)
+	require.Equal(t, invoice.ID, lo.FromPtr(retainedRun.InvoiceID))
+	require.Equal(t, retainedLine.ID, lo.FromPtr(retainedRun.LineID))
+	require.NotNil(t, retainedRun.InvoiceUsage)
+	require.NotNil(t, retainedRun.InvoiceUsage.LedgerTransaction)
+	require.Equal(t, float64(10), retainedRun.InvoiceUsage.Totals.Total.InexactFloat64())
+}
+
+type deletedLineIssuanceInvoice struct {
+	Customer          customer.CustomerID
+	Invoice           billing.StandardInvoice
+	LinesByName       map[string]*billing.StandardLine
+	ChargesByLineName map[string]meta.ChargeID
+}
+
+func (s *CreditThenInvoiceTestSuite) setupDeletedLineIssuanceInvoice(chargeType meta.ChargeType) deletedLineIssuanceInvoice {
+	t := s.T()
+	t.Helper()
+	ctx := t.Context()
+
+	ns := s.GetUniqueNamespace("deleted-line-issuance-" + string(chargeType))
+	s.ProvisionDefaultTaxCodes(ctx, ns)
+	invoicing := s.SetupCustomInvoicing(ns)
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
+	s.ProvisionBillingProfile(ctx, ns, invoicing.App.GetID())
+	period := timeutil.ClosedPeriod{From: clock.Now(), To: clock.Now().AddDate(0, 1, 0)}
+	var featureKey string
+	var processingStatus any = flatfee.StatusActiveRealizationProcessing
+	if chargeType == meta.ChargeTypeUsageBased {
+		processingStatus = usagebased.StatusActiveRealizationProcessing
+		feature := s.SetupApiRequestsTotalFeature(ctx, ns)
+		featureKey = feature.Feature.Key
+		period = timeutil.ClosedPeriod{From: clock.Now().AddDate(0, -1, 0), To: clock.Now()}
+		s.MockStreamingConnector.AddSimpleEvent(featureKey, 5, period.From.Add(15*24*time.Hour))
+	}
+
+	chargeInputs := []struct {
+		Name   string
+		Amount int64
+	}{
+		{Name: deletedLineIssuanceDeletedLineName, Amount: 5},
+		{Name: deletedLineIssuanceRetainedLineName, Amount: 10},
+	}
+	intents := make([]charges.ChargeIntent, 0, len(chargeInputs))
+	for _, chargeInput := range chargeInputs {
+		price := productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+			Amount:      alpacadecimal.NewFromInt(chargeInput.Amount),
+			PaymentTerm: productcatalog.InAdvancePaymentTerm,
+		})
+		if chargeType == meta.ChargeTypeUsageBased {
+			price = productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromInt(chargeInput.Amount / 5)})
+		}
+
+		intents = append(intents, s.CreateMockChargeIntent(CreateMockChargeIntentInput{
+			Customer:       cust.GetID(),
+			Currency:       USD,
+			ServicePeriod:  period,
+			SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+			Price:          price,
+			ProRating: productcatalog.ProRatingConfig{
+				Enabled: true,
+				Mode:    productcatalog.ProRatingModeProratePrices,
+			},
+			FeatureKey:        featureKey,
+			Name:              chargeInput.Name,
+			ManagedBy:         billing.SubscriptionManagedLine,
+			UniqueReferenceID: chargeInput.Name,
+		}))
+	}
+
+	created, err := s.Charges.Create(ctx, charges.CreateInput{Namespace: ns, Intents: charges.NewCreateChargeIntents(intents...)})
+	require.NoError(t, err)
+	require.Len(t, created, 2)
+	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		Customer: cust.GetID(),
+		AsOf:     lo.ToPtr(clock.Now()),
+	})
+	require.NoError(t, err)
+	require.Len(t, invoices, 1)
+	invoice := invoices[0]
+	if chargeType == meta.ChargeTypeUsageBased {
+		require.Equal(t, billing.StandardInvoiceStatusDraftWaitingForCollection, invoice.Status)
+		clock.FreezeTime(invoice.DefaultCollectionAtForStandardInvoice())
+		defer clock.UnFreeze()
+		invoice, err = s.BillingService.AdvanceInvoice(ctx, invoice.GetInvoiceID())
+		require.NoError(t, err)
+	}
+
+	require.Equal(t, billing.StandardInvoiceStatusDraftWaitingAutoApproval, invoice.Status)
+	require.NotNil(t, invoice.DraftUntil)
+	require.Len(t, invoice.Lines.OrEmpty(), 2)
+	fixture := deletedLineIssuanceInvoice{
+		Customer: cust.GetID(),
+		Invoice:  invoice,
+		LinesByName: lo.KeyBy(invoice.Lines.OrEmpty(), func(line *billing.StandardLine) string {
+			return line.Name
+		}),
+		ChargesByLineName: make(map[string]meta.ChargeID, 2),
+	}
+	require.Len(t, fixture.LinesByName, 2)
+	for lineName, expectedAmount := range map[string]float64{
+		deletedLineIssuanceDeletedLineName:  5,
+		deletedLineIssuanceRetainedLineName: 10,
+	} {
+		line := fixture.LinesByName[lineName]
+		require.NotNil(t, line)
+		require.NotNil(t, line.ChargeID)
+		chargeID := meta.ChargeID{Namespace: ns, ID: *line.ChargeID}
+		fixture.ChargesByLineName[lineName] = chargeID
+		s.RequireChargeStatus(chargeID, processingStatus)
+		s.RequireTotals(billingtest.ExpectedTotals{Amount: expectedAmount, Total: expectedAmount}, line.Totals)
+	}
+
+	return fixture
 }

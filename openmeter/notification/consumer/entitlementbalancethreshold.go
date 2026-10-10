@@ -23,6 +23,7 @@ import (
 	productcatalogdriver "github.com/openmeterio/openmeter/openmeter/productcatalog/driver"
 	subjecthttphandler "github.com/openmeterio/openmeter/openmeter/subject/httphandler"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
@@ -38,8 +39,9 @@ var ErrNoBalanceAvailable = errors.New("no balance available")
 func (b *EntitlementSnapshotHandler) handleAsSnapshotEvent(ctx context.Context, event snapshot.SnapshotEvent) error {
 	// TODO[issue-1364]: this must be cached to prevent going to the DB for each balance.snapshot event
 	affectedRulesPaged, err := b.Notification.ListRules(ctx, notification.ListRulesInput{
-		Namespaces: []string{event.Namespace.ID},
-		Types:      []notification.EventType{notification.EventTypeBalanceThreshold},
+		Namespace: event.Namespace.ID,
+		Type:      &filter.FilterString{Eq: lo.ToPtr(string(notification.EventTypeBalanceThreshold))},
+		Disabled:  &filter.FilterBoolean{Eq: lo.ToPtr(false)},
 	})
 	if err != nil {
 		return fmt.Errorf("failed to list notification rules: %w", err)
@@ -74,7 +76,6 @@ func (b *EntitlementSnapshotHandler) handleAsSnapshotEvent(ctx context.Context, 
 
 func (b *EntitlementSnapshotHandler) handleRule(ctx context.Context, balSnapshot snapshot.SnapshotEvent, rule notification.Rule) error {
 	// Check 1: do we have a threshold we should create an event for?
-
 	thresholds, err := getActiveThresholdsWithHighestPriority(rule.Config.BalanceThreshold.Thresholds, *balSnapshot.Value)
 	if err != nil {
 		return fmt.Errorf("failed to calculate active thresholds: %w", err)
@@ -101,8 +102,10 @@ func (b *EntitlementSnapshotHandler) handleRule(ctx context.Context, balSnapshot
 			},
 			Namespaces: []string{balSnapshot.Namespace.ID},
 
-			From: balSnapshot.Entitlement.CurrentUsagePeriod.From,
-			To:   balSnapshot.Entitlement.CurrentUsagePeriod.To,
+			CreatedAt: filter.NewFilterTime(
+				&balSnapshot.Entitlement.CurrentUsagePeriod.From,
+				&balSnapshot.Entitlement.CurrentUsagePeriod.To,
+			),
 
 			DeduplicationHashes: []string{dedupHash.V1(), dedupHash.V2()},
 			OrderBy:             notification.OrderByCreatedAt,
@@ -489,6 +492,7 @@ func getActiveThresholdsWithHighestPriority(thresholds []notification.BalanceThr
 			} else if balance.ThresholdValue > numThreshold.ThresholdValue {
 				balance = numThreshold
 			}
+
 		// Deprecated: obsoleted by api.NotificationRuleBalanceThresholdValueTypeUsagePercentage
 		case api.NotificationRuleBalanceThresholdValueTypePercent:
 			fallthrough
@@ -498,6 +502,7 @@ func getActiveThresholdsWithHighestPriority(thresholds []notification.BalanceThr
 			} else if usage.ThresholdValue <= numThreshold.ThresholdValue {
 				usage = numThreshold
 			}
+
 		// Deprecated: obsoleted by api.NotificationRuleBalanceThresholdValueTypeUsageValue
 		case api.NotificationRuleBalanceThresholdValueTypeNumber:
 			fallthrough

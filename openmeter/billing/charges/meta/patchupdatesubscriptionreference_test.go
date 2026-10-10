@@ -77,3 +77,36 @@ func TestPatchUpdateSubscriptionReferenceValidation(t *testing.T) {
 		})
 	}
 }
+
+func TestSubscriptionReferenceAsPatchUpdateSubscriptionReference(t *testing.T) {
+	existing := SubscriptionReference{
+		SubscriptionID: "subscription-1",
+		PhaseID:        "phase-1",
+		ItemID:         "item-1",
+	}
+	target := SubscriptionReference{
+		SubscriptionID: "subscription-1",
+		PhaseID:        "phase-2",
+		ItemID:         "item-2",
+	}
+
+	patch, err := target.AsPatchUpdateSubscriptionReference(existing)
+	require.NoError(t, err)
+
+	updated, err := patch.Apply(existing)
+	require.NoError(t, err)
+	require.Equal(t, target, updated)
+
+	t.Run("subscription ID cannot change", func(t *testing.T) {
+		target := target
+		target.SubscriptionID = "subscription-2"
+
+		_, err := target.AsPatchUpdateSubscriptionReference(existing)
+		require.ErrorContains(t, err, "subscription ID cannot be updated")
+	})
+
+	t.Run("unchanged reference cannot produce a patch", func(t *testing.T) {
+		_, err := existing.AsPatchUpdateSubscriptionReference(existing)
+		require.ErrorContains(t, err, "at least one subscription reference update is required")
+	})
+}

@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/samber/lo"
-	svix "github.com/svix/svix-webhooks/go"
-	svixmodels "github.com/svix/svix-webhooks/go/models"
+	svix "github.com/svix/svix-webhooks/v2/go"
+	svixmodels "github.com/svix/svix-webhooks/v2/go/models"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 
@@ -57,7 +57,7 @@ func (h svixHandler) SendMessage(ctx context.Context, params webhook.SendMessage
 			attribute.String("idempotency_key", idempotencyKey),
 		))
 
-		out, err := h.client.Message.Create(ctx, params.Namespace, input, &svix.MessageCreateOptions{
+		out, err := h.client.Message().Create(ctx, params.Namespace, input, &svix.MessageCreateOptions{
 			IdempotencyKey: &idempotencyKey,
 			WithContent:    lo.ToPtr(false),
 		})
@@ -126,7 +126,7 @@ func (h svixHandler) getDeliveryStatus(ctx context.Context, namespace, eventID, 
 		attemptsBySvixEndpointID := make(map[string][]notification.EventDeliveryAttempt)
 
 		for {
-			attemptsByMsgOut, err := h.client.MessageAttempt.ListByMsg(ctx, namespace, eventID, &svix.MessageAttemptListByMsgOptions{
+			attemptsByMsgOut, err := h.client.MessageAttempt().ListByMsg(ctx, namespace, eventID, &svix.MessageAttemptListByMsgOptions{
 				Limit:    lo.ToPtr[uint64](ListAttemptLimit),
 				Iterator: attemptsIterator,
 			})
@@ -192,7 +192,7 @@ func (h svixHandler) getDeliveryStatus(ctx context.Context, namespace, eventID, 
 		)
 
 		for {
-			endpointOut, err := h.client.MessageAttempt.ListAttemptedDestinations(ctx, namespace, eventID, &svix.MessageAttemptListAttemptedDestinationsOptions{
+			endpointOut, err := h.client.MessageAttempt().ListAttemptedDestinations(ctx, namespace, eventID, &svix.MessageAttemptListAttemptedDestinationsOptions{
 				Limit:    lo.ToPtr[uint64](ListAttemptLimit),
 				Iterator: endpointsIterator,
 			})
@@ -275,7 +275,7 @@ func (h svixHandler) GetMessage(ctx context.Context, params webhook.GetMessageIn
 
 		span.AddEvent("fetching webhook message", trace.WithAttributes(spanAttrs...))
 
-		msgOut, err := h.client.Message.Get(ctx, params.Namespace, msgID, &svix.MessageGetOptions{
+		msgOut, err := h.client.Message().Get(ctx, params.Namespace, msgID, &svix.MessageGetOptions{
 			WithContent: lo.ToPtr(params.Expand.Payload),
 		})
 		if err = internal.WrapSvixError(err); err != nil {
@@ -337,7 +337,7 @@ func (h svixHandler) ResendMessage(ctx context.Context, params webhook.ResendMes
 			return fmt.Errorf("failed to generate idempotency key: %w", err)
 		}
 
-		_, err = h.client.MessageAttempt.Resend(ctx, params.Namespace, params.EventID, params.ChannelID, &svix.MessageAttemptResendOptions{
+		_, err = h.client.MessageAttempt().Resend(ctx, params.Namespace, params.EventID, params.ChannelID, &svix.MessageAttemptResendOptions{
 			IdempotencyKey: &idempotencyKey,
 		})
 		if err = internal.WrapSvixError(err); err != nil {

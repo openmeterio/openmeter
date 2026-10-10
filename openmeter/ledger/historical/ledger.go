@@ -130,6 +130,7 @@ func (l *Ledger) lockAccountsForTransactionInputs(ctx context.Context, namespace
 		if err != nil {
 			return fmt.Errorf("failed to get sub-account: %w", err)
 		}
+
 		subAccounts = append(subAccounts, subAccount)
 	}
 

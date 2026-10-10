@@ -132,10 +132,12 @@ func (a *adapter) ListCustomers(ctx context.Context, input customer.ListCustomer
 				a.logger.WarnContext(ctx, "invalid query result: nil customer received")
 				continue
 			}
+
 			cust, err := CustomerFromDBEntity(*item, input.Expands)
 			if err != nil {
 				return response, fmt.Errorf("failed to convert customer: %w", err)
 			}
+
 			if cust == nil {
 				return response, fmt.Errorf("invalid query result: nil customer received")
 			}
@@ -812,6 +814,7 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customer.UpdateCusto
 		if previousCustomer.UsageAttribution != nil {
 			previousSubjectKeys = previousCustomer.UsageAttribution.SubjectKeys
 		}
+
 		if input.UsageAttribution != nil {
 			newSubjectKeys = input.UsageAttribution.SubjectKeys
 		}
@@ -1009,5 +1012,6 @@ func buildBillingProfileIDPredicate(f filter.FilterULID, defaultProfileID string
 	}
 
 	p := customerdb.Or(preds...)
+
 	return &p
 }

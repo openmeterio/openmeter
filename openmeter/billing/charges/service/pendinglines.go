@@ -27,6 +27,7 @@ func (s *service) CreatePendingInvoiceLines(ctx context.Context, input charges.C
 	for i := range input.Lines {
 		input.Lines[i].Namespace = input.Customer.Namespace
 		input.Lines[i].Currency = input.Currency
+		input.Lines[i].RateCardDiscounts = input.Lines[i].RateCardDiscounts.UpsertCorrelationIDs()
 		if input.Lines[i].Engine == billing.LineEngineTypeInvoice {
 			input.Lines[i].Engine = ""
 		}
@@ -36,12 +37,18 @@ func (s *service) CreatePendingInvoiceLines(ctx context.Context, input charges.C
 		return nil, billing.ValidationError{Err: err}
 	}
 
-	intents, err := mapPendingInvoiceLinesToChargeIntents(input)
-	if err != nil {
-		return nil, billing.ValidationError{Err: err}
-	}
-
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (*charges.CreatePendingInvoiceLinesResult, error) {
+		for i := range input.Lines {
+			if err := productcatalog.ResolveTaxConfig(ctx, s.taxCodeService, input.Customer.Namespace, input.Lines[i].TaxConfig); err != nil {
+				return nil, fmt.Errorf("resolving line.%d tax config: %w", i, err)
+			}
+		}
+
+		intents, err := mapPendingInvoiceLinesToChargeIntents(input)
+		if err != nil {
+			return nil, billing.ValidationError{Err: err}
+		}
+
 		result, err := s.create(ctx, charges.CreateInput{
 			Namespace: input.Customer.Namespace,
 			Intents:   charges.NewCreateChargeIntents(intents...),
@@ -49,6 +56,7 @@ func (s *service) CreatePendingInvoiceLines(ctx context.Context, input charges.C
 		if err != nil {
 			return nil, err
 		}
+
 		if result == nil {
 			return nil, fmt.Errorf("create charges for pending invoice lines: result is nil")
 		}
@@ -60,6 +68,7 @@ func (s *service) CreatePendingInvoiceLines(ctx context.Context, input charges.C
 		if len(result.pendingLineResults) == 0 {
 			return nil, fmt.Errorf("create charges for pending invoice lines: no gathering lines were created")
 		}
+
 		if len(result.pendingLineResults) > 1 {
 			return nil, fmt.Errorf("create charges for pending invoice lines: expected one pending-line result, got %d", len(result.pendingLineResults))
 		}
@@ -72,6 +81,7 @@ func (s *service) CreatePendingInvoiceLines(ctx context.Context, input charges.C
 		if err != nil {
 			return nil, fmt.Errorf("validating pending line results: %w", err)
 		}
+
 		pendingLineResult.Lines = orderedLines
 
 		return pendingLineResult, nil
@@ -115,6 +125,7 @@ func mapPendingInvoiceLinesToChargeIntents(input charges.CreatePendingInvoiceLin
 	if err != nil {
 		return nil, fmt.Errorf("resolving fiat currency %q: %w", input.Currency, err)
 	}
+
 	resolvedCurrency := currencies.Currency{Currency: currency}
 
 	intents := make(charges.ChargeIntents, 0, len(input.Lines))

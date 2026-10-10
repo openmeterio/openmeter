@@ -50,6 +50,50 @@ func TestIntentClone(t *testing.T) {
 	})
 }
 
+func TestIntentEqual(t *testing.T) {
+	usd, err := currencyx.NewFiatCurrency("USD")
+	require.NoError(t, err)
+
+	anotherUSD, err := currencyx.NewFiatCurrency("USD")
+	require.NoError(t, err)
+
+	eur, err := currencyx.NewFiatCurrency("EUR")
+	require.NoError(t, err)
+
+	t.Run("dynamic", func(t *testing.T) {
+		first := NewIntent(DynamicIntent{FiatCurrency: usd})
+		second := NewIntent(DynamicIntent{FiatCurrency: anotherUSD})
+		require.True(t, first.Equal(second))
+
+		second = NewIntent(DynamicIntent{FiatCurrency: eur})
+		require.False(t, first.Equal(second))
+	})
+
+	t.Run("pinned", func(t *testing.T) {
+		first := NewIntent(PinnedIntent{FiatCurrency: usd, CurrencyCostBasisID: "basis-1"})
+		second := NewIntent(PinnedIntent{FiatCurrency: anotherUSD, CurrencyCostBasisID: "basis-1"})
+		require.True(t, first.Equal(second))
+
+		second = NewIntent(PinnedIntent{FiatCurrency: usd, CurrencyCostBasisID: "basis-2"})
+		require.False(t, first.Equal(second))
+	})
+
+	t.Run("manual", func(t *testing.T) {
+		first := NewIntent(ManualIntent{FiatCurrency: usd, Rate: alpacadecimal.NewFromInt(2)})
+		second := NewIntent(ManualIntent{FiatCurrency: anotherUSD, Rate: alpacadecimal.NewFromInt(2)})
+		require.True(t, first.Equal(second))
+
+		second = NewIntent(ManualIntent{FiatCurrency: usd, Rate: alpacadecimal.NewFromInt(3)})
+		require.False(t, first.Equal(second))
+	})
+
+	t.Run("different modes", func(t *testing.T) {
+		first := NewIntent(DynamicIntent{FiatCurrency: usd})
+		second := NewIntent(ManualIntent{FiatCurrency: usd, Rate: alpacadecimal.NewFromInt(2)})
+		require.False(t, first.Equal(second))
+	})
+}
+
 func TestManualIntentValidate(t *testing.T) {
 	usd, err := currencyx.NewFiatCurrency("USD")
 	require.NoError(t, err)

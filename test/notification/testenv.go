@@ -1,7 +1,6 @@
 package notification
 
 import (
-	"context"
 	"crypto/rand"
 	"errors"
 	"fmt"
@@ -13,7 +12,7 @@ import (
 	"time"
 
 	"github.com/oklog/ulid/v2"
-	svix "github.com/svix/svix-webhooks/go"
+	svix "github.com/svix/svix-webhooks/v2/go"
 	"go.opentelemetry.io/otel/trace/noop"
 
 	"github.com/openmeterio/openmeter/openmeter/meter"
@@ -120,8 +119,9 @@ const (
 	DefaultSvixJWTSigningSecret = "DUMMY_JWT_SECRET"
 )
 
-func NewTestEnv(t *testing.T, ctx context.Context, namespace string) (TestEnv, error) {
+func NewTestEnv(t *testing.T, namespace string) (TestEnv, error) {
 	t.Helper()
+
 	logger := slog.Default().WithGroup("notification")
 
 	tracer := noop.NewTracerProvider().Tracer("test")
@@ -134,6 +134,7 @@ func NewTestEnv(t *testing.T, ctx context.Context, namespace string) (TestEnv, e
 	if err != nil {
 		return nil, fmt.Errorf("failed to create meter service: %w", err)
 	}
+
 	if err := meterService.SetDBClient(entClient); err != nil {
 		return nil, fmt.Errorf("failed to set meter DB client: %w", err)
 	}

@@ -82,6 +82,7 @@ func (s Service) CreateChannel(ctx context.Context, params notification.CreateCh
 			if err != nil {
 				return nil, fmt.Errorf("failed to update channel: %w", err)
 			}
+
 			logger.Debug("channel is updated in database with webhook configuration")
 		default:
 			return nil, fmt.Errorf("invalid channel type: %s", channel.Type)
@@ -109,7 +110,7 @@ func (s Service) DeleteChannel(ctx context.Context, params notification.DeleteCh
 		logger.Debug("deleting channel")
 
 		rules, err := s.adapter.ListRules(ctx, notification.ListRulesInput{
-			Namespaces:      []string{params.Namespace},
+			Namespace:       params.Namespace,
 			IncludeDisabled: true,
 			Channels:        []string{params.ID},
 		})
@@ -182,6 +183,14 @@ func (s Service) UpdateChannel(ctx context.Context, params notification.UpdateCh
 			}
 		}
 
+		// An empty signing secret means "keep the current secret": clients omit
+		// signing_secret unless rotating it, and an empty secret is never a valid
+		// credential — persisting it would break signature verification for the
+		// receiver and fail the downstream webhook provider update.
+		if params.Config.WebHook.SigningSecret == "" {
+			params.Config.WebHook.SigningSecret = channel.Config.WebHook.SigningSecret
+		}
+
 		err = params.ValidateWith(func(i notification.UpdateChannelInput) error {
 			if i.Type != channel.Type {
 				return fmt.Errorf("cannot update channel type: %s to %s", channel.Type, i.Type)
@@ -196,7 +205,7 @@ func (s Service) UpdateChannel(ctx context.Context, params notification.UpdateCh
 		// Fetch rules assigned to channel as we need to make sure that we do not remove rule assignments
 		// from channel during update.
 		rules, err := s.adapter.ListRules(ctx, notification.ListRulesInput{
-			Namespaces:      []string{params.Namespace},
+			Namespace:       params.Namespace,
 			IncludeDisabled: true,
 			Channels:        []string{params.ID},
 		})

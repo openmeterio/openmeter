@@ -173,6 +173,7 @@ func TestRoutes(t *testing.T) {
 					e.SetType("type")
 					e.SetSubject("subject")
 					e.SetSource("source")
+
 					return &e
 				}(),
 			},
@@ -621,6 +622,129 @@ func TestRoutes(t *testing.T) {
 				status: http.StatusOK,
 			},
 		},
+		// Customer entitlements
+		{
+			name: "get customer entitlement history",
+			req: testRequest{
+				method: http.MethodGet,
+				path:   "/api/v3/openmeter/customers/01ARZ3NDEKTSV4RRFFQ69G5FAV/entitlements/01ARZ3NDEKTSV4RRFFQ69G5FAW/history?window_size=PT1H",
+			},
+			res: testResponse{
+				status: http.StatusOK,
+			},
+		},
+		{
+			name: "list customer entitlements",
+			req: testRequest{
+				method: http.MethodGet,
+				path:   "/api/v3/openmeter/customers/01ARZ3NDEKTSV4RRFFQ69G5FAV/entitlements?filter[type]=metered&sort=created_at%20desc",
+			},
+			res: testResponse{
+				status: http.StatusOK,
+			},
+		},
+		{
+			name: "reset customer entitlement usage",
+			req: testRequest{
+				method:      http.MethodPost,
+				contentType: "application/json",
+				path:        "/api/v3/openmeter/customers/01ARZ3NDEKTSV4RRFFQ69G5FAV/entitlements/01ARZ3NDEKTSV4RRFFQ69G5FAW/reset",
+				body:        apiv3.ResetCustomerEntitlementUsageRequest{},
+			},
+			res: testResponse{
+				status: http.StatusNoContent,
+			},
+		},
+		{
+			name: "delete customer entitlement",
+			req: testRequest{
+				method: http.MethodDelete,
+				path:   "/api/v3/openmeter/customers/01ARZ3NDEKTSV4RRFFQ69G5FAV/entitlements/01ARZ3NDEKTSV4RRFFQ69G5FAW",
+			},
+			res: testResponse{
+				status: http.StatusNoContent,
+			},
+		},
+		{
+			name: "list entitlements",
+			req: testRequest{
+				method: http.MethodGet,
+				path:   "/api/v3/openmeter/entitlements?filter[customer_id]=01ARZ3NDEKTSV4RRFFQ69G5FAV&sort=created_at%20desc",
+			},
+			res: testResponse{
+				status: http.StatusOK,
+			},
+		},
+		{
+			name: "get entitlement",
+			req: testRequest{
+				method: http.MethodGet,
+				path:   "/api/v3/openmeter/entitlements/01ARZ3NDEKTSV4RRFFQ69G5FAV",
+			},
+			res: testResponse{
+				status: http.StatusOK,
+			},
+		},
+		{
+			name: "override customer entitlement",
+			req: testRequest{
+				method:      http.MethodPut,
+				contentType: "application/json",
+				path:        "/api/v3/openmeter/customers/01ARZ3NDEKTSV4RRFFQ69G5FAV/entitlements/01ARZ3NDEKTSV4RRFFQ69G5FAW/override",
+				body: map[string]any{
+					"type":    "boolean",
+					"feature": map[string]any{"id": "01ARZ3NDEKTSV4RRFFQ69G5FAX"},
+				},
+			},
+			res: testResponse{
+				status: http.StatusCreated,
+			},
+		},
+		{
+			name: "list customer entitlement grants",
+			req: testRequest{
+				method: http.MethodGet,
+				path:   "/api/v3/openmeter/customers/01ARZ3NDEKTSV4RRFFQ69G5FAV/entitlements/01ARZ3NDEKTSV4RRFFQ69G5FAW/grants",
+			},
+			res: testResponse{
+				status: http.StatusOK,
+			},
+		},
+		{
+			name: "create customer entitlement grant",
+			req: testRequest{
+				method:      http.MethodPost,
+				contentType: "application/json",
+				path:        "/api/v3/openmeter/customers/01ARZ3NDEKTSV4RRFFQ69G5FAV/entitlements/01ARZ3NDEKTSV4RRFFQ69G5FAW/grants",
+				body: apiv3.BillingEntitlementGrantCreateRequest{
+					Amount:      "100",
+					EffectiveAt: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
+				},
+			},
+			res: testResponse{
+				status: http.StatusCreated,
+			},
+		},
+		{
+			name: "list grants",
+			req: testRequest{
+				method: http.MethodGet,
+				path:   "/api/v3/openmeter/grants?filter[customer_id]=01ARZ3NDEKTSV4RRFFQ69G5FAV&filter[feature_id]=01ARZ3NDEKTSV4RRFFQ69G5FAW&sort=effective_at%20desc&page[number]=2&page[size]=5",
+			},
+			res: testResponse{
+				status: http.StatusOK,
+			},
+		},
+		{
+			name: "void grant",
+			req: testRequest{
+				method: http.MethodDelete,
+				path:   "/api/v3/openmeter/grants/01ARZ3NDEKTSV4RRFFQ69G5FAV",
+			},
+			res: testResponse{
+				status: http.StatusNoContent,
+			},
+		},
 		// Charges
 		{
 			name: "list customer charges without charge service",
@@ -656,10 +780,12 @@ func TestRoutes(t *testing.T) {
 			if tt.req.body != nil {
 				reqBody, _ = json.Marshal(tt.req.body)
 			}
+
 			req := httptest.NewRequest(tt.req.method, tt.req.path, bytes.NewReader(reqBody))
 			if tt.req.accept != "" {
 				req.Header.Set("Accept", tt.req.accept)
 			}
+
 			if tt.req.contentType != "" {
 				req.Header.Set("Content-Type", tt.req.contentType)
 			}
@@ -814,6 +940,7 @@ func getTestServer(t *testing.T, opts ...func(*router.Config)) (*Server, *MockSt
 	// Create server
 	server, err := NewServer(config)
 	assert.NoError(t, err, "failed to create server")
+
 	return server, mockStreamingConnector
 }
 
@@ -893,10 +1020,6 @@ func (n NoopChargeService) Create(_ context.Context, _ billingcharges.CreateInpu
 
 func (n NoopChargeService) CreatePendingInvoiceLines(_ context.Context, _ billingcharges.CreatePendingInvoiceLinesInput) (*billingcharges.CreatePendingInvoiceLinesResult, error) {
 	return nil, nil
-}
-
-func (n NoopChargeService) UpdateSubscriptionItemID(_ context.Context, charge billingcharges.Charge, _ string) (billingcharges.Charge, error) {
-	return charge, nil
 }
 
 func (n NoopChargeService) AdvanceCharges(_ context.Context, _ billingcharges.AdvanceChargesInput) (billingcharges.Charges, error) {
@@ -1033,6 +1156,7 @@ func (c *MockStreamingConnector) ListEvents(ctx context.Context, namespace strin
 			StoredAt:   time.Time{},
 		},
 	}
+
 	return events, nil
 }
 
@@ -1049,6 +1173,7 @@ func (c *MockStreamingConnector) ListEventsV2(ctx context.Context, params stream
 			StoredAt:   time.Time{},
 		},
 	}
+
 	return events, nil
 }
 
@@ -1143,6 +1268,52 @@ func (n NoopEntitlementConnector) CreateEntitlement(ctx context.Context, input e
 	return &entitlement.Entitlement{}, nil
 }
 
+func (n NoopEntitlementConnector) CreateCustomerEntitlement(ctx context.Context, input entitlement.CreateCustomerEntitlementInput) (*entitlement.Entitlement, error) {
+	return &entitlement.Entitlement{}, nil
+}
+
+func (n NoopEntitlementConnector) OverrideCustomerEntitlement(ctx context.Context, input entitlement.OverrideCustomerEntitlementInput) (*entitlement.Entitlement, error) {
+	return &entitlement.Entitlement{GenericProperties: entitlement.GenericProperties{EntitlementType: entitlement.EntitlementTypeBoolean}}, nil
+}
+
+func (n NoopEntitlementConnector) GetCustomerEntitlement(ctx context.Context, input entitlement.GetCustomerEntitlementInput) (*entitlement.Entitlement, error) {
+	return &entitlement.Entitlement{}, nil
+}
+
+func (n NoopEntitlementConnector) ListCustomerEntitlements(ctx context.Context, input entitlement.ListCustomerEntitlementsInput) (pagination.Result[entitlement.Entitlement], error) {
+	return pagination.Result[entitlement.Entitlement]{}, nil
+}
+
+func (n NoopEntitlementConnector) DeleteCustomerEntitlement(ctx context.Context, input entitlement.DeleteCustomerEntitlementInput) error {
+	return nil
+}
+
+func (n NoopEntitlementConnector) GetEntitlementByID(ctx context.Context, input entitlement.GetEntitlementByIDInput) (*entitlement.Entitlement, error) {
+	return &entitlement.Entitlement{
+		GenericProperties: entitlement.GenericProperties{EntitlementType: entitlement.EntitlementTypeBoolean},
+	}, nil
+}
+
+func (n NoopEntitlementConnector) ListNamespaceEntitlements(ctx context.Context, input entitlement.ListNamespaceEntitlementsInput) (pagination.Result[entitlement.Entitlement], error) {
+	return pagination.Result[entitlement.Entitlement]{}, nil
+}
+
+func (n NoopEntitlementConnector) ListCustomerEntitlementGrants(ctx context.Context, input entitlement.ListCustomerEntitlementGrantsInput) (pagination.Result[grant.Grant], error) {
+	return pagination.Result[grant.Grant]{}, nil
+}
+
+func (n NoopEntitlementConnector) CreateCustomerEntitlementGrant(ctx context.Context, input entitlement.CreateCustomerEntitlementGrantInput) (grant.Grant, error) {
+	return grant.Grant{}, nil
+}
+
+func (n NoopEntitlementConnector) ListNamespaceGrants(ctx context.Context, input entitlement.ListNamespaceGrantsInput) (pagination.Result[grant.Grant], error) {
+	return pagination.Result[grant.Grant]{}, nil
+}
+
+func (n NoopEntitlementConnector) VoidGrant(ctx context.Context, input entitlement.VoidGrantInput) error {
+	return nil
+}
+
 func (n NoopEntitlementConnector) ScheduleEntitlement(ctx context.Context, input entitlement.CreateEntitlementInputs) (*entitlement.Entitlement, error) {
 	return &entitlement.Entitlement{}, nil
 }
@@ -1197,6 +1368,14 @@ func (n NoopEntitlementConnector) GetCustomerEntitlementAccess(ctx context.Conte
 
 func (n NoopEntitlementConnector) ListCustomerEntitlementAccess(ctx context.Context, input entitlement.ListCustomerEntitlementAccessInput) ([]entitlement.CustomerEntitlementAccess, error) {
 	return nil, nil
+}
+
+func (n NoopEntitlementConnector) GetCustomerEntitlementHistory(ctx context.Context, input entitlement.GetCustomerEntitlementHistoryInput) (entitlement.CustomerEntitlementHistory, error) {
+	return entitlement.CustomerEntitlementHistory{}, nil
+}
+
+func (n NoopEntitlementConnector) ResetCustomerEntitlementUsage(ctx context.Context, input entitlement.ResetCustomerEntitlementUsageInput) error {
+	return nil
 }
 
 // NoopEntitlementBalanceConnector
@@ -1307,6 +1486,22 @@ func (n NoopNotificationService) UpdateRule(_ context.Context, _ notification.Up
 	return &notification.Rule{}, nil
 }
 
+func (n NoopNotificationService) ListRuleViews(_ context.Context, _ notification.ListRulesInput) (pagination.Result[notification.RuleView], error) {
+	return pagination.Result[notification.RuleView]{}, nil
+}
+
+func (n NoopNotificationService) CreateRuleView(_ context.Context, _ notification.CreateRuleInput) (notification.RuleView, error) {
+	return notification.RuleView{}, nil
+}
+
+func (n NoopNotificationService) GetRuleView(_ context.Context, _ notification.GetRuleInput) (notification.RuleView, error) {
+	return notification.RuleView{}, nil
+}
+
+func (n NoopNotificationService) UpdateRuleView(_ context.Context, _ notification.UpdateRuleInput) (notification.RuleView, error) {
+	return notification.RuleView{}, nil
+}
+
 func (n NoopNotificationService) ListEvents(_ context.Context, _ notification.ListEventsInput) (notification.ListEventsResult, error) {
 	return notification.ListEventsResult{}, nil
 }
@@ -1395,6 +1590,10 @@ func (n NoopAppService) UninstallApp(ctx context.Context, input app.UninstallApp
 	return nil
 }
 
+func (n NoopAppService) ExecuteAppAction(ctx context.Context, input app.ExecuteAppActionInput) (app.App, error) {
+	return nil, nil
+}
+
 func (n NoopAppService) ListCustomerData(ctx context.Context, input app.ListCustomerInput) (pagination.Result[app.CustomerApp], error) {
 	return pagination.Result[app.CustomerApp]{}, nil
 }
@@ -1412,6 +1611,10 @@ var _ appstripe.Service = (*NoopAppStripeService)(nil)
 type NoopAppStripeService struct{}
 
 func (n NoopAppStripeService) UpdateAPIKey(ctx context.Context, input appstripe.UpdateAPIKeyInput) error {
+	return nil
+}
+
+func (n NoopAppStripeService) UpdateWebhookSchemaVersion(ctx context.Context, input appstripe.UpdateWebhookSchemaVersionInput) error {
 	return nil
 }
 

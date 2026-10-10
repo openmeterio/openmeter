@@ -17,6 +17,25 @@ type Meta struct {
 	AppData
 }
 
+// Actions reports a reconcile task while the app's webhook endpoint was registered with
+// an older event set than LatestWebhookSchemaVersion covers.
+func (m Meta) Actions() []app.AppAction {
+	if m.DeletedAt != nil {
+		return nil
+	}
+
+	if m.WebhookSchemaVersion < LatestWebhookSchemaVersion {
+		return []app.AppAction{
+			{
+				Type:        AppActionTypeReconcileWebhookEvents,
+				Description: "The Stripe webhook endpoint is registered with an outdated event set. Reconcile the webhook to receive all supported events.",
+			},
+		}
+	}
+
+	return nil
+}
+
 var _ app.EventAppParser = (*Meta)(nil)
 
 func (m *Meta) FromEventAppData(event app.EventApp) error {

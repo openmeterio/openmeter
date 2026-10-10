@@ -54,6 +54,7 @@ func (d *db1Adapter) Tx(ctx context.Context) (context.Context, transaction.Drive
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to hijack transaction: %w", err)
 	}
+
 	return txCtx, entutils.NewTxDriver(eDriver, rawConfig), nil
 }
 
@@ -64,6 +65,7 @@ func (d *db1Adapter) Self() SomeDB[db1.Example1] {
 func (d *db1Adapter) WithTx(ctx context.Context, tx *entutils.TxDriver) SomeDB[db1.Example1] {
 	txClient := db1.NewTxClientFromRawConfig(ctx, *tx.GetConfig())
 	res := &db1Adapter{db: txClient.Client()}
+
 	return res
 }
 
@@ -92,6 +94,7 @@ func (d *db2Adapter) Tx(ctx context.Context) (context.Context, transaction.Drive
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to hijack transaction: %w", err)
 	}
+
 	return txCtx, entutils.NewTxDriver(eDriver, rawConfig), nil
 }
 
@@ -122,6 +125,7 @@ func TestTransaction(t *testing.T) {
 					if err != nil {
 						t.Fatal(err)
 					}
+
 					// create entities
 					ec1, err := db1Adapter.WithTx(ctx, tx).Save(ctx, &db1.Example1{
 						ID:            "1",
@@ -130,6 +134,7 @@ func TestTransaction(t *testing.T) {
 					if err != nil {
 						return nil, err
 					}
+
 					ec2, err := db2Adapter.WithTx(ctx, tx).Save(ctx, &db2.Example2{
 						ID:            "2",
 						ExampleValue2: "value2",
@@ -151,6 +156,7 @@ func TestTransaction(t *testing.T) {
 					assert.NotNil(t, ent2)
 
 					assert.NoError(t, err)
+
 					return nil, fmt.Errorf("lets roll back")
 				})
 				assert.Equal(t, "lets roll back", err.Error())
@@ -175,6 +181,7 @@ func TestTransaction(t *testing.T) {
 					if err != nil {
 						t.Fatal(err)
 					}
+
 					// create entities
 					ec1, err := db1Adapter.WithTx(ctx, tx).Save(ctx, &db1.Example1{
 						ID:            "1",
@@ -183,6 +190,7 @@ func TestTransaction(t *testing.T) {
 					if err != nil {
 						return nil, err
 					}
+
 					ec2, err := db2Adapter.WithTx(ctx, tx).Save(ctx, &db2.Example2{
 						ID:            "2",
 						ExampleValue2: "value2",
@@ -241,6 +249,7 @@ func TestTransaction(t *testing.T) {
 						if err != nil {
 							panic(err)
 						}
+
 						// create entities
 						ec1, err := db1Adapter.WithTx(ctx, tx).Save(ctx, &db1.Example1{
 							ID:            "1",
@@ -249,6 +258,7 @@ func TestTransaction(t *testing.T) {
 						if err != nil {
 							return nil, err
 						}
+
 						ec2, err := db2Adapter.WithTx(ctx, tx).Save(ctx, &db2.Example2{
 							ID:            "2",
 							ExampleValue2: "value2",
@@ -312,6 +322,7 @@ func TestTransaction(t *testing.T) {
 					if err != nil {
 						t.Fatal(err)
 					}
+
 					// do something in outer transaction first
 					_, err = db1Adapter.WithTx(ctx, tx).Save(ctx, &db1.Example1{
 						ID: "1",
@@ -326,6 +337,7 @@ func TestTransaction(t *testing.T) {
 						if err != nil {
 							t.Fatal(err)
 						}
+
 						// do something else in the inner transaction
 						_, err = db1Adapter.WithTx(ctx, tx).Save(ctx, &db1.Example1{
 							ID: "2",
@@ -376,6 +388,7 @@ func TestTransaction(t *testing.T) {
 					if err != nil {
 						t.Fatal(err)
 					}
+
 					// do something in outer transaction first
 					_, err = db1Adapter.WithTx(ctx, tx).Save(ctx, &db1.Example1{
 						ID: "1",
@@ -390,6 +403,7 @@ func TestTransaction(t *testing.T) {
 						if err != nil {
 							t.Fatal(err)
 						}
+
 						// do something else in the inner transaction
 						_, err = db1Adapter.WithTx(ctx, tx).Save(ctx, &db1.Example1{
 							ID: "2",
@@ -449,6 +463,7 @@ func TestTransaction(t *testing.T) {
 			if err := db1Client.Schema.Create(context.Background()); err != nil {
 				t.Fatalf("failed to migrate database %s", err)
 			}
+
 			if err := db2Client.Schema.Create(context.Background()); err != nil {
 				t.Fatalf("failed to migrate database %s", err)
 			}

@@ -55,6 +55,7 @@ func (s *service) createPhaseWithChildren(
 
 				itemsByKey = append(itemsByKey, item)
 			}
+
 			res.ItemsByKey[key] = itemsByKey
 		}
 
@@ -186,6 +187,7 @@ func (s *service) deletePhaseWithChildren(ctx context.Context, phase subscriptio
 
 		return nil, nil
 	})
+
 	return err
 }
 
@@ -209,6 +211,7 @@ func (s *service) deleteItemWithEntitlement(ctx context.Context, item subscripti
 
 		return nil, nil
 	})
+
 	return err
 }
 
@@ -237,6 +240,7 @@ func (s *service) resolveTaxCode(ctx context.Context, namespace string, rc produ
 		if err := productcatalog.ResolveTaxConfig(ctx, s.TaxCode, namespace, m.TaxConfig); err != nil {
 			return m, err
 		}
+
 		return m, nil
 	})
 }

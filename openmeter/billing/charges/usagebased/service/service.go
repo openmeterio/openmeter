@@ -6,7 +6,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/invoiceupdater"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
@@ -23,7 +23,7 @@ import (
 type Config struct {
 	Adapter                usagebased.Adapter
 	Handler                usagebased.Handler
-	Lineage                lineage.Service
+	Lineage                legacylineage.Service
 	Locker                 *lockr.Locker
 	MetaAdapter            meta.Adapter
 	InvoiceUpdater         invoiceupdater.Updater

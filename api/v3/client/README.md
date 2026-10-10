@@ -21,6 +21,7 @@ TypeSpec definitions and ships typed request and response models.
   - [Meters](#meters)
   - [Customers](#customers)
   - [Entitlements](#entitlements)
+  - [Grants](#grants)
   - [Subscriptions](#subscriptions)
   - [Apps](#apps)
   - [Billing](#billing)
@@ -35,6 +36,7 @@ TypeSpec definitions and ships typed request and response models.
   - [PlanAddons](#planaddons)
   - [Defaults](#defaults)
   - [EntitlementAccess](#entitlementaccess)
+  - [Notifications](#notifications)
 - [Error Handling](#error-handling)
 - [Pagination and Streaming](#pagination-and-streaming)
 
@@ -166,6 +168,15 @@ The full call path, HTTP route, and a short description are listed below.
 | `om.Customers.Billing.UpdateAppData` | `PUT /openmeter/customers/{customerId}/billing/app-data` |  |
 | `om.Customers.Billing.CreateStripeCheckoutSession` | `POST /openmeter/customers/{customerId}/billing/stripe/checkout-sessions` | Create a [Stripe Checkout Session](https://docs.stripe.com/payments/checkout) for the customer. Creates a Checkout Session for collecting payment method information from customers. The session operates in "setup" mode, which collects payment details without charging the customer immediately. The collected payment method can be used for future subscription billing. For hosted checkout sessions, redirect customers to the returned URL. For embedded sessions, use the client_secret to initialize Stripe.js in your application. |
 | `om.Customers.Billing.CreateStripePortalSession` | `POST /openmeter/customers/{customerId}/billing/stripe/portal-sessions` | Create Stripe Customer Portal Session. Useful to redirect the customer to the Stripe Customer Portal to manage their payment methods, change their billing address and access their invoice history. Only returns URL if the customer billing profile is linked to a stripe app and customer. |
+| `om.Customers.Entitlements.Create` | `POST /openmeter/customers/{customerId}/entitlements` | Create an entitlement for the customer. A customer can have only one active entitlement per feature. The feature must be compatible with the entitlement type. Entitlements cannot be modified after creation, only deleted. |
+| `om.Customers.Entitlements.Override` | `PUT /openmeter/customers/{customerId}/entitlements/{entitlementId}/override` | Override an entitlement of the customer with a new one. The referenced entitlement ends and the new one starts at the same instant, so access continues without a gap. Both must belong to the same feature. Use this for upgrades and downgrades. Fails if the referenced entitlement does not exist, is deleted, or is no longer active. |
+| `om.Customers.Entitlements.GetHistory` | `GET /openmeter/customers/{customerId}/entitlements/{entitlementId}/history` | Get the balance and usage history of a metered entitlement. The queried range may span multiple usage periods. `windowed_history` groups usage into windows of the requested size and reports the balance at the start of each window. `burndown_history` lists the periods in which grants were consumed in a fixed order, together with the usage taken from each grant. |
+| `om.Customers.Entitlements.Get` | `GET /openmeter/customers/{customerId}/entitlements/{entitlementId}` | Get an entitlement of the customer by ID. For checking entitlement access, use the entitlement access endpoints instead. |
+| `om.Customers.Entitlements.List` | `GET /openmeter/customers/{customerId}/entitlements` | List the entitlements of the customer that are active at the time of the request. For checking entitlement access, use the entitlement access endpoints instead. |
+| `om.Customers.Entitlements.ResetUsage` | `POST /openmeter/customers/{customerId}/entitlements/{entitlementId}/reset` | Reset the usage of a metered entitlement. The reset starts a new usage period: usage is zeroed and grants roll over according to their rollover settings. Usage is reset automatically at the end of each usage period. Use this operation to reset it earlier, for example to align the entitlement with the customer's billing period. The usage period anchor can be moved at the same time. |
+| `om.Customers.Entitlements.Delete` | `DELETE /openmeter/customers/{customerId}/entitlements/{entitlementId}` | Deletes the entitlement and revokes access to its feature. A customer can hold only one active entitlement per feature, so migrating a feature requires deleting the previous entitlement first. Deletion sets the `deleted_at` timestamp instead of removing history. Access and status queries for earlier points in time still treat the entitlement as active, so access changes are never retroactive. |
+| `om.Customers.Entitlements.Grants.Create` | `POST /openmeter/customers/{customerId}/entitlements/{entitlementId}/grants` | Issue a grant for a metered entitlement of the customer. Boolean and static entitlements cannot have grants, so the request is rejected for them. Grants are immutable. The amount is added to the balance from `effective_at`, which cannot be earlier than the start of the current usage period. |
+| `om.Customers.Entitlements.Grants.List` | `GET /openmeter/customers/{customerId}/entitlements/{entitlementId}/grants` | List the grants issued for an entitlement of the customer. Grants only exist for metered entitlements, so the list is empty for boolean and static entitlements. Deleted grants are excluded unless `include_deleted` is set. Voided and expired grants are always included, as they are part of the balance history. |
 | `om.Customers.Credits.Grants.Create` | `POST /openmeter/customers/{customerId}/credits/grants` | Create a new credit grant. A credit grant represents an allocation of prepaid credits to a customer. |
 | `om.Customers.Credits.Grants.Get` | `GET /openmeter/customers/{customerId}/credits/grants/{creditGrantId}` | Get a credit grant. |
 | `om.Customers.Credits.Grants.List` | `GET /openmeter/customers/{customerId}/credits/grants` | List credit grants. |
@@ -183,6 +194,17 @@ The full call path, HTTP route, and a short description are listed below.
 | --- | --- | --- |
 | `om.Entitlements.ListCustomerAccess` | `GET /openmeter/customers/{customerId}/entitlement-access` |  |
 | `om.Entitlements.GetCustomerAccess` | `GET /openmeter/customers/{customerId}/entitlement-access/features/{featureKey}` | Get the customer's access to a single feature. |
+| `om.Entitlements.GetCustomerValueByFeatureKey` | `GET /openmeter/customers/{customerId}/entitlement-access/features/{featureKey}/value` | Get the customer's entitlement value for a feature at a point in time. Without an active entitlement, the result denies access and omits the type. |
+| `om.Entitlements.List` | `GET /openmeter/entitlements` | List the active entitlements of all customers. Intended for administrative use. To list the entitlements of a single customer, use the customer entitlements endpoints; to check entitlement access, use the entitlement access endpoints. |
+| `om.Entitlements.Get` | `GET /openmeter/entitlements/{entitlementId}` | Get an entitlement by ID. To check entitlement access, use the entitlement access endpoints instead. |
+| `om.Entitlements.GetCustomerValue` | `GET /openmeter/customers/{customerId}/entitlements/{entitlementId}/value` | Get the customer's access through a single entitlement, optionally evaluated at a point in time. |
+
+### Grants
+
+| Method | HTTP | Description |
+| --- | --- | --- |
+| `om.Grants.List` | `GET /openmeter/grants` | List the grants of all customers and entitlements. To list the grants of a single entitlement, use the customer entitlement grants endpoint. Deleted grants are excluded unless `include_deleted` is set. Voided and expired grants are always included, as they are part of the balance history. |
+| `om.Grants.Void` | `DELETE /openmeter/grants/{grantId}` | Void a grant so it no longer adds to the balance. Usage already deducted from the grant is kept. |
 
 ### Subscriptions
 
@@ -211,6 +233,7 @@ The full call path, HTTP route, and a short description are listed below.
 | `om.Apps.Get` | `GET /openmeter/apps/{appId}` | Get an installed app. |
 | `om.Apps.Uninstall` | `DELETE /openmeter/apps/{appId}` | Uninstall an app by ID. |
 | `om.Apps.Update` | `PUT /openmeter/apps/{appId}` | Update an installed app. |
+| `om.Apps.ExecuteAction` | `POST /openmeter/apps/{appId}/action` | Execute an operator action on an installed app. The action must be listed in the app's `actions`; otherwise the request is rejected. |
 | `om.Apps.ListCatalog` | `GET /openmeter/app-catalog` | List available apps. |
 | `om.Apps.GetCatalogItem` | `GET /openmeter/app-catalog/{appType}` | Get an app catalog item by type. |
 | `om.Apps.Install` | `POST /openmeter/app-catalog/install` | Install an app from the catalog. |
@@ -331,6 +354,25 @@ The full call path, HTTP route, and a short description are listed below.
 | Method | HTTP | Description |
 | --- | --- | --- |
 | `om.EntitlementAccess.Query` | `POST /openmeter/entitlement-access/query` | Query feature access for a list of customers. The endpoint resolves each provided identifier to a customer and returns the access status for the requested features, plus optional credit balance availability. _Designed to be called on a fixed refresh interval and the query response is intended to be cached._ |
+
+### Notifications
+
+| Method | HTTP | Description |
+| --- | --- | --- |
+| `om.Notifications.ListChannels` | `GET /openmeter/notification/channels` | List all notification channels. |
+| `om.Notifications.CreateChannel` | `POST /openmeter/notification/channels` | Create a notification channel. |
+| `om.Notifications.GetChannel` | `GET /openmeter/notification/channels/{notificationChannelId}` | Get a notification channel by id. |
+| `om.Notifications.UpdateChannel` | `PUT /openmeter/notification/channels/{notificationChannelId}` | Update a notification channel by id. |
+| `om.Notifications.DeleteChannel` | `DELETE /openmeter/notification/channels/{notificationChannelId}` | Delete a notification channel by id. |
+| `om.Notifications.ListRules` | `GET /openmeter/notification/rules` | List all notification rules. |
+| `om.Notifications.CreateRule` | `POST /openmeter/notification/rules` | Create a notification rule. |
+| `om.Notifications.GetRule` | `GET /openmeter/notification/rules/{notificationRuleId}` | Get a notification rule by id. |
+| `om.Notifications.UpdateRule` | `PUT /openmeter/notification/rules/{notificationRuleId}` | Update a notification rule by id. |
+| `om.Notifications.DeleteRule` | `DELETE /openmeter/notification/rules/{notificationRuleId}` | Delete a notification rule by id. |
+| `om.Notifications.TestRule` | `POST /openmeter/notification/rules/{notificationRuleId}/test` | Test a notification rule by generating an event with sample data and delivering it to the rule's channels. The test event is persisted and listed like any other event. |
+| `om.Notifications.ListEvents` | `GET /openmeter/notification/events` | List all notification events. |
+| `om.Notifications.GetEvent` | `GET /openmeter/notification/events/{notificationEventId}` | Get a notification event by id. |
+| `om.Notifications.ResendEvent` | `POST /openmeter/notification/events/{notificationEventId}/resend` | Resend a notification event to the channels of the rule that generated it. Delivery is asynchronous: the request marks the selected channels for redelivery and returns immediately. Channels whose delivery is still pending or already being resent are left untouched. |
 
 ## Error Handling
 

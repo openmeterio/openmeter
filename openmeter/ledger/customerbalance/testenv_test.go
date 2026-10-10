@@ -21,8 +21,8 @@ import (
 	flatfeeadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/adapter"
 	flatfeeservice "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/service"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/invoiceupdater"
-	lineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/adapter"
-	lineageservice "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/service"
+	legacylineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage/adapter"
+	legacylineageservice "github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage/service"
 	chargemeta "github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	metaadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/meta/adapter"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
@@ -37,6 +37,8 @@ import (
 	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
+	"github.com/openmeterio/openmeter/openmeter/ledger"
+	advancetestutils "github.com/openmeterio/openmeter/openmeter/ledger/advance/testutils"
 	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	ledgerbreakageadapter "github.com/openmeterio/openmeter/openmeter/ledger/breakage/adapter"
 	ledgerchargeadapter "github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
@@ -202,12 +204,12 @@ func newTestEnv(t *testing.T) *testEnv {
 	})
 	require.NoError(t, err)
 
-	lineageAdapter, err := lineageadapter.New(lineageadapter.Config{
+	lineageAdapter, err := legacylineageadapter.New(legacylineageadapter.Config{
 		Client: base.DB,
 	})
 	require.NoError(t, err)
 
-	lineageService, err := lineageservice.New(lineageservice.Config{
+	lineageService, err := legacylineageservice.New(legacylineageservice.Config{
 		Adapter: lineageAdapter,
 	})
 	require.NoError(t, err)
@@ -246,8 +248,12 @@ func newTestEnv(t *testing.T) *testEnv {
 	})
 	require.NoError(t, err)
 
+	advanceService := advancetestutils.NewService(t, base.Deps, breakageService)
+
 	collectorService, err := ledgercollector.NewService(ledgercollector.Config{
-		Ledger: base.Deps.HistoricalLedger,
+		Logger:  logger,
+		Advance: advanceService,
+		Ledger:  base.Deps.HistoricalLedger,
 		Dependencies: transactions.ResolverDependencies{
 			AccountService: base.Deps.ResolversService,
 			AccountCatalog: base.Deps.AccountService,
@@ -343,14 +349,15 @@ func newTestEnv(t *testing.T) *testEnv {
 	})
 	require.NoError(t, err)
 
-	creditPurchaseHandler, err := ledgerchargeadapter.NewCreditPurchaseHandler(
-		base.Deps.HistoricalLedger,
-		base.Deps.HistoricalLedger,
-		base.Deps.ResolversService,
-		base.Deps.AccountService,
-		breakageService,
-		enttx.NewCreator(base.DB),
-	)
+	creditPurchaseHandler, err := ledgerchargeadapter.NewCreditPurchaseHandler(ledgerchargeadapter.CreditPurchaseHandlerConfig{
+		Ledger:             base.Deps.HistoricalLedger,
+		BalanceQuerier:     base.Deps.HistoricalLedger,
+		AccountResolver:    base.Deps.ResolversService,
+		AccountCatalog:     base.Deps.AccountService,
+		AdvanceService:     advanceService,
+		BreakageService:    breakageService,
+		TransactionManager: enttx.NewCreator(base.DB),
+	})
 	require.NoError(t, err)
 
 	creditPurchaseService, err := creditpurchaseservice.New(creditpurchaseservice.Config{
@@ -450,7 +457,7 @@ func (e *testEnv) bookFBOBalanceInCurrencyReferenceWithFeatures(t *testing.T, am
 			At:       e.Now(),
 			Amount:   amount,
 			Currency: currency,
-			Features: features,
+			Filters:  ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: features},
 		},
 	)
 	require.NoError(t, err)
@@ -493,13 +500,13 @@ func (e *testEnv) fundOpenReceivableInCurrencyReferenceWithFeatures(t *testing.T
 			At:       e.Now(),
 			Amount:   amount,
 			Currency: currency,
-			Features: features,
+			Filters:  ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: features},
 		},
 		transactions.SettleCustomerReceivableFromPaymentTemplate{
 			At:       e.Now(),
 			Amount:   amount,
 			Currency: currency,
-			Features: features,
+			Filters:  ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: features},
 		},
 	)
 	require.NoError(t, err)
@@ -701,10 +708,10 @@ func (e *testEnv) createCreditPurchase(
 					BillingPeriod:     servicePeriod,
 					FullServicePeriod: servicePeriod,
 				},
-				CreditAmount:   amount,
-				EffectiveAt:    effectiveAt,
-				FeatureFilters: features,
-				Settlement:     settlement,
+				CreditAmount: amount,
+				EffectiveAt:  effectiveAt,
+				Filters:      ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: features},
+				Settlement:   settlement,
 			},
 			CostBasis: costBasis,
 		},
@@ -772,9 +779,11 @@ func (l chargeStore) GetByIDs(ctx context.Context, input charges.GetByIDsInput) 
 	for _, charge := range creditPurchaseCharges {
 		chargesByID[charge.ID] = charges.NewCharge(charge)
 	}
+
 	for _, charge := range flatFeeCharges {
 		chargesByID[charge.ID] = charges.NewCharge(charge)
 	}
+
 	for _, charge := range usageBasedCharges {
 		chargesByID[charge.ID] = charges.NewCharge(charge)
 	}
@@ -843,9 +852,11 @@ func (l chargeStore) ListCharges(ctx context.Context, input charges.ListChargesI
 	for _, charge := range creditPurchaseCharges {
 		chargesByID[charge.ID] = charges.NewCharge(charge)
 	}
+
 	for _, charge := range flatFeeCharges {
 		chargesByID[charge.ID] = charges.NewCharge(charge)
 	}
+
 	for _, charge := range usageBasedCharges {
 		chargesByID[charge.ID] = charges.NewCharge(charge)
 	}

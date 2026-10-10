@@ -72,6 +72,7 @@ func (d *diffable) restore() subscription.AppliesToSpec {
 					if lo.Contains(rmIdxs, idx) {
 						continue
 					}
+
 					filteredItems = append(filteredItems, item)
 				}
 

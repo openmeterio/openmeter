@@ -90,36 +90,43 @@ func (i ListPlanAddonsInput) Validate() error {
 			errs = append(errs, fmt.Errorf("invalid id filter: %w", err))
 		}
 	}
+
 	if i.PlanID != nil {
 		if err := i.PlanID.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("invalid plan_id filter: %w", err))
 		}
 	}
+
 	if i.PlanKey != nil {
 		if err := i.PlanKey.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("invalid plan_key filter: %w", err))
 		}
 	}
+
 	if i.AddonID != nil {
 		if err := i.AddonID.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("invalid addon_id filter: %w", err))
 		}
 	}
+
 	if i.AddonKey != nil {
 		if err := i.AddonKey.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("invalid addon_key filter: %w", err))
 		}
 	}
+
 	if i.AddonName != nil {
 		if err := i.AddonName.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("invalid addon_name filter: %w", err))
 		}
 	}
+
 	if i.PlanCurrency != nil {
 		if err := i.PlanCurrency.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("invalid currency filter: %w", err))
 		}
 	}
+
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 

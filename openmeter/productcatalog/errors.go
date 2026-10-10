@@ -415,7 +415,17 @@ const ErrCodeBillingCadenceInvalidValue models.ErrorCode = "billing_cadence_inva
 
 var ErrBillingCadenceInvalidValue = models.NewValidationIssue(
 	ErrCodeBillingCadenceInvalidValue,
-	"billing cadence must be positive and 1 hour long duration at least",
+	"billing cadence must be positive",
+	models.WithFieldString("billingCadence"),
+	models.WithWarningSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
+)
+
+const ErrCodeRateCardBillingCadenceTooShort models.ErrorCode = "rate_card_billing_cadence_too_short"
+
+var ErrRateCardBillingCadenceTooShort = models.NewValidationIssue(
+	ErrCodeRateCardBillingCadenceTooShort,
+	"rate card billing cadence must be at least 24 hours",
 	models.WithFieldString("billingCadence"),
 	models.WithWarningSeverity(),
 	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),

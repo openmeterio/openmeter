@@ -96,6 +96,14 @@ type BaseSuite struct {
 	TaxCodeService taxcode.Service
 }
 
+func (s *BaseSuite) RequireRun(name string, subtest func()) {
+	t := s.T()
+	t.Helper()
+	if !s.Run(name, subtest) {
+		t.Fatalf("test failed")
+	}
+}
+
 func (s *BaseSuite) TearDownTest() {
 	clock.UnFreeze()
 	clock.ResetTime()
@@ -262,7 +270,6 @@ func (s *BaseSuite) setupSuite() {
 	billingService, err := billingservice.New(billingservice.Config{
 		Adapter:                 billingAdapter,
 		SequenceService:         billingSequenceService,
-		RatingService:           billingRatingService,
 		LegacyBillingLineEngine: legacyBillingLineEngine,
 		CustomerService:         s.CustomerService,
 		AppService:              s.AppService,
@@ -361,6 +368,7 @@ func (s *BaseSuite) CreateTestCustomer(ns string, subjectKey string) *customer.C
 	})
 
 	s.NoError(err)
+
 	return customer
 }
 
@@ -397,6 +405,7 @@ func (s *BaseSuite) DebugDumpStandardInvoice(h string, i billing.StandardInvoice
 		} else if l1.Period.From.After(l2.Period.From) {
 			return 1
 		}
+
 		return 0
 	})
 
@@ -430,6 +439,7 @@ func (s *BaseSuite) DebugDumpGatheringInvoice(h string, i billing.GatheringInvoi
 		} else if l1.ServicePeriod.From.After(l2.ServicePeriod.From) {
 			return 1
 		}
+
 		return 0
 	})
 
@@ -708,6 +718,7 @@ func (s *BaseSuite) ProvisionDefaultTaxCodes(ctx context.Context, ns string) tax
 		CreditGrantTaxCodeID: creditGrant.ID,
 	})
 	s.Require().NoError(err, "upserting organization default tax codes")
+
 	return defaults
 }
 

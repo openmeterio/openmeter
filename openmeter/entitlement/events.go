@@ -30,6 +30,7 @@ func (e entitlementEventV2) Validate() error {
 	if err := e.Entitlement.Validate(); err != nil {
 		return err
 	}
+
 	return nil
 }
 

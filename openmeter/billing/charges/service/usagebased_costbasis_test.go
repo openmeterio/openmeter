@@ -120,6 +120,7 @@ func (s *UsageBasedCostBasisCreateSuite) TestCreatePersistsManualPinnedAndDynami
 		s.Require().Equal(result.Charge.Intent.GetCostBasisIntent().Kind(), persisted.Intent.Kind(), "charge index %d", idx)
 		s.Require().Equal(result.Charge.State.ResolvedCostBasis, persisted.State, "charge index %d", idx)
 	}
+
 	s.Require().Len(seenCostBasisIDs, 3)
 }
 
@@ -326,6 +327,7 @@ func (s *UsageBasedCostBasisCreateSuite) TestPinnedCostBasisMustMatchCurrencyAnd
 			s.Require().ErrorContains(err, test.errorText)
 		})
 	}
+
 	s.Require().Equal(0, s.countCostBases(namespace))
 }
 

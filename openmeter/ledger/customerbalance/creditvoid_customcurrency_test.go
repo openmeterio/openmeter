@@ -111,6 +111,7 @@ func TestCreditVoidCustomCurrency(t *testing.T) {
 		require.NotNil(t, item.CustomCurrencyID)
 		voidedByCurrencyID[*item.CustomCurrencyID] = item
 	}
+
 	require.Equal(t, float64(-100), voidedByCurrencyID[customCurrencyValue.ID].Amount.InexactFloat64())
 	require.Equal(t, float64(100), voidedByCurrencyID[customCurrencyValue.ID].Balance.Before.InexactFloat64())
 	require.Equal(t, float64(0), voidedByCurrencyID[customCurrencyValue.ID].Balance.After.InexactFloat64())

@@ -6,10 +6,10 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/errorsx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -69,10 +69,6 @@ func (s *service) validateUpdate(ctx context.Context, currentView subscription.S
 		))
 	}
 
-	if err := validateMaterializedItemCurrenciesUnchanged(currentView.Spec, newSpec); err != nil {
-		return err
-	}
-
 	// Fetch the customer & validate the customer
 	cus, err := s.CustomerService.GetCustomer(ctx, customer.GetCustomerInput{
 		CustomerID: &customer.CustomerID{
@@ -105,83 +101,6 @@ func (s *service) validateUpdate(ctx context.Context, currentView subscription.S
 	return nil
 }
 
-func validateMaterializedItemCurrenciesUnchanged(currentSpec, newSpec subscription.SubscriptionSpec) error {
-	for phaseKey, currentPhase := range currentSpec.Phases {
-		newPhase, ok := newSpec.Phases[phaseKey]
-		if !ok || currentPhase == nil || newPhase == nil {
-			continue
-		}
-
-		for itemKey, currentItems := range currentPhase.ItemsByKey {
-			newItems, ok := newPhase.ItemsByKey[itemKey]
-			if !ok {
-				continue
-			}
-
-			var establishedCurrency *currencies.CurrencyReference
-			for _, currentItem := range currentItems {
-				if currentItem == nil || currentItem.RateCard == nil {
-					continue
-				}
-
-				meta := currentItem.RateCard.AsMeta()
-				if meta.Price != nil && meta.Currency != nil {
-					establishedCurrency = meta.Currency
-					break
-				}
-			}
-
-			for idx, currentItem := range currentItems {
-				if idx >= len(newItems) || currentItem == nil || newItems[idx] == nil || currentItem.RateCard == nil || newItems[idx].RateCard == nil {
-					continue
-				}
-
-				currentCurrency := currentItem.RateCard.AsMeta().Currency
-				if currentCurrency == nil {
-					continue
-				}
-
-				newCurrency := newItems[idx].RateCard.AsMeta().Currency
-				if newCurrency == nil || !currentCurrency.Equal(*newCurrency) {
-					return models.NewGenericValidationError(fmt.Errorf(
-						"cannot change currency of subscription item %q[%d] in phase %q",
-						itemKey,
-						idx,
-						phaseKey,
-					))
-				}
-			}
-
-			for idx, newItem := range newItems {
-				if newItem == nil || newItem.RateCard == nil {
-					continue
-				}
-
-				meta := newItem.RateCard.AsMeta()
-				if meta.Price == nil || meta.Currency == nil {
-					continue
-				}
-
-				if establishedCurrency == nil {
-					establishedCurrency = meta.Currency
-					continue
-				}
-
-				if !establishedCurrency.Equal(*meta.Currency) {
-					return models.NewGenericValidationError(fmt.Errorf(
-						"cannot change currency of subscription item %q[%d] in phase %q",
-						itemKey,
-						idx,
-						phaseKey,
-					))
-				}
-			}
-		}
-	}
-
-	return nil
-}
-
 func (s *service) validateCancel(ctx context.Context, view subscription.SubscriptionView, timing subscription.Timing) error {
 	// Let's make sure Cancel is possible based on the transition rules
 	if err := subscription.NewStateMachine(
@@ -207,7 +126,8 @@ func (s *service) validateCancel(ctx context.Context, view subscription.Subscrip
 
 	spec.ActiveTo = lo.ToPtr(cancelTime)
 
-	if err := spec.Validate(); err != nil {
+	// Existing subscriptions with a subscription or item billing period under 24 hours must remain cancellable.
+	if err := spec.Validate(); err != nil && !errorsx.IsOnly(err, subscription.LegacySpecValidationErrors...) {
 		return fmt.Errorf("spec is invalid after setting cancelation time: %w", err)
 	}
 

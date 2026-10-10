@@ -21,6 +21,7 @@ func (s SettlementType) Validate() error {
 	if !slices.Contains(s.Values(), string(s)) {
 		return models.NewGenericValidationError(fmt.Errorf("invalid credit purchase settlement type: %s", s))
 	}
+
 	return nil
 }
 
@@ -44,6 +45,7 @@ func (s InitialPaymentSettlementStatus) Validate() error {
 	if !slices.Contains(s.Values(), string(s)) {
 		return models.NewGenericValidationError(fmt.Errorf("invalid payment settlement status: %s", s))
 	}
+
 	return nil
 }
 
@@ -201,6 +203,7 @@ func (s Settlement) Validate() error {
 	default:
 		return models.NewGenericValidationError(fmt.Errorf("invalid credit purchase settlement type: %s", s.t))
 	}
+
 	return nil
 }
 

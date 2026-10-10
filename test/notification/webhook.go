@@ -61,6 +61,7 @@ func (s *WebhookTestSuite) TestCreateWebhook(ctx context.Context, t *testing.T) 
 	if input.Secret != nil {
 		assert.Equal(t, defaultx.WithDefault(input.Secret, ""), webhook.Secret, "Webhook secret must match")
 	}
+
 	assert.Equal(t, defaultx.WithDefault(input.Description, ""), webhook.Description, "Webhook description must match")
 	assert.ElementsMatch(t, input.EventTypes, webhook.EventTypes, "Webhook event types must match")
 	assert.ElementsMatch(t, input.Channels, webhook.Channels, "Webhook channels must match")

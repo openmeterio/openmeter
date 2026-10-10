@@ -40,6 +40,7 @@ func (s Status) Validate() error {
 	if !slices.Contains(s.Values(), string(s)) {
 		return models.NewGenericValidationError(fmt.Errorf("invalid status: %s", s))
 	}
+
 	return nil
 }
 

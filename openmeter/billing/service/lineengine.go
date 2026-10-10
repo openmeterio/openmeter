@@ -9,7 +9,35 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
+
+// runInTransactionWithValidationWarningsAllowed runs one line-engine attempt in a
+// savepoint. Warning-only results release the savepoint and are returned beside
+// the usable result. Every other error rolls the whole attempt back.
+func (s *Service) runInTransactionWithValidationWarningsAllowed[T any](
+	ctx context.Context,
+	callback func(context.Context) (T, error),
+) (T, billing.ValidationIssues, error) {
+	var warnings billing.ValidationIssues
+
+	result, err := transaction.Run(ctx, s.adapter, func(ctx context.Context) (T, error) {
+		result, callbackErr := callback(ctx)
+
+		var extractionErr error
+		warnings, extractionErr = billing.ToValidationIssues(callbackErr, billing.RequireWarningsOnly())
+		if extractionErr != nil {
+			return lo.Empty[T](), callbackErr
+		}
+
+		return result, nil
+	})
+	if err != nil {
+		return lo.Empty[T](), nil, err
+	}
+
+	return result, warnings, nil
+}
 
 type engineRegistry struct {
 	mu               sync.RWMutex
@@ -41,6 +69,7 @@ func (r *engineRegistry) Register(eng billing.LineEngine) error {
 	}
 
 	r.engines[engineType] = eng
+
 	return nil
 }
 
@@ -122,6 +151,7 @@ func (r *engineRegistry) populateGatheringLineEngine(line *billing.GatheringLine
 	}
 
 	line.Engine = billing.LineEngineTypeInvoice
+
 	return nil
 }
 
@@ -131,6 +161,7 @@ func (r *engineRegistry) populateStandardLineEngine(line *billing.StandardLine) 
 	}
 
 	line.Engine = billing.LineEngineTypeInvoice
+
 	return nil
 }
 
@@ -176,6 +207,7 @@ func (s *Service) areGatheringLinesBillableAsOf(ctx context.Context, input billi
 		if err != nil && !billing.IsValidationIssueOnly(err) {
 			return nil, fmt.Errorf("checking line billability with engine %s: %w", engineType, err)
 		}
+
 		errs = append(errs, billing.NewLineEngineValidationError(grouped.Engine, err))
 
 		if len(results) != len(grouped.Lines) {

@@ -474,6 +474,7 @@ func (a *adapter) GetCostBasisAt(ctx context.Context, params currencies.GetCostB
 				params.At.UTC().Format(time.RFC3339),
 			))
 		}
+
 		if err != nil {
 			return currencies.CostBasis{}, fmt.Errorf("querying cost basis: %w", err)
 		}

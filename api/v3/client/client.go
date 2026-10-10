@@ -18,6 +18,7 @@ type Client struct {
 	Meters            *MetersService
 	Customers         *CustomersService
 	Entitlements      *EntitlementsService
+	Grants            *GrantsService
 	Subscriptions     *SubscriptionsService
 	Apps              *AppsService
 	Billing           *BillingService
@@ -32,6 +33,7 @@ type Client struct {
 	PlanAddons        *PlanAddonsService
 	Defaults          *DefaultsService
 	EntitlementAccess *EntitlementAccessService
+	Notifications     *NotificationsService
 }
 
 func New(baseURL string, opts ...Option) (*Client, error) {
@@ -65,6 +67,7 @@ func New(baseURL string, opts ...Option) (*Client, error) {
 	c.Meters = &MetersService{client: c}
 	c.Customers = &CustomersService{client: c}
 	c.Entitlements = &EntitlementsService{client: c}
+	c.Grants = &GrantsService{client: c}
 	c.Subscriptions = &SubscriptionsService{client: c}
 	c.Apps = &AppsService{client: c}
 	c.Billing = &BillingService{client: c}
@@ -79,9 +82,12 @@ func New(baseURL string, opts ...Option) (*Client, error) {
 	c.PlanAddons = &PlanAddonsService{client: c}
 	c.Defaults = &DefaultsService{client: c}
 	c.EntitlementAccess = &EntitlementAccessService{client: c}
+	c.Notifications = &NotificationsService{client: c}
 	c.Customers.Billing = &CustomersBillingService{client: c}
+	c.Customers.Entitlements = &CustomersEntitlementsService{client: c}
 	c.Customers.Credits = &CustomersCreditsService{client: c}
 	c.Customers.Charges = &CustomersChargesService{client: c}
+	c.Customers.Entitlements.Grants = &CustomersEntitlementsGrantsService{client: c}
 	c.Customers.Credits.Grants = &CustomersCreditsGrantsService{client: c}
 	c.Customers.Credits.Balance = &CustomersCreditsBalanceService{client: c}
 	c.Customers.Credits.Adjustments = &CustomersCreditsAdjustmentsService{client: c}

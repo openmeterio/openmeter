@@ -147,6 +147,7 @@ func (s *Service) UpdateGatheringInvoice(ctx context.Context, input billing.Upda
 			if err != nil {
 				return billing.GatheringInvoice{}, fmt.Errorf("converting edited invoice to gathering invoice: %w", err)
 			}
+
 			invoice = gatheringInvoice
 
 		case billing.ChangeSourceSystem:

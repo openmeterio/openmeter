@@ -20,6 +20,7 @@ func (e *entitlementDBAdapter) Tx(ctx context.Context) (context.Context, transac
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to hijack transaction: %w", err)
 	}
+
 	return txCtx, entutils.NewTxDriver(eDriver, rawConfig), nil
 }
 
@@ -39,6 +40,7 @@ func (u *usageResetDBAdapter) Tx(ctx context.Context) (context.Context, transact
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to hijack transaction: %w", err)
 	}
+
 	return txCtx, entutils.NewTxDriver(eDriver, rawConfig), nil
 }
 

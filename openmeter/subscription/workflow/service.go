@@ -32,12 +32,15 @@ func (i MigrateSubscriptionWorkflowInput) Validate() error {
 	if i.SubscriptionID.Namespace == "" || i.SubscriptionID.ID == "" {
 		errs = append(errs, errors.New("subscription namespace and ID are required"))
 	}
+
 	if i.Plan == nil || i.Plan.ToCreateSubscriptionPlanInput().Plan == nil {
 		errs = append(errs, errors.New("a catalog plan is required"))
 	}
+
 	if err := i.Timing.Validate(); err != nil {
 		errs = append(errs, err)
 	}
+
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 

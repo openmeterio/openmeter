@@ -53,6 +53,7 @@ func (r *subscriptionPhaseRepo) GetForSubscriptionAt(ctx context.Context, input 
 			if err != nil {
 				return nil, err
 			}
+
 			result = append(result, r)
 		}
 
@@ -84,6 +85,7 @@ func (r *subscriptionPhaseRepo) GetForSubscriptionsAt(ctx context.Context, input
 			if err != nil {
 				return nil, err
 			}
+
 			result = append(result, r)
 		}
 
@@ -130,5 +132,6 @@ func (r *subscriptionPhaseRepo) Delete(ctx context.Context, id models.Namespaced
 
 		return nil, err
 	})
+
 	return err
 }

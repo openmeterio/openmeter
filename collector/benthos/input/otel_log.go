@@ -109,6 +109,7 @@ func (in *otelLogInput) ReadBatch(ctx context.Context) (service.MessageBatch, se
 		if open {
 			return b.Payload, b.Ack, nil
 		}
+
 		return nil, nil, nil
 	case <-ctx.Done():
 		return nil, nil, ctx.Err()
@@ -306,6 +307,7 @@ func (in *otelLogInput) extractMessageFromRequest(request *collogspb.ExportLogsS
 				if err != nil {
 					return nil, err
 				}
+
 				msg := service.NewMessage(recordByte)
 				batch = append(batch, msg)
 			}

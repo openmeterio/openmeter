@@ -6,8 +6,9 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
+	"github.com/samber/mo"
 
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
@@ -21,11 +22,11 @@ type accruedKey struct {
 }
 
 func entryAccruedKey(entry ledger.EntryInput) accruedKey {
-	return accruedKey{entry.PostingAddress().SubAccountID(), lo.FromPtr(entry.SourceChargeID()), lo.FromPtr(entry.SpendChargeID())}
+	return accruedKey{entry.PostingAddress().SubAccountID(), lo.FromPtr(entry.Provenance().SourceChargeID), lo.FromPtr(entry.Provenance().SpendChargeID)}
 }
 
 type recognitionAllocation struct {
-	segment lineage.Segment
+	segment legacylineage.Segment
 	amount  alpacadecimal.Decimal
 }
 
@@ -37,15 +38,23 @@ func (s *service) planRecognition(ctx context.Context, in RecognizeEarningsInput
 	if err != nil {
 		return nil, nil, err
 	}
+
 	accountID := accounts.AccruedAccount.ID().ID
 	buckets, err := s.deps.BalanceQuerier.GetBalanceBuckets(ctx, ledger.BalanceBucketQuery{
 		Namespace: in.CustomerID.Namespace,
-		Filters:   ledger.Filters{AccountID: &accountID, Route: ledger.RouteFilter{Currency: in.Currency.Reference()}},
-		GroupBy:   []string{ledger.BalanceBucketGroupBySourceChargeID, ledger.BalanceBucketGroupBySpendChargeID},
+		Filters: ledger.Filters{
+			Provenance: ledger.ProvenanceFilter{
+				CollectionOriginID: mo.Some[*string](nil),
+			},
+			AccountID: &accountID,
+			Route:     ledger.RouteFilter{Currency: in.Currency.Reference()},
+		},
+		GroupBy: []string{ledger.BalanceBucketGroupBySourceChargeID, ledger.BalanceBucketGroupBySpendChargeID},
 	})
 	if err != nil {
 		return nil, nil, fmt.Errorf("load accrued balances: %w", err)
 	}
+
 	available := make(map[accruedKey]alpacadecimal.Decimal)
 	for _, bucket := range buckets {
 		key := accruedKey{bucket.Address.SubAccountID(), lo.FromPtr(bucket.GroupByValues[ledger.BalanceBucketGroupBySourceChargeID]), lo.FromPtr(bucket.GroupByValues[ledger.BalanceBucketGroupBySpendChargeID])}
@@ -61,10 +70,12 @@ func (s *service) planRecognition(ctx context.Context, in RecognizeEarningsInput
 		if err != nil {
 			return nil, nil, err
 		}
+
 		collected, err := allocationAccruedSources(original, e.lineage.OriginalAllocationSortHint)
 		if err != nil {
 			return nil, nil, err
 		}
+
 		for _, segment := range e.segments {
 			backing := collected
 			if segment.State == creditrealization.LineageSegmentStateAdvanceBackfilled {
@@ -72,8 +83,10 @@ func (s *service) planRecognition(ctx context.Context, in RecognizeEarningsInput
 				if err != nil {
 					return nil, nil, err
 				}
+
 				backing = backfilledAccruedSources(group, collected)
 			}
+
 			remaining := segment.Amount
 			for _, source := range backing {
 				entry := source.entry
@@ -81,27 +94,36 @@ func (s *service) planRecognition(ctx context.Context, in RecognizeEarningsInput
 				if entry.PostingAddress().Route().Route().CostBasis == nil || key.sourceChargeID == "" || key.spendChargeID == "" || key.sourceChargeID == key.spendChargeID {
 					continue
 				}
+
 				take := minDecimal(remaining, minDecimal(source.amount, available[key]))
 				if !take.IsPositive() {
 					continue
 				}
+
 				if index, ok := sourceIndexes[key]; ok {
 					sources[index].Amount = sources[index].Amount.Add(take)
 				} else {
 					sourceIndexes[key] = len(sources)
 					sources = append(sources, transactions.PostingAmount{
-						Address: entry.PostingAddress(), Amount: take,
-						Identity: ledger.EntryIdentityParts{SourceChargeID: entry.SourceChargeID(), SpendChargeID: entry.SpendChargeID()},
+						Address: entry.PostingAddress(),
+						Amount:  take,
+						Identity: ledger.EntryIdentityParts{Provenance: ledger.Provenance{
+							SourceChargeID: entry.Provenance().SourceChargeID,
+							SpendChargeID:  entry.Provenance().SpendChargeID,
+						}},
 					})
 				}
+
 				available[key] = available[key].Sub(take)
 				remaining = remaining.Sub(take)
 			}
+
 			if amount := segment.Amount.Sub(remaining); amount.IsPositive() {
 				allocations = append(allocations, recognitionAllocation{segment: segment, amount: amount})
 			}
 		}
 	}
+
 	return sources, allocations, nil
 }
 
@@ -109,14 +131,18 @@ func (s *service) recognitionGroup(ctx context.Context, namespace, id string, gr
 	if id == "" {
 		return nil, fmt.Errorf("recognition lineage is missing its allocation or backing transaction group")
 	}
+
 	if group, ok := groups[id]; ok {
 		return group, nil
 	}
+
 	group, err := s.ledger.GetTransactionGroup(ctx, models.NamespacedID{Namespace: namespace, ID: id})
 	if err != nil {
 		return nil, fmt.Errorf("load recognition source group: %w", err)
 	}
+
 	groups[id] = group
+
 	return group, nil
 }
 
@@ -135,26 +161,32 @@ func allocationAccruedSources(group ledger.TransactionGroup, sortHint int) ([]ac
 		if err != nil {
 			return nil, err
 		}
+
 		if direction != ledger.TransactionDirectionForward {
 			continue
 		}
+
 		var subAccounts []string
 		bySubAccount := make(map[string][]ledger.Entry)
 		for _, entry := range tx.Entries() {
 			if entry.PostingAddress().AccountType() != ledger.AccountTypeCustomerFBO || !entry.Amount().IsNegative() {
 				continue
 			}
+
 			id := entry.PostingAddress().SubAccountID()
 			if _, ok := bySubAccount[id]; !ok {
 				subAccounts = append(subAccounts, id)
 			}
+
 			bySubAccount[id] = append(bySubAccount[id], entry)
 		}
+
 		for _, id := range subAccounts {
 			if index != sortHint {
 				index++
 				continue
 			}
+
 			var out []accruedSource
 			for _, fbo := range bySubAccount[id] {
 				remaining := fbo.Amount().Abs()
@@ -162,9 +194,11 @@ func allocationAccruedSources(group ledger.TransactionGroup, sortHint int) ([]ac
 					if accrued.PostingAddress().AccountType() != ledger.AccountTypeCustomerAccrued || !accrued.Amount().IsPositive() {
 						continue
 					}
-					if lo.FromPtr(fbo.SourceChargeID()) != lo.FromPtr(accrued.SourceChargeID()) || lo.FromPtr(fbo.SpendChargeID()) != lo.FromPtr(accrued.SpendChargeID()) || !sameFundingRoute(fbo.PostingAddress().Route().Route(), accrued.PostingAddress().Route().Route()) {
+
+					if lo.FromPtr(fbo.Provenance().SourceChargeID) != lo.FromPtr(accrued.Provenance().SourceChargeID) || lo.FromPtr(fbo.Provenance().SpendChargeID) != lo.FromPtr(accrued.Provenance().SpendChargeID) || !sameFundingRoute(fbo.PostingAddress().Route().Route(), accrued.PostingAddress().Route().Route()) {
 						continue
 					}
+
 					amount := minDecimal(remaining, accrued.Amount())
 					if amount.IsPositive() {
 						out = append(out, accruedSource{accrued, amount})
@@ -172,9 +206,11 @@ func allocationAccruedSources(group ledger.TransactionGroup, sortHint int) ([]ac
 					}
 				}
 			}
+
 			return out, nil
 		}
 	}
+
 	return nil, fmt.Errorf("allocation sort hint %d out of range for recognition source group", sortHint)
 }
 
@@ -182,9 +218,11 @@ func sameFundingRoute(left, right ledger.Route) bool {
 	if !left.Currency.Equal(right.Currency) || lo.FromPtr(left.CostBasisCurrency) != lo.FromPtr(right.CostBasisCurrency) {
 		return false
 	}
+
 	if left.CostBasis == nil || right.CostBasis == nil {
 		return left.CostBasis == nil && right.CostBasis == nil
 	}
+
 	return left.CostBasis.Equal(*right.CostBasis)
 }
 
@@ -197,15 +235,17 @@ func backfilledAccruedSources(group ledger.TransactionGroup, original []accruedS
 			if entry.PostingAddress().AccountType() != ledger.AccountTypeCustomerAccrued || !entry.Amount().IsPositive() {
 				continue
 			}
+
 			route := entry.PostingAddress().Route().Route()
 			for _, source := range original {
 				originalRoute := source.entry.PostingAddress().Route().Route()
-				if lo.FromPtr(entry.SpendChargeID()) == lo.FromPtr(source.entry.SpendChargeID()) && route.Currency.Equal(originalRoute.Currency) && lo.FromPtr(route.TaxCode) == lo.FromPtr(originalRoute.TaxCode) && lo.FromPtr(route.TaxBehavior) == lo.FromPtr(originalRoute.TaxBehavior) {
+				if lo.FromPtr(entry.Provenance().SpendChargeID) == lo.FromPtr(source.entry.Provenance().SpendChargeID) && route.Currency.Equal(originalRoute.Currency) && lo.FromPtr(route.TaxCode) == lo.FromPtr(originalRoute.TaxCode) && lo.FromPtr(route.TaxBehavior) == lo.FromPtr(originalRoute.TaxBehavior) {
 					out = append(out, accruedSource{entry, entry.Amount()})
 					break
 				}
 			}
 		}
 	}
+
 	return out
 }

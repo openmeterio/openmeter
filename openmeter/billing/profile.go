@@ -90,6 +90,7 @@ func (c InvoicingConfig) Clone() InvoicingConfig {
 		cloned := c.DefaultTaxConfig.Clone()
 		out.DefaultTaxConfig = &cloned
 	}
+
 	return out
 }
 

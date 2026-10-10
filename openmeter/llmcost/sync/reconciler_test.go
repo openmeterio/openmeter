@@ -31,7 +31,9 @@ func (m *mockAdapter) UpsertGlobalPrice(_ context.Context, price llmcost.Price) 
 	if m.upsertErr != nil {
 		return m.upsertErr
 	}
+
 	m.upsertedPrices = append(m.upsertedPrices, price)
+
 	return nil
 }
 
@@ -77,12 +79,15 @@ func makePriceWithOptional(source, provider, modelID string, input, output float
 	if cacheRead != nil {
 		p.Pricing.CacheReadPerToken = lo.ToPtr(alpacadecimal.NewFromFloat(*cacheRead))
 	}
+
 	if cacheWrite != nil {
 		p.Pricing.CacheWritePerToken = lo.ToPtr(alpacadecimal.NewFromFloat(*cacheWrite))
 	}
+
 	if reasoning != nil {
 		p.Pricing.ReasoningPerToken = lo.ToPtr(alpacadecimal.NewFromFloat(*reasoning))
 	}
+
 	return p
 }
 
@@ -593,6 +598,8 @@ func (m *failOnceMockAdapter) UpsertGlobalPrice(_ context.Context, price llmcost
 	if m.called == 1 {
 		return errors.New("transient db error")
 	}
+
 	m.upsertedPrices = append(m.upsertedPrices, price)
+
 	return nil
 }

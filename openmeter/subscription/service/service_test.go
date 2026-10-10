@@ -20,6 +20,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -378,6 +379,7 @@ func TestCancellation(t *testing.T) {
 							if foundItemCadence.ActiveTo != nil && foundItemCadence.ActiveTo.Equal(*phaseCadence.ActiveTo) {
 								satisfies = true
 							}
+
 							// - their ActiveTo time set to the cancel time (if they started before the cancel time)
 						} else if foundItemCadence.ActiveTo != nil && foundItemCadence.ActiveTo.Equal(expectedCancelTime) {
 							satisfies = true
@@ -1382,6 +1384,7 @@ func TestTaxCodeResolution(t *testing.T) {
 					if meta.Key != "taxcodeid-only-rc" {
 						continue
 					}
+
 					found = true
 					require.NotNil(t, meta.TaxConfig)
 					require.NotNil(t, meta.TaxConfig.TaxCodeID)
@@ -1391,6 +1394,7 @@ func TestTaxCodeResolution(t *testing.T) {
 				}
 			}
 		}
+
 		require.True(t, found, "item taxcodeid-only-rc must be present in the subscription view")
 	})
 
@@ -1447,6 +1451,7 @@ func TestTaxCodeResolution(t *testing.T) {
 						m.TaxConfig = &productcatalog.TaxConfig{
 							TaxCodeID: lo.ToPtr("01JNON_EXISTENT_TAX_CODE_ID"),
 						}
+
 						return m, nil
 					})
 					require.NoError(t, err)
@@ -1458,4 +1463,45 @@ func TestTaxCodeResolution(t *testing.T) {
 		require.Error(t, err)
 		assert.True(t, models.IsGenericValidationError(err), "expected validation error for unknown taxCodeId, got: %v", err)
 	})
+}
+
+func TestBillingCadenceLegacyCancellation(t *testing.T) {
+	// given: a persisted subscription and item with legacy hourly cadences
+	now := time.Date(2026, time.January, 1, 12, 0, 0, 0, time.UTC)
+	clock.FreezeTime(now)
+	defer clock.UnFreeze()
+	dbDeps := subscriptiontestutils.SetupDBDeps(t)
+	t.Cleanup(func() { dbDeps.Cleanup(t) })
+	deps := subscriptiontestutils.NewService(t, dbDeps)
+	customer := deps.CustomerAdapter.CreateExampleCustomer(t)
+	spec, err := subscriptiontestutils.BuildTestSubscriptionSpec(t).AddPhase(nil, &productcatalog.FlatFeeRateCard{
+		RateCardMeta: productcatalog.RateCardMeta{
+			Key: "fee", Name: "Fee",
+			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{Amount: alpacadecimal.NewFromInt(1), PaymentTerm: productcatalog.InArrearsPaymentTerm}),
+		},
+		BillingCadence: lo.ToPtr(datetime.MustParseDuration(t, "P1D")),
+	}).Build()
+	require.NoError(t, err)
+	spec.Plan = nil
+	spec.CustomerId = customer.ID
+	spec.ActiveFrom = now.Add(-time.Hour)
+	spec.BillingAnchor = spec.ActiveFrom
+	sub, err := deps.SubscriptionService.Create(t.Context(), subscriptiontestutils.ExampleNamespace, spec)
+	require.NoError(t, err)
+	view, err := deps.SubscriptionService.GetView(t.Context(), sub.NamespacedID)
+	require.NoError(t, err)
+	itemID := view.Phases[0].ItemsByKey["fee"][0].SubscriptionItem.ID
+	_, err = dbDeps.DBClient.SubscriptionItem.UpdateOneID(itemID).SetBillingCadence(datetime.ISODurationString("PT1H")).Save(t.Context())
+	require.NoError(t, err)
+	_, err = dbDeps.DBClient.Subscription.UpdateOneID(sub.ID).SetBillingCadence(datetime.ISODurationString("PT1H")).Save(t.Context())
+	require.NoError(t, err)
+	view, err = deps.SubscriptionService.GetView(t.Context(), sub.NamespacedID)
+	require.NoError(t, err)
+	// when: an unrelated phase edit validates the legacy item
+	view.Spec.Phases["test_phase_1"].Name = "Renamed phase"
+	_, err = deps.SubscriptionService.Update(t.Context(), sub.NamespacedID, view.Spec)
+	require.ErrorContains(t, err, "rate card billing cadence must be at least 24 hours")
+	// then: the existing short cadences do not prevent cancellation
+	_, err = deps.SubscriptionService.Cancel(t.Context(), sub.NamespacedID, subscription.Timing{Enum: lo.ToPtr(subscription.TimingNextBillingCycle)})
+	require.NoError(t, err)
 }

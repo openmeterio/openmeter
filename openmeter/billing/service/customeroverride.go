@@ -9,6 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -40,7 +41,7 @@ func (s *Service) UpsertCustomerOverride(ctx context.Context, input billing.Upse
 			}
 		}
 
-		if err := s.resolveDefaultTaxCode(ctx, input.Namespace, input.Invoicing.DefaultTaxConfig); err != nil {
+		if err := productcatalog.ResolveTaxConfig(ctx, s.taxCodeService, input.Namespace, input.Invoicing.DefaultTaxConfig); err != nil {
 			return def, err
 		}
 
@@ -292,6 +293,7 @@ func (v resolveCustomerOverrideWithDetailsInput) GetCustomerFromCache(id string)
 	}
 
 	customer, found := v.CustomersByIdCache[id]
+
 	return customer, found
 }
 

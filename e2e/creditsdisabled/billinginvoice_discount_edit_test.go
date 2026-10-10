@@ -75,6 +75,7 @@ func TestInvoiceEditFlatFeeDiscountCreditThenInvoice(t *testing.T) {
 	if workflow.Invoicing == nil {
 		workflow.Invoicing = &api.BillingWorkflowInvoicingSettings{}
 	}
+
 	workflow.Invoicing.AutoAdvance = lo.ToPtr(false)
 	workflow.Payment = &api.BillingWorkflowPaymentSettings{
 		CollectionMethod: lo.ToPtr(api.CollectionMethodSendInvoice),
@@ -241,6 +242,7 @@ func TestInvoiceEditFlatFeeDiscountCreditThenInvoice(t *testing.T) {
 				},
 			}
 		}
+
 		replacementLines = append(replacementLines, lineUpdate)
 	}
 

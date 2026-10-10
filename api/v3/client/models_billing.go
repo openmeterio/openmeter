@@ -109,14 +109,6 @@ type ProfilePagePaginatedResponse struct {
 	Meta PaginatedMeta `json:"meta"`
 }
 
-// Recurring period with an anchor and an interval.
-type RecurringPeriod struct {
-	// A date-time anchor to base the recurring period on.
-	Anchor time.Time `json:"anchor"`
-	// The interval duration in ISO 8601 format.
-	Interval string `json:"interval"`
-}
-
 // BillingProfile upsert request.
 type UpsertBillingProfileRequest struct {
 	// Display name of the resource.

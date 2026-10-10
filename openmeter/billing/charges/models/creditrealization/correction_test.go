@@ -106,6 +106,7 @@ func correctionInputsSum(inputs CreateCorrectionInputs) alpacadecimal.Decimal {
 	for _, input := range inputs {
 		sum = sum.Add(input.Amount.Abs())
 	}
+
 	return sum
 }
 
@@ -115,6 +116,7 @@ func correctionRequestAmounts(cr CorrectionRequest) []float64 {
 	for i, item := range cr {
 		out[i] = item.Amount.InexactFloat64()
 	}
+
 	return out
 }
 
@@ -124,6 +126,7 @@ func correctionRequestAllocationIDs(cr CorrectionRequest) []string {
 	for i, item := range cr {
 		out[i] = item.Allocation.ID
 	}
+
 	return out
 }
 
@@ -873,6 +876,7 @@ func TestCorrectionEndToEnd(t *testing.T) {
 		for _, input := range adapterInputs {
 			sum = sum.Add(input.Amount)
 		}
+
 		assert.Equal(t, -8.0, sum.InexactFloat64())
 	})
 
@@ -957,6 +961,7 @@ func correctionCallback(txGroupID string) func(req CorrectionRequest) (CreateCor
 				},
 			}
 		}
+
 		return out, nil
 	}
 }

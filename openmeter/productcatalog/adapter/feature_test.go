@@ -137,6 +137,7 @@ func TestCreateFeature(t *testing.T) {
 					if err != nil {
 						return false
 					}
+
 					return len(featureList.Items) > 0
 				}, 100*time.Millisecond, 10*time.Millisecond)
 

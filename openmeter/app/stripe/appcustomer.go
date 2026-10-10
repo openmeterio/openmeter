@@ -80,7 +80,7 @@ func (a appOperations) ValidateCustomerByID(ctx context.Context, customerID cust
 				// Get the default payment method
 				paymentMethod, err = stripeClient.GetPaymentMethod(ctx, *stripeCustomerData.StripeDefaultPaymentMethodID)
 				if err != nil {
-					if _, ok := err.(stripeclient.StripePaymentMethodNotFoundError); ok {
+					if stripeclient.IsStripePaymentMethodNotFoundError(err) {
 						return app.NewAppCustomerPreConditionError(
 							a.GetID(),
 							a.GetType(),

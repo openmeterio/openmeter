@@ -2,6 +2,7 @@ package lineengine
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"log/slog"
 	"testing"
@@ -33,6 +34,37 @@ func TestConfigValidateReturnsAllErrors(t *testing.T) {
 	require.ErrorContains(t, err, "feature meter resolver is required")
 	require.ErrorContains(t, err, "streaming connector is required")
 	require.ErrorContains(t, err, "max parallel quantity snapshots must be greater than 0")
+}
+
+func TestSnapshotLineQuantityRejectsNonLegacyLinesBeforeSnapshotting(t *testing.T) {
+	for _, engineType := range []billing.LineEngineType{
+		billing.LineEngineTypeChargeFlatFee,
+		billing.LineEngineTypeChargeUsageBased,
+		billing.LineEngineTypeChargeCreditPurchase,
+	} {
+		t.Run(string(engineType), func(t *testing.T) {
+			// Given a charge-owned line and no legacy snapshot dependencies.
+			line := standardLineForLineEngineOverrideTest(t, lineEngineOverrideTestPeriod())
+			line.Engine = engineType
+			invoice := quantitySnapshotTestInvoice()
+			before, err := json.Marshal(line)
+			require.NoError(t, err)
+
+			// When the legacy engine is asked to snapshot that line.
+			result, err := (&Engine{}).SnapshotLineQuantity(t.Context(), SnapshotLineQuantityInput{
+				Invoice: &invoice,
+				Line:    line,
+			})
+
+			// Then ownership validation rejects it before any snapshot or mutation.
+			require.ErrorAs(t, err, &billing.ValidationError{})
+			require.ErrorContains(t, err, "line must be owned by the legacy invoice engine")
+			require.Nil(t, result)
+			after, err := json.Marshal(line)
+			require.NoError(t, err)
+			require.JSONEq(t, string(before), string(after))
+		})
+	}
 }
 
 type quantitySnapshotFeatureServiceStub struct {
@@ -109,7 +141,7 @@ func TestSnapshotLineQuantitiesContinuesWithPartialFeatureMeters(t *testing.T) {
 		{
 			Severity: billing.ValidationIssueSeverityCritical,
 			Code:     billing.ErrInvoiceLineFeatureHasNoMeters.Code,
-			Message:  "feature[meterless-feature]: usage based invoice line: feature has no meters",
+			Message:  "usage based invoice line: feature has no meters",
 			Path:     "/lines/line-meterless",
 			Attributes: models.Annotations{
 				"feature_id":  "meterless-feature-id",
@@ -176,14 +208,14 @@ func TestAreLinesBillableAsOfLocalizesFeatureMeterValidationIssues(t *testing.T)
 		{
 			Severity:   billing.ValidationIssueSeverityCritical,
 			Code:       billing.ErrInvoiceLineFeatureNotFound.Code,
-			Message:    "feature[missing-feature-1]: invoice line: feature not found",
+			Message:    "invoice line: feature not found",
 			Path:       "/lines/line-1",
 			Attributes: models.Annotations{"feature_key": "missing-feature-1"},
 		},
 		{
 			Severity:   billing.ValidationIssueSeverityCritical,
 			Code:       billing.ErrInvoiceLineFeatureNotFound.Code,
-			Message:    "feature[missing-feature-2]: invoice line: feature not found",
+			Message:    "invoice line: feature not found",
 			Path:       "/lines/line-2",
 			Attributes: models.Annotations{"feature_key": "missing-feature-2"},
 		},
@@ -259,6 +291,16 @@ func TestLineEngineValidationErrorOwnsValidationIssues(t *testing.T) {
 			Path:      "/lines/line-id",
 		},
 	}, issues)
+}
+
+func TestLineEngineValidationErrorPreservesSystemErrors(t *testing.T) {
+	systemErr := errors.New("database unavailable")
+	wrappedErr := billing.NewLineEngineValidationError(&Engine{}, systemErr)
+
+	issues, extractionErr := billing.ToValidationIssues(wrappedErr)
+	require.Nil(t, issues)
+	require.Equal(t, wrappedErr, extractionErr)
+	require.ErrorIs(t, wrappedErr, systemErr)
 }
 
 func newQuantitySnapshotTestEngine(t *testing.T, features []feature.Feature, meters []meter.Meter, featureServiceErr error) (*Engine, *streamingtestutils.MockStreamingConnector) {

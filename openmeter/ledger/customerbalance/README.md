@@ -20,7 +20,7 @@ The receivable term represents credit-only advance: usage already consumed
 before purchased credit was available.
 
 Fiat currencies are identified by code. Custom-currency balance rows also
-carry `custom_currency_id`; balances remain separate when historical managed
+carry `custom_currency.id`; balances remain separate when historical managed
 currencies reuse a display code. A code filter selects every matching identity.
 An explicit custom code resolves against both the namespace currency catalog
 and matching historical customer state; a code found in neither is rejected.
@@ -99,7 +99,7 @@ expired  => negative FBO impact
 
 In a mixed-currency listing, `available_balance` is reconstructed independently
 for each currency identity even though the rows share one chronological stream.
-Custom-currency rows carry both their display code and `custom_currency_id`.
+Custom-currency rows carry both their display code and `custom_currency.id`.
 
 Balances are resolved independently at each row's persisted boundary. Funded
 and consumed rows use their last contributing ledger transaction. Expired and

@@ -388,8 +388,11 @@ func (s *BillingAdapterTestSuite) TestInvoiceLineReadFiltersCrossNamespaceOption
 				Amount: alpacadecimal.NewFromInt(10),
 				LineDiscountBase: billing.LineDiscountBase{
 					Description: lo.ToPtr("detail discount"),
-					Reason: billing.NewDiscountReasonFrom(productcatalog.PercentageDiscount{
-						Percentage: models.NewPercentage(10),
+					Reason: billing.NewDiscountReasonFrom(billing.PercentageDiscount{
+						PercentageDiscount: productcatalog.PercentageDiscount{
+							Percentage: models.NewPercentage(10),
+						},
+						CorrelationID: "detail-discount",
 					}),
 				},
 			},
@@ -861,6 +864,7 @@ func (s *BillingAdapterTestSuite) TestStandardLineOptionalFieldMutability() {
 		})
 		require.NoError(s.T(), err)
 		require.Len(s.T(), readBack, 1)
+
 		return readBack[0].Description
 	}
 
@@ -969,8 +973,11 @@ func (s *BillingAdapterTestSuite) TestDiscountHandling() {
 				Amount: alpacadecimal.NewFromFloat(30),
 				LineDiscountBase: billing.LineDiscountBase{
 					Description: lo.ToPtr(manualDiscountName),
-					Reason: billing.NewDiscountReasonFrom(productcatalog.PercentageDiscount{
-						Percentage: models.NewPercentage(10),
+					Reason: billing.NewDiscountReasonFrom(billing.PercentageDiscount{
+						PercentageDiscount: productcatalog.PercentageDiscount{
+							Percentage: models.NewPercentage(10),
+						},
+						CorrelationID: "manual-discount-3",
 					}),
 				},
 			},
@@ -1022,6 +1029,7 @@ func (s *BillingAdapterTestSuite) TestDiscountHandling() {
 			break
 		}
 	}
+
 	require.NotEmpty(s.T(), existingDiscountID)
 
 	childLine.AmountDiscounts = billing.AmountLineDiscountsManaged{
@@ -1044,8 +1052,11 @@ func (s *BillingAdapterTestSuite) TestDiscountHandling() {
 				Amount: alpacadecimal.NewFromFloat(40),
 				LineDiscountBase: billing.LineDiscountBase{
 					Description: lo.ToPtr("Test Discount 3 - updated"),
-					Reason: billing.NewDiscountReasonFrom(productcatalog.PercentageDiscount{
-						Percentage: models.NewPercentage(10),
+					Reason: billing.NewDiscountReasonFrom(billing.PercentageDiscount{
+						PercentageDiscount: productcatalog.PercentageDiscount{
+							Percentage: models.NewPercentage(10),
+						},
+						CorrelationID: "manual-discount-3",
 					}),
 				},
 			},
@@ -1055,8 +1066,11 @@ func (s *BillingAdapterTestSuite) TestDiscountHandling() {
 				Amount: alpacadecimal.NewFromFloat(50),
 				LineDiscountBase: billing.LineDiscountBase{
 					Description: lo.ToPtr("Test Discount 4 - manual"),
-					Reason: billing.NewDiscountReasonFrom(productcatalog.PercentageDiscount{
-						Percentage: models.NewPercentage(20),
+					Reason: billing.NewDiscountReasonFrom(billing.PercentageDiscount{
+						PercentageDiscount: productcatalog.PercentageDiscount{
+							Percentage: models.NewPercentage(20),
+						},
+						CorrelationID: "manual-discount-4",
 					}),
 				},
 			},
@@ -1147,6 +1161,7 @@ func (s *BillingAdapterTestSuite) findAmountDiscountByDescription(discounts []bi
 	}
 
 	s.T().Fatalf("discount not found: %s", description)
+
 	return billing.AmountLineDiscountManaged{}
 }
 

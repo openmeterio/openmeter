@@ -323,5 +323,6 @@ func mockEvent() cloudevents.Event {
 		"reports": "123",
 		"type":    "type",
 	})
+
 	return e
 }

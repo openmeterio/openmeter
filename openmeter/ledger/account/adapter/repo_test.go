@@ -264,6 +264,7 @@ func TestRepo_SubAccountRouteUniquenessConstraints(t *testing.T) {
 			SetNillableCreditPriority(creditPriority)
 
 		_, err = create.Save(ctx)
+
 		return err
 	}
 
@@ -343,4 +344,71 @@ func (e *TestEnv) Close(t *testing.T) {
 
 func testNamespace() string {
 	return fmt.Sprintf("ledger-account-adapter-%d", time.Now().UnixNano())
+}
+
+func TestRepoFilterStorageCutover(t *testing.T) {
+	env := NewTestEnv(t)
+	t.Cleanup(func() { env.Close(t) })
+	ctx := t.Context()
+	ns := testNamespace()
+	account, err := env.repo.CreateAccount(ctx, ledgeraccount.CreateAccountInput{Namespace: ns, Type: ledger.AccountTypeCustomerFBO})
+	require.NoError(t, err)
+	// Given a route created by a writer that populates the JSON representation.
+	input := ledgeraccount.CreateSubAccountInput{Namespace: ns, AccountID: account.ID.ID, Route: ledger.Route{
+		Currency: currencies.NewCurrencyReference(currencyx.Code("USD")), Filters: ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: []string{"output", "input"}},
+	}}
+	sub, err := env.repo.EnsureSubAccount(ctx, input)
+	require.NoError(t, err)
+	stored, err := env.client.LedgerSubAccountRoute.Query().Where(ledgersubaccountroutedb.ID(sub.RouteMeta.ID)).Only(ctx)
+	require.NoError(t, err)
+	require.NotNil(t, stored.Filters)
+	require.Equal(t, ledger.CreditFiltersVersion1, stored.Filters.Version)
+	require.Equal(t, []string{"input", "output"}, stored.Filters.Features)
+	require.Empty(t, stored.Features)
+	// When the unused legacy column is stale, lookup still preserves identity and filters.
+	_, err = env.db.PGDriver.DB().ExecContext(ctx, `UPDATE ledger_sub_account_routes SET features = ARRAY['stale'] WHERE id = $1`, stored.ID)
+	require.NoError(t, err)
+	existing, err := env.repo.EnsureSubAccount(ctx, input)
+	require.NoError(t, err)
+	require.Equal(t, sub.ID, existing.ID)
+	require.Equal(t, []string{"input", "output"}, existing.Route.Filters.Features)
+}
+
+func TestRepoExactFiltersSeparateFeatureAndPlanRoutes(t *testing.T) {
+	// given: feature-only and plan-restricted routes share a feature.
+	env := NewTestEnv(t)
+	t.Cleanup(func() { env.Close(t) })
+	ctx := t.Context()
+	namespace := testNamespace()
+	account, err := env.repo.CreateAccount(ctx, ledgeraccount.CreateAccountInput{Namespace: namespace, Type: ledger.AccountTypeCustomerFBO})
+	require.NoError(t, err)
+	featureRoute := ledger.Route{Currency: currencies.NewCurrencyReference(currencyx.Code("USD")), Filters: ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: []string{"api-calls"}}}
+	feature, err := env.repo.EnsureSubAccount(ctx, ledgeraccount.CreateSubAccountInput{Namespace: namespace, AccountID: account.ID.ID, Route: featureRoute})
+	require.NoError(t, err)
+	planRoute := featureRoute
+	planRoute.Filters = ledger.CreditFilters{Version: ledger.CreditFiltersVersion2, Features: []string{"api-calls"}, Plans: []ledger.PlanFilter{{Key: "pro"}}}
+	plan, err := env.repo.EnsureSubAccount(ctx, ledgeraccount.CreateSubAccountInput{Namespace: namespace, AccountID: account.ID.ID, Route: planRoute})
+	require.NoError(t, err)
+
+	// when: the same feature dimensions are stored in either supported format,
+	// exact lookup must still select the feature bucket and exclude the plan bucket.
+	for _, version := range []int{1, 2} {
+		_, err = env.db.PGDriver.DB().ExecContext(ctx, `UPDATE ledger_sub_account_routes SET filters = jsonb_set(filters, '{schema_version}', to_jsonb($2::int)) WHERE id = $1`, feature.RouteMeta.ID, version)
+		require.NoError(t, err)
+		for _, tc := range []struct {
+			route ledger.Route
+			id    string
+		}{{featureRoute, feature.ID}, {planRoute, plan.ID}} {
+			found, err := env.repo.ListSubAccounts(ctx, ledgeraccount.ListSubAccountsInput{Namespace: namespace, AccountID: account.ID.ID, Route: tc.route.Filter()})
+			require.NoError(t, err)
+			require.Len(t, found, 1)
+			require.Equal(t, tc.id, found[0].ID)
+		}
+	}
+
+	// then: resolving the feature-only route reuses its original bucket.
+	again, err := env.repo.EnsureSubAccount(ctx, ledgeraccount.CreateSubAccountInput{Namespace: namespace, AccountID: account.ID.ID, Route: featureRoute})
+	require.NoError(t, err)
+	require.Equal(t, feature.ID, again.ID)
+	require.Equal(t, ledger.CreditFiltersVersion2, again.Route.Filters.Version)
 }

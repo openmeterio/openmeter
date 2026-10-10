@@ -13,45 +13,48 @@ import (
 	staticentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/static"
 )
 
-func mapEntitlementAccessToAPI(access entitlement.CustomerEntitlementAccess, expands ...api.BillingEntitlementAccessExpand) (api.BillingEntitlementAccessResult, error) {
-	featureKey := access.FeatureKey
-
-	switch ent := access.Value.(type) {
-	case *meteredentitlement.MeteredEntitlementValue:
-		result := api.BillingEntitlementAccessResult{
-			FeatureKey: featureKey,
-			Type:       api.BillingEntitlementTypeMetered,
-			HasAccess:  ent.HasAccess(),
-		}
-
-		if lo.Contains(expands, api.BillingEntitlementAccessExpandValue) {
-			result.Value = lo.ToPtr(mapMeteredEntitlementValueToAPI(ent))
-		}
-
-		return result, nil
-	case *staticentitlement.StaticEntitlementValue:
-		return api.BillingEntitlementAccessResult{
-			FeatureKey: featureKey,
-			Type:       api.BillingEntitlementTypeStatic,
-			HasAccess:  ent.HasAccess(),
-			Config:     &ent.Config,
-		}, nil
-	case *booleanentitlement.BooleanEntitlementValue:
-		return api.BillingEntitlementAccessResult{
-			FeatureKey: featureKey,
-			Type:       api.BillingEntitlementTypeBoolean,
-			HasAccess:  ent.HasAccess(),
-		}, nil
-	case *entitlement.NoAccessValue:
-		return api.BillingEntitlementAccessResult{
-			HasAccess:  false,
-			FeatureKey: featureKey,
-			// using a constant value to satisfy the API contract
-			Type: api.BillingEntitlementTypeStatic,
-		}, nil
-	default:
-		return api.BillingEntitlementAccessResult{}, errors.New("unknown entitlement type")
+func mapEntitlementAccessCheckToAPI(access entitlement.CustomerEntitlementAccess) (api.BillingEntitlementAccessCheckResult, error) {
+	result := api.BillingEntitlementAccessCheckResult{HasAccess: access.Value.HasAccess()}
+	if access.Type != "" {
+		result.Type = lo.ToPtr(api.BillingEntitlementType(access.Type))
 	}
+
+	switch value := access.Value.(type) {
+	case *meteredentitlement.MeteredEntitlementValue, *booleanentitlement.BooleanEntitlementValue, *entitlement.NoAccessValue:
+	case *staticentitlement.StaticEntitlementValue:
+		result.Config = &value.Config
+	default:
+		return api.BillingEntitlementAccessCheckResult{}, errors.New("unknown entitlement type")
+	}
+
+	return result, nil
+}
+
+func mapEntitlementAccessToAPI(access entitlement.CustomerEntitlementAccess, expands ...api.BillingEntitlementAccessExpand) (api.BillingEntitlementValueResult, error) {
+	if access.Type == "" {
+		return api.BillingEntitlementValueResult{}, errors.New("entitlement type is required for value result")
+	}
+
+	result := api.BillingEntitlementValueResult{
+		FeatureKey: access.FeatureKey,
+		Type:       api.BillingEntitlementType(access.Type),
+		HasAccess:  access.Value.HasAccess(),
+	}
+
+	switch value := access.Value.(type) {
+	case *meteredentitlement.MeteredEntitlementValue:
+		if lo.Contains(expands, api.BillingEntitlementAccessExpandValue) {
+			result.Value = lo.ToPtr(mapMeteredEntitlementValueToAPI(value))
+		}
+	case *staticentitlement.StaticEntitlementValue:
+		result.Config = &value.Config
+	case *booleanentitlement.BooleanEntitlementValue:
+	case *entitlement.NoAccessValue:
+	default:
+		return api.BillingEntitlementValueResult{}, errors.New("unknown entitlement type")
+	}
+
+	return result, nil
 }
 
 func mapMeteredEntitlementValueToAPI(value *meteredentitlement.MeteredEntitlementValue) api.BillingEntitlementAccessValue {

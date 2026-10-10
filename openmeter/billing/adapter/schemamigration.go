@@ -82,6 +82,7 @@ func (a *adapter) migrateSchemaLevel1(ctx context.Context, customerID customer.C
 				return err
 			}
 		}
+
 		if err := rows.Err(); err != nil {
 			return err
 		}

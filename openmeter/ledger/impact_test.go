@@ -32,7 +32,7 @@ func TestEntryMatchesImpactFilter(t *testing.T) {
 		Currency:                       currencies.NewCurrencyReference(currencyx.Code("USD")),
 		TaxCode:                        &taxCode,
 		TaxBehavior:                    &taxBehavior,
-		Features:                       []string{"feature-a", "feature-b"},
+		Filters:                        ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: []string{"feature-a", "feature-b"}},
 		CostBasis:                      &costBasis,
 		CreditPriority:                 &priority,
 		TransactionAuthorizationStatus: &authStatus,
@@ -410,12 +410,8 @@ func (e impactTestEntry) SchemaVersion() ledger.EntrySchemaVersion {
 	return ledger.EntrySchemaVersionCurrent
 }
 
-func (e impactTestEntry) SourceChargeID() *string {
-	return nil
-}
-
-func (e impactTestEntry) SpendChargeID() *string {
-	return nil
+func (e impactTestEntry) Provenance() ledger.Provenance {
+	return ledger.Provenance{}
 }
 
 func (e impactTestEntry) Annotations() models.Annotations {
@@ -482,3 +478,5 @@ func mustImpactTestEntry(t *testing.T, accountType ledger.AccountType, route led
 		amount: entryAmount,
 	}
 }
+
+func (t impactTestTransaction) GroupID() models.NamespacedID { return t.ID() }

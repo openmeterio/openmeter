@@ -3,36 +3,37 @@
 package httpdriver
 
 import (
-	"github.com/samber/lo"
-
 	"github.com/openmeterio/openmeter/api"
-	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	productcataloghttp "github.com/openmeterio/openmeter/openmeter/productcatalog/http"
 )
 
-func AsPercentageDiscount(d api.BillingDiscountPercentage) billing.PercentageDiscount {
-	return billing.PercentageDiscount{
-		PercentageDiscount: productcataloghttp.AsPercentageDiscount(api.FromBillingDiscountPercentageToDiscountPercentage(d)),
-		CorrelationID:      lo.FromPtr(d.CorrelationId),
-	}
+func AsPercentageDiscount(d api.BillingDiscountPercentage) productcatalog.PercentageDiscount {
+	return productcataloghttp.AsPercentageDiscount(api.FromBillingDiscountPercentageToDiscountPercentage(d))
 }
 
-func AsUsageDiscount(d api.BillingDiscountUsage) (billing.UsageDiscount, error) {
+func AsUsageDiscount(d api.BillingDiscountUsage) (productcatalog.UsageDiscount, error) {
 	pcUsageDiscount := api.FromBillingDiscountUsageToDiscountUsage(d)
 
 	usageDiscount, err := productcataloghttp.AsUsageDiscount(pcUsageDiscount)
 	if err != nil {
-		return billing.UsageDiscount{}, err
+		return productcatalog.UsageDiscount{}, err
 	}
 
-	return billing.UsageDiscount{
-		UsageDiscount: usageDiscount,
-		CorrelationID: lo.FromPtr(d.CorrelationId),
-	}, nil
+	return usageDiscount, nil
 }
 
-func AsDiscounts(discounts *api.BillingDiscounts) (billing.Discounts, error) {
-	out := billing.Discounts{}
+// AsDiscounts converts a BillingDiscounts struct to a productcatalog.Discounts struct.
+//
+// By converting to productcatalog.Discounts and not billing.Discounts, we drop the DiscountCorrelationID
+// field. This prevents random IDs being injected from the clients.
+//
+// This is not a problem, as for:
+//   - Legacy billing this correlation ID is used to link discounts across progressively billed lines,
+//     but editing a progressively billed line is not allowed.
+//   - Charges only have this field for legacy compatibility, it's value doesn't matter.
+func AsDiscounts(discounts *api.BillingDiscounts) (productcatalog.Discounts, error) {
+	out := productcatalog.Discounts{}
 	if discounts == nil {
 		return out, nil
 	}
@@ -40,10 +41,8 @@ func AsDiscounts(discounts *api.BillingDiscounts) (billing.Discounts, error) {
 	if discounts.Percentage != nil {
 		pctDiscount := api.FromBillingDiscountPercentageToDiscountPercentage(*discounts.Percentage)
 
-		out.Percentage = &billing.PercentageDiscount{
-			PercentageDiscount: productcataloghttp.AsPercentageDiscount(pctDiscount),
-			CorrelationID:      lo.FromPtr(discounts.Percentage.CorrelationId),
-		}
+		percentageDiscount := productcataloghttp.AsPercentageDiscount(pctDiscount)
+		out.Percentage = &percentageDiscount
 	}
 
 	if discounts.Usage != nil {
@@ -51,13 +50,10 @@ func AsDiscounts(discounts *api.BillingDiscounts) (billing.Discounts, error) {
 
 		usageDiscount, err := productcataloghttp.AsUsageDiscount(uDiscount)
 		if err != nil {
-			return billing.Discounts{}, err
+			return productcatalog.Discounts{}, err
 		}
 
-		out.Usage = &billing.UsageDiscount{
-			UsageDiscount: usageDiscount,
-			CorrelationID: lo.FromPtr(discounts.Usage.CorrelationId),
-		}
+		out.Usage = &usageDiscount
 	}
 
 	return out, nil

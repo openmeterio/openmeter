@@ -125,6 +125,7 @@ func newOpenMeterOutput(conf *service.ParsedConfig, mgr *service.Resources) (*op
 			return nil, err
 		}
 	}
+
 	o.client = client
 
 	if conf.Contains(tracingAttrsMapField) {
@@ -146,7 +147,6 @@ func (o *openmeterOutput) WriteBatch(ctx context.Context, batch service.MessageB
 	// otherwise use the batch endpoint
 	// if validation is enabled, try to parse the message as cloudevents first
 	//
-
 	var err error
 
 	ctx, span := o.tracer.Start(ctx, "output_openmeter_write_batch")
@@ -157,6 +157,7 @@ func (o *openmeterOutput) WriteBatch(ctx context.Context, batch service.MessageB
 		} else {
 			span.SetStatus(codes.Ok, "batch write was successful")
 		}
+
 		span.End()
 	}()
 

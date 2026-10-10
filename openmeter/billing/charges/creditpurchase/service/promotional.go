@@ -53,5 +53,6 @@ func (s *PromotionalCreditpurchaseStateMachine) GrantPromotionalCredit(ctx conte
 	}
 
 	s.Charge = charge
+
 	return nil
 }

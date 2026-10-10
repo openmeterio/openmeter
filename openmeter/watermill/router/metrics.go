@@ -67,6 +67,7 @@ func HandlerMetrics(metricMeter metric.Meter, prefix string, log *slog.Logger) (
 					meterAttributeType,
 					meterAttributeStatusFailed,
 				))
+
 				return resMsg, err
 			}
 
@@ -78,6 +79,7 @@ func HandlerMetrics(metricMeter metric.Meter, prefix string, log *slog.Logger) (
 				meterAttributeType,
 				meterAttributeStatusSuccess,
 			))
+
 			return resMsg, nil
 		}
 	}, nil

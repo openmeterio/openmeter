@@ -3,7 +3,30 @@ package timeutil
 import (
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 )
+
+func TestOpenPeriodIsEmpty(t *testing.T) {
+	start := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	end := start.Add(time.Hour)
+	for _, tc := range []struct {
+		name   string
+		period OpenPeriod
+		empty  bool
+	}{
+		{name: "unbounded"},
+		{name: "open start", period: OpenPeriod{To: &end}},
+		{name: "open end", period: OpenPeriod{From: &start}},
+		{name: "nonempty", period: OpenPeriod{From: &start, To: &end}},
+		{name: "zero length", period: OpenPeriod{From: &start, To: &start}, empty: true},
+		{name: "reversed", period: OpenPeriod{From: &end, To: &start}, empty: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			require.Equal(t, tc.empty, tc.period.IsEmpty())
+		})
+	}
+}
 
 func TestOpenPeriod(t *testing.T) {
 	now := time.Now()
@@ -387,6 +410,7 @@ func TestOpenPeriod(t *testing.T) {
 					if result != nil {
 						t.Errorf("Expected nil result, got %+v", *result)
 					}
+
 					return
 				}
 
@@ -613,6 +637,7 @@ func TestOpenPeriod(t *testing.T) {
 					// Add current monotonic time to get a time with monotonic clock
 					now := time.Now()
 					t := baseTime.Add(now.Sub(now.Truncate(0)))
+
 					return OpenPeriod{From: &t, To: nil}
 				}(),
 				period2: func() OpenPeriod {
@@ -635,6 +660,7 @@ func TestOpenPeriod(t *testing.T) {
 					baseTime := time.Date(2025, 4, 1, 0, 0, 1, 0, time.UTC)
 					now := time.Now()
 					t := baseTime.Add(now.Sub(now.Truncate(0)))
+
 					return OpenPeriod{From: &t, To: nil}
 				}(),
 				expected: true, // Current implementation correctly handles monotonic clocks
@@ -822,6 +848,7 @@ func TestOpenPeriod(t *testing.T) {
 							t.Errorf("OverlapsInclusive() = %v, want %v", result, expected)
 						}
 					}
+
 					// Second direction
 					{
 						expected := tt.period2.OverlapsInclusive(tt.period1)
@@ -876,6 +903,7 @@ func TestOpenPeriod(t *testing.T) {
 							t.Errorf("OverlapsInclusive() = %v, want %v", result, tt.expected)
 						}
 					}
+
 					// Second direction
 					{
 						result := tt.period2.OverlapsInclusive(tt.period1)

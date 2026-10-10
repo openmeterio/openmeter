@@ -3,14 +3,28 @@
 import { type Client, http } from '../core.js'
 import { type Result, type RequestOptions } from '../lib/types.js'
 import { request } from '../lib/request.js'
-import { toURLSearchParams } from '../lib/encodings.js'
-import { toWire, toPathWire, fromWire, assertValid } from '../lib/wire.js'
+import { toURLSearchParams, encodeSort } from '../lib/encodings.js'
+import {
+  toWire,
+  toPathWire,
+  fromWire,
+  assertValid,
+  toSnakeCase,
+} from '../lib/wire.js'
 import * as schemas from '../models/schemas.js'
 import type {
   ListCustomerEntitlementAccessRequest,
   ListCustomerEntitlementAccessResponse,
   GetCustomerEntitlementAccessRequest,
   GetCustomerEntitlementAccessResponse,
+  GetCustomerEntitlementValueByFeatureKeyRequest,
+  GetCustomerEntitlementValueByFeatureKeyResponse,
+  ListEntitlementsRequest,
+  ListEntitlementsResponse,
+  GetEntitlementRequest,
+  GetEntitlementResponse,
+  GetCustomerEntitlementValueRequest,
+  GetCustomerEntitlementValueResponse,
 } from '../models/operations/entitlements.js'
 
 /**
@@ -97,14 +111,71 @@ export function getCustomerEntitlementAccess(
       }
       return encodeURIComponent(String(pathParams.featureKey))
     })()}`
+    return http(client)
+      .get(path, options)
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(schemas.getCustomerEntitlementAccessResponseWire, data)
+        }
+        return fromWire(data, schemas.getCustomerEntitlementAccessResponse)
+      })
+  })
+}
+
+/**
+ * Get customer entitlement value by feature key
+ *
+ * Get the customer's entitlement value for a feature at a point in time. Without
+ * an active entitlement, the result denies access and omits the type.
+ *
+ * GET /openmeter/customers/{customerId}/entitlement-access/features/{featureKey}/value
+ */
+export function getCustomerEntitlementValueByFeatureKey(
+  client: Client,
+  req: GetCustomerEntitlementValueByFeatureKeyRequest,
+  options?: RequestOptions,
+): Promise<Result<GetCustomerEntitlementValueByFeatureKeyResponse>> {
+  return request(() => {
+    const pathParamsInput = {
+      customerId: req.customerId,
+      featureKey: req.featureKey,
+    }
+    const pathParams = client._options.validate
+      ? toPathWire(
+          pathParamsInput,
+          schemas.getCustomerEntitlementValueByFeatureKeyPathParams,
+        )
+      : pathParamsInput
+    if (client._options.validate) {
+      assertValid(
+        schemas.getCustomerEntitlementValueByFeatureKeyPathParamsWire,
+        pathParams,
+      )
+    }
+    const path = `openmeter/customers/${(() => {
+      if (pathParams.customerId === undefined) {
+        throw new Error('missing path parameter: customerId')
+      }
+      return encodeURIComponent(String(pathParams.customerId))
+    })()}/entitlement-access/features/${(() => {
+      if (pathParams.featureKey === undefined) {
+        throw new Error('missing path parameter: featureKey')
+      }
+      return encodeURIComponent(String(pathParams.featureKey))
+    })()}/value`
     const query = toWire(
       {
         expand: req.expand,
+        at: req.at,
       },
-      schemas.getCustomerEntitlementAccessQueryParams,
+      schemas.getCustomerEntitlementValueByFeatureKeyQueryParams,
     )
     if (client._options.validate) {
-      assertValid(schemas.getCustomerEntitlementAccessQueryParamsWire, query)
+      assertValid(
+        schemas.getCustomerEntitlementValueByFeatureKeyQueryParamsWire,
+        query,
+      )
     }
     const searchParams = toURLSearchParams(query)
     return http(client)
@@ -112,9 +183,159 @@ export function getCustomerEntitlementAccess(
       .json()
       .then((data) => {
         if (client._options.validate) {
-          assertValid(schemas.getCustomerEntitlementAccessResponseWire, data)
+          assertValid(
+            schemas.getCustomerEntitlementValueByFeatureKeyResponseWire,
+            data,
+          )
         }
-        return fromWire(data, schemas.getCustomerEntitlementAccessResponse)
+        return fromWire(
+          data,
+          schemas.getCustomerEntitlementValueByFeatureKeyResponse,
+        )
+      })
+  })
+}
+
+/**
+ * List entitlements
+ *
+ * List the active entitlements of all customers. Intended for administrative use.
+ * To list the entitlements of a single customer, use the customer entitlements
+ * endpoints; to check entitlement access, use the entitlement access endpoints.
+ *
+ * GET /openmeter/entitlements
+ */
+export function listEntitlements(
+  client: Client,
+  req: ListEntitlementsRequest = {},
+  options?: RequestOptions,
+): Promise<Result<ListEntitlementsResponse>> {
+  return request(() => {
+    if (client._options.validate && req.sort !== undefined) {
+      assertValid(schemas.listEntitlementsQueryParams.shape.sort, req.sort)
+    }
+    const query = toWire(
+      {
+        page: req.page,
+        sort: encodeSort(req.sort, toSnakeCase),
+        filter: req.filter,
+      },
+      schemas.listEntitlementsQueryParams,
+    )
+    if (client._options.validate) {
+      assertValid(schemas.listEntitlementsQueryParamsWire, query)
+    }
+    const searchParams = toURLSearchParams(query)
+    return http(client)
+      .get('openmeter/entitlements', { ...options, searchParams })
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(schemas.listEntitlementsResponseWire, data)
+        }
+        return fromWire(data, schemas.listEntitlementsResponse)
+      })
+  })
+}
+
+/**
+ * Get entitlement
+ *
+ * Get an entitlement by ID. To check entitlement access, use the entitlement
+ * access endpoints instead.
+ *
+ * GET /openmeter/entitlements/{entitlementId}
+ */
+export function getEntitlement(
+  client: Client,
+  req: GetEntitlementRequest,
+  options?: RequestOptions,
+): Promise<Result<GetEntitlementResponse>> {
+  return request(() => {
+    const pathParamsInput = {
+      entitlementId: req.entitlementId,
+    }
+    const pathParams = client._options.validate
+      ? toPathWire(pathParamsInput, schemas.getEntitlementPathParams)
+      : pathParamsInput
+    if (client._options.validate) {
+      assertValid(schemas.getEntitlementPathParamsWire, pathParams)
+    }
+    const path = `openmeter/entitlements/${(() => {
+      if (pathParams.entitlementId === undefined) {
+        throw new Error('missing path parameter: entitlementId')
+      }
+      return encodeURIComponent(String(pathParams.entitlementId))
+    })()}`
+    return http(client)
+      .get(path, options)
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(schemas.getEntitlementResponseWire, data)
+        }
+        return fromWire(data, schemas.getEntitlementResponse)
+      })
+  })
+}
+
+/**
+ * Get customer entitlement value
+ *
+ * Get the customer's access through a single entitlement, optionally evaluated at
+ * a point in time.
+ *
+ * GET /openmeter/customers/{customerId}/entitlements/{entitlementId}/value
+ */
+export function getCustomerEntitlementValue(
+  client: Client,
+  req: GetCustomerEntitlementValueRequest,
+  options?: RequestOptions,
+): Promise<Result<GetCustomerEntitlementValueResponse>> {
+  return request(() => {
+    const pathParamsInput = {
+      customerId: req.customerId,
+      entitlementId: req.entitlementId,
+    }
+    const pathParams = client._options.validate
+      ? toPathWire(
+          pathParamsInput,
+          schemas.getCustomerEntitlementValuePathParams,
+        )
+      : pathParamsInput
+    if (client._options.validate) {
+      assertValid(schemas.getCustomerEntitlementValuePathParamsWire, pathParams)
+    }
+    const path = `openmeter/customers/${(() => {
+      if (pathParams.customerId === undefined) {
+        throw new Error('missing path parameter: customerId')
+      }
+      return encodeURIComponent(String(pathParams.customerId))
+    })()}/entitlements/${(() => {
+      if (pathParams.entitlementId === undefined) {
+        throw new Error('missing path parameter: entitlementId')
+      }
+      return encodeURIComponent(String(pathParams.entitlementId))
+    })()}/value`
+    const query = toWire(
+      {
+        expand: req.expand,
+        at: req.at,
+      },
+      schemas.getCustomerEntitlementValueQueryParams,
+    )
+    if (client._options.validate) {
+      assertValid(schemas.getCustomerEntitlementValueQueryParamsWire, query)
+    }
+    const searchParams = toURLSearchParams(query)
+    return http(client)
+      .get(path, { ...options, searchParams })
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(schemas.getCustomerEntitlementValueResponseWire, data)
+        }
+        return fromWire(data, schemas.getCustomerEntitlementValueResponse)
       })
   })
 }

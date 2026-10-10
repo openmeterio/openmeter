@@ -56,7 +56,7 @@ func jsonResponseEncoder[Response any](w http.ResponseWriter, statusCode int, re
 
 	_, err := w.Write(buf.Bytes())
 	if err != nil {
-		return err
+		return &encoder.ResponseWriteError{Err: err}
 	}
 
 	return nil
@@ -80,7 +80,7 @@ func plainTextResponseEncoder[Response string](w http.ResponseWriter, statusCode
 
 	_, err := w.Write([]byte(response))
 	if err != nil {
-		return err
+		return &encoder.ResponseWriteError{Err: err}
 	}
 
 	return nil
@@ -104,6 +104,7 @@ func csvResponseEncoder[Response CSVResponse](w http.ResponseWriter, statusCode 
 	if err := writer.WriteAll(response.Records()); err != nil {
 		return fmt.Errorf("writing record to csv: %w", err)
 	}
+
 	if err := writer.Error(); err != nil {
 		return fmt.Errorf("writing csv: %w", err)
 	}
@@ -113,8 +114,9 @@ func csvResponseEncoder[Response CSVResponse](w http.ResponseWriter, statusCode 
 	w.WriteHeader(statusCode)
 
 	if _, err := w.Write(buf.Bytes()); err != nil {
-		return err
+		return &encoder.ResponseWriteError{Err: err}
 	}
+
 	return nil
 }
 

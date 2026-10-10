@@ -29,9 +29,6 @@ type UsageBasedService interface {
 	// GetByIDs loads usage-based charges. Request realization expansions when
 	// callers need run, detailed-line, or credit-allocation state.
 	GetByIDs(ctx context.Context, input GetByIDsInput) ([]Charge, error)
-	// UpdateSubscriptionItemID repairs subscription ownership metadata on the
-	// base intent; it must not rewrite an active customer-facing override layer.
-	UpdateSubscriptionItemID(ctx context.Context, charge Charge, newSubscriptionItemID string) (Charge, error)
 	// AdvanceCharge drives one charge until invoice patches are emitted or its
 	// lifecycle becomes stable. Callers must apply returned invoice patches
 	// before resuming when CanAdvance is true.
@@ -190,6 +187,8 @@ type GetCurrentTotalsResult struct {
 	// MeteredQuantity is the cumulative live metered quantity the due totals
 	// were rated from.
 	MeteredQuantity alpacadecimal.Decimal
+	// ValidationIssues are non-blocking issues from this live rating, not persisted charge issues.
+	ValidationIssues billing.ValidationIssues
 }
 
 func validateExpands(expands meta.Expands) error {

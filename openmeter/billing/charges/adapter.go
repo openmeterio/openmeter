@@ -43,6 +43,7 @@ func (c *ChargeSearchItem) Validate() error {
 	if c.CustomerID == "" {
 		errs = append(errs, errors.New("customer ID is required"))
 	}
+
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
@@ -55,5 +56,6 @@ func (c ChargeSearchItems) Validate() error {
 			errs = append(errs, fmt.Errorf("item[%d]: %w", idx, err))
 		}
 	}
+
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }

@@ -116,6 +116,7 @@ func TestExampleServiceInvokesLifecycleHooksForEachOperation(t *testing.T) {
 			if event.Before != nil || event.After == nil {
 				return errors.New("create requires only after state")
 			}
+
 			if *event.After != createdResource {
 				return fmt.Errorf("unexpected create after state: %+v", *event.After)
 			}
@@ -123,6 +124,7 @@ func TestExampleServiceInvokesLifecycleHooksForEachOperation(t *testing.T) {
 			if event.Before == nil || event.After == nil {
 				return errors.New("update requires before and after state")
 			}
+
 			if *event.Before != createdResource || *event.After != updatedResource {
 				return fmt.Errorf("unexpected update transition: before=%+v after=%+v", *event.Before, *event.After)
 			}
@@ -130,6 +132,7 @@ func TestExampleServiceInvokesLifecycleHooksForEachOperation(t *testing.T) {
 			if event.Before == nil || event.After != nil {
 				return errors.New("delete requires only before state")
 			}
+
 			if *event.Before != updatedResource {
 				return fmt.Errorf("unexpected delete before state: %+v", *event.Before)
 			}
@@ -160,9 +163,11 @@ func TestExampleServiceInvokesLifecycleHooksForEachOperation(t *testing.T) {
 	if err := service.Create(t.Context(), createdResource); err != nil {
 		t.Fatalf("creating resource: %v", err)
 	}
+
 	if err := service.Update(t.Context(), updatedResource); err != nil {
 		t.Fatalf("updating resource: %v", err)
 	}
+
 	if err := service.Delete(t.Context(), updatedResource.ID); err != nil {
 		t.Fatalf("deleting resource: %v", err)
 	}
@@ -180,11 +185,13 @@ func TestExampleServiceInvokesLifecycleHooksForEachOperation(t *testing.T) {
 	if len(invocations) != len(expectedInvocations) {
 		t.Fatalf("unexpected invocation count: got %d, expected %d", len(invocations), len(expectedInvocations))
 	}
+
 	for i := range expectedInvocations {
 		if invocations[i] != expectedInvocations[i] {
 			t.Errorf("unexpected invocation at index %d: got %q, expected %q", i, invocations[i], expectedInvocations[i])
 		}
 	}
+
 	if _, exists := service.resources[updatedResource.ID]; exists {
 		t.Errorf("resource %q still exists after delete", updatedResource.ID)
 	}
@@ -215,6 +222,7 @@ func TestExampleServiceDoesNotCommitMutationWhenLifecycleHookFails(t *testing.T)
 	if !errors.Is(err, rejected) {
 		t.Fatalf("expected lifecycle hook rejection, got %v", err)
 	}
+
 	if _, exists := service.resources[resource.ID]; exists {
 		t.Errorf("resource %q was committed after lifecycle hook failure", resource.ID)
 	}

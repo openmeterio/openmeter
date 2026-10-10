@@ -168,5 +168,6 @@ func NewMock(t *testing.T) Publisher {
 	})
 
 	assert.NoError(t, err)
+
 	return eventBus
 }

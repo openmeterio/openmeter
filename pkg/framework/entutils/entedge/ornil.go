@@ -7,6 +7,7 @@ func OrNilIfNotFound[T any](edgeValue *T, err error) (*T, error) {
 		if db.IsNotFound(err) {
 			return nil, nil
 		}
+
 		return nil, err
 	}
 

@@ -5,13 +5,17 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
+	"github.com/samber/mo"
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
+	chargedetailedline "github.com/openmeterio/openmeter/openmeter/billing/charges/models/detailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/invoicedusage"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -19,6 +23,97 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
+
+func TestMapFlatFeeDetailedLinesPreservesDiscountSnapshots(t *testing.T) {
+	t.Parallel()
+
+	for _, test := range []struct {
+		name      string
+		discounts chargedetailedline.AmountDiscounts
+	}{
+		{
+			name: "discount with rounding adjustment",
+			discounts: chargedetailedline.AmountDiscounts{
+				{
+					ChildUniqueReferenceID: "discount-reference",
+					Description:            lo.ToPtr("percentage discount"),
+					Reason: billing.NewDiscountReasonFrom(billing.PercentageDiscount{
+						PercentageDiscount: productcatalog.PercentageDiscount{Percentage: models.NewPercentage(50)},
+						CorrelationID:      "percentage-discount",
+					}),
+					Amount:         alpacadecimal.NewFromFloat(49.99),
+					RoundingAmount: alpacadecimal.NewFromFloat(0.01),
+				},
+			},
+		},
+		{name: "historical line without breakdown"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			// given: a charge snapshot whose totals include a discount
+			servicePeriod := timeutil.ClosedPeriod{
+				From: time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC),
+				To:   time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC),
+			}
+			line := newFlatFeeStandardLineForTest(servicePeriod)
+			snapshot := flatfee.DetailedLine{
+				Base: stddetailedline.Base{
+					ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+						ID:        "charge-detail-id",
+						Namespace: line.Namespace,
+						Name:      "flat fee",
+						CreatedAt: servicePeriod.From,
+						UpdatedAt: servicePeriod.From,
+					}),
+					ChildUniqueReferenceID: "flat-fee-reference",
+					Category:               stddetailedline.CategoryRegular,
+					PaymentTerm:            productcatalog.InAdvancePaymentTerm,
+					ServicePeriod:          servicePeriod,
+					PerUnitAmount:          alpacadecimal.NewFromInt(100),
+					Quantity:               alpacadecimal.NewFromInt(1),
+					Totals: totals.Totals{
+						Amount:         alpacadecimal.NewFromInt(100),
+						DiscountsTotal: alpacadecimal.NewFromInt(50),
+						Total:          alpacadecimal.NewFromInt(50),
+					},
+				},
+				AmountDiscounts: test.discounts.Clone(),
+			}
+
+			// when: the charge facts are mapped into invoice calculation output
+			mapped, err := mapFlatFeeDetailedLines(line, flatfee.RealizationRun{
+				DetailedLines: mo.Some(flatfee.DetailedLines{snapshot}),
+			})
+			require.NoError(t, err)
+
+			// then: billing owns identities, while snapshot facts and totals are preserved
+			require.Len(t, mapped, 1)
+			detail := mapped[0]
+			require.NoError(t, detail.Validate())
+			require.Equal(t, line.InvoiceID, detail.InvoiceID)
+			require.Equal(t, snapshot.ChildUniqueReferenceID, detail.ChildUniqueReferenceID)
+			require.Equal(t, snapshot.Totals, detail.Totals)
+			require.Empty(t, detail.ID)
+			require.True(t, detail.CreatedAt.IsZero())
+			require.True(t, detail.UpdatedAt.IsZero())
+			require.Len(t, detail.AmountDiscounts, len(snapshot.AmountDiscounts))
+			if len(snapshot.AmountDiscounts) == 0 {
+				return
+			}
+
+			discount := detail.AmountDiscounts[0]
+			require.Equal(t, models.ManagedModelWithID{}, discount.ManagedModelWithID)
+			require.Equal(t, snapshot.AmountDiscounts[0].ChildUniqueReferenceID, lo.FromPtr(discount.ChildUniqueReferenceID))
+			require.Equal(t, snapshot.AmountDiscounts[0].Description, discount.Description)
+			require.Equal(t, snapshot.AmountDiscounts[0].Reason, discount.Reason)
+			require.Equal(t, float64(49.99), discount.Amount.InexactFloat64())
+			require.Equal(t, float64(0.01), discount.RoundingAmount.InexactFloat64())
+			*discount.Description = "invoice-only description"
+			*discount.ChildUniqueReferenceID = "invoice-only reference"
+			require.Equal(t, "percentage discount", *snapshot.AmountDiscounts[0].Description)
+			require.Equal(t, "discount-reference", snapshot.AmountDiscounts[0].ChildUniqueReferenceID)
+		})
+	}
+}
 
 func TestCalculateFiatOverageForRun(t *testing.T) {
 	servicePeriod := timeutil.ClosedPeriod{
@@ -70,6 +165,7 @@ func TestCalculateFiatOverageForRun(t *testing.T) {
 			if test.conversionFails {
 				charge.State.ResolvedCostBasis = nil
 			}
+
 			run := newFlatFeeCustomCurrencyRunForTest(
 				servicePeriod,
 				test.runTotals,
@@ -83,8 +179,10 @@ func TestCalculateFiatOverageForRun(t *testing.T) {
 			if test.conversionFails {
 				require.ErrorContains(t, err, "resolved cost basis is required")
 				require.False(t, fiatOverage.ShouldOmitInvoiceLine)
+
 				return
 			}
+
 			require.NoError(t, err)
 			require.Equal(t, test.expectFiatOverage, fiatOverage.FiatOverage.InexactFloat64())
 			require.Equal(t, test.expectOmitInvoiceLine, fiatOverage.ShouldOmitInvoiceLine)
@@ -307,6 +405,7 @@ func newFlatFeeCustomCurrencyRunForTest(
 
 func newFlatFeeStandardLineForTest(servicePeriod timeutil.ClosedPeriod) *billing.StandardLine {
 	chargeID := "charge-id"
+
 	return &billing.StandardLine{
 		StandardLineBase: billing.StandardLineBase{
 			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{

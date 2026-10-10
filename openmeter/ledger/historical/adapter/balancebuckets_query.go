@@ -16,10 +16,12 @@ import (
 const (
 	balanceBucketCTEName = "balance_buckets"
 
-	balanceBucketFieldSubAccountID   = "sub_account_id"
-	balanceBucketFieldSourceChargeID = "source_charge_id"
-	balanceBucketFieldSpendChargeID  = "spend_charge_id"
-	balanceBucketFieldSumAmount      = "sum_amount"
+	balanceBucketFieldSubAccountID                 = "sub_account_id"
+	balanceBucketFieldSourceChargeID               = "source_charge_id"
+	balanceBucketFieldSpendChargeID                = "spend_charge_id"
+	balanceBucketFieldCollectionOriginID           = "collection_origin_id"
+	balanceBucketFieldSumAmount                    = "sum_amount"
+	balanceBucketFieldOldestMatchingEntryCreatedAt = "oldest_matching_entry_created_at"
 )
 
 type balanceBucketsQuery struct {
@@ -48,7 +50,9 @@ func (q balanceBucketsQuery) SQL() (string, []any, error) {
 		buckets.C(balanceBucketFieldSubAccountID),
 		buckets.C(balanceBucketFieldSourceChargeID),
 		buckets.C(balanceBucketFieldSpendChargeID),
+		buckets.C(balanceBucketFieldCollectionOriginID),
 		buckets.C(balanceBucketFieldSumAmount),
+		buckets.C(balanceBucketFieldOldestMatchingEntryCreatedAt),
 		subAccounts.C(ledgersubaccountdb.FieldRouteID),
 		accounts.C(ledgeraccountdb.FieldAccountType),
 		routes.C(ledgersubaccountroutedb.FieldRoutingKeyVersion),
@@ -57,7 +61,7 @@ func (q balanceBucketsQuery) SQL() (string, []any, error) {
 		routes.C(ledgersubaccountroutedb.FieldCostBasisCurrency),
 		routes.C(ledgersubaccountroutedb.FieldTaxCode),
 		routes.C(ledgersubaccountroutedb.FieldTaxBehavior),
-		routes.C(ledgersubaccountroutedb.FieldFeatures),
+		routes.C(ledgersubaccountroutedb.FieldFilters),
 		routes.C(ledgersubaccountroutedb.FieldCostBasis),
 		routes.C(ledgersubaccountroutedb.FieldCreditPriority),
 		routes.C(ledgersubaccountroutedb.FieldTransactionAuthorizationStatus),
@@ -74,10 +78,12 @@ func (q balanceBucketsQuery) SQL() (string, []any, error) {
 			buckets.C(balanceBucketFieldSubAccountID),
 			buckets.C(balanceBucketFieldSourceChargeID),
 			buckets.C(balanceBucketFieldSpendChargeID),
+			buckets.C(balanceBucketFieldCollectionOriginID),
 		)
 	selector.SetDialect(dialect.Postgres)
 
 	sqlQuery, args := selector.Query()
+
 	return sqlQuery, args, nil
 }
 
@@ -91,6 +97,7 @@ func (q balanceBucketsQuery) bucketSelector() (*sql.Selector, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	for key, value := range q.query.ExcludeAnnotationFilters {
 		entryPredicates = append(entryPredicates,
 			ledgerentrydb.HasTransactionWith(transactionAnnotationNotEqual(key, value)),
@@ -103,7 +110,9 @@ func (q balanceBucketsQuery) bucketSelector() (*sql.Selector, error) {
 	selector := sql.Select(entries.C(ledgerentrydb.FieldSubAccountID)).From(entries)
 	appendBalanceBucketDimensionSelect(selector, entries, q.query.GroupBy, ledger.BalanceBucketGroupBySourceChargeID, ledgerentrydb.FieldSourceChargeID)
 	appendBalanceBucketDimensionSelect(selector, entries, q.query.GroupBy, ledger.BalanceBucketGroupBySpendChargeID, ledgerentrydb.FieldSpendChargeID)
+	appendBalanceBucketDimensionSelect(selector, entries, q.query.GroupBy, ledger.BalanceBucketGroupByCollectionOriginID, ledgerentrydb.FieldCollectionOriginID)
 	selector.AppendSelect(sql.As(sql.Sum(entries.C(ledgerentrydb.FieldAmount)), balanceBucketFieldSumAmount))
+	selector.AppendSelect(sql.As(sql.Min(entries.C(ledgerentrydb.FieldCreatedAt)), balanceBucketFieldOldestMatchingEntryCreatedAt))
 	selector.SetDialect(dialect.Postgres)
 	for _, predicate := range entryPredicates {
 		predicate(selector)
@@ -113,9 +122,15 @@ func (q balanceBucketsQuery) bucketSelector() (*sql.Selector, error) {
 	if slices.Contains(q.query.GroupBy, ledger.BalanceBucketGroupBySourceChargeID) {
 		groupColumns = append(groupColumns, entries.C(ledgerentrydb.FieldSourceChargeID))
 	}
+
 	if slices.Contains(q.query.GroupBy, ledger.BalanceBucketGroupBySpendChargeID) {
 		groupColumns = append(groupColumns, entries.C(ledgerentrydb.FieldSpendChargeID))
 	}
+
+	if slices.Contains(q.query.GroupBy, ledger.BalanceBucketGroupByCollectionOriginID) {
+		groupColumns = append(groupColumns, entries.C(ledgerentrydb.FieldCollectionOriginID))
+	}
+
 	selector.GroupBy(groupColumns...)
 
 	return selector, nil

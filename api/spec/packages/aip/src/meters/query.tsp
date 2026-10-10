@@ -5,6 +5,11 @@ using TypeSpec.JsonSchema;
 
 namespace Meters;
 
+alias MeterQueryGranularityMinute = "PT1M";
+alias MeterQueryGranularityHour = "PT1H";
+alias MeterQueryGranularityDay = "P1D";
+alias MeterQueryGranularityMonth = "P1M";
+
 /**
  * The granularity of the time grouping. Time durations are specified in ISO 8601
  * format.
@@ -15,25 +20,25 @@ union MeterQueryGranularity {
    * 1 minute time buckets.
    */
   @summary("1 minute")
-  Minute: "PT1M",
+  Minute: MeterQueryGranularityMinute,
 
   /**
    * 1 hour time buckets.
    */
   @summary("1 hour")
-  Hour: "PT1H",
+  Hour: MeterQueryGranularityHour,
 
   /**
    * 1 day time buckets.
    */
   @summary("1 day")
-  Day: "P1D",
+  Day: MeterQueryGranularityDay,
 
   /**
    * 1 month time buckets.
    */
   @summary("1 month")
-  Month: "P1M",
+  Month: MeterQueryGranularityMonth,
 }
 
 /**

@@ -18,6 +18,7 @@ func TestStats(t *testing.T) {
 	if err != nil {
 		t.Errorf("failed to unmarshal stats JSON: %v", err)
 	}
+
 	assert.Nil(t, err)
 
 	assert.Equal(t, "rdkafka", stats.ClientID)

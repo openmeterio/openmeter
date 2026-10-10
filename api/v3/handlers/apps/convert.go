@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/samber/lo"
+
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/labels"
 	"github.com/openmeterio/openmeter/api/v3/response"
@@ -244,7 +246,22 @@ func toAPIBillingAppSandbox(sandboxApp appsandbox.Meta) (api.BillingAppSandbox, 
 		CreatedAt:   sandboxApp.CreatedAt,
 		UpdatedAt:   sandboxApp.UpdatedAt,
 		DeletedAt:   sandboxApp.DeletedAt,
+		Actions:     toAPIBillingAppActions(sandboxApp),
 	}, nil
+}
+
+func toAPIBillingAppActions(item interface{ Actions() []app.AppAction }) *[]api.BillingAppAction {
+	actions := item.Actions()
+	if len(actions) == 0 {
+		return nil
+	}
+
+	return lo.ToPtr(lo.Map(actions, func(action app.AppAction, _ int) api.BillingAppAction {
+		return api.BillingAppAction{
+			Type:        api.BillingAppActionType(action.Type),
+			Description: action.Description,
+		}
+	}))
 }
 
 func toAPIBillingAppStripe(
@@ -266,6 +283,7 @@ func toAPIBillingAppStripe(
 		CreatedAt:   stripeApp.CreatedAt,
 		UpdatedAt:   stripeApp.UpdatedAt,
 		DeletedAt:   stripeApp.DeletedAt,
+		Actions:     toAPIBillingAppActions(stripeApp),
 
 		MaskedApiKey: stripeApp.MaskedAPIKey,
 		AccountId:    stripeApp.StripeAccountID,
@@ -292,6 +310,7 @@ func toAPIBillingAppExternalInvoicing(customInvoicingApp appcustominvoicing.Meta
 		CreatedAt:   customInvoicingApp.CreatedAt,
 		UpdatedAt:   customInvoicingApp.UpdatedAt,
 		DeletedAt:   customInvoicingApp.DeletedAt,
+		Actions:     toAPIBillingAppActions(customInvoicingApp),
 
 		EnableDraftSyncHook:   customInvoicingApp.Configuration.EnableDraftSyncHook,
 		EnableIssuingSyncHook: customInvoicingApp.Configuration.EnableIssuingSyncHook,

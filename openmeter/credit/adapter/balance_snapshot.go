@@ -57,6 +57,7 @@ func (b *balanceSnapshotRepo) GetLatestValidAt(ctx context.Context, owner models
 			if db.IsNotFound(err) {
 				return balance.Snapshot{}, &balance.NoSavedBalanceForOwnerError{Owner: owner, Time: at}
 			}
+
 			return balance.Snapshot{}, err
 		}
 
@@ -93,6 +94,7 @@ func (b *balanceSnapshotRepo) Save(ctx context.Context, owner models.NamespacedI
 			if snapshot.UnitConfig != nil {
 				command = command.SetUnitConfig(snapshot.UnitConfig)
 			}
+
 			commands = append(commands, command)
 		}
 
@@ -101,6 +103,7 @@ func (b *balanceSnapshotRepo) Save(ctx context.Context, owner models.NamespacedI
 		}
 
 		_, err := rep.db.BalanceSnapshot.CreateBulk(commands...).Save(ctx)
+
 		return err
 	})
 }
@@ -114,13 +117,16 @@ func mapBalanceSnapshotEntity(entity *db.BalanceSnapshot) balance.Snapshot {
 	if entity.UsageSnapshot != nil {
 		s.UsageSnapshot = entity.UsageSnapshot
 	}
+
 	if entity.Usage != nil {
 		// Hydrate legacy usage only so subsequent snapshots remain readable by
 		// old binaries during the rolling migration.
 		s.Usage = *entity.Usage
 	}
+
 	if entity.UnitConfig != nil {
 		s.UnitConfig = entity.UnitConfig
 	}
+
 	return s
 }

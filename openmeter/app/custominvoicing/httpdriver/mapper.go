@@ -56,6 +56,7 @@ func mapFinalizeStandardInvoiceResultFromAPI(in api.CustomInvoicingFinalizedRequ
 			res.SetPaymentExternalID(*in.Payment.ExternalId)
 		}
 	}
+
 	return res
 }
 

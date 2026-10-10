@@ -72,6 +72,7 @@ func (c *chargePatchCollection) addCreate(intent charges.ChargeIntent, options c
 		ChargeIntent: intent,
 		Options:      options,
 	})
+
 	return nil
 }
 
@@ -93,6 +94,7 @@ func (c *chargePatchCollection) addPatch(chargeID string, patch charges.Patch) e
 	}
 
 	c.patches.PatchesByChargeID[chargeID] = patch
+
 	return nil
 }
 

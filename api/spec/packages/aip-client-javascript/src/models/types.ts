@@ -152,6 +152,30 @@ export interface AppStripeCreateCustomerPortalSessionOptions {
  */
 export type CreateLabels = Record<string, string>
 
+/** An integer version comparison. Exactly one operator must be provided. */
+export interface CreateVersionFilter {
+  /** Match this exact version. */
+  eq?: number
+  /** Match one of these versions. */
+  oeq?: number[]
+  /** Match this version and later versions. */
+  gte?: number
+  /** Match this version and earlier versions. */
+  lte?: number
+}
+
+/** An integer version comparison. Exactly one operator must be provided. */
+export interface VersionFilter {
+  /** Match this exact version. */
+  eq?: number
+  /** Match one of these versions. */
+  oeq?: number[]
+  /** Match this version and later versions. */
+  gte?: number
+  /** Match this version and earlier versions. */
+  lte?: number
+}
+
 /** Free price. */
 export interface PriceFree {
   /** The type of the price. */
@@ -280,6 +304,15 @@ export interface SubscriptionEditUnscheduleEdit {
  */
 export type UpdateLabels = Record<string, string>
 
+/**
+ * Request to reconcile the app's webhook events with the latest supported event
+ * set.
+ */
+export interface AppReconcileWebhookEventsActionRequest {
+  /** The action to execute. */
+  actionType: 'reconcile_webhook_events'
+}
+
 /** Model for installing an app from the catalog with an API key. */
 export interface InstallAppStripeWithApiKey {
   /** Type of the app. */
@@ -308,15 +341,15 @@ export interface InstallAppSandbox {
   createBillingProfile: boolean
 }
 
-/** Base model for installing an app from the catalog. */
+/** Model for installing an External Invoicing app from the catalog. */
 export interface InstallAppExternalInvoicing {
   /** Type of the app. */
   type: 'external_invoicing'
   /** Name of the app. */
   name: string
   /**
-   * If true, a billing profile will be created for the app. The Stripe app will be
-   * also set as the default billing profile if the current default is a Sandbox app.
+   * If true, creates the Auto Collection preset with an OpenMeter supplier in the US
+   * (postal code 94114), without replacing the default profile.
    */
   createBillingProfile: boolean
 }
@@ -425,6 +458,24 @@ export interface EntitlementAccessQueryRequestCustomers {
 export interface EntitlementAccessQueryRequestFeatures {
   /** List of feature keys to evaluate access for. */
   keys: string[]
+}
+
+/**
+ * The response the recipient returned for a delivery attempt. For webhook channels
+ * this is the HTTP response.
+ */
+export interface NotificationEventDeliveryAttemptResponse {
+  /**
+   * The HTTP status code returned by the recipient. Absent when no response was
+   * received.
+   */
+  statusCode?: number
+  /** The response body returned by the recipient. Empty when no body was received. */
+  body: string
+  /** How long the delivery attempt took, in milliseconds. */
+  durationMs: bigint
+  /** The URL the event was delivered to. Only set for webhook channels. */
+  url?: string
 }
 
 /**
@@ -652,18 +703,60 @@ export interface CreateCurrencyCustomRequest {
   code: string
 }
 
-/** Balance details of a metered entitlement. */
+/**
+ * Balance details of a metered entitlement at the evaluation time, which is the
+ * `at` query parameter when given and the current time otherwise.
+ */
 export interface EntitlementAccessValue {
-  /** The remaining balance of the entitlement in the current usage period. */
+  /**
+   * The remaining balance of the entitlement in the usage period at the evaluation
+   * time.
+   */
   balance: string
-  /** The usage recorded in the current usage period. */
+  /** The usage recorded in the usage period at the evaluation time. */
   usage: string
-  /** The usage exceeding the available balance in the current usage period. */
+  /**
+   * The usage exceeding the available balance in the usage period at the evaluation
+   * time.
+   */
   overage: string
-  /** The total amount granted and currently available to the entitlement. */
+  /**
+   * The total amount granted and available to the entitlement at the evaluation
+   * time.
+   */
   totalAvailableGrantAmount: string
   /** The remaining balance of each grant, keyed by grant ID. */
   grantBalances: Record<string, string>
+}
+
+/**
+ * Usage granted automatically after each reset of a metered entitlement. The
+ * balance returns to `amount` after every reset.
+ */
+export interface EntitlementIssueAfterReset {
+  /** The amount granted after each reset, in the feature's unit. */
+  amount: string
+  /**
+   * The priority of the grant created after each reset. Lower values have higher
+   * priority.
+   */
+  priority: number
+}
+
+/** Entitlement balance at the boundaries of a burndown segment. */
+export interface EntitlementBurndownBalance {
+  /** The balance at the start of the segment. */
+  start: string
+  /** The balance at the end of the segment. */
+  end: string
+}
+
+/** Grant balances at the boundaries of a burndown segment, keyed by grant ID. */
+export interface EntitlementBurndownGrantBalances {
+  /** The balance of each active grant at the start of the segment. */
+  start: Record<string, string>
+  /** The balance of each active grant at the end of the segment. */
+  end: Record<string, string>
 }
 
 /** Cost basis with an explicit conversion rate supplied with the charge. */
@@ -945,6 +1038,19 @@ export interface ProfileReference {
   id: string
 }
 
+/** Feature reference. */
+export interface FeatureReference {
+  id: string
+}
+
+/** Usage taken from a single grant. */
+export interface EntitlementGrantUsage {
+  /** The ID of the grant. */
+  grantId: string
+  /** The usage taken from the grant. */
+  usage: string
+}
+
 /** Cost basis pinned to a specific cost basis resource of the custom currency. */
 export interface CreateChargeCostBasisPinned {
   /** Discriminator selecting the cost basis mode. */
@@ -983,6 +1089,11 @@ export interface CreditGrantInvoiceReference {
   line?: { id: string }
 }
 
+/** CurrencyCustom reference. */
+export interface CurrencyCustomReference {
+  id: string
+}
+
 /** A cost basis pinned to a custom-currency pair for the subscription. */
 export interface SubscriptionCostBasisPin {
   /** The managed custom currency ID. */
@@ -991,11 +1102,6 @@ export interface SubscriptionCostBasisPin {
   invoiceCurrency: string
   /** The pinned cost basis resource ID. */
   costBasisId: string
-}
-
-/** Feature reference. */
-export interface FeatureReference {
-  id: string
 }
 
 /**
@@ -1041,6 +1147,37 @@ export interface ChargeReference {
 /** TaxCode reference. */
 export interface UpdateResourceReference {
   id: string
+}
+
+/** NotificationChannel reference. */
+export interface NotificationChannelReference {
+  id: string
+}
+
+/** A reference to the feature of an entitlement notification event. */
+export interface NotificationEventFeatureReference {
+  /** The unique identifier of the feature. */
+  id: string
+  /** The immutable key of the feature. */
+  key: string
+}
+
+/** A reference to the invoice of an invoice notification event. */
+export interface NotificationEventInvoiceReference {
+  /** The unique identifier of the invoice. */
+  id: string
+  /** The human-readable invoice number. */
+  number: string
+}
+
+/** Request body for resending a notification event. */
+export interface ResendBillingNotificationEventRequest {
+  /**
+   * The channels to resend the event to. When omitted or empty, the event is resent
+   * to every enabled channel of the rule. Channels not targeted by the rule or
+   * disabled are rejected.
+   */
+  channels?: string[]
 }
 
 /** Customer reference. */
@@ -1186,25 +1323,6 @@ export interface AppStripeCreateCustomerPortalSessionResult {
 }
 
 /**
- * Fiat conversion rate a custom-currency charge is invoiced at. Present once the
- * cost basis is resolved; dynamic cost bases are exposed only after the service
- * period has started.
- */
-export interface ChargeResolvedCostBasis {
-  /** The fiat currency the charge amount is converted into for invoicing. */
-  fiatCurrency: string
-  /** Fiat amount per one unit of the custom currency. */
-  rate: string
-  /**
-   * ID of the custom currency's cost basis resource the rate was taken from. Absent
-   * for manual cost bases.
-   */
-  costBasisId?: string
-  /** When the rate was resolved. */
-  resolvedAt: Date
-}
-
-/**
  * A period with defined start and end dates.
  *
  * The period is always inclusive at the start and exclusive at the end.
@@ -1222,6 +1340,44 @@ export interface ClosedPeriod {
    * The period is exclusive at the end.
    */
   to: Date
+}
+
+/** Request body for resetting the usage of a metered entitlement. */
+export interface ResetCustomerEntitlementUsageRequest {
+  /**
+   * The time the reset takes effect. Defaults to the current time and cannot be in
+   * the future. Truncated to the minute.
+   */
+  effectiveAt?: Date
+  /**
+   * Whether the usage period anchor is kept. When false, the anchor moves to
+   * `effective_at`.
+   */
+  retainAnchor: boolean
+  /**
+   * Whether overage carries over into the new usage period. Defaults to the
+   * entitlement's own setting.
+   */
+  preserveOverage?: boolean
+}
+
+/**
+ * Fiat conversion rate a custom-currency charge is invoiced at. Present once the
+ * cost basis is resolved; dynamic cost bases are exposed only after the service
+ * period has started.
+ */
+export interface ChargeResolvedCostBasis {
+  /** The fiat currency the charge amount is converted into for invoicing. */
+  fiatCurrency: string
+  /** Fiat amount per one unit of the custom currency. */
+  rate: string
+  /**
+   * ID of the custom currency's cost basis resource the rate was taken from. Absent
+   * for manual cost bases.
+   */
+  costBasisId?: string
+  /** When the rate was resolved. */
+  resolvedAt: Date
 }
 
 /** A subscription add-on event. */
@@ -1525,24 +1681,6 @@ export interface NotImplemented extends BaseError {}
 
 /** Not Available. */
 export interface NotAvailable extends BaseError {}
-
-/** Filters for the credit grant. */
-export interface CreateCreditGrantFilters {
-  /**
-   * Limit the credit grant to specific features. If no features are specified, the
-   * credit grant can be used for any feature.
-   */
-  features?: string[]
-}
-
-/** Filters for the credit grant. */
-export interface CreditGrantFilters {
-  /**
-   * Limit the credit grant to specific features. If no features are specified, the
-   * credit grant can be used for any feature.
-   */
-  features?: string[]
-}
 
 /**
  * A reference to the plan a subscription was created from, pinned to an exact
@@ -1923,6 +2061,46 @@ export interface CustomerStripeCreateCustomerPortalSessionRequest {
   stripeOptions: AppStripeCreateCustomerPortalSessionOptions
 }
 
+/** Entitlement access check result. */
+export interface EntitlementAccessCheckResult {
+  /**
+   * Whether the customer has access to the feature. Always true for `boolean` and
+   * `static` entitlements. Depends on balance for `metered` entitlements.
+   */
+  hasAccess: boolean
+  /**
+   * Only available for static entitlements. Config is the JSON parsable
+   * configuration of the entitlement. Useful to describe per customer configuration.
+   */
+  config?: string
+  /**
+   * The type of the entitlement.
+   *
+   * If not provided, the feature has no entitlement defined (has access is always
+   * false in this case)
+   */
+  type?: 'metered' | 'static' | 'boolean'
+}
+
+/**
+ * Recurring period input. The anchor is optional; the owning resource defines the
+ * default, typically its creation time.
+ */
+export interface RecurringPeriodInput {
+  /** The interval duration in ISO 8601 format. */
+  interval: string
+  /** A date-time anchor to base the recurring period on. */
+  anchor?: Date
+}
+
+/** Recurring period with an anchor and an interval. */
+export interface RecurringPeriod {
+  /** A date-time anchor to base the recurring period on. */
+  anchor: Date
+  /** The interval duration in ISO 8601 format. */
+  interval: string
+}
+
 /** The entitlement template of a metered entitlement. */
 export interface RateCardMeteredEntitlement {
   /** The type of the entitlement template. */
@@ -1976,12 +2154,34 @@ export interface SubscriptionEditStretchPhase {
   extendBy: string
 }
 
-/** Recurring period with an anchor and an interval. */
-export interface RecurringPeriod {
-  /** A date-time anchor to base the recurring period on. */
-  anchor: Date
-  /** The interval duration in ISO 8601 format. */
-  interval: string
+/** Filter options for getting a credit balance. */
+export interface GetCreditBalanceParamsFilter {
+  /**
+   * Filter credit balance by currency code. When historical custom currencies reuse
+   * a code, each managed currency is returned as a separate balance row.
+   */
+  currency?: StringFieldFilterExact
+  /**
+   * Filter credit balance by feature key. Omit to return the total portfolio value.
+   * Use `exists=false` to return only unrestricted balance.
+   */
+  featureKey?: StringFieldFilter
+}
+
+/** Filter options for listing plans. */
+export interface ListPlansParamsFilter {
+  key?: StringFieldFilter
+  name?: StringFieldFilter
+  status?: StringFieldFilterExact
+  currency?: StringFieldFilterExact
+}
+
+/** A plan key and an optional version constraint for matching credit grants. */
+export interface CreateCreditGrantPlanFilter {
+  /** The plan key in the customer's namespace. */
+  key: string
+  /** Omission matches all versions, including future versions. */
+  version?: CreateVersionFilter
 }
 
 /**
@@ -1991,6 +2191,14 @@ export interface RecurringPeriod {
 export interface UpdateCreditGrantExternalSettlementRequest {
   /** The new payment settlement status. */
   status: 'pending' | 'authorized' | 'settled'
+}
+
+/** A plan key and an optional version constraint for matching credit grants. */
+export interface CreditGrantPlanFilter {
+  /** The plan key in the customer's namespace. */
+  key: string
+  /** Omission matches all versions, including future versions. */
+  version?: VersionFilter
 }
 
 /** Filter options for listing credit grants. */
@@ -2017,28 +2225,6 @@ export interface ValidationIssue {
   field?: string
   /** Component that reported the validation issue, if applicable. */
   component?: string
-}
-
-/** Filter options for getting a credit balance. */
-export interface GetCreditBalanceParamsFilter {
-  /**
-   * Filter credit balance by currency code. When historical custom currencies reuse
-   * a code, each managed currency is returned as a separate balance row.
-   */
-  currency?: StringFieldFilterExact
-  /**
-   * Filter credit balance by feature key. Omit to return the total portfolio value.
-   * Use `exists=false` to return only unrestricted balance.
-   */
-  featureKey?: StringFieldFilter
-}
-
-/** Filter options for listing plans. */
-export interface ListPlansParamsFilter {
-  key?: StringFieldFilter
-  name?: StringFieldFilter
-  status?: StringFieldFilterExact
-  currency?: StringFieldFilterExact
 }
 
 /** Request body for voiding a credit grant. */
@@ -2201,6 +2387,14 @@ export interface AppCapability {
   /** Name of the capability. */
   name: string
   /** Description of the capability. */
+  description: string
+}
+
+/** An action the operator should take on an installed app. */
+export interface AppAction {
+  /** The action type. */
+  type: 'reconcile_webhook_events'
+  /** Human readable explanation of why the action is needed. */
   description: string
 }
 
@@ -2385,6 +2579,158 @@ export interface EntitlementAccessQueryError {
   customer?: string
 }
 
+/**
+ * A notification channel delivers notification events, such as entitlement balance
+ * threshold crossings, to an external system. Today the only supported channel
+ * type is a webhook delivered via Svix.
+ */
+export interface NotificationChannel {
+  id: string
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  labels?: Labels
+  /** An ISO-8601 timestamp representation of entity creation date. */
+  createdAt: Date
+  /** An ISO-8601 timestamp representation of entity last update date. */
+  updatedAt: Date
+  /** An ISO-8601 timestamp representation of entity deletion date. */
+  deletedAt?: Date
+  /** The type of the channel. Immutable after creation. */
+  type: 'webhook'
+  /**
+   * Whether the channel is disabled. Disabled channels do not receive notification
+   * events.
+   */
+  disabled: boolean
+  /** The URL that webhook notification events are delivered to. */
+  url: string
+  /**
+   * Custom HTTP headers to include on every webhook delivery request, keyed by
+   * header name.
+   */
+  customHeaders?: Record<string, string>
+  /**
+   * Secret used to sign outgoing webhook payloads so recipients can verify their
+   * authenticity. If omitted on create, a secret is generated automatically by the
+   * delivery provider. This is a sensitive credential returned in responses (unlike
+   * most secrets) specifically so clients can retrieve a server-generated value and
+   * verify webhook signatures; handle it with the same care as any other credential.
+   */
+  signingSecret?: string
+}
+
+/** NotificationChannel create request. */
+export interface CreateNotificationChannelRequest {
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  labels?: Labels
+  /** The type of the channel. Immutable after creation. */
+  type: 'webhook'
+  /**
+   * Whether the channel is disabled. Disabled channels do not receive notification
+   * events.
+   */
+  disabled: boolean
+  /** The URL that webhook notification events are delivered to. */
+  url: string
+  /**
+   * Custom HTTP headers to include on every webhook delivery request, keyed by
+   * header name.
+   */
+  customHeaders?: Record<string, string>
+  /**
+   * Secret used to sign outgoing webhook payloads so recipients can verify their
+   * authenticity. If omitted on create, a secret is generated automatically by the
+   * delivery provider. This is a sensitive credential returned in responses (unlike
+   * most secrets) specifically so clients can retrieve a server-generated value and
+   * verify webhook signatures; handle it with the same care as any other credential.
+   */
+  signingSecret?: string
+}
+
+/**
+ * Request body for updating a notification channel. Updates replace the channel's
+ * mutable state rather than merging it: `type`, `name`, and `url` must always be
+ * provided, and omitting `disabled`, `labels`, or `custom_headers` resets them to
+ * their defaults (enabled, no labels, no custom headers). `signing_secret` is the
+ * one exception: omitting it keeps the channel's current signing secret instead of
+ * clearing the credential.
+ */
+export interface UpdateBillingNotificationChannelRequest {
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  /** The type of the channel. Immutable after creation. */
+  type: 'webhook'
+  /** The URL that webhook notification events are delivered to. */
+  url: string
+  labels?: Labels
+  /**
+   * Whether the channel is disabled. Disabled channels do not receive notification
+   * events.
+   */
+  disabled: boolean
+  /**
+   * Custom HTTP headers to include on every webhook delivery request, keyed by
+   * header name.
+   */
+  customHeaders?: Record<string, string>
+  /**
+   * Secret used to sign outgoing webhook payloads so recipients can verify their
+   * authenticity. If omitted on create, a secret is generated automatically by the
+   * delivery provider. This is a sensitive credential returned in responses (unlike
+   * most secrets) specifically so clients can retrieve a server-generated value and
+   * verify webhook signatures; handle it with the same care as any other credential.
+   */
+  signingSecret?: string
+}
+
+/**
+ * A balance threshold of a notification rule. Crossing it generates an
+ * `entitlements.balance.threshold` event.
+ */
+export interface NotificationBalanceThreshold {
+  /** What the threshold value is measured against. */
+  type: 'balance_value' | 'usage_percentage' | 'usage_value'
+  /** The threshold value. */
+  value: number
+}
+
+/** A reference to the notification rule that generated an event. */
+export interface NotificationRuleReference {
+  /** The unique identifier of the rule. */
+  id: string
+  /** The type of event the rule generates. */
+  type:
+    | 'entitlements.balance.threshold'
+    | 'entitlements.reset'
+    | 'invoice.created'
+    | 'invoice.updated'
+  /** The user-provided name of the rule. */
+  name: string
+}
+
+/** A single delivery attempt to a channel. */
+export interface NotificationEventDeliveryAttempt {
+  /** The delivery state reached by this attempt. */
+  state: 'success' | 'failed' | 'sending' | 'pending' | 'resending'
+  /** The response returned by the recipient. */
+  response: NotificationEventDeliveryAttemptResponse
+  /** When the attempt was made. */
+  timestamp: Date
+}
+
 /** App customer data. */
 export interface AppCustomerData {
   /**
@@ -2445,27 +2791,6 @@ export interface CreditAdjustment {
   labels?: Labels
 }
 
-/** The credit balance by currency. */
-export interface CreditBalance {
-  currency: BillingCurrencyCode
-  /** Immutable managed currency identifier. Present only for custom currencies. */
-  customCurrencyId?: string
-  /**
-   * Credits available after applying currently live charge impacts.
-   *
-   * Always zero for historical balance queries using the `timestamp` parameter
-   * because live charge impacts cannot be reconstructed historically.
-   */
-  live: string
-  /** Credits that have been booked on the ledger as of the balance timestamp. */
-  settled: string
-  /**
-   * Credits that have been granted but are not yet written to the ledger, or are
-   * written to the ledger with a future booked time.
-   */
-  pending: string
-}
-
 /** CreditAdjustment create request. */
 export interface CreateCreditAdjustmentRequest {
   /**
@@ -2504,46 +2829,6 @@ export interface ListCreditTransactionsParamsFilter {
   featureKey?: StringFieldFilter
 }
 
-/**
- * A credit transaction represents a single credit movement on the customer's
- * balance.
- *
- * Credit transactions are immutable.
- */
-export interface CreditTransaction {
-  id: string
-  /**
-   * Display name of the resource.
-   *
-   * Between 1 and 256 characters.
-   */
-  name: string
-  /**
-   * Optional description of the resource.
-   *
-   * Maximum 1024 characters.
-   */
-  description?: string
-  labels?: Labels
-  /** An ISO-8601 timestamp representation of entity creation date. */
-  createdAt: Date
-  /** The date and time the transaction was booked. */
-  bookedAt: Date
-  /** The type of credit transaction. */
-  type: 'funded' | 'consumed' | 'expired' | 'voided'
-  /** Currency of the balance affected by the transaction. */
-  currency: BillingCurrencyCode
-  /** Immutable managed currency identifier. Present only for custom currencies. */
-  customCurrencyId?: string
-  /**
-   * Signed amount of the credit movement. Positive values add balance, negative
-   * values reduce balance.
-   */
-  amount: string
-  /** The available balance before and after the transaction. */
-  availableBalance: { before: string; after: string }
-}
-
 /** Monetary amount in a fiat or custom currency. */
 export interface CurrencyAmount {
   /** The amount as an arbitrary-precision decimal string. */
@@ -2552,11 +2837,11 @@ export interface CurrencyAmount {
   currency: BillingCurrencyCode
 }
 
-/** Entitlement access result. */
-export interface EntitlementAccessResult {
+/** Entitlement value result. */
+export interface EntitlementValueResult {
   /** The type of the entitlement. */
   type: 'metered' | 'static' | 'boolean'
-  /** The feature key of the entitlement. */
+  /** The feature key being evaluated. */
   featureKey: string
   /**
    * Whether the customer has access to the feature. Always true for `boolean` and
@@ -2569,10 +2854,41 @@ export interface EntitlementAccessResult {
    */
   config?: string
   /**
-   * Only available for metered entitlements. The current balance details of the
-   * entitlement. Requires the `value` expand.
+   * Only available for metered entitlements. The balance details of the entitlement
+   * at the evaluation time. Requires the `value` expand.
    */
   value?: EntitlementAccessValue
+}
+
+/**
+ * Entitlement value looked up by feature key. A missing entitlement has no type
+ * and does not grant access.
+ */
+export interface EntitlementFeatureValueResult {
+  /** The feature key being evaluated. */
+  featureKey: string
+  /**
+   * Whether the customer has access to the feature. Always true for `boolean` and
+   * `static` entitlements. Depends on balance for `metered` entitlements.
+   */
+  hasAccess: boolean
+  /**
+   * Only available for static entitlements. Config is the JSON parsable
+   * configuration of the entitlement. Useful to describe per customer configuration.
+   */
+  config?: string
+  /**
+   * Only available for metered entitlements. The balance details of the entitlement
+   * at the evaluation time. Requires the `value` expand.
+   */
+  value?: EntitlementAccessValue
+  /**
+   * The type of the entitlement.
+   *
+   * If not provided, the feature has no entitlement defined (has access is always
+   * false in this case)
+   */
+  type?: 'metered' | 'static' | 'boolean'
 }
 
 /**
@@ -2745,6 +3061,36 @@ export interface ListCustomersParamsFilter {
   billingProfileId?: UlidFieldFilter
 }
 
+/** Filter options for listing customer entitlements. */
+export interface ListCustomerEntitlementsParamsFilter {
+  /** Filter entitlements by feature ID. */
+  featureId?: UlidFieldFilter
+  /** Filter entitlements by feature key. */
+  featureKey?: StringFieldFilterExact
+  /** Filter entitlements by type (`metered`, `static` or `boolean`). */
+  type?: StringFieldFilterExact
+}
+
+/** Filter options for listing entitlements. */
+export interface ListEntitlementsParamsFilter {
+  /** Filter entitlements by feature ID. */
+  featureId?: UlidFieldFilter
+  /** Filter entitlements by feature key. */
+  featureKey?: StringFieldFilterExact
+  /** Filter entitlements by type (`metered`, `static` or `boolean`). */
+  type?: StringFieldFilterExact
+  /** Filter entitlements by customer ID. */
+  customerId?: UlidFieldFilter
+}
+
+/** Filter options for listing grants. */
+export interface ListGrantsParamsFilter {
+  /** Filter grants by the ID of the customer that owns the entitlement. */
+  customerId?: UlidFieldFilter
+  /** Filter grants by the ID of the entitlement's feature. */
+  featureId?: UlidFieldFilter
+}
+
 /** Filter options for listing subscriptions. */
 export interface ListSubscriptionsParamsFilter {
   id?: UlidFieldFilter
@@ -2795,35 +3141,45 @@ export interface ListPlanAddonsParamsFilter {
 }
 
 /**
- * Tax configuration for a credit grant.
+ * Tax configuration for a billable resource.
  *
- * Tax configuration should be provided to ensure correct revenue recognition,
- * including for externally funded grants.
+ * Applies a tax code and tax behavior to the resulting invoice line items. When
+ * not set, the applicable default is used: the billing profile default tax
+ * configuration, then the organization default tax code.
  */
-export interface CreateCreditGrantTaxConfig {
-  /** Tax behavior applied to the invoice line item. */
+export interface CreateTaxCodeConfig {
+  /**
+   * Tax behavior.
+   *
+   * This enum is used to specify whether tax is included in the price or excluded
+   * from the price. If not specified, the billing profile is used to determine the
+   * tax behavior. If not specified in the billing profile, the provider's default
+   * behavior is used.
+   */
   behavior?: 'inclusive' | 'exclusive'
   /** Tax code applied to the invoice line item. */
-  taxCode?: CreateResourceReference
+  code?: CreateResourceReference
 }
 
 /**
- * Tax configuration for a credit grant.
+ * Tax configuration for a billable resource.
  *
- * Tax configuration should be provided to ensure correct revenue recognition,
- * including for externally funded grants.
+ * Applies a tax code and tax behavior to the resulting invoice line items. When
+ * not set, the applicable default is used: the billing profile default tax
+ * configuration, then the organization default tax code.
  */
-export interface CreditGrantTaxConfig {
-  /** Tax behavior applied to the invoice line item. */
+export interface TaxCodeConfig {
+  /**
+   * Tax behavior.
+   *
+   * This enum is used to specify whether tax is included in the price or excluded
+   * from the price. If not specified, the billing profile is used to determine the
+   * tax behavior. If not specified in the billing profile, the provider's default
+   * behavior is used.
+   */
   behavior?: 'inclusive' | 'exclusive'
   /** Tax code applied to the invoice line item. */
-  taxCode?: TaxCodeReference
-}
-
-/** The tax config of the rate card. */
-export interface RateCardTaxConfig {
-  behavior?: 'inclusive' | 'exclusive'
-  code: TaxCodeReference
+  code?: TaxCodeReference
 }
 
 /** Set of provider specific tax configs. */
@@ -2874,6 +3230,67 @@ export interface UpdateOrganizationDefaultTaxCodesRequest {
   invoicingTaxCode?: TaxCodeReference
   /** Default tax code for credit grants. */
   creditGrantTaxCode?: TaxCodeReference
+}
+
+/** The credit balance by currency. */
+export interface CreditBalance {
+  currency: BillingCurrencyCode
+  /** Managed currency reference. Present only for custom currencies. */
+  customCurrency?: CurrencyCustomReference
+  /**
+   * Credits available after applying currently live charge impacts.
+   *
+   * Always zero for historical balance queries using the `timestamp` parameter
+   * because live charge impacts cannot be reconstructed historically.
+   */
+  live: string
+  /** Credits that have been booked on the ledger as of the balance timestamp. */
+  settled: string
+  /**
+   * Credits that have been granted but are not yet written to the ledger, or are
+   * written to the ledger with a future booked time.
+   */
+  pending: string
+}
+
+/**
+ * A credit transaction represents a single credit movement on the customer's
+ * balance.
+ *
+ * Credit transactions are immutable.
+ */
+export interface CreditTransaction {
+  id: string
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  /**
+   * Optional description of the resource.
+   *
+   * Maximum 1024 characters.
+   */
+  description?: string
+  labels?: Labels
+  /** An ISO-8601 timestamp representation of entity creation date. */
+  createdAt: Date
+  /** The date and time the transaction was booked. */
+  bookedAt: Date
+  /** The type of credit transaction. */
+  type: 'funded' | 'consumed' | 'expired' | 'voided'
+  /** Currency of the balance affected by the transaction. */
+  currency: BillingCurrencyCode
+  /** Managed currency reference. Present only for custom currencies. */
+  customCurrency?: CurrencyCustomReference
+  /**
+   * Signed amount of the credit movement. Positive values add balance, negative
+   * values reduce balance.
+   */
+  amount: string
+  /** The available balance before and after the transaction. */
+  availableBalance: { before: string; after: string }
 }
 
 /**
@@ -2965,10 +3382,196 @@ export interface CreatePlanAddonRequest {
   maxQuantity?: number
 }
 
-/** The tax config of the rate card. */
-export interface UpdateRateCardTaxConfig {
+/**
+ * Tax configuration for a billable resource.
+ *
+ * Applies a tax code and tax behavior to the resulting invoice line items. When
+ * not set, the applicable default is used: the billing profile default tax
+ * configuration, then the organization default tax code.
+ */
+export interface UpdateTaxCodeConfig {
+  /**
+   * Tax behavior.
+   *
+   * This enum is used to specify whether tax is included in the price or excluded
+   * from the price. If not specified, the billing profile is used to determine the
+   * tax behavior. If not specified in the billing profile, the provider's default
+   * behavior is used.
+   */
   behavior?: 'inclusive' | 'exclusive'
-  code: UpdateResourceReference
+  /** Tax code applied to the invoice line item. */
+  code?: UpdateResourceReference
+}
+
+/** A rule that generates an event when an entitlement usage period is reset. */
+export interface NotificationRuleEntitlementReset {
+  id: string
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  labels?: Labels
+  /** An ISO-8601 timestamp representation of entity creation date. */
+  createdAt: Date
+  /** An ISO-8601 timestamp representation of entity last update date. */
+  updatedAt: Date
+  /** An ISO-8601 timestamp representation of entity deletion date. */
+  deletedAt?: Date
+  /** The type of event the rule generates. Immutable after creation. */
+  type: 'entitlements.reset'
+  /** Whether the rule is disabled. Disabled rules do not generate events. */
+  disabled: boolean
+  /**
+   * The channels the rule delivers its events to. At least one and at most five
+   * channels are required. Responses omit channels that have since been disabled or
+   * deleted.
+   */
+  channels: NotificationChannelReference[]
+  /**
+   * The features the rule applies to. When omitted, the rule applies to every
+   * feature.
+   */
+  features?: FeatureReference[]
+}
+
+/** A rule that generates an event when an invoice is created. */
+export interface NotificationRuleInvoiceCreated {
+  id: string
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  labels?: Labels
+  /** An ISO-8601 timestamp representation of entity creation date. */
+  createdAt: Date
+  /** An ISO-8601 timestamp representation of entity last update date. */
+  updatedAt: Date
+  /** An ISO-8601 timestamp representation of entity deletion date. */
+  deletedAt?: Date
+  /** The type of event the rule generates. Immutable after creation. */
+  type: 'invoice.created'
+  /** Whether the rule is disabled. Disabled rules do not generate events. */
+  disabled: boolean
+  /**
+   * The channels the rule delivers its events to. At least one and at most five
+   * channels are required. Responses omit channels that have since been disabled or
+   * deleted.
+   */
+  channels: NotificationChannelReference[]
+}
+
+/** A rule that generates an event when an invoice is updated. */
+export interface NotificationRuleInvoiceUpdated {
+  id: string
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  labels?: Labels
+  /** An ISO-8601 timestamp representation of entity creation date. */
+  createdAt: Date
+  /** An ISO-8601 timestamp representation of entity last update date. */
+  updatedAt: Date
+  /** An ISO-8601 timestamp representation of entity deletion date. */
+  deletedAt?: Date
+  /** The type of event the rule generates. Immutable after creation. */
+  type: 'invoice.updated'
+  /** Whether the rule is disabled. Disabled rules do not generate events. */
+  disabled: boolean
+  /**
+   * The channels the rule delivers its events to. At least one and at most five
+   * channels are required. Responses omit channels that have since been disabled or
+   * deleted.
+   */
+  channels: NotificationChannelReference[]
+}
+
+/** Request body for an entitlement reset rule. */
+export interface NotificationRuleEntitlementResetRequest {
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  labels?: Labels
+  /** The type of event the rule generates. Immutable after creation. */
+  type: 'entitlements.reset'
+  /** Whether the rule is disabled. Disabled rules do not generate events. */
+  disabled: boolean
+  /**
+   * The channels the rule delivers its events to. At least one and at most five
+   * channels are required. Responses omit channels that have since been disabled or
+   * deleted.
+   */
+  channels: NotificationChannelReference[]
+  /**
+   * The features the rule applies to. When omitted, the rule applies to every
+   * feature.
+   */
+  features?: FeatureReference[]
+}
+
+/** Request body for an invoice created rule. */
+export interface NotificationRuleInvoiceCreatedRequest {
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  labels?: Labels
+  /** The type of event the rule generates. Immutable after creation. */
+  type: 'invoice.created'
+  /** Whether the rule is disabled. Disabled rules do not generate events. */
+  disabled: boolean
+  /**
+   * The channels the rule delivers its events to. At least one and at most five
+   * channels are required. Responses omit channels that have since been disabled or
+   * deleted.
+   */
+  channels: NotificationChannelReference[]
+}
+
+/** Request body for an invoice updated rule. */
+export interface NotificationRuleInvoiceUpdatedRequest {
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  labels?: Labels
+  /** The type of event the rule generates. Immutable after creation. */
+  type: 'invoice.updated'
+  /** Whether the rule is disabled. Disabled rules do not generate events. */
+  disabled: boolean
+  /**
+   * The channels the rule delivers its events to. At least one and at most five
+   * channels are required. Responses omit channels that have since been disabled or
+   * deleted.
+   */
+  channels: NotificationChannelReference[]
+}
+
+/** The invoice an invoice notification event refers to. */
+export interface NotificationEventInvoiceData {
+  /** The invoice the event was generated for. */
+  invoice: NotificationEventInvoiceReference
+  /** The identifier of the customer the invoice was issued to. */
+  customerId?: string
+  /** The currency the invoice is denominated in. */
+  currency: string
+  /** The status of the invoice at the time the event was generated. */
+  status: string
+  /** The invoice total, including taxes, at the time the event was generated. */
+  total: string
 }
 
 /** Filter options for listing ingested events. */
@@ -3057,6 +3660,69 @@ export interface ListChargesParamsFilter {
   customerId?: UlidFieldFilter
 }
 
+/** Filter options for listing notification channels. */
+export interface ListNotificationChannelsParamsFilter {
+  id?: UlidFieldFilter
+  name?: StringFieldFilter
+  type?: StringFieldFilterExact
+  disabled?: BooleanFieldFilter
+  createdAt?: DateTimeFieldFilter
+  updatedAt?: DateTimeFieldFilter
+}
+
+/** Filter options for listing notification rules. */
+export interface ListNotificationRulesParamsFilter {
+  id?: UlidFieldFilter
+  name?: StringFieldFilter
+  type?: StringFieldFilterExact
+  disabled?: BooleanFieldFilter
+  createdAt?: DateTimeFieldFilter
+  updatedAt?: DateTimeFieldFilter
+  /**
+   * Filter by an assigned channel. Matches rules that deliver to at least one of the
+   * given channels. Only `eq` and `oeq` are supported.
+   */
+  channelId?: UlidFieldFilter
+}
+
+/** Filter options for listing notification events. */
+export interface ListNotificationEventsParamsFilter {
+  id?: UlidFieldFilter
+  type?: StringFieldFilterExact
+  createdAt?: DateTimeFieldFilter
+  ruleId?: UlidFieldFilter
+  /**
+   * Filter by a channel of the generating rule. Matches events whose rule targets at
+   * least one of the given channels. Only `eq` and `oeq` are supported.
+   */
+  channelId?: UlidFieldFilter
+  /**
+   * Filter by delivery state. Matches events where delivery to at least one channel
+   * is in one of the given states. Only `eq` and `oeq` are supported.
+   */
+  deliveryStatus?: StringFieldFilterExact
+  /**
+   * Filter by the key of the subject the event refers to. Events without a subject
+   * never match, not even with `neq`.
+   */
+  subjectKey?: StringFieldFilterExact
+  /**
+   * Filter by the id of the subject the event refers to. Events without a subject
+   * never match, not even with `neq`.
+   */
+  subjectId?: UlidFieldFilter
+  /**
+   * Filter by the key of the feature the event refers to. Events without a feature
+   * never match, not even with `neq`.
+   */
+  featureKey?: StringFieldFilterExact
+  /**
+   * Filter by the id of the feature the event refers to. Events without a feature
+   * never match, not even with `neq`.
+   */
+  featureId?: UlidFieldFilter
+}
+
 /** Resource filters. */
 export interface ResourceFilters {
   name?: StringFieldFilter
@@ -3069,7 +3735,7 @@ export interface ResourceFilters {
 
 /** Field filters with all supported types. */
 export interface FieldFilters {
-  boolean?: boolean | { eq: boolean }
+  boolean?: BooleanFieldFilter
   numeric?:
     | number
     | {
@@ -3110,6 +3776,35 @@ export interface MeterQueryResult {
   to?: Date
   /** The usage data. If no data is available, an empty array is returned. */
   data: MeterQueryRow[]
+}
+
+/** Usage and balance of a single history window. */
+export interface EntitlementHistoryWindow {
+  /** The period the window covers. */
+  period: ClosedPeriod
+  /** The usage recorded in the window. */
+  usage: string
+  /** The entitlement balance at the start of the window. */
+  balanceAtStart: string
+}
+
+/** A period in which grants were consumed in a fixed order. */
+export interface EntitlementBurndownSegment {
+  /** The period the segment covers. */
+  period: ClosedPeriod
+  /** The usage recorded in the segment. */
+  usage: string
+  /** The usage in the segment not covered by any grant. */
+  overage: string
+  /** The entitlement balance at the start and at the end of the segment. */
+  balance: EntitlementBurndownBalance
+  /**
+   * The balance of each active grant at the start and at the end of the segment,
+   * keyed by grant ID.
+   */
+  grantBalances: EntitlementBurndownGrantBalances
+  /** The grants consumed in the segment and the usage taken from each. */
+  grantUsages: EntitlementGrantUsage[]
 }
 
 /** A detailed line produced by a flat fee charge's realization run. */
@@ -3413,15 +4108,262 @@ export interface AppStripeCreateCheckoutSessionConsentCollection {
   termsOfService?: 'none' | 'required'
 }
 
+/** A grant to issue for a metered entitlement. */
+export interface EntitlementGrantCreateRequest {
+  /** The amount to grant, in the feature's unit. Must be positive. */
+  amount: string
+  /**
+   * The priority of the grant. Lower values have higher priority. Grants are
+   * consumed in priority order, then by closest expiration, then by earliest
+   * creation.
+   */
+  priority?: number
+  /**
+   * The time the grant becomes effective and the anchor for recurring grants. The
+   * value is truncated to the start of the minute.
+   */
+  effectiveAt: Date
+  /**
+   * The duration after which the grant expires, counted from `effective_at`. Only
+   * single-unit durations are accepted, such as `PT12H`, `P7D`, `P2W`, `P3M`, or
+   * `P1Y`. If omitted, the grant never expires.
+   */
+  expiresAfter?: string
+  /**
+   * The maximum balance carried over at reset. The balance after a reset is
+   * `MIN(max_rollover_amount, MAX(balance_before_reset, min_rollover_amount))`.
+   * Defaults to `amount`.
+   */
+  maxRolloverAmount?: string
+  /**
+   * The minimum balance carried over at reset. The balance after a reset is
+   * `MIN(max_rollover_amount, MAX(balance_before_reset, min_rollover_amount))`.
+   * Defaults to `0`.
+   */
+  minRolloverAmount?: string
+  labels?: Labels
+  /**
+   * The recurrence of the grant. When set, the amount is issued again every
+   * interval. The anchor defaults to `effective_at`.
+   */
+  recurrence?: RecurringPeriodInput
+}
+
+/** Static entitlement create request. */
+export interface CreateEntitlementStaticRequest {
+  /** The type of the entitlement. */
+  type: 'static'
+  /** The feature the customer is entitled to use. */
+  feature: FeatureReference
+  labels?: Labels
+  /**
+   * The entitlement configuration as a JSON value. Returned when checking
+   * entitlement access.
+   */
+  config: unknown
+  /**
+   * The usage period of the entitlement. The anchor defaults to the entitlement
+   * creation time.
+   */
+  usagePeriod?: RecurringPeriodInput
+}
+
+/** Boolean entitlement create request. */
+export interface CreateEntitlementBooleanRequest {
+  /** The type of the entitlement. */
+  type: 'boolean'
+  /** The feature the customer is entitled to use. */
+  feature: FeatureReference
+  labels?: Labels
+  /**
+   * The usage period of the entitlement. The anchor defaults to the entitlement
+   * creation time.
+   */
+  usagePeriod?: RecurringPeriodInput
+}
+
 /**
- * Add a new phase to the subscription. The phase is created without items; use
- * add-item operations to populate it.
+ * A metered entitlement grants a usage allowance for a feature. Access is
+ * determined by the balance: the allowance provided by grants is burnt down by
+ * usage.
  */
-export interface SubscriptionEditAddPhase {
-  /** Discriminator for the add-phase operation. */
-  type: 'add_phase'
-  /** The phase to add. */
-  phase: SubscriptionPhaseCreate
+export interface EntitlementMetered {
+  id: string
+  /** The type of the entitlement. */
+  type: 'metered'
+  /** The feature the customer is entitled to use. */
+  feature: FeatureReference
+  /** The customer the entitlement belongs to. */
+  customer: CustomerReference
+  labels?: Labels
+  /** The time from which the entitlement is active. */
+  activeFrom: Date
+  /**
+   * The time until which the entitlement is active. If not set, the entitlement is
+   * active until deleted.
+   */
+  activeTo?: Date
+  /** The time the entitlement was created. */
+  createdAt: Date
+  /** The time the entitlement was last updated. */
+  updatedAt: Date
+  /** The time the entitlement was deleted. */
+  deletedAt?: Date
+  /**
+   * The usage period of the entitlement. The balance resets at the start of every
+   * period.
+   */
+  usagePeriod: RecurringPeriod
+  /** The current usage period of the entitlement. */
+  currentUsagePeriod: ClosedPeriod
+  /**
+   * If true, the customer keeps access to the feature after the balance is
+   * exhausted.
+   */
+  isSoftLimit: boolean
+  /** Usage granted automatically after each reset. Cannot be combined with `grants`. */
+  issue?: EntitlementIssueAfterReset
+  /** The amount granted automatically after each reset. */
+  issueAfterReset?: string
+  /** The priority of the grant created after each reset. */
+  issueAfterResetPriority: number
+  /** If true, the overage is preserved at reset. If false, the usage is reset to 0. */
+  preserveOverageAtReset: boolean
+  /** The time from which usage is measured. */
+  measureUsageFrom: Date
+  /** The time of the last reset. */
+  lastReset: Date
+}
+
+/** A static entitlement grants access to a feature together with a configuration. */
+export interface EntitlementStatic {
+  id: string
+  /** The type of the entitlement. */
+  type: 'static'
+  /** The feature the customer is entitled to use. */
+  feature: FeatureReference
+  /** The customer the entitlement belongs to. */
+  customer: CustomerReference
+  labels?: Labels
+  /** The usage period of the entitlement. */
+  usagePeriod?: RecurringPeriod
+  /** The current usage period of the entitlement. */
+  currentUsagePeriod?: ClosedPeriod
+  /** The time from which the entitlement is active. */
+  activeFrom: Date
+  /**
+   * The time until which the entitlement is active. If not set, the entitlement is
+   * active until deleted.
+   */
+  activeTo?: Date
+  /** The time the entitlement was created. */
+  createdAt: Date
+  /** The time the entitlement was last updated. */
+  updatedAt: Date
+  /** The time the entitlement was deleted. */
+  deletedAt?: Date
+  /**
+   * The entitlement configuration as a JSON value. Returned when checking
+   * entitlement access.
+   */
+  config: unknown
+}
+
+/** A boolean entitlement grants access to a feature. */
+export interface EntitlementBoolean {
+  id: string
+  /** The type of the entitlement. */
+  type: 'boolean'
+  /** The feature the customer is entitled to use. */
+  feature: FeatureReference
+  /** The customer the entitlement belongs to. */
+  customer: CustomerReference
+  labels?: Labels
+  /** The usage period of the entitlement. */
+  usagePeriod?: RecurringPeriod
+  /** The current usage period of the entitlement. */
+  currentUsagePeriod?: ClosedPeriod
+  /** The time from which the entitlement is active. */
+  activeFrom: Date
+  /**
+   * The time until which the entitlement is active. If not set, the entitlement is
+   * active until deleted.
+   */
+  activeTo?: Date
+  /** The time the entitlement was created. */
+  createdAt: Date
+  /** The time the entitlement was last updated. */
+  updatedAt: Date
+  /** The time the entitlement was deleted. */
+  deletedAt?: Date
+}
+
+/**
+ * A grant issued for a metered entitlement. Each grant adds its amount to the
+ * entitlement's balance from its effective time until it expires, and usage is
+ * deducted from the grants in priority order.
+ *
+ * Grants are immutable, so the balance is deterministic regardless of when it is
+ * queried. Deleting a grant ends it at the time of the deletion.
+ */
+export interface EntitlementGrant {
+  id: string
+  /** The ID of the entitlement the grant belongs to. */
+  entitlementId: string
+  /** The ID of the customer the grant belongs to. */
+  customerId?: string
+  /** The granted amount, in the feature's unit. */
+  amount: string
+  /**
+   * The priority of the grant. Lower values are consumed first: a grant with
+   * priority 1 is consumed before one with priority 2. Among equal priorities, the
+   * grant closest to expiration is consumed first, then the earliest created.
+   */
+  priority: number
+  /** The time the grant takes effect. */
+  effectiveAt: Date
+  /**
+   * The duration after which the grant expires, counted from `effective_at`. Always
+   * a single-unit duration (for example `PT12H`, `P7D`, `P2W`, `P3M`, `P1Y`). Absent
+   * when the grant never expires.
+   */
+  expiresAfter?: string
+  /**
+   * The time the grant expires, calculated from `effective_at` and `expires_after`.
+   * The grant is no longer in effect from this time. Absent when the grant never
+   * expires.
+   */
+  expiresAt?: Date
+  /**
+   * The maximum balance the grant carries over at reset. The balance after a reset
+   * is `MIN(max_rollover_amount, MAX(balance_before_reset, min_rollover_amount))`.
+   */
+  maxRolloverAmount: string
+  /**
+   * The minimum balance the grant carries over at reset. The balance after a reset
+   * is `MIN(max_rollover_amount, MAX(balance_before_reset, min_rollover_amount))`.
+   */
+  minRolloverAmount: string
+  /**
+   * The recurrence of the grant. When set, the grant amount is re-issued every
+   * interval from the anchor, which defaults to `effective_at`. Absent for
+   * non-recurring grants.
+   */
+  recurrence?: RecurringPeriod
+  /** The next time the grant recurs. Absent for non-recurring grants. */
+  nextRecurrence?: Date
+  /**
+   * The time the grant was voided. A voided grant is no longer in effect from this
+   * time.
+   */
+  voidedAt?: Date
+  labels?: Labels
+  /** An ISO-8601 timestamp representation of entity creation date. */
+  createdAt: Date
+  /** An ISO-8601 timestamp representation of entity last update date. */
+  updatedAt: Date
+  /** An ISO-8601 timestamp representation of entity deletion date. */
+  deletedAt?: Date
 }
 
 /**
@@ -3433,6 +4375,47 @@ export interface WorkflowCollectionAlignmentAnchored {
   type: 'anchored'
   /** The recurring period for the alignment. */
   recurringPeriod: RecurringPeriod
+}
+
+/**
+ * Add a new phase to the subscription. The phase is created without items; use
+ * add-item operations to populate it.
+ */
+export interface SubscriptionEditAddPhase {
+  /** Discriminator for the add-phase operation. */
+  type: 'add_phase'
+  /** The phase to add. */
+  phase: SubscriptionPhaseCreate
+}
+
+/** Filters for the credit grant. */
+export interface CreateCreditGrantFilters {
+  /**
+   * Limit the credit grant to specific features. If no features are specified, the
+   * credit grant can be used for any feature.
+   */
+  features?: string[]
+  /**
+   * Limit credits to charges from these plans. Entries are alternatives; when
+   * features are also specified, both dimensions must match. Omission or an empty
+   * list leaves plans unrestricted.
+   */
+  plans?: CreateCreditGrantPlanFilter[]
+}
+
+/** Filters for the credit grant. */
+export interface CreditGrantFilters {
+  /**
+   * Limit the credit grant to specific features. If no features are specified, the
+   * credit grant can be used for any feature.
+   */
+  features?: string[]
+  /**
+   * Limit credits to charges from these plans. Entries are alternatives; when
+   * features are also specified, both dimensions must match. Omission or an empty
+   * list leaves plans unrestricted.
+   */
+  plans?: CreditGrantPlanFilter[]
 }
 
 /** Subscription fields without phases or the current billing period. */
@@ -3728,6 +4711,100 @@ export interface EntitlementFeatureAccess {
   reason?: EntitlementFeatureAccessReason
 }
 
+/** Page paginated response. */
+export interface NotificationChannelPagePaginatedResponse {
+  data: NotificationChannel[]
+  meta: PaginatedMeta
+}
+
+/**
+ * A rule that generates an event when an entitlement balance crosses one of its
+ * thresholds.
+ */
+export interface NotificationRuleBalanceThreshold {
+  id: string
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  labels?: Labels
+  /** An ISO-8601 timestamp representation of entity creation date. */
+  createdAt: Date
+  /** An ISO-8601 timestamp representation of entity last update date. */
+  updatedAt: Date
+  /** An ISO-8601 timestamp representation of entity deletion date. */
+  deletedAt?: Date
+  /** The type of event the rule generates. Immutable after creation. */
+  type: 'entitlements.balance.threshold'
+  /** Whether the rule is disabled. Disabled rules do not generate events. */
+  disabled: boolean
+  /**
+   * The channels the rule delivers its events to. At least one and at most five
+   * channels are required. Responses omit channels that have since been disabled or
+   * deleted.
+   */
+  channels: NotificationChannelReference[]
+  /** The thresholds that generate an event when crossed. */
+  thresholds: NotificationBalanceThreshold[]
+  /**
+   * The features the rule applies to. When omitted, the rule applies to every
+   * feature.
+   */
+  features?: FeatureReference[]
+}
+
+/** Request body for a balance threshold rule. */
+export interface NotificationRuleBalanceThresholdRequest {
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  labels?: Labels
+  /** The type of event the rule generates. Immutable after creation. */
+  type: 'entitlements.balance.threshold'
+  /** Whether the rule is disabled. Disabled rules do not generate events. */
+  disabled: boolean
+  /**
+   * The channels the rule delivers its events to. At least one and at most five
+   * channels are required. Responses omit channels that have since been disabled or
+   * deleted.
+   */
+  channels: NotificationChannelReference[]
+  /** The thresholds that generate an event when crossed. */
+  thresholds: NotificationBalanceThreshold[]
+  /**
+   * The features the rule applies to. When omitted, the rule applies to every
+   * feature.
+   */
+  features?: FeatureReference[]
+}
+
+/**
+ * The delivery status of a notification event for one channel of the generating
+ * rule.
+ */
+export interface NotificationEventDeliveryStatus {
+  /** The identifier of the channel this delivery status belongs to. */
+  channelId: string
+  /** The current delivery state. */
+  state: 'success' | 'failed' | 'sending' | 'pending' | 'resending'
+  /** The reason for the last state change. Empty for successful deliveries. */
+  reason: string
+  /** When the delivery state was last updated. */
+  updatedAt: Date
+  /**
+   * When the next delivery attempt is scheduled. Absent when no further attempts
+   * will be made.
+   */
+  nextAttempt?: Date
+  /** The delivery attempts made so far, most recent first. */
+  attempts: NotificationEventDeliveryAttempt[]
+}
+
 /** Billing customer data. */
 export interface CustomerData {
   /**
@@ -3750,20 +4827,6 @@ export interface UpsertCustomerBillingDataRequest {
   billingProfile?: ProfileReference
   /** App customer data. */
   appData?: AppCustomerData
-}
-
-/** The balances of the credits of a customer. */
-export interface CreditBalances {
-  /** The timestamp of the balance retrieval. */
-  retrievedAt: Date
-  /** The balances by currencies. */
-  balances: CreditBalance[]
-}
-
-/** Cursor paginated response. */
-export interface CreditTransactionPaginatedResponse {
-  data: CreditTransaction[]
-  meta: CursorMeta
 }
 
 /**
@@ -3810,7 +4873,40 @@ export interface ChargeFlatFeeSystemIntent {
 /** List customer entitlement access response data. */
 export interface ListCustomerEntitlementAccessResponseData {
   /** The list of entitlement access results. */
-  data: EntitlementAccessResult[]
+  data: EntitlementValueResult[]
+}
+
+/** The entities and threshold a balance threshold event refers to. */
+export interface NotificationEventBalanceThresholdData {
+  /** The identifier of the entitlement that triggered the event. */
+  entitlementId: string
+  /** The feature the entitlement grants access to. */
+  feature: NotificationEventFeatureReference
+  /** The key of the subject the entitlement belongs to. */
+  subjectKey: string
+  /** The identifier of the customer the subject belongs to, if any. */
+  customerId?: string
+  /** The entitlement value at the time the event was generated. */
+  value: EntitlementValueResult
+  /** The threshold the balance crossed. */
+  threshold: NotificationBalanceThreshold
+}
+
+/**
+ * The entitlement, feature, and subject an entitlement notification event refers
+ * to.
+ */
+export interface NotificationEventEntitlementData {
+  /** The identifier of the entitlement that triggered the event. */
+  entitlementId: string
+  /** The feature the entitlement grants access to. */
+  feature: NotificationEventFeatureReference
+  /** The key of the subject the entitlement belongs to. */
+  subjectKey: string
+  /** The identifier of the customer the subject belongs to, if any. */
+  customerId?: string
+  /** The entitlement value at the time the event was generated. */
+  value: EntitlementValueResult
 }
 
 /**
@@ -4042,16 +5138,69 @@ export interface WorkflowTaxSettings {
   defaultTaxConfig?: TaxConfig
 }
 
+/** The balances of the credits of a customer. */
+export interface CreditBalances {
+  /** The timestamp of the balance retrieval. */
+  retrievedAt: Date
+  /** The balances by currencies. */
+  balances: CreditBalance[]
+}
+
+/** Cursor paginated response. */
+export interface CreditTransactionPaginatedResponse {
+  data: CreditTransaction[]
+  meta: CursorMeta
+}
+
 /** Page paginated response. */
 export interface PlanAddonPagePaginatedResponse {
   data: PlanAddon[]
   meta: PaginatedMeta
 }
 
+/** An invoice created notification event payload. */
+export interface NotificationEventInvoiceCreatedPayload {
+  /** The identifier of the event the payload belongs to. */
+  id: string
+  /** The type of the event. */
+  type: 'invoice.created'
+  /** When the event was generated. */
+  timestamp: Date
+  /** The invoice the event refers to. */
+  data: NotificationEventInvoiceData
+}
+
+/** An invoice updated notification event payload. */
+export interface NotificationEventInvoiceUpdatedPayload {
+  /** The identifier of the event the payload belongs to. */
+  id: string
+  /** The type of the event. */
+  type: 'invoice.updated'
+  /** When the event was generated. */
+  timestamp: Date
+  /** The invoice the event refers to. */
+  data: NotificationEventInvoiceData
+}
+
 /** Cursor paginated response. */
 export interface IngestedEventPaginatedResponse {
   data: IngestedEvent[]
   meta: CursorMeta
+}
+
+/** Balance and usage history of a metered entitlement. */
+export interface EntitlementHistory {
+  /**
+   * Usage in half-open windows of the requested size, aligned to the requested time
+   * zone. Empty windows are included; windows before usage measurement began are
+   * omitted.
+   */
+  windowedHistory: EntitlementHistoryWindow[]
+  /**
+   * Periods in which grants were consumed in a fixed order. A new segment starts
+   * whenever grant priorities change or a usage period starts.
+   */
+  burndownHistory: EntitlementBurndownSegment[]
 }
 
 /** The list of parameters that failed validation. */
@@ -4239,6 +5388,46 @@ export interface AppStripeCreateCheckoutSessionRequestOptions {
   taxIdCollection?: AppStripeCreateCheckoutSessionTaxIdCollection
 }
 
+/** Metered entitlement create request. */
+export interface CreateEntitlementMeteredRequest {
+  /** The type of the entitlement. */
+  type: 'metered'
+  /** The feature the customer is entitled to use. */
+  feature: FeatureReference
+  labels?: Labels
+  /**
+   * If true, the customer keeps access to the feature after the balance is
+   * exhausted.
+   */
+  isSoftLimit: boolean
+  /** Usage granted automatically after each reset. Cannot be combined with `grants`. */
+  issue?: EntitlementIssueAfterReset
+  /** The amount granted automatically after each reset. */
+  issueAfterReset?: string
+  /** The priority of the grant created after each reset. */
+  issueAfterResetPriority: number
+  /** If true, the overage is preserved at reset. If false, the usage is reset to 0. */
+  preserveOverageAtReset: boolean
+  /**
+   * The usage period of the entitlement. The balance resets at the start of every
+   * period. The anchor defaults to the entitlement creation time.
+   */
+  usagePeriod: RecurringPeriodInput
+  /**
+   * The time from which usage is measured. Defaults to the entitlement creation
+   * time.
+   */
+  measureUsageFrom?: EntitlementMeasureUsageFrom
+  /** Grants created together with the entitlement. Cannot be combined with `issue`. */
+  grants?: EntitlementGrantCreateRequest[]
+}
+
+/** Page paginated response. */
+export interface EntitlementGrantPagePaginatedResponse {
+  data: EntitlementGrant[]
+  meta: PaginatedMeta
+}
+
 /** Snapshot of the billing workflow configuration captured at invoice creation. */
 export interface InvoiceWorkflowSettings {
   /** The apps that will be used to orchestrate the invoice's workflow. */
@@ -4290,6 +5479,11 @@ export interface AppStripe {
   definition: AppCatalogItem
   /** Status of the app connection. */
   status: 'ready' | 'unauthorized'
+  /**
+   * Actions the operator should take to bring the app up to date. Omitted when no
+   * action is required.
+   */
+  actions?: AppAction[]
   /** The Stripe account ID associated with the connected Stripe account. */
   accountId: string
   /** Indicates whether the app is connected to a live Stripe account. */
@@ -4326,6 +5520,11 @@ export interface AppSandbox {
   definition: AppCatalogItem
   /** Status of the app connection. */
   status: 'ready' | 'unauthorized'
+  /**
+   * Actions the operator should take to bring the app up to date. Omitted when no
+   * action is required.
+   */
+  actions?: AppAction[]
 }
 
 /**
@@ -4374,6 +5573,11 @@ export interface AppExternalInvoicing {
   definition: AppCatalogItem
   /** Status of the app connection. */
   status: 'ready' | 'unauthorized'
+  /**
+   * Actions the operator should take to bring the app up to date. Omitted when no
+   * action is required.
+   */
+  actions?: AppAction[]
   /**
    * Enable draft synchronization hook.
    *
@@ -4434,6 +5638,11 @@ export interface InstalledAppStripe {
   definition: AppCatalogItem
   /** Status of the app connection. */
   status: 'ready' | 'unauthorized'
+  /**
+   * Actions the operator should take to bring the app up to date. Omitted when no
+   * action is required.
+   */
+  actions?: AppAction[]
   /** The Stripe account ID associated with the connected Stripe account. */
   accountId: string
   /** Indicates whether the app is connected to a live Stripe account. */
@@ -4478,6 +5687,11 @@ export interface InstalledAppSandbox {
   definition: AppCatalogItem
   /** Status of the app connection. */
   status: 'ready' | 'unauthorized'
+  /**
+   * Actions the operator should take to bring the app up to date. Omitted when no
+   * action is required.
+   */
+  actions?: AppAction[]
   /** Default capabilities of the installed app. */
   defaultForCapabilityTypes: (
     | 'report_usage'
@@ -4516,6 +5730,11 @@ export interface InstalledAppExternalInvoicing {
   definition: AppCatalogItem
   /** Status of the app connection. */
   status: 'ready' | 'unauthorized'
+  /**
+   * Actions the operator should take to bring the app up to date. Omitted when no
+   * action is required.
+   */
+  actions?: AppAction[]
   /**
    * Enable draft synchronization hook.
    *
@@ -4635,6 +5854,30 @@ export interface EntitlementAccessQueryResult {
   updatedAt: Date
 }
 
+/** A balance threshold notification event payload. */
+export interface NotificationEventBalanceThresholdPayload {
+  /** The identifier of the event the payload belongs to. */
+  id: string
+  /** The type of the event. */
+  type: 'entitlements.balance.threshold'
+  /** When the event was generated. */
+  timestamp: Date
+  /** The entities and threshold the event refers to. */
+  data: NotificationEventBalanceThresholdData
+}
+
+/** An entitlement reset notification event payload. */
+export interface NotificationEventResetPayload {
+  /** The identifier of the event the payload belongs to. */
+  id: string
+  /** The type of the event. */
+  type: 'entitlements.reset'
+  /** When the event was generated. */
+  timestamp: Date
+  /** The entities the event refers to. */
+  data: NotificationEventEntitlementData
+}
+
 /** A capability or billable dimension offered by a provider. */
 export interface Feature {
   id: string
@@ -4750,7 +5993,7 @@ export interface CreateCreditGrantRequest {
    * credit grant tax code is applied, if that's not set the global default taxcode
    * is used.
    */
-  taxConfig?: CreateCreditGrantTaxConfig
+  taxConfig?: CreateTaxCodeConfig
   filters?: CreateCreditGrantFilters
   /** Draw-down priority of the grant. Lower values have higher priority. */
   priority: number
@@ -4824,7 +6067,7 @@ export interface CreditGrant {
    * credit grant tax code is applied, if that's not set the global default taxcode
    * is used.
    */
-  taxConfig?: CreditGrantTaxConfig
+  taxConfig?: TaxCodeConfig
   /** Available when `funding_method` is `invoice`. */
   invoice?: CreditGrantInvoiceReference
   filters?: CreditGrantFilters
@@ -4944,6 +6187,12 @@ export interface CustomerStripeCreateCheckoutSessionRequest {
   stripeOptions: AppStripeCreateCheckoutSessionRequestOptions
 }
 
+/** Page paginated response. */
+export interface EntitlementPagePaginatedResponse {
+  data: Entitlement[]
+  meta: PaginatedMeta
+}
+
 /**
  * Workflow collection specifies how to collect the pending line items for an
  * invoice.
@@ -5060,6 +6309,12 @@ export interface EntitlementAccessQueryResponse {
   meta: CursorMeta
 }
 
+/** Page paginated response. */
+export interface NotificationRulePagePaginatedResponse {
+  data: NotificationRule[]
+  meta: PaginatedMeta
+}
+
 /** A rate card defines the pricing and entitlement of a feature or service. */
 export interface RateCard {
   /**
@@ -5114,7 +6369,7 @@ export interface RateCard {
   /** The discounts of the rate card. */
   discounts?: RateCardDiscounts
   /** The tax config of the rate card. */
-  taxConfig?: RateCardTaxConfig
+  taxConfig?: TaxCodeConfig
   /**
    * The entitlement template granted to subscribers of a plan or addon containing
    * this rate card. Requires `feature` to be set.
@@ -5127,7 +6382,7 @@ export interface InvoiceLineRateCard {
   /** The price definition used to calculate charges for this line. */
   price: Price
   /** Tax configuration snapshot for this line. */
-  taxConfig?: RateCardTaxConfig
+  taxConfig?: TaxCodeConfig
   /** The feature key associated with this line's rate card. */
   featureKey?: string
   /** Discount configuration from the rate card. */
@@ -5271,7 +6526,7 @@ export interface UpdateInvoiceLineRateCard {
   /** The price definition used to calculate charges for this line. */
   price: UpdatePrice
   /** Tax configuration snapshot for this line. */
-  taxConfig?: UpdateRateCardTaxConfig
+  taxConfig?: UpdateTaxCodeConfig
   /** The feature key associated with this line's rate card. */
   featureKey?: string
   /** Discount configuration from the rate card. */
@@ -5310,6 +6565,30 @@ export interface ProfileApps {
   invoicing: App
   /** The payment app used for this workflow. */
   payment: App
+}
+
+/**
+ * A notification event records that a notification rule fired and tracks the
+ * delivery of its payload to each channel of the rule. Events are created by the
+ * system and cannot be modified.
+ */
+export interface NotificationEvent {
+  /** The unique identifier of the event. */
+  id: string
+  /** The type of the event. */
+  type:
+    | 'entitlements.balance.threshold'
+    | 'entitlements.reset'
+    | 'invoice.created'
+    | 'invoice.updated'
+  /** When the event was generated. */
+  createdAt: Date
+  /** The rule that generated the event. */
+  rule: NotificationRuleReference
+  /** The delivery status of the event, one entry per channel of the rule. */
+  deliveryStatus: NotificationEventDeliveryStatus[]
+  /** The payload delivered to the channels. */
+  payload: NotificationEventPayload
 }
 
 /** A subscription item pins a rate card to a cadence within a subscription phase. */
@@ -5760,6 +7039,12 @@ export interface ChargeRealization {
    * Requires the `realization.detailed_lines` expand.
    */
   detailedLines?: ChargeRealizationDetailedLine[]
+}
+
+/** Page paginated response. */
+export interface NotificationEventPagePaginatedResponse {
+  data: NotificationEvent[]
+  meta: PaginatedMeta
 }
 
 /**
@@ -6695,6 +7980,12 @@ export type MeterAggregation =
 export type MeterQueryGranularity = 'PT1M' | 'PT1H' | 'P1D' | 'P1M'
 
 /**
+ * The meter query granularities the usage history can be grouped into. Sub-hour
+ * windows are too expensive to compute and monthly windows are not supported.
+ */
+export type EntitlementHistoryWindowSize = 'PT1H' | 'P1D'
+
+/**
  * Filters on the given string field value by exact match. All properties are
  * optional; provide exactly one to specify the comparison.
  */
@@ -6703,6 +7994,9 @@ export type StringFieldFilterExact =
 
 /** The payment term of a flat price. */
 export type PricePaymentTerm = 'in_advance' | 'in_arrears'
+
+/** Filter by a boolean value (true/false). */
+export type BooleanFieldFilter = boolean | { eq: boolean }
 
 /** Fiat or custom currency code. */
 export type BillingCurrencyCode = string | string
@@ -6724,6 +8018,9 @@ export type UlidFieldFilter =
 export type DateTimeFieldFilter =
   Date | { eq?: Date; lt?: Date; lte?: Date; gt?: Date; gte?: Date }
 
+/** The time from which usage is measured, as a preset or an explicit timestamp. */
+export type EntitlementMeasureUsageFrom = 'current_period_start' | 'now' | Date
+
 /** Payment settings for a billing workflow. */
 export type WorkflowPaymentSettings =
   | WorkflowPaymentChargeAutomaticallySettings
@@ -6741,6 +8038,9 @@ export type SubscriptionCreateTiming = 'immediate' | Date
  * returned.
  */
 export type SubscriptionEditTiming = 'immediate' | 'next_billing_cycle' | Date
+
+/** Request to execute an operator action on an installed app. */
+export type AppActionRequest = AppReconcileWebhookEventsActionRequest
 
 /** Request to install an app from the catalog. */
 export type InstallAppRequest =
@@ -6814,6 +8114,10 @@ export type Currency = CurrencyFiat | CurrencyCustom
 /** Customer or reference. */
 export type CustomerOrReference = Customer | CustomerReference
 
+/** An entitlement grants a customer access to a feature. */
+export type Entitlement =
+  EntitlementMetered | EntitlementStatic | EntitlementBoolean
+
 /**
  * The alignment for collecting the pending line items into an invoice.
  *
@@ -6823,6 +8127,27 @@ export type CustomerOrReference = Customer | CustomerReference
  */
 export type WorkflowCollectionAlignment =
   WorkflowCollectionAlignmentSubscription | WorkflowCollectionAlignmentAnchored
+
+/**
+ * A notification rule selects the type of event to generate, the conditions
+ * specific to that type, and the channels to deliver the events to.
+ */
+export type NotificationRule =
+  | NotificationRuleBalanceThreshold
+  | NotificationRuleEntitlementReset
+  | NotificationRuleInvoiceCreated
+  | NotificationRuleInvoiceUpdated
+
+/**
+ * Request body for creating or updating a notification rule. Updates replace the
+ * rule's mutable state: omitting `disabled`, `labels`, or `features` resets them
+ * to their defaults. The `type` must match the existing rule on update.
+ */
+export type NotificationRuleRequest =
+  | NotificationRuleBalanceThresholdRequest
+  | NotificationRuleEntitlementResetRequest
+  | NotificationRuleInvoiceCreatedRequest
+  | NotificationRuleInvoiceUpdatedRequest
 
 /** Price. */
 export type Price =
@@ -6844,12 +8169,25 @@ export type UpdatePrice =
   | UpdatePriceGraduated
   | UpdatePriceVolume
 
+/** Entitlement create request. */
+export type CreateEntitlementRequest =
+  | CreateEntitlementMeteredRequest
+  | CreateEntitlementStaticRequest
+  | CreateEntitlementBooleanRequest
+
 /** Installed application. */
 export type App = AppStripe | AppSandbox | AppExternalInvoicing
 
 /** Response of the app install. */
 export type BillingInstallAppResponse =
   InstalledAppStripe | InstalledAppSandbox | InstalledAppExternalInvoicing
+
+/** The payload delivered to the channels, discriminated by the event type. */
+export type NotificationEventPayload =
+  | NotificationEventBalanceThresholdPayload
+  | NotificationEventResetPayload
+  | NotificationEventInvoiceCreatedPayload
+  | NotificationEventInvoiceUpdatedPayload
 
 /** Feature or reference. */
 export type FeatureOrReference = Feature | FeatureReference
@@ -6999,6 +8337,20 @@ export interface UpdateBillingWorkflowPaymentSendInvoiceSettingsInput {
   dueAfter?: string
 }
 
+/**
+ * Usage granted automatically after each reset of a metered entitlement. The
+ * balance returns to `amount` after every reset.
+ */
+export interface EntitlementIssueAfterResetInput {
+  /** The amount granted after each reset, in the feature's unit. */
+  amount: string
+  /**
+   * The priority of the grant created after each reset. Lower values have higher
+   * priority.
+   */
+  priority?: number
+}
+
 /** Metering event following the CloudEvents specification. */
 export interface EventInput {
   /** Identifies the event. */
@@ -7028,6 +8380,25 @@ export interface EventInput {
   time?: Date | null
   /** The event payload. Optional, if present it must be a JSON object. */
   data?: Record<string, unknown> | null
+}
+
+/** Request body for resetting the usage of a metered entitlement. */
+export interface ResetCustomerEntitlementUsageRequestInput {
+  /**
+   * The time the reset takes effect. Defaults to the current time and cannot be in
+   * the future. Truncated to the minute.
+   */
+  effectiveAt?: Date
+  /**
+   * Whether the usage period anchor is kept. When false, the anchor moves to
+   * `effective_at`.
+   */
+  retainAnchor?: boolean
+  /**
+   * Whether overage carries over into the new usage period. Defaults to the
+   * entitlement's own setting.
+   */
+  preserveOverage?: boolean
 }
 
 /** Unauthorized. */
@@ -7223,6 +8594,280 @@ export interface EntitlementAccessQueryRequestInput {
   feature?: EntitlementAccessQueryRequestFeatures
 }
 
+/**
+ * A notification channel delivers notification events, such as entitlement balance
+ * threshold crossings, to an external system. Today the only supported channel
+ * type is a webhook delivered via Svix.
+ */
+export interface NotificationChannelInput {
+  id: string
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  labels?: Labels
+  /** An ISO-8601 timestamp representation of entity creation date. */
+  createdAt: Date
+  /** An ISO-8601 timestamp representation of entity last update date. */
+  updatedAt: Date
+  /** An ISO-8601 timestamp representation of entity deletion date. */
+  deletedAt?: Date
+  /** The type of the channel. Immutable after creation. */
+  type: 'webhook'
+  /**
+   * Whether the channel is disabled. Disabled channels do not receive notification
+   * events.
+   */
+  disabled?: boolean
+  /** The URL that webhook notification events are delivered to. */
+  url: string
+  /**
+   * Custom HTTP headers to include on every webhook delivery request, keyed by
+   * header name.
+   */
+  customHeaders?: Record<string, string>
+  /**
+   * Secret used to sign outgoing webhook payloads so recipients can verify their
+   * authenticity. If omitted on create, a secret is generated automatically by the
+   * delivery provider. This is a sensitive credential returned in responses (unlike
+   * most secrets) specifically so clients can retrieve a server-generated value and
+   * verify webhook signatures; handle it with the same care as any other credential.
+   */
+  signingSecret?: string
+}
+
+/** NotificationChannel create request. */
+export interface CreateNotificationChannelRequestInput {
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  labels?: Labels
+  /** The type of the channel. Immutable after creation. */
+  type: 'webhook'
+  /**
+   * Whether the channel is disabled. Disabled channels do not receive notification
+   * events.
+   */
+  disabled?: boolean
+  /** The URL that webhook notification events are delivered to. */
+  url: string
+  /**
+   * Custom HTTP headers to include on every webhook delivery request, keyed by
+   * header name.
+   */
+  customHeaders?: Record<string, string>
+  /**
+   * Secret used to sign outgoing webhook payloads so recipients can verify their
+   * authenticity. If omitted on create, a secret is generated automatically by the
+   * delivery provider. This is a sensitive credential returned in responses (unlike
+   * most secrets) specifically so clients can retrieve a server-generated value and
+   * verify webhook signatures; handle it with the same care as any other credential.
+   */
+  signingSecret?: string
+}
+
+/**
+ * Request body for updating a notification channel. Updates replace the channel's
+ * mutable state rather than merging it: `type`, `name`, and `url` must always be
+ * provided, and omitting `disabled`, `labels`, or `custom_headers` resets them to
+ * their defaults (enabled, no labels, no custom headers). `signing_secret` is the
+ * one exception: omitting it keeps the channel's current signing secret instead of
+ * clearing the credential.
+ */
+export interface UpdateBillingNotificationChannelRequestInput {
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  /** The type of the channel. Immutable after creation. */
+  type: 'webhook'
+  /** The URL that webhook notification events are delivered to. */
+  url: string
+  labels?: Labels
+  /**
+   * Whether the channel is disabled. Disabled channels do not receive notification
+   * events.
+   */
+  disabled?: boolean
+  /**
+   * Custom HTTP headers to include on every webhook delivery request, keyed by
+   * header name.
+   */
+  customHeaders?: Record<string, string>
+  /**
+   * Secret used to sign outgoing webhook payloads so recipients can verify their
+   * authenticity. If omitted on create, a secret is generated automatically by the
+   * delivery provider. This is a sensitive credential returned in responses (unlike
+   * most secrets) specifically so clients can retrieve a server-generated value and
+   * verify webhook signatures; handle it with the same care as any other credential.
+   */
+  signingSecret?: string
+}
+
+/** A rule that generates an event when an entitlement usage period is reset. */
+export interface NotificationRuleEntitlementResetInput {
+  id: string
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  labels?: Labels
+  /** An ISO-8601 timestamp representation of entity creation date. */
+  createdAt: Date
+  /** An ISO-8601 timestamp representation of entity last update date. */
+  updatedAt: Date
+  /** An ISO-8601 timestamp representation of entity deletion date. */
+  deletedAt?: Date
+  /** The type of event the rule generates. Immutable after creation. */
+  type: 'entitlements.reset'
+  /** Whether the rule is disabled. Disabled rules do not generate events. */
+  disabled?: boolean
+  /**
+   * The channels the rule delivers its events to. At least one and at most five
+   * channels are required. Responses omit channels that have since been disabled or
+   * deleted.
+   */
+  channels: NotificationChannelReference[]
+  /**
+   * The features the rule applies to. When omitted, the rule applies to every
+   * feature.
+   */
+  features?: FeatureReference[]
+}
+
+/** A rule that generates an event when an invoice is created. */
+export interface NotificationRuleInvoiceCreatedInput {
+  id: string
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  labels?: Labels
+  /** An ISO-8601 timestamp representation of entity creation date. */
+  createdAt: Date
+  /** An ISO-8601 timestamp representation of entity last update date. */
+  updatedAt: Date
+  /** An ISO-8601 timestamp representation of entity deletion date. */
+  deletedAt?: Date
+  /** The type of event the rule generates. Immutable after creation. */
+  type: 'invoice.created'
+  /** Whether the rule is disabled. Disabled rules do not generate events. */
+  disabled?: boolean
+  /**
+   * The channels the rule delivers its events to. At least one and at most five
+   * channels are required. Responses omit channels that have since been disabled or
+   * deleted.
+   */
+  channels: NotificationChannelReference[]
+}
+
+/** A rule that generates an event when an invoice is updated. */
+export interface NotificationRuleInvoiceUpdatedInput {
+  id: string
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  labels?: Labels
+  /** An ISO-8601 timestamp representation of entity creation date. */
+  createdAt: Date
+  /** An ISO-8601 timestamp representation of entity last update date. */
+  updatedAt: Date
+  /** An ISO-8601 timestamp representation of entity deletion date. */
+  deletedAt?: Date
+  /** The type of event the rule generates. Immutable after creation. */
+  type: 'invoice.updated'
+  /** Whether the rule is disabled. Disabled rules do not generate events. */
+  disabled?: boolean
+  /**
+   * The channels the rule delivers its events to. At least one and at most five
+   * channels are required. Responses omit channels that have since been disabled or
+   * deleted.
+   */
+  channels: NotificationChannelReference[]
+}
+
+/** Request body for an entitlement reset rule. */
+export interface NotificationRuleEntitlementResetRequestInput {
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  labels?: Labels
+  /** The type of event the rule generates. Immutable after creation. */
+  type: 'entitlements.reset'
+  /** Whether the rule is disabled. Disabled rules do not generate events. */
+  disabled?: boolean
+  /**
+   * The channels the rule delivers its events to. At least one and at most five
+   * channels are required. Responses omit channels that have since been disabled or
+   * deleted.
+   */
+  channels: NotificationChannelReference[]
+  /**
+   * The features the rule applies to. When omitted, the rule applies to every
+   * feature.
+   */
+  features?: FeatureReference[]
+}
+
+/** Request body for an invoice created rule. */
+export interface NotificationRuleInvoiceCreatedRequestInput {
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  labels?: Labels
+  /** The type of event the rule generates. Immutable after creation. */
+  type: 'invoice.created'
+  /** Whether the rule is disabled. Disabled rules do not generate events. */
+  disabled?: boolean
+  /**
+   * The channels the rule delivers its events to. At least one and at most five
+   * channels are required. Responses omit channels that have since been disabled or
+   * deleted.
+   */
+  channels: NotificationChannelReference[]
+}
+
+/** Request body for an invoice updated rule. */
+export interface NotificationRuleInvoiceUpdatedRequestInput {
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  labels?: Labels
+  /** The type of event the rule generates. Immutable after creation. */
+  type: 'invoice.updated'
+  /** Whether the rule is disabled. Disabled rules do not generate events. */
+  disabled?: boolean
+  /**
+   * The channels the rule delivers its events to. At least one and at most five
+   * channels are required. Responses omit channels that have since been disabled or
+   * deleted.
+   */
+  channels: NotificationChannelReference[]
+}
+
 /** An ingested metering event with ingestion metadata. */
 export interface IngestedEventInput {
   /** The original event ingested. */
@@ -7235,6 +8880,59 @@ export interface IngestedEventInput {
   storedAt: Date
   /** The validation errors of the ingested event. */
   validationErrors?: IngestedEventValidationError[]
+}
+
+/**
+ * A metered entitlement grants a usage allowance for a feature. Access is
+ * determined by the balance: the allowance provided by grants is burnt down by
+ * usage.
+ */
+export interface EntitlementMeteredInput {
+  id: string
+  /** The type of the entitlement. */
+  type: 'metered'
+  /** The feature the customer is entitled to use. */
+  feature: FeatureReference
+  /** The customer the entitlement belongs to. */
+  customer: CustomerReference
+  labels?: Labels
+  /** The time from which the entitlement is active. */
+  activeFrom: Date
+  /**
+   * The time until which the entitlement is active. If not set, the entitlement is
+   * active until deleted.
+   */
+  activeTo?: Date
+  /** The time the entitlement was created. */
+  createdAt: Date
+  /** The time the entitlement was last updated. */
+  updatedAt: Date
+  /** The time the entitlement was deleted. */
+  deletedAt?: Date
+  /**
+   * The usage period of the entitlement. The balance resets at the start of every
+   * period.
+   */
+  usagePeriod: RecurringPeriod
+  /** The current usage period of the entitlement. */
+  currentUsagePeriod: ClosedPeriod
+  /**
+   * If true, the customer keeps access to the feature after the balance is
+   * exhausted.
+   */
+  isSoftLimit?: boolean
+  /** Usage granted automatically after each reset. Cannot be combined with `grants`. */
+  issue?: EntitlementIssueAfterResetInput
+  /** The amount granted automatically after each reset. */
+  issueAfterReset?: string
+  /** The priority of the grant created after each reset. */
+  issueAfterResetPriority?: number
+  /** If true, the overage is preserved at reset. If false, the usage is reset to 0. */
+  preserveOverageAtReset?: boolean
+  /** The time from which usage is measured. */
+  measureUsageFrom: Date
+  /** The time of the last reset. */
+  lastReset: Date
 }
 
 /** Subscription fields without phases or the current billing period. */
@@ -7371,6 +9069,78 @@ export interface UpdateBillingInvoiceWorkflowInput {
   invoicing?: UpdateBillingInvoiceWorkflowInvoicingSettingsInput
   /** Payment settings for this invoice. */
   payment?: UpdateBillingWorkflowPaymentSettingsInput
+}
+
+/** Page paginated response. */
+export interface NotificationChannelPagePaginatedResponseInput {
+  data: NotificationChannelInput[]
+  meta: PaginatedMeta
+}
+
+/**
+ * A rule that generates an event when an entitlement balance crosses one of its
+ * thresholds.
+ */
+export interface NotificationRuleBalanceThresholdInput {
+  id: string
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  labels?: Labels
+  /** An ISO-8601 timestamp representation of entity creation date. */
+  createdAt: Date
+  /** An ISO-8601 timestamp representation of entity last update date. */
+  updatedAt: Date
+  /** An ISO-8601 timestamp representation of entity deletion date. */
+  deletedAt?: Date
+  /** The type of event the rule generates. Immutable after creation. */
+  type: 'entitlements.balance.threshold'
+  /** Whether the rule is disabled. Disabled rules do not generate events. */
+  disabled?: boolean
+  /**
+   * The channels the rule delivers its events to. At least one and at most five
+   * channels are required. Responses omit channels that have since been disabled or
+   * deleted.
+   */
+  channels: NotificationChannelReference[]
+  /** The thresholds that generate an event when crossed. */
+  thresholds: NotificationBalanceThreshold[]
+  /**
+   * The features the rule applies to. When omitted, the rule applies to every
+   * feature.
+   */
+  features?: FeatureReference[]
+}
+
+/** Request body for a balance threshold rule. */
+export interface NotificationRuleBalanceThresholdRequestInput {
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  labels?: Labels
+  /** The type of event the rule generates. Immutable after creation. */
+  type: 'entitlements.balance.threshold'
+  /** Whether the rule is disabled. Disabled rules do not generate events. */
+  disabled?: boolean
+  /**
+   * The channels the rule delivers its events to. At least one and at most five
+   * channels are required. Responses omit channels that have since been disabled or
+   * deleted.
+   */
+  channels: NotificationChannelReference[]
+  /** The thresholds that generate an event when crossed. */
+  thresholds: NotificationBalanceThreshold[]
+  /**
+   * The features the rule applies to. When omitted, the rule applies to every
+   * feature.
+   */
+  features?: FeatureReference[]
 }
 
 /** Purchase and payment terms of the grant. */
@@ -7603,6 +9373,40 @@ export interface AppStripeCreateCheckoutSessionRequestOptionsInput {
   taxIdCollection?: AppStripeCreateCheckoutSessionTaxIdCollectionInput
 }
 
+/** Metered entitlement create request. */
+export interface CreateEntitlementMeteredRequestInput {
+  /** The type of the entitlement. */
+  type: 'metered'
+  /** The feature the customer is entitled to use. */
+  feature: FeatureReference
+  labels?: Labels
+  /**
+   * If true, the customer keeps access to the feature after the balance is
+   * exhausted.
+   */
+  isSoftLimit?: boolean
+  /** Usage granted automatically after each reset. Cannot be combined with `grants`. */
+  issue?: EntitlementIssueAfterResetInput
+  /** The amount granted automatically after each reset. */
+  issueAfterReset?: string
+  /** The priority of the grant created after each reset. */
+  issueAfterResetPriority?: number
+  /** If true, the overage is preserved at reset. If false, the usage is reset to 0. */
+  preserveOverageAtReset?: boolean
+  /**
+   * The usage period of the entitlement. The balance resets at the start of every
+   * period. The anchor defaults to the entitlement creation time.
+   */
+  usagePeriod: RecurringPeriodInput
+  /**
+   * The time from which usage is measured. Defaults to the entitlement creation
+   * time.
+   */
+  measureUsageFrom?: EntitlementMeasureUsageFrom
+  /** Grants created together with the entitlement. Cannot be combined with `issue`. */
+  grants?: EntitlementGrantCreateRequest[]
+}
+
 /** Snapshot of the billing workflow configuration captured at invoice creation. */
 export interface InvoiceWorkflowSettingsInput {
   /** The apps that will be used to orchestrate the invoice's workflow. */
@@ -7714,7 +9518,7 @@ export interface CreateCreditGrantRequestInput {
    * credit grant tax code is applied, if that's not set the global default taxcode
    * is used.
    */
-  taxConfig?: CreateCreditGrantTaxConfig
+  taxConfig?: CreateTaxCodeConfig
   filters?: CreateCreditGrantFilters
   /** Draw-down priority of the grant. Lower values have higher priority. */
   priority?: number
@@ -7788,7 +9592,7 @@ export interface CreditGrantInput {
    * credit grant tax code is applied, if that's not set the global default taxcode
    * is used.
    */
-  taxConfig?: CreditGrantTaxConfig
+  taxConfig?: TaxCodeConfig
   /** Available when `funding_method` is `invoice`. */
   invoice?: CreditGrantInvoiceReference
   filters?: CreditGrantFilters
@@ -7848,6 +9652,12 @@ export interface CustomerStripeCreateCheckoutSessionRequestInput {
    * [checkout session creation API](https://docs.stripe.com/api/checkout/sessions/create).
    */
   stripeOptions: AppStripeCreateCheckoutSessionRequestOptionsInput
+}
+
+/** Page paginated response. */
+export interface EntitlementPagePaginatedResponseInput {
+  data: EntitlementInput[]
+  meta: PaginatedMeta
 }
 
 /**
@@ -7953,6 +9763,12 @@ export interface ChargeRealizationInvoiceInput {
   workflow: InvoiceWorkflowSettingsInput
 }
 
+/** Page paginated response. */
+export interface NotificationRulePagePaginatedResponseInput {
+  data: NotificationRuleInput[]
+  meta: PaginatedMeta
+}
+
 /** A rate card defines the pricing and entitlement of a feature or service. */
 export interface RateCardInput {
   /**
@@ -8007,7 +9823,7 @@ export interface RateCardInput {
   /** The discounts of the rate card. */
   discounts?: RateCardDiscounts
   /** The tax config of the rate card. */
-  taxConfig?: RateCardTaxConfig
+  taxConfig?: TaxCodeConfig
   /**
    * The entitlement template granted to subscribers of a plan or addon containing
    * this rate card. Requires `feature` to be set.
@@ -8020,7 +9836,7 @@ export interface InvoiceLineRateCardInput {
   /** The price definition used to calculate charges for this line. */
   price: Price
   /** Tax configuration snapshot for this line. */
-  taxConfig?: RateCardTaxConfig
+  taxConfig?: TaxCodeConfig
   /** The feature key associated with this line's rate card. */
   featureKey?: string
   /** Discount configuration from the rate card. */
@@ -9499,6 +11315,37 @@ export type RateCardEntitlementInput =
   | RateCardMeteredEntitlementInput
   | RateCardStaticEntitlement
   | RateCardBooleanEntitlement
+
+/** An entitlement grants a customer access to a feature. */
+export type EntitlementInput =
+  EntitlementMeteredInput | EntitlementStatic | EntitlementBoolean
+
+/**
+ * A notification rule selects the type of event to generate, the conditions
+ * specific to that type, and the channels to deliver the events to.
+ */
+export type NotificationRuleInput =
+  | NotificationRuleBalanceThresholdInput
+  | NotificationRuleEntitlementResetInput
+  | NotificationRuleInvoiceCreatedInput
+  | NotificationRuleInvoiceUpdatedInput
+
+/**
+ * Request body for creating or updating a notification rule. Updates replace the
+ * rule's mutable state: omitting `disabled`, `labels`, or `features` resets them
+ * to their defaults. The `type` must match the existing rule on update.
+ */
+export type NotificationRuleRequestInput =
+  | NotificationRuleBalanceThresholdRequestInput
+  | NotificationRuleEntitlementResetRequestInput
+  | NotificationRuleInvoiceCreatedRequestInput
+  | NotificationRuleInvoiceUpdatedRequestInput
+
+/** Entitlement create request. */
+export type CreateEntitlementRequestInput =
+  | CreateEntitlementMeteredRequestInput
+  | CreateEntitlementStaticRequest
+  | CreateEntitlementBooleanRequest
 
 /** ChargeRealizationInvoice or reference. */
 export type ChargeRealizationInvoiceOrReferenceInput =

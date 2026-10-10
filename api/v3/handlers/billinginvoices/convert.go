@@ -186,6 +186,7 @@ func toAPIInvoiceCustomer(c billing.InvoiceCustomer) api.BillingInvoiceCustomer 
 		if c.BillingAddress.Country != nil {
 			country = lo.ToPtr(api.CountryCode(*c.BillingAddress.Country))
 		}
+
 		out.BillingAddress = &api.Address{
 			City:        c.BillingAddress.City,
 			Country:     country,
@@ -218,6 +219,7 @@ func toAPIWorkflow(w billing.InvoiceWorkflow) (api.BillingInvoiceWorkflowSetting
 		}); err != nil {
 			return api.BillingInvoiceWorkflowSettings{}, fmt.Errorf("converting payment settings: %w", err)
 		}
+
 		payment = &p
 	case billing.CollectionMethodSendInvoice:
 		p := api.BillingWorkflowPaymentSettings{}
@@ -227,6 +229,7 @@ func toAPIWorkflow(w billing.InvoiceWorkflow) (api.BillingInvoiceWorkflowSetting
 		}); err != nil {
 			return api.BillingInvoiceWorkflowSettings{}, fmt.Errorf("converting payment settings: %w", err)
 		}
+
 		payment = &p
 	}
 
@@ -381,7 +384,7 @@ func mapRateCard(line *billing.StandardLine) (api.BillingInvoiceLineRateCard, er
 		Price:      price,
 		FeatureKey: lo.EmptyableToPtr(line.UsageBased.FeatureKey),
 		Discounts:  toAPIRateCardDiscounts(line.RateCardDiscounts),
-		TaxConfig:  addons.ToAPIBillingRateCardTaxConfig(line.TaxConfig.ToProductCatalog()),
+		TaxConfig:  addons.ToAPITaxCodeConfig(line.TaxConfig.ToProductCatalog()),
 	}
 
 	if uc := line.GetUnitConfig(); uc != nil {
@@ -401,6 +404,7 @@ func mapDetailedLines(dls billing.DetailedLines) ([]api.BillingInvoiceDetailedLi
 		if err != nil {
 			return api.BillingInvoiceDetailedLine{}, fmt.Errorf("mapping detailed line[%s]: %w", dl.ID, err)
 		}
+
 		return mapped, nil
 	})
 }
@@ -535,6 +539,7 @@ func mergeStandardInvoiceFromAPI(inv *billing.StandardInvoice, req api.UpdateInv
 	if err != nil {
 		return fmt.Errorf("converting labels: %w", err)
 	}
+
 	inv.Metadata = metadata
 
 	inv.Supplier = mergeInvoiceSupplierFromAPI(inv.Supplier, req.Supplier)
@@ -544,12 +549,14 @@ func mergeStandardInvoiceFromAPI(inv *billing.StandardInvoice, req api.UpdateInv
 	if err != nil {
 		return fmt.Errorf("merging workflow: %w", err)
 	}
+
 	inv.Workflow = workflow
 
 	lines, err := mergeStandardInvoiceLinesFromAPI(inv, req.Lines)
 	if err != nil {
 		return fmt.Errorf("merging lines: %w", err)
 	}
+
 	inv.Lines = lines
 
 	return nil
@@ -609,6 +616,7 @@ func mergeInvoiceWorkflowFromAPI(existing billing.InvoiceWorkflow, updated api.U
 			if err != nil {
 				return existing, billing.ValidationError{Err: fmt.Errorf("failed to parse draft period: %w", err)}
 			}
+
 			existing.Config.Invoicing.DraftPeriod = period
 		}
 	}
@@ -638,6 +646,7 @@ func mergeInvoiceWorkflowFromAPI(existing billing.InvoiceWorkflow, updated api.U
 				if err != nil {
 					return existing, billing.ValidationError{Err: fmt.Errorf("failed to parse due after: %w", err)}
 				}
+
 				existing.Config.Invoicing.DueAfter = period
 			}
 		default:
@@ -680,6 +689,7 @@ func mergeStandardInvoiceLinesFromAPI(inv *billing.StandardInvoice, lines *[]api
 					Err: fmt.Errorf("duplicate line ID %q in request", id),
 				}
 			}
+
 			processedIDs.Add(id)
 		}
 
@@ -721,7 +731,7 @@ func mergeStandardInvoiceLinesFromAPI(inv *billing.StandardInvoice, lines *[]api
 // standardLineFromAPI builds a new top-level standard line from an update request line that
 // has no matching existing line (empty or unrecognized ID).
 func standardLineFromAPI(line api.UpdateInvoiceStandardLine, inv *billing.StandardInvoice) (*billing.StandardLine, error) {
-	price, taxConfig, featureKey, discounts, err := mapRateCardFromAPI(line.RateCard)
+	price, taxConfig, featureKey, desiredDiscounts, err := mapRateCardFromAPI(line.RateCard)
 	if err != nil {
 		return nil, fmt.Errorf("mapping rate card: %w", err)
 	}
@@ -755,7 +765,7 @@ func standardLineFromAPI(line api.UpdateInvoiceStandardLine, inv *billing.Standa
 			InvoiceAt: clock.Now().Truncate(streaming.MinimumWindowSizeDuration),
 
 			TaxConfig:         taxConfig,
-			RateCardDiscounts: discounts,
+			RateCardDiscounts: billing.DiscountsFromProductCatalog(desiredDiscounts),
 		},
 		UsageBased: &billing.UsageBasedLine{
 			Price:      price,
@@ -767,7 +777,7 @@ func standardLineFromAPI(line api.UpdateInvoiceStandardLine, inv *billing.Standa
 // mergeStandardLineFromAPI applies the editable fields of an update request line onto an
 // existing top-level standard line, matched by ID.
 func mergeStandardLineFromAPI(existing *billing.StandardLine, line api.UpdateInvoiceStandardLine) (*billing.StandardLine, error) {
-	price, taxConfig, featureKey, discounts, err := mapRateCardFromAPI(line.RateCard)
+	price, taxConfig, featureKey, desiredDiscounts, err := mapRateCardFromAPI(line.RateCard)
 	if err != nil {
 		return nil, fmt.Errorf("mapping rate card: %w", err)
 	}
@@ -785,10 +795,11 @@ func mergeStandardLineFromAPI(existing *billing.StandardLine, line api.UpdateInv
 	existing.Period.To = line.ServicePeriod.To.Truncate(streaming.MinimumWindowSizeDuration)
 
 	existing.TaxConfig = taxConfig
-	existing.RateCardDiscounts = discounts
+	existing.RateCardDiscounts = existing.RateCardDiscounts.ReplaceFromProductCatalog(desiredDiscounts)
 	if existing.UsageBased == nil {
 		return nil, fmt.Errorf("existing line %s has no usage-based pricing", existing.ID)
 	}
+
 	existing.UsageBased.Price = price
 	existing.UsageBased.FeatureKey = featureKey
 
@@ -798,35 +809,52 @@ func mergeStandardLineFromAPI(existing *billing.StandardLine, line api.UpdateInv
 // mapRateCardFromAPI maps an update request's rate card onto its domain price, tax config,
 // feature key, and discounts. Feature key requiredness relative to the price type is enforced
 // by billing.UsageBasedLine.Validate downstream, not here.
-func mapRateCardFromAPI(rc api.UpdateInvoiceLineRateCard) (*productcatalog.Price, *billing.TaxConfig, string, billing.Discounts, error) {
+func mapRateCardFromAPI(rc api.UpdateInvoiceLineRateCard) (*productcatalog.Price, *billing.TaxConfig, string, productcatalog.Discounts, error) {
 	price, err := plans.FromAPIBillingPrice(api.BillingPrice(rc.Price), nil)
 	if err != nil {
-		return nil, nil, "", billing.Discounts{}, fmt.Errorf("mapping price: %w", err)
+		return nil, nil, "", productcatalog.Discounts{}, fmt.Errorf("mapping price: %w", err)
 	}
 
-	var discounts billing.Discounts
+	var discounts productcatalog.Discounts
 	if rc.Discounts != nil {
 		pcDiscounts, err := plans.FromAPIBillingRateCardDiscounts(api.BillingRateCardDiscounts(*rc.Discounts))
 		if err != nil {
-			return nil, nil, "", billing.Discounts{}, fmt.Errorf("mapping discounts: %w", err)
+			return nil, nil, "", productcatalog.Discounts{}, fmt.Errorf("mapping discounts: %w", err)
 		}
 
-		discounts = billing.DiscountsFromProductCatalog(pcDiscounts).UpsertCorrelationIDs()
+		discounts = pcDiscounts
 	}
 
-	taxConfig := billing.FromProductCatalog(addons.FromAPIBillingRateCardTaxConfig(fromAPIUpdateRateCardTaxConfig(rc.TaxConfig)))
+	// The schema allows tax_config with neither code nor behavior; the at-least-one-of
+	// rule is enforced here, and an explicit code must carry an id. The billing validation
+	// error wrap makes the route's error encoder respond with a 400 instead of the 500
+	// fallback.
+	pcTaxConfig, err := addons.FromAPITaxCodeConfig(fromAPIUpdateTaxCodeConfig(rc.TaxConfig))
+	if err != nil {
+		return nil, nil, "", productcatalog.Discounts{}, billing.ValidationError{
+			Err: fmt.Errorf("mapping tax config: %w", err),
+		}
+	}
+
+	taxConfig := billing.FromProductCatalog(pcTaxConfig)
 
 	return price, taxConfig, lo.FromPtrOr(rc.FeatureKey, ""), discounts, nil
 }
 
-func fromAPIUpdateRateCardTaxConfig(taxConfig *api.UpdateRateCardTaxConfig) *api.BillingRateCardTaxConfig {
+func fromAPIUpdateTaxCodeConfig(taxConfig *api.UpdateTaxCodeConfig) *api.TaxCodeConfig {
 	if taxConfig == nil {
 		return nil
 	}
-	return &api.BillingRateCardTaxConfig{
+
+	result := &api.TaxCodeConfig{
 		Behavior: taxConfig.Behavior,
-		Code: api.TaxCodeReference{
-			Id: taxConfig.Code.Id,
-		},
 	}
+
+	if taxConfig.Code != nil {
+		result.Code = &api.TaxCodeReference{
+			Id: taxConfig.Code.Id,
+		}
+	}
+
+	return result
 }

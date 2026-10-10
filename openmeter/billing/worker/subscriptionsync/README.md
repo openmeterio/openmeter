@@ -80,6 +80,12 @@ and standard invoices. If subscription state disagrees with an immutable
 standard invoice, sync records validation issues; it does not rewrite the
 invoice.
 
+Mutable legacy standard-line updates snapshot and rate through billing's
+legacy engine before submission. Immutable comparisons retain snapshot-only
+behavior; they do not change calculated invoice history. See
+[Billing line ownership](../../README.md#line-ownership) for the calculation
+and validation-issue contract.
+
 Charge-backed patches operate on the charge intent. Charge-managed invoice
 lines are projections of charge state and are deliberately excluded from the
 subscription-sync invoice read model. A customer-facing charge override also
@@ -88,6 +94,36 @@ continue to reconcile that base without resurrecting the overridden effective
 charge. Credit-then-invoice usage reconciliation may preserve a missing feature
 or meter as a product-catalog issue on a newly created charge; invoice assignment
 keeps its gathering line pending until the dependency is repaired.
+
+When a matched flat-fee or usage-based charge's physical phase or item reference
+changes, sync compares the subscription-owned base intent's billing terms.
+Currency identity, tax behavior and explicit tax-code ID, settlement mode,
+feature key, cost basis, price, discounts, proration, and usage unit conversion
+can distinguish a replacement charge. An omitted source tax-code ID accepts the
+charge's stored ID; flat-fee payment terms are compared after applying the
+catalog default. Presentation, annotations, discount lineage, expanded
+currency data, pinned feature ID, plan attribution, periods, and invoice
+scheduling do not distinguish billing terms. Historical plan and feature
+attribution remain on the existing charge. Charge ownership and root
+subscription identity are validated separately.
+
+Equivalent terms permit repair of the physical reference, followed by normal
+period reconciliation. A changed service-period end can still shrink or extend
+the charge. An incompatible service-period start selects replacement because
+shrink and extend only move the end. When physical references already match,
+sync skips billing-term comparison and continues period reconciliation.
+
+Before replacing a matched charge, sync loads all its realization runs, including
+older and deleted runs, and checks every referenced invoice. An immutable
+invoice blocks replacement, as does missing invoice history or a failed lookup.
+This check runs only for the matched-charge replacement decision. Cancellation
+deletes and ordinary period shrink or extend continue through their own paths.
+
+This decision always follows system intent. Manual overrides remain associated
+with the retired or repaired charge and do not participate in comparison; users
+remain responsible for managing them. Charge deletion remains observable, while
+economic corrections for already realized credits or invoice history remain the
+responsibility of the downstream charge lifecycle rather than subscription sync.
 
 ## Deletion, cancellation, and retries
 

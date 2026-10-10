@@ -191,6 +191,7 @@ func TestDFS_PruneSubtreeOnStop(t *testing.T) {
 		if n.Value().id == 2 {
 			return true, nil // prune children of 2 (i.e., node 4)
 		}
+
 		return false, nil
 	})
 	require.NoError(t, err)
@@ -232,6 +233,7 @@ func TestDFS_ErrorPropagation(t *testing.T) {
 		if n.Value().id == 3 {
 			return false, boom
 		}
+
 		return false, nil
 	})
 	require.Error(t, err)

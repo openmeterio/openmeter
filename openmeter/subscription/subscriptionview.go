@@ -1,10 +1,12 @@
 package subscription
 
 import (
+	"cmp"
 	"encoding/json"
 	"fmt"
 	"reflect"
 	"slices"
+	"strings"
 
 	"github.com/samber/lo"
 	"github.com/wI2L/jsondiff"
@@ -16,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/errorsx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -36,6 +39,7 @@ func (s SubscriptionView) GetPhaseByKey(key string) (*SubscriptionPhaseView, boo
 			return &phase, true
 		}
 	}
+
 	return nil, false
 }
 
@@ -49,6 +53,7 @@ func (s *SubscriptionView) Validate(includePhases bool) error {
 	if spec.ActiveFrom.Compare(s.Subscription.ActiveFrom) != 0 {
 		return fmt.Errorf("subscription active from %v does not match spec active from %v", s.Subscription.ActiveFrom, spec.ActiveFrom)
 	}
+
 	if (spec.ActiveTo == nil && s.Subscription.ActiveTo != nil) ||
 		(spec.ActiveTo != nil && s.Subscription.ActiveTo == nil) || (spec.ActiveTo != nil && s.Subscription.ActiveTo != nil && spec.ActiveTo.Compare(*s.Subscription.ActiveTo) != 0) {
 		return fmt.Errorf("subscription active to %v does not match spec active to %v", s.Subscription.ActiveTo, spec.ActiveTo)
@@ -74,6 +79,7 @@ func (s *SubscriptionView) Validate(includePhases bool) error {
 		if err := pin.Validate(); err != nil {
 			return fmt.Errorf("subscription cost basis pin is invalid: %w", err)
 		}
+
 		if pin.Namespace != s.Subscription.Namespace || pin.InvoiceCurrency != s.Subscription.InvoiceCurrency {
 			return fmt.Errorf("subscription cost basis pin does not belong to subscription invoice currency")
 		}
@@ -118,6 +124,7 @@ func (s *SubscriptionPhaseView) Validate(includeItems bool) error {
 			}
 		}
 	}
+
 	return nil
 }
 
@@ -328,8 +335,20 @@ func NewSubscriptionView(
 	// Let's sort the phases
 	sortedPhases := make([]SubscriptionPhase, len(phases))
 	copy(sortedPhases, phases)
+	// Phases skipped via startingPhase are zero length and share ActiveFrom with the next phase,
+	// so we tie-break the same way as SubscriptionSpec.GetSortedPhases instead of relying on DB order.
 	slices.SortStableFunc(sortedPhases, func(i, j SubscriptionPhase) int {
-		return i.ActiveFrom.Compare(j.ActiveFrom)
+		if diff := i.ActiveFrom.Compare(j.ActiveFrom); diff != 0 {
+			return diff
+		}
+
+		if i.SortHint != nil && j.SortHint != nil {
+			if diff := cmp.Compare(*i.SortHint, *j.SortHint); diff != 0 {
+				return diff
+			}
+		}
+
+		return strings.Compare(i.Key, j.Key)
 	})
 
 	itemsByPhase := lo.GroupBy(items, func(item SubscriptionItem) string {
@@ -374,18 +393,39 @@ func NewSubscriptionView(
 			return item.Key
 		})
 
-		// Let's sort the items by start time
+		// Intended starts preserve revision identity when cancellation clips future items.
 		for key := range phaseItemsByKey {
-			// Any arbitrary time works as long as its consistent for the comparisons
 			slices.SortStableFunc(phaseItemsByKey[key], func(i, j SubscriptionItem) int {
 				iT, jT := phase.ActiveFrom, phase.ActiveFrom
 				if i.ActiveFromOverrideRelativeToPhaseStart != nil {
 					iT, _ = i.ActiveFromOverrideRelativeToPhaseStart.AddTo(phase.ActiveFrom)
 				}
+
 				if j.ActiveFromOverrideRelativeToPhaseStart != nil {
 					jT, _ = j.ActiveFromOverrideRelativeToPhaseStart.AddTo(phase.ActiveFrom)
 				}
-				return int(iT.Sub(jT))
+
+				if diff := iT.Compare(jT); diff != 0 {
+					return diff
+				}
+
+				iEmpty := i.AsPeriod().IsEmpty()
+				jEmpty := j.AsPeriod().IsEmpty()
+				switch {
+				case iEmpty && !jEmpty:
+					return -1
+				case !iEmpty && jEmpty:
+					return 1
+				case iEmpty && jEmpty:
+					// Patch IDs survive recreation; row IDs and CreatedAt do not.
+					// An unmarked plan-origin revision precedes edits at the same start.
+					iPatchID, _ := i.Annotations[AnnotationEditUniqueKey].(string)
+					jPatchID, _ := j.Annotations[AnnotationEditUniqueKey].(string)
+
+					return strings.Compare(iPatchID, jPatchID)
+				default:
+					return 0
+				}
 			})
 		}
 
@@ -481,7 +521,8 @@ func NewSubscriptionView(
 		return nil, fmt.Errorf("unvisited items: %v", unvisitedItems)
 	}
 
-	if err := spec.Validate(); err != nil {
+	// Persisted short subscription or item cadences must remain readable for cancellation.
+	if err := spec.Validate(); err != nil && !errorsx.IsOnly(err, LegacySpecValidationErrors...) {
 		return nil, models.ErrorWithComponent("subscriptionspec", err)
 	}
 

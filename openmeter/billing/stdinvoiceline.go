@@ -75,6 +75,7 @@ func (i StandardLineBase) GetParentID() (string, bool) {
 	if i.ParentLineID == nil {
 		return "", false
 	}
+
 	return *i.ParentLineID, true
 }
 
@@ -570,6 +571,7 @@ func (i StandardLine) RemoveMetaForCompare() (*StandardLine, error) {
 
 	out.DetailedLines = nil
 	out.DBState = nil
+
 	return out, nil
 }
 
@@ -704,6 +706,7 @@ func (i *StandardLine) SaveDBSnapshot() error {
 	}
 
 	i.DBState = cloned
+
 	return nil
 }
 
@@ -998,6 +1001,12 @@ func (c StandardLines) Validate() error {
 func (c StandardLines) GetByChildUniqueReferenceID(id string) *StandardLine {
 	return lo.FindOrElse(c, nil, func(line *StandardLine) bool {
 		return lo.FromPtr(line.ChildUniqueReferenceID) == id
+	})
+}
+
+func (c StandardLines) WithoutDeletedLines() StandardLines {
+	return lo.Filter(c, func(line *StandardLine, _ int) bool {
+		return line.DeletedAt == nil
 	})
 }
 

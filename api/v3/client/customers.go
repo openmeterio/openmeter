@@ -11,10 +11,11 @@ import (
 )
 
 type CustomersService struct {
-	client  *Client
-	Billing *CustomersBillingService
-	Credits *CustomersCreditsService
-	Charges *CustomersChargesService
+	client       *Client
+	Billing      *CustomersBillingService
+	Entitlements *CustomersEntitlementsService
+	Credits      *CustomersCreditsService
+	Charges      *CustomersChargesService
 }
 
 type CustomerFilter struct {

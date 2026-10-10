@@ -106,6 +106,7 @@ func TestToMetadataAnnotations(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 			}
+
 			assert.Equal(t, tt.wantMetadata, result.Metadata)
 			assert.Equal(t, tt.wantAnnotations, result.Annotations)
 		})

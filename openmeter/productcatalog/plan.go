@@ -38,6 +38,7 @@ func (s PlanStatus) Validate() error {
 	if !slices.Contains(s.Values(), s) {
 		return fmt.Errorf("invalid plan status: %s", s)
 	}
+
 	return nil
 }
 
@@ -146,6 +147,7 @@ func ValidatePlanPhases() models.ValidatorFunc[Plan] {
 
 				errs = append(errs, models.ErrorWithFieldPrefix(selector, ErrPlanPhaseDuplicatedKey))
 			}
+
 			phaseKeys[phase.Key] = struct{}{}
 
 			if err := phase.Validate(); err != nil {
@@ -266,6 +268,7 @@ func ValidatePlanWithCurrencies() models.ValidatorFunc[Plan] {
 		if p.SettlementMode == CreditOnlySettlementMode {
 			validationOption = ValidationOptionCostBasisRequiredFalse
 		}
+
 		validateCurrencyOverride := ValidateCurrencyWithOverride(p.Currency, validationOption)
 		for _, phase := range p.Phases {
 			for _, rateCard := range phase.RateCards {

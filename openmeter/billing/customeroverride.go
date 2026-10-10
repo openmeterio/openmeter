@@ -375,6 +375,7 @@ func (b BulkAssignCustomersToProfileInput) Validate() error {
 		if err := customerID.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("customerIDs[%d]: %w", i, err))
 		}
+
 		if customerID.Namespace != b.ProfileID.Namespace {
 			errs = append(errs, fmt.Errorf("customerIDs[%d] namespace does not match profileID namespace", i))
 		}

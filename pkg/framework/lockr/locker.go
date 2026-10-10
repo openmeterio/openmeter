@@ -20,6 +20,7 @@ func (c *LockerConfig) Validate() error {
 	if c.Logger == nil {
 		return fmt.Errorf("logger is required")
 	}
+
 	return nil
 }
 
@@ -94,6 +95,7 @@ func checkForTimeout(err error) error {
 	if strings.Contains(err.Error(), pgLockTimeoutErrCode) {
 		return ErrLockTimeout
 	}
+
 	return err
 }
 

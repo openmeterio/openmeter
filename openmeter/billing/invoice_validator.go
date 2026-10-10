@@ -16,6 +16,7 @@ func ValidateAPIInvoiceDeleteSupported(invoice Invoice) error {
 		if err != nil {
 			return err
 		}
+
 		if gatheringInvoice.DeletedAt != nil {
 			return nil
 		}

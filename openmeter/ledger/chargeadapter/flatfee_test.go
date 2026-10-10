@@ -11,9 +11,9 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	chargeflatfee "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
-	lineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/adapter"
-	lineageservice "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/service"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
+	legacylineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage/adapter"
+	legacylineageservice "github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage/service"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/invoicedusage"
@@ -24,12 +24,15 @@ import (
 	ledgertransactiongroupdb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransactiongroup"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	advancetestutils "github.com/openmeterio/openmeter/openmeter/ledger/advance/testutils"
+	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	"github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
 	ledgercollector "github.com/openmeterio/openmeter/openmeter/ledger/collector"
 	"github.com/openmeterio/openmeter/openmeter/ledger/recognizer"
 	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	omtestutils "github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -51,9 +54,13 @@ func TestOnAllocateCredits(t *testing.T) {
 		require.NotEmpty(t, realizations[0].LedgerTransaction.TransactionGroupID)
 		require.Equal(
 			t,
-			ledger.ChargeAnnotations(models.NamespacedID{Namespace: env.Namespace, ID: input.Charge.ID}),
+			ledger.ChargeAnnotations(models.NamespacedID{
+				Namespace: env.Namespace,
+				ID:        input.Charge.ID,
+			}),
 			env.transactionGroupAnnotations(t, realizations[0].LedgerTransaction.TransactionGroupID),
 		)
+
 		for _, bookedAt := range env.transactionBookedAtTimes(t, realizations[0].LedgerTransaction.TransactionGroupID) {
 			requireLedgerBookedAtEqual(t, input.ServicePeriod.From, bookedAt)
 			requireLedgerBookedAtNotEqual(t, input.Charge.Intent.GetEffectiveInvoiceAt(), bookedAt)
@@ -139,6 +146,10 @@ func TestOnAllocateCredits(t *testing.T) {
 
 		env.fundPriority(t, 1, 30)
 		input := env.newAssignmentInput(alpacadecimal.NewFromInt(30))
+		input.ServicePeriod = timeutil.ClosedPeriod{
+			From: env.Now(),
+			To:   env.Now().Add(time.Hour),
+		}
 		editFlatFeeBaseLayerForTest(t, &input.Charge, func(intent *chargeflatfee.IntentMutableFields) {
 			intent.PaymentTerm = productcatalog.InArrearsPaymentTerm
 			intent.InvoiceAt = input.ServicePeriod.From
@@ -526,6 +537,7 @@ func TestOnFlatFeePaymentAuthorized(t *testing.T) {
 			require.True(t, bookedAt.UTC().Equal(eventTime.UTC()))
 			require.False(t, bookedAt.UTC().Equal(charge.Intent.GetEffectiveInvoiceAt().UTC()))
 		}
+
 		for _, entry := range env.TransactionGroupEntries(t, ref.TransactionGroupID) {
 			require.Nil(t, entry.SourceChargeID)
 			require.NotNil(t, entry.SpendChargeID)
@@ -661,6 +673,7 @@ func TestOnFlatFeePaymentSettled(t *testing.T) {
 			require.True(t, bookedAt.UTC().Equal(eventTime.UTC()))
 			require.False(t, bookedAt.UTC().Equal(charge.Intent.GetEffectiveInvoiceAt().UTC()))
 		}
+
 		for _, entry := range env.TransactionGroupEntries(t, ref.TransactionGroupID) {
 			require.Nil(t, entry.SourceChargeID)
 			require.NotNil(t, entry.SpendChargeID)
@@ -691,7 +704,7 @@ func TestOnFlatFeePaymentUncollectible(t *testing.T) {
 type flatFeeHandlerTestEnv struct {
 	*ledgertestutils.IntegrationEnv
 	handler    chargeflatfee.Handler
-	lineage    lineage.Service
+	lineage    legacylineage.Service
 	recognizer recognizer.Service
 	currency   currencies.Currency
 }
@@ -703,19 +716,27 @@ func newFlatFeeHandlerTestEnv(t *testing.T) *flatFeeHandlerTestEnv {
 		AccountCatalog: base.Deps.AccountService,
 		BalanceQuerier: base.Deps.HistoricalLedger,
 	}
+	breakageService := ledgerbreakage.NewNoopService()
+
+	advanceService := advancetestutils.NewService(t, base.Deps, breakageService)
+
 	collectorService, err := ledgercollector.NewService(ledgercollector.Config{
+		Logger:             omtestutils.NewDiscardLogger(t),
+		Advance:            advanceService,
 		Ledger:             base.Deps.HistoricalLedger,
 		Dependencies:       deps,
+		Breakage:           breakageService,
 		AccountLocker:      base.Deps.AccountService,
 		TransactionManager: enttx.NewCreator(base.DB),
 	})
 	require.NoError(t, err)
-	lineageAdapter, err := lineageadapter.New(lineageadapter.Config{
+
+	lineageAdapter, err := legacylineageadapter.New(legacylineageadapter.Config{
 		Client: base.DB,
 	})
 	require.NoError(t, err)
 
-	dbLineage, err := lineageservice.New(lineageservice.Config{
+	dbLineage, err := legacylineageservice.New(legacylineageservice.Config{
 		Adapter: lineageAdapter,
 	})
 	require.NoError(t, err)
@@ -757,7 +778,7 @@ func (e *flatFeeHandlerTestEnv) newAllocateCreditsInputForCharge(charge chargefl
 }
 
 func (e *flatFeeHandlerTestEnv) newAssignmentInputWithMode(amount alpacadecimal.Decimal, mode productcatalog.SettlementMode) chargeflatfee.OnAllocateCreditsInput {
-	now := time.Now().UTC()
+	now := e.Now()
 	servicePeriod := timeutil.ClosedPeriod{
 		From: now.Add(-time.Hour),
 		To:   now,
@@ -774,7 +795,7 @@ func (e *flatFeeHandlerTestEnv) newAssignmentInputWithMode(amount alpacadecimal.
 						CreatedAt: now,
 						UpdatedAt: now,
 					},
-					ID: "flat-fee-charge",
+					ID: "01J00000000000000000000001",
 				},
 				Intent: chargeflatfee.Intent{
 					Intent: meta.Intent{
@@ -837,7 +858,7 @@ func (e *flatFeeHandlerTestEnv) fundPriorityWithFeaturesAndSource(t *testing.T, 
 		Currency:       e.CurrencyReference(),
 		CostBasis:      &costBasis,
 		CreditPriority: priority,
-		Features:       features,
+		Filters:        ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: features},
 	})
 	require.NoError(t, err)
 
@@ -858,7 +879,7 @@ func (e *flatFeeHandlerTestEnv) fundPriorityWithFeaturesAndSource(t *testing.T, 
 			Currency:       e.CurrencyReference(),
 			CostBasis:      &costBasis,
 			CreditPriority: &priority,
-			Features:       features,
+			Filters:        ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: features},
 			SourceChargeID: sourceChargeID,
 		},
 		transactions.AuthorizeCustomerReceivablePaymentTemplate{
@@ -866,7 +887,7 @@ func (e *flatFeeHandlerTestEnv) fundPriorityWithFeaturesAndSource(t *testing.T, 
 			Amount:         alpacadecimal.NewFromInt(amount),
 			Currency:       e.CurrencyReference(),
 			CostBasis:      &costBasis,
-			Features:       features,
+			Filters:        ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: features},
 			SourceChargeID: sourceChargeID,
 		},
 		transactions.SettleCustomerReceivableFromPaymentTemplate{
@@ -874,7 +895,7 @@ func (e *flatFeeHandlerTestEnv) fundPriorityWithFeaturesAndSource(t *testing.T, 
 			Amount:         alpacadecimal.NewFromInt(amount),
 			Currency:       e.CurrencyReference(),
 			CostBasis:      &costBasis,
-			Features:       features,
+			Filters:        ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: features},
 			SourceChargeID: sourceChargeID,
 		},
 	)
@@ -891,7 +912,7 @@ func (e *flatFeeHandlerTestEnv) fundPriorityWithFeaturesAndSource(t *testing.T, 
 }
 
 func (e *flatFeeHandlerTestEnv) newAccrualInput(total alpacadecimal.Decimal) chargeflatfee.OnInvoiceUsageAccruedInput {
-	now := time.Now().UTC()
+	now := e.Now()
 	servicePeriod := timeutil.ClosedPeriod{
 		From: now.Add(-time.Hour),
 		To:   now,
@@ -909,7 +930,7 @@ func (e *flatFeeHandlerTestEnv) newAccrualInput(total alpacadecimal.Decimal) cha
 }
 
 func (e *flatFeeHandlerTestEnv) newCreditsOnlyCharge(amount alpacadecimal.Decimal) chargeflatfee.Charge {
-	now := time.Now().UTC()
+	now := e.Now()
 	servicePeriod := timeutil.ClosedPeriod{
 		From: now.Add(-time.Hour),
 		To:   now,
@@ -934,7 +955,7 @@ func (e *flatFeeHandlerTestEnv) newBaseCharge(servicePeriod timeutil.ClosedPerio
 					CreatedAt: servicePeriod.To,
 					UpdatedAt: servicePeriod.To,
 				},
-				ID: "flat-fee-charge",
+				ID: "01J00000000000000000000001",
 			},
 			Intent: chargeflatfee.Intent{
 				Intent: meta.Intent{
@@ -1008,7 +1029,7 @@ func (e *flatFeeHandlerTestEnv) newPaymentEventInput(charge chargeflatfee.Charge
 }
 
 func (e *flatFeeHandlerTestEnv) newChargeWithAccruedUsage(total alpacadecimal.Decimal) chargeflatfee.Charge {
-	now := time.Now().UTC()
+	now := e.Now()
 	servicePeriod := timeutil.ClosedPeriod{
 		From: now.Add(-time.Hour),
 		To:   now,
@@ -1030,7 +1051,7 @@ func (e *flatFeeHandlerTestEnv) newChargeWithAccruedUsage(total alpacadecimal.De
 }
 
 func (e *flatFeeHandlerTestEnv) newChargeWithCreditRealizationsAndAccruedUsage(realizations creditrealization.CreateAllocationInputs, accruedTotal alpacadecimal.Decimal) chargeflatfee.Charge {
-	now := time.Now().UTC()
+	now := e.Now()
 	servicePeriod := timeutil.ClosedPeriod{
 		From: now.Add(-time.Hour),
 		To:   now,
@@ -1086,6 +1107,7 @@ func (e *flatFeeHandlerTestEnv) authorizedReceivableSubAccount(t *testing.T) led
 func (e *flatFeeHandlerTestEnv) creditAccruedSubAccount(t *testing.T) ledger.SubAccount {
 	zeroCostBasis := alpacadecimal.Zero
 	taxCodeID := testChargeTaxCodeID
+
 	return e.AccruedSubAccountWithCostBasisAndTaxCode(t, &zeroCostBasis, &taxCodeID)
 }
 
@@ -1116,6 +1138,7 @@ func (e *flatFeeHandlerTestEnv) invoiceAccruedSubAccount(t *testing.T) ledger.Su
 func (e *flatFeeHandlerTestEnv) creditEarningsSubAccount(t *testing.T) ledger.SubAccount {
 	zeroCostBasis := alpacadecimal.Zero
 	taxCodeID := testChargeTaxCodeID
+
 	return e.EarningsSubAccountWithCostBasisAndTaxCode(t, &zeroCostBasis, &taxCodeID)
 }
 
@@ -1147,7 +1170,7 @@ func (e *flatFeeHandlerTestEnv) createInitialLineages(t *testing.T, chargeID str
 
 	e.ensureCharge(t, chargeID)
 
-	err := e.lineage.CreateInitialLineages(t.Context(), lineage.CreateInitialLineagesInput{
+	err := e.lineage.CreateInitialLineages(t.Context(), legacylineage.CreateInitialLineagesInput{
 		Namespace:    e.Namespace,
 		ChargeID:     chargeID,
 		CustomerID:   e.CustomerID.ID,
@@ -1157,7 +1180,7 @@ func (e *flatFeeHandlerTestEnv) createInitialLineages(t *testing.T, chargeID str
 	require.NoError(t, err)
 }
 
-func (e *flatFeeHandlerTestEnv) activeSegmentsByRealization(t *testing.T, realizations creditrealization.Realizations) lineage.ActiveSegmentsByRealizationID {
+func (e *flatFeeHandlerTestEnv) activeSegmentsByRealization(t *testing.T, realizations creditrealization.Realizations) legacylineage.ActiveSegmentsByRealizationID {
 	t.Helper()
 
 	ids := make([]string, 0, len(realizations))
@@ -1171,25 +1194,19 @@ func (e *flatFeeHandlerTestEnv) activeSegmentsByRealization(t *testing.T, realiz
 	return segments
 }
 
-func (e *flatFeeHandlerTestEnv) assertRecognizedSegments(t *testing.T, realizations creditrealization.Realizations, recognitionGroupID string) lineage.ActiveSegmentsByRealizationID {
+func (e *flatFeeHandlerTestEnv) assertRecognizedSegments(t *testing.T, realizations creditrealization.Realizations, recognitionGroupID string) legacylineage.ActiveSegmentsByRealizationID {
 	t.Helper()
 
-	segmentsByRealization := e.activeSegmentsByRealization(t, realizations)
-	for _, realization := range realizations {
-		segments := segmentsByRealization[realization.ID]
-		require.Len(t, segments, 1)
+	require.NotEmpty(t, recognitionGroupID)
 
-		segment := segments[0]
-		require.Equal(t, creditrealization.LineageSegmentStateEarningsRecognized, segment.State)
-		require.True(t, segment.Amount.Equal(realization.Amount), "segment=%s expected=%s", segment.Amount, realization.Amount)
-		require.NotNil(t, segment.BackingTransactionGroupID)
-		require.Equal(t, recognitionGroupID, *segment.BackingTransactionGroupID)
-		require.NotNil(t, segment.SourceState)
-		require.Equal(t, creditrealization.LineageSegmentStateRealCredit, *segment.SourceState)
-		require.Nil(t, segment.SourceBackingTransactionGroupID)
+	segments := e.activeSegmentsByRealization(t, realizations)
+
+	for _, realization := range realizations {
+		require.Equal(t, true, realization.Annotations[ledger.AnnotationOriginTracked])
+		require.Empty(t, segments[realization.ID], "origin-tracked recognition must not create lineage segments")
 	}
 
-	return segmentsByRealization
+	return segments
 }
 
 func (e *flatFeeHandlerTestEnv) ensureCharge(t *testing.T, chargeID string) {

@@ -68,6 +68,7 @@ func (p GraduatedTiered) GenerateDetailedLines(l PricerCalculateInput) (rating.D
 
 				out = append(out, newLine)
 			}
+
 			return nil
 		},
 	})

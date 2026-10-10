@@ -12,6 +12,7 @@ func New[T comparable](items ...T) *Set[T] {
 		content: make(map[T]struct{}, len(items)),
 	}
 	s.Add(items...)
+
 	return &s
 }
 
@@ -38,6 +39,7 @@ func (s *Set[T]) Has(item T) bool {
 	defer s.mu.RUnlock()
 
 	_, exists := s.content[item]
+
 	return exists
 }
 

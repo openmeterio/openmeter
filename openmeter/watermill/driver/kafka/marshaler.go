@@ -38,5 +38,6 @@ func AddPartitionKeyFromSubject(watermillIn *message.Message, cloudEvent event.E
 	if cloudEvent.Subject() != "" {
 		watermillIn.Metadata[PartitionKeyMetadataKey] = cloudEvent.Subject()
 	}
+
 	return watermillIn, nil
 }

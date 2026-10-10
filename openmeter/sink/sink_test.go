@@ -33,6 +33,7 @@ func (d *batchDeduplicator) CheckUniqueBatch(_ context.Context, items []dedupe.I
 			result.UniqueItems[item] = struct{}{}
 		}
 	}
+
 	return result, d.err
 }
 
@@ -161,6 +162,7 @@ func TestDeduplicateAndResolveMeters(t *testing.T) {
 					messages[i].Serialized = &serialized
 				}
 			}
+
 			d := &batchDeduplicator{processed: tc.previouslyProcessedItems, err: tc.deduplicatorError}
 			s := &Sink{
 				config: SinkConfig{Deduplicator: d},

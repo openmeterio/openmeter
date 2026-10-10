@@ -42,6 +42,9 @@ const ProductCatalogDescription = "Product catalog manages plans, add-ons, and t
 const DefaultsTag = "OpenMeter Defaults";
 const DefaultsDescription = "Organization-level default configuration.";
 
+const NotificationsTag = "OpenMeter Notifications";
+const NotificationsDescription = "Notification rules generate notification events, such as entitlement balance threshold crossings, and notification channels deliver them to external systems.";
+
 // The functionality should be considered unstable.
 const UnstableExtension = "x-unstable";
 // The functionality is internal and should not be used by customers.

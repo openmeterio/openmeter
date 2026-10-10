@@ -42,6 +42,7 @@ func TestMapWithErrPreservingResults(t *testing.T) {
 	if !reflect.DeepEqual([]int{10, 21, 32}, results) {
 		t.Fatalf("unexpected results: %v", results)
 	}
+
 	if !errors.Is(err, firstErr) || !errors.Is(err, lastErr) {
 		t.Fatalf("expected joined errors, got %v", err)
 	}

@@ -44,6 +44,7 @@ func (m *UnitConfig) Mutate(l rate.PricerCalculateInput) (rate.PricerCalculateIn
 	if price == nil {
 		return l, fmt.Errorf("line has no price: %w", ErrUnitConfigUnsupportedPrice)
 	}
+
 	if !price.SupportsUnitConfig() {
 		return l, fmt.Errorf("price type %q: %w", price.Type(), ErrUnitConfigUnsupportedPrice)
 	}

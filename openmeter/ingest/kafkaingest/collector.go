@@ -60,9 +60,11 @@ func NewCollector(
 	if producer == nil {
 		return nil, fmt.Errorf("producer is required")
 	}
+
 	if serializer == nil {
 		return nil, fmt.Errorf("serializer is required")
 	}
+
 	if resolver == nil {
 		return nil, fmt.Errorf("topic name resolver is required")
 	}
@@ -70,9 +72,11 @@ func NewCollector(
 	if provisioner == nil {
 		return nil, fmt.Errorf("topic provisioner is required")
 	}
+
 	if logger == nil {
 		return nil, fmt.Errorf("logger is required")
 	}
+
 	if tracer == nil {
 		return nil, fmt.Errorf("tracer is required")
 	}
@@ -111,6 +115,7 @@ func (s Collector) Ingest(ctx context.Context, namespace string, ev event.Event)
 		err = fmt.Errorf("failed to resolve namespace to topic name: %w", err)
 		return err
 	}
+
 	span.SetAttributes(semconv.MessagingDestinationName(topicName))
 
 	// Make sure topic is provisioned
@@ -175,6 +180,7 @@ func (s Collector) Close() {
 
 func KafkaProducerGroup(ctx context.Context, producer *kafka.Producer, logger *slog.Logger, kafkaMetrics *kafkametrics.Metrics) (execute func() error, interrupt func(error)) {
 	ctx, cancel := context.WithCancel(ctx)
+
 	return func() error {
 			for {
 				select {

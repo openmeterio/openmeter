@@ -16,9 +16,9 @@ import (
 	flatfeeadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/adapter"
 	flatfeeservice "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/service"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/invoiceupdater"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
-	lineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/adapter"
-	lineageservice "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/service"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
+	lineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage/adapter"
+	lineageservice "github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage/service"
 	metaadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/meta/adapter"
 	chargesservice "github.com/openmeterio/openmeter/openmeter/billing/charges/service"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
@@ -57,7 +57,7 @@ type Config struct {
 	FlatFeeHandler        flatfee.Handler
 	CreditPurchaseHandler creditpurchase.Handler
 	UsageBasedHandler     usagebased.Handler
-	LineageService        lineage.Service
+	LineageService        legacylineage.Service
 }
 
 func (c Config) Validate() error {
@@ -272,6 +272,7 @@ func NewServices(t testing.TB, config Config) (*Services, error) {
 	if err := config.BillingService.RegisterLineEngine(creditPurchaseService.GetLineEngine()); err != nil {
 		return nil, fmt.Errorf("registering credit purchase line engine: %w", err)
 	}
+
 	if err := config.BillingService.RegisterCreateLineRouter(NewChargesEnabledLineRouter(t)); err != nil {
 		return nil, fmt.Errorf("registering charges create line router: %w", err)
 	}

@@ -30,6 +30,7 @@ func Compose[Request any, Intermediate any, Response any](op1 Operation[Request,
 			var defaultResponse Response
 			return defaultResponse, err
 		}
+
 		return op2(ctx, intermediate)
 	}
 }

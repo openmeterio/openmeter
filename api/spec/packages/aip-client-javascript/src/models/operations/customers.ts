@@ -13,6 +13,7 @@ import type {
   CreateCreditAdjustmentRequest as CreateCreditAdjustmentRequestBody,
   CreateCreditGrantRequestInput,
   CreateCustomerRequest as CreateCustomerRequestBody,
+  CreateEntitlementRequestInput,
   CreditAdjustment,
   CreditBalances,
   CreditGrant,
@@ -24,11 +25,20 @@ import type {
   CustomerPagePaginatedResponse,
   CustomerStripeCreateCheckoutSessionRequestInput,
   CustomerStripeCreateCustomerPortalSessionRequest,
+  Entitlement,
+  EntitlementGrant,
+  EntitlementGrantCreateRequest,
+  EntitlementGrantPagePaginatedResponse,
+  EntitlementHistory,
+  EntitlementHistoryWindowSize,
+  EntitlementPagePaginatedResponse,
   GetCreditBalanceParamsFilter,
   ListCreditGrantsParamsFilter,
   ListCreditTransactionsParamsFilter,
   ListCustomerChargesParamsFilter,
+  ListCustomerEntitlementsParamsFilter,
   ListCustomersParamsFilter,
+  ResetCustomerEntitlementUsageRequestInput,
   SortQueryInput,
   UpdateCreditGrantExternalSettlementRequest as UpdateCreditGrantExternalSettlementRequestBody,
   UpsertAppCustomerDataRequest,
@@ -111,6 +121,125 @@ export type CreateCustomerStripePortalSessionRequest = AcceptDateStrings<{
 }>
 export type CreateCustomerStripePortalSessionResponse =
   AppStripeCreateCustomerPortalSessionResult
+
+export type CreateCustomerEntitlementRequest = AcceptDateStrings<{
+  customerId: string
+  body: CreateEntitlementRequestInput
+}>
+export type CreateCustomerEntitlementResponse = Entitlement
+
+export type OverrideCustomerEntitlementRequest = AcceptDateStrings<{
+  customerId: string
+  entitlementId: string
+  body: CreateEntitlementRequestInput
+}>
+export type OverrideCustomerEntitlementResponse = Entitlement
+
+export interface GetCustomerEntitlementHistoryQuery {
+  /**
+   * The start of the queried range. Defaults to the last reset. Truncated to the
+   * minute. The range may span at most 1000 windows.
+   */
+  from?: Date
+  /**
+   * The end of the queried range. Defaults to the current time. Truncated to the
+   * minute unless it is the current time.
+   */
+  to?: Date
+  /** The size of the windows the usage is grouped into. */
+  windowSize: EntitlementHistoryWindowSize
+  /** The IANA time zone the windows are aligned to. */
+  timeZone?: string
+}
+
+export type GetCustomerEntitlementHistoryRequest = AcceptDateStrings<
+  GetCustomerEntitlementHistoryQuery & {
+    customerId: string
+    entitlementId: string
+  }
+>
+export type GetCustomerEntitlementHistoryResponse = EntitlementHistory
+
+export type GetCustomerEntitlementRequest = {
+  customerId: string
+  entitlementId: string
+}
+export type GetCustomerEntitlementResponse = Entitlement
+
+export interface ListCustomerEntitlementsQuery {
+  /** Determines which page of the collection to retrieve. */
+  page?: { size?: number; number?: number }
+  /**
+   * Sort entitlements returned in the response. Supported sort attributes are:
+   *
+   * - `created_at` (default)
+   * - `updated_at`
+   *
+   * The `asc` suffix is optional as the default sort order is ascending. The `desc`
+   * suffix is used to specify a descending order.
+   */
+  sort?: SortQueryInput
+  /**
+   * Filter entitlements returned in the response.
+   *
+   * To filter entitlements by feature key add the following query param:
+   * `filter[feature_key]=my-feature`
+   */
+  filter?: ListCustomerEntitlementsParamsFilter
+}
+
+export type ListCustomerEntitlementsRequest = AcceptDateStrings<
+  ListCustomerEntitlementsQuery & { customerId: string }
+>
+export type ListCustomerEntitlementsResponse = EntitlementPagePaginatedResponse
+
+export type ResetCustomerEntitlementUsageRequest = AcceptDateStrings<{
+  customerId: string
+  entitlementId: string
+  body: ResetCustomerEntitlementUsageRequestInput
+}>
+export type ResetCustomerEntitlementUsageResponse = void
+
+export type DeleteCustomerEntitlementRequest = {
+  customerId: string
+  entitlementId: string
+}
+export type DeleteCustomerEntitlementResponse = void
+
+export type CreateCustomerEntitlementGrantRequest = AcceptDateStrings<{
+  customerId: string
+  entitlementId: string
+  body: EntitlementGrantCreateRequest
+}>
+export type CreateCustomerEntitlementGrantResponse = EntitlementGrant
+
+export interface ListCustomerEntitlementGrantsQuery {
+  /** Determines which page of the collection to retrieve. */
+  page?: { size?: number; number?: number }
+  /**
+   * Sort grants returned in the response. Supported sort attributes are:
+   *
+   * - `created_at` (default)
+   * - `updated_at`
+   * - `effective_at`
+   * - `expires_at`
+   *
+   * The `asc` suffix is optional as the default sort order is ascending. The `desc`
+   * suffix is used to specify a descending order.
+   */
+  sort?: SortQueryInput
+  /** Include deleted grants in the response. */
+  includeDeleted?: boolean
+}
+
+export type ListCustomerEntitlementGrantsRequest = AcceptDateStrings<
+  ListCustomerEntitlementGrantsQuery & {
+    customerId: string
+    entitlementId: string
+  }
+>
+export type ListCustomerEntitlementGrantsResponse =
+  EntitlementGrantPagePaginatedResponse
 
 export type CreateCreditGrantRequest = AcceptDateStrings<{
   customerId: string

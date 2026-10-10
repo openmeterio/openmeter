@@ -258,6 +258,7 @@ func (u UsagePeriod) GetUsagePeriodInputAt(at time.Time) (UsagePeriodInput, int,
 
 		return NewStartingUsagePeriodInput(rec.GetValue(), rec.GetTime()), idx, nil
 	}
+
 	// if we don't find any we simply return the last (oldest)
 
 	origi := u.GetOriginalValueAsUsagePeriodInput()

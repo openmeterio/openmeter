@@ -38,6 +38,7 @@ func NewV3ErrorHandlerFunc(logger errorsx.Handler) func(w http.ResponseWriter, r
 		if invalidParams, ok := invalidParametersFromGeneratedRouterError(err); ok {
 			logger.HandleContext(ctx, err)
 			NewBadRequestError(ctx, err, invalidParams).HandleAPIError(w, r)
+
 			return
 		}
 
@@ -46,6 +47,7 @@ func NewV3ErrorHandlerFunc(logger errorsx.Handler) func(w http.ResponseWriter, r
 			if mapped := apiErrorFromHTTPStatus(ctx, status, err); mapped != nil {
 				logger.HandleContext(ctx, err)
 				mapped.HandleAPIError(w, r)
+
 				return
 			}
 		}
@@ -66,6 +68,7 @@ func invalidParametersFromGeneratedRouterError(err error) (InvalidParameters, bo
 	var invalidFormat *api.InvalidParamFormatError
 	if errors.As(err, &invalidFormat) {
 		field := enrichFieldFromBindError(invalidFormat.ParamName, invalidFormat.Err.Error())
+
 		return InvalidParameters{
 			{
 				Field:  field,
@@ -148,24 +151,29 @@ func enrichFieldFromBindError(paramName string, bindErrMsg string) string {
 	if paramName == "" || bindErrMsg == "" {
 		return paramName
 	}
+
 	if strings.Contains(paramName, "[") {
 		// Already specific (e.g. "page[size]") - keep as-is.
 		return paramName
 	}
+
 	const needle = "field ["
 	i := strings.Index(bindErrMsg, needle)
 	if i == -1 {
 		return paramName
 	}
+
 	rest := bindErrMsg[i+len(needle):]
 	j := strings.Index(rest, "]")
 	if j == -1 {
 		return paramName
 	}
+
 	field := rest[:j]
 	if field == "" {
 		return paramName
 	}
+
 	return paramName + "." + field
 }
 
@@ -183,10 +191,12 @@ func singularHTTPStatusFromValidationIssues(err error) (int, bool) {
 		if !ok {
 			continue
 		}
+
 		c, ok := raw.(int)
 		if !ok {
 			continue
 		}
+
 		codes[c] = struct{}{}
 	}
 
@@ -197,6 +207,7 @@ func singularHTTPStatusFromValidationIssues(err error) (int, bool) {
 	for c := range codes {
 		return c, true
 	}
+
 	return 0, false
 }
 

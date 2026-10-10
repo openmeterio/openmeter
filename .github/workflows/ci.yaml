@@ -8,269 +8,18 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  # Supersede stale pull request runs, but never let a queued main run block a
-  # later push from rebuilding the shared caches.
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
-  cancel-in-progress: true
-
 jobs:
-  nix-changes:
-    name: Detect Nix environment changes
-    runs-on: depot-ubuntu-24.04
-    outputs:
-      cache-key: ${{ steps.cache-key.outputs.cache-key }}
-      rebuild: ${{ steps.cache-key.outputs.rebuild }}
-
-    steps:
-      - uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
-        with:
-          egress-policy: audit
-          use-policy-store: ${{ secrets.STEP_SECURITY_API_KEY != '' }}
-          api-key: ${{ secrets.STEP_SECURITY_API_KEY }}
-
-      - name: Checkout repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 2
-          persist-credentials: false
-
-      - name: Detect Nix input changes
-        id: changed-files
-        uses: kong/changed-files@4edd678ac3f81e2dc578756871e4d00c19191daf
-        with:
-          files_yaml: |
-            nix:
-              # flake.lock captures remote inputs; every local Nix expression
-              # can change the realized development environment.
-              - 'flake.lock'
-              - '**/*.nix'
-
-      - name: Fingerprint Nix inputs
-        id: nix-inputs
-        env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          EVENT_NAME: ${{ github.event_name }}
-        run: |
-          set -euo pipefail
-
-          nix_input_hash() {
-            # Hash the relevant Git tree entries so a fork can select the base
-            # branch's cache without checking out or executing fork-owned code.
-            GIT_OPTIONAL_LOCKS=0 git ls-tree -r "$1" \
-              | awk -F '\t' '$2 == "flake.lock" || $2 ~ /\.nix$/' \
-              | sha256sum \
-              | cut -d ' ' -f 1
-          }
-
-          current_hash="$(nix_input_hash HEAD)"
-          main_hash="${current_hash}"
-
-          if [ "${EVENT_NAME}" = "pull_request" ]; then
-            main_hash="$(nix_input_hash "${BASE_SHA}")"
-          fi
-
-          echo "current-hash=${current_hash}" >> "${GITHUB_OUTPUT}"
-          echo "main-hash=${main_hash}" >> "${GITHUB_OUTPUT}"
-
-      - name: Select Nix cache key
-        id: cache-key
-        env:
-          BASE_REPOSITORY: ${{ github.repository }}
-          EVENT_NAME: ${{ github.event_name }}
-          HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
-          MAIN_NIX_INPUT_HASH: ${{ steps.nix-inputs.outputs.main-hash }}
-          # any_modified covers additions, changes, renames, and deletions.
-          NIX_INPUTS_CHANGED: ${{ steps.changed-files.outputs.nix_any_modified }}
-          NIX_INPUT_HASH: ${{ steps.nix-inputs.outputs.current-hash }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          RUN_ATTEMPT: ${{ github.run_attempt }}
-          RUN_ID: ${{ github.run_id }}
-        run: |
-          main_key="${RUNNER_OS}-openmeter-nix-build-v4-main-${MAIN_NIX_INPUT_HASH}"
-          cache_key="${main_key}"
-          rebuild="false"
-          trusted="true"
-
-          if [ "${EVENT_NAME}" = "pull_request" ] && [ "${HEAD_REPOSITORY}" != "${BASE_REPOSITORY}" ]; then
-            trusted="false"
-          fi
-
-          if [ "${NIX_INPUTS_CHANGED}" = "true" ] && [ "${trusted}" = "true" ]; then
-            rebuild="true"
-
-            # A PR publishes to an immutable, per-attempt key so a validated
-            # patch cannot overwrite main's stable input-addressed cache.
-            if [ "${EVENT_NAME}" = "pull_request" ]; then
-              cache_key="${RUNNER_OS}-openmeter-nix-build-v4-pr-${PR_NUMBER}-${RUN_ID}-${RUN_ATTEMPT}-${NIX_INPUT_HASH}"
-            fi
-          fi
-
-          echo "cache-key=${cache_key}" >> "${GITHUB_OUTPUT}"
-          echo "rebuild=${rebuild}" >> "${GITHUB_OUTPUT}"
-          echo "Selected Nix cache: ${cache_key} (rebuild: ${rebuild}, trusted: ${trusted})"
-
-  cache-rebuild:
-    name: Select or rebuild Nix cache
-    needs: nix-changes
-    if: needs.nix-changes.outputs.rebuild == 'true'
-    runs-on: depot-ubuntu-24.04-16
-    env:
-      # Nix namespaces GOCACHE by its Go toolchain and dynamic loader. Depot's
-      # shared Go cache does not include those Nix store identities.
-      GOCACHEPROG: ""
-
-    steps:
-      - uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
-        with:
-          egress-policy: audit
-          use-policy-store: ${{ secrets.STEP_SECURITY_API_KEY != '' }}
-          api-key: ${{ secrets.STEP_SECURITY_API_KEY }}
-
-      - name: Checkout repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      - name: Set up Nix
-        uses: nixbuild/nix-quick-install-action@9f63be77f412a248c9d9a65a4c82cf066cdf8f0c # v35
-        with:
-          github_access_token: ${{ secrets.GITHUB_TOKEN }}
-          nix_conf: |
-            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
-            keep-env-derivations = true
-            keep-outputs = true
-            # Nix defaults to one local build at a time. Balance independent
-            # builds with per-build parallelism across this 16-vCPU runner.
-            max-jobs = 8
-            cores = 2
-
-      - name: Build nix environment
-        run: |
-          nix flake check --impure
-          nix develop --impure .#ci
-          git diff --exit-code -- .nvmrc .go-version .golangci.version .pre-commit-config.yaml
-
-      - name: Restore Go module cache
-        id: go-module-cache
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ~/go/pkg/mod
-          key: ${{ runner.os }}-openmeter-go-modules-${{ hashFiles('go.*', 'collector/go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
-          restore-keys: |
-            ${{ runner.os }}-openmeter-go-modules-
-
-      - name: Populate Go module cache
-        if: steps.go-module-cache.outputs.cache-hit != 'true'
-        run: |
-          nix develop --impure .#ci -c sh -eu -c '
-            go mod download
-            go -C collector mod download
-            go -C api/v3/client mod download
-            go -C e2e mod download
-          '
-
-      - name: Save Go module cache
-        if: steps.go-module-cache.outputs.cache-hit != 'true'
-        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ~/go/pkg/mod
-          key: ${{ steps.go-module-cache.outputs.cache-primary-key }}
-
-      - name: Verify Go runtime loader
-        run: |
-          runtime_dir="${RUNNER_TEMP}/openmeter-go-runtime"
-          mkdir -p "${runtime_dir}/go-tmp"
-
-          GOTMPDIR="${runtime_dir}/go-tmp" nix develop --impure .#ci -c bash -euo pipefail <<'EOF'
-            runtime_probe="${RUNNER_TEMP}/openmeter-go-runtime/client.test"
-            expected_interpreter="$(cat "${NIX_CC}/nix-support/dynamic-linker")"
-            go env -json GOCACHE GOCACHEPROG GOROOT GOTOOLDIR
-            printf 'GO_LDSO=%s\n' "${GO_LDSO:-<unset>}"
-
-            if [[ -n "$(go env GOCACHEPROG)" ]]; then
-              echo "Nix builds must not use Depot's loader-agnostic remote Go cache"
-              exit 1
-            fi
-
-            if [[ "${GO_LDSO:-}" != "${expected_interpreter}" ]]; then
-              echo "GO_LDSO uses ${GO_LDSO:-<unset>}; expected ${expected_interpreter}"
-              exit 1
-            fi
-
-            # GO_LDSO is not part of Go's link-action key. Start publication from
-            # an empty namespace so the assertion exercises the wrapped linker.
-            go clean -cache
-            go -C api/v3/client test -c -o "${runtime_probe}" .
-
-            # A cached Go link action can retain the loader from an older Nixpkgs
-            # generation. Never publish a cache containing such an executable.
-            interpreter="$(readelf -l "${runtime_probe}" | sed -n 's/.*interpreter: \(.*\)]/\1/p')"
-            if [[ "${interpreter}" != "${expected_interpreter}" ]]; then
-              echo "Go runtime probe uses ${interpreter:-<none>}; expected ${expected_interpreter}"
-              exit 1
-            fi
-
-            "${runtime_probe}" -test.run '^$'
-          EOF
-
-      - name: Save Nix store cache
-        uses: nix-community/cache-nix-action/save@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
-        with:
-          primary-key: ${{ needs.nix-changes.outputs.cache-key }}
-          save: "true"
-
-  build:
-    name: Build
-    runs-on: depot-ubuntu-24.04-8
-
-    steps:
-      - uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
-        with:
-          egress-policy: audit
-          use-policy-store: ${{ secrets.STEP_SECURITY_API_KEY != '' }}
-          api-key: ${{ secrets.STEP_SECURITY_API_KEY }}
-
-      - name: Checkout repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      - name: Set up Go
-        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version-file: .go-version
-          cache: false
-
-      - name: Verify Depot Go cache
-        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
-        run: |
-          cache_program="$(go env GOCACHEPROG)"
-
-          if [[ "${cache_program}" != *"depot gocache"* ]]; then
-            echo "Depot Go cache is unavailable with upstream Go"
-            exit 1
-          fi
-
-          echo "Using ${cache_program}"
-
-      - name: Build components
-        run: |
-          # On Depot runners, cgo external linking can spill large temporary linker
-          # files into /run via the default temp dir. Keep Go and system temp files
-          # on the workspace disk for this step to avoid "no space left on device",
-          # while still allowing each parallel go build to get its own temp dir.
-          mkdir -p \
-            "$GITHUB_WORKSPACE/.tmp/go-work" \
-            "$GITHUB_WORKSPACE/.tmp/system"
-          env \
-            GOTMPDIR="$GITHUB_WORKSPACE/.tmp/go-work" \
-            TMPDIR="$GITHUB_WORKSPACE/.tmp/system" \
-            make -j 4 build GO_BUILD_FLAGS=
+  cancel-older-runs:
+    # Fork and Dependabot tokens cannot cancel runs in this repository.
+    if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.user.login != 'dependabot[bot]' }}
+    permissions:
+      contents: read
+      actions: write # Required by the cancellation job; other jobs retain their own permissions.
+    uses: $/.github/workflows/cancel-stale-pr-runs.yaml
 
   generators-openapi:
     name: Code Generators / OpenAPI
-    runs-on: depot-ubuntu-24.04-8
+    runs-on: ubuntu-24.04
 
     steps:
       - uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
@@ -288,7 +37,12 @@ jobs:
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: .go-version
-          cache: false
+          cache: true
+          cache-dependency-path: |
+            go.sum
+            collector/go.sum
+            api/v3/client/go.sum
+            e2e/go.sum
 
       - name: Set up pnpm
         uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
@@ -306,17 +60,8 @@ jobs:
           cache: pnpm
           cache-dependency-path: api/spec/pnpm-lock.yaml
 
-      - name: Verify Depot Go cache
-        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
-        run: |
-          cache_program="$(go env GOCACHEPROG)"
-
-          if [[ "${cache_program}" != *"depot gocache"* ]]; then
-            echo "Depot Go cache is unavailable with upstream Go"
-            exit 1
-          fi
-
-          echo "Using ${cache_program}"
+      - name: Record Go cache configuration
+        run: go env GOCACHE GOCACHEPROG
 
       - name: Verify runner tools
         run: |
@@ -345,7 +90,7 @@ jobs:
 
   generators-javascript-sdk:
     name: Code Generators / JavaScript SDK
-    runs-on: depot-ubuntu-24.04
+    runs-on: ubuntu-24.04
 
     steps:
       - uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
@@ -464,7 +209,7 @@ jobs:
 
   go-sdk:
     name: Go SDK
-    runs-on: depot-ubuntu-24.04
+    runs-on: ubuntu-24.04
 
     steps:
       - uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
@@ -482,19 +227,15 @@ jobs:
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: .go-version
-          cache: false
+          cache: true
+          cache-dependency-path: |
+            go.sum
+            collector/go.sum
+            api/v3/client/go.sum
+            e2e/go.sum
 
-      - name: Verify Depot Go cache
-        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
-        run: |
-          cache_program="$(go env GOCACHEPROG)"
-
-          if [[ "${cache_program}" != *"depot gocache"* ]]; then
-            echo "Depot Go cache is unavailable with upstream Go"
-            exit 1
-          fi
-
-          echo "Using ${cache_program}"
+      - name: Record Go cache configuration
+        run: go env GOCACHE GOCACHEPROG
 
       - name: Run Go SDK checks
         run: make test-go-sdk
@@ -572,7 +313,7 @@ jobs:
 
   migrations:
     name: Migration Checks
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: ubuntu-24.04
     env:
       ATLAS_SHA256_AMD64: d88aae186a55e5893c318f3b11c838a3372adf4dac1e2fd3bc7d2b55944c5797
       ATLAS_SHA256_ARM64: bb8a22a08ccd9a6cb93f0a16205b7bbeb067dd7fec1f60227c687d8de93d6088
@@ -595,19 +336,15 @@ jobs:
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: .go-version
-          cache: false
+          cache: true
+          cache-dependency-path: |
+            go.sum
+            collector/go.sum
+            api/v3/client/go.sum
+            e2e/go.sum
 
-      - name: Verify Depot Go cache
-        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
-        run: |
-          cache_program="$(go env GOCACHEPROG)"
-
-          if [[ "${cache_program}" != *"depot gocache"* ]]; then
-            echo "Depot Go cache is unavailable with upstream Go"
-            exit 1
-          fi
-
-          echo "Using ${cache_program}"
+      - name: Record Go cache configuration
+        run: go env GOCACHE GOCACHEPROG
 
       - name: Install Atlas
         run: |
@@ -698,7 +435,7 @@ jobs:
 
   lint-other:
     name: Lint / Other
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: ubuntu-24.04
 
     steps:
       - uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
@@ -738,39 +475,12 @@ jobs:
           make lint-helm
 
       - name: Validate commit messages
-        if: github.event_name == 'pull_request'
+        # Fork contributions are squash-merged, so their individual commit messages need not conform.
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
-        run: pipx run --spec commitizen==4.16.5 cz check --allow-abort --rev-range "${BASE_SHA}..HEAD"
-
-  trusted-artifacts:
-    name: Artifacts
-    uses: $/.github/workflows/artifacts.yaml
-    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
-    with:
-      publish: ${{ github.event_name == 'push' }}
-    permissions:
-      contents: read
-      packages: write
-      id-token: write
-      security-events: write
-
-  untrusted-artifacts:
-    name: Untrusted Artifacts
-    if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
-    uses: $/.github/workflows/untrusted-artifacts.yaml
-    permissions:
-      contents: read
-
-  artifacts-pass:
-    name: Artifacts
-    needs:
-      - trusted-artifacts
-      - untrusted-artifacts
-    if: ${{ always() }}
-    uses: $/.github/workflows/workflow-result.yaml
-    with:
-      result: ${{ (contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || !contains(needs.*.result, 'success')) && 'fail' || 'pass' }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: pipx run --spec commitizen==4.16.5 cz check --allow-abort --rev-range "${BASE_SHA}..${HEAD_SHA}"
 
   dependency-review:
     name: Dependency review
@@ -791,404 +501,3 @@ jobs:
 
       - name: Dependency Review
         uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
-
-  quickstart:
-    name: Quickstart
-    runs-on: depot-ubuntu-24.04-4
-    env:
-      COMPOSE_PROFILES: depot-registry-svix
-    needs:
-      - trusted-artifacts
-      - untrusted-artifacts
-    if: ${{ !cancelled() && !contains(needs.*.result, 'failure') && contains(needs.*.result, 'success') }}
-
-    steps:
-      - uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
-        with:
-          egress-policy: audit
-          use-policy-store: ${{ secrets.STEP_SECURITY_API_KEY != '' }}
-          api-key: ${{ secrets.STEP_SECURITY_API_KEY }}
-
-      - name: Checkout repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      - name: Create override files for quickstart
-        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
-        env:
-          DEPOT_IMAGE_URL: ${{ needs.trusted-artifacts.outputs.container-image-url-depot }}
-        run: |
-          cat > quickstart/docker-compose.override.yaml <<EOF
-          services:
-            openmeter:
-              image: $DEPOT_IMAGE_URL
-            sink-worker:
-              image: $DEPOT_IMAGE_URL
-            balance-worker:
-              image: $DEPOT_IMAGE_URL
-            notification-service:
-              image: $DEPOT_IMAGE_URL
-            billing-worker:
-              image: $DEPOT_IMAGE_URL
-            openmeter-jobs:
-              image: $DEPOT_IMAGE_URL
-          EOF
-
-          cat quickstart/docker-compose.override.yaml
-
-      - name: Debug quickstart runner state
-        run: |
-          echo "### DEBUG"
-          ss -ltnp | grep ':49000 ' || true
-          docker ps -a
-          docker network ls
-          echo "### DEBUG"
-      - name: Build as part of quickstart
-        if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
-        run: |
-          cat > quickstart/docker-compose.override.yaml <<EOF
-          services:
-            openmeter:
-              image: openmeter-quickstart-openmeter:ci
-              pull_policy: build
-              build: ..
-            sink-worker:
-              image: openmeter-quickstart-sink-worker:ci
-              pull_policy: build
-              build: ..
-            balance-worker:
-              image: openmeter-quickstart-balance-worker:ci
-              pull_policy: build
-              build: ..
-            notification-service:
-              image: openmeter-quickstart-notification-service:ci
-              pull_policy: build
-              build: ..
-            billing-worker:
-              image: openmeter-quickstart-billing-worker:ci
-              pull_policy: build
-              build: ..
-            openmeter-jobs:
-              image: openmeter-quickstart-openmeter-jobs:ci
-              pull_policy: build
-              build: ..
-          EOF
-      - name: Launch Docker Compose
-        run: docker compose -f docker-compose.yaml -f docker-compose.override.yaml -f ../.github/docker-compose.depot-registry.yaml up -d
-        working-directory: quickstart
-
-      - name: Set up Go
-        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version-file: .go-version
-          cache: false
-
-      - name: Verify Depot Go cache
-        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
-        run: |
-          cache_program="$(go env GOCACHEPROG)"
-
-          if [[ "${cache_program}" != *"depot gocache"* ]]; then
-            echo "Depot Go cache is unavailable with upstream Go"
-            exit 1
-          fi
-
-          echo "Using ${cache_program}"
-
-      - name: Check container health
-        run: docker inspect --format "{{json .State.Health }}" $(docker container list --all --filter 'name=^*-openmeter-*' --format '{{.Names}}')
-        if: always()
-        continue-on-error: true
-
-      - name: Wait for worker to become ready
-        run: |
-          curl --retry 10 --retry-max-time 120 --retry-all-errors http://localhost:40000/healthz
-          docker ps
-
-      - name: Run tests
-        env:
-          OPENMETER_ADDRESS: http://localhost:48888
-        run: go test -v -count=1 ./quickstart/
-
-      - name: Cleanup Docker Compose
-        run: docker compose -f docker-compose.yaml -f docker-compose.override.yaml -f ../.github/docker-compose.depot-registry.yaml down -v
-        working-directory: quickstart
-        if: always()
-
-  e2e:
-    name: E2E
-    runs-on: depot-ubuntu-24.04-8
-    # Note: This check is running against the image that is going to be pushed.
-    needs:
-      - trusted-artifacts
-      - untrusted-artifacts
-    if: ${{ !cancelled() && !contains(needs.*.result, 'failure') && contains(needs.*.result, 'success') }}
-
-    steps:
-      - uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
-        with:
-          egress-policy: audit
-          use-policy-store: ${{ secrets.STEP_SECURITY_API_KEY != '' }}
-          api-key: ${{ secrets.STEP_SECURITY_API_KEY }}
-
-      - name: Checkout repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      - name: Create override files for e2e
-        env:
-          DEPOT_IMAGE_URL: ${{ needs.trusted-artifacts.outputs.container-image-url-depot }}
-        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
-        run: |
-          cat > e2e/docker-compose.override.yaml <<EOF
-          services:
-            openmeter:
-              image: $DEPOT_IMAGE_URL
-            sink-worker:
-              image: $DEPOT_IMAGE_URL
-            billing-worker:
-              image: $DEPOT_IMAGE_URL
-          EOF
-
-          cat e2e/docker-compose.override.yaml
-
-      - name: Debug E2E runner state
-        run: |
-          echo "### DEBUG"
-          ss -ltnp | grep ':39000 ' || true
-          docker ps -a
-          docker network ls
-          echo "### DEBUG"
-      - name: Build as part of e2e
-        if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
-        run: |
-          cat > e2e/docker-compose.override.yaml <<EOF
-          services:
-            openmeter:
-              build: ..
-            sink-worker:
-              build: ..
-            billing-worker:
-              build: ..
-          EOF
-
-          cat e2e/docker-compose.override.yaml
-
-      - name: Launch Docker Compose infra
-        id: launch_e2e
-        run: docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f ../.github/docker-compose.depot-registry.yaml up -d
-        working-directory: e2e
-
-      - name: Start Docker Compose log stream for base tests
-        if: always() && steps.launch_e2e.outcome != 'skipped'
-        working-directory: e2e
-        run: |
-          mkdir -p artifacts/logs/docker-compose/base
-          docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f ../.github/docker-compose.depot-registry.yaml logs --no-color --timestamps --follow > artifacts/logs/docker-compose/base/compose-follow.log 2>&1 &
-          echo "$!" > artifacts/logs/docker-compose/base/compose-follow.pid
-
-      - name: Set up Go
-        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version-file: .go-version
-          cache: false
-
-      - name: Verify Depot Go cache
-        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
-        run: |
-          cache_program="$(go env GOCACHEPROG)"
-
-          if [[ "${cache_program}" != *"depot gocache"* ]]; then
-            echo "Depot Go cache is unavailable with upstream Go"
-            exit 1
-          fi
-
-          echo "Using ${cache_program}"
-
-      - name: Check container health
-        run: docker inspect --format "{{json .State.Health }}" $(docker container list --all --filter 'name=^*-openmeter-*' --format '{{.Names}}')
-        if: always()
-        continue-on-error: true
-
-      - name: Wait for worker to become ready
-        run: |
-          curl --fail --retry 10 --retry-max-time 120 --retry-all-errors http://localhost:30000/healthz
-          curl --fail --retry 10 --retry-max-time 120 --retry-all-errors http://localhost:30001/healthz
-          docker ps
-
-      - name: Run base tests
-        id: run_base_tests
-        env:
-          OPENMETER_ADDRESS: http://localhost:38888
-          TZ: UTC
-        run: make -C e2e test-base
-
-      - name: Capture Docker Compose logs after base tests
-        if: always() && steps.launch_e2e.outcome != 'skipped'
-        working-directory: e2e
-        run: |
-          mkdir -p artifacts/logs/docker-compose/base
-          if [ -f artifacts/logs/docker-compose/base/compose-follow.pid ]; then
-            kill "$(cat artifacts/logs/docker-compose/base/compose-follow.pid)" 2>/dev/null || true
-            sleep 1
-          fi
-          docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f ../.github/docker-compose.depot-registry.yaml ps --all > artifacts/logs/docker-compose/base/compose-ps.txt 2>&1 || true
-          for service in $(docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f ../.github/docker-compose.depot-registry.yaml config --services); do
-            docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f ../.github/docker-compose.depot-registry.yaml logs --no-color --timestamps "$service" > "artifacts/logs/docker-compose/base/${service}.log" 2>&1 || true
-          done
-
-      - name: Cleanup Docker Compose
-        run: docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f ../.github/docker-compose.depot-registry.yaml down -v
-        working-directory: e2e
-        if: always()
-
-      - name: Upload Openmeter logs as artifact
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        if: always()
-        with:
-          name: "[${{ github.job }}] Openmeter logs"
-          path: |
-            e2e/logs/**
-            e2e/artifacts/logs/**
-          retention-days: 14
-
-  e2e-credits-disabled:
-    name: E2E / Credits disabled
-    runs-on: depot-ubuntu-24.04-8
-    # Note: This check is running against the image that is going to be pushed.
-    needs:
-      - trusted-artifacts
-      - untrusted-artifacts
-    if: ${{ !cancelled() && !contains(needs.*.result, 'failure') && contains(needs.*.result, 'success') }}
-
-    steps:
-      - uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
-        with:
-          egress-policy: audit
-          use-policy-store: ${{ secrets.STEP_SECURITY_API_KEY != '' }}
-          api-key: ${{ secrets.STEP_SECURITY_API_KEY }}
-
-      - name: Checkout repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      - name: Create override files for e2e
-        env:
-          DEPOT_IMAGE_URL: ${{ needs.trusted-artifacts.outputs.container-image-url-depot }}
-        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
-        run: |
-          cat > e2e/docker-compose.override.yaml <<EOF
-          services:
-            openmeter:
-              image: $DEPOT_IMAGE_URL
-            sink-worker:
-              image: $DEPOT_IMAGE_URL
-            billing-worker:
-              image: $DEPOT_IMAGE_URL
-          EOF
-
-          cat e2e/docker-compose.override.yaml
-
-      - name: Debug E2E runner state
-        run: |
-          echo "### DEBUG"
-          ss -ltnp | grep ':39000 ' || true
-          docker ps -a
-          docker network ls
-          echo "### DEBUG"
-
-      - name: Build as part of e2e
-        if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
-        run: |
-          cat > e2e/docker-compose.override.yaml <<EOF
-          services:
-            openmeter:
-              build: ..
-            sink-worker:
-              build: ..
-            billing-worker:
-              build: ..
-          EOF
-
-          cat e2e/docker-compose.override.yaml
-
-      - name: Launch Docker Compose infra with credits disabled
-        id: launch_credits_disabled_e2e
-        run: docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f docker-compose.credits-disabled.yaml -f ../.github/docker-compose.depot-registry.yaml up -d
-        working-directory: e2e
-
-      - name: Start Docker Compose log stream for credits-disabled tests
-        if: always() && steps.launch_credits_disabled_e2e.outcome != 'skipped'
-        working-directory: e2e
-        run: |
-          mkdir -p artifacts/logs/docker-compose/credits-disabled
-          docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f docker-compose.credits-disabled.yaml -f ../.github/docker-compose.depot-registry.yaml logs --no-color --timestamps --follow > artifacts/logs/docker-compose/credits-disabled/compose-follow.log 2>&1 &
-          echo "$!" > artifacts/logs/docker-compose/credits-disabled/compose-follow.pid
-
-      - name: Set up Go
-        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version-file: .go-version
-          cache: false
-
-      - name: Verify Depot Go cache
-        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
-        run: |
-          cache_program="$(go env GOCACHEPROG)"
-
-          if [[ "${cache_program}" != *"depot gocache"* ]]; then
-            echo "Depot Go cache is unavailable with upstream Go"
-            exit 1
-          fi
-
-          echo "Using ${cache_program}"
-
-      - name: Check container health
-        run: docker inspect --format "{{json .State.Health }}" $(docker container list --all --filter 'name=^*-openmeter-*' --format '{{.Names}}')
-        if: always()
-        continue-on-error: true
-
-      - name: Wait for worker to become ready with credits disabled
-        run: |
-          curl --fail --retry 10 --retry-max-time 120 --retry-all-errors http://localhost:30000/healthz
-          curl --fail --retry 10 --retry-max-time 120 --retry-all-errors http://localhost:30001/healthz
-          docker ps
-
-      - name: Run credits-disabled tests
-        id: run_credits_disabled_tests
-        env:
-          OPENMETER_ADDRESS: http://localhost:38888
-          TZ: UTC
-        run: make -C e2e test-credits-disabled
-
-      - name: Capture Docker Compose logs after credits-disabled tests
-        if: always() && steps.launch_credits_disabled_e2e.outcome != 'skipped'
-        working-directory: e2e
-        run: |
-          mkdir -p artifacts/logs/docker-compose/credits-disabled
-          if [ -f artifacts/logs/docker-compose/credits-disabled/compose-follow.pid ]; then
-            kill "$(cat artifacts/logs/docker-compose/credits-disabled/compose-follow.pid)" 2>/dev/null || true
-            sleep 1
-          fi
-          docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f docker-compose.credits-disabled.yaml -f ../.github/docker-compose.depot-registry.yaml ps --all > artifacts/logs/docker-compose/credits-disabled/compose-ps.txt 2>&1 || true
-          for service in $(docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f docker-compose.credits-disabled.yaml -f ../.github/docker-compose.depot-registry.yaml config --services); do
-            docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f docker-compose.credits-disabled.yaml -f ../.github/docker-compose.depot-registry.yaml logs --no-color --timestamps "$service" > "artifacts/logs/docker-compose/credits-disabled/${service}.log" 2>&1 || true
-          done
-
-      - name: Cleanup Docker Compose
-        run: docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f docker-compose.credits-disabled.yaml -f ../.github/docker-compose.depot-registry.yaml down -v
-        working-directory: e2e
-        if: always()
-
-      - name: Upload Openmeter logs as artifact
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        if: always()
-        with:
-          name: "[${{ github.job }}] Openmeter logs"
-          path: |
-            e2e/logs/**
-            e2e/artifacts/logs/**
-          retention-days: 14

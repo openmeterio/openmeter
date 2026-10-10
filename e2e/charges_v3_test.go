@@ -90,6 +90,7 @@ func TestV3ListCharges(t *testing.T) {
 
 		owners = append(owners, owner{customer: customer, chargeID: flatFee.ID})
 	}
+
 	first, second := owners[0], owners[1]
 
 	t.Run("filter by customer_id eq returns only that customer's charges", func(t *testing.T) {

@@ -233,6 +233,7 @@ func (s InvoiceShortStatus) Values() []InvoiceShortStatus {
 		StandardInvoiceStatusDeleteFailed,
 		StandardInvoiceStatusDeleted,
 	}
+
 	return lo.Uniq(lo.Map(lo.Without(validStatuses, unsupportedStatuses...), func(st StandardInvoiceStatus, _ int) InvoiceShortStatus {
 		return InvoiceShortStatus(st.ShortStatus())
 	}))
@@ -355,7 +356,10 @@ func (i StandardInvoiceBase) GetCustomerID() customer.CustomerID {
 	}
 }
 
-var _ GenericInvoice = (*StandardInvoice)(nil)
+var (
+	_ GenericInvoice          = (*StandardInvoice)(nil)
+	_ ValidationIssueAppender = (*StandardInvoice)(nil)
+)
 
 type StandardInvoice struct {
 	StandardInvoiceBase `json:",inline"`
@@ -443,11 +447,16 @@ func (i *StandardInvoice) SetLines(lines []GenericInvoiceLine) error {
 	}
 
 	i.Lines = NewStandardInvoiceLines(mappedLines)
+
 	return nil
 }
 
 func (i *StandardInvoice) UnsetLines() {
 	i.Lines = StandardInvoiceLines{}
+}
+
+func (i *StandardInvoice) AppendValidationIssues(issues ...ValidationIssue) {
+	i.ValidationIssues = append(i.ValidationIssues, issues...)
 }
 
 func (i *StandardInvoice) MergeValidationIssues(errIn error, reportingComponent ComponentName) error {
@@ -466,24 +475,6 @@ func (i *StandardInvoice) MergeValidationIssues(errIn error, reportingComponent 
 func (i *StandardInvoice) HasCriticalValidationIssues() bool {
 	_, found := lo.Find(i.ValidationIssues, func(issue ValidationIssue) bool {
 		return issue.Severity == ValidationIssueSeverityCritical
-	})
-
-	return found
-}
-
-// HasLineSnapshotValidationIssueForComponent reports whether a line engine has
-// incomplete output because quantity snapshotting failed. Retry downgrades old
-// critical issues to warnings, but the lines remain incomplete until collection
-// clears the issue after a successful snapshot.
-func (i *StandardInvoice) HasLineSnapshotValidationIssueForComponent(component ComponentName) bool {
-	_, found := lo.Find(i.ValidationIssues, func(issue ValidationIssue) bool {
-		if issue.Component != component {
-			return false
-		}
-
-		return issue.Code == ErrInvoiceLineFeatureNotFound.Code ||
-			issue.Code == ErrInvoiceLineFeatureHasNoMeters.Code ||
-			issue.Code == ErrInvoiceLineSnapshotFailed.Code
 	})
 
 	return found
@@ -514,7 +505,6 @@ func (i *StandardInvoice) getLeafLines() DetailedLines {
 
 	for _, line := range i.Lines.OrEmpty() {
 		// Skip non leaf nodes
-
 		out = append(out, line.DetailedLines...)
 	}
 
@@ -557,6 +547,7 @@ func (i StandardInvoice) Clone() (StandardInvoice, error) {
 	if err != nil {
 		return StandardInvoice{}, fmt.Errorf("cloning validation issues: %w", err)
 	}
+
 	clone.Totals = i.Totals
 
 	return clone, nil
@@ -662,6 +653,7 @@ func (c *StandardInvoiceLines) ReplaceByID(id string, newLine *StandardLine) boo
 
 			lines[i] = newLine
 			lines[i].DBState = originalDBState
+
 			return true
 		}
 	}
@@ -1278,17 +1270,10 @@ type CreateStandardInvoiceFromGatheringLinesInput struct {
 	Currency    currencyx.FiatCode
 	Description *string
 
-	Lines                       GatheringLines
-	ValidationIssues            ValidationIssues
-	PostCreationCalculationHook PostCreationCalculationHook
-	ForceAsyncAdvance           bool
+	Lines             GatheringLines
+	ValidationIssues  ValidationIssues
+	ForceAsyncAdvance bool
 }
-
-type (
-	PostCreationCalculationHook func(StandardInvoice, StandardLine) (LineMutators, error)
-	LineMutator                 func(*StandardLine) error
-	LineMutators                = []LineMutator
-)
 
 func (i CreateStandardInvoiceFromGatheringLinesInput) Validate() error {
 	var errs []error
@@ -1326,10 +1311,3 @@ type (
 	StandardInvoiceHook  = models.ServiceHook[StandardInvoice]
 	StandardInvoiceHooks = models.ServiceHookRegistry[StandardInvoice]
 )
-
-func NewSetCreditsAppliedOperation(creditsApplied CreditsApplied) LineMutator {
-	return func(line *StandardLine) error {
-		line.CreditsApplied = creditsApplied
-		return nil
-	}
-}

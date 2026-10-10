@@ -932,7 +932,6 @@ func TestDivisibleBy(t *testing.T) {
 
 func TestAddTo(t *testing.T) {
 	// We want to assert that time.Time monotonic handling is consistent. As we later learned we never had an issue with this, but let's keep asserting it for the future.
-
 	t.Run("should preserve monotonic component 1", func(t *testing.T) {
 		oneMin := NewISODuration(0, 0, 0, 0, 0, 1, 0)
 

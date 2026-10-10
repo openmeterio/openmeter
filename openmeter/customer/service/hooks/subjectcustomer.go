@@ -122,6 +122,7 @@ func (s subjectCustomerHook) PostDelete(ctx context.Context, sub *subject.Subjec
 		if cus.UsageAttribution != nil {
 			subjectKeysStr = strings.Join(cus.UsageAttribution.SubjectKeys, ", ")
 		}
+
 		span.AddEvent("updated customer usage attribution", trace.WithAttributes(
 			attribute.String("customer.usage_attribution.subject_keys", subjectKeysStr),
 		))

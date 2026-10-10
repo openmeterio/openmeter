@@ -180,6 +180,7 @@ func loadProgrammableDatabaseObjects(t *testing.T, db *sql.DB, schemaName string
 		require.NoError(t, rows.Scan(&object.Kind, &object.Name, &object.Definition))
 		objects = append(objects, object)
 	}
+
 	require.NoError(t, rows.Err())
 
 	return objects

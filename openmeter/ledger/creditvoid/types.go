@@ -87,30 +87,39 @@ func (r Record) Validate() error {
 	if err := r.ID.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("id: %w", err))
 	}
+
 	if !r.Amount.IsPositive() {
 		errs = append(errs, errors.New("amount must be positive"))
 	}
+
 	if err := r.CustomerID.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("customer id: %w", err))
 	}
+
 	if err := r.Currency.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("currency: %w", err))
 	}
+
 	if r.VoidedAt.IsZero() {
 		errs = append(errs, errors.New("voided at is required"))
 	}
+
 	if r.SourceChargeID == "" {
 		errs = append(errs, errors.New("source charge id is required"))
 	}
+
 	if r.VoidTransactionGroupID == "" {
 		errs = append(errs, errors.New("void transaction group id is required"))
 	}
+
 	if r.VoidTransactionID == "" {
 		errs = append(errs, errors.New("void transaction id is required"))
 	}
+
 	if r.FBOSubAccountID == "" {
 		errs = append(errs, errors.New("FBO sub-account id is required"))
 	}
+
 	if r.ReceivableSubAccountID == "" {
 		errs = append(errs, errors.New("receivable sub-account id is required"))
 	}

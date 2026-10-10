@@ -36,6 +36,7 @@ func (s AddonStatus) Validate() error {
 	if !slices.Contains(s.Values(), s) {
 		return fmt.Errorf("invalid addon status: %s", s)
 	}
+
 	return nil
 }
 
@@ -288,6 +289,7 @@ func ValidateAddonCurrencyCodes() models.ValidatorFunc[Addon] {
 				ErrCurrencyInvalid,
 			)
 		}
+
 		var errs []error
 
 		for _, rateCard := range a.RateCards {

@@ -340,6 +340,7 @@ func TestFacadeGetBalancesKeepsCustomCurrencyIdentitiesSeparate(t *testing.T) {
 		require.NotNil(t, reference.CustomCurrencyID)
 		settledByID[*reference.CustomCurrencyID] = balance.Balance.Settled().InexactFloat64()
 	}
+
 	require.Equal(t, map[string]float64{
 		alpha.ID:   40,
 		beta.ID:    60,
@@ -399,10 +400,13 @@ func TestFacadeGetBalanceAfterTransactionCursor(t *testing.T) {
 	env.fundOpenReceivable(t, alpacadecimal.NewFromInt(100))
 
 	pagedBeforeSecondIssue, err := env.Deps.HistoricalLedger.ListTransactions(t.Context(), ledger.ListTransactionsInput{
-		Namespace:  env.Namespace,
-		Limit:      10,
-		AccountIDs: []string{env.CustomerAccounts.ReceivableAccount.ID().ID},
-		Currency:   &env.Currency,
+		Namespace: env.Namespace,
+		Limit:     10,
+		EntryFilter: ledger.TransactionEntryFilter{
+			AccountIDs: []string{env.CustomerAccounts.ReceivableAccount.ID().ID},
+			Currency:   &env.Currency,
+		},
+		ReturnOnlyMatchingEntries: true,
 	})
 	require.NoError(t, err)
 	require.Len(t, pagedBeforeSecondIssue.Items, 3)

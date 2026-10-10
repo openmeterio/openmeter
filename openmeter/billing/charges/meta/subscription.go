@@ -13,6 +13,10 @@ type SubscriptionReference struct {
 	ItemID         string `json:"itemID"`
 }
 
+func (r SubscriptionReference) Equal(other SubscriptionReference) bool {
+	return r == other
+}
+
 type UpdateSubscriptionReferenceInput struct {
 	ChargeID ChargeID
 	Target   SubscriptionReference
@@ -45,6 +49,26 @@ func (r SubscriptionReference) Validate() error {
 
 	if r.ItemID == "" {
 		errs = append(errs, fmt.Errorf("item ID is required"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+// SubscriptionPlan snapshots the subscription's catalog reference when a charge is created.
+// Later subscription migrations do not change the charge's recorded attribution.
+type SubscriptionPlan struct {
+	Key     string `json:"key"`
+	Version int    `json:"version"`
+}
+
+func (p SubscriptionPlan) Validate() error {
+	var errs []error
+	if p.Key == "" {
+		errs = append(errs, errors.New("plan key is required"))
+	}
+
+	if p.Version < 1 {
+		errs = append(errs, errors.New("plan version must be positive"))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))

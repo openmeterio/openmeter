@@ -2,6 +2,7 @@ package appstripe
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -15,7 +16,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
-	appstripeservice "github.com/openmeterio/openmeter/openmeter/app/stripe/service"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customerapp "github.com/openmeterio/openmeter/openmeter/customer/app"
@@ -78,7 +78,7 @@ func (s *AppHandlerTestSuite) TestCreate(ctx context.Context, t *testing.T) {
 
 	stripeApp, ok := createApp.App.(appstripe.App)
 	require.True(t, ok, "Create stripe app must return a stripe app")
-	require.Equal(t, appstripeservice.LatestWebhookSchemaVersion, stripeApp.WebhookSchemaVersion)
+	require.Equal(t, appstripe.LatestWebhookSchemaVersion, stripeApp.WebhookSchemaVersion)
 
 	// Create with same Stripe account ID should return conflict
 	_, err = s.Env.App().InstallApp(ctx, app.InstallAppV3Input{
@@ -210,6 +210,10 @@ func (s *AppHandlerTestSuite) TestUninstall(ctx context.Context, t *testing.T) {
 	require.Empty(t, deletedStripeApp.APIKey.ID)
 	require.Empty(t, deletedStripeApp.WebhookSecret.ID)
 	require.ErrorIs(t, deleted.ValidateCapabilities(app.CapabilityTypeInvoiceCustomers), app.ErrAppDeleted)
+	require.ErrorAs(t, s.Env.AppStripe().UpdateWebhookSchemaVersion(ctx, appstripe.UpdateWebhookSchemaVersionInput{
+		AppID:                createApp.GetID(),
+		WebhookSchemaVersion: appstripe.LatestWebhookSchemaVersion,
+	}), new(*app.AppNotFoundError), "schema version must not be written to a deleted app")
 	s.Env.Secret().AssertExpectations(t)
 }
 
@@ -565,6 +569,52 @@ func (s *AppHandlerTestSuite) TestCustomerValidate(ctx context.Context, t *testi
 		app.CapabilityTypeCollectPayments,
 	})
 	require.NoError(t, err, "Validate customer must not return error")
+
+	// Validate a configured payment method that no longer exists in Stripe
+	customerWithMissingPaymentMethod, err := s.Env.Fixture().setupCustomer(ctx, s.namespace)
+	require.NoError(t, err, "setup customer must not return error")
+
+	stripeCustomerWithMissingPaymentMethodID := "cus_missing_pm"
+	missingPaymentMethodID := "pm_missing"
+	s.Env.StripeAppClient().Restore()
+	s.Env.StripeAppClient().
+		On("GetCustomer", stripeCustomerWithMissingPaymentMethodID).
+		Once().
+		Return(stripeclient.StripeCustomer{StripeCustomerID: stripeCustomerWithMissingPaymentMethodID}, nil)
+	s.Env.StripeAppClient().
+		On("GetPaymentMethod", missingPaymentMethodID).
+		Once().
+		Return(stripeclient.StripePaymentMethod{
+			ID:               missingPaymentMethodID,
+			StripeCustomerID: lo.ToPtr(stripeCustomerWithMissingPaymentMethodID),
+		}, nil)
+
+	err = testApp.UpsertCustomerData(ctx, app.UpsertAppInstanceCustomerDataInput{
+		CustomerID: customerWithMissingPaymentMethod.GetID(),
+		Data: appstripe.CustomerData{
+			StripeCustomerID:             stripeCustomerWithMissingPaymentMethodID,
+			StripeDefaultPaymentMethodID: lo.ToPtr(missingPaymentMethodID),
+		},
+	})
+	require.NoError(t, err, "Upsert customer data must not return error")
+
+	var missingPaymentMethodErr error = stripeclient.NewStripePaymentMethodNotFoundError(missingPaymentMethodID)
+	s.Env.StripeAppClient().Restore()
+	s.Env.StripeAppClient().
+		On("GetCustomer", stripeCustomerWithMissingPaymentMethodID).
+		Once().
+		Return(stripeclient.StripeCustomer{StripeCustomerID: stripeCustomerWithMissingPaymentMethodID}, nil)
+	s.Env.StripeAppClient().
+		On("GetPaymentMethod", missingPaymentMethodID).
+		Once().
+		Return(
+			stripeclient.StripePaymentMethod{},
+			fmt.Errorf("getting payment method: %w", missingPaymentMethodErr),
+		)
+
+	err = customerApp.ValidateCustomer(ctx, customerWithMissingPaymentMethod, []app.CapabilityType{app.CapabilityTypeCollectPayments})
+	require.True(t, app.IsAppCustomerPreConditionError(err))
+	require.ErrorContains(t, err, "default payment method pm_missing not found")
 
 	// Validate the customer with an invalid capability
 	err = customerApp.ValidateCustomer(ctx, testCustomer, []app.CapabilityType{app.CapabilityTypeReportEvents})
@@ -964,4 +1014,61 @@ func (s *AppHandlerTestSuite) TestUpdateAPIKey(ctx context.Context, t *testing.T
 
 	require.NoError(t, err, "Get app must not return error")
 	require.Equal(t, testApp.GetStatus(), app.AppStatusReady, "App status must be ready")
+}
+
+// TestExecuteAction tests the reconcile_webhook_events action lifecycle on a stripe app
+func (s *AppHandlerTestSuite) TestExecuteAction(ctx context.Context, t *testing.T) {
+	testApp, err := s.Env.Fixture().setupApp(ctx, s.namespace)
+	require.NoError(t, err, "setup fixture must not return error")
+
+	defer s.Env.StripeAppClient().Restore()
+
+	reconcile := app.ExecuteAppActionInput{
+		AppID: testApp.GetID(),
+		Type:  appstripe.AppActionTypeReconcileWebhookEvents,
+	}
+
+	// given a freshly installed app on the latest schema version
+	// when the reconcile action is executed
+	// then it is rejected without touching Stripe
+	_, err = s.Env.App().ExecuteAppAction(ctx, reconcile)
+	require.ErrorAs(t, err, new(*app.AppActionUnsupportedError))
+	s.Env.StripeAppClient().AssertNotCalled(t, "UpdateWebhook", mock.Anything)
+
+	// given an app registered with an older webhook event set
+	err = s.Env.AppStripe().UpdateWebhookSchemaVersion(ctx, appstripe.UpdateWebhookSchemaVersionInput{
+		AppID:                testApp.GetID(),
+		WebhookSchemaVersion: 1,
+	})
+	require.NoError(t, err, "Update webhook schema version must not return error")
+
+	testApp, err = s.Env.App().GetApp(ctx, testApp.GetID())
+	require.NoError(t, err, "Get app must not return error")
+	require.Equal(t, []app.AppAction{{
+		Type:        appstripe.AppActionTypeReconcileWebhookEvents,
+		Description: "The Stripe webhook endpoint is registered with an outdated event set. Reconcile the webhook to receive all supported events.",
+	}}, testApp.Actions())
+
+	stripeApp, err := s.Env.AppStripe().GetStripeAppData(ctx, appstripe.GetStripeAppDataInput{AppID: testApp.GetID()})
+	require.NoError(t, err, "Get stripe app data must not return error")
+
+	s.Env.StripeAppClient().
+		On("UpdateWebhook", stripeclient.UpdateWebhookInput{
+			AppID:           testApp.GetID(),
+			StripeWebhookID: stripeApp.StripeWebhookID,
+			EnabledEvents:   stripeclient.WebhookEnabledEvents,
+		}).
+		Return(nil)
+
+	// when the reconcile action is executed
+	// then the endpoint is re-registered and the action is no longer reported
+	testApp, err = s.Env.App().ExecuteAppAction(ctx, reconcile)
+	require.NoError(t, err, "Execute app action must not return error")
+	require.Empty(t, testApp.Actions())
+
+	stripeApp, err = s.Env.AppStripe().GetStripeAppData(ctx, appstripe.GetStripeAppDataInput{AppID: testApp.GetID()})
+	require.NoError(t, err, "Get stripe app data must not return error")
+	require.Equal(t, appstripe.LatestWebhookSchemaVersion, stripeApp.WebhookSchemaVersion)
+
+	s.Env.StripeAppClient().AssertExpectations(t)
 }

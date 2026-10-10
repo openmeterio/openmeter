@@ -53,18 +53,22 @@ func (i CorrectionScope) Validate() error {
 		for _, entry := range i.OriginalTransaction.Entries() {
 			original[entry.ID().ID] = entry
 		}
+
 		total := alpacadecimal.Zero
 		for id, amount := range i.SourceEntryAmounts {
 			entry, ok := original[id]
 			if !ok || !entry.Amount().IsNegative() || !amount.IsPositive() || amount.GreaterThan(entry.Amount().Abs()) {
 				errs = append(errs, fmt.Errorf("invalid correction source amount for entry %s", id))
 			}
+
 			total = total.Add(amount)
 		}
+
 		if !total.Equal(i.Amount) {
 			errs = append(errs, errors.New("source entry amounts must sum to correction amount"))
 		}
 	}
+
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
@@ -75,6 +79,12 @@ func CorrectTransaction(
 ) ([]ledger.TransactionInput, error) {
 	if err := scope.Validate(); err != nil {
 		return nil, fmt.Errorf("validate correction input: %w", err)
+	}
+
+	for _, entry := range scope.OriginalTransaction.Entries() {
+		if entry.Provenance().CollectionOriginID != nil {
+			return nil, fmt.Errorf("origin-tracked transactions require provenance-aware correction")
+		}
 	}
 
 	direction, err := ledger.TransactionDirectionFromAnnotations(scope.OriginalTransaction.Annotations())
@@ -168,5 +178,6 @@ func (i CorrectionInput) sourceEntryAmount(entry ledger.Entry) alpacadecimal.Dec
 	if i.SourceEntryAmounts != nil {
 		return i.SourceEntryAmounts[entry.ID().ID]
 	}
+
 	return entry.Amount().Abs()
 }

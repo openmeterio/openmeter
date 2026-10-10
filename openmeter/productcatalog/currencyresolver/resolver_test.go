@@ -141,6 +141,7 @@ func testResolveCurrency(t *testing.T, fixture resolverFixture) {
 				if testCase.expectedError != nil {
 					assert.ErrorIs(t, err, testCase.expectedError)
 				}
+
 				if testCase.errorContains != "" {
 					assert.ErrorContains(t, err, testCase.errorContains)
 				}
@@ -294,6 +295,7 @@ func testResolveCurrenciesForPlan(t *testing.T, fixture resolverFixture) {
 				if testCase.expectedError != nil {
 					assert.ErrorIs(t, err, testCase.expectedError)
 				}
+
 				if testCase.errorContains != "" {
 					assert.ErrorContains(t, err, testCase.errorContains)
 				}
@@ -432,6 +434,7 @@ func testResolveCurrenciesForAddon(t *testing.T, fixture resolverFixture) {
 				if testCase.expectedError != nil {
 					assert.ErrorIs(t, err, testCase.expectedError)
 				}
+
 				if testCase.errorContains != "" {
 					assert.ErrorContains(t, err, testCase.errorContains)
 				}

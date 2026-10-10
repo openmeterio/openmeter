@@ -79,6 +79,7 @@ func (s *InvoiceCreditPurchaseStateMachine) GrantCredits(ctx context.Context) er
 	}
 
 	s.Charge = updatedCharge
+
 	return nil
 }
 
@@ -92,6 +93,7 @@ func (s *InvoiceCreditPurchaseStateMachine) AuthorizeInvoicedPayment(ctx context
 	}
 
 	s.Charge = updatedCharge
+
 	return nil
 }
 
@@ -102,6 +104,7 @@ func (s *InvoiceCreditPurchaseStateMachine) SettleInvoicedPayment(ctx context.Co
 	}
 
 	s.Charge = updatedCharge
+
 	return nil
 }
 
@@ -180,6 +183,13 @@ func (i HandleInvoiceLifecycleTriggerInput) Validate() error {
 func (s *service) handleInvoiceLifecycleTrigger(ctx context.Context, input HandleInvoiceLifecycleTriggerInput) (creditpurchase.Charge, error) {
 	if err := input.Validate(); err != nil {
 		return creditpurchase.Charge{}, fmt.Errorf("validate invoice lifecycle trigger: %w", err)
+	}
+
+	if input.Trigger == billing.TriggerAuthorized && input.Charge.Realizations.InvoiceSettlement != nil {
+		return s.realizations.AuthorizeInvoicedPayment(ctx, creditpurchaserealizations.AuthorizeInvoicedPaymentInput{
+			Charge:         input.Charge,
+			LineWithHeader: input.LineWithHeader,
+		})
 	}
 
 	stateMachine, err := NewInvoiceCreditPurchaseStateMachine(StateMachineConfig{

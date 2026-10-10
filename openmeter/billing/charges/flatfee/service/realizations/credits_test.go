@@ -33,6 +33,7 @@ func (a *fiatOverageAllocationPolicyAdapter) UpdateRealizationRun(
 	if input.NoFiatTransactionRequired.IsPresent() {
 		a.run.NoFiatTransactionRequired = input.NoFiatTransactionRequired.OrEmpty()
 	}
+
 	if input.FiatOverageCreditAllocationCompleted.IsPresent() {
 		a.run.FiatOverageCreditAllocationCompleted = input.FiatOverageCreditAllocationCompleted.OrEmpty()
 	}

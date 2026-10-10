@@ -18,6 +18,7 @@ type wrapper struct {
 func newWrapper(name string) *wrapper {
 	w := &wrapper{name: name}
 	w.node = NewNode(w)
+
 	return w
 }
 

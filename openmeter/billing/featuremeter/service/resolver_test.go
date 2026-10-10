@@ -192,7 +192,7 @@ func TestResolver(t *testing.T) {
 		require.Equal(t, billing.ValidationIssues{{
 			Severity:   billing.ValidationIssueSeverityCritical,
 			Code:       billing.ErrInvoiceLineFeatureNotFound.Code,
-			Message:    "feature[missing-feature]: invoice line: feature not found",
+			Message:    "invoice line: feature not found",
 			Attributes: models.Annotations{"feature_key": "missing-feature"},
 		}}, issues)
 	})
@@ -224,7 +224,7 @@ func TestResolver(t *testing.T) {
 		require.Equal(t, billing.ValidationIssues{{
 			Severity: billing.ValidationIssueSeverityCritical,
 			Code:     billing.ErrInvoiceLineFeatureHasNoMeters.Code,
-			Message:  "feature[requests]: usage based invoice line: feature has no meters",
+			Message:  "usage based invoice line: feature has no meters",
 			Attributes: models.Annotations{
 				"feature_id":  "feature-other",
 				"feature_key": "requests",

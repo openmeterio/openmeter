@@ -95,6 +95,7 @@ func TestIsLineBillableAsOfResultValidate(t *testing.T) {
 			if tt.wantErr {
 				require.Error(t, err)
 				require.True(t, models.IsGenericValidationError(err))
+
 				return
 			}
 

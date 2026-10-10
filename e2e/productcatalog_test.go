@@ -36,6 +36,7 @@ func TestPlan(t *testing.T) {
 		require.Nil(t, err)
 		require.Equal(t, http.StatusOK, resp.StatusCode())
 	}
+
 	customerAPIRes, err := client.CreateCustomerWithResponse(ctx, api.CreateCustomerJSONRequestBody{
 		Name:         "Test Customer 1",
 		Currency:     lo.ToPtr(api.CurrencyCode("USD")),
@@ -66,6 +67,7 @@ func TestPlan(t *testing.T) {
 		require.Nil(t, err)
 		require.Equal(t, http.StatusOK, resp.StatusCode())
 	}
+
 	customerAPIRes, err = client.CreateCustomerWithResponse(ctx, api.CreateCustomerJSONRequestBody{
 		Name:         "Test Customer 2",
 		Key:          lo.ToPtr("test_customer_2"),
@@ -131,6 +133,7 @@ func TestPlan(t *testing.T) {
 		require.Nil(t, err)
 		require.Equal(t, http.StatusOK, resp.StatusCode())
 	}
+
 	customerAPIRes, err = client.CreateCustomerWithResponse(ctx, api.CreateCustomerJSONRequestBody{
 		Name:         "Test Customer Abused",
 		Key:          lo.ToPtr("test_customer_abused"),
@@ -379,7 +382,6 @@ func TestPlan(t *testing.T) {
 
 	t.Run("Should not allow publishing a misaligned plan", func(t *testing.T) {
 		// Uses a separate plan to avoid conflicts
-
 		maP1RC1 := api.RateCard{}
 		err = maP1RC1.FromRateCardFlatFee(api.RateCardFlatFee{
 			Name:        "Test Plan Phase 1 Rate Card 1",
@@ -854,6 +856,7 @@ func TestPlan(t *testing.T) {
 					require.NoError(t, et.FromRateCardMeteredEntitlement(api.RateCardMeteredEntitlement{
 						IssueAfterResetPriority: lo.ToPtr(uint8(10)),
 					}))
+
 					return &et
 				}(),
 			})
@@ -1023,6 +1026,7 @@ func TestPlan(t *testing.T) {
 			require.Equal(t, phase.ActiveFrom, next.Phases[idx].ActiveFrom)
 			require.Equal(t, phase.ActiveTo, next.Phases[idx].ActiveTo)
 		}
+
 		require.Equal(t, before.JSON200.Phases[0].ItemTimelines, next.Phases[0].ItemTimelines)
 		require.Equal(t, "test_plan_phase_3", next.Phases[2].Key)
 
@@ -1079,6 +1083,7 @@ func TestPlan(t *testing.T) {
 				})
 			}
 		}
+
 		require.Equal(t, before.JSON200.Phases, after.JSON200.Phases)
 		require.Equal(t, before.JSON200.ActiveFrom, after.JSON200.ActiveFrom)
 		require.Equal(t, before.JSON200.ActiveTo, after.JSON200.ActiveTo)
@@ -1129,6 +1134,7 @@ func TestPlan(t *testing.T) {
 			require.Nil(t, err)
 			require.Equal(t, http.StatusOK, resp.StatusCode())
 		}
+
 		customerAPIRes, err := client.CreateCustomerWithResponse(ctx, api.CreateCustomerJSONRequestBody{
 			Name:         "Test Customer 3",
 			Currency:     lo.ToPtr(api.CurrencyCode("USD")),
@@ -1228,6 +1234,7 @@ func TestPlan(t *testing.T) {
 				entID = v.Id
 			}
 		}
+
 		require.NotEmpty(t, entID)
 
 		t.Run("Subject APIs", func(t *testing.T) {

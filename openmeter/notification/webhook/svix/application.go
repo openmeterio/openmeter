@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/samber/lo"
-	svix "github.com/svix/svix-webhooks/go"
+	svix "github.com/svix/svix-webhooks/v2/go"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 
@@ -36,7 +36,9 @@ func (h svixHandler) CreateApplication(ctx context.Context, id string) (*svix.Ap
 
 		span.AddEvent("creating application", trace.WithAttributes(spanAttrs...))
 
-		app, err := h.client.Application.GetOrCreate(ctx, input, &svix.ApplicationCreateOptions{
+		appClient := h.client.Application()
+
+		app, err := appClient.GetOrCreate(ctx, input, &svix.ApplicationCreateOptions{
 			IdempotencyKey: &idempotencyKey,
 		})
 		if err = internal.WrapSvixError(err); err != nil {

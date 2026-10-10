@@ -41,6 +41,7 @@ func currencyCodePointerForJSON(currency *currencies.CurrencyReference) *currenc
 	}
 
 	code := currency.Code
+
 	return &code
 }
 
@@ -72,6 +73,7 @@ func (p Plan) MarshalJSON() ([]byte, error) {
 				if err != nil {
 					return nil, fmt.Errorf("failed to marshal price: %w", err)
 				}
+
 				priceJSON = priceBytes
 			}
 
@@ -82,6 +84,7 @@ func (p Plan) MarshalJSON() ([]byte, error) {
 				if err != nil {
 					return nil, fmt.Errorf("failed to marshal entitlement template: %w", err)
 				}
+
 				entitlementTemplateJSON = entitlementTemplateBytes
 			}
 
@@ -213,8 +216,10 @@ func (p *Plan) UnmarshalJSON(data []byte) error {
 					if err != nil {
 						return fmt.Errorf("invalid billing cadence for rate card %q: %w", rcData.Key, err)
 					}
+
 					frc.BillingCadence = &period
 				}
+
 				rc = frc
 
 			case productcatalog.UsageBasedRateCardType:
@@ -224,8 +229,10 @@ func (p *Plan) UnmarshalJSON(data []byte) error {
 					if err != nil {
 						return fmt.Errorf("invalid billing cadence for rate card %q: %w", rcData.Key, err)
 					}
+
 					urc.BillingCadence = period
 				}
+
 				rc = urc
 
 			default:

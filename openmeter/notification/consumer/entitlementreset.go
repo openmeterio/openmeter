@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	productcatalogdriver "github.com/openmeterio/openmeter/openmeter/productcatalog/driver"
 	subjecthttphandler "github.com/openmeterio/openmeter/openmeter/subject/httphandler"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
@@ -32,8 +33,9 @@ func (b *EntitlementSnapshotHandler) isEntitlementResetEvent(event snapshot.Snap
 
 func (b *EntitlementSnapshotHandler) handleAsEntitlementResetEvent(ctx context.Context, event snapshot.SnapshotEvent) error {
 	affectedRulesPaged, err := b.Notification.ListRules(ctx, notification.ListRulesInput{
-		Namespaces: []string{event.Namespace.ID},
-		Types:      []notification.EventType{notification.EventTypeEntitlementReset},
+		Namespace: event.Namespace.ID,
+		Type:      &filter.FilterString{Eq: lo.ToPtr(string(notification.EventTypeEntitlementReset))},
+		Disabled:  &filter.FilterBoolean{Eq: lo.ToPtr(false)},
 	})
 	if err != nil {
 		return fmt.Errorf("failed to list notification rules: %w", err)
@@ -67,8 +69,10 @@ func (b *EntitlementSnapshotHandler) handleResetRule(ctx context.Context, event 
 		},
 		Namespaces: []string{event.Namespace.ID},
 
-		From: event.Entitlement.CurrentUsagePeriod.From,
-		To:   event.Entitlement.CurrentUsagePeriod.To,
+		CreatedAt: filter.NewFilterTime(
+			&event.Entitlement.CurrentUsagePeriod.From,
+			&event.Entitlement.CurrentUsagePeriod.To,
+		),
 
 		OrderBy: notification.OrderByCreatedAt,
 		Order:   sortx.OrderDesc,

@@ -22,9 +22,11 @@ func (d *DBDeps) Cleanup(t *testing.T) {
 	if err := d.DBClient.Close(); err != nil {
 		errs = append(errs, err)
 	}
+
 	if err := d.EntDriver.Close(); err != nil {
 		errs = append(errs, err)
 	}
+
 	if err := d.PGDriver.Close(); err != nil {
 		errs = append(errs, err)
 	}

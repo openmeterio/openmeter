@@ -111,6 +111,7 @@ func (m *MigrationsConfig) Validate() error {
 	if m.FS == nil {
 		errs = append(errs, errors.New("fs is required"))
 	}
+
 	if m.FSPath == "" {
 		errs = append(errs, errors.New("fs path is required"))
 	}
@@ -164,9 +165,9 @@ func New(options MigrateOptions) (*Migrate, error) {
 		return nil, err
 	}
 
-	conn, err := setMigrationTableName(options.ConnectionString, options.Migrations.StateTableName)
+	conn, err := prepareMigrationConnectionString(options.ConnectionString, options.Migrations.StateTableName)
 	if err != nil {
-		return nil, fmt.Errorf("failed to set migration table name: %w", err)
+		return nil, fmt.Errorf("failed to prepare migration connection string: %w", err)
 	}
 
 	migrate, err := migrate.NewWithSourceInstance("iofs", sourceDriver, conn)
@@ -220,6 +221,7 @@ func (m *Migrate) WaitForMigrationJob(waitOpts ...WaitForMigrationOption) error 
 		if err != nil {
 			return err
 		}
+
 		if dirty {
 			return fmt.Errorf("database is dirty, please run migrations manually")
 		}
@@ -239,13 +241,15 @@ func (m *Migrate) WaitForMigrationJob(waitOpts ...WaitForMigrationOption) error 
 	}
 }
 
-func setMigrationTableName(conn, tableName string) (string, error) {
+func prepareMigrationConnectionString(conn, tableName string) (string, error) {
 	parsedURL, err := url.Parse(conn)
 	if err != nil {
 		return "", err
 	}
 
 	values := parsedURL.Query()
+	// Pool capacity configures pgx; the migration driver would send it to PostgreSQL.
+	values.Del("pool_max_conns")
 	values.Set("x-migrations-table", tableName)
 	parsedURL.RawQuery = values.Encode()
 

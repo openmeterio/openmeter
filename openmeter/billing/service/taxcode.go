@@ -56,8 +56,10 @@ func (s *Service) resolveTaxCodes(ctx context.Context, in resolveTaxCodesInput) 
 				if taxcode.IsTaxCodeNotFoundError(err) {
 					continue
 				}
+
 				return nil, fmt.Errorf("resolving tax code %q: %w", stripeCode, err)
 			}
+
 			result[stripeCode] = tc
 		} else {
 			tc, err := s.taxCodeService.GetOrCreateByAppMapping(ctx, taxcode.GetOrCreateByAppMappingInput{
@@ -68,6 +70,7 @@ func (s *Service) resolveTaxCodes(ctx context.Context, in resolveTaxCodesInput) 
 			if err != nil {
 				return nil, fmt.Errorf("resolving tax code %q: %w", stripeCode, err)
 			}
+
 			result[stripeCode] = tc
 		}
 	}

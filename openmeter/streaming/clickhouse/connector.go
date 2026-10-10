@@ -188,6 +188,7 @@ func (c *Connector) QueryMeter(ctx context.Context, namespace string, meter mete
 			if params.From != nil {
 				values[i].WindowStart = *params.From
 			}
+
 			if params.To != nil {
 				values[i].WindowEnd = *params.To
 			}
@@ -514,6 +515,7 @@ func (c *Connector) queryMeter(ctx context.Context, query queryMeter) ([]meterpk
 		if strings.Contains(err.Error(), "code: 60") {
 			return nil, meterpkg.NewMeterNotFoundError(query.Meter.Key)
 		}
+
 		return nil, fmt.Errorf("clickhouse query: %w", err)
 	}
 
@@ -665,5 +667,6 @@ func min[T cmp.Ordered](a, b T) T {
 	if a < b {
 		return a
 	}
+
 	return b
 }

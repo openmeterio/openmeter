@@ -3,6 +3,7 @@ package httptransport
 import (
 	"context"
 	"errors"
+	"net"
 	"net/http"
 	"sync/atomic"
 
@@ -119,11 +120,7 @@ func (h handler[Request, Response]) ServeHTTP(w http.ResponseWriter, r *http.Req
 	if err != nil {
 		// Might be a client error (can be encoded, non-terminal)
 		// Might be a server error (terminal)
-
-		handled := h.encodeError(ctx, err, w, r)
-		if !handled {
-			h.errorHandler.HandleContext(ctx, err)
-		}
+		h.handleError(ctx, err, w, r)
 
 		return
 	}
@@ -132,20 +129,41 @@ func (h handler[Request, Response]) ServeHTTP(w http.ResponseWriter, r *http.Req
 	if err != nil {
 		// Might be a client error (can be encoded, non-terminal)
 		// Might be a server error (terminal)
-
-		handled := h.encodeError(ctx, err, w, r)
-		if !handled {
-			h.errorHandler.HandleContext(ctx, err)
-		}
+		h.handleError(ctx, err, w, r)
 
 		return
 	}
 
 	if err := h.encodeResponse(ctx, w, r, response); err != nil {
-		// Always a server error (terminal)?
+		// Headers may already be committed. Preserve them, but report a failed write
+		// to a disconnected caller as cancellation rather than a server failure.
+		var writeErr *encoder.ResponseWriteError
+		var networkErr net.Error
+		// A server write deadline can also cancel the request context.
+		// Keep that timeout as a failure even though the connection is now closed.
+		if errors.Is(r.Context().Err(), context.Canceled) && errors.As(err, &writeErr) &&
+			(!errors.As(err, &networkErr) || !networkErr.Timeout()) {
+			err = errors.Join(context.Canceled, err)
+		}
 
 		h.errorHandler.HandleContext(ctx, err)
+
 		return
+	}
+}
+
+func (h handler[Request, Response]) handleError(ctx context.Context, err error, w http.ResponseWriter, r *http.Request) {
+	// Internal contexts can be canceled while the HTTP request remains active, so only
+	// classify the error as a client disconnect when the request context is canceled too.
+	if contextx.IsCanceledError(err) && errors.Is(r.Context().Err(), context.Canceled) {
+		w.WriteHeader(models.StatusClientClosedRequest)
+		h.errorHandler.HandleContext(ctx, err)
+
+		return
+	}
+
+	if !h.encodeError(ctx, err, w, r) {
+		h.errorHandler.HandleContext(ctx, err)
 	}
 }
 

@@ -391,6 +391,7 @@ func (s *CustomerChargeAPIListTestSuite) TestListCustomerChargesExpands() {
 				s.Equal(chargeCustomer.ID, item.Customer.ID, tc.name)
 				rowCustomers = append(rowCustomers, item.Customer.ID)
 			}
+
 			s.ElementsMatch(tc.customers, rowCustomers, tc.name)
 		}
 	})

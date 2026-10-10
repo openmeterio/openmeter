@@ -40,7 +40,7 @@ func TestToAPICreditBalanceCustomCurrencyIdentity(t *testing.T) {
 	})
 
 	require.Equal(t, api.BillingCurrencyCode("CREDITS"), result.Currency)
-	require.Equal(t, lo.ToPtr(currency.ID), result.CustomCurrencyId)
+	require.Equal(t, &api.CurrencyCustomReference{Id: currency.ID}, result.CustomCurrency)
 	require.Equal(t, api.Numeric("10"), result.Settled)
 	require.Equal(t, api.Numeric("8"), result.Live)
 	require.Equal(t, api.Numeric("2"), result.Pending)
@@ -50,7 +50,7 @@ func TestToAPICreditBalanceFiatOmitsCustomCurrencyIdentity(t *testing.T) {
 	result := toAPICreditBalance(currenciestestutils.NewFiatCurrency(t, "USD").Reference(), staticCreditBalance{})
 
 	require.Equal(t, api.BillingCurrencyCode("USD"), result.Currency)
-	require.Nil(t, result.CustomCurrencyId)
+	require.Nil(t, result.CustomCurrency)
 }
 
 func TestToAPIBillingCreditGrantPromotional(t *testing.T) {
@@ -365,4 +365,40 @@ func TestToAPICreditGrantPurchase(t *testing.T) {
 		require.Equal(t, api.CurrencyCode("USD"), purchase.ResolvedCostBasis.FiatCurrency)
 		require.Equal(t, "0.25", purchase.ResolvedCostBasis.Rate)
 	})
+}
+
+func TestCreditGrantPlanFilterMapping(t *testing.T) {
+	for _, version := range []*api.CreateVersionFilter{
+		nil, {Eq: lo.ToPtr(int32(2))}, {Oeq: lo.ToPtr([]int32{2, 3})}, {Gte: lo.ToPtr(int32(2))}, {Lte: lo.ToPtr(int32(3))},
+	} {
+		filters, err := fromAPIBillingCreditGrantFilters(&api.CreateCreditGrantFilters{
+			Features: lo.ToPtr([]api.ResourceKey{"api-calls"}),
+			Plans:    lo.ToPtr([]api.CreateCreditGrantPlanFilter{{Key: "pro", Version: version}}),
+		})
+		require.NoError(t, err)
+		require.NoError(t, filters.Validate())
+		mapped := toAPIBillingCreditGrantFilters(*filters)
+		require.Equal(t, []api.ResourceKey{"api-calls"}, *mapped.Features)
+		require.Len(t, *mapped.Plans, 1)
+		require.Equal(t, api.ResourceKey("pro"), (*mapped.Plans)[0].Key)
+		if version == nil {
+			require.Nil(t, (*mapped.Plans)[0].Version)
+		} else {
+			actual := (*mapped.Plans)[0].Version
+			require.Equal(t, version.Eq, actual.Eq)
+			require.Equal(t, version.Oeq, actual.Oeq)
+			require.Equal(t, version.Gte, actual.Gte)
+			require.Equal(t, version.Lte, actual.Lte)
+		}
+	}
+
+	for _, version := range []*api.CreateVersionFilter{
+		{}, {Oeq: lo.ToPtr([]int32{})}, {Eq: lo.ToPtr(int32(0))}, {Oeq: lo.ToPtr([]int32{-1})}, {Eq: lo.ToPtr(int32(2)), Gte: lo.ToPtr(int32(1))},
+	} {
+		filters, err := fromAPIBillingCreditGrantFilters(&api.CreateCreditGrantFilters{
+			Plans: lo.ToPtr([]api.CreateCreditGrantPlanFilter{{Key: "pro", Version: version}}),
+		})
+		require.NoError(t, err)
+		require.Error(t, filters.Validate())
+	}
 }

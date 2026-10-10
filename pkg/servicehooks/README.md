@@ -17,10 +17,10 @@ Customer lifecycle remains owned by the customer domain, and entitlement rules
 remain owned by the entitlement domain.
 
 Hooks can also produce system or audit events. The registry does not make
-those effects transactionally valid or durable: a system event can currently
-be sent from a transaction that later rolls back. Commit coupling through an
-outbox or after-commit mechanism belongs to the owning service and event
-infrastructure, not this package.
+those effects transactionally valid or durable. Application system-event
+publication uses the [shared outbox](../../openmeter/watermill/outbox/README.md)
+to couple delivery to commit. That guarantee belongs to the owning service and
+event infrastructure, not this package.
 
 ## Ownership and event boundaries
 

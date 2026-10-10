@@ -7,6 +7,7 @@ import (
 
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/pkg/contextx"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 )
 
@@ -34,7 +35,7 @@ func NewSlogHandler(logger *slog.Logger) SlogHandler {
 
 func (h SlogHandler) Handle(err error) {
 	// Context canceled errors are logged as warnings.
-	if errors.Is(err, context.Canceled) {
+	if contextx.IsCanceledError(err) {
 		h.Logger.Warn(err.Error())
 		return
 	}
@@ -55,8 +56,9 @@ func (h SlogHandler) Handle(err error) {
 }
 
 func (h SlogHandler) HandleContext(ctx context.Context, err error) {
-	// Context canceled errors are logged as warnings.
-	if errors.Is(err, context.Canceled) {
+	// Only downgrade cancellations of the caller's context. Independent dependency
+	// cancellations remain failures while the caller is still waiting for a response.
+	if errors.Is(ctx.Err(), context.Canceled) && contextx.IsCanceledError(err) {
 		h.Logger.WarnContext(ctx, err.Error())
 		return
 	}

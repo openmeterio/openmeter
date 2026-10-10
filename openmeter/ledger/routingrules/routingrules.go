@@ -111,6 +111,7 @@ func (r RequireFlowDirectionRule) Validate(tx TxView) error {
 			if allEntriesPositive(fromEntries) && allEntriesNegative(toEntries) {
 				return nil
 			}
+
 			return ledger.ErrRoutingRuleViolated.WithAttrs(models.Attributes{
 				"reason":       "invalid_flow_direction",
 				"account_type": r.From,
@@ -125,6 +126,7 @@ func (r RequireFlowDirectionRule) Validate(tx TxView) error {
 			if allEntriesPositive(fromEntries) && allEntriesNegative(toEntries) {
 				return nil
 			}
+
 			return ledger.ErrRoutingRuleViolated.WithAttrs(models.Attributes{
 				"reason":       "invalid_flow_direction",
 				"account_type": r.To,
@@ -181,7 +183,7 @@ const (
 	RouteFieldCostBasisCurrency              RouteField = "cost_basis_currency"
 	RouteFieldTaxCode                        RouteField = "tax_code"
 	RouteFieldTaxBehavior                    RouteField = "tax_behavior"
-	RouteFieldFeatures                       RouteField = "features"
+	RouteFieldFilters                        RouteField = "filters"
 	RouteFieldCostBasis                      RouteField = "cost_basis"
 	RouteFieldCreditPriority                 RouteField = "credit_priority"
 	RouteFieldTransactionAuthorizationStatus RouteField = "transaction_authorization_status"
@@ -226,11 +228,11 @@ func (r RequireTaxDimensionScopeRule) Validate(tx TxView) error {
 	return nil
 }
 
-type RequireFeatureDimensionScopeRule struct{}
+type RequireFilterDimensionScopeRule struct{}
 
-func (r RequireFeatureDimensionScopeRule) Validate(tx TxView) error {
+func (r RequireFilterDimensionScopeRule) Validate(tx TxView) error {
 	for _, entry := range tx.Entries() {
-		if len(entry.Route().Features) == 0 {
+		if entry.Route().Filters.IsEmpty() {
 			continue
 		}
 
@@ -239,7 +241,7 @@ func (r RequireFeatureDimensionScopeRule) Validate(tx TxView) error {
 			continue
 		default:
 			return ledger.ErrRoutingRuleViolated.WithAttrs(models.Attributes{
-				"reason":       "features_only_allowed_on_fbo_or_receivable",
+				"reason":       "filters_only_allowed_on_fbo_or_receivable",
 				"account_type": entry.AccountType(),
 			})
 		}
@@ -272,8 +274,8 @@ func sameRouteField(left ledger.Route, right ledger.Route, field RouteField) (bo
 		return optionalStringEqual(left.TaxCode, right.TaxCode), nil
 	case RouteFieldTaxBehavior:
 		return optionalTaxBehaviorEqual(left.TaxBehavior, right.TaxBehavior), nil
-	case RouteFieldFeatures:
-		return stringSliceEqual(left.Features, right.Features), nil
+	case RouteFieldFilters:
+		return left.Filters.Equal(right.Filters), nil
 	case RouteFieldCostBasis:
 		return optionalDecimalEqual(left.CostBasis, right.CostBasis), nil
 	case RouteFieldCreditPriority:
@@ -312,7 +314,7 @@ func (r RequireReceivableAuthorizationStageRule) Validate(tx TxView) error {
 			[]RouteField{
 				RouteFieldCurrency,
 				RouteFieldTaxCode,
-				RouteFieldFeatures,
+				RouteFieldFilters,
 				RouteFieldCostBasis,
 				RouteFieldCreditPriority,
 			},
@@ -394,7 +396,7 @@ func (r RequireFBOCostBasisTranslationRule) Validate(tx TxView) error {
 		ledger.AccountTypeCustomerFBO,
 		[]RouteField{
 			RouteFieldCurrency,
-			RouteFieldFeatures,
+			RouteFieldFilters,
 			RouteFieldCreditPriority,
 		},
 	)
@@ -476,6 +478,7 @@ func requireMatchingRouteFields(leftEntries, rightEntries []EntryView, leftType,
 		if err != nil {
 			return err
 		}
+
 		if !matched {
 			return ledger.ErrRoutingRuleViolated.WithAttrs(models.Attributes{
 				"reason":     "route_field_mismatch",
@@ -491,6 +494,7 @@ func requireMatchingRouteFields(leftEntries, rightEntries []EntryView, leftType,
 		if err != nil {
 			return err
 		}
+
 		if !matched {
 			return ledger.ErrRoutingRuleViolated.WithAttrs(models.Attributes{
 				"reason":     "route_field_mismatch",
@@ -512,11 +516,13 @@ func hasMatchingRouteFields(entry EntryView, candidates []EntryView, fields []Ro
 			if err != nil {
 				return false, err
 			}
+
 			if !same {
 				matches = false
 				break
 			}
 		}
+
 		if matches {
 			return true, nil
 		}

@@ -12,8 +12,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditpurchase"
+	chargedetailedline "github.com/openmeterio/openmeter/openmeter/billing/charges/models/detailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
-	billingrating "github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating/service/mutator"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -261,10 +261,7 @@ func populateStandardLineFromRun(stdLine *billing.StandardLine, input populateSt
 	// [UnitConfig, DiscountUsage] order — so the displayed billable Quantity matches the
 	// priced amount rather than staying in raw metered units. A nil unit_config is the
 	// identity, so non-unit_config lines are unchanged.
-	billableUsage := mutator.ApplyUnitConfig(billingrating.Usage{
-		Quantity:              billingMeteredQuantity.LinePeriod,
-		PreLinePeriodQuantity: billingMeteredQuantity.PreLinePeriod,
-	}, stdLine.UsageBased.UnitConfig)
+	billableUsage := mutator.ApplyUnitConfig(billingMeteredQuantity.BillableUsage, stdLine.UsageBased.UnitConfig)
 
 	discountedUsage, err := mutator.ApplyUsageDiscount(mutator.ApplyUsageDiscountInput{
 		Usage:                 billableUsage,
@@ -314,6 +311,7 @@ func populateCustomCurrencyOverageFromRun(
 	if err != nil {
 		return fmt.Errorf("custom currency charge[%s] converting overage to fiat: %w", charge.ID, err)
 	}
+
 	if fiatOverage.FiatCurrency == nil {
 		return fmt.Errorf("custom currency charge[%s] does not have an invoiceable fiat overage", charge.ID)
 	}
@@ -330,6 +328,7 @@ func populateCustomCurrencyOverageFromRun(
 	if stdLine.Annotations == nil {
 		stdLine.Annotations = models.Annotations{}
 	}
+
 	stdLine.Annotations[billing.AnnotationKeyReason] = lo.ToPtr(billing.AnnotationValueReasonOverage)
 
 	stdLine.RateCardDiscounts = billing.Discounts{}
@@ -366,18 +365,21 @@ func populateCustomCurrencyOverageFromRun(
 	if err != nil {
 		return fmt.Errorf("populating custom currency overage line: %w", err)
 	}
+
 	*stdLine = *stdLineWithDetails
 
 	fiatCreditsApplied, err := run.FiatOverageCreditRealizations.AsCreditsApplied()
 	if err != nil {
 		return fmt.Errorf("mapping fiat overage credit realizations: %w", err)
 	}
+
 	stdLine.CreditsApplied = fiatCreditsApplied
 
 	detailedLines, err := stdLine.DetailedLines.WithCreditsApplied(fiatCreditsApplied, fiatOverage.FiatCurrency)
 	if err != nil {
 		return fmt.Errorf("applying fiat overage credits to detailed lines: %w", err)
 	}
+
 	stdLine.DetailedLines = stdLine.DetailedLinesWithIDReuse(detailedLines)
 	stdLine.Totals = stdLine.DetailedLines.SumTotals().RoundToPrecision(fiatOverage.FiatCurrency)
 
@@ -416,6 +418,7 @@ func mapUsageBasedDetailedLines(
 				Base:      base,
 				InvoiceID: stdLine.InvoiceID,
 			},
+			AmountDiscounts: chargedetailedline.MapAmountDiscountsToBilling(line.AmountDiscounts),
 		}
 	}))
 

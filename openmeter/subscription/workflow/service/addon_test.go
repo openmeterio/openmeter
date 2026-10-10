@@ -659,6 +659,7 @@ func stripFeatureIDs(t *testing.T, spec *subscription.SubscriptionSpec) {
 				if reference == nil {
 					continue
 				}
+
 				cloned := reference.Clone()
 				cloned.ID = nil
 				require.NoError(t, item.RateCard.ChangeMeta(func(meta productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {

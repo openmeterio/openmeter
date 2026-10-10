@@ -69,12 +69,14 @@ func ReverseContainsPattern(like *string) *string {
 	if like == nil {
 		return nil
 	}
+
 	v := *like
 	v = strings.TrimPrefix(v, "%")
 	v = strings.TrimSuffix(v, "%")
 	v = strings.ReplaceAll(v, `\_`, "_")
 	v = strings.ReplaceAll(v, `\%`, "%")
 	v = strings.ReplaceAll(v, `\\`, `\`)
+
 	return &v
 }
 
@@ -133,11 +135,13 @@ func (f FilterString) validateWithComplexity(maxDepth int) error {
 			return err
 		}
 	}
+
 	for _, child := range lo.FromPtr(f.Or) {
 		if err := child.validateWithComplexity(maxDepth - 1); err != nil {
 			return err
 		}
 	}
+
 	return nil
 }
 
@@ -157,6 +161,7 @@ func (f FilterString) SelectWhereExpr(field string, q *sqlbuilder.SelectBuilder)
 		if *f.Exists {
 			return q.IsNotNull(field)
 		}
+
 		return q.IsNull(field)
 	case f.In != nil:
 		return q.In(field, *f.In)
@@ -210,6 +215,7 @@ func (f FilterString) Select(field string) func(*sql.Selector) {
 		if *f.Exists {
 			return sql.FieldNotNull(field)
 		}
+
 		return sql.FieldIsNull(field)
 	case f.In != nil:
 		return sql.FieldIn(field, (*f.In)...)
@@ -241,6 +247,7 @@ func (f FilterString) Select(field string) func(*sql.Selector) {
 		return sql.FieldContainsFold(field, *f.Contains)
 	case f.Ncontains != nil:
 		pattern := ContainsPattern(*f.Ncontains)
+
 		return func(s *sql.Selector) {
 			s.Where(sql.P(func(b *sql.Builder) {
 				b.Ident(s.C(field)).WriteString(" NOT ILIKE ").Arg(pattern)
@@ -278,6 +285,7 @@ func (f *FilterString) Match(value string) (bool, error) {
 	if f == nil || f.IsEmpty() {
 		return true, nil
 	}
+
 	return f.matches(value)
 }
 
@@ -285,6 +293,96 @@ func (f *FilterString) Match(value string) (bool, error) {
 // the filter against a string field value.
 func (f *FilterString) LoFilterPredicate() func(value string, _ int) (bool, error) {
 	return func(value string, _ int) (bool, error) { return f.Match(value) }
+}
+
+// Map returns a copy of the filter with fn applied to every operand, including those of
+// nested And/Or filters.
+func (f *FilterString) Map(fn func(string) (string, error)) (*FilterString, error) {
+	if f == nil {
+		return nil, nil
+	}
+
+	mapped := *f
+
+	mapPtr := func(dst **string) error {
+		if *dst == nil {
+			return nil
+		}
+
+		v, err := fn(**dst)
+		if err != nil {
+			return err
+		}
+
+		*dst = &v
+
+		return nil
+	}
+
+	mapSlice := func(dst **[]string) error {
+		if *dst == nil {
+			return nil
+		}
+
+		values := make([]string, 0, len(**dst))
+		for _, raw := range **dst {
+			v, err := fn(raw)
+			if err != nil {
+				return err
+			}
+
+			values = append(values, v)
+		}
+
+		*dst = &values
+
+		return nil
+	}
+
+	mapChildren := func(dst **[]FilterString) error {
+		if *dst == nil {
+			return nil
+		}
+
+		children := make([]FilterString, 0, len(**dst))
+		for _, child := range **dst {
+			m, err := child.Map(fn)
+			if err != nil {
+				return err
+			}
+
+			children = append(children, *m)
+		}
+
+		*dst = &children
+
+		return nil
+	}
+
+	for _, dst := range []**string{
+		&mapped.Eq, &mapped.Ne,
+		&mapped.Like, &mapped.Nlike, &mapped.Ilike, &mapped.Nilike,
+		&mapped.Contains, &mapped.Ncontains,
+		&mapped.Gt, &mapped.Gte, &mapped.Lt, &mapped.Lte,
+	} {
+		if err := mapPtr(dst); err != nil {
+			return nil, err
+		}
+	}
+
+	for _, dst := range []**[]string{&mapped.In, &mapped.Nin} {
+		if err := mapSlice(dst); err != nil {
+			return nil, err
+		}
+	}
+
+	for _, dst := range []**[]FilterString{&mapped.And, &mapped.Or} {
+		if err := mapChildren(dst); err != nil {
+			return nil, err
+		}
+	}
+
+	return &mapped, nil
 }
 
 func (f FilterString) matches(value string) (bool, error) {
@@ -327,6 +425,7 @@ func (f FilterString) matches(value string) (bool, error) {
 				return false, nil
 			}
 		}
+
 		return true, nil
 	case f.Or != nil:
 		var orErr error
@@ -337,6 +436,7 @@ func (f FilterString) matches(value string) (bool, error) {
 				return true, nil
 			}
 		}
+
 		return false, orErr
 	default:
 		return true, nil
@@ -385,11 +485,13 @@ func (f FilterInteger) validateWithComplexity(maxDepth int) error {
 			return err
 		}
 	}
+
 	for _, child := range lo.FromPtr(f.Or) {
 		if err := child.validateWithComplexity(maxDepth - 1); err != nil {
 			return err
 		}
 	}
+
 	return nil
 }
 
@@ -501,11 +603,13 @@ func (f FilterFloat) validateWithComplexity(maxDepth int) error {
 			return err
 		}
 	}
+
 	for _, child := range lo.FromPtr(f.Or) {
 		if err := child.validateWithComplexity(maxDepth - 1); err != nil {
 			return err
 		}
 	}
+
 	return nil
 }
 
@@ -595,12 +699,15 @@ func NewFilterTime(after, before *time.Time) *FilterTime {
 	if after == nil && before == nil {
 		return nil
 	}
+
 	if after != nil && before != nil {
 		return &FilterTime{And: &[]FilterTime{{Gte: after}, {Lte: before}}}
 	}
+
 	if after != nil {
 		return &FilterTime{Gte: after}
 	}
+
 	return &FilterTime{Lte: before}
 }
 
@@ -634,11 +741,13 @@ func (f FilterTime) validateWithComplexity(maxDepth int) error {
 			return err
 		}
 	}
+
 	for _, child := range lo.FromPtr(f.Or) {
 		if err := child.validateWithComplexity(maxDepth - 1); err != nil {
 			return err
 		}
 	}
+
 	return nil
 }
 
@@ -656,6 +765,7 @@ func (f FilterTime) SelectWhereExpr(field string, q *sqlbuilder.SelectBuilder) s
 		if *f.Exists {
 			return q.IsNotNull(field)
 		}
+
 		return q.IsNull(field)
 	case f.Gt != nil:
 		return q.GT(field, *f.Gt)
@@ -691,6 +801,7 @@ func (f FilterTime) Select(field string) func(*sql.Selector) {
 		if *f.Exists {
 			return sql.FieldNotNull(field)
 		}
+
 		return sql.FieldIsNull(field)
 	case f.Gt != nil:
 		return sql.FieldGT(field, *f.Gt)
@@ -730,6 +841,7 @@ func (f FilterTimeUnix) SelectWhereExpr(field string, q *sqlbuilder.SelectBuilde
 		if *f.Exists {
 			return q.IsNotNull(field)
 		}
+
 		return q.IsNull(field)
 	case f.Gt != nil:
 		return q.GT(field, f.Gt.Unix())
@@ -765,6 +877,7 @@ func (f FilterTimeUnix) Select(field string) func(*sql.Selector) {
 		if *f.Exists {
 			return sql.FieldNotNull(field)
 		}
+
 		return sql.FieldIsNull(field)
 	case f.Gt != nil:
 		return sql.FieldGT(field, f.Gt.Unix())
@@ -966,11 +1079,13 @@ func (f FilterULID) validateWithComplexity(maxDepth int) error {
 			return err
 		}
 	}
+
 	for _, child := range lo.FromPtr(f.Or) {
 		if err := child.validateWithComplexity(maxDepth - 1); err != nil {
 			return err
 		}
 	}
+
 	return nil
 }
 
@@ -1039,5 +1154,6 @@ func collectStringValues(f Filter) []string {
 			}
 		}
 	}
+
 	return values
 }

@@ -51,6 +51,7 @@ func (h *NoPublishingHandler) Handle(msg *message.Message) error {
 			meterAttributeCEType,
 			meterAttributeStatusIgnored,
 		))
+
 		return nil
 	}
 

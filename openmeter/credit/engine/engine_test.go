@@ -185,6 +185,7 @@ func Test_Fuzzing(t *testing.T) {
 							Anchor:   gofakeit.DateRange(start, end).Truncate(granularity),
 						}
 					}
+
 					grants[i] = makeGrant(grant)
 				}
 
@@ -224,6 +225,7 @@ func Test_Fuzzing(t *testing.T) {
 					if err != nil {
 						t.Fatalf("unexpected error: %v", err)
 					}
+
 					results[i] = result.Snapshot.Balances.Clone()
 				}
 
@@ -232,6 +234,7 @@ func Test_Fuzzing(t *testing.T) {
 					for _, v := range m {
 						sum += v
 					}
+
 					return sum
 				}
 
@@ -276,6 +279,7 @@ func Test_Fuzzing(t *testing.T) {
 							Anchor:   gofakeit.DateRange(start, end).Truncate(granularity),
 						}
 					}
+
 					grants[i] = makeGrant(grant)
 				}
 
@@ -377,12 +381,15 @@ func Test_Fuzzing(t *testing.T) {
 					if err != nil {
 						return 0.0, err
 					}
+
 					if len(rows) > 1 {
 						return 0.0, fmt.Errorf("expected 1 row, got %d", len(rows))
 					}
+
 					if len(rows) == 0 {
 						return 0.0, nil
 					}
+
 					return rows[0].Value, nil
 				}
 				tc.run(t, queryFeatureUsage, func(usage float64, at time.Time) {

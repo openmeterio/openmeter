@@ -418,6 +418,7 @@ func TestV3ListBillingInvoices(t *testing.T) {
 			if err != nil {
 				return false
 			}
+
 			return stdInv.ID == invoiceID
 		})
 		assert.True(t, found, "invoice %s must appear when filtered by customer %s", invoiceID, customerID)
@@ -566,6 +567,7 @@ func TestV3UpdateBillingInvoice(t *testing.T) {
 			if profile.Workflow.Invoicing == nil {
 				profile.Workflow.Invoicing = &v3sdk.WorkflowInvoicingSettings{}
 			}
+
 			profile.Workflow.Invoicing.AutoAdvance = lo.ToPtr(false)
 
 			sendInvoice := lo.Must(v3sdk.WorkflowPaymentSettingsFromWorkflowPaymentSendInvoiceSettings(v3sdk.WorkflowPaymentSendInvoiceSettings{
@@ -866,6 +868,7 @@ func TestV3UpdateBillingInvoice(t *testing.T) {
 				assert.Equal(t, "15", p.Amount)
 			}
 		}
+
 		assert.True(t, found, "expected the newly added line %q to appear in the updated invoice", newLineName)
 	})
 }
@@ -983,7 +986,7 @@ func newFlatUpdateLine(name string, period v3sdk.ClosedPeriod, amount string) v3
 //   - Create a standard invoice (v1)
 //   - Create a gathering invoice (v1)
 //   - Delete the standard invoice via v3 DELETE and assert 204
-//   - Attempt to delete the same invoice again and assert 400
+//   - Attempt to delete the same invoice again and assert 404
 //   - Attempt to delete a gathering invoice via v3 DELETE and assert 404
 //   - Attempt to delete an unknown invoice ID via v3 DELETE and assert 404
 func TestV3DeleteBillingInvoice(t *testing.T) {
@@ -1021,6 +1024,7 @@ func TestV3DeleteBillingInvoice(t *testing.T) {
 			if profile.Workflow.Invoicing == nil {
 				profile.Workflow.Invoicing = &v3sdk.WorkflowInvoicingSettings{}
 			}
+
 			profile.Workflow.Invoicing.AutoAdvance = lo.ToPtr(false)
 
 			sendInvoice := lo.Must(v3sdk.WorkflowPaymentSettingsFromWorkflowPaymentSendInvoiceSettings(v3sdk.WorkflowPaymentSendInvoiceSettings{
@@ -1166,11 +1170,11 @@ func TestV3DeleteBillingInvoice(t *testing.T) {
 		c.requireStatus(http.StatusNoContent, err)
 	})
 
-	t.Run("Should return 400 when deleting the same invoice again", func(t *testing.T) {
+	t.Run("Should return 404 when deleting the same invoice again", func(t *testing.T) {
 		require.NotEmpty(t, invoiceID, "depends on invoice deletion")
 
 		err := c.Invoices.Delete(t.Context(), invoiceID)
-		problem := requireProblem(t, err, http.StatusBadRequest)
+		problem := requireProblem(t, err, http.StatusNotFound)
 		assert.NotNil(t, problem)
 	})
 
@@ -1236,6 +1240,7 @@ func TestV3AdvanceBillingInvoice(t *testing.T) {
 			if profile.Workflow.Invoicing == nil {
 				profile.Workflow.Invoicing = &v3sdk.WorkflowInvoicingSettings{}
 			}
+
 			profile.Workflow.Invoicing.AutoAdvance = lo.ToPtr(true)
 			profile.Workflow.Invoicing.DraftPeriod = lo.ToPtr("PT5S")
 
@@ -1432,6 +1437,7 @@ func TestV3ApproveBillingInvoice(t *testing.T) {
 			if profile.Workflow.Invoicing == nil {
 				profile.Workflow.Invoicing = &v3sdk.WorkflowInvoicingSettings{}
 			}
+
 			profile.Workflow.Invoicing.AutoAdvance = lo.ToPtr(true)
 			profile.Workflow.Invoicing.DraftPeriod = lo.ToPtr("PT5M")
 
@@ -1507,6 +1513,7 @@ func TestV3ApproveBillingInvoice(t *testing.T) {
 			if profile.Workflow.Invoicing == nil {
 				profile.Workflow.Invoicing = &v3sdk.WorkflowInvoicingSettings{}
 			}
+
 			profile.Workflow.Invoicing.AutoAdvance = lo.ToPtr(false)
 
 			sendInvoice := lo.Must(v3sdk.WorkflowPaymentSettingsFromWorkflowPaymentSendInvoiceSettings(v3sdk.WorkflowPaymentSendInvoiceSettings{
@@ -1600,6 +1607,7 @@ func TestV3RetryBillingInvoice(t *testing.T) {
 			if profile.Workflow.Invoicing == nil {
 				profile.Workflow.Invoicing = &v3sdk.WorkflowInvoicingSettings{}
 			}
+
 			profile.Workflow.Invoicing.AutoAdvance = lo.ToPtr(true)
 			profile.Workflow.Invoicing.DraftPeriod = lo.ToPtr("PT5M")
 
@@ -1701,6 +1709,7 @@ func TestV3SnapshotQuantitiesBillingInvoice(t *testing.T) {
 			if profile.Workflow.Collection == nil {
 				profile.Workflow.Invoicing = &v3sdk.WorkflowInvoicingSettings{}
 			}
+
 			profile.Workflow.Collection.Interval = lo.ToPtr("P1D")
 
 			sendInvoice := lo.Must(v3sdk.WorkflowPaymentSettingsFromWorkflowPaymentSendInvoiceSettings(v3sdk.WorkflowPaymentSendInvoiceSettings{

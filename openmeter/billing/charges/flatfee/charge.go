@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -27,6 +28,7 @@ var (
 	_ billingfeaturemeter.FeatureReferenceGetter = Charge{}
 	_ billingfeaturemeter.FeatureReferenceOwner  = Charge{}
 	_ billingfeaturemeter.FeatureReferenceGetter = Intent{}
+	_ models.Equaler[Intent]                     = Intent{}
 )
 
 type ChargeBase struct {
@@ -216,6 +218,10 @@ type Intent struct {
 	CostBasis           *costbasis.Intent             `json:"costBasis,omitempty"`
 }
 
+func (i Intent) Equal(other Intent) bool {
+	return deriveEqualIntent(&i, &other)
+}
+
 func (i Intent) Normalized() Intent {
 	i.IntentMutableFields = i.IntentMutableFields.Normalized(i.Intent.Currency)
 
@@ -273,9 +279,11 @@ func (i Intent) GetFeatureMeterRef() *billingfeaturemeter.FeatureMeterRef {
 	if i.FeatureID != nil {
 		featureRef.ID = *i.FeatureID
 	}
+
 	if i.FeatureKey != nil {
 		featureRef.Key = *i.FeatureKey
 	}
+
 	if lo.IsEmpty(featureRef) {
 		return nil
 	}
@@ -786,4 +794,8 @@ func (r Realizations) Validate() error {
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+func (i OverridableIntent) GetCreditFilters() ledger.CreditFilters {
+	return i.intent.GetCreditFilters(i.GetFeatureKey())
 }

@@ -10,7 +10,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	chargecreditpurchase "github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	chargecostbasis "github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
@@ -160,7 +160,11 @@ func TestOnCreditPurchaseInitiated_CustomCurrency_FractionalPurchaseBacksOldestA
 
 	// given: three advances of 1 ACME, in collection order.
 	for i := range spendChargeIDs {
-		env.createAdvance(t, advanceExposureInput{Currency: customCurrencyValue, Amount: alpacadecimal.NewFromInt(1), SpendChargeID: &spendChargeIDs[i]})
+		env.createAdvance(t, advanceExposureInput{
+			Currency:      customCurrencyValue,
+			Amount:        alpacadecimal.NewFromInt(1),
+			SpendChargeID: &spendChargeIDs[i],
+		})
 	}
 
 	// when: the purchase is too small to cover the full advance exposure.
@@ -170,19 +174,28 @@ func TestOnCreditPurchaseInitiated_CustomCurrency_FractionalPurchaseBacksOldestA
 	require.NoError(t, err)
 
 	// then: all 0.05 ACME backs the oldest advance; newer advances stay uncovered.
-	env.requireAccountSourceSpendBucketAmounts(t, env.customAccruedSubAccount(t, customCurrency, customCurrencyIdentity, nil, nil).AccountID().ID, map[string]float64{
-		sourceSpendChargeKey(nil, &spendChargeIDs[0]):        0.95,
-		sourceSpendChargeKey(nil, &spendChargeIDs[1]):        1,
-		sourceSpendChargeKey(nil, &spendChargeIDs[2]):        1,
-		sourceSpendChargeKey(&charge.ID, &spendChargeIDs[0]): 0.05,
-	})
-	roots, err := env.lineage.LoadLineagesByCustomer(t.Context(), lineage.LoadLineagesByCustomerInput{
-		Namespace: env.Namespace, CustomerID: env.CustomerID.ID, Currency: customCurrencyIdentity,
+	env.requireAccountSourceSpendBucketAmounts(
+		t,
+		env.customAccruedSubAccount(t, customCurrency, customCurrencyIdentity, nil, nil).AccountID().ID,
+		map[string]float64{
+			sourceSpendChargeKey(nil, &spendChargeIDs[0]):        0.95,
+			sourceSpendChargeKey(nil, &spendChargeIDs[1]):        1,
+			sourceSpendChargeKey(nil, &spendChargeIDs[2]):        1,
+			sourceSpendChargeKey(&charge.ID, &spendChargeIDs[0]): 0.05,
+		},
+	)
+
+	roots, err := env.lineage.LoadLineagesByCustomer(t.Context(), legacylineage.LoadLineagesByCustomerInput{
+		Namespace:  env.Namespace,
+		CustomerID: env.CustomerID.ID,
+		Currency:   customCurrencyIdentity,
 	})
 	require.NoError(t, err)
 	require.Len(t, roots, 3)
+
 	for i, root := range roots {
 		require.Equal(t, spendChargeIDs[i], root.ChargeID)
+
 		var backed, uncovered float64
 		for _, segment := range root.Segments {
 			switch segment.State {
@@ -192,6 +205,7 @@ func TestOnCreditPurchaseInitiated_CustomCurrency_FractionalPurchaseBacksOldestA
 				uncovered += segment.Amount.InexactFloat64()
 			}
 		}
+
 		require.Equal(t, []float64{0.05, 0, 0}[i], backed)
 		require.Equal(t, []float64{0.95, 1, 1}[i], uncovered)
 	}
@@ -279,7 +293,7 @@ func TestOnCreditPurchaseInitiated_CustomCurrency_FeatureFilteredNoAdvance(t *te
 	featureFilters := chargecreditpurchase.FeatureFilters{"api-calls"}.Normalize()
 
 	charge := env.newExternalChargeCustomCurrency(t, customCurrencyValue, alpacadecimal.NewFromInt(100), costBasis, settlementCurrency)
-	charge.Intent.FeatureFilters = featureFilters
+	charge.Intent.Filters.Features = featureFilters
 
 	ref, err := env.grantCredits(t, charge)
 	require.NoError(t, err)
@@ -355,12 +369,12 @@ func TestOnCreditPurchaseInitiated_CustomCurrency_BackfillsOnlyMatchingFeatureAd
 	settlementCurrency := currencyx.Code("USD")
 	costBasis := mustDecimal(t, "0.5")
 
-	env.createAdvance(t, advanceExposureInput{Currency: customCurrencyValue, Amount: alpacadecimal.NewFromInt(40), Features: []string{"api-calls"}})
-	env.createAdvance(t, advanceExposureInput{Currency: customCurrencyValue, Amount: alpacadecimal.NewFromInt(30), Features: []string{"storage"}})
+	env.createAdvance(t, advanceExposureInput{Currency: customCurrencyValue, Amount: alpacadecimal.NewFromInt(40), Filters: ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: []string{"api-calls"}}})
+	env.createAdvance(t, advanceExposureInput{Currency: customCurrencyValue, Amount: alpacadecimal.NewFromInt(30), Filters: ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: []string{"storage"}}})
 
 	featureFilters := chargecreditpurchase.FeatureFilters{"api-calls"}
 	charge := env.newExternalChargeCustomCurrency(t, customCurrencyValue, alpacadecimal.NewFromInt(100), costBasis, settlementCurrency)
-	charge.Intent.FeatureFilters = featureFilters
+	charge.Intent.Filters.Features = featureFilters
 
 	ref, err := env.grantCredits(t, charge)
 	require.NoError(t, err)
@@ -422,6 +436,7 @@ func TestOnCreditPurchaseInitiated_CustomCurrency_ExpiringCreditReleasesAdvanceC
 	for _, row := range rows {
 		byKind[row.Kind] = row.Amount
 	}
+
 	require.True(t, byKind[ledger.BreakageKindPlan].Equal(alpacadecimal.NewFromInt(100)))
 	require.True(t, byKind[ledger.BreakageKindRelease].Equal(alpacadecimal.NewFromInt(40)))
 
@@ -456,7 +471,7 @@ func (e *creditPurchaseHandlerTestEnv) customFBOSubAccountWithFeatures(t *testin
 		Currency:          customCurrency,
 		CostBasisCurrency: costBasisCurrency,
 		CostBasis:         costBasis,
-		Features:          features,
+		Filters:           ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: features},
 		CreditPriority:    ledger.DefaultCustomerFBOPriority,
 	})
 	require.NoError(t, err)
@@ -471,7 +486,7 @@ func (e *creditPurchaseHandlerTestEnv) customReceivableSubAccountWithFeatures(t 
 		Currency:                       customCurrency,
 		CostBasisCurrency:              costBasisCurrency,
 		CostBasis:                      costBasis,
-		Features:                       features,
+		Filters:                        ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: features},
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
 	})
 	require.NoError(t, err)
@@ -494,6 +509,7 @@ func (e *creditPurchaseHandlerTestEnv) newExternalChargeCustomCurrency(
 	}
 	fiatCurrency, err := currencyx.NewFiatCurrency(settlementCurrency)
 	require.NoError(t, err)
+
 	return chargecreditpurchase.Charge{
 		ChargeBase: chargecreditpurchase.ChargeBase{
 			ManagedResource: meta.ManagedResource{
@@ -516,6 +532,7 @@ func (e *creditPurchaseHandlerTestEnv) newExternalChargeCustomCurrency(
 					},
 				},
 				IntentMutableFields: chargecreditpurchase.IntentMutableFields{
+					Filters: ledger.CreditFilters{Version: ledger.CreditFiltersVersion1},
 					IntentMutableFields: meta.IntentMutableFields{
 						Name:              "External Credit Purchase (custom currency)",
 						ServicePeriod:     servicePeriod,
@@ -618,7 +635,7 @@ func (e *creditPurchaseHandlerTestEnv) fiatOpenReceivableSubAccount(t *testing.T
 	subAccount, err := e.CustomerAccounts.ReceivableAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerReceivableRouteParams{
 		Currency:                       currencies.NewCurrencyReference(currency),
 		CostBasis:                      &costBasis,
-		Features:                       features,
+		Filters:                        ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: features},
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
 	})
 	require.NoError(t, err)
@@ -632,7 +649,7 @@ func (e *creditPurchaseHandlerTestEnv) fiatAuthorizedReceivableSubAccount(t *tes
 	subAccount, err := e.CustomerAccounts.ReceivableAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerReceivableRouteParams{
 		Currency:                       currencies.NewCurrencyReference(currency),
 		CostBasis:                      &costBasis,
-		Features:                       features,
+		Filters:                        ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: features},
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusAuthorized,
 	})
 	require.NoError(t, err)

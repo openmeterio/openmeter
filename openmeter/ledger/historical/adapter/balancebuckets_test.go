@@ -28,14 +28,24 @@ func TestRepo_GetBalanceBuckets_ProvenanceGroupingAndSelectors(t *testing.T) {
 	ctx := t.Context()
 	namespace := testNamespace()
 
-	fbo := env.createSubAccountOfType(t, namespace, ledger.AccountTypeCustomerFBO, ledger.Route{
-		Currency:       currencies.NewCurrencyReference(currencyx.Code("USD")),
-		CostBasis:      lo.ToPtr(mustDecimal(t, "0.70")),
-		CreditPriority: lo.ToPtr(1),
-	})
-	counterpart := env.createSubAccountOfType(t, namespace, ledger.AccountTypeWash, ledger.Route{
-		Currency: currencies.NewCurrencyReference(currencyx.Code("USD")),
-	})
+	fbo := env.createSubAccountOfType(
+		t,
+		namespace,
+		ledger.AccountTypeCustomerFBO,
+		ledger.Route{
+			Currency:       currencies.NewCurrencyReference(currencyx.Code("USD")),
+			CostBasis:      lo.ToPtr(mustDecimal(t, "0.70")),
+			CreditPriority: lo.ToPtr(1),
+		},
+	)
+	counterpart := env.createSubAccountOfType(
+		t,
+		namespace,
+		ledger.AccountTypeWash,
+		ledger.Route{
+			Currency: currencies.NewCurrencyReference(currencyx.Code("USD")),
+		},
+	)
 
 	group, err := env.repo.CreateTransactionGroup(ctx, ledgerhistorical.CreateTransactionGroupInput{
 		Namespace: namespace,
@@ -48,21 +58,35 @@ func TestRepo_GetBalanceBuckets_ProvenanceGroupingAndSelectors(t *testing.T) {
 	spendCharge2 := "01JDEFGHI0123456789ABCDEFG"
 
 	bookedAtEarly := time.Now().UTC().Add(-2 * time.Hour)
-	_, err = env.repo.BookTransaction(ctx, models.NamespacedID{Namespace: namespace, ID: group.ID}, mustSetUpHistoricalTransactionInput(t, bookedAtEarly, []*transactionstestutils.AnyEntryInput{
-		provenanceEntryInput(t, fbo, alpacadecimal.NewFromInt(100), &sourceCharge1, &spendCharge1),
-		provenanceEntryInput(t, counterpart, alpacadecimal.NewFromInt(-100), &sourceCharge1, &spendCharge1),
-		provenanceEntryInput(t, fbo, alpacadecimal.NewFromInt(50), &sourceCharge1, &spendCharge2),
-		provenanceEntryInput(t, counterpart, alpacadecimal.NewFromInt(-50), &sourceCharge1, &spendCharge2),
-	}))
+	_, err = env.repo.BookTransaction(ctx, models.NamespacedID{
+		Namespace: namespace,
+		ID:        group.ID,
+	}, mustSetUpHistoricalTransactionInput(
+		t,
+		bookedAtEarly,
+		[]*transactionstestutils.AnyEntryInput{
+			provenanceEntryInput(t, fbo, alpacadecimal.NewFromInt(100), &sourceCharge1, &spendCharge1),
+			provenanceEntryInput(t, counterpart, alpacadecimal.NewFromInt(-100), &sourceCharge1, &spendCharge1),
+			provenanceEntryInput(t, fbo, alpacadecimal.NewFromInt(50), &sourceCharge1, &spendCharge2),
+			provenanceEntryInput(t, counterpart, alpacadecimal.NewFromInt(-50), &sourceCharge1, &spendCharge2),
+		},
+	))
 	require.NoError(t, err)
 
 	asOf := bookedAtEarly.Add(time.Hour)
-	_, err = env.repo.BookTransaction(ctx, models.NamespacedID{Namespace: namespace, ID: group.ID}, mustSetUpHistoricalTransactionInput(t, asOf.Add(time.Hour), []*transactionstestutils.AnyEntryInput{
-		provenanceEntryInput(t, fbo, alpacadecimal.NewFromInt(25), &sourceCharge2, &spendCharge1),
-		provenanceEntryInput(t, counterpart, alpacadecimal.NewFromInt(-25), &sourceCharge2, &spendCharge1),
-		provenanceEntryInput(t, fbo, alpacadecimal.NewFromInt(10), nil, &spendCharge1),
-		provenanceEntryInput(t, counterpart, alpacadecimal.NewFromInt(-10), nil, &spendCharge1),
-	}))
+	_, err = env.repo.BookTransaction(ctx, models.NamespacedID{
+		Namespace: namespace,
+		ID:        group.ID,
+	}, mustSetUpHistoricalTransactionInput(
+		t,
+		asOf.Add(time.Hour),
+		[]*transactionstestutils.AnyEntryInput{
+			provenanceEntryInput(t, fbo, alpacadecimal.NewFromInt(25), &sourceCharge2, &spendCharge1),
+			provenanceEntryInput(t, counterpart, alpacadecimal.NewFromInt(-25), &sourceCharge2, &spendCharge1),
+			provenanceEntryInput(t, fbo, alpacadecimal.NewFromInt(10), nil, &spendCharge1),
+			provenanceEntryInput(t, counterpart, alpacadecimal.NewFromInt(-10), nil, &spendCharge1),
+		},
+	))
 	require.NoError(t, err)
 
 	accountID := fbo.AccountID
@@ -77,11 +101,16 @@ func TestRepo_GetBalanceBuckets_ProvenanceGroupingAndSelectors(t *testing.T) {
 		GroupBy: []string{ledger.BalanceBucketGroupBySourceChargeID},
 	})
 	require.NoError(t, err)
-	requireBalanceBucketAmounts(t, balancesBySource, map[string]float64{
-		sourceChargeKey(&sourceCharge1): 150,
-		sourceChargeKey(&sourceCharge2): 25,
-		sourceChargeKey(nil):            10,
-	})
+
+	requireBalanceBucketAmounts(
+		t,
+		balancesBySource,
+		map[string]float64{
+			sourceChargeKey(&sourceCharge1): 150,
+			sourceChargeKey(&sourceCharge2): 25,
+			sourceChargeKey(nil):            10,
+		},
+	)
 
 	balancesBySpend, err := env.repo.GetBalanceBuckets(ctx, ledger.BalanceBucketQuery{
 		Namespace: namespace,
@@ -94,10 +123,15 @@ func TestRepo_GetBalanceBuckets_ProvenanceGroupingAndSelectors(t *testing.T) {
 		GroupBy: []string{ledger.BalanceBucketGroupBySpendChargeID},
 	})
 	require.NoError(t, err)
-	requireBalanceBucketAmounts(t, balancesBySpend, map[string]float64{
-		spendChargeKey(&spendCharge1): 135,
-		spendChargeKey(&spendCharge2): 50,
-	})
+
+	requireBalanceBucketAmounts(
+		t,
+		balancesBySpend,
+		map[string]float64{
+			spendChargeKey(&spendCharge1): 135,
+			spendChargeKey(&spendCharge2): 50,
+		},
+	)
 
 	balancesBySourceAndSpend, err := env.repo.GetBalanceBuckets(ctx, ledger.BalanceBucketQuery{
 		Namespace: namespace,
@@ -113,25 +147,37 @@ func TestRepo_GetBalanceBuckets_ProvenanceGroupingAndSelectors(t *testing.T) {
 		},
 	})
 	require.NoError(t, err)
-	requireBalanceBucketAmounts(t, balancesBySourceAndSpend, map[string]float64{
-		sourceSpendChargeKey(&sourceCharge1, &spendCharge1): 100,
-		sourceSpendChargeKey(&sourceCharge1, &spendCharge2): 50,
-		sourceSpendChargeKey(&sourceCharge2, &spendCharge1): 25,
-		sourceSpendChargeKey(nil, &spendCharge1):            10,
-	})
+
+	requireBalanceBucketAmounts(
+		t,
+		balancesBySourceAndSpend,
+		map[string]float64{
+			sourceSpendChargeKey(&sourceCharge1, &spendCharge1): 100,
+			sourceSpendChargeKey(&sourceCharge1, &spendCharge2): 50,
+			sourceSpendChargeKey(&sourceCharge2, &spendCharge1): 25,
+			sourceSpendChargeKey(nil, &spendCharge1):            10,
+		},
+	)
 
 	nullSourceBalances, err := env.repo.GetBalanceBuckets(ctx, ledger.BalanceBucketQuery{
 		Namespace: namespace,
 		Filters: ledger.Filters{
-			AccountID:      &accountID,
-			SourceChargeID: mo.Some[*string](nil),
+			AccountID: &accountID,
+			Provenance: ledger.ProvenanceFilter{
+				SourceChargeID: mo.Some[*string](nil),
+			},
 		},
 		GroupBy: []string{ledger.BalanceBucketGroupBySpendChargeID},
 	})
 	require.NoError(t, err)
-	requireBalanceBucketAmounts(t, nullSourceBalances, map[string]float64{
-		spendChargeKey(&spendCharge1): 10,
-	})
+
+	requireBalanceBucketAmounts(
+		t,
+		nullSourceBalances,
+		map[string]float64{
+			spendChargeKey(&spendCharge1): 10,
+		},
+	)
 
 	asOfBalances, err := env.repo.GetBalanceBuckets(ctx, ledger.BalanceBucketQuery{
 		Namespace: namespace,
@@ -142,9 +188,14 @@ func TestRepo_GetBalanceBuckets_ProvenanceGroupingAndSelectors(t *testing.T) {
 		GroupBy: []string{ledger.BalanceBucketGroupBySourceChargeID},
 	})
 	require.NoError(t, err)
-	requireBalanceBucketAmounts(t, asOfBalances, map[string]float64{
-		sourceChargeKey(&sourceCharge1): 150,
-	})
+
+	requireBalanceBucketAmounts(
+		t,
+		asOfBalances,
+		map[string]float64{
+			sourceChargeKey(&sourceCharge1): 150,
+		},
+	)
 }
 
 func TestRepo_GetBalanceBuckets_HydratesCostBasisCurrency(t *testing.T) {
@@ -361,8 +412,10 @@ func provenanceEntryInput(t *testing.T, sub *ledgeraccount.SubAccountData, amoun
 	t.Helper()
 
 	identityKey, _ := ledger.EntryIdentityParts{
-		SourceChargeID: sourceChargeID,
-		SpendChargeID:  spendChargeID,
+		Provenance: ledger.Provenance{
+			SourceChargeID: sourceChargeID,
+			SpendChargeID:  spendChargeID,
+		},
 	}.Text()
 
 	return &transactionstestutils.AnyEntryInput{

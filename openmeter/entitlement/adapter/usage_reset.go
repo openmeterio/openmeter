@@ -64,8 +64,10 @@ func (a *usageResetDBAdapter) Save(ctx context.Context, usageResetTime metereden
 				SetAnchor(usageResetTime.Anchor).
 				SetUsagePeriodInterval(usageResetTime.UsagePeriodInterval).
 				Save(ctx)
+
 			return nil, err
 		},
 	)
+
 	return err
 }

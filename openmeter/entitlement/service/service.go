@@ -11,6 +11,8 @@ import (
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/semaphore"
 
+	"github.com/openmeterio/openmeter/openmeter/credit"
+	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
@@ -34,6 +36,9 @@ type ServiceConfig struct {
 	StaticEntitlementConnector  entitlement.SubTypeConnector
 	BooleanEntitlementConnector entitlement.SubTypeConnector
 
+	GrantRepo      grant.Repo
+	GrantConnector credit.GrantConnector
+
 	Publisher eventbus.Publisher
 	Locker    *lockr.Locker
 }
@@ -47,6 +52,9 @@ type service struct {
 	entitlementRepo  entitlement.EntitlementRepo
 	featureConnector feature.FeatureConnector
 	meterService     meter.Service
+
+	grantRepo      grant.Repo
+	grantConnector credit.GrantConnector
 
 	hooks models.ServiceHookRegistry[entitlement.Entitlement]
 
@@ -69,6 +77,8 @@ func NewEntitlementService(
 		entitlementRepo:             config.EntitlementRepo,
 		featureConnector:            config.FeatureConnector,
 		meterService:                config.MeterService,
+		grantRepo:                   config.GrantRepo,
+		grantConnector:              config.GrantConnector,
 		publisher:                   config.Publisher,
 		locker:                      config.Locker,
 	}
@@ -166,6 +176,7 @@ func (c *service) GetEntitlementWithCustomer(ctx context.Context, namespace stri
 		if err != nil {
 			return nil, err
 		}
+
 		return &entitlement.EntitlementWithCustomer{Entitlement: lo.FromPtr(ent), Customer: lo.FromPtr(cust)}, nil
 	})
 }
@@ -205,6 +216,7 @@ func (c *service) DeleteEntitlement(ctx context.Context, namespace string, id st
 	}
 
 	_, err := transaction.Run(ctx, c.entitlementRepo, doInTx)
+
 	return err
 }
 
@@ -223,6 +235,7 @@ func (c *service) GetEntitlementsOfCustomer(ctx context.Context, namespace strin
 	if err != nil {
 		return nil, err
 	}
+
 	return ents.Items, nil
 }
 
@@ -247,6 +260,10 @@ func (c *service) GetEntitlementValue(ctx context.Context, namespace string, cus
 		return nil, err
 	}
 
+	return c.getEntitlementValueAt(ctx, ent, at)
+}
+
+func (c *service) getEntitlementValueAt(ctx context.Context, ent *entitlement.Entitlement, at time.Time) (entitlement.EntitlementValue, error) {
 	// If the entitlement is not active it cannot provide access
 	if !ent.IsActive(at) {
 		return &entitlement.NoAccessValue{}, nil
@@ -256,6 +273,7 @@ func (c *service) GetEntitlementValue(ctx context.Context, namespace string, cus
 	if err != nil {
 		return nil, err
 	}
+
 	return connector.GetValue(ctx, ent, at)
 }
 
@@ -410,6 +428,7 @@ func (c *service) GetAccess(ctx context.Context, namespace string, customerId st
 		}
 
 		finalResult[k] = v
+
 		return true
 	})
 

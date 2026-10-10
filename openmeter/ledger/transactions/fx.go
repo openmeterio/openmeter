@@ -24,7 +24,7 @@ type ConvertCurrencyTemplate struct {
 
 	SourceCurrency currencies.CurrencyReference
 	TargetCurrency currencies.CurrencyReference
-	Features       []string
+	Filters        ledger.CreditFilters
 	SourceChargeID *string
 	SpendChargeID  *string
 }
@@ -120,32 +120,40 @@ func (t ConvertCurrencyTemplate) correct(scope CorrectionInput) ([]ledger.Transa
 			address: sourceReceivable.PostingAddress(),
 			amount:  originalSourceAmount,
 			identity: ledger.EntryIdentityParts{
-				SourceChargeID: sourceReceivable.SourceChargeID(),
-				SpendChargeID:  sourceReceivable.SpendChargeID(),
+				Provenance: ledger.Provenance{
+					SourceChargeID: sourceReceivable.Provenance().SourceChargeID,
+					SpendChargeID:  sourceReceivable.Provenance().SpendChargeID,
+				},
 			},
 		},
 		{
 			address: brokerageSource.PostingAddress(),
 			amount:  originalSourceAmount.Neg(),
 			identity: ledger.EntryIdentityParts{
-				SourceChargeID: brokerageSource.SourceChargeID(),
-				SpendChargeID:  brokerageSource.SpendChargeID(),
+				Provenance: ledger.Provenance{
+					SourceChargeID: brokerageSource.Provenance().SourceChargeID,
+					SpendChargeID:  brokerageSource.Provenance().SpendChargeID,
+				},
 			},
 		},
 		{
 			address: targetReceivable.PostingAddress(),
 			amount:  scope.Amount.Neg(),
 			identity: ledger.EntryIdentityParts{
-				SourceChargeID: targetReceivable.SourceChargeID(),
-				SpendChargeID:  targetReceivable.SpendChargeID(),
+				Provenance: ledger.Provenance{
+					SourceChargeID: targetReceivable.Provenance().SourceChargeID,
+					SpendChargeID:  targetReceivable.Provenance().SpendChargeID,
+				},
 			},
 		},
 		{
 			address: brokerageTarget.PostingAddress(),
 			amount:  scope.Amount,
 			identity: ledger.EntryIdentityParts{
-				SourceChargeID: brokerageTarget.SourceChargeID(),
-				SpendChargeID:  brokerageTarget.SpendChargeID(),
+				Provenance: ledger.Provenance{
+					SourceChargeID: brokerageTarget.Provenance().SourceChargeID,
+					SpendChargeID:  brokerageTarget.Provenance().SpendChargeID,
+				},
 			},
 		},
 	}
@@ -168,8 +176,10 @@ func (t ConvertCurrencyTemplate) code() TransactionTemplateCode {
 
 func (t ConvertCurrencyTemplate) resolve(ctx context.Context, customerID customer.CustomerID, resolvers ResolverDependencies) (ledger.TransactionInput, error) {
 	identity := ledger.EntryIdentityParts{
-		SourceChargeID: t.SourceChargeID,
-		SpendChargeID:  t.SpendChargeID,
+		Provenance: ledger.Provenance{
+			SourceChargeID: t.SourceChargeID,
+			SpendChargeID:  t.SpendChargeID,
+		},
 	}
 	costBasis := t.CostBasis
 	targetCostBasisCurrency := t.SourceCurrency.Code
@@ -181,7 +191,7 @@ func (t ConvertCurrencyTemplate) resolve(ctx context.Context, customerID custome
 	sourceAccount, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
 		Currency:                       t.SourceCurrency,
 		CostBasis:                      &costBasis,
-		Features:                       t.Features,
+		Filters:                        t.Filters,
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
 	})
 	if err != nil {
@@ -192,7 +202,7 @@ func (t ConvertCurrencyTemplate) resolve(ctx context.Context, customerID custome
 		Currency:                       t.TargetCurrency,
 		CostBasisCurrency:              &targetCostBasisCurrency,
 		CostBasis:                      &costBasis,
-		Features:                       t.Features,
+		Filters:                        t.Filters,
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
 	})
 	if err != nil {

@@ -12,6 +12,12 @@ type OpenPeriod struct {
 
 var _ Period = OpenPeriod{}
 
+// IsEmpty reports whether bounded endpoints leave no time in the period.
+// An unbounded period is never empty.
+func (p OpenPeriod) IsEmpty() bool {
+	return p.From != nil && p.To != nil && !p.From.Before(*p.To)
+}
+
 func (p OpenPeriod) Validate() error {
 	if p.From != nil && p.To != nil && !p.From.Before(*p.To) {
 		return fmt.Errorf("from must be before to")
@@ -25,6 +31,7 @@ func (p OpenPeriod) Equals(other OpenPeriod) bool {
 	if (p.From == nil) != (other.From == nil) {
 		return false
 	}
+
 	if p.From != nil && !p.From.Equal(*other.From) {
 		return false
 	}
@@ -33,6 +40,7 @@ func (p OpenPeriod) Equals(other OpenPeriod) bool {
 	if (p.To == nil) != (other.To == nil) {
 		return false
 	}
+
 	if p.To != nil && !p.To.Equal(*other.To) {
 		return false
 	}
@@ -248,6 +256,7 @@ func (p OpenPeriod) IsSupersetOf(other OpenPeriod) bool {
 		if other.From == nil {
 			return false
 		}
+
 		// If p starts after other, p is not a superset
 		if p.From.After(*other.From) {
 			return false
@@ -260,6 +269,7 @@ func (p OpenPeriod) IsSupersetOf(other OpenPeriod) bool {
 		if other.To == nil {
 			return false
 		}
+
 		// If p ends before other, p is not a superset
 		if p.To.Before(*other.To) {
 			return false

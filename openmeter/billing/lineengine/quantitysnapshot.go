@@ -29,8 +29,11 @@ func (i SnapshotLineQuantityInput) Validate() error {
 	if i.Invoice == nil {
 		errs = append(errs, errors.New("invoice is required"))
 	}
+
 	if i.Line == nil {
 		errs = append(errs, errors.New("line is required"))
+	} else if i.Line.Engine != billing.LineEngineTypeInvoice {
+		errs = append(errs, errors.New("line must be owned by the legacy invoice engine"))
 	}
 
 	return errors.Join(errs...)
@@ -81,6 +84,7 @@ func (e *Engine) snapshotMeteredLineQuantity(ctx context.Context, line *billing.
 	line.UsageBased.Quantity = lo.ToPtr(usage.LinePeriodQty)
 	line.UsageBased.PreLinePeriodQuantity = lo.ToPtr(usage.PreLinePeriodQty)
 	line.UsageBased.MeteredPreLinePeriodQuantity = lo.ToPtr(usage.PreLinePeriodQty)
+
 	return nil
 }
 
@@ -89,6 +93,7 @@ func (e *Engine) snapshotFlatPriceLineQuantity(_ context.Context, line *billing.
 	line.UsageBased.Quantity = lo.ToPtr(alpacadecimal.NewFromInt(1))
 	line.UsageBased.PreLinePeriodQuantity = lo.ToPtr(alpacadecimal.Zero)
 	line.UsageBased.MeteredPreLinePeriodQuantity = lo.ToPtr(alpacadecimal.Zero)
+
 	return nil
 }
 

@@ -73,8 +73,10 @@ func (h *debugHandler) GetMetrics() GetMetricsHandler {
 						http.StatusBadRequest,
 						err,
 					).EncodeError(ctx, w)
+
 					return true
 				}
+
 				return false
 			}),
 		)...,

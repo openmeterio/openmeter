@@ -408,7 +408,7 @@ func toIntent(input creditgrant.CreateInput, currency currencies.Currency) (cred
 	}
 
 	if input.Filters != nil {
-		intent.FeatureFilters = creditpurchase.FeatureFilters(input.Filters.Features).Normalize()
+		intent.Filters = input.Filters.Normalize()
 	}
 
 	if input.Priority != nil {
@@ -453,6 +453,7 @@ func toSettlement(input creditgrant.CreateInput) creditpurchase.Settlement {
 		settlement := creditpurchase.ExternalSettlement{
 			InitialStatus: initialStatus,
 		}
+
 		return creditpurchase.NewSettlement(settlement)
 
 	default: // FundingMethodNone → promotional

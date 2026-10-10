@@ -106,6 +106,7 @@ func (i DetailedLine) AddDiscountForOverage(in AddDiscountInput) DetailedLine {
 				},
 			},
 		})
+
 		return i
 	}
 

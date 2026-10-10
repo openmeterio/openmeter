@@ -501,9 +501,11 @@ func (i ChargeIntent) GetFeatureMeterRef() *billingfeaturemeter.FeatureMeterRef 
 		if i.flatFee.FeatureID != nil {
 			featureRef.ID = *i.flatFee.FeatureID
 		}
+
 		if i.flatFee.FeatureKey != nil {
 			featureRef.Key = *i.flatFee.FeatureKey
 		}
+
 		if lo.IsEmpty(featureRef) {
 			return nil
 		}

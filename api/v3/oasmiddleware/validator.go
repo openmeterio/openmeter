@@ -53,10 +53,12 @@ func ValidateRequest(validationRouter routers.Router, opts ValidateRequestOption
 					}
 				}
 			}
+
 			if !skipServe {
 				h.ServeHTTP(w, r)
 			}
 		}
+
 		return http.HandlerFunc(fn)
 	}
 }
@@ -101,6 +103,7 @@ func ValidateResponse(validationRouter routers.Router, opts ValidateResponseOpti
 				if err != nil {
 					return
 				}
+
 				bodyReader := bytes.NewReader(b.Bytes())
 
 				responseValidationInput := &openapi3filter.ResponseValidationInput{
@@ -122,6 +125,7 @@ func ValidateResponse(validationRouter routers.Router, opts ValidateResponseOpti
 				}
 			}
 		}
+
 		return http.HandlerFunc(fn)
 	}
 }

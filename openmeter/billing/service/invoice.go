@@ -10,6 +10,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/lineengine"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -171,7 +172,6 @@ func (s *Service) calculateGatheringInvoiceAsStandardInvoice(ctx context.Context
 	if !invoice.Expands.Has(billing.GatheringInvoiceExpandSplitLineHierarchy) && wasLinesPresent {
 		// If the invoice has lines and the splitline hierarchy is not expanded, we need to check if there are any progressive billed lines
 		// and reload the invoice as price calculations depend on the presence of the split line hierarchy.
-
 		progressiveBilledLineCount := lo.CountBy(invoice.Lines.OrEmpty(), func(line billing.GatheringLine) bool {
 			if line.DeletedAt != nil {
 				return false
@@ -229,7 +229,8 @@ func (s *Service) calculateGatheringInvoiceAsStandardInvoice(ctx context.Context
 			return nil, fmt.Errorf("validating build standard invoice lines with live data input for engine %s: %w", item.Engine.GetLineEngineType(), err)
 		}
 
-		stdLines, err := item.Engine.BuildStandardLinesForGatheringPreview(ctx, engineInput)
+		stdLines, buildErr := item.Engine.BuildStandardLinesForGatheringPreview(ctx, engineInput)
+		validationIssues, err := billing.ToValidationIssues(buildErr)
 		if err != nil {
 			return nil, fmt.Errorf("building standard invoice lines with live data for engine %s: %w", item.Engine.GetLineEngineType(), err)
 		}
@@ -240,6 +241,16 @@ func (s *Service) calculateGatheringInvoiceAsStandardInvoice(ctx context.Context
 
 		if err := billing.ValidateStandardLineIDsMatchGatheringLinesUnordered(item.Lines, stdLines); err != nil {
 			return nil, fmt.Errorf("validating build standard invoice lines with live data ids for engine %s: %w", item.Engine.GetLineEngineType(), err)
+		}
+
+		if len(validationIssues) > 0 {
+			component := billing.LineEngineValidationComponent(item.Engine.GetLineEngineType())
+			if err := out.MergeValidationIssues(
+				billing.NewLineEngineValidationError(item.Engine, validationIssues.AsError()),
+				component,
+			); err != nil {
+				return nil, fmt.Errorf("merging preview validation issues for engine %s: %w", item.Engine.GetLineEngineType(), err)
+			}
 		}
 
 		for _, stdLine := range stdLines {
@@ -279,9 +290,7 @@ func (s *Service) calculateGatheringInvoiceAsStandardInvoice(ctx context.Context
 	}
 
 	if err := s.invoiceCalculator.CalculateGatheringInvoiceWithLiveData(out, invoicecalc.StandardInvoiceCalculatorDependencies{
-		RatingService: s.ratingService,
-		TaxCodes:      taxCodes,
-		LineEngines:   s.lineEngines,
+		TaxCodes: taxCodes,
 	}); err != nil {
 		return nil, fmt.Errorf("calculating invoice: %w", err)
 	}
@@ -446,6 +455,7 @@ func (s *Service) advanceUntilStateStable(ctx context.Context, sm *InvoiceStateM
 	}
 
 	sm.Invoice.ValidationIssues = validationIssues
+
 	return nil
 }
 
@@ -759,6 +769,7 @@ func (s *Service) DeleteInvoice(ctx context.Context, input billing.DeleteInvoice
 			if input.DeletionSource != billing.ChangeSourceAPIRequest {
 				return nil
 			}
+
 			// Charge cleanup committed before invoice-app synchronization. A retry
 			// must not validate or dispatch those already-applied line deletions.
 			if sm.Invoice.DeletedAt != nil {
@@ -874,7 +885,10 @@ func (s Service) SimulateInvoice(ctx context.Context, input billing.SimulateInvo
 		},
 	}
 
-	inputLines := input.Lines.OrEmpty()
+	inputLines, err := input.Lines.OrEmpty().Clone()
+	if err != nil {
+		return billing.StandardInvoice{}, fmt.Errorf("cloning simulation lines: %w", err)
+	}
 
 	invoice.Lines = billing.NewStandardInvoiceLines(
 		lo.Map(inputLines, func(line *billing.StandardLine, _ int) *billing.StandardLine {
@@ -882,6 +896,7 @@ func (s Service) SimulateInvoice(ctx context.Context, input billing.SimulateInvo
 			if line.ID == "" {
 				line.ID = ulid.Make().String()
 			}
+
 			line.CreatedAt = now
 			line.UpdatedAt = now
 			line.Currency = input.Currency
@@ -897,7 +912,7 @@ func (s Service) SimulateInvoice(ctx context.Context, input billing.SimulateInvo
 		}
 	}
 
-	err := errors.Join(lo.Map(invoice.Lines.OrEmpty(), func(line *billing.StandardLine, _ int) error {
+	err = errors.Join(lo.Map(invoice.Lines.OrEmpty(), func(line *billing.StandardLine, _ int) error {
 		return line.Validate()
 	})...)
 	if err != nil {
@@ -925,11 +940,35 @@ func (s Service) SimulateInvoice(ctx context.Context, input billing.SimulateInvo
 		return billing.StandardInvoice{}, fmt.Errorf("resolving tax codes: %w", err)
 	}
 
-	// Let's simulate a recalculation of the invoice
+	groupedLines, err := s.lineEngines.groupStandardLinesByEngine(invoice.Lines.OrEmpty().WithoutDeletedLines())
+	if err != nil {
+		return billing.StandardInvoice{}, fmt.Errorf("grouping simulation lines: %w", err)
+	}
+
+	for _, grouped := range groupedLines {
+		legacyEngine, ok := grouped.Engine.(*lineengine.Engine)
+		if !ok {
+			// Charge simulation is not feasible yet: charge rating requires persisted
+			// realizations and lifecycle actions. Keep the supplied projection unchanged.
+			continue
+		}
+
+		ratedLines, ratingErr := legacyEngine.RateStandardLines(grouped.Lines)
+		if err := invoice.MergeValidationIssues(billing.NewLineEngineValidationError(legacyEngine, ratingErr), billing.LineEngineValidationComponent(legacyEngine.GetLineEngineType())); err != nil {
+			return billing.StandardInvoice{}, fmt.Errorf("rating simulation lines: %w", err)
+		}
+
+		if err := invoice.Lines.ReplaceExact(billing.ReplaceExactLinesInput{
+			Existing:    grouped.Lines,
+			Replacement: ratedLines,
+		}); err != nil {
+			return billing.StandardInvoice{}, fmt.Errorf("replacing simulation lines: %w", err)
+		}
+	}
+
+	// Owners supply calculated lines; the invoice calculator derives aggregate fields.
 	if err := s.invoiceCalculator.Calculate(&invoice, invoicecalc.StandardInvoiceCalculatorDependencies{
-		RatingService: s.ratingService,
-		TaxCodes:      taxCodes,
-		LineEngines:   s.lineEngines,
+		TaxCodes: taxCodes,
 	}); err != nil {
 		return billing.StandardInvoice{}, err
 	}
@@ -938,6 +977,7 @@ func (s Service) SimulateInvoice(ctx context.Context, input billing.SimulateInvo
 		if validationIssue.Severity == billing.ValidationIssueSeverityCritical {
 			invoice.Status = billing.StandardInvoiceStatusDraftInvalid
 			invoice.StatusDetails.Failed = true
+
 			break
 		}
 	}

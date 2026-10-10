@@ -354,10 +354,12 @@ func (s service) UpdateAddon(ctx context.Context, params addon.UpdateAddonInput)
 		if params.RejectUnitConfig && add.AsProductCatalogAddon().HasUnitConfig() {
 			return nil, productcatalog.ErrUnitConfigNotRepresentable
 		}
+
 		if params.RejectUnrepresentableCurrencies {
 			if add.Currency.IsCustom() {
 				return nil, productcatalog.ErrCurrencyNotRepresentable
 			}
+
 			if add.AsProductCatalogAddon().HasCurrencyOverrides() {
 				return nil, productcatalog.ErrRateCardCurrencyNotRepresentable
 			}
@@ -384,6 +386,7 @@ func (s service) UpdateAddon(ctx context.Context, params addon.UpdateAddonInput)
 			if err := currencyresolver.ResolveCurrenciesForAddon(ctx, s.currencyResolver.WithNamespace(params.Namespace), &candidate); err != nil {
 				return nil, fmt.Errorf("failed to resolve currencies in add-on [addon.id=%s]: %w", params.ID, err)
 			}
+
 			*params.RateCards = candidate.RateCards
 		}
 
@@ -397,6 +400,7 @@ func (s service) UpdateAddon(ctx context.Context, params addon.UpdateAddonInput)
 		if params.RateCards != nil {
 			currencyCandidate.RateCards = *params.RateCards
 		}
+
 		if err = validateAddonCurrencies(currencyCandidate, params.IgnoreNonCriticalIssues); err != nil {
 			return nil, fmt.Errorf("invalid add-on currencies: %w", err)
 		}
@@ -478,10 +482,12 @@ func (s service) PublishAddon(ctx context.Context, params addon.PublishAddonInpu
 		if params.RejectUnitConfig && add.AsProductCatalogAddon().HasUnitConfig() {
 			return nil, productcatalog.ErrUnitConfigNotRepresentable
 		}
+
 		if params.RejectUnrepresentableCurrencies {
 			if add.Currency.IsCustom() {
 				return nil, productcatalog.ErrCurrencyNotRepresentable
 			}
+
 			if add.AsProductCatalogAddon().HasCurrencyOverrides() {
 				return nil, productcatalog.ErrRateCardCurrencyNotRepresentable
 			}
@@ -617,10 +623,12 @@ func (s service) ArchiveAddon(ctx context.Context, params addon.ArchiveAddonInpu
 		if params.RejectUnitConfig && add.AsProductCatalogAddon().HasUnitConfig() {
 			return nil, productcatalog.ErrUnitConfigNotRepresentable
 		}
+
 		if params.RejectUnrepresentableCurrencies {
 			if add.Currency.IsCustom() {
 				return nil, productcatalog.ErrCurrencyNotRepresentable
 			}
+
 			if add.AsProductCatalogAddon().HasCurrencyOverrides() {
 				return nil, productcatalog.ErrRateCardCurrencyNotRepresentable
 			}
@@ -757,6 +765,7 @@ func (s service) NextAddon(ctx context.Context, params addon.NextAddonInput) (*a
 			if sourceAddon.Currency.IsCustom() {
 				return nil, productcatalog.ErrCurrencyNotRepresentable
 			}
+
 			if sourceAddon.AsProductCatalogAddon().HasCurrencyOverrides() {
 				return nil, productcatalog.ErrRateCardCurrencyNotRepresentable
 			}

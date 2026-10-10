@@ -44,6 +44,8 @@ type LedgerSubAccountRoute struct {
 	TaxCode *string `json:"tax_code,omitempty"`
 	// TaxBehavior holds the value of the "tax_behavior" field.
 	TaxBehavior *ledger.TaxBehavior `json:"tax_behavior,omitempty"`
+	// Filters holds the value of the "filters" field.
+	Filters *ledger.CreditFilters `json:"filters,omitempty"`
 	// Features holds the value of the "features" field.
 	Features pq.StringArray `json:"features,omitempty"`
 	// CostBasis holds the value of the "cost_basis" field.
@@ -104,6 +106,8 @@ func (*LedgerSubAccountRoute) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullString)
 		case ledgersubaccountroute.FieldCreatedAt, ledgersubaccountroute.FieldUpdatedAt, ledgersubaccountroute.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
+		case ledgersubaccountroute.FieldFilters:
+			values[i] = ledgersubaccountroute.ValueScanner.Filters.ScanValue()
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -194,6 +198,12 @@ func (_m *LedgerSubAccountRoute) assignValues(columns []string, values []any) er
 			} else if value.Valid {
 				_m.TaxBehavior = new(ledger.TaxBehavior)
 				*_m.TaxBehavior = ledger.TaxBehavior(value.String)
+			}
+		case ledgersubaccountroute.FieldFilters:
+			if value, err := ledgersubaccountroute.ValueScanner.Filters.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				_m.Filters = value
 			}
 		case ledgersubaccountroute.FieldFeatures:
 			if value, ok := values[i].(*pq.StringArray); !ok {
@@ -308,6 +318,9 @@ func (_m *LedgerSubAccountRoute) String() string {
 		builder.WriteString("tax_behavior=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
+	builder.WriteString(", ")
+	builder.WriteString("filters=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Filters))
 	builder.WriteString(", ")
 	builder.WriteString("features=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Features))

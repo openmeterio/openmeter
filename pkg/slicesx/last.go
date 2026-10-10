@@ -11,5 +11,6 @@ func Last[T any](s []T, f func(T) bool) (*T, int, bool) {
 			return &s[i], i, true
 		}
 	}
+
 	return nil, -1, false
 }

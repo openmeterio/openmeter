@@ -90,6 +90,7 @@ func (h *entitlementHandler) CreateCustomerEntitlement() CreateCustomerEntitleme
 			if err != nil {
 				return api.EntitlementV2{}, err
 			}
+
 			return *v2, nil
 		},
 		commonhttp.JSONResponseEncoderWithStatus[CreateCustomerEntitlementHandlerResponse](http.StatusCreated),
@@ -133,6 +134,7 @@ func (h *entitlementHandler) ListCustomerEntitlements() ListCustomerEntitlements
 			if err != nil {
 				return ListCustomerEntitlementsHandlerRequest{}, err
 			}
+
 			if cust != nil && cust.IsDeleted() {
 				return ListCustomerEntitlementsHandlerRequest{}, models.NewGenericPreConditionFailedError(
 					fmt.Errorf("customer is deleted [namespace=%s customer.id=%s]", cust.Namespace, cust.ID),
@@ -171,10 +173,12 @@ func (h *entitlementHandler) ListCustomerEntitlements() ListCustomerEntitlements
 				if !ok {
 					return api.EntitlementV2{}, models.NewGenericPreConditionFailedError(fmt.Errorf("customer not found [namespace=%s customer.id=%s]", e.Namespace, e.CustomerID))
 				}
+
 				v2, err := ParserV2.ToAPIGenericV2(&e, cust.ID, cust.Key)
 				if err != nil {
 					return api.EntitlementV2{}, err
 				}
+
 				return lo.FromPtr(v2), nil
 			})
 			if err != nil {

@@ -49,5 +49,6 @@ func (ExpirationPeriodDuration) Values() (kinds []string) {
 	} {
 		kinds = append(kinds, string(s))
 	}
+
 	return kinds
 }

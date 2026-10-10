@@ -75,6 +75,69 @@ func (i ResolveDynamicStateInput) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
+type ResolveForPreviewInput struct {
+	CurrencyID        models.NamespacedID
+	Intent            Intent
+	ResolvedCostBasis *State
+	ServicePeriodFrom time.Time
+}
+
+func (i ResolveForPreviewInput) Validate() error {
+	var errs []error
+
+	if err := i.CurrencyID.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("currency: %w", err))
+	}
+
+	if err := i.Intent.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("intent: %w", err))
+	}
+
+	if i.ResolvedCostBasis != nil {
+		if err := i.ResolvedCostBasis.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("resolved cost basis: %w", err))
+		}
+	}
+
+	if i.ServicePeriodFrom.IsZero() {
+		errs = append(errs, errors.New("service period from is required"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+// ResolveForPreview returns the persisted resolution when available and
+// otherwise resolves a dynamic intent without persisting it. Missing resolved
+// state for manual or pinned intent remains an invariant violation.
+func ResolveForPreview(ctx context.Context, resolver Resolver, input ResolveForPreviewInput) (*State, error) {
+	if err := input.Validate(); err != nil {
+		return nil, err
+	}
+
+	if input.ResolvedCostBasis != nil {
+		return input.ResolvedCostBasis, nil
+	}
+
+	if input.Intent.Kind() != ModeDynamic {
+		return nil, errors.New("resolved cost basis is required")
+	}
+
+	if resolver == nil {
+		return nil, errors.New("cost basis resolver is required")
+	}
+
+	resolvedState, err := resolver.ResolveDynamicState(ctx, ResolveDynamicStateInput{
+		CurrencyID:        input.CurrencyID,
+		Intent:            input.Intent,
+		ServicePeriodFrom: input.ServicePeriodFrom,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &resolvedState, nil
+}
+
 type resolver struct {
 	currencies currencies.Service
 }

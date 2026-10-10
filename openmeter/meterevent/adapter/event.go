@@ -289,6 +289,7 @@ func (a *adapter) enrichEventsWithCustomerID(ctx context.Context, namespace stri
 			id := customerID
 			event.CustomerID = &id
 			eventsWithCustomerID = append(eventsWithCustomerID, event)
+
 			continue
 		}
 

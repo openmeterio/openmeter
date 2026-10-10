@@ -57,9 +57,12 @@ func (s *ProfileTestSuite) TestGetRejectsCrossNamespaceWorkflowReferences() {
 	taxProfileDB, err := s.BillingAdapter.GetProfile(ctx, billing.GetProfileInput{Profile: taxProfile.ProfileID()})
 	require.NoError(s.T(), err)
 	foreignTaxCode := s.ProvisionProviderDefaultTaxCode(ctx, foreignNamespace)
-	_, err = s.DBClient.BillingWorkflowConfig.UpdateOneID(taxProfileDB.WorkflowConfigID).
-		SetTaxCodeID(foreignTaxCode.ID).
-		Save(ctx)
+	_, err = s.TestDB.PGDriver.DB().ExecContext(ctx, `
+		UPDATE billing_workflow_configs
+		SET tax_code_id = $1::char(26),
+		    invoice_default_tax_settings = jsonb_build_object('tax_code_id', ($1::char(26))::text)
+		WHERE id = $2
+	`, foreignTaxCode.ID, taxProfileDB.WorkflowConfigID)
 	require.NoError(s.T(), err)
 
 	_, err = s.BillingService.GetProfile(ctx, billing.GetProfileInput{Profile: taxProfile.ProfileID()})

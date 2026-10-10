@@ -205,6 +205,8 @@ func NewTxClientFromRawConfig(ctx context.Context, cfg entutils.RawEntConfig) *T
 
 		Entitlement: NewEntitlementClient(config),
 
+		EventOutbox: NewEventOutboxClient(config),
+
 		Feature: NewFeatureClient(config),
 
 		Grant: NewGrantClient(config),

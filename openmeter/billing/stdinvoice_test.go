@@ -93,6 +93,7 @@ func TestStandardInvoiceLinesReplaceExact(t *testing.T) {
 	newLine := func(id string) *StandardLine {
 		line := validStandardLineForValidation()
 		line.ID = id
+
 		return &line
 	}
 
@@ -125,6 +126,7 @@ func TestStandardInvoiceLinesReplaceExactRejectsInvalidReplacement(t *testing.T)
 	newLine := func(id string) *StandardLine {
 		line := validStandardLineForValidation()
 		line.ID = id
+
 		return &line
 	}
 
@@ -151,6 +153,7 @@ func TestStandardInvoiceLinesReplaceExactRejectsInvalidReplacement(t *testing.T)
 				Replacement: StandardLines{func() *StandardLine {
 					line := newLine("line-1")
 					line.UsageBased = nil
+
 					return line
 				}()},
 			},

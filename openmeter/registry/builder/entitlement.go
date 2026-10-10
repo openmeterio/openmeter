@@ -107,6 +107,8 @@ func GetEntitlementRegistry(opts EntitlementOptions) *registry.Entitlement {
 			MeteredEntitlementConnector: meteredEntitlementConnector,
 			StaticEntitlementConnector:  staticentitlement.NewStaticEntitlementConnector(),
 			BooleanEntitlementConnector: booleanentitlement.NewBooleanEntitlementConnector(),
+			GrantRepo:                   grantDBAdapter,
+			GrantConnector:              grantConnector,
 			Publisher:                   opts.Publisher,
 			Locker:                      opts.Locker,
 		},

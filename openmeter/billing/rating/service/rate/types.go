@@ -60,6 +60,7 @@ func (i PricerCalculateInput) IsLastInPeriod() bool {
 	}
 
 	servicePeriod := i.GetServicePeriod()
+
 	return servicePeriod.To.Equal(i.FullProgressivelyBilledServicePeriod.To)
 }
 
@@ -70,5 +71,6 @@ func (i PricerCalculateInput) IsFirstInPeriod() bool {
 	}
 
 	servicePeriod := i.GetServicePeriod()
+
 	return servicePeriod.From.Equal(i.FullProgressivelyBilledServicePeriod.From)
 }

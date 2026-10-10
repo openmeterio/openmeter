@@ -82,6 +82,7 @@ func TestListCreditTransactionsFundedBalanceCoalescesSameEffectiveTime(t *testin
 			if tt.advanceAmount > 0 {
 				expectedItems++
 			}
+
 			require.Len(t, result.Items, expectedItems)
 			item := result.Items[0]
 			require.Equal(t, CreditTransactionTypeFunded, item.Type)
@@ -725,6 +726,7 @@ func TestListCreditTransactionsPaginatesPastUnrelatedLedgerHistory(t *testing.T)
 			Currency: env.currencyReference(env.Currency),
 		}
 	}
+
 	inputs, err := transactions.ResolveTransactions(
 		t.Context(),
 		transactions.ResolverDependencies{

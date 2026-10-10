@@ -37,12 +37,14 @@ func (s *migrateDuringUpdateValidation) GetCustomer(ctx context.Context, input c
 	if err != nil {
 		return nil, err
 	}
+
 	s.reads++
 	if s.reads == 2 {
 		if err := s.migrate(ctx); err != nil {
 			return nil, err
 		}
 	}
+
 	return result, nil
 }
 
@@ -68,6 +70,7 @@ func TestUpdateRejectsMigrationBetweenReadAndLock(t *testing.T) {
 			SubscriptionID: before.Subscription.NamespacedID, Plan: p2,
 			Timing: subscription.Timing{Enum: lo.ToPtr(subscription.TimingImmediate)},
 		})
+
 		return err
 	}}
 	logger := testutils.NewLogger(t)
@@ -159,6 +162,7 @@ func TestCancelIncludesMigrationCommittedBeforeLock(t *testing.T) {
 				Plan:           p2,
 				Timing:         subscription.Timing{Enum: lo.ToPtr(subscription.TimingImmediate)},
 			})
+
 			return err
 		},
 	}

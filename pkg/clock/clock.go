@@ -15,14 +15,17 @@ func Now() time.Time {
 	if atomic.LoadInt32(&frozen) == 1 {
 		return frozenTime.Load().(time.Time).Round(0)
 	}
+
 	driftDuration := time.Duration(atomic.LoadInt64(&drift))
 	t := time.Now().Add(-driftDuration)
+
 	return t.Round(0) // Remove monotonic time reading
 }
 
 func SetTime(t time.Time) time.Time {
 	driftDuration := time.Since(t).Nanoseconds()
 	atomic.StoreInt64(&drift, driftDuration)
+
 	return Now()
 }
 

@@ -443,6 +443,7 @@ func assertSubscriptionItemBehavior(t *testing.T, db *sql.DB, itemID, wantBehavi
 	if wantBehavior == "" {
 		require.False(t, behavior.Valid)
 		require.False(t, embeddedBehavior.Valid)
+
 		return
 	}
 

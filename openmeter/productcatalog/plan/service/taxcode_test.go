@@ -43,6 +43,7 @@ func newTestFlatRateCard(feat feature.Feature, tc *productcatalog.TaxConfig, bil
 
 func newTestPlanInput(t *testing.T, namespace string, rc productcatalog.RateCard) plan.CreatePlanInput {
 	t.Helper()
+
 	return pctestutils.NewTestPlan(t, namespace, pctestutils.WithPlanPhases(productcatalog.Phase{
 		PhaseMeta: productcatalog.PhaseMeta{
 			Key:  "default",
@@ -56,11 +57,13 @@ func getFirstRCTaxConfig(t *testing.T, p *plan.Plan) *productcatalog.TaxConfig {
 	t.Helper()
 	require.NotEmpty(t, p.Phases)
 	require.NotEmpty(t, p.Phases[0].RateCards)
+
 	return p.Phases[0].RateCards[0].AsMeta().TaxConfig
 }
 
 func findTaxCodeByStripeCode(t *testing.T, ctx context.Context, svc taxcode.Service, namespace string, stripeCode string) (taxcode.TaxCode, error) {
 	t.Helper()
+
 	return svc.GetTaxCodeByAppMapping(ctx, taxcode.GetTaxCodeByAppMappingInput{
 		Namespace: namespace,
 		AppType:   app.AppTypeStripe,
@@ -786,9 +789,11 @@ func TestPlanWithAddonTaxCode(t *testing.T) {
 				require.NotNil(t, tc.TaxCodeID, "TaxCodeID must be set on embedded addon rate card")
 
 				found = true
+
 				break
 			}
 		}
+
 		require.True(t, found, "addon rate card with tax config must be found in plan response")
 	})
 }

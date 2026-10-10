@@ -6,6 +6,7 @@ import (
 
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // MockCadenceItem is a mock implementation of the Cadenced interface for testing.
@@ -28,6 +29,37 @@ func (m MockCadenceItem) cadenced() cadencedMarker {
 }
 
 var _ Cadenced = MockCadenceItem{} // Verify that MockCadenceItem implements Cadenced
+
+func TestNewSortedCadenceListZeroLengthRevisions(t *testing.T) {
+	start := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	replacedAt := start.Add(time.Hour)
+	for _, activeTo := range []*time.Time{nil, lo.ToPtr(replacedAt.Add(time.Hour))} {
+		previous := MockCadenceItem{ActiveFrom: start, ActiveTo: &replacedAt}
+		empty := MockCadenceItem{ActiveFrom: replacedAt, ActiveTo: &replacedAt}
+		current := MockCadenceItem{ActiveFrom: replacedAt, ActiveTo: activeTo}
+		items := []MockCadenceItem{current, empty, previous, empty}
+
+		require.False(t, (CadenceList[MockCadenceItem]{previous, current, empty}).IsSorted())
+		require.True(t, (CadenceList[MockCadenceItem]{previous, empty, current}).IsSorted())
+		require.True(t, (CadenceList[MockCadenceItem]{empty, empty}).IsSorted())
+		require.True(t, (CadenceList[MockCadenceItem]{current, current}).IsSorted())
+
+		timeline := NewSortedCadenceList(items)
+
+		require.True(t, timeline.IsSorted())
+		require.Equal(t, []MockCadenceItem{previous, empty, empty, current}, timeline.Cadences())
+		require.Empty(t, timeline.GetOverlaps())
+		require.True(t, timeline.IsContinuous())
+		require.Equal(t, current, items[0], "sorting must not mutate the input")
+
+		// A second active interval is still an overlap after the empty history.
+		items = append(items, current)
+		overlaps := NewSortedCadenceList(items).GetOverlaps()
+		require.Len(t, overlaps, 1)
+		require.Equal(t, current, overlaps[0].Item1)
+		require.Equal(t, current, overlaps[0].Item2)
+	}
+}
 
 func TestCadenceList_GetOverlaps(t *testing.T) {
 	t.Run("empty list", func(t *testing.T) {

@@ -38,10 +38,12 @@ func TestUpdatePlanInputValidateWithPlanRejectsUnitConfig(t *testing.T) {
 		if err == nil {
 			return false
 		}
+
 		issues, convErr := models.AsValidationIssues(err)
 		if convErr != nil {
 			return false
 		}
+
 		return slices.ContainsFunc(issues, func(i models.ValidationIssue) bool {
 			return i.Code() == productcatalog.ErrCodeUnitConfigNotRepresentable
 		})

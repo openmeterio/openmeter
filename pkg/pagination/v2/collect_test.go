@@ -50,9 +50,11 @@ func TestCollectAllV2_MultiplePages(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+
 	if len(items) != total {
 		t.Fatalf("expected %d items, got %d", total, len(items))
 	}
+
 	for i := 0; i < total; i++ {
 		if items[i] != i {
 			t.Fatalf("expected items[%d]==%d, got %d", i, i, items[i])
@@ -81,14 +83,17 @@ func TestCollectAllV2_RespectsInitialCursor(t *testing.T) {
 		if end > total {
 			end = total
 		}
+
 		items := make([]int, 0, max(0, end-start))
 		for i := start; i < end; i++ {
 			items = append(items, i)
 		}
+
 		var next *Cursor
 		if end < total {
 			next = loCursor(end)
 		}
+
 		return Result[int]{Items: items, NextCursor: next}, nil
 	})
 
@@ -101,6 +106,7 @@ func TestCollectAllV2_RespectsInitialCursor(t *testing.T) {
 	if len(items) != expected {
 		t.Fatalf("expected %d items, got %d", expected, len(items))
 	}
+
 	for i := 0; i < expected; i++ {
 		want := i + startOffset
 		if items[i] != want {
@@ -120,6 +126,7 @@ func TestCollectAllV2_EmptyFirstPage(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+
 	if len(items) != 0 {
 		t.Fatalf("expected 0 items, got %d", len(items))
 	}
@@ -136,11 +143,13 @@ func TestCollectAllV2_ErrorMidway(t *testing.T) {
 		if call == 2 {
 			return Result[int]{}, wantErr
 		}
+
 		// First call returns a full page of 10 with a next cursor
 		items := make([]int, 10)
 		for i := 0; i < 10; i++ {
 			items[i] = i
 		}
+
 		return Result[int]{Items: items, NextCursor: loCursor(10)}, nil
 	})
 
@@ -148,9 +157,11 @@ func TestCollectAllV2_ErrorMidway(t *testing.T) {
 	if err == nil {
 		t.Fatalf("expected error, got nil")
 	}
+
 	if err.Error() != wantErr.Error() {
 		t.Fatalf("expected error %q, got %q", wantErr.Error(), err.Error())
 	}
+
 	// v2 returns the collected items so far along with the error
 	if len(items) != 10 {
 		t.Fatalf("expected 10 items, got %d", len(items))
@@ -166,6 +177,7 @@ func TestCollectAllV2_MaxSafeIterCap(t *testing.T) {
 		// create a single item per page
 		item := call
 		call++
+
 		return Result[int]{
 			Items:      []int{item},
 			NextCursor: loCursor(call),
@@ -176,6 +188,7 @@ func TestCollectAllV2_MaxSafeIterCap(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+
 	if len(items) != MAX_SAFE_ITER {
 		t.Fatalf("expected %d items (cap), got %d", MAX_SAFE_ITER, len(items))
 	}
@@ -191,5 +204,6 @@ func max(a, b int) int {
 	if a > b {
 		return a
 	}
+
 	return b
 }

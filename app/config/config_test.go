@@ -322,6 +322,13 @@ func TestComplete(t *testing.T) {
 			},
 		},
 		Events: EventsConfiguration{
+			Outbox: OutboxConfiguration{
+				DrainLimit:       100,
+				MaxAttempts:      10,
+				DrainTimeout:     30 * time.Second,
+				DrainConcurrency: 2,
+				RetryInterval:    time.Minute,
+			},
 			SystemEvents: EventSubsystemConfiguration{
 				Topic: "om_sys.api_events",
 				AutoProvision: AutoProvisionConfiguration{

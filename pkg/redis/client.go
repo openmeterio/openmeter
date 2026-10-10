@@ -80,6 +80,7 @@ func NewClient(o Options, opts ...Option) (*redis.Client, error) {
 	if o.TracingProvider != nil {
 		tracingOpts = append(tracingOpts, redisotel.WithTracerProvider(o.TracingProvider))
 	}
+
 	if err := redisotel.InstrumentTracing(client, tracingOpts...); err != nil {
 		return nil, fmt.Errorf("failed to instrument redis client with tracing provider: %w", err)
 	}
@@ -89,6 +90,7 @@ func NewClient(o Options, opts ...Option) (*redis.Client, error) {
 	if o.MeterProvider != nil {
 		metricsOpts = append(metricsOpts, redisotel.WithMeterProvider(o.MeterProvider))
 	}
+
 	if err := redisotel.InstrumentMetrics(client, metricsOpts...); err != nil {
 		return nil, fmt.Errorf("failed to instrument redis client with meter provider: %w", err)
 	}

@@ -65,10 +65,12 @@ func (h *handler) ListCustomers() ListCustomersHandler {
 						},
 					})
 				}
+
 				orderBy, err = FromAPICustomerSortField(ctx, sort.Field)
 				if err != nil {
 					return ListCustomersRequest{}, err
 				}
+
 				order = sort.Order.ToSortxOrder()
 			}
 
@@ -86,6 +88,7 @@ func (h *handler) ListCustomers() ListCustomersHandler {
 						{Field: "filter[key]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 					})
 				}
+
 				req.Key = key
 				name, err := filters.FromAPIFilterString(params.Filter.Name)
 				if err != nil {
@@ -93,6 +96,7 @@ func (h *handler) ListCustomers() ListCustomersHandler {
 						{Field: "filter[name]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 					})
 				}
+
 				req.Name = name
 				primaryEmail, err := filters.FromAPIFilterString(params.Filter.PrimaryEmail)
 				if err != nil {
@@ -100,6 +104,7 @@ func (h *handler) ListCustomers() ListCustomersHandler {
 						{Field: "filter[primary_email]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 					})
 				}
+
 				req.PrimaryEmail = primaryEmail
 				usageAttributionSubjectKey, err := filters.FromAPIFilterString(params.Filter.UsageAttributionSubjectKey)
 				if err != nil {
@@ -107,6 +112,7 @@ func (h *handler) ListCustomers() ListCustomersHandler {
 						{Field: "filter[usage_attribution_subject_key]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 					})
 				}
+
 				req.UsageAttributionSubjectKey = usageAttributionSubjectKey
 				planKey, err := filters.FromAPIFilterString(params.Filter.PlanKey)
 				if err != nil {
@@ -114,6 +120,7 @@ func (h *handler) ListCustomers() ListCustomersHandler {
 						{Field: "filter[plan_key]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 					})
 				}
+
 				req.PlanKey = planKey
 				billingProfileID, err := filters.FromAPIFilterULID(params.Filter.BillingProfileId)
 				if err != nil {
@@ -121,6 +128,7 @@ func (h *handler) ListCustomers() ListCustomersHandler {
 						{Field: "filter[billing_profile_id]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 					})
 				}
+
 				req.BillingProfileID = billingProfileID
 			}
 

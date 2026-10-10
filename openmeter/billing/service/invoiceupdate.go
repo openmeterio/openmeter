@@ -82,6 +82,7 @@ func diffMutableInvoiceLines(
 			}
 
 			diff.Created = append(diff.Created, item)
+
 			return nil
 		},
 		HandleDelete: func(item billing.GenericInvoiceLine) error {
@@ -95,6 +96,7 @@ func diffMutableInvoiceLines(
 			}
 
 			diff.Deleted = append(diff.Deleted, item)
+
 			return nil
 		},
 		HandleUpdate: func(item entitydiff.DiffUpdate[billing.GenericInvoiceLine]) error {
@@ -111,6 +113,7 @@ func diffMutableInvoiceLines(
 				// for example when a cancellation shrinks the deleted split-line period.
 				// Keep them out of line-engine callbacks so delete side effects do not run twice.
 				diff.Unchanged = append(diff.Unchanged, afterLine)
+
 				return nil
 			}
 
@@ -135,6 +138,7 @@ func diffMutableInvoiceLines(
 
 				deletedLine.SetDeletedAt(afterLine.GetDeletedAt())
 				diff.Deleted = append(diff.Deleted, deletedLine)
+
 				return nil
 			}
 
@@ -179,7 +183,12 @@ func (s *Service) diffMutableInvoiceLines(ctx context.Context, before billing.Ge
 	defaultTaxCodeResolvers := s.defaultTaxCodeResolversForInvoiceUpdate(after)
 	if source == billing.ChangeSourceAPIRequest {
 		var err error
-		before, err = s.invoiceWithSanitizedTaxConfigForDiff(ctx, defaultTaxCodeResolvers, before)
+		before, err = s.invoiceWithSanitizedTaxConfigForDiff(
+			ctx,
+			defaultTaxCodeResolvers,
+			before,
+			productcatalog.AllowDeletedTaxCodeByID(),
+		)
 		if err != nil {
 			return mutableInvoiceLineDiff{}, fmt.Errorf("sanitizing persisted invoice line tax configs for diff: %w", err)
 		}
@@ -219,6 +228,7 @@ func (s *Service) invoiceWithSanitizedTaxConfigForDiff(
 	ctx context.Context,
 	defaultTaxCodeResolvers billing.DefaultTaxCodeResolvers,
 	invoice billing.GenericInvoiceReader,
+	opts ...productcatalog.ResolveTaxConfigOption,
 ) (billing.GenericInvoice, error) {
 	if err := defaultTaxCodeResolvers.Validate(); err != nil {
 		return nil, fmt.Errorf("default tax code resolvers: %w", err)
@@ -240,7 +250,7 @@ func (s *Service) invoiceWithSanitizedTaxConfigForDiff(
 	namespace := sanitizedInvoice.GetInvoiceID().Namespace
 	lines := sanitizedInvoice.GetGenericLines().OrEmpty()
 	for i, line := range lines {
-		sanitizedLine, err := s.sanitizeInvoiceLineTaxConfigForDiff(ctx, namespace, line)
+		sanitizedLine, err := s.sanitizeInvoiceLineTaxConfigForDiff(ctx, namespace, line, opts...)
 		if err != nil {
 			return nil, fmt.Errorf("line[%s]: %w", line.GetID(), err)
 		}
@@ -259,8 +269,9 @@ func (s *Service) sanitizeInvoiceLineTaxConfigForDiff(
 	ctx context.Context,
 	namespace string,
 	line billing.GenericInvoiceLine,
+	opts ...productcatalog.ResolveTaxConfigOption,
 ) (billing.GenericInvoiceLine, error) {
-	taxConfig, err := s.sanitizeTaxConfigForDiff(ctx, namespace, line.GetTaxConfig())
+	taxConfig, err := s.sanitizeTaxConfigForDiff(ctx, namespace, line.GetTaxConfig(), opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -274,6 +285,7 @@ func (s *Service) sanitizeInvoiceLineTaxConfigForDiff(
 		}
 
 		standardLine.TaxConfig = taxConfig
+
 		return standardLine.AsGenericLine(), nil
 
 	case billing.InvoiceLineTypeGathering:
@@ -283,6 +295,7 @@ func (s *Service) sanitizeInvoiceLineTaxConfigForDiff(
 		}
 
 		gatheringLine.TaxConfig = taxConfig.ToProductCatalog()
+
 		return gatheringLine.AsGenericLine(), nil
 
 	default:
@@ -294,6 +307,7 @@ func (s *Service) sanitizeTaxConfigForDiff(
 	ctx context.Context,
 	namespace string,
 	taxConfig *billing.TaxConfig,
+	opts ...productcatalog.ResolveTaxConfigOption,
 ) (*billing.TaxConfig, error) {
 	var sanitized billing.TaxConfig
 	if taxConfig != nil {
@@ -304,11 +318,7 @@ func (s *Service) sanitizeTaxConfigForDiff(
 		sanitized.TaxCodeID = nil
 	}
 
-	if sanitized.TaxCodeID != nil {
-		return &sanitized, nil
-	}
-
-	if sanitized.Stripe == nil || sanitized.Stripe.Code == "" {
+	if sanitized.TaxCodeID == nil && (sanitized.Stripe == nil || sanitized.Stripe.Code == "") {
 		providerDefaultTaxCode, err := s.taxCodeService.GetTaxCodeByKey(ctx, taxcode.GetTaxCodeByKeyInput{
 			Namespace: namespace,
 			Key:       taxcode.ProviderDefaultTaxCodeKey,
@@ -327,7 +337,7 @@ func (s *Service) sanitizeTaxConfigForDiff(
 	}
 
 	productCatalogTaxConfig := sanitized.ToProductCatalog()
-	if err := productcatalog.ResolveTaxConfig(ctx, s.taxCodeService, namespace, productCatalogTaxConfig); err != nil {
+	if err := productcatalog.ResolveTaxConfig(ctx, s.taxCodeService, namespace, productCatalogTaxConfig, opts...); err != nil {
 		return nil, err
 	}
 
@@ -591,20 +601,38 @@ func (s *Service) applyAPIInvoiceLineEdits(
 			return nil, fmt.Errorf("validating API invoice line edit input for engine %s: %w", engine.GetLineEngineType(), err)
 		}
 
-		engineResult, err := engine.OnMutableInvoiceLinesEditedViaAPI(ctx, input)
+		engineResult, warnings, err := s.runInTransactionWithValidationWarningsAllowed(ctx, func(ctx context.Context) (billing.OnMutableInvoiceUpdateResult, error) {
+			return engine.OnMutableInvoiceLinesEditedViaAPI(ctx, input)
+		})
 		if err != nil {
 			return nil, billing.NewLineEngineValidationError(engine, err)
+		}
+
+		if len(warnings) > 0 {
+			warningErr := errors.Join(lo.Map(warnings, func(issue billing.ValidationIssue, _ int) error { return issue })...)
+			if appender, ok := edited.(billing.ValidationIssueAppender); ok {
+				issues, err := billing.ToValidationIssues(billing.NewLineEngineValidationError(engine, warningErr))
+				if err != nil {
+					return nil, fmt.Errorf("extracting API line edit warnings: %w", err)
+				}
+
+				appender.AppendValidationIssues(issues...)
+			} else {
+				return nil, billing.NewLineEngineValidationError(engine, warningErr)
+			}
 		}
 
 		if err := validateLineEngineResult(input.Created, engineResult.CreatedLines); err != nil {
 			return nil, fmt.Errorf("validating API invoice line edit created output for engine %s: %w", engine.GetLineEngineType(), err)
 		}
+
 		// API-created inputs are stamped before engine dispatch, but engines may
 		// return replacement line instances. Billing owns the API ownership
 		// transition, so created outputs are stamped here as well.
 		for _, line := range engineResult.CreatedLines {
 			line.SetManagedBy(billing.ManuallyManagedLine)
 		}
+
 		resultingLines = append(resultingLines, engineResult.CreatedLines...)
 
 		if err := validateLineEngineResult(lo.Map(input.Updated, func(override billing.InvoiceLineOverride, _ int) billing.GenericInvoiceLine {
@@ -612,12 +640,14 @@ func (s *Service) applyAPIInvoiceLineEdits(
 		}), engineResult.UpdatedLines); err != nil {
 			return nil, fmt.Errorf("validating API invoice line edit updated output for engine %s: %w", engine.GetLineEngineType(), err)
 		}
+
 		// Updated lines are stamped after the engine runs. This lets engines see
 		// whether the API edit is system/subscription -> manual or manual -> manual,
 		// while billing still owns the API ownership transition.
 		for _, line := range engineResult.UpdatedLines {
 			line.SetManagedBy(billing.ManuallyManagedLine)
 		}
+
 		resultingLines = append(resultingLines, engineResult.UpdatedLines...)
 	}
 
@@ -627,6 +657,7 @@ func (s *Service) applyAPIInvoiceLineEdits(
 	for _, line := range lineDiff.Deleted {
 		line.SetManagedBy(billing.ManuallyManagedLine)
 	}
+
 	resultingLines = append(resultingLines, lineDiff.Deleted...)
 
 	if err := edited.SetLines(resultingLines); err != nil {
@@ -705,6 +736,7 @@ func (s *Service) defaultInvoicingTaxCodeIDForInvoiceUpdate(
 		if err != nil {
 			return "", fmt.Errorf("resolving standard invoice default tax config: %w", err)
 		}
+
 		if taxCodeID != "" {
 			return taxCodeID, nil
 		}
@@ -719,6 +751,7 @@ func (s *Service) defaultInvoicingTaxCodeIDForInvoiceUpdate(
 	if err != nil {
 		return "", fmt.Errorf("resolving customer billing profile default tax config: %w", err)
 	}
+
 	if taxCodeID != "" {
 		return taxCodeID, nil
 	}
@@ -737,7 +770,7 @@ func (s *Service) taxCodeIDWithBackfill(ctx context.Context, namespace string, t
 	}
 
 	resolved := taxConfig.Clone()
-	if err := s.resolveDefaultTaxCode(ctx, namespace, &resolved); err != nil {
+	if err := productcatalog.ResolveTaxConfig(ctx, s.taxCodeService, namespace, &resolved); err != nil {
 		return "", err
 	}
 
@@ -875,6 +908,7 @@ func validateLineEngineResult(expectedLines []billing.GenericInvoiceLine, actual
 		}
 
 		id := line.GetID()
+
 		return id, id != ""
 	})
 
@@ -885,6 +919,7 @@ func validateLineEngineResult(expectedLines []billing.GenericInvoiceLine, actual
 		}
 
 		id := line.GetID()
+
 		return id, id != ""
 	})
 
@@ -926,7 +961,10 @@ func (s *Service) dispatchAPIStandardLineDeletions(ctx context.Context, invoice 
 
 		engineResult, err := engine.OnMutableInvoiceLinesEditedViaAPI(ctx, groupedInput)
 		if err != nil {
-			return billing.NewLineEngineValidationError(engine, err)
+			// Invoice deletion records cleanup failures on delete.failed so the failed transition
+			// remains visible and retryable. Ordinary API edits keep operational callback failures
+			// as system errors.
+			return billing.NewLineEngineValidationError(engine, billing.WrapAsValidationIssue(err))
 		}
 
 		if err := validateLineEngineResult(groupedInput.Created, engineResult.CreatedLines); err != nil {
@@ -969,6 +1007,7 @@ func (s *Service) groupAPIStandardLineDeletionsByEngine(invoice billing.Standard
 			errs = append(errs, fmt.Errorf("line[%s]: inferring engine: %w", stdLine.GetID(), err))
 		}
 	}
+
 	if err := errors.Join(errs...); err != nil {
 		return nil, err
 	}

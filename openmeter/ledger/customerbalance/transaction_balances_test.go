@@ -69,6 +69,7 @@ func TestListCreditTransactionsTypeFilterPreservesHistoricalBalances(t *testing.
 			for idx, item := range filtered.Items {
 				requireCreditTransactionBalanceMatches(t, expected[idx], item)
 			}
+
 			require.Equal(t, 1, counter.calls)
 
 			// then: forward and backward cursor pages preserve those same balances.
@@ -83,6 +84,7 @@ func TestListCreditTransactionsTypeFilterPreservesHistoricalBalances(t *testing.
 					input.After = page.NextCursor
 				}
 			}
+
 			input.After = nil
 			for idx := len(expected) - 1; idx > 0; idx-- {
 				input.Before = lo.ToPtr(creditTransactionCursor(expected[idx]))
@@ -115,6 +117,7 @@ func TestListCreditTransactionsSharedTerminalTimePreservesBalancesAcrossPages(t 
 					purchases = append(purchases, env.createPromotionalCreditGrant(t, alpacadecimal.NewFromInt(amount), env.Currency, nil))
 				}
 			}
+
 			clock.FreezeTime(terminalAt)
 			if transactionType == CreditTransactionTypeVoided {
 				for _, purchase := range purchases {
@@ -224,6 +227,7 @@ func (e *testEnv) voidFundedCreditGrant(t *testing.T, charge creditpurchase.Char
 		if err != nil {
 			return creditpurchase.ChargeBase{}, err
 		}
+
 		return e.creditPurchase.MarkVoided(ctx, creditpurchase.MarkVoidedInput{
 			ChargeID: charge.GetChargeID(),
 			VoidedAt: result.VoidedAt,

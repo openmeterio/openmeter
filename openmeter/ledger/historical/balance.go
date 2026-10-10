@@ -78,5 +78,6 @@ func (l *Ledger) GetBalancesAtBoundaries(ctx context.Context, input ledger.GetBa
 	if err := input.Validate(); err != nil {
 		return nil, err
 	}
+
 	return l.repo.GetBalancesAtBoundaries(ctx, input)
 }

@@ -14,6 +14,7 @@ import (
 	currencytestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	advancetestutils "github.com/openmeterio/openmeter/openmeter/ledger/advance/testutils"
 	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	ledgerbreakageadapter "github.com/openmeterio/openmeter/openmeter/ledger/breakage/adapter"
 	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
@@ -26,7 +27,7 @@ import (
 
 func TestCollectCustomerFBOUsesPriorityOrder(t *testing.T) {
 	env := ledgertestutils.NewIntegrationEnv(t, "collector")
-	collector := newTestAccrualCollector(env)
+	collector := newTestAccrualCollector(t, env)
 
 	priorityTwo := fundPriority(t, env, 2, 50)
 	priorityOne := fundPriority(t, env, 1, 30)
@@ -44,7 +45,7 @@ func TestCollectCustomerFBOUsesPriorityOrder(t *testing.T) {
 func TestCollectCustomerFBOSeparatesManagedCurrenciesWithSameCode(t *testing.T) {
 	env := ledgertestutils.NewIntegrationEnv(t, "collector-custom-currency")
 	env.Currency = currencyx.Code("ACME")
-	collector := newTestAccrualCollector(env)
+	collector := newTestAccrualCollector(t, env)
 
 	// given: two managed custom currencies share the same display code.
 	alpha := currencytestutils.NewCustomCurrency(t, env.Currency, 2)
@@ -65,11 +66,11 @@ func TestCollectCustomerFBOSeparatesManagedCurrenciesWithSameCode(t *testing.T) 
 			FBOAddress: betaFBO.Address(),
 		},
 		env.CurrencyReference(),
-		"",
+		ledger.Route{},
 	))
 
 	// when: collection targets only the alpha managed currency.
-	_, err := collector.collect(t.Context(), collectToAccruedInputForTest(
+	_, err := collector.collectToAccrued(t.Context(), collectToAccruedInputForTest(
 		env,
 		"spend-alpha",
 		alpacadecimal.NewFromInt(50),
@@ -84,7 +85,7 @@ func TestCollectCustomerFBOSeparatesManagedCurrenciesWithSameCode(t *testing.T) 
 
 func TestCollectCustomerFBOUsesSubAccountIDTieBreaker(t *testing.T) {
 	env := ledgertestutils.NewIntegrationEnv(t, "collector")
-	collector := newTestAccrualCollector(env)
+	collector := newTestAccrualCollector(t, env)
 
 	costBasisOne := alpacadecimal.NewFromInt(1)
 	costBasisTwo := alpacadecimal.NewFromInt(2)
@@ -107,7 +108,7 @@ func TestCollectCustomerFBOUsesSubAccountIDTieBreaker(t *testing.T) {
 
 func TestCollectCustomerFBOUsesAsOfBalance(t *testing.T) {
 	env := ledgertestutils.NewIntegrationEnv(t, "collector")
-	collector := newTestAccrualCollector(env)
+	collector := newTestAccrualCollector(t, env)
 
 	source := fundPriority(t, env, 1, 50)
 	bookFutureFBOCollection(t, env, 1, 30, env.Now().AddDate(0, 0, 1))
@@ -128,7 +129,7 @@ func TestCollectCustomerFBOUsesAsOfBalance(t *testing.T) {
 
 func TestCollectCustomerFBOFiltersByFeatureEligibility(t *testing.T) {
 	env := ledgertestutils.NewIntegrationEnv(t, "collector")
-	collector := newTestAccrualCollector(env)
+	collector := newTestAccrualCollector(t, env)
 
 	unrestricted := fundPriorityWithFeatures(t, env, 1, 10, nil)
 	matchingKey := fundPriorityWithFeatures(t, env, 1, 30, []string{"api-calls"})
@@ -167,7 +168,7 @@ func TestCollectCustomerFBOFiltersByFeatureEligibility(t *testing.T) {
 func TestCollectCustomerFBOFiltersBreakageByFeatureEligibility(t *testing.T) {
 	env := ledgertestutils.NewIntegrationEnv(t, "collector")
 	breakageService := newTestBreakageService(t, env)
-	collector := newTestAccrualCollectorWithBreakage(env, breakageService)
+	collector := newTestAccrualCollectorWithBreakage(t, env, breakageService)
 
 	expiresAt := env.Now().Add(10 * time.Hour)
 	bookExpiringCreditWithFeatures(t, env, breakageService, 1, 10, nil, nil, expiresAt)
@@ -185,9 +186,9 @@ func TestCollectCustomerFBOFiltersBreakageByFeatureEligibility(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, sources, 2)
 
-	require.Equal(t, []string{"api-calls"}, sources[0].Address.Route().Route().Features)
+	require.Equal(t, []string{"api-calls"}, sources[0].Address.Route().Route().Filters.Features)
 	require.True(t, alpacadecimal.NewFromInt(30).Equal(sources[0].Amount), "restricted source amount: %s", sources[0].Amount)
-	require.Empty(t, sources[1].Address.Route().Route().Features)
+	require.Empty(t, sources[1].Address.Route().Route().Filters.Features)
 	require.True(t, alpacadecimal.NewFromInt(10).Equal(sources[1].Amount), "unrestricted source amount: %s", sources[1].Amount)
 
 	unattributedSources, err := collectCustomerFBOForFeatureForTest(
@@ -200,13 +201,13 @@ func TestCollectCustomerFBOFiltersBreakageByFeatureEligibility(t *testing.T) {
 	)
 	require.NoError(t, err)
 	require.Len(t, unattributedSources, 1)
-	require.Empty(t, unattributedSources[0].Address.Route().Route().Features)
+	require.Empty(t, unattributedSources[0].Address.Route().Route().Filters.Features)
 	require.True(t, alpacadecimal.NewFromInt(10).Equal(unattributedSources[0].Amount), "unrestricted source amount: %s", unattributedSources[0].Amount)
 }
 
 func TestCollectCustomerFBOUsesPriorityBeforeFeatureRestriction(t *testing.T) {
 	env := ledgertestutils.NewIntegrationEnv(t, "collector")
-	collector := newTestAccrualCollector(env)
+	collector := newTestAccrualCollector(t, env)
 
 	higherPriorityUnrestricted := fundPriorityWithFeatures(t, env, 1, 10, nil)
 	lowerPriorityRestricted := fundPriorityWithFeatures(t, env, 2, 30, []string{"api-calls"})
@@ -231,7 +232,7 @@ func TestCollectCustomerFBOUsesPriorityBeforeFeatureRestriction(t *testing.T) {
 func TestCollectCustomerFBOReleasesBreakageInExpiryOrder(t *testing.T) {
 	env := ledgertestutils.NewIntegrationEnv(t, "collector")
 	breakageService := newTestBreakageService(t, env)
-	collector := newTestAccrualCollectorWithBreakage(env, breakageService)
+	collector := newTestAccrualCollectorWithBreakage(t, env, breakageService)
 
 	firstPlanID := bookExpiringCredit(t, env, breakageService, 1, 10, env.Now().Add(10*time.Hour))
 	secondPlanID := bookExpiringCredit(t, env, breakageService, 1, 15, env.Now().Add(15*time.Hour))
@@ -240,7 +241,7 @@ func TestCollectCustomerFBOReleasesBreakageInExpiryOrder(t *testing.T) {
 		From: env.Now().Add(-time.Hour),
 		To:   env.Now(),
 	}
-	allocations, err := collector.collect(t.Context(), CollectToAccruedInput{
+	allocations, err := collector.collectToAccrued(t.Context(), CollectToAccruedInput{
 		Namespace:         env.Namespace,
 		ChargeID:          testChargeID(1),
 		CustomerID:        env.CustomerID.ID,
@@ -270,7 +271,7 @@ func TestCollectCustomerFBOReleasesBreakageInExpiryOrder(t *testing.T) {
 func TestCollectCustomerFBOBreakageReleaseTracksSpendOnFBOAndSourceOnBreakage(t *testing.T) {
 	env := ledgertestutils.NewIntegrationEnv(t, "collector")
 	breakageService := newTestBreakageService(t, env)
-	collector := newTestAccrualCollectorWithBreakage(env, breakageService)
+	collector := newTestAccrualCollectorWithBreakage(t, env, breakageService)
 
 	// given:
 	// - two same-route expiring credit sources with separate breakage plans
@@ -290,7 +291,7 @@ func TestCollectCustomerFBOBreakageReleaseTracksSpendOnFBOAndSourceOnBreakage(t 
 	bookExpiringCreditWithFeatures(t, env, breakageService, 1, firstSourceAmount, nil, &sourceCharge1, env.Now().Add(10*time.Hour))
 	secondPlanID := bookExpiringCreditWithFeatures(t, env, breakageService, 1, secondSourceAmount, nil, &sourceCharge2, env.Now().Add(15*time.Hour))
 
-	allocations, err := collector.collect(t.Context(), collectToAccruedInputForTest(
+	allocations, err := collector.collectToAccrued(t.Context(), collectToAccruedInputForTest(
 		env,
 		spendCharge,
 		alpacadecimal.NewFromInt(spendAmount),
@@ -310,20 +311,31 @@ func TestCollectCustomerFBOBreakageReleaseTracksSpendOnFBOAndSourceOnBreakage(t 
 	require.Equal(t, secondPlanID, openPlans[0].ID.ID)
 	require.True(t, openPlans[0].OpenAmount.Equal(alpacadecimal.NewFromInt(secondSourceRemaining)), "open amount: %s", openPlans[0].OpenAmount)
 
-	requireAccruedBalanceBuckets(t, env, map[string]float64{
-		sourceSpendChargeKey(&sourceCharge1, &spendCharge): float64(firstSourceAmount),    // first source is fully accrued to this spend.
-		sourceSpendChargeKey(&sourceCharge2, &spendCharge): float64(secondSourceConsumed), // only the remainder of the spend hits source 2.
-	})
+	requireAccruedBalanceBuckets(
+		t,
+		env,
+		map[string]float64{
+			sourceSpendChargeKey(&sourceCharge1, &spendCharge): float64(firstSourceAmount),    // first source is fully accrued to this spend.
+			sourceSpendChargeKey(&sourceCharge2, &spendCharge): float64(secondSourceConsumed), // only the remainder of the spend hits source 2.
+		},
+	)
 	requireFBOBalanceBuckets(t, env, map[string]float64{})
-	requireBreakageBalanceBuckets(t, env, map[string]float64{
-		sourceSpendChargeKey(&sourceCharge2, nil): float64(secondSourceRemaining), // source 2 keeps only the unconsumed planned breakage; source 1 is fully released.
-	})
+	requireBreakageBalanceBuckets(
+		t,
+		env,
+		map[string]float64{
+			sourceSpendChargeKey(&sourceCharge1, nil):          float64(firstSourceAmount),
+			sourceSpendChargeKey(&sourceCharge1, &spendCharge): -float64(firstSourceAmount),
+			sourceSpendChargeKey(&sourceCharge2, nil):          float64(secondSourceAmount),
+			sourceSpendChargeKey(&sourceCharge2, &spendCharge): -float64(secondSourceConsumed),
+		},
+	)
 }
 
 func TestCollectCustomerFBOBreakageReleaseUsesPlanSourceBeforeBucketCursor(t *testing.T) {
 	env := ledgertestutils.NewIntegrationEnv(t, "collector")
 	breakageService := newTestBreakageService(t, env)
-	collector := newTestAccrualCollectorWithBreakage(env, breakageService)
+	collector := newTestAccrualCollectorWithBreakage(t, env, breakageService)
 
 	// given:
 	// - two same-route expiring credit sources sharing one FBO sub-account
@@ -339,11 +351,10 @@ func TestCollectCustomerFBOBreakageReleaseUsesPlanSourceBeforeBucketCursor(t *te
 	laterSourceAmount := int64(10)   // source 1 expires later and should remain untouched.
 	earlierSourceAmount := int64(15) // source 2 expires first and should fund this spend.
 	spendAmount := int64(5)          // spend only consumes part of source 2.
-	earlierSourceRemaining := earlierSourceAmount - spendAmount
 	bookExpiringCreditWithFeatures(t, env, breakageService, 1, laterSourceAmount, nil, &sourceCharge1, env.Now().Add(15*time.Hour))
 	bookExpiringCreditWithFeatures(t, env, breakageService, 1, earlierSourceAmount, nil, &sourceCharge2, env.Now().Add(10*time.Hour))
 
-	allocations, err := collector.collect(t.Context(), collectToAccruedInputForTest(
+	allocations, err := collector.collectToAccrued(t.Context(), collectToAccruedInputForTest(
 		env,
 		spendCharge,
 		alpacadecimal.NewFromInt(spendAmount),
@@ -353,18 +364,27 @@ func TestCollectCustomerFBOBreakageReleaseUsesPlanSourceBeforeBucketCursor(t *te
 	require.Len(t, allocations, 1)
 	require.Equal(t, float64(spendAmount), allocations[0].Amount.InexactFloat64()) // 5 = requested spend was fully covered by credit.
 
-	requireAccruedBalanceBuckets(t, env, map[string]float64{
-		sourceSpendChargeKey(&sourceCharge2, &spendCharge): float64(spendAmount), // 5 = collection used the earlier-expiring source 2.
-	})
-	requireBreakageBalanceBuckets(t, env, map[string]float64{
-		sourceSpendChargeKey(&sourceCharge1, nil): float64(laterSourceAmount),      // 10 = later source 1 was not consumed.
-		sourceSpendChargeKey(&sourceCharge2, nil): float64(earlierSourceRemaining), // 10 = source 2 started at 15 and released 5.
-	})
+	requireAccruedBalanceBuckets(
+		t,
+		env,
+		map[string]float64{
+			sourceSpendChargeKey(&sourceCharge2, &spendCharge): float64(spendAmount), // 5 = collection used the earlier-expiring source 2.
+		},
+	)
+	requireBreakageBalanceBuckets(
+		t,
+		env,
+		map[string]float64{
+			sourceSpendChargeKey(&sourceCharge1, nil):          float64(laterSourceAmount), // 10 = later source 1 was not consumed.
+			sourceSpendChargeKey(&sourceCharge2, nil):          float64(earlierSourceAmount),
+			sourceSpendChargeKey(&sourceCharge2, &spendCharge): -float64(spendAmount),
+		},
+	)
 }
 
 func TestCollectToAccruedSplitsAccruedBySourceCharge(t *testing.T) {
 	env := ledgertestutils.NewIntegrationEnv(t, "collector")
-	collector := newTestAccrualCollector(env)
+	collector := newTestAccrualCollector(t, env)
 
 	sourceCharge1 := testChargeID(1)
 	sourceCharge2 := testChargeID(2)
@@ -372,7 +392,7 @@ func TestCollectToAccruedSplitsAccruedBySourceCharge(t *testing.T) {
 	fundSourceCharge(t, env, sourceCharge1, 1, 100)
 	fundSourceCharge(t, env, sourceCharge2, 1, 50)
 
-	allocations, err := collector.collect(t.Context(), collectToAccruedInputForTest(env, spendCharge, alpacadecimal.NewFromInt(120), productcatalog.CreditThenInvoiceSettlementMode))
+	allocations, err := collector.collectToAccrued(t.Context(), collectToAccruedInputForTest(env, spendCharge, alpacadecimal.NewFromInt(120), productcatalog.CreditThenInvoiceSettlementMode))
 	require.NoError(t, err)
 	require.Len(t, allocations, 1)
 	require.Equal(t, float64(120), allocations[0].Amount.InexactFloat64())
@@ -388,18 +408,18 @@ func TestCollectToAccruedSplitsAccruedBySourceCharge(t *testing.T) {
 
 func TestCollectToAccruedSplitsAccruedBySpendCharge(t *testing.T) {
 	env := ledgertestutils.NewIntegrationEnv(t, "collector")
-	collector := newTestAccrualCollector(env)
+	collector := newTestAccrualCollector(t, env)
 
 	sourceCharge := testChargeID(1)
 	spendCharge1 := testChargeID(2)
 	spendCharge2 := testChargeID(3)
 	fundSourceCharge(t, env, sourceCharge, 1, 100)
 
-	firstAllocations, err := collector.collect(t.Context(), collectToAccruedInputForTest(env, spendCharge1, alpacadecimal.NewFromInt(40), productcatalog.CreditThenInvoiceSettlementMode))
+	firstAllocations, err := collector.collectToAccrued(t.Context(), collectToAccruedInputForTest(env, spendCharge1, alpacadecimal.NewFromInt(40), productcatalog.CreditThenInvoiceSettlementMode))
 	require.NoError(t, err)
 	require.Len(t, firstAllocations, 1)
 
-	secondAllocations, err := collector.collect(t.Context(), collectToAccruedInputForTest(env, spendCharge2, alpacadecimal.NewFromInt(30), productcatalog.CreditThenInvoiceSettlementMode))
+	secondAllocations, err := collector.collectToAccrued(t.Context(), collectToAccruedInputForTest(env, spendCharge2, alpacadecimal.NewFromInt(30), productcatalog.CreditThenInvoiceSettlementMode))
 	require.NoError(t, err)
 	require.Len(t, secondAllocations, 1)
 
@@ -414,10 +434,10 @@ func TestCollectToAccruedSplitsAccruedBySpendCharge(t *testing.T) {
 
 func TestCollectToAccruedAdvanceShortfallStampsSpendCharge(t *testing.T) {
 	env := ledgertestutils.NewIntegrationEnv(t, "collector")
-	collector := newTestAccrualCollector(env)
+	collector := newTestAccrualCollector(t, env)
 
 	spendCharge := testChargeID(1)
-	allocations, err := collector.collect(t.Context(), collectToAccruedInputForTest(env, spendCharge, alpacadecimal.NewFromInt(30), productcatalog.CreditOnlySettlementMode))
+	allocations, err := collector.collectToAccrued(t.Context(), collectToAccruedInputForTest(env, spendCharge, alpacadecimal.NewFromInt(30), productcatalog.CreditOnlySettlementMode))
 	require.NoError(t, err)
 	require.Len(t, allocations, 1)
 	require.Equal(t, float64(30), allocations[0].Amount.InexactFloat64())
@@ -432,13 +452,13 @@ func TestCollectToAccruedAdvanceShortfallStampsSpendCharge(t *testing.T) {
 
 func TestCollectToAccruedCreditThenInvoiceOnlyCollectsAvailableCredit(t *testing.T) {
 	env := ledgertestutils.NewIntegrationEnv(t, "collector")
-	collector := newTestAccrualCollector(env)
+	collector := newTestAccrualCollector(t, env)
 
 	sourceCharge := testChargeID(1)
 	spendCharge := testChargeID(2)
 	fundSourceCharge(t, env, sourceCharge, 1, 40)
 
-	allocations, err := collector.collect(t.Context(), collectToAccruedInputForTest(env, spendCharge, alpacadecimal.NewFromInt(70), productcatalog.CreditThenInvoiceSettlementMode))
+	allocations, err := collector.collectToAccrued(t.Context(), collectToAccruedInputForTest(env, spendCharge, alpacadecimal.NewFromInt(70), productcatalog.CreditThenInvoiceSettlementMode))
 	require.NoError(t, err)
 	require.Len(t, allocations, 1)
 	require.Equal(t, float64(40), allocations[0].Amount.InexactFloat64())
@@ -451,7 +471,7 @@ func TestCollectToAccruedCreditThenInvoiceOnlyCollectsAvailableCredit(t *testing
 func TestCollectToAccruedCustomCurrencyCreditThenInvoiceDoesNotCreateExposure(t *testing.T) {
 	env := ledgertestutils.NewIntegrationEnv(t, "collector-custom-credit-then-invoice")
 	env.Currency = currencyx.Code("ACME")
-	collector := newTestAccrualCollector(env)
+	collector := newTestAccrualCollector(t, env)
 
 	// given:
 	// - 40 source-less ACME credits are available
@@ -464,7 +484,7 @@ func TestCollectToAccruedCustomCurrencyCreditThenInvoiceDoesNotCreateExposure(t 
 	spendCharge := testChargeID(2)
 	fundSourceCharge(t, env, sourceCharge, 1, 40)
 
-	allocations, err := collector.collect(t.Context(), collectToAccruedInputForTest(
+	allocations, err := collector.collectToAccrued(t.Context(), collectToAccruedInputForTest(
 		env,
 		spendCharge,
 		alpacadecimal.NewFromInt(70),
@@ -483,9 +503,15 @@ func TestCollectToAccruedCustomCurrencyCreditThenInvoiceDoesNotCreateExposure(t 
 	requireReceivableBalanceBuckets(t, env, map[string]float64{})
 }
 
-func newTestAccrualCollector(env *ledgertestutils.IntegrationEnv) *accrualCollector {
+func newTestAccrualCollector(t testing.TB, env *ledgertestutils.IntegrationEnv) *accrualCollector {
+	t.Helper()
+
+	breakageService := ledgerbreakage.NewNoopService()
+
 	return &accrualCollector{
-		ledger: env.Deps.HistoricalLedger,
+		advance:  advancetestutils.NewService(t, env.Deps, breakageService),
+		breakage: breakageService,
+		ledger:   env.Deps.HistoricalLedger,
 		deps: transactions.ResolverDependencies{
 			AccountService: env.Deps.ResolversService,
 			AccountCatalog: env.Deps.AccountService,
@@ -519,7 +545,12 @@ func collectCustomerFBOForFeatureForTest(
 	t.Helper()
 
 	return transaction.Run(t.Context(), enttx.NewCreator(env.DB), func(ctx context.Context) ([]transactions.PostingAmount, error) {
-		selections, err := collector.collectCustomerFBOSelections(ctx, env.CustomerID, env.CurrencyReference(), featureKey, target, asOf)
+		filters := ledger.CreditFilters{Version: ledger.CreditFiltersVersion1}
+		if featureKey != "" {
+			filters.Features = []string{featureKey}
+		}
+
+		selections, err := collector.collectCustomerFBOSelections(ctx, env.CustomerID, env.CurrencyReference(), ledger.Route{Filters: filters}, target, asOf)
 		if err != nil {
 			return nil, err
 		}
@@ -529,11 +560,13 @@ func collectCustomerFBOForFeatureForTest(
 }
 
 func newTestAccrualCollectorWithBreakage(
+	t testing.TB,
 	env *ledgertestutils.IntegrationEnv,
 	breakageService ledgerbreakage.Service,
 ) *accrualCollector {
-	collector := newTestAccrualCollector(env)
+	collector := newTestAccrualCollector(t, env)
 	collector.breakage = breakageService
+	collector.advance = advancetestutils.NewService(t, env.Deps, breakageService)
 	collector.transactionManager = enttx.NewCreator(env.DB)
 
 	return collector
@@ -590,13 +623,18 @@ func fundPriorityWithFeatures(
 	return fundPriorityWithCostBasisAndFeatures(t, env, priority, amount, nil, features)
 }
 
-func fundPriorityWithCostBasisAndFeatures(
+func fundPriorityWithCostBasisAndFeatures(t *testing.T, env *ledgertestutils.IntegrationEnv, priority int, amount int64, costBasis *alpacadecimal.Decimal, features []string) ledger.SubAccount {
+	t.Helper()
+	return fundPriorityWithFilters(t, env, priority, amount, costBasis, ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: features})
+}
+
+func fundPriorityWithFilters(
 	t *testing.T,
 	env *ledgertestutils.IntegrationEnv,
 	priority int,
 	amount int64,
 	costBasis *alpacadecimal.Decimal,
-	features []string,
+	filters ledger.CreditFilters,
 ) ledger.SubAccount {
 	t.Helper()
 
@@ -604,7 +642,7 @@ func fundPriorityWithCostBasisAndFeatures(
 		Currency:       env.CurrencyReference(),
 		CostBasis:      costBasis,
 		CreditPriority: priority,
-		Features:       features,
+		Filters:        filters,
 	})
 	require.NoError(t, err)
 
@@ -625,21 +663,21 @@ func fundPriorityWithCostBasisAndFeatures(
 			Currency:       env.CurrencyReference(),
 			CostBasis:      costBasis,
 			CreditPriority: &priority,
-			Features:       features,
+			Filters:        filters,
 		},
 		transactions.AuthorizeCustomerReceivablePaymentTemplate{
 			At:        env.Now(),
 			Amount:    alpacadecimal.NewFromInt(amount),
 			Currency:  env.CurrencyReference(),
 			CostBasis: costBasis,
-			Features:  features,
+			Filters:   filters,
 		},
 		transactions.SettleCustomerReceivableFromPaymentTemplate{
 			At:        env.Now(),
 			Amount:    alpacadecimal.NewFromInt(amount),
 			Currency:  env.CurrencyReference(),
 			CostBasis: costBasis,
-			Features:  features,
+			Filters:   filters,
 		},
 	)
 	require.NoError(t, err)
@@ -772,11 +810,13 @@ func requireFBOBalanceBucketsWithAsOf(t *testing.T, env *ledgertestutils.Integra
 		if bucket.SettledAmount.IsZero() {
 			continue
 		}
+
 		actual[sourceSpendChargeKey(
 			bucket.GroupByValues[ledger.BalanceBucketGroupBySourceChargeID],
 			nil,
 		)] = bucket.SettledAmount.InexactFloat64()
 	}
+
 	require.Equal(t, expected, actual)
 }
 
@@ -809,11 +849,13 @@ func requireBalanceBuckets(t *testing.T, env *ledgertestutils.IntegrationEnv, ac
 		if bucket.SettledAmount.IsZero() {
 			continue
 		}
+
 		actual[sourceSpendChargeKey(
 			bucket.GroupByValues[ledger.BalanceBucketGroupBySourceChargeID],
 			bucket.GroupByValues[ledger.BalanceBucketGroupBySpendChargeID],
 		)] = bucket.SettledAmount.InexactFloat64()
 	}
+
 	require.Equal(t, expected, actual)
 }
 
@@ -868,7 +910,7 @@ func bookExpiringCreditWithFeatures(
 			Currency:       env.CurrencyReference(),
 			SourceChargeID: sourceChargeID,
 			CreditPriority: &priority,
-			Features:       features,
+			Filters:        ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: features},
 		},
 	)
 	require.NoError(t, err)
@@ -878,7 +920,7 @@ func bookExpiringCreditWithFeatures(
 		Amount:         creditAmount,
 		Currency:       env.CurrencyReference(),
 		CreditPriority: &priority,
-		Features:       features,
+		Filters:        ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: features},
 		ExpiresAt:      expiresAt,
 		SourceChargeID: sourceChargeID,
 	})
@@ -918,4 +960,58 @@ func bookFutureFBOCollection(t *testing.T, env *ledgertestutils.IntegrationEnv, 
 
 	_, err = env.Deps.HistoricalLedger.CommitGroup(t.Context(), transactions.GroupInputs(env.Namespace, nil, inputs...))
 	require.NoError(t, err)
+}
+
+func TestCollectCustomerFBOMatchesPlanAndFeatureFilters(t *testing.T) {
+	// given: separate credit buckets for each plan/version, plus unrestricted credit.
+	env := ledgertestutils.NewIntegrationEnv(t, "collector-plans")
+	collector := newTestAccrualCollector(t, env)
+	plan := func(key string, version int) ledger.CreditFilters {
+		return ledger.CreditFilters{Version: ledger.CreditFiltersVersion2, Features: []string{"api-calls"}, Plans: []ledger.PlanFilter{{Key: key, Version: &ledger.VersionFilter{Eq: lo.ToPtr(version)}}}}
+	}
+	matching := fundPriorityWithFilters(t, env, 1, 30, nil, plan("pro", 2))
+	wrongVersion := fundPriorityWithFilters(t, env, 1, 40, nil, plan("pro", 1))
+	wrongPlan := fundPriorityWithFilters(t, env, 1, 50, nil, plan("starter", 2))
+	storageFilters := plan("pro", 2)
+	storageFilters.Features = []string{"storage"}
+	wrongFeature := fundPriorityWithFilters(t, env, 1, 60, nil, storageFilters)
+	unrestricted := fundPriority(t, env, 1, 10)
+	require.NotEqual(t, matching.Address().SubAccountID(), wrongVersion.Address().SubAccountID())
+
+	// when: a pro v2 charge consumes more than its matching restricted balance.
+	spendChargeID := testChargeID(201)
+	input := collectToAccruedInputForTest(env, spendChargeID, alpacadecimal.NewFromInt(35), productcatalog.CreditThenInvoiceSettlementMode)
+	input.Filters = plan("pro", 2)
+	allocations, err := collector.collectToAccrued(t.Context(), input)
+	require.NoError(t, err)
+
+	// then: matching restricted credit is used first; all other plan/feature buckets survive.
+	require.Equal(t, float64(0), env.SumBalance(t, matching).InexactFloat64())
+	require.Equal(t, float64(5), env.SumBalance(t, unrestricted).InexactFloat64())
+	require.Equal(t, float64(40), env.SumBalance(t, wrongVersion).InexactFloat64())
+	require.Equal(t, float64(50), env.SumBalance(t, wrongPlan).InexactFloat64())
+	require.Equal(t, float64(60), env.SumBalance(t, wrongFeature).InexactFloat64())
+
+	// when: the same feature has no recorded plan, only unrestricted credit matches.
+	input.ChargeID = testChargeID(202)
+	input.Filters = ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: []string{"api-calls"}}
+	_, err = collector.collectToAccrued(t.Context(), input)
+	require.NoError(t, err)
+	require.Equal(t, float64(0), env.SumBalance(t, unrestricted).InexactFloat64())
+	require.Equal(t, float64(40), env.SumBalance(t, wrongVersion).InexactFloat64())
+
+	// when: the original allocation is corrected after another spend.
+	realized := realizationsFromAllocations(env, allocations)
+	fiat, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).WithCode(env.Currency).Build()
+	require.NoError(t, err)
+	corrections, err := realized.CreateCorrectionRequest(alpacadecimal.NewFromInt(-35), fiat)
+	require.NoError(t, err)
+	_, err = newTestAccrualCorrector(t, env, collector.breakage).Correct(t.Context(), CorrectCollectedAccruedInput{
+		Namespace: env.Namespace, ChargeID: spendChargeID, CustomerID: env.CustomerID.ID, AllocateAt: env.Now(), Corrections: corrections,
+	})
+	require.NoError(t, err)
+	// then: value returns to the original v2 bucket, preserving its filters.
+	require.Equal(t, float64(30), env.SumBalance(t, matching).InexactFloat64())
+	require.Equal(t, float64(5), env.SumBalance(t, unrestricted).InexactFloat64())
+	require.Equal(t, float64(40), env.SumBalance(t, wrongVersion).InexactFloat64())
 }

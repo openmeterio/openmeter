@@ -85,10 +85,44 @@ const (
 	WebhookEventTypeInvoiceFinalized = "invoice.finalized"
 )
 
+// WebhookEnabledEvents is the full event set registered on an app's Stripe webhook endpoint.
+// It is tracked by appstripe.LatestWebhookSchemaVersion; bump that whenever this list changes.
+var WebhookEnabledEvents = []string{
+	// Setup intents
+	WebhookEventTypeSetupIntentSucceeded,
+	WebhookEventTypeSetupIntentFailed,
+	WebhookEventTypeSetupIntentRequiresAction,
+
+	// Invoices
+	WebhookEventTypeInvoiceFinalizationFailed,
+	WebhookEventTypeInvoiceMarkedUncollectible,
+	WebhookEventTypeInvoiceOverdue,
+	WebhookEventTypeInvoicePaid,
+	WebhookEventTypeInvoicePaymentActionRequired,
+	WebhookEventTypeInvoicePaymentFailed,
+	WebhookEventTypeInvoicePaymentSucceeded,
+	WebhookEventTypeInvoiceSent,
+	WebhookEventTypeInvoiceVoided,
+
+	// Schema version 2
+	WebhookEventTypePaymentIntentSucceeded,
+	WebhookEventTypePaymentIntentCanceled,
+	WebhookEventTypePaymentIntentPaymentFailed,
+	WebhookEventTypePaymentIntentRequiresAction,
+	WebhookEventTypeCreditNoteCreated,
+	WebhookEventTypeCreditNoteUpdated,
+	WebhookEventTypeCreditNoteVoided,
+	WebhookEventTypeRefundCreated,
+	WebhookEventTypeRefundUpdated,
+	WebhookEventTypeRefundFailed,
+	WebhookEventTypeInvoiceFinalized,
+}
+
 // StripeAppClient is a client for the stripe API for an installed app.
 // It is useful to call the Stripe API after the app is installed.
 type StripeAppClient interface {
 	DeleteWebhook(ctx context.Context, input DeleteWebhookInput) error
+	UpdateWebhook(ctx context.Context, input UpdateWebhookInput) error
 	GetAccount(ctx context.Context) (StripeAccount, error)
 	GetCustomer(ctx context.Context, stripeCustomerID string) (StripeCustomer, error)
 	CreateCustomer(ctx context.Context, input CreateStripeCustomerInput) (StripeCustomer, error)
@@ -186,6 +220,24 @@ func (c *stripeAppClient) DeleteWebhook(ctx context.Context, input DeleteWebhook
 
 		return c.providerError(err)
 	}
+
+	return nil
+}
+
+// UpdateWebhook replaces the event set registered on the app's webhook endpoint
+func (c *stripeAppClient) UpdateWebhook(ctx context.Context, input UpdateWebhookInput) error {
+	if err := input.Validate(); err != nil {
+		return fmt.Errorf("invalid input: %w", err)
+	}
+
+	_, err := c.client.WebhookEndpoints.Update(input.StripeWebhookID, &stripe.WebhookEndpointParams{
+		Params:        stripe.Params{Context: ctx},
+		EnabledEvents: stripe.StringSlice(input.EnabledEvents),
+	})
+	if err != nil {
+		return c.providerError(err)
+	}
+
 	return nil
 }
 

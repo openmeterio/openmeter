@@ -1195,6 +1195,305 @@ type CustomerUsageAttribution struct {
 	SubjectKeys []string `json:"subject_keys"`
 }
 
+// An entitlement grants a customer access to a feature.
+//
+// Entitlement is a JSON-preserving tagged union: its zero value marshals as JSON null, and values must be built with the EntitlementFrom* constructors.
+// The exported Type field is decode-side metadata; MarshalJSON round-trips the original payload and ignores writes to it.
+type Entitlement struct {
+	Type string `json:"type"`
+	raw  json.RawMessage
+}
+
+func (u *Entitlement) UnmarshalJSON(data []byte) error {
+	u.raw = append([]byte(nil), data...)
+	if string(data) == "null" {
+		u.Type = ""
+		return nil
+	}
+
+	var envelope struct {
+		Value string `json:"type"`
+	}
+	if err := json.Unmarshal(data, &envelope); err != nil {
+		return err
+	}
+	u.Type = envelope.Value
+	return nil
+}
+
+func (u Entitlement) MarshalJSON() ([]byte, error) {
+	if len(u.raw) == 0 {
+		return []byte("null"), nil
+	}
+	return append([]byte(nil), u.raw...), nil
+}
+
+func (u Entitlement) AsEntitlementMetered() (*EntitlementMetered, error) {
+	if u.Type != "metered" {
+		return nil, fmt.Errorf("Entitlement: expected type %q, got %q", "metered", u.Type)
+	}
+	var value EntitlementMetered
+	if err := json.Unmarshal(u.raw, &value); err != nil {
+		return nil, err
+	}
+	return &value, nil
+}
+
+func EntitlementFromEntitlementMetered(value EntitlementMetered) (Entitlement, error) {
+	value.Type = "metered"
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return Entitlement{}, err
+	}
+	var result Entitlement
+	if err := result.UnmarshalJSON(raw); err != nil {
+		return Entitlement{}, err
+	}
+	return result, nil
+}
+
+func (u Entitlement) AsEntitlementStatic() (*EntitlementStatic, error) {
+	if u.Type != "static" {
+		return nil, fmt.Errorf("Entitlement: expected type %q, got %q", "static", u.Type)
+	}
+	var value EntitlementStatic
+	if err := json.Unmarshal(u.raw, &value); err != nil {
+		return nil, err
+	}
+	return &value, nil
+}
+
+func EntitlementFromEntitlementStatic(value EntitlementStatic) (Entitlement, error) {
+	value.Type = "static"
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return Entitlement{}, err
+	}
+	var result Entitlement
+	if err := result.UnmarshalJSON(raw); err != nil {
+		return Entitlement{}, err
+	}
+	return result, nil
+}
+
+func (u Entitlement) AsEntitlementBoolean() (*EntitlementBoolean, error) {
+	if u.Type != "boolean" {
+		return nil, fmt.Errorf("Entitlement: expected type %q, got %q", "boolean", u.Type)
+	}
+	var value EntitlementBoolean
+	if err := json.Unmarshal(u.raw, &value); err != nil {
+		return nil, err
+	}
+	return &value, nil
+}
+
+func EntitlementFromEntitlementBoolean(value EntitlementBoolean) (Entitlement, error) {
+	value.Type = "boolean"
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return Entitlement{}, err
+	}
+	var result Entitlement
+	if err := result.UnmarshalJSON(raw); err != nil {
+		return Entitlement{}, err
+	}
+	return result, nil
+}
+
+// Balance details of a metered entitlement at the evaluation time, which is the
+// `at` query parameter when given and the current time otherwise.
+type EntitlementAccessValue struct {
+	// The remaining balance of the entitlement in the usage period at the evaluation
+	// time.
+	Balance Numeric `json:"balance"`
+	// The usage recorded in the usage period at the evaluation time.
+	Usage Numeric `json:"usage"`
+	// The usage exceeding the available balance in the usage period at the evaluation
+	// time.
+	Overage Numeric `json:"overage"`
+	// The total amount granted and available to the entitlement at the evaluation
+	// time.
+	TotalAvailableGrantAmount Numeric `json:"total_available_grant_amount"`
+	// The remaining balance of each grant, keyed by grant ID.
+	GrantBalances map[string]Numeric `json:"grant_balances"`
+}
+
+// A boolean entitlement grants access to a feature.
+type EntitlementBoolean struct {
+	ID string `json:"id"`
+	// The type of the entitlement.
+	Type EntitlementType `json:"type"`
+	// The feature the customer is entitled to use.
+	Feature FeatureReference `json:"feature"`
+	// The customer the entitlement belongs to.
+	Customer CustomerReference `json:"customer"`
+	Labels   map[string]string `json:"labels,omitempty"`
+	// The usage period of the entitlement.
+	UsagePeriod *RecurringPeriod `json:"usage_period,omitempty"`
+	// The current usage period of the entitlement.
+	CurrentUsagePeriod *ClosedPeriod `json:"current_usage_period,omitempty"`
+	// The time from which the entitlement is active.
+	ActiveFrom time.Time `json:"active_from"`
+	// The time until which the entitlement is active. If not set, the entitlement is
+	// active until deleted.
+	ActiveTo *time.Time `json:"active_to,omitempty"`
+	// The time the entitlement was created.
+	CreatedAt time.Time `json:"created_at"`
+	// The time the entitlement was last updated.
+	UpdatedAt time.Time `json:"updated_at"`
+	// The time the entitlement was deleted.
+	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+}
+
+// A grant issued for a metered entitlement. Each grant adds its amount to the
+// entitlement's balance from its effective time until it expires, and usage is
+// deducted from the grants in priority order.
+//
+// Grants are immutable, so the balance is deterministic regardless of when it is
+// queried. Deleting a grant ends it at the time of the deletion.
+type EntitlementGrant struct {
+	ID string `json:"id"`
+	// The ID of the entitlement the grant belongs to.
+	EntitlementID string `json:"entitlement_id"`
+	// The ID of the customer the grant belongs to.
+	CustomerID *string `json:"customer_id,omitempty"`
+	// The granted amount, in the feature's unit.
+	Amount Numeric `json:"amount"`
+	// The priority of the grant. Lower values are consumed first: a grant with
+	// priority 1 is consumed before one with priority 2. Among equal priorities, the
+	// grant closest to expiration is consumed first, then the earliest created.
+	Priority uint8 `json:"priority"`
+	// The time the grant takes effect.
+	EffectiveAt time.Time `json:"effective_at"`
+	// The duration after which the grant expires, counted from `effective_at`. Always
+	// a single-unit duration (for example `PT12H`, `P7D`, `P2W`, `P3M`, `P1Y`). Absent
+	// when the grant never expires.
+	ExpiresAfter *string `json:"expires_after,omitempty"`
+	// The time the grant expires, calculated from `effective_at` and `expires_after`.
+	// The grant is no longer in effect from this time. Absent when the grant never
+	// expires.
+	ExpiresAt *time.Time `json:"expires_at,omitempty"`
+	// The maximum balance the grant carries over at reset. The balance after a reset
+	// is `MIN(max_rollover_amount, MAX(balance_before_reset, min_rollover_amount))`.
+	MaxRolloverAmount Numeric `json:"max_rollover_amount"`
+	// The minimum balance the grant carries over at reset. The balance after a reset
+	// is `MIN(max_rollover_amount, MAX(balance_before_reset, min_rollover_amount))`.
+	MinRolloverAmount Numeric `json:"min_rollover_amount"`
+	// The recurrence of the grant. When set, the grant amount is re-issued every
+	// interval from the anchor, which defaults to `effective_at`. Absent for
+	// non-recurring grants.
+	Recurrence *RecurringPeriod `json:"recurrence,omitempty"`
+	// The next time the grant recurs. Absent for non-recurring grants.
+	NextRecurrence *time.Time `json:"next_recurrence,omitempty"`
+	// The time the grant was voided. A voided grant is no longer in effect from this
+	// time.
+	VoidedAt *time.Time        `json:"voided_at,omitempty"`
+	Labels   map[string]string `json:"labels,omitempty"`
+	// An ISO-8601 timestamp representation of entity creation date.
+	CreatedAt time.Time `json:"created_at"`
+	// An ISO-8601 timestamp representation of entity last update date.
+	UpdatedAt time.Time `json:"updated_at"`
+	// An ISO-8601 timestamp representation of entity deletion date.
+	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+}
+
+// Page paginated response.
+type EntitlementGrantPagePaginatedResponse struct {
+	Data []EntitlementGrant `json:"data"`
+	Meta PaginatedMeta      `json:"meta"`
+}
+
+// Usage granted automatically after each reset of a metered entitlement. The
+// balance returns to `amount` after every reset.
+type EntitlementIssueAfterReset struct {
+	// The amount granted after each reset, in the feature's unit.
+	Amount Numeric `json:"amount"`
+	// The priority of the grant created after each reset. Lower values have higher
+	// priority.
+	Priority *uint8 `json:"priority,omitempty"`
+}
+
+// A metered entitlement grants a usage allowance for a feature. Access is
+// determined by the balance: the allowance provided by grants is burnt down by
+// usage.
+type EntitlementMetered struct {
+	ID string `json:"id"`
+	// The type of the entitlement.
+	Type EntitlementType `json:"type"`
+	// The feature the customer is entitled to use.
+	Feature FeatureReference `json:"feature"`
+	// The customer the entitlement belongs to.
+	Customer CustomerReference `json:"customer"`
+	Labels   map[string]string `json:"labels,omitempty"`
+	// The time from which the entitlement is active.
+	ActiveFrom time.Time `json:"active_from"`
+	// The time until which the entitlement is active. If not set, the entitlement is
+	// active until deleted.
+	ActiveTo *time.Time `json:"active_to,omitempty"`
+	// The time the entitlement was created.
+	CreatedAt time.Time `json:"created_at"`
+	// The time the entitlement was last updated.
+	UpdatedAt time.Time `json:"updated_at"`
+	// The time the entitlement was deleted.
+	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+	// The usage period of the entitlement. The balance resets at the start of every
+	// period.
+	UsagePeriod RecurringPeriod `json:"usage_period"`
+	// The current usage period of the entitlement.
+	CurrentUsagePeriod ClosedPeriod `json:"current_usage_period"`
+	// If true, the customer keeps access to the feature after the balance is
+	// exhausted.
+	IsSoftLimit *bool `json:"is_soft_limit,omitempty"`
+	// Usage granted automatically after each reset. Cannot be combined with `grants`.
+	Issue *EntitlementIssueAfterReset `json:"issue,omitempty"`
+	// The amount granted automatically after each reset.
+	IssueAfterReset *Numeric `json:"issue_after_reset,omitempty"`
+	// The priority of the grant created after each reset.
+	IssueAfterResetPriority *uint8 `json:"issue_after_reset_priority,omitempty"`
+	// If true, the overage is preserved at reset. If false, the usage is reset to 0.
+	PreserveOverageAtReset *bool `json:"preserve_overage_at_reset,omitempty"`
+	// The time from which usage is measured.
+	MeasureUsageFrom time.Time `json:"measure_usage_from"`
+	// The time of the last reset.
+	LastReset time.Time `json:"last_reset"`
+}
+
+// Page paginated response.
+type EntitlementPagePaginatedResponse struct {
+	Data []Entitlement `json:"data"`
+	Meta PaginatedMeta `json:"meta"`
+}
+
+// A static entitlement grants access to a feature together with a configuration.
+type EntitlementStatic struct {
+	ID string `json:"id"`
+	// The type of the entitlement.
+	Type EntitlementType `json:"type"`
+	// The feature the customer is entitled to use.
+	Feature FeatureReference `json:"feature"`
+	// The customer the entitlement belongs to.
+	Customer CustomerReference `json:"customer"`
+	Labels   map[string]string `json:"labels,omitempty"`
+	// The usage period of the entitlement.
+	UsagePeriod *RecurringPeriod `json:"usage_period,omitempty"`
+	// The current usage period of the entitlement.
+	CurrentUsagePeriod *ClosedPeriod `json:"current_usage_period,omitempty"`
+	// The time from which the entitlement is active.
+	ActiveFrom time.Time `json:"active_from"`
+	// The time until which the entitlement is active. If not set, the entitlement is
+	// active until deleted.
+	ActiveTo *time.Time `json:"active_to,omitempty"`
+	// The time the entitlement was created.
+	CreatedAt time.Time `json:"created_at"`
+	// The time the entitlement was last updated.
+	UpdatedAt time.Time `json:"updated_at"`
+	// The time the entitlement was deleted.
+	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+	// The entitlement configuration as a JSON value. Returned when checking
+	// entitlement access.
+	Config any `json:"config"`
+}
+
 // The type of the entitlement.
 type EntitlementType string
 
@@ -1211,6 +1510,23 @@ func (value EntitlementType) Valid() bool {
 	default:
 		return false
 	}
+}
+
+// Entitlement value result.
+type EntitlementValueResult struct {
+	// The type of the entitlement.
+	Type EntitlementType `json:"type"`
+	// The feature key being evaluated.
+	FeatureKey string `json:"feature_key"`
+	// Whether the customer has access to the feature. Always true for `boolean` and
+	// `static` entitlements. Depends on balance for `metered` entitlements.
+	HasAccess bool `json:"has_access"`
+	// Only available for static entitlements. Config is the JSON parsable
+	// configuration of the entitlement. Useful to describe per customer configuration.
+	Config *string `json:"config,omitempty"`
+	// Only available for metered entitlements. The balance details of the entitlement
+	// at the evaluation time. Requires the `value` expand.
+	Value *EntitlementAccessValue `json:"value,omitempty"`
 }
 
 // A capability or billable dimension offered by a provider.
@@ -2272,7 +2588,7 @@ type RateCard struct {
 	// The discounts of the rate card.
 	Discounts *RateCardDiscounts `json:"discounts,omitempty"`
 	// The tax config of the rate card.
-	TaxConfig *RateCardTaxConfig `json:"tax_config,omitempty"`
+	TaxConfig *TaxCodeConfig `json:"tax_config,omitempty"`
 	// The entitlement template granted to subscribers of a plan or addon containing
 	// this rate card. Requires `feature` to be set.
 	Entitlement *RateCardEntitlement `json:"entitlement,omitempty"`
@@ -2318,7 +2634,7 @@ type RateCardInput struct {
 	// The discounts of the rate card.
 	Discounts *RateCardDiscounts `json:"discounts,omitempty"`
 	// The tax config of the rate card.
-	TaxConfig *RateCardTaxConfig `json:"tax_config,omitempty"`
+	TaxConfig *TaxCodeConfig `json:"tax_config,omitempty"`
 	// The entitlement template granted to subscribers of a plan or addon containing
 	// this rate card. Requires `feature` to be set.
 	Entitlement *RateCardEntitlement `json:"entitlement,omitempty"`
@@ -2502,10 +2818,12 @@ type RateCardStaticEntitlement struct {
 	Config any `json:"config"`
 }
 
-// The tax config of the rate card.
-type RateCardTaxConfig struct {
-	Behavior *TaxBehavior     `json:"behavior,omitempty"`
-	Code     TaxCodeReference `json:"code"`
+// Recurring period with an anchor and an interval.
+type RecurringPeriod struct {
+	// A date-time anchor to base the recurring period on.
+	Anchor time.Time `json:"anchor"`
+	// The interval duration in ISO 8601 format.
+	Interval string `json:"interval"`
 }
 
 // Settlement mode for billing.
@@ -2769,6 +3087,23 @@ func (value TaxBehavior) Valid() bool {
 	default:
 		return false
 	}
+}
+
+// Tax configuration for a billable resource.
+//
+// Applies a tax code and tax behavior to the resulting invoice line items. When
+// not set, the applicable default is used: the billing profile default tax
+// configuration, then the organization default tax code.
+type TaxCodeConfig struct {
+	// Tax behavior.
+	//
+	// This enum is used to specify whether tax is included in the price or excluded
+	// from the price. If not specified, the billing profile is used to determine the
+	// tax behavior. If not specified in the billing profile, the provider's default
+	// behavior is used.
+	Behavior *TaxBehavior `json:"behavior,omitempty"`
+	// Tax code applied to the invoice line item.
+	Code *TaxCodeReference `json:"code,omitempty"`
 }
 
 // TaxCode reference.

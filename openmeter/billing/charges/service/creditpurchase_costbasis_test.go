@@ -347,7 +347,7 @@ func (s *CreditPurchaseTestSuite) TestSetResolvedDynamicCostBasisOverwritesExist
 	s.Equal(replacement.ResolvedAt, persisted[0].State.ResolvedCostBasis.ResolvedAt)
 }
 
-func (s *CreditPurchaseTestSuite) TestInvoiceCreditPurchaseLineEnginePreviewsUnresolvedCostBasisAsZero() {
+func (s *CreditPurchaseTestSuite) TestInvoiceCreditPurchaseLineEnginePreviewsDynamicCostBasisWithoutPersistingIt() {
 	// given: a dynamic invoice credit purchase that has not entered its invoice lifecycle
 	ctx := s.T().Context()
 	namespace := s.GetUniqueNamespace("invoice-credit-purchase-dynamic-cost-basis")
@@ -405,12 +405,15 @@ func (s *CreditPurchaseTestSuite) TestInvoiceCreditPurchaseLineEnginePreviewsUnr
 	lines, err := lineEngine.BuildStandardLinesForGatheringPreview(ctx, lineInput)
 	s.Require().NoError(err)
 
-	// then: it preserves the temporary zero value without resolving the charge
+	// then: it uses the dynamic cost basis for the preview without resolving the persisted charge
 	s.Require().Len(lines, 1)
 	price, err := lines[0].UsageBased.Price.AsFlat()
 	s.Require().NoError(err)
-	s.Require().Equal(float64(0), price.Amount.InexactFloat64())
-	s.Empty(lines[0].DetailedLines)
+	s.Require().Equal(float64(25), price.Amount.InexactFloat64())
+	s.Require().Equal(float64(25), lines[0].Totals.Total.InexactFloat64())
+	s.Require().Len(lines[0].DetailedLines, 1)
+	s.Require().Equal(float64(100), lines[0].DetailedLines[0].Quantity.InexactFloat64())
+	s.Require().Equal(float64(0.25), lines[0].DetailedLines[0].PerUnitAmount.InexactFloat64())
 	persisted, err := s.Charges.creditPurchaseService.GetByIDs(ctx, creditpurchase.GetByIDsInput{
 		Namespace: namespace,
 		IDs:       []string{created.Charge.ID},

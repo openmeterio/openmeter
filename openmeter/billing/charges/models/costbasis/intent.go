@@ -9,6 +9,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/equal"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -42,6 +43,25 @@ type Intent struct {
 	dynamic *DynamicIntent
 	pinned  *PinnedIntent
 	manual  *ManualIntent
+}
+
+var _ models.Equaler[Intent] = Intent{}
+
+func (i Intent) Equal(other Intent) bool {
+	if i.kind != other.kind {
+		return false
+	}
+
+	switch i.kind {
+	case ModeDynamic:
+		return equal.PtrEqual(i.dynamic, other.dynamic)
+	case ModePinned:
+		return equal.PtrEqual(i.pinned, other.pinned)
+	case ModeManual:
+		return equal.PtrEqual(i.manual, other.manual)
+	default:
+		return false
+	}
 }
 
 func NewIntent[T DynamicIntent | PinnedIntent | ManualIntent](in T) Intent {
@@ -217,6 +237,10 @@ type DynamicIntent struct {
 	FiatCurrency *currencyx.FiatCurrency
 }
 
+func (i DynamicIntent) Equal(other DynamicIntent) bool {
+	return fiatCurrenciesEqual(i.FiatCurrency, other.FiatCurrency)
+}
+
 func (i DynamicIntent) Validate() error {
 	var errs []error
 
@@ -230,6 +254,11 @@ func (i DynamicIntent) Validate() error {
 type PinnedIntent struct {
 	FiatCurrency        *currencyx.FiatCurrency
 	CurrencyCostBasisID string
+}
+
+func (i PinnedIntent) Equal(other PinnedIntent) bool {
+	return fiatCurrenciesEqual(i.FiatCurrency, other.FiatCurrency) &&
+		i.CurrencyCostBasisID == other.CurrencyCostBasisID
 }
 
 func (i PinnedIntent) Validate() error {
@@ -251,6 +280,11 @@ type ManualIntent struct {
 	Rate         alpacadecimal.Decimal
 }
 
+func (i ManualIntent) Equal(other ManualIntent) bool {
+	return fiatCurrenciesEqual(i.FiatCurrency, other.FiatCurrency) &&
+		i.Rate.Equal(other.Rate)
+}
+
 func (i ManualIntent) Validate() error {
 	var errs []error
 
@@ -263,4 +297,14 @@ func (i ManualIntent) Validate() error {
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+// Fiat currency codes identify the intended settlement currency; expanded
+// definitions are not part of a cost-basis intent.
+func fiatCurrenciesEqual(first, second *currencyx.FiatCurrency) bool {
+	if first == nil || second == nil {
+		return first == second
+	}
+
+	return first.GetFiatCode() == second.GetFiatCode()
 }

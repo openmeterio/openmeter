@@ -179,6 +179,7 @@ func (s *FlatFeeIntentOverrideAdapterSuite) TestUpdateAndReadIntentOverride() {
 	if updated.Intent.GetBaseIntent().FeatureKey != nil {
 		expectedFeatureKey = *updated.Intent.GetBaseIntent().FeatureKey
 	}
+
 	s.Equal(expectedFeatureKey, fetched.Intent.GetFeatureKey())
 
 	fetchedByIDs, err := s.adapter.GetByIDs(ctx, flatfee.GetByIDsInput{
@@ -425,10 +426,11 @@ func (s *FlatFeeIntentOverrideAdapterSuite) createChargeForCustomer(namespace, c
 			{
 				Intent: flatfee.Intent{
 					Intent: chargesmeta.Intent{
-						ManagedBy:    billing.SubscriptionManagedLine,
-						CustomerID:   customerID,
-						Currency:     currenciestestutils.NewFiatCurrency(s.T(), "USD"),
-						Subscription: subscription,
+						SubscriptionPlan: &chargesmeta.SubscriptionPlan{Key: "pro", Version: 1},
+						ManagedBy:        billing.SubscriptionManagedLine,
+						CustomerID:       customerID,
+						Currency:         currenciestestutils.NewFiatCurrency(s.T(), "USD"),
+						Subscription:     subscription,
 						TaxConfig: productcatalog.TaxCodeConfig{
 							TaxCodeID: taxCodeID,
 						},

@@ -37,12 +37,14 @@ func (e *engine) getPhases(grants []grant.Grant, period timeutil.ClosedPeriod, r
 	if err != nil {
 		return phasePlan{}, fmt.Errorf("failed to get grant recurrence times: %w", err)
 	}
+
 	phases := []burnPhase{}
 
 	// set empty arrays as default values so we don't have nils
 	if len(activityChanges) == 0 {
 		activityChanges = []time.Time{}
 	}
+
 	if len(recurrenceTimes) == 0 {
 		recurrenceTimes = []struct {
 			time     time.Time
@@ -118,6 +120,7 @@ func (e *engine) getPhases(grants []grant.Grant, period timeutil.ClosedPeriod, r
 			priorityChange: true,
 		})
 	}
+
 	// append all recurrenceTimes remaining
 	for _, recurrenceTime := range recurrenceTimes[rtI:] {
 		appendPhase(burnPhase{

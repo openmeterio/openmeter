@@ -79,12 +79,13 @@ func (s *service) GetTotalsForUsage(ctx context.Context, in GetTotalsForUsageInp
 		MeterValue:    snapshotQuantity,
 		ServicePeriod: in.Charge.Intent.GetEffectiveServicePeriod(),
 	}, opts...)
-	if err != nil {
+	recorder := billing.ValidationIssueRecorder{}
+	if err := recorder.Record(err); err != nil {
 		return GetTotalsForUsageResult{}, fmt.Errorf("rating totals: %w", err)
 	}
 
 	return GetTotalsForUsageResult{
 		Totals:          ratingResult.Totals,
 		MeteredQuantity: snapshotQuantity,
-	}, nil
+	}, recorder.ErrorsOrNil()
 }

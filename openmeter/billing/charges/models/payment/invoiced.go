@@ -78,6 +78,7 @@ type InvoicedCreator[T any] interface {
 func CreateInvoiced[T InvoicedCreator[T]](creator InvoicedCreator[T], in InvoicedCreate) T {
 	creator = Create(creator, in.Namespace, in.Base)
 	creator = creator.SetInvoiceID(in.InvoiceID)
+
 	return creator.SetLineID(in.LineID)
 }
 

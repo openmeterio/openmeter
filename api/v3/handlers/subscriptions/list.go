@@ -66,6 +66,7 @@ func (h *handler) ListSubscriptions() ListSubscriptionsHandler {
 						{Field: "filter[customer_id]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 					})
 				}
+
 				req.CustomerID = customerID
 
 				id, err := filters.FromAPIFilterULID(params.Filter.Id)
@@ -74,6 +75,7 @@ func (h *handler) ListSubscriptions() ListSubscriptionsHandler {
 						{Field: "filter[id]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 					})
 				}
+
 				req.ID = id
 
 				status, err := filters.FromAPIStatusFilter[subscription.SubscriptionStatus](ctx, params.Filter.Status)
@@ -82,6 +84,7 @@ func (h *handler) ListSubscriptions() ListSubscriptionsHandler {
 						{Field: "filter[status]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 					})
 				}
+
 				req.Status = status
 
 				planID, err := filters.FromAPIFilterULID(params.Filter.PlanId)
@@ -90,6 +93,7 @@ func (h *handler) ListSubscriptions() ListSubscriptionsHandler {
 						{Field: "filter[plan_id]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 					})
 				}
+
 				req.PlanID = planID
 
 				planKey, err := filters.FromAPIFilterStringExact(params.Filter.PlanKey)
@@ -98,6 +102,7 @@ func (h *handler) ListSubscriptions() ListSubscriptionsHandler {
 						{Field: "filter[plan_key]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 					})
 				}
+
 				req.PlanKey = planKey
 			}
 
@@ -109,10 +114,12 @@ func (h *handler) ListSubscriptions() ListSubscriptionsHandler {
 						{Field: "sort", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 					})
 				}
+
 				orderBy, err := FromAPISubscriptionSortField(ctx, sort.Field)
 				if err != nil {
 					return ListSubscriptionsRequest{}, err
 				}
+
 				req.OrderBy = orderBy
 				req.Order = sort.Order.ToSortxOrder()
 			}

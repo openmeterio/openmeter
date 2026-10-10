@@ -38,6 +38,7 @@ func (i RegisterChargesInput) Validate() error {
 			errs = append(errs, fmt.Errorf("charge [%d]: ID is required", idx))
 		}
 	}
+
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 

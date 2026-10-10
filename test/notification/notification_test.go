@@ -13,7 +13,7 @@ func TestNotification(t *testing.T) {
 
 	namespace := NewTestNamespace(t)
 
-	env, err := NewTestEnv(t, ctx, namespace)
+	env, err := NewTestEnv(t, namespace)
 	require.NoError(t, err, "NotificationTestEnv() failed")
 	t.Cleanup(func() {
 		if env != nil {
@@ -109,6 +109,10 @@ func TestNotification(t *testing.T) {
 
 		t.Run("Get", func(t *testing.T) {
 			testSuite.TestGet(ctx, t)
+		})
+
+		t.Run("CreateView", func(t *testing.T) {
+			testSuite.TestCreateView(ctx, t)
 		})
 	})
 

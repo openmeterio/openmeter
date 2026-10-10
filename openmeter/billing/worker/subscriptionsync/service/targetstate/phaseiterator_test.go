@@ -34,6 +34,38 @@ func (s *PhaseIteratorTestSuite) SetupSuite() {
 	s.Assertions = require.New(s.T())
 }
 
+func TestFlatFeeInvoiceAtUsesDefaultPaymentTerm(t *testing.T) {
+	billingStart := time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC)
+	serviceEnd := time.Date(2026, time.February, 1, 0, 0, 0, 0, time.UTC)
+	billingEnd := time.Date(2026, time.February, 5, 0, 0, 0, 0, time.UTC)
+
+	for _, tc := range []struct {
+		name        string
+		paymentTerm productcatalog.PaymentTermType
+		want        time.Time
+	}{
+		{name: "omitted term", want: billingStart},
+		{name: "explicit default", paymentTerm: productcatalog.InAdvancePaymentTerm, want: billingStart},
+		{name: "in arrears", paymentTerm: productcatalog.InArrearsPaymentTerm, want: billingEnd},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			item := SubscriptionItemWithPeriods{
+				ServicePeriod: timeutil.ClosedPeriod{From: billingStart, To: serviceEnd},
+				BillingPeriod: timeutil.ClosedPeriod{From: billingStart, To: billingEnd},
+			}
+			item.Spec.RateCard = &productcatalog.FlatFeeRateCard{
+				RateCardMeta: productcatalog.RateCardMeta{
+					Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+						Amount: alpacadecimal.NewFromInt(10), PaymentTerm: tc.paymentTerm,
+					}),
+				},
+			}
+
+			require.Equal(t, tc.want, item.GetInvoiceAt())
+		})
+	}
+}
+
 type expectedIterations struct {
 	ServicePeriod     timeutil.ClosedPeriod
 	FullServicePeriod timeutil.ClosedPeriod

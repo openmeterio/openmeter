@@ -90,6 +90,7 @@ func makeTestOverride(provider string, modelID string, ns string) llmcost.Price 
 	p.Namespace = &ns
 	p.Pricing.InputPerToken = alpacadecimal.NewFromFloat(0.0005) // cheaper override
 	p.Pricing.OutputPerToken = alpacadecimal.NewFromFloat(0.001)
+
 	return p
 }
 

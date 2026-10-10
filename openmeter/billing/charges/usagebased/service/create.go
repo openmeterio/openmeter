@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/samber/lo"
@@ -19,6 +20,11 @@ import (
 )
 
 func (s *service) Create(ctx context.Context, input usagebased.CreateInput) ([]usagebased.ChargeWithGatheringLine, error) {
+	input.Intents = slices.Clone(input.Intents)
+	for idx := range input.Intents {
+		input.Intents[idx].Discounts = input.Intents[idx].Discounts.UpsertCorrelationIDs()
+	}
+
 	if err := input.Validate(); err != nil {
 		return nil, err
 	}
@@ -81,6 +87,7 @@ func (s *service) Create(ctx context.Context, input usagebased.CreateInput) ([]u
 			if featureMeter.Feature.ID != "" {
 				chargeIntent.FeatureKey = featureMeter.Feature.Key
 			}
+
 			if chargeIntent.FeatureID != "" && featureMeter.Feature.ID != "" {
 				featureID = featureMeter.Feature.ID
 			}
@@ -145,6 +152,7 @@ func gatheringLineFromUsageBasedChargeForPeriod(charge usagebased.Charge, servic
 		if clonedAnnotations == nil {
 			clonedAnnotations = models.Annotations{}
 		}
+
 		clonedAnnotations[billing.AnnotationKeyReason] = lo.ToPtr(billing.AnnotationValueReasonOveragePlaceholder)
 	}
 

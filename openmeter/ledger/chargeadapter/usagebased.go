@@ -216,6 +216,7 @@ func (h *usageBasedHandler) OnCustomCurrencyOverageAccruedCorrection(ctx context
 	if err := input.Validate(); err != nil {
 		return err
 	}
+
 	if input.Run.InvoiceUsage == nil || input.Run.InvoiceUsage.LedgerTransaction == nil {
 		return nil
 	}
@@ -246,6 +247,7 @@ func (h *usageBasedHandler) OnAllocateFiatOverageCredits(ctx context.Context, in
 	}
 
 	intent := input.Charge.Intent
+
 	return h.collector.CollectToReceivable(ctx, collector.CollectToReceivableInput{
 		Namespace:         input.Charge.Namespace,
 		ChargeID:          input.Charge.ID,
@@ -254,7 +256,7 @@ func (h *usageBasedHandler) OnAllocateFiatOverageCredits(ctx context.Context, in
 		BookedAt:          input.BookedAt,
 		SourceBalanceAsOf: input.BookedAt,
 		Currency:          currencies.NewCurrencyReference(currencyx.Code(fiatCurrency.GetFiatCode())),
-		FeatureKey:        intent.GetFeatureKey(),
+		Filters:           intent.GetCreditFilters(),
 		ServicePeriod:     intent.GetEffectiveServicePeriod(),
 		Amount:            input.AmountToAllocate,
 	})
@@ -374,7 +376,7 @@ func (h *usageBasedHandler) OnCreditsOnlyUsageAccrued(ctx context.Context, input
 		BookedAt:          input.BookedAt,
 		SourceBalanceAsOf: input.BookedAt,
 		Currency:          intent.GetCurrency().Reference(),
-		FeatureKey:        intent.GetFeatureKey(),
+		Filters:           intent.GetCreditFilters(),
 		TaxCode:           lo.ToPtr(taxConfig.TaxCodeID),
 		TaxBehavior:       (*ledger.TaxBehavior)(taxConfig.Behavior),
 		SettlementMode:    intent.GetSettlementMode(),
@@ -384,6 +386,7 @@ func (h *usageBasedHandler) OnCreditsOnlyUsageAccrued(ctx context.Context, input
 	if err != nil {
 		return nil, err
 	}
+
 	if len(realizations) == 0 {
 		return nil, nil
 	}

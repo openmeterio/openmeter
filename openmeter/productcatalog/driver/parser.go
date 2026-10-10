@@ -37,6 +37,7 @@ func MapFeatureToResponse(f feature.Feature) (api.Feature, error) {
 		if err != nil {
 			return api.Feature{}, fmt.Errorf("failed to convert unit cost: %w", err)
 		}
+
 		resp.UnitCost = &apiUnitCost
 	}
 
@@ -65,6 +66,7 @@ func MapFeatureCreateInputsRequest(namespace string, f api.FeatureCreateInputs, 
 		if err != nil {
 			return feature.CreateFeatureInputs{}, fmt.Errorf("invalid unit cost: %w", err)
 		}
+
 		inputs.UnitCost = unitCost
 	}
 
@@ -86,21 +88,27 @@ func domainUnitCostToAPI(u *feature.UnitCost) (api.FeatureUnitCost, error) {
 		if u.LLM.ProviderProperty != "" {
 			llmCost.ProviderProperty = lo.ToPtr(u.LLM.ProviderProperty)
 		}
+
 		if u.LLM.Provider != "" {
 			llmCost.Provider = lo.ToPtr(u.LLM.Provider)
 		}
+
 		if u.LLM.ModelProperty != "" {
 			llmCost.ModelProperty = lo.ToPtr(u.LLM.ModelProperty)
 		}
+
 		if u.LLM.Model != "" {
 			llmCost.Model = lo.ToPtr(u.LLM.Model)
 		}
+
 		if u.LLM.TokenTypeProperty != "" {
 			llmCost.TokenTypeProperty = lo.ToPtr(u.LLM.TokenTypeProperty)
 		}
+
 		if u.LLM.TokenType != "" {
 			llmCost.TokenType = lo.ToPtr(u.LLM.TokenType)
 		}
+
 		if err := out.FromFeatureLLMUnitCost(llmCost); err != nil {
 			return out, fmt.Errorf("failed to convert LLM unit cost: %w", err)
 		}
@@ -172,6 +180,7 @@ func resolveLLMPricing(ctx context.Context, svc llmcost.Service, feat *feature.F
 	if provider == "" {
 		provider = extractEqFilterValue(feat.MeterGroupByFilters, llmConf.ProviderProperty)
 	}
+
 	if provider == "" {
 		return nil
 	}
@@ -181,6 +190,7 @@ func resolveLLMPricing(ctx context.Context, svc llmcost.Service, feat *feature.F
 	if model == "" {
 		model = extractEqFilterValue(feat.MeterGroupByFilters, llmConf.ModelProperty)
 	}
+
 	if model == "" {
 		return nil
 	}

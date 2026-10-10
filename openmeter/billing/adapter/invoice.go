@@ -129,7 +129,6 @@ func (a *adapter) ListInvoices(ctx context.Context, input billing.ListInvoicesAd
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (billing.ListInvoicesResponse, error) {
 		// Note: we are not filtering for deleted invoices here (as in deleted_at is not nil), as we have the deleted
 		// status that we can use to filter for.
-
 		query := tx.db.BillingInvoice.Query().
 			WithBillingInvoiceValidationIssues(func(q *db.BillingInvoiceValidationIssueQuery) {
 				q.Where(billinginvoicevalidationissue.DeletedAtIsNil())
@@ -255,6 +254,7 @@ func (a *adapter) ListInvoices(ctx context.Context, input billing.ListInvoicesAd
 				if err != nil {
 					return response, err
 				}
+
 				result = append(result, billing.NewInvoice(mapped))
 			default:
 				mapped, err := tx.mapStandardInvoiceFromDB(ctx, invoice, billing.StandardInvoiceExpands{}.
@@ -342,9 +342,11 @@ func (a *adapter) CreateInvoice(ctx context.Context, input billing.CreateInvoice
 				SetNillableCustomerAddressLine2(customer.BillingAddress.Line2).
 				SetNillableCustomerAddressPhoneNumber(customer.BillingAddress.PhoneNumber)
 		}
+
 		if usageAttr := mapCustomerUsageAttributionToDB(input.Customer); usageAttr != nil {
 			createMut = createMut.SetCustomerUsageAttribution(usageAttr)
 		}
+
 		createMut = createMut.
 			SetCustomerName(customer.Name)
 
@@ -545,7 +547,6 @@ func (a *adapter) UpdateStandardInvoice(ctx context.Context, in billing.UpdateSt
 			// we don't support moving lines between invoices here, as the cross invoice
 			// coordination is not something the adapter should deal with. The service
 			// is needed to lock and recalculate both invoices or do the necessary splits.
-
 			lines, err := tx.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
 				Namespace:   in.Namespace,
 				Lines:       in.Lines.OrEmpty(),
@@ -775,6 +776,7 @@ func mapPeriodFromDB(start, end *time.Time) *timeutil.ClosedPeriod {
 	if start == nil || end == nil {
 		return nil
 	}
+
 	return &timeutil.ClosedPeriod{
 		From: start.In(time.UTC),
 		To:   end.In(time.UTC),

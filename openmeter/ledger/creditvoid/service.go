@@ -42,24 +42,31 @@ func (c Config) Validate() error {
 	if c.Adapter == nil {
 		errs = append(errs, errors.New("adapter is required"))
 	}
+
 	if c.Ledger == nil {
 		errs = append(errs, errors.New("ledger is required"))
 	}
+
 	if c.Dependencies.AccountService == nil {
 		errs = append(errs, errors.New("account service is required"))
 	}
+
 	if c.Dependencies.AccountCatalog == nil {
 		errs = append(errs, errors.New("account catalog is required"))
 	}
+
 	if c.Dependencies.BalanceQuerier == nil {
 		errs = append(errs, errors.New("balance querier is required"))
 	}
+
 	if c.Breakage == nil {
 		errs = append(errs, errors.New("breakage service is required"))
 	}
+
 	if c.AccountLocker == nil {
 		errs = append(errs, errors.New("account locker is required"))
 	}
+
 	if c.TransactionManager == nil {
 		errs = append(errs, errors.New("transaction manager is required"))
 	}
@@ -138,30 +145,37 @@ func (i ListVoidedCreditImpactsInput) Validate() error {
 	if err := i.CustomerID.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("customer id: %w", err))
 	}
+
 	if i.Currency != nil {
 		if err := i.Currency.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("currency: %w", err))
 		}
 	}
+
 	if i.AsOf.IsZero() {
 		errs = append(errs, errors.New("as of is required"))
 	}
+
 	if i.After != nil {
 		if err := i.After.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("after: %w", err))
 		}
 	}
+
 	if i.Before != nil {
 		if err := i.Before.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("before: %w", err))
 		}
 	}
+
 	if i.After != nil && i.Before != nil {
 		errs = append(errs, errors.New("after and before cannot be set together"))
 	}
+
 	if err := breakage.ValidateExpiredRouteFilter(i.Route); err != nil {
 		errs = append(errs, fmt.Errorf("route: %w", err))
 	}
+
 	if i.Limit < 1 {
 		errs = append(errs, errors.New("limit must be greater than 0"))
 	}
@@ -251,9 +265,11 @@ func (s *service) planVoid(ctx context.Context, input VoidCreditPurchaseInput) (
 	buckets, err := s.deps.BalanceQuerier.GetBalanceBuckets(ctx, ledger.BalanceBucketQuery{
 		Namespace: input.CustomerID.Namespace,
 		Filters: ledger.Filters{
-			AccountID:      &fboAccountID.ID,
-			SourceChargeID: mo.Some(&input.ChargeID),
-			AsOf:           &voidedAt,
+			AccountID: &fboAccountID.ID,
+			Provenance: ledger.ProvenanceFilter{
+				SourceChargeID: mo.Some(&input.ChargeID),
+			},
+			AsOf: &voidedAt,
 			Route: ledger.RouteFilter{
 				Currency: currencies.NewCurrencyReference(input.Currency),
 			},
@@ -409,6 +425,7 @@ func (s *service) resolveVoidSlice(ctx context.Context, input VoidCreditPurchase
 	if err != nil {
 		return nil, pendingVoidRecord{}, fmt.Errorf("resolve issue correction: %w", err)
 	}
+
 	if len(inputs) != 1 {
 		return nil, pendingVoidRecord{}, fmt.Errorf("expected one issue correction transaction input, got %d", len(inputs))
 	}
@@ -417,6 +434,7 @@ func (s *service) resolveVoidSlice(ctx context.Context, input VoidCreditPurchase
 	if err != nil {
 		return nil, pendingVoidRecord{}, err
 	}
+
 	if correctedFBO != slice.fboAddress.SubAccountID() {
 		return nil, pendingVoidRecord{}, fmt.Errorf("issue correction FBO sub-account %s does not match voided FBO sub-account %s", correctedFBO, slice.fboAddress.SubAccountID())
 	}
@@ -440,11 +458,15 @@ func (s *service) originalIssueTransaction(ctx context.Context, input VoidCredit
 
 	for {
 		page, err := s.ledger.ListTransactions(ctx, ledger.ListTransactionsInput{
-			Namespace:      input.CustomerID.Namespace,
-			Cursor:         cursor,
-			Limit:          100,
-			AccountIDs:     []string{slice.fboAccount},
-			Currency:       &input.Currency,
+			Namespace: input.CustomerID.Namespace,
+			Cursor:    cursor,
+			Limit:     100,
+			EntryFilter: ledger.TransactionEntryFilter{
+				AccountIDs: []string{slice.fboAccount},
+				Currency:   &input.Currency,
+			},
+			ReturnOnlyMatchingEntries: true,
+
 			AsOf:           &voidedAt,
 			CreditMovement: ledger.ListTransactionsCreditMovementPositive,
 			AnnotationFilters: map[string]string{
@@ -486,6 +508,7 @@ func (s *service) transactionByID(ctx context.Context, id models.NamespacedID) (
 	if err != nil {
 		return nil, fmt.Errorf("get transaction %s: %w", id.ID, err)
 	}
+
 	if len(page.Items) != 1 {
 		return nil, fmt.Errorf("transaction %s not found", id.ID)
 	}
@@ -498,13 +521,16 @@ func transactionIssuedFBOForSource(tx ledger.Transaction, sourceChargeID string,
 		if entry.PostingAddress().AccountType() != ledger.AccountTypeCustomerFBO {
 			continue
 		}
+
 		if entry.PostingAddress().SubAccountID() != fboSubAccountID {
 			continue
 		}
+
 		if !entry.Amount().IsPositive() {
 			continue
 		}
-		if entry.SourceChargeID() == nil || *entry.SourceChargeID() != sourceChargeID {
+
+		if entry.Provenance().SourceChargeID == nil || *entry.Provenance().SourceChargeID != sourceChargeID {
 			continue
 		}
 
@@ -524,11 +550,13 @@ func correctionEntrySubAccounts(input ledger.TransactionInput) (string, string, 
 			if !entry.Amount().IsNegative() {
 				continue
 			}
+
 			fboSubAccountID = entry.PostingAddress().SubAccountID()
 		case ledger.AccountTypeCustomerReceivable:
 			if !entry.Amount().IsPositive() {
 				continue
 			}
+
 			receivableSubAccountID = entry.PostingAddress().SubAccountID()
 		}
 	}
@@ -536,6 +564,7 @@ func correctionEntrySubAccounts(input ledger.TransactionInput) (string, string, 
 	if fboSubAccountID == "" {
 		return "", "", errors.New("issue correction FBO entry is required")
 	}
+
 	if receivableSubAccountID == "" {
 		return "", "", errors.New("issue correction receivable entry is required")
 	}
@@ -547,6 +576,7 @@ func (s *service) persistCommittedVoidRecords(ctx context.Context, pending []pen
 	if len(pending) == 0 {
 		return nil
 	}
+
 	if group == nil {
 		return errors.New("transaction group is required")
 	}
@@ -596,6 +626,7 @@ func (s *service) ListVoidedCreditImpacts(ctx context.Context, input ListVoidedC
 	if err != nil {
 		return ListVoidedCreditImpactsResult{}, fmt.Errorf("list void records: %w", err)
 	}
+
 	if len(records) == 0 {
 		return ListVoidedCreditImpactsResult{
 			Items: []VoidImpact{},
@@ -607,6 +638,7 @@ func (s *service) ListVoidedCreditImpacts(ctx context.Context, input ListVoidedC
 		if record.FBOSubAccountID == "" {
 			continue
 		}
+
 		if _, ok := currencyReferences[record.FBOSubAccountID]; ok {
 			continue
 		}
@@ -623,6 +655,7 @@ func (s *service) ListVoidedCreditImpacts(ctx context.Context, input ListVoidedC
 		if reference.GetCode() != record.Currency {
 			return ListVoidedCreditImpactsResult{}, fmt.Errorf("void FBO sub-account %s currency %s does not match record currency %s", record.FBOSubAccountID, reference.GetCode(), record.Currency)
 		}
+
 		currencyReferences[record.FBOSubAccountID] = reference
 	}
 
@@ -632,6 +665,7 @@ func (s *service) ListVoidedCreditImpacts(ctx context.Context, input ListVoidedC
 		if record.FBOSubAccountID != "" {
 			currencyReference = currencyReferences[record.FBOSubAccountID].Clone()
 		}
+
 		key := voidImpactGroupKey{
 			voidedAt:           record.VoidedAt,
 			currencyIdentity:   currencyReference.IdentityKey(),
@@ -655,12 +689,15 @@ func (s *service) ListVoidedCreditImpacts(ctx context.Context, input ListVoidedC
 		if group.id.ID == "" || record.ID.ID < group.id.ID {
 			group.id = record.ID
 		}
+
 		if group.createdAt.IsZero() || record.CreatedAt.Before(group.createdAt) {
 			group.createdAt = record.CreatedAt
 		}
+
 		for k, v := range record.Annotations {
 			group.annotations[k] = v
 		}
+
 		group.annotations[ledger.AnnotationChargeID] = record.SourceChargeID
 	}
 
@@ -669,6 +706,7 @@ func (s *service) ListVoidedCreditImpacts(ctx context.Context, input ListVoidedC
 		if group.amount.IsZero() {
 			continue
 		}
+
 		if group.amount.IsNegative() {
 			return ListVoidedCreditImpactsResult{}, fmt.Errorf("void amount is negative for %s %s", group.voidedAt, group.currency)
 		}
@@ -706,6 +744,7 @@ func (s *service) ListVoidedCreditImpacts(ctx context.Context, input ListVoidedC
 			selected = append(selected, item)
 		}
 	}
+
 	items = selected
 	hasMore := len(items) > input.Limit
 	if hasMore {
@@ -728,6 +767,7 @@ func voidImpactMatchesCursorWindow(item VoidImpact, after, before *ledger.Transa
 	if after != nil && cursor.Compare(*after) >= 0 {
 		return false
 	}
+
 	if before != nil && cursor.Compare(*before) <= 0 {
 		return false
 	}

@@ -43,6 +43,14 @@ const (
 	CapabilityTypeCollectPayments  CapabilityType = "collectPayments"
 )
 
+type AppActionType string
+
+// AppAction is an operator task derived from the app's current state; it is never persisted.
+type AppAction struct {
+	Type        AppActionType
+	Description string
+}
+
 // AppBase represents an abstract with the base fields of an app
 type AppBase struct {
 	models.ManagedResource
@@ -55,6 +63,11 @@ type AppBase struct {
 
 func (a AppBase) GetAppBase() AppBase {
 	return a
+}
+
+// Actions is empty for app types that have no derived operator tasks.
+func (a AppBase) Actions() []AppAction {
+	return nil
 }
 
 func (a AppBase) GetID() AppID {

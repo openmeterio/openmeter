@@ -30,7 +30,6 @@ interface CurrenciesCustomCostBasesOperations {
    * cost bases with different `effective_from` dates.
    */
   @extension(Shared.UnstableExtension, true)
-  @extension(Shared.InternalExtension, true)
   @get
   @operationId("list-cost-bases")
   @summary("List cost bases")
@@ -56,7 +55,6 @@ interface CurrenciesCustomCostBasesOperations {
    * Create a cost basis for a currency.
    */
   @extension(Shared.UnstableExtension, true)
-  @extension(Shared.InternalExtension, true)
   @post
   @operationId("create-cost-basis")
   @summary("Create cost basis")

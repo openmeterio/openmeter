@@ -104,6 +104,7 @@ func EventFromDBEntity(e db.NotificationEvent) (*notification.Event, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	rule := RuleFromDBEntity(*ruleRow)
 
 	return &notification.Event{

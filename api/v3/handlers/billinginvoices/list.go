@@ -61,10 +61,12 @@ func (h *handler) ListBillingInvoices() ListBillingInvoicesHandler {
 						{Field: "sort", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 					})
 				}
+
 				orderBy, err = FromAPIInvoiceSortField(ctx, sort.Field)
 				if err != nil {
 					return ListBillingInvoicesRequest{}, err
 				}
+
 				order = sort.Order.ToSortxOrder()
 			}
 
@@ -84,6 +86,7 @@ func (h *handler) ListBillingInvoices() ListBillingInvoicesHandler {
 							{Field: "filter[status]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 						})
 					}
+
 					req.Statuses = lo.Map(statuses, func(s billing.InvoiceShortStatus, _ int) string { return string(s) })
 				}
 
@@ -94,6 +97,7 @@ func (h *handler) ListBillingInvoices() ListBillingInvoicesHandler {
 							{Field: "filter[customer_id]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 						})
 					}
+
 					req.CustomerID = customerID
 				}
 
@@ -104,6 +108,7 @@ func (h *handler) ListBillingInvoices() ListBillingInvoicesHandler {
 							{Field: "filter[issued_at]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 						})
 					}
+
 					req.IssuedAt = issuedAt
 				}
 
@@ -114,6 +119,7 @@ func (h *handler) ListBillingInvoices() ListBillingInvoicesHandler {
 							{Field: "filter[service_period_start]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 						})
 					}
+
 					req.PeriodStart = periodStart
 				}
 
@@ -124,6 +130,7 @@ func (h *handler) ListBillingInvoices() ListBillingInvoicesHandler {
 							{Field: "filter[created_at]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 						})
 					}
+
 					req.CreatedAt = createdAt
 				}
 			}

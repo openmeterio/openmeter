@@ -44,6 +44,7 @@ func (l *fundedCreditTransactionLoader) Load(ctx context.Context, input creditTr
 		if err != nil {
 			return creditTransactionLoaderResult{}, err
 		}
+
 		if len(page.items) == 0 {
 			break
 		}
@@ -63,6 +64,7 @@ func (l *fundedCreditTransactionLoader) Load(ctx context.Context, input creditTr
 		if err != nil {
 			return creditTransactionLoaderResult{}, err
 		}
+
 		items = append(items, pageItems...)
 
 		if len(items) > input.Limit || !page.hasMore {
@@ -80,6 +82,7 @@ func (l *fundedCreditTransactionLoader) Load(ctx context.Context, input creditTr
 	if hasMore {
 		items = items[:input.Limit]
 	}
+
 	if input.Before != nil {
 		slices.Reverse(items)
 	}
@@ -101,14 +104,19 @@ func (l *fundedCreditTransactionLoader) listCandidatePage(
 	}
 
 	result, err := l.service.Ledger.ListTransactions(ctx, ledger.ListTransactionsInput{
-		Namespace:  input.CustomerID.Namespace,
-		Cursor:     after,
-		Before:     before,
-		Limit:      max(chargeListPageSize, input.Limit+1),
-		AccountIDs: accountIDs,
-		Currency:   input.Currency,
-		AsOf:       &input.AsOf,
-		Route:      featureFilterRoute(input.FeatureFilter),
+		Namespace: input.CustomerID.Namespace,
+		Cursor:    after,
+		Before:    before,
+		Limit:     max(chargeListPageSize, input.Limit+1),
+		EntryFilter: ledger.TransactionEntryFilter{
+			AccountIDs: accountIDs,
+			Currency:   input.Currency,
+			Route:      featureFilterRoute(input.FeatureFilter),
+		},
+		ReturnOnlyMatchingEntries: true,
+
+		AsOf: &input.AsOf,
+
 		ExcludeAnnotationFilters: map[string]string{
 			ledger.AnnotationCollectionType:            ledger.CollectionTypeBreakage,
 			ledger.AnnotationCustomerBalanceVisibility: ledger.CustomerBalanceVisibilityInternal,
@@ -189,9 +197,11 @@ func (l *fundedCreditTransactionLoader) resolveCandidatePage(
 		if err != nil {
 			return nil, err
 		}
+
 		if ok {
 			items = append(items, item)
 		}
+
 		if len(items) == limit {
 			break
 		}
@@ -217,6 +227,7 @@ func (l *fundedCreditTransactionLoader) resolveCandidate(
 	if err != nil {
 		return CreditTransaction{}, false, fmt.Errorf("map funded credit transaction charge: %w", err)
 	}
+
 	if charge.Intent.CustomerID != input.CustomerID.ID {
 		return CreditTransaction{}, false, nil
 	}
@@ -225,6 +236,7 @@ func (l *fundedCreditTransactionLoader) resolveCandidate(
 	if !ok {
 		return CreditTransaction{}, false, nil
 	}
+
 	if input.Currency != nil && item.Currency != *input.Currency {
 		return CreditTransaction{}, false, nil
 	}
@@ -235,6 +247,7 @@ func (l *fundedCreditTransactionLoader) resolveCandidate(
 		if err != nil {
 			return CreditTransaction{}, false, err
 		}
+
 		resolvedByGroupID[item.fundedTransactionGroupID] = resolvedItems
 	}
 
@@ -281,6 +294,7 @@ func creditTransactionMatchesCursorWindow(item CreditTransaction, after, before 
 	if after != nil && cursor.Compare(*after) >= 0 {
 		return false
 	}
+
 	if before != nil && cursor.Compare(*before) <= 0 {
 		return false
 	}
@@ -315,6 +329,7 @@ func (l *fundedCreditTransactionLoader) resolveBalances(
 	if err != nil {
 		return nil, fmt.Errorf("resolve funded credit transaction group %s balance impacts: %w", item.fundedTransactionGroupID, err)
 	}
+
 	if len(unfilteredImpacts) == 0 {
 		return nil, fmt.Errorf("funded credit transaction group %s has no customer balance impact", item.fundedTransactionGroupID)
 	}
@@ -323,6 +338,7 @@ func (l *fundedCreditTransactionLoader) resolveBalances(
 	for _, impact := range unfilteredImpacts {
 		total = total.Add(impact.Amount)
 	}
+
 	if !total.Equal(item.Amount) {
 		return nil, fmt.Errorf(
 			"funded credit transaction group %s customer balance impact %s does not match funded amount %s",
@@ -385,9 +401,11 @@ func fundedCreditTransactionBalanceImpacts(group ledger.TransactionGroup, input 
 		if err != nil {
 			return nil, err
 		}
+
 		if impact.IsZero() {
 			continue
 		}
+
 		if groupCurrency.Code == "" {
 			groupCurrency = currencyReference
 		} else if !groupCurrency.Equal(currencyReference) {
@@ -401,10 +419,12 @@ func fundedCreditTransactionBalanceImpacts(group ledger.TransactionGroup, input 
 			groupedImpact.Amount = alpacadecimal.Zero
 			groupedImpact.CurrencyReference = currencyReference
 		}
+
 		groupedImpact.Amount = groupedImpact.Amount.Add(impact)
 		if groupedImpact.Cursor.BookedAt.IsZero() || groupedImpact.Cursor.Compare(cursor) < 0 {
 			groupedImpact.Cursor = cursor
 		}
+
 		impactsByBookedAt[bookedAt] = groupedImpact
 	}
 
@@ -414,6 +434,7 @@ func fundedCreditTransactionBalanceImpacts(group ledger.TransactionGroup, input 
 			impacts = append(impacts, impact)
 		}
 	}
+
 	slices.SortFunc(impacts, func(a, b fundedCreditTransactionBalanceImpact) int {
 		return b.Cursor.Compare(a.Cursor)
 	})
@@ -444,6 +465,7 @@ func fundedCreditTransactionImpact(tx ledger.Transaction, input GetBalanceServic
 		} else if !currencyReference.Equal(entryCurrency) {
 			return alpacadecimal.Zero, currencies.CurrencyReference{}, fmt.Errorf("transaction %s has multiple customer balance currencies", tx.ID().ID)
 		}
+
 		impact = impact.Add(entry.Amount())
 	}
 

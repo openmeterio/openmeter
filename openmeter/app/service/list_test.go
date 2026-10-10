@@ -29,6 +29,8 @@ func (m *minimalApp) GetEventAppData() (app.EventAppData, error) { return app.Ev
 
 func (m *minimalApp) UpdateAppConfig(_ context.Context, _ app.AppConfigUpdate) error { return nil }
 
+func (m *minimalApp) ExecuteAction(_ context.Context, _ app.ExecuteAppActionInput) error { return nil }
+
 func (m *minimalApp) GetCustomerData(_ context.Context, _ app.GetAppInstanceCustomerDataInput) (app.CustomerData, error) {
 	return nil, nil
 }
@@ -91,6 +93,7 @@ func makeApp(t *testing.T, svc app.Service, ns, name string, appType app.AppType
 		Namespace: ns, Name: name, Type: appType,
 	})
 	require.NoError(t, err)
+
 	return base
 }
 
@@ -218,6 +221,7 @@ func TestListApps_SortByIDDesc(t *testing.T) {
 			OrderBy:   app.AppOrderByID,
 			Order:     sortx.OrderDesc,
 		})
+
 		return err == nil && result.TotalCount == 2 &&
 			result.Items[0].GetID().ID == a2.GetID().ID
 	}, time.Second, time.Millisecond)
@@ -242,6 +246,7 @@ func TestListApps_SortByCreatedAtDesc(t *testing.T) {
 			OrderBy:   app.AppOrderByCreatedAt,
 			Order:     sortx.OrderDesc,
 		})
+
 		return err == nil && result.TotalCount == 2 &&
 			result.Items[0].GetID().ID == a2.GetID().ID
 	}, time.Second, time.Millisecond)
@@ -264,6 +269,7 @@ func TestListApps_DefaultSortCreatedAtAsc(t *testing.T) {
 			Namespace: ns,
 			Page:      pagination.NewPage(1, 20),
 		})
+
 		return err == nil && result.TotalCount == 2 &&
 			result.Items[0].GetID().ID == a1.GetID().ID
 	}, time.Second, time.Millisecond)
