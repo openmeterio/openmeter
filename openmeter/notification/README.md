@@ -50,6 +50,10 @@ is also reflected in Svix's endpoint filters. Channel and rule changes must
 keep PostgreSQL and provider state consistent; changing only one side breaks
 delivery or leaves delivery status unreconcilable.
 
+Channel and rule mutation APIs return HTTP 400 for webhook validation failures,
+including provider constraints checked after input validation. The response
+includes the validation reason; provider outages remain server errors.
+
 Svix disables an endpoint on its own after a prolonged delivery failure and
 does not push that decision back. Reconciliation mirrors it onto the channel,
 stamping the `channel.provider.disabled.timestamp` annotation so the reason is
