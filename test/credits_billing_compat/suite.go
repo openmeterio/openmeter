@@ -1,6 +1,7 @@
 package creditsbillingcompat
 
 import (
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
@@ -10,6 +11,7 @@ import (
 	chargestestutils "github.com/openmeterio/openmeter/openmeter/billing/charges/testutils"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
@@ -58,6 +60,32 @@ func (s *BaseSuite) RequireRun(name string, subtest func()) {
 	if !s.Run(name, subtest) {
 		t.Fatalf("test failed")
 	}
+}
+
+// SetupAccounts provisions the namespace's business accounts and each customer's ledger accounts.
+func (s *BaseSuite) SetupAccounts(namespace string, customerIDs ...string) {
+	s.T().Helper()
+	ctx := s.T().Context()
+
+	_, err := s.LedgerResolver.EnsureBusinessAccounts(ctx, namespace)
+	s.Require().NoError(err)
+
+	for _, customerID := range customerIDs {
+		_, err := s.LedgerResolver.CreateCustomerAccounts(ctx, customer.CustomerID{
+			Namespace: namespace,
+			ID:        customerID,
+		})
+		s.Require().NoError(err)
+	}
+}
+
+func (s *BaseSuite) RequireChargeBasedGatheringLine(line billing.GatheringLine, expectedChargeID *string) {
+	s.T().Helper()
+
+	s.Require().True(line.Engine.IsCharge(), "gathering line %s uses engine %s", line.ID, line.Engine)
+	s.Require().NotNil(expectedChargeID, "expected charge ID is required")
+	s.Require().NotEmpty(*expectedChargeID, "gathering line must reference its backing charge")
+	s.Require().Equal(expectedChargeID, line.ChargeID, "gathering line must reference the expected charge")
 }
 
 func (s *BaseSuite) SetupSuite() {
