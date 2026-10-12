@@ -36,8 +36,8 @@ facts stored independently from the journal.
   Charges decide when an effect is due; the ledger decides how that effect is
   represented and validated. See the [charges domain](../billing/charges/README.md).
 - [FBO](fbo/README.md) owns consumption source selection, expiry release, and
-  advance coordination. The collector maps plans to billing allocations, commits
-  their group, and owns correction unwind order.
+  advance coordination. The collector maps consumptions to billing allocations,
+  commits their group, and owns correction unwind order.
 - `customerbalance` is a customer-facing projection over booked ledger state,
   breakage, and not-yet-booked charge impacts. It does not own posting,
   collection, or correction rules.
