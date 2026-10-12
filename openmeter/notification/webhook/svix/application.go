@@ -36,9 +36,7 @@ func (h svixHandler) CreateApplication(ctx context.Context, id string) (*svix.Ap
 
 		span.AddEvent("creating application", trace.WithAttributes(spanAttrs...))
 
-		appClient := h.client.Application()
-
-		app, err := appClient.GetOrCreate(ctx, input, &svix.ApplicationCreateOptions{
+		app, err := h.client.Application().GetOrCreate(ctx, input, &svix.ApplicationCreateOptions{
 			IdempotencyKey: &idempotencyKey,
 		})
 		if err = internal.WrapSvixError(err); err != nil {
