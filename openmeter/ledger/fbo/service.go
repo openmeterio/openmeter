@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"reflect"
 	"slices"
 
 	"github.com/alpacahq/alpacadecimal"
@@ -16,13 +15,11 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger/advance"
 	"github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
-	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type Service interface {
-	NewScope(ctx context.Context, input ScopeInput) (*Scope, error)
-	PlanConsume(ctx context.Context, scope *Scope, input ConsumeInput) (ConsumePlan, error)
+	NewPlan(input NewPlanInput) (*Plan, error)
 	ListSources(ctx context.Context, input SourceQuery) ([]AvailableSource, error)
 }
 
@@ -91,14 +88,14 @@ func NewService(config Config) (Service, error) {
 	}, nil
 }
 
-type ScopeInput struct {
+type NewPlanInput struct {
 	CustomerID customer.CustomerID
 	GroupID    string
 }
 
-var _ models.Validator = ScopeInput{}
+var _ models.Validator = NewPlanInput{}
 
-func (i ScopeInput) Validate() error {
+func (i NewPlanInput) Validate() error {
 	var errs []error
 	if err := i.CustomerID.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("customer: %w", err))
@@ -111,12 +108,13 @@ func (i ScopeInput) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-// Scope reserves sources across consume plans in one customer transaction and
-// ledger group. Reservations apply regardless of posting time; they are not a
-// projection of pending journal entries at a historical balance boundary.
-type Scope struct {
+// Plan owns the postings and source reservations for one customer's ledger
+// group. Reservations prevent reuse regardless of posting time, but do
+// not calculate the minimum balance after the source-selection boundary or
+// project pending journal entries. Pending issuance/restoration are not available
+// as new sources in this consumption-only plan.
+type Plan struct {
 	owner      *service
-	driver     transaction.Driver
 	customerID customer.CustomerID
 	groupID    string
 	reserved   map[sourceKey]alpacadecimal.Decimal
@@ -141,18 +139,9 @@ func keyForSource(address ledger.PostingAddress, chargeID *string) sourceKey {
 	return key
 }
 
-func (s *service) NewScope(ctx context.Context, input ScopeInput) (*Scope, error) {
+func (s *service) NewPlan(input NewPlanInput) (*Plan, error) {
 	if err := input.Validate(); err != nil {
 		return nil, err
-	}
-
-	driver, err := transaction.GetDriverFromContext(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("FBO planning requires the caller's transaction: %w", err)
-	}
-
-	if !reflect.TypeOf(driver).Comparable() {
-		return nil, errors.New("FBO planning requires a comparable transaction driver")
 	}
 
 	groupID := input.GroupID
@@ -160,54 +149,41 @@ func (s *service) NewScope(ctx context.Context, input ScopeInput) (*Scope, error
 		groupID = ulid.Make().String()
 	}
 
-	return &Scope{
+	return &Plan{
 		owner:      s,
-		driver:     driver,
 		customerID: input.CustomerID,
 		groupID:    groupID,
 		reserved:   make(map[sourceKey]alpacadecimal.Decimal),
 	}, nil
 }
 
-func (s *Scope) GroupID() string { return s.groupID }
+func (p *Plan) GroupID() string { return p.groupID }
 
-// GroupInput includes every successful consume plan. A failed scope cannot be
-// committed by dropping the failing plan; the caller must roll back its transaction.
-func (s *Scope) GroupInput(ctx context.Context, annotations models.Annotations, additional ...ledger.TransactionInput) (ledger.TransactionGroupInput, error) {
-	if s == nil || s.owner == nil {
-		return nil, errors.New("FBO planning scope is missing")
-	}
-
-	if err := s.owner.validateScope(ctx, s); err != nil {
+// Finalize seals the plan and returns every consumption with its companion
+// postings. A failed plan requires rollback; individual consumptions cannot
+// be discarded.
+func (p *Plan) Finalize(annotations models.Annotations, additional ...ledger.TransactionInput) (ledger.TransactionGroupInput, error) {
+	if err := p.validate(); err != nil {
 		return nil, err
 	}
 
-	inputs := append(slices.Clone(s.inputs), additional...)
-	s.sealed = true
+	inputs := append(slices.Clone(p.inputs), additional...)
+	p.sealed = true
 
-	return ledger.WithGroupID(transactions.GroupInputs(s.customerID.Namespace, annotations, inputs...), s.groupID), nil
+	return ledger.WithGroupID(transactions.GroupInputs(p.customerID.Namespace, annotations, inputs...), p.groupID), nil
 }
 
-func (s *service) validateScope(ctx context.Context, scope *Scope) error {
-	if scope == nil || scope.owner != s {
-		return errors.New("FBO planning scope belongs to another service or is missing")
+func (p *Plan) validate() error {
+	if p == nil || p.owner == nil {
+		return errors.New("FBO plan is missing")
 	}
 
-	if scope.failure != nil {
-		return fmt.Errorf("FBO planning scope failed: %w", scope.failure)
+	if p.failure != nil {
+		return fmt.Errorf("FBO plan failed: %w", p.failure)
 	}
 
-	if scope.sealed {
-		return errors.New("FBO planning scope is finalized")
-	}
-
-	driver, err := transaction.GetDriverFromContext(ctx)
-	if err != nil {
-		return fmt.Errorf("FBO planning requires the caller's transaction: %w", err)
-	}
-
-	if !reflect.TypeOf(driver).Comparable() || driver != scope.driver {
-		return errors.New("FBO planning scope belongs to another transaction")
+	if p.sealed {
+		return errors.New("FBO plan is finalized")
 	}
 
 	return nil

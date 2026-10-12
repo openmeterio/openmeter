@@ -1,27 +1,32 @@
 # FBO consumption
 
-FBO owns eligible credit source selection, consumption postings, expiry releases,
-and advance coordination. Billing decides the amount and settlement policy;
-the collector maps consume plans to billing allocations and commits their group.
+This package applies customer credit to usage or outstanding receivables. It
+selects credit sources, releases their scheduled breakage as they are consumed, and
+coordinates [advances](../advance/README.md). Billing decides the amount and
+settlement policy; the collector commits the plan's group and creates billing
+allocations from each consumption.
 
-A planning scope belongs to one customer and one caller database transaction.
-Each successful consume plan reserves its selected subaccount/source-charge slices
-immediately. Later plans subtract these reservations from the same persisted
-balance queries, even when their posting times differ. Breakage bookkeeping is
-written in that transaction and names the preassigned consumption entries.
+## Execution contract
 
-`GroupInput` finalizes the scope and includes all its plans plus caller-provided
-companion postings. The caller commits it once before committing the database
-transaction. A failed plan invalidates the scope; the caller must roll back.
-All FBO consumption in that group must be planned through the scope so its
-reservations stay complete.
+A plan owns the postings and reservations for one customer's ledger group.
+Each `Consume` returns a `Consumption` with its amounts, selected
+sources, and transaction IDs. Reserved credit cannot be consumed again by later
+operations. All FBO consumption in a ledger group must use the same plan.
 
-`SourceBalanceAsOf` retains the existing eligibility cutoff; `BookedAt` retains
-the posting time. Scope reservations prevent reuse inside the group, but do not
-implement the future minimum-balance calculation. Pending issuance/restoration
-are not available as new sources in this consumption-only scope. Advances are
-issued and consumed together, so they create no available source balance.
+`Finalize` ends planning and returns its postings together with any
+caller-provided companion postings. Further consumption or finalization is
+rejected. The caller keeps planning, breakage
+bookkeeping, and group posting in one database transaction. A planning failure
+requires the caller to roll back.
 
-Source order remains priority, restriction, expiry, then stable source cursor.
-Receivable coverage never creates advance. Accrued consumption may ask the
-existing [advance service](../advance/README.md) to cover its shortfall.
+Consumption references resolve to the committed transactions in their original
+planning order, independently of the group's transaction enumeration.
+
+Breakage releases are recorded during planning and reference the exact consumption
+entries, whose IDs are assigned before posting.
+
+`SourceBalanceAsOf` is the historical cutoff for source selection. `BookedAt`
+is the effective time of the consumption postings.
+
+Sources are selected by priority, restricted before unrestricted credit, earliest
+expiry, then stable source cursor. Receivable coverage never creates advance.

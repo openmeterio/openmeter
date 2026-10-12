@@ -24,7 +24,7 @@ type accrualCollector struct {
 	transactionManager transaction.Creator
 }
 
-type collectedInputs []ledger.TransactionInput
+type collectedTransactions []ledger.Transaction
 
 func (c *accrualCollector) collectToAccrued(ctx context.Context, input CollectToAccruedInput) (creditrealization.CreateAllocationInputs, error) {
 	return transaction.Run(ctx, c.transactionManager, func(ctx context.Context) (creditrealization.CreateAllocationInputs, error) {
@@ -37,7 +37,7 @@ func (c *accrualCollector) collectToAccrued(ctx context.Context, input CollectTo
 			annotations = ledger.ChargeAnnotations(models.NamespacedID{Namespace: input.Namespace, ID: input.ChargeID})
 		}
 
-		scope, err := c.fbo.NewScope(ctx, fbo.ScopeInput{CustomerID: customer.CustomerID{Namespace: input.Namespace, ID: input.CustomerID}})
+		plan, err := c.fbo.NewPlan(fbo.NewPlanInput{CustomerID: customer.CustomerID{Namespace: input.Namespace, ID: input.CustomerID}})
 		if err != nil {
 			return nil, err
 		}
@@ -47,7 +47,7 @@ func (c *accrualCollector) collectToAccrued(ctx context.Context, input CollectTo
 			advancePolicy = fbo.AdvancePolicyOnShortfall
 		}
 
-		plan, err := c.fbo.PlanConsume(ctx, scope, fbo.ConsumeInput{
+		consumption, err := plan.Consume(ctx, fbo.ConsumeInput{
 			ChargeID:          input.ChargeID,
 			Annotations:       annotations,
 			BookedAt:          input.BookedAt,
@@ -64,11 +64,11 @@ func (c *accrualCollector) collectToAccrued(ctx context.Context, input CollectTo
 			return nil, err
 		}
 
-		if len(plan.Inputs) == 0 {
+		if len(consumption.TransactionIDs) == 0 {
 			return nil, nil
 		}
 
-		groupInput, err := scope.GroupInput(ctx, annotations)
+		groupInput, err := plan.Finalize(annotations)
 		if err != nil {
 			return nil, err
 		}
@@ -78,7 +78,12 @@ func (c *accrualCollector) collectToAccrued(ctx context.Context, input CollectTo
 			return nil, fmt.Errorf("commit ledger transaction group: %w", err)
 		}
 
-		return collectedInputs(plan.Inputs).toCreditRealizations(input.ServicePeriod, group.ID().ID), nil
+		posted, err := consumption.Transactions(group)
+		if err != nil {
+			return nil, fmt.Errorf("resolve consumption transactions: %w", err)
+		}
+
+		return collectedTransactions(posted).toCreditRealizations(input.ServicePeriod, group.ID().ID), nil
 	})
 }
 
@@ -93,12 +98,12 @@ func (c *accrualCollector) collectToReceivable(ctx context.Context, input Collec
 			annotations = ledger.ChargeAnnotations(models.NamespacedID{Namespace: input.Namespace, ID: input.ChargeID})
 		}
 
-		scope, err := c.fbo.NewScope(ctx, fbo.ScopeInput{CustomerID: customer.CustomerID{Namespace: input.Namespace, ID: input.CustomerID}})
+		plan, err := c.fbo.NewPlan(fbo.NewPlanInput{CustomerID: customer.CustomerID{Namespace: input.Namespace, ID: input.CustomerID}})
 		if err != nil {
 			return nil, err
 		}
 
-		plan, err := c.fbo.PlanConsume(ctx, scope, fbo.ConsumeInput{
+		consumption, err := plan.Consume(ctx, fbo.ConsumeInput{
 			ChargeID:          input.ChargeID,
 			Annotations:       annotations,
 			BookedAt:          input.BookedAt,
@@ -113,11 +118,11 @@ func (c *accrualCollector) collectToReceivable(ctx context.Context, input Collec
 			return nil, err
 		}
 
-		if len(plan.Inputs) == 0 {
+		if len(consumption.TransactionIDs) == 0 {
 			return nil, nil
 		}
 
-		groupInput, err := scope.GroupInput(ctx, annotations)
+		groupInput, err := plan.Finalize(annotations)
 		if err != nil {
 			return nil, err
 		}
@@ -127,18 +132,23 @@ func (c *accrualCollector) collectToReceivable(ctx context.Context, input Collec
 			return nil, fmt.Errorf("commit ledger transaction group: %w", err)
 		}
 
-		return collectedInputs(plan.Inputs).toCreditRealizations(input.ServicePeriod, group.ID().ID), nil
+		posted, err := consumption.Transactions(group)
+		if err != nil {
+			return nil, fmt.Errorf("resolve consumption transactions: %w", err)
+		}
+
+		return collectedTransactions(posted).toCreditRealizations(input.ServicePeriod, group.ID().ID), nil
 	})
 }
 
-func (i collectedInputs) toCreditRealizations(servicePeriod timeutil.ClosedPeriod, transactionGroupID string) creditrealization.CreateAllocationInputs {
+func (i collectedTransactions) toCreditRealizations(servicePeriod timeutil.ClosedPeriod, transactionGroupID string) creditrealization.CreateAllocationInputs {
 	out := make(creditrealization.CreateAllocationInputs, 0, len(i))
-	for _, input := range i {
-		if input == nil {
+	for _, transaction := range i {
+		if transaction == nil {
 			continue
 		}
 
-		annotations := maps.Clone(input.Annotations())
+		annotations := maps.Clone(transaction.Annotations())
 		if annotations == nil {
 			annotations = make(models.Annotations)
 		}
@@ -149,7 +159,7 @@ func (i collectedInputs) toCreditRealizations(servicePeriod timeutil.ClosedPerio
 		// that should not leak as separate credit realizations.
 		amountsBySubAccountID := make(map[string]alpacadecimal.Decimal)
 		subAccountOrder := make([]string, 0)
-		for _, entry := range input.EntryInputs() {
+		for _, entry := range transaction.Entries() {
 			if entry.Amount().IsNegative() && entry.PostingAddress().AccountType() == ledger.AccountTypeCustomerFBO {
 				subAccountID := entry.PostingAddress().SubAccountID()
 				if _, ok := amountsBySubAccountID[subAccountID]; !ok {
