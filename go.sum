@@ -477,6 +477,8 @@ github.com/subosito/gotenv v1.6.0 h1:9NlTDc1FTs4qu0DDq7AEtTPNw6SVm7uBMsUCUjABIf8
 github.com/subosito/gotenv v1.6.0/go.mod h1:Dk4QP5c2W3ibzajGcXpNraDfq2IrhjMIvMSWPKKo0FU=
 github.com/svix/svix-webhooks/v2 v2.7.0 h1:dKdLeoI9oGno/0NCZl7KxW7phwk1C5ufivXUtppjM8g=
 github.com/svix/svix-webhooks/v2 v2.7.0/go.mod h1:xCaumdE5/kLt+WzGHtr/NCGrW+MoHBqb86VKIn9u5po=
+github.com/svix/svix-webhooks/v2 v2.8.0 h1:8sIukmgH8ZiqC512cBj4DP7A/z+AwSKtea4xU3sgXqA=
+github.com/svix/svix-webhooks/v2 v2.8.0/go.mod h1:xCaumdE5/kLt+WzGHtr/NCGrW+MoHBqb86VKIn9u5po=
 github.com/tidwall/gjson v1.14.2/go.mod h1:/wbyibRr2FHMks5tjHJ5F8dMZh3AcwJEMf5vlfC0lxk=
 github.com/tidwall/gjson v1.18.0 h1:FIDeeyB800efLX89e5a8Y0BNH+LOngJyGrIWxG2FKQY=
 github.com/tidwall/gjson v1.18.0/go.mod h1:/wbyibRr2FHMks5tjHJ5F8dMZh3AcwJEMf5vlfC0lxk=
