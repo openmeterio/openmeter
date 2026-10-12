@@ -22,7 +22,8 @@ import (
 
 func TestWebhookErrorResponses(t *testing.T) {
 	const (
-		validationMessage = "webhook URL must use https"
+		validationMessage = "Webhook URL must use HTTPS"
+		sensitiveDetail   = "provider detail: credential=example-sensitive-value provider_app_id=example-app server=http://provider.invalid/internal"
 		resourceID        = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
 	)
 
@@ -88,17 +89,39 @@ func TestWebhookErrorResponses(t *testing.T) {
 		name   string
 		err    error
 		status int
+		detail string
 	}{
 		{
 			name:   "validation",
-			err:    webhook.NewValidationError(errors.New(validationMessage)),
+			err:    webhook.NewValidationError(webhook.ErrURLRequiresHTTPS),
 			status: http.StatusBadRequest,
+			detail: validationMessage,
 		},
 		{
 			name:   "wrapped validation",
-			err:    webhook.NewUnrecoverableError(webhook.NewValidationError(errors.New(validationMessage))),
+			err:    webhook.NewUnrecoverableError(webhook.NewValidationError(fmt.Errorf("%s: %w", sensitiveDetail, webhook.ErrURLRequiresHTTPS))),
 			status: http.StatusBadRequest,
+			detail: validationMessage,
 		},
+		{
+			name:   "unknown validation",
+			err:    webhook.NewValidationError(errors.New(sensitiveDetail)),
+			status: http.StatusBadRequest,
+			detail: "Invalid webhook configuration",
+		},
+		{
+			name:   "unknown wrapped validation",
+			err:    webhook.NewUnrecoverableError(webhook.NewValidationError(errors.New(sensitiveDetail))),
+			status: http.StatusBadRequest,
+			detail: "Invalid webhook configuration",
+		},
+		{
+			name:   "channel limit",
+			err:    webhook.NewValidationError(webhook.ErrMaxChannelsPerWebhookExceeded),
+			status: http.StatusBadRequest,
+			detail: "Webhook channel limit exceeded",
+		},
+
 		{
 			name:   "provider unavailable",
 			err:    webhook.NewRetryableError(errors.New("provider unavailable"), 0),
@@ -130,11 +153,10 @@ func TestWebhookErrorResponses(t *testing.T) {
 				require.NoError(t, json.Unmarshal(response.Body.Bytes(), &problem))
 				require.Equal(t, tt.status, problem.Status)
 
-				if tt.status == http.StatusBadRequest {
-					require.Contains(t, problem.Detail, validationMessage)
-				} else {
-					require.Empty(t, problem.Detail)
-				}
+				require.Equal(t, tt.detail, problem.Detail)
+				require.NotContains(t, response.Body.String(), "example-sensitive-value")
+				require.NotContains(t, response.Body.String(), "example-app")
+				require.NotContains(t, response.Body.String(), "provider.invalid")
 
 				if route.method != http.MethodDelete {
 					require.Equal(t, "http://example.com/webhook", service.url)

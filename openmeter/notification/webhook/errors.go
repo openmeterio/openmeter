@@ -34,6 +34,22 @@ func (e ValidationError) Unwrap() error {
 	return e.err
 }
 
+// PublicMessage exposes only explicitly approved validation reasons. Provider
+// errors remain available through Error and Unwrap for internal diagnostics.
+func (e ValidationError) PublicMessage() string {
+	switch {
+	case errors.Is(e.err, ErrURLRequiresHTTPS):
+		return "Webhook URL must use HTTPS"
+	case errors.Is(e.err, ErrMaxChannelsPerWebhookExceeded):
+		return "Webhook channel limit exceeded"
+	default:
+		return "Invalid webhook configuration"
+	}
+}
+
+// ErrURLRequiresHTTPS identifies a provider constraint beyond URL input validation.
+var ErrURLRequiresHTTPS = errors.New("webhook URL requires HTTPS")
+
 func NewValidationError(err error) error {
 	if err == nil {
 		return nil

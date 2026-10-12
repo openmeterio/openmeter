@@ -52,7 +52,9 @@ delivery or leaves delivery status unreconcilable.
 
 Channel and rule mutation APIs return HTTP 400 for webhook validation failures,
 including provider constraints checked after input validation. The response
-includes the validation reason; provider outages remain server errors.
+uses fixed messages for explicitly mapped constraints and a generic message for
+unknown validation failures. Provider details stay private; outages remain
+server errors.
 
 Svix disables an endpoint on its own after a prolonged delivery failure and
 does not push that decision back. Reconciliation mirrors it onto the channel,
