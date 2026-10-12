@@ -522,7 +522,7 @@ type noopCustomerOverrideService struct {
 	billing.CustomerOverrideService
 }
 
-func minimalCreateProfileInputTemplate(appID app.AppID) billing.CreateProfileInput {
+func MinimalCreateProfileInputTemplate(appID app.AppID) billing.CreateProfileInput {
 	return billing.CreateProfileInput{
 		Name:      "Awesome Profile",
 		Default:   true,
@@ -586,7 +586,7 @@ func (s *CustomerHandlerTestSuite) installSandboxApp(t *testing.T, ns string) ap
 }
 
 func (s *CustomerHandlerTestSuite) createDefaultProfile(t *testing.T, app app.App, ns string) *billing.Profile {
-	clonedCreateProfileInput := minimalCreateProfileInputTemplate(app.GetID())
+	clonedCreateProfileInput := MinimalCreateProfileInputTemplate(app.GetID())
 	clonedCreateProfileInput.Namespace = ns
 
 	profile, err := s.Env.Billing().CreateProfile(t.Context(), clonedCreateProfileInput)

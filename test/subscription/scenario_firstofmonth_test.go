@@ -146,7 +146,7 @@ func TestBillingOnFirstOfMonth(t *testing.T) {
 	require.NoError(t, err)
 
 	// 3rd, let's create the billing profile
-	_, err = tDeps.billingService.CreateProfile(ctx, minimalCreateProfileInputTemplate(tDeps.sandboxApp.GetID()))
+	_, err = tDeps.billingService.CreateProfile(ctx, MinimalCreateProfileInputTemplate(tDeps.sandboxApp.GetID()))
 	require.NoError(t, err)
 
 	// Then create the customer
@@ -361,7 +361,7 @@ func TestAnchoredAlignment_MidMonthStart_EarlyCancel_IssueNextAnchor(t *testing.
 	require.NoError(t, err)
 
 	// Create billing profile with anchored alignment: first day of month
-	profInput := minimalCreateProfileInputTemplate(tDeps.sandboxApp.GetID())
+	profInput := MinimalCreateProfileInputTemplate(tDeps.sandboxApp.GetID())
 	profInput.Namespace = namespace
 	profInput.WorkflowConfig.Collection.Alignment = billing.AlignmentKindAnchored
 	anchor := time.Date(currentTime.Year(), currentTime.Month(), 1, 0, 0, 0, 0, time.UTC)

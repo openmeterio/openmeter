@@ -128,7 +128,7 @@ func TestSubWithMeteredEntitlement(t *testing.T) {
 	require.NoError(t, err)
 
 	// 3rd, let's create the billing profile
-	_, err = tDeps.billingService.CreateProfile(ctx, minimalCreateProfileInputTemplate(tDeps.sandboxApp.GetID()))
+	_, err = tDeps.billingService.CreateProfile(ctx, MinimalCreateProfileInputTemplate(tDeps.sandboxApp.GetID()))
 	require.NoError(t, err)
 
 	// Then create the customer

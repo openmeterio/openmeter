@@ -63,7 +63,7 @@ func createBilledComputeSubscription(t *testing.T, deps testDeps) (subscription.
 	t.Helper()
 
 	ctx := t.Context()
-	_, err := deps.billingService.CreateProfile(ctx, minimalCreateProfileInputTemplate(deps.sandboxApp.GetID()))
+	_, err := deps.billingService.CreateProfile(ctx, MinimalCreateProfileInputTemplate(deps.sandboxApp.GetID()))
 	require.NoError(t, err)
 
 	customer := createUSDSubscriptionCustomer(t, deps, "test-namespace", "compute-customer")

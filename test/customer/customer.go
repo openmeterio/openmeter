@@ -720,7 +720,7 @@ func (s *CustomerHandlerTestSuite) TestListBillingProfileFilter(ctx context.Cont
 	sandboxApp := s.installSandboxApp(t, s.namespace)
 	defaultProfile := s.createDefaultProfile(t, sandboxApp, s.namespace)
 
-	pinnedInput := minimalCreateProfileInputTemplate(sandboxApp.GetID())
+	pinnedInput := MinimalCreateProfileInputTemplate(sandboxApp.GetID())
 	pinnedInput.Namespace = s.namespace
 	pinnedInput.Default = false
 	pinnedInput.Name = "Pinned Profile"

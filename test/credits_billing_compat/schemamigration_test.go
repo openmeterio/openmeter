@@ -1,0 +1,368 @@
+package creditsbillingcompat
+
+import (
+	"context"
+	"fmt"
+	"testing"
+	"time"
+
+	"github.com/alpacahq/alpacadecimal"
+	"github.com/invopop/gobl/currency"
+	"github.com/oklog/ulid/v2"
+	"github.com/samber/lo"
+	"github.com/stretchr/testify/suite"
+
+	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingstandardinvoicedetailedline"
+	"github.com/openmeterio/openmeter/openmeter/meter"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
+	billingtest "github.com/openmeterio/openmeter/test/billing"
+)
+
+type SchemaMigrationTestSuite struct {
+	BaseSuite
+}
+
+func TestSchemaMigration(t *testing.T) {
+	t.Skip("pending rework")
+
+	suite.Run(t, new(SchemaMigrationTestSuite))
+}
+
+func (s *SchemaMigrationTestSuite) SetupSuite() {
+	s.BaseSuite.SetupSuite()
+}
+
+func (s *SchemaMigrationTestSuite) TestSchemaLevel1Migration() {
+	namespace := s.GetUniqueNamespace("ns-schema-migration")
+	ctx := context.Background()
+
+	const (
+		lineNameDeletedDetailed = "Test item1"
+		lineNameActiveDetailed  = "Test item2"
+	)
+
+	// Force schema level 1 as a starting point.
+	s.NoError(s.BillingAdapter.SetInvoiceDefaultSchemaLevel(ctx, 1))
+
+	var (
+		customerEntity *customer.Customer
+		invoiceID      billing.InvoiceID
+		gatheringID    billing.InvoiceID
+
+		deletedAtSet time.Time
+
+		// Adapter snapshot (schema level 1 read-path)
+		invoiceBeforeMigration billing.StandardInvoice
+	)
+
+	s.Run("Given a customer and progressive billing profile exists", func() {
+		sandboxApp := s.InstallSandboxApp(s.T(), namespace)
+		s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID(), billingtest.WithProgressiveBilling())
+
+		customerEntity = s.CreateTestCustomer(namespace, "test-customer")
+		s.NotNil(customerEntity)
+	})
+
+	var featureFlatPerUnit feature.Feature
+
+	s.Run("Given a metered feature exists with usage", func() {
+		meterSlug := "flat-per-unit"
+		meterID := ulid.Make().String()
+
+		s.NoError(s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
+			{
+				ManagedResource: models.ManagedResource{
+					ID: meterID,
+					NamespacedModel: models.NamespacedModel{
+						Namespace: namespace,
+					},
+					ManagedModel: models.ManagedModel{
+						CreatedAt: time.Now(),
+						UpdatedAt: time.Now(),
+					},
+					Name: "Flat per unit",
+				},
+				Key:           meterSlug,
+				Aggregation:   meter.MeterAggregationSum,
+				EventType:     "test",
+				ValueProperty: lo.ToPtr("$.value"),
+			},
+		}))
+
+		periodStart := time.Now().Add(-time.Hour)
+
+		// Make sure the meter exists before the interesting event.
+		s.MockStreamingConnector.AddSimpleEvent(meterSlug, 0, periodStart.Add(-time.Minute))
+		// Register some usage.
+		s.MockStreamingConnector.AddSimpleEvent(meterSlug, 10, periodStart.Add(time.Minute))
+
+		featureFlatPerUnit = lo.Must(s.FeatureService.CreateFeature(ctx, feature.CreateFeatureInputs{
+			Namespace: namespace,
+			Name:      meterSlug,
+			Key:       meterSlug,
+			MeterID:   lo.ToPtr(meterID),
+		}))
+	})
+
+	s.Run("Given schema level 1 invoice exists with amount discounts and a deleted detailed line", func() {
+		periodStart := time.Now().Add(-time.Hour)
+		periodEnd := time.Now().Add(time.Hour)
+
+		_, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
+			Customer: customerEntity.GetID(),
+			Currency: currencyx.FiatCode(currency.USD),
+			Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
+				{
+					GatheringLineBase: billing.GatheringLineBase{
+						ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+							Namespace: namespace,
+							Name:      lineNameDeletedDetailed,
+						}),
+						ServicePeriod: timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
+						InvoiceAt:     periodEnd,
+						ManagedBy:     billing.ManuallyManagedLine,
+						Currency:      currencyx.FiatCode(currency.USD),
+						RateCardDiscounts: billing.Discounts{
+							Percentage: &billing.PercentageDiscount{
+								PercentageDiscount: productcatalog.PercentageDiscount{
+									Percentage: models.NewPercentage(10),
+								},
+							},
+						},
+						FeatureKey: featureFlatPerUnit.Key,
+						Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+							Amount: alpacadecimal.NewFromFloat(100),
+						})),
+					},
+				},
+				{
+					GatheringLineBase: billing.GatheringLineBase{
+						ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+							Namespace: namespace,
+							Name:      lineNameActiveDetailed,
+						}),
+						ServicePeriod: timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
+						InvoiceAt:     periodEnd,
+						ManagedBy:     billing.ManuallyManagedLine,
+						Currency:      currencyx.FiatCode(currency.USD),
+						RateCardDiscounts: billing.Discounts{
+							Percentage: &billing.PercentageDiscount{
+								PercentageDiscount: productcatalog.PercentageDiscount{
+									Percentage: models.NewPercentage(10),
+								},
+							},
+						},
+						FeatureKey: featureFlatPerUnit.Key,
+						Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+							Amount: alpacadecimal.NewFromFloat(100),
+						})),
+					},
+				},
+			}),
+		})
+		s.NoError(err)
+
+		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+			Customer: customerEntity.GetID(),
+		})
+		s.NoError(err)
+		s.Len(invoices, 1)
+
+		invoiceID = invoices[0].GetInvoiceID()
+
+		updatedDetailedLines, err := s.DBClient.BillingInvoiceLine.Update().
+			Where(billinginvoiceline.Namespace(namespace)).
+			Where(billinginvoiceline.InvoiceID(invoiceID.ID)).
+			Where(billinginvoiceline.StatusEQ(billing.InvoiceLineStatusDetailed)).
+			SetAnnotations(models.Annotations{"deprecated": true}).
+			SetMetadata(map[string]string{"deprecated": "true"}).
+			Save(ctx)
+		s.Require().NoError(err)
+		s.Require().Equal(2, updatedDetailedLines)
+
+		// Delete all detailed lines under the chosen parent by directly updating the schema-level-1 representation (billing_invoice_lines).
+		deletedAtSet = clock.Now()
+		n, err := s.markAllDetailedChildrenDeleted(ctx, namespace, invoiceID.ID, lineNameDeletedDetailed, deletedAtSet)
+		s.NoError(err)
+		s.Equal(n, 1)
+
+		// Validate schema-level-1 using the adapter (read-path).
+		invoiceBeforeMigration, err = s.BillingAdapter.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
+			Invoice: invoiceID,
+			Expand: billing.StandardInvoiceExpands{
+				billing.StandardInvoiceExpandLines,
+				billing.StandardInvoiceExpandDeletedLines,
+			},
+		})
+		s.NoError(err)
+		s.Len(invoiceBeforeMigration.Lines.OrEmpty(), 2)
+
+		// One line has its only detailed line deleted -> adapter won't return deleted detailed lines.
+		lineDeleted := s.getLineByName(invoiceBeforeMigration, lineNameDeletedDetailed)
+		lineActive := s.getLineByName(invoiceBeforeMigration, lineNameActiveDetailed)
+
+		s.Len(lineDeleted.DetailedLines, 0)
+		s.Len(lineActive.DetailedLines, 1)
+		s.GreaterOrEqual(len(lineActive.DetailedLines[0].AmountDiscounts), 1)
+	})
+
+	s.Run("Given a schema level 1 gathering invoice exists", func() {
+		periodStart := time.Now().Add(-time.Hour)
+		periodEnd := time.Now().Add(time.Hour)
+
+		result, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
+			Customer: customerEntity.GetID(),
+			Currency: currencyx.FiatCode(currency.USD),
+			Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
+				{
+					GatheringLineBase: billing.GatheringLineBase{
+						ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+							Namespace: namespace,
+							Name:      "Gathering item",
+						}),
+						ServicePeriod: timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
+						InvoiceAt:     periodEnd,
+						ManagedBy:     billing.ManuallyManagedLine,
+						Currency:      currencyx.FiatCode(currency.USD),
+						FeatureKey:    featureFlatPerUnit.Key,
+						Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+							Amount: alpacadecimal.NewFromFloat(100),
+						})),
+					},
+				},
+			}),
+		})
+		s.Require().NoError(err)
+
+		gatheringID = result.Invoice.GetInvoiceID()
+		gatheringInvoice, err := s.DBClient.BillingInvoice.Get(ctx, gatheringID.ID)
+		s.Require().NoError(err)
+		s.Require().Equal(1, gatheringInvoice.SchemaLevel)
+	})
+
+	s.Run("When the write schema level is set to 2 and a lock is obtained on the customer", func() {
+		s.NoError(s.BillingAdapter.SetInvoiceDefaultSchemaLevel(ctx, 2))
+		// Side-effect: migration happens due to the previous line.
+		s.NoError(s.BillingAdapter.LockCustomerForUpdate(ctx, customerEntity.GetID()))
+	})
+
+	s.Run("Then the invoice is migrated and lines (incl detailed lines) match exactly", func() {
+		gatheringInvoice, err := s.DBClient.BillingInvoice.Get(ctx, gatheringID.ID)
+		s.Require().NoError(err)
+		s.Require().Equal(2, gatheringInvoice.SchemaLevel)
+
+		invoiceAfter, err := s.BillingAdapter.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
+			Invoice: invoiceID,
+			Expand: billing.StandardInvoiceExpands{
+				billing.StandardInvoiceExpandLines,
+				billing.StandardInvoiceExpandDeletedLines,
+			},
+		})
+		s.Require().NoError(err)
+
+		// Invoice schema level updated (part of the invoice payload).
+		s.Require().Equal(2, invoiceAfter.SchemaLevel)
+
+		// Lines and their detailed lines match exactly (by name to avoid ordering assumptions).
+		beforeDeleted := s.getLineByName(invoiceBeforeMigration, lineNameDeletedDetailed).WithoutSplitLineHierarchy().WithoutDBState()
+		beforeActive := s.getLineByName(invoiceBeforeMigration, lineNameActiveDetailed).WithoutSplitLineHierarchy().WithoutDBState()
+		afterDeleted := s.getLineByName(invoiceAfter, lineNameDeletedDetailed).WithoutSplitLineHierarchy().WithoutDBState()
+		afterActive := s.getLineByName(invoiceAfter, lineNameActiveDetailed).WithoutSplitLineHierarchy().WithoutDBState()
+
+		// Let's remove the DetailedLine's FeeLineConfigID as that's not existing in the schema-level-2 representation.
+		beforeDeleted, err = s.withoutDetailedFeeLineConfigID(beforeDeleted)
+		s.NoError(err)
+		beforeActive, err = s.withoutDetailedFeeLineConfigID(beforeActive)
+		s.NoError(err)
+
+		s.Equal(beforeDeleted, afterDeleted)
+		s.Equal(beforeActive, afterActive)
+
+		// Detailed lines copied (2 input lines => 2 detailed fee lines; one is deleted).
+		migratedDetailedLines, err := s.DBClient.BillingStandardInvoiceDetailedLine.Query().
+			Where(billingstandardinvoicedetailedline.Namespace(namespace)).
+			Where(billingstandardinvoicedetailedline.InvoiceID(invoiceID.ID)).
+			All(ctx)
+		s.Require().NoError(err)
+		s.Require().Len(migratedDetailedLines, 2)
+		for _, detailedLine := range migratedDetailedLines {
+			s.Empty(detailedLine.Annotations)
+			s.Empty(detailedLine.Metadata)
+		}
+
+		// Deleted detailed line is copied (find by deleted_at we set).
+		deletedCopiedCount, err := s.DBClient.BillingStandardInvoiceDetailedLine.Query().
+			Where(billingstandardinvoicedetailedline.Namespace(namespace)).
+			Where(billingstandardinvoicedetailedline.InvoiceID(invoiceID.ID)).
+			Where(billingstandardinvoicedetailedline.DeletedAtEQ(deletedAtSet)).
+			Count(ctx)
+		s.Require().NoError(err)
+		s.Require().Equal(1, deletedCopiedCount)
+	})
+}
+
+func (s *SchemaMigrationTestSuite) markAllDetailedChildrenDeleted(ctx context.Context, ns string, invoiceID string, parentLineName string, deletedAt time.Time) (int, error) {
+	// Find the parent (top-level) invoice line by name.
+	parent, err := s.DBClient.BillingInvoiceLine.Query().
+		Where(billinginvoiceline.Namespace(ns)).
+		Where(billinginvoiceline.InvoiceID(invoiceID)).
+		Where(billinginvoiceline.NameEQ(parentLineName)).
+		Where(billinginvoiceline.StatusEQ(billing.InvoiceLineStatusValid)).
+		First(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("finding parent invoice line %q: %w", parentLineName, err)
+	}
+
+	// Mark ALL child detailed lines under that parent as deleted.
+	n, err := s.DBClient.BillingInvoiceLine.Update().
+		Where(billinginvoiceline.Namespace(ns)).
+		Where(billinginvoiceline.InvoiceID(invoiceID)).
+		Where(billinginvoiceline.ParentLineIDEQ(parent.ID)).
+		Where(billinginvoiceline.StatusEQ(billing.InvoiceLineStatusDetailed)).
+		Where(billinginvoiceline.DeletedAtIsNil()).
+		SetDeletedAt(deletedAt).
+		Save(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("setting deleted_at on detailed lines under parent %q: %w", parentLineName, err)
+	}
+
+	return n, nil
+}
+
+func (s *SchemaMigrationTestSuite) withoutDetailedFeeLineConfigID(in *billing.StandardLine) (*billing.StandardLine, error) {
+	if in == nil {
+		return nil, nil
+	}
+
+	out, err := in.Clone()
+	if err != nil {
+		return nil, fmt.Errorf("cloning line: %w", err)
+	}
+
+	for i := range out.DetailedLines {
+		out.DetailedLines[i].FeeLineConfigID = ""
+	}
+
+	return out, nil
+}
+
+func (s *SchemaMigrationTestSuite) getLineByName(inv billing.StandardInvoice, name string) *billing.StandardLine {
+	lines := inv.Lines.OrEmpty()
+	for _, l := range lines {
+		if l.Name == name {
+			return l
+		}
+	}
+
+	s.FailNowf("line not found", "invoice does not contain a line with name %q", name)
+
+	return nil
+}

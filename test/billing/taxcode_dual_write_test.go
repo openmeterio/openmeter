@@ -98,7 +98,7 @@ func (s *TaxCodeDualWriteTestSuite) TestProfileCreateWithTaxCodeRejected() {
 	ns := s.GetUniqueNamespace("ns-taxcode-dw")
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
 
-	input := minimalCreateProfileInputTemplate(sandboxApp.GetID())
+	input := MinimalCreateProfileInputTemplate(sandboxApp.GetID())
 	input.Namespace = ns
 	input.WorkflowConfig.Invoicing.DefaultTaxConfig = &productcatalog.TaxConfig{
 		Stripe: &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
@@ -262,7 +262,7 @@ func (s *TaxCodeDualWriteTestSuite) TestProfileTaxCodeIdempotent() {
 	})
 
 	// Create a second non-default profile and seed the same Stripe code.
-	inputB := minimalCreateProfileInputTemplate(sandboxApp.GetID())
+	inputB := MinimalCreateProfileInputTemplate(sandboxApp.GetID())
 	inputB.Namespace = ns
 	inputB.Default = false
 	inputB.Name = "Profile B"

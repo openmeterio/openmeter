@@ -55,7 +55,7 @@ func TestSubscriptionCustomCurrencyGatheringInvoiceLivePreviewOmitsUsageBasedLin
 	defer deps.cleanup(t)
 	provisionSubscriptionDefaultTaxCodes(t, deps, namespace)
 
-	profileInput := minimalCreateProfileInputTemplate(deps.sandboxApp.GetID())
+	profileInput := MinimalCreateProfileInputTemplate(deps.sandboxApp.GetID())
 	profileInput.WorkflowConfig.Collection.Interval = datetime.MustParseDuration(t, "P1D")
 	profileInput.WorkflowConfig.Invoicing.AutoAdvance = false
 	_, err := deps.billingService.CreateProfile(t.Context(), profileInput)
@@ -251,7 +251,7 @@ func TestSubscriptionSyncCustomCurrencyBilling(t *testing.T) {
 			defer deps.cleanup(t)
 			provisionSubscriptionDefaultTaxCodes(t, deps, namespace)
 
-			profileInput := minimalCreateProfileInputTemplate(deps.sandboxApp.GetID())
+			profileInput := MinimalCreateProfileInputTemplate(deps.sandboxApp.GetID())
 			profileInput.WorkflowConfig.Collection.Interval = datetime.MustParseDuration(t, "P1D")
 			profileInput.WorkflowConfig.Invoicing.AutoAdvance = false
 			_, err := deps.billingService.CreateProfile(t.Context(), profileInput)

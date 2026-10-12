@@ -9,7 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-func minimalCreateProfileInputTemplate(appID app.AppID) billing.CreateProfileInput {
+func MinimalCreateProfileInputTemplate(appID app.AppID) billing.CreateProfileInput {
 	return billing.CreateProfileInput{
 		Name:    "Awesome Profile",
 		Default: true,

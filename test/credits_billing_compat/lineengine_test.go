@@ -1,0 +1,1930 @@
+package creditsbillingcompat
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"testing"
+	"time"
+
+	"github.com/alpacahq/alpacadecimal"
+	"github.com/invopop/gobl/currency"
+	"github.com/oklog/ulid/v2"
+	"github.com/samber/lo"
+	"github.com/samber/mo"
+	"github.com/stretchr/testify/suite"
+
+	"github.com/openmeterio/openmeter/openmeter/app"
+	ombilling "github.com/openmeterio/openmeter/openmeter/billing"
+	billingtotals "github.com/openmeterio/openmeter/openmeter/billing/models/totals"
+	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/meter"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/filter"
+	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
+	billingtest "github.com/openmeterio/openmeter/test/billing"
+)
+
+type LineEngineTestSuite struct {
+	BaseSuite
+}
+
+func TestLineEngine(t *testing.T) {
+	t.Skip("pending rework")
+
+	suite.Run(t, new(LineEngineTestSuite))
+}
+
+type mockCollectionCompletedLineEngine struct {
+	engineType ombilling.LineEngineType
+
+	gateInvoiceAssignment                 func(ctx context.Context, input ombilling.GateInvoiceAssignmentInput) (ombilling.GateInvoiceAssignmentResult, error)
+	areLinesBillableAsOf                  func(ctx context.Context, input ombilling.AreLinesBillableAsOfInput) ([]ombilling.IsLineBillableAsOfResult, error)
+	buildStandardInvoiceLines             func(ctx context.Context, input ombilling.BuildStandardInvoiceLinesInput) (ombilling.StandardLines, error)
+	buildStandardLinesForGatheringPreview func(ctx context.Context, input ombilling.BuildStandardInvoiceLinesInput) (ombilling.StandardLines, error)
+	onStandardInvoiceCreated              func(ctx context.Context, input ombilling.OnStandardInvoiceCreatedInput) (ombilling.StandardLines, error)
+	onCollectionCompleted                 func(ctx context.Context, input ombilling.OnCollectionCompletedInput) (ombilling.StandardLines, error)
+	onMutableLinesChanged                 func(ctx context.Context, input ombilling.OnMutableInvoiceUpdateInput) (ombilling.OnMutableInvoiceUpdateResult, error)
+	onUnsupportedCreditNote               func(ctx context.Context, input ombilling.OnUnsupportedCreditNoteInput) error
+	onInvoiceFinalizing                   func(ctx context.Context, input ombilling.OnInvoiceFinalizingInput) (ombilling.StandardLines, error)
+	onInvoiceIssued                       func(ctx context.Context, input ombilling.OnInvoiceIssuedInput) error
+	onPaymentAuthorized                   func(ctx context.Context, input ombilling.OnPaymentAuthorizedInput) error
+	onPaymentSettled                      func(ctx context.Context, input ombilling.OnPaymentSettledInput) error
+}
+
+func mustAsNewStandardLines(input ombilling.BuildStandardInvoiceLinesInput) ombilling.StandardLines {
+	out := make(ombilling.StandardLines, 0, len(input.GatheringLines))
+	for _, gatheringLine := range input.GatheringLines {
+		stdLine, err := gatheringLine.AsNewStandardLine(input.Invoice.ID)
+		if err != nil {
+			panic(err)
+		}
+
+		out = append(out, stdLine)
+	}
+
+	return out
+}
+
+func (m *mockCollectionCompletedLineEngine) GetLineEngineType() ombilling.LineEngineType {
+	if m.engineType == "" {
+		panic("engine type is required")
+	}
+
+	return m.engineType
+}
+
+func (m *mockCollectionCompletedLineEngine) AreLinesBillableAsOf(ctx context.Context, batch ombilling.AreLinesBillableAsOfInput) ([]ombilling.IsLineBillableAsOfResult, error) {
+	if m.areLinesBillableAsOf != nil {
+		return m.areLinesBillableAsOf(ctx, batch)
+	}
+
+	return lo.Map(batch.Lines, func(line ombilling.GatheringLine, _ int) ombilling.IsLineBillableAsOfResult {
+		if batch.AsOf.Before(line.InvoiceAt) {
+			return ombilling.IsLineBillableAsOfResult{}
+		}
+
+		return ombilling.IsLineBillableAsOfResult{
+			Billable:       true,
+			BillablePeriod: line.ServicePeriod,
+		}
+	}), nil
+}
+
+func (m *mockCollectionCompletedLineEngine) GateInvoiceAssignment(ctx context.Context, input ombilling.GateInvoiceAssignmentInput) (ombilling.GateInvoiceAssignmentResult, error) {
+	if m.gateInvoiceAssignment == nil {
+		return nil, nil
+	}
+
+	return m.gateInvoiceAssignment(ctx, input)
+}
+
+func (s *LineEngineTestSuite) TestBillabilityValidationIssuesPreventInvoiceAdvancement() {
+	ctx := s.T().Context()
+	namespace := s.GetUniqueNamespace("ns-line-engine-billability-validation")
+	mockEngine := &mockCollectionCompletedLineEngine{engineType: ombilling.LineEngineTypeChargeFlatFee}
+	s.registerMockLineEngine(s.T(), mockEngine)
+	defer s.unregisterLineEngine(s.T(), mockEngine)
+
+	servicePeriod := timeutil.ClosedPeriod{
+		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		To:   time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
+	}
+	clock.FreezeTime(servicePeriod.To)
+	defer clock.UnFreeze()
+
+	mockEngine.areLinesBillableAsOf = func(_ context.Context, input ombilling.AreLinesBillableAsOfInput) ([]ombilling.IsLineBillableAsOfResult, error) {
+		return lo.Map(input.Lines, func(ombilling.GatheringLine, int) ombilling.IsLineBillableAsOfResult {
+			return ombilling.IsLineBillableAsOfResult{
+				Billable:       true,
+				BillablePeriod: servicePeriod,
+			}
+		}), ombilling.ValidationWithFieldPrefix("charges/charge-id", ombilling.ErrInvoiceLineFeatureNotFound)
+	}
+	mockEngine.buildStandardInvoiceLines = func(_ context.Context, input ombilling.BuildStandardInvoiceLinesInput) (ombilling.StandardLines, error) {
+		return mustAsNewStandardLines(input), nil
+	}
+
+	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
+	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
+	customerEntity := s.CreateTestCustomer(namespace, "test-subject")
+
+	_, err := s.BillingService.CreatePendingInvoiceLines(ctx, ombilling.CreatePendingInvoiceLinesInput{
+		Customer: customerEntity.GetID(),
+		Currency: currencyx.FiatCode(currency.USD),
+		Lines: ombilling.NewCreatePendingInvoiceLines(ombilling.GatheringLines{{
+			GatheringLineBase: ombilling.GatheringLineBase{
+				ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+					Namespace: namespace,
+					Name:      "line with missing feature",
+				}),
+				ManagedBy:     ombilling.ManuallyManagedLine,
+				Engine:        mockEngine.GetLineEngineType(),
+				Currency:      currencyx.FiatCode(currency.USD),
+				ServicePeriod: servicePeriod,
+				InvoiceAt:     servicePeriod.To,
+				Price: *productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+					Amount: alpacadecimal.NewFromInt(10),
+				}),
+			},
+		}}),
+	})
+	s.Require().NoError(err)
+
+	invoices, err := s.BillingService.InvoicePendingLines(ctx, ombilling.InvoicePendingLinesInput{
+		Customer: customerEntity.GetID(),
+	})
+	s.Require().NoError(err)
+	s.Require().Len(invoices, 1)
+	s.Equal(ombilling.StandardInvoiceStatusDraftInvalidCreated, invoices[0].Status)
+	s.Require().Len(invoices[0].ValidationIssues, 1)
+	s.Equal(ombilling.ErrInvoiceLineFeatureNotFound.Code, invoices[0].ValidationIssues[0].Code)
+	s.Equal("/charges/charge-id", invoices[0].ValidationIssues[0].Path)
+	s.Equal(ombilling.LineEngineValidationComponent(mockEngine.GetLineEngineType()), invoices[0].ValidationIssues[0].Component)
+}
+
+func (m *mockCollectionCompletedLineEngine) SplitGatheringLine(_ context.Context, _ ombilling.SplitGatheringLineInput) (ombilling.SplitGatheringLineResult, error) {
+	return ombilling.SplitGatheringLineResult{}, fmt.Errorf("split is not supported")
+}
+
+func (m *mockCollectionCompletedLineEngine) BuildStandardInvoiceLines(ctx context.Context, input ombilling.BuildStandardInvoiceLinesInput) (ombilling.StandardLines, error) {
+	if m.buildStandardInvoiceLines == nil {
+		return nil, errors.New("buildStandardInvoiceLines is not set")
+	}
+
+	return m.buildStandardInvoiceLines(ctx, input)
+}
+
+func (m *mockCollectionCompletedLineEngine) BuildStandardLinesForGatheringPreview(ctx context.Context, input ombilling.BuildStandardInvoiceLinesInput) (ombilling.StandardLines, error) {
+	if m.buildStandardLinesForGatheringPreview != nil {
+		return m.buildStandardLinesForGatheringPreview(ctx, input)
+	}
+
+	return mustAsNewStandardLines(input), nil
+}
+
+func (m *mockCollectionCompletedLineEngine) OnCollectionCompleted(ctx context.Context, input ombilling.OnCollectionCompletedInput) (ombilling.StandardLines, error) {
+	if m.onCollectionCompleted == nil {
+		return nil, errors.New("onCollectionCompleted is not set")
+	}
+
+	return m.onCollectionCompleted(ctx, input)
+}
+
+func (m *mockCollectionCompletedLineEngine) OnStandardInvoiceCreated(ctx context.Context, input ombilling.OnStandardInvoiceCreatedInput) (ombilling.StandardLines, error) {
+	if m.onStandardInvoiceCreated == nil {
+		return input.Lines, nil
+	}
+
+	return m.onStandardInvoiceCreated(ctx, input)
+}
+
+func (m *mockCollectionCompletedLineEngine) ValidateMutableInvoiceLineEditViaAPI(_ context.Context, input ombilling.OnMutableInvoiceUpdateInput) error {
+	return input.Validate()
+}
+
+func (m *mockCollectionCompletedLineEngine) OnMutableInvoiceLinesEditedViaAPI(ctx context.Context, input ombilling.OnMutableInvoiceUpdateInput) (ombilling.OnMutableInvoiceUpdateResult, error) {
+	if m.onMutableLinesChanged == nil {
+		return ombilling.OnMutableInvoiceUpdateResult{
+			CreatedLines: input.Created,
+			UpdatedLines: input.Updated.Lines(),
+		}, nil
+	}
+
+	return m.onMutableLinesChanged(ctx, input)
+}
+
+func (m *mockCollectionCompletedLineEngine) OnMutableStandardLinesDeletedBySystem(context.Context, ombilling.OnMutableStandardLinesDeletedInput) error {
+	return nil
+}
+
+func (m *mockCollectionCompletedLineEngine) OnUnsupportedCreditNote(ctx context.Context, input ombilling.OnUnsupportedCreditNoteInput) error {
+	if m.onUnsupportedCreditNote == nil {
+		return nil
+	}
+
+	return m.onUnsupportedCreditNote(ctx, input)
+}
+
+func (m *mockCollectionCompletedLineEngine) OnInvoiceFinalizing(ctx context.Context, input ombilling.OnInvoiceFinalizingInput) (ombilling.StandardLines, error) {
+	if m.onInvoiceFinalizing == nil {
+		return input.Lines, nil
+	}
+
+	return m.onInvoiceFinalizing(ctx, input)
+}
+
+func (m *mockCollectionCompletedLineEngine) OnInvoiceIssued(ctx context.Context, input ombilling.OnInvoiceIssuedInput) error {
+	if m.onInvoiceIssued == nil {
+		return fmt.Errorf("onInvoiceIssued is not set")
+	}
+
+	return m.onInvoiceIssued(ctx, input)
+}
+
+func (m *mockCollectionCompletedLineEngine) OnPaymentAuthorized(ctx context.Context, input ombilling.OnPaymentAuthorizedInput) error {
+	if m.onPaymentAuthorized == nil {
+		return nil
+	}
+
+	return m.onPaymentAuthorized(ctx, input)
+}
+
+func (m *mockCollectionCompletedLineEngine) OnPaymentSettled(ctx context.Context, input ombilling.OnPaymentSettledInput) error {
+	if m.onPaymentSettled == nil {
+		return nil
+	}
+
+	return m.onPaymentSettled(ctx, input)
+}
+
+func (m *mockCollectionCompletedLineEngine) Reset() {
+	*m = mockCollectionCompletedLineEngine{
+		engineType: m.engineType,
+	}
+}
+
+func (s *LineEngineTestSuite) registerMockLineEngine(t *testing.T, engine ombilling.LineEngine) {
+	t.Helper()
+	s.Require().NoError(s.BillingService.RegisterLineEngine(engine))
+}
+
+func (s *LineEngineTestSuite) unregisterLineEngine(t *testing.T, engine ombilling.LineEngine) {
+	t.Helper()
+	s.Require().NoError(s.BillingService.DeregisterLineEngine(engine.GetLineEngineType()))
+}
+
+func (s *LineEngineTestSuite) TestGateInvoiceAssignmentDuringCollection() {
+	ctx := s.T().Context()
+	now := time.Date(2026, 9, 1, 12, 0, 0, 0, time.UTC)
+	clock.FreezeTime(now)
+	defer clock.UnFreeze()
+
+	mockEngine := &mockCollectionCompletedLineEngine{
+		engineType: ombilling.LineEngineTypeChargeCreditPurchase,
+	}
+	s.registerMockLineEngine(s.T(), mockEngine)
+	defer s.unregisterLineEngine(s.T(), mockEngine)
+
+	s.Run("all otherwise billable lines blocked returns an empty successful result", func() {
+		// given
+		mockEngine.Reset()
+		namespace := s.GetUniqueNamespace("ns-line-engine-gate-all-blocked")
+		customerID, pendingLines := s.createInvoiceAssignmentGateFixture(ctx, namespace, mockEngine.GetLineEngineType(), now, now)
+		gateCalled := false
+		buildCalled := false
+		mockEngine.gateInvoiceAssignment = func(_ context.Context, input ombilling.GateInvoiceAssignmentInput) (ombilling.GateInvoiceAssignmentResult, error) {
+			gateCalled = true
+			result := make(ombilling.GateInvoiceAssignmentResult, len(input.Lines))
+			for _, line := range input.Lines {
+				result[line.GetLineID()] = ombilling.InvoiceAssignmentGateResponse{ExcludeFromInvoice: true}
+			}
+
+			return result, nil
+		}
+		mockEngine.buildStandardInvoiceLines = func(context.Context, ombilling.BuildStandardInvoiceLinesInput) (ombilling.StandardLines, error) {
+			buildCalled = true
+			return nil, errors.New("blocked lines must not be materialized")
+		}
+
+		// when
+		invoices, err := s.BillingService.InvoicePendingLines(ctx, ombilling.InvoicePendingLinesInput{
+			Customer:            customerID,
+			IncludePendingLines: mo.Some(lo.Map(pendingLines, func(line ombilling.GatheringLine, _ int) string { return line.ID })),
+			AsOf:                &now,
+			ForceAsyncAdvance:   true,
+		}, ombilling.WithBypassCollectionAlignment())
+
+		// then
+		s.Require().NoError(err)
+		s.Empty(invoices)
+		s.True(gateCalled)
+		s.False(buildCalled)
+	})
+
+	s.Run("no otherwise billable lines preserves ErrInvoiceCreateNoLines", func() {
+		// given
+		mockEngine.Reset()
+		namespace := s.GetUniqueNamespace("ns-line-engine-gate-no-billable-lines")
+		customerID, _ := s.createInvoiceAssignmentGateFixture(ctx, namespace, mockEngine.GetLineEngineType(), now.Add(time.Hour))
+		gateCalled := false
+		mockEngine.gateInvoiceAssignment = func(_ context.Context, input ombilling.GateInvoiceAssignmentInput) (ombilling.GateInvoiceAssignmentResult, error) {
+			gateCalled = true
+			return nil, nil
+		}
+
+		// when
+		invoices, err := s.BillingService.InvoicePendingLines(ctx, ombilling.InvoicePendingLinesInput{
+			Customer:          customerID,
+			AsOf:              &now,
+			ForceAsyncAdvance: true,
+		}, ombilling.WithBypassCollectionAlignment())
+
+		// then
+		s.Require().Error(err)
+		s.ErrorIs(err, ombilling.ErrInvoiceCreateNoLines)
+		s.ErrorAs(err, &ombilling.ValidationError{})
+		s.Empty(invoices)
+		s.False(gateCalled)
+	})
+
+	s.Run("blocked lines do not consume the invoice line limit", func() {
+		// given
+		mockEngine.Reset()
+		namespace := s.GetUniqueNamespace("ns-line-engine-gate-line-limit")
+		customerID, pendingLines := s.createInvoiceAssignmentGateFixture(ctx, namespace, mockEngine.GetLineEngineType(), now.Add(-time.Hour), now)
+		blockedLineID := pendingLines[0].GetLineID()
+		mockEngine.gateInvoiceAssignment = func(_ context.Context, input ombilling.GateInvoiceAssignmentInput) (ombilling.GateInvoiceAssignmentResult, error) {
+			return ombilling.GateInvoiceAssignmentResult{
+				blockedLineID: {ExcludeFromInvoice: true},
+			}, nil
+		}
+		mockEngine.buildStandardInvoiceLines = func(_ context.Context, input ombilling.BuildStandardInvoiceLinesInput) (ombilling.StandardLines, error) {
+			return mustAsNewStandardLines(input), nil
+		}
+
+		// when
+		invoices, err := s.BillingService.InvoicePendingLines(ctx, ombilling.InvoicePendingLinesInput{
+			Customer:          customerID,
+			AsOf:              &now,
+			ForceAsyncAdvance: true,
+		}, ombilling.WithBypassCollectionAlignment(), ombilling.WithMaxLinesPerInvoice(1))
+
+		// then
+		s.Require().NoError(err)
+		s.Require().Len(invoices, 1)
+		s.Require().Len(invoices[0].Lines.OrEmpty(), 1)
+		s.Equal(pendingLines[1].ID, invoices[0].Lines.OrEmpty()[0].ID)
+	})
+
+	s.Run("gate errors abort invoice creation", func() {
+		// given
+		mockEngine.Reset()
+		namespace := s.GetUniqueNamespace("ns-line-engine-gate-error")
+		customerID, _ := s.createInvoiceAssignmentGateFixture(ctx, namespace, mockEngine.GetLineEngineType(), now)
+		gateErr := errors.New("synthetic gate failure")
+		mockEngine.gateInvoiceAssignment = func(context.Context, ombilling.GateInvoiceAssignmentInput) (ombilling.GateInvoiceAssignmentResult, error) {
+			return ombilling.GateInvoiceAssignmentResult{}, gateErr
+		}
+
+		// when
+		invoices, err := s.BillingService.InvoicePendingLines(ctx, ombilling.InvoicePendingLinesInput{
+			Customer:          customerID,
+			AsOf:              &now,
+			ForceAsyncAdvance: true,
+		}, ombilling.WithBypassCollectionAlignment())
+
+		// then
+		s.Require().ErrorIs(err, gateErr)
+		s.ErrorContains(err, "gating invoice assignment")
+		s.Empty(invoices)
+	})
+}
+
+func (s *LineEngineTestSuite) createInvoiceAssignmentGateFixture(
+	ctx context.Context,
+	namespace string,
+	engineType ombilling.LineEngineType,
+	invoiceAt ...time.Time,
+) (customer.CustomerID, ombilling.GatheringLines) {
+	s.T().Helper()
+
+	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
+	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
+	customerEntity := s.CreateTestCustomer(namespace, "invoice-assignment-gate-customer")
+
+	lines := lo.Map(invoiceAt, func(at time.Time, idx int) ombilling.GatheringLine {
+		line := ombilling.NewFlatFeeGatheringLine(ombilling.NewFlatFeeLineInput{
+			Namespace:     namespace,
+			Period:        timeutil.ClosedPeriod{From: at.Add(-time.Hour), To: at},
+			InvoiceAt:     at,
+			Name:          fmt.Sprintf("invoice assignment gate line %d", idx+1),
+			ManagedBy:     ombilling.ManuallyManagedLine,
+			PerUnitAmount: alpacadecimal.NewFromInt(1),
+			PaymentTerm:   productcatalog.InArrearsPaymentTerm,
+		})
+		line.Engine = engineType
+
+		return line
+	})
+
+	pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx, ombilling.CreatePendingInvoiceLinesInput{
+		Customer: customerEntity.GetID(),
+		Currency: currencyx.FiatCode(currency.USD),
+		Lines:    ombilling.NewCreatePendingInvoiceLines(lines),
+	})
+	s.Require().NoError(err)
+	s.Require().Len(pendingLines.Lines, len(lines))
+
+	return customerEntity.GetID(), pendingLines.Lines
+}
+
+func (s *LineEngineTestSuite) createMeteredDraftInvoiceWaitingForCollection(
+	ctx context.Context,
+	namespace string,
+	engineType ombilling.LineEngineType,
+	lineName string,
+) (ombilling.StandardInvoice, time.Time) {
+	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
+
+	return s.createMeteredDraftInvoiceWaitingForCollectionForApp(ctx, namespace, sandboxApp.GetID(), engineType, lineName)
+}
+
+func (s *LineEngineTestSuite) createMeteredDraftInvoiceWaitingForCollectionForApp(
+	ctx context.Context,
+	namespace string,
+	appID app.AppID,
+	engineType ombilling.LineEngineType,
+	lineName string,
+) (ombilling.StandardInvoice, time.Time) {
+	meterSlug := fmt.Sprintf("%s-meter", namespace)
+	meterID := ulid.Make().String()
+	err := s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{{
+		ManagedResource: models.ManagedResource{
+			ID: meterID,
+			NamespacedModel: models.NamespacedModel{
+				Namespace: namespace,
+			},
+			ManagedModel: models.ManagedModel{
+				CreatedAt: time.Now(),
+				UpdatedAt: time.Now(),
+			},
+			Name: "Line Engine Test Meter",
+		},
+		Key:           meterSlug,
+		Aggregation:   meter.MeterAggregationSum,
+		EventType:     "test",
+		ValueProperty: lo.ToPtr("$.value"),
+	}})
+	s.Require().NoError(err)
+
+	testFeature := lo.Must(s.FeatureService.CreateFeature(ctx, feature.CreateFeatureInputs{
+		Namespace: namespace,
+		Name:      fmt.Sprintf("%s-feature", namespace),
+		Key:       fmt.Sprintf("%s-feature", namespace),
+		MeterID:   lo.ToPtr(meterID),
+	}))
+
+	customerEntity := s.CreateTestCustomer(namespace, "test-subject-1")
+
+	s.ProvisionBillingProfile(ctx, namespace, appID, billingtest.WithCollectionInterval(datetime.NewISODuration(0, 0, 0, 1, 0, 0, 0)))
+
+	periodStart := lo.Must(time.Parse(time.RFC3339, "2024-09-02T11:13:14Z"))
+	periodEnd := lo.Must(time.Parse(time.RFC3339, "2024-09-02T13:13:14Z"))
+
+	s.MockStreamingConnector.AddSimpleEvent(meterSlug, 10, periodStart.Add(-time.Minute))
+
+	pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx, ombilling.CreatePendingInvoiceLinesInput{
+		Customer: customer.CustomerID{
+			Namespace: customerEntity.Namespace,
+			ID:        customerEntity.ID,
+		},
+		Currency: currencyx.FiatCode(currency.USD),
+		Lines: ombilling.NewCreatePendingInvoiceLines([]ombilling.GatheringLine{{
+			GatheringLineBase: ombilling.GatheringLineBase{
+				ManagedResource: models.ManagedResource{
+					NamespacedModel: models.NamespacedModel{Namespace: namespace},
+					Name:            lineName,
+				},
+				ServicePeriod: timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
+				InvoiceAt:     periodEnd,
+				ManagedBy:     ombilling.ManuallyManagedLine,
+				FeatureKey:    testFeature.Key,
+				Engine:        engineType,
+				Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+					Amount: alpacadecimal.NewFromFloat(1),
+				})),
+			},
+		}}),
+	})
+	s.Require().NoError(err)
+	s.Require().Len(pendingLines.Lines, 1)
+
+	clock.SetTime(periodEnd)
+	invoices, err := s.BillingService.InvoicePendingLines(ctx, ombilling.InvoicePendingLinesInput{
+		Customer: customerEntity.GetID(),
+	})
+	s.Require().NoError(err)
+	s.Require().Len(invoices, 1)
+	s.Require().Equal(ombilling.StandardInvoiceStatusDraftWaitingForCollection, invoices[0].Status)
+
+	return invoices[0], invoices[0].DefaultCollectionAtForStandardInvoice()
+}
+
+func (s *LineEngineTestSuite) markInvoicePaid(ctx context.Context, invoiceID ombilling.InvoiceID) ombilling.StandardInvoice {
+	appType := s.mustGetInvoiceAppType(ctx, invoiceID)
+
+	s.Require().NoError(s.BillingService.TriggerInvoice(ctx, ombilling.InvoiceTriggerServiceInput{
+		InvoiceTriggerInput: ombilling.InvoiceTriggerInput{
+			Invoice: invoiceID,
+			Trigger: ombilling.TriggerPaid,
+		},
+		AppType:    appType,
+		Capability: app.CapabilityTypeCollectPayments,
+	}))
+
+	invoice, err := s.BillingService.GetStandardInvoiceById(ctx, ombilling.GetStandardInvoiceByIdInput{
+		Invoice: invoiceID,
+	})
+	s.Require().NoError(err)
+
+	return invoice
+}
+
+func (s *LineEngineTestSuite) markInvoiceAuthorized(ctx context.Context, invoiceID ombilling.InvoiceID) ombilling.StandardInvoice {
+	appType := s.mustGetInvoiceAppType(ctx, invoiceID)
+
+	s.Require().NoError(s.BillingService.TriggerInvoice(ctx, ombilling.InvoiceTriggerServiceInput{
+		InvoiceTriggerInput: ombilling.InvoiceTriggerInput{
+			Invoice: invoiceID,
+			Trigger: ombilling.TriggerAuthorized,
+		},
+		AppType:    appType,
+		Capability: app.CapabilityTypeCollectPayments,
+	}))
+
+	invoice, err := s.BillingService.GetStandardInvoiceById(ctx, ombilling.GetStandardInvoiceByIdInput{
+		Invoice: invoiceID,
+	})
+	s.Require().NoError(err)
+
+	return invoice
+}
+
+func (s *LineEngineTestSuite) mustGetInvoiceAppType(ctx context.Context, invoiceID ombilling.InvoiceID) app.AppType {
+	invoice, err := s.BillingService.GetStandardInvoiceById(ctx, ombilling.GetStandardInvoiceByIdInput{
+		Invoice: invoiceID,
+	})
+	s.Require().NoError(err)
+
+	if invoice.Workflow.Apps != nil && invoice.Workflow.Apps.Invoicing != nil {
+		return invoice.Workflow.Apps.Invoicing.GetType()
+	}
+
+	invoicingApp, err := s.AppService.GetApp(ctx, app.GetAppInput{
+		Namespace: invoice.Namespace,
+		ID:        invoice.Workflow.AppReferences.Invoicing.ID,
+	})
+	s.Require().NoError(err)
+
+	return invoicingApp.GetType()
+}
+
+func (s *LineEngineTestSuite) TestGatheringPreviewUsesPreviewLineEngineCallback() {
+	ctx := s.T().Context()
+	namespace := s.GetUniqueNamespace("ns-line-engine-gathering-preview-callback")
+	mockEngine := &mockCollectionCompletedLineEngine{engineType: ombilling.LineEngineTypeChargeCreditPurchase}
+	meterSlug := fmt.Sprintf("%s-meter", namespace)
+	meterID := ulid.Make().String()
+
+	periodStart := lo.Must(time.Parse(time.RFC3339, "2024-09-02T11:13:14Z"))
+	periodEnd := lo.Must(time.Parse(time.RFC3339, "2024-09-02T13:13:14Z"))
+	clock.SetTime(periodEnd)
+	defer clock.ResetTime()
+	defer func() { _ = s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{}) }()
+	defer s.MockStreamingConnector.Reset()
+	s.registerMockLineEngine(s.T(), mockEngine)
+	defer s.unregisterLineEngine(s.T(), mockEngine)
+
+	mockEngine.buildStandardInvoiceLines = func(context.Context, ombilling.BuildStandardInvoiceLinesInput) (ombilling.StandardLines, error) {
+		return nil, errors.New("standard invoice build path must not be used for gathering preview")
+	}
+
+	previewCallbackCalled := false
+	mockEngine.buildStandardLinesForGatheringPreview = func(_ context.Context, input ombilling.BuildStandardInvoiceLinesInput) (ombilling.StandardLines, error) {
+		previewCallbackCalled = true
+		lines := mustAsNewStandardLines(input)
+		lines[0].Name = "preview callback line"
+
+		return lines, ombilling.ErrInvoiceLineFeatureNotFound
+	}
+
+	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
+	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID(), billingtest.WithCollectionInterval(datetime.NewISODuration(0, 0, 0, 1, 0, 0, 0)))
+
+	err := s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{{
+		ManagedResource: models.ManagedResource{
+			ID: meterID,
+			NamespacedModel: models.NamespacedModel{
+				Namespace: namespace,
+			},
+			ManagedModel: models.ManagedModel{
+				CreatedAt: time.Now(),
+				UpdatedAt: time.Now(),
+			},
+			Name: "Line Engine Gathering Preview Test Meter",
+		},
+		Key:           meterSlug,
+		Aggregation:   meter.MeterAggregationSum,
+		EventType:     "test",
+		ValueProperty: lo.ToPtr("$.value"),
+	}})
+	s.Require().NoError(err)
+
+	testFeature := lo.Must(s.FeatureService.CreateFeature(ctx, feature.CreateFeatureInputs{
+		Namespace: namespace,
+		Name:      fmt.Sprintf("%s-feature", namespace),
+		Key:       fmt.Sprintf("%s-feature", namespace),
+		MeterID:   lo.ToPtr(meterID),
+	}))
+
+	customerEntity := s.CreateTestCustomer(namespace, "test-subject-1")
+	_, err = s.BillingService.CreatePendingInvoiceLines(ctx, ombilling.CreatePendingInvoiceLinesInput{
+		Customer: customer.CustomerID{
+			Namespace: customerEntity.Namespace,
+			ID:        customerEntity.ID,
+		},
+		Currency: currencyx.FiatCode(currency.USD),
+		Lines: ombilling.NewCreatePendingInvoiceLines([]ombilling.GatheringLine{{
+			GatheringLineBase: ombilling.GatheringLineBase{
+				ManagedResource: models.ManagedResource{
+					NamespacedModel: models.NamespacedModel{Namespace: namespace},
+					Name:            "gathering preview callback source line",
+				},
+				ServicePeriod: timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
+				InvoiceAt:     periodEnd,
+				ManagedBy:     ombilling.ManuallyManagedLine,
+				FeatureKey:    testFeature.Key,
+				Engine:        mockEngine.GetLineEngineType(),
+				Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+					Amount: alpacadecimal.NewFromFloat(1),
+				})),
+			},
+		}}),
+	})
+	s.Require().NoError(err)
+
+	invoices, err := s.BillingService.ListInvoices(ctx, ombilling.ListInvoicesInput{
+		Namespace:        namespace,
+		CustomerID:       &filter.FilterULID{FilterString: filter.FilterString{Eq: &customerEntity.ID}},
+		ExtendedStatuses: []ombilling.StandardInvoiceStatus{ombilling.StandardInvoiceStatusGathering},
+		Expand: ombilling.InvoiceExpands{}.
+			With(ombilling.InvoiceExpandLines).
+			With(ombilling.InvoiceExpandCalculateGatheringInvoiceWithLiveData),
+	})
+	s.Require().NoError(err)
+	s.Require().Len(invoices.Items, 1)
+
+	previewInvoice, err := invoices.Items[0].AsStandardInvoice()
+	s.Require().NoError(err)
+	s.Require().True(previewInvoice.Lines.IsPresent())
+	s.Require().Len(previewInvoice.Lines.OrEmpty(), 1)
+	s.True(previewCallbackCalled)
+	s.Equal("preview callback line", previewInvoice.Lines.OrEmpty()[0].Name)
+	s.Require().Len(previewInvoice.ValidationIssues, 1)
+	s.Equal(ombilling.ErrInvoiceLineFeatureNotFound.Code, previewInvoice.ValidationIssues[0].Code)
+	s.Equal(ombilling.ValidationIssueSeverityCritical, previewInvoice.ValidationIssues[0].Severity)
+	s.Equal(ombilling.LineEngineValidationComponent(mockEngine.GetLineEngineType()), previewInvoice.ValidationIssues[0].Component)
+}
+
+func (s *LineEngineTestSuite) TestCollectionCompletedSystemErrorsAbortCollection() {
+	var (
+		ctx          = s.T().Context()
+		namespace    = s.GetUniqueNamespace("ns-line-engine-collection-completed-validation")
+		mockEngine   = &mockCollectionCompletedLineEngine{engineType: ombilling.LineEngineTypeChargeUsageBased}
+		invoice      ombilling.StandardInvoice
+		collectionAt time.Time
+		err          error
+	)
+
+	clockBase := lo.Must(time.Parse(time.RFC3339, "2024-09-02T12:13:14Z"))
+	clock.SetTime(clockBase)
+	defer clock.ResetTime()
+	defer func() { _ = s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{}) }()
+	defer s.MockStreamingConnector.Reset()
+	s.registerMockLineEngine(s.T(), mockEngine)
+	defer s.unregisterLineEngine(s.T(), mockEngine)
+
+	s.Run("Given a draft invoice waiting for collection with a failing collection-completed engine", func() {
+		defer mockEngine.Reset()
+
+		mockEngine.buildStandardInvoiceLines = func(_ context.Context, input ombilling.BuildStandardInvoiceLinesInput) (ombilling.StandardLines, error) {
+			return mustAsNewStandardLines(ombilling.BuildStandardInvoiceLinesInput{
+				Invoice:        input.Invoice,
+				GatheringLines: input.GatheringLines,
+			}), nil
+		}
+
+		invoice, collectionAt = s.createMeteredDraftInvoiceWaitingForCollection(
+			ctx,
+			namespace,
+			mockEngine.GetLineEngineType(),
+			"UBP - mock collection completed",
+		)
+	})
+
+	s.Run("When collection is completed", func() {
+		defer mockEngine.Reset()
+
+		mockEngine.onCollectionCompleted = func(_ context.Context, input ombilling.OnCollectionCompletedInput) (ombilling.StandardLines, error) {
+			return nil, fmt.Errorf("mock collection completed failure")
+		}
+
+		clock.SetTime(collectionAt.Add(time.Minute))
+		_, err = s.BillingService.AdvanceInvoice(ctx, invoice.GetInvoiceID())
+		s.Require().ErrorContains(err, "mock collection completed failure")
+	})
+
+	s.Run("Then collection is rolled back without recording a validation issue", func() {
+		invoice, err = s.BillingService.GetStandardInvoiceById(ctx, ombilling.GetStandardInvoiceByIdInput{
+			Invoice: invoice.GetInvoiceID(),
+		})
+		s.Require().NoError(err)
+		s.Equal(ombilling.StandardInvoiceStatusDraftWaitingForCollection, invoice.Status)
+		s.Empty(invoice.ValidationIssues)
+		s.Nil(invoice.QuantitySnapshotedAt)
+	})
+}
+
+func (s *LineEngineTestSuite) TestCollectionCompletedValidationIssuesRespectSeverity() {
+	for _, tc := range []struct {
+		name        string
+		issue       ombilling.ValidationIssue
+		replaceLine bool
+	}{
+		{
+			name:        "warning replaces lines",
+			issue:       ombilling.NewValidationWarning("collection_warning", "collection warning"),
+			replaceLine: true,
+		},
+		{
+			name:  "critical issue keeps prior lines",
+			issue: ombilling.NewValidationError("collection_critical", "collection critical"),
+		},
+	} {
+		s.Run(tc.name, func() {
+			ctx := s.T().Context()
+			namespace := s.GetUniqueNamespace("ns-line-engine-collection-completed-issue")
+			mockEngine := &mockCollectionCompletedLineEngine{engineType: ombilling.LineEngineTypeChargeUsageBased}
+
+			clock.SetTime(lo.Must(time.Parse(time.RFC3339, "2024-09-02T12:13:14Z")))
+			defer clock.ResetTime()
+			defer func() { _ = s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{}) }()
+			defer s.MockStreamingConnector.Reset()
+			s.registerMockLineEngine(s.T(), mockEngine)
+			defer s.unregisterLineEngine(s.T(), mockEngine)
+
+			// Given a draft invoice whose line engine returns a complete line and a validation issue.
+			mockEngine.buildStandardInvoiceLines = func(_ context.Context, input ombilling.BuildStandardInvoiceLinesInput) (ombilling.StandardLines, error) {
+				return mustAsNewStandardLines(input), nil
+			}
+			invoice, collectionAt := s.createMeteredDraftInvoiceWaitingForCollection(
+				ctx,
+				namespace,
+				mockEngine.GetLineEngineType(),
+				"UBP - collection validation issue",
+			)
+			mockEngine.onCollectionCompleted = func(_ context.Context, input ombilling.OnCollectionCompletedInput) (ombilling.StandardLines, error) {
+				line, err := input.Lines[0].Clone()
+				s.Require().NoError(err)
+				if line.UsageBased == nil {
+					line.UsageBased = &ombilling.UsageBasedLine{}
+				}
+
+				line.UsageBased.Quantity = lo.ToPtr(alpacadecimal.NewFromInt(7))
+
+				return ombilling.StandardLines{line}, tc.issue
+			}
+
+			// When collection completes, only a warning can accompany replacement lines.
+			clock.SetTime(collectionAt.Add(time.Minute))
+			invoice, err := s.BillingService.AdvanceInvoice(ctx, invoice.GetInvoiceID())
+			s.Require().NoError(err)
+
+			// Then the issue is retained while line replacement follows its severity.
+			s.Require().Len(invoice.ValidationIssues, 1)
+			s.Equal(tc.issue.Code, invoice.ValidationIssues[0].Code)
+			s.Equal(tc.issue.Severity, invoice.ValidationIssues[0].Severity)
+			s.Require().Len(invoice.Lines.OrEmpty(), 1)
+			if tc.replaceLine {
+				s.NotNil(invoice.QuantitySnapshotedAt)
+				s.Equal(alpacadecimal.NewFromInt(7), lo.FromPtr(invoice.Lines.OrEmpty()[0].UsageBased.Quantity))
+			} else {
+				s.Nil(invoice.QuantitySnapshotedAt)
+				s.NotEqual(alpacadecimal.NewFromInt(7), lo.FromPtr(invoice.Lines.OrEmpty()[0].UsageBased.Quantity))
+			}
+		})
+	}
+}
+
+func (s *LineEngineTestSuite) TestCollectionCompletedCustomSnapshotIsPreserved() {
+	var (
+		ctx          = context.Background()
+		namespace    = s.GetUniqueNamespace("ns-line-engine-custom-snapshot-preserved")
+		mockEngine   = &mockCollectionCompletedLineEngine{engineType: ombilling.LineEngineTypeChargeCreditPurchase}
+		invoice      ombilling.StandardInvoice
+		collectionAt time.Time
+		err          error
+	)
+
+	clockBase := lo.Must(time.Parse(time.RFC3339, "2024-09-02T12:13:14Z"))
+	clock.SetTime(clockBase)
+	defer clock.ResetTime()
+	defer func() { _ = s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{}) }()
+	defer s.MockStreamingConnector.Reset()
+	s.registerMockLineEngine(s.T(), mockEngine)
+	defer s.unregisterLineEngine(s.T(), mockEngine)
+
+	s.Run("Given a draft invoice waiting for collection with a custom collection-completed engine", func() {
+		defer mockEngine.Reset()
+
+		mockEngine.buildStandardInvoiceLines = func(_ context.Context, input ombilling.BuildStandardInvoiceLinesInput) (ombilling.StandardLines, error) {
+			return mustAsNewStandardLines(ombilling.BuildStandardInvoiceLinesInput{
+				Invoice:        input.Invoice,
+				GatheringLines: input.GatheringLines,
+			}), nil
+		}
+
+		invoice, collectionAt = s.createMeteredDraftInvoiceWaitingForCollection(
+			ctx,
+			namespace,
+			mockEngine.GetLineEngineType(),
+			"UBP - custom collection snapshot",
+		)
+	})
+
+	s.Run("When collection is completed", func() {
+		defer mockEngine.Reset()
+
+		mockEngine.onCollectionCompleted = func(_ context.Context, input ombilling.OnCollectionCompletedInput) (ombilling.StandardLines, error) {
+			lines := input.Lines
+			for _, stdLine := range lines {
+				if stdLine.UsageBased == nil {
+					stdLine.UsageBased = &ombilling.UsageBasedLine{}
+				}
+
+				stdLine.UsageBased.Quantity = lo.ToPtr(alpacadecimal.NewFromInt(7))
+				stdLine.UsageBased.MeteredQuantity = lo.ToPtr(alpacadecimal.NewFromInt(7))
+				stdLine.UsageBased.PreLinePeriodQuantity = lo.ToPtr(alpacadecimal.Zero)
+				stdLine.UsageBased.MeteredPreLinePeriodQuantity = lo.ToPtr(alpacadecimal.Zero)
+			}
+
+			return lines, nil
+		}
+
+		clock.FreezeTime(collectionAt.Add(time.Minute).UTC())
+		invoice, err = s.BillingService.AdvanceInvoice(ctx, invoice.GetInvoiceID())
+		s.Require().NoError(err)
+	})
+
+	s.Run("Then the returned snapshot is preserved on the invoice", func() {
+		s.NotNil(invoice.QuantitySnapshotedAt)
+		s.Equal(collectionAt.Add(time.Minute).UTC(), *invoice.QuantitySnapshotedAt)
+		s.Len(invoice.Lines.OrEmpty(), 1)
+		s.NotNil(invoice.Lines.OrEmpty()[0].UsageBased)
+		s.Equal(alpacadecimal.NewFromInt(7), lo.FromPtr(invoice.Lines.OrEmpty()[0].UsageBased.Quantity))
+		s.Equal(alpacadecimal.NewFromInt(7), lo.FromPtr(invoice.Lines.OrEmpty()[0].UsageBased.MeteredQuantity))
+	})
+}
+
+func (s *LineEngineTestSuite) TestOnInvoiceFinalizingUpdatesInvoiceBeforeExternalFinalization() {
+	ctx := s.T().Context()
+	namespace := s.GetUniqueNamespace("ns-line-engine-on-invoice-finalizing")
+	mockEngine := &mockCollectionCompletedLineEngine{engineType: ombilling.LineEngineTypeChargeCreditPurchase}
+
+	clockBase := lo.Must(time.Parse(time.RFC3339, "2024-09-02T12:13:14Z"))
+	clock.SetTime(clockBase)
+	defer clock.ResetTime()
+	defer func() { _ = s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{}) }()
+	defer s.MockStreamingConnector.Reset()
+	s.registerMockLineEngine(s.T(), mockEngine)
+	defer s.unregisterLineEngine(s.T(), mockEngine)
+	defer mockEngine.Reset()
+
+	// given: a collected draft invoice whose line engine replaces its final totals during issuing
+	mockEngine.buildStandardInvoiceLines = func(_ context.Context, input ombilling.BuildStandardInvoiceLinesInput) (ombilling.StandardLines, error) {
+		return mustAsNewStandardLines(input), nil
+	}
+
+	invoice, collectionAt := s.createMeteredDraftInvoiceWaitingForCollection(
+		ctx,
+		namespace,
+		mockEngine.GetLineEngineType(),
+		"UBP - invoice finalizing hook",
+	)
+	mockEngine.onCollectionCompleted = func(_ context.Context, input ombilling.OnCollectionCompletedInput) (ombilling.StandardLines, error) {
+		return input.Lines, nil
+	}
+	clock.SetTime(collectionAt.Add(time.Minute))
+
+	invoice, err := s.BillingService.AdvanceInvoice(ctx, invoice.GetInvoiceID())
+	s.Require().NoError(err)
+	s.Equal(ombilling.StandardInvoiceStatusDraftWaitingAutoApproval, invoice.Status)
+
+	expectedTotals := billingtotals.Totals{
+		Amount:       alpacadecimal.NewFromInt(7),
+		CreditsTotal: alpacadecimal.NewFromInt(5),
+		Total:        alpacadecimal.NewFromInt(2),
+	}
+	finalizationCalled := false
+	mockEngine.onInvoiceFinalizing = func(_ context.Context, input ombilling.OnInvoiceFinalizingInput) (ombilling.StandardLines, error) {
+		finalizationCalled = true
+		s.Equal(ombilling.StandardInvoiceStatusIssuingLineFinalization, input.Invoice.Status)
+		s.Require().Len(input.Lines, 1)
+		input.Lines[0].Totals = expectedTotals
+
+		return input.Lines, nil
+	}
+
+	mockApp := s.SandboxApp.EnableMock(s.T())
+	defer s.SandboxApp.DisableMock()
+	mockApp.OnUpsertStandardInvoice(func(input ombilling.StandardInvoice) (*ombilling.UpsertStandardInvoiceResult, error) {
+		s.True(finalizationCalled)
+		s.Require().Len(input.Lines.OrEmpty(), 1)
+		s.True(expectedTotals.Equal(input.Lines.OrEmpty()[0].Totals))
+		s.True(expectedTotals.Equal(input.Totals))
+
+		return ombilling.NewUpsertStandardInvoiceResult(), nil
+	})
+	mockApp.OnFinalizeStandardInvoice(nil)
+	mockEngine.onInvoiceIssued = func(_ context.Context, input ombilling.OnInvoiceIssuedInput) error {
+		s.Equal(1, mockApp.FinalizeInvoiceCallCount())
+		s.Require().Len(input.Lines, 1)
+		s.True(expectedTotals.Equal(input.Lines[0].Totals))
+		s.True(expectedTotals.Equal(input.Invoice.Totals))
+
+		return nil
+	}
+
+	// when: the invoice is approved and advances through issuing
+	invoice, err = s.BillingService.ApproveInvoice(ctx, invoice.GetInvoiceID())
+
+	// then: the engine-calculated line and aggregate totals are finalized, persisted, and used by invoice-issued callbacks
+	s.Require().NoError(err)
+	s.True(finalizationCalled)
+	s.Equal(1, mockApp.FinalizeInvoiceCallCount())
+	s.Require().Len(invoice.Lines.OrEmpty(), 1)
+	s.True(expectedTotals.Equal(invoice.Lines.OrEmpty()[0].Totals))
+	s.True(expectedTotals.Equal(invoice.Totals))
+}
+
+func (s *LineEngineTestSuite) TestOnInvoiceFinalizingFailureIsRetryableBeforeExternalFinalization() {
+	ctx := s.T().Context()
+	namespace := s.GetUniqueNamespace("ns-line-engine-on-invoice-finalizing-failed")
+	mockEngine := &mockCollectionCompletedLineEngine{engineType: ombilling.LineEngineTypeChargeCreditPurchase}
+
+	clockBase := lo.Must(time.Parse(time.RFC3339, "2024-09-02T12:13:14Z"))
+	clock.SetTime(clockBase)
+	defer clock.ResetTime()
+	defer func() { _ = s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{}) }()
+	defer s.MockStreamingConnector.Reset()
+	s.registerMockLineEngine(s.T(), mockEngine)
+	defer s.unregisterLineEngine(s.T(), mockEngine)
+	defer mockEngine.Reset()
+
+	// given: a collected draft invoice whose line finalization initially fails
+	mockEngine.buildStandardInvoiceLines = func(_ context.Context, input ombilling.BuildStandardInvoiceLinesInput) (ombilling.StandardLines, error) {
+		return mustAsNewStandardLines(input), nil
+	}
+
+	invoice, collectionAt := s.createMeteredDraftInvoiceWaitingForCollection(
+		ctx,
+		namespace,
+		mockEngine.GetLineEngineType(),
+		"UBP - invoice finalizing hook failed",
+	)
+	mockEngine.onCollectionCompleted = func(_ context.Context, input ombilling.OnCollectionCompletedInput) (ombilling.StandardLines, error) {
+		return input.Lines, nil
+	}
+	clock.SetTime(collectionAt.Add(time.Minute))
+
+	invoice, err := s.BillingService.AdvanceInvoice(ctx, invoice.GetInvoiceID())
+	s.Require().NoError(err)
+	s.Equal(ombilling.StandardInvoiceStatusDraftWaitingAutoApproval, invoice.Status)
+
+	finalizationCalls := 0
+	mockEngine.onInvoiceFinalizing = func(_ context.Context, _ ombilling.OnInvoiceFinalizingInput) (ombilling.StandardLines, error) {
+		finalizationCalls++
+		return nil, errors.New("simulated invoice finalizing failure")
+	}
+
+	mockApp := s.SandboxApp.EnableMock(s.T())
+	defer s.SandboxApp.DisableMock()
+
+	// when: approval reaches the failing line-engine callback
+	invoice, err = s.BillingService.ApproveInvoice(ctx, invoice.GetInvoiceID())
+
+	// then: issuing stops in the dedicated failure state before the invoicing app is called
+	s.Require().NoError(err)
+	s.Equal(1, finalizationCalls)
+	s.Equal(ombilling.StandardInvoiceStatusIssuingLineFinalizationFailed, invoice.Status)
+	s.True(invoice.StatusDetails.Failed)
+	s.NotNil(invoice.StatusDetails.AvailableActions.Retry)
+	s.Zero(mockApp.FinalizeInvoiceCallCount())
+	s.Require().Len(invoice.ValidationIssues, 1)
+	s.Equal("simulated invoice finalizing failure", invoice.ValidationIssues[0].Message)
+
+	// given: the same retry-safe callback can now complete successfully
+	mockEngine.onInvoiceFinalizing = func(_ context.Context, input ombilling.OnInvoiceFinalizingInput) (ombilling.StandardLines, error) {
+		finalizationCalls++
+		return input.Lines, nil
+	}
+	mockEngine.onInvoiceIssued = func(_ context.Context, _ ombilling.OnInvoiceIssuedInput) error {
+		return nil
+	}
+	mockApp.OnFinalizeStandardInvoice(nil)
+
+	// when: issuing is retried
+	invoice, err = s.BillingService.RetryInvoice(ctx, invoice.GetInvoiceID())
+
+	// then: line finalization is rerun once and external finalization proceeds once
+	s.Require().NoError(err)
+	s.Equal(2, finalizationCalls)
+	s.Equal(1, mockApp.FinalizeInvoiceCallCount())
+	s.NotEqual(ombilling.StandardInvoiceStatusIssuingLineFinalizationFailed, invoice.Status)
+}
+
+func (s *LineEngineTestSuite) TestOnInvoiceFinalizingRejectsChangedLineSet() {
+	ctx := s.T().Context()
+	namespace := s.GetUniqueNamespace("ns-line-engine-on-invoice-finalizing-line-ids")
+	mockEngine := &mockCollectionCompletedLineEngine{engineType: ombilling.LineEngineTypeChargeCreditPurchase}
+
+	clockBase := lo.Must(time.Parse(time.RFC3339, "2024-09-02T12:13:14Z"))
+	clock.SetTime(clockBase)
+	defer clock.ResetTime()
+	defer func() { _ = s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{}) }()
+	defer s.MockStreamingConnector.Reset()
+	s.registerMockLineEngine(s.T(), mockEngine)
+	defer s.unregisterLineEngine(s.T(), mockEngine)
+	defer mockEngine.Reset()
+
+	// given: a collected draft invoice whose line engine omits its owned line during finalization
+	mockEngine.buildStandardInvoiceLines = func(_ context.Context, input ombilling.BuildStandardInvoiceLinesInput) (ombilling.StandardLines, error) {
+		return mustAsNewStandardLines(input), nil
+	}
+
+	invoice, collectionAt := s.createMeteredDraftInvoiceWaitingForCollection(
+		ctx,
+		namespace,
+		mockEngine.GetLineEngineType(),
+		"UBP - invoice finalizing line mismatch",
+	)
+	mockEngine.onCollectionCompleted = func(_ context.Context, input ombilling.OnCollectionCompletedInput) (ombilling.StandardLines, error) {
+		return input.Lines, nil
+	}
+	mockEngine.onInvoiceFinalizing = func(_ context.Context, _ ombilling.OnInvoiceFinalizingInput) (ombilling.StandardLines, error) {
+		return ombilling.StandardLines{}, nil
+	}
+
+	clock.SetTime(collectionAt.Add(time.Minute))
+	invoice, err := s.BillingService.AdvanceInvoice(ctx, invoice.GetInvoiceID())
+	s.Require().NoError(err)
+	s.Equal(ombilling.StandardInvoiceStatusDraftWaitingAutoApproval, invoice.Status)
+
+	mockApp := s.SandboxApp.EnableMock(s.T())
+	defer s.SandboxApp.DisableMock()
+
+	// when: the invoice is approved
+	invoice, err = s.BillingService.ApproveInvoice(ctx, invoice.GetInvoiceID())
+
+	// then: billing rejects the changed line set before calling the invoicing app
+	s.Require().NoError(err)
+	s.Equal(ombilling.StandardInvoiceStatusIssuingLineFinalizationFailed, invoice.Status)
+	s.Zero(mockApp.FinalizeInvoiceCallCount())
+	s.Require().Len(invoice.ValidationIssues, 1)
+	s.Contains(invoice.ValidationIssues[0].Message, "line ids mismatch")
+}
+
+func (s *LineEngineTestSuite) TestOnInvoiceIssuedIsCalled() {
+	var (
+		ctx          = s.T().Context()
+		namespace    = s.GetUniqueNamespace("ns-line-engine-on-invoice-issued")
+		mockEngine   = &mockCollectionCompletedLineEngine{engineType: ombilling.LineEngineTypeChargeCreditPurchase}
+		invoice      ombilling.StandardInvoice
+		collectionAt time.Time
+	)
+
+	clockBase := lo.Must(time.Parse(time.RFC3339, "2024-09-02T12:13:14Z"))
+	clock.SetTime(clockBase)
+	defer clock.ResetTime()
+	defer func() { _ = s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{}) }()
+	defer s.MockStreamingConnector.Reset()
+	s.registerMockLineEngine(s.T(), mockEngine)
+	defer s.unregisterLineEngine(s.T(), mockEngine)
+
+	s.Run("Given a draft invoice waiting for collection with an issued hook", func() {
+		defer mockEngine.Reset()
+
+		mockEngine.buildStandardInvoiceLines = func(_ context.Context, input ombilling.BuildStandardInvoiceLinesInput) (ombilling.StandardLines, error) {
+			return mustAsNewStandardLines(input), nil
+		}
+
+		invoice, collectionAt = s.createMeteredDraftInvoiceWaitingForCollection(
+			ctx,
+			namespace,
+			mockEngine.GetLineEngineType(),
+			"UBP - invoice issued hook",
+		)
+	})
+
+	s.Run("When the invoice is collected and then issued", func() {
+		defer mockEngine.Reset()
+		onInvoiceIssuedCnt := 0
+
+		mockEngine.onCollectionCompleted = func(_ context.Context, input ombilling.OnCollectionCompletedInput) (ombilling.StandardLines, error) {
+			lines := input.Lines
+			for _, stdLine := range lines {
+				if stdLine.UsageBased == nil {
+					stdLine.UsageBased = &ombilling.UsageBasedLine{}
+				}
+
+				stdLine.UsageBased.Quantity = lo.ToPtr(alpacadecimal.NewFromInt(7))
+				stdLine.UsageBased.MeteredQuantity = lo.ToPtr(alpacadecimal.NewFromInt(7))
+				stdLine.UsageBased.PreLinePeriodQuantity = lo.ToPtr(alpacadecimal.Zero)
+				stdLine.UsageBased.MeteredPreLinePeriodQuantity = lo.ToPtr(alpacadecimal.Zero)
+			}
+
+			return lines, nil
+		}
+
+		mockEngine.onInvoiceIssued = func(_ context.Context, input ombilling.OnInvoiceIssuedInput) error {
+			onInvoiceIssuedCnt++
+			s.Equal(input.Invoice.ID, invoice.ID)
+			s.Len(input.Lines, 1)
+			s.Equal(input.Invoice.ID, input.Lines[0].InvoiceID)
+			s.Equal(mockEngine.GetLineEngineType(), input.Lines[0].Engine)
+
+			return nil
+		}
+
+		clock.SetTime(collectionAt.Add(time.Minute))
+
+		var err error
+		invoice, err = s.BillingService.AdvanceInvoice(ctx, invoice.GetInvoiceID())
+		s.Require().NoError(err)
+		s.Equal(ombilling.StandardInvoiceStatusDraftWaitingAutoApproval, invoice.Status)
+
+		invoice, err = s.BillingService.ApproveInvoice(ctx, invoice.GetInvoiceID())
+		s.Require().NoError(err)
+		s.Equal(ombilling.StandardInvoiceStatusPaid, invoice.Status)
+		s.Equal(1, onInvoiceIssuedCnt)
+		s.Equal(ombilling.StandardInvoiceStatusPaid, invoice.Status)
+	})
+}
+
+func (s *LineEngineTestSuite) TestOnInvoiceIssuedFailureTransitionsToRetryableIssuingState() {
+	var (
+		ctx                = context.Background()
+		namespace          = s.GetUniqueNamespace("ns-line-engine-on-invoice-issued-failed")
+		mockEngine         = &mockCollectionCompletedLineEngine{engineType: ombilling.LineEngineTypeChargeCreditPurchase}
+		invoice            ombilling.StandardInvoice
+		collectionAt       time.Time
+		onInvoiceIssuedCnt int
+	)
+
+	clockBase := lo.Must(time.Parse(time.RFC3339, "2024-09-02T12:13:14Z"))
+	clock.SetTime(clockBase)
+	defer clock.ResetTime()
+	defer func() { _ = s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{}) }()
+	defer s.MockStreamingConnector.Reset()
+	s.registerMockLineEngine(s.T(), mockEngine)
+	defer s.unregisterLineEngine(s.T(), mockEngine)
+
+	s.Run("Given a draft invoice waiting for collection with a failing issued hook", func() {
+		defer mockEngine.Reset()
+
+		mockEngine.buildStandardInvoiceLines = func(_ context.Context, input ombilling.BuildStandardInvoiceLinesInput) (ombilling.StandardLines, error) {
+			return mustAsNewStandardLines(input), nil
+		}
+
+		invoice, collectionAt = s.createMeteredDraftInvoiceWaitingForCollection(
+			ctx,
+			namespace,
+			mockEngine.GetLineEngineType(),
+			"UBP - invoice issued hook failed",
+		)
+	})
+
+	s.Run("When the invoice is collected and approval hits the failing issued hook", func() {
+		defer mockEngine.Reset()
+
+		mockEngine.onCollectionCompleted = func(_ context.Context, input ombilling.OnCollectionCompletedInput) (ombilling.StandardLines, error) {
+			lines := input.Lines
+			for _, stdLine := range lines {
+				if stdLine.UsageBased == nil {
+					stdLine.UsageBased = &ombilling.UsageBasedLine{}
+				}
+
+				stdLine.UsageBased.Quantity = lo.ToPtr(alpacadecimal.NewFromInt(7))
+				stdLine.UsageBased.MeteredQuantity = lo.ToPtr(alpacadecimal.NewFromInt(7))
+				stdLine.UsageBased.PreLinePeriodQuantity = lo.ToPtr(alpacadecimal.Zero)
+				stdLine.UsageBased.MeteredPreLinePeriodQuantity = lo.ToPtr(alpacadecimal.Zero)
+			}
+
+			return lines, nil
+		}
+
+		mockEngine.onInvoiceIssued = func(_ context.Context, input ombilling.OnInvoiceIssuedInput) error {
+			onInvoiceIssuedCnt++
+			s.Equal(input.Invoice.ID, invoice.ID)
+
+			return ombilling.NewValidationError("test_line_engine_callback_failed", "simulated invoice issued failure")
+		}
+
+		clock.SetTime(collectionAt.Add(time.Minute))
+
+		var err error
+		invoice, err = s.BillingService.AdvanceInvoice(ctx, invoice.GetInvoiceID())
+		s.Require().NoError(err)
+		s.Equal(ombilling.StandardInvoiceStatusDraftWaitingAutoApproval, invoice.Status)
+
+		invoice, err = s.BillingService.ApproveInvoice(ctx, invoice.GetInvoiceID())
+		s.Require().NoError(err)
+
+		s.Equal(ombilling.StandardInvoiceStatusIssuingChargeBookingFailed, invoice.Status)
+		s.True(invoice.StatusDetails.Failed)
+		s.NotNil(invoice.StatusDetails.AvailableActions.Retry)
+		s.Equal(ombilling.StandardInvoiceStatusPaymentProcessingPending, invoice.StatusDetails.AvailableActions.Retry.ResultingState)
+		s.Len(invoice.ValidationIssues, 1)
+		s.Equal(ombilling.ValidationIssueSeverityCritical, invoice.ValidationIssues[0].Severity)
+		s.Equal("simulated invoice issued failure", invoice.ValidationIssues[0].Message)
+	})
+
+	s.Run("Then retry succeeds without re-finalizing the invoice", func() {
+		defer mockEngine.Reset()
+
+		mockEngine.onInvoiceIssued = func(_ context.Context, input ombilling.OnInvoiceIssuedInput) error {
+			onInvoiceIssuedCnt++
+			s.Equal(input.Invoice.ID, invoice.ID)
+
+			return nil
+		}
+
+		var err error
+		invoice, err = s.BillingService.RetryInvoice(ctx, invoice.GetInvoiceID())
+		s.Require().NoError(err)
+		s.Equal(2, onInvoiceIssuedCnt)
+		s.Contains(
+			[]ombilling.StandardInvoiceStatus{
+				ombilling.StandardInvoiceStatusPaymentProcessingPending,
+				ombilling.StandardInvoiceStatusPaid,
+			},
+			invoice.Status,
+		)
+	})
+}
+
+func (s *LineEngineTestSuite) TestOnPaymentAuthorizedIsCalled() {
+	var (
+		ctx                    = s.T().Context()
+		namespace              = s.GetUniqueNamespace("ns-line-engine-on-payment-authorized")
+		mockEngine             = &mockCollectionCompletedLineEngine{engineType: ombilling.LineEngineTypeChargeCreditPurchase}
+		customInvoicingApp     = s.SetupCustomInvoicing(namespace).App
+		invoice                ombilling.StandardInvoice
+		collectionAt           time.Time
+		onPaymentAuthorizedCnt int
+	)
+
+	clockBase := lo.Must(time.Parse(time.RFC3339, "2024-09-02T12:13:14Z"))
+	clock.SetTime(clockBase)
+	defer clock.ResetTime()
+	defer func() { _ = s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{}) }()
+	defer s.MockStreamingConnector.Reset()
+	s.registerMockLineEngine(s.T(), mockEngine)
+	defer s.unregisterLineEngine(s.T(), mockEngine)
+
+	s.Run("Given a draft invoice waiting for collection with a payment-authorized hook", func() {
+		defer mockEngine.Reset()
+
+		mockEngine.buildStandardInvoiceLines = func(_ context.Context, input ombilling.BuildStandardInvoiceLinesInput) (ombilling.StandardLines, error) {
+			return mustAsNewStandardLines(input), nil
+		}
+
+		invoice, collectionAt = s.createMeteredDraftInvoiceWaitingForCollectionForApp(
+			ctx,
+			namespace,
+			customInvoicingApp.GetID(),
+			mockEngine.GetLineEngineType(),
+			"UBP - payment authorized hook",
+		)
+	})
+
+	s.Run("When the invoice is collected, issued, and marked authorized", func() {
+		defer mockEngine.Reset()
+
+		mockEngine.onCollectionCompleted = func(_ context.Context, input ombilling.OnCollectionCompletedInput) (ombilling.StandardLines, error) {
+			lines := input.Lines
+			for _, stdLine := range lines {
+				if stdLine.UsageBased == nil {
+					stdLine.UsageBased = &ombilling.UsageBasedLine{}
+				}
+
+				stdLine.UsageBased.Quantity = lo.ToPtr(alpacadecimal.NewFromInt(7))
+				stdLine.UsageBased.MeteredQuantity = lo.ToPtr(alpacadecimal.NewFromInt(7))
+				stdLine.UsageBased.PreLinePeriodQuantity = lo.ToPtr(alpacadecimal.Zero)
+				stdLine.UsageBased.MeteredPreLinePeriodQuantity = lo.ToPtr(alpacadecimal.Zero)
+			}
+
+			return lines, nil
+		}
+
+		mockEngine.onInvoiceIssued = func(_ context.Context, input ombilling.OnInvoiceIssuedInput) error {
+			s.Equal(invoice.ID, input.Invoice.ID)
+			return ombilling.NewValidationWarning("prior_warning", "warning from an earlier invoice step")
+		}
+
+		mockEngine.onPaymentAuthorized = func(_ context.Context, input ombilling.OnPaymentAuthorizedInput) error {
+			onPaymentAuthorizedCnt++
+			s.Equal(ombilling.StandardInvoiceStatusPaymentProcessingBookingAuthorized, input.Invoice.Status)
+			s.Equal(invoice.ID, input.Invoice.ID)
+			s.Len(input.Lines, 1)
+			s.Equal(invoice.ID, input.Lines[0].InvoiceID)
+			s.Equal(mockEngine.GetLineEngineType(), input.Lines[0].Engine)
+
+			return ombilling.NewValidationWarning("callback_warning", "payment authorization warning")
+		}
+
+		clock.SetTime(collectionAt.Add(time.Minute))
+
+		var err error
+		invoice, err = s.BillingService.AdvanceInvoice(ctx, invoice.GetInvoiceID())
+		s.Require().NoError(err)
+		s.Equal(ombilling.StandardInvoiceStatusDraftWaitingAutoApproval, invoice.Status)
+
+		invoice, err = s.BillingService.ApproveInvoice(ctx, invoice.GetInvoiceID())
+		s.Require().NoError(err)
+		s.Equal(ombilling.StandardInvoiceStatusPaymentProcessingPending, invoice.Status)
+		s.Require().Len(invoice.ValidationIssues, 1)
+		s.Equal("prior_warning", invoice.ValidationIssues[0].Code)
+
+		invoice = s.markInvoiceAuthorized(ctx, invoice.GetInvoiceID())
+		s.Equal(ombilling.StandardInvoiceStatusPaymentProcessingAuthorized, invoice.Status)
+		issueCodes := lo.Map(invoice.ValidationIssues, func(issue ombilling.ValidationIssue, _ int) string {
+			return issue.Code
+		})
+		s.Contains(issueCodes, "prior_warning")
+		s.Contains(issueCodes, "callback_warning")
+		s.False(invoice.HasCriticalValidationIssues())
+	})
+
+	s.Run("Then the payment-authorized hook is called once", func() {
+		s.Equal(1, onPaymentAuthorizedCnt)
+		s.Contains(
+			[]ombilling.StandardInvoiceStatus{
+				ombilling.StandardInvoiceStatusPaymentProcessingAuthorized,
+				ombilling.StandardInvoiceStatusPaid,
+			},
+			invoice.Status,
+		)
+	})
+}
+
+func (s *LineEngineTestSuite) TestOnPaymentAuthorizedFailureTransitionsToRetryablePaymentState() {
+	var (
+		ctx                    = s.T().Context()
+		namespace              = s.GetUniqueNamespace("ns-line-engine-on-payment-authorized-failed")
+		mockEngine             = &mockCollectionCompletedLineEngine{engineType: ombilling.LineEngineTypeChargeCreditPurchase}
+		customInvoicingApp     = s.SetupCustomInvoicing(namespace).App
+		invoice                ombilling.StandardInvoice
+		collectionAt           time.Time
+		onPaymentAuthorizedCnt int
+	)
+
+	clockBase := lo.Must(time.Parse(time.RFC3339, "2024-09-02T12:13:14Z"))
+	clock.SetTime(clockBase)
+	defer clock.ResetTime()
+	defer func() { _ = s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{}) }()
+	defer s.MockStreamingConnector.Reset()
+	s.registerMockLineEngine(s.T(), mockEngine)
+	defer s.unregisterLineEngine(s.T(), mockEngine)
+
+	s.Run("Given a draft invoice waiting for collection with a failing payment-authorized hook", func() {
+		defer mockEngine.Reset()
+
+		mockEngine.buildStandardInvoiceLines = func(_ context.Context, input ombilling.BuildStandardInvoiceLinesInput) (ombilling.StandardLines, error) {
+			return mustAsNewStandardLines(input), nil
+		}
+
+		invoice, collectionAt = s.createMeteredDraftInvoiceWaitingForCollectionForApp(
+			ctx,
+			namespace,
+			customInvoicingApp.GetID(),
+			mockEngine.GetLineEngineType(),
+			"UBP - payment authorized hook failed",
+		)
+	})
+
+	s.Run("When the invoice is collected, issued, and authorization hits the failing hook", func() {
+		defer mockEngine.Reset()
+
+		mockEngine.onCollectionCompleted = func(_ context.Context, input ombilling.OnCollectionCompletedInput) (ombilling.StandardLines, error) {
+			lines := input.Lines
+			for _, stdLine := range lines {
+				if stdLine.UsageBased == nil {
+					stdLine.UsageBased = &ombilling.UsageBasedLine{}
+				}
+
+				stdLine.UsageBased.Quantity = lo.ToPtr(alpacadecimal.NewFromInt(7))
+				stdLine.UsageBased.MeteredQuantity = lo.ToPtr(alpacadecimal.NewFromInt(7))
+				stdLine.UsageBased.PreLinePeriodQuantity = lo.ToPtr(alpacadecimal.Zero)
+				stdLine.UsageBased.MeteredPreLinePeriodQuantity = lo.ToPtr(alpacadecimal.Zero)
+			}
+
+			return lines, nil
+		}
+
+		mockEngine.onInvoiceIssued = func(_ context.Context, input ombilling.OnInvoiceIssuedInput) error {
+			s.Equal(invoice.ID, input.Invoice.ID)
+			return nil
+		}
+
+		systemErr := errors.New("simulated payment authorized system failure")
+		mockEngine.onPaymentAuthorized = func(_ context.Context, input ombilling.OnPaymentAuthorizedInput) error {
+			onPaymentAuthorizedCnt++
+			s.Equal(invoice.ID, input.Invoice.ID)
+
+			return systemErr
+		}
+
+		clock.SetTime(collectionAt.Add(time.Minute))
+
+		var err error
+		invoice, err = s.BillingService.AdvanceInvoice(ctx, invoice.GetInvoiceID())
+		s.Require().NoError(err)
+		s.Equal(ombilling.StandardInvoiceStatusDraftWaitingAutoApproval, invoice.Status)
+
+		invoice, err = s.BillingService.ApproveInvoice(ctx, invoice.GetInvoiceID())
+		s.Require().NoError(err)
+		s.Equal(ombilling.StandardInvoiceStatusPaymentProcessingPending, invoice.Status)
+
+		err = s.BillingService.TriggerInvoice(ctx, ombilling.InvoiceTriggerServiceInput{
+			InvoiceTriggerInput: ombilling.InvoiceTriggerInput{
+				Invoice: invoice.GetInvoiceID(),
+				Trigger: ombilling.TriggerAuthorized,
+			},
+			AppType:    app.AppTypeCustomInvoicing,
+			Capability: app.CapabilityTypeCollectPayments,
+		})
+		s.Require().ErrorIs(err, systemErr)
+		invoice, err = s.BillingService.GetStandardInvoiceById(ctx, ombilling.GetStandardInvoiceByIdInput{
+			Invoice: invoice.GetInvoiceID(),
+		})
+		s.Require().NoError(err)
+		s.Equal(ombilling.StandardInvoiceStatusPaymentProcessingPending, invoice.Status)
+		s.Empty(invoice.ValidationIssues)
+
+		mockEngine.onPaymentAuthorized = func(_ context.Context, input ombilling.OnPaymentAuthorizedInput) error {
+			onPaymentAuthorizedCnt++
+			s.Equal(invoice.ID, input.Invoice.ID)
+
+			return ombilling.NewValidationError("test_line_engine_callback_failed", "simulated payment authorized failure")
+		}
+		invoice = s.markInvoiceAuthorized(ctx, invoice.GetInvoiceID())
+
+		s.Equal(ombilling.StandardInvoiceStatusPaymentProcessingBookingAuthorizedFailed, invoice.Status)
+		s.True(invoice.StatusDetails.Failed)
+		s.NotNil(invoice.StatusDetails.AvailableActions.Retry)
+		s.Len(invoice.ValidationIssues, 1)
+		s.Equal(ombilling.ValidationIssueSeverityCritical, invoice.ValidationIssues[0].Severity)
+		s.Equal("simulated payment authorized failure", invoice.ValidationIssues[0].Message)
+	})
+
+	s.Run("Then retry succeeds without re-issuing the invoice", func() {
+		defer mockEngine.Reset()
+
+		mockEngine.onPaymentAuthorized = func(_ context.Context, input ombilling.OnPaymentAuthorizedInput) error {
+			onPaymentAuthorizedCnt++
+			s.Equal(invoice.ID, input.Invoice.ID)
+
+			return nil
+		}
+
+		var err error
+		invoice, err = s.BillingService.RetryInvoice(ctx, invoice.GetInvoiceID())
+		s.Require().NoError(err)
+		s.Equal(3, onPaymentAuthorizedCnt)
+		s.Contains(
+			[]ombilling.StandardInvoiceStatus{
+				ombilling.StandardInvoiceStatusPaymentProcessingAuthorized,
+				ombilling.StandardInvoiceStatusPaid,
+			},
+			invoice.Status,
+		)
+	})
+}
+
+func (s *LineEngineTestSuite) TestOnPaymentSettledIsCalled() {
+	var (
+		ctx                 = s.T().Context()
+		namespace           = s.GetUniqueNamespace("ns-line-engine-on-payment-settled")
+		mockEngine          = &mockCollectionCompletedLineEngine{engineType: ombilling.LineEngineTypeChargeCreditPurchase}
+		invoice             ombilling.StandardInvoice
+		collectionAt        time.Time
+		onPaymentSettledCnt int
+	)
+
+	clockBase := lo.Must(time.Parse(time.RFC3339, "2024-09-02T12:13:14Z"))
+	clock.SetTime(clockBase)
+	defer clock.ResetTime()
+	defer func() { _ = s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{}) }()
+	defer s.MockStreamingConnector.Reset()
+	s.registerMockLineEngine(s.T(), mockEngine)
+	defer s.unregisterLineEngine(s.T(), mockEngine)
+
+	s.Run("Given a draft invoice waiting for collection with a payment-settled hook", func() {
+		defer mockEngine.Reset()
+
+		mockEngine.buildStandardInvoiceLines = func(_ context.Context, input ombilling.BuildStandardInvoiceLinesInput) (ombilling.StandardLines, error) {
+			return mustAsNewStandardLines(input), nil
+		}
+
+		invoice, collectionAt = s.createMeteredDraftInvoiceWaitingForCollection(
+			ctx,
+			namespace,
+			mockEngine.GetLineEngineType(),
+			"UBP - payment settled hook",
+		)
+	})
+
+	s.Run("When the invoice is collected, issued, and marked paid", func() {
+		defer mockEngine.Reset()
+
+		mockEngine.onCollectionCompleted = func(_ context.Context, input ombilling.OnCollectionCompletedInput) (ombilling.StandardLines, error) {
+			lines := input.Lines
+			for _, stdLine := range lines {
+				if stdLine.UsageBased == nil {
+					stdLine.UsageBased = &ombilling.UsageBasedLine{}
+				}
+
+				stdLine.UsageBased.Quantity = lo.ToPtr(alpacadecimal.NewFromInt(7))
+				stdLine.UsageBased.MeteredQuantity = lo.ToPtr(alpacadecimal.NewFromInt(7))
+				stdLine.UsageBased.PreLinePeriodQuantity = lo.ToPtr(alpacadecimal.Zero)
+				stdLine.UsageBased.MeteredPreLinePeriodQuantity = lo.ToPtr(alpacadecimal.Zero)
+			}
+
+			return lines, nil
+		}
+
+		mockEngine.onInvoiceIssued = func(_ context.Context, input ombilling.OnInvoiceIssuedInput) error {
+			s.Equal(invoice.ID, input.Invoice.ID)
+			return nil
+		}
+
+		mockEngine.onPaymentSettled = func(_ context.Context, input ombilling.OnPaymentSettledInput) error {
+			onPaymentSettledCnt++
+			s.Contains(
+				[]ombilling.StandardInvoiceStatus{
+					ombilling.StandardInvoiceStatusPaymentProcessingBookingAuthorizedAndSettled,
+					ombilling.StandardInvoiceStatusPaymentProcessingBookingSettled,
+				},
+				input.Invoice.Status,
+			)
+			s.Equal(invoice.ID, input.Invoice.ID)
+			s.Len(input.Lines, 1)
+			s.Equal(invoice.ID, input.Lines[0].InvoiceID)
+			s.Equal(mockEngine.GetLineEngineType(), input.Lines[0].Engine)
+
+			return nil
+		}
+
+		clock.SetTime(collectionAt.Add(time.Minute))
+
+		var err error
+		invoice, err = s.BillingService.AdvanceInvoice(ctx, invoice.GetInvoiceID())
+		s.Require().NoError(err)
+		s.Equal(ombilling.StandardInvoiceStatusDraftWaitingAutoApproval, invoice.Status)
+
+		invoice, err = s.BillingService.ApproveInvoice(ctx, invoice.GetInvoiceID())
+		s.Require().NoError(err)
+		s.Equal(ombilling.StandardInvoiceStatusPaid, invoice.Status)
+	})
+
+	s.Run("Then the payment-settled hook is called once", func() {
+		s.Equal(1, onPaymentSettledCnt)
+		s.Equal(ombilling.StandardInvoiceStatusPaid, invoice.Status)
+	})
+}
+
+func (s *LineEngineTestSuite) TestOnPaymentSettledFailureTransitionsToRetryablePaymentState() {
+	var (
+		ctx                 = s.T().Context()
+		namespace           = s.GetUniqueNamespace("ns-line-engine-on-payment-settled-failed")
+		mockEngine          = &mockCollectionCompletedLineEngine{engineType: ombilling.LineEngineTypeChargeCreditPurchase}
+		invoice             ombilling.StandardInvoice
+		collectionAt        time.Time
+		onPaymentSettledCnt int
+	)
+
+	clockBase := lo.Must(time.Parse(time.RFC3339, "2024-09-02T12:13:14Z"))
+	clock.SetTime(clockBase)
+	defer clock.ResetTime()
+	defer func() { _ = s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{}) }()
+	defer s.MockStreamingConnector.Reset()
+	s.registerMockLineEngine(s.T(), mockEngine)
+	defer s.unregisterLineEngine(s.T(), mockEngine)
+
+	s.Run("Given a draft invoice waiting for collection with a failing payment-settled hook", func() {
+		defer mockEngine.Reset()
+
+		mockEngine.buildStandardInvoiceLines = func(_ context.Context, input ombilling.BuildStandardInvoiceLinesInput) (ombilling.StandardLines, error) {
+			return mustAsNewStandardLines(input), nil
+		}
+
+		invoice, collectionAt = s.createMeteredDraftInvoiceWaitingForCollection(
+			ctx,
+			namespace,
+			mockEngine.GetLineEngineType(),
+			"UBP - payment settled hook failed",
+		)
+	})
+
+	s.Run("When the invoice is collected, issued, and payment settlement hits the failing hook", func() {
+		defer mockEngine.Reset()
+
+		mockEngine.onCollectionCompleted = func(_ context.Context, input ombilling.OnCollectionCompletedInput) (ombilling.StandardLines, error) {
+			lines := input.Lines
+			for _, stdLine := range lines {
+				if stdLine.UsageBased == nil {
+					stdLine.UsageBased = &ombilling.UsageBasedLine{}
+				}
+
+				stdLine.UsageBased.Quantity = lo.ToPtr(alpacadecimal.NewFromInt(7))
+				stdLine.UsageBased.MeteredQuantity = lo.ToPtr(alpacadecimal.NewFromInt(7))
+				stdLine.UsageBased.PreLinePeriodQuantity = lo.ToPtr(alpacadecimal.Zero)
+				stdLine.UsageBased.MeteredPreLinePeriodQuantity = lo.ToPtr(alpacadecimal.Zero)
+			}
+
+			return lines, nil
+		}
+
+		mockEngine.onInvoiceIssued = func(_ context.Context, input ombilling.OnInvoiceIssuedInput) error {
+			s.Equal(invoice.ID, input.Invoice.ID)
+			return nil
+		}
+
+		mockEngine.onPaymentSettled = func(_ context.Context, input ombilling.OnPaymentSettledInput) error {
+			onPaymentSettledCnt++
+			s.Equal(invoice.ID, input.Invoice.ID)
+
+			return ombilling.NewValidationError("test_line_engine_callback_failed", "simulated payment settled failure")
+		}
+
+		clock.SetTime(collectionAt.Add(time.Minute))
+
+		var err error
+		invoice, err = s.BillingService.AdvanceInvoice(ctx, invoice.GetInvoiceID())
+		s.Require().NoError(err)
+		s.Equal(ombilling.StandardInvoiceStatusDraftWaitingAutoApproval, invoice.Status)
+
+		invoice, err = s.BillingService.ApproveInvoice(ctx, invoice.GetInvoiceID())
+		s.Require().NoError(err)
+		s.Equal(ombilling.StandardInvoiceStatusPaymentProcessingBookingAuthorizedAndSettledFailed, invoice.Status)
+
+		s.Contains(
+			[]ombilling.StandardInvoiceStatus{
+				ombilling.StandardInvoiceStatusPaymentProcessingBookingAuthorizedAndSettledFailed,
+				ombilling.StandardInvoiceStatusPaymentProcessingBookingSettledFailed,
+			},
+			invoice.Status,
+		)
+		s.True(invoice.StatusDetails.Failed)
+		s.NotNil(invoice.StatusDetails.AvailableActions.Retry)
+		s.NotEmpty(invoice.ValidationIssues)
+		s.Equal(ombilling.ValidationIssueSeverityCritical, invoice.ValidationIssues[0].Severity)
+		s.Equal("simulated payment settled failure", invoice.ValidationIssues[0].Message)
+	})
+
+	s.Run("Then retry succeeds without restarting payment processing", func() {
+		defer mockEngine.Reset()
+
+		mockEngine.onPaymentSettled = func(_ context.Context, input ombilling.OnPaymentSettledInput) error {
+			onPaymentSettledCnt++
+			s.Equal(invoice.ID, input.Invoice.ID)
+
+			return nil
+		}
+
+		var err error
+		invoice, err = s.BillingService.RetryInvoice(ctx, invoice.GetInvoiceID())
+		s.Require().NoError(err)
+		s.Equal(2, onPaymentSettledCnt)
+		s.Equal(ombilling.StandardInvoiceStatusPaid, invoice.Status)
+	})
+}
+
+func (s *LineEngineTestSuite) TestOnPaymentSettledIsCalledAfterAuthorization() {
+	var (
+		ctx                 = s.T().Context()
+		namespace           = s.GetUniqueNamespace("ns-line-engine-on-payment-settled-after-authorization")
+		mockEngine          = &mockCollectionCompletedLineEngine{engineType: ombilling.LineEngineTypeChargeCreditPurchase}
+		customInvoicingApp  = s.SetupCustomInvoicing(namespace).App
+		invoice             ombilling.StandardInvoice
+		collectionAt        time.Time
+		onPaymentSettledCnt int
+	)
+
+	clockBase := lo.Must(time.Parse(time.RFC3339, "2024-09-02T12:13:14Z"))
+	clock.SetTime(clockBase)
+	defer clock.ResetTime()
+	defer func() { _ = s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{}) }()
+	defer s.MockStreamingConnector.Reset()
+	s.registerMockLineEngine(s.T(), mockEngine)
+	defer s.unregisterLineEngine(s.T(), mockEngine)
+
+	s.Run("Given a draft invoice waiting for collection with a payment-settled hook after authorization", func() {
+		defer mockEngine.Reset()
+
+		mockEngine.buildStandardInvoiceLines = func(_ context.Context, input ombilling.BuildStandardInvoiceLinesInput) (ombilling.StandardLines, error) {
+			return mustAsNewStandardLines(input), nil
+		}
+
+		invoice, collectionAt = s.createMeteredDraftInvoiceWaitingForCollectionForApp(
+			ctx,
+			namespace,
+			customInvoicingApp.GetID(),
+			mockEngine.GetLineEngineType(),
+			"UBP - payment settled hook after authorization",
+		)
+	})
+
+	s.Run("When the invoice is collected, issued, marked authorized, and then marked paid", func() {
+		defer mockEngine.Reset()
+
+		mockEngine.onCollectionCompleted = func(_ context.Context, input ombilling.OnCollectionCompletedInput) (ombilling.StandardLines, error) {
+			lines := input.Lines
+			for _, stdLine := range lines {
+				if stdLine.UsageBased == nil {
+					stdLine.UsageBased = &ombilling.UsageBasedLine{}
+				}
+
+				stdLine.UsageBased.Quantity = lo.ToPtr(alpacadecimal.NewFromInt(7))
+				stdLine.UsageBased.MeteredQuantity = lo.ToPtr(alpacadecimal.NewFromInt(7))
+				stdLine.UsageBased.PreLinePeriodQuantity = lo.ToPtr(alpacadecimal.Zero)
+				stdLine.UsageBased.MeteredPreLinePeriodQuantity = lo.ToPtr(alpacadecimal.Zero)
+			}
+
+			return lines, nil
+		}
+
+		mockEngine.onInvoiceIssued = func(_ context.Context, input ombilling.OnInvoiceIssuedInput) error {
+			s.Equal(invoice.ID, input.Invoice.ID)
+			return nil
+		}
+
+		mockEngine.onPaymentSettled = func(_ context.Context, input ombilling.OnPaymentSettledInput) error {
+			onPaymentSettledCnt++
+			s.Equal(ombilling.StandardInvoiceStatusPaymentProcessingBookingSettled, input.Invoice.Status)
+			s.Equal(invoice.ID, input.Invoice.ID)
+			s.Len(input.Lines, 1)
+			s.Equal(invoice.ID, input.Lines[0].InvoiceID)
+			s.Equal(mockEngine.GetLineEngineType(), input.Lines[0].Engine)
+
+			return nil
+		}
+
+		clock.SetTime(collectionAt.Add(time.Minute))
+
+		var err error
+		invoice, err = s.BillingService.AdvanceInvoice(ctx, invoice.GetInvoiceID())
+		s.Require().NoError(err)
+		s.Equal(ombilling.StandardInvoiceStatusDraftWaitingAutoApproval, invoice.Status)
+
+		invoice, err = s.BillingService.ApproveInvoice(ctx, invoice.GetInvoiceID())
+		s.Require().NoError(err)
+		s.Equal(ombilling.StandardInvoiceStatusPaymentProcessingPending, invoice.Status)
+
+		invoice = s.markInvoiceAuthorized(ctx, invoice.GetInvoiceID())
+		s.Equal(ombilling.StandardInvoiceStatusPaymentProcessingAuthorized, invoice.Status)
+
+		invoice = s.markInvoicePaid(ctx, invoice.GetInvoiceID())
+		s.Equal(ombilling.StandardInvoiceStatusPaid, invoice.Status)
+	})
+
+	s.Run("Then the payment-settled hook is called once", func() {
+		s.Equal(1, onPaymentSettledCnt)
+		s.Equal(ombilling.StandardInvoiceStatusPaid, invoice.Status)
+	})
+}
+
+func (s *LineEngineTestSuite) TestOnPaymentSettledFailureAfterAuthorizationTransitionsToRetryablePaymentState() {
+	var (
+		ctx                 = s.T().Context()
+		namespace           = s.GetUniqueNamespace("ns-line-engine-on-payment-settled-failed-after-authorization")
+		mockEngine          = &mockCollectionCompletedLineEngine{engineType: ombilling.LineEngineTypeChargeCreditPurchase}
+		customInvoicingApp  = s.SetupCustomInvoicing(namespace).App
+		invoice             ombilling.StandardInvoice
+		collectionAt        time.Time
+		onPaymentSettledCnt int
+	)
+
+	clockBase := lo.Must(time.Parse(time.RFC3339, "2024-09-02T12:13:14Z"))
+	clock.SetTime(clockBase)
+	defer clock.ResetTime()
+	defer func() { _ = s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{}) }()
+	defer s.MockStreamingConnector.Reset()
+	s.registerMockLineEngine(s.T(), mockEngine)
+	defer s.unregisterLineEngine(s.T(), mockEngine)
+
+	s.Run("Given a draft invoice waiting for collection with a failing payment-settled hook after authorization", func() {
+		defer mockEngine.Reset()
+
+		mockEngine.buildStandardInvoiceLines = func(_ context.Context, input ombilling.BuildStandardInvoiceLinesInput) (ombilling.StandardLines, error) {
+			return mustAsNewStandardLines(input), nil
+		}
+
+		invoice, collectionAt = s.createMeteredDraftInvoiceWaitingForCollectionForApp(
+			ctx,
+			namespace,
+			customInvoicingApp.GetID(),
+			mockEngine.GetLineEngineType(),
+			"UBP - payment settled hook failed after authorization",
+		)
+	})
+
+	s.Run("When the invoice is collected, issued, marked authorized, and payment settlement hits the failing hook", func() {
+		defer mockEngine.Reset()
+
+		mockEngine.onCollectionCompleted = func(_ context.Context, input ombilling.OnCollectionCompletedInput) (ombilling.StandardLines, error) {
+			lines := input.Lines
+			for _, stdLine := range lines {
+				if stdLine.UsageBased == nil {
+					stdLine.UsageBased = &ombilling.UsageBasedLine{}
+				}
+
+				stdLine.UsageBased.Quantity = lo.ToPtr(alpacadecimal.NewFromInt(7))
+				stdLine.UsageBased.MeteredQuantity = lo.ToPtr(alpacadecimal.NewFromInt(7))
+				stdLine.UsageBased.PreLinePeriodQuantity = lo.ToPtr(alpacadecimal.Zero)
+				stdLine.UsageBased.MeteredPreLinePeriodQuantity = lo.ToPtr(alpacadecimal.Zero)
+			}
+
+			return lines, nil
+		}
+
+		mockEngine.onInvoiceIssued = func(_ context.Context, input ombilling.OnInvoiceIssuedInput) error {
+			s.Equal(invoice.ID, input.Invoice.ID)
+			return nil
+		}
+
+		mockEngine.onPaymentSettled = func(_ context.Context, input ombilling.OnPaymentSettledInput) error {
+			onPaymentSettledCnt++
+			s.Equal(ombilling.StandardInvoiceStatusPaymentProcessingBookingSettled, input.Invoice.Status)
+			s.Equal(invoice.ID, input.Invoice.ID)
+
+			return ombilling.NewValidationError("test_line_engine_callback_failed", "simulated payment settled failure")
+		}
+
+		clock.SetTime(collectionAt.Add(time.Minute))
+
+		var err error
+		invoice, err = s.BillingService.AdvanceInvoice(ctx, invoice.GetInvoiceID())
+		s.Require().NoError(err)
+		s.Equal(ombilling.StandardInvoiceStatusDraftWaitingAutoApproval, invoice.Status)
+
+		invoice, err = s.BillingService.ApproveInvoice(ctx, invoice.GetInvoiceID())
+		s.Require().NoError(err)
+		s.Equal(ombilling.StandardInvoiceStatusPaymentProcessingPending, invoice.Status)
+
+		invoice = s.markInvoiceAuthorized(ctx, invoice.GetInvoiceID())
+		s.Equal(ombilling.StandardInvoiceStatusPaymentProcessingAuthorized, invoice.Status)
+
+		invoice = s.markInvoicePaid(ctx, invoice.GetInvoiceID())
+		s.Equal(ombilling.StandardInvoiceStatusPaymentProcessingBookingSettledFailed, invoice.Status)
+		s.True(invoice.StatusDetails.Failed)
+		s.NotNil(invoice.StatusDetails.AvailableActions.Retry)
+		s.NotEmpty(invoice.ValidationIssues)
+		s.Equal(ombilling.ValidationIssueSeverityCritical, invoice.ValidationIssues[0].Severity)
+		s.Equal("simulated payment settled failure", invoice.ValidationIssues[0].Message)
+	})
+
+	s.Run("Then retry succeeds without restarting payment processing", func() {
+		defer mockEngine.Reset()
+
+		mockEngine.onPaymentSettled = func(_ context.Context, input ombilling.OnPaymentSettledInput) error {
+			onPaymentSettledCnt++
+			s.Equal(invoice.ID, input.Invoice.ID)
+
+			return nil
+		}
+
+		var err error
+		invoice, err = s.BillingService.RetryInvoice(ctx, invoice.GetInvoiceID())
+		s.Require().NoError(err)
+		s.Equal(2, onPaymentSettledCnt)
+		s.Equal(ombilling.StandardInvoiceStatusPaid, invoice.Status)
+	})
+}
