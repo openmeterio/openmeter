@@ -285,14 +285,14 @@ func TestEditRunning(t *testing.T) {
 			},
 		},
 		{
-			Name: "Should materialize invoice currency on a newly priced item",
+			Name: "Should materialize plan currency on a newly priced item",
 			Handler: func(t *testing.T, deps testCaseDeps) {
 				// given:
 				// - a priced item authored without an explicit currency
 				// when:
 				// - it is added through the running-subscription edit workflow
 				// then:
-				// - the persisted item carries the subscription invoice currency
+				// - the persisted item carries the referenced plan currency
 				const (
 					phaseKey = "test_phase_1"
 					itemKey  = "edited-priced-item"
@@ -333,7 +333,7 @@ func TestEditRunning(t *testing.T) {
 				itemCurrency := phase.ItemsByKey[itemKey][0].Spec.RateCard.AsMeta().Currency
 				require.NotNil(t, itemCurrency)
 				require.True(t, itemCurrency.IsFiat())
-				require.Equal(t, subView.Subscription.InvoiceCurrency, itemCurrency.GetCode())
+				require.True(t, deps.Plan.Currency().Equal(*itemCurrency))
 			},
 		},
 		{

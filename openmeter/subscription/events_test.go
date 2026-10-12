@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
@@ -25,6 +27,9 @@ func TestSubscriptionEventInvoiceCurrencyWireCompatibility(t *testing.T) {
 	require.NoError(t, json.Unmarshal([]byte(legacyPayload), &event))
 	require.Equal(t, currencyx.Code("USD"), event.Subscription.InvoiceCurrency)
 	require.Equal(t, currencyx.Code("USD"), event.Spec.InvoiceCurrency)
+
+	// A hydrated plan default must not replace the legacy invoice-fiat field.
+	event.Subscription.Currency = lo.ToPtr(currencies.NewCurrencyReference("CREDITS"))
 
 	payload, err := json.Marshal(event)
 	require.NoError(t, err)

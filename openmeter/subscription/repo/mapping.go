@@ -22,6 +22,7 @@ func MapDBSubscription(sub *db.Subscription) (subscription.Subscription, error) 
 	}
 
 	var ref *subscription.PlanRef
+	var planCurrency *currencies.CurrencyReference
 
 	if sub.Edges.Plan != nil {
 		ref = &subscription.PlanRef{
@@ -30,6 +31,10 @@ func MapDBSubscription(sub *db.Subscription) (subscription.Subscription, error) 
 			Version: sub.Edges.Plan.Version,
 		}
 		ref.Id = sub.Edges.Plan.ID
+		planCurrency = &currencies.CurrencyReference{
+			Code:             currencyx.Code(sub.Edges.Plan.CurrencyCode),
+			CustomCurrencyID: sub.Edges.Plan.CustomCurrencyID,
+		}
 	}
 
 	billingCadence, err := sub.BillingCadence.Parse()
@@ -76,6 +81,7 @@ func MapDBSubscription(sub *db.Subscription) (subscription.Subscription, error) 
 		Name:            sub.Name,
 		Description:     sub.Description,
 		CustomerId:      sub.CustomerID,
+		Currency:        planCurrency,
 		InvoiceCurrency: sub.InvoiceCurrency,
 		CostBasisMode:   subscription.CostBasisMode(sub.CostBasisMode),
 		CostBasisPins:   costBasisPins,

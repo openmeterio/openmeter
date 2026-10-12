@@ -85,6 +85,16 @@ func (p CostBasisPin) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
+// DefaultCurrency returns the referenced plan's default when available,
+// falling back to invoice currency when no plan default was retained.
+func (s Subscription) DefaultCurrency() currencies.CurrencyReference {
+	if s.Currency != nil {
+		return s.Currency.Clone()
+	}
+
+	return currencies.NewCurrencyReference(s.InvoiceCurrency)
+}
+
 func (s SubscriptionSpec) HasCustomCurrencyBillables() bool {
 	for _, phase := range s.Phases {
 		if phase == nil {

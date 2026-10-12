@@ -136,6 +136,10 @@ and phase; do not persist a derived absolute end as independent source truth.
 - newly materialized priced items snapshot their effective currency code; custom
   currencies also retain their managed currency ID, while legacy items may lack
   this snapshot
+- add-item edits preserve explicit currency; otherwise they inherit the referenced
+  plan version's default currency. Inline plans retain no default currency, so
+  their edits fall back to invoice currency. Existing item overrides do not define
+  the default for new items.
 - V1 subscription reads reject custom-currency priced items; customer subscription
   lists and customer expansions omit those subscriptions before pagination.
   Visibility follows the non-deleted subscription schedule, including past and

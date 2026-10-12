@@ -3,6 +3,7 @@ package subscription
 import (
 	"time"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -23,6 +24,10 @@ type Subscription struct {
 	PlanRef *PlanRef `json:"planRef"`
 
 	CustomerId string `json:"customerId,omitempty"`
+	// Currency is the referenced plan's default, hydrated on reads rather than
+	// persisted on the subscription. Inline plans have no retained default.
+	// Keep it out of events whose legacy currency field means invoice fiat.
+	Currency *currencies.CurrencyReference `json:"-"`
 	// Keep the legacy JSON key because v1 subscription events embed this domain type.
 	InvoiceCurrency currencyx.Code `json:"currency,omitempty"`
 	CostBasisMode   CostBasisMode  `json:"costBasisMode"`
