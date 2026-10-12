@@ -18,7 +18,7 @@ import (
 func (c *service) listCustomerFBOSources(
 	ctx context.Context,
 	query SourceQuery,
-	scope *Scope,
+	plan *Plan,
 ) ([]source, error) {
 	customerAccounts, err := c.dependencies.AccountService.GetCustomerAccounts(ctx, query.CustomerID)
 	if err != nil {
@@ -38,10 +38,10 @@ func (c *service) listCustomerFBOSources(
 		return nil, err
 	}
 
-	if scope != nil {
+	if plan != nil {
 		for idx := range sources {
 			key := keyForSource(sources[idx].address, sources[idx].sourceChargeID)
-			sources[idx].available = sources[idx].available.Sub(scope.reserved[key])
+			sources[idx].available = sources[idx].available.Sub(plan.reserved[key])
 		}
 	}
 

@@ -2,10 +2,11 @@
 
 This package turns selected customer FBO credit into accrued value and, for
 custom-currency `credit_then_invoice` overage, fiat receivable coverage.
-The [FBO service](../fbo/README.md) plans source selection, consumption, expiry
+The [FBO plan](../fbo/README.md) owns source selection, consumption, expiry
 release, and credit-only advance for an uncovered amount. The collector commits
-the complete group and maps its postings to billing allocations. Source order
-is preserved so correction and breakage can undo the same collected amounts.
+the complete group and maps each consumption's transactions to billing
+allocations. Source order is preserved so correction and breakage can undo the
+same collected amounts.
 
 ## Vocab
 

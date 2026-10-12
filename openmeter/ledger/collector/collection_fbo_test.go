@@ -158,7 +158,7 @@ func TestCollectCustomerFBOFiltersByFeatureEligibility(t *testing.T) {
 func TestCollectCustomerFBOFiltersBreakageByFeatureEligibility(t *testing.T) {
 	env := ledgertestutils.NewIntegrationEnv(t, "collector")
 	breakageService := newTestBreakageService(t, env)
-	collector := newTestAccrualCollectorWithBreakage(t, env, breakageService)
+	collector := newTestAccrualCollector(t, env)
 
 	expiresAt := env.Now().Add(10 * time.Hour)
 	bookExpiringCreditWithFeatures(t, env, breakageService, 1, 10, nil, nil, expiresAt)
@@ -222,7 +222,7 @@ func TestCollectCustomerFBOUsesPriorityBeforeFeatureRestriction(t *testing.T) {
 func TestCollectCustomerFBOReleasesBreakageInExpiryOrder(t *testing.T) {
 	env := ledgertestutils.NewIntegrationEnv(t, "collector")
 	breakageService := newTestBreakageService(t, env)
-	collector := newTestAccrualCollectorWithBreakage(t, env, breakageService)
+	collector := newTestAccrualCollector(t, env)
 
 	firstPlanID := bookExpiringCredit(t, env, breakageService, 1, 10, env.Now().Add(10*time.Hour))
 	secondPlanID := bookExpiringCredit(t, env, breakageService, 1, 15, env.Now().Add(15*time.Hour))
@@ -261,7 +261,7 @@ func TestCollectCustomerFBOReleasesBreakageInExpiryOrder(t *testing.T) {
 func TestCollectCustomerFBOBreakageReleaseTracksSpendOnFBOAndSourceOnBreakage(t *testing.T) {
 	env := ledgertestutils.NewIntegrationEnv(t, "collector")
 	breakageService := newTestBreakageService(t, env)
-	collector := newTestAccrualCollectorWithBreakage(t, env, breakageService)
+	collector := newTestAccrualCollector(t, env)
 
 	// given:
 	// - two same-route expiring credit sources with separate breakage plans
@@ -325,7 +325,7 @@ func TestCollectCustomerFBOBreakageReleaseTracksSpendOnFBOAndSourceOnBreakage(t 
 func TestCollectCustomerFBOBreakageReleaseUsesPlanSourceBeforeBucketCursor(t *testing.T) {
 	env := ledgertestutils.NewIntegrationEnv(t, "collector")
 	breakageService := newTestBreakageService(t, env)
-	collector := newTestAccrualCollectorWithBreakage(t, env, breakageService)
+	collector := newTestAccrualCollector(t, env)
 
 	// given:
 	// - two same-route expiring credit sources sharing one FBO sub-account
@@ -493,11 +493,6 @@ func TestCollectToAccruedCustomCurrencyCreditThenInvoiceDoesNotCreateExposure(t 
 	requireReceivableBalanceBuckets(t, env, map[string]float64{})
 }
 
-func newTestAccrualCollector(t testing.TB, env *ledgertestutils.IntegrationEnv) *accrualCollector {
-	t.Helper()
-	return newTestAccrualCollectorWithBreakage(t, env, ledgerbreakage.NewNoopService())
-}
-
 func collectCustomerFBOForTest(
 	t *testing.T,
 	env *ledgertestutils.IntegrationEnv,
@@ -556,8 +551,9 @@ func collectCustomerFBOForFeatureForTest(
 	})
 }
 
-func newTestAccrualCollectorWithBreakage(t testing.TB, env *ledgertestutils.IntegrationEnv, breakageService ledgerbreakage.Service) *accrualCollector {
+func newTestAccrualCollector(t testing.TB, env *ledgertestutils.IntegrationEnv) *accrualCollector {
 	t.Helper()
+	breakageService := newTestBreakageService(t, env)
 	service, err := fbo.NewService(fbo.Config{
 		Logger:   omtestutils.NewDiscardLogger(t),
 		Advance:  advancetestutils.NewService(t, env.Deps, breakageService),
@@ -578,7 +574,7 @@ func newTestAccrualCollectorWithBreakage(t testing.TB, env *ledgertestutils.Inte
 	}
 }
 
-func newTestBreakageService(t *testing.T, env *ledgertestutils.IntegrationEnv) ledgerbreakage.Service {
+func newTestBreakageService(t testing.TB, env *ledgertestutils.IntegrationEnv) ledgerbreakage.Service {
 	t.Helper()
 
 	breakageAdapter, err := ledgerbreakageadapter.New(ledgerbreakageadapter.Config{
@@ -1032,7 +1028,7 @@ func TestCollectCustomerFBOMatchesPlanAndFeatureFilters(t *testing.T) {
 	require.NoError(t, err)
 	corrections, err := realized.CreateCorrectionRequest(alpacadecimal.NewFromInt(-35), fiat)
 	require.NoError(t, err)
-	_, err = newTestAccrualCorrector(t, env, ledgerbreakage.NewNoopService()).Correct(t.Context(), CorrectCollectedAccruedInput{
+	_, err = newTestAccrualCorrector(t, env).Correct(t.Context(), CorrectCollectedAccruedInput{
 		Namespace: env.Namespace, ChargeID: spendChargeID, CustomerID: env.CustomerID.ID, AllocateAt: env.Now(), Corrections: corrections,
 	})
 	require.NoError(t, err)
