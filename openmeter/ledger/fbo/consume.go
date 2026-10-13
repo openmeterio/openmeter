@@ -11,6 +11,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/currencies"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/advance"
 	"github.com/openmeterio/openmeter/openmeter/ledger/breakage"
@@ -55,8 +56,9 @@ func (p AdvancePolicy) Validate() error {
 }
 
 type ConsumeInput struct {
+	breakage.PostingInput
+	CustomerID        customer.CustomerID
 	ChargeID          string
-	Annotations       models.Annotations
 	BookedAt          time.Time
 	SourceBalanceAsOf time.Time
 	Currency          currencies.CurrencyReference
@@ -72,6 +74,14 @@ var _ models.Validator = ConsumeInput{}
 
 func (i ConsumeInput) Validate() error {
 	var errs []error
+	if err := i.CustomerID.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("customer: %w", err))
+	}
+
+	if err := i.PostingInput.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("posting: %w", err))
+	}
+
 	if i.ChargeID == "" {
 		errs = append(errs, errors.New("charge id is required"))
 	}
@@ -133,156 +143,83 @@ func (i ConsumeInput) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-type ConsumedSource struct {
-	Address            ledger.PostingAddress
-	SourceChargeID     *string
-	CollectionOriginID *string
-	Amount             alpacadecimal.Decimal
-	TransactionID      string
-	EntryID            string
-	BreakagePlanID     *string
-}
-
-// Consumption records one operation's amounts, selected sources, and accounting
-// references. Its postings belong to the Plan and cannot be committed separately.
-type Consumption struct {
-	Sources         []ConsumedSource
-	CoveredAmount   alpacadecimal.Decimal
-	AdvanceAmount   alpacadecimal.Decimal
-	UncoveredAmount alpacadecimal.Decimal
-	TransactionIDs  []string
-}
-
-// Transactions resolves the accounting references after the plan's group is
-// committed. Reference order preserves consumption order independently of the
-// group's transaction enumeration, which billing uses for allocation ordering.
-func (c Consumption) Transactions(group ledger.TransactionGroup) ([]ledger.Transaction, error) {
-	if group == nil {
-		return nil, errors.New("transaction group is required")
-	}
-
-	posted := group.Transactions()
-	byID := make(map[string]ledger.Transaction, len(posted))
-	for _, transaction := range posted {
-		byID[transaction.ID().ID] = transaction
-	}
-
-	transactions := make([]ledger.Transaction, 0, len(c.TransactionIDs))
-	for _, id := range c.TransactionIDs {
-		transaction, ok := byID[id]
-		if !ok {
-			return nil, fmt.Errorf("consumption transaction %s is missing from group %s", id, group.ID().ID)
-		}
-
-		transactions = append(transactions, transaction)
-	}
-
-	return transactions, nil
-}
-
-func (p *Plan) Consume(ctx context.Context, request ConsumeInput) (consumption Consumption, err error) {
-	if err := p.validate(); err != nil {
-		return consumption, err
-	}
-
-	// Breakage bookkeeping may already be written when a later step fails.
-	// Such a plan cannot be continued or finalized; its caller must roll back.
-	defer func() {
-		if err != nil {
-			p.failure = err
-		}
-	}()
+// Consume selects credit and returns the resolved consumption, breakage release,
+// and shortfall advance transactions. The caller must commit them under the supplied
+// group ID in the same database transaction: breakage bookkeeping is written here,
+// so any later failure requires rollback.
+func (s *service) Consume(ctx context.Context, request ConsumeInput) ([]ledger.TransactionInput, error) {
 	if err := request.Validate(); err != nil {
-		return consumption, err
+		return nil, err
 	}
 
 	if request.Amount.IsZero() {
-		return consumption, nil
+		return nil, nil
 	}
 
-	selectedCredits, creditTransactions, err := p.selectCreditsAndBuildTransactions(ctx, request)
+	selectedCredits, creditTransactions, err := s.selectCreditsAndBuildTransactions(ctx, request)
 	if err != nil {
-		return consumption, err
+		return nil, err
 	}
 
 	// Each origin identifies one concrete FBO debit. Assign its IDs before
 	// writing breakage records that reference the still-unposted consumption.
 	sourceDebitsByOrigin, err := assignSourceDebitIDs(creditTransactions)
 	if err != nil {
-		return consumption, err
+		return nil, err
 	}
 
-	consumption, breakageReleases, err := p.buildConsumptionAndReleaseBreakage(ctx, buildConsumptionAndReleaseBreakageInput{
-		ReleasePosting: breakage.PostingInput{
-			TransactionGroupID: p.groupID,
-			Annotations:        request.Annotations,
-		},
+	breakageReleases, err := s.releaseConsumedBreakage(ctx, releaseConsumedBreakageInput{
+		ReleasePosting:       request.PostingInput,
 		SpendChargeID:        request.ChargeID,
 		SelectedCredits:      selectedCredits,
 		SourceDebitsByOrigin: sourceDebitsByOrigin,
 	})
 	if err != nil {
-		return consumption, err
+		return nil, err
 	}
 
 	postings := append(creditTransactions, breakageReleases...)
+	shortfall := request.Amount
+	for _, credit := range selectedCredits {
+		shortfall = shortfall.Sub(credit.amount)
+	}
 
 	// Advances fund only the shortfall; they are issued and consumed together.
-	consumption.UncoveredAmount = request.Amount.Sub(consumption.CoveredAmount)
-	if request.AdvancePolicy == AdvancePolicyOnShortfall && consumption.UncoveredAmount.IsPositive() {
-		advancePostings, err := p.owner.advance.PlanIssue(ctx, advance.IssueInput{
-			CustomerID:  p.customerID,
+	if request.AdvancePolicy == AdvancePolicyOnShortfall && shortfall.IsPositive() {
+		advancePostings, err := s.advance.PlanIssue(ctx, advance.IssueInput{
+			CustomerID:  request.CustomerID,
 			ChargeID:    request.ChargeID,
 			At:          request.BookedAt,
-			Amount:      consumption.UncoveredAmount,
+			Amount:      shortfall,
 			Currency:    request.Currency,
 			Filters:     request.Filters,
 			TaxCode:     request.TaxCode,
 			TaxBehavior: request.TaxBehavior,
 		})
 		if err != nil {
-			return consumption, fmt.Errorf("plan FBO shortfall advance: %w", err)
+			return nil, fmt.Errorf("plan FBO shortfall advance: %w", err)
 		}
 
 		postings = append(postings, advancePostings...)
-		consumption.AdvanceAmount = consumption.UncoveredAmount
-		consumption.UncoveredAmount = alpacadecimal.Zero
 	}
 
-	// Keep references in planning order, including breakage and advance postings.
-	// IDs already used by breakage bookkeeping must survive this final pass.
 	for idx, posting := range postings {
-		identified, err := ledger.PreassignIDs(posting)
-		if err != nil {
-			return consumption, err
-		}
-
-		postings[idx] = transactions.WithAnnotations(identified, request.Annotations)
-		consumption.TransactionIDs = append(consumption.TransactionIDs, identified.AssignedID())
+		postings[idx] = transactions.WithAnnotations(posting, request.Annotations)
 	}
 
-	// Reserve credit only after the entire operation succeeds. Later Consume
-	// calls must see it as used even though the group has not been posted yet.
-	for _, credit := range selectedCredits {
-		key := keyForSource(credit.source.address, credit.source.sourceChargeID)
-		p.reserved[key] = p.reserved[key].Add(credit.amount)
-	}
-
-	p.inputs = append(p.inputs, postings...)
-
-	return consumption, nil
+	return postings, nil
 }
 
-// selectCreditsAndBuildTransactions applies source priority and existing plan
-// reservations, then builds transactions for the requested destination. Each selected
+// selectCreditsAndBuildTransactions applies source priority and builds
+// transactions for the requested destination. Each selected
 // slice gets its own collection origin, even when slices share an issuing charge.
-func (p *Plan) selectCreditsAndBuildTransactions(ctx context.Context, request ConsumeInput) (selectionList, []ledger.TransactionInput, error) {
-	sources, err := p.owner.listCustomerFBOSources(ctx, SourceQuery{
-		CustomerID: p.customerID,
+func (s *service) selectCreditsAndBuildTransactions(ctx context.Context, request ConsumeInput) (selectionList, []ledger.TransactionInput, error) {
+	sources, err := s.listCustomerFBOSources(ctx, SourceQuery{
+		CustomerID: request.CustomerID,
 		Currency:   request.Currency,
 		Filters:    request.Filters,
 		AsOf:       request.SourceBalanceAsOf,
-	}, p)
+	})
 	if err != nil {
 		return nil, nil, err
 	}
@@ -315,9 +252,9 @@ func (p *Plan) selectCreditsAndBuildTransactions(ctx context.Context, request Co
 		}
 	}
 
-	creditTransactions, err := transactions.ResolveTransactions(ctx, p.owner.dependencies, transactions.ResolutionScope{
-		CustomerID: p.customerID,
-		Namespace:  p.customerID.Namespace,
+	creditTransactions, err := transactions.ResolveTransactions(ctx, s.dependencies, transactions.ResolutionScope{
+		CustomerID: request.CustomerID,
+		Namespace:  request.CustomerID.Namespace,
 	}, template)
 	if err != nil {
 		return nil, nil, fmt.Errorf("resolve FBO consumption: %w", err)
@@ -326,10 +263,15 @@ func (p *Plan) selectCreditsAndBuildTransactions(ctx context.Context, request Co
 	return selectedCredits, creditTransactions, nil
 }
 
+type sourcePostingIDs struct {
+	TransactionID string
+	EntryID       string
+}
+
 // assignSourceDebitIDs replaces transactions with identified copies and returns the
 // exact FBO debit references used to link breakage releases to consumed credit.
-func assignSourceDebitIDs(creditTransactions []ledger.TransactionInput) (map[string]ConsumedSource, error) {
-	sourceDebitsByOrigin := make(map[string]ConsumedSource, len(creditTransactions))
+func assignSourceDebitIDs(creditTransactions []ledger.TransactionInput) (map[string]sourcePostingIDs, error) {
+	sourceDebitsByOrigin := make(map[string]sourcePostingIDs, len(creditTransactions))
 	for idx, posting := range creditTransactions {
 		identified, err := ledger.PreassignIDs(posting)
 		if err != nil {
@@ -347,13 +289,9 @@ func assignSourceDebitIDs(creditTransactions []ledger.TransactionInput) (map[str
 				return nil, fmt.Errorf("collection origin %s has multiple FBO source entries", originID)
 			}
 
-			sourceDebitsByOrigin[originID] = ConsumedSource{
-				Address:            entry.PostingAddress(),
-				SourceChargeID:     entry.Provenance().SourceChargeID,
-				CollectionOriginID: entry.Provenance().CollectionOriginID,
-				Amount:             entry.Amount().Abs(),
-				TransactionID:      identified.AssignedID(),
-				EntryID:            entry.AssignedID(),
+			sourceDebitsByOrigin[originID] = sourcePostingIDs{
+				TransactionID: identified.AssignedID(),
+				EntryID:       entry.AssignedID(),
 			}
 		}
 	}
@@ -361,16 +299,16 @@ func assignSourceDebitIDs(creditTransactions []ledger.TransactionInput) (map[str
 	return sourceDebitsByOrigin, nil
 }
 
-type buildConsumptionAndReleaseBreakageInput struct {
+type releaseConsumedBreakageInput struct {
 	ReleasePosting       breakage.PostingInput
 	SpendChargeID        string
 	SelectedCredits      selectionList
-	SourceDebitsByOrigin map[string]ConsumedSource
+	SourceDebitsByOrigin map[string]sourcePostingIDs
 }
 
-var _ models.Validator = buildConsumptionAndReleaseBreakageInput{}
+var _ models.Validator = releaseConsumedBreakageInput{}
 
-func (i buildConsumptionAndReleaseBreakageInput) Validate() error {
+func (i releaseConsumedBreakageInput) Validate() error {
 	var errs []error
 	if err := i.ReleasePosting.Validate(); err != nil {
 		errs = append(errs, err)
@@ -383,20 +321,19 @@ func (i buildConsumptionAndReleaseBreakageInput) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-// buildConsumptionAndReleaseBreakage builds the consumption receipt in selection
-// order and releases scheduled breakage for consumed slices. Release records are
-// written now; their transactions join the same group as the source debits.
-// On failure, the receipt contains only sources whose processing succeeded.
-func (p *Plan) buildConsumptionAndReleaseBreakage(ctx context.Context, input buildConsumptionAndReleaseBreakageInput) (consumption Consumption, breakageReleases []ledger.TransactionInput, err error) {
+// releaseConsumedBreakage writes release records for selected expiring credit.
+// Their transactions join the same group as the source debits they reference.
+func (s *service) releaseConsumedBreakage(ctx context.Context, input releaseConsumedBreakageInput) ([]ledger.TransactionInput, error) {
 	if err := input.Validate(); err != nil {
-		return consumption, nil, err
+		return nil, err
 	}
 
+	var breakageReleases []ledger.TransactionInput
 	remainingBreakageByPlanID := make(map[string]alpacadecimal.Decimal)
 	for _, selection := range input.SelectedCredits {
 		consumedSource, ok := input.SourceDebitsByOrigin[lo.FromPtr(selection.collectionOriginID)]
 		if !ok {
-			return consumption, nil, errors.New("selected credit has no resolved FBO source posting")
+			return nil, errors.New("selected credit has no resolved FBO source posting")
 		}
 
 		if selection.source.breakagePlan != nil {
@@ -409,32 +346,28 @@ func (p *Plan) buildConsumptionAndReleaseBreakage(ctx context.Context, input bui
 			// Legacy source-less plans can span several selected source slices;
 			// cap their combined release before writing more bookkeeping.
 			if selection.amount.GreaterThan(remaining) {
-				return consumption, nil, fmt.Errorf("release amount exceeds remaining breakage plan amount for %s", breakagePlan.ID.ID)
+				return nil, fmt.Errorf("release amount exceeds remaining breakage plan amount for %s", breakagePlan.ID.ID)
 			}
 
 			remainingBreakageByPlanID[breakagePlan.ID.ID] = remaining.Sub(selection.amount)
-			consumedSource.BreakagePlanID = &breakagePlan.ID.ID
-			breakageRelease, err := p.owner.breakage.ReleasePlan(ctx, breakage.ReleasePlanInput{
+			breakageRelease, err := s.breakage.ReleasePlan(ctx, breakage.ReleasePlanInput{
 				PostingInput:        input.ReleasePosting,
 				Plan:                breakagePlan,
 				Amount:              selection.amount,
 				SourceKind:          breakage.SourceKindUsage,
-				SourceChargeID:      consumedSource.SourceChargeID,
+				SourceChargeID:      selection.source.sourceChargeID,
 				SpendChargeID:       &input.SpendChargeID,
-				CollectionOriginID:  consumedSource.CollectionOriginID,
+				CollectionOriginID:  selection.collectionOriginID,
 				SourceTransactionID: &consumedSource.TransactionID,
 				SourceEntryID:       &consumedSource.EntryID,
 			})
 			if err != nil {
-				return consumption, nil, fmt.Errorf("release consumed credit breakage: %w", err)
+				return nil, fmt.Errorf("release consumed credit breakage: %w", err)
 			}
 
 			breakageReleases = append(breakageReleases, breakageRelease)
 		}
-
-		consumption.Sources = append(consumption.Sources, consumedSource)
-		consumption.CoveredAmount = consumption.CoveredAmount.Add(selection.amount)
 	}
 
-	return consumption, breakageReleases, nil
+	return breakageReleases, nil
 }
