@@ -61,7 +61,7 @@ func (s *service) ListSources(ctx context.Context, query SourceQuery) ([]Availab
 		return nil, err
 	}
 
-	sources, err := s.listCustomerFBOSources(ctx, query, nil)
+	sources, err := s.listCustomerFBOSources(ctx, query)
 	if err != nil {
 		return nil, err
 	}

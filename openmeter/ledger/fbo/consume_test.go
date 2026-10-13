@@ -3,7 +3,6 @@ package fbo_test
 import (
 	"context"
 	"errors"
-	"slices"
 	"testing"
 	"time"
 
@@ -26,118 +25,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
 
-func TestPlanReservesSourcesAcrossPostingTimes(t *testing.T) {
-	env, service, _ := newFBOEnv(t)
-	fundCredit(t, env, 10)
-
-	// given: both consumptions select the same historical balance but post later.
-	err := transaction.RunWithNoValue(t.Context(), enttx.NewCreator(env.DB), func(ctx context.Context) error {
-		plan, err := service.NewPlan(fbo.NewPlanInput{CustomerID: env.CustomerID})
-		require.NoError(t, err)
-		firstInput := consumeInput(env, "first", 7)
-		firstInput.BookedAt = env.Now().Add(24 * time.Hour)
-		first, err := plan.Consume(ctx, firstInput)
-		require.NoError(t, err)
-		require.Equal(t, 7.0, first.CoveredAmount.InexactFloat64())
-
-		// when: a second consume is planned before the first is posted.
-		secondInput := consumeInput(env, "second", 7)
-		secondInput.BookedAt = env.Now().Add(48 * time.Hour)
-		second, err := plan.Consume(ctx, secondInput)
-		require.NoError(t, err)
-
-		// then: only the unreserved slice is available in the shared group.
-		require.Equal(t, 3.0, second.CoveredAmount.InexactFloat64())
-		require.Equal(t, 4.0, second.UncoveredAmount.InexactFloat64())
-		require.NotEqual(t, first.Sources[0].EntryID, second.Sources[0].EntryID)
-		companion, err := transactions.ResolveTransactions(ctx, transactions.ResolverDependencies{
-			AccountService: env.Deps.ResolversService,
-			AccountCatalog: env.Deps.AccountService,
-			BalanceQuerier: env.Deps.HistoricalLedger,
-		}, transactions.ResolutionScope{CustomerID: env.CustomerID, Namespace: env.Namespace}, transactions.TransferCustomerReceivableToAccruedTemplate{
-			At:            secondInput.BookedAt,
-			Amount:        second.UncoveredAmount,
-			Currency:      env.CurrencyReference(),
-			CostBasis:     lo.ToPtr(alpacadecimal.NewFromInt(1)),
-			SpendChargeID: &secondInput.ChargeID,
-		})
-		require.NoError(t, err)
-		groupInput, err := plan.Finalize(nil, companion...)
-		require.NoError(t, err)
-		require.Len(t, groupInput.Transactions(), 3)
-		_, err = plan.Consume(ctx, consumeInput(env, "after-finalization", 1))
-		require.ErrorContains(t, err, "finalized")
-		_, err = plan.Finalize(nil)
-		require.ErrorContains(t, err, "finalized")
-		group, err := env.Deps.HistoricalLedger.CommitGroup(ctx, groupInput)
-		require.NoError(t, err)
-		firstPosted, err := first.Transactions(group)
-		require.NoError(t, err)
-		require.Len(t, firstPosted, 1)
-		require.Equal(t, first.Sources[0].TransactionID, firstPosted[0].ID().ID)
-		secondPosted, err := second.Transactions(group)
-		require.NoError(t, err)
-		require.Len(t, secondPosted, 1)
-		require.Equal(t, second.Sources[0].TransactionID, secondPosted[0].ID().ID)
-		missing := fbo.Consumption{TransactionIDs: []string{ulid.Make().String()}}
-		_, err = missing.Transactions(group)
-		require.ErrorContains(t, err, "is missing from group")
-
-		return nil
-	})
-	require.NoError(t, err)
-	requireAccountAmount(t, env, env.CustomerAccounts.FBOAccount, 0)
-	requireAccountAmount(t, env, env.CustomerAccounts.AccruedAccount, 14)
-	requireAccountAmount(t, env, env.CustomerAccounts.ReceivableAccount, -14)
-}
-
-func TestPlanReservesExpiringSourcesBeforePosting(t *testing.T) {
-	env, service, breakageService := newFBOEnv(t)
-	bookExpiringCredit(t, env, breakageService, 10)
-
-	// given: two consumes share one expiring source and the same unposted group.
-	err := transaction.RunWithNoValue(t.Context(), enttx.NewCreator(env.DB), func(ctx context.Context) error {
-		plan, err := service.NewPlan(fbo.NewPlanInput{CustomerID: env.CustomerID})
-		require.NoError(t, err)
-		first, err := plan.Consume(ctx, consumeInput(env, "first-expiring", 6))
-		require.NoError(t, err)
-		require.Equal(t, 6.0, first.CoveredAmount.InexactFloat64())
-
-		// when: the next consume sees the reservation and the staged breakage release.
-		plans, err := breakageService.ListPlans(ctx, breakage.ListPlansInput{
-			CustomerID: env.CustomerID,
-			Currency:   env.Currency,
-			AsOf:       env.Now(),
-		})
-		require.NoError(t, err)
-		require.Len(t, plans, 1)
-		require.Equal(t, 4.0, plans[0].OpenAmount.InexactFloat64())
-		second, err := plan.Consume(ctx, consumeInput(env, "second-expiring", 6))
-		require.NoError(t, err)
-
-		// then: each release names its own consumption entry, without reusing credit.
-		require.Equal(t, 4.0, second.CoveredAmount.InexactFloat64())
-		require.Equal(t, 2.0, second.UncoveredAmount.InexactFloat64())
-		require.Len(t, second.Sources, 1)
-		require.Equal(t, first.Sources[0].BreakagePlanID, second.Sources[0].BreakagePlanID)
-		releases, err := breakageService.ListReleases(ctx, breakage.ListReleasesInput{
-			CustomerID:    env.CustomerID,
-			SourceEntryID: []string{first.Sources[0].EntryID, second.Sources[0].EntryID},
-		})
-		require.NoError(t, err)
-		require.Len(t, releases, 2)
-		groupInput, err := plan.Finalize(nil)
-		require.NoError(t, err)
-		require.Len(t, groupInput.Transactions(), 4)
-		_, err = env.Deps.HistoricalLedger.CommitGroup(ctx, groupInput)
-
-		return err
-	})
-	require.NoError(t, err)
-	requireAccountAmount(t, env, env.CustomerAccounts.FBOAccount, 0)
-	requireAccountAmount(t, env, env.CustomerAccounts.AccruedAccount, 10)
-}
-
 func TestConsumptionKeepsSameCodeCurrencyBreakageSeparate(t *testing.T) {
 	env, service, breakageService := newFBOEnv(t)
 	env.Currency = currencyx.Code("ACME")
@@ -151,17 +38,13 @@ func TestConsumptionKeepsSameCodeCurrencyBreakageSeparate(t *testing.T) {
 	fundCredit(t, env, 10)
 
 	err := transaction.RunWithNoValue(t.Context(), enttx.NewCreator(env.DB), func(ctx context.Context) error {
-		plan, err := service.NewPlan(fbo.NewPlanInput{CustomerID: env.CustomerID})
-		require.NoError(t, err)
-
 		// when: alpha is consumed through the FBO service.
-		consumption, err := plan.Consume(ctx, consumeInput(env, "alpha-consumption", 6))
+		input := consumeInput(env, "alpha-consumption", 6)
+		inputs, err := service.Consume(ctx, input)
 		require.NoError(t, err)
 
 		// then: beta's breakage plan is neither attached nor released.
-		require.Equal(t, 6.0, consumption.CoveredAmount.InexactFloat64())
-		require.Len(t, consumption.Sources, 1)
-		require.Nil(t, consumption.Sources[0].BreakagePlanID)
+		require.Len(t, inputs, 1)
 		plans, err := breakageService.ListPlans(ctx, breakage.ListPlansInput{
 			CustomerID: env.CustomerID,
 			Currency:   env.Currency,
@@ -170,8 +53,7 @@ func TestConsumptionKeepsSameCodeCurrencyBreakageSeparate(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, plans, 1)
 		require.Equal(t, 10.0, plans[0].OpenAmount.InexactFloat64())
-		groupInput, err := plan.Finalize(nil)
-		require.NoError(t, err)
+		groupInput := ledger.WithGroupID(transactions.GroupInputs(env.Namespace, nil, inputs...), input.TransactionGroupID)
 		_, err = env.Deps.HistoricalLedger.CommitGroup(ctx, groupInput)
 
 		return err
@@ -191,43 +73,38 @@ func TestConsumptionComposesBreakageAndAdvanceInOneGroup(t *testing.T) {
 
 	// given: expiring credit covers only part of credit-only consumption.
 	err := transaction.RunWithNoValue(t.Context(), enttx.NewCreator(env.DB), func(ctx context.Context) error {
-		plan, err := service.NewPlan(fbo.NewPlanInput{CustomerID: env.CustomerID})
-		require.NoError(t, err)
 		input := consumeInput(env, "credit-only", 10)
 		input.AdvancePolicy = fbo.AdvancePolicyOnShortfall
 
 		// when: consumption is planned without posting individual accounting legs.
-		consumption, err := plan.Consume(ctx, input)
+		inputs, err := service.Consume(ctx, input)
 		require.NoError(t, err)
-		require.Equal(t, 6.0, consumption.CoveredAmount.InexactFloat64())
-		require.Equal(t, 4.0, consumption.AdvanceAmount.InexactFloat64())
-		require.Equal(t, 0.0, consumption.UncoveredAmount.InexactFloat64())
-		require.Len(t, consumption.TransactionIDs, 4)
+		require.Len(t, inputs, 4)
+
+		var sourceEntry ledger.EntryInput
+		for _, entry := range inputs[0].EntryInputs() {
+			if entry.PostingAddress().AccountType() == ledger.AccountTypeCustomerFBO && entry.Amount().IsNegative() {
+				sourceEntry = entry
+			}
+		}
+
+		require.NotNil(t, sourceEntry)
+		require.Equal(t, -6.0, sourceEntry.Amount().InexactFloat64())
+
 		releases, err := breakageService.ListReleases(ctx, breakage.ListReleasesInput{
 			CustomerID:    env.CustomerID,
-			SourceEntryID: []string{consumption.Sources[0].EntryID},
+			SourceEntryID: []string{sourceEntry.AssignedID()},
 		})
 		require.NoError(t, err)
 		require.Len(t, releases, 1)
-		require.Equal(t, consumption.Sources[0].TransactionID, *releases[0].SourceTransactionID)
-		require.Equal(t, plan.GroupID(), releases[0].BreakageTransactionGroupID)
+		require.Equal(t, inputs[0].AssignedID(), *releases[0].SourceTransactionID)
+		require.Equal(t, input.TransactionGroupID, releases[0].BreakageTransactionGroupID)
 
-		// then: all legs share a group, while the result retains planning order
-		// even when the caller enumerates the group's transactions differently.
-		groupInput, err := plan.Finalize(nil)
-		require.NoError(t, err)
-		inputs := groupInput.Transactions()
-		slices.Reverse(inputs)
-		groupInput = ledger.WithGroupID(transactions.GroupInputs(env.Namespace, nil, inputs...), plan.GroupID())
+		// then: consumption, release, and advance legs are committed in one caller-owned group.
+		groupInput := ledger.WithGroupID(transactions.GroupInputs(env.Namespace, nil, inputs...), input.TransactionGroupID)
 		group, err := env.Deps.HistoricalLedger.CommitGroup(ctx, groupInput)
 		require.NoError(t, err)
 		require.Len(t, group.Transactions(), 4)
-		posted, err := consumption.Transactions(group)
-		require.NoError(t, err)
-		require.Len(t, posted, 4)
-		for idx, transaction := range posted {
-			require.Equal(t, consumption.TransactionIDs[idx], transaction.ID().ID)
-		}
 
 		return nil
 	})
@@ -236,7 +113,7 @@ func TestConsumptionComposesBreakageAndAdvanceInOneGroup(t *testing.T) {
 	requireAccountAmount(t, env, env.CustomerAccounts.AccruedAccount, 10)
 }
 
-func TestPlanRollbackDiscardsJournalAndBreakageRelease(t *testing.T) {
+func TestConsumptionRollbackDiscardsJournalAndBreakageRelease(t *testing.T) {
 	env, service, breakageService := newFBOEnv(t)
 	bookExpiringCredit(t, env, breakageService, 10)
 	failure := errors.New("caller failed")
@@ -244,13 +121,11 @@ func TestPlanRollbackDiscardsJournalAndBreakageRelease(t *testing.T) {
 
 	// given: an expiring consume and its bookkeeping share the caller transaction.
 	err := transaction.RunWithNoValue(t.Context(), enttx.NewCreator(env.DB), func(ctx context.Context) error {
-		plan, err := service.NewPlan(fbo.NewPlanInput{CustomerID: env.CustomerID})
+		input := consumeInput(env, "rollback", 4)
+		groupID = input.TransactionGroupID
+		inputs, err := service.Consume(ctx, input)
 		require.NoError(t, err)
-		groupID = plan.GroupID()
-		_, err = plan.Consume(ctx, consumeInput(env, "rollback", 4))
-		require.NoError(t, err)
-		groupInput, err := plan.Finalize(nil)
-		require.NoError(t, err)
+		groupInput := ledger.WithGroupID(transactions.GroupInputs(env.Namespace, nil, inputs...), input.TransactionGroupID)
 		_, err = env.Deps.HistoricalLedger.CommitGroup(ctx, groupInput)
 		require.NoError(t, err)
 
@@ -279,46 +154,9 @@ func TestPlanRollbackDiscardsJournalAndBreakageRelease(t *testing.T) {
 	require.Equal(t, 10.0, plans[0].OpenAmount.InexactFloat64())
 }
 
-func TestPlanFailureRejectsEarlierConsumptions(t *testing.T) {
-	env, service, breakageService := newFBOEnv(t)
-	bookExpiringCredit(t, env, breakageService, 10)
-	var groupID string
-
-	// given: an earlier consumption has already written its breakage bookkeeping.
-	err := transaction.RunWithNoValue(t.Context(), enttx.NewCreator(env.DB), func(ctx context.Context) error {
-		plan, err := service.NewPlan(fbo.NewPlanInput{CustomerID: env.CustomerID})
-		require.NoError(t, err)
-		groupID = plan.GroupID()
-		_, err = plan.Consume(ctx, consumeInput(env, "valid", 4))
-		require.NoError(t, err)
-
-		// when: a later consume fails in the same plan.
-		invalid := consumeInput(env, "invalid", -1)
-		invalid.Destination = fbo.ConsumeDestination("unknown")
-		invalid.AdvancePolicy = fbo.AdvancePolicy("unknown")
-		_, err = plan.Consume(ctx, invalid)
-		require.ErrorContains(t, err, "amount cannot be negative")
-		require.ErrorContains(t, err, "destination:")
-		require.ErrorContains(t, err, "advance policy:")
-
-		// then: the caller cannot drop that failure and commit earlier consumption.
-		_, err = plan.Finalize(nil)
-		require.ErrorContains(t, err, "FBO plan failed")
-
-		return err
-	})
-	require.ErrorContains(t, err, "FBO plan failed")
-	releases, err := breakageService.ListReleases(t.Context(), breakage.ListReleasesInput{
-		CustomerID:               env.CustomerID,
-		SourceTransactionGroupID: []string{groupID},
-	})
-	require.NoError(t, err)
-	require.Empty(t, releases)
-}
-
 func newFBOEnv(t *testing.T) (*ledgertestutils.IntegrationEnv, fbo.Service, breakage.Service) {
 	t.Helper()
-	env := ledgertestutils.NewIntegrationEnv(t, "fbo-planning")
+	env := ledgertestutils.NewIntegrationEnv(t, "fbo-consumption")
 	adapter, err := breakageadapter.New(breakageadapter.Config{Client: env.DB})
 	require.NoError(t, err)
 	dependencies := transactions.ResolverDependencies{
@@ -342,6 +180,8 @@ func newFBOEnv(t *testing.T) (*ledgertestutils.IntegrationEnv, fbo.Service, brea
 
 func consumeInput(env *ledgertestutils.IntegrationEnv, chargeID string, amount int64) fbo.ConsumeInput {
 	return fbo.ConsumeInput{
+		CustomerID:        env.CustomerID,
+		PostingInput:      breakage.PostingInput{TransactionGroupID: ulid.Make().String()},
 		ChargeID:          chargeID,
 		BookedAt:          env.Now(),
 		SourceBalanceAsOf: env.Now(),
