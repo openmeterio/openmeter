@@ -168,6 +168,10 @@ func (s *FeaturesService) Delete(ctx context.Context, featureID string) error {
 // dimensions, including grouping implied by their filters. Other dimensions follow
 // the query's grouping order. Unavailable cost is an empty cell, not zero. Detail
 // is retained for both unavailable and partially priced costs.
+//
+// Custom dimensions named `from`, `to`, `customer_key`, `customer_name`, `usage`,
+// `cost`, `currency`, or `detail` are omitted from CSV headers and row values.
+// Query grouping is unchanged, and JSON retains these dimension values.
 func (s *FeaturesService) QueryCost(ctx context.Context, featureID string, request *MeterQueryRequest) (*FeatureCostQueryResult, error) {
 	if featureID == "" {
 		return nil, fmt.Errorf("openmeter: %s must not be empty: %w", "featureID", ErrEmptyID)

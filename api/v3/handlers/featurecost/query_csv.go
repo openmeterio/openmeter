@@ -23,6 +23,17 @@ type (
 	QueryFeatureCostCSVHandler  = httptransport.HandlerWithArgs[QueryFeatureCostCSVRequest, QueryFeatureCostCSVResponse, QueryFeatureCostCSVParams]
 )
 
+const (
+	csvColumnFrom         = "from"
+	csvColumnTo           = "to"
+	csvColumnCustomerKey  = "customer_key"
+	csvColumnCustomerName = "customer_name"
+	csvColumnUsage        = "usage"
+	csvColumnCost         = "cost"
+	csvColumnCurrency     = "currency"
+	csvColumnDetail       = "detail"
+)
+
 func (h *handler) QueryFeatureCostCSV() QueryFeatureCostCSVHandler {
 	return httptransport.NewHandlerWithArgs(
 		h.decodeQueryFeatureCostRequest,
@@ -55,6 +66,7 @@ func (h *handler) QueryFeatureCostCSV() QueryFeatureCostCSVHandler {
 				if err != nil {
 					return nil, fmt.Errorf("failed to list customers for csv enrichment: %w", err)
 				}
+
 				customersByID = lo.KeyBy(customers.Items, func(c customer.Customer) string { return c.ID })
 			}
 
@@ -68,7 +80,7 @@ func (h *handler) QueryFeatureCostCSV() QueryFeatureCostCSVHandler {
 		commonhttp.CSVResponseEncoder[QueryFeatureCostCSVResponse],
 		httptransport.AppendOptions(
 			h.options,
-			httptransport.WithOperationName("query-feature-cost-csv"),
+			httptransport.WithOperationName("query-feature-cost"),
 			httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),
 		)...,
 	)
@@ -91,22 +103,29 @@ func (r *queryFeatureCostCSVResult) Records() [][]string {
 	hasSubject := slices.Contains(r.groupBy, query.DimensionSubject)
 	hasCustomer := slices.Contains(r.groupBy, query.DimensionCustomerID)
 
-	headers := []string{"from", "to"}
+	headers := []string{csvColumnFrom, csvColumnTo}
 	if hasSubject {
-		headers = append(headers, "subject")
+		headers = append(headers, query.DimensionSubject)
 	}
+
 	if hasCustomer {
-		headers = append(headers, "customer_id", "customer_key", "customer_name")
+		headers = append(headers, query.DimensionCustomerID, csvColumnCustomerKey, csvColumnCustomerName)
 	}
 
 	var dimensions []string
 	for _, key := range r.groupBy {
-		if key != query.DimensionSubject && key != query.DimensionCustomerID {
+		switch key {
+		case query.DimensionSubject, query.DimensionCustomerID,
+			csvColumnFrom, csvColumnTo, csvColumnCustomerKey, csvColumnCustomerName,
+			csvColumnUsage, csvColumnCost, csvColumnCurrency, csvColumnDetail:
+			// Keep fixed columns unique; colliding dimension values are omitted from CSV.
+		default:
 			dimensions = append(dimensions, key)
 		}
 	}
+
 	headers = append(headers, dimensions...)
-	headers = append(headers, "usage", "cost", "currency", "detail")
+	headers = append(headers, csvColumnUsage, csvColumnCost, csvColumnCurrency, csvColumnDetail)
 
 	records := make([][]string, 0, len(r.rows)+1)
 	records = append(records, headers)
@@ -116,11 +135,13 @@ func (r *queryFeatureCostCSVResult) Records() [][]string {
 		if hasSubject {
 			record = append(record, lo.FromPtr(row.Subject))
 		}
+
 		if hasCustomer {
 			id := lo.FromPtr(row.CustomerID)
 			c := r.customersByID[id]
 			record = append(record, id, lo.FromPtr(c.Key), c.Name)
 		}
+
 		for _, key := range dimensions {
 			record = append(record, lo.FromPtr(row.GroupBy[key]))
 		}
@@ -129,8 +150,10 @@ func (r *queryFeatureCostCSVResult) Records() [][]string {
 		if row.Cost != nil {
 			costAmount = row.Cost.String()
 		}
+
 		record = append(record, row.Usage.String(), costAmount, string(row.Currency), row.Detail)
 		records = append(records, record)
 	}
+
 	return records
 }

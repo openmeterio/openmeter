@@ -229,6 +229,10 @@ export function deleteFeature(
  * the query's grouping order. Unavailable cost is an empty cell, not zero. Detail
  * is retained for both unavailable and partially priced costs.
  *
+ * Custom dimensions named `from`, `to`, `customer_key`, `customer_name`, `usage`,
+ * `cost`, `currency`, or `detail` are omitted from CSV headers and row values.
+ * Query grouping is unchanged, and JSON retains these dimension values.
+ *
  * POST /openmeter/features/{featureId}/cost/query
  */
 export function queryFeatureCost(

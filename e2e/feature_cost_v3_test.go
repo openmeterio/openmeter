@@ -33,7 +33,7 @@ func TestV3QueryFeatureCostRepresentations(t *testing.T) {
 		EventType:     key,
 		EventsFrom:    &from,
 		ValueProperty: lo.ToPtr("$.value"),
-		Dimensions:    &map[string]string{"model": "$.model"},
+		Dimensions:    &map[string]string{"model": "$.model", "cost": "$.cost_dimension"},
 	})
 	c.requireStatus(http.StatusCreated, err)
 	require.NotNil(t, meter)
@@ -69,7 +69,9 @@ func TestV3QueryFeatureCostRepresentations(t *testing.T) {
 		ev.SetType(meter.EventType)
 		ev.SetSubject(key)
 		ev.SetTime(from)
-		require.NoError(t, ev.SetData("application/json", map[string]string{"model": usage.model, "value": usage.value}))
+		require.NoError(t, ev.SetData("application/json", map[string]string{
+			"model": usage.model, "value": usage.value, "cost_dimension": "dimension-" + usage.model,
+		}))
 		response, err := v1.IngestEventWithResponse(t.Context(), ev)
 		require.NoError(t, err)
 		require.Equal(t, http.StatusNoContent, response.StatusCode(), "body: %s", response.Body)
@@ -79,7 +81,7 @@ func TestV3QueryFeatureCostRepresentations(t *testing.T) {
 		From:              &from,
 		To:                &to,
 		Granularity:       lo.ToPtr(v3sdk.MeterQueryGranularityMinute),
-		GroupByDimensions: &[]string{"model", "customer_id", "subject"},
+		GroupByDimensions: &[]string{"model", "cost", "customer_id", "subject"},
 		Filters: &v3sdk.MeterQueryFilters{
 			Dimensions: &map[string]v3sdk.QueryFilterStringMapItemInput{
 				"customer_id": {Eq: lo.ToPtr(customer.ID)},
@@ -92,11 +94,11 @@ func TestV3QueryFeatureCostRepresentations(t *testing.T) {
 		Data: []v3sdk.FeatureCostQueryRow{
 			{
 				From: from, To: to, Usage: "250", Cost: v3sdk.NullableValue(v3sdk.Numeric("0.00003125")), Currency: "USD",
-				Dimensions: map[string]string{"model": "model,one", "customer_id": customer.ID, "subject": key},
+				Dimensions: map[string]string{"model": "model,one", "cost": "dimension-model,one", "customer_id": customer.ID, "subject": key},
 			},
 			{
 				From: from, To: to, Usage: "40", Cost: v3sdk.NullableValue(v3sdk.Numeric("0.000005")), Currency: "USD",
-				Dimensions: map[string]string{"model": "model-two", "customer_id": customer.ID, "subject": key},
+				Dimensions: map[string]string{"model": "model-two", "cost": "dimension-model-two", "customer_id": customer.ID, "subject": key},
 			},
 		},
 	}
@@ -127,6 +129,7 @@ func TestV3QueryFeatureCostRepresentations(t *testing.T) {
 			if tt.accept != "" {
 				req.Header.Set("Accept", tt.accept)
 			}
+
 			response, err := http.DefaultClient.Do(req)
 			require.NoError(t, err)
 			defer response.Body.Close()
@@ -140,8 +143,10 @@ func TestV3QueryFeatureCostRepresentations(t *testing.T) {
 				var result v3sdk.FeatureCostQueryResult
 				require.NoError(t, json.Unmarshal(raw, &result))
 				require.Equal(t, wantJSON, &result)
+
 				return
 			}
+
 			require.Equal(t, "text/csv", response.Header.Get("Content-Type"))
 			require.Equal(t, "attachment; filename="+feature.Key+"-cost.csv", response.Header.Get("Content-Disposition"))
 			records, err := csv.NewReader(bytes.NewReader(raw)).ReadAll()
@@ -154,6 +159,7 @@ func TestV3QueryFeatureCostRepresentations(t *testing.T) {
 					row.Usage, row.Cost.MustGet(), row.Currency, lo.FromPtr(row.Detail),
 				})
 			}
+
 			require.Equal(t, wantCSV, records)
 		})
 	}
