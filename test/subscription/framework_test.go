@@ -337,7 +337,7 @@ func setup(t *testing.T, config setupConfig) testDeps {
 	}
 }
 
-func minimalCreateProfileInputTemplate(appID app.AppID) billing.CreateProfileInput {
+func MinimalCreateProfileInputTemplate(appID app.AppID) billing.CreateProfileInput {
 	return billing.CreateProfileInput{
 		Name:      "Awesome Profile",
 		Default:   true,

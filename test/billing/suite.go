@@ -653,7 +653,7 @@ func (s *BaseSuite) ProvisionBillingProfile(ctx context.Context, ns string, appI
 		opt(&provisionOpts)
 	}
 
-	clonedCreateProfileInput := minimalCreateProfileInputTemplate(appID)
+	clonedCreateProfileInput := MinimalCreateProfileInputTemplate(appID)
 	clonedCreateProfileInput.Namespace = ns
 
 	for _, editFn := range provisionOpts.editFns {

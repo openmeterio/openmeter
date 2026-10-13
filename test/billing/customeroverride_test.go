@@ -229,7 +229,7 @@ func (s *CustomerOverrideTestSuite) TestDefaultProfileHandling() {
 
 	s.T().Run("customer with default profile, no override", func(t *testing.T) {
 		// Given having a default profile
-		profileInput := minimalCreateProfileInputTemplate(sandboxApp.GetID())
+		profileInput := MinimalCreateProfileInputTemplate(sandboxApp.GetID())
 		profileInput.Namespace = ns
 
 		defaultProfile, err = s.BillingService.CreateProfile(ctx, profileInput)
@@ -321,7 +321,7 @@ func (s *CustomerOverrideTestSuite) TestPinnedProfileHandling() {
 	customerID := cust.ID
 
 	// Given we have a non-default profile
-	profileInput := minimalCreateProfileInputTemplate(sandboxApp.GetID())
+	profileInput := MinimalCreateProfileInputTemplate(sandboxApp.GetID())
 	profileInput.Namespace = ns
 	profileInput.Default = false
 
@@ -410,7 +410,7 @@ func (s *CustomerOverrideTestSuite) TestSanityOverrideOperations() {
 		require.ErrorAs(t, err, &billing.NotFoundError{})
 	})
 
-	profileInput := minimalCreateProfileInputTemplate(sandboxApp.GetID())
+	profileInput := MinimalCreateProfileInputTemplate(sandboxApp.GetID())
 	profileInput.Namespace = ns
 
 	defaultProfile, err := s.BillingService.CreateProfile(ctx, profileInput)
@@ -507,7 +507,7 @@ func (s *CustomerOverrideTestSuite) TestCustomerIntegration() {
 	require.NoError(s.T(), err)
 	require.NotNil(s.T(), cust)
 
-	profileInput := minimalCreateProfileInputTemplate(sandboxApp.GetID())
+	profileInput := MinimalCreateProfileInputTemplate(sandboxApp.GetID())
 	profileInput.Namespace = ns
 
 	defaultProfile, err := s.BillingService.CreateProfile(ctx, profileInput)
@@ -552,7 +552,7 @@ func (s *CustomerOverrideTestSuite) TestNullSetting() {
 	require.NoError(s.T(), err)
 	require.NotNil(s.T(), cust)
 
-	profileInput := minimalCreateProfileInputTemplate(sandboxApp.GetID())
+	profileInput := MinimalCreateProfileInputTemplate(sandboxApp.GetID())
 	profileInput.Namespace = ns
 
 	defaultProfile, err := s.BillingService.CreateProfile(ctx, profileInput)
@@ -603,7 +603,7 @@ func (s *CustomerOverrideTestSuite) TestGetCustomerApp() {
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
 
 	// Create a default profile
-	defaultProfileCreateInput := minimalCreateProfileInputTemplate(sandboxApp.GetID())
+	defaultProfileCreateInput := MinimalCreateProfileInputTemplate(sandboxApp.GetID())
 	defaultProfileCreateInput.Namespace = ns
 
 	defaultProfile, err := s.BillingService.CreateProfile(ctx, defaultProfileCreateInput)
@@ -642,13 +642,13 @@ func (s *CustomerOverrideTestSuite) TestListCustomerOverrides() {
 
 	// Given we have a default profile and an override profile
 
-	defaultProfileCreateInput := minimalCreateProfileInputTemplate(sandboxApp.GetID())
+	defaultProfileCreateInput := MinimalCreateProfileInputTemplate(sandboxApp.GetID())
 	defaultProfileCreateInput.Namespace = ns
 
 	defaultProfile, err := s.BillingService.CreateProfile(ctx, defaultProfileCreateInput)
 	require.NoError(s.T(), err)
 
-	overrideProfileCreateInput := minimalCreateProfileInputTemplate(sandboxApp.GetID())
+	overrideProfileCreateInput := MinimalCreateProfileInputTemplate(sandboxApp.GetID())
 	overrideProfileCreateInput.Namespace = ns
 	overrideProfileCreateInput.Default = false
 

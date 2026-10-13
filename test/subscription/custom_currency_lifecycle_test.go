@@ -50,7 +50,7 @@ func setupCustomCurrencyFlatFeeSubscription(t *testing.T) customCurrencyFlatFeeF
 	deps := setup(t, setupConfig{enableCharges: true})
 	t.Cleanup(func() { deps.cleanup(t) })
 	provisionSubscriptionDefaultTaxCodes(t, deps, ns)
-	_, err := deps.billingService.CreateProfile(t.Context(), minimalCreateProfileInputTemplate(deps.sandboxApp.GetID()))
+	_, err := deps.billingService.CreateProfile(t.Context(), MinimalCreateProfileInputTemplate(deps.sandboxApp.GetID()))
 	require.NoError(t, err)
 	credits, err := deps.CurrencyService.CreateCurrency(t.Context(), currenciestestutils.NewCreateCurrencyInput(ns, "CREDITS", "Credits", "CR"))
 	require.NoError(t, err)

@@ -274,7 +274,8 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 
 	s.T().Run("CreateInvoiceItems", func(t *testing.T) {
 		// When we create invoice items
-		res, err := s.BillingService.CreatePendingInvoiceLines(ctx,
+		res, err := s.BillingService.CreatePendingInvoiceLines(
+			ctx,
 			billing.CreatePendingInvoiceLinesInput{
 				Customer: customerEntity.GetID(),
 				Currency: currencyx.FiatCode(currency.USD),
@@ -494,7 +495,8 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 		tieredPrice, err := tieredLine.Price.AsTiered()
 		require.NoError(s.T(), err)
 
-		require.Equal(s.T(),
+		require.Equal(
+			s.T(),
 			tieredPrice,
 			productcatalog.TieredPrice{
 				Mode: productcatalog.GraduatedTieredPrice,
@@ -863,7 +865,8 @@ func (s *InvoicingTestSuite) TestListCustomerIDsPendingCollectionReturnsUniqueCu
 		Customer:  secondCustomer,
 	})
 
-	_, err = s.TestDB.PGDriver.DB().ExecContext(ctx,
+	_, err = s.TestDB.PGDriver.DB().ExecContext(
+		ctx,
 		`UPDATE billing_workflow_configs
 		 SET namespace = $1
 		 WHERE id = (
@@ -1322,7 +1325,8 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 				})
 				require.NoError(t, err)
 				require.Len(t, issues, 1)
-				require.Equal(t,
+				require.Equal(
+					t,
 					billing.ValidationIssue{
 						Severity:   billing.ValidationIssueSeverityCritical,
 						Code:       "test1",
@@ -1389,7 +1393,8 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 				})
 				require.True(t, ok, "old issue should be present")
 				require.NotNil(t, invoiceIssue.DeletedAt)
-				require.Equal(t,
+				require.Equal(
+					t,
 					billing.ValidationIssue{
 						Severity:   billing.ValidationIssueSeverityCritical,
 						Code:       "test1",
@@ -1406,7 +1411,8 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 				})
 				require.True(t, ok, "the issue should be present")
 				require.NotNil(t, downgradedIssue.DeletedAt)
-				require.Equal(t,
+				require.Equal(
+					t,
 					billing.ValidationIssue{
 						Severity:   billing.ValidationIssueSeverityWarning,
 						Code:       "test1",
@@ -1422,7 +1428,8 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 					return i.Code == "test2"
 				})
 				require.True(t, ok, "new issue should be present")
-				require.Equal(t,
+				require.Equal(
+					t,
 					billing.ValidationIssue{
 						Severity:  billing.ValidationIssueSeverityCritical,
 						Code:      "test2",
@@ -1878,7 +1885,7 @@ func (s *InvoicingTestSuite) TestBillingProfileChange() {
 
 	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
 
-	oldCreateProfileInput := minimalCreateProfileInputTemplate(sandboxApp.GetID())
+	oldCreateProfileInput := MinimalCreateProfileInputTemplate(sandboxApp.GetID())
 	oldCreateProfileInput.Namespace = namespace
 	oldCreateProfileInput.WorkflowConfig.Invoicing.ProgressiveBilling = true
 
@@ -1886,7 +1893,7 @@ func (s *InvoicingTestSuite) TestBillingProfileChange() {
 	s.NoError(err)
 	s.NotNil(oldBillingProfile)
 
-	newCreateProfileInput := minimalCreateProfileInputTemplate(sandboxApp.GetID())
+	newCreateProfileInput := MinimalCreateProfileInputTemplate(sandboxApp.GetID())
 	newCreateProfileInput.Namespace = namespace
 	newCreateProfileInput.WorkflowConfig.Invoicing.ProgressiveBilling = true
 
@@ -2041,7 +2048,8 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 	lines := ubpPendingLines{}
 	s.Run("create pending invoice items", func() {
 		// When we create pending invoice items
-		pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx,
+		pendingLines, err := s.BillingService.CreatePendingInvoiceLines(
+			ctx,
 			billing.CreatePendingInvoiceLinesInput{
 				Customer: customerEntity.GetID(),
 				Currency: currencyx.FiatCode(currency.USD),
@@ -2160,12 +2168,14 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 		}
 
 		// The flat fee line should not be truncated
-		require.Equal(s.T(),
+		require.Equal(
+			s.T(),
 			timeutil.ClosedPeriod{From: truncatedPeriodStart, To: truncatedPeriodEnd},
 			lines.flatFee.ServicePeriod,
 			"period should not be truncated",
 		)
-		require.Equal(s.T(),
+		require.Equal(
+			s.T(),
 			lines.flatFee.InvoiceAt,
 			truncatedPeriodEnd,
 			"invoice at should be unchanged",
@@ -2173,13 +2183,15 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 
 		// The pending invoice items should be truncated to 1 min resolution (start => up to next, end down to previous)
 		for _, line := range []billing.GatheringLine{lines.flatPerUnit, lines.tieredGraduated, lines.tieredVolume} {
-			require.Equal(s.T(),
+			require.Equal(
+				s.T(),
 				timeutil.ClosedPeriod{From: testutils.GetRFC3339Time(s.T(), "2024-09-02T12:13:14Z"), To: testutils.GetRFC3339Time(s.T(), "2024-09-03T12:13:14Z")},
 				line.ServicePeriod,
 				"period should be truncated to 1 min resolution",
 			)
 
-			require.Equal(s.T(),
+			require.Equal(
+				s.T(),
 				line.InvoiceAt,
 				truncatedPeriodEnd,
 				"invoice at should be unchanged",
@@ -2915,7 +2927,8 @@ func (s *InvoicingTestSuite) TestUBPGraduatingFlatFeeTier1() {
 	var pendingLine billing.GatheringLine
 	s.Run("create pending invoice items", func() {
 		// When we create pending invoice items
-		pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx,
+		pendingLines, err := s.BillingService.CreatePendingInvoiceLines(
+			ctx,
 			billing.CreatePendingInvoiceLinesInput{
 				Customer: customerEntity.GetID(),
 				Currency: currencyx.FiatCode(currency.USD),
@@ -3230,7 +3243,8 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 	lines := ubpPendingLines{}
 	s.Run("create pending invoice items", func() {
 		// When we create pending invoice items
-		pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx,
+		pendingLines, err := s.BillingService.CreatePendingInvoiceLines(
+			ctx,
 			billing.CreatePendingInvoiceLinesInput{
 				Customer: customerEntity.GetID(),
 				Currency: currencyx.FiatCode(currency.USD),
@@ -3350,13 +3364,15 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 
 		// The pending invoice items should be truncated to 1 min resolution (start => up to next, end down to previous)
 		for _, line := range []billing.GatheringLine{lines.flatPerUnit, lines.tieredGraduated, lines.tieredVolume, lines.flatFee} {
-			require.Equal(s.T(),
+			require.Equal(
+				s.T(),
 				timeutil.ClosedPeriod{From: truncatedPeriodStart, To: truncatedPeriodEnd},
 				line.ServicePeriod,
 				"period should be truncated to 1 min resolution",
 			)
 
-			require.Equal(s.T(),
+			require.Equal(
+				s.T(),
 				line.InvoiceAt,
 				truncatedPeriodEnd,
 				"invoice at should be unchanged",
@@ -3422,7 +3438,8 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 			require.True(s.T(), expectedPeriod.Equal(line.Period), "period should not be changed for the line items")
 		}
 
-		require.Equal(s.T(),
+		require.Equal(
+			s.T(),
 			timeutil.ClosedPeriod{
 				From: truncatedPeriodStart,
 				To:   truncatedPeriodEnd,
@@ -3732,7 +3749,8 @@ func (s *InvoicingTestSuite) TestGatheringInvoiceRecalculation() {
 
 	s.Run("create pending invoice items", func() {
 		// When we create pending invoice items
-		pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx,
+		pendingLines, err := s.BillingService.CreatePendingInvoiceLines(
+			ctx,
 			billing.CreatePendingInvoiceLinesInput{
 				Customer: customerEntity.GetID(),
 				Currency: currencyx.FiatCode(currency.USD),
@@ -3762,13 +3780,14 @@ func (s *InvoicingTestSuite) TestGatheringInvoiceRecalculation() {
 	})
 
 	s.Run("fetch gathering invoice", func() {
-		invoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
-			Namespace:        namespace,
-			CustomerID:       &filter.FilterULID{FilterString: filter.FilterString{Eq: &customerEntity.ID}},
-			ExtendedStatuses: []billing.StandardInvoiceStatus{billing.StandardInvoiceStatusGathering},
-			Expand: billing.InvoiceExpands{}.
-				With(billing.InvoiceExpandCalculateGatheringInvoiceWithLiveData),
-		},
+		invoices, err := s.BillingService.ListInvoices(
+			ctx, billing.ListInvoicesInput{
+				Namespace:        namespace,
+				CustomerID:       &filter.FilterULID{FilterString: filter.FilterString{Eq: &customerEntity.ID}},
+				ExtendedStatuses: []billing.StandardInvoiceStatus{billing.StandardInvoiceStatusGathering},
+				Expand: billing.InvoiceExpands{}.
+					With(billing.InvoiceExpandCalculateGatheringInvoiceWithLiveData),
+			},
 		)
 
 		require.NoError(s.T(), err)
@@ -3898,7 +3917,8 @@ func (s *InvoicingTestSuite) TestEmptyInvoiceGenerationZeroUsage() {
 	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
 
 	// Given we have pending invoice items without usage
-	pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx,
+	pendingLines, err := s.BillingService.CreatePendingInvoiceLines(
+		ctx,
 		billing.CreatePendingInvoiceLinesInput{
 			Customer: customerEntity.GetID(),
 			Currency: currencyx.FiatCode(currency.USD),
@@ -4016,7 +4036,8 @@ func (s *InvoicingTestSuite) TestEmptyInvoiceGenerationZeroPrice() {
 	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
 
 	// Given we have pending invoice items without usage
-	pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx,
+	pendingLines, err := s.BillingService.CreatePendingInvoiceLines(
+		ctx,
 		billing.CreatePendingInvoiceLinesInput{
 			Customer: customerEntity.GetID(),
 			Currency: currencyx.FiatCode(currency.USD),
@@ -4189,7 +4210,8 @@ func (s *InvoicingTestSuite) TestListPendingAdvancementDoesNotResolveWorkflowRef
 	s.Require().NoError(err)
 	s.Require().Len(invoices, 1)
 
-	_, err = s.TestDB.PGDriver.DB().ExecContext(ctx,
+	_, err = s.TestDB.PGDriver.DB().ExecContext(
+		ctx,
 		`UPDATE billing_workflow_configs
 		 SET namespace = $1
 		 WHERE id = (
@@ -4277,7 +4299,8 @@ func (s *InvoicingTestSuite) TestProgressiveBillLate() {
 									},
 								},
 							},
-						})),
+						},
+					)),
 				},
 			},
 		}),
@@ -4858,7 +4881,8 @@ func (s *InvoicingTestSuite) TestSnapshotQuantityMissingFeature() {
 	pendingLineID := pendingLines.Lines[0].ID
 	usageBasedConfigID := pendingLines.Lines[0].UBPConfigID
 
-	_, err = s.TestDB.PGDriver.DB().ExecContext(ctx,
+	_, err = s.TestDB.PGDriver.DB().ExecContext(
+		ctx,
 		`UPDATE billing_invoice_usage_based_line_configs SET feature_key = $1 WHERE id = $2`,
 		"missing-feature",
 		usageBasedConfigID,
@@ -4940,7 +4964,8 @@ func (s *InvoicingTestSuite) TestSnapshotQuantityMissingFeature() {
 
 	// when:
 	// - the feature reference is repaired and collection is retried
-	_, err = s.TestDB.PGDriver.DB().ExecContext(ctx,
+	_, err = s.TestDB.PGDriver.DB().ExecContext(
+		ctx,
 		`UPDATE billing_invoice_usage_based_line_configs SET feature_key = $1 WHERE id = $2`,
 		testFeature.Feature.Key,
 		standardUsageBasedConfigID,
@@ -5040,7 +5065,8 @@ func (s *InvoicingTestSuite) TestSnapshotQuantityInvalidDatabaseState() {
 		s.NotEmpty(customerEntity.ID)
 		customerID = customerEntity.GetID()
 
-		s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID(),
+		s.ProvisionBillingProfile(
+			ctx, namespace, sandboxApp.GetID(),
 			WithCollectionInterval(datetime.NewISODuration(0, 0, 0, 1, 0, 0, 0)), // 1 day collection interval
 		)
 
@@ -5049,7 +5075,8 @@ func (s *InvoicingTestSuite) TestSnapshotQuantityInvalidDatabaseState() {
 
 		s.MockStreamingConnector.AddSimpleEvent(meterSlug, 7, periodStart.Add(time.Minute))
 
-		pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx,
+		pendingLines, err := s.BillingService.CreatePendingInvoiceLines(
+			ctx,
 			billing.CreatePendingInvoiceLinesInput{
 				Customer: customerID,
 				Currency: currencyx.FiatCode(currency.USD),

@@ -42,7 +42,8 @@ func (s *ProfileTestSuite) TestGetRejectsCrossNamespaceWorkflowReferences() {
 	workflowProfile := s.ProvisionBillingProfile(ctx, workflowNamespace, s.InstallSandboxApp(s.T(), workflowNamespace).GetID())
 	workflowProfileDB, err := s.BillingAdapter.GetProfile(ctx, billing.GetProfileInput{Profile: workflowProfile.ProfileID()})
 	require.NoError(s.T(), err)
-	_, err = s.TestDB.PGDriver.DB().ExecContext(ctx,
+	_, err = s.TestDB.PGDriver.DB().ExecContext(
+		ctx,
 		`UPDATE billing_workflow_configs SET namespace = $1 WHERE id = $2`,
 		foreignNamespace,
 		workflowProfileDB.WorkflowConfigID,
@@ -78,7 +79,7 @@ func (s *ProfileTestSuite) createProfileFixture(isDefault bool) *billing.Profile
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
 
 	// Create a profile input
-	input := minimalCreateProfileInputTemplate(sandboxApp.GetID())
+	input := MinimalCreateProfileInputTemplate(sandboxApp.GetID())
 	input.Namespace = ns
 	input.Default = isDefault
 
@@ -147,7 +148,7 @@ func (s *ProfileTestSuite) TestProfileLifecycle() {
 		profile1 := s.createProfileFixture(true)
 
 		// Create a second default profile in the same namespace
-		input := minimalCreateProfileInputTemplate(profile1.AppReferences.Invoicing)
+		input := MinimalCreateProfileInputTemplate(profile1.AppReferences.Invoicing)
 		input.Namespace = profile1.Namespace
 		input.Default = true
 
@@ -444,7 +445,7 @@ func (s *ProfileTestSuite) TestProfileUpdates() {
 
 		Name: "Awesome Default Profile",
 
-		Apps: minimalCreateProfileInputTemplate(sandboxApp.GetID()).Apps,
+		Apps: MinimalCreateProfileInputTemplate(sandboxApp.GetID()).Apps,
 
 		WorkflowConfig: billing.WorkflowConfig{
 			Collection: billing.CollectionConfig{
@@ -570,7 +571,7 @@ func (s *ProfileTestSuite) TestProfileSubscriptionAlignmentPersists() {
 
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
 
-	input := minimalCreateProfileInputTemplate(sandboxApp.GetID())
+	input := MinimalCreateProfileInputTemplate(sandboxApp.GetID())
 	input.Namespace = ns
 	input.WorkflowConfig.Collection.Alignment = billing.AlignmentKindSubscription
 
