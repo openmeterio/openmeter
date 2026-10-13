@@ -111,6 +111,7 @@ func TestCreateChargeIntentGetCustomerID(t *testing.T) {
 			if testCase.wantErr {
 				require.Error(t, err)
 				require.Empty(t, actualCustomerID)
+
 				return
 			}
 
