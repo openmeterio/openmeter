@@ -18,7 +18,6 @@ import (
 func (c *service) listCustomerFBOSources(
 	ctx context.Context,
 	query SourceQuery,
-	plan *Plan,
 ) ([]source, error) {
 	customerAccounts, err := c.dependencies.AccountService.GetCustomerAccounts(ctx, query.CustomerID)
 	if err != nil {
@@ -36,13 +35,6 @@ func (c *service) listCustomerFBOSources(
 	)
 	if err != nil {
 		return nil, err
-	}
-
-	if plan != nil {
-		for idx := range sources {
-			key := keyForSource(sources[idx].address, sources[idx].sourceChargeID)
-			sources[idx].available = sources[idx].available.Sub(plan.reserved[key])
-		}
 	}
 
 	// prioritize FBO sources before breakage reserves source balances.
