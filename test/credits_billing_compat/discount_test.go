@@ -33,10 +33,10 @@ func TestDiscounts(t *testing.T) {
 }
 
 func (s *DiscountsTestSuite) TestCorrelationIDHandling() {
+	s.T().Skip("OM-581: pending on reworking delta rating usage discount settings")
+
 	namespace := "ns-discounts-correlation-id"
 	ctx := s.T().Context()
-
-	s.T().Skip("OM-581: pending on reworking delta rating usage discount settings")
 
 	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
 

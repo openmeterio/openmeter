@@ -1816,9 +1816,9 @@ func (s *InvoicingTestSuite) TestDeleteInvoiceIsIdempotent() {
 func (s *InvoicingTestSuite) TestDeleteCreditPurchaseInvoiceIsIdempotent() {
 	// given: a credit-purchase-backed manual-approval invoice and counted deletion callbacks
 	t := s.T()
-	ctx := t.Context()
-
 	t.Skip("OM-586: Implement credit purchase deletion via invoice edit API")
+
+	ctx := t.Context()
 
 	namespace := s.GetUniqueNamespace("credit-purchase-invoice-delete-idempotent")
 	originalLineEngine := s.CreditPurchaseSvc.GetLineEngine()
@@ -5465,6 +5465,7 @@ func (s *InvoicingTestSuite) CreateGatheringInvoice(t *testing.T, ctx context.Co
 	for _, line := range res.Lines {
 		s.RequireChargeBasedGatheringLine(line, line.ChargeID)
 	}
+
 	line1ID := res.Lines[0].ID
 	line2ID := res.Lines[1].ID
 	require.NotEmpty(s.T(), line1ID)
