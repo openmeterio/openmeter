@@ -24,15 +24,15 @@ import (
 )
 
 type InvoiceStateMachine struct {
-	Invoice                    billing.StandardInvoice
-	NeedsDBSave                bool
-	Calculator                 invoicecalc.Calculator
-	StateMachine               *stateless.StateMachine
-	Logger                     *slog.Logger
-	Publisher                  eventbus.Publisher
-	Service                    *Service
-	FSNamespaceLockdown        []string
-	EnforceInvoiceSanityChecks bool
+	Invoice                  billing.StandardInvoice
+	NeedsDBSave              bool
+	Calculator               invoicecalc.Calculator
+	StateMachine             *stateless.StateMachine
+	Logger                   *slog.Logger
+	Publisher                eventbus.Publisher
+	Service                  *Service
+	FSNamespaceLockdown      []string
+	InvoiceSanityEnforcement InvoiceSanityEnforcement
 }
 
 var invoiceStateMachineCache = sync.Pool{
@@ -388,7 +388,11 @@ func (s *Service) WithInvoiceStateMachine(ctx context.Context, invoice billing.S
 	sm.Logger = s.logger
 	sm.Publisher = s.publisher
 	sm.FSNamespaceLockdown = s.fsNamespaceLockdown
-	sm.EnforceInvoiceSanityChecks = s.enforceInvoiceSanityChecks
+	sm.InvoiceSanityEnforcement = InvoiceSanityEnforcementReportingOnly
+	if s.enforceInvoiceSanityChecks {
+		sm.InvoiceSanityEnforcement = InvoiceSanityEnforcementEnabled
+	}
+
 	// Stateless doesn't store any state in the state machine, so it's fine to reuse the state machine itself
 	sm.Invoice = invoice
 	sm.NeedsDBSave = false
@@ -402,7 +406,7 @@ func (s *Service) WithInvoiceStateMachine(ctx context.Context, invoice billing.S
 		sm.Logger = nil
 		sm.Publisher = nil
 		sm.FSNamespaceLockdown = nil
-		sm.EnforceInvoiceSanityChecks = false
+		sm.InvoiceSanityEnforcement = InvoiceSanityEnforcementDisabled
 		sm.NeedsDBSave = false
 		invoiceStateMachineCache.Put(sm)
 	}()
@@ -422,6 +426,14 @@ func (s *Service) WithInvoiceStateMachine(ctx context.Context, invoice billing.S
 }
 
 func (m *InvoiceStateMachine) StatusDetails(ctx context.Context) (billing.StandardInvoiceStatusDetails, error) {
+	// Action prediction can use a partial invoice. Real execution owns sanity
+	// validation; restore the prior mode even when predictions recurse or fail.
+	enforcement := m.InvoiceSanityEnforcement
+	m.InvoiceSanityEnforcement = InvoiceSanityEnforcementDisabled
+	defer func() {
+		m.InvoiceSanityEnforcement = enforcement
+	}()
+
 	if m.Invoice.Status == billing.StandardInvoiceStatusGathering {
 		// Gathering is a special state that is not part of the state machine, due to
 		// cross invoice operations, for now the sugar around grathering invoices will handle
@@ -684,8 +696,8 @@ func (m *InvoiceStateMachine) withInvoicingApp(op billing.StandardInvoiceOperati
 	}
 
 	// Old sanity failures must not block a recovered app hook's nested transition.
-	// Guarded callbacks recheck before invoking the app and restore any current failure.
-	// Deletion callbacks intentionally bypass sanity validation to allow recovery.
+	// Validation, synchronization and finalization callbacks recheck before invoking
+	// the app and restore any current failure. Deletion and post-advance hooks bypass checks.
 	m.Invoice.ValidationIssues = m.Invoice.ValidationIssues.WithoutComponent(stdinvoicesanity.ValidationComponent)
 	opOverride, result := cb(invoicingApp)
 	if opOverride != nil {
@@ -735,14 +747,6 @@ func (m *InvoiceStateMachine) triggerPostAdvanceHooks(ctx context.Context) error
 	}
 
 	return m.withInvoicingApp(billing.StandardInvoiceOpPostAdvanceHook, func(_ billing.InvoicingApp) (*billing.StandardInvoiceOperation, error) {
-		// Deletion must remain available for inconsistent invoices, including its
-		// post-advance callbacks after cleanup or a failed deletion attempt.
-		if !billing.StandardInvoiceStatusCategoryDelete.MatchesInvoiceStatus(m.Invoice.Status) && m.Invoice.Status != billing.StandardInvoiceStatusDeleted {
-			if err := m.checkInvoiceSanity(ctx); err != nil {
-				return nil, err
-			}
-		}
-
 		clonedInvoice, err := m.Invoice.Clone()
 		if err != nil {
 			return nil, err

@@ -399,11 +399,22 @@ func (s *InvoiceSanityTestSuite) TestDeletionHandoff() {
 	}
 }
 
-func (s *InvoiceSanityTestSuite) TestPostAdvanceHandoff() {
+func (s *InvoiceSanityTestSuite) TestPostAdvanceHandoffAfterIssuance() {
 	for _, enforced := range []bool{false, true} {
 		s.Run(map[bool]string{false: "log only", true: "enforced"}[enforced], func() {
 			// Given consistent app handoffs followed by inconsistent line output during charge booking.
-			s.configureSanityService(sanityServiceInput{EnforceInvoiceSanityChecks: enforced})
+			t := s.T()
+			handler := log.NewMockHandler()
+			handler.Test(t)
+			t.Cleanup(func() { handler.AssertExpectations(t) })
+			handler.On("Enabled", mock.Anything, mock.Anything).Return(true).Maybe()
+			handler.On("Handle", mock.Anything, mock.MatchedBy(func(record slog.Record) bool {
+				return record.Level != slog.LevelError
+			})).Return(nil).Maybe()
+			s.configureSanityService(sanityServiceInput{
+				EnforceInvoiceSanityChecks: enforced,
+				Logger:                     slog.New(handler),
+			})
 			appMock := newSanityAppMock(s.T())
 			appMock.postAdvance = true
 			appMock.On("ValidateStandardInvoice", mock.Anything).Return(nil).Once()
@@ -421,28 +432,35 @@ func (s *InvoiceSanityTestSuite) TestPostAdvanceHandoff() {
 
 			appMock.On("UpsertStandardInvoice", mock.Anything).Return(nil).Once()
 			appMock.On("FinalizeStandardInvoice", mock.Anything).Return(nil).Once()
-			if !enforced {
-				appMock.On("PostAdvanceStandardInvoiceHook", mock.MatchedBy(func(invoice billing.StandardInvoice) bool {
-					return invoice.Status == billing.StandardInvoiceStatusPaymentProcessingPending && stdinvoicesanity.Validate(invoice) != nil
-				})).Return(nil).Once()
-			}
+			appMock.On("PostAdvanceStandardInvoiceHook", mock.MatchedBy(func(invoice billing.StandardInvoice) bool {
+				return invoice.Status == billing.StandardInvoiceStatusPaymentProcessingPending && stdinvoicesanity.Validate(invoice) != nil
+			})).Return(nil).Once()
 
 			// When issuing reaches the post-advance hook.
 			invoice, err := s.BillingService.ApproveInvoice(s.T().Context(), invoice.GetInvoiceID())
 
-			// Then earlier calls completed, but the hook receives the new snapshot only in log-only mode.
+			// Then the issued invoice reaches the hook without sanity issues or error logs in either mode.
 			s.Require().NoError(err)
 			appMock.AssertNumberOfCalls(s.T(), "UpsertStandardInvoice", 2)
 			appMock.AssertNumberOfCalls(s.T(), "FinalizeStandardInvoice", 1)
 			s.Equal(billing.StandardInvoiceStatusPaymentProcessingPending, invoice.Status)
-			if enforced {
-				appMock.AssertNumberOfCalls(s.T(), "PostAdvanceStandardInvoiceHook", 1)
-				s.True(invoice.ValidationIssues.HasComponent(stdinvoicesanity.ValidationComponent))
-			} else {
-				appMock.AssertNumberOfCalls(s.T(), "PostAdvanceStandardInvoiceHook", 2)
-				s.Empty(invoice.ValidationIssues)
-			}
+			appMock.AssertNumberOfCalls(s.T(), "PostAdvanceStandardInvoiceHook", 2)
+			s.Empty(invoice.ValidationIssues)
+			s.Require().Error(stdinvoicesanity.Validate(invoice))
+			s.reloadSanityInvoice(invoice)
 
+			// When payment progresses, later hooks also remain callable without rechecking totals.
+			appMock.On("PostAdvanceStandardInvoiceHook", mock.MatchedBy(func(invoice billing.StandardInvoice) bool {
+				return invoice.Status == billing.StandardInvoiceStatusPaymentProcessingAuthorized && stdinvoicesanity.Validate(invoice) != nil
+			})).Return(nil).Once()
+			invoice, err = s.BillingService.PaymentAuthorized(t.Context(), invoice.GetInvoiceID())
+
+			// Then payment progresses without replaying invoice finalization or adding sanity issues.
+			s.Require().NoError(err)
+			s.Equal(billing.StandardInvoiceStatusPaymentProcessingAuthorized, invoice.Status)
+			s.Empty(invoice.ValidationIssues)
+			appMock.AssertNumberOfCalls(s.T(), "PostAdvanceStandardInvoiceHook", 3)
+			appMock.AssertNumberOfCalls(s.T(), "FinalizeStandardInvoice", 1)
 			s.reloadSanityInvoice(invoice)
 		})
 	}
@@ -477,27 +495,33 @@ func (s *InvoiceSanityTestSuite) TestReadinessAndStatusInspection() {
 			draftReadiness.Unset()
 			issuingReadiness.Unset()
 
-			// When status is read and actual advancement is requested.
-			s.reloadSanityInvoice(invoice)
-			_, err = s.BillingService.AdvanceInvoice(s.T().Context(), invoice.GetInvoiceID())
-
-			// Then neither operation calls the app or mutates the stored issues/state.
-			s.ErrorIs(err, billing.ErrInvoiceCannotAdvance)
-			for _, method := range []string{"CanDraftSyncAdvance", "CanIssuingSyncAdvance"} {
-				appMock.AssertNotCalled(s.T(), method, mock.MatchedBy(func(invoice billing.StandardInvoice) bool {
-					return stdinvoicesanity.Validate(invoice) != nil
-				}))
-			}
-
-			reloaded := s.reloadSanityInvoice(invoice)
-			s.Empty(reloaded.ValidationIssues)
-
-			// When enforcement is disabled, readiness calls reach the app with the same snapshot.
-			s.configureSanityService(sanityServiceInput{})
 			method := "CanDraftSyncAdvance"
 			if status == billing.StandardInvoiceStatusIssuingSyncing {
 				method = "CanIssuingSyncAdvance"
 			}
+
+			// When status prediction evaluates app readiness, sanity validation is disabled.
+			prediction := appMock.On(method, mock.Anything).Run(func(args mock.Arguments) {
+				s.Require().Error(stdinvoicesanity.Validate(args.Get(0).(billing.StandardInvoice)))
+			}).Return(false, nil)
+			invoice = s.reloadSanityInvoice(invoice)
+			appMock.AssertCalled(s.T(), method, mock.MatchedBy(func(invoice billing.StandardInvoice) bool {
+				return stdinvoicesanity.Validate(invoice) != nil
+			}))
+			prediction.Unset()
+
+			// Cache the computed details to isolate the real readiness check from read-time prediction.
+			invoice, err = s.BillingAdapter.UpdateStandardInvoice(s.T().Context(), invoice)
+			s.Require().NoError(err)
+			_, err = s.BillingService.AdvanceInvoice(s.T().Context(), invoice.GetInvoiceID())
+
+			// Then enforcement still blocks the actual app call without persisting issues or changing state.
+			s.ErrorIs(err, billing.ErrInvoiceCannotAdvance)
+			reloaded := s.reloadSanityInvoice(invoice)
+			s.Empty(reloaded.ValidationIssues)
+
+			// When the service flag is false, real readiness calls use reporting-only mode.
+			s.configureSanityService(sanityServiceInput{})
 
 			appMock.On(method, mock.MatchedBy(func(invoice billing.StandardInvoice) bool {
 				return stdinvoicesanity.Validate(invoice) != nil
@@ -513,6 +537,94 @@ func (s *InvoiceSanityTestSuite) TestReadinessAndStatusInspection() {
 	}
 }
 
+func (s *InvoiceSanityTestSuite) TestPartialReadsSkipSanityPrediction() {
+	for _, mode := range []sanityTestMode{{name: "reporting only"}, {name: "enforced", enforced: true}} {
+		s.Run(mode.name, func() {
+			// Given a valid custom-invoicing draft whose actions depend on readiness guards.
+			t := s.T()
+			ctx := t.Context()
+			clock.FreezeTime(time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC))
+			defer clock.UnFreeze()
+			handler := log.NewMockHandler()
+			handler.Test(t)
+			t.Cleanup(func() { handler.AssertExpectations(t) })
+			handler.On("Enabled", mock.Anything, mock.Anything).Return(true).Maybe()
+			handler.On("Handle", mock.Anything, mock.MatchedBy(func(record slog.Record) bool {
+				return record.Level != slog.LevelError
+			})).Return(nil).Maybe()
+			s.configureSanityService(sanityServiceInput{
+				EnforceInvoiceSanityChecks: mode.enforced,
+				Logger:                     slog.New(handler),
+			})
+			namespace := s.GetUniqueNamespace("sanity-partial-read")
+			customApp := s.SetupCustomInvoicing(namespace).App
+			s.ProvisionBillingProfile(ctx, namespace, customApp.GetID())
+			customer := s.CreateTestCustomer(namespace, "partial-read-subject")
+			invoice := s.CreateDraftInvoice(t, ctx, DraftInvoiceInput{
+				Namespace: namespace,
+				Customer:  customer,
+			})
+			s.Require().Equal(billing.StandardInvoiceStatusDraftWaitingAutoApproval, invoice.Status)
+			s.Require().NoError(stdinvoicesanity.Validate(invoice))
+
+			// When the same invoice is read with and without expanded lines, and listed without lines.
+			partial, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
+				Invoice: invoice.GetInvoiceID(),
+			})
+			s.Require().NoError(err)
+			expanded, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
+				Invoice: invoice.GetInvoiceID(),
+				Expand:  billing.StandardInvoiceExpandAll,
+			})
+			s.Require().NoError(err)
+			listed, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
+				Namespace: namespace,
+				IDs:       []string{invoice.ID},
+			})
+			s.Require().NoError(err)
+			s.Require().Len(listed.Items, 1)
+			listedInvoice, err := listed.Items[0].AsStandardInvoice()
+			s.Require().NoError(err)
+
+			// Then predictions agree without error logs, response expansion changes, or persisted issues.
+			s.True(partial.Lines.IsAbsent())
+			s.True(listedInvoice.Lines.IsAbsent())
+			s.True(expanded.Lines.IsPresent())
+			s.Equal(expanded.StatusDetails, partial.StatusDetails)
+			s.Equal(expanded.StatusDetails, listedInvoice.StatusDetails)
+			s.Require().NotNil(partial.StatusDetails.AvailableActions.Approve)
+			s.Equal(billing.StandardInvoiceStatusPaymentProcessingPending, partial.StatusDetails.AvailableActions.Approve.ResultingState)
+			s.Empty(partial.ValidationIssues)
+			s.Empty(listedInvoice.ValidationIssues)
+			s.reloadSanityInvoice(invoice)
+
+			// When real issuing receives inconsistent finalized lines, the service mode is restored.
+			engine := &sanityLineEngine{
+				LineEngine: s.LegacyBillingLineEngine,
+				corruptAt:  billing.StandardInvoiceStatusIssuingLineFinalization,
+			}
+			s.Require().NoError(s.BillingService.DeregisterLineEngine(engine.GetLineEngineType()))
+			s.Require().NoError(s.BillingService.RegisterLineEngine(engine))
+			handler.On("Handle", mock.Anything, mock.MatchedBy(func(record slog.Record) bool {
+				return record.Level == slog.LevelError
+			})).Return(nil)
+			invoice, err = s.BillingService.ApproveInvoice(ctx, invoice.GetInvoiceID())
+
+			// Then real execution reports or enforces sanity failures despite nested status predictions.
+			s.Require().NoError(err)
+			if mode.enforced {
+				s.Equal(billing.StandardInvoiceStatusIssuingSyncFailed, invoice.Status)
+				s.True(invoice.ValidationIssues.HasComponent(stdinvoicesanity.ValidationComponent))
+			} else {
+				s.Equal(billing.StandardInvoiceStatusPaymentProcessingPending, invoice.Status)
+				s.Empty(invoice.ValidationIssues)
+			}
+
+			s.reloadSanityInvoice(invoice)
+		})
+	}
+}
+
 func (s *InvoiceSanityTestSuite) TestSanityLoggingAtAppHandoff() {
 	for _, mode := range []sanityTestMode{{name: "log only"}, {name: "enforced", enforced: true}} {
 		s.Run(mode.name, func() {
@@ -521,16 +633,19 @@ func (s *InvoiceSanityTestSuite) TestSanityLoggingAtAppHandoff() {
 				inconsistent bool
 			}{{name: "valid invoice"}, {name: "inconsistent invoice", inconsistent: true}} {
 				s.Run(testCase.name, func() {
-					// Given valid app handoffs and optional corruption during charge booking.
+					// Given a draft sync failure and an optional inconsistency in its stored detail.
 					s.configureSanityService(sanityServiceInput{EnforceInvoiceSanityChecks: mode.enforced})
 					appMock := newSanityAppMock(s.T())
-					appMock.postAdvance = true
 					appMock.On("ValidateStandardInvoice", mock.Anything).Return(nil).Once()
-					appMock.On("UpsertStandardInvoice", mock.Anything).Return(nil).Once()
-					appMock.On("PostAdvanceStandardInvoiceHook", mock.MatchedBy(func(invoice billing.StandardInvoice) bool {
-						return invoice.Status == billing.StandardInvoiceStatusDraftWaitingAutoApproval
-					})).Return(nil).Once()
+					appMock.On("UpsertStandardInvoice", mock.Anything).Return(errors.New("provider unavailable")).Once()
 					invoice := s.createSanityDraft(appMock)
+					s.Require().Equal(billing.StandardInvoiceStatusDraftSyncFailed, invoice.Status)
+					if testCase.inconsistent {
+						inconsistentInvoice, err := invoice.Clone()
+						s.Require().NoError(err)
+						corruptSanityDiscounts(inconsistentInvoice.Lines.OrEmpty())
+						invoice = s.persistSanitySnapshot(inconsistentInvoice)
+					}
 
 					t := s.T()
 					handler := log.NewMockHandler()
@@ -552,7 +667,7 @@ func (s *InvoiceSanityTestSuite) TestSanityLoggingAtAppHandoff() {
 							})
 							s.Equal(invoice.ID, attrs["invoice_id"].String())
 							s.Equal(invoice.Namespace, attrs["namespace"].String())
-							s.Equal(string(billing.StandardInvoiceStatusPaymentProcessingPending), attrs["invoice_status"].String())
+							s.Equal(string(billing.StandardInvoiceStatusDraftValidating), attrs["invoice_status"].String())
 							s.Equal(mode.enforced, attrs["enforced"].Bool())
 							issues, ok := attrs["issues"].Any().(billing.ValidationIssues)
 							s.Require().True(ok)
@@ -571,25 +686,13 @@ func (s *InvoiceSanityTestSuite) TestSanityLoggingAtAppHandoff() {
 						EnforceInvoiceSanityChecks: mode.enforced,
 						Logger:                     slog.New(handler),
 					})
-					if testCase.inconsistent {
-						engine := &sanityLineEngine{
-							LineEngine: s.LegacyBillingLineEngine,
-							corruptAt:  billing.StandardInvoiceStatusIssuingChargeBooking,
-						}
-						s.Require().NoError(s.BillingService.DeregisterLineEngine(engine.GetLineEngineType()))
-						s.Require().NoError(s.BillingService.RegisterLineEngine(engine))
-					}
-
-					appMock.On("UpsertStandardInvoice", mock.Anything).Return(nil).Once()
-					appMock.On("FinalizeStandardInvoice", mock.Anything).Return(nil).Once()
 					if !testCase.inconsistent || !mode.enforced {
-						appMock.On("PostAdvanceStandardInvoiceHook", mock.MatchedBy(func(invoice billing.StandardInvoice) bool {
-							return invoice.Status == billing.StandardInvoiceStatusPaymentProcessingPending
-						})).Return(nil).Once()
+						// The provider rejects validation, keeping this attempt to a single checked handoff.
+						appMock.On("ValidateStandardInvoice", mock.Anything).Return(errors.New("provider rejected invoice")).Once()
 					}
 
-					// When issuing reaches the post-advance handoff after charge booking.
-					_, err := s.BillingService.ApproveInvoice(t.Context(), invoice.GetInvoiceID())
+					// When retry validates the draft before attempting synchronization.
+					_, err := s.BillingService.RetryInvoice(t.Context(), invoice.GetInvoiceID())
 
 					// Then failures produce one record containing all issues, while valid invoices log no errors.
 					s.Require().NoError(err)
