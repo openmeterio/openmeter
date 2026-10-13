@@ -220,6 +220,14 @@ the deletion with the invoicing app, and skips charge booking and payment. This
 decision is based on line presence rather than monetary totals: a non-deleted
 line with a zero total still follows the normal issuing lifecycle.
 
+Before calling an invoicing app, the state machine runs [invoice sanity
+checks](stdinvoice/sanity/README.md). Failures are logged at error severity;
+`billing.enforceInvoiceSanityChecks` additionally blocks the call when enabled
+(default: false). This applies to validation, synchronization, finalization,
+post-advance hooks and asynchronous readiness checks. Deletion and its
+post-advance hooks bypass sanity checks so inconsistent invoices can still be
+cleaned up.
+
 Critical validation issues stop advancement. External app and line-engine
 failures leave the invoice in an explicit failed state so the failed step can
 be retried without replaying stable lifecycle states. Issuing and payment

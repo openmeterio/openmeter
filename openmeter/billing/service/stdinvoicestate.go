@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
+	stdinvoicesanity "github.com/openmeterio/openmeter/openmeter/billing/stdinvoice/sanity"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
@@ -23,14 +24,15 @@ import (
 )
 
 type InvoiceStateMachine struct {
-	Invoice             billing.StandardInvoice
-	NeedsDBSave         bool
-	Calculator          invoicecalc.Calculator
-	StateMachine        *stateless.StateMachine
-	Logger              *slog.Logger
-	Publisher           eventbus.Publisher
-	Service             *Service
-	FSNamespaceLockdown []string
+	Invoice                    billing.StandardInvoice
+	NeedsDBSave                bool
+	Calculator                 invoicecalc.Calculator
+	StateMachine               *stateless.StateMachine
+	Logger                     *slog.Logger
+	Publisher                  eventbus.Publisher
+	Service                    *Service
+	FSNamespaceLockdown        []string
+	EnforceInvoiceSanityChecks bool
 }
 
 var invoiceStateMachineCache = sync.Pool{
@@ -170,14 +172,14 @@ func allocateStateMachine() *InvoiceStateMachine {
 			billing.StandardInvoiceStatusDraftManualApprovalNeeded,
 			statelessx.BoolFn(statelessx.Not(out.isAutoAdvanceEnabled)),
 			statelessx.BoolFn(out.noCriticalValidationErrors),
-			statelessx.BoolFn(out.canDraftSyncAdvance),
+			out.canDraftSyncAdvance,
 		).
 		Permit(
 			billing.TriggerNext,
 			billing.StandardInvoiceStatusDraftWaitingAutoApproval,
 			statelessx.BoolFn(out.isAutoAdvanceEnabled),
 			statelessx.BoolFn(out.noCriticalValidationErrors),
-			statelessx.BoolFn(out.canDraftSyncAdvance),
+			out.canDraftSyncAdvance,
 		).
 		Permit(billing.TriggerDelete, billing.StandardInvoiceStatusDeleteInProgress).
 		Permit(billing.TriggerFailed, billing.StandardInvoiceStatusDraftSyncFailed).
@@ -262,7 +264,7 @@ func allocateStateMachine() *InvoiceStateMachine {
 	stateMachine.Configure(billing.StandardInvoiceStatusIssuingSyncing).
 		Permit(billing.TriggerNext,
 			billing.StandardInvoiceStatusIssuingChargeBooking,
-			statelessx.BoolFn(out.canIssuingSyncAdvance),
+			out.canIssuingSyncAdvance,
 		).
 		Permit(billing.TriggerFailed, billing.StandardInvoiceStatusIssuingSyncFailed).
 		OnActive(statelessx.AllOf(
@@ -386,6 +388,7 @@ func (s *Service) WithInvoiceStateMachine(ctx context.Context, invoice billing.S
 	sm.Logger = s.logger
 	sm.Publisher = s.publisher
 	sm.FSNamespaceLockdown = s.fsNamespaceLockdown
+	sm.EnforceInvoiceSanityChecks = s.enforceInvoiceSanityChecks
 	// Stateless doesn't store any state in the state machine, so it's fine to reuse the state machine itself
 	sm.Invoice = invoice
 	sm.NeedsDBSave = false
@@ -399,6 +402,7 @@ func (s *Service) WithInvoiceStateMachine(ctx context.Context, invoice billing.S
 		sm.Logger = nil
 		sm.Publisher = nil
 		sm.FSNamespaceLockdown = nil
+		sm.EnforceInvoiceSanityChecks = false
 		sm.NeedsDBSave = false
 		invoiceStateMachineCache.Put(sm)
 	}()
@@ -679,12 +683,35 @@ func (m *InvoiceStateMachine) withInvoicingApp(op billing.StandardInvoiceOperati
 			m.Invoice.Workflow.Apps.Invoicing.GetID().ID)
 	}
 
+	// Old sanity failures must not block a recovered app hook's nested transition.
+	// Guarded callbacks recheck before invoking the app and restore any current failure.
+	// Deletion callbacks intentionally bypass sanity validation to allow recovery.
+	m.Invoice.ValidationIssues = m.Invoice.ValidationIssues.WithoutComponent(stdinvoicesanity.ValidationComponent)
 	opOverride, result := cb(invoicingApp)
 	if opOverride != nil {
 		op = *opOverride
 		if err := op.Validate(); err != nil {
 			return err
 		}
+	}
+
+	// Sanity failures belong to billing even when detected inside an app callback.
+	// An allowed call also clears stale sanity issues after repair or disabling enforcement.
+	var sanityIssues billing.ValidationIssues
+	if issues, systemErr := billing.ToValidationIssues(result); systemErr == nil {
+		sanityIssues = lo.Filter(issues, func(issue billing.ValidationIssue, _ int) bool {
+			return issue.Component == stdinvoicesanity.ValidationComponent
+		})
+		result = issues.WithoutComponent(stdinvoicesanity.ValidationComponent).AsError()
+	}
+
+	if err := m.Invoice.MergeValidationIssues(sanityIssues.AsError(), stdinvoicesanity.ValidationComponent); err != nil {
+		return err
+	}
+
+	if len(sanityIssues) > 0 && result == nil {
+		// No app result is available when sanity enforcement skipped the call.
+		return nil
 	}
 
 	component := billing.AppTypeCapabilityToComponent(invocingBase.GetType(), app.CapabilityTypeInvoiceCustomers, string(op))
@@ -702,37 +729,46 @@ func (m *InvoiceStateMachine) withInvoicingApp(op billing.StandardInvoiceOperati
 }
 
 func (m *InvoiceStateMachine) triggerPostAdvanceHooks(ctx context.Context) error {
-	return m.withInvoicingApp(billing.StandardInvoiceOpPostAdvanceHook, func(app billing.InvoicingApp) (*billing.StandardInvoiceOperation, error) {
-		if hook, ok := app.(billing.InvoicingAppPostAdvanceHook); ok {
-			clonedInvoice, err := m.Invoice.Clone()
-			if err != nil {
+	hook, ok := m.Invoice.Workflow.Apps.Invoicing.(billing.InvoicingAppPostAdvanceHook)
+	if !ok {
+		return nil
+	}
+
+	return m.withInvoicingApp(billing.StandardInvoiceOpPostAdvanceHook, func(_ billing.InvoicingApp) (*billing.StandardInvoiceOperation, error) {
+		// Deletion must remain available for inconsistent invoices, including its
+		// post-advance callbacks after cleanup or a failed deletion attempt.
+		if !billing.StandardInvoiceStatusCategoryDelete.MatchesInvoiceStatus(m.Invoice.Status) && m.Invoice.Status != billing.StandardInvoiceStatusDeleted {
+			if err := m.checkInvoiceSanity(ctx); err != nil {
 				return nil, err
 			}
-
-			res, err := hook.PostAdvanceStandardInvoiceHook(ctx, clonedInvoice)
-			if err != nil {
-				// Compatibility: post-advance hooks still return plain errors, which have historically
-				// been persisted on the stable invoice instead of rolling the completed transition back.
-				return nil, billing.WrapAsValidationIssue(err)
-			}
-
-			if res == nil {
-				return nil, nil
-			}
-
-			var opOverride *billing.StandardInvoiceOperation
-			if trigger := res.GetTriggerToInvoke(); trigger != nil {
-				if trigger.ValidationErrors != nil {
-					opOverride = &trigger.ValidationErrors.Operation
-				}
-
-				return opOverride, m.HandleInvoiceTrigger(ctx, *trigger)
-			}
-
-			return opOverride, nil
 		}
 
-		return nil, nil
+		clonedInvoice, err := m.Invoice.Clone()
+		if err != nil {
+			return nil, err
+		}
+
+		res, err := hook.PostAdvanceStandardInvoiceHook(ctx, clonedInvoice)
+		if err != nil {
+			// Compatibility: post-advance hooks still return plain errors, which have historically
+			// been persisted on the stable invoice instead of rolling the completed transition back.
+			return nil, billing.WrapAsValidationIssue(err)
+		}
+
+		if res == nil {
+			return nil, nil
+		}
+
+		var opOverride *billing.StandardInvoiceOperation
+		if trigger := res.GetTriggerToInvoke(); trigger != nil {
+			if trigger.ValidationErrors != nil {
+				opOverride = &trigger.ValidationErrors.Operation
+			}
+
+			return opOverride, m.HandleInvoiceTrigger(ctx, *trigger)
+		}
+
+		return opOverride, nil
 	})
 }
 
@@ -788,6 +824,10 @@ func (m *InvoiceStateMachine) validateDraftInvoice(ctx context.Context) error {
 	}
 
 	return m.withInvoicingApp(billing.StandardInvoiceOpValidate, func(app billing.InvoicingApp) (*billing.StandardInvoiceOperation, error) {
+		if err := m.checkInvoiceSanity(ctx); err != nil {
+			return nil, err
+		}
+
 		clonedInvoice, err := m.Invoice.Clone()
 		if err != nil {
 			return nil, err
@@ -822,6 +862,10 @@ func (m *InvoiceStateMachine) syncDraftInvoice(ctx context.Context) error {
 
 	// Let's save the invoice so that we are sure that all the IDs are available for downstream apps
 	return m.withInvoicingApp(billing.StandardInvoiceOpSync, func(app billing.InvoicingApp) (*billing.StandardInvoiceOperation, error) {
+		if err := m.checkInvoiceSanity(ctx); err != nil {
+			return nil, err
+		}
+
 		clonedInvoice, err := m.Invoice.Clone()
 		if err != nil {
 			return nil, err
@@ -849,6 +893,10 @@ func (m *InvoiceStateMachine) finalizeInvoice(ctx context.Context) error {
 	}
 
 	return m.withInvoicingApp(billing.StandardInvoiceOpFinalize, func(app billing.InvoicingApp) (*billing.StandardInvoiceOperation, error) {
+		if err := m.checkInvoiceSanity(ctx); err != nil {
+			return nil, err
+		}
+
 		clonedInvoice, err := m.Invoice.Clone()
 		if err != nil {
 			return nil, err
@@ -874,6 +922,10 @@ func (m *InvoiceStateMachine) finalizeInvoice(ctx context.Context) error {
 		// Let's update the dueAt now that we know when the invoice was issued (so that downstream apps
 		// can use this during the sync)
 		if err := invoicecalc.CalculateDueAt(&m.Invoice); err != nil {
+			return nil, err
+		}
+
+		if err := m.checkInvoiceSanity(ctx); err != nil {
 			return nil, err
 		}
 
@@ -907,6 +959,7 @@ func (m *InvoiceStateMachine) syncDeletedInvoice(ctx context.Context) error {
 	}
 
 	return m.withInvoicingApp(billing.StandardInvoiceOpDelete, func(app billing.InvoicingApp) (*billing.StandardInvoiceOperation, error) {
+		// Inconsistent invoice calculations must not prevent provider cleanup.
 		clonedInvoice, err := m.Invoice.Clone()
 		if err != nil {
 			return nil, err
@@ -1214,8 +1267,12 @@ func (m *InvoiceStateMachine) runLineEngineInvoiceSteps(
 	return nil
 }
 
-func (m *InvoiceStateMachine) canDraftSyncAdvance() bool {
+func (m *InvoiceStateMachine) canDraftSyncAdvance(ctx context.Context, _ ...any) bool {
 	if invoicingApp, ok := m.Invoice.Workflow.Apps.Invoicing.(billing.InvoicingAppAsyncSyncer); ok {
+		if err := m.checkInvoiceSanity(ctx); err != nil {
+			return false
+		}
+
 		can, err := invoicingApp.CanDraftSyncAdvance(m.Invoice)
 		if err != nil {
 			m.Logger.Error("error checking if we can advance the draft invoice", "error", err)
@@ -1236,8 +1293,12 @@ func (m *InvoiceStateMachine) validateNamespaceLockdown() error {
 	return nil
 }
 
-func (m *InvoiceStateMachine) canIssuingSyncAdvance() bool {
+func (m *InvoiceStateMachine) canIssuingSyncAdvance(ctx context.Context, _ ...any) bool {
 	if invoicingApp, ok := m.Invoice.Workflow.Apps.Invoicing.(billing.InvoicingAppAsyncSyncer); ok {
+		if err := m.checkInvoiceSanity(ctx); err != nil {
+			return false
+		}
+
 		can, err := invoicingApp.CanIssuingSyncAdvance(m.Invoice)
 		if err != nil {
 			m.Logger.Error("error checking if we can advance the issuing invoice", "error", err)
