@@ -227,8 +227,8 @@ github.com/huandu/go-assert v1.1.6 h1:oaAfYxq9KNDi9qswn/6aE0EydfxSa+tWZC1KabNitY
 github.com/huandu/go-assert v1.1.6/go.mod h1:JuIfbmYG9ykwvuxoJ3V8TB5QP+3+ajIA54Y44TmkMxs=
 github.com/huandu/go-clone v1.7.3 h1:rtQODA+ABThEn6J5LBTppJfKmZy/FwfpMUWa8d01TTQ=
 github.com/huandu/go-clone v1.7.3/go.mod h1:ReGivhG6op3GYr+UY3lS6mxjKp7MIGTknuU5TbTVaXE=
-github.com/huandu/go-sqlbuilder v1.43.0 h1:PdY4cnRR5Ed0wOmDFY4SLr1dQ/1iZicADMnfHNQliGM=
-github.com/huandu/go-sqlbuilder v1.43.0/go.mod h1:BEm32AHl29lzKDeV3HAIkzrz9cgRyumkDohHeGYYBoM=
+github.com/huandu/go-sqlbuilder v1.44.0 h1:4s2/pDqsmYwpe93s2p8mrKY6hxZcQbq5nYdGTS8sJ/E=
+github.com/huandu/go-sqlbuilder v1.44.0/go.mod h1:BEm32AHl29lzKDeV3HAIkzrz9cgRyumkDohHeGYYBoM=
 github.com/huandu/xstrings v1.4.0 h1:D17IlohoQq4UcpqD7fDk80P7l+lwAmlFaBHgOipl2FU=
 github.com/huandu/xstrings v1.4.0/go.mod h1:y5/lhBue+AyNmUVz9RLU9xbLR0o4KIIExikq4ovT0aE=
 github.com/ianlancetaylor/demangle v0.0.0-20200824232613-28f6c0f3b639/go.mod h1:aSSvb/t6k1mPoxDqO4vJh6VOCGPwU4O0C2/Eqndh1Sc=
@@ -475,8 +475,6 @@ github.com/stripe/stripe-go/v80 v80.2.1 h1:1FQP5a/gpC4i0ezS8EPqdme3K/H9UlNWswqNH
 github.com/stripe/stripe-go/v80 v80.2.1/go.mod h1:n7tsDvdltYlzOLGXlseMSJM6ik5uv3guptqtae/VSak=
 github.com/subosito/gotenv v1.6.0 h1:9NlTDc1FTs4qu0DDq7AEtTPNw6SVm7uBMsUCUjABIf8=
 github.com/subosito/gotenv v1.6.0/go.mod h1:Dk4QP5c2W3ibzajGcXpNraDfq2IrhjMIvMSWPKKo0FU=
-github.com/svix/svix-webhooks/v2 v2.7.0 h1:dKdLeoI9oGno/0NCZl7KxW7phwk1C5ufivXUtppjM8g=
-github.com/svix/svix-webhooks/v2 v2.7.0/go.mod h1:xCaumdE5/kLt+WzGHtr/NCGrW+MoHBqb86VKIn9u5po=
 github.com/svix/svix-webhooks/v2 v2.8.0 h1:8sIukmgH8ZiqC512cBj4DP7A/z+AwSKtea4xU3sgXqA=
 github.com/svix/svix-webhooks/v2 v2.8.0/go.mod h1:xCaumdE5/kLt+WzGHtr/NCGrW+MoHBqb86VKIn9u5po=
 github.com/tidwall/gjson v1.14.2/go.mod h1:/wbyibRr2FHMks5tjHJ5F8dMZh3AcwJEMf5vlfC0lxk=
