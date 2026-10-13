@@ -135,7 +135,7 @@ func resolveSubscriptionInvoiceCurrency(cus customer.Customer, plan subscription
 
 // resolveEditPatchRateCardReferences canonicalizes the feature and currency of
 // a newly authored item before the patch is applied to the subscription spec.
-func (s *service) resolveEditPatchRateCardReferences(ctx context.Context, namespace string, invoiceCurrency currencyx.Code, customization subscription.Patch) (subscription.Patch, error) {
+func (s *service) resolveEditPatchRateCardReferences(ctx context.Context, namespace string, defaultCurrency currencies.CurrencyReference, customization subscription.Patch) (subscription.Patch, error) {
 	var addItem *patch.PatchAddItem
 	returnsPointer := false
 
@@ -169,7 +169,7 @@ func (s *service) resolveEditPatchRateCardReferences(ctx context.Context, namesp
 	if rateCard.AsMeta().Price != nil {
 		if rateCard.AsMeta().Currency == nil {
 			if err := rateCard.ChangeMeta(func(meta productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
-				meta.Currency = lo.ToPtr(currencies.NewCurrencyReference(invoiceCurrency))
+				meta.Currency = lo.ToPtr(defaultCurrency.Clone())
 				return meta, nil
 			}); err != nil {
 				return nil, fmt.Errorf("defaulting add-item currency: %w", err)
@@ -250,8 +250,10 @@ func (s *service) EditRunning(ctx context.Context, subscriptionID models.Namespa
 			}
 		}
 
+		defaultCurrency := curr.Subscription.DefaultCurrency()
+
 		for i, customization := range customizations {
-			resolved, err := s.resolveEditPatchRateCardReferences(ctx, subscriptionID.Namespace, curr.Spec.InvoiceCurrency, customization)
+			resolved, err := s.resolveEditPatchRateCardReferences(ctx, subscriptionID.Namespace, defaultCurrency, customization)
 			if err != nil {
 				return subscription.SubscriptionView{}, models.ErrorWithComponent(models.ComponentName(fmt.Sprintf("patch[%d]", i)), err)
 			}
