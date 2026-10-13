@@ -9,6 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/convert"
+	"github.com/openmeterio/openmeter/pkg/errorsx"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -236,11 +237,17 @@ func (s *service) resolveTaxCode(ctx context.Context, namespace string, rc produ
 		return nil
 	}
 
-	return rc.ChangeMeta(func(m productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
+	// Command validation already enforces the cadence minimum except for legacy cancellation.
+	err := rc.ChangeMeta(func(m productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
 		if err := productcatalog.ResolveTaxConfig(ctx, s.TaxCode, namespace, m.TaxConfig); err != nil {
 			return m, err
 		}
 
 		return m, nil
 	})
+	if err != nil && !errorsx.IsOnly(err, productcatalog.ErrRateCardBillingCadenceTooShort) {
+		return err
+	}
+
+	return nil
 }
