@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"slices"
 	"strings"
 	"time"
 
@@ -22,6 +23,8 @@ type SvixError struct {
 	Details    []string
 
 	RetryAfter time.Duration
+
+	publicValidationError error
 }
 
 func (e SvixError) Error() string {
@@ -33,6 +36,10 @@ func (e SvixError) Error() string {
 	buf.WriteString(strings.Join(e.Details, ", "))
 
 	return buf.String()
+}
+
+func (e SvixError) Unwrap() error {
+	return e.publicValidationError
 }
 
 func (e SvixError) Wrap() error {
@@ -83,6 +90,11 @@ func WrapSvixError(err error) error {
 			return fmt.Errorf("failed to parse Svix error response: %w", err)
 		}
 
+		var publicValidationError error
+		if len(body.Detail) == 1 {
+			publicValidationError = mapSvixValidationError(body.Detail[0])
+		}
+
 		return SvixError{
 			HTTPStatus: svixErr.Status(),
 			Code:       lo.ToPtr("validation_error"),
@@ -91,6 +103,7 @@ func WrapSvixError(err error) error {
 
 				return fmt.Sprintf("[location=%s type=%s]: %s", loc, item.Type, item.Message)
 			}),
+			publicValidationError: publicValidationError,
 		}.Wrap()
 	default:
 		var body SvixErrorBody
@@ -107,4 +120,15 @@ func WrapSvixError(err error) error {
 			},
 		}.Wrap()
 	}
+}
+
+// Translate only known provider constraints; all other validation text stays private.
+func mapSvixValidationError(err SvixValidationError) error {
+	if slices.Equal(err.Loc, []string{"body", "url"}) &&
+		err.Type == "value_error" &&
+		err.Message == "Endpoint URL schemes must be https when endpoint_https_only is set." {
+		return webhook.ErrURLRequiresHTTPS
+	}
+
+	return nil
 }

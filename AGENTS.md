@@ -58,6 +58,9 @@
   propagation. Propagate the caller context or remove an unnecessary context
   parameter.
 - Never use `panic` in non-test code. Return and propagate errors.
+- Map external provider failures to explicitly approved public HTTP messages;
+  never return raw provider error text. Preserve the original cause for internal
+  diagnostics.
 - Production constructors must receive a `*slog.Logger`; do not fall back to
   `slog.Default()`.
 - Prefer standard `slices` and `maps`, then `github.com/samber/lo` where it is
