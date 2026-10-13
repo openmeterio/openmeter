@@ -1170,16 +1170,6 @@ export interface NotificationEventInvoiceReference {
   number: string
 }
 
-/** Request body for resending a notification event. */
-export interface ResendBillingNotificationEventRequest {
-  /**
-   * The channels to resend the event to. When omitted or empty, the event is resent
-   * to every enabled channel of the rule. Channels not targeted by the rule or
-   * disabled are rejected.
-   */
-  channels?: string[]
-}
-
 /** Customer reference. */
 export interface BillingCustomerReference {
   /** The ID of the customer. */
@@ -3558,6 +3548,16 @@ export interface NotificationRuleInvoiceUpdatedRequest {
    * deleted.
    */
   channels: NotificationChannelReference[]
+}
+
+/** Request body for resending a notification event. */
+export interface ResendBillingNotificationEventRequest {
+  /**
+   * The channels to resend the event to. When omitted or empty, the event is resent
+   * to every enabled channel of the rule. Channels not targeted by the rule or
+   * disabled are rejected.
+   */
+  channels?: NotificationChannelReference[]
 }
 
 /** The invoice an invoice notification event refers to. */

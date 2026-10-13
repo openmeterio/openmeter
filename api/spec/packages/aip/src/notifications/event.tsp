@@ -488,6 +488,7 @@ model NotificationEvent {
 /**
  * Request body for resending a notification event.
  */
+@withVisibility(Lifecycle.Create)
 @friendlyName("ResendBillingNotificationEventRequest")
 model NotificationEventResendRequest {
   /**
@@ -496,5 +497,5 @@ model NotificationEventResendRequest {
    * disabled are rejected.
    */
   @visibility(Lifecycle.Create)
-  channels?: Array<Shared.ULID>;
+  channels?: Array<Shared.ResourceReference<NotificationChannel>>;
 }

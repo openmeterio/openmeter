@@ -42,7 +42,7 @@ func (h *handler) ResendNotificationEvent() ResendNotificationEventHandler {
 					Namespace: ns,
 					ID:        eventID,
 				},
-				Channels: lo.FromPtr(body.Channels),
+				Channels: lo.Map(lo.FromPtr(body.Channels), func(ref api.NotificationChannelReference, _ int) string { return ref.Id }),
 			}, nil
 		},
 		func(ctx context.Context, req ResendNotificationEventRequest) (ResendNotificationEventResponse, error) {
