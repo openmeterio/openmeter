@@ -131,7 +131,7 @@ func (r *queryFeatureCostCSVResult) Records() [][]string {
 	records = append(records, headers)
 	for _, row := range r.rows {
 		record := make([]string, 0, len(headers))
-		record = append(record, row.WindowStart.Format(time.RFC3339), row.WindowEnd.Format(time.RFC3339))
+		record = append(record, row.WindowStart.Format(time.RFC3339Nano), row.WindowEnd.Format(time.RFC3339Nano))
 		if hasSubject {
 			record = append(record, lo.FromPtr(row.Subject))
 		}
