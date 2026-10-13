@@ -31,8 +31,6 @@ type InvoicingTaxTestSuite struct {
 }
 
 func TestInvoicingTax(t *testing.T) {
-	t.Skip("pending rework")
-
 	suite.Run(t, new(InvoicingTaxTestSuite))
 }
 
@@ -43,6 +41,8 @@ func (s *InvoicingTaxTestSuite) TestDefaultTaxConfigProfileSnapshotting() {
 	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
 
 	cust := s.CreateTestCustomer(namespace, "test")
+	s.SetupAccounts(namespace, cust.ID)
+	s.ProvisionDefaultTaxCodes(ctx, namespace)
 
 	// The tax code is seeded via the adapter to simulate a legacy row predating the deprecation gate.
 	profile := s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
@@ -160,6 +160,8 @@ func (s *InvoicingTaxTestSuite) TestLineSplittingRetainsTaxConfig() {
 	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
 
 	customer := s.CreateTestCustomer(namespace, "test")
+	s.SetupAccounts(namespace, customer.ID)
+	s.ProvisionDefaultTaxCodes(ctx, namespace)
 
 	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID(), billingtest.WithProgressiveBilling())
 
@@ -210,7 +212,7 @@ func (s *InvoicingTaxTestSuite) TestLineSplittingRetainsTaxConfig() {
 		},
 	}
 
-	res, err := s.BillingService.CreatePendingInvoiceLines(
+	res, err := s.Charges.CreatePendingInvoiceLines(
 		ctx,
 		billing.CreatePendingInvoiceLinesInput{
 			Customer: customer.GetID(),
@@ -235,9 +237,6 @@ func (s *InvoicingTaxTestSuite) TestLineSplittingRetainsTaxConfig() {
 						FeatureKey: flatPerUnitFeature.Key,
 						Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 							Amount: alpacadecimal.NewFromFloat(100),
-							Commitments: productcatalog.Commitments{
-								MaximumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(2000)),
-							},
 						})),
 					},
 				},
@@ -247,6 +246,8 @@ func (s *InvoicingTaxTestSuite) TestLineSplittingRetainsTaxConfig() {
 
 	s.NoError(err)
 	s.Len(res.Lines, 1)
+	expectedChargeID := res.Lines[0].ChargeID
+	s.RequireChargeBasedGatheringLine(res.Lines[0], expectedChargeID)
 	s.Require().NotNil(res.Lines[0].TaxConfig)
 	s.Require().NotNil(res.Lines[0].TaxConfig.TaxCodeID, "TaxCodeID must be resolved before the gathering line is persisted")
 
@@ -285,7 +286,7 @@ func (s *InvoicingTaxTestSuite) TestLineSplittingRetainsTaxConfig() {
 	s.Len(invoiceLines, 1)
 
 	ubpSplitLine := invoiceLines[0]
-	s.NotNil(ubpSplitLine.SplitLineGroupID, "the line is a split line")
+	s.Equal(expectedChargeID, ubpSplitLine.ChargeID, "invoice line must reference the created usage-based charge")
 	s.Require().NotNil(ubpSplitLine.TaxConfig, "tax config is retained")
 	s.Equal(taxConfig.Behavior, ubpSplitLine.TaxConfig.Behavior, "tax config behavior is retained")
 	s.Equal(taxConfig.Stripe, ubpSplitLine.TaxConfig.Stripe, "tax config stripe is retained")
@@ -312,7 +313,7 @@ func (s *InvoicingTaxTestSuite) TestLineSplittingRetainsTaxConfig() {
 func (s *InvoicingTaxTestSuite) generateDraftInvoice(ctx context.Context, customer *customer.Customer) billing.StandardInvoice {
 	now := time.Now().Truncate(time.Microsecond).In(time.UTC)
 
-	res, err := s.BillingService.CreatePendingInvoiceLines(
+	res, err := s.Charges.CreatePendingInvoiceLines(
 		ctx,
 		billing.CreatePendingInvoiceLinesInput{
 			Customer: customer.GetID(),
