@@ -19,18 +19,14 @@ import (
 	billingtest "github.com/openmeterio/openmeter/test/billing"
 )
 
-// This suite is the legacy/standard-line mirror of the charges-path
-// TestRatesConvertedQuantity (openmeter/billing/charges/service/unitconfig_rating_test.go).
-// It drives a plain (non-charge) usage-based gathering line carrying a unit_config through
-// CreatePendingInvoiceLines -> InvoicePendingLines, exercising the legacy
-// lineengine.BuildStandardInvoiceLines path plus billing rating (StandardLine.GetUnitConfig
-// -> the UnitConfig mutator), proving the legacy path converts and snapshots identically to
-// the charges path. The flag-off guard on this path is covered at the rating layer
-// (rating/service/rate/unitconfig_rating_test.go, forbidunitconfig_test.go).
+// This suite preserves legacy unit conversion expectations through charge-backed
+// pending-line creation, collection, and the v3 invoice converter. Unlike the direct
+// charge-intent rating tests, it verifies that pending-line input carries UnitConfig
+// through to billed quantities and the API audit trail.
+// Disabled unit conversion is covered by the direct charge-rating and rating-layer
+// tests, including TestUsageBasedUnitConfigRatingDisabled.
 
 func TestLegacyUnitConfigRating(t *testing.T) {
-	t.Skip("pending rework")
-
 	suite.Run(t, new(legacyUnitConfigRatingSuite))
 }
 
@@ -50,6 +46,8 @@ func (s *legacyUnitConfigRatingSuite) TestRatesConvertedQuantity() {
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
 	cust := s.CreateTestCustomer(ns, "test-subject")
 	s.NotEmpty(cust.ID)
+	s.SetupAccounts(ns, cust.ID)
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	feature := s.SetupApiRequestsTotalFeature(ctx, ns)
 
@@ -74,7 +72,7 @@ func (s *legacyUnitConfigRatingSuite) TestRatesConvertedQuantity() {
 	clock.FreezeTime(servicePeriod.From)
 	defer clock.UnFreeze()
 
-	_, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
+	_, err := s.Charges.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 		Customer: cust.GetID(),
 		Currency: currencyx.FiatCode(currency.USD),
 		Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
@@ -118,7 +116,7 @@ func (s *legacyUnitConfigRatingSuite) TestRatesConvertedQuantity() {
 
 	// MeteredQuantity is the raw audit value (7400); the customer-facing billable Quantity
 	// is the converted ceil(7400/1000) = 8, matching the priced amount. This is the exact
-	// assertion the charges path makes, proving the legacy path converts identically.
+	// legacy expectation, now checked through charge-backed pending-line creation.
 	s.Require().NotNil(stdLine.UsageBased.MeteredQuantity)
 	s.Equal(float64(7400), lo.FromPtr(stdLine.UsageBased.MeteredQuantity).InexactFloat64())
 
@@ -126,7 +124,7 @@ func (s *legacyUnitConfigRatingSuite) TestRatesConvertedQuantity() {
 	s.Equal(float64(8), lo.FromPtr(stdLine.UsageBased.Quantity).InexactFloat64())
 
 	// The config that produced the conversion is snapshotted onto the line at billing time
-	// and exposed via GetUnitConfig, completing the audit trail on the legacy path.
+	// and exposed via GetUnitConfig, preserving the legacy audit trail.
 	s.Require().NotNil(stdLine.UsageBased.UnitConfig)
 	s.True(unitConfig.Equal(stdLine.UsageBased.UnitConfig),
 		"applied unit_config snapshot must match the config used at rating time")
@@ -138,7 +136,7 @@ func (s *legacyUnitConfigRatingSuite) TestRatesConvertedQuantity() {
 }
 
 // TestSurfacesQuantityDetailOnV3InvoiceAPI proves the audit trail end to end: a
-// DB-produced legacy invoice line carrying a unit_config is mapped by the v3 invoice
+// DB-produced charge-backed invoice line carrying a unit_config is mapped by the v3 invoice
 // converter into the usage_quantity_detail field (raw -> invoiced + display unit). The
 // converter unit tests (api/v3/handlers/billinginvoices/convert_test.go) cover the mapping
 // in isolation; this guards the composition — real invoice -> ToAPIBillingInvoice -> union
@@ -154,6 +152,8 @@ func (s *legacyUnitConfigRatingSuite) TestSurfacesQuantityDetailOnV3InvoiceAPI()
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
 	cust := s.CreateTestCustomer(ns, "test-subject")
 	s.NotEmpty(cust.ID)
+	s.SetupAccounts(ns, cust.ID)
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	feature := s.SetupApiRequestsTotalFeature(ctx, ns)
 
@@ -180,7 +180,7 @@ func (s *legacyUnitConfigRatingSuite) TestSurfacesQuantityDetailOnV3InvoiceAPI()
 	clock.FreezeTime(servicePeriod.From)
 	defer clock.UnFreeze()
 
-	_, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
+	_, err := s.Charges.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 		Customer: cust.GetID(),
 		Currency: currencyx.FiatCode(currency.USD),
 		Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
