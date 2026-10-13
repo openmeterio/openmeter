@@ -5478,6 +5478,8 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyWithCustomCurrency() {
 		// given:
 		// - a customer and a persisted custom currency
 		s.ProvisionDefaultTaxCodes(ctx, ns)
+		sandboxApp := s.InstallSandboxApp(s.T(), ns)
+		s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
 
 		cust := s.CreateTestCustomer(ns, "test-subject")
 		s.NotEmpty(cust.ID)

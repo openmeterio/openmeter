@@ -62,6 +62,14 @@ including charges created later for earlier service. Existing charges retain
 their snapshot across overrides, corrections, and later migrations. Charges
 without recorded attribution remain unattributed.
 
+Flat-fee and usage-based creation snapshots tax-code identity in this order:
+an explicitly supplied charge tax-code ID, the effective customer billing profile's
+default tax code, then the organization invoicing default. Profile lookup failures,
+including a missing default profile, abort creation.
+Existing charges retain the selected identity when profile or organization defaults
+change. Explicit tax behavior remains preserved independently of code selection.
+Credit purchases use the organization credit-grant default when no code is supplied.
+
 ## Intent layers
 
 Flat-fee and usage-based charges have an immutable intent, a mutable base layer,

@@ -22,8 +22,6 @@ type UBPFlatFeeLineTestSuite struct {
 }
 
 func TestUBPFlatFeeLine(t *testing.T) {
-	t.Skip("pending rework")
-
 	suite.Run(t, new(UBPFlatFeeLineTestSuite))
 }
 
@@ -38,10 +36,12 @@ func (s *UBPFlatFeeLineTestSuite) TestPendingLineCreation() {
 	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
 
 	cust := s.CreateTestCustomer(namespace, "test")
+	s.SetupAccounts(namespace, cust.ID)
+	defaultTaxCodes := s.ProvisionDefaultTaxCodes(ctx, namespace)
 	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID(), billingtest.WithProgressiveBilling())
 
 	// Given we have a customer
-	// When we create a pending fee line using the usage based flat fee line
+	// When we create a pending fee line using a flat fee charge
 	// Then the gathering invoice should be created
 
 	period := timeutil.ClosedPeriod{
@@ -50,7 +50,7 @@ func (s *UBPFlatFeeLineTestSuite) TestPendingLineCreation() {
 	}
 
 	s.Run("should create a pending line", func() {
-		lineIn := billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
+		lineIn := NewFlatFeeManuallyManagedGatheringLine(billing.NewFlatFeeLineInput{
 			Period:    period,
 			InvoiceAt: period.To,
 
@@ -60,7 +60,7 @@ func (s *UBPFlatFeeLineTestSuite) TestPendingLineCreation() {
 			PaymentTerm:   productcatalog.InArrearsPaymentTerm,
 		})
 
-		res, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
+		res, err := s.Charges.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 			Customer: cust.GetID(),
 			Currency: "USD",
 			Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
@@ -78,11 +78,17 @@ func (s *UBPFlatFeeLineTestSuite) TestPendingLineCreation() {
 		// Let's add fields coming from the line creation
 		expected.Namespace = cust.Namespace
 		expected.InvoiceID = res.Invoice.ID
-		expected.Engine = line.Engine
+		expected.Engine = billing.LineEngineTypeChargeFlatFee
 		expected.ID = line.ID
 		expected.CreatedAt = line.CreatedAt
 		expected.UpdatedAt = line.UpdatedAt
 		expected.UBPConfigID = line.UBPConfigID
+		expected.ChargeID = line.ChargeID
+		expected.TaxConfig = &productcatalog.TaxConfig{
+			TaxCodeID: lo.ToPtr(defaultTaxCodes.InvoicingTaxCodeID),
+		}
+
+		s.RequireChargeBasedGatheringLine(line, expected.ChargeID)
 
 		billingtest.ExpectJSONEqual(s.T(),
 			lo.Must(expected.WithoutDBState()),
@@ -149,10 +155,12 @@ func (s *UBPFlatFeeLineTestSuite) TestPercentageDiscount() {
 	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
 
 	cust := s.CreateTestCustomer(namespace, "test")
+	s.SetupAccounts(namespace, cust.ID)
+	s.ProvisionDefaultTaxCodes(ctx, namespace)
 	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
 
 	// Given we have a customer
-	// When we create a pending fee line using the usage based flat fee line with a percentage discount
+	// When we create a pending fee line using a flat fee charge with a percentage discount
 	// Then the final invoice should contain the amount details
 
 	period := timeutil.ClosedPeriod{
@@ -160,11 +168,11 @@ func (s *UBPFlatFeeLineTestSuite) TestPercentageDiscount() {
 		To:   clock.Now().Add(time.Hour * 24),
 	}
 
-	_, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
+	_, err := s.Charges.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 		Customer: cust.GetID(),
 		Currency: "USD",
 		Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
-			billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
+			NewFlatFeeManuallyManagedGatheringLine(billing.NewFlatFeeLineInput{
 				Period:    period,
 				InvoiceAt: period.To,
 
@@ -231,6 +239,8 @@ func (s *UBPFlatFeeLineTestSuite) TestValidations() {
 	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
 
 	cust := s.CreateTestCustomer(namespace, "test")
+	s.SetupAccounts(namespace, cust.ID)
+	s.ProvisionDefaultTaxCodes(ctx, namespace)
 	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
 
 	period := timeutil.ClosedPeriod{
@@ -239,11 +249,11 @@ func (s *UBPFlatFeeLineTestSuite) TestValidations() {
 	}
 
 	s.Run("should not create line with usage discount", func() {
-		_, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
+		_, err := s.Charges.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 			Customer: cust.GetID(),
 			Currency: "USD",
 			Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
-				billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
+				NewFlatFeeManuallyManagedGatheringLine(billing.NewFlatFeeLineInput{
 					Period:    period,
 					InvoiceAt: period.To,
 
@@ -265,11 +275,11 @@ func (s *UBPFlatFeeLineTestSuite) TestValidations() {
 	})
 
 	s.Run("empty period is allowed", func() {
-		_, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
+		_, err := s.Charges.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 			Customer: cust.GetID(),
 			Currency: "USD",
 			Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
-				billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
+				NewFlatFeeManuallyManagedGatheringLine(billing.NewFlatFeeLineInput{
 					Period: timeutil.ClosedPeriod{
 						From: period.From,
 						To:   period.From,

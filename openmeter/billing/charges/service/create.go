@@ -32,16 +32,19 @@ type chargesWithInvoiceNowActions struct {
 	pendingLineResults               []*billing.CreatePendingInvoiceLinesResult
 }
 
-// applyDefaultTaxCodes fills in nil TaxCodeID on each intent's TaxConfig using the namespace's
-// organization default tax codes. Invoicing default applies to flat-fee and usage-based charges;
-// credit-grant default applies to credit purchase charges. Fails if any intent needs the fallback
-// but the namespace has no defaults provisioned.
+// applyDefaultTaxCodes snapshots the customer's billing-profile tax code before falling
+// back to the organization invoicing default for flat-fee and usage-based intents.
+// Explicit intent tax-code IDs take precedence. Credit purchases use the organization
+// credit-grant default. Profile lookup failures abort creation so an unavailable
+// profile cannot silently select another code.
 func (s *service) applyDefaultTaxCodes(ctx context.Context, namespace string, intents charges.CreateChargeIntents) (charges.CreateChargeIntents, error) {
 	getDefaultTaxCodes := sync.OnceValues(func() (taxcode.OrganizationDefaultTaxCodes, error) {
 		return s.taxCodeService.GetOrganizationDefaultTaxCodes(ctx, taxcode.GetOrganizationDefaultTaxCodesInput{
 			Namespace: namespace,
 		})
 	})
+
+	profileTaxCodeIDs := make(map[string]*string)
 
 	return slicesx.MapWithErr(intents, func(createIntent charges.CreateChargeIntent) (charges.CreateChargeIntent, error) {
 		taxCodeID, err := createIntent.TaxCodeID()
@@ -51,6 +54,37 @@ func (s *service) applyDefaultTaxCodes(ctx context.Context, namespace string, in
 
 		if taxCodeID != "" {
 			return createIntent, nil
+		}
+
+		if createIntent.Type() != meta.ChargeTypeCreditPurchase {
+			customerID, err := createIntent.GetCustomerID()
+			if err != nil {
+				return charges.CreateChargeIntent{}, err
+			}
+
+			profileTaxCodeID, cached := profileTaxCodeIDs[customerID]
+			if !cached {
+				customerOverride, err := s.billingService.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
+					Customer: customer.CustomerID{
+						Namespace: namespace,
+						ID:        customerID,
+					},
+				})
+				if err != nil {
+					return charges.CreateChargeIntent{}, fmt.Errorf("getting customer billing profile: %w", err)
+				}
+
+				profileTaxConfig := customerOverride.MergedProfile.WorkflowConfig.Invoicing.DefaultTaxConfig
+				if profileTaxConfig != nil && lo.FromPtr(profileTaxConfig.TaxCodeID) != "" {
+					profileTaxCodeID = profileTaxConfig.TaxCodeID
+				}
+
+				profileTaxCodeIDs[customerID] = profileTaxCodeID
+			}
+
+			if profileTaxCodeID != nil {
+				return createIntent.WithTaxCodeID(*profileTaxCodeID)
+			}
 		}
 
 		defaultTaxCodes, err := getDefaultTaxCodes()
