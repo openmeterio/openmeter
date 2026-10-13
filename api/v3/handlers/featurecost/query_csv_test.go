@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/peterbourgon/ctxdata/v4"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
@@ -35,7 +36,13 @@ func TestFeatureCostCSVRecords(t *testing.T) {
 		Detail:      "Partially priced, missing \"model\"\npricing",
 		Subject:     lo.ToPtr("subject-1"),
 		CustomerID:  lo.ToPtr("customer-1"),
-		GroupBy:     map[string]*string{"model": lo.ToPtr("model,one"), "type": nil},
+		GroupBy: map[string]*string{
+			"model": lo.ToPtr("model,one"), "type": nil,
+			"from": lo.ToPtr("dimension-from"), "to": lo.ToPtr("dimension-to"),
+			"customer_key": lo.ToPtr("dimension-key"), "customer_name": lo.ToPtr("dimension-name"),
+			"usage": lo.ToPtr("dimension-usage"), "cost": lo.ToPtr("dimension-cost"),
+			"currency": lo.ToPtr("dimension-currency"), "detail": lo.ToPtr("dimension-detail"),
+		},
 	}
 	missing := row
 	missing.Cost = nil
@@ -72,9 +79,32 @@ func TestFeatureCostCSVRecords(t *testing.T) {
 			},
 		},
 		{
+			name:    "fixed columns exclude colliding dimensions from headers and values",
+			groupBy: []string{"from", "usage", "type", "to", "cost", "customer_key", "subject", "currency", "customer_id", "detail", "model", "customer_name"},
+			rows:    []cost.CostQueryRow{row},
+			want: [][]string{
+				{"from", "to", "subject", "customer_id", "customer_key", "customer_name", "type", "model", "usage", "cost", "currency", "detail"},
+				{"2024-01-01T00:00:00Z", "2024-01-01T01:00:00Z", "subject-1", "customer-1", "example", "Example, Inc.", "", "model,one", row.Usage.String(), row.Cost.String(), "USD", row.Detail},
+			},
+		},
+		{
+			name:    "customer metadata names stay reserved without customer grouping",
+			groupBy: []string{"customer_name", "model", "customer_key"},
+			rows:    []cost.CostQueryRow{row},
+			want: [][]string{
+				{"from", "to", "model", "usage", "cost", "currency", "detail"},
+				{"2024-01-01T00:00:00Z", "2024-01-01T01:00:00Z", "model,one", row.Usage.String(), row.Cost.String(), "USD", row.Detail},
+			},
+		},
+		{
 			name:    "empty grouped result retains headers",
 			groupBy: []string{"model", "customer_id"},
 			want:    [][]string{{"from", "to", "customer_id", "customer_key", "customer_name", "model", "usage", "cost", "currency", "detail"}},
+		},
+		{
+			name:    "empty result also filters collisions",
+			groupBy: []string{"cost", "currency", "model"},
+			want:    [][]string{{"from", "to", "model", "usage", "cost", "currency", "detail"}},
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
@@ -106,11 +136,18 @@ func TestQueryFeatureCostRepresentations(t *testing.T) {
 				c := customer.Customer{Key: lo.ToPtr("example")}
 				c.ID = "customer-1"
 				c.Name = "Example"
+
 				return pagination.Result[customer.Customer]{Items: []customer.Customer{c}}, nil
 			}}
 			calls := 0
 			h := New(
-				func(context.Context) (string, error) { return "test", nil },
+				func(ctx context.Context) (string, error) {
+					attrs := ctxdata.From(ctx)
+					require.NotNil(t, attrs)
+					require.Equal(t, "query-feature-cost", attrs.GetAllMap()["http.route"])
+
+					return "test", nil
+				},
 				&costQueryService{query: func(input cost.QueryFeatureCostInput) (*cost.CostQueryResult, error) {
 					calls++
 					require.Equal(t, "test", input.Namespace)
@@ -118,6 +155,7 @@ func TestQueryFeatureCostRepresentations(t *testing.T) {
 					// Subject filtering implies grouping; duplicate dimensions are removed.
 					require.Equal(t, []string{"model", "customer_id", "subject"}, input.QueryParams.GroupBy)
 					require.Equal(t, []string{"subject-1"}, input.QueryParams.FilterSubject)
+
 					return &cost.CostQueryResult{Rows: []cost.CostQueryRow{{
 						WindowStart: time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
 						WindowEnd:   time.Date(2024, 1, 2, 0, 0, 0, 0, time.UTC),

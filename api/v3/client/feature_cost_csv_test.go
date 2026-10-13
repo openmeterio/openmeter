@@ -16,14 +16,17 @@ func TestFeatureCostCSV(t *testing.T) {
 		if stream {
 			name = "streamed"
 		}
+
 		t.Run(name, func(t *testing.T) {
 			om := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				if r.Method != http.MethodPost || r.URL.Path != "/openmeter/features/feature-1/cost/query" {
 					t.Errorf("unexpected route: %s %s", r.Method, r.URL.Path)
 				}
+
 				if r.Header.Get("Accept") != "text/csv" || r.Header.Get("Content-Type") != "application/json" {
 					t.Errorf("unexpected content negotiation: %v", r.Header)
 				}
+
 				var body struct {
 					GroupByDimensions []string `json:"group_by_dimensions"`
 				}
@@ -32,6 +35,7 @@ func TestFeatureCostCSV(t *testing.T) {
 				} else if len(body.GroupByDimensions) != 1 || body.GroupByDimensions[0] != "model" {
 					t.Errorf("group_by_dimensions = %v, want [model]", body.GroupByDimensions)
 				}
+
 				w.Header().Set("Content-Type", "text/csv")
 				_, _ = io.WriteString(w, csv)
 			}))
@@ -48,9 +52,11 @@ func TestFeatureCostCSV(t *testing.T) {
 			} else {
 				data, err = om.Features.QueryCostCSV(t.Context(), "feature-1", request)
 			}
+
 			if err != nil {
 				t.Fatal(err)
 			}
+
 			if string(data) != csv {
 				t.Errorf("CSV = %q, want %q", data, csv)
 			}
