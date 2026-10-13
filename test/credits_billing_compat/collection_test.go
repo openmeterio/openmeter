@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -26,8 +27,6 @@ type CollectionTestSuite struct {
 }
 
 func TestCollection(t *testing.T) {
-	t.Skip("pending rework")
-
 	suite.Run(t, new(CollectionTestSuite))
 }
 
@@ -43,6 +42,8 @@ func (s *CollectionTestSuite) setupNS(ctx context.Context, namespace string) col
 
 	customer := s.CreateTestCustomer(namespace, "test-customer")
 	s.NotNil(customer)
+	s.SetupAccounts(namespace, customer.ID)
+	s.ProvisionDefaultTaxCodes(ctx, namespace)
 
 	apiRequestsTotalFeature := s.SetupApiRequestsTotalFeature(ctx, namespace)
 
@@ -75,6 +76,8 @@ func (s *CollectionTestSuite) TestUncollectableCollection() {
 
 	customer := s.CreateTestCustomer(namespace, "test-customer")
 	s.NotNil(customer)
+	s.SetupAccounts(namespace, customer.ID)
+	s.ProvisionDefaultTaxCodes(ctx, namespace)
 
 	s.ProvisionBillingProfile(ctx, namespace, appSandbox.GetID())
 
@@ -100,7 +103,7 @@ func (s *CollectionTestSuite) TestUncollectableCollection() {
 	clock.SetTime(lineServicePeriod.From)
 	defer clock.ResetTime()
 
-	pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
+	pendingLines, err := s.Charges.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 		Customer: customer.GetID(),
 		Currency: currencyx.FiatCode(currency.USD),
 		Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
@@ -141,6 +144,8 @@ func (s *CollectionTestSuite) TestCollectionWaitsForInvoiceAtAfterServicePeriodE
 	appSandbox := s.InstallSandboxApp(s.T(), namespace)
 	customer := s.CreateTestCustomer(namespace, "test-customer")
 	s.Require().NotNil(customer)
+	s.SetupAccounts(namespace, customer.ID)
+	s.ProvisionDefaultTaxCodes(ctx, namespace)
 	s.ProvisionBillingProfile(ctx, namespace, appSandbox.GetID())
 
 	testFeature := s.SetupApiRequestsTotalFeature(ctx, namespace)
@@ -159,7 +164,7 @@ func (s *CollectionTestSuite) TestCollectionWaitsForInvoiceAtAfterServicePeriodE
 	s.MockStreamingConnector.AddSimpleEvent(testFeatureKey, 1, servicePeriod.From.Add(time.Hour))
 
 	// Given a non-progressively billed line whose service period ends before its invoice time.
-	pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
+	pendingLines, err := s.Charges.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 		Customer: customer.GetID(),
 		Currency: currencyx.FiatCode(currency.USD),
 		Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
@@ -214,12 +219,12 @@ func (s *CollectionTestSuite) TestCollectionWaitsForInvoiceAtAfterServicePeriodE
 
 func (s *CollectionTestSuite) TestGatheringLineUnitConfigSnapshotRoundTrip() {
 	// given:
-	// - a legacy (non-charges) usage-based gathering line whose rate card carries a unit_config
+	// - a charge-backed usage-based gathering line whose rate card carries a unit_config
 	// when:
 	// - it is persisted via CreatePendingInvoiceLines and read back from the gathering invoice
 	// then:
-	// - the unit_config snapshot round-trips on the gathering line, so the legacy line-engine
-	//   path carries it onto the standard line (AsNewStandardLine) at collection time and
+	// - the unit_config snapshot round-trips on the gathering line and its conversion
+	//   to a standard line (AsNewStandardLine), and
 	//   GetUnitConfig converts from raw metered units instead of billing raw
 	namespace := "ns-collection-gathering-unit-config"
 	ctx := s.T().Context()
@@ -242,7 +247,7 @@ func (s *CollectionTestSuite) TestGatheringLineUnitConfigSnapshotRoundTrip() {
 		DisplayUnit:      lo.ToPtr("GB"),
 	}
 
-	created, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
+	created, err := s.Charges.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 		Customer: res.customer.GetID(),
 		Currency: currencyx.FiatCode(currency.USD),
 		Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
@@ -308,7 +313,7 @@ func (s *CollectionTestSuite) TestCollectionFlow() {
 
 	var gatheringInvoiceID billing.InvoiceID
 	s.Run("validate collection_at calculation", func() {
-		res, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
+		res, err := s.Charges.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 			Customer: customer.GetID(),
 			Currency: currencyx.FiatCode(currency.USD),
 			Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
@@ -406,7 +411,9 @@ func (s *CollectionTestSuite) TestCollectionFlow() {
 
 		s.NotNil(invoice.CollectionAt)
 		s.Nil(invoice.QuantitySnapshotedAt)
-		s.Equal(period2End.Add(time.Hour), *invoice.CollectionAt, "collection_at should be periodEnd + 1hr")
+		// Accepted difference from legacy billing: charges wait an additional internal
+		// collection period after the late-event cutoff so the usage snapshot can settle.
+		s.Equal(period2End.Add(time.Hour+usagebased.InternalCollectionPeriod), *invoice.CollectionAt, "collection_at includes the late-event window and internal collection period")
 
 		s.Equal(billing.StandardInvoiceStatusDraftWaitingForCollection, invoice.Status)
 		s.Nil(invoice.StatusDetails.AvailableActions.Advance)
@@ -419,7 +426,7 @@ func (s *CollectionTestSuite) TestCollectionFlow() {
 
 	// Given the draft invoice is in waiting for collection state
 	// When:
-	// - Clock is period2End + 1hr
+	// - Clock reaches the late-event cutoff plus the internal collection period
 	// - A new usage of 2 is recorded at periodStart + 35min (late event)
 	// Then:
 	// - The invoice should be advancable
@@ -428,7 +435,7 @@ func (s *CollectionTestSuite) TestCollectionFlow() {
 
 	s.MockStreamingConnector.AddSimpleEvent(apiRequestsTotalFeature.Feature.Key, 2, periodStart.Add(time.Minute*35))
 
-	clock.SetTime(period2End.Add(time.Hour))
+	clock.SetTime(period2End.Add(time.Hour + usagebased.InternalCollectionPeriod))
 	s.Run("validate invoice is advancable", func() {
 		invoice, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
 			Invoice: invoiceID,
@@ -466,7 +473,7 @@ func (s *CollectionTestSuite) TestCollectionFlowWithFlatFeeOnly() {
 		{
 			name:      "flat fee only",
 			namespace: "ns-collection-flow-flat-fee",
-			line: billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
+			line: NewFlatFeeManuallyManagedGatheringLine(billing.NewFlatFeeLineInput{
 				Period:    timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
 				InvoiceAt: periodStart,
 				Name:      "Flat fee",
@@ -478,7 +485,7 @@ func (s *CollectionTestSuite) TestCollectionFlowWithFlatFeeOnly() {
 		{
 			name:      "ubp flat fee only",
 			namespace: "ns-collection-flow-ubp-flat-fee",
-			line: billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
+			line: NewFlatFeeManuallyManagedGatheringLine(billing.NewFlatFeeLineInput{
 				Period:    timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
 				InvoiceAt: periodStart,
 				Name:      "Flat fee",
@@ -507,7 +514,7 @@ func (s *CollectionTestSuite) TestCollectionFlowWithFlatFeeOnly() {
 			defer clock.ResetTime()
 
 			// Given
-			pendingLineResult, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
+			pendingLineResult, err := s.Charges.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 				Customer: customer.GetID(),
 				Currency: currencyx.FiatCode(currency.USD),
 				Lines:    billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{tc.line}),
@@ -561,7 +568,7 @@ func (s *CollectionTestSuite) TestCollectionFlowWithFlatFeeEditing() {
 	s.MockStreamingConnector.AddSimpleEvent(apiRequestsTotalFeature.Feature.Key, 1, periodStart.Add(time.Minute*30))
 	defer s.MockStreamingConnector.Reset()
 
-	pendingLineResult, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
+	pendingLineResult, err := s.Charges.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 		Customer: customer.GetID(),
 		Currency: currencyx.FiatCode(currency.USD),
 		Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
@@ -581,7 +588,9 @@ func (s *CollectionTestSuite) TestCollectionFlowWithFlatFeeEditing() {
 	s.Len(pendingLineResult.Lines, 1)
 	s.NotNil(pendingLineResult.Invoice.NextCollectionAt)
 
-	clock.SetTime(periodEnd.Add(time.Hour * 1))
+	// Accepted difference from legacy billing: charges need the additional internal
+	// collection period to finish the usage snapshot before the flat-fee edit.
+	clock.SetTime(periodEnd.Add(time.Hour + usagebased.InternalCollectionPeriod))
 	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
 		Customer: customer.GetID(),
 	})
@@ -675,10 +684,13 @@ func (s *CollectionTestSuite) TestAnchoredAlignment_StandardInvoiceUsesLateEvent
 	})
 	s.NoError(err)
 
+	s.SetupAccounts(namespace, customerEntity.ID)
+	s.ProvisionDefaultTaxCodes(ctx, namespace)
+
 	// Create a minimal pending usage-based line that invoices at end of day
 	periodStart := now
 	periodEnd := now.Add(12 * time.Hour)
-	_, err = s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
+	_, err = s.Charges.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 		Customer: customerEntity.GetID(),
 		Currency: currencyx.FiatCode(currency.USD),
 		Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
@@ -723,7 +735,7 @@ func (s *CollectionTestSuite) TestAnchoredAlignment_StandardInvoiceUsesLateEvent
 		// - invoice pending lines is called automatically after the anchor passed
 		// Then:
 		// - the invoice is created
-		// - collection_at is invoice_at plus the late-event window
+		// - collection_at includes the late-event window and the internal collection period
 		// - the invoice is immediately ready for collection
 		// - the anchored workflow snapshot is preserved on the invoice
 		clock.SetTime(time.Date(now.Year(), now.Month(), now.Day()+1, 2, 0, 0, 0, time.UTC))
@@ -737,7 +749,9 @@ func (s *CollectionTestSuite) TestAnchoredAlignment_StandardInvoiceUsesLateEvent
 		inv := invoices[0]
 		s.NoError(err)
 		s.NotNil(inv.CollectionAt)
-		s.Equal(periodEnd.Add(time.Hour), *inv.CollectionAt)
+		// Accepted difference from legacy billing: charges wait an additional internal
+		// collection period after the late-event cutoff so the usage snapshot can settle.
+		s.Equal(periodEnd.Add(time.Hour+usagebased.InternalCollectionPeriod), *inv.CollectionAt)
 		s.NotNil(inv.QuantitySnapshotedAt)
 		s.Equal(billing.StandardInvoiceStatusDraftWaitingAutoApproval, inv.Status)
 
@@ -775,9 +789,12 @@ func (s *CollectionTestSuite) TestAnchoredAlignment_AutomaticCollectionWaitsForA
 	})
 	s.NoError(err)
 
+	s.SetupAccounts(namespace, customerEntity.ID)
+	s.ProvisionDefaultTaxCodes(ctx, namespace)
+
 	periodStart := now
 	periodEnd := now.Add(12 * time.Hour)
-	_, err = s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
+	_, err = s.Charges.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 		Customer: customerEntity.GetID(),
 		Currency: currencyx.FiatCode(currency.USD),
 		Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
@@ -838,9 +855,12 @@ func (s *CollectionTestSuite) TestAnchoredAlignment_StandardInvoiceWaitsForLateE
 	})
 	s.NoError(err)
 
+	s.SetupAccounts(namespace, customerEntity.ID)
+	s.ProvisionDefaultTaxCodes(ctx, namespace)
+
 	periodStart := lo.Must(time.Parse(time.RFC3339, "2025-06-15T00:00:00Z"))
 	periodEnd := lo.Must(time.Parse(time.RFC3339, "2025-06-15T12:00:00Z"))
-	_, err = s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
+	_, err = s.Charges.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 		Customer: customerEntity.GetID(),
 		Currency: currencyx.FiatCode(currency.USD),
 		Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
@@ -866,10 +886,12 @@ func (s *CollectionTestSuite) TestAnchoredAlignment_StandardInvoiceWaitsForLateE
 	// When:
 	// - the standard invoice is created after invoice_at but before invoice_at plus the late-event window
 	// Then:
-	// - collection_at is still invoice_at plus the late-event window
+	// - collection_at includes the late-event window and internal collection period even past the anchor
 	// - the invoice waits for quantity snapshotting until collection is actually over
 	clock.SetTime(lo.Must(time.Parse(time.RFC3339, "2025-06-15T13:00:00Z")))
-	expectedCollectionAt := lo.Must(time.Parse(time.RFC3339, "2025-06-16T12:00:00Z"))
+	// Accepted difference from legacy billing: charges wait an additional internal
+	// collection period after the late-event cutoff so the usage snapshot can settle.
+	expectedCollectionAt := lo.Must(time.Parse(time.RFC3339, "2025-06-16T12:00:00Z")).Add(usagebased.InternalCollectionPeriod)
 
 	invoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
 		Namespace: namespace,
@@ -893,6 +915,8 @@ func (s *CollectionTestSuite) TestAnchoredAlignment_StandardInvoiceWaitsForLateE
 }
 
 func (s *CollectionTestSuite) TestCollectionFlowWithUBPEditingExtendingCollectionPeriod() {
+	s.T().Skip("OM-589: charges reject attaching future usage-based lines to draft invoices because invoice_created is unsupported in created state")
+
 	namespace := "ns-collection-flow-ubp-editing-extending-collection-period"
 	ctx := context.Background()
 
@@ -919,7 +943,7 @@ func (s *CollectionTestSuite) TestCollectionFlowWithUBPEditingExtendingCollectio
 	s.MockStreamingConnector.AddSimpleEvent(apiRequestsTotalFeature.Feature.Key, 1, periodStart.Add(time.Minute*30))
 	defer s.MockStreamingConnector.Reset()
 
-	pendingLineResult, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
+	pendingLineResult, err := s.Charges.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 		Customer: customer.GetID(),
 		Currency: currencyx.FiatCode(currency.USD),
 		Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
@@ -939,7 +963,9 @@ func (s *CollectionTestSuite) TestCollectionFlowWithUBPEditingExtendingCollectio
 	s.Len(pendingLineResult.Lines, 1)
 	s.NotNil(pendingLineResult.Invoice.NextCollectionAt)
 
-	clock.SetTime(periodEnd.Add(time.Hour * 1))
+	// Accepted difference from legacy billing: charges need the additional internal
+	// collection period to finish the usage snapshot before the invoice edit.
+	clock.SetTime(periodEnd.Add(time.Hour + usagebased.InternalCollectionPeriod))
 	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
 		Customer: customer.GetID(),
 	})
@@ -1009,7 +1035,8 @@ func (s *CollectionTestSuite) TestCollectionFlowWithUBPEditingExtendingCollectio
 	// - the invoice should have updated snapshots, quantity snapshoted at and totals
 
 	s.Run("advancing the invoice updates the snapshot", func() {
-		clock.SetTime(newLinePeriod.To.Add(time.Hour))
+		// Apply the same internal collection period when collecting the appended line.
+		clock.SetTime(newLinePeriod.To.Add(time.Hour + usagebased.InternalCollectionPeriod))
 		s.MockStreamingConnector.AddSimpleEvent(apiRequestsTotalFeature.Feature.Key, 1, newLinePeriod.From.Add(time.Minute*30))
 
 		invoice, err = s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{

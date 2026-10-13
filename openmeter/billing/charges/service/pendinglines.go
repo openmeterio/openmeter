@@ -185,6 +185,11 @@ func mapPendingInvoiceLineToChargeIntent(customerID string, currency currencies.
 			SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 		}), nil
 	default:
+		var unitConfig *productcatalog.UnitConfig
+		if line.UnitConfig != nil {
+			unitConfig = lo.ToPtr(line.UnitConfig.Clone())
+		}
+
 		return charges.NewChargeIntent(usagebased.Intent{
 			Intent:     baseIntent,
 			FeatureKey: line.FeatureKey,
@@ -193,6 +198,7 @@ func mapPendingInvoiceLineToChargeIntent(customerID string, currency currencies.
 				InvoiceAt:           line.InvoiceAt,
 				Price:               line.Price,
 				Discounts:           line.RateCardDiscounts.Clone(),
+				UnitConfig:          unitConfig,
 			},
 			SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 		}), nil
