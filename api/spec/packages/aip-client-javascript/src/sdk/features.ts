@@ -126,21 +126,7 @@ export class Features {
   /**
    * Query feature cost
    *
-   * Query the cost of a feature.
-   *
-   * Set `Accept: application/json` (the default) for JSON, or `Accept: text/csv` to
-   * download a CSV file. CSV columns, in order:
-   *
-   * `from, to, [subject,] [customer_id, customer_key, customer_name,] <dimensions...>, usage, cost, currency, detail`
-   *
-   * Subject and customer columns are included when the query groups by those
-   * dimensions, including grouping implied by their filters. Other dimensions follow
-   * the query's grouping order. Unavailable cost is an empty cell, not zero. Detail
-   * is retained for both unavailable and partially priced costs.
-   *
-   * Custom dimensions named `from`, `to`, `customer_key`, `customer_name`, `usage`,
-   * `cost`, `currency`, or `detail` are omitted from CSV headers and row values.
-   * Query grouping is unchanged, and JSON retains these dimension values.
+   * Query the cost of a feature as JSON.
    *
    * POST /openmeter/features/{featureId}/cost/query
    */
@@ -151,7 +137,29 @@ export class Features {
     return unwrap(await queryFeatureCost(this._client, request, options))
   }
 
-  /** POST /openmeter/features/{featureId}/cost/query */
+  /**
+   * Download feature cost query results as CSV.
+   *
+   * Set `Accept: text/csv` for raw HTTP requests. In the TypeScript SDK, use
+   * `queryFeatureCostCsv` or `client.features.queryCostCsv`. In the Go SDK, use
+   * `Features.QueryCostCSV` or `Features.QueryCostCSVStream`.
+   *
+   * CSV columns, in order:
+   *
+   * `from, to, [subject,] [customer_id, customer_key, customer_name,] <dimensions...>, usage, cost, currency, detail`
+   *
+   * Subject and customer columns are included when the query groups by those
+   * dimensions, including grouping implied by their filters. Other dimensions follow
+   * the query's grouping order. Unavailable cost is an empty cell, not zero. Detail
+   * is retained for both unavailable and partially priced costs.
+   *
+   * Custom dimensions named `from`, `to`, `customer_key`, `customer_name`, `usage`,
+   * `cost`, `currency`, or `detail` are omitted from CSV headers and row values.
+   * Query grouping is unchanged, and JSON retains these dimension values. Timestamps
+   * preserve fractional seconds.
+   *
+   * POST /openmeter/features/{featureId}/cost/query
+   */
   async queryCostCsv(
     request: QueryFeatureCostCsvRequest,
     options?: RequestOptions,

@@ -126,6 +126,18 @@ func TestFeatureCostCSVRecords(t *testing.T) {
 	}
 }
 
+func TestFeatureCostCSVTimestampPrecision(t *testing.T) {
+	from := time.Date(2024, 1, 1, 0, 0, 0, 125000001, time.UTC)
+	result := &queryFeatureCostCSVResult{rows: []cost.CostQueryRow{{
+		WindowStart: from,
+		WindowEnd:   from.Add(time.Hour + 750*time.Millisecond),
+		Usage:       alpacadecimal.NewFromInt(1),
+	}}}
+	require.Equal(t, []string{
+		"2024-01-01T00:00:00.125000001Z", "2024-01-01T01:00:00.875000001Z",
+	}, result.Records()[1][:2])
+}
+
 func TestQueryFeatureCostRepresentations(t *testing.T) {
 	for _, representation := range []string{"json", "csv"} {
 		t.Run(representation, func(t *testing.T) {
