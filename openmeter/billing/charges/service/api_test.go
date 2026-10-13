@@ -180,6 +180,8 @@ func (s *CustomerChargeAPIDeleteTestSuite) TestDeleteEnforcesCustomerOwnership()
 	s.Run("given a charge owned by another customer", func() {
 		namespace = s.GetUniqueNamespace("charges-service-api-delete-owner")
 		s.ProvisionDefaultTaxCodes(ctx, namespace)
+		sandboxApp := s.InstallSandboxApp(s.T(), namespace)
+		s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
 		owner := s.CreateTestCustomer(namespace, "owner")
 		ownerID = owner.ID
 		otherCustomerID = s.CreateTestCustomer(namespace, "other").ID
@@ -301,6 +303,8 @@ func (s *CustomerChargeAPIDeleteTestSuite) TestDeleteWithNoPaymentAdjustmentPres
 	s.Run("given a realized credit-only flat-fee charge", func() {
 		namespace = s.GetUniqueNamespace("charges-service-api-delete-flat-fee-credit")
 		s.ProvisionDefaultTaxCodes(ctx, namespace)
+		sandboxApp := s.InstallSandboxApp(s.T(), namespace)
+		s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
 		customer := s.CreateTestCustomer(namespace, "flat-fee-credit")
 		customerID = customer.ID
 
@@ -1498,6 +1502,8 @@ func (s *CustomerChargeAPISetOverrideTestSuite) TestSetAndClearReconcileRealized
 	s.Run("given a realized credit-only flat-fee charge", func() {
 		namespace = s.GetUniqueNamespace("charges-service-api-set-flat-fee-credit")
 		s.ProvisionDefaultTaxCodes(ctx, namespace)
+		sandboxApp := s.InstallSandboxApp(s.T(), namespace)
+		s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
 		customer := s.CreateTestCustomer(namespace, "api-set-flat-fee-credit")
 		customerID = customer.ID
 

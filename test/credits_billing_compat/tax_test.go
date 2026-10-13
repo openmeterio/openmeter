@@ -271,7 +271,8 @@ func (s *InvoicingTaxTestSuite) TestLineSplittingRetainsTaxConfig() {
 
 	// Let's create a partial invoice
 	s.MockStreamingConnector.AddSimpleEvent(meterSlug, 100, now.Add(time.Minute))
-	clock.SetTime(now.Add(2 * time.Minute))
+	partialBillingAt := now.Add(2 * time.Minute)
+	clock.SetTime(partialBillingAt)
 
 	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
 		Customer: customer.GetID(),
@@ -287,6 +288,10 @@ func (s *InvoicingTaxTestSuite) TestLineSplittingRetainsTaxConfig() {
 
 	ubpSplitLine := invoiceLines[0]
 	s.Equal(expectedChargeID, ubpSplitLine.ChargeID, "invoice line must reference the created usage-based charge")
+	s.Equal(timeutil.ClosedPeriod{
+		From: now,
+		To:   partialBillingAt,
+	}, ubpSplitLine.Period, "invoice line must cover only the partially billed period")
 	s.Require().NotNil(ubpSplitLine.TaxConfig, "tax config is retained")
 	s.Equal(taxConfig.Behavior, ubpSplitLine.TaxConfig.Behavior, "tax config behavior is retained")
 	s.Equal(taxConfig.Stripe, ubpSplitLine.TaxConfig.Stripe, "tax config stripe is retained")
@@ -308,6 +313,26 @@ func (s *InvoicingTaxTestSuite) TestLineSplittingRetainsTaxConfig() {
 	s.Equal(createdTC.ID, *dbLine.TaxCodeID, "tax_code_id column must match the resolved TaxCode entity")
 	s.Require().NotNil(dbLine.TaxBehavior, "tax_behavior column must be populated on the invoice line row")
 	s.Equal(productcatalog.ExclusiveTaxBehavior, *dbLine.TaxBehavior, "tax_behavior column must match")
+
+	// The unbilled remainder keeps the charge and tax settings for the next invoice.
+	gatheringInvoice, err := s.BillingService.GetGatheringInvoiceById(ctx, billing.GetGatheringInvoiceByIdInput{
+		Invoice: res.Invoice.GetInvoiceID(),
+		Expand:  billing.GatheringInvoiceExpands{billing.GatheringInvoiceExpandLines},
+	})
+	s.Require().NoError(err)
+	s.Require().Len(gatheringInvoice.Lines.OrEmpty(), 1)
+
+	remainingLine := gatheringInvoice.Lines.OrEmpty()[0]
+	s.RequireChargeBasedGatheringLine(remainingLine, expectedChargeID)
+	s.Equal(timeutil.ClosedPeriod{
+		From: partialBillingAt,
+		To:   now.Add(24 * time.Hour),
+	}, remainingLine.ServicePeriod, "gathering line must cover the unbilled remainder")
+	s.Require().NotNil(remainingLine.TaxConfig, "remaining line retains its tax config")
+	s.Equal(taxConfig.Behavior, remainingLine.TaxConfig.Behavior, "remaining line retains its tax behavior")
+	s.Equal(taxConfig.Stripe, remainingLine.TaxConfig.Stripe, "remaining line retains its Stripe tax code")
+	s.Require().NotNil(remainingLine.TaxConfig.TaxCodeID)
+	s.Equal(createdTC.ID, *remainingLine.TaxConfig.TaxCodeID, "remaining line retains the resolved tax code")
 }
 
 func (s *InvoicingTaxTestSuite) generateDraftInvoice(ctx context.Context, customer *customer.Customer) billing.StandardInvoice {

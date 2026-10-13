@@ -470,6 +470,8 @@ func (s *InvoicableChargesTestSuite) TestChargeCreatePendingInvoiceLinesRequires
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charge-create-pending-line-feature-meter")
 	s.ProvisionDefaultTaxCodes(ctx, ns)
+	sandboxApp := s.InstallSandboxApp(s.T(), ns)
+	s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
 
 	cust := s.CreateTestCustomer(ns, "test-subject")
 	featureKey := "pending-line-feature"
@@ -533,6 +535,8 @@ func (s *InvoicableChargesTestSuite) TestCreatePendingInvoiceLinesRollsBackCreat
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-create-pending-lines-rollback")
 	s.ProvisionDefaultTaxCodes(ctx, ns)
+	sandboxApp := s.InstallSandboxApp(s.T(), ns)
+	s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
 
 	cust := s.CreateTestCustomer(ns, "test-subject")
 	s.NotEmpty(cust.ID)

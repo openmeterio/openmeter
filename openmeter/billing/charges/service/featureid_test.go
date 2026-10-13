@@ -502,6 +502,8 @@ func (s *ChargeFeatureIDTestSuite) TestCreateUsageBasedWithUnresolvableFeatureKe
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-usage-feature-key-unresolvable")
 	s.ProvisionDefaultTaxCodes(ctx, ns)
+	sandboxApp := s.InstallSandboxApp(s.T(), ns)
+	s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
 
 	cust := s.CreateTestCustomer(ns, "usage-feature-key-unresolvable")
 	servicePeriod := timeutil.ClosedPeriod{
@@ -551,6 +553,8 @@ func (s *ChargeFeatureIDTestSuite) TestCreateUsageBasedRequiresFeatureMeterBefor
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-usage-feature-meter-required")
 	s.ProvisionDefaultTaxCodes(ctx, ns)
+	sandboxApp := s.InstallSandboxApp(s.T(), ns)
+	s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
 
 	cust := s.CreateTestCustomer(ns, "usage-feature-meter-required")
 	meterlessFeature, err := s.FeatureService.CreateFeature(ctx, featurepkg.CreateFeatureInputs{
@@ -616,6 +620,8 @@ func (s *ChargeFeatureIDTestSuite) TestCreateUsageBasedReturnsAllFeatureValidati
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-usage-mixed-feature-errors")
 	s.ProvisionDefaultTaxCodes(ctx, ns)
+	sandboxApp := s.InstallSandboxApp(s.T(), ns)
+	s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
 
 	cust := s.CreateTestCustomer(ns, "usage-mixed-feature-errors")
 	meterlessFeature, err := s.FeatureService.CreateFeature(ctx, featurepkg.CreateFeatureInputs{
