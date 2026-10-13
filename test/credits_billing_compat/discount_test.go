@@ -1,7 +1,6 @@
 package creditsbillingcompat
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -18,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -29,22 +29,24 @@ type DiscountsTestSuite struct {
 }
 
 func TestDiscounts(t *testing.T) {
-	t.Skip("pending rework")
-
 	suite.Run(t, new(DiscountsTestSuite))
 }
 
 func (s *DiscountsTestSuite) TestCorrelationIDHandling() {
 	namespace := "ns-discounts-correlation-id"
-	ctx := context.Background()
+	ctx := s.T().Context()
+
+	s.T().Skip("OM-581: pending on reworking delta rating usage discount settings")
 
 	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
 
 	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID(), billingtest.WithProgressiveBilling())
-	s.ProvisionProviderDefaultTaxCode(ctx, namespace)
+	s.ProvisionDefaultTaxCodes(ctx, namespace)
 
 	customerEntity := s.CreateTestCustomer(namespace, "test-customer")
-	s.NotNil(customerEntity)
+	s.Require().NotNil(customerEntity)
+
+	s.SetupAccounts(namespace, customerEntity.ID)
 
 	meterSlug := "flat-per-unit"
 	meterID := ulid.Make().String()
@@ -91,7 +93,7 @@ func (s *DiscountsTestSuite) TestCorrelationIDHandling() {
 
 	var discountCorrelationID string
 	s.Run("Creating new pending lines with discounts sets the correlationID", func() {
-		res, err := s.BillingService.CreatePendingInvoiceLines(ctx,
+		res, err := s.Charges.CreatePendingInvoiceLines(ctx,
 			billing.CreatePendingInvoiceLinesInput{
 				Customer: customerEntity.GetID(),
 				Currency: currencyx.FiatCode(currency.USD),
@@ -124,8 +126,9 @@ func (s *DiscountsTestSuite) TestCorrelationIDHandling() {
 					},
 				}),
 			})
-		s.NoError(err)
-		s.Len(res.Lines, 1)
+		s.Require().NoError(err)
+		s.Require().Len(res.Lines, 1)
+		s.RequireChargeBasedGatheringLine(res.Lines[0], res.Lines[0].ChargeID)
 
 		// Then the freshly created line has a correlation ID set
 		percentageDiscount := res.Lines[0].RateCardDiscounts.Percentage
@@ -143,9 +146,9 @@ func (s *DiscountsTestSuite) TestCorrelationIDHandling() {
 		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
 			Customer: customerEntity.GetID(),
 		})
-		s.NoError(err)
-		s.Len(invoices, 1)
-		s.Len(invoices[0].Lines.OrEmpty(), 1)
+		s.Require().NoError(err)
+		s.Require().Len(invoices, 1)
+		s.Require().Len(invoices[0].Lines.OrEmpty(), 1)
 
 		invoiceLine := invoices[0].Lines.OrEmpty()[0]
 		s.NotNil(invoiceLine.SplitLineHierarchy)
@@ -212,6 +215,157 @@ func (s *DiscountsTestSuite) TestCorrelationIDHandling() {
 	})
 }
 
+func (s *DiscountsTestSuite) TestPercentageDiscountPersistenceAndCorrelationID() {
+	for _, test := range []struct {
+		name   string
+		engine billing.LineEngineType
+		price  *productcatalog.Price
+	}{
+		{
+			name:   "flat fee",
+			engine: billing.LineEngineTypeChargeFlatFee,
+			price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      alpacadecimal.NewFromInt(100),
+				PaymentTerm: productcatalog.InArrearsPaymentTerm,
+			}),
+		},
+		{
+			name:   "usage based",
+			engine: billing.LineEngineTypeChargeUsageBased,
+			price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+				Amount: alpacadecimal.NewFromInt(10),
+			}),
+		},
+	} {
+		s.Run(test.name, func() {
+			// given: equivalent gross charges with a percentage discount and a completed service period
+			ctx := s.T().Context()
+			namespace := s.GetUniqueNamespace("percentage-discount-persistence")
+			period := timeutil.ClosedPeriod{
+				From: time.Date(2026, 10, 12, 10, 0, 0, 0, time.UTC),
+				To:   time.Date(2026, 10, 12, 11, 0, 0, 0, time.UTC),
+			}
+			clock.FreezeTime(period.To.Add(time.Hour))
+			defer clock.UnFreeze()
+
+			sandboxApp := s.InstallSandboxApp(s.T(), namespace)
+			s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID(), billingtest.WithManualApproval())
+			s.ProvisionDefaultTaxCodes(ctx, namespace)
+			customerEntity := s.CreateTestCustomer(namespace, "test-customer")
+			s.SetupAccounts(namespace, customerEntity.ID)
+
+			var featureKey string
+			if test.engine == billing.LineEngineTypeChargeUsageBased {
+				usageFeature := s.SetupApiRequestsTotalFeature(ctx, namespace)
+				defer usageFeature.Cleanup()
+				featureKey = usageFeature.Feature.Key
+				s.MockStreamingConnector.AddSimpleEvent(featureKey, 10, period.From.Add(time.Minute))
+			}
+
+			// when: the discount has no supplied correlation ID at charge creation
+			pendingLines, err := s.Charges.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
+				Customer: customerEntity.GetID(),
+				Currency: currencyx.FiatCode(currency.USD),
+				Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{{
+					GatheringLineBase: billing.GatheringLineBase{
+						ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+							Namespace: namespace,
+							Name:      "Discounted charge",
+						}),
+						ServicePeriod: period,
+						InvoiceAt:     period.To,
+						ManagedBy:     billing.ManuallyManagedLine,
+						Price:         *test.price,
+						FeatureKey:    featureKey,
+						RateCardDiscounts: billing.Discounts{
+							Percentage: &billing.PercentageDiscount{
+								PercentageDiscount: productcatalog.PercentageDiscount{
+									Percentage: models.NewPercentage(10),
+								},
+							},
+						},
+					},
+				}}),
+			})
+			s.Require().NoError(err)
+			s.Require().Len(pendingLines.Lines, 1)
+			createdLine := pendingLines.Lines[0]
+			s.RequireChargeBasedGatheringLine(createdLine, createdLine.ChargeID)
+			s.Equal(test.engine, createdLine.Engine)
+			s.Require().NotNil(createdLine.RateCardDiscounts.Percentage)
+			discountCorrelationID := createdLine.RateCardDiscounts.Percentage.CorrelationID
+			_, err = ulid.Parse(discountCorrelationID)
+			s.Require().NoError(err, "the generated discount correlation ID must be a valid ULID")
+
+			// then: gathering persistence retains the charge reference and generated discount lineage
+			gatheringInvoice, err := s.BillingService.GetGatheringInvoiceById(ctx, billing.GetGatheringInvoiceByIdInput{
+				Invoice: pendingLines.Invoice.GetInvoiceID(),
+				Expand:  billing.GatheringInvoiceExpands{billing.GatheringInvoiceExpandLines},
+			})
+			s.Require().NoError(err)
+			s.Require().Len(gatheringInvoice.Lines.OrEmpty(), 1)
+			persistedLine := gatheringInvoice.Lines.OrEmpty()[0]
+			s.RequireChargeBasedGatheringLine(persistedLine, createdLine.ChargeID)
+			s.Equal(test.engine, persistedLine.Engine)
+			s.Equal(createdLine.RateCardDiscounts, persistedLine.RateCardDiscounts)
+
+			// when: the completed charge is invoiced and the standard invoice is reloaded
+			invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+				Customer: customerEntity.GetID(),
+				AsOf:     lo.ToPtr(clock.Now()),
+			})
+			s.Require().NoError(err)
+			s.Require().Len(invoices, 1)
+			invoice := invoices[0]
+			reloadedInvoice, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
+				Invoice: invoice.GetInvoiceID(),
+				Expand:  billing.StandardInvoiceExpandAll,
+			})
+			s.Require().NoError(err)
+
+			for _, result := range []struct {
+				name    string
+				invoice billing.StandardInvoice
+			}{
+				{name: "created invoice", invoice: invoice},
+				{name: "reloaded invoice", invoice: reloadedInvoice},
+			} {
+				s.Run(result.name, func() {
+					// then: both projections retain the original correlation ID and discounted amounts
+					s.Equal(billing.StandardInvoiceStatusDraftManualApprovalNeeded, result.invoice.Status)
+					s.Require().Len(result.invoice.Lines.OrEmpty(), 1)
+					invoiceLine := result.invoice.Lines.OrEmpty()[0]
+					s.Equal(test.engine, invoiceLine.Engine)
+					s.Equal(createdLine.ChargeID, invoiceLine.ChargeID)
+					s.Nil(invoiceLine.SplitLineHierarchy)
+					s.Require().NotNil(invoiceLine.RateCardDiscounts.Percentage)
+					s.Equal(createdLine.RateCardDiscounts.Percentage, invoiceLine.RateCardDiscounts.Percentage)
+					s.RequireTotals(billingtest.ExpectedTotals{
+						Amount:         100,
+						DiscountsTotal: 10,
+						Total:          90,
+					}, result.invoice.Totals)
+					s.RequireTotals(billingtest.ExpectedTotals{
+						Amount:         100,
+						DiscountsTotal: 10,
+						Total:          90,
+					}, invoiceLine.Totals)
+					s.Require().Len(invoiceLine.DetailedLines, 1)
+					s.Require().Len(invoiceLine.DetailedLines[0].AmountDiscounts, 1)
+					amountDiscount := invoiceLine.DetailedLines[0].AmountDiscounts[0]
+					s.NotEmpty(amountDiscount.ID)
+					s.Equal(billing.RatecardPercentageDiscountReason, amountDiscount.Reason.Type())
+					reason, err := amountDiscount.Reason.AsRatecardPercentage()
+					s.Require().NoError(err)
+					s.Equal(discountCorrelationID, reason.CorrelationID)
+					s.Equal(float64(10), reason.Percentage.InexactFloat64())
+					s.Equal(float64(10), amountDiscount.Amount.InexactFloat64())
+				})
+			}
+		})
+	}
+}
+
 func (s *DiscountsTestSuite) TestFlatPriceUsageDiscountIsNotPersisted() {
 	// given:
 	// - a customer and a flat-priced pending line
@@ -223,7 +377,7 @@ func (s *DiscountsTestSuite) TestFlatPriceUsageDiscountIsNotPersisted() {
 
 	// when:
 	// - the pending line is created
-	_, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
+	_, err := s.Charges.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 		Customer: customerEntity.GetID(),
 		Currency: currencyx.FiatCode(currency.USD),
 		Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
@@ -294,16 +448,19 @@ func (s *DiscountsTestSuite) TestUnitDiscountProgressiveBilling() {
 	// - The line in the draft invoice will have 30 quantity, 30 metered quantity
 	// - The line will not have an unit line discount
 	namespace := "ns-discounts-usage-progressive"
-	ctx := context.Background()
+	ctx := s.T().Context()
 
 	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
 
 	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID(), billingtest.WithBillingProfileEditFn(func(profile *billing.CreateProfileInput) {
 		profile.WorkflowConfig.Invoicing.ProgressiveBilling = true
 	}))
+	s.ProvisionDefaultTaxCodes(ctx, namespace)
 
 	customerEntity := s.CreateTestCustomer(namespace, "test-customer")
-	s.NotNil(customerEntity)
+	s.Require().NotNil(customerEntity)
+
+	s.SetupAccounts(namespace, customerEntity.ID)
 
 	meterSlug := "flat-per-unit"
 	meterID := ulid.Make().String()
@@ -344,7 +501,7 @@ func (s *DiscountsTestSuite) TestUnitDiscountProgressiveBilling() {
 		MeterID:   lo.ToPtr(meterID),
 	}))
 
-	res, err := s.BillingService.CreatePendingInvoiceLines(ctx,
+	res, err := s.Charges.CreatePendingInvoiceLines(ctx,
 		billing.CreatePendingInvoiceLinesInput{
 			Customer: customerEntity.GetID(),
 			Currency: currencyx.FiatCode(currency.USD),
@@ -377,29 +534,34 @@ func (s *DiscountsTestSuite) TestUnitDiscountProgressiveBilling() {
 				},
 			}),
 		})
-	s.NoError(err)
-	s.Len(res.Lines, 1)
+	s.Require().NoError(err)
+	s.Require().Len(res.Lines, 1)
+	s.RequireChargeBasedGatheringLine(res.Lines[0], res.Lines[0].ChargeID)
+	chargeID := *res.Lines[0].ChargeID
 
 	require.NotNil(s.T(), res.Lines[0].RateCardDiscounts.Usage)
 	require.NotEmpty(s.T(), res.Lines[0].RateCardDiscounts.Usage.CorrelationID)
 	discountCorrelationID := res.Lines[0].RateCardDiscounts.Usage.CorrelationID
 
+	var invoice1ID billing.InvoiceID
 	s.Run("[invoice1] Creating a draft invoice with 50 usage", func() {
 		s.MockStreamingConnector.AddSimpleEvent(meterSlug, 50, periodStart.Add(time.Minute))
 		invoice1AsOf := periodStart.Add(time.Hour)
 
-		// When the pending lines are invoiced in a progressive billing setup, the correlation ID is retained
-		// between the split lines.
+		// The discount correlation ID is retained across realizations of the same charge.
 		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
 			Customer: customerEntity.GetID(),
 			AsOf:     lo.ToPtr(invoice1AsOf),
 		})
-		s.NoError(err)
-		s.Len(invoices, 1)
-		s.Len(invoices[0].Lines.OrEmpty(), 1)
+		s.Require().NoError(err)
+		s.Require().Len(invoices, 1)
+		s.Require().Len(invoices[0].Lines.OrEmpty(), 1)
 
+		invoice1ID = invoices[0].GetInvoiceID()
 		invoiceLine := invoices[0].Lines.OrEmpty()[0]
-		s.NotNil(invoiceLine.SplitLineHierarchy)
+		s.Require().Nil(invoiceLine.SplitLineHierarchy)
+		s.Require().NotNil(invoiceLine.ChargeID)
+		s.Require().Equal(chargeID, *invoiceLine.ChargeID)
 
 		// The line has 0 quantity, 50 metered quantity
 		require.Equal(s.T(), float64(0), invoiceLine.UsageBased.Quantity.InexactFloat64())
@@ -408,7 +570,7 @@ func (s *DiscountsTestSuite) TestUnitDiscountProgressiveBilling() {
 		require.Equal(s.T(), float64(0), invoiceLine.UsageBased.PreLinePeriodQuantity.InexactFloat64())
 		require.Equal(s.T(), float64(0), invoiceLine.UsageBased.MeteredPreLinePeriodQuantity.InexactFloat64())
 
-		s.Len(invoiceLine.Discounts.Usage, 1)
+		s.Require().Len(invoiceLine.Discounts.Usage, 1)
 		usageDiscount := invoiceLine.Discounts.Usage[0]
 
 		// The usage discount has quantity 50, and preLinePeriodQuantity 0
@@ -425,22 +587,29 @@ func (s *DiscountsTestSuite) TestUnitDiscountProgressiveBilling() {
 		require.Len(s.T(), invoiceLine.DetailedLines, 0)
 	})
 
+	// Complete the first realization before collecting the next part of the charge.
+	_, err = s.BillingService.ApproveInvoice(ctx, invoice1ID)
+	s.Require().NoError(err)
+
+	var invoice2ID billing.InvoiceID
 	s.Run("[invoice2] Creating a draft invoice with 75 usage", func() {
 		invoice2AsOf := periodStart.Add(time.Hour * 3)
 		s.MockStreamingConnector.AddSimpleEvent(meterSlug, 75, invoice2AsOf.Add(-time.Minute))
 
-		// When the pending lines are invoiced in a progressive billing setup, the correlation ID is retained
-		// between the split lines.
+		// The discount correlation ID is retained across realizations of the same charge.
 		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
 			Customer: customerEntity.GetID(),
 			AsOf:     lo.ToPtr(invoice2AsOf),
 		})
-		s.NoError(err)
-		s.Len(invoices, 1)
-		s.Len(invoices[0].Lines.OrEmpty(), 1)
+		s.Require().NoError(err)
+		s.Require().Len(invoices, 1)
+		s.Require().Len(invoices[0].Lines.OrEmpty(), 1)
 
+		invoice2ID = invoices[0].GetInvoiceID()
 		invoiceLine := invoices[0].Lines.OrEmpty()[0]
-		s.NotNil(invoiceLine.SplitLineHierarchy)
+		s.Require().Nil(invoiceLine.SplitLineHierarchy)
+		s.Require().NotNil(invoiceLine.ChargeID)
+		s.Require().Equal(chargeID, *invoiceLine.ChargeID)
 
 		// The line has 0 quantity, 50 metered quantity
 		require.Equal(s.T(), float64(15), invoiceLine.UsageBased.Quantity.InexactFloat64())
@@ -449,7 +618,7 @@ func (s *DiscountsTestSuite) TestUnitDiscountProgressiveBilling() {
 		require.Equal(s.T(), float64(0), invoiceLine.UsageBased.PreLinePeriodQuantity.InexactFloat64())
 		require.Equal(s.T(), float64(50), invoiceLine.UsageBased.MeteredPreLinePeriodQuantity.InexactFloat64())
 
-		s.Len(invoiceLine.Discounts.Usage, 1)
+		s.Require().Len(invoiceLine.Discounts.Usage, 1)
 		usageDiscount := invoiceLine.Discounts.Usage[0]
 
 		// The usage discount has quantity 50, and preLinePeriodQuantity 0
@@ -469,22 +638,26 @@ func (s *DiscountsTestSuite) TestUnitDiscountProgressiveBilling() {
 		require.Equal(s.T(), float64(15), detailedLine.Quantity.InexactFloat64())
 	})
 
+	_, err = s.BillingService.ApproveInvoice(ctx, invoice2ID)
+	s.Require().NoError(err)
+
 	s.Run("[invoice3] Creating a draft invoice with 30 usage", func() {
 		invoice3AsOf := periodEnd
 		s.MockStreamingConnector.AddSimpleEvent(meterSlug, 30, invoice3AsOf.Add(-time.Minute))
 
-		// When the pending lines are invoiced in a progressive billing setup, the correlation ID is retained
-		// between the split lines.
+		// The discount correlation ID is retained across realizations of the same charge.
 		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
 			Customer: customerEntity.GetID(),
 			AsOf:     lo.ToPtr(invoice3AsOf),
 		})
-		s.NoError(err)
-		s.Len(invoices, 1)
-		s.Len(invoices[0].Lines.OrEmpty(), 1)
+		s.Require().NoError(err)
+		s.Require().Len(invoices, 1)
+		s.Require().Len(invoices[0].Lines.OrEmpty(), 1)
 
 		invoiceLine := invoices[0].Lines.OrEmpty()[0]
-		s.NotNil(invoiceLine.SplitLineHierarchy)
+		s.Require().Nil(invoiceLine.SplitLineHierarchy)
+		s.Require().NotNil(invoiceLine.ChargeID)
+		s.Require().Equal(chargeID, *invoiceLine.ChargeID)
 
 		// The line has 0 quantity, 50 metered quantity
 		require.Equal(s.T(), float64(30), invoiceLine.UsageBased.Quantity.InexactFloat64())
