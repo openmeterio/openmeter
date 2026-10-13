@@ -65,6 +65,61 @@ func TestChargeFeatureMeterReferenceForExpansion(t *testing.T) {
 	}, charge.GetFeatureMeterOwner())
 }
 
+func TestCreateChargeIntentGetCustomerID(t *testing.T) {
+	const customerID = "customer-id"
+
+	for _, testCase := range []struct {
+		name    string
+		intent  ChargeIntent
+		wantErr bool
+	}{
+		{
+			name:   "flat fee",
+			intent: NewChargeIntent(flatfee.Intent{CustomerID: customerID}),
+		},
+		{
+			name:   "usage based",
+			intent: NewChargeIntent(usagebased.Intent{CustomerID: customerID}),
+		},
+		{
+			name:   "credit purchase",
+			intent: NewChargeIntent(creditpurchase.Intent{CustomerID: customerID}),
+		},
+		{
+			name:    "missing flat fee intent",
+			intent:  ChargeIntent{t: meta.ChargeTypeFlatFee},
+			wantErr: true,
+		},
+		{
+			name:    "missing usage based intent",
+			intent:  ChargeIntent{t: meta.ChargeTypeUsageBased},
+			wantErr: true,
+		},
+		{
+			name:    "missing credit purchase intent",
+			intent:  ChargeIntent{t: meta.ChargeTypeCreditPurchase},
+			wantErr: true,
+		},
+		{
+			name:    "unsupported charge type",
+			wantErr: true,
+		},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			createIntent := CreateChargeIntent{ChargeIntent: testCase.intent}
+			actualCustomerID, err := createIntent.GetCustomerID()
+			if testCase.wantErr {
+				require.Error(t, err)
+				require.Empty(t, actualCustomerID)
+				return
+			}
+
+			require.NoError(t, err)
+			require.Equal(t, customerID, actualCustomerID)
+		})
+	}
+}
+
 func TestCreateChargeIntentWithTaxCodeID(t *testing.T) {
 	intents := map[string]ChargeIntent{
 		"flat fee":        NewChargeIntent(flatfee.Intent{}),
