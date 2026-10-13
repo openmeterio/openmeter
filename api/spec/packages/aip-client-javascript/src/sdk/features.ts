@@ -126,10 +126,25 @@ export class Features {
   /**
    * Query feature cost
    *
-   * Query the cost of a feature.
+   * Query the cost of a feature as JSON.
    *
-   * Set `Accept: application/json` (the default) for JSON, or `Accept: text/csv` to
-   * download a CSV file. CSV columns, in order:
+   * POST /openmeter/features/{featureId}/cost/query
+   */
+  async queryCost(
+    request: QueryFeatureCostRequest,
+    options?: RequestOptions,
+  ): Promise<QueryFeatureCostResponse> {
+    return unwrap(await queryFeatureCost(this._client, request, options))
+  }
+
+  /**
+   * Download feature cost query results as CSV.
+   *
+   * Set `Accept: text/csv` for raw HTTP requests. In the TypeScript SDK, use
+   * `queryFeatureCostCsv` or `client.features.queryCostCsv`. In the Go SDK, use
+   * `Features.QueryCostCSV` or `Features.QueryCostCSVStream`.
+   *
+   * CSV columns, in order:
    *
    * `from, to, [subject,] [customer_id, customer_key, customer_name,] <dimensions...>, usage, cost, currency, detail`
    *
@@ -141,17 +156,10 @@ export class Features {
    * Custom dimensions named `from`, `to`, `customer_key`, `customer_name`, `usage`,
    * `cost`, `currency`, or `detail` are omitted from CSV headers and row values.
    * Query grouping is unchanged, and JSON retains these dimension values.
+   * Timestamps preserve fractional seconds.
    *
    * POST /openmeter/features/{featureId}/cost/query
    */
-  async queryCost(
-    request: QueryFeatureCostRequest,
-    options?: RequestOptions,
-  ): Promise<QueryFeatureCostResponse> {
-    return unwrap(await queryFeatureCost(this._client, request, options))
-  }
-
-  /** POST /openmeter/features/{featureId}/cost/query */
   async queryCostCsv(
     request: QueryFeatureCostCsvRequest,
     options?: RequestOptions,

@@ -68,7 +68,7 @@ func TestV3QueryFeatureCostRepresentations(t *testing.T) {
 		ev.SetSource("e2e")
 		ev.SetType(meter.EventType)
 		ev.SetSubject(key)
-		ev.SetTime(from)
+		ev.SetTime(from.Add(250 * time.Millisecond))
 		require.NoError(t, ev.SetData("application/json", map[string]string{
 			"model": usage.model, "value": usage.value, "cost_dimension": "dimension-" + usage.model,
 		}))
@@ -163,4 +163,25 @@ func TestV3QueryFeatureCostRepresentations(t *testing.T) {
 			require.Equal(t, wantCSV, records)
 		})
 	}
+
+	t.Run("fractional query bounds", func(t *testing.T) {
+		fractional := query
+		fractional.From = lo.ToPtr(from.Add(125 * time.Millisecond))
+		fractional.To = lo.ToPtr(to.Add(875 * time.Millisecond))
+		fractional.Granularity = nil
+		jsonResult, err := c.Features.QueryCost(t.Context(), feature.ID, &fractional)
+		c.requireStatus(http.StatusOK, err)
+		require.Len(t, jsonResult.Data, 2)
+		csvResult, err := c.Features.QueryCostCSV(t.Context(), feature.ID, fractional)
+		c.requireStatus(http.StatusOK, err)
+		records, err := csv.NewReader(bytes.NewReader(csvResult)).ReadAll()
+		require.NoError(t, err)
+		require.Len(t, records, 3)
+		for i, row := range jsonResult.Data {
+			require.Equal(t, *fractional.From, row.From)
+			require.Equal(t, *fractional.To, row.To)
+			require.Equal(t, row.From.Format(time.RFC3339Nano), records[i+1][0])
+			require.Equal(t, row.To.Format(time.RFC3339Nano), records[i+1][1])
+		}
+	})
 }
