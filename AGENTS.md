@@ -21,6 +21,9 @@
 - `.nvmrc` is the GitHub Actions source of truth for Node. Keep it aligned with
   `node -v` in the Nix `.#ci` shell.
 - For slow or noisy commands, save complete output to a temporary log outside the repository, preserve and report the exit status and log path, inspect bounded slices, and never rerun solely because displayed output was truncated.
+- `golangci-lint fmt` does not apply `wsl_v5` spacing rules. Use
+  `golangci-lint run --enable-only=wsl_v5 --fix <packages>` for those fixes, then
+  run normal lint for each affected module.
 
 ## Repository invariants
 
@@ -72,6 +75,9 @@
 
 ## Testing conventions
 
+- Meter and feature-cost queries grouped by `customer_id` require a customer
+  filter to resolve usage attribution. Include the filter in e2e fixtures;
+  creating a customer with subject keys alone does not satisfy this requirement.
 - PostgreSQL-backed tests require PostgreSQL and
   `POSTGRES_HOST=127.0.0.1`; otherwise many suites silently skip.
 - Root-package tests using `confluent-kafka-go` require `-tags=dynamic`. The

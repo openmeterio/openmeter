@@ -162,6 +162,12 @@ and the `options:` keys). The internal lib names in each `src/lib.ts` and their
 `…:` state keys are separate identities used for diagnostics/state and have no
 cross-package references.
 
+Full `make update-openapi` also runs the legacy Python emitter, which requires its
+npm-managed virtualenv. If that environment is unavailable during AIP-only work,
+regenerate AIP, run the workspace formatter and the existing Makefile's OpenAPI
+postprocessing/bundling, then run `go generate ./api/v3/...`. Report the full-target
+limitation; do not hand-edit generated output or change the legacy SDK to bypass it.
+
 ## The emitted SDK: conventions the generator must reproduce
 
 The hand-written runtime files and conformance tests under
