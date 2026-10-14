@@ -52,6 +52,7 @@ func makeFlatFeeRateCardNoTaxConfig(key string) RateCard {
 // validTaxCode returns a non-deleted TaxCode stub.
 func validTaxCode(id string) *taxcode.TaxCode {
 	now := time.Now()
+
 	return &taxcode.TaxCode{
 		NamespacedID: models.NamespacedID{Namespace: "test", ID: id},
 		ManagedModel: models.ManagedModel{
@@ -68,6 +69,7 @@ func validTaxCode(id string) *taxcode.TaxCode {
 func deletedTaxCode(id string) *taxcode.TaxCode {
 	now := time.Now()
 	deleted := now.Add(-time.Hour)
+
 	return &taxcode.TaxCode{
 		NamespacedID: models.NamespacedID{Namespace: "test", ID: id},
 		ManagedModel: models.ManagedModel{

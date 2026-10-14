@@ -77,6 +77,7 @@ func (e *planHook) PreDelete(ctx context.Context, tc *taxcode.TaxCode) error {
 		planIDs := lo.Map(affectedPlans.Items, func(item plan.Plan, _ int) string {
 			return item.ID
 		})
+
 		return taxcode.NewTaxCodeReferencedByPlanError(tc.ID, planIDs)
 	}
 

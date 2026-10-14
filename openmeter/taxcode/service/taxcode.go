@@ -177,8 +177,9 @@ func (s *Service) DeleteTaxCode(ctx context.Context, input taxcode.DeleteTaxCode
 			return err
 		}
 
+		// Deleting an already-deleted tax code is reported as not found (AIP-135).
 		if existing.IsDeleted() {
-			return nil
+			return taxcode.NewTaxCodeNotFoundError(existing.ID)
 		}
 
 		if existing.IsManagedBySystem() && !input.AllowAnnotations {

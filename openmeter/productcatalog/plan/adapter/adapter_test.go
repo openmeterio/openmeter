@@ -1007,5 +1007,6 @@ func planIDs(result pagination.Result[plan.Plan]) []string {
 	for _, p := range result.Items {
 		ids = append(ids, p.ID)
 	}
+
 	return ids
 }
