@@ -105,6 +105,21 @@ See [Testing](docs/development/testing.md) for harness patterns and examples.
 - Preserve explanatory comments during refactors unless the change makes them
   false or misleading.
 - Keep project documentation short enough that humans will read it.
+- Write comments like you're explaining the code to a teammate: plain words,
+  concrete reasons, no formal filler. Keep the useful explanation:
+
+  Bad:
+  ```go
+  // scopedEntries applies the account, route, provenance, and whole-history
+  // exclusions shared by both branches. AsOf is left to each branch: filtering
+  // here would hide future postings whose balance impact must be preserved.
+  ```
+
+  Good:
+  ```go
+  // Apply the shared filters, but keep entries after AsOf: we need those to see
+  // how low the balance gets later.
+  ```
 
 ## Further guidance
 
