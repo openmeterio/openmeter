@@ -77,6 +77,10 @@ func (s *service) GetSpendableBalanceBuckets(ctx context.Context, query Spendabl
 	spendable := make([]ledger.BalanceBucket, 0, len(buckets))
 	bySubaccount := make(map[string]int)
 	for _, bucket := range buckets {
+		if bucket.SettledAmount.IsNegative() {
+			s.reportNegativeSourceBalance(ctx, query, bucket)
+		}
+
 		if !bucket.SettledAmount.IsPositive() {
 			continue
 		}
@@ -102,4 +106,18 @@ func (s *service) GetSpendableBalanceBuckets(ctx context.Context, query Spendabl
 	}
 
 	return spendable, nil
+}
+
+// Repeated reads count again: these are observations, not distinct broken sources.
+func (s *service) reportNegativeSourceBalance(ctx context.Context, query SpendableBalanceBucketQuery, bucket ledger.BalanceBucket) {
+	s.negativeSourceObservations.Add(ctx, 1)
+
+	s.logger.WarnContext(ctx, "negative FBO source minimum balance observed",
+		"namespace", query.Namespace,
+		"account_id", *query.Filters.AccountID,
+		"sub_account_id", bucket.Address.SubAccountID(),
+		"source_charge_id", bucket.GroupByValues[ledger.BalanceBucketGroupBySourceChargeID],
+		"as_of", *query.Filters.AsOf,
+		"minimum_balance", bucket.SettledAmount.String(),
+	)
 }

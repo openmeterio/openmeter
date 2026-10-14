@@ -10,6 +10,7 @@ import (
 	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
+	metricnoop "go.opentelemetry.io/otel/metric/noop"
 
 	currencytestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
@@ -167,6 +168,7 @@ func newFBOEnv(t *testing.T) (*ledgertestutils.IntegrationEnv, fbo.Service, brea
 	breakageService, err := breakage.NewService(breakage.Config{Adapter: adapter, Dependencies: dependencies})
 	require.NoError(t, err)
 	service, err := fbo.NewService(fbo.Config{
+		Meter:         metricnoop.NewMeterProvider().Meter("test"),
 		Logger:        omtestutils.NewDiscardLogger(t),
 		Dependencies:  dependencies,
 		Advance:       advancetestutils.NewService(t, env.Deps, breakageService),
