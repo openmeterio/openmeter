@@ -933,7 +933,7 @@ type ResendBillingNotificationEventRequest struct {
 	// The channels to resend the event to. When omitted or empty, the event is resent
 	// to every enabled channel of the rule. Channels not targeted by the rule or
 	// disabled are rejected.
-	Channels *[]string `json:"channels,omitempty"`
+	Channels *[]NotificationChannelReference `json:"channels,omitempty"`
 }
 
 // Request body for updating a notification channel. Updates replace the channel's

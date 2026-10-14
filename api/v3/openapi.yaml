@@ -18400,7 +18400,7 @@ components:
         channels:
           type: array
           items:
-            $ref: '#/components/schemas/ULID'
+            $ref: '#/components/schemas/NotificationChannelReference'
           description: |-
             The channels to resend the event to. When omitted or empty, the event is resent
             to every enabled channel of the rule. Channels not targeted by the rule or

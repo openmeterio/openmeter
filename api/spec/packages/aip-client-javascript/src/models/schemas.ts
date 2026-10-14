@@ -2358,18 +2358,6 @@ export const notificationEventInvoiceReference = z
   })
   .describe('A reference to the invoice of an invoice notification event.')
 
-export const resendBillingNotificationEventRequest = z
-  .object({
-    channels: z
-      .array(ulid)
-      .optional()
-
-      .describe(
-        'The channels to resend the event to. When omitted or empty, the event is resent to every enabled channel of the rule. Channels not targeted by the rule or disabled are rejected.',
-      ),
-  })
-  .describe('Request body for resending a notification event.')
-
 export const billingCustomerReference = z
   .object({
     id: ulid,
@@ -4726,6 +4714,18 @@ export const notificationRuleInvoiceUpdatedRequest = z
       ),
   })
   .describe('Request body for an invoice updated rule.')
+
+export const resendBillingNotificationEventRequest = z
+  .object({
+    channels: z
+      .array(notificationChannelReference)
+      .optional()
+
+      .describe(
+        'The channels to resend the event to. When omitted or empty, the event is resent to every enabled channel of the rule. Channels not targeted by the rule or disabled are rejected.',
+      ),
+  })
+  .describe('Request body for resending a notification event.')
 
 export const notificationEventInvoiceData = z
   .object({
@@ -12129,18 +12129,6 @@ export const notificationEventInvoiceReferenceWire = z
   })
   .describe('A reference to the invoice of an invoice notification event.')
 
-export const resendBillingNotificationEventRequestWire = z
-  .strictObject({
-    channels: z
-      .array(ulidWire)
-      .optional()
-
-      .describe(
-        'The channels to resend the event to. When omitted or empty, the event is resent to every enabled channel of the rule. Channels not targeted by the rule or disabled are rejected.',
-      ),
-  })
-  .describe('Request body for resending a notification event.')
-
 export const billingCustomerReferenceWire = z
   .strictObject({
     id: ulidWire,
@@ -14475,6 +14463,18 @@ export const notificationRuleInvoiceUpdatedRequestWire = z
       ),
   })
   .describe('Request body for an invoice updated rule.')
+
+export const resendBillingNotificationEventRequestWire = z
+  .strictObject({
+    channels: z
+      .array(notificationChannelReferenceWire)
+      .optional()
+
+      .describe(
+        'The channels to resend the event to. When omitted or empty, the event is resent to every enabled channel of the rule. Channels not targeted by the rule or disabled are rejected.',
+      ),
+  })
+  .describe('Request body for resending a notification event.')
 
 export const notificationEventInvoiceDataWire = z
   .strictObject({
