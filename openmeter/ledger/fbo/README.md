@@ -11,9 +11,8 @@ and group posting in one database transaction. Breakage releases reference
 consumption entry IDs assigned before posting. Any failure requires rollback.
 
 Sources are selected by priority, restricted before unrestricted credit, earliest
-expiry, then stable source cursor. `SourceBalanceAsOf` is the source-selection
-cutoff; `BookedAt` is the effective time of consumption. Receivable coverage never
-creates advance.
+expiry, then stable source cursor. `BookedAt` is the effective time for both
+source selection and consumption. Receivable coverage never creates advance.
 
 `GetSpendableBalanceBuckets` reports positive capacity available at `AsOf` without
 reducing any later recorded balance below zero. It takes the minimum per source
