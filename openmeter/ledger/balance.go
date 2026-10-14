@@ -71,6 +71,36 @@ type BalanceBucket struct {
 	PendingAmount                alpacadecimal.Decimal
 }
 
+// MinimumBalanceBucketQuery returns each bucket's lowest balance from AsOf
+// through all recorded future postings. AsOf is inclusive; simultaneous postings
+// are netted before comparing balances. A future-only bucket starts at zero.
+type MinimumBalanceBucketQuery struct {
+	BalanceBucketQuery
+
+	// ExcludeFutureAnnotationFilters omits matching movements strictly after
+	// AsOf. The opening balance still includes them.
+	ExcludeFutureAnnotationFilters map[string]string
+}
+
+var _ models.Validator = MinimumBalanceBucketQuery{}
+
+func (q MinimumBalanceBucketQuery) Validate() error {
+	var errs []error
+	if err := q.BalanceBucketQuery.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	if q.Filters.AsOf == nil {
+		errs = append(errs, errors.New("as of is required"))
+	}
+
+	if q.Filters.After != nil || q.Filters.BookedAtPeriod != nil {
+		errs = append(errs, errors.New("minimum balance cannot truncate the posting history"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
 // GetBalancesAtBoundariesInput describes independent persisted balance boundaries.
 // Results follow Queries order, including zero balances for empty scopes.
 type GetBalancesAtBoundariesInput struct {
@@ -101,4 +131,5 @@ type BalanceQuerier interface {
 	GetAccountBalance(ctx context.Context, account Account, route RouteFilter, query BalanceQuery) (Balance, error)
 	GetSubAccountBalance(ctx context.Context, subAccount SubAccount, query BalanceQuery) (Balance, error)
 	GetBalanceBuckets(ctx context.Context, query BalanceBucketQuery) ([]BalanceBucket, error)
+	GetMinimumBalanceBuckets(ctx context.Context, query MinimumBalanceBucketQuery) ([]BalanceBucket, error)
 }

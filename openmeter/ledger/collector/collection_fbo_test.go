@@ -96,25 +96,32 @@ func TestCollectCustomerFBOUsesSubAccountIDTieBreaker(t *testing.T) {
 	require.Equal(t, expected[1].Address().SubAccountID(), sources[1].Address.SubAccountID())
 }
 
-func TestCollectCustomerFBOUsesAsOfBalance(t *testing.T) {
+func TestCollectCustomerFBOPreservesFutureSpending(t *testing.T) {
 	env := ledgertestutils.NewIntegrationEnv(t, "collector")
 	collector := newTestAccrualCollector(t, env)
 
+	// given: thirty of fifty credits are already allocated to future usage.
 	source := fundPriority(t, env, 1, 50)
 	bookFutureFBOCollection(t, env, 1, 30, env.Now().AddDate(0, 0, 1))
 
+	// when: source selection runs before that usage becomes effective.
 	currentSources, err := collectCustomerFBOForTest(t, env, collector, alpacadecimal.NewFromInt(50), env.Now())
 	require.NoError(t, err)
 	require.Len(t, currentSources, 1)
 	require.Equal(t, source.Address().SubAccountID(), currentSources[0].Address.SubAccountID())
-	require.True(t, alpacadecimal.NewFromInt(50).Equal(currentSources[0].Amount), "current amount: %s", currentSources[0].Amount)
+	// then: account balance remains historical, but collection protects the future allocation.
+	require.Equal(t, 20.0, currentSources[0].Amount.InexactFloat64())
+	balance, err := env.Deps.HistoricalLedger.GetAccountBalance(t.Context(), env.CustomerAccounts.FBOAccount,
+		ledger.RouteFilter{Currency: env.CurrencyReference()}, ledger.BalanceQuery{AsOf: lo.ToPtr(env.Now())})
+	require.NoError(t, err)
+	require.Equal(t, 50.0, balance.InexactFloat64())
 
 	futureAsOf := env.Now().AddDate(0, 0, 1)
 	futureSources, err := collectCustomerFBOForTest(t, env, collector, alpacadecimal.NewFromInt(50), futureAsOf)
 	require.NoError(t, err)
 	require.Len(t, futureSources, 1)
 	require.Equal(t, source.Address().SubAccountID(), futureSources[0].Address.SubAccountID())
-	require.True(t, alpacadecimal.NewFromInt(20).Equal(futureSources[0].Amount), "future amount: %s", futureSources[0].Amount)
+	require.Equal(t, 20.0, futureSources[0].Amount.InexactFloat64())
 }
 
 func TestCollectCustomerFBOFiltersByFeatureEligibility(t *testing.T) {

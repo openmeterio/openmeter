@@ -146,7 +146,7 @@ func (c *service) listCustomerFBOBalanceBucketSources(
 		route.Features = mo.Some([]string(nil))
 	}
 
-	buckets, err := c.dependencies.BalanceQuerier.GetBalanceBuckets(ctx, ledger.BalanceBucketQuery{
+	buckets, err := c.GetSpendableBalanceBuckets(ctx, SpendableBalanceBucketQuery{
 		Namespace: query.CustomerID.Namespace,
 		Filters: ledger.Filters{
 			AccountID: &accountID,

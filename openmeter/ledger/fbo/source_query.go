@@ -54,8 +54,7 @@ type AvailableSource struct {
 	BreakagePlanID *string
 }
 
-// ListSources returns ordered eligible source slices at the historical boundary.
-// It uses the current collection policy; it is not the future spendable-balance API.
+// ListSources returns ordered spendable source slices, with their breakage plans.
 func (s *service) ListSources(ctx context.Context, query SourceQuery) ([]AvailableSource, error) {
 	if err := query.Validate(); err != nil {
 		return nil, err
