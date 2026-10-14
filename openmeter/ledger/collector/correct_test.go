@@ -40,14 +40,13 @@ func TestCollectToReceivableAndCorrectPreservesChargeProvenance(t *testing.T) {
 
 	// when: part of it covers the custom overage charge's receivable
 	allocations, err := collector.collectToReceivable(t.Context(), CollectToReceivableInput{
-		Namespace:         env.Namespace,
-		ChargeID:          spendChargeID,
-		CustomerID:        env.CustomerID.ID,
-		BookedAt:          env.Now(),
-		SourceBalanceAsOf: env.Now(),
-		Currency:          env.CurrencyReference(),
-		ServicePeriod:     testServicePeriod(env),
-		Amount:            alpacadecimal.NewFromInt(20),
+		Namespace:     env.Namespace,
+		ChargeID:      spendChargeID,
+		CustomerID:    env.CustomerID.ID,
+		BookedAt:      env.Now(),
+		Currency:      env.CurrencyReference(),
+		ServicePeriod: testServicePeriod(env),
+		Amount:        alpacadecimal.NewFromInt(20),
 	})
 	require.NoError(t, err)
 	require.Len(t, allocations, 1)
@@ -124,16 +123,15 @@ func TestCorrectCollectedAccruedUsesReverseFeatureAwareCollectionOrder(t *testin
 	chargeID := testChargeID(1)
 
 	allocations, err := collector.collectToAccrued(t.Context(), CollectToAccruedInput{
-		Namespace:         env.Namespace,
-		ChargeID:          chargeID,
-		CustomerID:        env.CustomerID.ID,
-		BookedAt:          env.Now(),
-		SourceBalanceAsOf: env.Now(),
-		Currency:          env.CurrencyReference(),
-		SettlementMode:    productcatalog.CreditThenInvoiceSettlementMode,
-		ServicePeriod:     servicePeriod,
-		Filters:           ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: []string{"api-calls"}},
-		Amount:            alpacadecimal.NewFromInt(restrictedAmount + unrestrictedAmount),
+		Namespace:      env.Namespace,
+		ChargeID:       chargeID,
+		CustomerID:     env.CustomerID.ID,
+		BookedAt:       env.Now(),
+		Currency:       env.CurrencyReference(),
+		SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+		ServicePeriod:  servicePeriod,
+		Filters:        ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: []string{"api-calls"}},
+		Amount:         alpacadecimal.NewFromInt(restrictedAmount + unrestrictedAmount),
 	})
 	require.NoError(t, err)
 	require.Len(t, allocations, 2) // two allocations: restricted source first, unrestricted source second.
@@ -191,16 +189,15 @@ func TestCorrectCollectedAccruedReopensBreakageByReverseFeatureAwareCollectionOr
 	chargeID := testChargeID(3)
 
 	allocations, err := collector.collectToAccrued(t.Context(), CollectToAccruedInput{
-		Namespace:         env.Namespace,
-		ChargeID:          chargeID,
-		CustomerID:        env.CustomerID.ID,
-		BookedAt:          env.Now(),
-		SourceBalanceAsOf: env.Now(),
-		Currency:          env.CurrencyReference(),
-		SettlementMode:    productcatalog.CreditThenInvoiceSettlementMode,
-		ServicePeriod:     servicePeriod,
-		Filters:           ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: []string{"api-calls"}},
-		Amount:            alpacadecimal.NewFromInt(restrictedAmount + unrestrictedAmount),
+		Namespace:      env.Namespace,
+		ChargeID:       chargeID,
+		CustomerID:     env.CustomerID.ID,
+		BookedAt:       env.Now(),
+		Currency:       env.CurrencyReference(),
+		SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+		ServicePeriod:  servicePeriod,
+		Filters:        ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: []string{"api-calls"}},
+		Amount:         alpacadecimal.NewFromInt(restrictedAmount + unrestrictedAmount),
 	})
 	require.NoError(t, err)
 	require.Len(t, allocations, 2) // two consumed plans should produce two release records.
@@ -418,15 +415,14 @@ func TestCorrectCollectedAccruedPartiallyReversesAdvanceBackedCollection(t *test
 	chargeID := testChargeID(1)
 
 	allocations, err := collector.collectToAccrued(t.Context(), CollectToAccruedInput{
-		Namespace:         env.Namespace,
-		ChargeID:          chargeID,
-		CustomerID:        env.CustomerID.ID,
-		BookedAt:          env.Now(),
-		SourceBalanceAsOf: env.Now(),
-		Currency:          env.CurrencyReference(),
-		SettlementMode:    productcatalog.CreditOnlySettlementMode,
-		ServicePeriod:     servicePeriod,
-		Amount:            alpacadecimal.NewFromInt(advanceAmount),
+		Namespace:      env.Namespace,
+		ChargeID:       chargeID,
+		CustomerID:     env.CustomerID.ID,
+		BookedAt:       env.Now(),
+		Currency:       env.CurrencyReference(),
+		SettlementMode: productcatalog.CreditOnlySettlementMode,
+		ServicePeriod:  servicePeriod,
+		Amount:         alpacadecimal.NewFromInt(advanceAmount),
 	})
 	require.NoError(t, err)
 	require.Len(t, allocations, 1) // credit-only shortfall creates one advance-backed allocation.
@@ -692,17 +688,16 @@ func TestCorrectFiatFundedCustomCurrencyCreditOnlyShortfall(t *testing.T) {
 	require.NoError(t, err)
 
 	allocations, err := collector.collectToAccrued(t.Context(), CollectToAccruedInput{
-		Namespace:         env.Namespace,
-		ChargeID:          spendCharge,
-		CustomerID:        env.CustomerID.ID,
-		BookedAt:          env.Now(),
-		SourceBalanceAsOf: env.Now(),
-		Currency:          customCurrencyReference,
-		SettlementMode:    productcatalog.CreditOnlySettlementMode,
-		ServicePeriod:     servicePeriod,
-		Amount:            alpacadecimal.NewFromInt(120),
-		TaxCode:           &taxCode,
-		TaxBehavior:       &taxBehavior,
+		Namespace:      env.Namespace,
+		ChargeID:       spendCharge,
+		CustomerID:     env.CustomerID.ID,
+		BookedAt:       env.Now(),
+		Currency:       customCurrencyReference,
+		SettlementMode: productcatalog.CreditOnlySettlementMode,
+		ServicePeriod:  servicePeriod,
+		Amount:         alpacadecimal.NewFromInt(120),
+		TaxCode:        &taxCode,
+		TaxBehavior:    &taxBehavior,
 	})
 	require.NoError(t, err)
 	require.Len(t, allocations, 2)
@@ -955,29 +950,27 @@ func TestCorrectCustomCurrencyCreditOnlyShortfall_MultipleFundingSourcesDoNotCro
 	// collections booked in independent transactions are independently
 	// correctable.
 	usdAllocations, err := collector.collectToAccrued(t.Context(), CollectToAccruedInput{
-		Namespace:         env.Namespace,
-		ChargeID:          usdChargeID,
-		CustomerID:        env.CustomerID.ID,
-		BookedAt:          env.Now(),
-		SourceBalanceAsOf: env.Now(),
-		Currency:          customCurrencyReference,
-		SettlementMode:    productcatalog.CreditOnlySettlementMode,
-		ServicePeriod:     servicePeriod,
-		Amount:            alpacadecimal.NewFromInt(100),
+		Namespace:      env.Namespace,
+		ChargeID:       usdChargeID,
+		CustomerID:     env.CustomerID.ID,
+		BookedAt:       env.Now(),
+		Currency:       customCurrencyReference,
+		SettlementMode: productcatalog.CreditOnlySettlementMode,
+		ServicePeriod:  servicePeriod,
+		Amount:         alpacadecimal.NewFromInt(100),
 	})
 	require.NoError(t, err)
 	require.Len(t, usdAllocations, 1)
 
 	eurAllocations, err := collector.collectToAccrued(t.Context(), CollectToAccruedInput{
-		Namespace:         env.Namespace,
-		ChargeID:          eurChargeID,
-		CustomerID:        env.CustomerID.ID,
-		BookedAt:          env.Now(),
-		SourceBalanceAsOf: env.Now(),
-		Currency:          customCurrencyReference,
-		SettlementMode:    productcatalog.CreditOnlySettlementMode,
-		ServicePeriod:     servicePeriod,
-		Amount:            alpacadecimal.NewFromInt(20),
+		Namespace:      env.Namespace,
+		ChargeID:       eurChargeID,
+		CustomerID:     env.CustomerID.ID,
+		BookedAt:       env.Now(),
+		Currency:       customCurrencyReference,
+		SettlementMode: productcatalog.CreditOnlySettlementMode,
+		ServicePeriod:  servicePeriod,
+		Amount:         alpacadecimal.NewFromInt(20),
 	})
 	require.NoError(t, err)
 	require.Len(t, eurAllocations, 1)
@@ -1078,7 +1071,7 @@ func TestCorrectCollectedAccruedResumesCollapsedSourceSuffix(t *testing.T) {
 	otherFBO := fundSourceCharge(t, env, sourceC, 2, 15)
 	allocations, err := collector.collectToAccrued(t.Context(), CollectToAccruedInput{
 		Namespace: env.Namespace, ChargeID: spend, CustomerID: env.CustomerID.ID,
-		BookedAt: env.Now(), SourceBalanceAsOf: env.Now(), Currency: env.CurrencyReference(),
+		BookedAt: env.Now(), Currency: env.CurrencyReference(),
 		SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 		ServicePeriod:  testServicePeriod(env), Amount: alpacadecimal.NewFromInt(45),
 	})

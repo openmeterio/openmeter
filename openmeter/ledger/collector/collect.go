@@ -48,18 +48,17 @@ func (c *accrualCollector) collectToAccrued(ctx context.Context, input CollectTo
 		}
 
 		inputs, err := c.fbo.Consume(ctx, fbo.ConsumeInput{
-			ChargeID:          input.ChargeID,
-			CustomerID:        customer.CustomerID{Namespace: input.Namespace, ID: input.CustomerID},
-			PostingInput:      breakage.PostingInput{TransactionGroupID: groupID, Annotations: annotations},
-			BookedAt:          input.BookedAt,
-			SourceBalanceAsOf: input.SourceBalanceAsOf,
-			Currency:          input.Currency,
-			Filters:           input.Filters,
-			Amount:            input.Amount,
-			Destination:       fbo.ConsumeDestinationAccrued,
-			AdvancePolicy:     advancePolicy,
-			TaxCode:           input.TaxCode,
-			TaxBehavior:       input.TaxBehavior,
+			ChargeID:      input.ChargeID,
+			CustomerID:    customer.CustomerID{Namespace: input.Namespace, ID: input.CustomerID},
+			PostingInput:  breakage.PostingInput{TransactionGroupID: groupID, Annotations: annotations},
+			BookedAt:      input.BookedAt,
+			Currency:      input.Currency,
+			Filters:       input.Filters,
+			Amount:        input.Amount,
+			Destination:   fbo.ConsumeDestinationAccrued,
+			AdvancePolicy: advancePolicy,
+			TaxCode:       input.TaxCode,
+			TaxBehavior:   input.TaxBehavior,
 		})
 		if err != nil {
 			return nil, err
@@ -93,16 +92,15 @@ func (c *accrualCollector) collectToReceivable(ctx context.Context, input Collec
 		groupID := ulid.Make().String()
 
 		inputs, err := c.fbo.Consume(ctx, fbo.ConsumeInput{
-			ChargeID:          input.ChargeID,
-			CustomerID:        customer.CustomerID{Namespace: input.Namespace, ID: input.CustomerID},
-			PostingInput:      breakage.PostingInput{TransactionGroupID: groupID, Annotations: annotations},
-			BookedAt:          input.BookedAt,
-			SourceBalanceAsOf: input.SourceBalanceAsOf,
-			Currency:          input.Currency,
-			Filters:           input.Filters,
-			Amount:            input.Amount,
-			Destination:       fbo.ConsumeDestinationReceivable,
-			AdvancePolicy:     fbo.AdvancePolicyNever,
+			ChargeID:      input.ChargeID,
+			CustomerID:    customer.CustomerID{Namespace: input.Namespace, ID: input.CustomerID},
+			PostingInput:  breakage.PostingInput{TransactionGroupID: groupID, Annotations: annotations},
+			BookedAt:      input.BookedAt,
+			Currency:      input.Currency,
+			Filters:       input.Filters,
+			Amount:        input.Amount,
+			Destination:   fbo.ConsumeDestinationReceivable,
+			AdvancePolicy: fbo.AdvancePolicyNever,
 		})
 		if err != nil {
 			return nil, err
