@@ -10,6 +10,7 @@ import (
 	"github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
 	"github.com/samber/mo"
+	metricnoop "go.opentelemetry.io/otel/metric/noop"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
@@ -149,6 +150,7 @@ func (s *BaseSuite) SetupSuite() {
 	s.RevenueRecognizer = revenueRecognizer
 
 	collectorService, err := ledgercollector.NewService(ledgercollector.Config{
+		Meter:   metricnoop.NewMeterProvider().Meter("test"),
 		Logger:  logger,
 		Advance: s.AdvanceService,
 		Ledger:  deps.HistoricalLedger,
