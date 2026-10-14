@@ -124,13 +124,12 @@ func (e *originTestEnv) collect(t *testing.T, spend string, amount int64) credit
 	t.Helper()
 
 	allocations, err := e.collector.CollectToAccrued(t.Context(), collector.CollectToAccruedInput{
-		Namespace:         e.Namespace,
-		CustomerID:        e.CustomerID.ID,
-		ChargeID:          spend,
-		BookedAt:          e.Now(),
-		SourceBalanceAsOf: e.Now(),
-		Currency:          e.currency.Reference(),
-		SettlementMode:    productcatalog.CreditOnlySettlementMode,
+		Namespace:      e.Namespace,
+		CustomerID:     e.CustomerID.ID,
+		ChargeID:       spend,
+		BookedAt:       e.Now(),
+		Currency:       e.currency.Reference(),
+		SettlementMode: productcatalog.CreditOnlySettlementMode,
 		ServicePeriod: timeutil.ClosedPeriod{
 			From: e.Now().Add(-time.Hour),
 			To:   e.Now(),
