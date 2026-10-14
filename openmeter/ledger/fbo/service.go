@@ -13,6 +13,7 @@ import (
 )
 
 type Service interface {
+	GetSpendableBalanceBuckets(ctx context.Context, query SpendableBalanceBucketQuery) ([]ledger.BalanceBucket, error)
 	Consume(ctx context.Context, input ConsumeInput) ([]ledger.TransactionInput, error)
 	ListSources(ctx context.Context, input SourceQuery) ([]AvailableSource, error)
 }

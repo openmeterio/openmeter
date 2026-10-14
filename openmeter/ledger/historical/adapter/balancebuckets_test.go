@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/currencies"
+	ledgerentrydb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgerentry"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
 	ledgerhistorical "github.com/openmeterio/openmeter/openmeter/ledger/historical"
@@ -460,4 +461,86 @@ func chargeIDKeyPart(chargeID *string) string {
 	}
 
 	return *chargeID
+}
+
+func TestRepo_GetMinimumBalanceBuckets_Timeline(t *testing.T) {
+	// All offsets are relative to the requested boundary. Rows are deliberately
+	// booked in the supplied order, independently of their effective time.
+	type movement struct {
+		offset      time.Duration
+		amount      int64
+		annotations models.Annotations
+	}
+
+	ignored := models.Annotations{"test.movement": "ignored"}
+	otherIgnored := models.Annotations{"test.other": "ignored"}
+	for _, tc := range []struct {
+		name      string
+		movements []movement
+		expected  float64
+	}{
+		{name: "future spending is reserved", movements: []movement{{-time.Hour, 10, nil}, {time.Hour, -7, nil}}, expected: 3},
+		{name: "later return cannot hide earlier minimum", movements: []movement{{-time.Hour, 10, nil}, {time.Hour, -7, nil}, {2 * time.Hour, 7, nil}}, expected: 3},
+		{name: "future only issuance starts at zero", movements: []movement{{time.Hour, 10, nil}}, expected: 0},
+		{name: "future only deficit is retained", movements: []movement{{time.Hour, -4, nil}}, expected: -4},
+		{name: "future replenishment cannot be spent early", movements: []movement{{-time.Hour, 4, nil}, {time.Hour, 6, nil}, {2 * time.Hour, -6, nil}}, expected: 4},
+		{name: "simultaneous postings are netted", movements: []movement{{-time.Hour, 10, nil}, {time.Hour, -15, nil}, {time.Hour, 10, nil}}, expected: 5},
+		{name: "boundary postings are inclusive", movements: []movement{{-time.Hour, 10, nil}, {0, -6, nil}, {time.Hour, 20, nil}}, expected: 4},
+		{name: "out of order history uses effective time", movements: []movement{{2 * time.Hour, 7, nil}, {-time.Hour, 10, nil}, {time.Hour, -7, nil}}, expected: 3},
+		{name: "excluded future debits and credits", movements: []movement{{-time.Hour, 10, nil}, {time.Hour, -10, ignored}, {2 * time.Hour, 6, ignored}, {3 * time.Hour, -4, nil}}, expected: 6},
+		{name: "excluded future entry retains recorded age", movements: []movement{{time.Hour, -10, ignored}, {-time.Hour, 10, nil}}, expected: 10},
+		{name: "future only excluded movement preserves the bucket", movements: []movement{{time.Hour, -10, ignored}}, expected: 0},
+		{name: "either exclusion omits a future movement", movements: []movement{{-time.Hour, 10, nil}, {time.Hour, -4, ignored}, {2 * time.Hour, -3, otherIgnored}, {3 * time.Hour, -2, nil}}, expected: 8},
+		{name: "different annotation value is included", movements: []movement{{-time.Hour, 10, nil}, {time.Hour, -4, models.Annotations{"test.movement": "included"}}}, expected: 6},
+		{name: "exclusion does not affect opening balance", movements: []movement{{-2 * time.Hour, 10, nil}, {-time.Hour, -4, ignored}}, expected: 6},
+		{name: "exclusion does not affect boundary", movements: []movement{{-time.Hour, 10, nil}, {0, -10, ignored}}, expected: 0},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			env := NewTestEnv(t)
+			t.Cleanup(func() { env.Close(t) })
+			namespace := testNamespace()
+			at := time.Date(2026, time.January, 10, 0, 0, 0, 0, time.UTC)
+			route := ledger.Route{Currency: currencies.NewCurrencyReference(currencyx.Code("USD"))}
+			account := env.createSubAccountOfType(t, namespace, ledger.AccountTypeCustomerFBO, route)
+			counterpart := env.createSubAccountOfType(t, namespace, ledger.AccountTypeWash, route)
+			group, err := env.repo.CreateTransactionGroup(t.Context(), ledgerhistorical.CreateTransactionGroupInput{Namespace: namespace})
+			require.NoError(t, err)
+
+			// given: a persisted bucket with past and future movements.
+			for _, movement := range tc.movements {
+				amount := alpacadecimal.NewFromInt(movement.amount)
+				input := &transactionstestutils.AnyTransactionInput{
+					BookedAtValue:    at.Add(movement.offset),
+					AnnotationsValue: movement.annotations,
+					EntryInputsValues: []*transactionstestutils.AnyEntryInput{
+						provenanceEntryInput(t, account, amount, nil, nil),
+						provenanceEntryInput(t, counterpart, amount.Neg(), nil, nil),
+					},
+				}
+				_, err = env.repo.BookTransaction(t.Context(), models.NamespacedID{Namespace: namespace, ID: group.ID}, input)
+				require.NoError(t, err)
+			}
+
+			// when: only later matching movements are excluded from the minimum.
+			buckets, err := env.repo.GetMinimumBalanceBuckets(t.Context(), ledger.MinimumBalanceBucketQuery{
+				BalanceBucketQuery: ledger.BalanceBucketQuery{
+					Namespace: namespace,
+					Filters:   ledger.Filters{AccountID: &account.AccountID, AsOf: &at},
+					GroupBy:   []string{ledger.BalanceBucketGroupBySourceChargeID},
+				},
+				ExcludeFutureAnnotationFilters: map[string]string{"test.movement": "ignored", "test.other": "ignored"},
+			})
+			require.NoError(t, err)
+
+			// then: the lowest effective balance includes the opening position.
+			require.Len(t, buckets, 1)
+			require.Equal(t, tc.expected, buckets[0].SettledAmount.InexactFloat64())
+			require.Equal(t, tc.expected, buckets[0].PendingAmount.InexactFloat64())
+
+			oldest, err := env.client.LedgerEntry.Query().Where(ledgerentrydb.SubAccountID(account.ID)).Order(ledgerentrydb.ByCreatedAt()).First(t.Context())
+			require.NoError(t, err)
+			require.True(t, oldest.CreatedAt.Equal(buckets[0].OldestMatchingEntryCreatedAt))
+			require.Nil(t, buckets[0].GroupByValues[ledger.BalanceBucketGroupBySourceChargeID])
+		})
+	}
 }

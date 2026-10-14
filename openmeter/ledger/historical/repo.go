@@ -33,6 +33,7 @@ type Repo interface {
 
 	// Get balance buckets grouped by sub-account and requested dimensions.
 	GetBalanceBuckets(ctx context.Context, query ledger.BalanceBucketQuery) ([]ledger.BalanceBucket, error)
+	GetMinimumBalanceBuckets(ctx context.Context, query ledger.MinimumBalanceBucketQuery) ([]ledger.BalanceBucket, error)
 
 	// List transactions with pagination
 	ListTransactions(ctx context.Context, input ledger.ListTransactionsInput) (ledger.ListTransactionsResult, error)

@@ -24,7 +24,9 @@ within a namespace.
 
 The historical ledger stores immutable transaction groups, transactions, and
 entries. Balances are projections over those entries; they are not mutable
-facts stored independently from the journal.
+facts stored independently from the journal. Account balances sum the selected
+entries. Minimum balance buckets take the lowest balance from `AsOf` onward;
+[FBO spendable balances](fbo/README.md) apply the credit and breakage policy.
 
 ## Ownership and boundaries
 
