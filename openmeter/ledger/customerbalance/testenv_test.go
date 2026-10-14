@@ -9,6 +9,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
+	metricnoop "go.opentelemetry.io/otel/metric/noop"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
@@ -251,6 +252,7 @@ func newTestEnv(t *testing.T) *testEnv {
 	advanceService := advancetestutils.NewService(t, base.Deps, breakageService)
 
 	collectorService, err := ledgercollector.NewService(ledgercollector.Config{
+		Meter:   metricnoop.NewMeterProvider().Meter("test"),
 		Logger:  logger,
 		Advance: advanceService,
 		Ledger:  base.Deps.HistoricalLedger,

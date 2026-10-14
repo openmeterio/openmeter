@@ -3,7 +3,10 @@ package fbo
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
+
+	"go.opentelemetry.io/otel/metric"
 
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/advance"
@@ -20,6 +23,7 @@ type Service interface {
 
 type Config struct {
 	Logger        *slog.Logger
+	Meter         metric.Meter
 	Dependencies  transactions.ResolverDependencies
 	Advance       advance.Service
 	Breakage      breakage.Service
@@ -32,6 +36,10 @@ func (c Config) Validate() error {
 	var errs []error
 	if c.Logger == nil {
 		errs = append(errs, errors.New("logger is required"))
+	}
+
+	if c.Meter == nil {
+		errs = append(errs, errors.New("meter is required"))
 	}
 
 	if c.Dependencies.AccountService == nil {
@@ -62,10 +70,12 @@ func (c Config) Validate() error {
 }
 
 type service struct {
-	dependencies  transactions.ResolverDependencies
-	advance       advance.Service
-	breakage      breakage.Service
-	accountLocker ledger.AccountLocker
+	logger                     *slog.Logger
+	negativeSourceObservations metric.Int64Counter
+	dependencies               transactions.ResolverDependencies
+	advance                    advance.Service
+	breakage                   breakage.Service
+	accountLocker              ledger.AccountLocker
 }
 
 var _ Service = (*service)(nil)
@@ -75,10 +85,21 @@ func NewService(config Config) (Service, error) {
 		return nil, err
 	}
 
+	negativeSourceObservations, err := config.Meter.Int64Counter(
+		"openmeter.ledger.fbo.negative_source_balance.observations",
+		metric.WithDescription("Negative source minimum balances observed during spendable balance reads; repeated reads count again"),
+		metric.WithUnit("{observation}"),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("create negative source balance counter: %w", err)
+	}
+
 	return &service{
-		dependencies:  config.Dependencies,
-		advance:       config.Advance,
-		breakage:      config.Breakage,
-		accountLocker: config.AccountLocker,
+		logger:                     config.Logger,
+		negativeSourceObservations: negativeSourceObservations,
+		dependencies:               config.Dependencies,
+		advance:                    config.Advance,
+		breakage:                   config.Breakage,
+		accountLocker:              config.AccountLocker,
 	}, nil
 }
