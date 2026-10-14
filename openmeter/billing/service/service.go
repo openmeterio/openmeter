@@ -34,24 +34,26 @@ type Service struct {
 
 	publisher eventbus.Publisher
 
-	advancementStrategy billing.AdvancementStrategy
-	fsNamespaceLockdown []string
+	enforceInvoiceSanityChecks bool
+	advancementStrategy        billing.AdvancementStrategy
+	fsNamespaceLockdown        []string
 
 	standardInvoiceHooks *billing.StandardInvoiceHooks
 }
 
 type Config struct {
-	Adapter                 billing.Adapter
-	SequenceService         sequence.Service
-	CustomerService         customer.Service
-	AppService              app.Service
-	TaxCodeService          taxcode.Service
-	LegacyBillingLineEngine *billinglineengine.Engine
-	Logger                  *slog.Logger
-	FeatureMeterResolver    *billingfeaturemeterservice.Resolver
-	Publisher               eventbus.Publisher
-	AdvancementStrategy     billing.AdvancementStrategy
-	FSNamespaceLockdown     []string
+	EnforceInvoiceSanityChecks bool
+	Adapter                    billing.Adapter
+	SequenceService            sequence.Service
+	CustomerService            customer.Service
+	AppService                 app.Service
+	TaxCodeService             taxcode.Service
+	LegacyBillingLineEngine    *billinglineengine.Engine
+	Logger                     *slog.Logger
+	FeatureMeterResolver       *billingfeaturemeterservice.Resolver
+	Publisher                  eventbus.Publisher
+	AdvancementStrategy        billing.AdvancementStrategy
+	FSNamespaceLockdown        []string
 }
 
 func (c Config) Validate() error {
@@ -104,19 +106,20 @@ func New(config Config) (*Service, error) {
 	}
 
 	svc := &Service{
-		adapter:              config.Adapter,
-		sequenceService:      config.SequenceService,
-		customerService:      config.CustomerService,
-		appService:           config.AppService,
-		taxCodeService:       config.TaxCodeService,
-		logger:               config.Logger,
-		featureMeterResolver: config.FeatureMeterResolver,
-		publisher:            config.Publisher,
-		advancementStrategy:  config.AdvancementStrategy,
-		fsNamespaceLockdown:  config.FSNamespaceLockdown,
-		invoiceCalculator:    invoicecalc.New(),
-		lineEngines:          newEngineRegistry(),
-		standardInvoiceHooks: models.NewServiceHookRegistry[billing.StandardInvoice](),
+		adapter:                    config.Adapter,
+		sequenceService:            config.SequenceService,
+		customerService:            config.CustomerService,
+		appService:                 config.AppService,
+		taxCodeService:             config.TaxCodeService,
+		logger:                     config.Logger,
+		featureMeterResolver:       config.FeatureMeterResolver,
+		publisher:                  config.Publisher,
+		advancementStrategy:        config.AdvancementStrategy,
+		enforceInvoiceSanityChecks: config.EnforceInvoiceSanityChecks,
+		fsNamespaceLockdown:        config.FSNamespaceLockdown,
+		invoiceCalculator:          invoicecalc.New(),
+		lineEngines:                newEngineRegistry(),
+		standardInvoiceHooks:       models.NewServiceHookRegistry[billing.StandardInvoice](),
 	}
 
 	if err := svc.RegisterLineEngine(config.LegacyBillingLineEngine); err != nil {

@@ -94,6 +94,8 @@ server:
 #   gracePeriod: P1D
 
 billing:
+  # Always log invoice sanity failures; also block invoice app calls when true.
+  enforceInvoiceSanityChecks: false
   # for production deployments it's recommended to use queued for server only
   # advancementStrategy: foreground
   featureSwitches:

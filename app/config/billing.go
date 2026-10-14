@@ -11,6 +11,8 @@ import (
 )
 
 type BillingConfiguration struct {
+	// EnforceInvoiceSanityChecks blocks app calls on inconsistent invoice detail; failures are always logged.
+	EnforceInvoiceSanityChecks   bool
 	AdvancementStrategy          billing.AdvancementStrategy
 	MaxParallelQuantitySnapshots int
 	Worker                       BillingWorkerConfiguration
@@ -60,6 +62,7 @@ func ConfigureBilling(v *viper.Viper, flags *pflag.FlagSet) {
 	_ = v.BindPFlag("billing.advancementStrategy", flags.Lookup("billing-advancement-strategy"))
 	v.SetDefault("billing.advancementStrategy", billing.ForegroundAdvancementStrategy)
 	v.SetDefault("billing.maxParallelQuantitySnapshots", 4)
+	v.SetDefault("billing.enforceInvoiceSanityChecks", false)
 	v.SetDefault("billing.featureSwitches.maxLinesPerCollectedInvoice", 0)
 	v.SetDefault("billing.featureSwitches.subscriptionSyncForceAsyncAdvance", true)
 }

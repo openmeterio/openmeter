@@ -151,17 +151,18 @@ func newBillingService(
 	taxCodeService taxcode.Service,
 ) (billing.Service, error) {
 	service, err := billingservice.New(billingservice.Config{
-		Adapter:                 billingAdapter,
-		SequenceService:         sequenceService,
-		LegacyBillingLineEngine: legacyBillingLineEngine,
-		AppService:              appService,
-		CustomerService:         customerService,
-		TaxCodeService:          taxCodeService,
-		FeatureMeterResolver:    featureMeterResolver,
-		Logger:                  logger,
-		Publisher:               eventPublisher,
-		AdvancementStrategy:     billingConfig.AdvancementStrategy,
-		FSNamespaceLockdown:     fsConfig.NamespaceLockdown,
+		Adapter:                    billingAdapter,
+		SequenceService:            sequenceService,
+		LegacyBillingLineEngine:    legacyBillingLineEngine,
+		AppService:                 appService,
+		CustomerService:            customerService,
+		TaxCodeService:             taxCodeService,
+		FeatureMeterResolver:       featureMeterResolver,
+		Logger:                     logger,
+		Publisher:                  eventPublisher,
+		AdvancementStrategy:        billingConfig.AdvancementStrategy,
+		EnforceInvoiceSanityChecks: billingConfig.EnforceInvoiceSanityChecks,
+		FSNamespaceLockdown:        fsConfig.NamespaceLockdown,
 	})
 	if err != nil {
 		return nil, err
