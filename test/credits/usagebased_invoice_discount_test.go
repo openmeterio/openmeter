@@ -23,7 +23,7 @@ import (
 	billingtest "github.com/openmeterio/openmeter/test/billing"
 )
 
-func (s *CreditThenInvoiceTestSuite) TestUsageBasedAmountDiscountsDeferProgressiveBilling() {
+func (s *CreditThenInvoiceTestSuite) TestUsageBasedAmountDiscountsBillProgressively() {
 	for _, test := range []struct {
 		name                    string
 		price                   *productcatalog.Price
@@ -83,7 +83,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedAmountDiscountsDeferProgressi
 		},
 	} {
 		s.Run(test.name, func() {
-			// given: a discounted charge has usage and progressive billing enabled
+			// given: a discounted charge with progressive billing enabled and no usage yet
 			ctx := s.T().Context()
 			ns := s.GetUniqueNamespace("usagebased-invoice-discount")
 			s.ProvisionDefaultTaxCodes(ctx, ns)
@@ -132,11 +132,11 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedAmountDiscountsDeferProgressi
 			// then: the charge will be invoiced, creating a run mid-period
 			s.Require().NoError(err)
 			s.Require().Len(invoices, 1)
-			waitingCharge := s.mustGetUsageBasedChargeByIDWithExpands(charge.GetChargeID(), meta.Expands{
+			partiallyBilledCharge := s.mustGetUsageBasedChargeByIDWithExpands(charge.GetChargeID(), meta.Expands{
 				meta.ExpandRealizations,
 			})
-			s.Len(waitingCharge.Realizations, 1)
-			s.NotEmpty(waitingCharge.State.CurrentRealizationRunID)
+			s.Len(partiallyBilledCharge.Realizations, 1)
+			s.NotEmpty(partiallyBilledCharge.State.CurrentRealizationRunID)
 
 			clock.FreezeTime(invoices[0].DefaultCollectionAtForStandardInvoice())
 			_, err = s.BillingService.AdvanceInvoice(ctx, invoices[0].GetInvoiceID())
@@ -144,9 +144,8 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedAmountDiscountsDeferProgressi
 			_, err = s.BillingService.ApproveInvoice(ctx, invoices[0].GetInvoiceID())
 			s.Require().NoError(err)
 
+			// when: usage arrives after the first invoice and billing invoices the rest of the period at its end
 			s.MockStreamingConnector.AddSimpleEvent(feature.Feature.Key, test.usageSent, midPeriod.Add(time.Hour))
-
-			// when: billing snapshots the complete service period at its end
 			clock.FreezeTime(period.To.Add(time.Second))
 			defer clock.UnFreeze()
 			invoices, err = s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
@@ -231,13 +230,13 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedAmountDiscountsDeferProgressi
 func (s *CreditThenInvoiceTestSuite) TestPercentageDiscountProgressiveBilling() {
 	// Given:
 	// - Service period: 2026-01-01 … 2026-01-30
-	// - An usage based charge with price type unit + tiered graduating at two tiers
+	// - A usage based charge with a graduated tiered price at two tiers (10 units @ 5, then @ 4)
 	// - A 25% percentage discount on the charge
-	// - Invocie 1 exists for service period 2026-01-01 … 2026-01-15
+	// - Invoice 1 exists for service period 2026-01-01 … 2026-01-15
 	// - Metered usage exists for the whole period
 
 	// When
-	// - The second invoice 2 is created
+	// - Invoice 2 is created at the end of the period
 	// Then:
 	// - The invoice 2 has properly populated discounts
 	// - The discount only captures 25% of the actually billed amount
@@ -338,8 +337,7 @@ func (s *CreditThenInvoiceTestSuite) TestPercentageDiscountProgressiveBilling() 
 	invoice1AsOf := lo.Must(time.Parse(time.RFC3339, "2026-01-15T00:00:00Z"))
 	clock.FreezeTime(invoice1AsOf)
 
-	// When the pending lines are invoiced in a progressive billing setup, the correlation ID is retained
-	// between the split lines.
+	// Invoice 1 bills the first 8 units, all within tier 1
 	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
 		Customer: customerEntity.GetID(),
 		AsOf:     lo.ToPtr(invoice1AsOf),
@@ -376,22 +374,18 @@ func (s *CreditThenInvoiceTestSuite) TestPercentageDiscountProgressiveBilling() 
 	s.Equal(float64(30), detailedLine.Totals.Total.InexactFloat64())
 	s.Equal(float64(30), invoices[0].Totals.Total.InexactFloat64())
 
-	// The detailed line does not exists, as we had no usage
-	s.Require().Len(invoiceLine.DetailedLines, 1)
-
 	clock.FreezeTime(invoices[0].DefaultCollectionAtForStandardInvoice())
 	_, err = s.BillingService.AdvanceInvoice(ctx, invoices[0].GetInvoiceID())
 	s.Require().NoError(err)
 	_, err = s.BillingService.ApproveInvoice(ctx, invoices[0].GetInvoiceID())
 	s.Require().NoError(err)
 
-	s.Run("[invoice2] Creating a draft invoice with 2 usage", func() {
+	s.Run("[invoice2] Creating a draft invoice with 4 more usage", func() {
 		invoice2AsOf := lo.Must(time.Parse(time.RFC3339, "2026-01-30T00:00:00Z"))
 		s.MockStreamingConnector.AddSimpleEvent(meterSlug, 4, invoice2AsOf.Add(-30*time.Hour))
 		clock.FreezeTime(invoice2AsOf)
 
-		// When the pending lines are invoiced in a progressive billing setup, the correlation ID is retained
-		// between the split lines.
+		// Invoice 2 bills only the delta since invoice 1
 		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
 			Customer: customerEntity.GetID(),
 			AsOf:     lo.ToPtr(invoice2AsOf),
@@ -410,7 +404,7 @@ func (s *CreditThenInvoiceTestSuite) TestPercentageDiscountProgressiveBilling() 
 		s.Equal(float64(8), invoiceLine.UsageBased.PreLinePeriodQuantity.InexactFloat64())
 		s.Equal(float64(8), invoiceLine.UsageBased.MeteredPreLinePeriodQuantity.InexactFloat64())
 
-		// The detailed line exists and has a usage of 4
+		// The 4 new units split across both tiers: 2 complete tier 1, 2 open tier 2
 		s.Require().Len(invoiceLine.DetailedLines, 2)
 
 		s.Equal(float64(18), invoiceLine.Totals.Amount.InexactFloat64())
@@ -754,7 +748,6 @@ func (s *CreditThenInvoiceTestSuite) TestPercentageDiscountProgressiveBillingUsa
 		invoice := invoices[0]
 		s.Equal(billing.StandardInvoiceStatusDraftInvalidCreated, invoice.Status)
 
-		// Note: This is going to be fixed by the credit notes
 		s.Require().Len(invoice.ValidationIssues, 1)
 		issue := invoice.ValidationIssues[0]
 		s.Equal(string(usagebased.ErrCodeChargeTotalIsNegative), issue.Code)
