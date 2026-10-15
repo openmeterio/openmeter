@@ -1,0 +1,71 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "v1.entitlement.balance_threshold.triggered.rule_config",
+    "type": "object",
+    "properties": {
+        "thresholds": {
+            "type": "array",
+            "items": {
+                "$ref": "#/$defs/BalanceThreshold"
+            },
+            "minItems": 1,
+            "description": "Thresholds evaluated against the entitlement balance."
+        },
+        "features": {
+            "type": "array",
+            "items": {
+                "$ref": "#/$defs/ResourceKey"
+            },
+            "description": "Feature keys the Rule is limited to. All features when omitted."
+        }
+    },
+    "required": [
+        "thresholds"
+    ],
+    "unevaluatedProperties": {
+        "not": {}
+    },
+    "description": "Rule configuration of `v1.entitlement.balance_threshold.triggered`.",
+    "$defs": {
+        "BalanceThreshold": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "$ref": "#/$defs/BalanceThresholdType",
+                    "description": "Condition kind of the threshold."
+                },
+                "value": {
+                    "type": "number",
+                    "description": "Threshold value, interpreted according to the threshold type."
+                }
+            },
+            "required": [
+                "type",
+                "value"
+            ],
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "A single entitlement balance threshold."
+        },
+        "ResourceKey": {
+            "type": "string",
+            "examples": [
+                "resource_key"
+            ],
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9]+(?:_[a-z0-9]+)*$",
+            "description": "A key is a unique string that is used to identify a resource.",
+            "title": "Resource Key"
+        },
+        "BalanceThresholdType": {
+            "type": "string",
+            "enum": [
+                "balance_at_or_below",
+                "usage_percentage_at_or_above"
+            ],
+            "description": "Condition kind of an entitlement balance threshold."
+        }
+    }
+}
