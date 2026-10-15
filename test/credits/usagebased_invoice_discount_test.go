@@ -28,6 +28,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedAmountDiscountsBillProgressiv
 		name                    string
 		price                   *productcatalog.Price
 		discounts               billing.Discounts
+		usageBeforeFirstInvoice float64
 		usageSent               float64
 		expectedTotals          billingtest.ExpectedTotals
 		expectedAmountDiscounts chargedetailedline.AmountDiscounts
@@ -81,9 +82,31 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedAmountDiscountsBillProgressiv
 				},
 			},
 		},
+		{
+			name: "40 units already billed at the USD 60 maximum spend, then 40 more units",
+			price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+				Amount:        alpacadecimal.NewFromInt(2),
+				MaximumAmount: lo.ToPtr(alpacadecimal.NewFromInt(60)),
+			}),
+			usageBeforeFirstInvoice: 40,
+			usageSent:               40,
+			expectedTotals: billingtest.ExpectedTotals{
+				Amount:         80,
+				DiscountsTotal: 80,
+				Total:          0,
+			},
+			expectedAmountDiscounts: chargedetailedline.AmountDiscounts{
+				{
+					ChildUniqueReferenceID: billing.LineMaximumSpendReferenceID,
+					Description:            lo.ToPtr("Maximum spend discount for charges over 60"),
+					Reason:                 billing.NewDiscountReasonFrom(billing.MaximumSpendDiscount{}),
+					Amount:                 alpacadecimal.NewFromInt(80),
+				},
+			},
+		},
 	} {
 		s.Run(test.name, func() {
-			// given: a discounted charge with progressive billing enabled and no usage yet
+			// given: a discounted charge with progressive billing enabled
 			ctx := s.T().Context()
 			ns := s.GetUniqueNamespace("usagebased-invoice-discount")
 			s.ProvisionDefaultTaxCodes(ctx, ns)
@@ -98,6 +121,10 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedAmountDiscountsBillProgressiv
 			}
 			clock.FreezeTime(period.From.Add(-time.Hour))
 			defer clock.UnFreeze()
+			if test.usageBeforeFirstInvoice > 0 {
+				s.MockStreamingConnector.AddSimpleEvent(feature.Feature.Key, test.usageBeforeFirstInvoice, period.From.Add(time.Hour))
+			}
+
 			intent, err := s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 				Customer:          cust.GetID(),
 				Currency:          USD,
