@@ -129,7 +129,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedAmountDiscountsDeferProgressi
 				AsOf:     lo.ToPtr(midPeriod),
 			})
 
-			// then: the charge will be invoiced by creating a partial run
+			// then: the charge will be invoiced, creating a run mid-period
 			s.Require().NoError(err)
 			s.Require().Len(invoices, 1)
 			waitingCharge := s.mustGetUsageBasedChargeByIDWithExpands(charge.GetChargeID(), meta.Expands{
