@@ -1,0 +1,12 @@
+# Events-only OpenAPI document of one @goPackage namespace, the input of
+# oapi-codegen for the namespace's Go package. Driven by
+# scripts/generate-notification-events.mjs, which generates the entry point and
+# sets emitter-output-dir.
+emit:
+  - '@typespec/openapi3'
+options:
+  '@typespec/openapi3':
+    seal-object-schemas: true
+linter:
+  extends:
+    - '@openmeter/api-spec-aip/all'

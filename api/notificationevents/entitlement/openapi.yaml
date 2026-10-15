@@ -1,0 +1,94 @@
+openapi: 3.0.0
+info:
+  title: Entitlements.NotificationEvents
+  description: Notification Event contracts owned by the entitlements domain.
+  version: 0.0.0
+tags: []
+paths: {}
+components:
+  schemas:
+    EntitlementBalanceThreshold:
+      type: object
+      required:
+        - type
+        - value
+      properties:
+        type:
+          allOf:
+            - $ref: "#/components/schemas/EntitlementBalanceThresholdType"
+          description: Condition kind of the threshold.
+        value:
+          type: number
+          format: double
+          description: Threshold value, interpreted according to the threshold type.
+      additionalProperties: false
+      description: A single entitlement balance threshold.
+    EntitlementBalanceThresholdTriggeredV1Payload:
+      type: object
+      required:
+        - customer_id
+        - entitlement_id
+        - feature_key
+        - current_balance
+        - threshold
+      properties:
+        customer_id:
+          allOf:
+            - $ref: "#/components/schemas/ULID"
+          description: Customer owning the entitlement.
+        entitlement_id:
+          allOf:
+            - $ref: "#/components/schemas/ULID"
+          description: Entitlement whose balance crossed the threshold.
+        feature_key:
+          allOf:
+            - $ref: "#/components/schemas/ResourceKey"
+          description: Feature of the entitlement.
+        current_balance:
+          type: number
+          format: double
+          description: Balance at evaluation time.
+        threshold:
+          allOf:
+            - $ref: "#/components/schemas/EntitlementBalanceThreshold"
+          description: Threshold that was crossed.
+      additionalProperties: false
+      description: Payload of `v1.entitlement.balance_threshold.triggered`.
+    EntitlementBalanceThresholdTriggeredV1RuleConfig:
+      type: object
+      required:
+        - thresholds
+      properties:
+        thresholds:
+          type: array
+          items:
+            $ref: "#/components/schemas/EntitlementBalanceThreshold"
+          minItems: 1
+          description: Thresholds evaluated against the entitlement balance.
+        features:
+          type: array
+          items:
+            $ref: "#/components/schemas/ResourceKey"
+          description: Feature keys the Rule is limited to. All features when omitted.
+      additionalProperties: false
+      description: Rule configuration of `v1.entitlement.balance_threshold.triggered`.
+    EntitlementBalanceThresholdType:
+      type: string
+      enum:
+        - balance_at_or_below
+        - usage_percentage_at_or_above
+      description: Condition kind of an entitlement balance threshold.
+    ResourceKey:
+      type: string
+      minLength: 1
+      maxLength: 64
+      pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+      description: A key is a unique string that is used to identify a resource.
+      title: Resource Key
+      example: resource_key
+    ULID:
+      type: string
+      pattern: ^[0-7][0-9A-HJKMNP-TV-Z]{25}$
+      description: ULID (Universally Unique Lexicographically Sortable Identifier).
+      title: ULID
+      example: 01G65Z755AFWAKHE12NY0CQ9FH

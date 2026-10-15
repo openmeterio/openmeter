@@ -1,0 +1,89 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "v1.entitlement.balance_threshold.triggered.payload",
+    "type": "object",
+    "properties": {
+        "customer_id": {
+            "$ref": "#/$defs/ULID",
+            "description": "Customer owning the entitlement."
+        },
+        "entitlement_id": {
+            "$ref": "#/$defs/ULID",
+            "description": "Entitlement whose balance crossed the threshold."
+        },
+        "feature_key": {
+            "$ref": "#/$defs/ResourceKey",
+            "description": "Feature of the entitlement."
+        },
+        "current_balance": {
+            "type": "number",
+            "description": "Balance at evaluation time."
+        },
+        "threshold": {
+            "$ref": "#/$defs/BalanceThreshold",
+            "description": "Threshold that was crossed."
+        }
+    },
+    "required": [
+        "customer_id",
+        "entitlement_id",
+        "feature_key",
+        "current_balance",
+        "threshold"
+    ],
+    "unevaluatedProperties": {
+        "not": {}
+    },
+    "description": "Payload of `v1.entitlement.balance_threshold.triggered`.",
+    "$defs": {
+        "ULID": {
+            "type": "string",
+            "examples": [
+                "01G65Z755AFWAKHE12NY0CQ9FH"
+            ],
+            "pattern": "^[0-7][0-9A-HJKMNP-TV-Z]{25}$",
+            "description": "ULID (Universally Unique Lexicographically Sortable Identifier).",
+            "title": "ULID"
+        },
+        "ResourceKey": {
+            "type": "string",
+            "examples": [
+                "resource_key"
+            ],
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9]+(?:_[a-z0-9]+)*$",
+            "description": "A key is a unique string that is used to identify a resource.",
+            "title": "Resource Key"
+        },
+        "BalanceThreshold": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "$ref": "#/$defs/BalanceThresholdType",
+                    "description": "Condition kind of the threshold."
+                },
+                "value": {
+                    "type": "number",
+                    "description": "Threshold value, interpreted according to the threshold type."
+                }
+            },
+            "required": [
+                "type",
+                "value"
+            ],
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "A single entitlement balance threshold."
+        },
+        "BalanceThresholdType": {
+            "type": "string",
+            "enum": [
+                "balance_at_or_below",
+                "usage_percentage_at_or_above"
+            ],
+            "description": "Condition kind of an entitlement balance threshold."
+        }
+    }
+}

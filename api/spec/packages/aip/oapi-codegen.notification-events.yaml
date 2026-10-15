@@ -1,0 +1,12 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/oapi-codegen/oapi-codegen/HEAD/configuration-schema.json
+# Shared oapi-codegen configuration of every domain notificationevents package.
+# The generated go:generate directive in each package (generate.gen.go) passes
+# the package name (-package) and the output file (-o), so neither is set here.
+generate:
+  models: true
+compatibility:
+  disable-required-readonly-as-pointer: true
+  always-prefix-enum-values: true
+output-options:
+  nullable-type: true
+  skip-prune: true

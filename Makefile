@@ -37,7 +37,7 @@ patch-oapi-templates: ## Patch oapi-codegen chi-middleware template with custom 
 update-openapi: patch-oapi-templates ## Update OpenAPI spec
 	$(call print-target)
 	$(MAKE) -C api/spec generate
-	go generate ./api/...
+	go generate ./api/... ./openmeter/.../notificationevents
 
 .PHONY: generate-javascript-sdk
 generate-javascript-sdk: ## Generate JavaScript SDK
