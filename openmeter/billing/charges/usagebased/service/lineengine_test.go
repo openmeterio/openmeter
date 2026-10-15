@@ -163,6 +163,7 @@ func TestAreLinesBillableAsOfDefersAmountDiscountsUntilPeriodEnd(t *testing.T) {
 					CorrelationID:      "percentage-discount",
 				},
 			},
+			expectedPartialBillable: true,
 		},
 		{
 			name: "configured zero percentage discount",
@@ -172,18 +173,21 @@ func TestAreLinesBillableAsOfDefersAmountDiscountsUntilPeriodEnd(t *testing.T) {
 					CorrelationID:      "zero-percentage-discount",
 				},
 			},
+			expectedPartialBillable: true,
 		},
 		{
 			name: "maximum spend before any discount applies",
 			commitments: productcatalog.Commitments{
 				MaximumAmount: lo.ToPtr(alpacadecimal.NewFromInt(100)),
 			},
+			expectedPartialBillable: true,
 		},
 		{
 			name: "configured zero maximum spend",
 			commitments: productcatalog.Commitments{
 				MaximumAmount: lo.ToPtr(alpacadecimal.Zero),
 			},
+			expectedPartialBillable: true,
 		},
 		{
 			name: "usage discount",
