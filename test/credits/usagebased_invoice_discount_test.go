@@ -166,6 +166,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedAmountDiscountsBillProgressiv
 			s.NotEmpty(partiallyBilledCharge.State.CurrentRealizationRunID)
 
 			clock.FreezeTime(invoices[0].DefaultCollectionAtForStandardInvoice())
+			defer clock.UnFreeze()
 			_, err = s.BillingService.AdvanceInvoice(ctx, invoices[0].GetInvoiceID())
 			s.Require().NoError(err)
 			_, err = s.BillingService.ApproveInvoice(ctx, invoices[0].GetInvoiceID())
@@ -363,6 +364,7 @@ func (s *CreditThenInvoiceTestSuite) TestPercentageDiscountProgressiveBilling() 
 
 	invoice1AsOf := lo.Must(time.Parse(time.RFC3339, "2026-01-15T00:00:00Z"))
 	clock.FreezeTime(invoice1AsOf)
+	defer clock.UnFreeze()
 
 	// Invoice 1 bills the first 8 units, all within tier 1
 	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
@@ -402,6 +404,7 @@ func (s *CreditThenInvoiceTestSuite) TestPercentageDiscountProgressiveBilling() 
 	s.Equal(float64(30), invoices[0].Totals.Total.InexactFloat64())
 
 	clock.FreezeTime(invoices[0].DefaultCollectionAtForStandardInvoice())
+	defer clock.UnFreeze()
 	_, err = s.BillingService.AdvanceInvoice(ctx, invoices[0].GetInvoiceID())
 	s.Require().NoError(err)
 	_, err = s.BillingService.ApproveInvoice(ctx, invoices[0].GetInvoiceID())
@@ -411,6 +414,7 @@ func (s *CreditThenInvoiceTestSuite) TestPercentageDiscountProgressiveBilling() 
 		invoice2AsOf := lo.Must(time.Parse(time.RFC3339, "2026-01-30T00:00:00Z"))
 		s.MockStreamingConnector.AddSimpleEvent(meterSlug, 4, invoice2AsOf.Add(-30*time.Hour))
 		clock.FreezeTime(invoice2AsOf)
+		defer clock.UnFreeze()
 
 		// Invoice 2 bills only the delta since invoice 1
 		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
@@ -572,6 +576,7 @@ func (s *CreditThenInvoiceTestSuite) TestPercentageDiscountGraduatedTiersSingleI
 	s.Require().Len(res.Lines, 1)
 
 	clock.FreezeTime(periodEnd)
+	defer clock.UnFreeze()
 
 	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
 		Customer: customerEntity.GetID(),
@@ -738,6 +743,7 @@ func (s *CreditThenInvoiceTestSuite) TestPercentageDiscountProgressiveBillingUsa
 
 	invoice1AsOf := lo.Must(time.Parse(time.RFC3339, "2026-01-15T00:00:00Z"))
 	clock.FreezeTime(invoice1AsOf)
+	defer clock.UnFreeze()
 
 	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
 		Customer: customerEntity.GetID(),
@@ -755,6 +761,7 @@ func (s *CreditThenInvoiceTestSuite) TestPercentageDiscountProgressiveBillingUsa
 	s.Equal(float64(43.5), invoiceLine.Totals.Total.InexactFloat64())
 
 	clock.FreezeTime(invoices[0].DefaultCollectionAtForStandardInvoice())
+	defer clock.UnFreeze()
 	invoice1, err := s.BillingService.AdvanceInvoice(ctx, invoices[0].GetInvoiceID())
 	s.Require().NoError(err)
 	_, err = s.BillingService.ApproveInvoice(ctx, invoice1.GetInvoiceID())
@@ -764,6 +771,7 @@ func (s *CreditThenInvoiceTestSuite) TestPercentageDiscountProgressiveBillingUsa
 		invoice2AsOf := periodEnd
 		s.MockStreamingConnector.AddSimpleEvent(meterSlug, -4, invoice2AsOf.Add(-30*time.Hour))
 		clock.FreezeTime(invoice2AsOf)
+		defer clock.UnFreeze()
 
 		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
 			Customer: customerEntity.GetID(),
