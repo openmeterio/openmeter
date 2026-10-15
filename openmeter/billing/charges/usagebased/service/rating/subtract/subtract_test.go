@@ -8,6 +8,7 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	chargedetailedline "github.com/openmeterio/openmeter/openmeter/billing/charges/models/detailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
@@ -579,6 +580,73 @@ func TestSubtractRatedRunDetailsMatchesByPricerReferenceIDAndPreservesChildUniqu
 			},
 		},
 	}, toExpectedDetailedLines(out))
+}
+
+func TestSubtractRatedRunDetailsNetsAmountDiscounts(t *testing.T) {
+	t.Parallel()
+
+	servicePeriod := timeutil.ClosedPeriod{
+		From: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
+		To:   time.Date(2025, 2, 1, 0, 0, 0, 0, time.UTC),
+	}
+
+	percentageDiscount := func(amount float64) chargedetailedline.AmountDiscount {
+		return chargedetailedline.AmountDiscount{
+			ChildUniqueReferenceID: "rateCardDiscount/correlationID=pct",
+			Reason:                 billing.NewDiscountReasonFrom(billing.PercentageDiscount{CorrelationID: "pct"}),
+			Amount:                 alpacadecimal.NewFromFloat(amount),
+		}
+	}
+
+	t.Run("matched line nets the discount with its totals", func(t *testing.T) {
+		// given: a cumulative tier line with a 25% discount, 8 units of which were already booked
+		current := makeRatedDetailedLineForTest(ratedDetailedLineForTestInput{
+			referenceID:     "graduated-tiered-1-price-usage",
+			servicePeriod:   servicePeriod,
+			perUnitAmount:   5,
+			quantity:        10,
+			totals:          expectedTotals{Amount: 50, DiscountsTotal: 12.5, Total: 37.5},
+			amountDiscounts: chargedetailedline.AmountDiscounts{percentageDiscount(12.5)},
+		})
+		previous := makeRatedDetailedLineForTest(ratedDetailedLineForTestInput{
+			referenceID:     "graduated-tiered-1-price-usage",
+			servicePeriod:   servicePeriod,
+			perUnitAmount:   5,
+			quantity:        8,
+			totals:          expectedTotals{Amount: 40, DiscountsTotal: 10, Total: 30},
+			amountDiscounts: chargedetailedline.AmountDiscounts{percentageDiscount(10)},
+		})
+
+		// when: the booked line is subtracted from the cumulative line
+		out, err := SubtractRatedRunDetails(usagebased.DetailedLines{current}, usagebased.DetailedLines{previous}, NewMockUniqueReferenceIDGenerator(t))
+		require.NoError(t, err)
+
+		// then: the delta discount matches the delta discounts total
+		require.Len(t, out, 1)
+		require.Equal(t, float64(2.5), out[0].Totals.DiscountsTotal.InexactFloat64())
+		require.Equal(t, chargedetailedline.AmountDiscounts{percentageDiscount(2.5)}, out[0].AmountDiscounts)
+	})
+
+	t.Run("previous-only line reverses its discount", func(t *testing.T) {
+		// given: a booked discounted line that the current rating no longer produces
+		previous := makeRatedDetailedLineForTest(ratedDetailedLineForTestInput{
+			referenceID:     "graduated-tiered-1-price-usage",
+			servicePeriod:   servicePeriod,
+			perUnitAmount:   5,
+			quantity:        8,
+			totals:          expectedTotals{Amount: 40, DiscountsTotal: 10, Total: 30},
+			amountDiscounts: chargedetailedline.AmountDiscounts{percentageDiscount(10)},
+		})
+
+		// when: nothing current is left to match it
+		out, err := SubtractRatedRunDetails(usagebased.DetailedLines{}, usagebased.DetailedLines{previous}, NewMockUniqueReferenceIDGenerator(t))
+		require.NoError(t, err)
+
+		// then: the reversal line carries a negated discount alongside its negated totals
+		require.Len(t, out, 1)
+		require.Equal(t, float64(-10), out[0].Totals.DiscountsTotal.InexactFloat64())
+		require.Equal(t, chargedetailedline.AmountDiscounts{percentageDiscount(-10)}, out[0].AmountDiscounts)
+	})
 }
 
 func TestSubtractRatedRunDetailsDoesNotMatchDifferentPricerReferenceIDs(t *testing.T) {
@@ -1489,6 +1557,7 @@ type ratedDetailedLineForTestInput struct {
 	quantity               float64
 	category               stddetailedline.Category
 	totals                 expectedTotals
+	amountDiscounts        chargedetailedline.AmountDiscounts
 }
 
 type passthroughUniqueReferenceIDGenerator struct{}
@@ -1519,6 +1588,7 @@ func makeRatedDetailedLineForTest(in ratedDetailedLineForTestInput) usagebased.D
 	return usagebased.DetailedLine{
 		PricerReferenceID: in.referenceID,
 		Base: chargedetailedline.Base{
+			AmountDiscounts: in.amountDiscounts,
 			Base: stddetailedline.Base{
 				ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 					Namespace: "ns",
