@@ -29,11 +29,11 @@ func (c *Corrector) prepareOriginCorrection(ctx context.Context, input Input, co
 
 	for _, entry := range entries {
 		if lo.FromPtr(entry.Provenance().SpendChargeID) != input.ChargeID {
-			return correctionPlan{}, fmt.Errorf("collection origin belongs to a different spend charge")
+			return correctionPlan{}, models.NewError("ledger_correction_failed", "collection origin belongs to a different spend charge", models.WithAttribute("reason", "ledger_correction_spend_charge_mismatch"))
 		}
 
 		if entry.Provenance().CollectionOriginID == nil {
-			return correctionPlan{}, fmt.Errorf("collection mixes tracked and legacy source entries")
+			return correctionPlan{}, models.NewError("ledger_correction_failed", "collection mixes tracked and legacy source entries", models.WithAttribute("reason", "ledger_correction_mixed_source_tracking"))
 		}
 	}
 
@@ -207,7 +207,7 @@ func (h originReferences) reverseEarnings(at time.Time, selections []correctionS
 		}
 
 		if remaining.IsPositive() {
-			return nil, fmt.Errorf("earnings position lacks original recognition references")
+			return nil, models.NewError("ledger_correction_failed", "earnings position lacks original recognition references", models.WithAttribute("reason", "ledger_correction_recognition_reference_missing"))
 		}
 	}
 
@@ -248,7 +248,7 @@ func (h originReferences) backfillCorrections(selections []correctionSelection) 
 		}
 
 		if remaining.IsPositive() {
-			return nil, fmt.Errorf("funded position lacks original backing references")
+			return nil, models.NewError("ledger_correction_failed", "funded position lacks original backing references", models.WithAttribute("reason", "ledger_correction_backing_reference_missing"))
 		}
 	}
 
