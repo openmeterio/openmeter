@@ -17,4 +17,4 @@ var BillingInvoiceCreatedV1EventType = eventtype.EventType{
 // BillingInvoiceCreatedV1PayloadJSONSchema is the JSON Schema (draft 2020-12) of BillingInvoiceCreatedV1Payload.
 //
 //go:embed schemas/v1.billing.invoice.created.payload.json
-var BillingInvoiceCreatedV1PayloadJSONSchema string
+var BillingInvoiceCreatedV1PayloadJSONSchema []byte

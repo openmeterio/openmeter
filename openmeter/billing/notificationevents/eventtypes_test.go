@@ -3,7 +3,6 @@ package notificationevents
 import (
 	"bytes"
 	"encoding/json"
-	"strings"
 	"testing"
 
 	"github.com/santhosh-tekuri/jsonschema/v6"
@@ -15,7 +14,7 @@ func TestInvoiceCreatedContract(t *testing.T) {
 	require.NoError(t, BillingInvoiceCreatedV1EventType.Validate())
 
 	// given the schema generated from the same TypeSpec model as the struct
-	doc, err := jsonschema.UnmarshalJSON(strings.NewReader(BillingInvoiceCreatedV1PayloadJSONSchema))
+	doc, err := jsonschema.UnmarshalJSON(bytes.NewReader(BillingInvoiceCreatedV1PayloadJSONSchema))
 	require.NoError(t, err)
 
 	c := jsonschema.NewCompiler()
