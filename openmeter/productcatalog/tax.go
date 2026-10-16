@@ -237,7 +237,9 @@ type resolveTaxConfigOptions struct {
 type ResolveTaxConfigOption func(*resolveTaxConfigOptions)
 
 // AllowDeletedTaxCodeByID allows resolving a soft-deleted tax code when TaxCodeID is set.
-// Provider-specific tax-code resolution remains limited to active tax codes.
+// Use it only for already-persisted references that may point to a since-deleted tax code;
+// new references must stay limited to active tax codes. Provider-specific tax-code resolution
+// remains limited to active tax codes.
 func AllowDeletedTaxCodeByID() ResolveTaxConfigOption {
 	return func(options *resolveTaxConfigOptions) {
 		options.allowDeletedTaxCodeByID = true
@@ -246,8 +248,9 @@ func AllowDeletedTaxCodeByID() ResolveTaxConfigOption {
 
 // ResolveTaxConfig cross-populates TaxCodeID and provider-specific codes on the pointed-to
 // config so the persisted record is internally consistent. Four input cases:
-//   - Only TaxCodeID: looks up the entity, validates it exists (400 if not), and sets Stripe
-//     from the entity's Stripe app mapping (or clears Stripe if the entity has no mapping).
+//   - Only TaxCodeID: looks up the entity, validates it exists and is not soft-deleted (400 if
+//     not, unless AllowDeletedTaxCodeByID is set), and sets Stripe from the entity's Stripe app
+//     mapping (or clears Stripe if the entity has no mapping).
 //   - Only Stripe.Code: upserts the TaxCode entity via GetOrCreateByAppMapping and stamps
 //     TaxCodeID (idempotent; updating the code txcd_A → txcd_B updates the FK).
 //   - Both TaxCodeID and Stripe.Code: TaxCodeID wins. Stripe is overridden from the entity's
@@ -273,9 +276,8 @@ func ResolveTaxConfig(ctx context.Context, svc taxcode.Service, namespace string
 	switch {
 	case cfg.TaxCodeID != nil:
 		tc, err := svc.GetTaxCode(ctx, taxcode.GetTaxCodeInput{
-			Namespace:      namespace,
-			ID:             *cfg.TaxCodeID,
-			IncludeDeleted: options.allowDeletedTaxCodeByID,
+			Namespace: namespace,
+			ID:        *cfg.TaxCodeID,
 		})
 		if err != nil {
 			if taxcode.IsTaxCodeNotFoundError(err) {
@@ -283,6 +285,12 @@ func ResolveTaxConfig(ctx context.Context, svc taxcode.Service, namespace string
 			}
 
 			return fmt.Errorf("resolving tax code %s: %w", *cfg.TaxCodeID, err)
+		}
+
+		// GetTaxCode returns soft-deleted tax codes by ID, so deleted codes are rejected here
+		// unless the caller resolves an already-persisted reference.
+		if tc.IsDeleted() && !options.allowDeletedTaxCodeByID {
+			return models.NewGenericValidationError(fmt.Errorf("tax code %s not found", *cfg.TaxCodeID))
 		}
 
 		if m, ok := tc.GetAppMapping(app.AppTypeStripe); ok {

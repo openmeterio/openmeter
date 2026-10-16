@@ -95,6 +95,17 @@ func (a *adapter) ListPlans(ctx context.Context, params plan.ListPlansInput) (pa
 			)
 		}
 
+		if params.TaxCodes != nil {
+			if p := filter.SelectPredicate[predicate.PlanRateCard](filter.Filter(*params.TaxCodes), ratecarddb.FieldTaxCodeID); p != nil {
+				query = query.Where(plandb.HasPhasesWith(
+					phasedb.HasRatecardsWith(
+						*p,
+						ratecarddb.DeletedAtIsNil(),
+					),
+				))
+			}
+		}
+
 		if !params.IncludeDeleted {
 			query = query.Where(plandb.DeletedAtIsNil())
 		}
@@ -344,9 +355,11 @@ func (a *adapter) GetPlan(ctx context.Context, params plan.GetPlanInput) (*plan.
 		query := a.db.Plan.Query()
 
 		if params.ID != "" { // get Plan by ID
-			query = query.Where(plandb.And(
-				plandb.Namespace(params.Namespace),
-				plandb.ID(params.ID)),
+			query = query.Where(
+				plandb.And(
+					plandb.Namespace(params.Namespace),
+					plandb.ID(params.ID),
+				),
 			)
 		} else if params.Key != "" {
 			if params.Version == 0 {

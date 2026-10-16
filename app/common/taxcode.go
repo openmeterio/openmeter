@@ -1,6 +1,7 @@
 package common
 
 import (
+	"fmt"
 	"log/slog"
 	"strings"
 
@@ -10,9 +11,11 @@ import (
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	taxcodeadapter "github.com/openmeterio/openmeter/openmeter/taxcode/adapter"
 	taxcodeservice "github.com/openmeterio/openmeter/openmeter/taxcode/service"
+	taxcodehooks "github.com/openmeterio/openmeter/openmeter/taxcode/service/hooks"
 )
 
 var TaxCode = wire.NewSet(
@@ -40,6 +43,28 @@ func NewTaxCodeService(
 		Adapter: adapter,
 		Logger:  logger.With("subsystem", "taxcode"),
 	})
+}
+
+// TaxCodePlanHook prevents deleting tax codes that are still referenced by plans.
+type TaxCodePlanHook taxcodehooks.PlanHook
+
+// NewTaxCodePlanServiceHook builds the plan-reference hook and registers it
+// on the tax code service. It depends on both the plan and tax code services so wire constructs
+// it only after both exist, avoiding a construction cycle (plan already depends on tax code).
+func NewTaxCodePlanServiceHook(
+	planService plan.Service,
+	taxCodeService taxcode.Service,
+) (TaxCodePlanHook, error) {
+	h, err := taxcodehooks.NewPlanHook(taxcodehooks.PlanHookConfig{
+		PlanService: planService,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create tax code plan hook: %w", err)
+	}
+
+	taxCodeService.RegisterHooks(h)
+
+	return h, nil
 }
 
 func NewTaxCodeNamespaceHandler(

@@ -25,6 +25,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
 	planaddonadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon/adapter"
 	planaddonservice "github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon/service"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/taxcoderesolver"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	taxcodeadapter "github.com/openmeterio/openmeter/openmeter/taxcode/adapter"
 	taxcodeservice "github.com/openmeterio/openmeter/openmeter/taxcode/service"
@@ -122,6 +123,9 @@ func NewTestEnv(t *testing.T) *TestEnv {
 	currencyResolver, err := currenciescurrencyresolver.New(currencyService)
 	require.NoErrorf(t, err, "initializing currency resolver must not fail")
 
+	taxCodeResolver, err := taxcoderesolver.New(taxCodeService)
+	require.NoErrorf(t, err, "failed to create tax code resolver: %v", err)
+
 	// Init plan service
 	planAdapter, err := planadapter.New(planadapter.Config{
 		Client: client,
@@ -134,6 +138,7 @@ func NewTestEnv(t *testing.T) *TestEnv {
 		Adapter:          planAdapter,
 		FeatureResolver:  featureResolver,
 		CurrencyResolver: currencyResolver,
+		TaxCodeResolver:  taxCodeResolver,
 		TaxCode:          taxCodeService,
 		Logger:           logger,
 		Publisher:        publisher,

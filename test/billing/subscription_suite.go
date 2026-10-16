@@ -37,6 +37,7 @@ import (
 	planaddonrepo "github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon/adapter"
 	planaddonservice "github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon/service"
 	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription/testutils"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/taxcoderesolver"
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
@@ -141,9 +142,13 @@ func (s *SubscriptionMixin) SetupSuite(t *testing.T, deps SubscriptionMixInDepen
 	currencyResolver, err := currenciescurrencyresolver.New(currencyService)
 	require.NoError(t, err)
 
+	taxCodeResolver, err := taxcoderesolver.New(taxCodeService)
+	require.NoErrorf(t, err, "failed to create tax code resolver: %v", err)
+
 	planService, err := planservice.New(planservice.Config{
 		FeatureResolver:  featureResolver,
 		CurrencyResolver: currencyResolver,
+		TaxCodeResolver:  taxCodeResolver,
 		Adapter:          planAdapter,
 		TaxCode:          taxCodeService,
 		Logger:           slog.Default(),

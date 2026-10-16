@@ -1199,7 +1199,7 @@ func (s *invoiceUpdateTaxCodeService) ListTaxCodes(context.Context, taxcode.List
 
 func (s *invoiceUpdateTaxCodeService) GetTaxCode(_ context.Context, input taxcode.GetTaxCodeInput) (taxcode.TaxCode, error) {
 	tc, ok := s.taxCodes[input.ID]
-	if !ok || tc.Namespace != input.Namespace || (tc.DeletedAt != nil && !input.IncludeDeleted) {
+	if !ok || tc.Namespace != input.Namespace {
 		return taxcode.TaxCode{}, taxcode.NewTaxCodeNotFoundError(input.ID)
 	}
 
@@ -1242,6 +1242,8 @@ func (s *invoiceUpdateTaxCodeService) GetOrganizationDefaultTaxCodes(context.Con
 func (s *invoiceUpdateTaxCodeService) UpsertOrganizationDefaultTaxCodes(context.Context, taxcode.UpsertOrganizationDefaultTaxCodesInput) (taxcode.OrganizationDefaultTaxCodes, error) {
 	return taxcode.OrganizationDefaultTaxCodes{}, errors.New("UpsertOrganizationDefaultTaxCodes is not supported in this test")
 }
+
+func (s *invoiceUpdateTaxCodeService) RegisterHooks(...models.ServiceHook[taxcode.TaxCode]) {}
 
 type preallocatingInvoiceLineAdapter struct {
 	billing.Adapter
