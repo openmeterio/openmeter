@@ -62,8 +62,8 @@ require (
 	github.com/prometheus/common v0.72.0
 	github.com/qmuntal/stateless v1.8.0
 	github.com/rcrowley/go-metrics v0.0.0-20250401214520-65e299d6c5c9
-	github.com/redis/go-redis/extra/redisotel/v9 v9.22.0
-	github.com/redis/go-redis/v9 v9.22.0
+	github.com/redis/go-redis/extra/redisotel/v9 v9.23.0
+	github.com/redis/go-redis/v9 v9.23.0
 	github.com/rickb777/period v1.3.0
 	github.com/sagikazarmark/mapstructurex v0.1.0
 	github.com/samber/lo v1.53.0
@@ -160,7 +160,7 @@ require (
 	github.com/jonboulle/clockwork v0.5.0 // indirect
 	github.com/kisielk/gotool v1.0.0 // indirect
 	github.com/klauspost/compress v1.20.1 // indirect
-	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
+	github.com/klauspost/cpuid/v2 v2.4.0 // indirect
 	github.com/lithammer/shortuuid/v3 v3.0.7 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
@@ -182,7 +182,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/prometheus/otlptranslator v1.0.0 // indirect
 	github.com/prometheus/procfs v0.22.0 // indirect
-	github.com/redis/go-redis/extra/rediscmd/v9 v9.22.0 // indirect
+	github.com/redis/go-redis/extra/rediscmd/v9 v9.23.0 // indirect
 	github.com/rickb777/plural/v2 v2.1.1 // indirect
 	github.com/robfig/cron/v3 v3.0.1 // indirect
 	github.com/sagikazarmark/locafero v0.11.0 // indirect
@@ -210,7 +210,7 @@ require (
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.47.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.11.1 // indirect
-	go.uber.org/atomic v1.11.0 // indirect
+	go.uber.org/atomic v1.12.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	go.yaml.in/yaml/v4 v4.0.0-rc.2 // indirect
 	golang.org/x/crypto v0.57.0 // indirect

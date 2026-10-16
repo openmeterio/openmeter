@@ -370,7 +370,7 @@ require (
 	github.com/r3labs/diff/v3 v3.0.2 // indirect
 	github.com/rabbitmq/amqp091-go v1.14.0 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20250401214520-65e299d6c5c9 // indirect
-	github.com/redis/go-redis/v9 v9.22.0 // indirect
+	github.com/redis/go-redis/v9 v9.23.0 // indirect
 	github.com/redpanda-data/common-go/authz v0.2.1-0.20260319205134-242ab3c168b8 // indirect
 	github.com/redpanda-data/common-go/license v0.0.0-20260318014216-2bbd72bde0a0 // indirect
 	github.com/redpanda-data/common-go/redpanda-otel-exporter v0.4.0 // indirect
@@ -452,7 +452,7 @@ require (
 	go.opentelemetry.io/otel/sdk v1.47.0 // indirect
 	go.opentelemetry.io/otel/sdk/log v1.47.0 // indirect
 	go.opentelemetry.io/otel/sdk/metric v1.47.0 // indirect
-	go.uber.org/atomic v1.11.0 // indirect
+	go.uber.org/atomic v1.12.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.28.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.4 // indirect
