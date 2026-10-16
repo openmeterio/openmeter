@@ -872,3 +872,43 @@ func TestValidationWithMessage(t *testing.T) {
 		require.NoError(t, ValidationWithMessage(nil, "unused", models.Attributes{"unused": true}))
 	})
 }
+
+func TestStructuredSystemErrorClassification(t *testing.T) {
+	validation := models.NewValidationIssue("invoice_invalid", "invoice cannot proceed")
+	system := models.NewError("ledger_failed", "accounting failed", models.WithCause(validation)).
+		WithAttr("reason", "missing_source")
+
+	for _, tc := range []struct {
+		name string
+		err  error
+	}{
+		{name: "value", err: system},
+		{name: "pointer", err: &system},
+		{name: "formatted wrapper", err: fmt.Errorf("collect: %w", system)},
+		{name: "component wrapper", err: ValidationWithComponent("ledger", system)},
+		{name: "field wrapper", err: ValidationWithFieldPrefix("lines", system)},
+		{name: "attribute wrapper", err: ValidationWithAttributes(models.Annotations{"operation": "collect"}, system)},
+		{name: "joined with warning", err: errors.Join(NewValidationWarning("warning", "warning"), system)},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			issues, err := ToValidationIssues(tc.err)
+			require.ErrorIs(t, err, system)
+			require.Empty(t, issues)
+			require.False(t, IsValidationIssueOnly(tc.err))
+		})
+	}
+}
+
+func TestExplicitStructuredErrorConversionPreservesContext(t *testing.T) {
+	system := models.NewError("provider_failed", "provider rejected invoice", models.WithComponent("provider")).
+		WithAttr("reason", "missing_address")
+
+	issues, err := ToValidationIssues(WrapAsValidationIssue(fmt.Errorf("sync: %w", system), WithWarningSeverity()))
+	require.NoError(t, err)
+	require.Len(t, issues, 1)
+	require.Equal(t, "provider_failed", issues[0].Code)
+	require.Equal(t, system.Message(), issues[0].Message)
+	require.Equal(t, ComponentName("provider"), issues[0].Component)
+	require.Equal(t, ValidationIssueSeverityWarning, issues[0].Severity)
+	require.Equal(t, "missing_address", issues[0].Attributes["reason"])
+}

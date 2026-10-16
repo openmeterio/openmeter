@@ -87,6 +87,17 @@ persist the returned group reference with its own lifecycle state. Ledger
 annotations and entry identity preserve accounting meaning and provenance; they
 are not operation idempotency keys.
 
+## Error diagnostics
+
+Accounting guards use fixed diagnostic reasons, such as
+`ledger_breakage_release_exceeds_open_amount`. Add them with
+`models.NewError` and its `reason` attribute. These remain system errors;
+use `models.NewValidationIssue` only for domain validation.
+Existing validation issues keep their codes and `reason` attributes.
+The shared error handler logs both as `error_codes` and `error_reasons`, including
+through wrapping and joined errors. Keep IDs and amounts in the message, not the
+reason. Direct logger calls do not extract this metadata.
+
 ## Collection provenance
 
 Entry provenance carries three distinct identities:

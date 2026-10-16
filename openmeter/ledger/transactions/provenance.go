@@ -39,30 +39,30 @@ func (i ReverseOriginEntryPairInput) Validate() error {
 	}
 
 	if i.NegativeEntry.TransactionID() != i.Transaction.ID() || i.PositiveEntry.TransactionID() != i.Transaction.ID() {
-		errs = append(errs, errors.New("entries must belong to the original transaction"))
+		errs = append(errs, models.NewError("ledger_reversal_invalid", "entries must belong to the original transaction", models.WithAttribute("reason", "ledger_reversal_transaction_mismatch")))
 	}
 
 	if i.NegativeEntry.Provenance().CollectionOriginID == nil || !equal.ComparablePtrEqual(i.NegativeEntry.Provenance().CollectionOriginID, i.PositiveEntry.Provenance().CollectionOriginID) {
-		errs = append(errs, errors.New("entries must share a collection origin"))
+		errs = append(errs, models.NewError("ledger_reversal_invalid", "entries must share a collection origin", models.WithAttribute("reason", "ledger_reversal_origin_mismatch")))
 	}
 
 	if !i.NegativeEntry.Amount().IsNegative() || !i.PositiveEntry.Amount().IsPositive() || !i.NegativeEntry.Amount().Neg().Equal(i.PositiveEntry.Amount()) {
-		errs = append(errs, errors.New("original entries must form an equal and opposite pair"))
+		errs = append(errs, models.NewError("ledger_reversal_invalid", "original entries must form an equal and opposite pair", models.WithAttribute("reason", "ledger_reversal_pair_unbalanced")))
 	}
 
 	if i.Amount.GreaterThan(i.PositiveEntry.Amount()) {
-		errs = append(errs, errors.New("amount exceeds original pair"))
+		errs = append(errs, models.NewError("ledger_reversal_invalid", "amount exceeds original pair", models.WithAttribute("reason", "ledger_reversal_exceeds_original_pair")))
 	}
 
 	if !i.NegativeEntry.PostingAddress().Route().Route().Currency.Equal(i.PositiveEntry.PostingAddress().Route().Route().Currency) {
-		errs = append(errs, errors.New("entry-pair reversal cannot convert currency"))
+		errs = append(errs, models.NewError("ledger_reversal_invalid", "entry-pair reversal cannot convert currency", models.WithAttribute("reason", "ledger_reversal_currency_mismatch")))
 	}
 
 	direction, err := ledger.TransactionDirectionFromAnnotations(i.Transaction.Annotations())
 	if err != nil {
 		errs = append(errs, err)
 	} else if direction != ledger.TransactionDirectionForward {
-		errs = append(errs, errors.New("only forward transactions can be reversed"))
+		errs = append(errs, models.NewError("ledger_reversal_invalid", "only forward transactions can be reversed", models.WithAttribute("reason", "ledger_reversal_direction_invalid")))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
