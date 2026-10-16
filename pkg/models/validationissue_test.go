@@ -156,13 +156,13 @@ func TestValidationIssue_Clone(t *testing.T) {
 				message:    errTestValidationIssue.message,
 				field:      errTestValidationIssue.field,
 				severity:   errTestValidationIssue.severity,
-				wraps:      errTestValidationIssue,
+				previous:   errTestValidationIssue,
 			},
 		},
 		{
 			name:          "empty",
 			issue:         ValidationIssue{},
-			expectedIssue: ValidationIssue{wraps: ValidationIssue{}},
+			expectedIssue: ValidationIssue{previous: ValidationIssue{}},
 		},
 	}
 
