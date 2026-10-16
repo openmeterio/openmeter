@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 	"github.com/stripe/stripe-go/v80"
+	metricnoop "go.opentelemetry.io/otel/metric/noop"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
@@ -135,6 +136,7 @@ func (s *StripeInvoiceTestSuite) SetupSuite() {
 	advanceService := advancetestutils.NewService(s.T(), ledgerDeps, breakageService)
 
 	collectorService, err := ledgercollector.NewService(ledgercollector.Config{
+		Meter:   metricnoop.NewMeterProvider().Meter("test"),
 		Logger:  omtestutils.NewDiscardLogger(s.T()),
 		Advance: advanceService,
 		Ledger:  ledgerDeps.HistoricalLedger,

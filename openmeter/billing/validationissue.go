@@ -524,14 +524,32 @@ func toValidationIssue(err error, fieldPrefix string, component ComponentName, m
 				Attributes: mergedAttributes,
 			},
 		}, nil
+	case models.Error:
+		if ordinaryErrorSeverity == "" {
+			return nil, err
+		}
+
+		// Conversion is explicit at this boundary; keep the structured context.
+		severity := models.ErrorSeverityCritical
+		if ordinaryErrorSeverity == ValidationIssueSeverityWarning {
+			severity = models.ErrorSeverityWarning
+		}
+
+		return modelErrorAsBillingValidationIssue(errT.WithSeverity(severity), fieldPrefix, component, messagePrefix, attributes)
+	case *models.Error:
+		if errT == nil {
+			return nil, nil
+		}
+
+		return toValidationIssue(*errT, fieldPrefix, component, messagePrefix, attributes, ordinaryErrorSeverity)
 	case models.ValidationIssue:
-		return modelValidationIssueAsBillingValidationIssue(errT, fieldPrefix, component, messagePrefix, attributes)
+		return modelErrorAsBillingValidationIssue(models.Error(errT), fieldPrefix, component, messagePrefix, attributes)
 	case *models.ValidationIssue:
 		if errT == nil {
 			return nil, nil
 		}
 
-		return modelValidationIssueAsBillingValidationIssue(*errT, fieldPrefix, component, messagePrefix, attributes)
+		return modelErrorAsBillingValidationIssue(models.Error(*errT), fieldPrefix, component, messagePrefix, attributes)
 	}
 
 	switch errT := err.(type) {
@@ -573,7 +591,7 @@ func toValidationIssue(err error, fieldPrefix string, component ComponentName, m
 	}
 }
 
-func modelValidationIssueAsBillingValidationIssue(issue models.ValidationIssue, fieldPrefix string, component ComponentName, messagePrefix string, attributes models.Annotations) ([]ValidationIssue, error) {
+func modelErrorAsBillingValidationIssue(issue models.Error, fieldPrefix string, component ComponentName, messagePrefix string, attributes models.Annotations) ([]ValidationIssue, error) {
 	issueComponent := component
 	if issueComponent == "" {
 		issueComponent = ComponentName(issue.Component())

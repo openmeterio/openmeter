@@ -6,6 +6,8 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/stretchr/testify/require"
+
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func TestCollectionCorrectionSelectsSourceBeforeState(t *testing.T) {
@@ -79,4 +81,8 @@ func TestCollectionCorrectionUsesOriginalBackingOrder(t *testing.T) {
 		amount:    alpacadecimal.NewFromInt(16),
 	})
 	require.ErrorContains(t, err, "exceeds remaining collection balance")
+
+	var diagnostic models.Error
+	require.ErrorAs(t, err, &diagnostic)
+	require.Equal(t, "ledger_correction_exceeds_remaining_balance", diagnostic.Attributes()["reason"])
 }

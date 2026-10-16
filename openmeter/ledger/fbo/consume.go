@@ -281,7 +281,7 @@ func assignSourceDebitIDs(creditTransactions []ledger.TransactionInput) (map[str
 
 			originID := lo.FromPtr(entry.Provenance().CollectionOriginID)
 			if _, exists := sourceDebitsByOrigin[originID]; exists {
-				return nil, fmt.Errorf("collection origin %s has multiple FBO source entries", originID)
+				return nil, models.NewError("ledger_fbo_consumption_failed", fmt.Sprintf("collection origin %s has multiple FBO source entries", originID), models.WithAttribute("reason", "ledger_fbo_source_debit_ambiguous"))
 			}
 
 			sourceDebitsByOrigin[originID] = sourcePostingIDs{
@@ -328,7 +328,7 @@ func (s *service) releaseConsumedBreakage(ctx context.Context, input releaseCons
 	for _, selection := range input.SelectedCredits {
 		consumedSource, ok := input.SourceDebitsByOrigin[lo.FromPtr(selection.collectionOriginID)]
 		if !ok {
-			return nil, errors.New("selected credit has no resolved FBO source posting")
+			return nil, models.NewError("ledger_fbo_consumption_failed", "selected credit has no resolved FBO source posting", models.WithAttribute("reason", "ledger_fbo_source_debit_missing"))
 		}
 
 		if selection.source.breakagePlan != nil {
@@ -341,7 +341,7 @@ func (s *service) releaseConsumedBreakage(ctx context.Context, input releaseCons
 			// Legacy source-less plans can span several selected source slices;
 			// cap their combined release before writing more bookkeeping.
 			if selection.amount.GreaterThan(remaining) {
-				return nil, fmt.Errorf("release amount exceeds remaining breakage plan amount for %s", breakagePlan.ID.ID)
+				return nil, models.NewError("ledger_fbo_consumption_failed", fmt.Sprintf("release amount exceeds remaining breakage plan amount for %s", breakagePlan.ID.ID), models.WithAttribute("reason", "ledger_breakage_release_exceeds_open_amount"))
 			}
 
 			remainingBreakageByPlanID[breakagePlan.ID.ID] = remaining.Sub(selection.amount)

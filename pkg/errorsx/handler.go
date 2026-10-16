@@ -34,48 +34,52 @@ func NewSlogHandler(logger *slog.Logger) SlogHandler {
 }
 
 func (h SlogHandler) Handle(err error) {
+	attrs := diagnosticAttributes(err)
+
 	// Context canceled errors are logged as warnings.
 	if contextx.IsCanceledError(err) {
-		h.Logger.Warn(err.Error())
+		h.Logger.Warn(err.Error(), attrs...)
 		return
 	}
 
 	if isAPIError(err) {
-		h.Logger.Warn(err.Error())
+		h.Logger.Warn(err.Error(), attrs...)
 		return
 	}
 
 	// Warn errors are logged as warnings.
 	if wErr, ok := lo.ErrorsAs[*warnError](err); ok {
-		h.Logger.Warn(wErr.Error())
+		h.Logger.Warn(wErr.Error(), attrs...)
 		return
 	}
 
 	// All other errors are logged as errors.
-	h.Logger.Error(err.Error())
+	h.Logger.Error(err.Error(), attrs...)
 }
 
 func (h SlogHandler) HandleContext(ctx context.Context, err error) {
+	attrs := diagnosticAttributes(err)
+
 	// Only downgrade cancellations of the caller's context. Independent dependency
 	// cancellations remain failures while the caller is still waiting for a response.
 	if errors.Is(ctx.Err(), context.Canceled) && contextx.IsCanceledError(err) {
-		h.Logger.WarnContext(ctx, err.Error())
+		h.Logger.WarnContext(ctx, err.Error(), attrs...)
 		return
 	}
 
 	if isAPIError(err) {
-		h.Logger.WarnContext(ctx, err.Error())
+		h.Logger.WarnContext(ctx, err.Error(), attrs...)
 		return
 	}
 
 	// Warn errors are logged as warnings.
 	if wErr, ok := lo.ErrorsAs[*warnError](err); ok {
-		h.Logger.WarnContext(ctx, wErr.Error())
+		h.Logger.WarnContext(ctx, wErr.Error(), attrs...)
 		return
 	}
 
 	// All other errors are logged as errors.
-	h.Logger.ErrorContext(ctx, err.Error())
+	h.Logger.ErrorContext(ctx, err.Error(), attrs...)
 }
 
 // NopHandler ignores all errors. Useful for testing.

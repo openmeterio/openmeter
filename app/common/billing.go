@@ -252,6 +252,7 @@ func NewBillingRegistry(
 
 	if creditsConfig.Enabled {
 		chargesRegistry, err = newChargesRegistry(
+			metricMeter,
 			db,
 			logger,
 			locker,
