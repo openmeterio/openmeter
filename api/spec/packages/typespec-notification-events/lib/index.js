@@ -119,7 +119,8 @@ export function $onValidate(program) {
 
     const payload = goName(program, model)
     const payloadSuffix = `V${e.version}Payload`
-    if (!payload.endsWith(payloadSuffix)) {
+    const hasPayloadSuffix = payload.endsWith(payloadSuffix)
+    if (!hasPayloadSuffix) {
       invalid(
         model,
         `Payload ${payload} of ${e.eventType} must have a friendly name ending in ${payloadSuffix}.`,
@@ -129,8 +130,10 @@ export function $onValidate(program) {
     const roots = [[model, `${e.eventType}.payload`]]
     if (e.ruleConfig) {
       roots.push([e.ruleConfig, `${e.eventType}.rule_config`])
+      // The expected name derives from the payload's, so it is only
+      // meaningful once the payload name itself is valid.
       const expected = payload.replace(/Payload$/, 'RuleConfig')
-      if (goName(program, e.ruleConfig) !== expected) {
+      if (hasPayloadSuffix && goName(program, e.ruleConfig) !== expected) {
         invalid(
           e.ruleConfig,
           `Rule configuration of ${e.eventType} must have the friendly name ${expected}.`,
