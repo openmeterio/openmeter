@@ -17,10 +17,10 @@ var EntitlementBalanceThresholdTriggeredV1EventType = eventtype.EventType{
 // EntitlementBalanceThresholdTriggeredV1PayloadJSONSchema is the JSON Schema (draft 2020-12) of EntitlementBalanceThresholdTriggeredV1Payload.
 //
 //go:embed schemas/v1.entitlement.balance_threshold.triggered.payload.json
-var EntitlementBalanceThresholdTriggeredV1PayloadJSONSchema string
+var EntitlementBalanceThresholdTriggeredV1PayloadJSONSchema []byte
 
 // EntitlementBalanceThresholdTriggeredV1RuleConfigJSONSchema is the JSON Schema (draft 2020-12) of
 // EntitlementBalanceThresholdTriggeredV1RuleConfig, the Rule configuration of v1.entitlement.balance_threshold.triggered.
 //
 //go:embed schemas/v1.entitlement.balance_threshold.triggered.rule_config.json
-var EntitlementBalanceThresholdTriggeredV1RuleConfigJSONSchema string
+var EntitlementBalanceThresholdTriggeredV1RuleConfigJSONSchema []byte

@@ -1,6 +1,7 @@
 package notificationevents
 
 import (
+	"bytes"
 	"encoding/json"
 	"strings"
 	"testing"
@@ -9,10 +10,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func compileSchema(t *testing.T, raw string) *jsonschema.Schema {
+func compileSchema(t *testing.T, raw []byte) *jsonschema.Schema {
 	t.Helper()
 
-	doc, err := jsonschema.UnmarshalJSON(strings.NewReader(raw))
+	doc, err := jsonschema.UnmarshalJSON(bytes.NewReader(raw))
 	require.NoError(t, err)
 
 	c := jsonschema.NewCompiler()

@@ -159,13 +159,13 @@ var WidgetThingHappenedV1EventType = eventtype.EventType{
 // WidgetThingHappenedV1PayloadJSONSchema is the JSON Schema (draft 2020-12) of WidgetThingHappenedV1Payload.
 //
 //go:embed schemas/v1.widget.thing.happened.payload.json
-var WidgetThingHappenedV1PayloadJSONSchema string
+var WidgetThingHappenedV1PayloadJSONSchema []byte
 
 // WidgetThingHappenedV1RuleConfigJSONSchema is the JSON Schema (draft 2020-12) of
 // WidgetThingHappenedV1RuleConfig, the Rule configuration of v1.widget.thing.happened.
 //
 //go:embed schemas/v1.widget.thing.happened.rule_config.json
-var WidgetThingHappenedV1RuleConfigJSONSchema string
+var WidgetThingHappenedV1RuleConfigJSONSchema []byte
 `)
 
     expect(JSON.parse(outputs['manifest.json'])).toEqual([

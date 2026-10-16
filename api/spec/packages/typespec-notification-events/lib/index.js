@@ -241,7 +241,7 @@ export async function $onEmit(context) {
           `// ${stem}PayloadJSONSchema is the JSON Schema (draft 2020-12) of ${payload}.`,
           '//',
           `//go:embed schemas/${payloadSchema}`,
-          `var ${stem}PayloadJSONSchema string`,
+          `var ${stem}PayloadJSONSchema []byte`,
           '',
         )
         if (e.ruleConfig) {
@@ -255,7 +255,7 @@ export async function $onEmit(context) {
             `// ${goName(program, e.ruleConfig)}, the Rule configuration of ${e.eventType}.`,
             '//',
             `//go:embed schemas/${ruleConfigSchema}`,
-            `var ${stem}RuleConfigJSONSchema string`,
+            `var ${stem}RuleConfigJSONSchema []byte`,
             '',
           )
         }
