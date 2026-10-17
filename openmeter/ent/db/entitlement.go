@@ -67,6 +67,8 @@ type Entitlement struct {
 	CurrentUsagePeriodStart *time.Time `json:"current_usage_period_start,omitempty"`
 	// CurrentUsagePeriodEnd holds the value of the "current_usage_period_end" field.
 	CurrentUsagePeriodEnd *time.Time `json:"current_usage_period_end,omitempty"`
+	// BalanceSnapshotInvalidationVersion holds the value of the "balance_snapshot_invalidation_version" field.
+	BalanceSnapshotInvalidationVersion uint64 `json:"balance_snapshot_invalidation_version,omitempty"`
 	// Annotations holds the value of the "annotations" field.
 	Annotations models.Annotations `json:"annotations,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
@@ -163,7 +165,7 @@ func (*Entitlement) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullBool)
 		case entitlement.FieldIssueAfterReset:
 			values[i] = new(sql.NullFloat64)
-		case entitlement.FieldIssueAfterResetPriority:
+		case entitlement.FieldIssueAfterResetPriority, entitlement.FieldBalanceSnapshotInvalidationVersion:
 			values[i] = new(sql.NullInt64)
 		case entitlement.FieldID, entitlement.FieldNamespace, entitlement.FieldEntitlementType, entitlement.FieldFeatureID, entitlement.FieldFeatureKey, entitlement.FieldCustomerID, entitlement.FieldConfig, entitlement.FieldUsagePeriodInterval:
 			values[i] = new(sql.NullString)
@@ -341,6 +343,12 @@ func (_m *Entitlement) assignValues(columns []string, values []any) error {
 				_m.CurrentUsagePeriodEnd = new(time.Time)
 				*_m.CurrentUsagePeriodEnd = value.Time
 			}
+		case entitlement.FieldBalanceSnapshotInvalidationVersion:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field balance_snapshot_invalidation_version", values[i])
+			} else if value.Valid {
+				_m.BalanceSnapshotInvalidationVersion = uint64(value.Int64)
+			}
 		case entitlement.FieldAnnotations:
 			if value, err := entitlement.ValueScanner.Annotations.FromValue(values[i]); err != nil {
 				return err
@@ -506,6 +514,9 @@ func (_m *Entitlement) String() string {
 		builder.WriteString("current_usage_period_end=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
+	builder.WriteString(", ")
+	builder.WriteString("balance_snapshot_invalidation_version=")
+	builder.WriteString(fmt.Sprintf("%v", _m.BalanceSnapshotInvalidationVersion))
 	builder.WriteString(", ")
 	builder.WriteString("annotations=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Annotations))

@@ -284,6 +284,20 @@ func (_c *EntitlementCreate) SetNillableCurrentUsagePeriodEnd(v *time.Time) *Ent
 	return _c
 }
 
+// SetBalanceSnapshotInvalidationVersion sets the "balance_snapshot_invalidation_version" field.
+func (_c *EntitlementCreate) SetBalanceSnapshotInvalidationVersion(v uint64) *EntitlementCreate {
+	_c.mutation.SetBalanceSnapshotInvalidationVersion(v)
+	return _c
+}
+
+// SetNillableBalanceSnapshotInvalidationVersion sets the "balance_snapshot_invalidation_version" field if the given value is not nil.
+func (_c *EntitlementCreate) SetNillableBalanceSnapshotInvalidationVersion(v *uint64) *EntitlementCreate {
+	if v != nil {
+		_c.SetBalanceSnapshotInvalidationVersion(*v)
+	}
+	return _c
+}
+
 // SetAnnotations sets the "annotations" field.
 func (_c *EntitlementCreate) SetAnnotations(v models.Annotations) *EntitlementCreate {
 	_c.mutation.SetAnnotations(v)
@@ -417,6 +431,10 @@ func (_c *EntitlementCreate) defaults() {
 		v := entitlement.DefaultUpdatedAt()
 		_c.mutation.SetUpdatedAt(v)
 	}
+	if _, ok := _c.mutation.BalanceSnapshotInvalidationVersion(); !ok {
+		v := entitlement.DefaultBalanceSnapshotInvalidationVersion
+		_c.mutation.SetBalanceSnapshotInvalidationVersion(v)
+	}
 	if _, ok := _c.mutation.ID(); !ok {
 		v := entitlement.DefaultID()
 		_c.mutation.SetID(v)
@@ -465,6 +483,9 @@ func (_c *EntitlementCreate) check() error {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "unit_config", err: fmt.Errorf(`db: validator failed for field "Entitlement.unit_config": %w`, err)}
 		}
+	}
+	if _, ok := _c.mutation.BalanceSnapshotInvalidationVersion(); !ok {
+		return &ValidationError{Name: "balance_snapshot_invalidation_version", err: errors.New(`db: missing required field "Entitlement.balance_snapshot_invalidation_version"`)}
 	}
 	if len(_c.mutation.FeatureIDs()) == 0 {
 		return &ValidationError{Name: "feature", err: errors.New(`db: missing required edge "Entitlement.feature"`)}
@@ -594,6 +615,10 @@ func (_c *EntitlementCreate) createSpec() (*Entitlement, *sqlgraph.CreateSpec, e
 	if value, ok := _c.mutation.CurrentUsagePeriodEnd(); ok {
 		_spec.SetField(entitlement.FieldCurrentUsagePeriodEnd, field.TypeTime, value)
 		_node.CurrentUsagePeriodEnd = &value
+	}
+	if value, ok := _c.mutation.BalanceSnapshotInvalidationVersion(); ok {
+		_spec.SetField(entitlement.FieldBalanceSnapshotInvalidationVersion, field.TypeUint64, value)
+		_node.BalanceSnapshotInvalidationVersion = value
 	}
 	if value, ok := _c.mutation.Annotations(); ok {
 		vv, err := entitlement.ValueScanner.Annotations.Value(value)
@@ -891,6 +916,24 @@ func (u *EntitlementUpsert) ClearCurrentUsagePeriodEnd() *EntitlementUpsert {
 	return u
 }
 
+// SetBalanceSnapshotInvalidationVersion sets the "balance_snapshot_invalidation_version" field.
+func (u *EntitlementUpsert) SetBalanceSnapshotInvalidationVersion(v uint64) *EntitlementUpsert {
+	u.Set(entitlement.FieldBalanceSnapshotInvalidationVersion, v)
+	return u
+}
+
+// UpdateBalanceSnapshotInvalidationVersion sets the "balance_snapshot_invalidation_version" field to the value that was provided on create.
+func (u *EntitlementUpsert) UpdateBalanceSnapshotInvalidationVersion() *EntitlementUpsert {
+	u.SetExcluded(entitlement.FieldBalanceSnapshotInvalidationVersion)
+	return u
+}
+
+// AddBalanceSnapshotInvalidationVersion adds v to the "balance_snapshot_invalidation_version" field.
+func (u *EntitlementUpsert) AddBalanceSnapshotInvalidationVersion(v uint64) *EntitlementUpsert {
+	u.Add(entitlement.FieldBalanceSnapshotInvalidationVersion, v)
+	return u
+}
+
 // SetAnnotations sets the "annotations" field.
 func (u *EntitlementUpsert) SetAnnotations(v models.Annotations) *EntitlementUpsert {
 	u.Set(entitlement.FieldAnnotations, v)
@@ -1157,6 +1200,27 @@ func (u *EntitlementUpsertOne) UpdateCurrentUsagePeriodEnd() *EntitlementUpsertO
 func (u *EntitlementUpsertOne) ClearCurrentUsagePeriodEnd() *EntitlementUpsertOne {
 	return u.Update(func(s *EntitlementUpsert) {
 		s.ClearCurrentUsagePeriodEnd()
+	})
+}
+
+// SetBalanceSnapshotInvalidationVersion sets the "balance_snapshot_invalidation_version" field.
+func (u *EntitlementUpsertOne) SetBalanceSnapshotInvalidationVersion(v uint64) *EntitlementUpsertOne {
+	return u.Update(func(s *EntitlementUpsert) {
+		s.SetBalanceSnapshotInvalidationVersion(v)
+	})
+}
+
+// AddBalanceSnapshotInvalidationVersion adds v to the "balance_snapshot_invalidation_version" field.
+func (u *EntitlementUpsertOne) AddBalanceSnapshotInvalidationVersion(v uint64) *EntitlementUpsertOne {
+	return u.Update(func(s *EntitlementUpsert) {
+		s.AddBalanceSnapshotInvalidationVersion(v)
+	})
+}
+
+// UpdateBalanceSnapshotInvalidationVersion sets the "balance_snapshot_invalidation_version" field to the value that was provided on create.
+func (u *EntitlementUpsertOne) UpdateBalanceSnapshotInvalidationVersion() *EntitlementUpsertOne {
+	return u.Update(func(s *EntitlementUpsert) {
+		s.UpdateBalanceSnapshotInvalidationVersion()
 	})
 }
 
@@ -1599,6 +1663,27 @@ func (u *EntitlementUpsertBulk) UpdateCurrentUsagePeriodEnd() *EntitlementUpsert
 func (u *EntitlementUpsertBulk) ClearCurrentUsagePeriodEnd() *EntitlementUpsertBulk {
 	return u.Update(func(s *EntitlementUpsert) {
 		s.ClearCurrentUsagePeriodEnd()
+	})
+}
+
+// SetBalanceSnapshotInvalidationVersion sets the "balance_snapshot_invalidation_version" field.
+func (u *EntitlementUpsertBulk) SetBalanceSnapshotInvalidationVersion(v uint64) *EntitlementUpsertBulk {
+	return u.Update(func(s *EntitlementUpsert) {
+		s.SetBalanceSnapshotInvalidationVersion(v)
+	})
+}
+
+// AddBalanceSnapshotInvalidationVersion adds v to the "balance_snapshot_invalidation_version" field.
+func (u *EntitlementUpsertBulk) AddBalanceSnapshotInvalidationVersion(v uint64) *EntitlementUpsertBulk {
+	return u.Update(func(s *EntitlementUpsert) {
+		s.AddBalanceSnapshotInvalidationVersion(v)
+	})
+}
+
+// UpdateBalanceSnapshotInvalidationVersion sets the "balance_snapshot_invalidation_version" field to the value that was provided on create.
+func (u *EntitlementUpsertBulk) UpdateBalanceSnapshotInvalidationVersion() *EntitlementUpsertBulk {
+	return u.Update(func(s *EntitlementUpsert) {
+		s.UpdateBalanceSnapshotInvalidationVersion()
 	})
 }
 

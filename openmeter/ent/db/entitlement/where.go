@@ -162,6 +162,11 @@ func CurrentUsagePeriodEnd(v time.Time) predicate.Entitlement {
 	return predicate.Entitlement(sql.FieldEQ(FieldCurrentUsagePeriodEnd, v))
 }
 
+// BalanceSnapshotInvalidationVersion applies equality check predicate on the "balance_snapshot_invalidation_version" field. It's identical to BalanceSnapshotInvalidationVersionEQ.
+func BalanceSnapshotInvalidationVersion(v uint64) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldEQ(FieldBalanceSnapshotInvalidationVersion, v))
+}
+
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
 func NamespaceEQ(v string) predicate.Entitlement {
 	return predicate.Entitlement(sql.FieldEQ(FieldNamespace, v))
@@ -1199,6 +1204,46 @@ func CurrentUsagePeriodEndIsNil() predicate.Entitlement {
 // CurrentUsagePeriodEndNotNil applies the NotNil predicate on the "current_usage_period_end" field.
 func CurrentUsagePeriodEndNotNil() predicate.Entitlement {
 	return predicate.Entitlement(sql.FieldNotNull(FieldCurrentUsagePeriodEnd))
+}
+
+// BalanceSnapshotInvalidationVersionEQ applies the EQ predicate on the "balance_snapshot_invalidation_version" field.
+func BalanceSnapshotInvalidationVersionEQ(v uint64) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldEQ(FieldBalanceSnapshotInvalidationVersion, v))
+}
+
+// BalanceSnapshotInvalidationVersionNEQ applies the NEQ predicate on the "balance_snapshot_invalidation_version" field.
+func BalanceSnapshotInvalidationVersionNEQ(v uint64) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldNEQ(FieldBalanceSnapshotInvalidationVersion, v))
+}
+
+// BalanceSnapshotInvalidationVersionIn applies the In predicate on the "balance_snapshot_invalidation_version" field.
+func BalanceSnapshotInvalidationVersionIn(vs ...uint64) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldIn(FieldBalanceSnapshotInvalidationVersion, vs...))
+}
+
+// BalanceSnapshotInvalidationVersionNotIn applies the NotIn predicate on the "balance_snapshot_invalidation_version" field.
+func BalanceSnapshotInvalidationVersionNotIn(vs ...uint64) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldNotIn(FieldBalanceSnapshotInvalidationVersion, vs...))
+}
+
+// BalanceSnapshotInvalidationVersionGT applies the GT predicate on the "balance_snapshot_invalidation_version" field.
+func BalanceSnapshotInvalidationVersionGT(v uint64) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldGT(FieldBalanceSnapshotInvalidationVersion, v))
+}
+
+// BalanceSnapshotInvalidationVersionGTE applies the GTE predicate on the "balance_snapshot_invalidation_version" field.
+func BalanceSnapshotInvalidationVersionGTE(v uint64) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldGTE(FieldBalanceSnapshotInvalidationVersion, v))
+}
+
+// BalanceSnapshotInvalidationVersionLT applies the LT predicate on the "balance_snapshot_invalidation_version" field.
+func BalanceSnapshotInvalidationVersionLT(v uint64) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldLT(FieldBalanceSnapshotInvalidationVersion, v))
+}
+
+// BalanceSnapshotInvalidationVersionLTE applies the LTE predicate on the "balance_snapshot_invalidation_version" field.
+func BalanceSnapshotInvalidationVersionLTE(v uint64) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldLTE(FieldBalanceSnapshotInvalidationVersion, v))
 }
 
 // AnnotationsIsNil applies the IsNil predicate on the "annotations" field.
