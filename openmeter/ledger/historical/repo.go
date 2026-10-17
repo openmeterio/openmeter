@@ -2,6 +2,8 @@ package historical
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
@@ -65,9 +67,23 @@ type CreateTransactionInput struct {
 }
 
 type CreateTransactionGroupInput struct {
+	ID        string
 	Namespace string
 
 	Annotations models.Annotations
+}
+
+func (i CreateTransactionGroupInput) Validate() error {
+	var errs []error
+	if i.Namespace == "" {
+		errs = append(errs, errors.New("namespace is required"))
+	}
+
+	if err := ledger.ValidateAssignedID(i.ID); err != nil {
+		errs = append(errs, fmt.Errorf("ID: %w", err))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type TransactionGroupData struct {

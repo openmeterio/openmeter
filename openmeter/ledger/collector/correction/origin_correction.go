@@ -136,6 +136,7 @@ func (c *Corrector) correctOrigin(ctx context.Context, input Input, source colle
 		}
 
 		plan, err := c.advance.PlanCorrection(ctx, advance.CorrectionInput{
+			BreakagePosting: input.breakagePosting,
 			CustomerID: customer.CustomerID{
 				Namespace: input.Namespace,
 				ID:        input.CustomerID,
@@ -151,7 +152,6 @@ func (c *Corrector) correctOrigin(ctx context.Context, input Input, source colle
 		}
 
 		out.inputs = append(out.inputs, plan.Inputs...)
-		out.breakagePending = append(out.breakagePending, plan.BreakagePending...)
 
 		return out, nil
 	}
@@ -171,13 +171,12 @@ func (c *Corrector) correctOrigin(ctx context.Context, input Input, source colle
 		Amount:              amount,
 		At:                  input.AllocateAt,
 	}
-	inputs, pending, err := c.resolveBreakageReopenInputs(ctx, input, plan)
+	inputs, err := c.resolveBreakageReopenInputs(ctx, input, plan)
 	if err != nil {
 		return out, err
 	}
 
 	out.inputs = append(out.inputs, inputs...)
-	out.breakagePending = append(out.breakagePending, pending...)
 
 	return out, nil
 }

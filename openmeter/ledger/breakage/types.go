@@ -15,6 +15,27 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
+// PostingInput identifies the caller's group before its entries are posted.
+// Bookkeeping and the returned postings must complete in the same transaction.
+type PostingInput struct {
+	TransactionGroupID string
+	Annotations        models.Annotations
+}
+
+var _ models.Validator = PostingInput{}
+
+func (i PostingInput) Validate() error {
+	var errs []error
+
+	if i.TransactionGroupID == "" {
+		errs = append(errs, errors.New("transaction group id is required"))
+	} else if err := ledger.ValidateAssignedID(i.TransactionGroupID); err != nil {
+		errs = append(errs, fmt.Errorf("transaction group id: %w", err))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
 type SourceKind = ledger.BreakageSourceKind
 
 const (
@@ -87,16 +108,6 @@ type Release struct {
 	OpenAmount      alpacadecimal.Decimal
 	FBOAddress      ledger.PostingAddress
 	BreakageAddress ledger.PostingAddress
-}
-
-// PendingRecord is a record row that has been planned before the ledger commit.
-// PersistCommittedRecords fills in committed ledger ids after CommitGroup
-// succeeds. SourceEntryIdentityKey is transient; it lets usage releases attach
-// to the committed FBO source entry without knowing the entry id before commit.
-type PendingRecord struct {
-	Record
-
-	SourceEntryIdentityKey string
 }
 
 // ListPlansInput selects expiring credit that can still produce breakage as of
@@ -172,8 +183,7 @@ func (i BreakageImpact) Cursor() ledger.TransactionCursor {
 	}
 }
 
-// CreateRecordsInput persists record rows for already committed
-// breakage ledger transactions.
+// CreateRecordsInput persists bookkeeping for identified breakage postings.
 type CreateRecordsInput struct {
 	Records []Record
 }

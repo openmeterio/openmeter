@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/invoicedusage"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
@@ -199,6 +200,134 @@ func TestOnFlatFeeCustomCurrencyOverageAccruedCorrection(t *testing.T) {
 		transactions.TemplateCode(transactions.TransferCustomerFBOAdvanceToAccruedTemplate{}),
 		transactions.TemplateCode(transactions.IssueCustomerReceivableTemplate{}),
 	}, templateCodes)
+}
+
+func TestOnFlatFeeCustomCurrencyOverageAccruedCorrection_TransactionOrder(t *testing.T) {
+	const (
+		issuance = iota
+		consumption
+		conversion
+	)
+
+	for _, tc := range []struct {
+		name          string
+		order         [3]int
+		expectedError string
+	}{
+		{name: "issuance consumption conversion", order: [3]int{issuance, consumption, conversion}},
+		{name: "issuance conversion consumption", order: [3]int{issuance, conversion, consumption}},
+		{name: "consumption issuance conversion", order: [3]int{consumption, issuance, conversion}},
+		{name: "consumption conversion issuance", order: [3]int{consumption, conversion, issuance}},
+		{name: "conversion issuance consumption", order: [3]int{conversion, issuance, consumption}},
+		{name: "conversion consumption issuance", order: [3]int{conversion, consumption, issuance}},
+		{name: "duplicate issuance", order: [3]int{issuance, issuance, conversion}, expectedError: "duplicate transaction template"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			env := newFlatFeeHandlerTestEnv(t)
+			customCurrencyValue := currenciestestutils.NewCustomCurrency(t, "ACME", 2)
+			customCurrencyIdentity := customCurrencyValue.Reference()
+			settlementCurrency := currencyx.Code("USD")
+			costBasis := alpacadecimal.NewFromFloat(0.25)
+			charge := env.newCustomCurrencyCreditThenInvoiceCharge(t, customCurrencyValue, costBasis)
+			run := env.newCustomOverageRun(totals.Totals{
+				Amount: alpacadecimal.NewFromInt(40),
+				Total:  alpacadecimal.NewFromInt(40),
+			})
+			bookedAt := flatfee.UsageBookedAt(charge.Intent.GetEffectivePaymentTerm(), run.ServicePeriod)
+
+			// given: the overage's accounting legs are persisted in a different order
+			inputs, err := transactions.ResolveTransactions(t.Context(), transactions.ResolverDependencies{
+				AccountService: env.Deps.ResolversService,
+				AccountCatalog: env.Deps.AccountService,
+				BalanceQuerier: env.Deps.HistoricalLedger,
+			}, transactions.ResolutionScope{CustomerID: env.CustomerID, Namespace: env.Namespace},
+				transactions.IssueCustomerReceivableTemplate{
+					At:                bookedAt,
+					Amount:            alpacadecimal.NewFromInt(40),
+					Currency:          customCurrencyIdentity,
+					CostBasisCurrency: &settlementCurrency,
+					CostBasis:         &costBasis,
+					SourceChargeID:    &charge.ID,
+				},
+				transactions.TransferCustomerFBOAdvanceToAccruedTemplate{
+					At:                bookedAt,
+					Amount:            alpacadecimal.NewFromInt(40),
+					Currency:          customCurrencyIdentity,
+					TaxCode:           lo.ToPtr(testChargeTaxCodeID),
+					CostBasisCurrency: &settlementCurrency,
+					CostBasis:         &costBasis,
+					SourceChargeID:    &charge.ID,
+					SpendChargeID:     &charge.ID,
+				},
+				transactions.ConvertCurrencyTemplate{
+					At:             bookedAt,
+					SourceAmount:   alpacadecimal.NewFromInt(10),
+					TargetAmount:   alpacadecimal.NewFromInt(40),
+					CostBasis:      costBasis,
+					SourceCurrency: currencies.NewCurrencyReference(settlementCurrency),
+					TargetCurrency: customCurrencyIdentity,
+					SourceChargeID: &charge.ID,
+				},
+			)
+			require.NoError(t, err)
+			orderedInputs := make([]ledger.TransactionInput, len(tc.order))
+			for idx, originalIdx := range tc.order {
+				orderedInputs[idx] = inputs[originalIdx]
+			}
+
+			group, err := env.Deps.HistoricalLedger.CommitGroup(t.Context(), transactions.GroupInputs(env.Namespace, nil, orderedInputs...))
+			require.NoError(t, err)
+			group, err = env.Deps.HistoricalLedger.GetTransactionGroup(t.Context(), group.ID())
+			require.NoError(t, err)
+			require.Len(t, group.Transactions(), len(orderedInputs))
+			for idx, transaction := range group.Transactions() {
+				require.Equal(t, orderedInputs[idx].Annotations()[ledger.AnnotationTransactionTemplateCode], transaction.Annotations()[ledger.AnnotationTransactionTemplateCode])
+			}
+
+			run.AccruedUsage = &invoicedusage.AccruedUsage{
+				ServicePeriod: run.ServicePeriod,
+				Totals:        totals.Totals{Amount: alpacadecimal.NewFromInt(10), Total: alpacadecimal.NewFromInt(10)},
+				LedgerTransaction: &ledgertransaction.GroupReference{
+					TransactionGroupID: group.ID().ID,
+				},
+			}
+
+			// when: cleanup corrects the reloaded group
+			err = env.handler.OnCustomCurrencyOverageAccruedCorrection(t.Context(), flatfee.OnCustomCurrencyOverageAccruedCorrectionInput{
+				Charge: charge,
+				Run:    run,
+			})
+			if tc.expectedError != "" {
+				// then: an incomplete set of accounting legs cannot be corrected
+				require.ErrorContains(t, err, tc.expectedError)
+				corrections, err := env.Deps.HistoricalLedger.ListTransactions(t.Context(), ledger.ListTransactionsInput{
+					Namespace: env.Namespace,
+					Limit:     10,
+					AnnotationFilters: map[string]string{
+						ledger.AnnotationTransactionDirection: string(ledger.TransactionDirectionCorrection),
+					},
+				})
+				require.NoError(t, err)
+				require.Empty(t, corrections.Items)
+
+				return
+			}
+
+			require.NoError(t, err)
+
+			// then: every native and fiat leg is reversed regardless of enumeration order
+			for _, subAccount := range []ledger.SubAccount{
+				env.FBOSubAccountForCurrency(t, customCurrencyIdentity, &settlementCurrency, costBasis),
+				env.ReceivableSubAccountForCurrency(t, customCurrencyIdentity, &settlementCurrency, costBasis),
+				env.AccruedSubAccountForCurrency(t, customCurrencyIdentity, &settlementCurrency, &costBasis, lo.ToPtr(testChargeTaxCodeID)),
+				env.ReceivableSubAccountWithCostBasis(t, &costBasis),
+				env.BrokerageSubAccountForCurrency(t, currencies.NewCurrencyReference(settlementCurrency), nil, costBasis),
+				env.BrokerageSubAccountForCurrency(t, customCurrencyIdentity, &settlementCurrency, costBasis),
+			} {
+				require.Equal(t, 0.0, env.sumBalance(t, subAccount).InexactFloat64())
+			}
+		})
+	}
 }
 
 func TestOnFlatFeeCustomCurrencyOverageAccruedCorrection_NoLedgerTransaction(t *testing.T) {

@@ -11,6 +11,7 @@ import (
 )
 
 type AnyEntryInput struct {
+	IDValue                 string
 	Address                 ledger.PostingAddress
 	AmountValue             alpacadecimal.Decimal
 	IdentityKeyValue        string
@@ -22,6 +23,10 @@ type AnyEntryInput struct {
 }
 
 var _ ledger.EntryInput = (*AnyEntryInput)(nil)
+
+func (a *AnyEntryInput) AssignedID() string {
+	return a.IDValue
+}
 
 func (a *AnyEntryInput) PostingAddress() ledger.PostingAddress {
 	return a.Address
@@ -56,12 +61,17 @@ func (a *AnyEntryInput) Annotations() models.Annotations {
 }
 
 type AnyTransactionInput struct {
+	IDValue           string
 	BookedAtValue     time.Time
 	EntryInputsValues []*AnyEntryInput
 	AnnotationsValue  models.Annotations
 }
 
 var _ ledger.TransactionInput = (*AnyTransactionInput)(nil)
+
+func (a *AnyTransactionInput) AssignedID() string {
+	return a.IDValue
+}
 
 func (a *AnyTransactionInput) BookedAt() time.Time {
 	return a.BookedAtValue
@@ -82,12 +92,17 @@ func (a *AnyTransactionInput) AsGroupInput(namespace string, annotations models.
 }
 
 type AnyTransactionGroupInput struct {
+	IDValue            string
 	NamespaceValue     string
 	TransactionsValues []*AnyTransactionInput
 	AnnotationsValue   models.Annotations
 }
 
 var _ ledger.TransactionGroupInput = (*AnyTransactionGroupInput)(nil)
+
+func (a *AnyTransactionGroupInput) AssignedID() string {
+	return a.IDValue
+}
 
 func (a *AnyTransactionGroupInput) Namespace() string {
 	return a.NamespaceValue

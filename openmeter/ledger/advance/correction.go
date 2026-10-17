@@ -44,12 +44,13 @@ type BackfillCorrection struct {
 }
 
 type CorrectionInput struct {
-	CustomerID customer.CustomerID
-	At         time.Time
-	Amount     alpacadecimal.Decimal
-	Collection CorrectionSource
-	Issue      CorrectionSource
-	Backfills  []BackfillCorrection
+	BreakagePosting breakage.PostingInput
+	CustomerID      customer.CustomerID
+	At              time.Time
+	Amount          alpacadecimal.Decimal
+	Collection      CorrectionSource
+	Issue           CorrectionSource
+	Backfills       []BackfillCorrection
 }
 
 func (i CorrectionInput) Validate() error {
@@ -99,22 +100,22 @@ func (i CorrectionInput) Validate() error {
 }
 
 type CorrectionPlan struct {
-	Inputs          []ledger.TransactionInput
-	BreakagePending []breakage.PendingRecord
+	Inputs []ledger.TransactionInput
 	// LegacyCorrections remain unresolved so the caller can merge selections
 	// from the same original transaction before invoking template correction.
 	LegacyCorrections []transactions.CorrectionInput
 }
 
 type LegacyCorrectionInput struct {
-	CustomerID     customer.CustomerID
-	ChargeID       string
-	At             time.Time
-	Amount         alpacadecimal.Decimal
-	OriginalGroup  ledger.TransactionGroup
-	Collection     ledger.Transaction
-	Issue          ledger.Transaction
-	BackingGroupID *string
+	BreakagePosting breakage.PostingInput
+	CustomerID      customer.CustomerID
+	ChargeID        string
+	At              time.Time
+	Amount          alpacadecimal.Decimal
+	OriginalGroup   ledger.TransactionGroup
+	Collection      ledger.Transaction
+	Issue           ledger.Transaction
+	BackingGroupID  *string
 }
 
 func (i LegacyCorrectionInput) Validate() error {

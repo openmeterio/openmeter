@@ -18,8 +18,8 @@ type LedgerBreakageRecord struct {
 	ent.Schema
 }
 
-// Breakage records intentionally keep ledger references as plain IDs: they are
-// projection rows, not accounting source of truth. See ledger/breakage/README.md.
+// Ledger-reference FKs are deferred by tools/migrate/deferred_constraints.sql:
+// bookkeeping is written before the journal group in the same transaction.
 func (LedgerBreakageRecord) Mixin() []ent.Mixin {
 	return []ent.Mixin{
 		entutils.IDMixin{},

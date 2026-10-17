@@ -4,10 +4,13 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/oklog/ulid/v2"
+
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	"github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -35,6 +38,19 @@ func (c *Corrector) Correct(ctx context.Context, input Input) (creditrealization
 			return nil, err
 		}
 
+		groupAnnotations := input.Annotations
+		if groupAnnotations == nil {
+			groupAnnotations = ledger.ChargeAnnotations(models.NamespacedID{
+				Namespace: input.Namespace,
+				ID:        input.ChargeID,
+			})
+		}
+
+		input.breakagePosting = breakage.PostingInput{
+			TransactionGroupID: ulid.Make().String(),
+			Annotations:        groupAnnotations,
+		}
+
 		plan, err := c.prepareCorrections(ctx, input)
 		if err != nil {
 			return nil, err
@@ -42,14 +58,6 @@ func (c *Corrector) Correct(ctx context.Context, input Input) (creditrealization
 
 		if len(plan.inputs) == 0 {
 			return nil, nil
-		}
-
-		groupAnnotations := input.Annotations
-		if groupAnnotations == nil {
-			groupAnnotations = ledger.ChargeAnnotations(models.NamespacedID{
-				Namespace: input.Namespace,
-				ID:        input.ChargeID,
-			})
 		}
 
 		// Write the whole correction batch as one group and point every new correction
@@ -60,17 +68,13 @@ func (c *Corrector) Correct(ctx context.Context, input Input) (creditrealization
 			}
 		}
 
-		transactionGroup, err := c.ledger.CommitGroup(ctx, transactions.GroupInputs(
+		transactionGroup, err := c.ledger.CommitGroup(ctx, ledger.WithGroupID(transactions.GroupInputs(
 			input.Namespace,
 			groupAnnotations,
 			plan.inputs...,
-		))
+		), input.breakagePosting.TransactionGroupID))
 		if err != nil {
 			return nil, fmt.Errorf("commit correction transaction group: %w", err)
-		}
-
-		if err := c.breakage.PersistCommittedRecords(ctx, plan.breakagePending, transactionGroup); err != nil {
-			return nil, fmt.Errorf("persist breakage records: %w", err)
 		}
 
 		for i := range plan.realizations {
