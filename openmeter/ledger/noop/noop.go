@@ -315,3 +315,7 @@ func accountTypeForRoute(route ledger.Route) ledger.AccountType {
 		return ledger.AccountTypeCustomerAccrued
 	}
 }
+
+func (Ledger) GetMinimumBalanceBuckets(context.Context, ledger.MinimumBalanceBucketQuery) ([]ledger.BalanceBucket, error) {
+	return nil, nil
+}

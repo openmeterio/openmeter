@@ -18,9 +18,11 @@ import (
 	advancetestutils "github.com/openmeterio/openmeter/openmeter/ledger/advance/testutils"
 	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	ledgerbreakageadapter "github.com/openmeterio/openmeter/openmeter/ledger/breakage/adapter"
+	"github.com/openmeterio/openmeter/openmeter/ledger/fbo"
 	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	omtestutils "github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -56,21 +58,8 @@ func TestCollectCustomerFBOSeparatesManagedCurrenciesWithSameCode(t *testing.T) 
 	env.CustomCurrency = &beta
 	betaFBO := fundPriority(t, env, 1, 60)
 
-	// then: a same-code breakage plan from beta is not attached to alpha sources.
-	env.CustomCurrency = &alpha
-	require.Empty(t, reserveSourcesForBreakagePlan(
-		[]fboCollectionSource{{
-			address:   alphaFBO.Address(),
-			available: alpacadecimal.NewFromInt(60),
-		}},
-		ledgerbreakage.Plan{
-			FBOAddress: betaFBO.Address(),
-		},
-		env.CurrencyReference(),
-		ledger.Route{},
-	))
-
 	// when: collection targets only the alpha managed currency.
+	env.CustomCurrency = &alpha
 	_, err := collector.collectToAccrued(t.Context(), collectToAccruedInputForTest(
 		env,
 		"spend-alpha",
@@ -107,25 +96,32 @@ func TestCollectCustomerFBOUsesSubAccountIDTieBreaker(t *testing.T) {
 	require.Equal(t, expected[1].Address().SubAccountID(), sources[1].Address.SubAccountID())
 }
 
-func TestCollectCustomerFBOUsesAsOfBalance(t *testing.T) {
+func TestCollectCustomerFBOPreservesFutureSpending(t *testing.T) {
 	env := ledgertestutils.NewIntegrationEnv(t, "collector")
 	collector := newTestAccrualCollector(t, env)
 
+	// given: thirty of fifty credits are already allocated to future usage.
 	source := fundPriority(t, env, 1, 50)
 	bookFutureFBOCollection(t, env, 1, 30, env.Now().AddDate(0, 0, 1))
 
+	// when: source selection runs before that usage becomes effective.
 	currentSources, err := collectCustomerFBOForTest(t, env, collector, alpacadecimal.NewFromInt(50), env.Now())
 	require.NoError(t, err)
 	require.Len(t, currentSources, 1)
 	require.Equal(t, source.Address().SubAccountID(), currentSources[0].Address.SubAccountID())
-	require.True(t, alpacadecimal.NewFromInt(50).Equal(currentSources[0].Amount), "current amount: %s", currentSources[0].Amount)
+	// then: account balance remains historical, but collection protects the future allocation.
+	require.Equal(t, 20.0, currentSources[0].Amount.InexactFloat64())
+	balance, err := env.Deps.HistoricalLedger.GetAccountBalance(t.Context(), env.CustomerAccounts.FBOAccount,
+		ledger.RouteFilter{Currency: env.CurrencyReference()}, ledger.BalanceQuery{AsOf: lo.ToPtr(env.Now())})
+	require.NoError(t, err)
+	require.Equal(t, 50.0, balance.InexactFloat64())
 
 	futureAsOf := env.Now().AddDate(0, 0, 1)
 	futureSources, err := collectCustomerFBOForTest(t, env, collector, alpacadecimal.NewFromInt(50), futureAsOf)
 	require.NoError(t, err)
 	require.Len(t, futureSources, 1)
 	require.Equal(t, source.Address().SubAccountID(), futureSources[0].Address.SubAccountID())
-	require.True(t, alpacadecimal.NewFromInt(20).Equal(futureSources[0].Amount), "future amount: %s", futureSources[0].Amount)
+	require.Equal(t, 20.0, futureSources[0].Amount.InexactFloat64())
 }
 
 func TestCollectCustomerFBOFiltersByFeatureEligibility(t *testing.T) {
@@ -169,7 +165,7 @@ func TestCollectCustomerFBOFiltersByFeatureEligibility(t *testing.T) {
 func TestCollectCustomerFBOFiltersBreakageByFeatureEligibility(t *testing.T) {
 	env := ledgertestutils.NewIntegrationEnv(t, "collector")
 	breakageService := newTestBreakageService(t, env)
-	collector := newTestAccrualCollectorWithBreakage(t, env, breakageService)
+	collector := newTestAccrualCollector(t, env)
 
 	expiresAt := env.Now().Add(10 * time.Hour)
 	bookExpiringCreditWithFeatures(t, env, breakageService, 1, 10, nil, nil, expiresAt)
@@ -233,7 +229,7 @@ func TestCollectCustomerFBOUsesPriorityBeforeFeatureRestriction(t *testing.T) {
 func TestCollectCustomerFBOReleasesBreakageInExpiryOrder(t *testing.T) {
 	env := ledgertestutils.NewIntegrationEnv(t, "collector")
 	breakageService := newTestBreakageService(t, env)
-	collector := newTestAccrualCollectorWithBreakage(t, env, breakageService)
+	collector := newTestAccrualCollector(t, env)
 
 	firstPlanID := bookExpiringCredit(t, env, breakageService, 1, 10, env.Now().Add(10*time.Hour))
 	secondPlanID := bookExpiringCredit(t, env, breakageService, 1, 15, env.Now().Add(15*time.Hour))
@@ -272,7 +268,7 @@ func TestCollectCustomerFBOReleasesBreakageInExpiryOrder(t *testing.T) {
 func TestCollectCustomerFBOBreakageReleaseTracksSpendOnFBOAndSourceOnBreakage(t *testing.T) {
 	env := ledgertestutils.NewIntegrationEnv(t, "collector")
 	breakageService := newTestBreakageService(t, env)
-	collector := newTestAccrualCollectorWithBreakage(t, env, breakageService)
+	collector := newTestAccrualCollector(t, env)
 
 	// given:
 	// - two same-route expiring credit sources with separate breakage plans
@@ -336,7 +332,7 @@ func TestCollectCustomerFBOBreakageReleaseTracksSpendOnFBOAndSourceOnBreakage(t 
 func TestCollectCustomerFBOBreakageReleaseUsesPlanSourceBeforeBucketCursor(t *testing.T) {
 	env := ledgertestutils.NewIntegrationEnv(t, "collector")
 	breakageService := newTestBreakageService(t, env)
-	collector := newTestAccrualCollectorWithBreakage(t, env, breakageService)
+	collector := newTestAccrualCollector(t, env)
 
 	// given:
 	// - two same-route expiring credit sources sharing one FBO sub-account
@@ -504,25 +500,6 @@ func TestCollectToAccruedCustomCurrencyCreditThenInvoiceDoesNotCreateExposure(t 
 	requireReceivableBalanceBuckets(t, env, map[string]float64{})
 }
 
-func newTestAccrualCollector(t testing.TB, env *ledgertestutils.IntegrationEnv) *accrualCollector {
-	t.Helper()
-
-	breakageService := ledgerbreakage.NewNoopService()
-
-	return &accrualCollector{
-		advance:  advancetestutils.NewService(t, env.Deps, breakageService),
-		breakage: breakageService,
-		ledger:   env.Deps.HistoricalLedger,
-		deps: transactions.ResolverDependencies{
-			AccountService: env.Deps.ResolversService,
-			AccountCatalog: env.Deps.AccountService,
-			BalanceQuerier: env.Deps.HistoricalLedger,
-		},
-		accountLocker:      env.Deps.AccountService,
-		transactionManager: enttx.NewCreator(env.DB),
-	}
-}
-
 func collectCustomerFBOForTest(
 	t *testing.T,
 	env *ledgertestutils.IntegrationEnv,
@@ -551,29 +528,60 @@ func collectCustomerFBOForFeatureForTest(
 			filters.Features = []string{featureKey}
 		}
 
-		selections, err := collector.collectCustomerFBOSelections(ctx, env.CustomerID, env.CurrencyReference(), ledger.Route{Filters: filters}, target, asOf)
+		sources, err := collector.fbo.ListSources(ctx, fbo.SourceQuery{
+			CustomerID: env.CustomerID,
+			Currency:   env.CurrencyReference(),
+			Filters:    filters,
+			AsOf:       asOf,
+		})
 		if err != nil {
 			return nil, err
 		}
 
-		return fboCollectionSelections(selections).postingAmounts(nil), nil
+		remaining := target
+		amounts := make([]transactions.PostingAmount, 0, len(sources))
+		for _, source := range sources {
+			if !remaining.IsPositive() {
+				break
+			}
+
+			amount := source.Amount
+			if amount.GreaterThan(remaining) {
+				amount = remaining
+			}
+
+			amounts = append(amounts, transactions.PostingAmount{Address: source.Address, Amount: amount})
+			remaining = remaining.Sub(amount)
+		}
+
+		return amounts, nil
 	})
 }
 
-func newTestAccrualCollectorWithBreakage(
-	t testing.TB,
-	env *ledgertestutils.IntegrationEnv,
-	breakageService ledgerbreakage.Service,
-) *accrualCollector {
-	collector := newTestAccrualCollector(t, env)
-	collector.breakage = breakageService
-	collector.advance = advancetestutils.NewService(t, env.Deps, breakageService)
-	collector.transactionManager = enttx.NewCreator(env.DB)
+func newTestAccrualCollector(t testing.TB, env *ledgertestutils.IntegrationEnv) *accrualCollector {
+	t.Helper()
+	breakageService := newTestBreakageService(t, env)
+	service, err := fbo.NewService(fbo.Config{
+		Logger:   omtestutils.NewDiscardLogger(t),
+		Advance:  advancetestutils.NewService(t, env.Deps, breakageService),
+		Breakage: breakageService,
+		Dependencies: transactions.ResolverDependencies{
+			AccountService: env.Deps.ResolversService,
+			AccountCatalog: env.Deps.AccountService,
+			BalanceQuerier: env.Deps.HistoricalLedger,
+		},
+		AccountLocker: env.Deps.AccountService,
+	})
+	require.NoError(t, err)
 
-	return collector
+	return &accrualCollector{
+		ledger:             env.Deps.HistoricalLedger,
+		fbo:                service,
+		transactionManager: enttx.NewCreator(env.DB),
+	}
 }
 
-func newTestBreakageService(t *testing.T, env *ledgertestutils.IntegrationEnv) ledgerbreakage.Service {
+func newTestBreakageService(t testing.TB, env *ledgertestutils.IntegrationEnv) ledgerbreakage.Service {
 	t.Helper()
 
 	breakageAdapter, err := ledgerbreakageadapter.New(ledgerbreakageadapter.Config{
@@ -1027,7 +1035,7 @@ func TestCollectCustomerFBOMatchesPlanAndFeatureFilters(t *testing.T) {
 	require.NoError(t, err)
 	corrections, err := realized.CreateCorrectionRequest(alpacadecimal.NewFromInt(-35), fiat)
 	require.NoError(t, err)
-	_, err = newTestAccrualCorrector(t, env, collector.breakage).Correct(t.Context(), CorrectCollectedAccruedInput{
+	_, err = newTestAccrualCorrector(t, env).Correct(t.Context(), CorrectCollectedAccruedInput{
 		Namespace: env.Namespace, ChargeID: spendChargeID, CustomerID: env.CustomerID.ID, AllocateAt: env.Now(), Corrections: corrections,
 	})
 	require.NoError(t, err)
