@@ -180,15 +180,14 @@ func newFBOEnv(t *testing.T) (*ledgertestutils.IntegrationEnv, fbo.Service, brea
 
 func consumeInput(env *ledgertestutils.IntegrationEnv, chargeID string, amount int64) fbo.ConsumeInput {
 	return fbo.ConsumeInput{
-		CustomerID:        env.CustomerID,
-		PostingInput:      breakage.PostingInput{TransactionGroupID: ulid.Make().String()},
-		ChargeID:          chargeID,
-		BookedAt:          env.Now(),
-		SourceBalanceAsOf: env.Now(),
-		Currency:          env.CurrencyReference(),
-		Amount:            alpacadecimal.NewFromInt(amount),
-		Destination:       fbo.ConsumeDestinationAccrued,
-		AdvancePolicy:     fbo.AdvancePolicyNever,
+		CustomerID:    env.CustomerID,
+		PostingInput:  breakage.PostingInput{TransactionGroupID: ulid.Make().String()},
+		ChargeID:      chargeID,
+		BookedAt:      env.Now(),
+		Currency:      env.CurrencyReference(),
+		Amount:        alpacadecimal.NewFromInt(amount),
+		Destination:   fbo.ConsumeDestinationAccrued,
+		AdvancePolicy: fbo.AdvancePolicyNever,
 	}
 }
 
