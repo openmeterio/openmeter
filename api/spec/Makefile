@@ -34,6 +34,7 @@ test: ## Run AIP TypeScript SDK and emitter tests
 	pnpm --filter @openmeter/api-spec-aip run test
 	pnpm run test:sdk:coverage
 	pnpm --filter @openmeter/typespec-typescript run check
+	pnpm --filter @openmeter/typespec-notification-events run test
 
 .PHONY: publish-aip-sdk
 publish-aip-sdk: ## Publish the AIP TypeScript SDK (@openmeter/client) to npm
