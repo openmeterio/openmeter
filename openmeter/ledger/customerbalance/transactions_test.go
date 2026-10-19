@@ -61,6 +61,78 @@ func TestCreditTransactionFromLedgerTransaction_AggregatesScopedFBOEntries(t *te
 	require.True(t, item.Amount.Equal(alpacadecimal.NewFromInt(-15)))
 }
 
+func TestPublicBalancePreservesFutureConsumption(t *testing.T) {
+	env := newTestEnv(t)
+	at := clock.Now()
+	clock.FreezeTime(at)
+	defer clock.UnFreeze()
+
+	// given: funded credit, a later grant, and already-booked future usage.
+	expiresAt := at.Add(3 * time.Hour)
+	env.createPromotionalCreditFunding(t, at, alpacadecimal.NewFromInt(100), expiresAt)
+	env.createPromotionalCreditGrant(t, alpacadecimal.NewFromInt(50), env.Currency, lo.ToPtr(at.Add(2*time.Hour)))
+	consumedAt := at.Add(time.Hour)
+	clock.FreezeTime(consumedAt.Add(-time.Minute))
+	defer clock.UnFreeze()
+	charge := env.createFlatFeeChargeInCurrency(t, alpacadecimal.NewFromInt(30), productcatalog.CreditOnlySettlementMode,
+		timeutil.ClosedPeriod{From: consumedAt, To: consumedAt}, env.Currency)
+	clock.FreezeTime(consumedAt.Add(time.Second))
+	defer clock.UnFreeze()
+	env.advanceFlatFeeCharge(t, charge)
+
+	// when: the public facade reads before the usage and second grant take effect.
+	readAt := at.Add(time.Minute)
+	clock.FreezeTime(readAt)
+	defer clock.UnFreeze()
+	facade, err := NewFacade(env.Service)
+	require.NoError(t, err)
+	current, err := facade.GetBalances(t.Context(), GetBalancesInput{CustomerID: env.CustomerID})
+	require.NoError(t, err)
+	require.Len(t, current, 1)
+
+	// then: booked credit remains 100; spendable and live reserve the later usage.
+	require.Equal(t, 100.0, current[0].Balance.Booked().InexactFloat64())
+	require.Equal(t, 70.0, current[0].Balance.Spendable().InexactFloat64())
+	require.Equal(t, 70.0, current[0].Balance.Live().InexactFloat64())
+	require.Equal(t, 50.0, current[0].Balance.Pending().InexactFloat64())
+	historical, err := facade.GetBalances(t.Context(), GetBalancesInput{CustomerID: env.CustomerID, AsOf: &readAt})
+	require.NoError(t, err)
+	require.Len(t, historical, 1)
+	require.Equal(t, 100.0, historical[0].Balance.Booked().InexactFloat64())
+	require.Equal(t, 70.0, historical[0].Balance.Spendable().InexactFloat64())
+	require.Equal(t, 0.0, historical[0].Balance.Live().InexactFloat64())
+	require.Equal(t, 50.0, historical[0].Balance.Pending().InexactFloat64())
+
+	// Unbooked usage reduces live only; history still shows booked movements.
+	env.createFlatFeeCharge(t, alpacadecimal.NewFromInt(5), productcatalog.CreditOnlySettlementMode, env.sp())
+	current, err = facade.GetBalances(t.Context(), GetBalancesInput{CustomerID: env.CustomerID})
+	require.NoError(t, err)
+	require.Len(t, current, 1)
+	require.Equal(t, 100.0, current[0].Balance.Booked().InexactFloat64())
+	require.Equal(t, 70.0, current[0].Balance.Spendable().InexactFloat64())
+	require.Equal(t, 65.0, current[0].Balance.Live().InexactFloat64())
+
+	history, err := facade.ListCreditTransactions(t.Context(), ListCreditTransactionsInput{
+		CustomerID: env.CustomerID, Limit: 20, AsOf: lo.ToPtr(consumedAt.Add(time.Second)),
+	})
+	require.NoError(t, err)
+	require.Len(t, history.Items, 2)
+	require.Equal(t, CreditTransactionTypeConsumed, history.Items[0].Type)
+	require.Equal(t, 100.0, history.Items[0].Balance.Before.InexactFloat64())
+	require.Equal(t, 70.0, history.Items[0].Balance.After.InexactFloat64())
+	require.Equal(t, CreditTransactionTypeFunded, history.Items[1].Type)
+	require.Equal(t, 0.0, history.Items[1].Balance.Before.InexactFloat64())
+	require.Equal(t, 100.0, history.Items[1].Balance.After.InexactFloat64())
+
+	// At expiry, the first grant is gone and only the later grant remains.
+	expired, err := facade.GetBalances(t.Context(), GetBalancesInput{CustomerID: env.CustomerID, AsOf: &expiresAt})
+	require.NoError(t, err)
+	require.Len(t, expired, 1)
+	require.Equal(t, 50.0, expired[0].Balance.Booked().InexactFloat64())
+	require.Equal(t, 50.0, expired[0].Balance.Spendable().InexactFloat64())
+	require.Equal(t, 0.0, expired[0].Balance.Live().InexactFloat64())
+}
+
 func TestListCreditTransactionsBalancesByCurrency(t *testing.T) {
 	env := newTestEnv(t)
 

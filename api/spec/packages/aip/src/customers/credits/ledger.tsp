@@ -118,7 +118,8 @@ model CreditTransaction {
   amount: Shared.Numeric;
 
   /**
-   * The available balance before and after the transaction.
+   * The booked credit balance before and after the transaction, including
+   * credit-only advance debt.
    */
   @visibility(Lifecycle.Read)
   available_balance: {

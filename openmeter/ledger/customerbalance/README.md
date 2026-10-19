@@ -19,6 +19,30 @@ balance(asOf=T) =
 The receivable term represents credit-only advance: usage already consumed
 before purchased credit was available.
 
+| Field | Meaning |
+| --- | --- |
+| `booked` | Booked balance at the requested time, including advance debt |
+| `spendable` | Spendable FBO credit at that time, less advance debt |
+| `live` | Spendable balance adjusted for current unbooked usage |
+| `pending` | Granted credit that is not yet booked or effective |
+
+Spendable credit preserves allocations to later recorded usage. It takes the
+positive minimum of each FBO source from the requested time onward, ignoring
+future breakage because consumption releases it. Future grants cannot be spent
+early. Advance debt can make `booked`, `spendable`, and `live` negative.
+
+`settled` is a deprecated API alias for `booked` and returns the same value.
+
+Live usage still follows source restrictions and settlement policy. Historical
+requests return zero for `live`; we cannot reconstruct past unbooked usage.
+All reads use what is recorded now, including later-recorded corrections.
+There is no separate cutoff for when the system learned about a movement.
+
+History before/after values remain booked balances. A grant of 10 followed by
+consumption of 4 shows `0 → 10`, then `10 → 6`, even though spendable credit
+before that consumption is already 6.
+
+
 Fiat currencies are identified by code. Custom-currency balance rows also
 carry `custom_currency.id`; balances remain separate when historical managed
 currencies reuse a display code. A code filter selects every matching identity.

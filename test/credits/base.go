@@ -37,6 +37,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger/creditvoid"
 	creditvoidadapter "github.com/openmeterio/openmeter/openmeter/ledger/creditvoid/adapter"
 	"github.com/openmeterio/openmeter/openmeter/ledger/customerbalance"
+	fbotestutils "github.com/openmeterio/openmeter/openmeter/ledger/fbo/testutils"
 	"github.com/openmeterio/openmeter/openmeter/ledger/recognizer"
 	ledgerresolvers "github.com/openmeterio/openmeter/openmeter/ledger/resolvers"
 	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
@@ -204,7 +205,7 @@ func (s *BaseSuite) SetupSuite() {
 
 	customerBalanceSvc, err := customerbalance.New(customerbalance.Config{
 		AccountResolver:   deps.ResolversService,
-		SubAccountService: deps.AccountService,
+		FBO:               fbotestutils.NewService(s.T(), deps, breakageService),
 		ChargesService:    stack.ChargesService,
 		UsageBasedService: stack.UsageBasedService,
 		Currencies:        stack.CurrencyService,

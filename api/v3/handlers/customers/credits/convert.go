@@ -558,10 +558,12 @@ func fromAPIBillingCreditPurchasePaymentSettlementStatus(status api.BillingCredi
 
 func toAPICreditBalance(currency currencies.CurrencyReference, balance customerbalance.Balance) api.CreditBalance {
 	result := api.CreditBalance{
-		Currency: api.BillingCurrencyCode(currency.GetCode()),
-		Settled:  balance.Settled().String(),
-		Live:     balance.Live().String(),
-		Pending:  balance.Pending().String(),
+		Currency:  api.BillingCurrencyCode(currency.GetCode()),
+		Booked:    balance.Booked().String(),
+		Settled:   balance.Booked().String(),
+		Spendable: balance.Spendable().String(),
+		Live:      balance.Live().String(),
+		Pending:   balance.Pending().String(),
 	}
 	if currency.CustomCurrencyID != nil {
 		result.CustomCurrency = &api.CurrencyCustomReference{Id: *currency.CustomCurrencyID}

@@ -262,7 +262,7 @@ func (s *CreditOnlyValidationSuite) TestUsageBasedCreditOnlyNegativeUsageKeepsRa
 		})
 		s.Require().NoError(err)
 		s.Require().Len(balances, 1)
-		s.Zero(balances[0].Balance.Settled().InexactFloat64())
+		s.Zero(balances[0].Balance.Booked().InexactFloat64())
 		s.Zero(balances[0].Balance.Live().InexactFloat64())
 	}
 	requireZeroBalance()

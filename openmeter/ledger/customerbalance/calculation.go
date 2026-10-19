@@ -111,8 +111,8 @@ func (chargeLiveBalanceCalculator) CalculateLiveBalance(bookedBalance alpacadeci
 	return liveBalance.Sub(unboundedAmount)
 }
 
-func (chargeLiveBalanceCalculator) CalculateLiveBalanceFromSources(settledBalance alpacadecimal.Decimal, sources []liveBalanceSource, impacts []Impact) alpacadecimal.Decimal {
-	liveBalance := settledBalance
+func (chargeLiveBalanceCalculator) CalculateLiveBalanceFromSources(startingBalance alpacadecimal.Decimal, sources []liveBalanceSource, impacts []Impact) alpacadecimal.Decimal {
+	liveBalance := startingBalance
 
 	for _, impact := range impacts {
 		if boundedAmount := impact.BoundedAmount(); boundedAmount.IsPositive() {
