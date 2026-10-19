@@ -389,19 +389,17 @@ func (s *CreditThenInvoiceTestSuite) TestPercentageDiscountProgressiveBilling() 
 	s.Equal(float64(0), invoiceLine.UsageBased.PreLinePeriodQuantity.InexactFloat64())
 	s.Equal(float64(0), invoiceLine.UsageBased.MeteredPreLinePeriodQuantity.InexactFloat64())
 
-	s.Equal(float64(40), invoiceLine.Totals.Amount.InexactFloat64())
-	s.Equal(float64(40), detailedLine.Totals.Amount.InexactFloat64())
-	s.Equal(float64(40), invoices[0].Totals.Amount.InexactFloat64())
+	expectedTotals := billingtest.ExpectedTotals{
+		Amount:         40,
+		DiscountsTotal: 10,
+		Total:          30,
+	}
+	s.RequireTotals(expectedTotals, invoiceLine.Totals)
+	s.RequireTotals(expectedTotals, detailedLine.Totals)
+	s.RequireTotals(expectedTotals, invoices[0].Totals)
 
-	s.Equal(float64(10), invoiceLine.Totals.DiscountsTotal.InexactFloat64())
 	s.Equal(float64(10), detailedLine.AmountDiscounts[0].Amount.InexactFloat64())
 	s.Equal(float64(0), detailedLine.AmountDiscounts[0].RoundingAmount.InexactFloat64(), "RoundingAmount")
-	s.Equal(float64(10), detailedLine.Totals.DiscountsTotal.InexactFloat64())
-	s.Equal(float64(10), invoices[0].Totals.DiscountsTotal.InexactFloat64())
-
-	s.Equal(float64(30), invoiceLine.Totals.Total.InexactFloat64())
-	s.Equal(float64(30), detailedLine.Totals.Total.InexactFloat64())
-	s.Equal(float64(30), invoices[0].Totals.Total.InexactFloat64())
 
 	clock.FreezeTime(invoices[0].DefaultCollectionAtForStandardInvoice())
 	defer clock.UnFreeze()
@@ -438,32 +436,39 @@ func (s *CreditThenInvoiceTestSuite) TestPercentageDiscountProgressiveBilling() 
 		// The 4 new units split across both tiers: 2 complete tier 1, 2 open tier 2
 		s.Require().Len(invoiceLine.DetailedLines, 2)
 
-		s.Equal(float64(18), invoiceLine.Totals.Amount.InexactFloat64())
-		s.Equal(float64(4.5), invoiceLine.Totals.DiscountsTotal.InexactFloat64())
-		s.Equal(float64(13.5), invoiceLine.Totals.Total.InexactFloat64())
-		s.Equal(float64(18), invoices[0].Totals.Amount.InexactFloat64())
-		s.Equal(float64(4.5), invoices[0].Totals.DiscountsTotal.InexactFloat64())
-		s.Equal(float64(13.5), invoices[0].Totals.Total.InexactFloat64())
+		expectedTotals := billingtest.ExpectedTotals{
+			Amount:         18,
+			DiscountsTotal: 4.5,
+			Total:          13.5,
+		}
+		s.RequireTotals(expectedTotals, invoiceLine.Totals)
+		s.RequireTotals(expectedTotals, invoices[0].Totals)
 
 		detailedLine1 := invoiceLine.DetailedLines[0]
 		s.Equal(float64(2), detailedLine1.Quantity.InexactFloat64())
 		s.Require().Len(detailedLine1.AmountDiscounts, 1)
 		s.Equal(billing.RatecardPercentageDiscountReason, detailedLine1.AmountDiscounts[0].Reason.Type())
 
-		s.Equal(float64(10), detailedLine1.Totals.Amount.InexactFloat64())
+		s.RequireTotals(billingtest.ExpectedTotals{
+			Amount:         10,
+			DiscountsTotal: 2.5,
+			Total:          7.5,
+		}, detailedLine1.Totals)
 		s.Equal(float64(2.5), detailedLine1.AmountDiscounts[0].Amount.InexactFloat64())
 		s.Equal(float64(0), detailedLine1.AmountDiscounts[0].RoundingAmount.InexactFloat64())
-		s.Equal(float64(7.5), detailedLine1.Totals.Total.InexactFloat64())
 
 		detailedLine2 := invoiceLine.DetailedLines[1]
 		s.Equal(float64(2), detailedLine2.Quantity.InexactFloat64())
 		s.Require().Len(detailedLine2.AmountDiscounts, 1)
 		s.Equal(billing.RatecardPercentageDiscountReason, detailedLine2.AmountDiscounts[0].Reason.Type())
 
-		s.Equal(float64(8), detailedLine2.Totals.Amount.InexactFloat64())
+		s.RequireTotals(billingtest.ExpectedTotals{
+			Amount:         8,
+			DiscountsTotal: 2,
+			Total:          6,
+		}, detailedLine2.Totals)
 		s.Equal(float64(2), detailedLine2.AmountDiscounts[0].Amount.InexactFloat64())
 		s.Equal(float64(0), detailedLine2.AmountDiscounts[0].RoundingAmount.InexactFloat64())
-		s.Equal(float64(6), detailedLine2.Totals.Total.InexactFloat64())
 
 		s.Equal(detailedLine1.AmountDiscounts[0].ChildUniqueReferenceID, detailedLine2.AmountDiscounts[0].ChildUniqueReferenceID)
 	})
@@ -599,12 +604,13 @@ func (s *CreditThenInvoiceTestSuite) TestPercentageDiscountGraduatedTiersSingleI
 	// One detailed line per tier
 	s.Require().Len(invoiceLine.DetailedLines, 2)
 
-	s.Equal(float64(58), invoiceLine.Totals.Amount.InexactFloat64())
-	s.Equal(float64(14.5), invoiceLine.Totals.DiscountsTotal.InexactFloat64())
-	s.Equal(float64(43.5), invoiceLine.Totals.Total.InexactFloat64())
-	s.Equal(float64(58), invoices[0].Totals.Amount.InexactFloat64())
-	s.Equal(float64(14.5), invoices[0].Totals.DiscountsTotal.InexactFloat64())
-	s.Equal(float64(43.5), invoices[0].Totals.Total.InexactFloat64())
+	expectedTotals := billingtest.ExpectedTotals{
+		Amount:         58,
+		DiscountsTotal: 14.5,
+		Total:          43.5,
+	}
+	s.RequireTotals(expectedTotals, invoiceLine.Totals)
+	s.RequireTotals(expectedTotals, invoices[0].Totals)
 
 	detailedLine1 := invoiceLine.DetailedLines[0]
 	s.Equal(float64(10), detailedLine1.Quantity.InexactFloat64())
@@ -612,11 +618,13 @@ func (s *CreditThenInvoiceTestSuite) TestPercentageDiscountGraduatedTiersSingleI
 	s.Require().Len(detailedLine1.AmountDiscounts, 1)
 	s.Equal(billing.RatecardPercentageDiscountReason, detailedLine1.AmountDiscounts[0].Reason.Type())
 
-	s.Equal(float64(50), detailedLine1.Totals.Amount.InexactFloat64())
+	s.RequireTotals(billingtest.ExpectedTotals{
+		Amount:         50,
+		DiscountsTotal: 12.5,
+		Total:          37.5,
+	}, detailedLine1.Totals)
 	s.Equal(float64(12.5), detailedLine1.AmountDiscounts[0].Amount.InexactFloat64())
 	s.Equal(float64(0), detailedLine1.AmountDiscounts[0].RoundingAmount.InexactFloat64())
-	s.Equal(float64(12.5), detailedLine1.Totals.DiscountsTotal.InexactFloat64())
-	s.Equal(float64(37.5), detailedLine1.Totals.Total.InexactFloat64())
 
 	detailedLine2 := invoiceLine.DetailedLines[1]
 	s.Equal(float64(2), detailedLine2.Quantity.InexactFloat64())
@@ -624,11 +632,13 @@ func (s *CreditThenInvoiceTestSuite) TestPercentageDiscountGraduatedTiersSingleI
 	s.Require().Len(detailedLine2.AmountDiscounts, 1)
 	s.Equal(billing.RatecardPercentageDiscountReason, detailedLine2.AmountDiscounts[0].Reason.Type())
 
-	s.Equal(float64(8), detailedLine2.Totals.Amount.InexactFloat64())
+	s.RequireTotals(billingtest.ExpectedTotals{
+		Amount:         8,
+		DiscountsTotal: 2,
+		Total:          6,
+	}, detailedLine2.Totals)
 	s.Equal(float64(2), detailedLine2.AmountDiscounts[0].Amount.InexactFloat64())
 	s.Equal(float64(0), detailedLine2.AmountDiscounts[0].RoundingAmount.InexactFloat64())
-	s.Equal(float64(2), detailedLine2.Totals.DiscountsTotal.InexactFloat64())
-	s.Equal(float64(6), detailedLine2.Totals.Total.InexactFloat64())
 }
 
 func (s *CreditThenInvoiceTestSuite) TestPercentageDiscountProgressiveBillingUsageShrinkIsRejected() {
@@ -756,9 +766,11 @@ func (s *CreditThenInvoiceTestSuite) TestPercentageDiscountProgressiveBillingUsa
 
 	invoiceLine := invoices[0].Lines.OrEmpty()[0]
 	s.Require().Len(invoiceLine.DetailedLines, 2)
-	s.Equal(float64(58), invoiceLine.Totals.Amount.InexactFloat64())
-	s.Equal(float64(14.5), invoiceLine.Totals.DiscountsTotal.InexactFloat64())
-	s.Equal(float64(43.5), invoiceLine.Totals.Total.InexactFloat64())
+	s.RequireTotals(billingtest.ExpectedTotals{
+		Amount:         58,
+		DiscountsTotal: 14.5,
+		Total:          43.5,
+	}, invoiceLine.Totals)
 
 	clock.FreezeTime(invoices[0].DefaultCollectionAtForStandardInvoice())
 	defer clock.UnFreeze()
