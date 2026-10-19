@@ -1624,7 +1624,9 @@ paths:
           in: query
           required: false
           description: |-
-            Return the credit balance as of this timestamp.
+            Return credit balances at this timestamp using all currently recorded postings,
+            including corrections recorded later. This is not a snapshot of what was known
+            at the requested time.
 
             Defaults to the current time. Historical responses return `live` as zero because
             live charge impacts are only available for current balances.
@@ -8422,7 +8424,9 @@ components:
             - before
             - after
           additionalProperties: false
-          description: The available balance before and after the transaction.
+          description: |-
+            The booked credit balance before and after the transaction, including
+            credit-only advance debt.
           readOnly: true
       additionalProperties: false
       description: |-
@@ -16266,7 +16270,9 @@ components:
       required:
         - currency
         - live
+        - booked
         - settled
+        - spendable
         - pending
       properties:
         currency:
@@ -16282,17 +16288,37 @@ components:
           allOf:
             - $ref: '#/components/schemas/Numeric'
           description: |-
-            Credits available after applying currently live charge impacts.
+            Spendable balance after applying currently live, unbooked charge impacts. Can be
+            negative when usage exceeds available credit.
 
             Always zero for historical balance queries using the `timestamp` parameter
             because live charge impacts cannot be reconstructed historically.
           example: '200.00'
           readOnly: true
+        booked:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: |-
+            Credits that have been booked on the ledger as of the balance timestamp,
+            including credit-only advance debt. Can be negative.
+          example: '150.00'
+          readOnly: true
         settled:
           allOf:
             - $ref: '#/components/schemas/Numeric'
-          description: Credits that have been booked on the ledger as of the balance timestamp.
+          description: Deprecated alias for `booked`. Always returns the same value.
+          deprecated: true
           example: '150.00'
+          readOnly: true
+        spendable:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: |-
+            Spendable credit at the balance timestamp, including any credit-only advance
+            debt. Preserves credit already committed to later usage. Future grants cannot be
+            spent early; scheduled expiry reduces availability when it takes effect. Can be
+            negative when advance debt exceeds spendable credit.
+          example: '120.00'
           readOnly: true
         pending:
           allOf:

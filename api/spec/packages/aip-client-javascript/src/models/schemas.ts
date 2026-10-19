@@ -4355,7 +4355,9 @@ export const creditBalance = z
     currency: billingCurrencyCode,
     customCurrency: currencyCustomReference.optional(),
     live: numeric,
+    booked: numeric,
     settled: numeric,
+    spendable: numeric,
     pending: numeric,
   })
   .describe('The credit balance by currency.')
@@ -4388,7 +4390,10 @@ export const creditTransaction = z
         before: numeric,
         after: numeric,
       })
-      .describe('The available balance before and after the transaction.'),
+
+      .describe(
+        'The booked credit balance before and after the transaction, including credit-only advance debt.',
+      ),
   })
 
   .describe(
@@ -14112,7 +14117,9 @@ export const creditBalanceWire = z
     currency: billingCurrencyCodeWire,
     custom_currency: currencyCustomReferenceWire.optional(),
     live: numericWire,
+    booked: numericWire,
     settled: numericWire,
+    spendable: numericWire,
     pending: numericWire,
   })
   .describe('The credit balance by currency.')
@@ -14145,7 +14152,10 @@ export const creditTransactionWire = z
         before: numericWire,
         after: numericWire,
       })
-      .describe('The available balance before and after the transaction.'),
+
+      .describe(
+        'The booked credit balance before and after the transaction, including credit-only advance debt.',
+      ),
   })
 
   .describe(
