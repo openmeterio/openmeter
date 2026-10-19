@@ -1,6 +1,8 @@
 package creditsbillingcompat
 
 import (
+	metricnoop "go.opentelemetry.io/otel/metric/noop"
+
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
@@ -171,6 +173,7 @@ func (s *BaseSuite) setupCreditsSuite() {
 	s.RevenueRecognizer = revenueRecognizer
 
 	collectorService, err := ledgercollector.NewService(ledgercollector.Config{
+		Meter:   metricnoop.NewMeterProvider().Meter("test"),
 		Logger:  logger,
 		Advance: s.AdvanceService,
 		Ledger:  deps.HistoricalLedger,
