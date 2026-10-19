@@ -14,7 +14,7 @@ type options struct {
 	OkStatusDescription string
 }
 
-var defaultOptions = options{
+var defaultSpanOptions = options{
 	OkStatusDescription: "success",
 }
 
@@ -106,8 +106,12 @@ func (s *Span) Do2[T any](ctx context.Context, f func(context.Context) (T, error
 	return result, err
 }
 
+var defaultTraceSpanOptions = []trace.SpanStartOption{
+	trace.WithSpanKind(trace.SpanKindInternal),
+}
+
 // NewSpan creates a reusable tracing configuration without starting a span.
 // The name and start options are used for every Do or Do2 invocation.
 func NewSpan(tracer trace.Tracer, name string, opts ...trace.SpanStartOption) *Span {
-	return &Span{tracer, name, append([]trace.SpanStartOption(nil), opts...), defaultOptions}
+	return &Span{tracer, name, append(defaultTraceSpanOptions, opts...), defaultSpanOptions}
 }
