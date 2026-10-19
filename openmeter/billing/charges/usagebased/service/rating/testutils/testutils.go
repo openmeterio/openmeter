@@ -11,6 +11,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	chargesmeta "github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	chargedetailedline "github.com/openmeterio/openmeter/openmeter/billing/charges/models/detailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
@@ -27,6 +28,13 @@ type ExpectedDetailedLine struct {
 	PerUnitAmount          float64
 	Quantity               float64
 	Totals                 ExpectedTotals
+	AmountDiscounts        []ExpectedAmountDiscount
+}
+
+type ExpectedAmountDiscount struct {
+	ChildUniqueReferenceID string
+	Amount                 float64
+	RoundingAmount         float64
 }
 
 type ExpectedTotals struct {
@@ -51,6 +59,24 @@ func ToExpectedDetailedLinesWithServicePeriod(lines usagebased.DetailedLines) []
 			Quantity:               line.Quantity.InexactFloat64(),
 			Totals:                 ToExpectedTotals(line.Totals),
 		}
+	})
+}
+
+func ToExpectedDetailedLinesWithAmountDiscounts(lines usagebased.DetailedLines) []ExpectedDetailedLine {
+	return lo.Map(ToExpectedDetailedLinesWithServicePeriod(lines), func(expected ExpectedDetailedLine, idx int) ExpectedDetailedLine {
+		if len(lines[idx].AmountDiscounts) == 0 {
+			return expected
+		}
+
+		expected.AmountDiscounts = lo.Map(lines[idx].AmountDiscounts, func(discount chargedetailedline.AmountDiscount, _ int) ExpectedAmountDiscount {
+			return ExpectedAmountDiscount{
+				ChildUniqueReferenceID: discount.ChildUniqueReferenceID,
+				Amount:                 discount.Amount.InexactFloat64(),
+				RoundingAmount:         discount.RoundingAmount.InexactFloat64(),
+			}
+		})
+
+		return expected
 	})
 }
 

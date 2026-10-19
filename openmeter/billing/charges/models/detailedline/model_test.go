@@ -36,6 +36,25 @@ func TestAmountDiscountsValidateAllowsSignedAmounts(t *testing.T) {
 	)
 }
 
+func TestMapAmountDiscountsToBillingRejectsReversedDiscounts(t *testing.T) {
+	t.Parallel()
+
+	reversal := AmountDiscounts{
+		{
+			ChildUniqueReferenceID: billing.LineMaximumSpendReferenceID,
+			Reason:                 billing.NewDiscountReasonFrom(billing.MaximumSpendDiscount{}),
+			Amount:                 alpacadecimal.NewFromInt(-50),
+		},
+	}
+
+	require.NoError(t, reversal.Validate())
+
+	mapped := MapAmountDiscountsToBilling(reversal)
+	require.Len(t, mapped, 1)
+	require.Equal(t, float64(-50), mapped[0].Amount.InexactFloat64())
+	require.ErrorContains(t, mapped.Validate(), "amount should be positive or zero")
+}
+
 func TestAmountDiscountsValidateRequiresStableReferenceAndReason(t *testing.T) {
 	t.Parallel()
 
