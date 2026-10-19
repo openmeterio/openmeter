@@ -5,11 +5,11 @@ package notificationevents
 import (
 	_ "embed"
 
-	"github.com/openmeterio/openmeter/openmeter/notification/eventtype"
+	"github.com/openmeterio/openmeter/openmeter/notification/v4"
 )
 
 // BillingInvoiceCreatedV1EventType is v1.billing.invoice.created.
-var BillingInvoiceCreatedV1EventType = eventtype.EventType{
+var BillingInvoiceCreatedV1EventType = v4.EventType{
 	Name:    "billing.invoice.created",
 	Version: 1,
 }

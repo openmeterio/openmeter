@@ -5,11 +5,11 @@ package notificationevents
 import (
 	_ "embed"
 
-	"github.com/openmeterio/openmeter/openmeter/notification/eventtype"
+	"github.com/openmeterio/openmeter/openmeter/notification/v4"
 )
 
 // EntitlementBalanceThresholdTriggeredV1EventType is v1.entitlement.balance_threshold.triggered.
-var EntitlementBalanceThresholdTriggeredV1EventType = eventtype.EventType{
+var EntitlementBalanceThresholdTriggeredV1EventType = v4.EventType{
 	Name:    "entitlement.balance_threshold.triggered",
 	Version: 1,
 }

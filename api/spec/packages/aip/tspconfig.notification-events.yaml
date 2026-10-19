@@ -18,7 +18,7 @@ options:
     # files as packages of the root module.
     emitter-output-dir: '{output-dir}/output/notification-events/_go'
     module-path: 'github.com/openmeterio/openmeter'
-    eventtype-import-path: 'github.com/openmeterio/openmeter/openmeter/notification/eventtype'
+    eventtype-import-path: 'github.com/openmeterio/openmeter/openmeter/notification/v4'
     # Repository-relative paths referenced by the generated go:generate directives.
     oapi-codegen-config: 'api/spec/packages/aip/oapi-codegen.notification-events.yaml'
     spec-dir: 'api/notificationevents'

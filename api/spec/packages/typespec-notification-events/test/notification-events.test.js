@@ -122,8 +122,7 @@ describe('contract validation', () => {
 describe('emitter', () => {
   const EmitTester = Tester.emit(lib, {
     'module-path': 'github.com/example/mod',
-    'eventtype-import-path':
-      'github.com/example/mod/openmeter/notification/eventtype',
+    'eventtype-import-path': 'github.com/example/mod/openmeter/notification/v4',
     'oapi-codegen-config': 'api/oapi-codegen.yaml',
     'spec-dir': 'api/notificationevents',
   })
@@ -147,11 +146,11 @@ package notificationevents
 import (
 	_ "embed"
 
-	"github.com/example/mod/openmeter/notification/eventtype"
+	"github.com/example/mod/openmeter/notification/v4"
 )
 
 // WidgetThingHappenedV1EventType is v1.widget.thing.happened.
-var WidgetThingHappenedV1EventType = eventtype.EventType{
+var WidgetThingHappenedV1EventType = v4.EventType{
 	Name:    "widget.thing.happened",
 	Version: 1,
 }

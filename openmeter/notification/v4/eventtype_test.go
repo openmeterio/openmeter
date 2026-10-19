@@ -1,4 +1,4 @@
-package eventtype
+package v4
 
 import (
 	"testing"

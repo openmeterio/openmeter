@@ -1,7 +1,7 @@
-// Package eventtype defines the identity of Notification Event types. It is a
-// leaf package: every domain's generated notificationevents package imports it,
-// so it must not depend on Notification or any domain package.
-package eventtype
+// Package v4 holds the Notification vNext types, starting with the identity of
+// Notification Event types. Every domain's generated notificationevents package
+// imports it, so it must not depend on Notification or any domain package.
+package v4
 
 import (
 	"errors"
