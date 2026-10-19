@@ -249,6 +249,9 @@ func TestLateEventRatingUnitPrice(t *testing.T) {
 							DiscountsTotal: 10,
 							Total:          20,
 						},
+						AmountDiscounts: []ratingtestutils.ExpectedAmountDiscount{
+							{ChildUniqueReferenceID: billing.LineMaximumSpendReferenceID, Amount: 10},
+						},
 					},
 				},
 				expectedTotals: ratingtestutils.ExpectedTotals{
@@ -283,6 +286,9 @@ func TestLateEventRatingUnitPrice(t *testing.T) {
 						Totals: ratingtestutils.ExpectedTotals{
 							DiscountsTotal: 10,
 							Total:          -10,
+						},
+						AmountDiscounts: []ratingtestutils.ExpectedAmountDiscount{
+							{ChildUniqueReferenceID: billing.LineMaximumSpendReferenceID, Amount: 10},
 						},
 					},
 				},
@@ -341,6 +347,9 @@ func TestLateEventRatingUnitPrice(t *testing.T) {
 							DiscountsTotal: 10,
 							Total:          20,
 						},
+						AmountDiscounts: []ratingtestutils.ExpectedAmountDiscount{
+							{ChildUniqueReferenceID: billing.LineMaximumSpendReferenceID, Amount: 10},
+						},
 					},
 				},
 				expectedTotals: ratingtestutils.ExpectedTotals{
@@ -376,6 +385,9 @@ func TestLateEventRatingUnitPrice(t *testing.T) {
 							DiscountsTotal: 10,
 							Total:          -10,
 						},
+						AmountDiscounts: []ratingtestutils.ExpectedAmountDiscount{
+							{ChildUniqueReferenceID: billing.LineMaximumSpendReferenceID, Amount: 10},
+						},
 					},
 					{
 						ChildUniqueReferenceID: ratingtestutils.FormatDetailedLineChildUniqueReferenceID(billingrating.UnitPriceUsageChildUniqueReferenceID, periods.period3),
@@ -386,6 +398,9 @@ func TestLateEventRatingUnitPrice(t *testing.T) {
 						Totals: ratingtestutils.ExpectedTotals{
 							Amount:         10,
 							DiscountsTotal: 10,
+						},
+						AmountDiscounts: []ratingtestutils.ExpectedAmountDiscount{
+							{ChildUniqueReferenceID: billing.LineMaximumSpendReferenceID, Amount: 10},
 						},
 					},
 				},
@@ -422,6 +437,9 @@ func TestLateEventRatingUnitPrice(t *testing.T) {
 							DiscountsTotal: 15,
 							Total:          15,
 						},
+						AmountDiscounts: []ratingtestutils.ExpectedAmountDiscount{
+							{ChildUniqueReferenceID: ratingtestutils.PercentageDiscountChildUniqueReferenceID, Amount: 15},
+						},
 					},
 				},
 				expectedTotals: ratingtestutils.ExpectedTotals{
@@ -446,6 +464,9 @@ func TestLateEventRatingUnitPrice(t *testing.T) {
 							DiscountsTotal: 10,
 							Total:          10,
 						},
+						AmountDiscounts: []ratingtestutils.ExpectedAmountDiscount{
+							{ChildUniqueReferenceID: ratingtestutils.PercentageDiscountChildUniqueReferenceID, Amount: 10},
+						},
 					},
 				},
 				expectedTotals: ratingtestutils.ExpectedTotals{
@@ -469,6 +490,9 @@ func TestLateEventRatingUnitPrice(t *testing.T) {
 							Amount:         10,
 							DiscountsTotal: 5,
 							Total:          5,
+						},
+						AmountDiscounts: []ratingtestutils.ExpectedAmountDiscount{
+							{ChildUniqueReferenceID: ratingtestutils.PercentageDiscountChildUniqueReferenceID, Amount: 5},
 						},
 					},
 				},
@@ -572,6 +596,9 @@ func TestLateEventRatingUnitPrice(t *testing.T) {
 							DiscountsTotal: 15,
 							Total:          15,
 						},
+						AmountDiscounts: []ratingtestutils.ExpectedAmountDiscount{
+							{ChildUniqueReferenceID: ratingtestutils.PercentageDiscountChildUniqueReferenceID, Amount: 15},
+						},
 					},
 				},
 				expectedTotals: ratingtestutils.ExpectedTotals{
@@ -595,6 +622,10 @@ func TestLateEventRatingUnitPrice(t *testing.T) {
 							Amount:         30,
 							DiscountsTotal: 20,
 							Total:          10,
+						},
+						AmountDiscounts: []ratingtestutils.ExpectedAmountDiscount{
+							{ChildUniqueReferenceID: ratingtestutils.PercentageDiscountChildUniqueReferenceID, Amount: 15},
+							{ChildUniqueReferenceID: billing.LineMaximumSpendReferenceID, Amount: 5},
 						},
 					},
 				},
@@ -620,6 +651,9 @@ func TestLateEventRatingUnitPrice(t *testing.T) {
 							DiscountsTotal: 5,
 							Total:          5,
 						},
+						AmountDiscounts: []ratingtestutils.ExpectedAmountDiscount{
+							{ChildUniqueReferenceID: ratingtestutils.PercentageDiscountChildUniqueReferenceID, Amount: 5},
+						},
 					},
 					{
 						ChildUniqueReferenceID: ratingtestutils.FormatDetailedLineChildUniqueReferenceID(billingrating.UnitPriceUsageChildUniqueReferenceID, periods.period2),
@@ -631,6 +665,9 @@ func TestLateEventRatingUnitPrice(t *testing.T) {
 						Totals: ratingtestutils.ExpectedTotals{
 							DiscountsTotal: 5,
 							Total:          -5,
+						},
+						AmountDiscounts: []ratingtestutils.ExpectedAmountDiscount{
+							{ChildUniqueReferenceID: billing.LineMaximumSpendReferenceID, Amount: 5},
 						},
 					},
 				},
@@ -840,6 +877,9 @@ func TestLateEventRatingCreditsAllocation(t *testing.T) {
 							DiscountsTotal: 50,
 							Total:          50,
 						},
+						AmountDiscounts: []ratingtestutils.ExpectedAmountDiscount{
+							{ChildUniqueReferenceID: ratingtestutils.PercentageDiscountChildUniqueReferenceID, Amount: 50},
+						},
 					},
 				},
 				expectedTotals: ratingtestutils.ExpectedTotals{
@@ -883,6 +923,9 @@ func TestLateEventRatingCreditsAllocation(t *testing.T) {
 							Amount:         20,
 							DiscountsTotal: 10,
 							Total:          10,
+						},
+						AmountDiscounts: []ratingtestutils.ExpectedAmountDiscount{
+							{ChildUniqueReferenceID: ratingtestutils.PercentageDiscountChildUniqueReferenceID, Amount: 10},
 						},
 					},
 				},
@@ -1099,6 +1142,9 @@ func TestLateEventRatingVolumeTieredPrice(t *testing.T) {
 							DiscountsTotal: 50,
 							Total:          100,
 						},
+						AmountDiscounts: []ratingtestutils.ExpectedAmountDiscount{
+							{ChildUniqueReferenceID: billing.LineMaximumSpendReferenceID, Amount: 50},
+						},
 					},
 				},
 				expectedTotals: ratingtestutils.ExpectedTotals{
@@ -1128,6 +1174,9 @@ func TestLateEventRatingVolumeTieredPrice(t *testing.T) {
 							Amount:         -150,
 							DiscountsTotal: -50,
 							Total:          -100,
+						},
+						AmountDiscounts: []ratingtestutils.ExpectedAmountDiscount{
+							{ChildUniqueReferenceID: billing.LineMaximumSpendReferenceID, Amount: -50},
 						},
 					},
 					{

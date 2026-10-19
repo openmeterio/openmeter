@@ -140,13 +140,13 @@ func (d AmountDiscounts) Add(other AmountDiscounts) AmountDiscounts {
 			merged[discount.mergeKey()] = struct{}{}
 		}
 
-		if !discount.isZero() {
+		if !discount.IsZero() {
 			out = append(out, discount)
 		}
 	}
 
 	for _, discount := range other {
-		if _, ok := merged[discount.mergeKey()]; ok || discount.isZero() {
+		if _, ok := merged[discount.mergeKey()]; ok || discount.IsZero() {
 			continue
 		}
 
@@ -175,7 +175,7 @@ func (d AmountDiscount) mergeKey() string {
 	return key
 }
 
-func (d AmountDiscount) isZero() bool {
+func (d AmountDiscount) IsZero() bool {
 	return d.Amount.IsZero() && d.RoundingAmount.IsZero()
 }
 

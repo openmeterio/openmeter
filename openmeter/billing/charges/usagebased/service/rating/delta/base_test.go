@@ -64,7 +64,7 @@ func runDeltaRatingTestCase(t *testing.T, tc deltaRatingTestCase) {
 				AlreadyBilledDetailedLines: alreadyBilledDetailedLines,
 			})
 			require.NoError(t, err)
-			require.Equal(t, phase.expectedDetailedLines, ratingtestutils.ToExpectedDetailedLinesWithAmountDiscounts(out.DetailedLines))
+			require.Equal(t, phase.expectedDetailedLines, ratingtestutils.ToExpectedDetailedLinesWithServicePeriod(out.DetailedLines))
 			require.Equal(t, phase.expectedTotals, ratingtestutils.ToExpectedTotals(out.DetailedLines.SumTotals()))
 
 			bookedDetailedLinesByPhase[phaseIdx] = detailedLinesBookedForDeltaTest(phaseIdx, out.DetailedLines)

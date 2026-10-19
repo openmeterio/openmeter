@@ -15,10 +15,17 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
+	billingrating "github.com/openmeterio/openmeter/openmeter/billing/rating"
 	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
+
+// Percentage discounts get a fixed correlation ID so their detailed line child
+// reference stays assertable across runs.
+const PercentageDiscountCorrelationID = "percentage-discount"
+
+var PercentageDiscountChildUniqueReferenceID = fmt.Sprintf(billingrating.RateCardDiscountChildUniqueReferenceID, PercentageDiscountCorrelationID)
 
 type ExpectedDetailedLine struct {
 	ChildUniqueReferenceID string
@@ -50,6 +57,17 @@ type ExpectedTotals struct {
 
 func ToExpectedDetailedLinesWithServicePeriod(lines usagebased.DetailedLines) []ExpectedDetailedLine {
 	return lo.Map(lines, func(line usagebased.DetailedLine, _ int) ExpectedDetailedLine {
+		var amountDiscounts []ExpectedAmountDiscount
+		if len(line.AmountDiscounts) > 0 {
+			amountDiscounts = lo.Map(line.AmountDiscounts, func(discount chargedetailedline.AmountDiscount, _ int) ExpectedAmountDiscount {
+				return ExpectedAmountDiscount{
+					ChildUniqueReferenceID: discount.ChildUniqueReferenceID,
+					Amount:                 discount.Amount.InexactFloat64(),
+					RoundingAmount:         discount.RoundingAmount.InexactFloat64(),
+				}
+			})
+		}
+
 		return ExpectedDetailedLine{
 			ChildUniqueReferenceID: line.ChildUniqueReferenceID,
 			Category:               line.Category,
@@ -58,25 +76,8 @@ func ToExpectedDetailedLinesWithServicePeriod(lines usagebased.DetailedLines) []
 			PerUnitAmount:          line.PerUnitAmount.InexactFloat64(),
 			Quantity:               line.Quantity.InexactFloat64(),
 			Totals:                 ToExpectedTotals(line.Totals),
+			AmountDiscounts:        amountDiscounts,
 		}
-	})
-}
-
-func ToExpectedDetailedLinesWithAmountDiscounts(lines usagebased.DetailedLines) []ExpectedDetailedLine {
-	return lo.Map(ToExpectedDetailedLinesWithServicePeriod(lines), func(expected ExpectedDetailedLine, idx int) ExpectedDetailedLine {
-		if len(lines[idx].AmountDiscounts) == 0 {
-			return expected
-		}
-
-		expected.AmountDiscounts = lo.Map(lines[idx].AmountDiscounts, func(discount chargedetailedline.AmountDiscount, _ int) ExpectedAmountDiscount {
-			return ExpectedAmountDiscount{
-				ChildUniqueReferenceID: discount.ChildUniqueReferenceID,
-				Amount:                 discount.Amount.InexactFloat64(),
-				RoundingAmount:         discount.RoundingAmount.InexactFloat64(),
-			}
-		})
-
-		return expected
 	})
 }
 
@@ -105,6 +106,11 @@ func FormatDetailedLineChildUniqueReferenceID(id string, servicePeriod timeutil.
 func NewIntentForTest(t testing.TB, servicePeriod timeutil.ClosedPeriod, price productcatalog.Price, discounts productcatalog.Discounts) usagebased.Intent {
 	t.Helper()
 
+	billingDiscounts := billing.DiscountsFromProductCatalog(discounts)
+	if billingDiscounts.Percentage != nil {
+		billingDiscounts.Percentage.CorrelationID = PercentageDiscountCorrelationID
+	}
+
 	intent := usagebased.Intent{
 		Intent: chargesmeta.Intent{
 			ManagedBy:  billing.SubscriptionManagedLine,
@@ -123,7 +129,7 @@ func NewIntentForTest(t testing.TB, servicePeriod timeutil.ClosedPeriod, price p
 			},
 			InvoiceAt: servicePeriod.To,
 			Price:     price,
-			Discounts: billing.DiscountsFromProductCatalog(discounts).UpsertCorrelationIDs(),
+			Discounts: billingDiscounts.UpsertCorrelationIDs(),
 		},
 		SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 		FeatureKey:     "feature-1",
