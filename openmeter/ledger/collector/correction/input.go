@@ -8,10 +8,12 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type Input struct {
+	breakagePosting              breakage.PostingInput
 	Namespace                    string
 	ChargeID                     string
 	CustomerID                   string

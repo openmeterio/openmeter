@@ -27,7 +27,6 @@ func (s *service) PlanCorrection(ctx context.Context, input advance.CorrectionIn
 		}
 
 		out.Inputs = append(out.Inputs, planned.Inputs...)
-		out.BreakagePending = append(out.BreakagePending, planned.BreakagePending...)
 	}
 
 	for _, source := range []advance.CorrectionSource{input.Collection, input.Issue} {
@@ -92,7 +91,8 @@ func (s *service) correctBackfill(ctx context.Context, input advance.CorrectionI
 			continue
 		}
 
-		reopened, pending, err := s.breakage.ReopenRelease(ctx, breakage.ReopenReleaseInput{
+		reopened, err := s.breakage.ReopenRelease(ctx, breakage.ReopenReleaseInput{
+			PostingInput:       input.BreakagePosting,
 			Release:            release,
 			Amount:             take,
 			SourceKind:         breakage.SourceKindUsageCorrection,
@@ -105,7 +105,6 @@ func (s *service) correctBackfill(ctx context.Context, input advance.CorrectionI
 		}
 
 		out.Inputs = append(out.Inputs, reopened)
-		out.BreakagePending = append(out.BreakagePending, pending)
 		remaining = remaining.Sub(take)
 	}
 

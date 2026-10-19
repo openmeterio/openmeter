@@ -1,11 +1,13 @@
 package ledger_test
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 	"github.com/samber/mo"
 	"github.com/stretchr/testify/require"
@@ -13,9 +15,202 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
+	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions/testutils"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
+
+func TestValidateTransactionGroupInputWith(t *testing.T) {
+	address := mustPostingAddress(t, currencyx.Code("USD"))
+	at := time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC)
+	id := ulid.Make().String()
+
+	newTransaction := func(id string, entryIDs ...string) *testutils.AnyTransactionInput {
+		input := &testutils.AnyTransactionInput{
+			IDValue:       id,
+			BookedAtValue: at,
+			EntryInputsValues: []*testutils.AnyEntryInput{
+				{
+					Address:     address,
+					AmountValue: alpacadecimal.NewFromInt(10),
+				},
+				{
+					Address:     address,
+					AmountValue: alpacadecimal.NewFromInt(-10),
+				},
+			},
+		}
+
+		for idx, id := range entryIDs {
+			input.EntryInputsValues[idx].IDValue = id
+		}
+
+		return input
+	}
+
+	unbalanced := newTransaction("")
+	unbalanced.EntryInputsValues[1].AmountValue = alpacadecimal.NewFromInt(-9)
+
+	for _, tc := range []struct {
+		name             string
+		input            ledger.TransactionGroupInput
+		expectedError    error
+		expectedMessages []string
+	}{
+		{
+			name:  "accepts omitted IDs across multiple transactions",
+			input: transactions.GroupInputs("ns-test", nil, newTransaction(""), newTransaction("")),
+		},
+		{
+			name: "accepts the same ID across different entity types",
+			input: ledger.WithGroupID(
+				transactions.GroupInputs("ns-test", nil, newTransaction(id, id, ulid.Make().String())),
+				id,
+			),
+		},
+		{
+			name:  "accepts mixed supplied and omitted IDs",
+			input: transactions.GroupInputs("ns-test", nil, newTransaction(id, ulid.Make().String()), newTransaction("")),
+		},
+		{
+			name:             "missing group",
+			expectedMessages: []string{"transaction group is required"},
+		},
+		{
+			name:             "missing namespace",
+			input:            transactions.GroupInputs("", nil, newTransaction("")),
+			expectedMessages: []string{"namespace is required"},
+		},
+		{
+			name:          "empty group",
+			input:         transactions.GroupInputs("ns-test", nil),
+			expectedError: ledger.ErrTransactionGroupEmpty,
+		},
+		{
+			name: "invalid group ID",
+			input: ledger.WithGroupID(
+				transactions.GroupInputs("ns-test", nil, newTransaction("")),
+				"invalid",
+			),
+			expectedMessages: []string{"group ID"},
+		},
+		{
+			name:             "invalid transaction ID",
+			input:            transactions.GroupInputs("ns-test", nil, newTransaction("invalid")),
+			expectedMessages: []string{"transactions[0]:", "transaction ID"},
+		},
+		{
+			name:          "invalid entry ID",
+			input:         transactions.GroupInputs("ns-test", nil, newTransaction("", "invalid")),
+			expectedError: ledger.ErrEntryInvalid,
+		},
+		{
+			name:             "duplicate transaction IDs",
+			input:            transactions.GroupInputs("ns-test", nil, newTransaction(id), newTransaction(id)),
+			expectedMessages: []string{"transactions[1]: duplicate transaction ID"},
+		},
+		{
+			name:             "duplicate entry IDs within a transaction",
+			input:            transactions.GroupInputs("ns-test", nil, newTransaction("", id, id)),
+			expectedMessages: []string{"transactions[0].entries[1]: duplicate entry ID"},
+		},
+		{
+			name:             "duplicate entry IDs across transactions",
+			input:            transactions.GroupInputs("ns-test", nil, newTransaction("", id), newTransaction("", id)),
+			expectedMessages: []string{"transactions[1].entries[0]: duplicate entry ID"},
+		},
+		{
+			name:          "missing transaction",
+			input:         transactions.GroupInputs("ns-test", nil, nil),
+			expectedError: ledger.ErrTransactionInputRequired,
+		},
+		{
+			name: "missing entry",
+			input: transactions.GroupInputs("ns-test", nil,
+				ledger.WithEntryInputs(newTransaction(""), nil),
+			),
+			expectedError: ledger.ErrEntryInvalid,
+		},
+		{
+			name:          "unbalanced transaction",
+			input:         transactions.GroupInputs("ns-test", nil, unbalanced),
+			expectedError: ledger.ErrInvalidTransactionTotal,
+		},
+		{
+			name: "reports independent scope and posting errors together",
+			input: ledger.WithGroupID(
+				transactions.GroupInputs("", nil, newTransaction("invalid"), newTransaction("", "invalid")),
+				"invalid",
+			),
+			expectedMessages: []string{
+				"namespace is required",
+				"group ID",
+				"transactions[0]:",
+				"transaction ID",
+				"transactions[1]: ledger entry is invalid",
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			err := ledger.ValidateTransactionGroupInputWith(t.Context(), tc.input, nil)
+			if tc.expectedError == nil && len(tc.expectedMessages) == 0 {
+				require.NoError(t, err)
+
+				return
+			}
+
+			require.Error(t, err)
+			if tc.expectedError != nil {
+				require.ErrorIs(t, err, tc.expectedError)
+			}
+
+			for _, message := range tc.expectedMessages {
+				require.ErrorContains(t, err, message)
+			}
+		})
+	}
+
+	t.Run("validates routing for every transaction", func(t *testing.T) {
+		// given: a group with two independently balanced transactions
+		first, second := newTransaction(""), newTransaction("")
+		group := transactions.GroupInputs("ns-test", nil, first, second)
+		validator := &groupValidationRoutingValidator{}
+
+		// when: the group is validated with an injected routing policy
+		err := ledger.ValidateTransactionGroupInputWith(t.Context(), group, validator)
+		require.NoError(t, err)
+
+		// then: routing sees each transaction's complete postings
+		require.Equal(t, [][]ledger.EntryInput{first.EntryInputs(), second.EntryInputs()}, validator.entries)
+	})
+
+	t.Run("propagates routing rejection", func(t *testing.T) {
+		// given: the routing policy rejects a balanced posting
+		group := transactions.GroupInputs("ns-test", nil, newTransaction(""))
+		routingError := errors.New("routing rejected")
+		validator := &groupValidationRoutingValidator{err: routingError}
+
+		// when: the group is validated
+		err := ledger.ValidateTransactionGroupInputWith(t.Context(), group, validator)
+
+		// then: the policy's error is retained with transaction context
+		require.ErrorIs(t, err, routingError)
+		require.ErrorContains(t, err, "transactions[0]")
+	})
+}
+
+type groupValidationRoutingValidator struct {
+	entries [][]ledger.EntryInput
+	err     error
+}
+
+var _ ledger.RoutingValidator = (*groupValidationRoutingValidator)(nil)
+
+func (v *groupValidationRoutingValidator) ValidateEntries(entries []ledger.EntryInput) error {
+	v.entries = append(v.entries, entries)
+
+	return v.err
+}
 
 func TestValidateTransactionInputCurrencyAccounting(t *testing.T) {
 	for _, testCase := range []struct {
