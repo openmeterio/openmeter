@@ -155,7 +155,7 @@ export function $onValidate(program) {
 //   - <go package dir>/generate.gen.go for every @goPackage namespace, holding
 //     the go:generate directive that runs oapi-codegen on the package's
 //     events-only OpenAPI document with the shared configuration;
-//   - <go package dir>/eventtypes.gen.go for every package owning @eventType
+//   - <go package dir>/events.gen.go for every package owning @eventType
 //     payloads: the Event type value and the embedded JSON Schemas;
 //   - manifest.json describing every @goPackage namespace, used by
 //     scripts/generate-notification-events.mjs to generate the events-only
@@ -261,7 +261,7 @@ export async function $onEmit(context) {
         }
       }
       await emitFile(program, {
-        path: resolvePath(context.emitterOutputDir, dir, 'eventtypes.gen.go'),
+        path: resolvePath(context.emitterOutputDir, dir, 'events.gen.go'),
         content: lines.join('\n'),
       })
     }

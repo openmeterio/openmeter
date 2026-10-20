@@ -7,7 +7,7 @@
 //   1. compiles a generated entry point that makes the namespace an OpenAPI
 //      service, producing the events-only OpenAPI document of its types;
 //   2. copies that document to its committed location under api/, and the
-//      emitted generate.gen.go, eventtypes.gen.go and JSON Schemas into the Go
+//      emitted generate.gen.go, events.gen.go and JSON Schemas into the Go
 //      package directory. `go generate` then runs oapi-codegen through the
 //      directive in generate.gen.go, like every other oapi-codegen target.
 import { execFileSync } from 'node:child_process'
@@ -69,12 +69,12 @@ for (const entry of manifest) {
     join(out, '_go', entry.dir, 'generate.gen.go'),
     join(goDir, 'generate.gen.go'),
   )
-  rmSync(join(goDir, 'eventtypes.gen.go'), { force: true })
+  rmSync(join(goDir, 'events.gen.go'), { force: true })
   rmSync(join(goDir, 'schemas'), { recursive: true, force: true })
   if (entry.schemas.length > 0) {
     cpSync(
-      join(out, '_go', entry.dir, 'eventtypes.gen.go'),
-      join(goDir, 'eventtypes.gen.go'),
+      join(out, '_go', entry.dir, 'events.gen.go'),
+      join(goDir, 'events.gen.go'),
     )
     mkdirSync(join(goDir, 'schemas'))
     for (const { source, target } of entry.schemas) {
