@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"math/rand/v2"
-	"slices"
 	"testing"
 	"time"
 
@@ -2128,8 +2127,6 @@ func (s *InvoicingTestSuite) TestBillingProfileChange() {
 }
 
 func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
-	s.T().Skip("OM-581: pending on reworking delta rating usage discount settings")
-
 	namespace := "ns-ubp-invoicing-progressive"
 	ctx := context.Background()
 	defer clock.ResetTime()
@@ -2250,156 +2247,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 
 	lines := ubpPendingLines{}
 	s.Run("create pending invoice items", func() {
-		// When we create pending invoice items
-		pendingLines, err := s.Charges.CreatePendingInvoiceLines(
-			ctx,
-			billing.CreatePendingInvoiceLinesInput{
-				Customer: customerEntity.GetID(),
-				Currency: currencyx.FiatCode(currency.USD),
-				Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
-					{
-						GatheringLineBase: billing.GatheringLineBase{
-							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
-								Name: "UBP - FLAT per unit",
-							}),
-							ServicePeriod: timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
-							InvoiceAt:     periodEnd,
-							ManagedBy:     billing.ManuallyManagedLine,
-							FeatureKey:    features.flatPerUnit.Key,
-							Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
-								Amount: alpacadecimal.NewFromFloat(100),
-								Commitments: productcatalog.Commitments{
-									MaximumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(2000)),
-								},
-							})),
-						},
-					},
-					{
-						GatheringLineBase: billing.GatheringLineBase{
-							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
-								Name: "UBP - FLAT per any usage",
-							}),
-							ServicePeriod: timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
-							InvoiceAt:     periodEnd,
-							ManagedBy:     billing.ManuallyManagedLine,
-							Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
-								Amount:      alpacadecimal.NewFromFloat(100),
-								PaymentTerm: productcatalog.InArrearsPaymentTerm,
-							})),
-						},
-					},
-					{
-						GatheringLineBase: billing.GatheringLineBase{
-							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
-								Name: "UBP - Tiered graduated",
-							}),
-							ServicePeriod: timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
-							InvoiceAt:     periodEnd,
-							ManagedBy:     billing.ManuallyManagedLine,
-							FeatureKey:    features.tieredGraduated.Key,
-							Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.TieredPrice{
-								Mode: productcatalog.GraduatedTieredPrice,
-								Tiers: []productcatalog.PriceTier{
-									{
-										UpToAmount: lo.ToPtr(alpacadecimal.NewFromFloat(10)),
-										UnitPrice: &productcatalog.PriceTierUnitPrice{
-											Amount: alpacadecimal.NewFromFloat(100),
-										},
-									},
-									{
-										UpToAmount: lo.ToPtr(alpacadecimal.NewFromFloat(20)),
-										UnitPrice: &productcatalog.PriceTierUnitPrice{
-											Amount: alpacadecimal.NewFromFloat(90),
-										},
-									},
-									{
-										UnitPrice: &productcatalog.PriceTierUnitPrice{
-											Amount: alpacadecimal.NewFromFloat(80),
-										},
-									},
-								},
-							})),
-						},
-					},
-					{
-						GatheringLineBase: billing.GatheringLineBase{
-							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
-								Name: "UBP - Tiered volume",
-							}),
-							ServicePeriod: timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
-							InvoiceAt:     periodEnd,
-							ManagedBy:     billing.ManuallyManagedLine,
-							FeatureKey:    features.tieredVolume.Key,
-							Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.TieredPrice{
-								Mode: productcatalog.VolumeTieredPrice,
-								Tiers: []productcatalog.PriceTier{
-									{
-										UpToAmount: lo.ToPtr(alpacadecimal.NewFromFloat(10)),
-										UnitPrice: &productcatalog.PriceTierUnitPrice{
-											Amount: alpacadecimal.NewFromFloat(100),
-										},
-									},
-									{
-										UpToAmount: lo.ToPtr(alpacadecimal.NewFromFloat(20)),
-										UnitPrice: &productcatalog.PriceTierUnitPrice{
-											Amount: alpacadecimal.NewFromFloat(90),
-										},
-									},
-									{
-										UnitPrice: &productcatalog.PriceTierUnitPrice{
-											Amount: alpacadecimal.NewFromFloat(80),
-										},
-									},
-								},
-								Commitments: productcatalog.Commitments{
-									MinimumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(3000)),
-								},
-							})),
-						},
-					},
-				}),
-			},
-		)
-		require.NoError(s.T(), err)
-		require.Len(s.T(), pendingLines.Lines, 4)
-
-		lines = ubpPendingLines{
-			flatPerUnit:     pendingLines.Lines[0],
-			flatFee:         pendingLines.Lines[1],
-			tieredGraduated: pendingLines.Lines[2],
-			tieredVolume:    pendingLines.Lines[3],
-		}
-
-		// The flat fee line should not be truncated
-		require.Equal(
-			s.T(),
-			timeutil.ClosedPeriod{From: truncatedPeriodStart, To: truncatedPeriodEnd},
-			lines.flatFee.ServicePeriod,
-			"period should not be truncated",
-		)
-		require.Equal(
-			s.T(),
-			lines.flatFee.InvoiceAt,
-			truncatedPeriodEnd,
-			"invoice at should be unchanged",
-		)
-
-		// The pending invoice items should be truncated to 1 min resolution (start => up to next, end down to previous)
-		for _, line := range []billing.GatheringLine{lines.flatPerUnit, lines.tieredGraduated, lines.tieredVolume} {
-			require.Equal(
-				s.T(),
-				timeutil.ClosedPeriod{From: testutils.GetRFC3339Time(s.T(), "2024-09-02T12:13:14Z"), To: testutils.GetRFC3339Time(s.T(), "2024-09-03T12:13:14Z")},
-				line.ServicePeriod,
-				"period should be truncated to 1 min resolution",
-			)
-
-			require.Equal(
-				s.T(),
-				line.InvoiceAt,
-				truncatedPeriodEnd,
-				"invoice at should be unchanged",
-			)
-		}
+		lines = s.createUBPProgressivePendingLines(ctx, customerEntity, features, timeutil.ClosedPeriod{From: periodStart, To: periodEnd})
 	})
 
 	s.Run("create invoice with empty trucated periods", func() {
@@ -2412,6 +2260,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 		require.ErrorAs(s.T(), err, &billing.ValidationError{})
 	})
 
+	var midPeriodInvoice billing.StandardInvoice
 	s.Run("create mid period invoice", func() {
 		// Usage
 		s.MockStreamingConnector.AddSimpleEvent("flat-per-unit", 10, periodStart)
@@ -2429,6 +2278,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 		require.Len(s.T(), out, 1)
 
 		invoice := out[0]
+		midPeriodInvoice = invoice
 
 		s.DebugDumpInvoice("mid period ubp progressive invoice", invoice)
 
@@ -2437,9 +2287,8 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 		invoiceLines := invoice.Lines.MustGet()
 		require.Len(s.T(), invoiceLines, 2)
 
-		// Let's resolve the lines by the first line in the split line group
-		flatPerUnit := s.lineInSameSplitLineGroup(invoiceLines, lines.flatPerUnit.ID)
-		tieredGraduated := s.lineInSameSplitLineGroup(invoiceLines, lines.tieredGraduated.ID)
+		flatPerUnit := s.lineByChargeID(invoiceLines, lines.flatPerUnit.ChargeID)
+		tieredGraduated := s.lineByChargeID(invoiceLines, lines.tieredGraduated.ChargeID)
 
 		// The invoice should not have:
 		// - the volume item as that must be invoiced in arreas
@@ -2459,21 +2308,10 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 			require.True(s.T(), expectedPeriod.Equal(line.Period), "period should be changed for the line items")
 		}
 
-		// Let's validate the output of the split itself
-		s.NotNil(tieredGraduated.SplitLineHierarchy)
-		s.sortedSplitLineGroupChildren(tieredGraduated)
-		tieredGraduatedHierarchy := tieredGraduated.SplitLineHierarchy
+		s.Require().Nil(tieredGraduated.SplitLineHierarchy)
+		s.Equal(billing.LineEngineTypeChargeUsageBased, tieredGraduated.Engine)
 
 		require.Equal(s.T(), flatPerUnit.UsageBased.Quantity.InexactFloat64(), float64(10), "flat per unit should have 10 units")
-		require.Len(s.T(), tieredGraduatedHierarchy.Lines, 2, "there should be to child lines [id=%s]", tieredGraduatedHierarchy.Group.ID)
-		require.True(s.T(), tieredGraduatedHierarchy.Lines[0].Line.GetServicePeriod().Equal(timeutil.ClosedPeriod{
-			From: truncatedPeriodStart,
-			To:   truncatedPeriodStart.Add(time.Hour),
-		}), "first child period should be truncated")
-		require.True(s.T(), tieredGraduatedHierarchy.Lines[1].Line.GetServicePeriod().Equal(timeutil.ClosedPeriod{
-			From: truncatedPeriodStart.Add(time.Hour),
-			To:   truncatedPeriodEnd,
-		}), "second child period should be until the end of parent's period")
 
 		// Let's validate detailed line items
 		requireDetailedLines(s.T(), flatPerUnit, lineExpectations{
@@ -2500,6 +2338,34 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 			Amount: 1000,
 			Total:  1000,
 		}, out[0].Totals)
+	})
+
+	// Complete the first realization before collecting the next part of the charges.
+	clock.SetTime(midPeriodInvoice.DefaultCollectionAtForStandardInvoice())
+	_, err = s.BillingService.AdvanceInvoice(ctx, midPeriodInvoice.GetInvoiceID())
+	s.Require().NoError(err)
+	_, err = s.BillingService.ApproveInvoice(ctx, midPeriodInvoice.GetInvoiceID())
+	s.Require().NoError(err)
+	clock.SetTime(periodStart.Add(time.Hour))
+
+	s.Run("edit and delete a mid period invoice", func() {
+		// Given a second customer with the same pending lines, as deleting a charge-backed
+		// line or its invoice deletes the charges and they cannot be billed afterwards
+		editCustomer := s.CreateTestCustomer(namespace, "test-edit")
+		s.SetupAccounts(editCustomer.Namespace, editCustomer.ID)
+
+		editLines := s.createUBPProgressivePendingLines(ctx, editCustomer, features, timeutil.ClosedPeriod{From: periodStart, To: periodEnd})
+
+		asOf := periodStart.Add(time.Hour)
+		out, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+			Customer: editCustomer.GetID(),
+			AsOf:     &asOf,
+		})
+		require.NoError(s.T(), err)
+		require.Len(s.T(), out, 1)
+
+		invoice := out[0]
+		flatPerUnit := s.lineByChargeID(invoice.Lines.MustGet(), editLines.flatPerUnit.ChargeID)
 
 		s.Run("updating a progressively billed line item is rejected", func() {
 			_, err := s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
@@ -2520,8 +2386,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 			})
 
 			require.Error(s.T(), err)
-			require.ErrorAs(s.T(), err, &billing.ValidationError{})
-			require.ErrorIs(s.T(), err, billing.ErrInvoiceProgressiveBillingNotSupported)
+			require.ErrorIs(s.T(), err, billing.ErrCannotUpdateChargeManagedLine)
 		})
 
 		s.Run("invalid update of a line item", func() {
@@ -2550,8 +2415,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 			})
 
 			require.Error(s.T(), err)
-			require.ErrorAs(s.T(), err, &billing.ValidationError{})
-			require.ErrorIs(s.T(), err, billing.ErrInvoiceProgressiveBillingNotSupported)
+			require.ErrorIs(s.T(), err, billing.ErrCannotUpdateChargeManagedLine)
 		})
 
 		s.Run("deleting a valid line item worked", func() {
@@ -2719,15 +2583,19 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 
 		require.NoError(s.T(), err)
 		require.Len(s.T(), out, 1)
+
+		// The invoicing app is only synced once collection completes
+		clock.SetTime(out[0].DefaultCollectionAtForStandardInvoice())
+		out[0], err = s.BillingService.AdvanceInvoice(ctx, out[0].GetInvoiceID())
+		require.NoError(s.T(), err)
 		require.Len(s.T(), out[0].ValidationIssues, 0, "invoice should not have validation issues [id=%s]", out[0].ID)
 
 		invoiceLines := out[0].Lines.MustGet()
 
 		require.Len(s.T(), invoiceLines, 2)
 
-		// Let's resolve the lines by the first line in the split line group
-		flatPerUnit := s.lineInSameSplitLineGroup(invoiceLines, lines.flatPerUnit.ID)
-		tieredGraduated := s.lineInSameSplitLineGroup(invoiceLines, lines.tieredGraduated.ID)
+		flatPerUnit := s.lineByChargeID(invoiceLines, lines.flatPerUnit.ChargeID)
+		tieredGraduated := s.lineByChargeID(invoiceLines, lines.tieredGraduated.ChargeID)
 
 		// The invoice should not have:
 		// - the volume item as that must be invoiced in arreas
@@ -2747,25 +2615,8 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 			require.True(s.T(), expectedPeriod.Equal(line.Period), "period should be changed for the line items")
 		}
 
-		// Let's validate the output of the split itself
-		s.sortedSplitLineGroupChildren(tieredGraduated)
-		s.NotNil(tieredGraduated.SplitLineHierarchy)
-		tieredGraduatedHierarchy := tieredGraduated.SplitLineHierarchy
-
-		require.True(s.T(), tieredGraduatedHierarchy.Group.ServicePeriod.Equal(lines.tieredGraduated.ServicePeriod))
-		require.Len(s.T(), tieredGraduatedHierarchy.Lines, 3, "there should be to child lines [id=%s]", tieredGraduatedHierarchy.Group.ID)
-		require.True(s.T(), tieredGraduatedHierarchy.Lines[0].Line.GetServicePeriod().Equal(timeutil.ClosedPeriod{
-			From: truncatedPeriodStart,
-			To:   truncatedPeriodStart.Add(time.Hour),
-		}), "first child period should be truncated")
-		require.True(s.T(), tieredGraduatedHierarchy.Lines[1].Line.GetServicePeriod().Equal(timeutil.ClosedPeriod{
-			From: truncatedPeriodStart.Add(time.Hour),
-			To:   truncatedPeriodStart.Add(2 * time.Hour),
-		}), "second child period should be between the first and the third child's period")
-		require.True(s.T(), tieredGraduatedHierarchy.Lines[2].Line.GetServicePeriod().Equal(timeutil.ClosedPeriod{
-			From: truncatedPeriodStart.Add(2 * time.Hour),
-			To:   truncatedPeriodEnd,
-		}), "third child period should be until the end of parent's period")
+		s.Require().Nil(tieredGraduated.SplitLineHierarchy)
+		s.Equal(billing.LineEngineTypeChargeUsageBased, tieredGraduated.Engine)
 
 		// Detailed lines
 		requireDetailedLines(s.T(), flatPerUnit, lineExpectations{
@@ -2773,8 +2624,11 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 				rating.UnitPriceUsageChildUniqueReferenceID: {
 					Quantity:      20,
 					PerUnitAmount: 100,
-					// Given the previously invoiced line has been deleted, we should not have any discounts as the
-					// previously invoiced amount is 0.
+					// The first invoice billed 1000 of the 2000 maximum spend, so the remaining 1000 is
+					// discounted from this delta.
+					AmountDiscounts: map[string]float64{
+						billing.LineMaximumSpendReferenceID: 1000,
+					},
 				},
 			},
 		})
@@ -2795,8 +2649,8 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 		// Let's validate the totals
 		requireTotals(s.T(), expectedTotals{
 			Amount:         2000,
-			DiscountsTotal: 0,
-			Total:          2000,
+			DiscountsTotal: 1000,
+			Total:          1000,
 		}, flatPerUnit.Totals)
 
 		requireTotals(s.T(), expectedTotals{
@@ -2805,8 +2659,9 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 		}, tieredGraduated.Totals)
 
 		requireTotals(s.T(), expectedTotals{
-			Amount: 3450,
-			Total:  3450,
+			Amount:         3450,
+			DiscountsTotal: 1000,
+			Total:          2450,
 		}, out[0].Totals)
 
 		// Invoice app testing
@@ -2915,15 +2770,19 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 		require.NoError(s.T(), err)
 		require.Len(s.T(), out, 1)
 
+		// The invoicing app is only synced once collection completes
+		clock.SetTime(out[0].DefaultCollectionAtForStandardInvoice())
+		out[0], err = s.BillingService.AdvanceInvoice(ctx, out[0].GetInvoiceID())
+		require.NoError(s.T(), err)
+
 		invoiceLines := out[0].Lines.MustGet()
 
 		s.DebugDumpInvoice("end of period invoice", out[0])
 
 		require.Len(s.T(), invoiceLines, 4)
 
-		// Let's resolve the lines by the first line in the split line group
-		flatPerUnit := s.lineInSameSplitLineGroup(invoiceLines, lines.flatPerUnit.ID)
-		tieredGraduated := s.lineInSameSplitLineGroup(invoiceLines, lines.tieredGraduated.ID)
+		flatPerUnit := s.lineByChargeID(invoiceLines, lines.flatPerUnit.ChargeID)
+		tieredGraduated := s.lineByChargeID(invoiceLines, lines.tieredGraduated.ChargeID)
 		tieredVolume, tieredVolumeFound := lo.Find(invoiceLines, func(l *billing.StandardLine) bool {
 			return l.ID == lines.tieredVolume.ID
 		})
@@ -2954,25 +2813,8 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 		require.True(s.T(), tieredVolume.Period.Equal(lines.tieredVolume.ServicePeriod), "period should be unchanged for the tiered volume line")
 		require.True(s.T(), flatFee.Period.Equal(lines.flatFee.ServicePeriod), "period should be unchanged for the flat line")
 
-		// Let's validate the output of the split itself: no new split should have occurred
-		s.sortedSplitLineGroupChildren(tieredGraduated)
-		tieredGraduatedHierarchy := tieredGraduated.SplitLineHierarchy
-		s.NotNil(tieredGraduatedHierarchy)
-
-		require.True(s.T(), tieredGraduatedHierarchy.Group.ServicePeriod.Equal(lines.tieredGraduated.ServicePeriod))
-		require.Len(s.T(), tieredGraduatedHierarchy.Lines, 3, "there should be to child lines [id=%s]", tieredGraduatedHierarchy.Group.ID)
-		require.True(s.T(), tieredGraduatedHierarchy.Lines[0].Line.GetServicePeriod().Equal(timeutil.ClosedPeriod{
-			From: truncatedPeriodStart,
-			To:   truncatedPeriodStart.Add(time.Hour),
-		}), "first child period should be truncated")
-		require.True(s.T(), tieredGraduatedHierarchy.Lines[1].Line.GetServicePeriod().Equal(timeutil.ClosedPeriod{
-			From: truncatedPeriodStart.Add(time.Hour),
-			To:   truncatedPeriodStart.Add(2 * time.Hour),
-		}), "second child period should be between the first and the third child's period")
-		require.True(s.T(), tieredGraduatedHierarchy.Lines[2].Line.GetServicePeriod().Equal(timeutil.ClosedPeriod{
-			From: truncatedPeriodStart.Add(2 * time.Hour),
-			To:   truncatedPeriodEnd,
-		}), "third child period should be until the end of parent's period")
+		s.Require().Nil(tieredGraduated.SplitLineHierarchy)
+		s.Equal(billing.LineEngineTypeChargeUsageBased, tieredGraduated.Engine)
 
 		// Invoice app testing: discounts
 
@@ -3061,6 +2903,168 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 			Total:          4350,
 		}, out[0].Totals)
 	})
+}
+
+func (s *InvoicingTestSuite) createUBPProgressivePendingLines(ctx context.Context, customerEntity *customer.Customer, features ubpFeatures, period timeutil.ClosedPeriod) ubpPendingLines {
+	s.T().Helper()
+
+	periodStart := period.From
+	periodEnd := period.To
+	truncatedPeriodStart := periodStart.Truncate(streaming.MinimumWindowSizeDuration)
+	truncatedPeriodEnd := periodEnd.Truncate(streaming.MinimumWindowSizeDuration)
+
+	// When we create pending invoice items
+	pendingLines, err := s.Charges.CreatePendingInvoiceLines(
+		ctx,
+		billing.CreatePendingInvoiceLinesInput{
+			Customer: customerEntity.GetID(),
+			Currency: currencyx.FiatCode(currency.USD),
+			Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
+				{
+					GatheringLineBase: billing.GatheringLineBase{
+						ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+							Name: "UBP - FLAT per unit",
+						}),
+						ServicePeriod: timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
+						InvoiceAt:     periodEnd,
+						ManagedBy:     billing.ManuallyManagedLine,
+						FeatureKey:    features.flatPerUnit.Key,
+						Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+							Amount: alpacadecimal.NewFromFloat(100),
+							Commitments: productcatalog.Commitments{
+								MaximumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(2000)),
+							},
+						})),
+					},
+				},
+				{
+					GatheringLineBase: billing.GatheringLineBase{
+						ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+							Name: "UBP - FLAT per any usage",
+						}),
+						ServicePeriod: timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
+						InvoiceAt:     periodEnd,
+						ManagedBy:     billing.ManuallyManagedLine,
+						Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+							Amount:      alpacadecimal.NewFromFloat(100),
+							PaymentTerm: productcatalog.InArrearsPaymentTerm,
+						})),
+					},
+				},
+				{
+					GatheringLineBase: billing.GatheringLineBase{
+						ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+							Name: "UBP - Tiered graduated",
+						}),
+						ServicePeriod: timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
+						InvoiceAt:     periodEnd,
+						ManagedBy:     billing.ManuallyManagedLine,
+						FeatureKey:    features.tieredGraduated.Key,
+						Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.TieredPrice{
+							Mode: productcatalog.GraduatedTieredPrice,
+							Tiers: []productcatalog.PriceTier{
+								{
+									UpToAmount: lo.ToPtr(alpacadecimal.NewFromFloat(10)),
+									UnitPrice: &productcatalog.PriceTierUnitPrice{
+										Amount: alpacadecimal.NewFromFloat(100),
+									},
+								},
+								{
+									UpToAmount: lo.ToPtr(alpacadecimal.NewFromFloat(20)),
+									UnitPrice: &productcatalog.PriceTierUnitPrice{
+										Amount: alpacadecimal.NewFromFloat(90),
+									},
+								},
+								{
+									UnitPrice: &productcatalog.PriceTierUnitPrice{
+										Amount: alpacadecimal.NewFromFloat(80),
+									},
+								},
+							},
+						})),
+					},
+				},
+				{
+					GatheringLineBase: billing.GatheringLineBase{
+						ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+							Name: "UBP - Tiered volume",
+						}),
+						ServicePeriod: timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
+						InvoiceAt:     periodEnd,
+						ManagedBy:     billing.ManuallyManagedLine,
+						FeatureKey:    features.tieredVolume.Key,
+						Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.TieredPrice{
+							Mode: productcatalog.VolumeTieredPrice,
+							Tiers: []productcatalog.PriceTier{
+								{
+									UpToAmount: lo.ToPtr(alpacadecimal.NewFromFloat(10)),
+									UnitPrice: &productcatalog.PriceTierUnitPrice{
+										Amount: alpacadecimal.NewFromFloat(100),
+									},
+								},
+								{
+									UpToAmount: lo.ToPtr(alpacadecimal.NewFromFloat(20)),
+									UnitPrice: &productcatalog.PriceTierUnitPrice{
+										Amount: alpacadecimal.NewFromFloat(90),
+									},
+								},
+								{
+									UnitPrice: &productcatalog.PriceTierUnitPrice{
+										Amount: alpacadecimal.NewFromFloat(80),
+									},
+								},
+							},
+							Commitments: productcatalog.Commitments{
+								MinimumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(3000)),
+							},
+						})),
+					},
+				},
+			}),
+		},
+	)
+	require.NoError(s.T(), err)
+	require.Len(s.T(), pendingLines.Lines, 4)
+
+	lines := ubpPendingLines{
+		flatPerUnit:     pendingLines.Lines[0],
+		flatFee:         pendingLines.Lines[1],
+		tieredGraduated: pendingLines.Lines[2],
+		tieredVolume:    pendingLines.Lines[3],
+	}
+
+	// The flat fee line should not be truncated
+	require.Equal(
+		s.T(),
+		timeutil.ClosedPeriod{From: truncatedPeriodStart, To: truncatedPeriodEnd},
+		lines.flatFee.ServicePeriod,
+		"period should not be truncated",
+	)
+	require.Equal(
+		s.T(),
+		lines.flatFee.InvoiceAt,
+		truncatedPeriodEnd,
+		"invoice at should be unchanged",
+	)
+
+	// The pending invoice items should be truncated to 1 min resolution (start => up to next, end down to previous)
+	for _, line := range []billing.GatheringLine{lines.flatPerUnit, lines.tieredGraduated, lines.tieredVolume} {
+		require.Equal(
+			s.T(),
+			timeutil.ClosedPeriod{From: testutils.GetRFC3339Time(s.T(), "2024-09-02T12:13:14Z"), To: testutils.GetRFC3339Time(s.T(), "2024-09-03T12:13:14Z")},
+			line.ServicePeriod,
+			"period should be truncated to 1 min resolution",
+		)
+
+		require.Equal(
+			s.T(),
+			line.InvoiceAt,
+			truncatedPeriodEnd,
+			"invoice at should be unchanged",
+		)
+	}
+
+	return lines
 }
 
 func (s *InvoicingTestSuite) TestUBPGraduatingFlatFeeTier1() {
@@ -3763,22 +3767,18 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 	})
 }
 
-func (s *InvoicingTestSuite) lineInSameSplitLineGroup(lines []*billing.StandardLine, shiblingLineID string) *billing.StandardLine {
+func (s *InvoicingTestSuite) lineByChargeID(lines []*billing.StandardLine, chargeID *string) *billing.StandardLine {
 	s.T().Helper()
 
-	for _, line := range lines {
-		if line.SplitLineHierarchy == nil {
-			continue
-		}
+	s.Require().NotNil(chargeID, "charge id is required")
 
-		for _, child := range line.SplitLineHierarchy.Lines {
-			if child.Line.GetID() == shiblingLineID {
-				return line
-			}
+	for _, line := range lines {
+		if line.ChargeID != nil && *line.ChargeID == *chargeID {
+			return line
 		}
 	}
 
-	require.Fail(s.T(), "line with parent not found")
+	require.Fail(s.T(), "line with charge id not found")
 
 	return nil
 }
@@ -3794,21 +3794,6 @@ func (s *InvoicingTestSuite) lineByID(lines []*billing.StandardLine, id string) 
 	require.Fail(s.T(), "line not found")
 
 	return nil
-}
-
-func (s *InvoicingTestSuite) sortedSplitLineGroupChildren(line *billing.StandardLine) {
-	s.NotNil(line.SplitLineHierarchy)
-
-	slices.SortFunc(line.SplitLineHierarchy.Lines, func(a, b billing.LineWithInvoiceHeader) int {
-		switch {
-		case a.Line.GetServicePeriod().From.Equal(b.Line.GetServicePeriod().From):
-			return 0
-		case a.Line.GetServicePeriod().From.Before(b.Line.GetServicePeriod().From):
-			return -1
-		default:
-			return 1
-		}
-	})
 }
 
 type ubpPendingLines struct {
