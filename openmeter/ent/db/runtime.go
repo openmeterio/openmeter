@@ -203,14 +203,11 @@ func init() {
 	// addonratecardDescEntitlementTemplate is the schema descriptor for entitlement_template field.
 	addonratecardDescEntitlementTemplate := addonratecardFields[3].Descriptor()
 	addonratecard.ValueScanner.EntitlementTemplate = addonratecardDescEntitlementTemplate.ValueScanner.(field.TypeValueScanner[*productcatalog.EntitlementTemplate])
-	// addonratecardDescTaxConfig is the schema descriptor for tax_config field.
-	addonratecardDescTaxConfig := addonratecardFields[4].Descriptor()
-	addonratecard.ValueScanner.TaxConfig = addonratecardDescTaxConfig.ValueScanner.(field.TypeValueScanner[*productcatalog.TaxConfig])
 	// addonratecardDescPrice is the schema descriptor for price field.
-	addonratecardDescPrice := addonratecardFields[6].Descriptor()
+	addonratecardDescPrice := addonratecardFields[5].Descriptor()
 	addonratecard.ValueScanner.Price = addonratecardDescPrice.ValueScanner.(field.TypeValueScanner[*productcatalog.Price])
 	// addonratecardDescCurrencyCode is the schema descriptor for currency_code field.
-	addonratecardDescCurrencyCode := addonratecardFields[7].Descriptor()
+	addonratecardDescCurrencyCode := addonratecardFields[6].Descriptor()
 	// addonratecard.CurrencyCodeValidator is a validator for the "currency_code" field. It is called by the builders before save.
 	addonratecard.CurrencyCodeValidator = func() func(string) error {
 		validators := addonratecardDescCurrencyCode.Validators
@@ -229,15 +226,18 @@ func init() {
 		}
 	}()
 	// addonratecardDescCustomCurrencyID is the schema descriptor for custom_currency_id field.
-	addonratecardDescCustomCurrencyID := addonratecardFields[8].Descriptor()
+	addonratecardDescCustomCurrencyID := addonratecardFields[7].Descriptor()
 	// addonratecard.CustomCurrencyIDValidator is a validator for the "custom_currency_id" field. It is called by the builders before save.
 	addonratecard.CustomCurrencyIDValidator = addonratecardDescCustomCurrencyID.Validators[0].(func(string) error)
 	// addonratecardDescDiscounts is the schema descriptor for discounts field.
-	addonratecardDescDiscounts := addonratecardFields[9].Descriptor()
+	addonratecardDescDiscounts := addonratecardFields[8].Descriptor()
 	addonratecard.ValueScanner.Discounts = addonratecardDescDiscounts.ValueScanner.(field.TypeValueScanner[*productcatalog.Discounts])
 	// addonratecardDescUnitConfig is the schema descriptor for unit_config field.
-	addonratecardDescUnitConfig := addonratecardFields[10].Descriptor()
+	addonratecardDescUnitConfig := addonratecardFields[9].Descriptor()
 	addonratecard.ValueScanner.UnitConfig = addonratecardDescUnitConfig.ValueScanner.(field.TypeValueScanner[*unitconfig.UnitConfig])
+	// addonratecardDescTaxConfig is the schema descriptor for tax_config field.
+	addonratecardDescTaxConfig := addonratecardFields[10].Descriptor()
+	addonratecard.ValueScanner.TaxConfig = addonratecardDescTaxConfig.ValueScanner.(field.TypeValueScanner[*productcatalog.TaxConfig])
 	// addonratecardDescAddonID is the schema descriptor for addon_id field.
 	addonratecardDescAddonID := addonratecardFields[11].Descriptor()
 	// addonratecard.AddonIDValidator is a validator for the "addon_id" field. It is called by the builders before save.
@@ -3029,14 +3029,11 @@ func init() {
 	// planratecardDescEntitlementTemplate is the schema descriptor for entitlement_template field.
 	planratecardDescEntitlementTemplate := planratecardFields[3].Descriptor()
 	planratecard.ValueScanner.EntitlementTemplate = planratecardDescEntitlementTemplate.ValueScanner.(field.TypeValueScanner[*productcatalog.EntitlementTemplate])
-	// planratecardDescTaxConfig is the schema descriptor for tax_config field.
-	planratecardDescTaxConfig := planratecardFields[4].Descriptor()
-	planratecard.ValueScanner.TaxConfig = planratecardDescTaxConfig.ValueScanner.(field.TypeValueScanner[*productcatalog.TaxConfig])
 	// planratecardDescPrice is the schema descriptor for price field.
-	planratecardDescPrice := planratecardFields[6].Descriptor()
+	planratecardDescPrice := planratecardFields[5].Descriptor()
 	planratecard.ValueScanner.Price = planratecardDescPrice.ValueScanner.(field.TypeValueScanner[*productcatalog.Price])
 	// planratecardDescCurrencyCode is the schema descriptor for currency_code field.
-	planratecardDescCurrencyCode := planratecardFields[7].Descriptor()
+	planratecardDescCurrencyCode := planratecardFields[6].Descriptor()
 	// planratecard.CurrencyCodeValidator is a validator for the "currency_code" field. It is called by the builders before save.
 	planratecard.CurrencyCodeValidator = func() func(string) error {
 		validators := planratecardDescCurrencyCode.Validators
@@ -3055,15 +3052,18 @@ func init() {
 		}
 	}()
 	// planratecardDescCustomCurrencyID is the schema descriptor for custom_currency_id field.
-	planratecardDescCustomCurrencyID := planratecardFields[8].Descriptor()
+	planratecardDescCustomCurrencyID := planratecardFields[7].Descriptor()
 	// planratecard.CustomCurrencyIDValidator is a validator for the "custom_currency_id" field. It is called by the builders before save.
 	planratecard.CustomCurrencyIDValidator = planratecardDescCustomCurrencyID.Validators[0].(func(string) error)
 	// planratecardDescDiscounts is the schema descriptor for discounts field.
-	planratecardDescDiscounts := planratecardFields[9].Descriptor()
+	planratecardDescDiscounts := planratecardFields[8].Descriptor()
 	planratecard.ValueScanner.Discounts = planratecardDescDiscounts.ValueScanner.(field.TypeValueScanner[*productcatalog.Discounts])
 	// planratecardDescUnitConfig is the schema descriptor for unit_config field.
-	planratecardDescUnitConfig := planratecardFields[10].Descriptor()
+	planratecardDescUnitConfig := planratecardFields[9].Descriptor()
 	planratecard.ValueScanner.UnitConfig = planratecardDescUnitConfig.ValueScanner.(field.TypeValueScanner[*unitconfig.UnitConfig])
+	// planratecardDescTaxConfig is the schema descriptor for tax_config field.
+	planratecardDescTaxConfig := planratecardFields[10].Descriptor()
+	planratecard.ValueScanner.TaxConfig = planratecardDescTaxConfig.ValueScanner.(field.TypeValueScanner[*productcatalog.TaxConfig])
 	// planratecardDescPhaseID is the schema descriptor for phase_id field.
 	planratecardDescPhaseID := planratecardFields[11].Descriptor()
 	// planratecard.PhaseIDValidator is a validator for the "phase_id" field. It is called by the builders before save.

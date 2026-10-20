@@ -1817,12 +1817,12 @@ type AddonRateCardMutation struct {
 	feature_key            *string
 	annotations            *models.Annotations
 	entitlement_template   **productcatalog.EntitlementTemplate
-	tax_config             **productcatalog.TaxConfig
 	billing_cadence        *datetime.ISODurationString
 	price                  **productcatalog.Price
 	currency_code          *string
 	discounts              **productcatalog.Discounts
 	unit_config            **unitconfig.UnitConfig
+	tax_config             **productcatalog.TaxConfig
 	clearedFields          map[string]struct{}
 	addon                  *string
 	clearedaddon           bool
@@ -2549,55 +2549,6 @@ func (m *AddonRateCardMutation) ResetEntitlementTemplate() {
 	delete(m.clearedFields, addonratecard.FieldEntitlementTemplate)
 }
 
-// SetTaxConfig sets the "tax_config" field.
-func (m *AddonRateCardMutation) SetTaxConfig(pc *productcatalog.TaxConfig) {
-	m.tax_config = &pc
-}
-
-// TaxConfig returns the value of the "tax_config" field in the mutation.
-func (m *AddonRateCardMutation) TaxConfig() (r *productcatalog.TaxConfig, exists bool) {
-	v := m.tax_config
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldTaxConfig returns the old "tax_config" field's value of the AddonRateCard entity.
-// If the AddonRateCard object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *AddonRateCardMutation) OldTaxConfig(ctx context.Context) (v *productcatalog.TaxConfig, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldTaxConfig is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldTaxConfig requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldTaxConfig: %w", err)
-	}
-	return oldValue.TaxConfig, nil
-}
-
-// ClearTaxConfig clears the value of the "tax_config" field.
-func (m *AddonRateCardMutation) ClearTaxConfig() {
-	m.tax_config = nil
-	m.clearedFields[addonratecard.FieldTaxConfig] = struct{}{}
-}
-
-// TaxConfigCleared returns if the "tax_config" field was cleared in this mutation.
-func (m *AddonRateCardMutation) TaxConfigCleared() bool {
-	_, ok := m.clearedFields[addonratecard.FieldTaxConfig]
-	return ok
-}
-
-// ResetTaxConfig resets all changes to the "tax_config" field.
-func (m *AddonRateCardMutation) ResetTaxConfig() {
-	m.tax_config = nil
-	delete(m.clearedFields, addonratecard.FieldTaxConfig)
-}
-
 // SetBillingCadence sets the "billing_cadence" field.
 func (m *AddonRateCardMutation) SetBillingCadence(dds datetime.ISODurationString) {
 	m.billing_cadence = &dds
@@ -2892,6 +2843,55 @@ func (m *AddonRateCardMutation) ResetUnitConfig() {
 	delete(m.clearedFields, addonratecard.FieldUnitConfig)
 }
 
+// SetTaxConfig sets the "tax_config" field.
+func (m *AddonRateCardMutation) SetTaxConfig(pc *productcatalog.TaxConfig) {
+	m.tax_config = &pc
+}
+
+// TaxConfig returns the value of the "tax_config" field in the mutation.
+func (m *AddonRateCardMutation) TaxConfig() (r *productcatalog.TaxConfig, exists bool) {
+	v := m.tax_config
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTaxConfig returns the old "tax_config" field's value of the AddonRateCard entity.
+// If the AddonRateCard object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AddonRateCardMutation) OldTaxConfig(ctx context.Context) (v *productcatalog.TaxConfig, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTaxConfig is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTaxConfig requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTaxConfig: %w", err)
+	}
+	return oldValue.TaxConfig, nil
+}
+
+// ClearTaxConfig clears the value of the "tax_config" field.
+func (m *AddonRateCardMutation) ClearTaxConfig() {
+	m.tax_config = nil
+	m.clearedFields[addonratecard.FieldTaxConfig] = struct{}{}
+}
+
+// TaxConfigCleared returns if the "tax_config" field was cleared in this mutation.
+func (m *AddonRateCardMutation) TaxConfigCleared() bool {
+	_, ok := m.clearedFields[addonratecard.FieldTaxConfig]
+	return ok
+}
+
+// ResetTaxConfig resets all changes to the "tax_config" field.
+func (m *AddonRateCardMutation) ResetTaxConfig() {
+	m.tax_config = nil
+	delete(m.clearedFields, addonratecard.FieldTaxConfig)
+}
+
 // SetAddonID sets the "addon_id" field.
 func (m *AddonRateCardMutation) SetAddonID(s string) {
 	m.addon = &s
@@ -3175,9 +3175,6 @@ func (m *AddonRateCardMutation) Fields() []string {
 	if m.entitlement_template != nil {
 		fields = append(fields, addonratecard.FieldEntitlementTemplate)
 	}
-	if m.tax_config != nil {
-		fields = append(fields, addonratecard.FieldTaxConfig)
-	}
 	if m.billing_cadence != nil {
 		fields = append(fields, addonratecard.FieldBillingCadence)
 	}
@@ -3195,6 +3192,9 @@ func (m *AddonRateCardMutation) Fields() []string {
 	}
 	if m.unit_config != nil {
 		fields = append(fields, addonratecard.FieldUnitConfig)
+	}
+	if m.tax_config != nil {
+		fields = append(fields, addonratecard.FieldTaxConfig)
 	}
 	if m.addon != nil {
 		fields = append(fields, addonratecard.FieldAddonID)
@@ -3238,8 +3238,6 @@ func (m *AddonRateCardMutation) Field(name string) (ent.Value, bool) {
 		return m.Annotations()
 	case addonratecard.FieldEntitlementTemplate:
 		return m.EntitlementTemplate()
-	case addonratecard.FieldTaxConfig:
-		return m.TaxConfig()
 	case addonratecard.FieldBillingCadence:
 		return m.BillingCadence()
 	case addonratecard.FieldPrice:
@@ -3252,6 +3250,8 @@ func (m *AddonRateCardMutation) Field(name string) (ent.Value, bool) {
 		return m.Discounts()
 	case addonratecard.FieldUnitConfig:
 		return m.UnitConfig()
+	case addonratecard.FieldTaxConfig:
+		return m.TaxConfig()
 	case addonratecard.FieldAddonID:
 		return m.AddonID()
 	case addonratecard.FieldFeatureID:
@@ -3293,8 +3293,6 @@ func (m *AddonRateCardMutation) OldField(ctx context.Context, name string) (ent.
 		return m.OldAnnotations(ctx)
 	case addonratecard.FieldEntitlementTemplate:
 		return m.OldEntitlementTemplate(ctx)
-	case addonratecard.FieldTaxConfig:
-		return m.OldTaxConfig(ctx)
 	case addonratecard.FieldBillingCadence:
 		return m.OldBillingCadence(ctx)
 	case addonratecard.FieldPrice:
@@ -3307,6 +3305,8 @@ func (m *AddonRateCardMutation) OldField(ctx context.Context, name string) (ent.
 		return m.OldDiscounts(ctx)
 	case addonratecard.FieldUnitConfig:
 		return m.OldUnitConfig(ctx)
+	case addonratecard.FieldTaxConfig:
+		return m.OldTaxConfig(ctx)
 	case addonratecard.FieldAddonID:
 		return m.OldAddonID(ctx)
 	case addonratecard.FieldFeatureID:
@@ -3418,13 +3418,6 @@ func (m *AddonRateCardMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetEntitlementTemplate(v)
 		return nil
-	case addonratecard.FieldTaxConfig:
-		v, ok := value.(*productcatalog.TaxConfig)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetTaxConfig(v)
-		return nil
 	case addonratecard.FieldBillingCadence:
 		v, ok := value.(datetime.ISODurationString)
 		if !ok {
@@ -3466,6 +3459,13 @@ func (m *AddonRateCardMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetUnitConfig(v)
+		return nil
+	case addonratecard.FieldTaxConfig:
+		v, ok := value.(*productcatalog.TaxConfig)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTaxConfig(v)
 		return nil
 	case addonratecard.FieldAddonID:
 		v, ok := value.(string)
@@ -3535,9 +3535,6 @@ func (m *AddonRateCardMutation) ClearedFields() []string {
 	if m.FieldCleared(addonratecard.FieldEntitlementTemplate) {
 		fields = append(fields, addonratecard.FieldEntitlementTemplate)
 	}
-	if m.FieldCleared(addonratecard.FieldTaxConfig) {
-		fields = append(fields, addonratecard.FieldTaxConfig)
-	}
 	if m.FieldCleared(addonratecard.FieldBillingCadence) {
 		fields = append(fields, addonratecard.FieldBillingCadence)
 	}
@@ -3555,6 +3552,9 @@ func (m *AddonRateCardMutation) ClearedFields() []string {
 	}
 	if m.FieldCleared(addonratecard.FieldUnitConfig) {
 		fields = append(fields, addonratecard.FieldUnitConfig)
+	}
+	if m.FieldCleared(addonratecard.FieldTaxConfig) {
+		fields = append(fields, addonratecard.FieldTaxConfig)
 	}
 	if m.FieldCleared(addonratecard.FieldFeatureID) {
 		fields = append(fields, addonratecard.FieldFeatureID)
@@ -3597,9 +3597,6 @@ func (m *AddonRateCardMutation) ClearField(name string) error {
 	case addonratecard.FieldEntitlementTemplate:
 		m.ClearEntitlementTemplate()
 		return nil
-	case addonratecard.FieldTaxConfig:
-		m.ClearTaxConfig()
-		return nil
 	case addonratecard.FieldBillingCadence:
 		m.ClearBillingCadence()
 		return nil
@@ -3617,6 +3614,9 @@ func (m *AddonRateCardMutation) ClearField(name string) error {
 		return nil
 	case addonratecard.FieldUnitConfig:
 		m.ClearUnitConfig()
+		return nil
+	case addonratecard.FieldTaxConfig:
+		m.ClearTaxConfig()
 		return nil
 	case addonratecard.FieldFeatureID:
 		m.ClearFeatureID()
@@ -3671,9 +3671,6 @@ func (m *AddonRateCardMutation) ResetField(name string) error {
 	case addonratecard.FieldEntitlementTemplate:
 		m.ResetEntitlementTemplate()
 		return nil
-	case addonratecard.FieldTaxConfig:
-		m.ResetTaxConfig()
-		return nil
 	case addonratecard.FieldBillingCadence:
 		m.ResetBillingCadence()
 		return nil
@@ -3691,6 +3688,9 @@ func (m *AddonRateCardMutation) ResetField(name string) error {
 		return nil
 	case addonratecard.FieldUnitConfig:
 		m.ResetUnitConfig()
+		return nil
+	case addonratecard.FieldTaxConfig:
+		m.ResetTaxConfig()
 		return nil
 	case addonratecard.FieldAddonID:
 		m.ResetAddonID()
@@ -117148,12 +117148,12 @@ type PlanRateCardMutation struct {
 	feature_key            *string
 	annotations            *models.Annotations
 	entitlement_template   **productcatalog.EntitlementTemplate
-	tax_config             **productcatalog.TaxConfig
 	billing_cadence        *datetime.ISODurationString
 	price                  **productcatalog.Price
 	currency_code          *string
 	discounts              **productcatalog.Discounts
 	unit_config            **unitconfig.UnitConfig
+	tax_config             **productcatalog.TaxConfig
 	clearedFields          map[string]struct{}
 	phase                  *string
 	clearedphase           bool
@@ -117880,55 +117880,6 @@ func (m *PlanRateCardMutation) ResetEntitlementTemplate() {
 	delete(m.clearedFields, planratecard.FieldEntitlementTemplate)
 }
 
-// SetTaxConfig sets the "tax_config" field.
-func (m *PlanRateCardMutation) SetTaxConfig(pc *productcatalog.TaxConfig) {
-	m.tax_config = &pc
-}
-
-// TaxConfig returns the value of the "tax_config" field in the mutation.
-func (m *PlanRateCardMutation) TaxConfig() (r *productcatalog.TaxConfig, exists bool) {
-	v := m.tax_config
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldTaxConfig returns the old "tax_config" field's value of the PlanRateCard entity.
-// If the PlanRateCard object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *PlanRateCardMutation) OldTaxConfig(ctx context.Context) (v *productcatalog.TaxConfig, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldTaxConfig is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldTaxConfig requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldTaxConfig: %w", err)
-	}
-	return oldValue.TaxConfig, nil
-}
-
-// ClearTaxConfig clears the value of the "tax_config" field.
-func (m *PlanRateCardMutation) ClearTaxConfig() {
-	m.tax_config = nil
-	m.clearedFields[planratecard.FieldTaxConfig] = struct{}{}
-}
-
-// TaxConfigCleared returns if the "tax_config" field was cleared in this mutation.
-func (m *PlanRateCardMutation) TaxConfigCleared() bool {
-	_, ok := m.clearedFields[planratecard.FieldTaxConfig]
-	return ok
-}
-
-// ResetTaxConfig resets all changes to the "tax_config" field.
-func (m *PlanRateCardMutation) ResetTaxConfig() {
-	m.tax_config = nil
-	delete(m.clearedFields, planratecard.FieldTaxConfig)
-}
-
 // SetBillingCadence sets the "billing_cadence" field.
 func (m *PlanRateCardMutation) SetBillingCadence(dds datetime.ISODurationString) {
 	m.billing_cadence = &dds
@@ -118223,6 +118174,55 @@ func (m *PlanRateCardMutation) ResetUnitConfig() {
 	delete(m.clearedFields, planratecard.FieldUnitConfig)
 }
 
+// SetTaxConfig sets the "tax_config" field.
+func (m *PlanRateCardMutation) SetTaxConfig(pc *productcatalog.TaxConfig) {
+	m.tax_config = &pc
+}
+
+// TaxConfig returns the value of the "tax_config" field in the mutation.
+func (m *PlanRateCardMutation) TaxConfig() (r *productcatalog.TaxConfig, exists bool) {
+	v := m.tax_config
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTaxConfig returns the old "tax_config" field's value of the PlanRateCard entity.
+// If the PlanRateCard object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlanRateCardMutation) OldTaxConfig(ctx context.Context) (v *productcatalog.TaxConfig, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTaxConfig is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTaxConfig requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTaxConfig: %w", err)
+	}
+	return oldValue.TaxConfig, nil
+}
+
+// ClearTaxConfig clears the value of the "tax_config" field.
+func (m *PlanRateCardMutation) ClearTaxConfig() {
+	m.tax_config = nil
+	m.clearedFields[planratecard.FieldTaxConfig] = struct{}{}
+}
+
+// TaxConfigCleared returns if the "tax_config" field was cleared in this mutation.
+func (m *PlanRateCardMutation) TaxConfigCleared() bool {
+	_, ok := m.clearedFields[planratecard.FieldTaxConfig]
+	return ok
+}
+
+// ResetTaxConfig resets all changes to the "tax_config" field.
+func (m *PlanRateCardMutation) ResetTaxConfig() {
+	m.tax_config = nil
+	delete(m.clearedFields, planratecard.FieldTaxConfig)
+}
+
 // SetPhaseID sets the "phase_id" field.
 func (m *PlanRateCardMutation) SetPhaseID(s string) {
 	m.phase = &s
@@ -118506,9 +118506,6 @@ func (m *PlanRateCardMutation) Fields() []string {
 	if m.entitlement_template != nil {
 		fields = append(fields, planratecard.FieldEntitlementTemplate)
 	}
-	if m.tax_config != nil {
-		fields = append(fields, planratecard.FieldTaxConfig)
-	}
 	if m.billing_cadence != nil {
 		fields = append(fields, planratecard.FieldBillingCadence)
 	}
@@ -118526,6 +118523,9 @@ func (m *PlanRateCardMutation) Fields() []string {
 	}
 	if m.unit_config != nil {
 		fields = append(fields, planratecard.FieldUnitConfig)
+	}
+	if m.tax_config != nil {
+		fields = append(fields, planratecard.FieldTaxConfig)
 	}
 	if m.phase != nil {
 		fields = append(fields, planratecard.FieldPhaseID)
@@ -118569,8 +118569,6 @@ func (m *PlanRateCardMutation) Field(name string) (ent.Value, bool) {
 		return m.Annotations()
 	case planratecard.FieldEntitlementTemplate:
 		return m.EntitlementTemplate()
-	case planratecard.FieldTaxConfig:
-		return m.TaxConfig()
 	case planratecard.FieldBillingCadence:
 		return m.BillingCadence()
 	case planratecard.FieldPrice:
@@ -118583,6 +118581,8 @@ func (m *PlanRateCardMutation) Field(name string) (ent.Value, bool) {
 		return m.Discounts()
 	case planratecard.FieldUnitConfig:
 		return m.UnitConfig()
+	case planratecard.FieldTaxConfig:
+		return m.TaxConfig()
 	case planratecard.FieldPhaseID:
 		return m.PhaseID()
 	case planratecard.FieldFeatureID:
@@ -118624,8 +118624,6 @@ func (m *PlanRateCardMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldAnnotations(ctx)
 	case planratecard.FieldEntitlementTemplate:
 		return m.OldEntitlementTemplate(ctx)
-	case planratecard.FieldTaxConfig:
-		return m.OldTaxConfig(ctx)
 	case planratecard.FieldBillingCadence:
 		return m.OldBillingCadence(ctx)
 	case planratecard.FieldPrice:
@@ -118638,6 +118636,8 @@ func (m *PlanRateCardMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldDiscounts(ctx)
 	case planratecard.FieldUnitConfig:
 		return m.OldUnitConfig(ctx)
+	case planratecard.FieldTaxConfig:
+		return m.OldTaxConfig(ctx)
 	case planratecard.FieldPhaseID:
 		return m.OldPhaseID(ctx)
 	case planratecard.FieldFeatureID:
@@ -118749,13 +118749,6 @@ func (m *PlanRateCardMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetEntitlementTemplate(v)
 		return nil
-	case planratecard.FieldTaxConfig:
-		v, ok := value.(*productcatalog.TaxConfig)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetTaxConfig(v)
-		return nil
 	case planratecard.FieldBillingCadence:
 		v, ok := value.(datetime.ISODurationString)
 		if !ok {
@@ -118797,6 +118790,13 @@ func (m *PlanRateCardMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetUnitConfig(v)
+		return nil
+	case planratecard.FieldTaxConfig:
+		v, ok := value.(*productcatalog.TaxConfig)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTaxConfig(v)
 		return nil
 	case planratecard.FieldPhaseID:
 		v, ok := value.(string)
@@ -118866,9 +118866,6 @@ func (m *PlanRateCardMutation) ClearedFields() []string {
 	if m.FieldCleared(planratecard.FieldEntitlementTemplate) {
 		fields = append(fields, planratecard.FieldEntitlementTemplate)
 	}
-	if m.FieldCleared(planratecard.FieldTaxConfig) {
-		fields = append(fields, planratecard.FieldTaxConfig)
-	}
 	if m.FieldCleared(planratecard.FieldBillingCadence) {
 		fields = append(fields, planratecard.FieldBillingCadence)
 	}
@@ -118886,6 +118883,9 @@ func (m *PlanRateCardMutation) ClearedFields() []string {
 	}
 	if m.FieldCleared(planratecard.FieldUnitConfig) {
 		fields = append(fields, planratecard.FieldUnitConfig)
+	}
+	if m.FieldCleared(planratecard.FieldTaxConfig) {
+		fields = append(fields, planratecard.FieldTaxConfig)
 	}
 	if m.FieldCleared(planratecard.FieldFeatureID) {
 		fields = append(fields, planratecard.FieldFeatureID)
@@ -118928,9 +118928,6 @@ func (m *PlanRateCardMutation) ClearField(name string) error {
 	case planratecard.FieldEntitlementTemplate:
 		m.ClearEntitlementTemplate()
 		return nil
-	case planratecard.FieldTaxConfig:
-		m.ClearTaxConfig()
-		return nil
 	case planratecard.FieldBillingCadence:
 		m.ClearBillingCadence()
 		return nil
@@ -118948,6 +118945,9 @@ func (m *PlanRateCardMutation) ClearField(name string) error {
 		return nil
 	case planratecard.FieldUnitConfig:
 		m.ClearUnitConfig()
+		return nil
+	case planratecard.FieldTaxConfig:
+		m.ClearTaxConfig()
 		return nil
 	case planratecard.FieldFeatureID:
 		m.ClearFeatureID()
@@ -119002,9 +119002,6 @@ func (m *PlanRateCardMutation) ResetField(name string) error {
 	case planratecard.FieldEntitlementTemplate:
 		m.ResetEntitlementTemplate()
 		return nil
-	case planratecard.FieldTaxConfig:
-		m.ResetTaxConfig()
-		return nil
 	case planratecard.FieldBillingCadence:
 		m.ResetBillingCadence()
 		return nil
@@ -119022,6 +119019,9 @@ func (m *PlanRateCardMutation) ResetField(name string) error {
 		return nil
 	case planratecard.FieldUnitConfig:
 		m.ResetUnitConfig()
+		return nil
+	case planratecard.FieldTaxConfig:
+		m.ResetTaxConfig()
 		return nil
 	case planratecard.FieldPhaseID:
 		m.ResetPhaseID()

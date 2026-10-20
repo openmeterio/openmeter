@@ -13,9 +13,11 @@ import (
 
 type RateCard struct {
 	mixin.Schema
+
+	deprecatedTaxConfig bool
 }
 
-func (RateCard) Fields() []ent.Field {
+func (r RateCard) Fields() []ent.Field {
 	// Name fields (name, description) and key field are missing as they're present in the UniqueResourceMixin...
 	var fields []ent.Field
 
@@ -41,16 +43,7 @@ func (RateCard) Fields() []ent.Field {
 			}).
 			Optional().
 			Nillable(),
-		// TODO: Remove the legacy tax_config JSON field after all rate-card read and
-		// write paths use tax_code_id and tax_behavior as the sole representation.
-		field.String("tax_config").
-			GoType(&productcatalog.TaxConfig{}).
-			ValueScanner(TaxConfigValueScanner).
-			SchemaType(map[string]string{
-				dialect.Postgres: "jsonb",
-			}).
-			Optional().
-			Nillable(),
+
 		field.String("billing_cadence").
 			GoType(datetime.ISODurationString("")).
 			Optional().
@@ -95,6 +88,21 @@ func (RateCard) Fields() []ent.Field {
 			Optional().
 			Nillable(),
 	)
+
+	taxConfigField := field.String("tax_config").
+		GoType(&productcatalog.TaxConfig{}).
+		ValueScanner(TaxConfigValueScanner).
+		SchemaType(map[string]string{
+			dialect.Postgres: "jsonb",
+		}).
+		Optional().
+		Nillable()
+
+	if r.deprecatedTaxConfig {
+		taxConfigField = taxConfigField.Deprecated()
+	}
+
+	fields = append(fields, taxConfigField)
 
 	return fields
 }
