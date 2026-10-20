@@ -8105,6 +8105,11 @@ components:
 
             Funded custom-currency grants must define `purchase.cost_basis` to settle in a
             fiat currency.
+        custom_currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCustomReference'
+          description: Managed currency reference. Present only for custom currencies.
+          readOnly: true
         amount:
           allOf:
             - $ref: '#/components/schemas/Numeric'
@@ -17206,8 +17211,11 @@ components:
           description: Filter credit grants by status.
         currency:
           allOf:
-            - $ref: '#/components/schemas/CurrencyCode'
-          description: Filter credit grants by currency.
+            - $ref: '#/components/schemas/BillingCurrencyCode'
+          description: |-
+            Filter credit grants by fiat or custom currency code. Historical custom
+            currencies with the same code are included and retain their managed currency
+            identifier.
         key:
           allOf:
             - $ref: '#/components/schemas/StringFieldFilter'

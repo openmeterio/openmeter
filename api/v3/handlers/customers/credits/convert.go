@@ -44,6 +44,9 @@ func toAPIBillingCreditGrant(charge creditpurchase.Charge) (api.BillingCreditGra
 		Key:           charge.Intent.Key,
 	}
 	grant.ValidationIssues = billingcommon.ToAPIValidationIssues(charge.ValidationIssues)
+	if charge.Intent.Currency.IsCustom() {
+		grant.CustomCurrency = &api.CurrencyCustomReference{Id: charge.Intent.Currency.ID}
+	}
 
 	grant.Filters = toAPIBillingCreditGrantFilters(charge.Intent.Filters)
 

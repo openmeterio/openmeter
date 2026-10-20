@@ -8,9 +8,9 @@ import (
 )
 
 func hasCustomCurrencyCode(namespace string, codes ...currencyx.Code) predicate.ChargeCreditPurchase {
+	// Retiring a catalog currency must not hide its grants from currency filters.
 	return dbchargecreditpurchase.HasCustomCurrencyWith(
 		dbcustomcurrency.CodeIn(codes...),
 		dbcustomcurrency.Namespace(namespace),
-		dbcustomcurrency.DeletedAtIsNil(),
 	)
 }

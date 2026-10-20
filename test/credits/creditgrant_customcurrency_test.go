@@ -16,10 +16,75 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/pagination"
 	billingtest "github.com/openmeterio/openmeter/test/billing"
 )
 
 const TOKENS = currencyx.Code("TOKENS")
+
+func (s *CreditGrantTestSuite) TestListCustomCurrencyGrantsIncludesHistoricalCurrency() {
+	// given: historical and current currencies sharing a code, plus a fiat grant
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("creditgrant-custom-currency-history")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
+	sandboxApp := s.InstallSandboxApp(s.T(), ns)
+	_ = s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
+	oldCurrency := s.createTokensCurrency(ns)
+
+	oldGrant, err := s.CreditGrantService.Create(ctx, creditgrant.CreateInput{
+		Namespace: ns, CustomerID: cust.ID, Name: "historical tokens",
+		Currency: TOKENS, Amount: alpacadecimal.NewFromInt(10), FundingMethod: creditgrant.FundingMethodNone,
+	})
+	s.Require().NoError(err)
+	// Currency deletion has no service operation; retire the fixture's catalog row.
+	s.Require().NoError(s.DBClient.CustomCurrency.UpdateOneID(oldCurrency.ID).SetDeletedAt(clock.Now()).Exec(ctx))
+	currentCurrency := s.createTokensCurrency(ns)
+	currentGrant, err := s.CreditGrantService.Create(ctx, creditgrant.CreateInput{
+		Namespace: ns, CustomerID: cust.ID, Name: "current tokens",
+		Currency: TOKENS, Amount: alpacadecimal.NewFromInt(20), FundingMethod: creditgrant.FundingMethodNone,
+	})
+	s.Require().NoError(err)
+	fiatGrant, err := s.CreditGrantService.Create(ctx, creditgrant.CreateInput{
+		Namespace: ns, CustomerID: cust.ID, Name: "fiat credits",
+		Currency: USD, Amount: alpacadecimal.NewFromInt(30), FundingMethod: creditgrant.FundingMethodNone,
+	})
+	s.Require().NoError(err)
+
+	for _, tc := range []struct {
+		name     string
+		currency *currencyx.Code
+		expected map[string]string
+	}{
+		{name: "custom", currency: lo.ToPtr(TOKENS), expected: map[string]string{oldGrant.ID: oldCurrency.ID, currentGrant.ID: currentCurrency.ID}},
+		{name: "fiat", currency: lo.ToPtr(USD), expected: map[string]string{fiatGrant.ID: ""}},
+		{name: "unfiltered", expected: map[string]string{oldGrant.ID: oldCurrency.ID, currentGrant.ID: currentCurrency.ID, fiatGrant.ID: ""}},
+	} {
+		s.Run(tc.name, func() {
+			// given: grants belonging to both historical and current currencies
+			// when: listing with a custom, fiat, or omitted currency filter
+			result, err := s.CreditGrantService.List(ctx, creditgrant.ListInput{
+				Namespace: ns, CustomerID: cust.ID, Currency: tc.currency, Page: pagination.NewPage(1, 20),
+			})
+			s.Require().NoError(err)
+
+			// then: matching grants retain their original managed currency identities
+			s.Equal(len(tc.expected), result.TotalCount)
+			byID := make(map[string]string, len(result.Items))
+			for _, grant := range result.Items {
+				byID[grant.ID] = grant.Intent.Currency.ID
+			}
+			s.Equal(tc.expected, byID)
+		})
+	}
+
+	page, err := s.CreditGrantService.List(ctx, creditgrant.ListInput{
+		Namespace: ns, CustomerID: cust.ID, Currency: lo.ToPtr(TOKENS), Page: pagination.NewPage(1, 1),
+	})
+	s.Require().NoError(err)
+	s.Equal(2, page.TotalCount)
+	s.Len(page.Items, 1)
+}
 
 func (s *CreditGrantTestSuite) createTokensCurrency(ns string) currencies.Currency {
 	s.T().Helper()
