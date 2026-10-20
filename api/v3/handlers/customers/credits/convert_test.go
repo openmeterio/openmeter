@@ -110,6 +110,7 @@ func TestToAPIBillingCreditGrantPromotional(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, api.BillingCreditFundingMethodNone, grant.FundingMethod)
 	require.Nil(t, grant.Purchase)
+	require.Nil(t, grant.CustomCurrency)
 	require.Equal(t, "25", grant.Amount)
 	require.Equal(t, api.BillingCreditGrantStatusActive, grant.Status)
 	require.Nil(t, grant.VoidedAt)
@@ -122,6 +123,20 @@ func TestToAPIBillingCreditGrantPromotional(t *testing.T) {
 			Attributes: &map[string]any{"invoice": "invoice-1", "line": "line-1"},
 		},
 	}, grant.ValidationIssues)
+
+	t.Run("custom currencies retain their managed identity when codes are reused", func(t *testing.T) {
+		for range 2 {
+			customCurrency := currenciestestutils.NewCustomCurrency(t, "TOKENS", 3)
+			customCharge := charge
+			customCharge.Intent.Currency = customCurrency
+
+			grant, err := toAPIBillingCreditGrant(customCharge)
+			require.NoError(t, err)
+			require.Equal(t, api.BillingCurrencyCode("TOKENS"), grant.Currency)
+			require.Equal(t, &api.CurrencyCustomReference{Id: customCurrency.ID}, grant.CustomCurrency)
+			require.Nil(t, grant.Purchase)
+		}
+	})
 
 	t.Run("ledger-derived voiding overrides the charge status", func(t *testing.T) {
 		voidedAt := now.Add(time.Hour)
@@ -349,8 +364,10 @@ func TestToAPICreditGrantPurchase(t *testing.T) {
 		rate := alpacadecimal.NewFromFloat(0.5)
 		charge := newCharge(currenciestestutils.NewFiatCurrency(t, "USD"), creditpurchase.NewCostBasis(creditpurchase.FiatCostBasis{Rate: rate}), rate)
 
-		purchase, err := toAPICreditGrantPurchase(charge)
+		grant, err := toAPIBillingCreditGrant(charge)
 		require.NoError(t, err)
+		require.Nil(t, grant.CustomCurrency)
+		purchase := grant.Purchase
 		require.NotNil(t, purchase)
 		require.Equal(t, api.CurrencyCode("USD"), purchase.Currency)
 		require.Equal(t, lo.ToPtr("50"), purchase.Amount)
@@ -367,8 +384,10 @@ func TestToAPICreditGrantPurchase(t *testing.T) {
 			rate,
 		)
 
-		purchase, err := toAPICreditGrantPurchase(charge)
+		grant, err := toAPIBillingCreditGrant(charge)
 		require.NoError(t, err)
+		require.Equal(t, &api.CurrencyCustomReference{Id: charge.Intent.Currency.ID}, grant.CustomCurrency)
+		purchase := grant.Purchase
 		require.NotNil(t, purchase)
 		require.Equal(t, api.CurrencyCode("USD"), purchase.Currency)
 		require.Equal(t, lo.ToPtr("25"), purchase.Amount)

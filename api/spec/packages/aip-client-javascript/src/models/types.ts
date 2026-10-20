@@ -1066,6 +1066,11 @@ export interface CreateResourceReference {
   id: string
 }
 
+/** CurrencyCustom reference. */
+export interface CurrencyCustomReference {
+  id: string
+}
+
 /** Cost basis pinned to a specific cost basis resource of the custom currency. */
 export interface ChargeCostBasisPinned {
   /** Discriminator selecting the cost basis mode. */
@@ -1087,11 +1092,6 @@ export interface CreditGrantInvoiceReference {
   id?: string
   /** Identifier of the invoice line associated with the grant. */
   line?: { id: string }
-}
-
-/** CurrencyCustom reference. */
-export interface CurrencyCustomReference {
-  id: string
 }
 
 /** A cost basis pinned to a custom-currency pair for the subscription. */
@@ -2191,23 +2191,6 @@ export interface CreditGrantPlanFilter {
   version?: VersionFilter
 }
 
-/** Filter options for listing credit grants. */
-export interface ListCreditGrantsParamsFilter {
-  /** Filter credit grants by status. */
-  status?: 'pending' | 'active' | 'expired' | 'voided'
-  /** Filter credit grants by currency. */
-  currency?: string
-  /** Filter credit grants by key. */
-  key?: StringFieldFilter
-  /**
-   * Select grants spendable on any requested feature, including grants without
-   * feature restrictions. Keys are case-sensitive. Supports `eq` (or shorthand) and
-   * `oeq` with comma-separated keys. Omit to include all features; use
-   * `exists=false` for grants without feature restrictions.
-   */
-  featureKey?: StringFieldFilter
-}
-
 /** A validation issue found while processing a billing resource. */
 export interface ValidationIssue {
   /** Machine-readable error code. */
@@ -2788,6 +2771,27 @@ export interface CreditAdjustment {
   labels?: Labels
 }
 
+/** Filter options for listing credit grants. */
+export interface ListCreditGrantsParamsFilter {
+  /** Filter credit grants by status. */
+  status?: 'pending' | 'active' | 'expired' | 'voided'
+  /**
+   * Filter credit grants by fiat or custom currency code. Historical custom
+   * currencies with the same code are included and retain their managed currency
+   * identifier.
+   */
+  currency?: BillingCurrencyCode
+  /** Filter credit grants by key. */
+  key?: StringFieldFilter
+  /**
+   * Select grants spendable on any requested feature, including grants without
+   * feature restrictions. Keys are case-sensitive. Supports `eq` (or shorthand) and
+   * `oeq` with comma-separated keys. Omit to include all features; use
+   * `exists=false` for grants without feature restrictions.
+   */
+  featureKey?: StringFieldFilter
+}
+
 /** CreditAdjustment create request. */
 export interface CreateCreditAdjustmentRequest {
   /**
@@ -3158,77 +3162,6 @@ export interface CreateTaxCodeConfig {
   code?: CreateResourceReference
 }
 
-/**
- * Tax configuration for a billable resource.
- *
- * Applies a tax code and tax behavior to the resulting invoice line items. When
- * not set, the applicable default is used: the billing profile default tax
- * configuration, then the organization default tax code.
- */
-export interface TaxCodeConfig {
-  /**
-   * Tax behavior.
-   *
-   * This enum is used to specify whether tax is included in the price or excluded
-   * from the price. If not specified, the billing profile is used to determine the
-   * tax behavior. If not specified in the billing profile, the provider's default
-   * behavior is used.
-   */
-  behavior?: 'inclusive' | 'exclusive'
-  /** Tax code applied to the invoice line item. */
-  code?: TaxCodeReference
-}
-
-/** Set of provider specific tax configs. */
-export interface TaxConfig {
-  /**
-   * Tax behavior.
-   *
-   * If not specified the billing profile is used to determine the tax behavior. If
-   * not specified in the billing profile, the provider's default behavior is used.
-   */
-  behavior?: 'inclusive' | 'exclusive'
-  /** Stripe tax config. */
-  stripe?: TaxConfigStripe
-  /** External invoicing tax config. */
-  externalInvoicing?: TaxConfigExternalInvoicing
-  /** Tax code ID. */
-  taxCodeId?: string
-  /**
-   * Tax code reference.
-   *
-   * When both `tax_code` and `tax_code_id` are provided, `tax_code` takes
-   * precedence. When `stripe.code` is also provided, `tax_code` still wins and
-   * `stripe.code` is ignored.
-   */
-  taxCode?: TaxCodeReference
-}
-
-/**
- * Organization-level default tax code references.
- *
- * Stores the default tax codes applied to specific billing contexts for this
- * organization. Provisioned automatically when the organization is created.
- */
-export interface OrganizationDefaultTaxCodes {
-  /** Default tax code for invoicing. */
-  invoicingTaxCode: TaxCodeReference
-  /** Default tax code for credit grants. */
-  creditGrantTaxCode: TaxCodeReference
-  /** Timestamp of creation. */
-  createdAt: Date
-  /** Timestamp of last update. */
-  updatedAt: Date
-}
-
-/** OrganizationDefaultTaxCodes update request. */
-export interface UpdateOrganizationDefaultTaxCodesRequest {
-  /** Default tax code for invoicing. */
-  invoicingTaxCode?: TaxCodeReference
-  /** Default tax code for credit grants. */
-  creditGrantTaxCode?: TaxCodeReference
-}
-
 /** The credit balance by currency. */
 export interface CreditBalance {
   currency: BillingCurrencyCode
@@ -3304,6 +3237,77 @@ export interface CreditTransaction {
    * credit-only advance debt.
    */
   availableBalance: { before: string; after: string }
+}
+
+/**
+ * Tax configuration for a billable resource.
+ *
+ * Applies a tax code and tax behavior to the resulting invoice line items. When
+ * not set, the applicable default is used: the billing profile default tax
+ * configuration, then the organization default tax code.
+ */
+export interface TaxCodeConfig {
+  /**
+   * Tax behavior.
+   *
+   * This enum is used to specify whether tax is included in the price or excluded
+   * from the price. If not specified, the billing profile is used to determine the
+   * tax behavior. If not specified in the billing profile, the provider's default
+   * behavior is used.
+   */
+  behavior?: 'inclusive' | 'exclusive'
+  /** Tax code applied to the invoice line item. */
+  code?: TaxCodeReference
+}
+
+/** Set of provider specific tax configs. */
+export interface TaxConfig {
+  /**
+   * Tax behavior.
+   *
+   * If not specified the billing profile is used to determine the tax behavior. If
+   * not specified in the billing profile, the provider's default behavior is used.
+   */
+  behavior?: 'inclusive' | 'exclusive'
+  /** Stripe tax config. */
+  stripe?: TaxConfigStripe
+  /** External invoicing tax config. */
+  externalInvoicing?: TaxConfigExternalInvoicing
+  /** Tax code ID. */
+  taxCodeId?: string
+  /**
+   * Tax code reference.
+   *
+   * When both `tax_code` and `tax_code_id` are provided, `tax_code` takes
+   * precedence. When `stripe.code` is also provided, `tax_code` still wins and
+   * `stripe.code` is ignored.
+   */
+  taxCode?: TaxCodeReference
+}
+
+/**
+ * Organization-level default tax code references.
+ *
+ * Stores the default tax codes applied to specific billing contexts for this
+ * organization. Provisioned automatically when the organization is created.
+ */
+export interface OrganizationDefaultTaxCodes {
+  /** Default tax code for invoicing. */
+  invoicingTaxCode: TaxCodeReference
+  /** Default tax code for credit grants. */
+  creditGrantTaxCode: TaxCodeReference
+  /** Timestamp of creation. */
+  createdAt: Date
+  /** Timestamp of last update. */
+  updatedAt: Date
+}
+
+/** OrganizationDefaultTaxCodes update request. */
+export interface UpdateOrganizationDefaultTaxCodesRequest {
+  /** Default tax code for invoicing. */
+  invoicingTaxCode?: TaxCodeReference
+  /** Default tax code for credit grants. */
+  creditGrantTaxCode?: TaxCodeReference
 }
 
 /**
@@ -5048,6 +5052,20 @@ export interface CreateCreditGrantPurchase {
   availabilityPolicy: 'on_creation'
 }
 
+/** The balances of the credits of a customer. */
+export interface CreditBalances {
+  /** The timestamp of the balance retrieval. */
+  retrievedAt: Date
+  /** The balances by currencies. */
+  balances: CreditBalance[]
+}
+
+/** Cursor paginated response. */
+export interface CreditTransactionPaginatedResponse {
+  data: CreditTransaction[]
+  meta: CursorMeta
+}
+
 /** Purchase and payment terms of the grant. */
 export interface CreditGrantPurchase {
   /**
@@ -5164,20 +5182,6 @@ export interface WorkflowTaxSettings {
    * and `behavior` remains fully supported.
    */
   defaultTaxConfig?: TaxConfig
-}
-
-/** The balances of the credits of a customer. */
-export interface CreditBalances {
-  /** The timestamp of the balance retrieval. */
-  retrievedAt: Date
-  /** The balances by currencies. */
-  balances: CreditBalance[]
-}
-
-/** Cursor paginated response. */
-export interface CreditTransactionPaginatedResponse {
-  data: CreditTransaction[]
-  meta: CursorMeta
 }
 
 /** Page paginated response. */
@@ -6083,6 +6087,8 @@ export interface CreditGrant {
    * fiat currency.
    */
   currency: BillingCurrencyCode
+  /** Managed currency reference. Present only for custom currencies. */
+  customCurrency?: CurrencyCustomReference
   /** Granted credit amount. */
   amount: string
   /** Present when a funding workflow applies (funding_method is not `none`). */
@@ -9608,6 +9614,8 @@ export interface CreditGrantInput {
    * fiat currency.
    */
   currency: BillingCurrencyCode
+  /** Managed currency reference. Present only for custom currencies. */
+  customCurrency?: CurrencyCustomReference
   /** Granted credit amount. */
   amount: string
   /** Present when a funding workflow applies (funding_method is not `none`). */
