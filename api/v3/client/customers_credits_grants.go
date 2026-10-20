@@ -17,9 +17,7 @@ type CustomersCreditsGrantsService struct {
 type CreditGrantFilter struct {
 	// Filter credit grants by status.
 	Status *CreditGrantStatus
-	// Filter credit grants by fiat or custom currency code. Historical custom
-	// currencies with the same code are included and retain their managed currency
-	// identifier.
+	// Filter credit grants by fiat or custom currency code.
 	Currency *BillingCurrencyCode
 	// Filter credit grants by key.
 	Key *StringFilter

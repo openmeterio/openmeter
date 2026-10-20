@@ -3,6 +3,7 @@ package e2e
 import (
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
@@ -23,6 +24,12 @@ func TestV3CustomCurrencyCreditGrantLifecycle(t *testing.T) {
 	})
 	c.requireStatus(http.StatusCreated, err)
 	require.NotNil(t, currencyCostBasis)
+	require.NotNil(t, currencyCostBasis.EffectiveFrom)
+	// Grant timestamps use whole seconds; the rate must be effective before that
+	// second starts, including when the fixture is created within the same second.
+	require.Eventually(t, func() bool {
+		return time.Now().UTC().Truncate(time.Second).After(*currencyCostBasis.EffectiveFrom)
+	}, 5*time.Second, 10*time.Millisecond)
 
 	for _, tc := range []struct {
 		name      string
@@ -55,6 +62,7 @@ func TestV3CustomCurrencyCreditGrantLifecycle(t *testing.T) {
 				body.FundingMethod = v3sdk.CreditFundingMethodExternal
 				body.Purchase = &v3sdk.CreateCreditGrantPurchase{Currency: "USD", CostBasis: tc.costBasis}
 			}
+
 			created, err := c.Customers.Credits.Grants.Create(t.Context(), customer.ID, body)
 			c.requireStatus(http.StatusCreated, err)
 			require.NotNil(t, created)
@@ -69,6 +77,7 @@ func TestV3CustomCurrencyCreditGrantLifecycle(t *testing.T) {
 					require.Nil(t, grant.Purchase)
 					return
 				}
+
 				require.NotNil(t, grant.Purchase)
 				require.Equal(t, "USD", grant.Purchase.Currency)
 				require.Equal(t, lo.ToPtr(v3sdk.Numeric("25")), grant.Purchase.Amount)
@@ -102,6 +111,7 @@ func TestV3CustomCurrencyCreditGrantLifecycle(t *testing.T) {
 				requireGrant(settled)
 				require.Equal(t, lo.ToPtr(v3sdk.CreditPurchasePaymentSettlementStatusSettled), settled.Purchase.SettlementStatus)
 			}
+
 			voided, err := c.Customers.Credits.Grants.Void(t.Context(), customer.ID, created.ID, &v3sdk.VoidCreditGrantRequest{})
 			c.requireStatus(http.StatusOK, err)
 

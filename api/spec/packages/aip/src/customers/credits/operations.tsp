@@ -26,9 +26,7 @@ model ListCreditGrantsParamsFilter {
   status?: CreditGrantStatus;
 
   /**
-   * Filter credit grants by fiat or custom currency code. Historical custom
-   * currencies with the same code are included and retain their managed currency
-   * identifier.
+   * Filter credit grants by fiat or custom currency code.
    */
   currency?: Currencies.CurrencyCode;
 
