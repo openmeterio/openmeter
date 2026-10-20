@@ -171,12 +171,11 @@ func (d AmountDiscounts) Neg() AmountDiscounts {
 }
 
 // mergeKey ignores the correlation ID of rate card discount references.
-// Subscription sync rebuilds the charge intent with a fresh correlation ID, so
-// the same percentage discount is booked as "rateCardDiscount/correlationID=A"
-// and rated later as "rateCardDiscount/correlationID=B". Keyed on the full
-// reference the delta would carry -A and +B instead of netting them, and
-// billing rejects the negative one. A line has at most one rate card amount
-// discount, so the prefix alone identifies it.
+// Rebuilding a charge intent (subscription sync, intent edits) allocates a
+// fresh correlation ID for the same rate card discount, so the previous and
+// current runs would not match and the delta would carry a reversal and a
+// new discount instead of netting them. A line has at most one rate card
+// amount discount, so the prefix alone identifies it.
 func (d AmountDiscount) mergeKey() string {
 	key, _, _ := strings.Cut(d.ChildUniqueReferenceID, "/correlationID=")
 	return key
