@@ -33,6 +33,7 @@ import (
 	omtestutils "github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/pagination"
 	billingtest "github.com/openmeterio/openmeter/test/billing"
 )
 
@@ -715,4 +716,72 @@ func (s *CreditGrantTestSuite) TestCreatePlanFilteredGrant() {
 	s.Require().Len(loaded.Intent.Filters.Plans, 1)
 	s.Equal([]int{2, 3}, loaded.Intent.Filters.Plans[0].Version.In)
 	s.NotNil(loaded.Realizations.CreditGrantRealization)
+}
+
+func (s *CreditGrantTestSuite) TestListCreditGrantsSpendabilityFilters() {
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("creditgrant-list-spendability")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
+	sandboxApp := s.InstallSandboxApp(s.T(), ns)
+	_ = s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
+	clock.FreezeTime(time.Date(2026, 4, 17, 12, 0, 0, 0, time.UTC))
+	defer clock.UnFreeze()
+
+	// Given grants with feature restrictions, including both stored formats.
+	specs := []struct {
+		name    string
+		filters ledger.CreditFilters
+	}{
+		{name: "unrestricted"},
+		{name: "feature-a", filters: ledger.CreditFilters{Features: []string{"a"}}},
+		{name: "feature-b", filters: ledger.CreditFilters{Features: []string{"b"}}},
+		{name: "feature-ab", filters: ledger.CreditFilters{Features: []string{"a", "b"}}},
+		{name: "plan-only", filters: ledger.CreditFilters{Plans: []ledger.PlanFilter{{Key: "pro"}}}},
+		{name: "mixed", filters: ledger.CreditFilters{Features: []string{"a"}, Plans: []ledger.PlanFilter{{Key: "pro"}}}},
+	}
+	ids := make(map[string]string, len(specs))
+	all := make([]string, 0, len(specs))
+	for _, spec := range specs {
+		grant, err := s.CreditGrantService.Create(ctx, creditgrant.CreateInput{
+			Namespace: ns, CustomerID: cust.ID, Name: spec.name, Currency: USD,
+			Amount: alpacadecimal.NewFromInt(10), FundingMethod: creditgrant.FundingMethodNone,
+			Filters: &spec.filters,
+		})
+		s.Require().NoError(err)
+		ids[spec.name] = grant.ID
+		all = append(all, spec.name)
+	}
+
+	for _, tc := range []struct {
+		name     string
+		features mo.Option[ledger.FeatureFilters]
+		want     []string
+	}{
+		{name: "omitted", want: all},
+		{name: "feature", features: mo.Some(ledger.FeatureFilters{"a"}), want: []string{"unrestricted", "feature-a", "feature-ab", "plan-only", "mixed"}},
+		{name: "multiple features without duplicate grants", features: mo.Some(ledger.FeatureFilters{"a", "b"}), want: all},
+		{name: "unknown feature includes unrestricted", features: mo.Some(ledger.FeatureFilters{"missing"}), want: []string{"unrestricted", "plan-only"}},
+		{name: "no feature restrictions", features: mo.Some[ledger.FeatureFilters](nil), want: []string{"unrestricted", "plan-only"}},
+	} {
+		s.Run(tc.name, func() {
+			// When listing grants for the requested features.
+			input := creditgrant.ListInput{Namespace: ns, CustomerID: cust.ID, FeatureFilters: tc.features, Page: pagination.NewPage(1, 100)}
+			result, err := s.CreditGrantService.List(ctx, input)
+			s.Require().NoError(err)
+			// Then unrestricted grants are retained and restrictions match before pagination.
+			want := lo.Map(tc.want, func(name string, _ int) string { return ids[name] })
+			got := lo.Map(result.Items, func(grant creditpurchase.Charge, _ int) string { return grant.ID })
+			s.ElementsMatch(want, got)
+			s.Equal(len(want), result.TotalCount)
+			input.Page = pagination.NewPage(1, 2)
+			page, err := s.CreditGrantService.List(ctx, input)
+			s.Require().NoError(err)
+			s.Equal(len(want), page.TotalCount)
+			s.Len(page.Items, min(2, len(want)))
+			for _, grant := range page.Items {
+				s.Contains(want, grant.ID)
+			}
+		})
+	}
 }

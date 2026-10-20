@@ -6,10 +6,13 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/samber/mo"
+
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
+	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -222,6 +225,9 @@ type ListChargesInput struct {
 
 	IncludeDeleted bool
 	Expands        meta.Expands
+	// FeatureFilters selects any requested feature plus unrestricted grants.
+	// None selects all; Some(nil) selects only grants without feature restrictions.
+	FeatureFilters mo.Option[ledger.FeatureFilters]
 }
 
 type ListChargesExpirationFilter struct {
@@ -276,6 +282,12 @@ func (i ListChargesInput) Validate() error {
 
 	if err := i.Expands.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("expands: %w", err))
+	}
+
+	if features, ok := i.FeatureFilters.Get(); ok {
+		if err := features.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("feature filters: %w", err))
+		}
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))

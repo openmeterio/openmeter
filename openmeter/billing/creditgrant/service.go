@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
@@ -253,6 +254,9 @@ type ListInput struct {
 	Status   *GrantStatus
 	Currency *currencyx.Code
 	Key      *filter.FilterString
+	// FeatureFilters selects any requested feature plus unrestricted grants.
+	// None selects all; Some(nil) selects only grants without feature restrictions.
+	FeatureFilters mo.Option[ledger.FeatureFilters]
 }
 
 func (i ListInput) Validate() error {
@@ -281,6 +285,12 @@ func (i ListInput) Validate() error {
 	if i.Key != nil {
 		if err := i.Key.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("key: %w", err))
+		}
+	}
+
+	if features, ok := i.FeatureFilters.Get(); ok {
+		if err := features.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("feature filters: %w", err))
 		}
 	}
 

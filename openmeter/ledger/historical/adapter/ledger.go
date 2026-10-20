@@ -21,8 +21,8 @@ import (
 	ledgertransactiongroupdb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransactiongroup"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	"github.com/openmeterio/openmeter/openmeter/ledger/creditfilterquery"
 	ledgerhistorical "github.com/openmeterio/openmeter/openmeter/ledger/historical"
-	"github.com/openmeterio/openmeter/openmeter/ledger/internal/routequery"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -537,15 +537,15 @@ func listTransactionsRoutePredicates(currency *currencyx.Code, route ledger.Rout
 	}
 
 	if exact, ok := route.CreditFilters.Get(); ok {
-		routePredicates = append(routePredicates, func(s *sql.Selector) { s.Where(routequery.ExactFiltersPredicate(s.C, exact)) })
+		routePredicates = append(routePredicates, func(s *sql.Selector) { s.Where(creditfilterquery.ExactFiltersPredicate(s.C, exact)) })
 	}
 
 	if features, ok := route.Features.Get(); ok {
-		routePredicates = append(routePredicates, func(s *sql.Selector) { s.Where(routequery.ExactFeaturesPredicate(s.C, features)) })
+		routePredicates = append(routePredicates, func(s *sql.Selector) { s.Where(creditfilterquery.ExactFeaturesPredicate(s.C, features)) })
 	}
 
 	if route.MatchFeature != "" {
-		routePredicates = append(routePredicates, func(s *sql.Selector) { s.Where(routequery.MatchFeaturePredicate(s.C, route.MatchFeature)) })
+		routePredicates = append(routePredicates, func(s *sql.Selector) { s.Where(creditfilterquery.MatchFeaturePredicate(s.C, route.MatchFeature)) })
 	}
 
 	return routePredicates, nil
@@ -734,15 +734,15 @@ func scopedRouteSelectorPredicates(input scopedRouteSelectorPredicatesInput) ([]
 	}
 
 	if exact, ok := route.CreditFilters.Get(); ok {
-		predicates = append(predicates, routequery.ExactFiltersPredicate(routeColumn, exact))
+		predicates = append(predicates, creditfilterquery.ExactFiltersPredicate(routeColumn, exact))
 	}
 
 	if features, ok := route.Features.Get(); ok {
-		predicates = append(predicates, routequery.ExactFeaturesPredicate(routeColumn, features))
+		predicates = append(predicates, creditfilterquery.ExactFeaturesPredicate(routeColumn, features))
 	}
 
 	if route.MatchFeature != "" {
-		predicates = append(predicates, routequery.MatchFeaturePredicate(routeColumn, route.MatchFeature))
+		predicates = append(predicates, creditfilterquery.MatchFeaturePredicate(routeColumn, route.MatchFeature))
 	}
 
 	return predicates, nil

@@ -246,6 +246,7 @@ func (s *service) List(ctx context.Context, input creditgrant.ListInput) (pagina
 	}
 
 	listInput.Key = input.Key
+	listInput.FeatureFilters = input.FeatureFilters
 
 	return s.creditPurchaseService.List(ctx, listInput)
 }
