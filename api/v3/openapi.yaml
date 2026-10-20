@@ -17248,10 +17248,7 @@ components:
         currency:
           allOf:
             - $ref: '#/components/schemas/BillingCurrencyCode'
-          description: |-
-            Filter credit grants by fiat or custom currency code. Historical custom
-            currencies with the same code are included and retain their managed currency
-            identifier.
+          description: Filter credit grants by fiat or custom currency code.
         key:
           allOf:
             - $ref: '#/components/schemas/StringFieldFilter'

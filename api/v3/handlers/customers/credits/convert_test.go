@@ -124,18 +124,16 @@ func TestToAPIBillingCreditGrantPromotional(t *testing.T) {
 		},
 	}, grant.ValidationIssues)
 
-	t.Run("custom currencies retain their managed identity when codes are reused", func(t *testing.T) {
-		for range 2 {
-			customCurrency := currenciestestutils.NewCustomCurrency(t, "TOKENS", 3)
-			customCharge := charge
-			customCharge.Intent.Currency = customCurrency
+	t.Run("custom grant exposes its managed currency identity", func(t *testing.T) {
+		customCurrency := currenciestestutils.NewCustomCurrency(t, "TOKENS", 3)
+		customCharge := charge
+		customCharge.Intent.Currency = customCurrency
 
-			grant, err := toAPIBillingCreditGrant(customCharge)
-			require.NoError(t, err)
-			require.Equal(t, api.BillingCurrencyCode("TOKENS"), grant.Currency)
-			require.Equal(t, &api.CurrencyCustomReference{Id: customCurrency.ID}, grant.CustomCurrency)
-			require.Nil(t, grant.Purchase)
-		}
+		grant, err := toAPIBillingCreditGrant(customCharge)
+		require.NoError(t, err)
+		require.Equal(t, api.BillingCurrencyCode("TOKENS"), grant.Currency)
+		require.Equal(t, &api.CurrencyCustomReference{Id: customCurrency.ID}, grant.CustomCurrency)
+		require.Nil(t, grant.Purchase)
 	})
 
 	t.Run("ledger-derived voiding overrides the charge status", func(t *testing.T) {

@@ -2775,11 +2775,7 @@ export interface CreditAdjustment {
 export interface ListCreditGrantsParamsFilter {
   /** Filter credit grants by status. */
   status?: 'pending' | 'active' | 'expired' | 'voided'
-  /**
-   * Filter credit grants by fiat or custom currency code. Historical custom
-   * currencies with the same code are included and retain their managed currency
-   * identifier.
-   */
+  /** Filter credit grants by fiat or custom currency code. */
   currency?: BillingCurrencyCode
   /** Filter credit grants by key. */
   key?: StringFieldFilter
