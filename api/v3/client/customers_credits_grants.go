@@ -21,6 +21,11 @@ type CreditGrantFilter struct {
 	Currency *string
 	// Filter credit grants by key.
 	Key *StringFilter
+	// Select grants spendable on any requested feature, including grants without
+	// feature restrictions. Keys are case-sensitive. Supports `eq` (or shorthand) and
+	// `oeq` with comma-separated keys. Omit to include all features; use
+	// `exists=false` for grants without feature restrictions.
+	FeatureKey *StringFilter
 }
 
 type CreditGrantListParams struct {
@@ -41,6 +46,7 @@ func (p CreditGrantListParams) values() url.Values {
 			q.Set("filter[currency]", *p.Filter.Currency)
 		}
 		addStringFilter(q, "filter[key]", p.Filter.Key)
+		addStringFilter(q, "filter[feature_key]", p.Filter.FeatureKey)
 	}
 
 	return q

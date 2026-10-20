@@ -3404,6 +3404,7 @@ export const listCreditGrantsParamsFilter = z
     status: creditGrantStatus.optional(),
     currency: currencyCode.optional(),
     key: stringFieldFilter.optional(),
+    featureKey: stringFieldFilter.optional(),
   })
   .describe('Filter options for listing credit grants.')
 
@@ -13168,6 +13169,7 @@ export const listCreditGrantsParamsFilterWire = z
     status: creditGrantStatusWire.optional(),
     currency: currencyCodeWire.optional(),
     key: stringFieldFilterWire.optional(),
+    feature_key: stringFieldFilterWire.optional(),
   })
   .describe('Filter options for listing credit grants.')
 

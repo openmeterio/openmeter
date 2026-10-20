@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"entgo.io/ent/dialect/sql"
 	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 
@@ -15,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	dbchargecreditpurchase "github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
+	"github.com/openmeterio/openmeter/openmeter/ledger/creditfilterquery"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -336,6 +338,17 @@ func (a *adapter) ListCharges(ctx context.Context, input creditpurchase.ListChar
 					dbchargecreditpurchase.ExpiresAtGT(input.Expiration.AsOf),
 				))
 			}
+		}
+
+		if features, ok := input.FeatureFilters.Get(); ok {
+			query = query.Where(func(s *sql.Selector) {
+				predicates := []*sql.Predicate{creditfilterquery.ExactFeaturesPredicate(s.C, nil)}
+				for _, feature := range features {
+					predicates = append(predicates, creditfilterquery.MatchFeaturePredicate(s.C, feature))
+				}
+
+				s.Where(sql.Or(predicates...))
+			})
 		}
 
 		query = filter.ApplyToQuery(query, input.Key, dbchargecreditpurchase.FieldKey)

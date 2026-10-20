@@ -81,3 +81,43 @@ func newFeatureKeyFilterBadRequest(ctx context.Context, err error) error {
 		}},
 	)
 }
+
+// Grant listings can select multiple features because they return grants, not an
+// additive balance that would double-count credit shared between features.
+func fromAPICreditGrantFeatureFilters(f *api.StringFieldFilter) (mo.Option[creditpurchase.FeatureFilters], error) {
+	if f == nil {
+		return customerbalance.AllFeatureFilter(), nil
+	}
+
+	if op := unsupportedCustomerCreditFeatureKeyOperator(f); op != "" {
+		return customerbalance.AllFeatureFilter(), fmt.Errorf("%s operator is not supported", op)
+	}
+
+	if f.Exists != nil {
+		if *f.Exists || f.Eq != nil || len(f.Oeq) > 0 {
+			return customerbalance.AllFeatureFilter(), errors.New("only exists=false without other operators is supported")
+		}
+
+		return customerbalance.NewUnrestrictedFeatureFilter(), nil
+	}
+
+	if f.Eq != nil && len(f.Oeq) > 0 {
+		return customerbalance.AllFeatureFilter(), errors.New("eq and oeq cannot be combined")
+	}
+
+	features := append(creditpurchase.FeatureFilters(nil), f.Oeq...)
+	if f.Eq != nil {
+		features = append(features, *f.Eq)
+	}
+
+	if len(features) == 0 {
+		return customerbalance.AllFeatureFilter(), nil
+	}
+
+	features = features.Normalize()
+	if err := features.Validate(); err != nil {
+		return customerbalance.AllFeatureFilter(), err
+	}
+
+	return mo.Some(features), nil
+}

@@ -360,6 +360,11 @@ booked for each uncovered segment, and lineage persists that same allocation.
 The purchase's lifecycle transaction rolls back if a selected segment changed
 before persistence. Ledger account locks precede lineage locks.
 
+Credit grant feature filters select spendability: a requested feature includes
+grants without feature restrictions. Feature `oeq` matches any requested key
+without duplicating shared grants. Matching precedes pagination. These filters do not require an
+active or funded grant; lifecycle status remains a separate filter.
+
 A credit grant, payment authorization, and payment settlement are separate
 durable facts. A later state cannot be inferred from the presence of an earlier
 one.

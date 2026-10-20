@@ -1,4 +1,4 @@
-package routequery
+package creditfilterquery
 
 import (
 	"encoding/json"

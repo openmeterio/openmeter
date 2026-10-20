@@ -14,7 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
-	"github.com/openmeterio/openmeter/openmeter/ledger/internal/routequery"
+	"github.com/openmeterio/openmeter/openmeter/ledger/creditfilterquery"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -206,15 +206,17 @@ func (r *repo) ListSubAccounts(ctx context.Context, input ledgeraccount.ListSubA
 		}
 
 		if exact, ok := normalizedRoute.CreditFilters.Get(); ok {
-			routePredicates = append(routePredicates, func(s *sql.Selector) { s.Where(routequery.ExactFiltersPredicate(s.C, exact)) })
+			routePredicates = append(routePredicates, func(s *sql.Selector) { s.Where(creditfilterquery.ExactFiltersPredicate(s.C, exact)) })
 		}
 
 		if features, ok := normalizedRoute.Features.Get(); ok {
-			routePredicates = append(routePredicates, func(s *sql.Selector) { s.Where(routequery.ExactFeaturesPredicate(s.C, features)) })
+			routePredicates = append(routePredicates, func(s *sql.Selector) { s.Where(creditfilterquery.ExactFeaturesPredicate(s.C, features)) })
 		}
 
 		if normalizedRoute.MatchFeature != "" {
-			routePredicates = append(routePredicates, func(s *sql.Selector) { s.Where(routequery.MatchFeaturePredicate(s.C, normalizedRoute.MatchFeature)) })
+			routePredicates = append(routePredicates, func(s *sql.Selector) {
+				s.Where(creditfilterquery.MatchFeaturePredicate(s.C, normalizedRoute.MatchFeature))
+			})
 		}
 
 		if normalizedRoute.CostBasis.IsPresent() {

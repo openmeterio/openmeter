@@ -2199,6 +2199,13 @@ export interface ListCreditGrantsParamsFilter {
   currency?: string
   /** Filter credit grants by key. */
   key?: StringFieldFilter
+  /**
+   * Select grants spendable on any requested feature, including grants without
+   * feature restrictions. Keys are case-sensitive. Supports `eq` (or shorthand) and
+   * `oeq` with comma-separated keys. Omit to include all features; use
+   * `exists=false` for grants without feature restrictions.
+   */
+  featureKey?: StringFieldFilter
 }
 
 /** A validation issue found while processing a billing resource. */
