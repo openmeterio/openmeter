@@ -2,6 +2,7 @@ package testutil
 
 import (
 	"encoding/json"
+	"fmt"
 	"testing"
 	"time"
 
@@ -10,9 +11,11 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating/service"
+	stdinvoicesanity "github.com/openmeterio/openmeter/openmeter/billing/stdinvoice/sanity"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -162,6 +165,68 @@ func RunCalculationTestCase(t *testing.T, tc CalculationTestCase) {
 
 	if tc.ExpectErrorIs != nil {
 		t.Fatalf("expected error: %v", tc.ExpectErrorIs)
+	}
+
+	// Add the IDs and invoice fields that rating does not create, so we can
+	// check its output as an app would receive it. Keep the calculated amounts
+	// unchanged so these checks can catch mistakes in rating.
+	snapshot := &billing.StandardLine{
+		ID:             "line-1",
+		Namespace:      "sanity-rating",
+		InvoiceID:      "invoice-1",
+		Currency:       line.Currency,
+		Period:         line.Period,
+		UsageBased:     &billing.UsageBasedLine{Price: line.UsageBased.Price},
+		CreditsApplied: append(billing.CreditsApplied{}, line.CreditsApplied...),
+		Totals:         res.Totals,
+	}
+	for idx := range snapshot.CreditsApplied {
+		if snapshot.CreditsApplied[idx].CreditRealizationID == "" {
+			snapshot.CreditsApplied[idx].CreditRealizationID = "rating-realization"
+		}
+	}
+
+	snapshot.DetailedLines = lo.Map(res.DetailedLines, func(detail rating.DetailedLine, idx int) billing.DetailedLine {
+		mapped := billing.DetailedLine{
+			ID:                     fmt.Sprintf("detail-%d", idx),
+			Namespace:              snapshot.Namespace,
+			InvoiceID:              snapshot.InvoiceID,
+			ChildUniqueReferenceID: detail.ChildUniqueReferenceID,
+			ServicePeriod:          lo.FromPtrOr(detail.Period, snapshot.Period),
+			PerUnitAmount:          detail.PerUnitAmount,
+			Quantity:               detail.Quantity,
+			Category:               lo.CoalesceOrEmpty(detail.Category, stddetailedline.CategoryRegular),
+			AmountDiscounts:        detail.AmountDiscounts.Clone(),
+			CreditsApplied:         append(billing.CreditsApplied{}, detail.CreditsApplied...),
+			Totals:                 detail.Totals,
+		}
+		for j := range mapped.AmountDiscounts {
+			mapped.AmountDiscounts[j].ID = fmt.Sprintf("discount-%d-%d", idx, j)
+		}
+
+		for j := range mapped.CreditsApplied {
+			if mapped.CreditsApplied[j].CreditRealizationID == "" {
+				mapped.CreditsApplied[j].CreditRealizationID = "rating-realization"
+			}
+		}
+
+		return mapped
+	})
+	sanityErr := stdinvoicesanity.Validate(billing.StandardInvoice{
+		ID:        snapshot.InvoiceID,
+		Namespace: snapshot.Namespace,
+		Period:    lo.ToPtr(snapshot.Period),
+		Currency:  snapshot.Currency,
+		Totals:    res.Totals,
+		Lines:     billing.NewStandardInvoiceLines(billing.StandardLines{snapshot}),
+	})
+	options := rating.NewGenerateDetailedLinesOptions(tc.Options...)
+	if options.DisableCreditsMutator && len(snapshot.CreditsApplied) > 0 {
+		// Credits were disabled for this rating step, so the details are missing
+		// the parent's allocations and should fail the check.
+		require.ErrorIs(t, sanityErr, stdinvoicesanity.ErrCreditConservationMismatch)
+	} else {
+		require.NoError(t, sanityErr)
 	}
 
 	// let's get around nil slices

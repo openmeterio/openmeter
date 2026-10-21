@@ -625,6 +625,176 @@ func (s *InvoiceSanityTestSuite) TestPartialReadsSkipSanityPrediction() {
 	}
 }
 
+// TestMonetarySanityHandoffAndRecovery writes broken invoices through the
+// adapter because public edit operations do not allow these inconsistent totals.
+// It checks what reaches the app and whether retry recovers after a repair.
+func (s *InvoiceSanityTestSuite) TestMonetarySanityHandoffAndRecovery() {
+	for _, mode := range []sanityTestMode{{name: "enforced", enforced: true}, {name: "log only"}} {
+		s.Run(mode.name, func() {
+			for _, tc := range []struct {
+				name                string
+				issue               billing.ValidationIssue
+				recalculatedOnRetry bool
+				corrupt             func(*billing.StandardInvoice)
+			}{
+				{
+					name:  "credit totals",
+					issue: stdinvoicesanity.ErrCreditTotalMismatch,
+					corrupt: func(invoice *billing.StandardInvoice) {
+						invoice.Lines.OrEmpty()[0].DetailedLines[0].CreditsApplied = billing.CreditsApplied{{
+							Amount:              alpacadecimal.NewFromInt(1),
+							CreditRealizationID: "sanity-test-credit",
+						}}
+					},
+				},
+
+				{
+					name: "credit conservation", issue: stdinvoicesanity.ErrCreditConservationMismatch,
+					corrupt: func(invoice *billing.StandardInvoice) {
+						invoice.Lines.OrEmpty()[0].CreditsApplied = billing.CreditsApplied{{Amount: alpacadecimal.NewFromInt(1), CreditRealizationID: "sanity-test-credit"}}
+					},
+				},
+				{
+					name: "calculated precision", issue: stdinvoicesanity.ErrTotalsPrecision,
+					corrupt: func(invoice *billing.StandardInvoice) {
+						detail := &invoice.Lines.OrEmpty()[0].DetailedLines[0]
+						detail.Totals.Amount = detail.Totals.Amount.Add(alpacadecimal.RequireFromString("0.001"))
+					},
+				},
+				{
+					name:  "commitment placement",
+					issue: stdinvoicesanity.ErrCommitmentPlacementMismatch,
+					corrupt: func(invoice *billing.StandardInvoice) {
+						invoice.Lines.OrEmpty()[0].DetailedLines[0].Totals.ChargesTotal = alpacadecimal.NewFromInt(1)
+					},
+				},
+				{
+					name:  "total arithmetic",
+					issue: stdinvoicesanity.ErrTotalArithmeticMismatch,
+					corrupt: func(invoice *billing.StandardInvoice) {
+						detail := &invoice.Lines.OrEmpty()[0].DetailedLines[0]
+						detail.Totals.Total = detail.Totals.Total.Add(alpacadecimal.NewFromInt(1))
+					},
+				},
+				{
+					name:  "parent aggregation",
+					issue: stdinvoicesanity.ErrLineTotalsMismatch,
+					corrupt: func(invoice *billing.StandardInvoice) {
+						line := invoice.Lines.OrEmpty()[0]
+						line.Totals.Amount = line.Totals.Amount.Add(alpacadecimal.NewFromInt(1))
+					},
+				},
+				{
+					name:                "invoice service period",
+					issue:               stdinvoicesanity.ErrInvoicePeriodMismatch,
+					recalculatedOnRetry: true,
+					corrupt:             func(invoice *billing.StandardInvoice) { invoice.Period.To = invoice.Period.To.Add(time.Hour) },
+				},
+				{
+					name:                "invoice aggregation",
+					issue:               stdinvoicesanity.ErrInvoiceTotalsMismatch,
+					recalculatedOnRetry: true,
+					corrupt: func(invoice *billing.StandardInvoice) {
+						invoice.Totals.Amount = invoice.Totals.Amount.Add(alpacadecimal.NewFromInt(1))
+						invoice.Totals.Total = invoice.Totals.CalculateTotal()
+					},
+				},
+			} {
+				s.Run(tc.name, func() {
+					// Given a failed app sync, followed by an error in the stored invoice.
+					s.configureSanityService(sanityServiceInput{EnforceInvoiceSanityChecks: mode.enforced})
+					appMock := newSanityAppMock(s.T())
+					appMock.On("ValidateStandardInvoice", mock.Anything).Return(nil).Once()
+					appMock.On("UpsertStandardInvoice", mock.Anything).Return(errors.New("provider unavailable")).Once()
+					original := s.createSanityDraft(appMock)
+					s.Require().Equal(billing.StandardInvoiceStatusDraftSyncFailed, original.Status)
+					s.Require().NoError(stdinvoicesanity.Validate(original))
+					corrupted, err := original.Clone()
+					s.Require().NoError(err)
+					tc.corrupt(&corrupted)
+					corrupted.StatusDetails = billing.StandardInvoiceStatusDetails{}
+					// Use the adapter directly to keep the broken invoice totals and period;
+					// persistSanitySnapshot would recalculate them.
+					corrupted, err = s.BillingAdapter.UpdateStandardInvoice(s.T().Context(), corrupted)
+					s.Require().NoError(err)
+					corrupted = s.reloadSanityInvoice(corrupted)
+					s.Require().ErrorIs(stdinvoicesanity.Validate(corrupted), tc.issue)
+
+					if !mode.enforced || tc.recalculatedOnRetry {
+						appMock.On("ValidateStandardInvoice", mock.MatchedBy(func(invoice billing.StandardInvoice) bool {
+							// Retry recalculates invoice totals and period before calling the app.
+							if tc.recalculatedOnRetry {
+								return stdinvoicesanity.Validate(invoice) == nil
+							}
+
+							return errors.Is(stdinvoicesanity.Validate(invoice), tc.issue)
+						})).Return(nil).Once()
+						appMock.On("UpsertStandardInvoice", mock.Anything).Return(nil).Once()
+					}
+
+					// When we retry the invoice before sending it to the app.
+					invoice, err := s.BillingService.RetryInvoice(s.T().Context(), corrupted.GetInvoiceID())
+					s.Require().NoError(err)
+
+					// Then remaining issues block the app only when enforcement is enabled.
+					if !mode.enforced || tc.recalculatedOnRetry {
+						s.Equal(billing.StandardInvoiceStatusDraftWaitingAutoApproval, invoice.Status)
+						s.False(invoice.ValidationIssues.HasComponent(stdinvoicesanity.ValidationComponent))
+						if tc.recalculatedOnRetry {
+							s.Require().NoError(stdinvoicesanity.Validate(invoice))
+							s.Equal(original.Totals, invoice.Totals)
+						}
+
+						appMock.AssertNumberOfCalls(s.T(), "ValidateStandardInvoice", 2)
+						appMock.AssertNumberOfCalls(s.T(), "UpsertStandardInvoice", 2)
+						s.reloadSanityInvoice(invoice)
+
+						return
+					}
+
+					s.Equal(billing.StandardInvoiceStatusDraftInvalid, invoice.Status)
+					appMock.AssertNumberOfCalls(s.T(), "ValidateStandardInvoice", 1)
+					appMock.AssertNumberOfCalls(s.T(), "UpsertStandardInvoice", 1)
+					invoice = s.reloadSanityInvoice(invoice)
+					found := false
+					for _, issue := range invoice.ValidationIssues {
+						if issue.Code == tc.issue.Code && issue.Component == stdinvoicesanity.ValidationComponent {
+							found = true
+							s.Equal(billing.ValidationIssueSeverityCritical, issue.Severity)
+							s.NotEmpty(issue.Path)
+							s.NotEmpty(issue.Attributes["expected"])
+							s.NotEmpty(issue.Attributes["actual"])
+						}
+					}
+
+					s.Require().True(found, "new sanity issue must survive persistence")
+
+					// Restore the original values, then retry to clear the issue and resume sync.
+					// Use the latest DBState so the adapter sees what changed since the failure.
+					for _, line := range original.Lines.OrEmpty() {
+						line.DBState = invoice.Lines.GetByID(line.ID).DBState
+					}
+
+					original.Status = invoice.Status
+					original.ValidationIssues = invoice.ValidationIssues
+					original.StatusDetails = billing.StandardInvoiceStatusDetails{}
+					repaired, err := s.BillingAdapter.UpdateStandardInvoice(s.T().Context(), original)
+					s.Require().NoError(err)
+					s.Require().NoError(stdinvoicesanity.Validate(s.reloadSanityInvoice(repaired)))
+					appMock.On("ValidateStandardInvoice", mock.Anything).Return(nil).Once()
+					appMock.On("UpsertStandardInvoice", mock.Anything).Return(nil).Once()
+					invoice, err = s.BillingService.RetryInvoice(s.T().Context(), invoice.GetInvoiceID())
+					s.Require().NoError(err)
+					s.Equal(billing.StandardInvoiceStatusDraftWaitingAutoApproval, invoice.Status)
+					s.Empty(invoice.ValidationIssues)
+					s.Require().NoError(stdinvoicesanity.Validate(invoice))
+					s.reloadSanityInvoice(invoice)
+				})
+			}
+		})
+	}
+}
+
 func (s *InvoiceSanityTestSuite) TestSanityLoggingAtAppHandoff() {
 	for _, mode := range []sanityTestMode{{name: "log only"}, {name: "enforced", enforced: true}} {
 		s.Run(mode.name, func() {

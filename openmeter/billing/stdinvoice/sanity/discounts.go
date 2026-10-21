@@ -10,19 +10,17 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-// validateDiscountTotals expects each live detailed line's DiscountsTotal to
-// equal its live amount-discount entries, including RoundingAmount corrections.
-// Entries use billing's SumAmount currency rounding; the stored total must match
-// exactly, without a tolerance or repair. Deleted parents, details and discounts
-// do not contribute to billable value. Missing entries therefore only reconcile
-// with a zero discount total. This checks calculated facts, not rate-card intent.
+// validateDiscountTotals checks that each active detail's DiscountsTotal matches
+// its active discount entries, including RoundingAmount corrections. Use billing's
+// SumAmount rounding so the total agrees with the breakdown sent to the app.
+// No entries means a zero discount total. Deleted parents, details and discounts
+// no longer contribute charges or discounts. Compare exactly without repairing
+// the invoice or deciding which rate-card discounts should have applied.
 func validateDiscountTotals(invoice billing.StandardInvoice) error {
 	currency, err := invoice.Currency.AsFiatCurrency()
 	if err != nil {
-		return billing.ValidationWithFieldPrefix("currency", billing.ValidationWithAttributes(models.Annotations{
-			"currency": string(invoice.Currency),
-			"error":    err.Error(),
-		}, ErrInvalidCurrency))
+		// validateCurrency already reports this; avoid repeating the same issue.
+		return nil
 	}
 
 	var errs []error
