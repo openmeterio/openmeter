@@ -662,14 +662,6 @@ func (s *InvoiceSanityTestSuite) TestMonetarySanityHandoffAndRecovery() {
 					},
 				},
 				{
-					name:  "gross amounts",
-					issue: stdinvoicesanity.ErrGrossAmountMismatch,
-					corrupt: func(invoice *billing.StandardInvoice) {
-						detail := &invoice.Lines.OrEmpty()[0].DetailedLines[0]
-						detail.Quantity = detail.Quantity.Add(alpacadecimal.NewFromInt(1))
-					},
-				},
-				{
 					name:  "commitment placement",
 					issue: stdinvoicesanity.ErrCommitmentPlacementMismatch,
 					corrupt: func(invoice *billing.StandardInvoice) {

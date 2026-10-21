@@ -11,8 +11,6 @@ unloaded lines and nil entries are critical validation issues. Checks reconcile:
 
 - detailed discount and credit totals with their breakdowns, using billing's
   per-entry currency rounding (including signed discount rounding corrections);
-- detailed gross value with the currency-rounded product of full-precision unit
-  amount and quantity;
 - category placement: regular details use `Amount`, commitments use
   `ChargesTotal`, and the other gross field must be zero;
 - payable totals with amount plus charges plus exclusive tax minus discounts
@@ -48,6 +46,9 @@ optional before synchronization. Credit limits use actual allocations, not a
 possibly stale `CreditsTotal`, and exclusive tax cannot increase that budget.
 Calculated totals must already be currency-rounded; unit prices, quantities and
 allocation input amounts retain their existing precision and rounding order.
+Gross amounts are not checked against unit price times quantity: progressive
+billing subtracts already-rounded cumulative charges, so a valid delta can differ
+from the rounded product of its own quantity and unit price.
 
 This does not prove ledger credit ownership, commercial pricing intent, or
 provider request correctness. Supplier and standard-line

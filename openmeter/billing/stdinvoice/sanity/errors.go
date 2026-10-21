@@ -10,7 +10,6 @@ var (
 	ErrInvalidCurrency             = billing.NewValidationError("invoice_sanity_invalid_currency", "invoice currency is invalid for sanity validation")
 	ErrDiscountTotalMismatch       = billing.NewValidationError("invoice_sanity_discount_total_mismatch", "discount entries total does not match discounts total")
 	ErrCreditTotalMismatch         = billing.NewValidationError("invoice_sanity_credit_total_mismatch", "credit entries total does not match credits total")
-	ErrGrossAmountMismatch         = billing.NewValidationError("invoice_sanity_gross_amount_mismatch", "gross amount does not match quantity and unit amount")
 	ErrInvalidDetailCategory       = billing.NewValidationError("invoice_sanity_invalid_detail_category", "detailed line category is invalid")
 	ErrCommitmentPlacementMismatch = billing.NewValidationError("invoice_sanity_commitment_placement_mismatch", "gross value is stored in the wrong category total")
 	ErrTotalArithmeticMismatch     = billing.NewValidationError("invoice_sanity_total_arithmetic_mismatch", "total does not match its components")
