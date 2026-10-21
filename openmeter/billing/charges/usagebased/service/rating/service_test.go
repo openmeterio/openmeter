@@ -62,21 +62,6 @@ func TestGetPreferredRatingEngineFor(t *testing.T) {
 	require.Equal(t, usagebased.RatingEngineDelta, svc.GetPreferredRatingEngineFor(usagebased.Intent{}))
 }
 
-func TestGetDetailedRatingForUsageDisablesCreditsMutator(t *testing.T) {
-	t.Parallel()
-
-	fixture := newGetDetailedRatingForUsageFixture(t, billingrating.GenerateDetailedLinesResult{})
-	ratingService := fixture.config.RatingService.(*stubRatingService)
-
-	svc, err := New(fixture.config)
-	require.NoError(t, err)
-
-	_, err = svc.GetDetailedRatingForUsage(t.Context(), fixture.input)
-	require.NoError(t, err)
-
-	require.True(t, ratingService.lastOpts.DisableCreditsMutator)
-}
-
 func TestNewDetailedLinesFromBilling(t *testing.T) {
 	t.Parallel()
 
@@ -596,8 +581,7 @@ func newDetailedRatingTestFeatureMeter() billingfeaturemeter.FeatureMeter {
 }
 
 type stubRatingService struct {
-	result   billingrating.GenerateDetailedLinesResult
-	lastOpts billingrating.GenerateDetailedLinesOptions
+	result billingrating.GenerateDetailedLinesResult
 }
 
 // detailedLinesFetcherFunc keeps rating tests focused on the FetchDetailedLines behavior under test
@@ -617,7 +601,6 @@ func (s *stubRatingService) ResolveBillablePeriod(in billingrating.ResolveBillab
 }
 
 func (s *stubRatingService) GenerateDetailedLines(in billingrating.StandardLineAccessor, opts ...billingrating.GenerateDetailedLinesOption) (billingrating.GenerateDetailedLinesResult, error) {
-	s.lastOpts = billingrating.NewGenerateDetailedLinesOptions(opts...)
 	return s.result, nil
 }
 

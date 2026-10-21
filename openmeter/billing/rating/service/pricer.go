@@ -26,17 +26,11 @@ func getPricerFor(line rating.PriceAccessor, opts rating.GenerateDetailedLinesOp
 	}
 
 	if linePrice.Type() == productcatalog.FlatPriceType {
-		postCalculationMutators := []mutator.PostCalculationMutator{
-			&mutator.DiscountPercentage{},
-		}
-
-		if !opts.DisableCreditsMutator {
-			postCalculationMutators = append(postCalculationMutators, &mutator.Credits{})
-		}
-
 		return &priceMutator{
-			Pricer:          rate.Flat{},
-			PostCalculation: postCalculationMutators,
+			Pricer: rate.Flat{},
+			PostCalculation: []mutator.PostCalculationMutator{
+				&mutator.DiscountPercentage{},
+			},
 		}, nil
 	}
 
@@ -64,10 +58,6 @@ func getPricerFor(line rating.PriceAccessor, opts rating.GenerateDetailedLinesOp
 	// calculation that is after the service period end.
 	if !opts.IgnoreMinimumCommitment {
 		postCalculationMutators = append(postCalculationMutators, &mutator.MinAmountCommitment{})
-	}
-
-	if !opts.DisableCreditsMutator {
-		postCalculationMutators = append(postCalculationMutators, &mutator.Credits{})
 	}
 
 	// UnitConfig converts the raw metered quantity into billed units and must run

@@ -46,7 +46,6 @@ type CalculationTestCase struct {
 	Expect               rating.DetailedLines
 	ExpectErrorIs        error
 	PreviousBilledAmount alpacadecimal.Decimal
-	CreditsApplied       billing.CreditsApplied
 	Options              []rating.GenerateDetailedLinesOption
 
 	// UnitConfig, when set, is exposed on the rated line via GetUnitConfig. Standard
@@ -86,7 +85,6 @@ func RunCalculationTestCase(t *testing.T, tc CalculationTestCase) {
 			}),
 			Currency:          "USD",
 			RateCardDiscounts: tc.Discounts,
-			CreditsApplied:    tc.CreditsApplied,
 		},
 		UsageBased: &billing.UsageBasedLine{
 			Price: lo.ToPtr(tc.Price),

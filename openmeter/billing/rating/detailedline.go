@@ -25,7 +25,6 @@ type DetailedLine struct {
 	Category    stddetailedline.Category       `json:"category,omitempty"`
 
 	AmountDiscounts billing.AmountLineDiscountsManaged `json:"amountDiscounts,omitempty"`
-	CreditsApplied  billing.CreditsApplied             `json:"creditsApplied,omitempty"`
 
 	Totals totals.Totals `json:"totals,omitempty"`
 }
@@ -52,7 +51,6 @@ func (i DetailedLine) TotalAmount(currency currencyx.Currency) alpacadecimal.Dec
 		PerUnitAmount:   i.PerUnitAmount,
 		Quantity:        i.Quantity,
 		AmountDiscounts: i.AmountDiscounts,
-		CreditsApplied:  i.CreditsApplied,
 	})
 }
 
@@ -61,15 +59,12 @@ type getTotalAmountInput struct {
 	PerUnitAmount   alpacadecimal.Decimal
 	Quantity        alpacadecimal.Decimal
 	AmountDiscounts billing.AmountLineDiscountsManaged
-	CreditsApplied  billing.CreditsApplied
 }
 
 func TotalAmount(in getTotalAmountInput) alpacadecimal.Decimal {
 	total := in.Currency.RoundToPrecision(in.PerUnitAmount.Mul(in.Quantity))
 
 	total = total.Sub(in.AmountDiscounts.SumAmount(in.Currency))
-
-	total = total.Sub(in.CreditsApplied.SumAmount(in.Currency))
 
 	return total
 }

@@ -143,7 +143,6 @@ func calculateDetailedLineTotals(line rating.DetailedLine, currency currencyx.Cu
 	// Calculate the line totals
 	totals := totals.Totals{
 		DiscountsTotal: line.AmountDiscounts.SumAmount(currency),
-		CreditsTotal:   line.CreditsApplied.SumAmount(currency),
 
 		// TODO[OM-979]: implement taxes
 		TaxesInclusiveTotal: alpacadecimal.Zero,

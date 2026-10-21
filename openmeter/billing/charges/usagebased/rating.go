@@ -16,9 +16,8 @@ var _ rating.StandardLineAccessor = (*RateableIntent)(nil)
 type RateableIntent struct {
 	Intent
 
-	ServicePeriod  timeutil.ClosedPeriod
-	MeterValue     alpacadecimal.Decimal
-	CreditsApplied billing.CreditsApplied
+	ServicePeriod timeutil.ClosedPeriod
+	MeterValue    alpacadecimal.Decimal
 }
 
 func (r RateableIntent) GetMeteredQuantity() (*alpacadecimal.Decimal, error) {
@@ -60,8 +59,4 @@ func (r RateableIntent) GetUnitConfig() *productcatalog.UnitConfig {
 func (r RateableIntent) GetStandardLineDiscounts() billing.StandardLineDiscounts {
 	// A charge is never associated with user defined line discounts
 	return billing.StandardLineDiscounts{}
-}
-
-func (r RateableIntent) GetCreditsApplied() billing.CreditsApplied {
-	return r.CreditsApplied
 }

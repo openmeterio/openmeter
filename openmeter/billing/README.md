@@ -133,6 +133,10 @@ prior-period usage, the full service period, and previously billed amounts.
 Ordinary charge rating uses its own snapshots and does not require split-line
 hierarchy access.
 
+Rating returns amounts before credit application. Legacy invoice lines do not
+allocate credits; charge engines reconcile allocations and apply them to their
+detailed lines after rating.
+
 Snapshotting and rating run on clones so a failed collection attempt cannot
 modify the prior invoice lines. Complete snapshots follow the existing reuse
 timing policy.

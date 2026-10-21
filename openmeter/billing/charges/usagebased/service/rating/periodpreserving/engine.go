@@ -215,9 +215,7 @@ func (e Engine) buildDetailsByEpoch(ctx context.Context, in Input, recorder *bil
 	previouslyGeneratedDetailedLines := make(usagebased.DetailedLines, 0, 32) // 32 is a reasonable default size for most cases
 	result := make(map[epochClosedPeriod]usagebased.DetailedLines, len(fullRatingInput))
 	for _, epoch := range fullRatingInput {
-		opts := []billingrating.GenerateDetailedLinesOption{
-			billingrating.WithCreditsMutatorDisabled(),
-		}
+		var opts []billingrating.GenerateDetailedLinesOption
 		// Minimum commitment is charged only on the final service-period snapshot.
 		if epoch.To < in.Intent.ServicePeriod.To.Unix() {
 			opts = append(opts, billingrating.WithMinimumCommitmentIgnored())

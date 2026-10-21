@@ -80,7 +80,6 @@ func TestRateKeepsDetailedLineChildUniqueReferenceIDsWithoutServicePeriodSuffix(
 		out.DetailedLines[1].ChildUniqueReferenceID,
 	})
 	require.False(t, ratingService.lastOpts.IgnoreMinimumCommitment)
-	require.True(t, ratingService.lastOpts.DisableCreditsMutator)
 }
 
 func TestRatePreservesValidationWarningWithSuccessfulResult(t *testing.T) {
@@ -163,7 +162,6 @@ func TestRateIgnoresMinimumCommitmentForPartialRun(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.True(t, ratingService.lastOpts.IgnoreMinimumCommitment)
-	require.True(t, ratingService.lastOpts.DisableCreditsMutator)
 }
 
 func TestRateSubtractsAlreadyBilledLinesAndBooksDeltaOnCurrentPeriod(t *testing.T) {

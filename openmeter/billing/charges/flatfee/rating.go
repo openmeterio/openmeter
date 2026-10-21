@@ -114,7 +114,3 @@ func (r RateableIntent) GetUnitConfig() *productcatalog.UnitConfig {
 func (r RateableIntent) GetStandardLineDiscounts() billing.StandardLineDiscounts {
 	return billing.StandardLineDiscounts{}
 }
-
-func (r RateableIntent) GetCreditsApplied() billing.CreditsApplied {
-	return nil
-}

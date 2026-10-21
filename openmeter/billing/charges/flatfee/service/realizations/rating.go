@@ -5,7 +5,6 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
-	billingrating "github.com/openmeterio/openmeter/openmeter/billing/rating"
 )
 
 type RateResult struct {
@@ -19,10 +18,7 @@ func (s *Service) Rate(intent flatfee.RateableIntent) (RateResult, error) {
 		return RateResult{}, fmt.Errorf("validating rateable intent: %w", err)
 	}
 
-	result, err := s.ratingService.GenerateDetailedLines(
-		intent,
-		billingrating.WithCreditsMutatorDisabled(),
-	)
+	result, err := s.ratingService.GenerateDetailedLines(intent)
 	if err != nil {
 		return RateResult{}, fmt.Errorf("generating detailed lines: %w", err)
 	}

@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -56,6 +57,58 @@ func TestGenerateLegacyProgressiveBilledLinesRejectsMissingMeteredQuantities(t *
 
 			// then: rating rejects the input instead of dereferencing a nil quantity
 			require.EqualError(t, err, tc.expectedError)
+		})
+	}
+}
+
+func TestRatingReturnsAmountsBeforeCreditApplication(t *testing.T) {
+	for _, price := range []*productcatalog.Price{
+		productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromInt(10)}),
+		productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+			Amount:      alpacadecimal.NewFromInt(100),
+			PaymentTerm: productcatalog.InArrearsPaymentTerm,
+		}),
+	} {
+		t.Run(string(price.Type()), func(t *testing.T) {
+			for _, mode := range []string{"ordinary", "legacy"} {
+				t.Run(mode, func(t *testing.T) {
+					// Given pricing worth 100 and invoice credit facts owned outside rating.
+					line := &billing.StandardLine{
+						StandardLineBase: billing.StandardLineBase{
+							Currency: "USD",
+							Period: timeutil.ClosedPeriod{
+								From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+								To:   time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
+							},
+							CreditsApplied: billing.CreditsApplied{{Amount: alpacadecimal.NewFromInt(30)}},
+						},
+						UsageBased: &billing.UsageBasedLine{
+							Price:                        price.Clone(),
+							MeteredQuantity:              lo.ToPtr(alpacadecimal.NewFromInt(10)),
+							MeteredPreLinePeriodQuantity: lo.ToPtr(alpacadecimal.Zero),
+						},
+					}
+					svc := New(Config{})
+
+					// When either rating entrypoint calculates the line.
+					var result rating.GenerateDetailedLinesResult
+					var err error
+					if mode == "legacy" {
+						result, err = svc.GenerateLegacyProgressiveBilledLines(line)
+					} else {
+						result, err = svc.GenerateDetailedLines(line)
+					}
+
+					require.NoError(t, err)
+
+					// Then rating leaves credit application to the owner of those facts.
+					require.Equal(t, float64(100), result.Totals.Total.InexactFloat64())
+					require.Zero(t, result.Totals.CreditsTotal.InexactFloat64())
+					require.Len(t, result.DetailedLines, 1)
+					require.Equal(t, float64(100), result.DetailedLines[0].Totals.Total.InexactFloat64())
+					require.Equal(t, float64(30), line.CreditsApplied[0].Amount.InexactFloat64())
+				})
+			}
 		})
 	}
 }

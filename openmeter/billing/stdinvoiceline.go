@@ -185,10 +185,6 @@ func (i StandardLineBase) Clone() StandardLineBase {
 	return out
 }
 
-func (i StandardLineBase) GetCreditsApplied() CreditsApplied {
-	return i.CreditsApplied
-}
-
 func (i StandardLineBase) GetCurrency() currencyx.FiatCode {
 	return i.Currency
 }

@@ -136,7 +136,6 @@ func newDetailedLines(stdLine *billing.StandardLine, inputs ...rating.DetailedLi
 			PerUnitAmount:          in.PerUnitAmount,
 			Quantity:               in.Quantity,
 			Category:               in.Category,
-			CreditsApplied:         in.CreditsApplied,
 			Totals:                 in.Totals,
 			AmountDiscounts:        in.AmountDiscounts,
 		}

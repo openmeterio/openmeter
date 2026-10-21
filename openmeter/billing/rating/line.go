@@ -32,8 +32,6 @@ type StandardLineAccessor interface {
 	GetCurrencyCalculator() (currencyx.Currency, error)
 	// GetMeteredUsage returns the metered usage of the line for the current service period
 	GetMeteredQuantity() (*alpacadecimal.Decimal, error)
-	// GetCreditsApplied returns the list of credits to be applied for the line
-	GetCreditsApplied() billing.CreditsApplied
 	// GetName returns the name of the line
 	GetName() string
 	// GetRateCardDiscounts returns the rate card discounts for the line

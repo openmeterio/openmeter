@@ -21,7 +21,6 @@ type Service interface {
 
 type GenerateDetailedLinesOptions struct {
 	IgnoreMinimumCommitment bool
-	DisableCreditsMutator   bool
 }
 
 type GenerateDetailedLinesOption func(*GenerateDetailedLinesOptions)
@@ -39,12 +38,6 @@ func NewGenerateDetailedLinesOptions(opts ...GenerateDetailedLinesOption) Genera
 func WithMinimumCommitmentIgnored() GenerateDetailedLinesOption {
 	return func(o *GenerateDetailedLinesOptions) {
 		o.IgnoreMinimumCommitment = true
-	}
-}
-
-func WithCreditsMutatorDisabled() GenerateDetailedLinesOption {
-	return func(o *GenerateDetailedLinesOptions) {
-		o.DisableCreditsMutator = true
 	}
 }
 
