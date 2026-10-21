@@ -204,4 +204,16 @@ DROP TABLE "billing_invoice_flat_fee_line_configs";
 -- drop "billing_invoice_line_discounts" table
 DROP TABLE "billing_invoice_line_discounts";
 
+-- Build recovery indexes after loading the archive to avoid maintaining them for
+-- every inserted row. Keep the retained archive usable across schema round trips.
+CREATE INDEX IF NOT EXISTS om_legacy_detail_backup_id_idx
+    ON om_migration_backup_legacy_detailed_lines (id);
+CREATE INDEX IF NOT EXISTS om_legacy_detail_backup_ns_invoice_idx
+    ON om_migration_backup_legacy_detailed_lines (namespace, ((row_data -> 'line') ->> 'invoice_id'));
+CREATE INDEX IF NOT EXISTS om_legacy_detail_backup_ns_parent_idx
+    ON om_migration_backup_legacy_detailed_lines (namespace, ((row_data -> 'line') ->> 'parent_line_id'));
+CREATE INDEX IF NOT EXISTS om_legacy_detail_backup_data_idx
+    ON om_migration_backup_legacy_detailed_lines USING gin (row_data jsonb_path_ops);
+ANALYZE om_migration_backup_legacy_detailed_lines;
+
 COMMIT;
