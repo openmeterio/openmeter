@@ -530,6 +530,7 @@ func toValidationIssue(err error, fieldPrefix string, component ComponentName, m
 			},
 		}, nil
 	case models.Error:
+		// Generic errors remain system errors unless explicitly converted with WrapAsValidationIssue.
 		if ordinaryErrorSeverity == "" {
 			return nil, err
 		}

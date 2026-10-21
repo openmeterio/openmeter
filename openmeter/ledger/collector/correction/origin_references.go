@@ -38,7 +38,7 @@ func (p originPair) correctionSource() advance.CorrectionSource {
 
 func (pair originPair) reverse(at time.Time, amount alpacadecimal.Decimal) (ledger.TransactionInput, error) {
 	if amount.GreaterThan(pair.remaining) {
-		return nil, models.NewError("ledger_correction_failed", "reversal exceeds remaining original entry amount", models.WithAttribute("reason", "ledger_correction_exceeds_original_entry"))
+		return nil, models.NewError(ledger.ErrCodeCorrectionFailed, "reversal exceeds remaining original entry amount", models.WithAttribute("reason", "ledger_correction_exceeds_original_entry"))
 	}
 
 	return transactions.ReverseOriginEntryPair(transactions.ReverseOriginEntryPairInput{
@@ -98,14 +98,14 @@ func (h originReferences) attributionForBackfill(backfill *originPair) (*originP
 		}
 
 		if attribution != nil {
-			return nil, models.NewError("ledger_correction_failed", "ambiguous advance attribution for origin", models.WithAttribute("reason", "ledger_correction_advance_attribution_ambiguous"))
+			return nil, models.NewError(ledger.ErrCodeCorrectionFailed, "ambiguous advance attribution for origin", models.WithAttribute("reason", "ledger_correction_advance_attribution_ambiguous"))
 		}
 
 		attribution = pair
 	}
 
 	if attribution == nil {
-		return nil, models.NewError("ledger_correction_failed", "advance backfill has no matching receivable attribution", models.WithAttribute("reason", "ledger_correction_receivable_attribution_missing"))
+		return nil, models.NewError(ledger.ErrCodeCorrectionFailed, "advance backfill has no matching receivable attribution", models.WithAttribute("reason", "ledger_correction_receivable_attribution_missing"))
 	}
 
 	return attribution, nil
@@ -238,14 +238,14 @@ func (c *Corrector) loadOriginReferences(ctx context.Context, namespace, collect
 		for _, key := range order {
 			pair := pairs[key]
 			if pair.negativeEntry == nil || pair.positiveEntry == nil || !pair.negativeEntry.Amount().Neg().Equal(pair.positiveEntry.Amount()) {
-				return originReferences{}, models.NewError("ledger_correction_failed", fmt.Sprintf("unbalanced origin pair in transaction %s", tx.ID().ID), models.WithAttribute("reason", "ledger_correction_origin_pair_unbalanced"))
+				return originReferences{}, models.NewError(ledger.ErrCodeCorrectionFailed, fmt.Sprintf("unbalanced origin pair in transaction %s", tx.ID().ID), models.WithAttribute("reason", "ledger_correction_origin_pair_unbalanced"))
 			}
 
 			negativeRemaining := pair.negativeEntry.Amount().Add(corrections[pair.negativeEntry.ID().ID]).Neg()
 			positiveRemaining := pair.positiveEntry.Amount().Add(corrections[pair.positiveEntry.ID().ID])
 
 			if negativeRemaining.IsNegative() || !negativeRemaining.Equal(positiveRemaining) {
-				return originReferences{}, models.NewError("ledger_correction_failed", fmt.Sprintf("invalid prior reversals in origin transaction %s", tx.ID().ID), models.WithAttribute("reason", "ledger_correction_prior_reversals_invalid"))
+				return originReferences{}, models.NewError(ledger.ErrCodeCorrectionFailed, fmt.Sprintf("invalid prior reversals in origin transaction %s", tx.ID().ID), models.WithAttribute("reason", "ledger_correction_prior_reversals_invalid"))
 			}
 
 			role, err := originPairRole(pair.negativeEntry, pair.positiveEntry)
@@ -278,7 +278,7 @@ func (h originReferences) pairForTransaction(id string) (*originPair, error) {
 	}
 
 	if found == nil {
-		return nil, models.NewError("ledger_correction_failed", fmt.Sprintf("original transaction %s missing from origin history", id), models.WithAttribute("reason", "ledger_correction_original_transaction_missing"))
+		return nil, models.NewError(ledger.ErrCodeCorrectionFailed, fmt.Sprintf("original transaction %s missing from origin history", id), models.WithAttribute("reason", "ledger_correction_original_transaction_missing"))
 	}
 
 	return found, nil
