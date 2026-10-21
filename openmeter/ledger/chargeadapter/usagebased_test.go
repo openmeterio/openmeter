@@ -709,7 +709,7 @@ func (e *usageBasedHandlerTestEnv) newRun() chargeusagebased.RealizationRun {
 			ServicePeriodTo: now,
 			MeteredQuantity: alpacadecimal.NewFromInt(30),
 			FeatureID:       featureID,
-			Totals: totals.Totals{
+			Totals: totals.DeltaTotals{
 				Amount:       alpacadecimal.NewFromInt(30),
 				CreditsTotal: alpacadecimal.NewFromInt(30),
 				Total:        alpacadecimal.Zero,

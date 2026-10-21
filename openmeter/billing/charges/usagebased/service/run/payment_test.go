@@ -226,7 +226,7 @@ func newUsageBasedRun(lineID string) usagebased.RealizationRun {
 			StoredAtLT:      now,
 			ServicePeriodTo: now,
 			MeteredQuantity: alpacadecimal.NewFromInt(10),
-			Totals: totals.Totals{
+			Totals: totals.DeltaTotals{
 				Amount: alpacadecimal.NewFromInt(10),
 				Total:  alpacadecimal.NewFromInt(10),
 			},

@@ -82,7 +82,7 @@ type CreateRealizationRunInput struct {
 	LineID                    *string               `json:"lineId,omitempty"`
 	InvoiceID                 *string               `json:"invoiceId,omitempty"`
 	MeteredQuantity           alpacadecimal.Decimal `json:"meteredQuantity"`
-	Totals                    totals.Totals         `json:"totals"`
+	Totals                    totals.DeltaTotals    `json:"totals"`
 	NoFiatTransactionRequired bool                  `json:"noFiatTransactionRequired"`
 }
 
@@ -139,7 +139,7 @@ type UpdateRealizationRunInput struct {
 	DeletedAt                            mo.Option[*time.Time]            `json:"deletedAt,omitempty"`
 	LineID                               mo.Option[*string]               `json:"lineId,omitempty"`
 	MeteredQuantity                      mo.Option[alpacadecimal.Decimal] `json:"meteredQuantity"`
-	Totals                               mo.Option[totals.Totals]         `json:"totals"`
+	Totals                               mo.Option[totals.DeltaTotals]    `json:"totals"`
 	NoFiatTransactionRequired            mo.Option[bool]                  `json:"noFiatTransactionRequired"`
 	Immutable                            mo.Option[bool]                  `json:"immutable"`
 	FiatOverageCreditAllocationCompleted mo.Option[bool]                  `json:"fiatOverageCreditAllocationCompleted"`
@@ -215,8 +215,8 @@ type RealizationRunBase struct {
 	// quantities to zero before deriving billable usage.
 	MeteredQuantity alpacadecimal.Decimal `json:"meteredQuantity"`
 	// Totals includes credit allocations and excludes taxes.
-	Totals                    totals.Totals `json:"totals"`
-	NoFiatTransactionRequired bool          `json:"noFiatTransactionRequired"`
+	Totals                    totals.DeltaTotals `json:"totals"`
+	NoFiatTransactionRequired bool               `json:"noFiatTransactionRequired"`
 	// Immutable means the backing invoice crossed the external issuance boundary.
 	Immutable bool `json:"immutable"`
 	// FiatOverageCreditAllocationCompleted distinguishes a successful
@@ -490,7 +490,7 @@ func (r RealizationRuns) Validate() error {
 // Sum returns the aggregate totals across non-voided billing history.
 func (r RealizationRuns) Sum() totals.Totals {
 	return totals.Sum(lo.Map(r.WithoutVoidedBillingHistory(), func(run RealizationRun, _ int) totals.Totals {
-		return run.Totals
+		return run.Totals.Totals
 	})...)
 }
 

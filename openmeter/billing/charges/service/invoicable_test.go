@@ -3938,7 +3938,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyLifecycle() {
 		s.RequireTotals(billingtest.ExpectedTotals{
 			Amount:       3,
 			CreditsTotal: 3,
-		}, currentRun.Totals)
+		}, currentRun.Totals.Totals)
 		s.Len(currentRun.CreditsAllocated, 1)
 		s.Equal(float64(3), currentRun.CreditsAllocated[0].Amount.InexactFloat64())
 
@@ -4034,7 +4034,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyLifecycle() {
 		s.RequireTotals(billingtest.ExpectedTotals{
 			Amount:       8,
 			CreditsTotal: 8,
-		}, finalRun.Totals)
+		}, finalRun.Totals.Totals)
 		s.Len(finalRun.CreditsAllocated, 2)
 		s.Equal(float64(3), finalRun.CreditsAllocated[0].Amount.InexactFloat64())
 		s.Equal(float64(5), finalRun.CreditsAllocated[1].Amount.InexactFloat64())
@@ -4179,7 +4179,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyLifecycleVolumeTier
 			s.RequireTotals(billingtest.ExpectedTotals{
 				Amount: 20,
 				Total:  20,
-			}, input.Run.Totals)
+			}, input.Run.Totals.Totals)
 			s.Empty(input.Run.CreditsAllocated)
 
 			return creditrealization.CreateAllocationInputs{
@@ -4218,7 +4218,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyLifecycleVolumeTier
 		s.RequireTotals(billingtest.ExpectedTotals{
 			Amount:       20,
 			CreditsTotal: 20,
-		}, currentRun.Totals)
+		}, currentRun.Totals.Totals)
 		s.Len(currentRun.CreditsAllocated, 1)
 		s.Equal(creditrealization.TypeAllocation, currentRun.CreditsAllocated[0].Type)
 		s.Equal(float64(20), currentRun.CreditsAllocated[0].Amount.InexactFloat64())
@@ -4247,7 +4247,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyLifecycleVolumeTier
 			s.RequireTotals(billingtest.ExpectedTotals{
 				Amount:       20,
 				CreditsTotal: 20,
-			}, input.Run.Totals)
+			}, input.Run.Totals.Totals)
 			s.Len(input.Run.CreditsAllocated, 1)
 			s.Equal(creditrealization.TypeAllocation, input.Run.CreditsAllocated[0].Type)
 			s.Equal(float64(20), input.Run.CreditsAllocated[0].Amount.InexactFloat64())
@@ -4306,7 +4306,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyLifecycleVolumeTier
 		s.RequireTotals(billingtest.ExpectedTotals{
 			Amount:       11,
 			CreditsTotal: 11,
-		}, finalRun.Totals)
+		}, finalRun.Totals.Totals)
 		s.Len(finalRun.CreditsAllocated, 2)
 
 		s.Equal(creditrealization.TypeAllocation, finalRun.CreditsAllocated[0].Type)
@@ -5174,7 +5174,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreateImmediatelyFinal() {
 	s.RequireTotals(billingtest.ExpectedTotals{
 		Amount:       expectedUsage,
 		CreditsTotal: expectedUsage,
-	}, finalRun.Totals)
+	}, finalRun.Totals.Totals)
 	s.Len(finalRun.CreditsAllocated, 1)
 	s.Equal(expectedUsage, finalRun.CreditsAllocated[0].Amount.InexactFloat64())
 
@@ -5821,7 +5821,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyWithCustomCurrency(
 		s.RequireTotals(billingtest.ExpectedTotals{
 			Amount:       9.872,
 			CreditsTotal: 9.872,
-		}, finalRun.Totals)
+		}, finalRun.Totals.Totals)
 		s.Require().Len(finalRun.CreditsAllocated, 1)
 		s.Equal(float64(9.872), finalRun.CreditsAllocated[0].Amount.InexactFloat64())
 		s.Equal(allocationTransactionGroupID, finalRun.CreditsAllocated[0].LedgerTransaction.TransactionGroupID)
@@ -5841,7 +5841,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyWithCustomCurrency(
 		s.RequireTotals(billingtest.ExpectedTotals{
 			Amount:       9.872,
 			CreditsTotal: 9.872,
-		}, persisted.Realizations[0].Totals)
+		}, persisted.Realizations[0].Totals.Totals)
 		s.Require().Len(persisted.Realizations[0].CreditsAllocated, 1)
 		s.Equal(allocationTransactionGroupID, persisted.Realizations[0].CreditsAllocated[0].LedgerTransaction.TransactionGroupID)
 	})

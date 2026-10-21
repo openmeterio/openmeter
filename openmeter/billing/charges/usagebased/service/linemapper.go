@@ -171,7 +171,7 @@ func calculateFiatOverageForRun(charge usagebased.Charge, run usagebased.Realiza
 		return calculateFiatOverageForRunResult{}, nil
 	}
 
-	fiatOverage, err := charge.ConvertCustomCurrencyOverageToFiat(run.Totals)
+	fiatOverage, err := charge.ConvertCustomCurrencyOverageToFiat(run.Totals.Totals)
 	if err != nil {
 		return calculateFiatOverageForRunResult{}, err
 	}

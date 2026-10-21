@@ -186,7 +186,7 @@ func fromDBRunBase(dbRun *entdb.ChargeUsageBasedRuns) (usagebased.RealizationRun
 		ServicePeriodTo:                       dbRun.ServicePeriodTo.UTC(),
 		PriorRunID:                            priorRunID,
 		MeteredQuantity:                       dbRun.MeteredQuantity,
-		Totals:                                totals.FromDB(dbRun),
+		Totals:                                totals.DeltaTotals{Totals: totals.FromDB(dbRun)},
 		NoFiatTransactionRequired:             dbRun.NoFiatTransactionRequired,
 		Immutable:                             dbRun.Immutable,
 		FiatOverageCreditAllocationCompleted:  dbRun.FiatOverageCreditAllocationCompleted,

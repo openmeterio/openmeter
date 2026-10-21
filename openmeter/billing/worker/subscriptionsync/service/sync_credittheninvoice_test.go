@@ -969,7 +969,7 @@ func (s *CreditThenInvoiceTestSuite) TestSubscriptionHappyPath() {
 		s.Equal(promotionalCreditAmount, currentRun.CreditsAllocated.Sum())
 		s.Nil(currentRun.InvoiceUsage)
 		s.Nil(currentRun.Payment)
-		s.assertTotals(currentRun.Totals, expectedTotalsInput{
+		s.assertTotals(currentRun.Totals.Totals, expectedTotalsInput{
 			Amount:       5 * 100,
 			CreditsTotal: 100,
 			Total:        5*100 - 100,
@@ -5827,7 +5827,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedStandardInvoiceManualCreateSy
 		s.AssertDecimalEqual(alpacadecimal.NewFromInt(2000), currentRun.MeteredQuantity, "manual usage-based current run raw metered quantity")
 		s.Equal(usagebased.RealizationRunTypeFinalRealization, currentRun.Type)
 		s.False(currentRun.IsVoidedBillingHistory())
-		s.assertTotals(currentRun.Totals, expectedTotalsInput{
+		s.assertTotals(currentRun.Totals.Totals, expectedTotalsInput{
 			Amount:       6,
 			CreditsTotal: 2,
 			Total:        4,

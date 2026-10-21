@@ -30,15 +30,57 @@ type Totals struct {
 	Total alpacadecimal.Decimal `json:"total"`
 }
 
-func (t Totals) Validate() error {
-	if t.Amount.IsNegative() {
-		return errors.New("amount is negative")
+type DeltaTotals struct {
+	Totals
+}
+
+func (t DeltaTotals) Validate() error {
+	if t.Amount.IsNegative() != t.DiscountsTotal.IsNegative() {
+		return errors.New("amount and discount total should have the same sign")
 	}
 
+	// always non-negative
 	if t.ChargesTotal.IsNegative() {
 		return errors.New("charges total is negative")
 	}
 
+	if t.TaxesInclusiveTotal.IsNegative() {
+		return errors.New("taxes inclusive total is negative")
+	}
+
+	if t.TaxesExclusiveTotal.IsNegative() {
+		return errors.New("taxes exclusive total is negative")
+	}
+
+	if t.TaxesTotal.IsNegative() {
+		return errors.New("taxes total is negative")
+	}
+
+	// always non-negative
+	if t.Total.IsNegative() {
+		return errors.New("total is negative")
+	}
+
+	// TODO what if the CreditsTotal is negative?
+	// if t.CreditsTotal.IsNegative() {
+	// 	return errors.New("credits total is negative")
+	// }
+
+	return nil
+}
+
+func (t Totals) Validate() error {
+	// can be negative
+	if t.Amount.IsNegative() {
+		return errors.New("amount is negative")
+	}
+
+	// always non-negative
+	if t.ChargesTotal.IsNegative() {
+		return errors.New("charges total is negative")
+	}
+
+	// DiscountsTotal.IsNegative() == Amount.IsNegative()
 	if t.DiscountsTotal.IsNegative() {
 		return errors.New("discounts total is negative")
 	}
@@ -55,10 +97,12 @@ func (t Totals) Validate() error {
 		return errors.New("taxes total is negative")
 	}
 
+	// always non-negative
 	if t.Total.IsNegative() {
 		return errors.New("total is negative")
 	}
 
+	// TODO what if the CreditsTotal is negative?
 	if t.CreditsTotal.IsNegative() {
 		return errors.New("credits total is negative")
 	}

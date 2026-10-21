@@ -143,7 +143,7 @@ func (s *DetailedLineAdapterSuite) TestUpsertRunDetailedLinesReplacesAndSoftDele
 			StoredAtLT:      servicePeriod.From,
 			ServicePeriodTo: servicePeriod.From,
 			MeteredQuantity: alpacadecimal.NewFromInt(0),
-			Totals:          totals.Totals{},
+			Totals:          totals.DeltaTotals{},
 		},
 	})
 	s.Require().NoError(err)
@@ -155,7 +155,7 @@ func (s *DetailedLineAdapterSuite) TestUpsertRunDetailedLinesReplacesAndSoftDele
 			StoredAtLT:      servicePeriod.To,
 			ServicePeriodTo: servicePeriod.To,
 			MeteredQuantity: alpacadecimal.NewFromInt(10),
-			Totals: totals.Totals{
+			Totals: totals.DeltaTotals{
 				Amount:       alpacadecimal.NewFromInt(1),
 				ChargesTotal: alpacadecimal.NewFromInt(1),
 				Total:        alpacadecimal.NewFromInt(1),
@@ -493,7 +493,7 @@ func (s *DetailedLineAdapterSuite) TestExpandRealizationsExcludesDeletedRuns() {
 			StoredAtLT:      servicePeriod.From,
 			ServicePeriodTo: servicePeriod.From,
 			MeteredQuantity: alpacadecimal.Zero,
-			Totals:          totals.Totals{},
+			Totals:          totals.DeltaTotals{},
 		},
 	})
 	s.Require().NoError(err)
@@ -524,7 +524,7 @@ func (s *DetailedLineAdapterSuite) TestRealizationRunImmutableFlag() {
 			StoredAtLT:      servicePeriod.To,
 			ServicePeriodTo: servicePeriod.To,
 			MeteredQuantity: alpacadecimal.Zero,
-			Totals:          totals.Totals{},
+			Totals:          totals.DeltaTotals{},
 		},
 	})
 	s.Require().NoError(err)
@@ -608,7 +608,7 @@ func (s *DetailedLineAdapterSuite) createChargeWithRun(namespace string) (usageb
 			StoredAtLT:      servicePeriod.To,
 			ServicePeriodTo: servicePeriod.To,
 			MeteredQuantity: alpacadecimal.NewFromInt(10),
-			Totals: totals.Totals{
+			Totals: totals.DeltaTotals{
 				Amount:       alpacadecimal.NewFromInt(1),
 				ChargesTotal: alpacadecimal.NewFromInt(1),
 				Total:        alpacadecimal.NewFromInt(1),
@@ -633,7 +633,7 @@ func (s *DetailedLineAdapterSuite) TestCreateRealizationRunPersistsPriorRunSchem
 			StoredAtLT:      servicePeriod.To,
 			ServicePeriodTo: servicePeriod.To,
 			MeteredQuantity: alpacadecimal.NewFromInt(10),
-			Totals: totals.Totals{
+			Totals: totals.DeltaTotals{
 				Amount:       alpacadecimal.NewFromInt(1),
 				ChargesTotal: alpacadecimal.NewFromInt(1),
 				Total:        alpacadecimal.NewFromInt(1),

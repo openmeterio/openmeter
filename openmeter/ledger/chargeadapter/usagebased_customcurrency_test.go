@@ -899,7 +899,7 @@ func (e *usageBasedHandlerTestEnv) newCustomCurrencyCreditThenInvoiceCharge(t *t
 
 func (e *usageBasedHandlerTestEnv) newCustomOverageRun(overageTotals totals.Totals) chargeusagebased.RealizationRun {
 	run := e.newRun()
-	run.Totals = overageTotals
+	run.Totals = totals.DeltaTotals{Totals: overageTotals}
 
 	return run
 }

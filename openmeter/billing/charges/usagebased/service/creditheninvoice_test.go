@@ -122,7 +122,7 @@ func TestCalculateFiatOverageForRun(t *testing.T) {
 
 			run := usagebased.RealizationRun{
 				RealizationRunBase: usagebased.RealizationRunBase{
-					Totals:                    test.runTotals,
+					Totals:                    totals.DeltaTotals{Totals: test.runTotals},
 					NoFiatTransactionRequired: test.noFiatTransactionRequired,
 				},
 			}

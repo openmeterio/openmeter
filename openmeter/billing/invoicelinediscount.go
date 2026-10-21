@@ -73,9 +73,10 @@ func (i AmountLineDiscount) Validate() error {
 		errs = append(errs, err)
 	}
 
-	if i.Amount.IsNegative() {
-		errs = append(errs, errors.New("amount should be positive or zero"))
-	}
+	// TODO remove temporary
+	// if i.Amount.IsNegative() {
+	// 	errs = append(errs, errors.New("amount should be positive or zero"))
+	// }
 
 	return errors.Join(errs...)
 }
