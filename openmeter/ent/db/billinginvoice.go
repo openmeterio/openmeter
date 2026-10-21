@@ -158,8 +158,6 @@ type BillingInvoiceEdges struct {
 	BillingWorkflowConfig *BillingWorkflowConfig `json:"billing_workflow_config,omitempty"`
 	// BillingInvoiceLines holds the value of the billing_invoice_lines edge.
 	BillingInvoiceLines []*BillingInvoiceLine `json:"billing_invoice_lines,omitempty"`
-	// BillingGatheringInvoiceLines holds the value of the billing_gathering_invoice_lines edge.
-	BillingGatheringInvoiceLines []*BillingGatheringInvoiceLine `json:"billing_gathering_invoice_lines,omitempty"`
 	// BillingInvoiceDetailedLines holds the value of the billing_invoice_detailed_lines edge.
 	BillingInvoiceDetailedLines []*BillingStandardInvoiceDetailedLine `json:"billing_invoice_detailed_lines,omitempty"`
 	// BillingInvoiceValidationIssues holds the value of the billing_invoice_validation_issues edge.
@@ -178,7 +176,7 @@ type BillingInvoiceEdges struct {
 	PaymentApp *App `json:"payment_app,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [12]bool
+	loadedTypes [11]bool
 }
 
 // SourceBillingProfileOrErr returns the SourceBillingProfile value or an error if the edge
@@ -212,19 +210,10 @@ func (e BillingInvoiceEdges) BillingInvoiceLinesOrErr() ([]*BillingInvoiceLine, 
 	return nil, &NotLoadedError{edge: "billing_invoice_lines"}
 }
 
-// BillingGatheringInvoiceLinesOrErr returns the BillingGatheringInvoiceLines value or an error if the edge
-// was not loaded in eager-loading.
-func (e BillingInvoiceEdges) BillingGatheringInvoiceLinesOrErr() ([]*BillingGatheringInvoiceLine, error) {
-	if e.loadedTypes[3] {
-		return e.BillingGatheringInvoiceLines, nil
-	}
-	return nil, &NotLoadedError{edge: "billing_gathering_invoice_lines"}
-}
-
 // BillingInvoiceDetailedLinesOrErr returns the BillingInvoiceDetailedLines value or an error if the edge
 // was not loaded in eager-loading.
 func (e BillingInvoiceEdges) BillingInvoiceDetailedLinesOrErr() ([]*BillingStandardInvoiceDetailedLine, error) {
-	if e.loadedTypes[4] {
+	if e.loadedTypes[3] {
 		return e.BillingInvoiceDetailedLines, nil
 	}
 	return nil, &NotLoadedError{edge: "billing_invoice_detailed_lines"}
@@ -233,7 +222,7 @@ func (e BillingInvoiceEdges) BillingInvoiceDetailedLinesOrErr() ([]*BillingStand
 // BillingInvoiceValidationIssuesOrErr returns the BillingInvoiceValidationIssues value or an error if the edge
 // was not loaded in eager-loading.
 func (e BillingInvoiceEdges) BillingInvoiceValidationIssuesOrErr() ([]*BillingInvoiceValidationIssue, error) {
-	if e.loadedTypes[5] {
+	if e.loadedTypes[4] {
 		return e.BillingInvoiceValidationIssues, nil
 	}
 	return nil, &NotLoadedError{edge: "billing_invoice_validation_issues"}
@@ -242,7 +231,7 @@ func (e BillingInvoiceEdges) BillingInvoiceValidationIssuesOrErr() ([]*BillingIn
 // ChargeFlatFeeRunsOrErr returns the ChargeFlatFeeRuns value or an error if the edge
 // was not loaded in eager-loading.
 func (e BillingInvoiceEdges) ChargeFlatFeeRunsOrErr() ([]*ChargeFlatFeeRun, error) {
-	if e.loadedTypes[6] {
+	if e.loadedTypes[5] {
 		return e.ChargeFlatFeeRuns, nil
 	}
 	return nil, &NotLoadedError{edge: "charge_flat_fee_runs"}
@@ -251,7 +240,7 @@ func (e BillingInvoiceEdges) ChargeFlatFeeRunsOrErr() ([]*ChargeFlatFeeRun, erro
 // ChargeUsageBasedRunsOrErr returns the ChargeUsageBasedRuns value or an error if the edge
 // was not loaded in eager-loading.
 func (e BillingInvoiceEdges) ChargeUsageBasedRunsOrErr() ([]*ChargeUsageBasedRuns, error) {
-	if e.loadedTypes[7] {
+	if e.loadedTypes[6] {
 		return e.ChargeUsageBasedRuns, nil
 	}
 	return nil, &NotLoadedError{edge: "charge_usage_based_runs"}
@@ -262,7 +251,7 @@ func (e BillingInvoiceEdges) ChargeUsageBasedRunsOrErr() ([]*ChargeUsageBasedRun
 func (e BillingInvoiceEdges) BillingInvoiceCustomerOrErr() (*Customer, error) {
 	if e.BillingInvoiceCustomer != nil {
 		return e.BillingInvoiceCustomer, nil
-	} else if e.loadedTypes[8] {
+	} else if e.loadedTypes[7] {
 		return nil, &NotFoundError{label: customer.Label}
 	}
 	return nil, &NotLoadedError{edge: "billing_invoice_customer"}
@@ -273,7 +262,7 @@ func (e BillingInvoiceEdges) BillingInvoiceCustomerOrErr() (*Customer, error) {
 func (e BillingInvoiceEdges) TaxAppOrErr() (*App, error) {
 	if e.TaxApp != nil {
 		return e.TaxApp, nil
-	} else if e.loadedTypes[9] {
+	} else if e.loadedTypes[8] {
 		return nil, &NotFoundError{label: dbapp.Label}
 	}
 	return nil, &NotLoadedError{edge: "tax_app"}
@@ -284,7 +273,7 @@ func (e BillingInvoiceEdges) TaxAppOrErr() (*App, error) {
 func (e BillingInvoiceEdges) InvoicingAppOrErr() (*App, error) {
 	if e.InvoicingApp != nil {
 		return e.InvoicingApp, nil
-	} else if e.loadedTypes[10] {
+	} else if e.loadedTypes[9] {
 		return nil, &NotFoundError{label: dbapp.Label}
 	}
 	return nil, &NotLoadedError{edge: "invoicing_app"}
@@ -295,7 +284,7 @@ func (e BillingInvoiceEdges) InvoicingAppOrErr() (*App, error) {
 func (e BillingInvoiceEdges) PaymentAppOrErr() (*App, error) {
 	if e.PaymentApp != nil {
 		return e.PaymentApp, nil
-	} else if e.loadedTypes[11] {
+	} else if e.loadedTypes[10] {
 		return nil, &NotFoundError{label: dbapp.Label}
 	}
 	return nil, &NotLoadedError{edge: "payment_app"}
@@ -755,11 +744,6 @@ func (_m *BillingInvoice) QueryBillingWorkflowConfig() *BillingWorkflowConfigQue
 // QueryBillingInvoiceLines queries the "billing_invoice_lines" edge of the BillingInvoice entity.
 func (_m *BillingInvoice) QueryBillingInvoiceLines() *BillingInvoiceLineQuery {
 	return NewBillingInvoiceClient(_m.config).QueryBillingInvoiceLines(_m)
-}
-
-// QueryBillingGatheringInvoiceLines queries the "billing_gathering_invoice_lines" edge of the BillingInvoice entity.
-func (_m *BillingInvoice) QueryBillingGatheringInvoiceLines() *BillingGatheringInvoiceLineQuery {
-	return NewBillingInvoiceClient(_m.config).QueryBillingGatheringInvoiceLines(_m)
 }
 
 // QueryBillingInvoiceDetailedLines queries the "billing_invoice_detailed_lines" edge of the BillingInvoice entity.

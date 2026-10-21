@@ -14,7 +14,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/models/externalid"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
-	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceflatfeelineconfig"
@@ -848,13 +847,9 @@ func (a *adapter) GetStandardLinesForSubscription(ctx context.Context, in billin
 			return nil, err
 		}
 
-		invoiceSchemaLevelByID, err := tx.getSchemaLevelPerInvoice(ctx, customer.CustomerID{
-			Namespace: in.Namespace,
-			ID:        in.CustomerID,
+		invoiceSchemaLevelByID := lo.SliceToMap(dbLines, func(line *db.BillingInvoiceLine) (string, int) {
+			return line.Edges.BillingInvoice.ID, line.Edges.BillingInvoice.SchemaLevel
 		})
-		if err != nil {
-			return nil, fmt.Errorf("getting schema level per invoice: %w", err)
-		}
 
 		standardLines, err := tx.mapStandardInvoiceLinesFromDB(invoiceSchemaLevelByID, dbLines)
 		if err != nil {

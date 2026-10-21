@@ -38,6 +38,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/balancesnapshot"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomerlock"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinggatheringinvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinggatheringinvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceflatfeelineconfig"
@@ -151,12 +152,14 @@ const (
 	TypeBalanceSnapshot                                  = "BalanceSnapshot"
 	TypeBillingCustomerLock                              = "BillingCustomerLock"
 	TypeBillingCustomerOverride                          = "BillingCustomerOverride"
+	TypeBillingGatheringInvoice                          = "BillingGatheringInvoice"
 	TypeBillingGatheringInvoiceLine                      = "BillingGatheringInvoiceLine"
 	TypeBillingInvoice                                   = "BillingInvoice"
 	TypeBillingInvoiceFlatFeeLineConfig                  = "BillingInvoiceFlatFeeLineConfig"
 	TypeBillingInvoiceLine                               = "BillingInvoiceLine"
 	TypeBillingInvoiceLineDiscount                       = "BillingInvoiceLineDiscount"
 	TypeBillingInvoiceLineUsageDiscount                  = "BillingInvoiceLineUsageDiscount"
+	TypeBillingInvoiceSearchV1                           = "BillingInvoiceSearchV1"
 	TypeBillingInvoiceSplitLineGroup                     = "BillingInvoiceSplitLineGroup"
 	TypeBillingInvoiceUsageBasedLineConfig               = "BillingInvoiceUsageBasedLineConfig"
 	TypeBillingInvoiceValidationIssue                    = "BillingInvoiceValidationIssue"
@@ -12634,6 +12637,1332 @@ func (m *BillingCustomerOverrideMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown BillingCustomerOverride edge %s", name)
 }
 
+// BillingGatheringInvoiceMutation represents an operation that mutates the BillingGatheringInvoice nodes in the graph.
+type BillingGatheringInvoiceMutation struct {
+	config
+	op                                     Op
+	typ                                    string
+	id                                     *string
+	namespace                              *string
+	metadata                               *map[string]string
+	created_at                             *time.Time
+	updated_at                             *time.Time
+	deleted_at                             *time.Time
+	name                                   *string
+	description                            *string
+	number                                 *string
+	currency                               *currencyx.FiatCode
+	service_period_start                   *time.Time
+	service_period_end                     *time.Time
+	next_collection_at                     *time.Time
+	schema_level                           *int
+	addschema_level                        *int
+	clearedFields                          map[string]struct{}
+	customer                               *string
+	clearedcustomer                        bool
+	billing_gathering_invoice_lines        map[string]struct{}
+	removedbilling_gathering_invoice_lines map[string]struct{}
+	clearedbilling_gathering_invoice_lines bool
+	done                                   bool
+	oldValue                               func(context.Context) (*BillingGatheringInvoice, error)
+	predicates                             []predicate.BillingGatheringInvoice
+}
+
+var _ ent.Mutation = (*BillingGatheringInvoiceMutation)(nil)
+
+// billinggatheringinvoiceOption allows management of the mutation configuration using functional options.
+type billinggatheringinvoiceOption func(*BillingGatheringInvoiceMutation)
+
+// newBillingGatheringInvoiceMutation creates new mutation for the BillingGatheringInvoice entity.
+func newBillingGatheringInvoiceMutation(c config, op Op, opts ...billinggatheringinvoiceOption) *BillingGatheringInvoiceMutation {
+	m := &BillingGatheringInvoiceMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeBillingGatheringInvoice,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withBillingGatheringInvoiceID sets the ID field of the mutation.
+func withBillingGatheringInvoiceID(id string) billinggatheringinvoiceOption {
+	return func(m *BillingGatheringInvoiceMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *BillingGatheringInvoice
+		)
+		m.oldValue = func(ctx context.Context) (*BillingGatheringInvoice, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().BillingGatheringInvoice.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withBillingGatheringInvoice sets the old BillingGatheringInvoice of the mutation.
+func withBillingGatheringInvoice(node *BillingGatheringInvoice) billinggatheringinvoiceOption {
+	return func(m *BillingGatheringInvoiceMutation) {
+		m.oldValue = func(context.Context) (*BillingGatheringInvoice, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m BillingGatheringInvoiceMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m BillingGatheringInvoiceMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("db: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of BillingGatheringInvoice entities.
+func (m *BillingGatheringInvoiceMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *BillingGatheringInvoiceMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *BillingGatheringInvoiceMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().BillingGatheringInvoice.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetNamespace sets the "namespace" field.
+func (m *BillingGatheringInvoiceMutation) SetNamespace(s string) {
+	m.namespace = &s
+}
+
+// Namespace returns the value of the "namespace" field in the mutation.
+func (m *BillingGatheringInvoiceMutation) Namespace() (r string, exists bool) {
+	v := m.namespace
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNamespace returns the old "namespace" field's value of the BillingGatheringInvoice entity.
+// If the BillingGatheringInvoice object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingGatheringInvoiceMutation) OldNamespace(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNamespace is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNamespace requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNamespace: %w", err)
+	}
+	return oldValue.Namespace, nil
+}
+
+// ResetNamespace resets all changes to the "namespace" field.
+func (m *BillingGatheringInvoiceMutation) ResetNamespace() {
+	m.namespace = nil
+}
+
+// SetMetadata sets the "metadata" field.
+func (m *BillingGatheringInvoiceMutation) SetMetadata(value map[string]string) {
+	m.metadata = &value
+}
+
+// Metadata returns the value of the "metadata" field in the mutation.
+func (m *BillingGatheringInvoiceMutation) Metadata() (r map[string]string, exists bool) {
+	v := m.metadata
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMetadata returns the old "metadata" field's value of the BillingGatheringInvoice entity.
+// If the BillingGatheringInvoice object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingGatheringInvoiceMutation) OldMetadata(ctx context.Context) (v map[string]string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMetadata is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMetadata requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMetadata: %w", err)
+	}
+	return oldValue.Metadata, nil
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (m *BillingGatheringInvoiceMutation) ClearMetadata() {
+	m.metadata = nil
+	m.clearedFields[billinggatheringinvoice.FieldMetadata] = struct{}{}
+}
+
+// MetadataCleared returns if the "metadata" field was cleared in this mutation.
+func (m *BillingGatheringInvoiceMutation) MetadataCleared() bool {
+	_, ok := m.clearedFields[billinggatheringinvoice.FieldMetadata]
+	return ok
+}
+
+// ResetMetadata resets all changes to the "metadata" field.
+func (m *BillingGatheringInvoiceMutation) ResetMetadata() {
+	m.metadata = nil
+	delete(m.clearedFields, billinggatheringinvoice.FieldMetadata)
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *BillingGatheringInvoiceMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *BillingGatheringInvoiceMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the BillingGatheringInvoice entity.
+// If the BillingGatheringInvoice object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingGatheringInvoiceMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *BillingGatheringInvoiceMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *BillingGatheringInvoiceMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *BillingGatheringInvoiceMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the BillingGatheringInvoice entity.
+// If the BillingGatheringInvoice object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingGatheringInvoiceMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *BillingGatheringInvoiceMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (m *BillingGatheringInvoiceMutation) SetDeletedAt(t time.Time) {
+	m.deleted_at = &t
+}
+
+// DeletedAt returns the value of the "deleted_at" field in the mutation.
+func (m *BillingGatheringInvoiceMutation) DeletedAt() (r time.Time, exists bool) {
+	v := m.deleted_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDeletedAt returns the old "deleted_at" field's value of the BillingGatheringInvoice entity.
+// If the BillingGatheringInvoice object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingGatheringInvoiceMutation) OldDeletedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDeletedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDeletedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDeletedAt: %w", err)
+	}
+	return oldValue.DeletedAt, nil
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (m *BillingGatheringInvoiceMutation) ClearDeletedAt() {
+	m.deleted_at = nil
+	m.clearedFields[billinggatheringinvoice.FieldDeletedAt] = struct{}{}
+}
+
+// DeletedAtCleared returns if the "deleted_at" field was cleared in this mutation.
+func (m *BillingGatheringInvoiceMutation) DeletedAtCleared() bool {
+	_, ok := m.clearedFields[billinggatheringinvoice.FieldDeletedAt]
+	return ok
+}
+
+// ResetDeletedAt resets all changes to the "deleted_at" field.
+func (m *BillingGatheringInvoiceMutation) ResetDeletedAt() {
+	m.deleted_at = nil
+	delete(m.clearedFields, billinggatheringinvoice.FieldDeletedAt)
+}
+
+// SetName sets the "name" field.
+func (m *BillingGatheringInvoiceMutation) SetName(s string) {
+	m.name = &s
+}
+
+// Name returns the value of the "name" field in the mutation.
+func (m *BillingGatheringInvoiceMutation) Name() (r string, exists bool) {
+	v := m.name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldName returns the old "name" field's value of the BillingGatheringInvoice entity.
+// If the BillingGatheringInvoice object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingGatheringInvoiceMutation) OldName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
+	}
+	return oldValue.Name, nil
+}
+
+// ResetName resets all changes to the "name" field.
+func (m *BillingGatheringInvoiceMutation) ResetName() {
+	m.name = nil
+}
+
+// SetDescription sets the "description" field.
+func (m *BillingGatheringInvoiceMutation) SetDescription(s string) {
+	m.description = &s
+}
+
+// Description returns the value of the "description" field in the mutation.
+func (m *BillingGatheringInvoiceMutation) Description() (r string, exists bool) {
+	v := m.description
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDescription returns the old "description" field's value of the BillingGatheringInvoice entity.
+// If the BillingGatheringInvoice object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingGatheringInvoiceMutation) OldDescription(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDescription is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDescription requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDescription: %w", err)
+	}
+	return oldValue.Description, nil
+}
+
+// ClearDescription clears the value of the "description" field.
+func (m *BillingGatheringInvoiceMutation) ClearDescription() {
+	m.description = nil
+	m.clearedFields[billinggatheringinvoice.FieldDescription] = struct{}{}
+}
+
+// DescriptionCleared returns if the "description" field was cleared in this mutation.
+func (m *BillingGatheringInvoiceMutation) DescriptionCleared() bool {
+	_, ok := m.clearedFields[billinggatheringinvoice.FieldDescription]
+	return ok
+}
+
+// ResetDescription resets all changes to the "description" field.
+func (m *BillingGatheringInvoiceMutation) ResetDescription() {
+	m.description = nil
+	delete(m.clearedFields, billinggatheringinvoice.FieldDescription)
+}
+
+// SetNumber sets the "number" field.
+func (m *BillingGatheringInvoiceMutation) SetNumber(s string) {
+	m.number = &s
+}
+
+// Number returns the value of the "number" field in the mutation.
+func (m *BillingGatheringInvoiceMutation) Number() (r string, exists bool) {
+	v := m.number
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNumber returns the old "number" field's value of the BillingGatheringInvoice entity.
+// If the BillingGatheringInvoice object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingGatheringInvoiceMutation) OldNumber(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNumber is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNumber requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNumber: %w", err)
+	}
+	return oldValue.Number, nil
+}
+
+// ResetNumber resets all changes to the "number" field.
+func (m *BillingGatheringInvoiceMutation) ResetNumber() {
+	m.number = nil
+}
+
+// SetCustomerID sets the "customer_id" field.
+func (m *BillingGatheringInvoiceMutation) SetCustomerID(s string) {
+	m.customer = &s
+}
+
+// CustomerID returns the value of the "customer_id" field in the mutation.
+func (m *BillingGatheringInvoiceMutation) CustomerID() (r string, exists bool) {
+	v := m.customer
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCustomerID returns the old "customer_id" field's value of the BillingGatheringInvoice entity.
+// If the BillingGatheringInvoice object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingGatheringInvoiceMutation) OldCustomerID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCustomerID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCustomerID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCustomerID: %w", err)
+	}
+	return oldValue.CustomerID, nil
+}
+
+// ResetCustomerID resets all changes to the "customer_id" field.
+func (m *BillingGatheringInvoiceMutation) ResetCustomerID() {
+	m.customer = nil
+}
+
+// SetCurrency sets the "currency" field.
+func (m *BillingGatheringInvoiceMutation) SetCurrency(cc currencyx.FiatCode) {
+	m.currency = &cc
+}
+
+// Currency returns the value of the "currency" field in the mutation.
+func (m *BillingGatheringInvoiceMutation) Currency() (r currencyx.FiatCode, exists bool) {
+	v := m.currency
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCurrency returns the old "currency" field's value of the BillingGatheringInvoice entity.
+// If the BillingGatheringInvoice object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingGatheringInvoiceMutation) OldCurrency(ctx context.Context) (v currencyx.FiatCode, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCurrency is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCurrency requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCurrency: %w", err)
+	}
+	return oldValue.Currency, nil
+}
+
+// ResetCurrency resets all changes to the "currency" field.
+func (m *BillingGatheringInvoiceMutation) ResetCurrency() {
+	m.currency = nil
+}
+
+// SetServicePeriodStart sets the "service_period_start" field.
+func (m *BillingGatheringInvoiceMutation) SetServicePeriodStart(t time.Time) {
+	m.service_period_start = &t
+}
+
+// ServicePeriodStart returns the value of the "service_period_start" field in the mutation.
+func (m *BillingGatheringInvoiceMutation) ServicePeriodStart() (r time.Time, exists bool) {
+	v := m.service_period_start
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldServicePeriodStart returns the old "service_period_start" field's value of the BillingGatheringInvoice entity.
+// If the BillingGatheringInvoice object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingGatheringInvoiceMutation) OldServicePeriodStart(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldServicePeriodStart is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldServicePeriodStart requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldServicePeriodStart: %w", err)
+	}
+	return oldValue.ServicePeriodStart, nil
+}
+
+// ClearServicePeriodStart clears the value of the "service_period_start" field.
+func (m *BillingGatheringInvoiceMutation) ClearServicePeriodStart() {
+	m.service_period_start = nil
+	m.clearedFields[billinggatheringinvoice.FieldServicePeriodStart] = struct{}{}
+}
+
+// ServicePeriodStartCleared returns if the "service_period_start" field was cleared in this mutation.
+func (m *BillingGatheringInvoiceMutation) ServicePeriodStartCleared() bool {
+	_, ok := m.clearedFields[billinggatheringinvoice.FieldServicePeriodStart]
+	return ok
+}
+
+// ResetServicePeriodStart resets all changes to the "service_period_start" field.
+func (m *BillingGatheringInvoiceMutation) ResetServicePeriodStart() {
+	m.service_period_start = nil
+	delete(m.clearedFields, billinggatheringinvoice.FieldServicePeriodStart)
+}
+
+// SetServicePeriodEnd sets the "service_period_end" field.
+func (m *BillingGatheringInvoiceMutation) SetServicePeriodEnd(t time.Time) {
+	m.service_period_end = &t
+}
+
+// ServicePeriodEnd returns the value of the "service_period_end" field in the mutation.
+func (m *BillingGatheringInvoiceMutation) ServicePeriodEnd() (r time.Time, exists bool) {
+	v := m.service_period_end
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldServicePeriodEnd returns the old "service_period_end" field's value of the BillingGatheringInvoice entity.
+// If the BillingGatheringInvoice object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingGatheringInvoiceMutation) OldServicePeriodEnd(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldServicePeriodEnd is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldServicePeriodEnd requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldServicePeriodEnd: %w", err)
+	}
+	return oldValue.ServicePeriodEnd, nil
+}
+
+// ClearServicePeriodEnd clears the value of the "service_period_end" field.
+func (m *BillingGatheringInvoiceMutation) ClearServicePeriodEnd() {
+	m.service_period_end = nil
+	m.clearedFields[billinggatheringinvoice.FieldServicePeriodEnd] = struct{}{}
+}
+
+// ServicePeriodEndCleared returns if the "service_period_end" field was cleared in this mutation.
+func (m *BillingGatheringInvoiceMutation) ServicePeriodEndCleared() bool {
+	_, ok := m.clearedFields[billinggatheringinvoice.FieldServicePeriodEnd]
+	return ok
+}
+
+// ResetServicePeriodEnd resets all changes to the "service_period_end" field.
+func (m *BillingGatheringInvoiceMutation) ResetServicePeriodEnd() {
+	m.service_period_end = nil
+	delete(m.clearedFields, billinggatheringinvoice.FieldServicePeriodEnd)
+}
+
+// SetNextCollectionAt sets the "next_collection_at" field.
+func (m *BillingGatheringInvoiceMutation) SetNextCollectionAt(t time.Time) {
+	m.next_collection_at = &t
+}
+
+// NextCollectionAt returns the value of the "next_collection_at" field in the mutation.
+func (m *BillingGatheringInvoiceMutation) NextCollectionAt() (r time.Time, exists bool) {
+	v := m.next_collection_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNextCollectionAt returns the old "next_collection_at" field's value of the BillingGatheringInvoice entity.
+// If the BillingGatheringInvoice object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingGatheringInvoiceMutation) OldNextCollectionAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNextCollectionAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNextCollectionAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNextCollectionAt: %w", err)
+	}
+	return oldValue.NextCollectionAt, nil
+}
+
+// ClearNextCollectionAt clears the value of the "next_collection_at" field.
+func (m *BillingGatheringInvoiceMutation) ClearNextCollectionAt() {
+	m.next_collection_at = nil
+	m.clearedFields[billinggatheringinvoice.FieldNextCollectionAt] = struct{}{}
+}
+
+// NextCollectionAtCleared returns if the "next_collection_at" field was cleared in this mutation.
+func (m *BillingGatheringInvoiceMutation) NextCollectionAtCleared() bool {
+	_, ok := m.clearedFields[billinggatheringinvoice.FieldNextCollectionAt]
+	return ok
+}
+
+// ResetNextCollectionAt resets all changes to the "next_collection_at" field.
+func (m *BillingGatheringInvoiceMutation) ResetNextCollectionAt() {
+	m.next_collection_at = nil
+	delete(m.clearedFields, billinggatheringinvoice.FieldNextCollectionAt)
+}
+
+// SetSchemaLevel sets the "schema_level" field.
+func (m *BillingGatheringInvoiceMutation) SetSchemaLevel(i int) {
+	m.schema_level = &i
+	m.addschema_level = nil
+}
+
+// SchemaLevel returns the value of the "schema_level" field in the mutation.
+func (m *BillingGatheringInvoiceMutation) SchemaLevel() (r int, exists bool) {
+	v := m.schema_level
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSchemaLevel returns the old "schema_level" field's value of the BillingGatheringInvoice entity.
+// If the BillingGatheringInvoice object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingGatheringInvoiceMutation) OldSchemaLevel(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSchemaLevel is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSchemaLevel requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSchemaLevel: %w", err)
+	}
+	return oldValue.SchemaLevel, nil
+}
+
+// AddSchemaLevel adds i to the "schema_level" field.
+func (m *BillingGatheringInvoiceMutation) AddSchemaLevel(i int) {
+	if m.addschema_level != nil {
+		*m.addschema_level += i
+	} else {
+		m.addschema_level = &i
+	}
+}
+
+// AddedSchemaLevel returns the value that was added to the "schema_level" field in this mutation.
+func (m *BillingGatheringInvoiceMutation) AddedSchemaLevel() (r int, exists bool) {
+	v := m.addschema_level
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetSchemaLevel resets all changes to the "schema_level" field.
+func (m *BillingGatheringInvoiceMutation) ResetSchemaLevel() {
+	m.schema_level = nil
+	m.addschema_level = nil
+}
+
+// ClearCustomer clears the "customer" edge to the Customer entity.
+func (m *BillingGatheringInvoiceMutation) ClearCustomer() {
+	m.clearedcustomer = true
+	m.clearedFields[billinggatheringinvoice.FieldCustomerID] = struct{}{}
+}
+
+// CustomerCleared reports if the "customer" edge to the Customer entity was cleared.
+func (m *BillingGatheringInvoiceMutation) CustomerCleared() bool {
+	return m.clearedcustomer
+}
+
+// CustomerIDs returns the "customer" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// CustomerID instead. It exists only for internal usage by the builders.
+func (m *BillingGatheringInvoiceMutation) CustomerIDs() (ids []string) {
+	if id := m.customer; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetCustomer resets all changes to the "customer" edge.
+func (m *BillingGatheringInvoiceMutation) ResetCustomer() {
+	m.customer = nil
+	m.clearedcustomer = false
+}
+
+// AddBillingGatheringInvoiceLineIDs adds the "billing_gathering_invoice_lines" edge to the BillingGatheringInvoiceLine entity by ids.
+func (m *BillingGatheringInvoiceMutation) AddBillingGatheringInvoiceLineIDs(ids ...string) {
+	if m.billing_gathering_invoice_lines == nil {
+		m.billing_gathering_invoice_lines = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.billing_gathering_invoice_lines[ids[i]] = struct{}{}
+	}
+}
+
+// ClearBillingGatheringInvoiceLines clears the "billing_gathering_invoice_lines" edge to the BillingGatheringInvoiceLine entity.
+func (m *BillingGatheringInvoiceMutation) ClearBillingGatheringInvoiceLines() {
+	m.clearedbilling_gathering_invoice_lines = true
+}
+
+// BillingGatheringInvoiceLinesCleared reports if the "billing_gathering_invoice_lines" edge to the BillingGatheringInvoiceLine entity was cleared.
+func (m *BillingGatheringInvoiceMutation) BillingGatheringInvoiceLinesCleared() bool {
+	return m.clearedbilling_gathering_invoice_lines
+}
+
+// RemoveBillingGatheringInvoiceLineIDs removes the "billing_gathering_invoice_lines" edge to the BillingGatheringInvoiceLine entity by IDs.
+func (m *BillingGatheringInvoiceMutation) RemoveBillingGatheringInvoiceLineIDs(ids ...string) {
+	if m.removedbilling_gathering_invoice_lines == nil {
+		m.removedbilling_gathering_invoice_lines = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.billing_gathering_invoice_lines, ids[i])
+		m.removedbilling_gathering_invoice_lines[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedBillingGatheringInvoiceLines returns the removed IDs of the "billing_gathering_invoice_lines" edge to the BillingGatheringInvoiceLine entity.
+func (m *BillingGatheringInvoiceMutation) RemovedBillingGatheringInvoiceLinesIDs() (ids []string) {
+	for id := range m.removedbilling_gathering_invoice_lines {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// BillingGatheringInvoiceLinesIDs returns the "billing_gathering_invoice_lines" edge IDs in the mutation.
+func (m *BillingGatheringInvoiceMutation) BillingGatheringInvoiceLinesIDs() (ids []string) {
+	for id := range m.billing_gathering_invoice_lines {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetBillingGatheringInvoiceLines resets all changes to the "billing_gathering_invoice_lines" edge.
+func (m *BillingGatheringInvoiceMutation) ResetBillingGatheringInvoiceLines() {
+	m.billing_gathering_invoice_lines = nil
+	m.clearedbilling_gathering_invoice_lines = false
+	m.removedbilling_gathering_invoice_lines = nil
+}
+
+// Where appends a list predicates to the BillingGatheringInvoiceMutation builder.
+func (m *BillingGatheringInvoiceMutation) Where(ps ...predicate.BillingGatheringInvoice) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the BillingGatheringInvoiceMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *BillingGatheringInvoiceMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.BillingGatheringInvoice, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *BillingGatheringInvoiceMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *BillingGatheringInvoiceMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (BillingGatheringInvoice).
+func (m *BillingGatheringInvoiceMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *BillingGatheringInvoiceMutation) Fields() []string {
+	fields := make([]string, 0, 14)
+	if m.namespace != nil {
+		fields = append(fields, billinggatheringinvoice.FieldNamespace)
+	}
+	if m.metadata != nil {
+		fields = append(fields, billinggatheringinvoice.FieldMetadata)
+	}
+	if m.created_at != nil {
+		fields = append(fields, billinggatheringinvoice.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, billinggatheringinvoice.FieldUpdatedAt)
+	}
+	if m.deleted_at != nil {
+		fields = append(fields, billinggatheringinvoice.FieldDeletedAt)
+	}
+	if m.name != nil {
+		fields = append(fields, billinggatheringinvoice.FieldName)
+	}
+	if m.description != nil {
+		fields = append(fields, billinggatheringinvoice.FieldDescription)
+	}
+	if m.number != nil {
+		fields = append(fields, billinggatheringinvoice.FieldNumber)
+	}
+	if m.customer != nil {
+		fields = append(fields, billinggatheringinvoice.FieldCustomerID)
+	}
+	if m.currency != nil {
+		fields = append(fields, billinggatheringinvoice.FieldCurrency)
+	}
+	if m.service_period_start != nil {
+		fields = append(fields, billinggatheringinvoice.FieldServicePeriodStart)
+	}
+	if m.service_period_end != nil {
+		fields = append(fields, billinggatheringinvoice.FieldServicePeriodEnd)
+	}
+	if m.next_collection_at != nil {
+		fields = append(fields, billinggatheringinvoice.FieldNextCollectionAt)
+	}
+	if m.schema_level != nil {
+		fields = append(fields, billinggatheringinvoice.FieldSchemaLevel)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *BillingGatheringInvoiceMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case billinggatheringinvoice.FieldNamespace:
+		return m.Namespace()
+	case billinggatheringinvoice.FieldMetadata:
+		return m.Metadata()
+	case billinggatheringinvoice.FieldCreatedAt:
+		return m.CreatedAt()
+	case billinggatheringinvoice.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case billinggatheringinvoice.FieldDeletedAt:
+		return m.DeletedAt()
+	case billinggatheringinvoice.FieldName:
+		return m.Name()
+	case billinggatheringinvoice.FieldDescription:
+		return m.Description()
+	case billinggatheringinvoice.FieldNumber:
+		return m.Number()
+	case billinggatheringinvoice.FieldCustomerID:
+		return m.CustomerID()
+	case billinggatheringinvoice.FieldCurrency:
+		return m.Currency()
+	case billinggatheringinvoice.FieldServicePeriodStart:
+		return m.ServicePeriodStart()
+	case billinggatheringinvoice.FieldServicePeriodEnd:
+		return m.ServicePeriodEnd()
+	case billinggatheringinvoice.FieldNextCollectionAt:
+		return m.NextCollectionAt()
+	case billinggatheringinvoice.FieldSchemaLevel:
+		return m.SchemaLevel()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *BillingGatheringInvoiceMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case billinggatheringinvoice.FieldNamespace:
+		return m.OldNamespace(ctx)
+	case billinggatheringinvoice.FieldMetadata:
+		return m.OldMetadata(ctx)
+	case billinggatheringinvoice.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case billinggatheringinvoice.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case billinggatheringinvoice.FieldDeletedAt:
+		return m.OldDeletedAt(ctx)
+	case billinggatheringinvoice.FieldName:
+		return m.OldName(ctx)
+	case billinggatheringinvoice.FieldDescription:
+		return m.OldDescription(ctx)
+	case billinggatheringinvoice.FieldNumber:
+		return m.OldNumber(ctx)
+	case billinggatheringinvoice.FieldCustomerID:
+		return m.OldCustomerID(ctx)
+	case billinggatheringinvoice.FieldCurrency:
+		return m.OldCurrency(ctx)
+	case billinggatheringinvoice.FieldServicePeriodStart:
+		return m.OldServicePeriodStart(ctx)
+	case billinggatheringinvoice.FieldServicePeriodEnd:
+		return m.OldServicePeriodEnd(ctx)
+	case billinggatheringinvoice.FieldNextCollectionAt:
+		return m.OldNextCollectionAt(ctx)
+	case billinggatheringinvoice.FieldSchemaLevel:
+		return m.OldSchemaLevel(ctx)
+	}
+	return nil, fmt.Errorf("unknown BillingGatheringInvoice field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *BillingGatheringInvoiceMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case billinggatheringinvoice.FieldNamespace:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNamespace(v)
+		return nil
+	case billinggatheringinvoice.FieldMetadata:
+		v, ok := value.(map[string]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMetadata(v)
+		return nil
+	case billinggatheringinvoice.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case billinggatheringinvoice.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case billinggatheringinvoice.FieldDeletedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDeletedAt(v)
+		return nil
+	case billinggatheringinvoice.FieldName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetName(v)
+		return nil
+	case billinggatheringinvoice.FieldDescription:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDescription(v)
+		return nil
+	case billinggatheringinvoice.FieldNumber:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNumber(v)
+		return nil
+	case billinggatheringinvoice.FieldCustomerID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCustomerID(v)
+		return nil
+	case billinggatheringinvoice.FieldCurrency:
+		v, ok := value.(currencyx.FiatCode)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCurrency(v)
+		return nil
+	case billinggatheringinvoice.FieldServicePeriodStart:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetServicePeriodStart(v)
+		return nil
+	case billinggatheringinvoice.FieldServicePeriodEnd:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetServicePeriodEnd(v)
+		return nil
+	case billinggatheringinvoice.FieldNextCollectionAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNextCollectionAt(v)
+		return nil
+	case billinggatheringinvoice.FieldSchemaLevel:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSchemaLevel(v)
+		return nil
+	}
+	return fmt.Errorf("unknown BillingGatheringInvoice field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *BillingGatheringInvoiceMutation) AddedFields() []string {
+	var fields []string
+	if m.addschema_level != nil {
+		fields = append(fields, billinggatheringinvoice.FieldSchemaLevel)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *BillingGatheringInvoiceMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case billinggatheringinvoice.FieldSchemaLevel:
+		return m.AddedSchemaLevel()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *BillingGatheringInvoiceMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case billinggatheringinvoice.FieldSchemaLevel:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddSchemaLevel(v)
+		return nil
+	}
+	return fmt.Errorf("unknown BillingGatheringInvoice numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *BillingGatheringInvoiceMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(billinggatheringinvoice.FieldMetadata) {
+		fields = append(fields, billinggatheringinvoice.FieldMetadata)
+	}
+	if m.FieldCleared(billinggatheringinvoice.FieldDeletedAt) {
+		fields = append(fields, billinggatheringinvoice.FieldDeletedAt)
+	}
+	if m.FieldCleared(billinggatheringinvoice.FieldDescription) {
+		fields = append(fields, billinggatheringinvoice.FieldDescription)
+	}
+	if m.FieldCleared(billinggatheringinvoice.FieldServicePeriodStart) {
+		fields = append(fields, billinggatheringinvoice.FieldServicePeriodStart)
+	}
+	if m.FieldCleared(billinggatheringinvoice.FieldServicePeriodEnd) {
+		fields = append(fields, billinggatheringinvoice.FieldServicePeriodEnd)
+	}
+	if m.FieldCleared(billinggatheringinvoice.FieldNextCollectionAt) {
+		fields = append(fields, billinggatheringinvoice.FieldNextCollectionAt)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *BillingGatheringInvoiceMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *BillingGatheringInvoiceMutation) ClearField(name string) error {
+	switch name {
+	case billinggatheringinvoice.FieldMetadata:
+		m.ClearMetadata()
+		return nil
+	case billinggatheringinvoice.FieldDeletedAt:
+		m.ClearDeletedAt()
+		return nil
+	case billinggatheringinvoice.FieldDescription:
+		m.ClearDescription()
+		return nil
+	case billinggatheringinvoice.FieldServicePeriodStart:
+		m.ClearServicePeriodStart()
+		return nil
+	case billinggatheringinvoice.FieldServicePeriodEnd:
+		m.ClearServicePeriodEnd()
+		return nil
+	case billinggatheringinvoice.FieldNextCollectionAt:
+		m.ClearNextCollectionAt()
+		return nil
+	}
+	return fmt.Errorf("unknown BillingGatheringInvoice nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *BillingGatheringInvoiceMutation) ResetField(name string) error {
+	switch name {
+	case billinggatheringinvoice.FieldNamespace:
+		m.ResetNamespace()
+		return nil
+	case billinggatheringinvoice.FieldMetadata:
+		m.ResetMetadata()
+		return nil
+	case billinggatheringinvoice.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case billinggatheringinvoice.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case billinggatheringinvoice.FieldDeletedAt:
+		m.ResetDeletedAt()
+		return nil
+	case billinggatheringinvoice.FieldName:
+		m.ResetName()
+		return nil
+	case billinggatheringinvoice.FieldDescription:
+		m.ResetDescription()
+		return nil
+	case billinggatheringinvoice.FieldNumber:
+		m.ResetNumber()
+		return nil
+	case billinggatheringinvoice.FieldCustomerID:
+		m.ResetCustomerID()
+		return nil
+	case billinggatheringinvoice.FieldCurrency:
+		m.ResetCurrency()
+		return nil
+	case billinggatheringinvoice.FieldServicePeriodStart:
+		m.ResetServicePeriodStart()
+		return nil
+	case billinggatheringinvoice.FieldServicePeriodEnd:
+		m.ResetServicePeriodEnd()
+		return nil
+	case billinggatheringinvoice.FieldNextCollectionAt:
+		m.ResetNextCollectionAt()
+		return nil
+	case billinggatheringinvoice.FieldSchemaLevel:
+		m.ResetSchemaLevel()
+		return nil
+	}
+	return fmt.Errorf("unknown BillingGatheringInvoice field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *BillingGatheringInvoiceMutation) AddedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.customer != nil {
+		edges = append(edges, billinggatheringinvoice.EdgeCustomer)
+	}
+	if m.billing_gathering_invoice_lines != nil {
+		edges = append(edges, billinggatheringinvoice.EdgeBillingGatheringInvoiceLines)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *BillingGatheringInvoiceMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case billinggatheringinvoice.EdgeCustomer:
+		if id := m.customer; id != nil {
+			return []ent.Value{*id}
+		}
+	case billinggatheringinvoice.EdgeBillingGatheringInvoiceLines:
+		ids := make([]ent.Value, 0, len(m.billing_gathering_invoice_lines))
+		for id := range m.billing_gathering_invoice_lines {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *BillingGatheringInvoiceMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.removedbilling_gathering_invoice_lines != nil {
+		edges = append(edges, billinggatheringinvoice.EdgeBillingGatheringInvoiceLines)
+	}
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *BillingGatheringInvoiceMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case billinggatheringinvoice.EdgeBillingGatheringInvoiceLines:
+		ids := make([]ent.Value, 0, len(m.removedbilling_gathering_invoice_lines))
+		for id := range m.removedbilling_gathering_invoice_lines {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *BillingGatheringInvoiceMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.clearedcustomer {
+		edges = append(edges, billinggatheringinvoice.EdgeCustomer)
+	}
+	if m.clearedbilling_gathering_invoice_lines {
+		edges = append(edges, billinggatheringinvoice.EdgeBillingGatheringInvoiceLines)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *BillingGatheringInvoiceMutation) EdgeCleared(name string) bool {
+	switch name {
+	case billinggatheringinvoice.EdgeCustomer:
+		return m.clearedcustomer
+	case billinggatheringinvoice.EdgeBillingGatheringInvoiceLines:
+		return m.clearedbilling_gathering_invoice_lines
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *BillingGatheringInvoiceMutation) ClearEdge(name string) error {
+	switch name {
+	case billinggatheringinvoice.EdgeCustomer:
+		m.ClearCustomer()
+		return nil
+	}
+	return fmt.Errorf("unknown BillingGatheringInvoice unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *BillingGatheringInvoiceMutation) ResetEdge(name string) error {
+	switch name {
+	case billinggatheringinvoice.EdgeCustomer:
+		m.ResetCustomer()
+		return nil
+	case billinggatheringinvoice.EdgeBillingGatheringInvoiceLines:
+		m.ResetBillingGatheringInvoiceLines()
+		return nil
+	}
+	return fmt.Errorf("unknown BillingGatheringInvoice edge %s", name)
+}
+
 // BillingGatheringInvoiceLineMutation represents an operation that mutates the BillingGatheringInvoiceLine nodes in the graph.
 type BillingGatheringInvoiceLineMutation struct {
 	config
@@ -12665,8 +13994,8 @@ type BillingGatheringInvoiceLineMutation struct {
 	managed_by                       *billing.InvoiceLineManagedBy
 	engine                           *billing.LineEngineType
 	clearedFields                    map[string]struct{}
-	billing_invoice                  *string
-	clearedbilling_invoice           bool
+	billing_gathering_invoice        *string
+	clearedbilling_gathering_invoice bool
 	split_line_group                 *string
 	clearedsplit_line_group          bool
 	subscription                     *string
@@ -13898,12 +15227,12 @@ func (m *BillingGatheringInvoiceLineMutation) ResetTaxBehavior() {
 
 // SetInvoiceID sets the "invoice_id" field.
 func (m *BillingGatheringInvoiceLineMutation) SetInvoiceID(s string) {
-	m.billing_invoice = &s
+	m.billing_gathering_invoice = &s
 }
 
 // InvoiceID returns the value of the "invoice_id" field in the mutation.
 func (m *BillingGatheringInvoiceLineMutation) InvoiceID() (r string, exists bool) {
-	v := m.billing_invoice
+	v := m.billing_gathering_invoice
 	if v == nil {
 		return
 	}
@@ -13929,7 +15258,7 @@ func (m *BillingGatheringInvoiceLineMutation) OldInvoiceID(ctx context.Context) 
 
 // ResetInvoiceID resets all changes to the "invoice_id" field.
 func (m *BillingGatheringInvoiceLineMutation) ResetInvoiceID() {
-	m.billing_invoice = nil
+	m.billing_gathering_invoice = nil
 }
 
 // SetInvoiceAt sets the "invoice_at" field.
@@ -14138,44 +15467,44 @@ func (m *BillingGatheringInvoiceLineMutation) ResetChargeID() {
 	delete(m.clearedFields, billinggatheringinvoiceline.FieldChargeID)
 }
 
-// SetBillingInvoiceID sets the "billing_invoice" edge to the BillingInvoice entity by id.
-func (m *BillingGatheringInvoiceLineMutation) SetBillingInvoiceID(id string) {
-	m.billing_invoice = &id
+// SetBillingGatheringInvoiceID sets the "billing_gathering_invoice" edge to the BillingGatheringInvoice entity by id.
+func (m *BillingGatheringInvoiceLineMutation) SetBillingGatheringInvoiceID(id string) {
+	m.billing_gathering_invoice = &id
 }
 
-// ClearBillingInvoice clears the "billing_invoice" edge to the BillingInvoice entity.
-func (m *BillingGatheringInvoiceLineMutation) ClearBillingInvoice() {
-	m.clearedbilling_invoice = true
+// ClearBillingGatheringInvoice clears the "billing_gathering_invoice" edge to the BillingGatheringInvoice entity.
+func (m *BillingGatheringInvoiceLineMutation) ClearBillingGatheringInvoice() {
+	m.clearedbilling_gathering_invoice = true
 	m.clearedFields[billinggatheringinvoiceline.FieldInvoiceID] = struct{}{}
 }
 
-// BillingInvoiceCleared reports if the "billing_invoice" edge to the BillingInvoice entity was cleared.
-func (m *BillingGatheringInvoiceLineMutation) BillingInvoiceCleared() bool {
-	return m.clearedbilling_invoice
+// BillingGatheringInvoiceCleared reports if the "billing_gathering_invoice" edge to the BillingGatheringInvoice entity was cleared.
+func (m *BillingGatheringInvoiceLineMutation) BillingGatheringInvoiceCleared() bool {
+	return m.clearedbilling_gathering_invoice
 }
 
-// BillingInvoiceID returns the "billing_invoice" edge ID in the mutation.
-func (m *BillingGatheringInvoiceLineMutation) BillingInvoiceID() (id string, exists bool) {
-	if m.billing_invoice != nil {
-		return *m.billing_invoice, true
+// BillingGatheringInvoiceID returns the "billing_gathering_invoice" edge ID in the mutation.
+func (m *BillingGatheringInvoiceLineMutation) BillingGatheringInvoiceID() (id string, exists bool) {
+	if m.billing_gathering_invoice != nil {
+		return *m.billing_gathering_invoice, true
 	}
 	return
 }
 
-// BillingInvoiceIDs returns the "billing_invoice" edge IDs in the mutation.
+// BillingGatheringInvoiceIDs returns the "billing_gathering_invoice" edge IDs in the mutation.
 // Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
-// BillingInvoiceID instead. It exists only for internal usage by the builders.
-func (m *BillingGatheringInvoiceLineMutation) BillingInvoiceIDs() (ids []string) {
-	if id := m.billing_invoice; id != nil {
+// BillingGatheringInvoiceID instead. It exists only for internal usage by the builders.
+func (m *BillingGatheringInvoiceLineMutation) BillingGatheringInvoiceIDs() (ids []string) {
+	if id := m.billing_gathering_invoice; id != nil {
 		ids = append(ids, *id)
 	}
 	return
 }
 
-// ResetBillingInvoice resets all changes to the "billing_invoice" edge.
-func (m *BillingGatheringInvoiceLineMutation) ResetBillingInvoice() {
-	m.billing_invoice = nil
-	m.clearedbilling_invoice = false
+// ResetBillingGatheringInvoice resets all changes to the "billing_gathering_invoice" edge.
+func (m *BillingGatheringInvoiceLineMutation) ResetBillingGatheringInvoice() {
+	m.billing_gathering_invoice = nil
+	m.clearedbilling_gathering_invoice = false
 }
 
 // ClearSplitLineGroup clears the "split_line_group" edge to the BillingInvoiceSplitLineGroup entity.
@@ -14450,7 +15779,7 @@ func (m *BillingGatheringInvoiceLineMutation) Fields() []string {
 	if m.tax_behavior != nil {
 		fields = append(fields, billinggatheringinvoiceline.FieldTaxBehavior)
 	}
-	if m.billing_invoice != nil {
+	if m.billing_gathering_invoice != nil {
 		fields = append(fields, billinggatheringinvoiceline.FieldInvoiceID)
 	}
 	if m.invoice_at != nil {
@@ -15095,8 +16424,8 @@ func (m *BillingGatheringInvoiceLineMutation) ResetField(name string) error {
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *BillingGatheringInvoiceLineMutation) AddedEdges() []string {
 	edges := make([]string, 0, 7)
-	if m.billing_invoice != nil {
-		edges = append(edges, billinggatheringinvoiceline.EdgeBillingInvoice)
+	if m.billing_gathering_invoice != nil {
+		edges = append(edges, billinggatheringinvoiceline.EdgeBillingGatheringInvoice)
 	}
 	if m.split_line_group != nil {
 		edges = append(edges, billinggatheringinvoiceline.EdgeSplitLineGroup)
@@ -15123,8 +16452,8 @@ func (m *BillingGatheringInvoiceLineMutation) AddedEdges() []string {
 // name in this mutation.
 func (m *BillingGatheringInvoiceLineMutation) AddedIDs(name string) []ent.Value {
 	switch name {
-	case billinggatheringinvoiceline.EdgeBillingInvoice:
-		if id := m.billing_invoice; id != nil {
+	case billinggatheringinvoiceline.EdgeBillingGatheringInvoice:
+		if id := m.billing_gathering_invoice; id != nil {
 			return []ent.Value{*id}
 		}
 	case billinggatheringinvoiceline.EdgeSplitLineGroup:
@@ -15170,8 +16499,8 @@ func (m *BillingGatheringInvoiceLineMutation) RemovedIDs(name string) []ent.Valu
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *BillingGatheringInvoiceLineMutation) ClearedEdges() []string {
 	edges := make([]string, 0, 7)
-	if m.clearedbilling_invoice {
-		edges = append(edges, billinggatheringinvoiceline.EdgeBillingInvoice)
+	if m.clearedbilling_gathering_invoice {
+		edges = append(edges, billinggatheringinvoiceline.EdgeBillingGatheringInvoice)
 	}
 	if m.clearedsplit_line_group {
 		edges = append(edges, billinggatheringinvoiceline.EdgeSplitLineGroup)
@@ -15198,8 +16527,8 @@ func (m *BillingGatheringInvoiceLineMutation) ClearedEdges() []string {
 // was cleared in this mutation.
 func (m *BillingGatheringInvoiceLineMutation) EdgeCleared(name string) bool {
 	switch name {
-	case billinggatheringinvoiceline.EdgeBillingInvoice:
-		return m.clearedbilling_invoice
+	case billinggatheringinvoiceline.EdgeBillingGatheringInvoice:
+		return m.clearedbilling_gathering_invoice
 	case billinggatheringinvoiceline.EdgeSplitLineGroup:
 		return m.clearedsplit_line_group
 	case billinggatheringinvoiceline.EdgeSubscription:
@@ -15220,8 +16549,8 @@ func (m *BillingGatheringInvoiceLineMutation) EdgeCleared(name string) bool {
 // if that edge is not defined in the schema.
 func (m *BillingGatheringInvoiceLineMutation) ClearEdge(name string) error {
 	switch name {
-	case billinggatheringinvoiceline.EdgeBillingInvoice:
-		m.ClearBillingInvoice()
+	case billinggatheringinvoiceline.EdgeBillingGatheringInvoice:
+		m.ClearBillingGatheringInvoice()
 		return nil
 	case billinggatheringinvoiceline.EdgeSplitLineGroup:
 		m.ClearSplitLineGroup()
@@ -15249,8 +16578,8 @@ func (m *BillingGatheringInvoiceLineMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *BillingGatheringInvoiceLineMutation) ResetEdge(name string) error {
 	switch name {
-	case billinggatheringinvoiceline.EdgeBillingInvoice:
-		m.ResetBillingInvoice()
+	case billinggatheringinvoiceline.EdgeBillingGatheringInvoice:
+		m.ResetBillingGatheringInvoice()
 		return nil
 	case billinggatheringinvoiceline.EdgeSplitLineGroup:
 		m.ResetSplitLineGroup()
@@ -15342,9 +16671,6 @@ type BillingInvoiceMutation struct {
 	billing_invoice_lines                    map[string]struct{}
 	removedbilling_invoice_lines             map[string]struct{}
 	clearedbilling_invoice_lines             bool
-	billing_gathering_invoice_lines          map[string]struct{}
-	removedbilling_gathering_invoice_lines   map[string]struct{}
-	clearedbilling_gathering_invoice_lines   bool
 	billing_invoice_detailed_lines           map[string]struct{}
 	removedbilling_invoice_detailed_lines    map[string]struct{}
 	clearedbilling_invoice_detailed_lines    bool
@@ -18194,60 +19520,6 @@ func (m *BillingInvoiceMutation) ResetBillingInvoiceLines() {
 	m.removedbilling_invoice_lines = nil
 }
 
-// AddBillingGatheringInvoiceLineIDs adds the "billing_gathering_invoice_lines" edge to the BillingGatheringInvoiceLine entity by ids.
-func (m *BillingInvoiceMutation) AddBillingGatheringInvoiceLineIDs(ids ...string) {
-	if m.billing_gathering_invoice_lines == nil {
-		m.billing_gathering_invoice_lines = make(map[string]struct{})
-	}
-	for i := range ids {
-		m.billing_gathering_invoice_lines[ids[i]] = struct{}{}
-	}
-}
-
-// ClearBillingGatheringInvoiceLines clears the "billing_gathering_invoice_lines" edge to the BillingGatheringInvoiceLine entity.
-func (m *BillingInvoiceMutation) ClearBillingGatheringInvoiceLines() {
-	m.clearedbilling_gathering_invoice_lines = true
-}
-
-// BillingGatheringInvoiceLinesCleared reports if the "billing_gathering_invoice_lines" edge to the BillingGatheringInvoiceLine entity was cleared.
-func (m *BillingInvoiceMutation) BillingGatheringInvoiceLinesCleared() bool {
-	return m.clearedbilling_gathering_invoice_lines
-}
-
-// RemoveBillingGatheringInvoiceLineIDs removes the "billing_gathering_invoice_lines" edge to the BillingGatheringInvoiceLine entity by IDs.
-func (m *BillingInvoiceMutation) RemoveBillingGatheringInvoiceLineIDs(ids ...string) {
-	if m.removedbilling_gathering_invoice_lines == nil {
-		m.removedbilling_gathering_invoice_lines = make(map[string]struct{})
-	}
-	for i := range ids {
-		delete(m.billing_gathering_invoice_lines, ids[i])
-		m.removedbilling_gathering_invoice_lines[ids[i]] = struct{}{}
-	}
-}
-
-// RemovedBillingGatheringInvoiceLines returns the removed IDs of the "billing_gathering_invoice_lines" edge to the BillingGatheringInvoiceLine entity.
-func (m *BillingInvoiceMutation) RemovedBillingGatheringInvoiceLinesIDs() (ids []string) {
-	for id := range m.removedbilling_gathering_invoice_lines {
-		ids = append(ids, id)
-	}
-	return
-}
-
-// BillingGatheringInvoiceLinesIDs returns the "billing_gathering_invoice_lines" edge IDs in the mutation.
-func (m *BillingInvoiceMutation) BillingGatheringInvoiceLinesIDs() (ids []string) {
-	for id := range m.billing_gathering_invoice_lines {
-		ids = append(ids, id)
-	}
-	return
-}
-
-// ResetBillingGatheringInvoiceLines resets all changes to the "billing_gathering_invoice_lines" edge.
-func (m *BillingInvoiceMutation) ResetBillingGatheringInvoiceLines() {
-	m.billing_gathering_invoice_lines = nil
-	m.clearedbilling_gathering_invoice_lines = false
-	m.removedbilling_gathering_invoice_lines = nil
-}
-
 // AddBillingInvoiceDetailedLineIDs adds the "billing_invoice_detailed_lines" edge to the BillingStandardInvoiceDetailedLine entity by ids.
 func (m *BillingInvoiceMutation) AddBillingInvoiceDetailedLineIDs(ids ...string) {
 	if m.billing_invoice_detailed_lines == nil {
@@ -19932,7 +21204,7 @@ func (m *BillingInvoiceMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *BillingInvoiceMutation) AddedEdges() []string {
-	edges := make([]string, 0, 12)
+	edges := make([]string, 0, 11)
 	if m.source_billing_profile != nil {
 		edges = append(edges, billinginvoice.EdgeSourceBillingProfile)
 	}
@@ -19941,9 +21213,6 @@ func (m *BillingInvoiceMutation) AddedEdges() []string {
 	}
 	if m.billing_invoice_lines != nil {
 		edges = append(edges, billinginvoice.EdgeBillingInvoiceLines)
-	}
-	if m.billing_gathering_invoice_lines != nil {
-		edges = append(edges, billinginvoice.EdgeBillingGatheringInvoiceLines)
 	}
 	if m.billing_invoice_detailed_lines != nil {
 		edges = append(edges, billinginvoice.EdgeBillingInvoiceDetailedLines)
@@ -19987,12 +21256,6 @@ func (m *BillingInvoiceMutation) AddedIDs(name string) []ent.Value {
 	case billinginvoice.EdgeBillingInvoiceLines:
 		ids := make([]ent.Value, 0, len(m.billing_invoice_lines))
 		for id := range m.billing_invoice_lines {
-			ids = append(ids, id)
-		}
-		return ids
-	case billinginvoice.EdgeBillingGatheringInvoiceLines:
-		ids := make([]ent.Value, 0, len(m.billing_gathering_invoice_lines))
-		for id := range m.billing_gathering_invoice_lines {
 			ids = append(ids, id)
 		}
 		return ids
@@ -20042,12 +21305,9 @@ func (m *BillingInvoiceMutation) AddedIDs(name string) []ent.Value {
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *BillingInvoiceMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 12)
+	edges := make([]string, 0, 11)
 	if m.removedbilling_invoice_lines != nil {
 		edges = append(edges, billinginvoice.EdgeBillingInvoiceLines)
-	}
-	if m.removedbilling_gathering_invoice_lines != nil {
-		edges = append(edges, billinginvoice.EdgeBillingGatheringInvoiceLines)
 	}
 	if m.removedbilling_invoice_detailed_lines != nil {
 		edges = append(edges, billinginvoice.EdgeBillingInvoiceDetailedLines)
@@ -20071,12 +21331,6 @@ func (m *BillingInvoiceMutation) RemovedIDs(name string) []ent.Value {
 	case billinginvoice.EdgeBillingInvoiceLines:
 		ids := make([]ent.Value, 0, len(m.removedbilling_invoice_lines))
 		for id := range m.removedbilling_invoice_lines {
-			ids = append(ids, id)
-		}
-		return ids
-	case billinginvoice.EdgeBillingGatheringInvoiceLines:
-		ids := make([]ent.Value, 0, len(m.removedbilling_gathering_invoice_lines))
-		for id := range m.removedbilling_gathering_invoice_lines {
 			ids = append(ids, id)
 		}
 		return ids
@@ -20110,7 +21364,7 @@ func (m *BillingInvoiceMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *BillingInvoiceMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 12)
+	edges := make([]string, 0, 11)
 	if m.clearedsource_billing_profile {
 		edges = append(edges, billinginvoice.EdgeSourceBillingProfile)
 	}
@@ -20119,9 +21373,6 @@ func (m *BillingInvoiceMutation) ClearedEdges() []string {
 	}
 	if m.clearedbilling_invoice_lines {
 		edges = append(edges, billinginvoice.EdgeBillingInvoiceLines)
-	}
-	if m.clearedbilling_gathering_invoice_lines {
-		edges = append(edges, billinginvoice.EdgeBillingGatheringInvoiceLines)
 	}
 	if m.clearedbilling_invoice_detailed_lines {
 		edges = append(edges, billinginvoice.EdgeBillingInvoiceDetailedLines)
@@ -20160,8 +21411,6 @@ func (m *BillingInvoiceMutation) EdgeCleared(name string) bool {
 		return m.clearedbilling_workflow_config
 	case billinginvoice.EdgeBillingInvoiceLines:
 		return m.clearedbilling_invoice_lines
-	case billinginvoice.EdgeBillingGatheringInvoiceLines:
-		return m.clearedbilling_gathering_invoice_lines
 	case billinginvoice.EdgeBillingInvoiceDetailedLines:
 		return m.clearedbilling_invoice_detailed_lines
 	case billinginvoice.EdgeBillingInvoiceValidationIssues:
@@ -20220,9 +21469,6 @@ func (m *BillingInvoiceMutation) ResetEdge(name string) error {
 		return nil
 	case billinginvoice.EdgeBillingInvoiceLines:
 		m.ResetBillingInvoiceLines()
-		return nil
-	case billinginvoice.EdgeBillingGatheringInvoiceLines:
-		m.ResetBillingGatheringInvoiceLines()
 		return nil
 	case billinginvoice.EdgeBillingInvoiceDetailedLines:
 		m.ResetBillingInvoiceDetailedLines()
@@ -85845,57 +87091,60 @@ func (m *CustomCurrencyMutation) ResetEdge(name string) error {
 // CustomerMutation represents an operation that mutates the Customer nodes in the graph.
 type CustomerMutation struct {
 	config
-	op                               Op
-	typ                              string
-	id                               *string
-	namespace                        *string
-	metadata                         *map[string]string
-	created_at                       *time.Time
-	updated_at                       *time.Time
-	deleted_at                       *time.Time
-	name                             *string
-	description                      *string
-	billing_address_country          *models.CountryCode
-	billing_address_postal_code      *string
-	billing_address_state            *string
-	billing_address_city             *string
-	billing_address_line1            *string
-	billing_address_line2            *string
-	billing_address_phone_number     *string
-	annotations                      *models.Annotations
-	key                              *string
-	primary_email                    *string
-	currency                         *currencyx.Code
-	clearedFields                    map[string]struct{}
-	apps                             map[int]struct{}
-	removedapps                      map[int]struct{}
-	clearedapps                      bool
-	subjects                         map[int]struct{}
-	removedsubjects                  map[int]struct{}
-	clearedsubjects                  bool
-	billing_customer_override        *string
-	clearedbilling_customer_override bool
-	billing_invoice                  map[string]struct{}
-	removedbilling_invoice           map[string]struct{}
-	clearedbilling_invoice           bool
-	subscription                     map[string]struct{}
-	removedsubscription              map[string]struct{}
-	clearedsubscription              bool
-	entitlements                     map[string]struct{}
-	removedentitlements              map[string]struct{}
-	clearedentitlements              bool
-	charges_credit_purchase          map[string]struct{}
-	removedcharges_credit_purchase   map[string]struct{}
-	clearedcharges_credit_purchase   bool
-	charges_flat_fee                 map[string]struct{}
-	removedcharges_flat_fee          map[string]struct{}
-	clearedcharges_flat_fee          bool
-	charges_usage_based              map[string]struct{}
-	removedcharges_usage_based       map[string]struct{}
-	clearedcharges_usage_based       bool
-	done                             bool
-	oldValue                         func(context.Context) (*Customer, error)
-	predicates                       []predicate.Customer
+	op                                Op
+	typ                               string
+	id                                *string
+	namespace                         *string
+	metadata                          *map[string]string
+	created_at                        *time.Time
+	updated_at                        *time.Time
+	deleted_at                        *time.Time
+	name                              *string
+	description                       *string
+	billing_address_country           *models.CountryCode
+	billing_address_postal_code       *string
+	billing_address_state             *string
+	billing_address_city              *string
+	billing_address_line1             *string
+	billing_address_line2             *string
+	billing_address_phone_number      *string
+	annotations                       *models.Annotations
+	key                               *string
+	primary_email                     *string
+	currency                          *currencyx.Code
+	clearedFields                     map[string]struct{}
+	apps                              map[int]struct{}
+	removedapps                       map[int]struct{}
+	clearedapps                       bool
+	subjects                          map[int]struct{}
+	removedsubjects                   map[int]struct{}
+	clearedsubjects                   bool
+	billing_customer_override         *string
+	clearedbilling_customer_override  bool
+	billing_invoice                   map[string]struct{}
+	removedbilling_invoice            map[string]struct{}
+	clearedbilling_invoice            bool
+	billing_gathering_invoices        map[string]struct{}
+	removedbilling_gathering_invoices map[string]struct{}
+	clearedbilling_gathering_invoices bool
+	subscription                      map[string]struct{}
+	removedsubscription               map[string]struct{}
+	clearedsubscription               bool
+	entitlements                      map[string]struct{}
+	removedentitlements               map[string]struct{}
+	clearedentitlements               bool
+	charges_credit_purchase           map[string]struct{}
+	removedcharges_credit_purchase    map[string]struct{}
+	clearedcharges_credit_purchase    bool
+	charges_flat_fee                  map[string]struct{}
+	removedcharges_flat_fee           map[string]struct{}
+	clearedcharges_flat_fee           bool
+	charges_usage_based               map[string]struct{}
+	removedcharges_usage_based        map[string]struct{}
+	clearedcharges_usage_based        bool
+	done                              bool
+	oldValue                          func(context.Context) (*Customer, error)
+	predicates                        []predicate.Customer
 }
 
 var _ ent.Mutation = (*CustomerMutation)(nil)
@@ -87033,6 +88282,60 @@ func (m *CustomerMutation) ResetBillingInvoice() {
 	m.removedbilling_invoice = nil
 }
 
+// AddBillingGatheringInvoiceIDs adds the "billing_gathering_invoices" edge to the BillingGatheringInvoice entity by ids.
+func (m *CustomerMutation) AddBillingGatheringInvoiceIDs(ids ...string) {
+	if m.billing_gathering_invoices == nil {
+		m.billing_gathering_invoices = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.billing_gathering_invoices[ids[i]] = struct{}{}
+	}
+}
+
+// ClearBillingGatheringInvoices clears the "billing_gathering_invoices" edge to the BillingGatheringInvoice entity.
+func (m *CustomerMutation) ClearBillingGatheringInvoices() {
+	m.clearedbilling_gathering_invoices = true
+}
+
+// BillingGatheringInvoicesCleared reports if the "billing_gathering_invoices" edge to the BillingGatheringInvoice entity was cleared.
+func (m *CustomerMutation) BillingGatheringInvoicesCleared() bool {
+	return m.clearedbilling_gathering_invoices
+}
+
+// RemoveBillingGatheringInvoiceIDs removes the "billing_gathering_invoices" edge to the BillingGatheringInvoice entity by IDs.
+func (m *CustomerMutation) RemoveBillingGatheringInvoiceIDs(ids ...string) {
+	if m.removedbilling_gathering_invoices == nil {
+		m.removedbilling_gathering_invoices = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.billing_gathering_invoices, ids[i])
+		m.removedbilling_gathering_invoices[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedBillingGatheringInvoices returns the removed IDs of the "billing_gathering_invoices" edge to the BillingGatheringInvoice entity.
+func (m *CustomerMutation) RemovedBillingGatheringInvoicesIDs() (ids []string) {
+	for id := range m.removedbilling_gathering_invoices {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// BillingGatheringInvoicesIDs returns the "billing_gathering_invoices" edge IDs in the mutation.
+func (m *CustomerMutation) BillingGatheringInvoicesIDs() (ids []string) {
+	for id := range m.billing_gathering_invoices {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetBillingGatheringInvoices resets all changes to the "billing_gathering_invoices" edge.
+func (m *CustomerMutation) ResetBillingGatheringInvoices() {
+	m.billing_gathering_invoices = nil
+	m.clearedbilling_gathering_invoices = false
+	m.removedbilling_gathering_invoices = nil
+}
+
 // AddSubscriptionIDs adds the "subscription" edge to the Subscription entity by ids.
 func (m *CustomerMutation) AddSubscriptionIDs(ids ...string) {
 	if m.subscription == nil {
@@ -87812,7 +89115,7 @@ func (m *CustomerMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *CustomerMutation) AddedEdges() []string {
-	edges := make([]string, 0, 9)
+	edges := make([]string, 0, 10)
 	if m.apps != nil {
 		edges = append(edges, customer.EdgeApps)
 	}
@@ -87824,6 +89127,9 @@ func (m *CustomerMutation) AddedEdges() []string {
 	}
 	if m.billing_invoice != nil {
 		edges = append(edges, customer.EdgeBillingInvoice)
+	}
+	if m.billing_gathering_invoices != nil {
+		edges = append(edges, customer.EdgeBillingGatheringInvoices)
 	}
 	if m.subscription != nil {
 		edges = append(edges, customer.EdgeSubscription)
@@ -87869,6 +89175,12 @@ func (m *CustomerMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case customer.EdgeBillingGatheringInvoices:
+		ids := make([]ent.Value, 0, len(m.billing_gathering_invoices))
+		for id := range m.billing_gathering_invoices {
+			ids = append(ids, id)
+		}
+		return ids
 	case customer.EdgeSubscription:
 		ids := make([]ent.Value, 0, len(m.subscription))
 		for id := range m.subscription {
@@ -87905,7 +89217,7 @@ func (m *CustomerMutation) AddedIDs(name string) []ent.Value {
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *CustomerMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 9)
+	edges := make([]string, 0, 10)
 	if m.removedapps != nil {
 		edges = append(edges, customer.EdgeApps)
 	}
@@ -87914,6 +89226,9 @@ func (m *CustomerMutation) RemovedEdges() []string {
 	}
 	if m.removedbilling_invoice != nil {
 		edges = append(edges, customer.EdgeBillingInvoice)
+	}
+	if m.removedbilling_gathering_invoices != nil {
+		edges = append(edges, customer.EdgeBillingGatheringInvoices)
 	}
 	if m.removedsubscription != nil {
 		edges = append(edges, customer.EdgeSubscription)
@@ -87955,6 +89270,12 @@ func (m *CustomerMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case customer.EdgeBillingGatheringInvoices:
+		ids := make([]ent.Value, 0, len(m.removedbilling_gathering_invoices))
+		for id := range m.removedbilling_gathering_invoices {
+			ids = append(ids, id)
+		}
+		return ids
 	case customer.EdgeSubscription:
 		ids := make([]ent.Value, 0, len(m.removedsubscription))
 		for id := range m.removedsubscription {
@@ -87991,7 +89312,7 @@ func (m *CustomerMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *CustomerMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 9)
+	edges := make([]string, 0, 10)
 	if m.clearedapps {
 		edges = append(edges, customer.EdgeApps)
 	}
@@ -88003,6 +89324,9 @@ func (m *CustomerMutation) ClearedEdges() []string {
 	}
 	if m.clearedbilling_invoice {
 		edges = append(edges, customer.EdgeBillingInvoice)
+	}
+	if m.clearedbilling_gathering_invoices {
+		edges = append(edges, customer.EdgeBillingGatheringInvoices)
 	}
 	if m.clearedsubscription {
 		edges = append(edges, customer.EdgeSubscription)
@@ -88034,6 +89358,8 @@ func (m *CustomerMutation) EdgeCleared(name string) bool {
 		return m.clearedbilling_customer_override
 	case customer.EdgeBillingInvoice:
 		return m.clearedbilling_invoice
+	case customer.EdgeBillingGatheringInvoices:
+		return m.clearedbilling_gathering_invoices
 	case customer.EdgeSubscription:
 		return m.clearedsubscription
 	case customer.EdgeEntitlements:
@@ -88074,6 +89400,9 @@ func (m *CustomerMutation) ResetEdge(name string) error {
 		return nil
 	case customer.EdgeBillingInvoice:
 		m.ResetBillingInvoice()
+		return nil
+	case customer.EdgeBillingGatheringInvoices:
+		m.ResetBillingGatheringInvoices()
 		return nil
 	case customer.EdgeSubscription:
 		m.ResetSubscription()

@@ -58,16 +58,15 @@ type CustomerSynchronizationAdapter interface {
 
 type InvoiceLineAdapter interface {
 	UpsertInvoiceLines(ctx context.Context, input UpsertInvoiceLinesAdapterInput) ([]*StandardLine, error)
+	// TODO[later]: these are test only, move them to a testutils package
 	ListInvoiceLines(ctx context.Context, input ListInvoiceLinesAdapterInput) ([]*StandardLine, error)
 }
 
 type InvoiceAdapter interface {
 	CreateInvoice(ctx context.Context, input CreateInvoiceAdapterInput) (CreateInvoiceAdapterRespone, error)
-	DeleteGatheringInvoices(ctx context.Context, input DeleteGatheringInvoicesInput) error
 	ListInvoices(ctx context.Context, input ListInvoicesAdapterInput) (ListInvoicesResponse, error)
+	// TODO[later]: these are test only, move them to a testutils package
 	AssociatedLineCounts(ctx context.Context, input AssociatedLineCountsAdapterInput) (AssociatedLineCountsAdapterResponse, error)
-
-	GetInvoiceOwnership(ctx context.Context, input GetInvoiceOwnershipAdapterInput) (GetOwnershipAdapterResponse, error)
 
 	GetInvoiceType(ctx context.Context, input GetInvoiceTypeAdapterInput) (InvoiceType, error)
 }
@@ -76,20 +75,22 @@ type StandardInvoiceAdapter interface {
 	GetStandardLinesForSubscription(ctx context.Context, input GetLinesForSubscriptionInput) (StandardLines, error)
 	SetStandardLineSubscriptionReferenceByChargeID(ctx context.Context, input SetLineSubscriptionReferenceByChargeIDInput) error
 	GetStandardInvoiceById(ctx context.Context, input GetStandardInvoiceByIdInput) (StandardInvoice, error)
+	ListStandardInvoices(ctx context.Context, input ListStandardInvoicesInput) (ListStandardInvoicesResponse, error)
 	UpdateStandardInvoice(ctx context.Context, input UpdateStandardInvoiceAdapterInput) (StandardInvoice, error)
 	ListStandardInvoicesPendingAdvancement(ctx context.Context, input ListStandardInvoicesPendingAdvancementInput) ([]InvoiceAdvancementCandidate, error)
 	CountStandardInvoicesPendingAdvancement(ctx context.Context, input CountStandardInvoicesPendingAdvancementInput) (int64, error)
 }
 
 type GatheringInvoiceAdapter interface {
-	GetGatheringLinesForSubscription(ctx context.Context, input GetLinesForSubscriptionInput) (GatheringLines, error)
 	SetGatheringLineSubscriptionReferenceByChargeID(ctx context.Context, input SetLineSubscriptionReferenceByChargeIDInput) error
 	CreateGatheringInvoice(ctx context.Context, input CreateGatheringInvoiceAdapterInput) (GatheringInvoice, error)
+	DeleteGatheringInvoices(ctx context.Context, input DeleteGatheringInvoicesInput) error
 	UpdateGatheringInvoice(ctx context.Context, input UpdateGatheringInvoiceAdapterInput) error
 	DeleteGatheringInvoice(ctx context.Context, input DeleteGatheringInvoiceAdapterInput) error
 	GetGatheringInvoiceById(ctx context.Context, input GetGatheringInvoiceByIdInput) (GatheringInvoice, error)
 	ListGatheringInvoices(ctx context.Context, input ListGatheringInvoicesInput) (pagination.Result[GatheringInvoice], error)
 	ListCustomerIDsPendingCollection(ctx context.Context, input ListCustomerIDsPendingCollectionInput) ([]customer.CustomerID, error)
+	GetGatheringLinesForSubscription(ctx context.Context, input GetLinesForSubscriptionInput) (GatheringLines, error)
 
 	HardDeleteGatheringInvoiceLines(ctx context.Context, invoiceID InvoiceID, lineIDs []string) error
 }
@@ -111,5 +112,6 @@ type SchemaLevelAdapter interface {
 	// GetInvoiceDefaultSchemaLevel returns the current default schema level for invoices.
 	GetInvoiceDefaultSchemaLevel(ctx context.Context) (int, error)
 	// SetInvoiceDefaultSchemaLevel sets the current default schema level for invoices.
+	// TODO[later]: these are test only, move them to a testutils package
 	SetInvoiceDefaultSchemaLevel(ctx context.Context, level int) error
 }
