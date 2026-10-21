@@ -48,7 +48,7 @@ func mutateUnitConfig(t *testing.T, price *productcatalog.Price, unitConfig *pro
 	t.Helper()
 
 	input := rate.PricerCalculateInput{
-		StandardLineAccessor: unitConfigTestLine{
+		LegacyProgressivelyBillableLineAccessor: unitConfigTestLine{
 			StandardLine: &billing.StandardLine{},
 			price:        price,
 			unitConfig:   unitConfig,
@@ -128,7 +128,7 @@ func TestUnitConfigMutator(t *testing.T) {
 		})
 
 		input := rate.PricerCalculateInput{
-			StandardLineAccessor: unitConfigTestLine{
+			LegacyProgressivelyBillableLineAccessor: unitConfigTestLine{
 				StandardLine: &billing.StandardLine{},
 				price:        packagePrice,
 				unitConfig:   newUnitConfig(opDivide, 1000, roundCeiling),
@@ -148,7 +148,7 @@ func TestUnitConfigMutator(t *testing.T) {
 		// validator makes a zero factor unreachable through normal writes, but a
 		// corrupt import must fail the mutation instead of panicking the billing worker.
 		input := rate.PricerCalculateInput{
-			StandardLineAccessor: unitConfigTestLine{
+			LegacyProgressivelyBillableLineAccessor: unitConfigTestLine{
 				StandardLine: &billing.StandardLine{},
 				price:        unitPrice,
 				unitConfig:   newUnitConfig(opDivide, 0, roundCeiling),
@@ -167,7 +167,7 @@ func TestUnitConfigMutator(t *testing.T) {
 		// Re-rating reads from the raw metered quantity each run; the mutator must not
 		// double-convert, which it guarantees by never mutating the input usage in place.
 		input := rate.PricerCalculateInput{
-			StandardLineAccessor: unitConfigTestLine{
+			LegacyProgressivelyBillableLineAccessor: unitConfigTestLine{
 				StandardLine: &billing.StandardLine{},
 				price:        unitPrice,
 				unitConfig:   newUnitConfig(opDivide, 1000, roundCeiling),

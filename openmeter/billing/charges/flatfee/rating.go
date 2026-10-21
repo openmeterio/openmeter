@@ -70,10 +70,6 @@ func (r RateableIntent) GetMeteredQuantity() (*alpacadecimal.Decimal, error) {
 	return nil, nil
 }
 
-func (r RateableIntent) GetMeteredPreLinePeriodQuantity() (*alpacadecimal.Decimal, error) {
-	return nil, nil
-}
-
 func (r RateableIntent) GetPrice() *productcatalog.Price {
 	return productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 		Amount:      r.AmountAfterProration,
@@ -117,18 +113,6 @@ func (r RateableIntent) GetUnitConfig() *productcatalog.UnitConfig {
 
 func (r RateableIntent) GetStandardLineDiscounts() billing.StandardLineDiscounts {
 	return billing.StandardLineDiscounts{}
-}
-
-func (r RateableIntent) IsProgressivelyBilled() bool {
-	return false
-}
-
-func (r RateableIntent) GetProgressivelyBilledServicePeriod() (timeutil.ClosedPeriod, error) {
-	return r.ServicePeriod, nil
-}
-
-func (r RateableIntent) GetPreviouslyBilledAmount() (alpacadecimal.Decimal, error) {
-	return alpacadecimal.Zero, nil
 }
 
 func (r RateableIntent) GetCreditsApplied() billing.CreditsApplied {

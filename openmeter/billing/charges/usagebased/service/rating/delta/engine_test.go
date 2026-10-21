@@ -403,3 +403,7 @@ func (s *stubRatingService) GenerateDetailedLines(in billingrating.StandardLineA
 	s.lastOpts = billingrating.NewGenerateDetailedLinesOptions(opts...)
 	return s.result, s.err
 }
+
+func (s *stubRatingService) GenerateLegacyProgressiveBilledLines(in billingrating.LegacyProgressivelyBillableLineAccessor, opts ...billingrating.GenerateDetailedLinesOption) (billingrating.GenerateDetailedLinesResult, error) {
+	return s.GenerateDetailedLines(in, opts...)
+}

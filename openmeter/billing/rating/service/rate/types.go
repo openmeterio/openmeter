@@ -21,7 +21,7 @@ type Pricer interface {
 }
 
 type PricerCalculateInput struct {
-	rating.StandardLineAccessor
+	rating.LegacyProgressivelyBillableLineAccessor
 	CurrencyCalculator currencyx.Currency
 
 	FullProgressivelyBilledServicePeriod timeutil.ClosedPeriod
@@ -38,7 +38,7 @@ func (i PricerCalculateInput) Validate() error {
 		return fmt.Errorf("full service period is required")
 	}
 
-	if i.StandardLineAccessor == nil {
+	if i.LegacyProgressivelyBillableLineAccessor == nil {
 		return fmt.Errorf("standard line accessor is required")
 	}
 

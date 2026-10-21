@@ -406,7 +406,7 @@ func TestCreditsMutatorSkipsNonPositiveDetailedLineTotals(t *testing.T) {
 	require.NoError(t, err)
 
 	out, err := (&mutator.Credits{}).Mutate(rate.PricerCalculateInput{
-		StandardLineAccessor: &billing.StandardLine{
+		LegacyProgressivelyBillableLineAccessor: &billing.StandardLine{
 			StandardLineBase: billing.StandardLineBase{
 				CreditsApplied: billing.CreditsApplied{
 					{
@@ -449,7 +449,7 @@ func TestCreditsMutatorAllocatesOnlyRemainingPayableAmount(t *testing.T) {
 	require.NoError(t, err)
 
 	out, err := (&mutator.Credits{}).Mutate(rate.PricerCalculateInput{
-		StandardLineAccessor: &billing.StandardLine{
+		LegacyProgressivelyBillableLineAccessor: &billing.StandardLine{
 			StandardLineBase: billing.StandardLineBase{
 				CreditsApplied: billing.CreditsApplied{
 					{

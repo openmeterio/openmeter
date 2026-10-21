@@ -225,6 +225,10 @@ func (*billabilityRatingService) GenerateDetailedLines(rating.StandardLineAccess
 	return rating.GenerateDetailedLinesResult{}, nil
 }
 
+func (s *billabilityRatingService) GenerateLegacyProgressiveBilledLines(in rating.LegacyProgressivelyBillableLineAccessor, opts ...rating.GenerateDetailedLinesOption) (rating.GenerateDetailedLinesResult, error) {
+	return rating.GenerateDetailedLinesResult{}, nil
+}
+
 func TestValidateCustomCurrencyInvoiceLineDeleteAllowsDraftInvoice(t *testing.T) {
 	servicePeriod := timeutil.ClosedPeriod{
 		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),

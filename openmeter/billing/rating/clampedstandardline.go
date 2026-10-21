@@ -11,23 +11,23 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-var _ StandardLineAccessor = (*ClampedStandardLineAccessor)(nil)
+var _ LegacyProgressivelyBillableLineAccessor = (*ClampedLegacyLineAccessor)(nil)
 
-// ClampedStandardLineAccessor presents negative metered quantities as zero without modifying the wrapped line.
-type ClampedStandardLineAccessor struct {
-	StandardLineAccessor
+// ClampedLegacyLineAccessor presents negative metered quantities as zero without modifying the wrapped line.
+type ClampedLegacyLineAccessor struct {
+	LegacyProgressivelyBillableLineAccessor
 
 	meteredQuantity              *alpacadecimal.Decimal
 	meteredPreLinePeriodQuantity *alpacadecimal.Decimal
 	validationWarnings           error
 }
 
-func NewClampedStandardLineAccessor(in StandardLineAccessor) (ClampedStandardLineAccessor, error) {
+func NewClampedLegacyLineAccessor(in LegacyProgressivelyBillableLineAccessor) (ClampedLegacyLineAccessor, error) {
 	var errs []error
 
 	meteredQuantity, err := in.GetMeteredQuantity()
 	if err != nil {
-		return ClampedStandardLineAccessor{}, err
+		return ClampedLegacyLineAccessor{}, err
 	}
 
 	if meteredQuantity != nil && meteredQuantity.IsNegative() {
@@ -37,7 +37,7 @@ func NewClampedStandardLineAccessor(in StandardLineAccessor) (ClampedStandardLin
 
 	meteredPreLinePeriodQuantity, err := in.GetMeteredPreLinePeriodQuantity()
 	if err != nil {
-		return ClampedStandardLineAccessor{}, err
+		return ClampedLegacyLineAccessor{}, err
 	}
 
 	if meteredPreLinePeriodQuantity != nil && meteredPreLinePeriodQuantity.IsNegative() {
@@ -45,28 +45,28 @@ func NewClampedStandardLineAccessor(in StandardLineAccessor) (ClampedStandardLin
 		errs = append(errs, billing.WarnNegativePreLinePeriodMeteredQuantityClamped)
 	}
 
-	return ClampedStandardLineAccessor{
-		StandardLineAccessor:         in,
-		meteredQuantity:              meteredQuantity,
-		meteredPreLinePeriodQuantity: meteredPreLinePeriodQuantity,
-		validationWarnings:           getValidationWarnings(in, errs),
+	return ClampedLegacyLineAccessor{
+		LegacyProgressivelyBillableLineAccessor: in,
+		meteredQuantity:                         meteredQuantity,
+		meteredPreLinePeriodQuantity:            meteredPreLinePeriodQuantity,
+		validationWarnings:                      getValidationWarnings(in, errs),
 	}, nil
 }
 
-func (a ClampedStandardLineAccessor) GetMeteredQuantity() (*alpacadecimal.Decimal, error) {
+func (a ClampedLegacyLineAccessor) GetMeteredQuantity() (*alpacadecimal.Decimal, error) {
 	return a.meteredQuantity, nil
 }
 
-func (a ClampedStandardLineAccessor) GetMeteredPreLinePeriodQuantity() (*alpacadecimal.Decimal, error) {
+func (a ClampedLegacyLineAccessor) GetMeteredPreLinePeriodQuantity() (*alpacadecimal.Decimal, error) {
 	return a.meteredPreLinePeriodQuantity, nil
 }
 
 // GetValidationWarnings returns warnings observed while reading quantities through the wrapper.
-func (a ClampedStandardLineAccessor) GetValidationWarnings() error {
+func (a ClampedLegacyLineAccessor) GetValidationWarnings() error {
 	return a.validationWarnings
 }
 
-func getValidationWarnings(in StandardLineAccessor, errs []error) error {
+func getValidationWarnings(in LegacyProgressivelyBillableLineAccessor, errs []error) error {
 	warnings := errors.Join(errs...)
 	if warnings == nil {
 		return nil

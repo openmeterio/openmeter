@@ -12,7 +12,6 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
-	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating/service"
 	stdinvoicesanity "github.com/openmeterio/openmeter/openmeter/billing/stdinvoice/sanity"
@@ -59,20 +58,21 @@ type CalculationTestCase struct {
 	UnitConfigEnabled bool
 }
 
-// unitConfigLineAccessor wraps a StandardLine to expose a unit_config, which the
-// StandardLine type itself never carries.
-type unitConfigLineAccessor struct {
+// testLineAccessor supplies rating context without constructing an invoice hierarchy.
+type testLineAccessor struct {
 	*billing.StandardLine
 
-	unitConfig *productcatalog.UnitConfig
+	unitConfig             *productcatalog.UnitConfig
+	progressivelyBilled    bool
+	previouslyBilledAmount alpacadecimal.Decimal
 }
 
-func (l unitConfigLineAccessor) GetUnitConfig() *productcatalog.UnitConfig {
+func (l testLineAccessor) GetUnitConfig() *productcatalog.UnitConfig {
 	return l.unitConfig
 }
 
 type Service interface {
-	GenerateDetailedLines(in rating.StandardLineAccessor, opts ...rating.GenerateDetailedLinesOption) (rating.GenerateDetailedLinesResult, error)
+	GenerateLegacyProgressiveBilledLines(in rating.LegacyProgressivelyBillableLineAccessor, opts ...rating.GenerateDetailedLinesOption) (rating.GenerateDetailedLinesResult, error)
 }
 
 func RunCalculationTestCase(t *testing.T, tc CalculationTestCase) {
@@ -93,32 +93,6 @@ func RunCalculationTestCase(t *testing.T, tc CalculationTestCase) {
 		},
 	}
 
-	fakeParentGroup := billing.SplitLineGroup{
-		NamespacedID: models.NamespacedID{
-			Namespace: "fake-namespace",
-			ID:        "fake-parent-group",
-		},
-		SplitLineGroupMutableFields: billing.SplitLineGroupMutableFields{
-			ServicePeriod: TestFullPeriod,
-		},
-	}
-
-	fakeHierarchy := billing.SplitLineHierarchy{
-		Group: fakeParentGroup,
-		Lines: []billing.LineWithInvoiceHeader{
-			billing.NewLineWithInvoiceHeader(billing.StandardLineWithInvoiceHeader{
-				Line: &billing.StandardLine{
-					StandardLineBase: billing.StandardLineBase{
-						// Period is unset, so this fake line is always in scope for NetAmount calculations
-						Totals: totals.Totals{
-							Amount: tc.PreviousBilledAmount,
-						},
-					},
-				},
-			}),
-		},
-	}
-
 	switch tc.LineMode {
 	case SinglePerPeriodLineMode:
 		line.Period = TestFullPeriod
@@ -127,8 +101,6 @@ func RunCalculationTestCase(t *testing.T, tc CalculationTestCase) {
 			From: TestFullPeriod.From.Add(time.Hour * 12),
 			To:   TestFullPeriod.To.Add(-time.Hour),
 		}
-		line.SplitLineGroupID = &fakeParentGroup.ID
-		line.SplitLineHierarchy = &fakeHierarchy
 
 	case LastInPeriodSplitLineMode:
 		line.Period = timeutil.ClosedPeriod{
@@ -136,8 +108,6 @@ func RunCalculationTestCase(t *testing.T, tc CalculationTestCase) {
 			To:   TestFullPeriod.To,
 		}
 
-		line.SplitLineGroupID = &fakeParentGroup.ID
-		line.SplitLineHierarchy = &fakeHierarchy
 	}
 
 	// Let's set the usage on the line
@@ -146,14 +116,18 @@ func RunCalculationTestCase(t *testing.T, tc CalculationTestCase) {
 	line.UsageBased.PreLinePeriodQuantity = &tc.Usage.PreLinePeriodQty
 	line.UsageBased.MeteredPreLinePeriodQuantity = &tc.Usage.PreLinePeriodQty
 
-	var accessor rating.StandardLineAccessor = line
-	if tc.UnitConfig != nil {
-		accessor = unitConfigLineAccessor{StandardLine: line, unitConfig: tc.UnitConfig}
+	accessor := testLineAccessor{
+		StandardLine:        line,
+		unitConfig:          tc.UnitConfig,
+		progressivelyBilled: tc.LineMode != SinglePerPeriodLineMode,
+	}
+	if accessor.progressivelyBilled {
+		accessor.previouslyBilledAmount = tc.PreviousBilledAmount
 	}
 
 	svc := service.New(service.Config{UnitConfigEnabled: tc.UnitConfigEnabled})
 
-	res, err := svc.GenerateDetailedLines(accessor, tc.Options...)
+	res, err := svc.GenerateLegacyProgressiveBilledLines(accessor, tc.Options...)
 	if err != nil {
 		if tc.ExpectErrorIs != nil {
 			require.ErrorIs(t, err, tc.ExpectErrorIs)
@@ -241,4 +215,16 @@ func RunCalculationTestCase(t *testing.T, tc CalculationTestCase) {
 	require.NoError(t, err)
 
 	require.JSONEq(t, string(expectJSON), string(resJSON))
+}
+
+func (l testLineAccessor) IsProgressivelyBilled() bool {
+	return l.progressivelyBilled
+}
+
+func (l testLineAccessor) GetProgressivelyBilledServicePeriod() (timeutil.ClosedPeriod, error) {
+	return TestFullPeriod, nil
+}
+
+func (l testLineAccessor) GetPreviouslyBilledAmount() (alpacadecimal.Decimal, error) {
+	return l.previouslyBilledAmount, nil
 }

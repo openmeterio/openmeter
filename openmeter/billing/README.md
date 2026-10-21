@@ -128,6 +128,11 @@ subscription updates snapshot and rate through that engine; immutable
 comparisons only snapshot quantities. Repeated rating starts from raw metered
 usage and retains matching detail and discount identities.
 
+The legacy engine uses a dedicated rating entrypoint whose accessor supplies
+prior-period usage, the full service period, and previously billed amounts.
+Ordinary charge rating uses its own snapshots and does not require split-line
+hierarchy access.
+
 Snapshotting and rating run on clones so a failed collection attempt cannot
 modify the prior invoice lines. Complete snapshots follow the existing reuse
 timing policy.
