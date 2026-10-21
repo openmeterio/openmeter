@@ -194,3 +194,61 @@ func invoiceWithDiscountTotal(discountTotal string) billing.StandardInvoice {
 
 	return invoice
 }
+
+func TestValidateDiscountSigns(t *testing.T) {
+	t.Parallel()
+
+	for _, tc := range []struct {
+		name     string
+		amount   string
+		discount string
+		mismatch bool
+	}{
+		{name: "positive line with discount", amount: "100", discount: "20"},
+		{name: "reversed line with reversed discount", amount: "-100", discount: "-20"},
+		{name: "zero discount on reversed line", amount: "-100", discount: "0"},
+		{name: "positive line with reversed discount", amount: "100", discount: "-20", mismatch: true},
+		{name: "reversed line with positive discount", amount: "-100", discount: "20", mismatch: true},
+		{name: "zero line with reversed discount", amount: "0", discount: "-20", mismatch: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			// Given a detailed line whose discount total reconciles with its single discount entry,
+			// next to a regular detail that keeps the parent total payable.
+			invoice := invoiceWithDiscountTotal(tc.discount)
+			line := invoice.Lines.OrEmpty()[0]
+			line.DetailedLines[0].Totals.Amount = alpacadecimal.RequireFromString(tc.amount)
+			line.DetailedLines[0].AmountDiscounts = billing.AmountLineDiscountsManaged{{
+				ID: "discount-1",
+				AmountLineDiscount: billing.AmountLineDiscount{
+					Amount: alpacadecimal.RequireFromString(tc.discount),
+				},
+			}}
+			regular := line.DetailedLines[0].Clone()
+			regular.ID = "detail-2"
+			regular.ChildUniqueReferenceID = "detail-2"
+			regular.AmountDiscounts = billing.AmountLineDiscountsManaged{}
+			regular.Totals = totals.Totals{Amount: alpacadecimal.NewFromInt(1000)}
+			line.DetailedLines = append(line.DetailedLines, regular)
+			setTestTotalsFromDetails(&invoice)
+
+			// When the invoice is checked without recalculating it.
+			err := stdinvoicesanity.Validate(invoice)
+
+			// Then only discounts working against the line amount are reported.
+			if !tc.mismatch {
+				require.NoError(t, err)
+				return
+			}
+
+			issues := requireSanityIssues(t, err)
+			require.Len(t, issues, 1)
+			require.ErrorIs(t, err, stdinvoicesanity.ErrDiscountSignMismatch)
+			require.Equal(t, stdinvoicesanity.ErrDiscountSignMismatch.Code, issues[0].Code)
+			require.Equal(t, "/lines/0/detailedLines/0/amountDiscounts/0/amount", issues[0].Path)
+			require.Equal(t, tc.amount, issues[0].Attributes["line_amount"])
+			require.Equal(t, tc.discount, issues[0].Attributes["discount_amount"])
+		})
+	}
+}

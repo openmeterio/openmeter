@@ -20,6 +20,7 @@ func Validate(invoice billing.StandardInvoice) error {
 		validateExpandedLines,
 		validateCurrency,
 		validateDiscountTotals,
+		validateDiscountSigns,
 		validateCreditTotals,
 		validateCommitmentPlacement,
 		validateTotalArithmetic,
