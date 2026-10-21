@@ -1,7 +1,11 @@
 package service
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -10,6 +14,8 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/suite"
 
+	api "github.com/openmeterio/openmeter/api/v3"
+	chargehandlers "github.com/openmeterio/openmeter/api/v3/handlers/customers/charges"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appcustominvoicing "github.com/openmeterio/openmeter/openmeter/app/custominvoicing"
 	"github.com/openmeterio/openmeter/openmeter/billing"
@@ -46,6 +52,174 @@ func (s *TaxCodePersistenceTestSuite) SetupSuite() {
 
 func (s *TaxCodePersistenceTestSuite) TearDownTest() {
 	s.BaseSuite.TearDownTest()
+}
+
+func (s *TaxCodePersistenceTestSuite) TestCustomerChargeCreatePreservesExplicitTaxIdentity() {
+	for _, chargeType := range []meta.ChargeType{meta.ChargeTypeFlatFee, meta.ChargeTypeUsageBased} {
+		s.Run(string(chargeType), func() {
+			// given: the requested and deprecated tax identities differ from the organization default
+			ctx := s.T().Context()
+			ns := s.GetUniqueNamespace("customer-charge-api-tax-identity")
+			defaults := s.ProvisionDefaultTaxCodes(ctx, ns)
+			sandboxApp := s.InstallSandboxApp(s.T(), ns)
+			_ = s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
+			cust := s.CreateTestCustomer(ns, "test-subject")
+			requestedTaxCode := s.createTestTaxCodeWithStripeMapping(ctx, ns, "requested-tax", "txcd_20000000")
+			deprecatedTaxCode := s.createTestTaxCode(ctx, ns, "deprecated-tax")
+			s.Require().NotEqual(defaults.InvoicingTaxCodeID, requestedTaxCode.ID)
+			s.Require().NotEqual(defaults.InvoicingTaxCodeID, deprecatedTaxCode.ID)
+
+			var featureID string
+			if chargeType == meta.ChargeTypeUsageBased {
+				usageFeature := s.SetupApiRequestsTotalFeature(ctx, ns)
+				defer usageFeature.Cleanup()
+				featureID = usageFeature.Feature.ID
+			}
+
+			servicePeriod := api.ClosedPeriod{
+				From: time.Date(2026, 11, 1, 0, 0, 0, 0, time.UTC),
+				To:   time.Date(2026, 12, 1, 0, 0, 0, 0, time.UTC),
+			}
+			clock.FreezeTime(servicePeriod.From.Add(-time.Hour))
+			defer clock.UnFreeze()
+
+			handler := chargehandlers.New(func(context.Context) (string, error) {
+				return ns, nil
+			}, s.Charges, false)
+
+			for _, testCase := range []struct {
+				name       string
+				taxConfig  api.BillingTaxConfig
+				wantCodeID string
+				wantStatus int
+			}{
+				{
+					name: "tax code reference",
+					taxConfig: api.BillingTaxConfig{
+						TaxCode: &api.TaxCodeReference{Id: requestedTaxCode.ID},
+					},
+					wantCodeID: requestedTaxCode.ID,
+					wantStatus: http.StatusCreated,
+				},
+				{
+					name: "Stripe code",
+					taxConfig: api.BillingTaxConfig{
+						Behavior: lo.ToPtr(api.BillingTaxBehaviorExclusive),
+						Stripe:   &api.BillingTaxConfigStripe{Code: "txcd_20000000"},
+					},
+					wantCodeID: requestedTaxCode.ID,
+					wantStatus: http.StatusCreated,
+				},
+				{
+					name: "deprecated ID remains supported",
+					taxConfig: api.BillingTaxConfig{
+						TaxCodeId: lo.ToPtr(deprecatedTaxCode.ID),
+					},
+					wantCodeID: deprecatedTaxCode.ID,
+					wantStatus: http.StatusCreated,
+				},
+				{
+					name: "reference takes precedence over deprecated ID",
+					taxConfig: api.BillingTaxConfig{
+						TaxCode:   &api.TaxCodeReference{Id: requestedTaxCode.ID},
+						TaxCodeId: lo.ToPtr(deprecatedTaxCode.ID),
+					},
+					wantCodeID: requestedTaxCode.ID,
+					wantStatus: http.StatusCreated,
+				},
+				{
+					name: "reference takes precedence over Stripe code",
+					taxConfig: api.BillingTaxConfig{
+						TaxCode: &api.TaxCodeReference{Id: requestedTaxCode.ID},
+						Stripe:  &api.BillingTaxConfigStripe{Code: "txcd_30000000"},
+					},
+					wantCodeID: requestedTaxCode.ID,
+					wantStatus: http.StatusCreated,
+				},
+				{
+					name:       "empty tax config uses organization default",
+					wantCodeID: defaults.InvoicingTaxCodeID,
+					wantStatus: http.StatusCreated,
+				},
+				{
+					name: "behavior-only config uses organization default",
+					taxConfig: api.BillingTaxConfig{
+						Behavior: lo.ToPtr(api.BillingTaxBehaviorExclusive),
+					},
+					wantCodeID: defaults.InvoicingTaxCodeID,
+					wantStatus: http.StatusCreated,
+				},
+				{
+					name: "unknown reference is rejected",
+					taxConfig: api.BillingTaxConfig{
+						TaxCode: &api.TaxCodeReference{Id: ulid.Make().String()},
+					},
+					wantStatus: http.StatusBadRequest,
+				},
+				{
+					name: "unknown reference does not fall back to deprecated ID",
+					taxConfig: api.BillingTaxConfig{
+						TaxCode:   &api.TaxCodeReference{Id: ulid.Make().String()},
+						TaxCodeId: lo.ToPtr(deprecatedTaxCode.ID),
+					},
+					wantStatus: http.StatusBadRequest,
+				},
+			} {
+				s.Run(testCase.name, func() {
+					// given: a public create request with an optional tax configuration
+					requestBody := map[string]any{
+						"type":            chargeType,
+						"name":            "explicit tax identity",
+						"currency":        "USD",
+						"invoice_at":      servicePeriod.To,
+						"service_period":  servicePeriod,
+						"settlement_mode": "credit_then_invoice",
+						"tax_config":      testCase.taxConfig,
+					}
+					if chargeType == meta.ChargeTypeFlatFee {
+						requestBody["amount_before_proration"] = api.BillingCurrencyAmount{Amount: "10", Currency: "USD"}
+						requestBody["payment_term"] = "in_arrears"
+						requestBody["proration_configuration"] = api.BillingRateCardProrationConfiguration{Mode: api.BillingRateCardProrationModeNoProration}
+					} else {
+						requestBody["feature"] = api.FeatureReference{Id: featureID}
+						requestBody["price"] = api.BillingPriceUnit{Type: api.BillingPriceUnitTypeUnit, Amount: "1"}
+					}
+
+					body, err := json.Marshal(requestBody)
+					s.Require().NoError(err)
+					request := httptest.NewRequestWithContext(s.T().Context(), http.MethodPost, "/api/v3/openmeter/customers/"+cust.ID+"/charges", bytes.NewReader(body))
+					request.Header.Set("Content-Type", "application/json")
+					response := httptest.NewRecorder()
+
+					// when: the HTTP handler creates the charge through the production service
+					handler.CreateCustomerCharge().With(chargehandlers.CreateCustomerChargesParams{CustomerID: cust.ID}).ServeHTTP(response, request)
+					s.Require().Equal(testCase.wantStatus, response.Code, response.Body.String())
+
+					// then: invalid identities fail, while valid selections survive the response and reload
+					if testCase.wantStatus == http.StatusBadRequest {
+						s.Contains(response.Body.String(), "not found")
+						return
+					}
+
+					var created struct {
+						ID        string                `json:"id"`
+						TaxConfig *api.BillingTaxConfig `json:"tax_config"`
+					}
+					s.Require().NoError(json.Unmarshal(response.Body.Bytes(), &created))
+					s.Require().NotEmpty(created.ID)
+
+					s.Require().NotNil(created.TaxConfig)
+					s.Require().NotNil(created.TaxConfig.TaxCode)
+					s.Equal(testCase.taxConfig.Behavior, created.TaxConfig.Behavior)
+					s.Equal(testCase.wantCodeID, created.TaxConfig.TaxCode.Id, "organization default: %s", defaults.InvoicingTaxCodeID)
+					s.requirePersistedChargeTaxCodeConfig(meta.ChargeID{Namespace: ns, ID: created.ID}, productcatalog.TaxCodeConfig{
+						Behavior:  (*productcatalog.TaxBehavior)(testCase.taxConfig.Behavior),
+						TaxCodeID: testCase.wantCodeID,
+					})
+				})
+			}
+		})
+	}
 }
 
 // TestFlatFeeChargePersistsTaxConfig verifies that TaxCodeID and TaxBehavior set on a flat fee

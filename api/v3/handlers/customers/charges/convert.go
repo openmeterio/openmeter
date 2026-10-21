@@ -919,7 +919,7 @@ func convertAPIChargesExpand(e api.BillingChargesExpand) (meta.Expand, error) {
 func fromAPICreateChargeFlatFeeRequest(namespace, customerID string, flatFee api.CreateChargeFlatFeeRequest) (billingcharges.CreateCustomerChargeInput, error) {
 	var zero billingcharges.CreateCustomerChargeInput
 
-	taxConfig, err := billingprofiles.FromAPIBillingTaxConfig(flatFee.TaxConfig)
+	taxConfig, err := billingprofiles.FromAPIBillingTaxConfigFull(flatFee.TaxConfig)
 	if err != nil {
 		return zero, fmt.Errorf("invalid tax config: %w", err)
 	}
@@ -974,7 +974,7 @@ func fromAPICreateChargeFlatFeeRequest(namespace, customerID string, flatFee api
 		CustomerID:        customerID,
 		CurrencyCode:      currencyx.Code(flatFee.Currency),
 		CostBasis:         costBasis,
-		TaxConfig:         productcatalog.TaxCodeConfigFrom(taxConfig),
+		TaxConfig:         lo.FromPtr(taxConfig),
 		UniqueReferenceID: flatFee.UniqueReferenceId,
 		FlatFee: &billingcharges.CreateCustomerChargeFlatFeeInput{
 			IntentMutableFields: flatfee.IntentMutableFields{
@@ -1001,7 +1001,7 @@ func fromAPICreateChargeFlatFeeRequest(namespace, customerID string, flatFee api
 func fromAPICreateChargeUsageBasedRequest(namespace, customerID string, usageBasedFee api.CreateChargeUsageBasedRequest) (billingcharges.CreateCustomerChargeInput, error) {
 	var zero billingcharges.CreateCustomerChargeInput
 
-	taxConfig, err := billingprofiles.FromAPIBillingTaxConfig(usageBasedFee.TaxConfig)
+	taxConfig, err := billingprofiles.FromAPIBillingTaxConfigFull(usageBasedFee.TaxConfig)
 	if err != nil {
 		return zero, fmt.Errorf("invalid tax config: %w", err)
 	}
@@ -1056,7 +1056,7 @@ func fromAPICreateChargeUsageBasedRequest(namespace, customerID string, usageBas
 		CustomerID:        customerID,
 		CurrencyCode:      currencyx.Code(usageBasedFee.Currency),
 		CostBasis:         costBasis,
-		TaxConfig:         productcatalog.TaxCodeConfigFrom(taxConfig),
+		TaxConfig:         lo.FromPtr(taxConfig),
 		UniqueReferenceID: usageBasedFee.UniqueReferenceId,
 		UsageBased: &billingcharges.CreateCustomerChargeUsageBasedInput{
 			IntentMutableFields: usagebased.IntentMutableFields{
