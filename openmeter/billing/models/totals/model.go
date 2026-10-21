@@ -6,6 +6,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type Totals struct {
@@ -35,38 +36,40 @@ type DeltaTotals struct {
 }
 
 func (t DeltaTotals) Validate() error {
+	var errs []error
+
 	if t.Amount.IsNegative() != t.DiscountsTotal.IsNegative() {
-		return errors.New("amount and discount total should have the same sign")
+		errs = append(errs, errors.New("amount and discount total should have the same sign"))
 	}
 
 	// always non-negative
 	if t.ChargesTotal.IsNegative() {
-		return errors.New("charges total is negative")
+		errs = append(errs, errors.New("charges total is negative"))
 	}
 
 	if t.TaxesInclusiveTotal.IsNegative() {
-		return errors.New("taxes inclusive total is negative")
+		errs = append(errs, errors.New("taxes inclusive total is negative"))
 	}
 
 	if t.TaxesExclusiveTotal.IsNegative() {
-		return errors.New("taxes exclusive total is negative")
+		errs = append(errs, errors.New("taxes exclusive total is negative"))
 	}
 
 	if t.TaxesTotal.IsNegative() {
-		return errors.New("taxes total is negative")
+		errs = append(errs, errors.New("taxes total is negative"))
 	}
 
 	// always non-negative
 	if t.Total.IsNegative() {
-		return errors.New("total is negative")
+		errs = append(errs, errors.New("total is negative"))
 	}
 
 	// TODO what if the CreditsTotal is negative?
 	// if t.CreditsTotal.IsNegative() {
-	// 	return errors.New("credits total is negative")
+	// 	errs = append(errs, errors.New("credits total is negative"))
 	// }
 
-	return nil
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 func (t Totals) Validate() error {
