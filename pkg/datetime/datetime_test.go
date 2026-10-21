@@ -120,6 +120,30 @@ func TestDateTimeAdd(t *testing.T) {
 			expected: "2025-02-01T12:00:45Z",
 		},
 		{
+			name:     "add fractional hours correctly",
+			start:    "2025-02-01T12:00:00Z",
+			duration: MustParseDuration(t, "PT1.5H"),
+			expected: "2025-02-01T13:30:00Z",
+		},
+		{
+			name:     "add fractional minutes correctly",
+			start:    "2025-02-01T12:00:00Z",
+			duration: MustParseDuration(t, "PT2.5M"),
+			expected: "2025-02-01T12:02:30Z",
+		},
+		{
+			name:     "add negative fractional hours correctly",
+			start:    "2025-02-01T12:00:00Z",
+			duration: MustParseDuration(t, "-PT1.5H"),
+			expected: "2025-02-01T10:30:00Z",
+		},
+		{
+			name:     "add hours and fractional minutes correctly",
+			start:    "2025-02-01T12:00:00Z",
+			duration: MustParseDuration(t, "PT1H0.5M"),
+			expected: "2025-02-01T13:00:30Z",
+		},
+		{
 			name:     "handle daylight savings transition",
 			start:    "2025-03-25T01:00:00+01:00[Europe/Budapest]",
 			duration: MustParseDuration(t, "PT2H"),
