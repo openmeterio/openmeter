@@ -26,7 +26,7 @@ require (
 	github.com/confluentinc/confluent-kafka-go/v2 v2.16.0
 	github.com/forscht/namegen v1.0.1
 	github.com/getkin/kin-openapi v0.149.0
-	github.com/go-chi/chi/v5 v5.4.0
+	github.com/go-chi/chi/v5 v5.5.0
 	github.com/go-chi/cors v1.2.2
 	github.com/go-chi/render v1.0.3
 	github.com/go-co-op/gocron/v2 v2.22.0
