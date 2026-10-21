@@ -84,10 +84,6 @@ type BillingInvoiceLine struct {
 	PeriodEnd time.Time `json:"period_end,omitempty"`
 	// InvoiceID holds the value of the "invoice_id" field.
 	InvoiceID string `json:"invoice_id,omitempty"`
-	// FeeLineConfigID holds the value of the "fee_line_config_id" field.
-	//
-	// Deprecated: retained for legacy invoice migrations; schema level 2 uses dedicated detailed lines
-	FeeLineConfigID *string `json:"fee_line_config_id,omitempty"`
 	// ManagedBy holds the value of the "managed_by" field.
 	ManagedBy billing.InvoiceLineManagedBy `json:"managed_by,omitempty"`
 	// ParentLineID holds the value of the "parent_line_id" field.
@@ -147,8 +143,6 @@ type BillingInvoiceLineEdges struct {
 	DetailedLinesV2 []*BillingStandardInvoiceDetailedLine `json:"detailed_lines_v2,omitempty"`
 	// LineUsageDiscounts holds the value of the line_usage_discounts edge.
 	LineUsageDiscounts []*BillingInvoiceLineUsageDiscount `json:"line_usage_discounts,omitempty"`
-	// LineAmountDiscounts holds the value of the line_amount_discounts edge.
-	LineAmountDiscounts []*BillingInvoiceLineDiscount `json:"line_amount_discounts,omitempty"`
 	// Subscription holds the value of the subscription edge.
 	Subscription *Subscription `json:"subscription,omitempty"`
 	// SubscriptionPhase holds the value of the subscription_phase edge.
@@ -173,7 +167,7 @@ type BillingInvoiceLineEdges struct {
 	TaxCode *TaxCode `json:"tax_code,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [19]bool
+	loadedTypes [18]bool
 }
 
 // BillingInvoiceOrErr returns the BillingInvoice value or an error if the edge
@@ -247,21 +241,12 @@ func (e BillingInvoiceLineEdges) LineUsageDiscountsOrErr() ([]*BillingInvoiceLin
 	return nil, &NotLoadedError{edge: "line_usage_discounts"}
 }
 
-// LineAmountDiscountsOrErr returns the LineAmountDiscounts value or an error if the edge
-// was not loaded in eager-loading.
-func (e BillingInvoiceLineEdges) LineAmountDiscountsOrErr() ([]*BillingInvoiceLineDiscount, error) {
-	if e.loadedTypes[7] {
-		return e.LineAmountDiscounts, nil
-	}
-	return nil, &NotLoadedError{edge: "line_amount_discounts"}
-}
-
 // SubscriptionOrErr returns the Subscription value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e BillingInvoiceLineEdges) SubscriptionOrErr() (*Subscription, error) {
 	if e.Subscription != nil {
 		return e.Subscription, nil
-	} else if e.loadedTypes[8] {
+	} else if e.loadedTypes[7] {
 		return nil, &NotFoundError{label: subscription.Label}
 	}
 	return nil, &NotLoadedError{edge: "subscription"}
@@ -272,7 +257,7 @@ func (e BillingInvoiceLineEdges) SubscriptionOrErr() (*Subscription, error) {
 func (e BillingInvoiceLineEdges) SubscriptionPhaseOrErr() (*SubscriptionPhase, error) {
 	if e.SubscriptionPhase != nil {
 		return e.SubscriptionPhase, nil
-	} else if e.loadedTypes[9] {
+	} else if e.loadedTypes[8] {
 		return nil, &NotFoundError{label: subscriptionphase.Label}
 	}
 	return nil, &NotLoadedError{edge: "subscription_phase"}
@@ -283,7 +268,7 @@ func (e BillingInvoiceLineEdges) SubscriptionPhaseOrErr() (*SubscriptionPhase, e
 func (e BillingInvoiceLineEdges) SubscriptionItemOrErr() (*SubscriptionItem, error) {
 	if e.SubscriptionItem != nil {
 		return e.SubscriptionItem, nil
-	} else if e.loadedTypes[10] {
+	} else if e.loadedTypes[9] {
 		return nil, &NotFoundError{label: subscriptionitem.Label}
 	}
 	return nil, &NotLoadedError{edge: "subscription_item"}
@@ -294,7 +279,7 @@ func (e BillingInvoiceLineEdges) SubscriptionItemOrErr() (*SubscriptionItem, err
 func (e BillingInvoiceLineEdges) ChargeOrErr() (*Charge, error) {
 	if e.Charge != nil {
 		return e.Charge, nil
-	} else if e.loadedTypes[11] {
+	} else if e.loadedTypes[10] {
 		return nil, &NotFoundError{label: charge.Label}
 	}
 	return nil, &NotLoadedError{edge: "charge"}
@@ -305,7 +290,7 @@ func (e BillingInvoiceLineEdges) ChargeOrErr() (*Charge, error) {
 func (e BillingInvoiceLineEdges) ChargeFlatFeeRunPaymentOrErr() (*ChargeFlatFeeRunPayment, error) {
 	if e.ChargeFlatFeeRunPayment != nil {
 		return e.ChargeFlatFeeRunPayment, nil
-	} else if e.loadedTypes[12] {
+	} else if e.loadedTypes[11] {
 		return nil, &NotFoundError{label: chargeflatfeerunpayment.Label}
 	}
 	return nil, &NotLoadedError{edge: "charge_flat_fee_run_payment"}
@@ -314,7 +299,7 @@ func (e BillingInvoiceLineEdges) ChargeFlatFeeRunPaymentOrErr() (*ChargeFlatFeeR
 // ChargeFlatFeeRunCreditAllocationsOrErr returns the ChargeFlatFeeRunCreditAllocations value or an error if the edge
 // was not loaded in eager-loading.
 func (e BillingInvoiceLineEdges) ChargeFlatFeeRunCreditAllocationsOrErr() ([]*ChargeFlatFeeRunCreditAllocations, error) {
-	if e.loadedTypes[13] {
+	if e.loadedTypes[12] {
 		return e.ChargeFlatFeeRunCreditAllocations, nil
 	}
 	return nil, &NotLoadedError{edge: "charge_flat_fee_run_credit_allocations"}
@@ -323,7 +308,7 @@ func (e BillingInvoiceLineEdges) ChargeFlatFeeRunCreditAllocationsOrErr() ([]*Ch
 // ChargeFlatFeeRunOverageCreditAllocationsOrErr returns the ChargeFlatFeeRunOverageCreditAllocations value or an error if the edge
 // was not loaded in eager-loading.
 func (e BillingInvoiceLineEdges) ChargeFlatFeeRunOverageCreditAllocationsOrErr() ([]*ChargeFlatFeeRunOverageCreditAllocations, error) {
-	if e.loadedTypes[14] {
+	if e.loadedTypes[13] {
 		return e.ChargeFlatFeeRunOverageCreditAllocations, nil
 	}
 	return nil, &NotLoadedError{edge: "charge_flat_fee_run_overage_credit_allocations"}
@@ -334,7 +319,7 @@ func (e BillingInvoiceLineEdges) ChargeFlatFeeRunOverageCreditAllocationsOrErr()
 func (e BillingInvoiceLineEdges) ChargeFlatFeeRunsOrErr() (*ChargeFlatFeeRun, error) {
 	if e.ChargeFlatFeeRuns != nil {
 		return e.ChargeFlatFeeRuns, nil
-	} else if e.loadedTypes[15] {
+	} else if e.loadedTypes[14] {
 		return nil, &NotFoundError{label: chargeflatfeerun.Label}
 	}
 	return nil, &NotLoadedError{edge: "charge_flat_fee_runs"}
@@ -345,7 +330,7 @@ func (e BillingInvoiceLineEdges) ChargeFlatFeeRunsOrErr() (*ChargeFlatFeeRun, er
 func (e BillingInvoiceLineEdges) ChargeUsageBasedRunOrErr() (*ChargeUsageBasedRuns, error) {
 	if e.ChargeUsageBasedRun != nil {
 		return e.ChargeUsageBasedRun, nil
-	} else if e.loadedTypes[16] {
+	} else if e.loadedTypes[15] {
 		return nil, &NotFoundError{label: chargeusagebasedruns.Label}
 	}
 	return nil, &NotLoadedError{edge: "charge_usage_based_run"}
@@ -356,7 +341,7 @@ func (e BillingInvoiceLineEdges) ChargeUsageBasedRunOrErr() (*ChargeUsageBasedRu
 func (e BillingInvoiceLineEdges) ChargeCreditPurchaseInvoicedPaymentOrErr() (*ChargeCreditPurchaseInvoicedPayment, error) {
 	if e.ChargeCreditPurchaseInvoicedPayment != nil {
 		return e.ChargeCreditPurchaseInvoicedPayment, nil
-	} else if e.loadedTypes[17] {
+	} else if e.loadedTypes[16] {
 		return nil, &NotFoundError{label: chargecreditpurchaseinvoicedpayment.Label}
 	}
 	return nil, &NotLoadedError{edge: "charge_credit_purchase_invoiced_payment"}
@@ -367,7 +352,7 @@ func (e BillingInvoiceLineEdges) ChargeCreditPurchaseInvoicedPaymentOrErr() (*Ch
 func (e BillingInvoiceLineEdges) TaxCodeOrErr() (*TaxCode, error) {
 	if e.TaxCode != nil {
 		return e.TaxCode, nil
-	} else if e.loadedTypes[18] {
+	} else if e.loadedTypes[17] {
 		return nil, &NotFoundError{label: dbtaxcode.Label}
 	}
 	return nil, &NotLoadedError{edge: "tax_code"}
@@ -384,7 +369,7 @@ func (*BillingInvoiceLine) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case billinginvoiceline.FieldAmount, billinginvoiceline.FieldTaxesTotal, billinginvoiceline.FieldTaxesInclusiveTotal, billinginvoiceline.FieldTaxesExclusiveTotal, billinginvoiceline.FieldChargesTotal, billinginvoiceline.FieldDiscountsTotal, billinginvoiceline.FieldCreditsTotal, billinginvoiceline.FieldTotal:
 			values[i] = new(alpacadecimal.Decimal)
-		case billinginvoiceline.FieldID, billinginvoiceline.FieldNamespace, billinginvoiceline.FieldName, billinginvoiceline.FieldDescription, billinginvoiceline.FieldCurrency, billinginvoiceline.FieldTaxCodeID, billinginvoiceline.FieldTaxBehavior, billinginvoiceline.FieldInvoicingAppExternalID, billinginvoiceline.FieldInvoiceID, billinginvoiceline.FieldFeeLineConfigID, billinginvoiceline.FieldManagedBy, billinginvoiceline.FieldParentLineID, billinginvoiceline.FieldType, billinginvoiceline.FieldStatus, billinginvoiceline.FieldChildUniqueReferenceID, billinginvoiceline.FieldSubscriptionID, billinginvoiceline.FieldSubscriptionPhaseID, billinginvoiceline.FieldSubscriptionItemID, billinginvoiceline.FieldSplitLineGroupID, billinginvoiceline.FieldChargeID, billinginvoiceline.FieldEngine:
+		case billinginvoiceline.FieldID, billinginvoiceline.FieldNamespace, billinginvoiceline.FieldName, billinginvoiceline.FieldDescription, billinginvoiceline.FieldCurrency, billinginvoiceline.FieldTaxCodeID, billinginvoiceline.FieldTaxBehavior, billinginvoiceline.FieldInvoicingAppExternalID, billinginvoiceline.FieldInvoiceID, billinginvoiceline.FieldManagedBy, billinginvoiceline.FieldParentLineID, billinginvoiceline.FieldType, billinginvoiceline.FieldStatus, billinginvoiceline.FieldChildUniqueReferenceID, billinginvoiceline.FieldSubscriptionID, billinginvoiceline.FieldSubscriptionPhaseID, billinginvoiceline.FieldSubscriptionItemID, billinginvoiceline.FieldSplitLineGroupID, billinginvoiceline.FieldChargeID, billinginvoiceline.FieldEngine:
 			values[i] = new(sql.NullString)
 		case billinginvoiceline.FieldCreatedAt, billinginvoiceline.FieldUpdatedAt, billinginvoiceline.FieldDeletedAt, billinginvoiceline.FieldPeriodStart, billinginvoiceline.FieldPeriodEnd, billinginvoiceline.FieldInvoiceAt, billinginvoiceline.FieldOverrideCollectionPeriodEnd, billinginvoiceline.FieldSubscriptionBillingPeriodFrom, billinginvoiceline.FieldSubscriptionBillingPeriodTo:
 			values[i] = new(sql.NullTime)
@@ -570,13 +555,6 @@ func (_m *BillingInvoiceLine) assignValues(columns []string, values []any) error
 			} else if value.Valid {
 				_m.InvoiceID = value.String
 			}
-		case billinginvoiceline.FieldFeeLineConfigID:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field fee_line_config_id", values[i])
-			} else if value.Valid {
-				_m.FeeLineConfigID = new(string)
-				*_m.FeeLineConfigID = value.String
-			}
 		case billinginvoiceline.FieldManagedBy:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field managed_by", values[i])
@@ -751,11 +729,6 @@ func (_m *BillingInvoiceLine) QueryLineUsageDiscounts() *BillingInvoiceLineUsage
 	return NewBillingInvoiceLineClient(_m.config).QueryLineUsageDiscounts(_m)
 }
 
-// QueryLineAmountDiscounts queries the "line_amount_discounts" edge of the BillingInvoiceLine entity.
-func (_m *BillingInvoiceLine) QueryLineAmountDiscounts() *BillingInvoiceLineDiscountQuery {
-	return NewBillingInvoiceLineClient(_m.config).QueryLineAmountDiscounts(_m)
-}
-
 // QuerySubscription queries the "subscription" edge of the BillingInvoiceLine entity.
 func (_m *BillingInvoiceLine) QuerySubscription() *SubscriptionQuery {
 	return NewBillingInvoiceLineClient(_m.config).QuerySubscription(_m)
@@ -915,11 +888,6 @@ func (_m *BillingInvoiceLine) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("invoice_id=")
 	builder.WriteString(_m.InvoiceID)
-	builder.WriteString(", ")
-	if v := _m.FeeLineConfigID; v != nil {
-		builder.WriteString("fee_line_config_id=")
-		builder.WriteString(*v)
-	}
 	builder.WriteString(", ")
 	builder.WriteString("managed_by=")
 	builder.WriteString(fmt.Sprintf("%v", _m.ManagedBy))

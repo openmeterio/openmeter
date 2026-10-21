@@ -765,64 +765,6 @@ var _ pagination.Paginator[*BillingInvoice] = (*BillingInvoiceQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (_m *BillingInvoiceFlatFeeLineConfigQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*BillingInvoiceFlatFeeLineConfig], error) {
-	// Get the limit and offset
-	limit, offset := page.Limit(), page.Offset()
-
-	// Unset previous pagination settings
-	zero := 0
-	_m.ctx.Offset = &zero
-	_m.ctx.Limit = &zero
-
-	// Create duplicate of the query to run for
-	countQuery := _m.Clone()
-	pagedQuery := _m
-
-	// Unset select for count query
-	countQuery.ctx.Fields = []string{}
-
-	// Unset ordering for count query
-	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*BillingInvoiceFlatFeeLineConfig]{
-		Page: page,
-	}
-
-	// Get the total count
-	count, err := countQuery.Count(ctx)
-	if err != nil {
-		return pagedResponse, fmt.Errorf("failed to get count: %w", err)
-	}
-	pagedResponse.TotalCount = count
-
-	// If there are no items, return the empty response early
-	if count == 0 {
-		// Items should be [] not null.
-		pagedResponse.Items = make([]*BillingInvoiceFlatFeeLineConfig, 0)
-		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
-	}
-
-	// Set the limit and offset
-	pagedQuery.ctx.Limit = &limit
-	pagedQuery.ctx.Offset = &offset
-
-	// Get the paged items
-	items, err := pagedQuery.All(ctx)
-	pagedResponse.Items = items
-	return pagedResponse, err
-}
-
-// type check
-var _ pagination.Paginator[*BillingInvoiceFlatFeeLineConfig] = (*BillingInvoiceFlatFeeLineConfigQuery)(nil)
-
-// Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
 func (_m *BillingInvoiceLineQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*BillingInvoiceLine], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -878,64 +820,6 @@ func (_m *BillingInvoiceLineQuery) Paginate(ctx context.Context, page pagination
 
 // type check
 var _ pagination.Paginator[*BillingInvoiceLine] = (*BillingInvoiceLineQuery)(nil)
-
-// Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (_m *BillingInvoiceLineDiscountQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*BillingInvoiceLineDiscount], error) {
-	// Get the limit and offset
-	limit, offset := page.Limit(), page.Offset()
-
-	// Unset previous pagination settings
-	zero := 0
-	_m.ctx.Offset = &zero
-	_m.ctx.Limit = &zero
-
-	// Create duplicate of the query to run for
-	countQuery := _m.Clone()
-	pagedQuery := _m
-
-	// Unset select for count query
-	countQuery.ctx.Fields = []string{}
-
-	// Unset ordering for count query
-	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*BillingInvoiceLineDiscount]{
-		Page: page,
-	}
-
-	// Get the total count
-	count, err := countQuery.Count(ctx)
-	if err != nil {
-		return pagedResponse, fmt.Errorf("failed to get count: %w", err)
-	}
-	pagedResponse.TotalCount = count
-
-	// If there are no items, return the empty response early
-	if count == 0 {
-		// Items should be [] not null.
-		pagedResponse.Items = make([]*BillingInvoiceLineDiscount, 0)
-		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
-	}
-
-	// Set the limit and offset
-	pagedQuery.ctx.Limit = &limit
-	pagedQuery.ctx.Offset = &offset
-
-	// Get the paged items
-	items, err := pagedQuery.All(ctx)
-	pagedResponse.Items = items
-	return pagedResponse, err
-}
-
-// type check
-var _ pagination.Paginator[*BillingInvoiceLineDiscount] = (*BillingInvoiceLineDiscountQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
