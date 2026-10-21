@@ -66,6 +66,7 @@ func TestNewClientIPMiddleware(t *testing.T) {
 			Source:            config.ClientIPSourceXFF,
 			TrustedIPPrefixes: []string{"10.0.0.0/8"},
 		}, func(r *http.Request) {
+			r.RemoteAddr = "10.0.0.2:1234"
 			r.Header.Set("X-Forwarded-For", "203.0.113.7, 10.0.0.1")
 		})
 
@@ -81,10 +82,38 @@ func TestNewClientIPMiddleware(t *testing.T) {
 			TrustedIPPrefixes: []string{"10.0.0.0/8"},
 			TrustedProxies:    3,
 		}, func(r *http.Request) {
+			r.RemoteAddr = "10.0.0.2:1234"
 			r.Header.Set("X-Forwarded-For", "203.0.113.7, 10.0.0.1")
 		})
 
 		require.Equal(t, "203.0.113.7", got)
+	})
+
+	t.Run("xff source with trusted prefixes ignores headers from untrusted peers", func(t *testing.T) {
+		// A trusted hop claimed in XFF cannot make an untrusted socket peer trusted.
+		got := resolveClientIP(t, config.ClientIPMiddlewareConfig{
+			Source:            config.ClientIPSourceXFF,
+			TrustedIPPrefixes: []string{"10.0.0.0/8"},
+		}, func(r *http.Request) {
+			r.RemoteAddr = "198.51.100.9:1234"
+			r.Header.Set("X-Forwarded-For", "203.0.113.7, 10.0.0.1")
+		})
+
+		require.Equal(t, "198.51.100.9", got)
+	})
+
+	t.Run("xff source with trusted prefixes ignores headers from untrusted peers when trusted proxies is also set", func(t *testing.T) {
+		// The proxy count must not bypass the trusted-prefix check on the socket peer.
+		got := resolveClientIP(t, config.ClientIPMiddlewareConfig{
+			Source:            config.ClientIPSourceXFF,
+			TrustedIPPrefixes: []string{"10.0.0.0/8"},
+			TrustedProxies:    1,
+		}, func(r *http.Request) {
+			r.RemoteAddr = "198.51.100.9:1234"
+			r.Header.Set("X-Forwarded-For", "203.0.113.7, 10.0.0.1")
+		})
+
+		require.Equal(t, "198.51.100.9", got)
 	})
 
 	t.Run("xff source with trusted proxies resolves the proxy-added entry", func(t *testing.T) {
