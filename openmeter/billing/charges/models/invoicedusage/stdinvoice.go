@@ -18,7 +18,7 @@ type AccruedUsage struct {
 	ServicePeriod     timeutil.ClosedPeriod             `json:"servicePeriod"`
 	LedgerTransaction *ledgertransaction.GroupReference `json:"ledgerTransaction"`
 
-	Totals totals.Totals `json:"totals"`
+	Totals totals.DeltaTotals `json:"totals"`
 }
 
 func (r AccruedUsage) Validate() error {

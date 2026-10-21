@@ -144,7 +144,7 @@ func newSettlePaymentInput(t testing.TB) SettleInvoicedPaymentInput {
 	authInput := newBookPaymentAuthorizedInput(t)
 	authInput.Run.InvoiceUsage = &invoicedusage.AccruedUsage{
 		ServicePeriod: authInput.Line.Period,
-		Totals:        authInput.Line.Totals,
+		Totals:        totals.DeltaTotals{Totals: authInput.Line.Totals},
 	}
 	authInput.Run.Payment = &payment.Invoiced{
 		Payment: payment.Payment{

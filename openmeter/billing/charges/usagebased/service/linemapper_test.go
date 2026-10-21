@@ -470,7 +470,7 @@ func TestPopulateUsageBasedStandardLineFromCustomCurrencyRunCreatesFiatOverage(t
 	preparedRun := run
 	preparedRun.InvoiceUsage = &invoicedusage.AccruedUsage{
 		ServicePeriod: period,
-		Totals: totals.Totals{
+		Totals: totals.DeltaTotals{
 			Amount: alpacadecimal.NewFromInt(5),
 			Total:  alpacadecimal.NewFromInt(5),
 		},

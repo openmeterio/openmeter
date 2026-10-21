@@ -79,7 +79,7 @@ func TestAllocateFiatOverageCreditsSkipsHandlerWhenDisabled(t *testing.T) {
 		},
 		AccruedUsage: &invoicedusage.AccruedUsage{
 			ServicePeriod: servicePeriod,
-			Totals: totals.Totals{
+			Totals: totals.DeltaTotals{
 				Amount: alpacadecimal.NewFromInt(5),
 				Total:  alpacadecimal.NewFromInt(5),
 			},

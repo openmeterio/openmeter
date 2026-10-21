@@ -729,7 +729,7 @@ func (e *usageBasedHandlerTestEnv) newRunWithInvoiceUsage(lineID string, total a
 	run := e.newRunWithLine(lineID)
 	run.InvoiceUsage = &invoicedusage.AccruedUsage{
 		ServicePeriod: e.newCharge(productcatalog.CreditThenInvoiceSettlementMode).Intent.GetEffectiveServicePeriod(),
-		Totals: totals.Totals{
+		Totals: totals.DeltaTotals{
 			Amount: total,
 			Total:  total,
 		},

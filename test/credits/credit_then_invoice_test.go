@@ -2185,7 +2185,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoicePartialCreditPa
 			Amount:       5,
 			CreditsTotal: 2,
 			Total:        3,
-		}, accruedUsage.Totals)
+		}, accruedUsage.Totals.Totals)
 		s.Nil(charge.Realizations.CurrentRun.Payment)
 		s.True(charge.Realizations.CurrentRun.DetailedLines.IsPresent())
 		s.Len(charge.Realizations.CurrentRun.DetailedLines.OrEmpty(), 1)

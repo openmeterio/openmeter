@@ -1041,7 +1041,7 @@ func (e *flatFeeHandlerTestEnv) newChargeWithAccruedUsage(total alpacadecimal.De
 	}
 	charge.Realizations.CurrentRun.AccruedUsage = &invoicedusage.AccruedUsage{
 		ServicePeriod: servicePeriod,
-		Totals: totals.Totals{
+		Totals: totals.DeltaTotals{
 			Amount: total,
 			Total:  total,
 		},
@@ -1083,7 +1083,7 @@ func (e *flatFeeHandlerTestEnv) newChargeWithCreditRealizationsAndAccruedUsage(r
 	}
 	charge.Realizations.CurrentRun.AccruedUsage = &invoicedusage.AccruedUsage{
 		ServicePeriod: servicePeriod,
-		Totals: totals.Totals{
+		Totals: totals.DeltaTotals{
 			Amount: accruedTotal,
 			Total:  accruedTotal,
 		},

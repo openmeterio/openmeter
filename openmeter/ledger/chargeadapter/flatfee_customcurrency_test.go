@@ -152,7 +152,7 @@ func TestOnFlatFeeCustomCurrencyOverageAccruedCorrection(t *testing.T) {
 	require.NoError(t, err)
 	run.AccruedUsage = &invoicedusage.AccruedUsage{
 		ServicePeriod:     run.ServicePeriod,
-		Totals:            totals.Totals{Amount: result.TotalFiatAmount, Total: result.TotalFiatAmount},
+		Totals:            totals.DeltaTotals{Amount: result.TotalFiatAmount, Total: result.TotalFiatAmount},
 		LedgerTransaction: &result.TransactionGroup,
 	}
 
@@ -286,7 +286,7 @@ func TestOnFlatFeeCustomCurrencyOverageAccruedCorrection_TransactionOrder(t *tes
 
 			run.AccruedUsage = &invoicedusage.AccruedUsage{
 				ServicePeriod: run.ServicePeriod,
-				Totals:        totals.Totals{Amount: alpacadecimal.NewFromInt(10), Total: alpacadecimal.NewFromInt(10)},
+				Totals:        totals.DeltaTotals{Amount: alpacadecimal.NewFromInt(10), Total: alpacadecimal.NewFromInt(10)},
 				LedgerTransaction: &ledgertransaction.GroupReference{
 					TransactionGroupID: group.ID().ID,
 				},
@@ -340,7 +340,7 @@ func TestOnFlatFeeCustomCurrencyOverageAccruedCorrection_NoLedgerTransaction(t *
 	})
 	run.AccruedUsage = &invoicedusage.AccruedUsage{
 		ServicePeriod: run.ServicePeriod,
-		Totals:        totals.Totals{},
+		Totals:        totals.DeltaTotals{},
 	}
 
 	// A positive native overage that rounded to zero fiat persisted no ledger

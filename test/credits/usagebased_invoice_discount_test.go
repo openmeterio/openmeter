@@ -1024,6 +1024,26 @@ func (s *CreditThenInvoiceTestSuite) TestPercentageDiscountProgressiveBillingUsa
 		s.RequireTotals(expectedTotals, invoiceLine.Totals)
 		s.RequireTotals(expectedTotals, invoice.Totals)
 
+		// When the invoice is approved, the signed delta is accrued and the final run closes
+		clock.FreezeTime(invoice.DefaultCollectionAtForStandardInvoice())
+		defer clock.UnFreeze()
+		invoice, err = s.BillingService.AdvanceInvoice(ctx, invoice.GetInvoiceID())
+		s.Require().NoError(err)
+		invoice, err = s.BillingService.ApproveInvoice(ctx, invoice.GetInvoiceID())
+		s.Require().NoError(err)
+		s.Equal(billing.StandardInvoiceStatusPaymentProcessingPending, invoice.Status)
+		s.Empty(invoice.ValidationIssues)
+
+		charge := s.RequireUsageBasedChargeStatus(meta.ChargeID{Namespace: namespace, ID: *res.Lines[0].ChargeID}, usagebased.StatusActiveAwaitingPaymentSettlement)
+		finalRun, found := lo.Find(charge.Realizations, func(run usagebased.RealizationRun) bool {
+			return run.InvoiceID != nil && *run.InvoiceID == invoice.ID
+		})
+		s.Require().True(found)
+		s.True(finalRun.Immutable)
+		s.Require().NotNil(finalRun.InvoiceUsage)
+		s.RequireTotals(expectedTotals, finalRun.InvoiceUsage.Totals.Totals)
+		s.NotNil(finalRun.InvoiceUsage.LedgerTransaction)
+
 		// The final run consumed the pending line
 		gathering, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
 			Namespace:        namespace,
@@ -1271,6 +1291,29 @@ func (s *CreditThenInvoiceTestSuite) TestPercentageDiscountProgressiveBillingUsa
 		s.RequireTotals(expectedTotals, invoiceLine.Totals)
 		s.RequireTotals(expectedTotals, invoice.Totals)
 		s.AssertDecimalEqual(alpacadecimal.Zero, s.CreateLedgerSnapshot(ledgerSnapshotInput).FBO, "invoice 2 consumes the remaining 1.5 credits")
+
+		// When the invoice is approved, the signed delta is accrued and the final run closes
+		clock.FreezeTime(invoice.DefaultCollectionAtForStandardInvoice())
+		defer clock.UnFreeze()
+		invoice, err = s.BillingService.AdvanceInvoice(ctx, invoice.GetInvoiceID())
+		s.Require().NoError(err)
+		invoice, err = s.BillingService.ApproveInvoice(ctx, invoice.GetInvoiceID())
+		s.Require().NoError(err)
+		s.Equal(billing.StandardInvoiceStatusPaymentProcessingPending, invoice.Status)
+		s.Empty(invoice.ValidationIssues)
+
+		charge := s.RequireUsageBasedChargeStatus(meta.ChargeID{Namespace: namespace, ID: *res.Lines[0].ChargeID}, usagebased.StatusActiveAwaitingPaymentSettlement)
+		finalRun, found := lo.Find(charge.Realizations, func(run usagebased.RealizationRun) bool {
+			return run.InvoiceID != nil && *run.InvoiceID == invoice.ID
+		})
+		s.Require().True(found)
+		s.True(finalRun.Immutable)
+		s.Require().NotNil(finalRun.InvoiceUsage)
+		s.RequireTotals(expectedTotals, finalRun.InvoiceUsage.Totals.Totals)
+		s.NotNil(finalRun.InvoiceUsage.LedgerTransaction)
+
+		// All consumed credits stay accrued: the signed delta allocates, it never reverses
+		s.Equal(float64(45), s.CreateLedgerSnapshot(ledgerSnapshotInput).Accrued.InexactFloat64())
 
 		// The final run consumed the pending line
 		gathering, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
