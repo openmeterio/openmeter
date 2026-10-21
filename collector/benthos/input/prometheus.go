@@ -237,7 +237,7 @@ func (in *prometheusInput) scrape(ctx context.Context, t time.Time) error {
 		in.logger.Tracef("executing query: %s", query.PromQL)
 
 		// Execute the PromQL query with the offset applied time
-		result, warnings, err := in.client.Query(ctx, query.PromQL, queryTime)
+		result, warnings, infos, err := in.client.Query(ctx, query.PromQL, queryTime)
 		if err != nil {
 			in.logger.Errorf("error executing query %s: %v", query.PromQL, err)
 			return err
@@ -246,6 +246,12 @@ func (in *prometheusInput) scrape(ctx context.Context, t time.Time) error {
 		if len(warnings) > 0 {
 			for _, warning := range warnings {
 				in.logger.Warnf("warning for query %s: %s", query.PromQL, warning)
+			}
+		}
+
+		if len(infos) > 0 {
+			for _, info := range infos {
+				in.logger.Debugf("info for query %s: %s", query.PromQL, info)
 			}
 		}
 
