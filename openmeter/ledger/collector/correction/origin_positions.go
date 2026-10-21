@@ -34,7 +34,7 @@ func (c *Corrector) readOriginPositions(ctx context.Context, input Input, id str
 
 	for _, bucket := range buckets {
 		if lo.FromPtr(bucket.GroupByValues[ledger.BalanceBucketGroupBySpendChargeID]) != input.ChargeID {
-			return nil, models.NewError("ledger_correction_failed", "collection origin belongs to a different spend charge", models.WithAttribute("reason", "ledger_correction_spend_charge_mismatch"))
+			return nil, models.NewError(ledger.ErrCodeCorrectionFailed, "collection origin belongs to a different spend charge", models.WithAttribute("reason", "ledger_correction_spend_charge_mismatch"))
 		}
 
 		currency := bucket.Address.Route().Route().Currency.IdentityKey()

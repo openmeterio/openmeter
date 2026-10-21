@@ -146,7 +146,7 @@ func (i PlanIssuanceInput) Validate() error {
 	}
 
 	if immediateReleaseAmount.GreaterThan(i.Amount) {
-		errs = append(errs, models.NewError("ledger_breakage_failed", "immediate release amount cannot exceed amount", models.WithAttribute("reason", "ledger_breakage_release_exceeds_issuance")))
+		errs = append(errs, models.NewError(ledger.ErrCodeBreakageFailed, "immediate release amount cannot exceed amount", models.WithAttribute("reason", "ledger_breakage_release_exceeds_issuance")))
 	}
 
 	if err := i.Currency.Validate(); err != nil {
@@ -234,7 +234,7 @@ func (i ReleasePlanInput) Validate() error {
 	}
 
 	if i.Amount.GreaterThan(i.Plan.OpenAmount) {
-		errs = append(errs, models.NewError("ledger_breakage_failed", "release amount cannot exceed open plan amount", models.WithAttribute("reason", "ledger_breakage_release_exceeds_open_amount")))
+		errs = append(errs, models.NewError(ledger.ErrCodeBreakageFailed, "release amount cannot exceed open plan amount", models.WithAttribute("reason", "ledger_breakage_release_exceeds_open_amount")))
 	}
 
 	if i.Plan.FBOAddress == nil {
@@ -291,7 +291,7 @@ func (i ReopenReleaseInput) Validate() error {
 	}
 
 	if i.Amount.GreaterThan(i.Release.OpenAmount) {
-		errs = append(errs, models.NewError("ledger_breakage_failed", "reopen amount cannot exceed open release amount", models.WithAttribute("reason", "ledger_breakage_reopen_exceeds_open_amount")))
+		errs = append(errs, models.NewError(ledger.ErrCodeBreakageFailed, "reopen amount cannot exceed open release amount", models.WithAttribute("reason", "ledger_breakage_reopen_exceeds_open_amount")))
 	}
 
 	if i.Release.FBOAddress == nil {
@@ -654,7 +654,7 @@ func (s *service) ListExpiredRecords(ctx context.Context, input ListExpiredRecor
 // Deferred ledger FKs reject discarded postings at the enclosing transaction's commit.
 func (s *service) recordPosting(ctx context.Context, input PostingInput, record Record, posting ledger.TransactionInput) (ledger.TransactionInput, error) {
 	if _, err := transaction.GetDriverFromContext(ctx); err != nil {
-		return nil, models.NewError("ledger_breakage_failed", fmt.Sprintf("breakage requires the caller's transaction: %v", err), models.WithAttribute("reason", "ledger_breakage_transaction_required"), models.WithCause(err))
+		return nil, models.NewError(ledger.ErrCodeBreakageFailed, fmt.Sprintf("breakage requires the caller's transaction: %v", err), models.WithAttribute("reason", "ledger_breakage_transaction_required"), models.WithCause(err))
 	}
 
 	posting, err := ledger.PreassignIDs(posting)
@@ -777,7 +777,7 @@ func (s *service) resolveBreakageTemplate(
 	}
 
 	if len(inputs) != 1 {
-		return nil, models.NewError("ledger_breakage_failed", fmt.Sprintf("expected one breakage transaction input, got %d", len(inputs)), models.WithAttribute("reason", "ledger_breakage_transaction_count_invalid"))
+		return nil, models.NewError(ledger.ErrCodeBreakageFailed, fmt.Sprintf("expected one breakage transaction input, got %d", len(inputs)), models.WithAttribute("reason", "ledger_breakage_transaction_count_invalid"))
 	}
 
 	kind, err := breakageKindForTemplate(template)

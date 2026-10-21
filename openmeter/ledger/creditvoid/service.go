@@ -302,7 +302,7 @@ func (s *service) planVoid(ctx context.Context, input VoidCreditPurchaseInput) (
 		expiryPlan, ok := openPlansBySubAccount[bucket.Address.SubAccountID()]
 		if ok {
 			if expiryPlan.OpenAmount.LessThan(slice.amount) {
-				return voidPlan{}, models.NewError("ledger_void_failed", fmt.Sprintf("open expiry breakage plan %s amount %s is less than voided amount %s", expiryPlan.ID.ID, expiryPlan.OpenAmount, slice.amount), models.WithAttribute("reason", "ledger_void_exceeds_open_breakage"))
+				return voidPlan{}, models.NewError(ledger.ErrCodeVoidFailed, fmt.Sprintf("open expiry breakage plan %s amount %s is less than voided amount %s", expiryPlan.ID.ID, expiryPlan.OpenAmount, slice.amount), models.WithAttribute("reason", "ledger_void_exceeds_open_breakage"))
 			}
 
 			slice.expiryPlan = &expiryPlan
@@ -423,7 +423,7 @@ func (s *service) resolveVoidSlice(ctx context.Context, input VoidCreditPurchase
 	}
 
 	if len(inputs) != 1 {
-		return nil, pendingVoidRecord{}, models.NewError("ledger_void_failed", fmt.Sprintf("expected one issue correction transaction input, got %d", len(inputs)), models.WithAttribute("reason", "ledger_void_transaction_count_invalid"))
+		return nil, pendingVoidRecord{}, models.NewError(ledger.ErrCodeVoidFailed, fmt.Sprintf("expected one issue correction transaction input, got %d", len(inputs)), models.WithAttribute("reason", "ledger_void_transaction_count_invalid"))
 	}
 
 	correctedFBO, correctedReceivable, err := correctionEntrySubAccounts(inputs[0])
@@ -432,7 +432,7 @@ func (s *service) resolveVoidSlice(ctx context.Context, input VoidCreditPurchase
 	}
 
 	if correctedFBO != slice.fboAddress.SubAccountID() {
-		return nil, pendingVoidRecord{}, models.NewError("ledger_void_failed", fmt.Sprintf("issue correction FBO sub-account %s does not match voided FBO sub-account %s", correctedFBO, slice.fboAddress.SubAccountID()), models.WithAttribute("reason", "ledger_void_source_account_mismatch"))
+		return nil, pendingVoidRecord{}, models.NewError(ledger.ErrCodeVoidFailed, fmt.Sprintf("issue correction FBO sub-account %s does not match voided FBO sub-account %s", correctedFBO, slice.fboAddress.SubAccountID()), models.WithAttribute("reason", "ledger_void_source_account_mismatch"))
 	}
 
 	record := pendingVoidRecord{
@@ -488,7 +488,7 @@ func (s *service) originalIssueTransaction(ctx context.Context, input VoidCredit
 		}
 
 		if page.NextCursor == nil {
-			return nil, models.NewError("ledger_void_failed", fmt.Sprintf("issue transaction for charge %s FBO sub-account %s not found", input.ChargeID, slice.fboAddress.SubAccountID()), models.WithAttribute("reason", "ledger_void_original_transaction_missing"))
+			return nil, models.NewError(ledger.ErrCodeVoidFailed, fmt.Sprintf("issue transaction for charge %s FBO sub-account %s not found", input.ChargeID, slice.fboAddress.SubAccountID()), models.WithAttribute("reason", "ledger_void_original_transaction_missing"))
 		}
 
 		cursor = page.NextCursor

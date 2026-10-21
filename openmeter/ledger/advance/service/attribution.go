@@ -114,7 +114,7 @@ func allocateAccruedBackedAdvanceAttributions(
 				}
 			})
 			if allocation.Amount.Sub(consumed).IsPositive() {
-				return nil, models.NewError("ledger_advance_failed", fmt.Sprintf("advance attribution allocation %s exceeds remaining receivable for spend charge", allocation.Amount.String()), models.WithAttribute("reason", "ledger_advance_attribution_exceeds_receivable"))
+				return nil, models.NewError(ledger.ErrCodeAdvanceFailed, fmt.Sprintf("advance attribution allocation %s exceeds remaining receivable for spend charge", allocation.Amount.String()), models.WithAttribute("reason", "ledger_advance_attribution_exceeds_receivable"))
 			}
 
 			attributions = append(attributions, allocated...)

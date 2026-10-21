@@ -129,7 +129,7 @@ func (s *service) planRecognition(ctx context.Context, in RecognizeEarningsInput
 
 func (s *service) recognitionGroup(ctx context.Context, namespace, id string, groups map[string]ledger.TransactionGroup) (ledger.TransactionGroup, error) {
 	if id == "" {
-		return nil, models.NewError("ledger_recognition_failed", "recognition lineage is missing its allocation or backing transaction group", models.WithAttribute("reason", "ledger_recognition_lineage_reference_missing"))
+		return nil, models.NewError(ledger.ErrCodeRecognitionFailed, "recognition lineage is missing its allocation or backing transaction group", models.WithAttribute("reason", "ledger_recognition_lineage_reference_missing"))
 	}
 
 	if group, ok := groups[id]; ok {
@@ -211,7 +211,7 @@ func allocationAccruedSources(group ledger.TransactionGroup, sortHint int) ([]ac
 		}
 	}
 
-	return nil, models.NewError("ledger_recognition_failed", fmt.Sprintf("allocation sort hint %d out of range for recognition source group", sortHint), models.WithAttribute("reason", "ledger_recognition_allocation_reference_invalid"))
+	return nil, models.NewError(ledger.ErrCodeRecognitionFailed, fmt.Sprintf("allocation sort hint %d out of range for recognition source group", sortHint), models.WithAttribute("reason", "ledger_recognition_allocation_reference_invalid"))
 }
 
 func sameFundingRoute(left, right ledger.Route) bool {

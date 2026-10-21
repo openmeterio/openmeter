@@ -61,7 +61,7 @@ func (s *service) PlanLegacyCorrection(ctx context.Context, input advance.Legacy
 		}
 
 		if attribution == nil {
-			return out, models.NewError("ledger_advance_failed", fmt.Sprintf("backing group %s has no receivable attribution matching the collected source", group.ID().ID), models.WithAttribute("reason", "ledger_advance_receivable_attribution_missing"))
+			return out, models.NewError(ledger.ErrCodeAdvanceFailed, fmt.Sprintf("backing group %s has no receivable attribution matching the collected source", group.ID().ID), models.WithAttribute("reason", "ledger_advance_receivable_attribution_missing"))
 		}
 
 		out.LegacyCorrections = append(out.LegacyCorrections, transactions.CorrectionInput{
@@ -272,5 +272,5 @@ func (s *service) backfilledCreditReissueRoute(group ledger.TransactionGroup) (b
 		}, nil
 	}
 
-	return backfilledCreditReissueRouteResult{}, models.NewError("ledger_advance_failed", fmt.Sprintf("backing transaction group %s does not contain a known cost basis route", group.ID().ID), models.WithAttribute("reason", "ledger_advance_cost_basis_route_missing"))
+	return backfilledCreditReissueRouteResult{}, models.NewError(ledger.ErrCodeAdvanceFailed, fmt.Sprintf("backing transaction group %s does not contain a known cost basis route", group.ID().ID), models.WithAttribute("reason", "ledger_advance_cost_basis_route_missing"))
 }

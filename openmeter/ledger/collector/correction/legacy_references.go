@@ -77,7 +77,7 @@ func reserveCorrectionSources(entries []ledger.Entry, amount alpacadecimal.Decim
 	}
 
 	if remaining.IsPositive() {
-		return nil, models.NewError("ledger_correction_failed", fmt.Sprintf("correction exceeds remaining source capacity by %s", remaining), models.WithAttribute("reason", "ledger_correction_exceeds_source_capacity"))
+		return nil, models.NewError(ledger.ErrCodeCorrectionFailed, fmt.Sprintf("correction exceeds remaining source capacity by %s", remaining), models.WithAttribute("reason", "ledger_correction_exceeds_source_capacity"))
 	}
 
 	return out, nil
@@ -138,12 +138,12 @@ func (c *Corrector) recognizedSourceAmounts(ctx context.Context, input recognize
 	}
 
 	if !selected.Equal(input.amount) {
-		return nil, models.NewError("ledger_correction_failed", fmt.Sprintf("recognition source coverage %s does not match correction amount %s", selected, input.amount), models.WithAttribute("reason", "ledger_correction_recognition_coverage_mismatch"))
+		return nil, models.NewError(ledger.ErrCodeCorrectionFailed, fmt.Sprintf("recognition source coverage %s does not match correction amount %s", selected, input.amount), models.WithAttribute("reason", "ledger_correction_recognition_coverage_mismatch"))
 	}
 
 	for _, remaining := range accrued {
 		if !remaining.IsZero() {
-			return nil, models.NewError("ledger_correction_failed", fmt.Sprintf("recognition correction leaves unmatched accrued amount %s", remaining), models.WithAttribute("reason", "ledger_correction_accrued_unmatched"))
+			return nil, models.NewError(ledger.ErrCodeCorrectionFailed, fmt.Sprintf("recognition correction leaves unmatched accrued amount %s", remaining), models.WithAttribute("reason", "ledger_correction_accrued_unmatched"))
 		}
 	}
 

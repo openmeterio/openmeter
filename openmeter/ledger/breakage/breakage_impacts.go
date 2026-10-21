@@ -94,7 +94,7 @@ func (s *service) ListExpiredBreakageImpacts(ctx context.Context, input ListExpi
 
 		reference := subAccount.Route().Currency.Clone()
 		if reference.GetCode() != record.Currency {
-			return ListExpiredBreakageImpactsResult{}, models.NewError("ledger_breakage_failed", fmt.Sprintf("breakage FBO sub-account %s currency %s does not match record currency %s", record.FBOSubAccountID, reference.GetCode(), record.Currency), models.WithAttribute("reason", "ledger_breakage_currency_mismatch"))
+			return ListExpiredBreakageImpactsResult{}, models.NewError(ledger.ErrCodeBreakageFailed, fmt.Sprintf("breakage FBO sub-account %s currency %s does not match record currency %s", record.FBOSubAccountID, reference.GetCode(), record.Currency), models.WithAttribute("reason", "ledger_breakage_currency_mismatch"))
 		}
 
 		currencyReferences[record.FBOSubAccountID] = reference
@@ -150,11 +150,11 @@ func (s *service) ListExpiredBreakageImpacts(ctx context.Context, input ListExpi
 		}
 
 		if group.amount.IsNegative() {
-			return ListExpiredBreakageImpactsResult{}, models.NewError("ledger_breakage_failed", fmt.Sprintf("expired breakage amount is negative for %s %s", group.expiresAt, group.currency), models.WithAttribute("reason", "ledger_breakage_expired_amount_negative"))
+			return ListExpiredBreakageImpactsResult{}, models.NewError(ledger.ErrCodeBreakageFailed, fmt.Sprintf("expired breakage amount is negative for %s %s", group.expiresAt, group.currency), models.WithAttribute("reason", "ledger_breakage_expired_amount_negative"))
 		}
 
 		if group.cursorID.ID == "" {
-			return ListExpiredBreakageImpactsResult{}, models.NewError("ledger_breakage_failed", fmt.Sprintf("expired breakage impact has no plan record for %s %s", group.expiresAt, group.currency), models.WithAttribute("reason", "ledger_breakage_plan_missing"))
+			return ListExpiredBreakageImpactsResult{}, models.NewError(ledger.ErrCodeBreakageFailed, fmt.Sprintf("expired breakage impact has no plan record for %s %s", group.expiresAt, group.currency), models.WithAttribute("reason", "ledger_breakage_plan_missing"))
 		}
 
 		annotations := models.Annotations{
