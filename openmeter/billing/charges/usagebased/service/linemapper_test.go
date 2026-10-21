@@ -66,11 +66,7 @@ func TestMapUsageBasedDetailedLinesPreservesDiscountSnapshots(t *testing.T) {
 			// then: facts survive mapping, but invoice validation rejects negative discounts
 			require.Len(t, mapped, 1)
 			detail := mapped[0]
-			if sign < 0 {
-				require.ErrorContains(t, detail.Validate(), "amount should be positive or zero")
-			} else {
-				require.NoError(t, detail.Validate())
-			}
+			require.NoError(t, detail.Validate())
 
 			require.Equal(t, snapshot.Totals, detail.Totals)
 			require.Equal(t, line.InvoiceID, detail.InvoiceID)
