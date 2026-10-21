@@ -46,19 +46,6 @@ func (a *adapter) LockCustomerForUpdate(ctx context.Context, input billing.LockC
 			return err
 		}
 
-		// Temp: until the migrations are complete
-		migrationStatus, err := tx.shouldInvoicesBeMigrated(ctx, input)
-		if err != nil {
-			return err
-		}
-
-		if migrationStatus.shouldMigrate {
-			err := tx.migrateCustomerInvoices(ctx, input, migrationStatus.minSchemaLevel)
-			if err != nil {
-				return err
-			}
-		}
-
 		return nil
 	})
 }

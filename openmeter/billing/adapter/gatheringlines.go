@@ -12,7 +12,6 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
@@ -72,40 +71,21 @@ func (a *adapter) GetGatheringLinesForSubscription(ctx context.Context, in billi
 					return fmt.Errorf("billing invoice not found for line [id=%s]", line.ID)
 				}
 
+				if line.Edges.BillingInvoice.CustomerID != in.CustomerID {
+					return fmt.Errorf("billing invoice has the wrong customer [id=%s, customer_id=%s]", line.Edges.BillingInvoice.ID, line.Edges.BillingInvoice.CustomerID)
+				}
+
+				if line.Edges.BillingInvoice.SchemaLevel != billing.CurrentInvoiceSchemaLevel {
+					return fmt.Errorf("unsupported invoice schema level: %d", line.Edges.BillingInvoice.SchemaLevel)
+				}
+
 				return nil
 			})...,
 		); err != nil {
 			return nil, err
 		}
 
-		invoiceSchemaLevelByID, err := tx.getSchemaLevelPerInvoice(ctx, customer.CustomerID{
-			Namespace: in.Namespace,
-			ID:        in.CustomerID,
-		})
-		if err != nil {
-			return nil, fmt.Errorf("getting schema level per invoice: %w", err)
-		}
-
-		dbLinesByInvoiceID := lo.GroupBy(dbLines, func(line *db.BillingInvoiceLine) string {
-			return line.Edges.BillingInvoice.ID
-		})
-
-		gatheringLines := make(billing.GatheringLines, 0, len(dbLines))
-		for invoiceID, dbLinesForInvoice := range dbLinesByInvoiceID {
-			schemaLevel, found := invoiceSchemaLevelByID[invoiceID]
-			if !found {
-				return nil, fmt.Errorf("schema level not found for invoice [id=%s]", invoiceID)
-			}
-
-			mappedLines, err := tx.mapGatheringInvoiceLinesFromDB(schemaLevel, dbLinesForInvoice)
-			if err != nil {
-				return nil, fmt.Errorf("mapping gathering lines: %w", err)
-			}
-
-			gatheringLines = append(gatheringLines, mappedLines...)
-		}
-
-		return gatheringLines, nil
+		return tx.mapGatheringInvoiceLinesFromDB(dbLines)
 	})
 }
 
@@ -363,13 +343,13 @@ func (a *adapter) updateGatheringLines(ctx context.Context, lines billing.Gather
 	return nil
 }
 
-func (a *adapter) mapGatheringInvoiceLinesFromDB(schemaLevel int, dbLines []*db.BillingInvoiceLine) (billing.GatheringLines, error) {
+func (a *adapter) mapGatheringInvoiceLinesFromDB(dbLines []*db.BillingInvoiceLine) (billing.GatheringLines, error) {
 	return slicesx.MapWithErr(dbLines, func(dbLine *db.BillingInvoiceLine) (billing.GatheringLine, error) {
-		return a.mapGatheringInvoiceLineFromDB(schemaLevel, dbLine)
+		return a.mapGatheringInvoiceLineFromDB(dbLine)
 	})
 }
 
-func (a *adapter) mapGatheringInvoiceLineFromDB(schemaLevel int, dbLine *db.BillingInvoiceLine) (billing.GatheringLine, error) {
+func (a *adapter) mapGatheringInvoiceLineFromDB(dbLine *db.BillingInvoiceLine) (billing.GatheringLine, error) {
 	if dbLine.Type != billing.InvoiceLineAdapterTypeUsageBased {
 		return billing.GatheringLine{}, fmt.Errorf("only usage based lines can be gathering invoice lines [line_id=%s]", dbLine.ID)
 	}

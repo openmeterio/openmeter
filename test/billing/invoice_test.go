@@ -20,7 +20,6 @@ import (
 
 	appsandbox "github.com/openmeterio/openmeter/openmeter/app/sandbox"
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	billingadapter "github.com/openmeterio/openmeter/openmeter/billing/adapter"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
@@ -428,7 +427,7 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 				// The customer snapshot
 				CustomerID: customerEntity.ID,
 
-				SchemaLevel: billingadapter.DefaultInvoiceWriteSchemaLevel,
+				SchemaLevel: billing.CurrentInvoiceSchemaLevel,
 			},
 
 			Lines: billing.NewGatheringInvoiceLines([]billing.GatheringLine{expectedUSDLine}),

@@ -17,10 +17,6 @@ type DetailedLineBase struct {
 
 	// Relationships
 	InvoiceID string `json:"invoiceID"`
-
-	// FeeLineConfigID contains the ID of the fee configuration in the DB, this should go away
-	// as soon as we split the ubp/flatfee db parts
-	FeeLineConfigID string `json:"feeLineConfigID,omitempty"`
 }
 
 var _ models.Validator = (*DetailedLineBase)(nil)
@@ -48,8 +44,7 @@ func (l DetailedLineBase) Clone() DetailedLineBase {
 
 func (l DetailedLineBase) Equal(other DetailedLineBase) bool {
 	return l.Base.Equal(other.Base) &&
-		l.InvoiceID == other.InvoiceID &&
-		l.FeeLineConfigID == other.FeeLineConfigID
+		l.InvoiceID == other.InvoiceID
 }
 
 type DetailedLine struct {

@@ -62,6 +62,25 @@ corrections, but invoicing rejects negative discount amounts until credit-note
 handling is supported. Charge engines map discount facts into billing-managed
 resources and reuse their identities through stable child references.
 
+## Invoice storage compatibility
+
+The application reads and writes invoice schema level 2. Standard lines remain
+in `billing_invoice_lines`; calculated details and their amount discounts live
+in the dedicated standard-invoice detail tables. Customer locking serializes
+invoice manipulation without running data migrations. Invoice storage reads
+and updates reject schema levels other than 2. Historical invoice event
+snapshots retain their original schema marker and remain replayable. The
+schema-level adapter remains available for migration tooling and future use
+until all data migrations are complete; it does not select the invoice storage
+representation at runtime.
+
+Upgrade databases through the invoice schema-level-2 backfill before deploying
+this application. Historical migrations and the frozen Ent adoption baseline
+still support older storage layouts. The legacy tables and copied source rows
+remain for a later storage cleanup; queries must continue excluding legacy
+`detailed` rows from standard invoice lines. Parent-line relationships also
+remain in use by split lines.
+
 ## Time has distinct meanings
 
 - a line's service period is when the service was provided

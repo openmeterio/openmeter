@@ -966,7 +966,6 @@ func (c StandardLine) DetailedLinesWithIDReuse(l DetailedLines) DetailedLines {
 		if existing, ok := childrenRefToLine[newChild.ChildUniqueReferenceID]; ok {
 			// Let's retain the database ID to achieve an update instead of a delete/create
 			newChild.ID = existing.ID
-			newChild.FeeLineConfigID = existing.FeeLineConfigID
 
 			// Let's make sure we retain the created and updated at timestamps so that we
 			// don't trigger an update in vain
@@ -1126,10 +1125,9 @@ func (i UsageBasedLine) Validate() error {
 }
 
 type UpsertInvoiceLinesAdapterInput struct {
-	Namespace   string
-	Lines       StandardLines
-	SchemaLevel int
-	InvoiceID   string
+	Namespace string
+	Lines     StandardLines
+	InvoiceID string
 }
 
 func (c UpsertInvoiceLinesAdapterInput) Validate() error {
@@ -1149,10 +1147,6 @@ func (c UpsertInvoiceLinesAdapterInput) Validate() error {
 		if line.InvoiceID == "" {
 			return fmt.Errorf("line[%d]: invoice id is required", i)
 		}
-	}
-
-	if c.SchemaLevel < 1 {
-		return fmt.Errorf("schema level must be at least 1")
 	}
 
 	if c.InvoiceID == "" {

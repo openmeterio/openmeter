@@ -551,7 +551,6 @@ func (s *Service) applyAPIInvoiceLineEdits(
 		createdLines, err := s.preallocateCreatedStandardLines(ctx, preallocatedCreatedStandardLinesInput{
 			Invoice:      stdInvoice.GetInvoiceID(),
 			Currency:     stdInvoice.Currency,
-			SchemaLevel:  stdInvoice.SchemaLevel,
 			CreatedLines: lineDiff.Created,
 		})
 		if err != nil {
@@ -780,7 +779,6 @@ func (s *Service) taxCodeIDWithBackfill(ctx context.Context, namespace string, t
 type preallocatedCreatedStandardLinesInput struct {
 	Invoice      billing.InvoiceID
 	Currency     currencyx.FiatCode
-	SchemaLevel  int
 	CreatedLines []billing.GenericInvoiceLine
 }
 
@@ -796,10 +794,6 @@ func (i preallocatedCreatedStandardLinesInput) Validate() error {
 		if err != nil {
 			errs = append(errs, fmt.Errorf("currency: %w", err))
 		}
-	}
-
-	if i.SchemaLevel <= 0 {
-		errs = append(errs, errors.New("schema level is required"))
 	}
 
 	return errors.Join(errs...)
@@ -839,10 +833,9 @@ func (s *Service) preallocateCreatedStandardLines(
 	}
 
 	preallocatedLines, err := s.adapter.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
-		Namespace:   input.Invoice.Namespace,
-		Lines:       standardLinesToCreate,
-		SchemaLevel: input.SchemaLevel,
-		InvoiceID:   input.Invoice.ID,
+		Namespace: input.Invoice.Namespace,
+		Lines:     standardLinesToCreate,
+		InvoiceID: input.Invoice.ID,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("upserting provisional created lines: %w", err)

@@ -3731,20 +3731,6 @@ func (s *SubscriptionHandlerTestSuite) TestManualIgnoringOfSyncedLines() {
 			}
 		}
 
-		line.DetailedLines = lo.Map(line.DetailedLines, func(child billing.DetailedLine, _ int) billing.DetailedLine {
-			child.FeeLineConfigID = ""
-			return child
-		})
-
-		return line
-	})
-
-	draftInvoiceAfterSync.Lines = draftInvoiceAfterSync.Lines.Map(func(line *billing.StandardLine) *billing.StandardLine {
-		line.DetailedLines = lo.Map(line.DetailedLines, func(child billing.DetailedLine, _ int) billing.DetailedLine {
-			child.FeeLineConfigID = ""
-			return child
-		})
-
 		return line
 	})
 

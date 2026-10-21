@@ -288,7 +288,7 @@ func (a *adapter) mapSplitLineHierarchyStandardLineFromDB(ctx context.Context, d
 }
 
 func (a *adapter) mapSplitLineHierarchyGatheringLineFromDB(ctx context.Context, dbLine *db.BillingInvoiceLine) (billing.LineWithInvoiceHeader, error) {
-	line, err := a.mapGatheringInvoiceLineFromDB(dbLine.Edges.BillingInvoice.SchemaLevel, dbLine)
+	line, err := a.mapGatheringInvoiceLineFromDB(dbLine)
 	if err != nil {
 		return billing.LineWithInvoiceHeader{}, err
 	}

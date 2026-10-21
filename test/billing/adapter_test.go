@@ -15,7 +15,6 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	billingadapter "github.com/openmeterio/openmeter/openmeter/billing/adapter"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
@@ -164,8 +163,7 @@ func (s *BillingAdapterTestSuite) TestInvoiceLineReadRejectsCrossNamespaceUsageC
 	}
 
 	lines, err := s.BillingAdapter.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
-		Namespace:   namespace,
-		SchemaLevel: billingadapter.DefaultInvoiceWriteSchemaLevel,
+		Namespace: namespace,
 		Lines: []*billing.StandardLine{newLine(newLineInput{
 			Namespace: namespace,
 			Period:    period,
@@ -214,8 +212,7 @@ func (s *BillingAdapterTestSuite) TestInvoiceReadsFilterCrossNamespaceLineCollec
 	}
 
 	lines, err := s.BillingAdapter.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
-		Namespace:   namespace,
-		SchemaLevel: billingadapter.DefaultInvoiceWriteSchemaLevel,
+		Namespace: namespace,
 		Lines: []*billing.StandardLine{newLine(newLineInput{
 			Namespace: namespace,
 			Period:    period,
@@ -292,10 +289,9 @@ func (s *BillingAdapterTestSuite) TestSplitLineGroupReadScopesCrossNamespaceRefe
 		line.SplitLineGroupID = lo.ToPtr(group.ID)
 
 		lines, err := s.BillingAdapter.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
-			Namespace:   namespace,
-			SchemaLevel: billingadapter.DefaultInvoiceWriteSchemaLevel,
-			Lines:       []*billing.StandardLine{line},
-			InvoiceID:   invoice.ID,
+			Namespace: namespace,
+			Lines:     []*billing.StandardLine{line},
+			InvoiceID: invoice.ID,
 		})
 		require.NoError(s.T(), err)
 		require.Len(s.T(), lines, 1)
@@ -399,10 +395,9 @@ func (s *BillingAdapterTestSuite) TestInvoiceLineReadFiltersCrossNamespaceOption
 		}}
 
 		lines, err := s.BillingAdapter.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
-			Namespace:   namespace,
-			SchemaLevel: billingadapter.DefaultInvoiceWriteSchemaLevel,
-			Lines:       []*billing.StandardLine{line},
-			InvoiceID:   invoice.ID,
+			Namespace: namespace,
+			Lines:     []*billing.StandardLine{line},
+			InvoiceID: invoice.ID,
 		})
 		require.NoError(s.T(), err)
 		require.Len(s.T(), lines, 1)
@@ -535,10 +530,9 @@ func (s *BillingAdapterTestSuite) TestDetailedLineHandling() {
 	}
 
 	lines, err := s.BillingAdapter.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
-		Namespace:   ns,
-		SchemaLevel: billingadapter.DefaultInvoiceWriteSchemaLevel,
-		Lines:       linesIn,
-		InvoiceID:   invoice.ID,
+		Namespace: ns,
+		Lines:     linesIn,
+		InvoiceID: invoice.ID,
 	})
 	require.NoError(s.T(), err)
 	require.Len(s.T(), lines, 3)
@@ -595,10 +589,9 @@ func (s *BillingAdapterTestSuite) TestDetailedLineHandling() {
 
 		// When we persist the changes
 		lines, err = s.BillingAdapter.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
-			Namespace:   ns,
-			Lines:       lines,
-			SchemaLevel: billingadapter.DefaultInvoiceWriteSchemaLevel,
-			InvoiceID:   invoice.ID,
+			Namespace: ns,
+			Lines:     lines,
+			InvoiceID: invoice.ID,
 		})
 		require.NoError(s.T(), err)
 		require.Len(s.T(), lines, 3)
@@ -649,10 +642,9 @@ func (s *BillingAdapterTestSuite) TestDetailedLineHandling() {
 
 		// When we persist the changes
 		lines, err := s.BillingAdapter.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
-			Namespace:   ns,
-			SchemaLevel: billingadapter.DefaultInvoiceWriteSchemaLevel,
-			Lines:       []*billing.StandardLine{lines[0]},
-			InvoiceID:   invoice.ID,
+			Namespace: ns,
+			Lines:     []*billing.StandardLine{lines[0]},
+			InvoiceID: invoice.ID,
 		})
 
 		// Then we only get three lines
@@ -721,10 +713,9 @@ func (s *BillingAdapterTestSuite) TestUnitConfigSnapshotHandling() {
 	})
 
 	lines, err := s.BillingAdapter.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
-		Namespace:   ns,
-		SchemaLevel: billingadapter.DefaultInvoiceWriteSchemaLevel,
-		Lines:       []*billing.StandardLine{lineWithConfig, lineWithoutConfig},
-		InvoiceID:   invoice.ID,
+		Namespace: ns,
+		Lines:     []*billing.StandardLine{lineWithConfig, lineWithoutConfig},
+		InvoiceID: invoice.ID,
 	})
 	require.NoError(s.T(), err)
 	require.Len(s.T(), lines, 2)
@@ -772,10 +763,9 @@ func (s *BillingAdapterTestSuite) TestUnitConfigSnapshotHandling() {
 		updated.UsageBased.UnitConfig = changedConfig
 
 		_, err := s.BillingAdapter.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
-			Namespace:   ns,
-			SchemaLevel: billingadapter.DefaultInvoiceWriteSchemaLevel,
-			Lines:       []*billing.StandardLine{updated},
-			InvoiceID:   invoice.ID,
+			Namespace: ns,
+			Lines:     []*billing.StandardLine{updated},
+			InvoiceID: invoice.ID,
 		})
 		require.NoError(s.T(), err)
 
@@ -804,10 +794,9 @@ func (s *BillingAdapterTestSuite) TestUnitConfigSnapshotHandling() {
 		setLine.UsageBased.UnitConfig = unitConfig
 
 		_, err := s.BillingAdapter.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
-			Namespace:   ns,
-			SchemaLevel: billingadapter.DefaultInvoiceWriteSchemaLevel,
-			Lines:       []*billing.StandardLine{clearLine, setLine},
-			InvoiceID:   invoice.ID,
+			Namespace: ns,
+			Lines:     []*billing.StandardLine{clearLine, setLine},
+			InvoiceID: invoice.ID,
 		})
 		require.NoError(s.T(), err)
 
@@ -849,10 +838,9 @@ func (s *BillingAdapterTestSuite) TestStandardLineOptionalFieldMutability() {
 	line.Description = lo.ToPtr("original")
 
 	created, err := s.BillingAdapter.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
-		Namespace:   ns,
-		SchemaLevel: billingadapter.DefaultInvoiceWriteSchemaLevel,
-		Lines:       []*billing.StandardLine{line},
-		InvoiceID:   invoice.ID,
+		Namespace: ns,
+		Lines:     []*billing.StandardLine{line},
+		InvoiceID: invoice.ID,
 	})
 	require.NoError(s.T(), err)
 	require.Len(s.T(), created, 1)
@@ -875,10 +863,9 @@ func (s *BillingAdapterTestSuite) TestStandardLineOptionalFieldMutability() {
 		updated.Description = lo.ToPtr("updated")
 
 		_, err := s.BillingAdapter.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
-			Namespace:   ns,
-			SchemaLevel: billingadapter.DefaultInvoiceWriteSchemaLevel,
-			Lines:       []*billing.StandardLine{updated},
-			InvoiceID:   invoice.ID,
+			Namespace: ns,
+			Lines:     []*billing.StandardLine{updated},
+			InvoiceID: invoice.ID,
 		})
 		require.NoError(s.T(), err)
 		require.Equal(s.T(), "updated", lo.FromPtr(readDescription()))
@@ -889,10 +876,9 @@ func (s *BillingAdapterTestSuite) TestStandardLineOptionalFieldMutability() {
 		updated.Description = nil
 
 		_, err := s.BillingAdapter.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
-			Namespace:   ns,
-			SchemaLevel: billingadapter.DefaultInvoiceWriteSchemaLevel,
-			Lines:       []*billing.StandardLine{updated},
-			InvoiceID:   invoice.ID,
+			Namespace: ns,
+			Lines:     []*billing.StandardLine{updated},
+			InvoiceID: invoice.ID,
 		})
 		require.NoError(s.T(), err)
 		require.Nil(s.T(), readDescription())
@@ -985,10 +971,9 @@ func (s *BillingAdapterTestSuite) TestDiscountHandling() {
 	}
 
 	lines, err := s.BillingAdapter.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
-		Namespace:   ns,
-		SchemaLevel: billingadapter.DefaultInvoiceWriteSchemaLevel,
-		Lines:       []*billing.StandardLine{lineIn},
-		InvoiceID:   invoice.ID,
+		Namespace: ns,
+		Lines:     []*billing.StandardLine{lineIn},
+		InvoiceID: invoice.ID,
 	})
 
 	// Then the lines are persisted as expected
@@ -1084,10 +1069,9 @@ func (s *BillingAdapterTestSuite) TestDiscountHandling() {
 	updateLineIn.DetailedLines = childrenWithIDReuse
 
 	updatedLines, err := s.BillingAdapter.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
-		Namespace:   ns,
-		SchemaLevel: billingadapter.DefaultInvoiceWriteSchemaLevel,
-		Lines:       []*billing.StandardLine{updateLineIn},
-		InvoiceID:   invoice.ID,
+		Namespace: ns,
+		Lines:     []*billing.StandardLine{updateLineIn},
+		InvoiceID: invoice.ID,
 	})
 
 	// Then the discounts are persisted as expected
