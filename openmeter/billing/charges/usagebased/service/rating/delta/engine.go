@@ -76,9 +76,7 @@ func (e Engine) Rate(_ context.Context, in Input) (Result, error) {
 		return Result{}, err
 	}
 
-	opts := []billingrating.GenerateDetailedLinesOption{
-		billingrating.WithCreditsMutatorDisabled(),
-	}
+	var opts []billingrating.GenerateDetailedLinesOption
 	// Minimum commitment is charged only on the final service-period snapshot.
 	if in.CurrentPeriod.ServicePeriod.To.Before(in.Intent.ServicePeriod.To) {
 		opts = append(opts, billingrating.WithMinimumCommitmentIgnored())

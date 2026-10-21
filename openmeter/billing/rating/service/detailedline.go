@@ -15,36 +15,41 @@ import (
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
-// ValidateStandardLine validates the standard line and returns an error if the line is invalid/inconsistent
-func validateStandardLine(in rating.StandardLineAccessor) error {
+func (s *service) GenerateDetailedLines(in rating.StandardLineAccessor, opts ...rating.GenerateDetailedLinesOption) (rating.GenerateDetailedLinesResult, error) {
 	if in == nil {
-		return fmt.Errorf("line is nil")
+		return rating.GenerateDetailedLinesResult{}, errors.New("validating billable line: line is nil")
 	}
 
-	price := in.GetPrice()
-	if price == nil {
-		return fmt.Errorf("price is nil")
+	return s.GenerateLegacyProgressiveBilledLines(nonProgressiveLineAccessor{StandardLineAccessor: in}, opts...)
+}
+
+func validateStandardLine(in rating.LegacyProgressivelyBillableLineAccessor) error {
+	if in == nil {
+		return errors.New("line is nil")
 	}
 
-	progressivelyBilledServicePeriod, err := in.GetProgressivelyBilledServicePeriod()
+	if in.GetPrice() == nil {
+		return errors.New("price is nil")
+	}
+
+	fullServicePeriod, err := in.GetProgressivelyBilledServicePeriod()
 	if err != nil {
 		return fmt.Errorf("getting progressively billed service period: %w", err)
 	}
 
-	// Validate the progressive billing related information
-	if !in.IsProgressivelyBilled() && !progressivelyBilledServicePeriod.Equal(in.GetServicePeriod()) {
-		return fmt.Errorf("full service period does not match the service period for a non-progressively billed line")
+	if !in.IsProgressivelyBilled() && !fullServicePeriod.Equal(in.GetServicePeriod()) {
+		return errors.New("full service period does not match the service period for a non-progressively billed line")
 	}
 
 	return nil
 }
 
-func (s *service) GenerateDetailedLines(in rating.StandardLineAccessor, opts ...rating.GenerateDetailedLinesOption) (rating.GenerateDetailedLinesResult, error) {
+func (s *service) GenerateLegacyProgressiveBilledLines(in rating.LegacyProgressivelyBillableLineAccessor, opts ...rating.GenerateDetailedLinesOption) (rating.GenerateDetailedLinesResult, error) {
 	if err := validateStandardLine(in); err != nil {
 		return rating.GenerateDetailedLinesResult{}, fmt.Errorf("validating billable line: %w", err)
 	}
 
-	clamped, err := rating.NewClampedStandardLineAccessor(in)
+	clamped, err := rating.NewClampedLegacyLineAccessor(in)
 	if err != nil {
 		return rating.GenerateDetailedLinesResult{}, fmt.Errorf("clamping metered quantities: %w", err)
 	}
@@ -61,16 +66,16 @@ func (s *service) GenerateDetailedLines(in rating.StandardLineAccessor, opts ...
 		return rating.GenerateDetailedLinesResult{}, fmt.Errorf("creating pricer: %w", err)
 	}
 
-	fullProgressivelyBilledServicePeriod, err := clamped.GetProgressivelyBilledServicePeriod()
+	fullServicePeriod, err := clamped.GetProgressivelyBilledServicePeriod()
 	if err != nil {
 		return rating.GenerateDetailedLinesResult{}, fmt.Errorf("getting progressively billed service period: %w", err)
 	}
 
 	input := rate.PricerCalculateInput{
-		StandardLineAccessor:                 clamped,
-		CurrencyCalculator:                   currency,
-		FullProgressivelyBilledServicePeriod: fullProgressivelyBilledServicePeriod,
-		StandardLineDiscounts:                clamped.GetStandardLineDiscounts(),
+		LegacyProgressivelyBillableLineAccessor: clamped,
+		CurrencyCalculator:                      currency,
+		FullProgressivelyBilledServicePeriod:    fullServicePeriod,
+		StandardLineDiscounts:                   clamped.GetStandardLineDiscounts(),
 	}
 	if in.GetPrice().Type() != productcatalog.FlatPriceType {
 		meteredQuantity, err := clamped.GetMeteredQuantity()
@@ -138,7 +143,6 @@ func calculateDetailedLineTotals(line rating.DetailedLine, currency currencyx.Cu
 	// Calculate the line totals
 	totals := totals.Totals{
 		DiscountsTotal: line.AmountDiscounts.SumAmount(currency),
-		CreditsTotal:   line.CreditsApplied.SumAmount(currency),
 
 		// TODO[OM-979]: implement taxes
 		TaxesInclusiveTotal: alpacadecimal.Zero,

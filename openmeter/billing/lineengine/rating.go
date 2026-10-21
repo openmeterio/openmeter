@@ -89,7 +89,7 @@ func (e *Engine) RateStandardLines(lines billing.StandardLines) (billing.Standar
 	for _, line := range ratedLines {
 		line.RateCardDiscounts = line.RateCardDiscounts.UpsertCorrelationIDs()
 
-		generatedDetailedLines, err := e.ratingService.GenerateDetailedLines(line)
+		generatedDetailedLines, err := e.ratingService.GenerateLegacyProgressiveBilledLines(line)
 		if err := validationRecorder.Record(err, billing.WithAttributes(models.Annotations{
 			billing.AttributeKeyLineID: line.ID,
 		})); err != nil {
@@ -136,7 +136,6 @@ func newDetailedLines(stdLine *billing.StandardLine, inputs ...rating.DetailedLi
 			PerUnitAmount:          in.PerUnitAmount,
 			Quantity:               in.Quantity,
 			Category:               in.Category,
-			CreditsApplied:         in.CreditsApplied,
 			Totals:                 in.Totals,
 			AmountDiscounts:        in.AmountDiscounts,
 		}

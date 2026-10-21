@@ -113,7 +113,6 @@ func NewDetailedLinesFromBilling(
 					PerUnitAmount:          line.PerUnitAmount,
 					Quantity:               line.Quantity,
 					Category:               category,
-					CreditsApplied:         line.CreditsApplied,
 					Totals:                 line.Totals,
 				},
 			},

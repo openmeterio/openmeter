@@ -598,6 +598,10 @@ func (*usageBasedBillabilityRatingService) GenerateDetailedLines(rating.Standard
 	return rating.GenerateDetailedLinesResult{}, nil
 }
 
+func (s *usageBasedBillabilityRatingService) GenerateLegacyProgressiveBilledLines(in rating.LegacyProgressivelyBillableLineAccessor, opts ...rating.GenerateDetailedLinesOption) (rating.GenerateDetailedLinesResult, error) {
+	return rating.GenerateDetailedLinesResult{}, nil
+}
+
 type usageBasedBillabilityTransaction struct{}
 
 func (usageBasedBillabilityTransaction) Commit() error    { return nil }

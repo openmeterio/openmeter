@@ -512,3 +512,7 @@ func usageDiscountForLineEngineOverrideTest(quantity string) billing.Discounts {
 		},
 	}
 }
+
+func (s *lineEngineBillabilityRatingService) GenerateLegacyProgressiveBilledLines(in rating.LegacyProgressivelyBillableLineAccessor, opts ...rating.GenerateDetailedLinesOption) (rating.GenerateDetailedLinesResult, error) {
+	return rating.GenerateDetailedLinesResult{}, nil
+}

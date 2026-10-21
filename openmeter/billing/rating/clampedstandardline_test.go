@@ -10,7 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-func TestClampedStandardLineAccessor(t *testing.T) {
+func TestClampedLegacyLineAccessor(t *testing.T) {
 	tests := []struct {
 		name                          string
 		meteredQuantity               alpacadecimal.Decimal
@@ -70,7 +70,7 @@ func TestClampedStandardLineAccessor(t *testing.T) {
 					MeteredPreLinePeriodQuantity: &tc.meteredPreLinePeriodQuantity,
 				},
 			}
-			accessor, err := NewClampedStandardLineAccessor(line)
+			accessor, err := NewClampedLegacyLineAccessor(line)
 			require.NoError(t, err)
 
 			meteredQuantity, err := accessor.GetMeteredQuantity()
@@ -105,7 +105,7 @@ func TestClampedStandardLineAccessor(t *testing.T) {
 	}
 }
 
-func TestClampedStandardLineAccessorWarningOmitsNilQuantities(t *testing.T) {
+func TestClampedLegacyLineAccessorWarningOmitsNilQuantities(t *testing.T) {
 	negativeQuantity := alpacadecimal.NewFromInt(-1)
 
 	for _, tc := range []struct {
@@ -130,7 +130,7 @@ func TestClampedStandardLineAccessorWarningOmitsNilQuantities(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			accessor, err := NewClampedStandardLineAccessor(&billing.StandardLine{
+			accessor, err := NewClampedLegacyLineAccessor(&billing.StandardLine{
 				UsageBased: &billing.UsageBasedLine{
 					MeteredQuantity:              tc.meteredQuantity,
 					MeteredPreLinePeriodQuantity: tc.meteredPreLinePeriodQuantity,
@@ -146,9 +146,9 @@ func TestClampedStandardLineAccessorWarningOmitsNilQuantities(t *testing.T) {
 	}
 }
 
-func TestClampedStandardLineAccessorPreservesNilAndErrors(t *testing.T) {
+func TestClampedLegacyLineAccessorPreservesNilAndErrors(t *testing.T) {
 	t.Run("nil quantities", func(t *testing.T) {
-		accessor, err := NewClampedStandardLineAccessor(&billing.StandardLine{UsageBased: &billing.UsageBasedLine{}})
+		accessor, err := NewClampedLegacyLineAccessor(&billing.StandardLine{UsageBased: &billing.UsageBasedLine{}})
 		require.NoError(t, err)
 
 		quantity, err := accessor.GetMeteredQuantity()
@@ -161,7 +161,7 @@ func TestClampedStandardLineAccessorPreservesNilAndErrors(t *testing.T) {
 	})
 
 	t.Run("accessor errors", func(t *testing.T) {
-		_, err := NewClampedStandardLineAccessor(&billing.StandardLine{})
+		_, err := NewClampedLegacyLineAccessor(&billing.StandardLine{})
 		require.EqualError(t, err, "usage based line is required")
 	})
 }

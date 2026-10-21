@@ -17,7 +17,7 @@ func TestForbidUnitConfigMutator(t *testing.T) {
 
 	newInput := func(unitConfig *productcatalog.UnitConfig) rate.PricerCalculateInput {
 		return rate.PricerCalculateInput{
-			StandardLineAccessor: unitConfigTestLine{
+			LegacyProgressivelyBillableLineAccessor: unitConfigTestLine{
 				StandardLine: &billing.StandardLine{},
 				price:        unitPrice,
 				unitConfig:   unitConfig,

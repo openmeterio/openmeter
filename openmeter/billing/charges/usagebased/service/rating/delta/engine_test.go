@@ -80,7 +80,6 @@ func TestRateKeepsDetailedLineChildUniqueReferenceIDsWithoutServicePeriodSuffix(
 		out.DetailedLines[1].ChildUniqueReferenceID,
 	})
 	require.False(t, ratingService.lastOpts.IgnoreMinimumCommitment)
-	require.True(t, ratingService.lastOpts.DisableCreditsMutator)
 }
 
 func TestRatePreservesValidationWarningWithSuccessfulResult(t *testing.T) {
@@ -163,7 +162,6 @@ func TestRateIgnoresMinimumCommitmentForPartialRun(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.True(t, ratingService.lastOpts.IgnoreMinimumCommitment)
-	require.True(t, ratingService.lastOpts.DisableCreditsMutator)
 }
 
 func TestRateSubtractsAlreadyBilledLinesAndBooksDeltaOnCurrentPeriod(t *testing.T) {
@@ -402,4 +400,8 @@ func (s *stubRatingService) ResolveBillablePeriod(in billingrating.ResolveBillab
 func (s *stubRatingService) GenerateDetailedLines(in billingrating.StandardLineAccessor, opts ...billingrating.GenerateDetailedLinesOption) (billingrating.GenerateDetailedLinesResult, error) {
 	s.lastOpts = billingrating.NewGenerateDetailedLinesOptions(opts...)
 	return s.result, s.err
+}
+
+func (s *stubRatingService) GenerateLegacyProgressiveBilledLines(in billingrating.LegacyProgressivelyBillableLineAccessor, opts ...billingrating.GenerateDetailedLinesOption) (billingrating.GenerateDetailedLinesResult, error) {
+	return s.GenerateDetailedLines(in, opts...)
 }

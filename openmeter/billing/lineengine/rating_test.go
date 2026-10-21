@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 func TestRecalculateStandardLineRejectsNonLegacyLinesBeforeSnapshotting(t *testing.T) {
@@ -120,7 +121,7 @@ func TestCollectionRatingFailureRetainsOriginalSnapshot(t *testing.T) {
 			invoice.Lines = billing.NewStandardInvoiceLines(billing.StandardLines{line})
 			engine, _ := newQuantitySnapshotTestEngine(t, nil, nil, nil)
 			rater := newStandardLinesRatingServiceMock(t)
-			rater.On("GenerateDetailedLines", mock.Anything, mock.Anything).Return(rating.GenerateDetailedLinesResult{}, ratingErr).Once()
+			rater.On("GenerateLegacyProgressiveBilledLines", mock.Anything, mock.Anything).Return(rating.GenerateDetailedLinesResult{}, ratingErr).Once()
 			engine.ratingService = rater
 			before, err := json.Marshal(invoice)
 			require.NoError(t, err)
@@ -281,6 +282,13 @@ func TestRateStandardLinesFailuresLeaveTheWholeInputUnchanged(t *testing.T) {
 			errorText: "metered quantity is required",
 		},
 		{
+			name: "missing progressive hierarchy",
+			invalidate: func(line *billing.StandardLine) {
+				line.SplitLineGroupID = lo.ToPtr("missing-group")
+			},
+			errorText: "split line hierarchy is required",
+		},
+		{
 			name: "mapping failure",
 			invalidate: func(line *billing.StandardLine) {
 				line.InvoiceID = ""
@@ -326,6 +334,145 @@ func TestRateStandardLinesFailuresLeaveTheWholeInputUnchanged(t *testing.T) {
 	}
 }
 
+func TestRateStandardLinesProgressiveCommitments(t *testing.T) {
+	for _, tc := range []struct {
+		name              string
+		commitments       productcatalog.Commitments
+		expectedCharges   float64
+		expectedDiscounts float64
+		expectedTotal     float64
+		ordinaryCharges   float64
+		ordinaryTotal     float64
+	}{
+		{
+			name:            "minimum spend includes prior live billing",
+			commitments:     productcatalog.Commitments{MinimumAmount: lo.ToPtr(alpacadecimal.NewFromInt(100))},
+			expectedCharges: 40,
+			expectedTotal:   60,
+			ordinaryCharges: 80,
+			ordinaryTotal:   100,
+		},
+		{
+			name:              "maximum spend includes prior live billing",
+			commitments:       productcatalog.Commitments{MaximumAmount: lo.ToPtr(alpacadecimal.NewFromInt(50))},
+			expectedDiscounts: 10,
+			expectedTotal:     10,
+			ordinaryTotal:     20,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			// Given a final monthly child with 20 of usage after 40 billed on a live invoice.
+			fullPeriod := lineEngineOverrideTestPeriod()
+			periodBoundary := fullPeriod.From.Add(fullPeriod.Duration() / 2)
+			line := standardLineForLineEngineOverrideTest(t, timeutil.ClosedPeriod{
+				From: periodBoundary,
+				To:   fullPeriod.To,
+			})
+			line.UsageBased.Price = productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+				Amount:      alpacadecimal.NewFromInt(1),
+				Commitments: tc.commitments,
+			})
+			line.UsageBased.MeteredQuantity = lo.ToPtr(alpacadecimal.NewFromInt(20))
+			line.UsageBased.MeteredPreLinePeriodQuantity = lo.ToPtr(alpacadecimal.NewFromInt(40))
+			line.SplitLineGroupID = lo.ToPtr("group-id")
+			line.SplitLineHierarchy = &billing.SplitLineHierarchy{
+				Group: billing.SplitLineGroup{
+					NamespacedID: models.NamespacedID{Namespace: line.Namespace, ID: *line.SplitLineGroupID},
+					SplitLineGroupMutableFields: billing.SplitLineGroupMutableFields{
+						ServicePeriod: fullPeriod,
+					},
+				},
+			}
+			for _, childState := range []string{"live", "deleted line", "deleted invoice", "terminal deleted invoice", "later period"} {
+				priorLine := standardLineForLineEngineOverrideTest(t, timeutil.ClosedPeriod{
+					From: fullPeriod.From,
+					To:   periodBoundary,
+				})
+				priorLine.ID = childState
+				priorLine.Totals.Amount = alpacadecimal.NewFromInt(40)
+				priorInvoice := quantitySnapshotTestInvoice()
+				switch childState {
+				case "deleted line":
+					priorLine.DeletedAt = lo.ToPtr(periodBoundary)
+				case "deleted invoice":
+					priorInvoice.DeletedAt = lo.ToPtr(periodBoundary)
+				case "terminal deleted invoice":
+					priorInvoice.Status = billing.StandardInvoiceStatusDeleted
+				case "later period":
+					priorLine.Period.To = fullPeriod.To
+				}
+
+				line.SplitLineHierarchy.Lines = append(line.SplitLineHierarchy.Lines, billing.NewLineWithInvoiceHeader(billing.StandardLineWithInvoiceHeader{
+					Line:    priorLine,
+					Invoice: priorInvoice,
+				}))
+			}
+
+			before, err := json.Marshal(line)
+			require.NoError(t, err)
+			engine := &Engine{ratingService: ratingservice.New(ratingservice.Config{})}
+
+			// When the legacy engine resolves progressive inputs and rates the supplied snapshot.
+			lines, err := engine.RateStandardLines(billing.StandardLines{line})
+			require.NoError(t, err)
+
+			// Then deleted history and later periods do not contribute to commitments.
+			require.Len(t, lines, 1)
+			rated := lines[0]
+			require.Equal(t, tc.expectedCharges, rated.Totals.ChargesTotal.InexactFloat64())
+			require.Equal(t, tc.expectedDiscounts, rated.Totals.DiscountsTotal.InexactFloat64())
+			require.Equal(t, tc.expectedTotal, rated.Totals.Total.InexactFloat64())
+			if tc.expectedCharges != 0 {
+				require.Len(t, rated.DetailedLines, 2)
+				require.Equal(t, fullPeriod, rated.DetailedLines[1].ServicePeriod)
+				rated.DetailedLines[1].ID = "minimum-detail-id"
+			}
+
+			// Matching detail and commitment-discount identities survive repeated rating.
+			rated.DetailedLines[0].ID = "usage-detail-id"
+			if tc.expectedDiscounts != 0 {
+				require.Len(t, rated.DetailedLines[0].AmountDiscounts, 1)
+				rated.DetailedLines[0].AmountDiscounts[0].ID = "max-spend-discount-id"
+			}
+
+			rerated, err := engine.RateStandardLines(lines)
+			require.NoError(t, err)
+			require.Equal(t, rated.Totals, rerated[0].Totals)
+			require.Len(t, rerated[0].DetailedLines, len(rated.DetailedLines))
+			for idx, detail := range rated.DetailedLines {
+				require.Equal(t, detail.ID, rerated[0].DetailedLines[idx].ID)
+				require.Equal(t, detail.ChildUniqueReferenceID, rerated[0].DetailedLines[idx].ChildUniqueReferenceID)
+			}
+
+			if tc.expectedDiscounts != 0 {
+				require.Equal(t, rated.DetailedLines[0].AmountDiscounts, rerated[0].DetailedLines[0].AmountDiscounts)
+			}
+
+			after, err := json.Marshal(line)
+			require.NoError(t, err)
+			require.JSONEq(t, string(before), string(after))
+
+			// Ordinary rating has no history. Header-only progressive context also
+			// retains the existing zero-history behavior.
+			ordinaryLine, err := line.Clone()
+			require.NoError(t, err)
+			ordinaryLine.SplitLineGroupID = nil
+			ordinaryLine.SplitLineHierarchy = nil
+			ordinaryLines, err := engine.RateStandardLines(billing.StandardLines{ordinaryLine})
+			require.NoError(t, err)
+			require.Equal(t, tc.ordinaryCharges, ordinaryLines[0].Totals.ChargesTotal.InexactFloat64())
+			require.Equal(t, tc.ordinaryTotal, ordinaryLines[0].Totals.Total.InexactFloat64())
+
+			headerOnlyLine, err := line.Clone()
+			require.NoError(t, err)
+			headerOnlyLine.SplitLineHierarchy.Lines = nil
+			headerOnlyLines, err := engine.RateStandardLines(billing.StandardLines{headerOnlyLine})
+			require.NoError(t, err)
+			require.Equal(t, ordinaryLines[0].Totals, headerOnlyLines[0].Totals)
+		})
+	}
+}
+
 func TestRateStandardLinesPreservesCalculatedResultsWithCriticalIssues(t *testing.T) {
 	// Given a rating result accompanied by a typed critical issue.
 	line := standardLineForLineEngineOverrideTest(t, lineEngineOverrideTestPeriod())
@@ -335,7 +482,7 @@ func TestRateStandardLinesPreservesCalculatedResultsWithCriticalIssues(t *testin
 
 	// When rating records issues through the existing all-severity contract.
 	ratingService := newStandardLinesRatingServiceMock(t)
-	ratingService.On("GenerateDetailedLines", mock.Anything, mock.Anything).
+	ratingService.On("GenerateLegacyProgressiveBilledLines", mock.Anything, mock.Anything).
 		Return(result, billing.ErrInvoiceLineVolumeSplitNotSupported).Once()
 	engine := &Engine{ratingService: ratingService}
 	lines, err := engine.RateStandardLines(billing.StandardLines{line})
@@ -365,7 +512,7 @@ func TestRateStandardLinesPreservesResultsWithValidationWarnings(t *testing.T) {
 		},
 	}
 	ratingService := newStandardLinesRatingServiceMock(t)
-	ratingService.On("GenerateDetailedLines", mock.Anything, mock.Anything).
+	ratingService.On("GenerateLegacyProgressiveBilledLines", mock.Anything, mock.Anything).
 		Return(ratingResult, billing.ValidationWithComponent(
 			billing.ValidationComponentBillingRating,
 			billing.WarnNegativeMeteredQuantityClamped,
@@ -398,7 +545,7 @@ func TestRateStandardLinesPreservesResultsWithValidationWarnings(t *testing.T) {
 func TestRateStandardLinesRejectsSystemErrors(t *testing.T) {
 	ratingErr := errors.New("rating unavailable")
 	ratingService := newStandardLinesRatingServiceMock(t)
-	ratingService.On("GenerateDetailedLines", mock.Anything, mock.Anything).
+	ratingService.On("GenerateLegacyProgressiveBilledLines", mock.Anything, mock.Anything).
 		Return(rating.GenerateDetailedLinesResult{}, ratingErr).Once()
 	engine := &Engine{ratingService: ratingService}
 
@@ -434,4 +581,9 @@ func (s *standardLinesRatingServiceMock) GenerateDetailedLines(in rating.Standar
 func (s *standardLinesRatingServiceMock) ResolveBillablePeriod(in rating.ResolveBillablePeriodInput) (billing.IsLineBillableAsOfResult, error) {
 	args := s.Called(in)
 	return args.Get(0).(billing.IsLineBillableAsOfResult), args.Error(1)
+}
+
+func (s *standardLinesRatingServiceMock) GenerateLegacyProgressiveBilledLines(in rating.LegacyProgressivelyBillableLineAccessor, opts ...rating.GenerateDetailedLinesOption) (rating.GenerateDetailedLinesResult, error) {
+	args := s.Called(in, opts)
+	return args.Get(0).(rating.GenerateDetailedLinesResult), args.Error(1)
 }

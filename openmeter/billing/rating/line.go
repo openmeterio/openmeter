@@ -32,10 +32,6 @@ type StandardLineAccessor interface {
 	GetCurrencyCalculator() (currencyx.Currency, error)
 	// GetMeteredUsage returns the metered usage of the line for the current service period
 	GetMeteredQuantity() (*alpacadecimal.Decimal, error)
-	// GetMeteredPreLinePeriodUsage returns the metered usage of the line for the previous service period
-	GetMeteredPreLinePeriodQuantity() (*alpacadecimal.Decimal, error)
-	// GetCreditsApplied returns the list of credits to be applied for the line
-	GetCreditsApplied() billing.CreditsApplied
 	// GetName returns the name of the line
 	GetName() string
 	// GetRateCardDiscounts returns the rate card discounts for the line
@@ -45,13 +41,17 @@ type StandardLineAccessor interface {
 	GetUnitConfig() *productcatalog.UnitConfig
 	// GetStandardLineDiscounts returns the standard line discounts for the line
 	GetStandardLineDiscounts() billing.StandardLineDiscounts
+}
 
-	// Progressive billing related information
-	// IsProgressivelyBilled returns true if the line is progressively billed
+type LegacyProgressivelyBillableLineAccessor interface {
+	StandardLineAccessor
+
+	// GetMeteredPreLinePeriodQuantity returns raw usage preceding the line's service period.
+	GetMeteredPreLinePeriodQuantity() (*alpacadecimal.Decimal, error)
 	IsProgressivelyBilled() bool
-	// GetProgressivelyBilledServicePeriod returns the full service period of the line (if the line is progressively billed, or matches the service period)
+	// GetProgressivelyBilledServicePeriod returns the full service period, including
+	// earlier splits, or the line's service period when it is not progressively billed.
 	GetProgressivelyBilledServicePeriod() (timeutil.ClosedPeriod, error)
-
-	// GetPreviouslyBilledAmount returns the amount that has already been billed for the line before the current line
+	// GetPreviouslyBilledAmount returns the amount billed before the current line.
 	GetPreviouslyBilledAmount() (alpacadecimal.Decimal, error)
 }

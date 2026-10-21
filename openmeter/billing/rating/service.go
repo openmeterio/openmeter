@@ -16,11 +16,11 @@ import (
 type Service interface {
 	ResolveBillablePeriod(in ResolveBillablePeriodInput) (billing.IsLineBillableAsOfResult, error)
 	GenerateDetailedLines(in StandardLineAccessor, opts ...GenerateDetailedLinesOption) (GenerateDetailedLinesResult, error)
+	GenerateLegacyProgressiveBilledLines(in LegacyProgressivelyBillableLineAccessor, opts ...GenerateDetailedLinesOption) (GenerateDetailedLinesResult, error)
 }
 
 type GenerateDetailedLinesOptions struct {
 	IgnoreMinimumCommitment bool
-	DisableCreditsMutator   bool
 }
 
 type GenerateDetailedLinesOption func(*GenerateDetailedLinesOptions)
@@ -38,12 +38,6 @@ func NewGenerateDetailedLinesOptions(opts ...GenerateDetailedLinesOption) Genera
 func WithMinimumCommitmentIgnored() GenerateDetailedLinesOption {
 	return func(o *GenerateDetailedLinesOptions) {
 		o.IgnoreMinimumCommitment = true
-	}
-}
-
-func WithCreditsMutatorDisabled() GenerateDetailedLinesOption {
-	return func(o *GenerateDetailedLinesOptions) {
-		o.DisableCreditsMutator = true
 	}
 }
 
