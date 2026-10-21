@@ -31,6 +31,10 @@ type Totals struct {
 	Total alpacadecimal.Decimal `json:"total"`
 }
 
+// DeltaTotals is the difference of two rated snapshots, so Amount and DiscountsTotal are signed
+// while the settled totals stay non-negative. Both snapshots are rated with the same discount
+// terms, so a non-zero discount delta follows the sign of the amount delta; revisit this once
+// corrections can re-rate realized usage with changed terms.
 type DeltaTotals struct {
 	Totals
 }
@@ -38,11 +42,10 @@ type DeltaTotals struct {
 func (t DeltaTotals) Validate() error {
 	var errs []error
 
-	if t.Amount.IsNegative() != t.DiscountsTotal.IsNegative() {
+	if !t.DiscountsTotal.IsZero() && t.Amount.IsNegative() != t.DiscountsTotal.IsNegative() {
 		errs = append(errs, errors.New("amount and discount total should have the same sign"))
 	}
 
-	// always non-negative
 	if t.ChargesTotal.IsNegative() {
 		errs = append(errs, errors.New("charges total is negative"))
 	}
@@ -59,31 +62,26 @@ func (t DeltaTotals) Validate() error {
 		errs = append(errs, errors.New("taxes total is negative"))
 	}
 
-	// always non-negative
 	if t.Total.IsNegative() {
 		errs = append(errs, errors.New("total is negative"))
 	}
 
-	// TODO what if the CreditsTotal is negative?
-	// if t.CreditsTotal.IsNegative() {
-	// 	errs = append(errs, errors.New("credits total is negative"))
-	// }
+	if t.CreditsTotal.IsNegative() {
+		errs = append(errs, errors.New("credits total is negative"))
+	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 func (t Totals) Validate() error {
-	// can be negative
 	if t.Amount.IsNegative() {
 		return errors.New("amount is negative")
 	}
 
-	// always non-negative
 	if t.ChargesTotal.IsNegative() {
 		return errors.New("charges total is negative")
 	}
 
-	// DiscountsTotal.IsNegative() == Amount.IsNegative()
 	if t.DiscountsTotal.IsNegative() {
 		return errors.New("discounts total is negative")
 	}
@@ -100,12 +98,10 @@ func (t Totals) Validate() error {
 		return errors.New("taxes total is negative")
 	}
 
-	// always non-negative
 	if t.Total.IsNegative() {
 		return errors.New("total is negative")
 	}
 
-	// TODO what if the CreditsTotal is negative?
 	if t.CreditsTotal.IsNegative() {
 		return errors.New("credits total is negative")
 	}
