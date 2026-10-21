@@ -280,12 +280,10 @@ func (a *adapter) mapSplitLineHierarchyLinesFromDB(dbLines []*db.BillingInvoiceL
 				SubscriptionID: *dbLine.SubscriptionID,
 				PhaseID:        *dbLine.SubscriptionPhaseID,
 				ItemID:         *dbLine.SubscriptionItemID,
-			}
-			if invoiceType == billing.InvoiceTypeStandard || (dbLine.SubscriptionBillingPeriodFrom != nil && dbLine.SubscriptionBillingPeriodTo != nil) {
-				subscription.BillingPeriod = timeutil.ClosedPeriod{
+				BillingPeriod: timeutil.ClosedPeriod{
 					From: lo.FromPtr(dbLine.SubscriptionBillingPeriodFrom).UTC(),
 					To:   lo.FromPtr(dbLine.SubscriptionBillingPeriodTo).UTC(),
-				}
+				},
 			}
 		}
 
