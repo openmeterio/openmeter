@@ -3,6 +3,7 @@ package detailedline
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
@@ -118,6 +119,70 @@ func MapAmountDiscountsToBilling(discounts AmountDiscounts) billing.AmountLineDi
 			},
 		}
 	})
+}
+
+// Add merges two discount sets keyed by ChildUniqueReferenceID, the identity
+// that is stable across realization runs.
+// - matched entries net their amounts
+// - entries present on one side only are carried over
+// - entries whose amount and rounding both net to zero are dropped
+// A fully reversed discount leaves no trace on the line.
+func (d AmountDiscounts) Add(other AmountDiscounts) AmountDiscounts {
+	out := make(AmountDiscounts, 0, len(d)+len(other))
+	otherByID := lo.KeyBy(other, AmountDiscount.mergeKey)
+	merged := make(map[string]struct{}, len(other))
+
+	for _, discount := range d {
+		discount = discount.Clone()
+		if match, ok := otherByID[discount.mergeKey()]; ok {
+			discount.Amount = discount.Amount.Add(match.Amount)
+			discount.RoundingAmount = discount.RoundingAmount.Add(match.RoundingAmount)
+			merged[discount.mergeKey()] = struct{}{}
+		}
+
+		if !discount.IsZero() {
+			out = append(out, discount)
+		}
+	}
+
+	for _, discount := range other {
+		if _, ok := merged[discount.mergeKey()]; ok || discount.IsZero() {
+			continue
+		}
+
+		out = append(out, discount.Clone())
+	}
+
+	return out
+}
+
+func (d AmountDiscounts) Sub(other AmountDiscounts) AmountDiscounts {
+	return d.Add(other.Neg())
+}
+
+func (d AmountDiscounts) Neg() AmountDiscounts {
+	return lo.Map(d, func(discount AmountDiscount, _ int) AmountDiscount {
+		discount = discount.Clone()
+		discount.Amount = discount.Amount.Neg()
+		discount.RoundingAmount = discount.RoundingAmount.Neg()
+
+		return discount
+	})
+}
+
+// mergeKey ignores the correlation ID of rate card discount references.
+// Rebuilding a charge intent (subscription sync, intent edits) allocates a
+// fresh correlation ID for the same rate card discount, so the previous and
+// current runs would not match and the delta would carry a reversal and a
+// new discount instead of netting them. A line has at most one rate card
+// amount discount, so the prefix alone identifies it.
+func (d AmountDiscount) mergeKey() string {
+	key, _, _ := strings.Cut(d.ChildUniqueReferenceID, "/correlationID=")
+	return key
+}
+
+func (d AmountDiscount) IsZero() bool {
+	return d.Amount.IsZero() && d.RoundingAmount.IsZero()
 }
 
 func (d AmountDiscounts) Clone() AmountDiscounts {

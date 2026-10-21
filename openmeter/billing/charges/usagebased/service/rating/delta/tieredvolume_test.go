@@ -6,6 +6,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	ratingtestutils "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/rating/testutils"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	billingrating "github.com/openmeterio/openmeter/openmeter/billing/rating"
@@ -549,6 +550,9 @@ func TestVolumeTieredDeltaMaximumSpendWithTierRepricing(t *testing.T) {
 							DiscountsTotal: 50,
 							Total:          100,
 						},
+						AmountDiscounts: []ratingtestutils.ExpectedAmountDiscount{
+							{ChildUniqueReferenceID: billing.LineMaximumSpendReferenceID, Amount: 50},
+						},
 					},
 				},
 				expectedTotals: ratingtestutils.ExpectedTotals{
@@ -582,6 +586,9 @@ func TestVolumeTieredDeltaMaximumSpendWithTierRepricing(t *testing.T) {
 							Amount:         -150,
 							DiscountsTotal: -50,
 							Total:          -100,
+						},
+						AmountDiscounts: []ratingtestutils.ExpectedAmountDiscount{
+							{ChildUniqueReferenceID: billing.LineMaximumSpendReferenceID, Amount: -50},
 						},
 					},
 				},

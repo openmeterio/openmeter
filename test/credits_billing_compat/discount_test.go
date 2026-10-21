@@ -33,8 +33,6 @@ func TestDiscounts(t *testing.T) {
 }
 
 func (s *DiscountsTestSuite) TestCorrelationIDHandling() {
-	s.T().Skip("OM-581: pending on reworking delta rating usage discount settings")
-
 	namespace := "ns-discounts-correlation-id"
 	ctx := s.T().Context()
 
@@ -52,17 +50,11 @@ func (s *DiscountsTestSuite) TestCorrelationIDHandling() {
 	meterID := ulid.Make().String()
 	s.NoError(s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
 		{
-			ManagedResource: models.ManagedResource{
-				ID: meterID,
-				NamespacedModel: models.NamespacedModel{
-					Namespace: namespace,
-				},
-				ManagedModel: models.ManagedModel{
-					CreatedAt: time.Now(),
-					UpdatedAt: time.Now(),
-				},
-				Name: "Flat per unit",
-			},
+			ID:            meterID,
+			Namespace:     namespace,
+			CreatedAt:     time.Now(),
+			UpdatedAt:     time.Now(),
+			Name:          "Flat per unit",
 			Key:           meterSlug,
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "test",
@@ -91,7 +83,11 @@ func (s *DiscountsTestSuite) TestCorrelationIDHandling() {
 
 	// When we provision a new pending line with a 10% discount, without a correlation ID set
 
-	var discountCorrelationID string
+	var (
+		discountCorrelationID string
+		pendingLineChargeID   *string
+	)
+
 	s.Run("Creating new pending lines with discounts sets the correlationID", func() {
 		res, err := s.Charges.CreatePendingInvoiceLines(ctx,
 			billing.CreatePendingInvoiceLinesInput{
@@ -99,36 +95,33 @@ func (s *DiscountsTestSuite) TestCorrelationIDHandling() {
 				Currency: currencyx.FiatCode(currency.USD),
 				Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 					{
-						GatheringLineBase: billing.GatheringLineBase{
-							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
-								Namespace: namespace,
-								Name:      "Test item1",
-							}),
-							ServicePeriod: timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
+						ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+							Namespace: namespace,
+							Name:      "Test item1",
+						}),
+						ServicePeriod: timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
 
-							InvoiceAt: periodEnd,
+						InvoiceAt: periodEnd,
 
-							ManagedBy: billing.ManuallyManagedLine,
+						ManagedBy: billing.ManuallyManagedLine,
 
-							Currency: currencyx.FiatCode(currency.USD),
-							RateCardDiscounts: billing.Discounts{
-								Percentage: &billing.PercentageDiscount{
-									PercentageDiscount: productcatalog.PercentageDiscount{
-										Percentage: models.NewPercentage(10),
-									},
-								},
+						Currency: currencyx.FiatCode(currency.USD),
+						RateCardDiscounts: billing.Discounts{
+							Percentage: &billing.PercentageDiscount{
+								Percentage: models.NewPercentage(10),
 							},
-							FeatureKey: featureFlatPerUnit.Key,
-							Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
-								Amount: alpacadecimal.NewFromFloat(100),
-							})),
 						},
+						FeatureKey: featureFlatPerUnit.Key,
+						Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+							Amount: alpacadecimal.NewFromFloat(100),
+						})),
 					},
 				}),
 			})
 		s.Require().NoError(err)
 		s.Require().Len(res.Lines, 1)
 		s.RequireChargeBasedGatheringLine(res.Lines[0], res.Lines[0].ChargeID)
+		pendingLineChargeID = res.Lines[0].ChargeID
 
 		// Then the freshly created line has a correlation ID set
 		percentageDiscount := res.Lines[0].RateCardDiscounts.Percentage
@@ -141,8 +134,8 @@ func (s *DiscountsTestSuite) TestCorrelationIDHandling() {
 
 	var draftInvoiceID billing.InvoiceID
 	s.Run("Creating a draft invoice with progressive billing enabled retains the correlation ID", func() {
-		// When the pending lines are invoiced in a progressive billing setup, the correlation ID is retained
-		// between the split lines.
+		// When the pending lines are invoiced in a progressive billing setup, the charge keeps the
+		// correlation ID on the partially billed line.
 		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
 			Customer: customerEntity.GetID(),
 		})
@@ -151,21 +144,12 @@ func (s *DiscountsTestSuite) TestCorrelationIDHandling() {
 		s.Require().Len(invoices[0].Lines.OrEmpty(), 1)
 
 		invoiceLine := invoices[0].Lines.OrEmpty()[0]
-		s.NotNil(invoiceLine.SplitLineHierarchy)
+		s.Require().Nil(invoiceLine.SplitLineHierarchy)
+		s.Require().Equal(pendingLineChargeID, invoiceLine.ChargeID)
+		s.Equal(billing.LineEngineTypeChargeUsageBased, invoiceLine.Engine)
 
-		// Root line has the same correlation ID for the discount
+		// The partially billed line has the same correlation ID for the discount
 		s.Equal(discountCorrelationID, invoiceLine.RateCardDiscounts.Percentage.CorrelationID)
-
-		// Split lines have the same correlation ID for the discount
-		s.Len(invoiceLine.SplitLineHierarchy.Lines, 2)
-		genericLinesWithInvoices := invoiceLine.SplitLineHierarchy.Lines
-
-		for _, genericLine := range genericLinesWithInvoices {
-			s.Equal(discountCorrelationID, genericLine.Line.GetRateCardDiscounts().Percentage.CorrelationID)
-		}
-
-		// The split line group has the same correlation ID for the discount
-		s.Equal(discountCorrelationID, invoiceLine.SplitLineHierarchy.Group.RatecardDiscounts.Percentage.CorrelationID)
 
 		// An amount discount is also created, and it retains the same correlation ID
 		s.Len(invoiceLine.DetailedLines, 1)
@@ -184,7 +168,7 @@ func (s *DiscountsTestSuite) TestCorrelationIDHandling() {
 		draftInvoiceID = invoices[0].GetInvoiceID()
 	})
 
-	s.Run("Editing a progressively billed invoice line usage discount is rejected", func() {
+	s.Run("Editing a charge managed invoice line usage discount is rejected", func() {
 		_, err := s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
 			Invoice:      draftInvoiceID,
 			ChangeSource: billing.ChangeSourceAPIRequest,
@@ -200,9 +184,8 @@ func (s *DiscountsTestSuite) TestCorrelationIDHandling() {
 			},
 		})
 
-		s.Error(err)
-		s.ErrorAs(err, &billing.ValidationError{})
-		s.ErrorIs(err, billing.ErrInvoiceLineProgressiveBillingUsageDiscountUpdateForbidden)
+		s.Require().Error(err)
+		s.ErrorIs(err, billing.ErrCannotUpdateChargeManagedLine)
 	})
 
 	s.Run("Deleting the invoice works without errors", func() {
