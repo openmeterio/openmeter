@@ -7,10 +7,52 @@ checks any supplied invoice regardless of its lifecycle status; callers own
 when to invoke it.
 
 Callers must supply expanded invoice lines. A loaded empty collection is valid;
-unloaded lines and nil entries are critical validation issues. Discount
-reconciliation checks live detailed lines against live amount-discount entries,
-including rounding corrections, using billing's currency rounding. Deleted
-parents, details and discount entries do not contribute to this check.
+unloaded lines and nil entries are critical validation issues. Checks reconcile:
+
+- detailed discount and credit totals with their breakdowns, using billing's
+  per-entry currency rounding (including signed discount rounding corrections);
+- detailed gross value with the currency-rounded product of full-precision unit
+  amount and quantity;
+- category placement: regular details use `Amount`, commitments use
+  `ChargesTotal`, and the other gross field must be zero;
+- payable totals with amount plus charges plus exclusive tax minus discounts
+  and credits, at invoice, parent, and detail levels;
+- every parent total component with its active detailed-line sum, and every
+  invoice total component with its active parent-line sum;
+- parent credit allocations with active details grouped by realization ID, allowing
+  one realization to span several details;
+- positive credit entries with realization IDs and allocation limits against the
+  detail's pretax balance (`Amount + ChargesTotal - DiscountsTotal`);
+- matching parent/invoice currency and currency precision for all eight calculated
+  total fields at invoice, parent and detail levels;
+- persisted invoice, parent, detail and amount-discount IDs, unique within each
+  entity kind; parent/detail invoice IDs and namespaces must match the invoice;
+  detail child references must be present and unique within their parent;
+- ordered parent/detail service periods and the invoice's active-parent envelope;
+- nonnegative parent payable totals and required `UsageBased`/`Price` pointers,
+  including flat-price parents.
+
+Inclusive tax is already in gross value and is not added again. Comparisons are
+exact: validation does not round stored totals to hide discrepancies or impose
+nonnegative quantities/totals on signed correction details. Deleted parents,
+details and discount entries do not contribute. Zero-value parents without
+stored details remain valid, including provisional credit-purchase lines.
+Missing or nil parents prevent invoice aggregation from being evaluated, while
+independent checks still report their own issues. Invalid currency is reported
+once and skips only checks that require currency rounding.
+
+An invoice with no active parents must have no service period. Point intervals
+are valid under the existing period contract. Detail periods need not be contained
+in their parent: corrections can span different intervals. Provider IDs remain
+optional before synchronization. Credit limits use actual allocations, not a
+possibly stale `CreditsTotal`, and exclusive tax cannot increase that budget.
+Calculated totals must already be currency-rounded; unit prices, quantities and
+allocation input amounts retain their existing precision and rounding order.
+
+This does not prove ledger credit ownership, commercial pricing intent, or
+provider request correctness. Supplier and standard-line
+`InvoiceAt` are outside sanity validation. Existing lifecycle and enforcement
+behavior applies to every check.
 
 Failures use the `billing.invoice.sanity` component and preserve individual issue
 codes, field paths and reconciliation values. The checker is separate from

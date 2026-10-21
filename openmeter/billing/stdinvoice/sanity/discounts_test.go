@@ -1,6 +1,7 @@
 package stdinvoicesanity_test
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -9,9 +10,13 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	stdinvoicesanity "github.com/openmeterio/openmeter/openmeter/billing/stdinvoice/sanity"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 func TestValidateDiscountTotals(t *testing.T) {
@@ -42,12 +47,14 @@ func TestValidateDiscountTotals(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			// Given calculated invoice totals and an independently populated discount breakdown.
+			// Given a stored discount total and a separately supplied breakdown.
 			invoice := invoiceWithDiscountTotal(tc.total)
 			invoice.Currency = tc.currency
+			invoice.Lines.OrEmpty()[0].Currency = tc.currency
 			detail := &invoice.Lines.OrEmpty()[0].DetailedLines[0]
 			for idx, amount := range tc.amounts {
 				discount := billing.AmountLineDiscountManaged{
+					ID: fmt.Sprintf("discount-%d", idx),
 					AmountLineDiscount: billing.AmountLineDiscount{
 						Amount: alpacadecimal.RequireFromString(amount),
 					},
@@ -65,7 +72,7 @@ func TestValidateDiscountTotals(t *testing.T) {
 			// When the invoice is checked without recalculating it.
 			err = stdinvoicesanity.Validate(invoice)
 
-			// Then mismatches are actionable critical issues, and validation preserves the input.
+			// Then a mismatch produces a critical issue without changing the invoice.
 			require.Equal(t, before, invoice)
 			if !tc.mismatch {
 				require.NoError(t, err)
@@ -76,6 +83,9 @@ func TestValidateDiscountTotals(t *testing.T) {
 			require.True(t, models.IsGenericValidationError(err))
 			issues, issueErr := billing.ToValidationIssues(err)
 			require.NoError(t, issueErr)
+			issues = lo.Filter(issues, func(issue billing.ValidationIssue, _ int) bool {
+				return issue.Code == stdinvoicesanity.ErrDiscountTotalMismatch.Code
+			})
 			require.Len(t, issues, 1)
 			require.ErrorIs(t, err, stdinvoicesanity.ErrDiscountTotalMismatch)
 			require.Equal(t, stdinvoicesanity.ErrDiscountTotalMismatch.Message, issues[0].Message)
@@ -119,6 +129,8 @@ func TestValidateIgnoresDeletedDiscountFacts(t *testing.T) {
 
 		invoice := invoiceWithDiscountTotal("20")
 		invoice.Lines.OrEmpty()[0].DeletedAt = lo.ToPtr(deletedAt)
+		invoice.Period = nil
+		invoice.Totals = totals.Totals{}
 		require.NoError(t, stdinvoicesanity.Validate(invoice))
 	})
 	t.Run("deleted detail", func(t *testing.T) {
@@ -126,6 +138,8 @@ func TestValidateIgnoresDeletedDiscountFacts(t *testing.T) {
 
 		invoice := invoiceWithDiscountTotal("20")
 		invoice.Lines.OrEmpty()[0].DetailedLines[0].DeletedAt = lo.ToPtr(deletedAt)
+		invoice.Lines.OrEmpty()[0].Totals = totals.Totals{}
+		invoice.Totals = totals.Totals{}
 		require.NoError(t, stdinvoicesanity.Validate(invoice))
 	})
 	t.Run("deleted discount", func(t *testing.T) {
@@ -144,19 +158,30 @@ func TestValidateIgnoresDeletedDiscountFacts(t *testing.T) {
 	})
 }
 
-// invoiceWithDiscountTotal models the incident: aggregate amounts reconcile,
-// but the detailed line has no discount entries supporting its discount total.
+// invoiceWithDiscountTotal recreates the missing-discount case: the totals add
+// up, but the detail has no discount entries to explain its discount total.
 func invoiceWithDiscountTotal(discountTotal string) billing.StandardInvoice {
 	detail := billing.DetailedLine{AmountDiscounts: billing.AmountLineDiscountsManaged{}}
 	detail.ID = "detail-1"
+	detail.Namespace = "test"
+	detail.InvoiceID = "invoice-1"
+	detail.ChildUniqueReferenceID = "detail-1"
+	detail.ServicePeriod = timeutil.ClosedPeriod{From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC), To: time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC)}
+	detail.Category = stddetailedline.CategoryRegular
+	detail.PerUnitAmount = alpacadecimal.NewFromInt(100)
+	detail.Quantity = alpacadecimal.NewFromInt(1)
 	detail.Totals.Amount = alpacadecimal.NewFromInt(100)
 	detail.Totals.DiscountsTotal = alpacadecimal.RequireFromString(discountTotal)
 	detail.Totals.Total = detail.Totals.CalculateTotal()
 	line := &billing.StandardLine{
-		UsageBased:    &billing.UsageBasedLine{},
+		UsageBased:    &billing.UsageBasedLine{Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{Amount: alpacadecimal.NewFromInt(100)})},
 		DetailedLines: billing.DetailedLines{detail},
 	}
 	line.ID = "line-1"
+	line.Namespace = "test"
+	line.InvoiceID = "invoice-1"
+	line.Currency = "USD"
+	line.Period = detail.ServicePeriod
 	line.Totals = detail.Totals
 	invoice := billing.StandardInvoice{
 		StandardInvoiceBase: billing.StandardInvoiceBase{Currency: "USD"},
@@ -164,6 +189,8 @@ func invoiceWithDiscountTotal(discountTotal string) billing.StandardInvoice {
 		Totals:              line.Totals,
 	}
 	invoice.ID = "invoice-1"
+	invoice.Namespace = "test"
+	invoice.Period = lo.ToPtr(line.Period)
 
 	return invoice
 }

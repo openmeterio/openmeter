@@ -13,7 +13,7 @@ func TestValidateExpandedLines(t *testing.T) {
 	t.Parallel()
 
 	invoice := billing.StandardInvoice{
-		StandardInvoiceBase: billing.StandardInvoiceBase{Currency: "USD"},
+		StandardInvoiceBase: billing.StandardInvoiceBase{ID: "invoice-1", Namespace: "test", Currency: "USD"},
 	}
 	err := stdinvoicesanity.Validate(invoice)
 	require.Error(t, err)
@@ -35,12 +35,14 @@ func TestValidateCollectsIndependentFailures(t *testing.T) {
 	line := invoice.Lines.OrEmpty()[0]
 	line.DetailedLines = append(line.DetailedLines, line.DetailedLines[0].Clone())
 	line.DetailedLines[1].ID = "detail-2"
+	line.DetailedLines[1].ChildUniqueReferenceID = "detail-2"
+	setTestTotalsFromDetails(&invoice)
 	invoice.Lines = billing.NewStandardInvoiceLines([]*billing.StandardLine{nil, line})
 
-	// When all named validations run.
+	// When we validate the invoice.
 	err := stdinvoicesanity.Validate(invoice)
 
-	// Then malformed input does not hide the independently detectable mismatches.
+	// Then the nil parent does not hide the errors in the other lines.
 	require.Error(t, err)
 	issues, issueErr := billing.ToValidationIssues(err)
 	require.NoError(t, issueErr)
