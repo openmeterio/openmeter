@@ -116,7 +116,9 @@ updates:
 
   - package-ecosystem: pip
     open-pull-requests-limit: 1
-    directory: "/api/client/python"
+    directories:
+      - "/api/client/python"
+      - "/api/client/python/examples"
     schedule:
       interval: weekly
     cooldown:
