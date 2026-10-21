@@ -434,6 +434,14 @@ func (BillingInvoiceLine) Fields() []ent.Field {
 				dialect.Postgres: "char(26)",
 			}),
 
+		field.String("fee_line_config_id").
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}).
+			Optional().
+			Nillable().
+			Deprecated("retained for legacy invoice migrations; schema level 2 uses dedicated detailed lines"),
+
 		field.Enum("managed_by").
 			GoType(billing.InvoiceLineManagedBy("")),
 
@@ -546,10 +554,11 @@ func (BillingInvoiceLine) Annotations() []schema.Annotation {
 
 func (BillingInvoiceLine) Indexes() []ent.Index {
 	return []ent.Index{
-		// PostgreSQL looks up child rows by the foreign-key column alone when a line
-		// config is deleted, so these indexes prevent a scan of all invoice lines.
-		index.Edges("flat_fee_line").
+		// Historical invoice migrations still join legacy flat-fee configurations.
+		index.Fields("fee_line_config_id").
 			StorageKey("billing_invoice_lines_fee_config_id_idx"),
+		// PostgreSQL looks up child rows by the foreign-key column alone when a usage
+		// config is deleted, so this index prevents a scan of all invoice lines.
 		index.Edges("usage_based_line").
 			StorageKey("billing_invoice_lines_usage_config_id_idx"),
 		// Self-referencing foreign-key actions filter by parent_line_id without the
@@ -577,10 +586,6 @@ func (BillingInvoiceLine) Edges() []ent.Edge {
 			Ref("billing_invoice_lines").
 			Field("split_line_group_id").
 			Unique(),
-		edge.To("flat_fee_line", BillingInvoiceFlatFeeLineConfig.Type).
-			StorageKey(edge.Column("fee_line_config_id")).
-			Unique().
-			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("usage_based_line", BillingInvoiceUsageBasedLineConfig.Type).
 			StorageKey(edge.Column("usage_based_line_config_id")).
 			Unique().

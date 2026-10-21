@@ -1562,6 +1562,20 @@ func (u *BillingInvoiceLineUpdateOne) SetOrClearInvoicingAppExternalID(value *st
 	return u.SetInvoicingAppExternalID(*value)
 }
 
+func (u *BillingInvoiceLineUpdate) SetOrClearFeeLineConfigID(value *string) *BillingInvoiceLineUpdate {
+	if value == nil {
+		return u.ClearFeeLineConfigID()
+	}
+	return u.SetFeeLineConfigID(*value)
+}
+
+func (u *BillingInvoiceLineUpdateOne) SetOrClearFeeLineConfigID(value *string) *BillingInvoiceLineUpdateOne {
+	if value == nil {
+		return u.ClearFeeLineConfigID()
+	}
+	return u.SetFeeLineConfigID(*value)
+}
+
 func (u *BillingInvoiceLineUpdate) SetOrClearParentLineID(value *string) *BillingInvoiceLineUpdate {
 	if value == nil {
 		return u.ClearParentLineID()

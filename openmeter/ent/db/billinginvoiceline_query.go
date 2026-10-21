@@ -14,7 +14,6 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceflatfeelineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicelinediscount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicelineusagediscount"
@@ -44,7 +43,6 @@ type BillingInvoiceLineQuery struct {
 	predicates                                   []predicate.BillingInvoiceLine
 	withBillingInvoice                           *BillingInvoiceQuery
 	withSplitLineGroup                           *BillingInvoiceSplitLineGroupQuery
-	withFlatFeeLine                              *BillingInvoiceFlatFeeLineConfigQuery
 	withUsageBasedLine                           *BillingInvoiceUsageBasedLineConfigQuery
 	withParentLine                               *BillingInvoiceLineQuery
 	withDetailedLines                            *BillingInvoiceLineQuery
@@ -137,28 +135,6 @@ func (_q *BillingInvoiceLineQuery) QuerySplitLineGroup() *BillingInvoiceSplitLin
 			sqlgraph.From(billinginvoiceline.Table, billinginvoiceline.FieldID, selector),
 			sqlgraph.To(billinginvoicesplitlinegroup.Table, billinginvoicesplitlinegroup.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, billinginvoiceline.SplitLineGroupTable, billinginvoiceline.SplitLineGroupColumn),
-		)
-		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
-		return fromU, nil
-	}
-	return query
-}
-
-// QueryFlatFeeLine chains the current query on the "flat_fee_line" edge.
-func (_q *BillingInvoiceLineQuery) QueryFlatFeeLine() *BillingInvoiceFlatFeeLineConfigQuery {
-	query := (&BillingInvoiceFlatFeeLineConfigClient{config: _q.config}).Query()
-	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := _q.prepareQuery(ctx); err != nil {
-			return nil, err
-		}
-		selector := _q.sqlQuery(ctx)
-		if err := selector.Err(); err != nil {
-			return nil, err
-		}
-		step := sqlgraph.NewStep(
-			sqlgraph.From(billinginvoiceline.Table, billinginvoiceline.FieldID, selector),
-			sqlgraph.To(billinginvoiceflatfeelineconfig.Table, billinginvoiceflatfeelineconfig.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, false, billinginvoiceline.FlatFeeLineTable, billinginvoiceline.FlatFeeLineColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -734,7 +710,6 @@ func (_q *BillingInvoiceLineQuery) Clone() *BillingInvoiceLineQuery {
 		predicates:                            append([]predicate.BillingInvoiceLine{}, _q.predicates...),
 		withBillingInvoice:                    _q.withBillingInvoice.Clone(),
 		withSplitLineGroup:                    _q.withSplitLineGroup.Clone(),
-		withFlatFeeLine:                       _q.withFlatFeeLine.Clone(),
 		withUsageBasedLine:                    _q.withUsageBasedLine.Clone(),
 		withParentLine:                        _q.withParentLine.Clone(),
 		withDetailedLines:                     _q.withDetailedLines.Clone(),
@@ -777,17 +752,6 @@ func (_q *BillingInvoiceLineQuery) WithSplitLineGroup(opts ...func(*BillingInvoi
 		opt(query)
 	}
 	_q.withSplitLineGroup = query
-	return _q
-}
-
-// WithFlatFeeLine tells the query-builder to eager-load the nodes that are connected to
-// the "flat_fee_line" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *BillingInvoiceLineQuery) WithFlatFeeLine(opts ...func(*BillingInvoiceFlatFeeLineConfigQuery)) *BillingInvoiceLineQuery {
-	query := (&BillingInvoiceFlatFeeLineConfigClient{config: _q.config}).Query()
-	for _, opt := range opts {
-		opt(query)
-	}
-	_q.withFlatFeeLine = query
 	return _q
 }
 
@@ -1057,10 +1021,9 @@ func (_q *BillingInvoiceLineQuery) sqlAll(ctx context.Context, hooks ...queryHoo
 		nodes       = []*BillingInvoiceLine{}
 		withFKs     = _q.withFKs
 		_spec       = _q.querySpec()
-		loadedTypes = [20]bool{
+		loadedTypes = [19]bool{
 			_q.withBillingInvoice != nil,
 			_q.withSplitLineGroup != nil,
-			_q.withFlatFeeLine != nil,
 			_q.withUsageBasedLine != nil,
 			_q.withParentLine != nil,
 			_q.withDetailedLines != nil,
@@ -1080,7 +1043,7 @@ func (_q *BillingInvoiceLineQuery) sqlAll(ctx context.Context, hooks ...queryHoo
 			_q.withTaxCode != nil,
 		}
 	)
-	if _q.withFlatFeeLine != nil || _q.withUsageBasedLine != nil {
+	if _q.withUsageBasedLine != nil {
 		withFKs = true
 	}
 	if withFKs {
@@ -1116,12 +1079,6 @@ func (_q *BillingInvoiceLineQuery) sqlAll(ctx context.Context, hooks ...queryHoo
 	if query := _q.withSplitLineGroup; query != nil {
 		if err := _q.loadSplitLineGroup(ctx, query, nodes, nil,
 			func(n *BillingInvoiceLine, e *BillingInvoiceSplitLineGroup) { n.Edges.SplitLineGroup = e }); err != nil {
-			return nil, err
-		}
-	}
-	if query := _q.withFlatFeeLine; query != nil {
-		if err := _q.loadFlatFeeLine(ctx, query, nodes, nil,
-			func(n *BillingInvoiceLine, e *BillingInvoiceFlatFeeLineConfig) { n.Edges.FlatFeeLine = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -1308,38 +1265,6 @@ func (_q *BillingInvoiceLineQuery) loadSplitLineGroup(ctx context.Context, query
 		nodes, ok := nodeids[n.ID]
 		if !ok {
 			return fmt.Errorf(`unexpected foreign-key "split_line_group_id" returned %v`, n.ID)
-		}
-		for i := range nodes {
-			assign(nodes[i], n)
-		}
-	}
-	return nil
-}
-func (_q *BillingInvoiceLineQuery) loadFlatFeeLine(ctx context.Context, query *BillingInvoiceFlatFeeLineConfigQuery, nodes []*BillingInvoiceLine, init func(*BillingInvoiceLine), assign func(*BillingInvoiceLine, *BillingInvoiceFlatFeeLineConfig)) error {
-	ids := make([]string, 0, len(nodes))
-	nodeids := make(map[string][]*BillingInvoiceLine)
-	for i := range nodes {
-		if nodes[i].fee_line_config_id == nil {
-			continue
-		}
-		fk := *nodes[i].fee_line_config_id
-		if _, ok := nodeids[fk]; !ok {
-			ids = append(ids, fk)
-		}
-		nodeids[fk] = append(nodeids[fk], nodes[i])
-	}
-	if len(ids) == 0 {
-		return nil
-	}
-	query.Where(billinginvoiceflatfeelineconfig.IDIn(ids...))
-	neighbors, err := query.All(ctx)
-	if err != nil {
-		return err
-	}
-	for _, n := range neighbors {
-		nodes, ok := nodeids[n.ID]
-		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "fee_line_config_id" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)

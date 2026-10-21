@@ -3760,22 +3760,6 @@ func (c *BillingInvoiceLineClient) QuerySplitLineGroup(_m *BillingInvoiceLine) *
 	return query
 }
 
-// QueryFlatFeeLine queries the flat_fee_line edge of a BillingInvoiceLine.
-func (c *BillingInvoiceLineClient) QueryFlatFeeLine(_m *BillingInvoiceLine) *BillingInvoiceFlatFeeLineConfigQuery {
-	query := (&BillingInvoiceFlatFeeLineConfigClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := _m.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(billinginvoiceline.Table, billinginvoiceline.FieldID, id),
-			sqlgraph.To(billinginvoiceflatfeelineconfig.Table, billinginvoiceflatfeelineconfig.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, false, billinginvoiceline.FlatFeeLineTable, billinginvoiceline.FlatFeeLineColumn),
-		)
-		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
 // QueryUsageBasedLine queries the usage_based_line edge of a BillingInvoiceLine.
 func (c *BillingInvoiceLineClient) QueryUsageBasedLine(_m *BillingInvoiceLine) *BillingInvoiceUsageBasedLineConfigQuery {
 	query := (&BillingInvoiceUsageBasedLineConfigClient{config: c.config}).Query()

@@ -15,7 +15,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/creditsapplied"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceflatfeelineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicelinediscount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicelineusagediscount"
@@ -369,6 +368,26 @@ func (_u *BillingInvoiceLineUpdate) SetNillableInvoiceID(v *string) *BillingInvo
 	return _u
 }
 
+// SetFeeLineConfigID sets the "fee_line_config_id" field.
+func (_u *BillingInvoiceLineUpdate) SetFeeLineConfigID(v string) *BillingInvoiceLineUpdate {
+	_u.mutation.SetFeeLineConfigID(v)
+	return _u
+}
+
+// SetNillableFeeLineConfigID sets the "fee_line_config_id" field if the given value is not nil.
+func (_u *BillingInvoiceLineUpdate) SetNillableFeeLineConfigID(v *string) *BillingInvoiceLineUpdate {
+	if v != nil {
+		_u.SetFeeLineConfigID(*v)
+	}
+	return _u
+}
+
+// ClearFeeLineConfigID clears the value of the "fee_line_config_id" field.
+func (_u *BillingInvoiceLineUpdate) ClearFeeLineConfigID() *BillingInvoiceLineUpdate {
+	_u.mutation.ClearFeeLineConfigID()
+	return _u
+}
+
 // SetManagedBy sets the "managed_by" field.
 func (_u *BillingInvoiceLineUpdate) SetManagedBy(v billing.InvoiceLineManagedBy) *BillingInvoiceLineUpdate {
 	_u.mutation.SetManagedBy(v)
@@ -685,25 +704,6 @@ func (_u *BillingInvoiceLineUpdate) SetSplitLineGroup(v *BillingInvoiceSplitLine
 	return _u.SetSplitLineGroupID(v.ID)
 }
 
-// SetFlatFeeLineID sets the "flat_fee_line" edge to the BillingInvoiceFlatFeeLineConfig entity by ID.
-func (_u *BillingInvoiceLineUpdate) SetFlatFeeLineID(id string) *BillingInvoiceLineUpdate {
-	_u.mutation.SetFlatFeeLineID(id)
-	return _u
-}
-
-// SetNillableFlatFeeLineID sets the "flat_fee_line" edge to the BillingInvoiceFlatFeeLineConfig entity by ID if the given value is not nil.
-func (_u *BillingInvoiceLineUpdate) SetNillableFlatFeeLineID(id *string) *BillingInvoiceLineUpdate {
-	if id != nil {
-		_u = _u.SetFlatFeeLineID(*id)
-	}
-	return _u
-}
-
-// SetFlatFeeLine sets the "flat_fee_line" edge to the BillingInvoiceFlatFeeLineConfig entity.
-func (_u *BillingInvoiceLineUpdate) SetFlatFeeLine(v *BillingInvoiceFlatFeeLineConfig) *BillingInvoiceLineUpdate {
-	return _u.SetFlatFeeLineID(v.ID)
-}
-
 // SetUsageBasedLineID sets the "usage_based_line" edge to the BillingInvoiceUsageBasedLineConfig entity by ID.
 func (_u *BillingInvoiceLineUpdate) SetUsageBasedLineID(id string) *BillingInvoiceLineUpdate {
 	_u.mutation.SetUsageBasedLineID(id)
@@ -933,12 +933,6 @@ func (_u *BillingInvoiceLineUpdate) ClearBillingInvoice() *BillingInvoiceLineUpd
 // ClearSplitLineGroup clears the "split_line_group" edge to the BillingInvoiceSplitLineGroup entity.
 func (_u *BillingInvoiceLineUpdate) ClearSplitLineGroup() *BillingInvoiceLineUpdate {
 	_u.mutation.ClearSplitLineGroup()
-	return _u
-}
-
-// ClearFlatFeeLine clears the "flat_fee_line" edge to the BillingInvoiceFlatFeeLineConfig entity.
-func (_u *BillingInvoiceLineUpdate) ClearFlatFeeLine() *BillingInvoiceLineUpdate {
-	_u.mutation.ClearFlatFeeLine()
 	return _u
 }
 
@@ -1303,6 +1297,12 @@ func (_u *BillingInvoiceLineUpdate) sqlSave(ctx context.Context) (_node int, err
 	if value, ok := _u.mutation.PeriodEnd(); ok {
 		_spec.SetField(billinginvoiceline.FieldPeriodEnd, field.TypeTime, value)
 	}
+	if value, ok := _u.mutation.FeeLineConfigID(); ok {
+		_spec.SetField(billinginvoiceline.FieldFeeLineConfigID, field.TypeString, value)
+	}
+	if _u.mutation.FeeLineConfigIDCleared() {
+		_spec.ClearField(billinginvoiceline.FieldFeeLineConfigID, field.TypeString)
+	}
 	if value, ok := _u.mutation.ManagedBy(); ok {
 		_spec.SetField(billinginvoiceline.FieldManagedBy, field.TypeEnum, value)
 	}
@@ -1416,35 +1416,6 @@ func (_u *BillingInvoiceLineUpdate) sqlSave(ctx context.Context) (_node int, err
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoicesplitlinegroup.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
-	}
-	if _u.mutation.FlatFeeLineCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: false,
-			Table:   billinginvoiceline.FlatFeeLineTable,
-			Columns: []string{billinginvoiceline.FlatFeeLineColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceflatfeelineconfig.FieldID, field.TypeString),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.FlatFeeLineIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: false,
-			Table:   billinginvoiceline.FlatFeeLineTable,
-			Columns: []string{billinginvoiceline.FlatFeeLineColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceflatfeelineconfig.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -2379,6 +2350,26 @@ func (_u *BillingInvoiceLineUpdateOne) SetNillableInvoiceID(v *string) *BillingI
 	return _u
 }
 
+// SetFeeLineConfigID sets the "fee_line_config_id" field.
+func (_u *BillingInvoiceLineUpdateOne) SetFeeLineConfigID(v string) *BillingInvoiceLineUpdateOne {
+	_u.mutation.SetFeeLineConfigID(v)
+	return _u
+}
+
+// SetNillableFeeLineConfigID sets the "fee_line_config_id" field if the given value is not nil.
+func (_u *BillingInvoiceLineUpdateOne) SetNillableFeeLineConfigID(v *string) *BillingInvoiceLineUpdateOne {
+	if v != nil {
+		_u.SetFeeLineConfigID(*v)
+	}
+	return _u
+}
+
+// ClearFeeLineConfigID clears the value of the "fee_line_config_id" field.
+func (_u *BillingInvoiceLineUpdateOne) ClearFeeLineConfigID() *BillingInvoiceLineUpdateOne {
+	_u.mutation.ClearFeeLineConfigID()
+	return _u
+}
+
 // SetManagedBy sets the "managed_by" field.
 func (_u *BillingInvoiceLineUpdateOne) SetManagedBy(v billing.InvoiceLineManagedBy) *BillingInvoiceLineUpdateOne {
 	_u.mutation.SetManagedBy(v)
@@ -2695,25 +2686,6 @@ func (_u *BillingInvoiceLineUpdateOne) SetSplitLineGroup(v *BillingInvoiceSplitL
 	return _u.SetSplitLineGroupID(v.ID)
 }
 
-// SetFlatFeeLineID sets the "flat_fee_line" edge to the BillingInvoiceFlatFeeLineConfig entity by ID.
-func (_u *BillingInvoiceLineUpdateOne) SetFlatFeeLineID(id string) *BillingInvoiceLineUpdateOne {
-	_u.mutation.SetFlatFeeLineID(id)
-	return _u
-}
-
-// SetNillableFlatFeeLineID sets the "flat_fee_line" edge to the BillingInvoiceFlatFeeLineConfig entity by ID if the given value is not nil.
-func (_u *BillingInvoiceLineUpdateOne) SetNillableFlatFeeLineID(id *string) *BillingInvoiceLineUpdateOne {
-	if id != nil {
-		_u = _u.SetFlatFeeLineID(*id)
-	}
-	return _u
-}
-
-// SetFlatFeeLine sets the "flat_fee_line" edge to the BillingInvoiceFlatFeeLineConfig entity.
-func (_u *BillingInvoiceLineUpdateOne) SetFlatFeeLine(v *BillingInvoiceFlatFeeLineConfig) *BillingInvoiceLineUpdateOne {
-	return _u.SetFlatFeeLineID(v.ID)
-}
-
 // SetUsageBasedLineID sets the "usage_based_line" edge to the BillingInvoiceUsageBasedLineConfig entity by ID.
 func (_u *BillingInvoiceLineUpdateOne) SetUsageBasedLineID(id string) *BillingInvoiceLineUpdateOne {
 	_u.mutation.SetUsageBasedLineID(id)
@@ -2943,12 +2915,6 @@ func (_u *BillingInvoiceLineUpdateOne) ClearBillingInvoice() *BillingInvoiceLine
 // ClearSplitLineGroup clears the "split_line_group" edge to the BillingInvoiceSplitLineGroup entity.
 func (_u *BillingInvoiceLineUpdateOne) ClearSplitLineGroup() *BillingInvoiceLineUpdateOne {
 	_u.mutation.ClearSplitLineGroup()
-	return _u
-}
-
-// ClearFlatFeeLine clears the "flat_fee_line" edge to the BillingInvoiceFlatFeeLineConfig entity.
-func (_u *BillingInvoiceLineUpdateOne) ClearFlatFeeLine() *BillingInvoiceLineUpdateOne {
-	_u.mutation.ClearFlatFeeLine()
 	return _u
 }
 
@@ -3343,6 +3309,12 @@ func (_u *BillingInvoiceLineUpdateOne) sqlSave(ctx context.Context) (_node *Bill
 	if value, ok := _u.mutation.PeriodEnd(); ok {
 		_spec.SetField(billinginvoiceline.FieldPeriodEnd, field.TypeTime, value)
 	}
+	if value, ok := _u.mutation.FeeLineConfigID(); ok {
+		_spec.SetField(billinginvoiceline.FieldFeeLineConfigID, field.TypeString, value)
+	}
+	if _u.mutation.FeeLineConfigIDCleared() {
+		_spec.ClearField(billinginvoiceline.FieldFeeLineConfigID, field.TypeString)
+	}
 	if value, ok := _u.mutation.ManagedBy(); ok {
 		_spec.SetField(billinginvoiceline.FieldManagedBy, field.TypeEnum, value)
 	}
@@ -3456,35 +3428,6 @@ func (_u *BillingInvoiceLineUpdateOne) sqlSave(ctx context.Context) (_node *Bill
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoicesplitlinegroup.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
-	}
-	if _u.mutation.FlatFeeLineCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: false,
-			Table:   billinginvoiceline.FlatFeeLineTable,
-			Columns: []string{billinginvoiceline.FlatFeeLineColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceflatfeelineconfig.FieldID, field.TypeString),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.FlatFeeLineIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: false,
-			Table:   billinginvoiceline.FlatFeeLineTable,
-			Columns: []string{billinginvoiceline.FlatFeeLineColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceflatfeelineconfig.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

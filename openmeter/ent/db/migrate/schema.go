@@ -988,6 +988,7 @@ var (
 		{Name: "invoicing_app_external_id", Type: field.TypeString, Nullable: true},
 		{Name: "period_start", Type: field.TypeTime},
 		{Name: "period_end", Type: field.TypeTime},
+		{Name: "fee_line_config_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "managed_by", Type: field.TypeEnum, Enums: []string{"subscription", "system", "manual"}},
 		{Name: "invoice_at", Type: field.TypeTime},
 		{Name: "override_collection_period_end", Type: field.TypeTime, Nullable: true},
@@ -1001,7 +1002,6 @@ var (
 		{Name: "engine", Type: field.TypeEnum, Enums: []string{"invoicing", "charge_flatfee", "charge_usagebased", "charge_creditpurchase"}, Default: "invoicing"},
 		{Name: "credits_applied", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "invoice_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
-		{Name: "fee_line_config_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "usage_based_line_config_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "parent_line_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "split_line_group_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -1019,14 +1019,8 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "billing_invoice_lines_billing_invoices_billing_invoice_lines",
-				Columns:    []*schema.Column{BillingInvoiceLinesColumns[35]},
-				RefColumns: []*schema.Column{BillingInvoicesColumns[0]},
-				OnDelete:   schema.Cascade,
-			},
-			{
-				Symbol:     "billing_invoice_lines_billing_invoice_flat_fee_line_configs_flat_fee_line",
 				Columns:    []*schema.Column{BillingInvoiceLinesColumns[36]},
-				RefColumns: []*schema.Column{BillingInvoiceFlatFeeLineConfigsColumns[0]},
+				RefColumns: []*schema.Column{BillingInvoicesColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
 			{
@@ -1112,7 +1106,7 @@ var (
 			{
 				Name:    "billing_invoice_lines_fee_config_id_idx",
 				Unique:  false,
-				Columns: []*schema.Column{BillingInvoiceLinesColumns[36]},
+				Columns: []*schema.Column{BillingInvoiceLinesColumns[23]},
 			},
 			{
 				Name:    "billing_invoice_lines_usage_config_id_idx",
@@ -1127,7 +1121,7 @@ var (
 			{
 				Name:    "billinginvoiceline_namespace_invoice_id",
 				Unique:  false,
-				Columns: []*schema.Column{BillingInvoiceLinesColumns[2], BillingInvoiceLinesColumns[35]},
+				Columns: []*schema.Column{BillingInvoiceLinesColumns[2], BillingInvoiceLinesColumns[36]},
 			},
 			{
 				Name:    "billinginvoiceline_namespace_parent_line_id",
@@ -1137,7 +1131,7 @@ var (
 			{
 				Name:    "billinginvoiceline_namespace_parent_line_id_child_unique_reference_id",
 				Unique:  true,
-				Columns: []*schema.Column{BillingInvoiceLinesColumns[2], BillingInvoiceLinesColumns[38], BillingInvoiceLinesColumns[30]},
+				Columns: []*schema.Column{BillingInvoiceLinesColumns[2], BillingInvoiceLinesColumns[38], BillingInvoiceLinesColumns[31]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "child_unique_reference_id IS NOT NULL AND deleted_at IS NULL",
 				},
@@ -6359,15 +6353,14 @@ func init() {
 	BillingInvoicesTable.ForeignKeys[4].RefTable = BillingWorkflowConfigsTable
 	BillingInvoicesTable.ForeignKeys[5].RefTable = CustomersTable
 	BillingInvoiceLinesTable.ForeignKeys[0].RefTable = BillingInvoicesTable
-	BillingInvoiceLinesTable.ForeignKeys[1].RefTable = BillingInvoiceFlatFeeLineConfigsTable
-	BillingInvoiceLinesTable.ForeignKeys[2].RefTable = BillingInvoiceUsageBasedLineConfigsTable
-	BillingInvoiceLinesTable.ForeignKeys[3].RefTable = BillingInvoiceLinesTable
-	BillingInvoiceLinesTable.ForeignKeys[4].RefTable = BillingInvoiceSplitLineGroupsTable
-	BillingInvoiceLinesTable.ForeignKeys[5].RefTable = ChargesTable
-	BillingInvoiceLinesTable.ForeignKeys[6].RefTable = SubscriptionsTable
-	BillingInvoiceLinesTable.ForeignKeys[7].RefTable = SubscriptionItemsTable
-	BillingInvoiceLinesTable.ForeignKeys[8].RefTable = SubscriptionPhasesTable
-	BillingInvoiceLinesTable.ForeignKeys[9].RefTable = TaxCodesTable
+	BillingInvoiceLinesTable.ForeignKeys[1].RefTable = BillingInvoiceUsageBasedLineConfigsTable
+	BillingInvoiceLinesTable.ForeignKeys[2].RefTable = BillingInvoiceLinesTable
+	BillingInvoiceLinesTable.ForeignKeys[3].RefTable = BillingInvoiceSplitLineGroupsTable
+	BillingInvoiceLinesTable.ForeignKeys[4].RefTable = ChargesTable
+	BillingInvoiceLinesTable.ForeignKeys[5].RefTable = SubscriptionsTable
+	BillingInvoiceLinesTable.ForeignKeys[6].RefTable = SubscriptionItemsTable
+	BillingInvoiceLinesTable.ForeignKeys[7].RefTable = SubscriptionPhasesTable
+	BillingInvoiceLinesTable.ForeignKeys[8].RefTable = TaxCodesTable
 	BillingInvoiceLinesTable.Annotation = &entsql.Annotation{}
 	BillingInvoiceLinesTable.Annotation.Checks = map[string]string{
 		"billing_invoice_line_tax_behavior_consistency": "tax_behavior IS NOT DISTINCT FROM tax_config ->> 'behavior'",
