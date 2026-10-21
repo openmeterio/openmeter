@@ -44,7 +44,7 @@ func (c *lineHierarchyPatchCollection) AddDelete(uniqueID string, existing persi
 	patches := make([]invoiceupdater.Patch, 0, 1+len(group.Lines))
 
 	for _, line := range group.Lines {
-		if line.Line.GetAnnotations().GetBool(billing.AnnotationSubscriptionSyncIgnore) {
+		if line.Annotations.GetBool(billing.AnnotationSubscriptionSyncIgnore) {
 			return nil
 		}
 	}
@@ -54,11 +54,11 @@ func (c *lineHierarchyPatchCollection) AddDelete(uniqueID string, existing persi
 	}
 
 	for _, line := range group.Lines {
-		if line.Line.GetDeletedAt() != nil {
+		if line.DeletedAt != nil {
 			continue
 		}
 
-		patches = append(patches, invoiceupdater.NewDeleteLinePatch(line.Line.GetLineID(), line.Invoice.GetID()))
+		patches = append(patches, invoiceupdater.NewDeleteLinePatch(line.LineID, line.Invoice.ID))
 	}
 
 	if len(patches) == 0 {
@@ -90,34 +90,34 @@ func (c *lineHierarchyPatchCollection) AddShrink(uniqueID string, existing persi
 	patches := make([]invoiceupdater.Patch, 0, len(existingHierarchy.Lines)+1)
 
 	for _, child := range existingHierarchy.Lines {
-		if child.Line.GetServicePeriod().To.Before(expectedLine.ServicePeriod.To) {
+		if child.ServicePeriod.To.Before(expectedLine.ServicePeriod.To) {
 			continue
 		}
 
-		if child.Line.GetServicePeriod().From.After(expectedLine.ServicePeriod.To) {
-			patches = append(patches, invoiceupdater.NewDeleteLinePatch(child.Line.GetLineID(), child.Line.GetInvoiceID()))
+		if child.ServicePeriod.From.After(expectedLine.ServicePeriod.To) {
+			patches = append(patches, invoiceupdater.NewDeleteLinePatch(child.LineID, child.Invoice.ID))
 			continue
 		}
 
-		if !child.Line.GetServicePeriod().To.Equal(expectedLine.ServicePeriod.To) {
-			updatedPeriod := child.Line.GetServicePeriod()
+		if !child.ServicePeriod.To.Equal(expectedLine.ServicePeriod.To) {
+			updatedPeriod := child.ServicePeriod
 			updatedPeriod.To = expectedLine.ServicePeriod.To
 			updateInput := invoiceupdater.NewUpdateLinePatchInput{
-				Line:          child.Line.GetLineID(),
-				InvoiceID:     child.Line.GetInvoiceID(),
+				Line:          child.LineID,
+				InvoiceID:     child.Invoice.ID,
 				ServicePeriod: mo.Some(updatedPeriod),
 			}
 
-			if child.Invoice.AsInvoice().Type() == billing.InvoiceTypeGathering {
+			if child.Invoice.Type == billing.InvoiceTypeGathering {
 				updateInput.InvoiceAt = mo.Some(expectedLine.InvoiceAt)
 			}
 
-			if child.Line.GetManagedBy() == billing.SubscriptionManagedLine && child.Line.GetDeletedAt() != nil {
+			if child.ManagedBy == billing.SubscriptionManagedLine && child.DeletedAt != nil {
 				updateInput.DeletedAt = mo.Some[*time.Time](nil)
 			}
 
 			if updatedPeriod.Truncate(streaming.MinimumWindowSizeDuration).IsEmpty() {
-				patches = append(patches, invoiceupdater.NewDeleteLinePatch(child.Line.GetLineID(), child.Line.GetInvoiceID()))
+				patches = append(patches, invoiceupdater.NewDeleteLinePatch(child.LineID, child.Invoice.ID))
 				continue
 			}
 
@@ -164,24 +164,24 @@ func (c *lineHierarchyPatchCollection) AddExtend(existing persistedstate.Item, t
 
 	if len(existingHierarchy.Lines) > 0 {
 		lines := slices.Clone(existingHierarchy.Lines)
-		slices.SortFunc(lines, func(i, j billing.LineWithInvoiceHeader) int {
-			return timeutil.Compare(i.Line.GetServicePeriod().To, j.Line.GetServicePeriod().To)
+		slices.SortFunc(lines, func(i, j billing.SplitLineHierarchyLine) int {
+			return timeutil.Compare(i.ServicePeriod.To, j.ServicePeriod.To)
 		})
 
 		lastChild := lines[len(lines)-1]
-		updatedPeriod := lastChild.Line.GetServicePeriod()
+		updatedPeriod := lastChild.ServicePeriod
 		updatedPeriod.To = expectedLine.ServicePeriod.To
 		updateInput := invoiceupdater.NewUpdateLinePatchInput{
-			Line:          lastChild.Line.GetLineID(),
-			InvoiceID:     lastChild.Line.GetInvoiceID(),
+			Line:          lastChild.LineID,
+			InvoiceID:     lastChild.Invoice.ID,
 			ServicePeriod: mo.Some(updatedPeriod),
 		}
 
-		if lastChild.Line.GetManagedBy() == billing.SubscriptionManagedLine && lastChild.Line.GetDeletedAt() != nil {
+		if lastChild.ManagedBy == billing.SubscriptionManagedLine && lastChild.DeletedAt != nil {
 			updateInput.DeletedAt = mo.Some[*time.Time](nil)
 		}
 
-		if lastChild.Invoice.AsInvoice().Type() == billing.InvoiceTypeGathering {
+		if lastChild.Invoice.Type == billing.InvoiceTypeGathering {
 			updateInput.InvoiceAt = mo.Some(expectedLine.InvoiceAt)
 		}
 

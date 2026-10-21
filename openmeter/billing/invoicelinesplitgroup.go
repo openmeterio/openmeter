@@ -46,6 +46,11 @@ func (i SplitLineGroupMutableFields) ValidateForPrice(price *productcatalog.Pric
 
 func (i SplitLineGroupMutableFields) Clone() SplitLineGroupMutableFields {
 	clone := i
+	clone.Metadata = i.Metadata.Clone()
+	if i.Description != nil {
+		clone.Description = lo.ToPtr(*i.Description)
+	}
+
 	clone.RatecardDiscounts = i.RatecardDiscounts.Clone()
 
 	return clone
@@ -159,16 +164,29 @@ func (i SplitLineGroup) ToUpdate() SplitLineGroupUpdate {
 }
 
 func (i SplitLineGroup) Clone() SplitLineGroup {
-	return SplitLineGroup{
-		ManagedModel:                i.ManagedModel,
-		NamespacedID:                i.NamespacedID,
-		SplitLineGroupMutableFields: i.SplitLineGroupMutableFields.Clone(),
-		Price:                       i.Price,
-		FeatureKey:                  i.FeatureKey,
-		Subscription:                i.Subscription,
-		Currency:                    i.Currency,
-		UniqueReferenceID:           i.UniqueReferenceID,
+	clone := i
+	clone.SplitLineGroupMutableFields = i.SplitLineGroupMutableFields.Clone()
+	if i.DeletedAt != nil {
+		clone.DeletedAt = lo.ToPtr(*i.DeletedAt)
 	}
+
+	if i.Price != nil {
+		clone.Price = i.Price.Clone()
+	}
+
+	if i.FeatureKey != nil {
+		clone.FeatureKey = lo.ToPtr(*i.FeatureKey)
+	}
+
+	if i.Subscription != nil {
+		clone.Subscription = i.Subscription.Clone()
+	}
+
+	if i.UniqueReferenceID != nil {
+		clone.UniqueReferenceID = lo.ToPtr(*i.UniqueReferenceID)
+	}
+
+	return clone
 }
 
 type GatheringLineWithInvoiceHeader struct {
@@ -322,23 +340,64 @@ func (i LinesWithInvoiceHeaders) Lines() []GenericInvoiceLine {
 	})
 }
 
+// SplitLineHierarchyInvoice carries the identity and deletion facts needed to
+// interpret a child's billing history without loading its invoice aggregate.
+type SplitLineHierarchyInvoice struct {
+	InvoiceID `json:",inline"`
+	Type      InvoiceType           `json:"type"`
+	DeletedAt *time.Time            `json:"deletedAt,omitempty"`
+	Status    StandardInvoiceStatus `json:"status"`
+}
+
+// SplitLineHierarchyLine is the persisted history used by legacy rating and
+// subscription reconciliation. Updates describe intent; the invoice updater
+// loads the canonical line before applying them.
+type SplitLineHierarchyLine struct {
+	LineID        `json:",inline"`
+	Invoice       SplitLineHierarchyInvoice `json:"invoice"`
+	DeletedAt     *time.Time                `json:"deletedAt,omitempty"`
+	ServicePeriod timeutil.ClosedPeriod     `json:"period"`
+	ManagedBy     InvoiceLineManagedBy      `json:"managedBy"`
+	Annotations   models.Annotations        `json:"annotations,omitempty"`
+	Subscription  *SubscriptionReference    `json:"subscription,omitempty"`
+	InvoiceAt     time.Time                 `json:"invoiceAt"`
+	Amount        alpacadecimal.Decimal     `json:"amount"`
+	ChargesTotal  alpacadecimal.Decimal     `json:"chargesTotal"`
+}
+
+func (l SplitLineHierarchyLine) Clone() (SplitLineHierarchyLine, error) {
+	clone := l
+	annotations, err := l.Annotations.Clone()
+	if err != nil {
+		return SplitLineHierarchyLine{}, fmt.Errorf("cloning annotations: %w", err)
+	}
+
+	clone.Annotations = annotations
+	if l.Subscription != nil {
+		clone.Subscription = l.Subscription.Clone()
+	}
+
+	if l.DeletedAt != nil {
+		clone.DeletedAt = lo.ToPtr(*l.DeletedAt)
+	}
+
+	if l.Invoice.DeletedAt != nil {
+		clone.Invoice.DeletedAt = lo.ToPtr(*l.Invoice.DeletedAt)
+	}
+
+	return clone, nil
+}
+
 type SplitLineHierarchy struct {
 	Group SplitLineGroup
-	Lines LinesWithInvoiceHeaders
+	// Preserve database traversal order, including historical deleted children.
+	Lines []SplitLineHierarchyLine
 }
 
 func (h *SplitLineHierarchy) Clone() (SplitLineHierarchy, error) {
-	lines, err := slicesx.MapWithErr(h.Lines, func(line LineWithInvoiceHeader) (LineWithInvoiceHeader, error) {
-		clonedLine, err := line.Line.Clone()
-		if err != nil {
-			return LineWithInvoiceHeader{}, err
-		}
-
-		// TODO: We might want to clone the invoice too, but that data is mostly read-only, so it's fine for now.
-		return LineWithInvoiceHeader{Line: clonedLine, Invoice: line.Invoice}, nil
-	})
+	lines, err := slicesx.MapWithErr(h.Lines, SplitLineHierarchyLine.Clone)
 	if err != nil {
-		return SplitLineHierarchy{}, err
+		return SplitLineHierarchy{}, fmt.Errorf("cloning hierarchy lines: %w", err)
 	}
 
 	return SplitLineHierarchy{
@@ -352,29 +411,23 @@ type SumNetAmountInput struct {
 	IncludeCharges bool
 }
 
-// SumNetAmount returns the sum of the net amount (pre-tax) of the progressive billed line and its children
-// containing the values for all lines whose period's end is <= in.UpTo and are not deleted or not part of
-// an invoice that has been deleted.
-// As gathering lines do not represent any kind of actual charge, they are not included in the sum.
+// SumNetAmount sums prior standard-line amounts through PeriodEndLTE, excluding
+// deleted lines and invoices. A zero cutoff includes all periods. Gathering
+// children do not represent billed amounts and never contribute to the sum.
 func (h *SplitLineHierarchy) SumNetAmount(in SumNetAmountInput) (alpacadecimal.Decimal, error) {
 	netAmount := alpacadecimal.Zero
 
 	err := h.ForEachChild(ForEachChildInput{
 		PeriodEndLTE: in.PeriodEndLTE,
-		Callback: func(child LineWithInvoiceHeader) error {
-			if child.Invoice.AsInvoice().Type() != InvoiceTypeStandard {
+		Callback: func(child SplitLineHierarchyLine) error {
+			if child.Invoice.Type != InvoiceTypeStandard {
 				return nil
 			}
 
-			stdLine, err := child.Line.AsInvoiceLine().AsStandardLine()
-			if err != nil {
-				return err
-			}
-
-			netAmount = netAmount.Add(stdLine.Totals.Amount)
+			netAmount = netAmount.Add(child.Amount)
 
 			if in.IncludeCharges {
-				netAmount = netAmount.Add(stdLine.Totals.ChargesTotal)
+				netAmount = netAmount.Add(child.ChargesTotal)
 			}
 
 			return nil
@@ -389,38 +442,28 @@ func (h *SplitLineHierarchy) SumNetAmount(in SumNetAmountInput) (alpacadecimal.D
 
 type ForEachChildInput struct {
 	PeriodEndLTE time.Time
-	Callback     func(child LineWithInvoiceHeader) error
+	Callback     func(child SplitLineHierarchyLine) error
 }
 
 func (h *SplitLineHierarchy) ForEachChild(in ForEachChildInput) error {
 	for _, child := range h.Lines {
-		line := child.Line
-
 		// The line is not in scope
-		if !in.PeriodEndLTE.IsZero() && line.GetServicePeriod().To.After(in.PeriodEndLTE) {
+		if !in.PeriodEndLTE.IsZero() && child.ServicePeriod.To.After(in.PeriodEndLTE) {
 			continue
 		}
 
 		// The line is deleted
-		if line.GetDeletedAt() != nil {
+		if child.DeletedAt != nil {
 			continue
 		}
 
 		// The invoice is deleted
-		if child.Invoice.GetDeletedAt() != nil {
+		if child.Invoice.DeletedAt != nil {
 			continue
 		}
 
-		invoice := child.Invoice.AsInvoice()
-		if invoice.Type() == InvoiceTypeStandard {
-			stdInvoice, err := invoice.AsStandardInvoice()
-			if err != nil {
-				return err
-			}
-
-			if stdInvoice.Status == StandardInvoiceStatusDeleted {
-				continue
-			}
+		if child.Invoice.Type == InvoiceTypeStandard && child.Invoice.Status == StandardInvoiceStatusDeleted {
+			continue
 		}
 
 		if err := in.Callback(child); err != nil {

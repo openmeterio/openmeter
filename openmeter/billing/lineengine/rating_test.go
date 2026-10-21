@@ -383,29 +383,60 @@ func TestRateStandardLinesProgressiveCommitments(t *testing.T) {
 					},
 				},
 			}
-			for _, childState := range []string{"live", "deleted line", "deleted invoice", "terminal deleted invoice", "later period"} {
+			for _, childCase := range []struct {
+				name  string
+				setup func(*billing.SplitLineHierarchyLine)
+			}{
+				{
+					name:  "live",
+					setup: func(*billing.SplitLineHierarchyLine) {},
+				},
+				{
+					name: "deleted line",
+					setup: func(child *billing.SplitLineHierarchyLine) {
+						child.DeletedAt = lo.ToPtr(periodBoundary)
+					},
+				},
+				{
+					name: "deleted invoice",
+					setup: func(child *billing.SplitLineHierarchyLine) {
+						child.Invoice.DeletedAt = lo.ToPtr(periodBoundary)
+					},
+				},
+				{
+					name: "terminal deleted invoice",
+					setup: func(child *billing.SplitLineHierarchyLine) {
+						child.Invoice.Status = billing.StandardInvoiceStatusDeleted
+					},
+				},
+				{
+					name: "later period",
+					setup: func(child *billing.SplitLineHierarchyLine) {
+						child.ServicePeriod.To = fullPeriod.To
+					},
+				},
+			} {
 				priorLine := standardLineForLineEngineOverrideTest(t, timeutil.ClosedPeriod{
 					From: fullPeriod.From,
 					To:   periodBoundary,
 				})
-				priorLine.ID = childState
+				priorLine.ID = childCase.name
 				priorLine.Totals.Amount = alpacadecimal.NewFromInt(40)
 				priorInvoice := quantitySnapshotTestInvoice()
-				switch childState {
-				case "deleted line":
-					priorLine.DeletedAt = lo.ToPtr(periodBoundary)
-				case "deleted invoice":
-					priorInvoice.DeletedAt = lo.ToPtr(periodBoundary)
-				case "terminal deleted invoice":
-					priorInvoice.Status = billing.StandardInvoiceStatusDeleted
-				case "later period":
-					priorLine.Period.To = fullPeriod.To
+				child := billing.SplitLineHierarchyLine{
+					LineID:        priorLine.GetLineID(),
+					ServicePeriod: priorLine.Period,
+					DeletedAt:     priorLine.DeletedAt,
+					Amount:        priorLine.Totals.Amount,
+					Invoice: billing.SplitLineHierarchyInvoice{
+						InvoiceID: billing.InvoiceID{Namespace: priorInvoice.Namespace, ID: priorInvoice.ID},
+						Type:      billing.InvoiceTypeStandard,
+						Status:    priorInvoice.Status,
+						DeletedAt: priorInvoice.DeletedAt,
+					},
 				}
-
-				line.SplitLineHierarchy.Lines = append(line.SplitLineHierarchy.Lines, billing.NewLineWithInvoiceHeader(billing.StandardLineWithInvoiceHeader{
-					Line:    priorLine,
-					Invoice: priorInvoice,
-				}))
+				childCase.setup(&child)
+				line.SplitLineHierarchy.Lines = append(line.SplitLineHierarchy.Lines, child)
 			}
 
 			before, err := json.Marshal(line)

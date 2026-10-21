@@ -103,6 +103,11 @@ the portions materialized on individual invoices. Already immutable invoice
 history is not rewritten to make a later subscription change look as if it had
 always existed.
 
+Legacy split-line hierarchy reads carry persisted history facts rather than
+complete line and invoice aggregates. Deleted children remain available for
+reconciliation. Previously billed amounts exclude deleted lines and invoices,
+including invoices in terminal deleted status without a deletion timestamp.
+
 Physical subscription attribution is the narrow exception: when a
 subscription-managed charge is rematerialized without changing its intent,
 reference repair updates the subscription, phase, and item IDs on every
