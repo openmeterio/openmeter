@@ -23,6 +23,7 @@ keywords = [
 
 [tool.poetry.dependencies]
 python = "^3.9"
+certifi = ">=2026.10.19"
 isodate = ">=0.7.2,<0.8.0"
 corehttp = { version = ">=1.0.0b7", extras = ["requests", "aiohttp"] }
 typing-extensions = ">=4.15.0"
