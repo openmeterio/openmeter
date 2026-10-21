@@ -63,8 +63,10 @@ func validateDiscountTotals(invoice billing.StandardInvoice) error {
 // validateDiscountSigns expects each live amount-discount entry to reduce the
 // detailed line in the direction of its amount: a positive line carries
 // non-negative discounts, a charge reversal with a negative amount carries
-// non-positive ones. A zero discount is always consistent. Discounts of a
-// different sign would increase the line instead of discounting it.
+// non-positive ones. Discounts of a different sign would increase the line
+// instead of discounting it. A zero discount is always consistent, and a zero
+// amount line is not judged: its usage was billed on an earlier invoice and the
+// line only corrects that discount, so no sign is wrong on its own.
 func validateDiscountSigns(invoice billing.StandardInvoice) error {
 	var errs []error
 	for lineIdx, line := range invoice.Lines.OrEmpty() {
@@ -78,7 +80,7 @@ func validateDiscountSigns(invoice billing.StandardInvoice) error {
 			}
 
 			for discountIdx, discount := range detail.AmountDiscounts {
-				if discount.DeletedAt != nil || discount.Amount.IsZero() {
+				if discount.DeletedAt != nil || discount.Amount.IsZero() || detail.Totals.Amount.IsZero() {
 					continue
 				}
 

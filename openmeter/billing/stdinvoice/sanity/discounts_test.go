@@ -207,9 +207,10 @@ func TestValidateDiscountSigns(t *testing.T) {
 		{name: "positive line with discount", amount: "100", discount: "20"},
 		{name: "reversed line with reversed discount", amount: "-100", discount: "-20"},
 		{name: "zero discount on reversed line", amount: "-100", discount: "0"},
+		{name: "discount correction without usage", amount: "0", discount: "20"},
+		{name: "reversed discount correction without usage", amount: "0", discount: "-20"},
 		{name: "positive line with reversed discount", amount: "100", discount: "-20", mismatch: true},
 		{name: "reversed line with positive discount", amount: "-100", discount: "20", mismatch: true},
-		{name: "zero line with reversed discount", amount: "0", discount: "-20", mismatch: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
