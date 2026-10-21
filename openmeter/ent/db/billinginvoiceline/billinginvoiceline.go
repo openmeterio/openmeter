@@ -67,6 +67,8 @@ const (
 	FieldPeriodEnd = "period_end"
 	// FieldInvoiceID holds the string denoting the invoice_id field in the database.
 	FieldInvoiceID = "invoice_id"
+	// FieldFeeLineConfigID holds the string denoting the fee_line_config_id field in the database.
+	FieldFeeLineConfigID = "fee_line_config_id"
 	// FieldManagedBy holds the string denoting the managed_by field in the database.
 	FieldManagedBy = "managed_by"
 	// FieldParentLineID holds the string denoting the parent_line_id field in the database.
@@ -107,8 +109,6 @@ const (
 	EdgeBillingInvoice = "billing_invoice"
 	// EdgeSplitLineGroup holds the string denoting the split_line_group edge name in mutations.
 	EdgeSplitLineGroup = "split_line_group"
-	// EdgeFlatFeeLine holds the string denoting the flat_fee_line edge name in mutations.
-	EdgeFlatFeeLine = "flat_fee_line"
 	// EdgeUsageBasedLine holds the string denoting the usage_based_line edge name in mutations.
 	EdgeUsageBasedLine = "usage_based_line"
 	// EdgeParentLine holds the string denoting the parent_line edge name in mutations.
@@ -159,13 +159,6 @@ const (
 	SplitLineGroupInverseTable = "billing_invoice_split_line_groups"
 	// SplitLineGroupColumn is the table column denoting the split_line_group relation/edge.
 	SplitLineGroupColumn = "split_line_group_id"
-	// FlatFeeLineTable is the table that holds the flat_fee_line relation/edge.
-	FlatFeeLineTable = "billing_invoice_lines"
-	// FlatFeeLineInverseTable is the table name for the BillingInvoiceFlatFeeLineConfig entity.
-	// It exists in this package in order to avoid circular dependency with the "billinginvoiceflatfeelineconfig" package.
-	FlatFeeLineInverseTable = "billing_invoice_flat_fee_line_configs"
-	// FlatFeeLineColumn is the table column denoting the flat_fee_line relation/edge.
-	FlatFeeLineColumn = "fee_line_config_id"
 	// UsageBasedLineTable is the table that holds the usage_based_line relation/edge.
 	UsageBasedLineTable = "billing_invoice_lines"
 	// UsageBasedLineInverseTable is the table name for the BillingInvoiceUsageBasedLineConfig entity.
@@ -331,7 +324,6 @@ var Columns = []string{
 // ForeignKeys holds the SQL foreign-keys that are owned by the "billing_invoice_lines"
 // table and are not defined as standalone fields in the schema.
 var ForeignKeys = []string{
-	"fee_line_config_id",
 	"usage_based_line_config_id",
 }
 
@@ -344,6 +336,11 @@ func ValidColumn(column string) bool {
 	}
 	for i := range ForeignKeys {
 		if column == ForeignKeys[i] {
+			return true
+		}
+	}
+	for _, f := range [...]string{FieldFeeLineConfigID} {
+		if column == f {
 			return true
 		}
 	}
@@ -535,6 +532,11 @@ func ByInvoiceID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldInvoiceID, opts...).ToFunc()
 }
 
+// ByFeeLineConfigID orders the results by the fee_line_config_id field.
+func ByFeeLineConfigID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldFeeLineConfigID, opts...).ToFunc()
+}
+
 // ByManagedBy orders the results by the managed_by field.
 func ByManagedBy(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldManagedBy, opts...).ToFunc()
@@ -636,13 +638,6 @@ func ByBillingInvoiceField(field string, opts ...sql.OrderTermOption) OrderOptio
 func BySplitLineGroupField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
 		sqlgraph.OrderByNeighborTerms(s, newSplitLineGroupStep(), sql.OrderByField(field, opts...))
-	}
-}
-
-// ByFlatFeeLineField orders the results by flat_fee_line field.
-func ByFlatFeeLineField(field string, opts ...sql.OrderTermOption) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newFlatFeeLineStep(), sql.OrderByField(field, opts...))
 	}
 }
 
@@ -818,13 +813,6 @@ func newSplitLineGroupStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(SplitLineGroupInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, true, SplitLineGroupTable, SplitLineGroupColumn),
-	)
-}
-func newFlatFeeLineStep() *sqlgraph.Step {
-	return sqlgraph.NewStep(
-		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(FlatFeeLineInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2O, false, FlatFeeLineTable, FlatFeeLineColumn),
 	)
 }
 func newUsageBasedLineStep() *sqlgraph.Step {

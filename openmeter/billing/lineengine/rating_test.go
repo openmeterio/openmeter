@@ -222,7 +222,6 @@ func TestRateStandardLinesUsesMeteredUsageAndPreservesIdentities(t *testing.T) {
 
 	// Given persisted child and amount-discount identities and an edited price.
 	rated.DetailedLines[0].ID = "detail-id"
-	rated.DetailedLines[0].FeeLineConfigID = "detail-config-id"
 	rated.DetailedLines[0].CreatedAt = line.Period.From
 	rated.DetailedLines[0].UpdatedAt = line.Period.To
 	rated.DetailedLines[0].AmountDiscounts[0].ManagedModelWithID = models.ManagedModelWithID{
@@ -256,7 +255,6 @@ func TestRateStandardLinesUsesMeteredUsageAndPreservesIdentities(t *testing.T) {
 	require.Len(t, rerated[0].DetailedLines, 1)
 	detail := rerated[0].DetailedLines[0]
 	require.Equal(t, rated.DetailedLines[0].ManagedResource, detail.ManagedResource)
-	require.Equal(t, "detail-config-id", detail.FeeLineConfigID)
 	require.Equal(t, 0, lo.FromPtr(detail.Index))
 	require.Len(t, detail.AmountDiscounts, 1)
 	require.Equal(t, "amount-discount-id", detail.AmountDiscounts[0].ID)

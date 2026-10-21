@@ -107,6 +107,7 @@ type InvoiceAppAdapter interface {
 	UpdateInvoiceFields(ctx context.Context, input UpdateInvoiceFieldsInput) error
 }
 
+// TODO: Remove the schema-level adapter once all data migrations are complete.
 type SchemaLevelAdapter interface {
 	// GetInvoiceDefaultSchemaLevel returns the current default schema level for invoices.
 	GetInvoiceDefaultSchemaLevel(ctx context.Context) (int, error)

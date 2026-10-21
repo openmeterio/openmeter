@@ -1008,7 +1008,7 @@ func TestApplyManualInvoiceLineOverridesMarksGatheringManualChanges(t *testing.T
 			},
 			Currency:      currencyx.FiatCode("USD"),
 			ServicePeriod: originalLine.ServicePeriod,
-			SchemaLevel:   1,
+			SchemaLevel:   billing.CurrentInvoiceSchemaLevel,
 		},
 		Lines: billing.NewGatheringInvoiceLines(billing.GatheringLines{originalLine}),
 	}

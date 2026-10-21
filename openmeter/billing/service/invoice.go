@@ -857,6 +857,8 @@ func (s Service) SimulateInvoice(ctx context.Context, input billing.SimulateInvo
 			Namespace: input.Namespace,
 			ID:        ulid.Make().String(),
 
+			SchemaLevel: billing.CurrentInvoiceSchemaLevel,
+
 			Number: lo.FromPtrOr(input.Number, "INV-SIMULATED"),
 
 			Type: billing.InvoiceTypeStandard,

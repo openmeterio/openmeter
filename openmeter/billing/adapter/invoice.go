@@ -291,11 +291,6 @@ func (a *adapter) CreateInvoice(ctx context.Context, input billing.CreateInvoice
 			return billing.CreateInvoiceAdapterRespone{}, fmt.Errorf("clone workflow config: %w", err)
 		}
 
-		currentSchemaLevel, err := tx.GetInvoiceDefaultSchemaLevel(ctx)
-		if err != nil {
-			return billing.CreateInvoiceAdapterRespone{}, fmt.Errorf("get invoice write schema level: %w", err)
-		}
-
 		createMut := tx.db.BillingInvoice.Create().
 			SetNamespace(input.Namespace).
 			SetMetadata(input.Metadata).
@@ -327,7 +322,7 @@ func (a *adapter) CreateInvoice(ctx context.Context, input billing.CreateInvoice
 			SetSupplierName(supplier.Name).
 			SetNillableSupplierTaxCode(supplier.TaxCode).
 			SetNillableCollectionAt(normalizeOptionalTime(input.CollectionAt)).
-			SetSchemaLevel(currentSchemaLevel)
+			SetSchemaLevel(billing.CurrentInvoiceSchemaLevel)
 
 		createMut = totals.Set(createMut, input.Totals)
 
@@ -432,6 +427,10 @@ func (a *adapter) validateUpdateRequest(req billing.UpdateStandardInvoiceAdapter
 
 // UpdateInvoice updates the specified invoice.
 func (a *adapter) UpdateStandardInvoice(ctx context.Context, in billing.UpdateStandardInvoiceAdapterInput) (billing.StandardInvoice, error) {
+	if in.SchemaLevel != billing.CurrentInvoiceSchemaLevel {
+		return in, fmt.Errorf("unsupported invoice schema level: %d", in.SchemaLevel)
+	}
+
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (billing.StandardInvoice, error) {
 		existingInvoice, err := tx.db.BillingInvoice.Query().
 			Where(billinginvoice.ID(in.ID)).
@@ -440,6 +439,10 @@ func (a *adapter) UpdateStandardInvoice(ctx context.Context, in billing.UpdateSt
 			Only(ctx)
 		if err != nil {
 			return in, err
+		}
+
+		if existingInvoice.SchemaLevel != billing.CurrentInvoiceSchemaLevel {
+			return in, fmt.Errorf("unsupported invoice schema level: %d", existingInvoice.SchemaLevel)
 		}
 
 		if err := tx.validateUpdateRequest(in, existingInvoice); err != nil {
@@ -548,10 +551,9 @@ func (a *adapter) UpdateStandardInvoice(ctx context.Context, in billing.UpdateSt
 			// coordination is not something the adapter should deal with. The service
 			// is needed to lock and recalculate both invoices or do the necessary splits.
 			lines, err := tx.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
-				Namespace:   in.Namespace,
-				Lines:       in.Lines.OrEmpty(),
-				SchemaLevel: in.SchemaLevel,
-				InvoiceID:   in.ID,
+				Namespace: in.Namespace,
+				Lines:     in.Lines.OrEmpty(),
+				InvoiceID: in.ID,
 			})
 			if err != nil {
 				return in, err
@@ -697,6 +699,10 @@ func normalizeOptionalTime(t *time.Time) *time.Time {
 }
 
 func (a *adapter) mapStandardInvoiceFromDB(ctx context.Context, invoice *db.BillingInvoice, expand billing.StandardInvoiceExpands) (billing.StandardInvoice, error) {
+	if invoice.SchemaLevel != billing.CurrentInvoiceSchemaLevel {
+		return billing.StandardInvoice{}, fmt.Errorf("unsupported invoice schema level: %d", invoice.SchemaLevel)
+	}
+
 	base := a.mapStandardInvoiceBaseFromDB(invoice)
 
 	res := billing.StandardInvoice{
@@ -733,7 +739,7 @@ func (a *adapter) mapStandardInvoiceFromDB(ctx context.Context, invoice *db.Bill
 	}
 
 	if expand.Has(billing.StandardInvoiceExpandLines) {
-		mappedLines, err := a.mapStandardInvoiceLinesFromDB(map[string]int{invoice.ID: invoice.SchemaLevel}, invoice.Edges.BillingInvoiceLines)
+		mappedLines, err := a.mapStandardInvoiceLinesFromDB(invoice.Edges.BillingInvoiceLines)
 		if err != nil {
 			return billing.StandardInvoice{}, err
 		}

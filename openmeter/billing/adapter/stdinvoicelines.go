@@ -14,12 +14,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/models/externalid"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
-	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceflatfeelineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicelinediscount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicelineusagediscount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingstandardinvoicedetailedline"
@@ -50,10 +47,9 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 	}
 
 	input := &billing.UpsertInvoiceLinesAdapterInput{
-		Namespace:   inputIn.Namespace,
-		Lines:       clonedLines,
-		SchemaLevel: inputIn.SchemaLevel,
-		InvoiceID:   inputIn.InvoiceID,
+		Namespace: inputIn.Namespace,
+		Lines:     clonedLines,
+		InvoiceID: inputIn.InvoiceID,
 	}
 
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) ([]*billing.StandardLine, error) {
@@ -61,13 +57,6 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 		lineDiffs, err := diffInvoiceLines(input.Lines)
 		if err != nil {
 			return nil, fmt.Errorf("generating line diffs: %w", err)
-		}
-
-		if input.SchemaLevel == 1 {
-			// Step 1: Let's create/upsert the line configs first
-			if err = tx.upsertFeeLineConfig(ctx, lineDiffs.DetailedLine); err != nil {
-				return nil, fmt.Errorf("upserting fee line configs: %w", err)
-			}
 		}
 
 		if err := tx.upsertUsageBasedConfig(ctx, lineDiffs.Line); err != nil {
@@ -131,8 +120,7 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 
 				create = create.
 					SetNillableQuantity(line.UsageBased.Quantity).
-					SetUsageBasedLineID(line.UsageBased.ConfigID).
-					SetNillableFlatFeeLineID(nil)
+					SetUsageBasedLineID(line.UsageBased.ConfigID)
 
 				return create, nil
 			},
@@ -166,27 +154,13 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 			return nil, fmt.Errorf("creating lines: %w", err)
 		}
 
-		// Step 3: Let's create the detailed lines
-		if input.SchemaLevel == 1 {
-			if err := tx.upsertDetailedLines(ctx, lineDiffs.DetailedLine); err != nil {
-				return nil, fmt.Errorf("upserting detailed lines: %w", err)
-			}
+		// Step 3: Persist calculated details and their amount discounts.
+		if err := tx.upsertDetailedLines(ctx, lineDiffs.DetailedLine); err != nil {
+			return nil, fmt.Errorf("upserting detailed lines: %w", err)
+		}
 
-			// detailed line amount discounts
-			err = tx.upsertDetailedLineAmountDiscounts(ctx, lineDiffs.DetailedLineAmountDiscounts)
-			if err != nil {
-				return nil, fmt.Errorf("upserting detailed line amount discounts: %w", err)
-			}
-		} else {
-			if err := tx.upsertDetailedLinesV2(ctx, lineDiffs.DetailedLine); err != nil {
-				return nil, fmt.Errorf("upserting detailed lines: %w", err)
-			}
-
-			// detailed line amount discounts
-			err = tx.upsertDetailedLineAmountDiscountsV2(ctx, lineDiffs.DetailedLineAmountDiscounts)
-			if err != nil {
-				return nil, fmt.Errorf("upserting detailed line amount discounts: %w", err)
-			}
+		if err := tx.upsertDetailedLineAmountDiscounts(ctx, lineDiffs.DetailedLineAmountDiscounts); err != nil {
+			return nil, fmt.Errorf("upserting detailed line amount discounts: %w", err)
 		}
 
 		// Step 4: Let's upsert anything else, that doesn't have strict ID requirements
@@ -265,160 +239,12 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 				return line.ID
 			}),
 			IncludeDeleted: true,
-			SchemaLevel:    input.SchemaLevel,
 			InvoiceID:      input.InvoiceID,
 		})
 	})
 }
 
-func (a *adapter) upsertFeeLineConfig(ctx context.Context, in detailedLineDiff) error {
-	return upsertWithOptions(ctx, a.db, in, upsertInput[detailedLineWithParent, *db.BillingInvoiceFlatFeeLineConfigCreate]{
-		Create: func(tx *db.Client, lineWithParent detailedLineWithParent) (*db.BillingInvoiceFlatFeeLineConfigCreate, error) {
-			line := lineWithParent.Entity
-
-			if line.FeeLineConfigID == "" {
-				line.FeeLineConfigID = ulid.Make().String()
-			}
-
-			create := tx.BillingInvoiceFlatFeeLineConfig.Create().
-				SetNamespace(line.Namespace).
-				SetPerUnitAmount(line.PerUnitAmount).
-				SetCategory(line.Category).
-				SetPaymentTerm(line.PaymentTerm).
-				SetID(line.FeeLineConfigID).
-				SetNillableIndex(line.Index)
-
-			return create, nil
-		},
-		UpsertItems: func(ctx context.Context, tx *db.Client, items []*db.BillingInvoiceFlatFeeLineConfigCreate) error {
-			return tx.BillingInvoiceFlatFeeLineConfig.
-				CreateBulk(items...).
-				OnConflict(
-					sql.ConflictColumns(billinginvoiceflatfeelineconfig.FieldID),
-					sql.ResolveWithNewValues(),
-				).
-				UpdateIndex().
-				Exec(ctx)
-		},
-	})
-}
-
 func (a *adapter) upsertDetailedLines(ctx context.Context, in detailedLineDiff) error {
-	detailedLineUpsertConfig := upsertInput[detailedLineWithParent, *db.BillingInvoiceLineCreate]{
-		Create: func(tx *db.Client, lineWithParent detailedLineWithParent) (*db.BillingInvoiceLineCreate, error) {
-			line := lineWithParent.Entity
-
-			if line.ID == "" {
-				line.ID = ulid.Make().String()
-			}
-
-			create := tx.BillingInvoiceLine.Create().
-				SetID(line.ID).
-				SetNamespace(line.Namespace).
-				SetInvoiceID(line.InvoiceID).
-				SetPeriodStart(line.ServicePeriod.From.In(time.UTC)).
-				SetPeriodEnd(line.ServicePeriod.To.In(time.UTC)).
-				SetParentLineID(lineWithParent.Parent.ID).
-				SetInvoiceAt(lineWithParent.Parent.InvoiceAt.In(time.UTC)).
-				SetNillableDeletedAt(line.DeletedAt).
-				SetStatus(billing.InvoiceLineStatusDetailed).
-				SetManagedBy(billing.SystemManagedLine).
-				// Note: detailed lines should not have this field, but we set it until the data migartion is complete
-				SetEngine(billing.LineEngineTypeInvoice).
-				SetType(billing.InvoiceLineAdapterTypeFee).
-				SetName(line.Name).
-				SetNillableDescription(line.Description).
-				SetCurrency(lineWithParent.Parent.Currency).
-				SetNillableChildUniqueReferenceID(lo.EmptyableToPtr(line.ChildUniqueReferenceID))
-
-			create = externalid.CreateLineExternalID(create, line.ExternalIDs)
-			create = totals.Set(create, line.Totals)
-
-			if len(line.CreditsApplied) > 0 {
-				create = create.SetCreditsApplied(&line.CreditsApplied)
-			}
-
-			create = create.SetQuantity(line.Quantity).
-				SetFlatFeeLineID(line.FeeLineConfigID).
-				SetNillableUsageBasedLineID(nil)
-
-			return create, nil
-		},
-		UpsertItems: func(ctx context.Context, tx *db.Client, items []*db.BillingInvoiceLineCreate) error {
-			return tx.BillingInvoiceLine.
-				CreateBulk(items...).
-				OnConflict(sql.ConflictColumns(billinginvoiceline.FieldID),
-					sql.ResolveWithNewValues(),
-					sql.ResolveWith(func(u *sql.UpdateSet) {
-						u.SetIgnore(billinginvoiceline.FieldCreatedAt)
-					})).
-				UpdateQuantity().
-				UpdateChildUniqueReferenceID().
-				UpdateCreditsApplied().
-				UpdateDescription().
-				Exec(ctx)
-		},
-		MarkDeleted: func(ctx context.Context, line detailedLineWithParent) (detailedLineWithParent, error) {
-			line.Entity.DeletedAt = lo.ToPtr(clock.Now().In(time.UTC))
-			return line, nil
-		},
-	}
-
-	return upsertWithOptions(ctx, a.db, in, detailedLineUpsertConfig)
-}
-
-func (a *adapter) upsertDetailedLineAmountDiscounts(ctx context.Context, in detailedLineAmountDiscountDiff) error {
-	return upsertWithOptions(ctx, a.db, in, upsertInput[detailedLineAmountDiscountWithParent, *db.BillingInvoiceLineDiscountCreate]{
-		Create: func(tx *db.Client, d detailedLineAmountDiscountWithParent) (*db.BillingInvoiceLineDiscountCreate, error) {
-			discount := d.Entity
-
-			if discount.ID == "" {
-				discount.ID = ulid.Make().String()
-			}
-
-			create := tx.BillingInvoiceLineDiscount.Create().
-				SetID(discount.ID).
-				SetNamespace(d.Parent.GetNamespace()).
-				SetLineID(d.Parent.GetID()).
-				SetReason(discount.Reason.Type()).
-				SetSourceDiscount(lo.ToPtr(discount.Reason)).
-				SetAmount(discount.Amount).
-				SetNillableRoundingAmount(lo.EmptyableToPtr(discount.RoundingAmount)).
-				SetNillableDeletedAt(discount.DeletedAt).
-				SetNillableChildUniqueReferenceID(discount.ChildUniqueReferenceID).
-				SetNillableDescription(discount.Description)
-
-			create = externalid.CreateLineExternalID(create, discount.ExternalIDs)
-
-			return create, nil
-		},
-		UpsertItems: func(ctx context.Context, tx *db.Client, items []*db.BillingInvoiceLineDiscountCreate) error {
-			return tx.BillingInvoiceLineDiscount.
-				CreateBulk(items...).
-				OnConflict(
-					sql.ConflictColumns(billinginvoicelinediscount.FieldID),
-					sql.ResolveWithNewValues(),
-					sql.ResolveWith(func(u *sql.UpdateSet) {
-						u.SetIgnore(billinginvoicelinediscount.FieldCreatedAt)
-					}),
-				).
-				UpdateRoundingAmount().
-				UpdateDescription().
-				UpdateDeletedAt().
-				UpdateChildUniqueReferenceID().
-				UpdateSourceDiscount().
-				UpdateInvoicingAppExternalID().
-				Exec(ctx)
-		},
-		MarkDeleted: func(ctx context.Context, d detailedLineAmountDiscountWithParent) (detailedLineAmountDiscountWithParent, error) {
-			d.Entity.DeletedAt = lo.ToPtr(clock.Now().In(time.UTC))
-
-			return d, nil
-		},
-	})
-}
-
-func (a *adapter) upsertDetailedLinesV2(ctx context.Context, in detailedLineDiff) error {
 	detailedLineUpsertConfig := upsertInput[detailedLineWithParent, *db.BillingStandardInvoiceDetailedLineCreate]{
 		Create: func(tx *db.Client, lineWithParent detailedLineWithParent) (*db.BillingStandardInvoiceDetailedLineCreate, error) {
 			line := lineWithParent.Entity
@@ -467,7 +293,7 @@ func (a *adapter) upsertDetailedLinesV2(ctx context.Context, in detailedLineDiff
 	return upsertWithOptions(ctx, a.db, in, detailedLineUpsertConfig)
 }
 
-func (a *adapter) upsertDetailedLineAmountDiscountsV2(ctx context.Context, in detailedLineAmountDiscountDiff) error {
+func (a *adapter) upsertDetailedLineAmountDiscounts(ctx context.Context, in detailedLineAmountDiscountDiff) error {
 	return upsertWithOptions(ctx, a.db, in, upsertInput[detailedLineAmountDiscountWithParent, *db.BillingStandardInvoiceDetailedLineAmountDiscountCreate]{
 		Create: func(tx *db.Client, d detailedLineAmountDiscountWithParent) (*db.BillingStandardInvoiceDetailedLineAmountDiscountCreate, error) {
 			discount := d.Entity
@@ -588,7 +414,10 @@ func (a *adapter) ListInvoiceLines(ctx context.Context, input billing.ListInvoic
 		}
 
 		query = query.WithBillingInvoiceLines(func(q *db.BillingInvoiceLineQuery) {
-			q = q.Where(billinginvoiceline.Namespace(input.Namespace))
+			q = q.Where(
+				billinginvoiceline.Namespace(input.Namespace),
+				billinginvoiceline.StatusEQ(billing.InvoiceLineStatusValid),
+			)
 
 			if len(input.LineIDs) > 0 {
 				q = q.Where(billinginvoiceline.IDIn(input.LineIDs...))
@@ -614,15 +443,17 @@ func (a *adapter) ListInvoiceLines(ctx context.Context, input billing.ListInvoic
 			return nil, err
 		}
 
+		for _, invoice := range dbInvoices {
+			if len(invoice.Edges.BillingInvoiceLines) > 0 && invoice.SchemaLevel != billing.CurrentInvoiceSchemaLevel {
+				return nil, fmt.Errorf("unsupported invoice schema level: %d", invoice.SchemaLevel)
+			}
+		}
+
 		lines := lo.FlatMap(dbInvoices, func(dbInvoice *db.BillingInvoice, _ int) []*db.BillingInvoiceLine {
 			return dbInvoice.Edges.BillingInvoiceLines
 		})
 
-		schemaLevelByInvoiceID := lo.SliceToMap(dbInvoices, func(dbInvoice *db.BillingInvoice) (string, int) {
-			return dbInvoice.ID, dbInvoice.SchemaLevel
-		})
-
-		mappedLines, err := tx.mapStandardInvoiceLinesFromDB(schemaLevelByInvoiceID, lines)
+		mappedLines, err := tx.mapStandardInvoiceLinesFromDB(lines)
 		if err != nil {
 			return nil, err
 		}
@@ -644,47 +475,21 @@ func (a *adapter) ListInvoiceLines(ctx context.Context, input billing.ListInvoic
 
 // expandLineItems is a helper function to expand the line items in the query, detailed lines are not included
 func (a *adapter) expandLineItems(q *db.BillingInvoiceLineQuery, namespace string) *db.BillingInvoiceLineQuery {
-	return q.WithFlatFeeLine(func(q *db.BillingInvoiceFlatFeeLineConfigQuery) {
-		q.Where(billinginvoiceflatfeelineconfig.Namespace(namespace))
+	return q.WithUsageBasedLine(func(q *db.BillingInvoiceUsageBasedLineConfigQuery) {
+		q.Where(billinginvoiceusagebasedlineconfig.Namespace(namespace))
 	}).
-		WithUsageBasedLine(func(q *db.BillingInvoiceUsageBasedLineConfigQuery) {
-			q.Where(billinginvoiceusagebasedlineconfig.Namespace(namespace))
-		}).
 		WithTaxCode(taxCodeInNamespace(namespace)).
-		WithLineUsageDiscounts(
-			func(q *db.BillingInvoiceLineUsageDiscountQuery) {
-				q.Where(
-					billinginvoicelineusagediscount.Namespace(namespace),
-					billinginvoicelineusagediscount.DeletedAtIsNil(),
-				)
-			},
-		).
-		WithLineAmountDiscounts(
-			func(q *db.BillingInvoiceLineDiscountQuery) {
-				q.Where(
-					billinginvoicelinediscount.Namespace(namespace),
-					billinginvoicelinediscount.DeletedAtIsNil(),
-				)
-			},
-		)
+		WithLineUsageDiscounts(func(q *db.BillingInvoiceLineUsageDiscountQuery) {
+			q.Where(
+				billinginvoicelineusagediscount.Namespace(namespace),
+				billinginvoicelineusagediscount.DeletedAtIsNil(),
+			)
+		})
 }
 
 // expandLineItemsWithDetailedLines expands the invoice lines and their detailed lines if any exists
 func (a *adapter) expandLineItemsWithDetailedLines(q *db.BillingInvoiceLineQuery, namespace string) *db.BillingInvoiceLineQuery {
 	q = a.expandLineItems(q, namespace)
-
-	q.WithDetailedLines(func(bilq *db.BillingInvoiceLineQuery) {
-		// We never include deleted detailed lines in the query, as we intent to keep them as history.
-		//
-		// If we want to reuse the deleted lines in ChildrenWithIDReuse, we must make sure that non-deleted lines are
-		// prioritized for reuse or we will end up with INSERT conflicts due to the child unique reference id uniqueness constraint.
-		bilq = bilq.Where(
-			billinginvoiceline.Namespace(namespace),
-			billinginvoiceline.DeletedAtIsNil(),
-		)
-
-		a.expandLineItems(bilq, namespace)
-	})
 
 	q.WithDetailedLinesV2(func(bilq *db.BillingStandardInvoiceDetailedLineQuery) {
 		// We never include deleted detailed lines in the query, as we intent to keep them as history.
@@ -710,17 +515,12 @@ type refetchInvoiceLinesInput struct {
 	Namespace      string
 	LineIDs        []string
 	IncludeDeleted bool
-	SchemaLevel    int
 	InvoiceID      string
 }
 
 func (i refetchInvoiceLinesInput) Validate() error {
 	if i.Namespace == "" {
 		return errors.New("namespace is required")
-	}
-
-	if i.SchemaLevel < 1 {
-		return errors.New("schema level must be at least 1")
 	}
 
 	if i.InvoiceID == "" {
@@ -777,7 +577,7 @@ func (a *adapter) refetchInvoiceLines(ctx context.Context, in refetchInvoiceLine
 		return nil, err
 	}
 
-	lines, err := a.mapStandardInvoiceLinesFromDB(map[string]int{in.InvoiceID: in.SchemaLevel}, dbLinesInSameOrder)
+	lines, err := a.mapStandardInvoiceLinesFromDB(dbLinesInSameOrder)
 	if err != nil {
 		return nil, err
 	}
@@ -842,21 +642,21 @@ func (a *adapter) GetStandardLinesForSubscription(ctx context.Context, in billin
 					return fmt.Errorf("billing invoice not found for line [id=%s]", line.ID)
 				}
 
+				if line.Edges.BillingInvoice.CustomerID != in.CustomerID {
+					return fmt.Errorf("billing invoice has the wrong customer [id=%s, customer_id=%s]", line.Edges.BillingInvoice.ID, line.Edges.BillingInvoice.CustomerID)
+				}
+
+				if line.Edges.BillingInvoice.SchemaLevel != billing.CurrentInvoiceSchemaLevel {
+					return fmt.Errorf("unsupported invoice schema level: %d", line.Edges.BillingInvoice.SchemaLevel)
+				}
+
 				return nil
 			})...,
 		); err != nil {
 			return nil, err
 		}
 
-		invoiceSchemaLevelByID, err := tx.getSchemaLevelPerInvoice(ctx, customer.CustomerID{
-			Namespace: in.Namespace,
-			ID:        in.CustomerID,
-		})
-		if err != nil {
-			return nil, fmt.Errorf("getting schema level per invoice: %w", err)
-		}
-
-		standardLines, err := tx.mapStandardInvoiceLinesFromDB(invoiceSchemaLevelByID, dbLines)
+		standardLines, err := tx.mapStandardInvoiceLinesFromDB(dbLines)
 		if err != nil {
 			return nil, fmt.Errorf("mapping standard lines: %w", err)
 		}

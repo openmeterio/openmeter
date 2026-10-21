@@ -19,6 +19,10 @@ import (
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
+// CurrentInvoiceSchemaLevel identifies the supported invoice storage representation.
+// TODO: Remove the invoice storage schema-level checks once all invoice migrations are complete.
+const CurrentInvoiceSchemaLevel = 2
+
 type InvoiceType string
 
 const (

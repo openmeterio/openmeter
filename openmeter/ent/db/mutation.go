@@ -20887,6 +20887,7 @@ type BillingInvoiceLineMutation struct {
 	invoicing_app_external_id                             *string
 	period_start                                          *time.Time
 	period_end                                            *time.Time
+	fee_line_config_id                                    *string
 	managed_by                                            *billing.InvoiceLineManagedBy
 	invoice_at                                            *time.Time
 	override_collection_period_end                        *time.Time
@@ -20904,8 +20905,6 @@ type BillingInvoiceLineMutation struct {
 	clearedbilling_invoice                                bool
 	split_line_group                                      *string
 	clearedsplit_line_group                               bool
-	flat_fee_line                                         *string
-	clearedflat_fee_line                                  bool
 	usage_based_line                                      *string
 	clearedusage_based_line                               bool
 	parent_line                                           *string
@@ -22023,6 +22022,55 @@ func (m *BillingInvoiceLineMutation) ResetInvoiceID() {
 	m.billing_invoice = nil
 }
 
+// SetFeeLineConfigID sets the "fee_line_config_id" field.
+func (m *BillingInvoiceLineMutation) SetFeeLineConfigID(s string) {
+	m.fee_line_config_id = &s
+}
+
+// FeeLineConfigID returns the value of the "fee_line_config_id" field in the mutation.
+func (m *BillingInvoiceLineMutation) FeeLineConfigID() (r string, exists bool) {
+	v := m.fee_line_config_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldFeeLineConfigID returns the old "fee_line_config_id" field's value of the BillingInvoiceLine entity.
+// If the BillingInvoiceLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingInvoiceLineMutation) OldFeeLineConfigID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldFeeLineConfigID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldFeeLineConfigID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldFeeLineConfigID: %w", err)
+	}
+	return oldValue.FeeLineConfigID, nil
+}
+
+// ClearFeeLineConfigID clears the value of the "fee_line_config_id" field.
+func (m *BillingInvoiceLineMutation) ClearFeeLineConfigID() {
+	m.fee_line_config_id = nil
+	m.clearedFields[billinginvoiceline.FieldFeeLineConfigID] = struct{}{}
+}
+
+// FeeLineConfigIDCleared returns if the "fee_line_config_id" field was cleared in this mutation.
+func (m *BillingInvoiceLineMutation) FeeLineConfigIDCleared() bool {
+	_, ok := m.clearedFields[billinginvoiceline.FieldFeeLineConfigID]
+	return ok
+}
+
+// ResetFeeLineConfigID resets all changes to the "fee_line_config_id" field.
+func (m *BillingInvoiceLineMutation) ResetFeeLineConfigID() {
+	m.fee_line_config_id = nil
+	delete(m.clearedFields, billinginvoiceline.FieldFeeLineConfigID)
+}
+
 // SetManagedBy sets the "managed_by" field.
 func (m *BillingInvoiceLineMutation) SetManagedBy(blmb billing.InvoiceLineManagedBy) {
 	m.managed_by = &blmb
@@ -22907,45 +22955,6 @@ func (m *BillingInvoiceLineMutation) ResetSplitLineGroup() {
 	m.clearedsplit_line_group = false
 }
 
-// SetFlatFeeLineID sets the "flat_fee_line" edge to the BillingInvoiceFlatFeeLineConfig entity by id.
-func (m *BillingInvoiceLineMutation) SetFlatFeeLineID(id string) {
-	m.flat_fee_line = &id
-}
-
-// ClearFlatFeeLine clears the "flat_fee_line" edge to the BillingInvoiceFlatFeeLineConfig entity.
-func (m *BillingInvoiceLineMutation) ClearFlatFeeLine() {
-	m.clearedflat_fee_line = true
-}
-
-// FlatFeeLineCleared reports if the "flat_fee_line" edge to the BillingInvoiceFlatFeeLineConfig entity was cleared.
-func (m *BillingInvoiceLineMutation) FlatFeeLineCleared() bool {
-	return m.clearedflat_fee_line
-}
-
-// FlatFeeLineID returns the "flat_fee_line" edge ID in the mutation.
-func (m *BillingInvoiceLineMutation) FlatFeeLineID() (id string, exists bool) {
-	if m.flat_fee_line != nil {
-		return *m.flat_fee_line, true
-	}
-	return
-}
-
-// FlatFeeLineIDs returns the "flat_fee_line" edge IDs in the mutation.
-// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
-// FlatFeeLineID instead. It exists only for internal usage by the builders.
-func (m *BillingInvoiceLineMutation) FlatFeeLineIDs() (ids []string) {
-	if id := m.flat_fee_line; id != nil {
-		ids = append(ids, *id)
-	}
-	return
-}
-
-// ResetFlatFeeLine resets all changes to the "flat_fee_line" edge.
-func (m *BillingInvoiceLineMutation) ResetFlatFeeLine() {
-	m.flat_fee_line = nil
-	m.clearedflat_fee_line = false
-}
-
 // SetUsageBasedLineID sets the "usage_based_line" edge to the BillingInvoiceUsageBasedLineConfig entity by id.
 func (m *BillingInvoiceLineMutation) SetUsageBasedLineID(id string) {
 	m.usage_based_line = &id
@@ -23661,7 +23670,7 @@ func (m *BillingInvoiceLineMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *BillingInvoiceLineMutation) Fields() []string {
-	fields := make([]string, 0, 42)
+	fields := make([]string, 0, 43)
 	if m.annotations != nil {
 		fields = append(fields, billinginvoiceline.FieldAnnotations)
 	}
@@ -23733,6 +23742,9 @@ func (m *BillingInvoiceLineMutation) Fields() []string {
 	}
 	if m.billing_invoice != nil {
 		fields = append(fields, billinginvoiceline.FieldInvoiceID)
+	}
+	if m.fee_line_config_id != nil {
+		fields = append(fields, billinginvoiceline.FieldFeeLineConfigID)
 	}
 	if m.managed_by != nil {
 		fields = append(fields, billinginvoiceline.FieldManagedBy)
@@ -23844,6 +23856,8 @@ func (m *BillingInvoiceLineMutation) Field(name string) (ent.Value, bool) {
 		return m.PeriodEnd()
 	case billinginvoiceline.FieldInvoiceID:
 		return m.InvoiceID()
+	case billinginvoiceline.FieldFeeLineConfigID:
+		return m.FeeLineConfigID()
 	case billinginvoiceline.FieldManagedBy:
 		return m.ManagedBy()
 	case billinginvoiceline.FieldParentLineID:
@@ -23937,6 +23951,8 @@ func (m *BillingInvoiceLineMutation) OldField(ctx context.Context, name string) 
 		return m.OldPeriodEnd(ctx)
 	case billinginvoiceline.FieldInvoiceID:
 		return m.OldInvoiceID(ctx)
+	case billinginvoiceline.FieldFeeLineConfigID:
+		return m.OldFeeLineConfigID(ctx)
 	case billinginvoiceline.FieldManagedBy:
 		return m.OldManagedBy(ctx)
 	case billinginvoiceline.FieldParentLineID:
@@ -24150,6 +24166,13 @@ func (m *BillingInvoiceLineMutation) SetField(name string, value ent.Value) erro
 		}
 		m.SetInvoiceID(v)
 		return nil
+	case billinginvoiceline.FieldFeeLineConfigID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetFeeLineConfigID(v)
+		return nil
 	case billinginvoiceline.FieldManagedBy:
 		v, ok := value.(billing.InvoiceLineManagedBy)
 		if !ok {
@@ -24330,6 +24353,9 @@ func (m *BillingInvoiceLineMutation) ClearedFields() []string {
 	if m.FieldCleared(billinginvoiceline.FieldInvoicingAppExternalID) {
 		fields = append(fields, billinginvoiceline.FieldInvoicingAppExternalID)
 	}
+	if m.FieldCleared(billinginvoiceline.FieldFeeLineConfigID) {
+		fields = append(fields, billinginvoiceline.FieldFeeLineConfigID)
+	}
 	if m.FieldCleared(billinginvoiceline.FieldParentLineID) {
 		fields = append(fields, billinginvoiceline.FieldParentLineID)
 	}
@@ -24406,6 +24432,9 @@ func (m *BillingInvoiceLineMutation) ClearField(name string) error {
 		return nil
 	case billinginvoiceline.FieldInvoicingAppExternalID:
 		m.ClearInvoicingAppExternalID()
+		return nil
+	case billinginvoiceline.FieldFeeLineConfigID:
+		m.ClearFeeLineConfigID()
 		return nil
 	case billinginvoiceline.FieldParentLineID:
 		m.ClearParentLineID()
@@ -24526,6 +24555,9 @@ func (m *BillingInvoiceLineMutation) ResetField(name string) error {
 	case billinginvoiceline.FieldInvoiceID:
 		m.ResetInvoiceID()
 		return nil
+	case billinginvoiceline.FieldFeeLineConfigID:
+		m.ResetFeeLineConfigID()
+		return nil
 	case billinginvoiceline.FieldManagedBy:
 		m.ResetManagedBy()
 		return nil
@@ -24586,15 +24618,12 @@ func (m *BillingInvoiceLineMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *BillingInvoiceLineMutation) AddedEdges() []string {
-	edges := make([]string, 0, 20)
+	edges := make([]string, 0, 19)
 	if m.billing_invoice != nil {
 		edges = append(edges, billinginvoiceline.EdgeBillingInvoice)
 	}
 	if m.split_line_group != nil {
 		edges = append(edges, billinginvoiceline.EdgeSplitLineGroup)
-	}
-	if m.flat_fee_line != nil {
-		edges = append(edges, billinginvoiceline.EdgeFlatFeeLine)
 	}
 	if m.usage_based_line != nil {
 		edges = append(edges, billinginvoiceline.EdgeUsageBasedLine)
@@ -24660,10 +24689,6 @@ func (m *BillingInvoiceLineMutation) AddedIDs(name string) []ent.Value {
 		}
 	case billinginvoiceline.EdgeSplitLineGroup:
 		if id := m.split_line_group; id != nil {
-			return []ent.Value{*id}
-		}
-	case billinginvoiceline.EdgeFlatFeeLine:
-		if id := m.flat_fee_line; id != nil {
 			return []ent.Value{*id}
 		}
 	case billinginvoiceline.EdgeUsageBasedLine:
@@ -24752,7 +24777,7 @@ func (m *BillingInvoiceLineMutation) AddedIDs(name string) []ent.Value {
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *BillingInvoiceLineMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 20)
+	edges := make([]string, 0, 19)
 	if m.removeddetailed_lines != nil {
 		edges = append(edges, billinginvoiceline.EdgeDetailedLines)
 	}
@@ -24820,15 +24845,12 @@ func (m *BillingInvoiceLineMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *BillingInvoiceLineMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 20)
+	edges := make([]string, 0, 19)
 	if m.clearedbilling_invoice {
 		edges = append(edges, billinginvoiceline.EdgeBillingInvoice)
 	}
 	if m.clearedsplit_line_group {
 		edges = append(edges, billinginvoiceline.EdgeSplitLineGroup)
-	}
-	if m.clearedflat_fee_line {
-		edges = append(edges, billinginvoiceline.EdgeFlatFeeLine)
 	}
 	if m.clearedusage_based_line {
 		edges = append(edges, billinginvoiceline.EdgeUsageBasedLine)
@@ -24892,8 +24914,6 @@ func (m *BillingInvoiceLineMutation) EdgeCleared(name string) bool {
 		return m.clearedbilling_invoice
 	case billinginvoiceline.EdgeSplitLineGroup:
 		return m.clearedsplit_line_group
-	case billinginvoiceline.EdgeFlatFeeLine:
-		return m.clearedflat_fee_line
 	case billinginvoiceline.EdgeUsageBasedLine:
 		return m.clearedusage_based_line
 	case billinginvoiceline.EdgeParentLine:
@@ -24942,9 +24962,6 @@ func (m *BillingInvoiceLineMutation) ClearEdge(name string) error {
 	case billinginvoiceline.EdgeSplitLineGroup:
 		m.ClearSplitLineGroup()
 		return nil
-	case billinginvoiceline.EdgeFlatFeeLine:
-		m.ClearFlatFeeLine()
-		return nil
 	case billinginvoiceline.EdgeUsageBasedLine:
 		m.ClearUsageBasedLine()
 		return nil
@@ -24991,9 +25008,6 @@ func (m *BillingInvoiceLineMutation) ResetEdge(name string) error {
 		return nil
 	case billinginvoiceline.EdgeSplitLineGroup:
 		m.ResetSplitLineGroup()
-		return nil
-	case billinginvoiceline.EdgeFlatFeeLine:
-		m.ResetFlatFeeLine()
 		return nil
 	case billinginvoiceline.EdgeUsageBasedLine:
 		m.ResetUsageBasedLine()

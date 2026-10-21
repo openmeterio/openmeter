@@ -41,11 +41,6 @@ func (a *adapter) CreateGatheringInvoice(ctx context.Context, input billing.Crea
 			return billing.GatheringInvoice{}, fmt.Errorf("clone workflow config: %w", err)
 		}
 
-		currentSchemaLevel, err := tx.GetInvoiceDefaultSchemaLevel(ctx)
-		if err != nil {
-			return billing.GatheringInvoice{}, fmt.Errorf("get invoice write schema level: %w", err)
-		}
-
 		createMut := tx.db.BillingInvoice.Create().
 			SetNamespace(input.Namespace).
 			SetMetadata(input.Metadata).
@@ -56,7 +51,7 @@ func (a *adapter) CreateGatheringInvoice(ctx context.Context, input billing.Crea
 			SetNumber(input.Number).
 			SetNillableDescription(input.Description).
 			SetNillableCollectionAt(input.NextCollectionAt).
-			SetSchemaLevel(currentSchemaLevel).
+			SetSchemaLevel(billing.CurrentInvoiceSchemaLevel).
 			// Customer snapshot about usage attribution fields
 			SetCustomerID(input.Customer.ID).
 			// TODO: Remove all below this line once we have separate tables for gathering invoices
@@ -97,6 +92,10 @@ func (a *adapter) CreateGatheringInvoice(ctx context.Context, input billing.Crea
 }
 
 func (a *adapter) UpdateGatheringInvoice(ctx context.Context, in billing.GatheringInvoice) error {
+	if in.SchemaLevel != billing.CurrentInvoiceSchemaLevel {
+		return fmt.Errorf("unsupported invoice schema level: %d", in.SchemaLevel)
+	}
+
 	if err := in.Validate(); err != nil {
 		return fmt.Errorf("validating gathering invoice: %w", err)
 	}
@@ -108,6 +107,10 @@ func (a *adapter) UpdateGatheringInvoice(ctx context.Context, in billing.Gatheri
 			Only(ctx)
 		if err != nil {
 			return err
+		}
+
+		if existingInvoice.SchemaLevel != billing.CurrentInvoiceSchemaLevel {
+			return fmt.Errorf("unsupported invoice schema level: %d", existingInvoice.SchemaLevel)
 		}
 
 		if err := tx.validateUpdateGatheringInvoiceRequest(in, existingInvoice); err != nil {
@@ -461,6 +464,10 @@ func (a *adapter) GetGatheringInvoiceById(ctx context.Context, input billing.Get
 }
 
 func (a *adapter) mapGatheringInvoiceFromDB(ctx context.Context, invoice *db.BillingInvoice, expand billing.GatheringInvoiceExpands) (billing.GatheringInvoice, error) {
+	if invoice.SchemaLevel != billing.CurrentInvoiceSchemaLevel {
+		return billing.GatheringInvoice{}, fmt.Errorf("unsupported invoice schema level: %d", invoice.SchemaLevel)
+	}
+
 	if invoice.Status != billing.StandardInvoiceStatusGathering {
 		return billing.GatheringInvoice{}, fmt.Errorf("invoice is not a gathering invoice [id=%s]", invoice.ID)
 	}
@@ -503,7 +510,7 @@ func (a *adapter) mapGatheringInvoiceFromDB(ctx context.Context, invoice *db.Bil
 	}
 
 	if expand.Has(billing.GatheringInvoiceExpandLines) {
-		mappedLines, err := a.mapGatheringInvoiceLinesFromDB(invoice.SchemaLevel, invoice.Edges.BillingInvoiceLines)
+		mappedLines, err := a.mapGatheringInvoiceLinesFromDB(invoice.Edges.BillingInvoiceLines)
 		if err != nil {
 			return billing.GatheringInvoice{}, err
 		}
