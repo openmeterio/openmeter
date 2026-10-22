@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicesplitlinegroup"
+	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
@@ -23,11 +24,9 @@ var _ billing.InvoiceSplitLineGroupAdapter = (*adapter)(nil)
 func (a *adapter) splitLineGroupLinesWithInvoice(namespace string) func(*db.BillingInvoiceLineQuery) {
 	return func(q *db.BillingInvoiceLineQuery) {
 		q.Where(billinginvoiceline.Namespace(namespace))
-		a.expandLineItems(q, namespace)
 		q.WithBillingInvoice(func(q *db.BillingInvoiceQuery) {
-			q.Where(billinginvoice.Namespace(namespace)).
-				WithBillingWorkflowConfig(workflowConfigWithTaxCode(namespace))
-		}) // TODO[later]: we can consider loading this in a separate query, might be more efficient
+			q.Where(billinginvoice.Namespace(namespace))
+		})
 	}
 }
 
@@ -50,7 +49,7 @@ func (a *adapter) GetSplitLineGroupsForSubscription(ctx context.Context, in bill
 		}
 
 		groups, err := slicesx.MapWithErr(dbGroups, func(dbGroup *db.BillingInvoiceSplitLineGroup) (billing.SplitLineHierarchy, error) {
-			return tx.mapSplitLineHierarchyFromDB(ctx, dbGroup)
+			return tx.mapSplitLineHierarchyFromDB(dbGroup)
 		})
 		if err != nil {
 			return nil, fmt.Errorf("mapping split line groups: %w", err)
@@ -179,7 +178,7 @@ func (a *adapter) GetSplitLineGroup(ctx context.Context, input billing.GetSplitL
 			return billing.SplitLineHierarchy{}, err
 		}
 
-		return a.mapSplitLineHierarchyFromDB(ctx, dbSplitLineGroup)
+		return a.mapSplitLineHierarchyFromDB(dbSplitLineGroup)
 	})
 }
 
@@ -236,7 +235,7 @@ func (a *adapter) mapSplitLineGroupFromDB(dbSplitLineGroup *db.BillingInvoiceSpl
 	}, nil
 }
 
-func (a *adapter) mapSplitLineHierarchyFromDB(ctx context.Context, dbSplitLineGroup *db.BillingInvoiceSplitLineGroup) (billing.SplitLineHierarchy, error) {
+func (a *adapter) mapSplitLineHierarchyFromDB(dbSplitLineGroup *db.BillingInvoiceSplitLineGroup) (billing.SplitLineHierarchy, error) {
 	empty := billing.SplitLineHierarchy{}
 
 	group, err := a.mapSplitLineGroupFromDB(dbSplitLineGroup)
@@ -244,7 +243,7 @@ func (a *adapter) mapSplitLineHierarchyFromDB(ctx context.Context, dbSplitLineGr
 		return empty, err
 	}
 
-	mappedLines, err := a.mapSplitLineHierarchyLinesFromDB(ctx, dbSplitLineGroup.Edges.BillingInvoiceLines)
+	mappedLines, err := a.mapSplitLineHierarchyLinesFromDB(dbSplitLineGroup.Edges.BillingInvoiceLines)
 	if err != nil {
 		return empty, err
 	}
@@ -255,53 +254,66 @@ func (a *adapter) mapSplitLineHierarchyFromDB(ctx context.Context, dbSplitLineGr
 	}, nil
 }
 
-func (a *adapter) mapSplitLineHierarchyLinesFromDB(ctx context.Context, dbLines []*db.BillingInvoiceLine) ([]billing.LineWithInvoiceHeader, error) {
-	return slicesx.MapWithErr(dbLines, func(dbLine *db.BillingInvoiceLine) (billing.LineWithInvoiceHeader, error) {
-		if dbLine.Edges.BillingInvoice == nil {
-			return billing.LineWithInvoiceHeader{}, fmt.Errorf("billing invoice must be expanded when mapping split line hierarchy lines [id=%s]", dbLine.ID)
+func (a *adapter) mapSplitLineHierarchyLinesFromDB(dbLines []*db.BillingInvoiceLine) ([]billing.SplitLineHierarchyLine, error) {
+	return slicesx.MapWithErr(dbLines, func(dbLine *db.BillingInvoiceLine) (billing.SplitLineHierarchyLine, error) {
+		dbInvoice := dbLine.Edges.BillingInvoice
+		if dbInvoice == nil {
+			return billing.SplitLineHierarchyLine{}, fmt.Errorf("billing invoice must be expanded when mapping split line hierarchy lines [id=%s]", dbLine.ID)
 		}
 
-		switch dbLine.Edges.BillingInvoice.Status {
-		case billing.StandardInvoiceStatusGathering:
-			return a.mapSplitLineHierarchyGatheringLineFromDB(ctx, dbLine)
-		default:
-			return a.mapSplitLineHierarchyStandardLineFromDB(ctx, dbLine)
+		invoiceType := billing.InvoiceTypeStandard
+		if dbInvoice.Status == billing.StandardInvoiceStatusGathering {
+			invoiceType = billing.InvoiceTypeGathering
 		}
+
+		if dbLine.Type != billing.InvoiceLineAdapterTypeUsageBased {
+			if invoiceType == billing.InvoiceTypeGathering {
+				return billing.SplitLineHierarchyLine{}, fmt.Errorf("only usage based lines can be gathering invoice lines [line_id=%s]", dbLine.ID)
+			}
+
+			return billing.SplitLineHierarchyLine{}, fmt.Errorf("only usage based lines can be top level lines [line_id=%s]", dbLine.ID)
+		}
+
+		var subscription *billing.SubscriptionReference
+		if dbLine.SubscriptionID != nil && dbLine.SubscriptionPhaseID != nil && dbLine.SubscriptionItemID != nil {
+			subscription = &billing.SubscriptionReference{
+				SubscriptionID: *dbLine.SubscriptionID,
+				PhaseID:        *dbLine.SubscriptionPhaseID,
+				ItemID:         *dbLine.SubscriptionItemID,
+				BillingPeriod: timeutil.ClosedPeriod{
+					From: lo.FromPtr(dbLine.SubscriptionBillingPeriodFrom).UTC(),
+					To:   lo.FromPtr(dbLine.SubscriptionBillingPeriodTo).UTC(),
+				},
+			}
+		}
+
+		return billing.SplitLineHierarchyLine{
+			LineID: billing.LineID{
+				Namespace: dbLine.Namespace,
+				ID:        dbLine.ID,
+			},
+			Invoice: billing.SplitLineHierarchyInvoice{
+				InvoiceID: billing.InvoiceID{
+					Namespace: dbInvoice.Namespace,
+					ID:        dbInvoice.ID,
+				},
+				Type:      invoiceType,
+				DeletedAt: convert.TimePtrIn(dbInvoice.DeletedAt, time.UTC),
+				Status:    dbInvoice.Status,
+			},
+			DeletedAt: convert.TimePtrIn(dbLine.DeletedAt, time.UTC),
+			ServicePeriod: timeutil.ClosedPeriod{
+				From: dbLine.PeriodStart.UTC(),
+				To:   dbLine.PeriodEnd.UTC(),
+			},
+			ManagedBy:    dbLine.ManagedBy,
+			Annotations:  dbLine.Annotations,
+			Subscription: subscription,
+			InvoiceAt:    dbLine.InvoiceAt.UTC(),
+			Amount:       dbLine.Amount,
+			ChargesTotal: dbLine.ChargesTotal,
+		}, nil
 	})
-}
-
-func (a *adapter) mapSplitLineHierarchyStandardLineFromDB(ctx context.Context, dbLine *db.BillingInvoiceLine) (billing.LineWithInvoiceHeader, error) {
-	line, err := a.mapStandardInvoiceLineWithoutReferences(dbLine)
-	if err != nil {
-		return billing.LineWithInvoiceHeader{}, err
-	}
-
-	invoice, err := a.mapStandardInvoiceFromDB(ctx, dbLine.Edges.BillingInvoice, billing.StandardInvoiceExpands{})
-	if err != nil {
-		return billing.LineWithInvoiceHeader{}, err
-	}
-
-	return billing.NewLineWithInvoiceHeader(billing.StandardLineWithInvoiceHeader{
-		Line:    line,
-		Invoice: invoice,
-	}), nil
-}
-
-func (a *adapter) mapSplitLineHierarchyGatheringLineFromDB(ctx context.Context, dbLine *db.BillingInvoiceLine) (billing.LineWithInvoiceHeader, error) {
-	line, err := a.mapGatheringInvoiceLineFromDB(dbLine)
-	if err != nil {
-		return billing.LineWithInvoiceHeader{}, err
-	}
-
-	invoice, err := a.mapGatheringInvoiceFromDB(ctx, dbLine.Edges.BillingInvoice, billing.GatheringInvoiceExpands{})
-	if err != nil {
-		return billing.LineWithInvoiceHeader{}, err
-	}
-
-	return billing.NewLineWithInvoiceHeader(billing.GatheringLineWithInvoiceHeader{
-		Line:    line,
-		Invoice: invoice,
-	}), nil
 }
 
 type lineIdToSplitLineHierarchy map[string]*billing.SplitLineHierarchy
@@ -332,7 +344,7 @@ func (a *adapter) expandSplitLineHierarchy(ctx context.Context, namespace string
 	hierarchyByLineID := map[string]*billing.SplitLineHierarchy{}
 	for _, splitLineGroup := range splitLineGroups {
 		for _, line := range splitLineGroup.Lines {
-			hierarchyByLineID[line.Line.GetID()] = &splitLineGroup
+			hierarchyByLineID[line.ID] = &splitLineGroup
 		}
 	}
 
@@ -376,7 +388,7 @@ func (a *adapter) fetchAllSplitLineGroups(ctx context.Context, namespace string,
 	}
 
 	return slicesx.MapWithErr(dbSplitLineGroups, func(dbSplitLineGroup *db.BillingInvoiceSplitLineGroup) (billing.SplitLineHierarchy, error) {
-		return a.mapSplitLineHierarchyFromDB(ctx, dbSplitLineGroup)
+		return a.mapSplitLineHierarchyFromDB(dbSplitLineGroup)
 	})
 }
 

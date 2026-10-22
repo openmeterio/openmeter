@@ -168,7 +168,7 @@ func (i persistedSplitLineHierarchy) IsSubscriptionManaged() bool {
 		return false
 	}
 
-	return child.GetManagedBy() == billing.SubscriptionManagedLine
+	return child.ManagedBy == billing.SubscriptionManagedLine
 }
 
 func (i persistedSplitLineHierarchy) HasLastLineAnnotation(annotation string) bool {
@@ -177,14 +177,15 @@ func (i persistedSplitLineHierarchy) HasLastLineAnnotation(annotation string) bo
 		return false
 	}
 
-	return child.GetAnnotations().GetBool(annotation)
+	return child.Annotations.GetBool(annotation)
 }
 
-func (i persistedSplitLineHierarchy) getLastLineForAnnotations() billing.GenericInvoiceLine {
+func (i persistedSplitLineHierarchy) getLastLineForAnnotations() *billing.SplitLineHierarchyLine {
 	servicePeriod := i.hierarchy.Group.ServicePeriod
-	for _, child := range i.hierarchy.Lines {
-		if child.Line.GetServicePeriod().To.Equal(servicePeriod.To) && child.Line.GetDeletedAt() == nil {
-			return child.Line
+	for childIdx := range i.hierarchy.Lines {
+		child := &i.hierarchy.Lines[childIdx]
+		if child.ServicePeriod.To.Equal(servicePeriod.To) && child.DeletedAt == nil {
+			return child
 		}
 	}
 

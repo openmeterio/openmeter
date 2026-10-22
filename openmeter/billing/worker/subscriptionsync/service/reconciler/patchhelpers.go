@@ -35,7 +35,7 @@ func shouldSkipHierarchyPatch(existingHierarchy *billing.SplitLineHierarchy, exp
 	}
 
 	for _, line := range existingHierarchy.Lines {
-		if line.Line.GetAnnotations().GetBool(billing.AnnotationSubscriptionSyncIgnore) {
+		if line.Annotations.GetBool(billing.AnnotationSubscriptionSyncIgnore) {
 			return true
 		}
 	}

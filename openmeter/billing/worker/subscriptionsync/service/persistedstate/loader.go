@@ -241,7 +241,7 @@ func (l Loader) loadInvoicesForSubscriptionItems(ctx context.Context, subs subsc
 			}
 
 			for _, child := range hierarchy.Lines {
-				invoiceIDs[child.Invoice.GetID()] = struct{}{}
+				invoiceIDs[child.Invoice.ID] = struct{}{}
 			}
 		default:
 			return Invoices{}, fmt.Errorf("unsupported persisted invoice item type: %s", item.Type())
@@ -314,8 +314,6 @@ func normalizePersistedLine(line billing.GenericInvoiceLine) (billing.GenericInv
 		invoiceAtAccessor.SetInvoiceAt(invoiceAtAccessor.GetInvoiceAt().Truncate(streaming.MinimumWindowSizeDuration))
 	}
 
-	normalizeSubscriptionReference(cloned.GetSubscriptionReference())
-
 	return cloned, nil
 }
 
@@ -328,30 +326,12 @@ func normalizePersistedSplitLineHierarchy(hierarchy billing.SplitLineHierarchy) 
 	cloned.Group.ServicePeriod = cloned.Group.ServicePeriod.Truncate(streaming.MinimumWindowSizeDuration)
 
 	for i := range cloned.Lines {
-		cloned.Lines[i].Line.UpdateServicePeriod(func(period *timeutil.ClosedPeriod) {
-			*period = period.Truncate(streaming.MinimumWindowSizeDuration)
-		})
-
-		if invoiceAtAccessor, ok := cloned.Lines[i].Line.(billing.InvoiceAtAccessor); ok {
-			invoiceAtAccessor.SetInvoiceAt(invoiceAtAccessor.GetInvoiceAt().Truncate(streaming.MinimumWindowSizeDuration))
+		child := &cloned.Lines[i]
+		child.ServicePeriod = child.ServicePeriod.Truncate(streaming.MinimumWindowSizeDuration)
+		if child.Invoice.Type == billing.InvoiceTypeGathering {
+			child.InvoiceAt = child.InvoiceAt.Truncate(streaming.MinimumWindowSizeDuration)
 		}
-
-		normalizeSubscriptionReference(cloned.Lines[i].Line.GetSubscriptionReference())
 	}
 
 	return &cloned, nil
-}
-
-func normalizeSubscriptionReference(ref *billing.SubscriptionReference) {
-	if ref == nil {
-		return
-	}
-
-	// Historical billing rows can carry sub-second subscription billing periods even
-	// though subscription sync and meter queries operate on MinimumWindowSizeDuration
-	// precision. Normalize the persisted subscription reference on read so legacy
-	// timestamp precision does not leak into reconciliation decisions.
-	// TODO: Add a migration to normalize existing billing timestamps to the precision
-	// supported by meter queries.
-	ref.BillingPeriod = ref.BillingPeriod.Truncate(streaming.MinimumWindowSizeDuration)
 }
