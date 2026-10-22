@@ -49,11 +49,16 @@ func (e *Engine) RecalculateStandardLine(ctx context.Context, input RecalculateS
 		return nil, fmt.Errorf("cloning standard line: %w", err)
 	}
 
-	if err := e.SnapshotLineQuantities(ctx, *input.Invoice, billing.StandardLines{line}); err != nil {
+	resolvedLines, err := e.resolveSplitLineHierarchies(ctx, input.Invoice.Namespace, billing.StandardLines{line})
+	if err != nil {
+		return nil, fmt.Errorf("resolving standard line hierarchy: %w", err)
+	}
+
+	if err := e.snapshotLineQuantities(ctx, *input.Invoice, resolvedLines); err != nil {
 		return nil, fmt.Errorf("snapshotting standard line: %w", err)
 	}
 
-	lines, err := e.RateStandardLines(billing.StandardLines{line})
+	lines, err := e.rateStandardLines(resolvedLines)
 	if len(lines) == 0 {
 		return nil, err
 	}
@@ -61,16 +66,56 @@ func (e *Engine) RecalculateStandardLine(ctx context.Context, input RecalculateS
 	return lines[0], err
 }
 
-// RateStandardLines rates supplied snapshots on cloned legacy lines, retaining
-// child and discount identity. It performs no snapshotting or persistence and
-// returns calculated lines alongside typed rating issues of any severity.
-func (e *Engine) RateStandardLines(lines billing.StandardLines) (billing.StandardLines, error) {
+type RateStandardLinesWithSplitLineHierarchiesInput struct {
+	Lines       billing.StandardLines
+	Hierarchies map[billing.LineID]*billing.SplitLineHierarchy
+}
+
+func (i RateStandardLinesWithSplitLineHierarchiesInput) Validate() error {
+	var errs []error
+	if len(i.Lines) == 0 {
+		errs = append(errs, errors.New("lines are required"))
+	}
+
+	for idx, line := range i.Lines {
+		if line == nil {
+			errs = append(errs, fmt.Errorf("lines[%d]: line is required", idx))
+			continue
+		}
+
+		if line.UsageBased == nil {
+			errs = append(errs, fmt.Errorf("lines[%d]: usage based line is required", idx))
+		}
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+// RateStandardLinesWithSplitLineHierarchies rates transient snapshots with supplied
+// read-only history keyed by namespaced line ID. It performs no group loading,
+// snapshotting or persistence and preserves calculated lines alongside rating issues.
+func (e *Engine) RateStandardLinesWithSplitLineHierarchies(input RateStandardLinesWithSplitLineHierarchiesInput) (billing.StandardLines, error) {
+	if err := input.Validate(); err != nil {
+		return nil, err
+	}
+
+	return e.rateStandardLines(lo.Map(input.Lines, func(line *billing.StandardLine, _ int) lineWithHierarchy {
+		var hierarchy *billing.SplitLineHierarchy
+		if line.SplitLineGroupID != nil {
+			hierarchy = input.Hierarchies[line.GetLineID()]
+		}
+
+		return lineWithHierarchy{StandardLine: line, hierarchy: hierarchy}
+	}))
+}
+
+func (e *Engine) rateStandardLines(lines linesWithHierarchy) (billing.StandardLines, error) {
 	if len(lines) == 0 {
 		return nil, errors.New("lines are required")
 	}
 
 	for idx, line := range lines {
-		if line == nil {
+		if line.StandardLine == nil {
 			return nil, fmt.Errorf("lines[%d]: line is required", idx)
 		}
 
@@ -96,7 +141,7 @@ func (e *Engine) RateStandardLines(lines billing.StandardLines) (billing.Standar
 			return nil, fmt.Errorf("calculating detailed lines for line[%s]: %w", line.ID, err)
 		}
 
-		if err := mergeGeneratedDetailedLines(line, generatedDetailedLines); err != nil {
+		if err := mergeGeneratedDetailedLines(line.StandardLine, generatedDetailedLines); err != nil {
 			return nil, fmt.Errorf("merging generated detailed lines for line[%s]: %w", line.ID, err)
 		}
 
@@ -105,7 +150,7 @@ func (e *Engine) RateStandardLines(lines billing.StandardLines) (billing.Standar
 		}
 	}
 
-	return ratedLines, validationRecorder.ErrorsOrNil()
+	return ratedLines.MapStandardLines(), validationRecorder.ErrorsOrNil()
 }
 
 func newDetailedLines(stdLine *billing.StandardLine, inputs ...rating.DetailedLine) (billing.DetailedLines, error) {

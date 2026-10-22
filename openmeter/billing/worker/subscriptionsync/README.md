@@ -86,6 +86,10 @@ behavior; they do not change calculated invoice history. See
 [Billing line ownership](../../README.md#line-ownership) for the calculation
 and validation-issue contract.
 
+The legacy engine resolves split-group context while invoice patches are applied.
+Group period updates follow those invoice patches, so recalculation and immutable
+comparisons still observe the persisted group period preceding the group update.
+
 Charge-backed patches operate on the charge intent. Charge-managed invoice
 lines are projections of charge state and are deliberately excluded from the
 subscription-sync invoice read model. A customer-facing charge override also

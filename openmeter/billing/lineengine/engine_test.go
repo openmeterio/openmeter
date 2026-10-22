@@ -132,7 +132,9 @@ func TestSnapshotLineQuantitiesContinuesWithPartialFeatureMeters(t *testing.T) {
 	lines := billing.StandardLines{validLine, meterlessLine, missingFlatLine, featurelessLine}
 
 	// When their quantities are snapshotted from a partial feature-meter result.
-	err := engine.SnapshotLineQuantities(t.Context(), quantitySnapshotTestInvoice(), lines)
+	err := engine.snapshotLineQuantities(t.Context(), quantitySnapshotTestInvoice(), lo.Map(lines, func(line *billing.StandardLine, _ int) lineWithHierarchy {
+		return lineWithHierarchy{StandardLine: line}
+	}))
 
 	// Then metered lines retain feature validation, while flat lines snapshot without resolving their feature.
 	issues, systemErr := billing.ToValidationIssues(err)
@@ -164,13 +166,61 @@ func TestSnapshotLineQuantitiesRejectsResolverSystemErrors(t *testing.T) {
 
 	// Given a feature service that cannot resolve any requested features.
 	// When quantity snapshotting attempts to resolve the line's feature meter.
-	err := engine.SnapshotLineQuantities(t.Context(), quantitySnapshotTestInvoice(), billing.StandardLines{line})
+	err := engine.snapshotLineQuantities(t.Context(), quantitySnapshotTestInvoice(), linesWithHierarchy{{StandardLine: line}})
 
 	// Then the operational failure aborts snapshotting instead of becoming a validation issue.
 	issues, systemErr := billing.ToValidationIssues(err)
 	require.Nil(t, issues)
 	require.ErrorIs(t, systemErr, resolverErr)
 	require.Nil(t, line.UsageBased.Quantity)
+}
+
+func TestSnapshotLineQuantitiesUsesExplicitHierarchy(t *testing.T) {
+	for _, aggregation := range []meter.MeterAggregation{meter.MeterAggregationSum, meter.MeterAggregationMin, meter.MeterAggregationAvg} {
+		t.Run(string(aggregation), func(t *testing.T) {
+			// Given usage before and during a split, with no embedded hierarchy.
+			fullPeriod := lineEngineOverrideTestPeriod()
+			boundary := fullPeriod.From.Add(fullPeriod.Duration() / 2)
+			meterID := "meter-id"
+			testMeter := meter.Meter{Key: "meter", Aggregation: aggregation}
+			testMeter.ID = meterID
+			engine, connector := newQuantitySnapshotTestEngine(t,
+				[]feature.Feature{{Namespace: "namespace", ID: "feature-id", Key: "feature", MeterID: &meterID}},
+				[]meter.Meter{testMeter}, nil,
+			)
+			connector.AddRow(testMeter.Key, meter.MeterQueryRow{WindowStart: boundary, WindowEnd: fullPeriod.To, Value: 20})
+			connector.AddRow(testMeter.Key, meter.MeterQueryRow{WindowStart: fullPeriod.From, WindowEnd: boundary, Value: 40})
+			connector.AddRow(testMeter.Key, meter.MeterQueryRow{WindowStart: fullPeriod.From, WindowEnd: fullPeriod.To, Value: 60})
+			line := quantitySnapshotTestLine("line", "feature", productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+				Amount: alpacadecimal.NewFromInt(1),
+			}))
+			line.Period.From = boundary
+			line.SplitLineGroupID = lo.ToPtr("group")
+			lines := linesWithHierarchy{{StandardLine: line}}
+
+			// When context is explicitly absent, the existing ordinary-period fallback remains.
+			err := engine.snapshotLineQuantities(t.Context(), quantitySnapshotTestInvoice(), lines)
+			require.NoError(t, err)
+			require.Equal(t, 20.0, line.UsageBased.MeteredQuantity.InexactFloat64())
+			require.Zero(t, line.UsageBased.MeteredPreLinePeriodQuantity.InexactFloat64())
+
+			lines[0].hierarchy = &billing.SplitLineHierarchy{
+				Group: billing.SplitLineGroup{SplitLineGroupMutableFields: billing.SplitLineGroupMutableFields{ServicePeriod: fullPeriod}},
+			}
+			err = engine.snapshotLineQuantities(t.Context(), quantitySnapshotTestInvoice(), lines)
+
+			// Then explicit context queries cumulative SUM usage and retains the min/avg restriction.
+			if aggregation != meter.MeterAggregationSum {
+				require.ErrorContains(t, err, "is not supported for split lines")
+				return
+			}
+
+			require.NoError(t, err)
+			require.Equal(t, 20.0, line.UsageBased.MeteredQuantity.InexactFloat64())
+			require.Equal(t, 40.0, line.UsageBased.MeteredPreLinePeriodQuantity.InexactFloat64())
+			require.Nil(t, line.SplitLineHierarchy)
+		})
+	}
 }
 
 func TestAreLinesBillableAsOfLocalizesFeatureMeterValidationIssues(t *testing.T) {

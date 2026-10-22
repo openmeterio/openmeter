@@ -19,6 +19,7 @@ already use.
 
 [Quickstart](#quickstart) ·
 [Documentation](https://openmeter.io/docs) ·
+[Known issues](KNOWN-ISSUES.md) ·
 [API reference](https://openmeter.io/docs/api/open-source) ·
 [Community](https://github.com/openmeterio/openmeter/discussions)
 

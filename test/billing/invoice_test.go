@@ -190,6 +190,76 @@ func (s *InvoicingTestSuite) TestSimulateInvoiceFeatureMeterValidation() {
 	})
 }
 
+func (s *InvoicingTestSuite) TestSimulateInvoiceUsesTransientSplitHistory() {
+	// Given a transient final child with 20 of usage and 40 previously billed toward a 100 minimum.
+	ctx := s.T().Context()
+	namespace := s.GetUniqueNamespace("transient-split-history")
+	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
+	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
+	customerEntity := s.CreateTestCustomer(namespace, "test-customer")
+	testFeature := s.SetupApiRequestsTotalFeature(ctx, namespace)
+	defer testFeature.Cleanup()
+	fullPeriod := timeutil.ClosedPeriod{
+		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		To:   time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
+	}
+	boundary := fullPeriod.From.Add(fullPeriod.Duration() / 2)
+	line := billing.NewFlatFeeLine(billing.NewFlatFeeLineInput{
+		Namespace:     namespace,
+		Period:        timeutil.ClosedPeriod{From: boundary, To: fullPeriod.To},
+		InvoiceAt:     fullPeriod.To,
+		Name:          "transient usage",
+		PerUnitAmount: alpacadecimal.NewFromInt(1),
+		PaymentTerm:   productcatalog.InArrearsPaymentTerm,
+		ManagedBy:     billing.ManuallyManagedLine,
+	}, billing.WithFeatureKey(testFeature.Feature.Key))
+	line.UsageBased.Price = productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+		Amount: alpacadecimal.NewFromInt(1),
+		Commitments: productcatalog.Commitments{
+			MinimumAmount: lo.ToPtr(alpacadecimal.NewFromInt(100)),
+		},
+	})
+	line.UsageBased.MeteredQuantity = lo.ToPtr(alpacadecimal.NewFromInt(20))
+	line.UsageBased.MeteredPreLinePeriodQuantity = lo.ToPtr(alpacadecimal.NewFromInt(40))
+	line.SplitLineGroupID = lo.ToPtr("unpersisted-group")
+	line.SplitLineHierarchy = &billing.SplitLineHierarchy{
+		Group: billing.SplitLineGroup{
+			NamespacedID:                models.NamespacedID{Namespace: namespace, ID: *line.SplitLineGroupID},
+			SplitLineGroupMutableFields: billing.SplitLineGroupMutableFields{ServicePeriod: fullPeriod},
+		},
+		Lines: []billing.SplitLineHierarchyLine{{
+			ServicePeriod: timeutil.ClosedPeriod{From: fullPeriod.From, To: boundary},
+			Amount:        alpacadecimal.NewFromInt(40),
+			Invoice:       billing.SplitLineHierarchyInvoice{Type: billing.InvoiceTypeStandard},
+		}},
+	}
+	before, err := json.Marshal(line)
+	s.Require().NoError(err)
+
+	// When simulation rates supplied quantities and history for a group absent from the database.
+	invoice, err := s.BillingService.SimulateInvoice(ctx, billing.SimulateInvoiceInput{
+		Namespace:  namespace,
+		CustomerID: &customerEntity.ID,
+		Currency:   currencyx.FiatCode(currency.USD),
+		Lines:      billing.NewStandardInvoiceLines(billing.StandardLines{line}),
+	})
+	s.Require().NoError(err)
+
+	// Then supplied history produces the 40 adjustment without persistence or source mutation.
+	s.Equal(40.0, invoice.Lines.OrEmpty()[0].Totals.ChargesTotal.InexactFloat64())
+	s.Equal(60.0, invoice.Totals.Total.InexactFloat64())
+	s.Empty(invoice.ValidationIssues)
+	after, err := json.Marshal(line)
+	s.Require().NoError(err)
+	s.JSONEq(string(before), string(after))
+	histories, err := s.BillingAdapter.GetSplitLineGroups(ctx, billing.GetSplitLineGroupsInput{
+		Namespace:         namespace,
+		SplitLineGroupIDs: []string{*line.SplitLineGroupID},
+	})
+	s.Require().NoError(err)
+	s.Empty(histories)
+}
+
 func (s *InvoicingTestSuite) TestPendingLineCreation() {
 	namespace := "ns-create-invoice-workflow"
 	now := time.Now().Truncate(time.Second).In(time.UTC)

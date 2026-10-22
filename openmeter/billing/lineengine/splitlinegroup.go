@@ -10,12 +10,13 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type SplitLineGroupAdapter interface {
 	CreateSplitLineGroup(ctx context.Context, input billing.CreateSplitLineGroupAdapterInput) (billing.SplitLineGroup, error)
-	GetSplitLineGroupHeaders(ctx context.Context, input billing.GetSplitLineGroupHeadersInput) (billing.SplitLineGroupHeaders, error)
+	GetSplitLineGroups(ctx context.Context, input billing.GetSplitLineGroupsInput) ([]billing.SplitLineHierarchy, error)
 }
 
 func (e *Engine) SplitGatheringLine(ctx context.Context, in billing.SplitGatheringLineInput) (billing.SplitGatheringLineResult, error) {
@@ -113,46 +114,51 @@ func (e *Engine) SplitGatheringLine(ctx context.Context, in billing.SplitGatheri
 	}, nil
 }
 
-func (e *Engine) ResolveSplitLineGroupHeaders(ctx context.Context, ns string, lines billing.StandardLines) error {
-	splitLineGroupIDs := lo.Uniq(
-		lo.Filter(
-			lo.Map(lines, func(line *billing.StandardLine, _ int) string { return lo.FromPtr(line.SplitLineGroupID) }),
-			func(id string, _ int) bool { return id != "" },
-		),
-	)
+func splitLineGroupIDs(lines billing.StandardLines) []string {
+	return lo.Uniq(lo.FilterMap(lines, func(line *billing.StandardLine, _ int) (string, bool) {
+		if line == nil || line.SplitLineGroupID == nil {
+			return "", false
+		}
 
-	if len(splitLineGroupIDs) == 0 {
-		return nil
+		return *line.SplitLineGroupID, *line.SplitLineGroupID != ""
+	}))
+}
+
+func (e *Engine) resolveSplitLineHierarchies(ctx context.Context, ns string, lines billing.StandardLines) (linesWithHierarchy, error) {
+	resolvedLines := lo.Map(lines, func(line *billing.StandardLine, _ int) lineWithHierarchy {
+		return lineWithHierarchy{StandardLine: line}
+	})
+	groupIDs := splitLineGroupIDs(lines)
+	if len(groupIDs) == 0 {
+		return resolvedLines, nil
 	}
 
-	splitLineGroupHeaders, err := e.adapter.GetSplitLineGroupHeaders(ctx, billing.GetSplitLineGroupHeadersInput{
+	hierarchies, err := e.adapter.GetSplitLineGroups(ctx, billing.GetSplitLineGroupsInput{
 		Namespace:         ns,
-		SplitLineGroupIDs: splitLineGroupIDs,
+		SplitLineGroupIDs: groupIDs,
 	})
 	if err != nil {
-		return fmt.Errorf("getting split line group headers: %w", err)
+		return nil, fmt.Errorf("getting split line groups: %w", err)
 	}
 
-	splitLineGroupHeadersByID := lo.SliceToMap(splitLineGroupHeaders, func(header billing.SplitLineGroup) (string, billing.SplitLineGroup) {
-		return header.ID, header
+	hierarchiesByID := lo.SliceToMap(hierarchies, func(hierarchy billing.SplitLineHierarchy) (models.NamespacedID, *billing.SplitLineHierarchy) {
+		return hierarchy.Group.NamespacedID, &hierarchy
 	})
 
-	for idx := range lines {
-		if lines[idx].SplitLineGroupID == nil {
+	for idx, line := range resolvedLines {
+		if line.SplitLineGroupID == nil {
 			continue
 		}
 
-		splitLineGroupHeader, ok := splitLineGroupHeadersByID[lo.FromPtr(lines[idx].SplitLineGroupID)]
-		if !ok {
-			return fmt.Errorf("split line group header not found for line[%s]: id[%s]", lines[idx].ID, lo.FromPtr(lines[idx].SplitLineGroupID))
+		hierarchy := hierarchiesByID[models.NamespacedID{Namespace: line.Namespace, ID: *line.SplitLineGroupID}]
+		if hierarchy == nil {
+			return nil, fmt.Errorf("split line group[%s] for line[%s] not found", *line.SplitLineGroupID, line.ID)
 		}
 
-		lines[idx].SplitLineHierarchy = &billing.SplitLineHierarchy{
-			Group: splitLineGroupHeader,
-		}
+		resolvedLines[idx].hierarchy = hierarchy
 	}
 
-	return nil
+	return resolvedLines, nil
 }
 
 func isPeriodEmptyConsideringTruncations(line billing.GatheringLine) (bool, error) {
