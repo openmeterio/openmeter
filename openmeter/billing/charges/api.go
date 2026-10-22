@@ -77,7 +77,7 @@ type CreateCustomerChargeInput struct {
 	CustomerID        string
 	CurrencyCode      currencyx.Code
 	CostBasis         *costbasis.Intent
-	TaxConfig         productcatalog.TaxCodeConfig
+	TaxConfig         productcatalog.TaxConfig
 	UniqueReferenceID *string
 
 	FlatFee    *CreateCustomerChargeFlatFeeInput
@@ -109,6 +109,10 @@ func (i CreateCustomerChargeInput) Validate() error {
 
 	if err := i.CurrencyCode.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("currency code: %w", err))
+	}
+
+	if err := i.TaxConfig.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("tax config: %w", err))
 	}
 
 	if i.CostBasis != nil {

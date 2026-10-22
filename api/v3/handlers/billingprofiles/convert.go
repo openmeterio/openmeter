@@ -106,9 +106,9 @@ func toAPIBillingTaxConfigFull(config *productcatalog.TaxConfig) (*api.BillingTa
 	return result, nil
 }
 
-// fromAPIBillingTaxConfigFull wraps the goverter FromAPIBillingTaxConfig and additionally reads
+// FromAPIBillingTaxConfigFull wraps the goverter FromAPIBillingTaxConfig and additionally reads
 // TaxCode.Id (new field) which takes precedence over the deprecated TaxCodeId.
-func fromAPIBillingTaxConfigFull(config *api.BillingTaxConfig) (*productcatalog.TaxConfig, error) {
+func FromAPIBillingTaxConfigFull(config *api.BillingTaxConfig) (*productcatalog.TaxConfig, error) {
 	result, err := FromAPIBillingTaxConfig(config)
 	if err != nil || result == nil {
 		return result, err
@@ -380,7 +380,7 @@ func fromAPIBillingWorkflow(workflow api.BillingWorkflow, defaultSubscriptionEnd
 	defaultTaxConfig := def.Invoicing.DefaultTaxConfig
 	if workflow.Tax.DefaultTaxConfig != nil {
 		var err error
-		defaultTaxConfig, err = fromAPIBillingTaxConfigFull(workflow.Tax.DefaultTaxConfig)
+		defaultTaxConfig, err = FromAPIBillingTaxConfigFull(workflow.Tax.DefaultTaxConfig)
 		if err != nil {
 			return billing.WorkflowConfig{}, err
 		}
