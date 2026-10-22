@@ -37,6 +37,17 @@ func (q balanceBucketsQuery) SQL() (string, []any, error) {
 	buckets := sql.With(balanceBucketCTEName).As(bucketSelector)
 	buckets.SetDialect(dialect.Postgres)
 
+	query, args := selectBalanceBuckets().Prefix(buckets).Query()
+
+	return query, args, nil
+}
+
+// Load the account and route fields needed to turn each bucket into a posting
+// address.
+func selectBalanceBuckets() *sql.Selector {
+	buckets := sql.Table(balanceBucketCTEName)
+	buckets.SetDialect(dialect.Postgres)
+
 	subAccounts := sql.Table(ledgersubaccountdb.Table).As("sub_accounts")
 	subAccounts.SetDialect(dialect.Postgres)
 
@@ -73,7 +84,6 @@ func (q balanceBucketsQuery) SQL() (string, []any, error) {
 		On(subAccounts.C(ledgersubaccountdb.FieldAccountID), accounts.C(ledgeraccountdb.FieldID)).
 		Join(routes).
 		On(subAccounts.C(ledgersubaccountdb.FieldRouteID), routes.C(ledgersubaccountroutedb.FieldID)).
-		Prefix(buckets).
 		OrderBy(
 			buckets.C(balanceBucketFieldSubAccountID),
 			buckets.C(balanceBucketFieldSourceChargeID),
@@ -82,9 +92,7 @@ func (q balanceBucketsQuery) SQL() (string, []any, error) {
 		)
 	selector.SetDialect(dialect.Postgres)
 
-	sqlQuery, args := selector.Query()
-
-	return sqlQuery, args, nil
+	return selector
 }
 
 func (q balanceBucketsQuery) bucketSelector() (*sql.Selector, error) {
