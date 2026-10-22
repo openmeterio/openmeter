@@ -22,7 +22,10 @@ described in [Charges](charges/README.md).
 A billing profile selects the workflow and the apps responsible for tax,
 invoicing, and payment. A namespace has one default profile. A customer
 override may select another profile and replace supported parts of its
-workflow.
+workflow. Without an explicit profile selection, the customer follows the current
+namespace default, even when it has workflow overrides. The v3 customer billing
+GET and PUT responses return an explicit selection as `billing_profile` (omitted
+when unpinned) and the resolved profile as `effective_billing_profile`.
 
 Installing a Custom Invoicing app with automatic profile creation uses Cloud's
 initial Auto Collection preset: the installed app handles tax, invoicing, and

@@ -70,8 +70,16 @@ func (h *handler) GetCustomerBilling() GetCustomerBillingHandler {
 				return resp, err
 			}
 
-			return GetCustomerBillingResponse{
-				BillingProfile: &api.BillingProfileReference{
+			var billingProfileReference *api.BillingProfileReference
+			if override.CustomerOverride != nil && override.CustomerOverride.Profile != nil {
+				billingProfileReference = &api.BillingProfileReference{
+					Id: override.CustomerOverride.Profile.ID,
+				}
+			}
+
+			return api.BillingCustomerData{
+				BillingProfile: billingProfileReference,
+				EffectiveBillingProfile: api.BillingProfileReference{
 					Id: override.MergedProfile.ID,
 				},
 				AppData: apiAppData,

@@ -1496,12 +1496,15 @@ type CurrencyCustomReference struct {
 
 // Billing customer data.
 type CustomerData struct {
-	// The billing profile for the customer.
+	// The billing profile explicitly selected for the customer.
 	//
 	// If not provided, the default billing profile will be used.
 	BillingProfile *ProfileReference `json:"billing_profile,omitempty"`
 	// App customer data.
 	AppData *AppCustomerData `json:"app_data,omitempty"`
+	// The effective billing profile for the customer. Uses the explicitly selected
+	// billing profile when pinned, otherwise the current default billing profile.
+	EffectiveBillingProfile ProfileReference `json:"effective_billing_profile"`
 }
 
 // Page paginated response.
@@ -1770,7 +1773,7 @@ type UpsertAppCustomerDataRequest struct {
 
 // CustomerBillingData upsert request.
 type UpsertCustomerBillingDataRequest struct {
-	// The billing profile for the customer.
+	// The billing profile explicitly selected for the customer.
 	//
 	// If not provided, the default billing profile will be used.
 	BillingProfile *ProfileReference `json:"billing_profile,omitempty"`

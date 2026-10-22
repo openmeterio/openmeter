@@ -24,8 +24,11 @@ type CustomerOverride struct {
 	UpdatedAt time.Time  `json:"updatedAt"`
 	DeletedAt *time.Time `json:"deletedAt,omitempty"`
 
-	CustomerID string   `json:"customerID"`
-	Profile    *Profile `json:"billingProfile,omitempty"`
+	CustomerID string `json:"customerID"`
+
+	// Profile is the explicitly selected billing profile. If nil, the customer
+	// uses the current namespace's default profile.
+	Profile *Profile `json:"billingProfile,omitempty"`
 
 	Collection CollectionOverrideConfig `json:"collection"`
 	Invoicing  InvoicingOverrideConfig  `json:"invoicing"`
@@ -207,8 +210,10 @@ func (g GetCustomerAppInput) Validate() error {
 	}
 
 	if g.AppType == "" {
-		errs = append(errs, models.NewGenericPreConditionFailedError(
-			fmt.Errorf("app type is required")),
+		errs = append(
+			errs, models.NewGenericPreConditionFailedError(
+				fmt.Errorf("app type is required"),
+			),
 		)
 	}
 

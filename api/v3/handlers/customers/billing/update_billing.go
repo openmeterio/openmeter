@@ -79,15 +79,21 @@ func (h *handler) UpdateCustomerBilling() UpdateCustomerBillingHandler {
 			resp := UpdateCustomerBillingResponse{}
 
 			var billingProfile *billing.Profile
+			var customerOverride billing.CustomerOverrideWithDetails
 			var err error
-			// If the profile ID is not provided, we use the default profile
+			// App data must be written through the same effective profile used by GET.
 			if request.ProfileID == nil {
-				billingProfile, err = h.billingService.GetDefaultProfile(ctx, billing.GetDefaultProfileInput{
-					Namespace: request.CustomerID.Namespace,
+				customerOverride, err = h.billingService.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
+					Customer: request.CustomerID,
+					Expand: billing.CustomerOverrideExpand{
+						Apps: true,
+					},
 				})
 				if err != nil {
-					return resp, err
+					return resp, fmt.Errorf("failed to resolve effective billing profile: %w", err)
 				}
+
+				billingProfile = &customerOverride.MergedProfile
 			} else {
 				// Get the billing profile by the provided profile ID
 				billingProfile, err = h.billingService.GetProfile(ctx, billing.GetProfileInput{
@@ -99,10 +105,6 @@ func (h *handler) UpdateCustomerBilling() UpdateCustomerBillingHandler {
 				if err != nil {
 					return resp, err
 				}
-			}
-
-			resp.BillingProfile = &api.BillingProfileReference{
-				Id: billingProfile.ID,
 			}
 
 			if billingProfile.Apps == nil {
@@ -124,7 +126,7 @@ func (h *handler) UpdateCustomerBilling() UpdateCustomerBillingHandler {
 
 			// Override the billing profile if an ID was provided
 			if request.ProfileID != nil {
-				_, err = h.billingService.UpsertCustomerOverride(ctx, billing.UpsertCustomerOverrideInput{
+				customerOverride, err = h.billingService.UpsertCustomerOverride(ctx, billing.UpsertCustomerOverrideInput{
 					Namespace:  request.CustomerID.Namespace,
 					CustomerID: request.CustomerID.ID,
 					ProfileID:  billingProfile.ID,
@@ -132,6 +134,24 @@ func (h *handler) UpdateCustomerBilling() UpdateCustomerBillingHandler {
 				if err != nil {
 					return resp, fmt.Errorf("failed to update billing profile: %w", err)
 				}
+
+				if customerOverride.CustomerOverride == nil || customerOverride.CustomerOverride.Profile == nil {
+					return resp, apierrors.NewInternalError(ctx, errors.New("customer override is not found"))
+				}
+
+				resp.BillingProfile = &api.BillingProfileReference{
+					Id: customerOverride.CustomerOverride.Profile.ID,
+				}
+			} else {
+				if customerOverride.CustomerOverride != nil && customerOverride.CustomerOverride.Profile != nil {
+					resp.BillingProfile = &api.BillingProfileReference{
+						Id: customerOverride.CustomerOverride.Profile.ID,
+					}
+				}
+			}
+
+			resp.EffectiveBillingProfile = api.BillingProfileReference{
+				Id: customerOverride.MergedProfile.ID,
 			}
 
 			return resp, nil

@@ -5848,6 +5848,7 @@ export const customerData = z
   .object({
     billingProfile: profileReference.optional(),
     appData: appCustomerData.optional(),
+    effectiveBillingProfile: profileReference,
   })
   .describe('Billing customer data.')
 
@@ -15595,6 +15596,7 @@ export const customerDataWire = z
   .strictObject({
     billing_profile: profileReferenceWire.optional(),
     app_data: appCustomerDataWire.optional(),
+    effective_billing_profile: profileReferenceWire,
   })
   .describe('Billing customer data.')
 

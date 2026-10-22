@@ -4815,19 +4815,24 @@ export interface NotificationEventDeliveryStatus {
 /** Billing customer data. */
 export interface CustomerData {
   /**
-   * The billing profile for the customer.
+   * The billing profile explicitly selected for the customer.
    *
    * If not provided, the default billing profile will be used.
    */
   billingProfile?: ProfileReference
   /** App customer data. */
   appData?: AppCustomerData
+  /**
+   * The effective billing profile for the customer. Uses the explicitly selected
+   * billing profile when pinned, otherwise the current default billing profile.
+   */
+  effectiveBillingProfile: ProfileReference
 }
 
 /** CustomerBillingData upsert request. */
 export interface UpsertCustomerBillingDataRequest {
   /**
-   * The billing profile for the customer.
+   * The billing profile explicitly selected for the customer.
    *
    * If not provided, the default billing profile will be used.
    */

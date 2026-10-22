@@ -151,23 +151,6 @@ func (a *adapter) GetCustomerOverride(ctx context.Context, input billing.GetCust
 			return nil, err
 		}
 
-		if dbCustomerOverride.BillingProfileID == nil {
-			// Let's fetch the default billing profile
-			dbDefaultProfile, err := tx.db.BillingProfile.Query().
-				Where(billingprofile.Namespace(input.Customer.Namespace)).
-				Where(billingprofile.Default(true)).
-				Where(billingprofile.DeletedAtIsNil()).
-				WithWorkflowConfig(workflowConfigWithTaxCode(input.Customer.Namespace)).
-				Only(ctx)
-			if err != nil {
-				if !db.IsNotFound(err) {
-					return nil, err
-				}
-			}
-
-			dbCustomerOverride.Edges.BillingProfile = dbDefaultProfile
-		}
-
 		return tx.mapCustomerOverrideFromDB(ctx, dbCustomerOverride)
 	})
 }
