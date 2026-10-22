@@ -46,7 +46,10 @@ func TestCustomerBillingV3(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, defaultProfile)
 
-	pinnedProfile, err := env.Billing().CreateProfile(ctx, newTestProfileInput(namespace, stripeApp.GetID(), "Pinned Profile", false))
+	pinnedStripeApp, err := env.Fixture().setupApp(ctx, namespace)
+	require.NoError(t, err)
+
+	pinnedProfile, err := env.Billing().CreateProfile(ctx, newTestProfileInput(namespace, pinnedStripeApp.GetID(), "Pinned Profile", false))
 	require.NoError(t, err)
 	require.NotNil(t, pinnedProfile)
 
@@ -186,6 +189,57 @@ func TestCustomerBillingV3(t *testing.T) {
 			}
 		})
 	}
+
+	t.Run("Should update the pinned payment app when the billing profile is omitted", func(t *testing.T) {
+		ctx := t.Context()
+
+		// given a customer pinned to a different payment app with data in the default app
+		cus, err := env.Fixture().setupCustomer(ctx, namespace)
+		require.NoError(t, err)
+
+		_, err = env.Billing().UpsertCustomerOverride(ctx, billing.UpsertCustomerOverrideInput{
+			Namespace:  namespace,
+			CustomerID: cus.ID,
+			ProfileID:  pinnedProfile.ID,
+		})
+		require.NoError(t, err)
+
+		seedStripeData(ctx, t, cus, "cus_default_unchanged")
+
+		env.StripeAppClient().
+			On("GetCustomer", "cus_pinned_update").
+			Return(stripeclient.StripeCustomer{StripeCustomerID: "cus_pinned_update"}, nil)
+		defer env.StripeAppClient().Restore()
+
+		// when updating app data without specifying the billing profile
+		rec := doJSONRequest(router, http.MethodPut, "/openmeter/customers/"+cus.ID+"/billing",
+			`{"app_data":{"stripe":{"customer_id":"cus_pinned_update"}}}`)
+		require.Equal(t, http.StatusOK, rec.Code, "body: %s", rec.Body.String())
+
+		// then the write targets the pinned app and GET returns the updated data
+		pinnedData, err := env.AppStripe().GetStripeCustomerData(ctx, appstripe.GetStripeCustomerDataInput{
+			AppID:      pinnedStripeApp.GetID(),
+			CustomerID: cus.GetID(),
+		})
+		require.NoError(t, err)
+		require.Equal(t, "cus_pinned_update", pinnedData.StripeCustomerID)
+
+		defaultData, err := getStripeData(ctx, cus)
+		require.NoError(t, err)
+		require.Equal(t, "cus_default_unchanged", defaultData.StripeCustomerID)
+
+		getRec := doJSONRequest(router, http.MethodGet, "/openmeter/customers/"+cus.ID+"/billing", "")
+		require.Equal(t, http.StatusOK, getRec.Code, "body: %s", getRec.Body.String())
+
+		var got api.BillingCustomerData
+		require.NoError(t, json.Unmarshal(getRec.Body.Bytes(), &got))
+		require.Equal(t, &api.BillingProfileReference{Id: pinnedProfile.ID}, got.BillingProfile)
+		require.Equal(t, api.BillingProfileReference{Id: pinnedProfile.ID}, got.EffectiveBillingProfile)
+		require.NotNil(t, got.AppData)
+		stripeData, err := got.AppData.Stripe.Get()
+		require.NoError(t, err)
+		require.Equal(t, lo.ToPtr("cus_pinned_update"), stripeData.CustomerId)
+	})
 
 	t.Run("Should reject stripe app data without customer id", func(t *testing.T) {
 		ctx := t.Context()
