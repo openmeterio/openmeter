@@ -504,14 +504,6 @@ func (e *BillingInvoice) GetTaxAppExternalID() *string {
 	return e.TaxAppExternalID
 }
 
-func (e *BillingInvoiceFlatFeeLineConfig) GetID() string {
-	return e.ID
-}
-
-func (e *BillingInvoiceFlatFeeLineConfig) GetNamespace() string {
-	return e.Namespace
-}
-
 func (e *BillingInvoiceLine) GetID() string {
 	return e.ID
 }
@@ -598,46 +590,6 @@ func (e *BillingInvoiceLine) GetTotal() alpacadecimal.Decimal {
 
 func (e *BillingInvoiceLine) GetInvoicingAppExternalID() *string {
 	return e.InvoicingAppExternalID
-}
-
-func (e *BillingInvoiceLineDiscount) GetID() string {
-	return e.ID
-}
-
-func (e *BillingInvoiceLineDiscount) GetNamespace() string {
-	return e.Namespace
-}
-
-func (e *BillingInvoiceLineDiscount) GetCreatedAt() time.Time {
-	return e.CreatedAt
-}
-
-func (e *BillingInvoiceLineDiscount) GetUpdatedAt() time.Time {
-	return e.UpdatedAt
-}
-
-func (e *BillingInvoiceLineDiscount) GetDeletedAt() *time.Time {
-	return e.DeletedAt
-}
-
-func (e *BillingInvoiceLineDiscount) GetInvoicingAppExternalID() *string {
-	return e.InvoicingAppExternalID
-}
-
-func (e *BillingInvoiceLineDiscount) GetLineID() string {
-	return e.LineID
-}
-
-func (e *BillingInvoiceLineDiscount) GetChildUniqueReferenceID() *string {
-	return e.ChildUniqueReferenceID
-}
-
-func (e *BillingInvoiceLineDiscount) GetDescription() *string {
-	return e.Description
-}
-
-func (e *BillingInvoiceLineDiscount) GetReason() billing.DiscountReasonType {
-	return e.Reason
 }
 
 func (e *BillingInvoiceLineUsageDiscount) GetID() string {

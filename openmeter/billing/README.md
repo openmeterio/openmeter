@@ -76,10 +76,17 @@ representation at runtime.
 
 Upgrade databases through the invoice schema-level-2 backfill before deploying
 this application. Historical migrations and the frozen Ent adoption baseline
-still support older storage layouts. The legacy tables and copied source rows
-remain for a later storage cleanup; queries must continue excluding legacy
-`detailed` rows from standard invoice lines. Parent-line relationships also
-remain in use by split lines.
+still support older storage layouts. After all application instances use level
+2, the storage cleanup archives legacy detailed lines, their configurations and
+discounts, and otherwise unreferenced rows from retired tables in
+`om_migration_backup_legacy_detailed_lines`. Cleanup takes table locks on invoice
+storage and its foreign-key referrers, blocking writes for the transaction.
+PostgreSQL also takes the required DDL locks when the obsolete storage is dropped.
+The archive indexes support original-row ID, invoice, parent-line, and JSON
+containment lookups. Cleanup removes the old detail rows, flat-fee configuration
+table, amount-discount table, and flat-fee reference column. Usage-based
+configurations, usage discounts, and parent-line relationships remain in use by
+standard and split lines.
 
 ## Time has distinct meanings
 

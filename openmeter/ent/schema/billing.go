@@ -434,14 +434,6 @@ func (BillingInvoiceLine) Fields() []ent.Field {
 				dialect.Postgres: "char(26)",
 			}),
 
-		field.String("fee_line_config_id").
-			SchemaType(map[string]string{
-				dialect.Postgres: "char(26)",
-			}).
-			Optional().
-			Nillable().
-			Deprecated("retained for legacy invoice migrations; schema level 2 uses dedicated detailed lines"),
-
 		field.Enum("managed_by").
 			GoType(billing.InvoiceLineManagedBy("")),
 
@@ -554,9 +546,6 @@ func (BillingInvoiceLine) Annotations() []schema.Annotation {
 
 func (BillingInvoiceLine) Indexes() []ent.Index {
 	return []ent.Index{
-		// Historical invoice migrations still join legacy flat-fee configurations.
-		index.Fields("fee_line_config_id").
-			StorageKey("billing_invoice_lines_fee_config_id_idx"),
 		// PostgreSQL looks up child rows by the foreign-key column alone when a usage
 		// config is deleted, so this index prevents a scan of all invoice lines.
 		index.Edges("usage_based_line").
@@ -598,8 +587,6 @@ func (BillingInvoiceLine) Edges() []ent.Edge {
 		edge.To("detailed_lines_v2", BillingStandardInvoiceDetailedLine.Type).
 			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("line_usage_discounts", BillingInvoiceLineUsageDiscount.Type).
-			Annotations(entsql.OnDelete(entsql.Cascade)),
-		edge.To("line_amount_discounts", BillingInvoiceLineDiscount.Type).
 			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.From("subscription", Subscription.Type).
 			Ref("billing_lines").
@@ -723,36 +710,6 @@ func (BillingGatheringInvoiceLine) Edges() []ent.Edge {
 			Ref("billing_gathering_invoice_lines").
 			Field("tax_code_id").
 			Unique(),
-	}
-}
-
-type BillingInvoiceFlatFeeLineConfig struct {
-	ent.Schema
-}
-
-func (BillingInvoiceFlatFeeLineConfig) Mixin() []ent.Mixin {
-	return []ent.Mixin{
-		entutils.NamespaceMixin{},
-		entutils.IDMixin{},
-	}
-}
-
-func (BillingInvoiceFlatFeeLineConfig) Fields() []ent.Field {
-	return []ent.Field{
-		field.Other("per_unit_amount", alpacadecimal.Decimal{}).
-			SchemaType(map[string]string{
-				dialect.Postgres: "numeric",
-			}),
-		field.Enum("category").
-			GoType(stddetailedline.Category("")).
-			Default(string(stddetailedline.CategoryRegular)),
-		field.Enum("payment_term").
-			GoType(productcatalog.PaymentTermType("")).
-			Default(string(productcatalog.InAdvancePaymentTerm)),
-		// Note: this is only used for sorting the lines in the invoice, only valid for detailed lines
-		field.Int("index").
-			Optional().
-			Nillable(),
 	}
 }
 
@@ -955,72 +912,6 @@ func (BillingInvoiceSplitLineGroup) Edges() []ent.Edge {
 			Ref("billing_split_line_groups").
 			Field("charge_id").
 			Unique(),
-	}
-}
-
-// TODO[later]: Rename to BillingInvoiceLineAmountDiscount
-type BillingInvoiceLineDiscount struct {
-	ent.Schema
-}
-
-func (BillingInvoiceLineDiscount) Mixin() []ent.Mixin {
-	return []ent.Mixin{
-		entutils.IDMixin{},
-		entutils.NamespaceMixin{},
-		entutils.TimeMixin{},
-		BillingInvoiceLineDiscountBase{},
-	}
-}
-
-func (BillingInvoiceLineDiscount) Fields() []ent.Field {
-	return []ent.Field{
-		field.Other("amount", alpacadecimal.Decimal{}).
-			SchemaType(map[string]string{
-				dialect.Postgres: "numeric",
-			}),
-
-		field.Other("rounding_amount", alpacadecimal.Decimal{}).
-			SchemaType(map[string]string{
-				dialect.Postgres: "numeric",
-			}).
-			Optional().
-			Nillable(),
-
-		// TODO: Ent has issues with custom value scanners from mixins, so this is a duplicate
-		// TODO[later]: Rename to reason_details (same time as the DB table rename, as this is breaking either ways)
-		field.String("source_discount").
-			GoType(&billing.DiscountReason{}).
-			ValueScanner(BillingDiscountReasonValueScanner).
-			SchemaType(map[string]string{
-				dialect.Postgres: "jsonb",
-			}).
-			Optional().
-			Nillable(),
-	}
-}
-
-func (BillingInvoiceLineDiscount) Indexes() []ent.Index {
-	return []ent.Index{
-		// Invoice-line deletion cascades by line_id alone, so the namespace-prefixed
-		// indexes below cannot prevent a scan of all amount discounts.
-		index.Fields("line_id").
-			StorageKey("billing_invoice_line_discounts_line_id_idx"),
-		index.Fields("namespace", "line_id"),
-		index.Fields("namespace", "line_id", "child_unique_reference_id").
-			Annotations(
-				entsql.IndexWhere("child_unique_reference_id IS NOT NULL AND deleted_at IS NULL"),
-			).
-			Unique(),
-	}
-}
-
-func (BillingInvoiceLineDiscount) Edges() []ent.Edge {
-	return []ent.Edge{
-		edge.From("billing_invoice_line", BillingInvoiceLine.Type).
-			Ref("line_amount_discounts").
-			Field("line_id").
-			Unique().
-			Required(),
 	}
 }
 

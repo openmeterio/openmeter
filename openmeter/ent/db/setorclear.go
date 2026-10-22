@@ -1436,20 +1436,6 @@ func (u *BillingInvoiceUpdateOne) SetOrClearPaymentProcessingEnteredAt(value *ti
 	return u.SetPaymentProcessingEnteredAt(*value)
 }
 
-func (u *BillingInvoiceFlatFeeLineConfigUpdate) SetOrClearIndex(value *int) *BillingInvoiceFlatFeeLineConfigUpdate {
-	if value == nil {
-		return u.ClearIndex()
-	}
-	return u.SetIndex(*value)
-}
-
-func (u *BillingInvoiceFlatFeeLineConfigUpdateOne) SetOrClearIndex(value *int) *BillingInvoiceFlatFeeLineConfigUpdateOne {
-	if value == nil {
-		return u.ClearIndex()
-	}
-	return u.SetIndex(*value)
-}
-
 func (u *BillingInvoiceLineUpdate) SetOrClearAnnotations(value *models.Annotations) *BillingInvoiceLineUpdate {
 	if value == nil {
 		return u.ClearAnnotations()
@@ -1560,20 +1546,6 @@ func (u *BillingInvoiceLineUpdateOne) SetOrClearInvoicingAppExternalID(value *st
 		return u.ClearInvoicingAppExternalID()
 	}
 	return u.SetInvoicingAppExternalID(*value)
-}
-
-func (u *BillingInvoiceLineUpdate) SetOrClearFeeLineConfigID(value *string) *BillingInvoiceLineUpdate {
-	if value == nil {
-		return u.ClearFeeLineConfigID()
-	}
-	return u.SetFeeLineConfigID(*value)
-}
-
-func (u *BillingInvoiceLineUpdateOne) SetOrClearFeeLineConfigID(value *string) *BillingInvoiceLineUpdateOne {
-	if value == nil {
-		return u.ClearFeeLineConfigID()
-	}
-	return u.SetFeeLineConfigID(*value)
 }
 
 func (u *BillingInvoiceLineUpdate) SetOrClearParentLineID(value *string) *BillingInvoiceLineUpdate {
@@ -1756,90 +1728,6 @@ func (u *BillingInvoiceLineUpdateOne) SetOrClearCreditsApplied(value **creditsap
 		return u.ClearCreditsApplied()
 	}
 	return u.SetCreditsApplied(*value)
-}
-
-func (u *BillingInvoiceLineDiscountUpdate) SetOrClearDeletedAt(value *time.Time) *BillingInvoiceLineDiscountUpdate {
-	if value == nil {
-		return u.ClearDeletedAt()
-	}
-	return u.SetDeletedAt(*value)
-}
-
-func (u *BillingInvoiceLineDiscountUpdateOne) SetOrClearDeletedAt(value *time.Time) *BillingInvoiceLineDiscountUpdateOne {
-	if value == nil {
-		return u.ClearDeletedAt()
-	}
-	return u.SetDeletedAt(*value)
-}
-
-func (u *BillingInvoiceLineDiscountUpdate) SetOrClearInvoicingAppExternalID(value *string) *BillingInvoiceLineDiscountUpdate {
-	if value == nil {
-		return u.ClearInvoicingAppExternalID()
-	}
-	return u.SetInvoicingAppExternalID(*value)
-}
-
-func (u *BillingInvoiceLineDiscountUpdateOne) SetOrClearInvoicingAppExternalID(value *string) *BillingInvoiceLineDiscountUpdateOne {
-	if value == nil {
-		return u.ClearInvoicingAppExternalID()
-	}
-	return u.SetInvoicingAppExternalID(*value)
-}
-
-func (u *BillingInvoiceLineDiscountUpdate) SetOrClearChildUniqueReferenceID(value *string) *BillingInvoiceLineDiscountUpdate {
-	if value == nil {
-		return u.ClearChildUniqueReferenceID()
-	}
-	return u.SetChildUniqueReferenceID(*value)
-}
-
-func (u *BillingInvoiceLineDiscountUpdateOne) SetOrClearChildUniqueReferenceID(value *string) *BillingInvoiceLineDiscountUpdateOne {
-	if value == nil {
-		return u.ClearChildUniqueReferenceID()
-	}
-	return u.SetChildUniqueReferenceID(*value)
-}
-
-func (u *BillingInvoiceLineDiscountUpdate) SetOrClearDescription(value *string) *BillingInvoiceLineDiscountUpdate {
-	if value == nil {
-		return u.ClearDescription()
-	}
-	return u.SetDescription(*value)
-}
-
-func (u *BillingInvoiceLineDiscountUpdateOne) SetOrClearDescription(value *string) *BillingInvoiceLineDiscountUpdateOne {
-	if value == nil {
-		return u.ClearDescription()
-	}
-	return u.SetDescription(*value)
-}
-
-func (u *BillingInvoiceLineDiscountUpdate) SetOrClearRoundingAmount(value *alpacadecimal.Decimal) *BillingInvoiceLineDiscountUpdate {
-	if value == nil {
-		return u.ClearRoundingAmount()
-	}
-	return u.SetRoundingAmount(*value)
-}
-
-func (u *BillingInvoiceLineDiscountUpdateOne) SetOrClearRoundingAmount(value *alpacadecimal.Decimal) *BillingInvoiceLineDiscountUpdateOne {
-	if value == nil {
-		return u.ClearRoundingAmount()
-	}
-	return u.SetRoundingAmount(*value)
-}
-
-func (u *BillingInvoiceLineDiscountUpdate) SetOrClearSourceDiscount(value **billing.DiscountReason) *BillingInvoiceLineDiscountUpdate {
-	if value == nil {
-		return u.ClearSourceDiscount()
-	}
-	return u.SetSourceDiscount(*value)
-}
-
-func (u *BillingInvoiceLineDiscountUpdateOne) SetOrClearSourceDiscount(value **billing.DiscountReason) *BillingInvoiceLineDiscountUpdateOne {
-	if value == nil {
-		return u.ClearSourceDiscount()
-	}
-	return u.SetSourceDiscount(*value)
 }
 
 func (u *BillingInvoiceLineUsageDiscountUpdate) SetOrClearDeletedAt(value *time.Time) *BillingInvoiceLineUsageDiscountUpdate {

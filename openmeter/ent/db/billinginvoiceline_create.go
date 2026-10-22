@@ -17,7 +17,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/models/creditsapplied"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicelinediscount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicelineusagediscount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicesplitlinegroup"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
@@ -251,20 +250,6 @@ func (_c *BillingInvoiceLineCreate) SetPeriodEnd(v time.Time) *BillingInvoiceLin
 // SetInvoiceID sets the "invoice_id" field.
 func (_c *BillingInvoiceLineCreate) SetInvoiceID(v string) *BillingInvoiceLineCreate {
 	_c.mutation.SetInvoiceID(v)
-	return _c
-}
-
-// SetFeeLineConfigID sets the "fee_line_config_id" field.
-func (_c *BillingInvoiceLineCreate) SetFeeLineConfigID(v string) *BillingInvoiceLineCreate {
-	_c.mutation.SetFeeLineConfigID(v)
-	return _c
-}
-
-// SetNillableFeeLineConfigID sets the "fee_line_config_id" field if the given value is not nil.
-func (_c *BillingInvoiceLineCreate) SetNillableFeeLineConfigID(v *string) *BillingInvoiceLineCreate {
-	if v != nil {
-		_c.SetFeeLineConfigID(*v)
-	}
 	return _c
 }
 
@@ -569,21 +554,6 @@ func (_c *BillingInvoiceLineCreate) AddLineUsageDiscounts(v ...*BillingInvoiceLi
 		ids[i] = v[i].ID
 	}
 	return _c.AddLineUsageDiscountIDs(ids...)
-}
-
-// AddLineAmountDiscountIDs adds the "line_amount_discounts" edge to the BillingInvoiceLineDiscount entity by IDs.
-func (_c *BillingInvoiceLineCreate) AddLineAmountDiscountIDs(ids ...string) *BillingInvoiceLineCreate {
-	_c.mutation.AddLineAmountDiscountIDs(ids...)
-	return _c
-}
-
-// AddLineAmountDiscounts adds the "line_amount_discounts" edges to the BillingInvoiceLineDiscount entity.
-func (_c *BillingInvoiceLineCreate) AddLineAmountDiscounts(v ...*BillingInvoiceLineDiscount) *BillingInvoiceLineCreate {
-	ids := make([]string, len(v))
-	for i := range v {
-		ids[i] = v[i].ID
-	}
-	return _c.AddLineAmountDiscountIDs(ids...)
 }
 
 // SetSubscription sets the "subscription" edge to the Subscription entity.
@@ -1015,10 +985,6 @@ func (_c *BillingInvoiceLineCreate) createSpec() (*BillingInvoiceLine, *sqlgraph
 		_spec.SetField(billinginvoiceline.FieldPeriodEnd, field.TypeTime, value)
 		_node.PeriodEnd = value
 	}
-	if value, ok := _c.mutation.FeeLineConfigID(); ok {
-		_spec.SetField(billinginvoiceline.FieldFeeLineConfigID, field.TypeString, value)
-		_node.FeeLineConfigID = &value
-	}
 	if value, ok := _c.mutation.ManagedBy(); ok {
 		_spec.SetField(billinginvoiceline.FieldManagedBy, field.TypeEnum, value)
 		_node.ManagedBy = value
@@ -1184,22 +1150,6 @@ func (_c *BillingInvoiceLineCreate) createSpec() (*BillingInvoiceLine, *sqlgraph
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoicelineusagediscount.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges = append(_spec.Edges, edge)
-	}
-	if nodes := _c.mutation.LineAmountDiscountsIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   billinginvoiceline.LineAmountDiscountsTable,
-			Columns: []string{billinginvoiceline.LineAmountDiscountsColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(billinginvoicelinediscount.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -1737,24 +1687,6 @@ func (u *BillingInvoiceLineUpsert) SetInvoiceID(v string) *BillingInvoiceLineUps
 // UpdateInvoiceID sets the "invoice_id" field to the value that was provided on create.
 func (u *BillingInvoiceLineUpsert) UpdateInvoiceID() *BillingInvoiceLineUpsert {
 	u.SetExcluded(billinginvoiceline.FieldInvoiceID)
-	return u
-}
-
-// SetFeeLineConfigID sets the "fee_line_config_id" field.
-func (u *BillingInvoiceLineUpsert) SetFeeLineConfigID(v string) *BillingInvoiceLineUpsert {
-	u.Set(billinginvoiceline.FieldFeeLineConfigID, v)
-	return u
-}
-
-// UpdateFeeLineConfigID sets the "fee_line_config_id" field to the value that was provided on create.
-func (u *BillingInvoiceLineUpsert) UpdateFeeLineConfigID() *BillingInvoiceLineUpsert {
-	u.SetExcluded(billinginvoiceline.FieldFeeLineConfigID)
-	return u
-}
-
-// ClearFeeLineConfigID clears the value of the "fee_line_config_id" field.
-func (u *BillingInvoiceLineUpsert) ClearFeeLineConfigID() *BillingInvoiceLineUpsert {
-	u.SetNull(billinginvoiceline.FieldFeeLineConfigID)
 	return u
 }
 
@@ -2447,27 +2379,6 @@ func (u *BillingInvoiceLineUpsertOne) SetInvoiceID(v string) *BillingInvoiceLine
 func (u *BillingInvoiceLineUpsertOne) UpdateInvoiceID() *BillingInvoiceLineUpsertOne {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
 		s.UpdateInvoiceID()
-	})
-}
-
-// SetFeeLineConfigID sets the "fee_line_config_id" field.
-func (u *BillingInvoiceLineUpsertOne) SetFeeLineConfigID(v string) *BillingInvoiceLineUpsertOne {
-	return u.Update(func(s *BillingInvoiceLineUpsert) {
-		s.SetFeeLineConfigID(v)
-	})
-}
-
-// UpdateFeeLineConfigID sets the "fee_line_config_id" field to the value that was provided on create.
-func (u *BillingInvoiceLineUpsertOne) UpdateFeeLineConfigID() *BillingInvoiceLineUpsertOne {
-	return u.Update(func(s *BillingInvoiceLineUpsert) {
-		s.UpdateFeeLineConfigID()
-	})
-}
-
-// ClearFeeLineConfigID clears the value of the "fee_line_config_id" field.
-func (u *BillingInvoiceLineUpsertOne) ClearFeeLineConfigID() *BillingInvoiceLineUpsertOne {
-	return u.Update(func(s *BillingInvoiceLineUpsert) {
-		s.ClearFeeLineConfigID()
 	})
 }
 
@@ -3377,27 +3288,6 @@ func (u *BillingInvoiceLineUpsertBulk) SetInvoiceID(v string) *BillingInvoiceLin
 func (u *BillingInvoiceLineUpsertBulk) UpdateInvoiceID() *BillingInvoiceLineUpsertBulk {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
 		s.UpdateInvoiceID()
-	})
-}
-
-// SetFeeLineConfigID sets the "fee_line_config_id" field.
-func (u *BillingInvoiceLineUpsertBulk) SetFeeLineConfigID(v string) *BillingInvoiceLineUpsertBulk {
-	return u.Update(func(s *BillingInvoiceLineUpsert) {
-		s.SetFeeLineConfigID(v)
-	})
-}
-
-// UpdateFeeLineConfigID sets the "fee_line_config_id" field to the value that was provided on create.
-func (u *BillingInvoiceLineUpsertBulk) UpdateFeeLineConfigID() *BillingInvoiceLineUpsertBulk {
-	return u.Update(func(s *BillingInvoiceLineUpsert) {
-		s.UpdateFeeLineConfigID()
-	})
-}
-
-// ClearFeeLineConfigID clears the value of the "fee_line_config_id" field.
-func (u *BillingInvoiceLineUpsertBulk) ClearFeeLineConfigID() *BillingInvoiceLineUpsertBulk {
-	return u.Update(func(s *BillingInvoiceLineUpsert) {
-		s.ClearFeeLineConfigID()
 	})
 }
 

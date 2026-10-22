@@ -7,9 +7,6 @@ import (
 
 	"github.com/oklog/ulid/v2"
 	"github.com/stretchr/testify/require"
-
-	"github.com/openmeterio/openmeter/openmeter/testutils"
-	"github.com/openmeterio/openmeter/tools/migrate"
 )
 
 const (
@@ -18,7 +15,7 @@ const (
 )
 
 func TestGatheringInvoiceLineTaxConfigBackfillMigration(t *testing.T) {
-	db, migrator := newGatheringInvoiceLineTaxConfigBackfillTestEnv(t)
+	db, migrator := newMigrationTestEnv(t)
 	require.NoError(t, migrator.Migrate(gatheringInvoiceLineTaxConfigBackfillSeedVersion))
 
 	namespace := "gathering_invoice_line_tax_config_backfill"
@@ -76,7 +73,7 @@ func TestGatheringInvoiceLineTaxConfigBackfillMigration(t *testing.T) {
 }
 
 func TestGatheringInvoiceLineTaxConfigBackfillMigrationFailsOnMismatchedTaxIdentity(t *testing.T) {
-	db, migrator := newGatheringInvoiceLineTaxConfigBackfillTestEnv(t)
+	db, migrator := newMigrationTestEnv(t)
 	require.NoError(t, migrator.Migrate(gatheringInvoiceLineTaxConfigBackfillSeedVersion))
 
 	namespace := "gathering_invoice_line_tax_config_mismatch"
@@ -89,27 +86,6 @@ func TestGatheringInvoiceLineTaxConfigBackfillMigrationFailsOnMismatchedTaxIdent
 	err := migrator.Migrate(gatheringInvoiceLineTaxConfigBackfillVersion)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "does not match the referenced live tax code Stripe app mapping")
-}
-
-func newGatheringInvoiceLineTaxConfigBackfillTestEnv(t *testing.T) (*sql.DB, *migrate.Migrate) {
-	t.Helper()
-
-	testDB := testutils.InitPostgresDB(t, testutils.PostgresDBStateEmpty)
-	t.Cleanup(func() {
-		_ = testDB.PGDriver.Close()
-	})
-
-	migrator, err := migrate.New(migrate.MigrateOptions{
-		ConnectionString: testDB.URL,
-		Migrations:       migrate.OMMigrationsConfig,
-		Logger:           testutils.NewLogger(t),
-	})
-	require.NoError(t, err)
-	t.Cleanup(func() {
-		_, _ = migrator.Close()
-	})
-
-	return testDB.PGDriver.DB(), migrator
 }
 
 func seedGatheringInvoiceLineTaxParents(t *testing.T, db *sql.DB, namespace string) (string, string) {

@@ -67,8 +67,6 @@ const (
 	FieldPeriodEnd = "period_end"
 	// FieldInvoiceID holds the string denoting the invoice_id field in the database.
 	FieldInvoiceID = "invoice_id"
-	// FieldFeeLineConfigID holds the string denoting the fee_line_config_id field in the database.
-	FieldFeeLineConfigID = "fee_line_config_id"
 	// FieldManagedBy holds the string denoting the managed_by field in the database.
 	FieldManagedBy = "managed_by"
 	// FieldParentLineID holds the string denoting the parent_line_id field in the database.
@@ -119,8 +117,6 @@ const (
 	EdgeDetailedLinesV2 = "detailed_lines_v2"
 	// EdgeLineUsageDiscounts holds the string denoting the line_usage_discounts edge name in mutations.
 	EdgeLineUsageDiscounts = "line_usage_discounts"
-	// EdgeLineAmountDiscounts holds the string denoting the line_amount_discounts edge name in mutations.
-	EdgeLineAmountDiscounts = "line_amount_discounts"
 	// EdgeSubscription holds the string denoting the subscription edge name in mutations.
 	EdgeSubscription = "subscription"
 	// EdgeSubscriptionPhase holds the string denoting the subscription_phase edge name in mutations.
@@ -188,13 +184,6 @@ const (
 	LineUsageDiscountsInverseTable = "billing_invoice_line_usage_discounts"
 	// LineUsageDiscountsColumn is the table column denoting the line_usage_discounts relation/edge.
 	LineUsageDiscountsColumn = "line_id"
-	// LineAmountDiscountsTable is the table that holds the line_amount_discounts relation/edge.
-	LineAmountDiscountsTable = "billing_invoice_line_discounts"
-	// LineAmountDiscountsInverseTable is the table name for the BillingInvoiceLineDiscount entity.
-	// It exists in this package in order to avoid circular dependency with the "billinginvoicelinediscount" package.
-	LineAmountDiscountsInverseTable = "billing_invoice_line_discounts"
-	// LineAmountDiscountsColumn is the table column denoting the line_amount_discounts relation/edge.
-	LineAmountDiscountsColumn = "line_id"
 	// SubscriptionTable is the table that holds the subscription relation/edge.
 	SubscriptionTable = "billing_invoice_lines"
 	// SubscriptionInverseTable is the table name for the Subscription entity.
@@ -336,11 +325,6 @@ func ValidColumn(column string) bool {
 	}
 	for i := range ForeignKeys {
 		if column == ForeignKeys[i] {
-			return true
-		}
-	}
-	for _, f := range [...]string{FieldFeeLineConfigID} {
-		if column == f {
 			return true
 		}
 	}
@@ -532,11 +516,6 @@ func ByInvoiceID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldInvoiceID, opts...).ToFunc()
 }
 
-// ByFeeLineConfigID orders the results by the fee_line_config_id field.
-func ByFeeLineConfigID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldFeeLineConfigID, opts...).ToFunc()
-}
-
 // ByManagedBy orders the results by the managed_by field.
 func ByManagedBy(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldManagedBy, opts...).ToFunc()
@@ -697,20 +676,6 @@ func ByLineUsageDiscounts(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOptio
 	}
 }
 
-// ByLineAmountDiscountsCount orders the results by line_amount_discounts count.
-func ByLineAmountDiscountsCount(opts ...sql.OrderTermOption) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborsCount(s, newLineAmountDiscountsStep(), opts...)
-	}
-}
-
-// ByLineAmountDiscounts orders the results by line_amount_discounts terms.
-func ByLineAmountDiscounts(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newLineAmountDiscountsStep(), append([]sql.OrderTerm{term}, terms...)...)
-	}
-}
-
 // BySubscriptionField orders the results by subscription field.
 func BySubscriptionField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -848,13 +813,6 @@ func newLineUsageDiscountsStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(LineUsageDiscountsInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, LineUsageDiscountsTable, LineUsageDiscountsColumn),
-	)
-}
-func newLineAmountDiscountsStep() *sqlgraph.Step {
-	return sqlgraph.NewStep(
-		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(LineAmountDiscountsInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2M, false, LineAmountDiscountsTable, LineAmountDiscountsColumn),
 	)
 }
 func newSubscriptionStep() *sqlgraph.Step {

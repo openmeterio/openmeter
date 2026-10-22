@@ -18,7 +18,7 @@ const (
 )
 
 func TestStandardInvoiceLineTaxConfigBackfillMigration(t *testing.T) {
-	db, migrator := newGatheringInvoiceLineTaxConfigBackfillTestEnv(t)
+	db, migrator := newMigrationTestEnv(t)
 	require.NoError(t, migrator.Migrate(standardInvoiceLineTaxConfigBackfillSeedVersion))
 
 	namespace := "standard_invoice_line_tax_config_backfill"
@@ -153,7 +153,7 @@ func TestStandardInvoiceLineTaxConfigBackfillMigrationRejectsInvalidTaxBehavior(
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			db, migrator := newGatheringInvoiceLineTaxConfigBackfillTestEnv(t)
+			db, migrator := newMigrationTestEnv(t)
 			require.NoError(t, migrator.Migrate(standardInvoiceLineTaxConfigBackfillSeedVersion))
 
 			namespace := "standard_invoice_line_invalid_tax_behavior"
@@ -168,7 +168,7 @@ func TestStandardInvoiceLineTaxConfigBackfillMigrationRejectsInvalidTaxBehavior(
 }
 
 func TestStandardInvoiceLineTaxConfigBackfillMigrationPreservesHistoricalStripeCode(t *testing.T) {
-	db, migrator := newGatheringInvoiceLineTaxConfigBackfillTestEnv(t)
+	db, migrator := newMigrationTestEnv(t)
 	require.NoError(t, migrator.Migrate(standardInvoiceLineTaxConfigBackfillSeedVersion))
 
 	namespace := "standard_invoice_line_tax_config_mismatch"
@@ -192,7 +192,7 @@ func TestStandardInvoiceLineTaxConfigBackfillMigrationPreservesHistoricalStripeC
 }
 
 func TestStandardInvoiceLineTaxConfigBackupPersistsWhenBackfillFails(t *testing.T) {
-	db, migrator := newGatheringInvoiceLineTaxConfigBackfillTestEnv(t)
+	db, migrator := newMigrationTestEnv(t)
 	require.NoError(t, migrator.Migrate(standardInvoiceLineTaxConfigBackfillSeedVersion))
 
 	namespace := "standard_invoice_line_tax_config_invalid_reference"
@@ -210,7 +210,7 @@ func TestStandardInvoiceLineTaxConfigBackupPersistsWhenBackfillFails(t *testing.
 }
 
 func TestStandardInvoiceLineTaxConfigBackfillMigrationAllowsDeletedTaxCodeReference(t *testing.T) {
-	db, migrator := newGatheringInvoiceLineTaxConfigBackfillTestEnv(t)
+	db, migrator := newMigrationTestEnv(t)
 	require.NoError(t, migrator.Migrate(standardInvoiceLineTaxConfigBackfillSeedVersion))
 
 	namespace := "standard_invoice_line_deleted_tax_code"
@@ -239,7 +239,7 @@ func TestStandardInvoiceLineTaxConfigBackfillMigrationAllowsDeletedTaxCodeRefere
 }
 
 func TestInvoiceLineTaxConsistencyMigrationRevalidatesGatheringRows(t *testing.T) {
-	db, migrator := newGatheringInvoiceLineTaxConfigBackfillTestEnv(t)
+	db, migrator := newMigrationTestEnv(t)
 	require.NoError(t, migrator.Migrate(standardInvoiceLineTaxConfigBackfillSeedVersion))
 
 	namespace := "invoice_line_tax_consistency_gathering_recheck"

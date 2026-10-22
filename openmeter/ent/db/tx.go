@@ -40,12 +40,8 @@ type Tx struct {
 	BillingGatheringInvoiceLine *BillingGatheringInvoiceLineClient
 	// BillingInvoice is the client for interacting with the BillingInvoice builders.
 	BillingInvoice *BillingInvoiceClient
-	// BillingInvoiceFlatFeeLineConfig is the client for interacting with the BillingInvoiceFlatFeeLineConfig builders.
-	BillingInvoiceFlatFeeLineConfig *BillingInvoiceFlatFeeLineConfigClient
 	// BillingInvoiceLine is the client for interacting with the BillingInvoiceLine builders.
 	BillingInvoiceLine *BillingInvoiceLineClient
-	// BillingInvoiceLineDiscount is the client for interacting with the BillingInvoiceLineDiscount builders.
-	BillingInvoiceLineDiscount *BillingInvoiceLineDiscountClient
 	// BillingInvoiceLineUsageDiscount is the client for interacting with the BillingInvoiceLineUsageDiscount builders.
 	BillingInvoiceLineUsageDiscount *BillingInvoiceLineUsageDiscountClient
 	// BillingInvoiceSplitLineGroup is the client for interacting with the BillingInvoiceSplitLineGroup builders.
@@ -340,9 +336,7 @@ func (tx *Tx) init() {
 	tx.BillingCustomerOverride = NewBillingCustomerOverrideClient(tx.config)
 	tx.BillingGatheringInvoiceLine = NewBillingGatheringInvoiceLineClient(tx.config)
 	tx.BillingInvoice = NewBillingInvoiceClient(tx.config)
-	tx.BillingInvoiceFlatFeeLineConfig = NewBillingInvoiceFlatFeeLineConfigClient(tx.config)
 	tx.BillingInvoiceLine = NewBillingInvoiceLineClient(tx.config)
-	tx.BillingInvoiceLineDiscount = NewBillingInvoiceLineDiscountClient(tx.config)
 	tx.BillingInvoiceLineUsageDiscount = NewBillingInvoiceLineUsageDiscountClient(tx.config)
 	tx.BillingInvoiceSplitLineGroup = NewBillingInvoiceSplitLineGroupClient(tx.config)
 	tx.BillingInvoiceUsageBasedLineConfig = NewBillingInvoiceUsageBasedLineConfigClient(tx.config)

@@ -170,11 +170,6 @@ func InvoiceID(v string) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldInvoiceID, v))
 }
 
-// FeeLineConfigID applies equality check predicate on the "fee_line_config_id" field. It's identical to FeeLineConfigIDEQ.
-func FeeLineConfigID(v string) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldFeeLineConfigID, v))
-}
-
 // ParentLineID applies equality check predicate on the "parent_line_id" field. It's identical to ParentLineIDEQ.
 func ParentLineID(v string) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldParentLineID, v))
@@ -1339,81 +1334,6 @@ func InvoiceIDContainsFold(v string) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldContainsFold(FieldInvoiceID, v))
 }
 
-// FeeLineConfigIDEQ applies the EQ predicate on the "fee_line_config_id" field.
-func FeeLineConfigIDEQ(v string) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldFeeLineConfigID, v))
-}
-
-// FeeLineConfigIDNEQ applies the NEQ predicate on the "fee_line_config_id" field.
-func FeeLineConfigIDNEQ(v string) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldNEQ(FieldFeeLineConfigID, v))
-}
-
-// FeeLineConfigIDIn applies the In predicate on the "fee_line_config_id" field.
-func FeeLineConfigIDIn(vs ...string) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldIn(FieldFeeLineConfigID, vs...))
-}
-
-// FeeLineConfigIDNotIn applies the NotIn predicate on the "fee_line_config_id" field.
-func FeeLineConfigIDNotIn(vs ...string) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldNotIn(FieldFeeLineConfigID, vs...))
-}
-
-// FeeLineConfigIDGT applies the GT predicate on the "fee_line_config_id" field.
-func FeeLineConfigIDGT(v string) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldGT(FieldFeeLineConfigID, v))
-}
-
-// FeeLineConfigIDGTE applies the GTE predicate on the "fee_line_config_id" field.
-func FeeLineConfigIDGTE(v string) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldGTE(FieldFeeLineConfigID, v))
-}
-
-// FeeLineConfigIDLT applies the LT predicate on the "fee_line_config_id" field.
-func FeeLineConfigIDLT(v string) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldLT(FieldFeeLineConfigID, v))
-}
-
-// FeeLineConfigIDLTE applies the LTE predicate on the "fee_line_config_id" field.
-func FeeLineConfigIDLTE(v string) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldLTE(FieldFeeLineConfigID, v))
-}
-
-// FeeLineConfigIDContains applies the Contains predicate on the "fee_line_config_id" field.
-func FeeLineConfigIDContains(v string) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldContains(FieldFeeLineConfigID, v))
-}
-
-// FeeLineConfigIDHasPrefix applies the HasPrefix predicate on the "fee_line_config_id" field.
-func FeeLineConfigIDHasPrefix(v string) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldHasPrefix(FieldFeeLineConfigID, v))
-}
-
-// FeeLineConfigIDHasSuffix applies the HasSuffix predicate on the "fee_line_config_id" field.
-func FeeLineConfigIDHasSuffix(v string) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldHasSuffix(FieldFeeLineConfigID, v))
-}
-
-// FeeLineConfigIDIsNil applies the IsNil predicate on the "fee_line_config_id" field.
-func FeeLineConfigIDIsNil() predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldIsNull(FieldFeeLineConfigID))
-}
-
-// FeeLineConfigIDNotNil applies the NotNil predicate on the "fee_line_config_id" field.
-func FeeLineConfigIDNotNil() predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldNotNull(FieldFeeLineConfigID))
-}
-
-// FeeLineConfigIDEqualFold applies the EqualFold predicate on the "fee_line_config_id" field.
-func FeeLineConfigIDEqualFold(v string) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldEqualFold(FieldFeeLineConfigID, v))
-}
-
-// FeeLineConfigIDContainsFold applies the ContainsFold predicate on the "fee_line_config_id" field.
-func FeeLineConfigIDContainsFold(v string) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(sql.FieldContainsFold(FieldFeeLineConfigID, v))
-}
-
 // ManagedByEQ applies the EQ predicate on the "managed_by" field.
 func ManagedByEQ(v billing.InvoiceLineManagedBy) predicate.BillingInvoiceLine {
 	vc := v
@@ -2472,29 +2392,6 @@ func HasLineUsageDiscounts() predicate.BillingInvoiceLine {
 func HasLineUsageDiscountsWith(preds ...predicate.BillingInvoiceLineUsageDiscount) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(func(s *sql.Selector) {
 		step := newLineUsageDiscountsStep()
-		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
-			for _, p := range preds {
-				p(s)
-			}
-		})
-	})
-}
-
-// HasLineAmountDiscounts applies the HasEdge predicate on the "line_amount_discounts" edge.
-func HasLineAmountDiscounts() predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(func(s *sql.Selector) {
-		step := sqlgraph.NewStep(
-			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, LineAmountDiscountsTable, LineAmountDiscountsColumn),
-		)
-		sqlgraph.HasNeighbors(s, step)
-	})
-}
-
-// HasLineAmountDiscountsWith applies the HasEdge predicate on the "line_amount_discounts" edge with a given conditions (other predicates).
-func HasLineAmountDiscountsWith(preds ...predicate.BillingInvoiceLineDiscount) predicate.BillingInvoiceLine {
-	return predicate.BillingInvoiceLine(func(s *sql.Selector) {
-		step := newLineAmountDiscountsStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)
