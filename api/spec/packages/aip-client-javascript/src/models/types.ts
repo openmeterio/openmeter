@@ -3235,14 +3235,27 @@ export interface CreditBalance {
   /** Managed currency reference. Present only for custom currencies. */
   customCurrency?: CurrencyCustomReference
   /**
-   * Credits available after applying currently live charge impacts.
+   * Spendable balance after applying currently live, unbooked charge impacts. Can be
+   * negative when usage exceeds available credit.
    *
    * Always zero for historical balance queries using the `timestamp` parameter
    * because live charge impacts cannot be reconstructed historically.
    */
   live: string
-  /** Credits that have been booked on the ledger as of the balance timestamp. */
+  /**
+   * Credits that have been booked on the ledger as of the balance timestamp,
+   * including credit-only advance debt. Can be negative.
+   */
+  booked: string
+  /** Deprecated alias for `booked`. Always returns the same value. */
   settled: string
+  /**
+   * Spendable credit at the balance timestamp, including any credit-only advance
+   * debt. Preserves credit already committed to later usage. Future grants cannot be
+   * spent early; scheduled expiry reduces availability when it takes effect. Can be
+   * negative when advance debt exceeds spendable credit.
+   */
+  spendable: string
   /**
    * Credits that have been granted but are not yet written to the ledger, or are
    * written to the ledger with a future booked time.
@@ -3286,7 +3299,10 @@ export interface CreditTransaction {
    * values reduce balance.
    */
   amount: string
-  /** The available balance before and after the transaction. */
+  /**
+   * The booked credit balance before and after the transaction, including
+   * credit-only advance debt.
+   */
   availableBalance: { before: string; after: string }
 }
 

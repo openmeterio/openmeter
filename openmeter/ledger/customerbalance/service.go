@@ -21,6 +21,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	"github.com/openmeterio/openmeter/openmeter/ledger/creditvoid"
+	"github.com/openmeterio/openmeter/openmeter/ledger/fbo"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/cmpx"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -31,13 +32,14 @@ import (
 
 type Service interface {
 	GetBalance(ctx context.Context, input GetBalanceServiceInput) (Balance, error)
-	GetSettledBalance(ctx context.Context, input GetBalanceServiceInput) (alpacadecimal.Decimal, error)
+	GetBookedBalance(ctx context.Context, input GetBalanceServiceInput) (alpacadecimal.Decimal, error)
 	ListCreditTransactions(ctx context.Context, input ListCreditTransactionsInput) (ListCreditTransactionsResult, error)
 	GetBalanceCurrencies(ctx context.Context, input GetBalanceCurrenciesInput) ([]currencies.CurrencyReference, error)
 }
 
 type Balance interface {
-	Settled() alpacadecimal.Decimal
+	Booked() alpacadecimal.Decimal
+	Spendable() alpacadecimal.Decimal
 	Live() alpacadecimal.Decimal
 	Pending() alpacadecimal.Decimal
 }
@@ -51,8 +53,8 @@ type chargesService interface {
 	ListCharges(ctx context.Context, input charges.ListChargesInput) (pagination.Result[charges.Charge], error)
 }
 
-type subAccountLister interface {
-	ListSubAccounts(ctx context.Context, input ledger.ListSubAccountsInput) ([]ledger.SubAccount, error)
+type spendableBalanceQuerier interface {
+	GetSpendableBalanceBuckets(ctx context.Context, query fbo.SpendableBalanceBucketQuery) ([]ledger.BalanceBucket, error)
 }
 
 type usageBasedTotalsService interface {
@@ -74,7 +76,7 @@ const chargeListPageSize = 100
 // - this should be used for balance queries until the RTE is implemented
 type service struct {
 	AccountResolver   ledger.AccountResolver
-	SubAccountService subAccountLister
+	FBO               spendableBalanceQuerier
 	ChargesService    chargesService
 	UsageBasedService usageBasedTotalsService
 	Currencies        currencyLister
@@ -90,7 +92,7 @@ var _ Service = (*service)(nil)
 
 type Config struct {
 	AccountResolver   ledger.AccountResolver
-	SubAccountService subAccountLister
+	FBO               spendableBalanceQuerier
 	ChargesService    chargesService
 	UsageBasedService usageBasedTotalsService
 	Currencies        currencyLister
@@ -232,8 +234,8 @@ func (c Config) Validate() error {
 		errs = append(errs, errors.New("account resolver is required"))
 	}
 
-	if c.SubAccountService == nil {
-		errs = append(errs, errors.New("sub account service is required"))
+	if c.FBO == nil {
+		errs = append(errs, errors.New("FBO balance querier is required"))
 	}
 
 	if c.ChargesService == nil {
@@ -276,7 +278,7 @@ func New(config Config) (*service, error) {
 
 	return &service{
 		AccountResolver:   config.AccountResolver,
-		SubAccountService: config.SubAccountService,
+		FBO:               config.FBO,
 		ChargesService:    config.ChargesService,
 		UsageBasedService: config.UsageBasedService,
 		Currencies:        config.Currencies,
@@ -293,7 +295,11 @@ func (s *service) GetBalance(ctx context.Context, input GetBalanceServiceInput) 
 		return nil, err
 	}
 
-	settled, err := s.getSettledBalance(ctx, input)
+	if input.BalanceQuery.After != nil {
+		return nil, models.NewGenericValidationError(errors.New("transaction cursors are only supported for booked balance queries"))
+	}
+
+	result, sources, err := s.getBalanceSources(ctx, input)
 	if err != nil {
 		return nil, err
 	}
@@ -308,10 +314,8 @@ func (s *service) GetBalance(ctx context.Context, input GetBalanceServiceInput) 
 			return nil, fmt.Errorf("get charge live balance impacts: %w", err)
 		}
 
-		live, err = s.calculateLiveBalance(ctx, input, settled, impacts)
-		if err != nil {
-			return nil, fmt.Errorf("calculate live balance: %w", err)
-		}
+		// Apply unbooked usage against credit that collection could still consume.
+		live = s.balanceCalculator.CalculateLiveBalanceFromSources(result.spendable, sources, impacts)
 	}
 
 	pending, err := s.getPendingGrantAmount(ctx, input.CustomerID, input.Currency, normalizeFeatureFilter(input.FeatureFilter), input.pendingGrantAsOf())
@@ -319,11 +323,10 @@ func (s *service) GetBalance(ctx context.Context, input GetBalanceServiceInput) 
 		return nil, fmt.Errorf("get pending grant amount: %w", err)
 	}
 
-	return balance{
-		settled: settled,
-		live:    live,
-		pending: pending,
-	}, nil
+	result.live = live
+	result.pending = pending
+
+	return result, nil
 }
 
 type liveBalanceSource struct {
@@ -333,63 +336,6 @@ type liveBalanceSource struct {
 }
 
 var _ cmpx.Comparable[liveBalanceSource] = liveBalanceSource{}
-
-func (s *service) calculateLiveBalance(ctx context.Context, input GetBalanceServiceInput, settled alpacadecimal.Decimal, impacts []Impact) (alpacadecimal.Decimal, error) {
-	// Live charge impacts must be applied against the same credit sources the
-	// collector could actually consume. An aggregate settled balance would let a
-	// charge for one feature reduce credit restricted to another feature, even
-	// though the eventual ledger collection would leave that credit untouched.
-	sources, err := s.getLiveBalanceSources(ctx, input)
-	if err != nil {
-		return alpacadecimal.Zero, err
-	}
-
-	return s.balanceCalculator.CalculateLiveBalanceFromSources(settled, sources, impacts), nil
-}
-
-func (s *service) getLiveBalanceSources(ctx context.Context, input GetBalanceServiceInput) ([]liveBalanceSource, error) {
-	customerAccounts, err := s.AccountResolver.GetCustomerAccounts(ctx, input.CustomerID)
-	if err != nil {
-		return nil, fmt.Errorf("get customer accounts: %w", err)
-	}
-
-	subAccounts, err := s.SubAccountService.ListSubAccounts(ctx, ledger.ListSubAccountsInput{
-		Namespace: customerAccounts.FBOAccount.ID().Namespace,
-		AccountID: customerAccounts.FBOAccount.ID().ID,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("list sub accounts: %w", err)
-	}
-
-	routeFilter := input.bookedRoute()
-	query := input.balanceQuery()
-	sources := make([]liveBalanceSource, 0, len(subAccounts))
-	for _, subAccount := range subAccounts {
-		route := subAccount.Route()
-		if !route.Matches(routeFilter) {
-			continue
-		}
-
-		sourceBalance, err := s.BalanceQuerier.GetSubAccountBalance(ctx, subAccount, query)
-		if err != nil {
-			return nil, fmt.Errorf("get sub account balance: %w", err)
-		}
-
-		if !sourceBalance.IsPositive() {
-			continue
-		}
-
-		sources = append(sources, liveBalanceSource{
-			route:  route,
-			amount: sourceBalance,
-			cursor: subAccount.Address().SubAccountID(),
-		})
-	}
-
-	slices.SortStableFunc(sources, cmpx.Compare[liveBalanceSource])
-
-	return sources, nil
-}
 
 // Compare keeps the source walk aligned with collection order. This matters for
 // live balance because source amounts are consumed in-memory as impacts are
@@ -413,15 +359,15 @@ func (s liveBalanceSource) Compare(other liveBalanceSource) int {
 	return cmp.Compare(s.cursor, other.cursor)
 }
 
-func (s *service) GetSettledBalance(ctx context.Context, input GetBalanceServiceInput) (alpacadecimal.Decimal, error) {
+func (s *service) GetBookedBalance(ctx context.Context, input GetBalanceServiceInput) (alpacadecimal.Decimal, error) {
 	if err := input.Validate(); err != nil {
 		return alpacadecimal.Zero, err
 	}
 
-	return s.getSettledBalance(ctx, input)
+	return s.getBookedBalance(ctx, input)
 }
 
-func (s *service) getSettledBalance(ctx context.Context, input GetBalanceServiceInput) (alpacadecimal.Decimal, error) {
+func (s *service) getBookedBalance(ctx context.Context, input GetBalanceServiceInput) (alpacadecimal.Decimal, error) {
 	query := input.balanceQuery()
 
 	customerAccounts, err := s.AccountResolver.GetCustomerAccounts(ctx, input.CustomerID)
@@ -440,6 +386,57 @@ func (s *service) getSettledBalance(ctx context.Context, input GetBalanceService
 	}
 
 	return bookedBalance.Add(advanceBalance), nil
+}
+
+// Read spendable credit once, then use the same amounts for the live projection.
+// Advance debt is still a journal balance and can make the total negative.
+func (s *service) getBalanceSources(ctx context.Context, input GetBalanceServiceInput) (balance, []liveBalanceSource, error) {
+	query := input.balanceQuery()
+
+	customerAccounts, err := s.AccountResolver.GetCustomerAccounts(ctx, input.CustomerID)
+	if err != nil {
+		return balance{}, nil, fmt.Errorf("get customer accounts: %w", err)
+	}
+
+	buckets, err := s.FBO.GetSpendableBalanceBuckets(ctx, fbo.SpendableBalanceBucketQuery{
+		Namespace: input.CustomerID.Namespace,
+		Filters: ledger.Filters{
+			AccountID: lo.ToPtr(customerAccounts.FBOAccount.ID().ID),
+			Route:     input.bookedRoute(),
+			AsOf:      query.AsOf,
+		},
+	})
+	if err != nil {
+		return balance{}, nil, fmt.Errorf("get spendable balance: %w", err)
+	}
+
+	credit := alpacadecimal.Zero
+	sources := make([]liveBalanceSource, 0, len(buckets))
+	for _, bucket := range buckets {
+		credit = credit.Add(bucket.SettledAmount)
+		sources = append(sources, liveBalanceSource{
+			route:  bucket.Address.Route().Route(),
+			amount: bucket.SettledAmount,
+			cursor: bucket.Address.SubAccountID(),
+		})
+	}
+
+	slices.SortStableFunc(sources, cmpx.Compare[liveBalanceSource])
+
+	advanceBalance, err := s.BalanceQuerier.GetAccountBalance(ctx, customerAccounts.ReceivableAccount, input.advanceRoute(), query)
+	if err != nil {
+		return balance{}, nil, fmt.Errorf("get advance balance: %w", err)
+	}
+
+	bookedBalance, err := s.BalanceQuerier.GetAccountBalance(ctx, customerAccounts.FBOAccount, input.bookedRoute(), query)
+	if err != nil {
+		return balance{}, nil, fmt.Errorf("get booked balance: %w", err)
+	}
+
+	return balance{
+		booked:    bookedBalance.Add(advanceBalance),
+		spendable: credit.Add(advanceBalance),
+	}, sources, nil
 }
 
 func (s *service) GetBalanceCurrencies(ctx context.Context, input GetBalanceCurrenciesInput) ([]currencies.CurrencyReference, error) {
@@ -1002,13 +999,20 @@ func newImpactOrNil(charge charges.Charge, amount alpacadecimal.Decimal) (*Impac
 }
 
 type balance struct {
-	settled alpacadecimal.Decimal
-	live    alpacadecimal.Decimal
-	pending alpacadecimal.Decimal
+	booked    alpacadecimal.Decimal
+	spendable alpacadecimal.Decimal
+	live      alpacadecimal.Decimal
+	pending   alpacadecimal.Decimal
 }
 
-func (b balance) Settled() alpacadecimal.Decimal {
-	return b.settled
+var _ Balance = balance{}
+
+func (b balance) Booked() alpacadecimal.Decimal {
+	return b.booked
+}
+
+func (b balance) Spendable() alpacadecimal.Decimal {
+	return b.spendable
 }
 
 func (b balance) Live() alpacadecimal.Decimal {

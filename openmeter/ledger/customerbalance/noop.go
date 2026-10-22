@@ -10,7 +10,13 @@ import (
 
 type noopBalance struct{}
 
-func (noopBalance) Settled() alpacadecimal.Decimal {
+var _ Balance = noopBalance{}
+
+func (noopBalance) Booked() alpacadecimal.Decimal {
+	return alpacadecimal.Zero
+}
+
+func (noopBalance) Spendable() alpacadecimal.Decimal {
 	return alpacadecimal.Zero
 }
 
@@ -30,7 +36,7 @@ func (NoopService) GetBalance(context.Context, GetBalanceServiceInput) (Balance,
 	return noopBalance{}, nil
 }
 
-func (NoopService) GetSettledBalance(context.Context, GetBalanceServiceInput) (alpacadecimal.Decimal, error) {
+func (NoopService) GetBookedBalance(context.Context, GetBalanceServiceInput) (alpacadecimal.Decimal, error) {
 	return alpacadecimal.Zero, nil
 }
 

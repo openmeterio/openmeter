@@ -385,7 +385,7 @@ type fundedCreditTransactionBalanceImpact struct {
 }
 
 // fundedCreditTransactionBalanceImpacts follows the same two ledger components
-// as settled balance and groups them by the time they affect that balance.
+// as booked balance and groups them by the time they affect that balance.
 // Looking at the actual scoped entries keeps legacy credit purchase groups
 // readable without relying on transaction template annotations.
 func fundedCreditTransactionBalanceImpacts(group ledger.TransactionGroup, input GetBalanceServiceInput) ([]fundedCreditTransactionBalanceImpact, error) {

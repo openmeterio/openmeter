@@ -267,7 +267,9 @@ export type ListCreditGrantsResponse = CreditGrantPagePaginatedResponse
 
 export interface GetCustomerCreditBalanceQuery {
   /**
-   * Return the credit balance as of this timestamp.
+   * Return credit balances at this timestamp using all currently recorded postings,
+   * including corrections recorded later. This is not a snapshot of what was known
+   * at the requested time.
    *
    * Defaults to the current time. Historical responses return `live` as zero because
    * live charge impacts are only available for current balances.
