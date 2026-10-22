@@ -54,6 +54,9 @@ importers:
       '@openmeter/typespec-go':
         specifier: workspace:*
         version: link:../typespec-go
+      '@openmeter/typespec-notification-events':
+        specifier: workspace:*
+        version: link:../typespec-notification-events
       '@openmeter/typespec-typescript':
         specifier: workspace:*
         version: link:../typespec-typescript
@@ -179,6 +182,22 @@ importers:
       vitest:
         specifier: 4.1.12
         version: 4.1.12(@types/node@26.1.1)(@vitest/coverage-v8@4.1.12)(vite@8.1.6(@types/node@26.1.1)(esbuild@0.28.1)(tsx@4.23.1)(yaml@2.9.0))
+
+  packages/typespec-notification-events:
+    dependencies:
+      '@typespec/compiler':
+        specifier: 1.14.0
+        version: 1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1)
+      '@typespec/json-schema':
+        specifier: 1.14.0
+        version: 1.14.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))
+      '@typespec/openapi':
+        specifier: 1.14.0
+        version: 1.14.0(patch_hash=a717b240dcdc3d23f8b752d783844b65ef750bad173549d92db12a5a0131183c)(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))(@typespec/http@1.14.0(patch_hash=2c55262cf42b2d54e5db3b8fe28abb4ab702cf9dbf34b5650c367270ec6ee5ef)(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))(@typespec/streams@0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))))
+    devDependencies:
+      vitest:
+        specifier: 4.1.10
+        version: 4.1.10(@types/node@26.1.1)(@vitest/coverage-v8@4.1.10)(vite@8.0.16(@types/node@26.1.1)(esbuild@0.28.1)(tsx@4.23.1)(yaml@2.9.0))
 
   packages/typespec-typescript:
     dependencies:

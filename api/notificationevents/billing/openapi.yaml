@@ -1,0 +1,63 @@
+openapi: 3.0.0
+info:
+  title: Billing.NotificationEvents
+  description: Notification Event contracts owned by the billing domain.
+  version: 0.0.0
+tags: []
+paths: {}
+components:
+  schemas:
+    BillingInvoiceCreatedV1Payload:
+      type: object
+      required:
+        - invoice_id
+        - customer_id
+        - status
+        - currency
+        - total
+      properties:
+        invoice_id:
+          allOf:
+            - $ref: "#/components/schemas/ULID"
+          description: Invoice that was created.
+        customer_id:
+          allOf:
+            - $ref: "#/components/schemas/ULID"
+          description: Customer the invoice belongs to.
+        status:
+          type: string
+          description: Invoice status at creation time.
+        currency:
+          allOf:
+            - $ref: "#/components/schemas/CurrencyCode"
+          description: Invoice currency.
+        total:
+          allOf:
+            - $ref: "#/components/schemas/Numeric"
+          description: Invoice total at creation time.
+      additionalProperties: false
+      description: |-
+        Payload of `v1.billing.invoice.created`.
+
+        The payload identifies the invoice and carries its state at creation time;
+        consumers fetch the full invoice through the API when they need it.
+    CurrencyCode:
+      type: string
+      minLength: 3
+      maxLength: 3
+      pattern: ^[A-Z]{3}$
+      description: |-
+        Three-letter [ISO4217](https://www.iso.org/iso-4217-currency-codes.html)
+        currency code. Custom three-letter currency codes are also supported for
+        convenience.
+      example: USD
+    Numeric:
+      type: string
+      pattern: ^\-?[0-9]+(\.[0-9]+)?$
+      description: Numeric represents an arbitrary precision number.
+    ULID:
+      type: string
+      pattern: ^[0-7][0-9A-HJKMNP-TV-Z]{25}$
+      description: ULID (Universally Unique Lexicographically Sortable Identifier).
+      title: ULID
+      example: 01G65Z755AFWAKHE12NY0CQ9FH

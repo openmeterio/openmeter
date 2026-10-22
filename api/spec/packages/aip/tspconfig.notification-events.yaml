@@ -1,0 +1,27 @@
+# Notification Event contracts: JSON Schemas of Event payloads and Rule
+# configurations, the generated Go Event type files and the manifest consumed by
+# scripts/generate-notification-events.mjs.
+emit:
+  - '@typespec/json-schema'
+  - '@openmeter/typespec-notification-events'
+parameters:
+  base-dir:
+    default: '{cwd}'
+output-dir: '{base-dir}'
+options:
+  '@typespec/json-schema':
+    emitter-output-dir: '{output-dir}/output/notification-events/jsonschema'
+    file-type: json
+    seal-object-schemas: true
+  '@openmeter/typespec-notification-events':
+    # The leading underscore keeps Go tooling from treating the emitted .go
+    # files as packages of the root module.
+    emitter-output-dir: '{output-dir}/output/notification-events/_go'
+    module-path: 'github.com/openmeterio/openmeter'
+    eventtype-import-path: 'github.com/openmeterio/openmeter/openmeter/notification/v4'
+    # Repository-relative paths referenced by the generated go:generate directives.
+    oapi-codegen-config: 'api/spec/packages/aip/oapi-codegen.notification-events.yaml'
+    spec-dir: 'api/notificationevents'
+linter:
+  extends:
+    - '@openmeter/api-spec-aip/all'

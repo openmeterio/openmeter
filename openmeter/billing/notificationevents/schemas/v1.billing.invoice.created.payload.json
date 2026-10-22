@@ -1,0 +1,64 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "v1.billing.invoice.created.payload",
+    "type": "object",
+    "properties": {
+        "invoice_id": {
+            "$ref": "#/$defs/ULID",
+            "description": "Invoice that was created."
+        },
+        "customer_id": {
+            "$ref": "#/$defs/ULID",
+            "description": "Customer the invoice belongs to."
+        },
+        "status": {
+            "type": "string",
+            "description": "Invoice status at creation time."
+        },
+        "currency": {
+            "$ref": "#/$defs/CurrencyCode",
+            "description": "Invoice currency."
+        },
+        "total": {
+            "$ref": "#/$defs/Numeric",
+            "description": "Invoice total at creation time."
+        }
+    },
+    "required": [
+        "invoice_id",
+        "customer_id",
+        "status",
+        "currency",
+        "total"
+    ],
+    "unevaluatedProperties": {
+        "not": {}
+    },
+    "description": "Payload of `v1.billing.invoice.created`.\n\nThe payload identifies the invoice and carries its state at creation time;\nconsumers fetch the full invoice through the API when they need it.",
+    "$defs": {
+        "ULID": {
+            "type": "string",
+            "examples": [
+                "01G65Z755AFWAKHE12NY0CQ9FH"
+            ],
+            "pattern": "^[0-7][0-9A-HJKMNP-TV-Z]{25}$",
+            "description": "ULID (Universally Unique Lexicographically Sortable Identifier).",
+            "title": "ULID"
+        },
+        "CurrencyCode": {
+            "type": "string",
+            "examples": [
+                "USD"
+            ],
+            "minLength": 3,
+            "maxLength": 3,
+            "pattern": "^[A-Z]{3}$",
+            "description": "Three-letter [ISO4217](https://www.iso.org/iso-4217-currency-codes.html)\ncurrency code. Custom three-letter currency codes are also supported for\nconvenience."
+        },
+        "Numeric": {
+            "type": "string",
+            "pattern": "^\\-?[0-9]+(\\.[0-9]+)?$",
+            "description": "Numeric represents an arbitrary precision number."
+        }
+    }
+}
