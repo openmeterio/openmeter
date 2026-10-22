@@ -8705,12 +8705,14 @@ components:
         have access to features.
     BillingCustomerData:
       type: object
+      required:
+        - effective_billing_profile
       properties:
         billing_profile:
           allOf:
             - $ref: '#/components/schemas/BillingProfileReference'
           description: |-
-            The billing profile for the customer.
+            The billing profile explicitly selected for the customer.
 
             If not provided, the default billing profile will be used.
           title: Billing profile
@@ -8719,6 +8721,14 @@ components:
             - $ref: '#/components/schemas/BillingAppCustomerData'
           description: App customer data.
           title: App customer data
+        effective_billing_profile:
+          allOf:
+            - $ref: '#/components/schemas/BillingProfileReference'
+          description: |-
+            The effective billing profile for the customer. Uses the explicitly selected
+            billing profile when pinned, otherwise the current default billing profile.
+          title: Effective billing profile
+          readOnly: true
       additionalProperties: false
       description: Billing customer data.
     BillingCustomerStripeCreateCheckoutSessionRequest:
@@ -19793,7 +19803,7 @@ components:
           allOf:
             - $ref: '#/components/schemas/BillingProfileReference'
           description: |-
-            The billing profile for the customer.
+            The billing profile explicitly selected for the customer.
 
             If not provided, the default billing profile will be used.
           title: Billing profile

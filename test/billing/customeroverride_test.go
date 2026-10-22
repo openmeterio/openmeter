@@ -279,6 +279,8 @@ func (s *CustomerOverrideTestSuite) TestDefaultProfileHandling() {
 
 		require.NoError(t, err)
 		require.NotNil(t, createdCustomerOverride)
+		require.NotNil(t, createdCustomerOverride.CustomerOverride)
+		require.Nil(t, createdCustomerOverride.CustomerOverride.Profile)
 		// When fetching the override
 		customerProfile, err := s.BillingService.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
 			Customer: customer.CustomerID{
@@ -290,6 +292,9 @@ func (s *CustomerOverrideTestSuite) TestDefaultProfileHandling() {
 		// Then we get the override as the customer profile
 		require.NoError(t, err)
 		require.NotNil(t, customerProfile)
+		require.NotNil(t, customerProfile.CustomerOverride)
+		require.Nil(t, customerProfile.CustomerOverride.Profile)
+		require.Equal(t, defaultProfile.ID, customerProfile.MergedProfile.ID)
 
 		wfConfig := customerProfile.MergedProfile.WorkflowConfig
 

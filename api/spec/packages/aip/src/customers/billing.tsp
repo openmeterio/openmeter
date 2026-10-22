@@ -9,7 +9,7 @@ namespace Customers;
 @friendlyName("BillingCustomerData")
 model CustomerBillingData {
   /**
-   * The billing profile for the customer.
+   * The billing profile explicitly selected for the customer.
    *
    * If not provided, the default billing profile will be used.
    */
@@ -23,4 +23,12 @@ model CustomerBillingData {
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("App customer data")
   app_data?: Apps.AppCustomerData;
+
+  /**
+   * The effective billing profile for the customer. Uses the explicitly selected
+   * billing profile when pinned, otherwise the current default billing profile.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Effective billing profile")
+  effective_billing_profile: Common.BillingRoot.BillingProfileReference;
 }
