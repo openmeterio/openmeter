@@ -5,6 +5,7 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
+  '@typespec/asset-emitter': 0.79.2
   devalue@>=5.0.0 <5.9.3: 5.9.3
   fast-uri@>=3.0.0 <3.1.8: 3.1.8
   js-yaml@>=4.0.0 <4.3.2: 4.3.2
@@ -1071,11 +1072,11 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@typespec/asset-emitter@0.79.3':
-    resolution: {integrity: sha512-mqEcgz4wSLe+Y8epvOTJnoOar/ePLSA/xirIaCSPVUvdbZo+fKvPfnKNiPvwtSuhEYlDPewva3PLTPtOTe6GXA==}
+  '@typespec/asset-emitter@0.79.2':
+    resolution: {integrity: sha512-hcr0jxYgXM0suBwPtjnScYXZVIIqkcdd8jgYh1T7VLHem8+q0WthFQxeKbDIrip4k/nCFtnZui6Dj5oOVJb8fA==}
     engines: {node: '>=22.0.0'}
     peerDependencies:
-      '@typespec/compiler': ^1.17.0
+      '@typespec/compiler': ^1.16.0
 
   '@typespec/compiler@1.16.0':
     resolution: {integrity: sha512-pT4gN+OSEXZMLxIhtI3QgIUafeFktfIBKVb7p+X/rAzDymQSO8yAb+srMBQ43PIcmfrvMxCNaD1SKBa9AGhWtA==}
@@ -2722,7 +2723,7 @@ snapshots:
   '@typescript/typescript-win32-x64@7.0.2':
     optional: true
 
-  '@typespec/asset-emitter@0.79.3(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))':
+  '@typespec/asset-emitter@0.79.2(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))':
     dependencies:
       '@typespec/compiler': 1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1)
 
@@ -2800,7 +2801,7 @@ snapshots:
 
   '@typespec/json-schema@1.16.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))':
     dependencies:
-      '@typespec/asset-emitter': 0.79.3(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))
+      '@typespec/asset-emitter': 0.79.2(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))
       '@typespec/compiler': 1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1)
       yaml: 2.9.0
 
@@ -2809,7 +2810,7 @@ snapshots:
       '@scalar/json-magic': 0.13.5
       '@scalar/openapi-parser': 0.28.16
       '@scalar/openapi-types': 0.9.8
-      '@typespec/asset-emitter': 0.79.3(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))
+      '@typespec/asset-emitter': 0.79.2(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))
       '@typespec/compiler': 1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1)
       '@typespec/http': 1.16.0(patch_hash=f8df299e1f9d75283e428307cc8d98f49dd0ea09500892e7755401a87aa94716)(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))(@typespec/streams@0.86.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1)))
       '@typespec/openapi': 1.16.0(patch_hash=a44757d47142b3577fdd6486abc90f2310750c341a71fd86e81ab7774c025a57)(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))(@typespec/http@1.16.0(patch_hash=f8df299e1f9d75283e428307cc8d98f49dd0ea09500892e7755401a87aa94716)(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))(@typespec/streams@0.86.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))))

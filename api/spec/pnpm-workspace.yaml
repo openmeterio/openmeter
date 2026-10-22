@@ -13,6 +13,8 @@ patchedDependencies:
   '@typespec/openapi3@1.16.0': patches/@typespec__openapi3@1.16.0.patch
   '@typespec/openapi@1.16.0': patches/@typespec__openapi@1.16.0.patch
 overrides:
+  # asset-emitter 0.79.3 requires compiler 1.17; this workspace uses 1.16.
+  '@typespec/asset-emitter': '0.79.2'
   'devalue@>=5.0.0 <5.9.3': '5.9.3'
   'fast-uri@>=3.0.0 <3.1.8': '3.1.8'
   'js-yaml@>=4.0.0 <4.3.2': '4.3.2'
