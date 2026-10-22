@@ -1,0 +1,60 @@
+diff --git a/dist/generated-defs/TypeSpec.Http.d.ts b/dist/generated-defs/TypeSpec.Http.d.ts
+index 4ae10983227852587eeae0db2e1d36df8edaa6b1..33a8d03d161702ac6f97e342b5a4a69c93877d4c 100644
+--- a/dist/generated-defs/TypeSpec.Http.d.ts
++++ b/dist/generated-defs/TypeSpec.Http.d.ts
+@@ -9,6 +9,7 @@ export interface CookieOptions {
+ export interface QueryOptions {
+     readonly name?: string;
+     readonly explode?: boolean;
++    readonly style?: "form" | "spaceDelimited" | "pipeDelimited" | "deepObject";
+ }
+ export interface PathOptions {
+     readonly name?: string;
+diff --git a/dist/src/decorators.js b/dist/src/decorators.js
+index 31ffc53853bb7656c57d4cdb5e2e65b5df3a7cf2..eb5b9ffc1bfbd3828610a3a3b2d79f6f807d805c 100644
+--- a/dist/src/decorators.js
++++ b/dist/src/decorators.js
+@@ -73,6 +73,7 @@ export const $query = (context, entity, queryNameOrOptions) => {
+     const userOptions = typeof queryNameOrOptions === "object" ? queryNameOrOptions : {};
+     setQueryOptions(context.program, entity, {
+         explode: userOptions.explode,
++        style: userOptions.style,
+         name: paramName,
+     });
+ };
+@@ -83,6 +84,7 @@ export function resolveQueryOptionsWithDefaults(options) {
+     return {
+         explode: options.explode ?? false,
+         name: options.name,
++        style: options.style ?? "form",
+     };
+ }
+ export function getQueryParamOptions(program, entity) {
+diff --git a/dist/src/parameters.js b/dist/src/parameters.js
+index d188d6b939181a4ecac570bd0089e2144629521c..259646d548ef4baf42fd2e050517c4dcaeb1fa38 100644
+--- a/dist/src/parameters.js
++++ b/dist/src/parameters.js
+@@ -56,6 +56,7 @@ function getOperationParametersForVerb(program, operation, verb, partialUriTempl
+                     type: "query",
+                     name: uriParam.name,
+                     explode,
++                    style: "form",
+                 };
+             }
+             else if (uriParam.operator === "+") {
+diff --git a/lib/decorators.tsp b/lib/decorators.tsp
+index 0e2203678e588a049435a2e508c5620560425653..91e115f30242c427bb9d69abdd21197ee596c175 100644
+--- a/lib/decorators.tsp
++++ b/lib/decorators.tsp
+@@ -97,6 +97,11 @@ model QueryOptions {
+    *
+    */
+   explode?: boolean;
++
++  /**
++   * Determines the delimiteration of query parameters.
++   */
++  style?: "form" | "spaceDelimited" | "pipeDelimited" | "deepObject";
+ }
+ 
+ /**

@@ -1,0 +1,27 @@
+diff --git a/dist/src/helpers.js b/dist/src/helpers.js
+index e51f6c78a032d981ea545524d055fdb089e7a5c3..9709887d5dc3dc2182154a490db70365ddf1e50d 100644
+--- a/dist/src/helpers.js
++++ b/dist/src/helpers.js
+@@ -1,6 +1,6 @@
+ import { getFriendlyName, getLifecycleVisibilityEnum, getProperty, getTypeName, getVisibilityForClass, isGlobalNamespace, isService, isTemplateInstance, } from "@typespec/compiler";
+ import { SyntaxKind, } from "@typespec/compiler/ast";
+-import { getOperationId } from "./decorators.js";
++import { getExtensions, getOperationId } from "./decorators.js";
+ import { createDiagnostic, reportDiagnostic } from "./lib.js";
+ /**
+  * Determines whether a type will be inlined in OpenAPI rather than defined
+@@ -17,6 +17,14 @@ export function shouldInline(program, type) {
+     if (getFriendlyName(program, type)) {
+         return false;
+     }
++    if (getExtensions(program, type).has("x-inline")) {
++        switch (getExtensions(program, type).get("x-inline")) {
++            case true:
++                return true;
++            case false:
++                return false;
++        }
++    }
+     switch (type.kind) {
+         case "Model":
+             return !type.name || isTemplateInstance(type);
