@@ -5,14 +5,16 @@ minimumReleaseAge: 4320
 minimumReleaseAgeExclude: []
 trustPolicy: no-downgrade
 patchedDependencies:
-  '@typespec/compiler': patches/@typespec__compiler.patch
+  '@typespec/compiler@1.16.0': patches/@typespec__compiler@1.16.0.patch
   '@typespec/emitter-framework': patches/@typespec__emitter-framework.patch
-  '@typespec/http': patches/@typespec__http.patch
   '@typespec/http-client': patches/@typespec__http-client.patch
   '@typespec/http-client-python': patches/@typespec__http-client-python.patch
-  '@typespec/openapi': patches/@typespec__openapi.patch
-  '@typespec/openapi3': patches/@typespec__openapi3.patch
+  '@typespec/http@1.16.0': patches/@typespec__http@1.16.0.patch
+  '@typespec/openapi3@1.16.0': patches/@typespec__openapi3@1.16.0.patch
+  '@typespec/openapi@1.16.0': patches/@typespec__openapi@1.16.0.patch
 overrides:
+  # asset-emitter 0.79.3 requires compiler 1.17; this workspace uses 1.16.
+  '@typespec/asset-emitter': '0.79.2'
   'devalue@>=5.0.0 <5.9.3': '5.9.3'
   'fast-uri@>=3.0.0 <3.1.8': '3.1.8'
   'js-yaml@>=4.0.0 <4.3.2': '4.3.2'
@@ -20,6 +22,7 @@ overrides:
   'postcss@>=8.0.0 <8.5.23': '8.5.23'
   'source-map-js@>=1.0.0 <1.2.2': '1.2.2'
   'semver@<7.7.4': '>=7.7.4'
+  'undici@>=7.0.0 <7.29.1': '7.29.1'
 packageExtensions:
   '@alloy-js/cli':
     dependencies:

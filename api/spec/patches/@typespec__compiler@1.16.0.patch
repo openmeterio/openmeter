@@ -1,0 +1,117 @@
+diff --git a/dist/src/lib/decorators.d.ts b/dist/src/lib/decorators.d.ts
+index d47aede90d9a522abdeb5dfd363493a7e8ea22d9..578a05f61a1dcd418ce3d39187309ee40a7f35e1 100644
+--- a/dist/src/lib/decorators.d.ts
++++ b/dist/src/lib/decorators.d.ts
+@@ -198,6 +198,8 @@ export declare function getAllTags(program: Program, target: Namespace | Interfa
+ declare const getFriendlyName: (program: Program, type: Type) => string | undefined;
+ export declare const $friendlyName: FriendlyNameDecorator;
+ export { getFriendlyName };
++export declare function clearFriendlyName(program: Program, target: Type): void;
++export declare const setFriendlyName: (program: Program, type: Type, value: string) => void;
+ /**
+  * `@key` - mark a model property as the key to identify instances of that type
+  *
+diff --git a/dist/src/lib/decorators.js b/dist/src/lib/decorators.js
+index 807bd3fabd06766ab8b1faff980da2307dff8f55..40c45d5441c31d934bf3f7a6d8c5363bace74c9a 100644
+--- a/dist/src/lib/decorators.js
++++ b/dist/src/lib/decorators.js
+@@ -720,7 +720,8 @@ export function getAllTags(program, target) {
+     return tags.size > 0 ? Array.from(tags).reverse() : undefined;
+ }
+ // -- @friendlyName decorator ---------------------
+-const [getFriendlyName, setFriendlyName] = useStateMap(createStateSymbol("friendlyNames"));
++const friendlyNamesSymbol = createStateSymbol("friendlyNames");
++const [getFriendlyName, setFriendlyName] = useStateMap(friendlyNamesSymbol);
+ export const $friendlyName = (context, target, friendlyName, sourceObject) => {
+     // workaround for current lack of functionality in compiler
+     // https://github.com/microsoft/typespec/issues/2717
+@@ -742,7 +743,10 @@ export const $friendlyName = (context, target, friendlyName, sourceObject) => {
+     }
+     setFriendlyName(context.program, target, friendlyName);
+ };
+-export { getFriendlyName };
++export { getFriendlyName, setFriendlyName };
++export function clearFriendlyName(program, target) {
++    program.stateMap(friendlyNamesSymbol).delete(target);
++}
+ /**
+  * `@key` - mark a model property as the key to identify instances of that type
+  *
+diff --git a/dist/src/lib/examples.js b/dist/src/lib/examples.js
+index df3a1aeacd0fa9f50f01f2247b62d601d9163991..7e980b323afb97ad02bf1886c1566a76cd5f0059 100644
+--- a/dist/src/lib/examples.js
++++ b/dist/src/lib/examples.js
+@@ -107,6 +107,11 @@ function serializeObjectValueAsJson(program, value, type, handlers, diagnosticTa
+             obj[name] = serializeValueAsJson(program, propValue.value, definition, 
+             /* encodeAs: */ undefined, handlers, propValue.node);
+         }
++        else if (type.kind === "Union") {
++            // If the type is still a union (meaning resolveUnions failed to resolve it to a specific variant),
++            // we should still serialize all the properties from the value
++            obj[propValue.name] = serializeValueAsJson(program, propValue.value, program.checker.anyType);
++        }
+     }
+     return obj;
+ }
+diff --git a/dist/src/lib/visibility.js b/dist/src/lib/visibility.js
+index 3b5a795b2c060ae803462be8d6c1e3ab574f4e08..8bd40cd7c3fdc258ef1a9089c6207417c5060509 100644
+--- a/dist/src/lib/visibility.js
++++ b/dist/src/lib/visibility.js
+@@ -9,6 +9,7 @@ import { mutateSubgraph, MutatorFlow, setAlwaysMutate } from "../experimental/mu
+ import { $ } from "../typekit/index.js";
+ import { useStateMap } from "../utils/index.js";
+ import { mutate } from "../utils/misc.js";
++import { $friendlyName, setFriendlyName } from "./decorators.js";
+ import { isKey } from "./key.js";
+ import { createStateSymbol, filterModelPropertiesInPlace, replaceTemplatedStringFromProperties, } from "./utils.js";
+ export const $withDefaultKeyVisibility = (context, entity, visibility) => {
+@@ -347,7 +348,12 @@ function createVisibilityFilterMutator(filter, options = {}) {
+                         modified ||= variant.type !== member.type;
+                     }
+                 }
+-                rename(clone, options.nameTemplate);
++                if (options.nameTemplate) {
++                    const beforeLen = clone.decorators.length;
++                    clone.decorators = clone.decorators.filter((d) => d.decorator !== $friendlyName);
++                    modified ||= clone.decorators.length !== beforeLen;
++                }
++                rename(program, clone, options.nameTemplate);
+                 return modified ? clone : union;
+             },
+         },
+@@ -388,7 +394,12 @@ function createVisibilityFilterMutator(filter, options = {}) {
+                         (options.decoratorName && isTypeSpecDecorator(d, options.decoratorName))));
+                     modified ||= clone.decorators.length !== model.decorators.length;
+                 }
+-                rename(clone, options.nameTemplate);
++                if (options.nameTemplate) {
++                    const beforeLen = clone.decorators.length;
++                    clone.decorators = clone.decorators.filter((d) => d.decorator !== $friendlyName);
++                    modified ||= clone.decorators.length !== beforeLen;
++                }
++                rename(program, clone, options.nameTemplate);
+                 return modified ? clone : model;
+             },
+         },
+@@ -427,13 +438,19 @@ function createVisibilityFilterMutator(filter, options = {}) {
+     return self;
+ }
+ /**
+- * Internal helper to rename a type in place.
++ * Internal helper to rename a type in place and register the rendered template
++ * as the clone's friendly name. The clone inherits the original's @friendlyName
++ * state (finishType re-applies it from the copied decorators), which would make
++ * the clone collide with the original's schema name; overriding it with the
++ * rendered nameTemplate keeps emitted schema names plain (e.g. "UpdateAddress")
++ * instead of falling back to namespace-qualified type names.
+  */
+-function rename(type, nameTemplate) {
++function rename(program, type, nameTemplate) {
+     if (!nameTemplate || !type.name)
+         return;
+     const renamed = replaceTemplatedStringFromProperties(nameTemplate, type);
+     type.name = renamed;
++    setFriendlyName(program, type, renamed);
+ }
+ function isVisibilitySubject(t) {
+     return (t.kind === "Model" ||

@@ -5,6 +5,7 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
+  '@typespec/asset-emitter': 0.79.2
   devalue@>=5.0.0 <5.9.3: 5.9.3
   fast-uri@>=3.0.0 <3.1.8: 3.1.8
   js-yaml@>=4.0.0 <4.3.2: 4.3.2
@@ -12,17 +13,18 @@ overrides:
   postcss@>=8.0.0 <8.5.23: 8.5.23
   source-map-js@>=1.0.0 <1.2.2: 1.2.2
   semver@<7.7.4: '>=7.7.4'
+  undici@>=7.0.0 <7.29.1: 7.29.1
 
 packageExtensionsChecksum: sha256-FtphpG0HM+ALLD/vZWvih3ftXQ3sNwbZLDianJbNUCo=
 
 patchedDependencies:
-  '@typespec/compiler': 4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717
+  '@typespec/compiler@1.16.0': f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed
   '@typespec/emitter-framework': ab547aaec873aa46a9f7d4e718b3dc9eb3b3c03a1bb49233c324ee572ef62fd0
-  '@typespec/http': 2c55262cf42b2d54e5db3b8fe28abb4ab702cf9dbf34b5650c367270ec6ee5ef
   '@typespec/http-client': 7b97c893a552597584944904afc15877f43250e31cb64a3e007ea96976b69d19
   '@typespec/http-client-python': c9d83ee26f420c6783dbf4d196533650ade297eda92e2bb249df2e822a8d994a
-  '@typespec/openapi': a717b240dcdc3d23f8b752d783844b65ef750bad173549d92db12a5a0131183c
-  '@typespec/openapi3': 47deb425b3eaa7a12b4b92157f0f3e5784bb61b20be4d302f6d391f1b750b5c2
+  '@typespec/http@1.16.0': f8df299e1f9d75283e428307cc8d98f49dd0ea09500892e7755401a87aa94716
+  '@typespec/openapi3@1.16.0': 15528c01821ed876a1b6eb5764d5494c03421f061903db56329bdb53486f7765
+  '@typespec/openapi@1.16.0': a44757d47142b3577fdd6486abc90f2310750c341a71fd86e81ab7774c025a57
 
 importers:
 
@@ -32,8 +34,8 @@ importers:
         specifier: 0.2.18
         version: 0.2.18(vitest@4.1.12)
       '@typespec/prettier-plugin-typespec':
-        specifier: 1.14.0
-        version: 1.14.0
+        specifier: 1.16.0
+        version: 1.16.0
       '@vitest/coverage-v8':
         specifier: 4.1.12
         version: 4.1.12(vitest@4.1.12)
@@ -62,26 +64,29 @@ importers:
         specifier: 26.1.1
         version: 26.1.1
       '@typespec/compiler':
-        specifier: 1.14.0
-        version: 1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1)
+        specifier: 1.16.0
+        version: 1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1)
       '@typespec/http':
-        specifier: 1.14.0
-        version: 1.14.0(patch_hash=2c55262cf42b2d54e5db3b8fe28abb4ab702cf9dbf34b5650c367270ec6ee5ef)(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))(@typespec/streams@0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1)))
+        specifier: 1.16.0
+        version: 1.16.0(patch_hash=f8df299e1f9d75283e428307cc8d98f49dd0ea09500892e7755401a87aa94716)(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))(@typespec/streams@0.86.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1)))
       '@typespec/json-schema':
-        specifier: 1.14.0
-        version: 1.14.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))
+        specifier: 1.16.0
+        version: 1.16.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))
       '@typespec/openapi':
-        specifier: 1.14.0
-        version: 1.14.0(patch_hash=a717b240dcdc3d23f8b752d783844b65ef750bad173549d92db12a5a0131183c)(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))(@typespec/http@1.14.0(patch_hash=2c55262cf42b2d54e5db3b8fe28abb4ab702cf9dbf34b5650c367270ec6ee5ef)(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))(@typespec/streams@0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))))
+        specifier: 1.16.0
+        version: 1.16.0(patch_hash=a44757d47142b3577fdd6486abc90f2310750c341a71fd86e81ab7774c025a57)(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))(@typespec/http@1.16.0(patch_hash=f8df299e1f9d75283e428307cc8d98f49dd0ea09500892e7755401a87aa94716)(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))(@typespec/streams@0.86.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))))
       '@typespec/openapi3':
-        specifier: 1.14.0
-        version: 1.14.0(patch_hash=47deb425b3eaa7a12b4b92157f0f3e5784bb61b20be4d302f6d391f1b750b5c2)(ed8c328b3a62f1d3832914185922d1cb)
+        specifier: 1.16.0
+        version: 1.16.0(patch_hash=15528c01821ed876a1b6eb5764d5494c03421f061903db56329bdb53486f7765)(111ff52ca82108025fd386e6a7f0ca45)
       '@typespec/prettier-plugin-typespec':
-        specifier: 1.14.0
-        version: 1.14.0
+        specifier: 1.16.0
+        version: 1.16.0
       '@typespec/rest':
-        specifier: 0.84.0
-        version: 0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))(@typespec/http@1.14.0(patch_hash=2c55262cf42b2d54e5db3b8fe28abb4ab702cf9dbf34b5650c367270ec6ee5ef)(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))(@typespec/streams@0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))))
+        specifier: 0.86.0
+        version: 0.86.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))(@typespec/http@1.16.0(patch_hash=f8df299e1f9d75283e428307cc8d98f49dd0ea09500892e7755401a87aa94716)(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))(@typespec/streams@0.86.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))))
+      '@typespec/versioning':
+        specifier: 0.86.0
+        version: 0.86.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))
       prettier:
         specifier: 3.9.6
         version: 3.9.6
@@ -108,38 +113,38 @@ importers:
   packages/legacy:
     devDependencies:
       '@azure-tools/typespec-client-generator-core':
-        specifier: 0.70.0
-        version: 0.70.0(f143bd1a87e01af6d9cc5b76d61cac4d)
+        specifier: 0.72.0
+        version: 0.72.0(c314e46f44c81bb409927108b9acfaaf)
       '@types/node':
         specifier: 26.1.1
         version: 26.1.1
       '@typespec/compiler':
-        specifier: 1.14.0
-        version: 1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1)
+        specifier: 1.16.0
+        version: 1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1)
       '@typespec/http':
-        specifier: 1.14.0
-        version: 1.14.0(patch_hash=2c55262cf42b2d54e5db3b8fe28abb4ab702cf9dbf34b5650c367270ec6ee5ef)(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))(@typespec/streams@0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1)))
+        specifier: 1.16.0
+        version: 1.16.0(patch_hash=f8df299e1f9d75283e428307cc8d98f49dd0ea09500892e7755401a87aa94716)(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))(@typespec/streams@0.86.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1)))
       '@typespec/http-client-python':
         specifier: 0.35.0
-        version: 0.35.0(patch_hash=c9d83ee26f420c6783dbf4d196533650ade297eda92e2bb249df2e822a8d994a)(2696e5eda1c5f71a3fb8b2d8bdf079ba)
+        version: 0.35.0(patch_hash=c9d83ee26f420c6783dbf4d196533650ade297eda92e2bb249df2e822a8d994a)(38ae7374e2203a6260b3856a151f2b3d)
       '@typespec/openapi':
-        specifier: 1.14.0
-        version: 1.14.0(patch_hash=a717b240dcdc3d23f8b752d783844b65ef750bad173549d92db12a5a0131183c)(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))(@typespec/http@1.14.0(patch_hash=2c55262cf42b2d54e5db3b8fe28abb4ab702cf9dbf34b5650c367270ec6ee5ef)(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))(@typespec/streams@0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))))
+        specifier: 1.16.0
+        version: 1.16.0(patch_hash=a44757d47142b3577fdd6486abc90f2310750c341a71fd86e81ab7774c025a57)(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))(@typespec/http@1.16.0(patch_hash=f8df299e1f9d75283e428307cc8d98f49dd0ea09500892e7755401a87aa94716)(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))(@typespec/streams@0.86.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))))
       '@typespec/openapi3':
-        specifier: 1.14.0
-        version: 1.14.0(patch_hash=47deb425b3eaa7a12b4b92157f0f3e5784bb61b20be4d302f6d391f1b750b5c2)(ed8c328b3a62f1d3832914185922d1cb)
+        specifier: 1.16.0
+        version: 1.16.0(patch_hash=15528c01821ed876a1b6eb5764d5494c03421f061903db56329bdb53486f7765)(111ff52ca82108025fd386e6a7f0ca45)
       '@typespec/prettier-plugin-typespec':
-        specifier: 1.14.0
-        version: 1.14.0
+        specifier: 1.16.0
+        version: 1.16.0
       '@typespec/rest':
-        specifier: 0.84.0
-        version: 0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))(@typespec/http@1.14.0(patch_hash=2c55262cf42b2d54e5db3b8fe28abb4ab702cf9dbf34b5650c367270ec6ee5ef)(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))(@typespec/streams@0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))))
+        specifier: 0.86.0
+        version: 0.86.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))(@typespec/http@1.16.0(patch_hash=f8df299e1f9d75283e428307cc8d98f49dd0ea09500892e7755401a87aa94716)(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))(@typespec/streams@0.86.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))))
       '@typespec/streams':
-        specifier: 0.84.0
-        version: 0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))
+        specifier: 0.86.0
+        version: 0.86.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))
       '@typespec/versioning':
-        specifier: 0.84.0
-        version: 0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))
+        specifier: 0.86.0
+        version: 0.86.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))
 
   packages/typespec-go:
     dependencies:
@@ -150,17 +155,17 @@ importers:
         specifier: 0.3.1
         version: 0.3.1
       '@typespec/compiler':
-        specifier: 1.14.0
-        version: 1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1)
+        specifier: 1.16.0
+        version: 1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1)
       '@typespec/emitter-framework':
         specifier: 0.19.0
-        version: 0.19.0(patch_hash=ab547aaec873aa46a9f7d4e718b3dc9eb3b3c03a1bb49233c324ee572ef62fd0)(@alloy-js/core@0.24.1)(@alloy-js/csharp@0.22.0)(@alloy-js/python@0.3.0)(@alloy-js/typescript@0.24.0)(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))
+        version: 0.19.0(patch_hash=ab547aaec873aa46a9f7d4e718b3dc9eb3b3c03a1bb49233c324ee572ef62fd0)(@alloy-js/core@0.24.1)(@alloy-js/csharp@0.22.0)(@alloy-js/python@0.3.0)(@alloy-js/typescript@0.24.0)(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))
       '@typespec/http':
-        specifier: 1.14.0
-        version: 1.14.0(patch_hash=2c55262cf42b2d54e5db3b8fe28abb4ab702cf9dbf34b5650c367270ec6ee5ef)(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))(@typespec/streams@0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1)))
+        specifier: 1.16.0
+        version: 1.16.0(patch_hash=f8df299e1f9d75283e428307cc8d98f49dd0ea09500892e7755401a87aa94716)(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))(@typespec/streams@0.86.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1)))
       '@typespec/openapi':
-        specifier: 1.14.0
-        version: 1.14.0(patch_hash=a717b240dcdc3d23f8b752d783844b65ef750bad173549d92db12a5a0131183c)(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))(@typespec/http@1.14.0(patch_hash=2c55262cf42b2d54e5db3b8fe28abb4ab702cf9dbf34b5650c367270ec6ee5ef)(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))(@typespec/streams@0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))))
+        specifier: 1.16.0
+        version: 1.16.0(patch_hash=a44757d47142b3577fdd6486abc90f2310750c341a71fd86e81ab7774c025a57)(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))(@typespec/http@1.16.0(patch_hash=f8df299e1f9d75283e428307cc8d98f49dd0ea09500892e7755401a87aa94716)(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))(@typespec/streams@0.86.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))))
     devDependencies:
       '@alloy-js/cli':
         specifier: 0.24.0
@@ -184,20 +189,20 @@ importers:
         specifier: 0.24.0
         version: 0.24.0
       '@typespec/compiler':
-        specifier: 1.14.0
-        version: 1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1)
+        specifier: 1.16.0
+        version: 1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1)
       '@typespec/emitter-framework':
         specifier: 0.19.0
-        version: 0.19.0(patch_hash=ab547aaec873aa46a9f7d4e718b3dc9eb3b3c03a1bb49233c324ee572ef62fd0)(@alloy-js/core@0.24.1)(@alloy-js/csharp@0.22.0)(@alloy-js/python@0.3.0)(@alloy-js/typescript@0.24.0)(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))
+        version: 0.19.0(patch_hash=ab547aaec873aa46a9f7d4e718b3dc9eb3b3c03a1bb49233c324ee572ef62fd0)(@alloy-js/core@0.24.1)(@alloy-js/csharp@0.22.0)(@alloy-js/python@0.3.0)(@alloy-js/typescript@0.24.0)(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))
       '@typespec/http':
-        specifier: 1.14.0
-        version: 1.14.0(patch_hash=2c55262cf42b2d54e5db3b8fe28abb4ab702cf9dbf34b5650c367270ec6ee5ef)(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))(@typespec/streams@0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1)))
+        specifier: 1.16.0
+        version: 1.16.0(patch_hash=f8df299e1f9d75283e428307cc8d98f49dd0ea09500892e7755401a87aa94716)(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))(@typespec/streams@0.86.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1)))
       '@typespec/http-client':
         specifier: 0.16.0
-        version: 0.16.0(patch_hash=7b97c893a552597584944904afc15877f43250e31cb64a3e007ea96976b69d19)(@alloy-js/core@0.24.1)(@alloy-js/typescript@0.24.0)(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))(@typespec/emitter-framework@0.19.0(patch_hash=ab547aaec873aa46a9f7d4e718b3dc9eb3b3c03a1bb49233c324ee572ef62fd0)(@alloy-js/core@0.24.1)(@alloy-js/csharp@0.22.0)(@alloy-js/python@0.3.0)(@alloy-js/typescript@0.24.0)(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1)))(@typespec/http@1.14.0(patch_hash=2c55262cf42b2d54e5db3b8fe28abb4ab702cf9dbf34b5650c367270ec6ee5ef)(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))(@typespec/streams@0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))))
+        version: 0.16.0(patch_hash=7b97c893a552597584944904afc15877f43250e31cb64a3e007ea96976b69d19)(@alloy-js/core@0.24.1)(@alloy-js/typescript@0.24.0)(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))(@typespec/emitter-framework@0.19.0(patch_hash=ab547aaec873aa46a9f7d4e718b3dc9eb3b3c03a1bb49233c324ee572ef62fd0)(@alloy-js/core@0.24.1)(@alloy-js/csharp@0.22.0)(@alloy-js/python@0.3.0)(@alloy-js/typescript@0.24.0)(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1)))(@typespec/http@1.16.0(patch_hash=f8df299e1f9d75283e428307cc8d98f49dd0ea09500892e7755401a87aa94716)(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))(@typespec/streams@0.86.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))))
       '@typespec/openapi':
-        specifier: 1.14.0
-        version: 1.14.0(patch_hash=a717b240dcdc3d23f8b752d783844b65ef750bad173549d92db12a5a0131183c)(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))(@typespec/http@1.14.0(patch_hash=2c55262cf42b2d54e5db3b8fe28abb4ab702cf9dbf34b5650c367270ec6ee5ef)(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))(@typespec/streams@0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))))
+        specifier: 1.16.0
+        version: 1.16.0(patch_hash=a44757d47142b3577fdd6486abc90f2310750c341a71fd86e81ab7774c025a57)(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))(@typespec/http@1.16.0(patch_hash=f8df299e1f9d75283e428307cc8d98f49dd0ea09500892e7755401a87aa94716)(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))(@typespec/streams@0.86.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))))
       typescript:
         specifier: 7.0.2
         version: 7.0.2
@@ -298,20 +303,20 @@ packages:
       '@azure-tools/typespec-client-generator-core': ^0.67.0
       '@typespec/compiler': ^1.11.0
 
-  '@azure-tools/typespec-client-generator-core@0.70.0':
-    resolution: {integrity: sha512-8yxOYJfID3wp3FLQYNIa3kbmR5YLWjYtpB+i4u66quHTTQWWANHV1/o9f8xymAf+8fO9jbLo5tw1JerumxISWg==}
+  '@azure-tools/typespec-client-generator-core@0.72.0':
+    resolution: {integrity: sha512-qTidMUgtM7R4wGy3i2DU3OBHm7eHtK1VCNPzT3O9PVtBVNxSSDc/gY0qENq3KvN+68qS3XoCvUluRz6fUK/h2Q==}
     engines: {node: '>=22.0.0'}
     peerDependencies:
-      '@azure-tools/typespec-azure-core': ^0.70.0
-      '@typespec/compiler': ^1.14.0
-      '@typespec/events': ^0.84.0
-      '@typespec/http': ^1.14.0
-      '@typespec/openapi': ^1.14.0
-      '@typespec/rest': ^0.84.0
-      '@typespec/sse': ^0.84.0
-      '@typespec/streams': ^0.84.0
-      '@typespec/versioning': ^0.84.0
-      '@typespec/xml': ^0.84.0
+      '@azure-tools/typespec-azure-core': ^0.72.0
+      '@typespec/compiler': ^1.16.0
+      '@typespec/events': ^0.86.0
+      '@typespec/http': ^1.16.0
+      '@typespec/openapi': ^1.16.0
+      '@typespec/rest': ^0.86.0
+      '@typespec/sse': ^0.86.0
+      '@typespec/streams': ^0.86.0
+      '@typespec/versioning': ^0.86.0
+      '@typespec/xml': ^0.86.0
 
   '@babel/code-frame@7.29.7':
     resolution: {integrity: sha512-Aup7aUOfpbAUg2ROOJN6Iw5f9DMBlzu0mIkm/malLQFN/YQgO48wCj0Kxa3sEHJvPVFg7siR+qRInwXd2qhQKw==}
@@ -625,21 +630,12 @@ packages:
     peerDependencies:
       vitest: '*'
 
-  '@inquirer/ansi@2.0.7':
-    resolution: {integrity: sha512-3eTuUO1vH2cZm2ZKHeQxnOqlTi9EfZDGgIe3BL3I4u+rJHocr9Fz86M4fjYABPvFnQG/gGK551HqDiIcETwU6Q==}
+  '@inquirer/ansi@2.0.9':
+    resolution: {integrity: sha512-0Ywt3S8tqM6TWUcsRlBFQ1x+X3/o8kktX0ZiKAnByYb9GFDknnOhse1PVtfiD2BXPI8ar+BWx9PV9R0lQIcygw==}
     engines: {node: '>=23.5.0 || ^22.13.0 || ^20.17.0'}
 
-  '@inquirer/checkbox@5.2.1':
-    resolution: {integrity: sha512-b6xmA/VlTe0ZgDQHDui+Nav470u7u49nRd8/iuhOcQPO9Ch7lGuogydhi2VOmNlZ+zXcM8IcPuNSwQcdJaF/kw==}
-    engines: {node: '>=23.5.0 || ^22.13.0 || ^20.17.0'}
-    peerDependencies:
-      '@types/node': '>=18'
-    peerDependenciesMeta:
-      '@types/node':
-        optional: true
-
-  '@inquirer/confirm@6.1.1':
-    resolution: {integrity: sha512-eb8DBZcz/2qHWQda4rk2JiQk5h9QV/cVHi1yjt0f69WFZMRFn0sJTye3EAP8icut8UDMjQPsaH5KbcOogefrFQ==}
+  '@inquirer/checkbox@5.2.6':
+    resolution: {integrity: sha512-XkOardciF3tow2NUlY6/Qjk1QqYa+6WpmVLTpxXl97Uv4erczDEZ+xg1j6LqBf0ekcRSUiICQA4nQXHHkVKQ9w==}
     engines: {node: '>=23.5.0 || ^22.13.0 || ^20.17.0'}
     peerDependencies:
       '@types/node': '>=18'
@@ -647,8 +643,8 @@ packages:
       '@types/node':
         optional: true
 
-  '@inquirer/core@11.2.1':
-    resolution: {integrity: sha512-Qd6GJT1yVyrZZCfN8W2qKF5ApmqryXRhRKCuip8h01x2w/esJQ2XIYc6f9abMIHgKQdBfFTSOdbHRLAhuM09UA==}
+  '@inquirer/confirm@6.3.3':
+    resolution: {integrity: sha512-ImOBgpl/sJTFp8naeSkNu4S0Sf8F8pxv3/CUx+LoBAdQvCVqFz6rSB2A/oZYsJge3+yphbEDxEkfaRNYq1OU0A==}
     engines: {node: '>=23.5.0 || ^22.13.0 || ^20.17.0'}
     peerDependencies:
       '@types/node': '>=18'
@@ -656,8 +652,8 @@ packages:
       '@types/node':
         optional: true
 
-  '@inquirer/editor@5.2.2':
-    resolution: {integrity: sha512-ZRVd/oD+sYsUd5zVm0NflqEzlqfYCyHNsqkHl2oWXEUHs12tCbcSFi+wVFEvD8+LGRaMUsVrE7qeo6lSG/S1Vg==}
+  '@inquirer/core@12.0.4':
+    resolution: {integrity: sha512-M5fB67y7jPObI45vhD82RskWwCSm0scOvenV/I6K8tIi2gfr9DXqQqJ+iw+Wi6SgapikdOiJibYzz1gW47fsDg==}
     engines: {node: '>=23.5.0 || ^22.13.0 || ^20.17.0'}
     peerDependencies:
       '@types/node': '>=18'
@@ -665,8 +661,8 @@ packages:
       '@types/node':
         optional: true
 
-  '@inquirer/expand@5.1.1':
-    resolution: {integrity: sha512-YmQpenjbFSHAK3sOd44puHh3V1KXXr+JiNpUztoSQ4drLh2rTVzTap/YtlAVu/5xavifIlBfNEzJ/neZJ1a/1g==}
+  '@inquirer/editor@5.3.4':
+    resolution: {integrity: sha512-imzxQDfw26NpcJAubMj/dE5RjU9Mp80IcT+FzsD6YoxXmL8L1QYnAFdCNv7ccGWh//73+0YP+1kfhwnExdl2VQ==}
     engines: {node: '>=23.5.0 || ^22.13.0 || ^20.17.0'}
     peerDependencies:
       '@types/node': '>=18'
@@ -674,8 +670,8 @@ packages:
       '@types/node':
         optional: true
 
-  '@inquirer/external-editor@3.0.3':
-    resolution: {integrity: sha512-6thf5I8q7lZwzGLAxPaaGEREEkZ3nyePPDQ1oyobblxmEE8mqTLguScP7pDjUTAibiyb4hfXl+qjUEJ+di/aNA==}
+  '@inquirer/expand@5.1.6':
+    resolution: {integrity: sha512-JfiLKi7qGuHmcQO/DqR10UFEp054Y1FXZaszP5ZEfHhgHeuFoT5nNFQIXFhed/5/p07SbsV2tIJFwG/dg5+NmQ==}
     engines: {node: '>=23.5.0 || ^22.13.0 || ^20.17.0'}
     peerDependencies:
       '@types/node': '>=18'
@@ -683,12 +679,8 @@ packages:
       '@types/node':
         optional: true
 
-  '@inquirer/figures@2.0.7':
-    resolution: {integrity: sha512-aJ8TBPOGB6f/2qziPfElISTCEd5XOYTFckA2SGjhNmiKzfK/u4ot3v0DUzGVdUnKjN10EqnnEPck36BkyfLnJw==}
-    engines: {node: '>=23.5.0 || ^22.13.0 || ^20.17.0'}
-
-  '@inquirer/input@5.1.2':
-    resolution: {integrity: sha512-9K/DDBSQpOyZSkt6sOVP9Vo0TR7atX2kuILsUu0x3wVcVbe97lJwIJKMLdMw25tDYuXl/qp6erT0Xs1rfmcfZg==}
+  '@inquirer/external-editor@3.0.6':
+    resolution: {integrity: sha512-rWmw6WG8JZ7LMn/srXEylYGhL6EXXJeROE7/4x4GREh6NgzqJBDbIgpNGsYoLPfobeb4VZtEYzPGnT5EFNYhiQ==}
     engines: {node: '>=23.5.0 || ^22.13.0 || ^20.17.0'}
     peerDependencies:
       '@types/node': '>=18'
@@ -696,8 +688,12 @@ packages:
       '@types/node':
         optional: true
 
-  '@inquirer/number@4.1.1':
-    resolution: {integrity: sha512-XF4IXAbPnGPgw0wsbC/i2tPcyfdZgDpUlhsqU0SfT4IRIGWha6Xm9VRgN5yYxJq+jnyXlfXI/nQ3ulfk0iEICA==}
+  '@inquirer/figures@2.0.9':
+    resolution: {integrity: sha512-EAWgUTGQ/Umgga51dE3B2PUHbufuXarDfg86uVgoSgNHNNQnyFKcOrQLWVqYMghuSyHh8+2HUH0Js9cTC1WAdg==}
+    engines: {node: '>=23.5.0 || ^22.13.0 || ^20.17.0'}
+
+  '@inquirer/input@5.1.7':
+    resolution: {integrity: sha512-Icrs9tuMBCxGI+lFYNO71VFOnqGO8IIrLIGqnTGh07X8jZ2la9QLAYxXcikHZQjjVhIZUtU2xyH89DVN/pPhVg==}
     engines: {node: '>=23.5.0 || ^22.13.0 || ^20.17.0'}
     peerDependencies:
       '@types/node': '>=18'
@@ -705,8 +701,8 @@ packages:
       '@types/node':
         optional: true
 
-  '@inquirer/password@5.1.1':
-    resolution: {integrity: sha512-3XBfF7DAsp5qeDsvN5Rd1HmbNokVvEQoUM0QLrRcybC9nX96w3Pbmu7qUsb3IT3J3jBvs2+mTXaKHOUsgHMLzg==}
+  '@inquirer/number@4.2.4':
+    resolution: {integrity: sha512-C6g80U4U2+w2Vxa1CB0MN3a2WnQIfzLSUG0lduO3Au9GsirJsKATZkOwZPK+vZ1BlAlz+/Z5ParfQCS9E0svmg==}
     engines: {node: '>=23.5.0 || ^22.13.0 || ^20.17.0'}
     peerDependencies:
       '@types/node': '>=18'
@@ -714,8 +710,8 @@ packages:
       '@types/node':
         optional: true
 
-  '@inquirer/prompts@8.5.2':
-    resolution: {integrity: sha512-IYR/3C/paEVVQYQvdDlFZVjRCJVYHHON0XXMH91KO9GSxs0TdKYWlUdvfQl2EfAHDxUaN3IBffkE/BDTh5nJ6g==}
+  '@inquirer/password@5.2.3':
+    resolution: {integrity: sha512-1Uo2qfI2K3wXbfunMpvwAzoZPIUf5iEETwDGqRVbswoorXGqYQJ/bfIJFeLj+pxjq+e2UFPNOmx+fsIl4Urigw==}
     engines: {node: '>=23.5.0 || ^22.13.0 || ^20.17.0'}
     peerDependencies:
       '@types/node': '>=18'
@@ -723,8 +719,8 @@ packages:
       '@types/node':
         optional: true
 
-  '@inquirer/rawlist@5.3.1':
-    resolution: {integrity: sha512-QqdTqQddL3qPX/PPrjobpsO25NZ4dWXgTLenrR445L2ptLEYE6Z+PD5c5CNDJNx4ugRgELAIpSIJxZaO2jJ2Og==}
+  '@inquirer/prompts@8.7.3':
+    resolution: {integrity: sha512-DHK20kO+H5k/XcJQpHQUpVQbMYHHhZchlGWhZVMUV4WIuRuBW5744hipOtriE1vMqPLgnIyXFMHWKkIbTepa4Q==}
     engines: {node: '>=23.5.0 || ^22.13.0 || ^20.17.0'}
     peerDependencies:
       '@types/node': '>=18'
@@ -732,8 +728,8 @@ packages:
       '@types/node':
         optional: true
 
-  '@inquirer/search@4.2.1':
-    resolution: {integrity: sha512-xJj8QWKRSrfKoBIITLZK61dD3zwo0Rz11fgDImku30/Oe81zMdIdGgrLY2h6RkJ+KZ/GhNYIRMKnH/62qBTA5g==}
+  '@inquirer/rawlist@5.3.6':
+    resolution: {integrity: sha512-2exExhQ5xTBqfN/rRlZkvM1Gm3b0eiLcWe2NqxWxe7qYmnU4M3j/n9TwzfPUb+Q7dAAz9TmBtDWWdF3jbp4ZLA==}
     engines: {node: '>=23.5.0 || ^22.13.0 || ^20.17.0'}
     peerDependencies:
       '@types/node': '>=18'
@@ -741,8 +737,8 @@ packages:
       '@types/node':
         optional: true
 
-  '@inquirer/select@5.2.1':
-    resolution: {integrity: sha512-FlDndEUww8m7BfukO2nJa25vhD+H5jxxCv4oGioKqzyWz3nPHhhw4LKdYRSlXuAx7DsdWia7iyaBPKKS95Evfw==}
+  '@inquirer/search@4.3.4':
+    resolution: {integrity: sha512-xsk0UeFP04jsbEeFMzghjUaH2aHXyt+WykSajQzq/8qyBNHsgGYHea/sFwv5T08kW7Sp+KDX8aF124zPUIs1Ww==}
     engines: {node: '>=23.5.0 || ^22.13.0 || ^20.17.0'}
     peerDependencies:
       '@types/node': '>=18'
@@ -750,8 +746,17 @@ packages:
       '@types/node':
         optional: true
 
-  '@inquirer/type@4.0.7':
-    resolution: {integrity: sha512-t28inv14nMQ1PhKpsJPY+kEs/c00qzeCOS2gTNRyTjG5d6qsVA2fItxW4hkvGZ5lvanGLdtCzVIx5dwdRpN1+g==}
+  '@inquirer/select@5.2.6':
+    resolution: {integrity: sha512-jFu7CFghlr0vpi/326a4wz6BGkJH9X3H/iIu+ahyV2Ja52ktqQE3fC9BYP47JKeSPQYGUv5xquE2Vp9PbepZ3g==}
+    engines: {node: '>=23.5.0 || ^22.13.0 || ^20.17.0'}
+    peerDependencies:
+      '@types/node': '>=18'
+    peerDependenciesMeta:
+      '@types/node':
+        optional: true
+
+  '@inquirer/type@4.2.0':
+    resolution: {integrity: sha512-2rnHX8RPo4glJYqnFc/v3nQeIhDcjyRRyaT7MGcfL/8xv/8K03SXYoA2tX06WVSKywWOE/ncbG3dtuzLjR5TCQ==}
     engines: {node: '>=23.5.0 || ^22.13.0 || ^20.17.0'}
     peerDependencies:
       '@types/node': '>=18'
@@ -891,24 +896,36 @@ packages:
   '@rolldown/pluginutils@1.0.1':
     resolution: {integrity: sha512-2j9bGt5Jh8hj+vPtgzPtl72j0yRxHAyumoo6TNfAjsLB04UtpSvPbPcDcBMxz7n+9CYB0c1GxQFxYRg2jimqGw==}
 
-  '@scalar/helpers@0.9.2':
-    resolution: {integrity: sha512-hjyMpMZjTBZQhyByZmz5oUgRKUQJO5V5AOiJxsVEGbUmgA7sJRQeTrXLB+BEwzaKS5nm2opJeNyMBYLFNK4hiQ==}
+  '@scalar/helpers@0.11.1':
+    resolution: {integrity: sha512-Knwbe0IYqFk0PPDoOKLasqglBHfyf9/zwWWqFsSNi/AtdjM29wSZXN6p8DFid6iB5B9epYH9YiSgJ6tpD00TEw==}
     engines: {node: '>=22'}
 
-  '@scalar/json-magic@0.12.19':
-    resolution: {integrity: sha512-1T4QoFYZ1nKt25xFeHtghAuZzaLq2X4CpCSLFXG0Fjcz6K2HIZqo+RtywfI0WD8RRRRgS34keo7X4Gv1BQUNoQ==}
+  '@scalar/helpers@0.12.0':
+    resolution: {integrity: sha512-rcX0rFLiWWc0VBr/E+HkatubL0I0ZzxASQkd3032NWEMAEfNd2TiJ9kH46HwbSAOOl696ghxymWegjpjjvxwzA==}
     engines: {node: '>=22'}
 
-  '@scalar/openapi-parser@0.28.10':
-    resolution: {integrity: sha512-jn3ftvtNTcWOgxf7XVn9CvJGMjFS7QU1b6FiGmibzAlR/6pOP3Ei7sBBnfIY4PBwHjHgMAGBoGApfOV8h75gPQ==}
+  '@scalar/json-magic@0.13.2':
+    resolution: {integrity: sha512-T8rQw5u7+MSTDpUcd5ShX1taOUxpZMv2b/P6xsahdlv/u68VX/Bq/+uzuAf2xW8IIOy7BEP4MBggle/vMDgAXw==}
     engines: {node: '>=22'}
 
-  '@scalar/openapi-types@0.9.3':
-    resolution: {integrity: sha512-34qglt5jSo55iZfH9i7EhjQCdE0Po2xZeh8wytQKolSnXrxsYMSyFDJEBxz1Gaew4on9N3XIWsd0QpwKVA5CSA==}
+  '@scalar/json-magic@0.13.5':
+    resolution: {integrity: sha512-w5eENfKAkc4CYiLva3nGUhTaJfyi3szmZ3E7+EHlzahOUnbDmB9rAWyzt8GFCXbwxeTuR+1m7lO1PyV/QAid4A==}
     engines: {node: '>=22'}
 
-  '@scalar/openapi-upgrader@0.2.11':
-    resolution: {integrity: sha512-eYEFBO8mZfgXEO/hv8rdL5OA4oOB8orFT5kXNK4I/x9xca2D7A4BteuFXqRaw9lE1CIjtG+StlAUYVz5omTXew==}
+  '@scalar/openapi-parser@0.28.16':
+    resolution: {integrity: sha512-zHEQExXo58Nk7/Tju4y4HLVJ+B5nnDmR7vPhhHLVinL0z99aGrd6S/8HREupVpfAsim326pfzIbSM+UOvEbnOw==}
+    engines: {node: '>=22'}
+
+  '@scalar/openapi-types@0.9.5':
+    resolution: {integrity: sha512-czrz/zkVm1oPzrpYo3hI/iymfiw1s4dgJiQtwNi2U77Sqf3EQOGKsif4VNRa5suWMYRuPaFx5EiFM1FNEV4Whg==}
+    engines: {node: '>=22'}
+
+  '@scalar/openapi-types@0.9.8':
+    resolution: {integrity: sha512-pGcpkZObsGBC7nRKYte+6gstoe0C4hp7B2UWQYjg5To1wE68s3OHVvin+muL3tn3ZAoahXeJAkn1+aEcMi802w==}
+    engines: {node: '>=22'}
+
+  '@scalar/openapi-upgrader@0.2.15':
+    resolution: {integrity: sha512-yqROK9U96ElasEL4Wl/+PIjQZlqrQXVUUpXk9PA6xBnrp8KdEv7at8pR5gsZkvddJfYVwLILPlctyqUg4u4YZA==}
     engines: {node: '>=22'}
 
   '@standard-schema/spec@1.1.0':
@@ -1055,14 +1072,14 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@typespec/asset-emitter@0.79.1':
-    resolution: {integrity: sha512-53s3GLu5BwNkl7Itr/OizfhymTV2u7k5/cwjUOAt03AUDfiKlwbsp+iCIsq1vccJuoDOiXOceJOfL8rAf4/9LQ==}
-    engines: {node: '>=20.0.0'}
+  '@typespec/asset-emitter@0.79.2':
+    resolution: {integrity: sha512-hcr0jxYgXM0suBwPtjnScYXZVIIqkcdd8jgYh1T7VLHem8+q0WthFQxeKbDIrip4k/nCFtnZui6Dj5oOVJb8fA==}
+    engines: {node: '>=22.0.0'}
     peerDependencies:
-      '@typespec/compiler': ^1.10.0
+      '@typespec/compiler': ^1.16.0
 
-  '@typespec/compiler@1.14.0':
-    resolution: {integrity: sha512-RRN0LGVDlonG/IbB2b4mvRjdCo6LywwB9/J8lOp6UaH7vtaFnKe5FL+rpxhof4rXx/zI/4OWnQO6c01bTCz4/Q==}
+  '@typespec/compiler@1.16.0':
+    resolution: {integrity: sha512-pT4gN+OSEXZMLxIhtI3QgIUafeFktfIBKVb7p+X/rAzDymQSO8yAb+srMBQ43PIcmfrvMxCNaD1SKBa9AGhWtA==}
     engines: {node: '>=22.0.0'}
     hasBin: true
 
@@ -1109,35 +1126,35 @@ packages:
       '@typespec/emitter-framework': ^0.19.0
       '@typespec/http': ^1.14.0
 
-  '@typespec/http@1.14.0':
-    resolution: {integrity: sha512-W+heCzu8K63AVcoX8MachVWaRxSAMFWOI1yBTc2Kq8QHaJeDiLL5JbU8VfTZ4tL/6EoGSdKfIT5ZNRW7oVCzhg==}
+  '@typespec/http@1.16.0':
+    resolution: {integrity: sha512-4cODL4uqoj6YGj3Z04mQx1JwrM7o4Ytv4dO75o3Y3fx66v4BF4B5hF2dwnwh02Xe0e9qO1aDoaRlO2QGDz3mEA==}
     engines: {node: '>=22.0.0'}
     peerDependencies:
-      '@typespec/compiler': ^1.14.0
-      '@typespec/streams': ^0.84.0
+      '@typespec/compiler': ^1.16.0
+      '@typespec/streams': ^0.86.0
     peerDependenciesMeta:
       '@typespec/streams':
         optional: true
 
-  '@typespec/json-schema@1.14.0':
-    resolution: {integrity: sha512-YNp0k+HV5eXzzXbAgxOGj01h+Asg1Ljo2EeaqQWFgS6o1Hxg7M4nQZeLs59v9IUxYvtJCHSkmeMADRjpCatrPw==}
+  '@typespec/json-schema@1.16.0':
+    resolution: {integrity: sha512-an9fuC2KFSJraODr8ZNcQwMKNemcuFN3V2RYdsOpexzMtdldd81fTid19N8of10OotBd8O7+TeMW9s3PZ4H7Uw==}
     engines: {node: '>=22.0.0'}
     peerDependencies:
-      '@typespec/compiler': ^1.14.0
+      '@typespec/compiler': ^1.16.0
 
-  '@typespec/openapi3@1.14.0':
-    resolution: {integrity: sha512-14wjep65fvxWQHObYMaT2zISzwfdkArQ2SPkM7+t5pvAWMwKn4dnv7rSP4QRvxqjaiLsQAz7GT1SS8DaX9BhgA==}
+  '@typespec/openapi3@1.16.0':
+    resolution: {integrity: sha512-eRyTwn4w5hWSRm15ys20O2Jp1aHDPHp6TZsctOsG3nxo+N50Qg7Epgu44ATsxaELmnCEg9G0B7N9czZKb51dSQ==}
     engines: {node: '>=22.0.0'}
     hasBin: true
     peerDependencies:
-      '@typespec/compiler': ^1.14.0
-      '@typespec/events': ^0.84.0
-      '@typespec/http': ^1.14.0
-      '@typespec/json-schema': ^1.14.0
-      '@typespec/openapi': ^1.14.0
-      '@typespec/sse': ^0.84.0
-      '@typespec/streams': ^0.84.0
-      '@typespec/versioning': ^0.84.0
+      '@typespec/compiler': ^1.16.0
+      '@typespec/events': ^0.86.0
+      '@typespec/http': ^1.16.0
+      '@typespec/json-schema': ^1.16.0
+      '@typespec/openapi': ^1.16.0
+      '@typespec/sse': ^0.86.0
+      '@typespec/streams': ^0.86.0
+      '@typespec/versioning': ^0.86.0
       '@typespec/xml': '*'
     peerDependenciesMeta:
       '@typespec/events':
@@ -1153,22 +1170,22 @@ packages:
       '@typespec/xml':
         optional: true
 
-  '@typespec/openapi@1.14.0':
-    resolution: {integrity: sha512-KL7kImPhCXRmxpHVt1k7TWaa4bb3NbSeUx2rxyxeq7lYZFllI6/NYRCTOI/5JOrbElWmmSxrajU9K9IAKI6PkQ==}
+  '@typespec/openapi@1.16.0':
+    resolution: {integrity: sha512-6F+3e1dOJkIV4K0vCsuDpdwxoXnsT6eOomd4MpIUJAwyA7etEraUmPM9Qstp42MLIBoPWm9dK4Y9Whxtohc/KA==}
     engines: {node: '>=22.0.0'}
     peerDependencies:
-      '@typespec/compiler': ^1.14.0
-      '@typespec/http': ^1.14.0
+      '@typespec/compiler': ^1.16.0
+      '@typespec/http': ^1.16.0
 
-  '@typespec/prettier-plugin-typespec@1.14.0':
-    resolution: {integrity: sha512-OW5VW8sqNdfoDgHgMo8sGsI1vCfY+Q54lgTU/uNqGKSgF6jBDyjpnQjRyxTZGX6GH7lWPQceolUV5noTjfWrRg==}
+  '@typespec/prettier-plugin-typespec@1.16.0':
+    resolution: {integrity: sha512-ciJZ/YHfPN/IbySM/5c7w/S9gIR4X+Ozv7L13Dr4UNtAV64/o3LH/GZuf3FUo0zxyPBwPWJHuCuXe+btddai7w==}
 
-  '@typespec/rest@0.84.0':
-    resolution: {integrity: sha512-9s5dDfRoHRPdtbVvkBasUx/RnMvwWMTuXRieSQDEji4gWGgxVu4Zt4MiEEKSfQrkMr3Aw0QjRCSxBxjMCHIOmA==}
+  '@typespec/rest@0.86.0':
+    resolution: {integrity: sha512-Lbl4x/ZW26r4ZsxpgvS7T3F998J7pvyDs+OsHgVKDI45EvPmdDydI4TKOH++UmHJ2tH8kw8KHzMPqCehWLIa6g==}
     engines: {node: '>=22.0.0'}
     peerDependencies:
-      '@typespec/compiler': ^1.14.0
-      '@typespec/http': ^1.14.0
+      '@typespec/compiler': ^1.16.0
+      '@typespec/http': ^1.16.0
 
   '@typespec/sse@0.84.0':
     resolution: {integrity: sha512-9joNgVisRCWDFfV1d79iTAuR1W/6r+AKJrKUfcjsaTrq5A8OWW3v5TTsfxbHAZArn7n2WxQkqhNGgNyc8LjEng==}
@@ -1179,17 +1196,17 @@ packages:
       '@typespec/http': ^1.14.0
       '@typespec/streams': ^0.84.0
 
-  '@typespec/streams@0.84.0':
-    resolution: {integrity: sha512-SDneR8+zY+ueOpzg9yJtttfDe/ikB99JgddZSXKPwiDPlAIEeEvI8auipcYfB58EEOB21h8Oq0tEm8HqiAAWdQ==}
+  '@typespec/streams@0.86.0':
+    resolution: {integrity: sha512-zK2kFtj53dVYnza6a6peEc5KPZ2l9iQCLaaoN1mO7IIYhNCaUMotv6qvbNJF7rw46HMm7u1Xzbi6NqeyVnnb9A==}
     engines: {node: '>=22.0.0'}
     peerDependencies:
-      '@typespec/compiler': ^1.14.0
+      '@typespec/compiler': ^1.16.0
 
-  '@typespec/versioning@0.84.0':
-    resolution: {integrity: sha512-ZoDasTDj4z0mgFK+0cJL2+7DduCaTjvICHL2nQ/RBWc7nLgObaIYCjvXLno8WneDXnpxCAr7larN4/nlHEv9fg==}
+  '@typespec/versioning@0.86.0':
+    resolution: {integrity: sha512-/VUgQXSNcwbhNllTKptGAcoxYCh3+E/a9RUcmlBj7v04yIN4rkSFFmxHKRWKuKaz9LYQerXSPrVNM6Ja1msFlw==}
     engines: {node: '>=22.0.0'}
     peerDependencies:
-      '@typespec/compiler': ^1.14.0
+      '@typespec/compiler': ^1.16.0
 
   '@typespec/xml@0.81.0':
     resolution: {integrity: sha512-4docnAcV1a8gE4c4TmYuirZf2PEzS4xHUH4QjHFU6hk6J2M6OMU6YG4iSq9tmlUzQ/2DraVcWNO/fsG8Lt383A==}
@@ -1699,6 +1716,10 @@ packages:
     resolution: {integrity: sha512-tsaTIkKW9b4N+AEj+SVA+WhJzV7/zMhcSu78mLKWSk7cXMOSHsBKFWUs0fWwq8QyK3MgJBQRX6Gbi4kYbdvGkQ==}
     engines: {node: '>=18'}
 
+  string-width@8.3.0:
+    resolution: {integrity: sha512-ZbmZM0JCihQN91dWnxoipT2KOEyHqEyfRXUyjuRhW8b/xnqPDoq4gWEVApTVa9db2wN8mmoikgFBbjh71+cGeQ==}
+    engines: {node: '>=20'}
+
   strip-ansi@6.0.1:
     resolution: {integrity: sha512-Y38VPSHcqkFrCpFnQ9vuSXmquuv5oXOKpGeT6aGrr3o3Gc9AlVa6JBfUSOCnbxGGZF+/0ooI7KrPuUSztUdU5A==}
     engines: {node: '>=8'}
@@ -1711,18 +1732,18 @@ packages:
     resolution: {integrity: sha512-qpCAvRl9stuOHveKsn7HncJRvv501qIacKzQlO/+Lwxc9+0q2wLyv4Dfvt80/DPn2pqOBsJdDiogXGR9+OvwRw==}
     engines: {node: '>=8'}
 
-  tar@7.5.21:
-    resolution: {integrity: sha512-XdhtCvlMywwxpCW8YEq3lOXBJpUPTR2OHHcwLPO3HwsJqOHa2Ok/oJ7ruGzp+JrKoRPVCzJwAdEjqLW/vNRPHA==}
+  tar@7.5.22:
+    resolution: {integrity: sha512-MFO/QzvtAOmJbkhOaCTvbGcFN9L9b+JunIsDwaKljSOdcLMea3NJ1k9Usz/rjdfSXTq4dfzfeS7W4p4YOAAHeA==}
     engines: {node: '>=18'}
 
-  temporal-polyfill@1.0.1:
-    resolution: {integrity: sha512-N2SoI9olnW7BUsU8RosDphZQl9s+WJ8O7PoJMFCr/e5/1rFkVI4GNOWaSeySG+UoP04foPYsnLWbJmbXOiShZg==}
+  temporal-polyfill@1.0.6:
+    resolution: {integrity: sha512-tYyEry1HLGUDbm2356W3iYD0OZdo7rlP7h98Zr/EnjqLZQwTAfcBDUvJnJbfA15v/vQad57hJZScG5O0W2oKEA==}
 
-  temporal-spec@1.0.0:
-    resolution: {integrity: sha512-00Ahj1e1ifaERTMOIIGpOCdOo9IEk2m6GGSMedsn9a2SIsGLdOTbmME1Htv6IM82b6VHrzSUTIVc7YHy6hdhFQ==}
+  temporal-spec@1.0.1:
+    resolution: {integrity: sha512-wxVoanmDeavXie1vu2JaQ3WIc3JZnWAOYFBsJyATaVsXsycKYUflGsyBmrRSnoCpZJpwPyr38VpgSUlQ8CbFxg==}
 
-  temporal-utils@1.0.1:
-    resolution: {integrity: sha512-HAixuesxFQIUaQk3ptX2jhfO/FsOkgVkDDMawvp6n/fkB1q6BKfs3lURw9I+pK/2e2e/q/vrLrxmeqauBoyGMQ==}
+  temporal-utils@1.0.3:
+    resolution: {integrity: sha512-9jbTSX3HvkOWvDpNpFzwX/d1mkCrgQgwLmVTOEiuocZGKHsrQJtttGZFmybJ2zYP5zCSZuU5ZyeS8+eOEPABiQ==}
 
   tinybench@2.9.0:
     resolution: {integrity: sha512-0+DUvqWMValLmha6lr4kD8iAMK1HzV0/aKnCtWb9v9641TnP/MFb7Pc2bxoxQjTXAErryXVgUOfv2YqNllqGeg==}
@@ -1759,6 +1780,10 @@ packages:
 
   undici-types@8.3.0:
     resolution: {integrity: sha512-j375ScV60dom+YkPFIfTLcOiPxkN/buHz5GobjLhixFuANaNs3C9l4GmrWqejgXWJ7BbJcFYpTEUkS1Ge8bpZQ==}
+
+  undici@7.29.1:
+    resolution: {integrity: sha512-RYONW2MeafgYlkVOKYKkA/Ag7BmXqgIWCa8t1m0JcxrQg9pI9lEqRhAOruOBCbAohOa/gkCF+iPi9hrgvTzu6Q==}
+    engines: {node: '>=20.18.1'}
 
   update-browserslist-db@1.2.3:
     resolution: {integrity: sha512-Js0m9cx+qOgDxo0eMiFGEueWztz+d4+M3rGlmKPT+T4IS/jP4ylw3Nwpu6cpTTP8R1MAC1kF4VbdLt3ARf209w==}
@@ -1860,8 +1885,8 @@ packages:
   vscode-languageserver-protocol@3.18.2:
     resolution: {integrity: sha512-XRyDbT0Pp3sSNti3JmxVEUMySWCSi1hhM+/KUlCy1hV1zmrqpM1OwO12EAki8blhmLuIMpaJrYbo0OzGVfK2Qg==}
 
-  vscode-languageserver-textdocument@1.0.12:
-    resolution: {integrity: sha512-cxWNPesCnQCcMPeenjKKsOCKQZ/L6Tv19DTRIGuLWe32lyzWhihGVJ/rcckZXJxfdKCFvRLS3fpBIsV/ZGX4zA==}
+  vscode-languageserver-textdocument@1.0.15:
+    resolution: {integrity: sha512-Gsfr9S8LU3S6885cS+NaleasJ0n3V5y/SOTqHCifQiXWFw3G9w9/YItDfwHrlCz+dSZWWZ8ilYVMcJe7Sz7Sxw==}
 
   vscode-languageserver-types@3.18.0:
     resolution: {integrity: sha512-8TsGPNMIMiiBdkORgRSvLjuiEIiAFtO+KssmYWxQ+uSVvlf7RjK8YKCOjPzZ+YA04jXEV7+7LvkSmHkhpNS99g==}
@@ -1911,8 +1936,8 @@ packages:
     resolution: {integrity: sha512-rwu/ClNdSMpkSrUb+d6BRsSkLUq1fmfsY6TOpYzTwvwkg1/NRG85KBy3kq++A8LKQwX6lsu+aWad+2khvuXrqw==}
     engines: {node: ^20.19.0 || ^22.12.0 || >=23}
 
-  yargs@18.0.0:
-    resolution: {integrity: sha512-4UEqdc2RYGHZc7Doyqkrqiln3p9X2DZVxaGbwhn2pi7MrRagKaOcIKe8L3OxYcbhXLgLFUS3zAYuQjKBQgmuNg==}
+  yargs@18.2.0:
+    resolution: {integrity: sha512-9OpKOLeaoNFecEp7P6iYbzze/5CqWoH7N3SMs/6y1XF4nMvFMspEGZzJ6uFi9MmQwXhyzqYoSEKO3tvA3Z/o2w==}
     engines: {node: ^20.19.0 || ^22.12.0 || >=23}
 
   zod@4.4.3:
@@ -2020,55 +2045,55 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  '@azure-tools/typespec-autorest@0.67.0(cb8bc4d609815356047ad8997b0a2b79)':
+  '@azure-tools/typespec-autorest@0.67.0(2ae82f54f5382049a576914709d16911)':
     dependencies:
-      '@azure-tools/typespec-azure-core': 0.67.0(5d916688b3aacc60dc4cc446c2043a47)
-      '@azure-tools/typespec-azure-resource-manager': 0.67.0(a97f33eb64121c34c90b9cf27bb0f437)
-      '@azure-tools/typespec-client-generator-core': 0.70.0(f143bd1a87e01af6d9cc5b76d61cac4d)
-      '@typespec/compiler': 1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1)
-      '@typespec/http': 1.14.0(patch_hash=2c55262cf42b2d54e5db3b8fe28abb4ab702cf9dbf34b5650c367270ec6ee5ef)(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))(@typespec/streams@0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1)))
-      '@typespec/openapi': 1.14.0(patch_hash=a717b240dcdc3d23f8b752d783844b65ef750bad173549d92db12a5a0131183c)(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))(@typespec/http@1.14.0(patch_hash=2c55262cf42b2d54e5db3b8fe28abb4ab702cf9dbf34b5650c367270ec6ee5ef)(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))(@typespec/streams@0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))))
-      '@typespec/rest': 0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))(@typespec/http@1.14.0(patch_hash=2c55262cf42b2d54e5db3b8fe28abb4ab702cf9dbf34b5650c367270ec6ee5ef)(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))(@typespec/streams@0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))))
-      '@typespec/versioning': 0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))
+      '@azure-tools/typespec-azure-core': 0.67.0(7ceb76c9a5323943b3d0bf18faa60c17)
+      '@azure-tools/typespec-azure-resource-manager': 0.67.0(897e6d5f495859a0860cc37b31445b29)
+      '@azure-tools/typespec-client-generator-core': 0.72.0(c314e46f44c81bb409927108b9acfaaf)
+      '@typespec/compiler': 1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1)
+      '@typespec/http': 1.16.0(patch_hash=f8df299e1f9d75283e428307cc8d98f49dd0ea09500892e7755401a87aa94716)(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))(@typespec/streams@0.86.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1)))
+      '@typespec/openapi': 1.16.0(patch_hash=a44757d47142b3577fdd6486abc90f2310750c341a71fd86e81ab7774c025a57)(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))(@typespec/http@1.16.0(patch_hash=f8df299e1f9d75283e428307cc8d98f49dd0ea09500892e7755401a87aa94716)(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))(@typespec/streams@0.86.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))))
+      '@typespec/rest': 0.86.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))(@typespec/http@1.16.0(patch_hash=f8df299e1f9d75283e428307cc8d98f49dd0ea09500892e7755401a87aa94716)(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))(@typespec/streams@0.86.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))))
+      '@typespec/versioning': 0.86.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))
     optionalDependencies:
-      '@typespec/xml': 0.81.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))
+      '@typespec/xml': 0.81.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))
 
-  '@azure-tools/typespec-azure-core@0.67.0(5d916688b3aacc60dc4cc446c2043a47)':
+  '@azure-tools/typespec-azure-core@0.67.0(7ceb76c9a5323943b3d0bf18faa60c17)':
     dependencies:
-      '@typespec/compiler': 1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1)
-      '@typespec/http': 1.14.0(patch_hash=2c55262cf42b2d54e5db3b8fe28abb4ab702cf9dbf34b5650c367270ec6ee5ef)(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))(@typespec/streams@0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1)))
-      '@typespec/rest': 0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))(@typespec/http@1.14.0(patch_hash=2c55262cf42b2d54e5db3b8fe28abb4ab702cf9dbf34b5650c367270ec6ee5ef)(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))(@typespec/streams@0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))))
+      '@typespec/compiler': 1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1)
+      '@typespec/http': 1.16.0(patch_hash=f8df299e1f9d75283e428307cc8d98f49dd0ea09500892e7755401a87aa94716)(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))(@typespec/streams@0.86.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1)))
+      '@typespec/rest': 0.86.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))(@typespec/http@1.16.0(patch_hash=f8df299e1f9d75283e428307cc8d98f49dd0ea09500892e7755401a87aa94716)(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))(@typespec/streams@0.86.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))))
 
-  '@azure-tools/typespec-azure-resource-manager@0.67.0(a97f33eb64121c34c90b9cf27bb0f437)':
+  '@azure-tools/typespec-azure-resource-manager@0.67.0(897e6d5f495859a0860cc37b31445b29)':
     dependencies:
-      '@azure-tools/typespec-azure-core': 0.67.0(5d916688b3aacc60dc4cc446c2043a47)
-      '@typespec/compiler': 1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1)
-      '@typespec/http': 1.14.0(patch_hash=2c55262cf42b2d54e5db3b8fe28abb4ab702cf9dbf34b5650c367270ec6ee5ef)(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))(@typespec/streams@0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1)))
-      '@typespec/openapi': 1.14.0(patch_hash=a717b240dcdc3d23f8b752d783844b65ef750bad173549d92db12a5a0131183c)(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))(@typespec/http@1.14.0(patch_hash=2c55262cf42b2d54e5db3b8fe28abb4ab702cf9dbf34b5650c367270ec6ee5ef)(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))(@typespec/streams@0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))))
-      '@typespec/rest': 0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))(@typespec/http@1.14.0(patch_hash=2c55262cf42b2d54e5db3b8fe28abb4ab702cf9dbf34b5650c367270ec6ee5ef)(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))(@typespec/streams@0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))))
-      '@typespec/versioning': 0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))
+      '@azure-tools/typespec-azure-core': 0.67.0(7ceb76c9a5323943b3d0bf18faa60c17)
+      '@typespec/compiler': 1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1)
+      '@typespec/http': 1.16.0(patch_hash=f8df299e1f9d75283e428307cc8d98f49dd0ea09500892e7755401a87aa94716)(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))(@typespec/streams@0.86.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1)))
+      '@typespec/openapi': 1.16.0(patch_hash=a44757d47142b3577fdd6486abc90f2310750c341a71fd86e81ab7774c025a57)(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))(@typespec/http@1.16.0(patch_hash=f8df299e1f9d75283e428307cc8d98f49dd0ea09500892e7755401a87aa94716)(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))(@typespec/streams@0.86.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))))
+      '@typespec/rest': 0.86.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))(@typespec/http@1.16.0(patch_hash=f8df299e1f9d75283e428307cc8d98f49dd0ea09500892e7755401a87aa94716)(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))(@typespec/streams@0.86.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))))
+      '@typespec/versioning': 0.86.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))
       change-case: 5.4.4
       pluralize: 8.0.0
 
-  '@azure-tools/typespec-azure-rulesets@0.67.0(@azure-tools/typespec-azure-core@0.67.0(5d916688b3aacc60dc4cc446c2043a47))(@azure-tools/typespec-azure-resource-manager@0.67.0(a97f33eb64121c34c90b9cf27bb0f437))(@azure-tools/typespec-client-generator-core@0.70.0(f143bd1a87e01af6d9cc5b76d61cac4d))(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))':
+  '@azure-tools/typespec-azure-rulesets@0.67.0(@azure-tools/typespec-azure-core@0.67.0(7ceb76c9a5323943b3d0bf18faa60c17))(@azure-tools/typespec-azure-resource-manager@0.67.0(897e6d5f495859a0860cc37b31445b29))(@azure-tools/typespec-client-generator-core@0.72.0(c314e46f44c81bb409927108b9acfaaf))(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))':
     dependencies:
-      '@azure-tools/typespec-azure-core': 0.67.0(5d916688b3aacc60dc4cc446c2043a47)
-      '@azure-tools/typespec-azure-resource-manager': 0.67.0(a97f33eb64121c34c90b9cf27bb0f437)
-      '@azure-tools/typespec-client-generator-core': 0.70.0(f143bd1a87e01af6d9cc5b76d61cac4d)
-      '@typespec/compiler': 1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1)
+      '@azure-tools/typespec-azure-core': 0.67.0(7ceb76c9a5323943b3d0bf18faa60c17)
+      '@azure-tools/typespec-azure-resource-manager': 0.67.0(897e6d5f495859a0860cc37b31445b29)
+      '@azure-tools/typespec-client-generator-core': 0.72.0(c314e46f44c81bb409927108b9acfaaf)
+      '@typespec/compiler': 1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1)
 
-  '@azure-tools/typespec-client-generator-core@0.70.0(f143bd1a87e01af6d9cc5b76d61cac4d)':
+  '@azure-tools/typespec-client-generator-core@0.72.0(c314e46f44c81bb409927108b9acfaaf)':
     dependencies:
-      '@azure-tools/typespec-azure-core': 0.67.0(5d916688b3aacc60dc4cc446c2043a47)
-      '@typespec/compiler': 1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1)
-      '@typespec/events': 0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))
-      '@typespec/http': 1.14.0(patch_hash=2c55262cf42b2d54e5db3b8fe28abb4ab702cf9dbf34b5650c367270ec6ee5ef)(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))(@typespec/streams@0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1)))
-      '@typespec/openapi': 1.14.0(patch_hash=a717b240dcdc3d23f8b752d783844b65ef750bad173549d92db12a5a0131183c)(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))(@typespec/http@1.14.0(patch_hash=2c55262cf42b2d54e5db3b8fe28abb4ab702cf9dbf34b5650c367270ec6ee5ef)(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))(@typespec/streams@0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))))
-      '@typespec/rest': 0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))(@typespec/http@1.14.0(patch_hash=2c55262cf42b2d54e5db3b8fe28abb4ab702cf9dbf34b5650c367270ec6ee5ef)(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))(@typespec/streams@0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))))
-      '@typespec/sse': 0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))(@typespec/events@0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1)))(@typespec/http@1.14.0(patch_hash=2c55262cf42b2d54e5db3b8fe28abb4ab702cf9dbf34b5650c367270ec6ee5ef)(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))(@typespec/streams@0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))))(@typespec/streams@0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1)))
-      '@typespec/streams': 0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))
-      '@typespec/versioning': 0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))
-      '@typespec/xml': 0.81.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))
+      '@azure-tools/typespec-azure-core': 0.67.0(7ceb76c9a5323943b3d0bf18faa60c17)
+      '@typespec/compiler': 1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1)
+      '@typespec/events': 0.84.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))
+      '@typespec/http': 1.16.0(patch_hash=f8df299e1f9d75283e428307cc8d98f49dd0ea09500892e7755401a87aa94716)(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))(@typespec/streams@0.86.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1)))
+      '@typespec/openapi': 1.16.0(patch_hash=a44757d47142b3577fdd6486abc90f2310750c341a71fd86e81ab7774c025a57)(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))(@typespec/http@1.16.0(patch_hash=f8df299e1f9d75283e428307cc8d98f49dd0ea09500892e7755401a87aa94716)(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))(@typespec/streams@0.86.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))))
+      '@typespec/rest': 0.86.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))(@typespec/http@1.16.0(patch_hash=f8df299e1f9d75283e428307cc8d98f49dd0ea09500892e7755401a87aa94716)(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))(@typespec/streams@0.86.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))))
+      '@typespec/sse': 0.84.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))(@typespec/events@0.84.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1)))(@typespec/http@1.16.0(patch_hash=f8df299e1f9d75283e428307cc8d98f49dd0ea09500892e7755401a87aa94716)(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))(@typespec/streams@0.86.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))))(@typespec/streams@0.86.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1)))
+      '@typespec/streams': 0.86.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))
+      '@typespec/versioning': 0.86.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))
+      '@typespec/xml': 0.81.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))
       change-case: 5.4.4
       pluralize: 8.0.0
       yaml: 2.9.0
@@ -2370,29 +2395,29 @@ snapshots:
       fetch-mock: 12.6.0
       vitest: 4.1.12(@types/node@26.1.1)(@vitest/coverage-v8@4.1.12)(vite@8.1.6(@types/node@26.1.1)(esbuild@0.28.1)(tsx@4.23.1)(yaml@2.9.0))
 
-  '@inquirer/ansi@2.0.7': {}
+  '@inquirer/ansi@2.0.9': {}
 
-  '@inquirer/checkbox@5.2.1(@types/node@26.1.1)':
+  '@inquirer/checkbox@5.2.6(@types/node@26.1.1)':
     dependencies:
-      '@inquirer/ansi': 2.0.7
-      '@inquirer/core': 11.2.1(@types/node@26.1.1)
-      '@inquirer/figures': 2.0.7
-      '@inquirer/type': 4.0.7(@types/node@26.1.1)
+      '@inquirer/ansi': 2.0.9
+      '@inquirer/core': 12.0.4(@types/node@26.1.1)
+      '@inquirer/figures': 2.0.9
+      '@inquirer/type': 4.2.0(@types/node@26.1.1)
     optionalDependencies:
       '@types/node': 26.1.1
 
-  '@inquirer/confirm@6.1.1(@types/node@26.1.1)':
+  '@inquirer/confirm@6.3.3(@types/node@26.1.1)':
     dependencies:
-      '@inquirer/core': 11.2.1(@types/node@26.1.1)
-      '@inquirer/type': 4.0.7(@types/node@26.1.1)
+      '@inquirer/core': 12.0.4(@types/node@26.1.1)
+      '@inquirer/type': 4.2.0(@types/node@26.1.1)
     optionalDependencies:
       '@types/node': 26.1.1
 
-  '@inquirer/core@11.2.1(@types/node@26.1.1)':
+  '@inquirer/core@12.0.4(@types/node@26.1.1)':
     dependencies:
-      '@inquirer/ansi': 2.0.7
-      '@inquirer/figures': 2.0.7
-      '@inquirer/type': 4.0.7(@types/node@26.1.1)
+      '@inquirer/ansi': 2.0.9
+      '@inquirer/figures': 2.0.9
+      '@inquirer/type': 4.2.0(@types/node@26.1.1)
       cli-width: 4.1.0
       fast-wrap-ansi: 0.2.2
       mute-stream: 3.0.0
@@ -2400,92 +2425,92 @@ snapshots:
     optionalDependencies:
       '@types/node': 26.1.1
 
-  '@inquirer/editor@5.2.2(@types/node@26.1.1)':
+  '@inquirer/editor@5.3.4(@types/node@26.1.1)':
     dependencies:
-      '@inquirer/core': 11.2.1(@types/node@26.1.1)
-      '@inquirer/external-editor': 3.0.3(@types/node@26.1.1)
-      '@inquirer/type': 4.0.7(@types/node@26.1.1)
+      '@inquirer/core': 12.0.4(@types/node@26.1.1)
+      '@inquirer/external-editor': 3.0.6(@types/node@26.1.1)
+      '@inquirer/type': 4.2.0(@types/node@26.1.1)
     optionalDependencies:
       '@types/node': 26.1.1
 
-  '@inquirer/expand@5.1.1(@types/node@26.1.1)':
+  '@inquirer/expand@5.1.6(@types/node@26.1.1)':
     dependencies:
-      '@inquirer/core': 11.2.1(@types/node@26.1.1)
-      '@inquirer/type': 4.0.7(@types/node@26.1.1)
+      '@inquirer/core': 12.0.4(@types/node@26.1.1)
+      '@inquirer/type': 4.2.0(@types/node@26.1.1)
     optionalDependencies:
       '@types/node': 26.1.1
 
-  '@inquirer/external-editor@3.0.3(@types/node@26.1.1)':
+  '@inquirer/external-editor@3.0.6(@types/node@26.1.1)':
     dependencies:
       chardet: 2.2.0
       iconv-lite: 0.7.3
     optionalDependencies:
       '@types/node': 26.1.1
 
-  '@inquirer/figures@2.0.7': {}
+  '@inquirer/figures@2.0.9': {}
 
-  '@inquirer/input@5.1.2(@types/node@26.1.1)':
+  '@inquirer/input@5.1.7(@types/node@26.1.1)':
     dependencies:
-      '@inquirer/core': 11.2.1(@types/node@26.1.1)
-      '@inquirer/type': 4.0.7(@types/node@26.1.1)
+      '@inquirer/core': 12.0.4(@types/node@26.1.1)
+      '@inquirer/type': 4.2.0(@types/node@26.1.1)
     optionalDependencies:
       '@types/node': 26.1.1
 
-  '@inquirer/number@4.1.1(@types/node@26.1.1)':
+  '@inquirer/number@4.2.4(@types/node@26.1.1)':
     dependencies:
-      '@inquirer/core': 11.2.1(@types/node@26.1.1)
-      '@inquirer/type': 4.0.7(@types/node@26.1.1)
+      '@inquirer/core': 12.0.4(@types/node@26.1.1)
+      '@inquirer/type': 4.2.0(@types/node@26.1.1)
     optionalDependencies:
       '@types/node': 26.1.1
 
-  '@inquirer/password@5.1.1(@types/node@26.1.1)':
+  '@inquirer/password@5.2.3(@types/node@26.1.1)':
     dependencies:
-      '@inquirer/ansi': 2.0.7
-      '@inquirer/core': 11.2.1(@types/node@26.1.1)
-      '@inquirer/type': 4.0.7(@types/node@26.1.1)
+      '@inquirer/ansi': 2.0.9
+      '@inquirer/core': 12.0.4(@types/node@26.1.1)
+      '@inquirer/type': 4.2.0(@types/node@26.1.1)
     optionalDependencies:
       '@types/node': 26.1.1
 
-  '@inquirer/prompts@8.5.2(@types/node@26.1.1)':
+  '@inquirer/prompts@8.7.3(@types/node@26.1.1)':
     dependencies:
-      '@inquirer/checkbox': 5.2.1(@types/node@26.1.1)
-      '@inquirer/confirm': 6.1.1(@types/node@26.1.1)
-      '@inquirer/editor': 5.2.2(@types/node@26.1.1)
-      '@inquirer/expand': 5.1.1(@types/node@26.1.1)
-      '@inquirer/input': 5.1.2(@types/node@26.1.1)
-      '@inquirer/number': 4.1.1(@types/node@26.1.1)
-      '@inquirer/password': 5.1.1(@types/node@26.1.1)
-      '@inquirer/rawlist': 5.3.1(@types/node@26.1.1)
-      '@inquirer/search': 4.2.1(@types/node@26.1.1)
-      '@inquirer/select': 5.2.1(@types/node@26.1.1)
+      '@inquirer/checkbox': 5.2.6(@types/node@26.1.1)
+      '@inquirer/confirm': 6.3.3(@types/node@26.1.1)
+      '@inquirer/editor': 5.3.4(@types/node@26.1.1)
+      '@inquirer/expand': 5.1.6(@types/node@26.1.1)
+      '@inquirer/input': 5.1.7(@types/node@26.1.1)
+      '@inquirer/number': 4.2.4(@types/node@26.1.1)
+      '@inquirer/password': 5.2.3(@types/node@26.1.1)
+      '@inquirer/rawlist': 5.3.6(@types/node@26.1.1)
+      '@inquirer/search': 4.3.4(@types/node@26.1.1)
+      '@inquirer/select': 5.2.6(@types/node@26.1.1)
     optionalDependencies:
       '@types/node': 26.1.1
 
-  '@inquirer/rawlist@5.3.1(@types/node@26.1.1)':
+  '@inquirer/rawlist@5.3.6(@types/node@26.1.1)':
     dependencies:
-      '@inquirer/core': 11.2.1(@types/node@26.1.1)
-      '@inquirer/type': 4.0.7(@types/node@26.1.1)
+      '@inquirer/core': 12.0.4(@types/node@26.1.1)
+      '@inquirer/type': 4.2.0(@types/node@26.1.1)
     optionalDependencies:
       '@types/node': 26.1.1
 
-  '@inquirer/search@4.2.1(@types/node@26.1.1)':
+  '@inquirer/search@4.3.4(@types/node@26.1.1)':
     dependencies:
-      '@inquirer/core': 11.2.1(@types/node@26.1.1)
-      '@inquirer/figures': 2.0.7
-      '@inquirer/type': 4.0.7(@types/node@26.1.1)
+      '@inquirer/core': 12.0.4(@types/node@26.1.1)
+      '@inquirer/figures': 2.0.9
+      '@inquirer/type': 4.2.0(@types/node@26.1.1)
     optionalDependencies:
       '@types/node': 26.1.1
 
-  '@inquirer/select@5.2.1(@types/node@26.1.1)':
+  '@inquirer/select@5.2.6(@types/node@26.1.1)':
     dependencies:
-      '@inquirer/ansi': 2.0.7
-      '@inquirer/core': 11.2.1(@types/node@26.1.1)
-      '@inquirer/figures': 2.0.7
-      '@inquirer/type': 4.0.7(@types/node@26.1.1)
+      '@inquirer/ansi': 2.0.9
+      '@inquirer/core': 12.0.4(@types/node@26.1.1)
+      '@inquirer/figures': 2.0.9
+      '@inquirer/type': 4.2.0(@types/node@26.1.1)
     optionalDependencies:
       '@types/node': 26.1.1
 
-  '@inquirer/type@4.0.7(@types/node@26.1.1)':
+  '@inquirer/type@4.2.0(@types/node@26.1.1)':
     optionalDependencies:
       '@types/node': 26.1.1
 
@@ -2574,20 +2599,29 @@ snapshots:
 
   '@rolldown/pluginutils@1.0.1': {}
 
-  '@scalar/helpers@0.9.2': {}
+  '@scalar/helpers@0.11.1': {}
 
-  '@scalar/json-magic@0.12.19':
+  '@scalar/helpers@0.12.0': {}
+
+  '@scalar/json-magic@0.13.2':
     dependencies:
-      '@scalar/helpers': 0.9.2
+      '@scalar/helpers': 0.11.1
       pathe: 2.0.3
       yaml: 2.9.0
 
-  '@scalar/openapi-parser@0.28.10':
+  '@scalar/json-magic@0.13.5':
     dependencies:
-      '@scalar/helpers': 0.9.2
-      '@scalar/json-magic': 0.12.19
-      '@scalar/openapi-types': 0.9.3
-      '@scalar/openapi-upgrader': 0.2.11
+      '@scalar/helpers': 0.12.0
+      pathe: 2.0.3
+      undici: 7.29.1
+      yaml: 2.9.0
+
+  '@scalar/openapi-parser@0.28.16':
+    dependencies:
+      '@scalar/helpers': 0.11.1
+      '@scalar/json-magic': 0.13.2
+      '@scalar/openapi-types': 0.9.5
+      '@scalar/openapi-upgrader': 0.2.15
       ajv: 8.20.0
       ajv-draft-04: 1.0.0(ajv@8.20.0)
       ajv-formats: 3.0.1(ajv@8.20.0)
@@ -2595,11 +2629,13 @@ snapshots:
       leven: 4.1.0
       yaml: 2.9.0
 
-  '@scalar/openapi-types@0.9.3': {}
+  '@scalar/openapi-types@0.9.5': {}
 
-  '@scalar/openapi-upgrader@0.2.11':
+  '@scalar/openapi-types@0.9.8': {}
+
+  '@scalar/openapi-upgrader@0.2.15':
     dependencies:
-      '@scalar/openapi-types': 0.9.3
+      '@scalar/openapi-types': 0.9.5
 
   '@standard-schema/spec@1.1.0': {}
 
@@ -2687,14 +2723,14 @@ snapshots:
   '@typescript/typescript-win32-x64@7.0.2':
     optional: true
 
-  '@typespec/asset-emitter@0.79.1(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))':
+  '@typespec/asset-emitter@0.79.2(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))':
     dependencies:
-      '@typespec/compiler': 1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1)
+      '@typespec/compiler': 1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1)
 
-  '@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1)':
+  '@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1)':
     dependencies:
       '@babel/code-frame': 7.29.7
-      '@inquirer/prompts': 8.5.2(@types/node@26.1.1)
+      '@inquirer/prompts': 8.7.3(@types/node@26.1.1)
       ajv: 8.20.0
       change-case: 5.4.4
       env-paths: 4.0.0
@@ -2703,43 +2739,43 @@ snapshots:
       picocolors: 1.1.1
       prettier: 3.9.6
       semver: 7.8.5
-      tar: 7.5.21
-      temporal-polyfill: 1.0.1
+      tar: 7.5.22
+      temporal-polyfill: 1.0.6
       vscode-languageserver: 10.1.0
-      vscode-languageserver-textdocument: 1.0.12
+      vscode-languageserver-textdocument: 1.0.15
       yaml: 2.9.0
-      yargs: 18.0.0
+      yargs: 18.2.0
     transitivePeerDependencies:
       - '@types/node'
 
-  '@typespec/emitter-framework@0.19.0(patch_hash=ab547aaec873aa46a9f7d4e718b3dc9eb3b3c03a1bb49233c324ee572ef62fd0)(@alloy-js/core@0.24.1)(@alloy-js/csharp@0.22.0)(@alloy-js/python@0.3.0)(@alloy-js/typescript@0.24.0)(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))':
+  '@typespec/emitter-framework@0.19.0(patch_hash=ab547aaec873aa46a9f7d4e718b3dc9eb3b3c03a1bb49233c324ee572ef62fd0)(@alloy-js/core@0.24.1)(@alloy-js/csharp@0.22.0)(@alloy-js/python@0.3.0)(@alloy-js/typescript@0.24.0)(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))':
     dependencies:
       '@alloy-js/core': 0.24.1
       '@alloy-js/csharp': 0.22.0
       '@alloy-js/python': 0.3.0
       '@alloy-js/typescript': 0.24.0
-      '@typespec/compiler': 1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1)
+      '@typespec/compiler': 1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1)
 
-  '@typespec/events@0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))':
+  '@typespec/events@0.84.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))':
     dependencies:
-      '@typespec/compiler': 1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1)
+      '@typespec/compiler': 1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1)
 
-  '@typespec/http-client-python@0.35.0(patch_hash=c9d83ee26f420c6783dbf4d196533650ade297eda92e2bb249df2e822a8d994a)(2696e5eda1c5f71a3fb8b2d8bdf079ba)':
+  '@typespec/http-client-python@0.35.0(patch_hash=c9d83ee26f420c6783dbf4d196533650ade297eda92e2bb249df2e822a8d994a)(38ae7374e2203a6260b3856a151f2b3d)':
     dependencies:
-      '@azure-tools/typespec-autorest': 0.67.0(cb8bc4d609815356047ad8997b0a2b79)
-      '@azure-tools/typespec-azure-core': 0.67.0(5d916688b3aacc60dc4cc446c2043a47)
-      '@azure-tools/typespec-azure-resource-manager': 0.67.0(a97f33eb64121c34c90b9cf27bb0f437)
-      '@azure-tools/typespec-azure-rulesets': 0.67.0(@azure-tools/typespec-azure-core@0.67.0(5d916688b3aacc60dc4cc446c2043a47))(@azure-tools/typespec-azure-resource-manager@0.67.0(a97f33eb64121c34c90b9cf27bb0f437))(@azure-tools/typespec-client-generator-core@0.70.0(f143bd1a87e01af6d9cc5b76d61cac4d))(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))
-      '@azure-tools/typespec-client-generator-core': 0.70.0(f143bd1a87e01af6d9cc5b76d61cac4d)
-      '@typespec/compiler': 1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1)
-      '@typespec/events': 0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))
-      '@typespec/http': 1.14.0(patch_hash=2c55262cf42b2d54e5db3b8fe28abb4ab702cf9dbf34b5650c367270ec6ee5ef)(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))(@typespec/streams@0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1)))
-      '@typespec/openapi': 1.14.0(patch_hash=a717b240dcdc3d23f8b752d783844b65ef750bad173549d92db12a5a0131183c)(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))(@typespec/http@1.14.0(patch_hash=2c55262cf42b2d54e5db3b8fe28abb4ab702cf9dbf34b5650c367270ec6ee5ef)(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))(@typespec/streams@0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))))
-      '@typespec/rest': 0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))(@typespec/http@1.14.0(patch_hash=2c55262cf42b2d54e5db3b8fe28abb4ab702cf9dbf34b5650c367270ec6ee5ef)(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))(@typespec/streams@0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))))
-      '@typespec/sse': 0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))(@typespec/events@0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1)))(@typespec/http@1.14.0(patch_hash=2c55262cf42b2d54e5db3b8fe28abb4ab702cf9dbf34b5650c367270ec6ee5ef)(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))(@typespec/streams@0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))))(@typespec/streams@0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1)))
-      '@typespec/streams': 0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))
-      '@typespec/versioning': 0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))
-      '@typespec/xml': 0.81.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))
+      '@azure-tools/typespec-autorest': 0.67.0(2ae82f54f5382049a576914709d16911)
+      '@azure-tools/typespec-azure-core': 0.67.0(7ceb76c9a5323943b3d0bf18faa60c17)
+      '@azure-tools/typespec-azure-resource-manager': 0.67.0(897e6d5f495859a0860cc37b31445b29)
+      '@azure-tools/typespec-azure-rulesets': 0.67.0(@azure-tools/typespec-azure-core@0.67.0(7ceb76c9a5323943b3d0bf18faa60c17))(@azure-tools/typespec-azure-resource-manager@0.67.0(897e6d5f495859a0860cc37b31445b29))(@azure-tools/typespec-client-generator-core@0.72.0(c314e46f44c81bb409927108b9acfaaf))(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))
+      '@azure-tools/typespec-client-generator-core': 0.72.0(c314e46f44c81bb409927108b9acfaaf)
+      '@typespec/compiler': 1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1)
+      '@typespec/events': 0.84.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))
+      '@typespec/http': 1.16.0(patch_hash=f8df299e1f9d75283e428307cc8d98f49dd0ea09500892e7755401a87aa94716)(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))(@typespec/streams@0.86.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1)))
+      '@typespec/openapi': 1.16.0(patch_hash=a44757d47142b3577fdd6486abc90f2310750c341a71fd86e81ab7774c025a57)(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))(@typespec/http@1.16.0(patch_hash=f8df299e1f9d75283e428307cc8d98f49dd0ea09500892e7755401a87aa94716)(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))(@typespec/streams@0.86.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))))
+      '@typespec/rest': 0.86.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))(@typespec/http@1.16.0(patch_hash=f8df299e1f9d75283e428307cc8d98f49dd0ea09500892e7755401a87aa94716)(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))(@typespec/streams@0.86.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))))
+      '@typespec/sse': 0.84.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))(@typespec/events@0.84.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1)))(@typespec/http@1.16.0(patch_hash=f8df299e1f9d75283e428307cc8d98f49dd0ea09500892e7755401a87aa94716)(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))(@typespec/streams@0.86.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))))(@typespec/streams@0.86.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1)))
+      '@typespec/streams': 0.86.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))
+      '@typespec/versioning': 0.86.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))
+      '@typespec/xml': 0.81.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))
       js-yaml: 4.3.2
       marked: 15.0.12
       pyodide: 0.26.2
@@ -2749,76 +2785,76 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  '@typespec/http-client@0.16.0(patch_hash=7b97c893a552597584944904afc15877f43250e31cb64a3e007ea96976b69d19)(@alloy-js/core@0.24.1)(@alloy-js/typescript@0.24.0)(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))(@typespec/emitter-framework@0.19.0(patch_hash=ab547aaec873aa46a9f7d4e718b3dc9eb3b3c03a1bb49233c324ee572ef62fd0)(@alloy-js/core@0.24.1)(@alloy-js/csharp@0.22.0)(@alloy-js/python@0.3.0)(@alloy-js/typescript@0.24.0)(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1)))(@typespec/http@1.14.0(patch_hash=2c55262cf42b2d54e5db3b8fe28abb4ab702cf9dbf34b5650c367270ec6ee5ef)(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))(@typespec/streams@0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))))':
+  '@typespec/http-client@0.16.0(patch_hash=7b97c893a552597584944904afc15877f43250e31cb64a3e007ea96976b69d19)(@alloy-js/core@0.24.1)(@alloy-js/typescript@0.24.0)(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))(@typespec/emitter-framework@0.19.0(patch_hash=ab547aaec873aa46a9f7d4e718b3dc9eb3b3c03a1bb49233c324ee572ef62fd0)(@alloy-js/core@0.24.1)(@alloy-js/csharp@0.22.0)(@alloy-js/python@0.3.0)(@alloy-js/typescript@0.24.0)(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1)))(@typespec/http@1.16.0(patch_hash=f8df299e1f9d75283e428307cc8d98f49dd0ea09500892e7755401a87aa94716)(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))(@typespec/streams@0.86.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))))':
     dependencies:
       '@alloy-js/core': 0.24.1
       '@alloy-js/typescript': 0.24.0
-      '@typespec/compiler': 1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1)
-      '@typespec/emitter-framework': 0.19.0(patch_hash=ab547aaec873aa46a9f7d4e718b3dc9eb3b3c03a1bb49233c324ee572ef62fd0)(@alloy-js/core@0.24.1)(@alloy-js/csharp@0.22.0)(@alloy-js/python@0.3.0)(@alloy-js/typescript@0.24.0)(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))
-      '@typespec/http': 1.14.0(patch_hash=2c55262cf42b2d54e5db3b8fe28abb4ab702cf9dbf34b5650c367270ec6ee5ef)(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))(@typespec/streams@0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1)))
+      '@typespec/compiler': 1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1)
+      '@typespec/emitter-framework': 0.19.0(patch_hash=ab547aaec873aa46a9f7d4e718b3dc9eb3b3c03a1bb49233c324ee572ef62fd0)(@alloy-js/core@0.24.1)(@alloy-js/csharp@0.22.0)(@alloy-js/python@0.3.0)(@alloy-js/typescript@0.24.0)(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))
+      '@typespec/http': 1.16.0(patch_hash=f8df299e1f9d75283e428307cc8d98f49dd0ea09500892e7755401a87aa94716)(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))(@typespec/streams@0.86.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1)))
 
-  '@typespec/http@1.14.0(patch_hash=2c55262cf42b2d54e5db3b8fe28abb4ab702cf9dbf34b5650c367270ec6ee5ef)(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))(@typespec/streams@0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1)))':
+  '@typespec/http@1.16.0(patch_hash=f8df299e1f9d75283e428307cc8d98f49dd0ea09500892e7755401a87aa94716)(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))(@typespec/streams@0.86.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1)))':
     dependencies:
-      '@typespec/compiler': 1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1)
+      '@typespec/compiler': 1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1)
     optionalDependencies:
-      '@typespec/streams': 0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))
+      '@typespec/streams': 0.86.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))
 
-  '@typespec/json-schema@1.14.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))':
+  '@typespec/json-schema@1.16.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))':
     dependencies:
-      '@typespec/asset-emitter': 0.79.1(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))
-      '@typespec/compiler': 1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1)
+      '@typespec/asset-emitter': 0.79.2(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))
+      '@typespec/compiler': 1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1)
       yaml: 2.9.0
 
-  '@typespec/openapi3@1.14.0(patch_hash=47deb425b3eaa7a12b4b92157f0f3e5784bb61b20be4d302f6d391f1b750b5c2)(ed8c328b3a62f1d3832914185922d1cb)':
+  '@typespec/openapi3@1.16.0(patch_hash=15528c01821ed876a1b6eb5764d5494c03421f061903db56329bdb53486f7765)(111ff52ca82108025fd386e6a7f0ca45)':
     dependencies:
-      '@scalar/json-magic': 0.12.19
-      '@scalar/openapi-parser': 0.28.10
-      '@scalar/openapi-types': 0.9.3
-      '@typespec/asset-emitter': 0.79.1(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))
-      '@typespec/compiler': 1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1)
-      '@typespec/http': 1.14.0(patch_hash=2c55262cf42b2d54e5db3b8fe28abb4ab702cf9dbf34b5650c367270ec6ee5ef)(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))(@typespec/streams@0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1)))
-      '@typespec/openapi': 1.14.0(patch_hash=a717b240dcdc3d23f8b752d783844b65ef750bad173549d92db12a5a0131183c)(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))(@typespec/http@1.14.0(patch_hash=2c55262cf42b2d54e5db3b8fe28abb4ab702cf9dbf34b5650c367270ec6ee5ef)(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))(@typespec/streams@0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))))
+      '@scalar/json-magic': 0.13.5
+      '@scalar/openapi-parser': 0.28.16
+      '@scalar/openapi-types': 0.9.8
+      '@typespec/asset-emitter': 0.79.2(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))
+      '@typespec/compiler': 1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1)
+      '@typespec/http': 1.16.0(patch_hash=f8df299e1f9d75283e428307cc8d98f49dd0ea09500892e7755401a87aa94716)(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))(@typespec/streams@0.86.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1)))
+      '@typespec/openapi': 1.16.0(patch_hash=a44757d47142b3577fdd6486abc90f2310750c341a71fd86e81ab7774c025a57)(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))(@typespec/http@1.16.0(patch_hash=f8df299e1f9d75283e428307cc8d98f49dd0ea09500892e7755401a87aa94716)(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))(@typespec/streams@0.86.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))))
       yaml: 2.9.0
     optionalDependencies:
-      '@typespec/events': 0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))
-      '@typespec/json-schema': 1.14.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))
-      '@typespec/sse': 0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))(@typespec/events@0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1)))(@typespec/http@1.14.0(patch_hash=2c55262cf42b2d54e5db3b8fe28abb4ab702cf9dbf34b5650c367270ec6ee5ef)(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))(@typespec/streams@0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))))(@typespec/streams@0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1)))
-      '@typespec/streams': 0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))
-      '@typespec/versioning': 0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))
-      '@typespec/xml': 0.81.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))
+      '@typespec/events': 0.84.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))
+      '@typespec/json-schema': 1.16.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))
+      '@typespec/sse': 0.84.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))(@typespec/events@0.84.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1)))(@typespec/http@1.16.0(patch_hash=f8df299e1f9d75283e428307cc8d98f49dd0ea09500892e7755401a87aa94716)(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))(@typespec/streams@0.86.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))))(@typespec/streams@0.86.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1)))
+      '@typespec/streams': 0.86.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))
+      '@typespec/versioning': 0.86.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))
+      '@typespec/xml': 0.81.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))
 
-  '@typespec/openapi@1.14.0(patch_hash=a717b240dcdc3d23f8b752d783844b65ef750bad173549d92db12a5a0131183c)(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))(@typespec/http@1.14.0(patch_hash=2c55262cf42b2d54e5db3b8fe28abb4ab702cf9dbf34b5650c367270ec6ee5ef)(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))(@typespec/streams@0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))))':
+  '@typespec/openapi@1.16.0(patch_hash=a44757d47142b3577fdd6486abc90f2310750c341a71fd86e81ab7774c025a57)(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))(@typespec/http@1.16.0(patch_hash=f8df299e1f9d75283e428307cc8d98f49dd0ea09500892e7755401a87aa94716)(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))(@typespec/streams@0.86.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))))':
     dependencies:
-      '@typespec/compiler': 1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1)
-      '@typespec/http': 1.14.0(patch_hash=2c55262cf42b2d54e5db3b8fe28abb4ab702cf9dbf34b5650c367270ec6ee5ef)(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))(@typespec/streams@0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1)))
+      '@typespec/compiler': 1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1)
+      '@typespec/http': 1.16.0(patch_hash=f8df299e1f9d75283e428307cc8d98f49dd0ea09500892e7755401a87aa94716)(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))(@typespec/streams@0.86.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1)))
 
-  '@typespec/prettier-plugin-typespec@1.14.0':
+  '@typespec/prettier-plugin-typespec@1.16.0':
     dependencies:
       prettier: 3.9.6
 
-  '@typespec/rest@0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))(@typespec/http@1.14.0(patch_hash=2c55262cf42b2d54e5db3b8fe28abb4ab702cf9dbf34b5650c367270ec6ee5ef)(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))(@typespec/streams@0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))))':
+  '@typespec/rest@0.86.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))(@typespec/http@1.16.0(patch_hash=f8df299e1f9d75283e428307cc8d98f49dd0ea09500892e7755401a87aa94716)(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))(@typespec/streams@0.86.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))))':
     dependencies:
-      '@typespec/compiler': 1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1)
-      '@typespec/http': 1.14.0(patch_hash=2c55262cf42b2d54e5db3b8fe28abb4ab702cf9dbf34b5650c367270ec6ee5ef)(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))(@typespec/streams@0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1)))
+      '@typespec/compiler': 1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1)
+      '@typespec/http': 1.16.0(patch_hash=f8df299e1f9d75283e428307cc8d98f49dd0ea09500892e7755401a87aa94716)(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))(@typespec/streams@0.86.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1)))
 
-  '@typespec/sse@0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))(@typespec/events@0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1)))(@typespec/http@1.14.0(patch_hash=2c55262cf42b2d54e5db3b8fe28abb4ab702cf9dbf34b5650c367270ec6ee5ef)(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))(@typespec/streams@0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))))(@typespec/streams@0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1)))':
+  '@typespec/sse@0.84.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))(@typespec/events@0.84.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1)))(@typespec/http@1.16.0(patch_hash=f8df299e1f9d75283e428307cc8d98f49dd0ea09500892e7755401a87aa94716)(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))(@typespec/streams@0.86.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))))(@typespec/streams@0.86.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1)))':
     dependencies:
-      '@typespec/compiler': 1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1)
-      '@typespec/events': 0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))
-      '@typespec/http': 1.14.0(patch_hash=2c55262cf42b2d54e5db3b8fe28abb4ab702cf9dbf34b5650c367270ec6ee5ef)(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))(@typespec/streams@0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1)))
-      '@typespec/streams': 0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))
+      '@typespec/compiler': 1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1)
+      '@typespec/events': 0.84.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))
+      '@typespec/http': 1.16.0(patch_hash=f8df299e1f9d75283e428307cc8d98f49dd0ea09500892e7755401a87aa94716)(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))(@typespec/streams@0.86.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1)))
+      '@typespec/streams': 0.86.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))
 
-  '@typespec/streams@0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))':
+  '@typespec/streams@0.86.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))':
     dependencies:
-      '@typespec/compiler': 1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1)
+      '@typespec/compiler': 1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1)
 
-  '@typespec/versioning@0.84.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))':
+  '@typespec/versioning@0.86.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))':
     dependencies:
-      '@typespec/compiler': 1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1)
+      '@typespec/compiler': 1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1)
 
-  '@typespec/xml@0.81.0(@typespec/compiler@1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1))':
+  '@typespec/xml@0.81.0(@typespec/compiler@1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1))':
     dependencies:
-      '@typespec/compiler': 1.14.0(patch_hash=4ba2da18fa7e2cd90e9c499debf14fc53ec5b6abae9eb2f5ddcb0c2eb52c0717)(@types/node@26.1.1)
+      '@typespec/compiler': 1.16.0(patch_hash=f56264401e78e743ff76c41e59163584eff7373855810a073e60c6f949858eed)(@types/node@26.1.1)
 
   '@vitest/coverage-v8@4.1.12(vitest@4.1.12)':
     dependencies:
@@ -3255,6 +3291,11 @@ snapshots:
       get-east-asian-width: 1.6.0
       strip-ansi: 7.2.0
 
+  string-width@8.3.0:
+    dependencies:
+      get-east-asian-width: 1.6.0
+      strip-ansi: 7.2.0
+
   strip-ansi@6.0.1:
     dependencies:
       ansi-regex: 5.0.1
@@ -3267,7 +3308,7 @@ snapshots:
     dependencies:
       has-flag: 4.0.0
 
-  tar@7.5.21:
+  tar@7.5.22:
     dependencies:
       '@isaacs/fs-minipass': 4.0.1
       chownr: 3.0.0
@@ -3275,14 +3316,14 @@ snapshots:
       minizlib: 3.1.0
       yallist: 5.0.0
 
-  temporal-polyfill@1.0.1:
+  temporal-polyfill@1.0.6:
     dependencies:
-      temporal-spec: 1.0.0
-      temporal-utils: 1.0.1
+      temporal-spec: 1.0.1
+      temporal-utils: 1.0.3
 
-  temporal-spec@1.0.0: {}
+  temporal-spec@1.0.1: {}
 
-  temporal-utils@1.0.1: {}
+  temporal-utils@1.0.3: {}
 
   tinybench@2.9.0: {}
 
@@ -3330,6 +3371,8 @@ snapshots:
       '@typescript/typescript-win32-x64': 7.0.2
 
   undici-types@8.3.0: {}
+
+  undici@7.29.1: {}
 
   update-browserslist-db@1.2.3(browserslist@4.28.7):
     dependencies:
@@ -3388,7 +3431,7 @@ snapshots:
       vscode-jsonrpc: 9.0.1
       vscode-languageserver-types: 3.18.0
 
-  vscode-languageserver-textdocument@1.0.12: {}
+  vscode-languageserver-textdocument@1.0.15: {}
 
   vscode-languageserver-types@3.18.0: {}
 
@@ -3419,12 +3462,12 @@ snapshots:
 
   yargs-parser@22.0.0: {}
 
-  yargs@18.0.0:
+  yargs@18.2.0:
     dependencies:
       cliui: 9.0.1
       escalade: 3.2.0
       get-caller-file: 2.0.5
-      string-width: 7.2.0
+      string-width: 8.3.0
       y18n: 5.0.8
       yargs-parser: 22.0.0
 

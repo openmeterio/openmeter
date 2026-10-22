@@ -82,10 +82,9 @@ model ResourceReference<T extends {}> {
   id: ULID;
 }
 
-alias ExpandableResourceReference<T extends {}> = CustomExpandableResourceReference<
-  T,
-  Shared.ResourceReference<T>
->;
+alias ExpandableResourceReference<
+  T extends {}
+> = CustomExpandableResourceReference<T, Shared.ResourceReference<T>>;
 
 @doc("{name} or reference.", T)
 @friendlyName("{name}OrReference", T)

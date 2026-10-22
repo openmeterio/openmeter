@@ -13,7 +13,7 @@
   },
   "devDependencies": {
     "@fetch-mock/vitest": "0.2.18",
-    "@typespec/prettier-plugin-typespec": "1.14.0",
+    "@typespec/prettier-plugin-typespec": "1.16.0",
     "@vitest/coverage-v8": "4.1.12",
     "prettier": "3.9.6",
     "vite": "8.1.6",

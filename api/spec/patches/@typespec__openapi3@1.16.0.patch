@@ -1,0 +1,576 @@
+diff --git a/dist/src/attach-extensions.js b/dist/src/attach-extensions.js
+index 8e557682fd556430304cd178c93bb3e98cab7fdf..eb543fb17a926596f01227c4ee4610b3a7ecea5d 100644
+--- a/dist/src/attach-extensions.js
++++ b/dist/src/attach-extensions.js
+@@ -4,6 +4,9 @@ export function attachExtensions(program, type, emitObject) {
+     const extensions = getExtensions(program, type);
+     if (extensions) {
+         for (const key of extensions.keys()) {
++            if (key === "x-inline") {
++                continue;
++            }
+             emitObject[key] = extensions.get(key);
+         }
+     }
+diff --git a/dist/src/cli/actions/convert/transforms/transform-operation-responses.d.ts b/dist/src/cli/actions/convert/transforms/transform-operation-responses.d.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..eb1691d0b1ca8b04029159faaa1e828ff112e480
+--- /dev/null
++++ b/dist/src/cli/actions/convert/transforms/transform-operation-responses.d.ts
+@@ -0,0 +1,10 @@
++import { OpenAPI3Responses } from "../../../../types.js";
++import { TypeSpecModel } from "../interfaces.js";
++/**
++ * Transforms #/paths/{route}/{httpMethod}/responses into TypeSpec models.
++ * @param operationId - Used to generate model names with scopes.
++ * @param operationResponses - The responses object for an operation.
++ */
++export declare function collectOperationResponses(operationId: string, operationResponses: OpenAPI3Responses): TypeSpecModel[];
++export declare function generateResponseModelName(operationId: string, statusCode: string, contentType?: string): string;
++//# sourceMappingURL=transform-operation-responses.d.ts.map
+\ No newline at end of file
+diff --git a/dist/src/cli/actions/convert/transforms/transform-operation-responses.js b/dist/src/cli/actions/convert/transforms/transform-operation-responses.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..7bb4bbbc630f8a50981928bfc0d5df203ed7431f
+--- /dev/null
++++ b/dist/src/cli/actions/convert/transforms/transform-operation-responses.js
+@@ -0,0 +1,175 @@
++import { printIdentifier } from "@typespec/compiler";
++import { convertHeaderName } from "../utils/convert-header-name.js";
++import { getDecoratorsForSchema, getExtensions } from "../utils/decorators.js";
++import { getScopeAndName } from "../utils/get-scope-and-name.js";
++/**
++ * Transforms #/paths/{route}/{httpMethod}/responses into TypeSpec models.
++ * @param operationId - Used to generate model names with scopes.
++ * @param operationResponses - The responses object for an operation.
++ */
++export function collectOperationResponses(operationId, operationResponses) {
++    const models = [];
++    const rootDecorators = getExtensions(operationResponses);
++    for (const statusCode of Object.keys(operationResponses)) {
++        const response = operationResponses[statusCode];
++        const decorators = [...rootDecorators];
++        if ("$ref" in response) {
++            //TODO: Support for referencing #/components/responseBodies
++            continue;
++        }
++        // These headers will be applied to all of the models for this operation/statusCode
++        const commonProperties = [];
++        if (response.headers) {
++            for (const name of Object.keys(response.headers)) {
++                const property = convertHeaderToProperty(name, response.headers[name]);
++                if (property)
++                    commonProperties.push(property);
++            }
++        }
++        decorators.push(...getExtensions(response));
++        // `default` status code is treated as the fallback for any status codes returned that aren't defined.
++        if (statusCode === "default") {
++            decorators.push({ name: "defaultResponse", args: [] });
++        }
++        else {
++            commonProperties.push(convertStatusCodeToProperty(statusCode));
++        }
++        if (isErrorStatusCode(statusCode)) {
++            decorators.push({ name: "error", args: [] });
++        }
++        const scopeAndName = getScopeAndName(operationId);
++        if (!response.content) {
++            // This is common when there is no actual request body, just a statusCode, e.g. for errors
++            models.push({
++                kind: "model",
++                scope: scopeAndName.scope,
++                name: generateResponseModelName(scopeAndName.rawName, statusCode),
++                decorators,
++                properties: commonProperties,
++                doc: response.description,
++            });
++        }
++        else {
++            // An operation may produce multiple content types, so need a model for each one.
++            for (const contentType of Object.keys(response.content ?? {})) {
++                const properties = [...commonProperties];
++                const contentBody = response.content[contentType];
++                // Wouldn't expect schema can be undefined since that implies contentType is not needed.
++                if (contentBody.schema) {
++                    properties.push({
++                        name: "body",
++                        isOptional: false, // TODO: use the real value
++                        decorators: [{ name: "bodyRoot", args: [] }],
++                        schema: contentBody.schema,
++                    });
++                }
++                // Default is application/json, so it doesn't need to be specified
++                if (contentType !== "application/json") {
++                    properties.push({
++                        name: "contentType",
++                        decorators: [{ name: "header", args: [] }],
++                        isOptional: false,
++                        schema: { type: "string", enum: [contentType] },
++                    });
++                }
++                models.push({
++                    kind: "model",
++                    scope: scopeAndName.scope,
++                    name: generateResponseModelName(scopeAndName.rawName, statusCode, contentType),
++                    decorators,
++                    properties,
++                    doc: response.description,
++                });
++            }
++        }
++    }
++    return models;
++}
++function convertHeaderToProperty(name, meta) {
++    const normalizedName = convertHeaderName(name);
++    // TODO: handle style
++    const headerDecorator = { name: "header", args: [] };
++    if (normalizedName !== name) {
++        headerDecorator.args.push(name);
++    }
++    if ("$ref" in meta) {
++        // Unhandled right now
++        return;
++    }
++    return {
++        name: normalizedName,
++        decorators: [headerDecorator, ...getDecoratorsForSchema(meta.schema)],
++        doc: meta.description ?? meta.schema.description,
++        isOptional: !meta.required,
++        schema: meta.schema,
++    };
++}
++function convertStatusCodeToProperty(statusCode) {
++    const schema = { type: "integer", format: "int32" };
++    if (statusCode === "1XX") {
++        schema.minimum = 100;
++        schema.maximum = 199;
++    }
++    else if (statusCode === "2XX") {
++        schema.minimum = 200;
++        schema.maximum = 299;
++    }
++    else if (statusCode === "3XX") {
++        schema.minimum = 300;
++        schema.maximum = 399;
++    }
++    else if (statusCode === "4XX") {
++        schema.minimum = 400;
++        schema.maximum = 499;
++    }
++    else if (statusCode === "5XX") {
++        schema.minimum = 500;
++        schema.maximum = 599;
++    }
++    else {
++        const literalStatusCode = parseInt(statusCode, 10);
++        if (!isValidLiteralStatusCode(literalStatusCode)) {
++            // TODO: Emit warning or // FIXME
++        }
++        else {
++            schema.enum = [literalStatusCode];
++        }
++    }
++    return {
++        name: "statusCode",
++        schema,
++        decorators: [{ name: "statusCode", args: [] }],
++        isOptional: false,
++    };
++}
++function isValidLiteralStatusCode(statusCode) {
++    return isFinite(statusCode) && statusCode >= 100 && statusCode <= 599;
++}
++function isErrorStatusCode(statusCode) {
++    if (["1XX", "2XX", "3XX", "default"].includes(statusCode)) {
++        return false;
++    }
++    else if (["4XX", "5XX"].includes(statusCode)) {
++        return true;
++    }
++    const literalStatusCode = parseInt(statusCode, 10);
++    return isFinite(literalStatusCode) && literalStatusCode >= 400;
++}
++export function generateResponseModelName(operationId, statusCode, contentType) {
++    if (statusCode === "default") {
++        statusCode = "Default";
++    }
++    let modelName = `${operationId}${statusCode}`;
++    if (contentType) {
++        modelName += convertContentType(contentType);
++    }
++    return printIdentifier(modelName + "Response");
++}
++function convertContentType(contentType) {
++    return contentType
++        .replaceAll("*", "Star")
++        .split("/")
++        .map((s) => s.substring(0, 1).toUpperCase() + s.substring(1))
++        .join("");
++}
++//# sourceMappingURL=transform-operation-responses.js.map
+\ No newline at end of file
+diff --git a/dist/src/encoding.js b/dist/src/encoding.js
+index d2ece9a1296d83af7a3262d98f0fbc431a7e4f98..488a285b68aad087fa8dce8896a7fb2fe61605d3 100644
+--- a/dist/src/encoding.js
++++ b/dist/src/encoding.js
+@@ -2,7 +2,7 @@ import { ObjectBuilder } from "@typespec/asset-emitter";
+ import { getEncode } from "@typespec/compiler";
+ import { isHeader, isQueryParam } from "@typespec/http";
+ import { getSchemaForStdScalars } from "./std-scalar-schemas.js";
+-function isParameterStyleEncoding(encoding) {
++function isArrayEncoding(encoding) {
+     if (!encoding)
+         return false;
+     return [
+@@ -17,8 +17,20 @@ export function applyEncoding(program, typespecType, target, getEncodedFieldName
+     const targetObject = new ObjectBuilder(target);
+     const encodeData = getEncode(program, typespecType);
+     if (encodeData) {
+-        // Query parameters have a couple of special cases where encoding ends up as style.
+-        if (isQueryParam(program, typespecType) && isParameterStyleEncoding(encodeData.encoding)) {
++        // Array encodings (comma/space/pipe/newline-delimited) describe how an array is
++        // serialized into a single delimiter-joined string. For query parameters the parameter
++        // emitter expresses this as `style` or a `content` parameter, so the array schema is
++        // left untouched. Anywhere else (e.g. a nested property inside a deepObject query
++        // object such as `filter[field][in]=a,b,c`) the wire value is the joined string, so
++        // the schema becomes the encode target scalar; the array's `items` no longer applies
++        // and the delimiter itself has no schema representation.
++        if (isArrayEncoding(encodeData.encoding)) {
++            if (isQueryParam(program, typespecType)) {
++                return targetObject;
++            }
++            const encodedType = getSchemaForStdScalars(encodeData.type, options);
++            targetObject.type = encodedType.type;
++            delete targetObject.items;
+             return targetObject;
+         }
+         const newType = getSchemaForStdScalars(encodeData.type, options);
+diff --git a/dist/src/examples.js b/dist/src/examples.js
+index 26d0ce153ac277cfc4ca1bae1c583d600babb2bc..62065f601918878f956eda156ddab7976b3eb5b1 100644
+--- a/dist/src/examples.js
++++ b/dist/src/examples.js
+@@ -1,7 +1,7 @@
+ import { getEncode, getOpExamples, ignoreDiagnostics, serializeValueAsJson, } from "@typespec/compiler";
+ import { $ } from "@typespec/compiler/typekit";
+ import { isHeader, } from "@typespec/http";
+-import { getParameterStyle } from "./parameters.js";
++import { getArrayEncodingDelimiter } from "./parameters.js";
+ import { getOpenAPI3StatusCodes } from "./status-codes.js";
+ import { isHttpParameterProperty, isSharedHttpOperation } from "./util.js";
+ export function resolveOperationExamples(program, operation, { parameterExamplesStrategy }) {
+@@ -275,19 +275,14 @@ function getParameterValue(program, parameterExamples, property, parameterExampl
+     return value;
+ }
+ function getQueryParameterValue(program, originalValue, property) {
+-    const style = getParameterStyle(program, property.property) ?? "form";
+-    switch (style) {
+-        case "form":
+-            return getParameterFormValue(program, originalValue, property);
+-        case "spaceDelimited":
+-            return getParameterDelimitedValue(program, originalValue, property, " ");
+-        case "pipeDelimited":
+-            return getParameterDelimitedValue(program, originalValue, property, "|");
+-        case "commaDelimited":
+-            return getParameterDelimitedValue(program, originalValue, property, ",");
+-        case "newlineDelimited":
+-            return getParameterDelimitedValue(program, originalValue, property, "\n");
++    // Array encodings (comma/space/pipe/newline-delimited) join the array with a delimiter,
++    // regardless of whether the parameter is expressed via `style` or `content` in the
++    // document. Fall back to `form` serialization when no array encoding applies.
++    const delimiter = getArrayEncodingDelimiter(program, property.property);
++    if (delimiter !== undefined) {
++        return getParameterDelimitedValue(program, originalValue, property, delimiter);
+     }
++    return getParameterFormValue(program, originalValue, property);
+ }
+ function getHeaderParameterValue(program, originalValue, property) {
+     return getParameterSimpleValue(program, originalValue, property);
+diff --git a/dist/src/openapi.js b/dist/src/openapi.js
+index 856e3cf9660054406b7b43d4b2bbc913d401eef5..ab99431b322b1abfacb7672051bce49ed17b67ba 100644
+--- a/dist/src/openapi.js
++++ b/dist/src/openapi.js
+@@ -1,4 +1,4 @@
+-import { compilerAssert, createDiagnosticCollector, emitFile, getAllTags, getAnyExtensionFromPath, getDoc, getFormat, getMaxItems, getMaxLength, getMaxValueExclusive, getMinItems, getMinLength, getMinValueExclusive, getNamespaceFullName, getPattern, getService, getSummary, ignoreDiagnostics, interpolatePath, isDeprecated, isGlobalNamespace, isNeverType, isSecret, isVoidType, listServices, navigateTypesInNamespace, NoTarget, resolvePath, sanitizePathSegment, } from "@typespec/compiler";
++import { compilerAssert, createDiagnosticCollector, emitFile, getAllTags, getAnyExtensionFromPath, getDoc, getEncode, getFormat, getMaxItems, getMaxLength, getMaxValueExclusive, getMinItems, getMinLength, getMinValueExclusive, getNamespaceFullName, getPattern, getService, getSummary, ignoreDiagnostics, interpolatePath, isDeprecated, isGlobalNamespace, isNeverType, isSecret, isVoidType, listServices, navigateTypesInNamespace, NoTarget, resolvePath, sanitizePathSegment, } from "@typespec/compiler";
+ import { unsafe_mutateSubgraphWithNamespace } from "@typespec/compiler/experimental";
+ import { $ } from "@typespec/compiler/typekit";
+ import { createPerfReporter, perf } from "@typespec/compiler/utils";
+@@ -553,7 +553,7 @@ function createOAPIEmitter(context, options, specVersion = "3.0.0") {
+             .map((op) => func(program, op.operation))
+             .filter((op) => op !== undefined);
+         if (values.length) {
+-            return values.join(joinChar);
++            return values.join(joinChar).trim();
+         }
+         else {
+             return undefined;
+@@ -567,6 +567,9 @@ function createOAPIEmitter(context, options, specVersion = "3.0.0") {
+         if (uniqueOpIds.size === 1)
+             return uniqueOpIds.values().next().value;
+         return operationIds.join("_");
++        // return [
++        //   ...new Set(shared.operations.map((op) => resolveOperationId(program, op.operation))),
++        // ].join("_");
+     }
+     function getOperationOrSharedOperation(operation) {
+         if (isSharedHttpOperation(operation)) {
+@@ -585,7 +588,7 @@ function createOAPIEmitter(context, options, specVersion = "3.0.0") {
+         });
+         const oai3Operation = {
+             operationId: computeSharedOperationId(shared),
+-            parameters: [],
++            parameters: undefined,
+             description: joinOps(operations, getDoc, " "),
+             summary: joinOps(operations, getSummary, " "),
+             responses: getSharedResponses(shared, examples),
+@@ -624,7 +627,10 @@ function createOAPIEmitter(context, options, specVersion = "3.0.0") {
+             }));
+         }
+         const visibility = visibilities[0];
+-        oai3Operation.parameters = getEndpointParameters(resolveSharedRouteParameters(operations), visibility, examples);
++        const endpointParameters = getEndpointParameters(resolveSharedRouteParameters(operations), visibility, examples);
++        if (endpointParameters.length > 0) {
++            oai3Operation.parameters = endpointParameters;
++        }
+         const bodies = [
+             ...new Set(operations.map((op) => op.parameters.body).filter((x) => x !== undefined)),
+         ];
+@@ -648,11 +654,12 @@ function createOAPIEmitter(context, options, specVersion = "3.0.0") {
+         const examples = resolveOperationExamples(program, operation, {
+             parameterExamplesStrategy: options.parameterExamplesStrategy,
+         });
++        const endpointParameters = getEndpointParameters(parameters.properties, visibility, examples);
+         const oai3Operation = {
+             operationId: operationIdResolver.resolve(operation.operation),
+             summary: getSummary(program, operation.operation),
+             description: getDoc(program, operation.operation),
+-            parameters: getEndpointParameters(parameters.properties, visibility, examples),
++            parameters: endpointParameters.length > 0 ? endpointParameters : undefined,
+             responses: getResponses(operation, operation.responses, examples),
+         };
+         const currentTags = getAllTags(program, op);
+@@ -1018,6 +1025,14 @@ function createOAPIEmitter(context, options, specVersion = "3.0.0") {
+         }
+         return false;
+     }
++    function isParameterStyleEncoding(encoding) {
++        if (!encoding)
++            return false;
++        return ["ArrayEncoding.pipeDelimited", "ArrayEncoding.spaceDelimited"].includes(encoding);
++    }
++    function isDelimitedArrayEncoding(encoding) {
++        return ["ArrayEncoding.commaDelimited", "ArrayEncoding.newlineDelimited"].includes(encoding);
++    }
+     function getParameter(httpProperty, visibility, examples) {
+         const param = {
+             name: httpProperty.options.name,
+@@ -1033,6 +1048,33 @@ function createOAPIEmitter(context, options, specVersion = "3.0.0") {
+         else {
+             Object.assign(param, attributes);
+         }
++        const encode = getEncode(program, httpProperty.property);
++        if (param.in === "query" && encode?.encoding && !isParameterStyleEncoding(encode.encoding)) {
++            param.explode = undefined;
++            param.style = undefined;
++            if (isDelimitedArrayEncoding(encode.encoding)) {
++                // `commaDelimited`/`newlineDelimited` array encodings have no OpenAPI `style`
++                // equivalent (only form/spaceDelimited/pipeDelimited/deepObject exist), so they
++                // are expressed via a `content` parameter with a `text/plain` media type instead.
++                param.content = {
++                    "text/plain": {
++                        schema: param.schema,
++                    },
++                };
++            }
++            else {
++                // Any other encoding (e.g. @encode("application/json")) names the media type the
++                // parameter is serialized as. Drop the scalar type that applyEncoding stamped on
++                // the schema so the content schema keeps its original shape.
++                param.schema.type = undefined;
++                param.content = {
++                    [encode.encoding]: {
++                        schema: param.schema,
++                    },
++                };
++            }
++            param.schema = undefined;
++        }
+         if (isDeprecated(program, httpProperty.property)) {
+             param.deprecated = true;
+         }
+@@ -1245,9 +1287,13 @@ function createOAPIEmitter(context, options, specVersion = "3.0.0") {
+             attributes.explode = false;
+         }
+         const style = getParameterStyle(program, httpProperty.property);
++        // Prioritize @encode-based style over explicit options.style
+         if (style) {
+             attributes.style = style;
+         }
++        else if (httpProperty.options.style) {
++            attributes.style = httpProperty.options.style;
++        }
+         return attributes;
+     }
+     function getHeaderParameterAttributes(httpProperty) {
+@@ -1348,6 +1394,9 @@ function createOAPIEmitter(context, options, specVersion = "3.0.0") {
+         const extensions = getExtensions(program, type);
+         if (extensions) {
+             for (const key of extensions.keys()) {
++                if (key === "x-inline") {
++                    continue;
++                }
+                 emitObject[key] = extensions.get(key);
+             }
+         }
+@@ -1464,6 +1513,11 @@ function createOAPIEmitter(context, options, specVersion = "3.0.0") {
+         return undefined;
+     }
+     function getOpenAPI3Scheme(auth) {
++        // Check if the auth model has a @useRef decorator
++        const refUrl = getRef(program, auth.model);
++        if (refUrl) {
++            return { $ref: refUrl };
++        }
+         const scheme = getOpenAPI3SchemeInternal(auth);
+         if (scheme) {
+             attachExtensions(program, auth.model, scheme);
+diff --git a/dist/src/parameters.d.ts b/dist/src/parameters.d.ts
+index a832f96e5c514f6b01c4c464764f2ca978a81fc4..f66cb62ddb70a085a6031146b105a68c1493f24e 100644
+--- a/dist/src/parameters.d.ts
++++ b/dist/src/parameters.d.ts
+@@ -1,3 +1,10 @@
+ import type { ModelProperty, Program } from "@typespec/compiler";
+-export declare function getParameterStyle(program: Program, type: ModelProperty): "pipeDelimited" | "spaceDelimited" | "commaDelimited" | "newlineDelimited" | undefined;
++export declare function getParameterStyle(program: Program, type: ModelProperty): "pipeDelimited" | "spaceDelimited" | undefined;
++/**
++ * Resolve the delimiter used to serialize an array-encoded query parameter, for both the
++ * `style`-based encodings and the `content`-based ones. Used when serializing examples,
++ * where the actual serialized value is needed regardless of how the parameter is expressed
++ * in the OpenAPI document. Returns `undefined` when no array encoding applies.
++ */
++export declare function getArrayEncodingDelimiter(program: Program, type: ModelProperty): "|" | " " | "," | "\n" | undefined;
+ //# sourceMappingURL=parameters.d.ts.map
+\ No newline at end of file
+diff --git a/dist/src/parameters.js b/dist/src/parameters.js
+index 7a7201cfcdc5c4825aba87b64b34415ae60c8e14..ff98ad6c0d873506ab80d90c0604824a449f5663 100644
+--- a/dist/src/parameters.js
++++ b/dist/src/parameters.js
+@@ -3,18 +3,38 @@ export function getParameterStyle(program, type) {
+     const encode = getEncode(program, type);
+     if (!encode)
+         return;
++    // Only pipeDelimited and spaceDelimited have OpenAPI `style` equivalents. Other array
++    // encodings (commaDelimited, newlineDelimited) have no `style` representation and are
++    // emitted as `content` parameters by the caller.
+     if (encode.encoding === "ArrayEncoding.pipeDelimited") {
+         return "pipeDelimited";
+     }
+     else if (encode.encoding === "ArrayEncoding.spaceDelimited") {
+         return "spaceDelimited";
+     }
+-    else if (encode.encoding === "ArrayEncoding.commaDelimited") {
+-        return "commaDelimited";
+-    }
+-    else if (encode.encoding === "ArrayEncoding.newlineDelimited") {
+-        return "newlineDelimited";
+-    }
+     return;
+ }
++/**
++ * Resolve the delimiter used to serialize an array-encoded query parameter, for both the
++ * `style`-based encodings and the `content`-based ones. Used when serializing examples,
++ * where the actual serialized value is needed regardless of how the parameter is expressed
++ * in the OpenAPI document. Returns `undefined` when no array encoding applies.
++ */
++export function getArrayEncodingDelimiter(program, type) {
++    const encode = getEncode(program, type);
++    if (!encode)
++        return;
++    switch (encode.encoding) {
++        case "ArrayEncoding.pipeDelimited":
++            return "|";
++        case "ArrayEncoding.spaceDelimited":
++            return " ";
++        case "ArrayEncoding.commaDelimited":
++            return ",";
++        case "ArrayEncoding.newlineDelimited":
++            return "\n";
++        default:
++            return;
++    }
++}
+ //# sourceMappingURL=parameters.js.map
+\ No newline at end of file
+diff --git a/dist/src/schema-emitter.js b/dist/src/schema-emitter.js
+index d93f62cda33ef18050157cbbdd09f9048c016f6e..d4e1ab62fd359692a7d7a24baa0f3ecfabe88eba 100644
+--- a/dist/src/schema-emitter.js
++++ b/dist/src/schema-emitter.js
+@@ -203,8 +203,17 @@ export class OpenAPI3SchemaEmitterBase extends TypeEmitter {
+         }));
+     }
+     arrayLiteralReferenceContext(array, elementType) {
++        // Array elements are emitted with the Item visibility flag so that metadata which is
++        // inapplicable to array items (e.g. @header) can be treated differently than in the
++        // top-level payload. However, if the element type is not actually transformed under
++        // the Item visibility, carrying the flag would create a second, byte-identical
++        // declaration (with a spurious "Item" name suffix) that collides with the canonical
++        // one. In that case we keep the base visibility so the element reuses the existing
++        // declaration.
++        const base = this.#getVisibilityContext();
++        const withItem = base | Visibility.Item;
+         return {
+-            visibility: this.#getVisibilityContext() | Visibility.Item,
++            visibility: this._metadataInfo.isTransformed(elementType, withItem) ? withItem : base,
+         };
+     }
+     #requiredModelProperties(model, visibility) {
+diff --git a/dist/src/types.d.ts b/dist/src/types.d.ts
+index 6c523b43b9b5e31b465f9926ef384d464178d83f..819f35e84ec18cc7fcd72f21eeb96b7a48a23c3f 100644
+--- a/dist/src/types.d.ts
++++ b/dist/src/types.d.ts
+@@ -517,7 +517,7 @@ export type OpenAPI3ParameterBase = Extensions & {
+     /** A map containing the representations for the parameter. The key is the media type and the value describes it. The map MUST only contain one entry. */
+     content?: Record<string, OpenAPI3MediaType>;
+ };
+-export type OpenAPI3QueryParameter = OpenAPI3ParameterBase & {
++export type OpenAPI3QueryParameter = Omit<OpenAPI3ParameterBase, "schema"> & {
+     /** Name of the parameter. */
+     name: string;
+     in: "query";
+@@ -528,6 +528,12 @@ export type OpenAPI3QueryParameter = OpenAPI3ParameterBase & {
+      * @see https://spec.openapis.org/oas/v3.0.4.html#style-values
+      */
+     style?: "form" | "spaceDelimited" | "pipeDelimited" | "deepObject";
++    content?: {
++        [mediaType: string]: {
++            schema: OpenAPI3Schema;
++        };
++    };
++    schema?: OpenAPI3Schema;
+ };
+ export type OpenAPI3PathParameter = OpenAPI3ParameterBase & {
+     /** Name of the parameter. */
+@@ -590,7 +596,7 @@ export type OpenAPI3Operation = Extensions & {
+     tags?: string[];
+     operationId?: string;
+     requestBody?: Refable<OpenAPI3RequestBody>;
+-    parameters: Refable<OpenAPI3Parameter>[];
++    parameters?: Refable<OpenAPI3Parameter>[];
+     deprecated?: boolean;
+     security?: Record<string, string[]>[];
+ };
+diff --git a/dist/src/util.d.ts b/dist/src/util.d.ts
+index 719a7c93dab32b18bcb68aa2ddc08e05a430a4ef..8ac2d3ba4003639b803a3cf93ddd8704028f27af 100644
+--- a/dist/src/util.d.ts
++++ b/dist/src/util.d.ts
+@@ -35,7 +35,7 @@ export declare function isStdType(program: Program, type: Type): type is Scalar
+     name: IntrinsicScalarName;
+ };
+ export declare function isLiteralType(type: Type): type is StringLiteral | NumericLiteral | BooleanLiteral;
+-export declare function literalType(type: StringLiteral | NumericLiteral | BooleanLiteral): "string" | "number" | "boolean";
++export declare function literalType(type: StringLiteral | NumericLiteral | BooleanLiteral): "boolean" | "number" | "string";
+ export declare function includeDerivedModel(model: Model): boolean;
+ export declare function isScalarExtendsBytes(type: Type): boolean;
+ export declare function getDefaultValue(program: Program, defaultType: Value, modelProperty: ModelProperty): any;
