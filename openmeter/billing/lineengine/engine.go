@@ -83,29 +83,34 @@ func (e *Engine) OnCollectionCompleted(ctx context.Context, input billing.OnColl
 		return nil, fmt.Errorf("invoice is required")
 	}
 
+	resolvedLines, err := e.resolveSplitLineHierarchies(ctx, input.Invoice.Namespace, input.Lines)
+	if err != nil {
+		return nil, fmt.Errorf("resolving collection line hierarchies: %w", err)
+	}
+
 	if input.Invoice.QuantitySnapshotedAt != nil &&
 		!input.Invoice.QuantitySnapshotedAt.Before(input.Invoice.DefaultCollectionAtForStandardInvoice()) {
-		return e.RateStandardLines(input.Lines)
+		return e.rateStandardLines(resolvedLines)
 	}
 
 	if input.Invoice.QuantitySnapshotedAt == nil &&
 		input.Invoice.CollectionAt != nil &&
 		clock.Now().Before(*input.Invoice.CollectionAt) {
-		return e.RateStandardLines(input.Lines)
+		return e.rateStandardLines(resolvedLines)
 	}
 
 	// Snapshotting mutates quantities in place. Keep the invoice's prior lines
 	// intact if snapshotting or subsequent rating fails before replacement.
-	lines, err := input.Lines.Clone()
+	clonedLines, err := resolvedLines.Clone()
 	if err != nil {
 		return nil, fmt.Errorf("cloning collection lines: %w", err)
 	}
 
-	if err := e.SnapshotLineQuantities(ctx, input.Invoice, lines); err != nil {
+	if err := e.snapshotLineQuantities(ctx, input.Invoice, clonedLines); err != nil {
 		return nil, fmt.Errorf("snapshotting lines: %w", err)
 	}
 
-	return e.RateStandardLines(lines)
+	return e.rateStandardLines(clonedLines)
 }
 
 func (e *Engine) ValidateMutableInvoiceLineEditViaAPI(_ context.Context, input billing.OnMutableInvoiceUpdateInput) error {
