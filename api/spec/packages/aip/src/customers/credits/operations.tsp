@@ -26,9 +26,9 @@ model ListCreditGrantsParamsFilter {
   status?: CreditGrantStatus;
 
   /**
-   * Filter credit grants by currency.
+   * Filter credit grants by fiat or custom currency code.
    */
-  currency?: Shared.CurrencyCode;
+  currency?: Currencies.CurrencyCode;
 
   /**
    * Filter credit grants by key.

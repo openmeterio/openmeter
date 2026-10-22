@@ -1066,6 +1066,11 @@ export interface CreateResourceReference {
   id: string
 }
 
+/** CurrencyCustom reference. */
+export interface CurrencyCustomReference {
+  id: string
+}
+
 /** Cost basis pinned to a specific cost basis resource of the custom currency. */
 export interface ChargeCostBasisPinned {
   /** Discriminator selecting the cost basis mode. */
@@ -1087,11 +1092,6 @@ export interface CreditGrantInvoiceReference {
   id?: string
   /** Identifier of the invoice line associated with the grant. */
   line?: { id: string }
-}
-
-/** CurrencyCustom reference. */
-export interface CurrencyCustomReference {
-  id: string
 }
 
 /** A cost basis pinned to a custom-currency pair for the subscription. */
@@ -2191,23 +2191,6 @@ export interface CreditGrantPlanFilter {
   version?: VersionFilter
 }
 
-/** Filter options for listing credit grants. */
-export interface ListCreditGrantsParamsFilter {
-  /** Filter credit grants by status. */
-  status?: 'pending' | 'active' | 'expired' | 'voided'
-  /** Filter credit grants by currency. */
-  currency?: string
-  /** Filter credit grants by key. */
-  key?: StringFieldFilter
-  /**
-   * Select grants spendable on any requested feature, including grants without
-   * feature restrictions. Keys are case-sensitive. Supports `eq` (or shorthand) and
-   * `oeq` with comma-separated keys. Omit to include all features; use
-   * `exists=false` for grants without feature restrictions.
-   */
-  featureKey?: StringFieldFilter
-}
-
 /** A validation issue found while processing a billing resource. */
 export interface ValidationIssue {
   /** Machine-readable error code. */
@@ -2788,6 +2771,23 @@ export interface CreditAdjustment {
   labels?: Labels
 }
 
+/** Filter options for listing credit grants. */
+export interface ListCreditGrantsParamsFilter {
+  /** Filter credit grants by status. */
+  status?: 'pending' | 'active' | 'expired' | 'voided'
+  /** Filter credit grants by fiat or custom currency code. */
+  currency?: BillingCurrencyCode
+  /** Filter credit grants by key. */
+  key?: StringFieldFilter
+  /**
+   * Select grants spendable on any requested feature, including grants without
+   * feature restrictions. Keys are case-sensitive. Supports `eq` (or shorthand) and
+   * `oeq` with comma-separated keys. Omit to include all features; use
+   * `exists=false` for grants without feature restrictions.
+   */
+  featureKey?: StringFieldFilter
+}
+
 /** CreditAdjustment create request. */
 export interface CreateCreditAdjustmentRequest {
   /**
@@ -3158,6 +3158,67 @@ export interface CreateTaxCodeConfig {
   code?: CreateResourceReference
 }
 
+/** The credit balance by currency. */
+export interface CreditBalance {
+  currency: BillingCurrencyCode
+  /** Managed currency reference. Present only for custom currencies. */
+  customCurrency?: CurrencyCustomReference
+  /**
+   * Credits available after applying currently live charge impacts.
+   *
+   * Always zero for historical balance queries using the `timestamp` parameter
+   * because live charge impacts cannot be reconstructed historically.
+   */
+  live: string
+  /** Credits that have been booked on the ledger as of the balance timestamp. */
+  settled: string
+  /**
+   * Credits that have been granted but are not yet written to the ledger, or are
+   * written to the ledger with a future booked time.
+   */
+  pending: string
+}
+
+/**
+ * A credit transaction represents a single credit movement on the customer's
+ * balance.
+ *
+ * Credit transactions are immutable.
+ */
+export interface CreditTransaction {
+  id: string
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  /**
+   * Optional description of the resource.
+   *
+   * Maximum 1024 characters.
+   */
+  description?: string
+  labels?: Labels
+  /** An ISO-8601 timestamp representation of entity creation date. */
+  createdAt: Date
+  /** The date and time the transaction was booked. */
+  bookedAt: Date
+  /** The type of credit transaction. */
+  type: 'funded' | 'consumed' | 'expired' | 'voided'
+  /** Currency of the balance affected by the transaction. */
+  currency: BillingCurrencyCode
+  /** Managed currency reference. Present only for custom currencies. */
+  customCurrency?: CurrencyCustomReference
+  /**
+   * Signed amount of the credit movement. Positive values add balance, negative
+   * values reduce balance.
+   */
+  amount: string
+  /** The available balance before and after the transaction. */
+  availableBalance: { before: string; after: string }
+}
+
 /**
  * Tax configuration for a billable resource.
  *
@@ -3227,67 +3288,6 @@ export interface UpdateOrganizationDefaultTaxCodesRequest {
   invoicingTaxCode?: TaxCodeReference
   /** Default tax code for credit grants. */
   creditGrantTaxCode?: TaxCodeReference
-}
-
-/** The credit balance by currency. */
-export interface CreditBalance {
-  currency: BillingCurrencyCode
-  /** Managed currency reference. Present only for custom currencies. */
-  customCurrency?: CurrencyCustomReference
-  /**
-   * Credits available after applying currently live charge impacts.
-   *
-   * Always zero for historical balance queries using the `timestamp` parameter
-   * because live charge impacts cannot be reconstructed historically.
-   */
-  live: string
-  /** Credits that have been booked on the ledger as of the balance timestamp. */
-  settled: string
-  /**
-   * Credits that have been granted but are not yet written to the ledger, or are
-   * written to the ledger with a future booked time.
-   */
-  pending: string
-}
-
-/**
- * A credit transaction represents a single credit movement on the customer's
- * balance.
- *
- * Credit transactions are immutable.
- */
-export interface CreditTransaction {
-  id: string
-  /**
-   * Display name of the resource.
-   *
-   * Between 1 and 256 characters.
-   */
-  name: string
-  /**
-   * Optional description of the resource.
-   *
-   * Maximum 1024 characters.
-   */
-  description?: string
-  labels?: Labels
-  /** An ISO-8601 timestamp representation of entity creation date. */
-  createdAt: Date
-  /** The date and time the transaction was booked. */
-  bookedAt: Date
-  /** The type of credit transaction. */
-  type: 'funded' | 'consumed' | 'expired' | 'voided'
-  /** Currency of the balance affected by the transaction. */
-  currency: BillingCurrencyCode
-  /** Managed currency reference. Present only for custom currencies. */
-  customCurrency?: CurrencyCustomReference
-  /**
-   * Signed amount of the credit movement. Positive values add balance, negative
-   * values reduce balance.
-   */
-  amount: string
-  /** The available balance before and after the transaction. */
-  availableBalance: { before: string; after: string }
 }
 
 /**
@@ -5027,6 +5027,20 @@ export interface CreateCreditGrantPurchase {
   availabilityPolicy: 'on_creation'
 }
 
+/** The balances of the credits of a customer. */
+export interface CreditBalances {
+  /** The timestamp of the balance retrieval. */
+  retrievedAt: Date
+  /** The balances by currencies. */
+  balances: CreditBalance[]
+}
+
+/** Cursor paginated response. */
+export interface CreditTransactionPaginatedResponse {
+  data: CreditTransaction[]
+  meta: CursorMeta
+}
+
 /** Purchase and payment terms of the grant. */
 export interface CreditGrantPurchase {
   /**
@@ -5143,20 +5157,6 @@ export interface WorkflowTaxSettings {
    * and `behavior` remains fully supported.
    */
   defaultTaxConfig?: TaxConfig
-}
-
-/** The balances of the credits of a customer. */
-export interface CreditBalances {
-  /** The timestamp of the balance retrieval. */
-  retrievedAt: Date
-  /** The balances by currencies. */
-  balances: CreditBalance[]
-}
-
-/** Cursor paginated response. */
-export interface CreditTransactionPaginatedResponse {
-  data: CreditTransaction[]
-  meta: CursorMeta
 }
 
 /** Page paginated response. */
@@ -6062,6 +6062,8 @@ export interface CreditGrant {
    * fiat currency.
    */
   currency: BillingCurrencyCode
+  /** Managed currency reference. Present only for custom currencies. */
+  customCurrency?: CurrencyCustomReference
   /** Granted credit amount. */
   amount: string
   /** Present when a funding workflow applies (funding_method is not `none`). */
@@ -9587,6 +9589,8 @@ export interface CreditGrantInput {
    * fiat currency.
    */
   currency: BillingCurrencyCode
+  /** Managed currency reference. Present only for custom currencies. */
+  customCurrency?: CurrencyCustomReference
   /** Granted credit amount. */
   amount: string
   /** Present when a funding workflow applies (funding_method is not `none`). */
