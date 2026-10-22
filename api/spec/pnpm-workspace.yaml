@@ -2,9 +2,6 @@ packages:
   - packages/*
 blockExoticSubdeps: true
 minimumReleaseAge: 4320
-# vite is a dev-only transitive of vitest (optionalDependency of @vitest/mocker)
-# that pnpm overrides cannot pin; exclude it from the maturity gate so test
-# tooling can resolve. The gate still applies to every other package.
 minimumReleaseAgeExclude: []
 trustPolicy: no-downgrade
 patchedDependencies:
@@ -16,6 +13,12 @@ patchedDependencies:
   '@typespec/openapi': patches/@typespec__openapi.patch
   '@typespec/openapi3': patches/@typespec__openapi3.patch
 overrides:
+  'devalue@>=5.0.0 <5.9.3': '5.9.3'
+  'fast-uri@>=3.0.0 <3.1.8': '3.1.8'
+  'js-yaml@>=4.0.0 <4.3.2': '4.3.2'
+  'nanoid@>=3.0.0 <3.3.18': '3.3.18'
+  'postcss@>=8.0.0 <8.5.23': '8.5.23'
+  'source-map-js@>=1.0.0 <1.2.2': '1.2.2'
   'semver@<7.7.4': '>=7.7.4'
 packageExtensions:
   '@alloy-js/cli':
