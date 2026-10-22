@@ -54,7 +54,7 @@ require (
 	github.com/huandu/go-clone v1.7.3 // indirect
 	github.com/huandu/go-sqlbuilder v1.44.0 // indirect
 	github.com/huandu/xstrings v1.4.0 // indirect
-	github.com/invopop/gobl v0.507.0 // indirect
+	github.com/invopop/gobl v0.508.1 // indirect
 	github.com/invopop/jsonschema v0.14.0 // indirect
 	github.com/invopop/yaml v0.3.1 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
