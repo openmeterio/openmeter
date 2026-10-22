@@ -13,6 +13,7 @@ import (
 	"github.com/samber/lo"
 	"github.com/samber/mo"
 	"github.com/stretchr/testify/require"
+	metricnoop "go.opentelemetry.io/otel/metric/noop"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
@@ -59,6 +60,7 @@ func newOriginTestEnv(t *testing.T, custom bool) *originTestEnv {
 	advanceService := advancetestutils.NewService(t, base.Deps, base.breakage)
 
 	collect, err := collector.NewService(collector.Config{
+		Meter:              metricnoop.NewMeterProvider().Meter("test"),
 		Logger:             omtestutils.NewDiscardLogger(t),
 		Advance:            advanceService,
 		Ledger:             base.Deps.HistoricalLedger,

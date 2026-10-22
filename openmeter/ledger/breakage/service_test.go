@@ -240,6 +240,11 @@ func TestBreakageRequiresCallerTransaction(t *testing.T) {
 
 	inputs, err := service.PlanIssuance(t.Context(), expiringIssuance(env, ulid.Make().String()))
 	require.ErrorContains(t, err, "requires the caller's transaction")
+
+	var diagnostic models.Error
+	require.ErrorAs(t, err, &diagnostic)
+	require.Equal(t, "ledger_breakage_transaction_required", diagnostic.Attributes()["reason"])
+
 	require.Nil(t, inputs)
 	requireNoBreakageRows(t, env)
 }
@@ -294,4 +299,41 @@ func requireNoBreakageRows(t *testing.T, env *ledgertestutils.IntegrationEnv) {
 	count, err = env.DB.LedgerTransactionGroup.Query().Count(t.Context())
 	require.NoError(t, err)
 	require.Zero(t, count)
+}
+
+func TestBreakageReleaseLimitReportsReason(t *testing.T) {
+	env, service := newBreakageEnv(t)
+
+	// given: a plan for ten credits, created in the caller's transaction.
+	err := transaction.RunWithNoValue(t.Context(), enttx.NewCreator(env.DB), func(ctx context.Context) error {
+		_, err := service.PlanIssuance(ctx, expiringIssuance(env, ulid.Make().String()))
+		require.NoError(t, err)
+
+		plans, err := service.ListPlans(ctx, breakage.ListPlansInput{
+			CustomerID: env.CustomerID,
+			Currency:   env.Currency,
+			AsOf:       env.Now(),
+		})
+		require.NoError(t, err)
+		require.Len(t, plans, 1)
+
+		// when: consumption tries to release more than the plan holds.
+		_, err = service.ReleasePlan(ctx, breakage.ReleasePlanInput{
+			PostingInput: breakage.PostingInput{TransactionGroupID: ulid.Make().String()},
+			Plan:         plans[0],
+			Amount:       alpacadecimal.NewFromInt(11),
+			SourceKind:   breakage.SourceKindUsage,
+		})
+
+		// then: callers can classify the rejection without parsing its message.
+		require.ErrorContains(t, err, "release amount cannot exceed open plan amount")
+
+		var diagnostic models.Error
+		require.ErrorAs(t, err, &diagnostic)
+		require.Equal(t, "ledger_breakage_release_exceeds_open_amount", diagnostic.Attributes()["reason"])
+
+		return err
+	})
+	require.Error(t, err)
+	requireNoBreakageRows(t, env)
 }

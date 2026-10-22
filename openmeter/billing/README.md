@@ -184,6 +184,11 @@ earlier attempt remain available to idempotent retry handling.
 
 ## Validation issues alongside successful results
 
+`models.Error` carries codes and diagnostic attributes but remains a system error.
+`models.ValidationIssue` explicitly opts into validation handling. Their shared
+metadata does not make them interchangeable; only an explicit
+`WrapAsValidationIssue` conversion changes a system error into a billing issue.
+
 Typed validation issues can accompany usable results through an `error` return.
 Classify that error before discarding the result. Its meaning depends on the
 boundary:

@@ -84,3 +84,22 @@ func TestGenericErrorEncoderStatusMapping(t *testing.T) {
 		})
 	}
 }
+
+func TestStructuredSystemErrorIsNotHTTPValidation(t *testing.T) {
+	validation := models.NewValidationIssue("invalid_amount", "amount is invalid", commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest))
+	systemErr := models.NewError("ledger_failed", "internal accounting failure", models.WithCause(validation)).
+		WithAttr("reason", "source_missing")
+
+	response := httptest.NewRecorder()
+	require.False(t, commonhttp.GenericErrorEncoder()(t.Context(), systemErr, response, nil))
+	commonhttp.ErrorEncoder(t.Context(), systemErr, response)
+
+	require.Equal(t, http.StatusInternalServerError, response.Code)
+	require.NotContains(t, response.Body.String(), "source_missing")
+	require.NotContains(t, response.Body.String(), "internal accounting failure")
+
+	// The same validation issue still uses its explicitly assigned HTTP status.
+	response = httptest.NewRecorder()
+	require.True(t, commonhttp.GenericErrorEncoder()(t.Context(), fmt.Errorf("validate: %w", validation), response, nil))
+	require.Equal(t, http.StatusBadRequest, response.Code)
+}
