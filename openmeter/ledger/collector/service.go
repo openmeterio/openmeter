@@ -86,34 +86,32 @@ func (c Config) Validate() error {
 }
 
 type CollectToAccruedInput struct {
-	Namespace         string
-	ChargeID          string
-	CustomerID        string
-	Annotations       models.Annotations
-	BookedAt          time.Time
-	SourceBalanceAsOf time.Time
-	Currency          currencies.CurrencyReference
-	Filters           ledger.CreditFilters
-	SettlementMode    productcatalog.SettlementMode
-	ServicePeriod     timeutil.ClosedPeriod
-	Amount            alpacadecimal.Decimal
-	TaxCode           *string
-	TaxBehavior       *ledger.TaxBehavior
+	Namespace      string
+	ChargeID       string
+	CustomerID     string
+	Annotations    models.Annotations
+	BookedAt       time.Time
+	Currency       currencies.CurrencyReference
+	Filters        ledger.CreditFilters
+	SettlementMode productcatalog.SettlementMode
+	ServicePeriod  timeutil.ClosedPeriod
+	Amount         alpacadecimal.Decimal
+	TaxCode        *string
+	TaxBehavior    *ledger.TaxBehavior
 }
 
 type CorrectCollectedAccruedInput = correction.Input
 
 type CollectToReceivableInput struct {
-	Namespace         string
-	ChargeID          string
-	CustomerID        string
-	Annotations       models.Annotations
-	BookedAt          time.Time
-	SourceBalanceAsOf time.Time
-	Currency          currencies.CurrencyReference
-	Filters           ledger.CreditFilters
-	ServicePeriod     timeutil.ClosedPeriod
-	Amount            alpacadecimal.Decimal
+	Namespace     string
+	ChargeID      string
+	CustomerID    string
+	Annotations   models.Annotations
+	BookedAt      time.Time
+	Currency      currencies.CurrencyReference
+	Filters       ledger.CreditFilters
+	ServicePeriod timeutil.ClosedPeriod
+	Amount        alpacadecimal.Decimal
 }
 
 func (i CollectToReceivableInput) Validate() error {
@@ -132,10 +130,6 @@ func (i CollectToReceivableInput) Validate() error {
 
 	if i.BookedAt.IsZero() {
 		errs = append(errs, errors.New("booked at is required"))
-	}
-
-	if i.SourceBalanceAsOf.IsZero() {
-		errs = append(errs, errors.New("source balance as of is required"))
 	}
 
 	if err := i.Currency.Validate(); err != nil {
@@ -242,10 +236,6 @@ func NewService(config Config) (Service, error) {
 func (s *service) CollectToAccrued(ctx context.Context, input CollectToAccruedInput) (creditrealization.CreateAllocationInputs, error) {
 	if input.BookedAt.IsZero() {
 		return nil, fmt.Errorf("booked at is required")
-	}
-
-	if input.SourceBalanceAsOf.IsZero() {
-		return nil, fmt.Errorf("source balance as of is required")
 	}
 
 	return s.collector.collectToAccrued(ctx, input)
