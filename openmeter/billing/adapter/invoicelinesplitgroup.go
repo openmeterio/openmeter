@@ -392,29 +392,12 @@ func (a *adapter) fetchAllSplitLineGroups(ctx context.Context, namespace string,
 	})
 }
 
-func (a *adapter) GetSplitLineGroupHeaders(ctx context.Context, input billing.GetSplitLineGroupHeadersInput) (billing.SplitLineGroupHeaders, error) {
+func (a *adapter) GetSplitLineGroups(ctx context.Context, input billing.GetSplitLineGroupsInput) ([]billing.SplitLineHierarchy, error) {
 	if err := input.Validate(); err != nil {
-		return billing.SplitLineGroupHeaders{}, billing.ValidationError{
-			Err: err,
-		}
+		return nil, billing.ValidationError{Err: err}
 	}
 
-	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (billing.SplitLineGroupHeaders, error) {
-		dbSplitLineGroups, err := tx.db.BillingInvoiceSplitLineGroup.Query().
-			Where(billinginvoicesplitlinegroup.Namespace(input.Namespace)).
-			Where(billinginvoicesplitlinegroup.IDIn(input.SplitLineGroupIDs...)).
-			All(ctx)
-		if err != nil {
-			return billing.SplitLineGroupHeaders{}, err
-		}
-
-		splitLineGroups, err := slicesx.MapWithErr(dbSplitLineGroups, func(dbSplitLineGroup *db.BillingInvoiceSplitLineGroup) (billing.SplitLineGroup, error) {
-			return a.mapSplitLineGroupFromDB(dbSplitLineGroup)
-		})
-		if err != nil {
-			return billing.SplitLineGroupHeaders{}, err
-		}
-
-		return splitLineGroups, nil
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) ([]billing.SplitLineHierarchy, error) {
+		return tx.fetchAllSplitLineGroups(ctx, input.Namespace, input.SplitLineGroupIDs)
 	})
 }
