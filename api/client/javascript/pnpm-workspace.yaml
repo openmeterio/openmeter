@@ -4,7 +4,11 @@ trustPolicy: no-downgrade
 patchedDependencies:
   openapi-typescript: patches/openapi-typescript.patch
 overrides:
-  'vite@>=7.0.0 <=7.3.1': '>=7.3.2'
-  'vite@>=7.1.0 <=7.3.1': '>=7.3.2'
+  'brace-expansion@>=2.0.0 <2.1.7': '2.1.7'
+  'brace-expansion@>=4.0.0 <5.0.12': '5.0.12'
+  'fast-uri@>=3.0.0 <3.1.8': '3.1.8'
+  'form-data@>=4.0.0 <4.0.6': '4.0.6'
+  'js-yaml@>=4.0.0 <4.3.2': '4.3.2'
+  'markdown-it@>=14.0.0 <14.3.3': '14.3.3'
 allowBuilds:
   esbuild: true
