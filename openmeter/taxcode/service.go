@@ -12,6 +12,7 @@ import (
 type Service interface {
 	TaxCodeService
 	OrganizationDefaultTaxCodesService
+	ResolverFactory
 }
 
 type TaxCodeService interface {
@@ -28,6 +29,26 @@ type TaxCodeService interface {
 type OrganizationDefaultTaxCodesService interface {
 	GetOrganizationDefaultTaxCodes(ctx context.Context, input GetOrganizationDefaultTaxCodesInput) (OrganizationDefaultTaxCodes, error)
 	UpsertOrganizationDefaultTaxCodes(ctx context.Context, input UpsertOrganizationDefaultTaxCodesInput) (OrganizationDefaultTaxCodes, error)
+}
+
+type ResolverFactory interface {
+	// WithResolver
+	// starts a transaction
+	// gives access to backfill + resolve
+	WithResolver(ctx context.Context, cn func(ctx context.Context, resolver Resolver) error) error
+
+	ResolveTaxCode(ctx context.Context, namespacedID models.NamespacedID) (TaxCode, error)
+}
+
+type TaxConfig struct {
+	StripeCode string
+}
+
+type Resolver interface {
+	// ResolveOrBackfillTaxCode:
+	// - if the tax code can be found by stripe tax code then return the existing tax code ID
+	// - if the tax code cannot be found, auto provision a new tax code object, and return it's id
+	ResolveOrBackfillTaxCode(ctx context.Context, tc TaxConfig) (models.NamespacedID, error)
 }
 
 type inputOptions struct {

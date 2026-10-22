@@ -171,12 +171,6 @@ func (_c *AddonRateCardCreate) SetEntitlementTemplate(v *productcatalog.Entitlem
 	return _c
 }
 
-// SetTaxConfig sets the "tax_config" field.
-func (_c *AddonRateCardCreate) SetTaxConfig(v *productcatalog.TaxConfig) *AddonRateCardCreate {
-	_c.mutation.SetTaxConfig(v)
-	return _c
-}
-
 // SetBillingCadence sets the "billing_cadence" field.
 func (_c *AddonRateCardCreate) SetBillingCadence(v datetime.ISODurationString) *AddonRateCardCreate {
 	_c.mutation.SetBillingCadence(v)
@@ -234,6 +228,12 @@ func (_c *AddonRateCardCreate) SetDiscounts(v *productcatalog.Discounts) *AddonR
 // SetUnitConfig sets the "unit_config" field.
 func (_c *AddonRateCardCreate) SetUnitConfig(v *unitconfig.UnitConfig) *AddonRateCardCreate {
 	_c.mutation.SetUnitConfig(v)
+	return _c
+}
+
+// SetTaxConfig sets the "tax_config" field.
+func (_c *AddonRateCardCreate) SetTaxConfig(v *productcatalog.TaxConfig) *AddonRateCardCreate {
+	_c.mutation.SetTaxConfig(v)
 	return _c
 }
 
@@ -404,11 +404,6 @@ func (_c *AddonRateCardCreate) check() error {
 			return &ValidationError{Name: "entitlement_template", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.entitlement_template": %w`, err)}
 		}
 	}
-	if v, ok := _c.mutation.TaxConfig(); ok {
-		if err := v.Validate(); err != nil {
-			return &ValidationError{Name: "tax_config", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.tax_config": %w`, err)}
-		}
-	}
 	if v, ok := _c.mutation.Price(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "price", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.price": %w`, err)}
@@ -432,6 +427,11 @@ func (_c *AddonRateCardCreate) check() error {
 	if v, ok := _c.mutation.UnitConfig(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "unit_config", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.unit_config": %w`, err)}
+		}
+	}
+	if v, ok := _c.mutation.TaxConfig(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "tax_config", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.tax_config": %w`, err)}
 		}
 	}
 	if _, ok := _c.mutation.AddonID(); !ok {
@@ -545,14 +545,6 @@ func (_c *AddonRateCardCreate) createSpec() (*AddonRateCard, *sqlgraph.CreateSpe
 		_spec.SetField(addonratecard.FieldEntitlementTemplate, field.TypeString, vv)
 		_node.EntitlementTemplate = value
 	}
-	if value, ok := _c.mutation.TaxConfig(); ok {
-		vv, err := addonratecard.ValueScanner.TaxConfig.Value(value)
-		if err != nil {
-			return nil, nil, err
-		}
-		_spec.SetField(addonratecard.FieldTaxConfig, field.TypeString, vv)
-		_node.TaxConfig = value
-	}
 	if value, ok := _c.mutation.BillingCadence(); ok {
 		_spec.SetField(addonratecard.FieldBillingCadence, field.TypeString, value)
 		_node.BillingCadence = &value
@@ -584,6 +576,14 @@ func (_c *AddonRateCardCreate) createSpec() (*AddonRateCard, *sqlgraph.CreateSpe
 		}
 		_spec.SetField(addonratecard.FieldUnitConfig, field.TypeString, vv)
 		_node.UnitConfig = value
+	}
+	if value, ok := _c.mutation.TaxConfig(); ok {
+		vv, err := addonratecard.ValueScanner.TaxConfig.Value(value)
+		if err != nil {
+			return nil, nil, err
+		}
+		_spec.SetField(addonratecard.FieldTaxConfig, field.TypeString, vv)
+		_node.TaxConfig = value
 	}
 	if nodes := _c.mutation.AddonIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -873,24 +873,6 @@ func (u *AddonRateCardUpsert) ClearEntitlementTemplate() *AddonRateCardUpsert {
 	return u
 }
 
-// SetTaxConfig sets the "tax_config" field.
-func (u *AddonRateCardUpsert) SetTaxConfig(v *productcatalog.TaxConfig) *AddonRateCardUpsert {
-	u.Set(addonratecard.FieldTaxConfig, v)
-	return u
-}
-
-// UpdateTaxConfig sets the "tax_config" field to the value that was provided on create.
-func (u *AddonRateCardUpsert) UpdateTaxConfig() *AddonRateCardUpsert {
-	u.SetExcluded(addonratecard.FieldTaxConfig)
-	return u
-}
-
-// ClearTaxConfig clears the value of the "tax_config" field.
-func (u *AddonRateCardUpsert) ClearTaxConfig() *AddonRateCardUpsert {
-	u.SetNull(addonratecard.FieldTaxConfig)
-	return u
-}
-
 // SetBillingCadence sets the "billing_cadence" field.
 func (u *AddonRateCardUpsert) SetBillingCadence(v datetime.ISODurationString) *AddonRateCardUpsert {
 	u.Set(addonratecard.FieldBillingCadence, v)
@@ -996,6 +978,24 @@ func (u *AddonRateCardUpsert) UpdateUnitConfig() *AddonRateCardUpsert {
 // ClearUnitConfig clears the value of the "unit_config" field.
 func (u *AddonRateCardUpsert) ClearUnitConfig() *AddonRateCardUpsert {
 	u.SetNull(addonratecard.FieldUnitConfig)
+	return u
+}
+
+// SetTaxConfig sets the "tax_config" field.
+func (u *AddonRateCardUpsert) SetTaxConfig(v *productcatalog.TaxConfig) *AddonRateCardUpsert {
+	u.Set(addonratecard.FieldTaxConfig, v)
+	return u
+}
+
+// UpdateTaxConfig sets the "tax_config" field to the value that was provided on create.
+func (u *AddonRateCardUpsert) UpdateTaxConfig() *AddonRateCardUpsert {
+	u.SetExcluded(addonratecard.FieldTaxConfig)
+	return u
+}
+
+// ClearTaxConfig clears the value of the "tax_config" field.
+func (u *AddonRateCardUpsert) ClearTaxConfig() *AddonRateCardUpsert {
+	u.SetNull(addonratecard.FieldTaxConfig)
 	return u
 }
 
@@ -1285,27 +1285,6 @@ func (u *AddonRateCardUpsertOne) ClearEntitlementTemplate() *AddonRateCardUpsert
 	})
 }
 
-// SetTaxConfig sets the "tax_config" field.
-func (u *AddonRateCardUpsertOne) SetTaxConfig(v *productcatalog.TaxConfig) *AddonRateCardUpsertOne {
-	return u.Update(func(s *AddonRateCardUpsert) {
-		s.SetTaxConfig(v)
-	})
-}
-
-// UpdateTaxConfig sets the "tax_config" field to the value that was provided on create.
-func (u *AddonRateCardUpsertOne) UpdateTaxConfig() *AddonRateCardUpsertOne {
-	return u.Update(func(s *AddonRateCardUpsert) {
-		s.UpdateTaxConfig()
-	})
-}
-
-// ClearTaxConfig clears the value of the "tax_config" field.
-func (u *AddonRateCardUpsertOne) ClearTaxConfig() *AddonRateCardUpsertOne {
-	return u.Update(func(s *AddonRateCardUpsert) {
-		s.ClearTaxConfig()
-	})
-}
-
 // SetBillingCadence sets the "billing_cadence" field.
 func (u *AddonRateCardUpsertOne) SetBillingCadence(v datetime.ISODurationString) *AddonRateCardUpsertOne {
 	return u.Update(func(s *AddonRateCardUpsert) {
@@ -1429,6 +1408,27 @@ func (u *AddonRateCardUpsertOne) UpdateUnitConfig() *AddonRateCardUpsertOne {
 func (u *AddonRateCardUpsertOne) ClearUnitConfig() *AddonRateCardUpsertOne {
 	return u.Update(func(s *AddonRateCardUpsert) {
 		s.ClearUnitConfig()
+	})
+}
+
+// SetTaxConfig sets the "tax_config" field.
+func (u *AddonRateCardUpsertOne) SetTaxConfig(v *productcatalog.TaxConfig) *AddonRateCardUpsertOne {
+	return u.Update(func(s *AddonRateCardUpsert) {
+		s.SetTaxConfig(v)
+	})
+}
+
+// UpdateTaxConfig sets the "tax_config" field to the value that was provided on create.
+func (u *AddonRateCardUpsertOne) UpdateTaxConfig() *AddonRateCardUpsertOne {
+	return u.Update(func(s *AddonRateCardUpsert) {
+		s.UpdateTaxConfig()
+	})
+}
+
+// ClearTaxConfig clears the value of the "tax_config" field.
+func (u *AddonRateCardUpsertOne) ClearTaxConfig() *AddonRateCardUpsertOne {
+	return u.Update(func(s *AddonRateCardUpsert) {
+		s.ClearTaxConfig()
 	})
 }
 
@@ -1893,27 +1893,6 @@ func (u *AddonRateCardUpsertBulk) ClearEntitlementTemplate() *AddonRateCardUpser
 	})
 }
 
-// SetTaxConfig sets the "tax_config" field.
-func (u *AddonRateCardUpsertBulk) SetTaxConfig(v *productcatalog.TaxConfig) *AddonRateCardUpsertBulk {
-	return u.Update(func(s *AddonRateCardUpsert) {
-		s.SetTaxConfig(v)
-	})
-}
-
-// UpdateTaxConfig sets the "tax_config" field to the value that was provided on create.
-func (u *AddonRateCardUpsertBulk) UpdateTaxConfig() *AddonRateCardUpsertBulk {
-	return u.Update(func(s *AddonRateCardUpsert) {
-		s.UpdateTaxConfig()
-	})
-}
-
-// ClearTaxConfig clears the value of the "tax_config" field.
-func (u *AddonRateCardUpsertBulk) ClearTaxConfig() *AddonRateCardUpsertBulk {
-	return u.Update(func(s *AddonRateCardUpsert) {
-		s.ClearTaxConfig()
-	})
-}
-
 // SetBillingCadence sets the "billing_cadence" field.
 func (u *AddonRateCardUpsertBulk) SetBillingCadence(v datetime.ISODurationString) *AddonRateCardUpsertBulk {
 	return u.Update(func(s *AddonRateCardUpsert) {
@@ -2037,6 +2016,27 @@ func (u *AddonRateCardUpsertBulk) UpdateUnitConfig() *AddonRateCardUpsertBulk {
 func (u *AddonRateCardUpsertBulk) ClearUnitConfig() *AddonRateCardUpsertBulk {
 	return u.Update(func(s *AddonRateCardUpsert) {
 		s.ClearUnitConfig()
+	})
+}
+
+// SetTaxConfig sets the "tax_config" field.
+func (u *AddonRateCardUpsertBulk) SetTaxConfig(v *productcatalog.TaxConfig) *AddonRateCardUpsertBulk {
+	return u.Update(func(s *AddonRateCardUpsert) {
+		s.SetTaxConfig(v)
+	})
+}
+
+// UpdateTaxConfig sets the "tax_config" field to the value that was provided on create.
+func (u *AddonRateCardUpsertBulk) UpdateTaxConfig() *AddonRateCardUpsertBulk {
+	return u.Update(func(s *AddonRateCardUpsert) {
+		s.UpdateTaxConfig()
+	})
+}
+
+// ClearTaxConfig clears the value of the "tax_config" field.
+func (u *AddonRateCardUpsertBulk) ClearTaxConfig() *AddonRateCardUpsertBulk {
+	return u.Update(func(s *AddonRateCardUpsert) {
+		s.ClearTaxConfig()
 	})
 }
 

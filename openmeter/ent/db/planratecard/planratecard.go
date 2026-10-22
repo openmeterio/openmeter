@@ -46,8 +46,6 @@ const (
 	FieldAnnotations = "annotations"
 	// FieldEntitlementTemplate holds the string denoting the entitlement_template field in the database.
 	FieldEntitlementTemplate = "entitlement_template"
-	// FieldTaxConfig holds the string denoting the tax_config field in the database.
-	FieldTaxConfig = "tax_config"
 	// FieldBillingCadence holds the string denoting the billing_cadence field in the database.
 	FieldBillingCadence = "billing_cadence"
 	// FieldPrice holds the string denoting the price field in the database.
@@ -60,6 +58,8 @@ const (
 	FieldDiscounts = "discounts"
 	// FieldUnitConfig holds the string denoting the unit_config field in the database.
 	FieldUnitConfig = "unit_config"
+	// FieldTaxConfig holds the string denoting the tax_config field in the database.
+	FieldTaxConfig = "tax_config"
 	// FieldPhaseID holds the string denoting the phase_id field in the database.
 	FieldPhaseID = "phase_id"
 	// FieldFeatureID holds the string denoting the feature_id field in the database.
@@ -121,7 +121,6 @@ var Columns = []string{
 	FieldFeatureKey,
 	FieldAnnotations,
 	FieldEntitlementTemplate,
-	FieldTaxConfig,
 	FieldBillingCadence,
 	FieldPrice,
 	FieldCurrencyCode,
@@ -136,6 +135,11 @@ var Columns = []string{
 func ValidColumn(column string) bool {
 	for i := range Columns {
 		if column == Columns[i] {
+			return true
+		}
+	}
+	for _, f := range [...]string{FieldTaxConfig} {
+		if column == f {
 			return true
 		}
 	}
@@ -168,10 +172,10 @@ var (
 	// ValueScanner of all PlanRateCard fields.
 	ValueScanner struct {
 		EntitlementTemplate field.TypeValueScanner[*productcatalog.EntitlementTemplate]
-		TaxConfig           field.TypeValueScanner[*productcatalog.TaxConfig]
 		Price               field.TypeValueScanner[*productcatalog.Price]
 		Discounts           field.TypeValueScanner[*productcatalog.Discounts]
 		UnitConfig          field.TypeValueScanner[*unitconfig.UnitConfig]
+		TaxConfig           field.TypeValueScanner[*productcatalog.TaxConfig]
 	}
 )
 
@@ -263,11 +267,6 @@ func ByEntitlementTemplate(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldEntitlementTemplate, opts...).ToFunc()
 }
 
-// ByTaxConfig orders the results by the tax_config field.
-func ByTaxConfig(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldTaxConfig, opts...).ToFunc()
-}
-
 // ByBillingCadence orders the results by the billing_cadence field.
 func ByBillingCadence(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldBillingCadence, opts...).ToFunc()
@@ -296,6 +295,11 @@ func ByDiscounts(opts ...sql.OrderTermOption) OrderOption {
 // ByUnitConfig orders the results by the unit_config field.
 func ByUnitConfig(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldUnitConfig, opts...).ToFunc()
+}
+
+// ByTaxConfig orders the results by the tax_config field.
+func ByTaxConfig(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTaxConfig, opts...).ToFunc()
 }
 
 // ByPhaseID orders the results by the phase_id field.

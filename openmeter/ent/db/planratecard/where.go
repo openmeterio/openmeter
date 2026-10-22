@@ -788,16 +788,6 @@ func EntitlementTemplateNotNil() predicate.PlanRateCard {
 	return predicate.PlanRateCard(sql.FieldNotNull(FieldEntitlementTemplate))
 }
 
-// TaxConfigIsNil applies the IsNil predicate on the "tax_config" field.
-func TaxConfigIsNil() predicate.PlanRateCard {
-	return predicate.PlanRateCard(sql.FieldIsNull(FieldTaxConfig))
-}
-
-// TaxConfigNotNil applies the NotNil predicate on the "tax_config" field.
-func TaxConfigNotNil() predicate.PlanRateCard {
-	return predicate.PlanRateCard(sql.FieldNotNull(FieldTaxConfig))
-}
-
 // BillingCadenceEQ applies the EQ predicate on the "billing_cadence" field.
 func BillingCadenceEQ(v datetime.ISODurationString) predicate.PlanRateCard {
 	vc := string(v)
@@ -1070,6 +1060,16 @@ func UnitConfigIsNil() predicate.PlanRateCard {
 // UnitConfigNotNil applies the NotNil predicate on the "unit_config" field.
 func UnitConfigNotNil() predicate.PlanRateCard {
 	return predicate.PlanRateCard(sql.FieldNotNull(FieldUnitConfig))
+}
+
+// TaxConfigIsNil applies the IsNil predicate on the "tax_config" field.
+func TaxConfigIsNil() predicate.PlanRateCard {
+	return predicate.PlanRateCard(sql.FieldIsNull(FieldTaxConfig))
+}
+
+// TaxConfigNotNil applies the NotNil predicate on the "tax_config" field.
+func TaxConfigNotNil() predicate.PlanRateCard {
+	return predicate.PlanRateCard(sql.FieldNotNull(FieldTaxConfig))
 }
 
 // PhaseIDEQ applies the EQ predicate on the "phase_id" field.
