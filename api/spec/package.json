@@ -14,9 +14,10 @@
   "devDependencies": {
     "@fetch-mock/vitest": "0.2.18",
     "@typespec/prettier-plugin-typespec": "1.14.0",
-    "@vitest/coverage-v8": "4.1.10",
+    "@vitest/coverage-v8": "4.1.12",
     "prettier": "3.9.6",
-    "vitest": "4.1.10"
+    "vite": "8.1.6",
+    "vitest": "4.1.12"
   },
   "exports": {
     "./openapi.yaml": "./packages/legacy/output/openapi.OpenMeterCloud.yaml",
