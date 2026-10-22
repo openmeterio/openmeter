@@ -15,11 +15,11 @@
     "test": "vitest --run"
   },
   "dependencies": {
-    "@typespec/compiler": "1.14.0",
-    "@typespec/json-schema": "1.14.0",
-    "@typespec/openapi": "1.14.0"
+    "@typespec/compiler": "1.16.0",
+    "@typespec/json-schema": "1.16.0",
+    "@typespec/openapi": "1.16.0"
   },
   "devDependencies": {
-    "vitest": "4.1.10"
+    "vitest": "4.1.12"
   }
 }
