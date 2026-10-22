@@ -77,3 +77,50 @@ func TestValidateTotalNonNegative(t *testing.T) {
 	require.NoError(t, Totals{Total: alpacadecimal.NewFromInt(1)}.ValidateTotalNonNegative())
 	require.ErrorContains(t, Totals{Total: alpacadecimal.NewFromInt(-1)}.ValidateTotalNonNegative(), "total is negative")
 }
+
+func TestDeltaTotalsValidate(t *testing.T) {
+	t.Parallel()
+
+	t.Run("retracted usage without discounts", func(t *testing.T) {
+		t.Parallel()
+
+		require.NoError(t, DeltaTotals{Totals: Totals{
+			Amount:       alpacadecimal.NewFromInt(-18),
+			ChargesTotal: alpacadecimal.NewFromInt(30),
+			Total:        alpacadecimal.NewFromInt(12),
+		}}.Validate())
+	})
+
+	t.Run("retracted usage with discounts", func(t *testing.T) {
+		t.Parallel()
+
+		require.NoError(t, DeltaTotals{Totals: Totals{
+			Amount:         alpacadecimal.NewFromInt(-18),
+			ChargesTotal:   alpacadecimal.NewFromInt(20),
+			DiscountsTotal: alpacadecimal.NewFromFloat(-4.5),
+			Total:          alpacadecimal.NewFromFloat(6.5),
+		}}.Validate())
+	})
+
+	t.Run("mixed sign amount and discounts are rejected", func(t *testing.T) {
+		t.Parallel()
+
+		err := DeltaTotals{Totals: Totals{
+			Amount:         alpacadecimal.NewFromInt(10),
+			DiscountsTotal: alpacadecimal.NewFromInt(-20),
+			Total:          alpacadecimal.NewFromInt(30),
+		}}.Validate()
+		require.ErrorContains(t, err, "amount and discount total should have the same sign")
+	})
+
+	t.Run("negative settled totals are rejected", func(t *testing.T) {
+		t.Parallel()
+
+		err := DeltaTotals{Totals: Totals{
+			ChargesTotal: alpacadecimal.NewFromInt(-1),
+			Total:        alpacadecimal.NewFromInt(-1),
+		}}.Validate()
+		require.ErrorContains(t, err, "charges total is negative")
+		require.ErrorContains(t, err, "total is negative")
+	})
+}

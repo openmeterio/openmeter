@@ -588,7 +588,7 @@ func newRealizationRunForBillingMeteredQuantityTest(id string, typ RealizationRu
 			StoredAtLT:      servicePeriodTo,
 			ServicePeriodTo: servicePeriodTo,
 			MeteredQuantity: alpacadecimal.NewFromInt(meteredQuantity),
-			Totals: totals.Totals{
+			Totals: totals.DeltaTotals{
 				Amount: alpacadecimal.NewFromInt(meteredQuantity),
 				Total:  alpacadecimal.NewFromInt(meteredQuantity),
 			},

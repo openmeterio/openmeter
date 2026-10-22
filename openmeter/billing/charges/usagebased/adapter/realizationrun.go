@@ -46,7 +46,7 @@ func (a *adapter) CreateRealizationRun(ctx context.Context, chargeID meta.Charge
 			create = create.SetPriorRunID(input.PriorRunID.ID)
 		}
 
-		create = totals.Set(create, input.Totals)
+		create = totals.Set(create, input.Totals.Totals)
 
 		dbRun, err := create.Save(ctx)
 		if err != nil {
@@ -89,7 +89,7 @@ func (a *adapter) UpdateRealizationRun(ctx context.Context, input usagebased.Upd
 		}
 
 		if input.Totals.IsPresent() {
-			update = totals.Set(update, input.Totals.OrEmpty())
+			update = totals.Set(update, input.Totals.OrEmpty().Totals)
 		}
 
 		if input.NoFiatTransactionRequired.IsPresent() {

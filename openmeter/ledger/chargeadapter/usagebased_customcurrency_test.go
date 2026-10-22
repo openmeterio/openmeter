@@ -152,7 +152,7 @@ func TestOnUsageBasedCustomCurrencyOverageAccruedCorrection(t *testing.T) {
 	require.NoError(t, err)
 	run.InvoiceUsage = &invoicedusage.AccruedUsage{
 		ServicePeriod:     charge.Intent.GetEffectiveServicePeriod(),
-		Totals:            totals.Totals{Amount: result.TotalFiatAmount, Total: result.TotalFiatAmount},
+		Totals:            totals.DeltaTotals{Amount: result.TotalFiatAmount, Total: result.TotalFiatAmount},
 		LedgerTransaction: &result.TransactionGroup,
 	}
 
@@ -210,7 +210,7 @@ func TestOnUsageBasedCustomCurrencyOverageAccruedCorrection_NoLedgerTransaction(
 	})
 	run.InvoiceUsage = &invoicedusage.AccruedUsage{
 		ServicePeriod: charge.Intent.GetEffectiveServicePeriod(),
-		Totals:        totals.Totals{},
+		Totals:        totals.DeltaTotals{},
 	}
 
 	// A positive native overage that rounded to zero fiat persisted no ledger
@@ -899,7 +899,7 @@ func (e *usageBasedHandlerTestEnv) newCustomCurrencyCreditThenInvoiceCharge(t *t
 
 func (e *usageBasedHandlerTestEnv) newCustomOverageRun(overageTotals totals.Totals) chargeusagebased.RealizationRun {
 	run := e.newRun()
-	run.Totals = overageTotals
+	run.Totals = totals.DeltaTotals{Totals: overageTotals}
 
 	return run
 }

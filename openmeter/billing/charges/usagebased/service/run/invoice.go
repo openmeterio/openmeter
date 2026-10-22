@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/invoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -70,7 +71,7 @@ func (s *Service) BookAccruedInvoiceUsage(ctx context.Context, in BookAccruedInv
 	if in.Run.NoFiatTransactionRequired {
 		accruedUsage, err := s.adapter.CreateRunInvoicedUsage(ctx, in.Run.ID, invoicedusage.AccruedUsage{
 			ServicePeriod: in.Line.Period,
-			Totals:        in.Line.Totals,
+			Totals:        totals.DeltaTotals{Totals: in.Line.Totals},
 		})
 		if err != nil {
 			return BookAccruedInvoiceUsageResult{}, fmt.Errorf("create invoiced usage for run %s: %w", in.Run.ID.ID, err)
@@ -137,7 +138,7 @@ func (s *Service) BookAccruedInvoiceUsage(ctx context.Context, in BookAccruedInv
 
 	accruedUsage, err := s.adapter.CreateRunInvoicedUsage(ctx, in.Run.ID, invoicedusage.AccruedUsage{
 		ServicePeriod:     in.Line.Period,
-		Totals:            in.Line.Totals,
+		Totals:            totals.DeltaTotals{Totals: in.Line.Totals},
 		LedgerTransaction: &ledgerTransactionRef,
 	})
 	if err != nil {

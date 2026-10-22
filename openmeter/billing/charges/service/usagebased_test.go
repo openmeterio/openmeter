@@ -518,7 +518,7 @@ func (s *UsageBasedChargesTestSuite) runUsageBasedCustomCurrencyFiatOverageAfter
 		s.Require().NoError(err)
 		s.Require().NotNil(run.InvoiceUsage)
 		s.False(run.Immutable)
-		s.RequireTotals(billingtest.ExpectedTotals{Amount: 5, Total: 5}, run.InvoiceUsage.Totals)
+		s.RequireTotals(billingtest.ExpectedTotals{Amount: 5, Total: 5}, run.InvoiceUsage.Totals.Totals)
 		s.Empty(run.FiatOverageCreditRealizations)
 		s.False(run.FiatOverageCreditAllocationCompleted)
 		s.False(run.NoFiatTransactionRequired)
@@ -558,7 +558,7 @@ func (s *UsageBasedChargesTestSuite) runUsageBasedCustomCurrencyFiatOverageAfter
 		s.Require().NotNil(run.InvoiceUsage)
 		s.False(run.Immutable)
 		s.Require().NotNil(run.InvoiceUsage.LedgerTransaction)
-		s.RequireTotals(billingtest.ExpectedTotals{Amount: 5, Total: 5}, run.InvoiceUsage.Totals)
+		s.RequireTotals(billingtest.ExpectedTotals{Amount: 5, Total: 5}, run.InvoiceUsage.Totals.Totals)
 		s.True(run.FiatOverageCreditAllocationCompleted)
 		s.True(run.NoFiatTransactionRequired)
 		s.requireCreditRealizations(
@@ -899,7 +899,7 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCustomCurrencyCreditThenInvoi
 		s.Equal(usagebased.RealizationRunTypeFinalRealization, initialRun.Type)
 		s.RequireTotals(
 			billingtest.ExpectedTotals{Amount: 26, CreditsTotal: 12, Total: 14},
-			initialRun.Totals,
+			initialRun.Totals.Totals,
 		)
 		s.requireCreditRealizations(
 			[]expectedCreditRealization{{Type: creditrealization.TypeAllocation, Amount: 12}},
@@ -1490,7 +1490,7 @@ func (s *UsageBasedChargesTestSuite) runUsageBasedCustomCurrencyCreditThenInvoic
 				s.Equal(realizationVariant.expectedRunType, initialRun.Type)
 				s.True(realizationVariant.invoiceAt.Equal(initialRun.ServicePeriodTo))
 				s.Equal(test.onRunCreated.usageAdded, initialRun.MeteredQuantity.InexactFloat64())
-				s.RequireTotals(test.onRunCreated.expectRunTotals, initialRun.Totals)
+				s.RequireTotals(test.onRunCreated.expectRunTotals, initialRun.Totals.Totals)
 				s.requireCreditRealizations(
 					nil,
 					initialRun.FiatOverageCreditRealizations,
@@ -1542,7 +1542,7 @@ func (s *UsageBasedChargesTestSuite) runUsageBasedCustomCurrencyCreditThenInvoic
 
 				s.Equal(realizationVariant.expectedRunType, collectedRun.Type)
 				s.Equal(test.onRunCreated.usageAdded+test.onCollectionComplete.usageAdded, collectedRun.MeteredQuantity.InexactFloat64())
-				s.RequireTotals(test.onCollectionComplete.expectRunTotals, collectedRun.Totals)
+				s.RequireTotals(test.onCollectionComplete.expectRunTotals, collectedRun.Totals.Totals)
 				s.requireCreditRealizations(
 					nil,
 					collectedRun.FiatOverageCreditRealizations,
@@ -1690,7 +1690,7 @@ func (s *UsageBasedChargesTestSuite) runUsageBasedCustomCurrencyCreditThenInvoic
 					s.Nil(realizedRun.InvoiceUsage)
 				} else {
 					s.Require().NotNil(realizedRun.InvoiceUsage)
-					s.RequireTotals(test.onCollectionComplete.expectInvoiceTotals, realizedRun.InvoiceUsage.Totals)
+					s.RequireTotals(test.onCollectionComplete.expectInvoiceTotals, realizedRun.InvoiceUsage.Totals.Totals)
 				}
 
 				if test.expectPaymentSettled {

@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	usagebasedrating "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/rating"
 	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -163,7 +164,7 @@ func (s *Service) CreateRatedRun(ctx context.Context, in CreateRatedRunInput) (C
 		LineID:                    in.LineID,
 		InvoiceID:                 in.InvoiceID,
 		MeteredQuantity:           ratingResult.Quantity,
-		Totals:                    runTotals,
+		Totals:                    totals.DeltaTotals{Totals: runTotals},
 		NoFiatTransactionRequired: isCreditsOnlySettlementMode,
 	})
 	if err != nil {

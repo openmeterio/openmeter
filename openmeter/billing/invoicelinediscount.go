@@ -66,15 +66,13 @@ type AmountLineDiscount struct {
 	RoundingAmount alpacadecimal.Decimal `json:"roundingAmount"`
 }
 
+// Validate accepts signed amounts: charge reversals carry negative discounts. Invoice sanity
+// validation checks their sign against the detailed line amount before an app consumes them.
 func (i AmountLineDiscount) Validate() error {
 	var errs []error
 
 	if err := i.LineDiscountBase.Validate(); err != nil {
 		errs = append(errs, err)
-	}
-
-	if i.Amount.IsNegative() {
-		errs = append(errs, errors.New("amount should be positive or zero"))
 	}
 
 	return errors.Join(errs...)

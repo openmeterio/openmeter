@@ -215,6 +215,7 @@ func subtractDetailedLinesWithSameKey(
 		}
 
 		line := previousLine.Clone()
+		line.ID = ""
 		line.Quantity = line.Quantity.Neg()
 		line.Totals = line.Totals.Neg()
 		line.AmountDiscounts = line.AmountDiscounts.Neg()

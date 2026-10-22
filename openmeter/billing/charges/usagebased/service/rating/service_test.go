@@ -244,7 +244,7 @@ func TestGetDetailedRatingForUsageUsesPeriodPreservingRatingEngine(t *testing.T)
 	require.Equal(t, ratingtestutils.ExpectedTotals{
 		Amount: 12,
 		Total:  12,
-	}, ratingtestutils.ToExpectedTotals(out.Totals))
+	}, ratingtestutils.ToExpectedTotals(out.Totals.Totals))
 }
 
 func TestGetDetailedRatingForUsageLoadsPriorDetailedLines(t *testing.T) {
@@ -483,7 +483,7 @@ func newDetailedRatingTestRun(id string, servicePeriodTo time.Time, meteredQuant
 			StoredAtLT:      time.Date(2025, 2, 2, 0, 0, 0, 0, time.UTC),
 			ServicePeriodTo: servicePeriodTo,
 			MeteredQuantity: alpacadecimal.NewFromInt(meteredQuantity),
-			Totals: totals.Totals{
+			Totals: totals.DeltaTotals{
 				Amount: alpacadecimal.NewFromInt(meteredQuantity),
 				Total:  alpacadecimal.NewFromInt(meteredQuantity),
 			},

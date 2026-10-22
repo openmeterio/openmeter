@@ -230,7 +230,7 @@ func newUsageBasedRealizationRun(id string, typ usagebased.RealizationRunType, s
 			StoredAtLT:      servicePeriodTo,
 			ServicePeriodTo: servicePeriodTo,
 			MeteredQuantity: alpacadecimal.NewFromInt(meteredQuantity),
-			Totals: totals.Totals{
+			Totals: totals.DeltaTotals{
 				Amount: alpacadecimal.NewFromInt(meteredQuantity),
 				Total:  alpacadecimal.NewFromInt(meteredQuantity),
 			},

@@ -66,11 +66,7 @@ func TestMapUsageBasedDetailedLinesPreservesDiscountSnapshots(t *testing.T) {
 			// then: facts survive mapping, but invoice validation rejects negative discounts
 			require.Len(t, mapped, 1)
 			detail := mapped[0]
-			if sign < 0 {
-				require.ErrorContains(t, detail.Validate(), "amount should be positive or zero")
-			} else {
-				require.NoError(t, detail.Validate())
-			}
+			require.NoError(t, detail.Validate())
 
 			require.Equal(t, snapshot.Totals, detail.Totals)
 			require.Equal(t, line.InvoiceID, detail.InvoiceID)
@@ -121,7 +117,7 @@ func TestPopulateUsageBasedStandardLineFromRunProjectsDetailsAndCredits(t *testi
 			StoredAtLT:      period.To,
 			ServicePeriodTo: period.To,
 			MeteredQuantity: alpacadecimal.NewFromInt(20),
-			Totals: totals.Totals{
+			Totals: totals.DeltaTotals{
 				Amount:       alpacadecimal.NewFromInt(20),
 				CreditsTotal: alpacadecimal.NewFromInt(7),
 				Total:        alpacadecimal.NewFromInt(13),
@@ -159,7 +155,7 @@ func TestPopulateUsageBasedStandardLineFromRunProjectsDetailsAndCredits(t *testi
 			StoredAtLT:      period.From,
 			ServicePeriodTo: period.From.Add(24 * time.Hour),
 			MeteredQuantity: alpacadecimal.NewFromInt(5),
-			Totals: totals.Totals{
+			Totals: totals.DeltaTotals{
 				Amount: alpacadecimal.NewFromInt(5),
 				Total:  alpacadecimal.NewFromInt(5),
 			},
@@ -217,7 +213,7 @@ func TestPopulateUsageBasedStandardLineFromRunAppliesUsageDiscount(t *testing.T)
 			StoredAtLT:      period.To,
 			ServicePeriodTo: period.To,
 			MeteredQuantity: alpacadecimal.NewFromInt(20),
-			Totals: totals.Totals{
+			Totals: totals.DeltaTotals{
 				Amount: alpacadecimal.NewFromInt(10),
 				Total:  alpacadecimal.NewFromInt(10),
 			},
@@ -322,7 +318,7 @@ func TestPopulateUsageBasedStandardLineFromRunRequiresExpandedDetails(t *testing
 			StoredAtLT:      period.To,
 			ServicePeriodTo: period.To,
 			MeteredQuantity: alpacadecimal.NewFromInt(20),
-			Totals: totals.Totals{
+			Totals: totals.DeltaTotals{
 				Amount: alpacadecimal.NewFromInt(20),
 				Total:  alpacadecimal.NewFromInt(20),
 			},
@@ -431,7 +427,7 @@ func TestPopulateUsageBasedStandardLineFromCustomCurrencyRunCreatesFiatOverage(t
 			},
 			Type:       usagebased.RealizationRunTypeFinalRealization,
 			StoredAtLT: period.To,
-			Totals: totals.Totals{
+			Totals: totals.DeltaTotals{
 				Total: alpacadecimal.NewFromInt(3),
 			},
 		},
@@ -474,7 +470,7 @@ func TestPopulateUsageBasedStandardLineFromCustomCurrencyRunCreatesFiatOverage(t
 	preparedRun := run
 	preparedRun.InvoiceUsage = &invoicedusage.AccruedUsage{
 		ServicePeriod: period,
-		Totals: totals.Totals{
+		Totals: totals.DeltaTotals{
 			Amount: alpacadecimal.NewFromInt(5),
 			Total:  alpacadecimal.NewFromInt(5),
 		},
@@ -499,7 +495,7 @@ func TestPopulateUsageBasedStandardLineFromCustomCurrencyRunCreatesFiatOverage(t
 				// given: a zero converted overage whose transaction flag does not request payment skipping
 				zeroOverageRun := run
 				zeroOverageRun.NoFiatTransactionRequired = false
-				zeroOverageRun.Totals = totals.Totals{
+				zeroOverageRun.Totals = totals.DeltaTotals{
 					Amount:       alpacadecimal.NewFromInt(3),
 					CreditsTotal: alpacadecimal.NewFromInt(3),
 				}

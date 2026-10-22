@@ -503,7 +503,7 @@ func convertUsageBasedRealizationsToAPI(realizations []billingcharges.CustomerCh
 		}
 
 		if expands.Has(meta.ExpandRealizationTotals) {
-			realization.Totals = lo.ToPtr(ToAPIBillingTotals(run.Totals))
+			realization.Totals = lo.ToPtr(ToAPIBillingTotals(run.Totals.Totals))
 		}
 
 		out = append(out, realization)

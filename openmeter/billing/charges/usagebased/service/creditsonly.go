@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	usagebasedrating "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/rating"
 	usagebasedrun "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/run"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/statelessx"
@@ -504,7 +505,7 @@ func (s *CreditsOnlyStateMachine) FinalizeRealizationRun(ctx context.Context) er
 		ID:                        currentRun.ID,
 		StoredAtLT:                mo.Some(storedAtLT),
 		MeteredQuantity:           mo.Some(ratingResult.Quantity),
-		Totals:                    mo.Some(currentTotals),
+		Totals:                    mo.Some(totals.DeltaTotals{Totals: currentTotals}),
 		NoFiatTransactionRequired: mo.Some(true),
 	})
 	if err != nil {

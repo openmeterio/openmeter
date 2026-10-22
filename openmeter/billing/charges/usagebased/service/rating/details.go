@@ -72,7 +72,7 @@ func (i GetDetailedRatingForUsageInput) Validate() error {
 }
 
 type GetDetailedRatingForUsageResult struct {
-	Totals        totals.Totals
+	Totals        totals.DeltaTotals
 	DetailedLines usagebased.DetailedLines
 	// Quantity is the current run's meter value between [Charge.Intent.GetEffectiveServicePeriod().From, ServicePeriodTo)
 	// capped at StoredAtLT.
@@ -136,7 +136,9 @@ func (s *service) GetDetailedRatingForUsage(ctx context.Context, in GetDetailedR
 		}
 
 		return GetDetailedRatingForUsageResult{
-			Totals:        out.DetailedLines.SumTotals(),
+			Totals: totals.DeltaTotals{
+				Totals: out.DetailedLines.SumTotals(),
+			},
 			DetailedLines: out.DetailedLines,
 			Quantity:      currentQuantity,
 		}, recorder.ErrorsOrNil()
@@ -290,7 +292,9 @@ func (s *service) ratePeriodPreservingDetails(ctx context.Context, in ratePeriod
 	}
 
 	return GetDetailedRatingForUsageResult{
-		Totals:        out.DetailedLines.SumTotals(),
+		Totals: totals.DeltaTotals{
+			Totals: out.DetailedLines.SumTotals(),
+		},
 		DetailedLines: out.DetailedLines,
 		Quantity:      in.CurrentQuantity,
 	}, recorder.ErrorsOrNil()

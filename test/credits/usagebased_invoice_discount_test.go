@@ -1,18 +1,22 @@
 package credits
 
 import (
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/invopop/gobl/currency"
 	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
+	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	chargedetailedline "github.com/openmeterio/openmeter/openmeter/billing/charges/models/detailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
@@ -805,5 +809,518 @@ func (s *CreditThenInvoiceTestSuite) TestPercentageDiscountProgressiveBillingUsa
 		s.Empty(invoiceLine.DetailedLines)
 		s.True(invoiceLine.Totals.Total.IsZero())
 		s.True(invoice.Totals.Total.IsZero())
+	})
+}
+
+func (s *CreditThenInvoiceTestSuite) TestPercentageDiscountProgressiveBillingUsageShrinkWithMinimumSpend() {
+	// Given:
+	// - Service period: 2026-01-01 … 2026-01-30
+	// - An usage based charge with a graduated tiered price at two tiers (10 units @ 5, then @ 4)
+	// - A 25% percentage discount and a 50 minimum spend on the charge
+	// - 12 units of usage in the first half of the period
+	// - Invoice 1 for 2026-01-01 … 2026-01-15 is approved with both tiers billed and no minimum spend
+
+	// When
+	// - 4 units are retracted in the second half, so the cumulative usage drops to 8
+	// - Invoice 2 is created at the end of the period
+	// Then:
+	// - Invoice 2 nets the retracted usage against the minimum spend top-up: tier 1 drops 2 units with
+	//   its 2.5 discount, tier 2 is fully reversed with its 2 discount and the 20 top-up carries no
+	//   percentage discount, so the delta has negative discounts with a positive total
+	periodStart := lo.Must(time.Parse(time.RFC3339, "2026-01-01T00:00:00Z"))
+	periodEnd := lo.Must(time.Parse(time.RFC3339, "2026-01-30T00:00:00Z"))
+	clock.FreezeTime(periodStart)
+	defer clock.UnFreeze()
+	namespace := "ns-percentage-discounts-progressive-usage-shrink-min-spend"
+	ctx := s.T().Context()
+
+	defer s.MockStreamingConnector.Reset()
+
+	customInvoicing := s.SetupCustomInvoicing(namespace)
+
+	s.ProvisionDefaultTaxCodes(ctx, namespace)
+	s.ProvisionBillingProfile(ctx, namespace, customInvoicing.App.GetID(), billingtest.WithManualApproval(), billingtest.WithProgressiveBilling())
+
+	customerEntity := s.CreateLedgerBackedCustomer(namespace, "test-customer")
+	s.NotNil(customerEntity)
+
+	meterSlug := "flat-per-unit"
+	meterID := ulid.Make().String()
+	s.NoError(s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
+		{
+			ID:            meterID,
+			Namespace:     namespace,
+			CreatedAt:     clock.Now(),
+			UpdatedAt:     clock.Now(),
+			Name:          "Flat per unit",
+			Key:           meterSlug,
+			Aggregation:   meter.MeterAggregationSum,
+			EventType:     "test",
+			ValueProperty: lo.ToPtr("$.value"),
+		},
+	}))
+
+	s.MockStreamingConnector.AddSimpleEvent(meterSlug, 12, periodStart.Add(time.Minute))
+
+	defer func() {
+		err := s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{})
+		s.Require().NoError(err, "meter adapter replace meters")
+	}()
+
+	featureFlatPerUnit := lo.Must(s.FeatureService.CreateFeature(ctx, feature.CreateFeatureInputs{
+		Namespace: namespace,
+		Name:      meterSlug,
+		Key:       meterSlug,
+		MeterID:   lo.ToPtr(meterID),
+	}))
+
+	res, err := s.Charges.CreatePendingInvoiceLines(ctx,
+		billing.CreatePendingInvoiceLinesInput{
+			Customer: customerEntity.GetID(),
+			Currency: currencyx.FiatCode(currency.USD),
+			Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
+				{
+					ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+						Namespace: namespace,
+						Name:      "Test item1",
+					}),
+					ServicePeriod: timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
+
+					InvoiceAt: periodEnd,
+
+					ManagedBy: billing.ManuallyManagedLine,
+
+					Currency: currencyx.FiatCode(currency.USD),
+					RateCardDiscounts: billing.Discounts{
+						Percentage: &billing.PercentageDiscount{
+							Percentage: models.NewPercentage(25),
+						},
+					},
+					FeatureKey: featureFlatPerUnit.Key,
+					Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.TieredPrice{
+						Mode: productcatalog.GraduatedTieredPrice,
+						Tiers: []productcatalog.PriceTier{
+							{
+								UnitPrice: &productcatalog.PriceTierUnitPrice{
+									Amount: alpacadecimal.NewFromFloat(5),
+								},
+								UpToAmount: lo.ToPtr(alpacadecimal.NewFromFloat(10)),
+							},
+							{
+								UnitPrice: &productcatalog.PriceTierUnitPrice{
+									Amount: alpacadecimal.NewFromFloat(4),
+								},
+							},
+						},
+						MinimumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(50)),
+					})),
+				},
+			}),
+		})
+	s.Require().NoError(err)
+	s.Require().Len(res.Lines, 1)
+
+	invoice1AsOf := lo.Must(time.Parse(time.RFC3339, "2026-01-15T00:00:00Z"))
+	clock.FreezeTime(invoice1AsOf)
+	defer clock.UnFreeze()
+
+	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		Customer: customerEntity.GetID(),
+		AsOf:     lo.ToPtr(invoice1AsOf),
+	})
+	s.Require().NoError(err)
+	s.Require().Len(invoices, 1)
+	s.Empty(invoices[0].ValidationIssues)
+	s.Require().Len(invoices[0].Lines.OrEmpty(), 1)
+
+	invoiceLine := invoices[0].Lines.OrEmpty()[0]
+	s.Require().Len(invoiceLine.DetailedLines, 2)
+	s.RequireTotals(billingtest.ExpectedTotals{
+		Amount:         58,
+		DiscountsTotal: 14.5,
+		Total:          43.5,
+	}, invoiceLine.Totals)
+
+	clock.FreezeTime(invoices[0].DefaultCollectionAtForStandardInvoice())
+	defer clock.UnFreeze()
+	invoice1, err := s.BillingService.AdvanceInvoice(ctx, invoices[0].GetInvoiceID())
+	s.Require().NoError(err)
+	_, err = s.BillingService.ApproveInvoice(ctx, invoice1.GetInvoiceID())
+	s.Require().NoError(err)
+
+	s.Run("[invoice2] Retracted usage nets the booked discounts against the minimum spend top-up", func() {
+		invoice2AsOf := periodEnd
+		s.MockStreamingConnector.AddSimpleEvent(meterSlug, -4, invoice2AsOf.Add(-30*time.Hour))
+		clock.FreezeTime(invoice2AsOf)
+		defer clock.UnFreeze()
+
+		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+			Customer: customerEntity.GetID(),
+			AsOf:     lo.ToPtr(invoice2AsOf),
+		})
+		s.Require().NoError(err)
+		s.Require().Len(invoices, 1)
+
+		invoice := invoices[0]
+		s.Empty(invoice.ValidationIssues)
+		s.Require().Len(invoice.Lines.OrEmpty(), 1)
+
+		invoiceLine := invoice.Lines.OrEmpty()[0]
+		s.Require().Len(invoiceLine.DetailedLines, 3)
+
+		detailedLineByReferencePrefix := func(prefix string) billing.DetailedLine {
+			for _, detailedLine := range invoiceLine.DetailedLines {
+				if strings.HasPrefix(detailedLine.ChildUniqueReferenceID, prefix) {
+					return detailedLine
+				}
+			}
+
+			s.Require().Failf("detailed line not found", "child unique reference id prefix: %s", prefix)
+
+			return billing.DetailedLine{}
+		}
+
+		tier1 := detailedLineByReferencePrefix(fmt.Sprintf(rating.GraduatedTieredPriceUsageChildUniqueReferenceID, 1))
+		s.Equal(float64(-2), tier1.Quantity.InexactFloat64())
+		s.Equal(float64(5), tier1.PerUnitAmount.InexactFloat64())
+		s.RequireTotals(billingtest.ExpectedTotals{
+			Amount:         -10,
+			DiscountsTotal: -2.5,
+			Total:          -7.5,
+		}, tier1.Totals)
+		s.Require().Len(tier1.AmountDiscounts, 1)
+		s.Equal(billing.RatecardPercentageDiscountReason, tier1.AmountDiscounts[0].Reason.Type())
+		s.Equal(float64(-2.5), tier1.AmountDiscounts[0].Amount.InexactFloat64())
+
+		// Tier 2 has no usage left, so the previously billed line is reversed as a correction
+		tier2 := detailedLineByReferencePrefix(fmt.Sprintf(rating.GraduatedTieredPriceUsageChildUniqueReferenceID, 2) + "#correction:")
+		s.Equal(float64(-2), tier2.Quantity.InexactFloat64())
+		s.Equal(float64(4), tier2.PerUnitAmount.InexactFloat64())
+		s.RequireTotals(billingtest.ExpectedTotals{
+			Amount:         -8,
+			DiscountsTotal: -2,
+			Total:          -6,
+		}, tier2.Totals)
+		s.Require().Len(tier2.AmountDiscounts, 1)
+		s.Equal(billing.RatecardPercentageDiscountReason, tier2.AmountDiscounts[0].Reason.Type())
+		s.Equal(float64(-2), tier2.AmountDiscounts[0].Amount.InexactFloat64())
+
+		// The top-up is applied after the percentage discount, so it carries none
+		minSpend := detailedLineByReferencePrefix(rating.MinSpendChildUniqueReferenceID)
+		s.Equal(float64(1), minSpend.Quantity.InexactFloat64())
+		s.Equal(float64(20), minSpend.PerUnitAmount.InexactFloat64())
+		s.RequireTotals(billingtest.ExpectedTotals{
+			ChargesTotal: 20,
+			Total:        20,
+		}, minSpend.Totals)
+		s.Empty(minSpend.AmountDiscounts)
+
+		expectedTotals := billingtest.ExpectedTotals{
+			Amount:         -18,
+			ChargesTotal:   20,
+			DiscountsTotal: -4.5,
+			Total:          6.5,
+		}
+		s.RequireTotals(expectedTotals, invoiceLine.Totals)
+		s.RequireTotals(expectedTotals, invoice.Totals)
+
+		// When the invoice is approved, the signed delta is accrued and the final run closes
+		clock.FreezeTime(invoice.DefaultCollectionAtForStandardInvoice())
+		defer clock.UnFreeze()
+		invoice, err = s.BillingService.AdvanceInvoice(ctx, invoice.GetInvoiceID())
+		s.Require().NoError(err)
+		invoice, err = s.BillingService.ApproveInvoice(ctx, invoice.GetInvoiceID())
+		s.Require().NoError(err)
+		s.Equal(billing.StandardInvoiceStatusPaymentProcessingPending, invoice.Status)
+		s.Empty(invoice.ValidationIssues)
+
+		charge := s.RequireUsageBasedChargeStatus(meta.ChargeID{Namespace: namespace, ID: *res.Lines[0].ChargeID}, usagebased.StatusActiveAwaitingPaymentSettlement)
+		finalRun, found := lo.Find(charge.Realizations, func(run usagebased.RealizationRun) bool {
+			return run.InvoiceID != nil && *run.InvoiceID == invoice.ID
+		})
+		s.Require().True(found)
+		s.True(finalRun.Immutable)
+		s.Require().NotNil(finalRun.InvoiceUsage)
+		s.RequireTotals(expectedTotals, finalRun.InvoiceUsage.Totals.Totals)
+		s.NotNil(finalRun.InvoiceUsage.LedgerTransaction)
+
+		// The final run consumed the pending line
+		gathering, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
+			Namespace:        namespace,
+			ExtendedStatuses: []billing.StandardInvoiceStatus{billing.StandardInvoiceStatusGathering},
+		})
+		s.Require().NoError(err)
+		s.Empty(gathering.Items)
+	})
+}
+
+func (s *CreditThenInvoiceTestSuite) TestPercentageDiscountProgressiveBillingUsageShrinkWithMinimumSpendAndCredits() {
+	// Given:
+	// - Service period: 2026-01-01 … 2026-01-30
+	// - An usage based charge with a graduated tiered price at two tiers (10 units @ 5, then @ 4)
+	// - A 25% percentage discount and a 50 minimum spend on the charge
+	// - 45 USD promotional credits, enough to cover the first invoice with 1.5 left
+	// - 12 units of usage in the first half of the period
+	// - Invoice 1 for 2026-01-01 … 2026-01-15 is approved with both tiers billed, no minimum spend and
+	//   fully covered by 43.5 credits
+
+	// When
+	// - 4 units are retracted in the second half, so the cumulative usage drops to 8
+	// - Invoice 2 is created at the end of the period
+	// Then:
+	// - Invoice 2 nets the retracted usage against the minimum spend top-up: tier 1 drops 2 units with
+	//   its 2.5 discount, tier 2 is fully reversed with its 2 discount and the 20 top-up carries no
+	//   percentage discount, so the delta has negative discounts with a positive total
+	// - Credits are reconciled per run against the run total, so the delta run allocates the remaining
+	//   1.5 credits and the credits of invoice 1 are left untouched: the credits total never goes negative
+	periodStart := lo.Must(time.Parse(time.RFC3339, "2026-01-01T00:00:00Z"))
+	periodEnd := lo.Must(time.Parse(time.RFC3339, "2026-01-30T00:00:00Z"))
+	clock.FreezeTime(periodStart)
+	defer clock.UnFreeze()
+	namespace := "ns-percentage-discounts-progressive-usage-shrink-min-spend-credits"
+	ctx := s.T().Context()
+
+	defer s.MockStreamingConnector.Reset()
+
+	customInvoicing := s.SetupCustomInvoicing(namespace)
+
+	s.ProvisionDefaultTaxCodes(ctx, namespace)
+	s.ProvisionBillingProfile(ctx, namespace, customInvoicing.App.GetID(), billingtest.WithManualApproval(), billingtest.WithProgressiveBilling())
+
+	customerEntity := s.CreateLedgerBackedCustomer(namespace, "test-customer")
+	s.NotNil(customerEntity)
+
+	zeroCostBasis := alpacadecimal.Zero
+	ledgerSnapshotInput := LedgerSnapshotInput{
+		Namespace: namespace,
+		Customer:  customerEntity.GetID(),
+		Currency:  USD,
+		CostBasis: mo.Some(&zeroCostBasis),
+	}
+	s.CreatePromotionalCreditFunding(ctx, CreatePromotionalCreditFundingInput{
+		Namespace: namespace,
+		Customer:  customerEntity.GetID(),
+		Amount:    alpacadecimal.NewFromInt(45),
+		At:        periodStart,
+		CostBasis: zeroCostBasis,
+	})
+
+	meterSlug := "flat-per-unit"
+	meterID := ulid.Make().String()
+	s.NoError(s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
+		{
+			ID:            meterID,
+			Namespace:     namespace,
+			CreatedAt:     clock.Now(),
+			UpdatedAt:     clock.Now(),
+			Name:          "Flat per unit",
+			Key:           meterSlug,
+			Aggregation:   meter.MeterAggregationSum,
+			EventType:     "test",
+			ValueProperty: lo.ToPtr("$.value"),
+		},
+	}))
+
+	s.MockStreamingConnector.AddSimpleEvent(meterSlug, 12, periodStart.Add(time.Minute))
+
+	defer func() {
+		err := s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{})
+		s.Require().NoError(err, "meter adapter replace meters")
+	}()
+
+	featureFlatPerUnit := lo.Must(s.FeatureService.CreateFeature(ctx, feature.CreateFeatureInputs{
+		Namespace: namespace,
+		Name:      meterSlug,
+		Key:       meterSlug,
+		MeterID:   lo.ToPtr(meterID),
+	}))
+
+	res, err := s.Charges.CreatePendingInvoiceLines(ctx,
+		billing.CreatePendingInvoiceLinesInput{
+			Customer: customerEntity.GetID(),
+			Currency: currencyx.FiatCode(currency.USD),
+			Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
+				{
+					ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+						Namespace: namespace,
+						Name:      "Test item1",
+					}),
+					ServicePeriod: timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
+
+					InvoiceAt: periodEnd,
+
+					ManagedBy: billing.ManuallyManagedLine,
+
+					Currency: currencyx.FiatCode(currency.USD),
+					RateCardDiscounts: billing.Discounts{
+						Percentage: &billing.PercentageDiscount{
+							Percentage: models.NewPercentage(25),
+						},
+					},
+					FeatureKey: featureFlatPerUnit.Key,
+					Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.TieredPrice{
+						Mode: productcatalog.GraduatedTieredPrice,
+						Tiers: []productcatalog.PriceTier{
+							{
+								UnitPrice: &productcatalog.PriceTierUnitPrice{
+									Amount: alpacadecimal.NewFromFloat(5),
+								},
+								UpToAmount: lo.ToPtr(alpacadecimal.NewFromFloat(10)),
+							},
+							{
+								UnitPrice: &productcatalog.PriceTierUnitPrice{
+									Amount: alpacadecimal.NewFromFloat(4),
+								},
+							},
+						},
+						MinimumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(50)),
+					})),
+				},
+			}),
+		})
+	s.Require().NoError(err)
+	s.Require().Len(res.Lines, 1)
+
+	invoice1AsOf := lo.Must(time.Parse(time.RFC3339, "2026-01-15T00:00:00Z"))
+	clock.FreezeTime(invoice1AsOf)
+	defer clock.UnFreeze()
+
+	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		Customer: customerEntity.GetID(),
+		AsOf:     lo.ToPtr(invoice1AsOf),
+	})
+	s.Require().NoError(err)
+	s.Require().Len(invoices, 1)
+	s.Empty(invoices[0].ValidationIssues)
+	s.Require().Len(invoices[0].Lines.OrEmpty(), 1)
+
+	invoiceLine := invoices[0].Lines.OrEmpty()[0]
+	s.Require().Len(invoiceLine.DetailedLines, 2)
+	s.RequireTotals(billingtest.ExpectedTotals{
+		Amount:         58,
+		DiscountsTotal: 14.5,
+		CreditsTotal:   43.5,
+		Total:          0,
+	}, invoiceLine.Totals)
+	s.AssertDecimalEqual(alpacadecimal.NewFromFloat(1.5), s.CreateLedgerSnapshot(ledgerSnapshotInput).FBO, "invoice 1 consumes 43.5 of the 45 credits")
+
+	clock.FreezeTime(invoices[0].DefaultCollectionAtForStandardInvoice())
+	defer clock.UnFreeze()
+	invoice1, err := s.BillingService.AdvanceInvoice(ctx, invoices[0].GetInvoiceID())
+	s.Require().NoError(err)
+	_, err = s.BillingService.ApproveInvoice(ctx, invoice1.GetInvoiceID())
+	s.Require().NoError(err)
+
+	s.Run("[invoice2] Retracted usage nets the booked discounts and allocates the remaining credits", func() {
+		invoice2AsOf := periodEnd
+		s.MockStreamingConnector.AddSimpleEvent(meterSlug, -4, invoice2AsOf.Add(-30*time.Hour))
+		clock.FreezeTime(invoice2AsOf)
+		defer clock.UnFreeze()
+
+		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+			Customer: customerEntity.GetID(),
+			AsOf:     lo.ToPtr(invoice2AsOf),
+		})
+		s.Require().NoError(err)
+		s.Require().Len(invoices, 1)
+
+		invoice := invoices[0]
+		s.Empty(invoice.ValidationIssues)
+		s.Require().Len(invoice.Lines.OrEmpty(), 1)
+
+		invoiceLine := invoice.Lines.OrEmpty()[0]
+		s.Require().Len(invoiceLine.DetailedLines, 3)
+
+		detailedLineByReferencePrefix := func(prefix string) billing.DetailedLine {
+			for _, detailedLine := range invoiceLine.DetailedLines {
+				if strings.HasPrefix(detailedLine.ChildUniqueReferenceID, prefix) {
+					return detailedLine
+				}
+			}
+
+			s.Require().Failf("detailed line not found", "child unique reference id prefix: %s", prefix)
+
+			return billing.DetailedLine{}
+		}
+
+		tier1 := detailedLineByReferencePrefix(fmt.Sprintf(rating.GraduatedTieredPriceUsageChildUniqueReferenceID, 1))
+		s.Equal(float64(-2), tier1.Quantity.InexactFloat64())
+		s.Equal(float64(5), tier1.PerUnitAmount.InexactFloat64())
+		s.RequireTotals(billingtest.ExpectedTotals{
+			Amount:         -10,
+			DiscountsTotal: -2.5,
+			CreditsTotal:   0,
+			Total:          -7.5,
+		}, tier1.Totals)
+		s.Require().Len(tier1.AmountDiscounts, 1)
+		s.Equal(billing.RatecardPercentageDiscountReason, tier1.AmountDiscounts[0].Reason.Type())
+		s.Equal(float64(-2.5), tier1.AmountDiscounts[0].Amount.InexactFloat64())
+
+		// Tier 2 has no usage left, so the previously billed line is reversed as a correction
+		tier2 := detailedLineByReferencePrefix(fmt.Sprintf(rating.GraduatedTieredPriceUsageChildUniqueReferenceID, 2) + "#correction:")
+		s.Equal(float64(-2), tier2.Quantity.InexactFloat64())
+		s.Equal(float64(4), tier2.PerUnitAmount.InexactFloat64())
+		s.RequireTotals(billingtest.ExpectedTotals{
+			Amount:         -8,
+			DiscountsTotal: -2,
+			CreditsTotal:   0,
+			Total:          -6,
+		}, tier2.Totals)
+		s.Require().Len(tier2.AmountDiscounts, 1)
+		s.Equal(billing.RatecardPercentageDiscountReason, tier2.AmountDiscounts[0].Reason.Type())
+		s.Equal(float64(-2), tier2.AmountDiscounts[0].Amount.InexactFloat64())
+
+		// The top-up is applied after the percentage discount, so it carries none
+		minSpend := detailedLineByReferencePrefix(rating.MinSpendChildUniqueReferenceID)
+		s.Equal(float64(1), minSpend.Quantity.InexactFloat64())
+		s.Equal(float64(20), minSpend.PerUnitAmount.InexactFloat64())
+		s.RequireTotals(billingtest.ExpectedTotals{
+			ChargesTotal: 20,
+			CreditsTotal: 1.5,
+			Total:        18.5,
+		}, minSpend.Totals)
+		s.Empty(minSpend.AmountDiscounts)
+
+		expectedTotals := billingtest.ExpectedTotals{
+			Amount:         -18,
+			ChargesTotal:   20,
+			DiscountsTotal: -4.5,
+			CreditsTotal:   1.5,
+			Total:          5,
+		}
+		s.RequireTotals(expectedTotals, invoiceLine.Totals)
+		s.RequireTotals(expectedTotals, invoice.Totals)
+		s.AssertDecimalEqual(alpacadecimal.Zero, s.CreateLedgerSnapshot(ledgerSnapshotInput).FBO, "invoice 2 consumes the remaining 1.5 credits")
+
+		// When the invoice is approved, the signed delta is accrued and the final run closes
+		clock.FreezeTime(invoice.DefaultCollectionAtForStandardInvoice())
+		defer clock.UnFreeze()
+		invoice, err = s.BillingService.AdvanceInvoice(ctx, invoice.GetInvoiceID())
+		s.Require().NoError(err)
+		invoice, err = s.BillingService.ApproveInvoice(ctx, invoice.GetInvoiceID())
+		s.Require().NoError(err)
+		s.Equal(billing.StandardInvoiceStatusPaymentProcessingPending, invoice.Status)
+		s.Empty(invoice.ValidationIssues)
+
+		charge := s.RequireUsageBasedChargeStatus(meta.ChargeID{Namespace: namespace, ID: *res.Lines[0].ChargeID}, usagebased.StatusActiveAwaitingPaymentSettlement)
+		finalRun, found := lo.Find(charge.Realizations, func(run usagebased.RealizationRun) bool {
+			return run.InvoiceID != nil && *run.InvoiceID == invoice.ID
+		})
+		s.Require().True(found)
+		s.True(finalRun.Immutable)
+		s.Require().NotNil(finalRun.InvoiceUsage)
+		s.RequireTotals(expectedTotals, finalRun.InvoiceUsage.Totals.Totals)
+		s.NotNil(finalRun.InvoiceUsage.LedgerTransaction)
+
+		// All consumed credits stay accrued: the signed delta allocates, it never reverses
+		s.Equal(float64(45), s.CreateLedgerSnapshot(ledgerSnapshotInput).Accrued.InexactFloat64())
+
+		// The final run consumed the pending line
+		gathering, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
+			Namespace:        namespace,
+			ExtendedStatuses: []billing.StandardInvoiceStatus{billing.StandardInvoiceStatusGathering},
+		})
+		s.Require().NoError(err)
+		s.Empty(gathering.Items)
 	})
 }

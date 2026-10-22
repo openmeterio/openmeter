@@ -6,6 +6,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type Totals struct {
@@ -28,6 +29,48 @@ type Totals struct {
 
 	// Total is the total amount value of the line after taxes, discounts and commitments
 	Total alpacadecimal.Decimal `json:"total"`
+}
+
+// DeltaTotals is the difference of two rated snapshots, so Amount and DiscountsTotal are signed
+// while the settled totals stay non-negative. Both snapshots are rated with the same discount
+// terms, so a non-zero discount delta follows the sign of the amount delta; revisit this once
+// corrections can re-rate realized usage with changed terms.
+type DeltaTotals struct {
+	Totals
+}
+
+func (t DeltaTotals) Validate() error {
+	var errs []error
+
+	if !t.DiscountsTotal.IsZero() && t.Amount.IsNegative() != t.DiscountsTotal.IsNegative() {
+		errs = append(errs, errors.New("amount and discount total should have the same sign"))
+	}
+
+	if t.ChargesTotal.IsNegative() {
+		errs = append(errs, errors.New("charges total is negative"))
+	}
+
+	if t.TaxesInclusiveTotal.IsNegative() {
+		errs = append(errs, errors.New("taxes inclusive total is negative"))
+	}
+
+	if t.TaxesExclusiveTotal.IsNegative() {
+		errs = append(errs, errors.New("taxes exclusive total is negative"))
+	}
+
+	if t.TaxesTotal.IsNegative() {
+		errs = append(errs, errors.New("taxes total is negative"))
+	}
+
+	if t.Total.IsNegative() {
+		errs = append(errs, errors.New("total is negative"))
+	}
+
+	if t.CreditsTotal.IsNegative() {
+		errs = append(errs, errors.New("credits total is negative"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 func (t Totals) Validate() error {

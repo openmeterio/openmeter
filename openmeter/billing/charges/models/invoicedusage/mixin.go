@@ -67,7 +67,7 @@ func Create[T Creator[T]](creator T, ns string, invoicedUsage AccruedUsage) T {
 		SetServicePeriodTo(invoicedUsage.ServicePeriod.To.In(time.UTC)).
 		SetNillableLedgerTransactionGroupID(trnsGroupID)
 
-	creator = totals.Set(creator, invoicedUsage.Totals)
+	creator = totals.Set(creator, invoicedUsage.Totals.Totals)
 
 	return creator
 }
@@ -103,6 +103,6 @@ func MapAccruedUsageFromDB(dbEntity Getter) AccruedUsage {
 			To:   dbEntity.GetServicePeriodTo().In(time.UTC),
 		},
 		LedgerTransaction: ledgerTransaction,
-		Totals:            totals.FromDB(dbEntity),
+		Totals:            totals.DeltaTotals{Totals: totals.FromDB(dbEntity)},
 	}
 }

@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	usagebasedrating "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/rating"
 	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -138,7 +139,7 @@ func (s *Service) BuildCreditThenInvoiceGatheringPreviewRun(ctx context.Context,
 			LineID:                    lo.ToPtr(in.LineID),
 			InvoiceID:                 lo.ToPtr(in.InvoiceID),
 			MeteredQuantity:           ratingResult.Quantity,
-			Totals:                    runTotals,
+			Totals:                    totals.DeltaTotals{Totals: runTotals},
 			NoFiatTransactionRequired: runTotals.Total.IsZero(),
 		},
 		DetailedLines: mo.Some(ratingResult.DetailedLines),
