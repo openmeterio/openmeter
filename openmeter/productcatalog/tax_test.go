@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
@@ -721,6 +722,8 @@ func (s *stubTaxCodeService) UpsertOrganizationDefaultTaxCodes(_ context.Context
 	panic("not implemented")
 }
 
+func (s *stubTaxCodeService) RegisterHooks(_ ...models.ServiceHook[taxcode.TaxCode]) {}
+
 func TestResolveTaxConfig(t *testing.T) {
 	const ns = "test-ns"
 
@@ -732,6 +735,8 @@ func TestResolveTaxConfig(t *testing.T) {
 		NamespacedID: models.NamespacedID{Namespace: ns, ID: "tc-no-stripe"},
 		AppMappings:  taxcode.TaxCodeAppMappings{},
 	}
+	deletedTCWithStripe := tcWithStripe
+	deletedTCWithStripe.DeletedAt = lo.ToPtr(time.Now())
 
 	tests := []struct {
 		name    string
@@ -775,17 +780,23 @@ func TestResolveTaxConfig(t *testing.T) {
 		{
 			name: "TaxCodeID set, deleted entity allowed — deleted entity resolved",
 			svc: &stubTaxCodeService{
-				getTaxCode: func(_ context.Context, input taxcode.GetTaxCodeInput) (taxcode.TaxCode, error) {
-					if !input.IncludeDeleted {
-						return taxcode.TaxCode{}, errors.New("deleted tax code lookup is not enabled")
-					}
-
-					return tcWithStripe, nil
+				getTaxCode: func(_ context.Context, _ taxcode.GetTaxCodeInput) (taxcode.TaxCode, error) {
+					return deletedTCWithStripe, nil
 				},
 			},
 			cfg:     &TaxConfig{TaxCodeID: lo.ToPtr("tc-stripe")},
 			opts:    []ResolveTaxConfigOption{AllowDeletedTaxCodeByID()},
 			wantCfg: &TaxConfig{TaxCodeID: lo.ToPtr("tc-stripe"), Stripe: &StripeTaxConfig{Code: "txcd_10000000"}},
+		},
+		{
+			name: "TaxCodeID set, deleted entity not allowed — validation error",
+			svc: &stubTaxCodeService{
+				getTaxCode: func(_ context.Context, _ taxcode.GetTaxCodeInput) (taxcode.TaxCode, error) {
+					return deletedTCWithStripe, nil
+				},
+			},
+			cfg:     &TaxConfig{TaxCodeID: lo.ToPtr("tc-stripe")},
+			wantErr: "validation error: tax code tc-stripe not found",
 		},
 		{
 			name: "both TaxCodeID and Stripe code set — TaxCodeID wins, Stripe overwritten from entity",

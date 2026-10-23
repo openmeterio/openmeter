@@ -24,16 +24,31 @@ func (s *Service) UpsertOrganizationDefaultTaxCodes(ctx context.Context, input t
 	}
 
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (taxcode.OrganizationDefaultTaxCodes, error) {
+		// requireActiveTaxCode ensures the tax code belongs to the namespace and is not soft-deleted.
+		// GetTaxCode returns soft-deleted rows by ID (so billing can still resolve frozen Stripe
+		// mappings), so a deleted code must be rejected explicitly to prevent it from being
+		// designated as an organization default.
+		requireActiveTaxCode := func(ctx context.Context, namespace, id string) error {
+			tc, err := s.GetTaxCode(ctx, taxcode.GetTaxCodeInput{
+				NamespacedID: models.NamespacedID{Namespace: namespace, ID: id},
+			})
+			if err != nil {
+				return err
+			}
+
+			if tc.IsDeleted() {
+				return taxcode.NewTaxCodeNotFoundError(id)
+			}
+
+			return nil
+		}
+
 		// Ensure both tax code IDs belong to the namespace.
-		if _, err := s.GetTaxCode(ctx, taxcode.GetTaxCodeInput{
-			NamespacedID: models.NamespacedID{Namespace: input.Namespace, ID: input.InvoicingTaxCodeID},
-		}); err != nil {
+		if err := requireActiveTaxCode(ctx, input.Namespace, input.InvoicingTaxCodeID); err != nil {
 			return taxcode.OrganizationDefaultTaxCodes{}, err
 		}
 
-		if _, err := s.GetTaxCode(ctx, taxcode.GetTaxCodeInput{
-			NamespacedID: models.NamespacedID{Namespace: input.Namespace, ID: input.CreditGrantTaxCodeID},
-		}); err != nil {
+		if err := requireActiveTaxCode(ctx, input.Namespace, input.CreditGrantTaxCodeID); err != nil {
 			return taxcode.OrganizationDefaultTaxCodes{}, err
 		}
 

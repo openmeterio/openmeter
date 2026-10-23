@@ -145,6 +145,22 @@ func TestTaxCodeService(t *testing.T) {
 			})
 			require.NoError(t, err)
 		})
+
+		t.Run("DeleteAlreadyDeletedIsNotFound", func(t *testing.T) {
+			// given: an already deleted tax code
+			deleted := env.CreateTaxCode(t, defaultNs)
+			input := taxcode.DeleteTaxCodeInput{
+				NamespacedID: models.NamespacedID{Namespace: defaultNs, ID: deleted.ID},
+			}
+			require.NoError(t, env.Service.DeleteTaxCode(t.Context(), input))
+
+			// when: it is deleted again
+			err := env.Service.DeleteTaxCode(t.Context(), input)
+
+			// then: the repeated delete is reported as not found
+			require.Error(t, err)
+			require.True(t, taxcode.IsTaxCodeNotFoundError(err), "expected tax code not found error, got: %v", err)
+		})
 	})
 
 	t.Run("UserManaged", func(t *testing.T) {
