@@ -223,6 +223,16 @@ func TestUnitPriceSubtract(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "unit price with zero amount drops a free usage decrease",
+			price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+				Amount: alpacadecimal.Zero,
+			}),
+			previousMeteredQuantity: 15,
+			newMeteredQuantity:      10,
+			expectedTotals:          expectedTotals{},
+			expectedLines:           []expectedDetailedLine{},
+		},
 	}
 
 	runSubtractRatedRunDetailsTestCases(t, servicePeriod, testCases)

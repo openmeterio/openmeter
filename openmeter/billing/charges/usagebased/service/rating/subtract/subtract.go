@@ -227,7 +227,7 @@ func subtractDetailedLinesWithSameKey(
 		previousMatched[previousIdx] = true
 
 		line := subtractDetailedLine(currentLine.DetailedLine, previous[previousIdx].DetailedLine)
-		if !isZeroDetailedLine(line) || keepWhenZero {
+		if !isZeroDetailedLine(line) || (keepWhenZero && !line.Quantity.IsNegative()) {
 			childUniqueReferenceID, err := generator.MatchedDelta(currentLine.DetailedLine, previous[previousIdx].DetailedLine)
 			if err != nil {
 				return nil, fmt.Errorf("matched delta child unique reference id: %w", err)
