@@ -191,113 +191,101 @@ func (s *InvoicingTestSuite) TestSimulateInvoiceFeatureMeterValidation() {
 	})
 }
 
-func (s *InvoicingTestSuite) TestSimulateInvoiceUsesTransientSplitHistory() {
-	// Given a transient final child with 20 of usage and 40 previously billed toward a 100 minimum.
+func (s *InvoicingTestSuite) TestSimulateInvoiceSuppliedSnapshots() {
+	// Given supplied usage whose prior quantity crosses a graduated tier boundary.
 	ctx := s.T().Context()
-	namespace := s.GetUniqueNamespace("transient-split-history")
+	namespace := s.GetUniqueNamespace("simulate-supplied-snapshots")
 	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
 	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
 	customerEntity := s.CreateTestCustomer(namespace, "test-customer")
 	testFeature := s.SetupApiRequestsTotalFeature(ctx, namespace)
 	defer testFeature.Cleanup()
-	fullPeriod := timeutil.ClosedPeriod{
+	period := timeutil.ClosedPeriod{
 		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
 		To:   time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
 	}
-	boundary := fullPeriod.From.Add(fullPeriod.Duration() / 2)
 	line := billing.NewFlatFeeLine(billing.NewFlatFeeLineInput{
-		Namespace:     namespace,
-		Period:        timeutil.ClosedPeriod{From: boundary, To: fullPeriod.To},
-		InvoiceAt:     fullPeriod.To,
+		Period:        period,
+		InvoiceAt:     period.To,
 		Name:          "transient usage",
 		PerUnitAmount: alpacadecimal.NewFromInt(1),
 		PaymentTerm:   productcatalog.InArrearsPaymentTerm,
 		ManagedBy:     billing.ManuallyManagedLine,
 	}, billing.WithFeatureKey(testFeature.Feature.Key))
-	line.UsageBased.Price = productcatalog.NewPriceFrom(productcatalog.UnitPrice{
-		Amount: alpacadecimal.NewFromInt(1),
-		Commitments: productcatalog.Commitments{
-			MinimumAmount: lo.ToPtr(alpacadecimal.NewFromInt(100)),
+	line.UsageBased.Price = productcatalog.NewPriceFrom(productcatalog.TieredPrice{
+		Mode: productcatalog.GraduatedTieredPrice,
+		Tiers: []productcatalog.PriceTier{
+			{
+				UpToAmount: lo.ToPtr(alpacadecimal.NewFromInt(50)),
+				UnitPrice:  &productcatalog.PriceTierUnitPrice{Amount: alpacadecimal.NewFromInt(1)},
+			},
+			{UnitPrice: &productcatalog.PriceTierUnitPrice{Amount: alpacadecimal.NewFromInt(2)}},
 		},
 	})
 	line.UsageBased.MeteredQuantity = lo.ToPtr(alpacadecimal.NewFromInt(20))
 	line.UsageBased.MeteredPreLinePeriodQuantity = lo.ToPtr(alpacadecimal.NewFromInt(40))
-	line.SplitLineGroupID = lo.ToPtr("unpersisted-group")
-	hierarchy := &billing.SplitLineHierarchy{
-		Group: billing.SplitLineGroup{
-			NamespacedID:                models.NamespacedID{Namespace: namespace, ID: *line.SplitLineGroupID},
-			SplitLineGroupMutableFields: billing.SplitLineGroupMutableFields{ServicePeriod: fullPeriod},
-		},
-		Lines: []billing.SplitLineHierarchyLine{{
-			ServicePeriod: timeutil.ClosedPeriod{From: fullPeriod.From, To: boundary},
-			Amount:        alpacadecimal.NewFromInt(40),
-			Invoice:       billing.SplitLineHierarchyInvoice{Type: billing.InvoiceTypeStandard},
-		}},
-	}
-	line.Namespace = ""
 	otherLine, err := line.Clone()
 	s.Require().NoError(err)
 	otherLine.Namespace = "caller-namespace"
 	otherLine.ID = "supplied-line-id"
-	otherLine.SplitLineGroupID = lo.ToPtr("another-unpersisted-group")
 	otherLine.UsageBased.MeteredPreLinePeriodQuantity = lo.ToPtr(alpacadecimal.NewFromInt(10))
-	otherHierarchy, err := hierarchy.Clone()
-	s.Require().NoError(err)
-	otherHierarchy.Group.ID = *otherLine.SplitLineGroupID
-	otherHierarchy.Lines[0].Amount = alpacadecimal.NewFromInt(10)
 
 	input := billing.SimulateInvoiceInput{
 		Namespace:  namespace,
 		CustomerID: &customerEntity.ID,
 		Currency:   currencyx.FiatCode(currency.USD),
 		Lines:      billing.NewStandardInvoiceLines(billing.StandardLines{line, otherLine}),
-		SplitLineHierarchies: map[string]*billing.SplitLineHierarchy{
-			*line.SplitLineGroupID:      hierarchy,
-			*otherLine.SplitLineGroupID: &otherHierarchy,
-		},
 	}
 	before, err := json.Marshal(input)
 	s.Require().NoError(err)
 
-	// When simulation rates supplied quantities and history for a group absent from the database.
+	// When simulation rates snapshots without reading split groups or metered usage.
 	historyQueries := &splitLineHistoryQueryCounter{}
 	s.DBClient.BillingInvoiceSplitLineGroup.Intercept(historyQueries)
 	invoice, err := s.BillingService.SimulateInvoice(ctx, input)
 	s.Require().NoError(err)
 
-	// Then supplied history produces the 40 adjustment without persistence or source mutation.
+	// Then prior usage affects pricing, generated and supplied identities survive,
+	// and the input and database remain unchanged.
 	s.Require().Len(invoice.Lines.OrEmpty(), 2)
-	s.Equal(40.0, invoice.Lines.OrEmpty()[0].Totals.ChargesTotal.InexactFloat64())
+	s.Equal(30.0, invoice.Lines.OrEmpty()[0].Totals.Total.InexactFloat64())
+	s.Equal(40.0, invoice.Lines.OrEmpty()[0].UsageBased.PreLinePeriodQuantity.InexactFloat64())
 	s.NotEmpty(invoice.Lines.OrEmpty()[0].ID)
 	s.Equal("supplied-line-id", invoice.Lines.OrEmpty()[1].ID)
 	s.Equal(namespace, invoice.Lines.OrEmpty()[0].Namespace)
 	s.Equal(namespace, invoice.Lines.OrEmpty()[1].Namespace)
-	s.Equal(60.0, invoice.Lines.OrEmpty()[0].Totals.Total.InexactFloat64())
-	s.Equal(70.0, invoice.Lines.OrEmpty()[1].Totals.ChargesTotal.InexactFloat64())
-	s.Equal(90.0, invoice.Lines.OrEmpty()[1].Totals.Total.InexactFloat64())
-	s.Equal(150.0, invoice.Totals.Total.InexactFloat64())
+	s.Equal(20.0, invoice.Lines.OrEmpty()[1].Totals.Total.InexactFloat64())
+	s.Equal(50.0, invoice.Totals.Total.InexactFloat64())
 	s.Zero(historyQueries.count)
 	s.Empty(invoice.ValidationIssues)
-	// Missing supplied history retains the legacy error without a DB fallback.
-	withoutHistory := input
-	withoutHistory.SplitLineHierarchies = nil
-	_, err = s.BillingService.SimulateInvoice(ctx, withoutHistory)
-	s.ErrorContains(err, "split line hierarchy is required")
-	s.Zero(historyQueries.count)
-
 	after, err := json.Marshal(input)
 	s.Require().NoError(err)
 	s.JSONEq(string(before), string(after))
-	histories, err := s.BillingAdapter.GetSplitLineGroups(ctx, billing.GetSplitLineGroupsInput{
-		Namespace:         namespace,
-		SplitLineGroupIDs: []string{*line.SplitLineGroupID, *otherLine.SplitLineGroupID},
-	})
-	s.Require().NoError(err)
-	s.Empty(histories)
 	_, err = s.BillingAdapter.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
 		Invoice: invoice.GetInvoiceID(),
 	})
 	s.ErrorIs(err, billing.ErrInvoiceNotFound)
+
+	s.Run("missing split group fails without a fallback", func() {
+		// Given a clone of an otherwise valid supplied line carrying a group ID.
+		splitLine, err := line.Clone()
+		s.Require().NoError(err)
+		splitLine.SplitLineGroupID = lo.ToPtr("unpersisted-group")
+		before, err := json.Marshal(splitLine)
+		s.Require().NoError(err)
+		splitInput := input
+		splitInput.Lines = billing.NewStandardInvoiceLines(billing.StandardLines{splitLine})
+
+		// When simulation resolves a group absent from the namespace.
+		_, err = s.BillingService.SimulateInvoice(ctx, splitInput)
+
+		// Then missing history fails explicitly and the caller's input is untouched.
+		s.ErrorContains(err, "split line group[unpersisted-group]")
+		s.Equal(1, historyQueries.count)
+		after, err := json.Marshal(splitLine)
+		s.Require().NoError(err)
+		s.JSONEq(string(before), string(after))
+	})
 }
 
 func (s *InvoicingTestSuite) TestPendingLineCreation() {
@@ -5619,8 +5607,8 @@ func (s *InvoicingTestSuite) TestUpdateInvoice() {
 	})
 }
 
-// Counts persisted history reads independently of returned data: an unnecessary
-// query must not silently turn simulation or ordinary reads into DB consumers.
+// Counts group-history reads so ordinary simulation and invoice reads remain
+// independent of history, while explicit split-group calculations can load it.
 type splitLineHistoryQueryCounter struct {
 	count int
 }
