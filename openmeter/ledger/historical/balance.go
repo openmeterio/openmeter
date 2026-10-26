@@ -81,3 +81,11 @@ func (l *Ledger) GetBalancesAtBoundaries(ctx context.Context, input ledger.GetBa
 
 	return l.repo.GetBalancesAtBoundaries(ctx, input)
 }
+
+func (l *Ledger) GetMinimumBalanceBuckets(ctx context.Context, query ledger.MinimumBalanceBucketQuery) ([]ledger.BalanceBucket, error) {
+	if err := query.Validate(); err != nil {
+		return nil, fmt.Errorf("validate minimum balance bucket query: %w", err)
+	}
+
+	return l.repo.GetMinimumBalanceBuckets(ctx, query)
+}
