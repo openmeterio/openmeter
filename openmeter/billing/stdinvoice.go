@@ -977,10 +977,6 @@ type SimulateInvoiceInput struct {
 	Number   *string
 	Currency currencyx.FiatCode
 	Lines    StandardInvoiceLines
-
-	// SplitLineHierarchies supplies read-only transient history keyed by split-group
-	// ID within Namespace. Association survives generated line IDs and normalization.
-	SplitLineHierarchies map[string]*SplitLineHierarchy
 }
 
 func (i SimulateInvoiceInput) Validate() error {

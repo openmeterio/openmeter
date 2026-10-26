@@ -16,6 +16,41 @@ import (
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
+func TestMapSimulationLinePreservesPriorUsageAndSuppliedIdentity(t *testing.T) {
+	// Given ordinary HTTP simulation input with a prior-usage offset and supplied ID.
+	price := api.RateCardUsageBasedPrice{}
+	require.NoError(t, price.FromUnitPriceWithCommitments(api.UnitPriceWithCommitments{Amount: "1"}))
+	period := invoiceLineTestPeriod()
+	input := api.InvoiceSimulationLine{
+		Id:                    lo.ToPtr("supplied-line-id"),
+		Name:                  "simulated usage",
+		Period:                api.Period(period),
+		InvoiceAt:             period.To,
+		Quantity:              "20",
+		PreLinePeriodQuantity: lo.ToPtr("40"),
+		RateCard: &api.InvoiceUsageBasedRateCard{
+			Price:      &price,
+			FeatureKey: lo.ToPtr("api-requests"),
+		},
+	}
+
+	// When the HTTP mapper builds the supplied snapshot.
+	line, err := mapSimulationLineToEntity(input)
+	require.NoError(t, err)
+
+	// Then raw and displayed quantities survive without implying a persisted group.
+	require.Equal(t, "supplied-line-id", line.ID)
+	require.Equal(t, 20.0, line.UsageBased.MeteredQuantity.InexactFloat64())
+	require.Equal(t, 20.0, line.UsageBased.Quantity.InexactFloat64())
+	require.Equal(t, 40.0, line.UsageBased.MeteredPreLinePeriodQuantity.InexactFloat64())
+	require.Equal(t, 40.0, line.UsageBased.PreLinePeriodQuantity.InexactFloat64())
+	require.Nil(t, line.SplitLineGroupID)
+
+	input.PreLinePeriodQuantity = lo.ToPtr("invalid")
+	_, err = mapSimulationLineToEntity(input)
+	require.ErrorContains(t, err, "failed to parse preLinePeriodQuantity")
+}
+
 func TestMergeStandardLineFromInvoiceLineReplaceUpdateOverwritesTaxConfig(t *testing.T) {
 	price := api.RateCardUsageBasedPrice{}
 	require.NoError(t, price.FromUnitPriceWithCommitments(api.UnitPriceWithCommitments{

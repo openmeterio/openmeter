@@ -933,20 +933,9 @@ func (s Service) SimulateInvoice(ctx context.Context, input billing.SimulateInvo
 			continue
 		}
 
-		// Simulation uses only supplied transient history, without resolving persisted groups.
-		splitLineGroups := lo.FilterSliceToMap(grouped.Lines, func(line *billing.StandardLine) (billing.LineID, *billing.SplitLineHierarchy, bool) {
-			if line.SplitLineGroupID == nil {
-				return billing.LineID{}, nil, false
-			}
-
-			hierarchy := input.SplitLineHierarchies[*line.SplitLineGroupID]
-
-			return line.GetLineID(), hierarchy, hierarchy != nil
-		})
-
-		ratedLines, ratingErr := legacyEngine.RateStandardLinesWithSplitLineHierarchies(lineengine.RateStandardLinesWithSplitLineHierarchiesInput{
-			Lines:       grouped.Lines,
-			Hierarchies: splitLineGroups,
+		ratedLines, ratingErr := legacyEngine.RateStandardLines(ctx, lineengine.RateStandardLinesInput{
+			Namespace: input.Namespace,
+			Lines:     grouped.Lines,
 		})
 		if err := invoice.MergeValidationIssues(billing.NewLineEngineValidationError(legacyEngine, ratingErr), billing.LineEngineValidationComponent(legacyEngine.GetLineEngineType())); err != nil {
 			return billing.StandardInvoice{}, fmt.Errorf("rating simulation lines: %w", err)

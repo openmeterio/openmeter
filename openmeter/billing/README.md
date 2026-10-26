@@ -191,8 +191,6 @@ context. Persisted engine operations resolve complete history in the caller's
 transaction so materialization, gathering previews, collection, and mutable
 updates account for previously billed amounts consistently. Snapshot-only
 immutable comparisons use the group's period without rating historical amounts.
-Simulation supplies transient context by split-group ID within its namespace,
-independently of generated line IDs, without reading persisted groups.
 Calculation never replaces pending line edits with historical children.
 
 Rating returns amounts before credit application. Legacy invoice lines do not
@@ -243,6 +241,9 @@ reject the whole edit, including mixed-engine writes. Gathering edits and
 invoice-deletion cleanup keep their rejection semantics for every callback error.
 Simulation validates feature/meter references and explicitly rates supplied
 legacy quantities on clones without persisting the transient result.
+Simulation inputs with split-group IDs resolve persisted history through the
+legacy engine while retaining the supplied quantities and pending line edits.
+Missing groups fail without falling back to ordinary rating.
 Charge simulation is unsupported; supplied charge projections are not rerated.
 
 `ValidationIssueRecorder.Record` collects validation issues of any severity;

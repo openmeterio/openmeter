@@ -66,13 +66,17 @@ func (e *Engine) RecalculateStandardLine(ctx context.Context, input RecalculateS
 	return lines[0], err
 }
 
-type RateStandardLinesWithSplitLineHierarchiesInput struct {
-	Lines       billing.StandardLines
-	Hierarchies map[billing.LineID]*billing.SplitLineHierarchy
+type RateStandardLinesInput struct {
+	Namespace string
+	Lines     billing.StandardLines
 }
 
-func (i RateStandardLinesWithSplitLineHierarchiesInput) Validate() error {
+func (i RateStandardLinesInput) Validate() error {
 	var errs []error
+	if i.Namespace == "" {
+		errs = append(errs, errors.New("namespace is required"))
+	}
+
 	if len(i.Lines) == 0 {
 		errs = append(errs, errors.New("lines are required"))
 	}
@@ -91,22 +95,21 @@ func (i RateStandardLinesWithSplitLineHierarchiesInput) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-// RateStandardLinesWithSplitLineHierarchies rates transient snapshots with supplied
-// read-only history keyed by namespaced line ID. It performs no group loading,
-// snapshotting or persistence and preserves calculated lines alongside rating issues.
-func (e *Engine) RateStandardLinesWithSplitLineHierarchies(input RateStandardLinesWithSplitLineHierarchiesInput) (billing.StandardLines, error) {
+// RateStandardLines rates supplied snapshots on clones, resolving persisted
+// history for split-group IDs. Supplied quantities, including prior-period usage
+// offsets, remain authoritative; it performs no snapshotting or persistence and
+// preserves calculated lines alongside rating issues.
+func (e *Engine) RateStandardLines(ctx context.Context, input RateStandardLinesInput) (billing.StandardLines, error) {
 	if err := input.Validate(); err != nil {
 		return nil, err
 	}
 
-	return e.rateStandardLines(lo.Map(input.Lines, func(line *billing.StandardLine, _ int) lineWithHierarchy {
-		var hierarchy *billing.SplitLineHierarchy
-		if line.SplitLineGroupID != nil {
-			hierarchy = input.Hierarchies[line.GetLineID()]
-		}
+	resolvedLines, err := e.resolveSplitLineHierarchies(ctx, input.Namespace, input.Lines)
+	if err != nil {
+		return nil, fmt.Errorf("resolving standard line hierarchies: %w", err)
+	}
 
-		return lineWithHierarchy{StandardLine: line, hierarchy: hierarchy}
-	}))
+	return e.rateStandardLines(resolvedLines)
 }
 
 func (e *Engine) rateStandardLines(lines linesWithHierarchy) (billing.StandardLines, error) {

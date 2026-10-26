@@ -102,26 +102,90 @@ func (s *BillingAdapterTestSuite) TestLegacyCalculationInvariants() {
 	before, err := json.Marshal(current)
 	s.Require().NoError(err)
 
-	// When the final slice is rated against the persisted billing history.
-	persistedHistories, err := s.BillingAdapter.GetSplitLineGroups(ctx, billing.GetSplitLineGroupsInput{
-		Namespace:         namespace,
-		SplitLineGroupIDs: []string{group.ID},
+	// When mutable recalculation resolves and rates the persisted billing history.
+	ratedSnapshot, err := s.LegacyBillingLineEngine.RecalculateStandardLine(ctx, lineengine.RecalculateStandardLineInput{
+		Invoice: invoice,
+		Line:    current,
 	})
 	s.Require().NoError(err)
-	s.Require().Len(persistedHistories, 1)
 	s.Equal(1, historyQueries.count)
-	ratedSnapshots, err := s.LegacyBillingLineEngine.RateStandardLinesWithSplitLineHierarchies(lineengine.RateStandardLinesWithSplitLineHierarchiesInput{
-		Lines:       billing.StandardLines{current},
-		Hierarchies: map[billing.LineID]*billing.SplitLineHierarchy{current.GetLineID(): &persistedHistories[0]},
-	})
-	s.Require().NoError(err)
-	s.Require().Len(ratedSnapshots, 1)
-	expectedTotals := ratedSnapshots[0].Totals
+	expectedTotals := ratedSnapshot.Totals
 
 	// Then prior billing plus the final slice meets the period minimum exactly once.
+	s.Equal(40.0, expectedTotals.ChargesTotal.InexactFloat64())
+	s.Equal(60.0, expectedTotals.Total.InexactFloat64())
 	s.Equal(100.0, prior.Totals.Amount.Add(expectedTotals.Total).InexactFloat64())
 
-	s.Run("materialization and preview agree with snapshot rating", func() {
+	s.Run("simulation resolves history while retaining supplied snapshots", func() {
+		// Given a hypothetical price and quantity different from the persisted group and metered usage.
+		simulatedLine, err := current.Clone()
+		s.Require().NoError(err)
+		simulatedLine.Namespace = "caller-namespace"
+		simulatedLine.ID = ""
+		simulatedLine.UsageBased.Price = productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+			Amount:      alpacadecimal.NewFromInt(2),
+			Commitments: productcatalog.Commitments{MinimumAmount: lo.ToPtr(alpacadecimal.NewFromInt(100))},
+		})
+		simulatedLine.UsageBased.MeteredQuantity = lo.ToPtr(alpacadecimal.NewFromInt(15))
+		before, err := json.Marshal(simulatedLine)
+		s.Require().NoError(err)
+		queriesBefore := historyQueries.count
+
+		// When simulation loads history using the group ID after normalizing the supplied line.
+		simulatedInvoice, err := s.BillingService.SimulateInvoice(ctx, billing.SimulateInvoiceInput{
+			Namespace:  namespace,
+			CustomerID: &invoice.Customer.CustomerID,
+			Currency:   invoice.Currency,
+			Lines:      billing.NewStandardInvoiceLines(billing.StandardLines{simulatedLine}),
+		})
+		s.Require().NoError(err)
+
+		// Then prior billing of 40 leaves 60 due, using the supplied 30 of usage and 30 adjustment.
+		s.Require().Len(simulatedInvoice.Lines.OrEmpty(), 1)
+		ratedLine := simulatedInvoice.Lines.OrEmpty()[0]
+		s.NotEmpty(ratedLine.ID)
+		s.Equal(namespace, ratedLine.Namespace)
+		s.Equal(current.Name, ratedLine.Name)
+		s.Equal(group.ID, *ratedLine.SplitLineGroupID)
+		s.Equal(15.0, ratedLine.UsageBased.MeteredQuantity.InexactFloat64())
+		s.Equal(40.0, ratedLine.UsageBased.MeteredPreLinePeriodQuantity.InexactFloat64())
+		s.Equal(30.0, ratedLine.Totals.Amount.InexactFloat64())
+		s.Equal(30.0, ratedLine.Totals.ChargesTotal.InexactFloat64())
+		s.Equal(60.0, simulatedInvoice.Totals.Total.InexactFloat64())
+		s.Equal(queriesBefore+1, historyQueries.count)
+		s.Empty(simulatedInvoice.ValidationIssues)
+		after, err := json.Marshal(simulatedLine)
+		s.Require().NoError(err)
+		s.JSONEq(string(before), string(after))
+		_, err = s.BillingAdapter.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
+			Invoice: simulatedInvoice.GetInvoiceID(),
+		})
+		s.ErrorIs(err, billing.ErrInvoiceNotFound)
+	})
+
+	s.Run("supplied snapshot rating cannot load another namespace", func() {
+		// Given a supplied line referencing a group belonging to a different namespace.
+		foreignLine, err := current.Clone()
+		s.Require().NoError(err)
+		foreignLine.Namespace = s.GetUniqueNamespace("foreign-simulation")
+		before, err := json.Marshal(foreignLine)
+		s.Require().NoError(err)
+
+		// When rating resolves history in the supplied namespace.
+		lines, err := s.LegacyBillingLineEngine.RateStandardLines(ctx, lineengine.RateStandardLinesInput{
+			Namespace: foreignLine.Namespace,
+			Lines:     billing.StandardLines{foreignLine},
+		})
+
+		// Then the group remains missing and the failed calculation leaves its input intact.
+		s.ErrorContains(err, "split line group["+group.ID+"] for line["+foreignLine.ID+"] not found")
+		s.Nil(lines)
+		after, err := json.Marshal(foreignLine)
+		s.Require().NoError(err)
+		s.JSONEq(string(before), string(after))
+	})
+
+	s.Run("materialization and preview agree with mutable recalculation", func() {
 		// When the same final slice is materialized and previewed.
 		gatheringBase, err := current.ToGatheringLineBase()
 		s.Require().NoError(err)
