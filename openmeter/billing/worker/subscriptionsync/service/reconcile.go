@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
@@ -27,7 +28,15 @@ func (s *Service) buildSyncPlan(ctx context.Context, input buildSyncPlanInput) (
 	span := tracex.Start[*reconciler.Plan](ctx, s.tracer, "billing.worker.subscription.sync.buildSyncPlan")
 
 	return span.Wrap(func(ctx context.Context) (*reconciler.Plan, error) {
-		persistedLoader := persistedstate.NewLoader(s.billingService, s.chargesService)
+		persistedLoader, err := persistedstate.NewLoader(persistedstate.Config{
+			BillingService:        s.billingService,
+			SplitLineGroupService: s.splitLineGroupService,
+			ChargesService:        s.chargesService,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("creating persisted state loader: %w", err)
+		}
+
 		persisted, err := persistedLoader.LoadForSubscription(ctx, input.Subscription)
 		if err != nil {
 			return nil, err

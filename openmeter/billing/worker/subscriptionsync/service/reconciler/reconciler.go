@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	chargesmeta "github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/invoicing/legacy/splitlinegroup"
 	billinglineengine "github.com/openmeterio/openmeter/openmeter/billing/lineengine"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/persistedstate"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/reconciler/invoiceupdater"
@@ -32,6 +33,7 @@ type Reconciler interface {
 
 type Config struct {
 	BillingService          billing.Service
+	SplitLineGroupService   splitlinegroup.Service
 	LegacyBillingLineEngine *billinglineengine.Engine
 	ChargesService          charges.Service
 	EnableCreditThenInvoice bool
@@ -40,6 +42,10 @@ type Config struct {
 }
 
 func (c Config) Validate() error {
+	if c.SplitLineGroupService == nil {
+		return errors.New("split line group service is required")
+	}
+
 	if c.BillingService == nil {
 		return fmt.Errorf("billing service is required")
 	}
@@ -79,9 +85,10 @@ func New(config Config) (*Service, error) {
 	}
 
 	invoiceUpdater, err := invoiceupdater.New(invoiceupdater.Config{
-		BillingService: config.BillingService,
-		LineEngine:     config.LegacyBillingLineEngine,
-		Logger:         config.Logger,
+		BillingService:        config.BillingService,
+		SplitLineGroupService: config.SplitLineGroupService,
+		LineEngine:            config.LegacyBillingLineEngine,
+		Logger:                config.Logger,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("creating invoice updater: %w", err)

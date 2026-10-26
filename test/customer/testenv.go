@@ -19,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingadapter "github.com/openmeterio/openmeter/openmeter/billing/adapter"
 	featuremeterservice "github.com/openmeterio/openmeter/openmeter/billing/featuremeter/service"
+	splitlinegrouptestutils "github.com/openmeterio/openmeter/openmeter/billing/invoicing/legacy/splitlinegroup/testutils"
 	billinglineengine "github.com/openmeterio/openmeter/openmeter/billing/lineengine"
 	billingratingservice "github.com/openmeterio/openmeter/openmeter/billing/rating/service"
 	billingsequenceadapter "github.com/openmeterio/openmeter/openmeter/billing/sequence/adapter"
@@ -450,7 +451,7 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 	}
 
 	legacyBillingLineEngine, err := billinglineengine.New(billinglineengine.Config{
-		SplitLineGroupAdapter:        billingAdapter,
+		SplitLineGroupService:        splitlinegrouptestutils.NewTestEnv(t, dbDeps.DBClient, logger),
 		RatingService:                billingRatingService,
 		FeatureMeterResolver:         featureMeterResolver,
 		StreamingConnector:           streamingConnector,

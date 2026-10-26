@@ -130,12 +130,11 @@ the portions materialized on individual invoices. Already immutable invoice
 history is not rewritten to make a later subscription change look as if it had
 always existed.
 
-Legacy split-line hierarchy reads carry persisted history facts rather than
-complete line and invoice aggregates. Deleted children remain available for
-reconciliation. Ordinary invoice lines carry only the split-group ID; reading an
-invoice does not load or validate historical groups. Previously billed amounts
-exclude deleted lines and invoices, including invoices in terminal deleted
-status without a deletion timestamp.
+[Legacy split-line groups](invoicing/legacy/splitlinegroup/README.md) own
+progressive-billing history and group operations. Ordinary invoice lines carry
+only the persisted split-group ID; reading an invoice does not load or validate
+historical groups. Billing retains invoice-line identity, persistence, lifecycle,
+and customer locking.
 
 Physical subscription attribution is the narrow exception: when a
 subscription-managed charge is rematerialized without changing its intent,

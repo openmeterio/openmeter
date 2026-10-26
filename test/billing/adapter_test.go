@@ -254,50 +254,10 @@ func (s *BillingAdapterTestSuite) TestSplitLineGroupReadScopesCrossNamespaceRefe
 	// given:
 	// - split-line hierarchies whose line or invoice is deliberately moved to another namespace
 	// when:
-	// - the hierarchy is read through the billing adapter
+	// - the hierarchy is read through the split-line group service
 	// then:
 	// - foreign lines are omitted and a missing required invoice edge rejects the line
 	ctx := s.T().Context()
-	period := timeutil.ClosedPeriod{
-		From: lo.Must(time.Parse(time.RFC3339, "2023-01-10T00:00:00Z")),
-		To:   lo.Must(time.Parse(time.RFC3339, "2023-01-20T00:00:00Z")),
-	}
-
-	createHierarchy := func(namespace string) (*billing.StandardInvoice, billing.SplitLineGroup, *billing.StandardLine) {
-		s.T().Helper()
-
-		invoice := s.setupInvoice(ctx, namespace)
-		group, err := s.BillingAdapter.CreateSplitLineGroup(ctx, billing.CreateSplitLineGroupAdapterInput{
-			Namespace: namespace,
-			SplitLineGroupMutableFields: billing.SplitLineGroupMutableFields{
-				Name:          "namespace isolation group",
-				ServicePeriod: period,
-			},
-			Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
-				Amount: alpacadecimal.NewFromInt(1),
-			}),
-			Currency: currencyx.FiatCode(currency.USD),
-		})
-		require.NoError(s.T(), err)
-
-		line := newLine(newLineInput{
-			Namespace: namespace,
-			Period:    period,
-			Invoice:   invoice,
-			Name:      "namespace isolation line",
-		})
-		line.SplitLineGroupID = lo.ToPtr(group.ID)
-
-		lines, err := s.BillingAdapter.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
-			Namespace: namespace,
-			Lines:     []*billing.StandardLine{line},
-			InvoiceID: invoice.ID,
-		})
-		require.NoError(s.T(), err)
-		require.Len(s.T(), lines, 1)
-
-		return invoice, group, lines[0]
-	}
 
 	s.Run("line", func() {
 		// given:
@@ -307,7 +267,7 @@ func (s *BillingAdapterTestSuite) TestSplitLineGroupReadScopesCrossNamespaceRefe
 		// then:
 		// - the foreign line is omitted
 		namespace := s.GetUniqueNamespace("split-line-read")
-		_, group, line := createHierarchy(namespace)
+		_, group, line := s.createPersistedSplitLineHierarchy(namespace)
 		_, err := s.TestDB.PGDriver.DB().ExecContext(ctx,
 			`UPDATE billing_invoice_lines SET namespace = $1 WHERE id = $2`,
 			s.GetUniqueNamespace("split-line-foreign"),
@@ -315,7 +275,7 @@ func (s *BillingAdapterTestSuite) TestSplitLineGroupReadScopesCrossNamespaceRefe
 		)
 		require.NoError(s.T(), err)
 
-		hierarchy, err := s.BillingAdapter.GetSplitLineGroup(ctx, billing.GetSplitLineGroupInput{
+		hierarchy, err := s.SplitLineGroupService.GetSplitLineGroup(ctx, models.NamespacedID{
 			Namespace: namespace,
 			ID:        group.ID,
 		})
@@ -332,7 +292,7 @@ func (s *BillingAdapterTestSuite) TestSplitLineGroupReadScopesCrossNamespaceRefe
 		// then:
 		// - the scoped invoice expansion leaves the required edge missing and the read fails
 		namespace := s.GetUniqueNamespace("split-invoice-read")
-		invoice, group, _ := createHierarchy(namespace)
+		invoice, group, _ := s.createPersistedSplitLineHierarchy(namespace)
 		_, err := s.TestDB.PGDriver.DB().ExecContext(ctx,
 			`UPDATE billing_invoices SET namespace = $1 WHERE id = $2`,
 			s.GetUniqueNamespace("split-invoice-foreign"),
@@ -340,7 +300,7 @@ func (s *BillingAdapterTestSuite) TestSplitLineGroupReadScopesCrossNamespaceRefe
 		)
 		require.NoError(s.T(), err)
 
-		_, err = s.BillingAdapter.GetSplitLineGroup(ctx, billing.GetSplitLineGroupInput{
+		_, err = s.SplitLineGroupService.GetSplitLineGroup(ctx, models.NamespacedID{
 			Namespace: namespace,
 			ID:        group.ID,
 		})

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"time"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
+	"github.com/openmeterio/openmeter/openmeter/billing/invoicing/legacy/splitlinegroup"
 	billinglineengine "github.com/openmeterio/openmeter/openmeter/billing/lineengine"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/reconciler"
@@ -28,6 +30,7 @@ type FeatureFlags struct {
 
 type Config struct {
 	BillingService          billing.Service
+	SplitLineGroupService   splitlinegroup.Service
 	LegacyBillingLineEngine *billinglineengine.Engine
 	// ChargesService is required for credit-only sync and charge-based provisioning.
 	ChargesService                charges.Service
@@ -41,6 +44,10 @@ type Config struct {
 }
 
 func (c Config) Validate() error {
+	if c.SplitLineGroupService == nil {
+		return errors.New("split line group service is required")
+	}
+
 	if c.BillingService == nil {
 		return fmt.Errorf("billing service is required")
 	}
@@ -76,6 +83,7 @@ var _ subscriptionsync.Service = (*Service)(nil)
 
 type Service struct {
 	billingService                billing.Service
+	splitLineGroupService         splitlinegroup.Service
 	chargesService                charges.Service
 	reconciler                    reconciler.Reconciler
 	subscriptionService           subscription.Service
@@ -93,6 +101,7 @@ func New(config Config) (*Service, error) {
 
 	reconcilerSvc, err := reconciler.New(reconciler.Config{
 		BillingService:          config.BillingService,
+		SplitLineGroupService:   config.SplitLineGroupService,
 		LegacyBillingLineEngine: config.LegacyBillingLineEngine,
 		ChargesService:          config.ChargesService,
 		EnableCreditThenInvoice: config.FeatureFlags.EnableCreditThenInvoice,
@@ -105,6 +114,7 @@ func New(config Config) (*Service, error) {
 
 	return &Service{
 		billingService:                config.BillingService,
+		splitLineGroupService:         config.SplitLineGroupService,
 		chargesService:                config.ChargesService,
 		reconciler:                    reconcilerSvc,
 		subscriptionSyncAdapter:       config.SubscriptionSyncAdapter,

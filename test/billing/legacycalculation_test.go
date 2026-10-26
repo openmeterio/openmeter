@@ -8,6 +8,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/invoicing/legacy/splitlinegroup"
 	"github.com/openmeterio/openmeter/openmeter/billing/lineengine"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -37,9 +38,9 @@ func (s *BillingAdapterTestSuite) TestLegacyCalculationInvariants() {
 			MinimumAmount: lo.ToPtr(alpacadecimal.NewFromInt(100)),
 		},
 	})
-	group, err := s.BillingAdapter.CreateSplitLineGroup(ctx, billing.CreateSplitLineGroupAdapterInput{
+	group, err := s.SplitLineGroupService.CreateSplitLineGroup(ctx, splitlinegroup.SplitLineGroupCreate{
 		Namespace: namespace,
-		SplitLineGroupMutableFields: billing.SplitLineGroupMutableFields{
+		SplitLineGroupMutableFields: splitlinegroup.SplitLineGroupMutableFields{
 			Name:          "monthly usage",
 			ServicePeriod: fullPeriod,
 		},
@@ -309,14 +310,14 @@ func (s *BillingAdapterTestSuite) TestLegacyCalculationInvariants() {
 	after, err := json.Marshal(current)
 	s.Require().NoError(err)
 	s.JSONEq(string(before), string(after))
-	histories, err := s.BillingAdapter.GetSplitLineGroups(ctx, billing.GetSplitLineGroupsInput{
+	histories, err := s.SplitLineGroupService.GetSplitLineGroups(ctx, splitlinegroup.GetSplitLineGroupsInput{
 		Namespace:         namespace,
 		SplitLineGroupIDs: []string{group.ID, group.ID},
 	})
 	s.Require().NoError(err)
 	s.Require().Len(histories, 1)
 	s.Len(histories[0].Lines, 1)
-	foreignHistories, err := s.BillingAdapter.GetSplitLineGroups(ctx, billing.GetSplitLineGroupsInput{
+	foreignHistories, err := s.SplitLineGroupService.GetSplitLineGroups(ctx, splitlinegroup.GetSplitLineGroupsInput{
 		Namespace:         s.GetUniqueNamespace("foreign-context"),
 		SplitLineGroupIDs: []string{group.ID},
 	})

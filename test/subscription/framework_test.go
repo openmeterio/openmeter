@@ -22,6 +22,7 @@ import (
 	lineageservice "github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage/service"
 	chargestestutils "github.com/openmeterio/openmeter/openmeter/billing/charges/testutils"
 	featuremeterservice "github.com/openmeterio/openmeter/openmeter/billing/featuremeter/service"
+	splitlinegrouptestutils "github.com/openmeterio/openmeter/openmeter/billing/invoicing/legacy/splitlinegroup/testutils"
 	billinglineengine "github.com/openmeterio/openmeter/openmeter/billing/lineengine"
 	billingratingservice "github.com/openmeterio/openmeter/openmeter/billing/rating/service"
 	billingsequenceadapter "github.com/openmeterio/openmeter/openmeter/billing/sequence/adapter"
@@ -135,8 +136,10 @@ func setup(t *testing.T, config setupConfig) testDeps {
 	})
 	require.NoError(t, err)
 
+	splitLineGroupService := splitlinegrouptestutils.NewTestEnv(t, deps.DBDeps.DBClient, slog.Default())
+
 	legacyBillingLineEngine, err := billinglineengine.New(billinglineengine.Config{
-		SplitLineGroupAdapter:        billingAdapter,
+		SplitLineGroupService:        splitLineGroupService,
 		RatingService:                billingRatingService,
 		FeatureMeterResolver:         featureMeterResolver,
 		StreamingConnector:           deps.MockStreamingConnector,
@@ -254,6 +257,7 @@ func setup(t *testing.T, config setupConfig) testDeps {
 	subscriptionSyncService, err := subscriptionsyncservice.New(subscriptionsyncservice.Config{
 		BillingService:          billingService,
 		LegacyBillingLineEngine: legacyBillingLineEngine,
+		SplitLineGroupService:   splitLineGroupService,
 		ChargesService:          chargesService,
 		Logger:                  slog.Default(),
 		Tracer:                  noop.NewTracerProvider().Tracer("test"),

@@ -9,6 +9,7 @@ import (
 	"go.opentelemetry.io/otel/trace/noop"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/invoicing/legacy/splitlinegroup"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
 	syncreconciler "github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/reconciler"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -38,6 +39,7 @@ func TestDeletedSubscriptionReconcilesBillingArtifacts(t *testing.T) {
 	reconciler := &syncReconcilerSpy{}
 	service := &Service{
 		billingService:          billingService,
+		splitLineGroupService:   &mockSplitLineGroupService{},
 		reconciler:              reconciler,
 		subscriptionService:     &subscriptionServiceSpy{view: view},
 		subscriptionSyncAdapter: syncAdapter,
@@ -72,7 +74,11 @@ func (s *billingServiceSpy) GetGatheringLinesForSubscription(context.Context, bi
 	return nil, nil
 }
 
-func (s *billingServiceSpy) GetSplitLineGroupsForSubscription(context.Context, billing.GetLinesForSubscriptionInput) ([]billing.SplitLineHierarchy, error) {
+type mockSplitLineGroupService struct {
+	splitlinegroup.Service
+}
+
+func (s *mockSplitLineGroupService) GetSplitLineGroupsForSubscription(context.Context, splitlinegroup.GetSplitLineGroupsForSubscriptionInput) ([]splitlinegroup.SplitLineHierarchy, error) {
 	return nil, nil
 }
 

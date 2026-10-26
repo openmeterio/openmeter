@@ -31,6 +31,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingadapter "github.com/openmeterio/openmeter/openmeter/billing/adapter"
 	featuremeterservice "github.com/openmeterio/openmeter/openmeter/billing/featuremeter/service"
+	"github.com/openmeterio/openmeter/openmeter/billing/invoicing/legacy/splitlinegroup"
+	splitlinegrouptestutils "github.com/openmeterio/openmeter/openmeter/billing/invoicing/legacy/splitlinegroup/testutils"
 	billinglineengine "github.com/openmeterio/openmeter/openmeter/billing/lineengine"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	billingratingservice "github.com/openmeterio/openmeter/openmeter/billing/rating/service"
@@ -73,6 +75,7 @@ type BaseSuite struct {
 	DBClient *db.Client
 
 	BillingAdapter          billing.Adapter
+	SplitLineGroupService   splitlinegroup.Service
 	BillingService          billing.Service
 	FeatureMeterResolver    *featuremeterservice.Resolver
 	LegacyBillingLineEngine *billinglineengine.Engine
@@ -247,8 +250,10 @@ func (s *BaseSuite) setupSuite() {
 	require.NoError(t, err)
 	s.FeatureMeterResolver = featureMeterResolver
 
+	s.SplitLineGroupService = splitlinegrouptestutils.NewTestEnv(t, dbClient, slog.Default())
+
 	legacyBillingLineEngine, err := billinglineengine.New(billinglineengine.Config{
-		SplitLineGroupAdapter:        billingAdapter,
+		SplitLineGroupService:        s.SplitLineGroupService,
 		RatingService:                billingRatingService,
 		FeatureMeterResolver:         featureMeterResolver,
 		StreamingConnector:           s.MockStreamingConnector,

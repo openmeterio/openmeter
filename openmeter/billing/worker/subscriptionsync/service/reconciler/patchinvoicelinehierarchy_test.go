@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/invoicing/legacy/splitlinegroup"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/persistedstate"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -16,30 +17,30 @@ import (
 
 type hierarchyPatchTestItem struct {
 	persistedstate.Item
-	hierarchy *billing.SplitLineHierarchy
+	hierarchy *splitlinegroup.SplitLineHierarchy
 }
 
-func (i hierarchyPatchTestItem) GetSplitLineHierarchy() *billing.SplitLineHierarchy {
+func (i hierarchyPatchTestItem) GetSplitLineHierarchy() *splitlinegroup.SplitLineHierarchy {
 	return i.hierarchy
 }
 
-func newHierarchyPatchTestHistory() *billing.SplitLineHierarchy {
+func newHierarchyPatchTestHistory() *splitlinegroup.SplitLineHierarchy {
 	from := time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC)
 	boundary := from.AddDate(0, 0, 14)
 	to := from.AddDate(0, 1, 0)
 
-	return &billing.SplitLineHierarchy{
-		Group: billing.SplitLineGroup{
+	return &splitlinegroup.SplitLineHierarchy{
+		Group: splitlinegroup.SplitLineGroup{
 			NamespacedID: models.NamespacedID{Namespace: "namespace", ID: "group"},
-			SplitLineGroupMutableFields: billing.SplitLineGroupMutableFields{
+			SplitLineGroupMutableFields: splitlinegroup.SplitLineGroupMutableFields{
 				Name:          "group",
 				ServicePeriod: timeutil.ClosedPeriod{From: from, To: to},
 			},
 		},
-		Lines: []billing.SplitLineHierarchyLine{
+		Lines: []splitlinegroup.SplitLineHierarchyLine{
 			{
 				LineID: billing.LineID{Namespace: "namespace", ID: "issued"},
-				Invoice: billing.SplitLineHierarchyInvoice{
+				Invoice: splitlinegroup.SplitLineHierarchyInvoice{
 					InvoiceID: billing.InvoiceID{Namespace: "namespace", ID: "issued-invoice"},
 					Type:      billing.InvoiceTypeStandard,
 					Status:    billing.StandardInvoiceStatusPaid,
@@ -49,7 +50,7 @@ func newHierarchyPatchTestHistory() *billing.SplitLineHierarchy {
 			},
 			{
 				LineID: billing.LineID{Namespace: "namespace", ID: "gathering"},
-				Invoice: billing.SplitLineHierarchyInvoice{
+				Invoice: splitlinegroup.SplitLineHierarchyInvoice{
 					InvoiceID: billing.InvoiceID{Namespace: "namespace", ID: "gathering-invoice"},
 					Type:      billing.InvoiceTypeGathering,
 					Status:    billing.StandardInvoiceStatusGathering,
@@ -104,19 +105,19 @@ func TestHierarchyShrinkRestoresSubscriptionDeletedChild(t *testing.T) {
 func TestHierarchyExtensionSelectsLastChildWhenPeriodsEndTogether(t *testing.T) {
 	for _, tc := range []struct {
 		name           string
-		setup          func(*billing.SplitLineHierarchy)
+		setup          func(*splitlinegroup.SplitLineHierarchy)
 		expectedLineID string
 		restoresLine   bool
 	}{
 		{
 			name:           "deleted child last",
-			setup:          func(*billing.SplitLineHierarchy) {},
+			setup:          func(*splitlinegroup.SplitLineHierarchy) {},
 			expectedLineID: "historical",
 			restoresLine:   true,
 		},
 		{
 			name: "live child last",
-			setup: func(hierarchy *billing.SplitLineHierarchy) {
+			setup: func(hierarchy *splitlinegroup.SplitLineHierarchy) {
 				hierarchy.Lines[1], hierarchy.Lines[2] = hierarchy.Lines[2], hierarchy.Lines[1]
 			},
 			expectedLineID: "gathering",

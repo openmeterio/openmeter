@@ -20,6 +20,7 @@ import (
 
 	appsandbox "github.com/openmeterio/openmeter/openmeter/app/sandbox"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/invoicing/legacy/splitlinegroup"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
@@ -3656,16 +3657,16 @@ func (s *InvoicingTestSuite) lineByID(lines []*billing.StandardLine, id string) 
 	return nil
 }
 
-func (s *InvoicingTestSuite) loadSortedSplitLineHierarchy(line *billing.StandardLine) billing.SplitLineHierarchy {
+func (s *InvoicingTestSuite) loadSortedSplitLineHierarchy(line *billing.StandardLine) splitlinegroup.SplitLineHierarchy {
 	s.T().Helper()
 	s.Require().NotNil(line.SplitLineGroupID)
-	hierarchy, err := s.BillingAdapter.GetSplitLineGroup(s.T().Context(), billing.GetSplitLineGroupInput{
+	hierarchy, err := s.SplitLineGroupService.GetSplitLineGroup(s.T().Context(), models.NamespacedID{
 		Namespace: line.Namespace,
 		ID:        *line.SplitLineGroupID,
 	})
 	s.Require().NoError(err)
 
-	slices.SortFunc(hierarchy.Lines, func(a, b billing.SplitLineHierarchyLine) int {
+	slices.SortFunc(hierarchy.Lines, func(a, b splitlinegroup.SplitLineHierarchyLine) int {
 		switch {
 		case a.ServicePeriod.From.Equal(b.ServicePeriod.From):
 			return 0

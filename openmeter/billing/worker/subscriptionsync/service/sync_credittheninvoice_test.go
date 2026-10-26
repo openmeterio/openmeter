@@ -149,6 +149,7 @@ func (s *CreditThenInvoiceTestSuite) SetupSuite() {
 	service, err := New(Config{
 		BillingService:          s.BillingService,
 		LegacyBillingLineEngine: s.LegacyBillingLineEngine,
+		SplitLineGroupService:   s.SplitLineGroupService,
 		ChargesService:          s.Charges,
 		Logger:                  s.Service.logger,
 		Tracer:                  s.Service.tracer,
@@ -2950,6 +2951,7 @@ func (s *CreditThenInvoiceTestSuite) TestRetiresProratedZeroAmountInvoiceLineWit
 	invoiceBackedService, err := New(Config{
 		BillingService:          s.BillingService,
 		LegacyBillingLineEngine: s.LegacyBillingLineEngine,
+		SplitLineGroupService:   s.SplitLineGroupService,
 		Logger:                  s.Service.logger,
 		Tracer:                  s.Service.tracer,
 		SubscriptionSyncAdapter: s.Adapter,
