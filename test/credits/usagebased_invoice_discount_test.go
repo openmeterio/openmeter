@@ -113,7 +113,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedAmountDiscountsBillProgressiv
 			// given: a discounted charge with progressive billing enabled
 			ctx := s.T().Context()
 			ns := s.GetUniqueNamespace("usagebased-invoice-discount")
-			s.ProvisionDefaultTaxCodes(ctx, ns)
+			s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 			customInvoicing := s.SetupCustomInvoicing(ns)
 			cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
 			s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(), billingtest.WithManualApproval(), billingtest.WithProgressiveBilling())
@@ -283,7 +283,7 @@ func (s *CreditThenInvoiceTestSuite) TestPercentageDiscountProgressiveBilling() 
 
 	customInvoicing := s.SetupCustomInvoicing(namespace)
 
-	s.ProvisionDefaultTaxCodes(ctx, namespace)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), namespace)
 	s.ProvisionBillingProfile(ctx, namespace, customInvoicing.App.GetID(), billingtest.WithManualApproval(), billingtest.WithProgressiveBilling())
 
 	customerEntity := s.CreateLedgerBackedCustomer(namespace, "test-customer")
@@ -502,7 +502,7 @@ func (s *CreditThenInvoiceTestSuite) TestPercentageDiscountGraduatedTiersSingleI
 
 	customInvoicing := s.SetupCustomInvoicing(namespace)
 
-	s.ProvisionDefaultTaxCodes(ctx, namespace)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), namespace)
 	s.ProvisionBillingProfile(ctx, namespace, customInvoicing.App.GetID(), billingtest.WithManualApproval(), billingtest.WithProgressiveBilling())
 
 	customerEntity := s.CreateLedgerBackedCustomer(namespace, "test-customer")
@@ -674,7 +674,7 @@ func (s *CreditThenInvoiceTestSuite) TestPercentageDiscountProgressiveBillingUsa
 
 	customInvoicing := s.SetupCustomInvoicing(namespace)
 
-	s.ProvisionDefaultTaxCodes(ctx, namespace)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), namespace)
 	s.ProvisionBillingProfile(ctx, namespace, customInvoicing.App.GetID(), billingtest.WithManualApproval(), billingtest.WithProgressiveBilling())
 
 	customerEntity := s.CreateLedgerBackedCustomer(namespace, "test-customer")
@@ -838,7 +838,7 @@ func (s *CreditThenInvoiceTestSuite) TestPercentageDiscountProgressiveBillingUsa
 
 	customInvoicing := s.SetupCustomInvoicing(namespace)
 
-	s.ProvisionDefaultTaxCodes(ctx, namespace)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), namespace)
 	s.ProvisionBillingProfile(ctx, namespace, customInvoicing.App.GetID(), billingtest.WithManualApproval(), billingtest.WithProgressiveBilling())
 
 	customerEntity := s.CreateLedgerBackedCustomer(namespace, "test-customer")
@@ -1084,7 +1084,7 @@ func (s *CreditThenInvoiceTestSuite) TestPercentageDiscountProgressiveBillingUsa
 
 	customInvoicing := s.SetupCustomInvoicing(namespace)
 
-	s.ProvisionDefaultTaxCodes(ctx, namespace)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), namespace)
 	s.ProvisionBillingProfile(ctx, namespace, customInvoicing.App.GetID(), billingtest.WithManualApproval(), billingtest.WithProgressiveBilling())
 
 	customerEntity := s.CreateLedgerBackedCustomer(namespace, "test-customer")

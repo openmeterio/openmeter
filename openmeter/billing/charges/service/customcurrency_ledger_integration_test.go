@@ -186,7 +186,7 @@ func (s *CustomCurrencyLedgerIntegrationTestSuite) prepareFlatFeeCustomCurrencyL
 	s.T().Helper()
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-flatfee-real-ledger")
-	defaults := s.ProvisionDefaultTaxCodes(ctx, ns)
+	defaults := s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
 	customer := s.CreateTestCustomer(ns, "customer-c1")
 	_ = s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID(), billingtest.WithManualApproval())
@@ -268,7 +268,7 @@ func (s *CustomCurrencyLedgerIntegrationTestSuite) prepareUsageBasedCustomCurren
 	s.T().Helper()
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-usage-based-real-ledger")
-	defaults := s.ProvisionDefaultTaxCodes(ctx, ns)
+	defaults := s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
 	customer := s.CreateTestCustomer(ns, "customer-c1")
 	_ = s.ProvisionBillingProfile(

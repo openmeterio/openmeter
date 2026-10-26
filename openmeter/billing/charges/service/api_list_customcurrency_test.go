@@ -143,7 +143,7 @@ func (s *CustomerChargeCustomCurrencyListTestSuite) TestFlatFeeCustomCurrencyCha
 
 	s.enableFlatFeeCustomCurrencyService()
 
-	defaults := s.ProvisionDefaultTaxCodes(ctx, ns)
+	defaults := s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
 	customer := s.CreateTestCustomer(ns, "customer-c1")
 	_ = s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID(), billingtest.WithManualApproval())
@@ -309,7 +309,7 @@ func (s *CustomerChargeCustomCurrencyListTestSuite) TestUsageBasedCustomCurrency
 
 	s.enableUsageBasedCustomCurrencyService()
 
-	defaults := s.ProvisionDefaultTaxCodes(ctx, ns)
+	defaults := s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
 	customer := s.CreateTestCustomer(ns, "customer-c1")
 	_ = s.ProvisionBillingProfile(

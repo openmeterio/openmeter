@@ -511,7 +511,7 @@ func (s *CreditPurchaseCostBasisSuite) provisionDynamicCreditPurchaseFixtureWith
 		creditAmount:       alpacadecimal.NewFromInt(100),
 		fiatAmount:         alpacadecimal.NewFromInt(25),
 	}
-	fixture.taxCodeID = s.ProvisionDefaultTaxCodes(ctx, namespace).CreditGrantTaxCodeID
+	fixture.taxCodeID = s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), namespace).CreditGrantTaxCodeID
 	fixture.customerID = s.CreateLedgerBackedCustomer(namespace, namespace).GetID()
 
 	var err error

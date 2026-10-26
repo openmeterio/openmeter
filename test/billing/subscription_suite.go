@@ -47,8 +47,7 @@ import (
 	subscriptionservice "github.com/openmeterio/openmeter/openmeter/subscription/service"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	subscriptionworkflowservice "github.com/openmeterio/openmeter/openmeter/subscription/workflow/service"
-	taxcodeadapter "github.com/openmeterio/openmeter/openmeter/taxcode/adapter"
-	taxcodeservice "github.com/openmeterio/openmeter/openmeter/taxcode/service"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/ffx"
@@ -70,6 +69,7 @@ type SubscriptionMixInDependencies struct {
 	FeatureRepo     feature.FeatureRepo
 	FeatureService  feature.FeatureConnector
 	CustomerService customer.Service
+	TaxCodeService  taxcode.Service
 
 	MeterAdapter           *meteradapter.TestAdapter
 	MockStreamingConnector *streamingtestutils.MockStreamingConnector
@@ -90,6 +90,10 @@ func (d SubscriptionMixInDependencies) Validate() error {
 
 	if d.CustomerService == nil {
 		return errors.New("CustomerService is required")
+	}
+
+	if d.TaxCodeService == nil {
+		return errors.New("TaxCodeService is required")
 	}
 
 	if d.MeterAdapter == nil {
@@ -117,18 +121,6 @@ func (s *SubscriptionMixin) SetupSuite(t *testing.T, deps SubscriptionMixInDepen
 	})
 	require.NoError(t, err)
 
-	taxCodeAdapter, err := taxcodeadapter.New(taxcodeadapter.Config{
-		Client: deps.DBClient,
-		Logger: slog.Default(),
-	})
-	require.NoError(t, err)
-
-	taxCodeService, err := taxcodeservice.New(taxcodeservice.Config{
-		Adapter: taxCodeAdapter,
-		Logger:  slog.Default(),
-	})
-	require.NoError(t, err)
-
 	featureResolver, err := featureresolver.New(deps.FeatureService)
 	require.NoErrorf(t, err, "failed to create feature resolver: %v", err)
 
@@ -145,7 +137,7 @@ func (s *SubscriptionMixin) SetupSuite(t *testing.T, deps SubscriptionMixInDepen
 		FeatureResolver:  featureResolver,
 		CurrencyResolver: currencyResolver,
 		Adapter:          planAdapter,
-		TaxCode:          taxCodeService,
+		TaxCode:          deps.TaxCodeService,
 		Logger:           slog.Default(),
 		Publisher:        publisher,
 	})
@@ -197,7 +189,7 @@ func (s *SubscriptionMixin) SetupSuite(t *testing.T, deps SubscriptionMixInDepen
 		Publisher:        publisher,
 		FeatureResolver:  featureResolver,
 		CurrencyResolver: currencyResolver,
-		TaxCode:          taxCodeService,
+		TaxCode:          deps.TaxCodeService,
 	})
 	require.NoError(t, err)
 

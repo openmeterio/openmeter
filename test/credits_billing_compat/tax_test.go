@@ -42,7 +42,7 @@ func (s *InvoicingTaxTestSuite) TestDefaultTaxConfigProfileSnapshotting() {
 
 	cust := s.CreateTestCustomer(namespace, "test")
 	s.SetupAccounts(namespace, cust.ID)
-	s.ProvisionDefaultTaxCodes(ctx, namespace)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), namespace)
 
 	// The tax code is seeded via the adapter to simulate a legacy row predating the deprecation gate.
 	profile := s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
@@ -125,7 +125,7 @@ func (s *InvoicingTaxTestSuite) TestDefaultTaxConfigProfileSnapshotting() {
 
 		draftInvoice := s.generateDraftInvoice(ctx, cust)
 		s.Nil(draftInvoice.Workflow.Config.Invoicing.DefaultTaxConfig)
-		s.ProvisionProviderDefaultTaxCode(ctx, namespace)
+		s.TaxCodeEnv.ProvisionProviderDefaultTaxCode(s.T(), namespace)
 
 		// let's update the invoice
 		updatedInvoice, err := s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
@@ -161,7 +161,7 @@ func (s *InvoicingTaxTestSuite) TestLineSplittingRetainsTaxConfig() {
 
 	customer := s.CreateTestCustomer(namespace, "test")
 	s.SetupAccounts(namespace, customer.ID)
-	s.ProvisionDefaultTaxCodes(ctx, namespace)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), namespace)
 
 	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID(), billingtest.WithProgressiveBilling())
 

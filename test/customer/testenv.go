@@ -61,8 +61,7 @@ import (
 	subscriptioncustomer "github.com/openmeterio/openmeter/openmeter/subscription/validators/customer"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	subscriptionworkflowservice "github.com/openmeterio/openmeter/openmeter/subscription/workflow/service"
-	taxcodeadapter "github.com/openmeterio/openmeter/openmeter/taxcode/adapter"
-	taxcodeservice "github.com/openmeterio/openmeter/openmeter/taxcode/service"
+	taxcodetestutils "github.com/openmeterio/openmeter/openmeter/taxcode/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/ffx"
@@ -264,21 +263,7 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		return nil, fmt.Errorf("failed to create plan adapter: %w", err)
 	}
 
-	taxCodeAdapter, err := taxcodeadapter.New(taxcodeadapter.Config{
-		Client: dbDeps.DBClient,
-		Logger: logger.WithGroup("taxcode"),
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create tax code adapter: %w", err)
-	}
-
-	taxCodeService, err := taxcodeservice.New(taxcodeservice.Config{
-		Adapter: taxCodeAdapter,
-		Logger:  logger.WithGroup("taxcode"),
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create tax code service: %w", err)
-	}
+	taxCodeEnv := taxcodetestutils.NewTestEnvFromClient(t, dbDeps.DBClient, logger.WithGroup("taxcode"))
 
 	featureResolver, err := featureresolver.New(entitlementRegistry.Feature)
 	require.NoErrorf(t, err, "failed to create feature resolver: %v", err)
@@ -302,7 +287,7 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		Adapter:          planAdapter,
 		FeatureResolver:  featureResolver,
 		CurrencyResolver: currencyResolver,
-		TaxCode:          taxCodeService,
+		TaxCode:          taxCodeEnv.Service,
 		Logger:           logger.WithGroup("plan"),
 		Publisher:        publisher,
 	})
@@ -369,7 +354,7 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		Publisher:        publisher,
 		FeatureResolver:  featureResolver,
 		CurrencyResolver: currencyResolver,
-		TaxCode:          taxCodeService,
+		TaxCode:          taxCodeEnv.Service,
 	})
 	require.NoError(t, err)
 
@@ -485,7 +470,7 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		FeatureMeterResolver:    featureMeterResolver,
 		Publisher:               publisher,
 		AdvancementStrategy:     billing.ForegroundAdvancementStrategy,
-		TaxCodeService:          taxCodeService,
+		TaxCodeService:          taxCodeEnv.Service,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create billing service: %w", err)

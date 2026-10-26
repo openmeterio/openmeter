@@ -49,7 +49,7 @@ func (s *UsageBasedChargesTestSuite) TearDownTest() {
 func (s *UsageBasedChargesTestSuite) TestUsageBasedCustomCurrencyCreditThenInvoiceCreatesFiatOveragePlaceholder() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-usage-based-custom-currency")
-	defaults := s.ProvisionDefaultTaxCodes(ctx, ns)
+	defaults := s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	customer := s.CreateTestCustomer(ns, "test-subject")
 	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID())
@@ -328,7 +328,7 @@ func (s *UsageBasedChargesTestSuite) runUsageBasedCustomCurrencyFiatOverageAfter
 	clock.FreezeTime(createAt)
 	defer clock.UnFreeze()
 
-	defaults := s.ProvisionDefaultTaxCodes(ctx, ns)
+	defaults := s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
 	customer := s.CreateTestCustomer(ns, "customer-c1")
 	_ = s.ProvisionBillingProfile(
@@ -779,7 +779,7 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCustomCurrencyCreditThenInvoi
 	clock.UnFreeze()
 	s.T().Cleanup(clock.UnFreeze)
 
-	defaults := s.ProvisionDefaultTaxCodes(ctx, ns)
+	defaults := s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
 	customer := s.CreateTestCustomer(ns, "customer-c1")
 	_ = s.ProvisionBillingProfile(
@@ -1351,7 +1351,7 @@ func (s *UsageBasedChargesTestSuite) runUsageBasedCustomCurrencyCreditThenInvoic
 			clock.UnFreeze()
 			defer clock.UnFreeze()
 
-			defaults := s.ProvisionDefaultTaxCodes(ctx, ns)
+			defaults := s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 			sandboxApp := s.InstallSandboxApp(s.T(), ns)
 			customer := s.CreateTestCustomer(ns, "customer-c1")
 			profileOptions := []billingtest.BillingProfileProvisionOption{
@@ -1821,7 +1821,7 @@ func (s *UsageBasedChargesTestSuite) runUsageBasedCustomCurrencyCreditThenInvoic
 func (s *UsageBasedChargesTestSuite) TestUsageBasedCreditThenInvoicePartialInvoiceLifecycle() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-usage-based-partial-invoice-lifecycle")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 
@@ -2286,7 +2286,7 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCreditThenInvoicePartialInvoi
 func (s *UsageBasedChargesTestSuite) TestUsageBasedCreditThenInvoicePendingPartialInvoiceBlocksFinalRealizationUntilApproval() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-usage-based-pending-partial-invoice-blocks-final")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 

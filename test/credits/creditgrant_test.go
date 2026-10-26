@@ -112,7 +112,7 @@ func (s *CreditGrantTestSuite) SetupSuite() {
 func (s *CreditGrantTestSuite) TestCreateInvoiceFundedCreatesInvoiceArtifacts() {
 	ctx := context.Background()
 	ns := s.GetUniqueNamespace("creditgrant-service-invoice-funded")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
@@ -169,7 +169,7 @@ func (s *CreditGrantTestSuite) TestCreateInvoiceFundedCreatesInvoiceArtifacts() 
 func (s *CreditGrantTestSuite) TestCreatePromotionalGrant() {
 	ctx := context.Background()
 	ns := s.GetUniqueNamespace("creditgrant-service-promotional")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
@@ -208,7 +208,7 @@ func (s *CreditGrantTestSuite) TestCreatePromotionalGrant() {
 func (s *CreditGrantTestSuite) TestCreatePromotionalGrantUsesEffectiveAtForServicePeriodAndLedgerBookedAt() {
 	ctx := context.Background()
 	ns := s.GetUniqueNamespace("creditgrant-service-promotional-effective-at")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
@@ -255,7 +255,7 @@ func (s *CreditGrantTestSuite) TestCreatePromotionalGrantUsesEffectiveAtForServi
 func (s *CreditGrantTestSuite) TestCreateFeatureFilteredGrant() {
 	ctx := context.Background()
 	ns := s.GetUniqueNamespace("creditgrant-service-feature-filters")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
 
@@ -282,7 +282,7 @@ func (s *CreditGrantTestSuite) TestCreateFeatureFilteredGrant() {
 func (s *CreditGrantTestSuite) TestCreateExternalGrantAndSettle() {
 	ctx := context.Background()
 	ns := s.GetUniqueNamespace("creditgrant-service-external")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
@@ -340,7 +340,7 @@ func (s *CreditGrantTestSuite) TestCreateExternalGrantAndSettle() {
 func (s *CreditGrantTestSuite) TestCreateExternalGrantWithSubCentCostBasisAndSettle() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("creditgrant-service-external-sub-cent-cost-basis")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
@@ -433,7 +433,7 @@ func (s *CreditGrantTestSuite) TestCreateExternalGrantWithSubCentCostBasisAndSet
 func (s *CreditGrantTestSuite) TestListCreditGrants() {
 	ctx := context.Background()
 	ns := s.GetUniqueNamespace("creditgrant-service-list")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
@@ -466,7 +466,7 @@ func (s *CreditGrantTestSuite) TestListCreditGrants() {
 func (s *CreditGrantTestSuite) TestCreateInvoiceFundedGrantPropagatesTaxConfigToInvoiceLine() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("creditgrant-taxconfig-propagation")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
@@ -480,15 +480,13 @@ func (s *CreditGrantTestSuite) TestCreateInvoiceFundedGrantPropagatesTaxConfigTo
 	now := datetime.MustParseTimeInLocation(s.T(), "2026-04-17T11:23:53Z", time.UTC).AsTime()
 	clock.SetTime(now)
 
-	tc, err := s.TaxCodeService.CreateTaxCode(ctx, taxcode.CreateTaxCodeInput{
-		Namespace: ns,
-		Key:       "txcd-40000001",
-		Name:      "Test Tax Code txcd-40000001",
+	tc := s.TaxCodeEnv.CreateTaxCode(s.T(), ns, taxcode.CreateTaxCodeInput{
+		Key:  "txcd-40000001",
+		Name: "Test Tax Code txcd-40000001",
 		AppMappings: taxcode.TaxCodeAppMappings{
 			{AppType: app.AppTypeStripe, TaxCode: "txcd_40000001"},
 		},
 	})
-	s.Require().NoError(err)
 
 	grant, err := s.CreditGrantService.Create(ctx, creditgrant.CreateInput{
 		Namespace:     ns,
@@ -536,7 +534,7 @@ func (s *CreditGrantTestSuite) TestCreateInvoiceFundedGrantPropagatesTaxConfigTo
 func (s *CreditGrantTestSuite) TestCreateInvoiceFundedGrantNilTaxConfigAppliesCreditGrantDefault() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("creditgrant-taxconfig-nil")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
@@ -589,7 +587,7 @@ func (s *CreditGrantTestSuite) TestCreateInvoiceFundedGrantNilTaxConfigAppliesCr
 func (s *CreditGrantTestSuite) TestCreateExternalGrantPropagatesTaxConfigToCharge() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("creditgrant-external-taxconfig")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
@@ -598,12 +596,10 @@ func (s *CreditGrantTestSuite) TestCreateExternalGrantPropagatesTaxConfigToCharg
 	now := time.Date(2026, 4, 17, 11, 23, 53, 0, time.UTC)
 	clock.SetTime(now)
 
-	tc, err := s.TaxCodeService.CreateTaxCode(ctx, taxcode.CreateTaxCodeInput{
-		Namespace: ns,
-		Key:       "txcd-50000001",
-		Name:      "Test Tax Code txcd-50000001",
+	tc := s.TaxCodeEnv.CreateTaxCode(s.T(), ns, taxcode.CreateTaxCodeInput{
+		Key:  "txcd-50000001",
+		Name: "Test Tax Code txcd-50000001",
 	})
-	s.Require().NoError(err)
 
 	grant, err := s.CreditGrantService.Create(ctx, creditgrant.CreateInput{
 		Namespace:     ns,
@@ -639,7 +635,7 @@ func (s *CreditGrantTestSuite) TestCreateExternalGrantPropagatesTaxConfigToCharg
 func (s *CreditGrantTestSuite) TestCreatePromotionalGrantPropagatesTaxConfigToCharge() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("creditgrant-promotional-taxconfig")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
@@ -648,12 +644,10 @@ func (s *CreditGrantTestSuite) TestCreatePromotionalGrantPropagatesTaxConfigToCh
 	now := time.Date(2026, 4, 17, 11, 23, 53, 0, time.UTC)
 	clock.SetTime(now)
 
-	tc, err := s.TaxCodeService.CreateTaxCode(ctx, taxcode.CreateTaxCodeInput{
-		Namespace: ns,
-		Key:       "txcd-50000002",
-		Name:      "Test Tax Code txcd-50000002",
+	tc := s.TaxCodeEnv.CreateTaxCode(s.T(), ns, taxcode.CreateTaxCodeInput{
+		Key:  "txcd-50000002",
+		Name: "Test Tax Code txcd-50000002",
 	})
-	s.Require().NoError(err)
 
 	grant, err := s.CreditGrantService.Create(ctx, creditgrant.CreateInput{
 		Namespace:     ns,
@@ -700,7 +694,7 @@ func (s *CreditGrantTestSuite) TestCreatePlanFilteredGrant() {
 	// given: a grant matches a feature and two versions of a plan.
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("creditgrant-plan-filters")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
 	filters := ledger.CreditFilters{Version: ledger.CreditFiltersVersion2, Features: []string{"api-calls"}, Plans: []ledger.PlanFilter{{Key: "pro", Version: &ledger.VersionFilter{In: []int{3, 2, 3}}}}}
 	// when: creation persists and realizes the grant.
@@ -721,7 +715,7 @@ func (s *CreditGrantTestSuite) TestCreatePlanFilteredGrant() {
 func (s *CreditGrantTestSuite) TestListCreditGrantsSpendabilityFilters() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("creditgrant-list-spendability")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
 	_ = s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())

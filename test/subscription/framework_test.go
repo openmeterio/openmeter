@@ -46,8 +46,6 @@ import (
 	subscription "github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/subscription/testutils"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
-	taxcodeadapter "github.com/openmeterio/openmeter/openmeter/taxcode/adapter"
-	taxcodeservice "github.com/openmeterio/openmeter/openmeter/taxcode/service"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/datetime"
@@ -129,18 +127,6 @@ func setup(t *testing.T, config setupConfig) testDeps {
 	})
 	require.NoError(t, err)
 
-	taxCodeAdapter, err := taxcodeadapter.New(taxcodeadapter.Config{
-		Client: deps.DBDeps.DBClient,
-		Logger: slog.Default(),
-	})
-	require.NoError(t, err)
-
-	taxCodeService, err := taxcodeservice.New(taxcodeservice.Config{
-		Adapter: taxCodeAdapter,
-		Logger:  slog.Default(),
-	})
-	require.NoError(t, err)
-
 	billingRatingService := billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: true})
 	featureMeterResolver, err := featuremeterservice.New(featuremeterservice.Config{
 		FeatureService: deps.FeatureConnector,
@@ -168,7 +154,7 @@ func setup(t *testing.T, config setupConfig) testDeps {
 		FeatureMeterResolver:    featureMeterResolver,
 		Publisher:               publisher,
 		AdvancementStrategy:     billing.ForegroundAdvancementStrategy,
-		TaxCodeService:          taxCodeService,
+		TaxCodeService:          deps.TaxCodeService,
 	})
 	require.NoError(t, err)
 
@@ -246,7 +232,7 @@ func setup(t *testing.T, config setupConfig) testDeps {
 			FeatureMeterResolver:  featureMeterResolver,
 			CustomerService:       deps.CustomerService,
 			StreamingConnector:    deps.MockStreamingConnector,
-			TaxCodeService:        taxCodeService,
+			TaxCodeService:        deps.TaxCodeService,
 			FlatFeeHandler:        ledgerchargeadapter.NewFlatFeeHandler(ledgerDeps.HistoricalLedger, resolverDeps, collector),
 			CreditPurchaseHandler: creditPurchaseHandler,
 			UsageBasedHandler:     ledgerchargeadapter.NewUsageBasedHandler(ledgerDeps.HistoricalLedger, resolverDeps, collector),

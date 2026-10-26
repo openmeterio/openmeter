@@ -43,7 +43,7 @@ func (s *CollectionTestSuite) setupNS(ctx context.Context, namespace string) col
 	customer := s.CreateTestCustomer(namespace, "test-customer")
 	s.NotNil(customer)
 	s.SetupAccounts(namespace, customer.ID)
-	s.ProvisionDefaultTaxCodes(ctx, namespace)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), namespace)
 
 	apiRequestsTotalFeature := s.SetupApiRequestsTotalFeature(ctx, namespace)
 
@@ -77,7 +77,7 @@ func (s *CollectionTestSuite) TestUncollectableCollection() {
 	customer := s.CreateTestCustomer(namespace, "test-customer")
 	s.NotNil(customer)
 	s.SetupAccounts(namespace, customer.ID)
-	s.ProvisionDefaultTaxCodes(ctx, namespace)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), namespace)
 
 	s.ProvisionBillingProfile(ctx, namespace, appSandbox.GetID())
 
@@ -145,7 +145,7 @@ func (s *CollectionTestSuite) TestCollectionWaitsForInvoiceAtAfterServicePeriodE
 	customer := s.CreateTestCustomer(namespace, "test-customer")
 	s.Require().NotNil(customer)
 	s.SetupAccounts(namespace, customer.ID)
-	s.ProvisionDefaultTaxCodes(ctx, namespace)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), namespace)
 	s.ProvisionBillingProfile(ctx, namespace, appSandbox.GetID())
 
 	testFeature := s.SetupApiRequestsTotalFeature(ctx, namespace)
@@ -547,7 +547,7 @@ func (s *CollectionTestSuite) TestCollectionFlowWithFlatFeeEditing() {
 
 	res := s.setupNS(ctx, namespace)
 	defer res.Cleanup()
-	s.ProvisionProviderDefaultTaxCode(ctx, namespace)
+	s.TaxCodeEnv.ProvisionProviderDefaultTaxCode(s.T(), namespace)
 
 	customer := res.customer
 	apiRequestsTotalFeature := res.TestFeature
@@ -685,7 +685,7 @@ func (s *CollectionTestSuite) TestAnchoredAlignment_StandardInvoiceUsesLateEvent
 	s.NoError(err)
 
 	s.SetupAccounts(namespace, customerEntity.ID)
-	s.ProvisionDefaultTaxCodes(ctx, namespace)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), namespace)
 
 	// Create a minimal pending usage-based line that invoices at end of day
 	periodStart := now
@@ -790,7 +790,7 @@ func (s *CollectionTestSuite) TestAnchoredAlignment_AutomaticCollectionWaitsForA
 	s.NoError(err)
 
 	s.SetupAccounts(namespace, customerEntity.ID)
-	s.ProvisionDefaultTaxCodes(ctx, namespace)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), namespace)
 
 	periodStart := now
 	periodEnd := now.Add(12 * time.Hour)
@@ -856,7 +856,7 @@ func (s *CollectionTestSuite) TestAnchoredAlignment_StandardInvoiceWaitsForLateE
 	s.NoError(err)
 
 	s.SetupAccounts(namespace, customerEntity.ID)
-	s.ProvisionDefaultTaxCodes(ctx, namespace)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), namespace)
 
 	periodStart := lo.Must(time.Parse(time.RFC3339, "2025-06-15T00:00:00Z"))
 	periodEnd := lo.Must(time.Parse(time.RFC3339, "2025-06-15T12:00:00Z"))
@@ -922,7 +922,7 @@ func (s *CollectionTestSuite) TestCollectionFlowWithUBPEditingExtendingCollectio
 
 	res := s.setupNS(ctx, namespace)
 	defer res.Cleanup()
-	s.ProvisionProviderDefaultTaxCode(ctx, namespace)
+	s.TaxCodeEnv.ProvisionProviderDefaultTaxCode(s.T(), namespace)
 
 	customer := res.customer
 	apiRequestsTotalFeature := res.TestFeature

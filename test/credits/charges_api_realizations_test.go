@@ -96,7 +96,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedRealizationsWireShapeAcrossLi
 	t := s.T()
 	ctx := t.Context()
 	ns := s.GetUniqueNamespace("charges-credits-usagebased-api-realizations-wire")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")

@@ -19,7 +19,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
 	pctestutils "github.com/openmeterio/openmeter/openmeter/productcatalog/testutils"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
-	taxcodetestutils "github.com/openmeterio/openmeter/openmeter/taxcode/testutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
@@ -581,7 +580,6 @@ func TestAddonWithPlanTaxCode(t *testing.T) {
 
 	env := pctestutils.NewTestEnv(t)
 	t.Cleanup(func() { env.Close(t) })
-	taxCodeEnv := taxcodetestutils.NewTestEnvFromClient(t, env.Client, nil)
 
 	namespace := pctestutils.NewTestNamespace(t)
 
@@ -660,7 +658,7 @@ func TestAddonWithPlanTaxCode(t *testing.T) {
 
 		phaseID := p.Phases[0].PhaseManagedFields.NamespacedID.ID
 
-		tcEntity := taxCodeEnv.CreateTaxCode(t, namespace, taxcode.CreateTaxCodeInput{
+		tcEntity := env.TaxCodeEnv.CreateTaxCode(t, namespace, taxcode.CreateTaxCodeInput{
 			Key:  "stripe_txcd_99000020",
 			Name: "txcd_99000020",
 			AppMappings: taxcode.TaxCodeAppMappings{

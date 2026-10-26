@@ -24,7 +24,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/subscription/testutils"
-	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
@@ -53,7 +52,7 @@ func TestSubscriptionCustomCurrencyGatheringInvoiceLivePreviewOmitsUsageBasedLin
 
 	deps := setup(t, setupConfig{enableCharges: true, enableCreditThenInvoice: true})
 	defer deps.cleanup(t)
-	provisionSubscriptionDefaultTaxCodes(t, deps, namespace)
+	deps.TaxCodeEnv.ProvisionDefaultTaxCodes(t, namespace)
 
 	profileInput := MinimalCreateProfileInputTemplate(deps.sandboxApp.GetID())
 	profileInput.WorkflowConfig.Collection.Interval = datetime.MustParseDuration(t, "P1D")
@@ -249,7 +248,7 @@ func TestSubscriptionSyncCustomCurrencyBilling(t *testing.T) {
 				enableCreditThenInvoice: true,
 			})
 			defer deps.cleanup(t)
-			provisionSubscriptionDefaultTaxCodes(t, deps, namespace)
+			deps.TaxCodeEnv.ProvisionDefaultTaxCodes(t, namespace)
 
 			profileInput := MinimalCreateProfileInputTemplate(deps.sandboxApp.GetID())
 			profileInput.WorkflowConfig.Collection.Interval = datetime.MustParseDuration(t, "P1D")
@@ -823,28 +822,4 @@ func assertNoSubscriptionInvoices(t *testing.T, deps testDeps, customerID string
 	})
 	require.NoError(t, err)
 	require.Empty(t, gatheringInvoices.Items)
-}
-
-func provisionSubscriptionDefaultTaxCodes(t *testing.T, deps testDeps, namespace string) {
-	t.Helper()
-
-	invoicing, err := deps.TaxCodeService.CreateTaxCode(t.Context(), taxcode.CreateTaxCodeInput{
-		Namespace: namespace,
-		Key:       taxcode.ProviderDefaultTaxCodeKey,
-		Name:      "Provider Default",
-	})
-	require.NoError(t, err)
-	creditGrant, err := deps.TaxCodeService.CreateTaxCode(t.Context(), taxcode.CreateTaxCodeInput{
-		Namespace: namespace,
-		Key:       "default-credit-grant",
-		Name:      "Default Credit Grant",
-	})
-	require.NoError(t, err)
-
-	_, err = deps.TaxCodeService.UpsertOrganizationDefaultTaxCodes(t.Context(), taxcode.UpsertOrganizationDefaultTaxCodesInput{
-		Namespace:            namespace,
-		InvoicingTaxCodeID:   invoicing.ID,
-		CreditGrantTaxCodeID: creditGrant.ID,
-	})
-	require.NoError(t, err)
 }

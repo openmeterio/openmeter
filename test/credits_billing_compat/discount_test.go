@@ -39,7 +39,7 @@ func (s *DiscountsTestSuite) TestCorrelationIDHandling() {
 	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
 
 	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID(), billingtest.WithProgressiveBilling())
-	s.ProvisionDefaultTaxCodes(ctx, namespace)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), namespace)
 
 	customerEntity := s.CreateTestCustomer(namespace, "test-customer")
 	s.Require().NotNil(customerEntity)
@@ -233,7 +233,7 @@ func (s *DiscountsTestSuite) TestPercentageDiscountPersistenceAndCorrelationID()
 
 			sandboxApp := s.InstallSandboxApp(s.T(), namespace)
 			s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID(), billingtest.WithManualApproval())
-			s.ProvisionDefaultTaxCodes(ctx, namespace)
+			s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), namespace)
 			customerEntity := s.CreateTestCustomer(namespace, "test-customer")
 			s.SetupAccounts(namespace, customerEntity.ID)
 
@@ -438,7 +438,7 @@ func (s *DiscountsTestSuite) TestUnitDiscountProgressiveBilling() {
 	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID(), billingtest.WithBillingProfileEditFn(func(profile *billing.CreateProfileInput) {
 		profile.WorkflowConfig.Invoicing.ProgressiveBilling = true
 	}))
-	s.ProvisionDefaultTaxCodes(ctx, namespace)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), namespace)
 
 	customerEntity := s.CreateTestCustomer(namespace, "test-customer")
 	s.Require().NotNil(customerEntity)

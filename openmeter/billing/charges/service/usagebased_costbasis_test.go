@@ -44,7 +44,7 @@ func (s *UsageBasedCostBasisCreateSuite) TestCreatePersistsManualPinnedAndDynami
 	defer clock.UnFreeze()
 
 	namespace := s.GetUniqueNamespace("usage-based-cost-basis-modes")
-	defaults := s.ProvisionDefaultTaxCodes(ctx, namespace)
+	defaults := s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), namespace)
 	customer := s.CreateTestCustomer(namespace, "usage-based-cost-basis-modes")
 	currency := s.createTestCustomCurrency(ctx, namespace)
 	s.createFeatureMeters(ctx, namespace, "modes-feature")
@@ -138,7 +138,7 @@ func (s *UsageBasedCostBasisCreateSuite) TestSetResolvedDynamicCostBasisIsRetryS
 	defer clock.UnFreeze()
 
 	namespace := s.GetUniqueNamespace("usage-based-cost-basis-retry")
-	defaults := s.ProvisionDefaultTaxCodes(ctx, namespace)
+	defaults := s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), namespace)
 	customer := s.CreateTestCustomer(namespace, "usage-based-cost-basis-retry")
 	currency := s.createTestCustomCurrency(ctx, namespace)
 	s.createFeatureMeters(ctx, namespace, "retry-feature")
@@ -210,7 +210,7 @@ func (s *UsageBasedCostBasisCreateSuite) TestDynamicCostBasisResolvesWhenChargeB
 	defer clock.UnFreeze()
 
 	namespace := s.GetUniqueNamespace("usage-based-cost-basis-active")
-	defaults := s.ProvisionDefaultTaxCodes(ctx, namespace)
+	defaults := s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), namespace)
 	customer := s.CreateTestCustomer(namespace, "usage-based-cost-basis-active")
 	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
 	_ = s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
@@ -266,7 +266,7 @@ func (s *UsageBasedCostBasisCreateSuite) TestDynamicCostBasisResolvesWhenChargeB
 func (s *UsageBasedCostBasisCreateSuite) TestPinnedCostBasisMustMatchCurrencyAndFiatCurrency() {
 	ctx := s.T().Context()
 	namespace := s.GetUniqueNamespace("usage-based-cost-basis-pinned-mismatch")
-	defaults := s.ProvisionDefaultTaxCodes(ctx, namespace)
+	defaults := s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), namespace)
 	customer := s.CreateTestCustomer(namespace, "usage-based-cost-basis-pinned-mismatch")
 	currency := s.createTestCustomCurrency(ctx, namespace)
 	s.createFeatureMeters(ctx, namespace, "mismatch-feature")
@@ -340,7 +340,7 @@ func (s *UsageBasedCostBasisCreateSuite) TestCreateRollsBackCostBasesWhenChargeC
 	// - the surrounding transaction removes all newly inserted charge cost bases
 	ctx := s.T().Context()
 	namespace := s.GetUniqueNamespace("usage-based-cost-basis-rollback")
-	defaults := s.ProvisionDefaultTaxCodes(ctx, namespace)
+	defaults := s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), namespace)
 	customer := s.CreateTestCustomer(namespace, "usage-based-cost-basis-rollback")
 	currency := s.createTestCustomCurrency(ctx, namespace)
 	s.createFeatureMeters(ctx, namespace, "rollback-feature")
@@ -363,7 +363,7 @@ func (s *UsageBasedCostBasisCreateSuite) TestCreateRollsBackCostBasesWhenChargeC
 func (s *UsageBasedCostBasisCreateSuite) TestCreateWithoutCostBasisLeavesChargeReferenceEmpty() {
 	ctx := s.T().Context()
 	namespace := s.GetUniqueNamespace("usage-based-without-cost-basis")
-	defaults := s.ProvisionDefaultTaxCodes(ctx, namespace)
+	defaults := s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), namespace)
 	customer := s.CreateTestCustomer(namespace, "usage-based-without-cost-basis")
 	currency := s.createTestCustomCurrency(ctx, namespace)
 	s.createFeatureMeters(ctx, namespace, "credit-only-feature")

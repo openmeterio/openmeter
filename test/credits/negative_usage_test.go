@@ -234,7 +234,7 @@ func (s *usageBasedChargeNegativeUsageSuite) setupUsageBasedCharge(profileOption
 
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-negative-usage")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
 	feature := s.SetupApiRequestsTotalFeature(ctx, ns)

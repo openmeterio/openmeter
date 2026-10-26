@@ -72,7 +72,7 @@ func (s *negativeUsageSuite) TestLegacyAPIEditRecordsFreshRatingWarnings() {
 	s.Require().Len(invoice.Lines.OrEmpty(), 1)
 	lineID := invoice.Lines.OrEmpty()[0].ID
 	s.Equal(billing.LineEngineTypeInvoice, invoice.Lines.OrEmpty()[0].Engine)
-	s.ProvisionProviderDefaultTaxCode(ctx, invoice.Namespace)
+	s.TaxCodeEnv.ProvisionProviderDefaultTaxCode(s.T(), invoice.Namespace)
 
 	// When an API edit changes its unit price and rating emits the same warning.
 	updated, err := s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{

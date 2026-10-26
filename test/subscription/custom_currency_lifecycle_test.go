@@ -49,7 +49,7 @@ func setupCustomCurrencyFlatFeeSubscription(t *testing.T) customCurrencyFlatFeeF
 	const ns = "test-namespace"
 	deps := setup(t, setupConfig{enableCharges: true})
 	t.Cleanup(func() { deps.cleanup(t) })
-	provisionSubscriptionDefaultTaxCodes(t, deps, ns)
+	deps.TaxCodeEnv.ProvisionDefaultTaxCodes(t, ns)
 	_, err := deps.billingService.CreateProfile(t.Context(), MinimalCreateProfileInputTemplate(deps.sandboxApp.GetID()))
 	require.NoError(t, err)
 	credits, err := deps.CurrencyService.CreateCurrency(t.Context(), currenciestestutils.NewCreateCurrencyInput(ns, "CREDITS", "Credits", "CR"))

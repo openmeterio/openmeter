@@ -57,7 +57,7 @@ func (s *ProfileTestSuite) TestGetRejectsCrossNamespaceWorkflowReferences() {
 	taxProfile := s.ProvisionBillingProfile(ctx, taxNamespace, s.InstallSandboxApp(s.T(), taxNamespace).GetID())
 	taxProfileDB, err := s.BillingAdapter.GetProfile(ctx, billing.GetProfileInput{Profile: taxProfile.ProfileID()})
 	require.NoError(s.T(), err)
-	foreignTaxCode := s.ProvisionProviderDefaultTaxCode(ctx, foreignNamespace)
+	foreignTaxCode := s.TaxCodeEnv.ProvisionProviderDefaultTaxCode(s.T(), foreignNamespace)
 	_, err = s.TestDB.PGDriver.DB().ExecContext(ctx, `
 		UPDATE billing_workflow_configs
 		SET tax_code_id = $1::char(26),

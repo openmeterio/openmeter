@@ -53,7 +53,7 @@ func (s *TaxCodeDualWriteTestSuite) TestSnapshotTaxCodeIntoLinesOnAdvance() {
 	})
 	cust := s.CreateTestCustomer(ns, "test")
 	s.SetupAccounts(ns, cust.ID)
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	now := time.Now().Truncate(time.Microsecond).UTC()
 
@@ -101,7 +101,7 @@ func (s *TaxCodeDualWriteTestSuite) TestSnapshotLineOwnCodeTakesPrecedence() {
 	})
 	cust := s.CreateTestCustomer(ns, "test")
 	s.SetupAccounts(ns, cust.ID)
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	now := time.Now().Truncate(time.Microsecond).UTC()
 
@@ -161,7 +161,7 @@ func (s *TaxCodeDualWriteTestSuite) TestSnapshotPreservesExistingTaxCodeID() {
 
 	cust := s.CreateTestCustomer(ns, "test")
 	s.SetupAccounts(ns, cust.ID)
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 	now := time.Now().Truncate(time.Microsecond).UTC()
 
 	// Create a pending line with the TaxCodeID already stamped (as subscription sync would do).
