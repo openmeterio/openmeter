@@ -57,17 +57,16 @@ func (p AdvancePolicy) Validate() error {
 
 type ConsumeInput struct {
 	breakage.PostingInput
-	CustomerID        customer.CustomerID
-	ChargeID          string
-	BookedAt          time.Time
-	SourceBalanceAsOf time.Time
-	Currency          currencies.CurrencyReference
-	Filters           ledger.CreditFilters
-	Amount            alpacadecimal.Decimal
-	Destination       ConsumeDestination
-	AdvancePolicy     AdvancePolicy
-	TaxCode           *string
-	TaxBehavior       *ledger.TaxBehavior
+	CustomerID    customer.CustomerID
+	ChargeID      string
+	BookedAt      time.Time
+	Currency      currencies.CurrencyReference
+	Filters       ledger.CreditFilters
+	Amount        alpacadecimal.Decimal
+	Destination   ConsumeDestination
+	AdvancePolicy AdvancePolicy
+	TaxCode       *string
+	TaxBehavior   *ledger.TaxBehavior
 }
 
 var _ models.Validator = ConsumeInput{}
@@ -88,10 +87,6 @@ func (i ConsumeInput) Validate() error {
 
 	if i.BookedAt.IsZero() {
 		errs = append(errs, errors.New("booked at is required"))
-	}
-
-	if i.SourceBalanceAsOf.IsZero() {
-		errs = append(errs, errors.New("source balance as of is required"))
 	}
 
 	if err := i.Currency.Validate(); err != nil {
@@ -218,7 +213,7 @@ func (s *service) selectCreditsAndBuildTransactions(ctx context.Context, request
 		CustomerID: request.CustomerID,
 		Currency:   request.Currency,
 		Filters:    request.Filters,
-		AsOf:       request.SourceBalanceAsOf,
+		AsOf:       request.BookedAt,
 	})
 	if err != nil {
 		return nil, nil, err

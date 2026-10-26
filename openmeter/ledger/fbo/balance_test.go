@@ -53,14 +53,12 @@ func TestConsumptionPreservesFutureSpending(t *testing.T) {
 			if tc.futureSpend > 0 {
 				future := consumeInput(env, "future-usage", tc.futureSpend)
 				future.BookedAt = at.Add(3 * time.Hour)
-				future.SourceBalanceAsOf = future.BookedAt
 				consumeAndCommit(t, env, service, future)
 			}
 
 			// when: another collection is booked before that consumption.
 			input := consumeInput(env, "earlier-usage", 10)
 			input.BookedAt = at.Add(time.Hour)
-			input.SourceBalanceAsOf = input.BookedAt
 			consumeAndCommit(t, env, service, input)
 
 			// then: it collects only credit left after preserving future spending.
@@ -86,13 +84,11 @@ func TestSpendableBalanceRespectsBreakageBoundary(t *testing.T) {
 			bookExpiringCredit(t, env, breakageService, 10)
 			future := consumeInput(env, "existing-usage", 7)
 			future.BookedAt = env.Now().Add(5 * 24 * time.Hour)
-			future.SourceBalanceAsOf = future.BookedAt
 			consumeAndCommit(t, env, service, future)
 
 			// when: consumption is requested before, at, or after breakage.
 			input := consumeInput(env, "new-usage", 10)
 			input.BookedAt = env.Now().Add(tc.at)
-			input.SourceBalanceAsOf = input.BookedAt
 			consumeAndCommit(t, env, service, input)
 
 			// then: future breakage can be released, but expired credit stays unavailable.
@@ -117,7 +113,6 @@ func TestSpendableBalanceSumsIndependentSourceMinima(t *testing.T) {
 
 	first := consumeInput(env, "first", 8)
 	first.BookedAt = at.Add(time.Hour)
-	first.SourceBalanceAsOf = first.BookedAt
 	original := consumeAndCommit(t, env, service, first)
 	require.Len(t, original.Transactions(), 1)
 	tx := original.Transactions()[0]

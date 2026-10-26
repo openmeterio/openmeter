@@ -5075,6 +5075,8 @@ func (s *CreditThenInvoiceTestSuite) TestStandardInvoiceManualEditSync() {
 		Total:        3,
 	})
 
+	s.Require().Len(chargeBeforeEdit.Realizations.CurrentRun.CreditRealizations, 1)
+
 	updatedIntent := expectedFlatFeeIntent{
 		ServicePeriod: timeutil.ClosedPeriod{
 			From: originalLine.Period.From.Add(time.Hour),
@@ -5161,6 +5163,10 @@ func (s *CreditThenInvoiceTestSuite) TestStandardInvoiceManualEditSync() {
 	s.Equal(editedInvoice.ID, *chargeAfterEdit.Realizations.CurrentRun.InvoiceID)
 	s.Equal(updatedIntent.ServicePeriod, chargeAfterEdit.Realizations.CurrentRun.ServicePeriod)
 	s.Equal(updatedIntent.Amount, chargeAfterEdit.Realizations.CurrentRun.AmountAfterProration.InexactFloat64())
+	// The edit moves booking before the original collection. Those two credits
+	// are already allocated, so the rerate must not collect them a second time.
+	s.Equal(chargeBeforeEdit.Realizations.CurrentRun.CreditRealizations, chargeAfterEdit.Realizations.CurrentRun.CreditRealizations)
+
 	s.assertTotals(chargeAfterEdit.Realizations.CurrentRun.Totals, expectedTotalsInput{
 		Amount:       updatedIntent.Amount,
 		CreditsTotal: 2,

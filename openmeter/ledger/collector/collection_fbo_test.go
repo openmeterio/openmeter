@@ -239,15 +239,14 @@ func TestCollectCustomerFBOReleasesBreakageInExpiryOrder(t *testing.T) {
 		To:   env.Now(),
 	}
 	allocations, err := collector.collectToAccrued(t.Context(), CollectToAccruedInput{
-		Namespace:         env.Namespace,
-		ChargeID:          testChargeID(1),
-		CustomerID:        env.CustomerID.ID,
-		BookedAt:          env.Now(),
-		SourceBalanceAsOf: env.Now(),
-		Currency:          env.CurrencyReference(),
-		SettlementMode:    productcatalog.CreditThenInvoiceSettlementMode,
-		ServicePeriod:     servicePeriod,
-		Amount:            alpacadecimal.NewFromInt(15),
+		Namespace:      env.Namespace,
+		ChargeID:       testChargeID(1),
+		CustomerID:     env.CustomerID.ID,
+		BookedAt:       env.Now(),
+		Currency:       env.CurrencyReference(),
+		SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+		ServicePeriod:  servicePeriod,
+		Amount:         alpacadecimal.NewFromInt(15),
 	})
 	require.NoError(t, err)
 	require.Len(t, allocations, 1)
@@ -752,13 +751,12 @@ func collectToAccruedInputForTest(
 	settlementMode productcatalog.SettlementMode,
 ) CollectToAccruedInput {
 	return CollectToAccruedInput{
-		Namespace:         env.Namespace,
-		ChargeID:          chargeID,
-		CustomerID:        env.CustomerID.ID,
-		BookedAt:          env.Now(),
-		SourceBalanceAsOf: env.Now(),
-		Currency:          env.CurrencyReference(),
-		SettlementMode:    settlementMode,
+		Namespace:      env.Namespace,
+		ChargeID:       chargeID,
+		CustomerID:     env.CustomerID.ID,
+		BookedAt:       env.Now(),
+		Currency:       env.CurrencyReference(),
+		SettlementMode: settlementMode,
 		ServicePeriod: timeutil.ClosedPeriod{
 			From: env.Now().Add(-time.Hour),
 			To:   env.Now(),
