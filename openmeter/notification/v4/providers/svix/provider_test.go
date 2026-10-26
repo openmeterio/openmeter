@@ -377,11 +377,11 @@ func TestProvider(t *testing.T) {
 
 			eventTypes := []v4.EventType{
 				{
-					Name:    "test." + strings.ToLower(namespaceID) + ".created",
+					Name:    "test.ns_" + strings.ToLower(namespaceID) + ".created",
 					Version: 1,
 				},
 				{
-					Name:    "test." + strings.ToLower(namespaceID) + ".updated",
+					Name:    "test.ns_" + strings.ToLower(namespaceID) + ".updated",
 					Version: 1,
 				},
 			}
@@ -1217,7 +1217,7 @@ func TestProvider(t *testing.T) {
 			namespaceID := ulid.Make().String()
 
 			eventType := v4.EventType{
-				Name:    "test." + strings.ToLower(namespaceID) + ".created",
+				Name:    "test.ns_" + strings.ToLower(namespaceID) + ".created",
 				Version: 1,
 			}
 
@@ -2455,7 +2455,7 @@ func TestProvider(t *testing.T) {
 				t.Run("Nonmatching", func(t *testing.T) {
 					// Given a Channel subscribed to a different registered Event type.
 					otherEventType := v4.EventType{
-						Name:    "test." + strings.ToLower(namespaceID) + ".updated",
+						Name:    "test.ns_" + strings.ToLower(namespaceID) + ".updated",
 						Version: 1,
 					}
 
@@ -2496,7 +2496,7 @@ func TestProvider(t *testing.T) {
 			t.Run("CatchAll", func(t *testing.T) {
 				// Given two registered Event types, catch-all routing must accept both.
 				otherEventType := v4.EventType{
-					Name:    "test." + strings.ToLower(namespaceID) + ".catch_all",
+					Name:    "test.ns_" + strings.ToLower(namespaceID) + ".catch_all",
 					Version: 1,
 				}
 
