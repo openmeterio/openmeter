@@ -87,10 +87,7 @@ func (WebhookConfigUpdate) isChannelConfigUpdate() {}
 // WebhookChannel binds shared channel attributes to webhook configuration.
 type WebhookChannel channel[WebhookConfig]
 
-var (
-	_ Channel = WebhookChannel{}
-	_ Channel = (*WebhookChannel)(nil)
-)
+var _ Channel = (*WebhookChannel)(nil)
 
 // ChannelType identifies webhook channels independently of their configuration.
 func (WebhookChannel) ChannelType() ChannelType {
