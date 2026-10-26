@@ -144,7 +144,6 @@ func (s *DiscountsTestSuite) TestCorrelationIDHandling() {
 		s.Require().Len(invoices[0].Lines.OrEmpty(), 1)
 
 		invoiceLine := invoices[0].Lines.OrEmpty()[0]
-		s.Require().Nil(invoiceLine.SplitLineHierarchy)
 		s.Require().Equal(pendingLineChargeID, invoiceLine.ChargeID)
 		s.Equal(billing.LineEngineTypeChargeUsageBased, invoiceLine.Engine)
 
@@ -320,7 +319,6 @@ func (s *DiscountsTestSuite) TestPercentageDiscountPersistenceAndCorrelationID()
 					invoiceLine := result.invoice.Lines.OrEmpty()[0]
 					s.Equal(test.engine, invoiceLine.Engine)
 					s.Equal(createdLine.ChargeID, invoiceLine.ChargeID)
-					s.Nil(invoiceLine.SplitLineHierarchy)
 					s.Require().NotNil(invoiceLine.RateCardDiscounts.Percentage)
 					s.Equal(createdLine.RateCardDiscounts.Percentage, invoiceLine.RateCardDiscounts.Percentage)
 					s.RequireTotals(billingtest.ExpectedTotals{
@@ -542,7 +540,6 @@ func (s *DiscountsTestSuite) TestUnitDiscountProgressiveBilling() {
 
 		invoice1ID = invoices[0].GetInvoiceID()
 		invoiceLine := invoices[0].Lines.OrEmpty()[0]
-		s.Require().Nil(invoiceLine.SplitLineHierarchy)
 		s.Require().NotNil(invoiceLine.ChargeID)
 		s.Require().Equal(chargeID, *invoiceLine.ChargeID)
 
@@ -590,7 +587,6 @@ func (s *DiscountsTestSuite) TestUnitDiscountProgressiveBilling() {
 
 		invoice2ID = invoices[0].GetInvoiceID()
 		invoiceLine := invoices[0].Lines.OrEmpty()[0]
-		s.Require().Nil(invoiceLine.SplitLineHierarchy)
 		s.Require().NotNil(invoiceLine.ChargeID)
 		s.Require().Equal(chargeID, *invoiceLine.ChargeID)
 
@@ -638,7 +634,6 @@ func (s *DiscountsTestSuite) TestUnitDiscountProgressiveBilling() {
 		s.Require().Len(invoices[0].Lines.OrEmpty(), 1)
 
 		invoiceLine := invoices[0].Lines.OrEmpty()[0]
-		s.Require().Nil(invoiceLine.SplitLineHierarchy)
 		s.Require().NotNil(invoiceLine.ChargeID)
 		s.Require().Equal(chargeID, *invoiceLine.ChargeID)
 

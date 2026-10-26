@@ -151,9 +151,6 @@ func TestPatchLineUpdateApplyGatheringLine(t *testing.T) {
 		require.Equal(t, originalDeletedAt, *updated.DeletedAt)
 		require.Same(t, originalDBState, updated.DBState)
 		require.Equal(t, "preserved", updated.Metadata["owner"])
-		require.NotNil(t, updated.SplitLineHierarchy)
-		require.NotSame(t, line.SplitLineHierarchy, updated.SplitLineHierarchy)
-		require.Equal(t, "group-1", updated.SplitLineHierarchy.Group.ID)
 
 		amount, err := GetFlatFeePerUnitAmount(updated.AsGenericLine())
 		require.NoError(t, err)
@@ -369,14 +366,6 @@ func newUpdateLinePatchTestGatheringLine() billing.GatheringLine {
 			}),
 		},
 		DBState: &billing.GatheringLine{},
-		SplitLineHierarchy: &billing.SplitLineHierarchy{
-			Group: billing.SplitLineGroup{
-				NamespacedID: models.NamespacedID{
-					Namespace: "ns",
-					ID:        "group-1",
-				},
-			},
-		},
 	}
 	line.DeletedAt = &deletedAt
 

@@ -40,6 +40,12 @@ created. The invoice keeps the customer, supplier, workflow configuration, and
 app references needed to finish its lifecycle. Customer-visible invoice
 history must not retrospectively follow later customer or profile changes.
 
+Internal invoice events carry calculated line snapshots and split-group IDs,
+without embedded split history. Older payloads containing optional hierarchy
+expansions remain readable; consumers resolve persisted history explicitly when
+their operation needs it. Public HTTP and notification representations do not
+include these internal expansions.
+
 ## Gathering and standard invoices
 
 A **gathering invoice** is mutable staging for future invoice lines. There is at
@@ -115,8 +121,10 @@ always existed.
 
 Legacy split-line hierarchy reads carry persisted history facts rather than
 complete line and invoice aggregates. Deleted children remain available for
-reconciliation. Previously billed amounts exclude deleted lines and invoices,
-including invoices in terminal deleted status without a deletion timestamp.
+reconciliation. Ordinary invoice lines carry only the split-group ID; reading an
+invoice does not load or validate historical groups. Previously billed amounts
+exclude deleted lines and invoices, including invoices in terminal deleted
+status without a deletion timestamp.
 
 Physical subscription attribution is the narrow exception: when a
 subscription-managed charge is rematerialized without changing its intent,
@@ -172,7 +180,8 @@ context. Persisted engine operations resolve complete history in the caller's
 transaction so materialization, gathering previews, collection, and mutable
 updates account for previously billed amounts consistently. Snapshot-only
 immutable comparisons use the group's period without rating historical amounts.
-Simulation supplies transient context without reading persisted groups.
+Simulation supplies transient context by split-group ID within its namespace,
+independently of generated line IDs, without reading persisted groups.
 Calculation never replaces pending line edits with historical children.
 
 Rating returns amounts before credit application. Legacy invoice lines do not

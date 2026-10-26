@@ -451,8 +451,13 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
 		s.Equal(gatheringLine.InvoiceAt, cancelAt.Truncate(streaming.MinimumWindowSizeDuration))
 
 		// split group
-		s.NotNil(gatheringLine.SplitLineHierarchy)
-		splitLineGroup := gatheringLine.SplitLineHierarchy.Group
+		s.Require().NotNil(gatheringLine.SplitLineGroupID)
+		hierarchy, err := s.BillingAdapter.GetSplitLineGroup(ctx, billing.GetSplitLineGroupInput{
+			Namespace: gatheringLine.Namespace,
+			ID:        *gatheringLine.SplitLineGroupID,
+		})
+		s.Require().NoError(err)
+		splitLineGroup := hierarchy.Group
 
 		s.Equal(splitLineGroup.Subscription.SubscriptionID, subsView.Subscription.ID)
 		s.Equal(splitLineGroup.ServicePeriod, timeutil.ClosedPeriod{
@@ -500,8 +505,13 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
 		s.Equal(gatheringLine.InvoiceAt, s.mustParseTime("2024-03-01T00:00:00Z"))
 
 		// split group
-		s.NotNil(gatheringLine.SplitLineHierarchy)
-		splitLineGroup := gatheringLine.SplitLineHierarchy.Group
+		s.Require().NotNil(gatheringLine.SplitLineGroupID)
+		hierarchy, err := s.BillingAdapter.GetSplitLineGroup(ctx, billing.GetSplitLineGroupInput{
+			Namespace: gatheringLine.Namespace,
+			ID:        *gatheringLine.SplitLineGroupID,
+		})
+		s.Require().NoError(err)
+		splitLineGroup := hierarchy.Group
 
 		s.Equal(splitLineGroup.Subscription.SubscriptionID, subsView.Subscription.ID)
 		s.Equal(splitLineGroup.ServicePeriod, timeutil.ClosedPeriod{
@@ -3975,8 +3985,13 @@ func (s *SubscriptionHandlerTestSuite) TestSplitLineManualDeleteSync() {
 		To:   s.mustParseTime("2024-01-10T00:00:00Z"),
 	}, line.Period)
 
-	s.NotNil(line.SplitLineHierarchy)
-	parentGroup := line.SplitLineHierarchy.Group
+	s.Require().NotNil(line.SplitLineGroupID)
+	hierarchy, err := s.BillingAdapter.GetSplitLineGroup(ctx, billing.GetSplitLineGroupInput{
+		Namespace: line.Namespace,
+		ID:        *line.SplitLineGroupID,
+	})
+	s.Require().NoError(err)
+	parentGroup := hierarchy.Group
 	// Parent's period is in sync with the child
 	s.Equal(timeutil.ClosedPeriod{
 		From: s.mustParseTime("2024-01-01T00:00:00Z"),

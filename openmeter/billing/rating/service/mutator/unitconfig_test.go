@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating/service/rate"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 const (
@@ -35,6 +36,14 @@ type unitConfigTestLine struct {
 
 func (l unitConfigTestLine) GetPrice() *productcatalog.Price           { return l.price }
 func (l unitConfigTestLine) GetUnitConfig() *productcatalog.UnitConfig { return l.unitConfig }
+
+func (l unitConfigTestLine) GetProgressivelyBilledServicePeriod() (timeutil.ClosedPeriod, error) {
+	return l.Period, nil
+}
+
+func (l unitConfigTestLine) GetPreviouslyBilledAmount() (alpacadecimal.Decimal, error) {
+	return alpacadecimal.Zero, nil
+}
 
 func newUnitConfig(op productcatalog.UnitConfigOperation, factor float64, rounding productcatalog.UnitConfigRoundingMode) *productcatalog.UnitConfig {
 	return &productcatalog.UnitConfig{

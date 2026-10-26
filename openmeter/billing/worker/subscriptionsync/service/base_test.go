@@ -1198,30 +1198,13 @@ func (s *SuiteBase) populateChildIDsFromParents(invoice billing.GenericInvoice) 
 
 	for idx, line := range genericLines {
 		if line.GetChildUniqueReferenceID() == nil && line.GetSplitLineGroupID() != nil {
-			invoiceLine := line.AsInvoiceLine()
-			switch invoiceLine.Type() {
-			case billing.InvoiceLineTypeStandard:
-				stdInvoiceLine, err := invoiceLine.AsStandardLine()
-				s.NoError(err)
+			splitLineGroup, err := s.BillingAdapter.GetSplitLineGroup(s.T().Context(), billing.GetSplitLineGroupInput{
+				Namespace: invoice.GetInvoiceID().Namespace,
+				ID:        *line.GetSplitLineGroupID(),
+			})
+			s.Require().NoError(err)
 
-				line.SetChildUniqueReferenceID(stdInvoiceLine.SplitLineHierarchy.Group.UniqueReferenceID)
-			case billing.InvoiceLineTypeGathering:
-				splitLineGroupID := line.GetSplitLineGroupID()
-				if splitLineGroupID == nil {
-					s.Failf("split line group id not found", "split line group id not found for line %s", line.GetID())
-					return
-				}
-
-				splitLineGroup, err := s.BillingAdapter.GetSplitLineGroup(s.T().Context(), billing.GetSplitLineGroupInput{
-					Namespace: s.Namespace,
-					ID:        *splitLineGroupID,
-				})
-				s.NoError(err)
-
-				line.SetChildUniqueReferenceID(splitLineGroup.Group.UniqueReferenceID)
-			default:
-				s.Failf("unexpected line type", "unexpected line type %s for line %s", invoiceLine.Type(), line.GetID())
-			}
+			line.SetChildUniqueReferenceID(splitLineGroup.Group.UniqueReferenceID)
 		}
 
 		genericLines[idx] = line

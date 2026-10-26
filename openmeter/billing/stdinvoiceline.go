@@ -278,10 +278,6 @@ func (i standardInvoiceLineGenericWrapper) CloneWithoutChildren() (GenericInvoic
 // and applies the target's business state. Detailed lines reuse receiver child
 // row IDs by ChildUniqueReferenceID so invoice updates become DB updates instead
 // of conflicting inserts.
-//
-// SplitLineHierarchy is intentionally not merged here: legacy progressive
-// billing is being deprecated, and charge-backed manual edits do not support
-// preserving or mutating split-line hierarchy state.
 func (i standardInvoiceLineGenericWrapper) WithTargetState(target GenericInvoiceLine) (GenericInvoiceLine, error) {
 	if target == nil {
 		return nil, errors.New("target line is required")
@@ -318,8 +314,7 @@ type StandardLine struct {
 
 	UsageBased *UsageBasedLine `json:"usageBased,omitempty"`
 
-	DetailedLines      DetailedLines       `json:"detailedLines,omitempty"`
-	SplitLineHierarchy *SplitLineHierarchy `json:"progressiveLineHierarchy,omitempty"`
+	DetailedLines DetailedLines `json:"detailedLines,omitempty"`
 
 	Discounts StandardLineDiscounts `json:"discounts,omitempty"`
 
@@ -418,41 +413,8 @@ func (i StandardLine) GetMeteredPreLinePeriodQuantity() (*alpacadecimal.Decimal,
 	return i.UsageBased.MeteredPreLinePeriodQuantity, nil
 }
 
-func (i StandardLine) GetProgressivelyBilledServicePeriod() (timeutil.ClosedPeriod, error) {
-	if i.SplitLineGroupID == nil {
-		return timeutil.ClosedPeriod{
-			From: i.Period.From,
-			To:   i.Period.To,
-		}, nil
-	}
-
-	if i.SplitLineHierarchy == nil {
-		return timeutil.ClosedPeriod{}, errors.New("split line hierarchy is required")
-	}
-
-	return i.SplitLineHierarchy.Group.ServicePeriod, nil
-}
-
-func (i StandardLine) GetPreviouslyBilledAmount() (alpacadecimal.Decimal, error) {
-	if i.SplitLineGroupID == nil {
-		return alpacadecimal.Zero, nil
-	}
-
-	if i.SplitLineHierarchy == nil {
-		return alpacadecimal.Zero, fmt.Errorf("line[%s] does not have a progressive line hierarchy, but is a progressive billed line", i.ID)
-	}
-
-	return i.SplitLineHierarchy.SumNetAmount(SumNetAmountInput{
-		PeriodEndLTE: i.Period.From,
-	})
-}
-
 func (i StandardLine) GetStandardLineDiscounts() StandardLineDiscounts {
 	return i.Discounts
-}
-
-func (i *StandardLine) SetSplitLineHierarchy(hierarchy *SplitLineHierarchy) {
-	i.SplitLineHierarchy = hierarchy
 }
 
 // ToGatheringLineBase converts the standard line to a gathering line base.
@@ -517,7 +479,6 @@ func (i StandardLine) CloneWithoutDependencies(edits ...StandardLineEditFunction
 	clone.DeletedAt = nil
 
 	clone.ParentLineID = nil
-	clone.SplitLineHierarchy = nil
 	clone.SplitLineGroupID = nil
 
 	if clone.UsageBased != nil {
@@ -535,11 +496,6 @@ func (i StandardLine) CloneWithoutDependencies(edits ...StandardLineEditFunction
 
 func (i StandardLine) WithoutDBState() *StandardLine {
 	i.DBState = nil
-	return &i
-}
-
-func (i StandardLine) WithoutSplitLineHierarchy() *StandardLine {
-	i.SplitLineHierarchy = nil
 	return &i
 }
 
@@ -675,15 +631,6 @@ func (i StandardLine) clone(opts cloneOptions) (*StandardLine, error) {
 
 	if !opts.skipDiscounts {
 		res.Discounts = i.Discounts.Clone()
-	}
-
-	if i.SplitLineHierarchy != nil {
-		cloned, err := i.SplitLineHierarchy.Clone()
-		if err != nil {
-			return nil, fmt.Errorf("cloning split line hierarchy: %w", err)
-		}
-
-		res.SplitLineHierarchy = lo.ToPtr(cloned)
 	}
 
 	return res, nil

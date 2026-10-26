@@ -247,7 +247,7 @@ func (a *adapter) ListInvoices(ctx context.Context, input billing.ListInvoicesAd
 		for _, invoice := range paged.Items {
 			switch invoice.Status {
 			case billing.StandardInvoiceStatusGathering:
-				mapped, err := tx.mapGatheringInvoiceFromDB(ctx, invoice, billing.GatheringInvoiceExpands{}.
+				mapped, err := tx.mapGatheringInvoiceFromDB(invoice, billing.GatheringInvoiceExpands{}.
 					SetOrUnsetIf(input.Expand.Has(billing.InvoiceExpandLines), billing.GatheringInvoiceExpandLines).
 					SetOrUnsetIf(input.Expand.Has(billing.InvoiceExpandDeletedLines), billing.GatheringInvoiceExpandDeletedLines),
 				)
@@ -740,16 +740,6 @@ func (a *adapter) mapStandardInvoiceFromDB(ctx context.Context, invoice *db.Bill
 
 	if expand.Has(billing.StandardInvoiceExpandLines) {
 		mappedLines, err := a.mapStandardInvoiceLinesFromDB(invoice.Edges.BillingInvoiceLines)
-		if err != nil {
-			return billing.StandardInvoice{}, err
-		}
-
-		hierarchyByLineID, err := a.expandSplitLineHierarchy(ctx, invoice.Namespace, mappedLines.AsGenericLines())
-		if err != nil {
-			return billing.StandardInvoice{}, err
-		}
-
-		mappedLines, err = withSplitLineHierarchyForLines[*billing.StandardLine](mappedLines, hierarchyByLineID)
 		if err != nil {
 			return billing.StandardInvoice{}, err
 		}

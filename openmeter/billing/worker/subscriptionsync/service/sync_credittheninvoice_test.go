@@ -1062,8 +1062,6 @@ func (s *CreditThenInvoiceTestSuite) TestSubscriptionHappyPath() {
 		})
 		s.Equal(gatheringLine.InvoiceAt, cancelAt.Truncate(streaming.MinimumWindowSizeDuration))
 
-		// split group
-		s.Nil(gatheringLine.SplitLineHierarchy)
 		s.assertCreditThenInvoiceBalances(partialInvoiceBalances)
 	})
 
@@ -1115,8 +1113,6 @@ func (s *CreditThenInvoiceTestSuite) TestSubscriptionHappyPath() {
 		})
 		s.Equal(gatheringLine.InvoiceAt, s.mustParseTime("2024-03-01T00:00:00Z"))
 
-		// split group
-		s.Nil(gatheringLine.SplitLineHierarchy)
 		s.assertCreditThenInvoiceBalances(partialInvoiceBalances)
 	})
 }

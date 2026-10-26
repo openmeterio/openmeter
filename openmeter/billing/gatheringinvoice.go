@@ -216,10 +216,9 @@ func (g *GatheringInvoice) UnsetLines() {
 type GatheringInvoiceExpand string
 
 const (
-	GatheringInvoiceExpandLines              GatheringInvoiceExpand = "lines"
-	GatheringInvoiceExpandDeletedLines       GatheringInvoiceExpand = "deletedLines"
-	GatheringInvoiceExpandAvailableActions   GatheringInvoiceExpand = "availableActions"
-	GatheringInvoiceExpandSplitLineHierarchy GatheringInvoiceExpand = "splitLineHierarchy"
+	GatheringInvoiceExpandLines            GatheringInvoiceExpand = "lines"
+	GatheringInvoiceExpandDeletedLines     GatheringInvoiceExpand = "deletedLines"
+	GatheringInvoiceExpandAvailableActions GatheringInvoiceExpand = "availableActions"
 )
 
 func (e GatheringInvoiceExpand) Values() []GatheringInvoiceExpand {
@@ -227,7 +226,6 @@ func (e GatheringInvoiceExpand) Values() []GatheringInvoiceExpand {
 		GatheringInvoiceExpandLines,
 		GatheringInvoiceExpandDeletedLines,
 		GatheringInvoiceExpandAvailableActions,
-		GatheringInvoiceExpandSplitLineHierarchy,
 	}
 }
 
@@ -705,8 +703,6 @@ func (i gatheringInvoiceLineGenericWrapper) CloneWithoutChildren() (GenericInvoi
 
 // WithTargetState keeps the persisted gathering-line identity and invoice
 // membership from the receiver and applies the target's business state.
-// SplitLineHierarchy is intentionally not merged: charge target-state patches
-// do not currently own split/progressive hierarchy semantics.
 func (i gatheringInvoiceLineGenericWrapper) WithTargetState(target GenericInvoiceLine) (GenericInvoiceLine, error) {
 	if target == nil {
 		return nil, errors.New("target line is required")
@@ -741,8 +737,7 @@ func (i gatheringInvoiceLineGenericWrapper) AsGenericInvoiceLine() GenericInvoic
 type GatheringLine struct {
 	GatheringLineBase `json:",inline"`
 
-	DBState            *GatheringLine      `json:"-"`
-	SplitLineHierarchy *SplitLineHierarchy `json:"splitLineHierarchy,omitempty"`
+	DBState *GatheringLine `json:"-"`
 }
 
 func (g GatheringLine) Clone() (GatheringLine, error) {
@@ -820,10 +815,6 @@ func (g GatheringLine) RemoveMetaForCompare() (GatheringLine, error) {
 	return g.WithoutDBState()
 }
 
-func (g *GatheringLine) SetSplitLineHierarchy(hierarchy *SplitLineHierarchy) {
-	g.SplitLineHierarchy = hierarchy
-}
-
 func (g GatheringLine) AsNewStandardLine(invoiceID string) (*StandardLine, error) {
 	if invoiceID == "" {
 		return nil, errors.New("invoice ID is required")
@@ -842,16 +833,6 @@ func (g GatheringLine) AsNewStandardLine(invoiceID string) (*StandardLine, error
 	var subscription *SubscriptionReference
 	if g.Subscription != nil {
 		subscription = g.Subscription.Clone()
-	}
-
-	var splitLineHierarchy *SplitLineHierarchy
-	if g.SplitLineHierarchy != nil {
-		clonedSHierarchy, err := g.SplitLineHierarchy.Clone()
-		if err != nil {
-			return nil, fmt.Errorf("cloning split line hierarchy: %w", err)
-		}
-
-		splitLineHierarchy = lo.ToPtr(clonedSHierarchy)
 	}
 
 	// Carry the gathering line's unit_config snapshot onto the standard line so the legacy
@@ -887,8 +868,6 @@ func (g GatheringLine) AsNewStandardLine(invoiceID string) (*StandardLine, error
 			FeatureKey: g.FeatureKey,
 			UnitConfig: unitConfig,
 		},
-
-		SplitLineHierarchy: splitLineHierarchy,
 
 		DBState: nil, // We don't want to reuse the state from the gathering line (so let's make it explicit)
 	}

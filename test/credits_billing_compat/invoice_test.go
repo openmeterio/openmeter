@@ -2307,7 +2307,6 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 			require.True(s.T(), expectedPeriod.Equal(line.Period), "period should be changed for the line items")
 		}
 
-		s.Require().Nil(tieredGraduated.SplitLineHierarchy)
 		s.Equal(billing.LineEngineTypeChargeUsageBased, tieredGraduated.Engine)
 
 		require.Equal(s.T(), flatPerUnit.UsageBased.Quantity.InexactFloat64(), float64(10), "flat per unit should have 10 units")
@@ -2614,7 +2613,6 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 			require.True(s.T(), expectedPeriod.Equal(line.Period), "period should be changed for the line items")
 		}
 
-		s.Require().Nil(tieredGraduated.SplitLineHierarchy)
 		s.Equal(billing.LineEngineTypeChargeUsageBased, tieredGraduated.Engine)
 
 		// Detailed lines
@@ -2812,7 +2810,6 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 		require.True(s.T(), tieredVolume.Period.Equal(lines.tieredVolume.ServicePeriod), "period should be unchanged for the tiered volume line")
 		require.True(s.T(), flatFee.Period.Equal(lines.flatFee.ServicePeriod), "period should be unchanged for the flat line")
 
-		s.Require().Nil(tieredGraduated.SplitLineHierarchy)
 		s.Equal(billing.LineEngineTypeChargeUsageBased, tieredGraduated.Engine)
 
 		// Invoice app testing: discounts
@@ -3213,7 +3210,6 @@ func (s *InvoicingTestSuite) TestUBPGraduatingFlatFeeTier1() {
 		require.Len(s.T(), invoiceLines, 1)
 
 		tieredGraduated := invoiceLines[0]
-		s.Require().Nil(tieredGraduated.SplitLineHierarchy)
 		s.Require().Equal(pendingLine.ChargeID, tieredGraduated.ChargeID)
 		s.Equal(billing.LineEngineTypeChargeUsageBased, tieredGraduated.Engine)
 
@@ -3259,7 +3255,6 @@ func (s *InvoicingTestSuite) TestUBPGraduatingFlatFeeTier1() {
 		require.Len(s.T(), invoiceLines, 1)
 
 		tieredGraduated := invoiceLines[0]
-		s.Require().Nil(tieredGraduated.SplitLineHierarchy)
 		s.Require().Equal(pendingLine.ChargeID, tieredGraduated.ChargeID)
 		s.Equal(billing.LineEngineTypeChargeUsageBased, tieredGraduated.Engine)
 
@@ -3305,7 +3300,6 @@ func (s *InvoicingTestSuite) TestUBPGraduatingFlatFeeTier1() {
 		invoiceLines := out[0].Lines.MustGet()
 		require.Len(s.T(), invoiceLines, 1)
 
-		s.Require().Nil(invoiceLines[0].SplitLineHierarchy)
 		s.Require().Equal(pendingLine.ChargeID, invoiceLines[0].ChargeID)
 		s.Equal(billing.LineEngineTypeChargeUsageBased, invoiceLines[0].Engine)
 
