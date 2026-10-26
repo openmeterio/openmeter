@@ -375,6 +375,10 @@ func (s *Server) SnapshotQuantitiesInvoice(w http.ResponseWriter, r *http.Reques
 
 // Customer Billing
 
+func (s *Server) UpdateCustomerBillingProfile(w http.ResponseWriter, r *http.Request, customerId api.ULID) {
+	s.customersBillingHandler.UpdateCustomerBillingProfile().With(customerId).ServeHTTP(w, r)
+}
+
 func (s *Server) GetCustomerBilling(w http.ResponseWriter, r *http.Request, customerId api.ULID) {
 	s.customersBillingHandler.GetCustomerBilling().With(customerId).ServeHTTP(w, r)
 }

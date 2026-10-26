@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/oapi-codegen/nullable"
+
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/request"
@@ -59,10 +61,15 @@ func (h *handler) UpdateCustomerBilling() UpdateCustomerBillingHandler {
 			}
 
 			var profileID *billing.ProfileID
-			if body.BillingProfile != nil {
+			if body.BillingProfile.IsSpecified() && !body.BillingProfile.IsNull() {
+				reference, err := body.BillingProfile.Get()
+				if err != nil {
+					return UpdateCustomerBillingRequest{}, fmt.Errorf("read billing profile reference: %w", err)
+				}
+
 				profileID = &billing.ProfileID{
 					Namespace: namespace,
-					ID:        body.BillingProfile.Id,
+					ID:        reference.Id,
 				}
 			}
 
@@ -138,14 +145,14 @@ func (h *handler) UpdateCustomerBilling() UpdateCustomerBillingHandler {
 					return resp, apierrors.NewInternalError(ctx, errors.New("customer override is not found"))
 				}
 
-				resp.BillingProfile = &api.BillingProfileReference{
+				resp.BillingProfile = nullable.NewNullableWithValue(api.BillingProfileReference{
 					Id: customerOverride.AssignedProfile.ProfileID,
-				}
+				})
 			} else {
 				if customerOverride.AssignedProfile != nil {
-					resp.BillingProfile = &api.BillingProfileReference{
+					resp.BillingProfile = nullable.NewNullableWithValue(api.BillingProfileReference{
 						Id: customerOverride.AssignedProfile.ProfileID,
-					}
+					})
 				}
 			}
 

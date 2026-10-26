@@ -30,8 +30,12 @@ requires a profile ID; clearing removes the pin. Successful reads always return
 the effective profile alongside the optional pin. Historical empty and deleted
 selection rows resolve like customers without a pin. The v3 billing response
 exposes these as optional `billing_profile` and required read-only
-`effective_billing_profile`. Omitting the profile in v3 PUT preserves the pin;
-omitting it in legacy customer-override PUT clears the pin.
+`effective_billing_profile`. The dedicated customer billing profile PUT replaces
+only the selection: omitting `billing_profile` or setting it to `null` removes
+the pin and returns the effective default. The operation preserves app customer
+data and commits the selection only after resolving the response. The combined
+v3 billing PUT preserves the pin when the profile is omitted or null; omitting
+it in legacy customer-override PUT clears the pin.
 
 When the default's invoicing app type changes, billing pins previously unpinned
 customers with outstanding valid subscription-linked gathering lines to the old

@@ -111,6 +111,11 @@ namespace Billing {
       | Common.NotFound
       | Common.ErrorResponses;
 
+    /**
+     * Update billing data while preserving the current profile selection when
+     * billing_profile is omitted or null. Use the dedicated billing profile endpoint
+     * to remove the selection.
+     */
     @put
     @operationId("update-customer-billing")
     @summary("Update customer billing data")
@@ -119,6 +124,24 @@ namespace Billing {
       @body body: Shared.UpsertRequest<CustomerBillingData>,
     ):
       | Shared.UpsertResponse<CustomerBillingData>
+      | Common.Gone
+      | Common.NotFound
+      | Common.ErrorResponses;
+
+    /**
+     * Set the customer's explicit billing profile selection. Omitting billing_profile
+     * or setting it to null removes the selection and uses the current namespace
+     * default.
+     */
+    @put
+    @route("/profile")
+    @operationId("update-customer-billing-profile")
+    @summary("Update customer billing profile")
+    upsertProfile(
+      @path customerId: Shared.ULID,
+      @body body: Shared.UpsertRequest<CustomerBillingProfile>,
+    ):
+      | Shared.UpsertResponse<CustomerBillingProfile>
       | Common.Gone
       | Common.NotFound
       | Common.ErrorResponses;

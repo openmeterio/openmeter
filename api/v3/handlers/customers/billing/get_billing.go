@@ -70,19 +70,12 @@ func (h *handler) GetCustomerBilling() GetCustomerBillingHandler {
 				return resp, err
 			}
 
-			var billingProfileReference *api.BillingProfileReference
-			if override.AssignedProfile != nil {
-				billingProfileReference = &api.BillingProfileReference{
-					Id: override.AssignedProfile.ProfileID,
-				}
-			}
+			profile := mapCustomerBillingProfileToAPI(override)
 
 			return api.BillingCustomerData{
-				BillingProfile: billingProfileReference,
-				EffectiveBillingProfile: api.BillingProfileReference{
-					Id: override.EffectiveProfile.ID,
-				},
-				AppData: apiAppData,
+				BillingProfile:          profile.BillingProfile,
+				EffectiveBillingProfile: profile.EffectiveBillingProfile,
+				AppData:                 apiAppData,
 			}, nil
 		},
 		commonhttp.JSONResponseEncoderWithStatus[GetCustomerBillingResponse](http.StatusOK),

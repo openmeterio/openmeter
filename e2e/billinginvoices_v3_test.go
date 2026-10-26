@@ -577,7 +577,7 @@ func TestV3UpdateBillingInvoice(t *testing.T) {
 		})
 
 		_, err := c.Customers.Billing.Update(t.Context(), customerID, v3sdk.UpsertCustomerBillingDataRequest{
-			BillingProfile: &v3sdk.ProfileReference{ID: profile.ID},
+			BillingProfile: v3sdk.NullableValue(v3sdk.ProfileReference{ID: profile.ID}),
 		})
 		c.requireStatus(http.StatusOK, err)
 	})
@@ -1034,7 +1034,7 @@ func TestV3DeleteBillingInvoice(t *testing.T) {
 		})
 
 		_, err := c.Customers.Billing.Update(t.Context(), customerID, v3sdk.UpsertCustomerBillingDataRequest{
-			BillingProfile: &v3sdk.ProfileReference{ID: profile.ID},
+			BillingProfile: v3sdk.NullableValue(v3sdk.ProfileReference{ID: profile.ID}),
 		})
 		c.requireStatus(http.StatusOK, err)
 	})
@@ -1251,7 +1251,7 @@ func TestV3AdvanceBillingInvoice(t *testing.T) {
 		})
 
 		_, err := c.Customers.Billing.Update(t.Context(), customerID, v3sdk.UpsertCustomerBillingDataRequest{
-			BillingProfile: &v3sdk.ProfileReference{ID: profile.ID},
+			BillingProfile: v3sdk.NullableValue(v3sdk.ProfileReference{ID: profile.ID}),
 		})
 		c.requireStatus(http.StatusOK, err)
 	})
@@ -1330,7 +1330,7 @@ func pinBillingProfileFromDefault(t *testing.T, c *v3Client, customerID, keyPref
 	profile := createNewBillingProfileFromDefault(t, c, keyPrefix, edit)
 
 	_, err := c.Customers.Billing.Update(t.Context(), customerID, v3sdk.UpsertCustomerBillingDataRequest{
-		BillingProfile: &v3sdk.ProfileReference{ID: profile.ID},
+		BillingProfile: v3sdk.NullableValue(v3sdk.ProfileReference{ID: profile.ID}),
 	})
 	c.requireStatus(http.StatusOK, err)
 

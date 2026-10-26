@@ -3137,6 +3137,33 @@ export interface ListPlanAddonsParamsFilter {
   planCurrency?: StringFieldFilter
 }
 
+/** CustomerBillingProfile upsert request. */
+export interface UpsertCustomerBillingProfileRequest {
+  /**
+   * The billing profile explicitly selected for the customer.
+   *
+   * Unpinned customers use the current namespace default. Selecting the current
+   * default explicitly pins the customer to that profile.
+   */
+  billingProfile?: ProfileReference | null
+}
+
+/** Customer billing profile selection. */
+export interface CustomerProfile {
+  /**
+   * The billing profile explicitly selected for the customer.
+   *
+   * Unpinned customers use the current namespace default. Selecting the current
+   * default explicitly pins the customer to that profile.
+   */
+  billingProfile?: ProfileReference | null
+  /**
+   * The effective billing profile for the customer. Uses the explicitly selected
+   * billing profile when pinned, otherwise the current default billing profile.
+   */
+  effectiveBillingProfile: ProfileReference
+}
+
 /**
  * Tax configuration for a billable resource.
  *
@@ -4833,16 +4860,17 @@ export interface CustomerData {
   /**
    * The billing profile explicitly selected for the customer.
    *
-   * If not provided, the default billing profile will be used.
+   * Unpinned customers use the current namespace default. Selecting the current
+   * default explicitly pins the customer to that profile.
    */
-  billingProfile?: ProfileReference
-  /** App customer data. */
-  appData?: AppCustomerData
+  billingProfile?: ProfileReference | null
   /**
    * The effective billing profile for the customer. Uses the explicitly selected
    * billing profile when pinned, otherwise the current default billing profile.
    */
   effectiveBillingProfile: ProfileReference
+  /** App customer data. */
+  appData?: AppCustomerData
 }
 
 /** CustomerBillingData upsert request. */
@@ -4850,9 +4878,10 @@ export interface UpsertCustomerBillingDataRequest {
   /**
    * The billing profile explicitly selected for the customer.
    *
-   * If not provided, the default billing profile will be used.
+   * Unpinned customers use the current namespace default. Selecting the current
+   * default explicitly pins the customer to that profile.
    */
-  billingProfile?: ProfileReference
+  billingProfile?: ProfileReference | null
   /** App customer data. */
   appData?: AppCustomerData
 }
