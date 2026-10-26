@@ -3,6 +3,7 @@ package v4
 import (
 	"bytes"
 	"cmp"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -166,6 +167,56 @@ func (r *EventRegistry) EventTypes() []EventTypeDefinition {
 	return out
 }
 
+// PayloadValidatorFunc validates an Event payload against its registered
+// contract. Namespace is currently unused; it keeps the signature stable for
+// namespace-aware payload checks.
+type PayloadValidatorFunc func(ctx context.Context, namespace string, payload json.RawMessage) error
+
+// PayloadValidator returns the payload validator of t. Event creation is the
+// only payload validation boundary: dispatch trusts persisted payloads.
+func (r *EventRegistry) PayloadValidator(t EventType) (PayloadValidatorFunc, error) {
+	registered, err := r.get(t)
+	if err != nil {
+		return nil, err
+	}
+
+	return func(_ context.Context, _ string, payload json.RawMessage) error {
+		if err := validateJSON(registered.payloadSchema, payload); err != nil {
+			return models.NewGenericValidationError(fmt.Errorf("invalid %s payload: %w", t, err))
+		}
+
+		return nil
+	}, nil
+}
+
+// RuleConfigValidator returns the Rule configuration validator of t. It runs
+// schema validation and then the optional domain validator. It fails for
+// Event types that no Rule can produce.
+func (r *EventRegistry) RuleConfigValidator(t EventType) (RuleConfigValidatorFunc, error) {
+	registered, err := r.get(t)
+	if err != nil {
+		return nil, err
+	}
+
+	if registered.definition.Rule == nil {
+		return nil, models.NewGenericValidationError(fmt.Errorf("event type %s cannot be produced by rules", t))
+	}
+
+	domainValidator := registered.definition.Rule.Validator
+
+	return func(ctx context.Context, namespace string, configuration json.RawMessage) error {
+		if err := validateJSON(registered.ruleConfigSchema, configuration); err != nil {
+			return models.NewGenericValidationError(fmt.Errorf("invalid %s rule config: %w", t, err))
+		}
+
+		if domainValidator == nil {
+			return nil
+		}
+
+		return domainValidator(ctx, namespace, configuration)
+	}, nil
+}
+
 func (r *EventRegistry) get(t EventType) (registeredEventType, error) {
 	registered, ok := r.eventTypes[t]
 	if !ok {
@@ -198,4 +249,13 @@ func compileJSONSchema(name string, schema json.RawMessage) (*jsonschema.Schema,
 	}
 
 	return c.Compile(url)
+}
+
+func validateJSON(schema *jsonschema.Schema, raw json.RawMessage) error {
+	doc, err := jsonschema.UnmarshalJSON(bytes.NewReader(raw))
+	if err != nil {
+		return fmt.Errorf("must be valid JSON: %w", err)
+	}
+
+	return schema.Validate(doc)
 }
