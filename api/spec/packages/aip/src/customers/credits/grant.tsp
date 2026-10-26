@@ -135,6 +135,12 @@ model CreditGrant {
   currency: Currencies.CurrencyCode;
 
   /**
+   * Managed currency reference. Present only for custom currencies.
+   */
+  @visibility(Lifecycle.Read)
+  custom_currency?: Shared.ResourceReference<Currencies.CurrencyCustom>;
+
+  /**
    * Granted credit amount.
    */
   @visibility(Lifecycle.Read, Lifecycle.Create)

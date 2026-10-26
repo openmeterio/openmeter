@@ -465,6 +465,7 @@ The usage-based rating algorithms have narrower contracts in
 `currencies.Currency` identity is the fiat code for fiat currencies and the
 namespace plus managed currency ID for custom currencies. A display code is not
 globally sufficient identity: distinct managed currencies may reuse one.
+Credit-grant reads expose that managed ID.
 
 Within the charges domain, custom-currency `credit_then_invoice`:
 

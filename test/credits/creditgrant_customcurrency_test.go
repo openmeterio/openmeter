@@ -16,10 +16,86 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/pagination"
 	billingtest "github.com/openmeterio/openmeter/test/billing"
 )
 
 const TOKENS = currencyx.Code("TOKENS")
+
+func (s *CreditGrantTestSuite) TestListCustomCurrencyGrantsFiltersAndPagination() {
+	// given: two token grants, a grant in another custom currency, and a fiat grant
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("creditgrant-custom-currency-filters")
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
+	sandboxApp := s.InstallSandboxApp(s.T(), ns)
+	_ = s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
+	tokens := s.createTokensCurrency(ns)
+	points := s.CreateCustomCurrency(ns, "POINTS")
+
+	firstGrant, err := s.CreditGrantService.Create(ctx, creditgrant.CreateInput{
+		Namespace: ns, CustomerID: cust.ID, Name: "first tokens",
+		Currency: TOKENS, Amount: alpacadecimal.NewFromInt(10), FundingMethod: creditgrant.FundingMethodNone,
+	})
+	s.Require().NoError(err)
+	secondGrant, err := s.CreditGrantService.Create(ctx, creditgrant.CreateInput{
+		Namespace: ns, CustomerID: cust.ID, Name: "second tokens",
+		Currency: TOKENS, Amount: alpacadecimal.NewFromInt(20), FundingMethod: creditgrant.FundingMethodNone,
+	})
+	s.Require().NoError(err)
+	pointsGrant, err := s.CreditGrantService.Create(ctx, creditgrant.CreateInput{
+		Namespace: ns, CustomerID: cust.ID, Name: "points",
+		Currency: points.GetCode(), Amount: alpacadecimal.NewFromInt(40), FundingMethod: creditgrant.FundingMethodNone,
+	})
+	s.Require().NoError(err)
+	fiatGrant, err := s.CreditGrantService.Create(ctx, creditgrant.CreateInput{
+		Namespace: ns, CustomerID: cust.ID, Name: "fiat credits",
+		Currency: USD, Amount: alpacadecimal.NewFromInt(30), FundingMethod: creditgrant.FundingMethodNone,
+	})
+	s.Require().NoError(err)
+
+	for _, tc := range []struct {
+		name     string
+		currency *currencyx.Code
+		expected map[string]string
+	}{
+		{name: "tokens", currency: lo.ToPtr(TOKENS), expected: map[string]string{firstGrant.ID: tokens.ID, secondGrant.ID: tokens.ID}},
+		{name: "points", currency: lo.ToPtr(points.GetCode()), expected: map[string]string{pointsGrant.ID: points.ID}},
+		{name: "fiat", currency: lo.ToPtr(USD), expected: map[string]string{fiatGrant.ID: ""}},
+		{name: "unfiltered", expected: map[string]string{firstGrant.ID: tokens.ID, secondGrant.ID: tokens.ID, pointsGrant.ID: points.ID, fiatGrant.ID: ""}},
+	} {
+		s.Run(tc.name, func() {
+			// given: grants belonging to two active custom currencies and one fiat currency
+			// when: listing with a custom, fiat, or omitted currency filter
+			result, err := s.CreditGrantService.List(ctx, creditgrant.ListInput{
+				Namespace: ns, CustomerID: cust.ID, Currency: tc.currency, Page: pagination.NewPage(1, 20),
+			})
+			s.Require().NoError(err)
+
+			// then: matching grants retain their original managed currency identities
+			s.Equal(len(tc.expected), result.TotalCount)
+			byID := make(map[string]string, len(result.Items))
+			for _, grant := range result.Items {
+				byID[grant.ID] = grant.Intent.Currency.ID
+			}
+
+			s.Equal(tc.expected, byID)
+		})
+	}
+
+	byID := make(map[string]string, 2)
+	for pageNumber := 1; pageNumber <= 2; pageNumber++ {
+		page, err := s.CreditGrantService.List(ctx, creditgrant.ListInput{
+			Namespace: ns, CustomerID: cust.ID, Currency: lo.ToPtr(TOKENS), Page: pagination.NewPage(pageNumber, 1),
+		})
+		s.Require().NoError(err)
+		s.Equal(2, page.TotalCount)
+		s.Require().Len(page.Items, 1)
+		byID[page.Items[0].ID] = page.Items[0].Intent.Currency.ID
+	}
+
+	s.Equal(map[string]string{firstGrant.ID: tokens.ID, secondGrant.ID: tokens.ID}, byID)
+}
 
 func (s *CreditGrantTestSuite) createTokensCurrency(ns string) currencies.Currency {
 	s.T().Helper()

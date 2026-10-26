@@ -1253,6 +1253,8 @@ type CreditGrant struct {
 	// Funded custom-currency grants must define `purchase.cost_basis` to settle in a
 	// fiat currency.
 	Currency BillingCurrencyCode `json:"currency"`
+	// Managed currency reference. Present only for custom currencies.
+	CustomCurrency *CurrencyCustomReference `json:"custom_currency,omitempty"`
 	// Granted credit amount.
 	Amount Numeric `json:"amount"`
 	// Present when a funding workflow applies (funding_method is not `none`).

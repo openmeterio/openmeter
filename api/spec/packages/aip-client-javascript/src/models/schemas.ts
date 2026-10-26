@@ -2234,6 +2234,12 @@ export const createResourceReference = z
   })
   .describe('TaxCode reference.')
 
+export const currencyCustomReference = z
+  .object({
+    id: ulid,
+  })
+  .describe('CurrencyCustom reference.')
+
 export const chargeCostBasisPinned = z
   .object({
     type: z
@@ -2264,12 +2270,6 @@ export const creditGrantInvoiceReference = z
       .describe('Identifier of the invoice line associated with the grant.'),
   })
   .describe('Invoice references for the grant.')
-
-export const currencyCustomReference = z
-  .object({
-    id: ulid,
-  })
-  .describe('CurrencyCustom reference.')
 
 export const subscriptionCostBasisPin = z
   .object({
@@ -3399,15 +3399,6 @@ export const creditGrantPlanFilter = z
     'A plan key and an optional version constraint for matching credit grants.',
   )
 
-export const listCreditGrantsParamsFilter = z
-  .object({
-    status: creditGrantStatus.optional(),
-    currency: currencyCode.optional(),
-    key: stringFieldFilter.optional(),
-    featureKey: stringFieldFilter.optional(),
-  })
-  .describe('Filter options for listing credit grants.')
-
 export const validationIssue = z
   .object({
     code: z.string().describe('Machine-readable error code.'),
@@ -3995,6 +3986,15 @@ export const creditAdjustment = z
     "A credit adjustment can be used to make manual adjustments to a customer's credit balance. Supported use-cases: - Usage correction",
   )
 
+export const listCreditGrantsParamsFilter = z
+  .object({
+    status: creditGrantStatus.optional(),
+    currency: billingCurrencyCode.optional(),
+    key: stringFieldFilter.optional(),
+    featureKey: stringFieldFilter.optional(),
+  })
+  .describe('Filter options for listing credit grants.')
+
 export const createCreditAdjustmentRequest = z
   .object({
     name: z
@@ -4300,56 +4300,6 @@ export const createTaxCodeConfig = z
     'Tax configuration for a billable resource. Applies a tax code and tax behavior to the resulting invoice line items. When not set, the applicable default is used: the billing profile default tax configuration, then the organization default tax code.',
   )
 
-export const chargeCostBasis = z
-  .discriminatedUnion('type', [
-    chargeCostBasisDynamic,
-    chargeCostBasisPinned,
-    chargeCostBasisManual,
-  ])
-
-  .describe(
-    'Cost basis selection for a custom-currency charge. The variant chosen fixes when and how the conversion rate is determined.',
-  )
-
-export const taxCodeConfig = z
-  .object({
-    behavior: taxBehavior.optional(),
-    code: taxCodeReference.optional(),
-  })
-
-  .describe(
-    'Tax configuration for a billable resource. Applies a tax code and tax behavior to the resulting invoice line items. When not set, the applicable default is used: the billing profile default tax configuration, then the organization default tax code.',
-  )
-
-export const taxConfig = z
-  .object({
-    behavior: taxBehavior.optional(),
-    stripe: taxConfigStripe.optional(),
-    externalInvoicing: taxConfigExternalInvoicing.optional(),
-    taxCodeId: ulid.optional(),
-    taxCode: taxCodeReference.optional(),
-  })
-  .describe('Set of provider specific tax configs.')
-
-export const organizationDefaultTaxCodes = z
-  .object({
-    invoicingTaxCode: taxCodeReference,
-    creditGrantTaxCode: taxCodeReference,
-    createdAt: dateTime,
-    updatedAt: dateTime,
-  })
-
-  .describe(
-    'Organization-level default tax code references. Stores the default tax codes applied to specific billing contexts for this organization. Provisioned automatically when the organization is created.',
-  )
-
-export const updateOrganizationDefaultTaxCodesRequest = z
-  .object({
-    invoicingTaxCode: taxCodeReference.optional(),
-    creditGrantTaxCode: taxCodeReference.optional(),
-  })
-  .describe('OrganizationDefaultTaxCodes update request.')
-
 export const creditBalance = z
   .object({
     currency: billingCurrencyCode,
@@ -4399,6 +4349,56 @@ export const creditTransaction = z
   .describe(
     "A credit transaction represents a single credit movement on the customer's balance. Credit transactions are immutable.",
   )
+
+export const chargeCostBasis = z
+  .discriminatedUnion('type', [
+    chargeCostBasisDynamic,
+    chargeCostBasisPinned,
+    chargeCostBasisManual,
+  ])
+
+  .describe(
+    'Cost basis selection for a custom-currency charge. The variant chosen fixes when and how the conversion rate is determined.',
+  )
+
+export const taxCodeConfig = z
+  .object({
+    behavior: taxBehavior.optional(),
+    code: taxCodeReference.optional(),
+  })
+
+  .describe(
+    'Tax configuration for a billable resource. Applies a tax code and tax behavior to the resulting invoice line items. When not set, the applicable default is used: the billing profile default tax configuration, then the organization default tax code.',
+  )
+
+export const taxConfig = z
+  .object({
+    behavior: taxBehavior.optional(),
+    stripe: taxConfigStripe.optional(),
+    externalInvoicing: taxConfigExternalInvoicing.optional(),
+    taxCodeId: ulid.optional(),
+    taxCode: taxCodeReference.optional(),
+  })
+  .describe('Set of provider specific tax configs.')
+
+export const organizationDefaultTaxCodes = z
+  .object({
+    invoicingTaxCode: taxCodeReference,
+    creditGrantTaxCode: taxCodeReference,
+    createdAt: dateTime,
+    updatedAt: dateTime,
+  })
+
+  .describe(
+    'Organization-level default tax code references. Stores the default tax codes applied to specific billing contexts for this organization. Provisioned automatically when the organization is created.',
+  )
+
+export const updateOrganizationDefaultTaxCodesRequest = z
+  .object({
+    invoicingTaxCode: taxCodeReference.optional(),
+    creditGrantTaxCode: taxCodeReference.optional(),
+  })
+  .describe('OrganizationDefaultTaxCodes update request.')
 
 export const invoiceWorkflowAppsReferences = z
   .object({
@@ -6020,6 +6020,20 @@ export const createCreditGrantPurchase = z
   })
   .describe('Purchase and payment terms of the grant.')
 
+export const creditBalances = z
+  .object({
+    retrievedAt: dateTime,
+    balances: z.array(creditBalance).describe('The balances by currencies.'),
+  })
+  .describe('The balances of the credits of a customer.')
+
+export const creditTransactionPaginatedResponse = z
+  .object({
+    data: z.array(creditTransaction),
+    meta: cursorMeta,
+  })
+  .describe('Cursor paginated response.')
+
 export const creditGrantPurchase = z
   .object({
     currency: currencyCode,
@@ -6091,20 +6105,6 @@ export const workflowTaxSettings = z
     defaultTaxConfig: taxConfig.optional(),
   })
   .describe('Tax settings for a billing workflow.')
-
-export const creditBalances = z
-  .object({
-    retrievedAt: dateTime,
-    balances: z.array(creditBalance).describe('The balances by currencies.'),
-  })
-  .describe('The balances of the credits of a customer.')
-
-export const creditTransactionPaginatedResponse = z
-  .object({
-    data: z.array(creditTransaction),
-    meta: cursorMeta,
-  })
-  .describe('Cursor paginated response.')
 
 export const planAddonPagePaginatedResponse = z
   .object({
@@ -6952,6 +6952,7 @@ export const creditGrant = z
     deletedAt: dateTime.optional(),
     fundingMethod: creditFundingMethod,
     currency: billingCurrencyCode,
+    customCurrency: currencyCustomReference.optional(),
     amount: numeric,
     purchase: creditGrantPurchase.optional(),
     taxConfig: taxCodeConfig.optional(),
@@ -12012,6 +12013,12 @@ export const createResourceReferenceWire = z
   })
   .describe('TaxCode reference.')
 
+export const currencyCustomReferenceWire = z
+  .strictObject({
+    id: ulidWire,
+  })
+  .describe('CurrencyCustom reference.')
+
 export const chargeCostBasisPinnedWire = z
   .strictObject({
     type: z
@@ -12042,12 +12049,6 @@ export const creditGrantInvoiceReferenceWire = z
       .describe('Identifier of the invoice line associated with the grant.'),
   })
   .describe('Invoice references for the grant.')
-
-export const currencyCustomReferenceWire = z
-  .strictObject({
-    id: ulidWire,
-  })
-  .describe('CurrencyCustom reference.')
 
 export const subscriptionCostBasisPinWire = z
   .strictObject({
@@ -13170,15 +13171,6 @@ export const creditGrantPlanFilterWire = z
     'A plan key and an optional version constraint for matching credit grants.',
   )
 
-export const listCreditGrantsParamsFilterWire = z
-  .strictObject({
-    status: creditGrantStatusWire.optional(),
-    currency: currencyCodeWire.optional(),
-    key: stringFieldFilterWire.optional(),
-    feature_key: stringFieldFilterWire.optional(),
-  })
-  .describe('Filter options for listing credit grants.')
-
 export const validationIssueWire = z
   .strictObject({
     code: z.string().describe('Machine-readable error code.'),
@@ -13757,6 +13749,15 @@ export const creditAdjustmentWire = z
     "A credit adjustment can be used to make manual adjustments to a customer's credit balance. Supported use-cases: - Usage correction",
   )
 
+export const listCreditGrantsParamsFilterWire = z
+  .strictObject({
+    status: creditGrantStatusWire.optional(),
+    currency: billingCurrencyCodeWire.optional(),
+    key: stringFieldFilterWire.optional(),
+    feature_key: stringFieldFilterWire.optional(),
+  })
+  .describe('Filter options for listing credit grants.')
+
 export const createCreditAdjustmentRequestWire = z
   .strictObject({
     name: z
@@ -14062,56 +14063,6 @@ export const createTaxCodeConfigWire = z
     'Tax configuration for a billable resource. Applies a tax code and tax behavior to the resulting invoice line items. When not set, the applicable default is used: the billing profile default tax configuration, then the organization default tax code.',
   )
 
-export const chargeCostBasisWire = z
-  .discriminatedUnion('type', [
-    chargeCostBasisDynamicWire,
-    chargeCostBasisPinnedWire,
-    chargeCostBasisManualWire,
-  ])
-
-  .describe(
-    'Cost basis selection for a custom-currency charge. The variant chosen fixes when and how the conversion rate is determined.',
-  )
-
-export const taxCodeConfigWire = z
-  .strictObject({
-    behavior: taxBehaviorWire.optional(),
-    code: taxCodeReferenceWire.optional(),
-  })
-
-  .describe(
-    'Tax configuration for a billable resource. Applies a tax code and tax behavior to the resulting invoice line items. When not set, the applicable default is used: the billing profile default tax configuration, then the organization default tax code.',
-  )
-
-export const taxConfigWire = z
-  .strictObject({
-    behavior: taxBehaviorWire.optional(),
-    stripe: taxConfigStripeWire.optional(),
-    external_invoicing: taxConfigExternalInvoicingWire.optional(),
-    tax_code_id: ulidWire.optional(),
-    tax_code: taxCodeReferenceWire.optional(),
-  })
-  .describe('Set of provider specific tax configs.')
-
-export const organizationDefaultTaxCodesWire = z
-  .strictObject({
-    invoicing_tax_code: taxCodeReferenceWire,
-    credit_grant_tax_code: taxCodeReferenceWire,
-    created_at: dateTimeWire,
-    updated_at: dateTimeWire,
-  })
-
-  .describe(
-    'Organization-level default tax code references. Stores the default tax codes applied to specific billing contexts for this organization. Provisioned automatically when the organization is created.',
-  )
-
-export const updateOrganizationDefaultTaxCodesRequestWire = z
-  .strictObject({
-    invoicing_tax_code: taxCodeReferenceWire.optional(),
-    credit_grant_tax_code: taxCodeReferenceWire.optional(),
-  })
-  .describe('OrganizationDefaultTaxCodes update request.')
-
 export const creditBalanceWire = z
   .strictObject({
     currency: billingCurrencyCodeWire,
@@ -14161,6 +14112,56 @@ export const creditTransactionWire = z
   .describe(
     "A credit transaction represents a single credit movement on the customer's balance. Credit transactions are immutable.",
   )
+
+export const chargeCostBasisWire = z
+  .discriminatedUnion('type', [
+    chargeCostBasisDynamicWire,
+    chargeCostBasisPinnedWire,
+    chargeCostBasisManualWire,
+  ])
+
+  .describe(
+    'Cost basis selection for a custom-currency charge. The variant chosen fixes when and how the conversion rate is determined.',
+  )
+
+export const taxCodeConfigWire = z
+  .strictObject({
+    behavior: taxBehaviorWire.optional(),
+    code: taxCodeReferenceWire.optional(),
+  })
+
+  .describe(
+    'Tax configuration for a billable resource. Applies a tax code and tax behavior to the resulting invoice line items. When not set, the applicable default is used: the billing profile default tax configuration, then the organization default tax code.',
+  )
+
+export const taxConfigWire = z
+  .strictObject({
+    behavior: taxBehaviorWire.optional(),
+    stripe: taxConfigStripeWire.optional(),
+    external_invoicing: taxConfigExternalInvoicingWire.optional(),
+    tax_code_id: ulidWire.optional(),
+    tax_code: taxCodeReferenceWire.optional(),
+  })
+  .describe('Set of provider specific tax configs.')
+
+export const organizationDefaultTaxCodesWire = z
+  .strictObject({
+    invoicing_tax_code: taxCodeReferenceWire,
+    credit_grant_tax_code: taxCodeReferenceWire,
+    created_at: dateTimeWire,
+    updated_at: dateTimeWire,
+  })
+
+  .describe(
+    'Organization-level default tax code references. Stores the default tax codes applied to specific billing contexts for this organization. Provisioned automatically when the organization is created.',
+  )
+
+export const updateOrganizationDefaultTaxCodesRequestWire = z
+  .strictObject({
+    invoicing_tax_code: taxCodeReferenceWire.optional(),
+    credit_grant_tax_code: taxCodeReferenceWire.optional(),
+  })
+  .describe('OrganizationDefaultTaxCodes update request.')
 
 export const invoiceWorkflowAppsReferencesWire = z
   .strictObject({
@@ -15774,6 +15775,22 @@ export const createCreditGrantPurchaseWire = z
   })
   .describe('Purchase and payment terms of the grant.')
 
+export const creditBalancesWire = z
+  .strictObject({
+    retrieved_at: dateTimeWire,
+    balances: z
+      .array(creditBalanceWire)
+      .describe('The balances by currencies.'),
+  })
+  .describe('The balances of the credits of a customer.')
+
+export const creditTransactionPaginatedResponseWire = z
+  .strictObject({
+    data: z.array(creditTransactionWire),
+    meta: cursorMetaWire,
+  })
+  .describe('Cursor paginated response.')
+
 export const creditGrantPurchaseWire = z
   .strictObject({
     currency: currencyCodeWire,
@@ -15841,22 +15858,6 @@ export const workflowTaxSettingsWire = z
     default_tax_config: taxConfigWire.optional(),
   })
   .describe('Tax settings for a billing workflow.')
-
-export const creditBalancesWire = z
-  .strictObject({
-    retrieved_at: dateTimeWire,
-    balances: z
-      .array(creditBalanceWire)
-      .describe('The balances by currencies.'),
-  })
-  .describe('The balances of the credits of a customer.')
-
-export const creditTransactionPaginatedResponseWire = z
-  .strictObject({
-    data: z.array(creditTransactionWire),
-    meta: cursorMetaWire,
-  })
-  .describe('Cursor paginated response.')
 
 export const planAddonPagePaginatedResponseWire = z
   .strictObject({
@@ -16703,6 +16704,7 @@ export const creditGrantWire = z
     deleted_at: dateTimeWire.optional(),
     funding_method: creditFundingMethodWire,
     currency: billingCurrencyCodeWire,
+    custom_currency: currencyCustomReferenceWire.optional(),
     amount: numericWire,
     purchase: creditGrantPurchaseWire.optional(),
     tax_config: taxCodeConfigWire.optional(),
