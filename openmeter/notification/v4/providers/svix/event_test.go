@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/openmeterio/openmeter/openmeter/notification/v4"
+	v4 "github.com/openmeterio/openmeter/openmeter/notification/v4"
 )
 
 func TestResolveResendBaseline(t *testing.T) {
@@ -130,6 +130,7 @@ func TestResolveResendBaseline(t *testing.T) {
 			if test.wantError != "" {
 				require.ErrorContains(t, err, test.wantError)
 				require.Nil(t, baseline)
+
 				return
 			}
 

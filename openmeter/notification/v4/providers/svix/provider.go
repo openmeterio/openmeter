@@ -8,7 +8,7 @@ import (
 	svixv2 "github.com/svix/svix-webhooks/v2/go"
 	"go.opentelemetry.io/otel/trace"
 
-	"github.com/openmeterio/openmeter/openmeter/notification/v4"
+	v4 "github.com/openmeterio/openmeter/openmeter/notification/v4"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 

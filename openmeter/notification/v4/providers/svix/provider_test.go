@@ -16,7 +16,7 @@ import (
 	svix "github.com/svix/svix-webhooks/v2/go"
 	svixutils "github.com/svix/svix-webhooks/v2/go/utils"
 
-	"github.com/openmeterio/openmeter/openmeter/notification/v4"
+	v4 "github.com/openmeterio/openmeter/openmeter/notification/v4"
 	"github.com/openmeterio/openmeter/openmeter/notification/v4/providers/svix/testutils"
 	webhooksecret "github.com/openmeterio/openmeter/openmeter/notification/webhook/secret"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -2490,7 +2490,6 @@ func TestProvider(t *testing.T) {
 						EventTypes: []v4.EventType{eventType},
 					})
 				})
-
 			})
 
 			t.Run("CatchAll", func(t *testing.T) {

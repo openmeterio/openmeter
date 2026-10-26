@@ -13,7 +13,7 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 
-	"github.com/openmeterio/openmeter/openmeter/notification/v4"
+	v4 "github.com/openmeterio/openmeter/openmeter/notification/v4"
 	webhooksecret "github.com/openmeterio/openmeter/openmeter/notification/webhook/secret"
 	tracexv2 "github.com/openmeterio/openmeter/pkg/framework/tracex/v2"
 )

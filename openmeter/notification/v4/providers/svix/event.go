@@ -16,7 +16,7 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 
-	"github.com/openmeterio/openmeter/openmeter/notification/v4"
+	v4 "github.com/openmeterio/openmeter/openmeter/notification/v4"
 	tracexv2 "github.com/openmeterio/openmeter/pkg/framework/tracex/v2"
 )
 
@@ -508,6 +508,7 @@ func (p *Provider) GetEvent(ctx context.Context, input v4.GetEventInput) (*v4.Ge
 							input.Event.Namespace,
 							normalizeError(err),
 						)
+
 						break
 					}
 

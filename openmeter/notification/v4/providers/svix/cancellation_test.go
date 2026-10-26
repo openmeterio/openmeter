@@ -17,7 +17,7 @@ import (
 	svix "github.com/svix/svix-webhooks/v2/go"
 	"go.opentelemetry.io/otel/trace/noop"
 
-	"github.com/openmeterio/openmeter/openmeter/notification/v4"
+	v4 "github.com/openmeterio/openmeter/openmeter/notification/v4"
 	webhooksecret "github.com/openmeterio/openmeter/openmeter/notification/webhook/secret"
 )
 

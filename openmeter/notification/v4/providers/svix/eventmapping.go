@@ -8,7 +8,7 @@ import (
 	svixv2 "github.com/svix/svix-webhooks/v2/go"
 	svixmodels "github.com/svix/svix-webhooks/v2/go/models"
 
-	"github.com/openmeterio/openmeter/openmeter/notification/v4"
+	v4 "github.com/openmeterio/openmeter/openmeter/notification/v4"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 

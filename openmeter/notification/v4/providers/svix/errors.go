@@ -8,7 +8,7 @@ import (
 
 	svix "github.com/svix/svix-webhooks/v2/go"
 
-	"github.com/openmeterio/openmeter/openmeter/notification/v4"
+	v4 "github.com/openmeterio/openmeter/openmeter/notification/v4"
 )
 
 func normalizeError(err error) *v4.ProviderError {
