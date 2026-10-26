@@ -1,7 +1,6 @@
-package billing
+package splitlinegroup
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -9,11 +8,12 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
-	timeutil "github.com/openmeterio/openmeter/pkg/timeutil"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type SplitLineGroupMutableFields struct {
@@ -23,7 +23,7 @@ type SplitLineGroupMutableFields struct {
 
 	ServicePeriod timeutil.ClosedPeriod `json:"period"`
 
-	RatecardDiscounts Discounts `json:"ratecardDiscounts"`
+	RatecardDiscounts billing.Discounts `json:"ratecardDiscounts"`
 }
 
 func (i SplitLineGroupMutableFields) ValidateForPrice(price *productcatalog.Price) error {
@@ -61,11 +61,11 @@ type SplitLineGroupCreate struct {
 
 	SplitLineGroupMutableFields `json:",inline"`
 
-	Price             *productcatalog.Price  `json:"price"`
-	FeatureKey        *string                `json:"featureKey,omitempty"`
-	Subscription      *SubscriptionReference `json:"subscription,omitempty"`
-	Currency          currencyx.FiatCode     `json:"currency"`
-	UniqueReferenceID *string                `json:"childUniqueReferenceId,omitempty"`
+	Price             *productcatalog.Price          `json:"price"`
+	FeatureKey        *string                        `json:"featureKey,omitempty"`
+	Subscription      *billing.SubscriptionReference `json:"subscription,omitempty"`
+	Currency          currencyx.FiatCode             `json:"currency"`
+	UniqueReferenceID *string                        `json:"childUniqueReferenceId,omitempty"`
 }
 
 func (i SplitLineGroupCreate) Validate() error {
@@ -129,11 +129,11 @@ type SplitLineGroup struct {
 	models.NamespacedID         `json:",inline"`
 	SplitLineGroupMutableFields `json:",inline"`
 
-	Price             *productcatalog.Price  `json:"price"`
-	FeatureKey        *string                `json:"featureKey,omitempty"`
-	Subscription      *SubscriptionReference `json:"subscription,omitempty"`
-	Currency          currencyx.FiatCode     `json:"currency"`
-	UniqueReferenceID *string                `json:"childUniqueReferenceId,omitempty"`
+	Price             *productcatalog.Price          `json:"price"`
+	FeatureKey        *string                        `json:"featureKey,omitempty"`
+	Subscription      *billing.SubscriptionReference `json:"subscription,omitempty"`
+	Currency          currencyx.FiatCode             `json:"currency"`
+	UniqueReferenceID *string                        `json:"childUniqueReferenceId,omitempty"`
 }
 
 func (i SplitLineGroup) Validate() error {
@@ -189,180 +189,29 @@ func (i SplitLineGroup) Clone() SplitLineGroup {
 	return clone
 }
 
-type GatheringLineWithInvoiceHeader struct {
-	Line    GatheringLine
-	Invoice GatheringInvoice
-}
-
-func (l GatheringLineWithInvoiceHeader) Validate() error {
-	if err := l.Line.Validate(); err != nil {
-		return fmt.Errorf("line: %w", err)
-	}
-
-	// This transport only carries the parent invoice entity as a header object,
-	// so we validate invoice identity here instead of requiring a fully fetched invoice aggregate.
-	if l.Invoice.ID == "" {
-		return fmt.Errorf("invoice id is required")
-	}
-
-	return nil
-}
-
-type StandardLineWithInvoiceHeader struct {
-	Line    *StandardLine
-	Invoice StandardInvoice
-}
-
-func (l StandardLineWithInvoiceHeader) Validate() error {
-	if l.Line == nil {
-		return fmt.Errorf("line is required")
-	}
-
-	if err := l.Line.Validate(); err != nil {
-		return fmt.Errorf("line: %w", err)
-	}
-
-	// This transport only carries the parent invoice entity as a header object,
-	// so we validate invoice identity here instead of requiring a fully fetched invoice aggregate.
-	if l.Invoice.ID == "" {
-		return fmt.Errorf("invoice id is required")
-	}
-
-	return nil
-}
-
-type LineWithInvoiceHeader struct {
-	Line    GenericInvoiceLine
-	Invoice GenericInvoiceReader
-}
-
-type lineWithInvoiceHeaderSerde[IT StandardInvoice | GatheringInvoice, LT StandardLine | GatheringLine] struct {
-	Type InvoiceType `json:"type"`
-
-	Line    LT `json:"line"`
-	Invoice IT `json:"invoice"`
-}
-
-func (l *LineWithInvoiceHeader) UnmarshalJSON(data []byte) error {
-	var genericSerde struct {
-		Type InvoiceType `json:"type"`
-	}
-
-	if err := json.Unmarshal(data, &genericSerde); err != nil {
-		return err
-	}
-
-	switch genericSerde.Type {
-	case InvoiceTypeStandard:
-		unmarshalled := lineWithInvoiceHeaderSerde[StandardInvoice, StandardLine]{}
-		if err := json.Unmarshal(data, &unmarshalled); err != nil {
-			return err
-		}
-
-		l.Line = &standardInvoiceLineGenericWrapper{StandardLine: &unmarshalled.Line}
-		l.Invoice = &unmarshalled.Invoice
-
-		return nil
-	case InvoiceTypeGathering:
-		unmarshalled := lineWithInvoiceHeaderSerde[GatheringInvoice, GatheringLine]{}
-		if err := json.Unmarshal(data, &unmarshalled); err != nil {
-			return err
-		}
-
-		l.Line = &gatheringInvoiceLineGenericWrapper{GatheringLine: unmarshalled.Line}
-		l.Invoice = &unmarshalled.Invoice
-
-		return nil
-	default:
-		return fmt.Errorf("unknown invoice type: %s", genericSerde.Type)
-	}
-}
-
-func (l LineWithInvoiceHeader) MarshalJSON() ([]byte, error) {
-	invoice := l.Invoice.AsInvoice()
-
-	invoiceType := invoice.Type()
-
-	switch invoiceType {
-	case InvoiceTypeStandard:
-		stdInvoice, err := invoice.AsStandardInvoice()
-		if err != nil {
-			return nil, err
-		}
-
-		stdLine, err := l.Line.AsInvoiceLine().AsStandardLine()
-		if err != nil {
-			return nil, err
-		}
-
-		return json.Marshal(lineWithInvoiceHeaderSerde[StandardInvoice, StandardLine]{
-			Type:    InvoiceTypeStandard,
-			Line:    stdLine,
-			Invoice: stdInvoice,
-		})
-	case InvoiceTypeGathering:
-		gatheringInvoice, err := invoice.AsGatheringInvoice()
-		if err != nil {
-			return nil, err
-		}
-
-		gatheringLine, err := l.Line.AsInvoiceLine().AsGatheringLine()
-		if err != nil {
-			return nil, err
-		}
-
-		return json.Marshal(lineWithInvoiceHeaderSerde[GatheringInvoice, GatheringLine]{
-			Type:    InvoiceTypeGathering,
-			Line:    gatheringLine,
-			Invoice: gatheringInvoice,
-		})
-	}
-
-	return nil, fmt.Errorf("unknown invoice type: %s", invoiceType)
-}
-
-func NewLineWithInvoiceHeader[T StandardLineWithInvoiceHeader | GatheringLineWithInvoiceHeader](line T) LineWithInvoiceHeader {
-	switch v := any(line).(type) {
-	case StandardLineWithInvoiceHeader:
-		return LineWithInvoiceHeader{Line: &standardInvoiceLineGenericWrapper{StandardLine: v.Line}, Invoice: v.Invoice}
-	case GatheringLineWithInvoiceHeader:
-		return LineWithInvoiceHeader{Line: &gatheringInvoiceLineGenericWrapper{GatheringLine: v.Line}, Invoice: v.Invoice}
-	}
-
-	return LineWithInvoiceHeader{}
-}
-
-type LinesWithInvoiceHeaders []LineWithInvoiceHeader
-
-func (i LinesWithInvoiceHeaders) Lines() []GenericInvoiceLine {
-	return lo.Map(i, func(line LineWithInvoiceHeader, _ int) GenericInvoiceLine {
-		return line.Line
-	})
-}
-
 // SplitLineHierarchyInvoice carries the identity and deletion facts needed to
 // interpret a child's billing history without loading its invoice aggregate.
 type SplitLineHierarchyInvoice struct {
-	InvoiceID `json:",inline"`
-	Type      InvoiceType           `json:"type"`
-	DeletedAt *time.Time            `json:"deletedAt,omitempty"`
-	Status    StandardInvoiceStatus `json:"status"`
+	billing.InvoiceID `json:",inline"`
+	Type              billing.InvoiceType           `json:"type"`
+	DeletedAt         *time.Time                    `json:"deletedAt,omitempty"`
+	Status            billing.StandardInvoiceStatus `json:"status"`
 }
 
 // SplitLineHierarchyLine is the persisted history used by legacy rating and
 // subscription reconciliation. Updates describe intent; the invoice updater
 // loads the canonical line before applying them.
 type SplitLineHierarchyLine struct {
-	LineID        `json:",inline"`
-	Invoice       SplitLineHierarchyInvoice `json:"invoice"`
-	DeletedAt     *time.Time                `json:"deletedAt,omitempty"`
-	ServicePeriod timeutil.ClosedPeriod     `json:"period"`
-	ManagedBy     InvoiceLineManagedBy      `json:"managedBy"`
-	Annotations   models.Annotations        `json:"annotations,omitempty"`
-	Subscription  *SubscriptionReference    `json:"subscription,omitempty"`
-	InvoiceAt     time.Time                 `json:"invoiceAt"`
-	Amount        alpacadecimal.Decimal     `json:"amount"`
-	ChargesTotal  alpacadecimal.Decimal     `json:"chargesTotal"`
+	billing.LineID `json:",inline"`
+	Invoice        SplitLineHierarchyInvoice      `json:"invoice"`
+	DeletedAt      *time.Time                     `json:"deletedAt,omitempty"`
+	ServicePeriod  timeutil.ClosedPeriod          `json:"period"`
+	ManagedBy      billing.InvoiceLineManagedBy   `json:"managedBy"`
+	Annotations    models.Annotations             `json:"annotations,omitempty"`
+	Subscription   *billing.SubscriptionReference `json:"subscription,omitempty"`
+	InvoiceAt      time.Time                      `json:"invoiceAt"`
+	Amount         alpacadecimal.Decimal          `json:"amount"`
+	ChargesTotal   alpacadecimal.Decimal          `json:"chargesTotal"`
 }
 
 func (l SplitLineHierarchyLine) Clone() (SplitLineHierarchyLine, error) {
@@ -420,7 +269,7 @@ func (h *SplitLineHierarchy) SumNetAmount(in SumNetAmountInput) (alpacadecimal.D
 	err := h.ForEachChild(ForEachChildInput{
 		PeriodEndLTE: in.PeriodEndLTE,
 		Callback: func(child SplitLineHierarchyLine) error {
-			if child.Invoice.Type != InvoiceTypeStandard {
+			if child.Invoice.Type != billing.InvoiceTypeStandard {
 				return nil
 			}
 
@@ -462,7 +311,7 @@ func (h *SplitLineHierarchy) ForEachChild(in ForEachChildInput) error {
 			continue
 		}
 
-		if child.Invoice.Type == InvoiceTypeStandard && child.Invoice.Status == StandardInvoiceStatusDeleted {
+		if child.Invoice.Type == billing.InvoiceTypeStandard && child.Invoice.Status == billing.StandardInvoiceStatusDeleted {
 			continue
 		}
 
@@ -473,14 +322,6 @@ func (h *SplitLineHierarchy) ForEachChild(in ForEachChildInput) error {
 
 	return nil
 }
-
-// Adapter
-type (
-	CreateSplitLineGroupAdapterInput = SplitLineGroupCreate
-	UpdateSplitLineGroupInput        = SplitLineGroupUpdate
-	DeleteSplitLineGroupInput        = models.NamespacedID
-	GetSplitLineGroupInput           = models.NamespacedID
-)
 
 type GetSplitLineGroupsInput struct {
 	Namespace         string
@@ -495,4 +336,30 @@ func (i GetSplitLineGroupsInput) Validate() error {
 	}
 
 	return errors.Join(errs...)
+}
+
+// GetSplitLineGroupsForSubscriptionInput identifies the subscription history to load.
+// CustomerID retains the caller's required customer context; group persistence is
+// scoped by namespace and subscription identity.
+type GetSplitLineGroupsForSubscriptionInput struct {
+	Namespace      string
+	SubscriptionID string
+	CustomerID     string
+}
+
+func (i GetSplitLineGroupsForSubscriptionInput) Validate() error {
+	var errs []error
+	if i.Namespace == "" {
+		errs = append(errs, errors.New("namespace is required"))
+	}
+
+	if i.SubscriptionID == "" {
+		errs = append(errs, errors.New("subscription id is required"))
+	}
+
+	if i.CustomerID == "" {
+		errs = append(errs, errors.New("customer id is required"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }

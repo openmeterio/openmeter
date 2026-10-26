@@ -2,6 +2,7 @@ package persistedstate
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"slices"
 
@@ -10,8 +11,10 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/invoicing/legacy/splitlinegroup"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -19,24 +22,56 @@ import (
 type billingService interface {
 	GetStandardLinesForSubscription(ctx context.Context, input billing.GetLinesForSubscriptionInput) (billing.StandardLines, error)
 	GetGatheringLinesForSubscription(ctx context.Context, input billing.GetLinesForSubscriptionInput) (billing.GatheringLines, error)
-	GetSplitLineGroupsForSubscription(ctx context.Context, input billing.GetLinesForSubscriptionInput) ([]billing.SplitLineHierarchy, error)
 	ListInvoices(ctx context.Context, input billing.ListInvoicesInput) (billing.ListInvoicesResponse, error)
+}
+
+type splitLineGroupService interface {
+	GetSplitLineGroupsForSubscription(ctx context.Context, input splitlinegroup.GetSplitLineGroupsForSubscriptionInput) ([]splitlinegroup.SplitLineHierarchy, error)
 }
 
 type chargeService interface {
 	ListCharges(ctx context.Context, input charges.ListChargesInput) (pagination.Result[charges.Charge], error)
 }
 
-type Loader struct {
-	billingService billingService
-	chargeService  chargeService
+var _ models.Validator = (*Config)(nil)
+
+type Config struct {
+	BillingService        billingService
+	SplitLineGroupService splitLineGroupService
+	// ChargesService is optional when charge-based billing is disabled.
+	ChargesService chargeService
 }
 
-func NewLoader(billingService billingService, chargeService chargeService) Loader {
-	return Loader{
-		billingService: billingService,
-		chargeService:  chargeService,
+func (c Config) Validate() error {
+	var errs []error
+
+	if c.BillingService == nil {
+		errs = append(errs, errors.New("billing service is required"))
 	}
+
+	if c.SplitLineGroupService == nil {
+		errs = append(errs, errors.New("split line group service is required"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+type Loader struct {
+	billingService        billingService
+	splitLineGroupService splitLineGroupService
+	chargeService         chargeService
+}
+
+func NewLoader(config Config) (Loader, error) {
+	if err := config.Validate(); err != nil {
+		return Loader{}, err
+	}
+
+	return Loader{
+		billingService:        config.BillingService,
+		splitLineGroupService: config.SplitLineGroupService,
+		chargeService:         config.ChargesService,
+	}, nil
 }
 
 func (l Loader) LoadForSubscription(ctx context.Context, subs subscription.Subscription) (State, error) {
@@ -59,7 +94,11 @@ func (l Loader) LoadForSubscription(ctx context.Context, subs subscription.Subsc
 		return State{}, fmt.Errorf("getting existing gathering lines: %w", err)
 	}
 
-	splitLineGroups, err := l.billingService.GetSplitLineGroupsForSubscription(ctx, getLinesInput)
+	splitLineGroups, err := l.splitLineGroupService.GetSplitLineGroupsForSubscription(ctx, splitlinegroup.GetSplitLineGroupsForSubscriptionInput{
+		Namespace:      subs.Namespace,
+		SubscriptionID: subs.ID,
+		CustomerID:     subs.CustomerId,
+	})
 	if err != nil {
 		return State{}, fmt.Errorf("getting existing split line groups: %w", err)
 	}
@@ -82,7 +121,7 @@ func (l Loader) LoadForSubscription(ctx context.Context, subs subscription.Subsc
 		return State{}, fmt.Errorf("assembling persisted invoice line items: %w", err)
 	}
 
-	hierarchyItems, err := lo.MapErr(splitLineGroups, func(hierarchy billing.SplitLineHierarchy, _ int) (Item, error) {
+	hierarchyItems, err := lo.MapErr(splitLineGroups, func(hierarchy splitlinegroup.SplitLineHierarchy, _ int) (Item, error) {
 		normalizedHierarchy, err := normalizePersistedSplitLineHierarchy(hierarchy)
 		if err != nil {
 			return nil, fmt.Errorf("normalizing existing split line hierarchy: %w", err)
@@ -317,7 +356,7 @@ func normalizePersistedLine(line billing.GenericInvoiceLine) (billing.GenericInv
 	return cloned, nil
 }
 
-func normalizePersistedSplitLineHierarchy(hierarchy billing.SplitLineHierarchy) (*billing.SplitLineHierarchy, error) {
+func normalizePersistedSplitLineHierarchy(hierarchy splitlinegroup.SplitLineHierarchy) (*splitlinegroup.SplitLineHierarchy, error) {
 	cloned, err := hierarchy.Clone()
 	if err != nil {
 		return nil, fmt.Errorf("cloning hierarchy: %w", err)

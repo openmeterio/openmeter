@@ -1,4 +1,4 @@
-package billing
+package splitlinegroup
 
 import (
 	"encoding/json"
@@ -9,6 +9,7 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -18,15 +19,15 @@ func TestSplitLineHierarchyPreviouslyBilledAmountExcludesGatheringLines(t *testi
 		Lines: []SplitLineHierarchyLine{
 			{
 				Invoice: SplitLineHierarchyInvoice{
-					Type:   InvoiceTypeStandard,
-					Status: StandardInvoiceStatusPaid,
+					Type:   billing.InvoiceTypeStandard,
+					Status: billing.StandardInvoiceStatusPaid,
 				},
 				Amount: alpacadecimal.NewFromInt(40),
 			},
 			{
 				Invoice: SplitLineHierarchyInvoice{
-					Type:   InvoiceTypeGathering,
-					Status: StandardInvoiceStatusGathering,
+					Type:   billing.InvoiceTypeGathering,
+					Status: billing.StandardInvoiceStatusGathering,
 				},
 				Amount: alpacadecimal.NewFromInt(60),
 			},
@@ -49,19 +50,19 @@ func TestSplitLineHierarchyCloneDoesNotShareMutableFields(t *testing.T) {
 				Description: lo.ToPtr("group description"),
 				Metadata:    models.Metadata{"key": "value"},
 			},
-			Subscription: &SubscriptionReference{ItemID: "group item"},
+			Subscription: &billing.SubscriptionReference{ItemID: "group item"},
 		},
 		Lines: []SplitLineHierarchyLine{
 			{
-				LineID: LineID{Namespace: "ns", ID: "line"},
+				LineID: billing.LineID{Namespace: "ns", ID: "line"},
 				Invoice: SplitLineHierarchyInvoice{
-					InvoiceID: InvoiceID{Namespace: "ns", ID: "invoice"},
-					Type:      InvoiceTypeStandard,
-					Status:    StandardInvoiceStatusDeleted,
+					InvoiceID: billing.InvoiceID{Namespace: "ns", ID: "invoice"},
+					Type:      billing.InvoiceTypeStandard,
+					Status:    billing.StandardInvoiceStatusDeleted,
 					DeletedAt: &now,
 				},
 				DeletedAt:    &now,
-				Subscription: &SubscriptionReference{ItemID: "child item"},
+				Subscription: &billing.SubscriptionReference{ItemID: "child item"},
 				Annotations:  models.Annotations{"nested": map[string]interface{}{"value": "original"}},
 			},
 		},

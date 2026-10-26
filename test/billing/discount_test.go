@@ -150,7 +150,7 @@ func (s *DiscountsTestSuite) TestCorrelationIDHandling() {
 		// Root line has the same correlation ID for the discount
 		s.Equal(discountCorrelationID, invoiceLine.RateCardDiscounts.Percentage.CorrelationID)
 
-		hierarchy, err := s.BillingAdapter.GetSplitLineGroup(ctx, billing.GetSplitLineGroupInput{
+		hierarchy, err := s.SplitLineGroupService.GetSplitLineGroup(ctx, models.NamespacedID{
 			Namespace: invoiceLine.Namespace,
 			ID:        *invoiceLine.SplitLineGroupID,
 		})

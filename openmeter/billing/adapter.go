@@ -13,7 +13,6 @@ type Adapter interface {
 	ProfileAdapter
 	CustomerBillingProfileAdapter
 	InvoiceLineAdapter
-	InvoiceSplitLineGroupAdapter
 	InvoiceAdapter
 	GatheringInvoiceAdapter
 	StandardInvoiceAdapter
@@ -88,15 +87,6 @@ type GatheringInvoiceAdapter interface {
 	ListCustomerIDsPendingCollection(ctx context.Context, input ListCustomerIDsPendingCollectionInput) ([]customer.CustomerID, error)
 
 	HardDeleteGatheringInvoiceLines(ctx context.Context, invoiceID InvoiceID, lineIDs []string) error
-}
-
-type InvoiceSplitLineGroupAdapter interface {
-	GetSplitLineGroupsForSubscription(ctx context.Context, input GetLinesForSubscriptionInput) ([]SplitLineHierarchy, error)
-	CreateSplitLineGroup(ctx context.Context, input CreateSplitLineGroupAdapterInput) (SplitLineGroup, error)
-	UpdateSplitLineGroup(ctx context.Context, input UpdateSplitLineGroupInput) (SplitLineGroup, error)
-	DeleteSplitLineGroup(ctx context.Context, input DeleteSplitLineGroupInput) error
-	GetSplitLineGroup(ctx context.Context, input GetSplitLineGroupInput) (SplitLineHierarchy, error)
-	GetSplitLineGroups(ctx context.Context, input GetSplitLineGroupsInput) ([]SplitLineHierarchy, error)
 }
 
 type InvoiceAppAdapter interface {

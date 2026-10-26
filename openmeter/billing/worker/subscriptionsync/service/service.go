@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"time"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
+	"github.com/openmeterio/openmeter/openmeter/billing/invoicing/legacy/splitlinegroup"
 	billinglineengine "github.com/openmeterio/openmeter/openmeter/billing/lineengine"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/reconciler"
@@ -26,8 +28,11 @@ type FeatureFlags struct {
 	MaxLinesPerCollectedInvoice     int
 }
 
+var _ models.Validator = (*Config)(nil)
+
 type Config struct {
 	BillingService          billing.Service
+	SplitLineGroupService   splitlinegroup.Service
 	LegacyBillingLineEngine *billinglineengine.Engine
 	// ChargesService is required for credit-only sync and charge-based provisioning.
 	ChargesService                charges.Service
@@ -41,41 +46,48 @@ type Config struct {
 }
 
 func (c Config) Validate() error {
+	var errs []error
+
+	if c.SplitLineGroupService == nil {
+		errs = append(errs, errors.New("split line group service is required"))
+	}
+
 	if c.BillingService == nil {
-		return fmt.Errorf("billing service is required")
+		errs = append(errs, errors.New("billing service is required"))
 	}
 
 	if c.LegacyBillingLineEngine == nil {
-		return fmt.Errorf("legacy billing line engine is required")
+		errs = append(errs, errors.New("legacy billing line engine is required"))
 	}
 
 	if c.SubscriptionService == nil {
-		return fmt.Errorf("subscription service is required")
+		errs = append(errs, errors.New("subscription service is required"))
 	}
 
 	if c.SubscriptionSyncAdapter == nil {
-		return fmt.Errorf("subscription sync adapter is required")
+		errs = append(errs, errors.New("subscription sync adapter is required"))
 	}
 
 	if c.Logger == nil {
-		return fmt.Errorf("logger is required")
+		errs = append(errs, errors.New("logger is required"))
 	}
 
 	if c.Tracer == nil {
-		return fmt.Errorf("tracer is required")
+		errs = append(errs, errors.New("tracer is required"))
 	}
 
 	if err := c.FeatureGate.Validate(); err != nil {
-		return err
+		errs = append(errs, fmt.Errorf("feature gate: %w", err))
 	}
 
-	return nil
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 var _ subscriptionsync.Service = (*Service)(nil)
 
 type Service struct {
 	billingService                billing.Service
+	splitLineGroupService         splitlinegroup.Service
 	chargesService                charges.Service
 	reconciler                    reconciler.Reconciler
 	subscriptionService           subscription.Service
@@ -93,6 +105,7 @@ func New(config Config) (*Service, error) {
 
 	reconcilerSvc, err := reconciler.New(reconciler.Config{
 		BillingService:          config.BillingService,
+		SplitLineGroupService:   config.SplitLineGroupService,
 		LegacyBillingLineEngine: config.LegacyBillingLineEngine,
 		ChargesService:          config.ChargesService,
 		EnableCreditThenInvoice: config.FeatureFlags.EnableCreditThenInvoice,
@@ -105,6 +118,7 @@ func New(config Config) (*Service, error) {
 
 	return &Service{
 		billingService:                config.BillingService,
+		splitLineGroupService:         config.SplitLineGroupService,
 		chargesService:                config.ChargesService,
 		reconciler:                    reconcilerSvc,
 		subscriptionSyncAdapter:       config.SubscriptionSyncAdapter,

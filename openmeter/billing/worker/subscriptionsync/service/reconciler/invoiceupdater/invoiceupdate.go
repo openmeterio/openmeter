@@ -10,6 +10,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/invoicing/legacy/splitlinegroup"
 	billinglineengine "github.com/openmeterio/openmeter/openmeter/billing/lineengine"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
@@ -21,13 +22,18 @@ import (
 const subscriptionSyncComponentName billing.ComponentName = "subscription-sync"
 
 type Config struct {
-	BillingService billing.Service
-	LineEngine     *billinglineengine.Engine
-	Logger         *slog.Logger
+	BillingService        billing.Service
+	SplitLineGroupService splitlinegroup.Service
+	LineEngine            *billinglineengine.Engine
+	Logger                *slog.Logger
 }
 
 func (c Config) Validate() error {
 	var errs []error
+
+	if c.SplitLineGroupService == nil {
+		errs = append(errs, errors.New("split line group service is required"))
+	}
 
 	if c.BillingService == nil {
 		errs = append(errs, errors.New("billing service is required"))
@@ -45,9 +51,10 @@ func (c Config) Validate() error {
 }
 
 type Updater struct {
-	billingService billing.Service
-	lineEngine     *billinglineengine.Engine
-	logger         *slog.Logger
+	billingService        billing.Service
+	splitLineGroupService splitlinegroup.Service
+	lineEngine            *billinglineengine.Engine
+	logger                *slog.Logger
 }
 
 func New(config Config) (*Updater, error) {
@@ -56,9 +63,10 @@ func New(config Config) (*Updater, error) {
 	}
 
 	return &Updater{
-		billingService: config.BillingService,
-		lineEngine:     config.LineEngine,
-		logger:         config.Logger,
+		billingService:        config.BillingService,
+		splitLineGroupService: config.SplitLineGroupService,
+		lineEngine:            config.LineEngine,
+		logger:                config.Logger,
 	}, nil
 }
 
@@ -246,7 +254,7 @@ type invoicePatches struct {
 
 type splitLineGroupPatches struct {
 	deleted []models.NamespacedID
-	updated []billing.SplitLineGroupUpdate
+	updated []splitlinegroup.SplitLineGroupUpdate
 }
 
 func (u *Updater) parsePatches(patches []Patch) (patchesParsed, error) {
@@ -614,13 +622,13 @@ func (u *Updater) upsertSplitLineGroups(ctx context.Context, customerID customer
 	}
 
 	for _, groupID := range changes.deleted {
-		if err := u.billingService.DeleteSplitLineGroup(ctx, groupID); err != nil {
+		if err := u.splitLineGroupService.DeleteSplitLineGroup(ctx, groupID); err != nil {
 			return fmt.Errorf("deleting split line group: %w", err)
 		}
 	}
 
 	for _, group := range changes.updated {
-		if _, err := u.billingService.UpdateSplitLineGroup(ctx, group); err != nil {
+		if _, err := u.splitLineGroupService.UpdateSplitLineGroup(ctx, group); err != nil {
 			return fmt.Errorf("upserting split line group: %w", err)
 		}
 	}

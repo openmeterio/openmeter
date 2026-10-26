@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/invoicing/legacy/splitlinegroup"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	ratingservice "github.com/openmeterio/openmeter/openmeter/billing/rating/service"
@@ -386,43 +387,43 @@ func TestRateStandardLinesProgressiveCommitments(t *testing.T) {
 			line.UsageBased.MeteredQuantity = lo.ToPtr(alpacadecimal.NewFromInt(20))
 			line.UsageBased.MeteredPreLinePeriodQuantity = lo.ToPtr(alpacadecimal.NewFromInt(40))
 			line.SplitLineGroupID = lo.ToPtr("group-id")
-			hierarchy := &billing.SplitLineHierarchy{
-				Group: billing.SplitLineGroup{
+			hierarchy := &splitlinegroup.SplitLineHierarchy{
+				Group: splitlinegroup.SplitLineGroup{
 					NamespacedID: models.NamespacedID{Namespace: line.Namespace, ID: *line.SplitLineGroupID},
-					SplitLineGroupMutableFields: billing.SplitLineGroupMutableFields{
+					SplitLineGroupMutableFields: splitlinegroup.SplitLineGroupMutableFields{
 						ServicePeriod: fullPeriod,
 					},
 				},
 			}
 			for _, childCase := range []struct {
 				name  string
-				setup func(*billing.SplitLineHierarchyLine)
+				setup func(*splitlinegroup.SplitLineHierarchyLine)
 			}{
 				{
 					name:  "live",
-					setup: func(*billing.SplitLineHierarchyLine) {},
+					setup: func(*splitlinegroup.SplitLineHierarchyLine) {},
 				},
 				{
 					name: "deleted line",
-					setup: func(child *billing.SplitLineHierarchyLine) {
+					setup: func(child *splitlinegroup.SplitLineHierarchyLine) {
 						child.DeletedAt = lo.ToPtr(periodBoundary)
 					},
 				},
 				{
 					name: "deleted invoice",
-					setup: func(child *billing.SplitLineHierarchyLine) {
+					setup: func(child *splitlinegroup.SplitLineHierarchyLine) {
 						child.Invoice.DeletedAt = lo.ToPtr(periodBoundary)
 					},
 				},
 				{
 					name: "terminal deleted invoice",
-					setup: func(child *billing.SplitLineHierarchyLine) {
+					setup: func(child *splitlinegroup.SplitLineHierarchyLine) {
 						child.Invoice.Status = billing.StandardInvoiceStatusDeleted
 					},
 				},
 				{
 					name: "later period",
-					setup: func(child *billing.SplitLineHierarchyLine) {
+					setup: func(child *splitlinegroup.SplitLineHierarchyLine) {
 						child.ServicePeriod.To = fullPeriod.To
 					},
 				},
@@ -434,12 +435,12 @@ func TestRateStandardLinesProgressiveCommitments(t *testing.T) {
 				priorLine.ID = childCase.name
 				priorLine.Totals.Amount = alpacadecimal.NewFromInt(40)
 				priorInvoice := quantitySnapshotTestInvoice()
-				child := billing.SplitLineHierarchyLine{
+				child := splitlinegroup.SplitLineHierarchyLine{
 					LineID:        priorLine.GetLineID(),
 					ServicePeriod: priorLine.Period,
 					DeletedAt:     priorLine.DeletedAt,
 					Amount:        priorLine.Totals.Amount,
-					Invoice: billing.SplitLineHierarchyInvoice{
+					Invoice: splitlinegroup.SplitLineHierarchyInvoice{
 						InvoiceID: billing.InvoiceID{Namespace: priorInvoice.Namespace, ID: priorInvoice.ID},
 						Type:      billing.InvoiceTypeStandard,
 						Status:    priorInvoice.Status,

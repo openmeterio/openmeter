@@ -2167,23 +2167,6 @@ func (n NoopBillingService) GetGatheringLinesForSubscription(ctx context.Context
 	return billing.GatheringLines{}, nil
 }
 
-// InvoiceSplitLineGroupService methods
-func (n NoopBillingService) DeleteSplitLineGroup(ctx context.Context, input billing.DeleteSplitLineGroupInput) error {
-	return nil
-}
-
-func (n NoopBillingService) UpdateSplitLineGroup(ctx context.Context, input billing.UpdateSplitLineGroupInput) (billing.SplitLineGroup, error) {
-	return billing.SplitLineGroup{}, nil
-}
-
-func (n NoopBillingService) GetSplitLineGroupsForSubscription(ctx context.Context, input billing.GetLinesForSubscriptionInput) ([]billing.SplitLineHierarchy, error) {
-	return []billing.SplitLineHierarchy{}, nil
-}
-
-func (n NoopBillingService) GetSplitLineGroup(ctx context.Context, input billing.GetSplitLineGroupInput) (billing.SplitLineHierarchy, error) {
-	return billing.SplitLineHierarchy{}, nil
-}
-
 // InvoiceService methods
 func (n NoopBillingService) ListInvoices(ctx context.Context, input billing.ListInvoicesInput) (billing.ListInvoicesResponse, error) {
 	return billing.ListInvoicesResponse{}, nil

@@ -28,8 +28,8 @@ sync must converge. Subscription events provide the prompt path, invoice
 creation triggers a refill of consumed future work, and the periodic reconciler
 repairs missed or failed event processing.
 
-Invoice patches, charge patches, and the sync-state update share the billing
-transaction. A failure rolls back the plan rather than leaving only the earlier
+Invoice patches, legacy split-group changes, charge patches, and the sync-state
+update share the billing transaction. A failure rolls back the plan rather than leaving only the earlier
 patches applied.
 
 The entrypoints that also invoice the customer run pending-line collection
@@ -74,6 +74,12 @@ Charge-backed reconciliation is the replacement path for supported new
 artifacts. The invoice backend remains for compatibility while that transition
 is incomplete. Existing artifacts keep their persisted backend rather than
 being migrated implicitly.
+
+The invoice backend loads group history and applies group changes through the
+[legacy split-line group service](../../invoicing/legacy/splitlinegroup/README.md).
+Invoice patches run before group updates, within the same customer lock and
+transaction. Persisted group metadata therefore remains authoritative during
+invoice calculation; reconciliation does not overlay pending group changes.
 
 Invoice-backed patches may create gathering lines or update mutable gathering
 and standard invoices. If subscription state disagrees with an immutable

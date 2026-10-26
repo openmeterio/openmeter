@@ -18,6 +18,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	chargesworkeradvance "github.com/openmeterio/openmeter/openmeter/billing/charges/worker/advance"
 	billingfeaturemeterservice "github.com/openmeterio/openmeter/openmeter/billing/featuremeter/service"
+	"github.com/openmeterio/openmeter/openmeter/billing/invoicing/legacy/splitlinegroup"
+	splitlinegroupadapter "github.com/openmeterio/openmeter/openmeter/billing/invoicing/legacy/splitlinegroup/adapter"
+	splitlinegroupservice "github.com/openmeterio/openmeter/openmeter/billing/invoicing/legacy/splitlinegroup/service"
 	billinglineengine "github.com/openmeterio/openmeter/openmeter/billing/lineengine"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	billingratingservice "github.com/openmeterio/openmeter/openmeter/billing/rating/service"
@@ -55,6 +58,7 @@ import (
 // billing or charges should depend on BillingRegistry rather than individual services.
 type BillingRegistry struct {
 	Billing                 billing.Service
+	SplitLineGroups         splitlinegroup.Service
 	LegacyBillingLineEngine *billinglineengine.Engine
 	Sequence                billingsequence.Service
 	Charges                 *ChargesRegistry
@@ -117,14 +121,14 @@ func NewBillingSequenceService(
 }
 
 func NewLegacyBillingLineEngine(
-	billingAdapter billing.Adapter,
+	splitLineGroupService splitlinegroup.Service,
 	billingRatingService rating.Service,
 	featureMeterResolver *billingfeaturemeterservice.Resolver,
 	streamingConnector streaming.Connector,
 	billingConfig config.BillingConfiguration,
 ) (*billinglineengine.Engine, error) {
 	return billinglineengine.New(billinglineengine.Config{
-		SplitLineGroupAdapter:        billingAdapter,
+		SplitLineGroupService:        splitLineGroupService,
 		RatingService:                billingRatingService,
 		FeatureMeterResolver:         featureMeterResolver,
 		StreamingConnector:           streamingConnector,
@@ -215,8 +219,24 @@ func NewBillingRegistry(
 		return BillingRegistry{}, fmt.Errorf("creating feature meter resolver: %w", err)
 	}
 
+	splitLineGroupAdapter, err := splitlinegroupadapter.New(splitlinegroupadapter.Config{
+		Client: db,
+		Logger: logger.With("subsystem", "billing.legacy.splitlinegroup"),
+	})
+	if err != nil {
+		return BillingRegistry{}, fmt.Errorf("creating split line group adapter: %w", err)
+	}
+
+	splitLineGroupService, err := splitlinegroupservice.New(splitlinegroupservice.Config{
+		Adapter: splitLineGroupAdapter,
+		Logger:  logger.With("subsystem", "billing.legacy.splitlinegroup"),
+	})
+	if err != nil {
+		return BillingRegistry{}, fmt.Errorf("creating split line group service: %w", err)
+	}
+
 	legacyBillingLineEngine, err := NewLegacyBillingLineEngine(
-		billingAdapter,
+		splitLineGroupService,
 		billingRatingService,
 		featureMeterResolver,
 		streamingConnector,
@@ -280,6 +300,7 @@ func NewBillingRegistry(
 
 	billingRegistry := BillingRegistry{
 		Billing:                 billingService,
+		SplitLineGroups:         splitLineGroupService,
 		LegacyBillingLineEngine: legacyBillingLineEngine,
 		Sequence:                sequenceService,
 		Charges:                 chargesRegistry,
@@ -386,6 +407,7 @@ func NewBillingSubscriptionSyncService(logger *slog.Logger, subsServices Subscri
 	return subscriptionsyncservice.New(subscriptionsyncservice.Config{
 		SubscriptionService:     subsServices.Service,
 		BillingService:          billingRegistry.Billing,
+		SplitLineGroupService:   billingRegistry.SplitLineGroups,
 		LegacyBillingLineEngine: billingRegistry.LegacyBillingLineEngine,
 		ChargesService:          billingRegistry.ChargesServiceOrNil(),
 		SubscriptionSyncAdapter: subscriptionSyncAdapter,
