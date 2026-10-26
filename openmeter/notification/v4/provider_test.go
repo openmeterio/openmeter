@@ -170,6 +170,68 @@ func TestUpdateChannelInputValidate(t *testing.T) {
 		wantErrors []string
 	}{
 		{
+			name: "valid concrete event types",
+			modify: func(input *UpdateChannelInput[WebhookConfigUpdate]) {
+				input.EventTypes = new([]EventType{
+					{Name: "invoice.created", Version: 1},
+					{Name: "billing.invoice.updated", Version: 2},
+				})
+			},
+		},
+		{
+			name: "uppercase event type name",
+			modify: func(input *UpdateChannelInput[WebhookConfigUpdate]) {
+				input.EventTypes = new([]EventType{{Name: "Invoice.created", Version: 1}})
+			},
+			wantErrors: []string{"invalid eventTypes[0]", "lowercase snake_case"},
+		},
+		{
+			name: "single-segment event type name",
+			modify: func(input *UpdateChannelInput[WebhookConfigUpdate]) {
+				input.EventTypes = new([]EventType{{Name: "invoice", Version: 1}})
+			},
+			wantErrors: []string{"invalid eventTypes[0]", "at least two"},
+		},
+		{
+			name: "wildcard event type name",
+			modify: func(input *UpdateChannelInput[WebhookConfigUpdate]) {
+				input.EventTypes = new([]EventType{{Name: "*", Version: 1}})
+			},
+			wantErrors: []string{"invalid eventTypes[0]", "lowercase snake_case"},
+		},
+		{
+			name: "wildcard event type suffix",
+			modify: func(input *UpdateChannelInput[WebhookConfigUpdate]) {
+				input.EventTypes = new([]EventType{{Name: "billing.*", Version: 1}})
+			},
+			wantErrors: []string{"invalid eventTypes[0]", "lowercase snake_case"},
+		},
+		{
+			name: "zero event type version",
+			modify: func(input *UpdateChannelInput[WebhookConfigUpdate]) {
+				input.EventTypes = new([]EventType{{Name: "invoice.created", Version: 0}})
+			},
+			wantErrors: []string{"invalid eventTypes[0]", "version must be positive"},
+		},
+		{
+			name: "negative event type version",
+			modify: func(input *UpdateChannelInput[WebhookConfigUpdate]) {
+				input.EventTypes = new([]EventType{{Name: "invoice.created", Version: -1}})
+			},
+			wantErrors: []string{"invalid eventTypes[0]", "version must be positive"},
+		},
+		{
+			name: "multiple invalid event types",
+			modify: func(input *UpdateChannelInput[WebhookConfigUpdate]) {
+				input.EventTypes = new([]EventType{
+					{Name: "invoice.created", Version: 1},
+					{Name: "Invoice", Version: 1},
+					{Name: "invoice.updated", Version: 0},
+				})
+			},
+			wantErrors: []string{"invalid eventTypes[1]", "invalid eventTypes[2]", "lowercase snake_case", "version must be positive"},
+		},
+		{
 			name: "no changes",
 		},
 		{
@@ -314,6 +376,74 @@ func TestProviderChannelInputValidation(t *testing.T) {
 		wantErrors []string
 	}{
 		{
+			name: "valid concrete event types",
+			modify: func(input *CreateChannelInput[WebhookConfig]) {
+				input.EventTypes = []EventType{
+					{Name: "invoice.created", Version: 1},
+					{Name: "billing.invoice.updated", Version: 2},
+				}
+			},
+		},
+		{
+			name: "empty event type filter",
+			modify: func(input *CreateChannelInput[WebhookConfig]) {
+				input.EventTypes = []EventType{}
+			},
+		},
+		{
+			name: "uppercase event type name",
+			modify: func(input *CreateChannelInput[WebhookConfig]) {
+				input.EventTypes = []EventType{{Name: "Invoice.created", Version: 1}}
+			},
+			wantErrors: []string{"invalid eventTypes[0]", "lowercase snake_case"},
+		},
+		{
+			name: "single-segment event type name",
+			modify: func(input *CreateChannelInput[WebhookConfig]) {
+				input.EventTypes = []EventType{{Name: "invoice", Version: 1}}
+			},
+			wantErrors: []string{"invalid eventTypes[0]", "at least two"},
+		},
+		{
+			name: "wildcard event type name",
+			modify: func(input *CreateChannelInput[WebhookConfig]) {
+				input.EventTypes = []EventType{{Name: "*", Version: 1}}
+			},
+			wantErrors: []string{"invalid eventTypes[0]", "lowercase snake_case"},
+		},
+		{
+			name: "wildcard event type suffix",
+			modify: func(input *CreateChannelInput[WebhookConfig]) {
+				input.EventTypes = []EventType{{Name: "billing.*", Version: 1}}
+			},
+			wantErrors: []string{"invalid eventTypes[0]", "lowercase snake_case"},
+		},
+		{
+			name: "zero event type version",
+			modify: func(input *CreateChannelInput[WebhookConfig]) {
+				input.EventTypes = []EventType{{Name: "invoice.created", Version: 0}}
+			},
+			wantErrors: []string{"invalid eventTypes[0]", "version must be positive"},
+		},
+		{
+			name: "negative event type version",
+			modify: func(input *CreateChannelInput[WebhookConfig]) {
+				input.EventTypes = []EventType{{Name: "invoice.created", Version: -1}}
+			},
+			wantErrors: []string{"invalid eventTypes[0]", "version must be positive"},
+		},
+		{
+			name: "multiple invalid event types",
+			modify: func(input *CreateChannelInput[WebhookConfig]) {
+				input.EventTypes = []EventType{
+					{Name: "invoice.created", Version: 1},
+					{Name: "Invoice", Version: 1},
+					{Name: "invoice.updated", Version: 0},
+				}
+			},
+			wantErrors: []string{"invalid eventTypes[1]", "invalid eventTypes[2]", "lowercase snake_case", "version must be positive"},
+		},
+		{
 			name: "valid identity and name",
 		},
 		{
@@ -433,6 +563,34 @@ func TestSendEventInputValidate(t *testing.T) {
 		wantErrors []string
 	}{
 		{
+			name: "uppercase event type name",
+			modify: func(input *SendEventInput) {
+				input.Event.EventType.Name = "Invoice.created"
+			},
+			wantErrors: []string{"invalid event type", "at least two lowercase snake_case segments"},
+		},
+		{
+			name: "single-segment event type name",
+			modify: func(input *SendEventInput) {
+				input.Event.EventType.Name = "invoice"
+			},
+			wantErrors: []string{"invalid event type", "at least two lowercase snake_case segments"},
+		},
+		{
+			name: "wildcard event type name",
+			modify: func(input *SendEventInput) {
+				input.Event.EventType.Name = "*"
+			},
+			wantErrors: []string{"invalid event type", "at least two lowercase snake_case segments"},
+		},
+		{
+			name: "wildcard event type suffix",
+			modify: func(input *SendEventInput) {
+				input.Event.EventType.Name = "billing.*"
+			},
+			wantErrors: []string{"invalid event type", "at least two lowercase snake_case segments"},
+		},
+		{
 			name: "valid without idempotency key",
 		},
 		{
@@ -487,28 +645,28 @@ func TestSendEventInputValidate(t *testing.T) {
 			modify: func(input *SendEventInput) {
 				input.Event.EventType.Name = ""
 			},
-			wantErrors: []string{"event type must have a name and a positive version"},
+			wantErrors: []string{"invalid event type", "at least two lowercase snake_case segments"},
 		},
 		{
 			name: "whitespace event type name",
 			modify: func(input *SendEventInput) {
 				input.Event.EventType.Name = " \t\n"
 			},
-			wantErrors: []string{"event type must have a name and a positive version"},
+			wantErrors: []string{"invalid event type", "at least two lowercase snake_case segments"},
 		},
 		{
 			name: "zero event type version",
 			modify: func(input *SendEventInput) {
 				input.Event.EventType.Version = 0
 			},
-			wantErrors: []string{"event type must have a name and a positive version"},
+			wantErrors: []string{"invalid event type", "version must be positive, got 0"},
 		},
 		{
 			name: "negative event type version",
 			modify: func(input *SendEventInput) {
 				input.Event.EventType.Version = -1
 			},
-			wantErrors: []string{"event type must have a name and a positive version"},
+			wantErrors: []string{"invalid event type", "version must be positive, got -1"},
 		},
 		{
 			name: "missing creation time",
@@ -554,7 +712,9 @@ func TestSendEventInputValidate(t *testing.T) {
 				"event namespace is required",
 				"event ID is required",
 				"at least one destination is required",
-				"event type must have a name and a positive version",
+				"invalid event type",
+				"at least two lowercase snake_case segments",
+				"version must be positive, got 0",
 				"event creation time is required",
 				"event payload must be valid JSON",
 				"idempotency key must not be blank when provided",

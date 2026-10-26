@@ -221,6 +221,12 @@ func (i CreateChannelInput[C]) Validate() error {
 		errs = append(errs, fmt.Errorf("invalid channel configuration: %w", err))
 	}
 
+	for idx, eventType := range i.EventTypes {
+		if err := eventType.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("invalid eventTypes[%d]: %w", idx, err))
+		}
+	}
+
 	if i.IdempotencyKey != nil && strings.TrimSpace(*i.IdempotencyKey) == "" {
 		errs = append(errs, errors.New("idempotency key must not be blank when provided"))
 	}
@@ -261,6 +267,14 @@ func (i UpdateChannelInput[U]) Validate() error {
 
 	if err := i.Config.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("invalid channel configuration: %w", err))
+	}
+
+	if i.EventTypes != nil {
+		for idx, eventType := range *i.EventTypes {
+			if err := eventType.Validate(); err != nil {
+				errs = append(errs, fmt.Errorf("invalid eventTypes[%d]: %w", idx, err))
+			}
+		}
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
@@ -330,8 +344,8 @@ func (i SendEventInput) Validate() error {
 		errs = append(errs, err)
 	}
 
-	if strings.TrimSpace(i.Event.EventType.Name) == "" || i.Event.EventType.Version <= 0 {
-		errs = append(errs, errors.New("event type must have a name and a positive version"))
+	if err := i.Event.EventType.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("invalid event type: %w", err))
 	}
 
 	if i.Event.CreatedAt.IsZero() {
