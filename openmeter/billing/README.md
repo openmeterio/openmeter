@@ -167,6 +167,14 @@ prior-period usage, the full service period, and previously billed amounts.
 Ordinary charge rating uses its own snapshots and does not require split-line
 hierarchy access.
 
+Legacy calculation pairs the current line with separately supplied split-group
+context. Persisted engine operations resolve complete history in the caller's
+transaction so materialization, gathering previews, collection, and mutable
+updates account for previously billed amounts consistently. Snapshot-only
+immutable comparisons use the group's period without rating historical amounts.
+Simulation supplies transient context without reading persisted groups.
+Calculation never replaces pending line edits with historical children.
+
 Rating returns amounts before credit application. Legacy invoice lines do not
 allocate credits; charge engines reconcile allocations and apply them to their
 detailed lines after rating.

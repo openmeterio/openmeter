@@ -482,14 +482,12 @@ type (
 	GetSplitLineGroupInput           = models.NamespacedID
 )
 
-type GetSplitLineGroupHeadersInput struct {
+type GetSplitLineGroupsInput struct {
 	Namespace         string
 	SplitLineGroupIDs []string
 }
 
-type SplitLineGroupHeaders = []SplitLineGroup
-
-func (i GetSplitLineGroupHeadersInput) Validate() error {
+func (i GetSplitLineGroupsInput) Validate() error {
 	var errs []error
 
 	if i.Namespace == "" {

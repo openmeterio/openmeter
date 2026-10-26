@@ -198,7 +198,7 @@ func TestRateStandardLinesUsesMeteredUsageAndPreservesIdentities(t *testing.T) {
 	require.NoError(t, err)
 
 	// When the supplied snapshots are rated without an invoice or persistence dependency.
-	lines, err := engine.RateStandardLines(input)
+	lines, err := engine.RateStandardLinesWithSplitLineHierarchies(RateStandardLinesWithSplitLineHierarchiesInput{Lines: input})
 	require.NoError(t, err)
 
 	// Then normalization and rating affect only the result, using raw rather than net usage.
@@ -240,7 +240,7 @@ func TestRateStandardLinesUsesMeteredUsageAndPreservesIdentities(t *testing.T) {
 	require.NoError(t, err)
 
 	// When the edited state is rated again.
-	rerated, err := engine.RateStandardLines(input)
+	rerated, err := engine.RateStandardLinesWithSplitLineHierarchies(RateStandardLinesWithSplitLineHierarchiesInput{Lines: input})
 	require.NoError(t, err)
 
 	// Then discounts are applied once and matching persisted identities survive.
@@ -263,16 +263,17 @@ func TestRateStandardLinesUsesMeteredUsageAndPreservesIdentities(t *testing.T) {
 	require.True(t, detail.AmountDiscounts[0].UpdatedAt.IsZero()) // The adapter owns the update timestamp.
 	require.Equal(t, 6.25, detail.AmountDiscounts[0].Amount.InexactFloat64())
 
-	repeated, err := engine.RateStandardLines(rerated)
+	repeated, err := engine.RateStandardLinesWithSplitLineHierarchies(RateStandardLinesWithSplitLineHierarchiesInput{Lines: rerated})
 	require.NoError(t, err)
 	require.Equal(t, rerated, repeated)
 }
 
 func TestRateStandardLinesFailuresLeaveTheWholeInputUnchanged(t *testing.T) {
 	for _, tc := range []struct {
-		name       string
-		invalidate func(*billing.StandardLine)
-		errorText  string
+		name        string
+		invalidate  func(*billing.StandardLine)
+		errorText   string
+		hierarchies map[billing.LineID]*billing.SplitLineHierarchy
 	}{
 		{
 			name: "rating failure",
@@ -282,9 +283,24 @@ func TestRateStandardLinesFailuresLeaveTheWholeInputUnchanged(t *testing.T) {
 			errorText: "metered quantity is required",
 		},
 		{
-			name: "missing progressive hierarchy",
+			name: "missing explicit progressive hierarchy",
 			invalidate: func(line *billing.StandardLine) {
 				line.SplitLineGroupID = lo.ToPtr("missing-group")
+				line.SplitLineHierarchy = &billing.SplitLineHierarchy{
+					Group: billing.SplitLineGroup{SplitLineGroupMutableFields: billing.SplitLineGroupMutableFields{ServicePeriod: line.Period}},
+				}
+			},
+			errorText: "split line hierarchy is required",
+		},
+		{
+			name: "history from another namespace",
+			invalidate: func(line *billing.StandardLine) {
+				line.SplitLineGroupID = lo.ToPtr("missing-group")
+			},
+			hierarchies: map[billing.LineID]*billing.SplitLineHierarchy{
+				{Namespace: "another-namespace", ID: "second-line"}: {
+					Group: billing.SplitLineGroup{SplitLineGroupMutableFields: billing.SplitLineGroupMutableFields{ServicePeriod: lineEngineOverrideTestPeriod()}},
+				},
 			},
 			errorText: "split line hierarchy is required",
 		},
@@ -322,7 +338,10 @@ func TestRateStandardLinesFailuresLeaveTheWholeInputUnchanged(t *testing.T) {
 
 			// When rating the batch fails on the second line.
 			engine := &Engine{ratingService: ratingservice.New(ratingservice.Config{})}
-			out, err := engine.RateStandardLines(lines)
+			out, err := engine.RateStandardLinesWithSplitLineHierarchies(RateStandardLinesWithSplitLineHierarchiesInput{
+				Lines:       lines,
+				Hierarchies: tc.hierarchies,
+			})
 
 			// Then neither normalization nor earlier successful rating leaks into the input.
 			require.ErrorContains(t, err, tc.errorText)
@@ -439,12 +458,20 @@ func TestRateStandardLinesProgressiveCommitments(t *testing.T) {
 				line.SplitLineHierarchy.Lines = append(line.SplitLineHierarchy.Lines, child)
 			}
 
+			hierarchy := line.SplitLineHierarchy
+			line.SplitLineHierarchy = nil
+			hierarchies := map[billing.LineID]*billing.SplitLineHierarchy{line.GetLineID(): hierarchy}
+			historyBefore, err := json.Marshal(hierarchy)
+			require.NoError(t, err)
 			before, err := json.Marshal(line)
 			require.NoError(t, err)
 			engine := &Engine{ratingService: ratingservice.New(ratingservice.Config{})}
 
-			// When the legacy engine resolves progressive inputs and rates the supplied snapshot.
-			lines, err := engine.RateStandardLines(billing.StandardLines{line})
+			// When supplied history rates a snapshot whose embedded hierarchy is absent.
+			lines, err := engine.RateStandardLinesWithSplitLineHierarchies(RateStandardLinesWithSplitLineHierarchiesInput{
+				Lines:       billing.StandardLines{line},
+				Hierarchies: hierarchies,
+			})
 			require.NoError(t, err)
 
 			// Then deleted history and later periods do not contribute to commitments.
@@ -466,7 +493,10 @@ func TestRateStandardLinesProgressiveCommitments(t *testing.T) {
 				rated.DetailedLines[0].AmountDiscounts[0].ID = "max-spend-discount-id"
 			}
 
-			rerated, err := engine.RateStandardLines(lines)
+			rerated, err := engine.RateStandardLinesWithSplitLineHierarchies(RateStandardLinesWithSplitLineHierarchiesInput{
+				Lines:       lines,
+				Hierarchies: hierarchies,
+			})
 			require.NoError(t, err)
 			require.Equal(t, rated.Totals, rerated[0].Totals)
 			require.Len(t, rerated[0].DetailedLines, len(rated.DetailedLines))
@@ -482,6 +512,9 @@ func TestRateStandardLinesProgressiveCommitments(t *testing.T) {
 			after, err := json.Marshal(line)
 			require.NoError(t, err)
 			require.JSONEq(t, string(before), string(after))
+			historyAfter, err := json.Marshal(hierarchy)
+			require.NoError(t, err)
+			require.JSONEq(t, string(historyBefore), string(historyAfter))
 
 			// Ordinary rating has no history. Header-only progressive context also
 			// retains the existing zero-history behavior.
@@ -489,17 +522,26 @@ func TestRateStandardLinesProgressiveCommitments(t *testing.T) {
 			require.NoError(t, err)
 			ordinaryLine.SplitLineGroupID = nil
 			ordinaryLine.SplitLineHierarchy = nil
-			ordinaryLines, err := engine.RateStandardLines(billing.StandardLines{ordinaryLine})
+			ordinaryLines, err := engine.RateStandardLinesWithSplitLineHierarchies(RateStandardLinesWithSplitLineHierarchiesInput{Lines: billing.StandardLines{ordinaryLine}})
 			require.NoError(t, err)
 			require.Equal(t, tc.ordinaryCharges, ordinaryLines[0].Totals.ChargesTotal.InexactFloat64())
 			require.Equal(t, tc.ordinaryTotal, ordinaryLines[0].Totals.Total.InexactFloat64())
 
 			headerOnlyLine, err := line.Clone()
 			require.NoError(t, err)
-			headerOnlyLine.SplitLineHierarchy.Lines = nil
-			headerOnlyLines, err := engine.RateStandardLines(billing.StandardLines{headerOnlyLine})
+			headerOnlyLine.ID = "header-only-line"
+			// An embedded full history must not override the explicit header-only scope.
+			headerOnlyLine.SplitLineHierarchy = hierarchy
+			mixedHistoryLines, err := engine.RateStandardLinesWithSplitLineHierarchies(RateStandardLinesWithSplitLineHierarchiesInput{
+				Lines: billing.StandardLines{line, headerOnlyLine},
+				Hierarchies: map[billing.LineID]*billing.SplitLineHierarchy{
+					line.GetLineID():           hierarchy,
+					headerOnlyLine.GetLineID(): {Group: hierarchy.Group},
+				},
+			})
 			require.NoError(t, err)
-			require.Equal(t, ordinaryLines[0].Totals, headerOnlyLines[0].Totals)
+			require.Equal(t, rated.Totals, mixedHistoryLines[0].Totals)
+			require.Equal(t, ordinaryLines[0].Totals, mixedHistoryLines[1].Totals)
 		})
 	}
 }
@@ -516,7 +558,7 @@ func TestRateStandardLinesPreservesCalculatedResultsWithCriticalIssues(t *testin
 	ratingService.On("GenerateLegacyProgressiveBilledLines", mock.Anything, mock.Anything).
 		Return(result, billing.ErrInvoiceLineVolumeSplitNotSupported).Once()
 	engine := &Engine{ratingService: ratingService}
-	lines, err := engine.RateStandardLines(billing.StandardLines{line})
+	lines, err := engine.RateStandardLinesWithSplitLineHierarchies(RateStandardLinesWithSplitLineHierarchiesInput{Lines: billing.StandardLines{line}})
 
 	// Then calculated state is returned with the critical issue and line attribution.
 	issues, systemErr := billing.ToValidationIssues(err)
@@ -550,7 +592,7 @@ func TestRateStandardLinesPreservesResultsWithValidationWarnings(t *testing.T) {
 		)).Once()
 	engine := &Engine{ratingService: ratingService}
 
-	lines, err := engine.RateStandardLines(billing.StandardLines{line})
+	lines, err := engine.RateStandardLinesWithSplitLineHierarchies(RateStandardLinesWithSplitLineHierarchiesInput{Lines: billing.StandardLines{line}})
 
 	issues, systemErr := billing.ToValidationIssues(err)
 	require.NoError(t, systemErr)
@@ -580,8 +622,10 @@ func TestRateStandardLinesRejectsSystemErrors(t *testing.T) {
 		Return(rating.GenerateDetailedLinesResult{}, ratingErr).Once()
 	engine := &Engine{ratingService: ratingService}
 
-	lines, err := engine.RateStandardLines(billing.StandardLines{
-		standardLineForLineEngineOverrideTest(t, lineEngineOverrideTestPeriod()),
+	lines, err := engine.RateStandardLinesWithSplitLineHierarchies(RateStandardLinesWithSplitLineHierarchiesInput{
+		Lines: billing.StandardLines{
+			standardLineForLineEngineOverrideTest(t, lineEngineOverrideTestPeriod()),
+		},
 	})
 
 	require.ErrorIs(t, err, ratingErr)

@@ -852,8 +852,7 @@ func (s *Service) CreateStandardInvoiceFromGatheringLines(ctx context.Context, i
 		}
 	}
 
-	// Prerequisite: we should have the split line group headers expanded so that snapshotting can determine if the preLine
-	// queries are needed.
+	// The legacy engine has already snapshotted quantities using split line group context.
 	// Let's persist the snapshotted values to the database as the state machine always reloads the invoice from the database to make
 	// sure we don't have any manual modifications inside the invoice structure.
 	invoice, err = s.updateInvoice(ctx, invoice)
