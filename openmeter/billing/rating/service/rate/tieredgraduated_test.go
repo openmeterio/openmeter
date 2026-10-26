@@ -1,6 +1,7 @@
 package rate_test
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/alpacahq/alpacadecimal"
@@ -406,7 +407,16 @@ func TestTieredPriceCalculator(t *testing.T) {
 	t.Run("totals, no usage", func(t *testing.T) {
 		// If there's no usage in the first tier we need to bill the flat fee regardless.
 		totalAmount := getTotalAmountForGraduatedTieredPrice(t, alpacadecimal.NewFromFloat(0), testIn)
-		require.Equal(t, alpacadecimal.NewFromFloat(100), totalAmount)
+		require.Equal(t, 100.0, totalAmount.InexactFloat64())
+	})
+
+	t.Run("totals, no usage, reversed tiers", func(t *testing.T) {
+		// Storage order must not change the first tier's mandatory flat fee.
+		reversedPrice := testIn.Clone()
+		slices.Reverse(reversedPrice.Tiers)
+
+		totalAmount := getTotalAmountForGraduatedTieredPrice(t, alpacadecimal.Zero, reversedPrice)
+		require.Equal(t, 100.0, totalAmount.InexactFloat64())
 	})
 
 	t.Run("totals, usage in tier 1", func(t *testing.T) {
