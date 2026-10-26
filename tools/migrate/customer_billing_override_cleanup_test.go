@@ -40,7 +40,9 @@ CREATE TEMP TABLE billing_customer_overrides (
     invoice_progressive_billing boolean,
     invoice_default_tax_config jsonb,
     tax_behavior character varying,
-    tax_code_id character(26) REFERENCES tax_codes(id),
+    tax_code_id character(26),
+    CONSTRAINT "billing_customer_overrides_tax_codes_billing_customer_overrides"
+        FOREIGN KEY (tax_code_id) REFERENCES tax_codes(id) ON DELETE SET NULL,
     CONSTRAINT "billing_customer_overrides_billing_profiles_billing_customer_override"
         FOREIGN KEY (billing_profile_id) REFERENCES billing_profiles(id) ON DELETE SET NULL
 );
@@ -108,4 +110,53 @@ FROM billing_customer_overrides AS assignments`).Scan(&actualAssignments)
 INSERT INTO billing_customer_overrides (id, namespace, customer_id, created_at, updated_at)
 VALUES ($1, 'cleanup-invalid', $2, $3, $4)`, ulid.Make().String(), ulid.Make().String(), createdAt, updatedAt)
 	require.ErrorContains(t, err, `null value in column "billing_profile_id"`)
+
+	t.Run("rollback restores tax code relationships", func(t *testing.T) {
+		// given: the cleanup has preserved assigned rows and removed the legacy columns.
+		// when: the profile requirement and column cleanup are rolled back.
+		for _, migration := range []string{
+			"20261026101725_require_customer_billing_profile.down.sql",
+			"20261026095422_remove_customer_override_fields.down.sql",
+		} {
+			_, err := conn.ExecContext(t.Context(), readMigration(t, migration))
+			require.NoError(t, err)
+		}
+
+		// then: the historical index and validated foreign key are restored.
+		var indexDefinition string
+		err := conn.QueryRowContext(t.Context(), `
+SELECT pg_get_indexdef('pg_temp.billingcustomeroverride_tax_code_id'::regclass)`).Scan(&indexDefinition)
+		require.NoError(t, err)
+		require.Contains(t, indexDefinition, "USING btree (tax_code_id)")
+
+		var constraintDefinition string
+		var constraintValidated bool
+		err = conn.QueryRowContext(t.Context(), `
+SELECT pg_get_constraintdef(oid), convalidated
+FROM pg_constraint
+WHERE conrelid = 'pg_temp.billing_customer_overrides'::regclass
+  AND conname = 'billing_customer_overrides_tax_codes_billing_customer_overrides'`).Scan(&constraintDefinition, &constraintValidated)
+		require.NoError(t, err)
+		require.Equal(t, "FOREIGN KEY (tax_code_id) REFERENCES tax_codes(id) ON DELETE SET NULL", constraintDefinition)
+		require.True(t, constraintValidated)
+
+		// Deleting a tax code clears historical references without deleting assignments.
+		taxCodeID := ulid.Make().String()
+		_, err = conn.ExecContext(t.Context(), "INSERT INTO tax_codes (id) VALUES ($1)", taxCodeID)
+		require.NoError(t, err)
+
+		_, err = conn.ExecContext(t.Context(), "UPDATE billing_customer_overrides SET tax_code_id = $1", taxCodeID)
+		require.NoError(t, err)
+
+		_, err = conn.ExecContext(t.Context(), "DELETE FROM tax_codes WHERE id = $1", taxCodeID)
+		require.NoError(t, err)
+
+		var assignmentsWithoutTaxCode int
+		err = conn.QueryRowContext(t.Context(), "SELECT count(*) FROM billing_customer_overrides WHERE tax_code_id IS NULL").Scan(&assignmentsWithoutTaxCode)
+		require.NoError(t, err)
+		require.Equal(t, 4, assignmentsWithoutTaxCode)
+
+		_, err = conn.ExecContext(t.Context(), "UPDATE billing_customer_overrides SET tax_code_id = $1", ulid.Make().String())
+		require.ErrorContains(t, err, "billing_customer_overrides_tax_codes_billing_customer_overrides")
+	})
 }
