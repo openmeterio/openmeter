@@ -760,7 +760,7 @@ func (s *CustomCurrencyCreditsSuite) TestFlatFeeCreditThenInvoiceSelectsCreditsA
 			// - custom credits are granted before collection
 			// - a mid-period fee retains the billing-period start as invoice_at, as for an addon change
 			ns := s.GetUniqueNamespace("flat-fee-credit-booking-time")
-			defaults := s.ProvisionDefaultTaxCodes(ctx, ns)
+			defaults := s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 			invoicing := s.SetupCustomInvoicing(ns)
 			customer := s.CreateLedgerBackedCustomer(ns, "test-subject")
 			_ = s.ProvisionBillingProfile(ctx, ns, invoicing.App.GetID(), billingtest.WithManualApproval())
