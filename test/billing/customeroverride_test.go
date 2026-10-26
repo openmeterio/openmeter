@@ -342,7 +342,6 @@ func (s *CustomerBillingProfileTestSuite) TestListCustomerOverrides() {
 
 	custOverrideProfile := customers[1]
 	_, err = s.BillingService.SetCustomerBillingProfile(ctx, billing.SetCustomerBillingProfileInput{
-
 		Customer:  customer.CustomerID{Namespace: ns, ID: custOverrideProfile.ID},
 		ProfileID: overrideProfile.ID,
 	})
@@ -352,7 +351,6 @@ func (s *CustomerBillingProfileTestSuite) TestListCustomerOverrides() {
 
 	custPinnedToDefaultProfile := customers[2]
 	_, err = s.BillingService.SetCustomerBillingProfile(ctx, billing.SetCustomerBillingProfileInput{
-
 		Customer:  customer.CustomerID{Namespace: ns, ID: custPinnedToDefaultProfile.ID},
 		ProfileID: defaultProfile.ID,
 	})

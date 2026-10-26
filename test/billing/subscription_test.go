@@ -226,7 +226,6 @@ func (s *SubscriptionTestSuite) TestDefaultProfileChange() {
 	s.NotNil(pinnedCustomerToDefaultProfileCustomer)
 
 	override, err := s.BillingService.SetCustomerBillingProfile(ctx, billing.SetCustomerBillingProfileInput{
-
 		Customer:  customer.CustomerID{Namespace: namespace, ID: pinnedCustomerToDefaultProfileCustomer.ID},
 		ProfileID: defaultProfile.ID,
 	})
@@ -239,7 +238,6 @@ func (s *SubscriptionTestSuite) TestDefaultProfileChange() {
 	s.NotNil(pinnedCustomerToOtherProfileCustomer)
 
 	override, err = s.BillingService.SetCustomerBillingProfile(ctx, billing.SetCustomerBillingProfileInput{
-
 		Customer:  customer.CustomerID{Namespace: namespace, ID: pinnedCustomerToOtherProfileCustomer.ID},
 		ProfileID: otherProfile.ID,
 	})
