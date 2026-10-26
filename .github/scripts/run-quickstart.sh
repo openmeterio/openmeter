@@ -48,6 +48,5 @@ services:
     pull_policy: ${pull_policy}
 EOF
 
-"${compose[@]}" up -d
-curl --fail --retry 10 --retry-max-time 120 --retry-all-errors http://localhost:40000/healthz
+"${compose[@]}" up -d --wait --wait-timeout 180
 go test -v -count=1 .
