@@ -1,12 +1,11 @@
-// Package v4 holds the Notification vNext types, starting with the identity of
-// Notification Event types. Every domain's generated notificationevents package
-// imports it, so it must not depend on Notification or any domain package.
 package v4
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"regexp"
+	"time"
 
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -44,4 +43,36 @@ func (t EventType) Validate() error {
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+// Event is the persisted snapshot passed unchanged to a Provider. Providers must
+// not resolve its payload or type through live domain resources or a local Registry.
+type Event struct {
+	models.NamespacedID
+
+	EventType    EventType
+	CreatedAt    time.Time
+	Payload      json.RawMessage
+	Annotations  models.Annotations
+	RuleSnapshot *RuleSnapshot
+	ProviderData ProviderData
+}
+
+func (e Event) String() string {
+	return fmt.Sprintf("event:%s (id=%s namespace=%s)", e.EventType, e.NamespacedID.ID, e.NamespacedID.Namespace)
+}
+
+// RuleSnapshot captures evaluated conditions without referring to a live Rule
+// or its Channels. System and test Events omit it.
+type RuleSnapshot struct {
+	models.NamespacedID
+
+	Name          string
+	EventType     EventType
+	Revision      uint64
+	Configuration json.RawMessage
+}
+
+func (s RuleSnapshot) String() string {
+	return fmt.Sprintf("rule_snapshot:%s (event_type=%s id=%s namespace=%s)", s.Name, s.EventType, s.NamespacedID.ID, s.NamespacedID.Namespace)
 }
