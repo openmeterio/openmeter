@@ -20,6 +20,15 @@ type detailedLineKey struct {
 
 type options struct {
 	validateUniqueChildReferenceIDs bool
+	keepDeliberateZeroLines         bool
+}
+
+// summedDetailedLine aggregates same-key input lines with an equal per-unit amount.
+type summedDetailedLine struct {
+	usagebased.DetailedLine
+	// deliberateZero is true only when every source line was a pricer-emitted
+	// zero. A zero produced by summing offsetting lines is not deliberate.
+	deliberateZero bool
 }
 
 // Option configures SubtractRatedRunDetails.
@@ -30,6 +39,17 @@ type Option func(*options)
 func WithUniqueReferenceIDValidationIgnored() Option {
 	return func(o *options) {
 		o.validateUniqueChildReferenceIDs = false
+	}
+}
+
+// WithDeliberateZeroLinesKept keeps current lines the pricer emitted as zero on
+// purpose (zero quantity or zero unit price), both as current-only lines and as
+// matched deltas. Invoices display free usage and zero-usage tiers, so rating
+// that presents the current period asks for them; correction arithmetic against
+// already billed periods must not.
+func WithDeliberateZeroLinesKept() Option {
+	return func(o *options) {
+		o.keepDeliberateZeroLines = true
 	}
 }
 
@@ -73,6 +93,7 @@ func SubtractRatedRunDetails(
 		sumDetailedLinesByKey(current),
 		sumDetailedLinesByKey(previous),
 		uniqueReferenceIDGenerator,
+		subtractOptions,
 	)
 	if err != nil {
 		return nil, err
@@ -102,8 +123,8 @@ func validateDetailedLinesForSubtract(lines usagebased.DetailedLines) error {
 	return nil
 }
 
-func sumDetailedLinesByKey(lines usagebased.DetailedLines) map[detailedLineKey]usagebased.DetailedLines {
-	grouped := make(map[detailedLineKey]usagebased.DetailedLines, len(lines))
+func sumDetailedLinesByKey(lines usagebased.DetailedLines) map[detailedLineKey][]summedDetailedLine {
+	grouped := make(map[detailedLineKey][]summedDetailedLine, len(lines))
 
 	for _, line := range lines {
 		key := detailedLineKey{
@@ -118,7 +139,7 @@ func sumDetailedLinesByKey(lines usagebased.DetailedLines) map[detailedLineKey]u
 	return grouped
 }
 
-func appendOrSumDetailedLineByPerUnitAmount(lines usagebased.DetailedLines, line usagebased.DetailedLine) usagebased.DetailedLines {
+func appendOrSumDetailedLineByPerUnitAmount(lines []summedDetailedLine, line usagebased.DetailedLine) []summedDetailedLine {
 	for idx, existingLine := range lines {
 		if !existingLine.PerUnitAmount.Equal(line.PerUnitAmount) {
 			continue
@@ -127,17 +148,22 @@ func appendOrSumDetailedLineByPerUnitAmount(lines usagebased.DetailedLines, line
 		lines[idx].Quantity = lines[idx].Quantity.Add(line.Quantity)
 		lines[idx].Totals = lines[idx].Totals.Add(line.Totals)
 		lines[idx].AmountDiscounts = lines[idx].AmountDiscounts.Add(line.AmountDiscounts)
+		lines[idx].deliberateZero = lines[idx].deliberateZero && isDeliberateZeroDetailedLine(line)
 
 		return lines
 	}
 
-	return append(lines, line.Clone())
+	return append(lines, summedDetailedLine{
+		DetailedLine:   line.Clone(),
+		deliberateZero: isDeliberateZeroDetailedLine(line),
+	})
 }
 
 func subtractDetailedLinesByKey(
-	current map[detailedLineKey]usagebased.DetailedLines,
-	previous map[detailedLineKey]usagebased.DetailedLines,
+	current map[detailedLineKey][]summedDetailedLine,
+	previous map[detailedLineKey][]summedDetailedLine,
 	generator UniqueReferenceIDGenerator,
+	subtractOptions options,
 ) (usagebased.DetailedLines, error) {
 	keys := lo.Union(lo.Keys(current), lo.Keys(previous))
 	sort.Slice(keys, func(i, j int) bool {
@@ -159,7 +185,7 @@ func subtractDetailedLinesByKey(
 	out := make(usagebased.DetailedLines, 0, len(keys))
 
 	for _, key := range keys {
-		lines, err := subtractDetailedLinesWithSameKey(current[key], previous[key], generator)
+		lines, err := subtractDetailedLinesWithSameKey(current[key], previous[key], generator, subtractOptions)
 		if err != nil {
 			return nil, fmt.Errorf("subtract detailed lines for %s: %w", key.ReferenceID, err)
 		}
@@ -171,24 +197,27 @@ func subtractDetailedLinesByKey(
 }
 
 func subtractDetailedLinesWithSameKey(
-	current usagebased.DetailedLines,
-	previous usagebased.DetailedLines,
+	current []summedDetailedLine,
+	previous []summedDetailedLine,
 	generator UniqueReferenceIDGenerator,
+	subtractOptions options,
 ) (usagebased.DetailedLines, error) {
 	out := make(usagebased.DetailedLines, 0, len(current)+len(previous))
 	previousMatched := make([]bool, len(previous))
 
 	for _, currentLine := range current {
+		keepWhenZero := subtractOptions.keepDeliberateZeroLines && currentLine.deliberateZero
+
 		previousIdx, ok := findDetailedLineByPerUnitAmount(previous, currentLine.PerUnitAmount, previousMatched)
 		if !ok {
-			line := currentLine.Clone()
-			childUniqueReferenceID, err := generator.CurrentOnly(currentLine)
+			line := currentLine.DetailedLine.Clone()
+			childUniqueReferenceID, err := generator.CurrentOnly(currentLine.DetailedLine)
 			if err != nil {
 				return nil, fmt.Errorf("current only child unique reference id: %w", err)
 			}
 
 			line.ChildUniqueReferenceID = childUniqueReferenceID
-			if !isZeroDetailedLine(line) {
+			if !isZeroDetailedLine(line) || keepWhenZero {
 				out = append(out, line)
 			}
 
@@ -197,9 +226,9 @@ func subtractDetailedLinesWithSameKey(
 
 		previousMatched[previousIdx] = true
 
-		line, ok := subtractDetailedLine(currentLine, previous[previousIdx])
-		if ok {
-			childUniqueReferenceID, err := generator.MatchedDelta(currentLine, previous[previousIdx])
+		line := subtractDetailedLine(currentLine.DetailedLine, previous[previousIdx].DetailedLine)
+		if !isZeroDetailedLine(line) || keepWhenZero {
+			childUniqueReferenceID, err := generator.MatchedDelta(currentLine.DetailedLine, previous[previousIdx].DetailedLine)
 			if err != nil {
 				return nil, fmt.Errorf("matched delta child unique reference id: %w", err)
 			}
@@ -214,12 +243,12 @@ func subtractDetailedLinesWithSameKey(
 			continue
 		}
 
-		line := previousLine.Clone()
+		line := previousLine.DetailedLine.Clone()
 		line.ID = ""
 		line.Quantity = line.Quantity.Neg()
 		line.Totals = line.Totals.Neg()
 		line.AmountDiscounts = line.AmountDiscounts.Neg()
-		childUniqueReferenceID, err := generator.PreviousOnlyReversal(previousLine)
+		childUniqueReferenceID, err := generator.PreviousOnlyReversal(previousLine.DetailedLine)
 		if err != nil {
 			return nil, fmt.Errorf("previous only reversal child unique reference id: %w", err)
 		}
@@ -250,7 +279,7 @@ func validateUniqueChildReferenceIDs(lines usagebased.DetailedLines) error {
 	return nil
 }
 
-func findDetailedLineByPerUnitAmount(lines usagebased.DetailedLines, perUnitAmount alpacadecimal.Decimal, matched []bool) (int, bool) {
+func findDetailedLineByPerUnitAmount(lines []summedDetailedLine, perUnitAmount alpacadecimal.Decimal, matched []bool) (int, bool) {
 	for idx, line := range lines {
 		if matched[idx] {
 			continue
@@ -264,15 +293,22 @@ func findDetailedLineByPerUnitAmount(lines usagebased.DetailedLines, perUnitAmou
 	return 0, false
 }
 
-func subtractDetailedLine(current, previous usagebased.DetailedLine) (usagebased.DetailedLine, bool) {
+func subtractDetailedLine(current, previous usagebased.DetailedLine) usagebased.DetailedLine {
 	line := current.Clone()
 	line.Quantity = line.Quantity.Sub(previous.Quantity)
 	line.Totals = line.Totals.Sub(previous.Totals)
 	line.AmountDiscounts = line.AmountDiscounts.Sub(previous.AmountDiscounts)
 
-	return line, !isZeroDetailedLine(line)
+	return line
 }
 
 func isZeroDetailedLine(line usagebased.DetailedLine) bool {
 	return line.Totals.IsZero()
+}
+
+// isDeliberateZeroDetailedLine reports zero-total lines a pricer emits on
+// purpose: free usage (quantity at a zero unit price) and zero-usage tier lines.
+// A zero total produced by rounding a priced quantity is not deliberate.
+func isDeliberateZeroDetailedLine(line usagebased.DetailedLine) bool {
+	return line.Totals.IsZero() && (line.Quantity.IsZero() || line.PerUnitAmount.IsZero())
 }

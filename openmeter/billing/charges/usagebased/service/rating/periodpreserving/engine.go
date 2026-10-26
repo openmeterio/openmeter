@@ -250,6 +250,7 @@ func (e Engine) buildDetailsByEpoch(ctx context.Context, in Input, recorder *bil
 			// output is not persisted directly; final output IDs are period-stamped
 			// before persistence, so duplicate child refs are allowed here.
 			subtract.WithUniqueReferenceIDValidationIgnored(),
+			subtract.WithDeliberateZeroLinesKept(),
 		)
 		if err != nil {
 			return nil, fmt.Errorf("subtracting detailed lines: %w", err)

@@ -205,6 +205,24 @@ func TestUnitPriceSubtract(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "unit price with zero amount keeps the free usage delta",
+			price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+				Amount: alpacadecimal.Zero,
+			}),
+			previousMeteredQuantity: 4,
+			newMeteredQuantity:      10,
+			expectedTotals:          expectedTotals{},
+			expectedLines: []expectedDetailedLine{
+				{
+					ChildUniqueReferenceID: billingrating.UnitPriceUsageChildUniqueReferenceID,
+					Category:               stddetailedline.CategoryRegular,
+					PerUnitAmount:          0,
+					Quantity:               6,
+					Totals:                 expectedTotals{},
+				},
+			},
+		},
 	}
 
 	runSubtractRatedRunDetailsTestCases(t, servicePeriod, testCases)
@@ -517,6 +535,22 @@ func TestGraduatedTieredSubtract(t *testing.T) {
 						Amount: 10,
 						Total:  10,
 					},
+				},
+			},
+		},
+		{
+			name:                    "graduated tiered zero usage on both runs keeps the zero-usage line but not the booked flat fee",
+			price:                   graduatedFlatAndUnitPrice,
+			previousMeteredQuantity: 0,
+			newMeteredQuantity:      0,
+			expectedTotals:          expectedTotals{},
+			expectedLines: []expectedDetailedLine{
+				{
+					ChildUniqueReferenceID: "graduated-tiered-1-price-usage",
+					Category:               stddetailedline.CategoryRegular,
+					PerUnitAmount:          1,
+					Quantity:               0,
+					Totals:                 expectedTotals{},
 				},
 			},
 		},
@@ -886,6 +920,115 @@ func TestSubtractRatedRunDetailsPreservesIndexes(t *testing.T) {
 	require.Equal(t, lo.ToPtr(11), out[0].Index)
 	require.Equal(t, lo.ToPtr(22), out[1].Index)
 	require.Equal(t, lo.ToPtr(33), out[2].Index)
+}
+
+func TestSubtractRatedRunDetailsKeepsDeliberateZeroCurrentOnlyLines(t *testing.T) {
+	t.Parallel()
+
+	servicePeriod := timeutil.ClosedPeriod{
+		From: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
+		To:   time.Date(2025, 2, 1, 0, 0, 0, 0, time.UTC),
+	}
+
+	zeroUsage := makeRatedDetailedLineForTest(ratedDetailedLineForTestInput{
+		referenceID:   "graduated-tiered-1-price-usage",
+		servicePeriod: servicePeriod,
+		perUnitAmount: 10,
+		quantity:      0,
+	})
+	freeUsage := makeRatedDetailedLineForTest(ratedDetailedLineForTestInput{
+		referenceID:   "unit-price-usage",
+		servicePeriod: servicePeriod,
+		perUnitAmount: 0,
+		quantity:      10,
+	})
+	roundedToZero := makeRatedDetailedLineForTest(ratedDetailedLineForTestInput{
+		referenceID:   "rounded-usage",
+		servicePeriod: servicePeriod,
+		perUnitAmount: 0.001,
+		quantity:      2,
+	})
+
+	// given:
+	// - a first run with no previously billed lines
+	// - a zero-usage tier line, a free usage line and a priced line whose total rounded to zero
+	// when:
+	// - we subtract nothing from the current rating
+	// then:
+	// - the zero-usage and free usage lines are kept for invoice presentation
+	// - the rounding artifact is dropped
+
+	out, err := SubtractRatedRunDetails(usagebased.DetailedLines{zeroUsage, freeUsage, roundedToZero}, nil, NewMockUniqueReferenceIDGenerator(t), WithDeliberateZeroLinesKept())
+	require.NoError(t, err)
+	require.Equal(t, []expectedDetailedLine{
+		{
+			ChildUniqueReferenceID: "graduated-tiered-1-price-usage",
+			Category:               stddetailedline.CategoryRegular,
+			PerUnitAmount:          10,
+			Quantity:               0,
+		},
+		{
+			ChildUniqueReferenceID: "unit-price-usage",
+			Category:               stddetailedline.CategoryRegular,
+			PerUnitAmount:          0,
+			Quantity:               10,
+		},
+	}, toExpectedDetailedLines(out))
+
+	// when:
+	// - the caller does not ask for deliberate zero lines
+	// then:
+	// - every zero-total line is dropped
+
+	out, err = SubtractRatedRunDetails(usagebased.DetailedLines{zeroUsage, freeUsage, roundedToZero}, nil, NewMockUniqueReferenceIDGenerator(t))
+	require.NoError(t, err)
+	require.Empty(t, out)
+}
+
+func TestSubtractRatedRunDetailsDoesNotTreatOffsettingCurrentLinesAsDeliberateZero(t *testing.T) {
+	t.Parallel()
+
+	servicePeriod := timeutil.ClosedPeriod{
+		From: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
+		To:   time.Date(2025, 2, 1, 0, 0, 0, 0, time.UTC),
+	}
+
+	booked := makeRatedDetailedLineForTest(ratedDetailedLineForTestInput{
+		referenceID:   "volume-tiered-price",
+		servicePeriod: servicePeriod,
+		perUnitAmount: 10,
+		quantity:      15,
+		totals: expectedTotals{
+			Amount: 150,
+			Total:  150,
+		},
+	})
+	reversal := makeRatedDetailedLineForTest(ratedDetailedLineForTestInput{
+		referenceID:   "volume-tiered-price",
+		servicePeriod: servicePeriod,
+		perUnitAmount: 10,
+		quantity:      -15,
+		totals: expectedTotals{
+			Amount: -150,
+			Total:  -150,
+		},
+	})
+
+	// given:
+	// - a current side whose lines sum to zero quantity because a correction reverses a booked line
+	// when:
+	// - we subtract the same already billed lines while keeping deliberate zero lines
+	// then:
+	// - the summed zero is arithmetic, not a pricer zero, so no line is emitted
+
+	out, err := SubtractRatedRunDetails(
+		usagebased.DetailedLines{booked, reversal},
+		usagebased.DetailedLines{booked, reversal},
+		NewMockUniqueReferenceIDGenerator(t),
+		WithDeliberateZeroLinesKept(),
+	)
+	require.NoError(t, err)
+	require.Empty(t, out)
 }
 
 func TestSubtractRatedRunDetailsKeepsRepricingAsSeparateLines(t *testing.T) {
@@ -1304,7 +1447,7 @@ func runSubtractRatedRunDetailsTestCases(
 			// when:
 			// - we subtract the previously booked rated run details from the new cumulative rated run details
 
-			out, err := SubtractRatedRunDetails(current, previousWithMinimumCommitmentIgnored, NewMockUniqueReferenceIDGenerator(t))
+			out, err := SubtractRatedRunDetails(current, previousWithMinimumCommitmentIgnored, NewMockUniqueReferenceIDGenerator(t), WithDeliberateZeroLinesKept())
 
 			// then:
 			// - the result contains only the delta totals and delta detailed lines

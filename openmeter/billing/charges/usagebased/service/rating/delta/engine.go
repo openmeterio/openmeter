@@ -112,6 +112,7 @@ func (e Engine) Rate(_ context.Context, in Input) (Result, error) {
 		currentDetailedLines,
 		alreadyBilledDetailedLines,
 		uniqueReferenceIDGenerator{},
+		subtract.WithDeliberateZeroLinesKept(),
 	)
 	if err != nil {
 		return Result{}, fmt.Errorf("subtracting detailed lines: %w", err)

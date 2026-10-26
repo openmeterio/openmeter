@@ -48,6 +48,12 @@ the original values.
    - if a previous line with the same `PerUnitAmount` exists, subtract quantity
      and totals and emit a matched delta when totals are non-zero
    - if no previous line exists, emit the current line when totals are non-zero
+   - with `WithDeliberateZeroLinesKept`, also emit the line when every current
+     source line is a deliberate zero: zero totals with a zero quantity or a
+     zero unit price. Pricers produce these for zero-usage tiers and free
+     usage, and invoices display them. A zero that only arises from arithmetic
+     (an already billed line subtracted from itself, offsetting corrections,
+     or rounding) is never emitted.
 7. For each unmatched previous line, emit a reversal by negating quantity and
    totals when totals are non-zero.
 8. Generate each output `ChildUniqueReferenceID` through the provided
