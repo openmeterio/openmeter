@@ -2,14 +2,12 @@ package v4
 
 import (
 	"bytes"
-	"cmp"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
 	"slices"
-	"strings"
 
 	"github.com/santhosh-tekuri/jsonschema/v6"
 
@@ -93,7 +91,8 @@ type EventRegistry struct {
 	logger     *slog.Logger
 	eventTypes map[EventType]registeredEventType
 
-	// sorted lists Event types by name, then numeric version, so v10 follows v2.
+	// sorted lists Event types in EventType.Compare order for deterministic
+	// listing.
 	sorted []EventType
 }
 
@@ -139,9 +138,7 @@ func NewEventRegistry(config EventRegistryConfig) (*EventRegistry, error) {
 		return nil, fmt.Errorf("invalid event registry configuration: %w", models.NewGenericValidationError(err))
 	}
 
-	slices.SortFunc(r.sorted, func(a, b EventType) int {
-		return cmp.Or(strings.Compare(a.Name, b.Name), cmp.Compare(a.Version, b.Version))
-	})
+	slices.SortFunc(r.sorted, EventType.Compare)
 
 	return r, nil
 }
@@ -156,12 +153,15 @@ func (r *EventRegistry) EventType(t EventType) (EventTypeDefinition, error) {
 	return registered.definition.clone(), nil
 }
 
-// EventTypes returns copies of all definitions ordered by name, then version.
-func (r *EventRegistry) EventTypes() []EventTypeDefinition {
+// EventTypes returns copies of the definitions matching filter, or all when
+// nil, in EventType.Compare order.
+func (r *EventRegistry) EventTypes(filter *EventTypePattern) []EventTypeDefinition {
 	out := make([]EventTypeDefinition, 0, len(r.sorted))
 
 	for _, t := range r.sorted {
-		out = append(out, r.eventTypes[t].definition.clone())
+		if filter == nil || filter.Matches(t) {
+			out = append(out, r.eventTypes[t].definition.clone())
+		}
 	}
 
 	return out

@@ -1,6 +1,7 @@
 package v4
 
 import (
+	"cmp"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -33,6 +34,12 @@ type EventType struct {
 // String returns the canonical form, e.g. v1.billing.invoice.created.
 func (t EventType) String() string {
 	return fmt.Sprintf("v%d.%s", t.Version, t.Name)
+}
+
+// Compare orders Event types by numeric version, then name. It matches the
+// canonical string order except that v10 follows v2.
+func (t EventType) Compare(other EventType) int {
+	return cmp.Or(cmp.Compare(t.Version, other.Version), strings.Compare(t.Name, other.Name))
 }
 
 // ParseEventType parses the canonical form produced by String.

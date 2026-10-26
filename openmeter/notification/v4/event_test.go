@@ -24,6 +24,25 @@ func TestEventType(t *testing.T) {
 	}
 }
 
+func TestEventTypeCompare(t *testing.T) {
+	// Sorted by numeric version first, so v10 follows v2, then by name.
+	sorted := []EventType{
+		{Name: "billing.invoice.created", Version: 1},
+		{Name: "entitlement.balance_threshold.triggered", Version: 1},
+		{Name: "billing.invoice.created", Version: 2},
+		{Name: "billing.invoice.created", Version: 10},
+	}
+
+	for i := range sorted {
+		require.Zero(t, sorted[i].Compare(sorted[i]), sorted[i].String())
+
+		for j := i + 1; j < len(sorted); j++ {
+			require.Negative(t, sorted[i].Compare(sorted[j]), "%s < %s", sorted[i], sorted[j])
+			require.Positive(t, sorted[j].Compare(sorted[i]), "%s > %s", sorted[j], sorted[i])
+		}
+	}
+}
+
 func TestParseEventType(t *testing.T) {
 	et, err := ParseEventType("v12.billing.invoice.created")
 	require.NoError(t, err)

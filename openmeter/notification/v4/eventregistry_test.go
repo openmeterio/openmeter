@@ -30,22 +30,17 @@ func TestNewEventRegistry(t *testing.T) {
 	v1 := testDefinition("billing.invoice.created", 1)
 	v2 := testDefinition("billing.invoice.created", 2)
 	v3 := testDefinition("billing.invoice.created", 3)
-	v10 := testDefinition("billing.invoice.created", 10)
 
-	t.Run("lists definitions by name, then numeric version", func(t *testing.T) {
+	t.Run("stores copies of definitions", func(t *testing.T) {
 		v1 := testDefinition("billing.invoice.created", 1)
 		v1.DeprecatedBy = &v2.EventType
 		v1.Rule = &v4.RuleConfigDefinition{JSONSchema: json.RawMessage(testSchema)}
 
-		system := testDefinition("app.stripe.disconnected", 1)
-
 		registry, err := v4.NewEventRegistry(v4.EventRegistryConfig{
 			Logger:      logger,
-			Definitions: []v4.EventTypeDefinition{v10, v2, v1, system},
+			Definitions: []v4.EventTypeDefinition{v2, v1},
 		})
 		require.NoError(t, err)
-
-		require.Equal(t, []v4.EventTypeDefinition{system, v1, v2, v10}, registry.EventTypes())
 
 		def, err := registry.EventType(v1.EventType)
 		require.NoError(t, err)
@@ -138,6 +133,41 @@ func TestNewEventRegistry(t *testing.T) {
 			require.True(t, models.IsGenericValidationError(err), err)
 		})
 	}
+}
+
+func TestEventRegistryEventTypes(t *testing.T) {
+	// Canonical order: version first, numeric, then name.
+	all := []v4.EventTypeDefinition{
+		testDefinition("app.stripe.disconnected", 1),
+		testDefinition("billing.invoice.created", 1),
+		testDefinition("billing.invoice.updated", 1),
+		testDefinition("entitlement.balance_threshold.triggered", 1),
+		testDefinition("billing.invoice.created", 2),
+		testDefinition("billing.invoice.created", 10),
+	}
+
+	registry, err := v4.NewEventRegistry(v4.EventRegistryConfig{
+		Logger:      slog.New(slog.DiscardHandler),
+		Definitions: []v4.EventTypeDefinition{all[5], all[3], all[1], all[4], all[0], all[2]},
+	})
+	require.NoError(t, err)
+
+	pattern := func(s string) *v4.EventTypePattern {
+		p, err := v4.ParseEventTypePattern(s)
+		require.NoError(t, err)
+
+		return &p
+	}
+
+	require.Equal(t, all, registry.EventTypes(nil))
+	require.Equal(t, all[1:3], registry.EventTypes(pattern("v1.billing.*")))
+	require.Equal(t, all[4:5], registry.EventTypes(pattern("v2.billing.invoice.created")))
+	require.Equal(t, []v4.EventTypeDefinition{}, registry.EventTypes(pattern("v3.*")))
+
+	// Returned definitions are copies.
+	listed := registry.EventTypes(nil)
+	listed[0].PayloadJSONSchema[0] = '['
+	require.Equal(t, all, registry.EventTypes(nil))
 }
 
 func TestEventRegistryValidators(t *testing.T) {
