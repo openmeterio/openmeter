@@ -11048,7 +11048,6 @@ type BillingCustomerOverrideMutation struct {
 	created_at                  *time.Time
 	updated_at                  *time.Time
 	deleted_at                  *time.Time
-	tax_behavior                *productcatalog.TaxBehavior
 	collection_alignment        *billing.AlignmentKind
 	anchored_alignment_detail   **billing.AnchoredAlignmentDetail
 	line_collection_period      *datetime.ISODurationString
@@ -11058,6 +11057,7 @@ type BillingCustomerOverrideMutation struct {
 	invoice_collection_method   *billing.CollectionMethod
 	invoice_progressive_billing *bool
 	invoice_default_tax_config  *productcatalog.TaxConfig
+	tax_behavior                *productcatalog.TaxBehavior
 	clearedFields               map[string]struct{}
 	customer                    *string
 	clearedcustomer             bool
@@ -11329,104 +11329,6 @@ func (m *BillingCustomerOverrideMutation) DeletedAtCleared() bool {
 func (m *BillingCustomerOverrideMutation) ResetDeletedAt() {
 	m.deleted_at = nil
 	delete(m.clearedFields, billingcustomeroverride.FieldDeletedAt)
-}
-
-// SetTaxCodeID sets the "tax_code_id" field.
-func (m *BillingCustomerOverrideMutation) SetTaxCodeID(s string) {
-	m.tax_code = &s
-}
-
-// TaxCodeID returns the value of the "tax_code_id" field in the mutation.
-func (m *BillingCustomerOverrideMutation) TaxCodeID() (r string, exists bool) {
-	v := m.tax_code
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldTaxCodeID returns the old "tax_code_id" field's value of the BillingCustomerOverride entity.
-// If the BillingCustomerOverride object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingCustomerOverrideMutation) OldTaxCodeID(ctx context.Context) (v *string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldTaxCodeID is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldTaxCodeID requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldTaxCodeID: %w", err)
-	}
-	return oldValue.TaxCodeID, nil
-}
-
-// ClearTaxCodeID clears the value of the "tax_code_id" field.
-func (m *BillingCustomerOverrideMutation) ClearTaxCodeID() {
-	m.tax_code = nil
-	m.clearedFields[billingcustomeroverride.FieldTaxCodeID] = struct{}{}
-}
-
-// TaxCodeIDCleared returns if the "tax_code_id" field was cleared in this mutation.
-func (m *BillingCustomerOverrideMutation) TaxCodeIDCleared() bool {
-	_, ok := m.clearedFields[billingcustomeroverride.FieldTaxCodeID]
-	return ok
-}
-
-// ResetTaxCodeID resets all changes to the "tax_code_id" field.
-func (m *BillingCustomerOverrideMutation) ResetTaxCodeID() {
-	m.tax_code = nil
-	delete(m.clearedFields, billingcustomeroverride.FieldTaxCodeID)
-}
-
-// SetTaxBehavior sets the "tax_behavior" field.
-func (m *BillingCustomerOverrideMutation) SetTaxBehavior(pb productcatalog.TaxBehavior) {
-	m.tax_behavior = &pb
-}
-
-// TaxBehavior returns the value of the "tax_behavior" field in the mutation.
-func (m *BillingCustomerOverrideMutation) TaxBehavior() (r productcatalog.TaxBehavior, exists bool) {
-	v := m.tax_behavior
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldTaxBehavior returns the old "tax_behavior" field's value of the BillingCustomerOverride entity.
-// If the BillingCustomerOverride object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingCustomerOverrideMutation) OldTaxBehavior(ctx context.Context) (v *productcatalog.TaxBehavior, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldTaxBehavior is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldTaxBehavior requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldTaxBehavior: %w", err)
-	}
-	return oldValue.TaxBehavior, nil
-}
-
-// ClearTaxBehavior clears the value of the "tax_behavior" field.
-func (m *BillingCustomerOverrideMutation) ClearTaxBehavior() {
-	m.tax_behavior = nil
-	m.clearedFields[billingcustomeroverride.FieldTaxBehavior] = struct{}{}
-}
-
-// TaxBehaviorCleared returns if the "tax_behavior" field was cleared in this mutation.
-func (m *BillingCustomerOverrideMutation) TaxBehaviorCleared() bool {
-	_, ok := m.clearedFields[billingcustomeroverride.FieldTaxBehavior]
-	return ok
-}
-
-// ResetTaxBehavior resets all changes to the "tax_behavior" field.
-func (m *BillingCustomerOverrideMutation) ResetTaxBehavior() {
-	m.tax_behavior = nil
-	delete(m.clearedFields, billingcustomeroverride.FieldTaxBehavior)
 }
 
 // SetCustomerID sets the "customer_id" field.
@@ -11955,6 +11857,104 @@ func (m *BillingCustomerOverrideMutation) ResetInvoiceDefaultTaxConfig() {
 	delete(m.clearedFields, billingcustomeroverride.FieldInvoiceDefaultTaxConfig)
 }
 
+// SetTaxCodeID sets the "tax_code_id" field.
+func (m *BillingCustomerOverrideMutation) SetTaxCodeID(s string) {
+	m.tax_code = &s
+}
+
+// TaxCodeID returns the value of the "tax_code_id" field in the mutation.
+func (m *BillingCustomerOverrideMutation) TaxCodeID() (r string, exists bool) {
+	v := m.tax_code
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTaxCodeID returns the old "tax_code_id" field's value of the BillingCustomerOverride entity.
+// If the BillingCustomerOverride object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingCustomerOverrideMutation) OldTaxCodeID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTaxCodeID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTaxCodeID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTaxCodeID: %w", err)
+	}
+	return oldValue.TaxCodeID, nil
+}
+
+// ClearTaxCodeID clears the value of the "tax_code_id" field.
+func (m *BillingCustomerOverrideMutation) ClearTaxCodeID() {
+	m.tax_code = nil
+	m.clearedFields[billingcustomeroverride.FieldTaxCodeID] = struct{}{}
+}
+
+// TaxCodeIDCleared returns if the "tax_code_id" field was cleared in this mutation.
+func (m *BillingCustomerOverrideMutation) TaxCodeIDCleared() bool {
+	_, ok := m.clearedFields[billingcustomeroverride.FieldTaxCodeID]
+	return ok
+}
+
+// ResetTaxCodeID resets all changes to the "tax_code_id" field.
+func (m *BillingCustomerOverrideMutation) ResetTaxCodeID() {
+	m.tax_code = nil
+	delete(m.clearedFields, billingcustomeroverride.FieldTaxCodeID)
+}
+
+// SetTaxBehavior sets the "tax_behavior" field.
+func (m *BillingCustomerOverrideMutation) SetTaxBehavior(pb productcatalog.TaxBehavior) {
+	m.tax_behavior = &pb
+}
+
+// TaxBehavior returns the value of the "tax_behavior" field in the mutation.
+func (m *BillingCustomerOverrideMutation) TaxBehavior() (r productcatalog.TaxBehavior, exists bool) {
+	v := m.tax_behavior
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTaxBehavior returns the old "tax_behavior" field's value of the BillingCustomerOverride entity.
+// If the BillingCustomerOverride object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingCustomerOverrideMutation) OldTaxBehavior(ctx context.Context) (v *productcatalog.TaxBehavior, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTaxBehavior is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTaxBehavior requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTaxBehavior: %w", err)
+	}
+	return oldValue.TaxBehavior, nil
+}
+
+// ClearTaxBehavior clears the value of the "tax_behavior" field.
+func (m *BillingCustomerOverrideMutation) ClearTaxBehavior() {
+	m.tax_behavior = nil
+	m.clearedFields[billingcustomeroverride.FieldTaxBehavior] = struct{}{}
+}
+
+// TaxBehaviorCleared returns if the "tax_behavior" field was cleared in this mutation.
+func (m *BillingCustomerOverrideMutation) TaxBehaviorCleared() bool {
+	_, ok := m.clearedFields[billingcustomeroverride.FieldTaxBehavior]
+	return ok
+}
+
+// ResetTaxBehavior resets all changes to the "tax_behavior" field.
+func (m *BillingCustomerOverrideMutation) ResetTaxBehavior() {
+	m.tax_behavior = nil
+	delete(m.clearedFields, billingcustomeroverride.FieldTaxBehavior)
+}
+
 // ClearCustomer clears the "customer" edge to the Customer entity.
 func (m *BillingCustomerOverrideMutation) ClearCustomer() {
 	m.clearedcustomer = true
@@ -12083,12 +12083,6 @@ func (m *BillingCustomerOverrideMutation) Fields() []string {
 	if m.deleted_at != nil {
 		fields = append(fields, billingcustomeroverride.FieldDeletedAt)
 	}
-	if m.tax_code != nil {
-		fields = append(fields, billingcustomeroverride.FieldTaxCodeID)
-	}
-	if m.tax_behavior != nil {
-		fields = append(fields, billingcustomeroverride.FieldTaxBehavior)
-	}
 	if m.customer != nil {
 		fields = append(fields, billingcustomeroverride.FieldCustomerID)
 	}
@@ -12122,6 +12116,12 @@ func (m *BillingCustomerOverrideMutation) Fields() []string {
 	if m.invoice_default_tax_config != nil {
 		fields = append(fields, billingcustomeroverride.FieldInvoiceDefaultTaxConfig)
 	}
+	if m.tax_code != nil {
+		fields = append(fields, billingcustomeroverride.FieldTaxCodeID)
+	}
+	if m.tax_behavior != nil {
+		fields = append(fields, billingcustomeroverride.FieldTaxBehavior)
+	}
 	return fields
 }
 
@@ -12138,10 +12138,6 @@ func (m *BillingCustomerOverrideMutation) Field(name string) (ent.Value, bool) {
 		return m.UpdatedAt()
 	case billingcustomeroverride.FieldDeletedAt:
 		return m.DeletedAt()
-	case billingcustomeroverride.FieldTaxCodeID:
-		return m.TaxCodeID()
-	case billingcustomeroverride.FieldTaxBehavior:
-		return m.TaxBehavior()
 	case billingcustomeroverride.FieldCustomerID:
 		return m.CustomerID()
 	case billingcustomeroverride.FieldBillingProfileID:
@@ -12164,6 +12160,10 @@ func (m *BillingCustomerOverrideMutation) Field(name string) (ent.Value, bool) {
 		return m.InvoiceProgressiveBilling()
 	case billingcustomeroverride.FieldInvoiceDefaultTaxConfig:
 		return m.InvoiceDefaultTaxConfig()
+	case billingcustomeroverride.FieldTaxCodeID:
+		return m.TaxCodeID()
+	case billingcustomeroverride.FieldTaxBehavior:
+		return m.TaxBehavior()
 	}
 	return nil, false
 }
@@ -12181,10 +12181,6 @@ func (m *BillingCustomerOverrideMutation) OldField(ctx context.Context, name str
 		return m.OldUpdatedAt(ctx)
 	case billingcustomeroverride.FieldDeletedAt:
 		return m.OldDeletedAt(ctx)
-	case billingcustomeroverride.FieldTaxCodeID:
-		return m.OldTaxCodeID(ctx)
-	case billingcustomeroverride.FieldTaxBehavior:
-		return m.OldTaxBehavior(ctx)
 	case billingcustomeroverride.FieldCustomerID:
 		return m.OldCustomerID(ctx)
 	case billingcustomeroverride.FieldBillingProfileID:
@@ -12207,6 +12203,10 @@ func (m *BillingCustomerOverrideMutation) OldField(ctx context.Context, name str
 		return m.OldInvoiceProgressiveBilling(ctx)
 	case billingcustomeroverride.FieldInvoiceDefaultTaxConfig:
 		return m.OldInvoiceDefaultTaxConfig(ctx)
+	case billingcustomeroverride.FieldTaxCodeID:
+		return m.OldTaxCodeID(ctx)
+	case billingcustomeroverride.FieldTaxBehavior:
+		return m.OldTaxBehavior(ctx)
 	}
 	return nil, fmt.Errorf("unknown BillingCustomerOverride field %s", name)
 }
@@ -12243,20 +12243,6 @@ func (m *BillingCustomerOverrideMutation) SetField(name string, value ent.Value)
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetDeletedAt(v)
-		return nil
-	case billingcustomeroverride.FieldTaxCodeID:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetTaxCodeID(v)
-		return nil
-	case billingcustomeroverride.FieldTaxBehavior:
-		v, ok := value.(productcatalog.TaxBehavior)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetTaxBehavior(v)
 		return nil
 	case billingcustomeroverride.FieldCustomerID:
 		v, ok := value.(string)
@@ -12335,6 +12321,20 @@ func (m *BillingCustomerOverrideMutation) SetField(name string, value ent.Value)
 		}
 		m.SetInvoiceDefaultTaxConfig(v)
 		return nil
+	case billingcustomeroverride.FieldTaxCodeID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTaxCodeID(v)
+		return nil
+	case billingcustomeroverride.FieldTaxBehavior:
+		v, ok := value.(productcatalog.TaxBehavior)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTaxBehavior(v)
+		return nil
 	}
 	return fmt.Errorf("unknown BillingCustomerOverride field %s", name)
 }
@@ -12368,12 +12368,6 @@ func (m *BillingCustomerOverrideMutation) ClearedFields() []string {
 	if m.FieldCleared(billingcustomeroverride.FieldDeletedAt) {
 		fields = append(fields, billingcustomeroverride.FieldDeletedAt)
 	}
-	if m.FieldCleared(billingcustomeroverride.FieldTaxCodeID) {
-		fields = append(fields, billingcustomeroverride.FieldTaxCodeID)
-	}
-	if m.FieldCleared(billingcustomeroverride.FieldTaxBehavior) {
-		fields = append(fields, billingcustomeroverride.FieldTaxBehavior)
-	}
 	if m.FieldCleared(billingcustomeroverride.FieldBillingProfileID) {
 		fields = append(fields, billingcustomeroverride.FieldBillingProfileID)
 	}
@@ -12404,6 +12398,12 @@ func (m *BillingCustomerOverrideMutation) ClearedFields() []string {
 	if m.FieldCleared(billingcustomeroverride.FieldInvoiceDefaultTaxConfig) {
 		fields = append(fields, billingcustomeroverride.FieldInvoiceDefaultTaxConfig)
 	}
+	if m.FieldCleared(billingcustomeroverride.FieldTaxCodeID) {
+		fields = append(fields, billingcustomeroverride.FieldTaxCodeID)
+	}
+	if m.FieldCleared(billingcustomeroverride.FieldTaxBehavior) {
+		fields = append(fields, billingcustomeroverride.FieldTaxBehavior)
+	}
 	return fields
 }
 
@@ -12420,12 +12420,6 @@ func (m *BillingCustomerOverrideMutation) ClearField(name string) error {
 	switch name {
 	case billingcustomeroverride.FieldDeletedAt:
 		m.ClearDeletedAt()
-		return nil
-	case billingcustomeroverride.FieldTaxCodeID:
-		m.ClearTaxCodeID()
-		return nil
-	case billingcustomeroverride.FieldTaxBehavior:
-		m.ClearTaxBehavior()
 		return nil
 	case billingcustomeroverride.FieldBillingProfileID:
 		m.ClearBillingProfileID()
@@ -12457,6 +12451,12 @@ func (m *BillingCustomerOverrideMutation) ClearField(name string) error {
 	case billingcustomeroverride.FieldInvoiceDefaultTaxConfig:
 		m.ClearInvoiceDefaultTaxConfig()
 		return nil
+	case billingcustomeroverride.FieldTaxCodeID:
+		m.ClearTaxCodeID()
+		return nil
+	case billingcustomeroverride.FieldTaxBehavior:
+		m.ClearTaxBehavior()
+		return nil
 	}
 	return fmt.Errorf("unknown BillingCustomerOverride nullable field %s", name)
 }
@@ -12476,12 +12476,6 @@ func (m *BillingCustomerOverrideMutation) ResetField(name string) error {
 		return nil
 	case billingcustomeroverride.FieldDeletedAt:
 		m.ResetDeletedAt()
-		return nil
-	case billingcustomeroverride.FieldTaxCodeID:
-		m.ResetTaxCodeID()
-		return nil
-	case billingcustomeroverride.FieldTaxBehavior:
-		m.ResetTaxBehavior()
 		return nil
 	case billingcustomeroverride.FieldCustomerID:
 		m.ResetCustomerID()
@@ -12515,6 +12509,12 @@ func (m *BillingCustomerOverrideMutation) ResetField(name string) error {
 		return nil
 	case billingcustomeroverride.FieldInvoiceDefaultTaxConfig:
 		m.ResetInvoiceDefaultTaxConfig()
+		return nil
+	case billingcustomeroverride.FieldTaxCodeID:
+		m.ResetTaxCodeID()
+		return nil
+	case billingcustomeroverride.FieldTaxBehavior:
+		m.ResetTaxBehavior()
 		return nil
 	}
 	return fmt.Errorf("unknown BillingCustomerOverride field %s", name)

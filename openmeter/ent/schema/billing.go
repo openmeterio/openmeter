@@ -204,7 +204,6 @@ func (BillingCustomerOverride) Mixin() []ent.Mixin {
 		entutils.IDMixin{},
 		entutils.NamespaceMixin{},
 		entutils.TimeMixin{},
-		TaxMixin{},
 	}
 }
 
@@ -217,9 +216,6 @@ func (BillingCustomerOverride) Fields() []ent.Field {
 				dialect.Postgres: "char(26)",
 			}),
 
-		// For now we are not allowing for provider type overrides (that should be a separate billing provider entity).
-		//
-		// When we have the provider configs ready, we will add the field overrides for those specific fields.
 		field.String("billing_profile_id").
 			Optional().
 			Nillable().
@@ -227,53 +223,77 @@ func (BillingCustomerOverride) Fields() []ent.Field {
 				dialect.Postgres: "char(26)",
 			}),
 
-		// Workflow config overrides
+		// Historical workflow fields remain in storage until the cleanup migration.
 		field.Enum("collection_alignment").
 			GoType(billing.AlignmentKind("")).
 			Optional().
-			Nillable(),
+			Nillable().
+			Deprecated("customer workflow overrides are no longer supported; assign a billing profile instead"),
 
 		field.JSON("anchored_alignment_detail", &billing.AnchoredAlignmentDetail{}).
 			SchemaType(map[string]string{
 				dialect.Postgres: "jsonb",
 			}).
-			Optional(),
+			Optional().
+			Deprecated("customer workflow overrides are no longer supported; assign a billing profile instead"),
 
 		field.String("line_collection_period").
 			GoType(datetime.ISODurationString("")).
 			Optional().
-			Nillable(),
+			Nillable().
+			Deprecated("customer workflow overrides are no longer supported; assign a billing profile instead"),
 
 		field.Bool("invoice_auto_advance").
 			Optional().
-			Nillable(),
+			Nillable().
+			Deprecated("customer workflow overrides are no longer supported; assign a billing profile instead"),
 
 		field.String("invoice_draft_period").
 			GoType(datetime.ISODurationString("")).
 			Optional().
-			Nillable(),
+			Nillable().
+			Deprecated("customer workflow overrides are no longer supported; assign a billing profile instead"),
 
 		field.String("invoice_due_after").
 			GoType(datetime.ISODurationString("")).
 			Optional().
-			Nillable(),
+			Nillable().
+			Deprecated("customer workflow overrides are no longer supported; assign a billing profile instead"),
 
 		field.Enum("invoice_collection_method").
 			GoType(billing.CollectionMethod("")).
 			Optional().
-			Nillable(),
+			Nillable().
+			Deprecated("customer workflow overrides are no longer supported; assign a billing profile instead"),
 
 		field.Bool("invoice_progressive_billing").
 			Optional().
-			Nillable(),
+			Nillable().
+			Deprecated("customer workflow overrides are no longer supported; assign a billing profile instead"),
 
 		field.JSON("invoice_default_tax_config", productcatalog.TaxConfig{}).
-			Optional(),
+			Optional().
+			Deprecated("customer workflow overrides are no longer supported; assign a billing profile instead"),
+
+		field.String("tax_code_id").
+			Optional().
+			Nillable().
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}).
+			Deprecated("customer workflow overrides are no longer supported; assign a billing profile instead"),
+
+		field.Enum("tax_behavior").
+			GoType(productcatalog.TaxBehavior("")).
+			Optional().
+			Nillable().
+			Deprecated("customer workflow overrides are no longer supported; assign a billing profile instead"),
 	}
 }
 
 func (BillingCustomerOverride) Indexes() []ent.Index {
 	return []ent.Index{
+		index.Fields("tax_code_id"),
 		index.Fields("namespace", "id").Unique(),
 		index.Fields("namespace", "customer_id").Unique(),
 	}

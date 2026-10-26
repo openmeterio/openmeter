@@ -526,34 +526,6 @@ func (u *BillingCustomerOverrideUpdateOne) SetOrClearDeletedAt(value *time.Time)
 	return u.SetDeletedAt(*value)
 }
 
-func (u *BillingCustomerOverrideUpdate) SetOrClearTaxCodeID(value *string) *BillingCustomerOverrideUpdate {
-	if value == nil {
-		return u.ClearTaxCodeID()
-	}
-	return u.SetTaxCodeID(*value)
-}
-
-func (u *BillingCustomerOverrideUpdateOne) SetOrClearTaxCodeID(value *string) *BillingCustomerOverrideUpdateOne {
-	if value == nil {
-		return u.ClearTaxCodeID()
-	}
-	return u.SetTaxCodeID(*value)
-}
-
-func (u *BillingCustomerOverrideUpdate) SetOrClearTaxBehavior(value *productcatalog.TaxBehavior) *BillingCustomerOverrideUpdate {
-	if value == nil {
-		return u.ClearTaxBehavior()
-	}
-	return u.SetTaxBehavior(*value)
-}
-
-func (u *BillingCustomerOverrideUpdateOne) SetOrClearTaxBehavior(value *productcatalog.TaxBehavior) *BillingCustomerOverrideUpdateOne {
-	if value == nil {
-		return u.ClearTaxBehavior()
-	}
-	return u.SetTaxBehavior(*value)
-}
-
 func (u *BillingCustomerOverrideUpdate) SetOrClearBillingProfileID(value *string) *BillingCustomerOverrideUpdate {
 	if value == nil {
 		return u.ClearBillingProfileID()
@@ -692,6 +664,34 @@ func (u *BillingCustomerOverrideUpdateOne) SetOrClearInvoiceDefaultTaxConfig(val
 		return u.ClearInvoiceDefaultTaxConfig()
 	}
 	return u.SetInvoiceDefaultTaxConfig(*value)
+}
+
+func (u *BillingCustomerOverrideUpdate) SetOrClearTaxCodeID(value *string) *BillingCustomerOverrideUpdate {
+	if value == nil {
+		return u.ClearTaxCodeID()
+	}
+	return u.SetTaxCodeID(*value)
+}
+
+func (u *BillingCustomerOverrideUpdateOne) SetOrClearTaxCodeID(value *string) *BillingCustomerOverrideUpdateOne {
+	if value == nil {
+		return u.ClearTaxCodeID()
+	}
+	return u.SetTaxCodeID(*value)
+}
+
+func (u *BillingCustomerOverrideUpdate) SetOrClearTaxBehavior(value *productcatalog.TaxBehavior) *BillingCustomerOverrideUpdate {
+	if value == nil {
+		return u.ClearTaxBehavior()
+	}
+	return u.SetTaxBehavior(*value)
+}
+
+func (u *BillingCustomerOverrideUpdateOne) SetOrClearTaxBehavior(value *productcatalog.TaxBehavior) *BillingCustomerOverrideUpdateOne {
+	if value == nil {
+		return u.ClearTaxBehavior()
+	}
+	return u.SetTaxBehavior(*value)
 }
 
 func (u *BillingGatheringInvoiceLineUpdate) SetOrClearAnnotations(value *models.Annotations) *BillingGatheringInvoiceLineUpdate {

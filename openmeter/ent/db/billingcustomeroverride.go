@@ -32,32 +32,54 @@ type BillingCustomerOverride struct {
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// DeletedAt holds the value of the "deleted_at" field.
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
-	// TaxCodeID holds the value of the "tax_code_id" field.
-	TaxCodeID *string `json:"tax_code_id,omitempty"`
-	// TaxBehavior holds the value of the "tax_behavior" field.
-	TaxBehavior *productcatalog.TaxBehavior `json:"tax_behavior,omitempty"`
 	// CustomerID holds the value of the "customer_id" field.
 	CustomerID string `json:"customer_id,omitempty"`
 	// BillingProfileID holds the value of the "billing_profile_id" field.
 	BillingProfileID *string `json:"billing_profile_id,omitempty"`
 	// CollectionAlignment holds the value of the "collection_alignment" field.
+	//
+	// Deprecated: customer workflow overrides are no longer supported; assign a billing profile instead
 	CollectionAlignment *billing.AlignmentKind `json:"collection_alignment,omitempty"`
 	// AnchoredAlignmentDetail holds the value of the "anchored_alignment_detail" field.
+	//
+	// Deprecated: Field "anchored_alignment_detail" was marked as deprecated in the schema.
 	AnchoredAlignmentDetail *billing.AnchoredAlignmentDetail `json:"anchored_alignment_detail,omitempty"`
 	// LineCollectionPeriod holds the value of the "line_collection_period" field.
+	//
+	// Deprecated: customer workflow overrides are no longer supported; assign a billing profile instead
 	LineCollectionPeriod *datetime.ISODurationString `json:"line_collection_period,omitempty"`
 	// InvoiceAutoAdvance holds the value of the "invoice_auto_advance" field.
+	//
+	// Deprecated: customer workflow overrides are no longer supported; assign a billing profile instead
 	InvoiceAutoAdvance *bool `json:"invoice_auto_advance,omitempty"`
 	// InvoiceDraftPeriod holds the value of the "invoice_draft_period" field.
+	//
+	// Deprecated: customer workflow overrides are no longer supported; assign a billing profile instead
 	InvoiceDraftPeriod *datetime.ISODurationString `json:"invoice_draft_period,omitempty"`
 	// InvoiceDueAfter holds the value of the "invoice_due_after" field.
+	//
+	// Deprecated: customer workflow overrides are no longer supported; assign a billing profile instead
 	InvoiceDueAfter *datetime.ISODurationString `json:"invoice_due_after,omitempty"`
 	// InvoiceCollectionMethod holds the value of the "invoice_collection_method" field.
+	//
+	// Deprecated: customer workflow overrides are no longer supported; assign a billing profile instead
 	InvoiceCollectionMethod *billing.CollectionMethod `json:"invoice_collection_method,omitempty"`
 	// InvoiceProgressiveBilling holds the value of the "invoice_progressive_billing" field.
+	//
+	// Deprecated: customer workflow overrides are no longer supported; assign a billing profile instead
 	InvoiceProgressiveBilling *bool `json:"invoice_progressive_billing,omitempty"`
 	// InvoiceDefaultTaxConfig holds the value of the "invoice_default_tax_config" field.
+	//
+	// Deprecated: Field "invoice_default_tax_config" was marked as deprecated in the schema.
 	InvoiceDefaultTaxConfig productcatalog.TaxConfig `json:"invoice_default_tax_config,omitempty"`
+	// TaxCodeID holds the value of the "tax_code_id" field.
+	//
+	// Deprecated: customer workflow overrides are no longer supported; assign a billing profile instead
+	TaxCodeID *string `json:"tax_code_id,omitempty"`
+	// TaxBehavior holds the value of the "tax_behavior" field.
+	//
+	// Deprecated: customer workflow overrides are no longer supported; assign a billing profile instead
+	TaxBehavior *productcatalog.TaxBehavior `json:"tax_behavior,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the BillingCustomerOverrideQuery when eager-loading is set.
 	Edges        BillingCustomerOverrideEdges `json:"edges"`
@@ -119,7 +141,7 @@ func (*BillingCustomerOverride) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case billingcustomeroverride.FieldInvoiceAutoAdvance, billingcustomeroverride.FieldInvoiceProgressiveBilling:
 			values[i] = new(sql.NullBool)
-		case billingcustomeroverride.FieldID, billingcustomeroverride.FieldNamespace, billingcustomeroverride.FieldTaxCodeID, billingcustomeroverride.FieldTaxBehavior, billingcustomeroverride.FieldCustomerID, billingcustomeroverride.FieldBillingProfileID, billingcustomeroverride.FieldCollectionAlignment, billingcustomeroverride.FieldLineCollectionPeriod, billingcustomeroverride.FieldInvoiceDraftPeriod, billingcustomeroverride.FieldInvoiceDueAfter, billingcustomeroverride.FieldInvoiceCollectionMethod:
+		case billingcustomeroverride.FieldID, billingcustomeroverride.FieldNamespace, billingcustomeroverride.FieldCustomerID, billingcustomeroverride.FieldBillingProfileID, billingcustomeroverride.FieldCollectionAlignment, billingcustomeroverride.FieldLineCollectionPeriod, billingcustomeroverride.FieldInvoiceDraftPeriod, billingcustomeroverride.FieldInvoiceDueAfter, billingcustomeroverride.FieldInvoiceCollectionMethod, billingcustomeroverride.FieldTaxCodeID, billingcustomeroverride.FieldTaxBehavior:
 			values[i] = new(sql.NullString)
 		case billingcustomeroverride.FieldCreatedAt, billingcustomeroverride.FieldUpdatedAt, billingcustomeroverride.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -168,20 +190,6 @@ func (_m *BillingCustomerOverride) assignValues(columns []string, values []any) 
 			} else if value.Valid {
 				_m.DeletedAt = new(time.Time)
 				*_m.DeletedAt = value.Time
-			}
-		case billingcustomeroverride.FieldTaxCodeID:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field tax_code_id", values[i])
-			} else if value.Valid {
-				_m.TaxCodeID = new(string)
-				*_m.TaxCodeID = value.String
-			}
-		case billingcustomeroverride.FieldTaxBehavior:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field tax_behavior", values[i])
-			} else if value.Valid {
-				_m.TaxBehavior = new(productcatalog.TaxBehavior)
-				*_m.TaxBehavior = productcatalog.TaxBehavior(value.String)
 			}
 		case billingcustomeroverride.FieldCustomerID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -261,6 +269,20 @@ func (_m *BillingCustomerOverride) assignValues(columns []string, values []any) 
 					return fmt.Errorf("unmarshal field invoice_default_tax_config: %w", err)
 				}
 			}
+		case billingcustomeroverride.FieldTaxCodeID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field tax_code_id", values[i])
+			} else if value.Valid {
+				_m.TaxCodeID = new(string)
+				*_m.TaxCodeID = value.String
+			}
+		case billingcustomeroverride.FieldTaxBehavior:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field tax_behavior", values[i])
+			} else if value.Valid {
+				_m.TaxBehavior = new(productcatalog.TaxBehavior)
+				*_m.TaxBehavior = productcatalog.TaxBehavior(value.String)
+			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -326,16 +348,6 @@ func (_m *BillingCustomerOverride) String() string {
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")
-	if v := _m.TaxCodeID; v != nil {
-		builder.WriteString("tax_code_id=")
-		builder.WriteString(*v)
-	}
-	builder.WriteString(", ")
-	if v := _m.TaxBehavior; v != nil {
-		builder.WriteString("tax_behavior=")
-		builder.WriteString(fmt.Sprintf("%v", *v))
-	}
-	builder.WriteString(", ")
 	builder.WriteString("customer_id=")
 	builder.WriteString(_m.CustomerID)
 	builder.WriteString(", ")
@@ -384,6 +396,16 @@ func (_m *BillingCustomerOverride) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("invoice_default_tax_config=")
 	builder.WriteString(fmt.Sprintf("%v", _m.InvoiceDefaultTaxConfig))
+	builder.WriteString(", ")
+	if v := _m.TaxCodeID; v != nil {
+		builder.WriteString("tax_code_id=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.TaxBehavior; v != nil {
+		builder.WriteString("tax_behavior=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteByte(')')
 	return builder.String()
 }

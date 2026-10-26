@@ -25,10 +25,6 @@ const (
 	FieldUpdatedAt = "updated_at"
 	// FieldDeletedAt holds the string denoting the deleted_at field in the database.
 	FieldDeletedAt = "deleted_at"
-	// FieldTaxCodeID holds the string denoting the tax_code_id field in the database.
-	FieldTaxCodeID = "tax_code_id"
-	// FieldTaxBehavior holds the string denoting the tax_behavior field in the database.
-	FieldTaxBehavior = "tax_behavior"
 	// FieldCustomerID holds the string denoting the customer_id field in the database.
 	FieldCustomerID = "customer_id"
 	// FieldBillingProfileID holds the string denoting the billing_profile_id field in the database.
@@ -51,6 +47,10 @@ const (
 	FieldInvoiceProgressiveBilling = "invoice_progressive_billing"
 	// FieldInvoiceDefaultTaxConfig holds the string denoting the invoice_default_tax_config field in the database.
 	FieldInvoiceDefaultTaxConfig = "invoice_default_tax_config"
+	// FieldTaxCodeID holds the string denoting the tax_code_id field in the database.
+	FieldTaxCodeID = "tax_code_id"
+	// FieldTaxBehavior holds the string denoting the tax_behavior field in the database.
+	FieldTaxBehavior = "tax_behavior"
 	// EdgeCustomer holds the string denoting the customer edge name in mutations.
 	EdgeCustomer = "customer"
 	// EdgeBillingProfile holds the string denoting the billing_profile edge name in mutations.
@@ -89,25 +89,19 @@ var Columns = []string{
 	FieldCreatedAt,
 	FieldUpdatedAt,
 	FieldDeletedAt,
-	FieldTaxCodeID,
-	FieldTaxBehavior,
 	FieldCustomerID,
 	FieldBillingProfileID,
-	FieldCollectionAlignment,
-	FieldAnchoredAlignmentDetail,
-	FieldLineCollectionPeriod,
-	FieldInvoiceAutoAdvance,
-	FieldInvoiceDraftPeriod,
-	FieldInvoiceDueAfter,
-	FieldInvoiceCollectionMethod,
-	FieldInvoiceProgressiveBilling,
-	FieldInvoiceDefaultTaxConfig,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
 func ValidColumn(column string) bool {
 	for i := range Columns {
 		if column == Columns[i] {
+			return true
+		}
+	}
+	for _, f := range [...]string{FieldCollectionAlignment, FieldAnchoredAlignmentDetail, FieldLineCollectionPeriod, FieldInvoiceAutoAdvance, FieldInvoiceDraftPeriod, FieldInvoiceDueAfter, FieldInvoiceCollectionMethod, FieldInvoiceProgressiveBilling, FieldInvoiceDefaultTaxConfig, FieldTaxCodeID, FieldTaxBehavior} {
+		if column == f {
 			return true
 		}
 	}
@@ -127,16 +121,6 @@ var (
 	DefaultID func() string
 )
 
-// TaxBehaviorValidator is a validator for the "tax_behavior" field enum values. It is called by the builders before save.
-func TaxBehaviorValidator(tb productcatalog.TaxBehavior) error {
-	switch tb {
-	case "inclusive", "exclusive":
-		return nil
-	default:
-		return fmt.Errorf("billingcustomeroverride: invalid enum value for tax_behavior field: %q", tb)
-	}
-}
-
 // CollectionAlignmentValidator is a validator for the "collection_alignment" field enum values. It is called by the builders before save.
 func CollectionAlignmentValidator(ca billing.AlignmentKind) error {
 	switch ca {
@@ -154,6 +138,16 @@ func InvoiceCollectionMethodValidator(icm billing.CollectionMethod) error {
 		return nil
 	default:
 		return fmt.Errorf("billingcustomeroverride: invalid enum value for invoice_collection_method field: %q", icm)
+	}
+}
+
+// TaxBehaviorValidator is a validator for the "tax_behavior" field enum values. It is called by the builders before save.
+func TaxBehaviorValidator(tb productcatalog.TaxBehavior) error {
+	switch tb {
+	case "inclusive", "exclusive":
+		return nil
+	default:
+		return fmt.Errorf("billingcustomeroverride: invalid enum value for tax_behavior field: %q", tb)
 	}
 }
 
@@ -183,16 +177,6 @@ func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
 // ByDeletedAt orders the results by the deleted_at field.
 func ByDeletedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDeletedAt, opts...).ToFunc()
-}
-
-// ByTaxCodeID orders the results by the tax_code_id field.
-func ByTaxCodeID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldTaxCodeID, opts...).ToFunc()
-}
-
-// ByTaxBehavior orders the results by the tax_behavior field.
-func ByTaxBehavior(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldTaxBehavior, opts...).ToFunc()
 }
 
 // ByCustomerID orders the results by the customer_id field.
@@ -238,6 +222,16 @@ func ByInvoiceCollectionMethod(opts ...sql.OrderTermOption) OrderOption {
 // ByInvoiceProgressiveBilling orders the results by the invoice_progressive_billing field.
 func ByInvoiceProgressiveBilling(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldInvoiceProgressiveBilling, opts...).ToFunc()
+}
+
+// ByTaxCodeID orders the results by the tax_code_id field.
+func ByTaxCodeID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTaxCodeID, opts...).ToFunc()
+}
+
+// ByTaxBehavior orders the results by the tax_behavior field.
+func ByTaxBehavior(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTaxBehavior, opts...).ToFunc()
 }
 
 // ByCustomerField orders the results by customer field.

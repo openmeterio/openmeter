@@ -268,14 +268,6 @@ func (e *BillingCustomerOverride) GetDeletedAt() *time.Time {
 	return e.DeletedAt
 }
 
-func (e *BillingCustomerOverride) GetTaxCodeID() *string {
-	return e.TaxCodeID
-}
-
-func (e *BillingCustomerOverride) GetTaxBehavior() *productcatalog.TaxBehavior {
-	return e.TaxBehavior
-}
-
 func (e *BillingGatheringInvoiceLine) GetID() string {
 	return e.ID
 }
