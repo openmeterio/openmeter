@@ -111,15 +111,74 @@ interface FeatureOperations {
 
 interface FeatureCostOperations {
   /**
-   * Query the cost of a feature.
+   * Query the cost of a feature as JSON.
    */
   @extension(Shared.UnstableExtension, true)
   @post
   @route("/query")
   @operationId("query-feature-cost")
   @summary("Query feature cost")
+  @sharedRoute
   queryCost(
     @path featureId: Shared.ULID,
     @body request?: Meters.MeterQueryRequest,
-  ): FeatureCostQueryResult | Common.NotFound | Common.ErrorResponses;
+  ):
+    | {
+        @header contentType: "application/json";
+        @body _: FeatureCostQueryResult;
+      }
+    | Common.NotFound
+    | Common.ErrorResponses;
+
+  /**
+   * Download feature cost query results as CSV.
+   *
+   * Set `Accept: text/csv` for raw HTTP requests. In the TypeScript SDK, use
+   * `queryFeatureCostCsv` or `client.features.queryCostCsv`. In the Go SDK, use
+   * `Features.QueryCostCSV` or `Features.QueryCostCSVStream`.
+   *
+   * CSV columns, in order:
+   *
+   * `from, to, [subject,] [customer_id, customer_key, customer_name,] <dimensions...>, usage, cost, currency, detail`
+   *
+   * Subject and customer columns are included when the query groups by those
+   * dimensions, including grouping implied by their filters. Other dimensions follow
+   * the query's grouping order. Unavailable cost is an empty cell, not zero. Detail
+   * is retained for both unavailable and partially priced costs.
+   *
+   * Custom dimensions named `from`, `to`, `customer_key`, `customer_name`, `usage`,
+   * `cost`, `currency`, or `detail` are omitted from CSV headers and row values.
+   * Query grouping is unchanged, and JSON retains these dimension values. Timestamps
+   * preserve fractional seconds.
+   */
+  #suppress "@openmeter/api-spec-aip/operation-summary" "Avoid duplicating the summary in OpenAPI yaml"
+  @opExample(
+    #{
+      returnType: #{
+        contentType: "text/csv",
+        _: """
+          from,to,model,usage,cost,currency,detail
+          2023-01-01T00:00:00Z,2023-01-02T00:00:00Z,gpt-4-turbo,100,0.001,USD,
+          2023-01-01T00:00:00Z,2023-01-02T00:00:00Z,unknown-model,20,,,Pricing unavailable
+          """,
+      },
+    },
+    #{ title: "Grouped by model with unavailable pricing" }
+  )
+  @extension(Shared.UnstableExtension, true)
+  @friendlyName("queryFeatureCostCsv")
+  @post
+  @route("/query")
+  @operationId("query-feature-cost")
+  @sharedRoute
+  queryCostCsv(
+    @path featureId: Shared.ULID,
+    // The JSON sibling owns the shared request body, as with meter CSV.
+  ):
+    | {
+        @header contentType: "text/csv";
+        @body _: string;
+      }
+    | Common.NotFound
+    | Common.ErrorResponses;
 }

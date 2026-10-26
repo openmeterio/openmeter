@@ -25,6 +25,8 @@ import type {
   DeleteFeatureResponse,
   QueryFeatureCostRequest,
   QueryFeatureCostResponse,
+  QueryFeatureCostCsvRequest,
+  QueryFeatureCostCsvResponse,
 } from '../models/operations/features.js'
 
 /**
@@ -215,7 +217,7 @@ export function deleteFeature(
 /**
  * Query feature cost
  *
- * Query the cost of a feature.
+ * Query the cost of a feature as JSON.
  *
  * POST /openmeter/features/{featureId}/cost/query
  */
@@ -253,5 +255,61 @@ export function queryFeatureCost(
         }
         return fromWire(data, schemas.queryFeatureCostResponse)
       })
+  })
+}
+
+/**
+ * Download feature cost query results as CSV.
+ *
+ * Set `Accept: text/csv` for raw HTTP requests. In the TypeScript SDK, use
+ * `queryFeatureCostCsv` or `client.features.queryCostCsv`. In the Go SDK, use
+ * `Features.QueryCostCSV` or `Features.QueryCostCSVStream`.
+ *
+ * CSV columns, in order:
+ *
+ * `from, to, [subject,] [customer_id, customer_key, customer_name,] <dimensions...>, usage, cost, currency, detail`
+ *
+ * Subject and customer columns are included when the query groups by those
+ * dimensions, including grouping implied by their filters. Other dimensions follow
+ * the query's grouping order. Unavailable cost is an empty cell, not zero. Detail
+ * is retained for both unavailable and partially priced costs.
+ *
+ * Custom dimensions named `from`, `to`, `customer_key`, `customer_name`, `usage`,
+ * `cost`, `currency`, or `detail` are omitted from CSV headers and row values.
+ * Query grouping is unchanged, and JSON retains these dimension values. Timestamps
+ * preserve fractional seconds.
+ *
+ * POST /openmeter/features/{featureId}/cost/query
+ */
+export function queryFeatureCostCsv(
+  client: Client,
+  req: QueryFeatureCostCsvRequest,
+  options?: RequestOptions,
+): Promise<Result<QueryFeatureCostCsvResponse>> {
+  const headers = new Headers(options?.headers as HeadersInit | undefined)
+  headers.set('accept', 'text/csv')
+  return request(() => {
+    const pathParamsInput = {
+      featureId: req.featureId,
+    }
+    const pathParams = client._options.validate
+      ? toPathWire(pathParamsInput, schemas.queryFeatureCostCsvPathParams)
+      : pathParamsInput
+    if (client._options.validate) {
+      assertValid(schemas.queryFeatureCostCsvPathParamsWire, pathParams)
+    }
+    const path = `openmeter/features/${(() => {
+      if (pathParams.featureId === undefined) {
+        throw new Error('missing path parameter: featureId')
+      }
+      return encodeURIComponent(String(pathParams.featureId))
+    })()}/cost/query`
+    const body = toWire(req.body, schemas.queryFeatureCostCsvBody)
+    if (client._options.validate) {
+      assertValid(schemas.queryFeatureCostCsvBodyWire, body)
+    }
+    return http(client)
+      .post(path, { ...options, json: body, headers })
+      .text()
   })
 }
