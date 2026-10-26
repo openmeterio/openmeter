@@ -217,8 +217,6 @@ func (BillingCustomerOverride) Fields() []ent.Field {
 			}),
 
 		field.String("billing_profile_id").
-			Optional().
-			Nillable().
 			SchemaType(map[string]string{
 				dialect.Postgres: "char(26)",
 			}),
@@ -243,7 +241,8 @@ func (BillingCustomerOverride) Edges() []ent.Edge {
 		edge.From("billing_profile", BillingProfile.Type).
 			Ref("billing_customer_override").
 			Field("billing_profile_id").
-			Unique(),
+			Unique().
+			Required(),
 	}
 }
 

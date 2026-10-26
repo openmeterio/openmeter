@@ -482,10 +482,7 @@ func (_q *BillingCustomerOverrideQuery) loadBillingProfile(ctx context.Context, 
 	ids := make([]string, 0, len(nodes))
 	nodeids := make(map[string][]*BillingCustomerOverride)
 	for i := range nodes {
-		if nodes[i].BillingProfileID == nil {
-			continue
-		}
-		fk := *nodes[i].BillingProfileID
+		fk := nodes[i].BillingProfileID
 		if _, ok := nodeids[fk]; !ok {
 			ids = append(ids, fk)
 		}

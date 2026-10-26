@@ -552,7 +552,7 @@ var (
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
-		{Name: "billing_profile_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "billing_profile_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "customer_id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// BillingCustomerOverridesTable holds the schema information for the "billing_customer_overrides" table.
@@ -565,7 +565,7 @@ var (
 				Symbol:     "billing_customer_overrides_billing_profiles_billing_customer_override",
 				Columns:    []*schema.Column{BillingCustomerOverridesColumns[5]},
 				RefColumns: []*schema.Column{BillingProfilesColumns[0]},
-				OnDelete:   schema.SetNull,
+				OnDelete:   schema.NoAction,
 			},
 			{
 				Symbol:     "billing_customer_overrides_customers_billing_customer_override",

@@ -357,22 +357,11 @@ func (a *adapter) GetUnpinnedCustomerIDsWithPaidSubscription(ctx context.Context
 						billinginvoiceline.SubscriptionIDNotNil(),
 					),
 				),
-				// Has no customer override with explicit billing profile pinning
-				dbcustomer.Or(
-					// Either has a customer override with no billing profile id set
-					dbcustomer.HasBillingCustomerOverrideWith(
-						billingcustomeroverride.NamespaceEQ(input.Namespace),
-						billingcustomeroverride.DeletedAtIsNil(),
-						billingcustomeroverride.BillingProfileIDIsNil(),
-					),
-					// Or has no customer override at all
-					dbcustomer.Not(
-						dbcustomer.HasBillingCustomerOverrideWith(
-							billingcustomeroverride.NamespaceEQ(input.Namespace),
-							billingcustomeroverride.DeletedAtIsNil(),
-						),
-					),
-				),
+				// Has no live customer profile assignment.
+				dbcustomer.Not(dbcustomer.HasBillingCustomerOverrideWith(
+					billingcustomeroverride.NamespaceEQ(input.Namespace),
+					billingcustomeroverride.DeletedAtIsNil(),
+				)),
 			).
 			Select(dbcustomer.FieldNamespace, dbcustomer.FieldID).
 			Scan(ctx, &out)

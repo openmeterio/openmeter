@@ -21,6 +21,7 @@ func TestCustomerBillingOverrideCleanupPreservesAssignments(t *testing.T) {
 
 	_, err = conn.ExecContext(t.Context(), `
 CREATE TEMP TABLE tax_codes (id character(26) PRIMARY KEY);
+CREATE TEMP TABLE billing_profiles (id character(26) PRIMARY KEY);
 CREATE TEMP TABLE billing_customer_overrides (
     id character(26) PRIMARY KEY,
     namespace character varying NOT NULL,
@@ -39,7 +40,9 @@ CREATE TEMP TABLE billing_customer_overrides (
     invoice_progressive_billing boolean,
     invoice_default_tax_config jsonb,
     tax_behavior character varying,
-    tax_code_id character(26) REFERENCES tax_codes(id)
+    tax_code_id character(26) REFERENCES tax_codes(id),
+    CONSTRAINT "billing_customer_overrides_billing_profiles_billing_customer_override"
+        FOREIGN KEY (billing_profile_id) REFERENCES billing_profiles(id) ON DELETE SET NULL
 );
 CREATE INDEX billingcustomeroverride_tax_code_id ON billing_customer_overrides(tax_code_id);`)
 	require.NoError(t, err)
@@ -49,6 +52,9 @@ CREATE INDEX billingcustomeroverride_tax_code_id ON billing_customer_overrides(t
 	deletedAt := updatedAt.Add(time.Hour)
 	for _, namespace := range []string{"cleanup-a", "cleanup-b"} {
 		profileID := ulid.Make().String()
+		_, err = conn.ExecContext(t.Context(), "INSERT INTO billing_profiles (id) VALUES ($1)", profileID)
+		require.NoError(t, err)
+
 		for _, selection := range []struct {
 			profileID *string
 			deletedAt *time.Time
@@ -82,6 +88,7 @@ FROM (
 	for _, migration := range []string{
 		"20261026095354_cleanup_empty_customer_overrides.up.sql",
 		"20261026095422_remove_customer_override_fields.up.sql",
+		"20261026101725_require_customer_billing_profile.up.sql",
 	} {
 		_, err = conn.ExecContext(t.Context(), readMigration(t, migration))
 		require.NoError(t, err)
@@ -95,4 +102,10 @@ SELECT jsonb_agg(to_jsonb(assignments) ORDER BY assignments.id)::text
 FROM billing_customer_overrides AS assignments`).Scan(&actualAssignments)
 	require.NoError(t, err)
 	require.JSONEq(t, expectedAssignments, actualAssignments)
+
+	// New empty selections are rejected by the migrated database schema.
+	_, err = conn.ExecContext(t.Context(), `
+INSERT INTO billing_customer_overrides (id, namespace, customer_id, created_at, updated_at)
+VALUES ($1, 'cleanup-invalid', $2, $3, $4)`, ulid.Make().String(), ulid.Make().String(), createdAt, updatedAt)
+	require.ErrorContains(t, err, `null value in column "billing_profile_id"`)
 }

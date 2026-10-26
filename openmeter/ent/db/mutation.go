@@ -11372,7 +11372,7 @@ func (m *BillingCustomerOverrideMutation) BillingProfileID() (r string, exists b
 // OldBillingProfileID returns the old "billing_profile_id" field's value of the BillingCustomerOverride entity.
 // If the BillingCustomerOverride object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingCustomerOverrideMutation) OldBillingProfileID(ctx context.Context) (v *string, err error) {
+func (m *BillingCustomerOverrideMutation) OldBillingProfileID(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldBillingProfileID is only allowed on UpdateOne operations")
 	}
@@ -11386,22 +11386,9 @@ func (m *BillingCustomerOverrideMutation) OldBillingProfileID(ctx context.Contex
 	return oldValue.BillingProfileID, nil
 }
 
-// ClearBillingProfileID clears the value of the "billing_profile_id" field.
-func (m *BillingCustomerOverrideMutation) ClearBillingProfileID() {
-	m.billing_profile = nil
-	m.clearedFields[billingcustomeroverride.FieldBillingProfileID] = struct{}{}
-}
-
-// BillingProfileIDCleared returns if the "billing_profile_id" field was cleared in this mutation.
-func (m *BillingCustomerOverrideMutation) BillingProfileIDCleared() bool {
-	_, ok := m.clearedFields[billingcustomeroverride.FieldBillingProfileID]
-	return ok
-}
-
 // ResetBillingProfileID resets all changes to the "billing_profile_id" field.
 func (m *BillingCustomerOverrideMutation) ResetBillingProfileID() {
 	m.billing_profile = nil
-	delete(m.clearedFields, billingcustomeroverride.FieldBillingProfileID)
 }
 
 // ClearCustomer clears the "customer" edge to the Customer entity.
@@ -11439,7 +11426,7 @@ func (m *BillingCustomerOverrideMutation) ClearBillingProfile() {
 
 // BillingProfileCleared reports if the "billing_profile" edge to the BillingProfile entity was cleared.
 func (m *BillingCustomerOverrideMutation) BillingProfileCleared() bool {
-	return m.BillingProfileIDCleared() || m.clearedbilling_profile
+	return m.clearedbilling_profile
 }
 
 // BillingProfileIDs returns the "billing_profile" edge IDs in the mutation.
@@ -11636,9 +11623,6 @@ func (m *BillingCustomerOverrideMutation) ClearedFields() []string {
 	if m.FieldCleared(billingcustomeroverride.FieldDeletedAt) {
 		fields = append(fields, billingcustomeroverride.FieldDeletedAt)
 	}
-	if m.FieldCleared(billingcustomeroverride.FieldBillingProfileID) {
-		fields = append(fields, billingcustomeroverride.FieldBillingProfileID)
-	}
 	return fields
 }
 
@@ -11655,9 +11639,6 @@ func (m *BillingCustomerOverrideMutation) ClearField(name string) error {
 	switch name {
 	case billingcustomeroverride.FieldDeletedAt:
 		m.ClearDeletedAt()
-		return nil
-	case billingcustomeroverride.FieldBillingProfileID:
-		m.ClearBillingProfileID()
 		return nil
 	}
 	return fmt.Errorf("unknown BillingCustomerOverride nullable field %s", name)

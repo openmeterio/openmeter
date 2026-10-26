@@ -410,16 +410,6 @@ func BillingProfileIDHasSuffix(v string) predicate.BillingCustomerOverride {
 	return predicate.BillingCustomerOverride(sql.FieldHasSuffix(FieldBillingProfileID, v))
 }
 
-// BillingProfileIDIsNil applies the IsNil predicate on the "billing_profile_id" field.
-func BillingProfileIDIsNil() predicate.BillingCustomerOverride {
-	return predicate.BillingCustomerOverride(sql.FieldIsNull(FieldBillingProfileID))
-}
-
-// BillingProfileIDNotNil applies the NotNil predicate on the "billing_profile_id" field.
-func BillingProfileIDNotNil() predicate.BillingCustomerOverride {
-	return predicate.BillingCustomerOverride(sql.FieldNotNull(FieldBillingProfileID))
-}
-
 // BillingProfileIDEqualFold applies the EqualFold predicate on the "billing_profile_id" field.
 func BillingProfileIDEqualFold(v string) predicate.BillingCustomerOverride {
 	return predicate.BillingCustomerOverride(sql.FieldEqualFold(FieldBillingProfileID, v))

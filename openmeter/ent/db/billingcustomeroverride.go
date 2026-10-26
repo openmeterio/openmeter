@@ -30,7 +30,7 @@ type BillingCustomerOverride struct {
 	// CustomerID holds the value of the "customer_id" field.
 	CustomerID string `json:"customer_id,omitempty"`
 	// BillingProfileID holds the value of the "billing_profile_id" field.
-	BillingProfileID *string `json:"billing_profile_id,omitempty"`
+	BillingProfileID string `json:"billing_profile_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the BillingCustomerOverrideQuery when eager-loading is set.
 	Edges        BillingCustomerOverrideEdges `json:"edges"`
@@ -135,8 +135,7 @@ func (_m *BillingCustomerOverride) assignValues(columns []string, values []any) 
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field billing_profile_id", values[i])
 			} else if value.Valid {
-				_m.BillingProfileID = new(string)
-				*_m.BillingProfileID = value.String
+				_m.BillingProfileID = value.String
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
@@ -201,10 +200,8 @@ func (_m *BillingCustomerOverride) String() string {
 	builder.WriteString("customer_id=")
 	builder.WriteString(_m.CustomerID)
 	builder.WriteString(", ")
-	if v := _m.BillingProfileID; v != nil {
-		builder.WriteString("billing_profile_id=")
-		builder.WriteString(*v)
-	}
+	builder.WriteString("billing_profile_id=")
+	builder.WriteString(_m.BillingProfileID)
 	builder.WriteByte(')')
 	return builder.String()
 }

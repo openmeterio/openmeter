@@ -714,11 +714,11 @@ func assertAppCustomInvoicingCustomerActive(t *testing.T, db *entdb.Client, ns, 
 	}
 }
 
-func TestListCustomersBillingProfileFilterHistoricalEmptyPin(t *testing.T) {
-	// given: a historical override row without a profile selection and a namespace default.
+func TestListCustomersBillingProfileFilter(t *testing.T) {
+	// given: unassigned, assigned, and cleared customers and a namespace default.
 	env := newTestEnv(t)
 	ctx := t.Context()
-	const namespace = "historical-empty-pin"
+	const namespace = "customer-profile-filter"
 
 	application, err := env.db.App.Create().
 		SetNamespace(namespace).
@@ -752,19 +752,60 @@ func TestListCustomersBillingProfileFilterHistoricalEmptyPin(t *testing.T) {
 		Save(ctx)
 	require.NoError(t, err)
 
-	cust, err := env.adapter.CreateCustomer(ctx, customer.CreateCustomerInput{
-		Namespace: namespace,
-		CustomerMutate: customer.CustomerMutate{
-			Name: "Historical empty pin",
-			Key:  lo.ToPtr("historical-empty-pin"),
-		},
-	})
-	require.NoError(t, err)
-	_, err = env.db.BillingCustomerOverride.Create().
+	otherWorkflow, err := env.db.BillingWorkflowConfig.Create().
 		SetNamespace(namespace).
-		SetCustomerID(cust.ID).
+		SetCollectionAlignment(billing.AlignmentKindSubscription).
+		SetLineCollectionPeriod("PT1H").
+		SetInvoiceAutoAdvance(true).
+		SetInvoiceDraftPeriod("PT1H").
+		SetInvoiceDueAfter("P1D").
+		SetInvoiceCollectionMethod(billing.CollectionMethodChargeAutomatically).
+		SetInvoiceProgressiveBilling(false).
 		Save(ctx)
 	require.NoError(t, err)
+
+	otherProfile, err := env.db.BillingProfile.Create().
+		SetNamespace(namespace).
+		SetName("Other").
+		SetSupplierName("Supplier").
+		SetWorkflowConfig(otherWorkflow).
+		SetTaxApp(application).
+		SetInvoicingApp(application).
+		SetPaymentApp(application).
+		Save(ctx)
+	require.NoError(t, err)
+
+	customerIDs := make(map[string]string)
+	deletedAt := time.Date(2026, time.October, 1, 0, 0, 0, 0, time.UTC)
+	for _, selection := range []struct {
+		name      string
+		profileID *string
+		deletedAt *time.Time
+	}{
+		{name: "unassigned"},
+		{name: "assigned-default", profileID: &defaultProfile.ID},
+		{name: "assigned-other", profileID: &otherProfile.ID},
+		{name: "cleared", profileID: &otherProfile.ID, deletedAt: &deletedAt},
+	} {
+		cust, err := env.adapter.CreateCustomer(ctx, customer.CreateCustomerInput{
+			Namespace: namespace,
+			CustomerMutate: customer.CustomerMutate{
+				Name: selection.name,
+				Key:  lo.ToPtr(selection.name),
+			},
+		})
+		require.NoError(t, err)
+		customerIDs[selection.name] = cust.ID
+		if selection.profileID != nil {
+			_, err = env.db.BillingCustomerOverride.Create().
+				SetNamespace(namespace).
+				SetCustomerID(cust.ID).
+				SetBillingProfileID(*selection.profileID).
+				SetNillableDeletedAt(selection.deletedAt).
+				Save(ctx)
+			require.NoError(t, err)
+		}
+	}
 
 	for _, tc := range []struct {
 		name        string
@@ -772,13 +813,14 @@ func TestListCustomersBillingProfileFilterHistoricalEmptyPin(t *testing.T) {
 		customerIDs []string
 	}{
 		{
-			name:        "matches the namespace default",
+			name:        "matches default for unassigned and cleared customers",
 			profileID:   defaultProfile.ID,
-			customerIDs: []string{cust.ID},
+			customerIDs: []string{customerIDs["unassigned"], customerIDs["assigned-default"], customerIDs["cleared"]},
 		},
 		{
-			name:      "does not match another profile",
-			profileID: ulid.Make().String(),
+			name:        "matches another profile only for its active assignments",
+			profileID:   otherProfile.ID,
+			customerIDs: []string{customerIDs["assigned-other"]},
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -789,7 +831,7 @@ func TestListCustomersBillingProfileFilterHistoricalEmptyPin(t *testing.T) {
 			})
 			require.NoError(t, err)
 
-			// then: a historical empty selection follows only the namespace default.
+			// then: only live assignments override the namespace default.
 			ids := lo.Map(result.Items, func(item customer.Customer, _ int) string { return item.ID })
 			require.ElementsMatch(t, tc.customerIDs, ids)
 		})

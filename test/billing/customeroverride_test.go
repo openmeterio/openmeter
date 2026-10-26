@@ -100,33 +100,6 @@ func (s *CustomerBillingProfileTestSuite) TestGetRejectsPersistedCrossNamespaceP
 	require.Empty(s.T(), result)
 }
 
-func (s *CustomerBillingProfileTestSuite) TestGetIgnoresHistoricalCrossNamespaceTaxCode() {
-	// given: a legacy row references a tax code from another namespace.
-	ctx := s.T().Context()
-	customerNamespace := s.GetUniqueNamespace("customer-override-tax-customer")
-	taxNamespace := s.GetUniqueNamespace("customer-override-tax-code")
-	customerEntity := s.CreateTestCustomer(customerNamespace, "customer")
-	profile := s.ProvisionBillingProfile(ctx, customerNamespace, s.InstallSandboxApp(s.T(), customerNamespace).GetID())
-	foreignTaxCode := s.TaxCodeEnv.ProvisionProviderDefaultTaxCode(s.T(), taxNamespace)
-
-	_, err := s.DBClient.BillingCustomerOverride.Create().
-		SetNamespace(customerNamespace).
-		SetCustomerID(customerEntity.ID).
-		SetTaxCodeID(foreignTaxCode.ID).
-		Save(ctx)
-	require.NoError(s.T(), err)
-
-	// when: the effective profile is resolved without an active pin.
-	result, err := s.BillingService.GetCustomerBillingProfile(ctx, billing.GetCustomerBillingProfileInput{
-		Customer: customerEntity.GetID(),
-	})
-	// then: historical fields cannot change the namespace default's workflow.
-	require.NoError(s.T(), err)
-	require.Nil(s.T(), result.AssignedProfile)
-	require.Equal(s.T(), profile.ID, result.EffectiveProfile.ID)
-	require.Equal(s.T(), profile.WorkflowConfig, result.EffectiveProfile.WorkflowConfig)
-}
-
 func (s *CustomerBillingProfileTestSuite) TestBulkAssignValidatesReferencesAndDeduplicatesCustomers() {
 	// given:
 	// - customers and billing profiles in two namespaces
@@ -582,8 +555,8 @@ func (s *CustomerBillingProfileTestSuite) TestMissingDefaultAndInvalidSelection(
 	s.Empty(result.Items)
 }
 
-func (s *CustomerBillingProfileTestSuite) TestHistoricalRowsAndListSemantics() {
-	// given: no row, an empty legacy row, a deleted pin, and two active pins.
+func (s *CustomerBillingProfileTestSuite) TestProfileAssignmentsAndListSemantics() {
+	// given: an unassigned customer, a deleted assignment, and two active assignments.
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("profile-selection-history")
 	application := s.InstallSandboxApp(s.T(), ns)
@@ -594,12 +567,9 @@ func (s *CustomerBillingProfileTestSuite) TestHistoricalRowsAndListSemantics() {
 	profileB, err := s.BillingService.CreateProfile(ctx, input)
 	s.Require().NoError(err)
 	noRow := s.CreateTestCustomer(ns, "no-row")
-	empty := s.CreateTestCustomer(ns, "empty")
 	deleted := s.CreateTestCustomer(ns, "deleted")
 	pinnedA := s.CreateTestCustomer(ns, "pinned-A")
 	pinnedB := s.CreateTestCustomer(ns, "pinned-B")
-	_, err = s.DBClient.BillingCustomerOverride.Create().SetNamespace(ns).SetCustomerID(empty.ID).Save(ctx)
-	s.Require().NoError(err)
 	for _, cust := range []customer.CustomerID{deleted.GetID(), pinnedB.GetID()} {
 		_, err = s.BillingService.SetCustomerBillingProfile(ctx, billing.SetCustomerBillingProfileInput{Customer: cust, ProfileID: profileB.ID})
 		s.Require().NoError(err)
@@ -609,8 +579,8 @@ func (s *CustomerBillingProfileTestSuite) TestHistoricalRowsAndListSemantics() {
 	_, err = s.BillingService.SetCustomerBillingProfile(ctx, billing.SetCustomerBillingProfileInput{Customer: pinnedA.GetID(), ProfileID: profileA.ID})
 	s.Require().NoError(err)
 
-	// when: legacy row states are read, with and without app/customer expansion.
-	for _, cust := range []customer.CustomerID{noRow.GetID(), empty.GetID(), deleted.GetID(), pinnedA.GetID(), pinnedB.GetID()} {
+	// when: the customer selections are read, with and without app/customer expansion.
+	for _, cust := range []customer.CustomerID{noRow.GetID(), deleted.GetID(), pinnedA.GetID(), pinnedB.GetID()} {
 		for _, expand := range []billing.CustomerBillingProfileExpand{{}, billing.CustomerBillingProfileExpandAll} {
 			result, err := s.BillingService.GetCustomerBillingProfile(ctx, billing.GetCustomerBillingProfileInput{Customer: cust, Expand: expand})
 			s.Require().NoError(err)
@@ -645,10 +615,10 @@ func (s *CustomerBillingProfileTestSuite) TestHistoricalRowsAndListSemantics() {
 		input billing.ListCustomerBillingProfilesInput
 		ids   []string
 	}{
-		{name: "all", input: billing.ListCustomerBillingProfilesInput{IncludeAllCustomers: true}, ids: []string{noRow.ID, empty.ID, deleted.ID, pinnedA.ID, pinnedB.ID}},
-		{name: "unpinned", input: billing.ListCustomerBillingProfilesInput{CustomersWithoutPinnedProfile: true}, ids: []string{noRow.ID, empty.ID, deleted.ID}},
+		{name: "all", input: billing.ListCustomerBillingProfilesInput{IncludeAllCustomers: true}, ids: []string{noRow.ID, deleted.ID, pinnedA.ID, pinnedB.ID}},
+		{name: "unpinned", input: billing.ListCustomerBillingProfilesInput{CustomersWithoutPinnedProfile: true}, ids: []string{noRow.ID, deleted.ID}},
 		{name: "pins only", input: billing.ListCustomerBillingProfilesInput{}, ids: []string{pinnedA.ID, pinnedB.ID}},
-		{name: "effective default", input: billing.ListCustomerBillingProfilesInput{IncludeAllCustomers: true, BillingProfiles: []string{profileA.ID}}, ids: []string{noRow.ID, empty.ID, deleted.ID, pinnedA.ID}},
+		{name: "effective default", input: billing.ListCustomerBillingProfilesInput{IncludeAllCustomers: true, BillingProfiles: []string{profileA.ID}}, ids: []string{noRow.ID, deleted.ID, pinnedA.ID}},
 		{name: "explicit default", input: billing.ListCustomerBillingProfilesInput{BillingProfiles: []string{profileA.ID}}, ids: []string{pinnedA.ID}},
 		{name: "other profile", input: billing.ListCustomerBillingProfilesInput{IncludeAllCustomers: true, BillingProfiles: []string{profileB.ID}}, ids: []string{pinnedB.ID}},
 	}
@@ -663,17 +633,17 @@ func (s *CustomerBillingProfileTestSuite) TestHistoricalRowsAndListSemantics() {
 	}
 
 	// when: clearing customers without an active pin, historical rows do not change the result.
-	for _, cust := range []customer.CustomerID{noRow.GetID(), empty.GetID(), deleted.GetID()} {
+	for _, cust := range []customer.CustomerID{noRow.GetID(), deleted.GetID()} {
 		s.ErrorIs(s.BillingService.ClearCustomerBillingProfile(ctx, billing.ClearCustomerBillingProfileInput{Customer: cust}), billing.ErrCustomerOverrideNotFound)
 	}
 
-	// when: automatic assignment encounters existing empty/deleted rows.
+	// when: automatic assignment encounters an unassigned customer and a deleted assignment.
 	s.Require().NoError(s.BillingAdapter.BulkAssignCustomersToProfile(ctx, billing.BulkAssignCustomersToProfileInput{
 		ProfileID:   profileB.ProfileID(),
-		CustomerIDs: []customer.CustomerID{empty.GetID(), deleted.GetID()},
+		CustomerIDs: []customer.CustomerID{noRow.GetID(), deleted.GetID()},
 	}))
 	// then: both are active pins to B.
-	for _, cust := range []customer.CustomerID{empty.GetID(), deleted.GetID()} {
+	for _, cust := range []customer.CustomerID{noRow.GetID(), deleted.GetID()} {
 		result, err := s.BillingService.GetCustomerBillingProfile(ctx, billing.GetCustomerBillingProfileInput{Customer: cust})
 		s.Require().NoError(err)
 		s.Require().NotNil(result.AssignedProfile)

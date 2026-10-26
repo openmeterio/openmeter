@@ -85,14 +85,6 @@ func (_c *BillingCustomerOverrideCreate) SetBillingProfileID(v string) *BillingC
 	return _c
 }
 
-// SetNillableBillingProfileID sets the "billing_profile_id" field if the given value is not nil.
-func (_c *BillingCustomerOverrideCreate) SetNillableBillingProfileID(v *string) *BillingCustomerOverrideCreate {
-	if v != nil {
-		_c.SetBillingProfileID(*v)
-	}
-	return _c
-}
-
 // SetID sets the "id" field.
 func (_c *BillingCustomerOverrideCreate) SetID(v string) *BillingCustomerOverrideCreate {
 	_c.mutation.SetID(v)
@@ -185,8 +177,14 @@ func (_c *BillingCustomerOverrideCreate) check() error {
 	if _, ok := _c.mutation.CustomerID(); !ok {
 		return &ValidationError{Name: "customer_id", err: errors.New(`db: missing required field "BillingCustomerOverride.customer_id"`)}
 	}
+	if _, ok := _c.mutation.BillingProfileID(); !ok {
+		return &ValidationError{Name: "billing_profile_id", err: errors.New(`db: missing required field "BillingCustomerOverride.billing_profile_id"`)}
+	}
 	if len(_c.mutation.CustomerIDs()) == 0 {
 		return &ValidationError{Name: "customer", err: errors.New(`db: missing required edge "BillingCustomerOverride.customer"`)}
+	}
+	if len(_c.mutation.BillingProfileIDs()) == 0 {
+		return &ValidationError{Name: "billing_profile", err: errors.New(`db: missing required edge "BillingCustomerOverride.billing_profile"`)}
 	}
 	return nil
 }
@@ -271,7 +269,7 @@ func (_c *BillingCustomerOverrideCreate) createSpec() (*BillingCustomerOverride,
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.BillingProfileID = &nodes[0]
+		_node.BillingProfileID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
@@ -365,12 +363,6 @@ func (u *BillingCustomerOverrideUpsert) SetBillingProfileID(v string) *BillingCu
 // UpdateBillingProfileID sets the "billing_profile_id" field to the value that was provided on create.
 func (u *BillingCustomerOverrideUpsert) UpdateBillingProfileID() *BillingCustomerOverrideUpsert {
 	u.SetExcluded(billingcustomeroverride.FieldBillingProfileID)
-	return u
-}
-
-// ClearBillingProfileID clears the value of the "billing_profile_id" field.
-func (u *BillingCustomerOverrideUpsert) ClearBillingProfileID() *BillingCustomerOverrideUpsert {
-	u.SetNull(billingcustomeroverride.FieldBillingProfileID)
 	return u
 }
 
@@ -477,13 +469,6 @@ func (u *BillingCustomerOverrideUpsertOne) SetBillingProfileID(v string) *Billin
 func (u *BillingCustomerOverrideUpsertOne) UpdateBillingProfileID() *BillingCustomerOverrideUpsertOne {
 	return u.Update(func(s *BillingCustomerOverrideUpsert) {
 		s.UpdateBillingProfileID()
-	})
-}
-
-// ClearBillingProfileID clears the value of the "billing_profile_id" field.
-func (u *BillingCustomerOverrideUpsertOne) ClearBillingProfileID() *BillingCustomerOverrideUpsertOne {
-	return u.Update(func(s *BillingCustomerOverrideUpsert) {
-		s.ClearBillingProfileID()
 	})
 }
 
@@ -757,13 +742,6 @@ func (u *BillingCustomerOverrideUpsertBulk) SetBillingProfileID(v string) *Billi
 func (u *BillingCustomerOverrideUpsertBulk) UpdateBillingProfileID() *BillingCustomerOverrideUpsertBulk {
 	return u.Update(func(s *BillingCustomerOverrideUpsert) {
 		s.UpdateBillingProfileID()
-	})
-}
-
-// ClearBillingProfileID clears the value of the "billing_profile_id" field.
-func (u *BillingCustomerOverrideUpsertBulk) ClearBillingProfileID() *BillingCustomerOverrideUpsertBulk {
-	return u.Update(func(s *BillingCustomerOverrideUpsert) {
-		s.ClearBillingProfileID()
 	})
 }
 

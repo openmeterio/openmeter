@@ -1,0 +1,2 @@
+-- reverse: modify "billing_customer_overrides" table
+ALTER TABLE "billing_customer_overrides" DROP CONSTRAINT "billing_customer_overrides_billing_profiles_billing_customer_ov", ALTER COLUMN "billing_profile_id" DROP NOT NULL, ADD CONSTRAINT "billing_customer_overrides_billing_profiles_billing_customer_ov" FOREIGN KEY ("billing_profile_id") REFERENCES "billing_profiles" ("id") ON UPDATE NO ACTION ON DELETE SET NULL;

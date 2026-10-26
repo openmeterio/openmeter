@@ -69,12 +69,6 @@ func (_u *BillingCustomerOverrideUpdate) SetNillableBillingProfileID(v *string) 
 	return _u
 }
 
-// ClearBillingProfileID clears the value of the "billing_profile_id" field.
-func (_u *BillingCustomerOverrideUpdate) ClearBillingProfileID() *BillingCustomerOverrideUpdate {
-	_u.mutation.ClearBillingProfileID()
-	return _u
-}
-
 // SetBillingProfile sets the "billing_profile" edge to the BillingProfile entity.
 func (_u *BillingCustomerOverrideUpdate) SetBillingProfile(v *BillingProfile) *BillingCustomerOverrideUpdate {
 	return _u.SetBillingProfileID(v.ID)
@@ -131,6 +125,9 @@ func (_u *BillingCustomerOverrideUpdate) defaults() {
 func (_u *BillingCustomerOverrideUpdate) check() error {
 	if _u.mutation.CustomerCleared() && len(_u.mutation.CustomerIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "BillingCustomerOverride.customer"`)
+	}
+	if _u.mutation.BillingProfileCleared() && len(_u.mutation.BillingProfileIDs()) > 0 {
+		return errors.New(`db: clearing a required unique edge "BillingCustomerOverride.billing_profile"`)
 	}
 	return nil
 }
@@ -245,12 +242,6 @@ func (_u *BillingCustomerOverrideUpdateOne) SetNillableBillingProfileID(v *strin
 	return _u
 }
 
-// ClearBillingProfileID clears the value of the "billing_profile_id" field.
-func (_u *BillingCustomerOverrideUpdateOne) ClearBillingProfileID() *BillingCustomerOverrideUpdateOne {
-	_u.mutation.ClearBillingProfileID()
-	return _u
-}
-
 // SetBillingProfile sets the "billing_profile" edge to the BillingProfile entity.
 func (_u *BillingCustomerOverrideUpdateOne) SetBillingProfile(v *BillingProfile) *BillingCustomerOverrideUpdateOne {
 	return _u.SetBillingProfileID(v.ID)
@@ -320,6 +311,9 @@ func (_u *BillingCustomerOverrideUpdateOne) defaults() {
 func (_u *BillingCustomerOverrideUpdateOne) check() error {
 	if _u.mutation.CustomerCleared() && len(_u.mutation.CustomerIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "BillingCustomerOverride.customer"`)
+	}
+	if _u.mutation.BillingProfileCleared() && len(_u.mutation.BillingProfileIDs()) > 0 {
+		return errors.New(`db: clearing a required unique edge "BillingCustomerOverride.billing_profile"`)
 	}
 	return nil
 }

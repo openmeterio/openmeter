@@ -526,20 +526,6 @@ func (u *BillingCustomerOverrideUpdateOne) SetOrClearDeletedAt(value *time.Time)
 	return u.SetDeletedAt(*value)
 }
 
-func (u *BillingCustomerOverrideUpdate) SetOrClearBillingProfileID(value *string) *BillingCustomerOverrideUpdate {
-	if value == nil {
-		return u.ClearBillingProfileID()
-	}
-	return u.SetBillingProfileID(*value)
-}
-
-func (u *BillingCustomerOverrideUpdateOne) SetOrClearBillingProfileID(value *string) *BillingCustomerOverrideUpdateOne {
-	if value == nil {
-		return u.ClearBillingProfileID()
-	}
-	return u.SetBillingProfileID(*value)
-}
-
 func (u *BillingGatheringInvoiceLineUpdate) SetOrClearAnnotations(value *models.Annotations) *BillingGatheringInvoiceLineUpdate {
 	if value == nil {
 		return u.ClearAnnotations()
