@@ -41,11 +41,12 @@ Calculation:
 5. Call `subtract.SubtractRatedRunDetails(current, alreadyBilled, generator)`.
    Subtraction drops every zero-total line.
 6. Append the current rating's deliberate zero lines whose
-   `ChildUniqueReferenceID` is absent from the subtraction output: zero totals
-   with a zero quantity (zero-usage tiers) or a zero unit price (free usage).
-   Pricers emit these on purpose and invoices display them, so they are booked
-   as rated on every run. Free usage therefore shows the cumulative quantity
-   rather than a delta. Zero totals produced by rounding stay dropped.
+   `ChildUniqueReferenceID` is absent from the subtraction output. Pricers emit
+   these on purpose and invoices display them. A zero-usage tier line (zero
+   quantity) is booked on every run. A free usage line (zero unit price) is
+   booked with the quantity above what prior runs already booked under the same
+   child reference, so an unchanged or exhausted free tier adds nothing. Zero
+   totals produced by rounding stay dropped.
 7. Stamp every remaining line to the current run service period and clear
    `CorrectsRunID`.
 8. Sort output lines, assign dense indexes, and validate that final output

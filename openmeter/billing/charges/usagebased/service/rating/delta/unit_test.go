@@ -382,13 +382,13 @@ func TestUnitDeltaRoundingNoVisibleDeltaProducesNoLines(t *testing.T) {
 	})
 }
 
-func TestUnitDeltaZeroUnitPriceBooksCumulativeFreeUsage(t *testing.T) {
+func TestUnitDeltaZeroUnitPriceBooksFreeUsageDelta(t *testing.T) {
 	// Given:
 	// - a unit price with a zero amount
 	// When:
-	// - delta rating rates growing, then shrinking cumulative snapshots
+	// - delta rating rates growing, unchanged, then shrinking cumulative snapshots
 	// Then:
-	// - every run books the cumulative free usage as rated, never a delta
+	// - only newly consumed free usage is booked, and a decrease books nothing
 	t.Parallel()
 
 	periods := deltaRatingTestPeriods()
@@ -418,13 +418,13 @@ func TestUnitDeltaZeroUnitPriceBooksCumulativeFreeUsage(t *testing.T) {
 			{
 				period:                periods.period2,
 				meteredQuantity:       10,
-				expectedDetailedLines: []ratingtestutils.ExpectedDetailedLine{freeUsageLine(periods.period2, 10)},
+				expectedDetailedLines: []ratingtestutils.ExpectedDetailedLine{freeUsageLine(periods.period2, 6)},
 				expectedTotals:        ratingtestutils.ExpectedTotals{},
 			},
 			{
 				period:                periods.period3,
 				meteredQuantity:       7,
-				expectedDetailedLines: []ratingtestutils.ExpectedDetailedLine{freeUsageLine(periods.period3, 7)},
+				expectedDetailedLines: []ratingtestutils.ExpectedDetailedLine{},
 				expectedTotals:        ratingtestutils.ExpectedTotals{},
 			},
 		},
