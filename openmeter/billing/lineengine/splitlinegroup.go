@@ -7,17 +7,13 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/invoicing/legacy/splitlinegroup"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
-
-type SplitLineGroupAdapter interface {
-	CreateSplitLineGroup(ctx context.Context, input billing.CreateSplitLineGroupAdapterInput) (billing.SplitLineGroup, error)
-	GetSplitLineGroups(ctx context.Context, input billing.GetSplitLineGroupsInput) ([]billing.SplitLineHierarchy, error)
-}
 
 func (e *Engine) SplitGatheringLine(ctx context.Context, in billing.SplitGatheringLineInput) (billing.SplitGatheringLineResult, error) {
 	res := billing.SplitGatheringLineResult{}
@@ -34,9 +30,9 @@ func (e *Engine) SplitGatheringLine(ctx context.Context, in billing.SplitGatheri
 
 	var splitLineGroupID string
 	if line.SplitLineGroupID == nil {
-		splitLineGroup, err := e.adapter.CreateSplitLineGroup(ctx, billing.CreateSplitLineGroupAdapterInput{
+		splitLineGroup, err := e.splitLineGroupService.CreateSplitLineGroup(ctx, splitlinegroup.SplitLineGroupCreate{
 			Namespace: line.Namespace,
-			SplitLineGroupMutableFields: billing.SplitLineGroupMutableFields{
+			SplitLineGroupMutableFields: splitlinegroup.SplitLineGroupMutableFields{
 				Name:        line.Name,
 				Description: line.Description,
 				ServicePeriod: timeutil.ClosedPeriod{
@@ -133,7 +129,7 @@ func (e *Engine) resolveSplitLineHierarchies(ctx context.Context, ns string, lin
 		return resolvedLines, nil
 	}
 
-	hierarchies, err := e.adapter.GetSplitLineGroups(ctx, billing.GetSplitLineGroupsInput{
+	hierarchies, err := e.splitLineGroupService.GetSplitLineGroups(ctx, splitlinegroup.GetSplitLineGroupsInput{
 		Namespace:         ns,
 		SplitLineGroupIDs: groupIDs,
 	})
@@ -141,7 +137,7 @@ func (e *Engine) resolveSplitLineHierarchies(ctx context.Context, ns string, lin
 		return nil, fmt.Errorf("getting split line groups: %w", err)
 	}
 
-	hierarchiesByID := lo.SliceToMap(hierarchies, func(hierarchy billing.SplitLineHierarchy) (models.NamespacedID, *billing.SplitLineHierarchy) {
+	hierarchiesByID := lo.SliceToMap(hierarchies, func(hierarchy splitlinegroup.SplitLineHierarchy) (models.NamespacedID, *splitlinegroup.SplitLineHierarchy) {
 		return hierarchy.Group.NamespacedID, &hierarchy
 	})
 

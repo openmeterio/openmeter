@@ -10,6 +10,7 @@ import (
 	"go.opentelemetry.io/otel/trace/noop"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/invoicing/legacy/splitlinegroup"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
 	syncreconciler "github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/reconciler"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -55,6 +56,7 @@ func TestSyncReloadsDeletionAfterBillingLock(t *testing.T) {
 	}
 	service := &Service{
 		billingService:          billingService,
+		splitLineGroupService:   &splitLineGroupServiceSpy{},
 		reconciler:              reconciler,
 		subscriptionService:     subscriptionService,
 		subscriptionSyncAdapter: syncAdapter,
@@ -104,9 +106,11 @@ func TestOldSubscriptionSkipUsesStateAfterBillingLock(t *testing.T) {
 			syncAdapter.statesV2[0].CurrentSubsRevision = observedRevision
 		},
 	}
+	splitLineGroupService := &splitLineGroupServiceSpy{}
 	reconciler := &syncReconcilerSpy{}
 	service := &Service{
 		billingService:          billingService,
+		splitLineGroupService:   splitLineGroupService,
 		reconciler:              reconciler,
 		subscriptionService:     subscriptionService,
 		subscriptionSyncAdapter: syncAdapter,
@@ -122,6 +126,7 @@ func TestOldSubscriptionSkipUsesStateAfterBillingLock(t *testing.T) {
 	require.True(t, billingService.withLockCalled)
 	require.Zero(t, subscriptionService.getViewCalls)
 	require.Zero(t, billingService.getLinesCalls)
+	require.Zero(t, splitLineGroupService.getLinesCalls)
 	require.Zero(t, billingService.invoicePendingLinesCalls)
 	require.False(t, reconciler.planCalled)
 	require.Len(t, syncAdapter.recordedResultsV2, 1)
@@ -188,6 +193,7 @@ func TestSyncEventSkipsSubscriptionSyncedSinceSelection(t *testing.T) {
 			billingService := &billingServiceSpy{}
 			service := &Service{
 				billingService:          billingService,
+				splitLineGroupService:   &splitLineGroupServiceSpy{},
 				reconciler:              &syncReconcilerSpy{},
 				subscriptionService:     &subscriptionServiceSpy{view: subscription.SubscriptionView{Subscription: sub}},
 				subscriptionSyncAdapter: syncAdapter,
@@ -257,7 +263,12 @@ func (s *billingServiceSpy) GetGatheringLinesForSubscription(context.Context, bi
 	return nil, nil
 }
 
-func (s *billingServiceSpy) GetSplitLineGroupsForSubscription(context.Context, billing.GetLinesForSubscriptionInput) ([]billing.SplitLineHierarchy, error) {
+type splitLineGroupServiceSpy struct {
+	splitlinegroup.Service
+	getLinesCalls int
+}
+
+func (s *splitLineGroupServiceSpy) GetSplitLineGroupsForSubscription(context.Context, splitlinegroup.GetSplitLineGroupsForSubscriptionInput) ([]splitlinegroup.SplitLineHierarchy, error) {
 	s.getLinesCalls++
 	return nil, nil
 }

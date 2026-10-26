@@ -9,6 +9,7 @@ import (
 	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/invoicing/legacy/splitlinegroup"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/persistedstate"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/reconciler/invoiceupdater"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/targetstate"
@@ -164,7 +165,7 @@ func (c *lineHierarchyPatchCollection) AddExtend(existing persistedstate.Item, t
 
 	if len(existingHierarchy.Lines) > 0 {
 		lines := slices.Clone(existingHierarchy.Lines)
-		slices.SortFunc(lines, func(i, j billing.SplitLineHierarchyLine) int {
+		slices.SortFunc(lines, func(i, j splitlinegroup.SplitLineHierarchyLine) int {
 			return timeutil.Compare(i.ServicePeriod.To, j.ServicePeriod.To)
 		})
 
