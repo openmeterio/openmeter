@@ -42,9 +42,17 @@ func TestNewEventRegistry(t *testing.T) {
 		})
 		require.NoError(t, err)
 
+		expected := testDefinition("billing.invoice.created", 1)
+		expected.DeprecatedBy = &v2.EventType
+		expected.Rule = &v4.RuleConfigDefinition{JSONSchema: json.RawMessage(testSchema)}
+
+		// Changing the inputs after construction must not change the registry.
+		v1.PayloadJSONSchema[0] = '['
+		v1.Rule.JSONSchema[0] = '['
+
 		def, err := registry.EventType(v1.EventType)
 		require.NoError(t, err)
-		require.Equal(t, v1, def)
+		require.Equal(t, expected, def)
 	})
 
 	t.Run("returns copies", func(t *testing.T) {

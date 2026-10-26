@@ -62,6 +62,7 @@ func TestEventTypePattern(t *testing.T) {
 		"v1.billing.**",
 		"v1.Billing.*",
 		"v1.billing..*",
+		"v1..*",
 		"!v1.billing.*",
 	} {
 		_, err := ParseEventTypePattern(invalid)

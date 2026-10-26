@@ -41,6 +41,11 @@ func ParseEventTypePattern(s string) (EventTypePattern, error) {
 	if rest == eventTypeWildcard {
 		p = EventTypePattern{Version: version, Wildcard: true}
 	} else if prefix, ok := strings.CutSuffix(rest, "."+eventTypeWildcard); ok {
+		// An empty prefix here comes from v1..*, which must not widen to v1.*.
+		if prefix == "" {
+			return EventTypePattern{}, models.NewGenericValidationError(fmt.Errorf("invalid event type pattern %q: empty name prefix", s))
+		}
+
 		p = EventTypePattern{Version: version, Name: prefix, Wildcard: true}
 	}
 
