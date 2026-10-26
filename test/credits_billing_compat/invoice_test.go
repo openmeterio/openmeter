@@ -69,7 +69,7 @@ func (s *InvoicingTestSuite) TestSimulateInvoiceFeatureMeterValidation() {
 	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
 	customerEntity := s.CreateTestCustomer(namespace, "test-customer")
 	s.SetupAccounts(customerEntity.Namespace, customerEntity.ID)
-	s.ProvisionDefaultTaxCodes(s.T().Context(), customerEntity.Namespace)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), customerEntity.Namespace)
 
 	now := time.Now().Truncate(time.Microsecond).UTC()
 	newLine := func(featureKey string) *billing.StandardLine {
@@ -235,7 +235,7 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 	require.NotNil(s.T(), customerEntity)
 	require.NotEmpty(s.T(), customerEntity.ID)
 	s.SetupAccounts(customerEntity.Namespace, customerEntity.ID)
-	defaultTaxCodes := s.ProvisionDefaultTaxCodes(s.T().Context(), customerEntity.Namespace)
+	defaultTaxCodes := s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), customerEntity.Namespace)
 
 	testMeterID := ulid.Make().String()
 	err = s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
@@ -579,7 +579,7 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 	require.NotNil(s.T(), customerEntity)
 	require.NotEmpty(s.T(), customerEntity.ID)
 	s.SetupAccounts(customerEntity.Namespace, customerEntity.ID)
-	s.ProvisionDefaultTaxCodes(s.T().Context(), customerEntity.Namespace)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), customerEntity.Namespace)
 
 	// Given we have a default profile for the namespace
 	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
@@ -823,7 +823,7 @@ func (s *InvoicingTestSuite) TestListCustomerIDsPendingCollectionReturnsUniqueCu
 	})
 	require.NoError(s.T(), err)
 	s.SetupAccounts(customerEntity.Namespace, customerEntity.ID)
-	s.ProvisionDefaultTaxCodes(s.T().Context(), customerEntity.Namespace)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), customerEntity.Namespace)
 
 	now := time.Now().UTC().Truncate(time.Second)
 	res, err := s.Charges.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
@@ -883,7 +883,7 @@ func (s *InvoicingTestSuite) TestListCustomerIDsPendingCollectionReturnsUniqueCu
 	s.ProvisionBillingProfile(ctx, secondNamespace, secondSandboxApp.GetID())
 	secondCustomer := s.CreateTestCustomer(secondNamespace, "test-customer")
 	s.SetupAccounts(secondCustomer.Namespace, secondCustomer.ID)
-	s.ProvisionDefaultTaxCodes(s.T().Context(), secondCustomer.Namespace)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), secondCustomer.Namespace)
 	s.CreateGatheringInvoice(s.T(), ctx, billingtest.DraftInvoiceInput{
 		Namespace: secondNamespace,
 		Customer:  secondCustomer,
@@ -1117,13 +1117,13 @@ func (s *InvoicingTestSuite) TestInvoicingFlow() {
 			require.NotNil(s.T(), customerEntity)
 			require.NotEmpty(s.T(), customerEntity.ID)
 			s.SetupAccounts(customerEntity.Namespace, customerEntity.ID)
-			s.ProvisionDefaultTaxCodes(s.T().Context(), customerEntity.Namespace)
+			s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), customerEntity.Namespace)
 
 			// Given we have a billing profile
 			s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID(), billingtest.WithBillingProfileEditFn(func(profile *billing.CreateProfileInput) {
 				profile.WorkflowConfig = tc.workflowConfig
 			}))
-			s.ProvisionProviderDefaultTaxCode(ctx, namespace)
+			s.TaxCodeEnv.ProvisionProviderDefaultTaxCode(s.T(), namespace)
 
 			invoice := s.CreateDraftInvoice(s.T(), ctx, billingtest.DraftInvoiceInput{
 				Namespace: namespace,
@@ -1179,7 +1179,7 @@ func (s *InvoicingTestSuite) TestPaymentProcessingEnteredAt() {
 	s.Require().NoError(err)
 	s.Require().NotNil(customerEntity)
 	s.SetupAccounts(customerEntity.Namespace, customerEntity.ID)
-	s.ProvisionDefaultTaxCodes(s.T().Context(), customerEntity.Namespace)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), customerEntity.Namespace)
 
 	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
 
@@ -1227,7 +1227,7 @@ func (s *InvoicingTestSuite) TestStatusDetailsSimulationDoesNotMutatePaymentProc
 	s.Require().NoError(err)
 	s.Require().NotNil(customerEntity)
 	s.SetupAccounts(customerEntity.Namespace, customerEntity.ID)
-	s.ProvisionDefaultTaxCodes(s.T().Context(), customerEntity.Namespace)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), customerEntity.Namespace)
 
 	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID(), billingtest.WithBillingProfileEditFn(func(profile *billing.CreateProfileInput) {
 		profile.WorkflowConfig = billing.WorkflowConfig{
@@ -1623,7 +1623,7 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 			require.NotNil(s.T(), customerEntity)
 			require.NotEmpty(s.T(), customerEntity.ID)
 			s.SetupAccounts(customerEntity.Namespace, customerEntity.ID)
-			s.ProvisionDefaultTaxCodes(s.T().Context(), customerEntity.Namespace)
+			s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), customerEntity.Namespace)
 
 			// Given we have a billing profile
 			s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID(), billingtest.WithBillingProfileEditFn(func(profile *billing.CreateProfileInput) {
@@ -1731,7 +1731,7 @@ func (s *InvoicingTestSuite) TestDeleteInvoiceIsIdempotent() {
 			s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID(), billingtest.WithManualApproval())
 			customerEntity := s.CreateTestCustomer(namespace, "test-customer")
 			s.SetupAccounts(namespace, customerEntity.ID)
-			s.ProvisionDefaultTaxCodes(ctx, namespace)
+			s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), namespace)
 			now := clock.Now().UTC()
 			period := timeutil.ClosedPeriod{
 				From: now.Add(-2 * time.Hour),
@@ -1832,7 +1832,7 @@ func (s *InvoicingTestSuite) TestDeleteCreditPurchaseInvoiceIsIdempotent() {
 	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID(), billingtest.WithManualApproval())
 	customerEntity := s.CreateTestCustomer(namespace, "test-customer")
 	s.SetupAccounts(namespace, customerEntity.ID)
-	defaults := s.ProvisionDefaultTaxCodes(ctx, namespace)
+	defaults := s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), namespace)
 	effectiveAt := clock.Now().UTC().Add(-time.Hour)
 	period := timeutil.ClosedPeriod{From: effectiveAt, To: effectiveAt}
 
@@ -2003,7 +2003,7 @@ func (s *InvoicingTestSuite) createManualApprovalInvoice(
 	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID(), billingtest.WithManualApproval())
 	customerEntity := s.CreateTestCustomer(namespace, "test-customer")
 	s.SetupAccounts(customerEntity.Namespace, customerEntity.ID)
-	s.ProvisionDefaultTaxCodes(s.T().Context(), customerEntity.Namespace)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), customerEntity.Namespace)
 
 	now := clock.Now().UTC()
 	period := timeutil.ClosedPeriod{
@@ -2238,11 +2238,11 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 
 	customerEntity := s.CreateTestCustomer(namespace, "test")
 	s.SetupAccounts(customerEntity.Namespace, customerEntity.ID)
-	s.ProvisionDefaultTaxCodes(s.T().Context(), customerEntity.Namespace)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), customerEntity.Namespace)
 
 	// Given we have a default profile for the namespace
 	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID(), billingtest.WithProgressiveBilling())
-	s.ProvisionProviderDefaultTaxCode(ctx, namespace)
+	s.TaxCodeEnv.ProvisionProviderDefaultTaxCode(s.T(), namespace)
 
 	lines := ubpPendingLines{}
 	s.Run("create pending invoice items", func() {
@@ -3127,7 +3127,7 @@ func (s *InvoicingTestSuite) TestUBPGraduatingFlatFeeTier1() {
 
 	customerEntity := s.CreateTestCustomer(namespace, "test")
 	s.SetupAccounts(customerEntity.Namespace, customerEntity.ID)
-	s.ProvisionDefaultTaxCodes(s.T().Context(), customerEntity.Namespace)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), customerEntity.Namespace)
 	require.NotNil(s.T(), customerEntity)
 	require.NotEmpty(s.T(), customerEntity.ID)
 
@@ -3469,7 +3469,7 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 	require.NotNil(s.T(), customerEntity)
 	require.NotEmpty(s.T(), customerEntity.ID)
 	s.SetupAccounts(customerEntity.Namespace, customerEntity.ID)
-	s.ProvisionDefaultTaxCodes(s.T().Context(), customerEntity.Namespace)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), customerEntity.Namespace)
 
 	// Given we have a default profile for the namespace
 	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
@@ -3959,7 +3959,7 @@ func (s *InvoicingTestSuite) TestGatheringInvoiceRecalculation() {
 	require.NotNil(s.T(), customerEntity)
 	require.NotEmpty(s.T(), customerEntity.ID)
 	s.SetupAccounts(customerEntity.Namespace, customerEntity.ID)
-	s.ProvisionDefaultTaxCodes(s.T().Context(), customerEntity.Namespace)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), customerEntity.Namespace)
 
 	// Given we have a default profile for the namespace
 	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
@@ -4130,7 +4130,7 @@ func (s *InvoicingTestSuite) TestEmptyInvoiceGenerationZeroUsage() {
 	s.NotNil(customerEntity)
 	s.NotEmpty(customerEntity.ID)
 	s.SetupAccounts(customerEntity.Namespace, customerEntity.ID)
-	s.ProvisionDefaultTaxCodes(s.T().Context(), customerEntity.Namespace)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), customerEntity.Namespace)
 
 	// Given we have a default profile for the namespace
 	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
@@ -4253,7 +4253,7 @@ func (s *InvoicingTestSuite) TestEmptyInvoiceGenerationZeroPrice() {
 	s.NotNil(customerEntity)
 	s.NotEmpty(customerEntity.ID)
 	s.SetupAccounts(customerEntity.Namespace, customerEntity.ID)
-	s.ProvisionDefaultTaxCodes(s.T().Context(), customerEntity.Namespace)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), customerEntity.Namespace)
 
 	// Given we have a default profile for the namespace
 	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
@@ -4328,7 +4328,7 @@ func (s *InvoicingTestSuite) TestNamespaceLockedGatheringInvoiceCreation() {
 
 	customer := s.CreateTestCustomer(namespace, "test-customer")
 	s.SetupAccounts(customer.Namespace, customer.ID)
-	s.ProvisionDefaultTaxCodes(s.T().Context(), customer.Namespace)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), customer.Namespace)
 
 	s.CreateGatheringInvoice(s.T(), ctx, billingtest.DraftInvoiceInput{
 		Namespace: namespace,
@@ -4352,7 +4352,7 @@ func (s *InvoicingTestSuite) TestNamespaceLockedInvoiceProgression() {
 
 	customer := s.CreateTestCustomer(namespace, "test-customer")
 	s.SetupAccounts(customer.Namespace, customer.ID)
-	s.ProvisionDefaultTaxCodes(s.T().Context(), customer.Namespace)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), customer.Namespace)
 
 	s.CreateGatheringInvoice(s.T(), ctx, billingtest.DraftInvoiceInput{
 		Namespace: namespace,
@@ -4396,7 +4396,7 @@ func (s *InvoicingTestSuite) TestInvoicePendingLinesForceAsyncAdvance() {
 
 	customer := s.CreateTestCustomer(namespace, "test-customer")
 	s.SetupAccounts(customer.Namespace, customer.ID)
-	s.ProvisionDefaultTaxCodes(s.T().Context(), customer.Namespace)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), customer.Namespace)
 
 	s.CreateGatheringInvoice(s.T(), ctx, billingtest.DraftInvoiceInput{
 		Namespace: namespace,
@@ -4428,7 +4428,7 @@ func (s *InvoicingTestSuite) TestListPendingAdvancementDoesNotResolveWorkflowRef
 	s.ProvisionBillingProfile(ctx, namespace, s.InstallSandboxApp(s.T(), namespace).GetID())
 	customerEntity := s.CreateTestCustomer(namespace, "test-customer")
 	s.SetupAccounts(customerEntity.Namespace, customerEntity.ID)
-	s.ProvisionDefaultTaxCodes(s.T().Context(), customerEntity.Namespace)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), customerEntity.Namespace)
 	s.CreateGatheringInvoice(s.T(), ctx, billingtest.DraftInvoiceInput{
 		Namespace: namespace,
 		Customer:  customerEntity,
@@ -4495,7 +4495,7 @@ func (s *InvoicingTestSuite) TestProgressiveBillLate() {
 
 	customer := s.CreateTestCustomer(namespace, "test-customer")
 	s.SetupAccounts(customer.Namespace, customer.ID)
-	s.ProvisionDefaultTaxCodes(s.T().Context(), customer.Namespace)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), customer.Namespace)
 
 	// let's set up the feature
 
@@ -4590,7 +4590,7 @@ func (s *InvoicingTestSuite) TestPartialInvoiceLinesOptions() {
 
 	customer := s.CreateTestCustomer(namespace, "test-customer")
 	s.SetupAccounts(customer.Namespace, customer.ID)
-	s.ProvisionDefaultTaxCodes(s.T().Context(), customer.Namespace)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), customer.Namespace)
 
 	// let's set up the feature
 
@@ -4699,7 +4699,7 @@ func (s *InvoicingTestSuite) TestSortLines() {
 
 	customer := s.CreateTestCustomer(namespace, "test-customer")
 	s.SetupAccounts(customer.Namespace, customer.ID)
-	s.ProvisionDefaultTaxCodes(s.T().Context(), customer.Namespace)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), customer.Namespace)
 
 	// let's set up the feature
 
@@ -4837,7 +4837,7 @@ func (s *InvoicingTestSuite) TestGatheringInvoicePeriodPersisting() {
 
 	customer := s.CreateTestCustomer(namespace, "test-customer")
 	s.SetupAccounts(customer.Namespace, customer.ID)
-	s.ProvisionDefaultTaxCodes(s.T().Context(), customer.Namespace)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), customer.Namespace)
 
 	// When
 	pendingLines, err := s.Charges.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
@@ -4927,7 +4927,7 @@ func (s *InvoicingTestSuite) TestDeleteGatheringInvoiceViaService() {
 
 	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
 	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
-	s.ProvisionProviderDefaultTaxCode(ctx, namespace)
+	s.TaxCodeEnv.ProvisionProviderDefaultTaxCode(s.T(), namespace)
 
 	now := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 	periodStart := now.Add(-24 * time.Hour)
@@ -4937,7 +4937,7 @@ func (s *InvoicingTestSuite) TestDeleteGatheringInvoiceViaService() {
 
 	customer := s.CreateTestCustomer(namespace, "test-delete-gathering-invoice")
 	s.SetupAccounts(customer.Namespace, customer.ID)
-	s.ProvisionDefaultTaxCodes(s.T().Context(), customer.Namespace)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), customer.Namespace)
 
 	// given:
 	// - a gathering invoice with two active flat-fee lines
@@ -5018,7 +5018,7 @@ func (s *InvoicingTestSuite) TestCreatePendingInvoiceLinesForDeletedCustomers() 
 	defer clock.ResetTime()
 	customer := s.CreateTestCustomer(namespace, "test-customer")
 	s.SetupAccounts(customer.Namespace, customer.ID)
-	s.ProvisionDefaultTaxCodes(s.T().Context(), customer.Namespace)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), customer.Namespace)
 
 	clock.SetTime(customerDeletedAt)
 	s.NoError(s.CustomerService.DeleteCustomer(ctx, customer.GetID()))
@@ -5119,7 +5119,7 @@ func (s *InvoicingTestSuite) TestGatheringInvoiceEmulation() {
 	require.NotNil(s.T(), customerEntity)
 	require.NotEmpty(s.T(), customerEntity.ID)
 	s.SetupAccounts(customerEntity.Namespace, customerEntity.ID)
-	s.ProvisionDefaultTaxCodes(s.T().Context(), customerEntity.Namespace)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), customerEntity.Namespace)
 
 	// Given we have a default profile for the namespace
 	_ = s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
@@ -5184,7 +5184,7 @@ func (s *InvoicingTestSuite) TestUpdateInvoice() {
 	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
 	customerEntity := s.CreateTestCustomer(namespace, "test-update-invoice")
 	s.SetupAccounts(customerEntity.Namespace, customerEntity.ID)
-	s.ProvisionDefaultTaxCodes(s.T().Context(), customerEntity.Namespace)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), customerEntity.Namespace)
 	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID(), billingtest.WithBillingProfileEditFn(func(profile *billing.CreateProfileInput) {
 		profile.WorkflowConfig = billing.WorkflowConfig{
 			Collection: billing.CollectionConfig{
@@ -5201,7 +5201,7 @@ func (s *InvoicingTestSuite) TestUpdateInvoice() {
 			},
 		}
 	}))
-	s.ProvisionProviderDefaultTaxCode(ctx, namespace)
+	s.TaxCodeEnv.ProvisionProviderDefaultTaxCode(s.T(), namespace)
 
 	s.Run("gathering invoice", func() {
 		var gatheringInvoiceID billing.InvoiceID

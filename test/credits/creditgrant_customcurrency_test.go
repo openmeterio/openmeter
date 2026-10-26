@@ -50,7 +50,7 @@ func (s *CreditGrantTestSuite) TestCreateCustomCurrencyExternalGrantWithManualCo
 	// - the credits land on the customer's FBO account in the custom currency
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("creditgrant-custom-currency-external")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
@@ -125,7 +125,7 @@ func (s *CreditGrantTestSuite) TestCreateCustomCurrencyInvoiceGrantWithDynamicCo
 	// - the standard invoice line is priced in USD from the resolved rate
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("creditgrant-custom-currency-invoice")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
@@ -200,7 +200,7 @@ func (s *CreditGrantTestSuite) TestCreateFiatGrantWithManualCostBasis() {
 	// - the rate is stored as the scalar fiat cost basis of the purchase
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("creditgrant-fiat-manual-cost-basis")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)

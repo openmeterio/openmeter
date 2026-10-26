@@ -255,7 +255,7 @@ func (s *CreditThenInvoiceTestSuite) createAndDiscountFlatFeeDraft(servicePeriod
 	s.T().Helper()
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("flatfee-invoice-discount-edit")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
 	s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(), billingtest.WithManualApproval())

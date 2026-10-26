@@ -45,18 +45,16 @@ func TestPostgresAdapter(t *testing.T) {
 		t.Run("Create", func(t *testing.T) {
 			// Get new namespace ID
 			namespace := pctestutils.NewTestNamespace(t)
-			taxCode, err := env.TaxCode.CreateTaxCode(ctx, taxcode.CreateTaxCodeInput{
-				Namespace: namespace,
-				Key:       "stripe_txcd_10000000",
-				Name:      "Stripe txcd_10000000",
+			taxCode := env.TaxCodeEnv.CreateTaxCode(t, namespace, taxcode.CreateTaxCodeInput{
+				Key:  "stripe_txcd_10000000",
+				Name: "Stripe txcd_10000000",
 				AppMappings: taxcode.TaxCodeAppMappings{
 					{AppType: app.AppTypeStripe, TaxCode: "txcd_10000000"},
 				},
 			})
-			require.NoError(t, err)
 
 			// Setup meter repository
-			err = env.Meter.ReplaceMeters(ctx, pctestutils.NewTestMeters(t, namespace))
+			err := env.Meter.ReplaceMeters(ctx, pctestutils.NewTestMeters(t, namespace))
 			require.NoError(t, err, "replacing meters must not fail")
 
 			result, err := env.Meter.ListMeters(ctx, meter.ListMetersParams{

@@ -46,7 +46,7 @@ func (s *FlatFeeCostBasisCreateSuite) TestCreatePersistsManualPinnedAndDynamicCo
 	defer clock.UnFreeze()
 
 	namespace := s.GetUniqueNamespace("flat-fee-cost-basis-modes")
-	defaults := s.ProvisionDefaultTaxCodes(ctx, namespace)
+	defaults := s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), namespace)
 	customer := s.CreateTestCustomer(namespace, "flat-fee-cost-basis-modes")
 	currency := s.createTestCustomCurrency(ctx, namespace)
 	fiatCurrency := s.newFiatCurrency("USD")
@@ -139,7 +139,7 @@ func (s *FlatFeeCostBasisCreateSuite) TestSetResolvedDynamicCostBasisIsRetrySafe
 	defer clock.UnFreeze()
 
 	namespace := s.GetUniqueNamespace("flat-fee-cost-basis-retry")
-	defaults := s.ProvisionDefaultTaxCodes(ctx, namespace)
+	defaults := s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), namespace)
 	customer := s.CreateTestCustomer(namespace, "flat-fee-cost-basis-retry")
 	currency := s.createTestCustomCurrency(ctx, namespace)
 	currencyCostBasis, err := s.CurrencyService.CreateCostBasis(ctx, currencies.CreateCostBasisInput{
@@ -259,7 +259,7 @@ func (s *FlatFeeCostBasisCreateSuite) TestDynamicCostBasisResolvesWhenChargeBeco
 	defer clock.UnFreeze()
 
 	namespace := s.GetUniqueNamespace("flat-fee-cost-basis-active")
-	defaults := s.ProvisionDefaultTaxCodes(ctx, namespace)
+	defaults := s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), namespace)
 	customer := s.CreateTestCustomer(namespace, "flat-fee-cost-basis-active")
 	currency := s.createTestCustomCurrency(ctx, namespace)
 	first, err := s.CurrencyService.CreateCostBasis(ctx, currencies.CreateCostBasisInput{
@@ -315,7 +315,7 @@ func (s *FlatFeeCostBasisCreateSuite) TestDynamicCostBasisResolvesWhenChargeBeco
 func (s *FlatFeeCostBasisCreateSuite) TestPinnedCostBasisMustMatchCurrencyAndFiatCurrency() {
 	ctx := s.T().Context()
 	namespace := s.GetUniqueNamespace("flat-fee-cost-basis-pinned-mismatch")
-	defaults := s.ProvisionDefaultTaxCodes(ctx, namespace)
+	defaults := s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), namespace)
 	customer := s.CreateTestCustomer(namespace, "flat-fee-cost-basis-pinned-mismatch")
 	currency := s.createTestCustomCurrency(ctx, namespace)
 	otherCurrency, err := s.CurrencyService.CreateCurrency(ctx, currencies.CreateCurrencyInput{
@@ -390,7 +390,7 @@ func (s *FlatFeeCostBasisCreateSuite) TestCreateRollsBackCostBasesWhenChargeCrea
 	// - the surrounding transaction removes all newly inserted charge cost bases
 	ctx := s.T().Context()
 	namespace := s.GetUniqueNamespace("flat-fee-cost-basis-rollback")
-	defaults := s.ProvisionDefaultTaxCodes(ctx, namespace)
+	defaults := s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), namespace)
 	customer := s.CreateTestCustomer(namespace, "flat-fee-cost-basis-rollback")
 	currency := s.createTestCustomCurrency(ctx, namespace)
 	intent := costbasis.NewIntent(costbasis.ManualIntent{
@@ -412,7 +412,7 @@ func (s *FlatFeeCostBasisCreateSuite) TestCreateRollsBackCostBasesWhenChargeCrea
 func (s *FlatFeeCostBasisCreateSuite) TestCreateWithoutCostBasisLeavesChargeReferenceEmpty() {
 	ctx := s.T().Context()
 	namespace := s.GetUniqueNamespace("flat-fee-without-cost-basis")
-	defaults := s.ProvisionDefaultTaxCodes(ctx, namespace)
+	defaults := s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), namespace)
 	customer := s.CreateTestCustomer(namespace, "flat-fee-without-cost-basis")
 	currency := s.createTestCustomCurrency(ctx, namespace)
 	created, err := s.Charges.flatFeeService.Create(ctx, flatfee.CreateInput{

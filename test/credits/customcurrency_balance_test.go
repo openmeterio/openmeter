@@ -20,7 +20,7 @@ func (s *CustomCurrencyCreditsSuite) TestBalanceAndTransactionsPreserveCustomCur
 	t := s.T()
 	ctx := t.Context()
 	ns := s.GetUniqueNamespace("custom-currency-balance-history")
-	defaults := s.ProvisionDefaultTaxCodes(ctx, ns)
+	defaults := s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 	customer := s.CreateLedgerBackedCustomer(ns, "custom-currency-balance-history")
 	tokens := s.createCustomCurrency(ns, "TOKENS")
 	points := s.createCustomCurrency(ns, "POINTS")
@@ -157,7 +157,7 @@ func (s *CustomCurrencyCreditsSuite) TestBalanceDiscoversCustomCurrencyWithoutSt
 	t := s.T()
 	ctx := t.Context()
 	ns := s.GetUniqueNamespace("custom-currency-balance-discovery")
-	defaults := s.ProvisionDefaultTaxCodes(ctx, ns)
+	defaults := s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 	customer := s.CreateLedgerBackedCustomer(ns, "custom-currency-balance-discovery")
 	tokens := s.createCustomCurrency(ns, "TOKENS")
 

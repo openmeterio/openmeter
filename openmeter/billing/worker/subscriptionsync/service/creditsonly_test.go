@@ -2208,12 +2208,10 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyFlatFeeTaxCodeP
 	clock.SetTime(setupAt)
 	defer clock.ResetTime()
 
-	tc, err := s.TaxCodeService.CreateTaxCode(ctx, taxcode.CreateTaxCodeInput{
-		Namespace: s.Namespace,
-		Key:       "txcd-sync-flatfee-01",
-		Name:      "Sync Flat Fee Tax Code",
+	tc := s.TaxCodeEnv.CreateTaxCode(s.T(), s.Namespace, taxcode.CreateTaxCodeInput{
+		Key:  "txcd-sync-flatfee-01",
+		Name: "Sync Flat Fee Tax Code",
 	})
-	s.Require().NoError(err)
 
 	subscriptionView := s.createSubscriptionFromPlanAt(plan.CreatePlanInput{
 		NamespacedModel: models.NamespacedModel{
@@ -2288,12 +2286,10 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedTaxCo
 	clock.SetTime(setupAt)
 	defer clock.ResetTime()
 
-	tc, err := s.TaxCodeService.CreateTaxCode(ctx, taxcode.CreateTaxCodeInput{
-		Namespace: s.Namespace,
-		Key:       "txcd-sync-usagebased-01",
-		Name:      "Sync Usage Based Tax Code",
+	tc := s.TaxCodeEnv.CreateTaxCode(s.T(), s.Namespace, taxcode.CreateTaxCodeInput{
+		Key:  "txcd-sync-usagebased-01",
+		Name: "Sync Usage Based Tax Code",
 	})
-	s.Require().NoError(err)
 
 	unitPrice := productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 		Amount: alpacadecimal.NewFromFloat(1),

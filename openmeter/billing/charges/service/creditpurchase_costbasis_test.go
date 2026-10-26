@@ -37,7 +37,7 @@ func (s *CreditPurchaseTestSuite) TestInvoiceCreditPurchaseResolvesInitialCostBa
 	defer clock.UnFreeze()
 
 	namespace := s.GetUniqueNamespace("credit-purchase-pinned-cost-basis")
-	defaults := s.ProvisionDefaultTaxCodes(ctx, namespace)
+	defaults := s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), namespace)
 	customer := s.CreateTestCustomer(namespace, "credit-purchase-pinned-cost-basis")
 	customCurrency := s.createTestCustomCurrency(ctx, namespace)
 	pinnedCostBasis, err := s.CurrencyService.CreateCostBasis(ctx, currencies.CreateCostBasisInput{
@@ -161,7 +161,7 @@ func (s *CreditPurchaseTestSuite) TestInvoiceCreditPurchaseResolvesInitialCostBa
 func (s *CreditPurchaseTestSuite) TestPinnedCreditPurchaseCostBasisMustMatchCurrencyAndFiatCurrency() {
 	ctx := s.T().Context()
 	namespace := s.GetUniqueNamespace("credit-purchase-pinned-cost-basis-mismatch")
-	defaults := s.ProvisionDefaultTaxCodes(ctx, namespace)
+	defaults := s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), namespace)
 	customer := s.CreateTestCustomer(namespace, "credit-purchase-pinned-cost-basis-mismatch")
 	customCurrency := s.createTestCustomCurrency(ctx, namespace)
 	otherCurrency, err := s.CurrencyService.CreateCurrency(ctx, currencies.CreateCurrencyInput{
@@ -252,7 +252,7 @@ func (s *CreditPurchaseTestSuite) TestSetResolvedDynamicCostBasisOverwritesExist
 	// - the latest owner resolution persists and the unrelated charge is rejected
 	ctx := s.T().Context()
 	namespace := s.GetUniqueNamespace("credit-purchase-dynamic-cost-basis-retry")
-	defaults := s.ProvisionDefaultTaxCodes(ctx, namespace)
+	defaults := s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), namespace)
 	customer := s.CreateTestCustomer(namespace, "credit-purchase-dynamic-cost-basis-retry")
 	customCurrency := s.createTestCustomCurrency(ctx, namespace)
 	servicePeriodFrom := time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC)
@@ -351,7 +351,7 @@ func (s *CreditPurchaseTestSuite) TestInvoiceCreditPurchaseLineEnginePreviewsDyn
 	// given: a dynamic invoice credit purchase that has not entered its invoice lifecycle
 	ctx := s.T().Context()
 	namespace := s.GetUniqueNamespace("invoice-credit-purchase-dynamic-cost-basis")
-	defaults := s.ProvisionDefaultTaxCodes(ctx, namespace)
+	defaults := s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), namespace)
 	customer := s.CreateTestCustomer(namespace, "invoice-credit-purchase-dynamic-cost-basis")
 	customCurrency := s.createTestCustomCurrency(ctx, namespace)
 	servicePeriodFrom := time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC)

@@ -103,7 +103,7 @@ func (s *CustomerOverrideTestSuite) TestGetRejectsPersistedCrossNamespaceTaxCode
 	taxNamespace := s.GetUniqueNamespace("customer-override-tax-code")
 	customerEntity := s.CreateTestCustomer(customerNamespace, "customer")
 	s.ProvisionBillingProfile(ctx, customerNamespace, s.InstallSandboxApp(s.T(), customerNamespace).GetID())
-	foreignTaxCode := s.ProvisionProviderDefaultTaxCode(ctx, taxNamespace)
+	foreignTaxCode := s.TaxCodeEnv.ProvisionProviderDefaultTaxCode(s.T(), taxNamespace)
 
 	_, err := s.DBClient.BillingCustomerOverride.Create().
 		SetNamespace(customerNamespace).

@@ -47,7 +47,7 @@ func (s *legacyUnitConfigRatingSuite) TestRatesConvertedQuantity() {
 	cust := s.CreateTestCustomer(ns, "test-subject")
 	s.NotEmpty(cust.ID)
 	s.SetupAccounts(ns, cust.ID)
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	feature := s.SetupApiRequestsTotalFeature(ctx, ns)
 
@@ -153,7 +153,7 @@ func (s *legacyUnitConfigRatingSuite) TestSurfacesQuantityDetailOnV3InvoiceAPI()
 	cust := s.CreateTestCustomer(ns, "test-subject")
 	s.NotEmpty(cust.ID)
 	s.SetupAccounts(ns, cust.ID)
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	feature := s.SetupApiRequestsTotalFeature(ctx, ns)
 

@@ -7,11 +7,13 @@ import (
 	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -83,12 +85,22 @@ func (s *TaxCodePersistenceTestSuite) TestChargeTaxCodeDefaultPriority() {
 					// given: distinct charge, profile, and organization tax identities
 					ctx := s.T().Context()
 					ns := s.GetUniqueNamespace("tax-code-default-priority")
-					defaults := s.ProvisionDefaultTaxCodes(ctx, ns)
+					defaults := s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 					sandboxApp := s.InstallSandboxApp(s.T(), ns)
 					profile := s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
 					cust := s.CreateTestCustomer(ns, "test-subject")
-					profileTaxCode := s.createTestTaxCodeWithStripeMapping(ctx, ns, "profile-tax", "txcd_10000000")
-					chargeTaxCode := s.createTestTaxCodeWithStripeMapping(ctx, ns, "charge-tax", "txcd_20000000")
+					profileTaxCode := s.TaxCodeEnv.CreateTaxCode(s.T(), ns, taxcode.CreateTaxCodeInput{
+						Key: "profile-tax",
+						AppMappings: taxcode.TaxCodeAppMappings{
+							{AppType: app.AppTypeStripe, TaxCode: "txcd_10000000"},
+						},
+					})
+					chargeTaxCode := s.TaxCodeEnv.CreateTaxCode(s.T(), ns, taxcode.CreateTaxCodeInput{
+						Key: "charge-tax",
+						AppMappings: taxcode.TaxCodeAppMappings{
+							{AppType: app.AppTypeStripe, TaxCode: "txcd_20000000"},
+						},
+					})
 					if testCase.withProfileTaxCode {
 						s.SeedProfileDefaultTaxConfigViaAdapter(ctx, profile.ProfileID(), &productcatalog.TaxConfig{
 							Behavior: lo.ToPtr(productcatalog.InclusiveTaxBehavior),
@@ -157,11 +169,21 @@ func (s *TaxCodePersistenceTestSuite) TestChargeTaxCodeDefaultsAreCustomerScoped
 			// given: two customers with different effective billing-profile tax codes
 			ctx := s.T().Context()
 			ns := s.GetUniqueNamespace("tax-code-default-batch")
-			s.ProvisionDefaultTaxCodes(ctx, ns)
+			s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 			sandboxApp := s.InstallSandboxApp(s.T(), ns)
 			firstProfile := s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
-			firstTaxCode := s.createTestTaxCodeWithStripeMapping(ctx, ns, "first-profile-tax", "txcd_10000000")
-			secondTaxCode := s.createTestTaxCodeWithStripeMapping(ctx, ns, "second-profile-tax", "txcd_20000000")
+			firstTaxCode := s.TaxCodeEnv.CreateTaxCode(s.T(), ns, taxcode.CreateTaxCodeInput{
+				Key: "first-profile-tax",
+				AppMappings: taxcode.TaxCodeAppMappings{
+					{AppType: app.AppTypeStripe, TaxCode: "txcd_10000000"},
+				},
+			})
+			secondTaxCode := s.TaxCodeEnv.CreateTaxCode(s.T(), ns, taxcode.CreateTaxCodeInput{
+				Key: "second-profile-tax",
+				AppMappings: taxcode.TaxCodeAppMappings{
+					{AppType: app.AppTypeStripe, TaxCode: "txcd_20000000"},
+				},
+			})
 			s.SeedProfileDefaultTaxConfigViaAdapter(ctx, firstProfile.ProfileID(), &productcatalog.TaxConfig{
 				TaxCodeID: lo.ToPtr(firstTaxCode.ID),
 			})
@@ -235,7 +257,7 @@ func (s *TaxCodePersistenceTestSuite) TestChargeTaxCodeDefaultsHandleMissingProf
 			// given: organization defaults exist, but no billing profile has been provisioned
 			ctx := s.T().Context()
 			ns := s.GetUniqueNamespace("tax-code-default-no-profile")
-			s.ProvisionDefaultTaxCodes(ctx, ns)
+			s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 			cust := s.CreateTestCustomer(ns, "test-subject")
 			intent := s.createMockChargeIntent(createMockChargeIntentInput{
 				customer: cust.GetID(),

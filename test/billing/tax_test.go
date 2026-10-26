@@ -122,7 +122,7 @@ func (s *InvoicingTaxTestSuite) TestDefaultTaxConfigProfileSnapshotting() {
 
 		draftInvoice := s.generateDraftInvoice(ctx, cust)
 		s.Nil(draftInvoice.Workflow.Config.Invoicing.DefaultTaxConfig)
-		s.ProvisionProviderDefaultTaxCode(ctx, namespace)
+		s.TaxCodeEnv.ProvisionProviderDefaultTaxCode(s.T(), namespace)
 
 		// let's update the invoice
 		updatedInvoice, err := s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{

@@ -37,7 +37,7 @@ func (s *UBPFlatFeeLineTestSuite) TestPendingLineCreation() {
 
 	cust := s.CreateTestCustomer(namespace, "test")
 	s.SetupAccounts(namespace, cust.ID)
-	defaultTaxCodes := s.ProvisionDefaultTaxCodes(ctx, namespace)
+	defaultTaxCodes := s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), namespace)
 	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID(), billingtest.WithProgressiveBilling())
 
 	// Given we have a customer
@@ -156,7 +156,7 @@ func (s *UBPFlatFeeLineTestSuite) TestPercentageDiscount() {
 
 	cust := s.CreateTestCustomer(namespace, "test")
 	s.SetupAccounts(namespace, cust.ID)
-	s.ProvisionDefaultTaxCodes(ctx, namespace)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), namespace)
 	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
 
 	// Given we have a customer
@@ -240,7 +240,7 @@ func (s *UBPFlatFeeLineTestSuite) TestValidations() {
 
 	cust := s.CreateTestCustomer(namespace, "test")
 	s.SetupAccounts(namespace, cust.ID)
-	s.ProvisionDefaultTaxCodes(ctx, namespace)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), namespace)
 	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
 
 	period := timeutil.ClosedPeriod{

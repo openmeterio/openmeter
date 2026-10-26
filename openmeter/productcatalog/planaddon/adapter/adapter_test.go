@@ -34,18 +34,16 @@ func TestPlanAddonAdapterBackfillsTaxConfigFromTaxCode(t *testing.T) {
 	namespace := pctestutils.NewTestNamespace(t)
 
 	const stripeCode = "txcd_10000000"
-	taxCode, err := env.TaxCode.CreateTaxCode(ctx, taxcode.CreateTaxCodeInput{
-		Namespace: namespace,
-		Key:       "stripe-tax-code",
-		Name:      "Stripe tax code",
+	taxCode := env.TaxCodeEnv.CreateTaxCode(t, namespace, taxcode.CreateTaxCodeInput{
+		Key:  "stripe-tax-code",
+		Name: "Stripe tax code",
 		AppMappings: taxcode.TaxCodeAppMappings{
 			{AppType: app.AppTypeStripe, TaxCode: stripeCode},
 		},
 	})
-	require.NoError(t, err)
 
 	planInput := pctestutils.NewTestPlan(t, namespace)
-	err = planInput.Phases[0].RateCards[0].ChangeMeta(func(meta productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
+	err := planInput.Phases[0].RateCards[0].ChangeMeta(func(meta productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
 		meta.TaxConfig = &productcatalog.TaxConfig{
 			TaxCodeID: lo.ToPtr(taxCode.ID),
 		}

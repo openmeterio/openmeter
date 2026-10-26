@@ -29,7 +29,7 @@ import (
 func (s *InvoicableChargesTestSuite) TestCreatePendingInvoiceLinesResolvesStripeTaxCodeBeforeCreatingCharge() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-create-pending-lines-stripe-tax")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID())
@@ -92,7 +92,7 @@ func (s *InvoicableChargesTestSuite) TestCreatePendingInvoiceLinesCreatesChargeB
 
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-create-pending-lines")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	cust := s.CreateTestCustomer(ns, "test-subject")
@@ -469,7 +469,7 @@ func (s *InvoicableChargesTestSuite) TestChargeCreatePendingInvoiceLinesRequires
 	// - validation rejects the request without creating a charge or gathering invoice
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charge-create-pending-line-feature-meter")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
 	s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
 
@@ -534,7 +534,7 @@ func (s *InvoicableChargesTestSuite) TestChargeCreatePendingInvoiceLinesRequires
 func (s *InvoicableChargesTestSuite) TestCreatePendingInvoiceLinesRollsBackCreatedChargesOnFailure() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-create-pending-lines-rollback")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
 	s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
 
@@ -642,7 +642,7 @@ func (s *InvoicableChargesTestSuite) TestCreatePendingInvoiceLinesRejectsNonManu
 func (s *InvoicableChargesTestSuite) TestCreatePendingInvoiceLinesRollsBackPartialChargeLineResults() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-create-pending-lines-partial-rollback")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	cust := s.CreateTestCustomer(ns, "test-subject")

@@ -52,7 +52,7 @@ func (s *CustomCurrencyCreditsSuite) TestPaidBackfillRecognitionLeavesPromotiona
 			t := s.T()
 			ctx := t.Context()
 			ns := s.GetUniqueNamespace("paid-backfill-recognition")
-			defaults := s.ProvisionDefaultTaxCodes(ctx, ns)
+			defaults := s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 			customer := s.CreateLedgerBackedCustomer(ns, "test-subject")
 			sandbox := s.InstallSandboxApp(t, ns)
 			s.ProvisionBillingProfile(ctx, ns, sandbox.GetID(),

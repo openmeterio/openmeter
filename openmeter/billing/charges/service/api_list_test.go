@@ -163,7 +163,7 @@ func (s *CustomerChargeAPIListTestSuite) TestListCustomerChargesExpands() {
 	defer clock.UnFreeze()
 
 	namespace := s.GetUniqueNamespace("charges-service-api-list")
-	s.ProvisionDefaultTaxCodes(ctx, namespace)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), namespace)
 	cust := s.CreateTestCustomer(namespace, "api-list")
 	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
 	_ = s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())

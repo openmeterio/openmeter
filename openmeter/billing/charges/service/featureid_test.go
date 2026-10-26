@@ -59,7 +59,7 @@ func (s *ChargeFeatureIDTestSuite) TearDownTest() {
 func (s *ChargeFeatureIDTestSuite) TestCreateResolvesFeatureIDsForUsageBasedAndMeterlessFlatFeeCharges() {
 	ctx := context.Background()
 	ns := s.GetUniqueNamespace("charges-service-feature-id-create")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	cust := s.CreateTestCustomer(ns, "feature-id-create")
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
@@ -140,7 +140,7 @@ func (s *ChargeFeatureIDTestSuite) TestCreateResolvesFeatureIDsForUsageBasedAndM
 func (s *ChargeFeatureIDTestSuite) TestUsageBasedActivationRecalculatesFeatureIDAndRunsKeepUsingIt() {
 	ctx := context.Background()
 	ns := s.GetUniqueNamespace("charges-service-feature-id-usage")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	cust := s.CreateTestCustomer(ns, "feature-id-usage")
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
@@ -249,7 +249,7 @@ func (s *ChargeFeatureIDTestSuite) TestUsageBasedActivationRecalculatesFeatureID
 func (s *ChargeFeatureIDTestSuite) TestCreateCustomerChargeResolvesFeatureByID() {
 	ctx := context.Background()
 	ns := s.GetUniqueNamespace("charges-service-feature-id-api")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	cust := s.CreateTestCustomer(ns, "feature-id-api")
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
@@ -445,7 +445,7 @@ func (s *ChargeFeatureIDTestSuite) TestCreateFlatFeeWithUnresolvableFeatureKeyRe
 	// - creation returns a feature validation issue without persisting a charge
 	ctx := context.Background()
 	ns := s.GetUniqueNamespace("charges-service-feature-key-unresolvable")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	cust := s.CreateTestCustomer(ns, "feature-key-unresolvable")
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
@@ -501,7 +501,7 @@ func (s *ChargeFeatureIDTestSuite) TestCreateUsageBasedWithUnresolvableFeatureKe
 	// - creation returns a feature validation issue without persisting a charge
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-usage-feature-key-unresolvable")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
 	s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
 
@@ -552,7 +552,7 @@ func (s *ChargeFeatureIDTestSuite) TestCreateUsageBasedRequiresFeatureMeterBefor
 	// - validation rejects the whole request before either charge is persisted
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-usage-feature-meter-required")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
 	s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
 
@@ -619,7 +619,7 @@ func (s *ChargeFeatureIDTestSuite) TestCreateUsageBasedReturnsAllFeatureValidati
 	// - one usage-based intent references a missing feature and another a meterless feature
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-usage-mixed-feature-errors")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
 	s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
 
@@ -701,7 +701,7 @@ func (s *ChargeFeatureIDTestSuite) TestCreateUsageBasedReturnsAllFeatureValidati
 func (s *ChargeFeatureIDTestSuite) TestCreateCustomerChargeByIDResolvesLatestFeatureVersion() {
 	ctx := context.Background()
 	ns := s.GetUniqueNamespace("charges-service-feature-id-archived")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	cust := s.CreateTestCustomer(ns, "feature-id-archived")
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)

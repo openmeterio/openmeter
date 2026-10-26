@@ -118,8 +118,7 @@ func TestAddonService(t *testing.T) {
 				features = append(features, feat)
 			}
 
-			taxcode, err := env.TaxCode.CreateTaxCode(ctx, taxcode.CreateTaxCodeInput{
-				Namespace:   namespace,
+			taxcode := env.TaxCodeEnv.CreateTaxCode(t, namespace, taxcode.CreateTaxCodeInput{
 				Key:         "txcd_10000000",
 				Name:        "Test Tax Code",
 				Description: lo.ToPtr("Test Tax Code"),
@@ -131,7 +130,6 @@ func TestAddonService(t *testing.T) {
 				},
 				Metadata: models.Metadata{"name": "Test Tax Code"},
 			})
-			require.NoErrorf(t, err, "creating tax code must not fail")
 			require.NotNil(t, taxcode, "tax code must not be empty")
 
 			addonV1Input := pctestutils.NewTestAddon(t, namespace, productcatalog.RateCards{

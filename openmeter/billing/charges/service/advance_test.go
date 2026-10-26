@@ -43,7 +43,7 @@ func (s *AdvanceChargesTestSuite) TearDownTest() {
 func (s *AdvanceChargesTestSuite) TestAdvanceChargesReturnsEmptyForAlreadyActiveCreditCharges() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-advance-usage-only")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	cust := s.CreateTestCustomer(ns, "test-subject")
 	s.NotEmpty(cust.ID)
@@ -131,7 +131,7 @@ func (s *AdvanceChargesTestSuite) TestAdvanceChargesReturnsEmptyForAlreadyActive
 func (s *AdvanceChargesTestSuite) TestAdvanceChargesActivatesCreditThenInvoiceFlatFeeAtServicePeriodStart() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-advance-empty")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	cust := s.CreateTestCustomer(ns, "test-subject")
 	s.NotEmpty(cust.ID)
@@ -182,7 +182,7 @@ func (s *AdvanceChargesTestSuite) TestAdvanceChargesActivatesCreditThenInvoiceFl
 func (s *AdvanceChargesTestSuite) TestAdvanceChargesActivatesCreditThenInvoiceUsageBasedChargesAtServicePeriodStart() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-advance-credit-then-invoice")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	cust := s.CreateTestCustomer(ns, "test-subject")
 	s.NotEmpty(cust.ID)
@@ -257,7 +257,7 @@ var usageBasedIntentServicePeriod = timeutil.ClosedPeriod{
 func (s *AdvanceChargesTestSuite) TestAdvanceChargesCustomCurrencyCreditThenInvoiceRecognitionDoesNotFail() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-advance-custom-cti")
-	defaults := s.ProvisionDefaultTaxCodes(ctx, ns)
+	defaults := s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	cust := s.CreateTestCustomer(ns, "test-subject")
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
@@ -293,7 +293,7 @@ func (s *AdvanceChargesTestSuite) TestAdvanceChargesCustomCurrencyCreditThenInvo
 func (s *AdvanceChargesTestSuite) TestAdvanceChargesCustomCurrencyCreditOnlyRecognitionDoesNotFail() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-advance-custom-credit-only")
-	defaults := s.ProvisionDefaultTaxCodes(ctx, ns)
+	defaults := s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	cust := s.CreateTestCustomer(ns, "test-subject")
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)

@@ -51,7 +51,7 @@ func (s *CreditPurchaseTestSuite) TearDownTest() {
 func (s *CreditPurchaseTestSuite) TestPromotionalCreditPurchase() {
 	ctx := context.Background()
 	ns := s.GetUniqueNamespace("charges-service-promotional-credit-purchase")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	cust := s.CreateTestCustomer(ns, "test-subject")
 	s.NotEmpty(cust.ID)
@@ -113,7 +113,7 @@ func (s *CreditPurchaseTestSuite) TestPromotionalCreditPurchaseWithCustomCurrenc
 	s.Run("#1 setup customer and custom currency", func() {
 		// given:
 		// - a customer and a persisted custom currency
-		defaultCreditGrantTaxCodeID = s.ProvisionDefaultTaxCodes(ctx, ns).CreditGrantTaxCodeID
+		defaultCreditGrantTaxCodeID = s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns).CreditGrantTaxCodeID
 
 		cust := s.CreateTestCustomer(ns, "test-subject")
 		s.NotEmpty(cust.ID)
@@ -221,7 +221,7 @@ func (s *CreditPurchaseTestSuite) TestPromotionalCreditPurchaseWithCustomCurrenc
 func (s *CreditPurchaseTestSuite) TestCreditPurchaseRejectsFiatCostBasisForCustomCurrency() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-credit-purchase-fiat-cost-basis-custom-currency")
-	defaultTaxCodes := s.ProvisionDefaultTaxCodes(ctx, ns)
+	defaultTaxCodes := s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	cust := s.CreateTestCustomer(ns, "test-subject")
 	s.NotEmpty(cust.ID)
@@ -287,7 +287,7 @@ func (s *CreditPurchaseTestSuite) TestCreditPurchaseRejectsFiatCostBasisForCusto
 func (s *CreditPurchaseTestSuite) TestCreditPurchaseRejectsNonPositiveCostBasisBeforeCallbacks() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-credit-purchase-non-positive-cost-basis")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	cust := s.CreateTestCustomer(ns, "test-subject")
 	s.NotEmpty(cust.ID)
@@ -441,7 +441,7 @@ func newFiatCreditPurchaseCostBasis(rate alpacadecimal.Decimal) creditpurchase.C
 func (s *CreditPurchaseTestSuite) TestExternalAuthorizedCreditPurchaseAutoSettled() {
 	ctx := context.Background()
 	ns := s.GetUniqueNamespace("charges-service-external-authorized-credit-purchase-auto-settled")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	cust := s.CreateTestCustomer(ns, "test-subject")
 	s.NotEmpty(cust.ID)
@@ -554,7 +554,7 @@ func (s *CreditPurchaseTestSuite) TestStandardInvoiceCreditPurchaseDeferred() {
 	// The gathering line is created but not immediately invoiced.
 	ctx := context.Background()
 	ns := s.GetUniqueNamespace("charges-service-standard-invoice-credit-purchase-deferred")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	clock.FreezeTime(datetime.MustParseTimeInLocation(s.T(), "2025-12-01T00:00:00Z", time.UTC).AsTime())
 	defer clock.ResetTime()

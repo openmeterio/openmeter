@@ -23,7 +23,7 @@ func (s *CreditGrantTestSuite) TestRejectPurchaseRoundingToZeroBeforeIssuance() 
 				// given a positive purchase price below the settlement currency's precision
 				ctx := s.T().Context()
 				ns := s.GetUniqueNamespace("rounded-zero-purchase")
-				s.ProvisionDefaultTaxCodes(ctx, ns)
+				s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 				cust := s.CreateLedgerBackedCustomer(ns, "customer")
 				if code.IsCustom() {
 					s.CreateCustomCurrency(ns, code)
@@ -73,7 +73,7 @@ func (s *CreditGrantTestSuite) TestPurchaseRoundingToMinorUnitCanSettle() {
 	// given a fractional price that rounds up to one fiat minor unit
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("rounded-positive-purchase")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 	cust := s.CreateLedgerBackedCustomer(ns, "customer")
 	s.CreateCustomCurrency(ns, "TOKENS")
 	clock.FreezeTime(time.Date(2026, 4, 17, 11, 0, 0, 0, time.UTC))
