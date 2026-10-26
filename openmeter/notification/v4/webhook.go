@@ -13,10 +13,7 @@ type WebhookProvider Provider[WebhookConfig, WebhookConfigUpdate]
 
 const ChannelTypeWebhook ChannelType = "webhook"
 
-var (
-	_ ChannelConfig = WebhookConfig{}
-	_ ChannelConfig = (*WebhookConfig)(nil)
-)
+var _ ChannelConfig = (*WebhookConfig)(nil)
 
 // WebhookConfig describes webhook delivery independently of its provider.
 type WebhookConfig struct {
