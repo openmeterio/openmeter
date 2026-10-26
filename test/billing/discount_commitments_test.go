@@ -121,14 +121,14 @@ func (s *DiscountsTestSuite) TestPercentageDiscountProgressiveCommitments() {
 
 				// Then each invoice uses net prior spend, including when the maximum was already reached.
 				s.Equal(groupID, *stdLine.SplitLineGroupID)
-				s.Equal(expected.amount, stdLine.Totals.Amount.InexactFloat64(), "slice %d gross amount", idx+1)
-				s.Equal(expected.discounts, stdLine.Totals.DiscountsTotal.InexactFloat64(), "slice %d discounts", idx+1)
-				s.Equal(expected.charges, stdLine.Totals.ChargesTotal.InexactFloat64(), "slice %d minimum top-up", idx+1)
-				s.Equal(expected.total, stdLine.Totals.Total.InexactFloat64(), "slice %d net total", idx+1)
+				s.Require().Equal(expected.amount, stdLine.Totals.Amount.InexactFloat64(), "slice %d gross amount", idx+1)
+				s.Require().Equal(expected.discounts, stdLine.Totals.DiscountsTotal.InexactFloat64(), "slice %d discounts", idx+1)
+				s.Require().Equal(expected.charges, stdLine.Totals.ChargesTotal.InexactFloat64(), "slice %d minimum top-up", idx+1)
+				s.Require().Equal(expected.total, stdLine.Totals.Total.InexactFloat64(), "slice %d net total", idx+1)
 				totalBilled = totalBilled.Add(stdLine.Totals.Total)
 			}
 
-			s.Equal(float64(100), totalBilled.InexactFloat64())
+			s.Require().Equal(float64(100), totalBilled.InexactFloat64())
 		})
 	}
 }
