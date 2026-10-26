@@ -3,10 +3,12 @@ package clickhouse
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"testing"
 	"time"
 
+	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"github.com/samber/lo"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
@@ -44,6 +46,94 @@ func GetMockConnector(t *testing.T, opts ...MockConnectorOption) (*Connector, *M
 	require.NoError(t, err)
 
 	return connector, mockClickhouse
+}
+
+type schemaColumnRow struct {
+	value uint64
+	err   error
+}
+
+var _ driver.Row = schemaColumnRow{}
+
+func (r schemaColumnRow) Scan(dest ...any) error {
+	if r.err != nil {
+		return r.err
+	}
+	if len(dest) != 1 {
+		return fmt.Errorf("expected one schema column count destination, got %d", len(dest))
+	}
+	count, ok := dest[0].(*uint64)
+	if !ok {
+		return fmt.Errorf("unsupported schema column count destination %T", dest[0])
+	}
+	*count = r.value
+	return nil
+}
+
+func (r schemaColumnRow) Err() error {
+	return r.err
+}
+
+func (r schemaColumnRow) ScanStruct(dest any) error {
+	return fmt.Errorf("unsupported schema column count struct destination %T", dest)
+}
+
+func TestConnectorCreateEventsTable(t *testing.T) {
+	table := createEventsTable{Database: "testdb", EventsTableName: "events"}
+
+	t.Run("skips add and backfill when store_row_id column exists", func(t *testing.T) {
+		// given a table that already has store_row_id
+		mockCH := NewMockClickHouse()
+		mock.InOrder(
+			mockCH.On("Exec", mock.Anything, table.toSQL(), mock.Anything).Return(nil).Once(),
+			mockCH.On("QueryRow", mock.Anything, table.hasStoreRowIDColumnSQL(), []any{table.Database, table.EventsTableName}).Return(schemaColumnRow{value: 1}).Once(),
+		)
+
+		connector := &Connector{config: Config{ClickHouse: mockCH, Database: table.Database, EventsTableName: table.EventsTableName}}
+
+		// when createEventsTable runs
+		require.NoError(t, connector.createEventsTable(t.Context()))
+
+		// then it does not ADD COLUMN or backfill
+		mockCH.AssertExpectations(t)
+		mockCH.AssertNotCalled(t, "Exec", mock.Anything, table.addStoreRowIDSQL(), mock.Anything)
+		mockCH.AssertNotCalled(t, "Exec", mock.Anything, table.backfillStoreRowIDSQL(), mock.Anything)
+	})
+
+	t.Run("adds column and backfills when store_row_id is missing", func(t *testing.T) {
+		// given a pre-store_row_id events table
+		mockCH := NewMockClickHouse()
+		mock.InOrder(
+			mockCH.On("Exec", mock.Anything, table.toSQL(), mock.Anything).Return(nil).Once(),
+			mockCH.On("QueryRow", mock.Anything, table.hasStoreRowIDColumnSQL(), []any{table.Database, table.EventsTableName}).Return(schemaColumnRow{}).Once(),
+			mockCH.On("Exec", mock.Anything, table.addStoreRowIDSQL(), mock.Anything).Return(nil).Once(),
+			mockCH.On("Exec", mock.Anything, table.backfillStoreRowIDSQL(), mock.Anything).Return(nil).Once(),
+		)
+
+		connector := &Connector{config: Config{ClickHouse: mockCH, Database: table.Database, EventsTableName: table.EventsTableName}}
+
+		// when createEventsTable runs
+		require.NoError(t, connector.createEventsTable(t.Context()))
+
+		// then it adds the column and submits a background backfill
+		mockCH.AssertExpectations(t)
+	})
+
+	t.Run("returns backfill error", func(t *testing.T) {
+		mockCH := NewMockClickHouse()
+		mock.InOrder(
+			mockCH.On("Exec", mock.Anything, table.toSQL(), mock.Anything).Return(nil).Once(),
+			mockCH.On("QueryRow", mock.Anything, table.hasStoreRowIDColumnSQL(), []any{table.Database, table.EventsTableName}).Return(schemaColumnRow{}).Once(),
+			mockCH.On("Exec", mock.Anything, table.addStoreRowIDSQL(), mock.Anything).Return(nil).Once(),
+			mockCH.On("Exec", mock.Anything, table.backfillStoreRowIDSQL(), mock.Anything).Return(errors.New("backfill failed")).Once(),
+		)
+
+		connector := &Connector{config: Config{ClickHouse: mockCH, Database: table.Database, EventsTableName: table.EventsTableName}}
+
+		err := connector.createEventsTable(t.Context())
+		require.ErrorContains(t, err, "backfill failed")
+		mockCH.AssertExpectations(t)
+	})
 }
 
 // TestConnector_QueryMeter tests the queryMeter function
