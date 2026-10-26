@@ -737,25 +737,6 @@ func (s *CustomerHandlerTestSuite) TestListBillingProfileFilter(ctx context.Cont
 	})
 	require.NoError(t, err)
 
-	// overrideNullProfile: has an override row with billing_profile_id IS NULL,
-	// which also resolves to the namespace default profile.
-	overrideNullProfile, err := customerService.CreateCustomer(ctx, customer.CreateCustomerInput{
-		Namespace: s.namespace,
-		CustomerMutate: customer.CustomerMutate{
-			Key:  lo.ToPtr("override-null-profile"),
-			Name: "Override Null Profile",
-		},
-	})
-	require.NoError(t, err)
-	_, err = billingService.UpsertCustomerOverride(ctx, billing.UpsertCustomerOverrideInput{
-		Namespace:  s.namespace,
-		CustomerID: overrideNullProfile.ID,
-		Collection: billing.CollectionOverrideConfig{
-			Interval: lo.ToPtr(datetime.MustParseDuration(t, "PT1H")),
-		},
-	})
-	require.NoError(t, err, "upserting customer override without profile id must not fail")
-
 	// overrideDefault: has an override pointing explicitly at the default profile.
 	overrideDefault, err := customerService.CreateCustomer(ctx, customer.CreateCustomerInput{
 		Namespace: s.namespace,
@@ -765,10 +746,9 @@ func (s *CustomerHandlerTestSuite) TestListBillingProfileFilter(ctx context.Cont
 		},
 	})
 	require.NoError(t, err)
-	_, err = billingService.UpsertCustomerOverride(ctx, billing.UpsertCustomerOverrideInput{
-		Namespace:  s.namespace,
-		CustomerID: overrideDefault.ID,
-		ProfileID:  defaultProfile.ID,
+	_, err = billingService.SetCustomerBillingProfile(ctx, billing.SetCustomerBillingProfileInput{
+		Customer:  customer.CustomerID{Namespace: s.namespace, ID: overrideDefault.ID},
+		ProfileID: defaultProfile.ID,
 	})
 	require.NoError(t, err, "upserting customer override pinned to default must not fail")
 
@@ -781,10 +761,9 @@ func (s *CustomerHandlerTestSuite) TestListBillingProfileFilter(ctx context.Cont
 		},
 	})
 	require.NoError(t, err)
-	_, err = billingService.UpsertCustomerOverride(ctx, billing.UpsertCustomerOverrideInput{
-		Namespace:  s.namespace,
-		CustomerID: overridePinned.ID,
-		ProfileID:  pinnedProfile.ID,
+	_, err = billingService.SetCustomerBillingProfile(ctx, billing.SetCustomerBillingProfileInput{
+		Customer:  customer.CustomerID{Namespace: s.namespace, ID: overridePinned.ID},
+		ProfileID: pinnedProfile.ID,
 	})
 	require.NoError(t, err, "upserting customer override pinned to non-default must not fail")
 
@@ -799,13 +778,12 @@ func (s *CustomerHandlerTestSuite) TestListBillingProfileFilter(ctx context.Cont
 		},
 	})
 	require.NoError(t, err)
-	_, err = billingService.UpsertCustomerOverride(ctx, billing.UpsertCustomerOverrideInput{
-		Namespace:  s.namespace,
-		CustomerID: overrideSoftDeleted.ID,
-		ProfileID:  pinnedProfile.ID,
+	_, err = billingService.SetCustomerBillingProfile(ctx, billing.SetCustomerBillingProfileInput{
+		Customer:  customer.CustomerID{Namespace: s.namespace, ID: overrideSoftDeleted.ID},
+		ProfileID: pinnedProfile.ID,
 	})
 	require.NoError(t, err)
-	require.NoError(t, billingService.DeleteCustomerOverride(ctx, billing.DeleteCustomerOverrideInput{
+	require.NoError(t, billingService.ClearCustomerBillingProfile(ctx, billing.ClearCustomerBillingProfileInput{
 		Customer: customer.CustomerID{Namespace: s.namespace, ID: overrideSoftDeleted.ID},
 	}), "deleting customer override must not fail")
 
@@ -820,7 +798,7 @@ func (s *CustomerHandlerTestSuite) TestListBillingProfileFilter(ctx context.Cont
 	}
 
 	// eq default covers the bug: customers with no override, with override
-	// pinned to default, with override.billing_profile_id IS NULL, and with a
+	// pinned to default, and with a
 	// soft-deleted override all resolve to the default profile and must match.
 	t.Run("eq default", func(t *testing.T) {
 		list, err := customerService.ListCustomers(ctx, customer.ListCustomersInput{
@@ -831,7 +809,6 @@ func (s *CustomerHandlerTestSuite) TestListBillingProfileFilter(ctx context.Cont
 		require.NoError(t, err)
 		require.ElementsMatch(t, []string{
 			noOverride.ID,
-			overrideNullProfile.ID,
 			overrideDefault.ID,
 			overrideSoftDeleted.ID,
 		}, idsOf(list.Items))

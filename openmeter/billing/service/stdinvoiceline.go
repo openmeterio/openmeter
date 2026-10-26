@@ -95,9 +95,9 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 		}
 
 		// let's resolve the customer's settings
-		customerProfile, err := s.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
+		customerProfile, err := s.GetCustomerBillingProfile(ctx, billing.GetCustomerBillingProfileInput{
 			Customer: input.Customer,
-			Expand: billing.CustomerOverrideExpand{
+			Expand: billing.CustomerBillingProfileExpand{
 				Customer: true,
 				Apps:     true,
 			},
@@ -147,7 +147,7 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 		}
 
 		if err := s.invoiceCalculator.CalculateGatheringInvoice(&gatheringInvoice, invoicecalc.GatheringInvoiceCalculatorDependencies{
-			Collection: customerProfile.MergedProfile.WorkflowConfig.Collection,
+			Collection: customerProfile.EffectiveProfile.WorkflowConfig.Collection,
 		}); err != nil {
 			return nil, fmt.Errorf("calculating invoice[%s]: %w", gatheringInvoiceID, err)
 		}
@@ -191,7 +191,7 @@ type upsertGatheringInvoiceForCurrencyResponse struct {
 	IsInvoiceNew bool
 }
 
-func (s *Service) upsertGatheringInvoiceForCurrency(ctx context.Context, currency currencyx.FiatCode, customerProfile billing.CustomerOverrideWithDetails) (*upsertGatheringInvoiceForCurrencyResponse, error) {
+func (s *Service) upsertGatheringInvoiceForCurrency(ctx context.Context, currency currencyx.FiatCode, customerProfile billing.CustomerBillingProfile) (*upsertGatheringInvoiceForCurrencyResponse, error) {
 	// We would want to stage a pending invoice Line
 	pendingInvoiceList, err := s.adapter.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
 		Page: pagination.Page{
@@ -224,11 +224,11 @@ func (s *Service) upsertGatheringInvoiceForCurrency(ctx context.Context, currenc
 
 		// Create a new invoice
 		invoice, err := s.adapter.CreateGatheringInvoice(ctx, billing.CreateGatheringInvoiceAdapterInput{
-			Namespace:     customerProfile.Customer.Namespace,
-			Customer:      lo.FromPtr(customerProfile.Customer),
-			Number:        invoiceNumber,
-			Currency:      currency,
-			MergedProfile: customerProfile.MergedProfile,
+			Namespace:        customerProfile.Customer.Namespace,
+			Customer:         lo.FromPtr(customerProfile.Customer),
+			Number:           invoiceNumber,
+			Currency:         currency,
+			EffectiveProfile: customerProfile.EffectiveProfile,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("creating invoice: %w", err)

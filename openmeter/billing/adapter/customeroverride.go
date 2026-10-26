@@ -15,150 +15,70 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	dbcustomer "github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/openmeter/taxcode"
-	taxcodeadapter "github.com/openmeterio/openmeter/openmeter/taxcode/adapter"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
-// defaultBulkAssignCustomersToProfileBatchSize is the maximum number of customers that can be assigned to a profile in a single
-// upsert operation. This is based on the maximum number of parameters PostgreSQL can handle in a single upsert operation (64k).
-//
-// This is a pessimistic approximation, as entgo might not try to insert the null columns, but still as of the writing we are still
-// inserting in 4k batches, which is more than enough.
-var defaultBulkAssignCustomersToProfileBatchSize int = (65535 / len(billingcustomeroverride.Columns)) - 1
+// Stay below PostgreSQL's parameter limit even while the legacy columns remain.
+var defaultBulkAssignCustomersToProfileBatchSize = (65535 / len(billingcustomeroverride.Columns)) - 1
 
-var _ billing.CustomerOverrideAdapter = (*adapter)(nil)
+var _ billing.CustomerBillingProfileAdapter = (*adapter)(nil)
 
-func (a *adapter) CreateCustomerOverride(ctx context.Context, input billing.CreateCustomerOverrideAdapterInput) (*billing.CustomerOverride, error) {
-	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (*billing.CustomerOverride, error) {
-		createCmd := tx.db.BillingCustomerOverride.Create().
-			SetNamespace(input.Namespace).
-			SetCustomerID(input.CustomerID).
-			SetNillableBillingProfileID(lo.EmptyableToPtr(input.ProfileID)).
-			SetNillableCollectionAlignment(input.Collection.Alignment).
-			SetAnchoredAlignmentDetail(input.Collection.AnchoredAlignmentDetail).
-			SetNillableLineCollectionPeriod(input.Collection.Interval.ISOStringPtrOrNil()).
-			SetNillableInvoiceAutoAdvance(input.Invoicing.AutoAdvance).
-			SetNillableInvoiceDraftPeriod(input.Invoicing.DraftPeriod.ISOStringPtrOrNil()).
-			SetNillableInvoiceDueAfter(input.Invoicing.DueAfter.ISOStringPtrOrNil()).
-			SetNillableInvoiceCollectionMethod(input.Payment.CollectionMethod).
-			SetNillableInvoiceProgressiveBilling(input.Invoicing.ProgressiveBilling).
-			SetNillableInvoiceDefaultTaxConfig(input.Invoicing.DefaultTaxConfig)
+func (a *adapter) SetCustomerBillingProfile(ctx context.Context, input billing.SetCustomerBillingProfileInput) (billing.CustomerBillingProfileAdapterResult, error) {
+	if err := input.Validate(); err != nil {
+		return billing.CustomerBillingProfileAdapterResult{}, billing.ValidationError{Err: err}
+	}
 
-		if cfg := input.Invoicing.DefaultTaxConfig; cfg != nil {
-			createCmd = createCmd.SetNillableTaxCodeID(cfg.TaxCodeID).SetNillableTaxBehavior(cfg.Behavior)
-		}
-
-		_, err := createCmd.Save(ctx)
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (billing.CustomerBillingProfileAdapterResult, error) {
+		err := tx.db.BillingCustomerOverride.Create().
+			SetNamespace(input.Customer.Namespace).
+			SetCustomerID(input.Customer.ID).
+			SetBillingProfileID(input.ProfileID).
+			OnConflict(sql.ConflictColumns(billingcustomeroverride.FieldNamespace, billingcustomeroverride.FieldCustomerID)).
+			UpdateBillingProfileID().
+			UpdateUpdatedAt().
+			ClearDeletedAt().
+			Exec(ctx)
 		if err != nil {
-			return nil, err
+			return billing.CustomerBillingProfileAdapterResult{}, err
 		}
 
-		// Let's fetch the override with edges
-		return tx.GetCustomerOverride(ctx, billing.GetCustomerOverrideAdapterInput{
-			Customer: customer.CustomerID{
-				Namespace: input.Namespace,
-				ID:        input.CustomerID,
-			},
-		})
+		return tx.GetCustomerBillingProfile(ctx, billing.GetCustomerBillingProfileInput{Customer: input.Customer})
 	})
 }
 
-func (a *adapter) UpdateCustomerOverride(ctx context.Context, input billing.UpdateCustomerOverrideAdapterInput) (*billing.CustomerOverride, error) {
-	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (*billing.CustomerOverride, error) {
-		if input.ProfileID == "" {
-			// Let's resolve the default profile
-			defaultProfile, err := tx.GetDefaultProfile(ctx, billing.GetDefaultProfileInput{
-				Namespace: input.Namespace,
-			})
-			if err != nil {
-				return nil, billing.NotFoundError{
-					Entity: billing.EntityDefaultProfile,
-					Err:    billing.ErrDefaultProfileNotFound,
-				}
-			}
-
-			input.ProfileID = defaultProfile.ID
-		}
-
-		update := tx.db.BillingCustomerOverride.Update().
-			Where(billingcustomeroverride.CustomerID(input.CustomerID)).
-			Where(billingcustomeroverride.Namespace(input.Namespace)).
-			SetOrClearBillingProfileID(lo.EmptyableToPtr(input.ProfileID)).
-			SetOrClearCollectionAlignment(input.Collection.Alignment).
-			SetOrClearLineCollectionPeriod(input.Collection.Interval.ISOStringPtrOrNil()).
-			SetOrClearInvoiceAutoAdvance(input.Invoicing.AutoAdvance).
-			SetOrClearInvoiceDraftPeriod(input.Invoicing.DraftPeriod.ISOStringPtrOrNil()).
-			SetOrClearInvoiceDueAfter(input.Invoicing.DueAfter.ISOStringPtrOrNil()).
-			SetOrClearInvoiceCollectionMethod(input.Payment.CollectionMethod).
-			SetOrClearInvoiceProgressiveBilling(input.Invoicing.ProgressiveBilling).
-			SetOrClearInvoiceDefaultTaxConfig(input.Invoicing.DefaultTaxConfig).
-			ClearDeletedAt()
-
-		if cfg := input.Invoicing.DefaultTaxConfig; cfg != nil {
-			update = update.SetOrClearTaxCodeID(cfg.TaxCodeID).SetOrClearTaxBehavior(cfg.Behavior)
-		} else {
-			update = update.ClearTaxCodeID().ClearTaxBehavior()
-		}
-
-		linesAffected, err := update.Save(ctx)
-		if err != nil {
-			return nil, err
-		}
-
-		if linesAffected == 0 {
-			return nil, billing.NotFoundError{
-				ID:     input.CustomerID,
-				Entity: billing.EntityCustomerOverride,
-				Err:    billing.ErrCustomerOverrideNotFound,
-			}
-		}
-
-		return tx.GetCustomerOverride(ctx, billing.GetCustomerOverrideAdapterInput{
-			Customer: customer.CustomerID{
-				Namespace: input.Namespace,
-				ID:        input.CustomerID,
-			},
-		})
-	})
-}
-
-func (a *adapter) GetCustomerOverride(ctx context.Context, input billing.GetCustomerOverrideAdapterInput) (*billing.CustomerOverride, error) {
-	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (*billing.CustomerOverride, error) {
-		query := tx.db.BillingCustomerOverride.Query().
+func (a *adapter) GetCustomerBillingProfile(ctx context.Context, input billing.GetCustomerBillingProfileInput) (billing.CustomerBillingProfileAdapterResult, error) {
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (billing.CustomerBillingProfileAdapterResult, error) {
+		row, err := tx.db.BillingCustomerOverride.Query().
 			Where(billingcustomeroverride.Namespace(input.Customer.Namespace)).
 			Where(billingcustomeroverride.CustomerID(input.Customer.ID)).
-			WithTaxCode(taxCodeInNamespace(input.Customer.Namespace)).
-			WithBillingProfile(func(bpq *db.BillingProfileQuery) {
-				bpq.Where(billingprofile.Namespace(input.Customer.Namespace))
-				bpq.WithWorkflowConfig(workflowConfigWithTaxCode(input.Customer.Namespace))
-			})
-
-		if !input.IncludeDeleted {
-			query = query.Where(billingcustomeroverride.DeletedAtIsNil())
+			Where(billingcustomeroverride.DeletedAtIsNil()).
+			Where(billingcustomeroverride.BillingProfileIDNotNil()).
+			WithBillingProfile(func(query *db.BillingProfileQuery) {
+				query.Where(billingprofile.Namespace(input.Customer.Namespace))
+				query.WithWorkflowConfig(workflowConfigWithTaxCode(input.Customer.Namespace))
+			}).Only(ctx)
+		if err != nil && !db.IsNotFound(err) {
+			return billing.CustomerBillingProfileAdapterResult{}, err
 		}
 
-		dbCustomerOverride, err := query.First(ctx)
+		selection, err := tx.mapCustomerBillingProfileFromDB(ctx, row)
 		if err != nil {
-			if db.IsNotFound(err) {
-				return nil, nil
-			}
-
-			return nil, err
+			return billing.CustomerBillingProfileAdapterResult{}, err
 		}
 
-		return tx.mapCustomerOverrideFromDB(ctx, dbCustomerOverride)
+		selection.CustomerID = input.Customer
+
+		return selection, nil
 	})
 }
 
-func (a *adapter) ListCustomerOverrides(ctx context.Context, input billing.ListCustomerOverridesInput) (billing.ListCustomerOverridesAdapterResult, error) {
+func (a *adapter) ListCustomerBillingProfiles(ctx context.Context, input billing.ListCustomerBillingProfilesInput) (billing.ListCustomerBillingProfilesAdapterResult, error) {
 	// Warning: We need to use the customer db parts as for the UI (and for a good API) we need to
 	// be able to filter based on customer fields too.
-	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (billing.ListCustomerOverridesAdapterResult, error) {
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (billing.ListCustomerBillingProfilesAdapterResult, error) {
 		query := tx.db.Customer.Query().
 			Where(dbcustomer.NamespaceEQ(input.Namespace)).
 			Where(dbcustomer.DeletedAtIsNil())
@@ -186,72 +106,56 @@ func (a *adapter) ListCustomerOverrides(ctx context.Context, input billing.ListC
 		}
 
 		switch input.OrderBy {
-		case billing.CustomerOverrideOrderByCustomerID:
+		case billing.CustomerBillingProfileOrderByCustomerID:
 			query = query.Order(dbcustomer.ByID(order...))
-		case billing.CustomerOverrideOrderByCustomerName:
+		case billing.CustomerBillingProfileOrderByCustomerName:
 			query = query.Order(dbcustomer.ByName(order...))
-		case billing.CustomerOverrideOrderByCustomerKey:
+		case billing.CustomerBillingProfileOrderByCustomerKey:
 			query = query.Order(dbcustomer.ByKey(order...))
-		case billing.CustomerOverrideOrderByCustomerPrimaryEmail:
+		case billing.CustomerBillingProfileOrderByCustomerPrimaryEmail:
 			query = query.Order(dbcustomer.ByPrimaryEmail(order...))
-		case billing.CustomerOverrideOrderByCustomerCreatedAt:
+		case billing.CustomerBillingProfileOrderByCustomerCreatedAt:
 			query = query.Order(dbcustomer.ByCreatedAt(order...))
 		default:
 			query = query.Order(dbcustomer.ByID(order...))
 		}
 
-		// Customer override filtering
-		customerOverrideFilters := []predicate.BillingCustomerOverride{
-			billingcustomeroverride.DeletedAtIsNil(),
+		// A historical empty or deleted override row is not an active profile pin.
+		activePin := []predicate.BillingCustomerOverride{
 			billingcustomeroverride.NamespaceEQ(input.Namespace),
+			billingcustomeroverride.DeletedAtIsNil(),
+			billingcustomeroverride.BillingProfileIDNotNil(),
 		}
-
+		matchingPin := append([]predicate.BillingCustomerOverride{}, activePin...)
 		if len(input.BillingProfiles) > 0 {
-			customerOverrideFilters = append(customerOverrideFilters, billingcustomeroverride.BillingProfileIDIn(input.BillingProfiles...))
+			matchingPin = append(matchingPin, billingcustomeroverride.BillingProfileIDIn(input.BillingProfiles...))
 		}
 
-		// If we are filtering by customers without pinned profiles, we need to include all customers
-		if input.CustomersWithoutPinnedProfile {
-			input.IncludeAllCustomers = true
-		}
-
-		if !input.IncludeAllCustomers {
-			query = query.Where(dbcustomer.HasBillingCustomerOverrideWith(customerOverrideFilters...))
-		} else if input.CustomersWithoutPinnedProfile {
-			query = query.Where(dbcustomer.Not(dbcustomer.HasBillingCustomerOverrideWith(customerOverrideFilters...)))
-		} else {
-			// We need to understand if the default profile is being queried for or not
-			shouldIncludeDefaultProfile := false
-			if len(input.BillingProfiles) == 0 {
-				shouldIncludeDefaultProfile = true
-			} else {
-				// Let's see if we are interested in the default profile
-				defaultProfile, err := tx.GetDefaultProfile(ctx, billing.GetDefaultProfileInput{
-					Namespace: input.Namespace,
-				})
-				if err != nil {
-					return billing.ListCustomerOverridesAdapterResult{}, err
-				}
-
-				shouldIncludeDefaultProfile = slices.Contains(input.BillingProfiles, defaultProfile.ID)
+		switch {
+		case input.CustomersWithoutPinnedProfile:
+			query = query.Where(dbcustomer.Not(dbcustomer.HasBillingCustomerOverrideWith(activePin...)))
+		case !input.IncludeAllCustomers:
+			query = query.Where(dbcustomer.HasBillingCustomerOverrideWith(matchingPin...))
+		case len(input.BillingProfiles) > 0:
+			defaultProfile, err := tx.GetDefaultProfile(ctx, billing.GetDefaultProfileInput{Namespace: input.Namespace})
+			if err != nil {
+				return billing.ListCustomerBillingProfilesAdapterResult{}, err
 			}
 
-			if shouldIncludeDefaultProfile {
-				query = query.Where(
-					dbcustomer.Or(
-						dbcustomer.HasBillingCustomerOverrideWith(customerOverrideFilters...),
-						dbcustomer.Not(dbcustomer.HasBillingCustomerOverride()),
-					),
-				)
+			if defaultProfile != nil && slices.Contains(input.BillingProfiles, defaultProfile.ID) {
+				query = query.Where(dbcustomer.Or(
+					dbcustomer.HasBillingCustomerOverrideWith(matchingPin...),
+					dbcustomer.Not(dbcustomer.HasBillingCustomerOverrideWith(activePin...)),
+				))
 			} else {
-				query = query.Where(dbcustomer.HasBillingCustomerOverrideWith(customerOverrideFilters...))
+				query = query.Where(dbcustomer.HasBillingCustomerOverrideWith(matchingPin...))
 			}
 		}
 
 		query = query.WithBillingCustomerOverride(func(overrideQuery *db.BillingCustomerOverrideQuery) {
 			overrideQuery = overrideQuery.Where(billingcustomeroverride.NamespaceEQ(input.Namespace)).
 				Where(billingcustomeroverride.DeletedAtIsNil()).
-				WithTaxCode(taxCodeInNamespace(input.Namespace))
+				Where(billingcustomeroverride.BillingProfileIDNotNil())
 
 			overrideQuery.WithBillingProfile(func(profileQuery *db.BillingProfileQuery) {
 				profileQuery.Where(billingprofile.Namespace(input.Namespace))
@@ -261,36 +165,23 @@ func (a *adapter) ListCustomerOverrides(ctx context.Context, input billing.ListC
 
 		res, err := query.Paginate(ctx, input.Page)
 		if err != nil {
-			return billing.ListCustomerOverridesAdapterResult{}, err
+			return billing.ListCustomerBillingProfilesAdapterResult{}, err
 		}
 
-		return pagination.MapResultErr(res, func(dbCustomer *db.Customer) (billing.CustomerOverrideWithCustomerID, error) {
-			if dbCustomer.Edges.BillingCustomerOverride == nil {
-				return billing.CustomerOverrideWithCustomerID{
-					CustomerID: customer.CustomerID{
-						Namespace: dbCustomer.Namespace,
-						ID:        dbCustomer.ID,
-					},
-				}, nil
-			}
-
-			override, err := tx.mapCustomerOverrideFromDB(ctx, dbCustomer.Edges.BillingCustomerOverride)
+		return pagination.MapResultErr(res, func(dbCustomer *db.Customer) (billing.CustomerBillingProfileAdapterResult, error) {
+			selection, err := tx.mapCustomerBillingProfileFromDB(ctx, dbCustomer.Edges.BillingCustomerOverride)
 			if err != nil {
-				return billing.CustomerOverrideWithCustomerID{}, err
+				return billing.CustomerBillingProfileAdapterResult{}, err
 			}
 
-			return billing.CustomerOverrideWithCustomerID{
-				CustomerOverride: override,
-				CustomerID: customer.CustomerID{
-					Namespace: dbCustomer.Namespace,
-					ID:        dbCustomer.ID,
-				},
-			}, nil
+			selection.CustomerID = customer.CustomerID{Namespace: dbCustomer.Namespace, ID: dbCustomer.ID}
+
+			return selection, nil
 		})
 	})
 }
 
-func (a *adapter) DeleteCustomerOverride(ctx context.Context, input billing.DeleteCustomerOverrideInput) error {
+func (a *adapter) ClearCustomerBillingProfile(ctx context.Context, input billing.ClearCustomerBillingProfileInput) error {
 	return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error {
 		rowsAffected, err := tx.db.BillingCustomerOverride.Update().
 			Where(billingcustomeroverride.CustomerID(input.Customer.ID)).
@@ -322,7 +213,7 @@ func (a *adapter) DeleteCustomerOverride(ctx context.Context, input billing.Dele
 	})
 }
 
-func (a *adapter) GetCustomerOverrideReferencingProfile(ctx context.Context, input billing.HasCustomerOverrideReferencingProfileAdapterInput) ([]customer.CustomerID, error) {
+func (a *adapter) GetCustomersReferencingProfile(ctx context.Context, input billing.ProfileID) ([]customer.CustomerID, error) {
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) ([]customer.CustomerID, error) {
 		dbCustomerOverrides, err := tx.db.BillingCustomerOverride.Query().
 			Where(billingcustomeroverride.Namespace(input.Namespace)).
@@ -397,6 +288,8 @@ func (a *adapter) BulkAssignCustomersToProfile(ctx context.Context, input billin
 					sql.ConflictColumns(billingcustomeroverride.FieldNamespace, billingcustomeroverride.FieldCustomerID),
 				).
 				UpdateBillingProfileID().
+				UpdateUpdatedAt().
+				ClearDeletedAt().
 				Exec(ctx)
 			if err != nil {
 				return err
@@ -407,96 +300,35 @@ func (a *adapter) BulkAssignCustomersToProfile(ctx context.Context, input billin
 	})
 }
 
-func (a *adapter) mapCustomerOverrideFromDB(ctx context.Context, dbOverride *db.BillingCustomerOverride) (*billing.CustomerOverride, error) {
-	if dbOverride.BillingProfileID != nil &&
-		(dbOverride.Edges.BillingProfile == nil || dbOverride.Edges.BillingProfile.Namespace != dbOverride.Namespace) {
-		a.logger.ErrorContext(ctx, "billing customer override profile namespace isolation violation",
-			"customer_override_id", dbOverride.ID,
-			"customer_id", dbOverride.CustomerID,
-			"expected_namespace", dbOverride.Namespace,
-			"billing_profile_id", *dbOverride.BillingProfileID,
+// mapCustomerBillingProfileFromDB must never substitute a default for the persisted pin.
+func (a *adapter) mapCustomerBillingProfileFromDB(ctx context.Context, row *db.BillingCustomerOverride) (billing.CustomerBillingProfileAdapterResult, error) {
+	if row == nil || row.DeletedAt != nil || row.BillingProfileID == nil {
+		return billing.CustomerBillingProfileAdapterResult{}, nil
+	}
+
+	if row.Edges.BillingProfile == nil || row.Edges.BillingProfile.Namespace != row.Namespace {
+		a.logger.ErrorContext(ctx, "billing customer profile pin namespace isolation violation",
+			"customer_override_id", row.ID,
+			"expected_namespace", row.Namespace,
+			"billing_profile_id", *row.BillingProfileID,
 		)
 
-		return nil, billing.NotFoundError{
-			Err: fmt.Errorf("%w [id=%s]", billing.ErrProfileNotFound, *dbOverride.BillingProfileID),
-		}
+		return billing.CustomerBillingProfileAdapterResult{}, billing.NotFoundError{Err: fmt.Errorf("%w [id=%s]", billing.ErrProfileNotFound, *row.BillingProfileID)}
 	}
 
-	collectionInterval, err := dbOverride.LineCollectionPeriod.ParsePtrOrNil()
+	profile, err := a.mapProfileFromDB(ctx, row.Edges.BillingProfile)
 	if err != nil {
-		return nil, fmt.Errorf("cannot parse collection.interval: %w", err)
+		return billing.CustomerBillingProfileAdapterResult{}, fmt.Errorf("mapping pinned profile: %w", err)
 	}
 
-	draftPeriod, err := dbOverride.InvoiceDraftPeriod.ParsePtrOrNil()
-	if err != nil {
-		return nil, fmt.Errorf("cannot parse invoicing.draftPeriod: %w", err)
-	}
-
-	dueAfter, err := dbOverride.InvoiceDueAfter.ParsePtrOrNil()
-	if err != nil {
-		return nil, fmt.Errorf("cannot parse invoicing.dueAfter: %w", err)
-	}
-
-	if dbOverride.TaxCodeID != nil &&
-		(dbOverride.Edges.TaxCode == nil || dbOverride.Edges.TaxCode.Namespace != dbOverride.Namespace) {
-		a.logger.ErrorContext(ctx, "billing customer override tax code namespace isolation violation",
-			"customer_override_id", dbOverride.ID,
-			"expected_namespace", dbOverride.Namespace,
-			"tax_code_id", *dbOverride.TaxCodeID,
-		)
-
-		return nil, taxcode.NewTaxCodeNotFoundError(*dbOverride.TaxCodeID)
-	}
-
-	baseProfile, err := a.mapProfileFromDB(ctx, dbOverride.Edges.BillingProfile)
-	if err != nil {
-		return nil, fmt.Errorf("cannot map profile: %w", err)
-	}
-
-	var profile *billing.Profile
-	if baseProfile != nil {
-		profile = &billing.Profile{
-			BaseProfile: baseProfile.BaseProfile,
-		}
-	}
-
-	invoicingOverride := billing.InvoicingOverrideConfig{
-		AutoAdvance:        dbOverride.InvoiceAutoAdvance,
-		DraftPeriod:        draftPeriod,
-		DueAfter:           dueAfter,
-		ProgressiveBilling: dbOverride.InvoiceProgressiveBilling,
-		DefaultTaxConfig:   lo.EmptyableToPtr(dbOverride.InvoiceDefaultTaxConfig),
-	}
-
-	if taxCodeRow, err := dbOverride.Edges.TaxCodeOrErr(); err == nil {
-		tc, err := taxcodeadapter.MapTaxCodeFromEntity(taxCodeRow)
-		if err != nil {
-			return nil, fmt.Errorf("mapping tax code for customer override: %w", err)
-		}
-
-		invoicingOverride.DefaultTaxConfig = productcatalog.BackfillTaxConfig(invoicingOverride.DefaultTaxConfig, dbOverride.TaxBehavior, &tc)
-	}
-
-	return &billing.CustomerOverride{
-		ID:        dbOverride.ID,
-		Namespace: dbOverride.Namespace,
-
-		CreatedAt: dbOverride.CreatedAt,
-		UpdatedAt: dbOverride.UpdatedAt,
-
-		CustomerID: dbOverride.CustomerID,
-		Collection: billing.CollectionOverrideConfig{
-			Alignment:               dbOverride.CollectionAlignment,
-			AnchoredAlignmentDetail: dbOverride.AnchoredAlignmentDetail,
-			Interval:                collectionInterval,
+	return billing.CustomerBillingProfileAdapterResult{
+		CustomerID: customer.CustomerID{Namespace: row.Namespace, ID: row.CustomerID},
+		AssignedProfile: &billing.CustomerBillingProfileAssignment{
+			ID:        row.ID,
+			CreatedAt: row.CreatedAt,
+			UpdatedAt: row.UpdatedAt,
+			ProfileID: *row.BillingProfileID,
 		},
-
-		Invoicing: invoicingOverride,
-
-		Payment: billing.PaymentOverrideConfig{
-			CollectionMethod: dbOverride.InvoiceCollectionMethod,
-		},
-
-		Profile: profile,
+		Profile: &billing.Profile{BaseProfile: profile.BaseProfile},
 	}, nil
 }

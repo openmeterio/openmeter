@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
@@ -21,6 +22,7 @@ import (
 	customersubjectsdb "github.com/openmeterio/openmeter/openmeter/ent/db/customersubjects"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -709,5 +711,87 @@ func assertAppCustomInvoicingCustomerActive(t *testing.T, db *entdb.Client, ns, 
 	require.NotEmpty(t, rows, "expected at least one app_custom_invoicing_customer row")
 	for _, r := range rows {
 		assert.Nilf(t, r.DeletedAt, "app_custom_invoicing_customer %d must remain active", r.ID)
+	}
+}
+
+func TestListCustomersBillingProfileFilterHistoricalEmptyPin(t *testing.T) {
+	// given: a historical override row without a profile selection and a namespace default.
+	env := newTestEnv(t)
+	ctx := t.Context()
+	const namespace = "historical-empty-pin"
+
+	application, err := env.db.App.Create().
+		SetNamespace(namespace).
+		SetName("sandbox").
+		SetType(app.AppTypeSandbox).
+		SetStatus(app.AppStatusReady).
+		Save(ctx)
+	require.NoError(t, err)
+
+	workflow, err := env.db.BillingWorkflowConfig.Create().
+		SetNamespace(namespace).
+		SetCollectionAlignment(billing.AlignmentKindSubscription).
+		SetLineCollectionPeriod("PT1H").
+		SetInvoiceAutoAdvance(true).
+		SetInvoiceDraftPeriod("PT1H").
+		SetInvoiceDueAfter("P1D").
+		SetInvoiceCollectionMethod(billing.CollectionMethodChargeAutomatically).
+		SetInvoiceProgressiveBilling(false).
+		Save(ctx)
+	require.NoError(t, err)
+
+	defaultProfile, err := env.db.BillingProfile.Create().
+		SetNamespace(namespace).
+		SetName("Default").
+		SetDefault(true).
+		SetSupplierName("Supplier").
+		SetWorkflowConfig(workflow).
+		SetTaxApp(application).
+		SetInvoicingApp(application).
+		SetPaymentApp(application).
+		Save(ctx)
+	require.NoError(t, err)
+
+	cust, err := env.adapter.CreateCustomer(ctx, customer.CreateCustomerInput{
+		Namespace: namespace,
+		CustomerMutate: customer.CustomerMutate{
+			Name: "Historical empty pin",
+			Key:  lo.ToPtr("historical-empty-pin"),
+		},
+	})
+	require.NoError(t, err)
+	_, err = env.db.BillingCustomerOverride.Create().
+		SetNamespace(namespace).
+		SetCustomerID(cust.ID).
+		Save(ctx)
+	require.NoError(t, err)
+
+	for _, tc := range []struct {
+		name        string
+		profileID   string
+		customerIDs []string
+	}{
+		{
+			name:        "matches the namespace default",
+			profileID:   defaultProfile.ID,
+			customerIDs: []string{cust.ID},
+		},
+		{
+			name:      "does not match another profile",
+			profileID: ulid.Make().String(),
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			// when: customers are filtered by their effective billing profile.
+			result, err := env.adapter.ListCustomers(t.Context(), customer.ListCustomersInput{
+				Namespace:        namespace,
+				BillingProfileID: &filter.FilterULID{FilterString: filter.FilterString{Eq: &tc.profileID}},
+			})
+			require.NoError(t, err)
+
+			// then: a historical empty selection follows only the namespace default.
+			ids := lo.Map(result.Items, func(item customer.Customer, _ int) string { return item.ID })
+			require.ElementsMatch(t, tc.customerIDs, ids)
+		})
 	}
 }

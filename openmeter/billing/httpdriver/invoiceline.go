@@ -98,9 +98,9 @@ func (h *handler) CreatePendingLine() CreatePendingLineHandler {
 			}
 
 			// TODO: For the V3 api let's not return the invoice
-			mergedProfile, err := h.service.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
+			mergedProfile, err := h.service.GetCustomerBillingProfile(ctx, billing.GetCustomerBillingProfileInput{
 				Customer: request.Customer,
-				Expand: billing.CustomerOverrideExpand{
+				Expand: billing.CustomerBillingProfileExpand{
 					Customer: true,
 					Apps:     true,
 				},
@@ -109,7 +109,7 @@ func (h *handler) CreatePendingLine() CreatePendingLineHandler {
 				return CreatePendingLineResponse{}, fmt.Errorf("failed to get customer override: %w", err)
 			}
 
-			out.Invoice, err = MapGatheringInvoiceToAPI(res.Invoice, mergedProfile.Customer, mergedProfile.MergedProfile)
+			out.Invoice, err = MapGatheringInvoiceToAPI(res.Invoice, mergedProfile.Customer, mergedProfile.EffectiveProfile)
 			if err != nil {
 				return CreatePendingLineResponse{}, fmt.Errorf("failed to map invoice: %w", err)
 			}

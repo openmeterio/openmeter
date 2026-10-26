@@ -39,9 +39,9 @@ func (h *handler) GetCustomerBilling() GetCustomerBillingHandler {
 		},
 		func(ctx context.Context, request GetCustomerBillingRequest) (GetCustomerBillingResponse, error) {
 			resp := GetCustomerBillingResponse{}
-			override, err := h.billingService.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
+			override, err := h.billingService.GetCustomerBillingProfile(ctx, billing.GetCustomerBillingProfileInput{
 				Customer: request.CustomerID,
-				Expand: billing.CustomerOverrideExpand{
+				Expand: billing.CustomerBillingProfileExpand{
 					Apps: true,
 				},
 			})
@@ -51,7 +51,7 @@ func (h *handler) GetCustomerBilling() GetCustomerBillingHandler {
 
 			// TODO: Only one app ID can be in the billing profile right now.
 			// We pick the payment app for now.
-			application := override.MergedProfile.Apps.Payment
+			application := override.EffectiveProfile.Apps.Payment
 			data, err := application.GetCustomerData(ctx, app.GetAppInstanceCustomerDataInput{
 				CustomerID: request.CustomerID,
 			})
@@ -71,16 +71,16 @@ func (h *handler) GetCustomerBilling() GetCustomerBillingHandler {
 			}
 
 			var billingProfileReference *api.BillingProfileReference
-			if override.CustomerOverride != nil && override.CustomerOverride.Profile != nil {
+			if override.AssignedProfile != nil {
 				billingProfileReference = &api.BillingProfileReference{
-					Id: override.CustomerOverride.Profile.ID,
+					Id: override.AssignedProfile.ProfileID,
 				}
 			}
 
 			return api.BillingCustomerData{
 				BillingProfile: billingProfileReference,
 				EffectiveBillingProfile: api.BillingProfileReference{
-					Id: override.MergedProfile.ID,
+					Id: override.EffectiveProfile.ID,
 				},
 				AppData: apiAppData,
 			}, nil

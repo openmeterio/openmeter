@@ -53,8 +53,8 @@ func TestGetStateMachineConfigUsesAuthoritativeFeatureMeters(t *testing.T) {
 		}
 
 		config, err := (&service{}).getStateMachineConfigForChargeWithHints(t.Context(), charge, usagebased.AdvanceChargeInput{
-			CustomerOverride: mo.Some(billing.CustomerOverrideWithDetails{}),
-			FeatureMeters:    mo.Some[billingfeaturemeter.FeatureMeters](featureMeters),
+			CustomerBillingProfile: mo.Some(billing.CustomerBillingProfile{}),
+			FeatureMeters:          mo.Some[billingfeaturemeter.FeatureMeters](featureMeters),
 		})
 		require.NoError(t, err)
 
@@ -71,7 +71,7 @@ func TestGetStateMachineConfigUsesAuthoritativeFeatureMeters(t *testing.T) {
 		// then:
 		// - It retains the supplied snapshot, and its lookup error does not fall back to the feature service.
 		config, err := (&service{}).getStateMachineConfigForChargeWithHints(t.Context(), charge, usagebased.AdvanceChargeInput{
-			CustomerOverride: mo.Some(billing.CustomerOverrideWithDetails{}),
+			CustomerBillingProfile: mo.Some(billing.CustomerBillingProfile{}),
 			FeatureMeters: mo.Some[billingfeaturemeter.FeatureMeters](featuremeterservice.FeatureMeterCollection{
 				ByKey: map[string]billingfeaturemeter.FeatureMeter{},
 			}),

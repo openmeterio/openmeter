@@ -117,9 +117,9 @@ func (s *Service) prepareBillableLines(ctx context.Context, input billing.Prepar
 		input.Customer,
 		func(ctx context.Context) (*billing.PrepareBillableLinesResult, error) {
 			// let's resolve the customer's settings
-			customerProfile, err := s.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
+			customerProfile, err := s.GetCustomerBillingProfile(ctx, billing.GetCustomerBillingProfileInput{
 				Customer: input.Customer,
-				Expand: billing.CustomerOverrideExpand{
+				Expand: billing.CustomerBillingProfileExpand{
 					Customer: true,
 					Apps:     true,
 				},
@@ -130,12 +130,12 @@ func (s *Service) prepareBillableLines(ctx context.Context, input billing.Prepar
 
 			asOf := lo.FromPtrOr(input.AsOf, clock.Now())
 
-			progressiveBilling := customerProfile.MergedProfile.WorkflowConfig.Invoicing.ProgressiveBilling
+			progressiveBilling := customerProfile.EffectiveProfile.WorkflowConfig.Invoicing.ProgressiveBilling
 			if options.PartialInvoiceLinesEnabled != nil {
 				progressiveBilling = *options.PartialInvoiceLinesEnabled
 			}
 
-			asOf, err = resolvePendingLineCollectionCutoff(options, customerProfile.MergedProfile.WorkflowConfig.Collection, asOf)
+			asOf, err = resolvePendingLineCollectionCutoff(options, customerProfile.EffectiveProfile.WorkflowConfig.Collection, asOf)
 			if err != nil {
 				return nil, fmt.Errorf("resolving collection asOf: %w", err)
 			}
@@ -717,9 +717,9 @@ func (s *Service) CreateStandardInvoiceFromGatheringLines(ctx context.Context, i
 		return nil, fmt.Errorf("validating gathering lines: %w", err)
 	}
 
-	profile, err := s.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
+	profile, err := s.GetCustomerBillingProfile(ctx, billing.GetCustomerBillingProfileInput{
 		Customer: in.Customer,
-		Expand: billing.CustomerOverrideExpand{
+		Expand: billing.CustomerBillingProfileExpand{
 			Customer: true,
 			Apps:     true,
 		},
@@ -741,7 +741,7 @@ func (s *Service) CreateStandardInvoiceFromGatheringLines(ctx context.Context, i
 		return nil, fmt.Errorf("generating invoice number: %w", err)
 	}
 
-	if err := productcatalog.ResolveTaxConfig(ctx, s.taxCodeService, in.Customer.Namespace, profile.MergedProfile.WorkflowConfig.Invoicing.DefaultTaxConfig); err != nil {
+	if err := productcatalog.ResolveTaxConfig(ctx, s.taxCodeService, in.Customer.Namespace, profile.EffectiveProfile.WorkflowConfig.Invoicing.DefaultTaxConfig); err != nil {
 		return nil, fmt.Errorf("resolving default tax code: %w", err)
 	}
 
@@ -749,7 +749,7 @@ func (s *Service) CreateStandardInvoiceFromGatheringLines(ctx context.Context, i
 	invoice, err := s.adapter.CreateInvoice(ctx, billing.CreateInvoiceAdapterInput{
 		Namespace: in.Customer.Namespace,
 		Customer:  lo.FromPtr(profile.Customer),
-		Profile:   profile.MergedProfile,
+		Profile:   profile.EffectiveProfile,
 
 		Currency:    in.Currency,
 		Number:      invoiceNumber,
@@ -763,7 +763,7 @@ func (s *Service) CreateStandardInvoiceFromGatheringLines(ctx context.Context, i
 	}
 
 	// let's set the workflow apps as some checks such as CanDraftSyncAdvance depends on the apps
-	invoice.Workflow.Apps = profile.MergedProfile.Apps
+	invoice.Workflow.Apps = profile.EffectiveProfile.Apps
 	validationIssues, err := in.ValidationIssues.Clone()
 	if err != nil {
 		return nil, fmt.Errorf("cloning validation issues: %w", err)
@@ -1048,7 +1048,7 @@ func (s *Service) removeLinesFromGatheringInvoice(ctx context.Context, invoice b
 	}
 
 	// Let's update the invoice's state
-	customerProfile, err := s.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
+	customerProfile, err := s.GetCustomerBillingProfile(ctx, billing.GetCustomerBillingProfileInput{
 		Customer: invoice.GetCustomerID(),
 	})
 	if err != nil {
@@ -1056,7 +1056,7 @@ func (s *Service) removeLinesFromGatheringInvoice(ctx context.Context, invoice b
 	}
 
 	if err := s.invoiceCalculator.CalculateGatheringInvoice(&invoice, invoicecalc.GatheringInvoiceCalculatorDependencies{
-		Collection: customerProfile.MergedProfile.WorkflowConfig.Collection,
+		Collection: customerProfile.EffectiveProfile.WorkflowConfig.Collection,
 	}); err != nil {
 		return fmt.Errorf("calculating gathering invoice: %w", err)
 	}

@@ -58,14 +58,14 @@ func (a appOperations) ValidateCustomerByID(ctx context.Context, customerID cust
 	}
 
 	// Get customer billing profile
-	customerBillingProfile, err := a.BillingService.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
+	customerBillingProfile, err := a.BillingService.GetCustomerBillingProfile(ctx, billing.GetCustomerBillingProfileInput{
 		Customer: customerID,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to get customer override: %w", err)
 	}
 
-	collectionMethod := customerBillingProfile.MergedProfile.WorkflowConfig.Payment.CollectionMethod
+	collectionMethod := customerBillingProfile.EffectiveProfile.WorkflowConfig.Payment.CollectionMethod
 
 	// Validate customer for payment capabilitie
 	if slices.Contains(capabilities, app.CapabilityTypeCollectPayments) {
@@ -134,9 +134,9 @@ func (a appOperations) ValidateCustomerByID(ctx context.Context, customerID cust
 	}
 
 	// Validate tax settings if the app supports tax calculation and tax is enabled
-	if slices.Contains(capabilities, app.CapabilityTypeCalculateTax) && customerBillingProfile.MergedProfile.WorkflowConfig.Tax.Enabled {
+	if slices.Contains(capabilities, app.CapabilityTypeCalculateTax) && customerBillingProfile.EffectiveProfile.WorkflowConfig.Tax.Enabled {
 		// If tax is enforced, we need to ensure that the customer has a tax location
-		if customerBillingProfile.MergedProfile.WorkflowConfig.Tax.Enforced {
+		if customerBillingProfile.EffectiveProfile.WorkflowConfig.Tax.Enforced {
 			switch stripeCustomer.Tax.AutomaticTax {
 			case stripeclient.StripeCustomerAutomaticTaxNotCollecting:
 				// Automatic tax is not supported

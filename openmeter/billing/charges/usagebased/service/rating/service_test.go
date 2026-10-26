@@ -538,8 +538,8 @@ func newDetailedRatingTestCharge(t testing.TB, period timeutil.ClosedPeriod, run
 	}
 }
 
-func newDetailedRatingTestCustomer() billing.CustomerOverrideWithDetails {
-	return billing.CustomerOverrideWithDetails{
+func newDetailedRatingTestCustomer() billing.CustomerBillingProfile {
+	return billing.CustomerBillingProfile{
 		Customer: &customer.Customer{
 			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 				Namespace: "ns",

@@ -198,10 +198,10 @@ func (s *TaxCodePersistenceTestSuite) TestChargeTaxCodeDefaultsAreCustomerScoped
 			})
 			firstCustomer := s.CreateTestCustomer(ns, "first-subject")
 			secondCustomer := s.CreateTestCustomer(ns, "second-subject")
-			_, err = s.BillingService.UpsertCustomerOverride(ctx, billing.UpsertCustomerOverrideInput{
-				Namespace:  ns,
-				CustomerID: secondCustomer.ID,
-				ProfileID:  secondProfile.ID,
+			_, err = s.BillingService.SetCustomerBillingProfile(ctx, billing.SetCustomerBillingProfileInput{
+
+				Customer:  customer.CustomerID{Namespace: ns, ID: secondCustomer.ID},
+				ProfileID: secondProfile.ID,
 			})
 			s.Require().NoError(err)
 

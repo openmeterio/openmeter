@@ -190,7 +190,7 @@ func (s *Service) DeleteProfile(ctx context.Context, input billing.DeleteProfile
 			}
 		}
 
-		referringCustomerIDs, err := s.adapter.GetCustomerOverrideReferencingProfile(ctx, input)
+		referringCustomerIDs, err := s.adapter.GetCustomersReferencingProfile(ctx, input)
 		if err != nil {
 			return err
 		}
@@ -588,9 +588,9 @@ func (s *Service) ResolveStripeAppIDFromBillingProfile(ctx context.Context, name
 
 	// If the customer ID is provided, resolve billing profile based on the customer
 	if customerId != nil {
-		billingProfile, err := s.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
+		billingProfile, err := s.GetCustomerBillingProfile(ctx, billing.GetCustomerBillingProfileInput{
 			Customer: *customerId,
-			Expand: billing.CustomerOverrideExpand{
+			Expand: billing.CustomerBillingProfileExpand{
 				Apps: true,
 			},
 		})
@@ -598,17 +598,17 @@ func (s *Service) ResolveStripeAppIDFromBillingProfile(ctx context.Context, name
 			return appID, fmt.Errorf("failed to get billing profile: %w", err)
 		}
 
-		if billingProfile.MergedProfile.Apps == nil {
+		if billingProfile.EffectiveProfile.Apps == nil {
 			return appID, fmt.Errorf("apps are not expanded in merged billing profile")
 		}
 
-		if billingProfile.MergedProfile.Apps.Payment.GetType() != app.AppTypeStripe {
+		if billingProfile.EffectiveProfile.Apps.Payment.GetType() != app.AppTypeStripe {
 			return appID, models.NewGenericNotFoundError(
 				fmt.Errorf("customer has a billing profile, but the payment app is not a stripe app"),
 			)
 		}
 
-		return billingProfile.MergedProfile.Apps.Payment.GetID(), nil
+		return billingProfile.EffectiveProfile.Apps.Payment.GetID(), nil
 	}
 
 	// If the customer ID is not provided, resolve billing profile from namespace

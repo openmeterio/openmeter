@@ -232,10 +232,10 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 	}
 
 	subjectCustomerHook, err := customerhooks.NewSubjectCustomerHook(customerhooks.SubjectCustomerHookConfig{
-		Customer:         customerService,
-		CustomerOverride: noopCustomerOverrideService{},
-		Logger:           logger,
-		Tracer:           noop.NewTracerProvider().Tracer("test_env"),
+		Customer:               customerService,
+		CustomerBillingProfile: noopCustomerOverrideService{},
+		Logger:                 logger,
+		Tracer:                 noop.NewTracerProvider().Tracer("test_env"),
 	})
 	if err != nil {
 		return nil, err
@@ -504,7 +504,7 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 }
 
 type noopCustomerOverrideService struct {
-	billing.CustomerOverrideService
+	billing.CustomerBillingProfileService
 }
 
 func MinimalCreateProfileInputTemplate(appID app.AppID) billing.CreateProfileInput {

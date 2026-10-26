@@ -884,16 +884,16 @@ type mockCustomerOverrideService struct {
 	customer customer.Customer
 }
 
-func (s mockCustomerOverrideService) UpsertCustomerOverride(context.Context, billing.UpsertCustomerOverrideInput) (billing.CustomerOverrideWithDetails, error) {
-	return billing.CustomerOverrideWithDetails{}, nil
+func (s mockCustomerOverrideService) SetCustomerBillingProfile(context.Context, billing.SetCustomerBillingProfileInput) (billing.CustomerBillingProfile, error) {
+	return billing.CustomerBillingProfile{}, nil
 }
 
-func (s mockCustomerOverrideService) DeleteCustomerOverride(context.Context, billing.DeleteCustomerOverrideInput) error {
+func (s mockCustomerOverrideService) ClearCustomerBillingProfile(context.Context, billing.ClearCustomerBillingProfileInput) error {
 	return nil
 }
 
-func (s mockCustomerOverrideService) GetCustomerOverride(context.Context, billing.GetCustomerOverrideInput) (billing.CustomerOverrideWithDetails, error) {
-	return billing.CustomerOverrideWithDetails{
+func (s mockCustomerOverrideService) GetCustomerBillingProfile(context.Context, billing.GetCustomerBillingProfileInput) (billing.CustomerBillingProfile, error) {
+	return billing.CustomerBillingProfile{
 		Customer: &s.customer,
 	}, nil
 }
@@ -902,8 +902,8 @@ func (s mockCustomerOverrideService) GetCustomerApp(context.Context, billing.Get
 	return nil, nil
 }
 
-func (s mockCustomerOverrideService) ListCustomerOverrides(context.Context, billing.ListCustomerOverridesInput) (billing.ListCustomerOverridesResult, error) {
-	return billing.ListCustomerOverridesResult{}, nil
+func (s mockCustomerOverrideService) ListCustomerBillingProfiles(context.Context, billing.ListCustomerBillingProfilesInput) (billing.ListCustomerBillingProfilesResult, error) {
+	return billing.ListCustomerBillingProfilesResult{}, nil
 }
 
 func (s mockCustomerOverrideService) SetGatheringLineSubscriptionReferenceByChargeID(context.Context, billing.SetLineSubscriptionReferenceByChargeIDInput) error {

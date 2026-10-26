@@ -653,9 +653,9 @@ func (h *handler) MapInvoiceToAPI(ctx context.Context, invoice billing.Invoice) 
 		}
 
 		// TODO: For the V3 api let's make sure that we don't return gathering invoice customer data (or even gathering invoices)
-		mergedProfile, err := h.service.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
+		mergedProfile, err := h.service.GetCustomerBillingProfile(ctx, billing.GetCustomerBillingProfileInput{
 			Customer: gatheringInvoice.GetCustomerID(),
-			Expand: billing.CustomerOverrideExpand{
+			Expand: billing.CustomerBillingProfileExpand{
 				Customer: true,
 				Apps:     true,
 			},
@@ -664,7 +664,7 @@ func (h *handler) MapInvoiceToAPI(ctx context.Context, invoice billing.Invoice) 
 			return UpdateInvoiceResponse{}, fmt.Errorf("failed to get customer override: %w", err)
 		}
 
-		return MapGatheringInvoiceToAPI(gatheringInvoice, mergedProfile.Customer, mergedProfile.MergedProfile)
+		return MapGatheringInvoiceToAPI(gatheringInvoice, mergedProfile.Customer, mergedProfile.EffectiveProfile)
 	default:
 		return api.Invoice{}, fmt.Errorf("invalid invoice type: %s", invoice.Type())
 	}

@@ -66,9 +66,9 @@ func (h *handler) UpdateCustomerBillingAppData() UpdateCustomerBillingAppDataHan
 		},
 		func(ctx context.Context, request UpdateCustomerBillingAppDataRequest) (UpdateCustomerBillingAppDataResponse, error) {
 			resp := UpdateCustomerBillingAppDataResponse{}
-			override, err := h.billingService.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
+			override, err := h.billingService.GetCustomerBillingProfile(ctx, billing.GetCustomerBillingProfileInput{
 				Customer: request.CustomerID,
-				Expand: billing.CustomerOverrideExpand{
+				Expand: billing.CustomerBillingProfileExpand{
 					Apps: true,
 				},
 			})
@@ -78,7 +78,7 @@ func (h *handler) UpdateCustomerBillingAppData() UpdateCustomerBillingAppDataHan
 
 			// TODO: Only one app ID can be in the billing profile right now.
 			// We pick the payment app for now.
-			appData, err := h.applyAppCustomerData(ctx, override.MergedProfile.Apps.Payment, request.CustomerID, api.BillingAppCustomerData(request.Data))
+			appData, err := h.applyAppCustomerData(ctx, override.EffectiveProfile.Apps.Payment, request.CustomerID, api.BillingAppCustomerData(request.Data))
 			if err != nil {
 				return resp, err
 			}

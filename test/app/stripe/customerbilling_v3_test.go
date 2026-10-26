@@ -96,99 +96,80 @@ func TestCustomerBillingV3(t *testing.T) {
 		require.Equal(t, api.BillingProfileReference{Id: pinnedProfile.ID}, got.EffectiveBillingProfile)
 		require.Equal(t, &api.BillingProfileReference{Id: pinnedProfile.ID}, got.BillingProfile)
 
-		override, err := env.Billing().GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
+		override, err := env.Billing().GetCustomerBillingProfile(ctx, billing.GetCustomerBillingProfileInput{
 			Customer: cus.GetID(),
 		})
 		require.NoError(t, err)
-		require.Equal(t, pinnedProfile.ID, override.MergedProfile.ID)
+		require.Equal(t, pinnedProfile.ID, override.EffectiveProfile.ID)
 
 		_, err = getStripeData(ctx, cus)
 		require.Error(t, err, "no stripe customer data should have been created")
 	})
 
 	for _, tc := range []struct {
-		name     string
-		override *billing.UpsertCustomerOverrideInput
+		name        string
+		pinID       string
+		effectiveID string
 	}{
-		{
-			name: "Should return the effective default profile on update without a pin",
-		},
-		{
-			name: "Should omit billing profile on update with only workflow overrides",
-			override: &billing.UpsertCustomerOverrideInput{
-				Invoicing: billing.InvoicingOverrideConfig{
-					AutoAdvance: lo.ToPtr(false),
-				},
-			},
-		},
-		{
-			name: "Should return an existing pin to the default profile when omitted on update",
-			override: &billing.UpsertCustomerOverrideInput{
-				ProfileID: defaultProfile.ID,
-			},
-		},
-		{
-			name: "Should retain an existing pin as the effective profile when omitted on update",
-			override: &billing.UpsertCustomerOverrideInput{
-				ProfileID: pinnedProfile.ID,
-			},
-		},
+		{name: "unpinned", effectiveID: defaultProfile.ID},
+		{name: "pinned to current default", pinID: defaultProfile.ID, effectiveID: defaultProfile.ID},
+		{name: "pinned to another profile", pinID: pinnedProfile.ID, effectiveID: pinnedProfile.ID},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
+			// given: the stored selection is independent of the namespace default.
 			ctx := t.Context()
-
-			// given a customer with the specified profile or workflow override
 			cus, err := env.Fixture().setupCustomer(ctx, namespace)
 			require.NoError(t, err)
-
-			if tc.override != nil {
-				input := *tc.override
-				input.Namespace = namespace
-				input.CustomerID = cus.ID
-				_, err := env.Billing().UpsertCustomerOverride(ctx, input)
+			if tc.pinID != "" {
+				_, err = env.Billing().SetCustomerBillingProfile(ctx, billing.SetCustomerBillingProfileInput{
+					Customer:  cus.GetID(),
+					ProfileID: tc.pinID,
+				})
 				require.NoError(t, err)
 			}
 
-			// when updating billing without specifying a profile
-			rec := doJSONRequest(router, http.MethodPut, "/openmeter/customers/"+cus.ID+"/billing", `{}`)
-
-			// then PUT reports the same explicit pin and effective profile as GET
-			require.Equal(t, http.StatusOK, rec.Code, "body: %s", rec.Body.String())
-
-			var got api.BillingCustomerData
-			require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &got))
-			expectedProfileID := defaultProfile.ID
-			if tc.override != nil && tc.override.ProfileID != "" {
-				expectedProfileID = tc.override.ProfileID
-				require.Equal(t, &api.BillingProfileReference{Id: expectedProfileID}, got.BillingProfile)
-			} else {
-				require.Nil(t, got.BillingProfile)
-
-				var fields map[string]json.RawMessage
-				require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &fields))
-				require.NotContains(t, fields, "billing_profile")
-			}
-
-			require.Equal(t, api.BillingProfileReference{Id: expectedProfileID}, got.EffectiveBillingProfile)
-
-			getRec := doJSONRequest(router, http.MethodGet, "/openmeter/customers/"+cus.ID+"/billing", "")
-			require.Equal(t, http.StatusOK, getRec.Code, "body: %s", getRec.Body.String())
-
-			var getResponse api.BillingCustomerData
-			require.NoError(t, json.Unmarshal(getRec.Body.Bytes(), &getResponse))
-			require.Equal(t, getResponse.BillingProfile, got.BillingProfile)
-			require.Equal(t, getResponse.EffectiveBillingProfile, got.EffectiveBillingProfile)
-
-			override, err := env.Billing().GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
-				Customer: cus.GetID(),
-			})
-			require.NoError(t, err)
-			require.Equal(t, expectedProfileID, override.MergedProfile.ID)
-			if tc.override == nil {
-				require.Nil(t, override.CustomerOverride)
+			for _, request := range []struct {
+				method string
+				body   string
+			}{
+				{method: http.MethodGet},
+				{method: http.MethodPut, body: "{}"},
+			} {
+				// when: GET or PUT without a profile resolves billing configuration.
+				rec := doJSONRequest(router, request.method, "/openmeter/customers/"+cus.ID+"/billing", request.body)
+				require.Equal(t, http.StatusOK, rec.Code, "body: %s", rec.Body.String())
+				// then: omission preserves the pin and the effective profile is always present.
+				var got api.BillingCustomerData
+				require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &got))
+				require.Equal(t, tc.effectiveID, got.EffectiveBillingProfile.Id)
+				if tc.pinID == "" {
+					require.Nil(t, got.BillingProfile)
+					var fields map[string]json.RawMessage
+					require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &fields))
+					require.NotContains(t, fields, "billing_profile")
+				} else {
+					require.NotNil(t, got.BillingProfile)
+					require.Equal(t, tc.pinID, got.BillingProfile.Id)
+				}
 			}
 		})
 	}
+
+	t.Run("Should explicitly pin the current default", func(t *testing.T) {
+		// given: a customer following the namespace default.
+		cus, err := env.Fixture().setupCustomer(t.Context(), namespace)
+		require.NoError(t, err)
+		// when: PUT explicitly selects that same profile.
+		rec := doJSONRequest(router, http.MethodPut, "/openmeter/customers/"+cus.ID+"/billing",
+			`{"billing_profile":{"id":"`+defaultProfile.ID+`"}}`)
+		// then: the response preserves the pin even though it equals the effective default.
+		require.Equal(t, http.StatusOK, rec.Code, "body: %s", rec.Body.String())
+		var got api.BillingCustomerData
+		require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &got))
+		require.NotNil(t, got.BillingProfile)
+		require.Equal(t, defaultProfile.ID, got.BillingProfile.Id)
+		require.Equal(t, defaultProfile.ID, got.EffectiveBillingProfile.Id)
+	})
 
 	t.Run("Should update the pinned payment app when the billing profile is omitted", func(t *testing.T) {
 		ctx := t.Context()
@@ -197,10 +178,9 @@ func TestCustomerBillingV3(t *testing.T) {
 		cus, err := env.Fixture().setupCustomer(ctx, namespace)
 		require.NoError(t, err)
 
-		_, err = env.Billing().UpsertCustomerOverride(ctx, billing.UpsertCustomerOverrideInput{
-			Namespace:  namespace,
-			CustomerID: cus.ID,
-			ProfileID:  pinnedProfile.ID,
+		_, err = env.Billing().SetCustomerBillingProfile(ctx, billing.SetCustomerBillingProfileInput{
+			Customer:  cus.GetID(),
+			ProfileID: pinnedProfile.ID,
 		})
 		require.NoError(t, err)
 
@@ -353,78 +333,6 @@ func TestCustomerBillingV3(t *testing.T) {
 		_, err = getStripeData(ctx, cus)
 		require.Error(t, err, "stripe customer data should have been wiped")
 	})
-
-	for _, tc := range []struct {
-		name            string
-		override        *billing.UpsertCustomerOverrideInput
-		expectedProfile *api.BillingProfileReference
-	}{
-		{
-			name: "Should omit billing profile on get without an override",
-		},
-		{
-			name: "Should omit billing profile on get with only workflow overrides",
-			override: &billing.UpsertCustomerOverrideInput{
-				Invoicing: billing.InvoicingOverrideConfig{
-					AutoAdvance: lo.ToPtr(false),
-				},
-			},
-		},
-		{
-			name: "Should return an explicit pin to the default profile on get",
-			override: &billing.UpsertCustomerOverrideInput{
-				ProfileID: defaultProfile.ID,
-			},
-			expectedProfile: &api.BillingProfileReference{Id: defaultProfile.ID},
-		},
-		{
-			name: "Should return an explicit pin to another profile on get",
-			override: &billing.UpsertCustomerOverrideInput{
-				ProfileID: pinnedProfile.ID,
-			},
-			expectedProfile: &api.BillingProfileReference{Id: pinnedProfile.ID},
-		},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			ctx := t.Context()
-
-			// given a customer with the specified profile or workflow override
-			cus, err := env.Fixture().setupCustomer(ctx, namespace)
-			require.NoError(t, err)
-
-			if tc.override != nil {
-				input := *tc.override
-				input.Namespace = namespace
-				input.CustomerID = cus.ID
-				_, err := env.Billing().UpsertCustomerOverride(ctx, input)
-				require.NoError(t, err)
-			}
-
-			// when reading the customer billing without app data configured
-			rec := doJSONRequest(router, http.MethodGet, "/openmeter/customers/"+cus.ID+"/billing", "")
-
-			// then only explicit pins are returned as billing_profile
-			require.Equal(t, http.StatusOK, rec.Code, "body: %s", rec.Body.String())
-
-			var got api.BillingCustomerData
-			require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &got))
-			require.Equal(t, tc.expectedProfile, got.BillingProfile)
-
-			expectedEffectiveProfile := api.BillingProfileReference{Id: defaultProfile.ID}
-			if tc.expectedProfile != nil {
-				expectedEffectiveProfile = *tc.expectedProfile
-			}
-
-			require.Equal(t, expectedEffectiveProfile, got.EffectiveBillingProfile)
-
-			var fields map[string]json.RawMessage
-			require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &fields))
-			require.Contains(t, fields, "effective_billing_profile")
-			if tc.expectedProfile == nil {
-				require.NotContains(t, fields, "billing_profile")
-			}
-		})
-	}
 
 	t.Run("Should return stripe app data on get", func(t *testing.T) {
 		ctx := t.Context()

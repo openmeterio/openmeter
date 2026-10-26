@@ -81,7 +81,7 @@ func NewCustomerSubjectServiceHook(
 	tracer trace.Tracer,
 	subjectService subject.Service,
 	customerService customer.Service,
-	customerOverrideService billing.CustomerOverrideService,
+	customerOverrideService billing.CustomerBillingProfileService,
 ) (CustomerSubjectHook, error) {
 	if !config.EnableSubjectHook {
 		return new(customerservicehooks.NoopSubjectCustomerHook), nil
@@ -89,11 +89,11 @@ func NewCustomerSubjectServiceHook(
 
 	// Initialize the subject customer hook and register it for Subject service
 	h, err := customerservicehooks.NewSubjectCustomerHook(customerservicehooks.SubjectCustomerHookConfig{
-		Customer:         customerService,
-		CustomerOverride: customerOverrideService,
-		Logger:           logger,
-		Tracer:           tracer,
-		IgnoreErrors:     config.IgnoreErrors,
+		Customer:               customerService,
+		CustomerBillingProfile: customerOverrideService,
+		Logger:                 logger,
+		Tracer:                 tracer,
+		IgnoreErrors:           config.IgnoreErrors,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create customer subject hook: %w", err)

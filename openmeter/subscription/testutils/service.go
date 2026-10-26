@@ -159,10 +159,10 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 
 	// customer hooks
 	customerSubjectHook, err := customerservicehooks.NewSubjectCustomerHook(customerservicehooks.SubjectCustomerHookConfig{
-		Customer:         customerService,
-		CustomerOverride: NoopCustomerOverrideService{},
-		Logger:           logger,
-		Tracer:           noop.NewTracerProvider().Tracer("test_env"),
+		Customer:               customerService,
+		CustomerBillingProfile: NoopCustomerOverrideService{},
+		Logger:                 logger,
+		Tracer:                 noop.NewTracerProvider().Tracer("test_env"),
 	})
 	require.NoError(t, err)
 	subjectService.RegisterHooks(customerSubjectHook)

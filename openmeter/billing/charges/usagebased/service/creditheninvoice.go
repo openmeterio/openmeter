@@ -1111,15 +1111,15 @@ func (s *CreditThenInvoiceStateMachine) StartInvoiceRun(
 	}
 
 	result, err := s.Runs.CreateRatedRun(ctx, usagebasedrun.CreateRatedRunInput{
-		Charge:             s.Charge,
-		CustomerOverride:   s.CustomerOverride,
-		FeatureMeter:       featureMeter,
-		Type:               runType,
-		StoredAtLT:         storedAtLT,
-		ServicePeriodTo:    servicePeriodTo,
-		LineID:             lo.ToPtr(input.LineID),
-		InvoiceID:          lo.ToPtr(input.InvoiceID),
-		CurrencyCalculator: s.CurrencyCalculator,
+		Charge:                 s.Charge,
+		CustomerBillingProfile: s.CustomerBillingProfile,
+		FeatureMeter:           featureMeter,
+		Type:                   runType,
+		StoredAtLT:             storedAtLT,
+		ServicePeriodTo:        servicePeriodTo,
+		LineID:                 lo.ToPtr(input.LineID),
+		InvoiceID:              lo.ToPtr(input.InvoiceID),
+		CurrencyCalculator:     s.CurrencyCalculator,
 	})
 	ratingIssues, err := billing.ToValidationIssues(err, billing.RequireWarningsOnly())
 	if err != nil {
@@ -1180,7 +1180,7 @@ func (s *CreditThenInvoiceStateMachine) SnapshotInvoiceUsage(ctx context.Context
 		Charge:          s.Charge,
 		StoredAtLT:      storedAtLT,
 		ServicePeriodTo: currentRun.ServicePeriodTo,
-		Customer:        s.CustomerOverride,
+		Customer:        s.CustomerBillingProfile,
 		FeatureMeter:    featureMeter,
 	})
 	ratingIssues, err := billing.ToValidationIssues(err, billing.RequireWarningsOnly())

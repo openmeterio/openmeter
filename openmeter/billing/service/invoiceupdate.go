@@ -691,8 +691,8 @@ func (s *Service) validateAPIInvoiceLineEdits(ctx context.Context, changesByEngi
 
 func (s *Service) defaultTaxCodeResolversForInvoiceUpdate(invoice billing.GenericInvoiceReader) billing.DefaultTaxCodeResolvers {
 	namespace := invoice.GetInvoiceID().Namespace
-	getCustomerOverride := syncx.OnceValues(func(ctx context.Context) (billing.CustomerOverrideWithDetails, error) {
-		return s.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
+	getCustomerOverride := syncx.OnceValues(func(ctx context.Context) (billing.CustomerBillingProfile, error) {
+		return s.GetCustomerBillingProfile(ctx, billing.GetCustomerBillingProfileInput{
 			Customer: invoice.GetCustomerID(),
 		})
 	})
@@ -720,7 +720,7 @@ func (s *Service) defaultTaxCodeResolversForInvoiceUpdate(invoice billing.Generi
 func (s *Service) defaultInvoicingTaxCodeIDForInvoiceUpdate(
 	ctx context.Context,
 	invoice billing.GenericInvoiceReader,
-	getCustomerOverride func(context.Context) (billing.CustomerOverrideWithDetails, error),
+	getCustomerOverride func(context.Context) (billing.CustomerBillingProfile, error),
 	getOrganizationDefaultTaxCodes func(context.Context) (taxcode.OrganizationDefaultTaxCodes, error),
 ) (string, error) {
 	namespace := invoice.GetInvoiceID().Namespace
@@ -746,7 +746,7 @@ func (s *Service) defaultInvoicingTaxCodeIDForInvoiceUpdate(
 		return "", fmt.Errorf("getting customer billing profile: %w", err)
 	}
 
-	taxCodeID, err := s.taxCodeIDWithBackfill(ctx, namespace, customerOverride.MergedProfile.WorkflowConfig.Invoicing.DefaultTaxConfig)
+	taxCodeID, err := s.taxCodeIDWithBackfill(ctx, namespace, customerOverride.EffectiveProfile.WorkflowConfig.Invoicing.DefaultTaxConfig)
 	if err != nil {
 		return "", fmt.Errorf("resolving customer billing profile default tax config: %w", err)
 	}

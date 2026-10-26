@@ -225,27 +225,35 @@ func (s *SubscriptionTestSuite) TestDefaultProfileChange() {
 	pinnedCustomerToDefaultProfileCustomer := s.createCustomerWithSubscription(ctx, namespace, "pinnedCustomerToDefaultProfile", subscriptionPaidPlan)
 	s.NotNil(pinnedCustomerToDefaultProfileCustomer)
 
-	override, err := s.BillingService.UpsertCustomerOverride(ctx, billing.UpsertCustomerOverrideInput{
-		Namespace:  namespace,
-		CustomerID: pinnedCustomerToDefaultProfileCustomer.ID,
-		ProfileID:  defaultProfile.ID,
+	override, err := s.BillingService.SetCustomerBillingProfile(ctx, billing.SetCustomerBillingProfileInput{
+
+		Customer:  customer.CustomerID{Namespace: namespace, ID: pinnedCustomerToDefaultProfileCustomer.ID},
+		ProfileID: defaultProfile.ID,
 	})
 	s.NoError(err)
-	s.NotNil(override.CustomerOverride)
-	s.Equal(defaultProfile.ID, override.CustomerOverride.Profile.ID)
+	s.NotNil(override.AssignedProfile)
+	s.Equal(defaultProfile.ID, override.AssignedProfile.ProfileID)
 
 	// Customer pinned to the other profile
 	pinnedCustomerToOtherProfileCustomer := s.createCustomerWithSubscription(ctx, namespace, "pinnedCustomerToOtherProfile", subscriptionPaidPlan)
 	s.NotNil(pinnedCustomerToOtherProfileCustomer)
 
-	override, err = s.BillingService.UpsertCustomerOverride(ctx, billing.UpsertCustomerOverrideInput{
-		Namespace:  namespace,
-		CustomerID: pinnedCustomerToOtherProfileCustomer.ID,
-		ProfileID:  otherProfile.ID,
+	override, err = s.BillingService.SetCustomerBillingProfile(ctx, billing.SetCustomerBillingProfileInput{
+
+		Customer:  customer.CustomerID{Namespace: namespace, ID: pinnedCustomerToOtherProfileCustomer.ID},
+		ProfileID: otherProfile.ID,
 	})
 	s.NoError(err)
-	s.NotNil(override.CustomerOverride)
-	s.Equal(otherProfile.ID, override.CustomerOverride.Profile.ID)
+	s.NotNil(override.AssignedProfile)
+	s.Equal(otherProfile.ID, override.AssignedProfile.ProfileID)
+
+	previouslyPinned := s.createCustomerWithSubscription(ctx, namespace, "previouslyPinnedPaid", subscriptionPaidPlan)
+	_, err = s.BillingService.SetCustomerBillingProfile(ctx, billing.SetCustomerBillingProfileInput{
+		Customer:  previouslyPinned.GetID(),
+		ProfileID: defaultProfile.ID,
+	})
+	s.Require().NoError(err)
+	s.Require().NoError(s.BillingService.ClearCustomerBillingProfile(ctx, billing.ClearCustomerBillingProfileInput{Customer: previouslyPinned.GetID()}))
 
 	// When
 	//   Changing the default profile to the "other" profile
@@ -275,38 +283,43 @@ func (s *SubscriptionTestSuite) TestDefaultProfileChange() {
 
 	// Then
 	//   unPinnedPaidPlanCustomer is pinned to the old profile
-	customerOverride, err := s.BillingService.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
+	customerOverride, err := s.BillingService.GetCustomerBillingProfile(ctx, billing.GetCustomerBillingProfileInput{
 		Customer: unPinnedPaidPlanCustomer.GetID(),
 	})
 	s.NoError(err)
-	s.NotNil(customerOverride.CustomerOverride)
-	s.Equal(oldDefaultProfile.ID, customerOverride.CustomerOverride.Profile.ID)
+	s.NotNil(customerOverride.AssignedProfile)
+	s.Equal(oldDefaultProfile.ID, customerOverride.AssignedProfile.ProfileID)
 
 	// Then
 	//  unPinnedFreePlanCustomer does not have customer overrides
-	customerOverride, err = s.BillingService.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
+	customerOverride, err = s.BillingService.GetCustomerBillingProfile(ctx, billing.GetCustomerBillingProfileInput{
 		Customer: unPinnedFreePlanCustomer.GetID(),
 	})
 	s.NoError(err)
-	s.Nil(customerOverride.CustomerOverride)
+	s.Nil(customerOverride.AssignedProfile)
 
 	// Then
 	//   pinnedCustomerToDefaultProfileCustomer is pinned to the old default profile
-	customerOverride, err = s.BillingService.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
+	customerOverride, err = s.BillingService.GetCustomerBillingProfile(ctx, billing.GetCustomerBillingProfileInput{
 		Customer: pinnedCustomerToDefaultProfileCustomer.GetID(),
 	})
 	s.NoError(err)
-	s.NotNil(customerOverride.CustomerOverride)
-	s.Equal(oldDefaultProfile.ID, customerOverride.CustomerOverride.Profile.ID)
+	s.NotNil(customerOverride.AssignedProfile)
+	s.Equal(oldDefaultProfile.ID, customerOverride.AssignedProfile.ProfileID)
 
 	// Then
 	//   pinnedCustomerToOtherProfileCustomer is pinned to the new profile
-	customerOverride, err = s.BillingService.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
+	customerOverride, err = s.BillingService.GetCustomerBillingProfile(ctx, billing.GetCustomerBillingProfileInput{
 		Customer: pinnedCustomerToOtherProfileCustomer.GetID(),
 	})
 	s.NoError(err)
-	s.NotNil(customerOverride.CustomerOverride)
-	s.Equal(otherProfile.ID, customerOverride.CustomerOverride.Profile.ID)
+	s.NotNil(customerOverride.AssignedProfile)
+	s.Equal(otherProfile.ID, customerOverride.AssignedProfile.ProfileID)
+	// A deleted historical pin must be reactivated by automatic pinning too.
+	restoredPin, err := s.BillingService.GetCustomerBillingProfile(ctx, billing.GetCustomerBillingProfileInput{Customer: previouslyPinned.GetID()})
+	s.Require().NoError(err)
+	s.Require().NotNil(restoredPin.AssignedProfile)
+	s.Equal(oldDefaultProfile.ID, restoredPin.AssignedProfile.ProfileID)
 }
 
 func (s *SubscriptionTestSuite) createCustomerWithSubscription(ctx context.Context, namespace string, customerKey string, plan subscription.Plan) *customer.Customer { //nolint:unparam

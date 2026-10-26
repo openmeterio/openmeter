@@ -25,12 +25,12 @@ func (s *service) GetCurrentTotals(ctx context.Context, input usagebased.GetCurr
 		return usagebased.GetCurrentTotalsResult{}, fmt.Errorf("get charge: %w", err)
 	}
 
-	customerOverride, err := s.customerOverrideService.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
+	customerOverride, err := s.customerOverrideService.GetCustomerBillingProfile(ctx, billing.GetCustomerBillingProfileInput{
 		Customer: customer.CustomerID{
 			Namespace: charge.Namespace,
 			ID:        charge.Intent.GetCustomerID(),
 		},
-		Expand: billing.CustomerOverrideExpand{
+		Expand: billing.CustomerBillingProfileExpand{
 			Customer: true,
 		},
 	})

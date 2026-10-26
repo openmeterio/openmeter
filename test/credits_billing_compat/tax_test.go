@@ -61,7 +61,7 @@ func (s *InvoicingTaxTestSuite) TestDefaultTaxConfigProfileSnapshotting() {
 		s.Equal("txcd_10000000", draftInvoice.Workflow.Config.Invoicing.DefaultTaxConfig.Stripe.Code)
 	})
 
-	s.Run("Profile default tax config is not set in billing profile, set in override", func() {
+	s.Run("Selected profile supplies customer tax settings independently of the default", func() {
 		profile.WorkflowConfig.Invoicing.DefaultTaxConfig = nil
 		profile.AppReferences = nil
 		_, err := s.BillingService.UpdateProfile(ctx, billing.UpdateProfileInput(profile.BaseProfile))
@@ -72,32 +72,31 @@ func (s *InvoicingTaxTestSuite) TestDefaultTaxConfigProfileSnapshotting() {
 		s.NoError(err)
 		s.Nil(profile.WorkflowConfig.Invoicing.DefaultTaxConfig)
 
-		override := billing.UpsertCustomerOverrideInput{
-			Namespace:  namespace,
-			CustomerID: cust.ID,
-			Invoicing: billing.InvoicingOverrideConfig{
-				DefaultTaxConfig: &productcatalog.TaxConfig{
-					Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
-					Stripe: &productcatalog.StripeTaxConfig{
-						Code: "txcd_20000000",
-					},
-				},
-			},
-		}
-
-		_, err = s.BillingService.UpsertCustomerOverride(ctx, override)
+		selectedInput := billingtest.MinimalCreateProfileInputTemplate(sandboxApp.GetID())
+		selectedInput.Namespace = namespace
+		selectedInput.Default = false
+		selectedProfile, err := s.BillingService.CreateProfile(ctx, selectedInput)
+		s.Require().NoError(err)
+		s.SeedProfileDefaultTaxConfigViaAdapter(ctx, selectedProfile.ProfileID(), &productcatalog.TaxConfig{
+			Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
+			Stripe:   &productcatalog.StripeTaxConfig{Code: "txcd_20000000"},
+		})
+		_, err = s.BillingService.SetCustomerBillingProfile(ctx, billing.SetCustomerBillingProfileInput{
+			Customer:  cust.GetID(),
+			ProfileID: selectedProfile.ID,
+		})
 		s.NoError(err)
 
-		customerOverride, err := s.BillingService.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
+		customerOverride, err := s.BillingService.GetCustomerBillingProfile(ctx, billing.GetCustomerBillingProfileInput{
 			Customer: customer.CustomerID{
 				Namespace: namespace,
 				ID:        cust.ID,
 			},
 		})
 		s.NoError(err)
-		s.NotNil(customerOverride.MergedProfile.WorkflowConfig.Invoicing.DefaultTaxConfig)
-		s.Equal(productcatalog.ExclusiveTaxBehavior, *customerOverride.MergedProfile.WorkflowConfig.Invoicing.DefaultTaxConfig.Behavior)
-		s.Equal("txcd_20000000", customerOverride.MergedProfile.WorkflowConfig.Invoicing.DefaultTaxConfig.Stripe.Code)
+		s.NotNil(customerOverride.EffectiveProfile.WorkflowConfig.Invoicing.DefaultTaxConfig)
+		s.Equal(productcatalog.ExclusiveTaxBehavior, *customerOverride.EffectiveProfile.WorkflowConfig.Invoicing.DefaultTaxConfig.Behavior)
+		s.Equal("txcd_20000000", customerOverride.EffectiveProfile.WorkflowConfig.Invoicing.DefaultTaxConfig.Stripe.Code)
 
 		draftInvoice := s.generateDraftInvoice(ctx, cust)
 		s.NotNil(draftInvoice.Workflow.Config.Invoicing.DefaultTaxConfig)
@@ -106,7 +105,7 @@ func (s *InvoicingTaxTestSuite) TestDefaultTaxConfigProfileSnapshotting() {
 	})
 
 	s.Run("Profile default tax config is not set, invoice inherits it, but can be updated", func() {
-		err := s.BillingService.DeleteCustomerOverride(ctx, billing.DeleteCustomerOverrideInput{
+		err := s.BillingService.ClearCustomerBillingProfile(ctx, billing.ClearCustomerBillingProfileInput{
 			Customer: customer.CustomerID{
 				Namespace: namespace,
 				ID:        cust.ID,
@@ -114,14 +113,14 @@ func (s *InvoicingTaxTestSuite) TestDefaultTaxConfigProfileSnapshotting() {
 		})
 		s.NoError(err)
 
-		customerOverride, err := s.BillingService.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
+		customerOverride, err := s.BillingService.GetCustomerBillingProfile(ctx, billing.GetCustomerBillingProfileInput{
 			Customer: customer.CustomerID{
 				Namespace: namespace,
 				ID:        cust.ID,
 			},
 		})
 		s.NoError(err)
-		s.Nil(customerOverride.MergedProfile.WorkflowConfig.Invoicing.DefaultTaxConfig)
+		s.Nil(customerOverride.EffectiveProfile.WorkflowConfig.Invoicing.DefaultTaxConfig)
 
 		draftInvoice := s.generateDraftInvoice(ctx, cust)
 		s.Nil(draftInvoice.Workflow.Config.Invoicing.DefaultTaxConfig)

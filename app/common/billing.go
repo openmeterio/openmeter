@@ -327,7 +327,7 @@ func NewBillingRegistry(
 	return billingRegistry, nil
 }
 
-func NewBillingCustomerOverrideService(billingRegistry BillingRegistry) billing.CustomerOverrideService {
+func NewBillingCustomerOverrideService(billingRegistry BillingRegistry) billing.CustomerBillingProfileService {
 	return billingRegistry.Billing
 }
 

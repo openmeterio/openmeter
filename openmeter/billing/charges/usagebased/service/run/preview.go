@@ -21,15 +21,15 @@ import (
 )
 
 type BuildCreditThenInvoiceGatheringPreviewRunInput struct {
-	Charge             usagebased.Charge
-	CustomerOverride   billing.CustomerOverrideWithDetails
-	FeatureMeter       billingfeaturemeter.FeatureMeter
-	Type               usagebased.RealizationRunType
-	StoredAtLT         time.Time
-	ServicePeriodTo    time.Time
-	LineID             string
-	InvoiceID          string
-	CurrencyCalculator currencyx.Currency
+	Charge                 usagebased.Charge
+	CustomerBillingProfile billing.CustomerBillingProfile
+	FeatureMeter           billingfeaturemeter.FeatureMeter
+	Type                   usagebased.RealizationRunType
+	StoredAtLT             time.Time
+	ServicePeriodTo        time.Time
+	LineID                 string
+	InvoiceID              string
+	CurrencyCalculator     currencyx.Currency
 }
 
 func (i BuildCreditThenInvoiceGatheringPreviewRunInput) Validate() error {
@@ -43,7 +43,7 @@ func (i BuildCreditThenInvoiceGatheringPreviewRunInput) Validate() error {
 		errs = append(errs, fmt.Errorf("unsupported settlement mode for gathering preview: %s", i.Charge.Intent.GetSettlementMode()))
 	}
 
-	if i.CustomerOverride.Customer == nil {
+	if i.CustomerBillingProfile.Customer == nil {
 		errs = append(errs, errors.New("expanded customer is required"))
 	}
 
@@ -108,7 +108,7 @@ func (s *Service) BuildCreditThenInvoiceGatheringPreviewRun(ctx context.Context,
 		Charge:          in.Charge,
 		StoredAtLT:      in.StoredAtLT,
 		ServicePeriodTo: in.ServicePeriodTo,
-		Customer:        in.CustomerOverride,
+		Customer:        in.CustomerBillingProfile,
 		FeatureMeter:    in.FeatureMeter,
 	})
 	if err := recorder.RecordWarnings(err); err != nil {

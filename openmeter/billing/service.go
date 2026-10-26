@@ -10,7 +10,7 @@ import (
 
 type Service interface {
 	ProfileService
-	CustomerOverrideService
+	CustomerBillingProfileService
 	LineEngineService
 	SplitLineGroupService
 	InvoiceService
@@ -36,13 +36,13 @@ type ProfileService interface {
 	ResolveStripeAppIDFromBillingProfile(ctx context.Context, namespace string, customerId *customer.CustomerID) (app.AppID, error)
 }
 
-type CustomerOverrideService interface {
-	UpsertCustomerOverride(ctx context.Context, input UpsertCustomerOverrideInput) (CustomerOverrideWithDetails, error)
-	DeleteCustomerOverride(ctx context.Context, input DeleteCustomerOverrideInput) error
+type CustomerBillingProfileService interface {
+	SetCustomerBillingProfile(ctx context.Context, input SetCustomerBillingProfileInput) (CustomerBillingProfile, error)
+	ClearCustomerBillingProfile(ctx context.Context, input ClearCustomerBillingProfileInput) error
 
-	GetCustomerOverride(ctx context.Context, input GetCustomerOverrideInput) (CustomerOverrideWithDetails, error)
+	GetCustomerBillingProfile(ctx context.Context, input GetCustomerBillingProfileInput) (CustomerBillingProfile, error)
 	GetCustomerApp(ctx context.Context, input GetCustomerAppInput) (app.App, error)
-	ListCustomerOverrides(ctx context.Context, input ListCustomerOverridesInput) (ListCustomerOverridesResult, error)
+	ListCustomerBillingProfiles(ctx context.Context, input ListCustomerBillingProfilesInput) (ListCustomerBillingProfilesResult, error)
 }
 
 type LineEngineService interface {
