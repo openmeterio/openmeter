@@ -12,5 +12,5 @@ services:
     image: 6drdc68833.registry.depot.dev/postgres:14.20-alpine3.23@sha256:14f02666642586a64d6fae8ef42d479fd76456a77c73ae8a626b8fe323b76d22
 
   svix:
+    # Inherit the base image pin to keep CI aligned with local SDK compatibility tests.
     profiles: [depot-registry-svix]
-    image: 6drdc68833.registry.depot.dev/svix/svix-server:v1.84.1@sha256:35dc9d4884073272e55f8e2f60a7a37983e535b7e7994db56a99c87cdf9b1a59
