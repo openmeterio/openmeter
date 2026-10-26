@@ -23,6 +23,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/featuregate"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
@@ -30,6 +31,8 @@ type Reconciler interface {
 	Plan(ctx context.Context, input PlanInput) (*Plan, error)
 	Apply(ctx context.Context, input ApplyInput) error
 }
+
+var _ models.Validator = (*Config)(nil)
 
 type Config struct {
 	BillingService          billing.Service
@@ -42,31 +45,33 @@ type Config struct {
 }
 
 func (c Config) Validate() error {
+	var errs []error
+
 	if c.SplitLineGroupService == nil {
-		return errors.New("split line group service is required")
+		errs = append(errs, errors.New("split line group service is required"))
 	}
 
 	if c.BillingService == nil {
-		return fmt.Errorf("billing service is required")
+		errs = append(errs, errors.New("billing service is required"))
 	}
 
 	if c.LegacyBillingLineEngine == nil {
-		return fmt.Errorf("legacy billing line engine is required")
+		errs = append(errs, errors.New("legacy billing line engine is required"))
 	}
 
 	if c.Logger == nil {
-		return fmt.Errorf("logger is required")
+		errs = append(errs, errors.New("logger is required"))
 	}
 
 	if c.EnableCreditThenInvoice && c.ChargesService == nil {
-		return fmt.Errorf("charges service is required when credit then invoice is enabled")
+		errs = append(errs, errors.New("charges service is required when credit then invoice is enabled"))
 	}
 
 	if err := c.FeatureGate.Validate(); err != nil {
-		return err
+		errs = append(errs, fmt.Errorf("feature gate: %w", err))
 	}
 
-	return nil
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type Service struct {
