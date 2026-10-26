@@ -19,7 +19,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	namespacedriver "github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
-	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -599,8 +598,7 @@ func (s *CustomerBillingProfileTestSuite) TestHistoricalRowsAndListSemantics() {
 	deleted := s.CreateTestCustomer(ns, "deleted")
 	pinnedA := s.CreateTestCustomer(ns, "pinned-A")
 	pinnedB := s.CreateTestCustomer(ns, "pinned-B")
-	_, err = s.DBClient.BillingCustomerOverride.Create().SetNamespace(ns).SetCustomerID(empty.ID).
-		SetLineCollectionPeriod(datetime.ISODurationString("PT999H")).Save(ctx)
+	_, err = s.DBClient.BillingCustomerOverride.Create().SetNamespace(ns).SetCustomerID(empty.ID).Save(ctx)
 	s.Require().NoError(err)
 	for _, cust := range []customer.CustomerID{deleted.GetID(), pinnedB.GetID()} {
 		_, err = s.BillingService.SetCustomerBillingProfile(ctx, billing.SetCustomerBillingProfileInput{Customer: cust, ProfileID: profileB.ID})
@@ -608,12 +606,7 @@ func (s *CustomerBillingProfileTestSuite) TestHistoricalRowsAndListSemantics() {
 	}
 
 	s.Require().NoError(s.BillingService.ClearCustomerBillingProfile(ctx, billing.ClearCustomerBillingProfileInput{Customer: deleted.GetID()}))
-	selected, err := s.BillingService.SetCustomerBillingProfile(ctx, billing.SetCustomerBillingProfileInput{Customer: pinnedA.GetID(), ProfileID: profileA.ID})
-	s.Require().NoError(err)
-	_, err = s.DBClient.BillingCustomerOverride.UpdateOneID(selected.AssignedProfile.ID).
-		SetLineCollectionPeriod(datetime.ISODurationString("PT999H")).
-		SetInvoiceAutoAdvance(!profileA.WorkflowConfig.Invoicing.AutoAdvance).
-		Save(ctx)
+	_, err = s.BillingService.SetCustomerBillingProfile(ctx, billing.SetCustomerBillingProfileInput{Customer: pinnedA.GetID(), ProfileID: profileA.ID})
 	s.Require().NoError(err)
 
 	// when: legacy row states are read, with and without app/customer expansion.
@@ -631,7 +624,7 @@ func (s *CustomerBillingProfileTestSuite) TestHistoricalRowsAndListSemantics() {
 			}
 
 			if cust == pinnedA.GetID() {
-				s.Equal(profileA.WorkflowConfig, result.EffectiveProfile.WorkflowConfig, "historical fields must not modify the selected profile")
+				s.Equal(profileA.WorkflowConfig, result.EffectiveProfile.WorkflowConfig)
 			}
 
 			if expand.Apps {

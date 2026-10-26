@@ -222,78 +222,11 @@ func (BillingCustomerOverride) Fields() []ent.Field {
 			SchemaType(map[string]string{
 				dialect.Postgres: "char(26)",
 			}),
-
-		// Historical workflow fields remain in storage until the cleanup migration.
-		field.Enum("collection_alignment").
-			GoType(billing.AlignmentKind("")).
-			Optional().
-			Nillable().
-			Deprecated("customer workflow overrides are no longer supported; assign a billing profile instead"),
-
-		field.JSON("anchored_alignment_detail", &billing.AnchoredAlignmentDetail{}).
-			SchemaType(map[string]string{
-				dialect.Postgres: "jsonb",
-			}).
-			Optional().
-			Deprecated("customer workflow overrides are no longer supported; assign a billing profile instead"),
-
-		field.String("line_collection_period").
-			GoType(datetime.ISODurationString("")).
-			Optional().
-			Nillable().
-			Deprecated("customer workflow overrides are no longer supported; assign a billing profile instead"),
-
-		field.Bool("invoice_auto_advance").
-			Optional().
-			Nillable().
-			Deprecated("customer workflow overrides are no longer supported; assign a billing profile instead"),
-
-		field.String("invoice_draft_period").
-			GoType(datetime.ISODurationString("")).
-			Optional().
-			Nillable().
-			Deprecated("customer workflow overrides are no longer supported; assign a billing profile instead"),
-
-		field.String("invoice_due_after").
-			GoType(datetime.ISODurationString("")).
-			Optional().
-			Nillable().
-			Deprecated("customer workflow overrides are no longer supported; assign a billing profile instead"),
-
-		field.Enum("invoice_collection_method").
-			GoType(billing.CollectionMethod("")).
-			Optional().
-			Nillable().
-			Deprecated("customer workflow overrides are no longer supported; assign a billing profile instead"),
-
-		field.Bool("invoice_progressive_billing").
-			Optional().
-			Nillable().
-			Deprecated("customer workflow overrides are no longer supported; assign a billing profile instead"),
-
-		field.JSON("invoice_default_tax_config", productcatalog.TaxConfig{}).
-			Optional().
-			Deprecated("customer workflow overrides are no longer supported; assign a billing profile instead"),
-
-		field.String("tax_code_id").
-			Optional().
-			Nillable().
-			SchemaType(map[string]string{
-				dialect.Postgres: "char(26)",
-			}).
-			Deprecated("customer workflow overrides are no longer supported; assign a billing profile instead"),
-
-		field.Enum("tax_behavior").
-			GoType(productcatalog.TaxBehavior("")).
-			Optional().
-			Nillable().
-			Deprecated("customer workflow overrides are no longer supported; assign a billing profile instead"),
 	}
 }
 
 func (BillingCustomerOverride) Indexes() []ent.Index {
 	return []ent.Index{
-		index.Fields("tax_code_id"),
 		index.Fields("namespace", "id").Unique(),
 		index.Fields("namespace", "customer_id").Unique(),
 	}
@@ -310,10 +243,6 @@ func (BillingCustomerOverride) Edges() []ent.Edge {
 		edge.From("billing_profile", BillingProfile.Type).
 			Ref("billing_customer_override").
 			Field("billing_profile_id").
-			Unique(),
-		edge.From("tax_code", TaxCode.Type).
-			Ref("billing_customer_overrides").
-			Field("tax_code_id").
 			Unique(),
 	}
 }

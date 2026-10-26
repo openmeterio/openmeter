@@ -52,7 +52,6 @@ func (TaxCode) Indexes() []ent.Index {
 func (TaxCode) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.To("billing_workflow_configs", BillingWorkflowConfig.Type),
-		edge.To("billing_customer_overrides", BillingCustomerOverride.Type),
 		edge.To("billing_invoice_lines", BillingInvoiceLine.Type),
 		edge.To("billing_gathering_invoice_lines", BillingGatheringInvoiceLine.Type).
 			StorageKey(edge.Symbol("billing_gathering_line_tax_code_fk")),

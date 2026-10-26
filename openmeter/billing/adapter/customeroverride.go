@@ -21,7 +21,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
-// Stay below PostgreSQL's parameter limit even while the legacy columns remain.
+// Stay below PostgreSQL's parameter limit when assigning customer profiles in bulk.
 var defaultBulkAssignCustomersToProfileBatchSize = (65535 / len(billingcustomeroverride.Columns)) - 1
 
 var _ billing.CustomerBillingProfileAdapter = (*adapter)(nil)

@@ -12,7 +12,6 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addonratecard"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinggatheringinvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
@@ -152,21 +151,6 @@ func (_u *TaxCodeUpdate) AddBillingWorkflowConfigs(v ...*BillingWorkflowConfig) 
 		ids[i] = v[i].ID
 	}
 	return _u.AddBillingWorkflowConfigIDs(ids...)
-}
-
-// AddBillingCustomerOverrideIDs adds the "billing_customer_overrides" edge to the BillingCustomerOverride entity by IDs.
-func (_u *TaxCodeUpdate) AddBillingCustomerOverrideIDs(ids ...string) *TaxCodeUpdate {
-	_u.mutation.AddBillingCustomerOverrideIDs(ids...)
-	return _u
-}
-
-// AddBillingCustomerOverrides adds the "billing_customer_overrides" edges to the BillingCustomerOverride entity.
-func (_u *TaxCodeUpdate) AddBillingCustomerOverrides(v ...*BillingCustomerOverride) *TaxCodeUpdate {
-	ids := make([]string, len(v))
-	for i := range v {
-		ids[i] = v[i].ID
-	}
-	return _u.AddBillingCustomerOverrideIDs(ids...)
 }
 
 // AddBillingInvoiceLineIDs adds the "billing_invoice_lines" edge to the BillingInvoiceLine entity by IDs.
@@ -373,27 +357,6 @@ func (_u *TaxCodeUpdate) RemoveBillingWorkflowConfigs(v ...*BillingWorkflowConfi
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveBillingWorkflowConfigIDs(ids...)
-}
-
-// ClearBillingCustomerOverrides clears all "billing_customer_overrides" edges to the BillingCustomerOverride entity.
-func (_u *TaxCodeUpdate) ClearBillingCustomerOverrides() *TaxCodeUpdate {
-	_u.mutation.ClearBillingCustomerOverrides()
-	return _u
-}
-
-// RemoveBillingCustomerOverrideIDs removes the "billing_customer_overrides" edge to BillingCustomerOverride entities by IDs.
-func (_u *TaxCodeUpdate) RemoveBillingCustomerOverrideIDs(ids ...string) *TaxCodeUpdate {
-	_u.mutation.RemoveBillingCustomerOverrideIDs(ids...)
-	return _u
-}
-
-// RemoveBillingCustomerOverrides removes "billing_customer_overrides" edges to BillingCustomerOverride entities.
-func (_u *TaxCodeUpdate) RemoveBillingCustomerOverrides(v ...*BillingCustomerOverride) *TaxCodeUpdate {
-	ids := make([]string, len(v))
-	for i := range v {
-		ids[i] = v[i].ID
-	}
-	return _u.RemoveBillingCustomerOverrideIDs(ids...)
 }
 
 // ClearBillingInvoiceLines clears all "billing_invoice_lines" edges to the BillingInvoiceLine entity.
@@ -771,51 +734,6 @@ func (_u *TaxCodeUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billingworkflowconfig.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
-	}
-	if _u.mutation.BillingCustomerOverridesCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   dbtaxcode.BillingCustomerOverridesTable,
-			Columns: []string{dbtaxcode.BillingCustomerOverridesColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(billingcustomeroverride.FieldID, field.TypeString),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.RemovedBillingCustomerOverridesIDs(); len(nodes) > 0 && !_u.mutation.BillingCustomerOverridesCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   dbtaxcode.BillingCustomerOverridesTable,
-			Columns: []string{dbtaxcode.BillingCustomerOverridesColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(billingcustomeroverride.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.BillingCustomerOverridesIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   dbtaxcode.BillingCustomerOverridesTable,
-			Columns: []string{dbtaxcode.BillingCustomerOverridesColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(billingcustomeroverride.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -1494,21 +1412,6 @@ func (_u *TaxCodeUpdateOne) AddBillingWorkflowConfigs(v ...*BillingWorkflowConfi
 	return _u.AddBillingWorkflowConfigIDs(ids...)
 }
 
-// AddBillingCustomerOverrideIDs adds the "billing_customer_overrides" edge to the BillingCustomerOverride entity by IDs.
-func (_u *TaxCodeUpdateOne) AddBillingCustomerOverrideIDs(ids ...string) *TaxCodeUpdateOne {
-	_u.mutation.AddBillingCustomerOverrideIDs(ids...)
-	return _u
-}
-
-// AddBillingCustomerOverrides adds the "billing_customer_overrides" edges to the BillingCustomerOverride entity.
-func (_u *TaxCodeUpdateOne) AddBillingCustomerOverrides(v ...*BillingCustomerOverride) *TaxCodeUpdateOne {
-	ids := make([]string, len(v))
-	for i := range v {
-		ids[i] = v[i].ID
-	}
-	return _u.AddBillingCustomerOverrideIDs(ids...)
-}
-
 // AddBillingInvoiceLineIDs adds the "billing_invoice_lines" edge to the BillingInvoiceLine entity by IDs.
 func (_u *TaxCodeUpdateOne) AddBillingInvoiceLineIDs(ids ...string) *TaxCodeUpdateOne {
 	_u.mutation.AddBillingInvoiceLineIDs(ids...)
@@ -1713,27 +1616,6 @@ func (_u *TaxCodeUpdateOne) RemoveBillingWorkflowConfigs(v ...*BillingWorkflowCo
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveBillingWorkflowConfigIDs(ids...)
-}
-
-// ClearBillingCustomerOverrides clears all "billing_customer_overrides" edges to the BillingCustomerOverride entity.
-func (_u *TaxCodeUpdateOne) ClearBillingCustomerOverrides() *TaxCodeUpdateOne {
-	_u.mutation.ClearBillingCustomerOverrides()
-	return _u
-}
-
-// RemoveBillingCustomerOverrideIDs removes the "billing_customer_overrides" edge to BillingCustomerOverride entities by IDs.
-func (_u *TaxCodeUpdateOne) RemoveBillingCustomerOverrideIDs(ids ...string) *TaxCodeUpdateOne {
-	_u.mutation.RemoveBillingCustomerOverrideIDs(ids...)
-	return _u
-}
-
-// RemoveBillingCustomerOverrides removes "billing_customer_overrides" edges to BillingCustomerOverride entities.
-func (_u *TaxCodeUpdateOne) RemoveBillingCustomerOverrides(v ...*BillingCustomerOverride) *TaxCodeUpdateOne {
-	ids := make([]string, len(v))
-	for i := range v {
-		ids[i] = v[i].ID
-	}
-	return _u.RemoveBillingCustomerOverrideIDs(ids...)
 }
 
 // ClearBillingInvoiceLines clears all "billing_invoice_lines" edges to the BillingInvoiceLine entity.
@@ -2141,51 +2023,6 @@ func (_u *TaxCodeUpdateOne) sqlSave(ctx context.Context) (_node *TaxCode, err er
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billingworkflowconfig.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
-	}
-	if _u.mutation.BillingCustomerOverridesCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   dbtaxcode.BillingCustomerOverridesTable,
-			Columns: []string{dbtaxcode.BillingCustomerOverridesColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(billingcustomeroverride.FieldID, field.TypeString),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.RemovedBillingCustomerOverridesIDs(); len(nodes) > 0 && !_u.mutation.BillingCustomerOverridesCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   dbtaxcode.BillingCustomerOverridesTable,
-			Columns: []string{dbtaxcode.BillingCustomerOverridesColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(billingcustomeroverride.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.BillingCustomerOverridesIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   dbtaxcode.BillingCustomerOverridesTable,
-			Columns: []string{dbtaxcode.BillingCustomerOverridesColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(billingcustomeroverride.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

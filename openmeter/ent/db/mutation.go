@@ -11041,33 +11041,21 @@ func (m *BillingCustomerLockMutation) ResetEdge(name string) error {
 // BillingCustomerOverrideMutation represents an operation that mutates the BillingCustomerOverride nodes in the graph.
 type BillingCustomerOverrideMutation struct {
 	config
-	op                          Op
-	typ                         string
-	id                          *string
-	namespace                   *string
-	created_at                  *time.Time
-	updated_at                  *time.Time
-	deleted_at                  *time.Time
-	collection_alignment        *billing.AlignmentKind
-	anchored_alignment_detail   **billing.AnchoredAlignmentDetail
-	line_collection_period      *datetime.ISODurationString
-	invoice_auto_advance        *bool
-	invoice_draft_period        *datetime.ISODurationString
-	invoice_due_after           *datetime.ISODurationString
-	invoice_collection_method   *billing.CollectionMethod
-	invoice_progressive_billing *bool
-	invoice_default_tax_config  *productcatalog.TaxConfig
-	tax_behavior                *productcatalog.TaxBehavior
-	clearedFields               map[string]struct{}
-	customer                    *string
-	clearedcustomer             bool
-	billing_profile             *string
-	clearedbilling_profile      bool
-	tax_code                    *string
-	clearedtax_code             bool
-	done                        bool
-	oldValue                    func(context.Context) (*BillingCustomerOverride, error)
-	predicates                  []predicate.BillingCustomerOverride
+	op                     Op
+	typ                    string
+	id                     *string
+	namespace              *string
+	created_at             *time.Time
+	updated_at             *time.Time
+	deleted_at             *time.Time
+	clearedFields          map[string]struct{}
+	customer               *string
+	clearedcustomer        bool
+	billing_profile        *string
+	clearedbilling_profile bool
+	done                   bool
+	oldValue               func(context.Context) (*BillingCustomerOverride, error)
+	predicates             []predicate.BillingCustomerOverride
 }
 
 var _ ent.Mutation = (*BillingCustomerOverrideMutation)(nil)
@@ -11416,545 +11404,6 @@ func (m *BillingCustomerOverrideMutation) ResetBillingProfileID() {
 	delete(m.clearedFields, billingcustomeroverride.FieldBillingProfileID)
 }
 
-// SetCollectionAlignment sets the "collection_alignment" field.
-func (m *BillingCustomerOverrideMutation) SetCollectionAlignment(bk billing.AlignmentKind) {
-	m.collection_alignment = &bk
-}
-
-// CollectionAlignment returns the value of the "collection_alignment" field in the mutation.
-func (m *BillingCustomerOverrideMutation) CollectionAlignment() (r billing.AlignmentKind, exists bool) {
-	v := m.collection_alignment
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldCollectionAlignment returns the old "collection_alignment" field's value of the BillingCustomerOverride entity.
-// If the BillingCustomerOverride object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingCustomerOverrideMutation) OldCollectionAlignment(ctx context.Context) (v *billing.AlignmentKind, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldCollectionAlignment is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldCollectionAlignment requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldCollectionAlignment: %w", err)
-	}
-	return oldValue.CollectionAlignment, nil
-}
-
-// ClearCollectionAlignment clears the value of the "collection_alignment" field.
-func (m *BillingCustomerOverrideMutation) ClearCollectionAlignment() {
-	m.collection_alignment = nil
-	m.clearedFields[billingcustomeroverride.FieldCollectionAlignment] = struct{}{}
-}
-
-// CollectionAlignmentCleared returns if the "collection_alignment" field was cleared in this mutation.
-func (m *BillingCustomerOverrideMutation) CollectionAlignmentCleared() bool {
-	_, ok := m.clearedFields[billingcustomeroverride.FieldCollectionAlignment]
-	return ok
-}
-
-// ResetCollectionAlignment resets all changes to the "collection_alignment" field.
-func (m *BillingCustomerOverrideMutation) ResetCollectionAlignment() {
-	m.collection_alignment = nil
-	delete(m.clearedFields, billingcustomeroverride.FieldCollectionAlignment)
-}
-
-// SetAnchoredAlignmentDetail sets the "anchored_alignment_detail" field.
-func (m *BillingCustomerOverrideMutation) SetAnchoredAlignmentDetail(bad *billing.AnchoredAlignmentDetail) {
-	m.anchored_alignment_detail = &bad
-}
-
-// AnchoredAlignmentDetail returns the value of the "anchored_alignment_detail" field in the mutation.
-func (m *BillingCustomerOverrideMutation) AnchoredAlignmentDetail() (r *billing.AnchoredAlignmentDetail, exists bool) {
-	v := m.anchored_alignment_detail
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldAnchoredAlignmentDetail returns the old "anchored_alignment_detail" field's value of the BillingCustomerOverride entity.
-// If the BillingCustomerOverride object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingCustomerOverrideMutation) OldAnchoredAlignmentDetail(ctx context.Context) (v *billing.AnchoredAlignmentDetail, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldAnchoredAlignmentDetail is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldAnchoredAlignmentDetail requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldAnchoredAlignmentDetail: %w", err)
-	}
-	return oldValue.AnchoredAlignmentDetail, nil
-}
-
-// ClearAnchoredAlignmentDetail clears the value of the "anchored_alignment_detail" field.
-func (m *BillingCustomerOverrideMutation) ClearAnchoredAlignmentDetail() {
-	m.anchored_alignment_detail = nil
-	m.clearedFields[billingcustomeroverride.FieldAnchoredAlignmentDetail] = struct{}{}
-}
-
-// AnchoredAlignmentDetailCleared returns if the "anchored_alignment_detail" field was cleared in this mutation.
-func (m *BillingCustomerOverrideMutation) AnchoredAlignmentDetailCleared() bool {
-	_, ok := m.clearedFields[billingcustomeroverride.FieldAnchoredAlignmentDetail]
-	return ok
-}
-
-// ResetAnchoredAlignmentDetail resets all changes to the "anchored_alignment_detail" field.
-func (m *BillingCustomerOverrideMutation) ResetAnchoredAlignmentDetail() {
-	m.anchored_alignment_detail = nil
-	delete(m.clearedFields, billingcustomeroverride.FieldAnchoredAlignmentDetail)
-}
-
-// SetLineCollectionPeriod sets the "line_collection_period" field.
-func (m *BillingCustomerOverrideMutation) SetLineCollectionPeriod(dds datetime.ISODurationString) {
-	m.line_collection_period = &dds
-}
-
-// LineCollectionPeriod returns the value of the "line_collection_period" field in the mutation.
-func (m *BillingCustomerOverrideMutation) LineCollectionPeriod() (r datetime.ISODurationString, exists bool) {
-	v := m.line_collection_period
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldLineCollectionPeriod returns the old "line_collection_period" field's value of the BillingCustomerOverride entity.
-// If the BillingCustomerOverride object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingCustomerOverrideMutation) OldLineCollectionPeriod(ctx context.Context) (v *datetime.ISODurationString, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldLineCollectionPeriod is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldLineCollectionPeriod requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldLineCollectionPeriod: %w", err)
-	}
-	return oldValue.LineCollectionPeriod, nil
-}
-
-// ClearLineCollectionPeriod clears the value of the "line_collection_period" field.
-func (m *BillingCustomerOverrideMutation) ClearLineCollectionPeriod() {
-	m.line_collection_period = nil
-	m.clearedFields[billingcustomeroverride.FieldLineCollectionPeriod] = struct{}{}
-}
-
-// LineCollectionPeriodCleared returns if the "line_collection_period" field was cleared in this mutation.
-func (m *BillingCustomerOverrideMutation) LineCollectionPeriodCleared() bool {
-	_, ok := m.clearedFields[billingcustomeroverride.FieldLineCollectionPeriod]
-	return ok
-}
-
-// ResetLineCollectionPeriod resets all changes to the "line_collection_period" field.
-func (m *BillingCustomerOverrideMutation) ResetLineCollectionPeriod() {
-	m.line_collection_period = nil
-	delete(m.clearedFields, billingcustomeroverride.FieldLineCollectionPeriod)
-}
-
-// SetInvoiceAutoAdvance sets the "invoice_auto_advance" field.
-func (m *BillingCustomerOverrideMutation) SetInvoiceAutoAdvance(b bool) {
-	m.invoice_auto_advance = &b
-}
-
-// InvoiceAutoAdvance returns the value of the "invoice_auto_advance" field in the mutation.
-func (m *BillingCustomerOverrideMutation) InvoiceAutoAdvance() (r bool, exists bool) {
-	v := m.invoice_auto_advance
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldInvoiceAutoAdvance returns the old "invoice_auto_advance" field's value of the BillingCustomerOverride entity.
-// If the BillingCustomerOverride object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingCustomerOverrideMutation) OldInvoiceAutoAdvance(ctx context.Context) (v *bool, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldInvoiceAutoAdvance is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldInvoiceAutoAdvance requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldInvoiceAutoAdvance: %w", err)
-	}
-	return oldValue.InvoiceAutoAdvance, nil
-}
-
-// ClearInvoiceAutoAdvance clears the value of the "invoice_auto_advance" field.
-func (m *BillingCustomerOverrideMutation) ClearInvoiceAutoAdvance() {
-	m.invoice_auto_advance = nil
-	m.clearedFields[billingcustomeroverride.FieldInvoiceAutoAdvance] = struct{}{}
-}
-
-// InvoiceAutoAdvanceCleared returns if the "invoice_auto_advance" field was cleared in this mutation.
-func (m *BillingCustomerOverrideMutation) InvoiceAutoAdvanceCleared() bool {
-	_, ok := m.clearedFields[billingcustomeroverride.FieldInvoiceAutoAdvance]
-	return ok
-}
-
-// ResetInvoiceAutoAdvance resets all changes to the "invoice_auto_advance" field.
-func (m *BillingCustomerOverrideMutation) ResetInvoiceAutoAdvance() {
-	m.invoice_auto_advance = nil
-	delete(m.clearedFields, billingcustomeroverride.FieldInvoiceAutoAdvance)
-}
-
-// SetInvoiceDraftPeriod sets the "invoice_draft_period" field.
-func (m *BillingCustomerOverrideMutation) SetInvoiceDraftPeriod(dds datetime.ISODurationString) {
-	m.invoice_draft_period = &dds
-}
-
-// InvoiceDraftPeriod returns the value of the "invoice_draft_period" field in the mutation.
-func (m *BillingCustomerOverrideMutation) InvoiceDraftPeriod() (r datetime.ISODurationString, exists bool) {
-	v := m.invoice_draft_period
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldInvoiceDraftPeriod returns the old "invoice_draft_period" field's value of the BillingCustomerOverride entity.
-// If the BillingCustomerOverride object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingCustomerOverrideMutation) OldInvoiceDraftPeriod(ctx context.Context) (v *datetime.ISODurationString, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldInvoiceDraftPeriod is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldInvoiceDraftPeriod requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldInvoiceDraftPeriod: %w", err)
-	}
-	return oldValue.InvoiceDraftPeriod, nil
-}
-
-// ClearInvoiceDraftPeriod clears the value of the "invoice_draft_period" field.
-func (m *BillingCustomerOverrideMutation) ClearInvoiceDraftPeriod() {
-	m.invoice_draft_period = nil
-	m.clearedFields[billingcustomeroverride.FieldInvoiceDraftPeriod] = struct{}{}
-}
-
-// InvoiceDraftPeriodCleared returns if the "invoice_draft_period" field was cleared in this mutation.
-func (m *BillingCustomerOverrideMutation) InvoiceDraftPeriodCleared() bool {
-	_, ok := m.clearedFields[billingcustomeroverride.FieldInvoiceDraftPeriod]
-	return ok
-}
-
-// ResetInvoiceDraftPeriod resets all changes to the "invoice_draft_period" field.
-func (m *BillingCustomerOverrideMutation) ResetInvoiceDraftPeriod() {
-	m.invoice_draft_period = nil
-	delete(m.clearedFields, billingcustomeroverride.FieldInvoiceDraftPeriod)
-}
-
-// SetInvoiceDueAfter sets the "invoice_due_after" field.
-func (m *BillingCustomerOverrideMutation) SetInvoiceDueAfter(dds datetime.ISODurationString) {
-	m.invoice_due_after = &dds
-}
-
-// InvoiceDueAfter returns the value of the "invoice_due_after" field in the mutation.
-func (m *BillingCustomerOverrideMutation) InvoiceDueAfter() (r datetime.ISODurationString, exists bool) {
-	v := m.invoice_due_after
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldInvoiceDueAfter returns the old "invoice_due_after" field's value of the BillingCustomerOverride entity.
-// If the BillingCustomerOverride object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingCustomerOverrideMutation) OldInvoiceDueAfter(ctx context.Context) (v *datetime.ISODurationString, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldInvoiceDueAfter is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldInvoiceDueAfter requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldInvoiceDueAfter: %w", err)
-	}
-	return oldValue.InvoiceDueAfter, nil
-}
-
-// ClearInvoiceDueAfter clears the value of the "invoice_due_after" field.
-func (m *BillingCustomerOverrideMutation) ClearInvoiceDueAfter() {
-	m.invoice_due_after = nil
-	m.clearedFields[billingcustomeroverride.FieldInvoiceDueAfter] = struct{}{}
-}
-
-// InvoiceDueAfterCleared returns if the "invoice_due_after" field was cleared in this mutation.
-func (m *BillingCustomerOverrideMutation) InvoiceDueAfterCleared() bool {
-	_, ok := m.clearedFields[billingcustomeroverride.FieldInvoiceDueAfter]
-	return ok
-}
-
-// ResetInvoiceDueAfter resets all changes to the "invoice_due_after" field.
-func (m *BillingCustomerOverrideMutation) ResetInvoiceDueAfter() {
-	m.invoice_due_after = nil
-	delete(m.clearedFields, billingcustomeroverride.FieldInvoiceDueAfter)
-}
-
-// SetInvoiceCollectionMethod sets the "invoice_collection_method" field.
-func (m *BillingCustomerOverrideMutation) SetInvoiceCollectionMethod(bm billing.CollectionMethod) {
-	m.invoice_collection_method = &bm
-}
-
-// InvoiceCollectionMethod returns the value of the "invoice_collection_method" field in the mutation.
-func (m *BillingCustomerOverrideMutation) InvoiceCollectionMethod() (r billing.CollectionMethod, exists bool) {
-	v := m.invoice_collection_method
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldInvoiceCollectionMethod returns the old "invoice_collection_method" field's value of the BillingCustomerOverride entity.
-// If the BillingCustomerOverride object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingCustomerOverrideMutation) OldInvoiceCollectionMethod(ctx context.Context) (v *billing.CollectionMethod, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldInvoiceCollectionMethod is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldInvoiceCollectionMethod requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldInvoiceCollectionMethod: %w", err)
-	}
-	return oldValue.InvoiceCollectionMethod, nil
-}
-
-// ClearInvoiceCollectionMethod clears the value of the "invoice_collection_method" field.
-func (m *BillingCustomerOverrideMutation) ClearInvoiceCollectionMethod() {
-	m.invoice_collection_method = nil
-	m.clearedFields[billingcustomeroverride.FieldInvoiceCollectionMethod] = struct{}{}
-}
-
-// InvoiceCollectionMethodCleared returns if the "invoice_collection_method" field was cleared in this mutation.
-func (m *BillingCustomerOverrideMutation) InvoiceCollectionMethodCleared() bool {
-	_, ok := m.clearedFields[billingcustomeroverride.FieldInvoiceCollectionMethod]
-	return ok
-}
-
-// ResetInvoiceCollectionMethod resets all changes to the "invoice_collection_method" field.
-func (m *BillingCustomerOverrideMutation) ResetInvoiceCollectionMethod() {
-	m.invoice_collection_method = nil
-	delete(m.clearedFields, billingcustomeroverride.FieldInvoiceCollectionMethod)
-}
-
-// SetInvoiceProgressiveBilling sets the "invoice_progressive_billing" field.
-func (m *BillingCustomerOverrideMutation) SetInvoiceProgressiveBilling(b bool) {
-	m.invoice_progressive_billing = &b
-}
-
-// InvoiceProgressiveBilling returns the value of the "invoice_progressive_billing" field in the mutation.
-func (m *BillingCustomerOverrideMutation) InvoiceProgressiveBilling() (r bool, exists bool) {
-	v := m.invoice_progressive_billing
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldInvoiceProgressiveBilling returns the old "invoice_progressive_billing" field's value of the BillingCustomerOverride entity.
-// If the BillingCustomerOverride object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingCustomerOverrideMutation) OldInvoiceProgressiveBilling(ctx context.Context) (v *bool, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldInvoiceProgressiveBilling is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldInvoiceProgressiveBilling requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldInvoiceProgressiveBilling: %w", err)
-	}
-	return oldValue.InvoiceProgressiveBilling, nil
-}
-
-// ClearInvoiceProgressiveBilling clears the value of the "invoice_progressive_billing" field.
-func (m *BillingCustomerOverrideMutation) ClearInvoiceProgressiveBilling() {
-	m.invoice_progressive_billing = nil
-	m.clearedFields[billingcustomeroverride.FieldInvoiceProgressiveBilling] = struct{}{}
-}
-
-// InvoiceProgressiveBillingCleared returns if the "invoice_progressive_billing" field was cleared in this mutation.
-func (m *BillingCustomerOverrideMutation) InvoiceProgressiveBillingCleared() bool {
-	_, ok := m.clearedFields[billingcustomeroverride.FieldInvoiceProgressiveBilling]
-	return ok
-}
-
-// ResetInvoiceProgressiveBilling resets all changes to the "invoice_progressive_billing" field.
-func (m *BillingCustomerOverrideMutation) ResetInvoiceProgressiveBilling() {
-	m.invoice_progressive_billing = nil
-	delete(m.clearedFields, billingcustomeroverride.FieldInvoiceProgressiveBilling)
-}
-
-// SetInvoiceDefaultTaxConfig sets the "invoice_default_tax_config" field.
-func (m *BillingCustomerOverrideMutation) SetInvoiceDefaultTaxConfig(pc productcatalog.TaxConfig) {
-	m.invoice_default_tax_config = &pc
-}
-
-// InvoiceDefaultTaxConfig returns the value of the "invoice_default_tax_config" field in the mutation.
-func (m *BillingCustomerOverrideMutation) InvoiceDefaultTaxConfig() (r productcatalog.TaxConfig, exists bool) {
-	v := m.invoice_default_tax_config
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldInvoiceDefaultTaxConfig returns the old "invoice_default_tax_config" field's value of the BillingCustomerOverride entity.
-// If the BillingCustomerOverride object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingCustomerOverrideMutation) OldInvoiceDefaultTaxConfig(ctx context.Context) (v productcatalog.TaxConfig, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldInvoiceDefaultTaxConfig is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldInvoiceDefaultTaxConfig requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldInvoiceDefaultTaxConfig: %w", err)
-	}
-	return oldValue.InvoiceDefaultTaxConfig, nil
-}
-
-// ClearInvoiceDefaultTaxConfig clears the value of the "invoice_default_tax_config" field.
-func (m *BillingCustomerOverrideMutation) ClearInvoiceDefaultTaxConfig() {
-	m.invoice_default_tax_config = nil
-	m.clearedFields[billingcustomeroverride.FieldInvoiceDefaultTaxConfig] = struct{}{}
-}
-
-// InvoiceDefaultTaxConfigCleared returns if the "invoice_default_tax_config" field was cleared in this mutation.
-func (m *BillingCustomerOverrideMutation) InvoiceDefaultTaxConfigCleared() bool {
-	_, ok := m.clearedFields[billingcustomeroverride.FieldInvoiceDefaultTaxConfig]
-	return ok
-}
-
-// ResetInvoiceDefaultTaxConfig resets all changes to the "invoice_default_tax_config" field.
-func (m *BillingCustomerOverrideMutation) ResetInvoiceDefaultTaxConfig() {
-	m.invoice_default_tax_config = nil
-	delete(m.clearedFields, billingcustomeroverride.FieldInvoiceDefaultTaxConfig)
-}
-
-// SetTaxCodeID sets the "tax_code_id" field.
-func (m *BillingCustomerOverrideMutation) SetTaxCodeID(s string) {
-	m.tax_code = &s
-}
-
-// TaxCodeID returns the value of the "tax_code_id" field in the mutation.
-func (m *BillingCustomerOverrideMutation) TaxCodeID() (r string, exists bool) {
-	v := m.tax_code
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldTaxCodeID returns the old "tax_code_id" field's value of the BillingCustomerOverride entity.
-// If the BillingCustomerOverride object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingCustomerOverrideMutation) OldTaxCodeID(ctx context.Context) (v *string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldTaxCodeID is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldTaxCodeID requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldTaxCodeID: %w", err)
-	}
-	return oldValue.TaxCodeID, nil
-}
-
-// ClearTaxCodeID clears the value of the "tax_code_id" field.
-func (m *BillingCustomerOverrideMutation) ClearTaxCodeID() {
-	m.tax_code = nil
-	m.clearedFields[billingcustomeroverride.FieldTaxCodeID] = struct{}{}
-}
-
-// TaxCodeIDCleared returns if the "tax_code_id" field was cleared in this mutation.
-func (m *BillingCustomerOverrideMutation) TaxCodeIDCleared() bool {
-	_, ok := m.clearedFields[billingcustomeroverride.FieldTaxCodeID]
-	return ok
-}
-
-// ResetTaxCodeID resets all changes to the "tax_code_id" field.
-func (m *BillingCustomerOverrideMutation) ResetTaxCodeID() {
-	m.tax_code = nil
-	delete(m.clearedFields, billingcustomeroverride.FieldTaxCodeID)
-}
-
-// SetTaxBehavior sets the "tax_behavior" field.
-func (m *BillingCustomerOverrideMutation) SetTaxBehavior(pb productcatalog.TaxBehavior) {
-	m.tax_behavior = &pb
-}
-
-// TaxBehavior returns the value of the "tax_behavior" field in the mutation.
-func (m *BillingCustomerOverrideMutation) TaxBehavior() (r productcatalog.TaxBehavior, exists bool) {
-	v := m.tax_behavior
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldTaxBehavior returns the old "tax_behavior" field's value of the BillingCustomerOverride entity.
-// If the BillingCustomerOverride object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingCustomerOverrideMutation) OldTaxBehavior(ctx context.Context) (v *productcatalog.TaxBehavior, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldTaxBehavior is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldTaxBehavior requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldTaxBehavior: %w", err)
-	}
-	return oldValue.TaxBehavior, nil
-}
-
-// ClearTaxBehavior clears the value of the "tax_behavior" field.
-func (m *BillingCustomerOverrideMutation) ClearTaxBehavior() {
-	m.tax_behavior = nil
-	m.clearedFields[billingcustomeroverride.FieldTaxBehavior] = struct{}{}
-}
-
-// TaxBehaviorCleared returns if the "tax_behavior" field was cleared in this mutation.
-func (m *BillingCustomerOverrideMutation) TaxBehaviorCleared() bool {
-	_, ok := m.clearedFields[billingcustomeroverride.FieldTaxBehavior]
-	return ok
-}
-
-// ResetTaxBehavior resets all changes to the "tax_behavior" field.
-func (m *BillingCustomerOverrideMutation) ResetTaxBehavior() {
-	m.tax_behavior = nil
-	delete(m.clearedFields, billingcustomeroverride.FieldTaxBehavior)
-}
-
 // ClearCustomer clears the "customer" edge to the Customer entity.
 func (m *BillingCustomerOverrideMutation) ClearCustomer() {
 	m.clearedcustomer = true
@@ -12009,33 +11458,6 @@ func (m *BillingCustomerOverrideMutation) ResetBillingProfile() {
 	m.clearedbilling_profile = false
 }
 
-// ClearTaxCode clears the "tax_code" edge to the TaxCode entity.
-func (m *BillingCustomerOverrideMutation) ClearTaxCode() {
-	m.clearedtax_code = true
-	m.clearedFields[billingcustomeroverride.FieldTaxCodeID] = struct{}{}
-}
-
-// TaxCodeCleared reports if the "tax_code" edge to the TaxCode entity was cleared.
-func (m *BillingCustomerOverrideMutation) TaxCodeCleared() bool {
-	return m.TaxCodeIDCleared() || m.clearedtax_code
-}
-
-// TaxCodeIDs returns the "tax_code" edge IDs in the mutation.
-// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
-// TaxCodeID instead. It exists only for internal usage by the builders.
-func (m *BillingCustomerOverrideMutation) TaxCodeIDs() (ids []string) {
-	if id := m.tax_code; id != nil {
-		ids = append(ids, *id)
-	}
-	return
-}
-
-// ResetTaxCode resets all changes to the "tax_code" edge.
-func (m *BillingCustomerOverrideMutation) ResetTaxCode() {
-	m.tax_code = nil
-	m.clearedtax_code = false
-}
-
 // Where appends a list predicates to the BillingCustomerOverrideMutation builder.
 func (m *BillingCustomerOverrideMutation) Where(ps ...predicate.BillingCustomerOverride) {
 	m.predicates = append(m.predicates, ps...)
@@ -12070,7 +11492,7 @@ func (m *BillingCustomerOverrideMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *BillingCustomerOverrideMutation) Fields() []string {
-	fields := make([]string, 0, 17)
+	fields := make([]string, 0, 6)
 	if m.namespace != nil {
 		fields = append(fields, billingcustomeroverride.FieldNamespace)
 	}
@@ -12088,39 +11510,6 @@ func (m *BillingCustomerOverrideMutation) Fields() []string {
 	}
 	if m.billing_profile != nil {
 		fields = append(fields, billingcustomeroverride.FieldBillingProfileID)
-	}
-	if m.collection_alignment != nil {
-		fields = append(fields, billingcustomeroverride.FieldCollectionAlignment)
-	}
-	if m.anchored_alignment_detail != nil {
-		fields = append(fields, billingcustomeroverride.FieldAnchoredAlignmentDetail)
-	}
-	if m.line_collection_period != nil {
-		fields = append(fields, billingcustomeroverride.FieldLineCollectionPeriod)
-	}
-	if m.invoice_auto_advance != nil {
-		fields = append(fields, billingcustomeroverride.FieldInvoiceAutoAdvance)
-	}
-	if m.invoice_draft_period != nil {
-		fields = append(fields, billingcustomeroverride.FieldInvoiceDraftPeriod)
-	}
-	if m.invoice_due_after != nil {
-		fields = append(fields, billingcustomeroverride.FieldInvoiceDueAfter)
-	}
-	if m.invoice_collection_method != nil {
-		fields = append(fields, billingcustomeroverride.FieldInvoiceCollectionMethod)
-	}
-	if m.invoice_progressive_billing != nil {
-		fields = append(fields, billingcustomeroverride.FieldInvoiceProgressiveBilling)
-	}
-	if m.invoice_default_tax_config != nil {
-		fields = append(fields, billingcustomeroverride.FieldInvoiceDefaultTaxConfig)
-	}
-	if m.tax_code != nil {
-		fields = append(fields, billingcustomeroverride.FieldTaxCodeID)
-	}
-	if m.tax_behavior != nil {
-		fields = append(fields, billingcustomeroverride.FieldTaxBehavior)
 	}
 	return fields
 }
@@ -12142,28 +11531,6 @@ func (m *BillingCustomerOverrideMutation) Field(name string) (ent.Value, bool) {
 		return m.CustomerID()
 	case billingcustomeroverride.FieldBillingProfileID:
 		return m.BillingProfileID()
-	case billingcustomeroverride.FieldCollectionAlignment:
-		return m.CollectionAlignment()
-	case billingcustomeroverride.FieldAnchoredAlignmentDetail:
-		return m.AnchoredAlignmentDetail()
-	case billingcustomeroverride.FieldLineCollectionPeriod:
-		return m.LineCollectionPeriod()
-	case billingcustomeroverride.FieldInvoiceAutoAdvance:
-		return m.InvoiceAutoAdvance()
-	case billingcustomeroverride.FieldInvoiceDraftPeriod:
-		return m.InvoiceDraftPeriod()
-	case billingcustomeroverride.FieldInvoiceDueAfter:
-		return m.InvoiceDueAfter()
-	case billingcustomeroverride.FieldInvoiceCollectionMethod:
-		return m.InvoiceCollectionMethod()
-	case billingcustomeroverride.FieldInvoiceProgressiveBilling:
-		return m.InvoiceProgressiveBilling()
-	case billingcustomeroverride.FieldInvoiceDefaultTaxConfig:
-		return m.InvoiceDefaultTaxConfig()
-	case billingcustomeroverride.FieldTaxCodeID:
-		return m.TaxCodeID()
-	case billingcustomeroverride.FieldTaxBehavior:
-		return m.TaxBehavior()
 	}
 	return nil, false
 }
@@ -12185,28 +11552,6 @@ func (m *BillingCustomerOverrideMutation) OldField(ctx context.Context, name str
 		return m.OldCustomerID(ctx)
 	case billingcustomeroverride.FieldBillingProfileID:
 		return m.OldBillingProfileID(ctx)
-	case billingcustomeroverride.FieldCollectionAlignment:
-		return m.OldCollectionAlignment(ctx)
-	case billingcustomeroverride.FieldAnchoredAlignmentDetail:
-		return m.OldAnchoredAlignmentDetail(ctx)
-	case billingcustomeroverride.FieldLineCollectionPeriod:
-		return m.OldLineCollectionPeriod(ctx)
-	case billingcustomeroverride.FieldInvoiceAutoAdvance:
-		return m.OldInvoiceAutoAdvance(ctx)
-	case billingcustomeroverride.FieldInvoiceDraftPeriod:
-		return m.OldInvoiceDraftPeriod(ctx)
-	case billingcustomeroverride.FieldInvoiceDueAfter:
-		return m.OldInvoiceDueAfter(ctx)
-	case billingcustomeroverride.FieldInvoiceCollectionMethod:
-		return m.OldInvoiceCollectionMethod(ctx)
-	case billingcustomeroverride.FieldInvoiceProgressiveBilling:
-		return m.OldInvoiceProgressiveBilling(ctx)
-	case billingcustomeroverride.FieldInvoiceDefaultTaxConfig:
-		return m.OldInvoiceDefaultTaxConfig(ctx)
-	case billingcustomeroverride.FieldTaxCodeID:
-		return m.OldTaxCodeID(ctx)
-	case billingcustomeroverride.FieldTaxBehavior:
-		return m.OldTaxBehavior(ctx)
 	}
 	return nil, fmt.Errorf("unknown BillingCustomerOverride field %s", name)
 }
@@ -12258,83 +11603,6 @@ func (m *BillingCustomerOverrideMutation) SetField(name string, value ent.Value)
 		}
 		m.SetBillingProfileID(v)
 		return nil
-	case billingcustomeroverride.FieldCollectionAlignment:
-		v, ok := value.(billing.AlignmentKind)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetCollectionAlignment(v)
-		return nil
-	case billingcustomeroverride.FieldAnchoredAlignmentDetail:
-		v, ok := value.(*billing.AnchoredAlignmentDetail)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetAnchoredAlignmentDetail(v)
-		return nil
-	case billingcustomeroverride.FieldLineCollectionPeriod:
-		v, ok := value.(datetime.ISODurationString)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetLineCollectionPeriod(v)
-		return nil
-	case billingcustomeroverride.FieldInvoiceAutoAdvance:
-		v, ok := value.(bool)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetInvoiceAutoAdvance(v)
-		return nil
-	case billingcustomeroverride.FieldInvoiceDraftPeriod:
-		v, ok := value.(datetime.ISODurationString)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetInvoiceDraftPeriod(v)
-		return nil
-	case billingcustomeroverride.FieldInvoiceDueAfter:
-		v, ok := value.(datetime.ISODurationString)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetInvoiceDueAfter(v)
-		return nil
-	case billingcustomeroverride.FieldInvoiceCollectionMethod:
-		v, ok := value.(billing.CollectionMethod)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetInvoiceCollectionMethod(v)
-		return nil
-	case billingcustomeroverride.FieldInvoiceProgressiveBilling:
-		v, ok := value.(bool)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetInvoiceProgressiveBilling(v)
-		return nil
-	case billingcustomeroverride.FieldInvoiceDefaultTaxConfig:
-		v, ok := value.(productcatalog.TaxConfig)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetInvoiceDefaultTaxConfig(v)
-		return nil
-	case billingcustomeroverride.FieldTaxCodeID:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetTaxCodeID(v)
-		return nil
-	case billingcustomeroverride.FieldTaxBehavior:
-		v, ok := value.(productcatalog.TaxBehavior)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetTaxBehavior(v)
-		return nil
 	}
 	return fmt.Errorf("unknown BillingCustomerOverride field %s", name)
 }
@@ -12371,39 +11639,6 @@ func (m *BillingCustomerOverrideMutation) ClearedFields() []string {
 	if m.FieldCleared(billingcustomeroverride.FieldBillingProfileID) {
 		fields = append(fields, billingcustomeroverride.FieldBillingProfileID)
 	}
-	if m.FieldCleared(billingcustomeroverride.FieldCollectionAlignment) {
-		fields = append(fields, billingcustomeroverride.FieldCollectionAlignment)
-	}
-	if m.FieldCleared(billingcustomeroverride.FieldAnchoredAlignmentDetail) {
-		fields = append(fields, billingcustomeroverride.FieldAnchoredAlignmentDetail)
-	}
-	if m.FieldCleared(billingcustomeroverride.FieldLineCollectionPeriod) {
-		fields = append(fields, billingcustomeroverride.FieldLineCollectionPeriod)
-	}
-	if m.FieldCleared(billingcustomeroverride.FieldInvoiceAutoAdvance) {
-		fields = append(fields, billingcustomeroverride.FieldInvoiceAutoAdvance)
-	}
-	if m.FieldCleared(billingcustomeroverride.FieldInvoiceDraftPeriod) {
-		fields = append(fields, billingcustomeroverride.FieldInvoiceDraftPeriod)
-	}
-	if m.FieldCleared(billingcustomeroverride.FieldInvoiceDueAfter) {
-		fields = append(fields, billingcustomeroverride.FieldInvoiceDueAfter)
-	}
-	if m.FieldCleared(billingcustomeroverride.FieldInvoiceCollectionMethod) {
-		fields = append(fields, billingcustomeroverride.FieldInvoiceCollectionMethod)
-	}
-	if m.FieldCleared(billingcustomeroverride.FieldInvoiceProgressiveBilling) {
-		fields = append(fields, billingcustomeroverride.FieldInvoiceProgressiveBilling)
-	}
-	if m.FieldCleared(billingcustomeroverride.FieldInvoiceDefaultTaxConfig) {
-		fields = append(fields, billingcustomeroverride.FieldInvoiceDefaultTaxConfig)
-	}
-	if m.FieldCleared(billingcustomeroverride.FieldTaxCodeID) {
-		fields = append(fields, billingcustomeroverride.FieldTaxCodeID)
-	}
-	if m.FieldCleared(billingcustomeroverride.FieldTaxBehavior) {
-		fields = append(fields, billingcustomeroverride.FieldTaxBehavior)
-	}
 	return fields
 }
 
@@ -12423,39 +11658,6 @@ func (m *BillingCustomerOverrideMutation) ClearField(name string) error {
 		return nil
 	case billingcustomeroverride.FieldBillingProfileID:
 		m.ClearBillingProfileID()
-		return nil
-	case billingcustomeroverride.FieldCollectionAlignment:
-		m.ClearCollectionAlignment()
-		return nil
-	case billingcustomeroverride.FieldAnchoredAlignmentDetail:
-		m.ClearAnchoredAlignmentDetail()
-		return nil
-	case billingcustomeroverride.FieldLineCollectionPeriod:
-		m.ClearLineCollectionPeriod()
-		return nil
-	case billingcustomeroverride.FieldInvoiceAutoAdvance:
-		m.ClearInvoiceAutoAdvance()
-		return nil
-	case billingcustomeroverride.FieldInvoiceDraftPeriod:
-		m.ClearInvoiceDraftPeriod()
-		return nil
-	case billingcustomeroverride.FieldInvoiceDueAfter:
-		m.ClearInvoiceDueAfter()
-		return nil
-	case billingcustomeroverride.FieldInvoiceCollectionMethod:
-		m.ClearInvoiceCollectionMethod()
-		return nil
-	case billingcustomeroverride.FieldInvoiceProgressiveBilling:
-		m.ClearInvoiceProgressiveBilling()
-		return nil
-	case billingcustomeroverride.FieldInvoiceDefaultTaxConfig:
-		m.ClearInvoiceDefaultTaxConfig()
-		return nil
-	case billingcustomeroverride.FieldTaxCodeID:
-		m.ClearTaxCodeID()
-		return nil
-	case billingcustomeroverride.FieldTaxBehavior:
-		m.ClearTaxBehavior()
 		return nil
 	}
 	return fmt.Errorf("unknown BillingCustomerOverride nullable field %s", name)
@@ -12483,54 +11685,18 @@ func (m *BillingCustomerOverrideMutation) ResetField(name string) error {
 	case billingcustomeroverride.FieldBillingProfileID:
 		m.ResetBillingProfileID()
 		return nil
-	case billingcustomeroverride.FieldCollectionAlignment:
-		m.ResetCollectionAlignment()
-		return nil
-	case billingcustomeroverride.FieldAnchoredAlignmentDetail:
-		m.ResetAnchoredAlignmentDetail()
-		return nil
-	case billingcustomeroverride.FieldLineCollectionPeriod:
-		m.ResetLineCollectionPeriod()
-		return nil
-	case billingcustomeroverride.FieldInvoiceAutoAdvance:
-		m.ResetInvoiceAutoAdvance()
-		return nil
-	case billingcustomeroverride.FieldInvoiceDraftPeriod:
-		m.ResetInvoiceDraftPeriod()
-		return nil
-	case billingcustomeroverride.FieldInvoiceDueAfter:
-		m.ResetInvoiceDueAfter()
-		return nil
-	case billingcustomeroverride.FieldInvoiceCollectionMethod:
-		m.ResetInvoiceCollectionMethod()
-		return nil
-	case billingcustomeroverride.FieldInvoiceProgressiveBilling:
-		m.ResetInvoiceProgressiveBilling()
-		return nil
-	case billingcustomeroverride.FieldInvoiceDefaultTaxConfig:
-		m.ResetInvoiceDefaultTaxConfig()
-		return nil
-	case billingcustomeroverride.FieldTaxCodeID:
-		m.ResetTaxCodeID()
-		return nil
-	case billingcustomeroverride.FieldTaxBehavior:
-		m.ResetTaxBehavior()
-		return nil
 	}
 	return fmt.Errorf("unknown BillingCustomerOverride field %s", name)
 }
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *BillingCustomerOverrideMutation) AddedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 2)
 	if m.customer != nil {
 		edges = append(edges, billingcustomeroverride.EdgeCustomer)
 	}
 	if m.billing_profile != nil {
 		edges = append(edges, billingcustomeroverride.EdgeBillingProfile)
-	}
-	if m.tax_code != nil {
-		edges = append(edges, billingcustomeroverride.EdgeTaxCode)
 	}
 	return edges
 }
@@ -12547,17 +11713,13 @@ func (m *BillingCustomerOverrideMutation) AddedIDs(name string) []ent.Value {
 		if id := m.billing_profile; id != nil {
 			return []ent.Value{*id}
 		}
-	case billingcustomeroverride.EdgeTaxCode:
-		if id := m.tax_code; id != nil {
-			return []ent.Value{*id}
-		}
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *BillingCustomerOverrideMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 2)
 	return edges
 }
 
@@ -12569,15 +11731,12 @@ func (m *BillingCustomerOverrideMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *BillingCustomerOverrideMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 2)
 	if m.clearedcustomer {
 		edges = append(edges, billingcustomeroverride.EdgeCustomer)
 	}
 	if m.clearedbilling_profile {
 		edges = append(edges, billingcustomeroverride.EdgeBillingProfile)
-	}
-	if m.clearedtax_code {
-		edges = append(edges, billingcustomeroverride.EdgeTaxCode)
 	}
 	return edges
 }
@@ -12590,8 +11749,6 @@ func (m *BillingCustomerOverrideMutation) EdgeCleared(name string) bool {
 		return m.clearedcustomer
 	case billingcustomeroverride.EdgeBillingProfile:
 		return m.clearedbilling_profile
-	case billingcustomeroverride.EdgeTaxCode:
-		return m.clearedtax_code
 	}
 	return false
 }
@@ -12606,9 +11763,6 @@ func (m *BillingCustomerOverrideMutation) ClearEdge(name string) error {
 	case billingcustomeroverride.EdgeBillingProfile:
 		m.ClearBillingProfile()
 		return nil
-	case billingcustomeroverride.EdgeTaxCode:
-		m.ClearTaxCode()
-		return nil
 	}
 	return fmt.Errorf("unknown BillingCustomerOverride unique edge %s", name)
 }
@@ -12622,9 +11776,6 @@ func (m *BillingCustomerOverrideMutation) ResetEdge(name string) error {
 		return nil
 	case billingcustomeroverride.EdgeBillingProfile:
 		m.ResetBillingProfile()
-		return nil
-	case billingcustomeroverride.EdgeTaxCode:
-		m.ResetTaxCode()
 		return nil
 	}
 	return fmt.Errorf("unknown BillingCustomerOverride edge %s", name)
@@ -127970,9 +127121,6 @@ type TaxCodeMutation struct {
 	billing_workflow_configs                 map[string]struct{}
 	removedbilling_workflow_configs          map[string]struct{}
 	clearedbilling_workflow_configs          bool
-	billing_customer_overrides               map[string]struct{}
-	removedbilling_customer_overrides        map[string]struct{}
-	clearedbilling_customer_overrides        bool
 	billing_invoice_lines                    map[string]struct{}
 	removedbilling_invoice_lines             map[string]struct{}
 	clearedbilling_invoice_lines             bool
@@ -128595,60 +127743,6 @@ func (m *TaxCodeMutation) ResetBillingWorkflowConfigs() {
 	m.billing_workflow_configs = nil
 	m.clearedbilling_workflow_configs = false
 	m.removedbilling_workflow_configs = nil
-}
-
-// AddBillingCustomerOverrideIDs adds the "billing_customer_overrides" edge to the BillingCustomerOverride entity by ids.
-func (m *TaxCodeMutation) AddBillingCustomerOverrideIDs(ids ...string) {
-	if m.billing_customer_overrides == nil {
-		m.billing_customer_overrides = make(map[string]struct{})
-	}
-	for i := range ids {
-		m.billing_customer_overrides[ids[i]] = struct{}{}
-	}
-}
-
-// ClearBillingCustomerOverrides clears the "billing_customer_overrides" edge to the BillingCustomerOverride entity.
-func (m *TaxCodeMutation) ClearBillingCustomerOverrides() {
-	m.clearedbilling_customer_overrides = true
-}
-
-// BillingCustomerOverridesCleared reports if the "billing_customer_overrides" edge to the BillingCustomerOverride entity was cleared.
-func (m *TaxCodeMutation) BillingCustomerOverridesCleared() bool {
-	return m.clearedbilling_customer_overrides
-}
-
-// RemoveBillingCustomerOverrideIDs removes the "billing_customer_overrides" edge to the BillingCustomerOverride entity by IDs.
-func (m *TaxCodeMutation) RemoveBillingCustomerOverrideIDs(ids ...string) {
-	if m.removedbilling_customer_overrides == nil {
-		m.removedbilling_customer_overrides = make(map[string]struct{})
-	}
-	for i := range ids {
-		delete(m.billing_customer_overrides, ids[i])
-		m.removedbilling_customer_overrides[ids[i]] = struct{}{}
-	}
-}
-
-// RemovedBillingCustomerOverrides returns the removed IDs of the "billing_customer_overrides" edge to the BillingCustomerOverride entity.
-func (m *TaxCodeMutation) RemovedBillingCustomerOverridesIDs() (ids []string) {
-	for id := range m.removedbilling_customer_overrides {
-		ids = append(ids, id)
-	}
-	return
-}
-
-// BillingCustomerOverridesIDs returns the "billing_customer_overrides" edge IDs in the mutation.
-func (m *TaxCodeMutation) BillingCustomerOverridesIDs() (ids []string) {
-	for id := range m.billing_customer_overrides {
-		ids = append(ids, id)
-	}
-	return
-}
-
-// ResetBillingCustomerOverrides resets all changes to the "billing_customer_overrides" edge.
-func (m *TaxCodeMutation) ResetBillingCustomerOverrides() {
-	m.billing_customer_overrides = nil
-	m.clearedbilling_customer_overrides = false
-	m.removedbilling_customer_overrides = nil
 }
 
 // AddBillingInvoiceLineIDs adds the "billing_invoice_lines" edge to the BillingInvoiceLine entity by ids.
@@ -129618,12 +128712,9 @@ func (m *TaxCodeMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *TaxCodeMutation) AddedEdges() []string {
-	edges := make([]string, 0, 14)
+	edges := make([]string, 0, 13)
 	if m.billing_workflow_configs != nil {
 		edges = append(edges, dbtaxcode.EdgeBillingWorkflowConfigs)
-	}
-	if m.billing_customer_overrides != nil {
-		edges = append(edges, dbtaxcode.EdgeBillingCustomerOverrides)
 	}
 	if m.billing_invoice_lines != nil {
 		edges = append(edges, dbtaxcode.EdgeBillingInvoiceLines)
@@ -129671,12 +128762,6 @@ func (m *TaxCodeMutation) AddedIDs(name string) []ent.Value {
 	case dbtaxcode.EdgeBillingWorkflowConfigs:
 		ids := make([]ent.Value, 0, len(m.billing_workflow_configs))
 		for id := range m.billing_workflow_configs {
-			ids = append(ids, id)
-		}
-		return ids
-	case dbtaxcode.EdgeBillingCustomerOverrides:
-		ids := make([]ent.Value, 0, len(m.billing_customer_overrides))
-		for id := range m.billing_customer_overrides {
 			ids = append(ids, id)
 		}
 		return ids
@@ -129758,12 +128843,9 @@ func (m *TaxCodeMutation) AddedIDs(name string) []ent.Value {
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *TaxCodeMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 14)
+	edges := make([]string, 0, 13)
 	if m.removedbilling_workflow_configs != nil {
 		edges = append(edges, dbtaxcode.EdgeBillingWorkflowConfigs)
-	}
-	if m.removedbilling_customer_overrides != nil {
-		edges = append(edges, dbtaxcode.EdgeBillingCustomerOverrides)
 	}
 	if m.removedbilling_invoice_lines != nil {
 		edges = append(edges, dbtaxcode.EdgeBillingInvoiceLines)
@@ -129811,12 +128893,6 @@ func (m *TaxCodeMutation) RemovedIDs(name string) []ent.Value {
 	case dbtaxcode.EdgeBillingWorkflowConfigs:
 		ids := make([]ent.Value, 0, len(m.removedbilling_workflow_configs))
 		for id := range m.removedbilling_workflow_configs {
-			ids = append(ids, id)
-		}
-		return ids
-	case dbtaxcode.EdgeBillingCustomerOverrides:
-		ids := make([]ent.Value, 0, len(m.removedbilling_customer_overrides))
-		for id := range m.removedbilling_customer_overrides {
 			ids = append(ids, id)
 		}
 		return ids
@@ -129898,12 +128974,9 @@ func (m *TaxCodeMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *TaxCodeMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 14)
+	edges := make([]string, 0, 13)
 	if m.clearedbilling_workflow_configs {
 		edges = append(edges, dbtaxcode.EdgeBillingWorkflowConfigs)
-	}
-	if m.clearedbilling_customer_overrides {
-		edges = append(edges, dbtaxcode.EdgeBillingCustomerOverrides)
 	}
 	if m.clearedbilling_invoice_lines {
 		edges = append(edges, dbtaxcode.EdgeBillingInvoiceLines)
@@ -129950,8 +129023,6 @@ func (m *TaxCodeMutation) EdgeCleared(name string) bool {
 	switch name {
 	case dbtaxcode.EdgeBillingWorkflowConfigs:
 		return m.clearedbilling_workflow_configs
-	case dbtaxcode.EdgeBillingCustomerOverrides:
-		return m.clearedbilling_customer_overrides
 	case dbtaxcode.EdgeBillingInvoiceLines:
 		return m.clearedbilling_invoice_lines
 	case dbtaxcode.EdgeBillingGatheringInvoiceLines:
@@ -129994,9 +129065,6 @@ func (m *TaxCodeMutation) ResetEdge(name string) error {
 	switch name {
 	case dbtaxcode.EdgeBillingWorkflowConfigs:
 		m.ResetBillingWorkflowConfigs()
-		return nil
-	case dbtaxcode.EdgeBillingCustomerOverrides:
-		m.ResetBillingCustomerOverrides()
 		return nil
 	case dbtaxcode.EdgeBillingInvoiceLines:
 		m.ResetBillingInvoiceLines()

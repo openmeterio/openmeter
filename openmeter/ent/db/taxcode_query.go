@@ -14,7 +14,6 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addonratecard"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinggatheringinvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
@@ -38,7 +37,6 @@ type TaxCodeQuery struct {
 	inters                             []Interceptor
 	predicates                         []predicate.TaxCode
 	withBillingWorkflowConfigs         *BillingWorkflowConfigQuery
-	withBillingCustomerOverrides       *BillingCustomerOverrideQuery
 	withBillingInvoiceLines            *BillingInvoiceLineQuery
 	withBillingGatheringInvoiceLines   *BillingGatheringInvoiceLineQuery
 	withSubscriptionItems              *SubscriptionItemQuery
@@ -103,28 +101,6 @@ func (_q *TaxCodeQuery) QueryBillingWorkflowConfigs() *BillingWorkflowConfigQuer
 			sqlgraph.From(dbtaxcode.Table, dbtaxcode.FieldID, selector),
 			sqlgraph.To(billingworkflowconfig.Table, billingworkflowconfig.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, dbtaxcode.BillingWorkflowConfigsTable, dbtaxcode.BillingWorkflowConfigsColumn),
-		)
-		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
-		return fromU, nil
-	}
-	return query
-}
-
-// QueryBillingCustomerOverrides chains the current query on the "billing_customer_overrides" edge.
-func (_q *TaxCodeQuery) QueryBillingCustomerOverrides() *BillingCustomerOverrideQuery {
-	query := (&BillingCustomerOverrideClient{config: _q.config}).Query()
-	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := _q.prepareQuery(ctx); err != nil {
-			return nil, err
-		}
-		selector := _q.sqlQuery(ctx)
-		if err := selector.Err(); err != nil {
-			return nil, err
-		}
-		step := sqlgraph.NewStep(
-			sqlgraph.From(dbtaxcode.Table, dbtaxcode.FieldID, selector),
-			sqlgraph.To(billingcustomeroverride.Table, billingcustomeroverride.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, dbtaxcode.BillingCustomerOverridesTable, dbtaxcode.BillingCustomerOverridesColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -589,7 +565,6 @@ func (_q *TaxCodeQuery) Clone() *TaxCodeQuery {
 		inters:                             append([]Interceptor{}, _q.inters...),
 		predicates:                         append([]predicate.TaxCode{}, _q.predicates...),
 		withBillingWorkflowConfigs:         _q.withBillingWorkflowConfigs.Clone(),
-		withBillingCustomerOverrides:       _q.withBillingCustomerOverrides.Clone(),
 		withBillingInvoiceLines:            _q.withBillingInvoiceLines.Clone(),
 		withBillingGatheringInvoiceLines:   _q.withBillingGatheringInvoiceLines.Clone(),
 		withSubscriptionItems:              _q.withSubscriptionItems.Clone(),
@@ -616,17 +591,6 @@ func (_q *TaxCodeQuery) WithBillingWorkflowConfigs(opts ...func(*BillingWorkflow
 		opt(query)
 	}
 	_q.withBillingWorkflowConfigs = query
-	return _q
-}
-
-// WithBillingCustomerOverrides tells the query-builder to eager-load the nodes that are connected to
-// the "billing_customer_overrides" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *TaxCodeQuery) WithBillingCustomerOverrides(opts ...func(*BillingCustomerOverrideQuery)) *TaxCodeQuery {
-	query := (&BillingCustomerOverrideClient{config: _q.config}).Query()
-	for _, opt := range opts {
-		opt(query)
-	}
-	_q.withBillingCustomerOverrides = query
 	return _q
 }
 
@@ -840,9 +804,8 @@ func (_q *TaxCodeQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*TaxC
 	var (
 		nodes       = []*TaxCode{}
 		_spec       = _q.querySpec()
-		loadedTypes = [14]bool{
+		loadedTypes = [13]bool{
 			_q.withBillingWorkflowConfigs != nil,
-			_q.withBillingCustomerOverrides != nil,
 			_q.withBillingInvoiceLines != nil,
 			_q.withBillingGatheringInvoiceLines != nil,
 			_q.withSubscriptionItems != nil,
@@ -883,15 +846,6 @@ func (_q *TaxCodeQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*TaxC
 			func(n *TaxCode) { n.Edges.BillingWorkflowConfigs = []*BillingWorkflowConfig{} },
 			func(n *TaxCode, e *BillingWorkflowConfig) {
 				n.Edges.BillingWorkflowConfigs = append(n.Edges.BillingWorkflowConfigs, e)
-			}); err != nil {
-			return nil, err
-		}
-	}
-	if query := _q.withBillingCustomerOverrides; query != nil {
-		if err := _q.loadBillingCustomerOverrides(ctx, query, nodes,
-			func(n *TaxCode) { n.Edges.BillingCustomerOverrides = []*BillingCustomerOverride{} },
-			func(n *TaxCode, e *BillingCustomerOverride) {
-				n.Edges.BillingCustomerOverrides = append(n.Edges.BillingCustomerOverrides, e)
 			}); err != nil {
 			return nil, err
 		}
@@ -1014,39 +968,6 @@ func (_q *TaxCodeQuery) loadBillingWorkflowConfigs(ctx context.Context, query *B
 	}
 	query.Where(predicate.BillingWorkflowConfig(func(s *sql.Selector) {
 		s.Where(sql.InValues(s.C(dbtaxcode.BillingWorkflowConfigsColumn), fks...))
-	}))
-	neighbors, err := query.All(ctx)
-	if err != nil {
-		return err
-	}
-	for _, n := range neighbors {
-		fk := n.TaxCodeID
-		if fk == nil {
-			return fmt.Errorf(`foreign-key "tax_code_id" is nil for node %v`, n.ID)
-		}
-		node, ok := nodeids[*fk]
-		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "tax_code_id" returned %v for node %v`, *fk, n.ID)
-		}
-		assign(node, n)
-	}
-	return nil
-}
-func (_q *TaxCodeQuery) loadBillingCustomerOverrides(ctx context.Context, query *BillingCustomerOverrideQuery, nodes []*TaxCode, init func(*TaxCode), assign func(*TaxCode, *BillingCustomerOverride)) error {
-	fks := make([]driver.Value, 0, len(nodes))
-	nodeids := make(map[string]*TaxCode)
-	for i := range nodes {
-		fks = append(fks, nodes[i].ID)
-		nodeids[nodes[i].ID] = nodes[i]
-		if init != nil {
-			init(nodes[i])
-		}
-	}
-	if len(query.ctx.Fields) > 0 {
-		query.ctx.AppendFieldOnce(billingcustomeroverride.FieldTaxCodeID)
-	}
-	query.Where(predicate.BillingCustomerOverride(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(dbtaxcode.BillingCustomerOverridesColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {

@@ -552,19 +552,8 @@ var (
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
-		{Name: "collection_alignment", Type: field.TypeEnum, Nullable: true, Enums: []string{"subscription", "anchored"}},
-		{Name: "anchored_alignment_detail", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
-		{Name: "line_collection_period", Type: field.TypeString, Nullable: true},
-		{Name: "invoice_auto_advance", Type: field.TypeBool, Nullable: true},
-		{Name: "invoice_draft_period", Type: field.TypeString, Nullable: true},
-		{Name: "invoice_due_after", Type: field.TypeString, Nullable: true},
-		{Name: "invoice_collection_method", Type: field.TypeEnum, Nullable: true, Enums: []string{"charge_automatically", "send_invoice"}},
-		{Name: "invoice_progressive_billing", Type: field.TypeBool, Nullable: true},
-		{Name: "invoice_default_tax_config", Type: field.TypeJSON, Nullable: true},
-		{Name: "tax_behavior", Type: field.TypeEnum, Nullable: true, Enums: []string{"inclusive", "exclusive"}},
 		{Name: "billing_profile_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "customer_id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
-		{Name: "tax_code_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// BillingCustomerOverridesTable holds the schema information for the "billing_customer_overrides" table.
 	BillingCustomerOverridesTable = &schema.Table{
@@ -574,21 +563,15 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "billing_customer_overrides_billing_profiles_billing_customer_override",
-				Columns:    []*schema.Column{BillingCustomerOverridesColumns[15]},
+				Columns:    []*schema.Column{BillingCustomerOverridesColumns[5]},
 				RefColumns: []*schema.Column{BillingProfilesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "billing_customer_overrides_customers_billing_customer_override",
-				Columns:    []*schema.Column{BillingCustomerOverridesColumns[16]},
+				Columns:    []*schema.Column{BillingCustomerOverridesColumns[6]},
 				RefColumns: []*schema.Column{CustomersColumns[0]},
 				OnDelete:   schema.Cascade,
-			},
-			{
-				Symbol:     "billing_customer_overrides_tax_codes_billing_customer_overrides",
-				Columns:    []*schema.Column{BillingCustomerOverridesColumns[17]},
-				RefColumns: []*schema.Column{TaxCodesColumns[0]},
-				OnDelete:   schema.SetNull,
 			},
 		},
 		Indexes: []*schema.Index{
@@ -603,11 +586,6 @@ var (
 				Columns: []*schema.Column{BillingCustomerOverridesColumns[1]},
 			},
 			{
-				Name:    "billingcustomeroverride_tax_code_id",
-				Unique:  false,
-				Columns: []*schema.Column{BillingCustomerOverridesColumns[17]},
-			},
-			{
 				Name:    "billingcustomeroverride_namespace_id",
 				Unique:  true,
 				Columns: []*schema.Column{BillingCustomerOverridesColumns[1], BillingCustomerOverridesColumns[0]},
@@ -615,7 +593,7 @@ var (
 			{
 				Name:    "billingcustomeroverride_namespace_customer_id",
 				Unique:  true,
-				Columns: []*schema.Column{BillingCustomerOverridesColumns[1], BillingCustomerOverridesColumns[16]},
+				Columns: []*schema.Column{BillingCustomerOverridesColumns[1], BillingCustomerOverridesColumns[6]},
 			},
 		},
 	}
@@ -6239,7 +6217,6 @@ func init() {
 	BalanceSnapshotsTable.ForeignKeys[0].RefTable = EntitlementsTable
 	BillingCustomerOverridesTable.ForeignKeys[0].RefTable = BillingProfilesTable
 	BillingCustomerOverridesTable.ForeignKeys[1].RefTable = CustomersTable
-	BillingCustomerOverridesTable.ForeignKeys[2].RefTable = TaxCodesTable
 	BillingGatheringInvoiceLinesTable.ForeignKeys[0].RefTable = BillingInvoicesTable
 	BillingGatheringInvoiceLinesTable.ForeignKeys[1].RefTable = BillingInvoiceSplitLineGroupsTable
 	BillingGatheringInvoiceLinesTable.ForeignKeys[2].RefTable = ChargesTable
