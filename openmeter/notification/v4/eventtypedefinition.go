@@ -1,12 +1,14 @@
 package v4
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"slices"
 
+	"github.com/openmeterio/openmeter/pkg/equal"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -22,7 +24,18 @@ type RuleConfigDefinition struct {
 	Validator RuleConfigValidatorFunc `json:"-"`
 }
 
-var _ models.Validator = (*EventTypeDefinition)(nil)
+var _ models.Equaler[RuleConfigDefinition] = (*RuleConfigDefinition)(nil)
+
+// Equal compares the schema only; Validator is a function and not comparable.
+func (c RuleConfigDefinition) Equal(other RuleConfigDefinition) bool {
+	return bytes.Equal(c.JSONSchema, other.JSONSchema)
+}
+
+var (
+	_ models.Validator                            = (*EventTypeDefinition)(nil)
+	_ models.CustomValidator[EventTypeDefinition] = (*EventTypeDefinition)(nil)
+	_ models.Equaler[EventTypeDefinition]         = (*EventTypeDefinition)(nil)
+)
 
 // EventTypeDefinition binds an Event type to the contracts generated from its
 // TypeSpec models. Released definitions are immutable: a changed contract is a
@@ -72,6 +85,19 @@ func (d EventTypeDefinition) Validate() error {
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+func (d EventTypeDefinition) ValidateWith(validators ...models.ValidatorFunc[EventTypeDefinition]) error {
+	return models.Validate(d, validators...)
+}
+
+// Equal compares the contract: identity, byte-equal schemas, Rule capability,
+// and replacement.
+func (d EventTypeDefinition) Equal(other EventTypeDefinition) bool {
+	return d.EventType == other.EventType &&
+		bytes.Equal(d.PayloadJSONSchema, other.PayloadJSONSchema) &&
+		equal.PtrEqual(d.Rule, other.Rule) &&
+		equal.ComparablePtrEqual(d.DeprecatedBy, other.DeprecatedBy)
 }
 
 // clone returns a copy that shares no mutable memory with d. The Rule
