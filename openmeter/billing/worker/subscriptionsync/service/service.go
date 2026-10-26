@@ -28,6 +28,8 @@ type FeatureFlags struct {
 	MaxLinesPerCollectedInvoice     int
 }
 
+var _ models.Validator = (*Config)(nil)
+
 type Config struct {
 	BillingService          billing.Service
 	SplitLineGroupService   splitlinegroup.Service
@@ -44,39 +46,41 @@ type Config struct {
 }
 
 func (c Config) Validate() error {
+	var errs []error
+
 	if c.SplitLineGroupService == nil {
-		return errors.New("split line group service is required")
+		errs = append(errs, errors.New("split line group service is required"))
 	}
 
 	if c.BillingService == nil {
-		return fmt.Errorf("billing service is required")
+		errs = append(errs, errors.New("billing service is required"))
 	}
 
 	if c.LegacyBillingLineEngine == nil {
-		return fmt.Errorf("legacy billing line engine is required")
+		errs = append(errs, errors.New("legacy billing line engine is required"))
 	}
 
 	if c.SubscriptionService == nil {
-		return fmt.Errorf("subscription service is required")
+		errs = append(errs, errors.New("subscription service is required"))
 	}
 
 	if c.SubscriptionSyncAdapter == nil {
-		return fmt.Errorf("subscription sync adapter is required")
+		errs = append(errs, errors.New("subscription sync adapter is required"))
 	}
 
 	if c.Logger == nil {
-		return fmt.Errorf("logger is required")
+		errs = append(errs, errors.New("logger is required"))
 	}
 
 	if c.Tracer == nil {
-		return fmt.Errorf("tracer is required")
+		errs = append(errs, errors.New("tracer is required"))
 	}
 
 	if err := c.FeatureGate.Validate(); err != nil {
-		return err
+		errs = append(errs, fmt.Errorf("feature gate: %w", err))
 	}
 
-	return nil
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 var _ subscriptionsync.Service = (*Service)(nil)
