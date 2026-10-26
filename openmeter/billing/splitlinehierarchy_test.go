@@ -39,6 +39,20 @@ func TestSplitLineHierarchyPreviouslyBilledAmountExcludesGatheringLines(t *testi
 	require.Equal(t, float64(40), amount.InexactFloat64())
 }
 
+func TestSplitLineHierarchyPreviouslyBilledAmountNetsDiscounts(t *testing.T) {
+	hierarchy := SplitLineHierarchy{
+		Lines: []SplitLineHierarchyLine{{
+			Invoice:        SplitLineHierarchyInvoice{Type: InvoiceTypeStandard, Status: StandardInvoiceStatusPaid},
+			Amount:         alpacadecimal.NewFromInt(100),
+			DiscountsTotal: alpacadecimal.NewFromInt(40),
+		}},
+	}
+
+	amount, err := hierarchy.SumNetAmount(SumNetAmountInput{})
+	require.NoError(t, err)
+	require.Equal(t, float64(60), amount.InexactFloat64())
+}
+
 func TestSplitLineHierarchyCloneDoesNotShareMutableFields(t *testing.T) {
 	// Given a hierarchy with subscriptions, deletion timestamps, and nested annotations.
 	now := time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC)

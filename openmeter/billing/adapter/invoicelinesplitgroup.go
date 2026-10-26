@@ -306,12 +306,13 @@ func (a *adapter) mapSplitLineHierarchyLinesFromDB(dbLines []*db.BillingInvoiceL
 				From: dbLine.PeriodStart.UTC(),
 				To:   dbLine.PeriodEnd.UTC(),
 			},
-			ManagedBy:    dbLine.ManagedBy,
-			Annotations:  dbLine.Annotations,
-			Subscription: subscription,
-			InvoiceAt:    dbLine.InvoiceAt.UTC(),
-			Amount:       dbLine.Amount,
-			ChargesTotal: dbLine.ChargesTotal,
+			ManagedBy:      dbLine.ManagedBy,
+			Annotations:    dbLine.Annotations,
+			Subscription:   subscription,
+			InvoiceAt:      dbLine.InvoiceAt.UTC(),
+			Amount:         dbLine.Amount,
+			DiscountsTotal: dbLine.DiscountsTotal,
+			ChargesTotal:   dbLine.ChargesTotal,
 		}, nil
 	})
 }
