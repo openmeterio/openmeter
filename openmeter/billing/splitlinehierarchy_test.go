@@ -40,17 +40,28 @@ func TestSplitLineHierarchyPreviouslyBilledAmountExcludesGatheringLines(t *testi
 }
 
 func TestSplitLineHierarchyPreviouslyBilledAmountNetsDiscounts(t *testing.T) {
+	// Given a paid line with gross amount 100, discount 40, and an additional charge of 10.
 	hierarchy := SplitLineHierarchy{
 		Lines: []SplitLineHierarchyLine{{
-			Invoice:        SplitLineHierarchyInvoice{Type: InvoiceTypeStandard, Status: StandardInvoiceStatusPaid},
+			Invoice: SplitLineHierarchyInvoice{
+				Type:   InvoiceTypeStandard,
+				Status: StandardInvoiceStatusPaid,
+			},
 			Amount:         alpacadecimal.NewFromInt(100),
 			DiscountsTotal: alpacadecimal.NewFromInt(40),
+			ChargesTotal:   alpacadecimal.NewFromInt(10),
 		}},
 	}
 
+	// When history is summed for spend commitments, discounts reduce the contribution.
 	amount, err := hierarchy.SumNetAmount(SumNetAmountInput{})
 	require.NoError(t, err)
 	require.Equal(t, float64(60), amount.InexactFloat64())
+
+	// Then charges only contribute when explicitly requested.
+	amountWithCharges, err := hierarchy.SumNetAmount(SumNetAmountInput{IncludeCharges: true})
+	require.NoError(t, err)
+	require.Equal(t, float64(70), amountWithCharges.InexactFloat64())
 }
 
 func TestSplitLineHierarchyCloneDoesNotShareMutableFields(t *testing.T) {
