@@ -11,6 +11,7 @@ import {
   deleteCustomer,
   getCustomerBilling,
   updateCustomerBilling,
+  updateCustomerBillingProfile,
   updateCustomerBillingAppData,
   createCustomerStripeCheckoutSession,
   createCustomerStripePortalSession,
@@ -49,6 +50,8 @@ import type {
   GetCustomerBillingResponse,
   UpdateCustomerBillingRequest,
   UpdateCustomerBillingResponse,
+  UpdateCustomerBillingProfileRequest,
+  UpdateCustomerBillingProfileResponse,
   UpdateCustomerBillingAppDataRequest,
   UpdateCustomerBillingAppDataResponse,
   CreateCustomerStripeCheckoutSessionRequest,
@@ -223,6 +226,10 @@ export class CustomersBilling {
   /**
    * Update customer billing data
    *
+   * Update billing data while preserving the current profile selection when
+   * billing_profile is omitted or null. Use the dedicated billing profile endpoint
+   * to remove the selection.
+   *
    * PUT /openmeter/customers/{customerId}/billing
    */
   async update(
@@ -230,6 +237,24 @@ export class CustomersBilling {
     options?: RequestOptions,
   ): Promise<UpdateCustomerBillingResponse> {
     return unwrap(await updateCustomerBilling(this._client, request, options))
+  }
+
+  /**
+   * Update customer billing profile
+   *
+   * Set the customer's explicit billing profile selection. Omitting billing_profile
+   * or setting it to null removes the selection and uses the current namespace
+   * default.
+   *
+   * PUT /openmeter/customers/{customerId}/billing/profile
+   */
+  async updateProfile(
+    request: UpdateCustomerBillingProfileRequest,
+    options?: RequestOptions,
+  ): Promise<UpdateCustomerBillingProfileResponse> {
+    return unwrap(
+      await updateCustomerBillingProfile(this._client, request, options),
+    )
   }
 
   /**

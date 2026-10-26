@@ -10,6 +10,7 @@ import (
 
 	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/go-chi/chi/v5"
+	"github.com/oapi-codegen/nullable"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
@@ -94,7 +95,7 @@ func TestCustomerBillingV3(t *testing.T) {
 		var got api.BillingCustomerData
 		require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &got))
 		require.Equal(t, api.BillingProfileReference{Id: pinnedProfile.ID}, got.EffectiveBillingProfile)
-		require.Equal(t, &api.BillingProfileReference{Id: pinnedProfile.ID}, got.BillingProfile)
+		require.Equal(t, nullable.NewNullableWithValue(api.BillingProfileReference{Id: pinnedProfile.ID}), got.BillingProfile)
 
 		override, err := env.Billing().GetCustomerBillingProfile(ctx, billing.GetCustomerBillingProfileInput{
 			Customer: cus.GetID(),
@@ -143,13 +144,12 @@ func TestCustomerBillingV3(t *testing.T) {
 				require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &got))
 				require.Equal(t, tc.effectiveID, got.EffectiveBillingProfile.Id)
 				if tc.pinID == "" {
-					require.Nil(t, got.BillingProfile)
+					require.False(t, got.BillingProfile.IsSpecified())
 					var fields map[string]json.RawMessage
 					require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &fields))
 					require.NotContains(t, fields, "billing_profile")
 				} else {
-					require.NotNil(t, got.BillingProfile)
-					require.Equal(t, tc.pinID, got.BillingProfile.Id)
+					require.Equal(t, nullable.NewNullableWithValue(api.BillingProfileReference{Id: tc.pinID}), got.BillingProfile)
 				}
 			}
 		})
@@ -166,8 +166,7 @@ func TestCustomerBillingV3(t *testing.T) {
 		require.Equal(t, http.StatusOK, rec.Code, "body: %s", rec.Body.String())
 		var got api.BillingCustomerData
 		require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &got))
-		require.NotNil(t, got.BillingProfile)
-		require.Equal(t, defaultProfile.ID, got.BillingProfile.Id)
+		require.Equal(t, nullable.NewNullableWithValue(api.BillingProfileReference{Id: defaultProfile.ID}), got.BillingProfile)
 		require.Equal(t, defaultProfile.ID, got.EffectiveBillingProfile.Id)
 	})
 
@@ -213,7 +212,7 @@ func TestCustomerBillingV3(t *testing.T) {
 
 		var got api.BillingCustomerData
 		require.NoError(t, json.Unmarshal(getRec.Body.Bytes(), &got))
-		require.Equal(t, &api.BillingProfileReference{Id: pinnedProfile.ID}, got.BillingProfile)
+		require.Equal(t, nullable.NewNullableWithValue(api.BillingProfileReference{Id: pinnedProfile.ID}), got.BillingProfile)
 		require.Equal(t, api.BillingProfileReference{Id: pinnedProfile.ID}, got.EffectiveBillingProfile)
 		require.NotNil(t, got.AppData)
 		stripeData, err := got.AppData.Stripe.Get()
@@ -420,6 +419,9 @@ func newCustomerBillingRouter(t *testing.T, env TestEnv, namespace string) http.
 	}))
 	router.Put("/openmeter/customers/{customerId}/billing", func(w http.ResponseWriter, r *http.Request) {
 		handler.UpdateCustomerBilling().With(chi.URLParam(r, "customerId")).ServeHTTP(w, r)
+	})
+	router.Put("/openmeter/customers/{customerId}/billing/profile", func(w http.ResponseWriter, r *http.Request) {
+		handler.UpdateCustomerBillingProfile().With(chi.URLParam(r, "customerId")).ServeHTTP(w, r)
 	})
 	router.Put("/openmeter/customers/{customerId}/billing/app-data", func(w http.ResponseWriter, r *http.Request) {
 		handler.UpdateCustomerBillingAppData().With(chi.URLParam(r, "customerId")).ServeHTTP(w, r)

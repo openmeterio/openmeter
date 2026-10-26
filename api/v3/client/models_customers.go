@@ -1510,19 +1510,32 @@ type CurrencyCustomReference struct {
 type CustomerData struct {
 	// The billing profile explicitly selected for the customer.
 	//
-	// If not provided, the default billing profile will be used.
-	BillingProfile *ProfileReference `json:"billing_profile,omitempty"`
-	// App customer data.
-	AppData *AppCustomerData `json:"app_data,omitempty"`
+	// Unpinned customers use the current namespace default. Selecting the current
+	// default explicitly pins the customer to that profile.
+	BillingProfile Nullable[ProfileReference] `json:"billing_profile,omitempty"`
 	// The effective billing profile for the customer. Uses the explicitly selected
 	// billing profile when pinned, otherwise the current default billing profile.
 	EffectiveBillingProfile ProfileReference `json:"effective_billing_profile"`
+	// App customer data.
+	AppData *AppCustomerData `json:"app_data,omitempty"`
 }
 
 // Page paginated response.
 type CustomerPagePaginatedResponse struct {
 	Data []Customer    `json:"data"`
 	Meta PaginatedMeta `json:"meta"`
+}
+
+// Customer billing profile selection.
+type CustomerProfile struct {
+	// The billing profile explicitly selected for the customer.
+	//
+	// Unpinned customers use the current namespace default. Selecting the current
+	// default explicitly pins the customer to that profile.
+	BillingProfile Nullable[ProfileReference] `json:"billing_profile,omitempty"`
+	// The effective billing profile for the customer. Uses the explicitly selected
+	// billing profile when pinned, otherwise the current default billing profile.
+	EffectiveBillingProfile ProfileReference `json:"effective_billing_profile"`
 }
 
 // Request to create a Stripe Checkout Session for the customer.
@@ -1787,10 +1800,20 @@ type UpsertAppCustomerDataRequest struct {
 type UpsertCustomerBillingDataRequest struct {
 	// The billing profile explicitly selected for the customer.
 	//
-	// If not provided, the default billing profile will be used.
-	BillingProfile *ProfileReference `json:"billing_profile,omitempty"`
+	// Unpinned customers use the current namespace default. Selecting the current
+	// default explicitly pins the customer to that profile.
+	BillingProfile Nullable[ProfileReference] `json:"billing_profile,omitempty"`
 	// App customer data.
 	AppData *AppCustomerDataInput `json:"app_data,omitempty"`
+}
+
+// CustomerBillingProfile upsert request.
+type UpsertCustomerBillingProfileRequest struct {
+	// The billing profile explicitly selected for the customer.
+	//
+	// Unpinned customers use the current namespace default. Selecting the current
+	// default explicitly pins the customer to that profile.
+	BillingProfile Nullable[ProfileReference] `json:"billing_profile,omitempty"`
 }
 
 // Customer upsert request.

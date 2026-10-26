@@ -27,6 +27,8 @@ import type {
   GetCustomerBillingResponse,
   UpdateCustomerBillingRequest,
   UpdateCustomerBillingResponse,
+  UpdateCustomerBillingProfileRequest,
+  UpdateCustomerBillingProfileResponse,
   UpdateCustomerBillingAppDataRequest,
   UpdateCustomerBillingAppDataResponse,
   CreateCustomerStripeCheckoutSessionRequest,
@@ -289,6 +291,10 @@ export function getCustomerBilling(
 /**
  * Update customer billing data
  *
+ * Update billing data while preserving the current profile selection when
+ * billing_profile is omitted or null. Use the dedicated billing profile endpoint
+ * to remove the selection.
+ *
  * PUT /openmeter/customers/{customerId}/billing
  */
 export function updateCustomerBilling(
@@ -324,6 +330,58 @@ export function updateCustomerBilling(
           assertValid(schemas.updateCustomerBillingResponseWire, data)
         }
         return fromWire(data, schemas.updateCustomerBillingResponse)
+      })
+  })
+}
+
+/**
+ * Update customer billing profile
+ *
+ * Set the customer's explicit billing profile selection. Omitting billing_profile
+ * or setting it to null removes the selection and uses the current namespace
+ * default.
+ *
+ * PUT /openmeter/customers/{customerId}/billing/profile
+ */
+export function updateCustomerBillingProfile(
+  client: Client,
+  req: UpdateCustomerBillingProfileRequest,
+  options?: RequestOptions,
+): Promise<Result<UpdateCustomerBillingProfileResponse>> {
+  return request(() => {
+    const pathParamsInput = {
+      customerId: req.customerId,
+    }
+    const pathParams = client._options.validate
+      ? toPathWire(
+          pathParamsInput,
+          schemas.updateCustomerBillingProfilePathParams,
+        )
+      : pathParamsInput
+    if (client._options.validate) {
+      assertValid(
+        schemas.updateCustomerBillingProfilePathParamsWire,
+        pathParams,
+      )
+    }
+    const path = `openmeter/customers/${(() => {
+      if (pathParams.customerId === undefined) {
+        throw new Error('missing path parameter: customerId')
+      }
+      return encodeURIComponent(String(pathParams.customerId))
+    })()}/billing/profile`
+    const body = toWire(req.body, schemas.updateCustomerBillingProfileBody)
+    if (client._options.validate) {
+      assertValid(schemas.updateCustomerBillingProfileBodyWire, body)
+    }
+    return http(client)
+      .put(path, { ...options, json: body })
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(schemas.updateCustomerBillingProfileResponseWire, data)
+        }
+        return fromWire(data, schemas.updateCustomerBillingProfileResponse)
       })
   })
 }

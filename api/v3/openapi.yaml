@@ -1291,6 +1291,10 @@ paths:
     put:
       operationId: update-customer-billing
       summary: Update customer billing data
+      description: |-
+        Update billing data while preserving the current profile selection when
+        billing_profile is omitted or null. Use the dedicated billing profile endpoint
+        to remove the selection.
       parameters:
         - name: customerId
           in: path
@@ -1357,6 +1361,45 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/UpsertAppCustomerDataRequest'
+  /openmeter/customers/{customerId}/billing/profile:
+    put:
+      operationId: update-customer-billing-profile
+      summary: Update customer billing profile
+      description: |-
+        Set the customer's explicit billing profile selection. Omitting billing_profile
+        or setting it to null removes the selection and uses the current namespace
+        default.
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: CustomerBillingProfile upsert response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingCustomerProfile'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '410':
+          $ref: '#/components/responses/Gone'
+      tags:
+        - OpenMeter Customers
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpsertCustomerBillingProfileRequest'
   /openmeter/customers/{customerId}/billing/stripe/checkout-sessions:
     post:
       operationId: create-customer-stripe-checkout-session
@@ -8718,18 +8761,47 @@ components:
         - effective_billing_profile
       properties:
         billing_profile:
+          type: object
           allOf:
             - $ref: '#/components/schemas/BillingProfileReference'
+          nullable: true
           description: |-
             The billing profile explicitly selected for the customer.
 
-            If not provided, the default billing profile will be used.
+            Unpinned customers use the current namespace default. Selecting the current
+            default explicitly pins the customer to that profile.
           title: Billing profile
+        effective_billing_profile:
+          allOf:
+            - $ref: '#/components/schemas/BillingProfileReference'
+          description: |-
+            The effective billing profile for the customer. Uses the explicitly selected
+            billing profile when pinned, otherwise the current default billing profile.
+          title: Effective billing profile
+          readOnly: true
         app_data:
           allOf:
             - $ref: '#/components/schemas/BillingAppCustomerData'
           description: App customer data.
           title: App customer data
+      additionalProperties: false
+      description: Billing customer data.
+    BillingCustomerProfile:
+      type: object
+      required:
+        - effective_billing_profile
+      properties:
+        billing_profile:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/BillingProfileReference'
+          nullable: true
+          description: |-
+            The billing profile explicitly selected for the customer.
+
+            Unpinned customers use the current namespace default. Selecting the current
+            default explicitly pins the customer to that profile.
+          title: Billing profile
         effective_billing_profile:
           allOf:
             - $ref: '#/components/schemas/BillingProfileReference'
@@ -8739,7 +8811,7 @@ components:
           title: Effective billing profile
           readOnly: true
       additionalProperties: false
-      description: Billing customer data.
+      description: Customer billing profile selection.
     BillingCustomerStripeCreateCheckoutSessionRequest:
       type: object
       required:
@@ -19831,12 +19903,15 @@ components:
       type: object
       properties:
         billing_profile:
+          type: object
           allOf:
             - $ref: '#/components/schemas/BillingProfileReference'
+          nullable: true
           description: |-
             The billing profile explicitly selected for the customer.
 
-            If not provided, the default billing profile will be used.
+            Unpinned customers use the current namespace default. Selecting the current
+            default explicitly pins the customer to that profile.
           title: Billing profile
         app_data:
           allOf:
@@ -19845,6 +19920,22 @@ components:
           title: App customer data
       additionalProperties: false
       description: CustomerBillingData upsert request.
+    UpsertCustomerBillingProfileRequest:
+      type: object
+      properties:
+        billing_profile:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/BillingProfileReference'
+          nullable: true
+          description: |-
+            The billing profile explicitly selected for the customer.
+
+            Unpinned customers use the current namespace default. Selecting the current
+            default explicitly pins the customer to that profile.
+          title: Billing profile
+      additionalProperties: false
+      description: CustomerBillingProfile upsert request.
     UpsertCustomerRequest:
       type: object
       required:

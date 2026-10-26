@@ -12,6 +12,7 @@ import (
 )
 
 type Handler interface {
+	UpdateCustomerBillingProfile() UpdateCustomerBillingProfileHandler
 	GetCustomerBilling() GetCustomerBillingHandler
 	UpdateCustomerBilling() UpdateCustomerBillingHandler
 	UpdateCustomerBillingAppData() UpdateCustomerBillingAppDataHandler

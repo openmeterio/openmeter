@@ -34,6 +34,9 @@ func (s *CustomersBillingService) Get(ctx context.Context, customerID string) (*
 	return &out, nil
 }
 
+// Update billing data while preserving the current profile selection when
+// billing_profile is omitted or null. Use the dedicated billing profile endpoint
+// to remove the selection.
 func (s *CustomersBillingService) Update(ctx context.Context, customerID string, request UpsertCustomerBillingDataRequest) (*CustomerData, error) {
 	if customerID == "" {
 		return nil, fmt.Errorf("openmeter: %s must not be empty: %w", "customerID", ErrEmptyID)
@@ -49,6 +52,31 @@ func (s *CustomersBillingService) Update(ctx context.Context, customerID string,
 	}
 
 	var out CustomerData
+	if err := s.client.doJSON(req, &out); err != nil {
+		return nil, err
+	}
+
+	return &out, nil
+}
+
+// Set the customer's explicit billing profile selection. Omitting billing_profile
+// or setting it to null removes the selection and uses the current namespace
+// default.
+func (s *CustomersBillingService) UpdateProfile(ctx context.Context, customerID string, request UpsertCustomerBillingProfileRequest) (*CustomerProfile, error) {
+	if customerID == "" {
+		return nil, fmt.Errorf("openmeter: %s must not be empty: %w", "customerID", ErrEmptyID)
+	}
+
+	path := "/openmeter/customers/{customerId}/billing/profile"
+
+	path = replacePathParam(path, "customerId", customerID)
+
+	req, err := s.client.newRequestWithContentType(ctx, http.MethodPut, path, nil, request, "application/json", "application/json")
+	if err != nil {
+		return nil, err
+	}
+
+	var out CustomerProfile
 	if err := s.client.doJSON(req, &out); err != nil {
 		return nil, err
 	}

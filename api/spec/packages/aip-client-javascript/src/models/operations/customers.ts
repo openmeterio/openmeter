@@ -23,6 +23,7 @@ import type {
   Customer,
   CustomerData,
   CustomerPagePaginatedResponse,
+  CustomerProfile,
   CustomerStripeCreateCheckoutSessionRequestInput,
   CustomerStripeCreateCustomerPortalSessionRequest,
   Entitlement,
@@ -43,6 +44,7 @@ import type {
   UpdateCreditGrantExternalSettlementRequest as UpdateCreditGrantExternalSettlementRequestBody,
   UpsertAppCustomerDataRequest,
   UpsertCustomerBillingDataRequest,
+  UpsertCustomerBillingProfileRequest,
   UpsertCustomerRequest as UpsertCustomerRequestBody,
   VoidCreditGrantRequestInput,
 } from '../types.js'
@@ -101,6 +103,12 @@ export type UpdateCustomerBillingRequest = AcceptDateStrings<{
   body: UpsertCustomerBillingDataRequest
 }>
 export type UpdateCustomerBillingResponse = CustomerData
+
+export type UpdateCustomerBillingProfileRequest = AcceptDateStrings<{
+  customerId: string
+  body: UpsertCustomerBillingProfileRequest
+}>
+export type UpdateCustomerBillingProfileResponse = CustomerProfile
 
 export type UpdateCustomerBillingAppDataRequest = AcceptDateStrings<{
   customerId: string

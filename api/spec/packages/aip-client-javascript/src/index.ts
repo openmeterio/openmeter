@@ -282,6 +282,8 @@ export type {
   ListFeatureParamsFilter,
   ListAddonsParamsFilter,
   ListPlanAddonsParamsFilter,
+  UpsertCustomerBillingProfileRequest,
+  CustomerProfile,
   CreateTaxCodeConfig,
   CreditBalance,
   CreditTransaction,

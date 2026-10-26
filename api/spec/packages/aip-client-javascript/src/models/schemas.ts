@@ -4279,6 +4279,31 @@ export const listPlanAddonsParamsFilter = z
   })
   .describe('Filter options for listing plan add-ons.')
 
+export const upsertCustomerBillingProfileRequest = z
+  .object({
+    billingProfile: profileReference
+      .nullable()
+      .optional()
+
+      .describe(
+        'The billing profile explicitly selected for the customer. Unpinned customers use the current namespace default. Selecting the current default explicitly pins the customer to that profile.',
+      ),
+  })
+  .describe('CustomerBillingProfile upsert request.')
+
+export const customerProfile = z
+  .object({
+    billingProfile: profileReference
+      .nullable()
+      .optional()
+
+      .describe(
+        'The billing profile explicitly selected for the customer. Unpinned customers use the current namespace default. Selecting the current default explicitly pins the customer to that profile.',
+      ),
+    effectiveBillingProfile: profileReference,
+  })
+  .describe('Customer billing profile selection.')
+
 export const createChargeCostBasis = z
   .discriminatedUnion('type', [
     createChargeCostBasisDynamic,
@@ -5851,15 +5876,27 @@ export const notificationEventDeliveryStatus = z
 
 export const customerData = z
   .object({
-    billingProfile: profileReference.optional(),
-    appData: appCustomerData.optional(),
+    billingProfile: profileReference
+      .nullable()
+      .optional()
+
+      .describe(
+        'The billing profile explicitly selected for the customer. Unpinned customers use the current namespace default. Selecting the current default explicitly pins the customer to that profile.',
+      ),
     effectiveBillingProfile: profileReference,
+    appData: appCustomerData.optional(),
   })
   .describe('Billing customer data.')
 
 export const upsertCustomerBillingDataRequest = z
   .object({
-    billingProfile: profileReference.optional(),
+    billingProfile: profileReference
+      .nullable()
+      .optional()
+
+      .describe(
+        'The billing profile explicitly selected for the customer. Unpinned customers use the current namespace default. Selecting the current default explicitly pins the customer to that profile.',
+      ),
     appData: appCustomerData.optional(),
   })
   .describe('CustomerBillingData upsert request.')
@@ -8534,6 +8571,15 @@ export const updateCustomerBillingPathParams = z.object({
 export const updateCustomerBillingBody = upsertCustomerBillingDataRequest
 
 export const updateCustomerBillingResponse = customerData
+
+export const updateCustomerBillingProfilePathParams = z.object({
+  customerId: ulid,
+})
+
+export const updateCustomerBillingProfileBody =
+  upsertCustomerBillingProfileRequest
+
+export const updateCustomerBillingProfileResponse = customerProfile
 
 export const updateCustomerBillingAppDataPathParams = z.object({
   customerId: ulid,
@@ -14042,6 +14088,31 @@ export const listPlanAddonsParamsFilterWire = z
   })
   .describe('Filter options for listing plan add-ons.')
 
+export const upsertCustomerBillingProfileRequestWire = z
+  .strictObject({
+    billing_profile: profileReferenceWire
+      .nullable()
+      .optional()
+
+      .describe(
+        'The billing profile explicitly selected for the customer. Unpinned customers use the current namespace default. Selecting the current default explicitly pins the customer to that profile.',
+      ),
+  })
+  .describe('CustomerBillingProfile upsert request.')
+
+export const customerProfileWire = z
+  .strictObject({
+    billing_profile: profileReferenceWire
+      .nullable()
+      .optional()
+
+      .describe(
+        'The billing profile explicitly selected for the customer. Unpinned customers use the current namespace default. Selecting the current default explicitly pins the customer to that profile.',
+      ),
+    effective_billing_profile: profileReferenceWire,
+  })
+  .describe('Customer billing profile selection.')
+
 export const createChargeCostBasisWire = z
   .discriminatedUnion('type', [
     createChargeCostBasisDynamicWire,
@@ -15605,15 +15676,27 @@ export const notificationEventDeliveryStatusWire = z
 
 export const customerDataWire = z
   .strictObject({
-    billing_profile: profileReferenceWire.optional(),
-    app_data: appCustomerDataWire.optional(),
+    billing_profile: profileReferenceWire
+      .nullable()
+      .optional()
+
+      .describe(
+        'The billing profile explicitly selected for the customer. Unpinned customers use the current namespace default. Selecting the current default explicitly pins the customer to that profile.',
+      ),
     effective_billing_profile: profileReferenceWire,
+    app_data: appCustomerDataWire.optional(),
   })
   .describe('Billing customer data.')
 
 export const upsertCustomerBillingDataRequestWire = z
   .strictObject({
-    billing_profile: profileReferenceWire.optional(),
+    billing_profile: profileReferenceWire
+      .nullable()
+      .optional()
+
+      .describe(
+        'The billing profile explicitly selected for the customer. Unpinned customers use the current namespace default. Selecting the current default explicitly pins the customer to that profile.',
+      ),
     app_data: appCustomerDataWire.optional(),
   })
   .describe('CustomerBillingData upsert request.')
@@ -18302,6 +18385,15 @@ export const updateCustomerBillingBodyWire =
   upsertCustomerBillingDataRequestWire
 
 export const updateCustomerBillingResponseWire = customerDataWire
+
+export const updateCustomerBillingProfilePathParamsWire = z.object({
+  customerId: ulidWire,
+})
+
+export const updateCustomerBillingProfileBodyWire =
+  upsertCustomerBillingProfileRequestWire
+
+export const updateCustomerBillingProfileResponseWire = customerProfileWire
 
 export const updateCustomerBillingAppDataPathParamsWire = z.object({
   customerId: ulidWire,

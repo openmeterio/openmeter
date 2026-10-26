@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appcustominvoicing "github.com/openmeterio/openmeter/openmeter/app/custominvoicing"
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 )
 
@@ -123,4 +124,17 @@ func fromAPIBillingAppCustomerData(ctx context.Context, application app.App, dat
 	default:
 		return nil, apierrors.NewInternalError(ctx, fmt.Errorf("unsupported app type: %s", application.GetType()))
 	}
+}
+
+func mapCustomerBillingProfileToAPI(customerProfile billing.CustomerBillingProfile) api.BillingCustomerProfile {
+	profile := api.BillingCustomerProfile{
+		EffectiveBillingProfile: api.BillingProfileReference{Id: customerProfile.EffectiveProfile.ID},
+	}
+	if customerProfile.AssignedProfile != nil {
+		profile.BillingProfile = nullable.NewNullableWithValue(api.BillingProfileReference{
+			Id: customerProfile.AssignedProfile.ProfileID,
+		})
+	}
+
+	return profile
 }
