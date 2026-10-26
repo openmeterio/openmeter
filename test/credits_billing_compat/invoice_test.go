@@ -3216,6 +3216,8 @@ func (s *InvoicingTestSuite) TestUBPGraduatingFlatFeeTier1() {
 			Total:  100,
 		}, tieredGraduated.Totals)
 
+		// Legacy billing retained the zero-usage detail alongside the tier's flat fee.
+		// Preserve that expectation to expose charge-based rating dropping zero-total details.
 		s.Len(tieredGraduated.DetailedLines, 2)
 		flatFeeLine := tieredGraduated.DetailedLines.GetByChildUniqueReferenceID("graduated-tiered-1-flat-price")
 		require.NotNil(s.T(), flatFeeLine)
@@ -3259,6 +3261,8 @@ func (s *InvoicingTestSuite) TestUBPGraduatingFlatFeeTier1() {
 			Total:  0,
 		}, tieredGraduated.Totals)
 
+		// Legacy billing retained a zero-usage detail even when no additional amount was due.
+		// Preserve that expectation to expose charge-based rating dropping zero-total details.
 		s.Len(tieredGraduated.DetailedLines, 1)
 		usageBasedEmptyLine := tieredGraduated.DetailedLines.GetByChildUniqueReferenceID("graduated-tiered-1-price-usage")
 		require.NotNil(s.T(), usageBasedEmptyLine)
