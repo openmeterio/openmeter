@@ -268,6 +268,105 @@ func TestWebhookChannel(t *testing.T) {
 	}
 }
 
+func TestWebhookConfigUpdateJSON(t *testing.T) {
+	tests := []struct {
+		name      string
+		input     string
+		want      v4.WebhookConfigUpdate
+		wantError string
+	}{
+		{
+			name:  "omitted headers preserve existing headers",
+			input: `{}`,
+		},
+		{
+			name:  "null headers remove all headers",
+			input: `{"custom_headers":null}`,
+			want: v4.WebhookConfigUpdate{
+				CustomHeaders: new(map[string]string),
+			},
+		},
+		{
+			name:  "empty headers remove all headers",
+			input: `{"custom_headers":{}}`,
+			want: v4.WebhookConfigUpdate{
+				CustomHeaders: new(map[string]string{}),
+			},
+		},
+		{
+			name:  "populated headers replace existing headers",
+			input: `{"custom_headers":{"X-Source":"test"}}`,
+			want: v4.WebhookConfigUpdate{
+				CustomHeaders: new(map[string]string{"X-Source": "test"}),
+			},
+		},
+		{
+			name:  "other fields remain available",
+			input: `{"url":"https://example.com/webhooks","signing_secret":"test-secret","custom_headers":null}`,
+			want: v4.WebhookConfigUpdate{
+				URL:           new("https://example.com/webhooks"),
+				SigningSecret: new("test-secret"),
+				CustomHeaders: new(map[string]string),
+			},
+		},
+		{
+			name:      "non-string header value",
+			input:     `{"url":"https://example.com/changed","custom_headers":{"X-Source":42}}`,
+			wantError: "invalid custom headers",
+		},
+		{
+			name:      "headers must be an object",
+			input:     `{"custom_headers":[]}`,
+			wantError: "invalid custom headers",
+		},
+		{
+			name:      "invalid URL field type",
+			input:     `{"url":42}`,
+			wantError: "invalid webhook configuration update",
+		},
+		{
+			name:      "malformed JSON",
+			input:     `{"custom_headers":`,
+			wantError: "unexpected end of JSON input",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Given a previously decoded update, stale fields must not leak into a new request.
+			original := v4.WebhookConfigUpdate{
+				URL:           new("https://example.com/original"),
+				SigningSecret: new("original-secret"),
+				CustomHeaders: new(map[string]string{"X-Original": "value"}),
+			}
+			decoded := original
+
+			// When decoding the next update.
+			err := json.Unmarshal([]byte(tt.input), &decoded)
+
+			// Then failed decoding preserves the receiver and valid updates retain their intent.
+			if tt.wantError != "" {
+				require.ErrorContains(t, err, tt.wantError)
+				require.Equal(t, original, decoded)
+
+				return
+			}
+
+			require.NoError(t, err)
+			require.Equal(t, tt.want, decoded)
+
+			encoded, err := json.Marshal(decoded)
+			require.NoError(t, err)
+			require.JSONEq(t, tt.input, string(encoded))
+
+			var roundTripped v4.WebhookConfigUpdate
+
+			require.NoError(t, json.Unmarshal(encoded, &roundTripped))
+			require.Equal(t, tt.want, roundTripped)
+		})
+	}
+}
+
 func TestWebhookConfigJSON(t *testing.T) {
 	tests := []struct {
 		name   string

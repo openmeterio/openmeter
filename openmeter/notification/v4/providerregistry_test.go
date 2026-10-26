@@ -37,6 +37,24 @@ func TestNewProviderRegistry(t *testing.T) {
 			wantErrors: []string{"webhook provider is required"},
 		},
 		{
+			name: "typed nil webhook provider",
+			config: v4.ProviderRegistryConfig{
+				Logger:  logger,
+				Webhook: (*noop.WebhookProvider)(nil),
+			},
+			wantErrors: []string{"webhook provider is required"},
+		},
+		{
+			name: "typed nil webhook provider and missing logger",
+			config: v4.ProviderRegistryConfig{
+				Webhook: (*noop.WebhookProvider)(nil),
+			},
+			wantErrors: []string{
+				"logger is required",
+				"webhook provider is required",
+			},
+		},
+		{
 			name: "missing logger",
 			config: v4.ProviderRegistryConfig{
 				Webhook: provider,

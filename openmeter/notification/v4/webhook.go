@@ -1,6 +1,7 @@
 package v4
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/url"
@@ -53,6 +54,7 @@ type WebhookConfigUpdate struct {
 
 	// CustomHeaders replaces all headers when provided. A pointer to a nil or
 	// empty map removes all headers; nil preserves them.
+	// In JSON, explicit null or an empty object removes all headers; omission preserves them.
 	CustomHeaders *map[string]string `json:"custom_headers,omitempty"`
 
 	// SigningSecret sets an explicit secret. Nil preserves the current key;
@@ -61,6 +63,39 @@ type WebhookConfigUpdate struct {
 }
 
 var _ ChannelConfigUpdate = WebhookConfigUpdate{}
+
+// UnmarshalJSON preserves the distinction between omitted headers and
+// explicit null, which requests removal of all headers.
+func (w *WebhookConfigUpdate) UnmarshalJSON(data []byte) error {
+	type wire WebhookConfigUpdate
+
+	var decoded wire
+
+	input := struct {
+		*wire
+		CustomHeaders json.RawMessage `json:"custom_headers"`
+	}{
+		wire: &decoded,
+	}
+
+	if err := json.Unmarshal(data, &input); err != nil {
+		return fmt.Errorf("invalid webhook configuration update: %w", err)
+	}
+
+	if input.CustomHeaders != nil {
+		var headers map[string]string
+
+		if err := json.Unmarshal(input.CustomHeaders, &headers); err != nil {
+			return fmt.Errorf("invalid custom headers: %w", err)
+		}
+
+		decoded.CustomHeaders = &headers
+	}
+
+	*w = WebhookConfigUpdate(decoded)
+
+	return nil
+}
 
 // Validate checks only supplied fields, allowing independent configuration updates.
 func (w WebhookConfigUpdate) Validate() error {

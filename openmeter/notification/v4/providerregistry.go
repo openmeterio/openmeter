@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -24,7 +26,7 @@ func (c ProviderRegistryConfig) Validate() error {
 		errs = append(errs, errors.New("logger is required"))
 	}
 
-	if c.Webhook == nil {
+	if lo.IsNil(c.Webhook) {
 		errs = append(errs, errors.New("webhook provider is required"))
 	}
 
