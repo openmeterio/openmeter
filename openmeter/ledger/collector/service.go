@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"go.opentelemetry.io/otel/metric"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
@@ -33,6 +34,7 @@ type Service interface {
 
 type Config struct {
 	Logger        *slog.Logger
+	Meter         metric.Meter
 	Advance       advance.Service
 	Ledger        ledger.Ledger
 	Dependencies  transactions.ResolverDependencies
@@ -48,6 +50,10 @@ func (c Config) Validate() error {
 
 	if c.Logger == nil {
 		errs = append(errs, errors.New("logger is required"))
+	}
+
+	if c.Meter == nil {
+		errs = append(errs, errors.New("meter is required"))
 	}
 
 	if c.Advance == nil {
@@ -213,6 +219,7 @@ func NewService(config Config) (Service, error) {
 	}
 
 	fboService, err := fbo.NewService(fbo.Config{
+		Meter:         config.Meter,
 		Logger:        config.Logger,
 		Advance:       config.Advance,
 		Dependencies:  config.Dependencies,

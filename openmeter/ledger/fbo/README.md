@@ -18,3 +18,9 @@ source selection and consumption. Receivable coverage never creates advance.
 reducing any later recorded balance below zero. It takes the minimum per source
 before combining buckets. Future breakage is excluded because consumption
 releases it; breakage at or before `AsOf` remains part of the opening balance.
+
+Negative source minima are excluded from spendable credit and increment
+`openmeter.ledger.fbo.negative_source_balance.observations`. This counts source
+observations, including repeated reads, not distinct sources or committed errors.
+Each observation also logs a warning with the source, query boundary, and minimum
+balance.

@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/pkg/cmpx"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // advanceAttribution keeps the amounts and original routes needed to attribute
@@ -113,7 +114,7 @@ func allocateAccruedBackedAdvanceAttributions(
 				}
 			})
 			if allocation.Amount.Sub(consumed).IsPositive() {
-				return nil, fmt.Errorf("advance attribution allocation %s exceeds remaining receivable for spend charge", allocation.Amount.String())
+				return nil, models.NewError(ledger.ErrCodeAdvanceFailed, fmt.Sprintf("advance attribution allocation %s exceeds remaining receivable for spend charge", allocation.Amount.String()), models.WithAttribute("reason", "ledger_advance_attribution_exceeds_receivable"))
 			}
 
 			attributions = append(attributions, allocated...)

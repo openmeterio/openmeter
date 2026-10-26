@@ -700,62 +700,78 @@ func (s *LineEngineTestSuite) TestGatheringPreviewUsesPreviewLineEngineCallback(
 }
 
 func (s *LineEngineTestSuite) TestCollectionCompletedSystemErrorsAbortCollection() {
-	var (
-		ctx          = s.T().Context()
-		namespace    = s.GetUniqueNamespace("ns-line-engine-collection-completed-validation")
-		mockEngine   = &mockCollectionCompletedLineEngine{engineType: ombilling.LineEngineTypeChargeUsageBased}
-		invoice      ombilling.StandardInvoice
-		collectionAt time.Time
-		err          error
-	)
+	for _, tc := range []struct {
+		name string
+		err  error
+	}{
+		{name: "plain error", err: errors.New("mock collection completed failure")},
+		{
+			name: "structured system error with validation cause",
+			err: fmt.Errorf("collect: %w", models.NewError("ledger_failed", "mock collection completed failure",
+				models.WithCause(models.NewValidationIssue("invalid_source", "source is invalid")),
+			).WithAttr("reason", "source_missing")),
+		},
+	} {
+		s.Run(tc.name, func() {
+			var (
+				ctx          = s.T().Context()
+				namespace    = s.GetUniqueNamespace("ns-line-engine-collection-completed-validation")
+				mockEngine   = &mockCollectionCompletedLineEngine{engineType: ombilling.LineEngineTypeChargeUsageBased}
+				invoice      ombilling.StandardInvoice
+				collectionAt time.Time
+				err          error
+			)
 
-	clockBase := lo.Must(time.Parse(time.RFC3339, "2024-09-02T12:13:14Z"))
-	clock.SetTime(clockBase)
-	defer clock.ResetTime()
-	defer func() { _ = s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{}) }()
-	defer s.MockStreamingConnector.Reset()
-	s.registerMockLineEngine(s.T(), mockEngine)
-	defer s.unregisterLineEngine(s.T(), mockEngine)
+			clockBase := lo.Must(time.Parse(time.RFC3339, "2024-09-02T12:13:14Z"))
+			clock.SetTime(clockBase)
+			defer clock.ResetTime()
+			defer func() { _ = s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{}) }()
+			defer s.MockStreamingConnector.Reset()
+			s.registerMockLineEngine(s.T(), mockEngine)
+			defer s.unregisterLineEngine(s.T(), mockEngine)
 
-	s.Run("Given a draft invoice waiting for collection with a failing collection-completed engine", func() {
-		defer mockEngine.Reset()
+			s.Run("Given a draft invoice waiting for collection with a failing collection-completed engine", func() {
+				defer mockEngine.Reset()
 
-		mockEngine.buildStandardInvoiceLines = func(_ context.Context, input ombilling.BuildStandardInvoiceLinesInput) (ombilling.StandardLines, error) {
-			return mustAsNewStandardLines(ombilling.BuildStandardInvoiceLinesInput{
-				Invoice:        input.Invoice,
-				GatheringLines: input.GatheringLines,
-			}), nil
-		}
+				mockEngine.buildStandardInvoiceLines = func(_ context.Context, input ombilling.BuildStandardInvoiceLinesInput) (ombilling.StandardLines, error) {
+					return mustAsNewStandardLines(ombilling.BuildStandardInvoiceLinesInput{
+						Invoice:        input.Invoice,
+						GatheringLines: input.GatheringLines,
+					}), nil
+				}
 
-		invoice, collectionAt = s.createMeteredDraftInvoiceWaitingForCollection(
-			ctx,
-			namespace,
-			mockEngine.GetLineEngineType(),
-			"UBP - mock collection completed",
-		)
-	})
+				invoice, collectionAt = s.createMeteredDraftInvoiceWaitingForCollection(
+					ctx,
+					namespace,
+					mockEngine.GetLineEngineType(),
+					"UBP - mock collection completed",
+				)
+			})
 
-	s.Run("When collection is completed", func() {
-		defer mockEngine.Reset()
+			s.Run("When collection is completed", func() {
+				defer mockEngine.Reset()
 
-		mockEngine.onCollectionCompleted = func(_ context.Context, input ombilling.OnCollectionCompletedInput) (ombilling.StandardLines, error) {
-			return nil, fmt.Errorf("mock collection completed failure")
-		}
+				mockEngine.onCollectionCompleted = func(_ context.Context, input ombilling.OnCollectionCompletedInput) (ombilling.StandardLines, error) {
+					return nil, tc.err
+				}
 
-		clock.SetTime(collectionAt.Add(time.Minute))
-		_, err = s.BillingService.AdvanceInvoice(ctx, invoice.GetInvoiceID())
-		s.Require().ErrorContains(err, "mock collection completed failure")
-	})
+				clock.SetTime(collectionAt.Add(time.Minute))
+				_, err = s.BillingService.AdvanceInvoice(ctx, invoice.GetInvoiceID())
+				s.Require().ErrorContains(err, "mock collection completed failure")
+				s.Require().ErrorIs(err, tc.err)
+			})
 
-	s.Run("Then collection is rolled back without recording a validation issue", func() {
-		invoice, err = s.BillingService.GetStandardInvoiceById(ctx, ombilling.GetStandardInvoiceByIdInput{
-			Invoice: invoice.GetInvoiceID(),
+			s.Run("Then collection is rolled back without recording a validation issue", func() {
+				invoice, err = s.BillingService.GetStandardInvoiceById(ctx, ombilling.GetStandardInvoiceByIdInput{
+					Invoice: invoice.GetInvoiceID(),
+				})
+				s.Require().NoError(err)
+				s.Equal(ombilling.StandardInvoiceStatusDraftWaitingForCollection, invoice.Status)
+				s.Empty(invoice.ValidationIssues)
+				s.Nil(invoice.QuantitySnapshotedAt)
+			})
 		})
-		s.Require().NoError(err)
-		s.Equal(ombilling.StandardInvoiceStatusDraftWaitingForCollection, invoice.Status)
-		s.Empty(invoice.ValidationIssues)
-		s.Nil(invoice.QuantitySnapshotedAt)
-	})
+	}
 }
 
 func (s *LineEngineTestSuite) TestCollectionCompletedValidationIssuesRespectSeverity() {

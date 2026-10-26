@@ -143,3 +143,13 @@ var ErrTaxBehaviorInvalid = models.NewValidationIssue(
 	ErrCodeTaxBehaviorInvalid,
 	"ledger tax behavior is invalid",
 )
+
+const (
+	ErrCodeAdvanceFailed        models.ErrorCode = "ledger_advance_failed"
+	ErrCodeBreakageFailed       models.ErrorCode = "ledger_breakage_failed"
+	ErrCodeCorrectionFailed     models.ErrorCode = "ledger_correction_failed"
+	ErrCodeFBOConsumptionFailed models.ErrorCode = "ledger_fbo_consumption_failed"
+	ErrCodeRecognitionFailed    models.ErrorCode = "ledger_recognition_failed"
+	ErrCodeReversalInvalid      models.ErrorCode = "ledger_reversal_invalid"
+	ErrCodeVoidFailed           models.ErrorCode = "ledger_void_failed"
+)

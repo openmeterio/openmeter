@@ -1,7 +1,10 @@
 package fbo_test
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
+	"log/slog"
 	"testing"
 	"time"
 
@@ -10,9 +13,12 @@ import (
 	"github.com/samber/lo"
 	"github.com/samber/mo"
 	"github.com/stretchr/testify/require"
+	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
+	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	advancetestutils "github.com/openmeterio/openmeter/openmeter/ledger/advance/testutils"
 	"github.com/openmeterio/openmeter/openmeter/ledger/fbo"
 	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
@@ -239,4 +245,121 @@ func consumeAndCommit(t *testing.T, env *ledgertestutils.IntegrationEnv, service
 	require.NoError(t, err)
 
 	return group
+}
+
+func TestSpendableBalanceReportsNegativeSources(t *testing.T) {
+	env, _, breakageService := newFBOEnv(t)
+	reader := sdkmetric.NewManualReader()
+	provider := sdkmetric.NewMeterProvider(sdkmetric.WithReader(reader))
+	t.Cleanup(func() { require.NoError(t, provider.Shutdown(t.Context())) })
+
+	var logs bytes.Buffer
+	service, err := fbo.NewService(fbo.Config{
+		Logger: slog.New(slog.NewJSONHandler(&logs, nil)),
+		Meter:  provider.Meter("fbo-test"),
+		Dependencies: transactions.ResolverDependencies{
+			AccountService: env.Deps.ResolversService,
+			AccountCatalog: env.Deps.AccountService,
+			BalanceQuerier: env.Deps.HistoricalLedger,
+		},
+		Advance:       advancetestutils.NewService(t, env.Deps, breakageService),
+		Breakage:      breakageService,
+		AccountLocker: env.Deps.AccountService,
+	})
+	require.NoError(t, err)
+
+	// given: one exhausted source and one with four credits left.
+	exhaustedSource, availableSource := ulid.Make().String(), ulid.Make().String()
+	for _, grant := range []struct {
+		source string
+		amount int64
+	}{
+		{exhaustedSource, 10}, {availableSource, 4},
+	} {
+		bookFBOTransactions(t, env, transactions.IssueCustomerReceivableTemplate{
+			At: env.Now(), Amount: alpacadecimal.NewFromInt(grant.amount),
+			Currency: env.CurrencyReference(), SourceChargeID: &grant.source,
+		})
+	}
+
+	address := env.FBOSubAccount(t, ledger.DefaultCustomerFBOPriority).Address()
+	bookFBOTransactions(t, env, transactions.TransferCustomerFBOToAccruedTemplate{
+		At: env.Now(), Currency: env.CurrencyReference(),
+		Sources: []transactions.PostingAmount{{
+			Address: address, Amount: alpacadecimal.NewFromInt(10),
+			Identity: ledger.EntryIdentityParts{Provenance: ledger.Provenance{
+				SourceChargeID: &exhaustedSource, SpendChargeID: lo.ToPtr("usage"),
+			}},
+		}},
+	})
+	query := fbo.SpendableBalanceBucketQuery{
+		Namespace: env.Namespace,
+		Filters: ledger.Filters{
+			AccountID: lo.ToPtr(env.CustomerAccounts.FBOAccount.ID().ID),
+			AsOf:      lo.ToPtr(env.Now()),
+			Route:     ledger.RouteFilter{Currency: env.CurrencyReference()},
+		},
+	}
+
+	// when: reading healthy and zero balances, neither should be reported.
+	buckets, err := service.GetSpendableBalanceBuckets(t.Context(), query)
+	require.NoError(t, err)
+	require.Len(t, buckets, 1)
+	require.Equal(t, 4.0, buckets[0].SettledAmount.InexactFloat64())
+	require.Empty(t, logs.String())
+	var before metricdata.ResourceMetrics
+	require.NoError(t, reader.Collect(t.Context(), &before))
+	require.Empty(t, before.ScopeMetrics)
+
+	// given: an extra future posting overspends the exhausted source by two.
+	bookFBOTransactions(t, env, transactions.TransferCustomerFBOToAccruedTemplate{
+		At: env.Now().Add(time.Hour), Currency: env.CurrencyReference(),
+		Sources: []transactions.PostingAmount{{
+			Address: address, Amount: alpacadecimal.NewFromInt(2),
+			Identity: ledger.EntryIdentityParts{Provenance: ledger.Provenance{
+				SourceChargeID: &exhaustedSource, SpendChargeID: lo.ToPtr("extra-usage"),
+			}},
+		}},
+	})
+
+	// when: repeated reads observe that negative source, with either grouping.
+	buckets, err = service.GetSpendableBalanceBuckets(t.Context(), query)
+	require.NoError(t, err)
+	require.Len(t, buckets, 1)
+	require.Equal(t, 4.0, buckets[0].SettledAmount.InexactFloat64())
+	require.Empty(t, buckets[0].GroupByValues)
+
+	query.GroupBy = []string{ledger.BalanceBucketGroupBySourceChargeID}
+	buckets, err = service.GetSpendableBalanceBuckets(t.Context(), query)
+	require.NoError(t, err)
+	require.Len(t, buckets, 1)
+	require.Equal(t, 4.0, buckets[0].SettledAmount.InexactFloat64())
+	require.Equal(t, availableSource, *buckets[0].GroupByValues[ledger.BalanceBucketGroupBySourceChargeID])
+
+	// then: every observation increments the counter and logs its source.
+	var metrics metricdata.ResourceMetrics
+	require.NoError(t, reader.Collect(t.Context(), &metrics))
+	require.Len(t, metrics.ScopeMetrics, 1)
+	require.Len(t, metrics.ScopeMetrics[0].Metrics, 1)
+	observed := metrics.ScopeMetrics[0].Metrics[0]
+	require.Equal(t, "openmeter.ledger.fbo.negative_source_balance.observations", observed.Name)
+	counter, ok := observed.Data.(metricdata.Sum[int64])
+	require.True(t, ok)
+	require.Len(t, counter.DataPoints, 1)
+	require.Equal(t, int64(2), counter.DataPoints[0].Value)
+	require.Zero(t, counter.DataPoints[0].Attributes.Len())
+
+	logLines := bytes.Split(bytes.TrimSpace(logs.Bytes()), []byte("\n"))
+	require.Len(t, logLines, 2)
+	for _, line := range logLines {
+		var diagnostic map[string]any
+		require.NoError(t, json.Unmarshal(line, &diagnostic))
+		require.Equal(t, "WARN", diagnostic["level"])
+		require.Equal(t, env.Namespace, diagnostic["namespace"])
+		require.Equal(t, env.CustomerAccounts.FBOAccount.ID().ID, diagnostic["account_id"])
+		require.Equal(t, address.SubAccountID(), diagnostic["sub_account_id"])
+		require.Equal(t, exhaustedSource, diagnostic["source_charge_id"])
+		require.Equal(t, "-2", diagnostic["minimum_balance"])
+		require.Equal(t, env.Now().Format(time.RFC3339Nano), diagnostic["as_of"])
+	}
 }

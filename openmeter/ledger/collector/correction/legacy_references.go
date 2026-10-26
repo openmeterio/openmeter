@@ -10,6 +10,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // correctedSourceAmounts reads immutable correction links so a later partial
@@ -76,7 +77,7 @@ func reserveCorrectionSources(entries []ledger.Entry, amount alpacadecimal.Decim
 	}
 
 	if remaining.IsPositive() {
-		return nil, fmt.Errorf("correction exceeds remaining source capacity by %s", remaining)
+		return nil, models.NewError(ledger.ErrCodeCorrectionFailed, fmt.Sprintf("correction exceeds remaining source capacity by %s", remaining), models.WithAttribute("reason", "ledger_correction_exceeds_source_capacity"))
 	}
 
 	return out, nil
@@ -137,12 +138,12 @@ func (c *Corrector) recognizedSourceAmounts(ctx context.Context, input recognize
 	}
 
 	if !selected.Equal(input.amount) {
-		return nil, fmt.Errorf("recognition source coverage %s does not match correction amount %s", selected, input.amount)
+		return nil, models.NewError(ledger.ErrCodeCorrectionFailed, fmt.Sprintf("recognition source coverage %s does not match correction amount %s", selected, input.amount), models.WithAttribute("reason", "ledger_correction_recognition_coverage_mismatch"))
 	}
 
 	for _, remaining := range accrued {
 		if !remaining.IsZero() {
-			return nil, fmt.Errorf("recognition correction leaves unmatched accrued amount %s", remaining)
+			return nil, models.NewError(ledger.ErrCodeCorrectionFailed, fmt.Sprintf("recognition correction leaves unmatched accrued amount %s", remaining), models.WithAttribute("reason", "ledger_correction_accrued_unmatched"))
 		}
 	}
 

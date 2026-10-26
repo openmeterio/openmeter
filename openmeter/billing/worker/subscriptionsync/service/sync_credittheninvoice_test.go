@@ -13,6 +13,7 @@ import (
 	"github.com/samber/mo"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	metricnoop "go.opentelemetry.io/otel/metric/noop"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
@@ -86,6 +87,7 @@ func (s *CreditThenInvoiceTestSuite) SetupSuite() {
 	advanceService := advancetestutils.NewService(s.T(), ledgerDeps, breakageService)
 
 	collectorService, err := ledgercollector.NewService(ledgercollector.Config{
+		Meter:   metricnoop.NewMeterProvider().Meter("test"),
 		Logger:  logger,
 		Advance: advanceService,
 		Ledger:  ledgerDeps.HistoricalLedger,

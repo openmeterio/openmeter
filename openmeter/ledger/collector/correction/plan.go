@@ -9,6 +9,7 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 
+	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -119,7 +120,7 @@ func planCollectionCorrection(input collectionCorrectionInput) ([]correctionSele
 	}
 
 	if remaining.IsPositive() {
-		return nil, fmt.Errorf("correction exceeds remaining collection balance by %s", remaining)
+		return nil, models.NewError(ledger.ErrCodeCorrectionFailed, fmt.Sprintf("correction exceeds remaining collection balance by %s", remaining), models.WithAttribute("reason", "ledger_correction_exceeds_remaining_balance"))
 	}
 
 	return out, nil
