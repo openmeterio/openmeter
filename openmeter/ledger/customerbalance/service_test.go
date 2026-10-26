@@ -186,10 +186,10 @@ func TestGetBalanceServiceInputRoutes(t *testing.T) {
 
 func TestGetBalance(t *testing.T) {
 	tests := []struct {
-		name        string
-		setup       func(t *testing.T, env *testEnv)
-		wantSettled int64
-		wantLive    int64
+		name       string
+		setup      func(t *testing.T, env *testEnv)
+		wantBooked int64
+		wantLive   int64
 	}{
 		{
 			name: "flat fee credit only",
@@ -198,8 +198,8 @@ func TestGetBalance(t *testing.T) {
 				env.fundOpenReceivable(t, alpacadecimal.NewFromInt(100))
 				env.createFlatFeeCharge(t, alpacadecimal.NewFromInt(30), productcatalog.CreditOnlySettlementMode, env.sp())
 			},
-			wantSettled: 100,
-			wantLive:    70,
+			wantBooked: 100,
+			wantLive:   70,
 		},
 		{
 			name: "flat fee credit then invoice",
@@ -208,16 +208,16 @@ func TestGetBalance(t *testing.T) {
 				env.fundOpenReceivable(t, alpacadecimal.NewFromInt(20))
 				env.createFlatFeeCharge(t, alpacadecimal.NewFromInt(30), productcatalog.CreditThenInvoiceSettlementMode, env.sp())
 			},
-			wantSettled: 20,
-			wantLive:    0,
+			wantBooked: 20,
+			wantLive:   0,
 		},
 		{
 			name: "credit only charge with no starting credits creates advance",
 			setup: func(t *testing.T, env *testEnv) {
 				env.createFlatFeeCharge(t, alpacadecimal.NewFromInt(30), productcatalog.CreditOnlySettlementMode, env.sp())
 			},
-			wantSettled: 0,
-			wantLive:    -30,
+			wantBooked: 0,
+			wantLive:   -30,
 		},
 		{
 			name: "credit only charge advance settles",
@@ -226,8 +226,8 @@ func TestGetBalance(t *testing.T) {
 				env.passTimeAfterServicePeriod(t, env.sp())
 				env.advanceFlatFeeCharge(t, ch)
 			},
-			wantSettled: -30,
-			wantLive:    -30,
+			wantBooked: -30,
+			wantLive:   -30,
 		},
 		{
 			name: "usage based credit only",
@@ -237,8 +237,8 @@ func TestGetBalance(t *testing.T) {
 				env.fundOpenReceivable(t, alpacadecimal.NewFromInt(100))
 				env.createUsageBasedCharge(t, alpacadecimal.NewFromInt(1), productcatalog.CreditOnlySettlementMode, env.sp())
 			},
-			wantSettled: 100,
-			wantLive:    70,
+			wantBooked: 100,
+			wantLive:   70,
 		},
 		{
 			name: "usage based credit then invoice",
@@ -248,8 +248,8 @@ func TestGetBalance(t *testing.T) {
 				env.fundOpenReceivable(t, alpacadecimal.NewFromInt(20))
 				env.createUsageBasedCharge(t, alpacadecimal.NewFromInt(1), productcatalog.CreditThenInvoiceSettlementMode, env.sp())
 			},
-			wantSettled: 20,
-			wantLive:    0,
+			wantBooked: 20,
+			wantLive:   0,
 		},
 		{
 			name: "mixed modes are pessimistic",
@@ -260,8 +260,8 @@ func TestGetBalance(t *testing.T) {
 				env.createFlatFeeCharge(t, alpacadecimal.NewFromInt(80), productcatalog.CreditThenInvoiceSettlementMode, env.sp())
 				env.createUsageBasedCharge(t, alpacadecimal.NewFromInt(1), productcatalog.CreditOnlySettlementMode, env.sp())
 			},
-			wantSettled: 100,
-			wantLive:    -130,
+			wantBooked: 100,
+			wantLive:   -130,
 		},
 		{
 			name: "future usage-based charges are excluded until service period starts",
@@ -276,8 +276,8 @@ func TestGetBalance(t *testing.T) {
 				env.fundOpenReceivable(t, alpacadecimal.NewFromInt(100))
 				env.createUsageBasedCharge(t, alpacadecimal.NewFromInt(1), productcatalog.CreditOnlySettlementMode, futureServicePeriod)
 			},
-			wantSettled: 100,
-			wantLive:    100,
+			wantBooked: 100,
+			wantLive:   100,
 		},
 		{
 			name: "future in-advance flat fee impacts live balance at invoice_at",
@@ -291,11 +291,11 @@ func TestGetBalance(t *testing.T) {
 				env.fundOpenReceivable(t, alpacadecimal.NewFromInt(100))
 				env.createFlatFeeCharge(t, alpacadecimal.NewFromInt(30), productcatalog.CreditThenInvoiceSettlementMode, futureServicePeriod)
 			},
-			wantSettled: 100,
-			wantLive:    70,
+			wantBooked: 100,
+			wantLive:   70,
 		},
 		{
-			name: "usage is settled",
+			name: "usage is booked",
 			setup: func(t *testing.T, env *testEnv) {
 				env.bookFBOBalance(t, alpacadecimal.NewFromInt(70))
 				env.fundOpenReceivable(t, alpacadecimal.NewFromInt(70))
@@ -308,8 +308,8 @@ func TestGetBalance(t *testing.T) {
 
 				env.advanceFlatFeeCharge(t, charge)
 			},
-			wantSettled: 40,
-			wantLive:    40,
+			wantBooked: 40,
+			wantLive:   40,
 		},
 	}
 
@@ -324,7 +324,8 @@ func TestGetBalance(t *testing.T) {
 				FeatureFilter: AllFeatureFilter(),
 			})
 			require.NoError(t, err)
-			require.Equal(t, float64(tt.wantSettled), balance.Settled().InexactFloat64(), "settled: %s", balance.Settled())
+			require.Equal(t, float64(tt.wantBooked), balance.Booked().InexactFloat64(), "booked: %s", balance.Booked())
+			require.Equal(t, float64(tt.wantBooked), balance.Spendable().InexactFloat64(), "spendable: %s", balance.Spendable())
 			require.Equal(t, float64(tt.wantLive), balance.Live().InexactFloat64(), "live: %s", balance.Live())
 		})
 	}
@@ -345,7 +346,7 @@ func TestGetBalanceForFlatFeeCreditOnlyInvoiceAtBeforeServiceStart(t *testing.T)
 	env.bookFBOBalance(t, alpacadecimal.NewFromInt(100))
 	env.fundOpenReceivable(t, alpacadecimal.NewFromInt(100))
 
-	requireBalance := func(t *testing.T, settled float64, live float64) {
+	requireBalance := func(t *testing.T, booked float64, live float64) {
 		t.Helper()
 
 		balance, err := env.Service.GetBalance(t.Context(), GetBalanceServiceInput{
@@ -354,7 +355,7 @@ func TestGetBalanceForFlatFeeCreditOnlyInvoiceAtBeforeServiceStart(t *testing.T)
 			FeatureFilter: AllFeatureFilter(),
 		})
 		require.NoError(t, err)
-		require.Equal(t, settled, balance.Settled().InexactFloat64(), "settled: %s", balance.Settled())
+		require.Equal(t, booked, balance.Booked().InexactFloat64(), "booked: %s", balance.Booked())
 		require.Equal(t, live, balance.Live().InexactFloat64(), "live: %s", balance.Live())
 	}
 
@@ -405,7 +406,7 @@ func TestGetBalanceForFlatFeeCreditOnlyInvoiceAtBeforeServiceStart(t *testing.T)
 
 	// then:
 	// - once invoice_at is current, the created charge impacts live balance
-	// - the future booked_at ledger allocation is not visible in settled balance yet
+	// - the future booked_at ledger allocation is not visible in booked balance yet
 	requireBalance(t, 100, 70)
 
 	advancedCharge, err := env.flatFeeService.AdvanceCharge(t.Context(), flatfee.AdvanceChargeInput{
@@ -541,7 +542,7 @@ func TestGetBalanceWithDifferentCurrency(t *testing.T) {
 		FeatureFilter: AllFeatureFilter(),
 	})
 	require.NoError(t, err)
-	require.Equal(t, float64(100), usdBalance.Settled().InexactFloat64())
+	require.Equal(t, float64(100), usdBalance.Booked().InexactFloat64())
 	require.Equal(t, float64(70), usdBalance.Live().InexactFloat64())
 
 	eurBalance, err := env.Service.GetBalance(t.Context(), GetBalanceServiceInput{
@@ -550,7 +551,7 @@ func TestGetBalanceWithDifferentCurrency(t *testing.T) {
 		FeatureFilter: AllFeatureFilter(),
 	})
 	require.NoError(t, err)
-	require.Equal(t, float64(200), eurBalance.Settled().InexactFloat64())
+	require.Equal(t, float64(200), eurBalance.Booked().InexactFloat64())
 	require.Equal(t, float64(130), eurBalance.Live().InexactFloat64())
 }
 
@@ -643,7 +644,7 @@ func TestGetBalanceFeatureFilter(t *testing.T) {
 			})
 			require.NoError(t, err)
 
-			require.Equal(t, tt.want, balance.Settled().InexactFloat64())
+			require.Equal(t, tt.want, balance.Booked().InexactFloat64())
 			require.Equal(t, tt.want, balance.Live().InexactFloat64())
 		})
 	}
@@ -683,34 +684,34 @@ func TestGetBalanceFeatureFilterPendingChargeImpacts(t *testing.T) {
 	env.createUsageBasedCharge(t, alpacadecimal.NewFromInt(1), productcatalog.CreditOnlySettlementMode, env.sp())
 
 	tests := []struct {
-		name        string
-		filter      mo.Option[creditpurchase.FeatureFilters]
-		wantSettled float64
-		wantLive    float64
+		name       string
+		filter     mo.Option[creditpurchase.FeatureFilters]
+		wantBooked float64
+		wantLive   float64
 	}{
 		{
-			name:        "omitted filter includes every charge impact",
-			filter:      AllFeatureFilter(),
-			wantSettled: 130,
-			wantLive:    88,
+			name:       "omitted filter includes every charge impact",
+			filter:     AllFeatureFilter(),
+			wantBooked: 130,
+			wantLive:   88,
 		},
 		{
-			name:        "unrestricted filter includes only unrestricted charge impacts",
-			filter:      NewUnrestrictedFeatureFilter(),
-			wantSettled: 100,
-			wantLive:    95,
+			name:       "unrestricted filter includes only unrestricted charge impacts",
+			filter:     NewUnrestrictedFeatureFilter(),
+			wantBooked: 100,
+			wantLive:   95,
 		},
 		{
-			name:        "matching feature filter includes unrestricted and matching charge impacts",
-			filter:      NewFeatureFilter([]string{testFeatureKey}),
-			wantSettled: 110,
-			wantLive:    68,
+			name:       "matching feature filter includes unrestricted and matching charge impacts",
+			filter:     NewFeatureFilter([]string{testFeatureKey}),
+			wantBooked: 110,
+			wantLive:   68,
 		},
 		{
-			name:        "non-matching feature filter excludes restricted charge impacts for other features",
-			filter:      NewFeatureFilter([]string{"storage"}),
-			wantSettled: 120,
-			wantLive:    115,
+			name:       "non-matching feature filter excludes restricted charge impacts for other features",
+			filter:     NewFeatureFilter([]string{"storage"}),
+			wantBooked: 120,
+			wantLive:   115,
 		},
 	}
 
@@ -723,7 +724,7 @@ func TestGetBalanceFeatureFilterPendingChargeImpacts(t *testing.T) {
 			})
 			require.NoError(t, err)
 
-			require.Equal(t, tt.wantSettled, balance.Settled().InexactFloat64())
+			require.Equal(t, tt.wantBooked, balance.Booked().InexactFloat64())
 			require.Equal(t, tt.wantLive, balance.Live().InexactFloat64())
 		})
 	}
@@ -744,7 +745,7 @@ func TestGetBalanceAllFeatureFilterDoesNotApplyBoundedUsageToIneligibleRestricte
 		FeatureFilter: AllFeatureFilter(),
 	})
 	require.NoError(t, err)
-	require.Equal(t, float64(100), allBalance.Settled().InexactFloat64())
+	require.Equal(t, float64(100), allBalance.Booked().InexactFloat64())
 	require.Equal(t, float64(100), allBalance.Live().InexactFloat64())
 
 	storageBalance, err := env.Service.GetBalance(t.Context(), GetBalanceServiceInput{
@@ -753,7 +754,7 @@ func TestGetBalanceAllFeatureFilterDoesNotApplyBoundedUsageToIneligibleRestricte
 		FeatureFilter: NewFeatureFilter([]string{"storage"}),
 	})
 	require.NoError(t, err)
-	require.Equal(t, float64(100), storageBalance.Settled().InexactFloat64())
+	require.Equal(t, float64(100), storageBalance.Booked().InexactFloat64())
 	require.Equal(t, float64(100), storageBalance.Live().InexactFloat64())
 
 	apiRequestsBalance, err := env.Service.GetBalance(t.Context(), GetBalanceServiceInput{
@@ -762,7 +763,7 @@ func TestGetBalanceAllFeatureFilterDoesNotApplyBoundedUsageToIneligibleRestricte
 		FeatureFilter: NewFeatureFilter([]string{testFeatureKey}),
 	})
 	require.NoError(t, err)
-	require.Equal(t, float64(0), apiRequestsBalance.Settled().InexactFloat64())
+	require.Equal(t, float64(0), apiRequestsBalance.Booked().InexactFloat64())
 	require.Equal(t, float64(0), apiRequestsBalance.Live().InexactFloat64())
 }
 
@@ -786,7 +787,7 @@ func TestGetBalancePendingGrants(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	require.Equal(t, float64(10), balance.Settled().InexactFloat64())
+	require.Equal(t, float64(10), balance.Booked().InexactFloat64())
 	require.Equal(t, float64(0), balance.Live().InexactFloat64())
 	require.Equal(t, float64(50), balance.Pending().InexactFloat64())
 
@@ -801,7 +802,7 @@ func TestGetBalancePendingGrants(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	require.Equal(t, float64(30), balance.Settled().InexactFloat64())
+	require.Equal(t, float64(30), balance.Booked().InexactFloat64())
 	require.Equal(t, float64(0), balance.Live().InexactFloat64())
 	require.Equal(t, float64(30), balance.Pending().InexactFloat64())
 }
@@ -818,7 +819,7 @@ func TestGetBalancePendingInvoiceGrantBeforeDraft(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	require.Equal(t, float64(0), balance.Settled().InexactFloat64())
+	require.Equal(t, float64(0), balance.Booked().InexactFloat64())
 	require.Equal(t, float64(0), balance.Live().InexactFloat64())
 	require.Equal(t, float64(30), balance.Pending().InexactFloat64())
 }

@@ -15,42 +15,54 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
+	"github.com/openmeterio/openmeter/openmeter/ledger/customerbalance"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type staticCreditBalance struct {
-	settled alpacadecimal.Decimal
-	live    alpacadecimal.Decimal
-	pending alpacadecimal.Decimal
+	spendable alpacadecimal.Decimal
+	booked    alpacadecimal.Decimal
+	live      alpacadecimal.Decimal
+	pending   alpacadecimal.Decimal
 }
 
-func (b staticCreditBalance) Settled() alpacadecimal.Decimal { return b.settled }
-func (b staticCreditBalance) Live() alpacadecimal.Decimal    { return b.live }
-func (b staticCreditBalance) Pending() alpacadecimal.Decimal { return b.pending }
+var _ customerbalance.Balance = staticCreditBalance{}
+
+func (b staticCreditBalance) Booked() alpacadecimal.Decimal    { return b.booked }
+func (b staticCreditBalance) Spendable() alpacadecimal.Decimal { return b.spendable }
+func (b staticCreditBalance) Live() alpacadecimal.Decimal      { return b.live }
+func (b staticCreditBalance) Pending() alpacadecimal.Decimal   { return b.pending }
 
 func TestToAPICreditBalanceCustomCurrencyIdentity(t *testing.T) {
 	currency := currenciestestutils.NewCustomCurrency(t, "CREDITS", 2)
 
 	result := toAPICreditBalance(currency.Reference(), staticCreditBalance{
-		settled: alpacadecimal.NewFromInt(10),
-		live:    alpacadecimal.NewFromInt(8),
-		pending: alpacadecimal.NewFromInt(2),
+		booked:    alpacadecimal.NewFromInt(10),
+		spendable: alpacadecimal.NewFromInt(9),
+		live:      alpacadecimal.NewFromInt(8),
+		pending:   alpacadecimal.NewFromInt(2),
 	})
 
 	require.Equal(t, api.BillingCurrencyCode("CREDITS"), result.Currency)
 	require.Equal(t, &api.CurrencyCustomReference{Id: currency.ID}, result.CustomCurrency)
-	require.Equal(t, api.Numeric("10"), result.Settled)
+	require.Equal(t, api.Numeric("10"), result.Booked)
+	require.Equal(t, result.Booked, result.Settled)
+	require.Equal(t, api.Numeric("9"), result.Spendable)
 	require.Equal(t, api.Numeric("8"), result.Live)
 	require.Equal(t, api.Numeric("2"), result.Pending)
 }
 
 func TestToAPICreditBalanceFiatOmitsCustomCurrencyIdentity(t *testing.T) {
-	result := toAPICreditBalance(currenciestestutils.NewFiatCurrency(t, "USD").Reference(), staticCreditBalance{})
+	result := toAPICreditBalance(currenciestestutils.NewFiatCurrency(t, "USD").Reference(), staticCreditBalance{
+		booked: alpacadecimal.NewFromInt(-3),
+	})
 
 	require.Equal(t, api.BillingCurrencyCode("USD"), result.Currency)
 	require.Nil(t, result.CustomCurrency)
+	require.Equal(t, api.Numeric("-3"), result.Booked)
+	require.Equal(t, result.Booked, result.Settled)
 }
 
 func TestToAPIBillingCreditGrantPromotional(t *testing.T) {

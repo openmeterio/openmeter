@@ -42,11 +42,11 @@ func TestFacadeGetBalancesWithExplicitCurrencies(t *testing.T) {
 	require.Len(t, balances, 2)
 
 	require.Equal(t, currencyx.Code("USD"), balances[0].Currency)
-	require.True(t, balances[0].Balance.Settled().Equal(alpacadecimal.NewFromInt(100)))
+	require.True(t, balances[0].Balance.Booked().Equal(alpacadecimal.NewFromInt(100)))
 	require.True(t, balances[0].Balance.Live().Equal(alpacadecimal.NewFromInt(70)))
 
 	require.Equal(t, currencyx.Code("EUR"), balances[1].Currency)
-	require.True(t, balances[1].Balance.Settled().Equal(alpacadecimal.NewFromInt(200)))
+	require.True(t, balances[1].Balance.Booked().Equal(alpacadecimal.NewFromInt(200)))
 	require.True(t, balances[1].Balance.Live().Equal(alpacadecimal.NewFromInt(130)))
 }
 
@@ -82,8 +82,8 @@ func TestFacadeGetBalancesHistoricalLiveBalanceIsZero(t *testing.T) {
 	require.Len(t, historicalBalances, 1)
 
 	// then:
-	// - settled is calculated at the cutoff, but live is not calculated
-	require.Equal(t, float64(100), historicalBalances[0].Balance.Settled().InexactFloat64())
+	// - booked is calculated at the cutoff, but live is not calculated
+	require.Equal(t, float64(100), historicalBalances[0].Balance.Booked().InexactFloat64())
 	require.Equal(t, float64(0), historicalBalances[0].Balance.Live().InexactFloat64())
 }
 
@@ -110,11 +110,11 @@ func TestFacadeGetBalancesWithDiscoveredCurrencies(t *testing.T) {
 		switch balance.Currency {
 		case "USD":
 			usdCount++
-			require.True(t, balance.Balance.Settled().Equal(alpacadecimal.NewFromInt(100)))
+			require.True(t, balance.Balance.Booked().Equal(alpacadecimal.NewFromInt(100)))
 			require.True(t, balance.Balance.Live().Equal(alpacadecimal.NewFromInt(70)))
 		case "EUR":
 			eurCount++
-			require.True(t, balance.Balance.Settled().Equal(alpacadecimal.NewFromInt(200)))
+			require.True(t, balance.Balance.Booked().Equal(alpacadecimal.NewFromInt(200)))
 			require.True(t, balance.Balance.Live().Equal(alpacadecimal.NewFromInt(130)))
 		}
 	}
@@ -158,7 +158,7 @@ func TestFacadeGetBalancesDiscoversPendingGrantCurrencies(t *testing.T) {
 	require.Len(t, balances, 1)
 
 	require.Equal(t, currencyx.Code("EUR"), balances[0].Currency)
-	require.True(t, balances[0].Balance.Settled().Equal(alpacadecimal.Zero))
+	require.True(t, balances[0].Balance.Booked().Equal(alpacadecimal.Zero))
 	require.True(t, balances[0].Balance.Live().Equal(alpacadecimal.Zero))
 	require.True(t, balances[0].Balance.Pending().Equal(alpacadecimal.NewFromInt(40)))
 }
@@ -209,7 +209,7 @@ func TestFacadeGetBalancesWithCatalogCustomCurrencyWithoutCustomerState(t *testi
 	require.Equal(t, currencyx.Code("CUSTOM"), balances[0].Currency)
 	require.NotNil(t, balances[0].CustomCurrencyID)
 	require.Equal(t, customCurrency.ID, *balances[0].CustomCurrencyID)
-	require.Equal(t, float64(0), balances[0].Balance.Settled().InexactFloat64())
+	require.Equal(t, float64(0), balances[0].Balance.Booked().InexactFloat64())
 	require.Equal(t, float64(0), balances[0].Balance.Live().InexactFloat64())
 	require.Equal(t, float64(0), balances[0].Balance.Pending().InexactFloat64())
 }
@@ -282,7 +282,7 @@ func TestFacadeGetBalancesNoopPreservesExplicitFiatZeroRows(t *testing.T) {
 	require.Len(t, balances, 1)
 	require.Equal(t, currencyx.Code("USD"), balances[0].Currency)
 	require.Nil(t, balances[0].CustomCurrencyID)
-	require.Equal(t, float64(0), balances[0].Balance.Settled().InexactFloat64())
+	require.Equal(t, float64(0), balances[0].Balance.Booked().InexactFloat64())
 }
 
 type countingUsageBasedTotalsService struct {
@@ -311,7 +311,7 @@ func TestFacadeGetBalancesKeepsCustomCurrencyIdentitiesSeparate(t *testing.T) {
 	// given:
 	// - two historical managed currencies reuse one display code
 	// - the catalog contains a third, current identity with no customer state
-	// - each has its own settled customer balance
+	// - each has its own booked customer balance
 	env.bookFBOBalanceInCurrencyReferenceWithFeatures(t, alpacadecimal.NewFromInt(40), alpha.Reference(), nil)
 	env.fundOpenReceivableInCurrencyReferenceWithFeatures(t, alpacadecimal.NewFromInt(40), alpha.Reference(), nil)
 	env.bookFBOBalanceInCurrencyReferenceWithFeatures(t, alpacadecimal.NewFromInt(60), beta.Reference(), nil)
@@ -333,19 +333,19 @@ func TestFacadeGetBalancesKeepsCustomCurrencyIdentitiesSeparate(t *testing.T) {
 
 	// then:
 	// - each immutable custom-currency ID has an independent balance row
-	settledByID := make(map[string]float64, len(balances))
+	bookedByID := make(map[string]float64, len(balances))
 	for _, balance := range balances {
 		reference := balance.CurrencyReference()
 		require.Equal(t, currencyx.Code("CUSTOM"), balance.Currency)
 		require.NotNil(t, reference.CustomCurrencyID)
-		settledByID[*reference.CustomCurrencyID] = balance.Balance.Settled().InexactFloat64()
+		bookedByID[*reference.CustomCurrencyID] = balance.Balance.Booked().InexactFloat64()
 	}
 
 	require.Equal(t, map[string]float64{
 		alpha.ID:   40,
 		beta.ID:    60,
 		current.ID: 0,
-	}, settledByID)
+	}, bookedByID)
 }
 
 func TestFacadeGetBalancesHistoricalDiscoveryUsesBookedAt(t *testing.T) {
@@ -383,7 +383,7 @@ func TestFacadeGetBalancesHistoricalDiscoveryUsesBookedAt(t *testing.T) {
 	// - only the identity with ledger activity at the cutoff is discoverable
 	require.NotNil(t, balances[0].CustomCurrencyID)
 	require.Equal(t, alpha.ID, *balances[0].CustomCurrencyID)
-	require.Equal(t, float64(40), balances[0].Balance.Settled().InexactFloat64())
+	require.Equal(t, float64(40), balances[0].Balance.Booked().InexactFloat64())
 }
 
 func TestFacadeGetBalanceAfterTransactionCursor(t *testing.T) {

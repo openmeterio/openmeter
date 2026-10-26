@@ -23,7 +23,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	"github.com/openmeterio/openmeter/openmeter/ledger/customerbalance"
+	fbotestutils "github.com/openmeterio/openmeter/openmeter/ledger/fbo/testutils"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
@@ -769,7 +771,7 @@ func (s *CustomCurrencyLedgerIntegrationTestSuite) requireCustomCurrencyLedgerOu
 	// balance identity.
 	balanceService, err := customerbalance.New(customerbalance.Config{
 		AccountResolver:   s.LedgerDeps.ResolversService,
-		SubAccountService: s.LedgerDeps.AccountService,
+		FBO:               fbotestutils.NewService(s.T(), s.LedgerDeps, ledgerbreakage.NewNoopService()),
 		ChargesService:    s.Charges,
 		UsageBasedService: s.UsageBasedService,
 		Currencies:        s.CurrencyService,

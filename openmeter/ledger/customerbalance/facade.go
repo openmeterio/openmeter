@@ -188,7 +188,7 @@ func (f *Facade) GetBalance(ctx context.Context, input GetBalanceInput) (alpacad
 		return alpacadecimal.Zero, err
 	}
 
-	balance, err := f.service.GetSettledBalance(ctx, GetBalanceServiceInput{
+	balance, err := f.service.GetBookedBalance(ctx, GetBalanceServiceInput{
 		CustomerID:    input.CustomerID,
 		Currency:      currencies.NewCurrencyReference(input.Currency),
 		FeatureFilter: normalizeFeatureFilter(input.FeatureFilter),

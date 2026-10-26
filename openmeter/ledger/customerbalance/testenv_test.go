@@ -46,6 +46,7 @@ import (
 	ledgercollector "github.com/openmeterio/openmeter/openmeter/ledger/collector"
 	"github.com/openmeterio/openmeter/openmeter/ledger/creditvoid"
 	creditvoidadapter "github.com/openmeterio/openmeter/openmeter/ledger/creditvoid/adapter"
+	fbotestutils "github.com/openmeterio/openmeter/openmeter/ledger/fbo/testutils"
 	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/meter"
@@ -372,8 +373,8 @@ func newTestEnv(t *testing.T) *testEnv {
 	require.NoError(t, err)
 
 	service, err := New(Config{
-		AccountResolver:   base.Deps.ResolversService,
-		SubAccountService: base.Deps.AccountService,
+		AccountResolver: base.Deps.ResolversService,
+		FBO:             fbotestutils.NewService(t, base.Deps, breakageService),
 		ChargesService: chargeStore{
 			search:                searchAdapter,
 			creditPurchaseService: creditPurchaseService,
