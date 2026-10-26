@@ -3,6 +3,7 @@ package service_test
 import (
 	"testing"
 
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -194,6 +195,60 @@ func TestTaxCodeService(t *testing.T) {
 				NamespacedID: models.NamespacedID{Namespace: ns, ID: tc2.ID},
 			})
 			require.NoError(t, err)
+		})
+	})
+
+	t.Run("ListByIDs", func(t *testing.T) {
+		// given:
+		// - a live and a soft-deleted tax code that are requested
+		// - a live tax code that is not requested
+		// - a tax code with a requested ID in another namespace
+		listNs := testutils.NameGenerator.Generate().Key
+		env.ProvisionDefaultTaxCodes(t, listNs)
+
+		live := env.CreateTaxCode(t, listNs)
+		deleted := env.CreateTaxCode(t, listNs)
+		env.CreateTaxCode(t, listNs)
+		require.NoError(t, env.Service.DeleteTaxCode(t.Context(), taxcode.DeleteTaxCodeInput{
+			NamespacedID: models.NamespacedID{Namespace: listNs, ID: deleted.ID},
+		}))
+		foreign := env.CreateTaxCode(t, testutils.NameGenerator.Generate().Key)
+
+		ids := []string{live.ID, deleted.ID, foreign.ID}
+
+		t.Run("LiveOnly", func(t *testing.T) {
+			// when: listing by IDs without deleted codes
+			res, err := env.Service.ListTaxCodes(t.Context(), taxcode.ListTaxCodesInput{
+				Namespace: listNs,
+				IDs:       ids,
+			})
+
+			// then: only the live requested code in the namespace is returned
+			require.NoError(t, err)
+			assert.ElementsMatch(t, []string{live.ID}, lo.Map(res.Items, func(tc taxcode.TaxCode, _ int) string { return tc.ID }))
+		})
+
+		t.Run("IncludeDeleted", func(t *testing.T) {
+			// when: listing by IDs including deleted codes
+			res, err := env.Service.ListTaxCodes(t.Context(), taxcode.ListTaxCodesInput{
+				Namespace:      listNs,
+				IDs:            ids,
+				IncludeDeleted: true,
+			})
+
+			// then: live and soft-deleted requested codes in the namespace are returned
+			require.NoError(t, err)
+			assert.ElementsMatch(t, []string{live.ID, deleted.ID}, lo.Map(res.Items, func(tc taxcode.TaxCode, _ int) string { return tc.ID }))
+		})
+
+		t.Run("EmptyIDIsInvalid", func(t *testing.T) {
+			_, err := env.Service.ListTaxCodes(t.Context(), taxcode.ListTaxCodesInput{
+				Namespace: listNs,
+				IDs:       []string{live.ID, ""},
+			})
+
+			require.Error(t, err)
+			assert.True(t, models.IsGenericValidationError(err), "expected validation error, got: %v", err)
 		})
 	})
 
