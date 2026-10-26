@@ -59,6 +59,12 @@ services:
     extends:
       file: docker-compose.base.yaml
       service: svix
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      # Local/CI receivers run on the host. Never enable private-network delivery in production.
+      # Override for a narrower allowlist or a custom container network.
+      SVIX_WHITELIST_SUBNETS: "${SVIX_WHITELIST_SUBNETS:-[10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16]}"
     profiles:
       - webhook
     ports:
