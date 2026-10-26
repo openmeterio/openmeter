@@ -147,7 +147,7 @@ type service struct {
 	locker                  *lockr.Locker
 	metaAdapter             meta.Adapter
 	invoiceUpdater          invoiceupdater.Updater
-	customerOverrideService billing.CustomerOverrideService
+	customerOverrideService billing.CustomerBillingProfileService
 	featureMeterResolver    *billingfeaturemeterservice.Resolver
 	ratingService           rating.Service
 

@@ -951,8 +951,8 @@ type CreateGatheringInvoiceAdapterInput struct {
 	NextCollectionAt *time.Time
 
 	// TODO[later]: This should be just a CustomerID once we have split the invoices table
-	Customer      customer.Customer
-	MergedProfile Profile
+	Customer         customer.Customer
+	EffectiveProfile Profile
 }
 
 func (c CreateGatheringInvoiceAdapterInput) Validate() error {
@@ -974,8 +974,8 @@ func (c CreateGatheringInvoiceAdapterInput) Validate() error {
 		errs = append(errs, fmt.Errorf("customer: %w", err))
 	}
 
-	if err := c.MergedProfile.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("merged profile: %w", err))
+	if err := c.EffectiveProfile.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("effective profile: %w", err))
 	}
 
 	return errors.Join(errs...)

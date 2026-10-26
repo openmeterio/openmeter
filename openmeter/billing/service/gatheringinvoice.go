@@ -159,7 +159,7 @@ func (s *Service) UpdateGatheringInvoice(ctx context.Context, input billing.Upda
 			return billing.GatheringInvoice{}, fmt.Errorf("unsupported change source: %s", input.ChangeSource)
 		}
 
-		customerProfile, err := s.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
+		customerProfile, err := s.GetCustomerBillingProfile(ctx, billing.GetCustomerBillingProfileInput{
 			Customer: invoice.GetCustomerID(),
 		})
 		if err != nil {
@@ -167,7 +167,7 @@ func (s *Service) UpdateGatheringInvoice(ctx context.Context, input billing.Upda
 		}
 
 		if err := s.invoiceCalculator.CalculateGatheringInvoice(&invoice, invoicecalc.GatheringInvoiceCalculatorDependencies{
-			Collection: customerProfile.MergedProfile.WorkflowConfig.Collection,
+			Collection: customerProfile.EffectiveProfile.WorkflowConfig.Collection,
 		}); err != nil {
 			return billing.GatheringInvoice{}, fmt.Errorf("calculating invoice[%s]: %w", invoice.ID, err)
 		}
@@ -179,7 +179,7 @@ func (s *Service) UpdateGatheringInvoice(ctx context.Context, input billing.Upda
 		}
 
 		// Check if the new lines are still invoicable
-		if err := s.checkIfGatheringLinesAreInvoicable(ctx, invoice, customerProfile.MergedProfile.WorkflowConfig.Invoicing.ProgressiveBilling); err != nil {
+		if err := s.checkIfGatheringLinesAreInvoicable(ctx, invoice, customerProfile.EffectiveProfile.WorkflowConfig.Invoicing.ProgressiveBilling); err != nil {
 			return billing.GatheringInvoice{}, err
 		}
 

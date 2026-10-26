@@ -34,7 +34,7 @@ type GetDetailedRatingForUsageInput struct {
 
 	// Metering values
 
-	Customer     billing.CustomerOverrideWithDetails
+	Customer     billing.CustomerBillingProfile
 	FeatureMeter billingfeaturemeter.FeatureMeter
 }
 

@@ -11,7 +11,7 @@ import (
 
 type Adapter interface {
 	ProfileAdapter
-	CustomerOverrideAdapter
+	CustomerBillingProfileAdapter
 	InvoiceLineAdapter
 	InvoiceSplitLineGroupAdapter
 	InvoiceAdapter
@@ -37,21 +37,17 @@ type ProfileAdapter interface {
 	GetUnpinnedCustomerIDsWithPaidSubscription(ctx context.Context, input GetUnpinnedCustomerIDsWithPaidSubscriptionInput) ([]customer.CustomerID, error)
 }
 
-type CustomerOverrideAdapter interface {
-	CreateCustomerOverride(ctx context.Context, input UpdateCustomerOverrideAdapterInput) (*CustomerOverride, error)
-	GetCustomerOverride(ctx context.Context, input GetCustomerOverrideAdapterInput) (*CustomerOverride, error)
-	UpdateCustomerOverride(ctx context.Context, input UpdateCustomerOverrideAdapterInput) (*CustomerOverride, error)
-	DeleteCustomerOverride(ctx context.Context, input DeleteCustomerOverrideInput) error
-	ListCustomerOverrides(ctx context.Context, input ListCustomerOverridesInput) (ListCustomerOverridesAdapterResult, error)
-
+type CustomerBillingProfileAdapter interface {
+	SetCustomerBillingProfile(ctx context.Context, input SetCustomerBillingProfileInput) (CustomerBillingProfileAdapterResult, error)
+	GetCustomerBillingProfile(ctx context.Context, input GetCustomerBillingProfileInput) (CustomerBillingProfileAdapterResult, error)
+	ClearCustomerBillingProfile(ctx context.Context, input ClearCustomerBillingProfileInput) error
+	ListCustomerBillingProfiles(ctx context.Context, input ListCustomerBillingProfilesInput) (ListCustomerBillingProfilesAdapterResult, error)
 	BulkAssignCustomersToProfile(ctx context.Context, input BulkAssignCustomersToProfileInput) error
-
-	GetCustomerOverrideReferencingProfile(ctx context.Context, input HasCustomerOverrideReferencingProfileAdapterInput) ([]customer.CustomerID, error)
+	GetCustomersReferencingProfile(ctx context.Context, input ProfileID) ([]customer.CustomerID, error)
 }
 
 type CustomerSynchronizationAdapter interface {
-	// UpsertCustomerOverride upserts a customer override ignoring the transactional context, the override
-	// will be empty.
+	// UpsertCustomerLock creates the customer synchronization row outside the transactional context.
 	UpsertCustomerLock(ctx context.Context, input UpsertCustomerLockAdapterInput) error
 	LockCustomerForUpdate(ctx context.Context, input LockCustomerForUpdateAdapterInput) error
 }

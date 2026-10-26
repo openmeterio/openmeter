@@ -5,7 +5,7 @@ through calculation, external invoicing, and payment.
 
 It owns:
 
-- billing profiles and customer-specific workflow overrides
+- billing profiles and customer-specific profile selections
 - gathering and standard invoice aggregates
 - invoice-line identity and persistence
 - invoice calculation, validation, and lifecycle orchestration
@@ -20,12 +20,23 @@ described in [Charges](charges/README.md).
 ## Billing configuration becomes invoice history
 
 A billing profile selects the workflow and the apps responsible for tax,
-invoicing, and payment. A namespace has one default profile. A customer
-override may select another profile and replace supported parts of its
-workflow. Without an explicit profile selection, the customer follows the current
-namespace default, even when it has workflow overrides. The v3 customer billing
-GET and PUT responses return an explicit selection as `billing_profile` (omitted
-when unpinned) and the resolved profile as `effective_billing_profile`.
+invoicing, and payment. A namespace has one default profile. A customer may be
+explicitly pinned to any profile, including the current default. Without a pin, it follows the current
+namespace default. Individual workflow fields cannot be overridden per customer;
+customers needing different settings select a different profile.
+
+The customer billing service exposes separate set and clear operations. Setting
+requires a profile ID; clearing removes the pin. Successful reads always return
+the effective profile alongside the optional pin. Historical empty and deleted
+selection rows resolve like customers without a pin. The v3 billing response
+exposes these as optional `billing_profile` and required read-only
+`effective_billing_profile`. Omitting the profile in v3 PUT preserves the pin;
+omitting it in legacy customer-override PUT clears the pin.
+
+When the default's invoicing app type changes, billing pins previously unpinned
+customers with outstanding valid subscription-linked gathering lines to the old
+profile. Changing the default within the same app type does not auto-pin them.
+Explicit pins remain unchanged in either case.
 
 Installing a Custom Invoicing app with automatic profile creation uses Cloud's
 initial Auto Collection preset: the installed app handles tax, invoicing, and
@@ -35,7 +46,7 @@ profile is not made the namespace default, even when no default exists. App
 installation and profile creation commit together; profile creation failures
 roll back the installation.
 
-The merged customer configuration is resolved when a standard invoice is
+The effective customer configuration is resolved when a standard invoice is
 created. The invoice keeps the customer, supplier, workflow configuration, and
 app references needed to finish its lifecycle. Customer-visible invoice
 history must not retrospectively follow later customer or profile changes.

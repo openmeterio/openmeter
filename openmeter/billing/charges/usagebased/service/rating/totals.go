@@ -16,7 +16,7 @@ import (
 
 type GetTotalsForUsageInput struct {
 	Charge                  usagebased.Charge
-	Customer                billing.CustomerOverrideWithDetails
+	Customer                billing.CustomerBillingProfile
 	FeatureMeter            billingfeaturemeter.FeatureMeter
 	StoredAtLT              time.Time
 	IgnoreMinimumCommitment bool

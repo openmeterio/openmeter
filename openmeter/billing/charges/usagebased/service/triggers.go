@@ -304,15 +304,15 @@ func (s *service) getStateMachineConfigForCharge(ctx context.Context, charge usa
 // getStateMachineConfigForChargeWithHints resolves omitted state-machine dependencies
 // while treating supplied advancement hints as authoritative snapshots.
 func (s *service) getStateMachineConfigForChargeWithHints(ctx context.Context, charge usagebased.Charge, hints usagebased.AdvanceChargeInput) (StateMachineConfig, error) {
-	customerOverride, hasCustomerOverrideHint := hints.CustomerOverride.Get()
+	customerOverride, hasCustomerOverrideHint := hints.CustomerBillingProfile.Get()
 	if !hasCustomerOverrideHint {
 		var err error
-		customerOverride, err = s.customerOverrideService.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
+		customerOverride, err = s.customerOverrideService.GetCustomerBillingProfile(ctx, billing.GetCustomerBillingProfileInput{
 			Customer: customer.CustomerID{
 				Namespace: charge.Namespace,
 				ID:        charge.Intent.GetCustomerID(),
 			},
-			Expand: billing.CustomerOverrideExpand{
+			Expand: billing.CustomerBillingProfileExpand{
 				Customer: true,
 			},
 		})
@@ -329,14 +329,14 @@ func (s *service) getStateMachineConfigForChargeWithHints(ctx context.Context, c
 	currency := charge.Intent.GetCurrency()
 
 	return StateMachineConfig{
-		Charge:             charge,
-		Adapter:            s.adapter,
-		Rater:              s.rater,
-		Runs:               s.runs,
-		CustomerOverride:   customerOverride,
-		FeatureMeters:      featureMeters,
-		CurrencyCalculator: currency,
-		CostBasisResolver:  s.costbasisResolver,
+		Charge:                 charge,
+		Adapter:                s.adapter,
+		Rater:                  s.rater,
+		Runs:                   s.runs,
+		CustomerBillingProfile: customerOverride,
+		FeatureMeters:          featureMeters,
+		CurrencyCalculator:     currency,
+		CostBasisResolver:      s.costbasisResolver,
 	}, nil
 }
 

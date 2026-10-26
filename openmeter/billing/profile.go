@@ -6,8 +6,6 @@ import (
 	"slices"
 	"time"
 
-	"github.com/samber/lo"
-
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/datetime"
@@ -333,44 +331,6 @@ func (p Profile) Validate() error {
 	}
 
 	return nil
-}
-
-func (p Profile) Merge(o *CustomerOverride) Profile {
-	p.WorkflowConfig.Collection = CollectionConfig{
-		Alignment: lo.FromPtrOr(o.Collection.Alignment, p.WorkflowConfig.Collection.Alignment),
-		AnchoredAlignmentDetail: func() *AnchoredAlignmentDetail {
-			if o.Collection.Alignment == nil {
-				return p.WorkflowConfig.Collection.AnchoredAlignmentDetail
-			}
-
-			// This merge logic assumes that Alignment and AnchoredAlignmentDetail are always set together properly.
-			// We utilize this so CustomerOverride.AnchoredAlignmentDetail doesn't have to be Option[*AnchoredAlignmentDetail]
-			switch *o.Collection.Alignment {
-			case AlignmentKindAnchored:
-				return o.Collection.AnchoredAlignmentDetail
-			case AlignmentKindSubscription:
-				return o.Collection.AnchoredAlignmentDetail
-			default:
-				return nil
-			}
-		}(),
-		Interval: lo.FromPtrOr(o.Collection.Interval, p.WorkflowConfig.Collection.Interval),
-	}
-
-	p.WorkflowConfig.Invoicing = InvoicingConfig{
-		AutoAdvance:                  lo.FromPtrOr(o.Invoicing.AutoAdvance, p.WorkflowConfig.Invoicing.AutoAdvance),
-		DraftPeriod:                  lo.FromPtrOr(o.Invoicing.DraftPeriod, p.WorkflowConfig.Invoicing.DraftPeriod),
-		DueAfter:                     lo.FromPtrOr(o.Invoicing.DueAfter, p.WorkflowConfig.Invoicing.DueAfter),
-		ProgressiveBilling:           lo.FromPtrOr(o.Invoicing.ProgressiveBilling, p.WorkflowConfig.Invoicing.ProgressiveBilling),
-		SubscriptionEndProrationMode: p.WorkflowConfig.Invoicing.SubscriptionEndProrationMode,
-		DefaultTaxConfig:             productcatalog.MergeTaxConfigs(o.Invoicing.DefaultTaxConfig, p.WorkflowConfig.Invoicing.DefaultTaxConfig),
-	}
-
-	p.WorkflowConfig.Payment = PaymentConfig{
-		CollectionMethod: lo.FromPtrOr(o.Payment.CollectionMethod, p.WorkflowConfig.Payment.CollectionMethod),
-	}
-
-	return p
 }
 
 type ProfileAppReferences struct {

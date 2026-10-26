@@ -118,10 +118,10 @@ func (i GetByIDsInput) Validate() error {
 
 type AdvanceChargeInput struct {
 	ChargeID meta.ChargeID
-	// CustomerOverride is an authoritative optional resolution hint. None lets
-	// the service resolve the current customer override; Some uses only the
-	// supplied snapshot.
-	CustomerOverride mo.Option[billing.CustomerOverrideWithDetails]
+	// CustomerBillingProfile is an authoritative optional resolution hint. None lets
+	// the service resolve the assigned billing profile or namespace default;
+	// Some uses only the supplied snapshot.
+	CustomerBillingProfile mo.Option[billing.CustomerBillingProfile]
 	// FeatureMeters is an authoritative optional resolution hint. None lets the
 	// service resolve the required feature meter; Some resolves exclusively from
 	// the supplied collection and returns an error when the feature is absent.
@@ -134,12 +134,12 @@ func (i AdvanceChargeInput) Validate() error {
 		errs = append(errs, fmt.Errorf("charge ID: %w", err))
 	}
 
-	if customerOverride, ok := i.CustomerOverride.Get(); ok {
+	if customerOverride, ok := i.CustomerBillingProfile.Get(); ok {
 		if customerOverride.Customer == nil {
 			errs = append(errs, errors.New("expanded customer is required"))
 		}
 
-		if err := customerOverride.MergedProfile.Validate(); err != nil {
+		if err := customerOverride.EffectiveProfile.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("merged profile is required: %w", err))
 		}
 	}

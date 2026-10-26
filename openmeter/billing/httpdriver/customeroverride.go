@@ -2,6 +2,7 @@ package httpdriver
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -19,7 +20,7 @@ import (
 )
 
 type (
-	ListCustomerOverridesRequest  = billing.ListCustomerOverridesInput
+	ListCustomerOverridesRequest  = billing.ListCustomerBillingProfilesInput
 	ListCustomerOverridesResponse = api.BillingProfileCustomerOverrideWithDetailsPaginatedResponse
 	ListCustomerOverridesParams   = api.ListBillingProfileCustomerOverridesParams
 	ListCustomerOverridesHandler  httptransport.HandlerWithArgs[ListCustomerOverridesRequest, ListCustomerOverridesResponse, ListCustomerOverridesParams]
@@ -33,7 +34,7 @@ func (h *handler) ListCustomerOverrides() ListCustomerOverridesHandler {
 				return ListCustomerOverridesRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
 			}
 
-			expand, err := h.mapCustomerOverrideExpandToEntity(input.Expand)
+			expand, err := h.mapCustomerBillingProfileExpandToEntity(input.Expand)
 			if err != nil {
 				return ListCustomerOverridesRequest{}, err
 			}
@@ -49,7 +50,7 @@ func (h *handler) ListCustomerOverrides() ListCustomerOverridesHandler {
 				CustomerPrimaryEmail:          lo.FromPtr(input.CustomerPrimaryEmail),
 
 				Expand:  expand,
-				OrderBy: billing.CustomerOverrideOrderBy(lo.FromPtrOr(input.OrderBy, api.BillingProfileCustomerOverrideOrderByOrderingOrderBy(billing.DefaultCustomerOverrideOrderBy))),
+				OrderBy: billing.CustomerBillingProfileOrderBy(lo.FromPtrOr(input.OrderBy, api.BillingProfileCustomerOverrideOrderByOrderingOrderBy(billing.DefaultCustomerBillingProfileOrderBy))),
 				Order:   sortx.Order(lo.FromPtrOr(input.Order, api.SortOrderDESC)),
 
 				Page: pagination.Page{
@@ -59,7 +60,7 @@ func (h *handler) ListCustomerOverrides() ListCustomerOverridesHandler {
 			}, nil
 		},
 		func(ctx context.Context, input ListCustomerOverridesRequest) (ListCustomerOverridesResponse, error) {
-			overrides, err := h.service.ListCustomerOverrides(ctx, input)
+			overrides, err := h.service.ListCustomerBillingProfiles(ctx, input)
 			if err != nil {
 				return ListCustomerOverridesResponse{}, err
 			}
@@ -92,7 +93,7 @@ func (h *handler) ListCustomerOverrides() ListCustomerOverridesHandler {
 }
 
 type (
-	GetCustomerOverrideRequest  = billing.GetCustomerOverrideInput
+	GetCustomerOverrideRequest  = billing.GetCustomerBillingProfileInput
 	GetCustomerOverrideResponse = api.BillingProfileCustomerOverrideWithDetails
 	GetCustomerOverrideParams   struct {
 		CustomerId string `json:"customerId"`
@@ -109,7 +110,7 @@ func (h *handler) GetCustomerOverride() GetCustomerOverrideHandler {
 				return GetCustomerOverrideRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
 			}
 
-			expand, err := h.mapCustomerOverrideExpandToEntity(input.Expand)
+			expand, err := h.mapCustomerBillingProfileExpandToEntity(input.Expand)
 			if err != nil {
 				return GetCustomerOverrideRequest{}, err
 			}
@@ -123,7 +124,7 @@ func (h *handler) GetCustomerOverride() GetCustomerOverrideHandler {
 			}, nil
 		},
 		func(ctx context.Context, input GetCustomerOverrideRequest) (GetCustomerOverrideResponse, error) {
-			override, err := h.service.GetCustomerOverride(ctx, input)
+			override, err := h.service.GetCustomerBillingProfile(ctx, input)
 			if err != nil {
 				return GetCustomerOverrideResponse{}, err
 			}
@@ -145,7 +146,10 @@ func (h *handler) GetCustomerOverride() GetCustomerOverrideHandler {
 }
 
 type (
-	UpsertCustomerOverrideRequest  = billing.UpsertCustomerOverrideInput
+	UpsertCustomerOverrideRequest struct {
+		Customer  customer.CustomerID
+		ProfileID *string
+	}
 	UpsertCustomerOverrideResponse = api.BillingProfileCustomerOverrideWithDetails
 	UpsertCustomerOverrideParams   struct {
 		CustomerId string `json:"customerId"`
@@ -168,19 +172,38 @@ func (h *handler) UpsertCustomerOverride() UpsertCustomerOverrideHandler {
 			}
 
 			return UpsertCustomerOverrideRequest{
-				Namespace:  ns,
-				CustomerID: input.CustomerId,
-
-				ProfileID: lo.FromPtr(body.BillingProfileId),
+				Customer:  customer.CustomerID{Namespace: ns, ID: input.CustomerId},
+				ProfileID: body.BillingProfileId,
 			}, nil
 		},
 		func(ctx context.Context, input UpsertCustomerOverrideRequest) (UpsertCustomerOverrideResponse, error) {
-			override, err := h.service.UpsertCustomerOverride(ctx, input)
+			var profile billing.CustomerBillingProfile
+			var err error
+			if input.ProfileID == nil {
+				// Preserve the pin if the effective profile cannot be resolved for the response.
+				err = h.service.WithLock(ctx, input.Customer, func(ctx context.Context) error {
+					clearErr := h.service.ClearCustomerBillingProfile(ctx, billing.ClearCustomerBillingProfileInput{Customer: input.Customer})
+					if clearErr != nil && !errors.Is(clearErr, billing.ErrCustomerOverrideNotFound) {
+						return clearErr
+					}
+
+					var resolveErr error
+					profile, resolveErr = h.service.GetCustomerBillingProfile(ctx, billing.GetCustomerBillingProfileInput{Customer: input.Customer})
+
+					return resolveErr
+				})
+			} else {
+				profile, err = h.service.SetCustomerBillingProfile(ctx, billing.SetCustomerBillingProfileInput{
+					Customer:  input.Customer,
+					ProfileID: *input.ProfileID,
+				})
+			}
+
 			if err != nil {
 				return UpsertCustomerOverrideResponse{}, err
 			}
 
-			return h.mapCustomerOverrideToAPI(ctx, override)
+			return h.mapCustomerOverrideToAPI(ctx, profile)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[UpsertCustomerOverrideResponse](http.StatusOK),
 		httptransport.AppendOptions(
@@ -192,7 +215,7 @@ func (h *handler) UpsertCustomerOverride() UpsertCustomerOverrideHandler {
 }
 
 type (
-	DeleteCustomerOverrideRequest  = billing.DeleteCustomerOverrideInput
+	DeleteCustomerOverrideRequest  = billing.ClearCustomerBillingProfileInput
 	DeleteCustomerOverrideResponse = struct{}
 	DeleteCustomerOverrideParams   struct {
 		CustomerId string `json:"customerId"`
@@ -216,7 +239,7 @@ func (h *handler) DeleteCustomerOverride() DeleteCustomerOverrideHandler {
 			}, nil
 		},
 		func(ctx context.Context, input DeleteCustomerOverrideRequest) (DeleteCustomerOverrideResponse, error) {
-			err := h.service.DeleteCustomerOverride(ctx, input)
+			err := h.service.ClearCustomerBillingProfile(ctx, input)
 			if err != nil {
 				return DeleteCustomerOverrideResponse{}, err
 			}
@@ -232,12 +255,12 @@ func (h *handler) DeleteCustomerOverride() DeleteCustomerOverrideHandler {
 	)
 }
 
-func (h *handler) mapCustomerOverrideExpandToEntity(in *api.BillingProfileListCustomerOverridesParamsExpand) (billing.CustomerOverrideExpand, error) {
+func (h *handler) mapCustomerBillingProfileExpandToEntity(in *api.BillingProfileListCustomerOverridesParamsExpand) (billing.CustomerBillingProfileExpand, error) {
 	if in == nil {
-		return billing.CustomerOverrideExpand{}, nil
+		return billing.CustomerBillingProfileExpand{}, nil
 	}
 
-	expand := billing.CustomerOverrideExpand{}
+	expand := billing.CustomerBillingProfileExpand{}
 
 	for _, e := range *in {
 		switch e {
@@ -246,31 +269,22 @@ func (h *handler) mapCustomerOverrideExpandToEntity(in *api.BillingProfileListCu
 		case api.BillingProfileCustomerOverrideExpandCustomer:
 			expand.Customer = true
 		default:
-			return billing.CustomerOverrideExpand{}, models.NewGenericValidationError(fmt.Errorf("invalid expand: %s", e))
+			return billing.CustomerBillingProfileExpand{}, models.NewGenericValidationError(fmt.Errorf("invalid expand: %s", e))
 		}
 	}
 
 	return expand, nil
 }
 
-func (h *handler) mapCustomerOverrideToAPI(ctx context.Context, in billing.CustomerOverrideWithDetails) (api.BillingProfileCustomerOverrideWithDetails, error) {
+func (h *handler) mapCustomerOverrideToAPI(ctx context.Context, in billing.CustomerBillingProfile) (api.BillingProfileCustomerOverrideWithDetails, error) {
 	res := api.BillingProfileCustomerOverrideWithDetails{}
 
-	if in.CustomerOverride != nil {
-		var profileID *string
-
-		if in.CustomerOverride.Profile != nil && in.CustomerOverride.Profile.ID != "" {
-			profileID = &in.CustomerOverride.Profile.ID
-		}
-
+	if in.AssignedProfile != nil {
 		res.CustomerOverride = &api.BillingProfileCustomerOverride{
-			// TODO[later]: add workflow mappings here
-
-			BillingProfileId: profileID,
-			CustomerId:       in.CustomerOverride.ID,
-
-			CreatedAt: in.CustomerOverride.CreatedAt,
-			UpdatedAt: in.CustomerOverride.UpdatedAt,
+			BillingProfileId: &in.AssignedProfile.ProfileID,
+			CustomerId:       in.CustomerID.ID,
+			CreatedAt:        in.AssignedProfile.CreatedAt,
+			UpdatedAt:        in.AssignedProfile.UpdatedAt,
 		}
 	}
 
@@ -283,9 +297,9 @@ func (h *handler) mapCustomerOverrideToAPI(ctx context.Context, in billing.Custo
 		res.Customer = &customer
 	}
 
-	res.BaseBillingProfileId = in.MergedProfile.ID
+	res.BaseBillingProfileId = in.EffectiveProfile.ID
 
-	profile, err := h.mapCustomerProfileToAPI(ctx, in.MergedProfile)
+	profile, err := h.mapCustomerProfileToAPI(ctx, in.EffectiveProfile)
 	if err != nil {
 		return res, err
 	}

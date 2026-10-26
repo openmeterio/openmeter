@@ -305,12 +305,12 @@ func (s *Service) calculateGatheringInvoiceAsStandardInvoice(ctx context.Context
 }
 
 func (s *Service) createStandardInvoiceHeaderFromGatheringInvoice(ctx context.Context, in billing.GatheringInvoice) (*billing.StandardInvoice, error) {
-	mergedProfile, err := s.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
+	mergedProfile, err := s.GetCustomerBillingProfile(ctx, billing.GetCustomerBillingProfileInput{
 		Customer: customer.CustomerID{
 			Namespace: in.Namespace,
 			ID:        in.CustomerID,
 		},
-		Expand: billing.CustomerOverrideExpand{
+		Expand: billing.CustomerBillingProfileExpand{
 			Customer: true,
 			Apps:     true,
 		},
@@ -336,12 +336,12 @@ func (s *Service) createStandardInvoiceHeaderFromGatheringInvoice(ctx context.Co
 			UpdatedAt: in.UpdatedAt,
 			DeletedAt: in.DeletedAt,
 			Customer:  billing.NewInvoiceCustomer(lo.FromPtr(mergedProfile.Customer)),
-			Supplier:  mergedProfile.MergedProfile.Supplier,
+			Supplier:  mergedProfile.EffectiveProfile.Supplier,
 			Workflow: billing.InvoiceWorkflow{
-				AppReferences:          lo.FromPtr(mergedProfile.MergedProfile.AppReferences),
-				Apps:                   mergedProfile.MergedProfile.Apps,
-				SourceBillingProfileID: mergedProfile.MergedProfile.ID,
-				Config:                 mergedProfile.MergedProfile.WorkflowConfig,
+				AppReferences:          lo.FromPtr(mergedProfile.EffectiveProfile.AppReferences),
+				Apps:                   mergedProfile.EffectiveProfile.Apps,
+				SourceBillingProfileID: mergedProfile.EffectiveProfile.ID,
+				Config:                 mergedProfile.EffectiveProfile.WorkflowConfig,
 			},
 			SchemaLevel: in.SchemaLevel,
 		},
@@ -803,16 +803,16 @@ func (s Service) SimulateInvoice(ctx context.Context, input billing.SimulateInvo
 		return billing.StandardInvoice{}, fmt.Errorf("validating input: %w", err)
 	}
 
-	var customerProfile billing.CustomerOverrideWithDetails
+	var customerProfile billing.CustomerBillingProfile
 
 	if input.CustomerID != nil {
 		var err error
-		customerProfile, err = s.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
+		customerProfile, err = s.GetCustomerBillingProfile(ctx, billing.GetCustomerBillingProfileInput{
 			Customer: customer.CustomerID{
 				Namespace: input.Namespace,
 				ID:        *input.CustomerID,
 			},
-			Expand: billing.CustomerOverrideExpand{Customer: true},
+			Expand: billing.CustomerBillingProfileExpand{Customer: true},
 		})
 		if err != nil {
 			return billing.StandardInvoice{}, fmt.Errorf("getting profile with customer override: %w", err)
@@ -850,17 +850,17 @@ func (s Service) SimulateInvoice(ctx context.Context, input billing.SimulateInvo
 			Customer: billing.NewInvoiceCustomer(*customerProfile.Customer),
 
 			Supplier: billing.SupplierContact{
-				ID:      customerProfile.MergedProfile.Supplier.ID,
-				Name:    customerProfile.MergedProfile.Supplier.Name,
-				Address: customerProfile.MergedProfile.Supplier.Address,
-				TaxCode: customerProfile.MergedProfile.Supplier.TaxCode,
+				ID:      customerProfile.EffectiveProfile.Supplier.ID,
+				Name:    customerProfile.EffectiveProfile.Supplier.Name,
+				Address: customerProfile.EffectiveProfile.Supplier.Address,
+				TaxCode: customerProfile.EffectiveProfile.Supplier.TaxCode,
 			},
 
 			Workflow: billing.InvoiceWorkflow{
-				AppReferences:          lo.FromPtr(customerProfile.MergedProfile.AppReferences),
-				Apps:                   customerProfile.MergedProfile.Apps,
-				SourceBillingProfileID: customerProfile.MergedProfile.ID,
-				Config:                 customerProfile.MergedProfile.WorkflowConfig,
+				AppReferences:          lo.FromPtr(customerProfile.EffectiveProfile.AppReferences),
+				Apps:                   customerProfile.EffectiveProfile.Apps,
+				SourceBillingProfileID: customerProfile.EffectiveProfile.ID,
+				Config:                 customerProfile.EffectiveProfile.WorkflowConfig,
 			},
 		},
 	}
@@ -979,17 +979,17 @@ func (s Service) SimulateInvoice(ctx context.Context, input billing.SimulateInvo
 	return invoice, nil
 }
 
-func (s *Service) buildSimulatedCustomerProfile(ctx context.Context, namespace string, simulatedCustomer customer.Customer) (billing.CustomerOverrideWithDetails, error) {
+func (s *Service) buildSimulatedCustomerProfile(ctx context.Context, namespace string, simulatedCustomer customer.Customer) (billing.CustomerBillingProfile, error) {
 	profile, err := s.GetDefaultProfile(ctx, billing.GetDefaultProfileInput{
 		Namespace: namespace,
 	})
 	if err != nil {
-		return billing.CustomerOverrideWithDetails{}, fmt.Errorf("getting default profile: %w", err)
+		return billing.CustomerBillingProfile{}, fmt.Errorf("getting default profile: %w", err)
 	}
 
-	return billing.CustomerOverrideWithDetails{
-		MergedProfile: *profile,
-		Customer:      &simulatedCustomer,
+	return billing.CustomerBillingProfile{
+		EffectiveProfile: *profile,
+		Customer:         &simulatedCustomer,
 	}, nil
 }
 
@@ -1035,7 +1035,7 @@ func (s *Service) RecalculateGatheringInvoices(ctx context.Context, input billin
 			return fmt.Errorf("listing gathering invoices: %w", err)
 		}
 
-		customerProfile, err := s.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
+		customerProfile, err := s.GetCustomerBillingProfile(ctx, billing.GetCustomerBillingProfileInput{
 			Customer: input,
 		})
 		if err != nil {
@@ -1044,7 +1044,7 @@ func (s *Service) RecalculateGatheringInvoices(ctx context.Context, input billin
 
 		for _, invoice := range gatheringInvoices.Items {
 			if err := s.invoiceCalculator.CalculateGatheringInvoice(&invoice, invoicecalc.GatheringInvoiceCalculatorDependencies{
-				Collection: customerProfile.MergedProfile.WorkflowConfig.Collection,
+				Collection: customerProfile.EffectiveProfile.WorkflowConfig.Collection,
 			}); err != nil {
 				return fmt.Errorf("calculating gathering invoice: %w", err)
 			}

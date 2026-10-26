@@ -2113,25 +2113,25 @@ func (n NoopBillingService) ResolveStripeAppIDFromBillingProfile(ctx context.Con
 	return app.AppID{}, nil
 }
 
-// CustomerOverrideService methods
-func (n NoopBillingService) UpsertCustomerOverride(ctx context.Context, input billing.UpsertCustomerOverrideInput) (billing.CustomerOverrideWithDetails, error) {
-	return billing.CustomerOverrideWithDetails{}, nil
+// CustomerBillingProfileService methods
+func (n NoopBillingService) SetCustomerBillingProfile(ctx context.Context, input billing.SetCustomerBillingProfileInput) (billing.CustomerBillingProfile, error) {
+	return billing.CustomerBillingProfile{}, nil
 }
 
-func (n NoopBillingService) DeleteCustomerOverride(ctx context.Context, input billing.DeleteCustomerOverrideInput) error {
+func (n NoopBillingService) ClearCustomerBillingProfile(ctx context.Context, input billing.ClearCustomerBillingProfileInput) error {
 	return nil
 }
 
-func (n NoopBillingService) GetCustomerOverride(ctx context.Context, input billing.GetCustomerOverrideInput) (billing.CustomerOverrideWithDetails, error) {
-	return billing.CustomerOverrideWithDetails{}, nil
+func (n NoopBillingService) GetCustomerBillingProfile(ctx context.Context, input billing.GetCustomerBillingProfileInput) (billing.CustomerBillingProfile, error) {
+	return billing.CustomerBillingProfile{}, nil
 }
 
 func (n NoopBillingService) GetCustomerApp(ctx context.Context, input billing.GetCustomerAppInput) (app.App, error) {
 	return nil, nil
 }
 
-func (n NoopBillingService) ListCustomerOverrides(ctx context.Context, input billing.ListCustomerOverridesInput) (billing.ListCustomerOverridesResult, error) {
-	return billing.ListCustomerOverridesResult{}, nil
+func (n NoopBillingService) ListCustomerBillingProfiles(ctx context.Context, input billing.ListCustomerBillingProfilesInput) (billing.ListCustomerBillingProfilesResult, error) {
+	return billing.ListCustomerBillingProfilesResult{}, nil
 }
 
 // InvoiceLineService methods

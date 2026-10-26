@@ -16,9 +16,9 @@ func ValidateCustomerInvoicingApp(ctx context.Context, billingService billing.Se
 		return fmt.Errorf("billing service is required")
 	}
 
-	customerProfile, err := billingService.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
+	customerProfile, err := billingService.GetCustomerBillingProfile(ctx, billing.GetCustomerBillingProfileInput{
 		Customer: customerID,
-		Expand: billing.CustomerOverrideExpand{
+		Expand: billing.CustomerBillingProfileExpand{
 			Apps:     true,
 			Customer: true,
 		},
@@ -27,7 +27,7 @@ func ValidateCustomerInvoicingApp(ctx context.Context, billingService billing.Se
 		return err
 	}
 
-	appBase := customerProfile.MergedProfile.Apps.Invoicing
+	appBase := customerProfile.EffectiveProfile.Apps.Invoicing
 	if appBase == nil {
 		return models.NewGenericPreConditionFailedError(
 			fmt.Errorf("customer with id %s has no invoicing app configured in namespace %s", customerID.ID, customerID.Namespace),

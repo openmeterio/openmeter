@@ -152,7 +152,7 @@ var _ InvocableCharge = (*usageBasedInvocableCharge)(nil)
 type usageBasedInvocableCharge struct {
 	chargeID          meta.ChargeID
 	usageBasedService usagebased.Service
-	customerOverride  mo.Option[billing.CustomerOverrideWithDetails]
+	customerOverride  mo.Option[billing.CustomerBillingProfile]
 	featureMeters     mo.Option[billingfeaturemeter.FeatureMeters]
 }
 
@@ -167,9 +167,9 @@ func (c *usageBasedInvocableCharge) TriggerPatch(ctx context.Context, patch meta
 
 func (c *usageBasedInvocableCharge) AdvanceCharge(ctx context.Context) (TriggerPatchResult, error) {
 	res, err := c.usageBasedService.AdvanceCharge(ctx, usagebased.AdvanceChargeInput{
-		ChargeID:         c.chargeID,
-		CustomerOverride: c.customerOverride,
-		FeatureMeters:    c.featureMeters,
+		ChargeID:               c.chargeID,
+		CustomerBillingProfile: c.customerOverride,
+		FeatureMeters:          c.featureMeters,
 	})
 	if err != nil {
 		return TriggerPatchResult{}, err

@@ -18,15 +18,15 @@ import (
 )
 
 type CreateRatedRunInput struct {
-	Charge             usagebased.Charge
-	CustomerOverride   billing.CustomerOverrideWithDetails
-	FeatureMeter       billingfeaturemeter.FeatureMeter
-	Type               usagebased.RealizationRunType
-	StoredAtLT         time.Time
-	ServicePeriodTo    time.Time
-	LineID             *string
-	InvoiceID          *string
-	CurrencyCalculator currencyx.Currency
+	Charge                 usagebased.Charge
+	CustomerBillingProfile billing.CustomerBillingProfile
+	FeatureMeter           billingfeaturemeter.FeatureMeter
+	Type                   usagebased.RealizationRunType
+	StoredAtLT             time.Time
+	ServicePeriodTo        time.Time
+	LineID                 *string
+	InvoiceID              *string
+	CurrencyCalculator     currencyx.Currency
 }
 
 func (i CreateRatedRunInput) Validate() error {
@@ -38,7 +38,7 @@ func (i CreateRatedRunInput) Validate() error {
 		return fmt.Errorf("charge: current realization run already exists [charge_id=%s]", i.Charge.GetChargeID())
 	}
 
-	if i.CustomerOverride.Customer == nil {
+	if i.CustomerBillingProfile.Customer == nil {
 		return fmt.Errorf("expanded customer is required")
 	}
 
@@ -137,7 +137,7 @@ func (s *Service) CreateRatedRun(ctx context.Context, in CreateRatedRunInput) (C
 		Charge:          in.Charge,
 		StoredAtLT:      in.StoredAtLT,
 		ServicePeriodTo: in.ServicePeriodTo,
-		Customer:        in.CustomerOverride,
+		Customer:        in.CustomerBillingProfile,
 		FeatureMeter:    in.FeatureMeter,
 	})
 	if err := recorder.RecordWarnings(err); err != nil {

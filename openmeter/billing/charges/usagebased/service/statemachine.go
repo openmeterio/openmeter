@@ -31,24 +31,24 @@ type stateMachine struct {
 	Rater   usagebasedrating.Service
 	Runs    *usagebasedrun.Service
 
-	CustomerOverride   billing.CustomerOverrideWithDetails
-	FeatureMeters      billingfeaturemeter.FeatureMeters
-	CurrencyCalculator currencyx.Currency
-	CostBasisResolver  costbasis.Resolver
+	CustomerBillingProfile billing.CustomerBillingProfile
+	FeatureMeters          billingfeaturemeter.FeatureMeters
+	CurrencyCalculator     currencyx.Currency
+	CostBasisResolver      costbasis.Resolver
 }
 
 type StateMachine = chargestatemachine.StateMachine[usagebased.Charge]
 
 type StateMachineConfig struct {
-	Charge             usagebased.Charge
-	Adapter            usagebased.Adapter
-	Rater              usagebasedrating.Service
-	Runs               *usagebasedrun.Service
-	Logger             *slog.Logger
-	CustomerOverride   billing.CustomerOverrideWithDetails
-	FeatureMeters      billingfeaturemeter.FeatureMeters
-	CurrencyCalculator currencyx.Currency
-	CostBasisResolver  costbasis.Resolver
+	Charge                 usagebased.Charge
+	Adapter                usagebased.Adapter
+	Rater                  usagebasedrating.Service
+	Runs                   *usagebasedrun.Service
+	Logger                 *slog.Logger
+	CustomerBillingProfile billing.CustomerBillingProfile
+	FeatureMeters          billingfeaturemeter.FeatureMeters
+	CurrencyCalculator     currencyx.Currency
+	CostBasisResolver      costbasis.Resolver
 }
 
 func (c StateMachineConfig) Validate() error {
@@ -70,11 +70,11 @@ func (c StateMachineConfig) Validate() error {
 		errs = append(errs, errors.New("run service is required"))
 	}
 
-	if c.CustomerOverride.Customer == nil {
+	if c.CustomerBillingProfile.Customer == nil {
 		errs = append(errs, errors.New("expanded customer is required"))
 	}
 
-	if err := c.CustomerOverride.MergedProfile.Validate(); err != nil {
+	if err := c.CustomerBillingProfile.EffectiveProfile.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("merged profile is required: %w", err))
 	}
 
@@ -108,14 +108,14 @@ func newStateMachineBase(
 	}
 
 	out := &stateMachine{
-		Logger:             lo.CoalesceOrEmpty(config.Logger, slog.Default()),
-		Adapter:            config.Adapter,
-		Rater:              config.Rater,
-		Runs:               config.Runs,
-		CustomerOverride:   config.CustomerOverride,
-		FeatureMeters:      config.FeatureMeters,
-		CurrencyCalculator: config.CurrencyCalculator,
-		CostBasisResolver:  config.CostBasisResolver,
+		Logger:                 lo.CoalesceOrEmpty(config.Logger, slog.Default()),
+		Adapter:                config.Adapter,
+		Rater:                  config.Rater,
+		Runs:                   config.Runs,
+		CustomerBillingProfile: config.CustomerBillingProfile,
+		FeatureMeters:          config.FeatureMeters,
+		CurrencyCalculator:     config.CurrencyCalculator,
+		CostBasisResolver:      config.CostBasisResolver,
 	}
 
 	machine, err := chargestatemachine.New(chargestatemachine.Config[usagebased.Charge, usagebased.ChargeBase, usagebased.Status]{
@@ -337,7 +337,7 @@ func (s *stateMachine) IsAfterCollectionPeriod(ctx context.Context, _ ...any) bo
 }
 
 func (s *stateMachine) getFinalRunStoredAtLT() (time.Time, error) {
-	collectionPeriod := s.CustomerOverride.MergedProfile.WorkflowConfig.Collection.Interval
+	collectionPeriod := s.CustomerBillingProfile.EffectiveProfile.WorkflowConfig.Collection.Interval
 	storedAtLT, _ := collectionPeriod.AddTo(s.Charge.Intent.GetEffectiveServicePeriod().To)
 
 	return meta.NormalizeTimestamp(storedAtLT), nil

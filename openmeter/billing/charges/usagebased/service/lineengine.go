@@ -377,7 +377,7 @@ func (e *LineEngine) buildGatheringPreviewRun(ctx context.Context, charge usageb
 	storedAtLT := meta.NormalizeTimestamp(stdLine.Period.To)
 	servicePeriodTo := storedAtLT
 	if runType == usagebased.RealizationRunTypeFinalRealization {
-		storedAtLT, _ = stateMachineConfig.CustomerOverride.MergedProfile.WorkflowConfig.Collection.Interval.AddTo(charge.Intent.GetEffectiveServicePeriod().To)
+		storedAtLT, _ = stateMachineConfig.CustomerBillingProfile.EffectiveProfile.WorkflowConfig.Collection.Interval.AddTo(charge.Intent.GetEffectiveServicePeriod().To)
 		storedAtLT = meta.NormalizeTimestamp(storedAtLT)
 		servicePeriodTo = meta.NormalizeTimestamp(charge.Intent.GetEffectiveServicePeriod().To)
 	}
@@ -388,15 +388,15 @@ func (e *LineEngine) buildGatheringPreviewRun(ctx context.Context, charge usageb
 	}
 
 	return e.service.runs.BuildCreditThenInvoiceGatheringPreviewRun(ctx, usagebasedrun.BuildCreditThenInvoiceGatheringPreviewRunInput{
-		Charge:             charge,
-		CustomerOverride:   stateMachineConfig.CustomerOverride,
-		FeatureMeter:       featureMeter,
-		Type:               runType,
-		StoredAtLT:         storedAtLT,
-		ServicePeriodTo:    servicePeriodTo,
-		LineID:             stdLine.ID,
-		InvoiceID:          stdLine.InvoiceID,
-		CurrencyCalculator: stateMachineConfig.CurrencyCalculator,
+		Charge:                 charge,
+		CustomerBillingProfile: stateMachineConfig.CustomerBillingProfile,
+		FeatureMeter:           featureMeter,
+		Type:                   runType,
+		StoredAtLT:             storedAtLT,
+		ServicePeriodTo:        servicePeriodTo,
+		LineID:                 stdLine.ID,
+		InvoiceID:              stdLine.InvoiceID,
+		CurrencyCalculator:     stateMachineConfig.CurrencyCalculator,
 	})
 }
 

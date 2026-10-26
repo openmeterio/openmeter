@@ -11,7 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
 
-var _ billing.CustomerOverrideAdapter = (*adapter)(nil)
+var _ billing.CustomerSynchronizationAdapter = (*adapter)(nil)
 
 func (a *adapter) UpsertCustomerLock(ctx context.Context, input billing.UpsertCustomerLockAdapterInput) error {
 	err := a.db.BillingCustomerLock.Create().

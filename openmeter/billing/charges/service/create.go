@@ -64,7 +64,7 @@ func (s *service) applyDefaultTaxCodes(ctx context.Context, namespace string, in
 
 			profileTaxCodeID, cached := profileTaxCodeIDs[customerID]
 			if !cached {
-				customerOverride, err := s.billingService.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
+				customerOverride, err := s.billingService.GetCustomerBillingProfile(ctx, billing.GetCustomerBillingProfileInput{
 					Customer: customer.CustomerID{
 						Namespace: namespace,
 						ID:        customerID,
@@ -74,7 +74,7 @@ func (s *service) applyDefaultTaxCodes(ctx context.Context, namespace string, in
 					return charges.CreateChargeIntent{}, fmt.Errorf("getting customer billing profile: %w", err)
 				}
 
-				profileTaxConfig := customerOverride.MergedProfile.WorkflowConfig.Invoicing.DefaultTaxConfig
+				profileTaxConfig := customerOverride.EffectiveProfile.WorkflowConfig.Invoicing.DefaultTaxConfig
 				if profileTaxConfig != nil && lo.FromPtr(profileTaxConfig.TaxCodeID) != "" {
 					profileTaxCodeID = profileTaxConfig.TaxCodeID
 				}

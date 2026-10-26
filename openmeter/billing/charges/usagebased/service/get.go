@@ -91,11 +91,11 @@ func (s *service) expandChargesUsage(ctx context.Context, namespace string, char
 		return charge.GetCustomerID()
 	}))
 
-	customerOverridesById := make(map[customer.CustomerID]billing.CustomerOverrideWithDetails)
+	customerOverridesById := make(map[customer.CustomerID]billing.CustomerBillingProfile)
 	for _, customerID := range uniqueCustomers {
-		customerOverride, err := s.customerOverrideService.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
+		customerOverride, err := s.customerOverrideService.GetCustomerBillingProfile(ctx, billing.GetCustomerBillingProfileInput{
 			Customer: customerID,
-			Expand: billing.CustomerOverrideExpand{
+			Expand: billing.CustomerBillingProfileExpand{
 				Customer: true,
 			},
 		})

@@ -421,13 +421,13 @@ func (s *CreditsOnlyStateMachine) StartFinalRealizationRun(ctx context.Context) 
 	}
 
 	result, err := s.Runs.CreateRatedRun(ctx, usagebasedrun.CreateRatedRunInput{
-		Charge:             s.Charge,
-		CustomerOverride:   s.CustomerOverride,
-		FeatureMeter:       featureMeter,
-		Type:               usagebased.RealizationRunTypeFinalRealization,
-		StoredAtLT:         storedAtLT,
-		ServicePeriodTo:    meta.NormalizeTimestamp(s.Charge.Intent.GetEffectiveServicePeriod().To),
-		CurrencyCalculator: s.CurrencyCalculator,
+		Charge:                 s.Charge,
+		CustomerBillingProfile: s.CustomerBillingProfile,
+		FeatureMeter:           featureMeter,
+		Type:                   usagebased.RealizationRunTypeFinalRealization,
+		StoredAtLT:             storedAtLT,
+		ServicePeriodTo:        meta.NormalizeTimestamp(s.Charge.Intent.GetEffectiveServicePeriod().To),
+		CurrencyCalculator:     s.CurrencyCalculator,
 	})
 	ratingIssues, err := billing.ToValidationIssues(err, billing.RequireWarningsOnly())
 	if err != nil {
@@ -465,7 +465,7 @@ func (s *CreditsOnlyStateMachine) FinalizeRealizationRun(ctx context.Context) er
 		Charge:          s.Charge,
 		StoredAtLT:      storedAtLT,
 		ServicePeriodTo: currentRun.ServicePeriodTo,
-		Customer:        s.CustomerOverride,
+		Customer:        s.CustomerBillingProfile,
 		FeatureMeter:    featureMeter,
 	})
 	ratingIssues, err := billing.ToValidationIssues(err, billing.RequireWarningsOnly())

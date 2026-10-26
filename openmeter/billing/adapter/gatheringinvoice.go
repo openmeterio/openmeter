@@ -33,10 +33,10 @@ func (a *adapter) CreateGatheringInvoice(ctx context.Context, input billing.Crea
 
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (billing.GatheringInvoice, error) {
 		customer := input.Customer
-		supplier := input.MergedProfile.Supplier
+		supplier := input.EffectiveProfile.Supplier
 
 		// Clone the workflow config
-		clonedWorkflowConfig, err := tx.createWorkflowConfig(ctx, input.Namespace, input.MergedProfile.WorkflowConfig)
+		clonedWorkflowConfig, err := tx.createWorkflowConfig(ctx, input.Namespace, input.EffectiveProfile.WorkflowConfig)
 		if err != nil {
 			return billing.GatheringInvoice{}, fmt.Errorf("clone workflow config: %w", err)
 		}
@@ -46,7 +46,7 @@ func (a *adapter) CreateGatheringInvoice(ctx context.Context, input billing.Crea
 			SetMetadata(input.Metadata).
 			SetCurrency(input.Currency).
 			SetStatus(billing.StandardInvoiceStatusGathering).
-			SetSourceBillingProfileID(input.MergedProfile.ID).
+			SetSourceBillingProfileID(input.EffectiveProfile.ID).
 			SetType(billing.InvoiceTypeStandard). // TODO: Migrate to GatheringInvoiceType once we have the type in the database
 			SetNumber(input.Number).
 			SetNillableDescription(input.Description).
@@ -56,9 +56,9 @@ func (a *adapter) CreateGatheringInvoice(ctx context.Context, input billing.Crea
 			SetCustomerID(input.Customer.ID).
 			// TODO: Remove all below this line once we have separate tables for gathering invoices
 			SetBillingWorkflowConfigID(clonedWorkflowConfig.ID).
-			SetTaxAppID(input.MergedProfile.Apps.Tax.GetID().ID).
-			SetInvoicingAppID(input.MergedProfile.Apps.Invoicing.GetID().ID).
-			SetPaymentAppID(input.MergedProfile.Apps.Payment.GetID().ID).
+			SetTaxAppID(input.EffectiveProfile.Apps.Tax.GetID().ID).
+			SetInvoicingAppID(input.EffectiveProfile.Apps.Invoicing.GetID().ID).
+			SetPaymentAppID(input.EffectiveProfile.Apps.Payment.GetID().ID).
 			// Totals
 			SetAmount(alpacadecimal.Zero).
 			SetChargesTotal(alpacadecimal.Zero).
