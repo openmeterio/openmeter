@@ -39,9 +39,16 @@ Calculation:
    Credits are allocated after rating, so credit changes must not look like
    usage or pricing changes.
 5. Call `subtract.SubtractRatedRunDetails(current, alreadyBilled, generator)`.
-6. Stamp every remaining line to the current run service period and clear
+   Subtraction drops every zero-total line.
+6. Append the current rating's deliberate zero lines whose
+   `ChildUniqueReferenceID` is absent from the subtraction output: zero totals
+   with a zero quantity (zero-usage tiers) or a zero unit price (free usage).
+   Pricers emit these on purpose and invoices display them, so they are booked
+   as rated on every run. Free usage therefore shows the cumulative quantity
+   rather than a delta. Zero totals produced by rounding stay dropped.
+7. Stamp every remaining line to the current run service period and clear
    `CorrectsRunID`.
-7. Sort output lines, assign dense indexes, and validate that final output
+8. Sort output lines, assign dense indexes, and validate that final output
    `ChildUniqueReferenceID` values are unique.
 
 The result totals are the sum of the emitted detailed lines.

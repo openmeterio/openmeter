@@ -688,3 +688,105 @@ func TestGraduatedTieredDeltaCrossingFlatTierBoundaryBooksOnlyNewFlatComponent(t
 		},
 	})
 }
+
+func TestGraduatedTieredDeltaZeroUsageRepeatsZeroUsageLineButNotFlatFee(t *testing.T) {
+	// Given:
+	// - a graduated-tiered price whose first tier has a flat fee
+	// When:
+	// - delta rating rates two zero-usage snapshots and then real usage
+	// Then:
+	// - the zero-usage line is booked on every zero-usage run, the flat fee once,
+	//   and the usage run books only the usage delta
+	t.Parallel()
+
+	periods := deltaRatingTestPeriods()
+
+	runDeltaRatingTestCase(t, deltaRatingTestCase{
+		price: *productcatalog.NewPriceFrom(productcatalog.TieredPrice{
+			Mode: productcatalog.GraduatedTieredPrice,
+			Tiers: []productcatalog.PriceTier{
+				{
+					UpToAmount: lo.ToPtr(alpacadecimal.NewFromInt(5)),
+					FlatPrice: &productcatalog.PriceTierFlatPrice{
+						Amount: alpacadecimal.NewFromInt(100),
+					},
+					UnitPrice: &productcatalog.PriceTierUnitPrice{
+						Amount: alpacadecimal.NewFromInt(1),
+					},
+				},
+				{
+					UnitPrice: &productcatalog.PriceTierUnitPrice{
+						Amount: alpacadecimal.NewFromInt(2),
+					},
+				},
+			},
+		}),
+		phases: []deltaRatingPhase{
+			{
+				period:          periods.period1,
+				meteredQuantity: 0,
+				expectedDetailedLines: []ratingtestutils.ExpectedDetailedLine{
+					{
+						ChildUniqueReferenceID: "graduated-tiered-1-price-usage",
+						Category:               stddetailedline.CategoryRegular,
+						ServicePeriod:          lo.ToPtr(periods.period1),
+						PerUnitAmount:          1,
+						Quantity:               0,
+						Totals:                 ratingtestutils.ExpectedTotals{},
+					},
+					{
+						ChildUniqueReferenceID: "graduated-tiered-1-flat-price",
+						Category:               stddetailedline.CategoryRegular,
+						ServicePeriod:          lo.ToPtr(periods.period1),
+						PerUnitAmount:          100,
+						Quantity:               1,
+						Totals: ratingtestutils.ExpectedTotals{
+							Amount: 100,
+							Total:  100,
+						},
+					},
+				},
+				expectedTotals: ratingtestutils.ExpectedTotals{
+					Amount: 100,
+					Total:  100,
+				},
+			},
+			{
+				period:          periods.period2,
+				meteredQuantity: 0,
+				expectedDetailedLines: []ratingtestutils.ExpectedDetailedLine{
+					{
+						ChildUniqueReferenceID: "graduated-tiered-1-price-usage",
+						Category:               stddetailedline.CategoryRegular,
+						ServicePeriod:          lo.ToPtr(periods.period2),
+						PerUnitAmount:          1,
+						Quantity:               0,
+						Totals:                 ratingtestutils.ExpectedTotals{},
+					},
+				},
+				expectedTotals: ratingtestutils.ExpectedTotals{},
+			},
+			{
+				period:          periods.period3,
+				meteredQuantity: 3,
+				expectedDetailedLines: []ratingtestutils.ExpectedDetailedLine{
+					{
+						ChildUniqueReferenceID: "graduated-tiered-1-price-usage",
+						Category:               stddetailedline.CategoryRegular,
+						ServicePeriod:          lo.ToPtr(periods.period3),
+						PerUnitAmount:          1,
+						Quantity:               3,
+						Totals: ratingtestutils.ExpectedTotals{
+							Amount: 3,
+							Total:  3,
+						},
+					},
+				},
+				expectedTotals: ratingtestutils.ExpectedTotals{
+					Amount: 3,
+					Total:  3,
+				},
+			},
+		},
+	})
+}

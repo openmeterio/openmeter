@@ -117,6 +117,8 @@ func (e Engine) Rate(_ context.Context, in Input) (Result, error) {
 		return Result{}, fmt.Errorf("subtracting detailed lines: %w", err)
 	}
 
+	remainingDetailedLines = appendDeliberateZeroLines(remainingDetailedLines, currentDetailedLines)
+
 	for idx := range remainingDetailedLines {
 		// This rater intentionally books every delta on the current run period.
 		// The period-preserving late-event rater owns correction metadata.
@@ -144,4 +146,26 @@ func (e Engine) Rate(_ context.Context, in Input) (Result, error) {
 	return Result{
 		DetailedLines: remainingDetailedLines,
 	}, recorder.ErrorsOrNil()
+}
+
+// appendDeliberateZeroLines restores the current rating's zero-usage tier and
+// free usage lines that subtraction dropped as zero totals. Invoices display
+// them, so they are booked as rated on every run, with the cumulative quantity.
+// A zero total that only comes from rounding a priced quantity stays dropped.
+func appendDeliberateZeroLines(remaining, current usagebased.DetailedLines) usagebased.DetailedLines {
+	present := lo.SliceToMap(remaining, func(line usagebased.DetailedLine) (string, struct{}) {
+		return line.ChildUniqueReferenceID, struct{}{}
+	})
+
+	for _, line := range current {
+		if _, ok := present[line.ChildUniqueReferenceID]; ok {
+			continue
+		}
+
+		if line.Totals.IsZero() && (line.Quantity.IsZero() || line.PerUnitAmount.IsZero()) {
+			remaining = append(remaining, line)
+		}
+	}
+
+	return remaining
 }
