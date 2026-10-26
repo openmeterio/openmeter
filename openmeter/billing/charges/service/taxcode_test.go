@@ -61,12 +61,17 @@ func (s *TaxCodePersistenceTestSuite) TestCustomerChargeCreatePreservesExplicitT
 			// given: the requested and deprecated tax identities differ from the organization default
 			ctx := s.T().Context()
 			ns := s.GetUniqueNamespace("customer-charge-api-tax-identity")
-			defaults := s.ProvisionDefaultTaxCodes(ctx, ns)
+			defaults := s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 			sandboxApp := s.InstallSandboxApp(s.T(), ns)
 			_ = s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
 			cust := s.CreateTestCustomer(ns, "test-subject")
-			requestedTaxCode := s.createTestTaxCodeWithStripeMapping(ctx, ns, "requested-tax", "txcd_20000000")
-			deprecatedTaxCode := s.createTestTaxCode(ctx, ns, "deprecated-tax")
+			requestedTaxCode := s.TaxCodeEnv.CreateTaxCode(s.T(), ns, taxcode.CreateTaxCodeInput{
+				Key: "requested-tax",
+				AppMappings: taxcode.TaxCodeAppMappings{
+					{AppType: app.AppTypeStripe, TaxCode: "txcd_20000000"},
+				},
+			})
+			deprecatedTaxCode := s.TaxCodeEnv.CreateTaxCode(s.T(), ns, taxcode.CreateTaxCodeInput{Key: "deprecated-tax"})
 			s.Require().NotEqual(defaults.InvoicingTaxCodeID, requestedTaxCode.ID)
 			s.Require().NotEqual(defaults.InvoicingTaxCodeID, deprecatedTaxCode.ID)
 
