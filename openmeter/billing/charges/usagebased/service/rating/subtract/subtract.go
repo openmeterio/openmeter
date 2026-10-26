@@ -308,7 +308,12 @@ func isZeroDetailedLine(line usagebased.DetailedLine) bool {
 
 // isDeliberateZeroDetailedLine reports zero-total lines a pricer emits on
 // purpose: free usage (quantity at a zero unit price) and zero-usage tier lines.
-// A zero total produced by rounding a priced quantity is not deliberate.
+// A zero total produced by rounding a priced quantity is not deliberate, and
+// neither is a negative correction, even at a zero unit price.
 func isDeliberateZeroDetailedLine(line usagebased.DetailedLine) bool {
-	return line.Totals.IsZero() && (line.Quantity.IsZero() || line.PerUnitAmount.IsZero())
+	if !line.Totals.IsZero() || line.Quantity.IsNegative() {
+		return false
+	}
+
+	return line.Quantity.IsZero() || line.PerUnitAmount.IsZero()
 }

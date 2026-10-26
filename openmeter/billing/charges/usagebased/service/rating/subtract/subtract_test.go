@@ -1014,21 +1014,78 @@ func TestSubtractRatedRunDetailsDoesNotTreatOffsettingCurrentLinesAsDeliberateZe
 		},
 	})
 
+	freeUsage := makeRatedDetailedLineForTest(ratedDetailedLineForTestInput{
+		referenceID:   "unit-price-usage",
+		servicePeriod: servicePeriod,
+		perUnitAmount: 0,
+		quantity:      10,
+	})
+	freeUsageReversal := makeRatedDetailedLineForTest(ratedDetailedLineForTestInput{
+		referenceID:   "unit-price-usage",
+		servicePeriod: servicePeriod,
+		perUnitAmount: 0,
+		quantity:      -10,
+	})
+
 	// given:
-	// - a current side whose lines sum to zero quantity because a correction reverses a booked line
+	// - a current side whose lines sum to zero quantity because corrections reverse booked lines,
+	//   once at a non-zero unit price and once for free usage
 	// when:
 	// - we subtract the same already billed lines while keeping deliberate zero lines
 	// then:
-	// - the summed zero is arithmetic, not a pricer zero, so no line is emitted
+	// - the summed zeros are arithmetic, not pricer zeros, so no line is emitted
 
 	out, err := SubtractRatedRunDetails(
-		usagebased.DetailedLines{booked, reversal},
-		usagebased.DetailedLines{booked, reversal},
+		usagebased.DetailedLines{booked, reversal, freeUsage, freeUsageReversal},
+		usagebased.DetailedLines{booked, reversal, freeUsage, freeUsageReversal},
 		NewMockUniqueReferenceIDGenerator(t),
 		WithDeliberateZeroLinesKept(),
 	)
 	require.NoError(t, err)
 	require.Empty(t, out)
+}
+
+func TestSubtractRatedRunDetailsKeepsDeliberateZeroMatchedDeltaOnlyWhenAsked(t *testing.T) {
+	t.Parallel()
+
+	servicePeriod := timeutil.ClosedPeriod{
+		From: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
+		To:   time.Date(2025, 2, 1, 0, 0, 0, 0, time.UTC),
+	}
+
+	zeroUsage := makeRatedDetailedLineForTest(ratedDetailedLineForTestInput{
+		referenceID:   "graduated-tiered-1-price-usage",
+		servicePeriod: servicePeriod,
+		perUnitAmount: 10,
+		quantity:      0,
+	})
+
+	// given:
+	// - a zero-usage tier line that was already booked on a previous run and is rated again unchanged
+	// when:
+	// - we subtract without asking for deliberate zero lines
+	// then:
+	// - the zero matched delta is dropped, which is what correction arithmetic relies on
+
+	out, err := SubtractRatedRunDetails(usagebased.DetailedLines{zeroUsage}, usagebased.DetailedLines{zeroUsage}, NewMockUniqueReferenceIDGenerator(t))
+	require.NoError(t, err)
+	require.Empty(t, out)
+
+	// when:
+	// - we subtract while asking for deliberate zero lines
+	// then:
+	// - the zero-usage line is presented again as a matched delta
+
+	out, err = SubtractRatedRunDetails(usagebased.DetailedLines{zeroUsage}, usagebased.DetailedLines{zeroUsage}, NewMockUniqueReferenceIDGenerator(t), WithDeliberateZeroLinesKept())
+	require.NoError(t, err)
+	require.Equal(t, []expectedDetailedLine{
+		{
+			ChildUniqueReferenceID: "graduated-tiered-1-price-usage",
+			Category:               stddetailedline.CategoryRegular,
+			PerUnitAmount:          10,
+			Quantity:               0,
+		},
+	}, toExpectedDetailedLines(out))
 }
 
 func TestSubtractRatedRunDetailsKeepsRepricingAsSeparateLines(t *testing.T) {
