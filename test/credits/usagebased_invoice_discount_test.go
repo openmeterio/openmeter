@@ -428,7 +428,6 @@ func (s *CreditThenInvoiceTestSuite) TestPercentageDiscountProgressiveBilling() 
 		s.Require().Len(invoices[0].Lines.OrEmpty(), 1)
 
 		invoiceLine := invoices[0].Lines.OrEmpty()[0]
-		s.Require().Nil(invoiceLine.SplitLineHierarchy)
 
 		// The line has 4 quantity, 4 metered quantity
 		s.Equal(float64(4), invoiceLine.UsageBased.Quantity.InexactFloat64())

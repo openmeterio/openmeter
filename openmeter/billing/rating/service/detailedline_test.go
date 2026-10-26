@@ -1,6 +1,7 @@
 package service
 
 import (
+	"errors"
 	"testing"
 	"time"
 
@@ -53,7 +54,7 @@ func TestGenerateLegacyProgressiveBilledLinesRejectsMissingMeteredQuantities(t *
 			}
 
 			// when: detailed-line calculation is invoked despite the incomplete snapshot
-			_, err := New(Config{}).GenerateLegacyProgressiveBilledLines(line)
+			_, err := New(Config{}).GenerateLegacyProgressiveBilledLines(legacyRatingTestLine{StandardLine: line})
 
 			// then: rating rejects the input instead of dereferencing a nil quantity
 			require.EqualError(t, err, tc.expectedError)
@@ -70,8 +71,24 @@ func TestRatingReturnsAmountsBeforeCreditApplication(t *testing.T) {
 		}),
 	} {
 		t.Run(string(price.Type()), func(t *testing.T) {
-			for _, mode := range []string{"ordinary", "legacy"} {
-				t.Run(mode, func(t *testing.T) {
+			for _, mode := range []struct {
+				name string
+				rate func(rating.Service, *billing.StandardLine) (rating.GenerateDetailedLinesResult, error)
+			}{
+				{
+					name: "ordinary",
+					rate: func(svc rating.Service, line *billing.StandardLine) (rating.GenerateDetailedLinesResult, error) {
+						return svc.GenerateDetailedLines(line)
+					},
+				},
+				{
+					name: "legacy",
+					rate: func(svc rating.Service, line *billing.StandardLine) (rating.GenerateDetailedLinesResult, error) {
+						return svc.GenerateLegacyProgressiveBilledLines(legacyRatingTestLine{StandardLine: line})
+					},
+				},
+			} {
+				t.Run(mode.name, func(t *testing.T) {
 					// Given pricing worth 100 and invoice credit facts owned outside rating.
 					line := &billing.StandardLine{
 						StandardLineBase: billing.StandardLineBase{
@@ -91,14 +108,7 @@ func TestRatingReturnsAmountsBeforeCreditApplication(t *testing.T) {
 					svc := New(Config{})
 
 					// When either rating entrypoint calculates the line.
-					var result rating.GenerateDetailedLinesResult
-					var err error
-					if mode == "legacy" {
-						result, err = svc.GenerateLegacyProgressiveBilledLines(line)
-					} else {
-						result, err = svc.GenerateDetailedLines(line)
-					}
-
+					result, err := mode.rate(svc, line)
 					require.NoError(t, err)
 
 					// Then rating leaves credit application to the owner of those facts.
@@ -140,8 +150,23 @@ func TestGenerateLegacyProgressiveBilledLinesClampsNegativeMeteredQuantities(t *
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			for _, mode := range []string{"unsplit", "progressive"} {
-				t.Run(mode, func(t *testing.T) {
+			for _, mode := range []struct {
+				name  string
+				setup func(*legacyRatingTestLine)
+			}{
+				{
+					name:  "unsplit",
+					setup: func(*legacyRatingTestLine) {},
+				},
+				{
+					name: "progressive",
+					setup: func(line *legacyRatingTestLine) {
+						line.SplitLineGroupID = lo.ToPtr("group-id")
+						line.fullServicePeriod = &line.Period
+					},
+				},
+			} {
+				t.Run(mode.name, func(t *testing.T) {
 					// Given negative raw usage on an unsplit or progressively billed legacy line.
 					line := &billing.StandardLine{
 						StandardLineBase: billing.StandardLineBase{
@@ -158,19 +183,11 @@ func TestGenerateLegacyProgressiveBilledLinesClampsNegativeMeteredQuantities(t *
 						},
 					}
 
-					if mode == "progressive" {
-						line.SplitLineGroupID = lo.ToPtr("group-id")
-						line.SplitLineHierarchy = &billing.SplitLineHierarchy{
-							Group: billing.SplitLineGroup{
-								SplitLineGroupMutableFields: billing.SplitLineGroupMutableFields{
-									ServicePeriod: line.Period,
-								},
-							},
-						}
-					}
+					legacyLine := legacyRatingTestLine{StandardLine: line}
+					mode.setup(&legacyLine)
 
 					// When rating clamps the quantities without changing the source snapshot.
-					result, err := New(Config{}).GenerateLegacyProgressiveBilledLines(line)
+					result, err := New(Config{}).GenerateLegacyProgressiveBilledLines(legacyLine)
 
 					// Then usable zero totals accompany the same attributed warning in both modes.
 					require.ErrorIs(t, err, tc.expectedWarning)
@@ -259,8 +276,32 @@ func TestGenerateDetailedLinesDoesNotReadLegacyHistory(t *testing.T) {
 			require.Equal(t, float64(-10), line.UsageBased.MeteredPreLinePeriodQuantity.InexactFloat64())
 
 			// The legacy entrypoint retains its strict missing-hierarchy failure.
-			_, err = svc.GenerateLegacyProgressiveBilledLines(line)
+			_, err = svc.GenerateLegacyProgressiveBilledLines(legacyRatingTestLine{StandardLine: line})
 			require.ErrorContains(t, err, "split line hierarchy is required")
 		})
 	}
+}
+
+// legacyRatingTestLine supplies the legacy accessor contract independently of
+// ordinary invoice lines; persisted history resolution is tested by the engine.
+type legacyRatingTestLine struct {
+	*billing.StandardLine
+
+	fullServicePeriod *timeutil.ClosedPeriod
+}
+
+func (l legacyRatingTestLine) GetProgressivelyBilledServicePeriod() (timeutil.ClosedPeriod, error) {
+	if !l.IsProgressivelyBilled() {
+		return l.Period, nil
+	}
+
+	if l.fullServicePeriod == nil {
+		return timeutil.ClosedPeriod{}, errors.New("split line hierarchy is required")
+	}
+
+	return *l.fullServicePeriod, nil
+}
+
+func (l legacyRatingTestLine) GetPreviouslyBilledAmount() (alpacadecimal.Decimal, error) {
+	return alpacadecimal.Zero, nil
 }

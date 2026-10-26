@@ -286,9 +286,6 @@ func TestRateStandardLinesFailuresLeaveTheWholeInputUnchanged(t *testing.T) {
 			name: "missing explicit progressive hierarchy",
 			invalidate: func(line *billing.StandardLine) {
 				line.SplitLineGroupID = lo.ToPtr("missing-group")
-				line.SplitLineHierarchy = &billing.SplitLineHierarchy{
-					Group: billing.SplitLineGroup{SplitLineGroupMutableFields: billing.SplitLineGroupMutableFields{ServicePeriod: line.Period}},
-				}
 			},
 			errorText: "split line hierarchy is required",
 		},
@@ -394,7 +391,7 @@ func TestRateStandardLinesProgressiveCommitments(t *testing.T) {
 			line.UsageBased.MeteredQuantity = lo.ToPtr(alpacadecimal.NewFromInt(20))
 			line.UsageBased.MeteredPreLinePeriodQuantity = lo.ToPtr(alpacadecimal.NewFromInt(40))
 			line.SplitLineGroupID = lo.ToPtr("group-id")
-			line.SplitLineHierarchy = &billing.SplitLineHierarchy{
+			hierarchy := &billing.SplitLineHierarchy{
 				Group: billing.SplitLineGroup{
 					NamespacedID: models.NamespacedID{Namespace: line.Namespace, ID: *line.SplitLineGroupID},
 					SplitLineGroupMutableFields: billing.SplitLineGroupMutableFields{
@@ -455,11 +452,9 @@ func TestRateStandardLinesProgressiveCommitments(t *testing.T) {
 					},
 				}
 				childCase.setup(&child)
-				line.SplitLineHierarchy.Lines = append(line.SplitLineHierarchy.Lines, child)
+				hierarchy.Lines = append(hierarchy.Lines, child)
 			}
 
-			hierarchy := line.SplitLineHierarchy
-			line.SplitLineHierarchy = nil
 			hierarchies := map[billing.LineID]*billing.SplitLineHierarchy{line.GetLineID(): hierarchy}
 			historyBefore, err := json.Marshal(hierarchy)
 			require.NoError(t, err)
@@ -467,7 +462,7 @@ func TestRateStandardLinesProgressiveCommitments(t *testing.T) {
 			require.NoError(t, err)
 			engine := &Engine{ratingService: ratingservice.New(ratingservice.Config{})}
 
-			// When supplied history rates a snapshot whose embedded hierarchy is absent.
+			// When supplied history rates the current snapshot.
 			lines, err := engine.RateStandardLinesWithSplitLineHierarchies(RateStandardLinesWithSplitLineHierarchiesInput{
 				Lines:       billing.StandardLines{line},
 				Hierarchies: hierarchies,
@@ -521,7 +516,6 @@ func TestRateStandardLinesProgressiveCommitments(t *testing.T) {
 			ordinaryLine, err := line.Clone()
 			require.NoError(t, err)
 			ordinaryLine.SplitLineGroupID = nil
-			ordinaryLine.SplitLineHierarchy = nil
 			ordinaryLines, err := engine.RateStandardLinesWithSplitLineHierarchies(RateStandardLinesWithSplitLineHierarchiesInput{Lines: billing.StandardLines{ordinaryLine}})
 			require.NoError(t, err)
 			require.Equal(t, tc.ordinaryCharges, ordinaryLines[0].Totals.ChargesTotal.InexactFloat64())
@@ -530,8 +524,6 @@ func TestRateStandardLinesProgressiveCommitments(t *testing.T) {
 			headerOnlyLine, err := line.Clone()
 			require.NoError(t, err)
 			headerOnlyLine.ID = "header-only-line"
-			// An embedded full history must not override the explicit header-only scope.
-			headerOnlyLine.SplitLineHierarchy = hierarchy
 			mixedHistoryLines, err := engine.RateStandardLinesWithSplitLineHierarchies(RateStandardLinesWithSplitLineHierarchiesInput{
 				Lines: billing.StandardLines{line, headerOnlyLine},
 				Hierarchies: map[billing.LineID]*billing.SplitLineHierarchy{

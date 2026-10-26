@@ -458,17 +458,6 @@ func (a *adapter) ListInvoiceLines(ctx context.Context, input billing.ListInvoic
 			return nil, err
 		}
 
-		// Let's expand the line hierarchy so that we can have a full view of the split line groups
-		hierarchyByLineID, err := tx.expandSplitLineHierarchy(ctx, input.Namespace, mappedLines.AsGenericLines())
-		if err != nil {
-			return nil, err
-		}
-
-		mappedLines, err = withSplitLineHierarchyForLines[*billing.StandardLine](mappedLines, hierarchyByLineID)
-		if err != nil {
-			return nil, err
-		}
-
 		return mappedLines, nil
 	})
 }
@@ -578,17 +567,6 @@ func (a *adapter) refetchInvoiceLines(ctx context.Context, in refetchInvoiceLine
 	}
 
 	lines, err := a.mapStandardInvoiceLinesFromDB(dbLinesInSameOrder)
-	if err != nil {
-		return nil, err
-	}
-
-	// Let's expand the line hierarchy so that we can have a full view of the invoice during the upcoming calculations
-	hierarchyByLineID, err := a.expandSplitLineHierarchy(ctx, in.Namespace, lines.AsGenericLines())
-	if err != nil {
-		return nil, err
-	}
-
-	lines, err = withSplitLineHierarchyForLines(lines, hierarchyByLineID)
 	if err != nil {
 		return nil, err
 	}

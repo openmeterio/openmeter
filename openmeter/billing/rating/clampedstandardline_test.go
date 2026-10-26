@@ -8,6 +8,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 func TestClampedLegacyLineAccessor(t *testing.T) {
@@ -70,7 +71,7 @@ func TestClampedLegacyLineAccessor(t *testing.T) {
 					MeteredPreLinePeriodQuantity: &tc.meteredPreLinePeriodQuantity,
 				},
 			}
-			accessor, err := NewClampedLegacyLineAccessor(line)
+			accessor, err := NewClampedLegacyLineAccessor(clampedTestLine{StandardLine: line})
 			require.NoError(t, err)
 
 			meteredQuantity, err := accessor.GetMeteredQuantity()
@@ -130,12 +131,13 @@ func TestClampedLegacyLineAccessorWarningOmitsNilQuantities(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			accessor, err := NewClampedLegacyLineAccessor(&billing.StandardLine{
+			line := &billing.StandardLine{
 				UsageBased: &billing.UsageBasedLine{
 					MeteredQuantity:              tc.meteredQuantity,
 					MeteredPreLinePeriodQuantity: tc.meteredPreLinePeriodQuantity,
 				},
-			})
+			}
+			accessor, err := NewClampedLegacyLineAccessor(clampedTestLine{StandardLine: line})
 			require.NoError(t, err)
 
 			issues, systemErr := billing.ToValidationIssues(accessor.GetValidationWarnings())
@@ -148,7 +150,7 @@ func TestClampedLegacyLineAccessorWarningOmitsNilQuantities(t *testing.T) {
 
 func TestClampedLegacyLineAccessorPreservesNilAndErrors(t *testing.T) {
 	t.Run("nil quantities", func(t *testing.T) {
-		accessor, err := NewClampedLegacyLineAccessor(&billing.StandardLine{UsageBased: &billing.UsageBasedLine{}})
+		accessor, err := NewClampedLegacyLineAccessor(clampedTestLine{StandardLine: &billing.StandardLine{UsageBased: &billing.UsageBasedLine{}}})
 		require.NoError(t, err)
 
 		quantity, err := accessor.GetMeteredQuantity()
@@ -161,7 +163,19 @@ func TestClampedLegacyLineAccessorPreservesNilAndErrors(t *testing.T) {
 	})
 
 	t.Run("accessor errors", func(t *testing.T) {
-		_, err := NewClampedLegacyLineAccessor(&billing.StandardLine{})
+		_, err := NewClampedLegacyLineAccessor(clampedTestLine{StandardLine: &billing.StandardLine{}})
 		require.EqualError(t, err, "usage based line is required")
 	})
+}
+
+type clampedTestLine struct {
+	*billing.StandardLine
+}
+
+func (l clampedTestLine) GetProgressivelyBilledServicePeriod() (timeutil.ClosedPeriod, error) {
+	return l.Period, nil
+}
+
+func (l clampedTestLine) GetPreviouslyBilledAmount() (alpacadecimal.Decimal, error) {
+	return alpacadecimal.Zero, nil
 }

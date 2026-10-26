@@ -62,14 +62,6 @@ func (e *Engine) materializeStandardInvoiceLines(ctx context.Context, input bill
 		return nil, fmt.Errorf("resolving split line hierarchies: %w", err)
 	}
 
-	// TODO[later]: This is a temporary workaround until we remove the SplitLineHierarchy field from the StandardLine type.
-	for _, line := range resolvedLines {
-		if line.SplitLineGroupID != nil {
-			// Retain the existing returned expansion independently of calculation input.
-			line.SplitLineHierarchy = line.hierarchy
-		}
-	}
-
 	return resolvedLines, nil
 }
 

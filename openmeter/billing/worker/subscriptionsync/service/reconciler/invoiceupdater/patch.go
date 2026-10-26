@@ -110,28 +110,6 @@ func (p PatchLineUpdate) Apply(line billing.GenericInvoiceLine) (billing.Generic
 		return nil, fmt.Errorf("cloning line: %w", err)
 	}
 
-	if line.AsInvoiceLine().Type() == billing.InvoiceLineTypeGathering {
-		existingGatheringLine, err := line.AsInvoiceLine().AsGatheringLine()
-		if err != nil {
-			return nil, fmt.Errorf("converting existing line to gathering line: %w", err)
-		}
-
-		if existingGatheringLine.SplitLineHierarchy != nil {
-			hierarchy, err := existingGatheringLine.SplitLineHierarchy.Clone()
-			if err != nil {
-				return nil, fmt.Errorf("cloning split line hierarchy: %w", err)
-			}
-
-			updatedGatheringLine, err := updatedLine.AsInvoiceLine().AsGatheringLine()
-			if err != nil {
-				return nil, fmt.Errorf("converting updated line to gathering line: %w", err)
-			}
-
-			updatedGatheringLine.SplitLineHierarchy = &hierarchy
-			updatedLine = updatedGatheringLine.AsGenericLine()
-		}
-	}
-
 	if period, ok := p.ServicePeriod.Get(); ok {
 		updatedLine.UpdateServicePeriod(func(current *timeutil.ClosedPeriod) {
 			*current = period

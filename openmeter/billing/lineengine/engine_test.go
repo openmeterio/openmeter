@@ -218,7 +218,6 @@ func TestSnapshotLineQuantitiesUsesExplicitHierarchy(t *testing.T) {
 			require.NoError(t, err)
 			require.Equal(t, 20.0, line.UsageBased.MeteredQuantity.InexactFloat64())
 			require.Equal(t, 40.0, line.UsageBased.MeteredPreLinePeriodQuantity.InexactFloat64())
-			require.Nil(t, line.SplitLineHierarchy)
 		})
 	}
 }

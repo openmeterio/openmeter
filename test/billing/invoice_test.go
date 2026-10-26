@@ -25,6 +25,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
@@ -222,7 +223,7 @@ func (s *InvoicingTestSuite) TestSimulateInvoiceUsesTransientSplitHistory() {
 	line.UsageBased.MeteredQuantity = lo.ToPtr(alpacadecimal.NewFromInt(20))
 	line.UsageBased.MeteredPreLinePeriodQuantity = lo.ToPtr(alpacadecimal.NewFromInt(40))
 	line.SplitLineGroupID = lo.ToPtr("unpersisted-group")
-	line.SplitLineHierarchy = &billing.SplitLineHierarchy{
+	hierarchy := &billing.SplitLineHierarchy{
 		Group: billing.SplitLineGroup{
 			NamespacedID:                models.NamespacedID{Namespace: namespace, ID: *line.SplitLineGroupID},
 			SplitLineGroupMutableFields: billing.SplitLineGroupMutableFields{ServicePeriod: fullPeriod},
@@ -233,31 +234,70 @@ func (s *InvoicingTestSuite) TestSimulateInvoiceUsesTransientSplitHistory() {
 			Invoice:       billing.SplitLineHierarchyInvoice{Type: billing.InvoiceTypeStandard},
 		}},
 	}
-	before, err := json.Marshal(line)
+	line.Namespace = ""
+	otherLine, err := line.Clone()
 	s.Require().NoError(err)
+	otherLine.Namespace = "caller-namespace"
+	otherLine.ID = "supplied-line-id"
+	otherLine.SplitLineGroupID = lo.ToPtr("another-unpersisted-group")
+	otherLine.UsageBased.MeteredPreLinePeriodQuantity = lo.ToPtr(alpacadecimal.NewFromInt(10))
+	otherHierarchy, err := hierarchy.Clone()
+	s.Require().NoError(err)
+	otherHierarchy.Group.ID = *otherLine.SplitLineGroupID
+	otherHierarchy.Lines[0].Amount = alpacadecimal.NewFromInt(10)
 
-	// When simulation rates supplied quantities and history for a group absent from the database.
-	invoice, err := s.BillingService.SimulateInvoice(ctx, billing.SimulateInvoiceInput{
+	input := billing.SimulateInvoiceInput{
 		Namespace:  namespace,
 		CustomerID: &customerEntity.ID,
 		Currency:   currencyx.FiatCode(currency.USD),
-		Lines:      billing.NewStandardInvoiceLines(billing.StandardLines{line}),
-	})
+		Lines:      billing.NewStandardInvoiceLines(billing.StandardLines{line, otherLine}),
+		SplitLineHierarchies: map[string]*billing.SplitLineHierarchy{
+			*line.SplitLineGroupID:      hierarchy,
+			*otherLine.SplitLineGroupID: &otherHierarchy,
+		},
+	}
+	before, err := json.Marshal(input)
+	s.Require().NoError(err)
+
+	// When simulation rates supplied quantities and history for a group absent from the database.
+	historyQueries := &splitLineHistoryQueryCounter{}
+	s.DBClient.BillingInvoiceSplitLineGroup.Intercept(historyQueries)
+	invoice, err := s.BillingService.SimulateInvoice(ctx, input)
 	s.Require().NoError(err)
 
 	// Then supplied history produces the 40 adjustment without persistence or source mutation.
+	s.Require().Len(invoice.Lines.OrEmpty(), 2)
 	s.Equal(40.0, invoice.Lines.OrEmpty()[0].Totals.ChargesTotal.InexactFloat64())
-	s.Equal(60.0, invoice.Totals.Total.InexactFloat64())
+	s.NotEmpty(invoice.Lines.OrEmpty()[0].ID)
+	s.Equal("supplied-line-id", invoice.Lines.OrEmpty()[1].ID)
+	s.Equal(namespace, invoice.Lines.OrEmpty()[0].Namespace)
+	s.Equal(namespace, invoice.Lines.OrEmpty()[1].Namespace)
+	s.Equal(60.0, invoice.Lines.OrEmpty()[0].Totals.Total.InexactFloat64())
+	s.Equal(70.0, invoice.Lines.OrEmpty()[1].Totals.ChargesTotal.InexactFloat64())
+	s.Equal(90.0, invoice.Lines.OrEmpty()[1].Totals.Total.InexactFloat64())
+	s.Equal(150.0, invoice.Totals.Total.InexactFloat64())
+	s.Zero(historyQueries.count)
 	s.Empty(invoice.ValidationIssues)
-	after, err := json.Marshal(line)
+	// Missing supplied history retains the legacy error without a DB fallback.
+	withoutHistory := input
+	withoutHistory.SplitLineHierarchies = nil
+	_, err = s.BillingService.SimulateInvoice(ctx, withoutHistory)
+	s.ErrorContains(err, "split line hierarchy is required")
+	s.Zero(historyQueries.count)
+
+	after, err := json.Marshal(input)
 	s.Require().NoError(err)
 	s.JSONEq(string(before), string(after))
 	histories, err := s.BillingAdapter.GetSplitLineGroups(ctx, billing.GetSplitLineGroupsInput{
 		Namespace:         namespace,
-		SplitLineGroupIDs: []string{*line.SplitLineGroupID},
+		SplitLineGroupIDs: []string{*line.SplitLineGroupID, *otherLine.SplitLineGroupID},
 	})
 	s.Require().NoError(err)
 	s.Empty(histories)
+	_, err = s.BillingAdapter.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
+		Invoice: invoice.GetInvoiceID(),
+	})
+	s.ErrorIs(err, billing.ErrInvoiceNotFound)
 }
 
 func (s *InvoicingTestSuite) TestPendingLineCreation() {
@@ -2326,9 +2366,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 		}
 
 		// Let's validate the output of the split itself
-		s.NotNil(tieredGraduated.SplitLineHierarchy)
-		s.sortedSplitLineGroupChildren(tieredGraduated)
-		tieredGraduatedHierarchy := tieredGraduated.SplitLineHierarchy
+		tieredGraduatedHierarchy := s.loadSortedSplitLineHierarchy(tieredGraduated)
 
 		require.Equal(s.T(), flatPerUnit.UsageBased.Quantity.InexactFloat64(), float64(10), "flat per unit should have 10 units")
 		require.Len(s.T(), tieredGraduatedHierarchy.Lines, 2, "there should be to child lines [id=%s]", tieredGraduatedHierarchy.Group.ID)
@@ -2614,9 +2652,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 		}
 
 		// Let's validate the output of the split itself
-		s.sortedSplitLineGroupChildren(tieredGraduated)
-		s.NotNil(tieredGraduated.SplitLineHierarchy)
-		tieredGraduatedHierarchy := tieredGraduated.SplitLineHierarchy
+		tieredGraduatedHierarchy := s.loadSortedSplitLineHierarchy(tieredGraduated)
 
 		require.True(s.T(), tieredGraduatedHierarchy.Group.ServicePeriod.Equal(lines.tieredGraduated.ServicePeriod))
 		require.Len(s.T(), tieredGraduatedHierarchy.Lines, 3, "there should be to child lines [id=%s]", tieredGraduatedHierarchy.Group.ID)
@@ -2821,9 +2857,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 		require.True(s.T(), flatFee.Period.Equal(lines.flatFee.ServicePeriod), "period should be unchanged for the flat line")
 
 		// Let's validate the output of the split itself: no new split should have occurred
-		s.sortedSplitLineGroupChildren(tieredGraduated)
-		tieredGraduatedHierarchy := tieredGraduated.SplitLineHierarchy
-		s.NotNil(tieredGraduatedHierarchy)
+		tieredGraduatedHierarchy := s.loadSortedSplitLineHierarchy(tieredGraduated)
 
 		require.True(s.T(), tieredGraduatedHierarchy.Group.ServicePeriod.Equal(lines.tieredGraduated.ServicePeriod))
 		require.Len(s.T(), tieredGraduatedHierarchy.Lines, 3, "there should be to child lines [id=%s]", tieredGraduatedHierarchy.Group.ID)
@@ -3605,11 +3639,11 @@ func (s *InvoicingTestSuite) lineInSameSplitLineGroup(lines []*billing.StandardL
 	s.T().Helper()
 
 	for _, line := range lines {
-		if line.SplitLineHierarchy == nil {
+		if line.SplitLineGroupID == nil {
 			continue
 		}
 
-		for _, child := range line.SplitLineHierarchy.Lines {
+		for _, child := range s.loadSortedSplitLineHierarchy(line).Lines {
 			if child.ID == shiblingLineID {
 				return line
 			}
@@ -3634,10 +3668,16 @@ func (s *InvoicingTestSuite) lineByID(lines []*billing.StandardLine, id string) 
 	return nil
 }
 
-func (s *InvoicingTestSuite) sortedSplitLineGroupChildren(line *billing.StandardLine) {
-	s.NotNil(line.SplitLineHierarchy)
+func (s *InvoicingTestSuite) loadSortedSplitLineHierarchy(line *billing.StandardLine) billing.SplitLineHierarchy {
+	s.T().Helper()
+	s.Require().NotNil(line.SplitLineGroupID)
+	hierarchy, err := s.BillingAdapter.GetSplitLineGroup(s.T().Context(), billing.GetSplitLineGroupInput{
+		Namespace: line.Namespace,
+		ID:        *line.SplitLineGroupID,
+	})
+	s.Require().NoError(err)
 
-	slices.SortFunc(line.SplitLineHierarchy.Lines, func(a, b billing.SplitLineHierarchyLine) int {
+	slices.SortFunc(hierarchy.Lines, func(a, b billing.SplitLineHierarchyLine) int {
 		switch {
 		case a.ServicePeriod.From.Equal(b.ServicePeriod.From):
 			return 0
@@ -3647,6 +3687,8 @@ func (s *InvoicingTestSuite) sortedSplitLineGroupChildren(line *billing.Standard
 			return 1
 		}
 	})
+
+	return hierarchy
 }
 
 type ubpPendingLines struct {
@@ -5574,5 +5616,18 @@ func (s *InvoicingTestSuite) TestUpdateInvoice() {
 				require.NotNil(s.T(), reloadedDeletedLine.DeletedAt)
 			})
 		})
+	})
+}
+
+// Counts persisted history reads independently of returned data: an unnecessary
+// query must not silently turn simulation or ordinary reads into DB consumers.
+type splitLineHistoryQueryCounter struct {
+	count int
+}
+
+func (c *splitLineHistoryQueryCounter) Intercept(next db.Querier) db.Querier {
+	return db.QuerierFunc(func(ctx context.Context, query db.Query) (db.Value, error) {
+		c.count++
+		return next.Query(ctx, query)
 	})
 }

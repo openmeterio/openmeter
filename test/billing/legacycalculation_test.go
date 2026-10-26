@@ -57,6 +57,8 @@ func (s *BillingAdapterTestSuite) TestLegacyCalculationInvariants() {
 	prior.SplitLineGroupID = &group.ID
 	prior.UsageBased.FeatureKey = testFeature.Feature.Key
 	prior.Totals.Amount = alpacadecimal.NewFromInt(40)
+	historyQueries := &splitLineHistoryQueryCounter{}
+	s.DBClient.BillingInvoiceSplitLineGroup.Intercept(historyQueries)
 	persistedLines, err := s.BillingAdapter.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
 		Namespace: namespace,
 		InvoiceID: invoice.ID,
@@ -65,6 +67,24 @@ func (s *BillingAdapterTestSuite) TestLegacyCalculationInvariants() {
 	s.Require().NoError(err)
 	s.Require().Len(persistedLines, 1)
 	prior = persistedLines[0]
+
+	// Ordinary line persistence and reads do not depend on complete group history.
+	loadedInvoice, err := s.BillingAdapter.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
+		Invoice: invoice.GetInvoiceID(),
+		Expand:  billing.StandardInvoiceExpandAll,
+	})
+	s.Require().NoError(err)
+	s.Require().Len(loadedInvoice.Lines.OrEmpty(), 1)
+	s.Equal(group.ID, *loadedInvoice.Lines.OrEmpty()[0].SplitLineGroupID)
+	listedLines, err := s.BillingAdapter.ListInvoiceLines(ctx, billing.ListInvoiceLinesAdapterInput{
+		Namespace:  namespace,
+		CustomerID: invoice.Customer.CustomerID,
+	})
+	s.Require().NoError(err)
+	s.Require().Len(listedLines, 1)
+	s.Equal(group.ID, *listedLines[0].SplitLineGroupID)
+	s.Zero(historyQueries.count)
+
 	s.MockStreamingConnector.AddSimpleEvent(testFeature.Feature.Key, 40, fullPeriod.From.Add(time.Hour))
 	s.MockStreamingConnector.AddSimpleEvent(testFeature.Feature.Key, 20, boundary.Add(time.Hour))
 	current := newLine(newLineInput{
@@ -89,6 +109,7 @@ func (s *BillingAdapterTestSuite) TestLegacyCalculationInvariants() {
 	})
 	s.Require().NoError(err)
 	s.Require().Len(persistedHistories, 1)
+	s.Equal(1, historyQueries.count)
 	ratedSnapshots, err := s.LegacyBillingLineEngine.RateStandardLinesWithSplitLineHierarchies(lineengine.RateStandardLinesWithSplitLineHierarchiesInput{
 		Lines:       billing.StandardLines{current},
 		Hierarchies: map[billing.LineID]*billing.SplitLineHierarchy{current.GetLineID(): &persistedHistories[0]},
@@ -134,7 +155,6 @@ func (s *BillingAdapterTestSuite) TestLegacyCalculationInvariants() {
 		// Then the supplied period is authoritative and previously metered usage is retained.
 		s.Zero(snapshot.UsageBased.MeteredQuantity.InexactFloat64())
 		s.Equal(40.0, snapshot.UsageBased.MeteredPreLinePeriodQuantity.InexactFloat64())
-		s.Nil(snapshot.SplitLineHierarchy)
 		s.Empty(snapshot.DetailedLines)
 	})
 
@@ -185,7 +205,6 @@ func (s *BillingAdapterTestSuite) TestLegacyCalculationInvariants() {
 			s.Equal(current.ID, lines[0].ID)
 			s.Equal(current.Name, lines[0].Name)
 			s.Equal(expectedTotals, lines[0].Totals)
-			s.Nil(lines[0].SplitLineHierarchy)
 		})
 	}
 
