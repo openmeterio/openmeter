@@ -975,7 +975,7 @@ func (c CreateGatheringInvoiceAdapterInput) Validate() error {
 	}
 
 	if err := c.EffectiveProfile.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("merged profile: %w", err))
+		errs = append(errs, fmt.Errorf("effective profile: %w", err))
 	}
 
 	return errors.Join(errs...)

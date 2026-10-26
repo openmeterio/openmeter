@@ -669,6 +669,11 @@ func (s *CustomerBillingProfileTestSuite) TestHistoricalRowsAndListSemantics() {
 		})
 	}
 
+	// when: clearing customers without an active pin, historical rows do not change the result.
+	for _, cust := range []customer.CustomerID{noRow.GetID(), empty.GetID(), deleted.GetID()} {
+		s.ErrorIs(s.BillingService.ClearCustomerBillingProfile(ctx, billing.ClearCustomerBillingProfileInput{Customer: cust}), billing.ErrCustomerOverrideNotFound)
+	}
+
 	// when: automatic assignment encounters existing empty/deleted rows.
 	s.Require().NoError(s.BillingAdapter.BulkAssignCustomersToProfile(ctx, billing.BulkAssignCustomersToProfileInput{
 		ProfileID:   profileB.ProfileID(),

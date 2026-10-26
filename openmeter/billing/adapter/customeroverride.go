@@ -187,6 +187,7 @@ func (a *adapter) ClearCustomerBillingProfile(ctx context.Context, input billing
 			Where(billingcustomeroverride.CustomerID(input.Customer.ID)).
 			Where(billingcustomeroverride.Namespace(input.Customer.Namespace)).
 			Where(billingcustomeroverride.DeletedAtIsNil()).
+			Where(billingcustomeroverride.BillingProfileIDNotNil()).
 			SetDeletedAt(clock.Now()).
 			Save(ctx)
 		if err != nil {

@@ -119,8 +119,8 @@ func (i GetByIDsInput) Validate() error {
 type AdvanceChargeInput struct {
 	ChargeID meta.ChargeID
 	// CustomerBillingProfile is an authoritative optional resolution hint. None lets
-	// the service resolve the current customer override; Some uses only the
-	// supplied snapshot.
+	// the service resolve the assigned billing profile or namespace default;
+	// Some uses only the supplied snapshot.
 	CustomerBillingProfile mo.Option[billing.CustomerBillingProfile]
 	// FeatureMeters is an authoritative optional resolution hint. None lets the
 	// service resolve the required feature meter; Some resolves exclusively from
