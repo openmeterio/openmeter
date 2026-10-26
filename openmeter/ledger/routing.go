@@ -288,6 +288,7 @@ func (r Route) Matches(filter RouteFilter) bool {
 			return false
 		}
 	}
+
 	if exact, ok := filter.CreditFilters.Get(); ok && !r.Filters.Equal(exact) {
 		return false
 	}
@@ -398,9 +399,11 @@ func (f RouteFilter) Normalize() (RouteFilter, error) {
 		if err := plan.ValidateAsPlanFilter(); err != nil {
 			return RouteFilter{}, fmt.Errorf("match plan: %w", err)
 		}
+
 		normalized := (CreditFilters{Plans: []PlanFilter{*plan}}).Normalize()
 		f.MatchPlan = mo.Some(&normalized.Plans[0])
 	}
+
 	if exact, ok := f.CreditFilters.Get(); ok {
 		if err := exact.Validate(); err != nil {
 			return RouteFilter{}, err

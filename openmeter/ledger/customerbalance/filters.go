@@ -73,5 +73,6 @@ func creditFilterRoute(featureFilter mo.Option[creditpurchase.FeatureFilters], p
 	}
 
 	route.MatchFeature = features[0]
+
 	return route
 }

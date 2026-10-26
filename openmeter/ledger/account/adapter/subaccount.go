@@ -212,6 +212,7 @@ func (r *repo) ListSubAccounts(ctx context.Context, input ledgeraccount.ListSubA
 		if plan, ok := normalizedRoute.MatchPlan.Get(); ok {
 			routePredicates = append(routePredicates, func(s *sql.Selector) { s.Where(creditfilterquery.MatchPlanPredicate(s.C, plan)) })
 		}
+
 		if features, ok := normalizedRoute.Features.Get(); ok {
 			routePredicates = append(routePredicates, func(s *sql.Selector) { s.Where(creditfilterquery.ExactFeaturesPredicate(s.C, features)) })
 		}

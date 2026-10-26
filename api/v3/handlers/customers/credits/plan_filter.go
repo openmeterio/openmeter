@@ -28,16 +28,19 @@ func fromAPICustomerCreditPlanFilter(ctx context.Context, key *api.StringFieldFi
 			if *key.Exists || key.Eq != nil || len(key.Oeq) > 0 {
 				return selected, newPlanFilterBadRequest(ctx, "filter[plan_key]", errors.New("plan_key: only exists=false without other operators is supported"))
 			}
+
 			selected = mo.Some[*ledger.PlanFilter](nil)
 		} else {
 			keys := slices.Clone(key.Oeq)
 			if key.Eq != nil {
 				keys = append(keys, *key.Eq)
 			}
+
 			keys = lo.Uniq(keys)
 			if len(keys) > 1 {
 				return selected, newPlanFilterBadRequest(ctx, "filter[plan_key]", errors.New("plan_key: exactly one plan key is supported"))
 			}
+
 			if len(keys) == 1 {
 				selected = mo.Some(&ledger.PlanFilter{Key: keys[0]})
 			}

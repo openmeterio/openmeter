@@ -87,8 +87,10 @@ func TestPlanFilteredBalancesAndFundedTransactions(t *testing.T) {
 				if page.NextCursor == nil {
 					break
 				}
+
 				input.After = page.NextCursor
 			}
+
 			// then: pending grants never appear, and each page continues the same filtered balance.
 			remaining := tc.want
 			for _, item := range items {
@@ -97,6 +99,7 @@ func TestPlanFilteredBalancesAndFundedTransactions(t *testing.T) {
 				remaining -= item.Amount.InexactFloat64()
 				require.Equal(t, remaining, item.Balance.Before.InexactFloat64())
 			}
+
 			require.Zero(t, remaining)
 
 			historical, err := env.Service.GetBalance(t.Context(), GetBalanceServiceInput{
@@ -135,6 +138,7 @@ func TestPlanFilteredExpiry(t *testing.T) {
 		})
 		require.NoError(t, err)
 	}
+
 	// when: expiry is queried by plan, the other plan is excluded before pagination.
 	result, err := env.Service.ListCreditTransactions(t.Context(), ListCreditTransactionsInput{
 		CustomerID: env.CustomerID, Limit: 1, AsOf: &expiresAt,
@@ -196,6 +200,7 @@ func TestPlanFilteredLiveConsumptionAndVoid(t *testing.T) {
 	for _, charge := range created {
 		env.advanceFlatFeeCharge(t, charge)
 	}
+
 	consumed, err := env.Service.ListCreditTransactions(t.Context(), ListCreditTransactionsInput{
 		CustomerID: env.CustomerID, Limit: 10, PlanFilter: selection, Type: lo.ToPtr(CreditTransactionTypeConsumed),
 	})
@@ -212,6 +217,7 @@ func TestPlanFilteredLiveConsumptionAndVoid(t *testing.T) {
 		})
 		require.NoError(t, err)
 	}
+
 	voided, err := env.Service.ListCreditTransactions(t.Context(), ListCreditTransactionsInput{
 		CustomerID: env.CustomerID, Limit: 10, PlanFilter: selection, Type: lo.ToPtr(CreditTransactionTypeVoided),
 	})

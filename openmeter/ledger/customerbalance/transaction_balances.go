@@ -39,6 +39,7 @@ func (i resolveCreditTransactionBalancesInput) Validate() error {
 	if err := ValidatePlanFilter(i.PlanFilter); err != nil {
 		errs = append(errs, fmt.Errorf("plan filter: %w", err))
 	}
+
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 

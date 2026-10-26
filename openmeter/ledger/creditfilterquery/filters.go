@@ -48,6 +48,7 @@ func MatchPlanPredicate(column func(string) string, plan *ledger.PlanFilter) *sq
 		path = "$.plans[*] ? (@.key == $key && (!exists(@.version) || @.version == null || @.version.eq == $version || @.version.in[*] == $version || @.version.gte <= $version || @.version.lte >= $version))"
 		variables["version"] = *plan.Version.Eq
 	}
+
 	encoded, _ := json.Marshal(variables)
 
 	return sql.Or(unrestricted, sql.P(func(b *sql.Builder) {

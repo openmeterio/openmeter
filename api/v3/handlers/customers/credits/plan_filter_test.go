@@ -1,7 +1,6 @@
 package customerscredits
 
 import (
-	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"net/http"
 	"net/url"
 	"testing"
@@ -11,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	api "github.com/openmeterio/openmeter/api/v3"
+	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/filters"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 )
@@ -48,6 +48,7 @@ func TestCustomerCreditPlanFilterQuery(t *testing.T) {
 					if err := filters.Parse(values, &params); err != nil {
 						return mo.None[*ledger.PlanFilter](), err
 					}
+
 					return fromAPICustomerCreditPlanFilter(t.Context(), params.PlanKey, params.PlanVersion)
 				},
 				func() (mo.Option[*ledger.PlanFilter], error) {
@@ -55,6 +56,7 @@ func TestCustomerCreditPlanFilterQuery(t *testing.T) {
 					if err := filters.Parse(values, &params); err != nil {
 						return mo.None[*ledger.PlanFilter](), err
 					}
+
 					return fromAPICustomerCreditPlanFilter(t.Context(), params.PlanKey, params.PlanVersion)
 				},
 			} {
@@ -63,6 +65,7 @@ func TestCustomerCreditPlanFilterQuery(t *testing.T) {
 					require.Error(t, err)
 					continue
 				}
+
 				require.NoError(t, err)
 				require.Equal(t, tc.want, got)
 			}
