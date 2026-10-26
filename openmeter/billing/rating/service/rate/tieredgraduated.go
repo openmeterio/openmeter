@@ -204,9 +204,10 @@ func (p GraduatedTiered) TieredPriceCalculator(in TieredPriceCalculatorInput) er
 	// - There is always one range for which range.From == in.FromQty
 	// - There is always one range for which range.ToQty == in.ToQty
 	qtyRanges := make([]TierRange, 0, len(in.TieredPrice.Tiers)+2)
+	sortedPrice := in.TieredPrice.WithSortedTiers()
 
 	previousTierQty := alpacadecimal.Zero
-	for idx, tier := range in.TieredPrice.WithSortedTiers().Tiers {
+	for idx, tier := range sortedPrice.Tiers {
 		if previousTierQty.GreaterThanOrEqual(in.ToQty) {
 			// We already have enough data to bill for this tiered price
 			break
@@ -235,7 +236,7 @@ func (p GraduatedTiered) TieredPriceCalculator(in TieredPriceCalculatorInput) er
 	if in.ToQty.Equal(alpacadecimal.Zero) {
 		// We need to add the first range, in case there's a flat price component
 		qtyRanges = append(qtyRanges, TierRange{
-			Tier:           in.TieredPrice.Tiers[0],
+			Tier:           sortedPrice.Tiers[0],
 			TierIndex:      0,
 			AtTierBoundary: true,
 			FromQty:        alpacadecimal.Zero,
