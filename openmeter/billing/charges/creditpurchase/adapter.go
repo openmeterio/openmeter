@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
 type Adapter interface {
@@ -208,11 +209,31 @@ func (i MarkVoidedAdapterInput) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
+type OrderBy string
+
+const (
+	OrderByCreatedAt OrderBy = "created_at"
+	OrderByUpdatedAt OrderBy = "updated_at"
+	OrderByName      OrderBy = "name"
+	OrderByID        OrderBy = "id"
+)
+
+func (o OrderBy) Validate() error {
+	switch o {
+	case "", OrderByCreatedAt, OrderByUpdatedAt, OrderByName, OrderByID:
+		return nil
+	default:
+		return fmt.Errorf("invalid order by: %s", o)
+	}
+}
+
 type ListChargesInput struct {
 	pagination.Page
 
 	Namespace   string
 	CustomerIDs []string
+	OrderBy     OrderBy
+	Order       sortx.Order
 
 	// Optional filters
 	Statuses   []meta.ChargeStatus
@@ -245,6 +266,14 @@ func (f ListChargesExpirationFilter) Validate() error {
 
 func (i ListChargesInput) Validate() error {
 	var errs []error
+
+	if err := i.OrderBy.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	if i.Order != sortx.OrderNone && i.Order != sortx.OrderAsc && i.Order != sortx.OrderDesc {
+		errs = append(errs, fmt.Errorf("invalid order: %s", i.Order))
+	}
 
 	if i.Namespace == "" {
 		errs = append(errs, errors.New("namespace is required"))

@@ -10,6 +10,7 @@ import (
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/filters"
+	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/api/v3/response"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/creditgrant"
@@ -18,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
+	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
 type (
@@ -60,6 +62,24 @@ func (h *handler) ListCreditGrants() ListCreditGrantsHandler {
 				Page:       page,
 				Namespace:  ns,
 				CustomerID: args.CustomerID,
+				OrderBy:    creditpurchase.OrderByCreatedAt,
+				Order:      sortx.OrderDesc,
+			}
+
+			if args.Params.Sort != nil {
+				sort, err := request.ParseSortBy(*args.Params.Sort)
+				if err != nil {
+					return ListCreditGrantsRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						{Field: "sort", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
+					})
+				}
+
+				req.OrderBy = creditpurchase.OrderBy(sort.Field)
+				if err := req.OrderBy.Validate(); err != nil {
+					return ListCreditGrantsRequest{}, apierrors.NewUnsupportedSortFieldError(ctx, sort.Field, "created_at", "updated_at", "name", "id")
+				}
+
+				req.Order = sort.Order.ToSortxOrder()
 			}
 
 			if args.Params.Filter != nil {

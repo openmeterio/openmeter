@@ -368,6 +368,9 @@ grants without feature restrictions. Feature `oeq` matches any requested key
 without duplicating shared grants. Matching precedes pagination. These filters do not require an
 active or funded grant; lifecycle status remains a separate filter.
 
+Credit grant lists default to newest first (`created_at desc`). Sorting happens
+before pagination, with `id` in the same direction breaking ties.
+
 A credit grant, payment authorization, and payment settlement are separate
 durable facts. A later state cannot be inferred from the presence of an earlier
 one.

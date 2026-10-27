@@ -1751,6 +1751,17 @@ paths:
           schema:
             $ref: '#/components/schemas/ULID'
         - $ref: '#/components/parameters/PagePaginationQuery'
+        - name: sort
+          in: query
+          required: false
+          description: |-
+            Sort credit grants by `created_at`, `updated_at`, `name`, or `id`. Defaults to
+            `created_at desc`. The `asc` suffix is optional when a sort attribute is
+            supplied. Supports one attribute; ties are broken by `id` in the same direction.
+          schema:
+            $ref: '#/components/schemas/SortQuery'
+          explode: false
+          style: form
         - name: filter
           in: query
           required: false
