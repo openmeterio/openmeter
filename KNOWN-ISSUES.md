@@ -76,3 +76,56 @@ backend. Enabling credits does not automatically migrate them or repair their
 amounts. Review affected legacy invoices before finalization and plan their
 transition separately. See
 [subscription sync backend ownership](openmeter/billing/worker/subscriptionsync/README.md#backend-ownership).
+
+## Legacy billing: progressive unit conversion loses or duplicates billable units
+
+Legacy invoice-backed billing can underbill or overbill when a service period is
+split into progressive invoices and its unit conversion uses floor or ceiling
+rounding. This requires `unitConfig.enabled: true` and a `unit_config` on the
+billed line. The feature is disabled by default in the
+[example configuration](config.example.yaml).
+
+Each invoice slice converts and rounds its raw usage independently. The legacy
+invoice-line layer does not reconcile the cumulative converted quantity against
+what earlier invoices have already billed. The
+[unit-conversion mutator](openmeter/billing/rating/service/mutator/unitconfig.go)
+leaves that reconciliation to the invoice-line layer because usage aggregation
+semantics differ between billing paths.
+
+This can happen with positive SUM usage over an unchanged service period, with
+no discounts, minimum commitments, taxes, or currency conversion. It loses or
+duplicates whole billing units, rather than fractions of a currency unit.
+
+### Example: three partial invoices followed by a final invoice
+
+All amounts below are synthetic. Convert two raw units into one billing unit
+(`operation: divide`, `conversion_factor: 2`) and charge USD 1 per billing unit.
+Each row bills the same period either once at its end or as four slices: three
+partial invoices followed by a final invoice.
+
+| Raw usage in each slice | Rounding | Expected period total (one final invoice) | Actual legacy total (four invoices) |
+| --- | --- | ---: | ---: |
+| 1, 1, 1, 1 | Floor | USD 2 | USD 0 |
+| 3, 3, 3, 3 | Floor | USD 6 | USD 4 |
+| 1, 1, 1, 1 | Ceiling | USD 2 | USD 4 |
+
+For the first row, each slice converts to 0.5 billing units and rounds down to
+zero. Across the whole period, four raw units convert to exactly two billing
+units. With ceiling rounding, each slice instead bills one unit, duplicating
+two billing units across the period. The final invoice does not reconcile the
+rounding differences from earlier slices.
+
+### Avoiding the discrepancy
+
+For affected legacy lines, avoid progressive invoicing and bill the whole
+service period once. The final-only controls preserve the expected totals in
+these examples.
+
+For new workloads that require progressive invoicing with rounded unit
+conversion, use charge-backed billing; the equivalent charge-backed scenarios
+preserve the cumulative totals. See the
+[charge-backed billing setup](#recommended-approach-enable-credits-and-use-charges)
+above and [backend ownership](openmeter/billing/worker/subscriptionsync/README.md#backend-ownership).
+Enabling credits does not migrate existing legacy lines or repair amounts
+already invoiced. Review affected invoice history separately when planning a
+transition.
