@@ -46,6 +46,9 @@ func TestBillingOnFirstOfMonth(t *testing.T) {
 	feats := tDeps.FeatureConnector.CreateExampleFeatures(t, tDeps.ExampleMeterID)
 	require.Len(t, feats, 3)
 
+	taxCode := tDeps.TaxCodeEnv.CreateTaxCode(t, namespace)
+	taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
+
 	// 2nd, let's create the plan
 	p, err := tDeps.PlanService.CreatePlan(ctx, plan.CreatePlanInput{
 		NamespacedModel: models.NamespacedModel{
@@ -79,11 +82,7 @@ func TestBillingOnFirstOfMonth(t *testing.T) {
 								Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 									Amount: alpacadecimal.NewFromInt(100),
 								}),
-								TaxConfig: &productcatalog.TaxConfig{
-									Stripe: &productcatalog.StripeTaxConfig{
-										Code: "txcd_10000000",
-									},
-								},
+								TaxConfig: lo.ToPtr(taxConfig.Clone()),
 								EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.MeteredEntitlementTemplate{
 									UsagePeriod:     datetime.MustParseDuration(t, "P1M"), // compatible with the billing cadence
 									IssueAfterReset: lo.ToPtr(10.0),
@@ -101,11 +100,7 @@ func TestBillingOnFirstOfMonth(t *testing.T) {
 									Amount:      alpacadecimal.NewFromInt(10),
 									PaymentTerm: productcatalog.InAdvancePaymentTerm,
 								}),
-								TaxConfig: &productcatalog.TaxConfig{
-									Stripe: &productcatalog.StripeTaxConfig{
-										Code: "txcd_10000000",
-									},
-								},
+								TaxConfig: lo.ToPtr(taxConfig.Clone()),
 							},
 							BillingCadence: lo.ToPtr(datetime.MustParseDuration(t, "P1M")),
 						},
@@ -118,11 +113,7 @@ func TestBillingOnFirstOfMonth(t *testing.T) {
 								Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 									Amount: alpacadecimal.NewFromInt(1),
 								}),
-								TaxConfig: &productcatalog.TaxConfig{
-									Stripe: &productcatalog.StripeTaxConfig{
-										Code: "txcd_10000000",
-									},
-								},
+								TaxConfig: lo.ToPtr(taxConfig.Clone()),
 								EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.MeteredEntitlementTemplate{
 									UsagePeriod:     datetime.MustParseDuration(t, "P1D"), // compatible with the billing cadence
 									IssueAfterReset: lo.ToPtr(10.0),

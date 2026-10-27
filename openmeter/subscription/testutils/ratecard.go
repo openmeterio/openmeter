@@ -13,57 +13,14 @@ import (
 )
 
 var (
-	ExamplePriceAmount int64                             = 100
-	ExampleRateCard1   productcatalog.UsageBasedRateCard = productcatalog.UsageBasedRateCard{
-		RateCardMeta: productcatalog.RateCardMeta{
-			Key:         ExampleFeatureKey,
-			Name:        "Rate Card 1",
-			Description: lo.ToPtr("Rate Card 1 Description"),
-			Feature:     productcatalog.NewFeatureReference(nil, lo.ToPtr(ExampleFeatureKey)),
-			EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.MeteredEntitlementTemplate{
-				IssueAfterReset: lo.ToPtr(100.0),
-				UsagePeriod:     ISOMonth,
-			}),
-			TaxConfig: &productcatalog.TaxConfig{
-				Stripe: &productcatalog.StripeTaxConfig{
-					Code: "txcd_10000000",
-				},
-			},
-			Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
-				Amount: alpacadecimal.NewFromInt(ExamplePriceAmount),
-			}),
-		},
-		BillingCadence: ISOMonth,
-	}
-	ExampleRateCard2 productcatalog.FlatFeeRateCard = productcatalog.FlatFeeRateCard{
+	ExamplePriceAmount int64                          = 100
+	ExampleRateCard2   productcatalog.FlatFeeRateCard = productcatalog.FlatFeeRateCard{
 		RateCardMeta: productcatalog.RateCardMeta{
 			Key:         "rate-card-2",
 			Name:        "Rate Card 2",
 			Description: lo.ToPtr("Rate Card 2 Description"),
 			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 				Amount:      alpacadecimal.NewFromInt(int64(0)),
-				PaymentTerm: productcatalog.InAdvancePaymentTerm,
-			}),
-		},
-		BillingCadence: &ISOMonth,
-	}
-	ExampleRateCard3ForAddons productcatalog.FlatFeeRateCard = productcatalog.FlatFeeRateCard{
-		RateCardMeta: productcatalog.RateCardMeta{
-			Key:         ExampleFeatureKey2,
-			Name:        "Rate Card 3 for Addons",
-			Description: lo.ToPtr("Rate Card 3 Description"),
-			Feature:     productcatalog.NewFeatureReference(nil, lo.ToPtr(ExampleFeatureKey2)),
-			EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.MeteredEntitlementTemplate{
-				IssueAfterReset: lo.ToPtr(100.0),
-				UsagePeriod:     ISOMonth,
-			}),
-			TaxConfig: &productcatalog.TaxConfig{
-				Stripe: &productcatalog.StripeTaxConfig{
-					Code: "txcd_10000000",
-				},
-			},
-			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
-				Amount:      alpacadecimal.NewFromInt(ExamplePriceAmount),
 				PaymentTerm: productcatalog.InAdvancePaymentTerm,
 			}),
 		},
@@ -91,7 +48,14 @@ var (
 		},
 		BillingCadence: &ISOMonth,
 	}
-	ExampleRateCardWithDiscounts productcatalog.FlatFeeRateCard = productcatalog.FlatFeeRateCard{
+)
+
+// The taxed example rate cards (ExampleRateCard1, ExampleRateCard3ForAddons,
+// ExampleRateCardWithDiscounts) carry their own copy of taxConfig, so the plan service resolving
+// one rate card's config can't leak into another. Reference the tax code by TaxCodeID; it must
+// belong to the namespace the rate card is created in.
+func ExampleRateCard1(taxConfig productcatalog.TaxConfig) *productcatalog.UsageBasedRateCard {
+	return &productcatalog.UsageBasedRateCard{
 		RateCardMeta: productcatalog.RateCardMeta{
 			Key:         ExampleFeatureKey,
 			Name:        "Rate Card 1",
@@ -101,11 +65,48 @@ var (
 				IssueAfterReset: lo.ToPtr(100.0),
 				UsagePeriod:     ISOMonth,
 			}),
-			TaxConfig: &productcatalog.TaxConfig{
-				Stripe: &productcatalog.StripeTaxConfig{
-					Code: "txcd_10000000",
-				},
-			},
+			TaxConfig: lo.ToPtr(taxConfig.Clone()),
+			Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+				Amount: alpacadecimal.NewFromInt(ExamplePriceAmount),
+			}),
+		},
+		BillingCadence: ISOMonth,
+	}
+}
+
+func ExampleRateCard3ForAddons(taxConfig productcatalog.TaxConfig) *productcatalog.FlatFeeRateCard {
+	return &productcatalog.FlatFeeRateCard{
+		RateCardMeta: productcatalog.RateCardMeta{
+			Key:         ExampleFeatureKey2,
+			Name:        "Rate Card 3 for Addons",
+			Description: lo.ToPtr("Rate Card 3 Description"),
+			Feature:     productcatalog.NewFeatureReference(nil, lo.ToPtr(ExampleFeatureKey2)),
+			EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.MeteredEntitlementTemplate{
+				IssueAfterReset: lo.ToPtr(100.0),
+				UsagePeriod:     ISOMonth,
+			}),
+			TaxConfig: lo.ToPtr(taxConfig.Clone()),
+			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      alpacadecimal.NewFromInt(ExamplePriceAmount),
+				PaymentTerm: productcatalog.InAdvancePaymentTerm,
+			}),
+		},
+		BillingCadence: lo.ToPtr(ISOMonth),
+	}
+}
+
+func ExampleRateCardWithDiscounts(taxConfig productcatalog.TaxConfig) *productcatalog.FlatFeeRateCard {
+	return &productcatalog.FlatFeeRateCard{
+		RateCardMeta: productcatalog.RateCardMeta{
+			Key:         ExampleFeatureKey,
+			Name:        "Rate Card 1",
+			Description: lo.ToPtr("Rate Card 1 Description"),
+			Feature:     productcatalog.NewFeatureReference(nil, lo.ToPtr(ExampleFeatureKey)),
+			EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.MeteredEntitlementTemplate{
+				IssueAfterReset: lo.ToPtr(100.0),
+				UsagePeriod:     ISOMonth,
+			}),
+			TaxConfig: lo.ToPtr(taxConfig.Clone()),
 			Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount: alpacadecimal.NewFromInt(ExamplePriceAmount),
 			}),
@@ -115,9 +116,9 @@ var (
 				},
 			},
 		},
-		BillingCadence: &ISOMonth,
+		BillingCadence: lo.ToPtr(ISOMonth),
 	}
-)
+}
 
 func GetEntitlementTemplateUsagePeriod(t *testing.T, et productcatalog.EntitlementTemplate) *datetime.ISODuration {
 	t.Helper()

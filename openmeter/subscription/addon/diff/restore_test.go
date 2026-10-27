@@ -27,7 +27,8 @@ import (
 
 func TestRestore(t *testing.T) {
 	type tcDeps struct {
-		deps subscriptiontestutils.SubscriptionDependencies
+		deps      subscriptiontestutils.SubscriptionDependencies
+		taxConfig productcatalog.TaxConfig
 	}
 
 	withDeps := func(fn func(t *testing.T, deps *tcDeps)) func(t *testing.T) {
@@ -43,8 +44,12 @@ func TestRestore(t *testing.T) {
 
 			deps := subscriptiontestutils.NewService(t, dbDeps)
 
+			taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
+			taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
+
 			fn(t, &tcDeps{
-				deps: deps,
+				deps:      deps,
+				taxConfig: taxConfig,
 			})
 		}
 	}
@@ -114,7 +119,7 @@ func TestRestore(t *testing.T) {
 		env := buildSubAndAddon(
 			t,
 			&deps.deps,
-			subscriptiontestutils.BuildTestPlanInput(t).AddPhase(nil, subscriptiontestutils.ExampleRateCard1.Clone(), subscriptiontestutils.ExampleRateCard2.Clone()).Build(),
+			subscriptiontestutils.BuildTestPlanInput(t).AddPhase(nil, subscriptiontestutils.ExampleRateCard1(deps.taxConfig), subscriptiontestutils.ExampleRateCard2.Clone()).Build(),
 			subscriptiontestutils.BuildAddonForTesting(t, productcatalog.EffectivePeriod{
 				EffectiveFrom: &now,
 			}, productcatalog.AddonInstanceTypeSingle, subscriptiontestutils.ExampleAddonRateCard1.Clone()),
@@ -151,7 +156,7 @@ func TestRestore(t *testing.T) {
 			t,
 			&deps.deps,
 			subscriptiontestutils.BuildTestPlanInput(t).
-				AddPhase(&oneMonth, subscriptiontestutils.ExampleRateCard1.Clone(), subscriptiontestutils.ExampleRateCard2.Clone()).
+				AddPhase(&oneMonth, subscriptiontestutils.ExampleRateCard1(deps.taxConfig), subscriptiontestutils.ExampleRateCard2.Clone()).
 				AddPhase(nil, subscriptiontestutils.ExampleRateCard2.Clone()).
 				Build(),
 			subscriptiontestutils.BuildAddonForTesting(t, productcatalog.EffectivePeriod{
@@ -182,7 +187,7 @@ func TestRestore(t *testing.T) {
 			t,
 			&deps.deps,
 			subscriptiontestutils.BuildTestPlanInput(t).
-				AddPhase(nil, subscriptiontestutils.ExampleRateCard1.Clone()).
+				AddPhase(nil, subscriptiontestutils.ExampleRateCard1(deps.taxConfig)).
 				Build(),
 			subscriptiontestutils.BuildAddonForTesting(t, productcatalog.EffectivePeriod{
 				EffectiveFrom: &now,
@@ -214,7 +219,7 @@ func TestRestore(t *testing.T) {
 			t,
 			&deps.deps,
 			subscriptiontestutils.BuildTestPlanInput(t).
-				AddPhase(nil, subscriptiontestutils.ExampleRateCard1.Clone()).
+				AddPhase(nil, subscriptiontestutils.ExampleRateCard1(deps.taxConfig)).
 				Build(),
 			subscriptiontestutils.BuildAddonForTesting(t, productcatalog.EffectivePeriod{
 				EffectiveFrom: &now,
@@ -254,7 +259,7 @@ func TestRestore(t *testing.T) {
 			t,
 			&deps.deps,
 			subscriptiontestutils.BuildTestPlanInput(t).
-				AddPhase(nil, subscriptiontestutils.ExampleRateCard1.Clone()).
+				AddPhase(nil, subscriptiontestutils.ExampleRateCard1(deps.taxConfig)).
 				Build(),
 			subscriptiontestutils.BuildAddonForTesting(t, productcatalog.EffectivePeriod{
 				EffectiveFrom: &now,
@@ -311,7 +316,7 @@ func TestRestore(t *testing.T) {
 			t,
 			&deps.deps,
 			subscriptiontestutils.BuildTestPlanInput(t).
-				AddPhase(nil, subscriptiontestutils.ExampleRateCard1.Clone()).
+				AddPhase(nil, subscriptiontestutils.ExampleRateCard1(deps.taxConfig)).
 				Build(),
 			subscriptiontestutils.BuildAddonForTesting(t, productcatalog.EffectivePeriod{
 				EffectiveFrom: &now,
@@ -359,7 +364,7 @@ func TestRestore(t *testing.T) {
 					},
 					SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 				}).
-				AddPhase(nil, subscriptiontestutils.ExampleRateCard1.Clone()).
+				AddPhase(nil, subscriptiontestutils.ExampleRateCard1(deps.taxConfig)).
 				Build(),
 			subscriptiontestutils.BuildAddonForTesting(t, productcatalog.EffectivePeriod{
 				EffectiveFrom: &now,
@@ -368,7 +373,7 @@ func TestRestore(t *testing.T) {
 
 		sView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps.deps, p, now)
 
-		ogItem := sView.Spec.Phases["test_phase_1"].ItemsByKey[subscriptiontestutils.ExampleRateCard1.Key()][0]
+		ogItem := sView.Spec.Phases["test_phase_1"].ItemsByKey[subscriptiontestutils.ExampleFeatureKey][0]
 
 		require.NoError(t, ogItem.RateCard.ChangeMeta(func(m productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
 			m.Name = "Different Name for This one"
@@ -385,17 +390,17 @@ func TestRestore(t *testing.T) {
 			[]subscription.Patch{
 				patch.PatchRemoveItem{
 					PhaseKey: "test_phase_1",
-					ItemKey:  subscriptiontestutils.ExampleRateCard1.Key(),
+					ItemKey:  subscriptiontestutils.ExampleFeatureKey,
 				},
 				patch.PatchAddItem{
 					PhaseKey: "test_phase_1",
-					ItemKey:  subscriptiontestutils.ExampleRateCard1.Key(),
+					ItemKey:  subscriptiontestutils.ExampleFeatureKey,
 					CreateInput: subscription.SubscriptionItemSpec{
 						CreateSubscriptionItemInput: subscription.CreateSubscriptionItemInput{
 							Annotations: ogItem.Annotations,
 							CreateSubscriptionItemPlanInput: subscription.CreateSubscriptionItemPlanInput{
 								PhaseKey: "test_phase_1",
-								ItemKey:  subscriptiontestutils.ExampleRateCard1.Key(),
+								ItemKey:  subscriptiontestutils.ExampleFeatureKey,
 								RateCard: ogItem.RateCard,
 							},
 						},
@@ -512,7 +517,7 @@ func TestRestore(t *testing.T) {
 			t,
 			&deps.deps,
 			subscriptiontestutils.BuildTestPlanInput(t).
-				AddPhase(nil, subscriptiontestutils.ExampleRateCard1.Clone()).
+				AddPhase(nil, subscriptiontestutils.ExampleRateCard1(deps.taxConfig)).
 				Build(),
 			subscriptiontestutils.BuildAddonForTesting(t, productcatalog.EffectivePeriod{
 				EffectiveFrom: &now,
@@ -572,7 +577,7 @@ func TestRestore(t *testing.T) {
 			deps.deps,
 			subscriptiontestutils.BuildTestPlanInput(t).
 				AddPhase(nil,
-					subscriptiontestutils.ExampleRateCard1.Clone(), // Flat price
+					subscriptiontestutils.ExampleRateCard1(deps.taxConfig), // Flat price
 					&productcatalog.UsageBasedRateCard{ // Dynamic price
 						RateCardMeta: productcatalog.RateCardMeta{
 							Key:     subscriptiontestutils.ExampleFeatureKey2,

@@ -42,15 +42,7 @@ func TestPlanAddonAdapterBackfillsTaxConfigFromTaxCode(t *testing.T) {
 		},
 	})
 
-	planInput := pctestutils.NewTestPlan(t, namespace)
-	err := planInput.Phases[0].RateCards[0].ChangeMeta(func(meta productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
-		meta.TaxConfig = &productcatalog.TaxConfig{
-			TaxCodeID: lo.ToPtr(taxCode.ID),
-		}
-
-		return meta, nil
-	})
-	require.NoError(t, err)
+	planInput := pctestutils.NewTestPlan(t, namespace, pctestutils.WithRateCardTaxCode(taxCode))
 
 	createdPlan, err := env.PlanRepository.CreatePlan(ctx, planInput)
 	require.NoError(t, err)

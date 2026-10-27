@@ -41,7 +41,9 @@ func TestCreation(t *testing.T) {
 
 		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
 		_ = deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
-		plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
+		taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
+		taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
+		plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t, taxConfig))
 
 		defaultSpecFromPlan, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
 			CustomerId:      cust.ID,
@@ -112,7 +114,9 @@ func TestCreation(t *testing.T) {
 
 		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
 		_ = deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
-		plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
+		taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
+		taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
+		plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t, taxConfig))
 
 		specWithAnnotations, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
 			CustomerId:      cust.ID,
@@ -170,7 +174,9 @@ func TestCreation(t *testing.T) {
 		require.Nil(t, err)
 
 		_ = deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
-		plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
+		taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
+		taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
+		plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t, taxConfig))
 
 		defaultSpecFromPlan, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
 			CustomerId:      cust.ID,
@@ -215,7 +221,9 @@ func TestCreation(t *testing.T) {
 		require.Nil(t, err)
 
 		_ = deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
-		plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
+		taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
+		taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
+		plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t, taxConfig))
 
 		defaultSpecFromPlan, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
 			CustomerId:      cust.ID,
@@ -318,7 +326,9 @@ func TestCancellation(t *testing.T) {
 
 		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
 		_ = deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
-		plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
+		taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
+		taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
+		plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t, taxConfig))
 
 		// First, let's create a subscription
 		defaultSpecFromPlan, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
@@ -436,7 +446,9 @@ func TestContinuing(t *testing.T) {
 
 		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
 		_ = deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
-		plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
+		taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
+		taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
+		plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t, taxConfig))
 
 		// First, let's create a subscription
 		defaultSpecFromPlan, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
@@ -523,7 +535,9 @@ func TestContinuing(t *testing.T) {
 
 		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
 		_ = deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
-		plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
+		taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
+		taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
+		plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t, taxConfig))
 
 		// First, let's create a subscription
 		spec1, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
@@ -631,7 +645,9 @@ func TestList(t *testing.T) {
 		require.Nil(t, err)
 
 		_ = deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
-		plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
+		taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
+		taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
+		plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t, taxConfig))
 
 		// Let's create some subscriptions:
 		// - One active
@@ -815,7 +831,9 @@ func TestList(t *testing.T) {
 		require.Nil(t, err)
 
 		_ = deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
-		plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
+		taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
+		taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
+		plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t, taxConfig))
 
 		spec1, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
 			CustomerId:      cust1.ID,
@@ -911,7 +929,9 @@ func TestSubscriptionChangeTrackingAnnotations(t *testing.T) {
 
 		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
 		_ = deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
-		plan1 := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
+		taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
+		taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
+		plan1 := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t, taxConfig))
 
 		// Create first subscription
 		sub1, err := workflowService.CreateFromPlan(ctx, subscriptionworkflow.CreateSubscriptionWorkflowInput{
@@ -927,7 +947,7 @@ func TestSubscriptionChangeTrackingAnnotations(t *testing.T) {
 		require.Nil(t, err)
 
 		// Create second plan
-		examplePlanInput2 := subscriptiontestutils.GetExamplePlanInput(t)
+		examplePlanInput2 := subscriptiontestutils.GetExamplePlanInput(t, taxConfig)
 		examplePlanInput2.Key = "example-plan-2"
 		examplePlanInput2.Name = "Example Plan 2"
 		plan2 := deps.PlanHelper.CreatePlan(t, examplePlanInput2)
@@ -974,7 +994,9 @@ func TestSubscriptionChangeTrackingAnnotations(t *testing.T) {
 
 		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
 		_ = deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
-		plan1 := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
+		taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
+		taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
+		plan1 := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t, taxConfig))
 
 		// Create first subscription
 		sub1, err := workflowService.CreateFromPlan(ctx, subscriptionworkflow.CreateSubscriptionWorkflowInput{
@@ -990,7 +1012,7 @@ func TestSubscriptionChangeTrackingAnnotations(t *testing.T) {
 		require.Nil(t, err)
 
 		// Create second plan
-		examplePlanInput2 := subscriptiontestutils.GetExamplePlanInput(t)
+		examplePlanInput2 := subscriptiontestutils.GetExamplePlanInput(t, taxConfig)
 		examplePlanInput2.Key = "example-plan-2"
 		examplePlanInput2.Name = "Example Plan 2"
 		plan2 := deps.PlanHelper.CreatePlan(t, examplePlanInput2)
@@ -1038,7 +1060,9 @@ func TestSubscriptionChangeTrackingAnnotations(t *testing.T) {
 
 		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
 		_ = deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
-		plan1 := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
+		taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
+		taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
+		plan1 := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t, taxConfig))
 
 		// Create first subscription
 		sub1, err := workflowService.CreateFromPlan(ctx, subscriptionworkflow.CreateSubscriptionWorkflowInput{
@@ -1054,7 +1078,7 @@ func TestSubscriptionChangeTrackingAnnotations(t *testing.T) {
 		require.Nil(t, err)
 
 		// Create second plan
-		examplePlanInput2 := subscriptiontestutils.GetExamplePlanInput(t)
+		examplePlanInput2 := subscriptiontestutils.GetExamplePlanInput(t, taxConfig)
 		examplePlanInput2.Key = "example-plan-2"
 		examplePlanInput2.Name = "Example Plan 2"
 		plan2 := deps.PlanHelper.CreatePlan(t, examplePlanInput2)
@@ -1102,7 +1126,9 @@ func TestSubscriptionChangeTrackingAnnotations(t *testing.T) {
 
 		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
 		_ = deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
-		plan1 := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
+		taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
+		taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
+		plan1 := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t, taxConfig))
 
 		// Create standalone scheduled subscription (can be deleted)
 		futureTime := currentTime.AddDate(0, 1, 0)
@@ -1144,7 +1170,9 @@ func TestSubscriptionChangeTrackingAnnotations(t *testing.T) {
 
 		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
 		_ = deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
-		plan1 := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
+		taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
+		taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
+		plan1 := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t, taxConfig))
 
 		// Create scheduled subscription with nil annotations (can be deleted)
 		futureTime := currentTime.AddDate(0, 1, 0)
@@ -1173,6 +1201,11 @@ func TestSubscriptionChangeTrackingAnnotations(t *testing.T) {
 }
 
 func TestTaxCodeResolution(t *testing.T) {
+	// The Stripe-code cases exercise the legacy input: the example plan with its taxed rate cards
+	// carrying only a Stripe code, which the services resolve to a tax code.
+	const stripeCode = "txcd_10000000"
+	stripeTaxConfig := productcatalog.TaxConfig{Stripe: &productcatalog.StripeTaxConfig{Code: stripeCode}}
+
 	t.Run("Should resolve and persist TaxCodeID for subscription items with a Stripe tax code", func(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
@@ -1188,7 +1221,7 @@ func TestTaxCodeResolution(t *testing.T) {
 
 		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
 		_ = deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
-		plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
+		plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t, stripeTaxConfig))
 
 		spec, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
 			CustomerId:      cust.ID,
@@ -1206,9 +1239,7 @@ func TestTaxCodeResolution(t *testing.T) {
 		view, err := service.GetView(ctx, models.NamespacedID{ID: sub.ID, Namespace: sub.Namespace})
 		require.NoError(t, err)
 
-		// Look up the TaxCode entity that should have been created during subscription creation.
-		// ExampleRateCard1 and ExampleRateCard3ForAddons both use Stripe code "txcd_10000000".
-		const stripeCode = "txcd_10000000"
+		// Look up the TaxCode entity that should have been created for the Stripe code.
 		tc, err := deps.TaxCodeEnv.Service.GetTaxCodeByAppMapping(ctx, taxcode.GetTaxCodeByAppMappingInput{
 			Namespace: subscriptiontestutils.ExampleNamespace,
 			AppType:   app.AppTypeStripe,
@@ -1256,7 +1287,7 @@ func TestTaxCodeResolution(t *testing.T) {
 
 		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
 		_ = deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
-		plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
+		plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t, stripeTaxConfig))
 
 		spec, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
 			CustomerId:      cust.ID,
@@ -1275,7 +1306,6 @@ func TestTaxCodeResolution(t *testing.T) {
 		view, err := service.GetView(ctx, models.NamespacedID{ID: sub.ID, Namespace: sub.Namespace})
 		require.NoError(t, err)
 
-		const stripeCode = "txcd_10000000"
 		tc, err := deps.TaxCodeEnv.Service.GetTaxCodeByAppMapping(ctx, taxcode.GetTaxCodeByAppMappingInput{
 			Namespace: subscriptiontestutils.ExampleNamespace,
 			AppType:   app.AppTypeStripe,
@@ -1509,10 +1539,14 @@ func TestBillingCadenceLegacyCancellation(t *testing.T) {
 func TestBillingCadenceLegacyFeatureResolution(t *testing.T) {
 	for _, tc := range []struct {
 		name     string
-		rateCard productcatalog.RateCard
+		rateCard func(productcatalog.TaxConfig) productcatalog.RateCard
 	}{
-		{name: "flat fee with item feature", rateCard: subscriptiontestutils.ExampleAddonRateCard4.Clone()},
-		{name: "usage based with entitlement feature", rateCard: subscriptiontestutils.ExampleRateCard1.Clone()},
+		{name: "flat fee with item feature", rateCard: func(productcatalog.TaxConfig) productcatalog.RateCard {
+			return subscriptiontestutils.ExampleAddonRateCard4.Clone()
+		}},
+		{name: "usage based with entitlement feature", rateCard: func(taxConfig productcatalog.TaxConfig) productcatalog.RateCard {
+			return subscriptiontestutils.ExampleRateCard1(taxConfig)
+		}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			// given: a persisted weekly subscription whose feature-linked item predates the cadence minimum
@@ -1524,7 +1558,10 @@ func TestBillingCadenceLegacyFeatureResolution(t *testing.T) {
 			deps := subscriptiontestutils.NewService(t, dbDeps)
 			customer := deps.CustomerAdapter.CreateExampleCustomer(t)
 			deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
-			spec, err := subscriptiontestutils.BuildTestSubscriptionSpec(t).AddPhase(nil, tc.rateCard).Build()
+			taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
+			taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
+			rateCard := tc.rateCard(taxConfig)
+			spec, err := subscriptiontestutils.BuildTestSubscriptionSpec(t).AddPhase(nil, rateCard).Build()
 			require.NoError(t, err)
 			spec.Plan = nil
 			spec.CustomerId = customer.ID
@@ -1535,7 +1572,7 @@ func TestBillingCadenceLegacyFeatureResolution(t *testing.T) {
 			require.NoError(t, err)
 			view, err := deps.SubscriptionService.GetView(t.Context(), sub.NamespacedID)
 			require.NoError(t, err)
-			itemID := view.Phases[0].ItemsByKey[tc.rateCard.Key()][0].SubscriptionItem.ID
+			itemID := view.Phases[0].ItemsByKey[rateCard.Key()][0].SubscriptionItem.ID
 			_, err = dbDeps.DBClient.SubscriptionItem.UpdateOneID(itemID).SetBillingCadence(datetime.ISODurationString("PT1H")).Save(t.Context())
 			require.NoError(t, err)
 
@@ -1544,7 +1581,7 @@ func TestBillingCadenceLegacyFeatureResolution(t *testing.T) {
 
 			// then: reads and cancellation work, but unrelated updates still reject the short cadence
 			require.NoError(t, err)
-			item := view.Phases[0].ItemsByKey[tc.rateCard.Key()][0]
+			item := view.Phases[0].ItemsByKey[rateCard.Key()][0]
 			require.NotNil(t, item.Feature)
 			require.True(t, item.Spec.RateCard.AsMeta().Feature.IsResolved())
 			require.Equal(t, "PT1H", item.Spec.RateCard.GetBillingCadence().String())

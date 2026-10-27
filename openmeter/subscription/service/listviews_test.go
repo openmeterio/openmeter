@@ -5,9 +5,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/subscription/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
@@ -34,7 +36,9 @@ func TestListViewsMultiCustomer(t *testing.T) {
 	service := deps.SubscriptionService
 
 	_ = deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
-	plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
+	taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
+	taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
+	plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t, taxConfig))
 
 	// given: two distinct customers, each with a subscription from the same plan
 	cust1 := deps.CustomerAdapter.CreateExampleCustomer(t)
@@ -87,7 +91,9 @@ func TestGetViewResolvesSoftDeletedCustomer(t *testing.T) {
 	service := deps.SubscriptionService
 
 	_ = deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
-	plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
+	taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
+	taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
+	plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t, taxConfig))
 
 	// given: a subscription whose customer is subsequently soft-deleted
 	cust := deps.CustomerAdapter.CreateExampleCustomer(t)

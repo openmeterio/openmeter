@@ -111,7 +111,9 @@ func TestCreateFromPlan(t *testing.T) {
 
 			deps := subscriptiontestutils.NewService(t, dbDeps)
 			deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
-			plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
+			taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
+			taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
+			plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t, taxConfig))
 			cust := deps.CustomerAdapter.CreateExampleCustomer(t)
 			require.NotNil(t, cust)
 
@@ -137,8 +139,10 @@ func TestCreateFromPlan(t *testing.T) {
 		deps := subscriptiontestutils.NewService(t, dbDeps)
 		deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
 
+		taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
+		taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
 		p := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.BuildTestPlanInput(t).
-			AddPhase(nil, subscriptiontestutils.ExampleRateCard3ForAddons.Clone(), subscriptiontestutils.ExampleRateCard4ForAddons.Clone()).
+			AddPhase(nil, subscriptiontestutils.ExampleRateCard3ForAddons(taxConfig), subscriptiontestutils.ExampleRateCard4ForAddons.Clone()).
 			Build())
 
 		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
@@ -154,7 +158,7 @@ func TestCreateFromPlan(t *testing.T) {
 		}, p)
 		require.Nil(t, err)
 
-		nonBoolItem := subView.Phases[0].ItemsByKey[subscriptiontestutils.ExampleRateCard3ForAddons.Key()][0]
+		nonBoolItem := subView.Phases[0].ItemsByKey[subscriptiontestutils.ExampleFeatureKey2][0]
 		require.NotNil(t, nonBoolItem)
 		require.Equal(t, 0, subscription.AnnotationParser.GetBooleanEntitlementCount(nonBoolItem.SubscriptionItem.Annotations))
 
@@ -640,7 +644,9 @@ func TestEditRunning(t *testing.T) {
 
 			deps := subscriptiontestutils.NewService(t, dbDeps)
 			features := deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
-			plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
+			taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
+			taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
+			plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t, taxConfig))
 			cust := deps.CustomerAdapter.CreateExampleCustomer(t)
 			require.NotNil(t, cust)
 
@@ -839,7 +845,9 @@ func TestEditingCurrentPhase(t *testing.T) {
 
 			deps := subscriptiontestutils.NewService(t, dbDeps)
 			deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
-			plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
+			taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
+			taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
+			plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t, taxConfig))
 			cust := deps.CustomerAdapter.CreateExampleCustomer(t)
 			require.NotNil(t, cust)
 
@@ -1079,7 +1087,9 @@ func TestEditingWithTiming(t *testing.T) {
 
 			deps := subscriptiontestutils.NewService(t, dbDeps)
 			deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
-			planInput := subscriptiontestutils.GetExamplePlanInput(t)
+			taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
+			taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
+			planInput := subscriptiontestutils.GetExamplePlanInput(t, taxConfig)
 
 			plan := deps.PlanHelper.CreatePlan(t, planInput)
 			cust := deps.CustomerAdapter.CreateExampleCustomer(t)
@@ -1126,9 +1136,29 @@ func TestChangeToPlan(t *testing.T) {
 
 	withDeps := func(t *testing.T) func(fn func(t *testing.T, deps testCaseDeps)) {
 		return func(fn func(t *testing.T, deps testCaseDeps)) {
+			tcDeps := testCaseDeps{
+				CurrentTime: testutils.GetRFC3339Time(t, "2021-01-01T00:00:00Z"),
+			}
+
+			clock.SetTime(tcDeps.CurrentTime)
+
+			// Let's build the dependencies
+			dbDeps := subscriptiontestutils.SetupDBDeps(t)
+			require.NotNil(t, dbDeps)
+			defer dbDeps.Cleanup(t)
+
+			deps := subscriptiontestutils.NewService(t, dbDeps)
+			deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
+
+			taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
+			taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
+
 			// Let's define two plans. One is the example plan, and the second is a slightly modified version of that.
 			// Build them per invocation so plan service mutations (e.g. resolving TaxCodeIDs) don't leak across subtests.
-			examplePlanInput1 := subscriptiontestutils.GetExamplePlanInput(t)
+			examplePlanInput1 := subscriptiontestutils.GetExamplePlanInput(t, taxConfig)
+
+			// Plan 2's new rate cards use a different tax code than the example plan.
+			plan2TaxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
 
 			rc1 := productcatalog.UsageBasedRateCard{
 				RateCardMeta: productcatalog.RateCardMeta{
@@ -1140,11 +1170,7 @@ func TestChangeToPlan(t *testing.T) {
 						IssueAfterReset: lo.ToPtr(111.0),
 						UsagePeriod:     subscriptiontestutils.ISOMonth,
 					}),
-					TaxConfig: &productcatalog.TaxConfig{
-						Stripe: &productcatalog.StripeTaxConfig{
-							Code: "txcd_10000001",
-						},
-					},
+					TaxConfig: &productcatalog.TaxConfig{TaxCodeID: &plan2TaxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)},
 					Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 						Amount: alpacadecimal.NewFromInt(int64(1)),
 					}),
@@ -1157,12 +1183,8 @@ func TestChangeToPlan(t *testing.T) {
 					Key:         "new-rc-2",
 					Name:        "Rate Card 2",
 					Description: lo.ToPtr("Rate Card 2 Description"),
-					TaxConfig: &productcatalog.TaxConfig{
-						Stripe: &productcatalog.StripeTaxConfig{
-							Code: "txcd_10000001",
-						},
-					},
-					Price: nil,
+					TaxConfig:   &productcatalog.TaxConfig{TaxCodeID: &plan2TaxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)},
+					Price:       nil,
 				},
 				BillingCadence: nil,
 			}
@@ -1204,7 +1226,7 @@ func TestChangeToPlan(t *testing.T) {
 								Duration:    lo.ToPtr(datetime.MustParseDuration(t, "P1M")),
 							},
 							RateCards: productcatalog.RateCards{
-								subscriptiontestutils.ExampleRateCard1.Clone(),
+								subscriptiontestutils.ExampleRateCard1(taxConfig),
 								&rc2,
 							},
 						},
@@ -1222,20 +1244,6 @@ func TestChangeToPlan(t *testing.T) {
 					},
 				},
 			}
-
-			tcDeps := testCaseDeps{
-				CurrentTime: testutils.GetRFC3339Time(t, "2021-01-01T00:00:00Z"),
-			}
-
-			clock.SetTime(tcDeps.CurrentTime)
-
-			// Let's build the dependencies
-			dbDeps := subscriptiontestutils.SetupDBDeps(t)
-			require.NotNil(t, dbDeps)
-			defer dbDeps.Cleanup(t)
-
-			deps := subscriptiontestutils.NewService(t, dbDeps)
-			deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
 
 			// Let's create the two plans
 			plan1 := deps.PlanHelper.CreatePlan(t, examplePlanInput1)
@@ -1319,12 +1327,11 @@ func TestEditCombinations(t *testing.T) {
 		DBDeps          *subscriptiontestutils.DBDeps
 		Plan1           subscription.Plan
 		SubsDeps        *subscriptiontestutils.SubscriptionDependencies
+		TaxConfig       productcatalog.TaxConfig
 	}
 
 	withDeps := func(t *testing.T) func(fn func(t *testing.T, deps testCaseDeps)) {
 		return func(fn func(t *testing.T, deps testCaseDeps)) {
-			examplePlanInput1 := subscriptiontestutils.GetExamplePlanInput(t)
-
 			tcDeps := testCaseDeps{
 				CurrentTime: testutils.GetRFC3339Time(t, "2021-01-01T00:00:00Z"),
 			}
@@ -1339,6 +1346,10 @@ func TestEditCombinations(t *testing.T) {
 			deps := subscriptiontestutils.NewService(t, dbDeps)
 			deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
 
+			taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
+			taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
+			examplePlanInput1 := subscriptiontestutils.GetExamplePlanInput(t, taxConfig)
+
 			// Let's create the plan
 			plan1 := deps.PlanHelper.CreatePlan(t, examplePlanInput1)
 
@@ -1351,6 +1362,7 @@ func TestEditCombinations(t *testing.T) {
 			tcDeps.WorkflowService = deps.WorkflowService
 			tcDeps.Plan1 = plan1
 			tcDeps.SubsDeps = &deps
+			tcDeps.TaxConfig = taxConfig
 
 			fn(t, tcDeps)
 		}
@@ -1367,11 +1379,13 @@ func TestEditCombinations(t *testing.T) {
 		defer dbDeps.Cleanup(t)
 
 		deps := subscriptiontestutils.NewService(t, dbDeps)
+		taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
+		taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
 
 		p, add := subscriptiontestutils.CreatePlanWithAddon(
 			t,
 			deps,
-			subscriptiontestutils.GetExamplePlanInput(t),
+			subscriptiontestutils.GetExamplePlanInput(t, taxConfig),
 			subscriptiontestutils.BuildAddonForTesting(
 				t,
 				productcatalog.EffectivePeriod{
@@ -1417,7 +1431,7 @@ func TestEditCombinations(t *testing.T) {
 	t.Run("Should add boolean entitlement count annotations", func(t *testing.T) {
 		withDeps(t)(func(t *testing.T, deps testCaseDeps) {
 			plan := deps.SubsDeps.PlanHelper.CreatePlan(t, subscriptiontestutils.BuildTestPlanInput(t).
-				AddPhase(nil, subscriptiontestutils.ExampleRateCard3ForAddons.Clone()).
+				AddPhase(nil, subscriptiontestutils.ExampleRateCard3ForAddons(deps.TaxConfig)).
 				Build())
 
 			timingNow := subscription.Timing{
@@ -1694,8 +1708,6 @@ func TestRestore(t *testing.T) {
 
 	withDeps := func(t *testing.T) func(fn func(t *testing.T, deps testCaseDeps)) {
 		return func(fn func(t *testing.T, deps testCaseDeps)) {
-			examplePlanInput1 := subscriptiontestutils.GetExamplePlanInput(t)
-
 			tcDeps := testCaseDeps{
 				CurrentTime: testutils.GetRFC3339Time(t, "2021-01-01T00:00:00Z"),
 			}
@@ -1709,6 +1721,10 @@ func TestRestore(t *testing.T) {
 
 			deps := subscriptiontestutils.NewService(t, dbDeps)
 			deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
+
+			taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
+			taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
+			examplePlanInput1 := subscriptiontestutils.GetExamplePlanInput(t, taxConfig)
 
 			// Let's create the plan
 			plan1 := deps.PlanHelper.CreatePlan(t, examplePlanInput1)
@@ -1883,8 +1899,6 @@ func TestMultiSubscription(t *testing.T) {
 
 	withDeps := func(t *testing.T) func(fn func(t *testing.T, deps testCaseDeps)) {
 		return func(fn func(t *testing.T, deps testCaseDeps)) {
-			examplePlanInput1 := subscriptiontestutils.GetExamplePlanInput(t)
-
 			tcDeps := testCaseDeps{
 				CurrentTime: testutils.GetRFC3339Time(t, "2021-01-01T00:00:00Z"),
 			}
@@ -1898,6 +1912,10 @@ func TestMultiSubscription(t *testing.T) {
 
 			deps := subscriptiontestutils.NewService(t, dbDeps)
 			deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
+
+			taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
+			taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
+			examplePlanInput1 := subscriptiontestutils.GetExamplePlanInput(t, taxConfig)
 
 			// Let's create the plan
 			plan1 := deps.PlanHelper.CreatePlan(t, examplePlanInput1)
@@ -2078,11 +2096,6 @@ func TestSubscriptionChangeTrackingAnnotations(t *testing.T) {
 
 	withDeps := func(t *testing.T) func(fn func(t *testing.T, deps testCaseDeps)) {
 		return func(fn func(t *testing.T, deps testCaseDeps)) {
-			examplePlanInput1 := subscriptiontestutils.GetExamplePlanInput(t)
-			examplePlanInput2 := subscriptiontestutils.GetExamplePlanInput(t)
-			examplePlanInput2.Key = "example-plan-2"
-			examplePlanInput2.Name = "Example Plan 2"
-
 			tcDeps := testCaseDeps{
 				CurrentTime: testutils.GetRFC3339Time(t, "2021-01-01T00:00:00Z"),
 			}
@@ -2096,6 +2109,13 @@ func TestSubscriptionChangeTrackingAnnotations(t *testing.T) {
 
 			deps := subscriptiontestutils.NewService(t, dbDeps)
 			deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
+
+			taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
+			taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
+			examplePlanInput1 := subscriptiontestutils.GetExamplePlanInput(t, taxConfig)
+			examplePlanInput2 := subscriptiontestutils.GetExamplePlanInput(t, taxConfig)
+			examplePlanInput2.Key = "example-plan-2"
+			examplePlanInput2.Name = "Example Plan 2"
 
 			// Let's create the two plans
 			plan1 := deps.PlanHelper.CreatePlan(t, examplePlanInput1)
@@ -2280,7 +2300,9 @@ func TestSettlementMode(t *testing.T) {
 
 		deps := subscriptiontestutils.NewService(t, dbDeps)
 		deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
-		p := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
+		taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
+		taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
+		p := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t, taxConfig))
 		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
 
 		subView, err := deps.WorkflowService.CreateFromPlan(context.Background(), subscriptionworkflow.CreateSubscriptionWorkflowInput{
@@ -2311,7 +2333,9 @@ func TestSettlementMode(t *testing.T) {
 		deps := subscriptiontestutils.NewService(t, dbDeps)
 		deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
 
-		planInput := subscriptiontestutils.GetExamplePlanInput(t)
+		taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
+		taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
+		planInput := subscriptiontestutils.GetExamplePlanInput(t, taxConfig)
 		planInput.SettlementMode = productcatalog.CreditOnlySettlementMode
 		p := deps.PlanHelper.CreatePlan(t, planInput)
 		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
@@ -2345,8 +2369,10 @@ func TestSettlementMode(t *testing.T) {
 		deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
 		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
 
+		taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
+		taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
 		spec, err := subscriptiontestutils.BuildTestSubscriptionSpec(t).
-			AddPhase(nil, subscriptiontestutils.ExampleRateCard1.Clone()).
+			AddPhase(nil, subscriptiontestutils.ExampleRateCard1(taxConfig)).
 			Build()
 		require.NoError(t, err)
 
@@ -2383,7 +2409,9 @@ func TestSettlementMode(t *testing.T) {
 
 		deps := subscriptiontestutils.NewService(t, dbDeps)
 		deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
-		p := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
+		taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
+		taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
+		p := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t, taxConfig))
 		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
 
 		subView, err := deps.WorkflowService.CreateFromPlan(context.Background(), subscriptionworkflow.CreateSubscriptionWorkflowInput{
@@ -2436,7 +2464,9 @@ func TestSettlementMode(t *testing.T) {
 		deps := subscriptiontestutils.NewService(t, dbDeps)
 		deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
 
-		planInput := subscriptiontestutils.GetExamplePlanInput(t)
+		taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
+		taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
+		planInput := subscriptiontestutils.GetExamplePlanInput(t, taxConfig)
 		planInput.SettlementMode = productcatalog.CreditOnlySettlementMode
 		p := deps.PlanHelper.CreatePlan(t, planInput)
 		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
@@ -2467,7 +2497,9 @@ func TestSettlementMode(t *testing.T) {
 		deps := subscriptiontestutils.NewService(t, dbDeps)
 		deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
 
-		planInput := subscriptiontestutils.GetExamplePlanInput(t)
+		taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
+		taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
+		planInput := subscriptiontestutils.GetExamplePlanInput(t, taxConfig)
 		planInput.SettlementMode = productcatalog.CreditOnlySettlementMode
 		p := deps.PlanHelper.CreatePlan(t, planInput)
 		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
@@ -2498,9 +2530,11 @@ func TestSettlementMode(t *testing.T) {
 		deps := subscriptiontestutils.NewService(t, dbDeps)
 		deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
 
-		basePlan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
+		taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
+		taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
+		basePlan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t, taxConfig))
 
-		creditOnlyPlanInput := subscriptiontestutils.GetExamplePlanInput(t)
+		creditOnlyPlanInput := subscriptiontestutils.GetExamplePlanInput(t, taxConfig)
 		creditOnlyPlanInput.Key = "credit_only_plan"
 		creditOnlyPlanInput.SettlementMode = productcatalog.CreditOnlySettlementMode
 		creditOnlyPlan := deps.PlanHelper.CreatePlan(t, creditOnlyPlanInput)
@@ -2557,12 +2591,15 @@ func TestCreateFromPlanSnapshotsUnitConfig(t *testing.T) {
 		Rounding:         productcatalog.UnitConfigRoundingModeCeiling,
 	}
 
+	taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
+	taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
+
 	// ExampleRateCard1 is usage-based with a UnitPrice, which supports unit_config.
-	rc := subscriptiontestutils.ExampleRateCard1
+	rc := subscriptiontestutils.ExampleRateCard1(taxConfig)
 	rc.UnitConfig = unitConfig
 
 	p := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.BuildTestPlanInput(t).
-		AddPhase(nil, &rc).
+		AddPhase(nil, rc).
 		Build())
 
 	cust := deps.CustomerAdapter.CreateExampleCustomer(t)
@@ -2581,7 +2618,7 @@ func TestCreateFromPlanSnapshotsUnitConfig(t *testing.T) {
 	reloaded, err := deps.SubscriptionService.GetView(context.Background(), subView.Subscription.NamespacedID)
 	require.NoError(t, err)
 
-	items := reloaded.Phases[0].ItemsByKey[subscriptiontestutils.ExampleRateCard1.Key()]
+	items := reloaded.Phases[0].ItemsByKey[subscriptiontestutils.ExampleFeatureKey]
 	require.Len(t, items, 1)
 
 	got := items[0].SubscriptionItem.RateCard.AsMeta().UnitConfig

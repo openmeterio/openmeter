@@ -44,7 +44,9 @@ func TestMigrate(t *testing.T) {
 
 	t.Run("Should migrate to latest version of plan when none is specified", func(t *testing.T) {
 		withDeps(t, func(t *testing.T, deps tDeps) {
-			examplePlanInput1 := subscriptiontestutils.GetExamplePlanInput(t)
+			taxCode := deps.subDeps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
+			taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
+			examplePlanInput1 := subscriptiontestutils.GetExamplePlanInput(t, taxConfig)
 
 			now := testutils.GetRFC3339Time(t, "2021-01-01T00:01:10Z")
 			clock.SetTime(now)
@@ -120,7 +122,9 @@ func TestMigrate(t *testing.T) {
 
 	t.Run("Should migrate to specific version of plan when provided", func(t *testing.T) {
 		withDeps(t, func(t *testing.T, deps tDeps) {
-			examplePlanInput1 := subscriptiontestutils.GetExamplePlanInput(t)
+			taxCode := deps.subDeps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
+			taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
+			examplePlanInput1 := subscriptiontestutils.GetExamplePlanInput(t, taxConfig)
 
 			now := testutils.GetRFC3339Time(t, "2021-01-01T00:01:10Z")
 			clock.SetTime(now)
@@ -194,7 +198,9 @@ func TestMigrate(t *testing.T) {
 
 	t.Run("Should not allow migrating to same or smaller version", func(t *testing.T) {
 		withDeps(t, func(t *testing.T, deps tDeps) {
-			examplePlanInput1 := subscriptiontestutils.GetExamplePlanInput(t)
+			taxCode := deps.subDeps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
+			taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
+			examplePlanInput1 := subscriptiontestutils.GetExamplePlanInput(t, taxConfig)
 
 			now := testutils.GetRFC3339Time(t, "2021-01-01T00:01:10Z")
 			clock.SetTime(now)
@@ -273,7 +279,9 @@ func TestMigrate(t *testing.T) {
 
 	t.Run("Should replace the subscription when a starting phase is supplied", func(t *testing.T) {
 		withDeps(t, func(t *testing.T, deps tDeps) {
-			examplePlanInput1 := subscriptiontestutils.GetExamplePlanInput(t)
+			taxCode := deps.subDeps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
+			taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
+			examplePlanInput1 := subscriptiontestutils.GetExamplePlanInput(t, taxConfig)
 
 			now := testutils.GetRFC3339Time(t, "2021-01-01T00:01:10Z")
 			clock.SetTime(now)
@@ -396,8 +404,10 @@ func TestMigrateReturnsCurrentSnapshotFromUnderLock(t *testing.T) {
 
 	deps := subscriptiontestutils.NewService(t, db)
 	deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
+	taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
+	taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
 	planInput := subscriptiontestutils.BuildTestPlanInput(t).AddPhase(nil,
-		subscriptiontestutils.ExampleRateCard1.Clone(),
+		subscriptiontestutils.ExampleRateCard1(taxConfig),
 	).Build()
 	p1 := deps.PlanHelper.CreatePlan(t, planInput)
 	before := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps, p1, start)
