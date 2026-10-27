@@ -51,7 +51,7 @@ func (h *handler) UpdateNotificationChannel() UpdateNotificationChannelHandler {
 		commonhttp.JSONResponseEncoderWithStatus[UpdateNotificationChannelResponse](http.StatusOK),
 		httptransport.AppendOptions(
 			h.options,
-			httptransport.WithOperationName("update-notification-channel"),
+			httptransport.WithOperationName("update-billing-notification-channel"),
 			httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),
 			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,

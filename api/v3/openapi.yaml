@@ -3543,7 +3543,7 @@ paths:
               $ref: '#/components/schemas/MeterQueryRequest'
   /openmeter/notification/channels:
     get:
-      operationId: list-notification-channels
+      operationId: list-billing-notification-channels
       summary: List notification channels
       description: List all notification channels.
       parameters:
@@ -3594,7 +3594,7 @@ paths:
         - OpenMeter Notifications
       x-unstable: true
     post:
-      operationId: create-notification-channel
+      operationId: create-billing-notification-channel
       summary: Create notification channel
       description: Create a notification channel.
       responses:
@@ -3621,7 +3621,7 @@ paths:
       x-unstable: true
   /openmeter/notification/channels/{notificationChannelId}:
     get:
-      operationId: get-notification-channel
+      operationId: get-billing-notification-channel
       summary: Get notification channel
       description: Get a notification channel by id.
       parameters:
@@ -3649,7 +3649,7 @@ paths:
         - OpenMeter Notifications
       x-unstable: true
     put:
-      operationId: update-notification-channel
+      operationId: update-billing-notification-channel
       summary: Update notification channel
       description: Update a notification channel by id.
       parameters:
@@ -3685,7 +3685,7 @@ paths:
               $ref: '#/components/schemas/UpdateBillingNotificationChannelRequest'
       x-unstable: true
     delete:
-      operationId: delete-notification-channel
+      operationId: delete-billing-notification-channel
       summary: Delete notification channel
       description: Delete a notification channel by id.
       parameters:
@@ -3710,7 +3710,7 @@ paths:
       x-unstable: true
   /openmeter/notification/events:
     get:
-      operationId: list-notification-events
+      operationId: list-billing-notification-events
       summary: List notification events
       description: List all notification events.
       parameters:
@@ -3767,7 +3767,7 @@ paths:
       x-unstable: true
   /openmeter/notification/events/{notificationEventId}:
     get:
-      operationId: get-notification-event
+      operationId: get-billing-notification-event
       summary: Get notification event
       description: Get a notification event by id.
       parameters:
@@ -3798,7 +3798,7 @@ paths:
       x-unstable: true
   /openmeter/notification/events/{notificationEventId}/resend:
     post:
-      operationId: resend-notification-event
+      operationId: resend-billing-notification-event
       summary: Resend notification event
       description: |-
         Resend a notification event to the channels of the rule that generated it.
@@ -3837,7 +3837,7 @@ paths:
       x-unstable: true
   /openmeter/notification/rules:
     get:
-      operationId: list-notification-rules
+      operationId: list-billing-notification-rules
       summary: List notification rules
       description: List all notification rules.
       parameters:
@@ -3892,7 +3892,7 @@ paths:
       x-internal: true
       x-unstable: true
     post:
-      operationId: create-notification-rule
+      operationId: create-billing-notification-rule
       summary: Create notification rule
       description: Create a notification rule.
       responses:
@@ -3921,7 +3921,7 @@ paths:
       x-unstable: true
   /openmeter/notification/rules/{notificationRuleId}:
     get:
-      operationId: get-notification-rule
+      operationId: get-billing-notification-rule
       summary: Get notification rule
       description: Get a notification rule by id.
       parameters:
@@ -3951,7 +3951,7 @@ paths:
       x-internal: true
       x-unstable: true
     put:
-      operationId: update-notification-rule
+      operationId: update-billing-notification-rule
       summary: Update notification rule
       description: Update a notification rule by id.
       parameters:
@@ -3989,7 +3989,7 @@ paths:
       x-internal: true
       x-unstable: true
     delete:
-      operationId: delete-notification-rule
+      operationId: delete-billing-notification-rule
       summary: Delete notification rule
       description: Delete a notification rule by id.
       parameters:
@@ -4016,7 +4016,7 @@ paths:
       x-unstable: true
   /openmeter/notification/rules/{notificationRuleId}/test:
     post:
-      operationId: test-notification-rule
+      operationId: test-billing-notification-rule
       summary: Test notification rule
       description: |-
         Test a notification rule by generating an event with sample data and delivering

@@ -39,7 +39,7 @@ interface NotificationChannelOperations {
    * List all notification channels.
    */
   @get
-  @operationId("list-notification-channels")
+  @operationId("list-billing-notification-channels")
   @summary("List notification channels")
   @extension(Shared.UnstableExtension, true)
   list(
@@ -74,7 +74,7 @@ interface NotificationChannelOperations {
    * Create a notification channel.
    */
   @post
-  @operationId("create-notification-channel")
+  @operationId("create-billing-notification-channel")
   @summary("Create notification channel")
   @extension(Shared.UnstableExtension, true)
   create(
@@ -87,7 +87,7 @@ interface NotificationChannelOperations {
    */
   @get
   @route("/{notificationChannelId}")
-  @operationId("get-notification-channel")
+  @operationId("get-billing-notification-channel")
   @summary("Get notification channel")
   @extension(Shared.UnstableExtension, true)
   get(@path notificationChannelId: Shared.ULID):
@@ -100,7 +100,7 @@ interface NotificationChannelOperations {
    */
   @put
   @route("/{notificationChannelId}")
-  @operationId("update-notification-channel")
+  @operationId("update-billing-notification-channel")
   @summary("Update notification channel")
   @extension(Shared.UnstableExtension, true)
   update(
@@ -119,7 +119,7 @@ interface NotificationChannelOperations {
    */
   @delete
   @route("/{notificationChannelId}")
-  @operationId("delete-notification-channel")
+  @operationId("delete-billing-notification-channel")
   @summary("Delete notification channel")
   @extension(Shared.UnstableExtension, true)
   delete(@path notificationChannelId: Shared.ULID):
@@ -158,7 +158,7 @@ interface NotificationRuleOperations {
    * List all notification rules.
    */
   @get
-  @operationId("list-notification-rules")
+  @operationId("list-billing-notification-rules")
   @summary("List notification rules")
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
@@ -197,7 +197,7 @@ interface NotificationRuleOperations {
    * Create a notification rule.
    */
   @post
-  @operationId("create-notification-rule")
+  @operationId("create-billing-notification-rule")
   @summary("Create notification rule")
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
@@ -212,7 +212,7 @@ interface NotificationRuleOperations {
    */
   @get
   @route("/{notificationRuleId}")
-  @operationId("get-notification-rule")
+  @operationId("get-billing-notification-rule")
   @summary("Get notification rule")
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
@@ -227,7 +227,7 @@ interface NotificationRuleOperations {
    */
   @put
   @route("/{notificationRuleId}")
-  @operationId("update-notification-rule")
+  @operationId("update-billing-notification-rule")
   @summary("Update notification rule")
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
@@ -248,7 +248,7 @@ interface NotificationRuleOperations {
    */
   @delete
   @route("/{notificationRuleId}")
-  @operationId("delete-notification-rule")
+  @operationId("delete-billing-notification-rule")
   @summary("Delete notification rule")
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
@@ -265,7 +265,7 @@ interface NotificationRuleOperations {
    */
   @post
   @route("/{notificationRuleId}/test")
-  @operationId("test-notification-rule")
+  @operationId("test-billing-notification-rule")
   @summary("Test notification rule")
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
@@ -333,7 +333,7 @@ interface NotificationEventOperations {
    * List all notification events.
    */
   @get
-  @operationId("list-notification-events")
+  @operationId("list-billing-notification-events")
   @summary("List notification events")
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
@@ -374,7 +374,7 @@ interface NotificationEventOperations {
    */
   @get
   @route("/{notificationEventId}")
-  @operationId("get-notification-event")
+  @operationId("get-billing-notification-event")
   @summary("Get notification event")
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
@@ -393,7 +393,7 @@ interface NotificationEventOperations {
    */
   @post
   @route("/{notificationEventId}/resend")
-  @operationId("resend-notification-event")
+  @operationId("resend-billing-notification-event")
   @summary("Resend notification event")
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)

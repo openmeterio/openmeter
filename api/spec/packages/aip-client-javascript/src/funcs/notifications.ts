@@ -13,34 +13,34 @@ import {
 } from '../lib/wire.js'
 import * as schemas from '../models/schemas.js'
 import type {
-  ListNotificationChannelsRequest,
-  ListNotificationChannelsResponse,
-  CreateNotificationChannelRequest,
-  CreateNotificationChannelResponse,
-  GetNotificationChannelRequest,
-  GetNotificationChannelResponse,
-  UpdateNotificationChannelRequest,
-  UpdateNotificationChannelResponse,
-  DeleteNotificationChannelRequest,
-  DeleteNotificationChannelResponse,
-  ListNotificationRulesRequest,
-  ListNotificationRulesResponse,
-  CreateNotificationRuleRequest,
-  CreateNotificationRuleResponse,
-  GetNotificationRuleRequest,
-  GetNotificationRuleResponse,
-  UpdateNotificationRuleRequest,
-  UpdateNotificationRuleResponse,
-  DeleteNotificationRuleRequest,
-  DeleteNotificationRuleResponse,
-  TestNotificationRuleRequest,
-  TestNotificationRuleResponse,
-  ListNotificationEventsRequest,
-  ListNotificationEventsResponse,
-  GetNotificationEventRequest,
-  GetNotificationEventResponse,
-  ResendNotificationEventRequest,
-  ResendNotificationEventResponse,
+  ListBillingNotificationChannelsRequest,
+  ListBillingNotificationChannelsResponse,
+  CreateBillingNotificationChannelRequest,
+  CreateBillingNotificationChannelResponse,
+  GetBillingNotificationChannelRequest,
+  GetBillingNotificationChannelResponse,
+  UpdateBillingNotificationChannelRequest,
+  UpdateBillingNotificationChannelResponse,
+  DeleteBillingNotificationChannelRequest,
+  DeleteBillingNotificationChannelResponse,
+  ListBillingNotificationRulesRequest,
+  ListBillingNotificationRulesResponse,
+  CreateBillingNotificationRuleRequest,
+  CreateBillingNotificationRuleResponse,
+  GetBillingNotificationRuleRequest,
+  GetBillingNotificationRuleResponse,
+  UpdateBillingNotificationRuleRequest,
+  UpdateBillingNotificationRuleResponse,
+  DeleteBillingNotificationRuleRequest,
+  DeleteBillingNotificationRuleResponse,
+  TestBillingNotificationRuleRequest,
+  TestBillingNotificationRuleResponse,
+  ListBillingNotificationEventsRequest,
+  ListBillingNotificationEventsResponse,
+  GetBillingNotificationEventRequest,
+  GetBillingNotificationEventResponse,
+  ResendBillingNotificationEventRequest,
+  ResendBillingNotificationEventResponse,
 } from '../models/operations/notifications.js'
 
 /**
@@ -50,15 +50,15 @@ import type {
  *
  * GET /openmeter/notification/channels
  */
-export function listNotificationChannels(
+export function listBillingNotificationChannels(
   client: Client,
-  req: ListNotificationChannelsRequest = {},
+  req: ListBillingNotificationChannelsRequest = {},
   options?: RequestOptions,
-): Promise<Result<ListNotificationChannelsResponse>> {
+): Promise<Result<ListBillingNotificationChannelsResponse>> {
   return request(() => {
     if (client._options.validate && req.sort !== undefined) {
       assertValid(
-        schemas.listNotificationChannelsQueryParams.shape.sort,
+        schemas.listBillingNotificationChannelsQueryParams.shape.sort,
         req.sort,
       )
     }
@@ -68,10 +68,10 @@ export function listNotificationChannels(
         sort: encodeSort(req.sort, toSnakeCase),
         filter: req.filter,
       },
-      schemas.listNotificationChannelsQueryParams,
+      schemas.listBillingNotificationChannelsQueryParams,
     )
     if (client._options.validate) {
-      assertValid(schemas.listNotificationChannelsQueryParamsWire, query)
+      assertValid(schemas.listBillingNotificationChannelsQueryParamsWire, query)
     }
     const searchParams = toURLSearchParams(query)
     return http(client)
@@ -79,9 +79,9 @@ export function listNotificationChannels(
       .json()
       .then((data) => {
         if (client._options.validate) {
-          assertValid(schemas.listNotificationChannelsResponseWire, data)
+          assertValid(schemas.listBillingNotificationChannelsResponseWire, data)
         }
-        return fromWire(data, schemas.listNotificationChannelsResponse)
+        return fromWire(data, schemas.listBillingNotificationChannelsResponse)
       })
   })
 }
@@ -93,24 +93,27 @@ export function listNotificationChannels(
  *
  * POST /openmeter/notification/channels
  */
-export function createNotificationChannel(
+export function createBillingNotificationChannel(
   client: Client,
-  req: CreateNotificationChannelRequest,
+  req: CreateBillingNotificationChannelRequest,
   options?: RequestOptions,
-): Promise<Result<CreateNotificationChannelResponse>> {
+): Promise<Result<CreateBillingNotificationChannelResponse>> {
   return request(() => {
-    const body = toWire(req, schemas.createNotificationChannelBody)
+    const body = toWire(req, schemas.createBillingNotificationChannelBody)
     if (client._options.validate) {
-      assertValid(schemas.createNotificationChannelBodyWire, body)
+      assertValid(schemas.createBillingNotificationChannelBodyWire, body)
     }
     return http(client)
       .post('openmeter/notification/channels', { ...options, json: body })
       .json()
       .then((data) => {
         if (client._options.validate) {
-          assertValid(schemas.createNotificationChannelResponseWire, data)
+          assertValid(
+            schemas.createBillingNotificationChannelResponseWire,
+            data,
+          )
         }
-        return fromWire(data, schemas.createNotificationChannelResponse)
+        return fromWire(data, schemas.createBillingNotificationChannelResponse)
       })
   })
 }
@@ -122,20 +125,26 @@ export function createNotificationChannel(
  *
  * GET /openmeter/notification/channels/{notificationChannelId}
  */
-export function getNotificationChannel(
+export function getBillingNotificationChannel(
   client: Client,
-  req: GetNotificationChannelRequest,
+  req: GetBillingNotificationChannelRequest,
   options?: RequestOptions,
-): Promise<Result<GetNotificationChannelResponse>> {
+): Promise<Result<GetBillingNotificationChannelResponse>> {
   return request(() => {
     const pathParamsInput = {
       notificationChannelId: req.notificationChannelId,
     }
     const pathParams = client._options.validate
-      ? toPathWire(pathParamsInput, schemas.getNotificationChannelPathParams)
+      ? toPathWire(
+          pathParamsInput,
+          schemas.getBillingNotificationChannelPathParams,
+        )
       : pathParamsInput
     if (client._options.validate) {
-      assertValid(schemas.getNotificationChannelPathParamsWire, pathParams)
+      assertValid(
+        schemas.getBillingNotificationChannelPathParamsWire,
+        pathParams,
+      )
     }
     const path = `openmeter/notification/channels/${(() => {
       if (pathParams.notificationChannelId === undefined) {
@@ -148,9 +157,9 @@ export function getNotificationChannel(
       .json()
       .then((data) => {
         if (client._options.validate) {
-          assertValid(schemas.getNotificationChannelResponseWire, data)
+          assertValid(schemas.getBillingNotificationChannelResponseWire, data)
         }
-        return fromWire(data, schemas.getNotificationChannelResponse)
+        return fromWire(data, schemas.getBillingNotificationChannelResponse)
       })
   })
 }
@@ -162,20 +171,26 @@ export function getNotificationChannel(
  *
  * PUT /openmeter/notification/channels/{notificationChannelId}
  */
-export function updateNotificationChannel(
+export function updateBillingNotificationChannel(
   client: Client,
-  req: UpdateNotificationChannelRequest,
+  req: UpdateBillingNotificationChannelRequest,
   options?: RequestOptions,
-): Promise<Result<UpdateNotificationChannelResponse>> {
+): Promise<Result<UpdateBillingNotificationChannelResponse>> {
   return request(() => {
     const pathParamsInput = {
       notificationChannelId: req.notificationChannelId,
     }
     const pathParams = client._options.validate
-      ? toPathWire(pathParamsInput, schemas.updateNotificationChannelPathParams)
+      ? toPathWire(
+          pathParamsInput,
+          schemas.updateBillingNotificationChannelPathParams,
+        )
       : pathParamsInput
     if (client._options.validate) {
-      assertValid(schemas.updateNotificationChannelPathParamsWire, pathParams)
+      assertValid(
+        schemas.updateBillingNotificationChannelPathParamsWire,
+        pathParams,
+      )
     }
     const path = `openmeter/notification/channels/${(() => {
       if (pathParams.notificationChannelId === undefined) {
@@ -183,18 +198,21 @@ export function updateNotificationChannel(
       }
       return encodeURIComponent(String(pathParams.notificationChannelId))
     })()}`
-    const body = toWire(req.body, schemas.updateNotificationChannelBody)
+    const body = toWire(req.body, schemas.updateBillingNotificationChannelBody)
     if (client._options.validate) {
-      assertValid(schemas.updateNotificationChannelBodyWire, body)
+      assertValid(schemas.updateBillingNotificationChannelBodyWire, body)
     }
     return http(client)
       .put(path, { ...options, json: body })
       .json()
       .then((data) => {
         if (client._options.validate) {
-          assertValid(schemas.updateNotificationChannelResponseWire, data)
+          assertValid(
+            schemas.updateBillingNotificationChannelResponseWire,
+            data,
+          )
         }
-        return fromWire(data, schemas.updateNotificationChannelResponse)
+        return fromWire(data, schemas.updateBillingNotificationChannelResponse)
       })
   })
 }
@@ -206,20 +224,26 @@ export function updateNotificationChannel(
  *
  * DELETE /openmeter/notification/channels/{notificationChannelId}
  */
-export function deleteNotificationChannel(
+export function deleteBillingNotificationChannel(
   client: Client,
-  req: DeleteNotificationChannelRequest,
+  req: DeleteBillingNotificationChannelRequest,
   options?: RequestOptions,
-): Promise<Result<DeleteNotificationChannelResponse>> {
+): Promise<Result<DeleteBillingNotificationChannelResponse>> {
   return request(async () => {
     const pathParamsInput = {
       notificationChannelId: req.notificationChannelId,
     }
     const pathParams = client._options.validate
-      ? toPathWire(pathParamsInput, schemas.deleteNotificationChannelPathParams)
+      ? toPathWire(
+          pathParamsInput,
+          schemas.deleteBillingNotificationChannelPathParams,
+        )
       : pathParamsInput
     if (client._options.validate) {
-      assertValid(schemas.deleteNotificationChannelPathParamsWire, pathParams)
+      assertValid(
+        schemas.deleteBillingNotificationChannelPathParamsWire,
+        pathParams,
+      )
     }
     const path = `openmeter/notification/channels/${(() => {
       if (pathParams.notificationChannelId === undefined) {
@@ -238,14 +262,17 @@ export function deleteNotificationChannel(
  *
  * GET /openmeter/notification/rules
  */
-export function listNotificationRules(
+export function listBillingNotificationRules(
   client: Client,
-  req: ListNotificationRulesRequest = {},
+  req: ListBillingNotificationRulesRequest = {},
   options?: RequestOptions,
-): Promise<Result<ListNotificationRulesResponse>> {
+): Promise<Result<ListBillingNotificationRulesResponse>> {
   return request(() => {
     if (client._options.validate && req.sort !== undefined) {
-      assertValid(schemas.listNotificationRulesQueryParams.shape.sort, req.sort)
+      assertValid(
+        schemas.listBillingNotificationRulesQueryParams.shape.sort,
+        req.sort,
+      )
     }
     const query = toWire(
       {
@@ -253,10 +280,10 @@ export function listNotificationRules(
         sort: encodeSort(req.sort, toSnakeCase),
         filter: req.filter,
       },
-      schemas.listNotificationRulesQueryParams,
+      schemas.listBillingNotificationRulesQueryParams,
     )
     if (client._options.validate) {
-      assertValid(schemas.listNotificationRulesQueryParamsWire, query)
+      assertValid(schemas.listBillingNotificationRulesQueryParamsWire, query)
     }
     const searchParams = toURLSearchParams(query)
     return http(client)
@@ -264,9 +291,9 @@ export function listNotificationRules(
       .json()
       .then((data) => {
         if (client._options.validate) {
-          assertValid(schemas.listNotificationRulesResponseWire, data)
+          assertValid(schemas.listBillingNotificationRulesResponseWire, data)
         }
-        return fromWire(data, schemas.listNotificationRulesResponse)
+        return fromWire(data, schemas.listBillingNotificationRulesResponse)
       })
   })
 }
@@ -278,24 +305,24 @@ export function listNotificationRules(
  *
  * POST /openmeter/notification/rules
  */
-export function createNotificationRule(
+export function createBillingNotificationRule(
   client: Client,
-  req: CreateNotificationRuleRequest,
+  req: CreateBillingNotificationRuleRequest,
   options?: RequestOptions,
-): Promise<Result<CreateNotificationRuleResponse>> {
+): Promise<Result<CreateBillingNotificationRuleResponse>> {
   return request(() => {
-    const body = toWire(req, schemas.createNotificationRuleBody)
+    const body = toWire(req, schemas.createBillingNotificationRuleBody)
     if (client._options.validate) {
-      assertValid(schemas.createNotificationRuleBodyWire, body)
+      assertValid(schemas.createBillingNotificationRuleBodyWire, body)
     }
     return http(client)
       .post('openmeter/notification/rules', { ...options, json: body })
       .json()
       .then((data) => {
         if (client._options.validate) {
-          assertValid(schemas.createNotificationRuleResponseWire, data)
+          assertValid(schemas.createBillingNotificationRuleResponseWire, data)
         }
-        return fromWire(data, schemas.createNotificationRuleResponse)
+        return fromWire(data, schemas.createBillingNotificationRuleResponse)
       })
   })
 }
@@ -307,20 +334,23 @@ export function createNotificationRule(
  *
  * GET /openmeter/notification/rules/{notificationRuleId}
  */
-export function getNotificationRule(
+export function getBillingNotificationRule(
   client: Client,
-  req: GetNotificationRuleRequest,
+  req: GetBillingNotificationRuleRequest,
   options?: RequestOptions,
-): Promise<Result<GetNotificationRuleResponse>> {
+): Promise<Result<GetBillingNotificationRuleResponse>> {
   return request(() => {
     const pathParamsInput = {
       notificationRuleId: req.notificationRuleId,
     }
     const pathParams = client._options.validate
-      ? toPathWire(pathParamsInput, schemas.getNotificationRulePathParams)
+      ? toPathWire(
+          pathParamsInput,
+          schemas.getBillingNotificationRulePathParams,
+        )
       : pathParamsInput
     if (client._options.validate) {
-      assertValid(schemas.getNotificationRulePathParamsWire, pathParams)
+      assertValid(schemas.getBillingNotificationRulePathParamsWire, pathParams)
     }
     const path = `openmeter/notification/rules/${(() => {
       if (pathParams.notificationRuleId === undefined) {
@@ -333,9 +363,9 @@ export function getNotificationRule(
       .json()
       .then((data) => {
         if (client._options.validate) {
-          assertValid(schemas.getNotificationRuleResponseWire, data)
+          assertValid(schemas.getBillingNotificationRuleResponseWire, data)
         }
-        return fromWire(data, schemas.getNotificationRuleResponse)
+        return fromWire(data, schemas.getBillingNotificationRuleResponse)
       })
   })
 }
@@ -347,20 +377,26 @@ export function getNotificationRule(
  *
  * PUT /openmeter/notification/rules/{notificationRuleId}
  */
-export function updateNotificationRule(
+export function updateBillingNotificationRule(
   client: Client,
-  req: UpdateNotificationRuleRequest,
+  req: UpdateBillingNotificationRuleRequest,
   options?: RequestOptions,
-): Promise<Result<UpdateNotificationRuleResponse>> {
+): Promise<Result<UpdateBillingNotificationRuleResponse>> {
   return request(() => {
     const pathParamsInput = {
       notificationRuleId: req.notificationRuleId,
     }
     const pathParams = client._options.validate
-      ? toPathWire(pathParamsInput, schemas.updateNotificationRulePathParams)
+      ? toPathWire(
+          pathParamsInput,
+          schemas.updateBillingNotificationRulePathParams,
+        )
       : pathParamsInput
     if (client._options.validate) {
-      assertValid(schemas.updateNotificationRulePathParamsWire, pathParams)
+      assertValid(
+        schemas.updateBillingNotificationRulePathParamsWire,
+        pathParams,
+      )
     }
     const path = `openmeter/notification/rules/${(() => {
       if (pathParams.notificationRuleId === undefined) {
@@ -368,18 +404,18 @@ export function updateNotificationRule(
       }
       return encodeURIComponent(String(pathParams.notificationRuleId))
     })()}`
-    const body = toWire(req.body, schemas.updateNotificationRuleBody)
+    const body = toWire(req.body, schemas.updateBillingNotificationRuleBody)
     if (client._options.validate) {
-      assertValid(schemas.updateNotificationRuleBodyWire, body)
+      assertValid(schemas.updateBillingNotificationRuleBodyWire, body)
     }
     return http(client)
       .put(path, { ...options, json: body })
       .json()
       .then((data) => {
         if (client._options.validate) {
-          assertValid(schemas.updateNotificationRuleResponseWire, data)
+          assertValid(schemas.updateBillingNotificationRuleResponseWire, data)
         }
-        return fromWire(data, schemas.updateNotificationRuleResponse)
+        return fromWire(data, schemas.updateBillingNotificationRuleResponse)
       })
   })
 }
@@ -391,20 +427,26 @@ export function updateNotificationRule(
  *
  * DELETE /openmeter/notification/rules/{notificationRuleId}
  */
-export function deleteNotificationRule(
+export function deleteBillingNotificationRule(
   client: Client,
-  req: DeleteNotificationRuleRequest,
+  req: DeleteBillingNotificationRuleRequest,
   options?: RequestOptions,
-): Promise<Result<DeleteNotificationRuleResponse>> {
+): Promise<Result<DeleteBillingNotificationRuleResponse>> {
   return request(async () => {
     const pathParamsInput = {
       notificationRuleId: req.notificationRuleId,
     }
     const pathParams = client._options.validate
-      ? toPathWire(pathParamsInput, schemas.deleteNotificationRulePathParams)
+      ? toPathWire(
+          pathParamsInput,
+          schemas.deleteBillingNotificationRulePathParams,
+        )
       : pathParamsInput
     if (client._options.validate) {
-      assertValid(schemas.deleteNotificationRulePathParamsWire, pathParams)
+      assertValid(
+        schemas.deleteBillingNotificationRulePathParamsWire,
+        pathParams,
+      )
     }
     const path = `openmeter/notification/rules/${(() => {
       if (pathParams.notificationRuleId === undefined) {
@@ -425,20 +467,23 @@ export function deleteNotificationRule(
  *
  * POST /openmeter/notification/rules/{notificationRuleId}/test
  */
-export function testNotificationRule(
+export function testBillingNotificationRule(
   client: Client,
-  req: TestNotificationRuleRequest,
+  req: TestBillingNotificationRuleRequest,
   options?: RequestOptions,
-): Promise<Result<TestNotificationRuleResponse>> {
+): Promise<Result<TestBillingNotificationRuleResponse>> {
   return request(() => {
     const pathParamsInput = {
       notificationRuleId: req.notificationRuleId,
     }
     const pathParams = client._options.validate
-      ? toPathWire(pathParamsInput, schemas.testNotificationRulePathParams)
+      ? toPathWire(
+          pathParamsInput,
+          schemas.testBillingNotificationRulePathParams,
+        )
       : pathParamsInput
     if (client._options.validate) {
-      assertValid(schemas.testNotificationRulePathParamsWire, pathParams)
+      assertValid(schemas.testBillingNotificationRulePathParamsWire, pathParams)
     }
     const path = `openmeter/notification/rules/${(() => {
       if (pathParams.notificationRuleId === undefined) {
@@ -451,9 +496,9 @@ export function testNotificationRule(
       .json()
       .then((data) => {
         if (client._options.validate) {
-          assertValid(schemas.testNotificationRuleResponseWire, data)
+          assertValid(schemas.testBillingNotificationRuleResponseWire, data)
         }
-        return fromWire(data, schemas.testNotificationRuleResponse)
+        return fromWire(data, schemas.testBillingNotificationRuleResponse)
       })
   })
 }
@@ -465,15 +510,15 @@ export function testNotificationRule(
  *
  * GET /openmeter/notification/events
  */
-export function listNotificationEvents(
+export function listBillingNotificationEvents(
   client: Client,
-  req: ListNotificationEventsRequest = {},
+  req: ListBillingNotificationEventsRequest = {},
   options?: RequestOptions,
-): Promise<Result<ListNotificationEventsResponse>> {
+): Promise<Result<ListBillingNotificationEventsResponse>> {
   return request(() => {
     if (client._options.validate && req.sort !== undefined) {
       assertValid(
-        schemas.listNotificationEventsQueryParams.shape.sort,
+        schemas.listBillingNotificationEventsQueryParams.shape.sort,
         req.sort,
       )
     }
@@ -483,10 +528,10 @@ export function listNotificationEvents(
         sort: encodeSort(req.sort, toSnakeCase),
         filter: req.filter,
       },
-      schemas.listNotificationEventsQueryParams,
+      schemas.listBillingNotificationEventsQueryParams,
     )
     if (client._options.validate) {
-      assertValid(schemas.listNotificationEventsQueryParamsWire, query)
+      assertValid(schemas.listBillingNotificationEventsQueryParamsWire, query)
     }
     const searchParams = toURLSearchParams(query)
     return http(client)
@@ -494,9 +539,9 @@ export function listNotificationEvents(
       .json()
       .then((data) => {
         if (client._options.validate) {
-          assertValid(schemas.listNotificationEventsResponseWire, data)
+          assertValid(schemas.listBillingNotificationEventsResponseWire, data)
         }
-        return fromWire(data, schemas.listNotificationEventsResponse)
+        return fromWire(data, schemas.listBillingNotificationEventsResponse)
       })
   })
 }
@@ -508,20 +553,23 @@ export function listNotificationEvents(
  *
  * GET /openmeter/notification/events/{notificationEventId}
  */
-export function getNotificationEvent(
+export function getBillingNotificationEvent(
   client: Client,
-  req: GetNotificationEventRequest,
+  req: GetBillingNotificationEventRequest,
   options?: RequestOptions,
-): Promise<Result<GetNotificationEventResponse>> {
+): Promise<Result<GetBillingNotificationEventResponse>> {
   return request(() => {
     const pathParamsInput = {
       notificationEventId: req.notificationEventId,
     }
     const pathParams = client._options.validate
-      ? toPathWire(pathParamsInput, schemas.getNotificationEventPathParams)
+      ? toPathWire(
+          pathParamsInput,
+          schemas.getBillingNotificationEventPathParams,
+        )
       : pathParamsInput
     if (client._options.validate) {
-      assertValid(schemas.getNotificationEventPathParamsWire, pathParams)
+      assertValid(schemas.getBillingNotificationEventPathParamsWire, pathParams)
     }
     const path = `openmeter/notification/events/${(() => {
       if (pathParams.notificationEventId === undefined) {
@@ -534,9 +582,9 @@ export function getNotificationEvent(
       .json()
       .then((data) => {
         if (client._options.validate) {
-          assertValid(schemas.getNotificationEventResponseWire, data)
+          assertValid(schemas.getBillingNotificationEventResponseWire, data)
         }
-        return fromWire(data, schemas.getNotificationEventResponse)
+        return fromWire(data, schemas.getBillingNotificationEventResponse)
       })
   })
 }
@@ -552,20 +600,26 @@ export function getNotificationEvent(
  *
  * POST /openmeter/notification/events/{notificationEventId}/resend
  */
-export function resendNotificationEvent(
+export function resendBillingNotificationEvent(
   client: Client,
-  req: ResendNotificationEventRequest,
+  req: ResendBillingNotificationEventRequest,
   options?: RequestOptions,
-): Promise<Result<ResendNotificationEventResponse>> {
+): Promise<Result<ResendBillingNotificationEventResponse>> {
   return request(async () => {
     const pathParamsInput = {
       notificationEventId: req.notificationEventId,
     }
     const pathParams = client._options.validate
-      ? toPathWire(pathParamsInput, schemas.resendNotificationEventPathParams)
+      ? toPathWire(
+          pathParamsInput,
+          schemas.resendBillingNotificationEventPathParams,
+        )
       : pathParamsInput
     if (client._options.validate) {
-      assertValid(schemas.resendNotificationEventPathParamsWire, pathParams)
+      assertValid(
+        schemas.resendBillingNotificationEventPathParamsWire,
+        pathParams,
+      )
     }
     const path = `openmeter/notification/events/${(() => {
       if (pathParams.notificationEventId === undefined) {
@@ -573,9 +627,9 @@ export function resendNotificationEvent(
       }
       return encodeURIComponent(String(pathParams.notificationEventId))
     })()}/resend`
-    const body = toWire(req.body, schemas.resendNotificationEventBody)
+    const body = toWire(req.body, schemas.resendBillingNotificationEventBody)
     if (client._options.validate) {
-      assertValid(schemas.resendNotificationEventBodyWire, body)
+      assertValid(schemas.resendBillingNotificationEventBodyWire, body)
     }
     await http(client).post(path, { ...options, json: body })
   })

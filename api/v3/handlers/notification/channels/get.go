@@ -48,7 +48,7 @@ func (h *handler) GetNotificationChannel() GetNotificationChannelHandler {
 		commonhttp.JSONResponseEncoderWithStatus[GetNotificationChannelResponse](http.StatusOK),
 		httptransport.AppendOptions(
 			h.options,
-			httptransport.WithOperationName("get-notification-channel"),
+			httptransport.WithOperationName("get-billing-notification-channel"),
 			httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),
 			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,

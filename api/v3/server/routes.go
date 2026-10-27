@@ -750,62 +750,62 @@ func (s *Server) QueryEntitlementAccess(w http.ResponseWriter, r *http.Request, 
 
 // Notification Channels
 
-func (s *Server) ListNotificationChannels(w http.ResponseWriter, r *http.Request, params api.ListNotificationChannelsParams) {
+func (s *Server) ListBillingNotificationChannels(w http.ResponseWriter, r *http.Request, params api.ListBillingNotificationChannelsParams) {
 	s.notificationChannelsHandler.ListNotificationChannels().With(params).ServeHTTP(w, r)
 }
 
-func (s *Server) CreateNotificationChannel(w http.ResponseWriter, r *http.Request) {
+func (s *Server) CreateBillingNotificationChannel(w http.ResponseWriter, r *http.Request) {
 	s.notificationChannelsHandler.CreateNotificationChannel().ServeHTTP(w, r)
 }
 
-func (s *Server) GetNotificationChannel(w http.ResponseWriter, r *http.Request, notificationChannelId api.ULID) {
+func (s *Server) GetBillingNotificationChannel(w http.ResponseWriter, r *http.Request, notificationChannelId api.ULID) {
 	s.notificationChannelsHandler.GetNotificationChannel().With(notificationChannelId).ServeHTTP(w, r)
 }
 
-func (s *Server) UpdateNotificationChannel(w http.ResponseWriter, r *http.Request, notificationChannelId api.ULID) {
+func (s *Server) UpdateBillingNotificationChannel(w http.ResponseWriter, r *http.Request, notificationChannelId api.ULID) {
 	s.notificationChannelsHandler.UpdateNotificationChannel().With(notificationChannelId).ServeHTTP(w, r)
 }
 
-func (s *Server) DeleteNotificationChannel(w http.ResponseWriter, r *http.Request, notificationChannelId api.ULID) {
+func (s *Server) DeleteBillingNotificationChannel(w http.ResponseWriter, r *http.Request, notificationChannelId api.ULID) {
 	s.notificationChannelsHandler.DeleteNotificationChannel().With(notificationChannelId).ServeHTTP(w, r)
 }
 
 // Notification rules
 
-func (s *Server) ListNotificationRules(w http.ResponseWriter, r *http.Request, params api.ListNotificationRulesParams) {
+func (s *Server) ListBillingNotificationRules(w http.ResponseWriter, r *http.Request, params api.ListBillingNotificationRulesParams) {
 	s.notificationRulesHandler.ListNotificationRules().With(params).ServeHTTP(w, r)
 }
 
-func (s *Server) CreateNotificationRule(w http.ResponseWriter, r *http.Request) {
+func (s *Server) CreateBillingNotificationRule(w http.ResponseWriter, r *http.Request) {
 	s.notificationRulesHandler.CreateNotificationRule().ServeHTTP(w, r)
 }
 
-func (s *Server) GetNotificationRule(w http.ResponseWriter, r *http.Request, notificationRuleId api.ULID) {
+func (s *Server) GetBillingNotificationRule(w http.ResponseWriter, r *http.Request, notificationRuleId api.ULID) {
 	s.notificationRulesHandler.GetNotificationRule().With(notificationRuleId).ServeHTTP(w, r)
 }
 
-func (s *Server) UpdateNotificationRule(w http.ResponseWriter, r *http.Request, notificationRuleId api.ULID) {
+func (s *Server) UpdateBillingNotificationRule(w http.ResponseWriter, r *http.Request, notificationRuleId api.ULID) {
 	s.notificationRulesHandler.UpdateNotificationRule().With(notificationRuleId).ServeHTTP(w, r)
 }
 
-func (s *Server) DeleteNotificationRule(w http.ResponseWriter, r *http.Request, notificationRuleId api.ULID) {
+func (s *Server) DeleteBillingNotificationRule(w http.ResponseWriter, r *http.Request, notificationRuleId api.ULID) {
 	s.notificationRulesHandler.DeleteNotificationRule().With(notificationRuleId).ServeHTTP(w, r)
 }
 
-func (s *Server) TestNotificationRule(w http.ResponseWriter, r *http.Request, notificationRuleId api.ULID) {
+func (s *Server) TestBillingNotificationRule(w http.ResponseWriter, r *http.Request, notificationRuleId api.ULID) {
 	s.notificationRulesHandler.TestNotificationRule().With(notificationRuleId).ServeHTTP(w, r)
 }
 
 // Notification events
 
-func (s *Server) ListNotificationEvents(w http.ResponseWriter, r *http.Request, params api.ListNotificationEventsParams) {
+func (s *Server) ListBillingNotificationEvents(w http.ResponseWriter, r *http.Request, params api.ListBillingNotificationEventsParams) {
 	s.notificationEventsHandler.ListNotificationEvents().With(params).ServeHTTP(w, r)
 }
 
-func (s *Server) GetNotificationEvent(w http.ResponseWriter, r *http.Request, notificationEventId api.ULID) {
+func (s *Server) GetBillingNotificationEvent(w http.ResponseWriter, r *http.Request, notificationEventId api.ULID) {
 	s.notificationEventsHandler.GetNotificationEvent().With(notificationEventId).ServeHTTP(w, r)
 }
 
-func (s *Server) ResendNotificationEvent(w http.ResponseWriter, r *http.Request, notificationEventId api.ULID) {
+func (s *Server) ResendBillingNotificationEvent(w http.ResponseWriter, r *http.Request, notificationEventId api.ULID) {
 	s.notificationEventsHandler.ResendNotificationEvent().With(notificationEventId).ServeHTTP(w, r)
 }

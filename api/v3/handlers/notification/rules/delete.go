@@ -36,7 +36,7 @@ func (h *handler) DeleteNotificationRule() DeleteNotificationRuleHandler {
 		commonhttp.EmptyResponseEncoder[DeleteNotificationRuleResponse](http.StatusNoContent),
 		httptransport.AppendOptions(
 			h.options,
-			httptransport.WithOperationName("delete-notification-rule"),
+			httptransport.WithOperationName("delete-billing-notification-rule"),
 			httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),
 			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,

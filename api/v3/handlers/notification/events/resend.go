@@ -51,7 +51,7 @@ func (h *handler) ResendNotificationEvent() ResendNotificationEventHandler {
 		commonhttp.EmptyResponseEncoder[ResendNotificationEventResponse](http.StatusAccepted),
 		httptransport.AppendOptions(
 			h.options,
-			httptransport.WithOperationName("resend-notification-event"),
+			httptransport.WithOperationName("resend-billing-notification-event"),
 			httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),
 		)...,
 	)

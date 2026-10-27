@@ -21,7 +21,7 @@ import (
 type (
 	ListNotificationRulesRequest  = notification.ListRulesInput
 	ListNotificationRulesResponse = response.PagePaginationResponse[api.BillingNotificationRule]
-	ListNotificationRulesParams   = api.ListNotificationRulesParams
+	ListNotificationRulesParams   = api.ListBillingNotificationRulesParams
 	ListNotificationRulesHandler  = httptransport.HandlerWithArgs[ListNotificationRulesRequest, ListNotificationRulesResponse, ListNotificationRulesParams]
 )
 
@@ -108,7 +108,7 @@ func (h *handler) ListNotificationRules() ListNotificationRulesHandler {
 		commonhttp.JSONResponseEncoderWithStatus[ListNotificationRulesResponse](http.StatusOK),
 		httptransport.AppendOptions(
 			h.options,
-			httptransport.WithOperationName("list-notification-rules"),
+			httptransport.WithOperationName("list-billing-notification-rules"),
 			httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),
 			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,

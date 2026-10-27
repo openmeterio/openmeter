@@ -77,7 +77,7 @@ func (h *handler) TestNotificationRule() TestNotificationRuleHandler {
 		commonhttp.JSONResponseEncoderWithStatus[TestNotificationRuleResponse](http.StatusCreated),
 		httptransport.AppendOptions(
 			h.options,
-			httptransport.WithOperationName("test-notification-rule"),
+			httptransport.WithOperationName("test-billing-notification-rule"),
 			httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),
 			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,

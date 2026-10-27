@@ -15,12 +15,12 @@ import type {
   NotificationRule,
   NotificationRulePagePaginatedResponse,
   NotificationRuleRequestInput,
-  ResendBillingNotificationEventRequest,
+  ResendBillingNotificationEventRequest as ResendBillingNotificationEventRequestBody,
   SortQueryInput,
   UpdateBillingNotificationChannelRequestInput,
 } from '../types.js'
 
-export interface ListNotificationChannelsQuery {
+export interface ListBillingNotificationChannelsQuery {
   /** Determines which page of the collection to retrieve. */
   page?: { size?: number; number?: number }
   /**
@@ -45,32 +45,32 @@ export interface ListNotificationChannelsQuery {
   filter?: ListNotificationChannelsParamsFilter
 }
 
-export type ListNotificationChannelsRequest =
-  AcceptDateStrings<ListNotificationChannelsQuery>
-export type ListNotificationChannelsResponse =
+export type ListBillingNotificationChannelsRequest =
+  AcceptDateStrings<ListBillingNotificationChannelsQuery>
+export type ListBillingNotificationChannelsResponse =
   NotificationChannelPagePaginatedResponse
 
-export type CreateNotificationChannelRequest =
+export type CreateBillingNotificationChannelRequest =
   AcceptDateStrings<CreateNotificationChannelRequestInput>
-export type CreateNotificationChannelResponse = NotificationChannel
+export type CreateBillingNotificationChannelResponse = NotificationChannel
 
-export type GetNotificationChannelRequest = {
+export type GetBillingNotificationChannelRequest = {
   notificationChannelId: string
 }
-export type GetNotificationChannelResponse = NotificationChannel
+export type GetBillingNotificationChannelResponse = NotificationChannel
 
-export type UpdateNotificationChannelRequest = AcceptDateStrings<{
+export type UpdateBillingNotificationChannelRequest = AcceptDateStrings<{
   notificationChannelId: string
   body: UpdateBillingNotificationChannelRequestInput
 }>
-export type UpdateNotificationChannelResponse = NotificationChannel
+export type UpdateBillingNotificationChannelResponse = NotificationChannel
 
-export type DeleteNotificationChannelRequest = {
+export type DeleteBillingNotificationChannelRequest = {
   notificationChannelId: string
 }
-export type DeleteNotificationChannelResponse = void
+export type DeleteBillingNotificationChannelResponse = void
 
-export interface ListNotificationRulesQuery {
+export interface ListBillingNotificationRulesQuery {
   /** Determines which page of the collection to retrieve. */
   page?: { size?: number; number?: number }
   /**
@@ -97,37 +97,37 @@ export interface ListNotificationRulesQuery {
   filter?: ListNotificationRulesParamsFilter
 }
 
-export type ListNotificationRulesRequest =
-  AcceptDateStrings<ListNotificationRulesQuery>
-export type ListNotificationRulesResponse =
+export type ListBillingNotificationRulesRequest =
+  AcceptDateStrings<ListBillingNotificationRulesQuery>
+export type ListBillingNotificationRulesResponse =
   NotificationRulePagePaginatedResponse
 
-export type CreateNotificationRuleRequest =
+export type CreateBillingNotificationRuleRequest =
   AcceptDateStrings<NotificationRuleRequestInput>
-export type CreateNotificationRuleResponse = NotificationRule
+export type CreateBillingNotificationRuleResponse = NotificationRule
 
-export type GetNotificationRuleRequest = {
+export type GetBillingNotificationRuleRequest = {
   notificationRuleId: string
 }
-export type GetNotificationRuleResponse = NotificationRule
+export type GetBillingNotificationRuleResponse = NotificationRule
 
-export type UpdateNotificationRuleRequest = AcceptDateStrings<{
+export type UpdateBillingNotificationRuleRequest = AcceptDateStrings<{
   notificationRuleId: string
   body: NotificationRuleRequestInput
 }>
-export type UpdateNotificationRuleResponse = NotificationRule
+export type UpdateBillingNotificationRuleResponse = NotificationRule
 
-export type DeleteNotificationRuleRequest = {
+export type DeleteBillingNotificationRuleRequest = {
   notificationRuleId: string
 }
-export type DeleteNotificationRuleResponse = void
+export type DeleteBillingNotificationRuleResponse = void
 
-export type TestNotificationRuleRequest = {
+export type TestBillingNotificationRuleRequest = {
   notificationRuleId: string
 }
-export type TestNotificationRuleResponse = NotificationEvent
+export type TestBillingNotificationRuleResponse = NotificationEvent
 
-export interface ListNotificationEventsQuery {
+export interface ListBillingNotificationEventsQuery {
   /** Determines which page of the collection to retrieve. */
   page?: { size?: number; number?: number }
   /**
@@ -155,18 +155,18 @@ export interface ListNotificationEventsQuery {
   filter?: ListNotificationEventsParamsFilter
 }
 
-export type ListNotificationEventsRequest =
-  AcceptDateStrings<ListNotificationEventsQuery>
-export type ListNotificationEventsResponse =
+export type ListBillingNotificationEventsRequest =
+  AcceptDateStrings<ListBillingNotificationEventsQuery>
+export type ListBillingNotificationEventsResponse =
   NotificationEventPagePaginatedResponse
 
-export type GetNotificationEventRequest = {
+export type GetBillingNotificationEventRequest = {
   notificationEventId: string
 }
-export type GetNotificationEventResponse = NotificationEvent
+export type GetBillingNotificationEventResponse = NotificationEvent
 
-export type ResendNotificationEventRequest = AcceptDateStrings<{
+export type ResendBillingNotificationEventRequest = AcceptDateStrings<{
   notificationEventId: string
-  body: ResendBillingNotificationEventRequest
+  body: ResendBillingNotificationEventRequestBody
 }>
-export type ResendNotificationEventResponse = void
+export type ResendBillingNotificationEventResponse = void

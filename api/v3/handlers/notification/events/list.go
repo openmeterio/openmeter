@@ -22,7 +22,7 @@ import (
 type (
 	ListNotificationEventsRequest  = notification.ListEventsInput
 	ListNotificationEventsResponse = response.PagePaginationResponse[api.BillingNotificationEvent]
-	ListNotificationEventsParams   = api.ListNotificationEventsParams
+	ListNotificationEventsParams   = api.ListBillingNotificationEventsParams
 	ListNotificationEventsHandler  = httptransport.HandlerWithArgs[ListNotificationEventsRequest, ListNotificationEventsResponse, ListNotificationEventsParams]
 )
 
@@ -112,7 +112,7 @@ func (h *handler) ListNotificationEvents() ListNotificationEventsHandler {
 		commonhttp.JSONResponseEncoderWithStatus[ListNotificationEventsResponse](http.StatusOK),
 		httptransport.AppendOptions(
 			h.options,
-			httptransport.WithOperationName("list-notification-events"),
+			httptransport.WithOperationName("list-billing-notification-events"),
 			httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),
 		)...,
 	)
