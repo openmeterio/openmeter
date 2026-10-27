@@ -3,9 +3,12 @@ package v4
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"slices"
 	"strings"
@@ -38,7 +41,7 @@ type RuleConfigDefinition struct {
 var _ models.Equaler[RuleConfigDefinition] = (*RuleConfigDefinition)(nil)
 
 func (c RuleConfigDefinition) Equal(other RuleConfigDefinition) bool {
-	return bytes.Equal(c.JSONSchema, other.JSONSchema)
+	return jsonSchemaEqual(c.JSONSchema, other.JSONSchema)
 }
 
 var (
@@ -101,11 +104,11 @@ func (d EventTypeDefinition) ValidateWith(validators ...models.ValidatorFunc[Eve
 	return models.Validate(d, validators...)
 }
 
-// Equal compares the contract: identity, byte-equal schemas, Rule capability,
-// and replacement.
+// Equal compares the contract: identity, schemas in canonical form, Rule
+// capability, and replacement.
 func (d EventTypeDefinition) Equal(other EventTypeDefinition) bool {
 	return d.EventType == other.EventType &&
-		bytes.Equal(d.PayloadJSONSchema, other.PayloadJSONSchema) &&
+		jsonSchemaEqual(d.PayloadJSONSchema, other.PayloadJSONSchema) &&
 		equal.PtrEqual(d.Rule, other.Rule) &&
 		equal.ComparablePtrEqual(d.DeprecatedBy, other.DeprecatedBy)
 }
@@ -536,4 +539,62 @@ func validateJSONSchemaDocument(schema json.RawMessage) error {
 	}
 
 	return nil
+}
+
+// JSONSchemaFingerprint identifies a schema by its canonical form, so
+// formatting and object key order do not change it. It is how released
+// contracts are checked for in-place changes.
+func JSONSchemaFingerprint(schema json.RawMessage) (string, error) {
+	canonical, err := canonicalJSON(schema)
+	if err != nil {
+		return "", err
+	}
+
+	sum := sha256.Sum256(canonical)
+
+	return "sha256:" + hex.EncodeToString(sum[:]), nil
+}
+
+// canonicalJSON re-encodes a JSON document with sorted object keys and no
+// whitespace. Numbers keep their original text and arrays keep their order,
+// so schemas that only mean the same thing, like 1 and 1.0 or reordered enum
+// values, stay different. For an immutability check a false "changed" is the
+// safe mistake.
+func canonicalJSON(doc json.RawMessage) ([]byte, error) {
+	dec := json.NewDecoder(bytes.NewReader(doc))
+	dec.UseNumber()
+
+	var value any
+	if err := dec.Decode(&value); err != nil {
+		return nil, err
+	}
+
+	if _, err := dec.Token(); !errors.Is(err, io.EOF) {
+		return nil, errors.New("unexpected data after JSON document")
+	}
+
+	var out bytes.Buffer
+
+	enc := json.NewEncoder(&out)
+	enc.SetEscapeHTML(false)
+
+	if err := enc.Encode(value); err != nil {
+		return nil, err
+	}
+
+	return bytes.TrimSuffix(out.Bytes(), []byte("\n")), nil
+}
+
+// jsonSchemaEqual compares canonical forms. Documents that are not valid JSON
+// fall back to byte comparison; only definitions that never passed Validate
+// can hold them.
+func jsonSchemaEqual(a, b json.RawMessage) bool {
+	canonicalA, errA := canonicalJSON(a)
+	canonicalB, errB := canonicalJSON(b)
+
+	if errA != nil || errB != nil {
+		return bytes.Equal(a, b)
+	}
+
+	return bytes.Equal(canonicalA, canonicalB)
 }

@@ -80,6 +80,14 @@ func TestEventTypeDefinitionEqual(t *testing.T) {
 	}
 	require.True(t, def.Equal(same))
 
+	// Schemas that differ only in formatting and key order are equal.
+	reformatted := def
+	reformatted.PayloadJSONSchema = json.RawMessage(`{
+		"type": "object",
+		"$schema": "https://json-schema.org/draft/2020-12/schema"
+	}`)
+	require.True(t, def.Equal(reformatted))
+
 	tests := []struct {
 		name   string
 		modify func(d *v4.EventTypeDefinition)
@@ -103,6 +111,56 @@ func TestEventTypeDefinitionEqual(t *testing.T) {
 			require.False(t, def.Equal(other))
 			require.False(t, other.Equal(def))
 		})
+	}
+}
+
+func TestJSONSchemaFingerprint(t *testing.T) {
+	fingerprint := func(schema string) string {
+		t.Helper()
+
+		f, err := v4.JSONSchemaFingerprint(json.RawMessage(schema))
+		require.NoError(t, err)
+
+		return f
+	}
+
+	base := fingerprint(`{"type":"object","properties":{"a":{"enum":["x","y"]},"b":{"minimum":1}}}`)
+	require.Regexp(t, `^sha256:[0-9a-f]{64}$`, base)
+
+	// Formatting and object key order do not change the fingerprint.
+	require.Equal(t, base, fingerprint(`{
+		"properties": {
+			"b": {"minimum": 1},
+			"a": {"enum": ["x", "y"]}
+		},
+		"type": "object"
+	}`))
+
+	changed := []struct {
+		name   string
+		schema string
+	}{
+		{"value", `{"type":"object","properties":{"a":{"enum":["x","z"]},"b":{"minimum":1}}}`},
+		{"array order", `{"type":"object","properties":{"a":{"enum":["y","x"]},"b":{"minimum":1}}}`},
+		{"number text", `{"type":"object","properties":{"a":{"enum":["x","y"]},"b":{"minimum":1.0}}}`},
+		{"added keyword", `{"type":"object","properties":{"a":{"enum":["x","y"]},"b":{"minimum":1}},"required":["a"]}`},
+	}
+
+	for _, tt := range changed {
+		t.Run(tt.name, func(t *testing.T) {
+			require.NotEqual(t, base, fingerprint(tt.schema))
+		})
+	}
+
+	// HTML characters are not escaped, so "<" and "<" are the same text.
+	require.Equal(t, fingerprint(`{"pattern":"<a>"}`), fingerprint(`{"pattern":"<a>"}`))
+
+	// Large integers keep their exact value.
+	require.NotEqual(t, fingerprint(`{"maximum":9007199254740993}`), fingerprint(`{"maximum":9007199254740992}`))
+
+	for _, invalid := range []string{``, `{`, `{} {}`, `{"a":1}x`} {
+		_, err := v4.JSONSchemaFingerprint(json.RawMessage(invalid))
+		require.Error(t, err, invalid)
 	}
 }
 
