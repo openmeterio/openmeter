@@ -1,20 +1,27 @@
 package service
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
+	"net/http"
+	"net/http/httptest"
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 
+	api "github.com/openmeterio/openmeter/api/v3"
+	"github.com/openmeterio/openmeter/api/v3/handlers/billinginvoices"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	featurepkg "github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
@@ -715,4 +722,112 @@ func (s *InvoicableChargesTestSuite) TestCreatePendingInvoiceLinesRollsBackParti
 	})
 	s.NoError(err)
 	s.Empty(listedInvoices.Items)
+}
+
+func (s *InvoicableChargesTestSuite) TestInvoiceCustomerChargesAPIUsesChargeEngine() {
+	// given: credits are enabled, with a due charge and a future charge pending.
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("manual-collection-api")
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
+	customInvoicing := s.SetupCustomInvoicing(ns)
+	s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(), billingtest.WithManualApproval())
+	cust := s.CreateTestCustomer(ns, "test-subject")
+	period := timeutil.ClosedPeriod{
+		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		To:   time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
+	}
+	clock.FreezeTime(period.To)
+	defer clock.UnFreeze()
+
+	allocationCalls := 0
+	s.FlatFeeTestHandler.onAllocateCredits = func(_ context.Context, input flatfee.OnAllocateCreditsInput) (creditrealization.CreateAllocationInputs, error) {
+		allocationCalls++
+
+		return creditrealization.CreateAllocationInputs{
+			{
+				ServicePeriod: input.ServicePeriod,
+				LedgerTransaction: ledgertransaction.GroupReference{
+					TransactionGroupID: ulid.Make().String(),
+				},
+				Amount: alpacadecimal.NewFromInt(4),
+			},
+		}, nil
+	}
+	defer s.FlatFeeTestHandler.Reset()
+
+	dueLine := billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
+		Namespace:     ns,
+		Period:        period,
+		InvoiceAt:     period.To,
+		ManagedBy:     billing.ManuallyManagedLine,
+		Name:          "due charge",
+		Currency:      currencyx.FiatCode(USD),
+		PerUnitAmount: alpacadecimal.NewFromInt(10),
+		PaymentTerm:   productcatalog.InAdvancePaymentTerm,
+	})
+	futureLine := billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
+		Namespace:     ns,
+		Period:        period,
+		InvoiceAt:     period.To.Add(time.Hour),
+		ManagedBy:     billing.ManuallyManagedLine,
+		Name:          "future charge",
+		Currency:      currencyx.FiatCode(USD),
+		PerUnitAmount: alpacadecimal.NewFromInt(10),
+		PaymentTerm:   productcatalog.InAdvancePaymentTerm,
+	})
+	pending, err := s.Charges.CreatePendingInvoiceLines(ctx, charges.CreatePendingInvoiceLinesInput{
+		Customer: cust.GetID(),
+		Currency: currencyx.FiatCode(USD),
+		Lines:    billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{dueLine, futureLine}),
+	})
+	s.Require().NoError(err)
+	s.Require().NotNil(pending)
+	s.Require().Len(pending.Lines, 2)
+	s.Equal(billing.LineEngineTypeChargeFlatFee, pending.Lines[0].Engine)
+	s.Require().NotNil(pending.Lines[0].ChargeID)
+
+	// when: manually collecting through the v3 handler at the due line's cutoff.
+	body, err := json.Marshal(api.InvoiceCustomerChargesInput{
+		AsOf:                       lo.ToPtr(period.To),
+		ProgressiveBillingOverride: lo.ToPtr(false),
+	})
+	s.Require().NoError(err)
+	req := httptest.NewRequest(http.MethodPost, "/openmeter/customers/"+cust.ID+"/charges/invoice", bytes.NewReader(body)).WithContext(ctx)
+	req.Header.Set("Content-Type", "application/json")
+	res := httptest.NewRecorder()
+	handler := billinginvoices.New(func(context.Context) (string, error) { return ns, nil }, s.BillingService)
+	handler.InvoiceCustomerCharges().With(cust.ID).ServeHTTP(res, req)
+
+	// then: collection invokes the charge engine, applies credits, and retains the future line.
+	s.Require().Equal(http.StatusCreated, res.Code, res.Body.String())
+	var invoices []api.BillingInvoice
+	s.Require().NoError(json.Unmarshal(res.Body.Bytes(), &invoices))
+	s.Require().Len(invoices, 1)
+	invoice, err := invoices[0].AsBillingInvoiceStandard()
+	s.Require().NoError(err)
+	s.Equal("6", invoice.Totals.Total)
+	s.Equal("4", invoice.Totals.CreditsTotal)
+	s.Equal(1, allocationCalls)
+	s.Require().NotNil(invoice.Lines)
+	s.Require().Len(*invoice.Lines, 1)
+	line, err := (*invoice.Lines)[0].AsBillingInvoiceStandardLine()
+	s.Require().NoError(err)
+	s.Require().NotNil(line.Charge)
+	s.Equal(*pending.Lines[0].ChargeID, line.Charge.Id)
+	s.Equal(lo.ToPtr(pending.Lines[0].ID), line.Id)
+
+	charge := s.mustGetChargeByID(meta.ChargeID{Namespace: ns, ID: *pending.Lines[0].ChargeID})
+	flatFeeCharge, err := charge.AsFlatFeeCharge()
+	s.Require().NoError(err)
+	s.Require().NotNil(flatFeeCharge.Realizations.CurrentRun)
+	s.Equal(lo.ToPtr(invoice.Id), flatFeeCharge.Realizations.CurrentRun.InvoiceID)
+	s.Equal(lo.ToPtr(pending.Lines[0].ID), flatFeeCharge.Realizations.CurrentRun.LineID)
+
+	gathering, err := s.BillingService.GetGatheringInvoiceById(ctx, billing.GetGatheringInvoiceByIdInput{
+		Invoice: pending.Invoice.GetInvoiceID(),
+		Expand:  billing.GatheringInvoiceExpands{billing.GatheringInvoiceExpandLines},
+	})
+	s.Require().NoError(err)
+	s.Require().Len(gathering.Lines.OrEmpty(), 1)
+	s.Equal(pending.Lines[1].ID, gathering.Lines.OrEmpty()[0].ID)
 }

@@ -1753,6 +1753,15 @@ func (value EntitlementMeasureUsageFromPreset) Valid() bool {
 	}
 }
 
+// Options for manually collecting a customer's pending lines into invoices.
+type InvoiceCustomerChargesInput struct {
+	// Collection cutoff. Defaults to the current time and cannot be in the future.
+	AsOf *time.Time `json:"as_of,omitempty"`
+	// Override the customer's progressive billing setting for this collection. When
+	// enabled, eligible usage-based lines can be collected for a partial period.
+	ProgressiveBillingOverride *bool `json:"progressive_billing_override,omitempty"`
+}
+
 // Recurring period input. The anchor is optional; the owning resource defines the
 // default, typically its creation time.
 type RecurringPeriodInput struct {

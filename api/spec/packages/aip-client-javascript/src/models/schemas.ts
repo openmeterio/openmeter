@@ -983,6 +983,26 @@ export const featureLlmTokenType = z
   ])
   .describe('Token type for LLM cost lookup.')
 
+export const invoiceDiscountReason = z
+  .enum(['maximum_spend', 'ratecard_percentage', 'ratecard_usage'])
+  .describe('The reason a discount was applied to an invoice line.')
+
+export const invoiceLineExternalReferences = z
+  .object({
+    invoicingId: z
+      .string()
+      .optional()
+      .describe('The ID assigned by the external invoicing app.'),
+  })
+
+  .describe(
+    'External identifiers for an invoice line item assigned by third-party systems.',
+  )
+
+export const invoiceDetailedLineCostCategory = z
+  .enum(['regular', 'commitment'])
+  .describe('Cost category of a detailed invoice line item.')
+
 export const subscriptionCreateTimingEnum = z
   .enum(['immediate'])
 
@@ -1126,26 +1146,6 @@ export const workflowCollectionAlignmentSubscription = z
 export const workflowInvoicingSubscriptionEndProrationMode = z
   .enum(['bill_full_period', 'bill_actual_period'])
   .describe('Billing workflow subscription end proration mode.')
-
-export const invoiceDiscountReason = z
-  .enum(['maximum_spend', 'ratecard_percentage', 'ratecard_usage'])
-  .describe('The reason a discount was applied to an invoice line.')
-
-export const invoiceLineExternalReferences = z
-  .object({
-    invoicingId: z
-      .string()
-      .optional()
-      .describe('The ID assigned by the external invoicing app.'),
-  })
-
-  .describe(
-    'External identifiers for an invoice line item assigned by third-party systems.',
-  )
-
-export const invoiceDetailedLineCostCategory = z
-  .enum(['regular', 'commitment'])
-  .describe('Cost category of a detailed invoice line item.')
 
 export const updateBillingInvoiceWorkflowInvoicingSettings = z
   .object({
@@ -2320,17 +2320,17 @@ export const chargeRealizationInvoiceReference = z
   })
   .describe('ChargeRealizationInvoice reference.')
 
-export const addonReference = z
-  .object({
-    id: ulid,
-  })
-  .describe('Addon reference.')
-
 export const chargeReference = z
   .object({
     id: ulid,
   })
   .describe('Reference to a charge associated with an invoice line.')
+
+export const addonReference = z
+  .object({
+    id: ulid,
+  })
+  .describe('Addon reference.')
 
 export const updateResourceReference = z
   .object({
@@ -2568,6 +2568,22 @@ export const chargeResolvedCostBasis = z
 
   .describe(
     'Fiat conversion rate a custom-currency charge is invoiced at. Present once the cost basis is resolved; dynamic cost bases are exposed only after the service period has started.',
+  )
+
+export const invoiceCustomerChargesInput = z
+  .object({
+    asOf: dateTime.optional(),
+    progressiveBillingOverride: z
+      .boolean()
+      .optional()
+
+      .describe(
+        "Override the customer's progressive billing setting for this collection. When enabled, eligible usage-based lines can be collected for a partial period.",
+      ),
+  })
+
+  .describe(
+    "Options for manually collecting a customer's pending lines into invoices.",
   )
 
 export const subscriptionAddonTimelineSegment = z
@@ -3514,6 +3530,44 @@ export const chargeRealizationPayment = z
   })
   .describe('Payment state of a charge realization.')
 
+export const invoiceLineAmountDiscount = z
+  .object({
+    id: ulid,
+    reason: invoiceDiscountReason,
+    description: z
+      .string()
+      .optional()
+      .describe('Optional human-readable description of the discount.'),
+    externalReferences: invoiceLineExternalReferences.optional(),
+    amount: numeric,
+  })
+  .describe('A monetary amount discount applied to an invoice line item.')
+
+export const invoiceLineUsageDiscount = z
+  .object({
+    id: ulid,
+    reason: invoiceDiscountReason,
+    description: z
+      .string()
+      .optional()
+      .describe('Optional human-readable description of the discount.'),
+    externalReferences: invoiceLineExternalReferences.optional(),
+    quantity: numeric,
+  })
+  .describe('A usage quantity discount applied to an invoice line item.')
+
+export const invoiceLineBaseDiscount = z
+  .object({
+    id: ulid,
+    reason: invoiceDiscountReason,
+    description: z
+      .string()
+      .optional()
+      .describe('Optional human-readable description of the discount.'),
+    externalReferences: invoiceLineExternalReferences.optional(),
+  })
+  .describe('Base fields shared by all invoice line item discounts.')
+
 export const subscriptionCreateTiming = z
   .union([subscriptionCreateTimingEnum, dateTime])
 
@@ -3679,44 +3733,6 @@ export const workflowInvoicingSettings = z
       .default('bill_actual_period'),
   })
   .describe('Invoice settings for a billing workflow.')
-
-export const invoiceLineAmountDiscount = z
-  .object({
-    id: ulid,
-    reason: invoiceDiscountReason,
-    description: z
-      .string()
-      .optional()
-      .describe('Optional human-readable description of the discount.'),
-    externalReferences: invoiceLineExternalReferences.optional(),
-    amount: numeric,
-  })
-  .describe('A monetary amount discount applied to an invoice line item.')
-
-export const invoiceLineUsageDiscount = z
-  .object({
-    id: ulid,
-    reason: invoiceDiscountReason,
-    description: z
-      .string()
-      .optional()
-      .describe('Optional human-readable description of the discount.'),
-    externalReferences: invoiceLineExternalReferences.optional(),
-    quantity: numeric,
-  })
-  .describe('A usage quantity discount applied to an invoice line item.')
-
-export const invoiceLineBaseDiscount = z
-  .object({
-    id: ulid,
-    reason: invoiceDiscountReason,
-    description: z
-      .string()
-      .optional()
-      .describe('Optional human-readable description of the discount.'),
-    externalReferences: invoiceLineExternalReferences.optional(),
-  })
-  .describe('Base fields shared by all invoice line item discounts.')
 
 export const updateBillingWorkflowPaymentSettings = z
   .discriminatedUnion('collectionMethod', [
@@ -5552,6 +5568,22 @@ export const invoiceWorkflow = z
     'Invoice-level snapshot of the workflow configuration. Contains only the settings that are meaningful for an already-created invoice: invoicing behaviour and payment settings. Collection alignment and tax policy are gather-time / profile-wide concerns and are not included.',
   )
 
+export const invoiceLineDiscounts = z
+  .object({
+    amount: z
+      .array(invoiceLineAmountDiscount)
+      .optional()
+
+      .describe(
+        'Monetary amount discounts (e.g. from maximum spend commitments).',
+      ),
+    usage: z
+      .array(invoiceLineUsageDiscount)
+      .optional()
+      .describe('Usage quantity discounts (e.g. free tier usage allowances).'),
+  })
+  .describe('Discounts applied to an invoice line item.')
+
 export const subscriptionCancel = z
   .object({
     timing: subscriptionEditTiming.optional().default('immediate'),
@@ -5712,22 +5744,6 @@ export const updateAppRequest = z
     updateAppExternalInvoicingRequest,
   ])
   .describe('Request to update an installed app.')
-
-export const invoiceLineDiscounts = z
-  .object({
-    amount: z
-      .array(invoiceLineAmountDiscount)
-      .optional()
-
-      .describe(
-        'Monetary amount discounts (e.g. from maximum spend commitments).',
-      ),
-    usage: z
-      .array(invoiceLineUsageDiscount)
-      .optional()
-      .describe('Usage quantity discounts (e.g. free tier usage allowances).'),
-  })
-  .describe('Discounts applied to an invoice line item.')
 
 export const updateBillingInvoiceWorkflow = z
   .object({
@@ -6445,6 +6461,43 @@ export const invoiceWorkflowSettings = z
     'Snapshot of the billing workflow configuration captured at invoice creation.',
   )
 
+export const invoiceDetailedLine = z
+  .object({
+    id: ulid,
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    description: z
+      .string()
+      .max(1024)
+      .optional()
+
+      .describe(
+        'Optional description of the resource. Maximum 1024 characters.',
+      ),
+    labels: labels.optional(),
+    createdAt: dateTime,
+    updatedAt: dateTime,
+    deletedAt: dateTime.optional(),
+    servicePeriod: closedPeriod,
+    totals: totals,
+    category: invoiceDetailedLineCostCategory.default('regular'),
+    discounts: invoiceLineDiscounts.optional(),
+    creditsApplied: z
+      .array(invoiceLineCreditsApplied)
+      .optional()
+      .describe('Credit applied to this detailed line.'),
+    externalReferences: invoiceLineExternalReferences.optional(),
+    quantity: numeric,
+    unitPrice: numeric,
+  })
+
+  .describe(
+    'A detailed (child) sub-line belonging to a parent invoice line. Detailed lines represent the individual flat-fee components that make up a usage-based parent line after quantity snapshotting.',
+  )
+
 export const taxCodePagePaginatedResponse = z
   .object({
     data: z.array(taxCode),
@@ -6728,43 +6781,6 @@ export const installedAppExternalInvoicing = z
       .describe('Default capabilities of the installed app.'),
   })
   .describe('Response of an installed app.')
-
-export const invoiceDetailedLine = z
-  .object({
-    id: ulid,
-    name: z
-      .string()
-      .min(1)
-      .max(256)
-      .describe('Display name of the resource. Between 1 and 256 characters.'),
-    description: z
-      .string()
-      .max(1024)
-      .optional()
-
-      .describe(
-        'Optional description of the resource. Maximum 1024 characters.',
-      ),
-    labels: labels.optional(),
-    createdAt: dateTime,
-    updatedAt: dateTime,
-    deletedAt: dateTime.optional(),
-    servicePeriod: closedPeriod,
-    totals: totals,
-    category: invoiceDetailedLineCostCategory.default('regular'),
-    discounts: invoiceLineDiscounts.optional(),
-    creditsApplied: z
-      .array(invoiceLineCreditsApplied)
-      .optional()
-      .describe('Credit applied to this detailed line.'),
-    externalReferences: invoiceLineExternalReferences.optional(),
-    quantity: numeric,
-    unitPrice: numeric,
-  })
-
-  .describe(
-    'A detailed (child) sub-line belonging to a parent invoice line. Detailed lines represent the individual flat-fee components that make up a usage-based parent line after quantity snapshotting.',
-  )
 
 export const updateInvoiceWorkflowSettings = z
   .object({
@@ -8970,6 +8986,14 @@ export const createCustomerChargesBody = createChargeRequest
 
 export const createCustomerChargesResponse = charge
 
+export const invoiceCustomerChargesPathParams = z.object({
+  customerId: ulid,
+})
+
+export const invoiceCustomerChargesBody = invoiceCustomerChargesInput
+
+export const invoiceCustomerChargesResponse = z.array(invoice)
+
 export const createSubscriptionBody = subscriptionCreate
 
 export const createSubscriptionResponse = subscription
@@ -10815,6 +10839,26 @@ export const featureLlmTokenTypeWire = z
   ])
   .describe('Token type for LLM cost lookup.')
 
+export const invoiceDiscountReasonWire = z
+  .enum(['maximum_spend', 'ratecard_percentage', 'ratecard_usage'])
+  .describe('The reason a discount was applied to an invoice line.')
+
+export const invoiceLineExternalReferencesWire = z
+  .strictObject({
+    invoicing_id: z
+      .string()
+      .optional()
+      .describe('The ID assigned by the external invoicing app.'),
+  })
+
+  .describe(
+    'External identifiers for an invoice line item assigned by third-party systems.',
+  )
+
+export const invoiceDetailedLineCostCategoryWire = z
+  .enum(['regular', 'commitment'])
+  .describe('Cost category of a detailed invoice line item.')
+
 export const subscriptionCreateTimingEnumWire = z
   .enum(['immediate'])
 
@@ -10958,26 +11002,6 @@ export const workflowCollectionAlignmentSubscriptionWire = z
 export const workflowInvoicingSubscriptionEndProrationModeWire = z
   .enum(['bill_full_period', 'bill_actual_period'])
   .describe('Billing workflow subscription end proration mode.')
-
-export const invoiceDiscountReasonWire = z
-  .enum(['maximum_spend', 'ratecard_percentage', 'ratecard_usage'])
-  .describe('The reason a discount was applied to an invoice line.')
-
-export const invoiceLineExternalReferencesWire = z
-  .strictObject({
-    invoicing_id: z
-      .string()
-      .optional()
-      .describe('The ID assigned by the external invoicing app.'),
-  })
-
-  .describe(
-    'External identifiers for an invoice line item assigned by third-party systems.',
-  )
-
-export const invoiceDetailedLineCostCategoryWire = z
-  .enum(['regular', 'commitment'])
-  .describe('Cost category of a detailed invoice line item.')
 
 export const updateBillingInvoiceWorkflowInvoicingSettingsWire = z
   .strictObject({
@@ -12148,17 +12172,17 @@ export const chargeRealizationInvoiceReferenceWire = z
   })
   .describe('ChargeRealizationInvoice reference.')
 
-export const addonReferenceWire = z
-  .strictObject({
-    id: ulidWire,
-  })
-  .describe('Addon reference.')
-
 export const chargeReferenceWire = z
   .strictObject({
     id: ulidWire,
   })
   .describe('Reference to a charge associated with an invoice line.')
+
+export const addonReferenceWire = z
+  .strictObject({
+    id: ulidWire,
+  })
+  .describe('Addon reference.')
 
 export const updateResourceReferenceWire = z
   .strictObject({
@@ -12394,6 +12418,22 @@ export const chargeResolvedCostBasisWire = z
 
   .describe(
     'Fiat conversion rate a custom-currency charge is invoiced at. Present once the cost basis is resolved; dynamic cost bases are exposed only after the service period has started.',
+  )
+
+export const invoiceCustomerChargesInputWire = z
+  .strictObject({
+    as_of: dateTimeWire.optional(),
+    progressive_billing_override: z
+      .boolean()
+      .optional()
+
+      .describe(
+        "Override the customer's progressive billing setting for this collection. When enabled, eligible usage-based lines can be collected for a partial period.",
+      ),
+  })
+
+  .describe(
+    "Options for manually collecting a customer's pending lines into invoices.",
   )
 
 export const subscriptionAddonTimelineSegmentWire = z
@@ -13332,6 +13372,44 @@ export const chargeRealizationPaymentWire = z
   })
   .describe('Payment state of a charge realization.')
 
+export const invoiceLineAmountDiscountWire = z
+  .strictObject({
+    id: ulidWire,
+    reason: invoiceDiscountReasonWire,
+    description: z
+      .string()
+      .optional()
+      .describe('Optional human-readable description of the discount.'),
+    external_references: invoiceLineExternalReferencesWire.optional(),
+    amount: numericWire,
+  })
+  .describe('A monetary amount discount applied to an invoice line item.')
+
+export const invoiceLineUsageDiscountWire = z
+  .strictObject({
+    id: ulidWire,
+    reason: invoiceDiscountReasonWire,
+    description: z
+      .string()
+      .optional()
+      .describe('Optional human-readable description of the discount.'),
+    external_references: invoiceLineExternalReferencesWire.optional(),
+    quantity: numericWire,
+  })
+  .describe('A usage quantity discount applied to an invoice line item.')
+
+export const invoiceLineBaseDiscountWire = z
+  .strictObject({
+    id: ulidWire,
+    reason: invoiceDiscountReasonWire,
+    description: z
+      .string()
+      .optional()
+      .describe('Optional human-readable description of the discount.'),
+    external_references: invoiceLineExternalReferencesWire.optional(),
+  })
+  .describe('Base fields shared by all invoice line item discounts.')
+
 export const subscriptionCreateTimingWire = z
   .union([subscriptionCreateTimingEnumWire, dateTimeWire])
 
@@ -13495,44 +13573,6 @@ export const workflowInvoicingSettingsWire = z
       workflowInvoicingSubscriptionEndProrationModeWire.optional(),
   })
   .describe('Invoice settings for a billing workflow.')
-
-export const invoiceLineAmountDiscountWire = z
-  .strictObject({
-    id: ulidWire,
-    reason: invoiceDiscountReasonWire,
-    description: z
-      .string()
-      .optional()
-      .describe('Optional human-readable description of the discount.'),
-    external_references: invoiceLineExternalReferencesWire.optional(),
-    amount: numericWire,
-  })
-  .describe('A monetary amount discount applied to an invoice line item.')
-
-export const invoiceLineUsageDiscountWire = z
-  .strictObject({
-    id: ulidWire,
-    reason: invoiceDiscountReasonWire,
-    description: z
-      .string()
-      .optional()
-      .describe('Optional human-readable description of the discount.'),
-    external_references: invoiceLineExternalReferencesWire.optional(),
-    quantity: numericWire,
-  })
-  .describe('A usage quantity discount applied to an invoice line item.')
-
-export const invoiceLineBaseDiscountWire = z
-  .strictObject({
-    id: ulidWire,
-    reason: invoiceDiscountReasonWire,
-    description: z
-      .string()
-      .optional()
-      .describe('Optional human-readable description of the discount.'),
-    external_references: invoiceLineExternalReferencesWire.optional(),
-  })
-  .describe('Base fields shared by all invoice line item discounts.')
 
 export const updateBillingWorkflowPaymentSettingsWire = z
   .discriminatedUnion('collection_method', [
@@ -15355,6 +15395,22 @@ export const invoiceWorkflowWire = z
     'Invoice-level snapshot of the workflow configuration. Contains only the settings that are meaningful for an already-created invoice: invoicing behaviour and payment settings. Collection alignment and tax policy are gather-time / profile-wide concerns and are not included.',
   )
 
+export const invoiceLineDiscountsWire = z
+  .strictObject({
+    amount: z
+      .array(invoiceLineAmountDiscountWire)
+      .optional()
+
+      .describe(
+        'Monetary amount discounts (e.g. from maximum spend commitments).',
+      ),
+    usage: z
+      .array(invoiceLineUsageDiscountWire)
+      .optional()
+      .describe('Usage quantity discounts (e.g. free tier usage allowances).'),
+  })
+  .describe('Discounts applied to an invoice line item.')
+
 export const subscriptionCancelWire = z
   .strictObject({
     timing: subscriptionEditTimingWire.optional(),
@@ -15517,22 +15573,6 @@ export const updateAppRequestWire = z
     updateAppExternalInvoicingRequestWire,
   ])
   .describe('Request to update an installed app.')
-
-export const invoiceLineDiscountsWire = z
-  .strictObject({
-    amount: z
-      .array(invoiceLineAmountDiscountWire)
-      .optional()
-
-      .describe(
-        'Monetary amount discounts (e.g. from maximum spend commitments).',
-      ),
-    usage: z
-      .array(invoiceLineUsageDiscountWire)
-      .optional()
-      .describe('Usage quantity discounts (e.g. free tier usage allowances).'),
-  })
-  .describe('Discounts applied to an invoice line item.')
 
 export const updateBillingInvoiceWorkflowWire = z
   .strictObject({
@@ -16243,6 +16283,43 @@ export const invoiceWorkflowSettingsWire = z
     'Snapshot of the billing workflow configuration captured at invoice creation.',
   )
 
+export const invoiceDetailedLineWire = z
+  .strictObject({
+    id: ulidWire,
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    description: z
+      .string()
+      .max(1024)
+      .optional()
+
+      .describe(
+        'Optional description of the resource. Maximum 1024 characters.',
+      ),
+    labels: labelsWire.optional(),
+    created_at: dateTimeWire,
+    updated_at: dateTimeWire,
+    deleted_at: dateTimeWire.optional(),
+    service_period: closedPeriodWire,
+    totals: totalsWire,
+    category: invoiceDetailedLineCostCategoryWire,
+    discounts: invoiceLineDiscountsWire.optional(),
+    credits_applied: z
+      .array(invoiceLineCreditsAppliedWire)
+      .optional()
+      .describe('Credit applied to this detailed line.'),
+    external_references: invoiceLineExternalReferencesWire.optional(),
+    quantity: numericWire,
+    unit_price: numericWire,
+  })
+
+  .describe(
+    'A detailed (child) sub-line belonging to a parent invoice line. Detailed lines represent the individual flat-fee components that make up a usage-based parent line after quantity snapshotting.',
+  )
+
 export const taxCodePagePaginatedResponseWire = z
   .strictObject({
     data: z.array(taxCodeWire),
@@ -16526,43 +16603,6 @@ export const installedAppExternalInvoicingWire = z
       .describe('Default capabilities of the installed app.'),
   })
   .describe('Response of an installed app.')
-
-export const invoiceDetailedLineWire = z
-  .strictObject({
-    id: ulidWire,
-    name: z
-      .string()
-      .min(1)
-      .max(256)
-      .describe('Display name of the resource. Between 1 and 256 characters.'),
-    description: z
-      .string()
-      .max(1024)
-      .optional()
-
-      .describe(
-        'Optional description of the resource. Maximum 1024 characters.',
-      ),
-    labels: labelsWire.optional(),
-    created_at: dateTimeWire,
-    updated_at: dateTimeWire,
-    deleted_at: dateTimeWire.optional(),
-    service_period: closedPeriodWire,
-    totals: totalsWire,
-    category: invoiceDetailedLineCostCategoryWire,
-    discounts: invoiceLineDiscountsWire.optional(),
-    credits_applied: z
-      .array(invoiceLineCreditsAppliedWire)
-      .optional()
-      .describe('Credit applied to this detailed line.'),
-    external_references: invoiceLineExternalReferencesWire.optional(),
-    quantity: numericWire,
-    unit_price: numericWire,
-  })
-
-  .describe(
-    'A detailed (child) sub-line belonging to a parent invoice line. Detailed lines represent the individual flat-fee components that make up a usage-based parent line after quantity snapshotting.',
-  )
 
 export const updateInvoiceWorkflowSettingsWire = z
   .strictObject({
@@ -18825,6 +18865,14 @@ export const createCustomerChargesPathParamsWire = z.object({
 export const createCustomerChargesBodyWire = createChargeRequestWire
 
 export const createCustomerChargesResponseWire = chargeWire
+
+export const invoiceCustomerChargesPathParamsWire = z.object({
+  customerId: ulidWire,
+})
+
+export const invoiceCustomerChargesBodyWire = invoiceCustomerChargesInputWire
+
+export const invoiceCustomerChargesResponseWire = z.array(invoiceWire)
 
 export const createSubscriptionBodyWire = subscriptionCreateWire
 

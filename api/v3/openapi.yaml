@@ -1611,6 +1611,50 @@ paths:
             schema:
               $ref: '#/components/schemas/CreateChargeRequest'
       x-unstable: true
+  /openmeter/customers/{customerId}/charges/invoice:
+    post:
+      operationId: invoice-customer-charges
+      summary: Invoice a customer's charges
+      description: |-
+        Invoice a customer's charges outside the normal billing cycle. Collection
+        alignment is bypassed. The customer's progressive billing setting applies unless
+        explicitly overridden. All eligible pending lines are considered.
+
+        Returns the created standard invoices, one per collected currency. Lines blocked
+        by their owning engine remain pending; if all candidates are blocked, the
+        response is empty. If no lines are eligible, returns a validation error.
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '201':
+          description: The request has succeeded and a new resource has been created as a result.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BillingInvoice'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Customers
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InvoiceCustomerChargesInput'
+      x-rpc-endpoint: true
   /openmeter/customers/{customerId}/credits/adjustments:
     post:
       operationId: create-credit-adjustment
@@ -17054,6 +17098,20 @@ components:
           $ref: '#/components/schemas/CursorMeta'
       additionalProperties: false
       description: Cursor paginated response.
+    InvoiceCustomerChargesInput:
+      type: object
+      properties:
+        as_of:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: Collection cutoff. Defaults to the current time and cannot be in the future.
+        progressive_billing_override:
+          type: boolean
+          description: |-
+            Override the customer's progressive billing setting for this collection. When
+            enabled, eligible usage-based lines can be collected for a partial period.
+      additionalProperties: false
+      description: Options for manually collecting a customer's pending lines into invoices.
     InvoicePagePaginatedResponse:
       type: object
       required:

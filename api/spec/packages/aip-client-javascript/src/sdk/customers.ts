@@ -34,6 +34,7 @@ import {
   listCreditTransactions,
   listCustomerCharges,
   createCustomerCharges,
+  invoiceCustomerCharges,
 } from '../funcs/customers.js'
 import type {
   CreateCustomerRequest,
@@ -96,6 +97,8 @@ import type {
   ListCustomerChargesResponse,
   CreateCustomerChargesRequest,
   CreateCustomerChargesResponse,
+  InvoiceCustomerChargesRequest,
+  InvoiceCustomerChargesResponse,
 } from '../models/operations/customers.js'
 import type {
   Charge,
@@ -837,5 +840,25 @@ export class CustomersCharges {
     options?: RequestOptions,
   ): Promise<CreateCustomerChargesResponse> {
     return unwrap(await createCustomerCharges(this._client, request, options))
+  }
+
+  /**
+   * Invoice a customer's charges
+   *
+   * Invoice a customer's charges outside the normal billing cycle. Collection
+   * alignment is bypassed. The customer's progressive billing setting applies unless
+   * explicitly overridden. All eligible pending lines are considered.
+   *
+   * Returns the created standard invoices, one per collected currency. Lines blocked
+   * by their owning engine remain pending; if all candidates are blocked, the
+   * response is empty. If no lines are eligible, returns a validation error.
+   *
+   * POST /openmeter/customers/{customerId}/charges/invoice
+   */
+  async invoice(
+    request: InvoiceCustomerChargesRequest,
+    options?: RequestOptions,
+  ): Promise<InvoiceCustomerChargesResponse> {
+    return unwrap(await invoiceCustomerCharges(this._client, request, options))
   }
 }

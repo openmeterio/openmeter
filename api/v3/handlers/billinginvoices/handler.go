@@ -8,6 +8,7 @@ import (
 )
 
 type Handler interface {
+	InvoiceCustomerCharges() InvoiceCustomerChargesHandler
 	ListBillingInvoices() ListBillingInvoicesHandler
 	GetBillingInvoice() GetBillingInvoiceHandler
 	UpdateBillingInvoice() UpdateBillingInvoiceHandler

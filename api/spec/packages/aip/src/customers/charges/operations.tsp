@@ -6,6 +6,7 @@ import "../../common/pagination.tsp";
 import "../../shared/index.tsp";
 import "../../common/parameters.tsp";
 import "./charges.tsp";
+import "../../invoices/index.tsp";
 
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;
@@ -51,6 +52,23 @@ model ListCustomerChargesParamsFilter {
    * Filter charges by the end of their service period.
    */
   service_period_to?: Common.DateTimeFieldFilter;
+}
+
+/**
+ * Options for manually collecting a customer's pending lines into invoices.
+ */
+@friendlyName("InvoiceCustomerChargesInput")
+model InvoiceCustomerChargesInput {
+  /**
+   * Collection cutoff. Defaults to the current time and cannot be in the future.
+   */
+  as_of?: Shared.DateTime;
+
+  /**
+   * Override the customer's progressive billing setting for this collection. When
+   * enabled, eligible usage-based lines can be collected for a partial period.
+   */
+  progressive_billing_override?: boolean;
 }
 
 namespace Charges {
@@ -128,6 +146,31 @@ namespace Charges {
     @summary("Create customer charge")
     create(@path customerId: Shared.ULID, @body charge: CreateCharge):
       | Shared.CreateResponse<Charge>
+      | Common.ErrorResponses;
+
+    /**
+     * Invoice a customer's charges outside the normal billing cycle. Collection
+     * alignment is bypassed. The customer's progressive billing setting applies unless
+     * explicitly overridden. All eligible pending lines are considered.
+     *
+     * Returns the created standard invoices, one per collected currency. Lines blocked
+     * by their owning engine remain pending; if all candidates are blocked, the
+     * response is empty. If no lines are eligible, returns a validation error.
+     */
+    @post
+    @route("/invoice")
+    @operationId("invoice-customer-charges")
+    @summary("Invoice a customer's charges")
+    @extension(Shared.RPCEndpointExtension, true)
+    invoiceCharges(
+      @path customerId: Shared.ULID,
+      @body request?: InvoiceCustomerChargesInput,
+    ):
+      | {
+          @statusCode _: 201;
+          @body body: Invoices.Invoice[];
+        }
+      | Common.NotFound
       | Common.ErrorResponses;
   }
 }

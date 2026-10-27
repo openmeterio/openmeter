@@ -13,6 +13,7 @@ import {
   isPlainPageEnvelope,
   localName,
   queryScalarValue,
+  readReferenceName,
   resolveListParamsNames,
 } from '../dist/components/GoResource.js'
 
@@ -69,6 +70,28 @@ const pageFixturePreamble = `
     meta: ItemPageMeta;
   }
 `
+
+describe('response collection types', () => {
+  it('uses slice types for anonymous and named array responses', async () => {
+    const { program, operations } = await compileResource(`
+      @service namespace Test;
+      model Item { id: string; }
+      model Items is Array<Item>;
+
+      @route("/items")
+      interface Operations {
+        @get op list(): Item[];
+        @get @route("/named") op named(): Items;
+      }
+    `)
+
+    expect(operations).toHaveLength(2)
+    for (const operation of operations) {
+      expect(operation.response).toBeDefined()
+      expect(readReferenceName(program, operation.response!)).toBe('[]Item')
+    }
+  })
+})
 
 describe('list params struct naming', () => {
   it('splits shared-element params structs when query shapes differ', async () => {
