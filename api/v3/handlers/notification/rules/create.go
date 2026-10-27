@@ -44,7 +44,7 @@ func (h *handler) CreateNotificationRule() CreateNotificationRuleHandler {
 		commonhttp.JSONResponseEncoderWithStatus[CreateNotificationRuleResponse](http.StatusCreated),
 		httptransport.AppendOptions(
 			h.options,
-			httptransport.WithOperationName("create-notification-rule"),
+			httptransport.WithOperationName("create-billing-notification-rule"),
 			httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),
 			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,

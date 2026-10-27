@@ -41,7 +41,7 @@ func (h *handler) DeleteNotificationChannel() DeleteNotificationChannelHandler {
 		commonhttp.EmptyResponseEncoder[DeleteNotificationChannelResponse](http.StatusNoContent),
 		httptransport.AppendOptions(
 			h.options,
-			httptransport.WithOperationName("delete-notification-channel"),
+			httptransport.WithOperationName("delete-billing-notification-channel"),
 			httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),
 			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,

@@ -9709,7 +9709,7 @@ export const queryEntitlementAccessBody = entitlementAccessQueryRequest
 
 export const queryEntitlementAccessResponse = entitlementAccessQueryResponse
 
-export const listNotificationChannelsQueryParams = z.object({
+export const listBillingNotificationChannelsQueryParams = z.object({
   page: z
     .object({
       size: z.coerce
@@ -9725,35 +9725,36 @@ export const listNotificationChannelsQueryParams = z.object({
   filter: listNotificationChannelsParamsFilter.optional(),
 })
 
-export const listNotificationChannelsResponse = z.object({
+export const listBillingNotificationChannelsResponse = z.object({
   data: z.array(notificationChannel),
   meta: paginatedMeta,
 })
 
-export const createNotificationChannelBody = createNotificationChannelRequest
+export const createBillingNotificationChannelBody =
+  createNotificationChannelRequest
 
-export const createNotificationChannelResponse = notificationChannel
+export const createBillingNotificationChannelResponse = notificationChannel
 
-export const getNotificationChannelPathParams = z.object({
+export const getBillingNotificationChannelPathParams = z.object({
   notificationChannelId: ulid,
 })
 
-export const getNotificationChannelResponse = notificationChannel
+export const getBillingNotificationChannelResponse = notificationChannel
 
-export const updateNotificationChannelPathParams = z.object({
+export const updateBillingNotificationChannelPathParams = z.object({
   notificationChannelId: ulid,
 })
 
-export const updateNotificationChannelBody =
+export const updateBillingNotificationChannelBody =
   updateBillingNotificationChannelRequest
 
-export const updateNotificationChannelResponse = notificationChannel
+export const updateBillingNotificationChannelResponse = notificationChannel
 
-export const deleteNotificationChannelPathParams = z.object({
+export const deleteBillingNotificationChannelPathParams = z.object({
   notificationChannelId: ulid,
 })
 
-export const listNotificationRulesQueryParams = z.object({
+export const listBillingNotificationRulesQueryParams = z.object({
   page: z
     .object({
       size: z.coerce
@@ -9769,40 +9770,40 @@ export const listNotificationRulesQueryParams = z.object({
   filter: listNotificationRulesParamsFilter.optional(),
 })
 
-export const listNotificationRulesResponse = z.object({
+export const listBillingNotificationRulesResponse = z.object({
   data: z.array(notificationRule),
   meta: paginatedMeta,
 })
 
-export const createNotificationRuleBody = notificationRuleRequest
+export const createBillingNotificationRuleBody = notificationRuleRequest
 
-export const createNotificationRuleResponse = notificationRule
+export const createBillingNotificationRuleResponse = notificationRule
 
-export const getNotificationRulePathParams = z.object({
+export const getBillingNotificationRulePathParams = z.object({
   notificationRuleId: ulid,
 })
 
-export const getNotificationRuleResponse = notificationRule
+export const getBillingNotificationRuleResponse = notificationRule
 
-export const updateNotificationRulePathParams = z.object({
+export const updateBillingNotificationRulePathParams = z.object({
   notificationRuleId: ulid,
 })
 
-export const updateNotificationRuleBody = notificationRuleRequest
+export const updateBillingNotificationRuleBody = notificationRuleRequest
 
-export const updateNotificationRuleResponse = notificationRule
+export const updateBillingNotificationRuleResponse = notificationRule
 
-export const deleteNotificationRulePathParams = z.object({
+export const deleteBillingNotificationRulePathParams = z.object({
   notificationRuleId: ulid,
 })
 
-export const testNotificationRulePathParams = z.object({
+export const testBillingNotificationRulePathParams = z.object({
   notificationRuleId: ulid,
 })
 
-export const testNotificationRuleResponse = notificationEvent
+export const testBillingNotificationRuleResponse = notificationEvent
 
-export const listNotificationEventsQueryParams = z.object({
+export const listBillingNotificationEventsQueryParams = z.object({
   page: z
     .object({
       size: z.coerce
@@ -9818,22 +9819,23 @@ export const listNotificationEventsQueryParams = z.object({
   filter: listNotificationEventsParamsFilter.optional(),
 })
 
-export const listNotificationEventsResponse = z.object({
+export const listBillingNotificationEventsResponse = z.object({
   data: z.array(notificationEvent),
   meta: paginatedMeta,
 })
 
-export const getNotificationEventPathParams = z.object({
+export const getBillingNotificationEventPathParams = z.object({
   notificationEventId: ulid,
 })
 
-export const getNotificationEventResponse = notificationEvent
+export const getBillingNotificationEventResponse = notificationEvent
 
-export const resendNotificationEventPathParams = z.object({
+export const resendBillingNotificationEventPathParams = z.object({
   notificationEventId: ulid,
 })
 
-export const resendNotificationEventBody = resendBillingNotificationEventRequest
+export const resendBillingNotificationEventBody =
+  resendBillingNotificationEventRequest
 
 export const labelsWire = z
   .record(z.string(), z.string())
@@ -19637,7 +19639,7 @@ export const queryEntitlementAccessBodyWire = entitlementAccessQueryRequestWire
 export const queryEntitlementAccessResponseWire =
   entitlementAccessQueryResponseWire
 
-export const listNotificationChannelsQueryParamsWire = z.object({
+export const listBillingNotificationChannelsQueryParamsWire = z.object({
   page: z
     .strictObject({
       size: z.coerce
@@ -19659,36 +19661,38 @@ export const listNotificationChannelsQueryParamsWire = z.object({
   filter: listNotificationChannelsParamsFilterWire.optional(),
 })
 
-export const listNotificationChannelsResponseWire = z.strictObject({
+export const listBillingNotificationChannelsResponseWire = z.strictObject({
   data: z.array(notificationChannelWire),
   meta: paginatedMetaWire,
 })
 
-export const createNotificationChannelBodyWire =
+export const createBillingNotificationChannelBodyWire =
   createNotificationChannelRequestWire
 
-export const createNotificationChannelResponseWire = notificationChannelWire
+export const createBillingNotificationChannelResponseWire =
+  notificationChannelWire
 
-export const getNotificationChannelPathParamsWire = z.object({
+export const getBillingNotificationChannelPathParamsWire = z.object({
   notificationChannelId: ulidWire,
 })
 
-export const getNotificationChannelResponseWire = notificationChannelWire
+export const getBillingNotificationChannelResponseWire = notificationChannelWire
 
-export const updateNotificationChannelPathParamsWire = z.object({
+export const updateBillingNotificationChannelPathParamsWire = z.object({
   notificationChannelId: ulidWire,
 })
 
-export const updateNotificationChannelBodyWire =
+export const updateBillingNotificationChannelBodyWire =
   updateBillingNotificationChannelRequestWire
 
-export const updateNotificationChannelResponseWire = notificationChannelWire
+export const updateBillingNotificationChannelResponseWire =
+  notificationChannelWire
 
-export const deleteNotificationChannelPathParamsWire = z.object({
+export const deleteBillingNotificationChannelPathParamsWire = z.object({
   notificationChannelId: ulidWire,
 })
 
-export const listNotificationRulesQueryParamsWire = z.object({
+export const listBillingNotificationRulesQueryParamsWire = z.object({
   page: z
     .strictObject({
       size: z.coerce
@@ -19710,40 +19714,40 @@ export const listNotificationRulesQueryParamsWire = z.object({
   filter: listNotificationRulesParamsFilterWire.optional(),
 })
 
-export const listNotificationRulesResponseWire = z.strictObject({
+export const listBillingNotificationRulesResponseWire = z.strictObject({
   data: z.array(notificationRuleWire),
   meta: paginatedMetaWire,
 })
 
-export const createNotificationRuleBodyWire = notificationRuleRequestWire
+export const createBillingNotificationRuleBodyWire = notificationRuleRequestWire
 
-export const createNotificationRuleResponseWire = notificationRuleWire
+export const createBillingNotificationRuleResponseWire = notificationRuleWire
 
-export const getNotificationRulePathParamsWire = z.object({
+export const getBillingNotificationRulePathParamsWire = z.object({
   notificationRuleId: ulidWire,
 })
 
-export const getNotificationRuleResponseWire = notificationRuleWire
+export const getBillingNotificationRuleResponseWire = notificationRuleWire
 
-export const updateNotificationRulePathParamsWire = z.object({
+export const updateBillingNotificationRulePathParamsWire = z.object({
   notificationRuleId: ulidWire,
 })
 
-export const updateNotificationRuleBodyWire = notificationRuleRequestWire
+export const updateBillingNotificationRuleBodyWire = notificationRuleRequestWire
 
-export const updateNotificationRuleResponseWire = notificationRuleWire
+export const updateBillingNotificationRuleResponseWire = notificationRuleWire
 
-export const deleteNotificationRulePathParamsWire = z.object({
+export const deleteBillingNotificationRulePathParamsWire = z.object({
   notificationRuleId: ulidWire,
 })
 
-export const testNotificationRulePathParamsWire = z.object({
+export const testBillingNotificationRulePathParamsWire = z.object({
   notificationRuleId: ulidWire,
 })
 
-export const testNotificationRuleResponseWire = notificationEventWire
+export const testBillingNotificationRuleResponseWire = notificationEventWire
 
-export const listNotificationEventsQueryParamsWire = z.object({
+export const listBillingNotificationEventsQueryParamsWire = z.object({
   page: z
     .strictObject({
       size: z.coerce
@@ -19765,20 +19769,20 @@ export const listNotificationEventsQueryParamsWire = z.object({
   filter: listNotificationEventsParamsFilterWire.optional(),
 })
 
-export const listNotificationEventsResponseWire = z.strictObject({
+export const listBillingNotificationEventsResponseWire = z.strictObject({
   data: z.array(notificationEventWire),
   meta: paginatedMetaWire,
 })
 
-export const getNotificationEventPathParamsWire = z.object({
+export const getBillingNotificationEventPathParamsWire = z.object({
   notificationEventId: ulidWire,
 })
 
-export const getNotificationEventResponseWire = notificationEventWire
+export const getBillingNotificationEventResponseWire = notificationEventWire
 
-export const resendNotificationEventPathParamsWire = z.object({
+export const resendBillingNotificationEventPathParamsWire = z.object({
   notificationEventId: ulidWire,
 })
 
-export const resendNotificationEventBodyWire =
+export const resendBillingNotificationEventBodyWire =
   resendBillingNotificationEventRequestWire

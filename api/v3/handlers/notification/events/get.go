@@ -47,7 +47,7 @@ func (h *handler) GetNotificationEvent() GetNotificationEventHandler {
 		commonhttp.JSONResponseEncoderWithStatus[GetNotificationEventResponse](http.StatusOK),
 		httptransport.AppendOptions(
 			h.options,
-			httptransport.WithOperationName("get-notification-event"),
+			httptransport.WithOperationName("get-billing-notification-event"),
 			httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),
 		)...,
 	)

@@ -50,7 +50,7 @@ func (h *handler) CreateNotificationChannel() CreateNotificationChannelHandler {
 		commonhttp.JSONResponseEncoderWithStatus[CreateNotificationChannelResponse](http.StatusCreated),
 		httptransport.AppendOptions(
 			h.options,
-			httptransport.WithOperationName("create-notification-channel"),
+			httptransport.WithOperationName("create-billing-notification-channel"),
 			httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),
 			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,

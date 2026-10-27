@@ -45,7 +45,7 @@ func (h *handler) UpdateNotificationRule() UpdateNotificationRuleHandler {
 		commonhttp.JSONResponseEncoderWithStatus[UpdateNotificationRuleResponse](http.StatusOK),
 		httptransport.AppendOptions(
 			h.options,
-			httptransport.WithOperationName("update-notification-rule"),
+			httptransport.WithOperationName("update-billing-notification-rule"),
 			httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),
 			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,

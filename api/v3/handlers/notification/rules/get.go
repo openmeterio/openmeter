@@ -42,7 +42,7 @@ func (h *handler) GetNotificationRule() GetNotificationRuleHandler {
 		commonhttp.JSONResponseEncoderWithStatus[GetNotificationRuleResponse](http.StatusOK),
 		httptransport.AppendOptions(
 			h.options,
-			httptransport.WithOperationName("get-notification-rule"),
+			httptransport.WithOperationName("get-billing-notification-rule"),
 			httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),
 			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,

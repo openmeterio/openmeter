@@ -4,23 +4,23 @@ import { type Client } from '../core.js'
 import { unwrap, type RequestOptions } from '../lib/types.js'
 import { paginatePages } from '../lib/paginate.js'
 import {
-  listNotificationChannels,
-  createNotificationChannel,
-  getNotificationChannel,
-  updateNotificationChannel,
-  deleteNotificationChannel,
+  listBillingNotificationChannels,
+  createBillingNotificationChannel,
+  getBillingNotificationChannel,
+  updateBillingNotificationChannel,
+  deleteBillingNotificationChannel,
 } from '../funcs/notifications.js'
 import type {
-  ListNotificationChannelsRequest,
-  ListNotificationChannelsResponse,
-  CreateNotificationChannelRequest,
-  CreateNotificationChannelResponse,
-  GetNotificationChannelRequest,
-  GetNotificationChannelResponse,
-  UpdateNotificationChannelRequest,
-  UpdateNotificationChannelResponse,
-  DeleteNotificationChannelRequest,
-  DeleteNotificationChannelResponse,
+  ListBillingNotificationChannelsRequest,
+  ListBillingNotificationChannelsResponse,
+  CreateBillingNotificationChannelRequest,
+  CreateBillingNotificationChannelResponse,
+  GetBillingNotificationChannelRequest,
+  GetBillingNotificationChannelResponse,
+  UpdateBillingNotificationChannelRequest,
+  UpdateBillingNotificationChannelResponse,
+  DeleteBillingNotificationChannelRequest,
+  DeleteBillingNotificationChannelResponse,
 } from '../models/operations/notifications.js'
 import type { NotificationChannel } from '../models/types.js'
 
@@ -34,12 +34,12 @@ export class Notifications {
    *
    * GET /openmeter/notification/channels
    */
-  async listChannels(
-    request?: ListNotificationChannelsRequest,
+  async listBillingChannels(
+    request?: ListBillingNotificationChannelsRequest,
     options?: RequestOptions,
-  ): Promise<ListNotificationChannelsResponse> {
+  ): Promise<ListBillingNotificationChannelsResponse> {
     return unwrap(
-      await listNotificationChannels(this._client, request, options),
+      await listBillingNotificationChannels(this._client, request, options),
     )
   }
 
@@ -52,12 +52,12 @@ export class Notifications {
    *
    * GET /openmeter/notification/channels
    */
-  listChannelsAll(
-    request?: ListNotificationChannelsRequest,
+  listBillingChannelsAll(
+    request?: ListBillingNotificationChannelsRequest,
     options?: RequestOptions,
   ): AsyncIterable<NotificationChannel> {
     return paginatePages(
-      (req, opts) => listNotificationChannels(this._client, req, opts),
+      (req, opts) => listBillingNotificationChannels(this._client, req, opts),
       request ?? {},
       options,
     )
@@ -70,12 +70,12 @@ export class Notifications {
    *
    * POST /openmeter/notification/channels
    */
-  async createChannel(
-    request: CreateNotificationChannelRequest,
+  async createBillingChannel(
+    request: CreateBillingNotificationChannelRequest,
     options?: RequestOptions,
-  ): Promise<CreateNotificationChannelResponse> {
+  ): Promise<CreateBillingNotificationChannelResponse> {
     return unwrap(
-      await createNotificationChannel(this._client, request, options),
+      await createBillingNotificationChannel(this._client, request, options),
     )
   }
 
@@ -86,11 +86,13 @@ export class Notifications {
    *
    * GET /openmeter/notification/channels/{notificationChannelId}
    */
-  async getChannel(
-    request: GetNotificationChannelRequest,
+  async getBillingChannel(
+    request: GetBillingNotificationChannelRequest,
     options?: RequestOptions,
-  ): Promise<GetNotificationChannelResponse> {
-    return unwrap(await getNotificationChannel(this._client, request, options))
+  ): Promise<GetBillingNotificationChannelResponse> {
+    return unwrap(
+      await getBillingNotificationChannel(this._client, request, options),
+    )
   }
 
   /**
@@ -100,12 +102,12 @@ export class Notifications {
    *
    * PUT /openmeter/notification/channels/{notificationChannelId}
    */
-  async updateChannel(
-    request: UpdateNotificationChannelRequest,
+  async updateBillingChannel(
+    request: UpdateBillingNotificationChannelRequest,
     options?: RequestOptions,
-  ): Promise<UpdateNotificationChannelResponse> {
+  ): Promise<UpdateBillingNotificationChannelResponse> {
     return unwrap(
-      await updateNotificationChannel(this._client, request, options),
+      await updateBillingNotificationChannel(this._client, request, options),
     )
   }
 
@@ -116,12 +118,12 @@ export class Notifications {
    *
    * DELETE /openmeter/notification/channels/{notificationChannelId}
    */
-  async deleteChannel(
-    request: DeleteNotificationChannelRequest,
+  async deleteBillingChannel(
+    request: DeleteBillingNotificationChannelRequest,
     options?: RequestOptions,
-  ): Promise<DeleteNotificationChannelResponse> {
+  ): Promise<DeleteBillingNotificationChannelResponse> {
     return unwrap(
-      await deleteNotificationChannel(this._client, request, options),
+      await deleteBillingNotificationChannel(this._client, request, options),
     )
   }
 }

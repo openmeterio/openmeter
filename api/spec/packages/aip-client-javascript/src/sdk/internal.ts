@@ -9,15 +9,15 @@ import {
 } from '../funcs/subscriptions.js'
 import { executeAppAction } from '../funcs/apps.js'
 import {
-  listNotificationRules,
-  createNotificationRule,
-  getNotificationRule,
-  updateNotificationRule,
-  deleteNotificationRule,
-  testNotificationRule,
-  listNotificationEvents,
-  getNotificationEvent,
-  resendNotificationEvent,
+  listBillingNotificationRules,
+  createBillingNotificationRule,
+  getBillingNotificationRule,
+  updateBillingNotificationRule,
+  deleteBillingNotificationRule,
+  testBillingNotificationRule,
+  listBillingNotificationEvents,
+  getBillingNotificationEvent,
+  resendBillingNotificationEvent,
 } from '../funcs/notifications.js'
 import type {
   CreateSubscriptionAddonRequest,
@@ -30,24 +30,24 @@ import type {
   ExecuteAppActionResponse,
 } from '../models/operations/apps.js'
 import type {
-  ListNotificationRulesRequest,
-  ListNotificationRulesResponse,
-  CreateNotificationRuleRequest,
-  CreateNotificationRuleResponse,
-  GetNotificationRuleRequest,
-  GetNotificationRuleResponse,
-  UpdateNotificationRuleRequest,
-  UpdateNotificationRuleResponse,
-  DeleteNotificationRuleRequest,
-  DeleteNotificationRuleResponse,
-  TestNotificationRuleRequest,
-  TestNotificationRuleResponse,
-  ListNotificationEventsRequest,
-  ListNotificationEventsResponse,
-  GetNotificationEventRequest,
-  GetNotificationEventResponse,
-  ResendNotificationEventRequest,
-  ResendNotificationEventResponse,
+  ListBillingNotificationRulesRequest,
+  ListBillingNotificationRulesResponse,
+  CreateBillingNotificationRuleRequest,
+  CreateBillingNotificationRuleResponse,
+  GetBillingNotificationRuleRequest,
+  GetBillingNotificationRuleResponse,
+  UpdateBillingNotificationRuleRequest,
+  UpdateBillingNotificationRuleResponse,
+  DeleteBillingNotificationRuleRequest,
+  DeleteBillingNotificationRuleResponse,
+  TestBillingNotificationRuleRequest,
+  TestBillingNotificationRuleResponse,
+  ListBillingNotificationEventsRequest,
+  ListBillingNotificationEventsResponse,
+  GetBillingNotificationEventRequest,
+  GetBillingNotificationEventResponse,
+  ResendBillingNotificationEventRequest,
+  ResendBillingNotificationEventResponse,
 } from '../models/operations/notifications.js'
 import type { NotificationEvent, NotificationRule } from '../models/types.js'
 
@@ -138,11 +138,13 @@ export class InternalNotifications {
    *
    * GET /openmeter/notification/rules
    */
-  async listRules(
-    request?: ListNotificationRulesRequest,
+  async listBillingRules(
+    request?: ListBillingNotificationRulesRequest,
     options?: RequestOptions,
-  ): Promise<ListNotificationRulesResponse> {
-    return unwrap(await listNotificationRules(this._client, request, options))
+  ): Promise<ListBillingNotificationRulesResponse> {
+    return unwrap(
+      await listBillingNotificationRules(this._client, request, options),
+    )
   }
 
   /**
@@ -154,12 +156,12 @@ export class InternalNotifications {
    *
    * GET /openmeter/notification/rules
    */
-  listRulesAll(
-    request?: ListNotificationRulesRequest,
+  listBillingRulesAll(
+    request?: ListBillingNotificationRulesRequest,
     options?: RequestOptions,
   ): AsyncIterable<NotificationRule> {
     return paginatePages(
-      (req, opts) => listNotificationRules(this._client, req, opts),
+      (req, opts) => listBillingNotificationRules(this._client, req, opts),
       request ?? {},
       options,
     )
@@ -172,11 +174,13 @@ export class InternalNotifications {
    *
    * POST /openmeter/notification/rules
    */
-  async createRule(
-    request: CreateNotificationRuleRequest,
+  async createBillingRule(
+    request: CreateBillingNotificationRuleRequest,
     options?: RequestOptions,
-  ): Promise<CreateNotificationRuleResponse> {
-    return unwrap(await createNotificationRule(this._client, request, options))
+  ): Promise<CreateBillingNotificationRuleResponse> {
+    return unwrap(
+      await createBillingNotificationRule(this._client, request, options),
+    )
   }
 
   /**
@@ -186,11 +190,13 @@ export class InternalNotifications {
    *
    * GET /openmeter/notification/rules/{notificationRuleId}
    */
-  async getRule(
-    request: GetNotificationRuleRequest,
+  async getBillingRule(
+    request: GetBillingNotificationRuleRequest,
     options?: RequestOptions,
-  ): Promise<GetNotificationRuleResponse> {
-    return unwrap(await getNotificationRule(this._client, request, options))
+  ): Promise<GetBillingNotificationRuleResponse> {
+    return unwrap(
+      await getBillingNotificationRule(this._client, request, options),
+    )
   }
 
   /**
@@ -200,11 +206,13 @@ export class InternalNotifications {
    *
    * PUT /openmeter/notification/rules/{notificationRuleId}
    */
-  async updateRule(
-    request: UpdateNotificationRuleRequest,
+  async updateBillingRule(
+    request: UpdateBillingNotificationRuleRequest,
     options?: RequestOptions,
-  ): Promise<UpdateNotificationRuleResponse> {
-    return unwrap(await updateNotificationRule(this._client, request, options))
+  ): Promise<UpdateBillingNotificationRuleResponse> {
+    return unwrap(
+      await updateBillingNotificationRule(this._client, request, options),
+    )
   }
 
   /**
@@ -214,11 +222,13 @@ export class InternalNotifications {
    *
    * DELETE /openmeter/notification/rules/{notificationRuleId}
    */
-  async deleteRule(
-    request: DeleteNotificationRuleRequest,
+  async deleteBillingRule(
+    request: DeleteBillingNotificationRuleRequest,
     options?: RequestOptions,
-  ): Promise<DeleteNotificationRuleResponse> {
-    return unwrap(await deleteNotificationRule(this._client, request, options))
+  ): Promise<DeleteBillingNotificationRuleResponse> {
+    return unwrap(
+      await deleteBillingNotificationRule(this._client, request, options),
+    )
   }
 
   /**
@@ -230,11 +240,13 @@ export class InternalNotifications {
    *
    * POST /openmeter/notification/rules/{notificationRuleId}/test
    */
-  async testRule(
-    request: TestNotificationRuleRequest,
+  async testBillingRule(
+    request: TestBillingNotificationRuleRequest,
     options?: RequestOptions,
-  ): Promise<TestNotificationRuleResponse> {
-    return unwrap(await testNotificationRule(this._client, request, options))
+  ): Promise<TestBillingNotificationRuleResponse> {
+    return unwrap(
+      await testBillingNotificationRule(this._client, request, options),
+    )
   }
 
   /**
@@ -244,11 +256,13 @@ export class InternalNotifications {
    *
    * GET /openmeter/notification/events
    */
-  async listEvents(
-    request?: ListNotificationEventsRequest,
+  async listBillingEvents(
+    request?: ListBillingNotificationEventsRequest,
     options?: RequestOptions,
-  ): Promise<ListNotificationEventsResponse> {
-    return unwrap(await listNotificationEvents(this._client, request, options))
+  ): Promise<ListBillingNotificationEventsResponse> {
+    return unwrap(
+      await listBillingNotificationEvents(this._client, request, options),
+    )
   }
 
   /**
@@ -260,12 +274,12 @@ export class InternalNotifications {
    *
    * GET /openmeter/notification/events
    */
-  listEventsAll(
-    request?: ListNotificationEventsRequest,
+  listBillingEventsAll(
+    request?: ListBillingNotificationEventsRequest,
     options?: RequestOptions,
   ): AsyncIterable<NotificationEvent> {
     return paginatePages(
-      (req, opts) => listNotificationEvents(this._client, req, opts),
+      (req, opts) => listBillingNotificationEvents(this._client, req, opts),
       request ?? {},
       options,
     )
@@ -278,11 +292,13 @@ export class InternalNotifications {
    *
    * GET /openmeter/notification/events/{notificationEventId}
    */
-  async getEvent(
-    request: GetNotificationEventRequest,
+  async getBillingEvent(
+    request: GetBillingNotificationEventRequest,
     options?: RequestOptions,
-  ): Promise<GetNotificationEventResponse> {
-    return unwrap(await getNotificationEvent(this._client, request, options))
+  ): Promise<GetBillingNotificationEventResponse> {
+    return unwrap(
+      await getBillingNotificationEvent(this._client, request, options),
+    )
   }
 
   /**
@@ -296,10 +312,12 @@ export class InternalNotifications {
    *
    * POST /openmeter/notification/events/{notificationEventId}/resend
    */
-  async resendEvent(
-    request: ResendNotificationEventRequest,
+  async resendBillingEvent(
+    request: ResendBillingNotificationEventRequest,
     options?: RequestOptions,
-  ): Promise<ResendNotificationEventResponse> {
-    return unwrap(await resendNotificationEvent(this._client, request, options))
+  ): Promise<ResendBillingNotificationEventResponse> {
+    return unwrap(
+      await resendBillingNotificationEvent(this._client, request, options),
+    )
   }
 }

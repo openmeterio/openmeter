@@ -21,7 +21,7 @@ import (
 type (
 	ListNotificationChannelsRequest  = notification.ListChannelsInput
 	ListNotificationChannelsResponse = response.PagePaginationResponse[api.BillingNotificationChannel]
-	ListNotificationChannelsParams   = api.ListNotificationChannelsParams
+	ListNotificationChannelsParams   = api.ListBillingNotificationChannelsParams
 	ListNotificationChannelsHandler  = httptransport.HandlerWithArgs[ListNotificationChannelsRequest, ListNotificationChannelsResponse, ListNotificationChannelsParams]
 )
 
@@ -169,7 +169,7 @@ func (h *handler) ListNotificationChannels() ListNotificationChannelsHandler {
 		commonhttp.JSONResponseEncoderWithStatus[ListNotificationChannelsResponse](http.StatusOK),
 		httptransport.AppendOptions(
 			h.options,
-			httptransport.WithOperationName("list-notification-channels"),
+			httptransport.WithOperationName("list-billing-notification-channels"),
 			httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),
 			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,

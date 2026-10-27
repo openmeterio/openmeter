@@ -141,7 +141,7 @@ func (p NotificationEventListParams) values() url.Values {
 }
 
 // List all notification channels.
-func (s *NotificationsService) ListChannels(ctx context.Context, params NotificationChannelListParams) (*NotificationChannelPagePaginatedResponse, error) {
+func (s *NotificationsService) ListBillingChannels(ctx context.Context, params NotificationChannelListParams) (*NotificationChannelPagePaginatedResponse, error) {
 	path := "/openmeter/notification/channels"
 
 	req, err := s.client.newRequestWithContentType(ctx, http.MethodGet, path, params.values(), nil, "", "application/json")
@@ -157,13 +157,13 @@ func (s *NotificationsService) ListChannels(ctx context.Context, params Notifica
 	return &out, nil
 }
 
-// ListChannelsAll returns an iterator over all NotificationChannel results, fetching pages of ListChannels transparently. Iteration stops at the first error, which is yielded as the second value.
-func (s *NotificationsService) ListChannelsAll(ctx context.Context, params NotificationChannelListParams) iter.Seq2[NotificationChannel, error] {
+// ListBillingChannelsAll returns an iterator over all NotificationChannel results, fetching pages of ListBillingChannels transparently. Iteration stops at the first error, which is yielded as the second value.
+func (s *NotificationsService) ListBillingChannelsAll(ctx context.Context, params NotificationChannelListParams) iter.Seq2[NotificationChannel, error] {
 	return paginate(params.Page, func(page, size int) ([]NotificationChannel, int, error) {
 		pageParams := params
 		pageParams.Page = &PageParams{Size: Int(size), Number: Int(page)}
 
-		resp, err := s.ListChannels(ctx, pageParams)
+		resp, err := s.ListBillingChannels(ctx, pageParams)
 		if err != nil {
 			return nil, 0, err
 		}
@@ -173,7 +173,7 @@ func (s *NotificationsService) ListChannelsAll(ctx context.Context, params Notif
 }
 
 // Create a notification channel.
-func (s *NotificationsService) CreateChannel(ctx context.Context, request CreateNotificationChannelRequest) (*NotificationChannel, error) {
+func (s *NotificationsService) CreateBillingChannel(ctx context.Context, request CreateNotificationChannelRequest) (*NotificationChannel, error) {
 	path := "/openmeter/notification/channels"
 
 	req, err := s.client.newRequestWithContentType(ctx, http.MethodPost, path, nil, request, "application/json", "application/json")
@@ -190,7 +190,7 @@ func (s *NotificationsService) CreateChannel(ctx context.Context, request Create
 }
 
 // Get a notification channel by id.
-func (s *NotificationsService) GetChannel(ctx context.Context, notificationChannelID string) (*NotificationChannel, error) {
+func (s *NotificationsService) GetBillingChannel(ctx context.Context, notificationChannelID string) (*NotificationChannel, error) {
 	if notificationChannelID == "" {
 		return nil, fmt.Errorf("openmeter: %s must not be empty: %w", "notificationChannelID", ErrEmptyID)
 	}
@@ -213,7 +213,7 @@ func (s *NotificationsService) GetChannel(ctx context.Context, notificationChann
 }
 
 // Update a notification channel by id.
-func (s *NotificationsService) UpdateChannel(ctx context.Context, notificationChannelID string, request UpdateBillingNotificationChannelRequest) (*NotificationChannel, error) {
+func (s *NotificationsService) UpdateBillingChannel(ctx context.Context, notificationChannelID string, request UpdateBillingNotificationChannelRequest) (*NotificationChannel, error) {
 	if notificationChannelID == "" {
 		return nil, fmt.Errorf("openmeter: %s must not be empty: %w", "notificationChannelID", ErrEmptyID)
 	}
@@ -236,7 +236,7 @@ func (s *NotificationsService) UpdateChannel(ctx context.Context, notificationCh
 }
 
 // Delete a notification channel by id.
-func (s *NotificationsService) DeleteChannel(ctx context.Context, notificationChannelID string) error {
+func (s *NotificationsService) DeleteBillingChannel(ctx context.Context, notificationChannelID string) error {
 	if notificationChannelID == "" {
 		return fmt.Errorf("openmeter: %s must not be empty: %w", "notificationChannelID", ErrEmptyID)
 	}
@@ -255,7 +255,7 @@ func (s *NotificationsService) DeleteChannel(ctx context.Context, notificationCh
 }
 
 // List all notification rules.
-func (s *NotificationsService) ListRules(ctx context.Context, params NotificationRuleListParams) (*NotificationRulePagePaginatedResponse, error) {
+func (s *NotificationsService) ListBillingRules(ctx context.Context, params NotificationRuleListParams) (*NotificationRulePagePaginatedResponse, error) {
 	path := "/openmeter/notification/rules"
 
 	req, err := s.client.newRequestWithContentType(ctx, http.MethodGet, path, params.values(), nil, "", "application/json")
@@ -271,13 +271,13 @@ func (s *NotificationsService) ListRules(ctx context.Context, params Notificatio
 	return &out, nil
 }
 
-// ListRulesAll returns an iterator over all NotificationRule results, fetching pages of ListRules transparently. Iteration stops at the first error, which is yielded as the second value.
-func (s *NotificationsService) ListRulesAll(ctx context.Context, params NotificationRuleListParams) iter.Seq2[NotificationRule, error] {
+// ListBillingRulesAll returns an iterator over all NotificationRule results, fetching pages of ListBillingRules transparently. Iteration stops at the first error, which is yielded as the second value.
+func (s *NotificationsService) ListBillingRulesAll(ctx context.Context, params NotificationRuleListParams) iter.Seq2[NotificationRule, error] {
 	return paginate(params.Page, func(page, size int) ([]NotificationRule, int, error) {
 		pageParams := params
 		pageParams.Page = &PageParams{Size: Int(size), Number: Int(page)}
 
-		resp, err := s.ListRules(ctx, pageParams)
+		resp, err := s.ListBillingRules(ctx, pageParams)
 		if err != nil {
 			return nil, 0, err
 		}
@@ -287,7 +287,7 @@ func (s *NotificationsService) ListRulesAll(ctx context.Context, params Notifica
 }
 
 // Create a notification rule.
-func (s *NotificationsService) CreateRule(ctx context.Context, request NotificationRuleRequest) (*NotificationRule, error) {
+func (s *NotificationsService) CreateBillingRule(ctx context.Context, request NotificationRuleRequest) (*NotificationRule, error) {
 	path := "/openmeter/notification/rules"
 
 	req, err := s.client.newRequestWithContentType(ctx, http.MethodPost, path, nil, request, "application/json", "application/json")
@@ -304,7 +304,7 @@ func (s *NotificationsService) CreateRule(ctx context.Context, request Notificat
 }
 
 // Get a notification rule by id.
-func (s *NotificationsService) GetRule(ctx context.Context, notificationRuleID string) (*NotificationRule, error) {
+func (s *NotificationsService) GetBillingRule(ctx context.Context, notificationRuleID string) (*NotificationRule, error) {
 	if notificationRuleID == "" {
 		return nil, fmt.Errorf("openmeter: %s must not be empty: %w", "notificationRuleID", ErrEmptyID)
 	}
@@ -327,7 +327,7 @@ func (s *NotificationsService) GetRule(ctx context.Context, notificationRuleID s
 }
 
 // Update a notification rule by id.
-func (s *NotificationsService) UpdateRule(ctx context.Context, notificationRuleID string, request NotificationRuleRequest) (*NotificationRule, error) {
+func (s *NotificationsService) UpdateBillingRule(ctx context.Context, notificationRuleID string, request NotificationRuleRequest) (*NotificationRule, error) {
 	if notificationRuleID == "" {
 		return nil, fmt.Errorf("openmeter: %s must not be empty: %w", "notificationRuleID", ErrEmptyID)
 	}
@@ -350,7 +350,7 @@ func (s *NotificationsService) UpdateRule(ctx context.Context, notificationRuleI
 }
 
 // Delete a notification rule by id.
-func (s *NotificationsService) DeleteRule(ctx context.Context, notificationRuleID string) error {
+func (s *NotificationsService) DeleteBillingRule(ctx context.Context, notificationRuleID string) error {
 	if notificationRuleID == "" {
 		return fmt.Errorf("openmeter: %s must not be empty: %w", "notificationRuleID", ErrEmptyID)
 	}
@@ -371,7 +371,7 @@ func (s *NotificationsService) DeleteRule(ctx context.Context, notificationRuleI
 // Test a notification rule by generating an event with sample data and delivering
 // it to the rule's channels. The test event is persisted and listed like any other
 // event.
-func (s *NotificationsService) TestRule(ctx context.Context, notificationRuleID string) (*NotificationEvent, error) {
+func (s *NotificationsService) TestBillingRule(ctx context.Context, notificationRuleID string) (*NotificationEvent, error) {
 	if notificationRuleID == "" {
 		return nil, fmt.Errorf("openmeter: %s must not be empty: %w", "notificationRuleID", ErrEmptyID)
 	}
@@ -394,7 +394,7 @@ func (s *NotificationsService) TestRule(ctx context.Context, notificationRuleID 
 }
 
 // List all notification events.
-func (s *NotificationsService) ListEvents(ctx context.Context, params NotificationEventListParams) (*NotificationEventPagePaginatedResponse, error) {
+func (s *NotificationsService) ListBillingEvents(ctx context.Context, params NotificationEventListParams) (*NotificationEventPagePaginatedResponse, error) {
 	path := "/openmeter/notification/events"
 
 	req, err := s.client.newRequestWithContentType(ctx, http.MethodGet, path, params.values(), nil, "", "application/json")
@@ -410,13 +410,13 @@ func (s *NotificationsService) ListEvents(ctx context.Context, params Notificati
 	return &out, nil
 }
 
-// ListEventsAll returns an iterator over all NotificationEvent results, fetching pages of ListEvents transparently. Iteration stops at the first error, which is yielded as the second value.
-func (s *NotificationsService) ListEventsAll(ctx context.Context, params NotificationEventListParams) iter.Seq2[NotificationEvent, error] {
+// ListBillingEventsAll returns an iterator over all NotificationEvent results, fetching pages of ListBillingEvents transparently. Iteration stops at the first error, which is yielded as the second value.
+func (s *NotificationsService) ListBillingEventsAll(ctx context.Context, params NotificationEventListParams) iter.Seq2[NotificationEvent, error] {
 	return paginate(params.Page, func(page, size int) ([]NotificationEvent, int, error) {
 		pageParams := params
 		pageParams.Page = &PageParams{Size: Int(size), Number: Int(page)}
 
-		resp, err := s.ListEvents(ctx, pageParams)
+		resp, err := s.ListBillingEvents(ctx, pageParams)
 		if err != nil {
 			return nil, 0, err
 		}
@@ -426,7 +426,7 @@ func (s *NotificationsService) ListEventsAll(ctx context.Context, params Notific
 }
 
 // Get a notification event by id.
-func (s *NotificationsService) GetEvent(ctx context.Context, notificationEventID string) (*NotificationEvent, error) {
+func (s *NotificationsService) GetBillingEvent(ctx context.Context, notificationEventID string) (*NotificationEvent, error) {
 	if notificationEventID == "" {
 		return nil, fmt.Errorf("openmeter: %s must not be empty: %w", "notificationEventID", ErrEmptyID)
 	}
@@ -453,7 +453,7 @@ func (s *NotificationsService) GetEvent(ctx context.Context, notificationEventID
 // Delivery is asynchronous: the request marks the selected channels for redelivery
 // and returns immediately. Channels whose delivery is still pending or already
 // being resent are left untouched.
-func (s *NotificationsService) ResendEvent(ctx context.Context, notificationEventID string, request ResendBillingNotificationEventRequest) error {
+func (s *NotificationsService) ResendBillingEvent(ctx context.Context, notificationEventID string, request ResendBillingNotificationEventRequest) error {
 	if notificationEventID == "" {
 		return fmt.Errorf("openmeter: %s must not be empty: %w", "notificationEventID", ErrEmptyID)
 	}
