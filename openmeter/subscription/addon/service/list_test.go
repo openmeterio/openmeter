@@ -28,13 +28,10 @@ func TestAddonServiceGet(t *testing.T) {
 			clock.SetTime(now)
 			defer clock.ResetTime()
 
-			taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
-			taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
-
 			p, add := subscriptiontestutils.CreatePlanWithAddon(
 				t,
 				deps,
-				subscriptiontestutils.GetExamplePlanInput(t, taxConfig),
+				subscriptiontestutils.GetExamplePlanInput(t, deps.TaxCodeEnv),
 				subscriptiontestutils.GetExampleAddonInput(t, productcatalog.EffectivePeriod{
 					EffectiveFrom: lo.ToPtr(now),
 				}),
@@ -104,9 +101,7 @@ func TestAddonServiceList(t *testing.T) {
 
 			// Let's create a plan
 
-			taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
-			taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
-			p, err := deps.PlanService.CreatePlan(context.Background(), subscriptiontestutils.GetExamplePlanInput(t, taxConfig))
+			p, err := deps.PlanService.CreatePlan(context.Background(), subscriptiontestutils.GetExamplePlanInput(t, deps.TaxCodeEnv))
 			require.Nil(t, err)
 			require.NotNil(t, p)
 

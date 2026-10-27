@@ -31,8 +31,7 @@ func TestMigrateToPlanAddons(t *testing.T) {
 			db := subscriptiontestutils.SetupDBDeps(t)
 			defer db.Cleanup(t)
 			deps := subscriptiontestutils.NewService(t, db)
-			taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
-			taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
+			taxConfig := subscriptiontestutils.ExampleTaxConfig(t, deps.TaxCodeEnv)
 			planInput := subscriptiontestutils.BuildTestPlanInput(t).AddPhase(nil,
 				subscriptiontestutils.ExampleRateCard3ForAddons(taxConfig), subscriptiontestutils.ExampleRateCard2.Clone()).Build()
 			p1, addon := subscriptiontestutils.CreatePlanWithAddon(t, deps, planInput,

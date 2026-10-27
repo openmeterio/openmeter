@@ -44,8 +44,7 @@ func TestRestore(t *testing.T) {
 
 			deps := subscriptiontestutils.NewService(t, dbDeps)
 
-			taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
-			taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
+			taxConfig := subscriptiontestutils.ExampleTaxConfig(t, deps.TaxCodeEnv)
 
 			fn(t, &tcDeps{
 				deps:      deps,
