@@ -5,13 +5,16 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"testing"
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
+	"github.com/stretchr/testify/require"
 
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/handlers/billinginvoices"
@@ -22,16 +25,168 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	featurepkg "github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 	billingtest "github.com/openmeterio/openmeter/test/billing"
 )
+
+type invoiceNowErrorBillingService struct {
+	billing.Service
+	err   error
+	calls int
+}
+
+func (s *invoiceNowErrorBillingService) InvoicePendingLines(context.Context, billing.InvoicePendingLinesInput, ...billing.InvoicePendingLinesOption) ([]billing.StandardInvoice, error) {
+	s.calls++
+	return nil, s.err
+}
+
+func TestInvoiceNowOnCreateDefersFullyGatedCollection(t *testing.T) {
+	unexpectedErr := errors.New("unexpected collection failure")
+	tests := []struct {
+		name      string
+		err       error
+		wantErr   error
+		wantCalls int
+	}{
+		{name: "fully gated customers are deferred", err: fmt.Errorf("wrapped: %w", billing.ValidationError{Err: billing.ErrInvoiceCreateAllLinesGated}), wantCalls: 2},
+		{name: "no eligible lines remains an error", err: billing.ValidationError{Err: billing.ErrInvoiceCreateNoLines}, wantErr: billing.ErrInvoiceCreateNoLines, wantCalls: 1},
+		{name: "operational failure", err: unexpectedErr, wantErr: unexpectedErr, wantCalls: 1},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			billingService := &invoiceNowErrorBillingService{err: test.err}
+			svc := &service{billingService: billingService}
+
+			err := svc.invokeInvoiceNowOnCreate(t.Context(), []invoicePendingLinesInput{
+				{CustomerID: customer.CustomerID{Namespace: "ns", ID: "customer-1"}, LineID: "line-1"},
+				{CustomerID: customer.CustomerID{Namespace: "ns", ID: "customer-2"}, LineID: "line-2"},
+			})
+			require.ErrorIs(t, err, test.wantErr)
+			require.Equal(t, test.wantCalls, billingService.calls)
+		})
+	}
+}
+
+func (s *InvoicableChargesTestSuite) TestInvoicePendingLinesAllGatedReturnsErrorAndPersistsChargeIssues() {
+	tests := []struct {
+		name                 string
+		enclosingTransaction bool
+	}{
+		{name: "standalone transaction"},
+		{name: "caller handles deferral in enclosing transaction", enclosingTransaction: true},
+	}
+	for _, test := range tests {
+		s.Run(test.name, func() {
+			// given: a due charge's required meter becomes unavailable.
+			ctx := s.T().Context()
+			ns := s.GetUniqueNamespace("all-gated-charge-validation")
+			s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
+			customInvoicing := s.SetupCustomInvoicing(ns)
+			s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(), billingtest.WithManualApproval())
+			cust := s.CreateTestCustomer(ns, "test-subject")
+			period := timeutil.ClosedPeriod{
+				From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+				To:   time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
+			}
+			clock.FreezeTime(period.To)
+			defer clock.UnFreeze()
+
+			featureKey := "temporarily-unavailable-meter"
+			featureMeters := s.createFeatureMeters(ctx, ns, featureKey)
+			meters := []meter.Meter{*featureMeters.ByKey[featureKey].Meter}
+			pending, err := s.Charges.CreatePendingInvoiceLines(ctx, charges.CreatePendingInvoiceLinesInput{
+				Customer: cust.GetID(),
+				Currency: currencyx.FiatCode(USD),
+				Lines: billing.CreatePendingInvoiceLines{{
+					GatheringLine: billing.GatheringLine{
+						GatheringLineBase: billing.GatheringLineBase{
+							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+								Namespace: ns,
+								Name:      "blocked usage",
+							}),
+							ManagedBy:     billing.ManuallyManagedLine,
+							Currency:      currencyx.FiatCode(USD),
+							ServicePeriod: period,
+							InvoiceAt:     period.To,
+							FeatureKey:    featureKey,
+							Price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+								Amount: alpacadecimal.NewFromInt(2),
+							}),
+						},
+					},
+				}},
+			})
+			s.Require().NoError(err)
+			s.Require().Len(pending.Lines, 1)
+			s.Require().NotNil(pending.Lines[0].ChargeID)
+			s.Require().NoError(s.MeterAdapter.ReplaceMeters(ctx, nil))
+			defer func() {
+				s.Require().NoError(s.MeterAdapter.ReplaceMeters(ctx, meters))
+			}()
+			chargeID := meta.ChargeID{Namespace: ns, ID: *pending.Lines[0].ChargeID}
+			input := billing.InvoicePendingLinesInput{Customer: cust.GetID(), AsOf: &period.To}
+
+			// when: collection is fully gated, including when the caller owns the transaction.
+			var collectionErr error
+			if test.enclosingTransaction {
+				_, err = transaction.Run(ctx, s.BillingAdapter, func(ctx context.Context) (struct{}, error) {
+					_, collectionErr = s.BillingService.InvoicePendingLines(ctx, input, billing.WithBypassCollectionAlignment())
+					if errors.Is(collectionErr, billing.ErrInvoiceCreateAllLinesGated) {
+						return struct{}{}, nil
+					}
+
+					return struct{}{}, collectionErr
+				})
+				s.Require().NoError(err)
+			} else {
+				_, collectionErr = s.BillingService.InvoicePendingLines(ctx, input, billing.WithBypassCollectionAlignment())
+			}
+
+			// then: collection returns an error, the charge stores its validation issues, and the line remains pending.
+			s.Require().ErrorIs(collectionErr, billing.ErrInvoiceCreateAllLinesGated)
+			s.ErrorAs(collectionErr, &billing.ValidationError{})
+			charge, err := s.UsageBasedAdapter.GetByID(ctx, usagebased.GetByIDInput{ChargeID: chargeID})
+			s.Require().NoError(err)
+			s.Require().True(lo.ContainsBy(charge.ValidationIssues, func(issue billing.ValidationIssue) bool {
+				return issue.Code == billing.ErrInvoiceLineFeatureHasNoMeters.Code
+			}))
+			gathering, err := s.BillingService.GetGatheringInvoiceById(ctx, billing.GetGatheringInvoiceByIdInput{
+				Invoice: pending.Invoice.GetInvoiceID(),
+				Expand:  billing.GatheringInvoiceExpands{billing.GatheringInvoiceExpandLines},
+			})
+			s.Require().NoError(err)
+			s.Require().Len(gathering.Lines.OrEmpty(), 1)
+			s.Equal(pending.Lines[0].ID, gathering.Lines.OrEmpty()[0].ID)
+
+			// when: the missing dependency is repaired and collection is retried.
+			s.Require().NoError(s.MeterAdapter.ReplaceMeters(ctx, meters))
+			s.MockStreamingConnector.AddSimpleEvent(meters[0].Key, 1, period.From.Add(time.Hour))
+			s.UsageBasedTestHandler.onCreditsOnlyUsageAccrued, _ = newCappedCreditAllocator(0)
+			defer s.UsageBasedTestHandler.Reset()
+			invoices, err := s.BillingService.InvoicePendingLines(ctx, input, billing.WithBypassCollectionAlignment())
+			s.Require().NoError(err)
+
+			// then: collection creates one invoice and clears the stale dependency issue.
+			s.Require().Len(invoices, 1)
+			charge, err = s.UsageBasedAdapter.GetByID(ctx, usagebased.GetByIDInput{ChargeID: chargeID})
+			s.Require().NoError(err)
+			s.False(lo.ContainsBy(charge.ValidationIssues, func(issue billing.ValidationIssue) bool {
+				return issue.Code == billing.ErrInvoiceLineFeatureHasNoMeters.Code
+			}))
+		})
+	}
+}
 
 func (s *InvoicableChargesTestSuite) TestCreatePendingInvoiceLinesResolvesStripeTaxCodeBeforeCreatingCharge() {
 	ctx := s.T().Context()
@@ -800,10 +955,10 @@ func (s *InvoicableChargesTestSuite) TestInvoiceCustomerChargesAPIUsesChargeEngi
 
 	// then: collection invokes the charge engine, applies credits, and retains the future line.
 	s.Require().Equal(http.StatusCreated, res.Code, res.Body.String())
-	var invoices []api.BillingInvoice
-	s.Require().NoError(json.Unmarshal(res.Body.Bytes(), &invoices))
-	s.Require().Len(invoices, 1)
-	invoice, err := invoices[0].AsBillingInvoiceStandard()
+	var result api.InvoiceCustomerChargesResult
+	s.Require().NoError(json.Unmarshal(res.Body.Bytes(), &result))
+	s.Require().Len(result.Invoices, 1)
+	invoice, err := result.Invoices[0].AsBillingInvoiceStandard()
 	s.Require().NoError(err)
 	s.Equal("6", invoice.Totals.Total)
 	s.Equal("4", invoice.Totals.CreditsTotal)

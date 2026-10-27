@@ -59,7 +59,7 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 		}
 	}
 
-	return transactionForInvoiceManipulation(
+	invoices, err := transactionForInvoiceManipulation(
 		ctx,
 		s,
 		input.Customer,
@@ -96,6 +96,17 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 			return createdInvoices, nil
 		},
 	)
+	if err != nil {
+		return nil, err
+	}
+
+	// Gates record why a charge is blocked. Finish their transaction before
+	// reporting a fully gated collection, so those reasons remain available.
+	if len(invoices) == 0 {
+		return nil, billing.ValidationError{Err: billing.ErrInvoiceCreateAllLinesGated}
+	}
+
+	return invoices, nil
 }
 
 func (s *Service) prepareBillableLines(ctx context.Context, input billing.PrepareBillableLinesInput, options billing.InvoicePendingLinesOptions) (*billing.PrepareBillableLinesResult, error) {

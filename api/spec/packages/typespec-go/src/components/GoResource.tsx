@@ -963,8 +963,9 @@ function pageElement(program: Program, response: Type): string {
   return readReferenceName(program, element)
 }
 
-export function readReferenceName(program: Program, type: Type): string {
-  return goType(program, type).text ?? typeName(program, type)
+function readReferenceName(program: Program, type: Type): string {
+  const mapped = goType(program, type).type
+  return typeof mapped === 'string' ? mapped : typeName(program, type)
 }
 
 // Locals every generated method body may declare (including the receiver and

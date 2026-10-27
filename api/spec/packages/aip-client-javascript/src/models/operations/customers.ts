@@ -34,8 +34,8 @@ import type {
   EntitlementHistoryWindowSize,
   EntitlementPagePaginatedResponse,
   GetCreditBalanceParamsFilter,
-  Invoice,
   InvoiceCustomerChargesInput,
+  InvoiceCustomerChargesResult,
   ListCreditGrantsParamsFilter,
   ListCreditTransactionsParamsFilter,
   ListCustomerChargesParamsFilter,
@@ -396,6 +396,6 @@ export type CreateCustomerChargesResponse = Charge
 
 export type InvoiceCustomerChargesRequest = AcceptDateStrings<{
   customerId: string
-  body: InvoiceCustomerChargesInput
+  body?: InvoiceCustomerChargesInput
 }>
-export type InvoiceCustomerChargesResponse = Invoice[]
+export type InvoiceCustomerChargesResponse = InvoiceCustomerChargesResult

@@ -100,24 +100,24 @@ func TestInvoiceCustomerChargesManualCollection(t *testing.T) {
 			// then: both standard invoices are returned after forwarding the manual options.
 			require.Equal(t, http.StatusCreated, res.Code, res.Body.String())
 			require.True(t, called)
-			var invoices []api.BillingInvoice
-			require.NoError(t, json.Unmarshal(res.Body.Bytes(), &invoices))
-			require.Len(t, invoices, 2)
-			usdInvoice, err := invoices[0].AsBillingInvoiceStandard()
+			var result api.InvoiceCustomerChargesResult
+			require.NoError(t, json.Unmarshal(res.Body.Bytes(), &result))
+			require.Len(t, result.Invoices, 2)
+			usdInvoice, err := result.Invoices[0].AsBillingInvoiceStandard()
 			require.NoError(t, err)
 			require.Equal(t, "usd-invoice", usdInvoice.Id)
 			require.Equal(t, api.CurrencyCode("USD"), usdInvoice.Currency)
-			eurInvoice, err := invoices[1].AsBillingInvoiceStandard()
+			eurInvoice, err := result.Invoices[1].AsBillingInvoiceStandard()
 			require.NoError(t, err)
 			require.Equal(t, api.CurrencyCode("EUR"), eurInvoice.Currency)
 		})
 	}
 }
 
-func TestInvoiceCustomerChargesAllBlockedReturnsEmptyArray(t *testing.T) {
+func TestInvoiceCustomerChargesAllBlockedReturnsValidationError(t *testing.T) {
 	handler := New(func(context.Context) (string, error) { return "ns", nil }, invoiceChargesBillingService{
 		collect: func(context.Context, billing.InvoicePendingLinesInput, ...billing.InvoicePendingLinesOption) ([]billing.StandardInvoice, error) {
-			return nil, nil
+			return nil, billing.ValidationError{Err: billing.ErrInvoiceCreateAllLinesGated}
 		},
 	})
 	req := httptest.NewRequest(http.MethodPost, "/", nil)
@@ -125,8 +125,8 @@ func TestInvoiceCustomerChargesAllBlockedReturnsEmptyArray(t *testing.T) {
 
 	handler.InvoiceCustomerCharges().With(invoiceChargesCustomerID).ServeHTTP(res, req)
 
-	require.Equal(t, http.StatusCreated, res.Code, res.Body.String())
-	require.JSONEq(t, `[]`, res.Body.String())
+	require.Equal(t, http.StatusBadRequest, res.Code, res.Body.String())
+	require.Contains(t, res.Body.String(), "all eligible pending lines are blocked from invoice assignment")
 }
 
 func TestInvoiceCustomerChargesErrors(t *testing.T) {

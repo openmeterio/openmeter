@@ -100,14 +100,17 @@ function requestDecl(op: SdkOperation, bodyRef: string): string {
   return `${decl} Record<string, never>`
 }
 
-function responseDecl(op: SdkOperation, responseRef: string): string {
+function responseDecl(op: SdkOperation): string {
   if (!op.hasResponse) {
     return `export type ${op.base}Response = void`
   }
   if (op.textResponseContentType) {
     return `export type ${op.base}Response = string`
   }
-  return `export type ${op.base}Response = ${responseRef}`
+  if (op.responseInterface) {
+    return `export type ${op.base}Response = ${op.responseInterface}`
+  }
+  return `export type ${op.base}Response = z.output<typeof schemas.${op.funcName}Response>`
 }
 
 export interface RequestTypes {
@@ -128,7 +131,6 @@ export function requestTypesFor(
   ops: Operation[],
   sdkOps: SdkOperation[],
   refNameInput: RefName,
-  refNameOutput: RefName,
   jsonBodyOverrides: Map<string, Type>,
 ): RequestTypes {
   const opByBase = new Map(
@@ -176,15 +178,8 @@ export function requestTypesFor(
         bodyRef = 'Record<string, never>'
       }
     }
-    let responseRef = 'void'
     if (sdkOp.responseInterface) {
-      responseRef = importAlias(sdkOp.responseInterface)
-    } else if (sdkOp.responseType) {
-      const responseRefName: RefName = (type) => {
-        const name = refNameOutput(type)
-        return name ? importAlias(name) : undefined
-      }
-      responseRef = tsTypeOf(program, sdkOp.responseType, responseRefName)
+      importAlias(sdkOp.responseInterface)
     }
 
     if (sdkOp.queryParams.length > 0) {
@@ -206,7 +201,10 @@ export function requestTypesFor(
       }
     }
 
-    const response = responseDecl(sdkOp, responseRef)
+    const response = responseDecl(sdkOp)
+    if (response.includes('z.output')) {
+      usesZod = true
+    }
     blocks.push(`${requestDecl(sdkOp, bodyRef)}\n${response}`)
   }
 

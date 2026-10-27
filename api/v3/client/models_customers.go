@@ -1762,6 +1762,12 @@ type InvoiceCustomerChargesInput struct {
 	ProgressiveBillingOverride *bool `json:"progressive_billing_override,omitempty"`
 }
 
+// Result of manually collecting a customer's pending lines into invoices.
+type InvoiceCustomerChargesResult struct {
+	// Created standard invoices, one per collected currency.
+	Invoices []Invoice `json:"invoices"`
+}
+
 // Recurring period input. The anchor is optional; the owning resource defines the
 // default, typically its creation time.
 type RecurringPeriodInput struct {

@@ -8008,6 +8008,12 @@ export interface ChargeUsageBased {
   systemIntent?: ChargeUsageBasedSystemIntent
 }
 
+/** Result of manually collecting a customer's pending lines into invoices. */
+export interface InvoiceCustomerChargesResult {
+  /** Created standard invoices, one per collected currency. */
+  invoices: Invoice[]
+}
+
 /** Page paginated response. */
 export interface InvoicePagePaginatedResponse {
   data: Invoice[]
@@ -11355,6 +11361,12 @@ export interface ChargeUsageBasedInput {
    * customer-facing intent.
    */
   systemIntent?: ChargeUsageBasedSystemIntentInput
+}
+
+/** Result of manually collecting a customer's pending lines into invoices. */
+export interface InvoiceCustomerChargesResultInput {
+  /** Created standard invoices, one per collected currency. */
+  invoices: InvoiceInput[]
 }
 
 /** Page paginated response. */

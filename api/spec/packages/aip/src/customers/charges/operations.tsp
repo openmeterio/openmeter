@@ -71,6 +71,17 @@ model InvoiceCustomerChargesInput {
   progressive_billing_override?: boolean;
 }
 
+/**
+ * Result of manually collecting a customer's pending lines into invoices.
+ */
+@friendlyName("InvoiceCustomerChargesResult")
+model InvoiceCustomerChargesResult {
+  /**
+   * Created standard invoices, one per collected currency.
+   */
+  invoices: Invoices.Invoice[];
+}
+
 namespace Charges {
   interface CustomerChargesOperations {
     /**
@@ -154,8 +165,8 @@ namespace Charges {
      * explicitly overridden. All eligible pending lines are considered.
      *
      * Returns the created standard invoices, one per collected currency. Lines blocked
-     * by their owning engine remain pending; if all candidates are blocked, the
-     * response is empty. If no lines are eligible, returns a validation error.
+     * by their owning engine remain pending. If all eligible lines are blocked or no
+     * lines are eligible, returns a validation error.
      */
     @post
     @route("/invoice")
@@ -168,7 +179,7 @@ namespace Charges {
     ):
       | {
           @statusCode _: 201;
-          @body body: Invoices.Invoice[];
+          @body body: InvoiceCustomerChargesResult;
         }
       | Common.NotFound
       | Common.ErrorResponses;

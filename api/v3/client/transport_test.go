@@ -82,6 +82,52 @@ func newTestClient(t *testing.T, handler http.Handler, opts ...openmeter.Option)
 	return c
 }
 
+func TestInvoiceCustomerChargesResponse(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name       string
+		body       string
+		invoiceIDs []string
+	}{
+		{
+			name:       "collected invoices",
+			body:       `{"invoices":[{"type":"standard","id":"invoice-1"}]}`,
+			invoiceIDs: []string{"invoice-1"},
+		},
+		{
+			name: "empty invoices",
+			body: `{"invoices":[]}`,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			rec := &requestRecorder{}
+			om := newTestClient(t, rec.handler(http.StatusCreated, test.body))
+
+			result, err := om.Customers.Charges.Invoice(t.Context(), "customer-1", nil)
+			if err != nil {
+				t.Fatalf("Customers.Charges.Invoice: %v", err)
+			}
+
+			if result == nil || result.Invoices == nil || len(result.Invoices) != len(test.invoiceIDs) {
+				t.Fatalf("unexpected invoice result: %+v", result)
+			}
+
+			for i, id := range test.invoiceIDs {
+				invoice, err := result.Invoices[i].AsInvoiceStandard()
+				if err != nil {
+					t.Fatalf("decoding collected invoice: %v", err)
+				}
+
+				if invoice.ID != id {
+					t.Errorf("invoice ID = %q, want %q", invoice.ID, id)
+				}
+			}
+		})
+	}
+}
+
 func TestBaseURLJoining(t *testing.T) {
 	t.Parallel()
 

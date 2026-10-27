@@ -19,7 +19,7 @@ type (
 		billing.InvoicePendingLinesInput
 		Options []billing.InvoicePendingLinesOption
 	}
-	InvoiceCustomerChargesResponse = []api.BillingInvoice
+	InvoiceCustomerChargesResponse = api.InvoiceCustomerChargesResult
 	InvoiceCustomerChargesHandler  = httptransport.HandlerWithArgs[InvoiceCustomerChargesRequest, InvoiceCustomerChargesResponse, string]
 )
 
@@ -60,17 +60,19 @@ func (h *handler) InvoiceCustomerCharges() InvoiceCustomerChargesHandler {
 		func(ctx context.Context, input InvoiceCustomerChargesRequest) (InvoiceCustomerChargesResponse, error) {
 			invoices, err := h.service.InvoicePendingLines(ctx, input.InvoicePendingLinesInput, input.Options...)
 			if err != nil {
-				return nil, fmt.Errorf("collecting customer pending lines: %w", err)
+				return InvoiceCustomerChargesResponse{}, fmt.Errorf("collecting customer pending lines: %w", err)
 			}
 
-			out := make(InvoiceCustomerChargesResponse, 0, len(invoices))
+			out := InvoiceCustomerChargesResponse{
+				Invoices: make([]api.BillingInvoice, 0, len(invoices)),
+			}
 			for _, invoice := range invoices {
 				mappedInvoice, err := ToAPIStandardInvoice(invoice)
 				if err != nil {
-					return nil, fmt.Errorf("mapping collected invoice: %w", err)
+					return InvoiceCustomerChargesResponse{}, fmt.Errorf("mapping collected invoice: %w", err)
 				}
 
-				out = append(out, mappedInvoice)
+				out.Invoices = append(out.Invoices, mappedInvoice)
 			}
 
 			return out, nil

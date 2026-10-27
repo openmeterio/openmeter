@@ -139,9 +139,9 @@ func (s *CustomersChargesService) Create(ctx context.Context, customerID string,
 // explicitly overridden. All eligible pending lines are considered.
 //
 // Returns the created standard invoices, one per collected currency. Lines blocked
-// by their owning engine remain pending; if all candidates are blocked, the
-// response is empty. If no lines are eligible, returns a validation error.
-func (s *CustomersChargesService) Invoice(ctx context.Context, customerID string, request *InvoiceCustomerChargesInput) (*[]Invoice, error) {
+// by their owning engine remain pending. If all eligible lines are blocked or no
+// lines are eligible, returns a validation error.
+func (s *CustomersChargesService) Invoice(ctx context.Context, customerID string, request *InvoiceCustomerChargesInput) (*InvoiceCustomerChargesResult, error) {
 	if customerID == "" {
 		return nil, fmt.Errorf("openmeter: %s must not be empty: %w", "customerID", ErrEmptyID)
 	}
@@ -155,7 +155,7 @@ func (s *CustomersChargesService) Invoice(ctx context.Context, customerID string
 		return nil, err
 	}
 
-	var out []Invoice
+	var out InvoiceCustomerChargesResult
 	if err := s.client.doJSON(req, &out); err != nil {
 		return nil, err
 	}

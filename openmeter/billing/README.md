@@ -157,9 +157,13 @@ charge engines handle charge-backed lines.
 Before splitting or materializing otherwise billable gathering lines, billing
 asks each line engine to gate their invoice assignment. Blocked lines remain on
 the gathering invoice and do not consume the invoice line limit. A gate may
-persist engine-owned state explaining its decision; when every candidate is
-blocked, collection succeeds without creating an invoice so those writes can
-commit. Gate errors abort collection and roll back its writes. Charge-backed
+persist engine-owned state explaining its decision. When every candidate is
+blocked, collection finishes its transaction without creating an invoice, then
+returns `ErrInvoiceCreateAllLinesGated` as a validation error. Callers with an
+enclosing transaction must handle this deferred outcome so gate diagnostics can
+commit. Automatic collection, subscription sync, and invoice-now during charge
+creation treat it as deferred work. Gate errors abort collection and roll back
+its writes. Charge-backed
 usage lines whose required feature or meter is unavailable are blocked here;
 the charge records the dependency issue and a later collection attempt
 re-evaluates it.

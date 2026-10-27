@@ -231,7 +231,6 @@ export async function $onEmit(context: EmitContext<ZodEmitterOptions>) {
       ops,
       sdkOps,
       interfaces.refNameInput,
-      resolveInterface,
       bodyOverrides,
     )
     sdkFiles.push({

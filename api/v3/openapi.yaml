@@ -1621,8 +1621,8 @@ paths:
         explicitly overridden. All eligible pending lines are considered.
 
         Returns the created standard invoices, one per collected currency. Lines blocked
-        by their owning engine remain pending; if all candidates are blocked, the
-        response is empty. If no lines are eligible, returns a validation error.
+        by their owning engine remain pending. If all eligible lines are blocked or no
+        lines are eligible, returns a validation error.
       parameters:
         - name: customerId
           in: path
@@ -1635,9 +1635,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/BillingInvoice'
+                $ref: '#/components/schemas/InvoiceCustomerChargesResult'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -17112,6 +17110,18 @@ components:
             enabled, eligible usage-based lines can be collected for a partial period.
       additionalProperties: false
       description: Options for manually collecting a customer's pending lines into invoices.
+    InvoiceCustomerChargesResult:
+      type: object
+      required:
+        - invoices
+      properties:
+        invoices:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingInvoice'
+          description: Created standard invoices, one per collected currency.
+      additionalProperties: false
+      description: Result of manually collecting a customer's pending lines into invoices.
     InvoicePagePaginatedResponse:
       type: object
       required:

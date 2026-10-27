@@ -26,7 +26,6 @@ export interface SdkOperation {
   hasBody: boolean
   bodyOptional: boolean
   hasResponse: boolean
-  responseType?: Type
   /** Documented interface name for the success body, when it is a named model. */
   responseInterface?: string
   /** The operation's `@summary` decorator text — a short, one-line label. */
@@ -191,7 +190,6 @@ export function sdkOperation(
       httpOp.parameters.body?.type !== undefined || bodyOverrides.has(base),
     bodyOptional: httpOp.parameters.body?.property?.optional ?? false,
     hasResponse: responseBody !== undefined,
-    responseType: responseBody?.type,
     requestBodyInterface,
     responseInterface,
     textResponseContentType: responseBody?.contentType?.startsWith('text/')

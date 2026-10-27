@@ -1618,8 +1618,8 @@ export function createCustomerCharges(
  * explicitly overridden. All eligible pending lines are considered.
  *
  * Returns the created standard invoices, one per collected currency. Lines blocked
- * by their owning engine remain pending; if all candidates are blocked, the
- * response is empty. If no lines are eligible, returns a validation error.
+ * by their owning engine remain pending. If all eligible lines are blocked or no
+ * lines are eligible, returns a validation error.
  *
  * POST /openmeter/customers/{customerId}/charges/invoice
  */
@@ -1645,7 +1645,7 @@ export function invoiceCustomerCharges(
       return encodeURIComponent(String(pathParams.customerId))
     })()}/charges/invoice`
     const body = toWire(req.body, schemas.invoiceCustomerChargesBody)
-    if (client._options.validate) {
+    if (client._options.validate && body !== undefined) {
       assertValid(schemas.invoiceCustomerChargesBodyWire, body)
     }
     return http(client)

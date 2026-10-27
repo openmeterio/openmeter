@@ -8441,6 +8441,17 @@ export const chargeUsageBased = z
   })
   .describe('A usage-based charge for a customer.')
 
+export const invoiceCustomerChargesResult = z
+  .object({
+    invoices: z
+      .array(invoice)
+      .describe('Created standard invoices, one per collected currency.'),
+  })
+
+  .describe(
+    "Result of manually collecting a customer's pending lines into invoices.",
+  )
+
 export const invoicePagePaginatedResponse = z
   .object({
     data: z.array(invoice),
@@ -8992,7 +9003,7 @@ export const invoiceCustomerChargesPathParams = z.object({
 
 export const invoiceCustomerChargesBody = invoiceCustomerChargesInput
 
-export const invoiceCustomerChargesResponse = z.array(invoice)
+export const invoiceCustomerChargesResponse = invoiceCustomerChargesResult
 
 export const createSubscriptionBody = subscriptionCreate
 
@@ -18260,6 +18271,17 @@ export const chargeUsageBasedWire = z
   })
   .describe('A usage-based charge for a customer.')
 
+export const invoiceCustomerChargesResultWire = z
+  .strictObject({
+    invoices: z
+      .array(invoiceWire)
+      .describe('Created standard invoices, one per collected currency.'),
+  })
+
+  .describe(
+    "Result of manually collecting a customer's pending lines into invoices.",
+  )
+
 export const invoicePagePaginatedResponseWire = z
   .strictObject({
     data: z.array(invoiceWire),
@@ -18872,7 +18894,8 @@ export const invoiceCustomerChargesPathParamsWire = z.object({
 
 export const invoiceCustomerChargesBodyWire = invoiceCustomerChargesInputWire
 
-export const invoiceCustomerChargesResponseWire = z.array(invoiceWire)
+export const invoiceCustomerChargesResponseWire =
+  invoiceCustomerChargesResultWire
 
 export const createSubscriptionBodyWire = subscriptionCreateWire
 
