@@ -34,6 +34,7 @@ import type {
   EntitlementHistoryWindowSize,
   EntitlementPagePaginatedResponse,
   GetCreditBalanceParamsFilter,
+  Invoice,
   InvoiceCustomerChargesInput,
   ListCreditGrantsParamsFilter,
   ListCreditTransactionsParamsFilter,
@@ -397,6 +398,4 @@ export type InvoiceCustomerChargesRequest = AcceptDateStrings<{
   customerId: string
   body: InvoiceCustomerChargesInput
 }>
-export type InvoiceCustomerChargesResponse = z.output<
-  typeof schemas.invoiceCustomerChargesResponse
->
+export type InvoiceCustomerChargesResponse = Invoice[]
