@@ -117,6 +117,8 @@ func (e Engine) Rate(_ context.Context, in Input) (Result, error) {
 		return Result{}, fmt.Errorf("subtracting detailed lines: %w", err)
 	}
 
+	remainingDetailedLines = appendDeliberateZeroLines(remainingDetailedLines, currentDetailedLines, alreadyBilledDetailedLines)
+
 	for idx := range remainingDetailedLines {
 		// This rater intentionally books every delta on the current run period.
 		// The period-preserving late-event rater owns correction metadata.
@@ -144,4 +146,40 @@ func (e Engine) Rate(_ context.Context, in Input) (Result, error) {
 	return Result{
 		DetailedLines: remainingDetailedLines,
 	}, recorder.ErrorsOrNil()
+}
+
+// appendDeliberateZeroLines books the zero-total lines a pricer emits on
+// purpose, which subtraction drops: zero-usage tier lines and free usage.
+// Invoices display them. A zero-usage line is booked on every run. Free usage
+// is booked as the delta over the already billed quantity, so an exhausted or
+// unchanged free tier adds nothing. A zero total that only comes from rounding
+// a priced quantity stays dropped.
+func appendDeliberateZeroLines(remaining, current, alreadyBilled usagebased.DetailedLines) usagebased.DetailedLines {
+	present := lo.SliceToMap(remaining, func(line usagebased.DetailedLine) (string, struct{}) {
+		return line.ChildUniqueReferenceID, struct{}{}
+	})
+
+	billedQuantity := make(map[string]alpacadecimal.Decimal, len(alreadyBilled))
+	for _, line := range alreadyBilled {
+		billedQuantity[line.ChildUniqueReferenceID] = billedQuantity[line.ChildUniqueReferenceID].Add(line.Quantity)
+	}
+
+	for _, line := range current {
+		if _, ok := present[line.ChildUniqueReferenceID]; ok || !line.Totals.IsZero() {
+			continue
+		}
+
+		switch {
+		case line.Quantity.IsZero():
+			remaining = append(remaining, line)
+		case line.PerUnitAmount.IsZero():
+			delta := line.Quantity.Sub(billedQuantity[line.ChildUniqueReferenceID])
+			if delta.IsPositive() {
+				line.Quantity = delta
+				remaining = append(remaining, line)
+			}
+		}
+	}
+
+	return remaining
 }

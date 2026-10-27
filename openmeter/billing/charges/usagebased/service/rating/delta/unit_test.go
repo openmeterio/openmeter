@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	billingrating "github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 func TestUnitDeltaInitialUsage(t *testing.T) {
@@ -374,6 +375,55 @@ func TestUnitDeltaRoundingNoVisibleDeltaProducesNoLines(t *testing.T) {
 			{
 				period:                periods.period2,
 				meteredQuantity:       2,
+				expectedDetailedLines: []ratingtestutils.ExpectedDetailedLine{},
+				expectedTotals:        ratingtestutils.ExpectedTotals{},
+			},
+		},
+	})
+}
+
+func TestUnitDeltaZeroUnitPriceBooksFreeUsageDelta(t *testing.T) {
+	// Given:
+	// - a unit price with a zero amount
+	// When:
+	// - delta rating rates growing, unchanged, then shrinking cumulative snapshots
+	// Then:
+	// - only newly consumed free usage is booked, and a decrease books nothing
+	t.Parallel()
+
+	periods := deltaRatingTestPeriods()
+
+	freeUsageLine := func(period timeutil.ClosedPeriod, quantity float64) ratingtestutils.ExpectedDetailedLine {
+		return ratingtestutils.ExpectedDetailedLine{
+			ChildUniqueReferenceID: billingrating.UnitPriceUsageChildUniqueReferenceID,
+			Category:               stddetailedline.CategoryRegular,
+			ServicePeriod:          lo.ToPtr(period),
+			PerUnitAmount:          0,
+			Quantity:               quantity,
+			Totals:                 ratingtestutils.ExpectedTotals{},
+		}
+	}
+
+	runDeltaRatingTestCase(t, deltaRatingTestCase{
+		price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+			Amount: alpacadecimal.Zero,
+		}),
+		phases: []deltaRatingPhase{
+			{
+				period:                periods.period1,
+				meteredQuantity:       4,
+				expectedDetailedLines: []ratingtestutils.ExpectedDetailedLine{freeUsageLine(periods.period1, 4)},
+				expectedTotals:        ratingtestutils.ExpectedTotals{},
+			},
+			{
+				period:                periods.period2,
+				meteredQuantity:       10,
+				expectedDetailedLines: []ratingtestutils.ExpectedDetailedLine{freeUsageLine(periods.period2, 6)},
+				expectedTotals:        ratingtestutils.ExpectedTotals{},
+			},
+			{
+				period:                periods.period3,
+				meteredQuantity:       7,
 				expectedDetailedLines: []ratingtestutils.ExpectedDetailedLine{},
 				expectedTotals:        ratingtestutils.ExpectedTotals{},
 			},

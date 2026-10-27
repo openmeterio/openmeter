@@ -3064,8 +3064,6 @@ func (s *InvoicingTestSuite) createUBPProgressivePendingLines(ctx context.Contex
 }
 
 func (s *InvoicingTestSuite) TestUBPGraduatingFlatFeeTier1() {
-	s.T().Skip("OM-588: charge-based delta rating drops zero-total detailed lines required by legacy invoice presentation")
-
 	namespace := "ns-ubp-invoicing-graduated-flat-fee-tier-1"
 	ctx := context.Background()
 
@@ -4176,8 +4174,6 @@ func (s *InvoicingTestSuite) TestEmptyInvoiceGenerationZeroUsage() {
 }
 
 func (s *InvoicingTestSuite) TestEmptyInvoiceGenerationZeroPrice() {
-	s.T().Skip("OM-588: charge-based delta rating drops zero-total detailed lines required by legacy invoice presentation")
-
 	// Given we have a test customer and an UBP line with usage priced at 0
 	// we can create the invoice and there should be one detailed line with 0 total
 	// amount and no validation issues
