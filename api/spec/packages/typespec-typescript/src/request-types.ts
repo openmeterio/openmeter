@@ -100,15 +100,15 @@ function requestDecl(op: SdkOperation, bodyRef: string): string {
   return `${decl} Record<string, never>`
 }
 
-function responseDecl(op: SdkOperation): string {
+function responseDecl(op: SdkOperation, responseInterface?: string): string {
   if (!op.hasResponse) {
     return `export type ${op.base}Response = void`
   }
   if (op.textResponseContentType) {
     return `export type ${op.base}Response = string`
   }
-  if (op.responseInterface) {
-    return `export type ${op.base}Response = ${op.responseInterface}`
+  if (responseInterface) {
+    return `export type ${op.base}Response = ${responseInterface}`
   }
   return `export type ${op.base}Response = z.output<typeof schemas.${op.funcName}Response>`
 }
@@ -136,10 +136,11 @@ export function requestTypesFor(
   const opByBase = new Map(
     ops.map((op) => [operationBaseName(program, op), op]),
   )
-  // A request type alias `<Base>Request` collides with a body model interface of
-  // the same name; such a body is imported under a `<Name>Body` alias so the
-  // local request declaration owns the name.
-  const localNames = new Set(sdkOps.map((op) => `${op.base}Request`))
+  // Generated request and response aliases own their names in this module.
+  // Import colliding body models under a different name to avoid self-references.
+  const localNames = new Set(
+    sdkOps.flatMap((op) => [`${op.base}Request`, `${op.base}Response`]),
+  )
   const interfaceImports = new Map<string, string>()
   const importAlias = (name: string): string => {
     if (interfaceImports.has(name)) {
@@ -178,9 +179,9 @@ export function requestTypesFor(
         bodyRef = 'Record<string, never>'
       }
     }
-    if (sdkOp.responseInterface) {
-      importAlias(sdkOp.responseInterface)
-    }
+    const responseInterface = sdkOp.responseInterface
+      ? importAlias(sdkOp.responseInterface)
+      : undefined
 
     if (sdkOp.queryParams.length > 0) {
       const op = opByBase.get(sdkOp.base)!
@@ -201,7 +202,7 @@ export function requestTypesFor(
       }
     }
 
-    const response = responseDecl(sdkOp)
+    const response = responseDecl(sdkOp, responseInterface)
     if (response.includes('z.output')) {
       usesZod = true
     }
