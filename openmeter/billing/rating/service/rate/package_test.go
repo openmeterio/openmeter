@@ -305,3 +305,65 @@ func TestGetNumberOfPackages(t *testing.T) {
 	require.Equal(t, float64(1), p.GetNumberOfPackages(alpacadecimal.NewFromFloat(10), alpacadecimal.NewFromFloat(10)).InexactFloat64())
 	require.Equal(t, float64(2), p.GetNumberOfPackages(alpacadecimal.NewFromFloat(11), alpacadecimal.NewFromFloat(10)).InexactFloat64())
 }
+
+func TestGetNumberOfPackagesExactBoundary(t *testing.T) {
+	p := rate.Package{}
+
+	for _, tc := range []struct {
+		qty    string
+		size   string
+		expect string
+	}{
+		{"9.99999999999999999", "10", "1"},
+		{"19.99999999999999999", "10", "2"},
+		{"29.99999999999999999", "10", "3"},
+		{"2.99999999999999999", "1", "3"},
+		{"8.999999999999999999", "3", "3"},
+		{"6.9999999999999999999999", "7", "1"},
+		// unchanged behavior
+		{"0", "10", "0"},
+		{"1", "10", "1"},
+		{"10", "10", "1"},
+		{"11", "10", "2"},
+	} {
+		qty, err := alpacadecimal.NewFromString(tc.qty)
+		require.NoError(t, err)
+
+		size, err := alpacadecimal.NewFromString(tc.size)
+		require.NoError(t, err)
+
+		require.Equal(t, tc.expect, p.GetNumberOfPackages(qty, size).String(),
+			"qty %s, package size %s", tc.qty, tc.size)
+	}
+}
+
+// TestPackagePriceBelowOnePackageBillsOnePackage is the invoice-level control: the
+// same quantity priced through the real rating service.
+func TestPackagePriceBelowOnePackageBillsOnePackage(t *testing.T) {
+	qty, err := alpacadecimal.NewFromString("9.99999999999999999")
+	require.NoError(t, err)
+
+	testutil.RunCalculationTestCase(t, testutil.CalculationTestCase{
+		Price: *productcatalog.NewPriceFrom(productcatalog.PackagePrice{
+			QuantityPerPackage: alpacadecimal.NewFromFloat(10),
+			Amount:             alpacadecimal.NewFromFloat(15),
+		}),
+		LineMode: testutil.SinglePerPeriodLineMode,
+		Usage: testutil.FeatureUsageResponse{
+			LinePeriodQty: qty,
+		},
+		Expect: rating.DetailedLines{
+			{
+				Name:                   "feature: usage in period",
+				PerUnitAmount:          alpacadecimal.NewFromFloat(15),
+				Quantity:               alpacadecimal.NewFromFloat(1),
+				ChildUniqueReferenceID: rating.UsageChildUniqueReferenceID,
+				PaymentTerm:            productcatalog.InArrearsPaymentTerm,
+				Totals: totals.Totals{
+					Amount: alpacadecimal.NewFromFloat(15),
+					Total:  alpacadecimal.NewFromFloat(15),
+				},
+			},
+		},
+	})
+}

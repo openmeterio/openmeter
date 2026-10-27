@@ -69,6 +69,15 @@
 - Mapping helpers between API, domain, and DB representations follow
   [Type Translation Naming](docs/development/type-conversions.md). Use
   `map`/`mapped`, not `project`/`projected`, for representation translation.
+- `alpacadecimal.Decimal.Div` can round: its fallback uses `DivRound` at
+  `DivisionPrecision` (16 decimal places by default), with ties away from zero.
+  Do not use `Div` before exact floor/ceiling, remainder comparisons, or boundary
+  decisions. For example, dividing decimal `9.99999999999999999` by `10` rounds
+  to `1` while the exact remainder is non-zero. Use `QuoRem(divisor, precision)`
+  for a truncating quotient and exact remainder, accounting for signs when
+  applying floor or ceiling. Apply the intended rounding once at the owning
+  precision; increasing global division precision only moves the boundary and
+  is not a fix.
 
 ## Testing conventions
 
