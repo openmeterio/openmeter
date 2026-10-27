@@ -74,6 +74,7 @@ wait-local:
 	$(call print-target)
 	curl --fail --retry 10 --retry-max-time 120 --retry-all-errors http://localhost:30000/healthz
 	curl --fail --retry 10 --retry-max-time 120 --retry-all-errors http://localhost:30001/healthz
+	curl --fail --retry 10 --retry-max-time 120 --retry-all-errors http://localhost:30001/healthz/subscriptions
 
 .PHONY: env-local-down
 env-local-down:

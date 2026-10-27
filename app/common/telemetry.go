@@ -262,13 +262,26 @@ func NewTelemetryHandler(
 	return router
 }
 
-type TelemetryServer = *http.Server
+type TelemetryServer struct {
+	*http.Server
+	router *http.ServeMux
+}
+
+// Handle registers a telemetry route alongside the built-in health and metrics endpoints.
+func (s TelemetryServer) Handle(pattern string, handler http.Handler) {
+	s.router.Handle(pattern, handler)
+}
 
 func NewTelemetryServer(conf config.TelemetryConfig, handler TelemetryHandler) (TelemetryServer, func()) {
-	server := &http.Server{
-		Addr:              conf.Address,
-		Handler:           handler,
-		ReadHeaderTimeout: conf.ReadHeaderTimeout,
+	router := http.NewServeMux()
+	router.Handle("/", handler)
+	server := TelemetryServer{
+		Server: &http.Server{
+			Addr:              conf.Address,
+			Handler:           router,
+			ReadHeaderTimeout: conf.ReadHeaderTimeout,
+		},
+		router: router,
 	}
 
 	return server, func() { server.Close() }

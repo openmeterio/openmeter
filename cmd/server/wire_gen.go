@@ -853,7 +853,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	health := common.NewHealthChecker(logger)
 	telemetryHandler := common.NewTelemetryHandler(metricsTelemetryConfig, health, logger)
-	v10, cleanup10 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
+	telemetryServer, cleanup10 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
 	terminationConfig := conf.Termination
 	terminationChecker, err := common.NewTerminationChecker(terminationConfig, health)
 	if err != nil {
@@ -949,7 +949,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		StreamingConnector:               connector,
 		TaxCodeNamespaceHandler:          taxcodeNamespaceHandler,
 		TaxCodeService:                   taxcodeService,
-		TelemetryServer:                  v10,
+		TelemetryServer:                  telemetryServer,
 		TerminationChecker:               terminationChecker,
 		RuntimeMetricsCollector:          runtimeMetricsCollector,
 		Tracer:                           tracer,

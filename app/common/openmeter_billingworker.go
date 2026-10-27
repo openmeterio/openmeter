@@ -35,6 +35,7 @@ var BillingWorker = wire.NewSet(
 
 	BillingWorkerProvisionTopics,
 	BillingWorkerSubscriber,
+	NewBillingWorkerSubscriptionStatus,
 
 	Lockr,
 	FFX,
@@ -69,11 +70,16 @@ func BillingWorkerProvisionTopics(conf config.BillingConfiguration) []pkgkafka.T
 	return provisionTopics
 }
 
+func NewBillingWorkerSubscriptionStatus(conf config.EventsConfiguration) *watermillkafka.SubscriptionStatus {
+	return watermillkafka.NewSubscriptionStatus([]string{conf.SystemEvents.Topic})
+}
+
 // no closer function: the subscriber is closed by the router/worker
-func BillingWorkerSubscriber(conf config.BillingConfiguration, brokerOptions watermillkafka.BrokerOptions) (message.Subscriber, error) {
+func BillingWorkerSubscriber(conf config.BillingConfiguration, brokerOptions watermillkafka.BrokerOptions, subscriptionStatus *watermillkafka.SubscriptionStatus) (message.Subscriber, error) {
 	subscriber, err := watermillkafka.NewSubscriber(watermillkafka.SubscriberOptions{
-		Broker:            brokerOptions,
-		ConsumerGroupName: conf.Worker.ConsumerGroupName,
+		Broker:             brokerOptions,
+		ConsumerGroupName:  conf.Worker.ConsumerGroupName,
+		SubscriptionStatus: subscriptionStatus,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize Kafka subscriber: %w", err)
@@ -148,8 +154,11 @@ func BillingWorkerGroup(
 	worker *billingworker.Worker,
 	invoiceMetrics invoicemetrics.Service,
 	telemetryServer TelemetryServer,
+	subscriptionStatus *watermillkafka.SubscriptionStatus,
 ) run.Group {
 	var group run.Group
+
+	telemetryServer.Handle("/healthz/subscriptions", subscriptionStatus)
 
 	group.Add(
 		func() error { return telemetryServer.ListenAndServe() },
