@@ -241,7 +241,7 @@ export function queryFeatureCost(
       return encodeURIComponent(String(pathParams.featureId))
     })()}/cost/query`
     const body = toWire(req.body, schemas.queryFeatureCostBody)
-    if (client._options.validate) {
+    if (client._options.validate && body !== undefined) {
       assertValid(schemas.queryFeatureCostBodyWire, body)
     }
     return http(client)

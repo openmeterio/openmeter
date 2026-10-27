@@ -62,6 +62,6 @@ export type DeleteFeatureResponse = void
 
 export type QueryFeatureCostRequest = AcceptDateStrings<{
   featureId: string
-  body: MeterQueryRequestInput
+  body?: MeterQueryRequestInput
 }>
 export type QueryFeatureCostResponse = FeatureCostQueryResult

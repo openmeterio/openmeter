@@ -24,6 +24,7 @@ export interface SdkOperation {
   queryParams: string[]
   queryCodecs: SdkQueryCodec[]
   hasBody: boolean
+  bodyOptional: boolean
   hasResponse: boolean
   /** Documented interface name for the success body, when it is a named model. */
   responseInterface?: string
@@ -187,6 +188,9 @@ export function sdkOperation(
     nestPath,
     hasBody:
       httpOp.parameters.body?.type !== undefined || bodyOverrides.has(base),
+    bodyOptional:
+      !bodyOverrides.has(base) &&
+      (httpOp.parameters.body?.property?.optional ?? false),
     hasResponse: responseBody !== undefined,
     requestBodyInterface,
     responseInterface,

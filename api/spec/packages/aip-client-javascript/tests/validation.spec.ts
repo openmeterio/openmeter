@@ -2,7 +2,7 @@
 
 import fetchMock from '@fetch-mock/vitest'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { Client, funcs, ValidationError } from '../src/index.js'
+import { Client, Customers, funcs, ValidationError } from '../src/index.js'
 import { toWire } from '../src/lib/wire.js'
 import * as schemas from '../src/models/schemas.js'
 
@@ -43,6 +43,68 @@ function json(body: unknown) {
 }
 
 describe('strict request validation uses the effective JSON payload', () => {
+  it.each([true, false])(
+    'resets entitlement usage without an optional body (validate=%s)',
+    async (validate) => {
+      fetchMock.route('*', 204)
+
+      await new Customers(client(validate)).entitlements.resetUsage({
+        customerId,
+        entitlementId: meterId,
+      })
+
+      expect(fetchMock.callHistory.calls()).toHaveLength(1)
+      const request = fetchMock.callHistory.lastCall()!.args[0] as Request
+      expect(request.body).toBeNull()
+    },
+  )
+
+  it('maps and validates a provided optional reset body', async () => {
+    let sentBody: unknown
+    fetchMock.route('*', ({ options }) => {
+      sentBody = JSON.parse(options!.body as string)
+      return 204
+    })
+
+    await new Customers(client(true)).entitlements.resetUsage({
+      customerId,
+      entitlementId: meterId,
+      body: {
+        effectiveAt: new Date('2026-01-01T00:00:00Z'),
+        retainAnchor: true,
+      },
+    })
+
+    expect(sentBody).toEqual({
+      effective_at: '2026-01-01T00:00:00.000Z',
+      retain_anchor: true,
+    })
+  })
+
+  it('rejects an invalid provided optional reset body before sending', async () => {
+    fetchMock.route('*', 204)
+
+    await expect(
+      new Customers(client(true)).entitlements.resetUsage({
+        customerId,
+        entitlementId: meterId,
+        body: { retainAnchor: 'invalid' as never },
+      }),
+    ).rejects.toBeInstanceOf(ValidationError)
+
+    expect(fetchMock.callHistory.calls()).toHaveLength(0)
+  })
+
+  it('still rejects an omitted required request body before sending', async () => {
+    fetchMock.route('*', json({}))
+
+    const result = await funcs.createMeter(client(true), undefined as never)
+
+    expect(result.ok).toBe(false)
+    expect(result.error).toBeInstanceOf(ValidationError)
+    expect(fetchMock.callHistory.calls()).toHaveLength(0)
+  })
+
   it('omits explicit undefined object properties and record entries in toWire', () => {
     const wire = toWire(
       {
