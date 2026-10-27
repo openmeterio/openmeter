@@ -320,7 +320,7 @@ func TestGetNumberOfPackagesExactBoundary(t *testing.T) {
 		{"2.99999999999999999", "1", "3"},
 		{"8.999999999999999999", "3", "3"},
 		{"6.9999999999999999999999", "7", "1"},
-		// unchanged behaviour
+		// unchanged behavior
 		{"0", "10", "0"},
 		{"1", "10", "1"},
 		{"10", "10", "1"},
