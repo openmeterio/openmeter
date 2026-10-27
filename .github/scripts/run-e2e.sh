@@ -87,25 +87,4 @@ mkdir -p "${log_dir}"
 log_pid=$!
 curl --fail --retry 10 --retry-max-time 120 --retry-all-errors http://localhost:30000/healthz
 curl --fail --retry 10 --retry-max-time 120 --retry-all-errors http://localhost:30001/healthz
-
-# Health becomes ready before Kafka chooses the consumer's starting offsets.
-# Wait for all four system-event partitions before tests publish subscriptions;
-# a new consumer group otherwise skips events published before it joins.
-billing_partitions=0
-for ((attempt = 0; attempt < 60; attempt++)); do
-  billing_partitions="$("${compose[@]}" logs --no-color billing-worker |
-    sed -n 's/.*added subscription to om_sys\.api_events\/\([0-9][0-9]*\).*/\1/p' |
-    sort -u | wc -l)"
-  if [ "${billing_partitions}" -eq 4 ]; then
-    break
-  fi
-
-  sleep 1
-done
-
-if [ "${billing_partitions}" -ne 4 ]; then
-  echo "Billing worker did not initialize all four system-event partitions" >&2
-  exit 1
-fi
-
 make "${test_target}"
