@@ -66,6 +66,7 @@ require (
 	github.com/redis/go-redis/v9 v9.23.0
 	github.com/rickb777/period v1.3.0
 	github.com/sagikazarmark/mapstructurex v0.1.0
+	github.com/samber/do/v2 v2.1.0
 	github.com/samber/lo v1.53.0
 	github.com/samber/mo v1.17.0
 	github.com/samber/slog-multi v1.8.0
@@ -187,6 +188,7 @@ require (
 	github.com/rickb777/plural/v2 v2.1.1 // indirect
 	github.com/robfig/cron/v3 v3.0.1 // indirect
 	github.com/sagikazarmark/locafero v0.11.0 // indirect
+	github.com/samber/go-type-to-string v1.8.0 // indirect
 	github.com/samber/slog-common v0.21.0 // indirect
 	github.com/segmentio/asm v1.2.1 // indirect
 	github.com/sergi/go-diff v1.4.0 // indirect
