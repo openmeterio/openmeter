@@ -264,6 +264,12 @@ export type GetCreditGrantResponse = CreditGrant
 export interface ListCreditGrantsQuery {
   /** Determines which page of the collection to retrieve. */
   page?: { size?: number; number?: number }
+  /**
+   * Sort credit grants by `created_at`, `updated_at`, `name`, or `id`. Defaults to
+   * `created_at desc`. The `asc` suffix is optional when a sort attribute is
+   * supplied. Supports one attribute; ties are broken by `id` in the same direction.
+   */
+  sort?: SortQueryInput
   /** Filter credit grants returned in the response. */
   filter?: ListCreditGrantsParamsFilter
 }

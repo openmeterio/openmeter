@@ -30,6 +30,7 @@ type CreditGrantFilter struct {
 
 type CreditGrantListParams struct {
 	Page   *PageParams
+	Sort   *Sort
 	Filter *CreditGrantFilter
 }
 
@@ -37,6 +38,8 @@ func (p CreditGrantListParams) values() url.Values {
 	q := url.Values{}
 
 	addPageParams(q, p.Page)
+
+	addSort(q, "sort", p.Sort)
 
 	if p.Filter != nil {
 		if p.Filter.Status != nil {

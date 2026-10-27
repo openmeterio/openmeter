@@ -1197,9 +1197,13 @@ export function listCreditGrants(
       }
       return encodeURIComponent(String(pathParams.customerId))
     })()}/credits/grants`
+    if (client._options.validate && req.sort !== undefined) {
+      assertValid(schemas.listCreditGrantsQueryParams.shape.sort, req.sort)
+    }
     const query = toWire(
       {
         page: req.page,
+        sort: encodeSort(req.sort, toSnakeCase),
         filter: req.filter,
       },
       schemas.listCreditGrantsQueryParams,

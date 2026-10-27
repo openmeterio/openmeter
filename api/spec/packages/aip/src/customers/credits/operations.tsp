@@ -87,6 +87,14 @@ namespace Credits.Grants {
       ...Common.PagePaginationQuery,
 
       /**
+       * Sort credit grants by `created_at`, `updated_at`, `name`, or `id`. Defaults to
+       * `created_at desc`. The `asc` suffix is optional when a sort attribute is
+       * supplied. Supports one attribute; ties are broken by `id` in the same direction.
+       */
+      @query(#{ name: "sort" })
+      sort?: Common.SortQuery,
+
+      /**
        * Filter credit grants returned in the response.
        */
       @query(#{ style: "deepObject", explode: true })

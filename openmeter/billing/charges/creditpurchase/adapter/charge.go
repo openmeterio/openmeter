@@ -22,6 +22,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
+	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
 var _ creditpurchase.Adapter = (*adapter)(nil)
@@ -354,6 +355,23 @@ func (a *adapter) ListCharges(ctx context.Context, input creditpurchase.ListChar
 		query = filter.ApplyToQuery(query, input.Key, dbchargecreditpurchase.FieldKey)
 
 		query = withExpands(query, input.Expands)
+
+		order := input.Order
+		if order.IsDefaultValue() {
+			order = sortx.OrderDesc
+		}
+
+		ord := entutils.GetOrdering(order)
+		switch input.OrderBy {
+		case creditpurchase.OrderByID:
+			query = query.Order(dbchargecreditpurchase.ByID(ord...))
+		case creditpurchase.OrderByUpdatedAt:
+			query = query.Order(dbchargecreditpurchase.ByUpdatedAt(ord...), dbchargecreditpurchase.ByID(ord...))
+		case creditpurchase.OrderByName:
+			query = query.Order(dbchargecreditpurchase.ByName(ord...), dbchargecreditpurchase.ByID(ord...))
+		default:
+			query = query.Order(dbchargecreditpurchase.ByCreatedAt(ord...), dbchargecreditpurchase.ByID(ord...))
+		}
 
 		res, err := query.Paginate(ctx, input.Page)
 		if err != nil {

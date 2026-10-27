@@ -2,6 +2,7 @@ package credits
 
 import (
 	"context"
+	"slices"
 	"testing"
 	"time"
 
@@ -27,13 +28,13 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	ledgerchargeadapter "github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
-	"github.com/openmeterio/openmeter/openmeter/ledger/creditvoid"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	omtestutils "github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/sortx"
 	billingtest "github.com/openmeterio/openmeter/test/billing"
 )
 
@@ -100,7 +101,7 @@ func (s *CreditGrantTestSuite) SetupSuite() {
 		ChargesService:        s.Charges,
 		BillingService:        s.BillingService,
 		CustomerService:       s.CustomerService,
-		CreditVoidService:     creditvoid.NewNoopService(),
+		CreditVoidService:     s.CreditVoidService,
 		TransactionManager:    enttx.NewCreator(s.DBClient),
 		CurrencyResolver:      s.CurrencyResolver,
 	})
@@ -457,6 +458,74 @@ func (s *CreditGrantTestSuite) TestListCreditGrants() {
 	})
 	s.Contains(ids, firstGrant.ID)
 	s.Contains(ids, secondGrant.ID)
+}
+
+func (s *CreditGrantTestSuite) TestListCreditGrantsSorting() {
+	// given: grants whose names and creation times sort differently, including ties.
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("creditgrant-list-sorting")
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
+	sandboxApp := s.InstallSandboxApp(s.T(), ns)
+	_ = s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
+	now := time.Date(2026, 4, 17, 12, 0, 0, 0, time.UTC)
+	clock.FreezeTime(now)
+	defer clock.UnFreeze()
+
+	first := s.mustCreatePromotionalCreditGrant(ctx, ns, cust.GetID(), "beta", alpacadecimal.NewFromInt(10))
+	clock.FreezeTime(now.Add(time.Hour))
+	defer clock.UnFreeze()
+	second := s.mustCreatePromotionalCreditGrant(ctx, ns, cust.GetID(), "alpha", alpacadecimal.NewFromInt(10))
+	third := s.mustCreatePromotionalCreditGrant(ctx, ns, cust.GetID(), "alpha", alpacadecimal.NewFromInt(10))
+	s.Require().True(first.CreatedAt.Before(second.CreatedAt))
+	s.Require().Equal(second.CreatedAt, third.CreatedAt)
+
+	// Voiding the oldest grant gives it the newest update time.
+	clock.FreezeTime(now.Add(2 * time.Hour))
+	defer clock.UnFreeze()
+	voided, err := s.CreditGrantService.Void(ctx, creditgrant.VoidInput{Namespace: ns, CustomerID: cust.ID, ChargeID: first.ID})
+	s.Require().NoError(err)
+	s.Require().True(voided.UpdatedAt.After(second.UpdatedAt))
+
+	tiedIDs := []string{second.ID, third.ID}
+	slices.Sort(tiedIDs)
+	allIDs := []string{first.ID, second.ID, third.ID}
+	slices.Sort(allIDs)
+
+	for _, tc := range []struct {
+		name    string
+		orderBy creditpurchase.OrderBy
+		order   sortx.Order
+		want    []string
+	}{
+		{name: "default newest first", want: []string{tiedIDs[1], tiedIDs[0], first.ID}},
+		{name: "created ascending", orderBy: creditpurchase.OrderByCreatedAt, order: sortx.OrderAsc, want: []string{first.ID, tiedIDs[0], tiedIDs[1]}},
+		{name: "created descending", orderBy: creditpurchase.OrderByCreatedAt, order: sortx.OrderDesc, want: []string{tiedIDs[1], tiedIDs[0], first.ID}},
+		{name: "updated ascending", orderBy: creditpurchase.OrderByUpdatedAt, order: sortx.OrderAsc, want: []string{tiedIDs[0], tiedIDs[1], first.ID}},
+		{name: "updated descending", orderBy: creditpurchase.OrderByUpdatedAt, order: sortx.OrderDesc, want: []string{first.ID, tiedIDs[1], tiedIDs[0]}},
+		{name: "name ascending", orderBy: creditpurchase.OrderByName, order: sortx.OrderAsc, want: []string{tiedIDs[0], tiedIDs[1], first.ID}},
+		{name: "name descending", orderBy: creditpurchase.OrderByName, order: sortx.OrderDesc, want: []string{first.ID, tiedIDs[1], tiedIDs[0]}},
+		{name: "id ascending", orderBy: creditpurchase.OrderByID, order: sortx.OrderAsc, want: allIDs},
+		{name: "id descending", orderBy: creditpurchase.OrderByID, order: sortx.OrderDesc, want: []string{allIDs[2], allIDs[1], allIDs[0]}},
+	} {
+		s.Run(tc.name, func() {
+			// when: listing the same sorted grants across one-item pages.
+			var ids []string
+			for page := 1; page <= len(tc.want); page++ {
+				result, err := s.CreditGrantService.List(ctx, creditgrant.ListInput{
+					Namespace: ns, CustomerID: cust.ID, Page: pagination.NewPage(page, 1),
+					OrderBy: tc.orderBy, Order: tc.order,
+				})
+				s.Require().NoError(err)
+				s.Require().Equal(len(tc.want), result.TotalCount)
+				s.Require().Len(result.Items, 1)
+				ids = append(ids, result.Items[0].ID)
+			}
+
+			// then: ordering happens before pagination and tied grants appear once.
+			s.Equal(tc.want, ids)
+		})
+	}
 }
 
 // TestCreateInvoiceFundedGrantPropagatesTaxConfigToInvoiceLine verifies that TaxConfig set on

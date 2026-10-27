@@ -8869,6 +8869,7 @@ export const listCreditGrantsQueryParams = z.object({
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
+  sort: sortQuery.optional(),
   filter: listCreditGrantsParamsFilter.optional(),
 })
 
@@ -18710,6 +18711,13 @@ export const listCreditGrantsQueryParamsWire = z.object({
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
+  sort: z
+    .string()
+    .optional()
+
+    .describe(
+      'Sort credit grants by `created_at`, `updated_at`, `name`, or `id`. Defaults to `created_at desc`. The `asc` suffix is optional when a sort attribute is supplied. Supports one attribute; ties are broken by `id` in the same direction.',
+    ),
   filter: listCreditGrantsParamsFilterWire.optional(),
 })
 
