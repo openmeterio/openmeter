@@ -49,7 +49,9 @@ function funcBody(op: SdkOperation): string {
   const reqParam =
     hasQuery && !op.hasBody && !hasPath
       ? `req: ${reqType} = {}`
-      : `req: ${reqType}`
+      : op.bodyOptional && !hasPath && !hasQuery
+        ? `req?: ${reqType}`
+        : `req: ${reqType}`
 
   const url = hasPath
     ? pathExpr(op, 'pathParams')
@@ -121,7 +123,7 @@ function funcBody(op: SdkOperation): string {
   const prepareBody = op.hasBody
     ? [
         `    const body = toWire(${bodyValue}, schemas.${op.funcName}Body)`,
-        `    if (client._options.validate) {`,
+        `    if (client._options.validate${op.bodyOptional ? ' && body !== undefined' : ''}) {`,
         `      assertValid(schemas.${op.funcName}BodyWire, body)`,
         `    }`,
       ]
@@ -327,7 +329,11 @@ interface FacadeNode {
 }
 
 function reqOptionalFor(op: SdkOperation): boolean {
-  return op.queryParams.length > 0 && !op.hasBody && op.pathParams.length === 0
+  return (
+    op.pathParams.length === 0 &&
+    ((!op.hasBody && op.queryParams.length > 0) ||
+      (op.bodyOptional && op.queryParams.length === 0))
+  )
 }
 
 function emitMethod(op: SdkOperation): string {

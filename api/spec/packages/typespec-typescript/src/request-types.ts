@@ -81,13 +81,13 @@ function requestDecl(op: SdkOperation, bodyRef: string): string {
 
   if (op.hasBody) {
     if (!hasPath && !hasQuery) {
-      return `${decl} AcceptDateStrings<${bodyRef}>`
+      return `${decl} AcceptDateStrings<${bodyRef}>${op.bodyOptional ? ' | undefined' : ''}`
     }
     const queryPart = hasQuery ? ` & ${queryRef}` : ''
     const pathLine = hasPath
       ? `${op.pathParams.map(pathField).join('\n')}\n`
       : ''
-    return `${decl} AcceptDateStrings<{\n${pathLine}  body: ${bodyRef}\n}${queryPart}>`
+    return `${decl} AcceptDateStrings<{\n${pathLine}  body${op.bodyOptional ? '?' : ''}: ${bodyRef}\n}${queryPart}>`
   }
   if (hasQuery) {
     return hasPath

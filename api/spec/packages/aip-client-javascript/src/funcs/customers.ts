@@ -893,7 +893,7 @@ export function resetCustomerEntitlementUsage(
       return encodeURIComponent(String(pathParams.entitlementId))
     })()}/reset`
     const body = toWire(req.body, schemas.resetCustomerEntitlementUsageBody)
-    if (client._options.validate) {
+    if (client._options.validate && body !== undefined) {
       assertValid(schemas.resetCustomerEntitlementUsageBodyWire, body)
     }
     await http(client).post(path, { ...options, json: body })
@@ -1367,7 +1367,7 @@ export function voidCreditGrant(
       return encodeURIComponent(String(pathParams.creditGrantId))
     })()}/void`
     const body = toWire(req.body, schemas.voidCreditGrantBody)
-    if (client._options.validate) {
+    if (client._options.validate && body !== undefined) {
       assertValid(schemas.voidCreditGrantBodyWire, body)
     }
     return http(client)

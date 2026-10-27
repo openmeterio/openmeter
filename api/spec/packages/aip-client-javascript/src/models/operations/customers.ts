@@ -204,7 +204,7 @@ export type ListCustomerEntitlementsResponse = EntitlementPagePaginatedResponse
 export type ResetCustomerEntitlementUsageRequest = AcceptDateStrings<{
   customerId: string
   entitlementId: string
-  body: ResetCustomerEntitlementUsageRequestInput
+  body?: ResetCustomerEntitlementUsageRequestInput
 }>
 export type ResetCustomerEntitlementUsageResponse = void
 
@@ -306,7 +306,7 @@ export type CreateCreditAdjustmentResponse = CreditAdjustment
 export type VoidCreditGrantRequest = AcceptDateStrings<{
   customerId: string
   creditGrantId: string
-  body: VoidCreditGrantRequestInput
+  body?: VoidCreditGrantRequestInput
 }>
 export type VoidCreditGrantResponse = CreditGrant
 
