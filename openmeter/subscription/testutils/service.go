@@ -42,7 +42,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/subscription/service"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	subscriptionworkflowservice "github.com/openmeterio/openmeter/openmeter/subscription/workflow/service"
-	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	taxcodetestutils "github.com/openmeterio/openmeter/openmeter/taxcode/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
@@ -73,7 +72,6 @@ type SubscriptionDependencies struct {
 	SubscriptionAddonService subscriptionaddon.Service
 	AddonService             *testAddonService
 	PlanAddonService         planaddon.Service
-	TaxCodeService           taxcode.Service
 	TaxCodeEnv               *taxcodetestutils.TestEnv
 }
 
@@ -310,7 +308,6 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 		PlanAddonService:         planAddonService,
 		MeterService:             meterAdapter,
 		MockStreamingConnector:   mockStreaming,
-		TaxCodeService:           taxCodeEnv.Service,
 		TaxCodeEnv:               taxCodeEnv,
 	}
 }

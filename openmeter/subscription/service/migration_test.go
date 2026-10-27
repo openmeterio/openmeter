@@ -89,7 +89,7 @@ func TestUpdateRejectsMigrationBetweenReadAndLock(t *testing.T) {
 		Publisher:             eventbus.NewMock(t),
 		Lockr:                 locker,
 		FeatureFlags:          ffx.NewTestContextService(ffx.AccessConfig{subscription.MultiSubscriptionEnabledFF: false}),
-		TaxCode:               deps.TaxCodeService,
+		TaxCode:               deps.TaxCodeEnv.Service,
 		CostBasisService:      deps.CurrencyService,
 	})
 	require.NoError(t, err)
@@ -184,7 +184,7 @@ func TestCancelIncludesMigrationCommittedBeforeLock(t *testing.T) {
 		Publisher:             eventbus.NewMock(t),
 		Lockr:                 locker,
 		FeatureFlags:          ffx.NewTestContextService(ffx.AccessConfig{subscription.MultiSubscriptionEnabledFF: false}),
-		TaxCode:               deps.TaxCodeService,
+		TaxCode:               deps.TaxCodeEnv.Service,
 		CostBasisService:      deps.CurrencyService,
 	})
 	require.NoError(t, err)

@@ -245,7 +245,7 @@ func (s *InvoicingTaxTestSuite) TestLineSplittingRetainsTaxConfig() {
 	s.Require().NotNil(res.Lines[0].TaxConfig)
 	s.Require().NotNil(res.Lines[0].TaxConfig.TaxCodeID, "TaxCodeID must be resolved before the gathering line is persisted")
 
-	createdTC, err := s.TaxCodeService.GetTaxCodeByAppMapping(ctx, taxcode.GetTaxCodeByAppMappingInput{
+	createdTC, err := s.TaxCodeEnv.Service.GetTaxCodeByAppMapping(ctx, taxcode.GetTaxCodeByAppMappingInput{
 		Namespace: namespace,
 		AppType:   app.AppTypeStripe,
 		TaxCode:   taxConfig.Stripe.Code,

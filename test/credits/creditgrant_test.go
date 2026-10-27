@@ -545,7 +545,7 @@ func (s *CreditGrantTestSuite) TestCreateInvoiceFundedGrantNilTaxConfigAppliesCr
 		billingtest.WithManualApproval(),
 	)
 
-	defaults, err := s.TaxCodeService.GetOrganizationDefaultTaxCodes(ctx, taxcode.GetOrganizationDefaultTaxCodesInput{Namespace: ns})
+	defaults, err := s.TaxCodeEnv.Service.GetOrganizationDefaultTaxCodes(ctx, taxcode.GetOrganizationDefaultTaxCodesInput{Namespace: ns})
 	s.Require().NoError(err)
 
 	now := datetime.MustParseTimeInLocation(s.T(), "2026-04-17T11:23:53Z", time.UTC).AsTime()

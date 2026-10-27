@@ -1209,7 +1209,7 @@ func TestTaxCodeResolution(t *testing.T) {
 		// Look up the TaxCode entity that should have been created during subscription creation.
 		// ExampleRateCard1 and ExampleRateCard3ForAddons both use Stripe code "txcd_10000000".
 		const stripeCode = "txcd_10000000"
-		tc, err := deps.TaxCodeService.GetTaxCodeByAppMapping(ctx, taxcode.GetTaxCodeByAppMappingInput{
+		tc, err := deps.TaxCodeEnv.Service.GetTaxCodeByAppMapping(ctx, taxcode.GetTaxCodeByAppMappingInput{
 			Namespace: subscriptiontestutils.ExampleNamespace,
 			AppType:   app.AppTypeStripe,
 			TaxCode:   stripeCode,
@@ -1276,7 +1276,7 @@ func TestTaxCodeResolution(t *testing.T) {
 		require.NoError(t, err)
 
 		const stripeCode = "txcd_10000000"
-		tc, err := deps.TaxCodeService.GetTaxCodeByAppMapping(ctx, taxcode.GetTaxCodeByAppMappingInput{
+		tc, err := deps.TaxCodeEnv.Service.GetTaxCodeByAppMapping(ctx, taxcode.GetTaxCodeByAppMappingInput{
 			Namespace: subscriptiontestutils.ExampleNamespace,
 			AppType:   app.AppTypeStripe,
 			TaxCode:   stripeCode,
@@ -1332,7 +1332,7 @@ func TestTaxCodeResolution(t *testing.T) {
 		service := deps.SubscriptionService
 
 		// Pre-create a TaxCode with a Stripe mapping.
-		tcEntity, err := deps.TaxCodeService.GetOrCreateByAppMapping(ctx, taxcode.GetOrCreateByAppMappingInput{
+		tcEntity, err := deps.TaxCodeEnv.Service.GetOrCreateByAppMapping(ctx, taxcode.GetOrCreateByAppMappingInput{
 			Namespace: subscriptiontestutils.ExampleNamespace,
 			AppType:   app.AppTypeStripe,
 			TaxCode:   "txcd_60000010",

@@ -211,7 +211,7 @@ func (s *BaseSuite) setupCreditsSuite() {
 		BillingService:        s.BillingService,
 		FeatureMeterResolver:  s.FeatureMeterResolver,
 		StreamingConnector:    s.MockStreamingConnector,
-		TaxCodeService:        s.TaxCodeService,
+		TaxCodeService:        s.TaxCodeEnv.Service,
 		CustomerService:       s.CustomerService,
 		FlatFeeHandler:        flatFeeHandler,
 		CreditPurchaseHandler: creditPurchaseHandler,

@@ -154,7 +154,7 @@ func setup(t *testing.T, config setupConfig) testDeps {
 		FeatureMeterResolver:    featureMeterResolver,
 		Publisher:               publisher,
 		AdvancementStrategy:     billing.ForegroundAdvancementStrategy,
-		TaxCodeService:          deps.TaxCodeService,
+		TaxCodeService:          deps.TaxCodeEnv.Service,
 	})
 	require.NoError(t, err)
 
@@ -233,7 +233,7 @@ func setup(t *testing.T, config setupConfig) testDeps {
 			FeatureMeterResolver:  featureMeterResolver,
 			CustomerService:       deps.CustomerService,
 			StreamingConnector:    deps.MockStreamingConnector,
-			TaxCodeService:        deps.TaxCodeService,
+			TaxCodeService:        deps.TaxCodeEnv.Service,
 			FlatFeeHandler:        ledgerchargeadapter.NewFlatFeeHandler(ledgerDeps.HistoricalLedger, resolverDeps, collector),
 			CreditPurchaseHandler: creditPurchaseHandler,
 			UsageBasedHandler:     ledgerchargeadapter.NewUsageBasedHandler(ledgerDeps.HistoricalLedger, resolverDeps, collector),

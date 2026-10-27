@@ -119,7 +119,7 @@ func (s *CreditThenInvoiceTestSuite) SetupSuite() {
 		BillingService:       s.BillingService,
 		FeatureMeterResolver: s.FeatureMeterResolver,
 		StreamingConnector:   s.MockStreamingConnector,
-		TaxCodeService:       s.TaxCodeService,
+		TaxCodeService:       s.TaxCodeEnv.Service,
 		CustomerService:      s.CustomerService,
 		SubscriptionService:  s.SubscriptionService,
 		FlatFeeHandler: ledgerchargeadapter.NewFlatFeeHandler(
@@ -3998,7 +3998,7 @@ func (s *CreditThenInvoiceTestSuite) TestGatheringManualEditSync() {
 	// - subscription sync keeps reconciling the base charge intent
 	// - the API edit owns the customer-facing effective charge intent
 
-	defaultTaxCodes, err := s.TaxCodeService.GetOrganizationDefaultTaxCodes(ctx, taxcode.GetOrganizationDefaultTaxCodesInput{Namespace: s.Namespace})
+	defaultTaxCodes, err := s.TaxCodeEnv.Service.GetOrganizationDefaultTaxCodes(ctx, taxcode.GetOrganizationDefaultTaxCodesInput{Namespace: s.Namespace})
 	s.NoError(err)
 	baseTaxConfig := &productcatalog.TaxConfig{
 		Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
@@ -4260,7 +4260,7 @@ func (s *CreditThenInvoiceTestSuite) TestGatheringManualCreateSync() {
 	// - the new line references the newly-created manually managed charge
 	// - subscription sync continues to own the subscription-backed charges
 
-	defaultTaxCodes, err := s.TaxCodeService.GetOrganizationDefaultTaxCodes(ctx, taxcode.GetOrganizationDefaultTaxCodesInput{Namespace: s.Namespace})
+	defaultTaxCodes, err := s.TaxCodeEnv.Service.GetOrganizationDefaultTaxCodes(ctx, taxcode.GetOrganizationDefaultTaxCodesInput{Namespace: s.Namespace})
 	s.NoError(err)
 	subscriptionTaxConfig := &productcatalog.TaxConfig{
 		Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
@@ -4494,7 +4494,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedGatheringManualCreateSync() {
 	// then:
 	// - billing routes the created line to the usage-based charge engine
 	// - charges creates a manually managed usage-based charge for the new line
-	defaultTaxCodes, err := s.TaxCodeService.GetOrganizationDefaultTaxCodes(ctx, taxcode.GetOrganizationDefaultTaxCodesInput{Namespace: s.Namespace})
+	defaultTaxCodes, err := s.TaxCodeEnv.Service.GetOrganizationDefaultTaxCodes(ctx, taxcode.GetOrganizationDefaultTaxCodesInput{Namespace: s.Namespace})
 	s.NoError(err)
 	manualTaxConfig := productcatalog.TaxCodeConfig{
 		TaxCodeID: defaultTaxCodes.InvoicingTaxCodeID,
@@ -4636,7 +4636,7 @@ func (s *CreditThenInvoiceTestSuite) TestGatheringManualDeleteSync() {
 		// - the active subscription is synced
 		// then:
 		// - sync creates one customer-facing charge-backed gathering line
-		defaultTaxCodes, err := s.TaxCodeService.GetOrganizationDefaultTaxCodes(ctx, taxcode.GetOrganizationDefaultTaxCodesInput{Namespace: s.Namespace})
+		defaultTaxCodes, err := s.TaxCodeEnv.Service.GetOrganizationDefaultTaxCodes(ctx, taxcode.GetOrganizationDefaultTaxCodesInput{Namespace: s.Namespace})
 		s.NoError(err)
 		baseTaxConfig := &productcatalog.TaxConfig{
 			Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
@@ -4971,7 +4971,7 @@ func (s *CreditThenInvoiceTestSuite) TestStandardInvoiceManualEditSync() {
 		profile.WorkflowConfig.Invoicing.AutoAdvance = false
 	})
 
-	defaultTaxCodes, err := s.TaxCodeService.GetOrganizationDefaultTaxCodes(ctx, taxcode.GetOrganizationDefaultTaxCodesInput{Namespace: s.Namespace})
+	defaultTaxCodes, err := s.TaxCodeEnv.Service.GetOrganizationDefaultTaxCodes(ctx, taxcode.GetOrganizationDefaultTaxCodesInput{Namespace: s.Namespace})
 	s.NoError(err)
 	baseTaxConfig := &productcatalog.TaxConfig{
 		Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
@@ -5195,7 +5195,7 @@ func (s *CreditThenInvoiceTestSuite) TestStandardInvoiceManualDiscountEditSync()
 	})
 	s.assertCreditThenInvoiceBalances(expectedCreditThenInvoiceBalances{})
 
-	defaultTaxCodes, err := s.TaxCodeService.GetOrganizationDefaultTaxCodes(ctx, taxcode.GetOrganizationDefaultTaxCodesInput{Namespace: s.Namespace})
+	defaultTaxCodes, err := s.TaxCodeEnv.Service.GetOrganizationDefaultTaxCodes(ctx, taxcode.GetOrganizationDefaultTaxCodesInput{Namespace: s.Namespace})
 	s.NoError(err)
 	defaultTaxConfig := productcatalog.TaxCodeConfig{
 		TaxCodeID: defaultTaxCodes.InvoicingTaxCodeID,
@@ -5382,7 +5382,7 @@ func (s *CreditThenInvoiceTestSuite) TestStandardInvoiceManualCreateSync() {
 		profile.WorkflowConfig.Invoicing.AutoAdvance = false
 	})
 
-	defaultTaxCodes, err := s.TaxCodeService.GetOrganizationDefaultTaxCodes(ctx, taxcode.GetOrganizationDefaultTaxCodesInput{Namespace: s.Namespace})
+	defaultTaxCodes, err := s.TaxCodeEnv.Service.GetOrganizationDefaultTaxCodes(ctx, taxcode.GetOrganizationDefaultTaxCodesInput{Namespace: s.Namespace})
 	s.NoError(err)
 	defaultTaxConfig := productcatalog.TaxCodeConfig{
 		TaxCodeID: defaultTaxCodes.InvoicingTaxCodeID,
@@ -5627,7 +5627,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedStandardInvoiceManualCreateSy
 		profile.WorkflowConfig.Invoicing.AutoAdvance = false
 	})
 
-	defaultTaxCodes, err := s.TaxCodeService.GetOrganizationDefaultTaxCodes(ctx, taxcode.GetOrganizationDefaultTaxCodesInput{Namespace: s.Namespace})
+	defaultTaxCodes, err := s.TaxCodeEnv.Service.GetOrganizationDefaultTaxCodes(ctx, taxcode.GetOrganizationDefaultTaxCodesInput{Namespace: s.Namespace})
 	s.NoError(err)
 	defaultTaxConfig := productcatalog.TaxCodeConfig{
 		TaxCodeID: defaultTaxCodes.InvoicingTaxCodeID,
@@ -8632,7 +8632,7 @@ func (s *CreditThenInvoiceTestSuite) TestRateCardTaxSyncFlatFee() {
 	// The namespace's default invoicing tax code is auto-stamped on charges and
 	// propagated lines when the rate card leaves TaxCodeID nil. Set it explicitly
 	// here so the rate card carries the tax code we then assert is propagated.
-	defaults, err := s.TaxCodeService.GetOrganizationDefaultTaxCodes(ctx, taxcode.GetOrganizationDefaultTaxCodesInput{Namespace: s.Namespace})
+	defaults, err := s.TaxCodeEnv.Service.GetOrganizationDefaultTaxCodes(ctx, taxcode.GetOrganizationDefaultTaxCodesInput{Namespace: s.Namespace})
 	s.Require().NoError(err)
 
 	taxConfig := &productcatalog.TaxConfig{
@@ -8802,7 +8802,7 @@ func (s *CreditThenInvoiceTestSuite) TestRateCardTaxSyncUsageBased() {
 	// The namespace's default invoicing tax code is auto-stamped on charges and
 	// propagated lines when the rate card leaves TaxCodeID nil. Set it explicitly
 	// here so the rate card carries the tax code we then assert is propagated.
-	defaults, err := s.TaxCodeService.GetOrganizationDefaultTaxCodes(ctx, taxcode.GetOrganizationDefaultTaxCodesInput{Namespace: s.Namespace})
+	defaults, err := s.TaxCodeEnv.Service.GetOrganizationDefaultTaxCodes(ctx, taxcode.GetOrganizationDefaultTaxCodesInput{Namespace: s.Namespace})
 	s.Require().NoError(err)
 
 	taxConfig := &productcatalog.TaxConfig{
