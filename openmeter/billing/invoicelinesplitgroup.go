@@ -353,16 +353,17 @@ type SplitLineHierarchyInvoice struct {
 // subscription reconciliation. Updates describe intent; the invoice updater
 // loads the canonical line before applying them.
 type SplitLineHierarchyLine struct {
-	LineID        `json:",inline"`
-	Invoice       SplitLineHierarchyInvoice `json:"invoice"`
-	DeletedAt     *time.Time                `json:"deletedAt,omitempty"`
-	ServicePeriod timeutil.ClosedPeriod     `json:"period"`
-	ManagedBy     InvoiceLineManagedBy      `json:"managedBy"`
-	Annotations   models.Annotations        `json:"annotations,omitempty"`
-	Subscription  *SubscriptionReference    `json:"subscription,omitempty"`
-	InvoiceAt     time.Time                 `json:"invoiceAt"`
-	Amount        alpacadecimal.Decimal     `json:"amount"`
-	ChargesTotal  alpacadecimal.Decimal     `json:"chargesTotal"`
+	LineID         `json:",inline"`
+	Invoice        SplitLineHierarchyInvoice `json:"invoice"`
+	DeletedAt      *time.Time                `json:"deletedAt,omitempty"`
+	ServicePeriod  timeutil.ClosedPeriod     `json:"period"`
+	ManagedBy      InvoiceLineManagedBy      `json:"managedBy"`
+	Annotations    models.Annotations        `json:"annotations,omitempty"`
+	Subscription   *SubscriptionReference    `json:"subscription,omitempty"`
+	InvoiceAt      time.Time                 `json:"invoiceAt"`
+	Amount         alpacadecimal.Decimal     `json:"amount"`
+	DiscountsTotal alpacadecimal.Decimal     `json:"discountsTotal"`
+	ChargesTotal   alpacadecimal.Decimal     `json:"chargesTotal"`
 }
 
 func (l SplitLineHierarchyLine) Clone() (SplitLineHierarchyLine, error) {
@@ -424,7 +425,7 @@ func (h *SplitLineHierarchy) SumNetAmount(in SumNetAmountInput) (alpacadecimal.D
 				return nil
 			}
 
-			netAmount = netAmount.Add(child.Amount)
+			netAmount = netAmount.Add(child.Amount).Sub(child.DiscountsTotal)
 
 			if in.IncludeCharges {
 				netAmount = netAmount.Add(child.ChargesTotal)

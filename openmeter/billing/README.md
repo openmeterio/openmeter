@@ -188,7 +188,9 @@ usage and retains matching detail and discount identities.
 The legacy engine uses a dedicated rating entrypoint whose accessor supplies
 prior-period usage, the full service period, and previously billed amounts.
 Ordinary charge rating uses its own snapshots and does not require split-line
-hierarchy access.
+hierarchy access. Minimum and maximum spend commitments count prior usage
+after discounts, before tax and credits. The final slice adds any minimum-spend
+shortfall; later slices only bill the remaining room under a maximum.
 
 Legacy calculation pairs the current line with separately supplied split-group
 context. Persisted engine operations resolve complete history in the caller's
