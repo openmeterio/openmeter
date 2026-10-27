@@ -188,9 +188,7 @@ export function sdkOperation(
     nestPath,
     hasBody:
       httpOp.parameters.body?.type !== undefined || bodyOverrides.has(base),
-    bodyOptional:
-      !bodyOverrides.has(base) &&
-      (httpOp.parameters.body?.property?.optional ?? false),
+    bodyOptional: httpOp.parameters.body?.property?.optional ?? false,
     hasResponse: responseBody !== undefined,
     requestBodyInterface,
     responseInterface,
