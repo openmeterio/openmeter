@@ -54,7 +54,6 @@ import (
 	subjectadapter "github.com/openmeterio/openmeter/openmeter/subject/adapter"
 	subjectservice "github.com/openmeterio/openmeter/openmeter/subject/service"
 	subjecthooks "github.com/openmeterio/openmeter/openmeter/subject/service/hooks"
-	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	taxcodetestutils "github.com/openmeterio/openmeter/openmeter/taxcode/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
@@ -92,8 +91,7 @@ type BaseSuite struct {
 	AppService app.Service
 	SandboxApp *appsandbox.MockableFactory
 
-	TaxCodeService taxcode.Service
-	TaxCodeEnv     *taxcodetestutils.TestEnv
+	TaxCodeEnv *taxcodetestutils.TestEnv
 }
 
 func (s *BaseSuite) RequireRun(name string, subtest func()) {
@@ -120,7 +118,7 @@ func (b *BaseSuite) GetSubscriptionMixInDependencies() SubscriptionMixInDependen
 		FeatureRepo:            b.FeatureRepo,
 		FeatureService:         b.FeatureService,
 		CustomerService:        b.CustomerService,
-		TaxCodeService:         b.TaxCodeService,
+		TaxCodeService:         b.TaxCodeEnv.Service,
 		MeterAdapter:           b.MeterAdapter,
 		MockStreamingConnector: b.MockStreamingConnector,
 	}
@@ -215,7 +213,6 @@ func (s *BaseSuite) setupSuite() {
 
 	// TaxCode
 	s.TaxCodeEnv = taxcodetestutils.NewTestEnvFromClient(t, dbClient, slog.Default())
-	s.TaxCodeService = s.TaxCodeEnv.Service
 
 	// Billing
 	billingAdapter, err := billingadapter.New(billingadapter.Config{
@@ -267,7 +264,7 @@ func (s *BaseSuite) setupSuite() {
 		FeatureMeterResolver:    featureMeterResolver,
 		Publisher:               publisher,
 		AdvancementStrategy:     billing.ForegroundAdvancementStrategy,
-		TaxCodeService:          s.TaxCodeService,
+		TaxCodeService:          s.TaxCodeEnv.Service,
 	})
 	require.NoError(t, err)
 
@@ -669,7 +666,7 @@ func (s *BaseSuite) ProvisionBillingProfile(ctx context.Context, ns string, appI
 func (s *BaseSuite) SeedProfileDefaultTaxConfigViaAdapter(ctx context.Context, profileID billing.ProfileID, taxConfig *productcatalog.TaxConfig) *billing.AdapterGetProfileResponse {
 	s.T().Helper()
 
-	s.Require().NoError(productcatalog.ResolveTaxConfig(ctx, s.TaxCodeService, profileID.Namespace, taxConfig))
+	s.Require().NoError(productcatalog.ResolveTaxConfig(ctx, s.TaxCodeEnv.Service, profileID.Namespace, taxConfig))
 
 	adapterProfile, err := s.BillingAdapter.GetProfile(ctx, billing.GetProfileInput{Profile: profileID})
 	s.Require().NoError(err)

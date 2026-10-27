@@ -318,7 +318,7 @@ func (s *BaseSuite) SetupSuite() {
 		RecognizerService:     recognizerService,
 
 		BillingService:      s.BillingService,
-		TaxCodeService:      s.TaxCodeService,
+		TaxCodeService:      s.TaxCodeEnv.Service,
 		CurrencyResolver:    currencyResolver,
 		CustomerService:     s.CustomerService,
 		SubscriptionService: s.SubscriptionService,

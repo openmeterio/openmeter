@@ -1080,7 +1080,7 @@ func TestApplyWithMultiInstance(t *testing.T) {
 func lookupTaxCodeID(t *testing.T, deps subscriptiontestutils.SubscriptionDependencies, stripeCode string) *string {
 	t.Helper()
 
-	tc, err := deps.TaxCodeService.GetTaxCodeByAppMapping(context.Background(), taxcode.GetTaxCodeByAppMappingInput{
+	tc, err := deps.TaxCodeEnv.Service.GetTaxCodeByAppMapping(context.Background(), taxcode.GetTaxCodeByAppMappingInput{
 		Namespace: subscriptiontestutils.ExampleNamespace,
 		AppType:   app.AppTypeStripe,
 		TaxCode:   stripeCode,

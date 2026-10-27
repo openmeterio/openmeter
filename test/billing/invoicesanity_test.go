@@ -70,7 +70,7 @@ func (s *InvoiceSanityTestSuite) configureSanityService(input sanityServiceInput
 		LegacyBillingLineEngine:    s.LegacyBillingLineEngine,
 		CustomerService:            s.CustomerService,
 		AppService:                 s.AppService,
-		TaxCodeService:             s.TaxCodeService,
+		TaxCodeService:             s.TaxCodeEnv.Service,
 		FeatureMeterResolver:       s.FeatureMeterResolver,
 		Logger:                     logger,
 		Publisher:                  eventbus.NewMock(s.T()),

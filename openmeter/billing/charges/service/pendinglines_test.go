@@ -70,7 +70,7 @@ func (s *InvoicableChargesTestSuite) TestCreatePendingInvoiceLinesResolvesStripe
 	s.Require().NotNil(result.Lines[0].TaxConfig.Stripe)
 	s.Equal("txcd_40010001", result.Lines[0].TaxConfig.Stripe.Code)
 
-	resolved, err := s.TaxCodeService.GetTaxCodeByAppMapping(ctx, taxcode.GetTaxCodeByAppMappingInput{
+	resolved, err := s.TaxCodeEnv.Service.GetTaxCodeByAppMapping(ctx, taxcode.GetTaxCodeByAppMappingInput{
 		Namespace: ns,
 		AppType:   app.AppTypeStripe,
 		TaxCode:   "txcd_40010001",
