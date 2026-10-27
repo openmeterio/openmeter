@@ -233,7 +233,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceCollectionPe
 			Customer: cust.GetID(),
 			AsOf:     lo.ToPtr(servicePeriod.To),
 		})
-		s.Require().NoError(err)
+		s.Require().ErrorIs(err, billing.ErrInvoiceCreateAllLinesGated)
 		s.Empty(invoices)
 
 		charge := s.RequireUsageBasedChargeStatus(usageBasedChargeID, usagebased.StatusCreated)
@@ -552,7 +552,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceCollectionPe
 
 	// then:
 	// - collection excludes both lines and records a distinct critical issue on each charge
-	s.Require().NoError(err)
+	s.Require().ErrorIs(err, billing.ErrInvoiceCreateAllLinesGated)
 	s.Empty(invoices)
 
 	issueFeatureKeys := make([]string, 0, len(created))
@@ -850,7 +850,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceCollectionPe
 			Customer: cust.GetID(),
 			AsOf:     lo.ToPtr(servicePeriod.To),
 		})
-		s.Require().NoError(err)
+		s.Require().ErrorIs(err, billing.ErrInvoiceCreateAllLinesGated)
 		s.Empty(invoices)
 
 		charge := s.RequireUsageBasedChargeStatus(usageBasedChargeID, usagebased.StatusActiveRealizationProcessing)

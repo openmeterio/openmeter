@@ -2028,7 +2028,7 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCreditThenInvoicePartialInvoi
 		})
 
 		// then
-		s.NoError(err)
+		s.Require().ErrorIs(err, billing.ErrInvoiceCreateAllLinesGated)
 		s.Empty(invoices)
 
 		charge := s.mustGetUsageBasedChargeByID(usageBasedChargeID)
@@ -2417,7 +2417,7 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCreditThenInvoicePendingParti
 		})
 
 		// then
-		s.NoError(err)
+		s.Require().ErrorIs(err, billing.ErrInvoiceCreateAllLinesGated)
 		s.Empty(invoices)
 
 		charge := s.mustGetUsageBasedChargeByID(usageBasedChargeID)
@@ -2439,7 +2439,7 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCreditThenInvoicePendingParti
 
 		// then
 		// the gate remains idempotent
-		s.NoError(err)
+		s.Require().ErrorIs(err, billing.ErrInvoiceCreateAllLinesGated)
 		s.Empty(invoices)
 		charge = s.mustGetUsageBasedChargeByID(usageBasedChargeID)
 		s.Len(charge.ValidationIssues, 1)

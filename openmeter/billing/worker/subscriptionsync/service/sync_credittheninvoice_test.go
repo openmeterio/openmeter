@@ -301,7 +301,7 @@ func (s *CreditThenInvoiceTestSuite) TestSubscriptionSyncPersistsMeterlessUsageC
 
 		// then:
 		// - the gathering line remains pending and no financial processing starts
-		s.Require().NoError(err)
+		s.Require().ErrorIs(err, billing.ErrInvoiceCreateAllLinesGated)
 		s.Empty(invoices)
 		s.Require().Len(s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID).Lines.OrEmpty(), 1)
 
@@ -472,7 +472,7 @@ func (s *CreditThenInvoiceTestSuite) TestSubscriptionSyncPersistsMissingFeatureU
 
 		// then:
 		// - the gathering line remains pending and no financial processing starts
-		s.Require().NoError(err)
+		s.Require().ErrorIs(err, billing.ErrInvoiceCreateAllLinesGated)
 		s.Empty(invoices)
 		s.Require().Len(s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID).Lines.OrEmpty(), 1)
 
