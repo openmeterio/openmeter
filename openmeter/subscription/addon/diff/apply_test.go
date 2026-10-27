@@ -48,8 +48,7 @@ func TestApply(t *testing.T) {
 
 		deps := subscriptiontestutils.NewService(t, dbDeps)
 
-		taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
-		taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
+		taxConfig := subscriptiontestutils.ExampleTaxConfig(t, deps.TaxCodeEnv)
 
 		fn(t, &tcDeps{
 			deps:      deps,
@@ -62,7 +61,7 @@ func TestApply(t *testing.T) {
 			p, a := subscriptiontestutils.CreatePlanWithAddon(
 				t,
 				deps.deps,
-				subscriptiontestutils.GetExamplePlanInput(t, deps.taxConfig),
+				subscriptiontestutils.GetExamplePlanInput(t, deps.deps.TaxCodeEnv),
 				subscriptiontestutils.GetExampleAddonInput(t, productcatalog.EffectivePeriod{
 					EffectiveFrom: &now,
 					EffectiveTo:   nil,
@@ -91,7 +90,7 @@ func TestApply(t *testing.T) {
 			p, a := subscriptiontestutils.CreatePlanWithAddon(
 				t,
 				deps.deps,
-				subscriptiontestutils.GetExamplePlanInput(t, deps.taxConfig),
+				subscriptiontestutils.GetExamplePlanInput(t, deps.deps.TaxCodeEnv),
 				subscriptiontestutils.BuildAddonForTesting(t,
 					productcatalog.EffectivePeriod{
 						EffectiveFrom: &now,
@@ -151,7 +150,7 @@ func TestApply(t *testing.T) {
 			p, a := subscriptiontestutils.CreatePlanWithAddon(
 				t,
 				deps.deps,
-				subscriptiontestutils.GetExamplePlanInput(t, deps.taxConfig),
+				subscriptiontestutils.GetExamplePlanInput(t, deps.deps.TaxCodeEnv),
 				subscriptiontestutils.BuildAddonForTesting(t,
 					productcatalog.EffectivePeriod{
 						EffectiveFrom: &now,
@@ -308,7 +307,7 @@ func TestApply(t *testing.T) {
 			p, a := subscriptiontestutils.CreatePlanWithAddon(
 				t,
 				deps.deps,
-				subscriptiontestutils.GetExamplePlanInput(t, deps.taxConfig),
+				subscriptiontestutils.GetExamplePlanInput(t, deps.deps.TaxCodeEnv),
 				subscriptiontestutils.BuildAddonForTesting(t,
 					productcatalog.EffectivePeriod{
 						EffectiveFrom: &now,
@@ -384,7 +383,7 @@ func TestApply(t *testing.T) {
 			p, a := subscriptiontestutils.CreatePlanWithAddon(
 				t,
 				deps.deps,
-				subscriptiontestutils.GetExamplePlanInput(t, deps.taxConfig),
+				subscriptiontestutils.GetExamplePlanInput(t, deps.deps.TaxCodeEnv),
 				subscriptiontestutils.BuildAddonForTesting(t,
 					effPer,
 					productcatalog.AddonInstanceTypeSingle,
@@ -989,8 +988,7 @@ func TestApplyWithMultiInstance(t *testing.T) {
 
 		deps := subscriptiontestutils.NewService(t, dbDeps)
 
-		taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
-		taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
+		taxConfig := subscriptiontestutils.ExampleTaxConfig(t, deps.TaxCodeEnv)
 
 		fn(t, &tcDeps{
 			deps:      deps,
@@ -1101,6 +1099,18 @@ func featureReferenceWithoutID(meta productcatalog.RateCardMeta) (productcatalog
 	return meta, nil
 }
 
+// The services fill in the Stripe code from the tax code's app mapping, so expected rate cards
+// built from a TaxCodeID-only config compare by TaxCodeID and Behavior.
+func withoutStripeTaxCode(meta productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
+	if meta.TaxConfig != nil {
+		taxConfig := meta.TaxConfig.Clone()
+		taxConfig.Stripe = nil
+		meta.TaxConfig = &taxConfig
+	}
+
+	return meta, nil
+}
+
 func compareRateCardsWithAmountChange(t *testing.T, baseTarget *productcatalog.FlatFeeRateCard, targetAmount int, value productcatalog.RateCard, msgAndArgs ...interface{}) {
 	t.Helper()
 
@@ -1123,9 +1133,11 @@ func compareRateCardsWithAmountChange(t *testing.T, baseTarget *productcatalog.F
 
 	left := target.Clone()
 	require.NoError(t, left.ChangeMeta(featureReferenceWithoutID))
+	require.NoError(t, left.ChangeMeta(withoutStripeTaxCode))
 
 	right := value.Clone()
 	require.NoError(t, right.ChangeMeta(featureReferenceWithoutID))
+	require.NoError(t, right.ChangeMeta(withoutStripeTaxCode))
 
 	if len(msgAndArgs) > 0 {
 		customMsg := fmt.Sprintf(msgAndArgs[0].(string), msgAndArgs[1:]...)

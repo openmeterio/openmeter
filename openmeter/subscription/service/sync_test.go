@@ -420,9 +420,7 @@ func TestEdit(t *testing.T) {
 			require.NotNil(t, cust)
 
 			_ = deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
-			taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
-			taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
-			plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t, taxConfig))
+			plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t, deps.TaxCodeEnv))
 
 			tc.Handler(t, TDeps{
 				CurrentTime: currentTime,
@@ -672,9 +670,7 @@ func TestSyncReconciliation(t *testing.T) {
 			cust := deps.CustomerAdapter.CreateExampleCustomer(t)
 			require.NotNil(t, cust)
 			_ = deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
-			taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
-			taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
-			plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t, taxConfig))
+			plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t, deps.TaxCodeEnv))
 
 			spec, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
 				Name:            "Test",
@@ -741,16 +737,14 @@ func TestDeleteScheduledDowngradeCanExpandDeletedSubscriptionForSync(t *testing.
 	deps := subscriptiontestutils.NewService(t, dbDeps)
 	customerEntity := deps.CustomerAdapter.CreateExampleCustomer(t)
 	_ = deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
-	taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
-	taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
 
 	billingAnchor := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
-	premiumPlanInput := subscriptiontestutils.GetExamplePlanInput(t, taxConfig)
+	premiumPlanInput := subscriptiontestutils.GetExamplePlanInput(t, deps.TaxCodeEnv)
 	premiumPlanInput.Key = "premium-plan"
 	premiumPlanInput.Name = "Premium"
 	premiumPlan := deps.PlanHelper.CreatePlan(t, premiumPlanInput)
 
-	basicPlanInput := subscriptiontestutils.GetExamplePlanInput(t, taxConfig)
+	basicPlanInput := subscriptiontestutils.GetExamplePlanInput(t, deps.TaxCodeEnv)
 	basicPlanInput.Key = "basic-plan"
 	basicPlanInput.Name = "Basic"
 	basicPlan := deps.PlanHelper.CreatePlan(t, basicPlanInput)

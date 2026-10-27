@@ -7,7 +7,6 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/subscription/testutils"
@@ -40,9 +39,8 @@ func TestDiscountPersisting(t *testing.T) {
 
 	t.Run("Should persist discounts", func(t *testing.T) {
 		withDeps(t, func(t *testing.T, deps tDeps) {
-			taxCode := deps.subDeps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
-			taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
-			examplePlanInput1 := subscriptiontestutils.GetExamplePlanInput(t, taxConfig)
+			taxConfig := subscriptiontestutils.ExampleTaxConfig(t, deps.subDeps.TaxCodeEnv)
+			examplePlanInput1 := subscriptiontestutils.GetExamplePlanInput(t, deps.subDeps.TaxCodeEnv)
 			examplePlanInput1.Phases[0].RateCards[0] = subscriptiontestutils.ExampleRateCardWithDiscounts(taxConfig)
 
 			ctx := context.Background()

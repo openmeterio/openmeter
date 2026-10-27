@@ -216,13 +216,10 @@ func createSubscriptionForPlanWithAddon(
 ) (models.NamespacedID, addon.Addon) {
 	t.Helper()
 
-	taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
-	taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
-
 	p, add := subscriptiontestutils.CreatePlanWithAddon(
 		t,
 		deps,
-		subscriptiontestutils.GetExamplePlanInput(t, taxConfig),
+		subscriptiontestutils.GetExamplePlanInput(t, deps.TaxCodeEnv),
 		addonInput,
 	)
 

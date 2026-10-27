@@ -17,6 +17,7 @@ import (
 	pcsubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription/patch"
+	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/subscription/testutils"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -48,8 +49,7 @@ func TestEditingEntitlementOfAlignedSub(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	taxCode := tDeps.TaxCodeEnv.CreateTaxCode(t, namespace)
-	taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
+	taxConfig := subscriptiontestutils.ExampleTaxConfig(t, tDeps.TaxCodeEnv)
 
 	// 2nd, let's create the plan
 	p, err := tDeps.PlanService.CreatePlan(ctx, plan.CreatePlanInput{

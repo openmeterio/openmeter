@@ -13,7 +13,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	api "github.com/openmeterio/openmeter/api/v3"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/featureresolver"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	pcservice "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription/service"
@@ -69,8 +68,7 @@ func TestMigrateSubscriptionHandler(t *testing.T) {
 	defer db.Cleanup(t)
 	deps := subscriptiontestutils.NewService(t, db)
 	deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
-	taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
-	taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
+	taxConfig := subscriptiontestutils.ExampleTaxConfig(t, deps.TaxCodeEnv)
 	plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.BuildTestPlanInput(t).
 		AddPhase(nil, subscriptiontestutils.ExampleRateCard1(taxConfig)).Build())
 	before := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps, plan, start)
