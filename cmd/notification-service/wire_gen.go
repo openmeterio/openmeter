@@ -238,7 +238,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	health := common.NewHealthChecker(logger)
 	telemetryHandler := common.NewTelemetryHandler(metricsTelemetryConfig, health, logger)
-	v5, cleanup9 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
+	telemetryServer, cleanup9 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
 	application := Application{
 		GlobalInitializer:       globalInitializer,
 		Migrator:                migrator,
@@ -255,7 +255,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		Notification:            notificationService,
 		RuntimeMetricsCollector: runtimeMetricsCollector,
 		StreamingConnector:      connector,
-		TelemetryServer:         v5,
+		TelemetryServer:         telemetryServer,
 	}
 	return application, func() {
 		cleanup9()
