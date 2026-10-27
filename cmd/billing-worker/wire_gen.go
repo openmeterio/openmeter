@@ -79,7 +79,8 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	kafkaIngestConfiguration := ingestConfiguration.Kafka
 	kafkaConfiguration := kafkaIngestConfiguration.KafkaConfiguration
 	brokerOptions := common.NewBrokerConfiguration(kafkaConfiguration, commonMetadata, logger, meter)
-	subscriber, err := common.BillingWorkerSubscriber(billingConfiguration, brokerOptions)
+	subscriptionStatus := common.NewBillingWorkerSubscriptionStatus(eventsConfiguration)
+	subscriber, err := common.BillingWorkerSubscriber(billingConfiguration, brokerOptions, subscriptionStatus)
 	if err != nil {
 		cleanup5()
 		cleanup4()
@@ -496,8 +497,8 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	health := common.NewHealthChecker(logger)
 	telemetryHandler := common.NewTelemetryHandler(metricsTelemetryConfig, health, logger)
-	v4, cleanup9 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
-	group := common.BillingWorkerGroup(ctx, worker, invoicemetricsService, v4)
+	telemetryServer, cleanup9 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
+	group := common.BillingWorkerGroup(ctx, worker, invoicemetricsService, telemetryServer, subscriptionStatus)
 	runner := common.Runner{
 		Group:  group,
 		Logger: logger,

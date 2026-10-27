@@ -49,4 +49,7 @@ services:
 EOF
 
 "${compose[@]}" up -d --wait --wait-timeout 180
+for port in 40001 40002 40003; do
+  curl --fail --retry 10 --retry-max-time 120 --retry-all-errors "http://localhost:${port}/healthz/subscriptions"
+done
 go test -v -count=1 .

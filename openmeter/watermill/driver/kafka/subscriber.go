@@ -22,6 +22,8 @@ const (
 type SubscriberOptions struct {
 	Broker            BrokerOptions
 	ConsumerGroupName string
+	// SubscriptionStatus optionally observes the subscriber's configured topics.
+	SubscriptionStatus *SubscriptionStatus
 }
 
 func (o *SubscriberOptions) Validate() error {
@@ -55,11 +57,23 @@ func NewSubscriber(in SubscriberOptions) (message.Subscriber, error) {
 		ReconnectRetrySleep:   100 * time.Millisecond,
 		Unmarshaler:           kafka.DefaultMarshaler{},
 	}
+	if in.SubscriptionStatus != nil {
+		wmConfig.Tracer = subscriptionObserver{status: in.SubscriptionStatus}
+	}
 
 	if err := wmConfig.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid subscriber config: %w", err)
 	}
 
 	// Initialize Kafka subscriber
-	return kafka.NewSubscriber(wmConfig, watermill.NewSlogLogger(in.Broker.Logger))
+	subscriber, err := kafka.NewSubscriber(wmConfig, watermill.NewSlogLogger(in.Broker.Logger))
+	if err != nil {
+		return nil, err
+	}
+
+	if in.SubscriptionStatus != nil {
+		return &observedSubscriber{Subscriber: subscriber, status: in.SubscriptionStatus}, nil
+	}
+
+	return subscriber, nil
 }

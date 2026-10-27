@@ -71,7 +71,8 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	kafkaIngestConfiguration := ingestConfiguration.Kafka
 	kafkaConfiguration := kafkaIngestConfiguration.KafkaConfiguration
 	brokerOptions := common.NewBrokerConfiguration(kafkaConfiguration, commonMetadata, logger, meter)
-	subscriber, err := common.BalanceWorkerSubscriber(balanceWorkerConfiguration, brokerOptions)
+	subscriptionStatus := common.NewBalanceWorkerSubscriptionStatus(eventsConfiguration)
+	subscriber, err := common.BalanceWorkerSubscriber(balanceWorkerConfiguration, brokerOptions, subscriptionStatus)
 	if err != nil {
 		cleanup5()
 		cleanup4()
@@ -318,8 +319,8 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	health := common.NewHealthChecker(logger)
 	telemetryHandler := common.NewTelemetryHandler(metricsTelemetryConfig, health, logger)
-	v5, cleanup9 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
-	group := common.BalanceWorkerGroup(ctx, worker, v5)
+	telemetryServer, cleanup9 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
+	group := common.BalanceWorkerGroup(ctx, worker, telemetryServer, subscriptionStatus)
 	runner := common.Runner{
 		Group:  group,
 		Logger: logger,
