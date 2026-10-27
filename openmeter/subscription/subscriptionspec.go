@@ -998,11 +998,15 @@ func (s SubscriptionItemSpec) GetFullServicePeriodAt(
 	if billingCadence == nil {
 		end := inp.ItemCadence.ActiveFrom
 
-		if inp.ItemCadence.ActiveTo != nil {
+		// The phase end bounds the item but must not extend it. A one-time item that
+		// deactivates before its phase ends has the item's own end as its full service
+		// period. GetCadence, above, already takes the earlier of the two.
+		switch {
+		case inp.ItemCadence.ActiveTo != nil && inp.PhaseCadence.ActiveTo != nil:
+			end = lo.Earliest(*inp.ItemCadence.ActiveTo, *inp.PhaseCadence.ActiveTo)
+		case inp.ItemCadence.ActiveTo != nil:
 			end = *inp.ItemCadence.ActiveTo
-		}
-
-		if inp.PhaseCadence.ActiveTo != nil {
+		case inp.PhaseCadence.ActiveTo != nil:
 			end = *inp.PhaseCadence.ActiveTo
 		}
 
