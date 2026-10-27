@@ -106,6 +106,13 @@ func (h *handler) ListCreditTransactions() ListCreditTransactionsHandler {
 				}
 
 				req.FeatureFilter = featureFilter
+
+				planFilter, err := fromAPICustomerCreditPlanFilter(ctx, args.Params.Filter.PlanKey, args.Params.Filter.PlanVersion)
+				if err != nil {
+					return ListCreditTransactionsRequest{}, err
+				}
+
+				req.PlanFilter = planFilter
 			}
 
 			return req, nil
