@@ -75,7 +75,9 @@ func TestAddonServiceChangeQuantity(t *testing.T) {
 			clock.SetTime(now)
 			defer clock.ResetTime()
 
-			planInp := subscriptiontestutils.GetExamplePlanInput(t)
+			taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
+			taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
+			planInp := subscriptiontestutils.GetExamplePlanInput(t, taxConfig)
 
 			addonInp := subscriptiontestutils.BuildAddonForTesting(t, productcatalog.EffectivePeriod{
 				EffectiveFrom: lo.ToPtr(now),
@@ -187,10 +189,13 @@ func createExampleSubscriptionAddon(t *testing.T, deps subscriptiontestutils.Sub
 	clock.SetTime(now)
 	defer clock.ResetTime()
 
-	p, add := createPlanWithAddon(
+	taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
+	taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
+
+	p, add := subscriptiontestutils.CreatePlanWithAddon(
 		t,
 		deps,
-		subscriptiontestutils.GetExamplePlanInput(t),
+		subscriptiontestutils.GetExamplePlanInput(t, taxConfig),
 		subscriptiontestutils.GetExampleAddonInput(t, productcatalog.EffectivePeriod{
 			EffectiveFrom: lo.ToPtr(now),
 		}),

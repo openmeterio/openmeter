@@ -30,7 +30,7 @@ func TestMigrationAdditionPreservesExistingItems(t *testing.T) {
 	fixture := newMigrationFixture(t)
 
 	nextPlan := fixture.newPlanVersion()
-	nextPlan.Phases[0].RateCards = append(nextPlan.Phases[0].RateCards, subscriptiontestutils.ExampleRateCard3ForAddons.Clone())
+	nextPlan.Phases[0].RateCards = append(nextPlan.Phases[0].RateCards, subscriptiontestutils.ExampleRateCard3ForAddons(fixture.taxConfig))
 
 	clock.FreezeTime(start.Add(24 * time.Hour))
 	target := fixture.deps.PlanHelper.CreatePlan(t, nextPlan)
@@ -158,7 +158,7 @@ func TestMigrationNextCycleAdditionPreservesExistingItems(t *testing.T) {
 	fixture := newMigrationFixture(t)
 
 	nextPlan := fixture.newPlanVersion()
-	nextPlan.Phases[0].RateCards = append(nextPlan.Phases[0].RateCards, subscriptiontestutils.ExampleRateCard3ForAddons.Clone())
+	nextPlan.Phases[0].RateCards = append(nextPlan.Phases[0].RateCards, subscriptiontestutils.ExampleRateCard3ForAddons(fixture.taxConfig))
 
 	clock.FreezeTime(start.Add(24 * time.Hour))
 	target := fixture.deps.PlanHelper.CreatePlan(t, nextPlan)
@@ -307,23 +307,25 @@ func TestMigrationInvalidAnchorLeavesSubscriptionIntact(t *testing.T) {
 }
 
 type migrationFixture struct {
-	t      *testing.T
-	deps   testDeps
-	before subscription.SubscriptionView
+	t         *testing.T
+	deps      testDeps
+	taxConfig productcatalog.TaxConfig
+	before    subscription.SubscriptionView
 }
 
 func newMigrationFixture(t *testing.T) migrationFixture {
 	t.Helper()
 
-	input := subscriptiontestutils.BuildTestPlanInput(t).AddPhase(nil,
-		subscriptiontestutils.ExampleRateCard1.Clone(),
-		subscriptiontestutils.ExampleRateCard2.Clone(),
-	).Build()
-
-	return newMigrationFixtureWithPlan(t, input)
+	return newMigrationFixtureWithPlan(t, func(taxConfig productcatalog.TaxConfig) plan.CreatePlanInput {
+		return subscriptiontestutils.BuildTestPlanInput(t).AddPhase(nil,
+			subscriptiontestutils.ExampleRateCard1(taxConfig),
+			subscriptiontestutils.ExampleRateCard2.Clone(),
+		).Build()
+	})
 }
 
-func newMigrationFixtureWithPlan(t *testing.T, input plan.CreatePlanInput) migrationFixture {
+// newMigrationFixtureWithPlan builds the plan only after setup, so it can reference the tax code created there.
+func newMigrationFixtureWithPlan(t *testing.T, buildPlan func(taxConfig productcatalog.TaxConfig) plan.CreatePlanInput) migrationFixture {
 	t.Helper()
 
 	deps := setup(t, setupConfig{})
@@ -332,7 +334,9 @@ func newMigrationFixtureWithPlan(t *testing.T, input plan.CreatePlanInput) migra
 	deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
 	customer := deps.CustomerAdapter.CreateExampleCustomer(t)
 
-	original := deps.PlanHelper.CreatePlan(t, input)
+	taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
+	taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
+	original := deps.PlanHelper.CreatePlan(t, buildPlan(taxConfig))
 
 	before, err := deps.WorkflowService.CreateFromPlan(t.Context(), subscriptionworkflow.CreateSubscriptionWorkflowInput{
 		Namespace:  customer.Namespace,
@@ -343,14 +347,14 @@ func newMigrationFixtureWithPlan(t *testing.T, input plan.CreatePlanInput) migra
 	}, original)
 	require.NoError(t, err)
 
-	return migrationFixture{t: t, deps: deps, before: before}
+	return migrationFixture{t: t, deps: deps, taxConfig: taxConfig, before: before}
 }
 
 func (f migrationFixture) newPlanVersion() plan.CreatePlanInput {
 	f.t.Helper()
 
 	return subscriptiontestutils.BuildTestPlanInput(f.t).AddPhase(nil,
-		subscriptiontestutils.ExampleRateCard1.Clone(),
+		subscriptiontestutils.ExampleRateCard1(f.taxConfig),
 		subscriptiontestutils.ExampleRateCard2.Clone(),
 	).Build()
 }

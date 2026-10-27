@@ -52,10 +52,12 @@ func TestAddAddon(t *testing.T) {
 	}
 
 	t.Run("Should error on invalid input", runWithDeps(func(t *testing.T, deps subscriptiontestutils.SubscriptionDependencies) {
+		taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
+		taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
 		p, add := subscriptiontestutils.CreatePlanWithAddon(
 			t,
 			deps,
-			subscriptiontestutils.GetExamplePlanInput(t),
+			subscriptiontestutils.GetExamplePlanInput(t, taxConfig),
 			subscriptiontestutils.BuildAddonForTesting(t,
 				productcatalog.EffectivePeriod{
 					EffectiveFrom: &now,
@@ -88,10 +90,12 @@ func TestAddAddon(t *testing.T) {
 	}))
 
 	t.Run("Should error if the subscription is inactive or in wrong state", runWithDeps(func(t *testing.T, deps subscriptiontestutils.SubscriptionDependencies) {
+		taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
+		taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
 		p, add := subscriptiontestutils.CreatePlanWithAddon(
 			t,
 			deps,
-			subscriptiontestutils.GetExamplePlanInput(t),
+			subscriptiontestutils.GetExamplePlanInput(t, taxConfig),
 			subscriptiontestutils.BuildAddonForTesting(t,
 				productcatalog.EffectivePeriod{
 					EffectiveFrom: &now,
@@ -131,9 +135,12 @@ func TestAddAddon(t *testing.T) {
 	t.Run("Should add a new addon to a subscription that already has a different addon", runWithDeps(func(t *testing.T, deps subscriptiontestutils.SubscriptionDependencies) {
 		_ = deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
 
+		taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
+		taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
+
 		// Let's create a plan
 		p, err := deps.PlanService.CreatePlan(context.Background(), subscriptiontestutils.BuildTestPlanInput(t).
-			AddPhase(nil, subscriptiontestutils.ExampleRateCard1.Clone()).
+			AddPhase(nil, subscriptiontestutils.ExampleRateCard1(taxConfig)).
 			Build())
 		require.Nil(t, err)
 		require.NotNil(t, p)
@@ -214,15 +221,17 @@ func TestAddAddon(t *testing.T) {
 		require.NoError(t, err)
 
 		// And lets validate that both of them updated the entitlement limit
-		item := subView.Phases[0].ItemsByKey[subscriptiontestutils.ExampleRateCard1.Key()][0]
+		item := subView.Phases[0].ItemsByKey[subscriptiontestutils.ExampleFeatureKey][0]
 		require.Equal(t, 200.0, *item.Entitlement.Entitlement.IssueAfterReset)
 	}))
 
 	t.Run("Should sync subscription with new addons contents", runWithDeps(func(t *testing.T, deps subscriptiontestutils.SubscriptionDependencies) {
+		taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
+		taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
 		p, add := subscriptiontestutils.CreatePlanWithAddon(
 			t,
 			deps,
-			subscriptiontestutils.GetExamplePlanInput(t),
+			subscriptiontestutils.GetExamplePlanInput(t, taxConfig),
 			subscriptiontestutils.BuildAddonForTesting(t,
 				productcatalog.EffectivePeriod{
 					EffectiveFrom: &now,
@@ -276,10 +285,12 @@ func TestAddAddon(t *testing.T) {
 	}))
 
 	t.Run("Should return conflict error if subscription already has that addon purchased", runWithDeps(func(t *testing.T, deps subscriptiontestutils.SubscriptionDependencies) {
+		taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
+		taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
 		p, add := subscriptiontestutils.CreatePlanWithAddon(
 			t,
 			deps,
-			subscriptiontestutils.GetExamplePlanInput(t),
+			subscriptiontestutils.GetExamplePlanInput(t, taxConfig),
 			subscriptiontestutils.BuildAddonForTesting(t,
 				productcatalog.EffectivePeriod{
 					EffectiveFrom: &now,
@@ -334,10 +345,12 @@ func TestChangeAddonQuantity(t *testing.T) {
 	}
 
 	t.Run("Should error if SubscriptionAddon and Subscription are in different namespaces", runWithDeps(func(t *testing.T, deps subscriptiontestutils.SubscriptionDependencies) {
+		taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
+		taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
 		p, add := subscriptiontestutils.CreatePlanWithAddon(
 			t,
 			deps,
-			subscriptiontestutils.GetExamplePlanInput(t),
+			subscriptiontestutils.GetExamplePlanInput(t, taxConfig),
 			subscriptiontestutils.BuildAddonForTesting(t,
 				productcatalog.EffectivePeriod{
 					EffectiveFrom: &now,
@@ -382,10 +395,12 @@ func TestChangeAddonQuantity(t *testing.T) {
 	}))
 
 	t.Run("Should error if SubscriptionAddon doesn't belong to Subscription", runWithDeps(func(t *testing.T, deps subscriptiontestutils.SubscriptionDependencies) {
+		taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
+		taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
 		p, add := subscriptiontestutils.CreatePlanWithAddon(
 			t,
 			deps,
-			subscriptiontestutils.GetExamplePlanInput(t),
+			subscriptiontestutils.GetExamplePlanInput(t, taxConfig),
 			subscriptiontestutils.BuildAddonForTesting(t,
 				productcatalog.EffectivePeriod{
 					EffectiveFrom: &now,
@@ -456,10 +471,12 @@ func TestChangeAddonQuantity(t *testing.T) {
 	}))
 
 	t.Run("Should error if the subscription is inactive or in wrong state", runWithDeps(func(t *testing.T, deps subscriptiontestutils.SubscriptionDependencies) {
+		taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
+		taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
 		p, add := subscriptiontestutils.CreatePlanWithAddon(
 			t,
 			deps,
-			subscriptiontestutils.GetExamplePlanInput(t),
+			subscriptiontestutils.GetExamplePlanInput(t, taxConfig),
 			subscriptiontestutils.BuildAddonForTesting(t,
 				productcatalog.EffectivePeriod{
 					EffectiveFrom: &now,
@@ -509,11 +526,13 @@ func TestChangeAddonQuantity(t *testing.T) {
 	}))
 
 	t.Run("Should update the quantity of the addon", runWithDeps(func(t *testing.T, deps subscriptiontestutils.SubscriptionDependencies) {
+		taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
+		taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
 		p, add := subscriptiontestutils.CreatePlanWithAddon(
 			t,
 			deps,
 			subscriptiontestutils.BuildTestPlanInput(t).
-				AddPhase(nil, subscriptiontestutils.ExampleRateCard1.Clone()).
+				AddPhase(nil, subscriptiontestutils.ExampleRateCard1(taxConfig)).
 				Build(),
 			subscriptiontestutils.BuildAddonForTesting(t,
 				productcatalog.EffectivePeriod{
@@ -555,7 +574,7 @@ func TestChangeAddonQuantity(t *testing.T) {
 		require.Equal(t, subAdd.Quantities.GetAt(0).GetValue().Quantity, 1)
 		require.Equal(t, subAdd.Quantities.GetAt(1).GetValue().Quantity, 0)
 
-		require.Len(t, subView.Phases[0].ItemsByKey[subscriptiontestutils.ExampleRateCard1.Key()], 2)
+		require.Len(t, subView.Phases[0].ItemsByKey[subscriptiontestutils.ExampleFeatureKey], 2)
 	}))
 
 	t.Run("Should not combine two subsequent identical items (present due to an edit) when changing the quantity after an addon is already purchased", runWithDeps(func(t *testing.T, deps subscriptiontestutils.SubscriptionDependencies) {
@@ -563,6 +582,8 @@ func TestChangeAddonQuantity(t *testing.T) {
 
 		twoMonthsFromNow, _ := twoMonths.AddTo(now)
 
+		taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
+		taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
 		p, add := subscriptiontestutils.CreatePlanWithAddon(
 			t,
 			deps,
@@ -579,7 +600,7 @@ func TestChangeAddonQuantity(t *testing.T) {
 					},
 					SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 				}).
-				AddPhase(nil, subscriptiontestutils.ExampleRateCard1.Clone()).
+				AddPhase(nil, subscriptiontestutils.ExampleRateCard1(taxConfig)).
 				Build(),
 			subscriptiontestutils.BuildAddonForTesting(t,
 				productcatalog.EffectivePeriod{
@@ -594,7 +615,7 @@ func TestChangeAddonQuantity(t *testing.T) {
 		subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps, p, now)
 
 		// Now let's edit the sub
-		ogItem := subView.Phases[0].ItemsByKey[subscriptiontestutils.ExampleRateCard1.Key()][0].Spec
+		ogItem := subView.Phases[0].ItemsByKey[subscriptiontestutils.ExampleFeatureKey][0].Spec
 
 		timing := subscription.Timing{
 			Enum: lo.ToPtr(subscription.TimingNextBillingCycle),
@@ -613,7 +634,7 @@ func TestChangeAddonQuantity(t *testing.T) {
 		}, timing)
 		require.NoError(t, err)
 
-		require.Len(t, subView.Phases[0].ItemsByKey[subscriptiontestutils.ExampleRateCard1.Key()], 2)
+		require.Len(t, subView.Phases[0].ItemsByKey[subscriptiontestutils.ExampleFeatureKey], 2)
 
 		// Now let's add the addon
 
@@ -629,7 +650,7 @@ func TestChangeAddonQuantity(t *testing.T) {
 		require.NoError(t, err)
 
 		// assert that its still two items
-		require.Len(t, subView.Phases[0].ItemsByKey[subscriptiontestutils.ExampleRateCard1.Key()], 2)
+		require.Len(t, subView.Phases[0].ItemsByKey[subscriptiontestutils.ExampleFeatureKey], 2)
 
 		// Now let's change the quantity of the addon
 		changeInp := subscriptionworkflow.ChangeAddonQuantityWorkflowInput{
@@ -644,7 +665,7 @@ func TestChangeAddonQuantity(t *testing.T) {
 		require.NoError(t, err)
 
 		// Now it should be three items: original two with addon included + 3rd without the addon after 3 months
-		require.Len(t, subView.Phases[0].ItemsByKey[subscriptiontestutils.ExampleRateCard1.Key()], 3)
+		require.Len(t, subView.Phases[0].ItemsByKey[subscriptiontestutils.ExampleFeatureKey], 3)
 	}))
 }
 
@@ -694,10 +715,13 @@ func TestAddonCombinations(t *testing.T) {
 	}
 
 	t.Run("Should handle repeated add/remove of single instance addon with dynamic price", runWithDeps(func(t *testing.T, deps subscriptiontestutils.SubscriptionDependencies) {
+		taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
+		taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
+
 		// Create a plan with mixed rate cards
 		planInput := subscriptiontestutils.BuildTestPlanInput(t).
 			AddPhase(nil,
-				subscriptiontestutils.ExampleRateCard1.Clone(), // Flat price
+				subscriptiontestutils.ExampleRateCard1(taxConfig), // Flat price
 				&productcatalog.UsageBasedRateCard{ // Dynamic price
 					RateCardMeta: productcatalog.RateCardMeta{
 						Key:     subscriptiontestutils.ExampleFeatureKey2,

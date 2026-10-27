@@ -16,12 +16,13 @@ import (
 	"github.com/openmeterio/openmeter/pkg/datetime"
 )
 
-func GetExamplePlanInput(t *testing.T) plan.CreatePlanInput {
+// GetExamplePlanInput builds the example plan in ExampleNamespace; its taxed rate cards carry taxConfig.
+func GetExamplePlanInput(t *testing.T, taxConfig productcatalog.TaxConfig) plan.CreatePlanInput {
 	b := BuildTestPlanInput(t)
 
-	b.AddPhase(lo.ToPtr(datetime.MustParseDuration(t, "P1M")), ExampleRateCard1.Clone())
-	b.AddPhase(lo.ToPtr(datetime.MustParseDuration(t, "P2M")), ExampleRateCard1.Clone(), ExampleRateCard2.Clone(), ExampleRateCard3ForAddons.Clone())
-	b.AddPhase(nil, ExampleRateCard1.Clone(), ExampleRateCard3ForAddons.Clone())
+	b.AddPhase(lo.ToPtr(datetime.MustParseDuration(t, "P1M")), ExampleRateCard1(taxConfig))
+	b.AddPhase(lo.ToPtr(datetime.MustParseDuration(t, "P2M")), ExampleRateCard1(taxConfig), ExampleRateCard2.Clone(), ExampleRateCard3ForAddons(taxConfig))
+	b.AddPhase(nil, ExampleRateCard1(taxConfig), ExampleRateCard3ForAddons(taxConfig))
 
 	return b.Build()
 }

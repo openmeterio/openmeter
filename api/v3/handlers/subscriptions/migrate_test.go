@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	api "github.com/openmeterio/openmeter/api/v3"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/featureresolver"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	pcservice "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription/service"
@@ -68,13 +69,15 @@ func TestMigrateSubscriptionHandler(t *testing.T) {
 	defer db.Cleanup(t)
 	deps := subscriptiontestutils.NewService(t, db)
 	deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
+	taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
+	taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
 	plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.BuildTestPlanInput(t).
-		AddPhase(nil, subscriptiontestutils.ExampleRateCard1.Clone()).Build())
+		AddPhase(nil, subscriptiontestutils.ExampleRateCard1(taxConfig)).Build())
 	before := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps, plan, start)
 
 	clock.FreezeTime(start.Add(24 * time.Hour))
 	deps.PlanHelper.CreatePlan(t, subscriptiontestutils.BuildTestPlanInput(t).
-		AddPhase(nil, subscriptiontestutils.ExampleRateCard1.Clone(), subscriptiontestutils.ExampleRateCard2.Clone()).Build())
+		AddPhase(nil, subscriptiontestutils.ExampleRateCard1(taxConfig), subscriptiontestutils.ExampleRateCard2.Clone()).Build())
 	clock.FreezeTime(start.Add(10 * 24 * time.Hour))
 
 	resolver, err := featureresolver.New(deps.FeatureConnector)

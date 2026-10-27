@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
 	"github.com/openmeterio/openmeter/pkg/datetime"
@@ -76,25 +77,15 @@ func ValidateSpecAndView(t *testing.T, expected subscription.SubscriptionSpec, f
 				assert.Equal(t, foundPhase.SubscriptionPhase.Key, specItem.PhaseKey)
 				assert.Equal(t, foundPhase.SubscriptionPhase.ID, foundItem.SubscriptionItem.PhaseId)
 
-				// Let's validate the RateCard is equal
-				rc1JSON, _ := json.Marshal(specItem.RateCard)
-				rc2JSON, _ := json.Marshal(foundItem.SubscriptionItem.RateCard)
+				// Let's validate the RateCard is equal. Tax is compared by TaxCodeID (and Behavior):
+				// the Stripe code is a legacy encoding derived from the tax code, not part of the intent.
+				specRateCard := withoutStripeTaxCode(t, specItem.RateCard)
+				foundRateCard := withoutStripeTaxCode(t, foundItem.SubscriptionItem.RateCard)
 
-				assert.True(t, specItem.RateCard.Equal(foundItem.SubscriptionItem.RateCard), "rate card mismatch for item %s in phase %s: \nspec: %s \n\nview: %s", specItem.ItemKey, specPhase.PhaseKey, rc1JSON, rc2JSON)
+				rc1JSON, _ := json.Marshal(specRateCard)
+				rc2JSON, _ := json.Marshal(foundRateCard)
 
-				// Let's validate the TaxCodeID
-				specMeta := specItem.RateCard.AsMeta()
-				foundMeta := foundItem.SubscriptionItem.RateCard.AsMeta()
-				if specMeta.TaxConfig != nil && specMeta.TaxConfig.TaxCodeID != nil && *specMeta.TaxConfig.TaxCodeID != "" {
-					require.NotNil(t, foundMeta.TaxConfig, "TaxConfig must be set for item %s (phase %s) with TaxCodeID %s", specItem.ItemKey, specPhase.PhaseKey, *specMeta.TaxConfig.TaxCodeID)
-					assert.Equal(t, specMeta.TaxConfig.TaxCodeID, foundMeta.TaxConfig.TaxCodeID, "TaxCodeID mismatch for item %s in phase %s", specItem.ItemKey, specPhase.PhaseKey)
-				} else if specMeta.TaxConfig != nil && specMeta.TaxConfig.Stripe != nil && specMeta.TaxConfig.Stripe.Code != "" {
-					require.NotNil(t, foundMeta.TaxConfig, "TaxConfig must be set for item %s (phase %s) with Stripe tax code %s", specItem.ItemKey, specPhase.PhaseKey, specMeta.TaxConfig.Stripe.Code)
-					require.NotNil(t, foundMeta.TaxConfig.TaxCodeID, "TaxCodeID must be backfilled for item %s (phase %s) with Stripe tax code %s", specItem.ItemKey, specPhase.PhaseKey, specMeta.TaxConfig.Stripe.Code)
-					assert.Equal(t, specMeta.TaxConfig.TaxCodeID, foundMeta.TaxConfig.TaxCodeID, "TaxCodeID mismatch for item %s in phase %s", specItem.ItemKey, specPhase.PhaseKey)
-				} else if foundMeta.TaxConfig != nil {
-					assert.Nil(t, foundMeta.TaxConfig.TaxCodeID, "TaxCodeID must be nil for item %s (phase %s) without a tax code", specItem.ItemKey, specPhase.PhaseKey)
-				}
+				assert.True(t, specRateCard.Equal(foundRateCard), "rate card mismatch for item %s in phase %s: \nspec: %s \n\nview: %s", specItem.ItemKey, specPhase.PhaseKey, rc1JSON, rc2JSON)
 
 				// Let's validate the Feature linking
 				var expectedFeatureKey, actualFeatureKey *string
@@ -233,7 +224,9 @@ func SpecsEqual(t *testing.T, s1, s2 subscription.SubscriptionSpec) {
 
 				// Let's validate the item properties
 				assert.Equal(t, i1.ItemKey, i2.ItemKey)
-				assert.True(t, i1.RateCard.Equal(i2.RateCard), "rate card mismatch for item %s in phase %s: \nspec: %+v\n\nview: %+v", itemKey, key, i1.RateCard, i2.RateCard)
+				rc1 := withoutStripeTaxCode(t, i1.RateCard)
+				rc2 := withoutStripeTaxCode(t, i2.RateCard)
+				assert.True(t, rc1.Equal(rc2), "rate card mismatch for item %s in phase %s: \nspec: %+v\n\nview: %+v", itemKey, key, rc1, rc2)
 				assert.Equal(t, i1.PhaseKey, i2.PhaseKey, "phase key mismatch for item %s in phase %s", itemKey, key)
 
 				// We'll compare the time offsets separately
@@ -274,6 +267,35 @@ func SpecsEqual(t *testing.T, s1, s2 subscription.SubscriptionSpec) {
 			}
 		}
 	}
+}
+
+// withoutStripeTaxCode returns a copy of rc without the legacy Stripe tax code, so rate cards
+// compare by TaxCodeID and Behavior only.
+func withoutStripeTaxCode(t *testing.T, rc productcatalog.RateCard) productcatalog.RateCard {
+	t.Helper()
+
+	out := rc.Clone()
+
+	// Edit the clone's meta directly: ChangeMeta also validates, and a comparison must not fail
+	// on rate cards the services accepted.
+	var meta *productcatalog.RateCardMeta
+	switch v := out.(type) {
+	case *productcatalog.FlatFeeRateCard:
+		meta = &v.RateCardMeta
+	case *productcatalog.UsageBasedRateCard:
+		meta = &v.RateCardMeta
+	default:
+		t.Fatalf("unsupported rate card type %T", out)
+	}
+
+	if meta.TaxConfig != nil {
+		meta.TaxConfig.Stripe = nil
+		if meta.TaxConfig.Behavior == nil && meta.TaxConfig.TaxCodeID == nil {
+			meta.TaxConfig = nil
+		}
+	}
+
+	return out
 }
 
 func tsPlusNillableISO(ts time.Time, iso *datetime.ISODuration) *time.Time {

@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionservice "github.com/openmeterio/openmeter/openmeter/subscription/service"
@@ -58,11 +59,13 @@ func TestUpdateRejectsMigrationBetweenReadAndLock(t *testing.T) {
 	defer db.Cleanup(t)
 	deps := subscriptiontestutils.NewService(t, db)
 	deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
-	p1 := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.BuildTestPlanInput(t).AddPhase(nil, subscriptiontestutils.ExampleRateCard1.Clone()).Build())
+	taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
+	taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
+	p1 := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.BuildTestPlanInput(t).AddPhase(nil, subscriptiontestutils.ExampleRateCard1(taxConfig)).Build())
 	before := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps, p1, start)
 	clock.FreezeTime(start.Add(10 * 24 * time.Hour))
 	p2 := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.BuildTestPlanInput(t).AddPhase(nil,
-		subscriptiontestutils.ExampleRateCard1.Clone(), subscriptiontestutils.ExampleRateCard2.Clone()).Build())
+		subscriptiontestutils.ExampleRateCard1(taxConfig), subscriptiontestutils.ExampleRateCard2.Clone()).Build())
 	var migrated subscription.SubscriptionView
 	customerService := &migrateDuringUpdateValidation{Service: deps.CustomerService, migrate: func(ctx context.Context) error {
 		var err error
@@ -142,15 +145,17 @@ func TestCancelIncludesMigrationCommittedBeforeLock(t *testing.T) {
 
 	deps := subscriptiontestutils.NewService(t, db)
 	deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
+	taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
+	taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
 	p1 := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.BuildTestPlanInput(t).AddPhase(nil,
-		subscriptiontestutils.ExampleRateCard1.Clone()).Build())
+		subscriptiontestutils.ExampleRateCard1(taxConfig)).Build())
 	before := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps, p1, start)
 
 	clock.FreezeTime(start.Add(10 * 24 * time.Hour))
 	defer clock.UnFreeze()
 
 	p2 := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.BuildTestPlanInput(t).AddPhase(nil,
-		subscriptiontestutils.ExampleRateCard1.Clone(), subscriptiontestutils.ExampleRateCard3ForAddons.Clone()).Build())
+		subscriptiontestutils.ExampleRateCard1(taxConfig), subscriptiontestutils.ExampleRateCard3ForAddons(taxConfig)).Build())
 	var migrated subscription.SubscriptionView
 	features := &migrateBeforeCancelLock{
 		FeatureConnector: deps.FeatureConnector,

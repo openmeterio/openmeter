@@ -41,6 +41,9 @@ func TestSubWithMeteredEntitlement(t *testing.T) {
 	feats := tDeps.FeatureConnector.CreateExampleFeatures(t, tDeps.ExampleMeterID)
 	require.Len(t, feats, 3)
 
+	taxCode := tDeps.TaxCodeEnv.CreateTaxCode(t, namespace)
+	taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
+
 	// 2nd, let's create the plan
 	p, err := tDeps.PlanService.CreatePlan(ctx, plan.CreatePlanInput{
 		NamespacedModel: models.NamespacedModel{
@@ -68,14 +71,10 @@ func TestSubWithMeteredEntitlement(t *testing.T) {
 						// Let's have an in-arrears monthly entitlement ratecard
 						&productcatalog.UsageBasedRateCard{
 							RateCardMeta: productcatalog.RateCardMeta{
-								Key:     feats[0].Key,
-								Name:    "Test Rate Card",
-								Feature: productcatalog.NewFeatureReference(lo.ToPtr(feats[0].ID), lo.ToPtr(feats[0].Key)),
-								TaxConfig: &productcatalog.TaxConfig{
-									Stripe: &productcatalog.StripeTaxConfig{
-										Code: "txcd_10000000",
-									},
-								},
+								Key:       feats[0].Key,
+								Name:      "Test Rate Card",
+								Feature:   productcatalog.NewFeatureReference(lo.ToPtr(feats[0].ID), lo.ToPtr(feats[0].Key)),
+								TaxConfig: lo.ToPtr(taxConfig.Clone()),
 								EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.MeteredEntitlementTemplate{
 									UsagePeriod:     datetime.MustParseDuration(t, "P1M"), // compatible with the billing cadence
 									IssueAfterReset: lo.ToPtr(10.0),
@@ -100,11 +99,7 @@ func TestSubWithMeteredEntitlement(t *testing.T) {
 								Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 									Amount: alpacadecimal.NewFromInt(100),
 								}),
-								TaxConfig: &productcatalog.TaxConfig{
-									Stripe: &productcatalog.StripeTaxConfig{
-										Code: "txcd_10000000",
-									},
-								},
+								TaxConfig: lo.ToPtr(taxConfig.Clone()),
 								EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.MeteredEntitlementTemplate{
 									UsagePeriod:     datetime.MustParseDuration(t, "P1M"), // compatible with the billing cadence
 									IssueAfterReset: lo.ToPtr(100.0),

@@ -31,8 +31,10 @@ func TestMigrateToPlanAddons(t *testing.T) {
 			db := subscriptiontestutils.SetupDBDeps(t)
 			defer db.Cleanup(t)
 			deps := subscriptiontestutils.NewService(t, db)
+			taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace)
+			taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
 			planInput := subscriptiontestutils.BuildTestPlanInput(t).AddPhase(nil,
-				subscriptiontestutils.ExampleRateCard3ForAddons.Clone(), subscriptiontestutils.ExampleRateCard2.Clone()).Build()
+				subscriptiontestutils.ExampleRateCard3ForAddons(taxConfig), subscriptiontestutils.ExampleRateCard2.Clone()).Build()
 			p1, addon := subscriptiontestutils.CreatePlanWithAddon(t, deps, planInput,
 				subscriptiontestutils.BuildAddonForTesting(t, productcatalog.EffectivePeriod{EffectiveFrom: &start},
 					productcatalog.AddonInstanceTypeMultiple, subscriptiontestutils.ExampleAddonRateCard4.Clone()))
@@ -51,7 +53,7 @@ func TestMigrateToPlanAddons(t *testing.T) {
 			at := start.Add(9 * 24 * time.Hour)
 			clock.FreezeTime(at)
 			nextInput := subscriptiontestutils.BuildTestPlanInput(t).AddPhase(nil,
-				subscriptiontestutils.ExampleRateCard3ForAddons.Clone(), subscriptiontestutils.ExampleRateCard2.Clone(), subscriptiontestutils.ExampleRateCard1.Clone()).Build()
+				subscriptiontestutils.ExampleRateCard3ForAddons(taxConfig), subscriptiontestutils.ExampleRateCard2.Clone(), subscriptiontestutils.ExampleRateCard1(taxConfig)).Build()
 			if scenario == "changed base" {
 				require.NoError(t, nextInput.Phases[0].RateCards[0].ChangeMeta(func(meta productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
 					meta.Price = productcatalog.NewPriceFrom(productcatalog.FlatPrice{Amount: alpacadecimal.NewFromInt(200), PaymentTerm: productcatalog.InAdvancePaymentTerm})

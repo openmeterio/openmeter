@@ -49,6 +49,9 @@ func TestEditingAndCanceling(t *testing.T) {
 	})
 	require.NoError(t, err)
 
+	taxCode := tDeps.TaxCodeEnv.CreateTaxCode(t, namespace)
+	taxConfig := productcatalog.TaxConfig{TaxCodeID: &taxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
+
 	// Second, let's create the plan
 	p, err := tDeps.PlanService.CreatePlan(ctx, plan.CreatePlanInput{
 		NamespacedModel: models.NamespacedModel{
@@ -81,11 +84,7 @@ func TestEditingAndCanceling(t *testing.T) {
 								Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 									Amount: alpacadecimal.NewFromInt(100),
 								}),
-								TaxConfig: &productcatalog.TaxConfig{
-									Stripe: &productcatalog.StripeTaxConfig{
-										Code: "txcd_10000000",
-									},
-								},
+								TaxConfig:           lo.ToPtr(taxConfig.Clone()),
 								EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.BooleanEntitlementTemplate{}),
 							},
 							BillingCadence: datetime.MustParseDuration(t, "P1M"),
@@ -202,11 +201,7 @@ func TestEditingAndCanceling(t *testing.T) {
 								Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 									Amount: alpacadecimal.NewFromInt(101),
 								}),
-								TaxConfig: &productcatalog.TaxConfig{
-									Stripe: &productcatalog.StripeTaxConfig{
-										Code: "txcd_10000000",
-									},
-								},
+								TaxConfig: lo.ToPtr(taxConfig.Clone()),
 							},
 							BillingCadence: datetime.MustParseDuration(t, "P1M"),
 						},
