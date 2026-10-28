@@ -199,46 +199,63 @@ describe('list params struct naming', () => {
     ).toBe('ListItemArchiveParams')
   })
 
-  it('rejects a friendly name that lands on an element-named struct with a different shape', async () => {
-    const { program, operations } = await compileResource(`
-      ${pageFixturePreamble}
-
-      @route("/items")
-      interface Operations {
-        @get
-        @operationId("list-items")
-        op listItems(
-          @query(#{ style: "deepObject", explode: true })
+  for (const [shape, archivedQuery] of [
+    [
+      'a different shape',
+      `@query(#{ style: "deepObject", explode: true })
+          page?: {
+            size?: integer;
+            number?: integer;
+          },`,
+    ],
+    [
+      'the same shape',
+      `@query(#{ style: "deepObject", explode: true })
           page?: {
             size?: integer;
             number?: integer;
           },
-          @query sort?: Common.SortQuery,
-        ): ItemPage;
+          @query sort?: Common.SortQuery,`,
+    ],
+  ]) {
+    it(`rejects a friendly name that lands on an element-named struct with ${shape}`, async () => {
+      const { program, operations } = await compileResource(`
+        ${pageFixturePreamble}
 
-        @get
-        @route("/archived")
-        @operationId("list-archived-items")
-        @friendlyName("itemList")
-        op listArchived(
-          @query(#{ style: "deepObject", explode: true })
-          page?: {
-            size?: integer;
-            number?: integer;
-          },
-        ): ItemPage;
-      }
-    `)
+        @route("/items")
+        interface Operations {
+          @get
+          @operationId("list-items")
+          op listItems(
+            @query(#{ style: "deepObject", explode: true })
+            page?: {
+              size?: integer;
+              number?: integer;
+            },
+            @query sort?: Common.SortQuery,
+          ): ItemPage;
 
-    // Renaming the existing ItemListParams would break SDK callers, so the
-    // collision fails generation in either discovery order.
-    expect(() => resolveListParamsNames(program, operations)).toThrow(
-      /ItemListParams would be emitted with two different query shapes/,
-    )
-    expect(() =>
-      resolveListParamsNames(program, [...operations].reverse()),
-    ).toThrow(/ItemListParams would be emitted with two different query shapes/)
-  })
+          @get
+          @route("/archived")
+          @operationId("list-archived-items")
+          @friendlyName("itemList")
+          op listArchived(
+            ${archivedQuery}
+          ): ItemPage;
+        }
+      `)
+
+      // Renaming the existing ItemListParams would break SDK callers, and sharing it
+      // could emit the struct from two resources, so generation fails in either
+      // discovery order.
+      expect(() => resolveListParamsNames(program, operations)).toThrow(
+        /ItemListParams/,
+      )
+      expect(() =>
+        resolveListParamsNames(program, [...operations].reverse()),
+      ).toThrow(/ItemListParams/)
+    })
+  }
 })
 
 describe('list params struct naming across resources', () => {

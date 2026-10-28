@@ -49,10 +49,12 @@ func (h *handler) ListAllCreditGrants() ListAllCreditGrantsHandler {
 				return ListAllCreditGrantsRequest{}, err
 			}
 
-			var apiFilter *api.ListCreditGrantsParamsFilter
+			// The namespace-wide listing shares the per-customer query shape, plus the
+			// customer filter mapped below.
+			grantParams := api.ListCreditGrantsParams{Page: params.Page, Sort: params.Sort}
 			var apiCustomerID *api.ULIDFieldFilter
 			if f := params.Filter; f != nil {
-				apiFilter = &api.ListCreditGrantsParamsFilter{
+				grantParams.Filter = &api.ListCreditGrantsParamsFilter{
 					Status:     f.Status,
 					Currency:   f.Currency,
 					Key:        f.Key,
@@ -62,7 +64,7 @@ func (h *handler) ListAllCreditGrants() ListAllCreditGrantsHandler {
 				apiCustomerID = f.CustomerId
 			}
 
-			req, err := fromAPIListCreditGrantsParams(ctx, params.Page, params.Sort, apiFilter)
+			req, err := fromAPIListCreditGrantsParams(ctx, grantParams)
 			if err != nil {
 				return ListAllCreditGrantsRequest{}, err
 			}

@@ -799,8 +799,8 @@ function isTextResponse(operation: GoOperation): boolean {
  * joins an element group. This lets a new operation page over an element that
  * an existing operation already lists without renaming the element-named
  * struct that SDK callers depend on. If its friendly name still lands on an
- * element-named struct with a different query shape, generation fails instead
- * of renaming either struct.
+ * element-named struct, generation fails instead of renaming either struct or
+ * emitting the same struct from two resources.
  */
 export function resolveListParamsNames(
   program: Program,
@@ -808,7 +808,10 @@ export function resolveListParamsNames(
 ): Map<Operation, string> {
   // Groups are keyed apart from the struct name they emit, so a friendly-named
   // operation can never join (and split) an element-named group.
-  const groups = new Map<string, { name: string; operations: GoOperation[] }>()
+  const groups = new Map<
+    string,
+    { name: string; friendly: boolean; operations: GoOperation[] }
+  >()
   for (const operation of operations) {
     if (operation.queryParams.length === 0) {
       continue
@@ -822,13 +825,14 @@ export function resolveListParamsNames(
     if (group) {
       group.operations.push(operation)
     } else {
-      groups.set(key, { name, operations: [operation] })
+      groups.set(key, { name, friendly, operations: [operation] })
     }
   }
 
   const resolved = new Map<Operation, string>()
   const shapes = new Map<string, string>()
-  for (const { name, operations: group } of groups.values()) {
+  const origins = new Map<string, boolean>()
+  for (const { name, friendly, operations: group } of groups.values()) {
     const signatures = new Set(
       group.map((operation) => querySignature(program, operation.queryParams)),
     )
@@ -842,6 +846,13 @@ export function resolveListParamsNames(
           `typespec-go: params struct ${finalName} would be emitted with two different query shapes; add a distinct @friendlyName or @operationId to one of the operations`,
         )
       }
+      const origin = origins.get(finalName)
+      if (origin !== undefined && origin !== friendly) {
+        throw new Error(
+          `typespec-go: params struct ${finalName} is claimed by both a @friendlyName operation and an element-named group; choose a distinct @friendlyName`,
+        )
+      }
+      origins.set(finalName, friendly)
       shapes.set(finalName, signature)
       resolved.set(operation.operation, finalName)
     }

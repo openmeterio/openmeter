@@ -700,7 +700,9 @@ func stringAnnotation(annotations models.Annotations, key string) string {
 
 // fromAPIListCreditGrantsParams maps the query parameters shared by the per-customer
 // and namespace-wide grant listings. Callers set the namespace and customer scope.
-func fromAPIListCreditGrantsParams(ctx context.Context, apiPage *api.PagePaginationQuery, apiSort *api.SortQuery, apiFilter *api.ListCreditGrantsParamsFilter) (ListCreditGrantsRequest, error) {
+func fromAPIListCreditGrantsParams(ctx context.Context, params api.ListCreditGrantsParams) (ListCreditGrantsRequest, error) {
+	apiPage, apiSort, apiFilter := params.Page, params.Sort, params.Filter
+
 	page := pagination.NewPage(1, 20)
 	if apiPage != nil {
 		page = pagination.NewPage(

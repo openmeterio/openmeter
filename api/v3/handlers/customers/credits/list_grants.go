@@ -35,7 +35,7 @@ func (h *handler) ListCreditGrants() ListCreditGrantsHandler {
 				return ListCreditGrantsRequest{}, err
 			}
 
-			req, err := fromAPIListCreditGrantsParams(ctx, args.Params.Page, args.Params.Sort, args.Params.Filter)
+			req, err := fromAPIListCreditGrantsParams(ctx, args.Params)
 			if err != nil {
 				return ListCreditGrantsRequest{}, err
 			}
