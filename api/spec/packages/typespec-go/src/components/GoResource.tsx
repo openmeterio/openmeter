@@ -833,6 +833,14 @@ export function resolveListParamsNames(
   const shapes = new Map<string, string>()
   const origins = new Map<string, boolean>()
   for (const { name, friendly, operations: group } of groups.values()) {
+    // A friendly name identifies one operation. Shared across operations, it would
+    // emit the same params struct once per declaring resource and break the build.
+    if (friendly && group.length > 1) {
+      throw new Error(
+        `typespec-go: params struct ${name} is claimed by ${group.length} @friendlyName operations; give each operation a distinct @friendlyName`,
+      )
+    }
+
     const signatures = new Set(
       group.map((operation) => querySignature(program, operation.queryParams)),
     )

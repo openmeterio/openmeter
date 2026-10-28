@@ -259,6 +259,46 @@ describe('list params struct naming', () => {
 })
 
 describe('list params struct naming across resources', () => {
+  it('rejects one @friendlyName shared by operations in different resources', async () => {
+    const { program, operations } = await compileResource(`
+      ${pageFixturePreamble}
+
+      @route("/items")
+      interface ItemOperations {
+        @get
+        @operationId("list-items")
+        @friendlyName("listAllItems")
+        op listItems(
+          @query(#{ style: "deepObject", explode: true })
+          page?: {
+            size?: integer;
+            number?: integer;
+          },
+        ): ItemPage;
+      }
+
+      @route("/archive/items")
+      interface ArchiveOperations {
+        @get
+        @operationId("list-archived-items")
+        @friendlyName("listAllItems")
+        op listArchived(
+          @query(#{ style: "deepObject", explode: true })
+          page?: {
+            size?: integer;
+            number?: integer;
+          },
+        ): ItemPage;
+      }
+    `)
+
+    // Matching shapes would otherwise share ListAllItemsParams and emit it from both
+    // resources into one Go package.
+    expect(() => resolveListParamsNames(program, operations)).toThrow(
+      /ListAllItemsParams is claimed by 2 @friendlyName operations/,
+    )
+  })
+
   it('splits shared-element params structs declared by different resources', async () => {
     const host = await createTestHost({
       libraries: [HttpTestLibrary, OpenAPITestLibrary],

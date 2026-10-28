@@ -123,6 +123,8 @@ namespace Balances {
        * `effective_at`. `spendable` can also change after the fact, because it sets
        * aside credit for usage that is recorded later. The timestamp is inclusive and
        * has microsecond precision, so an end-of-day close should use `23:59:59.999999Z`.
+       * A JavaScript `Date` holds only milliseconds, so a cutoff sent from one reaches
+       * at most `23:59:59.999Z` and leaves out entries booked in the last millisecond.
        */
       @query
       timestamp?: Shared.DateTime,
