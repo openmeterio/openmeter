@@ -35,7 +35,7 @@ func (s *service) ListCharges(ctx context.Context, input charges.ListChargesInpu
 		return pagination.Result[charges.Charge]{}, err
 	}
 
-	expandedCharges, err := s.expandChargesWithTypes(ctx, input.Namespace, chargesWithTypes.Items, input.Expands)
+	expandedCharges, err := s.expandChargesWithTypes(ctx, input.Namespace, chargesWithTypes.Items, input.Expands, input.RealtimeUsageAsOf)
 	if err != nil {
 		return pagination.Result[charges.Charge]{}, err
 	}

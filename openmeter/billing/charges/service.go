@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -265,6 +266,11 @@ type ListChargesInput struct {
 	Order   sortx.Order
 
 	Expands meta.Expands
+	// RealtimeUsageAsOf evaluates the realtime usage expand as a live read at this
+	// time would have: only events stored before it count. It replays the meter
+	// read only; the charge's price, periods, status and realizations stay current.
+	// Nil evaluates at the current time.
+	RealtimeUsageAsOf *time.Time
 }
 
 func (i ListChargesInput) Validate() error {
@@ -336,7 +342,31 @@ func (i ListChargesInput) Validate() error {
 		errs = append(errs, fmt.Errorf("expands: %w", err))
 	}
 
+	if i.RealtimeUsageAsOf != nil {
+		if err := validateRealtimeUsageAsOf(*i.RealtimeUsageAsOf, i.Expands); err != nil {
+			errs = append(errs, fmt.Errorf("realtime usage as of: %w", err))
+		}
+	}
+
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+// validateRealtimeUsageAsOf rejects future cutoffs: events can still be stored
+// before a future time, so such a read would not be repeatable.
+func validateRealtimeUsageAsOf(asOf time.Time, expands meta.Expands) error {
+	if asOf.IsZero() {
+		return errors.New("must not be zero")
+	}
+
+	if asOf.After(clock.Now()) {
+		return errors.New("must not be in the future")
+	}
+
+	if !expands.Has(meta.ExpandRealtimeUsage) {
+		return errors.New("requires the realtime usage expand")
+	}
+
+	return nil
 }
 
 type ListCustomersToAdvanceInput struct {

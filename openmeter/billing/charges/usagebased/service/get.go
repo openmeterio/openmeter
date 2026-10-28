@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/samber/lo"
 	"golang.org/x/sync/semaphore"
@@ -46,7 +47,7 @@ func (s *service) GetByIDs(ctx context.Context, input usagebased.GetByIDsInput) 
 	}
 
 	if input.Expands.Has(meta.ExpandRealtimeUsage) {
-		charges, err = s.expandChargesUsage(ctx, input.Namespace, charges)
+		charges, err = s.expandChargesUsage(ctx, input.Namespace, charges, lo.FromPtrOr(input.RealtimeUsageAsOf, clock.Now()))
 		if err != nil {
 			return nil, err
 		}
@@ -85,7 +86,9 @@ func (s *service) GetByID(ctx context.Context, input usagebased.GetByIDInput) (u
 	return charge, nil
 }
 
-func (s *service) expandChargesUsage(ctx context.Context, namespace string, charges usagebased.Charges) (usagebased.Charges, error) {
+// expandChargesUsage rates each charge's usage as a live read at storedAt would:
+// only events stored before storedAt count.
+func (s *service) expandChargesUsage(ctx context.Context, namespace string, charges usagebased.Charges, storedAt time.Time) (usagebased.Charges, error) {
 	// Fetch unique customers from the charges to avoid duplicate calls to the customer override service.
 	uniqueCustomers := lo.Uniq(lo.Map(charges, func(charge usagebased.Charge, _ int) customer.CustomerID {
 		return charge.GetCustomerID()
@@ -114,7 +117,6 @@ func (s *service) expandChargesUsage(ctx context.Context, namespace string, char
 
 	// Let's do the rating for each charge
 	sem := semaphore.NewWeighted(int64(defaultMaxParallelRatingsPerRequest))
-	storedAt := clock.Now()
 
 	errCh := make(chan error, len(charges))
 	ratingResults := sync.Map{}

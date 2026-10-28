@@ -1546,6 +1546,7 @@ export function listCustomerCharges(
         page: req.page,
         sort: encodeSort(req.sort, toSnakeCase),
         filter: req.filter,
+        asOf: req.asOf,
         expand: req.expand,
       },
       schemas.listCustomerChargesQueryParams,

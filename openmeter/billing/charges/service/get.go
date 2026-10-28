@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"slices"
+	"time"
 
 	"github.com/samber/lo"
 
@@ -52,11 +53,11 @@ func (s *service) GetByIDs(ctx context.Context, input charges.GetByIDsInput) (ch
 		return nil, err
 	}
 
-	return s.expandChargesWithTypes(ctx, input.Namespace, chargesItems, input.Expands)
+	return s.expandChargesWithTypes(ctx, input.Namespace, chargesItems, input.Expands, nil)
 }
 
 // expandChargesWithTypes fetches the charges by type and expands them with the given expands.
-func (s *service) expandChargesWithTypes(ctx context.Context, namespace string, chargesItems charges.ChargeSearchItems, expands meta.Expands) (charges.Charges, error) {
+func (s *service) expandChargesWithTypes(ctx context.Context, namespace string, chargesItems charges.ChargeSearchItems, expands meta.Expands, realtimeUsageAsOf *time.Time) (charges.Charges, error) {
 	chargesByType := lo.GroupByMap(chargesItems, func(chargeMeta charges.ChargeSearchItem) (meta.ChargeType, string) {
 		return chargeMeta.Type, chargeMeta.ID.ID
 	})
@@ -70,9 +71,10 @@ func (s *service) expandChargesWithTypes(ctx context.Context, namespace string, 
 	}
 
 	usageBased, err := s.usageBasedService.GetByIDs(ctx, usagebased.GetByIDsInput{
-		Namespace: namespace,
-		IDs:       chargesByType[meta.ChargeTypeUsageBased],
-		Expands:   expands,
+		Namespace:         namespace,
+		IDs:               chargesByType[meta.ChargeTypeUsageBased],
+		Expands:           expands,
+		RealtimeUsageAsOf: realtimeUsageAsOf,
 	})
 	if err != nil {
 		return nil, err

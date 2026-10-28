@@ -40,6 +40,17 @@ export interface ListChargesQuery {
    */
   filter?: ListChargesParamsFilter
   /**
+   * Evaluate `expand=real_time_usage` as of this time instead of now. Requires the
+   * `real_time_usage` expand and must not be in the future.
+   *
+   * Usage and `totals.realtime` match what a live read returned at that time: only
+   * events stored before `as_of` count, and minimum commitments apply only when the
+   * service period has ended by `as_of`. The result is repeatable, so a month-end
+   * close can be re-run. Prices, service periods, status, and realizations reflect
+   * the charge's current state, and charges created after `as_of` are included.
+   */
+  asOf?: Date
+  /**
    * Expand full objects for referenced entities.
    *
    * Supported values are:
