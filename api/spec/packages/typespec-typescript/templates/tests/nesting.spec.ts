@@ -26,7 +26,7 @@ describe('nested sub-clients', () => {
       validate: true,
     })
 
-    const result = await sdk.customers.charges.invoice({
+    const result = await sdk.internal.customers.charges.invoice({
       customerId: '01ARZ3NDEKTSV4RRFFQ69G5FAV',
       body: {},
     })
