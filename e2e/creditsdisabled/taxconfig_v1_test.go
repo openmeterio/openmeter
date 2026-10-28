@@ -567,6 +567,9 @@ func TestV1TaxConfigInvoiceLines(t *testing.T) {
 	gatheringEditedWant := wantFor(gatheringEditedScenarioOf, afterEdit)
 
 	t.Run("gathering invoice edit adds lines and fills in the default tax code", func(t *testing.T) {
+		// given: the gathering invoice with the created lines, stored as given
+		// when: an edit echoes those lines and adds a line per scenario and shape
+		// then: every line without a tax code, echoed or added, gets the default tax code
 		gatheringInvoice := getInvoice(t, gatheringInvoiceID)
 
 		lines := append(echoLines(t, gatheringInvoice), newLines(gatheringEditedInputs)...)
@@ -640,6 +643,11 @@ func TestV1TaxConfigInvoiceLines(t *testing.T) {
 	// existing line's tax config. The edit also sends workflow.invoicing.defaultTaxConfig,
 	// which the server accepts but doesn't apply.
 	t.Run("standard invoice edit adds lines, changes a line's tax config and ignores the default tax config", func(t *testing.T) {
+		// given: the standard invoice, with an exclusive default behavior
+		// when: an edit echoes its lines, changes flat_none's tax config, adds a line per scenario
+		// and shape, and sets an inclusive default behavior
+		// then: flat_none gets the new tax config, lines without a tax code get the default one,
+		// and the invoice default stays exclusive
 		changed := &api.TaxConfig{TaxCodeId: lo.ToPtr(taxCode.ID), Behavior: lo.ToPtr(api.TaxBehaviorInclusive)}
 
 		lines := echoLines(t, invoice)
