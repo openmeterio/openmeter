@@ -387,7 +387,8 @@ func TestV1TaxConfigPlanRateCards(t *testing.T) {
 	c := newV3Client(t)
 
 	scenarios := v1TaxConfigCatalogScenarios(createStripeMappedTaxCode(t, c))
-	rateCards, want := v1TaxConfigRateCards(t, "", scenarios, createV1TaxConfigFeatures(t, client, scenarios))
+	featureKeys := createV1TaxConfigFeatures(t, client, scenarios)
+	rateCards, want := v1TaxConfigRateCards(t, "", scenarios, featureKeys)
 
 	planCreate := api.PlanCreate{
 		Key:            uniqueKey("v1_taxconfig_plan"),
@@ -422,8 +423,11 @@ func TestV1TaxConfigPlanRateCards(t *testing.T) {
 	})
 
 	t.Run("update", func(t *testing.T) {
-		// New keys, so the update writes new rate cards instead of keeping the created ones.
-		updatedRateCards, updatedWant := v1TaxConfigRateCards(t, "updated_", scenarios, nil)
+		// given: the created plan or addon
+		// when: it is updated with every scenario again, on new flat fee keys (so new rate cards
+		// are written) and on the usage based cards, which are keyed by their feature
+		// then: the update response and a re-read return the same tax configs as create
+		updatedRateCards, updatedWant := v1TaxConfigRateCards(t, "updated_", scenarios, featureKeys)
 
 		updateResp, err := client.UpdatePlanWithResponse(t.Context(), plan.Id, api.PlanReplaceUpdate{
 			Name:           plan.Name,
@@ -456,7 +460,8 @@ func TestV1TaxConfigAddonRateCards(t *testing.T) {
 	c := newV3Client(t)
 
 	scenarios := v1TaxConfigCatalogScenarios(createStripeMappedTaxCode(t, c))
-	rateCards, want := v1TaxConfigRateCards(t, "", scenarios, createV1TaxConfigFeatures(t, client, scenarios))
+	featureKeys := createV1TaxConfigFeatures(t, client, scenarios)
+	rateCards, want := v1TaxConfigRateCards(t, "", scenarios, featureKeys)
 
 	createResp, err := client.CreateAddonWithResponse(t.Context(), api.AddonCreate{
 		Key:          uniqueKey("v1_taxconfig_addon"),
@@ -483,8 +488,11 @@ func TestV1TaxConfigAddonRateCards(t *testing.T) {
 	})
 
 	t.Run("update", func(t *testing.T) {
-		// New keys, so the update writes new rate cards instead of keeping the created ones.
-		updatedRateCards, updatedWant := v1TaxConfigRateCards(t, "updated_", scenarios, nil)
+		// given: the created plan or addon
+		// when: it is updated with every scenario again, on new flat fee keys (so new rate cards
+		// are written) and on the usage based cards, which are keyed by their feature
+		// then: the update response and a re-read return the same tax configs as create
+		updatedRateCards, updatedWant := v1TaxConfigRateCards(t, "updated_", scenarios, featureKeys)
 
 		updateResp, err := client.UpdateAddonWithResponse(t.Context(), addon.Id, api.AddonReplaceUpdate{
 			Name:         addon.Name,
@@ -588,6 +596,9 @@ func TestV1TaxConfigSubscriptions(t *testing.T) {
 	})
 
 	t.Run("invoice lines generated from subscription items", func(t *testing.T) {
+		// given: a subscription whose flat fee and usage based items carry every scenario
+		// when: billing syncs the subscription into gathering invoice lines
+		// then: each line has its item's tax config, with the default tax code filled in
 		lineWant := v1TaxConfigInvoiceLineWant(scenarios, defaultInvoicingTaxCodeID(t, c))
 
 		// Gathering lines are named after their rate card: the flat fee key, or the feature key
@@ -630,6 +641,9 @@ func TestV1TaxConfigSubscriptions(t *testing.T) {
 	})
 
 	t.Run("edit adds items", func(t *testing.T) {
+		// given: the plan subscription
+		// when: an edit adds a flat fee item per scenario
+		// then: the added items return the same tax configs as plan items
 		addedRateCards, addedWant := v1TaxConfigRateCards(t, "added_", scenarios, nil)
 
 		operations := lo.Map(addedRateCards, func(rateCard api.RateCard, _ int) api.SubscriptionEditOperation {
@@ -655,6 +669,10 @@ func TestV1TaxConfigSubscriptions(t *testing.T) {
 	})
 
 	t.Run("addon rate cards", func(t *testing.T) {
+		// given: the plan subscription and an addon attached to its plan
+		// when: the addon is added to the subscription
+		// then: the subscription addon's rate cards and the items created from them return the
+		// addon's tax configs
 		createResp, err := client.CreateSubscriptionAddonWithResponse(t.Context(), subscriptionID, api.SubscriptionAddonCreate{
 			Addon: struct {
 				Id string `json:"id"`
@@ -692,6 +710,9 @@ func TestV1TaxConfigSubscriptions(t *testing.T) {
 	})
 
 	t.Run("custom subscription items", func(t *testing.T) {
+		// given: a new customer
+		// when: it subscribes to a custom plan with every scenario
+		// then: the subscription items return the same tax configs as plan items
 		customRateCards, customWant := v1TaxConfigRateCards(t, "", scenarios, featureKeys)
 		customCustomer := createV1TaxConfigCustomer(t, client, "v1_taxconfig_custom_sub_customer")
 
@@ -764,6 +785,9 @@ func TestV1TaxConfigBillingProfileDefaultTaxConfig(t *testing.T) {
 	})
 
 	t.Run("behavior round-trips through create and update", func(t *testing.T) {
+		// given: a profile created with an exclusive default behavior
+		// when: it is read through a customer and updated
+		// then: the behavior can be read, changed and removed, but a tax code can't be added
 		createResp, err := client.CreateBillingProfileWithResponse(t.Context(), profileCreate(&api.TaxConfig{
 			Behavior: lo.ToPtr(api.TaxBehaviorExclusive),
 		}))
@@ -789,6 +813,9 @@ func TestV1TaxConfigBillingProfileDefaultTaxConfig(t *testing.T) {
 		}
 
 		t.Run("customer profile shows the default tax config", func(t *testing.T) {
+			// given: a customer pinned to the profile
+			// when: the customer's billing profile is read
+			// then: it returns the profile's default tax config
 			customer := createV1TaxConfigCustomer(t, client, "v1_taxconfig_profile_customer")
 
 			overrideResp, err := client.UpsertBillingProfileCustomerOverrideWithResponse(t.Context(), customer.Id, api.BillingProfileCustomerOverrideCreate{
@@ -1066,6 +1093,9 @@ func TestV1TaxConfigInvoiceLines(t *testing.T) {
 	gatheringEditedInputs, gatheringEditedWant := lineInputs("gathering_edited_")
 
 	t.Run("gathering invoice edit adds lines", func(t *testing.T) {
+		// given: the gathering invoice with the created lines
+		// when: an edit echoes those lines and adds a line per scenario and shape
+		// then: the edit response and a re-read return the created and added lines' tax configs
 		gatheringInvoice := getInvoice(t, gatheringInvoiceID)
 
 		lines := lo.Map(*gatheringInvoice.Lines, func(line api.InvoiceLine, _ int) api.InvoiceLineReplaceUpdate {
@@ -1109,6 +1139,9 @@ func TestV1TaxConfigInvoiceLines(t *testing.T) {
 	// Lines created through the pending lines API are managed by charges in credits mode, so
 	// their tax config can't be changed through an invoice edit.
 	t.Run("standard invoice edit rejects changing a line's tax config", func(t *testing.T) {
+		// given: the standard invoice
+		// when: an edit gives the flat_none line a tax code
+		// then: the edit is rejected
 		lines := lo.Map(*invoice.Lines, func(line api.InvoiceLine, _ int) api.InvoiceLineReplaceUpdate {
 			update := invoiceLineReplaceUpdateFromLine(t, line)
 
@@ -1140,6 +1173,10 @@ func TestV1TaxConfigInvoiceLines(t *testing.T) {
 	// The edit also sends workflow.invoicing.defaultTaxConfig, which the server accepts but
 	// doesn't apply, so the invoice keeps the profile's default.
 	t.Run("standard invoice edit adds lines and ignores the default tax config", func(t *testing.T) {
+		// given: the standard invoice, with an exclusive default behavior
+		// when: an edit echoes its lines, adds a line per scenario and shape, and sets an
+		// inclusive default behavior
+		// then: every line gets the exclusive behavior, and the invoice default stays exclusive
 		existingWant := maps.Clone(standardWant)
 		maps.Copy(existingWant, standardGatheringEditedWant)
 
