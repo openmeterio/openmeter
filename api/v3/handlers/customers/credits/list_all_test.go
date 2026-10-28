@@ -149,6 +149,7 @@ func TestListAllCreditBalances(t *testing.T) {
 		require.Equal(t, sortx.OrderAsc, customers.input.Order)
 
 		asOf := time.Date(2026, 9, 30, 23, 59, 59, 0, time.UTC)
+		require.Equal(t, &asOf, customers.input.ExistingAt)
 		require.Len(t, facade.inputs, 2)
 		for _, input := range facade.inputs {
 			require.Equal(t, &asOf, input.AsOf)
@@ -171,7 +172,7 @@ func TestListAllCreditBalances(t *testing.T) {
 
 	t.Run("other balance failures fail the page", func(t *testing.T) {
 		// given: a balance read that fails for a reason other than missing accounts.
-		_, facade, router := newHarness()
+		customers, facade, router := newHarness()
 		facade.errs[funded] = errors.New("ledger unavailable")
 
 		// when: the page is read.
@@ -179,8 +180,10 @@ func TestListAllCreditBalances(t *testing.T) {
 		rec := httptest.NewRecorder()
 		router.ServeHTTP(rec, req)
 
-		// then: the page is not returned with silently missing balances.
+		// then: the page is not returned with silently missing balances, and a live read
+		// selects the customers that exist now.
 		require.Equal(t, http.StatusInternalServerError, rec.Code, rec.Body.String())
+		require.Nil(t, customers.input.ExistingAt)
 	})
 
 	t.Run("page size above the cap is rejected", func(t *testing.T) {

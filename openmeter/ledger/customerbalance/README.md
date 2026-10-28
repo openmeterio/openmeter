@@ -40,8 +40,9 @@ There is no separate cutoff for when the system learned about a movement.
 
 The namespace-wide balance listing applies these same semantics to one page of
 customers at a time. Customers without ledger accounts have no credit activity
-and are listed with no balances. Historical (`asOf`) listings are repeatable,
-which makes them the basis for a daily close; current listings include `live`
+and are listed with no balances. Historical (`asOf`) listings select the
+customers that existed at `asOf`, including ones deleted since, so they are
+repeatable and can serve as a daily close; current listings include `live`
 and cost one live projection per customer.
 
 History before/after values remain booked balances. A grant of 10 followed by

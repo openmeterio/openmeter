@@ -155,12 +155,15 @@ func (h *handler) ListAllCreditBalances() ListAllCreditBalancesHandler {
 		func(ctx context.Context, request ListAllCreditBalancesRequest) (ListAllCreditBalancesResponse, error) {
 			// Customer IDs are ULIDs, so ID order is creation order: customers created
 			// during a walk land on later pages instead of shifting earlier ones.
+			// Historical reads list the customers that existed at that time, so a
+			// rebuilt close keeps customers deleted since then.
 			customers, err := h.customerService.ListCustomers(ctx, customer.ListCustomersInput{
 				Namespace:   request.Namespace,
 				Page:        request.Page,
 				OrderBy:     "id",
 				Order:       sortx.OrderAsc,
 				CustomerIDs: request.CustomerIDs,
+				ExistingAt:  request.HistoricalAsOf,
 			})
 			if err != nil {
 				return ListAllCreditBalancesResponse{}, fmt.Errorf("list customers: %w", err)
