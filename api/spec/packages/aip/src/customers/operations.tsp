@@ -33,7 +33,9 @@ model ListCustomersParamsFilter {
   billing_profile_id?: Common.ULIDFieldFilter;
 
   /**
-   * Filter by customer last update time.
+   * Filter by customer last update time. Deleted customers are not listed, so a sync
+   * must detect deletions separately. For incremental syncs, filter with `gte` on
+   * the last seen value and de-duplicate by `id`.
    */
   updated_at?: Common.DateTimeFieldFilter;
 }

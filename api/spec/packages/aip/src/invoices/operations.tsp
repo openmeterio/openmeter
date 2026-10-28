@@ -52,7 +52,9 @@ model ListInvoicesParamsFilter {
   /**
    * Filter by invoice last update time. `updated_at` changes whenever the invoice
    * itself is saved. A change saved only to its lines may not update it, and live
-   * usage moving on an open invoice does not.
+   * usage moving on an open invoice does not. Deleted invoices are not listed, so a
+   * sync must detect deletions separately. For incremental syncs, filter with `gte`
+   * on the last seen value and de-duplicate by `id`.
    */
   updated_at?: Common.DateTimeFieldFilter;
 }

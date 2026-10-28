@@ -3636,7 +3636,11 @@ export interface ListCustomersParamsFilter {
   usageAttributionSubjectKey?: StringFieldFilter
   planKey?: StringFieldFilter
   billingProfileId?: UlidFieldFilter
-  /** Filter by customer last update time. */
+  /**
+   * Filter by customer last update time. Deleted customers are not listed, so a sync
+   * must detect deletions separately. For incremental syncs, filter with `gte` on
+   * the last seen value and de-duplicate by `id`.
+   */
   updatedAt?: DateTimeFieldFilter
 }
 
@@ -3666,7 +3670,9 @@ export interface ListCustomerChargesParamsFilter {
   /**
    * Filter by charge last update time. `updated_at` changes whenever the charge
    * itself is saved. A change saved only to its realizations may not update it, and
-   * live usage moving on an open charge does not.
+   * live usage moving on an open charge does not. Deleted charges are listed only
+   * when `filter[status]` selects `deleted`. For incremental syncs, filter with
+   * `gte` on the last seen value and de-duplicate by `id`.
    */
   updatedAt?: DateTimeFieldFilter
 }
@@ -3681,7 +3687,11 @@ export interface ListSubscriptionsParamsFilter {
   /**
    * Filter by subscription last update time. `updated_at` changes whenever the
    * subscription itself is saved. A change saved only to its phases or items may not
-   * update it.
+   * update it. Fields derived from the current time, such as `status` and
+   * `current_period`, change as time passes without updating it. Deleted
+   * subscriptions are not listed, so a sync must detect deletions separately. For
+   * incremental syncs, filter with `gte` on the last seen value and de-duplicate by
+   * `id`.
    */
   updatedAt?: DateTimeFieldFilter
 }
@@ -3701,7 +3711,9 @@ export interface ListInvoicesParamsFilter {
   /**
    * Filter by invoice last update time. `updated_at` changes whenever the invoice
    * itself is saved. A change saved only to its lines may not update it, and live
-   * usage moving on an open invoice does not.
+   * usage moving on an open invoice does not. Deleted invoices are not listed, so a
+   * sync must detect deletions separately. For incremental syncs, filter with `gte`
+   * on the last seen value and de-duplicate by `id`.
    */
   updatedAt?: DateTimeFieldFilter
 }
@@ -3732,7 +3744,9 @@ export interface ListChargesParamsFilter {
   /**
    * Filter by charge last update time. `updated_at` changes whenever the charge
    * itself is saved. A change saved only to its realizations may not update it, and
-   * live usage moving on an open charge does not.
+   * live usage moving on an open charge does not. Deleted charges are listed only
+   * when `filter[status]` selects `deleted`. For incremental syncs, filter with
+   * `gte` on the last seen value and de-duplicate by `id`.
    */
   updatedAt?: DateTimeFieldFilter
   /** Filter charges by the ID of their customer. */
@@ -3747,7 +3761,11 @@ export interface ListPlansParamsFilter {
   currency?: StringFieldFilterExact
   /**
    * Filter by plan last update time. `updated_at` changes whenever the plan is
-   * updated, including changes to its phases and rate cards.
+   * updated, including changes to its phases and rate cards. A plan's `status`
+   * follows its effective dates and changes as time passes without updating it.
+   * Deleted plans are not listed, so a sync must detect deletions separately. For
+   * incremental syncs, filter with `gte` on the last seen value and de-duplicate by
+   * `id`.
    */
   updatedAt?: DateTimeFieldFilter
 }
