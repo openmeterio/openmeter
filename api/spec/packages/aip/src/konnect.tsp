@@ -17,6 +17,7 @@ import "./entitlement-access/index.tsp";
 import "./grants/index.tsp";
 import "./invoices/index.tsp";
 import "./charges/index.tsp";
+import "./credits/index.tsp";
 import "./notifications/index.tsp";
 
 using TypeSpec.Http;
@@ -148,6 +149,15 @@ interface CustomerCreditGrantEndpoints {
 @tag(Shared.CustomersTag)
 interface CustomerCreditTransactionEndpoints
   extends Customers.Credits.Transactions.CustomerCreditTransactionOperations {}
+
+@route("/openmeter/credits/grants")
+@tag(Shared.CustomersTag)
+interface CreditGrantsEndpoints extends Credits.Grants.CreditGrantsOperations {}
+
+@route("/openmeter/credits/balances")
+@tag(Shared.CustomersTag)
+interface CreditBalancesEndpoints
+  extends Credits.Balances.CreditBalancesOperations {}
 
 @route("/openmeter/customers/{customerId}/charges")
 @tag(Shared.CustomersTag)

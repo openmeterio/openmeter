@@ -156,6 +156,89 @@ describe('list params struct naming', () => {
       names.get(operationNamed(operations, 'listArchived').operation),
     ).toBe('ItemListParams')
   })
+
+  it('keeps the element-named struct when a friendly-named operation pages over the same element', async () => {
+    const { program, operations } = await compileResource(`
+      ${pageFixturePreamble}
+
+      @route("/items")
+      interface Operations {
+        @get
+        @operationId("list-items")
+        op listItems(
+          @query(#{ style: "deepObject", explode: true })
+          page?: {
+            size?: integer;
+            number?: integer;
+          },
+          @query sort?: Common.SortQuery,
+        ): ItemPage;
+
+        @get
+        @route("/archived")
+        @operationId("list-archived-items")
+        @friendlyName("listItemArchive")
+        op listArchived(
+          @query(#{ style: "deepObject", explode: true })
+          page?: {
+            size?: integer;
+            number?: integer;
+          },
+        ): ItemPage;
+      }
+    `)
+
+    // A different query shape would normally split the element group and rename
+    // both structs; the friendly-named operation steps out of the group instead.
+    const names = resolveListParamsNames(program, operations)
+    expect(names.get(operationNamed(operations, 'listItems').operation)).toBe(
+      'ItemListParams',
+    )
+    expect(
+      names.get(operationNamed(operations, 'listArchived').operation),
+    ).toBe('ListItemArchiveParams')
+  })
+
+  it('rejects a friendly name that lands on an element-named struct with a different shape', async () => {
+    const { program, operations } = await compileResource(`
+      ${pageFixturePreamble}
+
+      @route("/items")
+      interface Operations {
+        @get
+        @operationId("list-items")
+        op listItems(
+          @query(#{ style: "deepObject", explode: true })
+          page?: {
+            size?: integer;
+            number?: integer;
+          },
+          @query sort?: Common.SortQuery,
+        ): ItemPage;
+
+        @get
+        @route("/archived")
+        @operationId("list-archived-items")
+        @friendlyName("itemList")
+        op listArchived(
+          @query(#{ style: "deepObject", explode: true })
+          page?: {
+            size?: integer;
+            number?: integer;
+          },
+        ): ItemPage;
+      }
+    `)
+
+    // Renaming the existing ItemListParams would break SDK callers, so the
+    // collision fails generation in either discovery order.
+    expect(() => resolveListParamsNames(program, operations)).toThrow(
+      /ItemListParams would be emitted with two different query shapes/,
+    )
+    expect(() =>
+      resolveListParamsNames(program, [...operations].reverse()),
+    ).toThrow(/ItemListParams would be emitted with two different query shapes/)
+  })
 })
 
 describe('list params struct naming across resources', () => {

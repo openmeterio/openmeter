@@ -9,17 +9,12 @@ import (
 
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
-	"github.com/openmeterio/openmeter/api/v3/filters"
-	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/api/v3/response"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/creditgrant"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
-	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
-	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
 type (
@@ -40,108 +35,17 @@ func (h *handler) ListCreditGrants() ListCreditGrantsHandler {
 				return ListCreditGrantsRequest{}, err
 			}
 
-			page := pagination.NewPage(1, 20)
-			if args.Params.Page != nil {
-				page = pagination.NewPage(
-					lo.FromPtrOr(args.Params.Page.Number, 1),
-					lo.FromPtrOr(args.Params.Page.Size, 20),
-				)
+			req, err := fromAPIListCreditGrantsParams(ctx, args.Params.Page, args.Params.Sort, args.Params.Filter)
+			if err != nil {
+				return ListCreditGrantsRequest{}, err
 			}
 
-			if err := page.Validate(); err != nil {
-				return ListCreditGrantsRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
-					{
-						Field:  "page",
-						Reason: err.Error(),
-						Source: apierrors.InvalidParamSourceQuery,
-					},
-				})
-			}
-
-			req := ListCreditGrantsRequest{
-				Page:       page,
-				Namespace:  ns,
-				CustomerID: args.CustomerID,
-				OrderBy:    creditpurchase.OrderByCreatedAt,
-				Order:      sortx.OrderDesc,
-			}
-
-			if args.Params.Sort != nil {
-				sort, err := request.ParseSortBy(*args.Params.Sort)
-				if err != nil {
-					return ListCreditGrantsRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
-						{Field: "sort", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
-					})
-				}
-
-				req.OrderBy = creditpurchase.OrderBy(sort.Field)
-				if err := req.OrderBy.Validate(); err != nil {
-					return ListCreditGrantsRequest{}, apierrors.NewUnsupportedSortFieldError(ctx, sort.Field, "created_at", "updated_at", "name", "id")
-				}
-
-				req.Order = sort.Order.ToSortxOrder()
-			}
-
-			if args.Params.Filter != nil {
-				if args.Params.Filter.Status != nil {
-					status, err := fromAPIBillingCreditGrantStatus(*args.Params.Filter.Status)
-					if err != nil {
-						return ListCreditGrantsRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
-							{
-								Field:  "filter[status]",
-								Reason: err.Error(),
-								Source: apierrors.InvalidParamSourceQuery,
-							},
-						})
-					}
-
-					req.Status = &status
-				}
-
-				if args.Params.Filter.Currency != nil {
-					currency := currencyx.Code(*args.Params.Filter.Currency)
-					req.Currency = &currency
-				}
-
-				key, err := filters.FromAPIFilterString(args.Params.Filter.Key)
-				if err != nil {
-					return ListCreditGrantsRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
-						{
-							Field:  "filter[key]",
-							Reason: err.Error(),
-							Source: apierrors.InvalidParamSourceQuery,
-						},
-					})
-				}
-
-				req.Key = key
-				req.FeatureFilters, err = fromAPICreditGrantFeatureFilters(args.Params.Filter.FeatureKey)
-				if err != nil {
-					return ListCreditGrantsRequest{}, newFeatureKeyFilterBadRequest(ctx, err)
-				}
-			}
+			req.Namespace = ns
+			req.CustomerID = args.CustomerID
 
 			return req, nil
 		},
-		func(ctx context.Context, request ListCreditGrantsRequest) (ListCreditGrantsResponse, error) {
-			result, err := h.creditGrantService.List(ctx, request)
-			if err != nil {
-				return ListCreditGrantsResponse{}, fmt.Errorf("list credit grants: %w", err)
-			}
-
-			grants, err := slicesx.MapWithErr(result.Items, func(item creditpurchase.Charge) (api.BillingCreditGrant, error) {
-				return toAPIBillingCreditGrant(item)
-			})
-			if err != nil {
-				return ListCreditGrantsResponse{}, fmt.Errorf("converting credit grants: %w", err)
-			}
-
-			return response.NewPagePaginationResponse(grants, response.PageMetaPage{
-				Size:   request.Page.PageSize,
-				Number: request.Page.PageNumber,
-				Total:  lo.ToPtr(result.TotalCount),
-			}), nil
-		},
+		h.listCreditGrants,
 		commonhttp.JSONResponseEncoderWithStatus[ListCreditGrantsResponse](http.StatusOK),
 		httptransport.AppendOptions(
 			h.options,
@@ -149,4 +53,24 @@ func (h *handler) ListCreditGrants() ListCreditGrantsHandler {
 			httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),
 		)...,
 	)
+}
+
+func (h *handler) listCreditGrants(ctx context.Context, request ListCreditGrantsRequest) (ListCreditGrantsResponse, error) {
+	result, err := h.creditGrantService.List(ctx, request)
+	if err != nil {
+		return ListCreditGrantsResponse{}, fmt.Errorf("list credit grants: %w", err)
+	}
+
+	grants, err := slicesx.MapWithErr(result.Items, func(item creditpurchase.Charge) (api.BillingCreditGrant, error) {
+		return toAPIBillingCreditGrant(item)
+	})
+	if err != nil {
+		return ListCreditGrantsResponse{}, fmt.Errorf("converting credit grants: %w", err)
+	}
+
+	return response.NewPagePaginationResponse(grants, response.PageMetaPage{
+		Size:   request.Page.PageSize,
+		Number: request.Page.PageNumber,
+		Total:  lo.ToPtr(result.TotalCount),
+	}), nil
 }

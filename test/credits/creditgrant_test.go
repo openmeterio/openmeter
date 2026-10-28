@@ -33,6 +33,7 @@ import (
 	omtestutils "github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
 	billingtest "github.com/openmeterio/openmeter/test/billing"
@@ -458,6 +459,71 @@ func (s *CreditGrantTestSuite) TestListCreditGrants() {
 	})
 	s.Contains(ids, firstGrant.ID)
 	s.Contains(ids, secondGrant.ID)
+}
+
+func (s *CreditGrantTestSuite) TestListCreditGrantsAcrossCustomers() {
+	// given: two customers in one namespace, each holding a grant.
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("creditgrant-list-across-customers")
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
+
+	first := s.CreateLedgerBackedCustomer(ns, "first-subject")
+	second := s.CreateLedgerBackedCustomer(ns, "second-subject")
+	sandboxApp := s.InstallSandboxApp(s.T(), ns)
+	_ = s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
+
+	clock.FreezeTime(datetime.MustParseTimeInLocation(s.T(), "2026-04-17T11:23:53Z", time.UTC).AsTime())
+	defer clock.UnFreeze()
+
+	firstGrant := s.mustCreatePromotionalCreditGrant(ctx, ns, first.GetID(), "first-grant", alpacadecimal.NewFromInt(10))
+	secondGrant := s.mustCreatePromotionalCreditGrant(ctx, ns, second.GetID(), "second-grant", alpacadecimal.NewFromInt(20))
+
+	// when: grants are listed without a customer scope.
+	all, err := s.CreditGrantService.List(ctx, creditgrant.ListInput{Namespace: ns, Page: pagination.NewPage(1, 100)})
+	s.Require().NoError(err)
+
+	// then: every customer's grant is returned and keeps its owner.
+	owners := lo.SliceToMap(all.Items, func(item creditpurchase.Charge) (string, string) {
+		return item.ID, item.Intent.CustomerID
+	})
+	s.Equal(map[string]string{firstGrant.ID: first.ID, secondGrant.ID: second.ID}, owners)
+
+	// when: grants are listed for one customer.
+	scoped, err := s.CreditGrantService.List(ctx, creditgrant.ListInput{Namespace: ns, CustomerID: second.ID, Page: pagination.NewPage(1, 100)})
+	s.Require().NoError(err)
+
+	// then: only that customer's grant is returned.
+	s.Equal([]string{secondGrant.ID}, lo.Map(scoped.Items, func(item creditpurchase.Charge, _ int) string { return item.ID }))
+}
+
+func (s *CreditGrantTestSuite) TestListCreditGrantsUpdatedSince() {
+	// given: a grant written before a sync checkpoint and a grant written after it.
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("creditgrant-list-updated-since")
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
+	sandboxApp := s.InstallSandboxApp(s.T(), ns)
+	_ = s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
+
+	checkpoint := datetime.MustParseTimeInLocation(s.T(), "2026-04-17T12:00:00Z", time.UTC).AsTime()
+
+	clock.FreezeTime(checkpoint.Add(-time.Hour))
+	defer clock.UnFreeze()
+	_ = s.mustCreatePromotionalCreditGrant(ctx, ns, cust.GetID(), "before-checkpoint", alpacadecimal.NewFromInt(10))
+
+	clock.FreezeTime(checkpoint.Add(time.Minute))
+	after := s.mustCreatePromotionalCreditGrant(ctx, ns, cust.GetID(), "after-checkpoint", alpacadecimal.NewFromInt(20))
+
+	// when: grants changed since the checkpoint are listed.
+	result, err := s.CreditGrantService.List(ctx, creditgrant.ListInput{
+		Namespace: ns,
+		Page:      pagination.NewPage(1, 100),
+		UpdatedAt: &filter.FilterTime{Gte: &checkpoint},
+	})
+	s.Require().NoError(err)
+
+	// then: only the grant written after the checkpoint is returned.
+	s.Equal([]string{after.ID}, lo.Map(result.Items, func(item creditpurchase.Charge, _ int) string { return item.ID }))
 }
 
 func (s *CreditGrantTestSuite) TestListCreditGrantsSorting() {

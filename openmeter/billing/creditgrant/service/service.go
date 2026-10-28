@@ -211,7 +211,7 @@ func (s *service) List(ctx context.Context, input creditgrant.ListInput) (pagina
 	listInput := creditpurchase.ListChargesInput{
 		Page:        input.Page,
 		Namespace:   input.Namespace,
-		CustomerIDs: []string{input.CustomerID},
+		CustomerIDs: lo.Compact(append([]string{input.CustomerID}, input.CustomerIDs...)),
 		OrderBy:     input.OrderBy,
 		Order:       input.Order,
 		Expands:     meta.Expands{meta.ExpandRealizations},
@@ -248,6 +248,7 @@ func (s *service) List(ctx context.Context, input creditgrant.ListInput) (pagina
 	}
 
 	listInput.Key = input.Key
+	listInput.UpdatedAt = input.UpdatedAt
 	listInput.FeatureFilters = input.FeatureFilters
 
 	return s.creditPurchaseService.List(ctx, listInput)
