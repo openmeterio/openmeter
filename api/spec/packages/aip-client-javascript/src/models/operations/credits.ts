@@ -11,7 +11,7 @@ import type {
   SortQueryInput,
 } from '../types.js'
 
-export interface ListAllCreditGrantsQuery {
+export interface ListCreditsGrantsQuery {
   /** Determines which page of the collection to retrieve. */
   page?: { size?: number; number?: number }
   /**
@@ -29,11 +29,10 @@ export interface ListAllCreditGrantsQuery {
   filter?: ListAllCreditGrantsParamsFilter
 }
 
-export type ListAllCreditGrantsRequest =
-  AcceptDateStrings<ListAllCreditGrantsQuery>
-export type ListAllCreditGrantsResponse = CreditGrantPagePaginatedResponse
+export type ListCreditsGrantsRequest = AcceptDateStrings<ListCreditsGrantsQuery>
+export type ListCreditsGrantsResponse = CreditGrantPagePaginatedResponse
 
-export interface ListAllCreditBalancesQuery {
+export interface ListCreditsBalancesQuery {
   /** Determines which page of the collection to retrieve. */
   page?: { size?: number; number?: number }
   /**
@@ -55,7 +54,7 @@ export interface ListAllCreditBalancesQuery {
   filter?: ListAllCreditBalancesParamsFilter
 }
 
-export type ListAllCreditBalancesRequest =
-  AcceptDateStrings<ListAllCreditBalancesQuery>
-export type ListAllCreditBalancesResponse =
+export type ListCreditsBalancesRequest =
+  AcceptDateStrings<ListCreditsBalancesQuery>
+export type ListCreditsBalancesResponse =
   CustomerCreditBalancesPagePaginatedResponse

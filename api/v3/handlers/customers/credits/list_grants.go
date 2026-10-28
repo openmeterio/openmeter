@@ -46,7 +46,7 @@ func (h *handler) ListCreditGrants() ListCreditGrantsHandler {
 			}
 
 			req.Namespace = ns
-			req.CustomerIDs = []string{args.CustomerID}
+			req.CustomerID = args.CustomerID
 
 			return req, nil
 		},

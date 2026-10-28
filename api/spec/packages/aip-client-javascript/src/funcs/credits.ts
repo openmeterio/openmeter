@@ -7,10 +7,10 @@ import { toURLSearchParams, encodeSort } from '../lib/encodings.js'
 import { toWire, fromWire, assertValid, toSnakeCase } from '../lib/wire.js'
 import * as schemas from '../models/schemas.js'
 import type {
-  ListAllCreditGrantsRequest,
-  ListAllCreditGrantsResponse,
-  ListAllCreditBalancesRequest,
-  ListAllCreditBalancesResponse,
+  ListCreditsGrantsRequest,
+  ListCreditsGrantsResponse,
+  ListCreditsBalancesRequest,
+  ListCreditsBalancesResponse,
 } from '../models/operations/credits.js'
 
 /**
@@ -23,14 +23,14 @@ import type {
  *
  * GET /openmeter/credits/grants
  */
-export function listAllCreditGrants(
+export function listCreditsGrants(
   client: Client,
-  req: ListAllCreditGrantsRequest = {},
+  req: ListCreditsGrantsRequest = {},
   options?: RequestOptions,
-): Promise<Result<ListAllCreditGrantsResponse>> {
+): Promise<Result<ListCreditsGrantsResponse>> {
   return request(() => {
     if (client._options.validate && req.sort !== undefined) {
-      assertValid(schemas.listAllCreditGrantsQueryParams.shape.sort, req.sort)
+      assertValid(schemas.listCreditsGrantsQueryParams.shape.sort, req.sort)
     }
     const query = toWire(
       {
@@ -38,10 +38,10 @@ export function listAllCreditGrants(
         sort: encodeSort(req.sort, toSnakeCase),
         filter: req.filter,
       },
-      schemas.listAllCreditGrantsQueryParams,
+      schemas.listCreditsGrantsQueryParams,
     )
     if (client._options.validate) {
-      assertValid(schemas.listAllCreditGrantsQueryParamsWire, query)
+      assertValid(schemas.listCreditsGrantsQueryParamsWire, query)
     }
     const searchParams = toURLSearchParams(query)
     return http(client)
@@ -49,9 +49,9 @@ export function listAllCreditGrants(
       .json()
       .then((data) => {
         if (client._options.validate) {
-          assertValid(schemas.listAllCreditGrantsResponseWire, data)
+          assertValid(schemas.listCreditsGrantsResponseWire, data)
         }
-        return fromWire(data, schemas.listAllCreditGrantsResponse)
+        return fromWire(data, schemas.listCreditsGrantsResponse)
       })
   })
 }
@@ -67,11 +67,11 @@ export function listAllCreditGrants(
  *
  * GET /openmeter/credits/balances
  */
-export function listAllCreditBalances(
+export function listCreditsBalances(
   client: Client,
-  req: ListAllCreditBalancesRequest = {},
+  req: ListCreditsBalancesRequest = {},
   options?: RequestOptions,
-): Promise<Result<ListAllCreditBalancesResponse>> {
+): Promise<Result<ListCreditsBalancesResponse>> {
   return request(() => {
     const query = toWire(
       {
@@ -79,10 +79,10 @@ export function listAllCreditBalances(
         timestamp: req.timestamp,
         filter: req.filter,
       },
-      schemas.listAllCreditBalancesQueryParams,
+      schemas.listCreditsBalancesQueryParams,
     )
     if (client._options.validate) {
-      assertValid(schemas.listAllCreditBalancesQueryParamsWire, query)
+      assertValid(schemas.listCreditsBalancesQueryParamsWire, query)
     }
     const searchParams = toURLSearchParams(query)
     return http(client)
@@ -90,9 +90,9 @@ export function listAllCreditBalances(
       .json()
       .then((data) => {
         if (client._options.validate) {
-          assertValid(schemas.listAllCreditBalancesResponseWire, data)
+          assertValid(schemas.listCreditsBalancesResponseWire, data)
         }
-        return fromWire(data, schemas.listAllCreditBalancesResponse)
+        return fromWire(data, schemas.listCreditsBalancesResponse)
       })
   })
 }

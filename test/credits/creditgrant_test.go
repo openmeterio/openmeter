@@ -448,8 +448,8 @@ func (s *CreditGrantTestSuite) TestListCreditGrants() {
 	secondGrant := s.mustCreatePromotionalCreditGrant(ctx, ns, cust.GetID(), "list-grant-2", alpacadecimal.NewFromInt(20))
 
 	result, err := s.CreditGrantService.List(ctx, creditgrant.ListInput{
-		Namespace:   ns,
-		CustomerIDs: []string{cust.ID},
+		Namespace:  ns,
+		CustomerID: cust.ID,
 	})
 	s.Require().NoError(err)
 	s.Len(result.Items, 2)
@@ -489,7 +489,7 @@ func (s *CreditGrantTestSuite) TestListCreditGrantsAcrossCustomers() {
 	s.Equal(map[string]string{firstGrant.ID: first.ID, secondGrant.ID: second.ID}, owners)
 
 	// when: grants are listed for one customer.
-	scoped, err := s.CreditGrantService.List(ctx, creditgrant.ListInput{Namespace: ns, CustomerIDs: []string{second.ID}, Page: pagination.NewPage(1, 100)})
+	scoped, err := s.CreditGrantService.List(ctx, creditgrant.ListInput{Namespace: ns, CustomerID: second.ID, Page: pagination.NewPage(1, 100)})
 	s.Require().NoError(err)
 
 	// then: only that customer's grant is returned.
@@ -579,7 +579,7 @@ func (s *CreditGrantTestSuite) TestListCreditGrantsSorting() {
 			var ids []string
 			for page := 1; page <= len(tc.want); page++ {
 				result, err := s.CreditGrantService.List(ctx, creditgrant.ListInput{
-					Namespace: ns, CustomerIDs: []string{cust.ID}, Page: pagination.NewPage(page, 1),
+					Namespace: ns, CustomerID: cust.ID, Page: pagination.NewPage(page, 1),
 					OrderBy: tc.orderBy, Order: tc.order,
 				})
 				s.Require().NoError(err)
@@ -895,7 +895,7 @@ func (s *CreditGrantTestSuite) TestListCreditGrantsSpendabilityFilters() {
 	} {
 		s.Run(tc.name, func() {
 			// When listing grants for the requested features.
-			input := creditgrant.ListInput{Namespace: ns, CustomerIDs: []string{cust.ID}, FeatureFilters: tc.features, Page: pagination.NewPage(1, 100)}
+			input := creditgrant.ListInput{Namespace: ns, CustomerID: cust.ID, FeatureFilters: tc.features, Page: pagination.NewPage(1, 100)}
 			result, err := s.CreditGrantService.List(ctx, input)
 			s.Require().NoError(err)
 			// Then unrestricted grants are retained and restrictions match before pagination.

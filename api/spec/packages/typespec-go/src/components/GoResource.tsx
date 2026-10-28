@@ -2,6 +2,7 @@ import * as ay from '@alloy-js/core'
 import * as go from '@alloy-js/go'
 import type { Refkey } from '@alloy-js/core'
 import {
+  getFriendlyName,
   resolveEncodedName,
   walkPropertiesInherited,
   type ModelProperty,
@@ -793,6 +794,11 @@ function isTextResponse(operation: GoOperation): boolean {
  * Every operation in such a conflicted group therefore gets its
  * operation-derived name instead, keeping the outcome independent of
  * operation iteration order.
+ *
+ * An operation with an explicit @friendlyName is named after it and never
+ * joins an element group. This lets a new operation page over an element that
+ * an existing operation already lists without renaming the element-named
+ * struct that SDK callers depend on.
  */
 export function resolveListParamsNames(
   program: Program,
@@ -803,7 +809,10 @@ export function resolveListParamsNames(
     if (operation.queryParams.length === 0) {
       continue
     }
-    const name = listParamsName(program, operation)
+    const name =
+      getFriendlyName(program, operation.operation) !== undefined
+        ? operationParamsName(program, operation)
+        : listParamsName(program, operation)
     const group = groups.get(name)
     if (group) {
       group.push(operation)

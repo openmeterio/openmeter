@@ -64,6 +64,9 @@ namespace Grants {
     @extension(Shared.UnstableExtension, true)
     @get
     @operationId("list-all-credit-grants")
+    // Names the SDK method credits.grants.list and keeps the per-customer grant
+    // listing's Go params struct (CreditGrantListParams) unchanged.
+    @friendlyName("listCreditsGrants")
     @summary("List credit grants across customers")
     list(
       ...Common.PagePaginationQuery,
@@ -102,6 +105,8 @@ namespace Balances {
     @extension(Shared.UnstableExtension, true)
     @get
     @operationId("list-all-credit-balances")
+    // Names the SDK method credits.balances.list.
+    @friendlyName("listCreditsBalances")
     @summary("List credit balances across customers")
     list(
       ...Common.PagePaginationQuery,

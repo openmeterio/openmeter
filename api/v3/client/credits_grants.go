@@ -13,7 +13,7 @@ type CreditsGrantsService struct {
 	client *Client
 }
 
-type ListAllCreditGrantsFilter struct {
+type ListCreditsGrantsFilter struct {
 	// Filter credit grants by status.
 	Status *CreditGrantStatus
 	// Filter credit grants by fiat or custom currency code.
@@ -31,13 +31,13 @@ type ListAllCreditGrantsFilter struct {
 	CustomerID *StringExactFilter
 }
 
-type ListAllCreditGrantsParams struct {
+type ListCreditsGrantsParams struct {
 	Page   *PageParams
 	Sort   *Sort
-	Filter *ListAllCreditGrantsFilter
+	Filter *ListCreditsGrantsFilter
 }
 
-func (p ListAllCreditGrantsParams) values() url.Values {
+func (p ListCreditsGrantsParams) values() url.Values {
 	q := url.Values{}
 
 	addPageParams(q, p.Page)
@@ -64,7 +64,7 @@ func (p ListAllCreditGrantsParams) values() url.Values {
 //
 // Returns the same grants as the per-customer route; each grant carries its
 // `customer` reference.
-func (s *CreditsGrantsService) ListAll(ctx context.Context, params ListAllCreditGrantsParams) (*CreditGrantPagePaginatedResponse, error) {
+func (s *CreditsGrantsService) List(ctx context.Context, params ListCreditsGrantsParams) (*CreditGrantPagePaginatedResponse, error) {
 	path := "/openmeter/credits/grants"
 
 	req, err := s.client.newRequestWithContentType(ctx, http.MethodGet, path, params.values(), nil, "", "application/json")
@@ -80,13 +80,13 @@ func (s *CreditsGrantsService) ListAll(ctx context.Context, params ListAllCredit
 	return &out, nil
 }
 
-// ListAllAll returns an iterator over all CreditGrant results, fetching pages of ListAll transparently. Iteration stops at the first error, which is yielded as the second value.
-func (s *CreditsGrantsService) ListAllAll(ctx context.Context, params ListAllCreditGrantsParams) iter.Seq2[CreditGrant, error] {
+// ListAll returns an iterator over all CreditGrant results, fetching pages of List transparently. Iteration stops at the first error, which is yielded as the second value.
+func (s *CreditsGrantsService) ListAll(ctx context.Context, params ListCreditsGrantsParams) iter.Seq2[CreditGrant, error] {
 	return paginate(params.Page, func(page, size int) ([]CreditGrant, int, error) {
 		pageParams := params
 		pageParams.Page = &PageParams{Size: Int(size), Number: Int(page)}
 
-		resp, err := s.ListAll(ctx, pageParams)
+		resp, err := s.List(ctx, pageParams)
 		if err != nil {
 			return nil, 0, err
 		}

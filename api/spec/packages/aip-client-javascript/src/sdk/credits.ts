@@ -3,12 +3,12 @@
 import { type Client } from '../core.js'
 import { unwrap, type RequestOptions } from '../lib/types.js'
 import { paginatePages } from '../lib/paginate.js'
-import { listAllCreditGrants, listAllCreditBalances } from '../funcs/credits.js'
+import { listCreditsGrants, listCreditsBalances } from '../funcs/credits.js'
 import type {
-  ListAllCreditGrantsRequest,
-  ListAllCreditGrantsResponse,
-  ListAllCreditBalancesRequest,
-  ListAllCreditBalancesResponse,
+  ListCreditsGrantsRequest,
+  ListCreditsGrantsResponse,
+  ListCreditsBalancesRequest,
+  ListCreditsBalancesResponse,
 } from '../models/operations/credits.js'
 import type { CreditGrant, CustomerCreditBalances } from '../models/types.js'
 
@@ -39,11 +39,11 @@ export class CreditsGrants {
    *
    * GET /openmeter/credits/grants
    */
-  async listAll(
-    request?: ListAllCreditGrantsRequest,
+  async list(
+    request?: ListCreditsGrantsRequest,
     options?: RequestOptions,
-  ): Promise<ListAllCreditGrantsResponse> {
-    return unwrap(await listAllCreditGrants(this._client, request, options))
+  ): Promise<ListCreditsGrantsResponse> {
+    return unwrap(await listCreditsGrants(this._client, request, options))
   }
 
   /**
@@ -58,12 +58,12 @@ export class CreditsGrants {
    *
    * GET /openmeter/credits/grants
    */
-  listAllAll(
-    request?: ListAllCreditGrantsRequest,
+  listAll(
+    request?: ListCreditsGrantsRequest,
     options?: RequestOptions,
   ): AsyncIterable<CreditGrant> {
     return paginatePages(
-      (req, opts) => listAllCreditGrants(this._client, req, opts),
+      (req, opts) => listCreditsGrants(this._client, req, opts),
       request ?? {},
       options,
     )
@@ -84,11 +84,11 @@ export class CreditsBalances {
    *
    * GET /openmeter/credits/balances
    */
-  async listAll(
-    request?: ListAllCreditBalancesRequest,
+  async list(
+    request?: ListCreditsBalancesRequest,
     options?: RequestOptions,
-  ): Promise<ListAllCreditBalancesResponse> {
-    return unwrap(await listAllCreditBalances(this._client, request, options))
+  ): Promise<ListCreditsBalancesResponse> {
+    return unwrap(await listCreditsBalances(this._client, request, options))
   }
 
   /**
@@ -104,12 +104,12 @@ export class CreditsBalances {
    *
    * GET /openmeter/credits/balances
    */
-  listAllAll(
-    request?: ListAllCreditBalancesRequest,
+  listAll(
+    request?: ListCreditsBalancesRequest,
     options?: RequestOptions,
   ): AsyncIterable<CustomerCreditBalances> {
     return paginatePages(
-      (req, opts) => listAllCreditBalances(this._client, req, opts),
+      (req, opts) => listCreditsBalances(this._client, req, opts),
       request ?? {},
       options,
     )

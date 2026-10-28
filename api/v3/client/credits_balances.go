@@ -14,7 +14,7 @@ type CreditsBalancesService struct {
 	client *Client
 }
 
-type CustomerCreditBalancesFilter struct {
+type ListCreditsBalancesFilter struct {
 	// Filter credit balance by currency code. When historical custom currencies reuse
 	// a code, each managed currency is returned as a separate balance row.
 	Currency *StringExactFilter
@@ -25,13 +25,13 @@ type CustomerCreditBalancesFilter struct {
 	CustomerID *StringExactFilter
 }
 
-type CustomerCreditBalancesListParams struct {
+type ListCreditsBalancesParams struct {
 	Page      *PageParams
 	Timestamp *time.Time
-	Filter    *CustomerCreditBalancesFilter
+	Filter    *ListCreditsBalancesFilter
 }
 
-func (p CustomerCreditBalancesListParams) values() url.Values {
+func (p ListCreditsBalancesParams) values() url.Values {
 	q := url.Values{}
 
 	addPageParams(q, p.Page)
@@ -54,7 +54,7 @@ func (p CustomerCreditBalancesListParams) values() url.Values {
 // Returns one item per customer, ordered by customer ID. Customers without credit
 // activity are returned with an empty `balances` list. The page size is limited to
 // 100 because balances are computed on request.
-func (s *CreditsBalancesService) ListAll(ctx context.Context, params CustomerCreditBalancesListParams) (*CustomerCreditBalancesPagePaginatedResponse, error) {
+func (s *CreditsBalancesService) List(ctx context.Context, params ListCreditsBalancesParams) (*CustomerCreditBalancesPagePaginatedResponse, error) {
 	path := "/openmeter/credits/balances"
 
 	req, err := s.client.newRequestWithContentType(ctx, http.MethodGet, path, params.values(), nil, "", "application/json")
@@ -70,13 +70,13 @@ func (s *CreditsBalancesService) ListAll(ctx context.Context, params CustomerCre
 	return &out, nil
 }
 
-// ListAllAll returns an iterator over all CustomerCreditBalances results, fetching pages of ListAll transparently. Iteration stops at the first error, which is yielded as the second value.
-func (s *CreditsBalancesService) ListAllAll(ctx context.Context, params CustomerCreditBalancesListParams) iter.Seq2[CustomerCreditBalances, error] {
+// ListAll returns an iterator over all CustomerCreditBalances results, fetching pages of List transparently. Iteration stops at the first error, which is yielded as the second value.
+func (s *CreditsBalancesService) ListAll(ctx context.Context, params ListCreditsBalancesParams) iter.Seq2[CustomerCreditBalances, error] {
 	return paginate(params.Page, func(page, size int) ([]CustomerCreditBalances, int, error) {
 		pageParams := params
 		pageParams.Page = &PageParams{Size: Int(size), Number: Int(page)}
 
-		resp, err := s.ListAll(ctx, pageParams)
+		resp, err := s.List(ctx, pageParams)
 		if err != nil {
 			return nil, 0, err
 		}

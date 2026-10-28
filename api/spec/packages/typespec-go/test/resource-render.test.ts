@@ -156,6 +156,48 @@ describe('list params struct naming', () => {
       names.get(operationNamed(operations, 'listArchived').operation),
     ).toBe('ItemListParams')
   })
+
+  it('keeps the element-named struct when a friendly-named operation pages over the same element', async () => {
+    const { program, operations } = await compileResource(`
+      ${pageFixturePreamble}
+
+      @route("/items")
+      interface Operations {
+        @get
+        @operationId("list-items")
+        op listItems(
+          @query(#{ style: "deepObject", explode: true })
+          page?: {
+            size?: integer;
+            number?: integer;
+          },
+          @query sort?: Common.SortQuery,
+        ): ItemPage;
+
+        @get
+        @route("/archived")
+        @operationId("list-archived-items")
+        @friendlyName("listItemArchive")
+        op listArchived(
+          @query(#{ style: "deepObject", explode: true })
+          page?: {
+            size?: integer;
+            number?: integer;
+          },
+        ): ItemPage;
+      }
+    `)
+
+    // A different query shape would normally split the element group and rename
+    // both structs; the friendly-named operation steps out of the group instead.
+    const names = resolveListParamsNames(program, operations)
+    expect(names.get(operationNamed(operations, 'listItems').operation)).toBe(
+      'ItemListParams',
+    )
+    expect(
+      names.get(operationNamed(operations, 'listArchived').operation),
+    ).toBe('ListItemArchiveParams')
+  })
 })
 
 describe('list params struct naming across resources', () => {

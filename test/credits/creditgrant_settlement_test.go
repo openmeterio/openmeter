@@ -55,7 +55,7 @@ func (s *CreditGrantTestSuite) TestRejectPurchaseRoundingToZeroBeforeIssuance() 
 
 				// then rejection is atomic: no grant, ledger posting or invoice remains
 				s.Require().ErrorContains(err, "purchase amount must be positive after rounding")
-				grants, err := s.CreditGrantService.List(ctx, creditgrant.ListInput{Namespace: ns, CustomerIDs: []string{cust.ID}})
+				grants, err := s.CreditGrantService.List(ctx, creditgrant.ListInput{Namespace: ns, CustomerID: cust.ID})
 				s.Require().NoError(err)
 				s.Empty(grants.Items)
 				postings, err := s.DBClient.LedgerTransaction.Query().Where(ledgertransaction.NamespaceEQ(ns)).Count(ctx)

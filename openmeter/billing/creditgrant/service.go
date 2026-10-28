@@ -248,9 +248,10 @@ func (i GetInput) Validate() error {
 type ListInput struct {
 	pagination.Page
 
-	Namespace string
-	// CustomerIDs limits the listing to these customers. Empty lists the grants of
-	// every customer in the namespace.
+	Namespace  string
+	CustomerID string
+	// CustomerIDs also limits the listing, together with CustomerID. When both are
+	// empty, the grants of every customer in the namespace are listed.
 	CustomerIDs []string
 	OrderBy     creditpurchase.OrderBy
 	Order       sortx.Order

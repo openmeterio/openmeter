@@ -213,8 +213,8 @@ The full call path, HTTP route, and a short description are listed below.
 
 | Method | HTTP | Description |
 | --- | --- | --- |
-| `om.Credits.Grants.ListAll` | `GET /openmeter/credits/grants` | List credit grants across all customers. Returns the same grants as the per-customer route; each grant carries its `customer` reference. |
-| `om.Credits.Balances.ListAll` | `GET /openmeter/credits/balances` | List credit balances across customers. Returns one item per customer, ordered by customer ID. Customers without credit activity are returned with an empty `balances` list. The page size is limited to 100 because balances are computed on request. |
+| `om.Credits.Grants.List` | `GET /openmeter/credits/grants` | List credit grants across all customers. Returns the same grants as the per-customer route; each grant carries its `customer` reference. |
+| `om.Credits.Balances.List` | `GET /openmeter/credits/balances` | List credit balances across customers. Returns one item per customer, ordered by customer ID. Customers without credit activity are returned with an empty `balances` list. The page size is limited to 100 because balances are computed on request. |
 
 ### Subscriptions
 

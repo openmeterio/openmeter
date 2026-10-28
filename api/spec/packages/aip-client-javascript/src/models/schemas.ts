@@ -8999,7 +8999,7 @@ export const listCreditTransactionsResponse = z.object({
   meta: cursorMeta,
 })
 
-export const listAllCreditGrantsQueryParams = z.object({
+export const listCreditsGrantsQueryParams = z.object({
   page: z
     .object({
       size: z.coerce
@@ -9015,12 +9015,12 @@ export const listAllCreditGrantsQueryParams = z.object({
   filter: listAllCreditGrantsParamsFilter.optional(),
 })
 
-export const listAllCreditGrantsResponse = z.object({
+export const listCreditsGrantsResponse = z.object({
   data: z.array(creditGrant),
   meta: paginatedMeta,
 })
 
-export const listAllCreditBalancesQueryParams = z.object({
+export const listCreditsBalancesQueryParams = z.object({
   page: z
     .object({
       size: z.coerce
@@ -9036,7 +9036,7 @@ export const listAllCreditBalancesQueryParams = z.object({
   filter: listAllCreditBalancesParamsFilter.optional(),
 })
 
-export const listAllCreditBalancesResponse = z.object({
+export const listCreditsBalancesResponse = z.object({
   data: z.array(customerCreditBalances),
   meta: paginatedMeta,
 })
@@ -18972,7 +18972,7 @@ export const listCreditTransactionsResponseWire = z.strictObject({
   meta: cursorMetaWire,
 })
 
-export const listAllCreditGrantsQueryParamsWire = z.object({
+export const listCreditsGrantsQueryParamsWire = z.object({
   page: z
     .strictObject({
       size: z.coerce
@@ -18994,12 +18994,12 @@ export const listAllCreditGrantsQueryParamsWire = z.object({
   filter: listAllCreditGrantsParamsFilterWire.optional(),
 })
 
-export const listAllCreditGrantsResponseWire = z.strictObject({
+export const listCreditsGrantsResponseWire = z.strictObject({
   data: z.array(creditGrantWire),
   meta: paginatedMetaWire,
 })
 
-export const listAllCreditBalancesQueryParamsWire = z.object({
+export const listCreditsBalancesQueryParamsWire = z.object({
   page: z
     .strictObject({
       size: z.coerce
@@ -19015,7 +19015,7 @@ export const listAllCreditBalancesQueryParamsWire = z.object({
   filter: listAllCreditBalancesParamsFilterWire.optional(),
 })
 
-export const listAllCreditBalancesResponseWire = z.strictObject({
+export const listCreditsBalancesResponseWire = z.strictObject({
   data: z.array(customerCreditBalancesWire),
   meta: paginatedMetaWire,
 })
