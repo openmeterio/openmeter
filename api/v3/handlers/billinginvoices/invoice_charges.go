@@ -12,6 +12,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
+	"github.com/openmeterio/openmeter/pkg/slicesx"
+	"github.com/samber/lo"
 )
 
 type (
@@ -37,13 +39,11 @@ func (h *handler) InvoiceCustomerCharges() InvoiceCustomerChargesHandler {
 			}
 
 			input := InvoiceCustomerChargesRequest{
-				InvoicePendingLinesInput: billing.InvoicePendingLinesInput{
-					Customer: customer.CustomerID{
-						Namespace: ns,
-						ID:        customerID,
-					},
-					AsOf: body.AsOf,
+				Customer: customer.CustomerID{
+					Namespace: ns,
+					ID:        customerID,
 				},
+				AsOf:    body.AsOf,
 				Options: []billing.InvoicePendingLinesOption{billing.WithBypassCollectionAlignment()},
 			}
 
@@ -63,19 +63,14 @@ func (h *handler) InvoiceCustomerCharges() InvoiceCustomerChargesHandler {
 				return InvoiceCustomerChargesResponse{}, fmt.Errorf("collecting customer pending lines: %w", err)
 			}
 
-			out := InvoiceCustomerChargesResponse{
-				Invoices: make([]api.BillingInvoice, 0, len(invoices)),
-			}
-			for _, invoice := range invoices {
-				mappedInvoice, err := ToAPIStandardInvoice(invoice)
-				if err != nil {
-					return InvoiceCustomerChargesResponse{}, fmt.Errorf("mapping collected invoice: %w", err)
-				}
-
-				out.Invoices = append(out.Invoices, mappedInvoice)
+			apiInvoices, err := lo.MapErr(invoices, slicesx.WrapMapFn(ToAPIStandardInvoice))
+			if err != nil {
+				return InvoiceCustomerChargesResponse{}, fmt.Errorf("mapping collected invoice: %w", err)
 			}
 
-			return out, nil
+			return InvoiceCustomerChargesResponse{
+				Invoices: apiInvoices,
+			}, nil
 		},
 		commonhttp.JSONResponseEncoderWithStatus[InvoiceCustomerChargesResponse](http.StatusCreated),
 		httptransport.AppendOptions(
