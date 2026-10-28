@@ -334,7 +334,8 @@ func newMigrationFixtureWithPlan(t *testing.T, buildPlan func(taxConfig productc
 	deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
 	customer := deps.CustomerAdapter.CreateExampleCustomer(t)
 
-	taxConfig := subscriptiontestutils.ExampleTaxConfig(t, deps.TaxCodeEnv)
+	taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace, subscriptiontestutils.GetExampleTaxCodeInput())
+	taxConfig := subscriptiontestutils.ExampleTaxConfig(taxCode)
 	original := deps.PlanHelper.CreatePlan(t, buildPlan(taxConfig))
 
 	before, err := deps.WorkflowService.CreateFromPlan(t.Context(), subscriptionworkflow.CreateSubscriptionWorkflowInput{

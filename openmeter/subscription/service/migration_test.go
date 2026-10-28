@@ -58,7 +58,8 @@ func TestUpdateRejectsMigrationBetweenReadAndLock(t *testing.T) {
 	defer db.Cleanup(t)
 	deps := subscriptiontestutils.NewService(t, db)
 	deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
-	taxConfig := subscriptiontestutils.ExampleTaxConfig(t, deps.TaxCodeEnv)
+	taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace, subscriptiontestutils.GetExampleTaxCodeInput())
+	taxConfig := subscriptiontestutils.ExampleTaxConfig(taxCode)
 	p1 := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.BuildTestPlanInput(t).AddPhase(nil, subscriptiontestutils.ExampleRateCard1(taxConfig)).Build())
 	before := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps, p1, start)
 	clock.FreezeTime(start.Add(10 * 24 * time.Hour))
@@ -143,7 +144,8 @@ func TestCancelIncludesMigrationCommittedBeforeLock(t *testing.T) {
 
 	deps := subscriptiontestutils.NewService(t, db)
 	deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
-	taxConfig := subscriptiontestutils.ExampleTaxConfig(t, deps.TaxCodeEnv)
+	taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace, subscriptiontestutils.GetExampleTaxCodeInput())
+	taxConfig := subscriptiontestutils.ExampleTaxConfig(taxCode)
 	p1 := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.BuildTestPlanInput(t).AddPhase(nil,
 		subscriptiontestutils.ExampleRateCard1(taxConfig)).Build())
 	before := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps, p1, start)

@@ -221,7 +221,8 @@ func TestMigrationStartingPhaseDoesNotTransferAddons(t *testing.T) {
 	deps := setup(t, setupConfig{})
 	defer deps.cleanup(t)
 
-	taxConfig := subscriptiontestutils.ExampleTaxConfig(t, deps.TaxCodeEnv)
+	taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace, subscriptiontestutils.GetExampleTaxCodeInput())
+	taxConfig := subscriptiontestutils.ExampleTaxConfig(taxCode)
 	input := subscriptiontestutils.BuildTestPlanInput(t).AddPhase(nil,
 		subscriptiontestutils.ExampleRateCard1(taxConfig), subscriptiontestutils.ExampleRateCard2.Clone()).Build()
 	original, addon := subscriptiontestutils.CreatePlanWithAddon(t, deps.SubscriptionDependencies, input,

@@ -39,8 +39,9 @@ func TestDiscountPersisting(t *testing.T) {
 
 	t.Run("Should persist discounts", func(t *testing.T) {
 		withDeps(t, func(t *testing.T, deps tDeps) {
-			taxConfig := subscriptiontestutils.ExampleTaxConfig(t, deps.subDeps.TaxCodeEnv)
-			examplePlanInput1 := subscriptiontestutils.GetExamplePlanInput(t, deps.subDeps.TaxCodeEnv)
+			taxCode := deps.subDeps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace, subscriptiontestutils.GetExampleTaxCodeInput())
+			taxConfig := subscriptiontestutils.ExampleTaxConfig(taxCode)
+			examplePlanInput1 := subscriptiontestutils.GetExamplePlanInput(t, taxConfig)
 			examplePlanInput1.Phases[0].RateCards[0] = subscriptiontestutils.ExampleRateCardWithDiscounts(taxConfig)
 
 			ctx := context.Background()

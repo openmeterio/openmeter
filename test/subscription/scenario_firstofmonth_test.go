@@ -47,7 +47,8 @@ func TestBillingOnFirstOfMonth(t *testing.T) {
 	feats := tDeps.FeatureConnector.CreateExampleFeatures(t, tDeps.ExampleMeterID)
 	require.Len(t, feats, 3)
 
-	taxConfig := subscriptiontestutils.ExampleTaxConfig(t, tDeps.TaxCodeEnv)
+	taxCode := tDeps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace, subscriptiontestutils.GetExampleTaxCodeInput())
+	taxConfig := subscriptiontestutils.ExampleTaxConfig(taxCode)
 
 	// 2nd, let's create the plan
 	p, err := tDeps.PlanService.CreatePlan(ctx, plan.CreatePlanInput{

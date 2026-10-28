@@ -48,7 +48,8 @@ func TestApply(t *testing.T) {
 
 		deps := subscriptiontestutils.NewService(t, dbDeps)
 
-		taxConfig := subscriptiontestutils.ExampleTaxConfig(t, deps.TaxCodeEnv)
+		taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace, subscriptiontestutils.GetExampleTaxCodeInput())
+		taxConfig := subscriptiontestutils.ExampleTaxConfig(taxCode)
 
 		fn(t, &tcDeps{
 			deps:      deps,
@@ -61,7 +62,7 @@ func TestApply(t *testing.T) {
 			p, a := subscriptiontestutils.CreatePlanWithAddon(
 				t,
 				deps.deps,
-				subscriptiontestutils.GetExamplePlanInput(t, deps.deps.TaxCodeEnv),
+				subscriptiontestutils.GetExamplePlanInput(t, deps.taxConfig),
 				subscriptiontestutils.GetExampleAddonInput(t, productcatalog.EffectivePeriod{
 					EffectiveFrom: &now,
 					EffectiveTo:   nil,
@@ -90,7 +91,7 @@ func TestApply(t *testing.T) {
 			p, a := subscriptiontestutils.CreatePlanWithAddon(
 				t,
 				deps.deps,
-				subscriptiontestutils.GetExamplePlanInput(t, deps.deps.TaxCodeEnv),
+				subscriptiontestutils.GetExamplePlanInput(t, deps.taxConfig),
 				subscriptiontestutils.BuildAddonForTesting(t,
 					productcatalog.EffectivePeriod{
 						EffectiveFrom: &now,
@@ -150,7 +151,7 @@ func TestApply(t *testing.T) {
 			p, a := subscriptiontestutils.CreatePlanWithAddon(
 				t,
 				deps.deps,
-				subscriptiontestutils.GetExamplePlanInput(t, deps.deps.TaxCodeEnv),
+				subscriptiontestutils.GetExamplePlanInput(t, deps.taxConfig),
 				subscriptiontestutils.BuildAddonForTesting(t,
 					productcatalog.EffectivePeriod{
 						EffectiveFrom: &now,
@@ -307,7 +308,7 @@ func TestApply(t *testing.T) {
 			p, a := subscriptiontestutils.CreatePlanWithAddon(
 				t,
 				deps.deps,
-				subscriptiontestutils.GetExamplePlanInput(t, deps.deps.TaxCodeEnv),
+				subscriptiontestutils.GetExamplePlanInput(t, deps.taxConfig),
 				subscriptiontestutils.BuildAddonForTesting(t,
 					productcatalog.EffectivePeriod{
 						EffectiveFrom: &now,
@@ -383,7 +384,7 @@ func TestApply(t *testing.T) {
 			p, a := subscriptiontestutils.CreatePlanWithAddon(
 				t,
 				deps.deps,
-				subscriptiontestutils.GetExamplePlanInput(t, deps.deps.TaxCodeEnv),
+				subscriptiontestutils.GetExamplePlanInput(t, deps.taxConfig),
 				subscriptiontestutils.BuildAddonForTesting(t,
 					effPer,
 					productcatalog.AddonInstanceTypeSingle,
@@ -988,7 +989,8 @@ func TestApplyWithMultiInstance(t *testing.T) {
 
 		deps := subscriptiontestutils.NewService(t, dbDeps)
 
-		taxConfig := subscriptiontestutils.ExampleTaxConfig(t, deps.TaxCodeEnv)
+		taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace, subscriptiontestutils.GetExampleTaxCodeInput())
+		taxConfig := subscriptiontestutils.ExampleTaxConfig(taxCode)
 
 		fn(t, &tcDeps{
 			deps:      deps,
