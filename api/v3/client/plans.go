@@ -19,8 +19,8 @@ type PlanFilter struct {
 	Name     *StringFilter
 	Status   *StringExactFilter
 	Currency *StringExactFilter
-	// Filter by plan last update time. `updated_at` changes when the plan itself
-	// changes. Phase and rate card changes do not update it.
+	// Filter by plan last update time. `updated_at` changes whenever the plan is
+	// updated, including changes to its phases and rate cards.
 	UpdatedAt *DateTimeFilter
 }
 

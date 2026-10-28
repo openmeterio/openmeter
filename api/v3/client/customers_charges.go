@@ -35,8 +35,9 @@ type ListCustomerChargesFilter struct {
 	ServicePeriodFrom *DateTimeFilter
 	// Filter charges by the end of their service period.
 	ServicePeriodTo *DateTimeFilter
-	// Filter by charge last update time. `updated_at` changes when the charge itself
-	// changes. Realization changes and live usage do not update it.
+	// Filter by charge last update time. `updated_at` changes whenever the charge
+	// itself is saved. A change saved only to its realizations may not update it, and
+	// live usage moving on an open charge does not.
 	UpdatedAt *DateTimeFilter
 }
 

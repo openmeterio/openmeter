@@ -50,8 +50,9 @@ model ListInvoicesParamsFilter {
   created_at?: Common.DateTimeFieldFilter;
 
   /**
-   * Filter by invoice last update time. `updated_at` changes when the invoice itself
-   * changes. Line changes and live usage on open invoices do not update it.
+   * Filter by invoice last update time. `updated_at` changes whenever the invoice
+   * itself is saved. A change saved only to its lines may not update it, and live
+   * usage moving on an open invoice does not.
    */
   updated_at?: Common.DateTimeFieldFilter;
 }

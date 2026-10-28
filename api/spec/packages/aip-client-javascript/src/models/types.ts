@@ -3664,8 +3664,9 @@ export interface ListCustomerChargesParamsFilter {
   /** Filter charges by the end of their service period. */
   servicePeriodTo?: DateTimeFieldFilter
   /**
-   * Filter by charge last update time. `updated_at` changes when the charge itself
-   * changes. Realization changes and live usage do not update it.
+   * Filter by charge last update time. `updated_at` changes whenever the charge
+   * itself is saved. A change saved only to its realizations may not update it, and
+   * live usage moving on an open charge does not.
    */
   updatedAt?: DateTimeFieldFilter
 }
@@ -3678,8 +3679,9 @@ export interface ListSubscriptionsParamsFilter {
   planId?: UlidFieldFilter
   planKey?: StringFieldFilterExact
   /**
-   * Filter by subscription last update time. `updated_at` changes when the
-   * subscription itself changes. Phase and item changes do not update it.
+   * Filter by subscription last update time. `updated_at` changes whenever the
+   * subscription itself is saved. A change saved only to its phases or items may not
+   * update it.
    */
   updatedAt?: DateTimeFieldFilter
 }
@@ -3697,8 +3699,9 @@ export interface ListInvoicesParamsFilter {
   /** Filter by invoice creation time. */
   createdAt?: DateTimeFieldFilter
   /**
-   * Filter by invoice last update time. `updated_at` changes when the invoice itself
-   * changes. Line changes and live usage on open invoices do not update it.
+   * Filter by invoice last update time. `updated_at` changes whenever the invoice
+   * itself is saved. A change saved only to its lines may not update it, and live
+   * usage moving on an open invoice does not.
    */
   updatedAt?: DateTimeFieldFilter
 }
@@ -3727,8 +3730,9 @@ export interface ListChargesParamsFilter {
   /** Filter charges by the end of their service period. */
   servicePeriodTo?: DateTimeFieldFilter
   /**
-   * Filter by charge last update time. `updated_at` changes when the charge itself
-   * changes. Realization changes and live usage do not update it.
+   * Filter by charge last update time. `updated_at` changes whenever the charge
+   * itself is saved. A change saved only to its realizations may not update it, and
+   * live usage moving on an open charge does not.
    */
   updatedAt?: DateTimeFieldFilter
   /** Filter charges by the ID of their customer. */
@@ -3742,8 +3746,8 @@ export interface ListPlansParamsFilter {
   status?: StringFieldFilterExact
   currency?: StringFieldFilterExact
   /**
-   * Filter by plan last update time. `updated_at` changes when the plan itself
-   * changes. Phase and rate card changes do not update it.
+   * Filter by plan last update time. `updated_at` changes whenever the plan is
+   * updated, including changes to its phases and rate cards.
    */
   updatedAt?: DateTimeFieldFilter
 }

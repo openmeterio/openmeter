@@ -314,8 +314,8 @@ type ListInvoicesInput struct {
 	PeriodStart *filter.FilterTime
 	// CreatedAt filters by invoice creation time.
 	CreatedAt *filter.FilterTime
-	// UpdatedAt filters by the invoice header's last update time. Line changes do
-	// not bump it.
+	// UpdatedAt filters by the invoice header's last update time. A change saved
+	// only to lines may not bump it.
 	UpdatedAt *filter.FilterTime
 
 	IncludeDeleted bool
@@ -399,8 +399,8 @@ type ListInvoicesAdapterInput struct {
 	PeriodStart *filter.FilterTime
 	// CreatedAt filters by invoice creation time.
 	CreatedAt *filter.FilterTime
-	// UpdatedAt filters by the invoice header's last update time. Line changes do
-	// not bump it.
+	// UpdatedAt filters by the invoice header's last update time. A change saved
+	// only to lines may not bump it.
 	UpdatedAt *filter.FilterTime
 
 	IncludeDeleted bool

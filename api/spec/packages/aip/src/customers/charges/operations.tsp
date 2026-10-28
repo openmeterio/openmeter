@@ -54,8 +54,9 @@ model ListCustomerChargesParamsFilter {
   service_period_to?: Common.DateTimeFieldFilter;
 
   /**
-   * Filter by charge last update time. `updated_at` changes when the charge itself
-   * changes. Realization changes and live usage do not update it.
+   * Filter by charge last update time. `updated_at` changes whenever the charge
+   * itself is saved. A change saved only to its realizations may not update it, and
+   * live usage moving on an open charge does not.
    */
   updated_at?: Common.DateTimeFieldFilter;
 }

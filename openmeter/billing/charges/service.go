@@ -253,8 +253,8 @@ type ListChargesInput struct {
 	// composes them into containment, overlap, or one-sided queries.
 	ServicePeriodFrom *filter.FilterTime
 	ServicePeriodTo   *filter.FilterTime
-	// UpdatedAt filters on the charge row's last update time. Realization runs and
-	// live usage changes do not bump it.
+	// UpdatedAt filters on the charge row's last update time. A change saved only
+	// to realization runs may not bump it, and live usage changes never do.
 	UpdatedAt      *filter.FilterTime
 	IncludeDeleted bool
 	// DeletedAtFilter selects which deleted-at field is used when IncludeDeleted is false.

@@ -108,8 +108,8 @@ type ListPlansInput struct {
 	// Currency filters plans by their currency field (AND semantics, supports eq/neq/contains/oeq).
 	Currency *filter.FilterString
 
-	// UpdatedAt filters plans by the plan row's last update time. Phase and rate card
-	// changes do not bump it.
+	// UpdatedAt filters plans by the plan row's last update time. Plan updates bump
+	// it, including phase and rate card changes, because they rewrite the plan row.
 	UpdatedAt *filter.FilterTime
 
 	// ExcludeUnitConfig omits plans carrying a unit_config conversion on any of their rate cards. (v1 can't represent it)

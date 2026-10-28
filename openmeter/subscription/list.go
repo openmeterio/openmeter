@@ -49,8 +49,8 @@ type ListSubscriptionsInput struct {
 	PlanID    *filter.FilterULID
 	PlanKey   *filter.FilterString
 	DeletedAt *filter.FilterTime
-	// UpdatedAt filters by the subscription row's last update time. Phase and item
-	// changes do not bump it.
+	// UpdatedAt filters by the subscription row's last update time. A change saved
+	// only to phases or items may not bump it.
 	UpdatedAt *filter.FilterTime
 }
 

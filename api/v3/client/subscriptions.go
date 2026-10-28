@@ -20,8 +20,9 @@ type BillingSubscriptionFilter struct {
 	Status     *StringExactFilter
 	PlanID     *StringExactFilter
 	PlanKey    *StringExactFilter
-	// Filter by subscription last update time. `updated_at` changes when the
-	// subscription itself changes. Phase and item changes do not update it.
+	// Filter by subscription last update time. `updated_at` changes whenever the
+	// subscription itself is saved. A change saved only to its phases or items may not
+	// update it.
 	UpdatedAt *DateTimeFilter
 }
 
