@@ -41,6 +41,7 @@ TypeSpec definitions and ships fully-typed request and response models.
   - [EntitlementAccess](#entitlementaccess)
   - [Notifications](#notifications)
 - [Internal Operations](#internal-operations)
+  - [Internal Customers](#internal-customers)
   - [Internal Subscriptions](#internal-subscriptions)
   - [Internal Apps](#internal-apps)
   - [Internal Notifications](#internal-notifications)
@@ -316,7 +317,6 @@ The full call path, HTTP route, and a short description are listed below.
 | `client.customers.credits.transactions.list`               | `GET /openmeter/customers/{customerId}/credits/transactions`                                | List credit transactions for a customer. Returns an immutable, chronological record of credit movements: funded credits and consumed credits. Transactions are returned in reverse chronological order by default.                                                                                                                                                                                                                                                                                                                                                                              |
 | `client.customers.charges.list`                            | `GET /openmeter/customers/{customerId}/charges`                                             | List customer charges. Returns the customer's charges that are represented as either flat fee or usage-based charges.                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | `client.customers.charges.create`                          | `POST /openmeter/customers/{customerId}/charges`                                            | Create customer charge.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| `client.customers.charges.invoice`                         | `POST /openmeter/customers/{customerId}/charges/invoice`                                    | Invoice a customer's charges outside the normal billing cycle. Collection alignment is bypassed. The customer's progressive billing setting applies unless explicitly overridden. All eligible pending lines are considered. Returns the created standard invoices, one per collected currency. Lines blocked by their owning engine remain pending. If all eligible lines are blocked or no lines are eligible, returns a validation error.                                                                                                                                                    |
 
 ### Entitlements
 
@@ -498,6 +498,12 @@ Operations marked internal in the API definition are exposed under
 `client.internal.*`, quarantined from the customer surface. They are not
 intended for customer use: they may require additional permissions, and
 they can change or be removed without notice or semver consideration.
+
+### Internal Customers
+
+| Method                                      | HTTP                                                     | Description                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| ------------------------------------------- | -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `client.internal.customers.charges.invoice` | `POST /openmeter/customers/{customerId}/charges/invoice` | Invoice a customer's charges outside the normal billing cycle. Collection alignment is bypassed. The customer's progressive billing setting applies unless explicitly overridden. All eligible pending lines are considered. Returns the created standard invoices, one per collected currency. Lines blocked by their owning engine remain pending. If all eligible lines are blocked or no lines are eligible, returns a validation error. |
 
 ### Internal Subscriptions
 

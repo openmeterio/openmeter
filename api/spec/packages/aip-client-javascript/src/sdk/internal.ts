@@ -3,6 +3,7 @@
 import { type Client } from '../core.js'
 import { unwrap, type RequestOptions } from '../lib/types.js'
 import { paginatePages } from '../lib/paginate.js'
+import { invoiceCustomerCharges } from '../funcs/customers.js'
 import {
   createSubscriptionAddon,
   updateSubscriptionAddon,
@@ -19,6 +20,10 @@ import {
   getBillingNotificationEvent,
   resendBillingNotificationEvent,
 } from '../funcs/notifications.js'
+import type {
+  InvoiceCustomerChargesRequest,
+  InvoiceCustomerChargesResponse,
+} from '../models/operations/customers.js'
 import type {
   CreateSubscriptionAddonRequest,
   CreateSubscriptionAddonResponse,
@@ -59,6 +64,11 @@ import type { NotificationEvent, NotificationRule } from '../models/types.js'
 export class Internal {
   constructor(private readonly _client: Client) {}
 
+  private _customers?: InternalCustomers
+  get customers(): InternalCustomers {
+    return (this._customers ??= new InternalCustomers(this._client))
+  }
+
   private _subscriptions?: InternalSubscriptions
   get subscriptions(): InternalSubscriptions {
     return (this._subscriptions ??= new InternalSubscriptions(this._client))
@@ -72,6 +82,39 @@ export class Internal {
   private _notifications?: InternalNotifications
   get notifications(): InternalNotifications {
     return (this._notifications ??= new InternalNotifications(this._client))
+  }
+}
+
+export class InternalCustomers {
+  constructor(private readonly _client: Client) {}
+
+  private _charges?: InternalCustomersCharges
+  get charges(): InternalCustomersCharges {
+    return (this._charges ??= new InternalCustomersCharges(this._client))
+  }
+}
+
+export class InternalCustomersCharges {
+  constructor(private readonly _client: Client) {}
+
+  /**
+   * Invoice a customer's charges
+   *
+   * Invoice a customer's charges outside the normal billing cycle. Collection
+   * alignment is bypassed. The customer's progressive billing setting applies unless
+   * explicitly overridden. All eligible pending lines are considered.
+   *
+   * Returns the created standard invoices, one per collected currency. Lines blocked
+   * by their owning engine remain pending. If all eligible lines are blocked or no
+   * lines are eligible, returns a validation error.
+   *
+   * POST /openmeter/customers/{customerId}/charges/invoice
+   */
+  async invoice(
+    request: InvoiceCustomerChargesRequest,
+    options?: RequestOptions,
+  ): Promise<InvoiceCustomerChargesResponse> {
+    return unwrap(await invoiceCustomerCharges(this._client, request, options))
   }
 }
 

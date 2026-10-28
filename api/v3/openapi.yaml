@@ -1652,6 +1652,9 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/InvoiceCustomerChargesInput'
+      x-internal: true
+      x-private: true
+      x-unstable: true
       x-rpc-endpoint: true
   /openmeter/customers/{customerId}/credits/adjustments:
     post:

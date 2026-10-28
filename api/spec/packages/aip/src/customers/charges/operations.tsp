@@ -173,6 +173,9 @@ namespace Charges {
     @operationId("invoice-customer-charges")
     @summary("Invoice a customer's charges")
     @extension(Shared.RPCEndpointExtension, true)
+    @extension(Shared.UnstableExtension, true)
+    @extension(Shared.PrivateExtension, true)
+    @extension(Shared.InternalExtension, true)
     invoiceCharges(
       @path customerId: Shared.ULID,
       @body request?: InvoiceCustomerChargesInput,
