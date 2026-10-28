@@ -257,3 +257,79 @@ func (s *RatingTestSuite) TestListChargesRealtimeUsageAsOf() {
 	s.True(models.IsGenericValidationError(futureErr), futureErr)
 	s.True(models.IsGenericValidationError(noExpandErr), noExpandErr)
 }
+
+func (s *RatingTestSuite) TestListChargesRealtimeUsageAsOfMinimumCommitment() {
+	// given: a charge with a minimum commitment above its usage, read after its
+	// service period has ended.
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("credits-rating-as-of-minimum")
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
+
+	cust := s.CreateLedgerBackedCustomer(ns, "rating-as-of-minimum")
+	sandboxApp := s.InstallSandboxApp(s.T(), ns)
+	_ = s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
+
+	apiRequestsTotal := s.SetupApiRequestsTotalFeature(ctx, ns)
+
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(s.T(), "2026-03-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(s.T(), "2026-04-01T00:00:00Z", time.UTC).AsTime(),
+	}
+
+	clock.FreezeTime(servicePeriod.From)
+	defer clock.UnFreeze()
+
+	minimum := alpacadecimal.NewFromInt(100)
+	_, err := s.Charges.Create(ctx, charges.CreateInput{
+		Namespace: ns,
+		Intents: charges.NewCreateChargeIntents(
+			s.CreateMockChargeIntent(CreateMockChargeIntentInput{
+				Customer:       cust.GetID(),
+				Currency:       USD,
+				ServicePeriod:  servicePeriod,
+				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+				Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+					Amount:      alpacadecimal.NewFromInt(1),
+					Commitments: productcatalog.Commitments{MinimumAmount: &minimum},
+				}),
+				Name:              "usage-based-as-of-minimum",
+				ManagedBy:         billing.SubscriptionManagedLine,
+				UniqueReferenceID: "usage-based-as-of-minimum",
+				FeatureKey:        apiRequestsTotal.Feature.Key,
+			}),
+		),
+	})
+	s.Require().NoError(err)
+
+	s.MockStreamingConnector.AddSimpleEvent(apiRequestsTotal.Feature.Key, 2, servicePeriod.From.Add(2*time.Hour))
+
+	clock.FreezeTime(servicePeriod.To.Add(5 * 24 * time.Hour))
+
+	realtimeTotal := func(asOf *time.Time) float64 {
+		result, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
+			Page:              pagination.NewPage(1, 20),
+			Namespace:         ns,
+			CustomerIDs:       []string{cust.ID},
+			ChargeTypes:       []meta.ChargeType{meta.ChargeTypeUsageBased},
+			Expands:           meta.Expands{meta.ExpandRealizations, meta.ExpandRealtimeUsage},
+			RealtimeUsageAsOf: asOf,
+		})
+		s.Require().NoError(err)
+		s.Require().Len(result.Items, 1)
+
+		charge, err := result.Items[0].AsUsageBasedCharge()
+		s.Require().NoError(err)
+		s.Require().NotNil(charge.Expands.RealtimeUsage)
+
+		return charge.Expands.RealtimeUsage.Total.InexactFloat64()
+	}
+
+	beforeEnd := servicePeriod.To.Add(-time.Hour)
+	atEnd := servicePeriod.To
+
+	// when/then: before the period ends the minimum is not yet owed; at the end, and
+	// in a live read after it, the minimum applies.
+	s.Equal(2.0, realtimeTotal(&beforeEnd))
+	s.Equal(100.0, realtimeTotal(&atEnd))
+	s.Equal(100.0, realtimeTotal(nil))
+}
