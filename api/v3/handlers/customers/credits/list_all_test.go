@@ -189,6 +189,22 @@ func TestListAllCreditBalances(t *testing.T) {
 		require.Nil(t, customers.input.ExistingAt)
 	})
 
+	t.Run("an empty currency filter is rejected instead of reading every currency", func(t *testing.T) {
+		for _, query := range []string{"filter[currency][oeq]=", "filter[currency][eq]=", "filter[currency]="} {
+			// given: the real handler.
+			customers, _, router := newHarness()
+
+			// when: the currency filter is present but selects no code.
+			req := httptest.NewRequest(http.MethodGet, "/openmeter/credits/balances?"+query, nil)
+			rec := httptest.NewRecorder()
+			router.ServeHTTP(rec, req)
+
+			// then: the request fails before any customer is read.
+			require.Equal(t, http.StatusBadRequest, rec.Code, query+": "+rec.Body.String())
+			require.Nil(t, customers.input, query)
+		}
+	})
+
 	t.Run("page size above the cap is rejected", func(t *testing.T) {
 		// given: the real handler.
 		customers, _, router := newHarness()

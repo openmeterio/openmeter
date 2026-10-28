@@ -2,6 +2,7 @@ package customerscredits
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -141,6 +142,16 @@ func (h *handler) ListAllCreditBalances() ListAllCreditBalancesHandler {
 				req.Currencies, err = fromAPICreditBalanceCurrencyFilter(ctx, f.Currency)
 				if err != nil {
 					return ListAllCreditBalancesRequest{}, err
+				}
+
+				// A present currency filter that selects no code must not widen the read to
+				// every currency. The per-customer route keeps its existing lenient behavior.
+				if f.Currency != nil && (len(req.Currencies.Codes) == 0 || lo.Contains(req.Currencies.Codes, "")) {
+					err := errors.New("currency must not be empty")
+
+					return ListAllCreditBalancesRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						{Field: "filter[currency]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
+					})
 				}
 
 				req.FeatureFilter, err = fromAPICustomerCreditFeatureFilter(f.FeatureKey)

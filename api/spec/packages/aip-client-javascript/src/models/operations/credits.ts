@@ -41,9 +41,10 @@ export interface ListCreditsBalancesQuery {
    * at the requested time.
    *
    * Defaults to the current time. Historical responses return `live` as zero because
-   * live charge impacts are only available for current balances. A historical read
-   * can be re-run for a daily or month-end close; it returns the same result until a
-   * correction is booked with an earlier timestamp.
+   * live charge impacts are only available for current balances. For a re-runnable
+   * daily or month-end close, use `booked`: it changes only when a correction is
+   * booked with an earlier timestamp. `spendable` can also change after the fact,
+   * because it sets aside credit for usage that is recorded later.
    */
   timestamp?: Date
   /**
