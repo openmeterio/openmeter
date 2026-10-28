@@ -40,12 +40,15 @@ func TestListAllCreditGrantsCustomerScope(t *testing.T) {
 	for _, tc := range []struct {
 		query       string
 		customerIDs []string
+		updatedAt   bool
 		invalid     bool
 	}{
 		{query: "", customerIDs: nil},
 		{query: "filter[customer_id][eq]=01ARZ3NDEKTSV4RRFFQ69G5FAV", customerIDs: []string{"01ARZ3NDEKTSV4RRFFQ69G5FAV"}},
 		{query: "filter[customer_id][oeq]=01ARZ3NDEKTSV4RRFFQ69G5FAV,01ARZ3NDEKTSV4RRFFQ69G5FAW", customerIDs: []string{"01ARZ3NDEKTSV4RRFFQ69G5FAV", "01ARZ3NDEKTSV4RRFFQ69G5FAW"}},
 		{query: "filter[customer_id][neq]=01ARZ3NDEKTSV4RRFFQ69G5FAV", invalid: true},
+		{query: "filter[updated_at][gte]=2026-10-01T00:00:00Z", updatedAt: true},
+		{query: "filter[updated_at][gte]=yesterday", invalid: true},
 	} {
 		t.Run(tc.query, func(t *testing.T) {
 			// given: the generated HTTP binding and the real namespace-wide grant handler.
@@ -70,6 +73,7 @@ func TestListAllCreditGrantsCustomerScope(t *testing.T) {
 			require.NotNil(t, service.input)
 			require.Equal(t, "ns", service.input.Namespace)
 			require.Equal(t, tc.customerIDs, service.input.CustomerIDs)
+			require.Equal(t, tc.updatedAt, service.input.UpdatedAt != nil)
 		})
 	}
 }

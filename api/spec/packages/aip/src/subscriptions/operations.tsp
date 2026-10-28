@@ -131,6 +131,12 @@ model ListSubscriptionsParamsFilter {
   plan_id?: Common.ULIDFieldFilter;
   #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
   plan_key?: Common.StringFieldFilterExact;
+
+  /**
+   * Filter by subscription last update time. `updated_at` changes when the
+   * subscription itself changes. Phase and item changes do not update it.
+   */
+  updated_at?: Common.DateTimeFieldFilter;
 }
 
 interface SubscriptionsOperations {

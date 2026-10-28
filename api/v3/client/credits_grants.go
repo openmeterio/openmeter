@@ -25,6 +25,8 @@ type ListAllCreditGrantsFilter struct {
 	// `oeq` with comma-separated keys. Omit to include all features; use
 	// `exists=false` for grants without feature restrictions.
 	FeatureKey *StringFilter
+	// Filter by credit grant last update time.
+	UpdatedAt *DateTimeFilter
 	// Filter credit grants by the ID of their customer.
 	CustomerID *StringExactFilter
 }
@@ -51,6 +53,7 @@ func (p ListAllCreditGrantsParams) values() url.Values {
 		}
 		addStringFilter(q, "filter[key]", p.Filter.Key)
 		addStringFilter(q, "filter[feature_key]", p.Filter.FeatureKey)
+		addDateTimeFilter(q, "filter[updated_at]", p.Filter.UpdatedAt)
 		addStringExactFilter(q, "filter[customer_id]", p.Filter.CustomerID)
 	}
 

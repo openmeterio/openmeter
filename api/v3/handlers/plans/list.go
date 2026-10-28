@@ -92,6 +92,15 @@ func (h *handler) ListPlans() ListPlansHandler {
 				}
 
 				req.Status = status
+
+				updatedAt, err := filters.FromAPIFilterDateTime(params.Filter.UpdatedAt)
+				if err != nil {
+					return ListPlansRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						{Field: "filter[updated_at]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
+					})
+				}
+
+				req.UpdatedAt = updatedAt
 			}
 
 			if params.Sort != nil {

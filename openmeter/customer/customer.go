@@ -359,6 +359,7 @@ type ListCustomersInput struct {
 	PlanKey                    *filter.FilterString
 	CustomerIDs                []string
 	BillingProfileID           *filter.FilterULID
+	UpdatedAt                  *filter.FilterTime
 
 	// Expand
 	Expands Expands
@@ -408,6 +409,12 @@ func (i ListCustomersInput) Validate() error {
 	if i.BillingProfileID != nil {
 		if err := i.BillingProfileID.Validate(); err != nil {
 			errs = append(errs, models.NewGenericValidationError(fmt.Errorf("invalid billing profile id filter: %w", err)))
+		}
+	}
+
+	if i.UpdatedAt != nil {
+		if err := i.UpdatedAt.Validate(); err != nil {
+			errs = append(errs, models.NewGenericValidationError(fmt.Errorf("invalid updated at filter: %w", err)))
 		}
 	}
 

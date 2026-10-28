@@ -48,6 +48,12 @@ model ListInvoicesParamsFilter {
    */
   #suppress "@openmeter/api-spec-aip/doc-decorator" "filter field"
   created_at?: Common.DateTimeFieldFilter;
+
+  /**
+   * Filter by invoice last update time. `updated_at` changes when the invoice itself
+   * changes. Line changes and live usage on open invoices do not update it.
+   */
+  updated_at?: Common.DateTimeFieldFilter;
 }
 
 /**

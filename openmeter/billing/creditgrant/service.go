@@ -259,6 +259,8 @@ type ListInput struct {
 	Status   *GrantStatus
 	Currency *currencyx.Code
 	Key      *filter.FilterString
+	// UpdatedAt filters by the grant's last update time.
+	UpdatedAt *filter.FilterTime
 	// FeatureFilters selects any requested feature plus unrestricted grants.
 	// None selects all; Some(nil) selects only grants without feature restrictions.
 	FeatureFilters mo.Option[ledger.FeatureFilters]
@@ -300,6 +302,12 @@ func (i ListInput) Validate() error {
 	if i.Key != nil {
 		if err := i.Key.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("key: %w", err))
+		}
+	}
+
+	if i.UpdatedAt != nil {
+		if err := i.UpdatedAt.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("updated at: %w", err))
 		}
 	}
 

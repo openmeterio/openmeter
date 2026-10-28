@@ -37,6 +37,7 @@ func (s *Service) ListInvoices(ctx context.Context, input billing.ListInvoicesIn
 		IssuedAt:         input.IssuedAt,
 		PeriodStart:      input.PeriodStart,
 		CreatedAt:        input.CreatedAt,
+		UpdatedAt:        input.UpdatedAt,
 		IncludeDeleted:   input.IncludeDeleted,
 		OnlyStandard:     input.OnlyStandard,
 		Expand:           input.Expand,

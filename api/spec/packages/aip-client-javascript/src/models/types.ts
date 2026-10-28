@@ -2169,14 +2169,6 @@ export interface GetCreditBalanceParamsFilter {
   featureKey?: StringFieldFilter
 }
 
-/** Filter options for listing plans. */
-export interface ListPlansParamsFilter {
-  key?: StringFieldFilter
-  name?: StringFieldFilter
-  status?: StringFieldFilterExact
-  currency?: StringFieldFilterExact
-}
-
 /** A plan key and an optional version constraint for matching credit grants. */
 export interface CreateCreditGrantPlanFilter {
   /** The plan key in the customer's namespace. */
@@ -2782,23 +2774,6 @@ export interface CreditAdjustment {
   labels?: Labels
 }
 
-/** Filter options for listing credit grants. */
-export interface ListCreditGrantsParamsFilter {
-  /** Filter credit grants by status. */
-  status?: 'pending' | 'active' | 'expired' | 'voided'
-  /** Filter credit grants by fiat or custom currency code. */
-  currency?: BillingCurrencyCode
-  /** Filter credit grants by key. */
-  key?: StringFieldFilter
-  /**
-   * Select grants spendable on any requested feature, including grants without
-   * feature restrictions. Keys are case-sensitive. Supports `eq` (or shorthand) and
-   * `oeq` with comma-separated keys. Omit to include all features; use
-   * `exists=false` for grants without feature restrictions.
-   */
-  featureKey?: StringFieldFilter
-}
-
 /** CreditAdjustment create request. */
 export interface CreateCreditAdjustmentRequest {
   /**
@@ -3059,16 +3034,6 @@ export interface LlmCostOverrideCreate {
   effectiveTo?: Date
 }
 
-/** Filter options for listing customers. */
-export interface ListCustomersParamsFilter {
-  key?: StringFieldFilter
-  name?: StringFieldFilter
-  primaryEmail?: StringFieldFilter
-  usageAttributionSubjectKey?: StringFieldFilter
-  planKey?: StringFieldFilter
-  billingProfileId?: UlidFieldFilter
-}
-
 /** Filter options for listing customer entitlements. */
 export interface ListCustomerEntitlementsParamsFilter {
   /** Filter entitlements by feature ID. */
@@ -3099,25 +3064,6 @@ export interface ListGrantsParamsFilter {
   featureId?: UlidFieldFilter
 }
 
-/** Filter options for listing credit grants across customers. */
-export interface ListAllCreditGrantsParamsFilter {
-  /** Filter credit grants by status. */
-  status?: 'pending' | 'active' | 'expired' | 'voided'
-  /** Filter credit grants by fiat or custom currency code. */
-  currency?: BillingCurrencyCode
-  /** Filter credit grants by key. */
-  key?: StringFieldFilter
-  /**
-   * Select grants spendable on any requested feature, including grants without
-   * feature restrictions. Keys are case-sensitive. Supports `eq` (or shorthand) and
-   * `oeq` with comma-separated keys. Omit to include all features; use
-   * `exists=false` for grants without feature restrictions.
-   */
-  featureKey?: StringFieldFilter
-  /** Filter credit grants by the ID of their customer. */
-  customerId?: UlidFieldFilter
-}
-
 /** Filter options for listing credit balances across customers. */
 export interface ListAllCreditBalancesParamsFilter {
   /**
@@ -3132,15 +3078,6 @@ export interface ListAllCreditBalancesParamsFilter {
   featureKey?: StringFieldFilter
   /** Filter credit balances by the ID of their customer. */
   customerId?: UlidFieldFilter
-}
-
-/** Filter options for listing subscriptions. */
-export interface ListSubscriptionsParamsFilter {
-  id?: UlidFieldFilter
-  customerId?: UlidFieldFilter
-  status?: StringFieldFilterExact
-  planId?: UlidFieldFilter
-  planKey?: StringFieldFilterExact
 }
 
 /** Filter options for listing apps. */
@@ -3690,6 +3627,58 @@ export interface ListEventsParamsFilter {
   storedAt?: DateTimeFieldFilter
 }
 
+/** Filter options for listing customers. */
+export interface ListCustomersParamsFilter {
+  key?: StringFieldFilter
+  name?: StringFieldFilter
+  primaryEmail?: StringFieldFilter
+  usageAttributionSubjectKey?: StringFieldFilter
+  planKey?: StringFieldFilter
+  billingProfileId?: UlidFieldFilter
+  /** Filter by customer last update time. */
+  updatedAt?: DateTimeFieldFilter
+}
+
+/** Filter options for listing credit grants. */
+export interface ListCreditGrantsParamsFilter {
+  /** Filter credit grants by status. */
+  status?: 'pending' | 'active' | 'expired' | 'voided'
+  /** Filter credit grants by fiat or custom currency code. */
+  currency?: BillingCurrencyCode
+  /** Filter credit grants by key. */
+  key?: StringFieldFilter
+  /**
+   * Select grants spendable on any requested feature, including grants without
+   * feature restrictions. Keys are case-sensitive. Supports `eq` (or shorthand) and
+   * `oeq` with comma-separated keys. Omit to include all features; use
+   * `exists=false` for grants without feature restrictions.
+   */
+  featureKey?: StringFieldFilter
+  /** Filter by credit grant last update time. */
+  updatedAt?: DateTimeFieldFilter
+}
+
+/** Filter options for listing credit grants across customers. */
+export interface ListAllCreditGrantsParamsFilter {
+  /** Filter credit grants by status. */
+  status?: 'pending' | 'active' | 'expired' | 'voided'
+  /** Filter credit grants by fiat or custom currency code. */
+  currency?: BillingCurrencyCode
+  /** Filter credit grants by key. */
+  key?: StringFieldFilter
+  /**
+   * Select grants spendable on any requested feature, including grants without
+   * feature restrictions. Keys are case-sensitive. Supports `eq` (or shorthand) and
+   * `oeq` with comma-separated keys. Omit to include all features; use
+   * `exists=false` for grants without feature restrictions.
+   */
+  featureKey?: StringFieldFilter
+  /** Filter by credit grant last update time. */
+  updatedAt?: DateTimeFieldFilter
+  /** Filter credit grants by the ID of their customer. */
+  customerId?: UlidFieldFilter
+}
+
 /** Filter options for listing charges. */
 export interface ListCustomerChargesParamsFilter {
   /**
@@ -3713,6 +3702,25 @@ export interface ListCustomerChargesParamsFilter {
   servicePeriodFrom?: DateTimeFieldFilter
   /** Filter charges by the end of their service period. */
   servicePeriodTo?: DateTimeFieldFilter
+  /**
+   * Filter by charge last update time. `updated_at` changes when the charge itself
+   * changes. Realization changes and live usage do not update it.
+   */
+  updatedAt?: DateTimeFieldFilter
+}
+
+/** Filter options for listing subscriptions. */
+export interface ListSubscriptionsParamsFilter {
+  id?: UlidFieldFilter
+  customerId?: UlidFieldFilter
+  status?: StringFieldFilterExact
+  planId?: UlidFieldFilter
+  planKey?: StringFieldFilterExact
+  /**
+   * Filter by subscription last update time. `updated_at` changes when the
+   * subscription itself changes. Phase and item changes do not update it.
+   */
+  updatedAt?: DateTimeFieldFilter
 }
 
 /** Filter options for listing invoices. */
@@ -3727,6 +3735,11 @@ export interface ListInvoicesParamsFilter {
   servicePeriodStart?: DateTimeFieldFilter
   /** Filter by invoice creation time. */
   createdAt?: DateTimeFieldFilter
+  /**
+   * Filter by invoice last update time. `updated_at` changes when the invoice itself
+   * changes. Line changes and live usage on open invoices do not update it.
+   */
+  updatedAt?: DateTimeFieldFilter
 }
 
 /** Filter options for listing charges across customers. */
@@ -3752,8 +3765,26 @@ export interface ListChargesParamsFilter {
   servicePeriodFrom?: DateTimeFieldFilter
   /** Filter charges by the end of their service period. */
   servicePeriodTo?: DateTimeFieldFilter
+  /**
+   * Filter by charge last update time. `updated_at` changes when the charge itself
+   * changes. Realization changes and live usage do not update it.
+   */
+  updatedAt?: DateTimeFieldFilter
   /** Filter charges by the ID of their customer. */
   customerId?: UlidFieldFilter
+}
+
+/** Filter options for listing plans. */
+export interface ListPlansParamsFilter {
+  key?: StringFieldFilter
+  name?: StringFieldFilter
+  status?: StringFieldFilterExact
+  currency?: StringFieldFilterExact
+  /**
+   * Filter by plan last update time. `updated_at` changes when the plan itself
+   * changes. Phase and rate card changes do not update it.
+   */
+  updatedAt?: DateTimeFieldFilter
 }
 
 /** Filter options for listing notification channels. */

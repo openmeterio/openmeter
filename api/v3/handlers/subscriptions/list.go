@@ -104,6 +104,15 @@ func (h *handler) ListSubscriptions() ListSubscriptionsHandler {
 				}
 
 				req.PlanKey = planKey
+
+				updatedAt, err := filters.FromAPIFilterDateTime(params.Filter.UpdatedAt)
+				if err != nil {
+					return ListSubscriptionsRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						{Field: "filter[updated_at]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
+					})
+				}
+
+				req.UpdatedAt = updatedAt
 			}
 
 			// Sort

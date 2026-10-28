@@ -57,6 +57,7 @@ func (h *handler) ListAllCreditGrants() ListAllCreditGrantsHandler {
 					Currency:   f.Currency,
 					Key:        f.Key,
 					FeatureKey: f.FeatureKey,
+					UpdatedAt:  f.UpdatedAt,
 				}
 				apiCustomerID = f.CustomerId
 			}

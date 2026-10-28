@@ -140,6 +140,7 @@ func (a *adapter) ListInvoices(ctx context.Context, input billing.ListInvoicesAd
 		query = filter.ApplyToQuery(query, input.IssuedAt, billinginvoice.FieldIssuedAt)
 		query = filter.ApplyToQuery(query, input.PeriodStart, billinginvoice.FieldPeriodStart)
 		query = filter.ApplyToQuery(query, input.CreatedAt, billinginvoice.FieldCreatedAt)
+		query = filter.ApplyToQuery(query, input.UpdatedAt, billinginvoice.FieldUpdatedAt)
 
 		if len(input.IDs) > 0 {
 			query = query.Where(billinginvoice.IDIn(input.IDs...))

@@ -31,6 +31,11 @@ model ListCustomersParamsFilter {
   plan_key?: Common.StringFieldFilter;
   #suppress "@openmeter/api-spec-aip/doc-decorator" "filter field"
   billing_profile_id?: Common.ULIDFieldFilter;
+
+  /**
+   * Filter by customer last update time.
+   */
+  updated_at?: Common.DateTimeFieldFilter;
 }
 
 interface CustomersOperations {

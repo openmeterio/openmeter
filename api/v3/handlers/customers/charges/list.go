@@ -45,6 +45,7 @@ func (h *handler) ListCustomerCharges() ListCustomerChargesHandler {
 					FeatureKey:        args.Params.Filter.FeatureKey,
 					ServicePeriodFrom: args.Params.Filter.ServicePeriodFrom,
 					ServicePeriodTo:   args.Params.Filter.ServicePeriodTo,
+					UpdatedAt:         args.Params.Filter.UpdatedAt,
 				}, &req); err != nil {
 					return ListCustomerChargesRequest{}, err
 				}

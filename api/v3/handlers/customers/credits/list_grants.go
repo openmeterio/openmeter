@@ -159,6 +159,18 @@ func fromAPIListCreditGrantsParams(ctx context.Context, apiPage *api.PagePaginat
 	}
 
 	req.Key = key
+
+	req.UpdatedAt, err = filters.FromAPIFilterDateTime(apiFilter.UpdatedAt)
+	if err != nil {
+		return ListCreditGrantsRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+			{
+				Field:  "filter[updated_at]",
+				Reason: err.Error(),
+				Source: apierrors.InvalidParamSourceQuery,
+			},
+		})
+	}
+
 	req.FeatureFilters, err = fromAPICreditGrantFeatureFilters(apiFilter.FeatureKey)
 	if err != nil {
 		return ListCreditGrantsRequest{}, newFeatureKeyFilterBadRequest(ctx, err)

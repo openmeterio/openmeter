@@ -49,6 +49,9 @@ type ListSubscriptionsInput struct {
 	PlanID    *filter.FilterULID
 	PlanKey   *filter.FilterString
 	DeletedAt *filter.FilterTime
+	// UpdatedAt filters by the subscription row's last update time. Phase and item
+	// changes do not bump it.
+	UpdatedAt *filter.FilterTime
 }
 
 func (i ListSubscriptionsInput) Validate() error {
@@ -99,6 +102,12 @@ func (i ListSubscriptionsInput) Validate() error {
 	if i.DeletedAt != nil {
 		if err := i.DeletedAt.Validate(); err != nil {
 			errs = append(errs, models.NewGenericValidationError(fmt.Errorf("invalid deleted_at filter: %w", err)))
+		}
+	}
+
+	if i.UpdatedAt != nil {
+		if err := i.UpdatedAt.Validate(); err != nil {
+			errs = append(errs, models.NewGenericValidationError(fmt.Errorf("invalid updated_at filter: %w", err)))
 		}
 	}
 

@@ -63,6 +63,7 @@ func (a *adapter) ListPlans(ctx context.Context, params plan.ListPlansInput) (pa
 
 		query = filter.ApplyToQuery(query, params.Key, plandb.FieldKey)
 		query = filter.ApplyToQuery(query, params.Name, plandb.FieldName)
+		query = filter.ApplyToQuery(query, params.UpdatedAt, plandb.FieldUpdatedAt)
 		if currencyPredicate := planCurrencyPredicate(params.Currency); currencyPredicate != nil {
 			query = query.Where(*currencyPredicate)
 		}
