@@ -47,6 +47,9 @@ func TestListAllCreditGrantsCustomerScope(t *testing.T) {
 		{query: "filter[customer_id][eq]=01ARZ3NDEKTSV4RRFFQ69G5FAV", customerIDs: []string{"01ARZ3NDEKTSV4RRFFQ69G5FAV"}},
 		{query: "filter[customer_id][oeq]=01ARZ3NDEKTSV4RRFFQ69G5FAV,01ARZ3NDEKTSV4RRFFQ69G5FAW", customerIDs: []string{"01ARZ3NDEKTSV4RRFFQ69G5FAV", "01ARZ3NDEKTSV4RRFFQ69G5FAW"}},
 		{query: "filter[customer_id][neq]=01ARZ3NDEKTSV4RRFFQ69G5FAV", invalid: true},
+		{query: "filter[customer_id][eq]=", invalid: true},
+		{query: "filter[customer_id]=", invalid: true},
+		{query: "filter[customer_id][oeq]=", invalid: true},
 		{query: "filter[updated_at][gte]=2026-10-01T00:00:00Z", updatedAt: true},
 		{query: "filter[updated_at][gte]=yesterday", invalid: true},
 	} {

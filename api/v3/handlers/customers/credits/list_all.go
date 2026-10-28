@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 	"time"
 
 	"github.com/samber/lo"
@@ -229,17 +230,28 @@ func fromAPICustomerIDFilter(ctx context.Context, f *api.ULIDFieldFilter) ([]str
 		return nil, nil
 	}
 
-	if f.Neq != nil {
-		err := errors.New("neq operator is not supported for customer_id")
-
-		return nil, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+	badRequest := func(err error) error {
+		return apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
 			{Field: "filter[customer_id]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 		})
 	}
 
-	ids := lo.Uniq(append(lo.Compact([]string{lo.FromPtr(f.Eq)}), f.Oeq...))
+	if f.Neq != nil {
+		return nil, badRequest(errors.New("neq operator is not supported for customer_id"))
+	}
 
-	return ids, nil
+	ids := slices.Clone(f.Oeq)
+	if f.Eq != nil {
+		ids = append(ids, *f.Eq)
+	}
+
+	// A present filter that selects no customer must not fall through to an empty
+	// selection, which would widen the listing to every customer.
+	if len(ids) == 0 || lo.Contains(ids, "") {
+		return nil, badRequest(errors.New("customer_id must not be empty"))
+	}
+
+	return lo.Uniq(ids), nil
 }
 
 func hasValidationIssueCode(err error, code models.ErrorCode) bool {

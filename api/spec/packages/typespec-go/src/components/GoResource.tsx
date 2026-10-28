@@ -798,32 +798,37 @@ function isTextResponse(operation: GoOperation): boolean {
  * An operation with an explicit @friendlyName is named after it and never
  * joins an element group. This lets a new operation page over an element that
  * an existing operation already lists without renaming the element-named
- * struct that SDK callers depend on.
+ * struct that SDK callers depend on. If its friendly name still lands on an
+ * element-named struct with a different query shape, generation fails instead
+ * of renaming either struct.
  */
 export function resolveListParamsNames(
   program: Program,
   operations: GoOperation[],
 ): Map<Operation, string> {
-  const groups = new Map<string, GoOperation[]>()
+  // Groups are keyed apart from the struct name they emit, so a friendly-named
+  // operation can never join (and split) an element-named group.
+  const groups = new Map<string, { name: string; operations: GoOperation[] }>()
   for (const operation of operations) {
     if (operation.queryParams.length === 0) {
       continue
     }
-    const name =
-      getFriendlyName(program, operation.operation) !== undefined
-        ? operationParamsName(program, operation)
-        : listParamsName(program, operation)
-    const group = groups.get(name)
+    const friendly = getFriendlyName(program, operation.operation) !== undefined
+    const name = friendly
+      ? operationParamsName(program, operation)
+      : listParamsName(program, operation)
+    const key = friendly ? `friendly:${name}` : `element:${name}`
+    const group = groups.get(key)
     if (group) {
-      group.push(operation)
+      group.operations.push(operation)
     } else {
-      groups.set(name, [operation])
+      groups.set(key, { name, operations: [operation] })
     }
   }
 
   const resolved = new Map<Operation, string>()
   const shapes = new Map<string, string>()
-  for (const [name, group] of groups) {
+  for (const { name, operations: group } of groups.values()) {
     const signatures = new Set(
       group.map((operation) => querySignature(program, operation.queryParams)),
     )
