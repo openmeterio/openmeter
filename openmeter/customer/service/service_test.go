@@ -425,12 +425,20 @@ func Test_ListCustomersExistingAt(t *testing.T) {
 		return lo.Map(list.Items, func(item customer.Customer, _ int) string { return item.ID })
 	}
 
-	// given: a customer deleted after a close and a customer created after it.
+	// given: a customer deleted exactly at a close, one deleted after it, and one
+	// created after it.
 	closeAt := time.Date(2026, 9, 30, 23, 59, 59, 0, time.UTC)
 
 	clock.FreezeTime(closeAt.Add(-24 * time.Hour))
 	defer clock.UnFreeze()
 	deletedLater := createCustomer("deleted-later")
+	deletedAtClose := createCustomer("deleted-at-close")
+
+	clock.FreezeTime(closeAt)
+	require.NoError(t, env.CustomerService.DeleteCustomer(ctx, customer.DeleteCustomerInput{
+		Namespace: namespace,
+		ID:        deletedAtClose.ID,
+	}))
 
 	clock.FreezeTime(closeAt.Add(time.Hour))
 	require.NoError(t, env.CustomerService.DeleteCustomer(ctx, customer.DeleteCustomerInput{
@@ -441,7 +449,8 @@ func Test_ListCustomersExistingAt(t *testing.T) {
 
 	clock.FreezeTime(closeAt.Add(48 * time.Hour))
 
-	// when/then: the close lists the customers that existed at the close.
+	// when/then: the close lists the customers that existed at the close; a customer
+	// deleted at the close itself no longer existed.
 	assert.Equal(t, []string{deletedLater.ID}, listIDs(&closeAt))
 
 	// when/then: a current listing lists the customers that exist now.

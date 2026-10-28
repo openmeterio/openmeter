@@ -118,7 +118,8 @@ namespace Balances {
        *
        * Defaults to the current time. Historical responses return `live` as zero because
        * live charge impacts are only available for current balances. A historical read
-       * is repeatable, which makes it suitable for a daily or month-end close.
+       * can be re-run for a daily or month-end close; it returns the same result until a
+       * correction is booked with an earlier timestamp.
        */
       @query
       timestamp?: Shared.DateTime,
