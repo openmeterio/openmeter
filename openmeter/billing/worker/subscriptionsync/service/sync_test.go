@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -39,6 +40,40 @@ type SubscriptionHandlerTestSuite struct {
 
 func TestSubscriptionHandlerScenarios(t *testing.T) {
 	suite.Run(t, new(SubscriptionHandlerTestSuite))
+}
+
+type pendingLinesErrorBillingService struct {
+	billing.Service
+	err error
+}
+
+func (s pendingLinesErrorBillingService) InvoicePendingLines(context.Context, billing.InvoicePendingLinesInput, ...billing.InvoicePendingLinesOption) ([]billing.StandardInvoice, error) {
+	return nil, s.err
+}
+
+func (s *SubscriptionHandlerTestSuite) TestInvoicePendingLinesDeferredOutcomes() {
+	unexpectedErr := errors.New("unexpected collection failure")
+	tests := []struct {
+		name    string
+		err     error
+		wantErr error
+	}{
+		{name: "all lines gated", err: fmt.Errorf("wrapped: %w", billing.ValidationError{Err: billing.ErrInvoiceCreateAllLinesGated})},
+		{name: "no billable lines", err: billing.ValidationError{Err: billing.ErrInvoiceCreateNoLines}},
+		{name: "operational failure", err: unexpectedErr, wantErr: unexpectedErr},
+	}
+	for _, test := range tests {
+		s.Run(test.name, func() {
+			billingService := s.Service.billingService
+			s.Service.billingService = pendingLinesErrorBillingService{err: test.err}
+			defer func() {
+				s.Service.billingService = billingService
+			}()
+
+			err := s.Service.invoicePendingLines(s.T().Context(), s.Customer.GetID())
+			s.Require().ErrorIs(err, test.wantErr)
+		})
+	}
 }
 
 func (s *SubscriptionHandlerTestSuite) TestSyncByIDWithLegacyItemCadence() {

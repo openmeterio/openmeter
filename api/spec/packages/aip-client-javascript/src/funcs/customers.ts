@@ -73,6 +73,8 @@ import type {
   ListCustomerChargesResponse,
   CreateCustomerChargesRequest,
   CreateCustomerChargesResponse,
+  InvoiceCustomerChargesRequest,
+  InvoiceCustomerChargesResponse,
 } from '../models/operations/customers.js'
 
 /**
@@ -1604,6 +1606,56 @@ export function createCustomerCharges(
           assertValid(schemas.createCustomerChargesResponseWire, data)
         }
         return fromWire(data, schemas.createCustomerChargesResponse)
+      })
+  })
+}
+
+/**
+ * Invoice a customer's charges
+ *
+ * Invoice a customer's charges outside the normal billing cycle. Collection
+ * alignment is bypassed. The customer's progressive billing setting applies unless
+ * explicitly overridden. All eligible pending lines are considered.
+ *
+ * Returns the created standard invoices, one per collected currency. Lines blocked
+ * by their owning engine remain pending. If all eligible lines are blocked or no
+ * lines are eligible, returns a validation error.
+ *
+ * POST /openmeter/customers/{customerId}/charges/invoice
+ */
+export function invoiceCustomerCharges(
+  client: Client,
+  req: InvoiceCustomerChargesRequest,
+  options?: RequestOptions,
+): Promise<Result<InvoiceCustomerChargesResponse>> {
+  return request(() => {
+    const pathParamsInput = {
+      customerId: req.customerId,
+    }
+    const pathParams = client._options.validate
+      ? toPathWire(pathParamsInput, schemas.invoiceCustomerChargesPathParams)
+      : pathParamsInput
+    if (client._options.validate) {
+      assertValid(schemas.invoiceCustomerChargesPathParamsWire, pathParams)
+    }
+    const path = `openmeter/customers/${(() => {
+      if (pathParams.customerId === undefined) {
+        throw new Error('missing path parameter: customerId')
+      }
+      return encodeURIComponent(String(pathParams.customerId))
+    })()}/charges/invoice`
+    const body = toWire(req.body, schemas.invoiceCustomerChargesBody)
+    if (client._options.validate && body !== undefined) {
+      assertValid(schemas.invoiceCustomerChargesBodyWire, body)
+    }
+    return http(client)
+      .post(path, { ...options, json: body })
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(schemas.invoiceCustomerChargesResponseWire, data)
+        }
+        return fromWire(data, schemas.invoiceCustomerChargesResponse)
       })
   })
 }

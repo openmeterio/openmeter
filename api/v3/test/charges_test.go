@@ -58,3 +58,41 @@ func TestCreateFlatFeeChargeRejectsUsageBasedPrice(t *testing.T) {
 	require.Equal(t, http.StatusBadRequest, response.Code)
 	require.Contains(t, response.Body.String(), "price")
 }
+
+func TestInvoiceCustomerChargesRejectsLineIDs(t *testing.T) {
+	// given: the public action accepts collection settings without a line filter.
+	doc, err := api.GetSpec()
+	require.NoError(t, err)
+
+	validationRouter, err := oasmiddleware.NewValidationRouter(t.Context(), doc, &oasmiddleware.ValidationRouterOpts{
+		DeleteServers: true,
+	})
+	require.NoError(t, err)
+
+	router := chi.NewRouter()
+	router.Use(oasmiddleware.ValidateRequest(validationRouter, oasmiddleware.ValidateRequestOption{
+		RouteNotFoundHook: oasmiddleware.OasRouteNotFoundErrorHook,
+		RouteValidationErrorHook: func(err error, w http.ResponseWriter, request *http.Request) bool {
+			return oasmiddleware.OasValidationErrorHook(request.Context(), err, w, request)
+		},
+		FilterOptions: &openapi3filter.Options{
+			AuthenticationFunc: openapi3filter.NoopAuthenticationFunc,
+			MultiError:         true,
+		},
+	}))
+	router.Post("/openmeter/customers/{customerId}/charges/invoice", func(http.ResponseWriter, *http.Request) {
+		t.Fatal("an unsupported line filter must not reach collection")
+	})
+
+	// when: a caller supplies the removed field.
+	request := httptest.NewRequest(http.MethodPost, "/openmeter/customers/01K3Q8QG4B9YJYJVQ3MZ3V8KT6/charges/invoice", strings.NewReader(`{
+		"line_ids":["01K3Q8QG4B9YJYJVQ3MZ3V8KT7"]
+	}`))
+	request.Header.Set("Content-Type", "application/json")
+	response := httptest.NewRecorder()
+	router.ServeHTTP(response, request)
+
+	// then: validation rejects it instead of silently collecting every line.
+	require.Equal(t, http.StatusBadRequest, response.Code, response.Body.String())
+	require.Contains(t, response.Body.String(), "line_ids")
+}

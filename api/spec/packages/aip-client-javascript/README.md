@@ -41,6 +41,7 @@ TypeSpec definitions and ships fully-typed request and response models.
   - [EntitlementAccess](#entitlementaccess)
   - [Notifications](#notifications)
 - [Internal Operations](#internal-operations)
+  - [Internal Customers](#internal-customers)
   - [Internal Subscriptions](#internal-subscriptions)
   - [Internal Apps](#internal-apps)
   - [Internal Notifications](#internal-notifications)
@@ -497,6 +498,12 @@ Operations marked internal in the API definition are exposed under
 `client.internal.*`, quarantined from the customer surface. They are not
 intended for customer use: they may require additional permissions, and
 they can change or be removed without notice or semver consideration.
+
+### Internal Customers
+
+| Method                                      | HTTP                                                     | Description                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| ------------------------------------------- | -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `client.internal.customers.charges.invoice` | `POST /openmeter/customers/{customerId}/charges/invoice` | Invoice a customer's charges outside the normal billing cycle. Collection alignment is bypassed. The customer's progressive billing setting applies unless explicitly overridden. All eligible pending lines are considered. Returns the created standard invoices, one per collected currency. Lines blocked by their owning engine remain pending. If all eligible lines are blocked or no lines are eligible, returns a validation error. |
 
 ### Internal Subscriptions
 

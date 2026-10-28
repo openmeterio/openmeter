@@ -13,6 +13,30 @@ function lastUrl(): string {
 }
 
 describe('nested sub-clients', () => {
+  it('returns collected invoices inside the customer charges result', async () => {
+    fetchMock.route('*', {
+      status: 201,
+      body: { invoices: [] },
+      headers: { 'Content-Type': 'application/json' },
+    })
+    const sdk = new OpenMeter({
+      baseUrl: 'https://eu.api.konghq.com/v3',
+      apiKey: 'k',
+      fetch,
+      validate: true,
+    })
+
+    const result = await sdk.customers.charges.invoice({
+      customerId: '01ARZ3NDEKTSV4RRFFQ69G5FAV',
+      body: {},
+    })
+
+    expect(result.invoices).toEqual([])
+    expect(lastUrl()).toBe(
+      'https://eu.api.konghq.com/v3/openmeter/customers/01ARZ3NDEKTSV4RRFFQ69G5FAV/charges/invoice',
+    )
+  })
+
   it('routes customers.charges.list() to the charges sub-resource', async () => {
     fetchMock.route('*', {
       body: { data: [], meta: { page: { number: 1, size: 10, total: 0 } } },

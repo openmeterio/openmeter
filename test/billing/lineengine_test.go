@@ -288,7 +288,7 @@ func (s *LineEngineTestSuite) TestGateInvoiceAssignmentDuringCollection() {
 	s.registerMockLineEngine(s.T(), mockEngine)
 	defer s.unregisterLineEngine(s.T(), mockEngine)
 
-	s.Run("all otherwise billable lines blocked returns an empty successful result", func() {
+	s.Run("all otherwise billable lines blocked returns a validation error", func() {
 		// given
 		mockEngine.Reset()
 		namespace := s.GetUniqueNamespace("ns-line-engine-gate-all-blocked")
@@ -318,7 +318,8 @@ func (s *LineEngineTestSuite) TestGateInvoiceAssignmentDuringCollection() {
 		}, ombilling.WithBypassCollectionAlignment())
 
 		// then
-		s.Require().NoError(err)
+		s.Require().ErrorIs(err, ombilling.ErrInvoiceCreateAllLinesGated)
+		s.ErrorAs(err, &ombilling.ValidationError{})
 		s.Empty(invoices)
 		s.True(gateCalled)
 		s.False(buildCalled)
@@ -377,6 +378,55 @@ func (s *LineEngineTestSuite) TestGateInvoiceAssignmentDuringCollection() {
 		s.Require().Len(invoices, 1)
 		s.Require().Len(invoices[0].Lines.OrEmpty(), 1)
 		s.Equal(pendingLines[1].ID, invoices[0].Lines.OrEmpty()[0].ID)
+	})
+
+	s.Run("a blocked currency does not prevent another currency from invoicing", func() {
+		// given: the USD line is blocked while the EUR line is allowed.
+		mockEngine.Reset()
+		namespace := s.GetUniqueNamespace("ns-line-engine-gate-currencies")
+		customerID, blockedLines := s.createInvoiceAssignmentGateFixture(ctx, namespace, mockEngine.GetLineEngineType(), now)
+		allowedLine := ombilling.NewFlatFeeGatheringLine(ombilling.NewFlatFeeLineInput{
+			Namespace:     namespace,
+			Period:        timeutil.ClosedPeriod{From: now.Add(-time.Hour), To: now},
+			InvoiceAt:     now,
+			Name:          "allowed EUR line",
+			ManagedBy:     ombilling.ManuallyManagedLine,
+			PerUnitAmount: alpacadecimal.NewFromInt(1),
+			PaymentTerm:   productcatalog.InArrearsPaymentTerm,
+		})
+		allowedLine.Currency = currencyx.FiatCode(currency.EUR)
+		allowedLine.Engine = mockEngine.GetLineEngineType()
+		_, err := s.BillingService.CreatePendingInvoiceLines(ctx, ombilling.CreatePendingInvoiceLinesInput{
+			Customer: customerID,
+			Currency: currencyx.FiatCode(currency.EUR),
+			Lines:    ombilling.NewCreatePendingInvoiceLines([]ombilling.GatheringLine{allowedLine}),
+		})
+		s.Require().NoError(err)
+		mockEngine.gateInvoiceAssignment = func(_ context.Context, input ombilling.GateInvoiceAssignmentInput) (ombilling.GateInvoiceAssignmentResult, error) {
+			result := make(ombilling.GateInvoiceAssignmentResult)
+			for _, line := range input.Lines {
+				if line.ID == blockedLines[0].ID {
+					result[line.GetLineID()] = ombilling.InvoiceAssignmentGateResponse{ExcludeFromInvoice: true}
+				}
+			}
+
+			return result, nil
+		}
+		mockEngine.buildStandardInvoiceLines = func(_ context.Context, input ombilling.BuildStandardInvoiceLinesInput) (ombilling.StandardLines, error) {
+			return mustAsNewStandardLines(input), nil
+		}
+
+		// when: collection considers both currencies.
+		invoices, err := s.BillingService.InvoicePendingLines(ctx, ombilling.InvoicePendingLinesInput{
+			Customer:          customerID,
+			AsOf:              &now,
+			ForceAsyncAdvance: true,
+		}, ombilling.WithBypassCollectionAlignment())
+		s.Require().NoError(err)
+
+		// then: the allowed currency produces its invoice.
+		s.Require().Len(invoices, 1)
+		s.Equal(currencyx.FiatCode(currency.EUR), invoices[0].Currency)
 	})
 
 	s.Run("gate errors abort invoice creation", func() {

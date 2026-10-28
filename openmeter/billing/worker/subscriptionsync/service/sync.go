@@ -44,7 +44,7 @@ func (s *Service) invoicePendingLines(ctx context.Context, customer customer.Cus
 			billing.WithMaxLinesPerInvoice(s.featureFlags.MaxLinesPerCollectedInvoice),
 		)
 		if err != nil {
-			if errors.Is(err, billing.ErrInvoiceCreateNoLines) {
+			if errors.Is(err, billing.ErrInvoiceCreateNoLines) || errors.Is(err, billing.ErrInvoiceCreateAllLinesGated) {
 				return nil
 			}
 

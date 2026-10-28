@@ -133,3 +133,32 @@ func (s *CustomersChargesService) Create(ctx context.Context, customerID string,
 
 	return &out, nil
 }
+
+// Invoice a customer's charges outside the normal billing cycle. Collection
+// alignment is bypassed. The customer's progressive billing setting applies unless
+// explicitly overridden. All eligible pending lines are considered.
+//
+// Returns the created standard invoices, one per collected currency. Lines blocked
+// by their owning engine remain pending. If all eligible lines are blocked or no
+// lines are eligible, returns a validation error.
+func (s *CustomersChargesService) Invoice(ctx context.Context, customerID string, request *InvoiceCustomerChargesInput) (*InvoiceCustomerChargesResult, error) {
+	if customerID == "" {
+		return nil, fmt.Errorf("openmeter: %s must not be empty: %w", "customerID", ErrEmptyID)
+	}
+
+	path := "/openmeter/customers/{customerId}/charges/invoice"
+
+	path = replacePathParam(path, "customerId", customerID)
+
+	req, err := s.client.newRequestWithContentType(ctx, http.MethodPost, path, nil, optionalBody(request), "application/json", "application/json")
+	if err != nil {
+		return nil, err
+	}
+
+	var out InvoiceCustomerChargesResult
+	if err := s.client.doJSON(req, &out); err != nil {
+		return nil, err
+	}
+
+	return &out, nil
+}

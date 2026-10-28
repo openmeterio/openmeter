@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -453,6 +454,10 @@ func (s *service) invokeInvoiceNowOnCreate(ctx context.Context, invoiceNowLines 
 			},
 			billing.WithBypassCollectionAlignment(),
 		); err != nil {
+			if errors.Is(err, billing.ErrInvoiceCreateAllLinesGated) {
+				continue
+			}
+
 			return fmt.Errorf("invoking invoice now on create: %w", err)
 		}
 	}

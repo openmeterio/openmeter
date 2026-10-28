@@ -720,6 +720,10 @@ func (s *Server) CreateCustomerCharges(w http.ResponseWriter, r *http.Request, c
 	}).ServeHTTP(w, r)
 }
 
+func (s *Server) InvoiceCustomerCharges(w http.ResponseWriter, r *http.Request, customerId api.ULID) {
+	s.billingInvoicesHandler.InvoiceCustomerCharges().With(customerId).ServeHTTP(w, r)
+}
+
 // Organization Default Tax Codes
 
 func (s *Server) GetOrganizationDefaultTaxCodes(w http.ResponseWriter, r *http.Request) {

@@ -276,6 +276,12 @@ export interface ChargeFlatFeeDiscounts {
   percentage?: number
 }
 
+/** External identifiers for an invoice line item assigned by third-party systems. */
+export interface InvoiceLineExternalReferences {
+  /** The ID assigned by the external invoicing app. */
+  invoicingId?: string
+}
+
 /** Remove a rate card from a phase. */
 export interface SubscriptionEditRemoveItem {
   /** Discriminator for the remove-item operation. */
@@ -361,12 +367,6 @@ export interface InstallAppExternalInvoicing {
 export interface WorkflowCollectionAlignmentSubscription {
   /** The type of alignment. */
   type: 'subscription'
-}
-
-/** External identifiers for an invoice line item assigned by third-party systems. */
-export interface InvoiceLineExternalReferences {
-  /** The ID assigned by the external invoicing app. */
-  invoicingId?: string
 }
 
 /**
@@ -1133,14 +1133,14 @@ export interface ChargeRealizationInvoiceReference {
   id: string
 }
 
-/** Addon reference. */
-export interface AddonReference {
-  id: string
-}
-
 /** Reference to a charge associated with an invoice line. */
 export interface ChargeReference {
   /** Unique identifier for the charge. */
+  id: string
+}
+
+/** Addon reference. */
+export interface AddonReference {
   id: string
 }
 
@@ -1368,6 +1368,17 @@ export interface ChargeResolvedCostBasis {
   costBasisId?: string
   /** When the rate was resolved. */
   resolvedAt: Date
+}
+
+/** Options for manually collecting a customer's pending lines into invoices. */
+export interface InvoiceCustomerChargesInput {
+  /** Collection cutoff. Defaults to the current time and cannot be in the future. */
+  asOf?: Date
+  /**
+   * Override the customer's progressive billing setting for this collection. When
+   * enabled, eligible usage-based lines can be collected for a partial period.
+   */
+  progressiveBillingOverride?: boolean
 }
 
 /** A subscription add-on event. */
@@ -2335,6 +2346,46 @@ export interface ChargeRealizationPayment {
   status: 'authorized' | 'settled'
 }
 
+/** A monetary amount discount applied to an invoice line item. */
+export interface InvoiceLineAmountDiscount {
+  /** Unique identifier for the discount. */
+  id: string
+  /** The reason this discount was applied. */
+  reason: 'maximum_spend' | 'ratecard_percentage' | 'ratecard_usage'
+  /** Optional human-readable description of the discount. */
+  description?: string
+  /** External identifiers for this discount. */
+  externalReferences?: InvoiceLineExternalReferences
+  /** The monetary amount deducted. */
+  amount: string
+}
+
+/** A usage quantity discount applied to an invoice line item. */
+export interface InvoiceLineUsageDiscount {
+  /** Unique identifier for the discount. */
+  id: string
+  /** The reason this discount was applied. */
+  reason: 'maximum_spend' | 'ratecard_percentage' | 'ratecard_usage'
+  /** Optional human-readable description of the discount. */
+  description?: string
+  /** External identifiers for this discount. */
+  externalReferences?: InvoiceLineExternalReferences
+  /** The usage quantity deducted (in billing units). */
+  quantity: string
+}
+
+/** Base fields shared by all invoice line item discounts. */
+export interface InvoiceLineBaseDiscount {
+  /** Unique identifier for the discount. */
+  id: string
+  /** The reason this discount was applied. */
+  reason: 'maximum_spend' | 'ratecard_percentage' | 'ratecard_usage'
+  /** Optional human-readable description of the discount. */
+  description?: string
+  /** External identifiers for this discount. */
+  externalReferences?: InvoiceLineExternalReferences
+}
+
 /** Remove a phase from the subscription. */
 export interface SubscriptionEditRemovePhase {
   /** Discriminator for the remove-phase operation. */
@@ -2471,46 +2522,6 @@ export interface WorkflowInvoicingSettings {
   progressiveBilling: boolean
   /** Controls how subscription-ending shortened service periods are billed. */
   subscriptionEndProrationMode: 'bill_full_period' | 'bill_actual_period'
-}
-
-/** A monetary amount discount applied to an invoice line item. */
-export interface InvoiceLineAmountDiscount {
-  /** Unique identifier for the discount. */
-  id: string
-  /** The reason this discount was applied. */
-  reason: 'maximum_spend' | 'ratecard_percentage' | 'ratecard_usage'
-  /** Optional human-readable description of the discount. */
-  description?: string
-  /** External identifiers for this discount. */
-  externalReferences?: InvoiceLineExternalReferences
-  /** The monetary amount deducted. */
-  amount: string
-}
-
-/** A usage quantity discount applied to an invoice line item. */
-export interface InvoiceLineUsageDiscount {
-  /** Unique identifier for the discount. */
-  id: string
-  /** The reason this discount was applied. */
-  reason: 'maximum_spend' | 'ratecard_percentage' | 'ratecard_usage'
-  /** Optional human-readable description of the discount. */
-  description?: string
-  /** External identifiers for this discount. */
-  externalReferences?: InvoiceLineExternalReferences
-  /** The usage quantity deducted (in billing units). */
-  quantity: string
-}
-
-/** Base fields shared by all invoice line item discounts. */
-export interface InvoiceLineBaseDiscount {
-  /** Unique identifier for the discount. */
-  id: string
-  /** The reason this discount was applied. */
-  reason: 'maximum_spend' | 'ratecard_percentage' | 'ratecard_usage'
-  /** Optional human-readable description of the discount. */
-  description?: string
-  /** External identifiers for this discount. */
-  externalReferences?: InvoiceLineExternalReferences
 }
 
 /** Filter options for listing currencies. */
@@ -4574,6 +4585,14 @@ export interface InvoiceWorkflow {
   payment?: WorkflowPaymentSettings
 }
 
+/** Discounts applied to an invoice line item. */
+export interface InvoiceLineDiscounts {
+  /** Monetary amount discounts (e.g. from maximum spend commitments). */
+  amount?: InvoiceLineAmountDiscount[]
+  /** Usage quantity discounts (e.g. free tier usage allowances). */
+  usage?: InvoiceLineUsageDiscount[]
+}
+
 /** Request for canceling a subscription. */
 export interface SubscriptionCancel {
   /** If not provided the subscription is canceled immediately. */
@@ -4719,14 +4738,6 @@ export interface AppCatalogItem {
   capabilities: AppCapability[]
   /** Available install methods of the app. */
   installMethods: ('with_oauth2' | 'with_api_key' | 'no_credentials_required')[]
-}
-
-/** Discounts applied to an invoice line item. */
-export interface InvoiceLineDiscounts {
-  /** Monetary amount discounts (e.g. from maximum spend commitments). */
-  amount?: InvoiceLineAmountDiscount[]
-  /** Usage quantity discounts (e.g. free tier usage allowances). */
-  usage?: InvoiceLineUsageDiscount[]
 }
 
 /**
@@ -5502,6 +5513,51 @@ export interface InvoiceWorkflowSettings {
   workflow: InvoiceWorkflow
 }
 
+/**
+ * A detailed (child) sub-line belonging to a parent invoice line.
+ *
+ * Detailed lines represent the individual flat-fee components that make up a
+ * usage-based parent line after quantity snapshotting.
+ */
+export interface InvoiceDetailedLine {
+  id: string
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  /**
+   * Optional description of the resource.
+   *
+   * Maximum 1024 characters.
+   */
+  description?: string
+  labels?: Labels
+  /** An ISO-8601 timestamp representation of entity creation date. */
+  createdAt: Date
+  /** An ISO-8601 timestamp representation of entity last update date. */
+  updatedAt: Date
+  /** An ISO-8601 timestamp representation of entity deletion date. */
+  deletedAt?: Date
+  /** The service period covered by this detailed line. */
+  servicePeriod: ClosedPeriod
+  /** Aggregated financial totals for the detailed line. */
+  totals: Totals
+  /** The cost category of this detailed line. */
+  category: 'regular' | 'commitment'
+  /** Discounts applied to this detailed line. */
+  discounts?: InvoiceLineDiscounts
+  /** Credit applied to this detailed line. */
+  creditsApplied?: InvoiceLineCreditsApplied[]
+  /** External identifiers for this detailed line. */
+  externalReferences?: InvoiceLineExternalReferences
+  /** The quantity of the detailed line. */
+  quantity: string
+  /** The unit price of the detailed line. */
+  unitPrice: string
+}
+
 /** Page paginated response. */
 export interface TaxCodePagePaginatedResponse {
   data: TaxCode[]
@@ -5824,51 +5880,6 @@ export interface InstalledAppExternalInvoicing {
     | 'invoice_customers'
     | 'collect_payments'
   )[]
-}
-
-/**
- * A detailed (child) sub-line belonging to a parent invoice line.
- *
- * Detailed lines represent the individual flat-fee components that make up a
- * usage-based parent line after quantity snapshotting.
- */
-export interface InvoiceDetailedLine {
-  id: string
-  /**
-   * Display name of the resource.
-   *
-   * Between 1 and 256 characters.
-   */
-  name: string
-  /**
-   * Optional description of the resource.
-   *
-   * Maximum 1024 characters.
-   */
-  description?: string
-  labels?: Labels
-  /** An ISO-8601 timestamp representation of entity creation date. */
-  createdAt: Date
-  /** An ISO-8601 timestamp representation of entity last update date. */
-  updatedAt: Date
-  /** An ISO-8601 timestamp representation of entity deletion date. */
-  deletedAt?: Date
-  /** The service period covered by this detailed line. */
-  servicePeriod: ClosedPeriod
-  /** Aggregated financial totals for the detailed line. */
-  totals: Totals
-  /** The cost category of this detailed line. */
-  category: 'regular' | 'commitment'
-  /** Discounts applied to this detailed line. */
-  discounts?: InvoiceLineDiscounts
-  /** Credit applied to this detailed line. */
-  creditsApplied?: InvoiceLineCreditsApplied[]
-  /** External identifiers for this detailed line. */
-  externalReferences?: InvoiceLineExternalReferences
-  /** The quantity of the detailed line. */
-  quantity: string
-  /** The unit price of the detailed line. */
-  unitPrice: string
 }
 
 /** Snapshot of the billing workflow configuration captured at invoice creation. */
@@ -7995,6 +8006,12 @@ export interface ChargeUsageBased {
    * customer-facing intent.
    */
   systemIntent?: ChargeUsageBasedSystemIntent
+}
+
+/** Result of manually collecting a customer's pending lines into invoices. */
+export interface InvoiceCustomerChargesResult {
+  /** Created standard invoices, one per collected currency. */
+  invoices: Invoice[]
 }
 
 /** Page paginated response. */
@@ -11344,6 +11361,12 @@ export interface ChargeUsageBasedInput {
    * customer-facing intent.
    */
   systemIntent?: ChargeUsageBasedSystemIntentInput
+}
+
+/** Result of manually collecting a customer's pending lines into invoices. */
+export interface InvoiceCustomerChargesResultInput {
+  /** Created standard invoices, one per collected currency. */
+  invoices: InvoiceInput[]
 }
 
 /** Page paginated response. */
