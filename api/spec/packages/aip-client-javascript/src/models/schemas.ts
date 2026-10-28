@@ -4240,6 +4240,24 @@ export const listGrantsParamsFilter = z
   })
   .describe('Filter options for listing grants.')
 
+export const listAllCreditGrantsParamsFilter = z
+  .object({
+    status: creditGrantStatus.optional(),
+    currency: billingCurrencyCode.optional(),
+    key: stringFieldFilter.optional(),
+    featureKey: stringFieldFilter.optional(),
+    customerId: ulidFieldFilter.optional(),
+  })
+  .describe('Filter options for listing credit grants across customers.')
+
+export const listAllCreditBalancesParamsFilter = z
+  .object({
+    currency: stringFieldFilterExact.optional(),
+    featureKey: stringFieldFilter.optional(),
+    customerId: ulidFieldFilter.optional(),
+  })
+  .describe('Filter options for listing credit balances across customers.')
+
 export const listSubscriptionsParamsFilter = z
   .object({
     id: ulidFieldFilter.optional(),
@@ -6080,6 +6098,14 @@ export const creditBalances = z
   })
   .describe('The balances of the credits of a customer.')
 
+export const customerCreditBalances = z
+  .object({
+    customer: customerReference,
+    retrievedAt: dateTime,
+    balances: z.array(creditBalance).describe('The balances by currencies.'),
+  })
+  .describe('The credit balances of one customer.')
+
 export const creditTransactionPaginatedResponse = z
   .object({
     data: z.array(creditTransaction),
@@ -6983,6 +7009,13 @@ export const createCreditGrantRequest = z
   })
   .describe('CreditGrant create request.')
 
+export const customerCreditBalancesPagePaginatedResponse = z
+  .object({
+    data: z.array(customerCreditBalances),
+    meta: paginatedMeta,
+  })
+  .describe('Page paginated response.')
+
 export const creditGrant = z
   .object({
     id: ulid,
@@ -7003,6 +7036,7 @@ export const creditGrant = z
     createdAt: dateTime,
     updatedAt: dateTime,
     deletedAt: dateTime.optional(),
+    customer: customerReference,
     fundingMethod: creditFundingMethod,
     currency: billingCurrencyCode,
     customCurrency: currencyCustomReference.optional(),
@@ -8955,6 +8989,48 @@ export const listCreditTransactionsQueryParams = z.object({
 export const listCreditTransactionsResponse = z.object({
   data: z.array(creditTransaction),
   meta: cursorMeta,
+})
+
+export const listAllCreditGrantsQueryParams = z.object({
+  page: z
+    .object({
+      size: z.coerce
+        .number()
+        .int()
+        .optional()
+        .describe('The number of items to include per page.'),
+      number: z.coerce.number().int().optional().describe('The page number.'),
+    })
+    .optional()
+    .describe('Determines which page of the collection to retrieve.'),
+  sort: sortQuery.optional(),
+  filter: listAllCreditGrantsParamsFilter.optional(),
+})
+
+export const listAllCreditGrantsResponse = z.object({
+  data: z.array(creditGrant),
+  meta: paginatedMeta,
+})
+
+export const listAllCreditBalancesQueryParams = z.object({
+  page: z
+    .object({
+      size: z.coerce
+        .number()
+        .int()
+        .optional()
+        .describe('The number of items to include per page.'),
+      number: z.coerce.number().int().optional().describe('The page number.'),
+    })
+    .optional()
+    .describe('Determines which page of the collection to retrieve.'),
+  timestamp: dateTime.optional(),
+  filter: listAllCreditBalancesParamsFilter.optional(),
+})
+
+export const listAllCreditBalancesResponse = z.object({
+  data: z.array(customerCreditBalances),
+  meta: paginatedMeta,
 })
 
 export const listCustomerChargesPathParams = z.object({
@@ -14087,6 +14163,24 @@ export const listGrantsParamsFilterWire = z
   })
   .describe('Filter options for listing grants.')
 
+export const listAllCreditGrantsParamsFilterWire = z
+  .strictObject({
+    status: creditGrantStatusWire.optional(),
+    currency: billingCurrencyCodeWire.optional(),
+    key: stringFieldFilterWire.optional(),
+    feature_key: stringFieldFilterWire.optional(),
+    customer_id: ulidFieldFilterWire.optional(),
+  })
+  .describe('Filter options for listing credit grants across customers.')
+
+export const listAllCreditBalancesParamsFilterWire = z
+  .strictObject({
+    currency: stringFieldFilterExactWire.optional(),
+    feature_key: stringFieldFilterWire.optional(),
+    customer_id: ulidFieldFilterWire.optional(),
+  })
+  .describe('Filter options for listing credit balances across customers.')
+
 export const listSubscriptionsParamsFilterWire = z
   .strictObject({
     id: ulidFieldFilterWire.optional(),
@@ -15921,6 +16015,16 @@ export const creditBalancesWire = z
   })
   .describe('The balances of the credits of a customer.')
 
+export const customerCreditBalancesWire = z
+  .strictObject({
+    customer: customerReferenceWire,
+    retrieved_at: dateTimeWire,
+    balances: z
+      .array(creditBalanceWire)
+      .describe('The balances by currencies.'),
+  })
+  .describe('The credit balances of one customer.')
+
 export const creditTransactionPaginatedResponseWire = z
   .strictObject({
     data: z.array(creditTransactionWire),
@@ -16819,6 +16923,13 @@ export const createCreditGrantRequestWire = z
   })
   .describe('CreditGrant create request.')
 
+export const customerCreditBalancesPagePaginatedResponseWire = z
+  .strictObject({
+    data: z.array(customerCreditBalancesWire),
+    meta: paginatedMetaWire,
+  })
+  .describe('Page paginated response.')
+
 export const creditGrantWire = z
   .strictObject({
     id: ulidWire,
@@ -16839,6 +16950,7 @@ export const creditGrantWire = z
     created_at: dateTimeWire,
     updated_at: dateTimeWire,
     deleted_at: dateTimeWire.optional(),
+    customer: customerReferenceWire,
     funding_method: creditFundingMethodWire,
     currency: billingCurrencyCodeWire,
     custom_currency: currencyCustomReferenceWire.optional(),
@@ -18840,6 +18952,54 @@ export const listCreditTransactionsQueryParamsWire = z.object({
 export const listCreditTransactionsResponseWire = z.strictObject({
   data: z.array(creditTransactionWire),
   meta: cursorMetaWire,
+})
+
+export const listAllCreditGrantsQueryParamsWire = z.object({
+  page: z
+    .strictObject({
+      size: z.coerce
+        .number()
+        .int()
+        .optional()
+        .describe('The number of items to include per page.'),
+      number: z.coerce.number().int().optional().describe('The page number.'),
+    })
+    .optional()
+    .describe('Determines which page of the collection to retrieve.'),
+  sort: z
+    .string()
+    .optional()
+
+    .describe(
+      'Sort credit grants by `created_at`, `updated_at`, `name`, or `id`. Defaults to `created_at desc`. The `asc` suffix is optional when a sort attribute is supplied. Supports one attribute; ties are broken by `id` in the same direction.',
+    ),
+  filter: listAllCreditGrantsParamsFilterWire.optional(),
+})
+
+export const listAllCreditGrantsResponseWire = z.strictObject({
+  data: z.array(creditGrantWire),
+  meta: paginatedMetaWire,
+})
+
+export const listAllCreditBalancesQueryParamsWire = z.object({
+  page: z
+    .strictObject({
+      size: z.coerce
+        .number()
+        .int()
+        .optional()
+        .describe('The number of items to include per page.'),
+      number: z.coerce.number().int().optional().describe('The page number.'),
+    })
+    .optional()
+    .describe('Determines which page of the collection to retrieve.'),
+  timestamp: dateTimeWire.optional(),
+  filter: listAllCreditBalancesParamsFilterWire.optional(),
+})
+
+export const listAllCreditBalancesResponseWire = z.strictObject({
+  data: z.array(customerCreditBalancesWire),
+  meta: paginatedMetaWire,
 })
 
 export const listCustomerChargesPathParamsWire = z.object({

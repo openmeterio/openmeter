@@ -864,9 +864,9 @@ func (s *VoidGrantTestSuite) mustListGrantIDs(ctx context.Context, ns, customerI
 
 	result, err := s.CreditGrantService.List(ctx, creditgrant.ListInput{
 		Page:       pagination.NewPage(1, 20),
-		Namespace:  ns,
-		CustomerID: customerID,
-		Status:     status,
+		Namespace:   ns,
+		CustomerIDs: []string{customerID},
+		Status:      status,
 	})
 	s.Require().NoError(err)
 

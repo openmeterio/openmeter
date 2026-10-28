@@ -68,7 +68,7 @@ func (s *CreditGrantTestSuite) TestListCustomCurrencyGrantsFiltersAndPagination(
 			// given: grants belonging to two active custom currencies and one fiat currency
 			// when: listing with a custom, fiat, or omitted currency filter
 			result, err := s.CreditGrantService.List(ctx, creditgrant.ListInput{
-				Namespace: ns, CustomerID: cust.ID, Currency: tc.currency, Page: pagination.NewPage(1, 20),
+				Namespace: ns, CustomerIDs: []string{cust.ID}, Currency: tc.currency, Page: pagination.NewPage(1, 20),
 			})
 			s.Require().NoError(err)
 
@@ -86,7 +86,7 @@ func (s *CreditGrantTestSuite) TestListCustomCurrencyGrantsFiltersAndPagination(
 	byID := make(map[string]string, 2)
 	for pageNumber := 1; pageNumber <= 2; pageNumber++ {
 		page, err := s.CreditGrantService.List(ctx, creditgrant.ListInput{
-			Namespace: ns, CustomerID: cust.ID, Currency: lo.ToPtr(TOKENS), Page: pagination.NewPage(pageNumber, 1),
+			Namespace: ns, CustomerIDs: []string{cust.ID}, Currency: lo.ToPtr(TOKENS), Page: pagination.NewPage(pageNumber, 1),
 		})
 		s.Require().NoError(err)
 		s.Equal(2, page.TotalCount)

@@ -248,10 +248,12 @@ func (i GetInput) Validate() error {
 type ListInput struct {
 	pagination.Page
 
-	Namespace  string
-	CustomerID string
-	OrderBy    creditpurchase.OrderBy
-	Order      sortx.Order
+	Namespace string
+	// CustomerIDs limits the listing to these customers. Empty lists the grants of
+	// every customer in the namespace.
+	CustomerIDs []string
+	OrderBy     creditpurchase.OrderBy
+	Order       sortx.Order
 
 	// Optional filters
 	Status   *GrantStatus
@@ -277,8 +279,10 @@ func (i ListInput) Validate() error {
 		errs = append(errs, errors.New("namespace is required"))
 	}
 
-	if i.CustomerID == "" {
-		errs = append(errs, errors.New("customer ID is required"))
+	for _, customerID := range i.CustomerIDs {
+		if customerID == "" {
+			errs = append(errs, errors.New("customer ID must not be empty"))
+		}
 	}
 
 	if i.Status != nil {

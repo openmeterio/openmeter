@@ -19,6 +19,7 @@ type Client struct {
 	Customers         *CustomersService
 	Entitlements      *EntitlementsService
 	Grants            *GrantsService
+	Credits           *CreditsService
 	Subscriptions     *SubscriptionsService
 	Apps              *AppsService
 	Billing           *BillingService
@@ -68,6 +69,7 @@ func New(baseURL string, opts ...Option) (*Client, error) {
 	c.Customers = &CustomersService{client: c}
 	c.Entitlements = &EntitlementsService{client: c}
 	c.Grants = &GrantsService{client: c}
+	c.Credits = &CreditsService{client: c}
 	c.Subscriptions = &SubscriptionsService{client: c}
 	c.Apps = &AppsService{client: c}
 	c.Billing = &BillingService{client: c}
@@ -87,6 +89,8 @@ func New(baseURL string, opts ...Option) (*Client, error) {
 	c.Customers.Entitlements = &CustomersEntitlementsService{client: c}
 	c.Customers.Credits = &CustomersCreditsService{client: c}
 	c.Customers.Charges = &CustomersChargesService{client: c}
+	c.Credits.Grants = &CreditsGrantsService{client: c}
+	c.Credits.Balances = &CreditsBalancesService{client: c}
 	c.Customers.Entitlements.Grants = &CustomersEntitlementsGrantsService{client: c}
 	c.Customers.Credits.Grants = &CustomersCreditsGrantsService{client: c}
 	c.Customers.Credits.Balance = &CustomersCreditsBalanceService{client: c}

@@ -28,6 +28,7 @@ import (
 func toAPIBillingCreditGrant(charge creditpurchase.Charge) (api.BillingCreditGrant, error) {
 	grant := api.BillingCreditGrant{
 		Id:            charge.ID,
+		Customer:      api.CustomerReference{Id: charge.Intent.CustomerID},
 		Name:          charge.Intent.Name,
 		Description:   charge.Intent.Description,
 		Amount:        charge.Intent.CreditAmount.String(),

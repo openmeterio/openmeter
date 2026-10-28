@@ -1148,248 +1148,12 @@ type CreditAdjustment struct {
 	Labels      map[string]string `json:"labels,omitempty"`
 }
 
-// When credits become available for consumption.
-//
-// - `on_creation`: Credits are available as soon as the grant is created.
-// - `on_authorization`: Credits are available once the payment is authorized.
-// - `on_settlement`: Credits are available once the payment is settled.
-type CreditAvailabilityPolicy string
-
-const (
-	CreditAvailabilityPolicyOnCreation CreditAvailabilityPolicy = "on_creation"
-)
-
-func (value CreditAvailabilityPolicy) Valid() bool {
-	switch value {
-	case CreditAvailabilityPolicyOnCreation:
-		return true
-	default:
-		return false
-	}
-}
-
-// The credit balance by currency.
-type CreditBalance struct {
-	Currency BillingCurrencyCode `json:"currency"`
-	// Managed currency reference. Present only for custom currencies.
-	CustomCurrency *CurrencyCustomReference `json:"custom_currency,omitempty"`
-	// Spendable balance after applying currently live, unbooked charge impacts. Can be
-	// negative when usage exceeds available credit.
-	//
-	// Always zero for historical balance queries using the `timestamp` parameter
-	// because live charge impacts cannot be reconstructed historically.
-	Live Numeric `json:"live"`
-	// Credits that have been booked on the ledger as of the balance timestamp,
-	// including credit-only advance debt. Can be negative.
-	Booked Numeric `json:"booked"`
-	// Deprecated alias for `booked`. Always returns the same value.
-	Settled Numeric `json:"settled"`
-	// Spendable credit at the balance timestamp, including any credit-only advance
-	// debt. Preserves credit already committed to later usage. Future grants cannot be
-	// spent early; scheduled expiry reduces availability when it takes effect. Can be
-	// negative when advance debt exceeds spendable credit.
-	Spendable Numeric `json:"spendable"`
-	// Credits that have been granted but are not yet written to the ledger, or are
-	// written to the ledger with a future booked time.
-	Pending Numeric `json:"pending"`
-}
-
 // The balances of the credits of a customer.
 type CreditBalances struct {
 	// The timestamp of the balance retrieval.
 	RetrievedAt time.Time `json:"retrieved_at"`
 	// The balances by currencies.
 	Balances []CreditBalance `json:"balances"`
-}
-
-// The funding method describes how the grant is funded.
-//
-// - `none`: No funding workflow applies, for example promotional grants
-// - `invoice`: The grant is funded by an in-system invoice flow
-// - `external`: The grant is funded outside the system (e.g., wire transfer,
-// external invoice, or manual reconciliation)
-type CreditFundingMethod string
-
-const (
-	CreditFundingMethodNone     CreditFundingMethod = "none"
-	CreditFundingMethodInvoice  CreditFundingMethod = "invoice"
-	CreditFundingMethodExternal CreditFundingMethod = "external"
-)
-
-func (value CreditFundingMethod) Valid() bool {
-	switch value {
-	case CreditFundingMethodNone, CreditFundingMethodInvoice, CreditFundingMethodExternal:
-		return true
-	default:
-		return false
-	}
-}
-
-// A credit grant allocates credits to a customer.
-//
-// Credits are drawn down against charges according to the settlement mode
-// configured on the rate card.
-type CreditGrant struct {
-	ID string `json:"id"`
-	// Display name of the resource.
-	//
-	// Between 1 and 256 characters.
-	Name string `json:"name"`
-	// Optional description of the resource.
-	//
-	// Maximum 1024 characters.
-	Description *string           `json:"description,omitempty"`
-	Labels      map[string]string `json:"labels,omitempty"`
-	// An ISO-8601 timestamp representation of entity creation date.
-	CreatedAt time.Time `json:"created_at"`
-	// An ISO-8601 timestamp representation of entity last update date.
-	UpdatedAt time.Time `json:"updated_at"`
-	// An ISO-8601 timestamp representation of entity deletion date.
-	DeletedAt *time.Time `json:"deleted_at,omitempty"`
-	// Funding method of the grant.
-	FundingMethod CreditFundingMethod `json:"funding_method"`
-	// The fiat or custom currency of the granted credits.
-	//
-	// Funded custom-currency grants must define `purchase.cost_basis` to settle in a
-	// fiat currency.
-	Currency BillingCurrencyCode `json:"currency"`
-	// Managed currency reference. Present only for custom currencies.
-	CustomCurrency *CurrencyCustomReference `json:"custom_currency,omitempty"`
-	// Granted credit amount.
-	Amount Numeric `json:"amount"`
-	// Present when a funding workflow applies (funding_method is not `none`).
-	Purchase *CreditGrantPurchase `json:"purchase,omitempty"`
-	// Tax configuration for the grant.
-	//
-	// For `invoice` and `external` funding methods, tax configuration should be
-	// provided to ensure correct revenue recognition. When not provided, the default
-	// credit grant tax code is applied, if that's not set the global default taxcode
-	// is used.
-	TaxConfig *TaxCodeConfig `json:"tax_config,omitempty"`
-	// Available when `funding_method` is `invoice`.
-	Invoice *CreditGrantInvoiceReference `json:"invoice,omitempty"`
-	Filters *CreditGrantFilters          `json:"filters,omitempty"`
-	// Draw-down priority of the grant. Lower values have higher priority.
-	Priority *int16 `json:"priority,omitempty"`
-	// The timestamp when the credit grant becomes effective.
-	//
-	// Defaults to the current date and time.
-	EffectiveAt *time.Time `json:"effective_at,omitempty"`
-	// Idempotency key for the credit grant creation request.
-	//
-	// Unique per customer: reusing the same key for the same customer returns an HTTP
-	// 409 Conflict instead of creating a duplicate grant, which makes create requests
-	// safe to retry. The same key may be reused across different customers.
-	Key *string `json:"key,omitempty"`
-	// The timestamp when the credit grant expires.
-	//
-	// Calculated from the grant effective time and `expires_after` if provided.
-	ExpiresAt *time.Time `json:"expires_at,omitempty"`
-	// Timestamp when the grant was voided.
-	VoidedAt *time.Time `json:"voided_at,omitempty"`
-	// Current lifecycle status of the grant.
-	Status CreditGrantStatus `json:"status"`
-	// Validation issues found while processing the credit grant.
-	//
-	// Present only when there are one or more validation findings. An empty list is
-	// omitted.
-	ValidationIssues []ValidationIssue `json:"validation_issues,omitempty"`
-}
-
-// Filters for the credit grant.
-type CreditGrantFilters struct {
-	// Limit the credit grant to specific features. If no features are specified, the
-	// credit grant can be used for any feature.
-	Features []string `json:"features,omitempty"`
-	// Limit credits to charges from these plans. Entries are alternatives; when
-	// features are also specified, both dimensions must match. Omission or an empty
-	// list leaves plans unrestricted.
-	Plans []CreditGrantPlanFilter `json:"plans,omitempty"`
-}
-
-// Invoice references for the grant.
-type CreditGrantInvoiceReference struct {
-	// Identifier of the invoice associated with the grant.
-	ID *string `json:"id,omitempty"`
-	// Identifier of the invoice line associated with the grant.
-	Line *CreditGrantInvoiceReferenceLine `json:"line,omitempty"`
-}
-
-type CreditGrantInvoiceReferenceLine struct {
-	ID string `json:"id"`
-}
-
-// Page paginated response.
-type CreditGrantPagePaginatedResponse struct {
-	Data []CreditGrant `json:"data"`
-	Meta PaginatedMeta `json:"meta"`
-}
-
-// A plan key and an optional version constraint for matching credit grants.
-type CreditGrantPlanFilter struct {
-	// The plan key in the customer's namespace.
-	Key string `json:"key"`
-	// Omission matches all versions, including future versions.
-	Version *VersionFilter `json:"version,omitempty"`
-}
-
-// Purchase and payment terms of the grant.
-type CreditGrantPurchase struct {
-	// Fiat currency the purchase is settled in.
-	//
-	// Must equal the grant `currency` for fiat grants and `cost_basis.fiat_currency`
-	// for custom-currency grants.
-	Currency string `json:"currency"`
-	// Fiat cost basis per credit unit of a fiat-currency grant.
-	//
-	// If `per_unit_cost_basis` is 0.50 and credit amount is
-	// $100.00, the total
-	// charge is $50.00. The value must be greater than 0. If the
-	// cost basis is 0, use `funding_method=none` instead.
-	//
-	// Only applies to fiat grants and cannot be combined with `cost_basis`. Defaults
-	// to 1.0 when neither is provided.
-	PerUnitCostBasis *Numeric `json:"per_unit_cost_basis,omitempty"`
-	// The rate the purchase is settled at in the purchase `currency`. Present once the
-	// cost basis is resolved.
-	ResolvedCostBasis *ChargeResolvedCostBasis `json:"resolved_cost_basis,omitempty"`
-	// The purchase amount, calculated from the resolved cost basis and credit
-	// `amount`. Present once the cost basis is resolved.
-	Amount *Numeric `json:"amount,omitempty"`
-	// Controls when credits become available for consumption.
-	//
-	// Defaults to `on_creation`.
-	AvailabilityPolicy *CreditAvailabilityPolicy `json:"availability_policy,omitempty"`
-	// Current payment settlement status.
-	SettlementStatus *CreditPurchasePaymentSettlementStatus `json:"settlement_status,omitempty"`
-}
-
-// Credit grant lifecycle status.
-//
-// - `pending`: The credit block has been created but is not yet valid.
-// (`effective_at` is in the future or availability_policy is not met)
-// - `active`: The credit block is currently valid and eligible for consumption.
-// (`effective_at` is in the past, `expires_at` is in the future and
-// availability_policy is met)
-// - `expired`: The credit block expired with remaining unused balance,
-// `expires_at` time has passed.
-// - `voided`: The credit block was voided. Remaining balance is forfeited.
-type CreditGrantStatus string
-
-const (
-	CreditGrantStatusPending CreditGrantStatus = "pending"
-	CreditGrantStatusActive  CreditGrantStatus = "active"
-	CreditGrantStatusExpired CreditGrantStatus = "expired"
-	CreditGrantStatusVoided  CreditGrantStatus = "voided"
-)
-
-func (value CreditGrantStatus) Valid() bool {
-	switch value {
-	case CreditGrantStatusPending, CreditGrantStatusActive, CreditGrantStatusExpired, CreditGrantStatusVoided:
-		return true
-	default:
-		return false
-	}
 }
 
 // Describes how voiding a credit grant adjusts related payment state.
@@ -1405,28 +1169,6 @@ const (
 func (value CreditGrantVoidPaymentAdjustment) Valid() bool {
 	switch value {
 	case CreditGrantVoidPaymentAdjustmentNone:
-		return true
-	default:
-		return false
-	}
-}
-
-// Credit purchase payment settlement status.
-//
-// - `pending`: Payment has been initiated and is not yet authorized.
-// - `authorized`: Payment has been authorized.
-// - `settled`: Payment has been settled.
-type CreditPurchasePaymentSettlementStatus string
-
-const (
-	CreditPurchasePaymentSettlementStatusPending    CreditPurchasePaymentSettlementStatus = "pending"
-	CreditPurchasePaymentSettlementStatusAuthorized CreditPurchasePaymentSettlementStatus = "authorized"
-	CreditPurchasePaymentSettlementStatusSettled    CreditPurchasePaymentSettlementStatus = "settled"
-)
-
-func (value CreditPurchasePaymentSettlementStatus) Valid() bool {
-	switch value {
-	case CreditPurchasePaymentSettlementStatusPending, CreditPurchasePaymentSettlementStatusAuthorized, CreditPurchasePaymentSettlementStatusSettled:
 		return true
 	default:
 		return false
@@ -1499,11 +1241,6 @@ func (value CreditTransactionType) Valid() bool {
 	default:
 		return false
 	}
-}
-
-// CurrencyCustom reference.
-type CurrencyCustomReference struct {
-	ID string `json:"id"`
 }
 
 // Billing customer data.
@@ -1850,18 +1587,6 @@ type UpsertCustomerRequest struct {
 	Currency *string `json:"currency,omitempty"`
 	// The billing address of the customer. Used for tax and invoicing.
 	BillingAddress *Address `json:"billing_address,omitempty"`
-}
-
-// An integer version comparison. Exactly one operator must be provided.
-type VersionFilter struct {
-	// Match this exact version.
-	Eq *int32 `json:"eq,omitempty"`
-	// Match one of these versions.
-	Oeq []int32 `json:"oeq,omitempty"`
-	// Match this version and later versions.
-	Gte *int32 `json:"gte,omitempty"`
-	// Match this version and earlier versions.
-	Lte *int32 `json:"lte,omitempty"`
 }
 
 // Request body for voiding a credit grant.

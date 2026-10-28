@@ -915,6 +915,109 @@ paths:
       tags:
         - OpenMeter Billing Settings
       x-unstable: true
+  /openmeter/credits/balances:
+    get:
+      operationId: list-all-credit-balances
+      summary: List credit balances across customers
+      description: |-
+        List credit balances across customers.
+
+        Returns one item per customer, ordered by customer ID. Customers without credit
+        activity are returned with an empty `balances` list. The page size is limited to
+        100 because balances are computed on request.
+      parameters:
+        - $ref: '#/components/parameters/PagePaginationQuery'
+        - name: timestamp
+          in: query
+          required: false
+          description: |-
+            Return credit balances at this timestamp using all currently recorded postings,
+            including corrections recorded later. This is not a snapshot of what was known
+            at the requested time.
+
+            Defaults to the current time. Historical responses return `live` as zero because
+            live charge impacts are only available for current balances. A historical read
+            is repeatable, which makes it suitable for a daily or month-end close.
+          schema:
+            $ref: '#/components/schemas/DateTime'
+          explode: false
+          style: form
+        - name: filter
+          in: query
+          required: false
+          description: |-
+            Filter credit balances returned in the response.
+
+            To filter by customer use `filter[customer_id][eq]=<id>` or
+            `filter[customer_id][oeq]=<id>,<id>`.
+          schema:
+            $ref: '#/components/schemas/ListAllCreditBalancesParamsFilter'
+          style: deepObject
+      responses:
+        '200':
+          description: Page paginated response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerCreditBalancesPagePaginatedResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      tags:
+        - OpenMeter Customers
+      x-unstable: true
+  /openmeter/credits/grants:
+    get:
+      operationId: list-all-credit-grants
+      summary: List credit grants across customers
+      description: |-
+        List credit grants across all customers.
+
+        Returns the same grants as the per-customer route; each grant carries its
+        `customer` reference.
+      parameters:
+        - $ref: '#/components/parameters/PagePaginationQuery'
+        - name: sort
+          in: query
+          required: false
+          description: |-
+            Sort credit grants by `created_at`, `updated_at`, `name`, or `id`. Defaults to
+            `created_at desc`. The `asc` suffix is optional when a sort attribute is
+            supplied. Supports one attribute; ties are broken by `id` in the same direction.
+          schema:
+            $ref: '#/components/schemas/SortQuery'
+          explode: false
+          style: form
+        - name: filter
+          in: query
+          required: false
+          description: |-
+            Filter credit grants returned in the response.
+
+            To filter by customer use `filter[customer_id][eq]=<id>` or
+            `filter[customer_id][oeq]=<id>,<id>`.
+          schema:
+            $ref: '#/components/schemas/ListAllCreditGrantsParamsFilter'
+          style: deepObject
+      responses:
+        '200':
+          description: Page paginated response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreditGrantPagePaginatedResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      tags:
+        - OpenMeter Customers
+      x-unstable: true
   /openmeter/currencies:
     get:
       operationId: list-currencies
@@ -8153,6 +8256,7 @@ components:
         - name
         - created_at
         - updated_at
+        - customer
         - funding_method
         - currency
         - amount
@@ -8193,6 +8297,11 @@ components:
           allOf:
             - $ref: '#/components/schemas/DateTime'
           description: An ISO-8601 timestamp representation of entity deletion date.
+          readOnly: true
+        customer:
+          allOf:
+            - $ref: '#/components/schemas/CustomerReference'
+          description: The customer owning the grant.
           readOnly: true
         funding_method:
           allOf:
@@ -8811,6 +8920,32 @@ components:
       description: |-
         Customers can be individuals or organizations that can subscribe to plans and
         have access to features.
+    BillingCustomerCreditBalances:
+      type: object
+      required:
+        - customer
+        - retrieved_at
+        - balances
+      properties:
+        customer:
+          allOf:
+            - $ref: '#/components/schemas/CustomerReference'
+          description: The customer owning the balances.
+          readOnly: true
+        retrieved_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: The timestamp of the balance retrieval.
+          readOnly: true
+        balances:
+          type: array
+          items:
+            $ref: '#/components/schemas/CreditBalance'
+          description: The balances by currencies.
+          readOnly: true
+      additionalProperties: false
+      description: The credit balances of one customer.
+      title: Customer credit balances
     BillingCustomerData:
       type: object
       required:
@@ -16539,6 +16674,20 @@ components:
           description: Request the previous page of data, starting with the item before this parameter.
       additionalProperties: false
       description: Determines which page of the collection to retrieve.
+    CustomerCreditBalancesPagePaginatedResponse:
+      type: object
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingCustomerCreditBalances'
+        meta:
+          $ref: '#/components/schemas/PaginatedMeta'
+      additionalProperties: false
+      description: Page paginated response.
     CustomerOrReference:
       oneOf:
         - $ref: '#/components/schemas/BillingCustomer'
@@ -17322,6 +17471,56 @@ components:
           $ref: '#/components/schemas/StringFieldFilterExact'
       additionalProperties: false
       description: Filter options for listing add-ons.
+    ListAllCreditBalancesParamsFilter:
+      type: object
+      properties:
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/StringFieldFilterExact'
+          description: |-
+            Filter credit balance by currency code. When historical custom currencies reuse
+            a code, each managed currency is returned as a separate balance row.
+        feature_key:
+          allOf:
+            - $ref: '#/components/schemas/StringFieldFilter'
+          description: |-
+            Filter credit balance by feature key. Omit to return the total portfolio value.
+            Use `exists=false` to return only unrestricted balance.
+        customer_id:
+          allOf:
+            - $ref: '#/components/schemas/ULIDFieldFilter'
+          description: Filter credit balances by the ID of their customer.
+      additionalProperties: false
+      description: Filter options for listing credit balances across customers.
+    ListAllCreditGrantsParamsFilter:
+      type: object
+      properties:
+        status:
+          allOf:
+            - $ref: '#/components/schemas/BillingCreditGrantStatus'
+          description: Filter credit grants by status.
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/BillingCurrencyCode'
+          description: Filter credit grants by fiat or custom currency code.
+        key:
+          allOf:
+            - $ref: '#/components/schemas/StringFieldFilter'
+          description: Filter credit grants by key.
+        feature_key:
+          allOf:
+            - $ref: '#/components/schemas/StringFieldFilter'
+          description: |-
+            Select grants spendable on any requested feature, including grants without
+            feature restrictions. Keys are case-sensitive. Supports `eq` (or shorthand) and
+            `oeq` with comma-separated keys. Omit to include all features; use
+            `exists=false` for grants without feature restrictions.
+        customer_id:
+          allOf:
+            - $ref: '#/components/schemas/ULIDFieldFilter'
+          description: Filter credit grants by the ID of their customer.
+      additionalProperties: false
+      description: Filter options for listing credit grants across customers.
     ListAppsParamsFilter:
       type: object
       properties:

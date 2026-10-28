@@ -447,8 +447,8 @@ func (s *CreditGrantTestSuite) TestListCreditGrants() {
 	secondGrant := s.mustCreatePromotionalCreditGrant(ctx, ns, cust.GetID(), "list-grant-2", alpacadecimal.NewFromInt(20))
 
 	result, err := s.CreditGrantService.List(ctx, creditgrant.ListInput{
-		Namespace:  ns,
-		CustomerID: cust.ID,
+		Namespace:   ns,
+		CustomerIDs: []string{cust.ID},
 	})
 	s.Require().NoError(err)
 	s.Len(result.Items, 2)
@@ -458,6 +458,41 @@ func (s *CreditGrantTestSuite) TestListCreditGrants() {
 	})
 	s.Contains(ids, firstGrant.ID)
 	s.Contains(ids, secondGrant.ID)
+}
+
+func (s *CreditGrantTestSuite) TestListCreditGrantsAcrossCustomers() {
+	// given: two customers in one namespace, each holding a grant.
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("creditgrant-list-across-customers")
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
+
+	first := s.CreateLedgerBackedCustomer(ns, "first-subject")
+	second := s.CreateLedgerBackedCustomer(ns, "second-subject")
+	sandboxApp := s.InstallSandboxApp(s.T(), ns)
+	_ = s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
+
+	clock.FreezeTime(datetime.MustParseTimeInLocation(s.T(), "2026-04-17T11:23:53Z", time.UTC).AsTime())
+	defer clock.UnFreeze()
+
+	firstGrant := s.mustCreatePromotionalCreditGrant(ctx, ns, first.GetID(), "first-grant", alpacadecimal.NewFromInt(10))
+	secondGrant := s.mustCreatePromotionalCreditGrant(ctx, ns, second.GetID(), "second-grant", alpacadecimal.NewFromInt(20))
+
+	// when: grants are listed without a customer scope.
+	all, err := s.CreditGrantService.List(ctx, creditgrant.ListInput{Namespace: ns, Page: pagination.NewPage(1, 100)})
+	s.Require().NoError(err)
+
+	// then: every customer's grant is returned and keeps its owner.
+	owners := lo.SliceToMap(all.Items, func(item creditpurchase.Charge) (string, string) {
+		return item.ID, item.Intent.CustomerID
+	})
+	s.Equal(map[string]string{firstGrant.ID: first.ID, secondGrant.ID: second.ID}, owners)
+
+	// when: grants are listed for one customer.
+	scoped, err := s.CreditGrantService.List(ctx, creditgrant.ListInput{Namespace: ns, CustomerIDs: []string{second.ID}, Page: pagination.NewPage(1, 100)})
+	s.Require().NoError(err)
+
+	// then: only that customer's grant is returned.
+	s.Equal([]string{secondGrant.ID}, lo.Map(scoped.Items, func(item creditpurchase.Charge, _ int) string { return item.ID }))
 }
 
 func (s *CreditGrantTestSuite) TestListCreditGrantsSorting() {
@@ -513,7 +548,7 @@ func (s *CreditGrantTestSuite) TestListCreditGrantsSorting() {
 			var ids []string
 			for page := 1; page <= len(tc.want); page++ {
 				result, err := s.CreditGrantService.List(ctx, creditgrant.ListInput{
-					Namespace: ns, CustomerID: cust.ID, Page: pagination.NewPage(page, 1),
+					Namespace: ns, CustomerIDs: []string{cust.ID}, Page: pagination.NewPage(page, 1),
 					OrderBy: tc.orderBy, Order: tc.order,
 				})
 				s.Require().NoError(err)
@@ -829,7 +864,7 @@ func (s *CreditGrantTestSuite) TestListCreditGrantsSpendabilityFilters() {
 	} {
 		s.Run(tc.name, func() {
 			// When listing grants for the requested features.
-			input := creditgrant.ListInput{Namespace: ns, CustomerID: cust.ID, FeatureFilters: tc.features, Page: pagination.NewPage(1, 100)}
+			input := creditgrant.ListInput{Namespace: ns, CustomerIDs: []string{cust.ID}, FeatureFilters: tc.features, Page: pagination.NewPage(1, 100)}
 			result, err := s.CreditGrantService.List(ctx, input)
 			s.Require().NoError(err)
 			// Then unrestricted grants are retained and restrictions match before pagination.

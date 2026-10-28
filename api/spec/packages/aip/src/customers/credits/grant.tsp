@@ -120,6 +120,12 @@ model CreditGrant {
   ...Shared.Resource;
 
   /**
+   * The customer owning the grant.
+   */
+  @visibility(Lifecycle.Read)
+  customer: Shared.ResourceReference<Customer>;
+
+  /**
    * Funding method of the grant.
    */
   @visibility(Lifecycle.Read, Lifecycle.Create)

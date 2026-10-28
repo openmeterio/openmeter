@@ -14,7 +14,7 @@ type CustomersCreditsGrantsService struct {
 	client *Client
 }
 
-type CreditGrantFilter struct {
+type ListCreditGrantsFilter struct {
 	// Filter credit grants by status.
 	Status *CreditGrantStatus
 	// Filter credit grants by fiat or custom currency code.
@@ -28,13 +28,13 @@ type CreditGrantFilter struct {
 	FeatureKey *StringFilter
 }
 
-type CreditGrantListParams struct {
+type ListCreditGrantsParams struct {
 	Page   *PageParams
 	Sort   *Sort
-	Filter *CreditGrantFilter
+	Filter *ListCreditGrantsFilter
 }
 
-func (p CreditGrantListParams) values() url.Values {
+func (p ListCreditGrantsParams) values() url.Values {
 	q := url.Values{}
 
 	addPageParams(q, p.Page)
@@ -109,7 +109,7 @@ func (s *CustomersCreditsGrantsService) Get(ctx context.Context, customerID stri
 }
 
 // List credit grants.
-func (s *CustomersCreditsGrantsService) List(ctx context.Context, customerID string, params CreditGrantListParams) (*CreditGrantPagePaginatedResponse, error) {
+func (s *CustomersCreditsGrantsService) List(ctx context.Context, customerID string, params ListCreditGrantsParams) (*CreditGrantPagePaginatedResponse, error) {
 	if customerID == "" {
 		return nil, fmt.Errorf("openmeter: %s must not be empty: %w", "customerID", ErrEmptyID)
 	}
@@ -132,7 +132,7 @@ func (s *CustomersCreditsGrantsService) List(ctx context.Context, customerID str
 }
 
 // ListAll returns an iterator over all CreditGrant results, fetching pages of List transparently. Iteration stops at the first error, which is yielded as the second value.
-func (s *CustomersCreditsGrantsService) ListAll(ctx context.Context, customerID string, params CreditGrantListParams) iter.Seq2[CreditGrant, error] {
+func (s *CustomersCreditsGrantsService) ListAll(ctx context.Context, customerID string, params ListCreditGrantsParams) iter.Seq2[CreditGrant, error] {
 	return paginate(params.Page, func(page, size int) ([]CreditGrant, int, error) {
 		pageParams := params
 		pageParams.Page = &PageParams{Size: Int(size), Number: Int(page)}

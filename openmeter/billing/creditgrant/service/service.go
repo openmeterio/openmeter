@@ -211,7 +211,7 @@ func (s *service) List(ctx context.Context, input creditgrant.ListInput) (pagina
 	listInput := creditpurchase.ListChargesInput{
 		Page:        input.Page,
 		Namespace:   input.Namespace,
-		CustomerIDs: []string{input.CustomerID},
+		CustomerIDs: input.CustomerIDs,
 		OrderBy:     input.OrderBy,
 		Order:       input.Order,
 		Expands:     meta.Expands{meta.ExpandRealizations},

@@ -3099,6 +3099,41 @@ export interface ListGrantsParamsFilter {
   featureId?: UlidFieldFilter
 }
 
+/** Filter options for listing credit grants across customers. */
+export interface ListAllCreditGrantsParamsFilter {
+  /** Filter credit grants by status. */
+  status?: 'pending' | 'active' | 'expired' | 'voided'
+  /** Filter credit grants by fiat or custom currency code. */
+  currency?: BillingCurrencyCode
+  /** Filter credit grants by key. */
+  key?: StringFieldFilter
+  /**
+   * Select grants spendable on any requested feature, including grants without
+   * feature restrictions. Keys are case-sensitive. Supports `eq` (or shorthand) and
+   * `oeq` with comma-separated keys. Omit to include all features; use
+   * `exists=false` for grants without feature restrictions.
+   */
+  featureKey?: StringFieldFilter
+  /** Filter credit grants by the ID of their customer. */
+  customerId?: UlidFieldFilter
+}
+
+/** Filter options for listing credit balances across customers. */
+export interface ListAllCreditBalancesParamsFilter {
+  /**
+   * Filter credit balance by currency code. When historical custom currencies reuse
+   * a code, each managed currency is returned as a separate balance row.
+   */
+  currency?: StringFieldFilterExact
+  /**
+   * Filter credit balance by feature key. Omit to return the total portfolio value.
+   * Use `exists=false` to return only unrestricted balance.
+   */
+  featureKey?: StringFieldFilter
+  /** Filter credit balances by the ID of their customer. */
+  customerId?: UlidFieldFilter
+}
+
 /** Filter options for listing subscriptions. */
 export interface ListSubscriptionsParamsFilter {
   id?: UlidFieldFilter
@@ -5096,6 +5131,16 @@ export interface CreditBalances {
   balances: CreditBalance[]
 }
 
+/** The credit balances of one customer. */
+export interface CustomerCreditBalances {
+  /** The customer owning the balances. */
+  customer: CustomerReference
+  /** The timestamp of the balance retrieval. */
+  retrievedAt: Date
+  /** The balances by currencies. */
+  balances: CreditBalance[]
+}
+
 /** Cursor paginated response. */
 export interface CreditTransactionPaginatedResponse {
   data: CreditTransaction[]
@@ -6087,6 +6132,12 @@ export interface CreateCreditGrantRequest {
   key?: string
 }
 
+/** Page paginated response. */
+export interface CustomerCreditBalancesPagePaginatedResponse {
+  data: CustomerCreditBalances[]
+  meta: PaginatedMeta
+}
+
 /**
  * A credit grant allocates credits to a customer.
  *
@@ -6114,6 +6165,8 @@ export interface CreditGrant {
   updatedAt: Date
   /** An ISO-8601 timestamp representation of entity deletion date. */
   deletedAt?: Date
+  /** The customer owning the grant. */
+  customer: CustomerReference
   /** Funding method of the grant. */
   fundingMethod: 'none' | 'invoice' | 'external'
   /**
@@ -9647,6 +9700,8 @@ export interface CreditGrantInput {
   updatedAt: Date
   /** An ISO-8601 timestamp representation of entity deletion date. */
   deletedAt?: Date
+  /** The customer owning the grant. */
+  customer: CustomerReference
   /** Funding method of the grant. */
   fundingMethod: 'none' | 'invoice' | 'external'
   /**
