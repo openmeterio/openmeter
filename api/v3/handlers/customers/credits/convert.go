@@ -799,9 +799,9 @@ func fromAPIListCreditGrantsParams(ctx context.Context, params api.ListCreditGra
 	return req, nil
 }
 
-// fromAPICreditBalanceCurrencyFilter maps the balance currency filter. Only positive
+// fromAPICurrencyStringFieldFilterExact maps the balance currency filter. Only positive
 // selection is supported: a balance listing cannot exclude a currency it discovers.
-func fromAPICreditBalanceCurrencyFilter(ctx context.Context, f *api.StringFieldFilterExact) (customerbalance.CurrencyFilter, error) {
+func fromAPICurrencyStringFieldFilterExact(ctx context.Context, f *api.StringFieldFilterExact) (customerbalance.CurrencyFilter, error) {
 	if f == nil {
 		return customerbalance.CurrencyFilter{}, nil
 	}
@@ -834,9 +834,9 @@ func fromAPICreditBalanceCurrencyFilter(ctx context.Context, f *api.StringFieldF
 	return customerbalance.CurrencyFilter{Codes: codes}, nil
 }
 
-// fromAPICustomerIDFilter maps a customer ID filter of a namespace-wide credit
+// fromAPICustomerIDULIDFieldFilter maps a customer ID filter of a namespace-wide credit
 // listing to an explicit customer set. An empty result selects every customer.
-func fromAPICustomerIDFilter(ctx context.Context, f *api.ULIDFieldFilter) ([]string, error) {
+func fromAPICustomerIDULIDFieldFilter(ctx context.Context, f *api.ULIDFieldFilter) ([]string, error) {
 	if f == nil {
 		return nil, nil
 	}

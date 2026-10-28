@@ -48,8 +48,9 @@ a full sync needs.
 **Balances.** Both balance routes accept `timestamp`. This read already worked
 on the per-customer route. It returns `booked`, `spendable` and `pending` as of
 that time, based on all ledger postings recorded now. Re-running it later
-returns the same `booked` value unless a correction is booked with an earlier
-timestamp, so `booked` is the figure to close on. `spendable` at a past time can
+returns the same `booked` value unless an entry is booked with an earlier
+timestamp, such as a correction or a grant with a past `effective_at`, so
+`booked` is the figure to close on. `spendable` at a past time can
 still drop afterwards, because it sets aside credit for usage recorded later.
 
 `live` stays `0` for past timestamps. Usage that was not yet booked at a past
@@ -57,7 +58,8 @@ time cannot be rebuilt.
 
 **A close no longer has to run at the close time.** A close job can read
 `booked` any time afterwards, for example with
-`timestamp=<day>T23:59:59.999Z`.
+`timestamp=<day>T23:59:59.999999Z`. The cutoff is inclusive and has microsecond
+precision.
 
 **Charge totals.** Both charge list routes accept `as_of`. It can be used only
 together with `expand=real_time_usage`, and it must not be in the future.

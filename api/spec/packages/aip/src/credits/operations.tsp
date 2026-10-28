@@ -118,9 +118,11 @@ namespace Balances {
        *
        * Defaults to the current time. Historical responses return `live` as zero because
        * live charge impacts are only available for current balances. For a re-runnable
-       * daily or month-end close, use `booked`: it changes only when a correction is
-       * booked with an earlier timestamp. `spendable` can also change after the fact,
-       * because it sets aside credit for usage that is recorded later.
+       * daily or month-end close, use `booked`: it changes only when an entry is booked
+       * with an earlier timestamp, such as a correction or a grant with a past
+       * `effective_at`. `spendable` can also change after the fact, because it sets
+       * aside credit for usage that is recorded later. The timestamp is inclusive and
+       * has microsecond precision, so an end-of-day close should use `23:59:59.999999Z`.
        */
       @query
       timestamp?: Shared.DateTime,

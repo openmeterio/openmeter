@@ -70,7 +70,7 @@ func (h *handler) ListAllCreditGrants() ListAllCreditGrantsHandler {
 			}
 
 			req.Namespace = ns
-			req.CustomerIDs, err = fromAPICustomerIDFilter(ctx, apiCustomerID)
+			req.CustomerIDs, err = fromAPICustomerIDULIDFieldFilter(ctx, apiCustomerID)
 			if err != nil {
 				return ListAllCreditGrantsRequest{}, err
 			}
@@ -136,12 +136,12 @@ func (h *handler) ListAllCreditBalances() ListAllCreditBalancesHandler {
 			}
 
 			if f := params.Filter; f != nil {
-				req.CustomerIDs, err = fromAPICustomerIDFilter(ctx, f.CustomerId)
+				req.CustomerIDs, err = fromAPICustomerIDULIDFieldFilter(ctx, f.CustomerId)
 				if err != nil {
 					return ListAllCreditBalancesRequest{}, err
 				}
 
-				req.Currencies, err = fromAPICreditBalanceCurrencyFilter(ctx, f.Currency)
+				req.Currencies, err = fromAPICurrencyStringFieldFilterExact(ctx, f.Currency)
 				if err != nil {
 					return ListAllCreditBalancesRequest{}, err
 				}

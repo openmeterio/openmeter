@@ -56,7 +56,7 @@ func (h *handler) GetCustomerCreditBalance() GetCustomerCreditBalanceHandler {
 			}
 
 			if args.Params.Filter != nil {
-				currencies, err := fromAPICreditBalanceCurrencyFilter(ctx, args.Params.Filter.Currency)
+				currencies, err := fromAPICurrencyStringFieldFilterExact(ctx, args.Params.Filter.Currency)
 				if err != nil {
 					return GetCustomerCreditBalanceRequest{}, err
 				}
