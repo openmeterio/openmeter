@@ -2,10 +2,8 @@ package customerscredits
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
-	"slices"
 	"time"
 
 	"github.com/samber/lo"
@@ -221,37 +219,6 @@ func (h *handler) ListAllCreditBalances() ListAllCreditBalancesHandler {
 			httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),
 		)...,
 	)
-}
-
-// fromAPICustomerIDFilter maps a customer ID filter of a namespace-wide credit
-// listing to an explicit customer set. An empty result selects every customer.
-func fromAPICustomerIDFilter(ctx context.Context, f *api.ULIDFieldFilter) ([]string, error) {
-	if f == nil {
-		return nil, nil
-	}
-
-	badRequest := func(err error) error {
-		return apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
-			{Field: "filter[customer_id]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
-		})
-	}
-
-	if f.Neq != nil {
-		return nil, badRequest(errors.New("neq operator is not supported for customer_id"))
-	}
-
-	ids := slices.Clone(f.Oeq)
-	if f.Eq != nil {
-		ids = append(ids, *f.Eq)
-	}
-
-	// A present filter that selects no customer must not fall through to an empty
-	// selection, which would widen the listing to every customer.
-	if len(ids) == 0 || lo.Contains(ids, "") {
-		return nil, badRequest(errors.New("customer_id must not be empty"))
-	}
-
-	return lo.Uniq(ids), nil
 }
 
 func hasValidationIssueCode(err error, code models.ErrorCode) bool {
