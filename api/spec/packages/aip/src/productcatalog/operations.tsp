@@ -34,8 +34,9 @@ model ListPlansParamsFilter {
    * updated, including changes to its phases and rate cards, except an update that
    * changes only rate card labels. A plan's `status` follows its effective dates and
    * changes as time passes without updating it. Deleted plans are not listed, so a
-   * sync must detect deletions separately. For incremental syncs, filter with `gte`
-   * on the last seen value and de-duplicate by `id`.
+   * sync must detect deletions separately. For incremental syncs, record the time
+   * before each scan and pass it, minus a few minutes of overlap, as `gte` on the
+   * next scan; de-duplicate by `id`.
    */
   updated_at?: Common.DateTimeFieldFilter;
 }

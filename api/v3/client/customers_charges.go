@@ -38,8 +38,9 @@ type ListCustomerChargesFilter struct {
 	// Filter by charge last update time. `updated_at` changes whenever the charge
 	// itself is saved. A change saved only to its realizations may not update it, and
 	// live usage moving on an open charge does not. Deleted charges are listed only
-	// when `filter[status]` selects `deleted`. For incremental syncs, filter with
-	// `gte` on the last seen value and de-duplicate by `id`.
+	// when `filter[status]` selects `deleted`. For incremental syncs, record the time
+	// before each scan and pass it, minus a few minutes of overlap, as `gte` on the
+	// next scan; de-duplicate by `id`.
 	UpdatedAt *DateTimeFilter
 }
 

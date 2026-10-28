@@ -138,8 +138,8 @@ model ListSubscriptionsParamsFilter {
    * update it. Fields derived from the current time, such as `status` and
    * `current_period`, change as time passes without updating it. Deleted
    * subscriptions are not listed, so a sync must detect deletions separately. For
-   * incremental syncs, filter with `gte` on the last seen value and de-duplicate by
-   * `id`.
+   * incremental syncs, record the time before each scan and pass it, minus a few
+   * minutes of overlap, as `gte` on the next scan; de-duplicate by `id`.
    */
   updated_at?: Common.DateTimeFieldFilter;
 }
