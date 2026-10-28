@@ -31,11 +31,11 @@ model ListPlansParamsFilter {
 
   /**
    * Filter by plan last update time. `updated_at` changes whenever the plan is
-   * updated, including changes to its phases and rate cards. A plan's `status`
-   * follows its effective dates and changes as time passes without updating it.
-   * Deleted plans are not listed, so a sync must detect deletions separately. For
-   * incremental syncs, filter with `gte` on the last seen value and de-duplicate by
-   * `id`.
+   * updated, including changes to its phases and rate cards, except an update that
+   * changes only rate card labels. A plan's `status` follows its effective dates and
+   * changes as time passes without updating it. Deleted plans are not listed, so a
+   * sync must detect deletions separately. For incremental syncs, filter with `gte`
+   * on the last seen value and de-duplicate by `id`.
    */
   updated_at?: Common.DateTimeFieldFilter;
 }
