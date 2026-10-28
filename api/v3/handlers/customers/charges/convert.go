@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"time"
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
@@ -1084,7 +1085,7 @@ func fromAPICreateChargeUsageBasedRequest(namespace, customerID string, usageBas
 // hydration on top.
 const maxListChargesPageSize = 1000
 
-func fromAPIListChargesParams(ctx context.Context, namespace string, pageQuery *api.PagePaginationQuery, sortQuery *api.SortQuery, expand *[]api.BillingChargesExpand) (billingcharges.ListCustomerChargesInput, error) {
+func fromAPIListChargesParams(ctx context.Context, namespace string, pageQuery *api.PagePaginationQuery, sortQuery *api.SortQuery, expand *[]api.BillingChargesExpand, asOf *time.Time) (billingcharges.ListCustomerChargesInput, error) {
 	page := pagination.NewPage(1, 20)
 	if pageQuery != nil {
 		page = pagination.NewPage(
@@ -1120,8 +1121,9 @@ func fromAPIListChargesParams(ctx context.Context, namespace string, pageQuery *
 			Page:      page,
 			Namespace: namespace,
 			// Credit purchases are served by the credit grants API; exclude them here.
-			ChargeTypes: []meta.ChargeType{meta.ChargeTypeFlatFee, meta.ChargeTypeUsageBased},
-			Expands:     expands,
+			ChargeTypes:       []meta.ChargeType{meta.ChargeTypeFlatFee, meta.ChargeTypeUsageBased},
+			Expands:           expands,
+			RealtimeUsageAsOf: asOf,
 		},
 	}
 

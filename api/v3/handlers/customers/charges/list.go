@@ -31,7 +31,7 @@ func (h *handler) ListCustomerCharges() ListCustomerChargesHandler {
 				return ListCustomerChargesRequest{}, err
 			}
 
-			req, err := fromAPIListChargesParams(ctx, ns, args.Params.Page, args.Params.Sort, args.Params.Expand)
+			req, err := fromAPIListChargesParams(ctx, ns, args.Params.Page, args.Params.Sort, args.Params.Expand, args.Params.AsOf)
 			if err != nil {
 				return ListCustomerChargesRequest{}, err
 			}

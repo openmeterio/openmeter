@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 )
 
 type ChargesService struct {
@@ -45,6 +46,7 @@ type ListChargesParams struct {
 	Page   *PageParams
 	Sort   *Sort
 	Filter *ListChargesFilter
+	AsOf   *time.Time
 	Expand []ChargesExpand
 }
 
@@ -63,6 +65,10 @@ func (p ListChargesParams) values() url.Values {
 		addDateTimeFilter(q, "filter[service_period_to]", p.Filter.ServicePeriodTo)
 		addDateTimeFilter(q, "filter[updated_at]", p.Filter.UpdatedAt)
 		addStringExactFilter(q, "filter[customer_id]", p.Filter.CustomerID)
+	}
+
+	if p.AsOf != nil {
+		q.Set("as_of", (*p.AsOf).Format(time.RFC3339Nano))
 	}
 
 	if len(p.Expand) > 0 {

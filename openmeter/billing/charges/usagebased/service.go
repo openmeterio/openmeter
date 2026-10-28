@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
@@ -100,6 +101,9 @@ type GetByIDsInput struct {
 	Namespace string
 	IDs       []string
 	Expands   meta.Expands
+	// RealtimeUsageAsOf rates the realtime usage expand with only the events
+	// stored before this time. Nil rates with everything stored so far.
+	RealtimeUsageAsOf *time.Time
 }
 
 func (i GetByIDsInput) Validate() error {
@@ -111,6 +115,10 @@ func (i GetByIDsInput) Validate() error {
 
 	if err := validateExpands(i.Expands); err != nil {
 		errs = append(errs, fmt.Errorf("expands: %w", err))
+	}
+
+	if i.RealtimeUsageAsOf != nil && !i.Expands.Has(meta.ExpandRealtimeUsage) {
+		errs = append(errs, errors.New("realtime usage as of requires the realtime usage expand"))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
