@@ -130,6 +130,14 @@ func (h *handler) ListCustomers() ListCustomersHandler {
 				}
 
 				req.BillingProfileID = billingProfileID
+				updatedAt, err := filters.FromAPIFilterDateTime(params.Filter.UpdatedAt)
+				if err != nil {
+					return ListCustomersRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						{Field: "filter[updated_at]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
+					})
+				}
+
+				req.UpdatedAt = updatedAt
 			}
 
 			return req, nil

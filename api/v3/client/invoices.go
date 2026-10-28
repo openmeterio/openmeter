@@ -25,6 +25,9 @@ type InvoiceFilter struct {
 	ServicePeriodStart *DateTimeFilter
 	// Filter by invoice creation time.
 	CreatedAt *DateTimeFilter
+	// Filter by invoice last update time. `updated_at` changes when the invoice itself
+	// changes. Line changes and live usage on open invoices do not update it.
+	UpdatedAt *DateTimeFilter
 }
 
 type InvoiceListParams struct {
@@ -46,6 +49,7 @@ func (p InvoiceListParams) values() url.Values {
 		addDateTimeFilter(q, "filter[issued_at]", p.Filter.IssuedAt)
 		addDateTimeFilter(q, "filter[service_period_start]", p.Filter.ServicePeriodStart)
 		addDateTimeFilter(q, "filter[created_at]", p.Filter.CreatedAt)
+		addDateTimeFilter(q, "filter[updated_at]", p.Filter.UpdatedAt)
 	}
 
 	return q

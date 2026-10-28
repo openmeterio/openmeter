@@ -52,6 +52,12 @@ model ListCustomerChargesParamsFilter {
    * Filter charges by the end of their service period.
    */
   service_period_to?: Common.DateTimeFieldFilter;
+
+  /**
+   * Filter by charge last update time. `updated_at` changes when the charge itself
+   * changes. Realization changes and live usage do not update it.
+   */
+  updated_at?: Common.DateTimeFieldFilter;
 }
 
 /**

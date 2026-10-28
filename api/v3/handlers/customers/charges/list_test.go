@@ -3,6 +3,7 @@ package charges
 import (
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
@@ -148,5 +149,16 @@ func TestFromAPIListChargesParamsFilter(t *testing.T) {
 		require.Equal(t, "api_requests", lo.FromPtr(req.FeatureKey.Eq))
 		require.Nil(t, req.ServicePeriodFrom)
 		require.Nil(t, req.ServicePeriodTo)
+	})
+
+	t.Run("updated at selects charges changed since a point in time", func(t *testing.T) {
+		since := time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC)
+
+		var req billingcharges.ListCustomerChargesInput
+		require.NoError(t, fromAPIListChargesParamsFilter(ctx, &api.ListChargesParamsFilter{
+			UpdatedAt: &api.DateTimeFieldFilter{Gte: &since},
+		}, &req))
+		require.NotNil(t, req.UpdatedAt)
+		require.Equal(t, since, lo.FromPtr(req.UpdatedAt.Gte))
 	})
 }

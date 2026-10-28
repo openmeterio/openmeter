@@ -19,6 +19,9 @@ type PlanFilter struct {
 	Name     *StringFilter
 	Status   *StringExactFilter
 	Currency *StringExactFilter
+	// Filter by plan last update time. `updated_at` changes when the plan itself
+	// changes. Phase and rate card changes do not update it.
+	UpdatedAt *DateTimeFilter
 }
 
 type PlanListParams struct {
@@ -39,6 +42,7 @@ func (p PlanListParams) values() url.Values {
 		addStringFilter(q, "filter[name]", p.Filter.Name)
 		addStringExactFilter(q, "filter[status]", p.Filter.Status)
 		addStringExactFilter(q, "filter[currency]", p.Filter.Currency)
+		addDateTimeFilter(q, "filter[updated_at]", p.Filter.UpdatedAt)
 	}
 
 	return q

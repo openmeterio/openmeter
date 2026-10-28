@@ -3377,15 +3377,6 @@ export const getCreditBalanceParamsFilter = z
   })
   .describe('Filter options for getting a credit balance.')
 
-export const listPlansParamsFilter = z
-  .object({
-    key: stringFieldFilter.optional(),
-    name: stringFieldFilter.optional(),
-    status: stringFieldFilterExact.optional(),
-    currency: stringFieldFilterExact.optional(),
-  })
-  .describe('Filter options for listing plans.')
-
 export const createCreditGrantPlanFilter = z
   .object({
     key: resourceKey,
@@ -4205,17 +4196,6 @@ export const llmCostOverrideCreate = z
     'Input for creating a per-namespace price override. Unique per provider, model and currency. If an override already exists for the given provider, model and currency, it will be updated. If an override does not exist, it will be created.',
   )
 
-export const listCustomersParamsFilter = z
-  .object({
-    key: stringFieldFilter.optional(),
-    name: stringFieldFilter.optional(),
-    primaryEmail: stringFieldFilter.optional(),
-    usageAttributionSubjectKey: stringFieldFilter.optional(),
-    planKey: stringFieldFilter.optional(),
-    billingProfileId: ulidFieldFilter.optional(),
-  })
-  .describe('Filter options for listing customers.')
-
 export const listCustomerEntitlementsParamsFilter = z
   .object({
     featureId: ulidFieldFilter.optional(),
@@ -4239,16 +4219,6 @@ export const listGrantsParamsFilter = z
     featureId: ulidFieldFilter.optional(),
   })
   .describe('Filter options for listing grants.')
-
-export const listSubscriptionsParamsFilter = z
-  .object({
-    id: ulidFieldFilter.optional(),
-    customerId: ulidFieldFilter.optional(),
-    status: stringFieldFilterExact.optional(),
-    planId: ulidFieldFilter.optional(),
-    planKey: stringFieldFilterExact.optional(),
-  })
-  .describe('Filter options for listing subscriptions.')
 
 export const listAppsParamsFilter = z
   .object({
@@ -4802,6 +4772,18 @@ export const listEventsParamsFilter = z
   })
   .describe('Filter options for listing ingested events.')
 
+export const listCustomersParamsFilter = z
+  .object({
+    key: stringFieldFilter.optional(),
+    name: stringFieldFilter.optional(),
+    primaryEmail: stringFieldFilter.optional(),
+    usageAttributionSubjectKey: stringFieldFilter.optional(),
+    planKey: stringFieldFilter.optional(),
+    billingProfileId: ulidFieldFilter.optional(),
+    updatedAt: dateTimeFieldFilter.optional(),
+  })
+  .describe('Filter options for listing customers.')
+
 export const listCustomerChargesParamsFilter = z
   .object({
     status: stringFieldFilterExact.optional(),
@@ -4809,8 +4791,20 @@ export const listCustomerChargesParamsFilter = z
     featureKey: stringFieldFilterExact.optional(),
     servicePeriodFrom: dateTimeFieldFilter.optional(),
     servicePeriodTo: dateTimeFieldFilter.optional(),
+    updatedAt: dateTimeFieldFilter.optional(),
   })
   .describe('Filter options for listing charges.')
+
+export const listSubscriptionsParamsFilter = z
+  .object({
+    id: ulidFieldFilter.optional(),
+    customerId: ulidFieldFilter.optional(),
+    status: stringFieldFilterExact.optional(),
+    planId: ulidFieldFilter.optional(),
+    planKey: stringFieldFilterExact.optional(),
+    updatedAt: dateTimeFieldFilter.optional(),
+  })
+  .describe('Filter options for listing subscriptions.')
 
 export const listInvoicesParamsFilter = z
   .object({
@@ -4819,6 +4813,7 @@ export const listInvoicesParamsFilter = z
     issuedAt: dateTimeFieldFilter.optional(),
     servicePeriodStart: dateTimeFieldFilter.optional(),
     createdAt: dateTimeFieldFilter.optional(),
+    updatedAt: dateTimeFieldFilter.optional(),
   })
   .describe('Filter options for listing invoices.')
 
@@ -4829,9 +4824,20 @@ export const listChargesParamsFilter = z
     featureKey: stringFieldFilterExact.optional(),
     servicePeriodFrom: dateTimeFieldFilter.optional(),
     servicePeriodTo: dateTimeFieldFilter.optional(),
+    updatedAt: dateTimeFieldFilter.optional(),
     customerId: ulidFieldFilter.optional(),
   })
   .describe('Filter options for listing charges across customers.')
+
+export const listPlansParamsFilter = z
+  .object({
+    key: stringFieldFilter.optional(),
+    name: stringFieldFilter.optional(),
+    status: stringFieldFilterExact.optional(),
+    currency: stringFieldFilterExact.optional(),
+    updatedAt: dateTimeFieldFilter.optional(),
+  })
+  .describe('Filter options for listing plans.')
 
 export const listNotificationChannelsParamsFilter = z
   .object({
@@ -13233,15 +13239,6 @@ export const getCreditBalanceParamsFilterWire = z
   })
   .describe('Filter options for getting a credit balance.')
 
-export const listPlansParamsFilterWire = z
-  .strictObject({
-    key: stringFieldFilterWire.optional(),
-    name: stringFieldFilterWire.optional(),
-    status: stringFieldFilterExactWire.optional(),
-    currency: stringFieldFilterExactWire.optional(),
-  })
-  .describe('Filter options for listing plans.')
-
 export const createCreditGrantPlanFilterWire = z
   .strictObject({
     key: resourceKeyWire,
@@ -14052,17 +14049,6 @@ export const llmCostOverrideCreateWire = z
     'Input for creating a per-namespace price override. Unique per provider, model and currency. If an override already exists for the given provider, model and currency, it will be updated. If an override does not exist, it will be created.',
   )
 
-export const listCustomersParamsFilterWire = z
-  .strictObject({
-    key: stringFieldFilterWire.optional(),
-    name: stringFieldFilterWire.optional(),
-    primary_email: stringFieldFilterWire.optional(),
-    usage_attribution_subject_key: stringFieldFilterWire.optional(),
-    plan_key: stringFieldFilterWire.optional(),
-    billing_profile_id: ulidFieldFilterWire.optional(),
-  })
-  .describe('Filter options for listing customers.')
-
 export const listCustomerEntitlementsParamsFilterWire = z
   .strictObject({
     feature_id: ulidFieldFilterWire.optional(),
@@ -14086,16 +14072,6 @@ export const listGrantsParamsFilterWire = z
     feature_id: ulidFieldFilterWire.optional(),
   })
   .describe('Filter options for listing grants.')
-
-export const listSubscriptionsParamsFilterWire = z
-  .strictObject({
-    id: ulidFieldFilterWire.optional(),
-    customer_id: ulidFieldFilterWire.optional(),
-    status: stringFieldFilterExactWire.optional(),
-    plan_id: ulidFieldFilterWire.optional(),
-    plan_key: stringFieldFilterExactWire.optional(),
-  })
-  .describe('Filter options for listing subscriptions.')
 
 export const listAppsParamsFilterWire = z
   .strictObject({
@@ -14643,6 +14619,18 @@ export const listEventsParamsFilterWire = z
   })
   .describe('Filter options for listing ingested events.')
 
+export const listCustomersParamsFilterWire = z
+  .strictObject({
+    key: stringFieldFilterWire.optional(),
+    name: stringFieldFilterWire.optional(),
+    primary_email: stringFieldFilterWire.optional(),
+    usage_attribution_subject_key: stringFieldFilterWire.optional(),
+    plan_key: stringFieldFilterWire.optional(),
+    billing_profile_id: ulidFieldFilterWire.optional(),
+    updated_at: dateTimeFieldFilterWire.optional(),
+  })
+  .describe('Filter options for listing customers.')
+
 export const listCustomerChargesParamsFilterWire = z
   .strictObject({
     status: stringFieldFilterExactWire.optional(),
@@ -14650,8 +14638,20 @@ export const listCustomerChargesParamsFilterWire = z
     feature_key: stringFieldFilterExactWire.optional(),
     service_period_from: dateTimeFieldFilterWire.optional(),
     service_period_to: dateTimeFieldFilterWire.optional(),
+    updated_at: dateTimeFieldFilterWire.optional(),
   })
   .describe('Filter options for listing charges.')
+
+export const listSubscriptionsParamsFilterWire = z
+  .strictObject({
+    id: ulidFieldFilterWire.optional(),
+    customer_id: ulidFieldFilterWire.optional(),
+    status: stringFieldFilterExactWire.optional(),
+    plan_id: ulidFieldFilterWire.optional(),
+    plan_key: stringFieldFilterExactWire.optional(),
+    updated_at: dateTimeFieldFilterWire.optional(),
+  })
+  .describe('Filter options for listing subscriptions.')
 
 export const listInvoicesParamsFilterWire = z
   .strictObject({
@@ -14660,6 +14660,7 @@ export const listInvoicesParamsFilterWire = z
     issued_at: dateTimeFieldFilterWire.optional(),
     service_period_start: dateTimeFieldFilterWire.optional(),
     created_at: dateTimeFieldFilterWire.optional(),
+    updated_at: dateTimeFieldFilterWire.optional(),
   })
   .describe('Filter options for listing invoices.')
 
@@ -14670,9 +14671,20 @@ export const listChargesParamsFilterWire = z
     feature_key: stringFieldFilterExactWire.optional(),
     service_period_from: dateTimeFieldFilterWire.optional(),
     service_period_to: dateTimeFieldFilterWire.optional(),
+    updated_at: dateTimeFieldFilterWire.optional(),
     customer_id: ulidFieldFilterWire.optional(),
   })
   .describe('Filter options for listing charges across customers.')
+
+export const listPlansParamsFilterWire = z
+  .strictObject({
+    key: stringFieldFilterWire.optional(),
+    name: stringFieldFilterWire.optional(),
+    status: stringFieldFilterExactWire.optional(),
+    currency: stringFieldFilterExactWire.optional(),
+    updated_at: dateTimeFieldFilterWire.optional(),
+  })
+  .describe('Filter options for listing plans.')
 
 export const listNotificationChannelsParamsFilterWire = z
   .strictObject({

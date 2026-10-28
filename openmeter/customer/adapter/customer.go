@@ -58,6 +58,7 @@ func (a *adapter) ListCustomers(ctx context.Context, input customer.ListCustomer
 		query = filter.ApplyToQuery(query, input.Key, customerdb.FieldKey)
 		query = filter.ApplyToQuery(query, input.Name, customerdb.FieldName)
 		query = filter.ApplyToQuery(query, input.PrimaryEmail, customerdb.FieldPrimaryEmail)
+		query = filter.ApplyToQuery(query, input.UpdatedAt, customerdb.FieldUpdatedAt)
 
 		if input.PlanKey != nil {
 			applyActiveSubscriptionFilterWithPlanKey(query, now, input.PlanKey)

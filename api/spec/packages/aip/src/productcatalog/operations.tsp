@@ -28,6 +28,12 @@ model ListPlansParamsFilter {
   status?: Common.StringFieldFilterExact;
   #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
   currency?: Common.StringFieldFilterExact;
+
+  /**
+   * Filter by plan last update time. `updated_at` changes when the plan itself
+   * changes. Phase and rate card changes do not update it.
+   */
+  updated_at?: Common.DateTimeFieldFilter;
 }
 
 interface PlanOperations {

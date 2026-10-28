@@ -17377,6 +17377,12 @@ components:
           allOf:
             - $ref: '#/components/schemas/DateTimeFieldFilter'
           description: Filter charges by the end of their service period.
+        updated_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTimeFieldFilter'
+          description: |-
+            Filter by charge last update time. `updated_at` changes when the charge itself
+            changes. Realization changes and live usage do not update it.
         customer_id:
           allOf:
             - $ref: '#/components/schemas/ULIDFieldFilter'
@@ -17481,6 +17487,12 @@ components:
           allOf:
             - $ref: '#/components/schemas/DateTimeFieldFilter'
           description: Filter charges by the end of their service period.
+        updated_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTimeFieldFilter'
+          description: |-
+            Filter by charge last update time. `updated_at` changes when the charge itself
+            changes. Realization changes and live usage do not update it.
       additionalProperties: false
       description: Filter options for listing charges.
     ListCustomerEntitlementAccessResponseData:
@@ -17528,6 +17540,10 @@ components:
           $ref: '#/components/schemas/StringFieldFilter'
         billing_profile_id:
           $ref: '#/components/schemas/ULIDFieldFilter'
+        updated_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTimeFieldFilter'
+          description: Filter by customer last update time.
       additionalProperties: false
       description: Filter options for listing customers.
     ListEntitlementsParamsFilter:
@@ -17635,6 +17651,12 @@ components:
           allOf:
             - $ref: '#/components/schemas/DateTimeFieldFilter'
           description: Filter by invoice creation time.
+        updated_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTimeFieldFilter'
+          description: |-
+            Filter by invoice last update time. `updated_at` changes when the invoice itself
+            changes. Line changes and live usage on open invoices do not update it.
       additionalProperties: false
       description: Filter options for listing invoices.
     ListLLMCostPricesParamsFilter:
@@ -17792,6 +17814,12 @@ components:
           $ref: '#/components/schemas/StringFieldFilterExact'
         currency:
           $ref: '#/components/schemas/StringFieldFilterExact'
+        updated_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTimeFieldFilter'
+          description: |-
+            Filter by plan last update time. `updated_at` changes when the plan itself
+            changes. Phase and rate card changes do not update it.
       additionalProperties: false
       description: Filter options for listing plans.
     ListSubscriptionsParamsFilter:
@@ -17807,6 +17835,12 @@ components:
           $ref: '#/components/schemas/ULIDFieldFilter'
         plan_key:
           $ref: '#/components/schemas/StringFieldFilterExact'
+        updated_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTimeFieldFilter'
+          description: |-
+            Filter by subscription last update time. `updated_at` changes when the
+            subscription itself changes. Phase and item changes do not update it.
       additionalProperties: false
       description: Filter options for listing subscriptions.
     Meter:
