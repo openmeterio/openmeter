@@ -50,7 +50,8 @@ func TestEditingAndCanceling(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	taxConfig := subscriptiontestutils.ExampleTaxConfig(t, tDeps.TaxCodeEnv)
+	taxCode := tDeps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace, subscriptiontestutils.GetExampleTaxCodeInput())
+	taxConfig := subscriptiontestutils.ExampleTaxConfig(taxCode)
 
 	// Second, let's create the plan
 	p, err := tDeps.PlanService.CreatePlan(ctx, plan.CreatePlanInput{

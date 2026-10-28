@@ -46,8 +46,9 @@ func TestChange(t *testing.T) {
 
 	t.Run("Should change to different plan", func(t *testing.T) {
 		withDeps(t, func(t *testing.T, deps tDeps) {
-			taxConfig := subscriptiontestutils.ExampleTaxConfig(t, deps.subDeps.TaxCodeEnv)
-			examplePlanInput1 := subscriptiontestutils.GetExamplePlanInput(t, deps.subDeps.TaxCodeEnv)
+			taxCode := deps.subDeps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace, subscriptiontestutils.GetExampleTaxCodeInput())
+			taxConfig := subscriptiontestutils.ExampleTaxConfig(taxCode)
+			examplePlanInput1 := subscriptiontestutils.GetExamplePlanInput(t, taxConfig)
 
 			now := testutils.GetRFC3339Time(t, "2021-01-01T00:01:10Z")
 			clock.SetTime(now)
@@ -147,8 +148,9 @@ func TestChange(t *testing.T) {
 
 	t.Run("Should change to different plan starting from specific phase", func(t *testing.T) {
 		withDeps(t, func(t *testing.T, deps tDeps) {
-			taxConfig := subscriptiontestutils.ExampleTaxConfig(t, deps.subDeps.TaxCodeEnv)
-			examplePlanInput1 := subscriptiontestutils.GetExamplePlanInput(t, deps.subDeps.TaxCodeEnv)
+			taxCode := deps.subDeps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace, subscriptiontestutils.GetExampleTaxCodeInput())
+			taxConfig := subscriptiontestutils.ExampleTaxConfig(taxCode)
+			examplePlanInput1 := subscriptiontestutils.GetExamplePlanInput(t, taxConfig)
 
 			now := testutils.GetRFC3339Time(t, "2021-01-01T00:01:10Z")
 			clock.SetTime(now)
@@ -270,8 +272,9 @@ func TestChange(t *testing.T) {
 
 	t.Run("Should not allow changing to inactive plan", func(t *testing.T) {
 		withDeps(t, func(t *testing.T, deps tDeps) {
-			taxConfig := subscriptiontestutils.ExampleTaxConfig(t, deps.subDeps.TaxCodeEnv)
-			examplePlanInput1 := subscriptiontestutils.GetExamplePlanInput(t, deps.subDeps.TaxCodeEnv)
+			taxCode := deps.subDeps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace, subscriptiontestutils.GetExampleTaxCodeInput())
+			taxConfig := subscriptiontestutils.ExampleTaxConfig(taxCode)
+			examplePlanInput1 := subscriptiontestutils.GetExamplePlanInput(t, taxConfig)
 
 			now := testutils.GetRFC3339Time(t, "2021-01-01T00:01:10Z")
 			clock.SetTime(now)
@@ -389,7 +392,9 @@ func TestChange(t *testing.T) {
 
 	t.Run("Should apply the settlement mode override when creating from a plan reference", func(t *testing.T) {
 		withDeps(t, func(t *testing.T, deps tDeps) {
-			examplePlanInput := subscriptiontestutils.GetExamplePlanInput(t, deps.subDeps.TaxCodeEnv)
+			taxCode := deps.subDeps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace, subscriptiontestutils.GetExampleTaxCodeInput())
+			taxConfig := subscriptiontestutils.ExampleTaxConfig(taxCode)
+			examplePlanInput := subscriptiontestutils.GetExamplePlanInput(t, taxConfig)
 			require.Equal(t, productcatalog.CreditThenInvoiceSettlementMode, examplePlanInput.Plan.SettlementMode)
 
 			now := testutils.GetRFC3339Time(t, "2021-01-01T00:01:10Z")
@@ -433,7 +438,9 @@ func TestChange(t *testing.T) {
 
 	t.Run("Should apply the settlement mode override when changing to a plan reference", func(t *testing.T) {
 		withDeps(t, func(t *testing.T, deps tDeps) {
-			examplePlanInput1 := subscriptiontestutils.GetExamplePlanInput(t, deps.subDeps.TaxCodeEnv)
+			taxCode := deps.subDeps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace, subscriptiontestutils.GetExampleTaxCodeInput())
+			taxConfig := subscriptiontestutils.ExampleTaxConfig(taxCode)
+			examplePlanInput1 := subscriptiontestutils.GetExamplePlanInput(t, taxConfig)
 
 			now := testutils.GetRFC3339Time(t, "2021-01-01T00:01:10Z")
 			clock.SetTime(now)
@@ -535,7 +542,9 @@ func TestChangeInlineCustomPlanRejectsMissingFeature(t *testing.T) {
 	customer := deps.CustomerAdapter.CreateExampleCustomer(t)
 	deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
 
-	currentPlanInput := subscriptiontestutils.GetExamplePlanInput(t, deps.TaxCodeEnv)
+	taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace, subscriptiontestutils.GetExampleTaxCodeInput())
+	taxConfig := subscriptiontestutils.ExampleTaxConfig(taxCode)
+	currentPlanInput := subscriptiontestutils.GetExamplePlanInput(t, taxConfig)
 	currentPlanInput.Plan.Key = ""
 	currentPlanInput.Plan.Version = 0
 	currentPlan := plansubscription.PlanInput{}
@@ -555,7 +564,7 @@ func TestChangeInlineCustomPlanRejectsMissingFeature(t *testing.T) {
 	require.NoError(t, err)
 
 	const missingFeatureKey = "missing-change-feature"
-	replacementPlanInput := subscriptiontestutils.GetExamplePlanInput(t, deps.TaxCodeEnv)
+	replacementPlanInput := subscriptiontestutils.GetExamplePlanInput(t, taxConfig)
 	replacementPlanInput.Plan.Key = ""
 	replacementPlanInput.Plan.Version = 0
 	require.NoError(t, replacementPlanInput.Plan.Phases[0].RateCards[0].ChangeMeta(func(meta productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
