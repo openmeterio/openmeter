@@ -199,137 +199,508 @@ func (s *CustomCurrencyCreditsSuite) TestCreditThenInvoiceRefundOnUsageCancellat
 	}
 }
 
-// A usage sibling keeps this invoice in collection while the fully funded flat
-// fee is still mutable. Its zero overage must not prevent refunding the TOKENS
-// allocated by the flat fee when subscription reconciliation removes that charge
-// using the same system cancellation policy exercised by the usage test above.
-// cancelCurrentRealization in charges/flatfee/service/creditheninvoice.go uses
-// the same zero-overage guard as usage-based cancellation; the reversible-run
-// contract and command for both reproducers are documented above.
+// A usage sibling keeps this invoice in collection while the flat fee is still
+// mutable. Subscription reconciliation removes the flat fee with the same system
+// cancellation policy exercised by the usage test above; its zero overage must
+// not prevent refunding the TOKENS the flat fee holds, and the sibling must be
+// left alone.
 func (s *CustomCurrencyCreditsSuite) TestCreditThenInvoiceRefundOnFlatFeeCancellation() {
-	// given: a five-TOKEN flat fee and a usage line share a collecting USD invoice.
-	ctx := s.T().Context()
-	ns := s.GetUniqueNamespace("audit-cancel-collecting-custom-flat")
-	period := timeutil.ClosedPeriod{
-		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
-		To:   time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
+	type creditCoverage struct {
+		name          string
+		grant         int64
+		allocated     float64
+		lineFiatTotal float64
 	}
-	midPeriod := period.From.Add(15 * 24 * time.Hour)
-	clock.FreezeTime(period.From.Add(-time.Hour))
-	defer clock.UnFreeze()
-	defaults := s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
-	customInvoicing := s.SetupCustomInvoicing(ns)
-	cust := s.CreateLedgerBackedCustomer(ns, "audit-cancel-flat")
-	s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
-		billingtest.WithManualApproval(), billingtest.WithProgressiveBilling())
-	feature := s.SetupApiRequestsTotalFeature(ctx, ns)
-	defer feature.Cleanup()
-	defer s.MockStreamingConnector.Reset()
-	tokens := s.createCustomCurrency(ns, "TOKENS")
-	manualCostBasis := s.newManualCostBasis(alpacadecimal.NewFromInt(1))
-	s.createCustomCurrencyCreditPurchase(ctx, customCurrencyCreditPurchaseInput{
-		Namespace: ns,
-		Customer:  cust.GetID(),
-		Currency:  tokens,
-		Amount:    alpacadecimal.NewFromInt(10),
-		At:        clock.Now(),
-		Name:      "externally paid TOKENS",
-		Settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
-			InitialStatus: creditpurchase.SettledInitialPaymentSettlementStatus,
-		}),
-		CostBasis: creditpurchase.NewCostBasis(manualCostBasis),
-		TaxConfig: productcatalog.TaxCodeConfig{
-			TaxCodeID: defaults.CreditGrantTaxCodeID,
-		},
-	})
-	charge := s.createCustomCurrencyFlatFeeCharge(ctx, customCurrencyFlatFeeChargeInput{
-		Namespace:      ns,
-		Customer:       cust.GetID(),
-		Currency:       tokens,
-		ServicePeriod:  period,
-		InvoiceAt:      midPeriod,
-		Amount:         alpacadecimal.NewFromInt(5),
-		PaymentTerm:    productcatalog.InAdvancePaymentTerm,
-		SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
-		CostBasis:      &manualCostBasis,
-		Name:           "cancel collecting custom flat fee",
-		TaxConfig: productcatalog.TaxCodeConfig{
-			TaxCodeID: defaults.InvoicingTaxCodeID,
-		},
-	})
-	siblingCharges, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
-		Intents: charges.NewCreateChargeIntents(s.CreateMockChargeIntent(CreateMockChargeIntentInput{
-			Customer:          cust.GetID(),
-			Currency:          USD,
-			ServicePeriod:     period,
-			Price:             productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromInt(1)}),
-			FeatureKey:        feature.Feature.Key,
-			Name:              "usage keeps invoice in collection",
-			SettlementMode:    productcatalog.CreditThenInvoiceSettlementMode,
-			ManagedBy:         billing.SubscriptionManagedLine,
-			UniqueReferenceID: "collecting-usage-sibling",
-		})),
-	})
-	s.Require().NoError(err)
-	s.Require().Len(siblingCharges, 1)
-	s.MockStreamingConnector.AddSimpleEvent(feature.Feature.Key, 1, period.From.Add(time.Hour))
-	clock.FreezeTime(midPeriod)
-	defer clock.UnFreeze()
-	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-		Customer: cust.GetID(),
-		AsOf:     lo.ToPtr(midPeriod),
-	})
-	s.Require().NoError(err)
-	s.Require().Len(invoices, 1)
-	s.Require().Len(invoices[0].Lines.OrEmpty(), 2)
-	s.Equal(billing.StandardInvoiceStatusDraftWaitingForCollection, invoices[0].Status)
-	collectingCharge, err := s.MustGetChargeByID(charge.GetChargeID()).AsFlatFeeCharge()
-	s.Require().NoError(err)
-	s.Equal(flatfee.StatusActiveRealizationWaitingForCollection, collectingCharge.Status)
-	s.Require().NotNil(collectingCharge.Realizations.CurrentRun)
-	run := collectingCharge.Realizations.CurrentRun
-	s.Require().NotNil(run.LineID)
-	s.False(run.Immutable)
-	s.Nil(run.AccruedUsage)
-	s.Equal(float64(5), run.CreditRealizations.Sum().InexactFloat64())
-	accounts := s.mustCustomerAccounts(cust.GetID())
-	route := ledger.RouteFilter{Currency: tokens.Reference()}
-	s.requireAccountBalance(accounts.FBOAccount, route, 5, "provisional available credit")
-	s.requireAccountBalance(accounts.AccruedAccount, route, 5, "provisional accrued flat fee")
 
-	// when: the flat-fee charge is canceled before invoice collection completes.
-	s.MustRefundCharge(ctx, cust.GetID(), charge.GetChargeID())
+	for _, tc := range []creditCoverage{
+		{
+			name:          "partial credit coverage",
+			grant:         3,
+			allocated:     3,
+			lineFiatTotal: 2,
+		},
+		{
+			name:          "full credit coverage",
+			grant:         10,
+			allocated:     5,
+			lineFiatTotal: 0,
+		},
+	} {
+		s.Run(tc.name, func() {
+			// given: a five-TOKEN flat fee and a usage line share a collecting USD invoice.
+			ctx := s.T().Context()
+			ns := s.GetUniqueNamespace("audit-cancel-collecting-custom-flat")
+			period := timeutil.ClosedPeriod{
+				From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+				To:   time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
+			}
+			midPeriod := period.From.Add(15 * 24 * time.Hour)
+			clock.FreezeTime(period.From.Add(-time.Hour))
+			defer clock.UnFreeze()
+			defaults := s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
+			customInvoicing := s.SetupCustomInvoicing(ns)
+			cust := s.CreateLedgerBackedCustomer(ns, "audit-cancel-flat")
+			s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
+				billingtest.WithManualApproval(), billingtest.WithProgressiveBilling())
+			feature := s.SetupApiRequestsTotalFeature(ctx, ns)
+			defer feature.Cleanup()
+			defer s.MockStreamingConnector.Reset()
+			tokens := s.createCustomCurrency(ns, "TOKENS")
+			manualCostBasis := s.newManualCostBasis(alpacadecimal.NewFromInt(1))
+			s.createCustomCurrencyCreditPurchase(ctx, customCurrencyCreditPurchaseInput{
+				Namespace: ns,
+				Customer:  cust.GetID(),
+				Currency:  tokens,
+				Amount:    alpacadecimal.NewFromInt(tc.grant),
+				At:        clock.Now(),
+				Name:      "externally paid TOKENS",
+				Settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
+					InitialStatus: creditpurchase.SettledInitialPaymentSettlementStatus,
+				}),
+				CostBasis: creditpurchase.NewCostBasis(manualCostBasis),
+				TaxConfig: productcatalog.TaxCodeConfig{
+					TaxCodeID: defaults.CreditGrantTaxCodeID,
+				},
+			})
+			charge := s.createCustomCurrencyFlatFeeCharge(ctx, customCurrencyFlatFeeChargeInput{
+				Namespace:      ns,
+				Customer:       cust.GetID(),
+				Currency:       tokens,
+				ServicePeriod:  period,
+				InvoiceAt:      midPeriod,
+				Amount:         alpacadecimal.NewFromInt(5),
+				PaymentTerm:    productcatalog.InAdvancePaymentTerm,
+				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+				CostBasis:      &manualCostBasis,
+				Name:           "cancel collecting custom flat fee",
+				TaxConfig: productcatalog.TaxCodeConfig{
+					TaxCodeID: defaults.InvoicingTaxCodeID,
+				},
+			})
+			siblingCharges, err := s.Charges.Create(ctx, charges.CreateInput{
+				Namespace: ns,
+				Intents: charges.NewCreateChargeIntents(s.CreateMockChargeIntent(CreateMockChargeIntentInput{
+					Customer:          cust.GetID(),
+					Currency:          USD,
+					ServicePeriod:     period,
+					Price:             productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromInt(1)}),
+					FeatureKey:        feature.Feature.Key,
+					Name:              "usage keeps invoice in collection",
+					SettlementMode:    productcatalog.CreditThenInvoiceSettlementMode,
+					ManagedBy:         billing.SubscriptionManagedLine,
+					UniqueReferenceID: "collecting-usage-sibling",
+				})),
+			})
+			s.Require().NoError(err)
+			s.Require().Len(siblingCharges, 1)
+			s.MockStreamingConnector.AddSimpleEvent(feature.Feature.Key, 1, period.From.Add(time.Hour))
+			clock.FreezeTime(midPeriod)
+			defer clock.UnFreeze()
+			invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+				Customer: cust.GetID(),
+				AsOf:     lo.ToPtr(midPeriod),
+			})
+			s.Require().NoError(err)
+			s.Require().Len(invoices, 1)
+			s.Require().Len(invoices[0].Lines.OrEmpty(), 2)
+			s.Equal(billing.StandardInvoiceStatusDraftWaitingForCollection, invoices[0].Status)
+			collectingCharge, err := s.MustGetChargeByID(charge.GetChargeID()).AsFlatFeeCharge()
+			s.Require().NoError(err)
+			s.Equal(flatfee.StatusActiveRealizationWaitingForCollection, collectingCharge.Status)
+			s.Require().NotNil(collectingCharge.Realizations.CurrentRun)
+			run := collectingCharge.Realizations.CurrentRun
+			s.Require().NotNil(run.LineID)
+			s.False(run.Immutable)
+			s.Nil(run.AccruedUsage)
+			s.Equal(tc.allocated, run.CreditRealizations.Sum().InexactFloat64())
+			flatFeeLine := invoices[0].Lines.GetByID(*run.LineID)
+			s.Require().NotNil(flatFeeLine)
+			s.Equal(tc.lineFiatTotal, flatFeeLine.Totals.Total.InexactFloat64())
+			accounts := s.mustCustomerAccounts(cust.GetID())
+			route := ledger.RouteFilter{Currency: tokens.Reference()}
+			s.requireAccountBalance(accounts.FBOAccount, route, float64(tc.grant)-tc.allocated, "provisional available credit")
+			s.requireAccountBalance(accounts.AccruedAccount, route, tc.allocated, "provisional accrued flat fee")
 
-	// then: its provisional allocation is released, leaving the usage sibling alone.
-	deletedCharge, err := s.MustGetChargeByID(charge.GetChargeID()).AsFlatFeeCharge()
-	s.Require().NoError(err)
-	s.Equal(flatfee.StatusDeleted, deletedCharge.Status)
-	s.Nil(deletedCharge.Realizations.CurrentRun)
-	fetchedInvoice, err := s.BillingService.GetInvoiceById(ctx, billing.GetInvoiceByIdInput{
-		Invoice: invoices[0].GetInvoiceID(),
-		Expand:  billing.InvoiceExpands{billing.InvoiceExpandLines, billing.InvoiceExpandDeletedLines},
-	})
-	s.Require().NoError(err)
-	standardInvoice, err := fetchedInvoice.AsStandardInvoice()
-	s.Require().NoError(err)
-	deletedLine := standardInvoice.Lines.GetByID(*run.LineID)
-	s.Require().NotNil(deletedLine)
-	s.NotNil(deletedLine.DeletedAt)
-	s.Equal(1, standardInvoice.Lines.NonDeletedLineCount())
-	siblingChargeID, err := siblingCharges[0].GetChargeID()
-	s.Require().NoError(err)
-	siblingCharge, err := s.MustGetChargeByID(siblingChargeID).AsUsageBasedCharge()
-	s.Require().NoError(err)
-	s.Equal(usagebased.StatusActiveRealizationWaitingForCollection, siblingCharge.Status)
-	siblingRun, err := siblingCharge.GetCurrentRealizationRun()
-	s.Require().NoError(err)
-	s.Require().NotNil(siblingRun.LineID)
-	siblingLine := standardInvoice.Lines.GetByID(*siblingRun.LineID)
-	s.Require().NotNil(siblingLine)
-	s.Nil(siblingLine.DeletedAt)
-	s.requireAccountBalance(accounts.FBOAccount, route, 10, "canceling the mutable flat fee restores its credit")
-	s.requireAccountBalance(accounts.AccruedAccount, route, 0, "canceled flat fee has no remaining accrual")
+			// when: the flat-fee charge is canceled before invoice collection completes.
+			s.MustRefundCharge(ctx, cust.GetID(), charge.GetChargeID())
+
+			// then: its provisional allocation is released, leaving the usage sibling alone.
+			deletedCharge, err := s.MustGetChargeByID(charge.GetChargeID()).AsFlatFeeCharge()
+			s.Require().NoError(err)
+			s.Equal(flatfee.StatusDeleted, deletedCharge.Status)
+			s.Nil(deletedCharge.Realizations.CurrentRun)
+			fetchedInvoice, err := s.BillingService.GetInvoiceById(ctx, billing.GetInvoiceByIdInput{
+				Invoice: invoices[0].GetInvoiceID(),
+				Expand:  billing.InvoiceExpands{billing.InvoiceExpandLines, billing.InvoiceExpandDeletedLines},
+			})
+			s.Require().NoError(err)
+			standardInvoice, err := fetchedInvoice.AsStandardInvoice()
+			s.Require().NoError(err)
+			deletedLine := standardInvoice.Lines.GetByID(*run.LineID)
+			s.Require().NotNil(deletedLine)
+			s.NotNil(deletedLine.DeletedAt)
+			s.Equal(1, standardInvoice.Lines.NonDeletedLineCount())
+			siblingChargeID, err := siblingCharges[0].GetChargeID()
+			s.Require().NoError(err)
+			siblingCharge, err := s.MustGetChargeByID(siblingChargeID).AsUsageBasedCharge()
+			s.Require().NoError(err)
+			s.Equal(usagebased.StatusActiveRealizationWaitingForCollection, siblingCharge.Status)
+			siblingRun, err := siblingCharge.GetCurrentRealizationRun()
+			s.Require().NoError(err)
+			s.Require().NotNil(siblingRun.LineID)
+			siblingLine := standardInvoice.Lines.GetByID(*siblingRun.LineID)
+			s.Require().NotNil(siblingLine)
+			s.Nil(siblingLine.DeletedAt)
+			history, err := s.Charges.GetByID(ctx, charges.GetByIDInput{
+				ChargeID: charge.GetChargeID(),
+				Expands:  meta.Expands{meta.ExpandRealizations, meta.ExpandDeletedRealizations},
+			})
+			s.Require().NoError(err)
+			chargeHistory, err := history.AsFlatFeeCharge()
+			s.Require().NoError(err)
+			canceledRun, found := lo.Find(chargeHistory.Realizations.PriorRuns, func(priorRun flatfee.RealizationRun) bool {
+				return priorRun.ID.ID == run.ID.ID
+			})
+			s.Require().True(found, "the canceled flat-fee run must remain visible as deleted history")
+			s.NotNil(canceledRun.DeletedAt, "a canceled mutable flat-fee run must not remain eligible billing history")
+			s.requireAccountBalance(accounts.FBOAccount, route, float64(tc.grant), "canceling the mutable flat fee restores its credit")
+			s.requireAccountBalance(accounts.AccruedAccount, route, 0, "canceled flat fee has no remaining accrual")
+		})
+	}
+}
+
+// The public invoice line deletion routes a custom-currency credit_then_invoice
+// flat-fee line through deleteLineViaAPI in charges/flatfee/service/lineengine.go
+// with RefundAsCreditsDeletePolicy. No invoice has been issued, so releasing the
+// held credit needs no credit note. The usage sibling keeps the invoice in
+// collection so the flat-fee run is still mutable and unprepared when deleted.
+//
+// POSTGRES_HOST=127.0.0.1 go test -tags=dynamic ./test/credits -run 'TestCustomCurrencyCreditsSuite/TestCreditThenInvoiceRefundOnFlatFeeInvoiceLineDeletion' -count=1
+func (s *CustomCurrencyCreditsSuite) TestCreditThenInvoiceRefundOnFlatFeeInvoiceLineDeletion() {
+	type creditCoverage struct {
+		name          string
+		grant         int64
+		allocated     float64
+		lineFiatTotal float64
+	}
+
+	for _, coverage := range []creditCoverage{
+		{
+			name:          "partial paid credit coverage",
+			grant:         3,
+			allocated:     3,
+			lineFiatTotal: 2,
+		},
+		{
+			name:          "full paid credit coverage",
+			grant:         10,
+			allocated:     5,
+			lineFiatTotal: 0,
+		},
+	} {
+		s.Run(coverage.name, func() {
+			// given: paid TOKENS provisionally fund a five-TOKEN flat fee on a collecting invoice.
+			ctx := s.T().Context()
+			ns := s.GetUniqueNamespace("audit-public-flat-line-delete")
+			period := timeutil.ClosedPeriod{
+				From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+				To:   time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
+			}
+			midPeriod := period.From.Add(15 * 24 * time.Hour)
+			clock.FreezeTime(period.From.Add(-time.Hour))
+			defer clock.UnFreeze()
+			defaults := s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
+			customInvoicing := s.SetupCustomInvoicing(ns)
+			cust := s.CreateLedgerBackedCustomer(ns, "audit-public-flat-line-delete")
+			s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
+				billingtest.WithManualApproval(), billingtest.WithProgressiveBilling())
+			feature := s.SetupApiRequestsTotalFeature(ctx, ns)
+			defer feature.Cleanup()
+			defer s.MockStreamingConnector.Reset()
+			tokens := s.createCustomCurrency(ns, "TOKENS")
+			manualCostBasis := s.newManualCostBasis(alpacadecimal.NewFromInt(1))
+			s.createCustomCurrencyCreditPurchase(ctx, customCurrencyCreditPurchaseInput{
+				Namespace: ns,
+				Customer:  cust.GetID(),
+				Currency:  tokens,
+				Amount:    alpacadecimal.NewFromInt(coverage.grant),
+				At:        clock.Now(),
+				Name:      "externally paid TOKENS",
+				Settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
+					InitialStatus: creditpurchase.SettledInitialPaymentSettlementStatus,
+				}),
+				CostBasis: creditpurchase.NewCostBasis(manualCostBasis),
+				TaxConfig: productcatalog.TaxCodeConfig{
+					TaxCodeID: defaults.CreditGrantTaxCodeID,
+				},
+			})
+			charge := s.createCustomCurrencyFlatFeeCharge(ctx, customCurrencyFlatFeeChargeInput{
+				Namespace:      ns,
+				Customer:       cust.GetID(),
+				Currency:       tokens,
+				ServicePeriod:  period,
+				InvoiceAt:      midPeriod,
+				Amount:         alpacadecimal.NewFromInt(5),
+				PaymentTerm:    productcatalog.InAdvancePaymentTerm,
+				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+				CostBasis:      &manualCostBasis,
+				Name:           "flat fee on a publicly deleted line",
+				TaxConfig: productcatalog.TaxCodeConfig{
+					TaxCodeID: defaults.InvoicingTaxCodeID,
+				},
+			})
+			siblingCharges, err := s.Charges.Create(ctx, charges.CreateInput{
+				Namespace: ns,
+				Intents: charges.NewCreateChargeIntents(s.CreateMockChargeIntent(CreateMockChargeIntentInput{
+					Customer:          cust.GetID(),
+					Currency:          USD,
+					ServicePeriod:     period,
+					Price:             productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromInt(1)}),
+					FeatureKey:        feature.Feature.Key,
+					Name:              "usage keeps invoice in collection",
+					SettlementMode:    productcatalog.CreditThenInvoiceSettlementMode,
+					ManagedBy:         billing.SubscriptionManagedLine,
+					UniqueReferenceID: "collecting-usage-sibling",
+				})),
+			})
+			s.Require().NoError(err)
+			s.Require().Len(siblingCharges, 1)
+			s.MockStreamingConnector.AddSimpleEvent(feature.Feature.Key, 1, period.From.Add(time.Hour))
+			clock.FreezeTime(midPeriod)
+			defer clock.UnFreeze()
+			invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+				Customer: cust.GetID(),
+				AsOf:     lo.ToPtr(midPeriod),
+			})
+			s.Require().NoError(err)
+			s.Require().Len(invoices, 1)
+			s.Require().Len(invoices[0].Lines.OrEmpty(), 2)
+			s.Equal(billing.StandardInvoiceStatusDraftWaitingForCollection, invoices[0].Status)
+			collectingCharge, err := s.MustGetChargeByID(charge.GetChargeID()).AsFlatFeeCharge()
+			s.Require().NoError(err)
+			s.Equal(flatfee.StatusActiveRealizationWaitingForCollection, collectingCharge.Status)
+			s.Require().NotNil(collectingCharge.Realizations.CurrentRun)
+			run := collectingCharge.Realizations.CurrentRun
+			s.Require().NotNil(run.LineID)
+			s.False(run.Immutable)
+			s.Nil(run.AccruedUsage)
+			s.Equal(coverage.allocated, run.CreditRealizations.Sum().InexactFloat64())
+			flatFeeLine := invoices[0].Lines.GetByID(*run.LineID)
+			s.Require().NotNil(flatFeeLine)
+			s.Equal(coverage.lineFiatTotal, flatFeeLine.Totals.Total.InexactFloat64())
+			accounts := s.mustCustomerAccounts(cust.GetID())
+			route := ledger.RouteFilter{Currency: tokens.Reference()}
+			s.requireAccountBalance(accounts.FBOAccount, route, float64(coverage.grant)-coverage.allocated, "provisional available paid credit")
+			s.requireAccountBalance(accounts.AccruedAccount, route, coverage.allocated, "provisional accrued flat fee")
+
+			// when: the public billing service deletes the flat-fee line.
+			_, err = s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
+				Invoice:      invoices[0].GetInvoiceID(),
+				ChangeSource: billing.ChangeSourceAPIRequest,
+				EditFn: func(editedInvoice *billing.StandardInvoice) error {
+					line := editedInvoice.Lines.GetByID(*run.LineID)
+					if line == nil {
+						return errors.New("collecting custom-currency flat-fee line is missing")
+					}
+
+					line.DeletedAt = lo.ToPtr(clock.Now())
+
+					return nil
+				},
+			})
+			s.Require().NoError(err)
+
+			// then: the sibling line stays and the provisional flat-fee allocation is released.
+			fetchedInvoice, err := s.BillingService.GetInvoiceById(ctx, billing.GetInvoiceByIdInput{
+				Invoice: invoices[0].GetInvoiceID(),
+				Expand:  billing.InvoiceExpands{billing.InvoiceExpandLines, billing.InvoiceExpandDeletedLines},
+			})
+			s.Require().NoError(err)
+			standardInvoice, err := fetchedInvoice.AsStandardInvoice()
+			s.Require().NoError(err)
+			deletedLine := standardInvoice.Lines.GetByID(*run.LineID)
+			s.Require().NotNil(deletedLine)
+			s.NotNil(deletedLine.DeletedAt)
+			s.Equal(1, standardInvoice.Lines.NonDeletedLineCount(), "the usage sibling line stays on the invoice")
+			history, err := s.Charges.GetByID(ctx, charges.GetByIDInput{
+				ChargeID: charge.GetChargeID(),
+				Expands:  meta.Expands{meta.ExpandRealizations, meta.ExpandDeletedRealizations},
+			})
+			s.Require().NoError(err)
+			deletedCharge, err := history.AsFlatFeeCharge()
+			s.Require().NoError(err)
+			s.Equal(flatfee.StatusDeleted, deletedCharge.Status)
+			s.Nil(deletedCharge.Realizations.CurrentRun)
+			canceledRun, found := lo.Find(deletedCharge.Realizations.PriorRuns, func(priorRun flatfee.RealizationRun) bool {
+				return priorRun.ID.ID == run.ID.ID
+			})
+			s.Require().True(found, "the deleted flat-fee run must remain visible as deleted history")
+			s.NotNil(canceledRun.DeletedAt, "a deleted mutable flat-fee run must be excluded from billing history")
+			s.requireAccountBalance(accounts.FBOAccount, route, float64(coverage.grant), "public line deletion restores paid credit")
+			s.requireAccountBalance(accounts.AccruedAccount, route, 0, "deleted mutable flat fee has no remaining accrual")
+		})
+	}
+}
+
+// Deleting the whole collecting invoice removes the flat-fee line and its usage
+// sibling together. The flat-fee run is still mutable and unprepared, so the
+// credit it holds must be released without a credit note.
+//
+// POSTGRES_HOST=127.0.0.1 go test -tags=dynamic ./test/credits -run 'TestCustomCurrencyCreditsSuite/TestCreditThenInvoiceRefundOnFlatFeeInvoiceDeletion' -count=1
+func (s *CustomCurrencyCreditsSuite) TestCreditThenInvoiceRefundOnFlatFeeInvoiceDeletion() {
+	type creditCoverage struct {
+		name          string
+		grant         int64
+		allocated     float64
+		lineFiatTotal float64
+	}
+
+	for _, coverage := range []creditCoverage{
+		{
+			name:          "partial paid credit coverage",
+			grant:         3,
+			allocated:     3,
+			lineFiatTotal: 2,
+		},
+		{
+			name:          "full paid credit coverage",
+			grant:         10,
+			allocated:     5,
+			lineFiatTotal: 0,
+		},
+	} {
+		s.Run(coverage.name, func() {
+			// given: paid TOKENS provisionally fund a five-TOKEN flat fee on a collecting invoice.
+			ctx := s.T().Context()
+			ns := s.GetUniqueNamespace("audit-public-flat-invoice-delete")
+			period := timeutil.ClosedPeriod{
+				From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+				To:   time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
+			}
+			midPeriod := period.From.Add(15 * 24 * time.Hour)
+			clock.FreezeTime(period.From.Add(-time.Hour))
+			defer clock.UnFreeze()
+			defaults := s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
+			customInvoicing := s.SetupCustomInvoicing(ns)
+			cust := s.CreateLedgerBackedCustomer(ns, "audit-public-flat-invoice-delete")
+			s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
+				billingtest.WithManualApproval(), billingtest.WithProgressiveBilling())
+			feature := s.SetupApiRequestsTotalFeature(ctx, ns)
+			defer feature.Cleanup()
+			defer s.MockStreamingConnector.Reset()
+			tokens := s.createCustomCurrency(ns, "TOKENS")
+			manualCostBasis := s.newManualCostBasis(alpacadecimal.NewFromInt(1))
+			s.createCustomCurrencyCreditPurchase(ctx, customCurrencyCreditPurchaseInput{
+				Namespace: ns,
+				Customer:  cust.GetID(),
+				Currency:  tokens,
+				Amount:    alpacadecimal.NewFromInt(coverage.grant),
+				At:        clock.Now(),
+				Name:      "externally paid TOKENS",
+				Settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
+					InitialStatus: creditpurchase.SettledInitialPaymentSettlementStatus,
+				}),
+				CostBasis: creditpurchase.NewCostBasis(manualCostBasis),
+				TaxConfig: productcatalog.TaxCodeConfig{
+					TaxCodeID: defaults.CreditGrantTaxCodeID,
+				},
+			})
+			charge := s.createCustomCurrencyFlatFeeCharge(ctx, customCurrencyFlatFeeChargeInput{
+				Namespace:      ns,
+				Customer:       cust.GetID(),
+				Currency:       tokens,
+				ServicePeriod:  period,
+				InvoiceAt:      midPeriod,
+				Amount:         alpacadecimal.NewFromInt(5),
+				PaymentTerm:    productcatalog.InAdvancePaymentTerm,
+				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+				CostBasis:      &manualCostBasis,
+				Name:           "flat fee on a publicly deleted invoice",
+				TaxConfig: productcatalog.TaxCodeConfig{
+					TaxCodeID: defaults.InvoicingTaxCodeID,
+				},
+			})
+			siblingCharges, err := s.Charges.Create(ctx, charges.CreateInput{
+				Namespace: ns,
+				Intents: charges.NewCreateChargeIntents(s.CreateMockChargeIntent(CreateMockChargeIntentInput{
+					Customer:          cust.GetID(),
+					Currency:          USD,
+					ServicePeriod:     period,
+					Price:             productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromInt(1)}),
+					FeatureKey:        feature.Feature.Key,
+					Name:              "usage keeps invoice in collection",
+					SettlementMode:    productcatalog.CreditThenInvoiceSettlementMode,
+					ManagedBy:         billing.SubscriptionManagedLine,
+					UniqueReferenceID: "collecting-usage-sibling",
+				})),
+			})
+			s.Require().NoError(err)
+			s.Require().Len(siblingCharges, 1)
+			s.MockStreamingConnector.AddSimpleEvent(feature.Feature.Key, 1, period.From.Add(time.Hour))
+			clock.FreezeTime(midPeriod)
+			defer clock.UnFreeze()
+			invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+				Customer: cust.GetID(),
+				AsOf:     lo.ToPtr(midPeriod),
+			})
+			s.Require().NoError(err)
+			s.Require().Len(invoices, 1)
+			s.Require().Len(invoices[0].Lines.OrEmpty(), 2)
+			s.Equal(billing.StandardInvoiceStatusDraftWaitingForCollection, invoices[0].Status)
+			collectingCharge, err := s.MustGetChargeByID(charge.GetChargeID()).AsFlatFeeCharge()
+			s.Require().NoError(err)
+			s.Equal(flatfee.StatusActiveRealizationWaitingForCollection, collectingCharge.Status)
+			s.Require().NotNil(collectingCharge.Realizations.CurrentRun)
+			run := collectingCharge.Realizations.CurrentRun
+			s.Require().NotNil(run.LineID)
+			s.False(run.Immutable)
+			s.Nil(run.AccruedUsage)
+			s.Equal(coverage.allocated, run.CreditRealizations.Sum().InexactFloat64())
+			flatFeeLine := invoices[0].Lines.GetByID(*run.LineID)
+			s.Require().NotNil(flatFeeLine)
+			s.Equal(coverage.lineFiatTotal, flatFeeLine.Totals.Total.InexactFloat64())
+			accounts := s.mustCustomerAccounts(cust.GetID())
+			route := ledger.RouteFilter{Currency: tokens.Reference()}
+			s.requireAccountBalance(accounts.FBOAccount, route, float64(coverage.grant)-coverage.allocated, "provisional available paid credit")
+			s.requireAccountBalance(accounts.AccruedAccount, route, coverage.allocated, "provisional accrued flat fee")
+
+			// when: the public billing service deletes the whole draft invoice.
+			_, err = s.BillingService.DeleteInvoice(ctx, billing.DeleteInvoiceInput{
+				Invoice:        invoices[0].GetInvoiceID(),
+				DeletionSource: billing.ChangeSourceAPIRequest,
+			})
+			s.Require().NoError(err)
+
+			// then: the invoice is deleted and the provisional flat-fee allocation is released.
+			fetchedInvoice, err := s.BillingService.GetInvoiceById(ctx, billing.GetInvoiceByIdInput{
+				Invoice: invoices[0].GetInvoiceID(),
+				Expand:  billing.InvoiceExpands{billing.InvoiceExpandLines, billing.InvoiceExpandDeletedLines},
+			})
+			s.Require().NoError(err)
+			standardInvoice, err := fetchedInvoice.AsStandardInvoice()
+			s.Require().NoError(err)
+			// Whole-invoice deletion keeps its line rows as invoice history.
+			s.Equal(billing.StandardInvoiceStatusDeleted, standardInvoice.Status)
+			s.NotNil(standardInvoice.DeletedAt)
+			s.Require().NotNil(standardInvoice.Lines.GetByID(*run.LineID))
+			history, err := s.Charges.GetByID(ctx, charges.GetByIDInput{
+				ChargeID: charge.GetChargeID(),
+				Expands:  meta.Expands{meta.ExpandRealizations, meta.ExpandDeletedRealizations},
+			})
+			s.Require().NoError(err)
+			deletedCharge, err := history.AsFlatFeeCharge()
+			s.Require().NoError(err)
+			s.Equal(flatfee.StatusDeleted, deletedCharge.Status)
+			s.Nil(deletedCharge.Realizations.CurrentRun)
+			canceledRun, found := lo.Find(deletedCharge.Realizations.PriorRuns, func(priorRun flatfee.RealizationRun) bool {
+				return priorRun.ID.ID == run.ID.ID
+			})
+			s.Require().True(found, "the deleted flat-fee run must remain visible as deleted history")
+			s.NotNil(canceledRun.DeletedAt, "a deleted mutable flat-fee run must be excluded from billing history")
+			s.requireAccountBalance(accounts.FBOAccount, route, float64(coverage.grant), "public invoice deletion restores paid credit")
+			s.requireAccountBalance(accounts.AccruedAccount, route, 0, "deleted mutable flat fee has no remaining accrual")
+		})
+	}
 }
 
 // The public invoice edit and deletion services accept this collecting custom-
