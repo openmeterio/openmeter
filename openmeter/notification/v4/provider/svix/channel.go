@@ -14,14 +14,15 @@ import (
 	"go.opentelemetry.io/otel/trace"
 
 	v4 "github.com/openmeterio/openmeter/openmeter/notification/v4"
+	notificationprovider "github.com/openmeterio/openmeter/openmeter/notification/v4/provider"
 	webhooksecret "github.com/openmeterio/openmeter/openmeter/notification/webhook/secret"
 	tracexv2 "github.com/openmeterio/openmeter/pkg/framework/tracex/v2"
 )
 
 const providerDataEndpointID = "svix.endpoint_id"
 
-func (p *Provider) GetChannel(ctx context.Context, input v4.GetChannelInput) (*v4.GetChannelResult, error) {
-	fn := func(ctx context.Context) (*v4.GetChannelResult, error) {
+func (p *Provider) GetChannel(ctx context.Context, input notificationprovider.GetChannelInput) (*notificationprovider.GetChannelResult, error) {
+	fn := func(ctx context.Context) (*notificationprovider.GetChannelResult, error) {
 		if err := input.Validate(); err != nil {
 			return nil, fmt.Errorf(
 				"invalid get endpoint input [svix.endpoint.uid=%s svix.application.uid=%s]: %w",
@@ -73,8 +74,8 @@ func (p *Provider) GetChannel(ctx context.Context, input v4.GetChannelInput) (*v
 	).Do2(ctx, fn)
 }
 
-func (p *Provider) CreateChannel(ctx context.Context, input v4.CreateChannelInput[v4.WebhookConfig]) (*v4.CreateChannelResult, error) {
-	fn := func(ctx context.Context) (*v4.CreateChannelResult, error) {
+func (p *Provider) CreateChannel(ctx context.Context, input notificationprovider.CreateChannelInput[v4.WebhookConfig]) (*notificationprovider.CreateChannelResult, error) {
+	fn := func(ctx context.Context) (*notificationprovider.CreateChannelResult, error) {
 		if err := input.Validate(); err != nil {
 			return nil, fmt.Errorf(
 				"invalid create endpoint input [svix.endpoint.uid=%s svix.application.uid=%s]: %w",
@@ -111,7 +112,7 @@ func (p *Provider) CreateChannel(ctx context.Context, input v4.CreateChannelInpu
 		if errors.As(err, &svixErr) && svixErr.Status() == http.StatusConflict {
 			// UID uniqueness survives lost responses and the provider's idempotency
 			// window. Finish reconciliation when an earlier create already succeeded.
-			result, err := p.UpdateChannel(ctx, v4.UpdateChannelInput[v4.WebhookConfigUpdate]{
+			result, err := p.UpdateChannel(ctx, notificationprovider.UpdateChannelInput[v4.WebhookConfigUpdate]{
 				Namespace: input.Namespace,
 				ChannelID: input.ChannelID,
 				Name:      &input.Name,
@@ -192,8 +193,8 @@ func (p *Provider) CreateChannel(ctx context.Context, input v4.CreateChannelInpu
 	).Do2(ctx, fn)
 }
 
-func (p *Provider) UpdateChannel(ctx context.Context, input v4.UpdateChannelInput[v4.WebhookConfigUpdate]) (*v4.UpdateChannelResult, error) {
-	fn := func(ctx context.Context) (*v4.UpdateChannelResult, error) {
+func (p *Provider) UpdateChannel(ctx context.Context, input notificationprovider.UpdateChannelInput[v4.WebhookConfigUpdate]) (*notificationprovider.UpdateChannelResult, error) {
+	fn := func(ctx context.Context) (*notificationprovider.UpdateChannelResult, error) {
 		if err := input.Validate(); err != nil {
 			return nil, fmt.Errorf(
 				"invalid update endpoint input [svix.endpoint.uid=%s svix.application.uid=%s]: %w",
@@ -309,9 +310,9 @@ func (p *Provider) UpdateChannel(ctx context.Context, input v4.UpdateChannelInpu
 			}
 
 			if secret == nil || secret.Key == "" {
-				return nil, &v4.ProviderError{
-					Kind: v4.ProviderErrorKindTerminal,
-					Code: v4.ProviderErrorCodeRequestFailed,
+				return nil, &notificationprovider.ProviderError{
+					Kind: notificationprovider.ProviderErrorKindTerminal,
+					Code: notificationprovider.ProviderErrorCodeRequestFailed,
 					Err: fmt.Errorf(
 						"invalid endpoint secret response [svix.endpoint.id=%s svix.endpoint.uid=%s svix.application.uid=%s]: missing key",
 						endpoint.Id,
@@ -354,7 +355,7 @@ func (p *Provider) UpdateChannel(ctx context.Context, input v4.UpdateChannelInpu
 	).Do2(ctx, fn)
 }
 
-func (p *Provider) DeleteChannel(ctx context.Context, input v4.DeleteChannelInput) error {
+func (p *Provider) DeleteChannel(ctx context.Context, input notificationprovider.DeleteChannelInput) error {
 	fn := func(ctx context.Context) error {
 		if err := input.Validate(); err != nil {
 			return fmt.Errorf(
@@ -399,18 +400,18 @@ func (p *Provider) DeleteChannel(ctx context.Context, input v4.DeleteChannelInpu
 	).Do(ctx, fn)
 }
 
-func fromAPIEndpointOut(endpoint *svix.EndpointOut) (*v4.ChannelOperationResult, error) {
+func fromAPIEndpointOut(endpoint *svix.EndpointOut) (*notificationprovider.ChannelOperationResult, error) {
 	if endpoint == nil || endpoint.Id == "" || endpoint.Uid == nil || *endpoint.Uid == "" {
-		return nil, &v4.ProviderError{
-			Kind: v4.ProviderErrorKindTerminal,
-			Code: v4.ProviderErrorCodeRequestFailed,
+		return nil, &notificationprovider.ProviderError{
+			Kind: notificationprovider.ProviderErrorKindTerminal,
+			Code: notificationprovider.ProviderErrorCodeRequestFailed,
 			Err:  errors.New("invalid endpoint response: missing ID or UID"),
 		}
 	}
 
-	return &v4.ChannelOperationResult{
-		State: v4.ChannelOperationStateInSync,
-		ProviderData: v4.ProviderData{
+	return &notificationprovider.ChannelOperationResult{
+		State: notificationprovider.ChannelOperationStateInSync,
+		ProviderData: map[string]string{
 			providerDataEndpointID: endpoint.Id,
 		},
 	}, nil

@@ -11,7 +11,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/openmeterio/openmeter/openmeter/notification/v4/providers/svix/testutils"
+	"github.com/openmeterio/openmeter/openmeter/notification/v4/provider/svix/testutils"
 )
 
 func TestWebhookServer(t *testing.T) {

@@ -10,8 +10,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-type WebhookProvider Provider[WebhookConfig, WebhookConfigUpdate]
-
 const ChannelTypeWebhook ChannelType = "webhook"
 
 var _ ChannelConfig = (*WebhookConfig)(nil)

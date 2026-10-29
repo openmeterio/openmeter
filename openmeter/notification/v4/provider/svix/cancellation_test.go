@@ -18,6 +18,7 @@ import (
 	"go.opentelemetry.io/otel/trace/noop"
 
 	v4 "github.com/openmeterio/openmeter/openmeter/notification/v4"
+	notificationprovider "github.com/openmeterio/openmeter/openmeter/notification/v4/provider"
 	webhooksecret "github.com/openmeterio/openmeter/openmeter/notification/webhook/secret"
 )
 
@@ -41,14 +42,14 @@ func TestProviderOperationCancellation(t *testing.T) {
 	secretJSON, err := json.Marshal(map[string]string{"key": existingSecret})
 	require.NoError(t, err)
 
-	namespace := v4.ProviderNamespace{ID: namespaceID, Name: "Cancellation test"}
+	namespace := notificationprovider.Namespace{ID: namespaceID, Name: "Cancellation test"}
 	config := v4.WebhookConfig{
 		URL:           "https://example.com/webhook",
 		SigningSecret: desiredSecret,
 	}
 
-	createChannel := func(ctx context.Context, provider v4.WebhookProvider) (any, error) {
-		return provider.CreateChannel(ctx, v4.CreateChannelInput[v4.WebhookConfig]{
+	createChannel := func(ctx context.Context, provider notificationprovider.WebhookProvider) (any, error) {
+		return provider.CreateChannel(ctx, notificationprovider.CreateChannelInput[v4.WebhookConfig]{
 			Namespace: namespaceID,
 			ChannelID: channelID,
 			Name:      "Cancellation test",
@@ -56,8 +57,8 @@ func TestProviderOperationCancellation(t *testing.T) {
 		})
 	}
 
-	updateChannel := func(ctx context.Context, provider v4.WebhookProvider) (any, error) {
-		return provider.UpdateChannel(ctx, v4.UpdateChannelInput[v4.WebhookConfigUpdate]{
+	updateChannel := func(ctx context.Context, provider notificationprovider.WebhookProvider) (any, error) {
+		return provider.UpdateChannel(ctx, notificationprovider.UpdateChannelInput[v4.WebhookConfigUpdate]{
 			Namespace: namespaceID,
 			ChannelID: channelID,
 			Name:      new("Cancellation test"),
@@ -71,7 +72,7 @@ func TestProviderOperationCancellation(t *testing.T) {
 
 	type testCase struct {
 		name           string
-		run            func(context.Context, v4.WebhookProvider) (any, error)
+		run            func(context.Context, notificationprovider.WebhookProvider) (any, error)
 		responses      []cancellationResponse
 		wantMessage    string
 		wantChannel    bool
@@ -81,36 +82,36 @@ func TestProviderOperationCancellation(t *testing.T) {
 	tests := []testCase{
 		{
 			name: "get namespace",
-			run: func(ctx context.Context, provider v4.WebhookProvider) (any, error) {
-				return provider.GetNamespace(ctx, v4.GetNamespaceInput{ID: namespaceID})
+			run: func(ctx context.Context, provider notificationprovider.WebhookProvider) (any, error) {
+				return provider.GetNamespace(ctx, notificationprovider.GetNamespaceInput{ID: namespaceID})
 			},
 			wantMessage: "failed to get application",
 		},
 		{
 			name: "create namespace",
-			run: func(ctx context.Context, provider v4.WebhookProvider) (any, error) {
-				return provider.CreateNamespace(ctx, v4.CreateNamespaceInput{ProviderNamespace: namespace})
+			run: func(ctx context.Context, provider notificationprovider.WebhookProvider) (any, error) {
+				return provider.CreateNamespace(ctx, notificationprovider.CreateNamespaceInput{Namespace: namespace})
 			},
 			wantMessage: "failed to get or create application",
 		},
 		{
 			name: "update namespace",
-			run: func(ctx context.Context, provider v4.WebhookProvider) (any, error) {
-				return provider.UpdateNamespace(ctx, v4.UpdateNamespaceInput{ID: namespace.ID, Name: &namespace.Name})
+			run: func(ctx context.Context, provider notificationprovider.WebhookProvider) (any, error) {
+				return provider.UpdateNamespace(ctx, notificationprovider.UpdateNamespaceInput{ID: namespace.ID, Name: &namespace.Name})
 			},
 			wantMessage: "failed to update application",
 		},
 		{
 			name: "delete namespace",
-			run: func(ctx context.Context, provider v4.WebhookProvider) (any, error) {
-				return nil, provider.DeleteNamespace(ctx, v4.DeleteNamespaceInput{ID: namespaceID})
+			run: func(ctx context.Context, provider notificationprovider.WebhookProvider) (any, error) {
+				return nil, provider.DeleteNamespace(ctx, notificationprovider.DeleteNamespaceInput{ID: namespaceID})
 			},
 			wantMessage: "failed to delete application",
 		},
 		{
 			name: "get channel",
-			run: func(ctx context.Context, provider v4.WebhookProvider) (any, error) {
-				return provider.GetChannel(ctx, v4.GetChannelInput{Namespace: namespaceID, ChannelID: channelID})
+			run: func(ctx context.Context, provider notificationprovider.WebhookProvider) (any, error) {
+				return provider.GetChannel(ctx, notificationprovider.GetChannelInput{Namespace: namespaceID, ChannelID: channelID})
 			},
 			wantMessage: "failed to get endpoint",
 			wantChannel: true,
@@ -131,8 +132,8 @@ func TestProviderOperationCancellation(t *testing.T) {
 		},
 		{
 			name: "delete channel",
-			run: func(ctx context.Context, provider v4.WebhookProvider) (any, error) {
-				return nil, provider.DeleteChannel(ctx, v4.DeleteChannelInput{Namespace: namespaceID, ChannelID: channelID})
+			run: func(ctx context.Context, provider notificationprovider.WebhookProvider) (any, error) {
+				return nil, provider.DeleteChannel(ctx, notificationprovider.DeleteChannelInput{Namespace: namespaceID, ChannelID: channelID})
 			},
 			wantMessage: "failed to delete endpoint",
 			wantChannel: true,
@@ -199,14 +200,14 @@ func TestProviderOperationCancellation(t *testing.T) {
 
 	events := newEventCancellationFixture(t, namespaceID)
 
-	getEvent := func(ctx context.Context, provider v4.WebhookProvider) (any, error) {
-		return provider.GetEvent(ctx, v4.GetEventInput{Event: events.event, Destinations: events.destinations})
+	getEvent := func(ctx context.Context, provider notificationprovider.WebhookProvider) (any, error) {
+		return provider.GetEvent(ctx, notificationprovider.GetEventInput{Event: events.event, Destinations: events.destinations})
 	}
 
-	sendEvent := func(ctx context.Context, provider v4.WebhookProvider) (any, error) {
-		return provider.SendEvent(ctx, v4.SendEventInput{
+	sendEvent := func(ctx context.Context, provider notificationprovider.WebhookProvider) (any, error) {
+		return provider.SendEvent(ctx, notificationprovider.SendEventInput{
 			Event: events.event,
-			Destinations: []v4.EventDestination{
+			Destinations: []notificationprovider.EventDestination{
 				{ChannelID: events.destinations[0].ChannelID},
 			},
 		})
@@ -246,7 +247,7 @@ func TestProviderOperationCancellation(t *testing.T) {
 		},
 		testCase{
 			name: "resend event/get message",
-			run: func(ctx context.Context, provider v4.WebhookProvider) (any, error) {
+			run: func(ctx context.Context, provider notificationprovider.WebhookProvider) (any, error) {
 				return provider.ResendEvent(ctx, events.resendInput())
 			},
 			wantMessage: "failed to get message for resend",
@@ -311,12 +312,12 @@ func TestProviderOperationCancellation(t *testing.T) {
 						require.ErrorContains(t, err, "svix.endpoint.id=ep_test")
 					}
 
-					var providerErr *v4.ProviderError
+					var providerErr *notificationprovider.ProviderError
 
 					if cause.wantProviderError {
 						require.ErrorAs(t, err, &providerErr)
-						require.Equal(t, v4.ProviderErrorKindRetryable, providerErr.Kind)
-						require.Equal(t, v4.ProviderErrorCodeUnavailable, providerErr.Code)
+						require.Equal(t, notificationprovider.ProviderErrorKindRetryable, providerErr.Kind)
+						require.Equal(t, notificationprovider.ProviderErrorCodeUnavailable, providerErr.Code)
 					} else {
 						require.False(t, errors.As(err, &providerErr), "cancellation must not be classified as a provider failure")
 					}
@@ -328,7 +329,7 @@ func TestProviderOperationCancellation(t *testing.T) {
 
 // newCancellationTestProvider uses the real SDK without retries so each scripted
 // request corresponds to one provider operation boundary.
-func newCancellationTestProvider(t *testing.T, transport *cancellationTransport) v4.WebhookProvider {
+func newCancellationTestProvider(t *testing.T, transport *cancellationTransport) notificationprovider.WebhookProvider {
 	t.Helper()
 
 	client, err := svix.New("test-token", &svix.SvixOptions{

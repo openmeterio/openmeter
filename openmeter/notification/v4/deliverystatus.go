@@ -22,5 +22,5 @@ type EventDeliveryAttempt struct {
 	State        EventDeliveryStatusState
 	Timestamp    time.Time
 	Response     json.RawMessage
-	ProviderData ProviderData
+	ProviderData map[string]string
 }

@@ -7,6 +7,7 @@ import (
 	"log/slog"
 
 	v4 "github.com/openmeterio/openmeter/openmeter/notification/v4"
+	notificationprovider "github.com/openmeterio/openmeter/openmeter/notification/v4/provider"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -16,7 +17,7 @@ type WebhookProvider struct {
 	logger *slog.Logger
 }
 
-var _ v4.WebhookProvider = (*WebhookProvider)(nil)
+var _ notificationprovider.WebhookProvider = (*WebhookProvider)(nil)
 
 // NewWebhookProvider constructs a disabled provider without external dependencies.
 func NewWebhookProvider(logger *slog.Logger) (*WebhookProvider, error) {
@@ -30,62 +31,62 @@ func NewWebhookProvider(logger *slog.Logger) (*WebhookProvider, error) {
 }
 
 // RoutingMode selects explicit destinations; the no-op provider never routes or sends them.
-func (*WebhookProvider) RoutingMode() v4.ProviderRoutingMode {
-	return v4.ProviderRoutingModeExplicit
+func (*WebhookProvider) RoutingMode() notificationprovider.ProviderRoutingMode {
+	return notificationprovider.ProviderRoutingModeExplicit
 }
 
 // GetNamespace reports disabled provisioning rather than inventing namespace state.
-func (p *WebhookProvider) GetNamespace(ctx context.Context, input v4.GetNamespaceInput) (*v4.GetNamespaceResult, error) {
+func (p *WebhookProvider) GetNamespace(ctx context.Context, input notificationprovider.GetNamespaceInput) (*notificationprovider.GetNamespaceResult, error) {
 	return nil, p.operationError(ctx, input, "get namespace")
 }
 
 // CreateNamespace rejects provisioning without creating or retaining resources.
-func (p *WebhookProvider) CreateNamespace(ctx context.Context, input v4.CreateNamespaceInput) (*v4.CreateNamespaceResult, error) {
+func (p *WebhookProvider) CreateNamespace(ctx context.Context, input notificationprovider.CreateNamespaceInput) (*notificationprovider.CreateNamespaceResult, error) {
 	return nil, p.operationError(ctx, input, "create namespace")
 }
 
 // UpdateNamespace rejects updates without retaining supplied fields.
-func (p *WebhookProvider) UpdateNamespace(ctx context.Context, input v4.UpdateNamespaceInput) (*v4.UpdateNamespaceResult, error) {
+func (p *WebhookProvider) UpdateNamespace(ctx context.Context, input notificationprovider.UpdateNamespaceInput) (*notificationprovider.UpdateNamespaceResult, error) {
 	return nil, p.operationError(ctx, input, "update namespace")
 }
 
 // DeleteNamespace does not claim to have removed resources owned by another provider.
-func (p *WebhookProvider) DeleteNamespace(ctx context.Context, input v4.DeleteNamespaceInput) error {
+func (p *WebhookProvider) DeleteNamespace(ctx context.Context, input notificationprovider.DeleteNamespaceInput) error {
 	return p.operationError(ctx, input, "delete namespace")
 }
 
 // GetChannel reports disabled provisioning rather than fabricated convergence.
-func (p *WebhookProvider) GetChannel(ctx context.Context, input v4.GetChannelInput) (*v4.GetChannelResult, error) {
+func (p *WebhookProvider) GetChannel(ctx context.Context, input notificationprovider.GetChannelInput) (*notificationprovider.GetChannelResult, error) {
 	return nil, p.operationError(ctx, input, "get channel")
 }
 
 // CreateChannel rejects provisioning without contacting the configured webhook URL.
-func (p *WebhookProvider) CreateChannel(ctx context.Context, input v4.CreateChannelInput[v4.WebhookConfig]) (*v4.CreateChannelResult, error) {
+func (p *WebhookProvider) CreateChannel(ctx context.Context, input notificationprovider.CreateChannelInput[v4.WebhookConfig]) (*notificationprovider.CreateChannelResult, error) {
 	return nil, p.operationError(ctx, input, "create channel")
 }
 
 // UpdateChannel rejects updates without contacting the configured webhook URL.
-func (p *WebhookProvider) UpdateChannel(ctx context.Context, input v4.UpdateChannelInput[v4.WebhookConfigUpdate]) (*v4.UpdateChannelResult, error) {
+func (p *WebhookProvider) UpdateChannel(ctx context.Context, input notificationprovider.UpdateChannelInput[v4.WebhookConfigUpdate]) (*notificationprovider.UpdateChannelResult, error) {
 	return nil, p.operationError(ctx, input, "update channel")
 }
 
 // DeleteChannel does not claim to have removed resources owned by another provider.
-func (p *WebhookProvider) DeleteChannel(ctx context.Context, input v4.DeleteChannelInput) error {
+func (p *WebhookProvider) DeleteChannel(ctx context.Context, input notificationprovider.DeleteChannelInput) error {
 	return p.operationError(ctx, input, "delete channel")
 }
 
 // SendEvent rejects delivery instead of silently accepting and dropping an Event.
-func (p *WebhookProvider) SendEvent(ctx context.Context, input v4.SendEventInput) (*v4.SendEventResult, error) {
+func (p *WebhookProvider) SendEvent(ctx context.Context, input notificationprovider.SendEventInput) (*notificationprovider.SendEventResult, error) {
 	return nil, p.operationError(ctx, input, "send event")
 }
 
 // GetEvent reports unavailable observations without fabricating delivery attempts.
-func (p *WebhookProvider) GetEvent(ctx context.Context, input v4.GetEventInput) (*v4.GetEventResult, error) {
+func (p *WebhookProvider) GetEvent(ctx context.Context, input notificationprovider.GetEventInput) (*notificationprovider.GetEventResult, error) {
 	return nil, p.operationError(ctx, input, "get event")
 }
 
 // ResendEvent rejects delivery without consuming or advancing dispatch generations.
-func (p *WebhookProvider) ResendEvent(ctx context.Context, input v4.ResendEventInput) (*v4.ResendEventResult, error) {
+func (p *WebhookProvider) ResendEvent(ctx context.Context, input notificationprovider.ResendEventInput) (*notificationprovider.ResendEventResult, error) {
 	return nil, p.operationError(ctx, input, "resend event")
 }
 
@@ -102,9 +103,9 @@ func (p *WebhookProvider) operationError(ctx context.Context, input models.Valid
 
 	p.logger.DebugContext(ctx, "webhook provider is disabled", "operation", operation)
 
-	return fmt.Errorf("failed to %s: %w", operation, &v4.ProviderError{
-		Kind: v4.ProviderErrorKindConfiguration,
-		Code: v4.ProviderErrorCodeConfigurationInvalid,
+	return fmt.Errorf("failed to %s: %w", operation, &notificationprovider.ProviderError{
+		Kind: notificationprovider.ProviderErrorKindConfiguration,
+		Code: notificationprovider.ProviderErrorCodeConfigurationInvalid,
 		Err:  models.NewGenericNotImplementedError(errors.New("webhook provider is disabled")),
 	})
 }

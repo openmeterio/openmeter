@@ -10,7 +10,7 @@ import (
 	svixv2 "github.com/svix/svix-webhooks/v2/go"
 	svixmodels "github.com/svix/svix-webhooks/v2/go/models"
 
-	v4 "github.com/openmeterio/openmeter/openmeter/notification/v4"
+	notificationprovider "github.com/openmeterio/openmeter/openmeter/notification/v4/provider"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -25,7 +25,7 @@ var _ models.Validator = listEventAttemptsInput{}
 func (i listEventAttemptsInput) Validate() error {
 	var errs []error
 
-	if err := (v4.GetChannelInput{Namespace: i.Namespace, ChannelID: i.EndpointID}).Validate(); err != nil {
+	if err := (notificationprovider.GetChannelInput{Namespace: i.Namespace, ChannelID: i.EndpointID}).Validate(); err != nil {
 		errs = append(errs, err)
 	}
 

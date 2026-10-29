@@ -97,7 +97,7 @@ type Event struct {
 	Payload      json.RawMessage
 	Annotations  models.Annotations
 	RuleSnapshot *RuleSnapshot
-	ProviderData ProviderData
+	ProviderData map[string]string
 }
 
 func (e Event) String() string {

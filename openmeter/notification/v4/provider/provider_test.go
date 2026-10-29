@@ -1,4 +1,4 @@
-package v4
+package provider
 
 import (
 	"encoding/json"
@@ -9,6 +9,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	v4 "github.com/openmeterio/openmeter/openmeter/notification/v4"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -99,7 +100,7 @@ func TestCreateNamespaceInputValidate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			input := CreateNamespaceInput{
-				ProviderNamespace: ProviderNamespace{
+				Namespace: Namespace{
 					ID:   "ns-test",
 					Name: "Namespace",
 				},
@@ -166,13 +167,13 @@ func TestUpdateNamespaceInputValidate(t *testing.T) {
 func TestUpdateChannelInputValidate(t *testing.T) {
 	tests := []struct {
 		name       string
-		modify     func(*UpdateChannelInput[WebhookConfigUpdate])
+		modify     func(*UpdateChannelInput[v4.WebhookConfigUpdate])
 		wantErrors []string
 	}{
 		{
 			name: "valid concrete event types",
-			modify: func(input *UpdateChannelInput[WebhookConfigUpdate]) {
-				input.EventTypes = new([]EventType{
+			modify: func(input *UpdateChannelInput[v4.WebhookConfigUpdate]) {
+				input.EventTypes = new([]v4.EventType{
 					{Name: "invoice.created", Version: 1},
 					{Name: "billing.invoice.updated", Version: 2},
 				})
@@ -180,50 +181,50 @@ func TestUpdateChannelInputValidate(t *testing.T) {
 		},
 		{
 			name: "uppercase event type name",
-			modify: func(input *UpdateChannelInput[WebhookConfigUpdate]) {
-				input.EventTypes = new([]EventType{{Name: "Invoice.created", Version: 1}})
+			modify: func(input *UpdateChannelInput[v4.WebhookConfigUpdate]) {
+				input.EventTypes = new([]v4.EventType{{Name: "Invoice.created", Version: 1}})
 			},
 			wantErrors: []string{"invalid eventTypes[0]", "lowercase snake_case"},
 		},
 		{
 			name: "single-segment event type name",
-			modify: func(input *UpdateChannelInput[WebhookConfigUpdate]) {
-				input.EventTypes = new([]EventType{{Name: "invoice", Version: 1}})
+			modify: func(input *UpdateChannelInput[v4.WebhookConfigUpdate]) {
+				input.EventTypes = new([]v4.EventType{{Name: "invoice", Version: 1}})
 			},
 			wantErrors: []string{"invalid eventTypes[0]", "at least two"},
 		},
 		{
 			name: "wildcard event type name",
-			modify: func(input *UpdateChannelInput[WebhookConfigUpdate]) {
-				input.EventTypes = new([]EventType{{Name: "*", Version: 1}})
+			modify: func(input *UpdateChannelInput[v4.WebhookConfigUpdate]) {
+				input.EventTypes = new([]v4.EventType{{Name: "*", Version: 1}})
 			},
 			wantErrors: []string{"invalid eventTypes[0]", "lowercase snake_case"},
 		},
 		{
 			name: "wildcard event type suffix",
-			modify: func(input *UpdateChannelInput[WebhookConfigUpdate]) {
-				input.EventTypes = new([]EventType{{Name: "billing.*", Version: 1}})
+			modify: func(input *UpdateChannelInput[v4.WebhookConfigUpdate]) {
+				input.EventTypes = new([]v4.EventType{{Name: "billing.*", Version: 1}})
 			},
 			wantErrors: []string{"invalid eventTypes[0]", "lowercase snake_case"},
 		},
 		{
 			name: "zero event type version",
-			modify: func(input *UpdateChannelInput[WebhookConfigUpdate]) {
-				input.EventTypes = new([]EventType{{Name: "invoice.created", Version: 0}})
+			modify: func(input *UpdateChannelInput[v4.WebhookConfigUpdate]) {
+				input.EventTypes = new([]v4.EventType{{Name: "invoice.created", Version: 0}})
 			},
 			wantErrors: []string{"invalid eventTypes[0]", "version must be positive"},
 		},
 		{
 			name: "negative event type version",
-			modify: func(input *UpdateChannelInput[WebhookConfigUpdate]) {
-				input.EventTypes = new([]EventType{{Name: "invoice.created", Version: -1}})
+			modify: func(input *UpdateChannelInput[v4.WebhookConfigUpdate]) {
+				input.EventTypes = new([]v4.EventType{{Name: "invoice.created", Version: -1}})
 			},
 			wantErrors: []string{"invalid eventTypes[0]", "version must be positive"},
 		},
 		{
 			name: "multiple invalid event types",
-			modify: func(input *UpdateChannelInput[WebhookConfigUpdate]) {
-				input.EventTypes = new([]EventType{
+			modify: func(input *UpdateChannelInput[v4.WebhookConfigUpdate]) {
+				input.EventTypes = new([]v4.EventType{
 					{Name: "invoice.created", Version: 1},
 					{Name: "Invoice", Version: 1},
 					{Name: "invoice.updated", Version: 0},
@@ -236,58 +237,58 @@ func TestUpdateChannelInputValidate(t *testing.T) {
 		},
 		{
 			name: "name only",
-			modify: func(input *UpdateChannelInput[WebhookConfigUpdate]) {
+			modify: func(input *UpdateChannelInput[v4.WebhookConfigUpdate]) {
 				input.Name = new("Updated")
 			},
 		},
 		{
 			name: "explicit false",
-			modify: func(input *UpdateChannelInput[WebhookConfigUpdate]) {
+			modify: func(input *UpdateChannelInput[v4.WebhookConfigUpdate]) {
 				input.Disabled = new(false)
 			},
 		},
 		{
 			name: "clear event types with nil slice",
-			modify: func(input *UpdateChannelInput[WebhookConfigUpdate]) {
-				input.EventTypes = new([]EventType)
+			modify: func(input *UpdateChannelInput[v4.WebhookConfigUpdate]) {
+				input.EventTypes = new([]v4.EventType)
 			},
 		},
 		{
 			name: "clear event types with empty slice",
-			modify: func(input *UpdateChannelInput[WebhookConfigUpdate]) {
-				input.EventTypes = new([]EventType{})
+			modify: func(input *UpdateChannelInput[v4.WebhookConfigUpdate]) {
+				input.EventTypes = new([]v4.EventType{})
 			},
 		},
 		{
 			name: "headers only",
-			modify: func(input *UpdateChannelInput[WebhookConfigUpdate]) {
+			modify: func(input *UpdateChannelInput[v4.WebhookConfigUpdate]) {
 				input.Config.CustomHeaders = new(map[string]string{"x-test": "updated"})
 			},
 		},
 		{
 			name: "missing namespace",
-			modify: func(input *UpdateChannelInput[WebhookConfigUpdate]) {
+			modify: func(input *UpdateChannelInput[v4.WebhookConfigUpdate]) {
 				input.Namespace = ""
 			},
 			wantErrors: []string{"namespace is required"},
 		},
 		{
 			name: "missing channel ID",
-			modify: func(input *UpdateChannelInput[WebhookConfigUpdate]) {
+			modify: func(input *UpdateChannelInput[v4.WebhookConfigUpdate]) {
 				input.ChannelID = ""
 			},
 			wantErrors: []string{"channel ID is required"},
 		},
 		{
 			name: "empty name",
-			modify: func(input *UpdateChannelInput[WebhookConfigUpdate]) {
+			modify: func(input *UpdateChannelInput[v4.WebhookConfigUpdate]) {
 				input.Name = new("")
 			},
 			wantErrors: []string{"invalid channel name"},
 		},
 		{
 			name: "invalid configuration",
-			modify: func(input *UpdateChannelInput[WebhookConfigUpdate]) {
+			modify: func(input *UpdateChannelInput[v4.WebhookConfigUpdate]) {
 				input.Config.URL = new("")
 				input.Config.SigningSecret = new("")
 			},
@@ -295,7 +296,7 @@ func TestUpdateChannelInputValidate(t *testing.T) {
 		},
 		{
 			name: "multiple invalid fields",
-			modify: func(input *UpdateChannelInput[WebhookConfigUpdate]) {
+			modify: func(input *UpdateChannelInput[v4.WebhookConfigUpdate]) {
 				input.Namespace = " \t"
 				input.ChannelID = " \t"
 				input.Name = new(" \t")
@@ -307,7 +308,7 @@ func TestUpdateChannelInputValidate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			input := UpdateChannelInput[WebhookConfigUpdate]{
+			input := UpdateChannelInput[v4.WebhookConfigUpdate]{
 				Namespace: "namespace",
 				ChannelID: "channel",
 			}
@@ -372,13 +373,13 @@ func TestGetChannelInputValidate(t *testing.T) {
 func TestProviderChannelInputValidation(t *testing.T) {
 	tests := []struct {
 		name       string
-		modify     func(*CreateChannelInput[WebhookConfig])
+		modify     func(*CreateChannelInput[v4.WebhookConfig])
 		wantErrors []string
 	}{
 		{
 			name: "valid concrete event types",
-			modify: func(input *CreateChannelInput[WebhookConfig]) {
-				input.EventTypes = []EventType{
+			modify: func(input *CreateChannelInput[v4.WebhookConfig]) {
+				input.EventTypes = []v4.EventType{
 					{Name: "invoice.created", Version: 1},
 					{Name: "billing.invoice.updated", Version: 2},
 				}
@@ -386,56 +387,56 @@ func TestProviderChannelInputValidation(t *testing.T) {
 		},
 		{
 			name: "empty event type filter",
-			modify: func(input *CreateChannelInput[WebhookConfig]) {
-				input.EventTypes = []EventType{}
+			modify: func(input *CreateChannelInput[v4.WebhookConfig]) {
+				input.EventTypes = []v4.EventType{}
 			},
 		},
 		{
 			name: "uppercase event type name",
-			modify: func(input *CreateChannelInput[WebhookConfig]) {
-				input.EventTypes = []EventType{{Name: "Invoice.created", Version: 1}}
+			modify: func(input *CreateChannelInput[v4.WebhookConfig]) {
+				input.EventTypes = []v4.EventType{{Name: "Invoice.created", Version: 1}}
 			},
 			wantErrors: []string{"invalid eventTypes[0]", "lowercase snake_case"},
 		},
 		{
 			name: "single-segment event type name",
-			modify: func(input *CreateChannelInput[WebhookConfig]) {
-				input.EventTypes = []EventType{{Name: "invoice", Version: 1}}
+			modify: func(input *CreateChannelInput[v4.WebhookConfig]) {
+				input.EventTypes = []v4.EventType{{Name: "invoice", Version: 1}}
 			},
 			wantErrors: []string{"invalid eventTypes[0]", "at least two"},
 		},
 		{
 			name: "wildcard event type name",
-			modify: func(input *CreateChannelInput[WebhookConfig]) {
-				input.EventTypes = []EventType{{Name: "*", Version: 1}}
+			modify: func(input *CreateChannelInput[v4.WebhookConfig]) {
+				input.EventTypes = []v4.EventType{{Name: "*", Version: 1}}
 			},
 			wantErrors: []string{"invalid eventTypes[0]", "lowercase snake_case"},
 		},
 		{
 			name: "wildcard event type suffix",
-			modify: func(input *CreateChannelInput[WebhookConfig]) {
-				input.EventTypes = []EventType{{Name: "billing.*", Version: 1}}
+			modify: func(input *CreateChannelInput[v4.WebhookConfig]) {
+				input.EventTypes = []v4.EventType{{Name: "billing.*", Version: 1}}
 			},
 			wantErrors: []string{"invalid eventTypes[0]", "lowercase snake_case"},
 		},
 		{
 			name: "zero event type version",
-			modify: func(input *CreateChannelInput[WebhookConfig]) {
-				input.EventTypes = []EventType{{Name: "invoice.created", Version: 0}}
+			modify: func(input *CreateChannelInput[v4.WebhookConfig]) {
+				input.EventTypes = []v4.EventType{{Name: "invoice.created", Version: 0}}
 			},
 			wantErrors: []string{"invalid eventTypes[0]", "version must be positive"},
 		},
 		{
 			name: "negative event type version",
-			modify: func(input *CreateChannelInput[WebhookConfig]) {
-				input.EventTypes = []EventType{{Name: "invoice.created", Version: -1}}
+			modify: func(input *CreateChannelInput[v4.WebhookConfig]) {
+				input.EventTypes = []v4.EventType{{Name: "invoice.created", Version: -1}}
 			},
 			wantErrors: []string{"invalid eventTypes[0]", "version must be positive"},
 		},
 		{
 			name: "multiple invalid event types",
-			modify: func(input *CreateChannelInput[WebhookConfig]) {
-				input.EventTypes = []EventType{
+			modify: func(input *CreateChannelInput[v4.WebhookConfig]) {
+				input.EventTypes = []v4.EventType{
 					{Name: "invoice.created", Version: 1},
 					{Name: "Invoice", Version: 1},
 					{Name: "invoice.updated", Version: 0},
@@ -448,28 +449,28 @@ func TestProviderChannelInputValidation(t *testing.T) {
 		},
 		{
 			name: "missing namespace",
-			modify: func(input *CreateChannelInput[WebhookConfig]) {
+			modify: func(input *CreateChannelInput[v4.WebhookConfig]) {
 				input.Namespace = ""
 			},
 			wantErrors: []string{"namespace is required"},
 		},
 		{
 			name: "missing channel ID",
-			modify: func(input *CreateChannelInput[WebhookConfig]) {
+			modify: func(input *CreateChannelInput[v4.WebhookConfig]) {
 				input.ChannelID = ""
 			},
 			wantErrors: []string{"channel ID is required"},
 		},
 		{
 			name: "missing name",
-			modify: func(input *CreateChannelInput[WebhookConfig]) {
+			modify: func(input *CreateChannelInput[v4.WebhookConfig]) {
 				input.Name = ""
 			},
 			wantErrors: []string{"channel name is required"},
 		},
 		{
 			name: "whitespace identity and name",
-			modify: func(input *CreateChannelInput[WebhookConfig]) {
+			modify: func(input *CreateChannelInput[v4.WebhookConfig]) {
 				input.Namespace = " \t\n"
 				input.ChannelID = " \t\n"
 				input.Name = " \t\n"
@@ -482,8 +483,8 @@ func TestProviderChannelInputValidation(t *testing.T) {
 		},
 		{
 			name: "multiple invalid fields",
-			modify: func(input *CreateChannelInput[WebhookConfig]) {
-				*input = CreateChannelInput[WebhookConfig]{}
+			modify: func(input *CreateChannelInput[v4.WebhookConfig]) {
+				*input = CreateChannelInput[v4.WebhookConfig]{}
 			},
 			wantErrors: []string{
 				"namespace is required",
@@ -496,11 +497,11 @@ func TestProviderChannelInputValidation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			input := CreateChannelInput[WebhookConfig]{
+			input := CreateChannelInput[v4.WebhookConfig]{
 				Namespace: "ns-test",
 				ChannelID: "channel-test",
 				Name:      "Webhook",
-				Config: WebhookConfig{
+				Config: v4.WebhookConfig{
 					URL: "https://example.com/webhooks",
 				},
 			}
@@ -541,11 +542,11 @@ func TestCreateChannelInputIdempotencyKeyValidation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			input := CreateChannelInput[WebhookConfig]{
+			input := CreateChannelInput[v4.WebhookConfig]{
 				Namespace: "ns-test",
 				ChannelID: "channel-test",
 				Name:      "Webhook",
-				Config: WebhookConfig{
+				Config: v4.WebhookConfig{
 					URL: "https://example.com/webhooks",
 				},
 				IdempotencyKey: tt.idempotencyKey,
@@ -725,12 +726,12 @@ func TestSendEventInputValidate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			input := SendEventInput{
-				Event: Event{
+				Event: v4.Event{
 					NamespacedID: models.NamespacedID{
 						Namespace: "ns-test",
 						ID:        "event-test",
 					},
-					EventType: EventType{
+					EventType: v4.EventType{
 						Name:    "invoice.created",
 						Version: 1,
 					},
@@ -862,7 +863,7 @@ func TestGetEventInputValidate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			input := GetEventInput{
-				Event: Event{
+				Event: v4.Event{
 					NamespacedID: models.NamespacedID{
 						Namespace: "ns-test",
 						ID:        "event-test",
@@ -1007,7 +1008,7 @@ func TestResendEventInputValidate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			input := ResendEventInput{
-				Event: Event{
+				Event: v4.Event{
 					NamespacedID: models.NamespacedID{
 						Namespace: "ns-test",
 						ID:        "event-test",
@@ -1051,12 +1052,12 @@ func assertProviderInputValidation(t *testing.T, input models.Validator, wantErr
 func TestProviderChannelConfigValidation(t *testing.T) {
 	tests := []struct {
 		name      string
-		config    WebhookConfig
+		config    v4.WebhookConfig
 		wantError string
 	}{
 		{
 			name: "configuration value",
-			config: WebhookConfig{
+			config: v4.WebhookConfig{
 				URL: "https://example.com/webhooks",
 			},
 		},
@@ -1066,14 +1067,14 @@ func TestProviderChannelConfigValidation(t *testing.T) {
 		},
 		{
 			name: "invalid URL",
-			config: WebhookConfig{
+			config: v4.WebhookConfig{
 				URL: "/webhooks",
 			},
 			wantError: "invalid endpoint URL",
 		},
 		{
 			name: "invalid signing secret",
-			config: WebhookConfig{
+			config: v4.WebhookConfig{
 				URL:           "https://example.com/webhooks",
 				SigningSecret: "invalid",
 			},
@@ -1083,7 +1084,7 @@ func TestProviderChannelConfigValidation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			input := CreateChannelInput[WebhookConfig]{
+			input := CreateChannelInput[v4.WebhookConfig]{
 				Namespace: "namespace",
 				ChannelID: "channel",
 				Name:      "Webhook",
@@ -1103,12 +1104,12 @@ func TestProviderChannelConfigValidation(t *testing.T) {
 func TestProviderNamespaceValidation(t *testing.T) {
 	tests := []struct {
 		name       string
-		namespace  ProviderNamespace
+		namespace  Namespace
 		wantErrors []string
 	}{
 		{
 			name: "valid namespace",
-			namespace: ProviderNamespace{
+			namespace: Namespace{
 				ID:   "ns-test",
 				Name: "Namespace",
 			},
@@ -1122,14 +1123,14 @@ func TestProviderNamespaceValidation(t *testing.T) {
 		},
 		{
 			name: "missing ID",
-			namespace: ProviderNamespace{
+			namespace: Namespace{
 				Name: "Namespace",
 			},
 			wantErrors: []string{"namespace ID is required"},
 		},
 		{
 			name: "missing name",
-			namespace: ProviderNamespace{
+			namespace: Namespace{
 				ID: "ns-test",
 			},
 			wantErrors: []string{"namespace name is required"},

@@ -12,7 +12,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	v4 "github.com/openmeterio/openmeter/openmeter/notification/v4"
-	"github.com/openmeterio/openmeter/openmeter/notification/v4/providers/noop"
+	notificationprovider "github.com/openmeterio/openmeter/openmeter/notification/v4/provider"
+	"github.com/openmeterio/openmeter/openmeter/notification/v4/provider/noop"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -45,9 +46,9 @@ func TestNewWebhookProvider(t *testing.T) {
 			default:
 				require.NoError(t, err)
 				require.NotNil(t, provider)
-				require.Equal(t, v4.ProviderRoutingModeExplicit, provider.RoutingMode())
+				require.Equal(t, notificationprovider.ProviderRoutingModeExplicit, provider.RoutingMode())
 
-				registry, err := v4.NewProviderRegistry(v4.ProviderRegistryConfig{
+				registry, err := notificationprovider.NewRegistry(notificationprovider.RegistryConfig{
 					Logger:  tt.logger,
 					Webhook: provider,
 				})
@@ -94,15 +95,15 @@ func TestWebhookProviderOperations(t *testing.T) {
 			t.Parallel()
 
 			// Given a shared stateless provider and valid or deliberately empty inputs.
-			var namespace v4.ProviderNamespace
-			var channel v4.CreateChannelInput[v4.WebhookConfig]
+			var namespace notificationprovider.Namespace
+			var channel notificationprovider.CreateChannelInput[v4.WebhookConfig]
 			var event v4.Event
-			var destinations []v4.EventDestination
-			var observations []v4.GetEventDestination
+			var destinations []notificationprovider.EventDestination
+			var observations []notificationprovider.GetEventDestination
 
 			if !tt.invalid {
-				namespace = v4.ProviderNamespace{ID: "namespace", Name: "Test"}
-				channel = v4.CreateChannelInput[v4.WebhookConfig]{
+				namespace = notificationprovider.Namespace{ID: "namespace", Name: "Test"}
+				channel = notificationprovider.CreateChannelInput[v4.WebhookConfig]{
 					Namespace: namespace.ID,
 					ChannelID: "channel",
 					Name:      "Webhook",
@@ -114,8 +115,8 @@ func TestWebhookProviderOperations(t *testing.T) {
 					CreatedAt:    time.Now().UTC(),
 					Payload:      json.RawMessage(`{"invoice_id":"invoice"}`),
 				}
-				destinations = []v4.EventDestination{{ChannelID: channel.ChannelID}}
-				observations = []v4.GetEventDestination{{ChannelID: channel.ChannelID, DispatchGeneration: 2}}
+				destinations = []notificationprovider.EventDestination{{ChannelID: channel.ChannelID}}
+				observations = []notificationprovider.GetEventDestination{{ChannelID: channel.ChannelID, DispatchGeneration: 2}}
 			}
 
 			operations := []struct {
@@ -125,31 +126,31 @@ func TestWebhookProviderOperations(t *testing.T) {
 				{
 					name: "get namespace",
 					run: func(ctx context.Context) (any, error) {
-						return provider.GetNamespace(ctx, v4.GetNamespaceInput{ID: namespace.ID})
+						return provider.GetNamespace(ctx, notificationprovider.GetNamespaceInput{ID: namespace.ID})
 					},
 				},
 				{
 					name: "create namespace",
 					run: func(ctx context.Context) (any, error) {
-						return provider.CreateNamespace(ctx, v4.CreateNamespaceInput{ProviderNamespace: namespace})
+						return provider.CreateNamespace(ctx, notificationprovider.CreateNamespaceInput{Namespace: namespace})
 					},
 				},
 				{
 					name: "update namespace",
 					run: func(ctx context.Context) (any, error) {
-						return provider.UpdateNamespace(ctx, v4.UpdateNamespaceInput{ID: namespace.ID})
+						return provider.UpdateNamespace(ctx, notificationprovider.UpdateNamespaceInput{ID: namespace.ID})
 					},
 				},
 				{
 					name: "delete namespace",
 					run: func(ctx context.Context) (any, error) {
-						return nil, provider.DeleteNamespace(ctx, v4.DeleteNamespaceInput{ID: namespace.ID})
+						return nil, provider.DeleteNamespace(ctx, notificationprovider.DeleteNamespaceInput{ID: namespace.ID})
 					},
 				},
 				{
 					name: "get channel",
 					run: func(ctx context.Context) (any, error) {
-						return provider.GetChannel(ctx, v4.GetChannelInput{Namespace: channel.Namespace, ChannelID: channel.ChannelID})
+						return provider.GetChannel(ctx, notificationprovider.GetChannelInput{Namespace: channel.Namespace, ChannelID: channel.ChannelID})
 					},
 				},
 				{
@@ -161,7 +162,7 @@ func TestWebhookProviderOperations(t *testing.T) {
 				{
 					name: "update channel",
 					run: func(ctx context.Context) (any, error) {
-						return provider.UpdateChannel(ctx, v4.UpdateChannelInput[v4.WebhookConfigUpdate]{
+						return provider.UpdateChannel(ctx, notificationprovider.UpdateChannelInput[v4.WebhookConfigUpdate]{
 							Namespace: channel.Namespace,
 							ChannelID: channel.ChannelID,
 						})
@@ -170,25 +171,25 @@ func TestWebhookProviderOperations(t *testing.T) {
 				{
 					name: "delete channel",
 					run: func(ctx context.Context) (any, error) {
-						return nil, provider.DeleteChannel(ctx, v4.DeleteChannelInput{Namespace: channel.Namespace, ChannelID: channel.ChannelID})
+						return nil, provider.DeleteChannel(ctx, notificationprovider.DeleteChannelInput{Namespace: channel.Namespace, ChannelID: channel.ChannelID})
 					},
 				},
 				{
 					name: "send event",
 					run: func(ctx context.Context) (any, error) {
-						return provider.SendEvent(ctx, v4.SendEventInput{Event: event, Destinations: destinations})
+						return provider.SendEvent(ctx, notificationprovider.SendEventInput{Event: event, Destinations: destinations})
 					},
 				},
 				{
 					name: "get event",
 					run: func(ctx context.Context) (any, error) {
-						return provider.GetEvent(ctx, v4.GetEventInput{Event: event, Destinations: observations})
+						return provider.GetEvent(ctx, notificationprovider.GetEventInput{Event: event, Destinations: observations})
 					},
 				},
 				{
 					name: "resend event",
 					run: func(ctx context.Context) (any, error) {
-						return provider.ResendEvent(ctx, v4.ResendEventInput{Event: event, Destinations: observations})
+						return provider.ResendEvent(ctx, notificationprovider.ResendEventInput{Event: event, Destinations: observations})
 					},
 				},
 			}
@@ -219,7 +220,7 @@ func TestWebhookProviderOperations(t *testing.T) {
 					require.Error(t, err)
 					require.ErrorContains(t, err, operation.name)
 
-					var providerErr *v4.ProviderError
+					var providerErr *notificationprovider.ProviderError
 
 					switch {
 					case tt.contextError != nil:
@@ -232,8 +233,8 @@ func TestWebhookProviderOperations(t *testing.T) {
 
 					default:
 						require.ErrorAs(t, err, &providerErr)
-						require.Equal(t, v4.ProviderErrorKindConfiguration, providerErr.Kind)
-						require.Equal(t, v4.ProviderErrorCodeConfigurationInvalid, providerErr.Code)
+						require.Equal(t, notificationprovider.ProviderErrorKindConfiguration, providerErr.Kind)
+						require.Equal(t, notificationprovider.ProviderErrorCodeConfigurationInvalid, providerErr.Code)
 						require.Nil(t, providerErr.RetryAfter)
 						require.True(t, models.IsGenericNotImplementedError(err))
 					}
@@ -251,7 +252,7 @@ func TestWebhookProviderDoesNotLogInputs(t *testing.T) {
 		{
 			name: "channel configuration",
 			run: func(ctx context.Context, provider *noop.WebhookProvider) error {
-				_, err := provider.CreateChannel(ctx, v4.CreateChannelInput[v4.WebhookConfig]{
+				_, err := provider.CreateChannel(ctx, notificationprovider.CreateChannelInput[v4.WebhookConfig]{
 					Namespace: "namespace",
 					ChannelID: "channel",
 					Name:      "sensitive-name",
@@ -267,14 +268,14 @@ func TestWebhookProviderDoesNotLogInputs(t *testing.T) {
 		{
 			name: "event payload",
 			run: func(ctx context.Context, provider *noop.WebhookProvider) error {
-				_, err := provider.SendEvent(ctx, v4.SendEventInput{
+				_, err := provider.SendEvent(ctx, notificationprovider.SendEventInput{
 					Event: v4.Event{
 						NamespacedID: models.NamespacedID{Namespace: "namespace", ID: "event"},
 						EventType:    v4.EventType{Name: "invoice.created", Version: 1},
 						CreatedAt:    time.Now().UTC(),
 						Payload:      json.RawMessage(`{"value":"sensitive-payload"}`),
 					},
-					Destinations: []v4.EventDestination{{ChannelID: "channel"}},
+					Destinations: []notificationprovider.EventDestination{{ChannelID: "channel"}},
 				})
 
 				return err
