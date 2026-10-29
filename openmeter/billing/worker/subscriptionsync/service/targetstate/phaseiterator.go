@@ -421,8 +421,18 @@ func (it *PhaseIterator) truncateItemsIfNeeded(in []SubscriptionItemWithPeriods)
 	for _, item := range in {
 		isFlatPrice := item.Spec.RateCard.AsMeta().Price != nil && item.Spec.RateCard.AsMeta().Price.Type() == productcatalog.FlatPriceType
 
-		// We truncate the service period to the meter resolution
+		// We truncate the service period to the meter resolution.
+		// A positive span that collapses to empty is not a point charge: the
+		// flat-fee path bills an empty period at the full amount, so a version
+		// that lasted less than a second would be charged again on top of the
+		// version that covers that same second. A period that was already empty
+		// is still kept for flat prices below.
+		rawServicePeriod := item.ServicePeriod
 		item.ServicePeriod = item.ServicePeriod.Truncate(streaming.MinimumWindowSizeDuration)
+
+		if item.ServicePeriod.IsEmpty() && !rawServicePeriod.IsEmpty() {
+			continue
+		}
 
 		// We only allow empty service periods for flat prices.
 		if item.ServicePeriod.IsEmpty() && !isFlatPrice {
