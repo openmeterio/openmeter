@@ -330,6 +330,9 @@ func (chargesMetaMixin) Indexes() []ent.Index {
 				entsql.IndexWhere("unique_reference_id IS NOT NULL AND deleted_at IS NULL"),
 			).
 			Unique(),
+		// Incremental syncs poll filter[updated_at]; the charges search view unions
+		// these tables, so each one needs its own index.
+		index.Fields("namespace", "updated_at"),
 	}
 }
 
