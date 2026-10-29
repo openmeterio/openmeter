@@ -18,10 +18,10 @@ export interface ListPlansQuery {
   /**
    * Sort plans returned in the response. Supported sort attributes are:
    *
-   * - `id`
+   * - `id` (default)
    * - `key`
    * - `version`
-   * - `created_at` (default)
+   * - `created_at`
    * - `updated_at`
    */
   sort?: SortQueryInput
@@ -29,12 +29,12 @@ export interface ListPlansQuery {
    * Filter plans returned in the response.
    *
    * To sync changes, pass `filter[updated_at][gte]` set a few minutes before the
-   * start of the previous scan, keep the default `created_at` sort, and de-duplicate
-   * by `id`. Sorting by `updated_at` moves rows between pages while you scan.
-   * Changing only rate card labels does not update `updated_at`, and `status`
-   * follows the plan's effective dates, so it changes without updating it. Deleted
-   * plans are not listed, and a deletion during a scan can shift a row past a page
-   * boundary, so also run a periodic full scan.
+   * start of the previous scan, keep the default `id` sort, and de-duplicate by
+   * `id`. Sorting by `updated_at` moves rows between pages while you scan. Changing
+   * only rate card labels does not update `updated_at`, and `status` follows the
+   * plan's effective dates, so it changes without updating it. Deleted plans are not
+   * listed, and a deletion during a scan can shift a row past a page boundary, so
+   * also run a periodic full scan.
    */
   filter?: ListPlansParamsFilter
 }

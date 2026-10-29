@@ -218,21 +218,22 @@ func (a *adapter) ListInvoices(ctx context.Context, input billing.ListInvoicesAd
 				SetOrUnsetIf(input.Expand.Has(billing.InvoiceExpandDeletedLines), billing.StandardInvoiceExpandDeletedLines), input.Namespace)
 		}
 
+		// Break ties by ID so rows with equal sort values keep their place across pages.
 		switch input.OrderBy {
 		case api.InvoiceOrderByCustomerName:
-			query = query.Order(billinginvoice.ByCustomerName(order...))
+			query = query.Order(billinginvoice.ByCustomerName(order...), billinginvoice.ByID(order...))
 		case api.InvoiceOrderByIssuedAt:
-			query = query.Order(billinginvoice.ByIssuedAt(order...))
+			query = query.Order(billinginvoice.ByIssuedAt(order...), billinginvoice.ByID(order...))
 		case api.InvoiceOrderByPeriodStart:
-			query = query.Order(billinginvoice.ByPeriodStart(order...))
+			query = query.Order(billinginvoice.ByPeriodStart(order...), billinginvoice.ByID(order...))
 		case api.InvoiceOrderByStatus:
-			query = query.Order(billinginvoice.ByStatus(order...))
+			query = query.Order(billinginvoice.ByStatus(order...), billinginvoice.ByID(order...))
 		case api.InvoiceOrderByUpdatedAt:
-			query = query.Order(billinginvoice.ByUpdatedAt(order...))
+			query = query.Order(billinginvoice.ByUpdatedAt(order...), billinginvoice.ByID(order...))
 		case api.InvoiceOrderByCreatedAt:
 			fallthrough
 		default:
-			query = query.Order(billinginvoice.ByCreatedAt(order...))
+			query = query.Order(billinginvoice.ByCreatedAt(order...), billinginvoice.ByID(order...))
 		}
 
 		response := pagination.Result[billing.Invoice]{

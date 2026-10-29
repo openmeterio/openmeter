@@ -19539,7 +19539,7 @@ export const listPlansQueryParamsWire = z.object({
     .optional()
 
     .describe(
-      'Sort plans returned in the response. Supported sort attributes are: - `id` - `key` - `version` - `created_at` (default) - `updated_at`',
+      'Sort plans returned in the response. Supported sort attributes are: - `id` (default) - `key` - `version` - `created_at` - `updated_at`',
     ),
   filter: listPlansParamsFilterWire.optional(),
 })
