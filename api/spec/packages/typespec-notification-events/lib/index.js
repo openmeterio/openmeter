@@ -93,6 +93,10 @@ export const $decorators = {
 // which the AIP linter requires to be set through @friendlyName.
 const goName = (program, type) => getFriendlyName(program, type) ?? type.name
 
+// Compares by UTF-16 code units, unlike localeCompare, so generated files are
+// ordered the same on every machine.
+const compareStrings = (a, b) => (a < b ? -1 : a > b ? 1 : 0)
+
 // Released contracts are immutable and identified by their canonical Event
 // type, so the contract roots carry it in every name: the JSON Schema $id
 // (<event type>.payload / <event type>.rule_config) and the friendly name
@@ -227,7 +231,7 @@ export async function $onEmit(context) {
 
     const schemas = []
     const events = (eventsByNamespace.get(ns) ?? []).sort((a, b) =>
-      a.eventType.localeCompare(b.eventType),
+      compareStrings(a.eventType, b.eventType),
     )
     if (events.length > 0) {
       const lines = [
@@ -308,11 +312,11 @@ export async function $onEmit(context) {
 
   const definitionsDir = moduleDir(definitionsImportPath)
   const definitionsPkg = definitionsImportPath.split('/').pop()
-  definitions.sort((a, b) => a[3].localeCompare(b[3]))
+  definitions.sort((a, b) => compareStrings(a[3], b[3]))
   const imports = [
     ...new Map(definitions.map(([alias, path]) => [path, alias])),
     [eventTypeImportPath, ''],
-  ].sort(([a], [b]) => a.localeCompare(b))
+  ].sort(([a], [b]) => compareStrings(a, b))
   await emitFile(program, {
     path: resolvePath(
       context.emitterOutputDir,
