@@ -8,11 +8,216 @@ import (
 	"fmt"
 	"log/slog"
 	"slices"
+	"strings"
 
 	"github.com/santhosh-tekuri/jsonschema/v6"
 
+	"github.com/openmeterio/openmeter/pkg/equal"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
+
+// RuleConfigValidatorFunc performs namespace-aware domain validation of a Rule
+// configuration that already satisfies its JSON Schema.
+type RuleConfigValidatorFunc func(ctx context.Context, namespace string, configuration json.RawMessage) error
+
+// RuleConfigDefinition is the Rule configuration contract of an Event type.
+type RuleConfigDefinition struct {
+	JSONSchema json.RawMessage
+
+	// Validator is optional and runs after schema validation succeeds.
+	Validator RuleConfigValidatorFunc `json:"-"`
+}
+
+var _ models.Equaler[RuleConfigDefinition] = (*RuleConfigDefinition)(nil)
+
+// Equal compares the schema only; Validator is a function and not comparable.
+func (c RuleConfigDefinition) Equal(other RuleConfigDefinition) bool {
+	return bytes.Equal(c.JSONSchema, other.JSONSchema)
+}
+
+var (
+	_ models.Validator                            = (*EventTypeDefinition)(nil)
+	_ models.CustomValidator[EventTypeDefinition] = (*EventTypeDefinition)(nil)
+	_ models.Equaler[EventTypeDefinition]         = (*EventTypeDefinition)(nil)
+)
+
+// EventTypeDefinition binds an Event type to the contracts generated from its
+// TypeSpec models. Released definitions are immutable: a changed contract is a
+// new Event type version.
+type EventTypeDefinition struct {
+	EventType         EventType
+	PayloadJSONSchema json.RawMessage
+
+	// Rule is nil when no Rule can produce the Event type, e.g. system Events.
+	Rule *RuleConfigDefinition
+
+	// DeprecatedBy is advisory and names the immediate replacement. Deprecated
+	// definitions remain registered and usable; Events are never converted.
+	DeprecatedBy *EventType
+}
+
+func (d EventTypeDefinition) Deprecated() bool {
+	return d.DeprecatedBy != nil
+}
+
+// Validate checks the definition in isolation. Schemas are only checked to be
+// JSON here; the Registry compiles them and validates references between
+// definitions.
+func (d EventTypeDefinition) Validate() error {
+	var errs []error
+
+	if err := d.EventType.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("event type: %w", err))
+	}
+
+	if err := validateJSONSchemaDocument(d.PayloadJSONSchema); err != nil {
+		errs = append(errs, fmt.Errorf("payload JSON schema: %w", err))
+	}
+
+	if d.Rule != nil {
+		if err := validateJSONSchemaDocument(d.Rule.JSONSchema); err != nil {
+			errs = append(errs, fmt.Errorf("rule config JSON schema: %w", err))
+		}
+	}
+
+	if d.DeprecatedBy != nil {
+		if err := d.DeprecatedBy.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("deprecated by: %w", err))
+		} else if *d.DeprecatedBy == d.EventType {
+			errs = append(errs, errors.New("deprecated by: event type cannot deprecate itself"))
+		}
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+func (d EventTypeDefinition) ValidateWith(validators ...models.ValidatorFunc[EventTypeDefinition]) error {
+	return models.Validate(d, validators...)
+}
+
+// Equal compares the contract: identity, byte-equal schemas, Rule capability,
+// and replacement.
+func (d EventTypeDefinition) Equal(other EventTypeDefinition) bool {
+	return d.EventType == other.EventType &&
+		bytes.Equal(d.PayloadJSONSchema, other.PayloadJSONSchema) &&
+		equal.PtrEqual(d.Rule, other.Rule) &&
+		equal.ComparablePtrEqual(d.DeprecatedBy, other.DeprecatedBy)
+}
+
+// clone returns a copy that shares no mutable memory with d. The Rule
+// validator is a function value and is shared.
+func (d EventTypeDefinition) clone() EventTypeDefinition {
+	out := d
+	out.PayloadJSONSchema = slices.Clone(d.PayloadJSONSchema)
+
+	if d.Rule != nil {
+		out.Rule = &RuleConfigDefinition{
+			JSONSchema: slices.Clone(d.Rule.JSONSchema),
+			Validator:  d.Rule.Validator,
+		}
+	}
+
+	if d.DeprecatedBy != nil {
+		deprecatedBy := *d.DeprecatedBy
+		out.DeprecatedBy = &deprecatedBy
+	}
+
+	return out
+}
+
+const eventTypeWildcard = "*"
+
+var _ models.Validator = (*EventTypePattern)(nil)
+
+// EventTypePattern selects Event types by exact canonical identity, such as
+// v1.billing.invoice.created, or by an anchored terminal wildcard, such as
+// v1.billing.* or v1.*. The version is always explicit and matching is
+// case-sensitive. A pattern may match types registered only in a future
+// release, so parsing never consults the Registry.
+type EventTypePattern struct {
+	Version int
+
+	// Name is the full Event type name of an exact pattern, or the possibly
+	// empty name prefix of a wildcard pattern.
+	Name string
+
+	// Wildcard matches every name below Name, i.e. at least one further segment.
+	Wildcard bool
+}
+
+// ParseEventTypePattern parses an exact canonical Event type or a pattern
+// whose final segment is *.
+func ParseEventTypePattern(s string) (EventTypePattern, error) {
+	version, rest, err := splitCanonicalEventType(s)
+	if err != nil {
+		return EventTypePattern{}, err
+	}
+
+	p := EventTypePattern{Version: version, Name: rest}
+
+	if rest == eventTypeWildcard {
+		p = EventTypePattern{Version: version, Wildcard: true}
+	} else if prefix, ok := strings.CutSuffix(rest, "."+eventTypeWildcard); ok {
+		// An empty prefix here comes from v1..*, which must not widen to v1.*.
+		if prefix == "" {
+			return EventTypePattern{}, models.NewGenericValidationError(fmt.Errorf("invalid event type pattern %q: empty name prefix", s))
+		}
+
+		p = EventTypePattern{Version: version, Name: prefix, Wildcard: true}
+	}
+
+	if err := p.Validate(); err != nil {
+		return EventTypePattern{}, fmt.Errorf("invalid event type pattern %q: %w", s, err)
+	}
+
+	return p, nil
+}
+
+// String returns the canonical form accepted by ParseEventTypePattern.
+func (p EventTypePattern) String() string {
+	if !p.Wildcard {
+		return EventType{Name: p.Name, Version: p.Version}.String()
+	}
+
+	if p.Name == "" {
+		return fmt.Sprintf("v%d.%s", p.Version, eventTypeWildcard)
+	}
+
+	return fmt.Sprintf("v%d.%s.%s", p.Version, p.Name, eventTypeWildcard)
+}
+
+func (p EventTypePattern) Validate() error {
+	if !p.Wildcard {
+		return EventType{Name: p.Name, Version: p.Version}.Validate()
+	}
+
+	var errs []error
+
+	if p.Version < 1 {
+		errs = append(errs, fmt.Errorf("version must be positive, got %d", p.Version))
+	}
+
+	// A wildcard prefix may have a single segment, e.g. v1.billing.*, so it
+	// is checked as a one-segment extension of a valid name.
+	if p.Name != "" && !namePattern.MatchString(p.Name+".x") {
+		errs = append(errs, fmt.Errorf("name prefix %q must be lowercase snake_case segments", p.Name))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+// Matches reports whether t is selected by the pattern.
+func (p EventTypePattern) Matches(t EventType) bool {
+	if t.Version != p.Version {
+		return false
+	}
+
+	if !p.Wildcard {
+		return t.Name == p.Name
+	}
+
+	return p.Name == "" || strings.HasPrefix(t.Name, p.Name+".")
+}
 
 // EventRegistryConfig supplies every Event type definition served by the process.
 type EventRegistryConfig struct {
@@ -258,4 +463,16 @@ func validateJSON(schema *jsonschema.Schema, raw json.RawMessage) error {
 	}
 
 	return schema.Validate(doc)
+}
+
+func validateJSONSchemaDocument(schema json.RawMessage) error {
+	if len(schema) == 0 {
+		return errors.New("is required")
+	}
+
+	if !json.Valid(schema) {
+		return errors.New("must be valid JSON")
+	}
+
+	return nil
 }

@@ -24,6 +24,173 @@ func testDefinition(name string, version int) v4.EventTypeDefinition {
 	}
 }
 
+func TestEventTypeDefinitionValidate(t *testing.T) {
+	eventType := v4.EventType{Name: "billing.invoice.created", Version: 1}
+	replacement := v4.EventType{Name: "billing.invoice.created", Version: 2}
+
+	valid := v4.EventTypeDefinition{
+		EventType:         eventType,
+		PayloadJSONSchema: json.RawMessage(testSchema),
+		Rule:              &v4.RuleConfigDefinition{JSONSchema: json.RawMessage(testSchema)},
+		DeprecatedBy:      &replacement,
+	}
+
+	require.NoError(t, valid.Validate())
+	require.True(t, valid.Deprecated())
+
+	tests := []struct {
+		name   string
+		modify func(d *v4.EventTypeDefinition)
+	}{
+		{"invalid event type", func(d *v4.EventTypeDefinition) { d.EventType.Version = 0 }},
+		{"missing payload schema", func(d *v4.EventTypeDefinition) { d.PayloadJSONSchema = nil }},
+		{"payload schema is not JSON", func(d *v4.EventTypeDefinition) { d.PayloadJSONSchema = json.RawMessage(`{`) }},
+		{"missing rule config schema", func(d *v4.EventTypeDefinition) { d.Rule = &v4.RuleConfigDefinition{} }},
+		{"invalid deprecated by", func(d *v4.EventTypeDefinition) { d.DeprecatedBy = &v4.EventType{Name: "invoice", Version: 1} }},
+		{"deprecated by itself", func(d *v4.EventTypeDefinition) { d.DeprecatedBy = &eventType }},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Each case replaces a field, so a shallow copy leaves valid unchanged.
+			def := valid
+			tt.modify(&def)
+
+			require.Error(t, def.Validate())
+		})
+	}
+}
+
+func TestEventTypeDefinitionEqual(t *testing.T) {
+	replacement := v4.EventType{Name: "billing.invoice.created", Version: 2}
+	def := v4.EventTypeDefinition{
+		EventType:         v4.EventType{Name: "billing.invoice.created", Version: 1},
+		PayloadJSONSchema: json.RawMessage(testSchema),
+		Rule:              &v4.RuleConfigDefinition{JSONSchema: json.RawMessage(testSchema)},
+		DeprecatedBy:      &replacement,
+	}
+
+	// A copy that shares no memory is equal, and Rule validators are ignored.
+	sameReplacement := replacement
+	same := v4.EventTypeDefinition{
+		EventType:         def.EventType,
+		PayloadJSONSchema: json.RawMessage(testSchema),
+		Rule: &v4.RuleConfigDefinition{
+			JSONSchema: json.RawMessage(testSchema),
+			Validator:  func(context.Context, string, json.RawMessage) error { return nil },
+		},
+		DeprecatedBy: &sameReplacement,
+	}
+	require.True(t, def.Equal(same))
+
+	tests := []struct {
+		name   string
+		modify func(d *v4.EventTypeDefinition)
+	}{
+		{"event type", func(d *v4.EventTypeDefinition) { d.EventType.Version = 3 }},
+		{"payload schema", func(d *v4.EventTypeDefinition) { d.PayloadJSONSchema = json.RawMessage(`{}`) }},
+		{"rule removed", func(d *v4.EventTypeDefinition) { d.Rule = nil }},
+		{"rule schema", func(d *v4.EventTypeDefinition) { d.Rule = &v4.RuleConfigDefinition{JSONSchema: json.RawMessage(`{}`)} }},
+		{"deprecation removed", func(d *v4.EventTypeDefinition) { d.DeprecatedBy = nil }},
+		{"replacement", func(d *v4.EventTypeDefinition) {
+			d.DeprecatedBy = &v4.EventType{Name: "billing.invoice.created", Version: 3}
+		}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Each case replaces a field, so a shallow copy leaves def unchanged.
+			other := def
+			tt.modify(&other)
+
+			require.False(t, def.Equal(other))
+			require.False(t, other.Equal(def))
+		})
+	}
+}
+
+func TestEventTypeDefinitionValidateWith(t *testing.T) {
+	def := v4.EventTypeDefinition{
+		EventType:         v4.EventType{Name: "billing.invoice.created", Version: 1},
+		PayloadJSONSchema: json.RawMessage(testSchema),
+	}
+
+	require.NoError(t, def.ValidateWith(v4.EventTypeDefinition.Validate))
+
+	requireRuleCapable := func(d v4.EventTypeDefinition) error {
+		if d.Rule == nil {
+			return errors.New("rule config is required")
+		}
+
+		return nil
+	}
+
+	err := def.ValidateWith(v4.EventTypeDefinition.Validate, requireRuleCapable)
+	require.True(t, models.IsGenericValidationError(err), err)
+}
+
+func TestEventTypePattern(t *testing.T) {
+	created := v4.EventType{Name: "billing.invoice.created", Version: 1}
+	updated := v4.EventType{Name: "billing.invoice.updated", Version: 1}
+	createdV2 := v4.EventType{Name: "billing.invoice.created", Version: 2}
+	billingx := v4.EventType{Name: "billingx.invoice.created", Version: 1}
+	triggered := v4.EventType{Name: "entitlement.balance_threshold.triggered", Version: 1}
+
+	all := []v4.EventType{created, updated, createdV2, billingx, triggered}
+
+	tests := []struct {
+		pattern string
+		matches []v4.EventType
+	}{
+		{"v1.billing.invoice.created", []v4.EventType{created}},
+		{"v1.billing.invoice.*", []v4.EventType{created, updated}},
+		{"v1.billing.*", []v4.EventType{created, updated}},
+		{"v1.*", []v4.EventType{created, updated, billingx, triggered}},
+		{"v2.*", []v4.EventType{createdV2}},
+		{"v1.billing.invoice.created.*", nil},
+		{"v3.billing.invoice.created", nil},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.pattern, func(t *testing.T) {
+			p, err := v4.ParseEventTypePattern(tt.pattern)
+			require.NoError(t, err)
+			require.Equal(t, tt.pattern, p.String())
+
+			var matched []v4.EventType
+
+			for _, et := range all {
+				if p.Matches(et) {
+					matched = append(matched, et)
+				}
+			}
+
+			require.Equal(t, tt.matches, matched)
+		})
+	}
+
+	for _, invalid := range []string{
+		"",
+		"*",
+		"v1",
+		"v1.",
+		"v*.billing.invoice.created",
+		"v1.billing",
+		"v1.billing*",
+		"v1.*.created",
+		"v1.billing.*.created",
+		"v1.*.*",
+		"v1.billing.**",
+		"v1.Billing.*",
+		"v1.billing..*",
+		"v1..*",
+		"!v1.billing.*",
+	} {
+		_, err := v4.ParseEventTypePattern(invalid)
+		require.True(t, models.IsGenericValidationError(err), "%q: %v", invalid, err)
+	}
+}
+
 func TestNewEventRegistry(t *testing.T) {
 	logger := slog.New(slog.DiscardHandler)
 
@@ -32,8 +199,10 @@ func TestNewEventRegistry(t *testing.T) {
 	v3 := testDefinition("billing.invoice.created", 3)
 
 	t.Run("stores copies of definitions", func(t *testing.T) {
+		replacement := v2.EventType
+
 		v1 := testDefinition("billing.invoice.created", 1)
-		v1.DeprecatedBy = &v2.EventType
+		v1.DeprecatedBy = &replacement
 		v1.Rule = &v4.RuleConfigDefinition{JSONSchema: json.RawMessage(testSchema)}
 
 		registry, err := v4.NewEventRegistry(v4.EventRegistryConfig{
@@ -49,6 +218,7 @@ func TestNewEventRegistry(t *testing.T) {
 		// Changing the inputs after construction must not change the registry.
 		v1.PayloadJSONSchema[0] = '['
 		v1.Rule.JSONSchema[0] = '['
+		replacement.Version = 3
 
 		def, err := registry.EventType(v1.EventType)
 		require.NoError(t, err)
