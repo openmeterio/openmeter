@@ -87,6 +87,7 @@ func (s *RatingTestSuite) TestListChargesUpdatedAt() {
 	before := createCharge("before-checkpoint")
 
 	clock.FreezeTime(checkpoint)
+	defer clock.UnFreeze()
 	atCheckpoint := createCharge("at-checkpoint")
 
 	// when/then: gte includes the boundary, gt excludes it, and lt selects the

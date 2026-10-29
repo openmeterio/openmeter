@@ -56,6 +56,7 @@ func Test_ListCustomersUpdatedAt(t *testing.T) {
 	before := createCustomer("before-checkpoint")
 
 	clock.FreezeTime(checkpoint)
+	defer clock.UnFreeze()
 	atCheckpoint := createCustomer("at-checkpoint")
 
 	// when/then: gte includes the boundary, gt excludes it, and lt selects the

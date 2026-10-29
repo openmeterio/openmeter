@@ -33,23 +33,17 @@ func (s *InvoicingTestSuite) TestListInvoicesUpdatedAt() {
 
 	createInvoice := func(subjectKey string) string {
 		cust := s.CreateTestCustomer(ns, subjectKey)
-		s.CreateGatheringInvoice(s.T(), ctx, DraftInvoiceInput{Namespace: ns, Customer: cust})
 
-		result, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
-			Namespace:  ns,
-			CustomerID: &filter.FilterULID{FilterString: filter.FilterString{Eq: lo.ToPtr(cust.ID)}},
-		})
-		s.Require().NoError(err)
-		s.Require().Len(result.Items, 1)
-
-		return ids(result)[0]
+		return s.CreateDraftInvoice(s.T(), ctx, DraftInvoiceInput{Namespace: ns, Customer: cust}).ID
 	}
 
+	// The v3 route lists only standard invoices, so list the way it does.
 	list := func(updatedAt filter.FilterTime) billing.ListInvoicesResponse {
 		result, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
-			Page:      pagination.NewPage(1, 1),
-			Namespace: ns,
-			UpdatedAt: &updatedAt,
+			Page:         pagination.NewPage(1, 1),
+			Namespace:    ns,
+			OnlyStandard: true,
+			UpdatedAt:    &updatedAt,
 		})
 		s.Require().NoError(err)
 
@@ -60,6 +54,7 @@ func (s *InvoicingTestSuite) TestListInvoicesUpdatedAt() {
 	before := createInvoice("before-checkpoint")
 
 	clock.FreezeTime(checkpoint)
+	defer clock.UnFreeze()
 	atCheckpoint := createInvoice("at-checkpoint")
 
 	// when/then: gte includes the boundary, gt excludes it, and lt selects the

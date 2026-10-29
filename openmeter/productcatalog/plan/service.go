@@ -144,7 +144,7 @@ func (i ListPlansInput) Validate() error {
 
 	if i.UpdatedAt != nil {
 		if err := i.UpdatedAt.Validate(); err != nil {
-			errs = append(errs, err)
+			errs = append(errs, fmt.Errorf("updated at filter: %w", err))
 		}
 	}
 

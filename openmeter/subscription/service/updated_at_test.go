@@ -75,6 +75,7 @@ func TestListUpdatedAt(t *testing.T) {
 	before := createSubscription("before-checkpoint")
 
 	clock.FreezeTime(checkpoint)
+	defer clock.UnFreeze()
 	atCheckpoint := createSubscription("at-checkpoint")
 
 	// when/then: gte includes the boundary, gt excludes it, and lt selects the
