@@ -311,7 +311,7 @@ func (s *CreditThenInvoiceStateMachine) cancelCurrentRealization(ctx context.Con
 			return fmt.Errorf("calculating fiat overage for realization run[%s]: %w", run.ID.ID, err)
 		}
 
-		shouldCorrect = !fiatOverage.ShouldOmitInvoiceLine
+		shouldCorrect = !fiatOverage.ShouldOmitInvoiceLine || !run.CreditRealizations.Sum().IsZero()
 	}
 
 	if shouldCorrect {
