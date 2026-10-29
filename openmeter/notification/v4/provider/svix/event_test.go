@@ -6,13 +6,13 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	v4 "github.com/openmeterio/openmeter/openmeter/notification/v4"
+	notificationprovider "github.com/openmeterio/openmeter/openmeter/notification/v4/provider"
 )
 
 func TestResolveResendBaseline(t *testing.T) {
 	type testCase struct {
 		generation uint64
-		data       v4.ProviderData
+		data       map[string]string
 		baseline   []string
 		wantError  string
 	}
@@ -20,7 +20,7 @@ func TestResolveResendBaseline(t *testing.T) {
 	tests := map[string]testCase{
 		"previous generation observation": {
 			generation: 2,
-			data: v4.ProviderData{
+			data: map[string]string{
 				providerDataDispatchGeneration: "1",
 				providerDataObservedAttempts:   `["b","a"]`,
 			},
@@ -28,7 +28,7 @@ func TestResolveResendBaseline(t *testing.T) {
 		},
 		"same generation preserves baseline": {
 			generation: 2,
-			data: v4.ProviderData{
+			data: map[string]string{
 				providerDataDispatchGeneration: "2",
 				providerDataObservedAttempts:   `["a","b"]`,
 				providerDataResendBaseline:     `["a"]`,
@@ -37,7 +37,7 @@ func TestResolveResendBaseline(t *testing.T) {
 		},
 		"next generation uses observation not old baseline": {
 			generation: 3,
-			data: v4.ProviderData{
+			data: map[string]string{
 				providerDataDispatchGeneration: "2",
 				providerDataObservedAttempts:   `["a","b"]`,
 				providerDataResendBaseline:     `["a"]`,
@@ -46,7 +46,7 @@ func TestResolveResendBaseline(t *testing.T) {
 		},
 		"explicit empty observation": {
 			generation: 2,
-			data: v4.ProviderData{
+			data: map[string]string{
 				providerDataDispatchGeneration: "1",
 				providerDataObservedAttempts:   `[]`,
 			},
@@ -54,7 +54,7 @@ func TestResolveResendBaseline(t *testing.T) {
 		},
 		"explicit empty baseline": {
 			generation: 2,
-			data: v4.ProviderData{
+			data: map[string]string{
 				providerDataDispatchGeneration: "2",
 				providerDataResendBaseline:     `[]`,
 			},
@@ -73,22 +73,22 @@ func TestResolveResendBaseline(t *testing.T) {
 		},
 		"stale generation": {
 			generation: 3,
-			data:       v4.ProviderData{providerDataDispatchGeneration: "1"},
+			data:       map[string]string{providerDataDispatchGeneration: "1"},
 			wantError:  "invalid observation generation",
 		},
 		"future generation": {
 			generation: 2,
-			data:       v4.ProviderData{providerDataDispatchGeneration: "3"},
+			data:       map[string]string{providerDataDispatchGeneration: "3"},
 			wantError:  "invalid observation generation",
 		},
 		"missing observation": {
 			generation: 2,
-			data:       v4.ProviderData{providerDataDispatchGeneration: "1"},
+			data:       map[string]string{providerDataDispatchGeneration: "1"},
 			wantError:  "invalid resend baseline",
 		},
 		"missing baseline does not fall back to observation": {
 			generation: 2,
-			data: v4.ProviderData{
+			data: map[string]string{
 				providerDataDispatchGeneration: "2",
 				providerDataObservedAttempts:   `["a","b"]`,
 			},
@@ -108,7 +108,7 @@ func TestResolveResendBaseline(t *testing.T) {
 	} {
 		tests[name] = testCase{
 			generation: 2,
-			data: v4.ProviderData{
+			data: map[string]string{
 				providerDataDispatchGeneration: "1",
 				providerDataObservedAttempts:   encoded,
 			},
@@ -120,7 +120,7 @@ func TestResolveResendBaseline(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			original := maps.Clone(test.data)
 
-			baseline, err := resolveResendBaseline(v4.GetEventDestination{
+			baseline, err := resolveResendBaseline(notificationprovider.GetEventDestination{
 				DispatchGeneration:              test.generation,
 				EventDeliveryStatusProviderData: test.data,
 			})

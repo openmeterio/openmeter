@@ -121,13 +121,13 @@ func fromAPIMessageAttemptOut(namespace string, attempt svixmodels.MessageAttemp
 		State:        state,
 		Timestamp:    attempt.Timestamp,
 		Response:     encoded,
-		ProviderData: v4.ProviderData{providerDataAttemptID: attempt.Id},
+		ProviderData: map[string]string{providerDataAttemptID: attempt.Id},
 	}, nil
 }
 
 // Results replace this provider's subset without returning another provider's keys.
-func svixProviderData(data v4.ProviderData) v4.ProviderData {
-	result := make(v4.ProviderData)
+func svixProviderData(data map[string]string) map[string]string {
+	result := make(map[string]string)
 
 	for key, value := range data {
 		if strings.HasPrefix(key, "svix.") {

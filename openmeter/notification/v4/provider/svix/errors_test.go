@@ -12,39 +12,39 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	v4 "github.com/openmeterio/openmeter/openmeter/notification/v4"
+	notificationprovider "github.com/openmeterio/openmeter/openmeter/notification/v4/provider"
 )
 
 func TestNormalizeTransportError(t *testing.T) {
 	tests := []struct {
 		name     string
 		cause    error
-		wantKind v4.ProviderErrorKind
-		wantCode v4.ProviderErrorCode
+		wantKind notificationprovider.ProviderErrorKind
+		wantCode notificationprovider.ProviderErrorCode
 	}{
 		{
 			name:     "connection refused",
 			cause:    &net.OpError{Op: "dial", Net: "tcp", Err: errors.New("connection refused")},
-			wantKind: v4.ProviderErrorKindRetryable,
-			wantCode: v4.ProviderErrorCodeUnavailable,
+			wantKind: notificationprovider.ProviderErrorKindRetryable,
+			wantCode: notificationprovider.ProviderErrorCodeUnavailable,
 		},
 		{
 			name:     "HTTP client timeout",
 			cause:    &url.Error{Op: "Get", URL: "http://svix", Err: context.DeadlineExceeded},
-			wantKind: v4.ProviderErrorKindRetryable,
-			wantCode: v4.ProviderErrorCodeUnavailable,
+			wantKind: notificationprovider.ProviderErrorKindRetryable,
+			wantCode: notificationprovider.ProviderErrorCodeUnavailable,
 		},
 		{
 			name:     "EOF",
 			cause:    io.EOF,
-			wantKind: v4.ProviderErrorKindRetryable,
-			wantCode: v4.ProviderErrorCodeUnavailable,
+			wantKind: notificationprovider.ProviderErrorKindRetryable,
+			wantCode: notificationprovider.ProviderErrorCodeUnavailable,
 		},
 		{
 			name:     "unexpected EOF",
 			cause:    io.ErrUnexpectedEOF,
-			wantKind: v4.ProviderErrorKindRetryable,
-			wantCode: v4.ProviderErrorCodeUnavailable,
+			wantKind: notificationprovider.ProviderErrorKindRetryable,
+			wantCode: notificationprovider.ProviderErrorCodeUnavailable,
 		},
 	}
 
@@ -54,7 +54,7 @@ func TestNormalizeTransportError(t *testing.T) {
 			err := normalizeError(tt.cause)
 
 			// Then the failure is retryable and preserves its cause.
-			var providerErr *v4.ProviderError
+			var providerErr *notificationprovider.ProviderError
 
 			require.ErrorAs(t, err, &providerErr)
 			require.Equal(t, tt.wantKind, providerErr.Kind)
@@ -77,9 +77,9 @@ func TestNormalizeProviderError(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Given an already classified failure with provider retry metadata.
 			cause := errors.New("rate limit exceeded")
-			providerErr := &v4.ProviderError{
-				Kind:       v4.ProviderErrorKindRetryable,
-				Code:       v4.ProviderErrorCodeRateLimited,
+			providerErr := &notificationprovider.ProviderError{
+				Kind:       notificationprovider.ProviderErrorKindRetryable,
+				Code:       notificationprovider.ProviderErrorCodeRateLimited,
 				RetryAfter: new(time.Second),
 				Err:        cause,
 			}
@@ -94,8 +94,8 @@ func TestNormalizeProviderError(t *testing.T) {
 
 			// Then the existing error is preserved without copying or mutation.
 			require.Same(t, providerErr, normalized)
-			require.Equal(t, v4.ProviderErrorKindRetryable, normalized.Kind)
-			require.Equal(t, v4.ProviderErrorCodeRateLimited, normalized.Code)
+			require.Equal(t, notificationprovider.ProviderErrorKindRetryable, normalized.Kind)
+			require.Equal(t, notificationprovider.ProviderErrorCodeRateLimited, normalized.Code)
 			require.Equal(t, time.Second, *normalized.RetryAfter)
 			require.Same(t, cause, normalized.Err)
 			require.ErrorIs(t, normalized, cause)

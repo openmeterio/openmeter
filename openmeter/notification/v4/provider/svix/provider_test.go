@@ -17,7 +17,8 @@ import (
 	svixutils "github.com/svix/svix-webhooks/v2/go/utils"
 
 	v4 "github.com/openmeterio/openmeter/openmeter/notification/v4"
-	"github.com/openmeterio/openmeter/openmeter/notification/v4/providers/svix/testutils"
+	notificationprovider "github.com/openmeterio/openmeter/openmeter/notification/v4/provider"
+	"github.com/openmeterio/openmeter/openmeter/notification/v4/provider/svix/testutils"
 	webhooksecret "github.com/openmeterio/openmeter/openmeter/notification/webhook/secret"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -42,7 +43,7 @@ func TestProvider(t *testing.T) {
 			t.Parallel()
 
 			// Given a unique namespace with cleanup independent of test cancellation.
-			namespace := v4.ProviderNamespace{
+			namespace := notificationprovider.Namespace{
 				ID:   ulid.Make().String(),
 				Name: "Namespace integration test",
 				Metadata: models.Metadata{
@@ -58,13 +59,13 @@ func TestProvider(t *testing.T) {
 				cleanupCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
 				defer cancel()
 
-				err := provider.DeleteNamespace(cleanupCtx, v4.DeleteNamespaceInput{ID: namespace.ID})
+				err := provider.DeleteNamespace(cleanupCtx, notificationprovider.DeleteNamespaceInput{ID: namespace.ID})
 				require.NoError(t, err, "failed to clean up namespace")
 			})
 
-			input := v4.CreateNamespaceInput{
-				ProviderNamespace: namespace,
-				IdempotencyKey:    new(ulid.Make().String()),
+			input := notificationprovider.CreateNamespaceInput{
+				Namespace:      namespace,
+				IdempotencyKey: new(ulid.Make().String()),
 			}
 
 			// When the namespace is created.
@@ -77,13 +78,13 @@ func TestProvider(t *testing.T) {
 			require.NotEmpty(t, applicationID)
 			require.NotEqual(t, namespace.ID, applicationID)
 
-			providerData := v4.ProviderData{"svix.application_id": applicationID}
+			providerData := map[string]string{"svix.application_id": applicationID}
 
 			namespace.ProviderData = providerData
 
 			AssertNamespace(t, created, namespace)
 
-			createdStored, err := provider.GetNamespace(t.Context(), v4.GetNamespaceInput{ID: namespace.ID})
+			createdStored, err := provider.GetNamespace(t.Context(), notificationprovider.GetNamespaceInput{ID: namespace.ID})
 			require.NoError(t, err)
 			AssertNamespace(t, createdStored, namespace)
 			require.Equal(t, created, createdStored)
@@ -101,7 +102,7 @@ func TestProvider(t *testing.T) {
 				// Then both identities, metadata, and provider data remain unchanged.
 				AssertNamespace(t, repeated, namespace)
 
-				repeatedStored, err := provider.GetNamespace(t.Context(), v4.GetNamespaceInput{ID: namespace.ID})
+				repeatedStored, err := provider.GetNamespace(t.Context(), notificationprovider.GetNamespaceInput{ID: namespace.ID})
 				require.NoError(t, err)
 				AssertNamespace(t, repeatedStored, namespace)
 				require.Equal(t, repeated, repeatedStored)
@@ -113,8 +114,8 @@ func TestProvider(t *testing.T) {
 
 			t.Run("GetExistingWithoutOverwriting", func(t *testing.T) {
 				// Given the existing UID with different requested attributes and no caller key.
-				input := v4.CreateNamespaceInput{
-					ProviderNamespace: v4.ProviderNamespace{
+				input := notificationprovider.CreateNamespaceInput{
+					Namespace: notificationprovider.Namespace{
 						ID:   namespace.ID,
 						Name: "Must not overwrite the existing name",
 						Metadata: models.Metadata{
@@ -130,7 +131,7 @@ func TestProvider(t *testing.T) {
 				// Then the existing state and provider data are returned without mutation.
 				AssertNamespace(t, existing, namespace)
 
-				existingStored, err := provider.GetNamespace(t.Context(), v4.GetNamespaceInput{ID: namespace.ID})
+				existingStored, err := provider.GetNamespace(t.Context(), notificationprovider.GetNamespaceInput{ID: namespace.ID})
 				require.NoError(t, err)
 				AssertNamespace(t, existingStored, namespace)
 				require.Equal(t, existing, existingStored)
@@ -144,23 +145,23 @@ func TestProvider(t *testing.T) {
 				t.Run("PartialUpdate", func(t *testing.T) {
 					tests := []struct {
 						name           string
-						input          v4.UpdateNamespaceInput
-						modifyExpected func(*v4.ProviderNamespace)
+						input          notificationprovider.UpdateNamespaceInput
+						modifyExpected func(*notificationprovider.Namespace)
 					}{
 						{
 							name: "NoChanges",
 						},
 						{
 							name:  "NameOnly",
-							input: v4.UpdateNamespaceInput{Name: new("Renamed")},
-							modifyExpected: func(expected *v4.ProviderNamespace) {
+							input: notificationprovider.UpdateNamespaceInput{Name: new("Renamed")},
+							modifyExpected: func(expected *notificationprovider.Namespace) {
 								expected.Name = "Renamed"
 							},
 						},
 						{
 							name:  "MetadataOnly",
-							input: v4.UpdateNamespaceInput{Metadata: new(models.Metadata{"replacement": "value"})},
-							modifyExpected: func(expected *v4.ProviderNamespace) {
+							input: notificationprovider.UpdateNamespaceInput{Metadata: new(models.Metadata{"replacement": "value"})},
+							modifyExpected: func(expected *notificationprovider.Namespace) {
 								expected.Metadata = models.Metadata{"replacement": "value"}
 							},
 						},
@@ -188,7 +189,7 @@ func TestProvider(t *testing.T) {
 							// Then omitted fields and both identities remain unchanged.
 							AssertNamespace(t, updated, expected)
 
-							stored, err := provider.GetNamespace(t.Context(), v4.GetNamespaceInput{ID: namespace.ID})
+							stored, err := provider.GetNamespace(t.Context(), notificationprovider.GetNamespaceInput{ID: namespace.ID})
 							require.NoError(t, err)
 							AssertNamespace(t, stored, expected)
 
@@ -205,7 +206,7 @@ func TestProvider(t *testing.T) {
 					require.NoError(t, err)
 					AssertNamespace(t, seeded, namespace)
 
-					seededStored, err := provider.GetNamespace(t.Context(), v4.GetNamespaceInput{ID: namespace.ID})
+					seededStored, err := provider.GetNamespace(t.Context(), notificationprovider.GetNamespaceInput{ID: namespace.ID})
 					require.NoError(t, err)
 					AssertNamespace(t, seededStored, namespace)
 					require.Equal(t, seeded, seededStored)
@@ -214,7 +215,7 @@ func TestProvider(t *testing.T) {
 					require.NoError(t, err)
 					AssertNamespaceWithApplication(t, seededApplication, namespace)
 
-					input := v4.ProviderNamespace{
+					input := notificationprovider.Namespace{
 						ID:   namespace.ID,
 						Name: "Updated namespace",
 						Metadata: models.Metadata{
@@ -231,7 +232,7 @@ func TestProvider(t *testing.T) {
 					// Then obsolete metadata is removed while provider data is preserved.
 					AssertNamespace(t, updated, input)
 
-					updatedStored, err := provider.GetNamespace(t.Context(), v4.GetNamespaceInput{ID: input.ID})
+					updatedStored, err := provider.GetNamespace(t.Context(), notificationprovider.GetNamespaceInput{ID: input.ID})
 					require.NoError(t, err)
 					AssertNamespace(t, updatedStored, input)
 					require.Equal(t, updated, updatedStored)
@@ -247,7 +248,7 @@ func TestProvider(t *testing.T) {
 					require.NoError(t, err)
 					AssertNamespace(t, seeded, namespace)
 
-					seededStored, err := provider.GetNamespace(t.Context(), v4.GetNamespaceInput{ID: namespace.ID})
+					seededStored, err := provider.GetNamespace(t.Context(), notificationprovider.GetNamespaceInput{ID: namespace.ID})
 					require.NoError(t, err)
 					AssertNamespace(t, seededStored, namespace)
 					require.Equal(t, seeded, seededStored)
@@ -256,7 +257,7 @@ func TestProvider(t *testing.T) {
 					require.NoError(t, err)
 					AssertNamespaceWithApplication(t, seededApplication, namespace)
 
-					input := v4.ProviderNamespace{
+					input := notificationprovider.Namespace{
 						ID:           namespace.ID,
 						Name:         namespace.Name,
 						Metadata:     nil,
@@ -270,7 +271,7 @@ func TestProvider(t *testing.T) {
 					// Then user metadata is cleared, but provider data is retained.
 					AssertNamespace(t, updated, input)
 
-					updatedStored, err := provider.GetNamespace(t.Context(), v4.GetNamespaceInput{ID: input.ID})
+					updatedStored, err := provider.GetNamespace(t.Context(), notificationprovider.GetNamespaceInput{ID: input.ID})
 					require.NoError(t, err)
 					AssertNamespace(t, updatedStored, input)
 					require.Equal(t, updated, updatedStored)
@@ -286,7 +287,7 @@ func TestProvider(t *testing.T) {
 					require.NoError(t, err)
 					AssertNamespace(t, seeded, namespace)
 
-					seededStored, err := provider.GetNamespace(t.Context(), v4.GetNamespaceInput{ID: namespace.ID})
+					seededStored, err := provider.GetNamespace(t.Context(), notificationprovider.GetNamespaceInput{ID: namespace.ID})
 					require.NoError(t, err)
 					AssertNamespace(t, seededStored, namespace)
 					require.Equal(t, seeded, seededStored)
@@ -295,7 +296,7 @@ func TestProvider(t *testing.T) {
 					require.NoError(t, err)
 					AssertNamespaceWithApplication(t, seededApplication, namespace)
 
-					input := v4.ProviderNamespace{
+					input := notificationprovider.Namespace{
 						ID:           namespace.ID,
 						Name:         namespace.Name,
 						Metadata:     models.Metadata{},
@@ -309,7 +310,7 @@ func TestProvider(t *testing.T) {
 					// Then user metadata is cleared, but provider data is retained.
 					AssertNamespace(t, updated, input)
 
-					updatedStored, err := provider.GetNamespace(t.Context(), v4.GetNamespaceInput{ID: input.ID})
+					updatedStored, err := provider.GetNamespace(t.Context(), notificationprovider.GetNamespaceInput{ID: input.ID})
 					require.NoError(t, err)
 					AssertNamespace(t, updatedStored, input)
 					require.Equal(t, updated, updatedStored)
@@ -322,28 +323,28 @@ func TestProvider(t *testing.T) {
 
 			t.Run("Delete", func(t *testing.T) {
 				// Given the namespace created by the parent, whether or not Update ran.
-				input := v4.DeleteNamespaceInput{ID: namespace.ID}
+				input := notificationprovider.DeleteNamespaceInput{ID: namespace.ID}
 
 				// When the namespace is deleted.
 				err := provider.DeleteNamespace(t.Context(), input)
 				require.NoError(t, err)
 
 				// Then it is no longer retrievable and no provider data is returned.
-				deleted, err := provider.GetNamespace(t.Context(), v4.GetNamespaceInput{ID: namespace.ID})
+				deleted, err := provider.GetNamespace(t.Context(), notificationprovider.GetNamespaceInput{ID: namespace.ID})
 				require.Error(t, err)
 				require.Nil(t, deleted)
 
-				var providerErr *v4.ProviderError
+				var providerErr *notificationprovider.ProviderError
 				require.ErrorAs(t, err, &providerErr)
-				require.Equal(t, v4.ProviderErrorCodeResourceNotFound, providerErr.Code)
+				require.Equal(t, notificationprovider.ProviderErrorCodeResourceNotFound, providerErr.Code)
 
 				t.Run("UpdateMissing", func(t *testing.T) {
 					tests := []struct {
 						name  string
-						input v4.UpdateNamespaceInput
+						input notificationprovider.UpdateNamespaceInput
 					}{
-						{name: "NoChanges", input: v4.UpdateNamespaceInput{ID: namespace.ID}},
-						{name: "NameOnly", input: v4.UpdateNamespaceInput{ID: namespace.ID, Name: new("Must not recreate")}},
+						{name: "NoChanges", input: notificationprovider.UpdateNamespaceInput{ID: namespace.ID}},
+						{name: "NameOnly", input: notificationprovider.UpdateNamespaceInput{ID: namespace.ID, Name: new("Must not recreate")}},
 					}
 
 					for _, tt := range tests {
@@ -354,9 +355,9 @@ func TestProvider(t *testing.T) {
 							// Then even an empty update reports absence rather than success.
 							require.Nil(t, updated)
 
-							var providerErr *v4.ProviderError
+							var providerErr *notificationprovider.ProviderError
 							require.ErrorAs(t, err, &providerErr)
-							require.Equal(t, v4.ProviderErrorCodeResourceNotFound, providerErr.Code)
+							require.Equal(t, notificationprovider.ProviderErrorCodeResourceNotFound, providerErr.Code)
 						})
 					}
 				})
@@ -416,12 +417,12 @@ func TestProvider(t *testing.T) {
 				cleanupCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
 				defer cancel()
 
-				err := provider.DeleteNamespace(cleanupCtx, v4.DeleteNamespaceInput{ID: namespaceID})
+				err := provider.DeleteNamespace(cleanupCtx, notificationprovider.DeleteNamespaceInput{ID: namespaceID})
 				require.NoError(t, err, "failed to clean up channel namespace")
 			})
 
-			_, err := provider.CreateNamespace(t.Context(), v4.CreateNamespaceInput{
-				ProviderNamespace: v4.ProviderNamespace{
+			_, err := provider.CreateNamespace(t.Context(), notificationprovider.CreateNamespaceInput{
+				Namespace: notificationprovider.Namespace{
 					ID:   namespaceID,
 					Name: "Channel integration test",
 				},
@@ -435,7 +436,7 @@ func TestProvider(t *testing.T) {
 
 			t.Run("Create", func(t *testing.T) {
 				// Given a provisioned namespace and a webhook configuration.
-				input := v4.CreateChannelInput[v4.WebhookConfig]{
+				input := notificationprovider.CreateChannelInput[v4.WebhookConfig]{
 					Namespace: namespaceID,
 					ChannelID: ulid.Make().String(),
 					Name:      "Initial channel",
@@ -461,25 +462,25 @@ func TestProvider(t *testing.T) {
 				require.NotEmpty(t, endpointID)
 				require.NotEqual(t, input.ChannelID, endpointID)
 
-				expected := v4.CreateChannelInput[v4.WebhookConfig]{
+				expected := notificationprovider.CreateChannelInput[v4.WebhookConfig]{
 					Namespace:  input.Namespace,
 					ChannelID:  input.ChannelID,
 					Name:       input.Name,
 					Config:     input.Config,
 					EventTypes: input.EventTypes,
-					ProviderData: v4.ProviderData{
+					ProviderData: map[string]string{
 						"svix.endpoint_id": endpointID,
 					},
 				}
 
-				expectedResult := v4.ChannelOperationResult{
-					State:        v4.ChannelOperationStateInSync,
+				expectedResult := notificationprovider.ChannelOperationResult{
+					State:        notificationprovider.ChannelOperationStateInSync,
 					ProviderData: expected.ProviderData,
 				}
 
 				AssertChannel(t, created, expectedResult)
 
-				createdStored, err := provider.GetChannel(t.Context(), v4.GetChannelInput{
+				createdStored, err := provider.GetChannel(t.Context(), notificationprovider.GetChannelInput{
 					Namespace:    expected.Namespace,
 					ChannelID:    expected.ChannelID,
 					ProviderData: expected.ProviderData,
@@ -518,7 +519,7 @@ func TestProvider(t *testing.T) {
 					// Then the same endpoint, provider data, and secret are returned.
 					AssertChannel(t, repeated, expectedResult)
 
-					repeatedStored, err := provider.GetChannel(t.Context(), v4.GetChannelInput{
+					repeatedStored, err := provider.GetChannel(t.Context(), notificationprovider.GetChannelInput{
 						Namespace:    expected.Namespace,
 						ChannelID:    expected.ChannelID,
 						ProviderData: expected.ProviderData,
@@ -561,7 +562,7 @@ func TestProvider(t *testing.T) {
 					// Then no replacement endpoint or secret is created.
 					AssertChannel(t, repeated, expectedResult)
 
-					repeatedStored, err := provider.GetChannel(t.Context(), v4.GetChannelInput{
+					repeatedStored, err := provider.GetChannel(t.Context(), notificationprovider.GetChannelInput{
 						Namespace:    expected.Namespace,
 						ChannelID:    expected.ChannelID,
 						ProviderData: expected.ProviderData,
@@ -599,88 +600,88 @@ func TestProvider(t *testing.T) {
 
 						tests := []struct {
 							name              string
-							input             v4.UpdateChannelInput[v4.WebhookConfigUpdate]
+							input             notificationprovider.UpdateChannelInput[v4.WebhookConfigUpdate]
 							initiallyDisabled bool
-							modifyExpected    func(*v4.CreateChannelInput[v4.WebhookConfig])
+							modifyExpected    func(*notificationprovider.CreateChannelInput[v4.WebhookConfig])
 						}{
 							{
 								name: "NoChanges",
 							},
 							{
 								name:  "NameOnly",
-								input: v4.UpdateChannelInput[v4.WebhookConfigUpdate]{Name: new("Renamed")},
-								modifyExpected: func(want *v4.CreateChannelInput[v4.WebhookConfig]) {
+								input: notificationprovider.UpdateChannelInput[v4.WebhookConfigUpdate]{Name: new("Renamed")},
+								modifyExpected: func(want *notificationprovider.CreateChannelInput[v4.WebhookConfig]) {
 									want.Name = "Renamed"
 								},
 							},
 							{
 								name:  "URLOnly",
-								input: v4.UpdateChannelInput[v4.WebhookConfigUpdate]{Config: v4.WebhookConfigUpdate{URL: new(receiver.URL + "/partial")}},
-								modifyExpected: func(want *v4.CreateChannelInput[v4.WebhookConfig]) {
+								input: notificationprovider.UpdateChannelInput[v4.WebhookConfigUpdate]{Config: v4.WebhookConfigUpdate{URL: new(receiver.URL + "/partial")}},
+								modifyExpected: func(want *notificationprovider.CreateChannelInput[v4.WebhookConfig]) {
 									want.Config.URL = receiver.URL + "/partial"
 								},
 							},
 							{
 								name:  "HeadersOnly",
-								input: v4.UpdateChannelInput[v4.WebhookConfigUpdate]{Config: v4.WebhookConfigUpdate{CustomHeaders: new(map[string]string{"x-test-new": "partial"})}},
-								modifyExpected: func(want *v4.CreateChannelInput[v4.WebhookConfig]) {
+								input: notificationprovider.UpdateChannelInput[v4.WebhookConfigUpdate]{Config: v4.WebhookConfigUpdate{CustomHeaders: new(map[string]string{"x-test-new": "partial"})}},
+								modifyExpected: func(want *notificationprovider.CreateChannelInput[v4.WebhookConfig]) {
 									want.Config.CustomHeaders = map[string]string{"x-test-new": "partial"}
 								},
 							},
 							{
 								name:  "ClearHeadersWithNil",
-								input: v4.UpdateChannelInput[v4.WebhookConfigUpdate]{Config: v4.WebhookConfigUpdate{CustomHeaders: new(map[string]string)}},
-								modifyExpected: func(want *v4.CreateChannelInput[v4.WebhookConfig]) {
+								input: notificationprovider.UpdateChannelInput[v4.WebhookConfigUpdate]{Config: v4.WebhookConfigUpdate{CustomHeaders: new(map[string]string)}},
+								modifyExpected: func(want *notificationprovider.CreateChannelInput[v4.WebhookConfig]) {
 									want.Config.CustomHeaders = nil
 								},
 							},
 							{
 								name:  "ClearHeadersWithEmptyMap",
-								input: v4.UpdateChannelInput[v4.WebhookConfigUpdate]{Config: v4.WebhookConfigUpdate{CustomHeaders: new(map[string]string{})}},
-								modifyExpected: func(want *v4.CreateChannelInput[v4.WebhookConfig]) {
+								input: notificationprovider.UpdateChannelInput[v4.WebhookConfigUpdate]{Config: v4.WebhookConfigUpdate{CustomHeaders: new(map[string]string{})}},
+								modifyExpected: func(want *notificationprovider.CreateChannelInput[v4.WebhookConfig]) {
 									want.Config.CustomHeaders = map[string]string{}
 								},
 							},
 							{
 								name:  "SecretOnly",
-								input: v4.UpdateChannelInput[v4.WebhookConfigUpdate]{Config: v4.WebhookConfigUpdate{SigningSecret: &rotatedSecret}},
-								modifyExpected: func(want *v4.CreateChannelInput[v4.WebhookConfig]) {
+								input: notificationprovider.UpdateChannelInput[v4.WebhookConfigUpdate]{Config: v4.WebhookConfigUpdate{SigningSecret: &rotatedSecret}},
+								modifyExpected: func(want *notificationprovider.CreateChannelInput[v4.WebhookConfig]) {
 									want.Config.SigningSecret = rotatedSecret
 								},
 							},
 							{
 								name:  "Disable",
-								input: v4.UpdateChannelInput[v4.WebhookConfigUpdate]{Disabled: new(true)},
-								modifyExpected: func(want *v4.CreateChannelInput[v4.WebhookConfig]) {
+								input: notificationprovider.UpdateChannelInput[v4.WebhookConfigUpdate]{Disabled: new(true)},
+								modifyExpected: func(want *notificationprovider.CreateChannelInput[v4.WebhookConfig]) {
 									want.Disabled = true
 								},
 							},
 							{
 								name:              "Enable",
 								initiallyDisabled: true,
-								input:             v4.UpdateChannelInput[v4.WebhookConfigUpdate]{Disabled: new(false)},
-								modifyExpected: func(want *v4.CreateChannelInput[v4.WebhookConfig]) {
+								input:             notificationprovider.UpdateChannelInput[v4.WebhookConfigUpdate]{Disabled: new(false)},
+								modifyExpected: func(want *notificationprovider.CreateChannelInput[v4.WebhookConfig]) {
 									want.Disabled = false
 								},
 							},
 							{
 								name:  "EventTypesOnly",
-								input: v4.UpdateChannelInput[v4.WebhookConfigUpdate]{EventTypes: new(eventTypes[1:])},
-								modifyExpected: func(want *v4.CreateChannelInput[v4.WebhookConfig]) {
+								input: notificationprovider.UpdateChannelInput[v4.WebhookConfigUpdate]{EventTypes: new(eventTypes[1:])},
+								modifyExpected: func(want *notificationprovider.CreateChannelInput[v4.WebhookConfig]) {
 									want.EventTypes = eventTypes[1:]
 								},
 							},
 							{
 								name:  "ClearEventTypesWithNil",
-								input: v4.UpdateChannelInput[v4.WebhookConfigUpdate]{EventTypes: new([]v4.EventType)},
-								modifyExpected: func(want *v4.CreateChannelInput[v4.WebhookConfig]) {
+								input: notificationprovider.UpdateChannelInput[v4.WebhookConfigUpdate]{EventTypes: new([]v4.EventType)},
+								modifyExpected: func(want *notificationprovider.CreateChannelInput[v4.WebhookConfig]) {
 									want.EventTypes = nil
 								},
 							},
 							{
 								name:  "ClearEventTypesWithEmptySlice",
-								input: v4.UpdateChannelInput[v4.WebhookConfigUpdate]{EventTypes: new([]v4.EventType{})},
-								modifyExpected: func(want *v4.CreateChannelInput[v4.WebhookConfig]) {
+								input: notificationprovider.UpdateChannelInput[v4.WebhookConfigUpdate]{EventTypes: new([]v4.EventType{})},
+								modifyExpected: func(want *notificationprovider.CreateChannelInput[v4.WebhookConfig]) {
 									want.EventTypes = []v4.EventType{}
 								},
 							},
@@ -743,7 +744,7 @@ func TestProvider(t *testing.T) {
 						require.NoError(t, err)
 
 						// When only the name changes, then both routing filters survive.
-						updated, err := provider.UpdateChannel(t.Context(), v4.UpdateChannelInput[v4.WebhookConfigUpdate]{
+						updated, err := provider.UpdateChannel(t.Context(), notificationprovider.UpdateChannelInput[v4.WebhookConfigUpdate]{
 							Namespace: namespaceID,
 							ChannelID: expected.ChannelID,
 							Name:      new("Renamed legacy endpoint"),
@@ -759,7 +760,7 @@ func TestProvider(t *testing.T) {
 						require.Equal(t, []string{eventTypes[0].String()}, endpoint.EventTypes)
 
 						// When event-type routing is explicitly updated, legacy routing is removed.
-						updated, err = provider.UpdateChannel(t.Context(), v4.UpdateChannelInput[v4.WebhookConfigUpdate]{
+						updated, err = provider.UpdateChannel(t.Context(), notificationprovider.UpdateChannelInput[v4.WebhookConfigUpdate]{
 							Namespace:  namespaceID,
 							ChannelID:  expected.ChannelID,
 							EventTypes: new(eventTypes[1:]),
@@ -800,7 +801,7 @@ func TestProvider(t *testing.T) {
 
 						AssertChannel(t, updated, expectedResult)
 
-						updatedStored, err := provider.GetChannel(t.Context(), v4.GetChannelInput{
+						updatedStored, err := provider.GetChannel(t.Context(), notificationprovider.GetChannelInput{
 							Namespace:    want.Namespace,
 							ChannelID:    want.ChannelID,
 							ProviderData: want.ProviderData,
@@ -837,7 +838,7 @@ func TestProvider(t *testing.T) {
 						require.NoError(t, err)
 						AssertChannel(t, seeded, expectedResult)
 
-						seededStored, err := provider.GetChannel(t.Context(), v4.GetChannelInput{
+						seededStored, err := provider.GetChannel(t.Context(), notificationprovider.GetChannelInput{
 							Namespace:    expected.Namespace,
 							ChannelID:    expected.ChannelID,
 							ProviderData: expected.ProviderData,
@@ -877,7 +878,7 @@ func TestProvider(t *testing.T) {
 						// Then headers are cleared without changing identity or secret.
 						AssertChannel(t, updated, expectedResult)
 
-						updatedStored, err := provider.GetChannel(t.Context(), v4.GetChannelInput{
+						updatedStored, err := provider.GetChannel(t.Context(), notificationprovider.GetChannelInput{
 							Namespace:    input.Namespace,
 							ChannelID:    input.ChannelID,
 							ProviderData: input.ProviderData,
@@ -914,7 +915,7 @@ func TestProvider(t *testing.T) {
 						require.NoError(t, err)
 						AssertChannel(t, seeded, expectedResult)
 
-						seededStored, err := provider.GetChannel(t.Context(), v4.GetChannelInput{
+						seededStored, err := provider.GetChannel(t.Context(), notificationprovider.GetChannelInput{
 							Namespace:    expected.Namespace,
 							ChannelID:    expected.ChannelID,
 							ProviderData: expected.ProviderData,
@@ -954,7 +955,7 @@ func TestProvider(t *testing.T) {
 						// Then headers are cleared without changing identity or secret.
 						AssertChannel(t, updated, expectedResult)
 
-						updatedStored, err := provider.GetChannel(t.Context(), v4.GetChannelInput{
+						updatedStored, err := provider.GetChannel(t.Context(), notificationprovider.GetChannelInput{
 							Namespace:    input.Namespace,
 							ChannelID:    input.ChannelID,
 							ProviderData: input.ProviderData,
@@ -991,7 +992,7 @@ func TestProvider(t *testing.T) {
 						require.NoError(t, err)
 						AssertChannel(t, seeded, expectedResult)
 
-						seededStored, err := provider.GetChannel(t.Context(), v4.GetChannelInput{
+						seededStored, err := provider.GetChannel(t.Context(), notificationprovider.GetChannelInput{
 							Namespace:    expected.Namespace,
 							ChannelID:    expected.ChannelID,
 							ProviderData: expected.ProviderData,
@@ -1035,7 +1036,7 @@ func TestProvider(t *testing.T) {
 						// Then the secret changes while provider data stays unchanged.
 						AssertChannel(t, updated, expectedResult)
 
-						updatedStored, err := provider.GetChannel(t.Context(), v4.GetChannelInput{
+						updatedStored, err := provider.GetChannel(t.Context(), notificationprovider.GetChannelInput{
 							Namespace:    input.Namespace,
 							ChannelID:    input.ChannelID,
 							ProviderData: input.ProviderData,
@@ -1074,7 +1075,7 @@ func TestProvider(t *testing.T) {
 							// Then the rotated secret and endpoint identity remain stable.
 							AssertChannel(t, repeated, expectedResult)
 
-							repeatedStored, err := provider.GetChannel(t.Context(), v4.GetChannelInput{
+							repeatedStored, err := provider.GetChannel(t.Context(), notificationprovider.GetChannelInput{
 								Namespace:    input.Namespace,
 								ChannelID:    input.ChannelID,
 								ProviderData: input.ProviderData,
@@ -1117,7 +1118,7 @@ func TestProvider(t *testing.T) {
 							// Then the rotated secret is retained, not reset or regenerated.
 							AssertChannel(t, updated, expectedResult)
 
-							updatedStored, err := provider.GetChannel(t.Context(), v4.GetChannelInput{
+							updatedStored, err := provider.GetChannel(t.Context(), notificationprovider.GetChannelInput{
 								Namespace:    input.Namespace,
 								ChannelID:    input.ChannelID,
 								ProviderData: input.ProviderData,
@@ -1152,7 +1153,7 @@ func TestProvider(t *testing.T) {
 
 				t.Run("Delete", func(t *testing.T) {
 					// Given the endpoint created by the parent, regardless of Update.
-					input := v4.DeleteChannelInput{
+					input := notificationprovider.DeleteChannelInput{
 						Namespace:    namespaceID,
 						ChannelID:    expected.ChannelID,
 						ProviderData: expected.ProviderData,
@@ -1167,18 +1168,18 @@ func TestProvider(t *testing.T) {
 					require.Error(t, err)
 					require.Nil(t, deleted)
 
-					var providerErr *v4.ProviderError
+					var providerErr *notificationprovider.ProviderError
 					require.ErrorAs(t, err, &providerErr)
-					require.Equal(t, v4.ProviderErrorCodeResourceNotFound, providerErr.Code)
+					require.Equal(t, notificationprovider.ProviderErrorCodeResourceNotFound, providerErr.Code)
 
 					t.Run("UpdateMissing", func(t *testing.T) {
 						tests := []struct {
 							name  string
-							input v4.UpdateChannelInput[v4.WebhookConfigUpdate]
+							input notificationprovider.UpdateChannelInput[v4.WebhookConfigUpdate]
 						}{
 							{name: "NoChanges"},
-							{name: "NameOnly", input: v4.UpdateChannelInput[v4.WebhookConfigUpdate]{Name: new("Must not recreate")}},
-							{name: "HeadersOnly", input: v4.UpdateChannelInput[v4.WebhookConfigUpdate]{Config: v4.WebhookConfigUpdate{CustomHeaders: new(map[string]string{})}}},
+							{name: "NameOnly", input: notificationprovider.UpdateChannelInput[v4.WebhookConfigUpdate]{Name: new("Must not recreate")}},
+							{name: "HeadersOnly", input: notificationprovider.UpdateChannelInput[v4.WebhookConfigUpdate]{Config: v4.WebhookConfigUpdate{CustomHeaders: new(map[string]string{})}}},
 						}
 
 						for _, tt := range tests {
@@ -1193,9 +1194,9 @@ func TestProvider(t *testing.T) {
 								// Then updates never recreate the endpoint or report success.
 								require.Nil(t, updated)
 
-								var providerErr *v4.ProviderError
+								var providerErr *notificationprovider.ProviderError
 								require.ErrorAs(t, err, &providerErr)
-								require.Equal(t, v4.ProviderErrorCodeResourceNotFound, providerErr.Code)
+								require.Equal(t, notificationprovider.ProviderErrorCodeResourceNotFound, providerErr.Code)
 							})
 						}
 					})
@@ -1249,14 +1250,14 @@ func TestProvider(t *testing.T) {
 				cleanupCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
 				defer cancel()
 
-				err := provider.DeleteNamespace(cleanupCtx, v4.DeleteNamespaceInput{
+				err := provider.DeleteNamespace(cleanupCtx, notificationprovider.DeleteNamespaceInput{
 					ID: namespaceID,
 				})
 				require.NoError(t, err)
 			})
 
-			namespace, err := provider.CreateNamespace(t.Context(), v4.CreateNamespaceInput{
-				ProviderNamespace: v4.ProviderNamespace{
+			namespace, err := provider.CreateNamespace(t.Context(), notificationprovider.CreateNamespaceInput{
+				Namespace: notificationprovider.Namespace{
 					ID:   namespaceID,
 					Name: "Event integration test",
 				},
@@ -1273,7 +1274,7 @@ func TestProvider(t *testing.T) {
 			channelID := ulid.Make().String()
 			channelURL := receiver.URL + "/events"
 
-			channel, err := provider.CreateChannel(t.Context(), v4.CreateChannelInput[v4.WebhookConfig]{
+			channel, err := provider.CreateChannel(t.Context(), notificationprovider.CreateChannelInput[v4.WebhookConfig]{
 				Namespace: namespaceID,
 				ChannelID: channelID,
 				Name:      "Event integration test",
@@ -1285,18 +1286,18 @@ func TestProvider(t *testing.T) {
 			})
 			require.NoError(t, err)
 			require.NotNil(t, channel)
-			require.Equal(t, v4.ChannelOperationStateInSync, channel.State)
+			require.Equal(t, notificationprovider.ChannelOperationStateInSync, channel.State)
 			require.NotEmpty(t, channel.ProviderData["svix.endpoint_id"])
 
 			// Observation never sends or resends; it waits for provider-reported
 			// success and at least one visible attempt.
-			waitForDelivery := func(t *testing.T, input v4.GetEventInput) *v4.GetEventResult {
+			waitForDelivery := func(t *testing.T, input notificationprovider.GetEventInput) *notificationprovider.GetEventResult {
 				t.Helper()
 
 				ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 				defer cancel()
 
-				var observed *v4.GetEventResult
+				var observed *notificationprovider.GetEventResult
 
 				require.EventuallyWithT(t, func(c *assert.CollectT) {
 					result, err := provider.GetEvent(ctx, input)
@@ -1356,9 +1357,9 @@ func TestProvider(t *testing.T) {
 				require.NoError(t, err)
 
 				// When the event is submitted for delivery.
-				sendInput := v4.SendEventInput{
+				sendInput := notificationprovider.SendEventInput{
 					Event: event,
-					Destinations: []v4.EventDestination{
+					Destinations: []notificationprovider.EventDestination{
 						{
 							ChannelID:           channelID,
 							ChannelProviderData: channel.ProviderData,
@@ -1379,15 +1380,15 @@ func TestProvider(t *testing.T) {
 				require.Len(t, sent.Destinations, 1)
 				require.Equal(t, channelID, sent.Destinations[0].ChannelID)
 				require.NoError(t, sent.Destinations[0].Error)
-				require.Equal(t, v4.ProviderData{
+				require.Equal(t, map[string]string{
 					"svix.dispatch_generation": "1",
 				}, sent.Destinations[0].EventDeliveryStatusProviderData)
 
 				event.ProviderData = sent.EventProviderData
 
-				getInput := v4.GetEventInput{
+				getInput := notificationprovider.GetEventInput{
 					Event: event,
-					Destinations: []v4.GetEventDestination{
+					Destinations: []notificationprovider.GetEventDestination{
 						{
 							ChannelID:                       channelID,
 							ChannelProviderData:             channel.ProviderData,
@@ -1449,7 +1450,7 @@ func TestProvider(t *testing.T) {
 					var observedIDs []string
 					require.NoError(t, json.Unmarshal([]byte(destination.EventDeliveryStatusProviderData["svix.observed_attempts"]), &observedIDs))
 					require.ElementsMatch(t, slices.Collect(maps.Keys(attemptIDs)), observedIDs)
-					require.Equal(t, v4.ProviderData{"svix.dispatch_generation": "1"}, getInput.Destinations[0].EventDeliveryStatusProviderData)
+					require.Equal(t, map[string]string{"svix.dispatch_generation": "1"}, getInput.Destinations[0].EventDeliveryStatusProviderData)
 
 					// The independently captured webhook verifies the actual wire envelope.
 					requests := receiver.Requests()
@@ -1526,9 +1527,9 @@ func TestProvider(t *testing.T) {
 					destination.EventDeliveryStatusProviderData = before.Destinations[0].EventDeliveryStatusProviderData
 
 					// When the same event is explicitly resent to the same channel.
-					resendInput := v4.ResendEventInput{
+					resendInput := notificationprovider.ResendEventInput{
 						Event:          event,
-						Destinations:   []v4.GetEventDestination{destination},
+						Destinations:   []notificationprovider.GetEventDestination{destination},
 						IdempotencyKey: new(ulid.Make().String()),
 					}
 					originalData := maps.Clone(destination.EventDeliveryStatusProviderData)
@@ -1553,9 +1554,9 @@ func TestProvider(t *testing.T) {
 
 					destination.EventDeliveryStatusProviderData = resendData
 
-					after := waitForDelivery(t, v4.GetEventInput{
+					after := waitForDelivery(t, notificationprovider.GetEventInput{
 						Event:        event,
-						Destinations: []v4.GetEventDestination{destination},
+						Destinations: []notificationprovider.GetEventDestination{destination},
 					})
 
 					require.Equal(t, sent.EventProviderData, after.EventProviderData)
@@ -1632,9 +1633,9 @@ func TestProvider(t *testing.T) {
 						retryDestination := destination
 						retryDestination.EventDeliveryStatusProviderData = repeatedData
 
-						reobserved := waitForDelivery(t, v4.GetEventInput{
+						reobserved := waitForDelivery(t, notificationprovider.GetEventInput{
 							Event:        event,
-							Destinations: []v4.GetEventDestination{retryDestination},
+							Destinations: []notificationprovider.GetEventDestination{retryDestination},
 						})
 
 						require.ElementsMatch(t, after.Destinations[0].Attempts, reobserved.Destinations[0].Attempts)
@@ -1652,7 +1653,7 @@ func TestProvider(t *testing.T) {
 						requestCount := len(receiver.Requests())
 
 						// When a fresh provider observes the new generation without the resend result.
-						recovered, err := freshProvider.GetEvent(t.Context(), v4.GetEventInput{
+						recovered, err := freshProvider.GetEvent(t.Context(), notificationprovider.GetEventInput{
 							Event:        event,
 							Destinations: resendInput.Destinations,
 						})
@@ -1680,9 +1681,9 @@ func TestProvider(t *testing.T) {
 						requestCount := len(receiver.Requests())
 
 						// When retrying the same generation with its original key.
-						repeated, err := provider.ResendEvent(t.Context(), v4.ResendEventInput{
+						repeated, err := provider.ResendEvent(t.Context(), notificationprovider.ResendEventInput{
 							Event:          event,
-							Destinations:   []v4.GetEventDestination{current},
+							Destinations:   []notificationprovider.GetEventDestination{current},
 							IdempotencyKey: resendInput.IdempotencyKey,
 						})
 						require.NoError(t, err)
@@ -1697,9 +1698,9 @@ func TestProvider(t *testing.T) {
 							return len(receiver.Requests()) > requestCount
 						}, time.Second, 100*time.Millisecond)
 
-						reobserved := waitForDelivery(t, v4.GetEventInput{
+						reobserved := waitForDelivery(t, notificationprovider.GetEventInput{
 							Event:        event,
-							Destinations: []v4.GetEventDestination{current},
+							Destinations: []notificationprovider.GetEventDestination{current},
 						})
 						require.Equal(t, original, reobserved.Destinations[0].EventDeliveryStatusProviderData)
 					})
@@ -1712,9 +1713,9 @@ func TestProvider(t *testing.T) {
 						original := maps.Clone(next.EventDeliveryStatusProviderData)
 
 						// When observation runs before any new attempt exists.
-						pending, err := provider.GetEvent(t.Context(), v4.GetEventInput{
+						pending, err := provider.GetEvent(t.Context(), notificationprovider.GetEventInput{
 							Event:        event,
-							Destinations: []v4.GetEventDestination{next},
+							Destinations: []notificationprovider.GetEventDestination{next},
 						})
 						require.NoError(t, err)
 						require.NotNil(t, pending)
@@ -1728,9 +1729,9 @@ func TestProvider(t *testing.T) {
 						require.Equal(t, original, next.EventDeliveryStatusProviderData)
 
 						// When the third generation is explicitly dispatched with a new key.
-						resent, err := provider.ResendEvent(t.Context(), v4.ResendEventInput{
+						resent, err := provider.ResendEvent(t.Context(), notificationprovider.ResendEventInput{
 							Event:          event,
-							Destinations:   []v4.GetEventDestination{next},
+							Destinations:   []notificationprovider.GetEventDestination{next},
 							IdempotencyKey: new(ulid.Make().String()),
 						})
 						require.NoError(t, err)
@@ -1741,9 +1742,9 @@ func TestProvider(t *testing.T) {
 						require.JSONEq(t, original["svix.observed_attempts"], resent.Destinations[0].EventDeliveryStatusProviderData["svix.resend_baseline"])
 
 						next.EventDeliveryStatusProviderData = resent.Destinations[0].EventDeliveryStatusProviderData
-						observed := waitForDelivery(t, v4.GetEventInput{
+						observed := waitForDelivery(t, notificationprovider.GetEventInput{
 							Event:        event,
-							Destinations: []v4.GetEventDestination{next},
+							Destinations: []notificationprovider.GetEventDestination{next},
 						})
 
 						// Then all prior attempts remain history and a new attempt completes this resend.
@@ -1765,14 +1766,14 @@ func TestProvider(t *testing.T) {
 					cleanupCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
 					defer cancel()
 
-					err := provider.DeleteChannel(cleanupCtx, v4.DeleteChannelInput{
+					err := provider.DeleteChannel(cleanupCtx, notificationprovider.DeleteChannelInput{
 						Namespace: namespaceID,
 						ChannelID: secondChannelID,
 					})
 					require.NoError(t, err)
 				})
 
-				secondChannel, err := provider.CreateChannel(t.Context(), v4.CreateChannelInput[v4.WebhookConfig]{
+				secondChannel, err := provider.CreateChannel(t.Context(), notificationprovider.CreateChannelInput[v4.WebhookConfig]{
 					Namespace: namespaceID,
 					ChannelID: secondChannelID,
 					Name:      "Second event receiver",
@@ -1784,7 +1785,7 @@ func TestProvider(t *testing.T) {
 				})
 				require.NoError(t, err)
 				require.NotNil(t, secondChannel)
-				require.Equal(t, v4.ChannelOperationStateInSync, secondChannel.State)
+				require.Equal(t, notificationprovider.ChannelOperationStateInSync, secondChannel.State)
 				require.NotEmpty(t, secondChannel.ProviderData["svix.endpoint_id"])
 
 				event := v4.Event{
@@ -1798,9 +1799,9 @@ func TestProvider(t *testing.T) {
 				}
 
 				// When one message is submitted with two tracked destinations.
-				sent, err := provider.SendEvent(t.Context(), v4.SendEventInput{
+				sent, err := provider.SendEvent(t.Context(), notificationprovider.SendEventInput{
 					Event: event,
-					Destinations: []v4.EventDestination{
+					Destinations: []notificationprovider.EventDestination{
 						{
 							ChannelID:           channelID,
 							ChannelProviderData: channel.ProviderData,
@@ -1819,27 +1820,27 @@ func TestProvider(t *testing.T) {
 				messageID := sent.EventProviderData["svix.message_id"]
 				require.NotEmpty(t, messageID)
 
-				channelData := map[string]v4.ProviderData{
+				channelData := map[string]map[string]string{
 					channelID:       channel.ProviderData,
 					secondChannelID: secondChannel.ProviderData,
 				}
 
 				event.ProviderData = sent.EventProviderData
 
-				getInput := v4.GetEventInput{Event: event}
+				getInput := notificationprovider.GetEventInput{Event: event}
 				accepted := make(map[string]struct{})
 
 				for _, destination := range sent.Destinations {
 					require.Contains(t, channelData, destination.ChannelID)
 					require.NotContains(t, accepted, destination.ChannelID)
 					require.NoError(t, destination.Error)
-					require.Equal(t, v4.ProviderData{
+					require.Equal(t, map[string]string{
 						"svix.dispatch_generation": "1",
 					}, destination.EventDeliveryStatusProviderData)
 
 					accepted[destination.ChannelID] = struct{}{}
 
-					getInput.Destinations = append(getInput.Destinations, v4.GetEventDestination{
+					getInput.Destinations = append(getInput.Destinations, notificationprovider.GetEventDestination{
 						ChannelID:                       destination.ChannelID,
 						ChannelProviderData:             channelData[destination.ChannelID],
 						EventDeliveryStatusProviderData: destination.EventDeliveryStatusProviderData,
@@ -1851,7 +1852,7 @@ func TestProvider(t *testing.T) {
 				observed := waitForDelivery(t, getInput)
 				require.Equal(t, sent.EventProviderData, observed.EventProviderData)
 
-				deliveries := make(map[string]v4.GetEventDestinationResult)
+				deliveries := make(map[string]notificationprovider.GetEventDestinationResult)
 				attemptIDs := make(map[string]struct{})
 
 				for _, destination := range observed.Destinations {
@@ -1906,9 +1907,9 @@ func TestProvider(t *testing.T) {
 					// Given two completed deliveries and an unknown channel.
 					missingID := ulid.Make().String()
 
-					input := v4.GetEventInput{
+					input := notificationprovider.GetEventInput{
 						Event: event,
-						Destinations: append([]v4.GetEventDestination{
+						Destinations: append([]notificationprovider.GetEventDestination{
 							{
 								ChannelID:          missingID,
 								DispatchGeneration: 1,
@@ -1924,7 +1925,7 @@ func TestProvider(t *testing.T) {
 					require.Equal(t, sent.EventProviderData, result.EventProviderData)
 
 					// Then the missing destination does not discard successful observations.
-					outcomes := make(map[string]v4.GetEventDestinationResult)
+					outcomes := make(map[string]notificationprovider.GetEventDestinationResult)
 
 					for _, destination := range result.Destinations {
 						require.NotContains(t, outcomes, destination.ChannelID)
@@ -1937,10 +1938,10 @@ func TestProvider(t *testing.T) {
 					require.Equal(t, v4.EventDeliveryStatusStateSending, missing.State)
 					require.Empty(t, missing.Attempts)
 
-					var providerErr *v4.ProviderError
+					var providerErr *notificationprovider.ProviderError
 					require.ErrorAs(t, missing.Error, &providerErr)
-					require.Equal(t, v4.ProviderErrorKindRetryable, providerErr.Kind)
-					require.Equal(t, v4.ProviderErrorCodeUnavailable, providerErr.Code)
+					require.Equal(t, notificationprovider.ProviderErrorKindRetryable, providerErr.Kind)
+					require.Equal(t, notificationprovider.ProviderErrorCodeUnavailable, providerErr.Code)
 
 					for _, id := range []string{channelID, secondChannelID} {
 						require.Contains(t, outcomes, id)
@@ -1954,7 +1955,7 @@ func TestProvider(t *testing.T) {
 					// Given completed fan-out, independently of the Get sibling.
 					before := waitForDelivery(t, getInput)
 
-					beforeByChannel := make(map[string]v4.GetEventDestinationResult)
+					beforeByChannel := make(map[string]notificationprovider.GetEventDestinationResult)
 
 					for _, destination := range before.Destinations {
 						beforeByChannel[destination.ChannelID] = destination
@@ -1963,7 +1964,7 @@ func TestProvider(t *testing.T) {
 					missingID := ulid.Make().String()
 					controlRequestCount := len(secondReceiver.Requests())
 
-					target := v4.GetEventDestination{
+					target := notificationprovider.GetEventDestination{
 						ChannelID:                       channelID,
 						ChannelProviderData:             channel.ProviderData,
 						EventDeliveryStatusProviderData: beforeByChannel[channelID].EventDeliveryStatusProviderData,
@@ -1971,9 +1972,9 @@ func TestProvider(t *testing.T) {
 					}
 
 					// When the missing destination is processed before the valid target.
-					result, err := provider.ResendEvent(t.Context(), v4.ResendEventInput{
+					result, err := provider.ResendEvent(t.Context(), notificationprovider.ResendEventInput{
 						Event: event,
-						Destinations: []v4.GetEventDestination{
+						Destinations: []notificationprovider.GetEventDestination{
 							{
 								ChannelID:          missingID,
 								DispatchGeneration: 2,
@@ -1987,7 +1988,7 @@ func TestProvider(t *testing.T) {
 					require.Len(t, result.Destinations, 2)
 					require.Equal(t, sent.EventProviderData, result.EventProviderData)
 
-					outcomes := make(map[string]v4.ResendEventDestinationResult)
+					outcomes := make(map[string]notificationprovider.ResendEventDestinationResult)
 
 					for _, destination := range result.Destinations {
 						require.NotContains(t, outcomes, destination.ChannelID)
@@ -1998,10 +1999,10 @@ func TestProvider(t *testing.T) {
 					require.Contains(t, outcomes, missingID)
 					require.Contains(t, outcomes, channelID)
 
-					var providerErr *v4.ProviderError
+					var providerErr *notificationprovider.ProviderError
 					require.ErrorAs(t, outcomes[missingID].Error, &providerErr)
-					require.Equal(t, v4.ProviderErrorKindTerminal, providerErr.Kind)
-					require.Equal(t, v4.ProviderErrorCodeResourceNotFound, providerErr.Code)
+					require.Equal(t, notificationprovider.ProviderErrorKindTerminal, providerErr.Kind)
+					require.Equal(t, notificationprovider.ProviderErrorCodeResourceNotFound, providerErr.Code)
 					require.Empty(t, outcomes[missingID].EventDeliveryStatusProviderData)
 
 					require.NoError(t, outcomes[channelID].Error)
@@ -2010,9 +2011,9 @@ func TestProvider(t *testing.T) {
 
 					require.Equal(t, "2", target.EventDeliveryStatusProviderData["svix.dispatch_generation"])
 
-					after := waitForDelivery(t, v4.GetEventInput{
+					after := waitForDelivery(t, notificationprovider.GetEventInput{
 						Event:        event,
-						Destinations: []v4.GetEventDestination{target},
+						Destinations: []notificationprovider.GetEventDestination{target},
 					})
 
 					oldAttemptIDs := make(map[string]struct{})
@@ -2040,9 +2041,9 @@ func TestProvider(t *testing.T) {
 						return len(secondReceiver.Requests()) > controlRequestCount
 					}, time.Second, 100*time.Millisecond)
 
-					control := waitForDelivery(t, v4.GetEventInput{
+					control := waitForDelivery(t, notificationprovider.GetEventInput{
 						Event: event,
-						Destinations: []v4.GetEventDestination{
+						Destinations: []notificationprovider.GetEventDestination{
 							{
 								ChannelID:                       secondChannelID,
 								ChannelProviderData:             secondChannel.ProviderData,
@@ -2062,9 +2063,9 @@ func TestProvider(t *testing.T) {
 					resendEvent.CreatedAt = time.Now().UTC()
 					resendEvent.ProviderData = nil
 
-					sent, err := provider.SendEvent(t.Context(), v4.SendEventInput{
+					sent, err := provider.SendEvent(t.Context(), notificationprovider.SendEventInput{
 						Event: resendEvent,
-						Destinations: []v4.EventDestination{
+						Destinations: []notificationprovider.EventDestination{
 							{
 								ChannelID:           channelID,
 								ChannelProviderData: channelData[channelID],
@@ -2085,7 +2086,7 @@ func TestProvider(t *testing.T) {
 					messageID := sent.EventProviderData["svix.message_id"]
 					require.NotEmpty(t, messageID)
 
-					getInput := v4.GetEventInput{Event: resendEvent}
+					getInput := notificationprovider.GetEventInput{Event: resendEvent}
 					accepted := make(map[string]struct{})
 
 					for _, destination := range sent.Destinations {
@@ -2095,7 +2096,7 @@ func TestProvider(t *testing.T) {
 
 						accepted[destination.ChannelID] = struct{}{}
 
-						getInput.Destinations = append(getInput.Destinations, v4.GetEventDestination{
+						getInput.Destinations = append(getInput.Destinations, notificationprovider.GetEventDestination{
 							ChannelID:                       destination.ChannelID,
 							ChannelProviderData:             channelData[destination.ChannelID],
 							EventDeliveryStatusProviderData: destination.EventDeliveryStatusProviderData,
@@ -2104,7 +2105,7 @@ func TestProvider(t *testing.T) {
 					}
 
 					before := waitForDelivery(t, getInput)
-					beforeByChannel := make(map[string]v4.GetEventDestinationResult)
+					beforeByChannel := make(map[string]notificationprovider.GetEventDestinationResult)
 
 					for _, destination := range before.Destinations {
 						beforeByChannel[destination.ChannelID] = destination
@@ -2136,7 +2137,7 @@ func TestProvider(t *testing.T) {
 						require.NotEmpty(t, beforeRequests[id])
 					}
 
-					resendInput := v4.ResendEventInput{
+					resendInput := notificationprovider.ResendEventInput{
 						Event:          resendEvent,
 						IdempotencyKey: new(ulid.Make().String()),
 					}
@@ -2155,7 +2156,7 @@ func TestProvider(t *testing.T) {
 					require.Equal(t, sent.EventProviderData, resent.EventProviderData)
 					require.Len(t, resent.Destinations, 2)
 
-					resendData := make(map[string]v4.ProviderData)
+					resendData := make(map[string]map[string]string)
 
 					for _, destination := range resent.Destinations {
 						require.Contains(t, beforeByChannel, destination.ChannelID)
@@ -2172,7 +2173,7 @@ func TestProvider(t *testing.T) {
 						resendData[destination.ChannelID] = data
 					}
 
-					observeInput := v4.GetEventInput{Event: resendEvent}
+					observeInput := notificationprovider.GetEventInput{Event: resendEvent}
 
 					for _, destination := range resendInput.Destinations {
 						destination.EventDeliveryStatusProviderData = resendData[destination.ChannelID]
@@ -2180,7 +2181,7 @@ func TestProvider(t *testing.T) {
 					}
 
 					after := waitForDelivery(t, observeInput)
-					afterByChannel := make(map[string]v4.GetEventDestinationResult)
+					afterByChannel := make(map[string]notificationprovider.GetEventDestinationResult)
 
 					// Then both channels have a new successful attempt outside their baseline.
 					for _, destination := range after.Destinations {
@@ -2231,7 +2232,7 @@ func TestProvider(t *testing.T) {
 						require.Equal(t, resent.EventProviderData, repeated.EventProviderData)
 						require.Len(t, repeated.Destinations, 2)
 
-						repeatedData := make(map[string]v4.ProviderData)
+						repeatedData := make(map[string]map[string]string)
 
 						for _, destination := range repeated.Destinations {
 							require.Contains(t, resendData, destination.ChannelID)
@@ -2253,7 +2254,7 @@ func TestProvider(t *testing.T) {
 							return false
 						}, time.Second, 100*time.Millisecond)
 
-						retryObservation := v4.GetEventInput{Event: resendEvent}
+						retryObservation := notificationprovider.GetEventInput{Event: resendEvent}
 
 						for _, destination := range resendInput.Destinations {
 							destination.EventDeliveryStatusProviderData = repeatedData[destination.ChannelID]
@@ -2276,7 +2277,7 @@ func TestProvider(t *testing.T) {
 			t.Run("RoutingExclusion", func(t *testing.T) {
 				// Exercise the same Channel through exclusion, acceptance, and exclusion
 				// again. The parent Channel remains a positive delivery control.
-				testRoutingExclusion := func(t *testing.T, input v4.CreateChannelInput[v4.WebhookConfig]) {
+				testRoutingExclusion := func(t *testing.T, input notificationprovider.CreateChannelInput[v4.WebhookConfig]) {
 					t.Helper()
 
 					candidateReceiver := testutils.NewWebhookServer(t, env.WebhookHost)
@@ -2295,7 +2296,7 @@ func TestProvider(t *testing.T) {
 						cleanupCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
 						defer cancel()
 
-						require.NoError(t, provider.DeleteChannel(cleanupCtx, v4.DeleteChannelInput{
+						require.NoError(t, provider.DeleteChannel(cleanupCtx, notificationprovider.DeleteChannelInput{
 							Namespace: namespaceID,
 							ChannelID: input.ChannelID,
 						}))
@@ -2304,10 +2305,10 @@ func TestProvider(t *testing.T) {
 					candidate, err := provider.CreateChannel(t.Context(), input)
 					require.NoError(t, err)
 					require.NotNil(t, candidate)
-					require.Equal(t, v4.ChannelOperationStateInSync, candidate.State)
+					require.Equal(t, notificationprovider.ChannelOperationStateInSync, candidate.State)
 					require.NotEmpty(t, candidate.ProviderData["svix.endpoint_id"])
 
-					excludedInput := v4.CreateChannelInput[v4.WebhookConfig]{
+					excludedInput := notificationprovider.CreateChannelInput[v4.WebhookConfig]{
 						Namespace:    namespaceID,
 						ChannelID:    input.ChannelID,
 						Name:         input.Name,
@@ -2337,7 +2338,7 @@ func TestProvider(t *testing.T) {
 							Payload:   json.RawMessage(`{"invoice_id":"invoice-routing"}`),
 						}
 
-						destinations := []v4.EventDestination{
+						destinations := []notificationprovider.EventDestination{
 							{
 								ChannelID:           channelID,
 								ChannelProviderData: channel.ProviderData,
@@ -2345,13 +2346,13 @@ func TestProvider(t *testing.T) {
 						}
 
 						if accepts {
-							destinations = append(destinations, v4.EventDestination{
+							destinations = append(destinations, notificationprovider.EventDestination{
 								ChannelID:           input.ChannelID,
 								ChannelProviderData: candidate.ProviderData,
 							})
 						}
 
-						sent, err := provider.SendEvent(t.Context(), v4.SendEventInput{
+						sent, err := provider.SendEvent(t.Context(), notificationprovider.SendEventInput{
 							Event:          event,
 							Destinations:   destinations,
 							IdempotencyKey: new(ulid.Make().String()),
@@ -2364,9 +2365,9 @@ func TestProvider(t *testing.T) {
 						require.NotEmpty(t, messageID)
 
 						event.ProviderData = sent.EventProviderData
-						getInput := v4.GetEventInput{Event: event}
+						getInput := notificationprovider.GetEventInput{Event: event}
 
-						remaining := make(map[string]v4.ProviderData, len(destinations))
+						remaining := make(map[string]map[string]string, len(destinations))
 
 						for _, destination := range destinations {
 							remaining[destination.ChannelID] = destination.ChannelProviderData
@@ -2376,7 +2377,7 @@ func TestProvider(t *testing.T) {
 							require.Contains(t, remaining, destination.ChannelID)
 							require.NoError(t, destination.Error)
 
-							getInput.Destinations = append(getInput.Destinations, v4.GetEventDestination{
+							getInput.Destinations = append(getInput.Destinations, notificationprovider.GetEventDestination{
 								ChannelID:                       destination.ChannelID,
 								ChannelProviderData:             remaining[destination.ChannelID],
 								EventDeliveryStatusProviderData: destination.EventDeliveryStatusProviderData,
@@ -2476,7 +2477,7 @@ func TestProvider(t *testing.T) {
 					}, nil)
 					require.NoError(t, err)
 
-					testRoutingExclusion(t, v4.CreateChannelInput[v4.WebhookConfig]{
+					testRoutingExclusion(t, notificationprovider.CreateChannelInput[v4.WebhookConfig]{
 						Name:       "Nonmatching routing receiver",
 						EventTypes: []v4.EventType{otherEventType},
 					})
@@ -2484,7 +2485,7 @@ func TestProvider(t *testing.T) {
 
 				t.Run("Disabled", func(t *testing.T) {
 					// Given a disabled Channel with a matching Event type.
-					testRoutingExclusion(t, v4.CreateChannelInput[v4.WebhookConfig]{
+					testRoutingExclusion(t, notificationprovider.CreateChannelInput[v4.WebhookConfig]{
 						Name:       "Disabled routing receiver",
 						Disabled:   true,
 						EventTypes: []v4.EventType{eventType},
@@ -2540,7 +2541,7 @@ func TestProvider(t *testing.T) {
 							cleanupCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
 							defer cancel()
 
-							require.NoError(t, provider.DeleteChannel(cleanupCtx, v4.DeleteChannelInput{
+							require.NoError(t, provider.DeleteChannel(cleanupCtx, notificationprovider.DeleteChannelInput{
 								Namespace: namespaceID,
 								ChannelID: candidateID,
 							}))
@@ -2551,7 +2552,7 @@ func TestProvider(t *testing.T) {
 							SigningSecret: signingSecret,
 						}
 
-						candidate, err := provider.CreateChannel(t.Context(), v4.CreateChannelInput[v4.WebhookConfig]{
+						candidate, err := provider.CreateChannel(t.Context(), notificationprovider.CreateChannelInput[v4.WebhookConfig]{
 							Namespace:  namespaceID,
 							ChannelID:  candidateID,
 							Name:       "Catch-all receiver",
@@ -2560,10 +2561,10 @@ func TestProvider(t *testing.T) {
 						})
 						require.NoError(t, err)
 						require.NotNil(t, candidate)
-						require.Equal(t, v4.ChannelOperationStateInSync, candidate.State)
+						require.Equal(t, notificationprovider.ChannelOperationStateInSync, candidate.State)
 						require.NotEmpty(t, candidate.ProviderData["svix.endpoint_id"])
 
-						input := v4.CreateChannelInput[v4.WebhookConfig]{
+						input := notificationprovider.CreateChannelInput[v4.WebhookConfig]{
 							Namespace:    namespaceID,
 							ChannelID:    candidateID,
 							Name:         "Catch-all receiver",
@@ -2589,18 +2590,18 @@ func TestProvider(t *testing.T) {
 								Payload:   json.RawMessage(`{"invoice_id":"invoice-catch-all"}`),
 							}
 
-							var destinations []v4.EventDestination
+							var destinations []notificationprovider.EventDestination
 
 							// The existing control subscribes only to the primary Event type.
 							if sentType == eventType {
-								destinations = append(destinations, v4.EventDestination{
+								destinations = append(destinations, notificationprovider.EventDestination{
 									ChannelID:           channelID,
 									ChannelProviderData: channel.ProviderData,
 								})
 							}
 
 							if accepts {
-								destinations = append(destinations, v4.EventDestination{
+								destinations = append(destinations, notificationprovider.EventDestination{
 									ChannelID:           candidateID,
 									ChannelProviderData: candidate.ProviderData,
 								})
@@ -2608,7 +2609,7 @@ func TestProvider(t *testing.T) {
 
 							require.NotEmpty(t, destinations, "each send must have a positive delivery control")
 
-							sent, err := provider.SendEvent(t.Context(), v4.SendEventInput{
+							sent, err := provider.SendEvent(t.Context(), notificationprovider.SendEventInput{
 								Event:          event,
 								Destinations:   destinations,
 								IdempotencyKey: new(ulid.Make().String()),
@@ -2621,8 +2622,8 @@ func TestProvider(t *testing.T) {
 							require.NotEmpty(t, messageID)
 
 							event.ProviderData = sent.EventProviderData
-							getInput := v4.GetEventInput{Event: event}
-							remaining := make(map[string]v4.ProviderData, len(destinations))
+							getInput := notificationprovider.GetEventInput{Event: event}
+							remaining := make(map[string]map[string]string, len(destinations))
 
 							for _, destination := range destinations {
 								remaining[destination.ChannelID] = destination.ChannelProviderData
@@ -2632,7 +2633,7 @@ func TestProvider(t *testing.T) {
 								require.Contains(t, remaining, destination.ChannelID)
 								require.NoError(t, destination.Error)
 
-								getInput.Destinations = append(getInput.Destinations, v4.GetEventDestination{
+								getInput.Destinations = append(getInput.Destinations, notificationprovider.GetEventDestination{
 									ChannelID:                       destination.ChannelID,
 									ChannelProviderData:             remaining[destination.ChannelID],
 									EventDeliveryStatusProviderData: destination.EventDeliveryStatusProviderData,
@@ -2763,13 +2764,13 @@ func TestProvider(t *testing.T) {
 					cleanupCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
 					defer cancel()
 
-					require.NoError(t, provider.DeleteChannel(cleanupCtx, v4.DeleteChannelInput{
+					require.NoError(t, provider.DeleteChannel(cleanupCtx, notificationprovider.DeleteChannelInput{
 						Namespace: namespaceID,
 						ChannelID: channelID,
 					}))
 				})
 
-				channel, err := provider.CreateChannel(t.Context(), v4.CreateChannelInput[v4.WebhookConfig]{
+				channel, err := provider.CreateChannel(t.Context(), notificationprovider.CreateChannelInput[v4.WebhookConfig]{
 					Namespace: namespaceID,
 					ChannelID: channelID,
 					Name:      "Delivery recovery receiver",
@@ -2781,7 +2782,7 @@ func TestProvider(t *testing.T) {
 				})
 				require.NoError(t, err)
 				require.NotNil(t, channel)
-				require.Equal(t, v4.ChannelOperationStateInSync, channel.State)
+				require.Equal(t, notificationprovider.ChannelOperationStateInSync, channel.State)
 
 				event := v4.Event{
 					NamespacedID: models.NamespacedID{
@@ -2793,9 +2794,9 @@ func TestProvider(t *testing.T) {
 					Payload:   json.RawMessage(`{"invoice_id":"invoice-recovery"}`),
 				}
 
-				sent, err := provider.SendEvent(t.Context(), v4.SendEventInput{
+				sent, err := provider.SendEvent(t.Context(), notificationprovider.SendEventInput{
 					Event: event,
-					Destinations: []v4.EventDestination{
+					Destinations: []notificationprovider.EventDestination{
 						{
 							ChannelID:           channelID,
 							ChannelProviderData: channel.ProviderData,
@@ -2811,9 +2812,9 @@ func TestProvider(t *testing.T) {
 
 				event.ProviderData = sent.EventProviderData
 
-				getInput := v4.GetEventInput{
+				getInput := notificationprovider.GetEventInput{
 					Event: event,
-					Destinations: []v4.GetEventDestination{
+					Destinations: []notificationprovider.GetEventDestination{
 						{
 							ChannelID:                       channelID,
 							ChannelProviderData:             channel.ProviderData,
@@ -2827,7 +2828,7 @@ func TestProvider(t *testing.T) {
 				observationCtx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 				defer cancel()
 
-				var unsuccessful *v4.GetEventResult
+				var unsuccessful *notificationprovider.GetEventResult
 
 				require.EventuallyWithT(t, func(c *assert.CollectT) {
 					result, err := provider.GetEvent(observationCtx, getInput)
@@ -2928,7 +2929,7 @@ func TestProvider(t *testing.T) {
 }
 
 // AssertNamespace compares namespace state while keeping user metadata and provider data separate.
-func AssertNamespace(t *testing.T, actual *v4.ProviderNamespace, expected v4.ProviderNamespace) {
+func AssertNamespace(t *testing.T, actual *notificationprovider.Namespace, expected notificationprovider.Namespace) {
 	t.Helper()
 
 	require.NotNil(t, actual)
@@ -2940,7 +2941,7 @@ func AssertNamespace(t *testing.T, actual *v4.ProviderNamespace, expected v4.Pro
 }
 
 // AssertNamespaceWithApplication checks raw Svix state independently of the provider's mapping.
-func AssertNamespaceWithApplication(t *testing.T, actual *svix.ApplicationOut, expected v4.ProviderNamespace) {
+func AssertNamespaceWithApplication(t *testing.T, actual *svix.ApplicationOut, expected notificationprovider.Namespace) {
 	t.Helper()
 
 	applicationID := expected.ProviderData["svix.application_id"]
@@ -2957,8 +2958,8 @@ func AssertNamespaceWithApplication(t *testing.T, actual *svix.ApplicationOut, e
 
 // AssertChannel compares reconciliation state and provider data without fetching remote state.
 // ToUpdateNamespaceInput explicitly reapplies the complete test fixture state.
-func ToUpdateNamespaceInput(namespace v4.ProviderNamespace) v4.UpdateNamespaceInput {
-	return v4.UpdateNamespaceInput{
+func ToUpdateNamespaceInput(namespace notificationprovider.Namespace) notificationprovider.UpdateNamespaceInput {
+	return notificationprovider.UpdateNamespaceInput{
 		ID:           namespace.ID,
 		Name:         &namespace.Name,
 		Metadata:     &namespace.Metadata,
@@ -2968,7 +2969,7 @@ func ToUpdateNamespaceInput(namespace v4.ProviderNamespace) v4.UpdateNamespaceIn
 
 // ToUpdateChannelInput explicitly reapplies a full fixture, including empty
 // headers and filters. An unspecified creation secret preserves the current key.
-func ToUpdateChannelInput(channel v4.CreateChannelInput[v4.WebhookConfig]) v4.UpdateChannelInput[v4.WebhookConfigUpdate] {
+func ToUpdateChannelInput(channel notificationprovider.CreateChannelInput[v4.WebhookConfig]) notificationprovider.UpdateChannelInput[v4.WebhookConfigUpdate] {
 	config := v4.WebhookConfigUpdate{
 		URL:           &channel.Config.URL,
 		CustomHeaders: &channel.Config.CustomHeaders,
@@ -2977,7 +2978,7 @@ func ToUpdateChannelInput(channel v4.CreateChannelInput[v4.WebhookConfig]) v4.Up
 		config.SigningSecret = &channel.Config.SigningSecret
 	}
 
-	return v4.UpdateChannelInput[v4.WebhookConfigUpdate]{
+	return notificationprovider.UpdateChannelInput[v4.WebhookConfigUpdate]{
 		Namespace:    channel.Namespace,
 		ChannelID:    channel.ChannelID,
 		Name:         &channel.Name,
@@ -2988,7 +2989,7 @@ func ToUpdateChannelInput(channel v4.CreateChannelInput[v4.WebhookConfig]) v4.Up
 	}
 }
 
-func AssertChannel(t *testing.T, actual *v4.ChannelOperationResult, expected v4.ChannelOperationResult) {
+func AssertChannel(t *testing.T, actual *notificationprovider.ChannelOperationResult, expected notificationprovider.ChannelOperationResult) {
 	t.Helper()
 
 	require.NotNil(t, actual)
@@ -2999,7 +3000,7 @@ func AssertChannel(t *testing.T, actual *v4.ChannelOperationResult, expected v4.
 
 // AssertChannelWithEndpoint checks endpoint identity and routing independently of the provider's mapping.
 // Headers and signing secrets are separate Svix resources and are asserted by the calling test.
-func AssertChannelWithEndpoint(t *testing.T, actual *svix.EndpointOut, expected v4.CreateChannelInput[v4.WebhookConfig]) {
+func AssertChannelWithEndpoint(t *testing.T, actual *svix.EndpointOut, expected notificationprovider.CreateChannelInput[v4.WebhookConfig]) {
 	t.Helper()
 
 	endpointID := expected.ProviderData["svix.endpoint_id"]
