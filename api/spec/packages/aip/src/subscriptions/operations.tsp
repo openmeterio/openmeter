@@ -131,16 +131,7 @@ model ListSubscriptionsParamsFilter {
   plan_id?: Common.ULIDFieldFilter;
   #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
   plan_key?: Common.StringFieldFilterExact;
-
-  /**
-   * Filter by subscription last update time. `updated_at` changes whenever the
-   * subscription itself is saved. A change saved only to its phases or items may not
-   * update it. Fields derived from the current time, such as `status` and
-   * `current_period`, change as time passes without updating it. Deleted
-   * subscriptions are not listed, so a sync must detect deletions separately. For
-   * incremental syncs, record the time before each scan and pass it, minus a few
-   * minutes of overlap, as `gte` on the next scan; de-duplicate by `id`.
-   */
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "filter field"
   updated_at?: Common.DateTimeFieldFilter;
 }
 
@@ -175,6 +166,13 @@ interface SubscriptionsOperations {
 
     /**
      * Filter subscriptions.
+     *
+     * To sync changes, pass `filter[updated_at][gte]` set a few minutes before the
+     * start of the previous scan, sort by `id`, and de-duplicate by `id`. Changes to
+     * phases or items alone may not update `updated_at`, and time-based fields such as
+     * `status` and `current_period` change without updating it. Deleted subscriptions
+     * are not listed, and a deletion during a scan can shift a row past a page
+     * boundary, so also run a periodic full scan.
      */
     @query(#{ style: "deepObject", explode: true })
     filter?: ListSubscriptionsParamsFilter,

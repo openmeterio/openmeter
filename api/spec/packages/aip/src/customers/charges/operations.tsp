@@ -54,12 +54,7 @@ model ListCustomerChargesParamsFilter {
   service_period_to?: Common.DateTimeFieldFilter;
 
   /**
-   * Filter by charge last update time. `updated_at` changes whenever the charge
-   * itself is saved. A change saved only to its realizations may not update it, and
-   * live usage moving on an open charge does not. Deleted charges are listed only
-   * when `filter[status]` selects `deleted`. For incremental syncs, record the time
-   * before each scan and pass it, minus a few minutes of overlap, as `gte` on the
-   * next scan; de-duplicate by `id`.
+   * Filter charges by their last update time.
    */
   updated_at?: Common.DateTimeFieldFilter;
 }
@@ -132,6 +127,13 @@ namespace Charges {
        *
        * See the `service_period_from` filter field for expressing a service-period
        * window query.
+       *
+       * To sync changes, pass `filter[updated_at][gte]` set a few minutes before the
+       * start of the previous scan, sort by `created_at`, and de-duplicate by `id`.
+       * Changes to realizations alone may not update `updated_at`, and live usage does
+       * not. Deleted charges are listed only when `filter[status]` selects `deleted`. A
+       * deletion during a scan can shift a row past a page boundary, so also run a
+       * periodic full scan.
        */
       @query(#{ style: "deepObject", explode: true })
       filter?: ListCustomerChargesParamsFilter,

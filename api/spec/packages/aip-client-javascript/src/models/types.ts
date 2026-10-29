@@ -3636,12 +3636,6 @@ export interface ListCustomersParamsFilter {
   usageAttributionSubjectKey?: StringFieldFilter
   planKey?: StringFieldFilter
   billingProfileId?: UlidFieldFilter
-  /**
-   * Filter by customer last update time. Deleted customers are not listed, so a sync
-   * must detect deletions separately. For incremental syncs, record the time before
-   * each scan and pass it, minus a few minutes of overlap, as `gte` on the next
-   * scan; de-duplicate by `id`.
-   */
   updatedAt?: DateTimeFieldFilter
 }
 
@@ -3668,14 +3662,7 @@ export interface ListCustomerChargesParamsFilter {
   servicePeriodFrom?: DateTimeFieldFilter
   /** Filter charges by the end of their service period. */
   servicePeriodTo?: DateTimeFieldFilter
-  /**
-   * Filter by charge last update time. `updated_at` changes whenever the charge
-   * itself is saved. A change saved only to its realizations may not update it, and
-   * live usage moving on an open charge does not. Deleted charges are listed only
-   * when `filter[status]` selects `deleted`. For incremental syncs, record the time
-   * before each scan and pass it, minus a few minutes of overlap, as `gte` on the
-   * next scan; de-duplicate by `id`.
-   */
+  /** Filter charges by their last update time. */
   updatedAt?: DateTimeFieldFilter
 }
 
@@ -3686,15 +3673,6 @@ export interface ListSubscriptionsParamsFilter {
   status?: StringFieldFilterExact
   planId?: UlidFieldFilter
   planKey?: StringFieldFilterExact
-  /**
-   * Filter by subscription last update time. `updated_at` changes whenever the
-   * subscription itself is saved. A change saved only to its phases or items may not
-   * update it. Fields derived from the current time, such as `status` and
-   * `current_period`, change as time passes without updating it. Deleted
-   * subscriptions are not listed, so a sync must detect deletions separately. For
-   * incremental syncs, record the time before each scan and pass it, minus a few
-   * minutes of overlap, as `gte` on the next scan; de-duplicate by `id`.
-   */
   updatedAt?: DateTimeFieldFilter
 }
 
@@ -3710,14 +3688,6 @@ export interface ListInvoicesParamsFilter {
   servicePeriodStart?: DateTimeFieldFilter
   /** Filter by invoice creation time. */
   createdAt?: DateTimeFieldFilter
-  /**
-   * Filter by invoice last update time. `updated_at` changes whenever the invoice
-   * itself is saved. A change saved only to its lines may not update it, and live
-   * usage moving on an open invoice does not. Deleted invoices are not listed, so a
-   * sync must detect deletions separately. For incremental syncs, record the time
-   * before each scan and pass it, minus a few minutes of overlap, as `gte` on the
-   * next scan; de-duplicate by `id`.
-   */
   updatedAt?: DateTimeFieldFilter
 }
 
@@ -3744,14 +3714,7 @@ export interface ListChargesParamsFilter {
   servicePeriodFrom?: DateTimeFieldFilter
   /** Filter charges by the end of their service period. */
   servicePeriodTo?: DateTimeFieldFilter
-  /**
-   * Filter by charge last update time. `updated_at` changes whenever the charge
-   * itself is saved. A change saved only to its realizations may not update it, and
-   * live usage moving on an open charge does not. Deleted charges are listed only
-   * when `filter[status]` selects `deleted`. For incremental syncs, record the time
-   * before each scan and pass it, minus a few minutes of overlap, as `gte` on the
-   * next scan; de-duplicate by `id`.
-   */
+  /** Filter charges by their last update time. */
   updatedAt?: DateTimeFieldFilter
   /** Filter charges by the ID of their customer. */
   customerId?: UlidFieldFilter
@@ -3763,15 +3726,6 @@ export interface ListPlansParamsFilter {
   name?: StringFieldFilter
   status?: StringFieldFilterExact
   currency?: StringFieldFilterExact
-  /**
-   * Filter by plan last update time. `updated_at` changes whenever the plan is
-   * updated, including changes to its phases and rate cards, except an update that
-   * changes only rate card labels. A plan's `status` follows its effective dates and
-   * changes as time passes without updating it. Deleted plans are not listed, so a
-   * sync must detect deletions separately. For incremental syncs, record the time
-   * before each scan and pass it, minus a few minutes of overlap, as `gte` on the
-   * next scan; de-duplicate by `id`.
-   */
   updatedAt?: DateTimeFieldFilter
 }
 

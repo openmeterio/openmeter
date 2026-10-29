@@ -31,13 +31,7 @@ model ListCustomersParamsFilter {
   plan_key?: Common.StringFieldFilter;
   #suppress "@openmeter/api-spec-aip/doc-decorator" "filter field"
   billing_profile_id?: Common.ULIDFieldFilter;
-
-  /**
-   * Filter by customer last update time. Deleted customers are not listed, so a sync
-   * must detect deletions separately. For incremental syncs, record the time before
-   * each scan and pass it, minus a few minutes of overlap, as `gte` on the next
-   * scan; de-duplicate by `id`.
-   */
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "filter field"
   updated_at?: Common.DateTimeFieldFilter;
 }
 
@@ -81,6 +75,11 @@ interface CustomersOperations {
      * Filter customers returned in the response.
      *
      * To filter customers by key add the following query param: filter[key]=my-db-id
+     *
+     * To sync changes, pass `filter[updated_at][gte]` set a few minutes before the
+     * start of the previous scan, sort by `created_at`, and de-duplicate by `id`.
+     * Deleted customers are not listed, and a deletion during a scan can shift a row
+     * past a page boundary, so also run a periodic full scan.
      */
     @query(#{ style: "deepObject", explode: true })
     filter?: ListCustomersParamsFilter,

@@ -25,12 +25,6 @@ type InvoiceFilter struct {
 	ServicePeriodStart *DateTimeFilter
 	// Filter by invoice creation time.
 	CreatedAt *DateTimeFilter
-	// Filter by invoice last update time. `updated_at` changes whenever the invoice
-	// itself is saved. A change saved only to its lines may not update it, and live
-	// usage moving on an open invoice does not. Deleted invoices are not listed, so a
-	// sync must detect deletions separately. For incremental syncs, record the time
-	// before each scan and pass it, minus a few minutes of overlap, as `gte` on the
-	// next scan; de-duplicate by `id`.
 	UpdatedAt *DateTimeFilter
 }
 

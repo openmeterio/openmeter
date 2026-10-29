@@ -565,6 +565,13 @@ paths:
             - `filter[status][oeq]=draft,issued`
             - `filter[customer_id]=01KPDB8K...`
             - `filter[issued_at][gte]=2024-01-01T00:00:00Z`
+
+            To sync changes, pass `filter[updated_at][gte]` set a few minutes before the
+            start of the previous scan, keep the default `created_at` sort, and de-duplicate
+            by `id`. Sorting by `updated_at` moves rows between pages while you scan.
+            Changes to invoice lines alone may not update `updated_at`. Deleted invoices are
+            not listed, and a deletion during a scan can shift a row past a page boundary,
+            so also run a periodic full scan.
           schema:
             $ref: '#/components/schemas/ListInvoicesParamsFilter'
           style: deepObject
@@ -873,6 +880,13 @@ paths:
 
             See the `service_period_from` filter field for expressing a service-period
             window query.
+
+            To sync changes, pass `filter[updated_at][gte]` set a few minutes before the
+            start of the previous scan, sort by `created_at`, and de-duplicate by `id`.
+            Changes to realizations alone may not update `updated_at`, and live usage does
+            not. Deleted charges are listed only when `filter[status]` selects `deleted`. A
+            deletion during a scan can shift a row past a page boundary, so also run a
+            periodic full scan.
           schema:
             $ref: '#/components/schemas/ListChargesParamsFilter'
           style: deepObject
@@ -1160,6 +1174,11 @@ paths:
             Filter customers returned in the response.
 
             To filter customers by key add the following query param: filter[key]=my-db-id
+
+            To sync changes, pass `filter[updated_at][gte]` set a few minutes before the
+            start of the previous scan, sort by `created_at`, and de-duplicate by `id`.
+            Deleted customers are not listed, and a deletion during a scan can shift a row
+            past a page boundary, so also run a periodic full scan.
           schema:
             $ref: '#/components/schemas/ListCustomersParamsFilter'
           style: deepObject
@@ -1535,6 +1554,13 @@ paths:
 
             See the `service_period_from` filter field for expressing a service-period
             window query.
+
+            To sync changes, pass `filter[updated_at][gte]` set a few minutes before the
+            start of the previous scan, sort by `created_at`, and de-duplicate by `id`.
+            Changes to realizations alone may not update `updated_at`, and live usage does
+            not. Deleted charges are listed only when `filter[status]` selects `deleted`. A
+            deletion during a scan can shift a row past a page boundary, so also run a
+            periodic full scan.
           schema:
             $ref: '#/components/schemas/ListCustomerChargesParamsFilter'
           style: deepObject
@@ -4119,7 +4145,16 @@ paths:
         - name: filter
           in: query
           required: false
-          description: Filter plans returned in the response.
+          description: |-
+            Filter plans returned in the response.
+
+            To sync changes, pass `filter[updated_at][gte]` set a few minutes before the
+            start of the previous scan, keep the default `created_at` sort, and de-duplicate
+            by `id`. Sorting by `updated_at` moves rows between pages while you scan.
+            Changing only rate card labels does not update `updated_at`, and `status`
+            follows the plan's effective dates, so it changes without updating it. Deleted
+            plans are not listed, and a deletion during a scan can shift a row past a page
+            boundary, so also run a periodic full scan.
           schema:
             $ref: '#/components/schemas/ListPlansParamsFilter'
           style: deepObject
@@ -4722,7 +4757,15 @@ paths:
         - name: filter
           in: query
           required: false
-          description: Filter subscriptions.
+          description: |-
+            Filter subscriptions.
+
+            To sync changes, pass `filter[updated_at][gte]` set a few minutes before the
+            start of the previous scan, sort by `id`, and de-duplicate by `id`. Changes to
+            phases or items alone may not update `updated_at`, and time-based fields such as
+            `status` and `current_period` change without updating it. Deleted subscriptions
+            are not listed, and a deletion during a scan can shift a row past a page
+            boundary, so also run a periodic full scan.
           schema:
             $ref: '#/components/schemas/ListSubscriptionsParamsFilter'
           style: deepObject
@@ -17380,13 +17423,7 @@ components:
         updated_at:
           allOf:
             - $ref: '#/components/schemas/DateTimeFieldFilter'
-          description: |-
-            Filter by charge last update time. `updated_at` changes whenever the charge
-            itself is saved. A change saved only to its realizations may not update it, and
-            live usage moving on an open charge does not. Deleted charges are listed only
-            when `filter[status]` selects `deleted`. For incremental syncs, record the time
-            before each scan and pass it, minus a few minutes of overlap, as `gte` on the
-            next scan; de-duplicate by `id`.
+          description: Filter charges by their last update time.
         customer_id:
           allOf:
             - $ref: '#/components/schemas/ULIDFieldFilter'
@@ -17494,13 +17531,7 @@ components:
         updated_at:
           allOf:
             - $ref: '#/components/schemas/DateTimeFieldFilter'
-          description: |-
-            Filter by charge last update time. `updated_at` changes whenever the charge
-            itself is saved. A change saved only to its realizations may not update it, and
-            live usage moving on an open charge does not. Deleted charges are listed only
-            when `filter[status]` selects `deleted`. For incremental syncs, record the time
-            before each scan and pass it, minus a few minutes of overlap, as `gte` on the
-            next scan; de-duplicate by `id`.
+          description: Filter charges by their last update time.
       additionalProperties: false
       description: Filter options for listing charges.
     ListCustomerEntitlementAccessResponseData:
@@ -17549,13 +17580,7 @@ components:
         billing_profile_id:
           $ref: '#/components/schemas/ULIDFieldFilter'
         updated_at:
-          allOf:
-            - $ref: '#/components/schemas/DateTimeFieldFilter'
-          description: |-
-            Filter by customer last update time. Deleted customers are not listed, so a sync
-            must detect deletions separately. For incremental syncs, record the time before
-            each scan and pass it, minus a few minutes of overlap, as `gte` on the next
-            scan; de-duplicate by `id`.
+          $ref: '#/components/schemas/DateTimeFieldFilter'
       additionalProperties: false
       description: Filter options for listing customers.
     ListEntitlementsParamsFilter:
@@ -17664,15 +17689,7 @@ components:
             - $ref: '#/components/schemas/DateTimeFieldFilter'
           description: Filter by invoice creation time.
         updated_at:
-          allOf:
-            - $ref: '#/components/schemas/DateTimeFieldFilter'
-          description: |-
-            Filter by invoice last update time. `updated_at` changes whenever the invoice
-            itself is saved. A change saved only to its lines may not update it, and live
-            usage moving on an open invoice does not. Deleted invoices are not listed, so a
-            sync must detect deletions separately. For incremental syncs, record the time
-            before each scan and pass it, minus a few minutes of overlap, as `gte` on the
-            next scan; de-duplicate by `id`.
+          $ref: '#/components/schemas/DateTimeFieldFilter'
       additionalProperties: false
       description: Filter options for listing invoices.
     ListLLMCostPricesParamsFilter:
@@ -17831,16 +17848,7 @@ components:
         currency:
           $ref: '#/components/schemas/StringFieldFilterExact'
         updated_at:
-          allOf:
-            - $ref: '#/components/schemas/DateTimeFieldFilter'
-          description: |-
-            Filter by plan last update time. `updated_at` changes whenever the plan is
-            updated, including changes to its phases and rate cards, except an update that
-            changes only rate card labels. A plan's `status` follows its effective dates and
-            changes as time passes without updating it. Deleted plans are not listed, so a
-            sync must detect deletions separately. For incremental syncs, record the time
-            before each scan and pass it, minus a few minutes of overlap, as `gte` on the
-            next scan; de-duplicate by `id`.
+          $ref: '#/components/schemas/DateTimeFieldFilter'
       additionalProperties: false
       description: Filter options for listing plans.
     ListSubscriptionsParamsFilter:
@@ -17857,16 +17865,7 @@ components:
         plan_key:
           $ref: '#/components/schemas/StringFieldFilterExact'
         updated_at:
-          allOf:
-            - $ref: '#/components/schemas/DateTimeFieldFilter'
-          description: |-
-            Filter by subscription last update time. `updated_at` changes whenever the
-            subscription itself is saved. A change saved only to its phases or items may not
-            update it. Fields derived from the current time, such as `status` and
-            `current_period`, change as time passes without updating it. Deleted
-            subscriptions are not listed, so a sync must detect deletions separately. For
-            incremental syncs, record the time before each scan and pass it, minus a few
-            minutes of overlap, as `gte` on the next scan; de-duplicate by `id`.
+          $ref: '#/components/schemas/DateTimeFieldFilter'
       additionalProperties: false
       description: Filter options for listing subscriptions.
     Meter:

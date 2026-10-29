@@ -49,14 +49,7 @@ model ListInvoicesParamsFilter {
   #suppress "@openmeter/api-spec-aip/doc-decorator" "filter field"
   created_at?: Common.DateTimeFieldFilter;
 
-  /**
-   * Filter by invoice last update time. `updated_at` changes whenever the invoice
-   * itself is saved. A change saved only to its lines may not update it, and live
-   * usage moving on an open invoice does not. Deleted invoices are not listed, so a
-   * sync must detect deletions separately. For incremental syncs, record the time
-   * before each scan and pass it, minus a few minutes of overlap, as `gte` on the
-   * next scan; de-duplicate by `id`.
-   */
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "filter field"
   updated_at?: Common.DateTimeFieldFilter;
 }
 
@@ -98,6 +91,13 @@ interface InvoicesOperations {
      * - `filter[status][oeq]=draft,issued`
      * - `filter[customer_id]=01KPDB8K...`
      * - `filter[issued_at][gte]=2024-01-01T00:00:00Z`
+     *
+     * To sync changes, pass `filter[updated_at][gte]` set a few minutes before the
+     * start of the previous scan, keep the default `created_at` sort, and de-duplicate
+     * by `id`. Sorting by `updated_at` moves rows between pages while you scan.
+     * Changes to invoice lines alone may not update `updated_at`. Deleted invoices are
+     * not listed, and a deletion during a scan can shift a row past a page boundary,
+     * so also run a periodic full scan.
      */
     @query(#{ style: "deepObject", explode: true })
     filter?: ListInvoicesParamsFilter,

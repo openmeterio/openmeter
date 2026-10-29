@@ -20,14 +20,7 @@ type BillingSubscriptionFilter struct {
 	Status     *StringExactFilter
 	PlanID     *StringExactFilter
 	PlanKey    *StringExactFilter
-	// Filter by subscription last update time. `updated_at` changes whenever the
-	// subscription itself is saved. A change saved only to its phases or items may not
-	// update it. Fields derived from the current time, such as `status` and
-	// `current_period`, change as time passes without updating it. Deleted
-	// subscriptions are not listed, so a sync must detect deletions separately. For
-	// incremental syncs, record the time before each scan and pass it, minus a few
-	// minutes of overlap, as `gte` on the next scan; de-duplicate by `id`.
-	UpdatedAt *DateTimeFilter
+	UpdatedAt  *DateTimeFilter
 }
 
 type BillingSubscriptionListParams struct {

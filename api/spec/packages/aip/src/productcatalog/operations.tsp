@@ -28,16 +28,7 @@ model ListPlansParamsFilter {
   status?: Common.StringFieldFilterExact;
   #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
   currency?: Common.StringFieldFilterExact;
-
-  /**
-   * Filter by plan last update time. `updated_at` changes whenever the plan is
-   * updated, including changes to its phases and rate cards, except an update that
-   * changes only rate card labels. A plan's `status` follows its effective dates and
-   * changes as time passes without updating it. Deleted plans are not listed, so a
-   * sync must detect deletions separately. For incremental syncs, record the time
-   * before each scan and pass it, minus a few minutes of overlap, as `gte` on the
-   * next scan; de-duplicate by `id`.
-   */
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "filter field"
   updated_at?: Common.DateTimeFieldFilter;
 }
 
@@ -65,6 +56,14 @@ interface PlanOperations {
 
     /**
      * Filter plans returned in the response.
+     *
+     * To sync changes, pass `filter[updated_at][gte]` set a few minutes before the
+     * start of the previous scan, keep the default `created_at` sort, and de-duplicate
+     * by `id`. Sorting by `updated_at` moves rows between pages while you scan.
+     * Changing only rate card labels does not update `updated_at`, and `status`
+     * follows the plan's effective dates, so it changes without updating it. Deleted
+     * plans are not listed, and a deletion during a scan can shift a row past a page
+     * boundary, so also run a periodic full scan.
      */
     @query(#{ style: "deepObject", explode: true })
     filter?: ListPlansParamsFilter,

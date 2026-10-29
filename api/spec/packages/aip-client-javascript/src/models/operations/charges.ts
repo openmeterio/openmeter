@@ -37,6 +37,13 @@ export interface ListChargesQuery {
    *
    * See the `service_period_from` filter field for expressing a service-period
    * window query.
+   *
+   * To sync changes, pass `filter[updated_at][gte]` set a few minutes before the
+   * start of the previous scan, sort by `created_at`, and de-duplicate by `id`.
+   * Changes to realizations alone may not update `updated_at`, and live usage does
+   * not. Deleted charges are listed only when `filter[status]` selects `deleted`. A
+   * deletion during a scan can shift a row past a page boundary, so also run a
+   * periodic full scan.
    */
   filter?: ListChargesParamsFilter
   /**

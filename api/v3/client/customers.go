@@ -25,11 +25,7 @@ type CustomerFilter struct {
 	UsageAttributionSubjectKey *StringFilter
 	PlanKey                    *StringFilter
 	BillingProfileID           *StringExactFilter
-	// Filter by customer last update time. Deleted customers are not listed, so a sync
-	// must detect deletions separately. For incremental syncs, record the time before
-	// each scan and pass it, minus a few minutes of overlap, as `gte` on the next
-	// scan; de-duplicate by `id`.
-	UpdatedAt *DateTimeFilter
+	UpdatedAt                  *DateTimeFilter
 }
 
 type CustomerListParams struct {

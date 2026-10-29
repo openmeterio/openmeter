@@ -34,12 +34,7 @@ type ListChargesFilter struct {
 	ServicePeriodFrom *DateTimeFilter
 	// Filter charges by the end of their service period.
 	ServicePeriodTo *DateTimeFilter
-	// Filter by charge last update time. `updated_at` changes whenever the charge
-	// itself is saved. A change saved only to its realizations may not update it, and
-	// live usage moving on an open charge does not. Deleted charges are listed only
-	// when `filter[status]` selects `deleted`. For incremental syncs, record the time
-	// before each scan and pass it, minus a few minutes of overlap, as `gte` on the
-	// next scan; de-duplicate by `id`.
+	// Filter charges by their last update time.
 	UpdatedAt *DateTimeFilter
 	// Filter charges by the ID of their customer.
 	CustomerID *StringExactFilter
