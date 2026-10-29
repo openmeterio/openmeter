@@ -156,15 +156,16 @@ func (a *adapter) ListPlans(ctx context.Context, params plan.ListPlansInput) (pa
 			order = entutils.GetOrdering(params.Order)
 		}
 
+		// Break ties by ID so rows with equal sort values keep their place across pages.
 		switch params.OrderBy {
 		case plan.OrderByCreatedAt:
-			query = query.Order(plandb.ByCreatedAt(order...))
+			query = query.Order(plandb.ByCreatedAt(order...), plandb.ByID(order...))
 		case plan.OrderByUpdatedAt:
-			query = query.Order(plandb.ByUpdatedAt(order...))
+			query = query.Order(plandb.ByUpdatedAt(order...), plandb.ByID(order...))
 		case plan.OrderByVersion:
-			query = query.Order(plandb.ByVersion(order...))
+			query = query.Order(plandb.ByVersion(order...), plandb.ByID(order...))
 		case plan.OrderByKey:
-			query = query.Order(plandb.ByKey(order...))
+			query = query.Order(plandb.ByKey(order...), plandb.ByID(order...))
 		case plan.OrderByID:
 			fallthrough
 		default:

@@ -333,15 +333,16 @@ func (r *subscriptionRepo) List(ctx context.Context, in subscription.ListSubscri
 			order = entutils.GetOrdering(in.Order)
 		}
 
+		// Break ties by ID so rows with equal sort values keep their place across pages.
 		switch in.OrderBy {
 		case subscription.OrderByID:
 			query = query.Order(dbsubscription.ByID(order...))
 		case subscription.OrderByActiveFrom:
-			query = query.Order(dbsubscription.ByActiveFrom(order...))
+			query = query.Order(dbsubscription.ByActiveFrom(order...), dbsubscription.ByID(order...))
 		case subscription.OrderByActiveTo:
-			query = query.Order(dbsubscription.ByActiveTo(order...))
+			query = query.Order(dbsubscription.ByActiveTo(order...), dbsubscription.ByID(order...))
 		default:
-			query = query.Order(dbsubscription.ByActiveFrom(order...))
+			query = query.Order(dbsubscription.ByActiveFrom(order...), dbsubscription.ByID(order...))
 		}
 
 		paged, err := query.Paginate(ctx, in.Page)
