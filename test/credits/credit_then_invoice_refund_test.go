@@ -29,9 +29,9 @@ import (
 // The TOKENS were externally paid at one USD each, so failing to restore five
 // TOKENS leaves five USD of purchased credit consumed by a deleted charge.
 //
-// cancelRealizationRun currently uses ShouldOmitInvoiceLine to decide whether to
-// correct credit allocations. A zero overage can occur before collection has
-// completed, so it does not establish that the allocation is final.
+// A zero fiat overage can occur before collection has completed, so it does not
+// establish that the allocation is final. Cancellation must check the credit the
+// run still holds, not only whether it would invoice anything.
 //
 // This applies the system cancellation patch at the charge-service boundary;
 // it does not execute subscription ownership validation or full reconciliation.
@@ -43,12 +43,12 @@ import (
 // The public DeleteCustomerCharge API currently exposes only adjustment=none.
 //
 // The "Currency identity" section of openmeter/billing/charges/README.md says
-// deletion corrects allocations while a run is reversible. The boundary to fix
-// is cancelRealizationRun in charges/usagebased/service/creditheninvoice.go;
-// its flat-fee counterpart is cancelCurrentRealization in
-// charges/flatfee/service/creditheninvoice.go. Also review the zero-overage guard
-// in reconcileDeletedStandardLines in charges/usagebased/service/lineengine.go:
-// system invoice-line deletion uses that separate cleanup entry point.
+// deletion corrects allocations while a run is reversible. That boundary is
+// cancelRealizationRun in charges/usagebased/service/creditheninvoice.go and
+// its flat-fee counterpart cancelCurrentRealization in
+// charges/flatfee/service/creditheninvoice.go. reconcileDeletedStandardLines in
+// charges/usagebased/service/lineengine.go is the separate cleanup entry point
+// for system invoice-line deletion.
 //
 // Run all refund regressions in this file:
 // POSTGRES_HOST=127.0.0.1 go test -tags=dynamic ./test/credits -run 'TestCustomCurrencyCreditsSuite/TestCreditThenInvoiceRefund' -count=1
@@ -710,17 +710,20 @@ func (s *CustomCurrencyCreditsSuite) TestCreditThenInvoiceRefundOnFlatFeeInvoice
 //
 // Both API paths call handleInvoiceLineDeleteViaAPI in
 // openmeter/billing/charges/usagebased/service/lineengine.go, which chooses
-// RefundAsCreditsDeletePolicy. cancelRealizationRun in that package's
-// creditheninvoice.go currently skips correction when ShouldOmitInvoiceLine is
-// true. Five TOKENS that were paid at one USD each must return to the customer
-// when their mutable charge is deleted, even when no fiat overage remains.
+// RefundAsCreditsDeletePolicy, and cancelRealizationRun in that package's
+// creditheninvoice.go releases the credit the run holds. Five TOKENS that were
+// paid at one USD each must return to the customer when their mutable charge is
+// deleted, even when no fiat overage remains.
 // The partial-funded cases prove the same API operation restores paid credits
 // when the usage also leaves a fiat overage.
 //
 // This is the reversible-deletion contract described in the "Currency identity"
-// section of openmeter/billing/charges/README.md. Also review the zero-overage
-// guards in validateDeletedStandardLines and reconcileDeletedStandardLines when
-// fixing cleanup; they are separate consumers of the line omission decision.
+// section of openmeter/billing/charges/README.md. The system line-deletion
+// hooks validateDeletedStandardLines and reconcileDeletedStandardLines still
+// skip zero-overage runs, because collection completion removes a zero-fiat
+// presentation line while its consumed credit stays durable. Whether a system
+// deletion of a mutable zero-overage run holding credit needs the same release
+// is not covered here.
 //
 // POSTGRES_HOST=127.0.0.1 go test -tags=dynamic ./test/credits -run 'TestCustomCurrencyCreditsSuite/TestCreditThenInvoiceRefundOnInvoiceDeletion' -count=1
 func (s *CustomCurrencyCreditsSuite) TestCreditThenInvoiceRefundOnInvoiceDeletion() {
