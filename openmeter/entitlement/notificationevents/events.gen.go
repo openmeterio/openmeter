@@ -24,3 +24,12 @@ var EntitlementBalanceThresholdTriggeredV1PayloadJSONSchema []byte
 //
 //go:embed schemas/v1.entitlement.balance_threshold.triggered.rule_config.json
 var EntitlementBalanceThresholdTriggeredV1RuleConfigJSONSchema []byte
+
+// EntitlementBalanceThresholdTriggeredV1Definition is the definition of v1.entitlement.balance_threshold.triggered.
+var EntitlementBalanceThresholdTriggeredV1Definition = v4.EventTypeDefinition{
+	EventType:         EntitlementBalanceThresholdTriggeredV1EventType,
+	PayloadJSONSchema: EntitlementBalanceThresholdTriggeredV1PayloadJSONSchema,
+	Rule: &v4.RuleConfigDefinition{
+		JSONSchema: EntitlementBalanceThresholdTriggeredV1RuleConfigJSONSchema,
+	},
+}

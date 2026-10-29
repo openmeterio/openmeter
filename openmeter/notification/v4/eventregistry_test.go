@@ -391,17 +391,8 @@ func TestEventRegistryValidators(t *testing.T) {
 	registry, err := v4.NewEventRegistry(v4.EventRegistryConfig{
 		Logger: slog.New(slog.DiscardHandler),
 		Definitions: []v4.EventTypeDefinition{
-			{
-				EventType:         billingevents.BillingInvoiceCreatedV1EventType,
-				PayloadJSONSchema: billingevents.BillingInvoiceCreatedV1PayloadJSONSchema,
-			},
-			{
-				EventType:         entitlementevents.EntitlementBalanceThresholdTriggeredV1EventType,
-				PayloadJSONSchema: entitlementevents.EntitlementBalanceThresholdTriggeredV1PayloadJSONSchema,
-				Rule: &v4.RuleConfigDefinition{
-					JSONSchema: entitlementevents.EntitlementBalanceThresholdTriggeredV1RuleConfigJSONSchema,
-				},
-			},
+			billingevents.BillingInvoiceCreatedV1Definition,
+			entitlementevents.EntitlementBalanceThresholdTriggeredV1Definition,
 		},
 		RuleConfigValidators: []v4.RuleConfigValidatorBinding{{
 			EventType: entitlementevents.EntitlementBalanceThresholdTriggeredV1EventType,

@@ -10,6 +10,8 @@
 //      emitted generate.gen.go, events.gen.go and JSON Schemas into the Go
 //      package directory. `go generate` then runs oapi-codegen through the
 //      directive in generate.gen.go, like every other oapi-codegen target.
+// It then copies definitions.gen.go, which lists every Event type definition,
+// into the definitions package.
 import { execFileSync } from 'node:child_process'
 import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join, relative, resolve } from 'node:path'
@@ -22,7 +24,7 @@ const manifest = JSON.parse(
   readFileSync(join(out, '_go/manifest.json'), 'utf8'),
 )
 
-for (const entry of manifest) {
+for (const entry of manifest.packages) {
   const entryDir = join(out, 'entries')
   const entryFile = join(entryDir, `${entry.dir.replaceAll('/', '_')}.tsp`)
   const openapiDir = join(out, 'openapi', entry.dir)
@@ -82,3 +84,10 @@ for (const entry of manifest) {
     }
   }
 }
+
+const definitionsDir = join(repoRoot, manifest.definitions)
+mkdirSync(definitionsDir, { recursive: true })
+cpSync(
+  join(out, '_go', manifest.definitions, 'definitions.gen.go'),
+  join(definitionsDir, 'definitions.gen.go'),
+)

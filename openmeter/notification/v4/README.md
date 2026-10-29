@@ -39,9 +39,14 @@ them.
 For each contract, the generated package exposes the Event type as
 `<Stem>V<n>EventType`, the embedded draft 2020-12 schemas as
 `<Stem>V<n>PayloadJSONSchema` and, for Rule-produced types,
-`<Stem>V<n>RuleConfigJSONSchema`, plus the matching Go structs. A schema's
-`$id` is `<event type>.payload` or `<event type>.rule_config`. These values
-are what an `EventTypeDefinition` is built from.
+`<Stem>V<n>RuleConfigJSONSchema`, the matching Go structs, and the complete
+`<Stem>V<n>Definition`. A schema's `$id` is `<event type>.payload` or
+`<event type>.rule_config`.
+
+`notificationcontracts.Definitions()` returns the definitions of every domain.
+It is generated too, so a contract cannot be left out of the registry, and it
+lives in the `notificationcontracts` subpackage because domain packages import
+`v4`.
 
 An `EventTypeDefinition` binds an Event type to its contracts:
 
