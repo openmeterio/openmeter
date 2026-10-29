@@ -44,9 +44,9 @@ For each contract, the generated package exposes the Event type as
 `<event type>.rule_config`.
 
 `notificationcontracts.Definitions()` returns the definitions of every domain.
-It is generated too, so a contract cannot be left out of the registry, and it
-lives in the `notificationcontracts` subpackage because domain packages import
-`v4`.
+It is generated too, so it cannot miss a contract; wiring must still pass it to
+the registry, which accepts any list. It lives in the `notificationcontracts`
+subpackage because domain packages import `v4`.
 
 An `EventTypeDefinition` binds an Event type to its contracts:
 
@@ -98,7 +98,9 @@ caller cannot change a contract after it has been validated.
   knows. The namespace argument is unused for now.
 - **Rule configurations** are checked against the schema first, then by the
   domain validator, so domain validators only see well-formed configurations.
-  This is the check for creating and updating a Rule.
+  This is the check for creating and updating a Rule. Validator bindings are
+  optional: a type without one gets the schema check only, so wiring must bind
+  a validator wherever Rule creation needs domain checks.
 - **Rule snapshots** on Events are checked against the schema only, through
   `RuleConfigSchemaValidator`. The domain already evaluated that
   configuration, and checking it against current domain state could reject a
