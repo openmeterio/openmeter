@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/subscription/testutils"
+	subscriptionfixtures "github.com/openmeterio/openmeter/openmeter/subscription/testutils/fixtures"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -33,15 +34,16 @@ func TestListViewsMultiCustomer(t *testing.T) {
 	deps := subscriptiontestutils.NewService(t, dbDeps)
 	service := deps.SubscriptionService
 
-	_ = deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
-	plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
-
 	// given: two distinct customers, each with a subscription from the same plan
-	cust1 := deps.CustomerAdapter.CreateExampleCustomer(t)
-	cust2 := deps.CustomerAdapter.CreateExampleCustomerWithSubject(t, "Jane Doe", "jane-doe")
+	scenario := subscriptionfixtures.New(t, deps)
+	cust1 := scenario.Customer()
+	cust2 := scenario.CreateCustomer(customer.CustomerMutate{Name: "Jane Doe"})
 
-	createSubscriptionFromPlan(t, ctx, service, plan, cust1.ID, currentTime)
-	createSubscriptionFromPlan(t, ctx, service, plan, cust2.ID, currentTime)
+	sub1 := scenario.CreateSubscription(subscriptionfixtures.CreateSubscriptionInput{Customer: cust1})
+	sub2 := scenario.CreateSubscription(subscriptionfixtures.CreateSubscriptionInput{Customer: cust2})
+	require.NotEqual(t, sub1.Subscription.ID, sub2.Subscription.ID)
+	require.NotNil(t, sub1.Subscription.PlanRef)
+	require.Equal(t, sub1.Subscription.PlanRef, sub2.Subscription.PlanRef)
 
 	// when: listing views across the namespace, which spans both customers
 	res, err := service.ListViews(ctx, subscription.ListSubscriptionsInput{
@@ -59,6 +61,7 @@ func TestListViewsMultiCustomer(t *testing.T) {
 	for _, view := range res.Items {
 		viewByCustomer[view.Subscription.CustomerId] = view
 		require.NotEmpty(t, view.Phases, "each view should carry its phases")
+		require.Equal(t, sub1.Subscription.PlanRef, view.Subscription.PlanRef)
 	}
 
 	require.Contains(t, viewByCustomer, cust1.ID)
