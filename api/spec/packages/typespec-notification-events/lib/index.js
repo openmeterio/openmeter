@@ -97,6 +97,11 @@ const goName = (program, type) => getFriendlyName(program, type) ?? type.name
 // ordered the same on every machine.
 const compareStrings = (a, b) => (a < b ? -1 : a > b ? 1 : 0)
 
+// Orders parsed Event types like v4.EventType.Compare: numeric version, then
+// name, so v2 comes before v10.
+const compareEventTypes = (a, b) =>
+  a.version - b.version || compareStrings(a.name, b.name)
+
 // Released contracts are immutable and identified by their canonical Event
 // type, so the contract roots carry it in every name: the JSON Schema $id
 // (<event type>.payload / <event type>.rule_config) and the friendly name
@@ -197,7 +202,8 @@ export async function $onEmit(context) {
   }
 
   const packages = []
-  // Every generated definition, as [Go import alias, import path, identifier, event type].
+  // Every generated definition, as
+  // [Go import alias, import path, identifier, parsed Event type].
   const definitions = []
   for (const [ns, { path }] of program.stateMap(goPackageKey)) {
     const dir = moduleDir(path)
@@ -231,7 +237,7 @@ export async function $onEmit(context) {
 
     const schemas = []
     const events = (eventsByNamespace.get(ns) ?? []).sort((a, b) =>
-      compareStrings(a.eventType, b.eventType),
+      compareEventTypes(a, b),
     )
     if (events.length > 0) {
       const lines = [
@@ -293,7 +299,7 @@ export async function $onEmit(context) {
           '}',
           '',
         )
-        definitions.push([importAlias, path, `${stem}Definition`, e.eventType])
+        definitions.push([importAlias, path, `${stem}Definition`, e])
       }
       await emitFile(program, {
         path: resolvePath(context.emitterOutputDir, dir, 'events.gen.go'),
@@ -312,7 +318,7 @@ export async function $onEmit(context) {
 
   const definitionsDir = moduleDir(definitionsImportPath)
   const definitionsPkg = definitionsImportPath.split('/').pop()
-  definitions.sort((a, b) => compareStrings(a[3], b[3]))
+  definitions.sort((a, b) => compareEventTypes(a[3], b[3]))
   const imports = [
     ...new Map(definitions.map(([alias, path]) => [path, alias])),
     [eventTypeImportPath, ''],

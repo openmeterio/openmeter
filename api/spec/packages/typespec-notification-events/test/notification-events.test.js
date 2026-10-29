@@ -224,8 +224,8 @@ func Definitions() []v4.EventTypeDefinition {
   })
 
   it('lists definitions of several packages in Event type order', async () => {
-    // given packages and Event types declared out of canonical order, with
-    // two Event types in one package
+    // given packages and Event types declared out of order, several Event types
+    // in one package, and versions whose strings sort differently (v10, v2)
     const { outputs } = await EmitTester.compile(`
       @goPackage("github.com/example/mod/openmeter/widget/notificationevents")
       namespace Widget.NotificationEvents {
@@ -249,6 +249,22 @@ func Definitions() []v4.EventTypeDefinition {
       @goPackage("github.com/example/mod/openmeter/gadget/notificationevents")
       namespace Gadget.NotificationEvents {
         @jsonSchema
+        @id("v10.gadget.part.created.payload")
+        @eventType("v10.gadget.part.created")
+        @friendlyName("GadgetPartCreatedV10Payload")
+        model PartCreatedV10Payload {
+          part_id: string;
+        }
+
+        @jsonSchema
+        @id("v2.gadget.part.created.payload")
+        @eventType("v2.gadget.part.created")
+        @friendlyName("GadgetPartCreatedV2Payload")
+        model PartCreatedV2Payload {
+          part_id: string;
+        }
+
+        @jsonSchema
         @id("v1.gadget.part.created.payload")
         @eventType("v1.gadget.part.created")
         @friendlyName("GadgetPartCreatedV1Payload")
@@ -258,7 +274,8 @@ func Definitions() []v4.EventTypeDefinition {
       }
     `)
 
-    // then each package is imported once and definitions follow Event type order
+    // then each package is imported once and definitions are ordered by
+    // numeric version, then name
     expect(
       outputs[
         'openmeter/notification/v4/notificationcontracts/definitions.gen.go'
@@ -280,6 +297,8 @@ func Definitions() []v4.EventTypeDefinition {
 		gadgetevents.GadgetPartCreatedV1Definition,
 		widgetevents.WidgetThingCreatedV1Definition,
 		widgetevents.WidgetThingUpdatedV1Definition,
+		gadgetevents.GadgetPartCreatedV2Definition,
+		gadgetevents.GadgetPartCreatedV10Definition,
 	}
 }
 `)
@@ -303,7 +322,11 @@ func Definitions() []v4.EventTypeDefinition {
       },
       {
         dir: 'openmeter/gadget/notificationevents',
-        targets: ['v1.gadget.part.created.payload.json'],
+        targets: [
+          'v1.gadget.part.created.payload.json',
+          'v2.gadget.part.created.payload.json',
+          'v10.gadget.part.created.payload.json',
+        ],
       },
     ])
   })
