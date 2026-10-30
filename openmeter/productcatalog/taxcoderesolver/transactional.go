@@ -11,11 +11,11 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
 
-// NewFactory needs the tax code repository as the transaction creator: WithResolver opens the
-// transaction on it, and the domain service called inside fn joins it through ctx.
-func NewFactory(service taxcode.Service, txCreator taxcode.Repository) (productcatalog.TaxCodeResolverFactory, error) {
+// NewTransactional opens WithResolver's transaction on txCreator; the domain service called
+// inside fn joins it through ctx. Pass the tax code repository.
+func NewTransactional(service taxcode.Service, txCreator transaction.Creator) (productcatalog.TransactionalTaxCodeResolver, error) {
 	if txCreator == nil {
-		return nil, errors.New("tax code repository is not set")
+		return nil, errors.New("transaction creator is not set")
 	}
 
 	readResolver, err := New(service)
@@ -23,7 +23,7 @@ func NewFactory(service taxcode.Service, txCreator taxcode.Repository) (productc
 		return nil, err
 	}
 
-	return &factory{
+	return &transactionalResolver{
 		TaxCodeResolver: readResolver,
 		txCreator:       txCreator,
 		backfillResolver: &backfillResolver{
@@ -32,18 +32,18 @@ func NewFactory(service taxcode.Service, txCreator taxcode.Repository) (productc
 	}, nil
 }
 
-var _ productcatalog.TaxCodeResolverFactory = (*factory)(nil)
+var _ productcatalog.TransactionalTaxCodeResolver = (*transactionalResolver)(nil)
 
-type factory struct {
+type transactionalResolver struct {
 	productcatalog.TaxCodeResolver
 
 	txCreator        transaction.Creator
 	backfillResolver *backfillResolver
 }
 
-func (f *factory) WithResolver(ctx context.Context, fn func(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver) error) error {
-	return transaction.RunWithNoValue(ctx, f.txCreator, func(ctx context.Context) error {
-		return fn(ctx, f.backfillResolver)
+func (r *transactionalResolver) WithResolver(ctx context.Context, fn func(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver) error) error {
+	return transaction.RunWithNoValue(ctx, r.txCreator, func(ctx context.Context) error {
+		return fn(ctx, r.backfillResolver)
 	})
 }
 
