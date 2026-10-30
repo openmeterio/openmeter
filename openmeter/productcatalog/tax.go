@@ -192,6 +192,31 @@ func (c TaxCodeConfig) Validate() error {
 	return nil
 }
 
+// Equal treats nil and the zero value as the same "no tax config": adapters produce either one.
+func (c *TaxCodeConfig) Equal(v *TaxCodeConfig) bool {
+	left, right := lo.FromPtr(c), lo.FromPtr(v)
+
+	if left.TaxCodeID != right.TaxCodeID {
+		return false
+	}
+
+	if (left.Behavior == nil) != (right.Behavior == nil) {
+		return false
+	}
+
+	return left.Behavior == nil || *left.Behavior == *right.Behavior
+}
+
+func (c TaxCodeConfig) Clone() TaxCodeConfig {
+	out := TaxCodeConfig{TaxCodeID: c.TaxCodeID}
+
+	if c.Behavior != nil {
+		out.Behavior = lo.ToPtr(*c.Behavior)
+	}
+
+	return out
+}
+
 // ToTaxConfig converts TaxCodeConfig to TaxConfig (without provider-specific fields).
 func (c TaxCodeConfig) ToTaxConfig() TaxConfig {
 	out := TaxConfig{}
