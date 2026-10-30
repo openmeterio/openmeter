@@ -210,7 +210,9 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 	case meterpkg.MeterAggregationCount:
 		selectColumns = append(selectColumns, fmt.Sprintf("%s(*) AS value", sqlAggregation))
 	case meterpkg.MeterAggregationUniqueCount:
-		selectColumns = append(selectColumns, fmt.Sprintf("%s(nullIf(JSON_VALUE(%s, %s), 'null')) AS value", sqlAggregation, getColumn("data"), query.Var(*d.Meter.ValueProperty)))
+		// JSON_VALUE returns an empty string if the JSON Path is not found, and the literal
+		// 'null' for a JSON null. Map both to NULL so uniqExact ignores events without a value.
+		selectColumns = append(selectColumns, fmt.Sprintf("%s(nullIf(nullIf(JSON_VALUE(%s, %s), ''), 'null')) AS value", sqlAggregation, getColumn("data"), query.Var(*d.Meter.ValueProperty)))
 	case meterpkg.MeterAggregationLatest:
 		if d.EnableDecimalPrecision {
 			selectColumns = append(selectColumns, fmt.Sprintf("%s(toDecimal128OrNull(nullIf(JSON_VALUE(%s, %s), 'null'), 19), %s) AS value", sqlAggregation, getColumn("data"), query.Var(*d.Meter.ValueProperty), timeColumn))

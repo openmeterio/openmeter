@@ -99,6 +99,19 @@ func (s *ConnectorTestSuite) TestConnectorQueryMeter() {
 			IngestedAt: now,
 			StoredAt:   now,
 		},
+		{
+			// Neither the value nor the name property is present: every
+			// aggregation must ignore this event except COUNT.
+			Namespace:  namespace,
+			ID:         ulid.Make().String(),
+			Time:       eventTime.Add(-time.Second),
+			Type:       eventType,
+			Source:     "test-source",
+			Subject:    subject,
+			Data:       `{"other": 1}`,
+			IngestedAt: now,
+			StoredAt:   now,
+		},
 	})
 	s.NoError(err)
 
@@ -147,14 +160,14 @@ func (s *ConnectorTestSuite) TestConnectorQueryMeter() {
 			enableDecimalPrecision: false,
 			from:                   from,
 			to:                     to,
-			wantValue:              lo.ToPtr(float64(3)),
+			wantValue:              lo.ToPtr(float64(4)),
 		},
 		{
 			meterAggregation:       meter.MeterAggregationCount,
 			enableDecimalPrecision: true,
 			from:                   from,
 			to:                     to,
-			wantValue:              lo.ToPtr(float64(3)),
+			wantValue:              lo.ToPtr(float64(4)),
 		},
 		{
 			meterAggregation:       meter.MeterAggregationCount,
