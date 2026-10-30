@@ -62,8 +62,10 @@ export function listCreditsGrants(
  * List credit balances across customers.
  *
  * Returns one item per customer, ordered by customer ID. Customers without credit
- * activity are returned with an empty `balances` list. The page size is limited to
- * 100 because balances are computed on request.
+ * activity are returned with an empty `balances` list. When `timestamp` is set,
+ * the list holds the customers that existed at that time: customers created later
+ * are left out, and customers deleted since then are still included. The page size
+ * is limited to 100 because balances are computed on request.
  *
  * GET /openmeter/credits/balances
  */
