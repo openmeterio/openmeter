@@ -24,9 +24,11 @@ func TestMigrationNextCycleAcrossPhaseBoundary(t *testing.T) {
 	defer clock.UnFreeze()
 
 	// given matching timelines with the next billing cycle in the second phase
-	fixture := newMigrationFixtureWithPlan(t, migrationPlanWithTwoPhases(t))
+	fixture := newMigrationFixtureWithPlan(t, func(taxConfig productcatalog.TaxConfig) plan.CreatePlanInput {
+		return migrationPlanWithTwoPhases(t, taxConfig)
+	})
 	clock.FreezeTime(start.Add(10 * 24 * time.Hour))
-	target := fixture.deps.PlanHelper.CreatePlan(t, migrationPlanAddingItemToBothPhases(t))
+	target := fixture.deps.PlanHelper.CreatePlan(t, migrationPlanAddingItemToBothPhases(t, fixture.taxConfig))
 	clock.FreezeTime(clock.Now().Add(time.Second))
 
 	// when migration is scheduled for that boundary
@@ -46,9 +48,11 @@ func TestMigrationCustomTimeInLaterPhase(t *testing.T) {
 	defer clock.UnFreeze()
 
 	// given matching timelines and a target that adds an item
-	fixture := newMigrationFixtureWithPlan(t, migrationPlanWithTwoPhases(t))
+	fixture := newMigrationFixtureWithPlan(t, func(taxConfig productcatalog.TaxConfig) plan.CreatePlanInput {
+		return migrationPlanWithTwoPhases(t, taxConfig)
+	})
 	clock.FreezeTime(start.Add(10 * 24 * time.Hour))
-	target := fixture.deps.PlanHelper.CreatePlan(t, migrationPlanAddingItemToBothPhases(t))
+	target := fixture.deps.PlanHelper.CreatePlan(t, migrationPlanAddingItemToBothPhases(t, fixture.taxConfig))
 	clock.FreezeTime(clock.Now().Add(time.Second))
 
 	// when migration is scheduled beyond the next cycle, inside the second phase
@@ -107,20 +111,20 @@ func TestMigrationRejectsPastCustomTime(t *testing.T) {
 	assertMigrationViewUnchanged(t, fixture)
 }
 
-func migrationPlanWithTwoPhases(t *testing.T) plan.CreatePlanInput {
+func migrationPlanWithTwoPhases(t *testing.T, taxConfig productcatalog.TaxConfig) plan.CreatePlanInput {
 	t.Helper()
 
 	return subscriptiontestutils.BuildTestPlanInput(t).
-		AddPhase(lo.ToPtr(datetime.MustParseDuration(t, "P1M")), subscriptiontestutils.ExampleRateCard1.Clone()).
-		AddPhase(nil, subscriptiontestutils.ExampleRateCard1.Clone()).Build()
+		AddPhase(lo.ToPtr(datetime.MustParseDuration(t, "P1M")), subscriptiontestutils.ExampleRateCard1(taxConfig)).
+		AddPhase(nil, subscriptiontestutils.ExampleRateCard1(taxConfig)).Build()
 }
 
-func migrationPlanAddingItemToBothPhases(t *testing.T) plan.CreatePlanInput {
+func migrationPlanAddingItemToBothPhases(t *testing.T, taxConfig productcatalog.TaxConfig) plan.CreatePlanInput {
 	t.Helper()
 
-	input := migrationPlanWithTwoPhases(t)
+	input := migrationPlanWithTwoPhases(t, taxConfig)
 	for idx := range input.Phases {
-		input.Phases[idx].RateCards = append(input.Phases[idx].RateCards, subscriptiontestutils.ExampleRateCard3ForAddons.Clone())
+		input.Phases[idx].RateCards = append(input.Phases[idx].RateCards, subscriptiontestutils.ExampleRateCard3ForAddons(taxConfig))
 	}
 
 	return input
@@ -190,8 +194,10 @@ func TestMigrationScheduledPriceChangeInLaterPhase(t *testing.T) {
 	defer clock.UnFreeze()
 
 	// given a target that reprices the second phase
-	fixture := newMigrationFixtureWithPlan(t, migrationPlanWithTwoPhases(t))
-	next := migrationPlanWithTwoPhases(t)
+	fixture := newMigrationFixtureWithPlan(t, func(taxConfig productcatalog.TaxConfig) plan.CreatePlanInput {
+		return migrationPlanWithTwoPhases(t, taxConfig)
+	})
+	next := migrationPlanWithTwoPhases(t, fixture.taxConfig)
 	require.NoError(t, next.Phases[1].RateCards[0].ChangeMeta(func(meta productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
 		meta.Price = productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromInt(50)})
 		return meta, nil

@@ -305,7 +305,6 @@ func TestPostgresAdapter(t *testing.T) {
 				t,
 				namespace,
 				pctestutils.WithPlanKey("custom-plan-currency"),
-				withoutTaxConfig,
 				func(t *testing.T, p *productcatalog.Plan) {
 					t.Helper()
 					p.Currency = custom.Reference()
@@ -686,11 +685,11 @@ func TestListPlansExcludeUnrepresentableCurrencies(t *testing.T) {
 
 	namespace := pctestutils.NewTestNamespace(t)
 
-	plain := pctestutils.NewTestPlan(t, namespace, pctestutils.WithPlanKey("plain"), withoutTaxConfig)
+	plain := pctestutils.NewTestPlan(t, namespace, pctestutils.WithPlanKey("plain"))
 	_, err := env.PlanRepository.CreatePlan(t.Context(), plain)
 	require.NoError(t, err, "creating plain plan must not fail")
 
-	withOverride := pctestutils.NewTestPlan(t, namespace, pctestutils.WithPlanKey("with-override"), withoutTaxConfig)
+	withOverride := pctestutils.NewTestPlan(t, namespace, pctestutils.WithPlanKey("with-override"))
 	overriddenRateCard, ok := withOverride.Phases[0].RateCards[0].(*productcatalog.FlatFeeRateCard)
 	require.True(t, ok, "default test plan rate card must be flat fee")
 	custom, err := env.Currency.CreateCurrency(t.Context(), currencytestutils.NewCreateCurrencyInput(namespace, "TOKEN", "Tokens", "tok"))
@@ -699,7 +698,7 @@ func TestListPlansExcludeUnrepresentableCurrencies(t *testing.T) {
 	_, err = env.PlanRepository.CreatePlan(t.Context(), withOverride)
 	require.NoError(t, err, "creating plan with rate-card currency override must not fail")
 
-	withCustomDefault := pctestutils.NewTestPlan(t, namespace, pctestutils.WithPlanKey("with-custom-default"), withoutTaxConfig)
+	withCustomDefault := pctestutils.NewTestPlan(t, namespace, pctestutils.WithPlanKey("with-custom-default"))
 	withCustomDefault.Currency = custom.Reference()
 	_, err = env.PlanRepository.CreatePlan(t.Context(), withCustomDefault)
 	require.NoError(t, err, "creating plan with custom default currency must not fail")
@@ -726,21 +725,6 @@ func TestListPlansExcludeUnrepresentableCurrencies(t *testing.T) {
 		require.ElementsMatch(t, []string{"plain"}, keys)
 		require.Equal(t, 1, list.TotalCount, "TotalCount must exclude plans with unrepresentable currencies")
 	})
-}
-
-func withoutTaxConfig(t *testing.T, p *productcatalog.Plan) {
-	t.Helper()
-
-	for _, phase := range p.Phases {
-		for _, rateCard := range phase.RateCards {
-			err := rateCard.ChangeMeta(func(meta productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
-				meta.TaxConfig = nil
-
-				return meta, nil
-			})
-			require.NoError(t, err)
-		}
-	}
 }
 
 type createPlanVersionInput struct {
@@ -776,7 +760,7 @@ func testListPlanStatusFilter(ctx context.Context, t *testing.T, repo plan.Repos
 
 	ns := "list-plan-status-filter"
 
-	planV1Input := pctestutils.NewTestPlan(t, ns, withoutTaxConfig)
+	planV1Input := pctestutils.NewTestPlan(t, ns)
 
 	err := createPlanVersion(ctx, repo, createPlanVersionInput{
 		Namespace: ns,

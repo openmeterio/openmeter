@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
@@ -48,7 +49,7 @@ func TestMigrationStartingPhaseReplacesIncompatibleTimeline(t *testing.T) {
 	// given a single-phase subscription and a target with two phases
 	fixture := newMigrationFixture(t)
 	clock.FreezeTime(start.Add(10 * 24 * time.Hour))
-	target := fixture.deps.PlanHelper.CreatePlan(t, migrationPlanWithTwoPhases(t))
+	target := fixture.deps.PlanHelper.CreatePlan(t, migrationPlanWithTwoPhases(t, fixture.taxConfig))
 	clock.FreezeTime(clock.Now().Add(time.Second))
 
 	// when the caller selects the target's second phase
@@ -70,7 +71,7 @@ func TestMigrationStartingPhaseAtNextCycle(t *testing.T) {
 	// given an incompatible target timeline
 	fixture := newMigrationFixture(t)
 	clock.FreezeTime(start.Add(10 * 24 * time.Hour))
-	target := fixture.deps.PlanHelper.CreatePlan(t, migrationPlanWithTwoPhases(t))
+	target := fixture.deps.PlanHelper.CreatePlan(t, migrationPlanWithTwoPhases(t, fixture.taxConfig))
 	clock.FreezeTime(clock.Now().Add(time.Second))
 
 	// when replacement is explicitly scheduled for the next cycle
@@ -93,7 +94,7 @@ func TestMigrationStartingPhaseWithAnchorAndCustomTime(t *testing.T) {
 	// given an incompatible target timeline and an explicit new anchor
 	fixture := newMigrationFixture(t)
 	clock.FreezeTime(start.Add(10 * 24 * time.Hour))
-	target := fixture.deps.PlanHelper.CreatePlan(t, migrationPlanWithTwoPhases(t))
+	target := fixture.deps.PlanHelper.CreatePlan(t, migrationPlanWithTwoPhases(t, fixture.taxConfig))
 	clock.FreezeTime(clock.Now().Add(time.Second))
 	anchor := start.Add(3 * 24 * time.Hour)
 
@@ -119,7 +120,7 @@ func TestMigrationRejectsChangedPhaseCountWithoutReset(t *testing.T) {
 	// given a target with an additional phase
 	fixture := newMigrationFixture(t)
 	clock.FreezeTime(start.Add(10 * 24 * time.Hour))
-	fixture.deps.PlanHelper.CreatePlan(t, migrationPlanWithTwoPhases(t))
+	fixture.deps.PlanHelper.CreatePlan(t, migrationPlanWithTwoPhases(t, fixture.taxConfig))
 	clock.FreezeTime(clock.Now().Add(time.Second))
 
 	// when no replacement is requested
@@ -149,8 +150,10 @@ func TestMigrationRejectsChangedPhaseStartWithoutReset(t *testing.T) {
 	defer clock.UnFreeze()
 
 	// given a target whose second phase starts a month later
-	fixture := newMigrationFixtureWithPlan(t, migrationPlanWithTwoPhases(t))
-	next := migrationPlanWithTwoPhases(t)
+	fixture := newMigrationFixtureWithPlan(t, func(taxConfig productcatalog.TaxConfig) plan.CreatePlanInput {
+		return migrationPlanWithTwoPhases(t, taxConfig)
+	})
+	next := migrationPlanWithTwoPhases(t, fixture.taxConfig)
 	next.Phases[0].Duration = lo.ToPtr(datetime.MustParseDuration(t, "P2M"))
 	clock.FreezeTime(start.Add(10 * 24 * time.Hour))
 	fixture.deps.PlanHelper.CreatePlan(t, next)
@@ -218,13 +221,15 @@ func TestMigrationStartingPhaseDoesNotTransferAddons(t *testing.T) {
 	deps := setup(t, setupConfig{})
 	defer deps.cleanup(t)
 
+	taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace, subscriptiontestutils.GetExampleTaxCodeInput())
+	taxConfig := subscriptiontestutils.ExampleTaxConfig(taxCode)
 	input := subscriptiontestutils.BuildTestPlanInput(t).AddPhase(nil,
-		subscriptiontestutils.ExampleRateCard1.Clone(), subscriptiontestutils.ExampleRateCard2.Clone()).Build()
+		subscriptiontestutils.ExampleRateCard1(taxConfig), subscriptiontestutils.ExampleRateCard2.Clone()).Build()
 	original, addon := subscriptiontestutils.CreatePlanWithAddon(t, deps.SubscriptionDependencies, input,
 		subscriptiontestutils.BuildAddonForTesting(t, productcatalog.EffectivePeriod{EffectiveFrom: &start},
 			productcatalog.AddonInstanceTypeSingle, subscriptiontestutils.ExampleAddonRateCard1.Clone()))
 	before := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps.SubscriptionDependencies, original, start)
-	fixture := migrationFixture{t: t, deps: deps, before: before}
+	fixture := migrationFixture{t: t, deps: deps, taxConfig: taxConfig, before: before}
 
 	var err error
 

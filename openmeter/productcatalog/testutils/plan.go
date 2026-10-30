@@ -6,10 +6,12 @@ import (
 	decimal "github.com/alpacahq/alpacadecimal"
 	"github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
+	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -35,6 +37,31 @@ func WithPlanKey(key string) TransformerFunc[productcatalog.Plan] {
 	}
 }
 
+// WithRateCardTaxCode points every rate card in the plan at tc by ID, keeping any tax behavior.
+// Apply it after WithPlanPhases to cover the replacement phases.
+func WithRateCardTaxCode(tc taxcode.TaxCode) TransformerFunc[productcatalog.Plan] {
+	return func(t *testing.T, plan *productcatalog.Plan) {
+		t.Helper()
+
+		for _, phase := range plan.Phases {
+			for _, rc := range phase.RateCards {
+				require.NoError(t, rc.ChangeMeta(func(m productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
+					var behavior *productcatalog.TaxBehavior
+					if m.TaxConfig != nil {
+						behavior = m.TaxConfig.Behavior
+					}
+
+					m.TaxConfig = &productcatalog.TaxConfig{TaxCodeID: &tc.ID, Behavior: behavior}
+
+					return m, nil
+				}))
+			}
+		}
+	}
+}
+
+// NewTestPlan returns a plan input with one untaxed flat-fee rate card; use WithRateCardTaxCode to
+// reference a tax code.
 func NewTestPlan(t *testing.T, namespace string, transformers ...TransformerFunc[productcatalog.Plan]) plan.CreatePlanInput {
 	t.Helper()
 
@@ -73,11 +100,6 @@ func NewTestPlan(t *testing.T, namespace string, transformers ...TransformerFunc
 								Description:         lo.ToPtr("API Requests"),
 								Metadata:            models.Metadata{"name": "api_requests"},
 								EntitlementTemplate: nil,
-								TaxConfig: &productcatalog.TaxConfig{
-									Stripe: &productcatalog.StripeTaxConfig{
-										Code: "txcd_10000000",
-									},
-								},
 								Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 									Amount:      decimal.NewFromInt(0),
 									PaymentTerm: productcatalog.InArrearsPaymentTerm,
