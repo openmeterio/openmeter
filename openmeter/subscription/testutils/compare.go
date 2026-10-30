@@ -77,15 +77,11 @@ func ValidateSpecAndView(t *testing.T, expected subscription.SubscriptionSpec, f
 				assert.Equal(t, foundPhase.SubscriptionPhase.Key, specItem.PhaseKey)
 				assert.Equal(t, foundPhase.SubscriptionPhase.ID, foundItem.SubscriptionItem.PhaseId)
 
-				// Let's validate the RateCard is equal. Tax is compared by TaxCodeID (and Behavior):
-				// the Stripe code is a legacy encoding derived from the tax code, not part of the intent.
-				specRateCard := withoutStripeTaxCode(t, specItem.RateCard)
-				foundRateCard := withoutStripeTaxCode(t, foundItem.SubscriptionItem.RateCard)
+				// Let's validate the RateCard is equal
+				rc1JSON, _ := json.Marshal(specItem.RateCard)
+				rc2JSON, _ := json.Marshal(foundItem.SubscriptionItem.RateCard)
 
-				rc1JSON, _ := json.Marshal(specRateCard)
-				rc2JSON, _ := json.Marshal(foundRateCard)
-
-				assert.True(t, specRateCard.Equal(foundRateCard), "rate card mismatch for item %s in phase %s: \nspec: %s \n\nview: %s", specItem.ItemKey, specPhase.PhaseKey, rc1JSON, rc2JSON)
+				assert.True(t, RateCardsEqual(specItem.RateCard, foundItem.SubscriptionItem.RateCard), "rate card mismatch for item %s in phase %s: \nspec: %s \n\nview: %s", specItem.ItemKey, specPhase.PhaseKey, rc1JSON, rc2JSON)
 
 				// Let's validate the Feature linking
 				var expectedFeatureKey, actualFeatureKey *string
@@ -161,6 +157,7 @@ func ValidateSpecAndView(t *testing.T, expected subscription.SubscriptionSpec, f
 	}
 }
 
+// SpecsEqual treats s1 as the expected spec; see RateCardsEqual.
 func SpecsEqual(t *testing.T, s1, s2 subscription.SubscriptionSpec) {
 	t.Helper()
 
@@ -224,9 +221,7 @@ func SpecsEqual(t *testing.T, s1, s2 subscription.SubscriptionSpec) {
 
 				// Let's validate the item properties
 				assert.Equal(t, i1.ItemKey, i2.ItemKey)
-				rc1 := withoutStripeTaxCode(t, i1.RateCard)
-				rc2 := withoutStripeTaxCode(t, i2.RateCard)
-				assert.True(t, rc1.Equal(rc2), "rate card mismatch for item %s in phase %s: \nspec: %+v\n\nview: %+v", itemKey, key, rc1, rc2)
+				assert.True(t, RateCardsEqual(i1.RateCard, i2.RateCard), "rate card mismatch for item %s in phase %s: \nspec: %+v\n\nview: %+v", itemKey, key, i1.RateCard, i2.RateCard)
 				assert.Equal(t, i1.PhaseKey, i2.PhaseKey, "phase key mismatch for item %s in phase %s", itemKey, key)
 
 				// We'll compare the time offsets separately
@@ -269,33 +264,44 @@ func SpecsEqual(t *testing.T, s1, s2 subscription.SubscriptionSpec) {
 	}
 }
 
-// withoutStripeTaxCode returns a copy of rc without the legacy Stripe tax code, so rate cards
-// compare by TaxCodeID and Behavior only.
-func withoutStripeTaxCode(t *testing.T, rc productcatalog.RateCard) productcatalog.RateCard {
-	t.Helper()
-
-	out := rc.Clone()
-
-	// Edit the clone's meta directly: ChangeMeta also validates, and a comparison must not fail
-	// on rate cards the services accepted.
-	var meta *productcatalog.RateCardMeta
-	switch v := out.(type) {
-	case *productcatalog.FlatFeeRateCard:
-		meta = &v.RateCardMeta
-	case *productcatalog.UsageBasedRateCard:
-		meta = &v.RateCardMeta
-	default:
-		t.Fatalf("unsupported rate card type %T", out)
+// RateCardsEqual is RateCard.Equal, except that found's Stripe tax code is ignored when expected
+// has none. The services fill in the Stripe code from the tax code's mapping, so a spec built
+// from a TaxCodeID-only config can't know it. When expected has a Stripe code, like specs built
+// from plans read back from the service, it's compared, so a wrong or stale code still fails.
+func RateCardsEqual(expected, found productcatalog.RateCard) bool {
+	if expected.Type() != found.Type() {
+		return false
 	}
 
-	if meta.TaxConfig != nil {
-		meta.TaxConfig.Stripe = nil
-		if meta.TaxConfig.Behavior == nil && meta.TaxConfig.TaxCodeID == nil {
-			meta.TaxConfig = nil
-		}
+	if lo.FromPtr(expected.GetBillingCadence()).ISOString() != lo.FromPtr(found.GetBillingCadence()).ISOString() {
+		return false
 	}
 
-	return out
+	// AsMeta returns copies, so adjusting TaxConfig here doesn't touch the rate cards.
+	expectedMeta := expected.AsMeta()
+	foundMeta := found.AsMeta()
+
+	if expectedMeta.TaxConfig == nil || expectedMeta.TaxConfig.Stripe == nil {
+		foundMeta.TaxConfig = withoutStripeTaxCode(foundMeta.TaxConfig)
+	}
+
+	return expectedMeta.Equal(foundMeta)
+}
+
+// withoutStripeTaxCode returns a copy of c without the Stripe code, or nil if nothing else is set.
+func withoutStripeTaxCode(c *productcatalog.TaxConfig) *productcatalog.TaxConfig {
+	if c == nil {
+		return nil
+	}
+
+	out := c.Clone()
+	out.Stripe = nil
+
+	if out.Behavior == nil && out.TaxCodeID == nil {
+		return nil
+	}
+
+	return &out
 }
 
 func tsPlusNillableISO(ts time.Time, iso *datetime.ISODuration) *time.Time {
