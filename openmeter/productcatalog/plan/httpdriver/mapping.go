@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/http"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -88,7 +89,7 @@ func FromPlanPhase(p plan.Phase) (api.PlanPhase, error) {
 	return resp, nil
 }
 
-func AsCreatePlanRequest(a api.PlanCreate, namespace string) (CreatePlanRequest, error) {
+func AsCreatePlanRequest(a api.PlanCreate, namespace string, resolver taxcode.Resolver) (CreatePlanRequest, error) {
 	var err error
 
 	req := CreatePlanRequest{
@@ -124,7 +125,7 @@ func AsCreatePlanRequest(a api.PlanCreate, namespace string) (CreatePlanRequest,
 		req.Phases = make([]productcatalog.Phase, 0, len(a.Phases))
 
 		for _, phase := range a.Phases {
-			planPhase, err := AsPlanPhase(phase)
+			planPhase, err := AsPlanPhase(phase, resolver)
 			if err != nil {
 				return req, fmt.Errorf("failed to cast PlanPhase: %w", err)
 			}
@@ -160,7 +161,7 @@ func asProRatingConfig(p *api.ProRatingConfig) productcatalog.ProRatingConfig {
 	}
 }
 
-func AsPlanPhase(a api.PlanPhase) (productcatalog.Phase, error) {
+func AsPlanPhase(a api.PlanPhase, resolver taxcode.Resolver) (productcatalog.Phase, error) {
 	var err error
 
 	phase := productcatalog.Phase{

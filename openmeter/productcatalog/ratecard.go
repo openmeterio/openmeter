@@ -13,7 +13,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
-	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -94,10 +93,7 @@ type RateCardMeta struct {
 	EntitlementTemplate *EntitlementTemplate `json:"entitlementTemplate,omitempty"`
 
 	// TaxConfig defines provider specific tax information.
-	TaxConfig *TaxConfig `json:"taxConfig,omitempty"`
-
-	// TaxCode is the tax code assigned to the RateCard. It is only populated if the tax code was eagerly loaded.
-	TaxCode *taxcode.TaxCode `json:"taxCode,omitempty"`
+	TaxConfig *TaxCodeConfig `json:"taxConfig,omitempty"`
 
 	// Price defines the price for the RateCard
 	Price *Price `json:"price"`
