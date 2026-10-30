@@ -16,6 +16,7 @@ import (
 	svixmodels "github.com/svix/svix-webhooks/v2/go/models"
 
 	v4 "github.com/openmeterio/openmeter/openmeter/notification/v4"
+	notificationprovider "github.com/openmeterio/openmeter/openmeter/notification/v4/provider"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -65,8 +66,8 @@ func TestGetEventCancellationPartialResults(t *testing.T) {
 				t.Run(cause.name, func(t *testing.T) {
 					// Given A can be fully observed before B's attempt listing is interrupted.
 					fixture := newEventCancellationFixture(t, ulid.Make().String())
-					input := v4.GetEventInput{Event: fixture.event, Destinations: fixture.destinations}
-					persisted := make(map[string]v4.ProviderData, len(input.Destinations))
+					input := notificationprovider.GetEventInput{Event: fixture.event, Destinations: fixture.destinations}
+					persisted := make(map[string]map[string]string, len(input.Destinations))
 
 					for _, destination := range input.Destinations {
 						persisted[destination.ChannelID] = maps.Clone(destination.EventDeliveryStatusProviderData)
@@ -113,11 +114,11 @@ func TestGetEventCancellationPartialResults(t *testing.T) {
 					result, err := provider.GetEvent(ctx, input)
 					require.NoError(t, err)
 					require.NotNil(t, result)
-					require.Equal(t, v4.ProviderData{"svix.message_id": "msg_test"}, result.EventProviderData)
+					require.Equal(t, map[string]string{"svix.message_id": "msg_test"}, result.EventProviderData)
 					require.Len(t, result.Destinations, 3)
 					require.Equal(t, wantRequests, transport.requests)
 
-					byChannel := make(map[string]v4.GetEventDestinationResult)
+					byChannel := make(map[string]notificationprovider.GetEventDestinationResult)
 
 					for _, destination := range result.Destinations {
 						require.NotContains(t, byChannel, destination.ChannelID)
@@ -134,14 +135,14 @@ func TestGetEventCancellationPartialResults(t *testing.T) {
 					require.NoError(t, completed.Error)
 					require.Equal(t, v4.EventDeliveryStatusStateSuccess, completed.State)
 					require.Nil(t, completed.NextObservationAt)
-					require.Equal(t, v4.ProviderData{
+					require.Equal(t, map[string]string{
 						"svix.dispatch_generation": "1",
 						"svix.observed_attempts":   `["atm_a"]`,
 					}, completed.EventDeliveryStatusProviderData)
 					require.Len(t, completed.Attempts, 1)
 					require.Equal(t, v4.EventDeliveryStatusStateSuccess, completed.Attempts[0].State)
 					require.Equal(t, fixture.event.CreatedAt, completed.Attempts[0].Timestamp)
-					require.Equal(t, v4.ProviderData{"svix.attempt_id": "atm_a"}, completed.Attempts[0].ProviderData)
+					require.Equal(t, map[string]string{"svix.attempt_id": "atm_a"}, completed.Attempts[0].ProviderData)
 					require.JSONEq(t,
 						`{"status_code":204,"body":"","duration_ms":1,"url":"https://example.com/a","response_truncated":false}`,
 						string(completed.Attempts[0].Response),
@@ -161,12 +162,12 @@ func TestGetEventCancellationPartialResults(t *testing.T) {
 						require.Nil(t, interrupted.NextObservationAt)
 						require.Equal(t, persisted[destination.ChannelID], interrupted.EventDeliveryStatusProviderData)
 
-						var providerErr *v4.ProviderError
+						var providerErr *notificationprovider.ProviderError
 
 						if cause.wantProviderError {
 							require.ErrorAs(t, interrupted.Error, &providerErr)
-							require.Equal(t, v4.ProviderErrorKindRetryable, providerErr.Kind)
-							require.Equal(t, v4.ProviderErrorCodeUnavailable, providerErr.Code)
+							require.Equal(t, notificationprovider.ProviderErrorKindRetryable, providerErr.Kind)
+							require.Equal(t, notificationprovider.ProviderErrorCodeUnavailable, providerErr.Code)
 						} else {
 							require.False(t, errors.As(interrupted.Error, &providerErr))
 						}
@@ -235,7 +236,7 @@ func TestResendEventCancellationPartialResults(t *testing.T) {
 					result, err := provider.ResendEvent(ctx, input)
 					require.NoError(t, err)
 					require.NotNil(t, result)
-					require.Equal(t, v4.ProviderData{"svix.message_id": "msg_test"}, result.EventProviderData)
+					require.Equal(t, map[string]string{"svix.message_id": "msg_test"}, result.EventProviderData)
 					require.Len(t, result.Destinations, 3)
 					require.Equal(t, []string{
 						"GET " + basePath + "/msg/" + fixture.event.ID + "?with_content=false",
@@ -244,7 +245,7 @@ func TestResendEventCancellationPartialResults(t *testing.T) {
 						"POST " + basePath + "/msg/msg_test/endpoint/ep_c/resend",
 					}, transport.requests)
 
-					byChannel := make(map[string]v4.ResendEventDestinationResult)
+					byChannel := make(map[string]notificationprovider.ResendEventDestinationResult)
 
 					for _, destination := range result.Destinations {
 						require.NotContains(t, byChannel, destination.ChannelID)
@@ -253,7 +254,7 @@ func TestResendEventCancellationPartialResults(t *testing.T) {
 
 					for _, destination := range input.Destinations {
 						require.Contains(t, byChannel, destination.ChannelID)
-						require.Equal(t, v4.ProviderData{
+						require.Equal(t, map[string]string{
 							"svix.dispatch_generation": "1",
 							"svix.observed_attempts":   `["atm_prior"]`,
 						}, destination.EventDeliveryStatusProviderData)
@@ -262,7 +263,7 @@ func TestResendEventCancellationPartialResults(t *testing.T) {
 					// Then A retains its new generation and the persisted pre-resend baseline.
 					completed := byChannel[input.Destinations[0].ChannelID]
 					require.NoError(t, completed.Error)
-					require.Equal(t, v4.ProviderData{
+					require.Equal(t, map[string]string{
 						"svix.dispatch_generation": "2",
 						"svix.resend_baseline":     `["atm_prior"]`,
 					}, completed.EventDeliveryStatusProviderData)
@@ -284,12 +285,12 @@ func TestResendEventCancellationPartialResults(t *testing.T) {
 						require.Empty(t, interrupted.EventDeliveryStatusProviderData)
 						require.Nil(t, interrupted.NextObservationAt)
 
-						var providerErr *v4.ProviderError
+						var providerErr *notificationprovider.ProviderError
 
 						if cause.wantProviderError {
 							require.ErrorAs(t, interrupted.Error, &providerErr)
-							require.Equal(t, v4.ProviderErrorKindRetryable, providerErr.Kind)
-							require.Equal(t, v4.ProviderErrorCodeUnavailable, providerErr.Code)
+							require.Equal(t, notificationprovider.ProviderErrorKindRetryable, providerErr.Kind)
+							require.Equal(t, notificationprovider.ProviderErrorCodeUnavailable, providerErr.Code)
 						} else {
 							require.False(t, errors.As(interrupted.Error, &providerErr))
 						}
@@ -313,14 +314,14 @@ func TestEventOperationCanceledContext(t *testing.T) {
 
 	operations := []struct {
 		name string
-		run  func(context.Context, v4.WebhookProvider) (any, error)
+		run  func(context.Context, notificationprovider.WebhookProvider) (any, error)
 	}{
 		{
 			name: "send",
-			run: func(ctx context.Context, provider v4.WebhookProvider) (any, error) {
-				return provider.SendEvent(ctx, v4.SendEventInput{
+			run: func(ctx context.Context, provider notificationprovider.WebhookProvider) (any, error) {
+				return provider.SendEvent(ctx, notificationprovider.SendEventInput{
 					Event: fixture.event,
-					Destinations: []v4.EventDestination{
+					Destinations: []notificationprovider.EventDestination{
 						{ChannelID: fixture.destinations[0].ChannelID},
 					},
 				})
@@ -328,13 +329,13 @@ func TestEventOperationCanceledContext(t *testing.T) {
 		},
 		{
 			name: "get",
-			run: func(ctx context.Context, provider v4.WebhookProvider) (any, error) {
-				return provider.GetEvent(ctx, v4.GetEventInput{Event: fixture.event, Destinations: fixture.destinations})
+			run: func(ctx context.Context, provider notificationprovider.WebhookProvider) (any, error) {
+				return provider.GetEvent(ctx, notificationprovider.GetEventInput{Event: fixture.event, Destinations: fixture.destinations})
 			},
 		},
 		{
 			name: "resend",
-			run: func(ctx context.Context, provider v4.WebhookProvider) (any, error) {
+			run: func(ctx context.Context, provider notificationprovider.WebhookProvider) (any, error) {
 				return provider.ResendEvent(ctx, fixture.resendInput())
 			},
 		},
@@ -399,7 +400,7 @@ func TestEventOperationCanceledContext(t *testing.T) {
 					require.ErrorContains(t, err, "svix.message.event_id="+fixture.event.ID)
 					require.Zero(t, transport.calls)
 
-					var providerErr *v4.ProviderError
+					var providerErr *notificationprovider.ProviderError
 
 					require.False(t, errors.As(err, &providerErr))
 				})
@@ -410,7 +411,7 @@ func TestEventOperationCanceledContext(t *testing.T) {
 
 type eventCancellationFixture struct {
 	event        v4.Event
-	destinations []v4.GetEventDestination
+	destinations []notificationprovider.GetEventDestination
 	message      cancellationResponse
 	endpoints    cancellationResponse
 	attempts     []cancellationResponse
@@ -445,10 +446,10 @@ func newEventCancellationFixture(t *testing.T, namespace string) eventCancellati
 		channelID := ulid.Make().String()
 		endpointID := "ep_" + suffix
 
-		fixture.destinations = append(fixture.destinations, v4.GetEventDestination{
+		fixture.destinations = append(fixture.destinations, notificationprovider.GetEventDestination{
 			ChannelID:           channelID,
-			ChannelProviderData: v4.ProviderData{"svix.endpoint_id": endpointID},
-			EventDeliveryStatusProviderData: v4.ProviderData{
+			ChannelProviderData: map[string]string{"svix.endpoint_id": endpointID},
+			EventDeliveryStatusProviderData: map[string]string{
 				"svix.dispatch_generation": "1",
 				"svix.observed_attempts":   `["atm_prior"]`,
 			},
@@ -493,14 +494,14 @@ func newEventCancellationFixture(t *testing.T, namespace string) eventCancellati
 
 // resendInput advances the requested generation without changing the persisted
 // observation, matching the reconciler's retryable resend contract.
-func (f eventCancellationFixture) resendInput() v4.ResendEventInput {
+func (f eventCancellationFixture) resendInput() notificationprovider.ResendEventInput {
 	destinations := slices.Clone(f.destinations)
 
 	for i := range destinations {
 		destinations[i].DispatchGeneration = 2
 	}
 
-	return v4.ResendEventInput{
+	return notificationprovider.ResendEventInput{
 		Event:          f.event,
 		Destinations:   destinations,
 		IdempotencyKey: new("resend-cancellation-test"),

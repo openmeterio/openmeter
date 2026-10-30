@@ -17,6 +17,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 
 	v4 "github.com/openmeterio/openmeter/openmeter/notification/v4"
+	notificationprovider "github.com/openmeterio/openmeter/openmeter/notification/v4/provider"
 	tracexv2 "github.com/openmeterio/openmeter/pkg/framework/tracex/v2"
 )
 
@@ -29,8 +30,8 @@ const (
 	eventPageSize                  uint64 = 100
 )
 
-func (p *Provider) SendEvent(ctx context.Context, input v4.SendEventInput) (*v4.SendEventResult, error) {
-	fn := func(ctx context.Context) (*v4.SendEventResult, error) {
+func (p *Provider) SendEvent(ctx context.Context, input notificationprovider.SendEventInput) (*notificationprovider.SendEventResult, error) {
+	fn := func(ctx context.Context) (*notificationprovider.SendEventResult, error) {
 		if err := input.Validate(); err != nil {
 			return nil, fmt.Errorf(
 				"invalid send message input [svix.message.event_id=%s svix.application.uid=%s]: %w",
@@ -103,15 +104,15 @@ func (p *Provider) SendEvent(ctx context.Context, input v4.SendEventInput) (*v4.
 			attribute.String("svix.message.id", message.Id),
 		)
 
-		result := &v4.SendEventResult{
-			EventProviderData: v4.ProviderData{providerDataMessageID: message.Id},
-			Destinations:      make([]v4.SendEventDestinationResult, 0, len(input.Destinations)),
+		result := &notificationprovider.SendEventResult{
+			EventProviderData: map[string]string{providerDataMessageID: message.Id},
+			Destinations:      make([]notificationprovider.SendEventDestinationResult, 0, len(input.Destinations)),
 		}
 
 		for _, destination := range input.Destinations {
-			result.Destinations = append(result.Destinations, v4.SendEventDestinationResult{
+			result.Destinations = append(result.Destinations, notificationprovider.SendEventDestinationResult{
 				ChannelID: destination.ChannelID,
-				EventDeliveryStatusProviderData: v4.ProviderData{
+				EventDeliveryStatusProviderData: map[string]string{
 					providerDataDispatchGeneration: "1",
 				},
 			})
@@ -135,8 +136,8 @@ func (p *Provider) SendEvent(ctx context.Context, input v4.SendEventInput) (*v4.
 	).Do2(ctx, fn)
 }
 
-func (p *Provider) ResendEvent(ctx context.Context, input v4.ResendEventInput) (*v4.ResendEventResult, error) {
-	fn := func(ctx context.Context) (*v4.ResendEventResult, error) {
+func (p *Provider) ResendEvent(ctx context.Context, input notificationprovider.ResendEventInput) (*notificationprovider.ResendEventResult, error) {
+	fn := func(ctx context.Context) (*notificationprovider.ResendEventResult, error) {
 		if err := input.Validate(); err != nil {
 			return nil, fmt.Errorf(
 				"invalid resend message input [svix.message.event_id=%s svix.application.uid=%s]: %w",
@@ -164,20 +165,20 @@ func (p *Provider) ResendEvent(ctx context.Context, input v4.ResendEventInput) (
 			attribute.String("svix.message.id", message.Id),
 		)
 
-		result := &v4.ResendEventResult{
-			EventProviderData: v4.ProviderData{providerDataMessageID: message.Id},
-			Destinations:      make([]v4.ResendEventDestinationResult, 0, len(input.Destinations)),
+		result := &notificationprovider.ResendEventResult{
+			EventProviderData: map[string]string{providerDataMessageID: message.Id},
+			Destinations:      make([]notificationprovider.ResendEventDestinationResult, 0, len(input.Destinations)),
 		}
 
 		destinationErrors := 0
 
 		for _, destination := range input.Destinations {
-			fn := func(ctx context.Context) (v4.ResendEventDestinationResult, error) {
-				outcome := v4.ResendEventDestinationResult{ChannelID: destination.ChannelID}
+			fn := func(ctx context.Context) (notificationprovider.ResendEventDestinationResult, error) {
+				outcome := notificationprovider.ResendEventDestinationResult{ChannelID: destination.ChannelID}
 				endpointID := destination.ChannelProviderData[providerDataEndpointID]
 
 				if endpointID == "" {
-					channel, err := p.GetChannel(ctx, v4.GetChannelInput{
+					channel, err := p.GetChannel(ctx, notificationprovider.GetChannelInput{
 						Namespace: input.Event.Namespace,
 						ChannelID: destination.ChannelID,
 					})
@@ -210,9 +211,9 @@ func (p *Provider) ResendEvent(ctx context.Context, input v4.ResendEventInput) (
 						endpointID,
 						destination.ChannelID,
 						input.Event.Namespace,
-						&v4.ProviderError{
-							Kind: v4.ProviderErrorKindConfiguration,
-							Code: v4.ProviderErrorCodeConfigurationInvalid,
+						&notificationprovider.ProviderError{
+							Kind: notificationprovider.ProviderErrorKindConfiguration,
+							Code: notificationprovider.ProviderErrorCodeConfigurationInvalid,
 							Err:  err,
 						},
 					)
@@ -253,7 +254,7 @@ func (p *Provider) ResendEvent(ctx context.Context, input v4.ResendEventInput) (
 						err,
 					)
 				} else {
-					outcome.EventDeliveryStatusProviderData = v4.ProviderData{
+					outcome.EventDeliveryStatusProviderData = map[string]string{
 						providerDataDispatchGeneration: strconv.FormatUint(destination.DispatchGeneration, 10),
 						providerDataResendBaseline:     string(baselineJSON),
 					}
@@ -300,8 +301,8 @@ func (p *Provider) ResendEvent(ctx context.Context, input v4.ResendEventInput) (
 	).Do2(ctx, fn)
 }
 
-func (p *Provider) GetEvent(ctx context.Context, input v4.GetEventInput) (*v4.GetEventResult, error) {
-	fn := func(ctx context.Context) (*v4.GetEventResult, error) {
+func (p *Provider) GetEvent(ctx context.Context, input notificationprovider.GetEventInput) (*notificationprovider.GetEventResult, error) {
+	fn := func(ctx context.Context) (*notificationprovider.GetEventResult, error) {
 		if err := input.Validate(); err != nil {
 			return nil, fmt.Errorf(
 				"invalid get message input [svix.message.event_id=%s svix.application.uid=%s]: %w",
@@ -315,10 +316,10 @@ func (p *Provider) GetEvent(ctx context.Context, input v4.GetEventInput) (*v4.Ge
 		if err != nil {
 			if !errors.Is(err, context.Canceled) && !errors.Is(err, context.DeadlineExceeded) {
 				providerErr := normalizeError(err)
-				if providerErr.Code == v4.ProviderErrorCodeResourceNotFound {
+				if providerErr.Code == notificationprovider.ProviderErrorCodeResourceNotFound {
 					// A previously accepted message may not be visible yet. Observation
 					// retries must not turn this into a new dispatch.
-					providerErr.Kind = v4.ProviderErrorKindRetryable
+					providerErr.Kind = notificationprovider.ProviderErrorKindRetryable
 				}
 
 				err = providerErr
@@ -391,16 +392,16 @@ func (p *Provider) GetEvent(ctx context.Context, input v4.GetEventInput) (*v4.Ge
 			options.Iterator = page.Iterator
 		}
 
-		result := &v4.GetEventResult{
-			EventProviderData: v4.ProviderData{providerDataMessageID: message.Id},
-			Destinations:      make([]v4.GetEventDestinationResult, 0, len(input.Destinations)),
+		result := &notificationprovider.GetEventResult{
+			EventProviderData: map[string]string{providerDataMessageID: message.Id},
+			Destinations:      make([]notificationprovider.GetEventDestinationResult, 0, len(input.Destinations)),
 		}
 
 		destinationErrors := 0
 
 		for _, destination := range input.Destinations {
-			fn := func(ctx context.Context) (v4.GetEventDestinationResult, error) {
-				outcome := v4.GetEventDestinationResult{
+			fn := func(ctx context.Context) (notificationprovider.GetEventDestinationResult, error) {
+				outcome := notificationprovider.GetEventDestinationResult{
 					ChannelID:                       destination.ChannelID,
 					State:                           v4.EventDeliveryStatusStateSending,
 					EventDeliveryStatusProviderData: svixProviderData(destination.EventDeliveryStatusProviderData),
@@ -420,9 +421,9 @@ func (p *Provider) GetEvent(ctx context.Context, input v4.GetEventInput) (*v4.Ge
 				// Acceptance precedes visibility of destinations and attempts. Absence
 				// is not failure and must never initiate another send.
 				if !found {
-					outcome.Error = &v4.ProviderError{
-						Kind: v4.ProviderErrorKindRetryable,
-						Code: v4.ProviderErrorCodeUnavailable,
+					outcome.Error = &notificationprovider.ProviderError{
+						Kind: notificationprovider.ProviderErrorKindRetryable,
+						Code: notificationprovider.ProviderErrorCodeUnavailable,
 						Err: fmt.Errorf(
 							"failed to observe message destination [svix.message.id=%s svix.message.event_id=%s svix.endpoint.id=%s svix.endpoint.uid=%s svix.application.uid=%s]: destination is not visible yet",
 							message.Id,
@@ -448,8 +449,8 @@ func (p *Provider) GetEvent(ctx context.Context, input v4.GetEventInput) (*v4.Ge
 				if err != nil {
 					if !errors.Is(err, context.Canceled) && !errors.Is(err, context.DeadlineExceeded) {
 						providerErr := normalizeError(err)
-						if providerErr.Code == v4.ProviderErrorCodeResourceNotFound {
-							providerErr.Kind = v4.ProviderErrorKindRetryable
+						if providerErr.Code == notificationprovider.ProviderErrorCodeResourceNotFound {
+							providerErr.Kind = notificationprovider.ProviderErrorKindRetryable
 						}
 
 						err = providerErr
@@ -482,9 +483,9 @@ func (p *Provider) GetEvent(ctx context.Context, input v4.GetEventInput) (*v4.Ge
 							endpoint.Id,
 							destination.ChannelID,
 							input.Event.Namespace,
-							&v4.ProviderError{
-								Kind: v4.ProviderErrorKindRetryable,
-								Code: v4.ProviderErrorCodeUnavailable,
+							&notificationprovider.ProviderError{
+								Kind: notificationprovider.ProviderErrorKindRetryable,
+								Code: notificationprovider.ProviderErrorCodeUnavailable,
 								Err:  metadataErr,
 							},
 						)
@@ -647,7 +648,7 @@ func (p *Provider) GetEvent(ctx context.Context, input v4.GetEventInput) (*v4.Ge
 // resolveResendBaseline uses the previous generation's persisted observation for
 // a new resend, or preserves the current generation's established baseline.
 // Reading live attempts here would absorb an accepted resend when retrying it.
-func resolveResendBaseline(destination v4.GetEventDestination) ([]string, error) {
+func resolveResendBaseline(destination notificationprovider.GetEventDestination) ([]string, error) {
 	generation := destination.DispatchGeneration
 	if generation < 2 {
 		return nil, errors.New("invalid resend generation: must be at least 2")

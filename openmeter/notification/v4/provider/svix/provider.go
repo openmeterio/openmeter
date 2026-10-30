@@ -8,7 +8,7 @@ import (
 	svixv2 "github.com/svix/svix-webhooks/v2/go"
 	"go.opentelemetry.io/otel/trace"
 
-	v4 "github.com/openmeterio/openmeter/openmeter/notification/v4"
+	notificationprovider "github.com/openmeterio/openmeter/openmeter/notification/v4/provider"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -46,15 +46,15 @@ type Provider struct {
 	tracer trace.Tracer
 }
 
-var _ v4.WebhookProvider = (*Provider)(nil)
+var _ notificationprovider.WebhookProvider = (*Provider)(nil)
 
 // RoutingMode reports endpoint event-type filtering for initial sends.
 // Resends target individual endpoints independently of this routing mode.
-func (*Provider) RoutingMode() v4.ProviderRoutingMode {
-	return v4.ProviderRoutingModeEventType
+func (*Provider) RoutingMode() notificationprovider.ProviderRoutingMode {
+	return notificationprovider.ProviderRoutingModeEventType
 }
 
-func New(config Config) (v4.WebhookProvider, error) {
+func New(config Config) (notificationprovider.WebhookProvider, error) {
 	if err := config.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid svix provider configuration: %w", err)
 	}
