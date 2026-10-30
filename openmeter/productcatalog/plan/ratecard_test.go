@@ -55,10 +55,8 @@ func TestRateCard_JSON(t *testing.T) {
 								},
 								Config: []byte(`{"key":"value"}`),
 							}),
-						TaxConfig: &productcatalog.TaxConfig{
-							Stripe: &productcatalog.StripeTaxConfig{
-								Code: "txcd_99999999",
-							},
+						TaxConfig: &productcatalog.TaxCodeConfig{
+							TaxCodeID: "01JTAXCODE0000000000000000",
 						},
 						Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 							Amount:      decimal.NewFromInt(1000),
@@ -104,10 +102,8 @@ func TestRateCard_JSON(t *testing.T) {
 								PreserveOverageAtReset:  lo.ToPtr(true),
 								UsagePeriod:             datetime.MustParseDuration(t, "P1M"),
 							}),
-						TaxConfig: &productcatalog.TaxConfig{
-							Stripe: &productcatalog.StripeTaxConfig{
-								Code: "txcd_99999999",
-							},
+						TaxConfig: &productcatalog.TaxCodeConfig{
+							TaxCodeID: "01JTAXCODE0000000000000000",
 						},
 						Price: productcatalog.NewPriceFrom(
 							productcatalog.UnitPrice{
@@ -227,10 +223,8 @@ func TestFlatFeeRateCard(t *testing.T) {
 									},
 									Config: []byte(`"test"`),
 								}),
-							TaxConfig: &productcatalog.TaxConfig{
-								Stripe: &productcatalog.StripeTaxConfig{
-									Code: "txcd_99999999",
-								},
+							TaxConfig: &productcatalog.TaxCodeConfig{
+								TaxCodeID: "01JTAXCODE0000000000000000",
 							},
 							Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 								Amount:      decimal.NewFromInt(1000),
@@ -273,10 +267,8 @@ func TestFlatFeeRateCard(t *testing.T) {
 									},
 									Config: []byte("invalid JSON"),
 								}),
-							TaxConfig: &productcatalog.TaxConfig{
-								Stripe: &productcatalog.StripeTaxConfig{
-									Code: "invalid_code",
-								},
+							TaxConfig: &productcatalog.TaxCodeConfig{
+								Behavior: lo.ToPtr(productcatalog.TaxBehavior("invalid")),
 							},
 							Price: productcatalog.NewPriceFrom(
 								productcatalog.FlatPrice{
@@ -347,10 +339,8 @@ func TestUsageBasedRateCard(t *testing.T) {
 									PreserveOverageAtReset:  nil,
 									UsagePeriod:             datetime.MustParseDuration(t, "P1M"),
 								}),
-							TaxConfig: &productcatalog.TaxConfig{
-								Stripe: &productcatalog.StripeTaxConfig{
-									Code: "txcd_99999999",
-								},
+							TaxConfig: &productcatalog.TaxCodeConfig{
+								TaxCodeID: "01JTAXCODE0000000000000000",
 							},
 							Price: productcatalog.NewPriceFrom(
 								productcatalog.UnitPrice{
@@ -401,10 +391,8 @@ func TestUsageBasedRateCard(t *testing.T) {
 									PreserveOverageAtReset:  nil,
 									UsagePeriod:             datetime.MustParseDuration(t, "P1M"),
 								}),
-							TaxConfig: &productcatalog.TaxConfig{
-								Stripe: &productcatalog.StripeTaxConfig{
-									Code: "invalid_code",
-								},
+							TaxConfig: &productcatalog.TaxCodeConfig{
+								Behavior: lo.ToPtr(productcatalog.TaxBehavior("invalid")),
 							},
 							Price: productcatalog.NewPriceFrom(
 								productcatalog.UnitPrice{

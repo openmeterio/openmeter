@@ -1,6 +1,7 @@
 package httpdriver
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/samber/lo"
@@ -10,12 +11,15 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/http"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-func FromPlan(p plan.Plan) (api.Plan, error) {
+// FromPlan maps a plan to its v1 shape. taxCodes holds the Tax Codes referenced by the plan's rate
+// cards, used to fill in the legacy stripe.code.
+func FromPlan(p plan.Plan, taxCodes map[string]*taxcode.TaxCode) (api.Plan, error) {
 	validationIssues, _ := p.AsProductCatalogPlan().ValidationErrors()
 
 	resp := api.Plan{
@@ -39,7 +43,7 @@ func FromPlan(p plan.Plan) (api.Plan, error) {
 
 	resp.Phases = make([]api.PlanPhase, 0, len(p.Phases))
 	for _, phase := range p.Phases {
-		planPhase, err := FromPlanPhase(phase)
+		planPhase, err := FromPlanPhase(phase, taxCodes)
 		if err != nil {
 			return resp, fmt.Errorf("failed to cast Plan: %w", err)
 		}
@@ -66,7 +70,7 @@ func FromPlan(p plan.Plan) (api.Plan, error) {
 	return resp, nil
 }
 
-func FromPlanPhase(p plan.Phase) (api.PlanPhase, error) {
+func FromPlanPhase(p plan.Phase, taxCodes map[string]*taxcode.TaxCode) (api.PlanPhase, error) {
 	resp := api.PlanPhase{
 		Description: p.Description,
 		Key:         p.Key,
@@ -77,7 +81,7 @@ func FromPlanPhase(p plan.Phase) (api.PlanPhase, error) {
 
 	resp.RateCards = make([]api.RateCard, 0, len(p.RateCards))
 	for _, rateCard := range p.RateCards {
-		rc, err := http.FromRateCard(rateCard)
+		rc, err := http.FromRateCard(rateCard, taxCodes)
 		if err != nil {
 			return resp, fmt.Errorf("failed to cast RateCard: %w", err)
 		}
@@ -88,7 +92,7 @@ func FromPlanPhase(p plan.Phase) (api.PlanPhase, error) {
 	return resp, nil
 }
 
-func AsCreatePlanRequest(a api.PlanCreate, namespace string) (CreatePlanRequest, error) {
+func AsCreatePlanRequest(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver, a api.PlanCreate, namespace string) (CreatePlanRequest, error) {
 	var err error
 
 	req := CreatePlanRequest{
@@ -124,7 +128,7 @@ func AsCreatePlanRequest(a api.PlanCreate, namespace string) (CreatePlanRequest,
 		req.Phases = make([]productcatalog.Phase, 0, len(a.Phases))
 
 		for _, phase := range a.Phases {
-			planPhase, err := AsPlanPhase(phase)
+			planPhase, err := AsPlanPhase(ctx, resolver, namespace, phase)
 			if err != nil {
 				return req, fmt.Errorf("failed to cast PlanPhase: %w", err)
 			}
@@ -160,7 +164,7 @@ func asProRatingConfig(p *api.ProRatingConfig) productcatalog.ProRatingConfig {
 	}
 }
 
-func AsPlanPhase(a api.PlanPhase) (productcatalog.Phase, error) {
+func AsPlanPhase(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver, namespace string, a api.PlanPhase) (productcatalog.Phase, error) {
 	var err error
 
 	phase := productcatalog.Phase{
@@ -177,7 +181,7 @@ func AsPlanPhase(a api.PlanPhase) (productcatalog.Phase, error) {
 		return phase, models.NewGenericValidationError(fmt.Errorf("invalid duration: failed to cast to period: %w", err))
 	}
 
-	phase.RateCards, err = http.AsRateCards(a.RateCards)
+	phase.RateCards, err = http.AsRateCards(ctx, resolver, namespace, a.RateCards)
 	if err != nil {
 		return phase, err
 	}
@@ -185,7 +189,7 @@ func AsPlanPhase(a api.PlanPhase) (productcatalog.Phase, error) {
 	return phase, nil
 }
 
-func AsUpdatePlanRequest(a api.PlanReplaceUpdate, namespace string, planID string) (UpdatePlanRequest, error) {
+func AsUpdatePlanRequest(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver, a api.PlanReplaceUpdate, namespace string, planID string) (UpdatePlanRequest, error) {
 	req := UpdatePlanRequest{
 		NamespacedID: models.NamespacedID{
 			Namespace: namespace,
@@ -212,7 +216,7 @@ func AsUpdatePlanRequest(a api.PlanReplaceUpdate, namespace string, planID strin
 
 	phases := make([]productcatalog.Phase, 0, len(a.Phases))
 	for _, phase := range a.Phases {
-		planPhase, err := AsPlanPhase(phase)
+		planPhase, err := AsPlanPhase(ctx, resolver, namespace, phase)
 		if err != nil {
 			return req, fmt.Errorf("failed to cast Plan Phase from HTTP update request: %w", err)
 		}
