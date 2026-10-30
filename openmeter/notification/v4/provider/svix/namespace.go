@@ -11,14 +11,14 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 
-	v4 "github.com/openmeterio/openmeter/openmeter/notification/v4"
+	notificationprovider "github.com/openmeterio/openmeter/openmeter/notification/v4/provider"
 	tracexv2 "github.com/openmeterio/openmeter/pkg/framework/tracex/v2"
 )
 
 const providerDataApplicationID = "svix.application_id"
 
-func (p *Provider) GetNamespace(ctx context.Context, input v4.GetNamespaceInput) (*v4.GetNamespaceResult, error) {
-	fn := func(ctx context.Context) (*v4.GetNamespaceResult, error) {
+func (p *Provider) GetNamespace(ctx context.Context, input notificationprovider.GetNamespaceInput) (*notificationprovider.GetNamespaceResult, error) {
+	fn := func(ctx context.Context) (*notificationprovider.GetNamespaceResult, error) {
 		if err := input.Validate(); err != nil {
 			return nil, fmt.Errorf(
 				"invalid get application input [svix.application.uid=%s]: %w",
@@ -66,8 +66,8 @@ func (p *Provider) GetNamespace(ctx context.Context, input v4.GetNamespaceInput)
 	).Do2(ctx, fn)
 }
 
-func (p *Provider) CreateNamespace(ctx context.Context, input v4.CreateNamespaceInput) (*v4.CreateNamespaceResult, error) {
-	fn := func(ctx context.Context) (*v4.CreateNamespaceResult, error) {
+func (p *Provider) CreateNamespace(ctx context.Context, input notificationprovider.CreateNamespaceInput) (*notificationprovider.CreateNamespaceResult, error) {
+	fn := func(ctx context.Context) (*notificationprovider.CreateNamespaceResult, error) {
 		if err := input.Validate(); err != nil {
 			return nil, fmt.Errorf(
 				"invalid create application input [svix.application.uid=%s]: %w",
@@ -125,8 +125,8 @@ func (p *Provider) CreateNamespace(ctx context.Context, input v4.CreateNamespace
 	).Do2(ctx, fn)
 }
 
-func (p *Provider) UpdateNamespace(ctx context.Context, input v4.UpdateNamespaceInput) (*v4.UpdateNamespaceResult, error) {
-	fn := func(ctx context.Context) (*v4.UpdateNamespaceResult, error) {
+func (p *Provider) UpdateNamespace(ctx context.Context, input notificationprovider.UpdateNamespaceInput) (*notificationprovider.UpdateNamespaceResult, error) {
+	fn := func(ctx context.Context) (*notificationprovider.UpdateNamespaceResult, error) {
 		if err := input.Validate(); err != nil {
 			return nil, fmt.Errorf(
 				"invalid update application input [svix.application.uid=%s]: %w",
@@ -194,7 +194,7 @@ func (p *Provider) UpdateNamespace(ctx context.Context, input v4.UpdateNamespace
 	).Do2(ctx, fn)
 }
 
-func (p *Provider) DeleteNamespace(ctx context.Context, input v4.DeleteNamespaceInput) error {
+func (p *Provider) DeleteNamespace(ctx context.Context, input notificationprovider.DeleteNamespaceInput) error {
 	fn := func(ctx context.Context) error {
 		if err := input.Validate(); err != nil {
 			return fmt.Errorf(
@@ -236,7 +236,7 @@ func (p *Provider) DeleteNamespace(ctx context.Context, input v4.DeleteNamespace
 	).Do(ctx, fn)
 }
 
-func fromAPIApplicationOut(app *svix.ApplicationOut) (*v4.ProviderNamespace, error) {
+func fromAPIApplicationOut(app *svix.ApplicationOut) (*notificationprovider.Namespace, error) {
 	if app == nil {
 		return nil, errors.New("invalid application response: nil response")
 	}
@@ -244,18 +244,18 @@ func fromAPIApplicationOut(app *svix.ApplicationOut) (*v4.ProviderNamespace, err
 	// Never replace Notification identity with a generated provider ID, including
 	// when a malformed response omits the UID.
 	if app.Id == "" || lo.FromPtr(app.Uid) == "" {
-		return nil, &v4.ProviderError{
-			Kind: v4.ProviderErrorKindTerminal,
-			Code: v4.ProviderErrorCodeRequestFailed,
+		return nil, &notificationprovider.ProviderError{
+			Kind: notificationprovider.ProviderErrorKindTerminal,
+			Code: notificationprovider.ProviderErrorCodeRequestFailed,
 			Err:  errors.New("invalid application response: missing ID or UID"),
 		}
 	}
 
-	return &v4.ProviderNamespace{
+	return &notificationprovider.Namespace{
 		ID:       *app.Uid,
 		Name:     app.Name,
 		Metadata: app.Metadata,
-		ProviderData: v4.ProviderData{
+		ProviderData: map[string]string{
 			providerDataApplicationID: app.Id,
 		},
 	}, nil

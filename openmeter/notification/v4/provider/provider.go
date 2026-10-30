@@ -1,4 +1,4 @@
-package v4
+package provider
 
 import (
 	"context"
@@ -8,13 +8,19 @@ import (
 	"strings"
 	"time"
 
+	v4 "github.com/openmeterio/openmeter/openmeter/notification/v4"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-// Provider owns external ProviderNamespace and Channel state and asynchronous delivery. Implementations
+// Provider owns external Namespace and Channel state and asynchronous delivery. Implementations
 // must be safe for concurrent use, honor context deadlines, and make mutations
 // idempotent. Notification owns persistence and reconciliation scheduling.
-type Provider[C ChannelConfig, U ChannelConfigUpdate] interface {
+//
+// ProviderData maps contain internal operational metadata. Each key must use the
+// owning Provider's prefix, such as "svix.message_id". Results replace that
+// Provider's complete subset; Notification preserves other Providers' keys.
+// Values must not contain secrets.
+type Provider[C v4.ChannelConfig, U v4.ChannelConfigUpdate] interface {
 	// RoutingMode describes how destinations are selected for initial sends,
 	// not targeted resends. It is fixed for the lifetime of the provider instance.
 	RoutingMode() ProviderRoutingMode
@@ -73,22 +79,16 @@ const (
 	ProviderRoutingModeEventType ProviderRoutingMode = "event_type"
 )
 
-// ProviderData contains internal operational metadata. Each key must use the
-// owning Provider's prefix, such as "svix.message_id". Results replace that
-// Provider's complete subset; Notification preserves other Providers' keys.
-// Values must not contain secrets.
-type ProviderData map[string]string
-
-type ProviderNamespace struct {
+type Namespace struct {
 	ID           string
 	Name         string
 	Metadata     models.Metadata
-	ProviderData ProviderData
+	ProviderData map[string]string
 }
 
-var _ models.Validator = ProviderNamespace{}
+var _ models.Validator = Namespace{}
 
-func (n ProviderNamespace) Validate() error {
+func (n Namespace) Validate() error {
 	var errs []error
 
 	if err := (GetNamespaceInput{ID: n.ID}).Validate(); err != nil {
@@ -119,7 +119,7 @@ func (i GetNamespaceInput) Validate() error {
 }
 
 type CreateNamespaceInput struct {
-	ProviderNamespace
+	Namespace
 
 	// IdempotencyKey identifies the same logical creation across retries.
 	// Nil selects the provider default; a supplied key must be nonblank.
@@ -131,7 +131,7 @@ var _ models.Validator = CreateNamespaceInput{}
 func (i CreateNamespaceInput) Validate() error {
 	var errs []error
 
-	if err := i.ProviderNamespace.Validate(); err != nil {
+	if err := i.Namespace.Validate(); err != nil {
 		errs = append(errs, err)
 	}
 
@@ -150,7 +150,7 @@ type UpdateNamespaceInput struct {
 	// empty map clears existing metadata; nil preserves it.
 	Metadata *models.Metadata
 
-	ProviderData ProviderData
+	ProviderData map[string]string
 }
 
 var _ models.Validator = UpdateNamespaceInput{}
@@ -172,9 +172,9 @@ func (i UpdateNamespaceInput) Validate() error {
 type (
 	DeleteNamespaceInput = GetNamespaceInput
 
-	GetNamespaceResult    = ProviderNamespace
-	CreateNamespaceResult = ProviderNamespace
-	UpdateNamespaceResult = ProviderNamespace
+	GetNamespaceResult    = Namespace
+	CreateNamespaceResult = Namespace
+	UpdateNamespaceResult = Namespace
 )
 
 type ChannelOperationState string
@@ -184,7 +184,7 @@ const (
 	ChannelOperationStateInSync  ChannelOperationState = "in_sync"
 )
 
-type CreateChannelInput[C ChannelConfig] struct {
+type CreateChannelInput[C v4.ChannelConfig] struct {
 	Namespace string
 	ChannelID string
 	Name      string
@@ -196,15 +196,15 @@ type CreateChannelInput[C ChannelConfig] struct {
 
 	// EventTypes contains concrete types; Providers do not expand wildcards.
 	// Nil or empty means catch-all. Disabled takes precedence over filtering.
-	EventTypes   []EventType
-	ProviderData ProviderData
+	EventTypes   []v4.EventType
+	ProviderData map[string]string
 
 	// IdempotencyKey identifies the same logical creation across retries.
 	// Nil selects the provider default; a supplied key must be nonblank.
 	IdempotencyKey *string
 }
 
-var _ models.Validator = CreateChannelInput[ChannelConfig]{}
+var _ models.Validator = CreateChannelInput[v4.ChannelConfig]{}
 
 func (i CreateChannelInput[C]) Validate() error {
 	var errs []error
@@ -234,7 +234,7 @@ func (i CreateChannelInput[C]) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-type UpdateChannelInput[U ChannelConfigUpdate] struct {
+type UpdateChannelInput[U v4.ChannelConfigUpdate] struct {
 	Namespace string
 	ChannelID string
 	Name      *string
@@ -248,11 +248,11 @@ type UpdateChannelInput[U ChannelConfigUpdate] struct {
 
 	// EventTypes replaces the concrete routing filter when provided. A pointer
 	// to a nil or empty slice enables catch-all routing; nil preserves filtering.
-	EventTypes   *[]EventType
-	ProviderData ProviderData
+	EventTypes   *[]v4.EventType
+	ProviderData map[string]string
 }
 
-var _ models.Validator = UpdateChannelInput[WebhookConfigUpdate]{}
+var _ models.Validator = UpdateChannelInput[v4.WebhookConfigUpdate]{}
 
 func (i UpdateChannelInput[U]) Validate() error {
 	var errs []error
@@ -283,7 +283,7 @@ func (i UpdateChannelInput[U]) Validate() error {
 type GetChannelInput struct {
 	Namespace    string
 	ChannelID    string
-	ProviderData ProviderData
+	ProviderData map[string]string
 }
 
 var _ models.Validator = GetChannelInput{}
@@ -307,7 +307,7 @@ type DeleteChannelInput = GetChannelInput
 // ChannelOperationResult reports convergence.
 type ChannelOperationResult struct {
 	State             ChannelOperationState
-	ProviderData      ProviderData
+	ProviderData      map[string]string
 	NextObservationAt *time.Time
 }
 
@@ -318,7 +318,7 @@ type (
 )
 
 type SendEventInput struct {
-	Event        Event
+	Event        v4.Event
 	Destinations []EventDestination
 
 	// IdempotencyKey identifies the same logical send across retries, not its external identity.
@@ -367,35 +367,35 @@ func (i SendEventInput) Validate() error {
 // routing, it defines tracking and result cardinality, not explicit targeting.
 type EventDestination struct {
 	ChannelID           string
-	ChannelProviderData ProviderData
+	ChannelProviderData map[string]string
 }
 
 // SendEventResult must include every requested destination exactly once.
 // Destination errors permit partial acceptance; a method-level error means
 // Notification must not apply any part of the result.
 type SendEventResult struct {
-	EventProviderData ProviderData
+	EventProviderData map[string]string
 	Destinations      []SendEventDestinationResult
 }
 
 type SendEventDestinationResult struct {
 	ChannelID                       string
 	Error                           error
-	EventDeliveryStatusProviderData ProviderData
+	EventDeliveryStatusProviderData map[string]string
 	NextObservationAt               *time.Time
 }
 
 type GetEventDestination struct {
 	ChannelID                       string
-	ChannelProviderData             ProviderData
-	EventDeliveryStatusProviderData ProviderData
+	ChannelProviderData             map[string]string
+	EventDeliveryStatusProviderData map[string]string
 	// DispatchGeneration is 1 for initial dispatch and increments only on an
 	// explicit resend, never for automatic retries or Provider attempts.
 	DispatchGeneration uint64
 }
 
 type ResendEventInput struct {
-	Event        Event
+	Event        v4.Event
 	Destinations []GetEventDestination
 
 	// IdempotencyKey identifies the same logical resend across retries.
@@ -426,14 +426,14 @@ func (i ResendEventInput) Validate() error {
 }
 
 type ResendEventResult struct {
-	EventProviderData ProviderData
+	EventProviderData map[string]string
 	Destinations      []ResendEventDestinationResult
 }
 
 type ResendEventDestinationResult = SendEventDestinationResult
 
 type GetEventInput struct {
-	Event        Event
+	Event        v4.Event
 	Destinations []GetEventDestination
 }
 
@@ -478,58 +478,15 @@ func (i GetEventInput) Validate() error {
 // GetEventResult follows the same destination completeness and partial-error
 // contract as SendEventResult. Retrieval does not initiate another send.
 type GetEventResult struct {
-	EventProviderData ProviderData
+	EventProviderData map[string]string
 	Destinations      []GetEventDestinationResult
 }
 
 type GetEventDestinationResult struct {
 	ChannelID                       string
 	Error                           error
-	State                           EventDeliveryStatusState
-	EventDeliveryStatusProviderData ProviderData
-	Attempts                        []EventDeliveryAttempt
+	State                           v4.EventDeliveryStatusState
+	EventDeliveryStatusProviderData map[string]string
+	Attempts                        []v4.EventDeliveryAttempt
 	NextObservationAt               *time.Time
-}
-
-type ProviderErrorKind string
-
-const (
-	ProviderErrorKindRetryable     ProviderErrorKind = "retryable"
-	ProviderErrorKindTerminal      ProviderErrorKind = "terminal"
-	ProviderErrorKindConfiguration ProviderErrorKind = "configuration"
-)
-
-type ProviderErrorCode string
-
-const (
-	ProviderErrorCodeConfigurationInvalid ProviderErrorCode = "provider_configuration_invalid"
-	ProviderErrorCodeResourceNotFound     ProviderErrorCode = "provider_resource_not_found"
-	ProviderErrorCodeRequestFailed        ProviderErrorCode = "provider_request_failed"
-	ProviderErrorCodeRateLimited          ProviderErrorCode = "provider_rate_limited"
-	ProviderErrorCodeUnavailable          ProviderErrorCode = "provider_unavailable"
-)
-
-// ProviderError carries a normalized classification and an internal cause.
-// Notification sanitizes public messages rather than exposing Err to callers.
-// Operation errors may wrap it; callers use errors.As to inspect classification
-// and errors.Is to detect cancellation independently of provider failures.
-type ProviderError struct {
-	Kind       ProviderErrorKind
-	Code       ProviderErrorCode
-	RetryAfter *time.Duration
-	Err        error
-}
-
-var _ error = (*ProviderError)(nil)
-
-func (e *ProviderError) Error() string {
-	if e.Err == nil {
-		return string(e.Code)
-	}
-
-	return fmt.Sprintf("%s: %s", e.Code, e.Err)
-}
-
-func (e *ProviderError) Unwrap() error {
-	return e.Err
 }
