@@ -48,6 +48,7 @@ var Feature = wire.NewSet(
 
 var TaxCodeResolver = wire.NewSet(
 	NewTaxCodeResolver,
+	NewTaxCodeResolverFactory,
 )
 
 var Cost = wire.NewSet(
@@ -79,6 +80,8 @@ func NewFeatureConnector(
 var NewFeatureResolver = featureresolver.New
 
 var NewTaxCodeResolver = taxcoderesolver.New
+
+var NewTaxCodeResolverFactory = taxcoderesolver.NewFactory
 
 func NewCostService(
 	featureConnector feature.FeatureConnector,
