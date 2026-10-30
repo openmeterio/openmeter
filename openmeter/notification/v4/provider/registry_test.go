@@ -1,4 +1,4 @@
-package v4_test
+package provider_test
 
 import (
 	"log/slog"
@@ -6,12 +6,12 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	v4 "github.com/openmeterio/openmeter/openmeter/notification/v4"
-	"github.com/openmeterio/openmeter/openmeter/notification/v4/providers/noop"
+	notificationprovider "github.com/openmeterio/openmeter/openmeter/notification/v4/provider"
+	"github.com/openmeterio/openmeter/openmeter/notification/v4/provider/noop"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-func TestNewProviderRegistry(t *testing.T) {
+func TestNewRegistry(t *testing.T) {
 	logger := slog.New(slog.DiscardHandler)
 
 	provider, err := noop.NewWebhookProvider(logger)
@@ -19,26 +19,26 @@ func TestNewProviderRegistry(t *testing.T) {
 
 	tests := []struct {
 		name       string
-		config     v4.ProviderRegistryConfig
+		config     notificationprovider.RegistryConfig
 		wantErrors []string
 	}{
 		{
 			name: "configured webhook provider",
-			config: v4.ProviderRegistryConfig{
+			config: notificationprovider.RegistryConfig{
 				Logger:  logger,
 				Webhook: provider,
 			},
 		},
 		{
 			name: "missing webhook provider",
-			config: v4.ProviderRegistryConfig{
+			config: notificationprovider.RegistryConfig{
 				Logger: logger,
 			},
 			wantErrors: []string{"webhook provider is required"},
 		},
 		{
 			name: "typed nil webhook provider",
-			config: v4.ProviderRegistryConfig{
+			config: notificationprovider.RegistryConfig{
 				Logger:  logger,
 				Webhook: (*noop.WebhookProvider)(nil),
 			},
@@ -46,7 +46,7 @@ func TestNewProviderRegistry(t *testing.T) {
 		},
 		{
 			name: "typed nil webhook provider and missing logger",
-			config: v4.ProviderRegistryConfig{
+			config: notificationprovider.RegistryConfig{
 				Webhook: (*noop.WebhookProvider)(nil),
 			},
 			wantErrors: []string{
@@ -56,7 +56,7 @@ func TestNewProviderRegistry(t *testing.T) {
 		},
 		{
 			name: "missing logger",
-			config: v4.ProviderRegistryConfig{
+			config: notificationprovider.RegistryConfig{
 				Webhook: provider,
 			},
 			wantErrors: []string{"logger is required"},
@@ -76,7 +76,7 @@ func TestNewProviderRegistry(t *testing.T) {
 			config := tt.config
 
 			// When constructing the registry.
-			registry, err := v4.NewProviderRegistry(config)
+			registry, err := notificationprovider.NewRegistry(config)
 
 			// Then invalid wiring fails before a registry is returned.
 			switch {
@@ -93,7 +93,7 @@ func TestNewProviderRegistry(t *testing.T) {
 				require.NoError(t, err)
 				require.NotNil(t, registry)
 				require.Same(t, provider, registry.Webhook())
-				require.Equal(t, v4.ProviderRoutingModeExplicit, registry.Webhook().RoutingMode())
+				require.Equal(t, notificationprovider.ProviderRoutingModeExplicit, registry.Webhook().RoutingMode())
 
 				// Changing construction inputs must not replace stored dependencies.
 				config.Webhook = nil

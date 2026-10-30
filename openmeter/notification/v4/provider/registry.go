@@ -1,4 +1,4 @@
-package v4
+package provider
 
 import (
 	"errors"
@@ -10,16 +10,16 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-// ProviderRegistryConfig supplies a provider for every supported channel type.
-type ProviderRegistryConfig struct {
+// RegistryConfig supplies a provider for every supported channel type.
+type RegistryConfig struct {
 	Logger  *slog.Logger
 	Webhook WebhookProvider
 }
 
-var _ models.Validator = ProviderRegistryConfig{}
+var _ models.Validator = RegistryConfig{}
 
 // Validate rejects incomplete wiring before providers can be accessed.
-func (c ProviderRegistryConfig) Validate() error {
+func (c RegistryConfig) Validate() error {
 	var errs []error
 
 	if c.Logger == nil {
@@ -33,28 +33,28 @@ func (c ProviderRegistryConfig) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-// ProviderRegistry holds one provider per channel type, fixed at construction.
-// Its zero value is not usable; construct it with NewProviderRegistry.
+// Registry holds one provider per channel type, fixed at construction.
+// Its zero value is not usable; construct it with NewRegistry.
 // Application composition owns provider lifecycles.
-type ProviderRegistry struct {
+type Registry struct {
 	logger  *slog.Logger
 	webhook WebhookProvider
 }
 
-// NewProviderRegistry validates and captures all provider dependencies without
+// NewRegistry validates and captures all provider dependencies without
 // creating external resources.
-func NewProviderRegistry(config ProviderRegistryConfig) (*ProviderRegistry, error) {
+func NewRegistry(config RegistryConfig) (*Registry, error) {
 	if err := config.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid provider registry configuration: %w", err)
 	}
 
-	return &ProviderRegistry{
+	return &Registry{
 		logger:  config.Logger,
 		webhook: config.Webhook,
 	}, nil
 }
 
 // Webhook returns the webhook provider required at construction.
-func (r *ProviderRegistry) Webhook() WebhookProvider {
+func (r *Registry) Webhook() WebhookProvider {
 	return r.webhook
 }

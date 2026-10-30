@@ -14,6 +14,17 @@ import (
 	"go.opentelemetry.io/otel/trace/noop"
 )
 
+// The defaults match the Svix service in docker-compose.yaml. Override them
+// with SVIX_API_URL, SVIX_JWT_SECRET and SVIX_WEBHOOK_HOST.
+//
+// The webhook host must reach this machine from inside the Svix container.
+// docker-compose.yaml maps host.docker.internal to host-gateway so that it
+// also exists on Linux. On Rancher Desktop host-gateway is its VM, not this
+// machine, so deliveries fail with connection errors; set
+// SVIX_WEBHOOK_HOST=host.rancher-desktop.internal there. Svix also
+// refuses private addresses unless SVIX_WHITELIST_SUBNETS allows them, as
+// docker-compose.yaml does; a Svix without it fails every delivery with
+// "requests to this IP range are blocked".
 const (
 	DefaultSvixAPIURL      = "http://127.0.0.1:8071"
 	DefaultSvixJWTSecret   = "DUMMY_JWT_SECRET"

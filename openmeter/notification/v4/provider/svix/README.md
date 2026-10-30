@@ -74,8 +74,8 @@ owns fan-out; the supplied destinations describe Notification's tracking set,
 not explicit routing. A duplicate Event ID is recovered by reading the existing
 message. Acceptance is not delivery success.
 
-Application composition supplies Svix through `ProviderRegistryConfig.Webhook`.
-`NewProviderRegistry` rejects missing dependencies before exposing providers
+Application composition supplies Svix through `provider.RegistryConfig.Webhook`.
+`provider.NewRegistry` rejects missing dependencies before exposing providers
 through accessors such as `Webhook()`. Consumers must use a constructed registry,
 not its zero value. `RoutingMode()` reports `event_type` for initial sends;
 targeted resends are unaffected by that mode.
