@@ -44,9 +44,12 @@ For each contract, the generated package exposes the Event type as
 `<event type>.rule_config`.
 
 `definitions.All()` returns the definitions of every domain. It is generated
-too, so it cannot miss a contract; wiring must still pass it to the registry,
-which accepts any list. It lives in the `definitions` subpackage because domain
-packages import `v4`.
+too, so it cannot miss a generated contract; wiring must still pass it to the
+registry, which accepts any list. A new domain is generated only once it is
+imported and mapped in
+[`notification-events.tsp`](../../../api/spec/packages/aip/src/notification-events.tsp).
+`All` lives in the `definitions` subpackage because domain packages import
+`v4`.
 
 An `EventTypeDefinition` binds an Event type to its contracts:
 
