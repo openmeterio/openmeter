@@ -150,7 +150,7 @@ func TestMigrationRejectsChangedPhaseStartWithoutReset(t *testing.T) {
 	defer clock.UnFreeze()
 
 	// given a target whose second phase starts a month later
-	fixture := newMigrationFixtureWithPlan(t, func(taxConfig productcatalog.TaxConfig) plan.CreatePlanInput {
+	fixture := newMigrationFixtureWithPlan(t, func(taxConfig productcatalog.TaxCodeConfig) plan.CreatePlanInput {
 		return migrationPlanWithTwoPhases(t, taxConfig)
 	})
 	next := migrationPlanWithTwoPhases(t, fixture.taxConfig)

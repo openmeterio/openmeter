@@ -1,8 +1,6 @@
 package subscriptiontestutils
 
 import (
-	"github.com/samber/lo"
-
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
@@ -20,8 +18,8 @@ func GetExampleTaxCodeInput() taxcode.CreateTaxCodeInput {
 
 // ExampleTaxConfig points rate cards at tc. Behavior is left nil, so it comes from the billing
 // profile; set it on the result if a test needs one.
-func ExampleTaxConfig(tc taxcode.TaxCode) productcatalog.TaxConfig {
-	return productcatalog.TaxConfig{
-		TaxCodeID: lo.ToPtr(tc.ID),
+func ExampleTaxConfig(tc taxcode.TaxCode) productcatalog.TaxCodeConfig {
+	return productcatalog.TaxCodeConfig{
+		TaxCodeID: tc.ID,
 	}
 }

@@ -37,6 +37,7 @@ import (
 	planaddonrepo "github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon/adapter"
 	planaddonservice "github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon/service"
 	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription/testutils"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/taxcoderesolver"
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
@@ -133,11 +134,14 @@ func (s *SubscriptionMixin) SetupSuite(t *testing.T, deps SubscriptionMixInDepen
 	currencyResolver, err := currenciescurrencyresolver.New(currencyService)
 	require.NoError(t, err)
 
+	taxCodeResolver, err := taxcoderesolver.New(deps.TaxCodeService)
+	require.NoError(t, err)
+
 	planService, err := planservice.New(planservice.Config{
 		FeatureResolver:  featureResolver,
 		CurrencyResolver: currencyResolver,
 		Adapter:          planAdapter,
-		TaxCode:          deps.TaxCodeService,
+		TaxCodeResolver:  taxCodeResolver,
 		Logger:           slog.Default(),
 		Publisher:        publisher,
 	})
@@ -171,6 +175,7 @@ func (s *SubscriptionMixin) SetupSuite(t *testing.T, deps SubscriptionMixInDepen
 		TransactionManager: subsRepo,
 		Lockr:              lockr,
 		FeatureFlags:       ffService,
+		TaxCodeResolver:    taxCodeResolver,
 		CostBasisService:   currencyService,
 		// events
 		Publisher: publisher,
@@ -189,7 +194,7 @@ func (s *SubscriptionMixin) SetupSuite(t *testing.T, deps SubscriptionMixInDepen
 		Publisher:        publisher,
 		FeatureResolver:  featureResolver,
 		CurrencyResolver: currencyResolver,
-		TaxCode:          deps.TaxCodeService,
+		TaxCodeResolver:  taxCodeResolver,
 	})
 	require.NoError(t, err)
 

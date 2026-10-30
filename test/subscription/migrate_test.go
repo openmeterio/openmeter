@@ -309,14 +309,14 @@ func TestMigrationInvalidAnchorLeavesSubscriptionIntact(t *testing.T) {
 type migrationFixture struct {
 	t         *testing.T
 	deps      testDeps
-	taxConfig productcatalog.TaxConfig
+	taxConfig productcatalog.TaxCodeConfig
 	before    subscription.SubscriptionView
 }
 
 func newMigrationFixture(t *testing.T) migrationFixture {
 	t.Helper()
 
-	return newMigrationFixtureWithPlan(t, func(taxConfig productcatalog.TaxConfig) plan.CreatePlanInput {
+	return newMigrationFixtureWithPlan(t, func(taxConfig productcatalog.TaxCodeConfig) plan.CreatePlanInput {
 		return subscriptiontestutils.BuildTestPlanInput(t).AddPhase(nil,
 			subscriptiontestutils.ExampleRateCard1(taxConfig),
 			subscriptiontestutils.ExampleRateCard2.Clone(),
@@ -325,7 +325,7 @@ func newMigrationFixture(t *testing.T) migrationFixture {
 }
 
 // newMigrationFixtureWithPlan builds the plan only after setup, so it can reference the tax code created there.
-func newMigrationFixtureWithPlan(t *testing.T, buildPlan func(taxConfig productcatalog.TaxConfig) plan.CreatePlanInput) migrationFixture {
+func newMigrationFixtureWithPlan(t *testing.T, buildPlan func(taxConfig productcatalog.TaxCodeConfig) plan.CreatePlanInput) migrationFixture {
 	t.Helper()
 
 	deps := setup(t, setupConfig{})

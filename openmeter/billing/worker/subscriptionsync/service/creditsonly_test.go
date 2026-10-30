@@ -2242,9 +2242,9 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyFlatFeeTaxCodeP
 									Amount:      alpacadecimal.NewFromFloat(100),
 									PaymentTerm: productcatalog.InAdvancePaymentTerm,
 								}),
-								TaxConfig: &productcatalog.TaxConfig{
+								TaxConfig: &productcatalog.TaxCodeConfig{
 									Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
-									TaxCodeID: &tc.ID,
+									TaxCodeID: tc.ID,
 								},
 							},
 							BillingCadence: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1M")),
@@ -2322,9 +2322,9 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedTaxCo
 								Key:     s.APIRequestsTotalFeature.Key,
 								Feature: productcatalog.NewFeatureReference(lo.ToPtr(s.APIRequestsTotalFeature.ID), lo.ToPtr(s.APIRequestsTotalFeature.Key)),
 								Price:   unitPrice,
-								TaxConfig: &productcatalog.TaxConfig{
+								TaxConfig: &productcatalog.TaxCodeConfig{
 									Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
-									TaxCodeID: &tc.ID,
+									TaxCodeID: tc.ID,
 								},
 							},
 							BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),

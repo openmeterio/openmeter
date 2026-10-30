@@ -501,8 +501,8 @@ func newChargePatchTestUsageRateCard() productcatalog.RateCard {
 			Key:     "usage-rate-card",
 			Name:    "Usage Rate Card",
 			Feature: productcatalog.NewFeatureReference(nil, ptr("feature-key")),
-			TaxConfig: &productcatalog.TaxConfig{
-				TaxCodeID: ptr("tax-code-id"),
+			TaxConfig: &productcatalog.TaxCodeConfig{
+				TaxCodeID: "tax-code-id",
 			},
 			Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount: alpacadecimal.NewFromInt(1),
@@ -519,8 +519,8 @@ func newChargePatchTestFlatRateCard() productcatalog.RateCard {
 		RateCardMeta: productcatalog.RateCardMeta{
 			Key:  "flat-rate-card",
 			Name: "Flat Rate Card",
-			TaxConfig: &productcatalog.TaxConfig{
-				TaxCodeID: ptr("tax-code-id"),
+			TaxConfig: &productcatalog.TaxCodeConfig{
+				TaxCodeID: "tax-code-id",
 			},
 			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 				Amount:      alpacadecimal.NewFromInt(10),

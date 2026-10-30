@@ -90,7 +90,12 @@ func (h *handler) UpdateSubscriptionAddon() UpdateSubscriptionAddonHandler {
 				return UpdateSubscriptionAddonResponse{}, err
 			}
 
-			return MapSubscriptionAddonToResponse(view, addon)
+			taxCodes, err := h.taxCodesForAddons(ctx, request.SubscriptionID.Namespace, addon)
+			if err != nil {
+				return UpdateSubscriptionAddonResponse{}, err
+			}
+
+			return MapSubscriptionAddonToResponse(view, addon, taxCodes)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[UpdateSubscriptionAddonResponse](http.StatusOK),
 		httptransport.AppendOptions(
