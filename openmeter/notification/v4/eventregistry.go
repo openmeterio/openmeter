@@ -16,21 +16,27 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-// RuleConfigValidatorFunc performs namespace-aware domain validation of a Rule
-// configuration that already satisfies its JSON Schema.
+// RuleConfigValidatorFunc validates a Rule configuration. Domain validators
+// passed to the Registry only receive configurations that already satisfy the
+// JSON Schema.
 type RuleConfigValidatorFunc func(ctx context.Context, namespace string, configuration json.RawMessage) error
 
+// RuleConfigValidatorBinding assigns a domain validator to the Event type whose
+// Rule configurations it checks.
+type RuleConfigValidatorBinding struct {
+	EventType EventType
+	Validate  RuleConfigValidatorFunc
+}
+
 // RuleConfigDefinition is the Rule configuration contract of an Event type.
+// Domain validation is not part of the contract; it is passed to the Registry
+// separately, because it depends on domain services.
 type RuleConfigDefinition struct {
 	JSONSchema json.RawMessage
-
-	// Validator is optional and runs after schema validation succeeds.
-	Validator RuleConfigValidatorFunc `json:"-"`
 }
 
 var _ models.Equaler[RuleConfigDefinition] = (*RuleConfigDefinition)(nil)
 
-// Equal compares the schema only; Validator is a function and not comparable.
 func (c RuleConfigDefinition) Equal(other RuleConfigDefinition) bool {
 	return bytes.Equal(c.JSONSchema, other.JSONSchema)
 }
@@ -104,8 +110,7 @@ func (d EventTypeDefinition) Equal(other EventTypeDefinition) bool {
 		equal.ComparablePtrEqual(d.DeprecatedBy, other.DeprecatedBy)
 }
 
-// clone returns a copy that shares no mutable memory with d. The Rule
-// validator is a function value and is shared.
+// clone returns a copy that shares no mutable memory with d.
 func (d EventTypeDefinition) clone() EventTypeDefinition {
 	out := d
 	out.PayloadJSONSchema = slices.Clone(d.PayloadJSONSchema)
@@ -113,7 +118,6 @@ func (d EventTypeDefinition) clone() EventTypeDefinition {
 	if d.Rule != nil {
 		out.Rule = &RuleConfigDefinition{
 			JSONSchema: slices.Clone(d.Rule.JSONSchema),
-			Validator:  d.Rule.Validator,
 		}
 	}
 
@@ -223,12 +227,18 @@ func (p EventTypePattern) Matches(t EventType) bool {
 type EventRegistryConfig struct {
 	Logger      *slog.Logger
 	Definitions []EventTypeDefinition
+
+	// RuleConfigValidators holds optional domain validators of Rule
+	// configurations. Each must name a registered type that Rules can produce,
+	// and a type gets at most one: wiring collects validators from several
+	// domains, and a second one must not silently replace the first.
+	RuleConfigValidators []RuleConfigValidatorBinding
 }
 
 var _ models.Validator = EventRegistryConfig{}
 
-// Validate rejects invalid definitions, duplicate Event types, and replacement
-// chains that are dangling or cyclic.
+// Validate rejects invalid definitions, duplicate Event types, replacement
+// chains that are dangling or cyclic, and misplaced Rule validators.
 func (c EventRegistryConfig) Validate() error {
 	var errs []error
 
@@ -280,13 +290,36 @@ func (c EventRegistryConfig) Validate() error {
 		}
 	}
 
+	validated := make(map[EventType]struct{}, len(c.RuleConfigValidators))
+
+	for i, binding := range c.RuleConfigValidators {
+		t := binding.EventType
+		def, ok := definitions[t]
+
+		switch {
+		case binding.Validate == nil:
+			errs = append(errs, fmt.Errorf("rule config validators[%d]: validator of %s is nil", i, t))
+		case !ok:
+			errs = append(errs, fmt.Errorf("rule config validators[%d]: unregistered event type %s", i, t))
+		case def.Rule == nil:
+			errs = append(errs, fmt.Errorf("rule config validators[%d]: event type %s, which rules cannot produce", i, t))
+		}
+
+		if _, ok := validated[t]; ok {
+			errs = append(errs, fmt.Errorf("rule config validators[%d]: duplicate event type %s", i, t))
+		}
+
+		validated[t] = struct{}{}
+	}
+
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type registeredEventType struct {
-	definition       EventTypeDefinition
-	payloadSchema    *jsonschema.Schema
-	ruleConfigSchema *jsonschema.Schema
+	definition          EventTypeDefinition
+	payloadSchema       *jsonschema.Schema
+	ruleConfigSchema    *jsonschema.Schema
+	ruleConfigValidator RuleConfigValidatorFunc
 }
 
 // EventRegistry holds the Event type definitions and compiled schemas fixed at
@@ -314,10 +347,18 @@ func NewEventRegistry(config EventRegistryConfig) (*EventRegistry, error) {
 		sorted:     make([]EventType, 0, len(config.Definitions)),
 	}
 
+	ruleConfigValidators := make(map[EventType]RuleConfigValidatorFunc, len(config.RuleConfigValidators))
+	for _, binding := range config.RuleConfigValidators {
+		ruleConfigValidators[binding.EventType] = binding.Validate
+	}
+
 	var errs []error
 
 	for _, def := range config.Definitions {
-		registered := registeredEventType{definition: def.clone()}
+		registered := registeredEventType{
+			definition:          def.clone(),
+			ruleConfigValidator: ruleConfigValidators[def.EventType],
+		}
 
 		payloadSchema, err := compileJSONSchema(def.EventType.String()+".payload", def.PayloadJSONSchema)
 		if err != nil {
@@ -394,10 +435,36 @@ func (r *EventRegistry) PayloadValidator(t EventType) (PayloadValidatorFunc, err
 	}, nil
 }
 
-// RuleConfigValidator returns the Rule configuration validator of t. It runs
-// schema validation and then the optional domain validator. It fails for
-// Event types that no Rule can produce.
+// RuleConfigValidator returns the validator used when a Rule is created or
+// updated. It runs schema validation and then the optional domain validator.
+// It fails for Event types that no Rule can produce.
 func (r *EventRegistry) RuleConfigValidator(t EventType) (RuleConfigValidatorFunc, error) {
+	validateSchema, err := r.RuleConfigSchemaValidator(t)
+	if err != nil {
+		return nil, err
+	}
+
+	domainValidator := r.eventTypes[t].ruleConfigValidator
+
+	return func(ctx context.Context, namespace string, configuration json.RawMessage) error {
+		if err := validateSchema(ctx, namespace, configuration); err != nil {
+			return err
+		}
+
+		if domainValidator == nil {
+			return nil
+		}
+
+		return domainValidator(ctx, namespace, configuration)
+	}, nil
+}
+
+// RuleConfigSchemaValidator returns a validator that checks only the JSON
+// Schema. Event creation uses it for the Rule snapshot: the domain already
+// evaluated that configuration, and domain checks against current state could
+// reject a snapshot of a Rule that was valid when it ran. It fails for Event
+// types that no Rule can produce.
+func (r *EventRegistry) RuleConfigSchemaValidator(t EventType) (RuleConfigValidatorFunc, error) {
 	registered, err := r.get(t)
 	if err != nil {
 		return nil, err
@@ -407,18 +474,12 @@ func (r *EventRegistry) RuleConfigValidator(t EventType) (RuleConfigValidatorFun
 		return nil, models.NewGenericValidationError(fmt.Errorf("event type %s cannot be produced by rules", t))
 	}
 
-	domainValidator := registered.definition.Rule.Validator
-
-	return func(ctx context.Context, namespace string, configuration json.RawMessage) error {
+	return func(_ context.Context, _ string, configuration json.RawMessage) error {
 		if err := validateJSON(registered.ruleConfigSchema, configuration); err != nil {
 			return models.NewGenericValidationError(fmt.Errorf("invalid %s rule config: %w", t, err))
 		}
 
-		if domainValidator == nil {
-			return nil
-		}
-
-		return domainValidator(ctx, namespace, configuration)
+		return nil
 	}, nil
 }
 

@@ -70,16 +70,13 @@ func TestEventTypeDefinitionEqual(t *testing.T) {
 		DeprecatedBy:      &replacement,
 	}
 
-	// A copy that shares no memory is equal, and Rule validators are ignored.
+	// A copy that shares no memory is equal.
 	sameReplacement := replacement
 	same := v4.EventTypeDefinition{
 		EventType:         def.EventType,
 		PayloadJSONSchema: json.RawMessage(testSchema),
-		Rule: &v4.RuleConfigDefinition{
-			JSONSchema: json.RawMessage(testSchema),
-			Validator:  func(context.Context, string, json.RawMessage) error { return nil },
-		},
-		DeprecatedBy: &sameReplacement,
+		Rule:              &v4.RuleConfigDefinition{JSONSchema: json.RawMessage(testSchema)},
+		DeprecatedBy:      &sameReplacement,
 	}
 	require.True(t, def.Equal(same))
 
@@ -253,6 +250,11 @@ func TestNewEventRegistry(t *testing.T) {
 		return def
 	}
 
+	ruleProduced := v1
+	ruleProduced.Rule = &v4.RuleConfigDefinition{JSONSchema: json.RawMessage(testSchema)}
+
+	acceptAll := func(context.Context, string, json.RawMessage) error { return nil }
+
 	invalid := []struct {
 		name   string
 		config v4.EventRegistryConfig
@@ -295,6 +297,41 @@ func TestNewEventRegistry(t *testing.T) {
 				PayloadJSONSchema: json.RawMessage(testSchema),
 				Rule:              &v4.RuleConfigDefinition{JSONSchema: json.RawMessage(`{"minimum": "1"}`)},
 			}}},
+		},
+		{
+			name: "nil rule config validator",
+			config: v4.EventRegistryConfig{
+				Logger:               logger,
+				Definitions:          []v4.EventTypeDefinition{ruleProduced},
+				RuleConfigValidators: []v4.RuleConfigValidatorBinding{{EventType: ruleProduced.EventType}},
+			},
+		},
+		{
+			name: "rule config validator of unregistered event type",
+			config: v4.EventRegistryConfig{
+				Logger:               logger,
+				Definitions:          []v4.EventTypeDefinition{ruleProduced},
+				RuleConfigValidators: []v4.RuleConfigValidatorBinding{{EventType: v2.EventType, Validate: acceptAll}},
+			},
+		},
+		{
+			name: "rule config validator of event type without rule",
+			config: v4.EventRegistryConfig{
+				Logger:               logger,
+				Definitions:          []v4.EventTypeDefinition{v1},
+				RuleConfigValidators: []v4.RuleConfigValidatorBinding{{EventType: v1.EventType, Validate: acceptAll}},
+			},
+		},
+		{
+			name: "duplicate rule config validator",
+			config: v4.EventRegistryConfig{
+				Logger:      logger,
+				Definitions: []v4.EventTypeDefinition{ruleProduced},
+				RuleConfigValidators: []v4.RuleConfigValidatorBinding{
+					{EventType: ruleProduced.EventType, Validate: acceptAll},
+					{EventType: ruleProduced.EventType, Validate: acceptAll},
+				},
+			},
 		},
 		{
 			name: "external schema reference",
@@ -354,25 +391,19 @@ func TestEventRegistryValidators(t *testing.T) {
 	registry, err := v4.NewEventRegistry(v4.EventRegistryConfig{
 		Logger: slog.New(slog.DiscardHandler),
 		Definitions: []v4.EventTypeDefinition{
-			{
-				EventType:         billingevents.BillingInvoiceCreatedV1EventType,
-				PayloadJSONSchema: billingevents.BillingInvoiceCreatedV1PayloadJSONSchema,
-			},
-			{
-				EventType:         entitlementevents.EntitlementBalanceThresholdTriggeredV1EventType,
-				PayloadJSONSchema: entitlementevents.EntitlementBalanceThresholdTriggeredV1PayloadJSONSchema,
-				Rule: &v4.RuleConfigDefinition{
-					JSONSchema: entitlementevents.EntitlementBalanceThresholdTriggeredV1RuleConfigJSONSchema,
-					Validator: func(_ context.Context, namespace string, _ json.RawMessage) error {
-						if namespace != "default" {
-							return errDomain
-						}
-
-						return nil
-					},
-				},
-			},
+			billingevents.BillingInvoiceCreatedV1Definition,
+			entitlementevents.EntitlementBalanceThresholdTriggeredV1Definition,
 		},
+		RuleConfigValidators: []v4.RuleConfigValidatorBinding{{
+			EventType: entitlementevents.EntitlementBalanceThresholdTriggeredV1EventType,
+			Validate: func(_ context.Context, namespace string, _ json.RawMessage) error {
+				if namespace != "default" {
+					return errDomain
+				}
+
+				return nil
+			},
+		}},
 	})
 	require.NoError(t, err)
 
@@ -420,10 +451,22 @@ func TestEventRegistryValidators(t *testing.T) {
 
 		// when the schema accepts it the domain validator decides
 		require.ErrorIs(t, validate(t.Context(), "other", config), errDomain)
+
+		// Rule snapshots are checked against the schema only.
+		validateSchema, err := registry.RuleConfigSchemaValidator(entitlementevents.EntitlementBalanceThresholdTriggeredV1EventType)
+		require.NoError(t, err)
+
+		require.NoError(t, validateSchema(t.Context(), "other", config))
+
+		err = validateSchema(t.Context(), "other", json.RawMessage(`{"thresholds": []}`))
+		require.True(t, models.IsGenericValidationError(err), err)
 	})
 
 	t.Run("rule config of system event type", func(t *testing.T) {
 		_, err := registry.RuleConfigValidator(billingevents.BillingInvoiceCreatedV1EventType)
+		require.True(t, models.IsGenericValidationError(err), err)
+
+		_, err = registry.RuleConfigSchemaValidator(billingevents.BillingInvoiceCreatedV1EventType)
 		require.True(t, models.IsGenericValidationError(err), err)
 	})
 
@@ -434,6 +477,9 @@ func TestEventRegistryValidators(t *testing.T) {
 		require.True(t, models.IsGenericNotFoundError(err), err)
 
 		_, err = registry.RuleConfigValidator(eventType)
+		require.True(t, models.IsGenericNotFoundError(err), err)
+
+		_, err = registry.RuleConfigSchemaValidator(eventType)
 		require.True(t, models.IsGenericNotFoundError(err), err)
 	})
 }

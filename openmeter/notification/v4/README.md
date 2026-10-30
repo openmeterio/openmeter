@@ -39,16 +39,24 @@ them.
 For each contract, the generated package exposes the Event type as
 `<Stem>V<n>EventType`, the embedded draft 2020-12 schemas as
 `<Stem>V<n>PayloadJSONSchema` and, for Rule-produced types,
-`<Stem>V<n>RuleConfigJSONSchema`, plus the matching Go structs. A schema's
-`$id` is `<event type>.payload` or `<event type>.rule_config`. These values
-are what an `EventTypeDefinition` is built from.
+`<Stem>V<n>RuleConfigJSONSchema`, the matching Go structs, and the complete
+`<Stem>V<n>Definition`. A schema's `$id` is `<event type>.payload` or
+`<event type>.rule_config`.
+
+`definitions.All()` returns the definitions of every domain. It is generated
+too, so it cannot miss a generated contract; wiring must still pass it to the
+registry, which accepts any list. A new domain is generated only once it is
+imported and mapped in
+[`notification-events.tsp`](../../../api/spec/packages/aip/src/notification-events.tsp).
+`All` lives in the `definitions` subpackage because domain packages import
+`v4`.
 
 An `EventTypeDefinition` binds an Event type to its contracts:
 
 - **Payload schema** is required.
 - **Rule** is nil when no Rule can produce the type, as for system Events such
   as `v1.billing.invoice.created`. Otherwise it carries the Rule configuration
-  schema and an optional namespace-aware domain validator.
+  schema.
 - **DeprecatedBy** names the immediate replacement and is advisory. Deprecated
   types stay registered and usable; existing Events and Rules are never
   migrated. A type cannot replace itself, and following replacements must end
@@ -59,8 +67,12 @@ checked by the registry. Callers with stricter needs, such as requiring a
 Rule-capable type, add their own checks through `ValidateWith`.
 
 Definitions are equal when their identity, schema bytes, Rule presence, and
-replacement match. The Rule validator is a function and is ignored. Schemas
-that differ only in formatting are not equal.
+replacement match. Schemas that differ only in formatting are not equal.
+
+A definition is pure contract data. Domain validation of Rule configurations
+needs domain services, such as checking that referenced features exist, so it
+is not part of the definition: the owning domain provides the validator and
+wiring passes it to the registry.
 
 ## Event Registry
 
@@ -74,7 +86,9 @@ for concurrent use. Construction fails, and with it dependency injection, when:
   documents, so a contract cannot change through a remote or local file it
   points to. Built-in metaschemas still resolve, and draft 2020-12 applies when
   a schema declares no `$schema`;
-- `DeprecatedBy` names an unregistered type, or replacements form a cycle.
+- `DeprecatedBy` names an unregistered type, or replacements form a cycle;
+- a Rule configuration validator is nil, names a type that is unregistered or
+  that Rules cannot produce, or names a type that already has one.
 
 The registry stores deep copies of the definitions and returns copies, so a
 caller cannot change a contract after it has been validated.
@@ -87,7 +101,15 @@ caller cannot change a contract after it has been validated.
   knows. The namespace argument is unused for now.
 - **Rule configurations** are checked against the schema first, then by the
   domain validator, so domain validators only see well-formed configurations.
-  Asking for the Rule validator of a type without `Rule` is an error.
+  This is the check for creating and updating a Rule. Validator bindings are
+  optional: a type without one gets the schema check only, so wiring must bind
+  a validator wherever Rule creation needs domain checks.
+- **Rule snapshots** on Events are checked against the schema only, through
+  `RuleConfigSchemaValidator`. The domain already evaluated that
+  configuration, and checking it against current domain state could reject a
+  snapshot of a Rule that was valid when it ran.
+
+Asking for either Rule validator of a type without `Rule` is an error.
 
 Schema failures and Rule-less types return `models.GenericValidationError`.
 Unregistered types return `models.GenericNotFoundError`. Domain validator
