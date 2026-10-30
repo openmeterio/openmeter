@@ -1,17 +1,23 @@
 package customerscredits
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
 	api "github.com/openmeterio/openmeter/api/v3"
+	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	"github.com/openmeterio/openmeter/api/v3/filters"
 	"github.com/openmeterio/openmeter/api/v3/handlers/billingcommon"
 	"github.com/openmeterio/openmeter/api/v3/labels"
+	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/billing/creditgrant"
@@ -23,11 +29,14 @@ import (
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
 func toAPIBillingCreditGrant(charge creditpurchase.Charge) (api.BillingCreditGrant, error) {
 	grant := api.BillingCreditGrant{
 		Id:            charge.ID,
+		Customer:      api.CustomerReference{Id: charge.Intent.CustomerID},
 		Name:          charge.Intent.Name,
 		Description:   charge.Intent.Description,
 		Amount:        charge.Intent.CreditAmount.String(),
@@ -687,4 +696,171 @@ func stringAnnotation(annotations models.Annotations, key string) string {
 	}
 
 	return value
+}
+
+// fromAPIListCreditGrantsParams maps the query parameters shared by the per-customer
+// and namespace-wide grant listings. Callers set the namespace and customer scope.
+func fromAPIListCreditGrantsParams(ctx context.Context, params api.ListCreditGrantsParams) (ListCreditGrantsRequest, error) {
+	apiPage, apiSort, apiFilter := params.Page, params.Sort, params.Filter
+
+	page := pagination.NewPage(1, 20)
+	if apiPage != nil {
+		page = pagination.NewPage(
+			lo.FromPtrOr(apiPage.Number, 1),
+			lo.FromPtrOr(apiPage.Size, 20),
+		)
+	}
+
+	if err := page.Validate(); err != nil {
+		return ListCreditGrantsRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+			{
+				Field:  "page",
+				Reason: err.Error(),
+				Source: apierrors.InvalidParamSourceQuery,
+			},
+		})
+	}
+
+	req := ListCreditGrantsRequest{
+		Page:    page,
+		OrderBy: creditpurchase.OrderByCreatedAt,
+		Order:   sortx.OrderDesc,
+	}
+
+	if apiSort != nil {
+		sort, err := request.ParseSortBy(*apiSort)
+		if err != nil {
+			return ListCreditGrantsRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+				{Field: "sort", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
+			})
+		}
+
+		req.OrderBy = creditpurchase.OrderBy(sort.Field)
+		if err := req.OrderBy.Validate(); err != nil {
+			return ListCreditGrantsRequest{}, apierrors.NewUnsupportedSortFieldError(ctx, sort.Field, "created_at", "updated_at", "name", "id")
+		}
+
+		req.Order = sort.Order.ToSortxOrder()
+	}
+
+	if apiFilter == nil {
+		return req, nil
+	}
+
+	if apiFilter.Status != nil {
+		status, err := fromAPIBillingCreditGrantStatus(*apiFilter.Status)
+		if err != nil {
+			return ListCreditGrantsRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+				{
+					Field:  "filter[status]",
+					Reason: err.Error(),
+					Source: apierrors.InvalidParamSourceQuery,
+				},
+			})
+		}
+
+		req.Status = &status
+	}
+
+	if apiFilter.Currency != nil {
+		currency := currencyx.Code(*apiFilter.Currency)
+		req.Currency = &currency
+	}
+
+	key, err := filters.FromAPIFilterString(apiFilter.Key)
+	if err != nil {
+		return ListCreditGrantsRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+			{
+				Field:  "filter[key]",
+				Reason: err.Error(),
+				Source: apierrors.InvalidParamSourceQuery,
+			},
+		})
+	}
+
+	req.Key = key
+
+	req.UpdatedAt, err = filters.FromAPIFilterDateTime(apiFilter.UpdatedAt)
+	if err != nil {
+		return ListCreditGrantsRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+			{
+				Field:  "filter[updated_at]",
+				Reason: err.Error(),
+				Source: apierrors.InvalidParamSourceQuery,
+			},
+		})
+	}
+
+	req.FeatureFilters, err = fromAPICreditGrantFeatureFilters(apiFilter.FeatureKey)
+	if err != nil {
+		return ListCreditGrantsRequest{}, newFeatureKeyFilterBadRequest(ctx, err)
+	}
+
+	return req, nil
+}
+
+// fromAPICurrencyStringFieldFilterExact maps the balance currency filter. Only positive
+// selection is supported: a balance listing cannot exclude a currency it discovers.
+func fromAPICurrencyStringFieldFilterExact(ctx context.Context, f *api.StringFieldFilterExact) (customerbalance.CurrencyFilter, error) {
+	if f == nil {
+		return customerbalance.CurrencyFilter{}, nil
+	}
+
+	if f.Neq != nil {
+		return customerbalance.CurrencyFilter{}, apierrors.NewBadRequestError(
+			ctx,
+			errors.New("neq operator is not supported for currency"),
+			apierrors.InvalidParameters{{
+				Field:  "filter[currency]",
+				Reason: "neq operator is not supported",
+				Source: apierrors.InvalidParamSourceQuery,
+			}},
+		)
+	}
+
+	codes := make([]currencyx.Code, 0, 1+len(f.Oeq))
+	if f.Eq != nil {
+		codes = append(codes, currencyx.Code(*f.Eq))
+	}
+
+	for _, v := range f.Oeq {
+		codes = append(codes, currencyx.Code(v))
+	}
+
+	if len(codes) == 0 {
+		return customerbalance.CurrencyFilter{}, nil
+	}
+
+	return customerbalance.CurrencyFilter{Codes: codes}, nil
+}
+
+// fromAPICustomerIDULIDFieldFilter maps a customer ID filter of a namespace-wide credit
+// listing to an explicit customer set. An empty result selects every customer.
+func fromAPICustomerIDULIDFieldFilter(ctx context.Context, f *api.ULIDFieldFilter) ([]string, error) {
+	if f == nil {
+		return nil, nil
+	}
+
+	badRequest := func(err error) error {
+		return apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+			{Field: "filter[customer_id]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
+		})
+	}
+
+	if f.Neq != nil {
+		return nil, badRequest(errors.New("neq operator is not supported for customer_id"))
+	}
+
+	ids := slices.Clone(f.Oeq)
+	if f.Eq != nil {
+		ids = append(ids, *f.Eq)
+	}
+
+	// A present filter that selects no customer must not fall through to an empty
+	// selection, which would widen the listing to every customer.
+	if len(ids) == 0 || lo.Contains(ids, "") {
+		return nil, badRequest(errors.New("customer_id must not be empty"))
+	}
+
+	return lo.Uniq(ids), nil
 }

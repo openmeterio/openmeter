@@ -42,6 +42,11 @@ model ListCreditGrantsParamsFilter {
    * `exists=false` for grants without feature restrictions.
    */
   feature_key?: Common.StringFieldFilter;
+
+  /**
+   * Filter by credit grant last update time.
+   */
+  updated_at?: Common.DateTimeFieldFilter;
 }
 
 namespace Credits.Grants {

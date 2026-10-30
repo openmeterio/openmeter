@@ -239,6 +239,8 @@ type ListChargesInput struct {
 	Statuses   []meta.ChargeStatus
 	Currencies []currencyx.Code
 	Key        *filter.FilterString
+	// UpdatedAt filters by the credit purchase charge's last update time.
+	UpdatedAt *filter.FilterTime
 	// Voided filters by whether the charge has been voided.
 	Voided *bool
 	// Expiration filters by whether expires_at has passed as of a point in time.
@@ -300,6 +302,12 @@ func (i ListChargesInput) Validate() error {
 	if i.Key != nil {
 		if err := i.Key.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("key: %w", err))
+		}
+	}
+
+	if i.UpdatedAt != nil {
+		if err := i.UpdatedAt.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("updated at: %w", err))
 		}
 	}
 

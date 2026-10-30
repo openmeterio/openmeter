@@ -2,6 +2,7 @@ import * as ay from '@alloy-js/core'
 import * as go from '@alloy-js/go'
 import type { Refkey } from '@alloy-js/core'
 import {
+  getFriendlyName,
   resolveEncodedName,
   walkPropertiesInherited,
   type ModelProperty,
@@ -793,28 +794,53 @@ function isTextResponse(operation: GoOperation): boolean {
  * Every operation in such a conflicted group therefore gets its
  * operation-derived name instead, keeping the outcome independent of
  * operation iteration order.
+ *
+ * An operation with an explicit @friendlyName is named after it and never
+ * joins an element group. This lets a new operation page over an element that
+ * an existing operation already lists without renaming the element-named
+ * struct that SDK callers depend on. If its friendly name still lands on an
+ * element-named struct, generation fails instead of renaming either struct or
+ * emitting the same struct from two resources.
  */
 export function resolveListParamsNames(
   program: Program,
   operations: GoOperation[],
 ): Map<Operation, string> {
-  const groups = new Map<string, GoOperation[]>()
+  // Groups are keyed apart from the struct name they emit, so a friendly-named
+  // operation can never join (and split) an element-named group.
+  const groups = new Map<
+    string,
+    { name: string; friendly: boolean; operations: GoOperation[] }
+  >()
   for (const operation of operations) {
     if (operation.queryParams.length === 0) {
       continue
     }
-    const name = listParamsName(program, operation)
-    const group = groups.get(name)
+    const friendly = getFriendlyName(program, operation.operation) !== undefined
+    const name = friendly
+      ? operationParamsName(program, operation)
+      : listParamsName(program, operation)
+    const key = friendly ? `friendly:${name}` : `element:${name}`
+    const group = groups.get(key)
     if (group) {
-      group.push(operation)
+      group.operations.push(operation)
     } else {
-      groups.set(name, [operation])
+      groups.set(key, { name, friendly, operations: [operation] })
     }
   }
 
   const resolved = new Map<Operation, string>()
   const shapes = new Map<string, string>()
-  for (const [name, group] of groups) {
+  const origins = new Map<string, boolean>()
+  for (const { name, friendly, operations: group } of groups.values()) {
+    // A friendly name identifies one operation. Shared across operations, it would
+    // emit the same params struct once per declaring resource and break the build.
+    if (friendly && group.length > 1) {
+      throw new Error(
+        `typespec-go: params struct ${name} is claimed by ${group.length} @friendlyName operations; give each operation a distinct @friendlyName`,
+      )
+    }
+
     const signatures = new Set(
       group.map((operation) => querySignature(program, operation.queryParams)),
     )
@@ -828,6 +854,13 @@ export function resolveListParamsNames(
           `typespec-go: params struct ${finalName} would be emitted with two different query shapes; add a distinct @friendlyName or @operationId to one of the operations`,
         )
       }
+      const origin = origins.get(finalName)
+      if (origin !== undefined && origin !== friendly) {
+        throw new Error(
+          `typespec-go: params struct ${finalName} is claimed by both a @friendlyName operation and an element-named group; choose a distinct @friendlyName`,
+        )
+      }
+      origins.set(finalName, friendly)
       shapes.set(finalName, signature)
       resolved.set(operation.operation, finalName)
     }

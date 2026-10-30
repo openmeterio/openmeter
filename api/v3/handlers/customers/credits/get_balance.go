@@ -2,7 +2,6 @@ package customerscredits
 
 import (
 	"context"
-	"errors"
 	"net/http"
 	"time"
 
@@ -14,7 +13,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger/customerbalance"
 	"github.com/openmeterio/openmeter/pkg/clock"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 )
@@ -57,32 +55,13 @@ func (h *handler) GetCustomerCreditBalance() GetCustomerCreditBalanceHandler {
 				HistoricalAsOf: args.Params.Timestamp,
 			}
 
-			if args.Params.Filter != nil && args.Params.Filter.Currency != nil {
-				f := args.Params.Filter.Currency
-				if f.Neq != nil {
-					return GetCustomerCreditBalanceRequest{}, apierrors.NewBadRequestError(
-						ctx,
-						errors.New("neq operator is not supported for currency"),
-						apierrors.InvalidParameters{{
-							Field:  "filter[currency]",
-							Reason: "neq operator is not supported",
-							Source: apierrors.InvalidParamSourceQuery,
-						}},
-					)
+			if args.Params.Filter != nil {
+				currencies, err := fromAPICurrencyStringFieldFilterExact(ctx, args.Params.Filter.Currency)
+				if err != nil {
+					return GetCustomerCreditBalanceRequest{}, err
 				}
 
-				codes := make([]currencyx.Code, 0, 1+len(f.Oeq))
-				if f.Eq != nil {
-					codes = append(codes, currencyx.Code(*f.Eq))
-				}
-
-				for _, v := range f.Oeq {
-					codes = append(codes, currencyx.Code(v))
-				}
-
-				if len(codes) > 0 {
-					request.Currencies = customerbalance.CurrencyFilter{Codes: codes}
-				}
+				request.Currencies = currencies
 			}
 
 			if args.Params.Filter != nil {

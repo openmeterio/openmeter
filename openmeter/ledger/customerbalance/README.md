@@ -38,6 +38,17 @@ requests return zero for `live`; we cannot reconstruct past unbooked usage.
 All reads use what is recorded now, including later-recorded corrections.
 There is no separate cutoff for when the system learned about a movement.
 
+The namespace-wide balance listing applies these same semantics to one page of
+customers at a time. Customers without ledger accounts have no credit activity
+and are listed with no balances. Historical (`asOf`) listings select the
+customers that existed at `asOf`, including ones deleted since. Their `booked`
+value changes only when an entry is booked with an earlier timestamp, such as a
+correction or a grant with a past effective time, so it is the stable basis for
+a daily close. `spendable` at `asOf` can still drop
+after the fact, because it preserves allocations to usage recorded later. A
+stored close may need reconciling against a re-read. Current listings include
+`live` and cost one live projection per customer.
+
 History before/after values remain booked balances. A grant of 10 followed by
 consumption of 4 shows `0 → 10`, then `10 → 6`, even though spendable credit
 before that consumption is already 6.

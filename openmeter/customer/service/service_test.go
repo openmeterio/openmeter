@@ -2,6 +2,7 @@ package customerservice_test
 
 import (
 	"testing"
+	"time"
 
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
@@ -9,7 +10,9 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customertestutils "github.com/openmeterio/openmeter/openmeter/customer/testutils"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
 func Test_CustomerService(t *testing.T) {
@@ -386,4 +389,70 @@ func Test_GetCustomerByUsageAttribution(t *testing.T) {
 		require.Error(t, err)
 		assert.True(t, models.IsGenericValidationError(err), "empty key must fail validation")
 	})
+}
+
+func Test_ListCustomersExistingAt(t *testing.T) {
+	env := customertestutils.NewTestEnv(t)
+	t.Cleanup(func() {
+		env.Close(t)
+	})
+
+	namespace := customertestutils.NewTestNamespace(t)
+	ctx := t.Context()
+
+	createCustomer := func(key string) *customer.Customer {
+		cus, err := env.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
+			Namespace: namespace,
+			CustomerMutate: customer.CustomerMutate{
+				Key:              lo.ToPtr(key),
+				Name:             key,
+				UsageAttribution: &customer.CustomerUsageAttribution{SubjectKeys: []string{key}},
+			},
+		})
+		require.NoError(t, err)
+
+		return cus
+	}
+
+	listIDs := func(existingAt *time.Time) []string {
+		list, err := env.CustomerService.ListCustomers(ctx, customer.ListCustomersInput{
+			Namespace:  namespace,
+			Page:       pagination.NewPage(1, 100),
+			ExistingAt: existingAt,
+		})
+		require.NoError(t, err)
+
+		return lo.Map(list.Items, func(item customer.Customer, _ int) string { return item.ID })
+	}
+
+	// given: a customer deleted exactly at a close, one deleted after it, and one
+	// created after it.
+	closeAt := time.Date(2026, 9, 30, 23, 59, 59, 0, time.UTC)
+
+	clock.FreezeTime(closeAt.Add(-24 * time.Hour))
+	defer clock.UnFreeze()
+	deletedLater := createCustomer("deleted-later")
+	deletedAtClose := createCustomer("deleted-at-close")
+
+	clock.FreezeTime(closeAt)
+	require.NoError(t, env.CustomerService.DeleteCustomer(ctx, customer.DeleteCustomerInput{
+		Namespace: namespace,
+		ID:        deletedAtClose.ID,
+	}))
+
+	clock.FreezeTime(closeAt.Add(time.Hour))
+	require.NoError(t, env.CustomerService.DeleteCustomer(ctx, customer.DeleteCustomerInput{
+		Namespace: namespace,
+		ID:        deletedLater.ID,
+	}))
+	createdLater := createCustomer("created-later")
+
+	clock.FreezeTime(closeAt.Add(48 * time.Hour))
+
+	// when/then: the close lists the customers that existed at the close; a customer
+	// deleted at the close itself no longer existed.
+	assert.Equal(t, []string{deletedLater.ID}, listIDs(&closeAt))
+
+	// when/then: a current listing lists the customers that exist now.
+	assert.Equal(t, []string{createdLater.ID}, listIDs(nil))
 }

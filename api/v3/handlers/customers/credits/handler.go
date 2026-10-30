@@ -27,6 +27,8 @@ type Handler interface {
 	VoidCreditGrant() VoidCreditGrantHandler
 	UpdateCreditGrantExternalSettlement() UpdateCreditGrantExternalSettlementHandler
 	ListCreditTransactions() ListCreditTransactionsHandler
+	ListAllCreditGrants() ListAllCreditGrantsHandler
+	ListAllCreditBalances() ListAllCreditBalancesHandler
 }
 
 type handler struct {

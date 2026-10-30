@@ -156,9 +156,149 @@ describe('list params struct naming', () => {
       names.get(operationNamed(operations, 'listArchived').operation),
     ).toBe('ItemListParams')
   })
+
+  it('keeps the element-named struct when a friendly-named operation pages over the same element', async () => {
+    const { program, operations } = await compileResource(`
+      ${pageFixturePreamble}
+
+      @route("/items")
+      interface Operations {
+        @get
+        @operationId("list-items")
+        op listItems(
+          @query(#{ style: "deepObject", explode: true })
+          page?: {
+            size?: integer;
+            number?: integer;
+          },
+          @query sort?: Common.SortQuery,
+        ): ItemPage;
+
+        @get
+        @route("/archived")
+        @operationId("list-archived-items")
+        @friendlyName("listItemArchive")
+        op listArchived(
+          @query(#{ style: "deepObject", explode: true })
+          page?: {
+            size?: integer;
+            number?: integer;
+          },
+        ): ItemPage;
+      }
+    `)
+
+    // A different query shape would normally split the element group and rename
+    // both structs; the friendly-named operation steps out of the group instead.
+    const names = resolveListParamsNames(program, operations)
+    expect(names.get(operationNamed(operations, 'listItems').operation)).toBe(
+      'ItemListParams',
+    )
+    expect(
+      names.get(operationNamed(operations, 'listArchived').operation),
+    ).toBe('ListItemArchiveParams')
+  })
+
+  for (const [shape, archivedQuery] of [
+    [
+      'a different shape',
+      `@query(#{ style: "deepObject", explode: true })
+          page?: {
+            size?: integer;
+            number?: integer;
+          },`,
+    ],
+    [
+      'the same shape',
+      `@query(#{ style: "deepObject", explode: true })
+          page?: {
+            size?: integer;
+            number?: integer;
+          },
+          @query sort?: Common.SortQuery,`,
+    ],
+  ]) {
+    it(`rejects a friendly name that lands on an element-named struct with ${shape}`, async () => {
+      const { program, operations } = await compileResource(`
+        ${pageFixturePreamble}
+
+        @route("/items")
+        interface Operations {
+          @get
+          @operationId("list-items")
+          op listItems(
+            @query(#{ style: "deepObject", explode: true })
+            page?: {
+              size?: integer;
+              number?: integer;
+            },
+            @query sort?: Common.SortQuery,
+          ): ItemPage;
+
+          @get
+          @route("/archived")
+          @operationId("list-archived-items")
+          @friendlyName("itemList")
+          op listArchived(
+            ${archivedQuery}
+          ): ItemPage;
+        }
+      `)
+
+      // Renaming the existing ItemListParams would break SDK callers, and sharing it
+      // could emit the struct from two resources, so generation fails in either
+      // discovery order.
+      expect(() => resolveListParamsNames(program, operations)).toThrow(
+        /ItemListParams/,
+      )
+      expect(() =>
+        resolveListParamsNames(program, [...operations].reverse()),
+      ).toThrow(/ItemListParams/)
+    })
+  }
 })
 
 describe('list params struct naming across resources', () => {
+  it('rejects one @friendlyName shared by operations in different resources', async () => {
+    const { program, operations } = await compileResource(`
+      ${pageFixturePreamble}
+
+      @route("/items")
+      interface ItemOperations {
+        @get
+        @operationId("list-items")
+        @friendlyName("listAllItems")
+        op listItems(
+          @query(#{ style: "deepObject", explode: true })
+          page?: {
+            size?: integer;
+            number?: integer;
+          },
+        ): ItemPage;
+      }
+
+      @route("/archive/items")
+      interface ArchiveOperations {
+        @get
+        @operationId("list-archived-items")
+        @friendlyName("listAllItems")
+        op listArchived(
+          @query(#{ style: "deepObject", explode: true })
+          page?: {
+            size?: integer;
+            number?: integer;
+          },
+        ): ItemPage;
+      }
+    `)
+
+    // Matching shapes would otherwise share ListAllItemsParams and emit it from both
+    // resources into one Go package.
+    expect(() => resolveListParamsNames(program, operations)).toThrow(
+      /ListAllItemsParams is claimed by 2 @friendlyName operations/,
+    )
+  })
+
   it('splits shared-element params structs declared by different resources', async () => {
     const host = await createTestHost({
       libraries: [HttpTestLibrary, OpenAPITestLibrary],

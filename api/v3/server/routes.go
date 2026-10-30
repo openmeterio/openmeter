@@ -686,6 +686,24 @@ func (s *Server) ListCreditTransactions(w http.ResponseWriter, r *http.Request, 
 	}).ServeHTTP(w, r)
 }
 
+func (s *Server) ListAllCreditGrants(w http.ResponseWriter, r *http.Request, params api.ListAllCreditGrantsParams) {
+	if !s.Credits.Enabled || s.customersCreditsHandler == nil || s.CreditGrantService == nil {
+		unimplemented.ListAllCreditGrants(w, r, params)
+		return
+	}
+
+	s.customersCreditsHandler.ListAllCreditGrants().With(params).ServeHTTP(w, r)
+}
+
+func (s *Server) ListAllCreditBalances(w http.ResponseWriter, r *http.Request, params api.ListAllCreditBalancesParams) {
+	if !s.Credits.Enabled || s.customersCreditsHandler == nil {
+		unimplemented.ListAllCreditBalances(w, r, params)
+		return
+	}
+
+	s.customersCreditsHandler.ListAllCreditBalances().With(params).ServeHTTP(w, r)
+}
+
 // Charges
 
 func (s *Server) ListCharges(w http.ResponseWriter, r *http.Request, params api.ListChargesParams) {

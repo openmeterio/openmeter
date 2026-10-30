@@ -6,6 +6,7 @@ export { Meters } from './sdk/meters.js'
 export { Customers } from './sdk/customers.js'
 export { Entitlements } from './sdk/entitlements.js'
 export { Grants } from './sdk/grants.js'
+export { Credits } from './sdk/credits.js'
 export { Subscriptions } from './sdk/subscriptions.js'
 export { Apps } from './sdk/apps.js'
 export { Billing } from './sdk/billing.js'
@@ -50,6 +51,7 @@ export type * from './models/operations/meters.js'
 export type * from './models/operations/customers.js'
 export type * from './models/operations/entitlements.js'
 export type * from './models/operations/grants.js'
+export type * from './models/operations/credits.js'
 export type * from './models/operations/subscriptions.js'
 export type * from './models/operations/apps.js'
 export type * from './models/operations/billing.js'
@@ -262,7 +264,6 @@ export type {
   AppCustomerData,
   UpsertAppCustomerDataRequest,
   CreditAdjustment,
-  ListCreditGrantsParamsFilter,
   ListCreditTransactionsParamsFilter,
   CurrencyAmount,
   EntitlementValueResult,
@@ -277,6 +278,7 @@ export type {
   ListCustomerEntitlementsParamsFilter,
   ListEntitlementsParamsFilter,
   ListGrantsParamsFilter,
+  ListAllCreditBalancesParamsFilter,
   ListSubscriptionsParamsFilter,
   ListAppsParamsFilter,
   ListBillingProfilesParamsFilter,
@@ -303,6 +305,8 @@ export type {
   NotificationRuleInvoiceUpdatedRequest,
   NotificationEventInvoiceData,
   ListEventsParamsFilter,
+  ListCreditGrantsParamsFilter,
+  ListAllCreditGrantsParamsFilter,
   ListCustomerChargesParamsFilter,
   ListInvoicesParamsFilter,
   ListChargesParamsFilter,
@@ -368,6 +372,7 @@ export type {
   PricePagePaginatedResponse,
   CreateCreditGrantPurchase,
   CreditBalances,
+  CustomerCreditBalances,
   CreditTransactionPaginatedResponse,
   CreditGrantPurchase,
   CreateChargeFlatFeeRequest,
@@ -401,6 +406,7 @@ export type {
   NotificationEventBalanceThresholdPayload,
   NotificationEventResetPayload,
   Feature,
+  CustomerCreditBalancesPagePaginatedResponse,
   CreditGrant,
   CurrencyPagePaginatedResponse,
   BadRequest,

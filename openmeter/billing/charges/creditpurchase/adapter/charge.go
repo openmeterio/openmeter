@@ -353,6 +353,7 @@ func (a *adapter) ListCharges(ctx context.Context, input creditpurchase.ListChar
 		}
 
 		query = filter.ApplyToQuery(query, input.Key, dbchargecreditpurchase.FieldKey)
+		query = filter.ApplyToQuery(query, input.UpdatedAt, dbchargecreditpurchase.FieldUpdatedAt)
 
 		query = withExpands(query, input.Expands)
 
