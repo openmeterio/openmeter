@@ -14,13 +14,14 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	taxcodetestutils "github.com/openmeterio/openmeter/openmeter/taxcode/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-func TestTaxCodeResolverFactory(t *testing.T) {
+func TestTransactionalTaxCodeResolver(t *testing.T) {
 	env := taxcodetestutils.NewTestEnv(t)
 
-	factory, err := taxcoderesolver.NewFactory(env.Service, env.Adapter)
+	txResolver, err := taxcoderesolver.NewTransactional(env.Service, env.Adapter)
 	require.NoError(t, err)
 
 	resolve := func(t *testing.T, input productcatalog.ResolveOrBackfillTaxCodeInput) (*taxcode.TaxCode, error) {
@@ -28,9 +29,9 @@ func TestTaxCodeResolverFactory(t *testing.T) {
 
 		var tc *taxcode.TaxCode
 
-		err := factory.WithResolver(t.Context(), func(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver) error {
+		err := txResolver.WithResolver(t.Context(), func(ctx context.Context, backfill productcatalog.TaxCodeBackfillResolver) error {
 			var err error
-			tc, err = resolver.ResolveOrBackfillTaxCode(ctx, input)
+			tc, err = backfill.ResolveOrBackfillTaxCode(ctx, input)
 
 			return err
 		})
@@ -86,14 +87,14 @@ func TestTaxCodeResolverFactory(t *testing.T) {
 		assert.Equal(t, created.ID, got.ID)
 	})
 
-	t.Run("FactoryReadsInTheCallbackSeeCreatedTaxCode", func(t *testing.T) {
+	t.Run("ReadsInTheCallbackSeeCreatedTaxCode", func(t *testing.T) {
 		// given: no tax code mapped to the stripe code
 		namespace := testutils.NameGenerator.Generate().Key
 
-		// when: the callback creates one and then batch-resolves it through the factory with the
+		// when: the callback creates one and then batch-resolves it through txResolver with the
 		// callback's ctx
-		err := factory.WithResolver(t.Context(), func(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver) error {
-			created, err := resolver.ResolveOrBackfillTaxCode(ctx, productcatalog.ResolveOrBackfillTaxCodeInput{
+		err := txResolver.WithResolver(t.Context(), func(ctx context.Context, backfill productcatalog.TaxCodeBackfillResolver) error {
+			created, err := backfill.ResolveOrBackfillTaxCode(ctx, productcatalog.ResolveOrBackfillTaxCodeInput{
 				Namespace:  namespace,
 				StripeCode: "txcd_40000000",
 			})
@@ -101,7 +102,7 @@ func TestTaxCodeResolverFactory(t *testing.T) {
 				return err
 			}
 
-			got, err := factory.WithNamespace(namespace).BatchResolve(ctx, created.ID)
+			got, err := txResolver.WithNamespace(namespace).BatchResolve(ctx, created.ID)
 			if err != nil {
 				return err
 			}
@@ -121,10 +122,10 @@ func TestTaxCodeResolverFactory(t *testing.T) {
 
 		var otherKey string
 
-		// when: the callback creates a tax code through the resolver and writes something
+		// when: the callback creates a tax code through backfill and writes something
 		// else, then fails
-		err := factory.WithResolver(t.Context(), func(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver) error {
-			if _, err := resolver.ResolveOrBackfillTaxCode(ctx, productcatalog.ResolveOrBackfillTaxCodeInput{
+		err := txResolver.WithResolver(t.Context(), func(ctx context.Context, backfill productcatalog.TaxCodeBackfillResolver) error {
+			if _, err := backfill.ResolveOrBackfillTaxCode(ctx, productcatalog.ResolveOrBackfillTaxCodeInput{
 				Namespace:  namespace,
 				StripeCode: "txcd_30000000",
 			}); err != nil {
@@ -174,12 +175,21 @@ func TestTaxCodeResolverFactory(t *testing.T) {
 	})
 }
 
-func TestNewFactoryRequiresDependencies(t *testing.T) {
-	env := taxcodetestutils.NewTestEnv(t)
-
-	_, err := taxcoderesolver.NewFactory(nil, env.Adapter)
+func TestNewTransactionalRequiresDependencies(t *testing.T) {
+	_, err := taxcoderesolver.NewTransactional(nil, noopTxCreator{})
 	require.Error(t, err)
 
-	_, err = taxcoderesolver.NewFactory(env.Service, nil)
+	_, err = taxcoderesolver.NewTransactional(noopTaxCodeService{}, nil)
 	require.Error(t, err)
+}
+
+// noopTaxCodeService only satisfies the interface; NewTransactional doesn't call it.
+type noopTaxCodeService struct {
+	taxcode.Service
+}
+
+type noopTxCreator struct{}
+
+func (noopTxCreator) Tx(ctx context.Context) (context.Context, transaction.Driver, error) {
+	return ctx, nil, nil
 }

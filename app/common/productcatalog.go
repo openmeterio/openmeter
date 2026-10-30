@@ -48,7 +48,7 @@ var Feature = wire.NewSet(
 
 var TaxCodeResolver = wire.NewSet(
 	NewTaxCodeResolver,
-	NewTaxCodeResolverFactory,
+	NewTransactionalTaxCodeResolver,
 )
 
 var Cost = wire.NewSet(
@@ -81,7 +81,10 @@ var NewFeatureResolver = featureresolver.New
 
 var NewTaxCodeResolver = taxcoderesolver.New
 
-var NewTaxCodeResolverFactory = taxcoderesolver.NewFactory
+// NewTransactionalTaxCodeResolver opens WithResolver's transaction on the tax code repository.
+func NewTransactionalTaxCodeResolver(service taxcode.Service, repository taxcode.Repository) (productcatalog.TransactionalTaxCodeResolver, error) {
+	return taxcoderesolver.NewTransactional(service, repository)
+}
 
 func NewCostService(
 	featureConnector feature.FeatureConnector,

@@ -28,21 +28,21 @@ type NamespacedTaxCodeResolver interface {
 	Namespace() string
 }
 
-// TaxCodeResolverFactory is what v1 handlers get: the read resolver for responses, plus
-// WithResolver for turning legacy Stripe codes into Tax Codes. Services get only TaxCodeResolver,
-// so they can't create Tax Codes.
-type TaxCodeResolverFactory interface {
+// TransactionalTaxCodeResolver is what v1 handlers get: the read resolver for responses, plus
+// WithResolver, a transaction in which legacy Stripe codes can be turned into Tax Codes. Services
+// get only TaxCodeResolver, so they can't create Tax Codes.
+type TransactionalTaxCodeResolver interface {
 	TaxCodeResolver
 
 	// WithResolver runs fn in one transaction. Tax Codes created by the resolver commit or roll
 	// back together with whatever else fn writes, so a failed request doesn't leave behind
-	// codes nothing references. Reads through the factory with fn's ctx see the codes created
+	// codes nothing references. Reads through this resolver with fn's ctx see the codes created
 	// in it.
 	WithResolver(ctx context.Context, fn func(ctx context.Context, resolver TaxCodeBackfillResolver) error) error
 }
 
 // TaxCodeBackfillResolver resolves legacy Stripe codes to Tax Codes, creating missing ones. It's
-// only handed out inside TaxCodeResolverFactory.WithResolver.
+// only handed out inside TransactionalTaxCodeResolver.WithResolver.
 type TaxCodeBackfillResolver interface {
 	// ResolveOrBackfillTaxCode returns the Tax Code mapped to the Stripe code, creating one if
 	// the namespace doesn't have it yet.
