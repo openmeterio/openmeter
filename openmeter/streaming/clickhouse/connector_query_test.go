@@ -112,6 +112,20 @@ func (s *ConnectorTestSuite) TestConnectorQueryMeter() {
 			IngestedAt: now,
 			StoredAt:   now,
 		},
+		{
+			// The name property is present but empty: UNIQUE_COUNT must count
+			// it as a distinct value, every other aggregation (except COUNT)
+			// must ignore it as there is no value property.
+			Namespace:  namespace,
+			ID:         ulid.Make().String(),
+			Time:       eventTime.Add(-2 * time.Second),
+			Type:       eventType,
+			Source:     "test-source",
+			Subject:    subject,
+			Data:       `{"name": ""}`,
+			IngestedAt: now,
+			StoredAt:   now,
+		},
 	})
 	s.NoError(err)
 
@@ -160,14 +174,14 @@ func (s *ConnectorTestSuite) TestConnectorQueryMeter() {
 			enableDecimalPrecision: false,
 			from:                   from,
 			to:                     to,
-			wantValue:              lo.ToPtr(float64(4)),
+			wantValue:              lo.ToPtr(float64(5)),
 		},
 		{
 			meterAggregation:       meter.MeterAggregationCount,
 			enableDecimalPrecision: true,
 			from:                   from,
 			to:                     to,
-			wantValue:              lo.ToPtr(float64(4)),
+			wantValue:              lo.ToPtr(float64(5)),
 		},
 		{
 			meterAggregation:       meter.MeterAggregationCount,
@@ -285,7 +299,7 @@ func (s *ConnectorTestSuite) TestConnectorQueryMeter() {
 			enableDecimalPrecision: false,
 			from:                   from,
 			to:                     to,
-			wantValue:              lo.ToPtr(float64(2)),
+			wantValue:              lo.ToPtr(float64(3)),
 		},
 		{
 			meterAggregation:       meter.MeterAggregationUniqueCount,
@@ -293,7 +307,7 @@ func (s *ConnectorTestSuite) TestConnectorQueryMeter() {
 			enableDecimalPrecision: true,
 			from:                   from,
 			to:                     to,
-			wantValue:              lo.ToPtr(float64(2)),
+			wantValue:              lo.ToPtr(float64(3)),
 		},
 		{
 			meterAggregation:       meter.MeterAggregationUniqueCount,
