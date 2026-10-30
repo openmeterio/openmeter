@@ -27,7 +27,7 @@ func TestFromAPIListChargesParams(t *testing.T) {
 	ctx := t.Context()
 
 	t.Run("defaults apply without query parameters", func(t *testing.T) {
-		req, err := fromAPIListChargesParams(ctx, "ns", nil, nil, nil)
+		req, err := fromAPIListChargesParams(ctx, "ns", nil, nil, nil, nil)
 		require.NoError(t, err)
 
 		require.Equal(t, "ns", req.Namespace)
@@ -41,13 +41,13 @@ func TestFromAPIListChargesParams(t *testing.T) {
 	})
 
 	t.Run("page size above the cap is rejected", func(t *testing.T) {
-		_, err := fromAPIListChargesParams(ctx, "ns", &api.PagePaginationQuery{Size: lo.ToPtr(maxListChargesPageSize + 1)}, nil, nil)
+		_, err := fromAPIListChargesParams(ctx, "ns", &api.PagePaginationQuery{Size: lo.ToPtr(maxListChargesPageSize + 1)}, nil, nil, nil)
 		assertBadRequestField(t, err, "page[size]")
 	})
 
 	t.Run("sort maps to the service order", func(t *testing.T) {
 		sort := api.SortQuery("service_period.from desc")
-		req, err := fromAPIListChargesParams(ctx, "ns", nil, &sort, nil)
+		req, err := fromAPIListChargesParams(ctx, "ns", nil, &sort, nil, nil)
 		require.NoError(t, err)
 
 		require.Equal(t, "service_period.from", req.OrderBy)
@@ -56,12 +56,12 @@ func TestFromAPIListChargesParams(t *testing.T) {
 
 	t.Run("unsupported sort field is rejected", func(t *testing.T) {
 		sort := api.SortQuery("name")
-		_, err := fromAPIListChargesParams(ctx, "ns", nil, &sort, nil)
+		_, err := fromAPIListChargesParams(ctx, "ns", nil, &sort, nil, nil)
 		require.Error(t, err)
 	})
 
 	t.Run("expands map to domain expands", func(t *testing.T) {
-		req, err := fromAPIListChargesParams(ctx, "ns", nil, nil, &[]api.BillingChargesExpand{api.BillingChargesExpandCustomer, api.BillingChargesExpandRealizationTotals})
+		req, err := fromAPIListChargesParams(ctx, "ns", nil, nil, &[]api.BillingChargesExpand{api.BillingChargesExpandCustomer, api.BillingChargesExpandRealizationTotals}, nil)
 		require.NoError(t, err)
 
 		require.True(t, req.Expands.Has(meta.ExpandCustomer))
@@ -70,7 +70,7 @@ func TestFromAPIListChargesParams(t *testing.T) {
 	})
 
 	t.Run("unknown expand is rejected", func(t *testing.T) {
-		_, err := fromAPIListChargesParams(ctx, "ns", nil, nil, &[]api.BillingChargesExpand{"invoice"})
+		_, err := fromAPIListChargesParams(ctx, "ns", nil, nil, &[]api.BillingChargesExpand{"invoice"}, nil)
 		assertBadRequestField(t, err, "expand")
 	})
 }

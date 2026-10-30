@@ -127,6 +127,21 @@ namespace Charges {
       filter?: ListCustomerChargesParamsFilter,
 
       /**
+       * Evaluate `expand=real_time_usage` as of this time instead of now. Requires the
+       * `real_time_usage` expand and must not be in the future.
+       *
+       * Usage and `totals.realtime` match what a live read returned at that time: only
+       * events stored before `as_of` count, and minimum commitments apply only when the
+       * service period has ended by `as_of`. The metered quantity is repeatable, so a
+       * month-end close can be re-run. Totals are rated with the charge's current price,
+       * so a price change after `as_of` changes them. Service periods, status, and
+       * realizations also reflect the charge's current state, and charges created after
+       * `as_of` are included.
+       */
+      @query
+      as_of?: Shared.DateTime,
+
+      /**
        * Expand full objects for referenced entities.
        *
        * Supported values are:

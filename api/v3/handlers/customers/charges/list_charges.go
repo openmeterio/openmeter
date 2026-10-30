@@ -28,7 +28,7 @@ func (h *handler) ListCharges() ListChargesHandler {
 				return ListChargesRequest{}, err
 			}
 
-			req, err := fromAPIListChargesParams(ctx, ns, params.Page, params.Sort, params.Expand)
+			req, err := fromAPIListChargesParams(ctx, ns, params.Page, params.Sort, params.Expand, params.AsOf)
 			if err != nil {
 				return ListChargesRequest{}, err
 			}

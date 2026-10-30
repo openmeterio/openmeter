@@ -8975,6 +8975,7 @@ export const listCustomerChargesQueryParams = z.object({
     .describe('Determines which page of the collection to retrieve.'),
   sort: sortQuery.optional(),
   filter: listCustomerChargesParamsFilter.optional(),
+  asOf: dateTime.optional(),
   expand: z
     .array(chargesExpand)
     .optional()
@@ -9328,6 +9329,7 @@ export const listChargesQueryParams = z.object({
     .describe('Determines which page of the collection to retrieve.'),
   sort: sortQuery.optional(),
   filter: listChargesParamsFilter.optional(),
+  asOf: dateTime.optional(),
   expand: z
     .array(chargesExpand)
     .optional()
@@ -18866,6 +18868,7 @@ export const listCustomerChargesQueryParamsWire = z.object({
       'Sort charges returned in the response. Supported sort attributes are: - `id` - `created_at` - `service_period.from` - `billing_period.from`',
     ),
   filter: listCustomerChargesParamsFilterWire.optional(),
+  as_of: dateTimeWire.optional(),
   expand: z
     .array(chargesExpandWire)
     .optional()
@@ -19257,6 +19260,7 @@ export const listChargesQueryParamsWire = z.object({
       'Sort charges returned in the response. Supported sort attributes are: - `id` - `created_at` - `service_period.from` - `billing_period.from`',
     ),
   filter: listChargesParamsFilterWire.optional(),
+  as_of: dateTimeWire.optional(),
   expand: z
     .array(chargesExpandWire)
     .optional()

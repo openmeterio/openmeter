@@ -288,6 +288,14 @@ remain unchanged. This replacement is not persisted; unexpanded reads show store
 issues. Critical issues and system errors fail the read. Consumers such as live
 balance projection need no warning-specific error suppression.
 
+A listing can evaluate realtime usage as of a past time
+(`ListChargesInput.RealtimeUsageAsOf`). The meter read then counts only events
+stored before that time, exactly as a live read at that moment did, so the
+metered quantity is repeatable. Only the meter read is replayed: intent
+(including price), status, and realizations are stored in place without history
+and stay current, so totals follow the current price. Future
+cutoffs are rejected because events can still be stored before them.
+
 ## Settlement semantics
 
 Flat-fee and usage-based charges support two modes:
