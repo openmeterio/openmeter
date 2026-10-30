@@ -1,4 +1,4 @@
-package taxcoderesolver_test
+package productcatalog_test
 
 import (
 	"context"
@@ -10,7 +10,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/taxcoderesolver"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -121,7 +120,7 @@ func TestValidateRateCardTaxCodes(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			resolver := &stubTaxCodeResolver{taxCodes: taxCodes, err: tt.resolverErr}
 
-			err := taxcoderesolver.ValidateRateCardTaxCodes(t.Context(), resolver, namespace, tt.rateCards)
+			err := productcatalog.ValidateRateCardTaxCodes(t.Context(), resolver, namespace, tt.rateCards)
 
 			assert.Equal(t, tt.wantCalls, resolver.calls)
 

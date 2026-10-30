@@ -12,7 +12,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/currencyresolver"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/featureresolver"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/taxcoderesolver"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -94,10 +93,17 @@ func (s service) CreatePlan(ctx context.Context, params plan.CreatePlanInput) (*
 							params.Key, params.Phases[idx].Key, err))
 				}
 
-				if err = taxcoderesolver.ValidateRateCardTaxCodes(ctx, s.taxCodeResolver, params.Namespace, params.Phases[idx].RateCards); err != nil {
-					return nil, models.ErrorWithFieldPrefix(phaseFieldSelector,
-						fmt.Errorf("invalid tax codes for ratecards in plan phase [plan.key=%s plan.phase.key=%s]: %w",
-							params.Key, params.Phases[idx].Key, err))
+				if err = productcatalog.ValidateRateCardTaxCodes(ctx, s.taxCodeResolver, params.Namespace, params.Phases[idx].RateCards); err != nil {
+					err = fmt.Errorf("invalid tax codes for ratecards in plan phase [plan.key=%s plan.phase.key=%s]: %w",
+						params.Key, params.Phases[idx].Key, err)
+
+					// Only prefix validation errors with the phase: a field prefix turns any error into a
+					// validation issue, so a failed lookup would become a 400 carrying the DB error text.
+					if models.IsGenericValidationError(err) {
+						err = models.ErrorWithFieldPrefix(phaseFieldSelector, err)
+					}
+
+					return nil, err
 				}
 			}
 		}
@@ -300,10 +306,16 @@ func (s service) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (*
 							params.ID, (*params.Phases)[idx].Key, err))
 				}
 
-				if err := taxcoderesolver.ValidateRateCardTaxCodes(ctx, s.taxCodeResolver, params.Namespace, (*params.Phases)[idx].RateCards); err != nil {
-					return nil, models.ErrorWithFieldPrefix(phaseFieldSelector,
-						fmt.Errorf("invalid tax codes for ratecards in plan phase [plan.id=%s plan.phase.key=%s]: %w",
-							params.ID, (*params.Phases)[idx].Key, err))
+				if err := productcatalog.ValidateRateCardTaxCodes(ctx, s.taxCodeResolver, params.Namespace, (*params.Phases)[idx].RateCards); err != nil {
+					err = fmt.Errorf("invalid tax codes for ratecards in plan phase [plan.id=%s plan.phase.key=%s]: %w",
+						params.ID, (*params.Phases)[idx].Key, err)
+
+					// Same as in CreatePlan: lookup failures must not be prefixed, or they become a 400.
+					if models.IsGenericValidationError(err) {
+						err = models.ErrorWithFieldPrefix(phaseFieldSelector, err)
+					}
+
+					return nil, err
 				}
 			}
 

@@ -75,17 +75,17 @@ func (h *handler) ListPlanAddons() ListPlanAddonsHandler {
 			return req, nil
 		},
 		func(ctx context.Context, request ListPlanAddonsRequest) (ListPlanAddonsResponse, error) {
+			// The decoder scopes the list to the caller's namespace; tax codes are looked up there.
+			if len(request.Namespaces) != 1 {
+				return ListPlanAddonsResponse{}, fmt.Errorf("expected exactly one namespace, got %d", len(request.Namespaces))
+			}
+
 			resp, err := h.service.ListPlanAddons(ctx, request)
 			if err != nil {
 				return ListPlanAddonsResponse{}, fmt.Errorf("failed to list plan add-on assignments: %w", err)
 			}
 
-			ns, err := h.resolveNamespace(ctx)
-			if err != nil {
-				return ListPlanAddonsResponse{}, fmt.Errorf("failed to resolve namespace: %w", err)
-			}
-
-			taxCodes, err := h.taxCodesForPlanAddons(ctx, ns, resp.Items...)
+			taxCodes, err := h.taxCodesForPlanAddons(ctx, request.Namespaces[0], resp.Items...)
 			if err != nil {
 				return ListPlanAddonsResponse{}, err
 			}

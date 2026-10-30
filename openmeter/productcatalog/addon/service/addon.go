@@ -13,7 +13,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/currencyresolver"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/featureresolver"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/taxcoderesolver"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
@@ -127,7 +126,7 @@ func (s service) CreateAddon(ctx context.Context, params addon.CreateAddonInput)
 				return nil, fmt.Errorf("failed to resolve features for ratecards in add-on [addon.key=%s]: %w", params.Key, err)
 			}
 
-			if err = taxcoderesolver.ValidateRateCardTaxCodes(ctx, s.taxCodeResolver, params.Namespace, params.RateCards); err != nil {
+			if err = productcatalog.ValidateRateCardTaxCodes(ctx, s.taxCodeResolver, params.Namespace, params.RateCards); err != nil {
 				return nil, fmt.Errorf("invalid tax codes for ratecards in add-on [addon.key=%s]: %w", params.Key, err)
 			}
 		}
@@ -330,7 +329,7 @@ func (s service) UpdateAddon(ctx context.Context, params addon.UpdateAddonInput)
 				return nil, fmt.Errorf("failed to expand features for ratecards in add-on: %w", err)
 			}
 
-			if err := taxcoderesolver.ValidateRateCardTaxCodes(ctx, s.taxCodeResolver, params.Namespace, *params.RateCards); err != nil {
+			if err := productcatalog.ValidateRateCardTaxCodes(ctx, s.taxCodeResolver, params.Namespace, *params.RateCards); err != nil {
 				return nil, fmt.Errorf("invalid tax codes for ratecards in add-on [addon.id=%s]: %w", params.ID, err)
 			}
 
