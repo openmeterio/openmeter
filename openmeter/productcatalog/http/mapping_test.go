@@ -105,6 +105,9 @@ func TestAsTaxCodeConfig(t *testing.T) {
 			wantErr: func(t *testing.T, err error) {
 				assert.ErrorIs(t, err, resolverErr)
 				assert.False(t, models.IsGenericValidationError(err), "resolver failures must not become validation errors")
+
+				var resolveErr *productcataloghttp.TaxCodeResolutionError
+				assert.ErrorAs(t, err, &resolveErr, "handlers rely on this type to keep resolver failures out of 400s")
 			},
 		},
 	}

@@ -918,6 +918,20 @@ func AsTaxConfig(c api.TaxConfig) productcatalog.TaxConfig {
 	return tc
 }
 
+// TaxCodeResolutionError is a failure to resolve a v1 stripe.code to a Tax Code (e.g. a database
+// error). It isn't caused by the request, so handlers must not report it as a validation error.
+type TaxCodeResolutionError struct {
+	Err error
+}
+
+func (e *TaxCodeResolutionError) Error() string {
+	return e.Err.Error()
+}
+
+func (e *TaxCodeResolutionError) Unwrap() error {
+	return e.Err
+}
+
 // AsTaxCodeConfig turns v1 tax config input into a Tax Code reference. taxCodeId wins when set
 // and is passed through unchecked: services validate Tax Code references. Otherwise a stripe.code
 // is resolved to a Tax Code, creating one if the namespace doesn't have it yet. Returns nil when
@@ -957,7 +971,7 @@ func AsTaxCodeConfig(ctx context.Context, resolver productcatalog.TaxCodeBackfil
 
 	if out.TaxCodeID == "" && stripeCode != "" {
 		if resolver == nil {
-			return nil, errors.New("tax code resolver is required to resolve stripe tax codes")
+			return nil, &TaxCodeResolutionError{Err: errors.New("tax code resolver is required to resolve stripe tax codes")}
 		}
 
 		tc, err := resolver.ResolveOrBackfillTaxCode(ctx, productcatalog.ResolveOrBackfillTaxCodeInput{
@@ -965,7 +979,7 @@ func AsTaxCodeConfig(ctx context.Context, resolver productcatalog.TaxCodeBackfil
 			StripeCode: stripeCode,
 		})
 		if err != nil {
-			return nil, fmt.Errorf("failed to resolve tax code for stripe code %s: %w", stripeCode, err)
+			return nil, &TaxCodeResolutionError{Err: fmt.Errorf("failed to resolve tax code for stripe code %s: %w", stripeCode, err)}
 		}
 
 		out.TaxCodeID = tc.ID
