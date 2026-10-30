@@ -94,10 +94,9 @@ interface InvoicesOperations {
      *
      * To sync changes, pass `filter[updated_at][gte]` set a few minutes before the
      * start of the previous scan, keep the default `created_at` sort, and de-duplicate
-     * by `id`. Sorting by `updated_at` moves rows between pages while you scan.
-     * Changes to invoice lines alone may not update `updated_at`. Deleted invoices are
-     * not listed, and a deletion during a scan can shift a row past a page boundary,
-     * so also run a periodic full scan.
+     * by `id`. Changes to invoice lines alone may not update `updated_at`. Deleted
+     * invoices are not listed, and a deletion during a scan can shift a row past a
+     * page boundary, so also run a periodic full scan.
      */
     @query(#{ style: "deepObject", explode: true })
     filter?: ListInvoicesParamsFilter,
