@@ -134,7 +134,7 @@ func FromAddonRateCardRow(r entdb.AddonRateCard) (*addon.RateCard, error) {
 		Annotations:         r.Annotations,
 		EntitlementTemplate: r.EntitlementTemplate,
 		Feature:             productcatalog.NewFeatureReference(r.FeatureID, r.FeatureKey),
-		TaxConfig:           taxCodeConfigFromColumns(r.TaxCodeID, r.TaxBehavior),
+		TaxConfig:           productcatalog.FromDBTaxColumns(r.TaxCodeID, r.TaxBehavior),
 		Price:               r.Price,
 		Discounts:           lo.FromPtr(r.Discounts),
 		UnitConfig:          r.UnitConfig,
@@ -378,7 +378,7 @@ func FromPlanRateCardRow(r entdb.PlanRateCard) (productcatalog.RateCard, error) 
 		Annotations:         r.Annotations,
 		Feature:             productcatalog.NewFeatureReference(r.FeatureID, r.FeatureKey),
 		EntitlementTemplate: r.EntitlementTemplate,
-		TaxConfig:           taxCodeConfigFromColumns(r.TaxCodeID, r.TaxBehavior),
+		TaxConfig:           productcatalog.FromDBTaxColumns(r.TaxCodeID, r.TaxBehavior),
 		Price:               r.Price,
 		Discounts:           lo.FromPtr(r.Discounts),
 		UnitConfig:          r.UnitConfig,
@@ -492,19 +492,4 @@ func asAddonRateCardRow(r productcatalog.RateCard) (entdb.AddonRateCard, error) 
 	}
 
 	return ratecard, nil
-}
-
-// taxCodeConfigFromColumns reads a rate card's tax settings from the tax_code_id and tax_behavior
-// columns only. The legacy tax_config JSON may still hold a Stripe code on old rows, but those rows
-// were backfilled with a tax_code_id, so the columns are the source of truth. The plan adapter has
-// the same helper; the two adapters don't import each other.
-func taxCodeConfigFromColumns(taxCodeID *string, behavior *productcatalog.TaxBehavior) *productcatalog.TaxCodeConfig {
-	if taxCodeID == nil && behavior == nil {
-		return nil
-	}
-
-	return &productcatalog.TaxCodeConfig{
-		TaxCodeID: lo.FromPtr(taxCodeID),
-		Behavior:  behavior,
-	}
 }

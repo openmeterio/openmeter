@@ -1,11 +1,10 @@
-package taxcoderesolver
+package productcatalog
 
 import (
 	"context"
 	"errors"
 	"fmt"
 
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -15,7 +14,7 @@ import (
 //
 // BatchResolve returns deleted codes too (old rows may still point at them), which is why the
 // deleted check lives here rather than in the resolver.
-func ValidateRateCardTaxCodes(ctx context.Context, resolver productcatalog.TaxCodeResolver, namespace string, rateCards productcatalog.RateCards) error {
+func ValidateRateCardTaxCodes(ctx context.Context, resolver TaxCodeResolver, namespace string, rateCards RateCards) error {
 	ids := rateCards.TaxCodeIDs()
 	if len(ids) == 0 {
 		return nil
@@ -45,7 +44,7 @@ func ValidateRateCardTaxCodes(ctx context.Context, resolver productcatalog.TaxCo
 
 		errs = append(errs, models.ErrorWithFieldPrefix(fieldSelector,
 			fmt.Errorf("tax code not found [ratecard.key=%s tax_code.id=%s]: %w",
-				rc.Key(), cfg.TaxCodeID, productcatalog.ErrRateCardTaxCodeNotFound),
+				rc.Key(), cfg.TaxCodeID, ErrRateCardTaxCodeNotFound),
 		))
 	}
 

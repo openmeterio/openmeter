@@ -227,7 +227,7 @@ func MapDBSubscriptionItem(item *db.SubscriptionItem) (subscription.Subscription
 		Description:         item.Description,
 		Feature:             productcatalog.NewFeatureReference(nil, item.FeatureKey),
 		EntitlementTemplate: item.EntitlementTemplate,
-		TaxConfig:           taxCodeConfigFromColumns(item.TaxCodeID, item.TaxBehavior),
+		TaxConfig:           productcatalog.FromDBTaxColumns(item.TaxCodeID, item.TaxBehavior),
 		Price:               item.Price,
 		Discounts:           lo.FromPtr(item.Discounts),
 		UnitConfig:          item.UnitConfig,
@@ -289,18 +289,4 @@ func MapDBSubscriptionItem(item *db.SubscriptionItem) (subscription.Subscription
 		EntitlementID:                          item.EntitlementID,
 		RateCard:                               rc,
 	}, nil
-}
-
-// taxCodeConfigFromColumns reads an item's tax settings from the tax_code_id and tax_behavior
-// columns only. The legacy tax_config JSON may still hold a Stripe code on old rows, but those rows
-// were backfilled with a tax_code_id, so the columns are the source of truth.
-func taxCodeConfigFromColumns(taxCodeID *string, behavior *productcatalog.TaxBehavior) *productcatalog.TaxCodeConfig {
-	if taxCodeID == nil && behavior == nil {
-		return nil
-	}
-
-	return &productcatalog.TaxCodeConfig{
-		TaxCodeID: lo.FromPtr(taxCodeID),
-		Behavior:  behavior,
-	}
 }

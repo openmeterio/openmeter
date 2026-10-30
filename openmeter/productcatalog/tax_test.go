@@ -141,6 +141,37 @@ func TestTaxCodeConfigFrom(t *testing.T) {
 	})
 }
 
+func TestFromDBTaxColumns(t *testing.T) {
+	const taxCodeID = "01JTAXCODE0000000000000000"
+
+	tests := []struct {
+		name        string
+		taxCodeID   *string
+		taxBehavior *TaxBehavior
+		want        *TaxCodeConfig
+	}{
+		{name: "no columns set", want: nil},
+		{name: "tax code ID", taxCodeID: lo.ToPtr(taxCodeID), want: &TaxCodeConfig{TaxCodeID: taxCodeID}},
+		{
+			name:        "behavior only",
+			taxBehavior: lo.ToPtr(InclusiveTaxBehavior),
+			want:        &TaxCodeConfig{Behavior: lo.ToPtr(InclusiveTaxBehavior)},
+		},
+		{
+			name:        "tax code ID and behavior",
+			taxCodeID:   lo.ToPtr(taxCodeID),
+			taxBehavior: lo.ToPtr(ExclusiveTaxBehavior),
+			want:        &TaxCodeConfig{TaxCodeID: taxCodeID, Behavior: lo.ToPtr(ExclusiveTaxBehavior)},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, FromDBTaxColumns(tt.taxCodeID, tt.taxBehavior))
+		})
+	}
+}
+
 func TestTaxCodeConfigEqual(t *testing.T) {
 	const id = "01JTAXCODE00000000000000000"
 
