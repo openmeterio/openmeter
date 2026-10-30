@@ -20,6 +20,7 @@ type BillingSubscriptionFilter struct {
 	Status     *StringExactFilter
 	PlanID     *StringExactFilter
 	PlanKey    *StringExactFilter
+	UpdatedAt  *DateTimeFilter
 }
 
 type BillingSubscriptionListParams struct {
@@ -41,6 +42,7 @@ func (p BillingSubscriptionListParams) values() url.Values {
 		addStringExactFilter(q, "filter[status]", p.Filter.Status)
 		addStringExactFilter(q, "filter[plan_id]", p.Filter.PlanID)
 		addStringExactFilter(q, "filter[plan_key]", p.Filter.PlanKey)
+		addDateTimeFilter(q, "filter[updated_at]", p.Filter.UpdatedAt)
 	}
 
 	return q

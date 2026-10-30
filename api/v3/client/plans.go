@@ -15,10 +15,11 @@ type PlansService struct {
 }
 
 type PlanFilter struct {
-	Key      *StringFilter
-	Name     *StringFilter
-	Status   *StringExactFilter
-	Currency *StringExactFilter
+	Key       *StringFilter
+	Name      *StringFilter
+	Status    *StringExactFilter
+	Currency  *StringExactFilter
+	UpdatedAt *DateTimeFilter
 }
 
 type PlanListParams struct {
@@ -39,6 +40,7 @@ func (p PlanListParams) values() url.Values {
 		addStringFilter(q, "filter[name]", p.Filter.Name)
 		addStringExactFilter(q, "filter[status]", p.Filter.Status)
 		addStringExactFilter(q, "filter[currency]", p.Filter.Currency)
+		addDateTimeFilter(q, "filter[updated_at]", p.Filter.UpdatedAt)
 	}
 
 	return q

@@ -65,6 +65,8 @@ func (Customer) Indexes() []ent.Index {
 		index.Fields("primary_email"),
 		// Indexes because of API OrderBy
 		index.Fields("created_at"),
+		// Incremental syncs poll filter[updated_at]
+		index.Fields("namespace", "updated_at"),
 	}
 }
 

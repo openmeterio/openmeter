@@ -1838,6 +1838,11 @@ var (
 				},
 			},
 			{
+				Name:    "chargecreditpurchase_namespace_updated_at",
+				Unique:  false,
+				Columns: []*schema.Column{ChargeCreditPurchasesColumns[15], ChargeCreditPurchasesColumns[18]},
+			},
+			{
 				Name:    "chargecreditpurchase_annotations",
 				Unique:  false,
 				Columns: []*schema.Column{ChargeCreditPurchasesColumns[14]},
@@ -2228,6 +2233,11 @@ var (
 				Annotation: &entsql.IndexAnnotation{
 					Where: "unique_reference_id IS NOT NULL AND deleted_at IS NULL",
 				},
+			},
+			{
+				Name:    "chargeflatfee_namespace_updated_at",
+				Unique:  false,
+				Columns: []*schema.Column{ChargeFlatFeesColumns[15], ChargeFlatFeesColumns[18]},
 			},
 			{
 				Name:    "chargeflatfee_annotations",
@@ -2929,6 +2939,11 @@ var (
 				Annotation: &entsql.IndexAnnotation{
 					Where: "unique_reference_id IS NOT NULL AND deleted_at IS NULL",
 				},
+			},
+			{
+				Name:    "chargeusagebased_namespace_updated_at",
+				Unique:  false,
+				Columns: []*schema.Column{ChargeUsageBasedColumns[15], ChargeUsageBasedColumns[18]},
 			},
 			{
 				Name:    "chargeusagebased_annotations",
@@ -3797,6 +3812,11 @@ var (
 				Name:    "customer_created_at",
 				Unique:  false,
 				Columns: []*schema.Column{CustomersColumns[3]},
+			},
+			{
+				Name:    "customer_namespace_updated_at",
+				Unique:  false,
+				Columns: []*schema.Column{CustomersColumns[1], CustomersColumns[4]},
 			},
 		},
 	}
@@ -5201,6 +5221,11 @@ var (
 				Unique:  false,
 				Columns: []*schema.Column{PlansColumns[16]},
 			},
+			{
+				Name:    "plan_namespace_updated_at",
+				Unique:  false,
+				Columns: []*schema.Column{PlansColumns[1], PlansColumns[4]},
+			},
 		},
 	}
 	// PlanAddonsColumns holds the columns for the "plan_addons" table.
@@ -5583,6 +5608,11 @@ var (
 				Name:    "subscription_namespace_customer_id",
 				Unique:  false,
 				Columns: []*schema.Column{SubscriptionsColumns[1], SubscriptionsColumns[17]},
+			},
+			{
+				Name:    "subscription_namespace_updated_at",
+				Unique:  false,
+				Columns: []*schema.Column{SubscriptionsColumns[1], SubscriptionsColumns[4]},
 			},
 		},
 	}

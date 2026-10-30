@@ -25,6 +25,7 @@ type CustomerFilter struct {
 	UsageAttributionSubjectKey *StringFilter
 	PlanKey                    *StringFilter
 	BillingProfileID           *StringExactFilter
+	UpdatedAt                  *DateTimeFilter
 }
 
 type CustomerListParams struct {
@@ -47,6 +48,7 @@ func (p CustomerListParams) values() url.Values {
 		addStringFilter(q, "filter[usage_attribution_subject_key]", p.Filter.UsageAttributionSubjectKey)
 		addStringFilter(q, "filter[plan_key]", p.Filter.PlanKey)
 		addStringExactFilter(q, "filter[billing_profile_id]", p.Filter.BillingProfileID)
+		addDateTimeFilter(q, "filter[updated_at]", p.Filter.UpdatedAt)
 	}
 
 	return q

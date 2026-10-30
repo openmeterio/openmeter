@@ -314,6 +314,9 @@ type ListInvoicesInput struct {
 	PeriodStart *filter.FilterTime
 	// CreatedAt filters by invoice creation time.
 	CreatedAt *filter.FilterTime
+	// UpdatedAt filters by the invoice header's last update time. A change saved
+	// only to lines may not bump it.
+	UpdatedAt *filter.FilterTime
 
 	IncludeDeleted bool
 
@@ -357,6 +360,12 @@ func (i ListInvoicesInput) Validate() error {
 		}
 	}
 
+	if i.UpdatedAt != nil {
+		if err := i.UpdatedAt.Validate(); err != nil {
+			outErr = append(outErr, fmt.Errorf("updatedAt: %w", err))
+		}
+	}
+
 	if err := i.Expand.Validate(); err != nil {
 		outErr = append(outErr, fmt.Errorf("expand: %w", err))
 	}
@@ -390,6 +399,9 @@ type ListInvoicesAdapterInput struct {
 	PeriodStart *filter.FilterTime
 	// CreatedAt filters by invoice creation time.
 	CreatedAt *filter.FilterTime
+	// UpdatedAt filters by the invoice header's last update time. A change saved
+	// only to lines may not bump it.
+	UpdatedAt *filter.FilterTime
 
 	IncludeDeleted bool
 
@@ -432,6 +444,12 @@ func (i ListInvoicesAdapterInput) Validate() error {
 	if i.CreatedAt != nil {
 		if err := i.CreatedAt.Validate(); err != nil {
 			outErr = append(outErr, fmt.Errorf("createdAt: %w", err))
+		}
+	}
+
+	if i.UpdatedAt != nil {
+		if err := i.UpdatedAt.Validate(); err != nil {
+			outErr = append(outErr, fmt.Errorf("updatedAt: %w", err))
 		}
 	}
 

@@ -76,6 +76,8 @@ func (Subscription) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("namespace", "id"),
 		index.Fields("namespace", "customer_id"),
+		// Incremental syncs poll filter[updated_at]
+		index.Fields("namespace", "updated_at"),
 	}
 }
 

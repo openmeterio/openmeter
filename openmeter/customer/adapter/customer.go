@@ -58,6 +58,7 @@ func (a *adapter) ListCustomers(ctx context.Context, input customer.ListCustomer
 		query = filter.ApplyToQuery(query, input.Key, customerdb.FieldKey)
 		query = filter.ApplyToQuery(query, input.Name, customerdb.FieldName)
 		query = filter.ApplyToQuery(query, input.PrimaryEmail, customerdb.FieldPrimaryEmail)
+		query = filter.ApplyToQuery(query, input.UpdatedAt, customerdb.FieldUpdatedAt)
 
 		if input.PlanKey != nil {
 			applyActiveSubscriptionFilterWithPlanKey(query, now, input.PlanKey)
@@ -105,15 +106,16 @@ func (a *adapter) ListCustomers(ctx context.Context, input customer.ListCustomer
 			order = entutils.GetOrdering(input.Order)
 		}
 
+		// Break ties by ID so rows with equal sort values keep their place across pages.
 		switch input.OrderBy {
 		case "id":
 			query = query.Order(customerdb.ByID(order...))
 		case "createdAt":
-			query = query.Order(customerdb.ByCreatedAt(order...))
+			query = query.Order(customerdb.ByCreatedAt(order...), customerdb.ByID(order...))
 		case "name":
 			fallthrough
 		default:
-			query = query.Order(customerdb.ByName(order...))
+			query = query.Order(customerdb.ByName(order...), customerdb.ByID(order...))
 		}
 
 		// Response

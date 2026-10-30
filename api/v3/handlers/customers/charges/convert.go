@@ -1202,6 +1202,13 @@ func fromAPIListChargesParamsFilter(ctx context.Context, f *api.ListChargesParam
 
 	req.ServicePeriodTo = servicePeriodTo
 
+	updatedAt, err := filters.FromAPIFilterDateTime(f.UpdatedAt)
+	if err != nil {
+		return newInvalidQueryParamError(ctx, "filter[updated_at]", err)
+	}
+
+	req.UpdatedAt = updatedAt
+
 	return nil
 }
 

@@ -35,6 +35,8 @@ type ListCustomerChargesFilter struct {
 	ServicePeriodFrom *DateTimeFilter
 	// Filter charges by the end of their service period.
 	ServicePeriodTo *DateTimeFilter
+	// Filter charges by their last update time.
+	UpdatedAt *DateTimeFilter
 }
 
 type ListCustomerChargesParams struct {
@@ -57,6 +59,7 @@ func (p ListCustomerChargesParams) values() url.Values {
 		addStringExactFilter(q, "filter[feature_key]", p.Filter.FeatureKey)
 		addDateTimeFilter(q, "filter[service_period_from]", p.Filter.ServicePeriodFrom)
 		addDateTimeFilter(q, "filter[service_period_to]", p.Filter.ServicePeriodTo)
+		addDateTimeFilter(q, "filter[updated_at]", p.Filter.UpdatedAt)
 	}
 
 	if len(p.Expand) > 0 {

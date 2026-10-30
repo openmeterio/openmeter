@@ -39,7 +39,16 @@ export interface ListSubscriptionsQuery {
    * suffix is used to specify a descending order.
    */
   sort?: SortQueryInput
-  /** Filter subscriptions. */
+  /**
+   * Filter subscriptions.
+   *
+   * To sync changes, pass `filter[updated_at][gte]` set a few minutes before the
+   * start of the previous scan, sort by `id`, and de-duplicate by `id`. Changes to
+   * phases or items alone may not update `updated_at`, and time-based fields such as
+   * `status` and `current_period` change without updating it. Deleted subscriptions
+   * are not listed, and a deletion during a scan can shift a row past a page
+   * boundary, so also run a periodic full scan.
+   */
   filter?: ListSubscriptionsParamsFilter
 }
 

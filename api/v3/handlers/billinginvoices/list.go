@@ -133,6 +133,17 @@ func (h *handler) ListBillingInvoices() ListBillingInvoicesHandler {
 
 					req.CreatedAt = createdAt
 				}
+
+				if params.Filter.UpdatedAt != nil {
+					updatedAt, err := filters.FromAPIFilterDateTime(params.Filter.UpdatedAt)
+					if err != nil {
+						return ListBillingInvoicesRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+							{Field: "filter[updated_at]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
+						})
+					}
+
+					req.UpdatedAt = updatedAt
+				}
 			}
 
 			return req, nil

@@ -108,6 +108,12 @@ type ListPlansInput struct {
 	// Currency filters plans by their currency field (AND semantics, supports eq/neq/contains/oeq).
 	Currency *filter.FilterString
 
+	// UpdatedAt filters plans by the plan row's last update time. Plan updates bump
+	// it, including phase and rate card changes, because they rewrite the plan row.
+	// RateCardMeta.Equal ignores metadata, so an update that changes only rate card
+	// labels replaces the rate cards without bumping it.
+	UpdatedAt *filter.FilterTime
+
 	// ExcludeUnitConfig omits plans carrying a unit_config conversion on any of their rate cards. (v1 can't represent it)
 	ExcludeUnitConfig bool
 
@@ -133,6 +139,12 @@ func (i ListPlansInput) Validate() error {
 	if i.Currency != nil {
 		if err := i.Currency.Validate(); err != nil {
 			errs = append(errs, err)
+		}
+	}
+
+	if i.UpdatedAt != nil {
+		if err := i.UpdatedAt.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("updated at filter: %w", err))
 		}
 	}
 

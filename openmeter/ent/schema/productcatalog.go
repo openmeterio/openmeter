@@ -98,6 +98,8 @@ func (Plan) Indexes() []ent.Index {
 			).
 			Unique(),
 		index.Fields("custom_currency_id"),
+		// Incremental syncs poll filter[updated_at]
+		index.Fields("namespace", "updated_at"),
 	}
 }
 
