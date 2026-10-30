@@ -90,10 +90,8 @@ func TestPlanAddonService(t *testing.T) {
 								Metadata:            models.Metadata{"name": features[0].Name},
 								Feature:             productcatalog.NewFeatureReference(lo.ToPtr(features[0].ID), lo.ToPtr(features[0].Key)),
 								EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.BooleanEntitlementTemplate{}),
-								TaxConfig: &productcatalog.TaxConfig{
-									Stripe: &productcatalog.StripeTaxConfig{
-										Code: "txcd_10000000",
-									},
+								TaxConfig: &productcatalog.TaxCodeConfig{
+									Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
 								},
 								Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 									Amount:      decimal.NewFromInt(0),
@@ -121,10 +119,8 @@ func TestPlanAddonService(t *testing.T) {
 								Metadata:            models.Metadata{"name": features[0].Name},
 								Feature:             productcatalog.NewFeatureReference(lo.ToPtr(features[0].ID), lo.ToPtr(features[0].Key)),
 								EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.BooleanEntitlementTemplate{}),
-								TaxConfig: &productcatalog.TaxConfig{
-									Stripe: &productcatalog.StripeTaxConfig{
-										Code: "txcd_10000000",
-									},
+								TaxConfig: &productcatalog.TaxCodeConfig{
+									Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
 								},
 								Price: productcatalog.NewPriceFrom(productcatalog.TieredPrice{
 									Mode: productcatalog.VolumeTieredPrice,
@@ -175,10 +171,8 @@ func TestPlanAddonService(t *testing.T) {
 								Metadata:            models.Metadata{"name": features[0].Name},
 								Feature:             productcatalog.NewFeatureReference(lo.ToPtr(features[0].ID), lo.ToPtr(features[0].Key)),
 								EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.BooleanEntitlementTemplate{}),
-								TaxConfig: &productcatalog.TaxConfig{
-									Stripe: &productcatalog.StripeTaxConfig{
-										Code: "txcd_10000000",
-									},
+								TaxConfig: &productcatalog.TaxCodeConfig{
+									Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
 								},
 								Price: productcatalog.NewPriceFrom(productcatalog.TieredPrice{
 									Mode: productcatalog.VolumeTieredPrice,
@@ -228,10 +222,8 @@ func TestPlanAddonService(t *testing.T) {
 						Metadata:            models.Metadata{"name": features[0].Name},
 						Feature:             productcatalog.NewFeatureReference(lo.ToPtr(features[0].ID), lo.ToPtr(features[0].Key)),
 						EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.BooleanEntitlementTemplate{}),
-						TaxConfig: &productcatalog.TaxConfig{
-							Stripe: &productcatalog.StripeTaxConfig{
-								Code: "txcd_10000000",
-							},
+						TaxConfig: &productcatalog.TaxCodeConfig{
+							Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
 						},
 						Price: nil, // This would match with a TieredPrice, which is not supported for add-ons
 					},

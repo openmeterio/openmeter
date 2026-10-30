@@ -148,7 +148,7 @@ func NewTestEnv(t *testing.T) *TestEnv {
 		Adapter:          addonAdapter,
 		FeatureResolver:  featureResolver,
 		CurrencyResolver: currencyResolver,
-		TaxCode:          taxCodeEnv.Service,
+		TaxCodeResolver:  taxCodeResolver,
 		Logger:           logger,
 		Publisher:        publisher,
 	})

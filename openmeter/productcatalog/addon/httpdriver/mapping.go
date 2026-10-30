@@ -1,6 +1,7 @@
 package httpdriver
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/samber/lo"
@@ -10,11 +11,14 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/http"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-func FromAddon(a addon.Addon) (api.Addon, error) {
+// FromAddon maps an add-on to its v1 shape. taxCodes holds the Tax Codes referenced by the add-on's
+// rate cards, used to fill in the legacy stripe.code.
+func FromAddon(a addon.Addon, taxCodes map[string]*taxcode.TaxCode) (api.Addon, error) {
 	validationIssues, _ := a.AsProductCatalogAddon().ValidationErrors()
 
 	resp := api.Addon{
@@ -37,7 +41,7 @@ func FromAddon(a addon.Addon) (api.Addon, error) {
 
 	resp.RateCards = make([]api.RateCard, 0, len(a.RateCards))
 	for _, rateCard := range a.RateCards.AsProductCatalogRateCards() {
-		rc, err := http.FromRateCard(rateCard)
+		rc, err := http.FromRateCard(rateCard, taxCodes)
 		if err != nil {
 			return resp, fmt.Errorf("failed to cast ratecard: %w", err)
 		}
@@ -59,7 +63,7 @@ func FromAddon(a addon.Addon) (api.Addon, error) {
 	return resp, nil
 }
 
-func AsCreateAddonRequest(a api.AddonCreate, namespace string) (CreateAddonRequest, error) {
+func AsCreateAddonRequest(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver, a api.AddonCreate, namespace string) (CreateAddonRequest, error) {
 	var err error
 
 	req := CreateAddonRequest{
@@ -85,7 +89,7 @@ func AsCreateAddonRequest(a api.AddonCreate, namespace string) (CreateAddonReque
 
 	req.Currency = currencies.NewCurrencyReference(currencyx.Code(currencyCode))
 
-	req.RateCards, err = http.AsRateCards(a.RateCards)
+	req.RateCards, err = http.AsRateCards(ctx, resolver, namespace, a.RateCards)
 	if err != nil {
 		return req, err
 	}
@@ -93,7 +97,7 @@ func AsCreateAddonRequest(a api.AddonCreate, namespace string) (CreateAddonReque
 	return req, nil
 }
 
-func AsUpdateAddonRequest(a api.AddonReplaceUpdate, namespace string, addonID string) (UpdateAddonRequest, error) {
+func AsUpdateAddonRequest(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver, a api.AddonReplaceUpdate, namespace string, addonID string) (UpdateAddonRequest, error) {
 	req := UpdateAddonRequest{
 		NamespacedID: models.NamespacedID{
 			Namespace: namespace,
@@ -105,7 +109,7 @@ func AsUpdateAddonRequest(a api.AddonReplaceUpdate, namespace string, addonID st
 		Metadata:     (*models.Metadata)(a.Metadata),
 	}
 
-	rateCards, err := http.AsRateCards(a.RateCards)
+	rateCards, err := http.AsRateCards(ctx, resolver, namespace, a.RateCards)
 	if err != nil {
 		return req, err
 	}
