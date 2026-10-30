@@ -175,25 +175,21 @@ func (s StripeTaxConfig) Clone() StripeTaxConfig {
 // TaxCodeConfig holds a lean reference to a tax code entry — only the FK and the behavior flag.
 // Used in charge intents where provider-specific fields (e.g. Stripe.Code) are not stored and
 // are resolved at invoice snapshot time via BackfillTaxConfig.
+//
+// A behavior-only config (no TaxCodeID) is valid here; callers that need a Tax Code, like charge
+// intents, check for the ID themselves. TaxCodeID is omitted from JSON when empty so the document
+// stays readable as a legacy TaxConfig, whose tax_code_id is optional.
 type TaxCodeConfig struct {
 	Behavior  *TaxBehavior `json:"behavior,omitempty"`
-	TaxCodeID string       `json:"tax_code_id"`
+	TaxCodeID string       `json:"tax_code_id,omitempty"`
 }
 
 func (c TaxCodeConfig) Validate() error {
-	var errs []error
-
 	if c.Behavior != nil {
-		if err := c.Behavior.Validate(); err != nil {
-			errs = append(errs, err)
-		}
+		return models.NewNillableGenericValidationError(c.Behavior.Validate())
 	}
 
-	if c.TaxCodeID == "" {
-		errs = append(errs, fmt.Errorf("tax code id is required"))
-	}
-
-	return models.NewNillableGenericValidationError(errors.Join(errs...))
+	return nil
 }
 
 // ToTaxConfig converts TaxCodeConfig to TaxConfig (without provider-specific fields).

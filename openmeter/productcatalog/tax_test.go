@@ -2,6 +2,7 @@ package productcatalog
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"testing"
 
@@ -22,29 +23,21 @@ func TestTaxCodeConfigValidation(t *testing.T) {
 		wantErr string
 	}{
 		{
-			name:    "zero",
-			cfg:     &TaxCodeConfig{},
-			wantErr: "validation error: tax code id is required",
+			name: "zero",
+			cfg:  &TaxCodeConfig{},
 		},
 		{
-			name:    "valid behavior",
-			cfg:     &TaxCodeConfig{Behavior: lo.ToPtr(InclusiveTaxBehavior)},
-			wantErr: "validation error: tax code id is required",
+			name: "behavior only",
+			cfg:  &TaxCodeConfig{Behavior: lo.ToPtr(InclusiveTaxBehavior)},
 		},
 		{
 			name:    "invalid behavior",
 			cfg:     &TaxCodeConfig{Behavior: (*TaxBehavior)(lo.ToPtr("bad"))},
-			wantErr: "validation error: invalid tax behavior: bad\ntax code id is required",
+			wantErr: "validation error: invalid tax behavior: bad",
 		},
 		{
-			name:    "valid tax_code_id",
-			cfg:     &TaxCodeConfig{TaxCodeID: "01AN4Z07BY79KA1307SR9X4MV3"},
-			wantErr: "",
-		},
-		{
-			name:    "empty tax_code_id",
-			cfg:     &TaxCodeConfig{TaxCodeID: ""},
-			wantErr: "validation error: tax code id is required",
+			name: "valid tax_code_id",
+			cfg:  &TaxCodeConfig{TaxCodeID: "01AN4Z07BY79KA1307SR9X4MV3"},
 		},
 	}
 
@@ -58,6 +51,45 @@ func TestTaxCodeConfigValidation(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TaxCodeConfig and the legacy TaxConfig share the same JSON keys, so either can read what the
+// other wrote. That keeps older readers working when a field switches from one to the other.
+func TestTaxCodeConfigJSONCompatibility(t *testing.T) {
+	t.Run("zero config marshals to an empty object", func(t *testing.T) {
+		got, err := json.Marshal(TaxCodeConfig{})
+		require.NoError(t, err)
+
+		assert.JSONEq(t, `{}`, string(got))
+	})
+
+	t.Run("empty object decodes into a legacy config without a tax code", func(t *testing.T) {
+		var got TaxConfig
+		require.NoError(t, json.Unmarshal([]byte(`{}`), &got))
+
+		assert.Nil(t, got.TaxCodeID)
+	})
+
+	t.Run("full config round-trips through the legacy config", func(t *testing.T) {
+		in := TaxCodeConfig{
+			Behavior:  lo.ToPtr(ExclusiveTaxBehavior),
+			TaxCodeID: "01AN4Z07BY79KA1307SR9X4MV3",
+		}
+
+		raw, err := json.Marshal(in)
+		require.NoError(t, err)
+
+		var legacy TaxConfig
+		require.NoError(t, json.Unmarshal(raw, &legacy))
+		assert.Equal(t, in.ToTaxConfig(), legacy)
+
+		raw, err = json.Marshal(legacy)
+		require.NoError(t, err)
+
+		var out TaxCodeConfig
+		require.NoError(t, json.Unmarshal(raw, &out))
+		assert.Equal(t, in, out)
+	})
 }
 
 func TestTaxCodeConfigToTaxConfig(t *testing.T) {
