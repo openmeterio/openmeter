@@ -14,6 +14,7 @@ import (
 func (s *InvoicingTestSuite) TestListInvoicesUpdatedAt() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("list-invoices-updated-at")
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 	checkpoint := time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC)
 
 	clock.FreezeTime(checkpoint.Add(-time.Hour))
