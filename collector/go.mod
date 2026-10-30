@@ -1,6 +1,6 @@
 module github.com/openmeterio/openmeter/collector
 
-go 1.27
+go 1.27.3
 
 replace github.com/openmeterio/openmeter => ../
 
@@ -12,7 +12,7 @@ require (
 	github.com/openmeterio/openmeter v0.0.0
 	github.com/prometheus/client_golang v1.25.0
 	github.com/prometheus/common v0.72.1
-	github.com/redpanda-data/benthos/v4 v4.83.0
+	github.com/redpanda-data/benthos/v4 v4.84.0
 	github.com/redpanda-data/connect/public/bundle/free/v4 v4.114.0
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/samber/lo v1.53.0
