@@ -120,22 +120,16 @@ func stripeAppMapping(taxCode v3sdk.TaxCode) string {
 	return mapping.TaxCode
 }
 
-// defaultInvoicingTaxCodeID returns the ID of the tax code the server provisions as the
-// organization's invoicing default. Its ID differs per namespace, but its key is fixed.
+// defaultInvoicingTaxCodeID returns the organization's invoicing default tax code, which charges
+// give lines that don't have a tax code.
 func defaultInvoicingTaxCodeID(t *testing.T, c *v3Client) string {
 	t.Helper()
 
-	for taxCode, err := range c.Tax.ListCodesAll(t.Context(), v3sdk.TaxCodeListParams{}) {
-		require.NoError(t, err)
+	defaults, err := c.Defaults.GetOrganizationTaxCodes(t.Context())
+	require.NoError(t, err)
+	require.NotNil(t, defaults)
 
-		if taxCode.Key == "default" {
-			return taxCode.ID
-		}
-	}
-
-	require.Fail(t, "default tax code not found")
-
-	return ""
+	return defaults.InvoicingTaxCode.ID
 }
 
 // createV1TaxConfigFeatures creates one metered feature per scenario, keyed by scenario, so
@@ -1010,7 +1004,7 @@ func TestV1TaxConfigInvoiceLines(t *testing.T) {
 	withProfileBehavior := func(want map[string]*api.TaxConfig) map[string]*api.TaxConfig {
 		merged := make(map[string]*api.TaxConfig, len(want))
 		for key, taxConfig := range want {
-			mergedTaxConfig := *taxConfig
+			mergedTaxConfig := lo.FromPtr(taxConfig)
 			if mergedTaxConfig.Behavior == nil {
 				mergedTaxConfig.Behavior = lo.ToPtr(api.TaxBehaviorExclusive)
 			}
@@ -1090,22 +1084,23 @@ func TestV1TaxConfigInvoiceLines(t *testing.T) {
 		assertV1TaxConfigs(t, createdWant, v1InvoiceLineTaxConfigs(t, *getInvoice(t, gatheringInvoiceID).Lines))
 	})
 
+	// Edits run at the top level, so every subtest only reads and can run on its own.
 	gatheringEditedInputs, gatheringEditedWant := lineInputs("gathering_edited_")
+
+	gatheringInvoice := getInvoice(t, gatheringInvoiceID)
+
+	gatheringLines := lo.Map(*gatheringInvoice.Lines, func(line api.InvoiceLine, _ int) api.InvoiceLineReplaceUpdate {
+		return invoiceLineReplaceUpdateFromLine(t, line)
+	})
+	gatheringLines = append(gatheringLines, updateLines(gatheringEditedInputs)...)
+
+	gatheringEdited := updateInvoice(t, gatheringInvoice, gatheringLines, invoiceWorkflowReplaceUpdateFromInvoice(gatheringInvoice))
 
 	t.Run("gathering invoice edit adds lines", func(t *testing.T) {
 		// given: the gathering invoice with the created lines
-		// when: an edit echoes those lines and adds a line per scenario and shape
+		// when: the edit above echoes those lines and adds a line per scenario and shape
 		// then: the edit response and a re-read return the created and added lines' tax configs
-		gatheringInvoice := getInvoice(t, gatheringInvoiceID)
-
-		lines := lo.Map(*gatheringInvoice.Lines, func(line api.InvoiceLine, _ int) api.InvoiceLineReplaceUpdate {
-			return invoiceLineReplaceUpdateFromLine(t, line)
-		})
-		lines = append(lines, updateLines(gatheringEditedInputs)...)
-
-		updated := updateInvoice(t, gatheringInvoice, lines, invoiceWorkflowReplaceUpdateFromInvoice(gatheringInvoice))
-
-		got := v1InvoiceLineTaxConfigs(t, *updated.Lines)
+		got := v1InvoiceLineTaxConfigs(t, *gatheringEdited.Lines)
 		assertV1TaxConfigs(t, createdWant, got)
 		assertV1TaxConfigs(t, gatheringEditedWant, got)
 
@@ -1172,27 +1167,27 @@ func TestV1TaxConfigInvoiceLines(t *testing.T) {
 
 	// The edit also sends workflow.invoicing.defaultTaxConfig, which the server accepts but
 	// doesn't apply, so the invoice keeps the profile's default.
+	existingWant := maps.Clone(standardWant)
+	maps.Copy(existingWant, standardGatheringEditedWant)
+
+	editLines := lo.Map(*invoice.Lines, func(line api.InvoiceLine, _ int) api.InvoiceLineReplaceUpdate {
+		return invoiceLineReplaceUpdateFromLine(t, line)
+	})
+
+	editedInputs, editedWant := lineInputs("edited_")
+	editLines = append(editLines, updateLines(editedInputs)...)
+	standardEditedWant := withProfileBehavior(editedWant)
+
+	workflow := invoiceWorkflowReplaceUpdateFromInvoice(invoice)
+	workflow.Workflow.Invoicing.DefaultTaxConfig = &api.TaxConfig{Behavior: lo.ToPtr(api.TaxBehaviorInclusive)}
+
+	updated := updateInvoice(t, invoice, editLines, workflow)
+
 	t.Run("standard invoice edit adds lines and ignores the default tax config", func(t *testing.T) {
 		// given: the standard invoice, with an exclusive default behavior
-		// when: an edit echoes its lines, adds a line per scenario and shape, and sets an
+		// when: the edit above echoes its lines, adds a line per scenario and shape, and sets an
 		// inclusive default behavior
 		// then: every line gets the exclusive behavior, and the invoice default stays exclusive
-		existingWant := maps.Clone(standardWant)
-		maps.Copy(existingWant, standardGatheringEditedWant)
-
-		lines := lo.Map(*invoice.Lines, func(line api.InvoiceLine, _ int) api.InvoiceLineReplaceUpdate {
-			return invoiceLineReplaceUpdateFromLine(t, line)
-		})
-
-		editedInputs, editedWant := lineInputs("edited_")
-		lines = append(lines, updateLines(editedInputs)...)
-		standardEditedWant := withProfileBehavior(editedWant)
-
-		workflow := invoiceWorkflowReplaceUpdateFromInvoice(invoice)
-		workflow.Workflow.Invoicing.DefaultTaxConfig = &api.TaxConfig{Behavior: lo.ToPtr(api.TaxBehaviorInclusive)}
-
-		updated := updateInvoice(t, invoice, lines, workflow)
-
 		got := v1InvoiceLineTaxConfigs(t, *updated.Lines)
 		assertV1TaxConfigs(t, existingWant, got)
 		assertV1TaxConfigs(t, standardEditedWant, got)
