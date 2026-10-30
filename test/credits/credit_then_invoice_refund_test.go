@@ -365,6 +365,22 @@ func (s *CustomCurrencyCreditsSuite) TestCreditThenInvoiceRefundOnFlatFeeCancell
 			s.NotNil(canceledRun.DeletedAt, "a canceled mutable flat-fee run must not remain eligible billing history")
 			s.requireAccountBalance(accounts.FBOAccount, route, float64(tc.grant), "canceling the mutable flat fee restores its credit")
 			s.requireAccountBalance(accounts.AccruedAccount, route, 0, "canceled flat fee has no remaining accrual")
+
+			// Repeating the cancellation must not leave the customer worse off. A deleted
+			// charge can reject the trigger; either response must preserve the credit
+			// restored by the first removal.
+			patch, err := meta.NewPatchDelete(meta.NewPatchDeleteInput{
+				ChangeSource: billing.ChangeSourceSystem,
+				Policy:       meta.RefundAsCreditsDeletePolicy,
+			})
+			s.Require().NoError(err)
+			err = s.Charges.ApplyPatches(ctx, charges.ApplyPatchesInput{
+				CustomerID:        cust.GetID(),
+				PatchesByChargeID: map[string]charges.Patch{charge.ID: patch},
+			})
+			s.T().Logf("repeated charge cancellation returned: %v", err)
+			s.requireAccountBalance(accounts.FBOAccount, route, float64(tc.grant), "credit after repeating cancellation")
+			s.requireAccountBalance(accounts.AccruedAccount, route, 0, "accrual after repeating cancellation")
 		})
 	}
 }
@@ -538,6 +554,22 @@ func (s *CustomCurrencyCreditsSuite) TestCreditThenInvoiceRefundOnFlatFeeInvoice
 			s.NotNil(canceledRun.DeletedAt, "a deleted mutable flat-fee run must be excluded from billing history")
 			s.requireAccountBalance(accounts.FBOAccount, route, float64(coverage.grant), "public line deletion restores paid credit")
 			s.requireAccountBalance(accounts.AccruedAccount, route, 0, "deleted mutable flat fee has no remaining accrual")
+
+			// Repeating the cancellation must not leave the customer worse off. A deleted
+			// charge can reject the trigger; either response must preserve the credit
+			// restored by the first removal.
+			patch, err := meta.NewPatchDelete(meta.NewPatchDeleteInput{
+				ChangeSource: billing.ChangeSourceSystem,
+				Policy:       meta.RefundAsCreditsDeletePolicy,
+			})
+			s.Require().NoError(err)
+			err = s.Charges.ApplyPatches(ctx, charges.ApplyPatchesInput{
+				CustomerID:        cust.GetID(),
+				PatchesByChargeID: map[string]charges.Patch{charge.ID: patch},
+			})
+			s.T().Logf("repeated charge cancellation returned: %v", err)
+			s.requireAccountBalance(accounts.FBOAccount, route, float64(coverage.grant), "credit after repeating cancellation")
+			s.requireAccountBalance(accounts.AccruedAccount, route, 0, "accrual after repeating cancellation")
 		})
 	}
 }
@@ -699,6 +731,22 @@ func (s *CustomCurrencyCreditsSuite) TestCreditThenInvoiceRefundOnFlatFeeInvoice
 			s.NotNil(canceledRun.DeletedAt, "a deleted mutable flat-fee run must be excluded from billing history")
 			s.requireAccountBalance(accounts.FBOAccount, route, float64(coverage.grant), "public invoice deletion restores paid credit")
 			s.requireAccountBalance(accounts.AccruedAccount, route, 0, "deleted mutable flat fee has no remaining accrual")
+
+			// Repeating the cancellation must not leave the customer worse off. A deleted
+			// charge can reject the trigger; either response must preserve the credit
+			// restored by the first removal.
+			patch, err := meta.NewPatchDelete(meta.NewPatchDeleteInput{
+				ChangeSource: billing.ChangeSourceSystem,
+				Policy:       meta.RefundAsCreditsDeletePolicy,
+			})
+			s.Require().NoError(err)
+			err = s.Charges.ApplyPatches(ctx, charges.ApplyPatchesInput{
+				CustomerID:        cust.GetID(),
+				PatchesByChargeID: map[string]charges.Patch{charge.ID: patch},
+			})
+			s.T().Logf("repeated charge cancellation returned: %v", err)
+			s.requireAccountBalance(accounts.FBOAccount, route, float64(coverage.grant), "credit after repeating cancellation")
+			s.requireAccountBalance(accounts.AccruedAccount, route, 0, "accrual after repeating cancellation")
 		})
 	}
 }
@@ -895,6 +943,22 @@ func (s *CustomCurrencyCreditsSuite) TestCreditThenInvoiceRefundOnInvoiceDeletio
 				s.NotNil(canceledRun.DeletedAt, "a deleted mutable invoice run must be excluded from billing history")
 				s.requireAccountBalance(accounts.FBOAccount, route, float64(coverage.grant), "public invoice deletion restores paid credit")
 				s.requireAccountBalance(accounts.AccruedAccount, route, 0, "deleted mutable usage has no remaining accrual")
+
+				// Repeating the cancellation must not leave the customer worse off. A deleted
+				// charge can reject the trigger; either response must preserve the credit
+				// restored by the first removal.
+				patch, err := meta.NewPatchDelete(meta.NewPatchDeleteInput{
+					ChangeSource: billing.ChangeSourceSystem,
+					Policy:       meta.RefundAsCreditsDeletePolicy,
+				})
+				s.Require().NoError(err)
+				err = s.Charges.ApplyPatches(ctx, charges.ApplyPatchesInput{
+					CustomerID:        cust.GetID(),
+					PatchesByChargeID: map[string]charges.Patch{charge.ID: patch},
+				})
+				s.T().Logf("repeated charge cancellation returned: %v", err)
+				s.requireAccountBalance(accounts.FBOAccount, route, float64(coverage.grant), "credit after repeating cancellation")
+				s.requireAccountBalance(accounts.AccruedAccount, route, 0, "accrual after repeating cancellation")
 			})
 		}
 	}
