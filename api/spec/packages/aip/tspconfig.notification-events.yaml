@@ -20,7 +20,7 @@ options:
     module-path: 'github.com/openmeterio/openmeter'
     eventtype-import-path: 'github.com/openmeterio/openmeter/openmeter/notification/v4'
     # Package listing every Event type definition across domains.
-    definitions-import-path: 'github.com/openmeterio/openmeter/openmeter/notification/v4/notificationcontracts'
+    definitions-import-path: 'github.com/openmeterio/openmeter/openmeter/notification/v4/definitions'
     # Repository-relative paths referenced by the generated go:generate directives.
     oapi-codegen-config: 'api/spec/packages/aip/oapi-codegen.notification-events.yaml'
     spec-dir: 'api/notificationevents'

@@ -340,8 +340,8 @@ export async function $onEmit(context) {
       ),
       ')',
       '',
-      '// Definitions returns the definition of every Notification Event type.',
-      `func Definitions() []${eventTypePkg}.EventTypeDefinition {`,
+      '// All returns the definition of every Notification Event type.',
+      `func All() []${eventTypePkg}.EventTypeDefinition {`,
       `\treturn []${eventTypePkg}.EventTypeDefinition{`,
       ...definitions.map(
         ([alias, , identifier]) => `\t\t${alias}.${identifier},`,

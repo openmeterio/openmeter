@@ -43,10 +43,10 @@ For each contract, the generated package exposes the Event type as
 `<Stem>V<n>Definition`. A schema's `$id` is `<event type>.payload` or
 `<event type>.rule_config`.
 
-`notificationcontracts.Definitions()` returns the definitions of every domain.
-It is generated too, so it cannot miss a contract; wiring must still pass it to
-the registry, which accepts any list. It lives in the `notificationcontracts`
-subpackage because domain packages import `v4`.
+`definitions.All()` returns the definitions of every domain. It is generated
+too, so it cannot miss a contract; wiring must still pass it to the registry,
+which accepts any list. It lives in the `definitions` subpackage because domain
+packages import `v4`.
 
 An `EventTypeDefinition` binds an Event type to its contracts:
 
