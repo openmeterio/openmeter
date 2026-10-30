@@ -625,8 +625,8 @@ func ToAPIBillingPricePaymentTerm(t productcatalog.PaymentTermType) (*apiv3.Bill
 	}
 }
 
-func ToAPITaxCodeConfig(tc *productcatalog.TaxConfig) *apiv3.TaxCodeConfig {
-	if tc == nil || (tc.Behavior == nil && tc.TaxCodeID == nil) {
+func ToAPITaxCodeConfig(tc *productcatalog.TaxCodeConfig) *apiv3.TaxCodeConfig {
+	if tc == nil || (tc.Behavior == nil && tc.TaxCodeID == "") {
 		return nil
 	}
 
@@ -636,8 +636,8 @@ func ToAPITaxCodeConfig(tc *productcatalog.TaxConfig) *apiv3.TaxCodeConfig {
 		result.Behavior = (*apiv3.BillingTaxBehavior)(tc.Behavior)
 	}
 
-	if tc.TaxCodeID != nil {
-		result.Code = &apiv3.TaxCodeReference{Id: *tc.TaxCodeID}
+	if tc.TaxCodeID != "" {
+		result.Code = &apiv3.TaxCodeReference{Id: tc.TaxCodeID}
 	}
 
 	return result
@@ -1152,7 +1152,7 @@ func FromAPIBillingSpendCommitments(c *apiv3.BillingSpendCommitments) (productca
 	return result, nil
 }
 
-func FromAPITaxCodeConfig(tc *apiv3.TaxCodeConfig) (*productcatalog.TaxConfig, error) {
+func FromAPITaxCodeConfig(tc *apiv3.TaxCodeConfig) (*productcatalog.TaxCodeConfig, error) {
 	if tc == nil {
 		return nil, nil
 	}
@@ -1165,10 +1165,10 @@ func FromAPITaxCodeConfig(tc *apiv3.TaxCodeConfig) (*productcatalog.TaxConfig, e
 		return nil, models.NewGenericValidationError(errors.New("tax_config.code.id or tax_config.behavior must be set"))
 	}
 
-	result := &productcatalog.TaxConfig{}
+	result := &productcatalog.TaxCodeConfig{}
 
 	if tc.Code != nil {
-		result.TaxCodeID = &tc.Code.Id
+		result.TaxCodeID = tc.Code.Id
 	}
 
 	if tc.Behavior != nil {

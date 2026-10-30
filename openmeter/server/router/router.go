@@ -462,12 +462,14 @@ func NewRouter(config Config) (*Router, error) {
 	router.addonHandler = addonhttpdriver.New(
 		config.NamespaceDecoder,
 		config.Addon,
+		config.TaxCodeResolver,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
 
 	router.planAddonHandler = planaddonhttpdriver.New(
 		config.NamespaceDecoder,
 		config.PlanAddon,
+		config.TaxCodeResolver,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
 

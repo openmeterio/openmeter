@@ -82,12 +82,22 @@ func (h *handler) ListAddons() ListAddonsHandler {
 				return ListAddonsResponse{}, fmt.Errorf("failed to list add-ons: %w", err)
 			}
 
+			ns, err := h.resolveNamespace(ctx)
+			if err != nil {
+				return ListAddonsResponse{}, fmt.Errorf("failed to resolve namespace: %w", err)
+			}
+
+			taxCodes, err := h.taxCodesForAddons(ctx, ns, resp.Items...)
+			if err != nil {
+				return ListAddonsResponse{}, err
+			}
+
 			items := make([]api.Addon, 0, len(resp.Items))
 
 			for _, a := range resp.Items {
 				var item api.Addon
 
-				item, err = FromAddon(a)
+				item, err = FromAddon(a, taxCodes)
 				if err != nil {
 					return ListAddonsResponse{}, fmt.Errorf("failed to cast add-on [namespace=%s key=%s]: %w", a.Namespace, a.Key, err)
 				}
@@ -112,44 +122,67 @@ func (h *handler) ListAddons() ListAddonsHandler {
 }
 
 type (
-	CreateAddonRequest  = addon.CreateAddonInput
+	CreateAddonRequest = addon.CreateAddonInput
+	// CreateAddonHandlerRequest holds the undecoded body: mapping it may create Tax Codes for
+	// legacy stripe.code values, which has to happen in the same transaction as the create.
+	CreateAddonHandlerRequest struct {
+		Namespace string
+		Body      api.AddonCreate
+	}
 	CreateAddonResponse = api.Addon
-	CreateAddonHandler  httptransport.Handler[CreateAddonRequest, CreateAddonResponse]
+	CreateAddonHandler  httptransport.Handler[CreateAddonHandlerRequest, CreateAddonResponse]
 )
 
 func (h *handler) CreateAddon() CreateAddonHandler {
 	return httptransport.NewHandler(
-		func(ctx context.Context, r *http.Request) (CreateAddonRequest, error) {
+		func(ctx context.Context, r *http.Request) (CreateAddonHandlerRequest, error) {
 			body := api.AddonCreate{}
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
-				return CreateAddonRequest{}, fmt.Errorf("failed to decode create add-on request: %w", err)
+				return CreateAddonHandlerRequest{}, fmt.Errorf("failed to decode create add-on request: %w", err)
 			}
 
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
-				return CreateAddonRequest{}, fmt.Errorf("failed to resolve namespace [namespace=%s]: %w", ns, err)
+				return CreateAddonHandlerRequest{}, fmt.Errorf("failed to resolve namespace [namespace=%s]: %w", ns, err)
 			}
 
-			req, err := AsCreateAddonRequest(body, ns)
-			if err != nil {
-				return CreateAddonRequest{}, fmt.Errorf("failed to parse add-on request [namespace=%s key=%s]: %w", ns, body.Key, err)
-			}
-
-			req.NamespacedModel = models.NamespacedModel{
+			return CreateAddonHandlerRequest{
 				Namespace: ns,
-			}
-
-			req.IgnoreNonCriticalIssues = true
-
-			return req, nil
+				Body:      body,
+			}, nil
 		},
-		func(ctx context.Context, request CreateAddonRequest) (CreateAddonResponse, error) {
-			a, err := h.service.CreateAddon(ctx, request)
-			if err != nil {
-				return CreateAddonResponse{}, fmt.Errorf("failed to create add-on [namespace=%s key=%s]: %w", request.Namespace, request.Key, err)
-			}
+		func(ctx context.Context, request CreateAddonHandlerRequest) (CreateAddonResponse, error) {
+			var resp CreateAddonResponse
 
-			return FromAddon(*a)
+			err := h.taxCodeResolver.WithResolver(ctx, func(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver) error {
+				req, err := AsCreateAddonRequest(ctx, resolver, request.Body, request.Namespace)
+				if err != nil {
+					return fmt.Errorf("failed to parse add-on request [namespace=%s key=%s]: %w", request.Namespace, request.Body.Key, err)
+				}
+
+				req.NamespacedModel = models.NamespacedModel{
+					Namespace: request.Namespace,
+				}
+
+				req.IgnoreNonCriticalIssues = true
+
+				a, err := h.service.CreateAddon(ctx, req)
+				if err != nil {
+					return fmt.Errorf("failed to create add-on [namespace=%s key=%s]: %w", req.Namespace, req.Key, err)
+				}
+
+				// Inside the transaction so Tax Codes created for this request are visible.
+				taxCodes, err := h.taxCodesForAddons(ctx, a.Namespace, *a)
+				if err != nil {
+					return err
+				}
+
+				resp, err = FromAddon(*a, taxCodes)
+
+				return err
+			})
+
+			return resp, err
 		},
 		commonhttp.JSONResponseEncoderWithStatus[CreateAddonResponse](http.StatusCreated),
 		httptransport.AppendOptions(
@@ -161,48 +194,71 @@ func (h *handler) CreateAddon() CreateAddonHandler {
 }
 
 type (
-	UpdateAddonRequest  = addon.UpdateAddonInput
+	UpdateAddonRequest = addon.UpdateAddonInput
+	// UpdateAddonHandlerRequest holds the undecoded body for the same reason as
+	// CreateAddonHandlerRequest.
+	UpdateAddonHandlerRequest struct {
+		models.NamespacedID
+		Body api.AddonReplaceUpdate
+	}
 	UpdateAddonResponse = api.Addon
-	UpdateAddonHandler  httptransport.HandlerWithArgs[UpdateAddonRequest, UpdateAddonResponse, string]
+	UpdateAddonHandler  httptransport.HandlerWithArgs[UpdateAddonHandlerRequest, UpdateAddonResponse, string]
 )
 
 func (h *handler) UpdateAddon() UpdateAddonHandler {
 	return httptransport.NewHandlerWithArgs(
-		func(ctx context.Context, r *http.Request, addonID string) (UpdateAddonRequest, error) {
+		func(ctx context.Context, r *http.Request, addonID string) (UpdateAddonHandlerRequest, error) {
 			body := api.AddonReplaceUpdate{}
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
-				return UpdateAddonRequest{}, fmt.Errorf("failed to decode update add-on request: %w", err)
+				return UpdateAddonHandlerRequest{}, fmt.Errorf("failed to decode update add-on request: %w", err)
 			}
 
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
-				return UpdateAddonRequest{}, fmt.Errorf("failed to resolve namespace [namespace=%s]: %w", ns, err)
+				return UpdateAddonHandlerRequest{}, fmt.Errorf("failed to resolve namespace [namespace=%s]: %w", ns, err)
 			}
 
-			req, err := AsUpdateAddonRequest(body, ns, addonID)
-			if err != nil {
-				return UpdateAddonRequest{}, fmt.Errorf("failed to parse update add-on request [namespace=%s id=%s]: %w", ns, addonID, err)
-			}
-
-			req.NamespacedID = models.NamespacedID{
-				Namespace: ns,
-				ID:        addonID,
-			}
-
-			req.IgnoreNonCriticalIssues = true
-
-			req.RejectUnitConfig = true
-			req.RejectUnrepresentableCurrencies = true
-
-			return req, nil
+			return UpdateAddonHandlerRequest{
+				NamespacedID: models.NamespacedID{
+					Namespace: ns,
+					ID:        addonID,
+				},
+				Body: body,
+			}, nil
 		},
-		func(ctx context.Context, request UpdateAddonRequest) (UpdateAddonResponse, error) {
-			a, err := h.service.UpdateAddon(ctx, request)
-			if err != nil {
-				return UpdateAddonResponse{}, fmt.Errorf("failed to update add-on [namespace=%s id=%s]: %w", request.Namespace, request.ID, err)
-			}
+		func(ctx context.Context, request UpdateAddonHandlerRequest) (UpdateAddonResponse, error) {
+			var resp UpdateAddonResponse
 
-			return FromAddon(*a)
+			err := h.taxCodeResolver.WithResolver(ctx, func(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver) error {
+				req, err := AsUpdateAddonRequest(ctx, resolver, request.Body, request.Namespace, request.ID)
+				if err != nil {
+					return fmt.Errorf("failed to parse update add-on request [namespace=%s id=%s]: %w", request.Namespace, request.ID, err)
+				}
+
+				req.NamespacedID = request.NamespacedID
+
+				req.IgnoreNonCriticalIssues = true
+
+				req.RejectUnitConfig = true
+				req.RejectUnrepresentableCurrencies = true
+
+				a, err := h.service.UpdateAddon(ctx, req)
+				if err != nil {
+					return fmt.Errorf("failed to update add-on [namespace=%s id=%s]: %w", req.Namespace, req.ID, err)
+				}
+
+				// Inside the transaction so Tax Codes created for this request are visible.
+				taxCodes, err := h.taxCodesForAddons(ctx, a.Namespace, *a)
+				if err != nil {
+					return err
+				}
+
+				resp, err = FromAddon(*a, taxCodes)
+
+				return err
+			})
+
+			return resp, err
 		},
 		commonhttp.JSONResponseEncoderWithStatus[UpdateAddonResponse](http.StatusOK),
 		httptransport.AppendOptions(
@@ -308,7 +364,12 @@ func (h *handler) GetAddon() GetAddonHandler {
 				return GetAddonResponse{}, productcatalog.ErrRateCardCurrencyNotRepresentable
 			}
 
-			return FromAddon(*a)
+			taxCodes, err := h.taxCodesForAddons(ctx, a.Namespace, *a)
+			if err != nil {
+				return GetAddonResponse{}, err
+			}
+
+			return FromAddon(*a, taxCodes)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[GetAddonResponse](http.StatusOK),
 		httptransport.AppendOptions(
@@ -355,7 +416,12 @@ func (h *handler) PublishAddon() PublishAddonHandler {
 				return PublishAddonResponse{}, fmt.Errorf("failed to punlish add-on [namespace=%s id=%s]: %w", request.Namespace, request.ID, err)
 			}
 
-			return FromAddon(*a)
+			taxCodes, err := h.taxCodesForAddons(ctx, a.Namespace, *a)
+			if err != nil {
+				return PublishAddonResponse{}, err
+			}
+
+			return FromAddon(*a, taxCodes)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[PublishAddonResponse](http.StatusOK),
 		httptransport.AppendOptions(
@@ -401,7 +467,12 @@ func (h *handler) ArchiveAddon() ArchiveAddonHandler {
 				return ArchiveAddonResponse{}, fmt.Errorf("failed to archive add-on [namespace=%s id=%s]: %w", request.Namespace, request.ID, err)
 			}
 
-			return FromAddon(*p)
+			taxCodes, err := h.taxCodesForAddons(ctx, p.Namespace, *p)
+			if err != nil {
+				return ArchiveAddonResponse{}, err
+			}
+
+			return FromAddon(*p, taxCodes)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[ArchiveAddonResponse](http.StatusOK),
 		httptransport.AppendOptions(
