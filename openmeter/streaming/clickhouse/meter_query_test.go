@@ -186,8 +186,8 @@ func TestQueryMeter(t *testing.T) {
 					},
 				},
 			},
-			wantSQL:  "SELECT tumbleStart(min(om_events.time), toIntervalMinute(1)) AS windowstart, tumbleEnd(max(om_events.time), toIntervalMinute(1)) AS windowend, uniqExact(nullIf(JSON_VALUE(om_events.data, ?), 'null')) AS value FROM openmeter.om_events WHERE om_events.namespace = ? AND om_events.type = ?",
-			wantArgs: []interface{}{"$.value", "my_namespace", "event1"},
+			wantSQL:  "SELECT tumbleStart(min(om_events.time), toIntervalMinute(1)) AS windowstart, tumbleEnd(max(om_events.time), toIntervalMinute(1)) AS windowend, uniqExact(if(JSON_EXISTS(om_events.data, ?), nullIf(JSON_VALUE(om_events.data, ?), 'null'), NULL)) AS value FROM openmeter.om_events WHERE om_events.namespace = ? AND om_events.type = ?",
+			wantArgs: []interface{}{"$.value", "$.value", "my_namespace", "event1"},
 		},
 		{
 			name: "Aggregate with unique count aggregation with decimal precision",
@@ -207,8 +207,8 @@ func TestQueryMeter(t *testing.T) {
 				},
 				EnableDecimalPrecision: true,
 			},
-			wantSQL:  "SELECT tumbleStart(min(om_events.time), toIntervalMinute(1)) AS windowstart, tumbleEnd(max(om_events.time), toIntervalMinute(1)) AS windowend, uniqExact(nullIf(JSON_VALUE(om_events.data, ?), 'null')) AS value FROM openmeter.om_events WHERE om_events.namespace = ? AND om_events.type = ?",
-			wantArgs: []interface{}{"$.value", "my_namespace", "event1"},
+			wantSQL:  "SELECT tumbleStart(min(om_events.time), toIntervalMinute(1)) AS windowstart, tumbleEnd(max(om_events.time), toIntervalMinute(1)) AS windowend, uniqExact(if(JSON_EXISTS(om_events.data, ?), nullIf(JSON_VALUE(om_events.data, ?), 'null'), NULL)) AS value FROM openmeter.om_events WHERE om_events.namespace = ? AND om_events.type = ?",
+			wantArgs: []interface{}{"$.value", "$.value", "my_namespace", "event1"},
 		},
 		{
 			name: "Aggregate with AVG aggregation",
