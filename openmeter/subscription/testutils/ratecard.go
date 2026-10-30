@@ -54,6 +54,8 @@ var (
 // ExampleRateCardWithDiscounts) carry their own copy of taxConfig, so the plan service resolving
 // one rate card's config can't leak into another. Reference the tax code by TaxCodeID; it must
 // belong to the namespace the rate card is created in.
+
+// ExampleRateCard1 returns a new taxed usage-based rate card for the example feature.
 func ExampleRateCard1(taxConfig productcatalog.TaxConfig) *productcatalog.UsageBasedRateCard {
 	return &productcatalog.UsageBasedRateCard{
 		RateCardMeta: productcatalog.RateCardMeta{
@@ -74,6 +76,7 @@ func ExampleRateCard1(taxConfig productcatalog.TaxConfig) *productcatalog.UsageB
 	}
 }
 
+// ExampleRateCard3ForAddons returns a new taxed flat-fee rate card for addon tests.
 func ExampleRateCard3ForAddons(taxConfig productcatalog.TaxConfig) *productcatalog.FlatFeeRateCard {
 	return &productcatalog.FlatFeeRateCard{
 		RateCardMeta: productcatalog.RateCardMeta{
@@ -95,6 +98,7 @@ func ExampleRateCard3ForAddons(taxConfig productcatalog.TaxConfig) *productcatal
 	}
 }
 
+// ExampleRateCardWithDiscounts returns a new taxed flat-fee rate card with discounts.
 func ExampleRateCardWithDiscounts(taxConfig productcatalog.TaxConfig) *productcatalog.FlatFeeRateCard {
 	return &productcatalog.FlatFeeRateCard{
 		RateCardMeta: productcatalog.RateCardMeta{
