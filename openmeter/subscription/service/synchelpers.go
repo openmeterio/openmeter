@@ -7,9 +7,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/taxcoderesolver"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/convert"
-	"github.com/openmeterio/openmeter/pkg/errorsx"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -146,13 +146,9 @@ func (s *service) createItem(
 	opts createItemOptions,
 	ent *subscription.SubscriptionEntitlement,
 ) (subscription.SubscriptionItem, error) {
-	// Resolve tax code on the spec's RateCard before deriving the entity input so
-	// that the enrichment is applied to the source of truth (opts.itemSpec) rather
-	// than relying on the implicit pointer sharing between opts.itemSpec.RateCard
-	// and itemEntityInput.RateCard. If ToCreateSubscriptionItemEntityInput ever
-	// clones the rate card, the current order would silently stop updating the spec.
-	if err := s.resolveTaxCode(ctx, opts.sub.Namespace, opts.itemSpec.RateCard); err != nil {
-		return subscription.SubscriptionItem{}, fmt.Errorf("failed to resolve tax code: %w", err)
+	// Only new items are checked: existing items may still point at a Tax Code deleted since.
+	if err := taxcoderesolver.ValidateRateCardTaxCodes(ctx, s.TaxCodeResolver, opts.sub.Namespace, productcatalog.RateCards{opts.itemSpec.RateCard}); err != nil {
+		return subscription.SubscriptionItem{}, fmt.Errorf("invalid tax code for item %s: %w", opts.itemSpec.ItemKey, err)
 	}
 
 	itemEntityInput, err := opts.itemSpec.ToCreateSubscriptionItemEntityInput(
@@ -222,32 +218,4 @@ func (s *service) deleteItemEntitlement(ctx context.Context, item subscription.S
 
 func (s *service) deleteItem(ctx context.Context, item subscription.SubscriptionItem) error {
 	return s.SubscriptionItemRepo.Delete(ctx, item.NamespacedID)
-}
-
-// resolveTaxCode ensures that a RateCard with a Stripe tax code in its TaxConfig
-// has a corresponding TaxCode entity in the namespace. If no matching TaxCode exists,
-// one is created. The RateCard's TaxConfig.TaxCodeID is then populated.
-func (s *service) resolveTaxCode(ctx context.Context, namespace string, rc productcatalog.RateCard) error {
-	if s.TaxCode == nil {
-		return nil
-	}
-
-	meta := rc.AsMeta()
-	if meta.TaxConfig == nil {
-		return nil
-	}
-
-	// Command validation already enforces the cadence minimum except for legacy cancellation.
-	err := rc.ChangeMeta(func(m productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
-		if err := productcatalog.ResolveTaxConfig(ctx, s.TaxCode, namespace, m.TaxConfig); err != nil {
-			return m, err
-		}
-
-		return m, nil
-	})
-	if err != nil && !errorsx.IsOnly(err, productcatalog.ErrRateCardBillingCadenceTooShort) {
-		return err
-	}
-
-	return nil
 }

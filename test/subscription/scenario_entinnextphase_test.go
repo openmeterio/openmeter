@@ -71,10 +71,8 @@ func TestSubWithMeteredEntitlement(t *testing.T) {
 								Key:     feats[0].Key,
 								Name:    "Test Rate Card",
 								Feature: productcatalog.NewFeatureReference(lo.ToPtr(feats[0].ID), lo.ToPtr(feats[0].Key)),
-								TaxConfig: &productcatalog.TaxConfig{
-									Stripe: &productcatalog.StripeTaxConfig{
-										Code: "txcd_10000000",
-									},
+								TaxConfig: &productcatalog.TaxCodeConfig{
+									Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
 								},
 								EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.MeteredEntitlementTemplate{
 									UsagePeriod:     datetime.MustParseDuration(t, "P1M"), // compatible with the billing cadence
@@ -100,10 +98,8 @@ func TestSubWithMeteredEntitlement(t *testing.T) {
 								Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 									Amount: alpacadecimal.NewFromInt(100),
 								}),
-								TaxConfig: &productcatalog.TaxConfig{
-									Stripe: &productcatalog.StripeTaxConfig{
-										Code: "txcd_10000000",
-									},
+								TaxConfig: &productcatalog.TaxCodeConfig{
+									Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
 								},
 								EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.MeteredEntitlementTemplate{
 									UsagePeriod:     datetime.MustParseDuration(t, "P1M"), // compatible with the billing cadence

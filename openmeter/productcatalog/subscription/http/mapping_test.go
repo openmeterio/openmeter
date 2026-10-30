@@ -60,7 +60,7 @@ func TestMapSubscriptionItemToAPIMaterializedCurrency(t *testing.T) {
 
 	// when:
 	// - the item is mapped to the expanded v1 subscription response
-	result, err := MapSubscriptionItemToAPI(item)
+	result, err := MapSubscriptionItemToAPI(item, nil)
 
 	// then:
 	// - the materialized currency code is exposed

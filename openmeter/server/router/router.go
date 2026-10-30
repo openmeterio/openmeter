@@ -499,6 +499,7 @@ func NewRouter(config Config) (*Router, error) {
 			CustomerService:             config.Customer,
 			Logger:                      config.Logger,
 			Credits:                     config.Credits,
+			TaxCodeResolver:             config.TaxCodeResolver,
 		},
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
@@ -511,6 +512,7 @@ func NewRouter(config Config) (*Router, error) {
 			AddonService:                config.Addon,
 			NamespaceDecoder:            config.NamespaceDecoder,
 			Logger:                      config.Logger,
+			TaxCodeResolver:             config.TaxCodeResolver,
 		},
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)

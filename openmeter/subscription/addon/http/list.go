@@ -53,6 +53,11 @@ func (h *handler) ListSubscriptionAddons() ListSubscriptionAddonsHandler {
 				return nil, err
 			}
 
+			taxCodes, err := h.taxCodesForAddons(ctx, req.SubscriptionID.Namespace, res.Items...)
+			if err != nil {
+				return nil, err
+			}
+
 			// Deliberately fails the whole list, not just the unrepresentable item: this is
 			// an actual-state surface (what the customer is billed for), which rejects,
 			// unlike catalog-list endpoints such as ListAddons, which omit instead.
@@ -61,7 +66,7 @@ func (h *handler) ListSubscriptionAddons() ListSubscriptionAddonsHandler {
 					return api.SubscriptionAddon{}, productcatalog.ErrUnitConfigNotRepresentable
 				}
 
-				return MapSubscriptionAddonToResponse(view, item)
+				return MapSubscriptionAddonToResponse(view, item, taxCodes)
 			})
 		},
 		commonhttp.JSONResponseEncoderWithStatus[ListSubscriptionAddonsResponse](http.StatusOK),

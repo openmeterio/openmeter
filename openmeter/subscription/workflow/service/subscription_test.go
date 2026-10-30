@@ -1127,7 +1127,7 @@ func TestChangeToPlan(t *testing.T) {
 	withDeps := func(t *testing.T) func(fn func(t *testing.T, deps testCaseDeps)) {
 		return func(fn func(t *testing.T, deps testCaseDeps)) {
 			// Let's define two plans. One is the example plan, and the second is a slightly modified version of that.
-			// Build them per invocation so plan service mutations (e.g. resolving TaxCodeIDs) don't leak across subtests.
+			// Build them per invocation so plan service mutations don't leak across subtests.
 			examplePlanInput1 := subscriptiontestutils.GetExamplePlanInput(t)
 
 			rc1 := productcatalog.UsageBasedRateCard{
@@ -1140,10 +1140,8 @@ func TestChangeToPlan(t *testing.T) {
 						IssueAfterReset: lo.ToPtr(111.0),
 						UsagePeriod:     subscriptiontestutils.ISOMonth,
 					}),
-					TaxConfig: &productcatalog.TaxConfig{
-						Stripe: &productcatalog.StripeTaxConfig{
-							Code: "txcd_10000001",
-						},
+					TaxConfig: &productcatalog.TaxCodeConfig{
+						Behavior: lo.ToPtr(productcatalog.InclusiveTaxBehavior),
 					},
 					Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 						Amount: alpacadecimal.NewFromInt(int64(1)),
@@ -1157,10 +1155,8 @@ func TestChangeToPlan(t *testing.T) {
 					Key:         "new-rc-2",
 					Name:        "Rate Card 2",
 					Description: lo.ToPtr("Rate Card 2 Description"),
-					TaxConfig: &productcatalog.TaxConfig{
-						Stripe: &productcatalog.StripeTaxConfig{
-							Code: "txcd_10000001",
-						},
+					TaxConfig: &productcatalog.TaxCodeConfig{
+						Behavior: lo.ToPtr(productcatalog.InclusiveTaxBehavior),
 					},
 					Price: nil,
 				},

@@ -1,6 +1,7 @@
 package httpdriver
 
 import (
+	"context"
 	"fmt"
 	"slices"
 	"time"
@@ -17,6 +18,7 @@ import (
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription/patch"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
@@ -24,7 +26,9 @@ import (
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
-func MapAPISubscriptionEditOperationToPatch(apiPatch api.SubscriptionEditOperation) (subscription.Patch, error) {
+// MapAPISubscriptionEditOperationToPatch maps a v1 edit operation to a patch. Legacy stripe.code
+// values on added items are resolved to Tax Codes through resolver, which may create them.
+func MapAPISubscriptionEditOperationToPatch(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver, namespace string, apiPatch api.SubscriptionEditOperation) (subscription.Patch, error) {
 	disc, err := apiPatch.Discriminator()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get discriminator: %w", err)
@@ -39,7 +43,7 @@ func MapAPISubscriptionEditOperationToPatch(apiPatch api.SubscriptionEditOperati
 
 		// Let's parse and validate value.
 		// Fortunately TypeSpec to OpenAPI generation is utterly logical and consistent, so we have to work with a structurally identical but differently named type.
-		planRC, err := productcataloghttp.AsRateCard(apiP.RateCard)
+		planRC, err := productcataloghttp.AsRateCard(ctx, resolver, namespace, apiP.RateCard)
 		if err != nil {
 			return nil, fmt.Errorf("failed to cast to RateCard: %w", err)
 		}
@@ -223,7 +227,9 @@ func MapSubscriptionToAPI(sub subscription.Subscription) api.Subscription {
 	}
 }
 
-func MapSubscriptionItemToAPI(item subscription.SubscriptionItemView) (api.SubscriptionItem, error) {
+// MapSubscriptionItemToAPI maps an item to its v1 shape. taxCodes holds the Tax Codes referenced by
+// the items being rendered, used to fill in the legacy stripe.code.
+func MapSubscriptionItemToAPI(item subscription.SubscriptionItemView, taxCodes map[string]*taxcode.TaxCode) (api.SubscriptionItem, error) {
 	var included *api.SubscriptionItemIncluded
 
 	if item.Feature != nil {
@@ -249,7 +255,7 @@ func MapSubscriptionItemToAPI(item subscription.SubscriptionItemView) (api.Subsc
 	var tx *api.TaxConfig
 
 	if item.SubscriptionItem.RateCard.AsMeta().TaxConfig != nil {
-		txv := productcataloghttp.FromTaxConfig(*item.SubscriptionItem.RateCard.AsMeta().TaxConfig)
+		txv := productcataloghttp.FromTaxCodeConfig(*item.SubscriptionItem.RateCard.AsMeta().TaxConfig, taxCodes)
 		tx = &txv
 	}
 
@@ -317,7 +323,7 @@ func MapAPITimingToTiming(apiTiming api.SubscriptionTiming) (subscription.Timing
 // - for the current phase, the API will only return the active item for each key
 // - for past phases, the API will return the last item for each key
 // - for future phases, the API will return the first version
-func MapSubscriptionPhaseToAPI(subView subscription.SubscriptionView, phaseView subscription.SubscriptionPhaseView) (api.SubscriptionPhaseExpanded, error) {
+func MapSubscriptionPhaseToAPI(subView subscription.SubscriptionView, phaseView subscription.SubscriptionPhaseView, taxCodes map[string]*taxcode.TaxCode) (api.SubscriptionPhaseExpanded, error) {
 	var endOfPhase *time.Time
 	if dur, err := subView.Spec.GetPhaseCadence(phaseView.SubscriptionPhase.Key); err == nil {
 		endOfPhase = dur.ActiveTo
@@ -344,7 +350,7 @@ func MapSubscriptionPhaseToAPI(subView subscription.SubscriptionView, phaseView 
 	for key, items := range phaseView.ItemsByKey {
 		// Let's add the items to the timeline
 		timeline, err := slicesx.MapWithErr(items, func(item subscription.SubscriptionItemView) (api.SubscriptionItem, error) {
-			apiItem, err := MapSubscriptionItemToAPI(item)
+			apiItem, err := MapSubscriptionItemToAPI(item, taxCodes)
 			if err != nil {
 				return api.SubscriptionItem{}, err
 			}
@@ -367,7 +373,7 @@ func MapSubscriptionPhaseToAPI(subView subscription.SubscriptionView, phaseView 
 			})
 
 			if curr != -1 {
-				apiItem, err := MapSubscriptionItemToAPI(items[curr])
+				apiItem, err := MapSubscriptionItemToAPI(items[curr], taxCodes)
 				if err != nil {
 					return api.SubscriptionPhaseExpanded{}, err
 				}
@@ -379,7 +385,7 @@ func MapSubscriptionPhaseToAPI(subView subscription.SubscriptionView, phaseView 
 		// If this is a future phase lets add the first item
 		case "future":
 			if len(items) > 0 {
-				apiItem, err := MapSubscriptionItemToAPI(items[0])
+				apiItem, err := MapSubscriptionItemToAPI(items[0], taxCodes)
 				if err != nil {
 					return api.SubscriptionPhaseExpanded{}, err
 				}
@@ -392,7 +398,7 @@ func MapSubscriptionPhaseToAPI(subView subscription.SubscriptionView, phaseView 
 		case "past":
 			// Let's find the last item
 			if len(items) > 0 {
-				apiItem, err := MapSubscriptionItemToAPI(items[len(items)-1])
+				apiItem, err := MapSubscriptionItemToAPI(items[len(items)-1], taxCodes)
 				if err != nil {
 					return api.SubscriptionPhaseExpanded{}, err
 				}
@@ -423,7 +429,9 @@ func MapSubscriptionPhaseToAPI(subView subscription.SubscriptionView, phaseView 
 	}, nil
 }
 
-func MapSubscriptionViewToAPI(view subscription.SubscriptionView) (api.SubscriptionExpanded, error) {
+// MapSubscriptionViewToAPI maps a view to its v1 shape. taxCodes holds the Tax Codes referenced by
+// the view's items (see taxCodesForView), used to fill in the legacy stripe.code.
+func MapSubscriptionViewToAPI(view subscription.SubscriptionView, taxCodes map[string]*taxcode.TaxCode) (api.SubscriptionExpanded, error) {
 	apiSub := MapSubscriptionToAPI(view.Subscription)
 	alg := api.SubscriptionAlignment{
 		BillablesMustAlign: lo.ToPtr(true), // this field is deprecated on API, we'll get rid of it eventually
@@ -470,7 +478,7 @@ func MapSubscriptionViewToAPI(view subscription.SubscriptionView) (api.Subscript
 
 	phases := make([]api.SubscriptionPhaseExpanded, 0, len(view.Phases))
 	for _, phase := range view.Phases {
-		phaseAPI, err := MapSubscriptionPhaseToAPI(view, phase)
+		phaseAPI, err := MapSubscriptionPhaseToAPI(view, phase, taxCodes)
 		if err != nil {
 			return base, err
 		}
@@ -483,7 +491,9 @@ func MapSubscriptionViewToAPI(view subscription.SubscriptionView) (api.Subscript
 	return base, nil
 }
 
-func CustomPlanToCreatePlanRequest(a api.CustomPlanInput, namespace string) (plandriver.CreatePlanRequest, error) {
+// CustomPlanToCreatePlanRequest maps a v1 custom plan to a plan create request. Legacy stripe.code
+// values are resolved to Tax Codes through resolver, which may create them.
+func CustomPlanToCreatePlanRequest(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver, a api.CustomPlanInput, namespace string) (plandriver.CreatePlanRequest, error) {
 	var err error
 
 	settlementMode := productcatalog.SettlementMode(lo.FromPtr(a.SettlementMode))
@@ -523,7 +533,7 @@ func CustomPlanToCreatePlanRequest(a api.CustomPlanInput, namespace string) (pla
 		req.Phases = make([]productcatalog.Phase, 0, len(a.Phases))
 
 		for _, phase := range a.Phases {
-			planPhase, err := plandriver.AsPlanPhase(phase)
+			planPhase, err := plandriver.AsPlanPhase(ctx, resolver, namespace, phase)
 			if err != nil {
 				return req, fmt.Errorf("failed to cast PlanPhase: %w", err)
 			}

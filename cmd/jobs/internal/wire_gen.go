@@ -28,6 +28,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/featureresolver"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/taxcoderesolver"
 	"github.com/openmeterio/openmeter/openmeter/registry"
 	"github.com/openmeterio/openmeter/openmeter/secret"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
@@ -341,7 +342,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	planService, err := common.NewPlanService(logger, client, featureResolver, currencyResolver, taxcodeService, eventbusPublisher)
+	taxCodeResolver, err := taxcoderesolver.New(taxcodeService)
 	if err != nil {
 		cleanup8()
 		cleanup7()
@@ -353,7 +354,19 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	addonService, err := common.NewAddonService(logger, client, featureResolver, currencyResolver, taxcodeService, eventbusPublisher)
+	planService, err := common.NewPlanService(logger, client, featureResolver, currencyResolver, taxCodeResolver, eventbusPublisher)
+	if err != nil {
+		cleanup8()
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	addonService, err := common.NewAddonService(logger, client, featureResolver, currencyResolver, taxCodeResolver, eventbusPublisher)
 	if err != nil {
 		cleanup8()
 		cleanup7()
@@ -378,7 +391,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	ffxService := ffx.NewContextService()
-	subscriptionServiceWithWorkflow, err := common.NewSubscriptionServices(logger, client, featureConnector, entitlement, customerService, currenciesService, currencyResolver, planService, planaddonService, addonService, eventbusPublisher, locker, ffxService, taxcodeService)
+	subscriptionServiceWithWorkflow, err := common.NewSubscriptionServices(logger, client, featureConnector, entitlement, customerService, currenciesService, currencyResolver, planService, planaddonService, addonService, eventbusPublisher, locker, ffxService, taxCodeResolver)
 	if err != nil {
 		cleanup8()
 		cleanup7()
