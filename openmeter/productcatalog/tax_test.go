@@ -141,6 +141,66 @@ func TestTaxCodeConfigFrom(t *testing.T) {
 	})
 }
 
+func TestTaxCodeConfigEqual(t *testing.T) {
+	const id = "01JTAXCODE00000000000000000"
+
+	tests := []struct {
+		name  string
+		left  *TaxCodeConfig
+		right *TaxCodeConfig
+		want  bool
+	}{
+		{name: "both nil", want: true},
+		{name: "nil and zero value", right: &TaxCodeConfig{}, want: true},
+		{name: "zero value and nil", left: &TaxCodeConfig{}, want: true},
+		{name: "nil and set", right: &TaxCodeConfig{TaxCodeID: id}},
+		{
+			name:  "same values in different pointers",
+			left:  &TaxCodeConfig{TaxCodeID: id, Behavior: lo.ToPtr(InclusiveTaxBehavior)},
+			right: &TaxCodeConfig{TaxCodeID: id, Behavior: lo.ToPtr(InclusiveTaxBehavior)},
+			want:  true,
+		},
+		{
+			name:  "different tax code ID",
+			left:  &TaxCodeConfig{TaxCodeID: id},
+			right: &TaxCodeConfig{TaxCodeID: "01JTAXCODE00000000000000001"},
+		},
+		{
+			name:  "different behavior",
+			left:  &TaxCodeConfig{TaxCodeID: id, Behavior: lo.ToPtr(InclusiveTaxBehavior)},
+			right: &TaxCodeConfig{TaxCodeID: id, Behavior: lo.ToPtr(ExclusiveTaxBehavior)},
+		},
+		{
+			name:  "behavior set on one side only",
+			left:  &TaxCodeConfig{TaxCodeID: id, Behavior: lo.ToPtr(InclusiveTaxBehavior)},
+			right: &TaxCodeConfig{TaxCodeID: id},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, tt.left.Equal(tt.right))
+			assert.Equal(t, tt.want, tt.right.Equal(tt.left))
+		})
+	}
+}
+
+func TestTaxCodeConfigClone(t *testing.T) {
+	original := TaxCodeConfig{
+		TaxCodeID: "01JTAXCODE00000000000000000",
+		Behavior:  lo.ToPtr(InclusiveTaxBehavior),
+	}
+
+	cloned := original.Clone()
+	require.True(t, original.Equal(&cloned))
+	require.NotSame(t, original.Behavior, cloned.Behavior)
+
+	*cloned.Behavior = ExclusiveTaxBehavior
+	assert.Equal(t, InclusiveTaxBehavior, *original.Behavior)
+
+	assert.Equal(t, TaxCodeConfig{}, TaxCodeConfig{}.Clone())
+}
+
 func TestTaxConfigValidation(t *testing.T) {
 	tests := []struct {
 		Name          string
