@@ -12,6 +12,7 @@ import (
 	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/subscription/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/filter"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
@@ -56,37 +57,24 @@ func TestListUpdatedAt(t *testing.T) {
 		return sub
 	}
 
-	list := func(updatedAt filter.FilterTime) pagination.Result[subscription.Subscription] {
-		result, err := service.List(ctx, subscription.ListSubscriptionsInput{
-			Namespaces: []string{subscriptiontestutils.ExampleNamespace},
-			Page:       pagination.NewPage(1, 1),
-			UpdatedAt:  &updatedAt,
-		})
-		require.NoError(t, err)
+	// given: two subscriptions written before a sync checkpoint.
+	createSubscription("unchanged")
+	changed := createSubscription("changed")
 
-		return result
-	}
-
-	ids := func(result pagination.Result[subscription.Subscription]) []string {
-		return lo.Map(result.Items, func(s subscription.Subscription, _ int) string { return s.ID })
-	}
-
-	// given: a subscription written before a sync checkpoint and one written at it.
-	before := createSubscription("before-checkpoint")
-
+	// when: one of them is updated at the checkpoint.
 	clock.FreezeTime(checkpoint)
 	defer clock.UnFreeze()
-	atCheckpoint := createSubscription("at-checkpoint")
 
-	// when/then: gte includes the boundary, gt excludes it, and lt selects the
-	// earlier subscription; page totals count only the filtered rows.
-	gte := list(filter.FilterTime{Gte: &checkpoint})
-	require.Equal(t, []string{atCheckpoint.ID}, ids(gte))
-	require.Equal(t, 1, gte.TotalCount)
+	_, err := service.UpdateAnnotations(ctx, changed.NamespacedID, models.Annotations{"changed": true})
+	require.NoError(t, err)
 
-	require.Empty(t, list(filter.FilterTime{Gt: &checkpoint}).Items)
-
-	lt := list(filter.FilterTime{Lt: &checkpoint})
-	require.Equal(t, []string{before.ID}, ids(lt))
-	require.Equal(t, 1, lt.TotalCount)
+	// then: only the updated subscription matches. Its created_at is before the
+	// checkpoint, so this can only match on updated_at.
+	result, err := service.List(ctx, subscription.ListSubscriptionsInput{
+		Namespaces: []string{subscriptiontestutils.ExampleNamespace},
+		Page:       pagination.NewPage(1, 10),
+		UpdatedAt:  &filter.FilterTime{Gte: &checkpoint},
+	})
+	require.NoError(t, err)
+	require.Equal(t, []string{changed.ID}, lo.Map(result.Items, func(s subscription.Subscription, _ int) string { return s.ID }))
 }

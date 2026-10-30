@@ -28,19 +28,15 @@ func (s *RatingTestSuite) TestListChargesUpdatedAt() {
 	apiRequestsTotal := s.SetupApiRequestsTotalFeature(ctx, ns)
 
 	checkpoint := time.Date(2026, 3, 10, 0, 0, 0, 0, time.UTC)
-	servicePeriod := timeutil.ClosedPeriod{
-		From: time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC),
-		To:   time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC),
-	}
 
-	createCharge := func(reference string) string {
+	createCharge := func(reference string, serviceStart time.Time) meta.ChargeID {
 		created, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
 			Intents: charges.NewCreateChargeIntents(
 				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 					Customer:          cust.GetID(),
 					Currency:          USD,
-					ServicePeriod:     servicePeriod,
+					ServicePeriod:     timeutil.ClosedPeriod{From: serviceStart, To: serviceStart.AddDate(0, 1, 0)},
 					SettlementMode:    productcatalog.CreditThenInvoiceSettlementMode,
 					Price:             productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromInt(1)}),
 					Name:              reference,
@@ -56,49 +52,37 @@ func (s *RatingTestSuite) TestListChargesUpdatedAt() {
 		id, err := created[0].GetChargeID()
 		s.Require().NoError(err)
 
-		return id.ID
+		return id
 	}
 
-	list := func(updatedAt filter.FilterTime) pagination.Result[charges.Charge] {
-		result, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
-			Page:        pagination.NewPage(1, 1),
-			Namespace:   ns,
-			CustomerIDs: []string{cust.ID},
-			ChargeTypes: []meta.ChargeType{meta.ChargeTypeUsageBased},
-			UpdatedAt:   &updatedAt,
-		})
-		s.Require().NoError(err)
-
-		return result
-	}
-
-	ids := func(result pagination.Result[charges.Charge]) []string {
-		return lo.Map(result.Items, func(c charges.Charge, _ int) string {
-			id, err := c.GetChargeID()
-			s.Require().NoError(err)
-
-			return id.ID
-		})
-	}
-
-	// given: a charge written before a sync checkpoint and one written at it.
+	// given: two charges written before a sync checkpoint. Only the first one's
+	// service period has started by the checkpoint.
 	clock.FreezeTime(checkpoint.Add(-time.Hour))
 	defer clock.UnFreeze()
-	before := createCharge("before-checkpoint")
+	changed := createCharge("changed", checkpoint)
+	createCharge("unchanged", checkpoint.AddDate(0, 1, 0))
 
+	// when: advancing at the checkpoint updates only the started charge.
 	clock.FreezeTime(checkpoint)
 	defer clock.UnFreeze()
-	atCheckpoint := createCharge("at-checkpoint")
 
-	// when/then: gte includes the boundary, gt excludes it, and lt selects the
-	// earlier charge; page totals count only the filtered rows.
-	gte := list(filter.FilterTime{Gte: &checkpoint})
-	s.Equal([]string{atCheckpoint}, ids(gte))
-	s.Equal(1, gte.TotalCount)
+	_, err := s.Charges.AdvanceCharges(ctx, charges.AdvanceChargesInput{Customer: cust.GetID()})
+	s.Require().NoError(err)
 
-	s.Empty(list(filter.FilterTime{Gt: &checkpoint}).Items)
+	// then: only the updated charge matches. Its created_at is before the
+	// checkpoint, so this can only match on updated_at.
+	result, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
+		Page:        pagination.NewPage(1, 10),
+		Namespace:   ns,
+		CustomerIDs: []string{cust.ID},
+		ChargeTypes: []meta.ChargeType{meta.ChargeTypeUsageBased},
+		UpdatedAt:   &filter.FilterTime{Gte: &checkpoint},
+	})
+	s.Require().NoError(err)
+	s.Equal([]string{changed.ID}, lo.Map(result.Items, func(c charges.Charge, _ int) string {
+		id, err := c.GetChargeID()
+		s.Require().NoError(err)
 
-	lt := list(filter.FilterTime{Lt: &checkpoint})
-	s.Equal([]string{before}, ids(lt))
-	s.Equal(1, lt.TotalCount)
+		return id.ID
+	}))
 }

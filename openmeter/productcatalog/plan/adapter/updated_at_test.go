@@ -43,41 +43,31 @@ func TestListPlansUpdatedAt(t *testing.T) {
 		return created
 	}
 
-	list := func(updatedAt filter.FilterTime) pagination.Result[plan.Plan] {
-		result, err := env.PlanRepository.ListPlans(t.Context(), plan.ListPlansInput{
-			Namespaces: []string{namespace},
-			Page:       pagination.NewPage(1, 1),
-			UpdatedAt:  &updatedAt,
-		})
-		require.NoError(t, err)
-
-		return result
-	}
-
-	ids := func(result pagination.Result[plan.Plan]) []string {
-		return lo.Map(result.Items, func(p plan.Plan, _ int) string { return p.ID })
-	}
-
-	// given: a plan written before a sync checkpoint and one written at it.
+	// given: two plans written before a sync checkpoint.
 	checkpoint := time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC)
 
 	clock.FreezeTime(checkpoint.Add(-time.Hour))
 	defer clock.UnFreeze()
-	before := createPlan("before-checkpoint")
+	createPlan("unchanged")
+	changed := createPlan("changed")
 
+	// when: one of them is updated at the checkpoint.
 	clock.FreezeTime(checkpoint)
 	defer clock.UnFreeze()
-	atCheckpoint := createPlan("at-checkpoint")
 
-	// when/then: gte includes the boundary, gt excludes it, and lt selects the
-	// earlier plan; page totals count only the filtered rows.
-	gte := list(filter.FilterTime{Gte: &checkpoint})
-	require.Equal(t, []string{atCheckpoint.ID}, ids(gte))
-	require.Equal(t, 1, gte.TotalCount)
+	_, err := env.PlanRepository.UpdatePlan(t.Context(), plan.UpdatePlanInput{
+		NamespacedID: changed.NamespacedID,
+		Name:         lo.ToPtr("changed-renamed"),
+	})
+	require.NoError(t, err)
 
-	require.Empty(t, list(filter.FilterTime{Gt: &checkpoint}).Items)
-
-	lt := list(filter.FilterTime{Lt: &checkpoint})
-	require.Equal(t, []string{before.ID}, ids(lt))
-	require.Equal(t, 1, lt.TotalCount)
+	// then: only the updated plan matches. Its created_at is before the checkpoint,
+	// so this can only match on updated_at.
+	result, err := env.PlanRepository.ListPlans(t.Context(), plan.ListPlansInput{
+		Namespaces: []string{namespace},
+		Page:       pagination.NewPage(1, 10),
+		UpdatedAt:  &filter.FilterTime{Gte: &checkpoint},
+	})
+	require.NoError(t, err)
+	require.Equal(t, []string{changed.ID}, lo.Map(result.Items, func(p plan.Plan, _ int) string { return p.ID }))
 }

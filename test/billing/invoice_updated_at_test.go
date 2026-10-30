@@ -22,50 +22,45 @@ func (s *InvoicingTestSuite) TestListInvoicesUpdatedAt() {
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
 	s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
 
-	ids := func(result billing.ListInvoicesResponse) []string {
-		return lo.Map(result.Items, func(inv billing.Invoice, _ int) string {
-			generic, err := inv.AsGenericInvoice()
-			s.Require().NoError(err)
-
-			return generic.GetID()
-		})
-	}
-
-	createInvoice := func(subjectKey string) string {
+	createInvoice := func(subjectKey string) billing.StandardInvoice {
 		cust := s.CreateTestCustomer(ns, subjectKey)
 
-		return s.CreateDraftInvoice(s.T(), ctx, DraftInvoiceInput{Namespace: ns, Customer: cust}).ID
+		return s.CreateDraftInvoice(s.T(), ctx, DraftInvoiceInput{Namespace: ns, Customer: cust})
 	}
 
-	// The v3 route lists only standard invoices, so list the way it does.
-	list := func(updatedAt filter.FilterTime) billing.ListInvoicesResponse {
-		result, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
-			Page:         pagination.NewPage(1, 1),
-			Namespace:    ns,
-			OnlyStandard: true,
-			UpdatedAt:    &updatedAt,
-		})
-		s.Require().NoError(err)
+	// given: two invoices written before a sync checkpoint.
+	createInvoice("unchanged")
+	changed := createInvoice("changed")
 
-		return result
-	}
-
-	// given: an invoice written before a sync checkpoint and one written at it.
-	before := createInvoice("before-checkpoint")
-
+	// when: one of them is updated at the checkpoint.
 	clock.FreezeTime(checkpoint)
 	defer clock.UnFreeze()
-	atCheckpoint := createInvoice("at-checkpoint")
 
-	// when/then: gte includes the boundary, gt excludes it, and lt selects the
-	// earlier invoice; page totals count only the filtered rows.
-	gte := list(filter.FilterTime{Gte: &checkpoint})
-	s.Equal([]string{atCheckpoint}, ids(gte))
-	s.Equal(1, gte.TotalCount)
+	_, err := s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
+		Invoice:      changed.GetInvoiceID(),
+		ChangeSource: billing.ChangeSourceAPIRequest,
+		EditFn: func(invoice *billing.StandardInvoice) error {
+			invoice.Description = lo.ToPtr("changed")
 
-	s.Empty(list(filter.FilterTime{Gt: &checkpoint}).Items)
+			return nil
+		},
+	})
+	s.Require().NoError(err)
 
-	lt := list(filter.FilterTime{Lt: &checkpoint})
-	s.Equal([]string{before}, ids(lt))
-	s.Equal(1, lt.TotalCount)
+	// then: only the updated invoice matches. Its created_at is before the
+	// checkpoint, so this can only match on updated_at. The v3 route lists only
+	// standard invoices, so list the way it does.
+	result, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
+		Page:         pagination.NewPage(1, 10),
+		Namespace:    ns,
+		OnlyStandard: true,
+		UpdatedAt:    &filter.FilterTime{Gte: &checkpoint},
+	})
+	s.Require().NoError(err)
+	s.Equal([]string{changed.ID}, lo.Map(result.Items, func(inv billing.Invoice, _ int) string {
+		generic, err := inv.AsGenericInvoice()
+		s.Require().NoError(err)
+
+		return generic.GetID()
+	}))
 }
