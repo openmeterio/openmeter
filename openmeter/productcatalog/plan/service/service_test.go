@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	currencytestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
@@ -23,6 +24,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
 	pctestutils "github.com/openmeterio/openmeter/openmeter/productcatalog/testutils"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
@@ -49,6 +51,12 @@ func TestPlanService(t *testing.T) {
 
 	// Get new namespace ID
 	namespace := pctestutils.NewTestNamespace(t)
+
+	taxCode := env.TaxCodeEnv.CreateTaxCode(t, namespace, taxcode.CreateTaxCodeInput{
+		AppMappings: taxcode.TaxCodeAppMappings{
+			{AppType: app.AppTypeStripe, TaxCode: "txcd_10000000"},
+		},
+	})
 
 	// Setup meter repository
 	err := env.Meter.ReplaceMeters(ctx, pctestutils.NewTestMeters(t, namespace))
@@ -89,10 +97,8 @@ func TestPlanService(t *testing.T) {
 				Metadata:            models.Metadata{"name": features[0].Name},
 				Feature:             productcatalog.NewFeatureReference(lo.ToPtr(features[0].ID), lo.ToPtr(features[0].Key)),
 				EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.BooleanEntitlementTemplate{}),
-				TaxConfig: &productcatalog.TaxConfig{
-					Stripe: &productcatalog.StripeTaxConfig{
-						Code: "txcd_10000000",
-					},
+				TaxConfig: &productcatalog.TaxCodeConfig{
+					TaxCodeID: taxCode.ID,
 				},
 				Price: nil, // This would match with a TieredPrice, which is not supported for add-ons
 			},
@@ -134,10 +140,8 @@ func TestPlanService(t *testing.T) {
 								Description: lo.ToPtr("RateCard 1"),
 								Metadata:    models.Metadata{"name": features[0].Name},
 								Feature:     productcatalog.NewFeatureReference(lo.ToPtr(features[0].ID), nil),
-								TaxConfig: &productcatalog.TaxConfig{
-									Stripe: &productcatalog.StripeTaxConfig{
-										Code: "txcd_10000000",
-									},
+								TaxConfig: &productcatalog.TaxCodeConfig{
+									TaxCodeID: taxCode.ID,
 								},
 								Price: productcatalog.NewPriceFrom(
 									productcatalog.FlatPrice{
@@ -164,10 +168,8 @@ func TestPlanService(t *testing.T) {
 								Description: lo.ToPtr("RateCard 1"),
 								Metadata:    models.Metadata{"name": features[0].Name},
 								Feature:     productcatalog.NewFeatureReference(nil, lo.ToPtr(features[0].Key)),
-								TaxConfig: &productcatalog.TaxConfig{
-									Stripe: &productcatalog.StripeTaxConfig{
-										Code: "txcd_10000000",
-									},
+								TaxConfig: &productcatalog.TaxCodeConfig{
+									TaxCodeID: taxCode.ID,
 								},
 								Price: productcatalog.NewPriceFrom(
 									productcatalog.TieredPrice{
@@ -255,9 +257,6 @@ func TestPlanService(t *testing.T) {
 					"empty settlement mode should default to credit_then_invoice")
 			})
 
-			// Extract the resolved TaxCodeID so we can include it in expected values for new phases.
-			taxCodeID := draftPlanV1.Phases[0].RateCards[0].AsMeta().TaxConfig.TaxCodeID
-
 			t.Run("Get", func(t *testing.T) {
 				var getPlanV1 *plan.Plan
 
@@ -323,11 +322,8 @@ func TestPlanService(t *testing.T) {
 											PreserveOverageAtReset:  lo.ToPtr(true),
 											UsagePeriod:             MonthPeriod,
 										}),
-									TaxConfig: &productcatalog.TaxConfig{
-										Stripe: &productcatalog.StripeTaxConfig{
-											Code: "txcd_10000000",
-										},
-										TaxCodeID: taxCodeID,
+									TaxConfig: &productcatalog.TaxCodeConfig{
+										TaxCodeID: taxCode.ID,
 									},
 									Price: productcatalog.NewPriceFrom(productcatalog.TieredPrice{
 										Mode: productcatalog.VolumeTieredPrice,
@@ -432,11 +428,8 @@ func TestPlanService(t *testing.T) {
 											Description: lo.ToPtr("RateCard 1"),
 											Metadata:    models.Metadata{"name": features[0].Name},
 											Feature:     productcatalog.NewFeatureReference(lo.ToPtr(features[0].ID), nil),
-											TaxConfig: &productcatalog.TaxConfig{
-												Stripe: &productcatalog.StripeTaxConfig{
-													Code: "txcd_10000000",
-												},
-												TaxCodeID: taxCodeID,
+											TaxConfig: &productcatalog.TaxCodeConfig{
+												TaxCodeID: taxCode.ID,
 											},
 											Price: productcatalog.NewPriceFrom(
 												productcatalog.TieredPrice{
@@ -1121,6 +1114,8 @@ func TestListPlansFilters(t *testing.T) {
 
 	ns := pctestutils.NewTestNamespace(t)
 
+	taxCode := env.TaxCodeEnv.CreateTaxCode(t, ns)
+
 	// createPlan builds a draft plan with a minimal FlatFeeRateCard phase (no feature reference).
 	createPlan := func(key, name string, cur currency.Code) {
 		input := pctestutils.NewTestPlan(t, ns,
@@ -1134,8 +1129,8 @@ func TestListPlansFilters(t *testing.T) {
 						RateCardMeta: productcatalog.RateCardMeta{
 							Key:  "flat-fee",
 							Name: "Flat Fee",
-							TaxConfig: &productcatalog.TaxConfig{
-								Stripe: &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
+							TaxConfig: &productcatalog.TaxCodeConfig{
+								TaxCodeID: taxCode.ID,
 							},
 							Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 								Amount:      decimal.NewFromInt(0),

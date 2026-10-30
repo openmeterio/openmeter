@@ -198,6 +198,7 @@ func main() {
 			SubjectService:              app.SubjectService,
 			ChargeService:               app.BillingRegistry.ChargesServiceOrNil(),
 			TaxCodeService:              app.TaxCodeService,
+			TaxCodeResolver:             app.TaxCodeResolver,
 			StreamingConnector:          app.StreamingConnector,
 			FeatureGate:                 app.FeatureGate,
 		},

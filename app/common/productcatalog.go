@@ -104,7 +104,7 @@ func NewPlanService(
 	db *entdb.Client,
 	featureResolver productcatalog.FeatureResolver,
 	currencyResolver currencies.CurrencyResolver,
-	taxCodeService taxcode.Service,
+	taxCodeResolver productcatalog.TaxCodeResolver,
 	publisher eventbus.Publisher,
 ) (plan.Service, error) {
 	adapter, err := planadapter.New(planadapter.Config{
@@ -119,7 +119,7 @@ func NewPlanService(
 		Adapter:          adapter,
 		FeatureResolver:  featureResolver,
 		CurrencyResolver: currencyResolver,
-		TaxCode:          taxCodeService,
+		TaxCodeResolver:  taxCodeResolver,
 		Logger:           logger.With("subsystem", "productcatalog.plan"),
 		Publisher:        publisher,
 	})

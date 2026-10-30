@@ -12,7 +12,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	productcatalogadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/adapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
-	taxcodeadapter "github.com/openmeterio/openmeter/openmeter/taxcode/adapter"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -239,7 +238,7 @@ func FromAddonRateCardRow(r entdb.AddonRateCard) (productcatalog.RateCard, error
 		Annotations:         r.Annotations,
 		EntitlementTemplate: r.EntitlementTemplate,
 		Feature:             productcatalog.NewFeatureReference(r.FeatureID, r.FeatureKey),
-		TaxConfig:           r.TaxConfig,
+		TaxConfig:           taxCodeConfigFromColumns(r.TaxCodeID, r.TaxBehavior),
 		Price:               r.Price,
 		Discounts:           lo.FromPtr(r.Discounts),
 		UnitConfig:          r.UnitConfig,
@@ -262,20 +261,6 @@ func FromAddonRateCardRow(r entdb.AddonRateCard) (productcatalog.RateCard, error
 			meta.Feature = &resolvedReference
 		}
 	}
-
-	// Map TaxCode if eagerly loaded.
-	taxCodeRow, err := r.Edges.TaxCodeOrErr()
-	if err == nil {
-		tc, err := taxcodeadapter.MapTaxCodeFromEntity(taxCodeRow)
-		if err != nil {
-			return nil, fmt.Errorf("invalid tax code for rate card %s: %w", r.ID, err)
-		}
-
-		meta.TaxCode = &tc
-	}
-
-	// Backfill legacy TaxConfig fields from new columns and TaxCode entity.
-	meta.TaxConfig = productcatalog.BackfillTaxConfig(meta.TaxConfig, r.TaxBehavior, meta.TaxCode)
 
 	// Get billing cadence
 
@@ -394,7 +379,7 @@ func fromPlanRateCardRow(r entdb.PlanRateCard) (productcatalog.RateCard, error) 
 		Annotations:         r.Annotations,
 		Feature:             productcatalog.NewFeatureReference(r.FeatureID, r.FeatureKey),
 		EntitlementTemplate: r.EntitlementTemplate,
-		TaxConfig:           r.TaxConfig,
+		TaxConfig:           taxCodeConfigFromColumns(r.TaxCodeID, r.TaxBehavior),
 		Price:               r.Price,
 		Discounts:           lo.FromPtr(r.Discounts),
 		UnitConfig:          r.UnitConfig,
@@ -417,20 +402,6 @@ func fromPlanRateCardRow(r entdb.PlanRateCard) (productcatalog.RateCard, error) 
 			meta.Feature = &resolvedReference
 		}
 	}
-
-	// Map TaxCode if eagerly loaded.
-	taxCodeRow, err := r.Edges.TaxCodeOrErr()
-	if err == nil {
-		tc, err := taxcodeadapter.MapTaxCodeFromEntity(taxCodeRow)
-		if err != nil {
-			return nil, fmt.Errorf("invalid tax code for rate card %s: %w", r.ID, err)
-		}
-
-		meta.TaxCode = &tc
-	}
-
-	// Backfill legacy TaxConfig fields from new columns and TaxCode entity.
-	meta.TaxConfig = productcatalog.BackfillTaxConfig(meta.TaxConfig, r.TaxBehavior, meta.TaxCode)
 
 	// Get billing cadence
 
@@ -497,7 +468,6 @@ func asPlanRateCardRow(r productcatalog.RateCard) (entdb.PlanRateCard, error) {
 		Name:                meta.Name,
 		Description:         meta.Description,
 		EntitlementTemplate: meta.EntitlementTemplate,
-		TaxConfig:           meta.TaxConfig,
 		Price:               meta.Price,
 		Type:                r.Type(),
 		Discounts:           lo.EmptyableToPtr(meta.Discounts),
@@ -526,12 +496,30 @@ func asPlanRateCardRow(r productcatalog.RateCard) (entdb.PlanRateCard, error) {
 		ratecard.FeatureID = meta.Feature.ID
 	}
 
+	// The legacy tax_config JSON is still written as a copy of the columns: DB checks require it to
+	// agree with tax_code_id/tax_behavior, and binaries from before Tax Code IDs still read it. It
+	// never carries a Stripe code anymore and goes away in a later cleanup.
 	if meta.TaxConfig != nil {
-		ratecard.TaxCodeID = meta.TaxConfig.TaxCodeID
+		ratecard.TaxCodeID = lo.EmptyableToPtr(meta.TaxConfig.TaxCodeID)
 		ratecard.TaxBehavior = meta.TaxConfig.Behavior
+		ratecard.TaxConfig = lo.ToPtr(meta.TaxConfig.ToTaxConfig())
 	}
 
 	ratecard.BillingCadence = r.GetBillingCadence().ISOStringPtrOrNil()
 
 	return ratecard, nil
+}
+
+// taxCodeConfigFromColumns reads a rate card's tax settings from the tax_code_id and tax_behavior
+// columns only. The legacy tax_config JSON may still hold a Stripe code on old rows, but those rows
+// were backfilled with a tax_code_id, so the columns are the source of truth.
+func taxCodeConfigFromColumns(taxCodeID *string, behavior *productcatalog.TaxBehavior) *productcatalog.TaxCodeConfig {
+	if taxCodeID == nil && behavior == nil {
+		return nil
+	}
+
+	return &productcatalog.TaxCodeConfig{
+		TaxCodeID: lo.FromPtr(taxCodeID),
+		Behavior:  behavior,
+	}
 }

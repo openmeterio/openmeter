@@ -55,6 +55,7 @@ import (
 	notificationhttpdriver "github.com/openmeterio/openmeter/openmeter/notification/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/portal"
 	portalhttphandler "github.com/openmeterio/openmeter/openmeter/portal/httphandler"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	addonhttpdriver "github.com/openmeterio/openmeter/openmeter/productcatalog/addon/httpdriver"
 	productcatalog_httpdriver "github.com/openmeterio/openmeter/openmeter/productcatalog/driver"
@@ -143,6 +144,7 @@ type Config struct {
 	SubscriptionWorkflowService subscriptionworkflow.Service
 	SubjectService              subject.Service
 	TaxCodeService              taxcode.Service
+	TaxCodeResolver             productcatalog.TransactionalTaxCodeResolver
 	FeatureGate                 *featuregate.FeatureGateChecker
 }
 
@@ -250,6 +252,10 @@ func (c Config) Validate() error {
 
 	if c.TaxCodeService == nil {
 		return errors.New("tax code service is required")
+	}
+
+	if c.TaxCodeResolver == nil {
+		return errors.New("tax code resolver is required")
 	}
 
 	if err := c.FeatureGate.Validate(); err != nil {
@@ -449,6 +455,7 @@ func NewRouter(config Config) (*Router, error) {
 	router.planHandler = planhttpdriver.New(
 		config.NamespaceDecoder,
 		config.Plan,
+		config.TaxCodeResolver,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
 
