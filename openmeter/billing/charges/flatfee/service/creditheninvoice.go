@@ -291,7 +291,9 @@ func (s *CreditThenInvoiceStateMachine) ActiveClearOverride(ctx context.Context)
 
 // cancelCurrentRealization owns charge-side cleanup for removing the current
 // invoice run. Reversible runs are corrected and marked deleted before their
-// invoice patch is emitted; immutable and zero-fiat history is only detached.
+// invoice patch is emitted. A zero fiat overage alone does not make a run
+// final: credit it still holds must be released. Immutable history is only
+// detached.
 func (s *CreditThenInvoiceStateMachine) cancelCurrentRealization(ctx context.Context) error {
 	currentRun := s.Charge.Realizations.CurrentRun
 	if currentRun == nil {
@@ -311,7 +313,7 @@ func (s *CreditThenInvoiceStateMachine) cancelCurrentRealization(ctx context.Con
 			return fmt.Errorf("calculating fiat overage for realization run[%s]: %w", run.ID.ID, err)
 		}
 
-		shouldCorrect = !fiatOverage.ShouldOmitInvoiceLine
+		shouldCorrect = !fiatOverage.ShouldOmitInvoiceLine || !run.CreditRealizations.Sum().IsZero()
 	}
 
 	if shouldCorrect {

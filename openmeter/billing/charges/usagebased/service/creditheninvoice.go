@@ -431,8 +431,9 @@ func (s *CreditThenInvoiceStateMachine) DeleteCharge(ctx context.Context, patch 
 
 // cancelRealizationRun owns charge-side cleanup for removing an invoice run.
 // Reversible runs are corrected and marked deleted before their invoice patch
-// is emitted; immutable and zero-fiat history is only detached from the current
-// realization slot.
+// is emitted. A zero fiat overage alone does not make a run final: credit it
+// still holds must be released. Immutable history is only detached from the
+// current realization slot.
 func (s *CreditThenInvoiceStateMachine) cancelRealizationRun(ctx context.Context, run usagebased.RealizationRun) error {
 	shouldCorrect := false
 	if !run.Immutable {
@@ -445,7 +446,7 @@ func (s *CreditThenInvoiceStateMachine) cancelRealizationRun(ctx context.Context
 			return fmt.Errorf("calculating fiat overage for realization run[%s]: %w", run.ID.ID, err)
 		}
 
-		shouldCorrect = !fiatOverage.ShouldOmitInvoiceLine
+		shouldCorrect = !fiatOverage.ShouldOmitInvoiceLine || !run.CreditsAllocated.Sum().IsZero()
 	}
 
 	if shouldCorrect {
