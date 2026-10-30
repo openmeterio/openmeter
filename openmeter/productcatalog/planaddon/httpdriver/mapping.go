@@ -9,13 +9,16 @@ import (
 	addonhttp "github.com/openmeterio/openmeter/openmeter/productcatalog/addon/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/http"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-func FromPlanAddon(a planaddon.PlanAddon) (api.PlanAddon, error) {
+// FromPlanAddon maps a plan add-on assignment to its v1 shape. taxCodes holds the Tax Codes
+// referenced by the add-on's rate cards, used to fill in the legacy stripe.code.
+func FromPlanAddon(a planaddon.PlanAddon, taxCodes map[string]*taxcode.TaxCode) (api.PlanAddon, error) {
 	validationIssues, _ := a.AsProductCatalogPlanAddon().ValidationErrors()
 
-	apiAddon, err := addonhttp.FromAddon(a.Addon)
+	apiAddon, err := addonhttp.FromAddon(a.Addon, taxCodes)
 	if err != nil {
 		return api.PlanAddon{}, fmt.Errorf("failed to cast add-on [namespace=%s id=%s key=%s]: %w",
 			a.Addon.Namespace, a.Addon.ID, a.Addon.Key, err)

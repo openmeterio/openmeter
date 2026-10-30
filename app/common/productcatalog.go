@@ -130,7 +130,7 @@ func NewAddonService(
 	db *entdb.Client,
 	featureResolver productcatalog.FeatureResolver,
 	currencyResolver currencies.CurrencyResolver,
-	taxCodeService taxcode.Service,
+	taxCodeResolver productcatalog.TaxCodeResolver,
 	publisher eventbus.Publisher,
 ) (addon.Service, error) {
 	adapter, err := addonadapter.New(addonadapter.Config{
@@ -145,7 +145,7 @@ func NewAddonService(
 		Adapter:          adapter,
 		FeatureResolver:  featureResolver,
 		CurrencyResolver: currencyResolver,
-		TaxCode:          taxCodeService,
+		TaxCodeResolver:  taxCodeResolver,
 		Logger:           logger.With("subsystem", "productcatalog.addon"),
 		Publisher:        publisher,
 	})
