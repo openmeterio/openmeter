@@ -18,10 +18,10 @@ func GetExampleTaxCodeInput() taxcode.CreateTaxCodeInput {
 	}
 }
 
-// ExampleTaxConfig points rate cards at tc with exclusive tax behavior.
+// ExampleTaxConfig points rate cards at tc. Behavior is left nil, so it comes from the billing
+// profile; set it on the result if a test needs one.
 func ExampleTaxConfig(tc taxcode.TaxCode) productcatalog.TaxConfig {
 	return productcatalog.TaxConfig{
 		TaxCodeID: lo.ToPtr(tc.ID),
-		Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
 	}
 }

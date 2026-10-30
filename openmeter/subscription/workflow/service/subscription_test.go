@@ -1170,7 +1170,7 @@ func TestChangeToPlan(t *testing.T) {
 						IssueAfterReset: lo.ToPtr(111.0),
 						UsagePeriod:     subscriptiontestutils.ISOMonth,
 					}),
-					TaxConfig: &productcatalog.TaxConfig{TaxCodeID: &plan2TaxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)},
+					TaxConfig: &productcatalog.TaxConfig{TaxCodeID: &plan2TaxCode.ID},
 					Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 						Amount: alpacadecimal.NewFromInt(int64(1)),
 					}),
@@ -1183,7 +1183,7 @@ func TestChangeToPlan(t *testing.T) {
 					Key:         "new-rc-2",
 					Name:        "Rate Card 2",
 					Description: lo.ToPtr("Rate Card 2 Description"),
-					TaxConfig:   &productcatalog.TaxConfig{TaxCodeID: &plan2TaxCode.ID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)},
+					TaxConfig:   &productcatalog.TaxConfig{TaxCodeID: &plan2TaxCode.ID},
 					Price:       nil,
 				},
 				BillingCadence: nil,
