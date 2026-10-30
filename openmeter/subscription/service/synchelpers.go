@@ -7,7 +7,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/taxcoderesolver"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
@@ -147,7 +146,7 @@ func (s *service) createItem(
 	ent *subscription.SubscriptionEntitlement,
 ) (subscription.SubscriptionItem, error) {
 	// Only new items are checked: existing items may still point at a Tax Code deleted since.
-	if err := taxcoderesolver.ValidateRateCardTaxCodes(ctx, s.TaxCodeResolver, opts.sub.Namespace, productcatalog.RateCards{opts.itemSpec.RateCard}); err != nil {
+	if err := productcatalog.ValidateRateCardTaxCodes(ctx, s.TaxCodeResolver, opts.sub.Namespace, productcatalog.RateCards{opts.itemSpec.RateCard}); err != nil {
 		return subscription.SubscriptionItem{}, fmt.Errorf("invalid tax code for item %s: %w", opts.itemSpec.ItemKey, err)
 	}
 

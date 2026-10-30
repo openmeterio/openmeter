@@ -172,9 +172,9 @@ func (s StripeTaxConfig) Clone() StripeTaxConfig {
 	return s
 }
 
-// TaxCodeConfig holds a lean reference to a tax code entry — only the FK and the behavior flag.
-// Used in charge intents where provider-specific fields (e.g. Stripe.Code) are not stored and
-// are resolved at invoice snapshot time via BackfillTaxConfig.
+// TaxCodeConfig is the internal tax reference rate cards and charge intents carry: only the Tax
+// Code ID and the behavior flag. Provider-specific codes (e.g. Stripe.Code) aren't stored here;
+// they're resolved from the Tax Code at the API boundary and at invoice time.
 //
 // A behavior-only config (no TaxCodeID) is valid here; callers that need a Tax Code, like charge
 // intents, check for the ID themselves. TaxCodeID is omitted from JSON when empty so the document
@@ -249,6 +249,20 @@ func TaxCodeConfigFrom(cfg *TaxConfig) TaxCodeConfig {
 	}
 
 	return out
+}
+
+// FromDBTaxColumns reads tax settings from the tax_code_id and tax_behavior columns only. The legacy
+// tax_config JSON may still hold a Stripe code on old rows, but those rows were backfilled with a
+// tax_code_id (a CHECK constraint keeps it that way), so the columns are the source of truth.
+func FromDBTaxColumns(taxCodeID *string, behavior *TaxBehavior) *TaxCodeConfig {
+	if taxCodeID == nil && behavior == nil {
+		return nil
+	}
+
+	return &TaxCodeConfig{
+		TaxCodeID: lo.FromPtr(taxCodeID),
+		Behavior:  behavior,
+	}
 }
 
 type resolveTaxConfigOptions struct {

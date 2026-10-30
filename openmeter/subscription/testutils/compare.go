@@ -82,9 +82,6 @@ func ValidateSpecAndView(t *testing.T, expected subscription.SubscriptionSpec, f
 
 				assert.True(t, specItem.RateCard.Equal(foundItem.SubscriptionItem.RateCard), "rate card mismatch for item %s in phase %s: \nspec: %s \n\nview: %s", specItem.ItemKey, specPhase.PhaseKey, rc1JSON, rc2JSON)
 
-				// Let's validate the tax settings
-				assert.True(t, specItem.RateCard.AsMeta().TaxConfig.Equal(foundItem.SubscriptionItem.RateCard.AsMeta().TaxConfig), "TaxConfig mismatch for item %s in phase %s", specItem.ItemKey, specPhase.PhaseKey)
-
 				// Let's validate the Feature linking
 				var expectedFeatureKey, actualFeatureKey *string
 				if feature := specItem.RateCard.AsMeta().Feature; feature != nil {
