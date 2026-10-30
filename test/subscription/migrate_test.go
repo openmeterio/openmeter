@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel/trace/noop"
 
+	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/persistedstate"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/targetstate"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -17,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/subscription/testutils"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 )
@@ -147,6 +149,86 @@ func TestMigrationMetadataChangePreservesItems(t *testing.T) {
 	fixture.assertItemUnchanged(after, subscriptiontestutils.ExampleFeatureKey, at)
 
 	fixture.assertStalePlanEditRejected()
+}
+
+// Rate cards used to carry the Tax Code's Stripe code, stamped when the plan or
+// item was written. Remapping the code between two plan versions then made
+// every item look changed, so migration cut and recreated them.
+func TestMigrationTaxCodeStripeRemapPreservesItems(t *testing.T) {
+	start := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	clock.FreezeTime(start)
+	defer clock.UnFreeze()
+
+	// given a subscription to a plan whose rate cards reference a Tax Code mapped to Stripe
+	deps := setup(t, setupConfig{})
+	t.Cleanup(func() { deps.cleanup(t) })
+
+	deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
+	customer := deps.CustomerAdapter.CreateExampleCustomer(t)
+
+	taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace, taxcode.CreateTaxCodeInput{
+		AppMappings: taxcode.TaxCodeAppMappings{{AppType: app.AppTypeStripe, TaxCode: "txcd_10000000"}},
+	})
+
+	planInput := func() plan.CreatePlanInput {
+		rateCards := []productcatalog.RateCard{
+			subscriptiontestutils.ExampleRateCard1.Clone(),
+			subscriptiontestutils.ExampleRateCard2.Clone(),
+		}
+		for _, rc := range rateCards {
+			require.NoError(t, rc.ChangeMeta(func(meta productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
+				meta.TaxConfig = &productcatalog.TaxCodeConfig{
+					Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
+					TaxCodeID: taxCode.ID,
+				}
+
+				return meta, nil
+			}))
+		}
+
+		return subscriptiontestutils.BuildTestPlanInput(t).AddPhase(nil, rateCards...).Build()
+	}
+
+	original := deps.PlanHelper.CreatePlan(t, planInput())
+
+	before, err := deps.WorkflowService.CreateFromPlan(t.Context(), subscriptionworkflow.CreateSubscriptionWorkflowInput{
+		Namespace:  customer.Namespace,
+		CustomerID: customer.ID,
+		ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
+			Timing: subscription.Timing{Enum: lo.ToPtr(subscription.TimingImmediate)},
+		},
+	}, original)
+	require.NoError(t, err)
+
+	fixture := migrationFixture{t: t, deps: deps, before: before}
+
+	beforeEntitlement := before.Phases[0].ItemsByKey[subscriptiontestutils.ExampleFeatureKey][0].Entitlement
+	require.NotNil(t, beforeEntitlement)
+
+	// when the Tax Code's Stripe code changes and an identical plan version is published
+	clock.FreezeTime(start.Add(24 * time.Hour))
+	_, err = deps.TaxCodeEnv.Service.UpdateTaxCode(t.Context(), taxcode.UpdateTaxCodeInput{
+		NamespacedID: taxCode.NamespacedID,
+		Name:         taxCode.Name,
+		AppMappings:  taxcode.TaxCodeAppMappings{{AppType: app.AppTypeStripe, TaxCode: "txcd_20000000"}},
+	})
+	require.NoError(t, err)
+
+	target := deps.PlanHelper.CreatePlan(t, planInput())
+
+	// and the subscription is migrated mid-cycle
+	clock.FreezeTime(start.Add(10 * 24 * time.Hour))
+	after := fixture.migrate(plansubscription.MigrateSubscriptionRequest{})
+
+	// then every item and its entitlement are kept as a single unchanged version
+	at := start.Add(10 * 24 * time.Hour)
+	fixture.assertSubscriptionPreserved(after, target)
+	fixture.assertItemUnchanged(after, "rate-card-2", at)
+	fixture.assertItemUnchanged(after, subscriptiontestutils.ExampleFeatureKey, at)
+
+	afterEntitlement := after.Phases[0].ItemsByKey[subscriptiontestutils.ExampleFeatureKey][0].Entitlement
+	require.NotNil(t, afterEntitlement)
+	require.Equal(t, beforeEntitlement.Entitlement.ID, afterEntitlement.Entitlement.ID)
 }
 
 func TestMigrationNextCycleAdditionPreservesExistingItems(t *testing.T) {
