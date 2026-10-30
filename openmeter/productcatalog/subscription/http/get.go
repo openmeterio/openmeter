@@ -68,7 +68,12 @@ func (h *handler) GetSubscription() GetSubscriptionHandler {
 				return def, productcatalog.ErrCurrencyNotRepresentable
 			}
 
-			return MapSubscriptionViewToAPI(view)
+			taxCodes, err := h.taxCodesForView(ctx, view)
+			if err != nil {
+				return def, err
+			}
+
+			return MapSubscriptionViewToAPI(view, taxCodes)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[GetSubscriptionResponse](http.StatusOK),
 		httptransport.AppendOptions(

@@ -264,11 +264,7 @@ func SpecsEqual(t *testing.T, s1, s2 subscription.SubscriptionSpec) {
 	}
 }
 
-// RateCardsEqual is RateCard.Equal, except that found's Stripe tax code is ignored when expected
-// identifies the tax code by TaxCodeID alone. The services fill in the Stripe code from the tax
-// code's mapping, so a spec built from a TaxCodeID-only config can't know it. Otherwise the Stripe
-// code is compared, so a wrong or stale code still fails, and an expectation without a tax config
-// doesn't match a taxed card.
+// RateCardsEqual compares two rate cards of any implementation: type, billing cadence and meta.
 func RateCardsEqual(expected, found productcatalog.RateCard) bool {
 	if expected.Type() != found.Type() {
 		return false
@@ -278,31 +274,7 @@ func RateCardsEqual(expected, found productcatalog.RateCard) bool {
 		return false
 	}
 
-	// AsMeta returns copies, so adjusting TaxConfig here doesn't touch the rate cards.
-	expectedMeta := expected.AsMeta()
-	foundMeta := found.AsMeta()
-
-	if c := expectedMeta.TaxConfig; c != nil && c.TaxCodeID != nil && c.Stripe == nil {
-		foundMeta.TaxConfig = withoutStripeTaxCode(foundMeta.TaxConfig)
-	}
-
-	return expectedMeta.Equal(foundMeta)
-}
-
-// withoutStripeTaxCode returns a copy of c without the Stripe code, or nil if nothing else is set.
-func withoutStripeTaxCode(c *productcatalog.TaxConfig) *productcatalog.TaxConfig {
-	if c == nil {
-		return nil
-	}
-
-	out := c.Clone()
-	out.Stripe = nil
-
-	if out.Behavior == nil && out.TaxCodeID == nil {
-		return nil
-	}
-
-	return &out
+	return expected.AsMeta().Equal(found.AsMeta())
 }
 
 func tsPlusNillableISO(ts time.Time, iso *datetime.ISODuration) *time.Time {

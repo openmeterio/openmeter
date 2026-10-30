@@ -19,6 +19,7 @@ import (
 	customerservicehooks "github.com/openmeterio/openmeter/openmeter/customer/service/hooks"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/mockadapter"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	addonrepo "github.com/openmeterio/openmeter/openmeter/productcatalog/addon/adapter"
 	addonservice "github.com/openmeterio/openmeter/openmeter/productcatalog/addon/service"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/featureresolver"
@@ -28,6 +29,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
 	planaddonrepo "github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon/adapter"
 	planaddonservice "github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon/service"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/taxcoderesolver"
 	"github.com/openmeterio/openmeter/openmeter/registry"
 	registrybuilder "github.com/openmeterio/openmeter/openmeter/registry/builder"
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
@@ -73,6 +75,7 @@ type SubscriptionDependencies struct {
 	AddonService             *testAddonService
 	PlanAddonService         planaddon.Service
 	TaxCodeEnv               *taxcodetestutils.TestEnv
+	TaxCodeResolver          productcatalog.TaxCodeResolver
 }
 
 func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
@@ -179,6 +182,9 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 
 	taxCodeEnv := taxcodetestutils.NewTestEnvFromClient(t, dbDeps.DBClient, logger)
 
+	taxCodeResolver, err := taxcoderesolver.New(taxCodeEnv.Service)
+	require.NoError(t, err)
+
 	featureResolver, err := featureresolver.New(entitlementRegistry.Feature)
 	require.NoErrorf(t, err, "failed to create feature resolver: %v", err)
 
@@ -197,7 +203,7 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 		Logger:           logger,
 		Adapter:          planRepo,
 		Publisher:        publisher,
-		TaxCode:          taxCodeEnv.Service,
+		TaxCodeResolver:  taxCodeResolver,
 	})
 	require.NoError(t, err)
 
@@ -219,7 +225,7 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 		Publisher:             publisher,
 		Lockr:                 lockr,
 		FeatureFlags:          ffService,
-		TaxCode:               taxCodeEnv.Service,
+		TaxCodeResolver:       taxCodeResolver,
 		CostBasisService:      currencyService,
 	})
 	require.NoError(t, err)
@@ -236,7 +242,7 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 		Publisher:        publisher,
 		FeatureResolver:  featureResolver,
 		CurrencyResolver: currencyResolver,
-		TaxCode:          taxCodeEnv.Service,
+		TaxCodeResolver:  taxCodeResolver,
 	})
 	require.NoError(t, err)
 
@@ -309,5 +315,6 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 		MeterService:             meterAdapter,
 		MockStreamingConnector:   mockStreaming,
 		TaxCodeEnv:               taxCodeEnv,
+		TaxCodeResolver:          taxCodeResolver,
 	}
 }

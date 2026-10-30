@@ -56,7 +56,7 @@ var (
 // belong to the namespace the rate card is created in.
 
 // ExampleRateCard1 returns a new taxed usage-based rate card for the example feature.
-func ExampleRateCard1(taxConfig productcatalog.TaxConfig) *productcatalog.UsageBasedRateCard {
+func ExampleRateCard1(taxConfig productcatalog.TaxCodeConfig) *productcatalog.UsageBasedRateCard {
 	return &productcatalog.UsageBasedRateCard{
 		RateCardMeta: productcatalog.RateCardMeta{
 			Key:         ExampleFeatureKey,
@@ -77,7 +77,7 @@ func ExampleRateCard1(taxConfig productcatalog.TaxConfig) *productcatalog.UsageB
 }
 
 // ExampleRateCard3ForAddons returns a new taxed flat-fee rate card for addon tests.
-func ExampleRateCard3ForAddons(taxConfig productcatalog.TaxConfig) *productcatalog.FlatFeeRateCard {
+func ExampleRateCard3ForAddons(taxConfig productcatalog.TaxCodeConfig) *productcatalog.FlatFeeRateCard {
 	return &productcatalog.FlatFeeRateCard{
 		RateCardMeta: productcatalog.RateCardMeta{
 			Key:         ExampleFeatureKey2,
@@ -99,7 +99,7 @@ func ExampleRateCard3ForAddons(taxConfig productcatalog.TaxConfig) *productcatal
 }
 
 // ExampleRateCardWithDiscounts returns a new taxed flat-fee rate card with discounts.
-func ExampleRateCardWithDiscounts(taxConfig productcatalog.TaxConfig) *productcatalog.FlatFeeRateCard {
+func ExampleRateCardWithDiscounts(taxConfig productcatalog.TaxCodeConfig) *productcatalog.FlatFeeRateCard {
 	return &productcatalog.FlatFeeRateCard{
 		RateCardMeta: productcatalog.RateCardMeta{
 			Key:         ExampleFeatureKey,
