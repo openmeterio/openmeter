@@ -384,7 +384,9 @@ func mapRateCard(line *billing.StandardLine) (api.BillingInvoiceLineRateCard, er
 		Price:      price,
 		FeatureKey: lo.EmptyableToPtr(line.UsageBased.FeatureKey),
 		Discounts:  toAPIRateCardDiscounts(line.RateCardDiscounts),
-		TaxConfig:  addons.ToAPITaxCodeConfig(line.TaxConfig.ToProductCatalog()),
+		// Invoice lines still carry the legacy TaxConfig; the v3 shape only has the Tax Code ID and
+		// behavior, so dropping the Stripe code here loses nothing.
+		TaxConfig: addons.ToAPITaxCodeConfig(lo.ToPtr(productcatalog.TaxCodeConfigFrom(line.TaxConfig.ToProductCatalog()))),
 	}
 
 	if uc := line.GetUnitConfig(); uc != nil {
@@ -836,7 +838,11 @@ func mapRateCardFromAPI(rc api.UpdateInvoiceLineRateCard) (*productcatalog.Price
 		}
 	}
 
-	taxConfig := billing.FromProductCatalog(pcTaxConfig)
+	// Invoice lines still store the legacy TaxConfig, so convert the Tax Code reference back.
+	var taxConfig *billing.TaxConfig
+	if pcTaxConfig != nil {
+		taxConfig = billing.FromProductCatalog(lo.ToPtr(pcTaxConfig.ToTaxConfig()))
+	}
 
 	return price, taxConfig, lo.FromPtrOr(rc.FeatureKey, ""), discounts, nil
 }

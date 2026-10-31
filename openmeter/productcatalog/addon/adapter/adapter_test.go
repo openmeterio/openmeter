@@ -90,11 +90,8 @@ func TestPostgresAdapter(t *testing.T) {
 						Metadata:            models.Metadata{"name": features[0].Name},
 						Feature:             productcatalog.NewFeatureReference(lo.ToPtr(features[0].ID), lo.ToPtr(features[0].Key)),
 						EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.BooleanEntitlementTemplate{}),
-						TaxConfig: &productcatalog.TaxConfig{
-							Stripe: &productcatalog.StripeTaxConfig{
-								Code: "txcd_10000000",
-							},
-							TaxCodeID: lo.ToPtr(taxCode.ID),
+						TaxConfig: &productcatalog.TaxCodeConfig{
+							TaxCodeID: taxCode.ID,
 						},
 						Price: productcatalog.NewPriceFrom(productcatalog.TieredPrice{
 							Mode: productcatalog.VolumeTieredPrice,
@@ -288,11 +285,8 @@ func TestPostgresAdapter(t *testing.T) {
 								Metadata:            models.Metadata{"name": "ratecard-2"},
 								Feature:             productcatalog.NewFeatureReference(nil, nil),
 								EntitlementTemplate: nil,
-								TaxConfig: &productcatalog.TaxConfig{
-									Stripe: &productcatalog.StripeTaxConfig{
-										Code: "txcd_10000000",
-									},
-									TaxCodeID: lo.ToPtr(taxCode.ID),
+								TaxConfig: &productcatalog.TaxCodeConfig{
+									TaxCodeID: taxCode.ID,
 								},
 								Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 									Amount:      decimal.NewFromInt(0),
@@ -458,6 +452,88 @@ func TestPostgresAdapter(t *testing.T) {
 			}
 		})
 	})
+}
+
+func TestAddonRateCardTaxColumns(t *testing.T) {
+	env := pctestutils.NewTestEnv(t)
+	t.Cleanup(func() { env.Close(t) })
+
+	namespace := pctestutils.NewTestNamespace(t)
+	taxCode := env.TaxCodeEnv.CreateTaxCode(t, namespace, taxcode.CreateTaxCodeInput{
+		AppMappings: taxcode.TaxCodeAppMappings{
+			{AppType: app.AppTypeStripe, TaxCode: "txcd_10000000"},
+		},
+	})
+
+	flatFee := func(key string, cfg *productcatalog.TaxCodeConfig) productcatalog.RateCard {
+		return &productcatalog.FlatFeeRateCard{
+			RateCardMeta: productcatalog.RateCardMeta{
+				Key:       key,
+				Name:      key,
+				TaxConfig: cfg,
+				Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+					Amount:      decimal.NewFromInt(10),
+					PaymentTerm: productcatalog.InAdvancePaymentTerm,
+				}),
+			},
+			BillingCadence: &pctestutils.MonthPeriod,
+		}
+	}
+
+	expected := map[string]*productcatalog.TaxCodeConfig{
+		"id-and-behavior": {TaxCodeID: taxCode.ID, Behavior: lo.ToPtr(productcatalog.InclusiveTaxBehavior)},
+		"id-only":         {TaxCodeID: taxCode.ID},
+		"behavior-only":   {Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)},
+		"none":            nil,
+	}
+
+	// given: rate cards covering every combination of Tax Code ID and behavior
+	input := pctestutils.NewTestAddon(t, namespace,
+		flatFee("id-and-behavior", expected["id-and-behavior"]),
+		flatFee("id-only", expected["id-only"]),
+		flatFee("behavior-only", expected["behavior-only"]),
+		flatFee("none", expected["none"]),
+	)
+
+	// when: the add-on is written and read back
+	created, err := env.AddonRepository.CreateAddon(t.Context(), input)
+	require.NoError(t, err, "the DB checks must accept every combination")
+
+	fetched, err := env.AddonRepository.GetAddon(t.Context(), addon.GetAddonInput{
+		NamespacedID: models.NamespacedID{Namespace: namespace, ID: created.ID},
+	})
+	require.NoError(t, err)
+
+	// then: the tax config comes back from the columns as written
+	require.Len(t, fetched.RateCards, len(expected))
+	for _, rc := range fetched.RateCards {
+		assert.Equalf(t, expected[rc.Key()], rc.AsMeta().TaxConfig, "rate card %s", rc.Key())
+	}
+
+	// then: the legacy JSON copy mirrors the columns and never carries a Stripe code
+	rows, err := env.Client.AddonRateCard.Query().
+		Where(addonratecarddb.Namespace(namespace)).
+		All(t.Context())
+	require.NoError(t, err)
+	require.Len(t, rows, len(expected))
+
+	for _, row := range rows {
+		cfg := expected[row.Key]
+		if cfg == nil {
+			assert.Nilf(t, row.TaxConfig, "rate card %s", row.Key)
+			assert.Nilf(t, row.TaxCodeID, "rate card %s", row.Key)
+			assert.Nilf(t, row.TaxBehavior, "rate card %s", row.Key)
+
+			continue
+		}
+
+		require.NotNilf(t, row.TaxConfig, "rate card %s", row.Key)
+		assert.Nilf(t, row.TaxConfig.Stripe, "rate card %s", row.Key)
+		assert.Equalf(t, lo.EmptyableToPtr(cfg.TaxCodeID), row.TaxConfig.TaxCodeID, "rate card %s", row.Key)
+		assert.Equalf(t, cfg.Behavior, row.TaxConfig.Behavior, "rate card %s", row.Key)
+		assert.Equalf(t, lo.EmptyableToPtr(cfg.TaxCodeID), row.TaxCodeID, "rate card %s", row.Key)
+		assert.Equalf(t, cfg.Behavior, row.TaxBehavior, "rate card %s", row.Key)
+	}
 }
 
 func TestListAddonsExcludeUnitConfig(t *testing.T) {

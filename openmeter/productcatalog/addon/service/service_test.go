@@ -141,11 +141,8 @@ func TestAddonService(t *testing.T) {
 						Metadata:            models.Metadata{"name": features[0].Name},
 						Feature:             productcatalog.NewFeatureReference(lo.ToPtr(features[0].ID), nil),
 						EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.BooleanEntitlementTemplate{}),
-						TaxConfig: &productcatalog.TaxConfig{
-							Stripe: &productcatalog.StripeTaxConfig{
-								Code: "txcd_10000000",
-							},
-							TaxCodeID: lo.ToPtr(taxcode.ID),
+						TaxConfig: &productcatalog.TaxCodeConfig{
+							TaxCodeID: taxcode.ID,
 						},
 						Price: productcatalog.NewPriceFrom(productcatalog.TieredPrice{
 							Mode: productcatalog.VolumeTieredPrice,
@@ -225,11 +222,8 @@ func TestAddonService(t *testing.T) {
 								Description: lo.ToPtr("RateCard 1"),
 								Metadata:    models.Metadata{"name": features[0].Name},
 								Feature:     productcatalog.NewFeatureReference(nil, lo.ToPtr(features[0].Key)),
-								TaxConfig: &productcatalog.TaxConfig{
-									Stripe: &productcatalog.StripeTaxConfig{
-										Code: "txcd_10000000",
-									},
-									TaxCodeID: lo.ToPtr(taxcode.ID),
+								TaxConfig: &productcatalog.TaxCodeConfig{
+									TaxCodeID: taxcode.ID,
 								},
 								Price: productcatalog.NewPriceFrom(
 									productcatalog.FlatPrice{
@@ -247,11 +241,8 @@ func TestAddonService(t *testing.T) {
 								Metadata:            models.Metadata{"name": features[1].Name},
 								Feature:             productcatalog.NewFeatureReference(lo.ToPtr(features[1].ID), nil),
 								EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.BooleanEntitlementTemplate{}),
-								TaxConfig: &productcatalog.TaxConfig{
-									Stripe: &productcatalog.StripeTaxConfig{
-										Code: "txcd_10000000",
-									},
-									TaxCodeID: lo.ToPtr(taxcode.ID),
+								TaxConfig: &productcatalog.TaxCodeConfig{
+									TaxCodeID: taxcode.ID,
 								},
 								Price: productcatalog.NewPriceFrom(productcatalog.TieredPrice{
 									Mode: productcatalog.VolumeTieredPrice,

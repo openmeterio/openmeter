@@ -2,6 +2,7 @@ package productcatalog
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"testing"
 
@@ -22,29 +23,21 @@ func TestTaxCodeConfigValidation(t *testing.T) {
 		wantErr string
 	}{
 		{
-			name:    "zero",
-			cfg:     &TaxCodeConfig{},
-			wantErr: "validation error: tax code id is required",
+			name: "zero",
+			cfg:  &TaxCodeConfig{},
 		},
 		{
-			name:    "valid behavior",
-			cfg:     &TaxCodeConfig{Behavior: lo.ToPtr(InclusiveTaxBehavior)},
-			wantErr: "validation error: tax code id is required",
+			name: "behavior only",
+			cfg:  &TaxCodeConfig{Behavior: lo.ToPtr(InclusiveTaxBehavior)},
 		},
 		{
 			name:    "invalid behavior",
 			cfg:     &TaxCodeConfig{Behavior: (*TaxBehavior)(lo.ToPtr("bad"))},
-			wantErr: "validation error: invalid tax behavior: bad\ntax code id is required",
+			wantErr: "validation error: invalid tax behavior: bad",
 		},
 		{
-			name:    "valid tax_code_id",
-			cfg:     &TaxCodeConfig{TaxCodeID: "01AN4Z07BY79KA1307SR9X4MV3"},
-			wantErr: "",
-		},
-		{
-			name:    "empty tax_code_id",
-			cfg:     &TaxCodeConfig{TaxCodeID: ""},
-			wantErr: "validation error: tax code id is required",
+			name: "valid tax_code_id",
+			cfg:  &TaxCodeConfig{TaxCodeID: "01AN4Z07BY79KA1307SR9X4MV3"},
 		},
 	}
 
@@ -58,6 +51,45 @@ func TestTaxCodeConfigValidation(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TaxCodeConfig and the legacy TaxConfig share the same JSON keys, so either can read what the
+// other wrote. That keeps older readers working when a field switches from one to the other.
+func TestTaxCodeConfigJSONCompatibility(t *testing.T) {
+	t.Run("zero config marshals to an empty object", func(t *testing.T) {
+		got, err := json.Marshal(TaxCodeConfig{})
+		require.NoError(t, err)
+
+		assert.JSONEq(t, `{}`, string(got))
+	})
+
+	t.Run("empty object decodes into a legacy config without a tax code", func(t *testing.T) {
+		var got TaxConfig
+		require.NoError(t, json.Unmarshal([]byte(`{}`), &got))
+
+		assert.Nil(t, got.TaxCodeID)
+	})
+
+	t.Run("full config round-trips through the legacy config", func(t *testing.T) {
+		in := TaxCodeConfig{
+			Behavior:  lo.ToPtr(ExclusiveTaxBehavior),
+			TaxCodeID: "01AN4Z07BY79KA1307SR9X4MV3",
+		}
+
+		raw, err := json.Marshal(in)
+		require.NoError(t, err)
+
+		var legacy TaxConfig
+		require.NoError(t, json.Unmarshal(raw, &legacy))
+		assert.Equal(t, in.ToTaxConfig(), legacy)
+
+		raw, err = json.Marshal(legacy)
+		require.NoError(t, err)
+
+		var out TaxCodeConfig
+		require.NoError(t, json.Unmarshal(raw, &out))
+		assert.Equal(t, in, out)
+	})
 }
 
 func TestTaxCodeConfigToTaxConfig(t *testing.T) {
@@ -107,6 +139,97 @@ func TestTaxCodeConfigFrom(t *testing.T) {
 		out.Behavior = &newBehavior
 		assert.Equal(t, InclusiveTaxBehavior, *cfg.Behavior, "TaxCodeConfigFrom must not share pointer fields")
 	})
+}
+
+func TestFromDBTaxColumns(t *testing.T) {
+	const taxCodeID = "01JTAXCODE0000000000000000"
+
+	tests := []struct {
+		name        string
+		taxCodeID   *string
+		taxBehavior *TaxBehavior
+		want        *TaxCodeConfig
+	}{
+		{name: "no columns set", want: nil},
+		{name: "tax code ID", taxCodeID: lo.ToPtr(taxCodeID), want: &TaxCodeConfig{TaxCodeID: taxCodeID}},
+		{
+			name:        "behavior only",
+			taxBehavior: lo.ToPtr(InclusiveTaxBehavior),
+			want:        &TaxCodeConfig{Behavior: lo.ToPtr(InclusiveTaxBehavior)},
+		},
+		{
+			name:        "tax code ID and behavior",
+			taxCodeID:   lo.ToPtr(taxCodeID),
+			taxBehavior: lo.ToPtr(ExclusiveTaxBehavior),
+			want:        &TaxCodeConfig{TaxCodeID: taxCodeID, Behavior: lo.ToPtr(ExclusiveTaxBehavior)},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, FromDBTaxColumns(tt.taxCodeID, tt.taxBehavior))
+		})
+	}
+}
+
+func TestTaxCodeConfigEqual(t *testing.T) {
+	const id = "01JTAXCODE00000000000000000"
+
+	tests := []struct {
+		name  string
+		left  *TaxCodeConfig
+		right *TaxCodeConfig
+		want  bool
+	}{
+		{name: "both nil", want: true},
+		{name: "nil and zero value", right: &TaxCodeConfig{}, want: true},
+		{name: "zero value and nil", left: &TaxCodeConfig{}, want: true},
+		{name: "nil and set", right: &TaxCodeConfig{TaxCodeID: id}},
+		{
+			name:  "same values in different pointers",
+			left:  &TaxCodeConfig{TaxCodeID: id, Behavior: lo.ToPtr(InclusiveTaxBehavior)},
+			right: &TaxCodeConfig{TaxCodeID: id, Behavior: lo.ToPtr(InclusiveTaxBehavior)},
+			want:  true,
+		},
+		{
+			name:  "different tax code ID",
+			left:  &TaxCodeConfig{TaxCodeID: id},
+			right: &TaxCodeConfig{TaxCodeID: "01JTAXCODE00000000000000001"},
+		},
+		{
+			name:  "different behavior",
+			left:  &TaxCodeConfig{TaxCodeID: id, Behavior: lo.ToPtr(InclusiveTaxBehavior)},
+			right: &TaxCodeConfig{TaxCodeID: id, Behavior: lo.ToPtr(ExclusiveTaxBehavior)},
+		},
+		{
+			name:  "behavior set on one side only",
+			left:  &TaxCodeConfig{TaxCodeID: id, Behavior: lo.ToPtr(InclusiveTaxBehavior)},
+			right: &TaxCodeConfig{TaxCodeID: id},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, tt.left.Equal(tt.right))
+			assert.Equal(t, tt.want, tt.right.Equal(tt.left))
+		})
+	}
+}
+
+func TestTaxCodeConfigClone(t *testing.T) {
+	original := TaxCodeConfig{
+		TaxCodeID: "01JTAXCODE00000000000000000",
+		Behavior:  lo.ToPtr(InclusiveTaxBehavior),
+	}
+
+	cloned := original.Clone()
+	require.True(t, original.Equal(&cloned))
+	require.NotSame(t, original.Behavior, cloned.Behavior)
+
+	*cloned.Behavior = ExclusiveTaxBehavior
+	assert.Equal(t, InclusiveTaxBehavior, *original.Behavior)
+
+	assert.Equal(t, TaxCodeConfig{}, TaxCodeConfig{}.Clone())
 }
 
 func TestTaxConfigValidation(t *testing.T) {

@@ -157,7 +157,6 @@ func querySubscriptionAddon(query *db.SubscriptionAddonQuery) *db.SubscriptionAd
 		WithAddon(func(aq *db.AddonQuery) {
 			aq.WithRatecards(func(arq *db.AddonRateCardQuery) {
 				arq.WithFeatures()
-				arq.WithTaxCode()
 			})
 		}).
 		WithQuantities(func(saqq *db.SubscriptionAddonQuantityQuery) {

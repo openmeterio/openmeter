@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
+	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
@@ -25,6 +26,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription/patch"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
@@ -4046,11 +4048,23 @@ func (s *SubscriptionHandlerTestSuite) TestRateCardTaxSync() {
 	// Then
 	//  the gathering invoice will contain the tax details
 
-	taxConfig := &productcatalog.TaxConfig{
-		Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
-		Stripe: &productcatalog.StripeTaxConfig{
-			Code: "txcd_10000000",
-		},
+	tc, err := s.TaxCodeEnv.Service.GetOrCreateByAppMapping(ctx, taxcode.GetOrCreateByAppMappingInput{
+		Namespace: s.Namespace,
+		AppType:   app.AppTypeStripe,
+		TaxCode:   "txcd_10000000",
+	})
+	s.Require().NoError(err)
+
+	taxConfig := &productcatalog.TaxCodeConfig{
+		Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
+		TaxCodeID: tc.ID,
+	}
+
+	// Lines carry the legacy shape, with the Stripe code filled in from the Tax Code's mapping.
+	expectedLineTaxConfig := &productcatalog.TaxConfig{
+		Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
+		Stripe:    &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
+		TaxCodeID: lo.ToPtr(tc.ID),
 	}
 
 	subsView := s.createSubscriptionFromPlanPhases([]productcatalog.Phase{
@@ -4080,7 +4094,7 @@ func (s *SubscriptionHandlerTestSuite) TestRateCardTaxSync() {
 
 	lines := gatheringInvoice.Lines.OrEmpty()
 	for _, line := range lines {
-		s.Equal(taxConfig, line.TaxConfig)
+		s.Equal(expectedLineTaxConfig, line.TaxConfig)
 	}
 
 	// Given we edit the subscription the tax config is carried over to the lines
@@ -4111,7 +4125,7 @@ func (s *SubscriptionHandlerTestSuite) TestRateCardTaxSync() {
 
 	lines = gatheringInvoice.Lines.OrEmpty()
 	for _, line := range lines {
-		s.Equal(taxConfig, line.TaxConfig)
+		s.Equal(expectedLineTaxConfig, line.TaxConfig)
 	}
 }
 

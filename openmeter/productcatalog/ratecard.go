@@ -13,7 +13,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
-	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -93,11 +92,10 @@ type RateCardMeta struct {
 	// If Feature is set then template must be provided as well.
 	EntitlementTemplate *EntitlementTemplate `json:"entitlementTemplate,omitempty"`
 
-	// TaxConfig defines provider specific tax information.
-	TaxConfig *TaxConfig `json:"taxConfig,omitempty"`
-
-	// TaxCode is the tax code assigned to the RateCard. It is only populated if the tax code was eagerly loaded.
-	TaxCode *taxcode.TaxCode `json:"taxCode,omitempty"`
+	// TaxConfig references the Tax Code applied to the RateCard, plus an optional tax behavior.
+	// Provider codes (e.g. Stripe) aren't stored here: v1 handlers resolve them to a Tax Code at
+	// the API boundary.
+	TaxConfig *TaxCodeConfig `json:"taxConfig,omitempty"`
 
 	// Price defines the price for the RateCard
 	Price *Price `json:"price"`
@@ -151,8 +149,7 @@ func (r RateCardMeta) Clone() RateCardMeta {
 	}
 
 	if r.TaxConfig != nil {
-		taxCfg := *r.TaxConfig
-		clone.TaxConfig = &taxCfg
+		clone.TaxConfig = lo.ToPtr(r.TaxConfig.Clone())
 	}
 
 	if r.Price != nil {
@@ -169,9 +166,6 @@ func (r RateCardMeta) Clone() RateCardMeta {
 	if r.UnitConfig != nil {
 		clone.UnitConfig = lo.ToPtr(r.UnitConfig.Clone())
 	}
-
-	// TaxCode is an eagerly loaded reference, shallow copy is sufficient
-	clone.TaxCode = r.TaxCode
 
 	return clone
 }
@@ -729,6 +723,19 @@ func (c RateCards) Clone() RateCards {
 	}
 
 	return clone
+}
+
+// TaxCodeIDs returns the distinct Tax Code IDs the rate cards reference, in first-seen order, so
+// callers can look them all up in one batch.
+func (c RateCards) TaxCodeIDs() []string {
+	return lo.Uniq(lo.FilterMap(c, func(rc RateCard, _ int) (string, bool) {
+		cfg := rc.AsMeta().TaxConfig
+		if cfg == nil || cfg.TaxCodeID == "" {
+			return "", false
+		}
+
+		return cfg.TaxCodeID, true
+	}))
 }
 
 func (c RateCards) At(idx int) RateCard {

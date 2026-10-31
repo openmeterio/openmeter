@@ -563,7 +563,6 @@ func planEagerLoadActiveAddons(currencyExpand *currencies.CurrencyExpandOptions)
 
 			aq.WithRatecards(func(arq *entdb.AddonRateCardQuery) {
 				arq.WithFeatures()
-				arq.WithTaxCode()
 				if currencyExpand != nil {
 					arq.WithCustomCurrency(eagerLoadCustomCurrency(*currencyExpand))
 				}
@@ -582,7 +581,6 @@ func planPhaseEagerLoadRateCards(currencyExpand *currencies.CurrencyExpandOption
 				),
 			)
 			rateCardEagerLoadFeaturesFn(prcq)
-			rateCardEagerLoadTaxCodesFn(prcq)
 			if currencyExpand != nil {
 				prcq.WithCustomCurrency(eagerLoadCustomCurrency(*currencyExpand))
 			}
@@ -592,10 +590,6 @@ func planPhaseEagerLoadRateCards(currencyExpand *currencies.CurrencyExpandOption
 
 var rateCardEagerLoadFeaturesFn = func(q *entdb.PlanRateCardQuery) {
 	q.WithFeatures()
-}
-
-var rateCardEagerLoadTaxCodesFn = func(q *entdb.PlanRateCardQuery) {
-	q.WithTaxCode()
 }
 
 func eagerLoadCustomCurrency(expand currencies.CurrencyExpandOptions) func(*entdb.CustomCurrencyQuery) {

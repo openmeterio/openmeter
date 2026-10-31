@@ -75,9 +75,19 @@ func (h *handler) ListPlanAddons() ListPlanAddonsHandler {
 			return req, nil
 		},
 		func(ctx context.Context, request ListPlanAddonsRequest) (ListPlanAddonsResponse, error) {
+			// The decoder scopes the list to the caller's namespace; tax codes are looked up there.
+			if len(request.Namespaces) != 1 {
+				return ListPlanAddonsResponse{}, fmt.Errorf("expected exactly one namespace, got %d", len(request.Namespaces))
+			}
+
 			resp, err := h.service.ListPlanAddons(ctx, request)
 			if err != nil {
 				return ListPlanAddonsResponse{}, fmt.Errorf("failed to list plan add-on assignments: %w", err)
+			}
+
+			taxCodes, err := h.taxCodesForPlanAddons(ctx, request.Namespaces[0], resp.Items...)
+			if err != nil {
+				return ListPlanAddonsResponse{}, err
 			}
 
 			items := make([]api.PlanAddon, 0, len(resp.Items))
@@ -97,7 +107,7 @@ func (h *handler) ListPlanAddons() ListPlanAddonsHandler {
 					return ListPlanAddonsResponse{}, productcatalog.ErrRateCardCurrencyNotRepresentable
 				}
 
-				item, err = FromPlanAddon(a)
+				item, err = FromPlanAddon(a, taxCodes)
 				if err != nil {
 					return ListPlanAddonsResponse{}, fmt.Errorf("failed to cast plan add-on assignment [namespace=%s plan.id=%s addon.id=%s]: %w",
 						a.Namespace, a.Plan.ID, a.Addon.ID, err)
@@ -159,7 +169,12 @@ func (h *handler) CreatePlanAddon() CreatePlanAddonHandler {
 					request.Namespace, request.PlanID, request.AddonID, err)
 			}
 
-			return FromPlanAddon(*a)
+			taxCodes, err := h.taxCodesForPlanAddons(ctx, a.Namespace, *a)
+			if err != nil {
+				return CreatePlanAddonResponse{}, err
+			}
+
+			return FromPlanAddon(*a, taxCodes)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[CreatePlanAddonResponse](http.StatusCreated),
 		httptransport.AppendOptions(
@@ -211,7 +226,12 @@ func (h *handler) UpdatePlanAddon() UpdatePlanAddonHandler {
 					request.Namespace, request.PlanID, request.AddonID, err)
 			}
 
-			return FromPlanAddon(*a)
+			taxCodes, err := h.taxCodesForPlanAddons(ctx, a.Namespace, *a)
+			if err != nil {
+				return UpdatePlanAddonResponse{}, err
+			}
+
+			return FromPlanAddon(*a, taxCodes)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[UpdatePlanAddonResponse](http.StatusOK),
 		httptransport.AppendOptions(
@@ -311,7 +331,12 @@ func (h *handler) GetPlanAddon() GetPlanAddonHandler {
 				return GetPlanAddonResponse{}, productcatalog.ErrRateCardCurrencyNotRepresentable
 			}
 
-			return FromPlanAddon(*a)
+			taxCodes, err := h.taxCodesForPlanAddons(ctx, a.Namespace, *a)
+			if err != nil {
+				return GetPlanAddonResponse{}, err
+			}
+
+			return FromPlanAddon(*a, taxCodes)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[GetPlanAddonResponse](http.StatusOK),
 		httptransport.AppendOptions(

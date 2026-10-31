@@ -80,10 +80,8 @@ func TestEditingEntitlementOfAlignedSub(t *testing.T) {
 								Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 									Amount: alpacadecimal.NewFromInt(100),
 								}),
-								TaxConfig: &productcatalog.TaxConfig{
-									Stripe: &productcatalog.StripeTaxConfig{
-										Code: "txcd_10000000",
-									},
+								TaxConfig: &productcatalog.TaxCodeConfig{
+									Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
 								},
 								EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.MeteredEntitlementTemplate{
 									UsagePeriod:     datetime.MustParseDuration(t, "P1M"),
@@ -177,10 +175,8 @@ func TestEditingEntitlementOfAlignedSub(t *testing.T) {
 								Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 									Amount: alpacadecimal.NewFromInt(101),
 								}),
-								TaxConfig: &productcatalog.TaxConfig{
-									Stripe: &productcatalog.StripeTaxConfig{
-										Code: "txcd_10000000",
-									},
+								TaxConfig: &productcatalog.TaxCodeConfig{
+									Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
 								},
 							},
 							BillingCadence: datetime.MustParseDuration(t, "P1M"),

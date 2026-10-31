@@ -104,6 +104,11 @@ func (i Intent) Validate() error {
 		errs = append(errs, fmt.Errorf("tax config: %w", err))
 	}
 
+	// Charges are invoiced with their Tax Code, so a behavior-only config isn't enough here.
+	if i.TaxConfig.TaxCodeID == "" {
+		errs = append(errs, errors.New("tax config: tax code id is required"))
+	}
+
 	if i.Subscription != nil {
 		if err := i.Subscription.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("subscription: %w", err))

@@ -64,7 +64,12 @@ func (h *handler) MigrateSubscription() MigrateSubscriptionHandler {
 				return MigrateSubscriptionResponse{}, err
 			}
 
-			v, err := MapSubscriptionViewToAPI(res.Next)
+			taxCodes, err := h.taxCodesForView(ctx, res.Next)
+			if err != nil {
+				return MigrateSubscriptionResponse{}, err
+			}
+
+			v, err := MapSubscriptionViewToAPI(res.Next, taxCodes)
 
 			return MigrateSubscriptionResponse{
 				Current: MapSubscriptionToAPI(res.Current),

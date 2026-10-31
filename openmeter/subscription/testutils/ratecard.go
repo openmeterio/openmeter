@@ -24,10 +24,8 @@ var (
 				IssueAfterReset: lo.ToPtr(100.0),
 				UsagePeriod:     ISOMonth,
 			}),
-			TaxConfig: &productcatalog.TaxConfig{
-				Stripe: &productcatalog.StripeTaxConfig{
-					Code: "txcd_10000000",
-				},
+			TaxConfig: &productcatalog.TaxCodeConfig{
+				Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
 			},
 			Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount: alpacadecimal.NewFromInt(ExamplePriceAmount),
@@ -57,10 +55,8 @@ var (
 				IssueAfterReset: lo.ToPtr(100.0),
 				UsagePeriod:     ISOMonth,
 			}),
-			TaxConfig: &productcatalog.TaxConfig{
-				Stripe: &productcatalog.StripeTaxConfig{
-					Code: "txcd_10000000",
-				},
+			TaxConfig: &productcatalog.TaxCodeConfig{
+				Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
 			},
 			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 				Amount:      alpacadecimal.NewFromInt(ExamplePriceAmount),
@@ -101,10 +97,8 @@ var (
 				IssueAfterReset: lo.ToPtr(100.0),
 				UsagePeriod:     ISOMonth,
 			}),
-			TaxConfig: &productcatalog.TaxConfig{
-				Stripe: &productcatalog.StripeTaxConfig{
-					Code: "txcd_10000000",
-				},
+			TaxConfig: &productcatalog.TaxCodeConfig{
+				Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
 			},
 			Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount: alpacadecimal.NewFromInt(ExamplePriceAmount),

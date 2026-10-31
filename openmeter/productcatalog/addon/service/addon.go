@@ -32,54 +32,6 @@ func (s service) ListAddons(ctx context.Context, params addon.ListAddonsInput) (
 	return fn(ctx)
 }
 
-// resolveTaxCodes ensures that each RateCard with a Stripe tax code in its TaxConfig
-// has a corresponding TaxCode entity in the namespace. If no matching TaxCode exists,
-// one is created. The RateCard's TaxConfig.TaxCodeID is then populated.
-func (s service) resolveTaxCodes(ctx context.Context, namespace string, rateCards *productcatalog.RateCards) error {
-	if rateCards == nil || len(*rateCards) == 0 {
-		return nil
-	}
-
-	for _, rc := range *rateCards {
-		meta := rc.AsMeta()
-		if meta.TaxConfig == nil {
-			continue
-		}
-
-		if err := productcatalog.ResolveTaxConfig(ctx, s.taxCode, namespace, meta.TaxConfig); err != nil {
-			return err
-		}
-
-		var rcNew productcatalog.RateCard
-
-		switch rc.Type() {
-		case productcatalog.FlatFeeRateCardType:
-			rcNew = &productcatalog.FlatFeeRateCard{
-				RateCardMeta:   meta,
-				BillingCadence: rc.GetBillingCadence(),
-			}
-		case productcatalog.UsageBasedRateCardType:
-			bc := rc.GetBillingCadence()
-			if bc == nil {
-				return fmt.Errorf("billing cadence is required for usage-based rate card")
-			}
-
-			rcNew = &productcatalog.UsageBasedRateCard{
-				RateCardMeta:   meta,
-				BillingCadence: *bc,
-			}
-		default:
-			return fmt.Errorf("unsupported RateCard type: %s", rc.Type())
-		}
-
-		if err := rc.Merge(rcNew); err != nil {
-			return fmt.Errorf("failed to merge RateCard: %w", err)
-		}
-	}
-
-	return nil
-}
-
 // addonVersions is a collection of add-ons versions (all of them have the same namespace key pair).
 type addonVersions []addon.Addon
 
@@ -174,8 +126,8 @@ func (s service) CreateAddon(ctx context.Context, params addon.CreateAddonInput)
 				return nil, fmt.Errorf("failed to resolve features for ratecards in add-on [addon.key=%s]: %w", params.Key, err)
 			}
 
-			if err = s.resolveTaxCodes(ctx, params.Namespace, &params.RateCards); err != nil {
-				return nil, fmt.Errorf("failed to resolve tax codes for ratecards in add-on: %w", err)
+			if err = productcatalog.ValidateRateCardTaxCodes(ctx, s.taxCodeResolver, params.Namespace, params.RateCards); err != nil {
+				return nil, fmt.Errorf("invalid tax codes for ratecards in add-on [addon.key=%s]: %w", params.Key, err)
 			}
 		}
 
@@ -377,8 +329,8 @@ func (s service) UpdateAddon(ctx context.Context, params addon.UpdateAddonInput)
 				return nil, fmt.Errorf("failed to expand features for ratecards in add-on: %w", err)
 			}
 
-			if err := s.resolveTaxCodes(ctx, params.Namespace, params.RateCards); err != nil {
-				return nil, fmt.Errorf("failed to resolve tax codes for ratecards in add-on: %w", err)
+			if err := productcatalog.ValidateRateCardTaxCodes(ctx, s.taxCodeResolver, params.Namespace, *params.RateCards); err != nil {
+				return nil, fmt.Errorf("invalid tax codes for ratecards in add-on [addon.id=%s]: %w", params.ID, err)
 			}
 
 			candidate := add.AsProductCatalogAddon()

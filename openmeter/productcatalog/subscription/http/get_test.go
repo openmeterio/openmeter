@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	subscriptionhttp "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription/http"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/taxcoderesolver"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/subscription/testutils"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
@@ -76,12 +77,16 @@ func TestV1SubscriptionReadsExcludeCustomCurrency(t *testing.T) {
 		views[kind] = view
 	}
 
+	taxCodeResolver, err := taxcoderesolver.NewTransactional(deps.TaxCodeEnv.Service, deps.TaxCodeEnv.Adapter)
+	require.NoError(t, err)
+
 	decoder := namespacedriver.StaticNamespaceDecoder(ns)
 	handler := subscriptionhttp.NewHandler(subscriptionhttp.HandlerConfig{
 		SubscriptionService: deps.SubscriptionService,
 		CustomerService:     deps.CustomerService,
 		NamespaceDecoder:    decoder,
 		Logger:              testutils.NewLogger(t),
+		TaxCodeResolver:     taxCodeResolver,
 	})
 
 	t.Run("get", func(t *testing.T) {

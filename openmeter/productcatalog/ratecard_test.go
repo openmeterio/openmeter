@@ -83,6 +83,107 @@ func TestRateCardJSONRoundTrip(t *testing.T) {
 	}
 }
 
+// The rate card's taxConfig is written in the legacy TaxConfig shape minus the Stripe code, so
+// stored documents and Kafka events stay readable both ways.
+func TestRateCardTaxConfigJSON(t *testing.T) {
+	t.Run("serializes as a subset of the legacy tax config", func(t *testing.T) {
+		rc := &FlatFeeRateCard{
+			RateCardMeta: RateCardMeta{
+				Key:       "flat",
+				Name:      "Flat",
+				TaxConfig: &TaxCodeConfig{TaxCodeID: "x", Behavior: lo.ToPtr(InclusiveTaxBehavior)},
+			},
+		}
+
+		data, err := json.Marshal(rc)
+		require.NoError(t, err)
+
+		var fields map[string]json.RawMessage
+		require.NoError(t, json.Unmarshal(data, &fields))
+		assert.JSONEq(t, `{"behavior":"inclusive","tax_code_id":"x"}`, string(fields["taxConfig"]))
+	})
+
+	t.Run("reads legacy documents with a stripe code", func(t *testing.T) {
+		legacy := `{"type":"flat_fee","key":"flat","name":"Flat","price":null,"taxConfig":{"behavior":"exclusive","stripe":{"code":"txcd_10000000"},"tax_code_id":"x"}}`
+
+		var rc FlatFeeRateCard
+		require.NoError(t, json.Unmarshal([]byte(legacy), &rc))
+		assert.Equal(t, &TaxCodeConfig{TaxCodeID: "x", Behavior: lo.ToPtr(ExclusiveTaxBehavior)}, rc.TaxConfig)
+	})
+}
+
+func TestRateCardMetaEqualTaxConfig(t *testing.T) {
+	const id = "01JTAXCODE00000000000000000"
+
+	tests := []struct {
+		name  string
+		left  *TaxCodeConfig
+		right *TaxCodeConfig
+		want  bool
+	}{
+		{name: "nil and empty config", left: nil, right: &TaxCodeConfig{}, want: true},
+		{name: "same tax code", left: &TaxCodeConfig{TaxCodeID: id}, right: &TaxCodeConfig{TaxCodeID: id}, want: true},
+		{name: "different tax code", left: &TaxCodeConfig{TaxCodeID: id}, right: &TaxCodeConfig{TaxCodeID: "01JTAXCODE00000000000000001"}},
+		{
+			name:  "different behavior",
+			left:  &TaxCodeConfig{TaxCodeID: id, Behavior: lo.ToPtr(InclusiveTaxBehavior)},
+			right: &TaxCodeConfig{TaxCodeID: id, Behavior: lo.ToPtr(ExclusiveTaxBehavior)},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			left := RateCardMeta{Key: "rc", Name: "RC", TaxConfig: tt.left}
+			right := RateCardMeta{Key: "rc", Name: "RC", TaxConfig: tt.right}
+
+			assert.Equal(t, tt.want, left.Equal(right))
+		})
+	}
+}
+
+func TestRateCardsTaxCodeIDs(t *testing.T) {
+	withTax := func(key string, cfg *TaxCodeConfig) RateCard {
+		return &FlatFeeRateCard{RateCardMeta: RateCardMeta{Key: key, Name: key, TaxConfig: cfg}}
+	}
+
+	tests := []struct {
+		name      string
+		rateCards RateCards
+		want      []string
+	}{
+		{name: "no rate cards"},
+		{
+			name: "no tax codes",
+			rateCards: RateCards{
+				withTax("a", nil),
+				withTax("b", &TaxCodeConfig{Behavior: lo.ToPtr(InclusiveTaxBehavior)}),
+			},
+		},
+		{
+			name: "deduplicated in first-seen order",
+			rateCards: RateCards{
+				withTax("a", &TaxCodeConfig{TaxCodeID: "tc-2"}),
+				withTax("b", nil),
+				withTax("c", &TaxCodeConfig{TaxCodeID: "tc-1"}),
+				withTax("d", &TaxCodeConfig{TaxCodeID: "tc-2"}),
+			},
+			want: []string{"tc-2", "tc-1"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.rateCards.TaxCodeIDs()
+			if len(tt.want) == 0 {
+				assert.Empty(t, got)
+				return
+			}
+
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
 func TestRateCardMetaCloneDeepCopiesCurrency(t *testing.T) {
 	custom := mustManagedCustomCurrency(t, "currency-1", "CREDITS")
 	original := RateCardMeta{Currency: lo.ToPtr(custom.Reference())}
@@ -171,10 +272,8 @@ func TestFlatFeeRateCard(t *testing.T) {
 								Config: []byte(`"test"`),
 							},
 						),
-						TaxConfig: &TaxConfig{
-							Stripe: &StripeTaxConfig{
-								Code: "txcd_99999999",
-							},
+						TaxConfig: &TaxCodeConfig{
+							TaxCodeID: "01JTAXCODE00000000000000099",
 						},
 						Price: NewPriceFrom(FlatPrice{
 							Amount:      decimal.NewFromInt(1000),
@@ -216,10 +315,8 @@ func TestFlatFeeRateCard(t *testing.T) {
 								Config: []byte("invalid JSON"),
 							},
 						),
-						TaxConfig: &TaxConfig{
-							Stripe: &StripeTaxConfig{
-								Code: "invalid_code",
-							},
+						TaxConfig: &TaxCodeConfig{
+							Behavior: lo.ToPtr(TaxBehavior("invalid")),
 						},
 						Price: NewPriceFrom(
 							FlatPrice{
@@ -335,10 +432,8 @@ func TestUsageBasedRateCard(t *testing.T) {
 								UsagePeriod:             datetime.MustParseDuration(t, "P1M"),
 							},
 						),
-						TaxConfig: &TaxConfig{
-							Stripe: &StripeTaxConfig{
-								Code: "txcd_99999999",
-							},
+						TaxConfig: &TaxCodeConfig{
+							TaxCodeID: "01JTAXCODE00000000000000099",
 						},
 						Price: NewPriceFrom(
 							UnitPrice{
@@ -377,10 +472,8 @@ func TestUsageBasedRateCard(t *testing.T) {
 								UsagePeriod:             datetime.MustParseDuration(t, "P1M"),
 							},
 						),
-						TaxConfig: &TaxConfig{
-							Stripe: &StripeTaxConfig{
-								Code: "invalid_code",
-							},
+						TaxConfig: &TaxCodeConfig{
+							Behavior: lo.ToPtr(TaxBehavior("invalid")),
 						},
 						Price: NewPriceFrom(
 							UnitPrice{
@@ -616,10 +709,8 @@ func TestRateCardsEqual(t *testing.T) {
 									UsagePeriod:             datetime.MustParseDuration(t, "P1M"),
 								},
 							),
-							TaxConfig: &TaxConfig{
-								Stripe: &StripeTaxConfig{
-									Code: "txcd_99999999",
-								},
+							TaxConfig: &TaxCodeConfig{
+								TaxCodeID: "01JTAXCODE00000000000000099",
 							},
 							Price: NewPriceFrom(
 								UnitPrice{
@@ -664,10 +755,8 @@ func TestRateCardsEqual(t *testing.T) {
 									UsagePeriod:             datetime.MustParseDuration(t, "P1M"),
 								},
 							),
-							TaxConfig: &TaxConfig{
-								Stripe: &StripeTaxConfig{
-									Code: "txcd_99999999",
-								},
+							TaxConfig: &TaxCodeConfig{
+								TaxCodeID: "01JTAXCODE00000000000000099",
 							},
 							Price: NewPriceFrom(
 								UnitPrice{
@@ -716,10 +805,8 @@ func TestRateCardsEqual(t *testing.T) {
 									UsagePeriod:             datetime.MustParseDuration(t, "P1M"),
 								},
 							),
-							TaxConfig: &TaxConfig{
-								Stripe: &StripeTaxConfig{
-									Code: "txcd_99999999",
-								},
+							TaxConfig: &TaxCodeConfig{
+								TaxCodeID: "01JTAXCODE00000000000000099",
 							},
 							Price: NewPriceFrom(
 								UnitPrice{
@@ -752,10 +839,8 @@ func TestRateCardsEqual(t *testing.T) {
 									Config: []byte(`"test"`),
 								},
 							),
-							TaxConfig: &TaxConfig{
-								Stripe: &StripeTaxConfig{
-									Code: "txcd_99999999",
-								},
+							TaxConfig: &TaxCodeConfig{
+								TaxCodeID: "01JTAXCODE00000000000000099",
 							},
 							Price: NewPriceFrom(FlatPrice{
 								Amount:      decimal.NewFromInt(1000),

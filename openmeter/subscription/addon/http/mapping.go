@@ -13,6 +13,7 @@ import (
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
 	addondiff "github.com/openmeterio/openmeter/openmeter/subscription/addon/diff"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -37,7 +38,9 @@ func MapCreateSubscriptionAddonRequestToInput(req api.SubscriptionAddonCreate) (
 	return r, nil
 }
 
-func MapSubscriptionAddonToResponse(view subscription.SubscriptionView, addon subscriptionaddon.SubscriptionAddon) (api.SubscriptionAddon, error) {
+// MapSubscriptionAddonToResponse maps a subscription add-on to its v1 shape. taxCodes holds the Tax
+// Codes referenced by the add-on's rate cards, used to fill in the legacy stripe.code.
+func MapSubscriptionAddonToResponse(view subscription.SubscriptionView, addon subscriptionaddon.SubscriptionAddon, taxCodes map[string]*taxcode.TaxCode) (api.SubscriptionAddon, error) {
 	now := clock.Now()
 
 	// If instance is not found, quantity will be 0
@@ -58,7 +61,7 @@ func MapSubscriptionAddonToResponse(view subscription.SubscriptionView, addon su
 	affectedMap := addondiff.GetAffectedItemIDs(view, addon)
 
 	rateCards, err := slicesx.MapWithErr(addon.RateCards, func(r subscriptionaddon.SubscriptionAddonRateCard) (api.SubscriptionAddonRateCard, error) {
-		rc, err := productcataloghttp.FromRateCard(r.AddonRateCard.RateCard)
+		rc, err := productcataloghttp.FromRateCard(r.AddonRateCard.RateCard, taxCodes)
 		if err != nil {
 			return api.SubscriptionAddonRateCard{}, fmt.Errorf("failed to cast RateCard: %w", err)
 		}

@@ -9,6 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/featureresolver"
@@ -29,7 +30,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/subscription/validators/itemreference"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	subscriptionworkflowservice "github.com/openmeterio/openmeter/openmeter/subscription/workflow/service"
-	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/ffx"
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
@@ -66,7 +66,7 @@ func NewSubscriptionServices(
 	eventPublisher eventbus.Publisher,
 	lockr *lockr.Locker,
 	featureFlags ffx.Service,
-	taxCodeService taxcode.Service,
+	taxCodeResolver productcatalog.TaxCodeResolver,
 ) (SubscriptionServiceWithWorkflow, error) {
 	featureResolver, err := featureresolver.New(featureConnector)
 	if err != nil {
@@ -99,7 +99,7 @@ func NewSubscriptionServices(
 		Publisher:             eventPublisher,
 		FeatureFlags:          featureFlags,
 		Lockr:                 lockr,
-		TaxCode:               taxCodeService,
+		TaxCodeResolver:       taxCodeResolver,
 		CostBasisService:      currencyService,
 	})
 	if err != nil {

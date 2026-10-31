@@ -594,8 +594,7 @@ func TestFromAPITaxCodeConfig(t *testing.T) {
 		result, err := FromAPITaxCodeConfig(tc)
 		require.NoError(t, err)
 		require.NotNil(t, result)
-		require.NotNil(t, result.TaxCodeID)
-		assert.Equal(t, "01TAXCODE000", *result.TaxCodeID)
+		assert.Equal(t, "01TAXCODE000", result.TaxCodeID)
 		assert.Nil(t, result.Behavior)
 	})
 
@@ -618,7 +617,7 @@ func TestFromAPITaxCodeConfig(t *testing.T) {
 		})
 		require.NoError(t, err)
 		require.NotNil(t, result)
-		assert.Nil(t, result.TaxCodeID)
+		assert.Empty(t, result.TaxCodeID)
 		require.NotNil(t, result.Behavior)
 		assert.Equal(t, productcatalog.InclusiveTaxBehavior, *result.Behavior)
 	})
@@ -656,12 +655,12 @@ func TestToAPITaxCodeConfig(t *testing.T) {
 	})
 
 	t.Run("nil when tax config has no shared fields", func(t *testing.T) {
-		assert.Nil(t, ToAPITaxCodeConfig(&productcatalog.TaxConfig{}))
+		assert.Nil(t, ToAPITaxCodeConfig(&productcatalog.TaxCodeConfig{}))
 	})
 
 	t.Run("maps normalized tax code ID", func(t *testing.T) {
-		result := ToAPITaxCodeConfig(&productcatalog.TaxConfig{
-			TaxCodeID: lo.ToPtr("01TAXCODE000"),
+		result := ToAPITaxCodeConfig(&productcatalog.TaxCodeConfig{
+			TaxCodeID: "01TAXCODE000",
 		})
 
 		require.NotNil(t, result)
@@ -671,7 +670,7 @@ func TestToAPITaxCodeConfig(t *testing.T) {
 	})
 
 	t.Run("maps behavior-only config", func(t *testing.T) {
-		result := ToAPITaxCodeConfig(&productcatalog.TaxConfig{
+		result := ToAPITaxCodeConfig(&productcatalog.TaxCodeConfig{
 			Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
 		})
 

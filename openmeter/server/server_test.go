@@ -50,6 +50,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	portaladapter "github.com/openmeterio/openmeter/openmeter/portal/adapter"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
@@ -916,6 +917,7 @@ func getTestServer(t *testing.T, opts ...func(*router.Config)) (*Server, *MockSt
 			ProgressManager:         progressmanageradapter.NewNoop(),
 			StreamingConnector:      mockStreamingConnector,
 			TaxCodeService:          &NoopTaxCodeService{},
+			TaxCodeResolver:         &NoopTaxCodeResolver{},
 			// Use the subscription service
 			SubscriptionService: subscriptionService,
 			// Use the subscription workflow service
@@ -2355,6 +2357,51 @@ func (n NoopTaxCodeService) GetOrganizationDefaultTaxCodes(ctx context.Context, 
 
 func (n NoopTaxCodeService) UpsertOrganizationDefaultTaxCodes(ctx context.Context, input taxcode.UpsertOrganizationDefaultTaxCodesInput) (taxcode.OrganizationDefaultTaxCodes, error) {
 	return taxcode.OrganizationDefaultTaxCodes{}, nil
+}
+
+// NoopTaxCodeResolver resolves nothing: responses render without stripe.code and legacy
+// stripe.code input resolves to a Tax Code with an empty ID.
+var (
+	_ productcatalog.TransactionalTaxCodeResolver = (*NoopTaxCodeResolver)(nil)
+	_ productcatalog.TaxCodeBackfillResolver      = (*NoopTaxCodeResolver)(nil)
+)
+
+type NoopTaxCodeResolver struct{}
+
+func (n NoopTaxCodeResolver) Resolve(ctx context.Context, namespace string, id string) (*taxcode.TaxCode, error) {
+	return &taxcode.TaxCode{}, nil
+}
+
+func (n NoopTaxCodeResolver) BatchResolve(ctx context.Context, namespace string, ids ...string) (map[string]*taxcode.TaxCode, error) {
+	return map[string]*taxcode.TaxCode{}, nil
+}
+
+func (n NoopTaxCodeResolver) WithNamespace(namespace string) productcatalog.NamespacedTaxCodeResolver {
+	return noopNamespacedTaxCodeResolver{namespace: namespace}
+}
+
+func (n NoopTaxCodeResolver) WithResolver(ctx context.Context, fn func(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver) error) error {
+	return fn(ctx, n)
+}
+
+func (n NoopTaxCodeResolver) ResolveOrBackfillTaxCode(ctx context.Context, input productcatalog.ResolveOrBackfillTaxCodeInput) (*taxcode.TaxCode, error) {
+	return &taxcode.TaxCode{}, nil
+}
+
+type noopNamespacedTaxCodeResolver struct {
+	namespace string
+}
+
+func (n noopNamespacedTaxCodeResolver) Resolve(ctx context.Context, id string) (*taxcode.TaxCode, error) {
+	return &taxcode.TaxCode{}, nil
+}
+
+func (n noopNamespacedTaxCodeResolver) BatchResolve(ctx context.Context, ids ...string) (map[string]*taxcode.TaxCode, error) {
+	return map[string]*taxcode.TaxCode{}, nil
+}
+
+func (n noopNamespacedTaxCodeResolver) Namespace() string {
+	return n.namespace
 }
 
 // SubjectService methods

@@ -20,7 +20,7 @@ func (a *Router) ListPlans(w http.ResponseWriter, r *http.Request, params api.Li
 // (POST /api/v1/plans)
 func (a *Router) CreatePlan(w http.ResponseWriter, r *http.Request) {
 	a.planHandler.CreatePlan().
-		Chain(featuregate.NewMiddleware[planhttpdriver.CreatePlanRequest, planhttpdriver.CreatePlanResponse](
+		Chain(featuregate.NewMiddleware[planhttpdriver.CreatePlanHandlerRequest, planhttpdriver.CreatePlanResponse](
 			a.config.NamespaceDecoder.GetNamespace,
 			a.config.FeatureGate,
 		)).ServeHTTP(w, r)
@@ -45,7 +45,7 @@ func (a *Router) GetPlan(w http.ResponseWriter, r *http.Request, planIdOrKey str
 // (PUT /api/v1/plans/{planId})
 func (a *Router) UpdatePlan(w http.ResponseWriter, r *http.Request, planId string) {
 	a.planHandler.UpdatePlan().
-		Chain(featuregate.NewMiddleware[planhttpdriver.UpdatePlanRequest, planhttpdriver.UpdatePlanResponse](
+		Chain(featuregate.NewMiddleware[planhttpdriver.UpdatePlanHandlerRequest, planhttpdriver.UpdatePlanResponse](
 			a.config.NamespaceDecoder.GetNamespace,
 			a.config.FeatureGate,
 		)).With(planId).ServeHTTP(w, r)

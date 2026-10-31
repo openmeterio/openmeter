@@ -73,10 +73,10 @@ func NewTestPlan(t *testing.T, namespace string, transformers ...TransformerFunc
 								Description:         lo.ToPtr("API Requests"),
 								Metadata:            models.Metadata{"name": "api_requests"},
 								EntitlementTemplate: nil,
-								TaxConfig: &productcatalog.TaxConfig{
-									Stripe: &productcatalog.StripeTaxConfig{
-										Code: "txcd_10000000",
-									},
+								// Behavior-only, so the fixture doesn't need a Tax Code to exist in the
+								// namespace. Tests about Tax Code references create one themselves.
+								TaxConfig: &productcatalog.TaxCodeConfig{
+									Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
 								},
 								Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 									Amount:      decimal.NewFromInt(0),

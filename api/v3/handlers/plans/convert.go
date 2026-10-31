@@ -531,15 +531,15 @@ func ToAPIBillingPriceTiers(tiers []productcatalog.PriceTier) []api.BillingPrice
 	return result
 }
 
-func ToAPITaxCodeConfig(c *productcatalog.TaxConfig) *api.TaxCodeConfig {
-	if c == nil || (c.Behavior == nil && c.TaxCodeID == nil) {
+func ToAPITaxCodeConfig(c *productcatalog.TaxCodeConfig) *api.TaxCodeConfig {
+	if c == nil || (c.Behavior == nil && c.TaxCodeID == "") {
 		return nil
 	}
 
 	result := &api.TaxCodeConfig{}
 
-	if c.TaxCodeID != nil {
-		result.Code = &api.TaxCodeReference{Id: *c.TaxCodeID}
+	if c.TaxCodeID != "" {
+		result.Code = &api.TaxCodeReference{Id: c.TaxCodeID}
 	}
 
 	if c.Behavior != nil {
@@ -1153,7 +1153,7 @@ func FromAPIBillingPriceTiers(tiers []api.BillingPriceTier) ([]productcatalog.Pr
 	return result, nil
 }
 
-func FromAPITaxCodeConfig(tc api.TaxCodeConfig) (*productcatalog.TaxConfig, error) {
+func FromAPITaxCodeConfig(tc api.TaxCodeConfig) (*productcatalog.TaxCodeConfig, error) {
 	if tc.Code != nil && tc.Code.Id == "" {
 		return nil, models.NewGenericValidationError(errors.New("tax_config.code.id must be set when tax_config.code is present"))
 	}
@@ -1162,10 +1162,10 @@ func FromAPITaxCodeConfig(tc api.TaxCodeConfig) (*productcatalog.TaxConfig, erro
 		return nil, models.NewGenericValidationError(errors.New("tax_config.code.id or tax_config.behavior must be set"))
 	}
 
-	result := &productcatalog.TaxConfig{}
+	result := &productcatalog.TaxCodeConfig{}
 
 	if tc.Code != nil {
-		result.TaxCodeID = &tc.Code.Id
+		result.TaxCodeID = tc.Code.Id
 	}
 
 	if tc.Behavior != nil {

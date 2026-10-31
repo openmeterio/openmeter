@@ -118,6 +118,51 @@ func TestMapRateCardOmitsUnitConfigWhenAbsent(t *testing.T) {
 	require.Nil(t, rc.UnitConfig)
 }
 
+func TestMapRateCardTaxConfigOutput(t *testing.T) {
+	period := mergeTestPeriod()
+
+	t.Run("legacy config maps to tax code ID and behavior", func(t *testing.T) {
+		// given: a line whose legacy tax config also carries a Stripe code
+		line := standardLineForMergeTest(t, "line-id", period)
+		line.TaxConfig = &billing.TaxConfig{
+			TaxConfig: productcatalog.TaxConfig{
+				Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
+				Stripe:    &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
+				TaxCodeID: lo.ToPtr("01TAXCODE000"),
+			},
+		}
+
+		// when
+		rc, err := mapRateCard(line)
+		require.NoError(t, err)
+
+		// then: the v3 shape has no Stripe field, only the Tax Code ID and behavior
+		require.Equal(t, &api.TaxCodeConfig{
+			Behavior: lo.ToPtr(api.BillingTaxBehavior("inclusive")),
+			Code:     &api.TaxCodeReference{Id: "01TAXCODE000"},
+		}, rc.TaxConfig)
+	})
+
+	t.Run("stripe-only config is omitted", func(t *testing.T) {
+		line := standardLineForMergeTest(t, "line-id", period)
+		line.TaxConfig = &billing.TaxConfig{
+			TaxConfig: productcatalog.TaxConfig{
+				Stripe: &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
+			},
+		}
+
+		rc, err := mapRateCard(line)
+		require.NoError(t, err)
+		require.Nil(t, rc.TaxConfig)
+	})
+
+	t.Run("no tax config", func(t *testing.T) {
+		rc, err := mapRateCard(standardLineForMergeTest(t, "line-id", period))
+		require.NoError(t, err)
+		require.Nil(t, rc.TaxConfig)
+	})
+}
+
 func TestMergeStandardLineFromAPIPreservesDiscountCorrelationID(t *testing.T) {
 	period := mergeTestPeriod()
 	line := standardLineForMergeTest(t, "line-id", period)

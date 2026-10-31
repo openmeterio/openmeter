@@ -79,10 +79,8 @@ func TestBillingOnFirstOfMonth(t *testing.T) {
 								Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 									Amount: alpacadecimal.NewFromInt(100),
 								}),
-								TaxConfig: &productcatalog.TaxConfig{
-									Stripe: &productcatalog.StripeTaxConfig{
-										Code: "txcd_10000000",
-									},
+								TaxConfig: &productcatalog.TaxCodeConfig{
+									Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
 								},
 								EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.MeteredEntitlementTemplate{
 									UsagePeriod:     datetime.MustParseDuration(t, "P1M"), // compatible with the billing cadence
@@ -101,10 +99,8 @@ func TestBillingOnFirstOfMonth(t *testing.T) {
 									Amount:      alpacadecimal.NewFromInt(10),
 									PaymentTerm: productcatalog.InAdvancePaymentTerm,
 								}),
-								TaxConfig: &productcatalog.TaxConfig{
-									Stripe: &productcatalog.StripeTaxConfig{
-										Code: "txcd_10000000",
-									},
+								TaxConfig: &productcatalog.TaxCodeConfig{
+									Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
 								},
 							},
 							BillingCadence: lo.ToPtr(datetime.MustParseDuration(t, "P1M")),
@@ -118,10 +114,8 @@ func TestBillingOnFirstOfMonth(t *testing.T) {
 								Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 									Amount: alpacadecimal.NewFromInt(1),
 								}),
-								TaxConfig: &productcatalog.TaxConfig{
-									Stripe: &productcatalog.StripeTaxConfig{
-										Code: "txcd_10000000",
-									},
+								TaxConfig: &productcatalog.TaxCodeConfig{
+									Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
 								},
 								EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.MeteredEntitlementTemplate{
 									UsagePeriod:     datetime.MustParseDuration(t, "P1D"), // compatible with the billing cadence

@@ -29,54 +29,6 @@ func (s service) ListPlans(ctx context.Context, params plan.ListPlansInput) (pag
 	return fn(ctx)
 }
 
-// resolveTaxCodes ensures that each RateCard with a Stripe tax code in its TaxConfig
-// has a corresponding TaxCode entity in the namespace. If no matching TaxCode exists,
-// one is created. The RateCard's TaxConfig.TaxCodeID is then populated.
-func (s service) resolveTaxCodes(ctx context.Context, namespace string, rateCards *productcatalog.RateCards) error {
-	if rateCards == nil || len(*rateCards) == 0 {
-		return nil
-	}
-
-	for _, rc := range *rateCards {
-		meta := rc.AsMeta()
-		if meta.TaxConfig == nil {
-			continue
-		}
-
-		if err := productcatalog.ResolveTaxConfig(ctx, s.taxCode, namespace, meta.TaxConfig); err != nil {
-			return err
-		}
-
-		var rcNew productcatalog.RateCard
-
-		switch rc.Type() {
-		case productcatalog.FlatFeeRateCardType:
-			rcNew = &productcatalog.FlatFeeRateCard{
-				RateCardMeta:   meta,
-				BillingCadence: rc.GetBillingCadence(),
-			}
-		case productcatalog.UsageBasedRateCardType:
-			bc := rc.GetBillingCadence()
-			if bc == nil {
-				return fmt.Errorf("billing cadence is required for usage-based rate card")
-			}
-
-			rcNew = &productcatalog.UsageBasedRateCard{
-				RateCardMeta:   meta,
-				BillingCadence: *bc,
-			}
-		default:
-			return fmt.Errorf("unsupported RateCard type: %s", rc.Type())
-		}
-
-		if err := rc.Merge(rcNew); err != nil {
-			return fmt.Errorf("failed to merge RateCard: %w", err)
-		}
-	}
-
-	return nil
-}
-
 func (s service) CreatePlan(ctx context.Context, params plan.CreatePlanInput) (*plan.Plan, error) {
 	fn := func(ctx context.Context) (*plan.Plan, error) {
 		if err := params.Validate(); err != nil {
@@ -141,8 +93,17 @@ func (s service) CreatePlan(ctx context.Context, params plan.CreatePlanInput) (*
 							params.Key, params.Phases[idx].Key, err))
 				}
 
-				if err = s.resolveTaxCodes(ctx, params.Namespace, &params.Phases[idx].RateCards); err != nil {
-					return nil, fmt.Errorf("failed to resolve TaxCodes for RateCards in PlanPhase: %w", err)
+				if err = productcatalog.ValidateRateCardTaxCodes(ctx, s.taxCodeResolver, params.Namespace, params.Phases[idx].RateCards); err != nil {
+					err = fmt.Errorf("invalid tax codes for ratecards in plan phase [plan.key=%s plan.phase.key=%s]: %w",
+						params.Key, params.Phases[idx].Key, err)
+
+					// Only prefix validation errors with the phase: a field prefix turns any error into a
+					// validation issue, so a failed lookup would become a 400 carrying the DB error text.
+					if models.IsGenericValidationError(err) {
+						err = models.ErrorWithFieldPrefix(phaseFieldSelector, err)
+					}
+
+					return nil, err
 				}
 			}
 		}
@@ -345,8 +306,16 @@ func (s service) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (*
 							params.ID, (*params.Phases)[idx].Key, err))
 				}
 
-				if err := s.resolveTaxCodes(ctx, params.Namespace, &(*params.Phases)[idx].RateCards); err != nil {
-					return nil, fmt.Errorf("failed to resolve TaxCodes for RateCards in PlanPhase: %w", err)
+				if err := productcatalog.ValidateRateCardTaxCodes(ctx, s.taxCodeResolver, params.Namespace, (*params.Phases)[idx].RateCards); err != nil {
+					err = fmt.Errorf("invalid tax codes for ratecards in plan phase [plan.id=%s plan.phase.key=%s]: %w",
+						params.ID, (*params.Phases)[idx].Key, err)
+
+					// Same as in CreatePlan: lookup failures must not be prefixed, or they become a 400.
+					if models.IsGenericValidationError(err) {
+						err = models.ErrorWithFieldPrefix(phaseFieldSelector, err)
+					}
+
+					return nil, err
 				}
 			}
 

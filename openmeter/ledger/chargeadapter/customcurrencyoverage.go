@@ -102,6 +102,11 @@ func (i bookCustomCurrencyOverageInput) Validate() error {
 		errs = append(errs, fmt.Errorf("tax config: %w", err))
 	}
 
+	// The tax config comes from the charge intent, which always has a Tax Code.
+	if i.TaxConfig.TaxCodeID == "" {
+		errs = append(errs, errors.New("tax config: tax code id is required"))
+	}
+
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
