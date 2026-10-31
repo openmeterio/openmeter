@@ -144,6 +144,12 @@ func TestDateTimeAdd(t *testing.T) {
 			expected: "2025-02-01T13:00:30Z",
 		},
 		{
+			name:     "add hours and minutes whose sum overflows a time.Duration",
+			start:    "2025-02-01T12:00:00Z",
+			duration: MustParseDuration(t, "PT2000000H40000000M"),
+			expected: "2329-04-20T14:40:00Z",
+		},
+		{
 			name:     "handle daylight savings transition",
 			start:    "2025-03-25T01:00:00+01:00[Europe/Budapest]",
 			duration: MustParseDuration(t, "PT2H"),
