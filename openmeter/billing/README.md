@@ -27,8 +27,9 @@ customers needing different settings select a different profile.
 
 The customer billing service exposes separate set and clear operations. Setting
 requires a profile ID; clearing removes the pin. Successful reads always return
-the effective profile alongside the optional pin. Historical empty and deleted
-selection rows resolve like customers without a pin. The v3 billing response
+the effective profile alongside the optional pin. Persisted assignments always
+reference a billing profile; missing or deleted assignments follow the namespace
+default. The v3 billing response
 exposes these as optional `billing_profile` and required read-only
 `effective_billing_profile`. The dedicated customer billing profile PUT replaces
 only the selection: omitting `billing_profile` or setting it to `null` removes

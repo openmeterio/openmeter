@@ -24,7 +24,7 @@ type CustomerBillingProfileAssignment struct {
 }
 
 // CustomerBillingProfile always contains the effective profile on a successful read.
-// Empty and deleted persistence rows do not constitute a pin.
+// Missing and deleted assignments resolve to the namespace default.
 type CustomerBillingProfile struct {
 	CustomerID       customer.CustomerID               `json:"customerID"`
 	AssignedProfile  *CustomerBillingProfileAssignment `json:"assignedProfile,omitempty"`

@@ -1,0 +1,2 @@
+-- modify "billing_customer_overrides" table
+ALTER TABLE "billing_customer_overrides" DROP COLUMN "collection_alignment", DROP COLUMN "invoice_auto_advance", DROP COLUMN "invoice_collection_method", DROP COLUMN "line_collection_period", DROP COLUMN "invoice_draft_period", DROP COLUMN "invoice_due_after", DROP COLUMN "invoice_progressive_billing", DROP COLUMN "invoice_default_tax_config", DROP COLUMN "anchored_alignment_detail", DROP COLUMN "tax_behavior", DROP COLUMN "tax_code_id";
