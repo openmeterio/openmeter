@@ -114,12 +114,22 @@ type ListTaxCodesInput struct {
 	pagination.Page
 
 	IncludeDeleted bool
+
+	IDs []string
 }
 
 func (i ListTaxCodesInput) Validate() error {
 	var errs []error
 	if i.Namespace == "" {
 		errs = append(errs, ErrResourceNamespaceEmpty)
+	}
+
+	for idx, id := range i.IDs {
+		if id == "" {
+			errs = append(errs, ErrResourceIDEmpty.WithField(
+				models.NewFieldSelector("ids").WithExpression(models.NewFieldArrIndex(idx)),
+			))
+		}
 	}
 
 	if !i.Page.IsZero() {
