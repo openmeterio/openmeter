@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"slices"
+	"time"
 
 	"github.com/samber/lo"
 
@@ -88,7 +89,7 @@ func (s *service) CreateCustomerCharge(ctx context.Context, input charges.Create
 	// The API response includes the realization view (the whole service period
 	// is outstanding on a fresh charge), so it is built here just like on the
 	// list path. No expands apply on the create path.
-	return s.buildCustomerCharge(ctx, created[0], customerChargeEntities{}, meta.ExpandNone)
+	return s.buildCustomerCharge(ctx, created[0], customerChargeEntities{}, meta.ExpandNone, nil)
 }
 
 func (s *service) DeleteCustomerCharge(ctx context.Context, input charges.DeleteCustomerChargeInput) error {
@@ -290,7 +291,7 @@ func (s *service) ListCustomerCharges(ctx context.Context, input charges.ListCus
 	}
 
 	customerCharges, err := lo.MapErr(listed.Items, func(charge charges.Charge, _ int) (charges.CustomerCharge, error) {
-		return s.buildCustomerCharge(ctx, charge, entities, listInput.Expands)
+		return s.buildCustomerCharge(ctx, charge, entities, listInput.Expands, listInput.RealtimeUsageAsOf)
 	})
 	if err != nil {
 		return charges.ListCustomerChargesResult{}, err
@@ -310,7 +311,7 @@ func (s *service) ListCustomerCharges(ctx context.Context, input charges.ListCus
 // domain charge, the entities loaded for the applied expands, and the
 // resolved realization history of its type. Credit purchase charges only
 // receive the customer.
-func (s *service) buildCustomerCharge(ctx context.Context, charge charges.Charge, entities customerChargeEntities, expands meta.Expands) (charges.CustomerCharge, error) {
+func (s *service) buildCustomerCharge(ctx context.Context, charge charges.Charge, entities customerChargeEntities, expands meta.Expands, realtimeUsageAsOf *time.Time) (charges.CustomerCharge, error) {
 	out := charges.CustomerCharge{
 		Charge: charge,
 	}
@@ -331,7 +332,15 @@ func (s *service) buildCustomerCharge(ctx context.Context, charge charges.Charge
 			return charges.CustomerCharge{}, err
 		}
 
-		resolved, err := resolveUsageBasedRealizations(ub, entities.invoiceLinesByID)
+		forRealizations := ub
+		if realtimeUsageAsOf != nil {
+			// The as_of quantity is a past read but the runs are today's, so their
+			// difference isn't the outstanding usage at any time. Leave it at zero,
+			// as without the realtime expand.
+			forRealizations.Expands.RealtimeQuantity = nil
+		}
+
+		resolved, err := resolveUsageBasedRealizations(forRealizations, entities.invoiceLinesByID)
 		if err != nil {
 			return charges.CustomerCharge{}, fmt.Errorf("charge %s: resolving realizations: %w", ub.ID, err)
 		}

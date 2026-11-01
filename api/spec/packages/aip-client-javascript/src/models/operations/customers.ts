@@ -361,13 +361,17 @@ export interface ListCustomerChargesQuery {
    * Evaluate `expand=real_time_usage` as of this time instead of now. Requires the
    * `real_time_usage` expand and must not be in the future.
    *
-   * Usage and `totals.realtime` match what a live read returned at that time: only
-   * events stored before `as_of` count, and minimum commitments apply only when the
-   * service period has ended by `as_of`. The metered quantity is repeatable, so a
-   * month-end close can be re-run. Totals are rated with the charge's current price,
-   * so a price change after `as_of` changes them. Service periods, status, and
-   * realizations also reflect the charge's current state, and charges created after
-   * `as_of` are included.
+   * Only events stored before `as_of` count, and minimum commitments apply only when
+   * the service period has ended by `as_of`. Everything else is read as it is now:
+   * the price, service periods, status, the customer's subjects, and the feature's
+   * meter and filters. A re-run returns the same usage only while those are
+   * unchanged. Realizations are current too, so the outstanding realization is
+   * reported as zero.
+   *
+   * Charges created after `as_of` are included. Charges deleted after `as_of` are
+   * left out unless `filter[status]` selects `deleted`. Events become readable
+   * shortly after they are stored, so a cutoff from the last few minutes can still
+   * change on a re-run.
    */
   asOf?: Date
   /**

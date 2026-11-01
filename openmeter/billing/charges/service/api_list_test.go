@@ -312,7 +312,7 @@ func (s *CustomerChargeAPIListTestSuite) TestListCustomerChargesExpands() {
 		require.NoError(s.T(), err)
 		entities, err := s.Charges.loadCustomerChargeEntities(ctx, namespace, references, meta.Expands{meta.ExpandFeature})
 		require.NoError(s.T(), err)
-		customerCharge, err := s.Charges.buildCustomerCharge(ctx, staleCharge, entities, meta.Expands{meta.ExpandFeature})
+		customerCharge, err := s.Charges.buildCustomerCharge(ctx, staleCharge, entities, meta.Expands{meta.ExpandFeature}, nil)
 
 		// then:
 		// - the missing feature is omitted so the facade can retain its ID-only fallback

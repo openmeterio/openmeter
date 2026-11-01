@@ -290,11 +290,16 @@ balance projection need no warning-specific error suppression.
 
 A listing can evaluate realtime usage as of a past time
 (`ListChargesInput.RealtimeUsageAsOf`). The meter read then counts only events
-stored before that time, exactly as a live read at that moment did, so the
-metered quantity is repeatable. Only the meter read is replayed: intent
-(including price), status, and realizations are stored in place without history
-and stay current, so totals follow the current price. Future
-cutoffs are rejected because events can still be stored before them.
+stored before that time. Only that bound is replayed: the event window (the
+effective service period), the customer's subjects, the feature's meter and
+filters, intent (including price), status, and realizations are all read as they
+are now. A re-run returns the same quantity only while those are unchanged.
+Realization runs are current, so the outstanding realization is left at zero
+instead of mixing the past read with today's runs. The listing still hides
+charges deleted since that time unless the status filter selects them. Future
+cutoffs are rejected because events can still be stored before them; a cutoff
+from the last few minutes can still change, because the sink stamps `stored_at`
+before the insert becomes readable.
 
 ## Settlement semantics
 

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"log/slog"
 	"testing"
 	"time"
 
@@ -9,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
@@ -480,5 +482,45 @@ func TestResolveUsageBasedRealizations(t *testing.T) {
 		require.Nil(t, resolved[2].Run)
 		require.Equal(t, float64(2), resolved[2].Quantity.InexactFloat64(),
 			"outstanding is clamp(realtime - booked cumulative); signed deltas make the realization list reconcile with the live read")
+	})
+}
+
+func TestBuildCustomerChargeOutstandingUnderAsOf(t *testing.T) {
+	periodStart := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	servicePeriod := timeutil.ClosedPeriod{From: periodStart, To: periodStart.Add(96 * time.Hour)}
+
+	// given a run that booked a cumulative 10 after the as_of read, which saw 4
+	runs := usagebased.RealizationRuns{
+		newUsageBasedRealizationRun("run-1", usagebased.RealizationRunTypePartialInvoice, periodStart.Add(24*time.Hour), 10),
+	}
+	asOfQuantity := alpacadecimal.NewFromInt(4)
+	charge := charges.NewCharge(newUsageBasedCharge(t, usagebased.StatusActive, servicePeriod, runs, &asOfQuantity))
+	svc := &service{logger: slog.New(slog.DiscardHandler)}
+
+	t.Run("as_of leaves the outstanding quantity at zero", func(t *testing.T) {
+		// when building the API view of an as_of read
+		out, err := svc.buildCustomerCharge(t.Context(), charge, customerChargeEntities{}, meta.ExpandNone, lo.ToPtr(periodStart.Add(12*time.Hour)))
+		require.NoError(t, err)
+
+		// then the outstanding entry doesn't mix the past read with today's runs
+		require.Len(t, out.UsageBasedRealizations, 2)
+		require.Nil(t, out.UsageBasedRealizations[1].Run)
+		require.Equal(t, float64(0), out.UsageBasedRealizations[1].Quantity.InexactFloat64())
+
+		// and the as_of quantity itself is still reported
+		ub, err := out.Charge.AsUsageBasedCharge()
+		require.NoError(t, err)
+		require.Equal(t, float64(4), ub.Expands.RealtimeQuantity.InexactFloat64())
+	})
+
+	t.Run("a live read still projects the outstanding quantity", func(t *testing.T) {
+		liveQuantity := alpacadecimal.NewFromInt(14)
+		live := charges.NewCharge(newUsageBasedCharge(t, usagebased.StatusActive, servicePeriod, runs, &liveQuantity))
+
+		out, err := svc.buildCustomerCharge(t.Context(), live, customerChargeEntities{}, meta.ExpandNone, nil)
+		require.NoError(t, err)
+
+		require.Len(t, out.UsageBasedRealizations, 2)
+		require.Equal(t, float64(4), out.UsageBasedRealizations[1].Quantity.InexactFloat64())
 	})
 }

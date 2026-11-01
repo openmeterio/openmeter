@@ -465,7 +465,7 @@ func convertUsageBasedRealizationsToAPI(realizations []billingcharges.CustomerCh
 			// The outstanding entry is not a persisted run, so it has no ID,
 			// invoice, line, or payment. Its quantity is the not-yet-booked
 			// remainder of the live read under the real_time_usage expand, zero
-			// otherwise.
+			// otherwise or under as_of.
 			out = append(out, api.BillingChargeRealization{
 				ServicePeriod: ConvertClosedPeriodToAPI(resolved.ServicePeriod),
 				Type:          api.BillingChargeRealizationTypeOutstanding,

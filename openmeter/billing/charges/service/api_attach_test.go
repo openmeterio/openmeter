@@ -103,7 +103,7 @@ func TestBuildCustomerCharge(t *testing.T) {
 		meta.ExpandFeature,
 		meta.ExpandSubscription,
 		meta.ExpandRealizationInvoice,
-	})
+	}, nil)
 	require.NoError(t, err)
 
 	// then every expanded member resolves from its loaded entity, and the
@@ -122,7 +122,7 @@ func TestBuildCustomerCharge(t *testing.T) {
 	require.Nil(t, out.UsageBasedRealizations[1].Invoice, "the outstanding projection never has an invoice")
 
 	// and without loaded entities every expanded member stays nil
-	bare, err := service.buildCustomerCharge(t.Context(), charges.NewCharge(charge), customerChargeEntities{}, meta.ExpandNone)
+	bare, err := service.buildCustomerCharge(t.Context(), charges.NewCharge(charge), customerChargeEntities{}, meta.ExpandNone, nil)
 	require.NoError(t, err)
 	require.Nil(t, bare.Customer)
 	require.Nil(t, bare.Feature)
