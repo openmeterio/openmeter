@@ -266,10 +266,10 @@ type ListChargesInput struct {
 	Order   sortx.Order
 
 	Expands meta.Expands
-	// RealtimeUsageAsOf evaluates the realtime usage expand as a live read at this
-	// time would have: only events stored before it count. It replays the meter
-	// read only; the charge's price, periods, status and realizations stay current.
-	// Nil evaluates at the current time.
+	// RealtimeUsageAsOf limits the realtime usage expand to events stored before
+	// this time. Everything else stays current: the service period, the
+	// customer's subjects, the feature's meter, price, status and realizations,
+	// so a re-run only repeats while those are unchanged. Nil reads everything.
 	RealtimeUsageAsOf *time.Time
 }
 
@@ -343,30 +343,21 @@ func (i ListChargesInput) Validate() error {
 	}
 
 	if i.RealtimeUsageAsOf != nil {
-		if err := validateRealtimeUsageAsOf(*i.RealtimeUsageAsOf, i.Expands); err != nil {
-			errs = append(errs, fmt.Errorf("realtime usage as of: %w", err))
+		switch {
+		case i.RealtimeUsageAsOf.IsZero():
+			errs = append(errs, errors.New("realtime usage as of: must not be zero"))
+		// Events can still be stored before a future time, so such a read
+		// would not be repeatable.
+		case i.RealtimeUsageAsOf.After(clock.Now()):
+			errs = append(errs, errors.New("realtime usage as of: must not be in the future"))
+		}
+
+		if !i.Expands.Has(meta.ExpandRealtimeUsage) {
+			errs = append(errs, errors.New("realtime usage as of: requires the realtime usage expand"))
 		}
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
-}
-
-// validateRealtimeUsageAsOf rejects future cutoffs: events can still be stored
-// before a future time, so such a read would not be repeatable.
-func validateRealtimeUsageAsOf(asOf time.Time, expands meta.Expands) error {
-	if asOf.IsZero() {
-		return errors.New("must not be zero")
-	}
-
-	if asOf.After(clock.Now()) {
-		return errors.New("must not be in the future")
-	}
-
-	if !expands.Has(meta.ExpandRealtimeUsage) {
-		return errors.New("requires the realtime usage expand")
-	}
-
-	return nil
 }
 
 type ListCustomersToAdvanceInput struct {
