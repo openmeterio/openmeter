@@ -332,15 +332,15 @@ func (s *service) buildCustomerCharge(ctx context.Context, charge charges.Charge
 			return charges.CustomerCharge{}, err
 		}
 
-		forRealizations := ub
+		realizationCharge := ub
 		if realtimeUsageAsOf != nil {
 			// The as_of quantity is a past read but the runs are today's, so their
 			// difference isn't the outstanding usage at any time. Leave it at zero,
 			// as without the realtime expand.
-			forRealizations.Expands.RealtimeQuantity = nil
+			realizationCharge.Expands.RealtimeQuantity = nil
 		}
 
-		resolved, err := resolveUsageBasedRealizations(forRealizations, entities.invoiceLinesByID)
+		resolved, err := resolveUsageBasedRealizations(realizationCharge, entities.invoiceLinesByID)
 		if err != nil {
 			return charges.CustomerCharge{}, fmt.Errorf("charge %s: resolving realizations: %w", ub.ID, err)
 		}

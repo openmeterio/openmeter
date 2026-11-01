@@ -269,7 +269,9 @@ type ListChargesInput struct {
 	// RealtimeUsageAsOf limits the realtime usage expand to events stored before
 	// this time. Everything else stays current: the service period, the
 	// customer's subjects, the feature's meter, price, status and realizations,
-	// so a re-run only repeats while those are unchanged. Nil reads everything.
+	// so a re-run only repeats while those are unchanged. Outstanding realizations
+	// carry no quantity, because a past read can't be netted against current booked
+	// runs. Nil evaluates at the current time.
 	RealtimeUsageAsOf *time.Time
 }
 
@@ -347,7 +349,9 @@ func (i ListChargesInput) Validate() error {
 		case i.RealtimeUsageAsOf.IsZero():
 			errs = append(errs, errors.New("realtime usage as of: must not be zero"))
 		// Events can still be stored before a future time, so such a read
-		// would not be repeatable.
+		// would not be repeatable. A cutoff just before now can differ too: the
+		// sink stamps stored_at before it inserts. We accept that gap and document
+		// it in the API.
 		case i.RealtimeUsageAsOf.After(clock.Now()):
 			errs = append(errs, errors.New("realtime usage as of: must not be in the future"))
 		}

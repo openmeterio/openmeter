@@ -130,12 +130,12 @@ namespace Charges {
        * Evaluate `expand=real_time_usage` as of this time instead of now. Requires the
        * `real_time_usage` expand and must not be in the future.
        *
-       * Only events stored before `as_of` count, and minimum commitments apply only when
-       * the service period has ended by `as_of`. Everything else is read as it is now:
-       * the price, service periods, status, the customer's subjects, and the feature's
-       * meter and filters. A re-run returns the same usage only while those are
-       * unchanged. Realizations are current too, so the outstanding realization is
-       * reported as zero.
+       * Usage and `totals.realtime` count only events stored before `as_of`, and minimum
+       * commitments apply only when the service period has ended by `as_of`. Everything
+       * else is read as it is now: the price, service periods, status, the customer's
+       * subjects, and the feature's meter and filters. A re-run returns the same usage
+       * only while those are unchanged. Realizations are current too, so the outstanding
+       * realization is reported as zero.
        *
        * Charges created after `as_of` are included. Charges deleted after `as_of` are
        * left out unless `filter[status]` selects `deleted`. Events become readable
