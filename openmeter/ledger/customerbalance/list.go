@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/samber/lo"
 	"github.com/samber/mo"
 	"golang.org/x/sync/errgroup"
 
@@ -111,11 +110,13 @@ func NewLister(customers customerLister, balances balancesGetter) (*Lister, erro
 // earlier ones. Deleting a customer during a live walk still shifts later rows
 // up a page; an AsOf walk keeps deleted customers, so its pages stay put.
 //
-// With AsOf, the customers are the ones that existed at AsOf. A customer
-// created later but holding a grant backdated before AsOf is left out.
+// With AsOf, the customers are the ones that existed at AsOf. That goes by the
+// customer's own lifetime, not ledger activity: a customer created later with a
+// grant backdated before AsOf is left out, and so is one deleted before AsOf with
+// credit remaining.
 //
-// A customer without an FBO account has never held credit and is listed with no
-// balances. Any other failure, including a partly provisioned customer, fails
+// A customer without any ledger accounts has never held credit and is listed with
+// no balances. Any other failure, including a partly provisioned customer, fails
 // the page so no balance goes missing silently.
 func (l *Lister) ListCustomerBalances(ctx context.Context, input ListCustomerBalancesInput) (pagination.Result[CustomerBalances], error) {
 	if err := input.Validate(); err != nil {
@@ -147,7 +148,7 @@ func (l *Lister) ListCustomerBalances(ctx context.Context, input ListCustomerBal
 				FeatureFilter: input.FeatureFilter,
 				AsOf:          input.AsOf,
 			})
-			if err != nil && !isFBOAccountMissing(err) {
+			if err != nil && !ledger.IsCustomerWithoutAccounts(err) {
 				return fmt.Errorf("get balances for customer %s: %w", cust.ID, err)
 			}
 
@@ -166,19 +167,4 @@ func (l *Lister) ListCustomerBalances(ctx context.Context, input ListCustomerBal
 		TotalCount: customers.TotalCount,
 		Items:      items,
 	}, nil
-}
-
-// The FBO account holds every credit balance, so without it the customer has
-// none. A missing receivable or accrued account next to an FBO account is a
-// partly provisioned customer whose balance we can't read.
-func isFBOAccountMissing(err error) bool {
-	issues, issueErr := models.AsValidationIssues(err)
-	if issueErr != nil {
-		return false
-	}
-
-	return lo.ContainsBy(issues, func(issue models.ValidationIssue) bool {
-		return issue.Code() == ledger.ErrCodeCustomerAccountMissing &&
-			issue.Attributes()["account_type"] == ledger.AccountTypeCustomerFBO
-	})
 }

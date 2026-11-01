@@ -240,7 +240,7 @@ func (s *Service) ensureBusinessAccounts(ctx context.Context, input RunInput, re
 		return nil
 	}
 
-	if !hasValidationIssueCode(err, ledger.ErrCodeBusinessAccountMissing) {
+	if !models.HasValidationIssueCode(err, ledger.ErrCodeBusinessAccountMissing) {
 		failure := s.recordFailure(result, "get_business_accounts", "", err)
 		return failure
 	}
@@ -268,7 +268,7 @@ func (s *Service) ensureCustomerAccounts(ctx context.Context, input RunInput, re
 		return nil
 	}
 
-	if !hasValidationIssueCode(err, ledger.ErrCodeCustomerAccountMissing) {
+	if !models.HasValidationIssueCode(err, ledger.ErrCodeCustomerAccountMissing) {
 		failure := s.recordFailure(result, "get_customer_accounts", customerID.ID, err)
 		return failure
 	}
@@ -287,21 +287,6 @@ func (s *Service) ensureCustomerAccounts(ctx context.Context, input RunInput, re
 	result.CustomersProvisioned++
 
 	return nil
-}
-
-func hasValidationIssueCode(err error, code models.ErrorCode) bool {
-	issues, issueErr := models.AsValidationIssues(err)
-	if issueErr != nil {
-		return false
-	}
-
-	for _, issue := range issues {
-		if issue.Code() == code {
-			return true
-		}
-	}
-
-	return false
 }
 
 func (s *Service) recordFailure(result *NamespaceResult, stage string, customerID string, err error) error {

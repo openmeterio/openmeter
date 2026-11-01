@@ -89,6 +89,18 @@ func AsValidationIssues(errIn error) (ValidationIssues, error) {
 	return issues, nil
 }
 
+// HasValidationIssueCode reports whether err carries an issue with the code.
+func HasValidationIssueCode(err error, code ErrorCode) bool {
+	issues, issueErr := AsValidationIssues(err)
+	if issueErr != nil {
+		return false
+	}
+
+	return lo.ContainsBy(issues, func(issue ValidationIssue) bool {
+		return issue.Code() == code
+	})
+}
+
 func asValidationIssues(err error, prefix *FieldDescriptor, component ComponentName, unknownAsValidationIssue bool) (ValidationIssues, error) {
 	if err == nil {
 		return nil, nil

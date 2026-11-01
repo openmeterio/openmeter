@@ -129,7 +129,7 @@ func TestListAllCreditBalances(t *testing.T) {
 				funded: {{Currency: currencyx.Code("USD"), Balance: staticCreditBalance{booked: alpacadecimal.NewFromInt(150), spendable: alpacadecimal.NewFromInt(120)}}},
 			},
 			errs: map[string]error{
-				noLedger: ledger.ErrCustomerAccountMissing.WithAttr("account_type", ledger.AccountTypeCustomerFBO),
+				noLedger: ledger.ErrCustomerWithoutAccounts,
 			},
 		}
 		h := &handler{
@@ -195,17 +195,19 @@ func TestListAllCreditBalances(t *testing.T) {
 	})
 
 	t.Run("a partly provisioned customer fails the page", func(t *testing.T) {
-		// given: a customer with an FBO account but no accrued account.
-		_, facade, router := newHarness()
-		facade.errs[funded] = ledger.ErrCustomerAccountMissing.WithAttr("account_type", ledger.AccountTypeCustomerAccrued)
+		for _, missing := range []ledger.AccountType{ledger.AccountTypeCustomerFBO, ledger.AccountTypeCustomerAccrued} {
+			// given: a customer with some ledger accounts but not this one.
+			_, facade, router := newHarness()
+			facade.errs[funded] = ledger.ErrCustomerAccountMissing.WithAttr("account_type", missing)
 
-		// when: the page is read.
-		req := httptest.NewRequest(http.MethodGet, "/openmeter/credits/balances", nil)
-		rec := httptest.NewRecorder()
-		router.ServeHTTP(rec, req)
+			// when: the page is read.
+			req := httptest.NewRequest(http.MethodGet, "/openmeter/credits/balances", nil)
+			rec := httptest.NewRecorder()
+			router.ServeHTTP(rec, req)
 
-		// then: the FBO balance isn't silently reported as empty.
-		require.Equal(t, http.StatusInternalServerError, rec.Code, rec.Body.String())
+			// then: the customer's balance isn't silently reported as empty.
+			require.Equal(t, http.StatusInternalServerError, rec.Code, rec.Body.String())
+		}
 	})
 
 	t.Run("an empty currency filter is rejected instead of reading every currency", func(t *testing.T) {

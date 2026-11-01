@@ -6,12 +6,16 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/oklog/ulid/v2"
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
+	"github.com/openmeterio/openmeter/openmeter/ledger/resolvers"
+	resolversadapter "github.com/openmeterio/openmeter/openmeter/ledger/resolvers/adapter"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -541,4 +545,46 @@ func TestFacadeGetBalanceAsOf(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.True(t, currentBalance.Equal(alpacadecimal.NewFromInt(120)))
+}
+
+func TestFacadeGetBalancesTellsUnprovisionedFromPartlyProvisionedCustomers(t *testing.T) {
+	env := newTestEnv(t)
+	facade, err := NewFacade(env.Service)
+	require.NoError(t, err)
+
+	// given: a customer with no ledger accounts, and one with a receivable account
+	// but no FBO account.
+	unprovisioned := customer.CustomerID{Namespace: env.Namespace, ID: ulid.Make().String()}
+	partial := customer.CustomerID{Namespace: env.Namespace, ID: ulid.Make().String()}
+	require.NoError(t, env.DB.Customer.Create().SetNamespace(partial.Namespace).SetID(partial.ID).SetName("Partial").Exec(t.Context()))
+
+	account, err := env.Deps.AccountService.CreateAccount(t.Context(), ledgeraccount.CreateAccountInput{
+		Namespace: partial.Namespace,
+		Type:      ledger.AccountTypeCustomerReceivable,
+	})
+	require.NoError(t, err)
+	require.NoError(t, resolversadapter.NewRepo(env.DB).CreateCustomerAccount(t.Context(), resolvers.CreateCustomerAccountInput{
+		CustomerID:  partial,
+		AccountType: ledger.AccountTypeCustomerReceivable,
+		AccountID:   account.ID().ID,
+	}))
+
+	for name, currencies := range map[string]CurrencyFilter{
+		"discovered currencies": {},
+		"requested currency":    {Codes: []currencyx.Code{env.Currency}},
+	} {
+		t.Run(name, func(t *testing.T) {
+			// when: both balances are read.
+			_, unprovisionedErr := facade.GetBalances(t.Context(), GetBalancesInput{CustomerID: unprovisioned, Currencies: currencies})
+			_, partialErr := facade.GetBalances(t.Context(), GetBalancesInput{CustomerID: partial, Currencies: currencies})
+
+			// then: only the customer with no accounts counts as never provisioned, while
+			// both keep the code the ledger backfill job provisions from.
+			require.True(t, ledger.IsCustomerWithoutAccounts(unprovisionedErr), "error: %v", unprovisionedErr)
+			require.True(t, models.HasValidationIssueCode(unprovisionedErr, ledger.ErrCodeCustomerAccountMissing), "error: %v", unprovisionedErr)
+
+			require.False(t, ledger.IsCustomerWithoutAccounts(partialErr), "error: %v", partialErr)
+			require.True(t, models.HasValidationIssueCode(partialErr, ledger.ErrCodeCustomerAccountMissing), "error: %v", partialErr)
+		})
+	}
 }

@@ -101,6 +101,13 @@ func (s *AccountResolver) GetCustomerAccounts(ctx context.Context, customerID cu
 		return ledger.CustomerAccounts{}, fmt.Errorf("failed to get customer account IDs: %w", err)
 	}
 
+	if len(accountIDs) == 0 {
+		return ledger.CustomerAccounts{}, ledger.ErrCustomerWithoutAccounts.WithAttrs(models.Attributes{
+			"namespace":   customerID.Namespace,
+			"customer_id": customerID.ID,
+		})
+	}
+
 	fboID, ok := accountIDs[ledger.AccountTypeCustomerFBO]
 	if !ok {
 		return ledger.CustomerAccounts{}, ledger.ErrCustomerAccountMissing.WithAttrs(models.Attributes{

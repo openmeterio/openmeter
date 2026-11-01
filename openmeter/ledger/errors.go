@@ -1,6 +1,10 @@
 package ledger
 
-import "github.com/openmeterio/openmeter/pkg/models"
+import (
+	"github.com/samber/lo"
+
+	"github.com/openmeterio/openmeter/pkg/models"
+)
 
 // TODO: Better names and codes
 
@@ -87,6 +91,25 @@ var ErrCustomerAccountMissing = models.NewValidationIssue(
 	ErrCodeCustomerAccountMissing,
 	"required customer ledger account is missing",
 )
+
+const attrCustomerWithoutAccounts = "customer_without_accounts"
+
+// ErrCustomerWithoutAccounts is the missing-account issue for a customer that was
+// never provisioned: it has no ledger accounts of any type.
+var ErrCustomerWithoutAccounts = ErrCustomerAccountMissing.WithAttr(attrCustomerWithoutAccounts, true)
+
+// IsCustomerWithoutAccounts reports a customer with no ledger accounts at all. A
+// customer missing only some account types is broken, not unprovisioned.
+func IsCustomerWithoutAccounts(err error) bool {
+	issues, issueErr := models.AsValidationIssues(err)
+	if issueErr != nil {
+		return false
+	}
+
+	return lo.ContainsBy(issues, func(issue models.ValidationIssue) bool {
+		return issue.Attributes()[attrCustomerWithoutAccounts] == true
+	})
+}
 
 const ErrCodeBusinessAccountMissing models.ErrorCode = "ledger_business_account_missing"
 
