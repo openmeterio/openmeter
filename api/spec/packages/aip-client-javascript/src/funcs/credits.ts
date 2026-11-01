@@ -19,7 +19,7 @@ import type {
  * List credit grants across all customers.
  *
  * Returns the same grants as the per-customer route; each grant carries its
- * `customer` reference.
+ * `customer` reference. The page size is limited to 1000.
  *
  * GET /openmeter/credits/grants
  */
@@ -64,8 +64,13 @@ export function listCreditsGrants(
  * Returns one item per customer, ordered by customer ID. Customers without credit
  * activity are returned with an empty `balances` list. When `timestamp` is set,
  * the list holds the customers that existed at that time: customers created later
- * are left out, and customers deleted since then are still included. The page size
- * is limited to 100 because balances are computed on request.
+ * are left out, and customers deleted since then are still included. A customer
+ * created after `timestamp` is left out even if it holds a grant backdated before
+ * it, so the total can be lower than the per-customer route's.
+ *
+ * Without `timestamp`, deleting a customer during a walk moves later customers to
+ * an earlier page, so one can be skipped. Pass `timestamp` to walk a stable set.
+ * The page size is limited to 100 because balances are computed on request.
  *
  * GET /openmeter/credits/balances
  */

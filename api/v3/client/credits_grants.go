@@ -63,7 +63,7 @@ func (p ListCreditsGrantsParams) values() url.Values {
 // List credit grants across all customers.
 //
 // Returns the same grants as the per-customer route; each grant carries its
-// `customer` reference.
+// `customer` reference. The page size is limited to 1000.
 func (s *CreditsGrantsService) List(ctx context.Context, params ListCreditsGrantsParams) (*CreditGrantPagePaginatedResponse, error) {
 	path := "/openmeter/credits/grants"
 

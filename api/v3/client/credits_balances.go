@@ -54,8 +54,13 @@ func (p ListCreditsBalancesParams) values() url.Values {
 // Returns one item per customer, ordered by customer ID. Customers without credit
 // activity are returned with an empty `balances` list. When `timestamp` is set,
 // the list holds the customers that existed at that time: customers created later
-// are left out, and customers deleted since then are still included. The page size
-// is limited to 100 because balances are computed on request.
+// are left out, and customers deleted since then are still included. A customer
+// created after `timestamp` is left out even if it holds a grant backdated before
+// it, so the total can be lower than the per-customer route's.
+//
+// Without `timestamp`, deleting a customer during a walk moves later customers to
+// an earlier page, so one can be skipped. Pass `timestamp` to walk a stable set.
+// The page size is limited to 100 because balances are computed on request.
 func (s *CreditsBalancesService) List(ctx context.Context, params ListCreditsBalancesParams) (*CustomerCreditBalancesPagePaginatedResponse, error) {
 	path := "/openmeter/credits/balances"
 
