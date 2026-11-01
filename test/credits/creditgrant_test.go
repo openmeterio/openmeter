@@ -34,6 +34,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/filter"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
 	billingtest "github.com/openmeterio/openmeter/test/billing"
@@ -448,8 +449,8 @@ func (s *CreditGrantTestSuite) TestListCreditGrants() {
 	secondGrant := s.mustCreatePromotionalCreditGrant(ctx, ns, cust.GetID(), "list-grant-2", alpacadecimal.NewFromInt(20))
 
 	result, err := s.CreditGrantService.List(ctx, creditgrant.ListInput{
-		Namespace:  ns,
-		CustomerID: cust.ID,
+		Namespace:   ns,
+		CustomerIDs: []string{cust.ID},
 	})
 	s.Require().NoError(err)
 	s.Len(result.Items, 2)
@@ -478,8 +479,14 @@ func (s *CreditGrantTestSuite) TestListCreditGrantsAcrossCustomers() {
 	firstGrant := s.mustCreatePromotionalCreditGrant(ctx, ns, first.GetID(), "first-grant", alpacadecimal.NewFromInt(10))
 	secondGrant := s.mustCreatePromotionalCreditGrant(ctx, ns, second.GetID(), "second-grant", alpacadecimal.NewFromInt(20))
 
-	// when: grants are listed without a customer scope.
-	all, err := s.CreditGrantService.List(ctx, creditgrant.ListInput{Namespace: ns, Page: pagination.NewPage(1, 100)})
+	// when: a listing without customer IDs doesn't ask for every customer.
+	_, err := s.CreditGrantService.List(ctx, creditgrant.ListInput{Namespace: ns, Page: pagination.NewPage(1, 100)})
+
+	// then: it is rejected instead of reading every customer's grants.
+	s.Require().True(models.IsGenericValidationError(err), err)
+
+	// when: grants are listed for every customer.
+	all, err := s.CreditGrantService.List(ctx, creditgrant.ListInput{Namespace: ns, AllCustomers: true, Page: pagination.NewPage(1, 100)})
 	s.Require().NoError(err)
 
 	// then: every customer's grant is returned and keeps its owner.
@@ -489,7 +496,7 @@ func (s *CreditGrantTestSuite) TestListCreditGrantsAcrossCustomers() {
 	s.Equal(map[string]string{firstGrant.ID: first.ID, secondGrant.ID: second.ID}, owners)
 
 	// when: grants are listed for one customer.
-	scoped, err := s.CreditGrantService.List(ctx, creditgrant.ListInput{Namespace: ns, CustomerID: second.ID, Page: pagination.NewPage(1, 100)})
+	scoped, err := s.CreditGrantService.List(ctx, creditgrant.ListInput{Namespace: ns, CustomerIDs: []string{second.ID}, Page: pagination.NewPage(1, 100)})
 	s.Require().NoError(err)
 
 	// then: only that customer's grant is returned.
@@ -516,9 +523,10 @@ func (s *CreditGrantTestSuite) TestListCreditGrantsUpdatedSince() {
 
 	// when: grants changed since the checkpoint are listed.
 	result, err := s.CreditGrantService.List(ctx, creditgrant.ListInput{
-		Namespace: ns,
-		Page:      pagination.NewPage(1, 100),
-		UpdatedAt: &filter.FilterTime{Gte: &checkpoint},
+		Namespace:    ns,
+		AllCustomers: true,
+		Page:         pagination.NewPage(1, 100),
+		UpdatedAt:    &filter.FilterTime{Gte: &checkpoint},
 	})
 	s.Require().NoError(err)
 
@@ -579,7 +587,7 @@ func (s *CreditGrantTestSuite) TestListCreditGrantsSorting() {
 			var ids []string
 			for page := 1; page <= len(tc.want); page++ {
 				result, err := s.CreditGrantService.List(ctx, creditgrant.ListInput{
-					Namespace: ns, CustomerID: cust.ID, Page: pagination.NewPage(page, 1),
+					Namespace: ns, CustomerIDs: []string{cust.ID}, Page: pagination.NewPage(page, 1),
 					OrderBy: tc.orderBy, Order: tc.order,
 				})
 				s.Require().NoError(err)
@@ -895,7 +903,7 @@ func (s *CreditGrantTestSuite) TestListCreditGrantsSpendabilityFilters() {
 	} {
 		s.Run(tc.name, func() {
 			// When listing grants for the requested features.
-			input := creditgrant.ListInput{Namespace: ns, CustomerID: cust.ID, FeatureFilters: tc.features, Page: pagination.NewPage(1, 100)}
+			input := creditgrant.ListInput{Namespace: ns, CustomerIDs: []string{cust.ID}, FeatureFilters: tc.features, Page: pagination.NewPage(1, 100)}
 			result, err := s.CreditGrantService.List(ctx, input)
 			s.Require().NoError(err)
 			// Then unrestricted grants are retained and restrictions match before pagination.
