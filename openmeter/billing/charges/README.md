@@ -294,8 +294,8 @@ stored before that time. Only that bound is replayed: the event window (the
 effective service period), the customer's subjects, the feature's meter and
 filters, intent (including price), status, and realizations are all read as they
 are now. A re-run returns the same quantity only while those are unchanged.
-Realization runs are current, so the outstanding realization is left at zero
-instead of mixing the past read with today's runs. The listing still hides
+Realization runs are current, so a usage-based charge's outstanding quantity is
+left at zero instead of mixing the past read with today's runs. The listing still hides
 charges deleted since that time unless the status filter selects them. Future
 cutoffs are rejected because events can still be stored before them; a cutoff
 from the last few minutes can still change, because the sink stamps `stored_at`
