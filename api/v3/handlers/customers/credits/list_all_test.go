@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"sync"
 	"testing"
 	"time"
@@ -52,6 +53,9 @@ func TestListAllCreditGrantsCustomerScope(t *testing.T) {
 		{query: "filter[customer_id][oeq]=", invalid: true},
 		{query: "filter[updated_at][gte]=2026-10-01T00:00:00Z", updatedAt: true},
 		{query: "filter[updated_at][gte]=yesterday", invalid: true},
+		{query: "page[size]=0", invalid: true},
+		{query: "page[size]=1001", invalid: true},
+		{query: "page[size]=1000", customerIDs: nil},
 	} {
 		t.Run(tc.query, func(t *testing.T) {
 			// given: the generated HTTP binding and the real namespace-wide grant handler.
@@ -76,6 +80,7 @@ func TestListAllCreditGrantsCustomerScope(t *testing.T) {
 			require.NotNil(t, service.input)
 			require.Equal(t, "ns", service.input.Namespace)
 			require.Equal(t, tc.customerIDs, service.input.CustomerIDs)
+			require.Equal(t, len(tc.customerIDs) == 0, service.input.AllCustomers)
 			require.Equal(t, tc.updatedAt, service.input.UpdatedAt != nil)
 		})
 	}
@@ -124,7 +129,7 @@ func TestListAllCreditBalances(t *testing.T) {
 				funded: {{Currency: currencyx.Code("USD"), Balance: staticCreditBalance{booked: alpacadecimal.NewFromInt(150), spendable: alpacadecimal.NewFromInt(120)}}},
 			},
 			errs: map[string]error{
-				noLedger: ledger.ErrCustomerAccountMissing,
+				noLedger: ledger.ErrCustomerAccountMissing.WithAttr("account_type", ledger.AccountTypeCustomerFBO),
 			},
 		}
 		h := &handler{
@@ -189,6 +194,20 @@ func TestListAllCreditBalances(t *testing.T) {
 		require.Nil(t, customers.input.ExistingAt)
 	})
 
+	t.Run("a partly provisioned customer fails the page", func(t *testing.T) {
+		// given: a customer with an FBO account but no accrued account.
+		_, facade, router := newHarness()
+		facade.errs[funded] = ledger.ErrCustomerAccountMissing.WithAttr("account_type", ledger.AccountTypeCustomerAccrued)
+
+		// when: the page is read.
+		req := httptest.NewRequest(http.MethodGet, "/openmeter/credits/balances", nil)
+		rec := httptest.NewRecorder()
+		router.ServeHTTP(rec, req)
+
+		// then: the FBO balance isn't silently reported as empty.
+		require.Equal(t, http.StatusInternalServerError, rec.Code, rec.Body.String())
+	})
+
 	t.Run("an empty currency filter is rejected instead of reading every currency", func(t *testing.T) {
 		for _, query := range []string{"filter[currency][oeq]=", "filter[currency][eq]=", "filter[currency]="} {
 			// given: the real handler.
@@ -205,17 +224,41 @@ func TestListAllCreditBalances(t *testing.T) {
 		}
 	})
 
-	t.Run("page size above the cap is rejected", func(t *testing.T) {
-		// given: the real handler.
-		customers, _, router := newHarness()
+	t.Run("page sizes outside 1 to 100 are rejected", func(t *testing.T) {
+		// A zero size would remove the query limit and read every customer.
+		for _, size := range []string{"0", "101"} {
+			// given: the real handler.
+			customers, _, router := newHarness()
 
-		// when: a page larger than the per-request computation cap is requested.
-		req := httptest.NewRequest(http.MethodGet, "/openmeter/credits/balances?page[size]=101", nil)
-		rec := httptest.NewRecorder()
-		router.ServeHTTP(rec, req)
+			// when: a page outside the per-request computation cap is requested.
+			req := httptest.NewRequest(http.MethodGet, "/openmeter/credits/balances?page[size]="+size, nil)
+			rec := httptest.NewRecorder()
+			router.ServeHTTP(rec, req)
 
-		// then: the request fails before any customer is read.
-		require.Equal(t, http.StatusBadRequest, rec.Code, rec.Body.String())
-		require.Nil(t, customers.input)
+			// then: the request fails before any customer is read.
+			require.Equal(t, http.StatusBadRequest, rec.Code, size+": "+rec.Body.String())
+			require.Nil(t, customers.input, size)
+		}
 	})
+}
+
+// The bulk filter spreads the per-customer one in TypeSpec but is copied field by
+// field in the handler; a field added to one without the other would be dropped
+// silently, returning unfiltered rows.
+func TestListAllCreditGrantsFilterCopiesEveryField(t *testing.T) {
+	fieldNames := func(v any) []string {
+		typ := reflect.TypeOf(v)
+		names := make([]string, 0, typ.NumField())
+		for i := range typ.NumField() {
+			names = append(names, typ.Field(i).Name)
+		}
+
+		return names
+	}
+
+	require.ElementsMatch(t,
+		append(fieldNames(api.ListCreditGrantsParamsFilter{}), "CustomerId"),
+		fieldNames(api.ListAllCreditGrantsParamsFilter{}),
+		"update the filter copy in ListAllCreditGrants",
+	)
 }

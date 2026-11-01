@@ -38,10 +38,15 @@ requests return zero for `live`; we cannot reconstruct past unbooked usage.
 All reads use what is recorded now, including later-recorded corrections.
 There is no separate cutoff for when the system learned about a movement.
 
-The namespace-wide balance listing applies these same semantics to one page of
-customers at a time. Customers without ledger accounts have no credit activity
-and are listed with no balances. Historical (`asOf`) listings select the
-customers that existed at `asOf`, including ones deleted since. Their `booked`
+The namespace-wide balance listing (`Lister.ListCustomerBalances`) applies
+these same semantics to one page of customers at a time, at most 100, computing
+8 customers in parallel. Customers without an FBO account have no credit
+activity and are listed with no balances; any other missing account fails the
+page. Historical (`asOf`) listings select the customers that existed at `asOf`,
+including ones deleted since. A customer created after `asOf` with a grant
+backdated before it is left out, so a listing can total less than the
+per-customer reads. Live listings page over current customers, so a deletion
+during a walk can skip a customer; walk with `asOf` for a stable set. Their `booked`
 value changes only when an entry is booked with an earlier timestamp, such as a
 correction or a grant with a past effective time, so it is the stable basis for
 a daily close. `spendable` at `asOf` can still drop
