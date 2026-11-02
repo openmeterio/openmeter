@@ -9,7 +9,6 @@ import (
 	"reflect"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/stretchr/testify/require"
@@ -41,7 +40,6 @@ func TestListAllCreditGrantsCustomerScope(t *testing.T) {
 	for _, tc := range []struct {
 		query       string
 		customerIDs []string
-		updatedAt   bool
 		invalid     bool
 	}{
 		{query: "", customerIDs: nil},
@@ -51,8 +49,7 @@ func TestListAllCreditGrantsCustomerScope(t *testing.T) {
 		{query: "filter[customer_id][eq]=", invalid: true},
 		{query: "filter[customer_id]=", invalid: true},
 		{query: "filter[customer_id][oeq]=", invalid: true},
-		{query: "filter[updated_at][gte]=2026-10-01T00:00:00Z", updatedAt: true},
-		{query: "filter[updated_at][gte]=yesterday", invalid: true},
+		{query: "filter[updated_at][gte]=2026-10-01T00:00:00Z", invalid: true},
 		{query: "page[size]=0", invalid: true},
 		{query: "page[size]=1001", invalid: true},
 		{query: "page[size]=1000", customerIDs: nil},
@@ -81,7 +78,6 @@ func TestListAllCreditGrantsCustomerScope(t *testing.T) {
 			require.Equal(t, "ns", service.input.Namespace)
 			require.Equal(t, tc.customerIDs, service.input.CustomerIDs)
 			require.Equal(t, len(tc.customerIDs) == 0, service.input.AllCustomers)
-			require.Equal(t, tc.updatedAt, service.input.UpdatedAt != nil)
 		})
 	}
 }
@@ -141,26 +137,24 @@ func TestListAllCreditBalances(t *testing.T) {
 		return customers, facade, api.Handler(listAllServer{handler: h})
 	}
 
-	t.Run("historical page keeps customer order and lists customers without ledger accounts as empty", func(t *testing.T) {
+	t.Run("current page keeps customer order and lists customers without ledger accounts as empty", func(t *testing.T) {
 		// given: one funded customer and one customer that predates credits.
 		customers, facade, router := newHarness()
 
-		// when: a close job reads balances at the end of a day.
-		req := httptest.NewRequest(http.MethodGet, "/openmeter/credits/balances?timestamp=2026-09-30T23:59:59Z&page[size]=100", nil)
+		// when: current balances are requested.
+		req := httptest.NewRequest(http.MethodGet, "/openmeter/credits/balances?page[size]=100", nil)
 		rec := httptest.NewRecorder()
 		router.ServeHTTP(rec, req)
 
-		// then: customers are walked in ID order, the timestamp is a historical read, and
+		// then: customers are walked in ID order with live balance reads, and
 		// the customer without ledger accounts reads as having no balances.
 		require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
 		require.Equal(t, "id", customers.input.OrderBy)
 		require.Equal(t, sortx.OrderAsc, customers.input.Order)
 
-		asOf := time.Date(2026, 9, 30, 23, 59, 59, 0, time.UTC)
-		require.Equal(t, &asOf, customers.input.ExistingAt)
 		require.Len(t, facade.inputs, 2)
 		for _, input := range facade.inputs {
-			require.Equal(t, &asOf, input.AsOf)
+			require.Nil(t, input.AsOf)
 		}
 
 		var body struct {
@@ -170,7 +164,7 @@ func TestListAllCreditBalances(t *testing.T) {
 		require.Len(t, body.Data, 2)
 
 		require.Equal(t, funded, body.Data[0].Customer.Id)
-		require.Equal(t, asOf, body.Data[0].RetrievedAt)
+		require.False(t, body.Data[0].RetrievedAt.IsZero())
 		require.Len(t, body.Data[0].Balances, 1)
 		require.Equal(t, "150", body.Data[0].Balances[0].Booked)
 
@@ -180,7 +174,7 @@ func TestListAllCreditBalances(t *testing.T) {
 
 	t.Run("other balance failures fail the page", func(t *testing.T) {
 		// given: a balance read that fails for a reason other than missing accounts.
-		customers, facade, router := newHarness()
+		_, facade, router := newHarness()
 		facade.errs[funded] = errors.New("ledger unavailable")
 
 		// when: the page is read.
@@ -188,10 +182,8 @@ func TestListAllCreditBalances(t *testing.T) {
 		rec := httptest.NewRecorder()
 		router.ServeHTTP(rec, req)
 
-		// then: the page is not returned with silently missing balances, and a live read
-		// selects the customers that exist now.
+		// then: the page is not returned with silently missing balances.
 		require.Equal(t, http.StatusInternalServerError, rec.Code, rec.Body.String())
-		require.Nil(t, customers.input.ExistingAt)
 	})
 
 	t.Run("a partly provisioned customer fails the page", func(t *testing.T) {

@@ -46,19 +46,11 @@ func (a *adapter) ListCustomers(ctx context.Context, input customer.ListCustomer
 			query = WithActiveSubscriptions(query, now)
 		}
 
-		// Do not return deleted customers by default. A customer deleted exactly at
-		// ExistingAt no longer existed at that time.
-		notDeleted := customerdb.DeletedAtGTE(now)
-		if input.ExistingAt != nil {
-			existingAt := input.ExistingAt.UTC()
-			query = query.Where(customerdb.CreatedAtLTE(existingAt))
-			notDeleted = customerdb.DeletedAtGT(existingAt)
-		}
-
+		// Do not return deleted customers by default
 		if !input.IncludeDeleted {
 			query = query.Where(customerdb.Or(
 				customerdb.DeletedAtIsNil(),
-				notDeleted,
+				customerdb.DeletedAtGTE(now),
 			))
 		}
 

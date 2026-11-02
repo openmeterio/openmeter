@@ -98,18 +98,13 @@ namespace Balances {
     /**
      * List credit balances across customers.
      *
-     * Returns one item per customer, ordered by customer ID. Customers without credit
-     * activity are returned with an empty `balances` list. When `timestamp` is set,
-     * the list holds the customers that existed at that time: customers created later
-     * are left out, and customers deleted since then are still included. This uses the
-     * customer's creation and deletion times, not ledger activity, so the total can be
-     * lower than the per-customer route's: a customer created after `timestamp` with a
-     * grant backdated before it, or deleted before `timestamp` with credit remaining,
-     * is left out.
-     *
-     * Without `timestamp`, deleting a customer during a walk moves later customers to
-     * an earlier page, so one can be skipped. Pass `timestamp` to walk a stable set.
+     * Returns current balances for each non-deleted customer, ordered by customer ID.
+     * Customers without credit activity are returned with an empty `balances` list.
      * The page size is limited to 100 because balances are computed on request.
+     *
+     * Each customer is read independently. Changes during a page walk can affect
+     * balances and move customers between pages. This is an operational read, not an
+     * accounting-close snapshot.
      */
     @extension(Shared.UnstableExtension, true)
     @get
@@ -119,26 +114,6 @@ namespace Balances {
     @summary("List credit balances across customers")
     list(
       ...Common.PagePaginationQuery,
-
-      /**
-       * Return credit balances at this timestamp using all currently recorded postings,
-       * including corrections recorded later. This is not a snapshot of what was known
-       * at the requested time.
-       *
-       * Defaults to the current time. Historical responses return `live` as zero because
-       * live charge impacts are only available for current balances. For a re-runnable
-       * daily or month-end close, use `booked`: it changes only when an entry is booked
-       * with an earlier timestamp, such as a correction or a grant with a past
-       * `effective_at`. `spendable` can also change after the fact, because it sets
-       * aside credit for usage that is recorded later. The timestamp is inclusive and
-       * has microsecond precision, so an end-of-day close should use `23:59:59.999999Z`.
-       * A JavaScript `Date` holds only milliseconds: a `Date` cutoff of `23:59:59.999Z`
-       * leaves out entries booked in the final 999 microseconds. In the TypeScript SDK,
-       * pass the cutoff as an RFC 3339 string instead; request strings are sent
-       * unchanged.
-       */
-      @query
-      timestamp?: Shared.DateTime,
 
       /**
        * Filter credit balances returned in the response.

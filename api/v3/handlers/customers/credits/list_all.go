@@ -47,7 +47,6 @@ func (h *handler) ListAllCreditGrants() ListAllCreditGrantsHandler {
 					Currency:   f.Currency,
 					Key:        f.Key,
 					FeatureKey: f.FeatureKey,
-					UpdatedAt:  f.UpdatedAt,
 				}
 				apiCustomerID = f.CustomerId
 			}
@@ -116,9 +115,8 @@ func (h *handler) ListAllCreditBalances() ListAllCreditBalancesHandler {
 				ListCustomerBalancesInput: customerbalance.ListCustomerBalancesInput{
 					Namespace: ns,
 					Page:      page,
-					AsOf:      params.Timestamp,
 				},
-				RetrievedAt: lo.FromPtrOr(params.Timestamp, clock.Now()),
+				RetrievedAt: clock.Now(),
 			}
 
 			if f := params.Filter; f != nil {

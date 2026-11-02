@@ -7,7 +7,6 @@ import (
 	"iter"
 	"net/http"
 	"net/url"
-	"time"
 )
 
 type CreditsBalancesService struct {
@@ -26,19 +25,14 @@ type ListCreditsBalancesFilter struct {
 }
 
 type ListCreditsBalancesParams struct {
-	Page      *PageParams
-	Timestamp *time.Time
-	Filter    *ListCreditsBalancesFilter
+	Page   *PageParams
+	Filter *ListCreditsBalancesFilter
 }
 
 func (p ListCreditsBalancesParams) values() url.Values {
 	q := url.Values{}
 
 	addPageParams(q, p.Page)
-
-	if p.Timestamp != nil {
-		q.Set("timestamp", (*p.Timestamp).Format(time.RFC3339Nano))
-	}
 
 	if p.Filter != nil {
 		addStringExactFilter(q, "filter[currency]", p.Filter.Currency)
@@ -51,18 +45,13 @@ func (p ListCreditsBalancesParams) values() url.Values {
 
 // List credit balances across customers.
 //
-// Returns one item per customer, ordered by customer ID. Customers without credit
-// activity are returned with an empty `balances` list. When `timestamp` is set,
-// the list holds the customers that existed at that time: customers created later
-// are left out, and customers deleted since then are still included. This uses the
-// customer's creation and deletion times, not ledger activity, so the total can be
-// lower than the per-customer route's: a customer created after `timestamp` with a
-// grant backdated before it, or deleted before `timestamp` with credit remaining,
-// is left out.
-//
-// Without `timestamp`, deleting a customer during a walk moves later customers to
-// an earlier page, so one can be skipped. Pass `timestamp` to walk a stable set.
+// Returns current balances for each non-deleted customer, ordered by customer ID.
+// Customers without credit activity are returned with an empty `balances` list.
 // The page size is limited to 100 because balances are computed on request.
+//
+// Each customer is read independently. Changes during a page walk can affect
+// balances and move customers between pages. This is an operational read, not
+// an accounting-close snapshot.
 func (s *CreditsBalancesService) List(ctx context.Context, params ListCreditsBalancesParams) (*CustomerCreditBalancesPagePaginatedResponse, error) {
 	path := "/openmeter/credits/balances"
 
