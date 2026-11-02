@@ -1012,6 +1012,18 @@ func (i SimulateInvoiceInput) Validate() error {
 		return errors.New("lines are required")
 	}
 
+	// Simulation rates each line through its engine. Report a bad engine as a
+	// client error instead of failing later in the engine lookup.
+	for idx, line := range i.Lines.OrEmpty() {
+		if line.DeletedAt != nil {
+			continue
+		}
+
+		if err := line.Engine.Validate(); err != nil {
+			return ValidationError{Err: fmt.Errorf("line[%d]: %w", idx, err)}
+		}
+	}
+
 	return nil
 }
 
