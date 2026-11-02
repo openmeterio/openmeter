@@ -51,8 +51,9 @@ var (
 )
 
 // EventTypeDefinition binds an Event type to the contracts generated from its
-// TypeSpec models. Released definitions are immutable: a changed contract is a
-// new Event type version.
+// TypeSpec models. Once released, the Event type and its schemas must not
+// change: a changed contract is a new Event type version. DeprecatedBy can
+// still be set later.
 type EventTypeDefinition struct {
 	EventType         EventType
 	PayloadJSONSchema json.RawMessage
@@ -111,6 +112,43 @@ func (d EventTypeDefinition) Equal(other EventTypeDefinition) bool {
 		jsonSchemaEqual(d.PayloadJSONSchema, other.PayloadJSONSchema) &&
 		equal.PtrEqual(d.Rule, other.Rule) &&
 		equal.ComparablePtrEqual(d.DeprecatedBy, other.DeprecatedBy)
+}
+
+// Fingerprint identifies what must not change once the definition is released:
+// the Event type, the payload schema and the Rule configuration schema, if any.
+// Schemas are hashed in canonical form, so formatting and object key order do
+// not change it. DeprecatedBy is left out because it is set on released
+// definitions.
+func (d EventTypeDefinition) Fingerprint() (string, error) {
+	payload, err := canonicalJSON(d.PayloadJSONSchema)
+	if err != nil {
+		return "", fmt.Errorf("payload JSON schema: %w", err)
+	}
+
+	ruleConfig := json.RawMessage("null")
+	if d.Rule != nil {
+		ruleConfig, err = canonicalJSON(d.Rule.JSONSchema)
+		if err != nil {
+			return "", fmt.Errorf("rule config JSON schema: %w", err)
+		}
+	}
+
+	doc, err := json.Marshal(struct {
+		EventType  string          `json:"event_type"`
+		Payload    json.RawMessage `json:"payload"`
+		RuleConfig json.RawMessage `json:"rule_config"`
+	}{
+		EventType:  d.EventType.String(),
+		Payload:    payload,
+		RuleConfig: ruleConfig,
+	})
+	if err != nil {
+		return "", err
+	}
+
+	sum := sha256.Sum256(doc)
+
+	return "sha256:" + hex.EncodeToString(sum[:]), nil
 }
 
 // clone returns a copy that shares no mutable memory with d.
@@ -539,20 +577,6 @@ func validateJSONSchemaDocument(schema json.RawMessage) error {
 	}
 
 	return nil
-}
-
-// JSONSchemaFingerprint identifies a schema by its canonical form, so
-// formatting and object key order do not change it. It is how released
-// contracts are checked for in-place changes.
-func JSONSchemaFingerprint(schema json.RawMessage) (string, error) {
-	canonical, err := canonicalJSON(schema)
-	if err != nil {
-		return "", err
-	}
-
-	sum := sha256.Sum256(canonical)
-
-	return "sha256:" + hex.EncodeToString(sum[:]), nil
 }
 
 // canonicalJSON re-encodes a JSON document with sorted object keys and no

@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"testing"
 
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
 	billingevents "github.com/openmeterio/openmeter/openmeter/billing/notificationevents"
@@ -114,52 +115,88 @@ func TestEventTypeDefinitionEqual(t *testing.T) {
 	}
 }
 
-func TestJSONSchemaFingerprint(t *testing.T) {
-	fingerprint := func(schema string) string {
+func TestEventTypeDefinitionFingerprint(t *testing.T) {
+	const ruleSchema = `{"type":"object","properties":{"a":{"enum":["x","y"]},"b":{"minimum":1}}}`
+
+	def := func(payload string, ruleConfig *string) v4.EventTypeDefinition {
+		d := v4.EventTypeDefinition{
+			EventType:         v4.EventType{Name: "billing.invoice.created", Version: 1},
+			PayloadJSONSchema: json.RawMessage(payload),
+		}
+		if ruleConfig != nil {
+			d.Rule = &v4.RuleConfigDefinition{JSONSchema: json.RawMessage(*ruleConfig)}
+		}
+
+		return d
+	}
+
+	fingerprint := func(d v4.EventTypeDefinition) string {
 		t.Helper()
 
-		f, err := v4.JSONSchemaFingerprint(json.RawMessage(schema))
+		f, err := d.Fingerprint()
 		require.NoError(t, err)
 
 		return f
 	}
 
-	base := fingerprint(`{"type":"object","properties":{"a":{"enum":["x","y"]},"b":{"minimum":1}}}`)
+	base := fingerprint(def(testSchema, lo.ToPtr(ruleSchema)))
 	require.Regexp(t, `^sha256:[0-9a-f]{64}$`, base)
 
 	// Formatting and object key order do not change the fingerprint.
-	require.Equal(t, base, fingerprint(`{
-		"properties": {
-			"b": {"minimum": 1},
-			"a": {"enum": ["x", "y"]}
-		},
-		"type": "object"
-	}`))
+	require.Equal(t, base, fingerprint(def(
+		`{"type": "object", "$schema": "https://json-schema.org/draft/2020-12/schema"}`,
+		lo.ToPtr(`{
+			"properties": {
+				"b": {"minimum": 1},
+				"a": {"enum": ["x", "y"]}
+			},
+			"type": "object"
+		}`),
+	)))
+
+	// A replacement is set on released definitions, so it is left out.
+	deprecated := def(testSchema, lo.ToPtr(ruleSchema))
+	deprecated.DeprecatedBy = &v4.EventType{Name: "billing.invoice.created", Version: 2}
+	require.Equal(t, base, fingerprint(deprecated))
+
+	otherType := def(testSchema, lo.ToPtr(ruleSchema))
+	otherType.EventType.Version = 2
 
 	changed := []struct {
-		name   string
-		schema string
+		name string
+		def  v4.EventTypeDefinition
 	}{
-		{"value", `{"type":"object","properties":{"a":{"enum":["x","z"]},"b":{"minimum":1}}}`},
-		{"array order", `{"type":"object","properties":{"a":{"enum":["y","x"]},"b":{"minimum":1}}}`},
-		{"number text", `{"type":"object","properties":{"a":{"enum":["x","y"]},"b":{"minimum":1.0}}}`},
-		{"added keyword", `{"type":"object","properties":{"a":{"enum":["x","y"]},"b":{"minimum":1}},"required":["a"]}`},
+		{"event type", otherType},
+		{"payload", def(`{"type":"object","required":["a"]}`, lo.ToPtr(ruleSchema))},
+		{"no rule", def(testSchema, nil)},
+		{"rule config value", def(testSchema, lo.ToPtr(`{"type":"object","properties":{"a":{"enum":["x","z"]},"b":{"minimum":1}}}`))},
+		{"array order", def(testSchema, lo.ToPtr(`{"type":"object","properties":{"a":{"enum":["y","x"]},"b":{"minimum":1}}}`))},
+		{"number text", def(testSchema, lo.ToPtr(`{"type":"object","properties":{"a":{"enum":["x","y"]},"b":{"minimum":1.0}}}`))},
 	}
 
+	seen := map[string]string{base: "base"}
 	for _, tt := range changed {
 		t.Run(tt.name, func(t *testing.T) {
-			require.NotEqual(t, base, fingerprint(tt.schema))
+			f := fingerprint(tt.def)
+			require.NotContains(t, seen, f, "same fingerprint as %s", seen[f])
+			seen[f] = tt.name
 		})
 	}
 
-	// HTML characters are not escaped, so "<" and "<" are the same text.
-	require.Equal(t, fingerprint(`{"pattern":"<a>"}`), fingerprint(`{"pattern":"<a>"}`))
-
 	// Large integers keep their exact value.
-	require.NotEqual(t, fingerprint(`{"maximum":9007199254740993}`), fingerprint(`{"maximum":9007199254740992}`))
+	require.NotEqual(t,
+		fingerprint(def(`{"maximum":9007199254740993}`, nil)),
+		fingerprint(def(`{"maximum":9007199254740992}`, nil)),
+	)
+
+	// HTML characters are not escaped, so "\u003c" and "<" are the same text.
+	require.Equal(t, fingerprint(def(`{"pattern":"\u003ca>"}`, nil)), fingerprint(def(`{"pattern":"<a>"}`, nil)))
 
 	for _, invalid := range []string{``, `{`, `{} {}`, `{"a":1}x`} {
-		_, err := v4.JSONSchemaFingerprint(json.RawMessage(invalid))
+		_, err := def(invalid, nil).Fingerprint()
+		require.Error(t, err, invalid)
+
+		_, err = def(testSchema, &invalid).Fingerprint()
 		require.Error(t, err, invalid)
 	}
 }
