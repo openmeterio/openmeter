@@ -1,6 +1,7 @@
 package adapter
 
 import (
+	"database/sql"
 	"testing"
 	"time"
 
@@ -14,7 +15,9 @@ import (
 	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
 	ledgerhistorical "github.com/openmeterio/openmeter/openmeter/ledger/historical"
 	transactionstestutils "github.com/openmeterio/openmeter/openmeter/ledger/transactions/testutils"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 func TestRepoGetBalancesAtBoundariesPreservesScopeAndCursor(t *testing.T) {
@@ -78,4 +81,114 @@ func TestRepoGetBalancesAtBoundariesPreservesScopeAndCursor(t *testing.T) {
 	for idx, expected := range []float64{100, 120, 70, 50, 200, 0} {
 		require.Equal(t, expected, balances[idx].InexactFloat64(), "boundary %d", idx)
 	}
+}
+
+func TestRepoGetBalancesAtBoundariesMatchesIndependentSums(t *testing.T) {
+	env := NewTestEnv(t)
+	t.Cleanup(func() { env.Close(t) })
+	ctx := t.Context()
+	db := env.db.PGDriver.DB()
+	namespace := testNamespace()
+	route := ledger.Route{Currency: currencies.NewCurrencyReference(currencyx.Code("USD"))}
+	fboSub := env.createSubAccountOfType(t, namespace, ledger.AccountTypeCustomerFBO, route)
+	receivableSub := env.createSubAccountOfType(t, namespace, ledger.AccountTypeCustomerReceivable, route)
+	group, err := env.repo.CreateTransactionGroup(ctx, ledgerhistorical.CreateTransactionGroupInput{Namespace: namespace})
+	require.NoError(t, err)
+	start := time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC)
+	fboID := fboSub.AccountID
+	receivableID := receivableSub.AccountID
+
+	// given: the last two transactions tie on both timestamps. The last has
+	// multiple FBO entries, which must all be counted at its cursor.
+	var cursors []ledger.TransactionCursor
+	for _, posting := range []struct {
+		id     string
+		at     time.Time
+		amount int64
+	}{
+		{id: "01KDVDNA000000000000000001", at: start, amount: 102},
+		{id: "01KDVDNA000000000000000002", at: start.Add(time.Hour), amount: -1},
+		{id: "01KDVDNA000000000000000003", at: start.Add(time.Hour), amount: -1},
+	} {
+		tx, err := env.repo.BookTransaction(ctx, models.NamespacedID{Namespace: namespace, ID: group.ID},
+			ledger.WithTransactionID(mustSetUpHistoricalTransactionInput(t, posting.at, []*transactionstestutils.AnyEntryInput{
+				provenanceEntryInput(t, fboSub, alpacadecimal.NewFromInt(posting.amount), nil, nil),
+				provenanceEntryInput(t, receivableSub, alpacadecimal.NewFromInt(-posting.amount), nil, nil),
+			}), posting.id))
+		require.NoError(t, err)
+		cursor := tx.Cursor()
+		cursor.CreatedAt = start
+		cursors = append(cursors, cursor)
+	}
+
+	_, err = db.ExecContext(ctx, "UPDATE ledger_transactions SET created_at = $1 WHERE namespace = $2", start, namespace)
+	require.NoError(t, err)
+	last := cursors[2]
+	_, err = db.ExecContext(ctx, `UPDATE ledger_entries SET amount = -0.25
+		WHERE transaction_id = $1 AND sub_account_id = $2`, last.ID.ID, fboSub.ID)
+	require.NoError(t, err)
+	_, err = db.ExecContext(ctx, `INSERT INTO ledger_entries
+		(id, namespace, created_at, updated_at, amount, sub_account_id, transaction_id, identity_key, schema_version)
+		SELECT '3' || substr(id, 2), namespace, created_at, updated_at, -0.75, sub_account_id, transaction_id, 'split', 1
+		FROM ledger_entries WHERE transaction_id = $1 AND sub_account_id = $2`, last.ID.ID, fboSub.ID)
+	require.NoError(t, err)
+
+	preceding := cursors[1]
+	beforeTied := last
+	beforeTied.CreatedAt = last.CreatedAt.Add(-time.Microsecond)
+	afterTied := last
+	afterTied.CreatedAt = last.CreatedAt.Add(time.Microsecond)
+	at := last.BookedAt
+	beforeAll := last.CreatedAt.Add(-time.Hour)
+	fbo := ledger.Query{Namespace: namespace, Filters: ledger.Filters{AccountID: &fboID}}
+	fboAtLast := ledger.Query{Namespace: namespace, Filters: ledger.Filters{AccountID: &fboID, After: &last}}
+
+	// when: boundaries are out of order, duplicated, or don't name an existing
+	// transaction. Timestamp boundaries still include the whole booked time.
+	input := ledger.GetBalancesAtBoundariesInput{Queries: []ledger.Query{
+		fboAtLast,
+		{Namespace: namespace, Filters: ledger.Filters{AccountID: &receivableID, After: &last}},
+		fboAtLast,
+		{Namespace: fbo.Namespace, Filters: ledger.Filters{AccountID: &fboID, After: &preceding}},
+		{Namespace: fbo.Namespace, Filters: ledger.Filters{AccountID: &fboID, After: &beforeTied}},
+		{Namespace: fbo.Namespace, Filters: ledger.Filters{AccountID: &fboID, After: &afterTied}},
+		{Namespace: fbo.Namespace, Filters: ledger.Filters{AccountID: &fboID, AsOf: &at}},
+		{Namespace: fbo.Namespace, Filters: ledger.Filters{AccountID: &fboID, AsOf: &beforeAll}},
+		{Namespace: "empty-namespace", Filters: ledger.Filters{AsOf: &at}},
+		{Namespace: fbo.Namespace, Filters: ledger.Filters{AccountID: &fboID, AsOf: &at, TransactionID: &last.ID.ID}},
+		{Namespace: fbo.Namespace, Filters: ledger.Filters{AccountID: &fboID, AsOf: &at, BookedAtPeriod: &timeutil.OpenPeriod{From: &at}}},
+		{Namespace: fbo.Namespace, Filters: ledger.Filters{AccountID: &fboID, AsOf: &at, BookedAtPeriod: &timeutil.OpenPeriod{To: &at}}},
+		{Namespace: fbo.Namespace, Filters: ledger.Filters{AccountID: &fboID, AsOf: &at, Provenance: ledger.ProvenanceFilter{SourceChargeID: mo.Some(lo.ToPtr("missing-source"))}}},
+	}}
+	query, args, err := (balancesAtBoundariesQuery{input: input}).SQL()
+	require.NoError(t, err)
+	rows, err := db.QueryContext(ctx, query, args...)
+	require.NoError(t, err)
+	defer rows.Close()
+
+	// then: every requested boundary appears once and agrees with a separate
+	// ledger SUM, including the transaction split and all unchanged filters.
+	expected := []float64{100, -100, 100, 101, 102, 100, 100, 0, 0, -1, -2, 102, 0}
+	seen := make(map[int]bool)
+	for rows.Next() {
+		var amount string
+		var idx int
+		require.NoError(t, rows.Scan(&amount, &idx))
+		require.False(t, seen[idx], "duplicate boundary %d", idx)
+		seen[idx] = true
+		balance, err := alpacadecimal.NewFromString(amount)
+		require.NoError(t, err)
+		require.Equal(t, expected[idx], balance.InexactFloat64(), "boundary %d", idx)
+
+		independentSQL, independentArgs, err := (&sumEntriesQuery{query: input.Queries[idx]}).SQL()
+		require.NoError(t, err)
+		var independentAmount sql.NullString
+		require.NoError(t, db.QueryRowContext(ctx, independentSQL, independentArgs...).Scan(&independentAmount))
+		independent, err := decimalFromNullString(independentAmount)
+		require.NoError(t, err)
+		require.Equal(t, independent.InexactFloat64(), balance.InexactFloat64(), "boundary %d", idx)
+	}
+
+	require.NoError(t, rows.Err())
+	require.Len(t, seen, len(input.Queries))
 }

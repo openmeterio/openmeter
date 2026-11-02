@@ -302,7 +302,6 @@ func (a *adapter) GetByIDs(ctx context.Context, input usagebased.GetByIDsInput) 
 
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) ([]usagebased.Charge, error) {
 		query := tx.db.ChargeUsageBased.Query().
-			// Note: we are skipping the namespace filter here to allow multi-namespace expansions as needed, but InIDOrder filters for namespaces.
 			Where(dbchargeusagebased.Namespace(input.Namespace)).
 			Where(dbchargeusagebased.IDIn(input.IDs...)).
 			WithIntentOverride().
@@ -310,7 +309,7 @@ func (a *adapter) GetByIDs(ctx context.Context, input usagebased.GetByIDsInput) 
 			WithCostBasis()
 
 		if input.Expands.Has(meta.ExpandRealizations) {
-			query = expandRealizations(query, input.Expands)
+			query = expandRealizations(query, input.Namespace, input.Expands)
 		}
 
 		entities, err := query.All(ctx)
@@ -357,7 +356,7 @@ func (a *adapter) GetByID(ctx context.Context, input usagebased.GetByIDInput) (u
 			WithCostBasis()
 
 		if input.Expands.Has(meta.ExpandRealizations) {
-			query = expandRealizations(query, input.Expands)
+			query = expandRealizations(query, input.ChargeID.Namespace, input.Expands)
 		}
 
 		entity, err := query.First(ctx)
@@ -385,9 +384,13 @@ func (a *adapter) GetByID(ctx context.Context, input usagebased.GetByIDInput) (u
 	})
 }
 
-func expandRealizations(query *db.ChargeUsageBasedQuery, expands meta.Expands) *db.ChargeUsageBasedQuery {
+func expandRealizations(query *db.ChargeUsageBasedQuery, namespace string, expands meta.Expands) *db.ChargeUsageBasedQuery {
 	return query.WithRuns(
 		func(runs *db.ChargeUsageBasedRunsQuery) {
+			// Ent loads runs in a separate query. Repeat the namespace filter so
+			// PostgreSQL can use both keys of the (namespace, charge_id) index.
+			runs.Where(dbchargeusagebasedruns.NamespaceEQ(namespace))
+
 			if !expands.Has(meta.ExpandDeletedRealizations) {
 				runs = runs.Where(dbchargeusagebasedruns.DeletedAtIsNil())
 			}
