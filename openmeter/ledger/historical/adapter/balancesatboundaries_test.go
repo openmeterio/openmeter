@@ -2,7 +2,6 @@ package adapter
 
 import (
 	"database/sql"
-	"fmt"
 	"testing"
 	"time"
 
@@ -16,6 +15,7 @@ import (
 	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
 	ledgerhistorical "github.com/openmeterio/openmeter/openmeter/ledger/historical"
 	transactionstestutils "github.com/openmeterio/openmeter/openmeter/ledger/transactions/testutils"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -84,39 +84,71 @@ func TestRepoGetBalancesAtBoundariesPreservesScopeAndCursor(t *testing.T) {
 }
 
 func TestRepoGetBalancesAtBoundariesMatchesIndependentSums(t *testing.T) {
-	db, queries := seedBalanceBoundaryHistory(t, 1000)
+	env := NewTestEnv(t)
+	t.Cleanup(func() { env.Close(t) })
 	ctx := t.Context()
-	last := *queries[0].Filters.After
-	fboID := *queries[0].Filters.AccountID
+	db := env.db.PGDriver.DB()
+	namespace := testNamespace()
+	route := ledger.Route{Currency: currencies.NewCurrencyReference(currencyx.Code("USD"))}
+	fboSub := env.createSubAccountOfType(t, namespace, ledger.AccountTypeCustomerFBO, route)
+	receivableSub := env.createSubAccountOfType(t, namespace, ledger.AccountTypeCustomerReceivable, route)
+	group, err := env.repo.CreateTransactionGroup(ctx, ledgerhistorical.CreateTransactionGroupInput{Namespace: namespace})
+	require.NoError(t, err)
+	start := time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC)
+	fboID := fboSub.AccountID
+	receivableID := receivableSub.AccountID
 
 	// given: the last two transactions tie on both timestamps. The last has
 	// multiple FBO entries, which must all be counted at its cursor.
-	_, err := db.ExecContext(ctx, "UPDATE ledger_transactions SET booked_at = $1 WHERE id = $2", last.BookedAt, fmt.Sprintf("%026d", 999))
+	var cursors []ledger.TransactionCursor
+	for _, posting := range []struct {
+		id     string
+		at     time.Time
+		amount int64
+	}{
+		{id: "01KDVDNA000000000000000001", at: start, amount: 102},
+		{id: "01KDVDNA000000000000000002", at: start.Add(time.Hour), amount: -1},
+		{id: "01KDVDNA000000000000000003", at: start.Add(time.Hour), amount: -1},
+	} {
+		tx, err := env.repo.BookTransaction(ctx, models.NamespacedID{Namespace: namespace, ID: group.ID},
+			ledger.WithTransactionID(mustSetUpHistoricalTransactionInput(t, posting.at, []*transactionstestutils.AnyEntryInput{
+				provenanceEntryInput(t, fboSub, alpacadecimal.NewFromInt(posting.amount), nil, nil),
+				provenanceEntryInput(t, receivableSub, alpacadecimal.NewFromInt(-posting.amount), nil, nil),
+			}), posting.id))
+		require.NoError(t, err)
+		cursor := tx.Cursor()
+		cursor.CreatedAt = start
+		cursors = append(cursors, cursor)
+	}
+
+	_, err = db.ExecContext(ctx, "UPDATE ledger_transactions SET created_at = $1 WHERE namespace = $2", start, namespace)
 	require.NoError(t, err)
+	last := cursors[2]
 	_, err = db.ExecContext(ctx, `UPDATE ledger_entries SET amount = -0.25
-		WHERE transaction_id = $1 AND sub_account_id IN (SELECT id FROM ledger_sub_accounts WHERE account_id = $2)`, last.ID.ID, fboID)
+		WHERE transaction_id = $1 AND sub_account_id = $2`, last.ID.ID, fboSub.ID)
 	require.NoError(t, err)
 	_, err = db.ExecContext(ctx, `INSERT INTO ledger_entries
 		(id, namespace, created_at, updated_at, amount, sub_account_id, transaction_id, identity_key, schema_version)
 		SELECT '3' || substr(id, 2), namespace, created_at, updated_at, -0.75, sub_account_id, transaction_id, 'split', 1
-		FROM ledger_entries WHERE transaction_id = $1 AND sub_account_id IN (SELECT id FROM ledger_sub_accounts WHERE account_id = $2)`, last.ID.ID, fboID)
+		FROM ledger_entries WHERE transaction_id = $1 AND sub_account_id = $2`, last.ID.ID, fboSub.ID)
 	require.NoError(t, err)
 
-	preceding := last
-	preceding.ID.ID = fmt.Sprintf("%026d", 999)
+	preceding := cursors[1]
 	beforeTied := last
 	beforeTied.CreatedAt = last.CreatedAt.Add(-time.Microsecond)
 	afterTied := last
 	afterTied.CreatedAt = last.CreatedAt.Add(time.Microsecond)
 	at := last.BookedAt
 	beforeAll := last.CreatedAt.Add(-time.Hour)
-	fbo := queries[0]
-	fbo.Filters.After = nil
+	fbo := ledger.Query{Namespace: namespace, Filters: ledger.Filters{AccountID: &fboID}}
+	fboAtLast := ledger.Query{Namespace: namespace, Filters: ledger.Filters{AccountID: &fboID, After: &last}}
 
 	// when: boundaries are out of order, duplicated, or don't name an existing
 	// transaction. Timestamp boundaries still include the whole booked time.
 	input := ledger.GetBalancesAtBoundariesInput{Queries: []ledger.Query{
-		queries[0], queries[1], queries[0],
+		fboAtLast,
+		{Namespace: namespace, Filters: ledger.Filters{AccountID: &receivableID, After: &last}},
+		fboAtLast,
 		{Namespace: fbo.Namespace, Filters: ledger.Filters{AccountID: &fboID, After: &preceding}},
 		{Namespace: fbo.Namespace, Filters: ledger.Filters{AccountID: &fboID, After: &beforeTied}},
 		{Namespace: fbo.Namespace, Filters: ledger.Filters{AccountID: &fboID, After: &afterTied}},
