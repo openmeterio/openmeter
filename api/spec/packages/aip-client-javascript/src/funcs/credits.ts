@@ -61,18 +61,13 @@ export function listCreditsGrants(
  *
  * List credit balances across customers.
  *
- * Returns one item per customer, ordered by customer ID. Customers without credit
- * activity are returned with an empty `balances` list. When `timestamp` is set,
- * the list holds the customers that existed at that time: customers created later
- * are left out, and customers deleted since then are still included. This uses the
- * customer's creation and deletion times, not ledger activity, so the total can be
- * lower than the per-customer route's: a customer created after `timestamp` with a
- * grant backdated before it, or deleted before `timestamp` with credit remaining,
- * is left out.
- *
- * Without `timestamp`, deleting a customer during a walk moves later customers to
- * an earlier page, so one can be skipped. Pass `timestamp` to walk a stable set.
+ * Returns current balances for each non-deleted customer, ordered by customer ID.
+ * Customers without credit activity are returned with an empty `balances` list.
  * The page size is limited to 100 because balances are computed on request.
+ *
+ * Each customer is read independently. Changes during a page walk can affect
+ * balances and move customers between pages. This is an operational read, not an
+ * accounting-close snapshot.
  *
  * GET /openmeter/credits/balances
  */
@@ -85,7 +80,6 @@ export function listCreditsBalances(
     const query = toWire(
       {
         page: req.page,
-        timestamp: req.timestamp,
         filter: req.filter,
       },
       schemas.listCreditsBalancesQueryParams,

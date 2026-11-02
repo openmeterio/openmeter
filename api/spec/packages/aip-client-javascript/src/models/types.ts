@@ -2782,6 +2782,23 @@ export interface CreditAdjustment {
   labels?: Labels
 }
 
+/** Filter options for listing credit grants. */
+export interface ListCreditGrantsParamsFilter {
+  /** Filter credit grants by status. */
+  status?: 'pending' | 'active' | 'expired' | 'voided'
+  /** Filter credit grants by fiat or custom currency code. */
+  currency?: BillingCurrencyCode
+  /** Filter credit grants by key. */
+  key?: StringFieldFilter
+  /**
+   * Select grants spendable on any requested feature, including grants without
+   * feature restrictions. Keys are case-sensitive. Supports `eq` (or shorthand) and
+   * `oeq` with comma-separated keys. Omit to include all features; use
+   * `exists=false` for grants without feature restrictions.
+   */
+  featureKey?: StringFieldFilter
+}
+
 /** CreditAdjustment create request. */
 export interface CreateCreditAdjustmentRequest {
   /**
@@ -3080,6 +3097,25 @@ export interface ListGrantsParamsFilter {
   customerId?: UlidFieldFilter
   /** Filter grants by the ID of the entitlement's feature. */
   featureId?: UlidFieldFilter
+}
+
+/** Filter options for listing credit grants across customers. */
+export interface ListAllCreditGrantsParamsFilter {
+  /** Filter credit grants by status. */
+  status?: 'pending' | 'active' | 'expired' | 'voided'
+  /** Filter credit grants by fiat or custom currency code. */
+  currency?: BillingCurrencyCode
+  /** Filter credit grants by key. */
+  key?: StringFieldFilter
+  /**
+   * Select grants spendable on any requested feature, including grants without
+   * feature restrictions. Keys are case-sensitive. Supports `eq` (or shorthand) and
+   * `oeq` with comma-separated keys. Omit to include all features; use
+   * `exists=false` for grants without feature restrictions.
+   */
+  featureKey?: StringFieldFilter
+  /** Filter credit grants by the ID of their customer. */
+  customerId?: UlidFieldFilter
 }
 
 /** Filter options for listing credit balances across customers. */
@@ -3652,46 +3688,6 @@ export interface ListEventsParamsFilter {
   ingestedAt?: DateTimeFieldFilter
   /** Filter events by the time the event was stored. */
   storedAt?: DateTimeFieldFilter
-}
-
-/** Filter options for listing credit grants. */
-export interface ListCreditGrantsParamsFilter {
-  /** Filter credit grants by status. */
-  status?: 'pending' | 'active' | 'expired' | 'voided'
-  /** Filter credit grants by fiat or custom currency code. */
-  currency?: BillingCurrencyCode
-  /** Filter credit grants by key. */
-  key?: StringFieldFilter
-  /**
-   * Select grants spendable on any requested feature, including grants without
-   * feature restrictions. Keys are case-sensitive. Supports `eq` (or shorthand) and
-   * `oeq` with comma-separated keys. Omit to include all features; use
-   * `exists=false` for grants without feature restrictions.
-   */
-  featureKey?: StringFieldFilter
-  /** Filter by credit grant last update time. */
-  updatedAt?: DateTimeFieldFilter
-}
-
-/** Filter options for listing credit grants across customers. */
-export interface ListAllCreditGrantsParamsFilter {
-  /** Filter credit grants by status. */
-  status?: 'pending' | 'active' | 'expired' | 'voided'
-  /** Filter credit grants by fiat or custom currency code. */
-  currency?: BillingCurrencyCode
-  /** Filter credit grants by key. */
-  key?: StringFieldFilter
-  /**
-   * Select grants spendable on any requested feature, including grants without
-   * feature restrictions. Keys are case-sensitive. Supports `eq` (or shorthand) and
-   * `oeq` with comma-separated keys. Omit to include all features; use
-   * `exists=false` for grants without feature restrictions.
-   */
-  featureKey?: StringFieldFilter
-  /** Filter by credit grant last update time. */
-  updatedAt?: DateTimeFieldFilter
-  /** Filter credit grants by the ID of their customer. */
-  customerId?: UlidFieldFilter
 }
 
 /** Filter options for listing charges. */

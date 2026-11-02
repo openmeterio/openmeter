@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/samber/mo"
 	"golang.org/x/sync/errgroup"
@@ -41,7 +40,6 @@ type ListCustomerBalancesInput struct {
 	CustomerIDs   []string
 	Currencies    CurrencyFilter
 	FeatureFilter mo.Option[creditpurchase.FeatureFilters]
-	AsOf          *time.Time
 }
 
 func (i ListCustomerBalancesInput) Validate() error {
@@ -74,10 +72,6 @@ func (i ListCustomerBalancesInput) Validate() error {
 		errs = append(errs, fmt.Errorf("feature filter: %w", err))
 	}
 
-	if i.AsOf != nil && i.AsOf.IsZero() {
-		errs = append(errs, errors.New("asOf must not be zero"))
-	}
-
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
@@ -104,16 +98,9 @@ func NewLister(customers customerLister, balances balancesGetter) (*Lister, erro
 	return &Lister{customers: customers, balances: balances}, nil
 }
 
-// ListCustomerBalances returns one row per customer, in customer ID order.
-//
-// IDs are ULIDs, so new customers land on later pages instead of shifting
-// earlier ones. Deleting a customer during a live walk still shifts later rows
-// up a page; an AsOf walk keeps deleted customers, so its pages stay put.
-//
-// With AsOf, the customers are the ones that existed at AsOf. That goes by the
-// customer's own lifetime, not ledger activity: a customer created later with a
-// grant backdated before AsOf is left out, and so is one deleted before AsOf with
-// credit remaining.
+// ListCustomerBalances returns current balances in customer ID order.
+// Each customer is read independently; concurrent changes can affect balances
+// and move customers between pages.
 //
 // A customer without any ledger accounts has never held credit and is listed with
 // no balances. Any other failure, including a partly provisioned customer, fails
@@ -129,7 +116,6 @@ func (l *Lister) ListCustomerBalances(ctx context.Context, input ListCustomerBal
 		OrderBy:     "id",
 		Order:       sortx.OrderAsc,
 		CustomerIDs: input.CustomerIDs,
-		ExistingAt:  input.AsOf,
 	})
 	if err != nil {
 		return pagination.Result[CustomerBalances]{}, fmt.Errorf("list customers: %w", err)
@@ -146,7 +132,6 @@ func (l *Lister) ListCustomerBalances(ctx context.Context, input ListCustomerBal
 				CustomerID:    cust.GetID(),
 				Currencies:    input.Currencies,
 				FeatureFilter: input.FeatureFilter,
-				AsOf:          input.AsOf,
 			})
 			if err != nil && !ledger.IsCustomerWithoutAccounts(err) {
 				return fmt.Errorf("get balances for customer %s: %w", cust.ID, err)

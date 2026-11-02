@@ -36,24 +36,6 @@ export interface ListCreditsBalancesQuery {
   /** Determines which page of the collection to retrieve. */
   page?: { size?: number; number?: number }
   /**
-   * Return credit balances at this timestamp using all currently recorded postings,
-   * including corrections recorded later. This is not a snapshot of what was known
-   * at the requested time.
-   *
-   * Defaults to the current time. Historical responses return `live` as zero because
-   * live charge impacts are only available for current balances. For a re-runnable
-   * daily or month-end close, use `booked`: it changes only when an entry is booked
-   * with an earlier timestamp, such as a correction or a grant with a past
-   * `effective_at`. `spendable` can also change after the fact, because it sets
-   * aside credit for usage that is recorded later. The timestamp is inclusive and
-   * has microsecond precision, so an end-of-day close should use `23:59:59.999999Z`.
-   * A JavaScript `Date` holds only milliseconds: a `Date` cutoff of `23:59:59.999Z`
-   * leaves out entries booked in the final 999 microseconds. In the TypeScript SDK,
-   * pass the cutoff as an RFC 3339 string instead; request strings are sent
-   * unchanged.
-   */
-  timestamp?: Date
-  /**
    * Filter credit balances returned in the response.
    *
    * To filter by customer use `filter[customer_id][eq]=<id>` or

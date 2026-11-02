@@ -24,14 +24,12 @@ func (s *CreditGrantTestSuite) TestListCustomerBalances() {
 	defer clock.UnFreeze()
 
 	// given: a funded customer, a customer without ledger accounts, and a funded
-	// customer deleted after the close.
+	// customer that has since been deleted.
 	funded := s.CreateLedgerBackedCustomer(ns, "funded")
 	noLedger := s.CreateTestCustomer(ns, "no-ledger")
 	deleted := s.CreateLedgerBackedCustomer(ns, "deleted")
 	s.mustCreatePromotionalCreditGrant(ctx, ns, funded.GetID(), "funded-grant", alpacadecimal.NewFromInt(10))
 	s.mustCreatePromotionalCreditGrant(ctx, ns, deleted.GetID(), "deleted-grant", alpacadecimal.NewFromInt(20))
-
-	closeAt := start.Add(time.Minute)
 
 	clock.FreezeTime(start.Add(time.Hour))
 	defer clock.UnFreeze()
@@ -53,44 +51,34 @@ func (s *CreditGrantTestSuite) TestListCustomerBalances() {
 		})
 	}
 
-	s.Run("a past close keeps the deleted customer and lists the one without ledger accounts as empty", func() {
-		// when: the close is re-read at its original time.
+	s.Run("current balances include active customers and leave deleted customers out", func() {
+		// when: current balances are listed.
 		result, err := lister.ListCustomerBalances(ctx, customerbalance.ListCustomerBalancesInput{
 			Namespace: ns,
 			Page:      pagination.NewPage(1, 100),
-			AsOf:      &closeAt,
 		})
 		s.Require().NoError(err)
 
-		// then: every customer that existed at the close is listed, in ID order.
-		s.Equal(3, result.TotalCount)
+		// then: current customers keep ID order, and unprovisioned customers are empty.
+		s.Equal(2, result.TotalCount)
 		s.True(lo.IsSortedByKey(result.Items, func(row customerbalance.CustomerBalances) string { return row.CustomerID.ID }))
-		s.Equal(map[string][]float64{
-			funded.ID:   {10},
-			noLedger.ID: {},
-			deleted.ID:  {20},
-		}, booked(result.Items))
-	})
-
-	s.Run("a live read leaves the deleted customer out", func() {
-		result, err := lister.ListCustomerBalances(ctx, customerbalance.ListCustomerBalancesInput{
-			Namespace: ns,
-			Page:      pagination.NewPage(1, 100),
-		})
-		s.Require().NoError(err)
-
 		s.Equal(map[string][]float64{funded.ID: {10}, noLedger.ID: {}}, booked(result.Items))
+		for _, row := range result.Items {
+			if row.CustomerID.ID == funded.ID {
+				s.Require().Len(row.Balances, 1)
+				s.Equal(10.0, row.Balances[0].Balance.Live().InexactFloat64())
+			}
+		}
 	})
 
 	s.Run("customer IDs limit the listing", func() {
 		result, err := lister.ListCustomerBalances(ctx, customerbalance.ListCustomerBalancesInput{
 			Namespace:   ns,
 			Page:        pagination.NewPage(1, 100),
-			CustomerIDs: []string{deleted.ID},
-			AsOf:        &closeAt,
+			CustomerIDs: []string{funded.ID},
 		})
 		s.Require().NoError(err)
 
-		s.Equal(map[string][]float64{deleted.ID: {20}}, booked(result.Items))
+		s.Equal(map[string][]float64{funded.ID: {10}}, booked(result.Items))
 	})
 }

@@ -38,23 +38,13 @@ requests return zero for `live`; we cannot reconstruct past unbooked usage.
 All reads use what is recorded now, including later-recorded corrections.
 There is no separate cutoff for when the system learned about a movement.
 
-The namespace-wide balance listing (`Lister.ListCustomerBalances`) applies
-these same semantics to one page of customers at a time, at most 100, computing
-8 customers in parallel. Customers without any ledger accounts have no credit
-activity and are listed with no balances; a customer missing only some accounts
-is a broken state and fails the page. Historical (`asOf`) listings select the
-customers that existed at `asOf`, including ones deleted since. That selection
-uses the customer's own lifetime, not ledger activity: a customer created after
-`asOf` with a grant backdated before it, or deleted before `asOf` with credit
-remaining, is left out, so a listing can total less than the per-customer reads.
-Live listings page over current customers, so a deletion
-during a walk can skip a customer; walk with `asOf` for a stable set. Their `booked`
-value changes only when an entry is booked with an earlier timestamp, such as a
-correction or a grant with a past effective time, so it is the stable basis for
-a daily close. `spendable` at `asOf` can still drop
-after the fact, because it preserves allocations to usage recorded later. A
-stored close may need reconciling against a re-read. Current listings include
-`live` and cost one live projection per customer.
+The namespace-wide balance listing (`Lister.ListCustomerBalances`) reads current
+balances for non-deleted customers, at most 100 per page and 8 customers in
+parallel. Customers without any ledger accounts have no balances; missing only
+some account types is a broken state and fails the page. Each customer is read
+independently, so concurrent changes can affect balances and move customers
+between pages. This operational listing does not provide an accounting-close
+snapshot or incremental synchronization.
 
 History before/after values remain booked balances. A grant of 10 followed by
 consumption of 4 shows `0 → 10`, then `10 → 6`, even though spendable credit

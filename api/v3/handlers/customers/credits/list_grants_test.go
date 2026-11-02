@@ -51,6 +51,7 @@ func TestListCreditGrantsSpendabilityQuery(t *testing.T) {
 		{query: "filter[feature_key][oeq]=b,a,b", features: mo.Some(ledger.FeatureFilters{"a", "b"})},
 		{query: "filter[feature_key][exists]=false", features: mo.Some[ledger.FeatureFilters](nil)},
 		{query: "filter[unknown]=a", invalid: true},
+		{query: "filter[updated_at][gte]=2026-10-01T00:00:00Z", invalid: true},
 		{query: "filter[feature_key][eq]=", invalid: true},
 		{query: "filter[feature_key][contains]=a", invalid: true},
 		{query: "filter[feature_key][neq]=a", invalid: true},

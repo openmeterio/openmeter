@@ -4002,6 +4002,15 @@ export const creditAdjustment = z
     "A credit adjustment can be used to make manual adjustments to a customer's credit balance. Supported use-cases: - Usage correction",
   )
 
+export const listCreditGrantsParamsFilter = z
+  .object({
+    status: creditGrantStatus.optional(),
+    currency: billingCurrencyCode.optional(),
+    key: stringFieldFilter.optional(),
+    featureKey: stringFieldFilter.optional(),
+  })
+  .describe('Filter options for listing credit grants.')
+
 export const createCreditAdjustmentRequest = z
   .object({
     name: z
@@ -4230,6 +4239,16 @@ export const listGrantsParamsFilter = z
     featureId: ulidFieldFilter.optional(),
   })
   .describe('Filter options for listing grants.')
+
+export const listAllCreditGrantsParamsFilter = z
+  .object({
+    status: creditGrantStatus.optional(),
+    currency: billingCurrencyCode.optional(),
+    key: stringFieldFilter.optional(),
+    featureKey: stringFieldFilter.optional(),
+    customerId: ulidFieldFilter.optional(),
+  })
+  .describe('Filter options for listing credit grants across customers.')
 
 export const listAllCreditBalancesParamsFilter = z
   .object({
@@ -4800,27 +4819,6 @@ export const listEventsParamsFilter = z
     storedAt: dateTimeFieldFilter.optional(),
   })
   .describe('Filter options for listing ingested events.')
-
-export const listCreditGrantsParamsFilter = z
-  .object({
-    status: creditGrantStatus.optional(),
-    currency: billingCurrencyCode.optional(),
-    key: stringFieldFilter.optional(),
-    featureKey: stringFieldFilter.optional(),
-    updatedAt: dateTimeFieldFilter.optional(),
-  })
-  .describe('Filter options for listing credit grants.')
-
-export const listAllCreditGrantsParamsFilter = z
-  .object({
-    status: creditGrantStatus.optional(),
-    currency: billingCurrencyCode.optional(),
-    key: stringFieldFilter.optional(),
-    featureKey: stringFieldFilter.optional(),
-    updatedAt: dateTimeFieldFilter.optional(),
-    customerId: ulidFieldFilter.optional(),
-  })
-  .describe('Filter options for listing credit grants across customers.')
 
 export const listCustomerChargesParamsFilter = z
   .object({
@@ -9026,7 +9024,6 @@ export const listCreditsBalancesQueryParams = z.object({
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
-  timestamp: dateTime.optional(),
   filter: listAllCreditBalancesParamsFilter.optional(),
 })
 
@@ -13927,6 +13924,15 @@ export const creditAdjustmentWire = z
     "A credit adjustment can be used to make manual adjustments to a customer's credit balance. Supported use-cases: - Usage correction",
   )
 
+export const listCreditGrantsParamsFilterWire = z
+  .strictObject({
+    status: creditGrantStatusWire.optional(),
+    currency: billingCurrencyCodeWire.optional(),
+    key: stringFieldFilterWire.optional(),
+    feature_key: stringFieldFilterWire.optional(),
+  })
+  .describe('Filter options for listing credit grants.')
+
 export const createCreditAdjustmentRequestWire = z
   .strictObject({
     name: z
@@ -14155,6 +14161,16 @@ export const listGrantsParamsFilterWire = z
     feature_id: ulidFieldFilterWire.optional(),
   })
   .describe('Filter options for listing grants.')
+
+export const listAllCreditGrantsParamsFilterWire = z
+  .strictObject({
+    status: creditGrantStatusWire.optional(),
+    currency: billingCurrencyCodeWire.optional(),
+    key: stringFieldFilterWire.optional(),
+    feature_key: stringFieldFilterWire.optional(),
+    customer_id: ulidFieldFilterWire.optional(),
+  })
+  .describe('Filter options for listing credit grants across customers.')
 
 export const listAllCreditBalancesParamsFilterWire = z
   .strictObject({
@@ -14719,27 +14735,6 @@ export const listEventsParamsFilterWire = z
     stored_at: dateTimeFieldFilterWire.optional(),
   })
   .describe('Filter options for listing ingested events.')
-
-export const listCreditGrantsParamsFilterWire = z
-  .strictObject({
-    status: creditGrantStatusWire.optional(),
-    currency: billingCurrencyCodeWire.optional(),
-    key: stringFieldFilterWire.optional(),
-    feature_key: stringFieldFilterWire.optional(),
-    updated_at: dateTimeFieldFilterWire.optional(),
-  })
-  .describe('Filter options for listing credit grants.')
-
-export const listAllCreditGrantsParamsFilterWire = z
-  .strictObject({
-    status: creditGrantStatusWire.optional(),
-    currency: billingCurrencyCodeWire.optional(),
-    key: stringFieldFilterWire.optional(),
-    feature_key: stringFieldFilterWire.optional(),
-    updated_at: dateTimeFieldFilterWire.optional(),
-    customer_id: ulidFieldFilterWire.optional(),
-  })
-  .describe('Filter options for listing credit grants across customers.')
 
 export const listCustomerChargesParamsFilterWire = z
   .strictObject({
@@ -18997,7 +18992,6 @@ export const listCreditsBalancesQueryParamsWire = z.object({
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
-  timestamp: dateTimeWire.optional(),
   filter: listAllCreditBalancesParamsFilterWire.optional(),
 })
 

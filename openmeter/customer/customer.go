@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"slices"
-	"time"
 
 	"github.com/samber/mo"
 
@@ -347,10 +346,6 @@ type ListCustomersInput struct {
 	pagination.Page
 
 	IncludeDeleted bool
-	// ExistingAt lists the customers that existed at this time: created at or before
-	// it and not yet deleted. Nil uses the current time. IncludeDeleted still lists
-	// deleted customers.
-	ExistingAt *time.Time
 
 	// Order
 	OrderBy string
@@ -414,10 +409,6 @@ func (i ListCustomersInput) Validate() error {
 		if err := i.BillingProfileID.Validate(); err != nil {
 			errs = append(errs, models.NewGenericValidationError(fmt.Errorf("invalid billing profile id filter: %w", err)))
 		}
-	}
-
-	if i.ExistingAt != nil && i.ExistingAt.IsZero() {
-		errs = append(errs, models.NewGenericValidationError(errors.New("existing at must not be zero")))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
