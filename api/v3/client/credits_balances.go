@@ -50,8 +50,8 @@ func (p ListCreditsBalancesParams) values() url.Values {
 // The page size is limited to 100 because balances are computed on request.
 //
 // Each customer is read independently. Changes during a page walk can affect
-// balances and move customers between pages. This is an operational read, not
-// an accounting-close snapshot.
+// balances and move customers between pages. This is an operational read, not an
+// accounting-close snapshot.
 func (s *CreditsBalancesService) List(ctx context.Context, params ListCreditsBalancesParams) (*CustomerCreditBalancesPagePaginatedResponse, error) {
 	path := "/openmeter/credits/balances"
 

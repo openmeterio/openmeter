@@ -66,8 +66,8 @@ export function listCreditsGrants(
  * The page size is limited to 100 because balances are computed on request.
  *
  * Each customer is read independently. Changes during a page walk can affect
- * balances and move customers between pages. This is an operational read, not
- * an accounting-close snapshot.
+ * balances and move customers between pages. This is an operational read, not an
+ * accounting-close snapshot.
  *
  * GET /openmeter/credits/balances
  */

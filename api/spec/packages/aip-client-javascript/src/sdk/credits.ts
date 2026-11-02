@@ -83,8 +83,8 @@ export class CreditsBalances {
    * The page size is limited to 100 because balances are computed on request.
    *
    * Each customer is read independently. Changes during a page walk can affect
-   * balances and move customers between pages. This is an operational read, not
-   * an accounting-close snapshot.
+   * balances and move customers between pages. This is an operational read, not an
+   * accounting-close snapshot.
    *
    * GET /openmeter/credits/balances
    */
@@ -105,8 +105,8 @@ export class CreditsBalances {
    * The page size is limited to 100 because balances are computed on request.
    *
    * Each customer is read independently. Changes during a page walk can affect
-   * balances and move customers between pages. This is an operational read, not
-   * an accounting-close snapshot.
+   * balances and move customers between pages. This is an operational read, not an
+   * accounting-close snapshot.
    *
    * Iterates every item across all pages, fetching more as the returned iterable is consumed.
    *
