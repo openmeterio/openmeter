@@ -87,6 +87,10 @@ func TestEventTypeDefinitionEqual(t *testing.T) {
 		"type": "object",
 		"$schema": "https://json-schema.org/draft/2020-12/schema"
 	}`)
+	reformatted.Rule = &v4.RuleConfigDefinition{JSONSchema: json.RawMessage(`{
+		"type": "object",
+		"$schema": "https://json-schema.org/draft/2020-12/schema"
+	}`)}
 	require.True(t, def.Equal(reformatted))
 
 	tests := []struct {
