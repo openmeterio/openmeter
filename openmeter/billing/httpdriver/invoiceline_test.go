@@ -45,6 +45,8 @@ func TestMapSimulationLinePreservesPriorUsageAndSuppliedIdentity(t *testing.T) {
 	require.Equal(t, 40.0, line.UsageBased.MeteredPreLinePeriodQuantity.InexactFloat64())
 	require.Equal(t, 40.0, line.UsageBased.PreLinePeriodQuantity.InexactFloat64())
 	require.Nil(t, line.SplitLineGroupID)
+	// SimulateInvoice groups lines by engine, so a missing engine fails the request.
+	require.Equal(t, billing.LineEngineTypeInvoice, line.Engine)
 
 	input.PreLinePeriodQuantity = lo.ToPtr("invalid")
 	_, err = mapSimulationLineToEntity(input)
