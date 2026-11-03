@@ -496,6 +496,9 @@ func PlanRateCardOrErr(p PlanRateCard, err error) PlanRateCard {
 	}
 }
 
+// RTECreditBalance is the predicate function for rtecreditbalance builders.
+type RTECreditBalance func(*sql.Selector)
+
 // Subject is the predicate function for subject builders.
 type Subject func(*sql.Selector)
 

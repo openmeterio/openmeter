@@ -3116,6 +3116,22 @@ func (e *PlanRateCard) GetTaxBehavior() *productcatalog.TaxBehavior {
 	return e.TaxBehavior
 }
 
+func (e *RTECreditBalance) GetNamespace() string {
+	return e.Namespace
+}
+
+func (e *RTECreditBalance) GetCreatedAt() time.Time {
+	return e.CreatedAt
+}
+
+func (e *RTECreditBalance) GetUpdatedAt() time.Time {
+	return e.UpdatedAt
+}
+
+func (e *RTECreditBalance) GetDeletedAt() *time.Time {
+	return e.DeletedAt
+}
+
 func (e *Subject) GetID() string {
 	return e.ID
 }

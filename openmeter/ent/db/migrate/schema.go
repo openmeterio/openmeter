@@ -5446,6 +5446,43 @@ var (
 			},
 		},
 	}
+	// RteCreditBalancesColumns holds the columns for the "rte_credit_balances" table.
+	RteCreditBalancesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "customer_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "currency_key", Type: field.TypeString},
+		{Name: "feature_scope", Type: field.TypeString},
+		{Name: "calculated_at", Type: field.TypeTime},
+		{Name: "booked", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "spendable", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "live", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "pending", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
+	}
+	// RteCreditBalancesTable holds the schema information for the "rte_credit_balances" table.
+	RteCreditBalancesTable = &schema.Table{
+		Name:       "rte_credit_balances",
+		Columns:    RteCreditBalancesColumns,
+		PrimaryKey: []*schema.Column{RteCreditBalancesColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "rtecreditbalance_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{RteCreditBalancesColumns[1]},
+			},
+			{
+				Name:    "rte_credit_balance_scope",
+				Unique:  true,
+				Columns: []*schema.Column{RteCreditBalancesColumns[1], RteCreditBalancesColumns[5], RteCreditBalancesColumns[6], RteCreditBalancesColumns[7]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "deleted_at IS NULL",
+				},
+			},
+		},
+	}
 	// SubjectsColumns holds the columns for the "subjects" table.
 	SubjectsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -6189,6 +6226,7 @@ var (
 		PlanAddonsTable,
 		PlanPhasesTable,
 		PlanRateCardsTable,
+		RteCreditBalancesTable,
 		SubjectsTable,
 		SubscriptionsTable,
 		SubscriptionAddonsTable,

@@ -88,6 +88,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planaddon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/rtecreditbalance"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subject"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddon"
@@ -3029,6 +3030,39 @@ func init() {
 	planratecardDescID := planratecardMixinFields0[0].Descriptor()
 	// planratecard.DefaultID holds the default value on creation for the id field.
 	planratecard.DefaultID = planratecardDescID.Default.(func() string)
+	rtecreditbalanceMixin := schema.RTECreditBalance{}.Mixin()
+	rtecreditbalanceMixinFields0 := rtecreditbalanceMixin[0].Fields()
+	_ = rtecreditbalanceMixinFields0
+	rtecreditbalanceMixinFields1 := rtecreditbalanceMixin[1].Fields()
+	_ = rtecreditbalanceMixinFields1
+	rtecreditbalanceFields := schema.RTECreditBalance{}.Fields()
+	_ = rtecreditbalanceFields
+	// rtecreditbalanceDescNamespace is the schema descriptor for namespace field.
+	rtecreditbalanceDescNamespace := rtecreditbalanceMixinFields0[0].Descriptor()
+	// rtecreditbalance.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	rtecreditbalance.NamespaceValidator = rtecreditbalanceDescNamespace.Validators[0].(func(string) error)
+	// rtecreditbalanceDescCreatedAt is the schema descriptor for created_at field.
+	rtecreditbalanceDescCreatedAt := rtecreditbalanceMixinFields1[0].Descriptor()
+	// rtecreditbalance.DefaultCreatedAt holds the default value on creation for the created_at field.
+	rtecreditbalance.DefaultCreatedAt = rtecreditbalanceDescCreatedAt.Default.(func() time.Time)
+	// rtecreditbalanceDescUpdatedAt is the schema descriptor for updated_at field.
+	rtecreditbalanceDescUpdatedAt := rtecreditbalanceMixinFields1[1].Descriptor()
+	// rtecreditbalance.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	rtecreditbalance.DefaultUpdatedAt = rtecreditbalanceDescUpdatedAt.Default.(func() time.Time)
+	// rtecreditbalance.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	rtecreditbalance.UpdateDefaultUpdatedAt = rtecreditbalanceDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// rtecreditbalanceDescCustomerID is the schema descriptor for customer_id field.
+	rtecreditbalanceDescCustomerID := rtecreditbalanceFields[0].Descriptor()
+	// rtecreditbalance.CustomerIDValidator is a validator for the "customer_id" field. It is called by the builders before save.
+	rtecreditbalance.CustomerIDValidator = rtecreditbalanceDescCustomerID.Validators[0].(func(string) error)
+	// rtecreditbalanceDescCurrencyKey is the schema descriptor for currency_key field.
+	rtecreditbalanceDescCurrencyKey := rtecreditbalanceFields[1].Descriptor()
+	// rtecreditbalance.CurrencyKeyValidator is a validator for the "currency_key" field. It is called by the builders before save.
+	rtecreditbalance.CurrencyKeyValidator = rtecreditbalanceDescCurrencyKey.Validators[0].(func(string) error)
+	// rtecreditbalanceDescFeatureScope is the schema descriptor for feature_scope field.
+	rtecreditbalanceDescFeatureScope := rtecreditbalanceFields[2].Descriptor()
+	// rtecreditbalance.FeatureScopeValidator is a validator for the "feature_scope" field. It is called by the builders before save.
+	rtecreditbalance.FeatureScopeValidator = rtecreditbalanceDescFeatureScope.Validators[0].(func(string) error)
 	subjectMixin := schema.Subject{}.Mixin()
 	subjectMixinFields0 := subjectMixin[0].Fields()
 	_ = subjectMixinFields0

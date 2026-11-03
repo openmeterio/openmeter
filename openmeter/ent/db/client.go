@@ -93,6 +93,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planaddon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/rtecreditbalance"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subject"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddon"
@@ -270,6 +271,8 @@ type Client struct {
 	PlanPhase *PlanPhaseClient
 	// PlanRateCard is the client for interacting with the PlanRateCard builders.
 	PlanRateCard *PlanRateCardClient
+	// RTECreditBalance is the client for interacting with the RTECreditBalance builders.
+	RTECreditBalance *RTECreditBalanceClient
 	// Subject is the client for interacting with the Subject builders.
 	Subject *SubjectClient
 	// Subscription is the client for interacting with the Subscription builders.
@@ -380,6 +383,7 @@ func (c *Client) init() {
 	c.PlanAddon = NewPlanAddonClient(c.config)
 	c.PlanPhase = NewPlanPhaseClient(c.config)
 	c.PlanRateCard = NewPlanRateCardClient(c.config)
+	c.RTECreditBalance = NewRTECreditBalanceClient(c.config)
 	c.Subject = NewSubjectClient(c.config)
 	c.Subscription = NewSubscriptionClient(c.config)
 	c.SubscriptionAddon = NewSubscriptionAddonClient(c.config)
@@ -561,6 +565,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		PlanAddon:                                        NewPlanAddonClient(cfg),
 		PlanPhase:                                        NewPlanPhaseClient(cfg),
 		PlanRateCard:                                     NewPlanRateCardClient(cfg),
+		RTECreditBalance:                                 NewRTECreditBalanceClient(cfg),
 		Subject:                                          NewSubjectClient(cfg),
 		Subscription:                                     NewSubscriptionClient(cfg),
 		SubscriptionAddon:                                NewSubscriptionAddonClient(cfg),
@@ -669,6 +674,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		PlanAddon:                                        NewPlanAddonClient(cfg),
 		PlanPhase:                                        NewPlanPhaseClient(cfg),
 		PlanRateCard:                                     NewPlanRateCardClient(cfg),
+		RTECreditBalance:                                 NewRTECreditBalanceClient(cfg),
 		Subject:                                          NewSubjectClient(cfg),
 		Subscription:                                     NewSubscriptionClient(cfg),
 		SubscriptionAddon:                                NewSubscriptionAddonClient(cfg),
@@ -736,10 +742,10 @@ func (c *Client) Use(hooks ...Hook) {
 		c.LedgerTransactionGroup, c.Meter, c.NotificationChannel, c.NotificationEvent,
 		c.NotificationEventDeliveryStatus, c.NotificationRule,
 		c.OrganizationDefaultTaxCodes, c.Plan, c.PlanAddon, c.PlanPhase,
-		c.PlanRateCard, c.Subject, c.Subscription, c.SubscriptionAddon,
-		c.SubscriptionAddonQuantity, c.SubscriptionBillingSyncState,
-		c.SubscriptionCostBasisPin, c.SubscriptionItem, c.SubscriptionPhase, c.TaxCode,
-		c.UsageReset,
+		c.PlanRateCard, c.RTECreditBalance, c.Subject, c.Subscription,
+		c.SubscriptionAddon, c.SubscriptionAddonQuantity,
+		c.SubscriptionBillingSyncState, c.SubscriptionCostBasisPin, c.SubscriptionItem,
+		c.SubscriptionPhase, c.TaxCode, c.UsageReset,
 	} {
 		n.Use(hooks...)
 	}
@@ -777,10 +783,10 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.LedgerTransactionGroup, c.Meter, c.NotificationChannel, c.NotificationEvent,
 		c.NotificationEventDeliveryStatus, c.NotificationRule,
 		c.OrganizationDefaultTaxCodes, c.Plan, c.PlanAddon, c.PlanPhase,
-		c.PlanRateCard, c.Subject, c.Subscription, c.SubscriptionAddon,
-		c.SubscriptionAddonQuantity, c.SubscriptionBillingSyncState,
-		c.SubscriptionCostBasisPin, c.SubscriptionItem, c.SubscriptionPhase, c.TaxCode,
-		c.UsageReset,
+		c.PlanRateCard, c.RTECreditBalance, c.Subject, c.Subscription,
+		c.SubscriptionAddon, c.SubscriptionAddonQuantity,
+		c.SubscriptionBillingSyncState, c.SubscriptionCostBasisPin, c.SubscriptionItem,
+		c.SubscriptionPhase, c.TaxCode, c.UsageReset,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -945,6 +951,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.PlanPhase.mutate(ctx, m)
 	case *PlanRateCardMutation:
 		return c.PlanRateCard.mutate(ctx, m)
+	case *RTECreditBalanceMutation:
+		return c.RTECreditBalance.mutate(ctx, m)
 	case *SubjectMutation:
 		return c.Subject.mutate(ctx, m)
 	case *SubscriptionMutation:
@@ -15886,6 +15894,139 @@ func (c *PlanRateCardClient) mutate(ctx context.Context, m *PlanRateCardMutation
 	}
 }
 
+// RTECreditBalanceClient is a client for the RTECreditBalance schema.
+type RTECreditBalanceClient struct {
+	config
+}
+
+// NewRTECreditBalanceClient returns a client for the RTECreditBalance from the given config.
+func NewRTECreditBalanceClient(c config) *RTECreditBalanceClient {
+	return &RTECreditBalanceClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `rtecreditbalance.Hooks(f(g(h())))`.
+func (c *RTECreditBalanceClient) Use(hooks ...Hook) {
+	c.hooks.RTECreditBalance = append(c.hooks.RTECreditBalance, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `rtecreditbalance.Intercept(f(g(h())))`.
+func (c *RTECreditBalanceClient) Intercept(interceptors ...Interceptor) {
+	c.inters.RTECreditBalance = append(c.inters.RTECreditBalance, interceptors...)
+}
+
+// Create returns a builder for creating a RTECreditBalance entity.
+func (c *RTECreditBalanceClient) Create() *RTECreditBalanceCreate {
+	mutation := newRTECreditBalanceMutation(c.config, OpCreate)
+	return &RTECreditBalanceCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of RTECreditBalance entities.
+func (c *RTECreditBalanceClient) CreateBulk(builders ...*RTECreditBalanceCreate) *RTECreditBalanceCreateBulk {
+	return &RTECreditBalanceCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *RTECreditBalanceClient) MapCreateBulk(slice any, setFunc func(*RTECreditBalanceCreate, int)) *RTECreditBalanceCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &RTECreditBalanceCreateBulk{err: fmt.Errorf("calling to RTECreditBalanceClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*RTECreditBalanceCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &RTECreditBalanceCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for RTECreditBalance.
+func (c *RTECreditBalanceClient) Update() *RTECreditBalanceUpdate {
+	mutation := newRTECreditBalanceMutation(c.config, OpUpdate)
+	return &RTECreditBalanceUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *RTECreditBalanceClient) UpdateOne(_m *RTECreditBalance) *RTECreditBalanceUpdateOne {
+	mutation := newRTECreditBalanceMutation(c.config, OpUpdateOne, withRTECreditBalance(_m))
+	return &RTECreditBalanceUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *RTECreditBalanceClient) UpdateOneID(id int) *RTECreditBalanceUpdateOne {
+	mutation := newRTECreditBalanceMutation(c.config, OpUpdateOne, withRTECreditBalanceID(id))
+	return &RTECreditBalanceUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for RTECreditBalance.
+func (c *RTECreditBalanceClient) Delete() *RTECreditBalanceDelete {
+	mutation := newRTECreditBalanceMutation(c.config, OpDelete)
+	return &RTECreditBalanceDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *RTECreditBalanceClient) DeleteOne(_m *RTECreditBalance) *RTECreditBalanceDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *RTECreditBalanceClient) DeleteOneID(id int) *RTECreditBalanceDeleteOne {
+	builder := c.Delete().Where(rtecreditbalance.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &RTECreditBalanceDeleteOne{builder}
+}
+
+// Query returns a query builder for RTECreditBalance.
+func (c *RTECreditBalanceClient) Query() *RTECreditBalanceQuery {
+	return &RTECreditBalanceQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeRTECreditBalance},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a RTECreditBalance entity by its id.
+func (c *RTECreditBalanceClient) Get(ctx context.Context, id int) (*RTECreditBalance, error) {
+	return c.Query().Where(rtecreditbalance.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *RTECreditBalanceClient) GetX(ctx context.Context, id int) *RTECreditBalance {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *RTECreditBalanceClient) Hooks() []Hook {
+	return c.hooks.RTECreditBalance
+}
+
+// Interceptors returns the client interceptors.
+func (c *RTECreditBalanceClient) Interceptors() []Interceptor {
+	return c.inters.RTECreditBalance
+}
+
+func (c *RTECreditBalanceClient) mutate(ctx context.Context, m *RTECreditBalanceMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&RTECreditBalanceCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&RTECreditBalanceUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&RTECreditBalanceUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&RTECreditBalanceDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("db: unknown RTECreditBalance mutation op: %q", m.Op())
+	}
+}
+
 // SubjectClient is a client for the Subject schema.
 type SubjectClient struct {
 	config
@@ -18091,10 +18232,11 @@ type (
 		LedgerCustomerAccount, LedgerEntry, LedgerSubAccount, LedgerSubAccountRoute,
 		LedgerTransaction, LedgerTransactionGroup, Meter, NotificationChannel,
 		NotificationEvent, NotificationEventDeliveryStatus, NotificationRule,
-		OrganizationDefaultTaxCodes, Plan, PlanAddon, PlanPhase, PlanRateCard, Subject,
-		Subscription, SubscriptionAddon, SubscriptionAddonQuantity,
-		SubscriptionBillingSyncState, SubscriptionCostBasisPin, SubscriptionItem,
-		SubscriptionPhase, TaxCode, UsageReset []ent.Hook
+		OrganizationDefaultTaxCodes, Plan, PlanAddon, PlanPhase, PlanRateCard,
+		RTECreditBalance, Subject, Subscription, SubscriptionAddon,
+		SubscriptionAddonQuantity, SubscriptionBillingSyncState,
+		SubscriptionCostBasisPin, SubscriptionItem, SubscriptionPhase, TaxCode,
+		UsageReset []ent.Hook
 	}
 	inters struct {
 		Addon, AddonRateCard, App, AppCustomInvoicing, AppCustomInvoicingCustomer,
@@ -18122,7 +18264,7 @@ type (
 		LedgerSubAccountRoute, LedgerTransaction, LedgerTransactionGroup, Meter,
 		NotificationChannel, NotificationEvent, NotificationEventDeliveryStatus,
 		NotificationRule, OrganizationDefaultTaxCodes, Plan, PlanAddon, PlanPhase,
-		PlanRateCard, Subject, Subscription, SubscriptionAddon,
+		PlanRateCard, RTECreditBalance, Subject, Subscription, SubscriptionAddon,
 		SubscriptionAddonQuantity, SubscriptionBillingSyncState,
 		SubscriptionCostBasisPin, SubscriptionItem, SubscriptionPhase, TaxCode,
 		UsageReset []ent.Interceptor
