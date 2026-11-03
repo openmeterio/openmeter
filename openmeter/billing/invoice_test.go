@@ -2,9 +2,12 @@ package billing
 
 import (
 	"testing"
+	"time"
 
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
+
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func TestListInvoicesInputValidateRequiresNamespace(t *testing.T) {
@@ -50,4 +53,28 @@ func TestSimulateInvoiceInputValidateRejectsLineWithoutEngine(t *testing.T) {
 	require.ErrorContains(t, err, "line[0]: invalid line engine type")
 	_, ok := lo.ErrorsAs[ValidationError](err)
 	require.True(t, ok)
+}
+
+func TestSimulateInvoiceInputValidateSkipsDeletedLineWithoutEngine(t *testing.T) {
+	// given:
+	// - a simulation input with a valid line and a deleted line without an engine
+	// when:
+	// - the input is validated
+	// then:
+	// - validation succeeds, because simulation ignores deleted lines
+	input := SimulateInvoiceInput{
+		Namespace:  "ns",
+		CustomerID: lo.ToPtr("customer"),
+		Currency:   "USD",
+		Lines: NewStandardInvoiceLines([]*StandardLine{
+			{StandardLineBase: StandardLineBase{Engine: LineEngineTypeInvoice}},
+			{StandardLineBase: StandardLineBase{
+				ManagedResource: models.ManagedResource{
+					ManagedModel: models.ManagedModel{DeletedAt: lo.ToPtr(time.Now())},
+				},
+			}},
+		}),
+	}
+
+	require.NoError(t, input.Validate())
 }
