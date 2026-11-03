@@ -107,6 +107,10 @@ func (o *BrokerOptions) createKafkaConfig(role string) (*sarama.Config, error) {
 				return &XDGSCRAMClient{HashGeneratorFcn: SHA512}
 			}
 		}
+	} else if o.KafkaConfig.SecurityProtocol == "SSL" {
+		// TLS without SASL: verify the broker against the system roots.
+		config.Net.TLS.Enable = true
+		config.Net.TLS.Config = &tls.Config{MinVersion: tls.VersionTLS12}
 	}
 
 	config.Producer.Retry.Max = 10
