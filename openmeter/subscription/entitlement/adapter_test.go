@@ -73,12 +73,18 @@ func TestGetForItemsAt(t *testing.T) {
 		require.Equal(t, []string{*entItems[0].EntitlementID}, entIDs(ents))
 	})
 
-	t.Run("returns entitlements deleted after At", func(t *testing.T) {
-		// given: an edit deletes the entitlements after viewAt, before they are read
+	t.Run("returns entitlements deleted after At but not those deleted by At", func(t *testing.T) {
+		require.Greater(t, len(entItems), 1)
+
+		subCtx := subscription.NewSubscriptionOperationContext(ctx)
+
+		// given: one entitlement deleted at viewAt, and an edit deleting the rest after viewAt
+		require.NoError(t, deps.EntitlementAdapter.DeleteByItemID(subCtx, entItems[0].NamespacedID))
+
 		clock.FreezeTime(viewAt.Add(time.Minute))
 		defer clock.UnFreeze()
-		for _, item := range entItems {
-			require.NoError(t, deps.EntitlementAdapter.DeleteByItemID(subscription.NewSubscriptionOperationContext(ctx), item.NamespacedID))
+		for _, item := range entItems[1:] {
+			require.NoError(t, deps.EntitlementAdapter.DeleteByItemID(subCtx, item.NamespacedID))
 		}
 
 		clock.FreezeTime(viewAt.Add(2 * time.Minute))
@@ -90,10 +96,10 @@ func TestGetForItemsAt(t *testing.T) {
 			At:    viewAt,
 		})
 
-		// then: they are returned as they were at viewAt
+		// then: only the entitlements still live at viewAt are returned
 		require.NoError(t, err)
 		require.ElementsMatch(t,
-			lo.Map(entItems, func(i subscription.SubscriptionItem, _ int) string { return *i.EntitlementID }),
+			lo.Map(entItems[1:], func(i subscription.SubscriptionItem, _ int) string { return *i.EntitlementID }),
 			entIDs(ents),
 		)
 	})
