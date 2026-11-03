@@ -14,7 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-func TestGetForItemsAtReturnsEntitlementsDeletedAfterAt(t *testing.T) {
+func TestGetForItemsAt(t *testing.T) {
 	ctx := t.Context()
 
 	viewAt := testutils.GetRFC3339Time(t, "2021-01-01T00:00:11Z")
@@ -54,25 +54,47 @@ func TestGetForItemsAtReturnsEntitlementsDeletedAfterAt(t *testing.T) {
 	entItems := lo.Filter(items, func(i subscription.SubscriptionItem, _ int) bool { return i.EntitlementID != nil })
 	require.NotEmpty(t, entItems)
 
-	// when: an edit deletes their entitlements after viewAt, before the entitlements are read
-	clock.FreezeTime(viewAt.Add(time.Minute))
-	defer clock.UnFreeze()
-	for _, item := range entItems {
-		require.NoError(t, deps.EntitlementAdapter.DeleteByItemID(subscription.NewSubscriptionOperationContext(ctx), item.NamespacedID))
+	entIDs := func(ents []subscription.SubscriptionEntitlement) []string {
+		return lo.Map(ents, func(e subscription.SubscriptionEntitlement, _ int) string { return e.Entitlement.ID })
 	}
 
-	clock.FreezeTime(viewAt.Add(2 * time.Minute))
-	defer clock.UnFreeze()
+	t.Run("returns only the given items' entitlements", func(t *testing.T) {
+		// given: a subscription with several entitlement-bearing items
+		require.Greater(t, len(entItems), 1)
 
-	ents, err := deps.EntitlementAdapter.GetForItemsAt(ctx, subscription.GetForItemsAtInput{
-		Items: items,
-		At:    viewAt,
+		// when: resolving entitlements for just one of them
+		ents, err := deps.EntitlementAdapter.GetForItemsAt(ctx, subscription.GetForItemsAtInput{
+			Items: entItems[:1],
+			At:    viewAt,
+		})
+
+		// then: the other items' entitlements are not pulled in
+		require.NoError(t, err)
+		require.Equal(t, []string{*entItems[0].EntitlementID}, entIDs(ents))
 	})
 
-	// then: the entitlements are still returned as they were at viewAt
-	require.NoError(t, err)
-	require.ElementsMatch(t,
-		lo.Map(entItems, func(i subscription.SubscriptionItem, _ int) string { return *i.EntitlementID }),
-		lo.Map(ents, func(e subscription.SubscriptionEntitlement, _ int) string { return e.Entitlement.ID }),
-	)
+	t.Run("returns entitlements deleted after At", func(t *testing.T) {
+		// given: an edit deletes the entitlements after viewAt, before they are read
+		clock.FreezeTime(viewAt.Add(time.Minute))
+		defer clock.UnFreeze()
+		for _, item := range entItems {
+			require.NoError(t, deps.EntitlementAdapter.DeleteByItemID(subscription.NewSubscriptionOperationContext(ctx), item.NamespacedID))
+		}
+
+		clock.FreezeTime(viewAt.Add(2 * time.Minute))
+		defer clock.UnFreeze()
+
+		// when: resolving them for the view pinned at viewAt
+		ents, err := deps.EntitlementAdapter.GetForItemsAt(ctx, subscription.GetForItemsAtInput{
+			Items: items,
+			At:    viewAt,
+		})
+
+		// then: they are returned as they were at viewAt
+		require.NoError(t, err)
+		require.ElementsMatch(t,
+			lo.Map(entItems, func(i subscription.SubscriptionItem, _ int) string { return *i.EntitlementID }),
+			entIDs(ents),
+		)
+	})
 }
