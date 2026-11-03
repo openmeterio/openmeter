@@ -659,6 +659,7 @@ func mapSimulationLineToEntity(line api.InvoiceSimulationLine) (*billing.Standar
 			}),
 			Metadata:  lo.FromPtrOr(line.Metadata, map[string]string{}),
 			ManagedBy: billing.ManuallyManagedLine,
+			Engine:    billing.LineEngineTypeInvoice,
 
 			Period: timeutil.ClosedPeriod{
 				From: line.Period.From.Truncate(streaming.MinimumWindowSizeDuration),
