@@ -629,7 +629,10 @@ func (s *service) ExpandViews(ctx context.Context, subs []subscription.Subscript
 		return nil, fmt.Errorf("failed to get items: %w", err)
 	}
 
-	ents, err := s.EntitlementAdapter.GetForSubscriptionsAt(ctx, getAtInputs)
+	ents, err := s.EntitlementAdapter.GetForItemsAt(ctx, subscription.GetForItemsAtInput{
+		Items: items,
+		At:    now,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get entitlements: %w", err)
 	}
