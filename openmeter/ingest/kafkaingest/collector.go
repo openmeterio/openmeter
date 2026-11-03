@@ -163,10 +163,34 @@ func (s Collector) Ingest(ctx context.Context, namespace string, ev event.Event)
 	}
 
 	span.AddEvent("publishing event to kafka topic")
-	err = s.Producer.Produce(msg, nil)
-	if err != nil {
+	delivery := make(chan kafka.Event, 1)
+	if err = s.Producer.Produce(msg, delivery); err != nil {
 		err = fmt.Errorf("producing kafka message: %w", err)
 		return err
+	}
+
+	if err = s.waitForDelivery(delivery); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// waitForDelivery blocks until Kafka reports the outcome of a produce call and
+// returns an error when the broker never accepted the message. Produce only
+// queues the message on the producer's internal queue; without waiting for the
+// delivery report the API would acknowledge events that the broker later drops
+// (for example after the producer's message timeout expires during an outage).
+func (s Collector) waitForDelivery(delivery chan kafka.Event) error {
+	ev := <-delivery
+
+	m, ok := ev.(*kafka.Message)
+	if !ok {
+		return fmt.Errorf("unexpected kafka delivery event: %T", ev)
+	}
+
+	if m.TopicPartition.Error != nil {
+		return fmt.Errorf("kafka delivery failed: %w", m.TopicPartition.Error)
 	}
 
 	return nil
