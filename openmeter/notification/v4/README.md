@@ -3,7 +3,7 @@
 Package `v4` holds the Notification vNext model. It is built next to the
 existing [Notifications](../README.md) domain, which keeps serving V1. This
 README covers Event types and the Event Registry. Providers are documented in
-[Svix](providers/svix/README.md) and [no-op](providers/noop/README.md).
+[Svix](provider/svix/README.md) and [no-op](provider/noop/README.md).
 
 Producing domains import `v4` for `EventType`, so `v4` must not import
 Notification or any domain package; doing so would create an import cycle.
