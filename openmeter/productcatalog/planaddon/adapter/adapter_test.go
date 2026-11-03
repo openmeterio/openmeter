@@ -354,6 +354,9 @@ func TestPostgresAdapter(t *testing.T) {
 				Annotations: map[string]interface{}{
 					"openmeter.key": "openmeter.value",
 				},
+				Metadata: models.Metadata{
+					"openmeter.key": "openmeter.value",
+				},
 				PlanID:        planV1.ID,
 				AddonID:       addonV1.ID,
 				FromPlanPhase: planV1.Phases[1].Key,

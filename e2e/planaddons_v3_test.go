@@ -54,6 +54,7 @@ func TestV3PlanAddonAttachLifecycle(t *testing.T) {
 		require.NotEmpty(t, addonID)
 
 		body := validPlanAddonRequest(standardPhase.Key, addonID)
+		body.Labels = &map[string]string{"placement": "upsell"}
 
 		planAddon, err := c.PlanAddons.Create(t.Context(), planID, body)
 		c.requireStatus(http.StatusCreated, err)
@@ -61,6 +62,7 @@ func TestV3PlanAddonAttachLifecycle(t *testing.T) {
 
 		assert.Equal(t, standardPhase.Key, planAddon.FromPlanPhase)
 		assert.Equal(t, addonID, planAddon.Addon.ID)
+		assert.Equal(t, map[string]string{"placement": "upsell"}, planAddon.Labels)
 
 		planAddonID = planAddon.ID
 	})
@@ -75,6 +77,7 @@ func TestV3PlanAddonAttachLifecycle(t *testing.T) {
 		assert.Equal(t, planAddonID, planAddon.ID)
 		assert.Equal(t, standardPhase.Key, planAddon.FromPlanPhase)
 		assert.Equal(t, addonID, planAddon.Addon.ID)
+		assert.Equal(t, map[string]string{"placement": "upsell"}, planAddon.Labels)
 	})
 
 	t.Run("Should list plan-addons and find the attached addon", func(t *testing.T) {

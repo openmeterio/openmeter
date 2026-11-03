@@ -144,6 +144,7 @@ func (a *adapter) CreatePlanAddon(ctx context.Context, params planaddon.CreatePl
 			SetPlanID(params.PlanID).
 			SetAddonID(params.AddonID).
 			SetAnnotations(params.Annotations).
+			SetMetadata(params.Metadata).
 			SetFromPlanPhase(params.FromPlanPhase).
 			SetNillableMaxQuantity(params.MaxQuantity).
 			Save(ctx)
