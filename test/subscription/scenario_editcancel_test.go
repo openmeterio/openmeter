@@ -18,6 +18,7 @@ import (
 	pcsubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription/patch"
+	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/subscription/testutils"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -48,6 +49,9 @@ func TestEditingAndCanceling(t *testing.T) {
 		MeterID:   lo.ToPtr(tDeps.ExampleMeterID),
 	})
 	require.NoError(t, err)
+
+	taxCode := tDeps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace, subscriptiontestutils.GetExampleTaxCodeInput())
+	taxConfig := subscriptiontestutils.ExampleTaxConfig(taxCode)
 
 	// Second, let's create the plan
 	p, err := tDeps.PlanService.CreatePlan(ctx, plan.CreatePlanInput{
@@ -81,11 +85,7 @@ func TestEditingAndCanceling(t *testing.T) {
 								Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 									Amount: alpacadecimal.NewFromInt(100),
 								}),
-								TaxConfig: &productcatalog.TaxConfig{
-									Stripe: &productcatalog.StripeTaxConfig{
-										Code: "txcd_10000000",
-									},
-								},
+								TaxConfig:           lo.ToPtr(taxConfig.Clone()),
 								EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.BooleanEntitlementTemplate{}),
 							},
 							BillingCadence: datetime.MustParseDuration(t, "P1M"),
@@ -202,11 +202,7 @@ func TestEditingAndCanceling(t *testing.T) {
 								Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 									Amount: alpacadecimal.NewFromInt(101),
 								}),
-								TaxConfig: &productcatalog.TaxConfig{
-									Stripe: &productcatalog.StripeTaxConfig{
-										Code: "txcd_10000000",
-									},
-								},
+								TaxConfig: lo.ToPtr(taxConfig.Clone()),
 							},
 							BillingCadence: datetime.MustParseDuration(t, "P1M"),
 						},

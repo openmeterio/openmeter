@@ -12,7 +12,6 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
-	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -21,7 +20,6 @@ import (
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
 	addondiff "github.com/openmeterio/openmeter/openmeter/subscription/addon/diff"
 	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/subscription/testutils"
-	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
@@ -56,10 +54,13 @@ func TestApply(t *testing.T) {
 
 	t.Run("Should return nil when there's no quantities listed", func(t *testing.T) {
 		runWithDeps(t, func(t *testing.T, deps *tcDeps) {
+			taxCode := deps.deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace, subscriptiontestutils.GetExampleTaxCodeInput())
+			taxConfig := subscriptiontestutils.ExampleTaxConfig(taxCode)
+
 			p, a := subscriptiontestutils.CreatePlanWithAddon(
 				t,
 				deps.deps,
-				subscriptiontestutils.GetExamplePlanInput(t),
+				subscriptiontestutils.GetExamplePlanInput(t, taxConfig),
 				subscriptiontestutils.GetExampleAddonInput(t, productcatalog.EffectivePeriod{
 					EffectiveFrom: &now,
 					EffectiveTo:   nil,
@@ -85,10 +86,13 @@ func TestApply(t *testing.T) {
 
 	t.Run("Should add the new item to the subscription", func(t *testing.T) {
 		runWithDeps(t, func(t *testing.T, deps *tcDeps) {
+			taxCode := deps.deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace, subscriptiontestutils.GetExampleTaxCodeInput())
+			taxConfig := subscriptiontestutils.ExampleTaxConfig(taxCode)
+
 			p, a := subscriptiontestutils.CreatePlanWithAddon(
 				t,
 				deps.deps,
-				subscriptiontestutils.GetExamplePlanInput(t),
+				subscriptiontestutils.GetExamplePlanInput(t, taxConfig),
 				subscriptiontestutils.BuildAddonForTesting(t,
 					productcatalog.EffectivePeriod{
 						EffectiveFrom: &now,
@@ -145,10 +149,13 @@ func TestApply(t *testing.T) {
 
 	t.Run("Should materialize the addon currency on new priced items", func(t *testing.T) {
 		runWithDeps(t, func(t *testing.T, deps *tcDeps) {
+			taxCode := deps.deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace, subscriptiontestutils.GetExampleTaxCodeInput())
+			taxConfig := subscriptiontestutils.ExampleTaxConfig(taxCode)
+
 			p, a := subscriptiontestutils.CreatePlanWithAddon(
 				t,
 				deps.deps,
-				subscriptiontestutils.GetExamplePlanInput(t),
+				subscriptiontestutils.GetExamplePlanInput(t, taxConfig),
 				subscriptiontestutils.BuildAddonForTesting(t,
 					productcatalog.EffectivePeriod{
 						EffectiveFrom: &now,
@@ -299,13 +306,16 @@ func TestApply(t *testing.T) {
 
 	t.Run("Should add multiple instances of new item to the subscription", func(t *testing.T) {
 		runWithDeps(t, func(t *testing.T, deps *tcDeps) {
+			taxCode := deps.deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace, subscriptiontestutils.GetExampleTaxCodeInput())
+			taxConfig := subscriptiontestutils.ExampleTaxConfig(taxCode)
+
 			exampleAddonRateCard3, ok := subscriptiontestutils.ExampleAddonRateCard3.Clone().(*productcatalog.FlatFeeRateCard)
 			require.True(t, ok, "expected FlatFeeRateCard, got %T", exampleAddonRateCard3)
 
 			p, a := subscriptiontestutils.CreatePlanWithAddon(
 				t,
 				deps.deps,
-				subscriptiontestutils.GetExamplePlanInput(t),
+				subscriptiontestutils.GetExamplePlanInput(t, taxConfig),
 				subscriptiontestutils.BuildAddonForTesting(t,
 					productcatalog.EffectivePeriod{
 						EffectiveFrom: &now,
@@ -367,13 +377,16 @@ func TestApply(t *testing.T) {
 				require.Equal(t, int64(300), pr.Amount.IntPart())
 
 				// It should have the proper RateCard info, which is price * quantity + bool access
-				compareRateCardsWithAmountChange(t, withTaxCodeIDAndCurrency(exampleAddonRateCard3, nil, currency.USD), 100*3, item.RateCard, "phase %s", p.PhaseKey)
+				compareRateCardsWithAmountChange(t, withCurrency(exampleAddonRateCard3, currency.USD), 100*3, item.RateCard, "phase %s", p.PhaseKey)
 			}
 		})
 	})
 
 	t.Run("Should add item for defined cadence of the addon", func(t *testing.T) {
 		runWithDeps(t, func(t *testing.T, deps *tcDeps) {
+			taxCode := deps.deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace, subscriptiontestutils.GetExampleTaxCodeInput())
+			taxConfig := subscriptiontestutils.ExampleTaxConfig(taxCode)
+
 			effPer := productcatalog.EffectivePeriod{
 				EffectiveFrom: lo.ToPtr(now),
 			}
@@ -381,7 +394,7 @@ func TestApply(t *testing.T) {
 			p, a := subscriptiontestutils.CreatePlanWithAddon(
 				t,
 				deps.deps,
-				subscriptiontestutils.GetExamplePlanInput(t),
+				subscriptiontestutils.GetExamplePlanInput(t, taxConfig),
 				subscriptiontestutils.BuildAddonForTesting(t,
 					effPer,
 					productcatalog.AddonInstanceTypeSingle,
@@ -548,6 +561,9 @@ func TestApply(t *testing.T) {
 
 	t.Run("Should update an existing Item that fills its entire phase", func(t *testing.T) {
 		runWithDeps(t, func(t *testing.T, deps *tcDeps) {
+			taxCode := deps.deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace, subscriptiontestutils.GetExampleTaxCodeInput())
+			taxConfig := subscriptiontestutils.ExampleTaxConfig(taxCode)
+
 			effPer := productcatalog.EffectivePeriod{
 				EffectiveFrom: lo.ToPtr(now.AddDate(0, 0, 0)),
 				EffectiveTo:   nil,
@@ -557,8 +573,8 @@ func TestApply(t *testing.T) {
 				t,
 				deps.deps,
 				subscriptiontestutils.BuildTestPlanInput(t).
-					AddPhase(lo.ToPtr(datetime.MustParseDuration(t, "P1M")), subscriptiontestutils.ExampleRateCard3ForAddons.Clone()).
-					AddPhase(nil, subscriptiontestutils.ExampleRateCard3ForAddons.Clone()).
+					AddPhase(lo.ToPtr(datetime.MustParseDuration(t, "P1M")), subscriptiontestutils.ExampleRateCard3ForAddons(taxConfig)).
+					AddPhase(nil, subscriptiontestutils.ExampleRateCard3ForAddons(taxConfig)).
 					Build(),
 				subscriptiontestutils.BuildAddonForTesting(t,
 					effPer,
@@ -569,8 +585,7 @@ func TestApply(t *testing.T) {
 
 			subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps.deps, p, now)
 
-			taxCodeID := lookupTaxCodeID(t, deps.deps, "txcd_10000000")
-			rc3 := withTaxCodeIDAndCurrency(&subscriptiontestutils.ExampleRateCard3ForAddons, taxCodeID, currency.USD)
+			rc3 := withCurrency(subscriptiontestutils.ExampleRateCard3ForAddons(taxConfig), currency.USD)
 
 			subsAdd := subscriptiontestutils.CreateAddonForSubscription(t, &deps.deps, subView.Subscription.NamespacedID, a.NamespacedID, models.CadencedModel{
 				ActiveFrom: *effPer.EffectiveFrom,
@@ -607,6 +622,9 @@ func TestApply(t *testing.T) {
 
 	t.Run("Should partially update an existing item in accordance with the cadence", func(t *testing.T) {
 		runWithDeps(t, func(t *testing.T, deps *tcDeps) {
+			taxCode := deps.deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace, subscriptiontestutils.GetExampleTaxCodeInput())
+			taxConfig := subscriptiontestutils.ExampleTaxConfig(taxCode)
+
 			effPer := productcatalog.EffectivePeriod{
 				EffectiveFrom: lo.ToPtr(now),
 				EffectiveTo:   nil,
@@ -616,8 +634,8 @@ func TestApply(t *testing.T) {
 				t,
 				deps.deps,
 				subscriptiontestutils.BuildTestPlanInput(t).
-					AddPhase(lo.ToPtr(datetime.MustParseDuration(t, "P1M")), subscriptiontestutils.ExampleRateCard3ForAddons.Clone()).
-					AddPhase(nil, subscriptiontestutils.ExampleRateCard3ForAddons.Clone()).
+					AddPhase(lo.ToPtr(datetime.MustParseDuration(t, "P1M")), subscriptiontestutils.ExampleRateCard3ForAddons(taxConfig)).
+					AddPhase(nil, subscriptiontestutils.ExampleRateCard3ForAddons(taxConfig)).
 					Build(),
 				subscriptiontestutils.BuildAddonForTesting(t,
 					effPer,
@@ -628,8 +646,7 @@ func TestApply(t *testing.T) {
 
 			subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps.deps, p, now)
 
-			taxCodeID := lookupTaxCodeID(t, deps.deps, "txcd_10000000")
-			rc3 := withTaxCodeIDAndCurrency(&subscriptiontestutils.ExampleRateCard3ForAddons, taxCodeID, currency.USD)
+			rc3 := withCurrency(subscriptiontestutils.ExampleRateCard3ForAddons(taxConfig), currency.USD)
 
 			subsAdd := subscriptiontestutils.CreateAddonForSubscription(t, &deps.deps, subView.Subscription.NamespacedID, a.NamespacedID, models.CadencedModel{
 				ActiveFrom: now.AddDate(0, 0, 5),
@@ -676,6 +693,9 @@ func TestApply(t *testing.T) {
 
 	t.Run("Should partially update an existing item in accordance with the cadence - but for multi instance", func(t *testing.T) {
 		runWithDeps(t, func(t *testing.T, deps *tcDeps) {
+			taxCode := deps.deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace, subscriptiontestutils.GetExampleTaxCodeInput())
+			taxConfig := subscriptiontestutils.ExampleTaxConfig(taxCode)
+
 			effPer := productcatalog.EffectivePeriod{
 				EffectiveFrom: lo.ToPtr(now),
 				EffectiveTo:   nil,
@@ -685,8 +705,8 @@ func TestApply(t *testing.T) {
 				t,
 				deps.deps,
 				subscriptiontestutils.BuildTestPlanInput(t).
-					AddPhase(lo.ToPtr(datetime.MustParseDuration(t, "P1M")), subscriptiontestutils.ExampleRateCard3ForAddons.Clone()).
-					AddPhase(nil, subscriptiontestutils.ExampleRateCard3ForAddons.Clone()).
+					AddPhase(lo.ToPtr(datetime.MustParseDuration(t, "P1M")), subscriptiontestutils.ExampleRateCard3ForAddons(taxConfig)).
+					AddPhase(nil, subscriptiontestutils.ExampleRateCard3ForAddons(taxConfig)).
 					Build(),
 				subscriptiontestutils.BuildAddonForTesting(t,
 					effPer,
@@ -697,8 +717,7 @@ func TestApply(t *testing.T) {
 
 			subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps.deps, p, now)
 
-			taxCodeID := lookupTaxCodeID(t, deps.deps, "txcd_10000000")
-			rc3 := withTaxCodeIDAndCurrency(&subscriptiontestutils.ExampleRateCard3ForAddons, taxCodeID, currency.USD)
+			rc3 := withCurrency(subscriptiontestutils.ExampleRateCard3ForAddons(taxConfig), currency.USD)
 
 			subsAdd := subscriptiontestutils.CreateAddonForSubscription(t, &deps.deps, subView.Subscription.NamespacedID, a.NamespacedID, models.CadencedModel{
 				ActiveFrom: now.AddDate(0, 0, 5),
@@ -773,6 +792,9 @@ func TestApply(t *testing.T) {
 
 	t.Run("Should guarantee access is continuous across changing items", func(t *testing.T) {
 		runWithDeps(t, func(t *testing.T, deps *tcDeps) {
+			taxCode := deps.deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace, subscriptiontestutils.GetExampleTaxCodeInput())
+			taxConfig := subscriptiontestutils.ExampleTaxConfig(taxCode)
+
 			t0 := now
 			clock.FreezeTime(t0.Add(time.Millisecond)) // Addons are written so that effective period is exclusive on both ends :)
 
@@ -799,7 +821,7 @@ func TestApply(t *testing.T) {
 				t,
 				deps.deps,
 				subscriptiontestutils.BuildTestPlanInput(t).
-					AddPhase(nil, subscriptiontestutils.ExampleRateCard3ForAddons.Clone()).
+					AddPhase(nil, subscriptiontestutils.ExampleRateCard3ForAddons(taxConfig)).
 					Build(),
 				subscriptiontestutils.BuildAddonForTesting(t,
 					effPer,
@@ -821,16 +843,16 @@ func TestApply(t *testing.T) {
 			spec := subView.Spec
 
 			// Let's just manipulate the spec object directly
-			ogItem := spec.Phases["test_phase_1"].ItemsByKey[subscriptiontestutils.ExampleRateCard3ForAddons.Key()][0]
+			ogItem := spec.Phases["test_phase_1"].ItemsByKey[subscriptiontestutils.ExampleFeatureKey2][0]
 			ogRateCard, ok := ogItem.RateCard.(*productcatalog.FlatFeeRateCard)
 			require.True(t, ok)
-			spec.Phases["test_phase_1"].ItemsByKey[subscriptiontestutils.ExampleRateCard3ForAddons.Key()] = []*subscription.SubscriptionItemSpec{
+			spec.Phases["test_phase_1"].ItemsByKey[subscriptiontestutils.ExampleFeatureKey2] = []*subscription.SubscriptionItemSpec{
 				// First, before gap
 				{
 					CreateSubscriptionItemInput: subscription.CreateSubscriptionItemInput{
 						CreateSubscriptionItemPlanInput: subscription.CreateSubscriptionItemPlanInput{
 							PhaseKey: spec.Phases["test_phase_1"].PhaseKey,
-							ItemKey:  subscriptiontestutils.ExampleRateCard3ForAddons.Key(),
+							ItemKey:  subscriptiontestutils.ExampleFeatureKey2,
 							RateCard: ogItem.RateCard.Clone(),
 						},
 						CreateSubscriptionItemCustomerInput: subscription.CreateSubscriptionItemCustomerInput{
@@ -844,7 +866,7 @@ func TestApply(t *testing.T) {
 					CreateSubscriptionItemInput: subscription.CreateSubscriptionItemInput{
 						CreateSubscriptionItemPlanInput: subscription.CreateSubscriptionItemPlanInput{
 							PhaseKey: spec.Phases["test_phase_1"].PhaseKey,
-							ItemKey:  subscriptiontestutils.ExampleRateCard3ForAddons.Key(),
+							ItemKey:  subscriptiontestutils.ExampleFeatureKey2,
 							RateCard: ogItem.RateCard.Clone(),
 						},
 						CreateSubscriptionItemCustomerInput: subscription.CreateSubscriptionItemCustomerInput{
@@ -859,7 +881,7 @@ func TestApply(t *testing.T) {
 			require.NoError(t, err)
 
 			// Now let's make sure that we have 5 items:
-			key := subscriptiontestutils.ExampleRateCard3ForAddons.Key()
+			key := subscriptiontestutils.ExampleFeatureKey2
 
 			phase := spec.GetSortedPhases()[0]
 			pCad, err := spec.GetPhaseCadence(phase.PhaseKey)
@@ -882,7 +904,7 @@ func TestApply(t *testing.T) {
 			// [t2-t3]: ExampleAddonRateCard4
 			require.True(t, items[2].GetCadence(pCad).ActiveFrom.Equal(t2))
 			require.True(t, items[2].GetCadence(pCad).ActiveTo.Equal(t3))
-			compareRateCardsWithAmountChange(t, withTaxCodeIDAndCurrency(subsAdd.RateCards[0].AddonRateCard.RateCard.(*productcatalog.FlatFeeRateCard), nil, currency.USD), 100, items[2].RateCard, "phase %s", phase.PhaseKey)
+			compareRateCardsWithAmountChange(t, withCurrency(subsAdd.RateCards[0].AddonRateCard.RateCard.(*productcatalog.FlatFeeRateCard), currency.USD), 100, items[2].RateCard, "phase %s", phase.PhaseKey)
 
 			// [t3-t4]: ExampleRateCard3ForAddons + ExampleAddonRateCard4
 			require.True(t, items[3].GetCadence(pCad).ActiveFrom.Equal(t3))
@@ -899,6 +921,9 @@ func TestApply(t *testing.T) {
 
 	t.Run("Should create multiple rate cards in the addon", func(t *testing.T) {
 		runWithDeps(t, func(t *testing.T, deps *tcDeps) {
+			taxCode := deps.deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace, subscriptiontestutils.GetExampleTaxCodeInput())
+			taxConfig := subscriptiontestutils.ExampleTaxConfig(taxCode)
+
 			// we'll reuse this for subsadd cadence too
 			effPer := productcatalog.EffectivePeriod{
 				EffectiveFrom: lo.ToPtr(now),
@@ -909,7 +934,7 @@ func TestApply(t *testing.T) {
 				t,
 				deps.deps,
 				subscriptiontestutils.BuildTestPlanInput(t).
-					AddPhase(nil, subscriptiontestutils.ExampleRateCard3ForAddons.Clone()).
+					AddPhase(nil, subscriptiontestutils.ExampleRateCard3ForAddons(taxConfig)).
 					Build(),
 				subscriptiontestutils.BuildAddonForTesting(t,
 					effPer,
@@ -921,8 +946,7 @@ func TestApply(t *testing.T) {
 
 			subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps.deps, pl, now)
 
-			taxCodeID := lookupTaxCodeID(t, deps.deps, "txcd_10000000")
-			rc3 := withTaxCodeIDAndCurrency(&subscriptiontestutils.ExampleRateCard3ForAddons, taxCodeID, currency.USD)
+			rc3 := withCurrency(subscriptiontestutils.ExampleRateCard3ForAddons(taxConfig), currency.USD)
 
 			subAdd := subscriptiontestutils.CreateAddonForSubscription(t, &deps.deps, subView.Subscription.NamespacedID, a.NamespacedID, models.CadencedModel{
 				ActiveFrom: *effPer.EffectiveFrom,
@@ -944,9 +968,9 @@ func TestApply(t *testing.T) {
 			require.NoError(t, err)
 
 			// Should update ExampleRateCard3ForAddons with ExampleAddonRateCard4
-			require.Contains(t, p.ItemsByKey, subscriptiontestutils.ExampleRateCard3ForAddons.Key())
+			require.Contains(t, p.ItemsByKey, subscriptiontestutils.ExampleFeatureKey2)
 
-			items := p.ItemsByKey[subscriptiontestutils.ExampleRateCard3ForAddons.Key()]
+			items := p.ItemsByKey[subscriptiontestutils.ExampleFeatureKey2]
 			require.Len(t, items, 1)
 
 			item := items[0]
@@ -967,7 +991,7 @@ func TestApply(t *testing.T) {
 			require.True(t, item.GetCadence(pCad).ActiveFrom.Equal(now))
 			require.Nil(t, item.GetCadence(pCad).ActiveTo)
 
-			compareRateCardsWithAmountChange(t, withTaxCodeIDAndCurrency(&subscriptiontestutils.ExampleAddonRateCard3, nil, currency.USD), 100, item.RateCard, "phase %s", p.PhaseKey)
+			compareRateCardsWithAmountChange(t, withCurrency(&subscriptiontestutils.ExampleAddonRateCard3, currency.USD), 100, item.RateCard, "phase %s", p.PhaseKey)
 		})
 	})
 }
@@ -996,6 +1020,9 @@ func TestApplyWithMultiInstance(t *testing.T) {
 
 	t.Run("Should create items in phase according to quantities", func(t *testing.T) {
 		runWithDeps(t, func(t *testing.T, deps *tcDeps) {
+			taxCode := deps.deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace, subscriptiontestutils.GetExampleTaxCodeInput())
+			taxConfig := subscriptiontestutils.ExampleTaxConfig(taxCode)
+
 			t0 := now
 
 			t1 := t0.AddDate(0, 0, 1)
@@ -1011,7 +1038,7 @@ func TestApplyWithMultiInstance(t *testing.T) {
 				t,
 				deps.deps,
 				subscriptiontestutils.BuildTestPlanInput(t).
-					AddPhase(nil, subscriptiontestutils.ExampleRateCard3ForAddons.Clone()).
+					AddPhase(nil, subscriptiontestutils.ExampleRateCard3ForAddons(taxConfig)).
 					Build(),
 				subscriptiontestutils.BuildAddonForTesting(t,
 					effPer,
@@ -1022,8 +1049,7 @@ func TestApplyWithMultiInstance(t *testing.T) {
 
 			subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps.deps, pl, now)
 
-			taxCodeID := lookupTaxCodeID(t, deps.deps, "txcd_10000000")
-			rc3 := withTaxCodeIDAndCurrency(&subscriptiontestutils.ExampleRateCard3ForAddons, taxCodeID, currency.USD)
+			rc3 := withCurrency(subscriptiontestutils.ExampleRateCard3ForAddons(taxConfig), currency.USD)
 
 			subAdd := subscriptiontestutils.CreateMultiInstanceAddonForSubscription(t, &deps.deps, subView.Subscription.NamespacedID, a.NamespacedID, []subscriptionaddon.CreateSubscriptionAddonQuantityInput{
 				{
@@ -1075,28 +1101,10 @@ func TestApplyWithMultiInstance(t *testing.T) {
 	})
 }
 
-// lookupTaxCodeID resolves the TaxCode entity ID for a given Stripe tax code from the database.
-// This is used to set the expected TaxCodeID on test rate cards after plan creation resolves them.
-func lookupTaxCodeID(t *testing.T, deps subscriptiontestutils.SubscriptionDependencies, stripeCode string) *string {
-	t.Helper()
-
-	tc, err := deps.TaxCodeEnv.Service.GetTaxCodeByAppMapping(context.Background(), taxcode.GetTaxCodeByAppMappingInput{
-		Namespace: subscriptiontestutils.ExampleNamespace,
-		AppType:   app.AppTypeStripe,
-		TaxCode:   stripeCode,
-	})
-	require.NoError(t, err)
-
-	return &tc.ID
-}
-
-// withTaxCodeIDAndCurrency clones a FlatFeeRateCard and materializes the fields
-// resolved when a catalog rate card becomes a subscription item.
-func withTaxCodeIDAndCurrency(rc *productcatalog.FlatFeeRateCard, taxCodeID *string, currencyCode currency.Code) *productcatalog.FlatFeeRateCard {
+// withCurrency clones a FlatFeeRateCard and materializes the currency resolved when a catalog
+// rate card becomes a subscription item.
+func withCurrency(rc *productcatalog.FlatFeeRateCard, currencyCode currency.Code) *productcatalog.FlatFeeRateCard {
 	clone := rc.Clone().(*productcatalog.FlatFeeRateCard)
-	if clone.TaxConfig != nil {
-		clone.TaxConfig.TaxCodeID = taxCodeID
-	}
 
 	currencyReference := currencies.NewCurrencyReference(currencyx.Code(currencyCode))
 	clone.Currency = &currencyReference
@@ -1144,8 +1152,8 @@ func compareRateCardsWithAmountChange(t *testing.T, baseTarget *productcatalog.F
 
 	if len(msgAndArgs) > 0 {
 		customMsg := fmt.Sprintf(msgAndArgs[0].(string), msgAndArgs[1:]...)
-		require.True(t, left.Equal(right), "%s: %s", customMsg, msgX)
+		require.True(t, subscriptiontestutils.RateCardsEqual(left, right), "%s: %s", customMsg, msgX)
 	} else {
-		require.True(t, left.Equal(right), msgX)
+		require.True(t, subscriptiontestutils.RateCardsEqual(left, right), msgX)
 	}
 }

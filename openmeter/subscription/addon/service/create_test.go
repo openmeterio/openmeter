@@ -31,10 +31,13 @@ func TestAddonServiceCreate(t *testing.T) {
 			clock.SetTime(now)
 			defer clock.ResetTime()
 
-			p, add := createPlanWithAddon(
+			taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace, subscriptiontestutils.GetExampleTaxCodeInput())
+			taxConfig := subscriptiontestutils.ExampleTaxConfig(taxCode)
+
+			p, add := subscriptiontestutils.CreatePlanWithAddon(
 				t,
 				deps,
-				subscriptiontestutils.GetExamplePlanInput(t),
+				subscriptiontestutils.GetExamplePlanInput(t, taxConfig),
 				subscriptiontestutils.GetExampleAddonInput(t, productcatalog.EffectivePeriod{
 					EffectiveFrom: lo.ToPtr(now),
 				}),
@@ -77,10 +80,13 @@ func TestAddonServiceCreate(t *testing.T) {
 			clock.SetTime(now)
 			defer clock.ResetTime()
 
-			p, _ := createPlanWithAddon(
+			taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace, subscriptiontestutils.GetExampleTaxCodeInput())
+			taxConfig := subscriptiontestutils.ExampleTaxConfig(taxCode)
+
+			p, _ := subscriptiontestutils.CreatePlanWithAddon(
 				t,
 				deps,
-				subscriptiontestutils.GetExamplePlanInput(t),
+				subscriptiontestutils.GetExamplePlanInput(t, taxConfig),
 				subscriptiontestutils.GetExampleAddonInput(t, productcatalog.EffectivePeriod{
 					EffectiveFrom: lo.ToPtr(now),
 				}),
@@ -150,10 +156,13 @@ func TestAddonServiceCreate(t *testing.T) {
 			clock.SetTime(now)
 			defer clock.ResetTime()
 
-			p, add := createPlanWithAddon(
+			taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace, subscriptiontestutils.GetExampleTaxCodeInput())
+			taxConfig := subscriptiontestutils.ExampleTaxConfig(taxCode)
+
+			p, add := subscriptiontestutils.CreatePlanWithAddon(
 				t,
 				deps,
-				subscriptiontestutils.GetExamplePlanInput(t),
+				subscriptiontestutils.GetExamplePlanInput(t, taxConfig),
 				subscriptiontestutils.GetExampleAddonInput(t, productcatalog.EffectivePeriod{
 					EffectiveFrom: lo.ToPtr(now),
 				}),
@@ -196,10 +205,13 @@ func TestAddonServiceCreate(t *testing.T) {
 			clock.SetTime(now)
 			defer clock.ResetTime()
 
-			p, _ := createPlanWithAddon(
+			taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace, subscriptiontestutils.GetExampleTaxCodeInput())
+			taxConfig := subscriptiontestutils.ExampleTaxConfig(taxCode)
+
+			p, _ := subscriptiontestutils.CreatePlanWithAddon(
 				t,
 				deps,
-				subscriptiontestutils.GetExamplePlanInput(t),
+				subscriptiontestutils.GetExamplePlanInput(t, taxConfig),
 				subscriptiontestutils.GetExampleAddonInput(t, productcatalog.EffectivePeriod{
 					EffectiveFrom: lo.ToPtr(now),
 				}),
@@ -249,7 +261,9 @@ func TestAddonServiceCreate(t *testing.T) {
 			defer clock.ResetTime()
 
 			// Let's create a plan with addon thats only available in a later phase
-			planInp := subscriptiontestutils.GetExamplePlanInput(t)
+			taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace, subscriptiontestutils.GetExampleTaxCodeInput())
+			taxConfig := subscriptiontestutils.ExampleTaxConfig(taxCode)
+			planInp := subscriptiontestutils.GetExamplePlanInput(t, taxConfig)
 			addonInp := subscriptiontestutils.GetExampleAddonInput(t, productcatalog.EffectivePeriod{
 				EffectiveFrom: lo.ToPtr(now),
 			})
@@ -325,7 +339,9 @@ func TestAddonServiceCreate(t *testing.T) {
 			defer clock.ResetTime()
 
 			// Let's create a plan with addon thats only available in a later phase
-			planInp := subscriptiontestutils.GetExamplePlanInput(t)
+			taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace, subscriptiontestutils.GetExampleTaxCodeInput())
+			taxConfig := subscriptiontestutils.ExampleTaxConfig(taxCode)
+			planInp := subscriptiontestutils.GetExamplePlanInput(t, taxConfig)
 			addonInp := subscriptiontestutils.BuildAddonForTesting(t, productcatalog.EffectivePeriod{
 				EffectiveFrom: lo.ToPtr(now),
 			}, productcatalog.AddonInstanceTypeMultiple, subscriptiontestutils.ExampleAddonRateCard1.Clone())
@@ -404,7 +420,9 @@ func TestAddonServiceCreate(t *testing.T) {
 			// Let's create a subscription without a plan reference
 			cust := deps.CustomerAdapter.CreateExampleCustomer(t)
 			_ = deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
-			plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
+			taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace, subscriptiontestutils.GetExampleTaxCodeInput())
+			taxConfig := subscriptiontestutils.ExampleTaxConfig(taxCode)
+			plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t, taxConfig))
 
 			spec1, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
 				CustomerId:      cust.ID,
@@ -452,10 +470,13 @@ func TestAddonServiceCreate(t *testing.T) {
 			clock.SetTime(now)
 			defer clock.ResetTime()
 
-			p, add := createPlanWithAddon(
+			taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace, subscriptiontestutils.GetExampleTaxCodeInput())
+			taxConfig := subscriptiontestutils.ExampleTaxConfig(taxCode)
+
+			p, add := subscriptiontestutils.CreatePlanWithAddon(
 				t,
 				deps,
-				subscriptiontestutils.GetExamplePlanInput(t),
+				subscriptiontestutils.GetExamplePlanInput(t, taxConfig),
 				subscriptiontestutils.GetExampleAddonInput(t, productcatalog.EffectivePeriod{
 					EffectiveFrom: lo.ToPtr(now),
 				}),
@@ -512,51 +533,12 @@ func TestAddonServiceCreate(t *testing.T) {
 	})
 }
 
-func createPlanWithAddon(
-	t *testing.T,
-	deps subscriptiontestutils.SubscriptionDependencies,
-	planInp plan.CreatePlanInput,
-	addonInp addon.CreateAddonInput,
-) (subscription.Plan, addon.Addon) {
-	t.Helper()
-
-	_ = deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
-
-	p, err := deps.PlanService.CreatePlan(context.Background(), planInp)
-	require.Nil(t, err)
-	require.NotNil(t, p)
-
-	add := deps.AddonService.CreateTestAddon(t, addonInp)
-
-	_, err = deps.PlanAddonService.CreatePlanAddon(context.Background(), planaddon.CreatePlanAddonInput{
-		NamespacedModel: models.NamespacedModel{
-			Namespace: subscriptiontestutils.ExampleNamespace,
-		},
-		PlanID:        p.ID,
-		AddonID:       add.ID,
-		FromPlanPhase: p.Phases[0].Key,
-	})
-	require.Nil(t, err, "received error: %s", err)
-
-	p, err = deps.PlanService.PublishPlan(context.Background(), plan.PublishPlanInput{
-		NamespacedID: p.NamespacedID,
-		EffectivePeriod: productcatalog.EffectivePeriod{
-			EffectiveFrom: lo.ToPtr(clock.Now()),
-			EffectiveTo:   lo.ToPtr(testutils.GetRFC3339Time(t, "2099-01-01T00:00:00Z")),
-		},
-	})
-	require.Nil(t, err, "received error: %s", err)
-
-	return &plansubscription.Plan{
-		Plan: p.AsProductCatalogPlan(),
-		Ref:  &p.NamespacedID,
-	}, add
-}
-
 func createExampleSubscription(t *testing.T, deps subscriptiontestutils.SubscriptionDependencies, currentTime time.Time) subscription.SubscriptionView {
 	cust := deps.CustomerAdapter.CreateExampleCustomer(t)
 	_ = deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
-	plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
+	taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace, subscriptiontestutils.GetExampleTaxCodeInput())
+	taxConfig := subscriptiontestutils.ExampleTaxConfig(taxCode)
+	plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t, taxConfig))
 
 	spec1, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
 		CustomerId:      cust.ID,
