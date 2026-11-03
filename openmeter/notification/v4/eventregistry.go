@@ -3,12 +3,9 @@ package v4
 import (
 	"bytes"
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"log/slog"
 	"slices"
 	"strings"
@@ -16,6 +13,7 @@ import (
 	"github.com/santhosh-tekuri/jsonschema/v6"
 
 	"github.com/openmeterio/openmeter/pkg/equal"
+	"github.com/openmeterio/openmeter/pkg/jsonx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -112,43 +110,6 @@ func (d EventTypeDefinition) Equal(other EventTypeDefinition) bool {
 		jsonSchemaEqual(d.PayloadJSONSchema, other.PayloadJSONSchema) &&
 		equal.PtrEqual(d.Rule, other.Rule) &&
 		equal.ComparablePtrEqual(d.DeprecatedBy, other.DeprecatedBy)
-}
-
-// Fingerprint identifies what must not change once the definition is released:
-// the Event type, the payload schema and the Rule configuration schema, if any.
-// Schemas are hashed in canonical form, so formatting and object key order do
-// not change it. DeprecatedBy is left out because it is set on released
-// definitions.
-func (d EventTypeDefinition) Fingerprint() (string, error) {
-	payload, err := canonicalJSON(d.PayloadJSONSchema)
-	if err != nil {
-		return "", fmt.Errorf("payload JSON schema: %w", err)
-	}
-
-	ruleConfig := json.RawMessage("null")
-	if d.Rule != nil {
-		ruleConfig, err = canonicalJSON(d.Rule.JSONSchema)
-		if err != nil {
-			return "", fmt.Errorf("rule config JSON schema: %w", err)
-		}
-	}
-
-	doc, err := json.Marshal(struct {
-		EventType  string          `json:"event_type"`
-		Payload    json.RawMessage `json:"payload"`
-		RuleConfig json.RawMessage `json:"rule_config"`
-	}{
-		EventType:  d.EventType.String(),
-		Payload:    payload,
-		RuleConfig: ruleConfig,
-	})
-	if err != nil {
-		return "", err
-	}
-
-	sum := sha256.Sum256(doc)
-
-	return "sha256:" + hex.EncodeToString(sum[:]), nil
 }
 
 // clone returns a copy that shares no mutable memory with d.
@@ -579,42 +540,12 @@ func validateJSONSchemaDocument(schema json.RawMessage) error {
 	return nil
 }
 
-// canonicalJSON re-encodes a JSON document with sorted object keys and no
-// whitespace. Numbers keep their original text and arrays keep their order,
-// so schemas that only mean the same thing, like 1 and 1.0 or reordered enum
-// values, stay different. For an immutability check a false "changed" is the
-// safe mistake.
-func canonicalJSON(doc json.RawMessage) ([]byte, error) {
-	dec := json.NewDecoder(bytes.NewReader(doc))
-	dec.UseNumber()
-
-	var value any
-	if err := dec.Decode(&value); err != nil {
-		return nil, err
-	}
-
-	if _, err := dec.Token(); !errors.Is(err, io.EOF) {
-		return nil, errors.New("unexpected data after JSON document")
-	}
-
-	var out bytes.Buffer
-
-	enc := json.NewEncoder(&out)
-	enc.SetEscapeHTML(false)
-
-	if err := enc.Encode(value); err != nil {
-		return nil, err
-	}
-
-	return bytes.TrimSuffix(out.Bytes(), []byte("\n")), nil
-}
-
 // jsonSchemaEqual compares canonical forms. Documents that are not valid JSON
 // fall back to byte comparison; only definitions that never passed Validate
 // can hold them.
 func jsonSchemaEqual(a, b json.RawMessage) bool {
-	canonicalA, errA := canonicalJSON(a)
-	canonicalB, errB := canonicalJSON(b)
+	canonicalA, errA := jsonx.Canonical(a)
+	canonicalB, errB := jsonx.Canonical(b)
 
 	if errA != nil || errB != nil {
 		return bytes.Equal(a, b)

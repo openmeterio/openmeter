@@ -71,14 +71,17 @@ replacement match. Schemas are compared in canonical form, so formatting and
 object key order do not matter, but array order and number text do.
 
 A released definition must not change in place; a changed contract is a new
-Event type version. `Fingerprint` hashes what must stay fixed: the Event type
-and its schemas in canonical form, but not `DeprecatedBy`, which is set on
-released definitions. [`definitions.sum`](definitions/definitions.sum) records
-the fingerprint of every definition, and a test fails when it no longer
-matches. Only the author can tell whether a definition was released, so
-fixing an unreleased one means rewriting the file with
-`go test ./openmeter/notification/v4/definitions -run TestDefinitionsSum -update`,
-and the change shows up in review.
+Event type version. `definitions.Fingerprint` hashes what must stay fixed: the
+Event type and its schemas in canonical form, but not `DeprecatedBy`, which is
+set on released definitions. [`definitions.sum`](definitions/definitions.sum)
+records the fingerprint of every definition and, in a separate column, its
+replacement. The file is embedded, and `definitions.Verify` fails a test when
+either no longer matches, so removing or changing a deprecation is caught too.
+Only the author can tell whether a definition was released, so fixing an
+unreleased one means rewriting the file with
+`make update-notification-definitions-sum`, and the change shows up in review.
+`make generate` deliberately does not rewrite it, so routine regeneration
+cannot silently accept a changed contract.
 
 A definition is pure contract data. Domain validation of Rule configurations
 needs domain services, such as checking that referenced features exist, so it
