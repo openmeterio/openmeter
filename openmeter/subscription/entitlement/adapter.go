@@ -76,13 +76,12 @@ func (a *EntitlementSubscriptionAdapter) ScheduleEntitlement(ctx context.Context
 	})
 }
 
-func (a *EntitlementSubscriptionAdapter) GetForSubscriptionsAt(ctx context.Context, input []subscription.GetForSubscriptionAtInput) ([]subscription.SubscriptionEntitlement, error) {
-	items, err := a.itemRepo.GetForSubscriptionsAt(ctx, input)
-	if err != nil {
-		return nil, err
+func (a *EntitlementSubscriptionAdapter) GetForItemsAt(ctx context.Context, input subscription.GetForItemsAtInput) ([]subscription.SubscriptionEntitlement, error) {
+	if err := input.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid input: %w", err)
 	}
 
-	items = lo.Filter(items, func(s subscription.SubscriptionItem, _ int) bool { return s.EntitlementID != nil })
+	items := lo.Filter(input.Items, func(s subscription.SubscriptionItem, _ int) bool { return s.EntitlementID != nil })
 
 	if len(items) == 0 {
 		return nil, nil
@@ -90,8 +89,12 @@ func (a *EntitlementSubscriptionAdapter) GetForSubscriptionsAt(ctx context.Conte
 
 	ents, err := a.entitlementConnector.ListEntitlementsWithCustomer(ctx, entitlement.ListEntitlementsParams{
 		IDs:        lo.Map(items, func(s subscription.SubscriptionItem, _ int) string { return *s.EntitlementID }),
-		Namespaces: lo.Uniq(lo.Map(input, func(s subscription.GetForSubscriptionAtInput, _ int) string { return s.Namespace })),
-		Page:       pagination.Page{}, // zero value so all entitlements are fetched
+		Namespaces: lo.Uniq(lo.Map(items, func(s subscription.SubscriptionItem, _ int) string { return s.Namespace })),
+		// Match the items' soft-delete filter: an item still live at At must find its
+		// entitlement even if both were deleted after At.
+		IncludeDeleted:      true,
+		IncludeDeletedAfter: input.At,
+		Page:                pagination.Page{}, // zero value so all entitlements are fetched
 	})
 	if err != nil {
 		return nil, err
