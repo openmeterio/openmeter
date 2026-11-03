@@ -27,7 +27,8 @@ func TestGetForItemsAt(t *testing.T) {
 	deps := subscriptiontestutils.NewService(t, dbDeps)
 
 	_ = deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
-	plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
+	taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace, subscriptiontestutils.GetExampleTaxCodeInput())
+	plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t, subscriptiontestutils.ExampleTaxConfig(taxCode)))
 	cust := deps.CustomerAdapter.CreateExampleCustomer(t)
 
 	spec, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
