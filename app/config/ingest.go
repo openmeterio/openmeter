@@ -2,6 +2,8 @@ package config
 
 import (
 	"errors"
+	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -65,6 +67,11 @@ type KafkaConfiguration struct {
 	SaslUsername     string
 	SaslPassword     string
 
+	// SslCaLocation is the optional path to a PEM file with the CA certificate(s) used to verify the broker's
+	// certificate when SecurityProtocol is SSL or SASL_SSL. When set it replaces the default (system) trust store,
+	// like librdkafka's ssl.ca.location. When empty the system trust store is used.
+	SslCaLocation string
+
 	StatsInterval pkgkafka.TimeDurationMilliSeconds
 
 	// BrokerAddressFamily defines the IP address family to be used for network communication with Kafka cluster
@@ -89,6 +96,12 @@ func (c KafkaConfiguration) Validate() error {
 
 	if c.Broker == "" {
 		errs = append(errs, errors.New("broker is required"))
+	}
+
+	if c.SslCaLocation != "" {
+		if _, err := os.ReadFile(c.SslCaLocation); err != nil {
+			errs = append(errs, fmt.Errorf("invalid ssl ca location: %w", err))
+		}
 	}
 
 	if c.StatsInterval > 0 && c.StatsInterval.Duration() < 5*time.Second {
@@ -136,6 +149,10 @@ func (c KafkaConfiguration) CreateKafkaConfig() kafka.ConfigMap {
 		config["sasl.password"] = c.SaslPassword
 	}
 
+	if c.SslCaLocation != "" {
+		config["ssl.ca.location"] = c.SslCaLocation
+	}
+
 	if c.StatsInterval > 0 {
 		config["statistics.interval.ms"] = c.StatsInterval
 	}
@@ -168,6 +185,7 @@ func ConfigureIngestKafkaConfiguration(v *viper.Viper, prefixes ...string) {
 	v.SetDefault(prefixer("kafka.saslMechanisms"), "")
 	v.SetDefault(prefixer("kafka.saslUsername"), "")
 	v.SetDefault(prefixer("kafka.saslPassword"), "")
+	v.SetDefault(prefixer("kafka.sslCaLocation"), "")
 	v.SetDefault(prefixer("kafka.statsInterval"), 15*time.Second)
 	v.SetDefault(prefixer("kafka.brokerAddressFamily"), "v4")
 	v.SetDefault(prefixer("kafka.socketKeepAliveEnabled"), true)

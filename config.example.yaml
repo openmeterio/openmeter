@@ -195,6 +195,9 @@ notification:
 #    saslMechanisms: PLAIN
 #    saslUsername: user
 #    saslPassword: pass
+#    # Optional: PEM file with the CA certificate(s) used to verify the brokers when securityProtocol is
+#    # SSL or SASL_SSL. Replaces the system trust store (like librdkafka's ssl.ca.location).
+#    sslCaLocation: /etc/openmeter/kafka-ca.pem
 #    # To enable stats reporting set this value to >=5s.
 #    # Setting this value to 0 makes reporting explicitly disabled.
 #    statsInterval: 5s

@@ -1,10 +1,21 @@
 package kafka
 
 import (
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
 	"crypto/tls"
+	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/pem"
 	"log/slog"
+	"math/big"
+	"os"
+	"path/filepath"
 	"testing"
+	"time"
 
+	"github.com/IBM/sarama"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel/metric/noop"
 
@@ -53,4 +64,97 @@ func TestCreateKafkaConfigSecurityProtocol(t *testing.T) {
 			}
 		})
 	}
+}
+
+func newCAFile(t *testing.T) (path string, cert *x509.Certificate) {
+	t.Helper()
+
+	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	require.NoError(t, err)
+
+	tmpl := &x509.Certificate{
+		SerialNumber:          big.NewInt(1),
+		Subject:               pkix.Name{CommonName: "unit-test-ca"},
+		NotBefore:             time.Now().Add(-time.Hour),
+		NotAfter:              time.Now().Add(time.Hour),
+		IsCA:                  true,
+		BasicConstraintsValid: true,
+		KeyUsage:              x509.KeyUsageCertSign,
+	}
+
+	der, err := x509.CreateCertificate(rand.Reader, tmpl, tmpl, &key.PublicKey, key)
+	require.NoError(t, err)
+
+	cert, err = x509.ParseCertificate(der)
+	require.NoError(t, err)
+
+	path = filepath.Join(t.TempDir(), "ca.pem")
+	require.NoError(t, os.WriteFile(path, pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der}), 0o600))
+
+	return path, cert
+}
+
+func TestCreateKafkaConfigSslCaLocation(t *testing.T) {
+	caPath, caCert := newCAFile(t)
+
+	notPEM := filepath.Join(t.TempDir(), "garbage.pem")
+	require.NoError(t, os.WriteFile(notPEM, []byte("this is not a certificate"), 0o600))
+
+	build := func(protocol, caLocation string) (*sarama.Config, error) {
+		opts := BrokerOptions{
+			KafkaConfig: config.KafkaConfiguration{
+				Broker:           "localhost:9092",
+				SecurityProtocol: protocol,
+				SaslMechanisms:   "PLAIN",
+				SaslUsername:     "user",
+				SaslPassword:     "pass",
+				SslCaLocation:    caLocation,
+			},
+			ClientID:    "test",
+			Logger:      slog.New(slog.DiscardHandler),
+			MetricMeter: noop.NewMeterProvider().Meter("test"),
+		}
+
+		return opts.createKafkaConfig("publisher")
+	}
+
+	for _, protocol := range []string{"SSL", "SASL_SSL"} {
+		t.Run(protocol+" with CA", func(t *testing.T) {
+			cfg, err := build(protocol, caPath)
+			require.NoError(t, err)
+
+			require.True(t, cfg.Net.TLS.Enable)
+			require.NotNil(t, cfg.Net.TLS.Config)
+			require.False(t, cfg.Net.TLS.Config.InsecureSkipVerify)
+			require.NotNil(t, cfg.Net.TLS.Config.RootCAs)
+
+			// The pool contains exactly the configured CA (it replaces the system roots).
+			subjects := cfg.Net.TLS.Config.RootCAs.Subjects() //nolint:staticcheck // only used to inspect a custom pool
+			require.Equal(t, [][]byte{caCert.RawSubject}, subjects)
+		})
+
+		t.Run(protocol+" without CA", func(t *testing.T) {
+			cfg, err := build(protocol, "")
+			require.NoError(t, err)
+			require.NotNil(t, cfg.Net.TLS.Config)
+			require.Nil(t, cfg.Net.TLS.Config.RootCAs)
+		})
+
+		t.Run(protocol+" missing CA file", func(t *testing.T) {
+			_, err := build(protocol, filepath.Join(t.TempDir(), "missing.pem"))
+			require.ErrorContains(t, err, "failed to read kafka ssl ca location")
+		})
+
+		t.Run(protocol+" CA file without certificates", func(t *testing.T) {
+			_, err := build(protocol, notPEM)
+			require.ErrorContains(t, err, "does not contain any valid PEM certificates")
+		})
+	}
+
+	t.Run("plaintext ignores CA", func(t *testing.T) {
+		cfg, err := build("", caPath)
+		require.NoError(t, err)
+		require.False(t, cfg.Net.TLS.Enable)
+		require.Nil(t, cfg.Net.TLS.Config)
+	})
 }
