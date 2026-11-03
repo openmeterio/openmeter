@@ -218,6 +218,11 @@ func (b *sumEntriesQuery) subAccountPredicates() ([]predicate.LedgerSubAccount, 
 		subAccountPredicates = append(subAccountPredicates, ledgersubaccountdb.HasRouteWith(routePredicates...))
 	}
 
+	if len(subAccountPredicates) > 0 {
+		// The account lookup index starts with namespace. Keep unfiltered sums join-free.
+		subAccountPredicates = append(subAccountPredicates, ledgersubaccountdb.Namespace(b.query.Namespace))
+	}
+
 	return subAccountPredicates, nil
 }
 

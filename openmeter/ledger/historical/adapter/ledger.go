@@ -249,18 +249,12 @@ func (r *repo) CreateTransactionGroup(ctx context.Context, transactionGroup ledg
 }
 
 func (r *repo) GetTransactionGroup(ctx context.Context, id models.NamespacedID) (*ledgerhistorical.TransactionGroup, error) {
-	return r.getTransactionGroup(
-		ctx,
-		ledgertransactiongroupdb.Namespace(id.Namespace),
-		ledgertransactiongroupdb.ID(id.ID),
-	)
-}
-
-func (r *repo) getTransactionGroup(ctx context.Context, predicates ...predicate.LedgerTransactionGroup) (*ledgerhistorical.TransactionGroup, error) {
 	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, tx *repo) (*ledgerhistorical.TransactionGroup, error) {
 		entity, err := tx.db.LedgerTransactionGroup.Query().
-			Where(predicates...).
+			Where(ledgertransactiongroupdb.Namespace(id.Namespace), ledgertransactiongroupdb.ID(id.ID)).
 			WithTransactions(func(q *db.LedgerTransactionQuery) {
+				// Eager loading runs a separate query; its group index starts with namespace.
+				q.Where(ledgertransactiondb.Namespace(id.Namespace))
 				q.Order(
 					ledgertransactiondb.ByCreatedAt(),
 					ledgertransactiondb.ByID(),
