@@ -81,3 +81,24 @@ func TestSimulateInvoiceInputValidateSkipsDeletedLineWithoutEngine(t *testing.T)
 
 	require.NoError(t, input.Validate())
 }
+
+func TestSimulateInvoiceInputValidateRejectsMissingCurrencyAsGenericValidationError(t *testing.T) {
+	// given:
+	// - a simulation input with a valid line and no currency
+	// when:
+	// - the input is validated
+	// then:
+	// - validation returns a generic validation error, so the API responds with 400 instead of 500
+	input := SimulateInvoiceInput{
+		Namespace:  "ns",
+		CustomerID: lo.ToPtr("customer"),
+		Lines: NewStandardInvoiceLines([]*StandardLine{
+			{StandardLineBase: StandardLineBase{Engine: LineEngineTypeInvoice}},
+		}),
+	}
+
+	err := input.Validate()
+
+	require.ErrorContains(t, err, "currency is required")
+	require.True(t, models.IsGenericValidationError(err))
+}
