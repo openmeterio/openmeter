@@ -1,6 +1,7 @@
 package kafkaingest
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -17,7 +18,7 @@ func TestCollectorWaitForDelivery(t *testing.T) {
 		}
 		close(delivery)
 
-		if err := c.waitForDelivery(delivery); err == nil {
+		if err := c.waitForDelivery(t.Context(), delivery); err == nil {
 			t.Fatal("expected an error, got nil")
 		}
 	})
@@ -29,7 +30,7 @@ func TestCollectorWaitForDelivery(t *testing.T) {
 		delivery <- &kafka.Message{}
 		close(delivery)
 
-		if err := c.waitForDelivery(delivery); err != nil {
+		if err := c.waitForDelivery(t.Context(), delivery); err != nil {
 			t.Fatalf("expected no error, got: %v", err)
 		}
 	})
@@ -41,8 +42,20 @@ func TestCollectorWaitForDelivery(t *testing.T) {
 		delivery <- kafka.Error{}
 		close(delivery)
 
-		if err := c.waitForDelivery(delivery); err == nil {
+		if err := c.waitForDelivery(t.Context(), delivery); err == nil {
 			t.Fatal("expected an error, got nil")
+		}
+	})
+
+	t.Run("returns context error when canceled", func(t *testing.T) {
+		c := Collector{}
+
+		ctx, cancel := context.WithCancel(t.Context())
+		cancel()
+
+		delivery := make(chan kafka.Event, 1)
+		if err := c.waitForDelivery(ctx, delivery); !errors.Is(err, context.Canceled) {
+			t.Fatalf("expected context.Canceled, got: %v", err)
 		}
 	})
 }

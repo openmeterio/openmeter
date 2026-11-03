@@ -169,20 +169,28 @@ func (s Collector) Ingest(ctx context.Context, namespace string, ev event.Event)
 		return err
 	}
 
-	if err = s.waitForDelivery(delivery); err != nil {
+	if err = s.waitForDelivery(ctx, delivery); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-// waitForDelivery blocks until Kafka reports the outcome of a produce call and
-// returns an error when the broker never accepted the message. Produce only
-// queues the message on the producer's internal queue; without waiting for the
-// delivery report the API would acknowledge events that the broker later drops
-// (for example after the producer's message timeout expires during an outage).
-func (s Collector) waitForDelivery(delivery chan kafka.Event) error {
-	ev := <-delivery
+// waitForDelivery blocks until Kafka reports the outcome of a produce call or
+// the caller's context is canceled (whichever happens first). It returns an
+// error when the broker never accepted the message or when the context ends.
+// Produce only queues the message on the producer's internal queue; without
+// waiting for the delivery report the API would acknowledge events that the
+// broker later drops (for example after the producer's message timeout expires
+// during an outage).
+func (s Collector) waitForDelivery(ctx context.Context, delivery chan kafka.Event) error {
+	var ev kafka.Event
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case ev = <-delivery:
+	}
 
 	m, ok := ev.(*kafka.Message)
 	if !ok {
