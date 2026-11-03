@@ -249,18 +249,12 @@ func (r *repo) CreateTransactionGroup(ctx context.Context, transactionGroup ledg
 }
 
 func (r *repo) GetTransactionGroup(ctx context.Context, id models.NamespacedID) (*ledgerhistorical.TransactionGroup, error) {
-	return r.getTransactionGroup(
-		ctx,
-		ledgertransactiongroupdb.Namespace(id.Namespace),
-		ledgertransactiongroupdb.ID(id.ID),
-	)
-}
-
-func (r *repo) getTransactionGroup(ctx context.Context, predicates ...predicate.LedgerTransactionGroup) (*ledgerhistorical.TransactionGroup, error) {
 	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, tx *repo) (*ledgerhistorical.TransactionGroup, error) {
 		entity, err := tx.db.LedgerTransactionGroup.Query().
-			Where(predicates...).
+			Where(ledgertransactiongroupdb.Namespace(id.Namespace), ledgertransactiongroupdb.ID(id.ID)).
 			WithTransactions(func(q *db.LedgerTransactionQuery) {
+				// Eager loading runs a separate query; its group index starts with namespace.
+				q.Where(ledgertransactiondb.Namespace(id.Namespace))
 				q.Order(
 					ledgertransactiondb.ByCreatedAt(),
 					ledgertransactiondb.ByID(),
@@ -335,7 +329,7 @@ func (r *repo) SumEntries(ctx context.Context, query ledger.Query) (alpacadecima
 
 func (r *repo) ListTransactions(ctx context.Context, input ledger.ListTransactionsInput) (ledger.ListTransactionsResult, error) {
 	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, tx *repo) (ledger.ListTransactionsResult, error) {
-		entryPredicates, err := listTransactionsEntryPredicates(input.EntryFilter)
+		entryPredicates, err := listTransactionsEntryPredicates(input)
 		if err != nil {
 			return ledger.ListTransactionsResult{}, err
 		}
@@ -382,7 +376,7 @@ func (r *repo) ListTransactions(ctx context.Context, input ledger.ListTransactio
 		}
 
 		if input.CreditMovement != ledger.ListTransactionsCreditMovementUnspecified {
-			pred, err := ledgerTransactionCreditMovementPredicate(input.EntryFilter, input.CreditMovement)
+			pred, err := ledgerTransactionCreditMovementPredicate(input)
 			if err != nil {
 				return ledger.ListTransactionsResult{}, err
 			}
@@ -456,10 +450,10 @@ func transactionAnnotationNotEqual(key, value string) predicate.LedgerTransactio
 	}
 }
 
-func listTransactionsEntryPredicates(filter ledger.TransactionEntryFilter) ([]predicate.LedgerEntry, error) {
-	entryPredicates := entryProvenancePredicates(filter.Provenance)
+func listTransactionsEntryPredicates(input ledger.ListTransactionsInput) ([]predicate.LedgerEntry, error) {
+	entryPredicates := entryProvenancePredicates(input.EntryFilter.Provenance)
 
-	subAccountPredicates, err := listTransactionsSubAccountPredicates(filter.AccountIDs, filter.Currency, filter.Route)
+	subAccountPredicates, err := listTransactionsSubAccountPredicates(input)
 	if err != nil {
 		return nil, err
 	}
@@ -468,17 +462,24 @@ func listTransactionsEntryPredicates(filter ledger.TransactionEntryFilter) ([]pr
 		entryPredicates = append(entryPredicates, ledgerentrydb.HasSubAccountWith(subAccountPredicates...))
 	}
 
+	// The outer transaction filter doesn't let PostgreSQL use the namespace
+	// prefix of the entry index. Scope the entry lookup itself as well.
+	if len(entryPredicates) > 0 {
+		entryPredicates = append(entryPredicates, ledgerentrydb.Namespace(input.Namespace))
+	}
+
 	return entryPredicates, nil
 }
 
-func listTransactionsSubAccountPredicates(accountIDs []string, currency *currencyx.Code, route ledger.RouteFilter) ([]predicate.LedgerSubAccount, error) {
+func listTransactionsSubAccountPredicates(input ledger.ListTransactionsInput) ([]predicate.LedgerSubAccount, error) {
+	filter := input.EntryFilter
 	subAccountPredicates := make([]predicate.LedgerSubAccount, 0, 2)
 
-	if len(accountIDs) > 0 {
-		subAccountPredicates = append(subAccountPredicates, ledgersubaccountdb.AccountIDIn(accountIDs...))
+	if len(filter.AccountIDs) > 0 {
+		subAccountPredicates = append(subAccountPredicates, ledgersubaccountdb.AccountIDIn(filter.AccountIDs...))
 	}
 
-	routePredicates, err := listTransactionsRoutePredicates(currency, route)
+	routePredicates, err := listTransactionsRoutePredicates(filter.Currency, filter.Route)
 	if err != nil {
 		return nil, err
 	}
@@ -488,6 +489,11 @@ func listTransactionsSubAccountPredicates(accountIDs []string, currency *currenc
 			subAccountPredicates,
 			ledgersubaccountdb.HasRouteWith(routePredicates...),
 		)
+	}
+
+	if len(subAccountPredicates) > 0 {
+		// The account lookup index also starts with namespace.
+		subAccountPredicates = append(subAccountPredicates, ledgersubaccountdb.Namespace(input.Namespace))
 	}
 
 	return subAccountPredicates, nil
@@ -600,13 +606,10 @@ func listTransactionsOrdering(before bool) []ledgertransactiondb.OrderOption {
 	}
 }
 
-func ledgerTransactionCreditMovementPredicate(
-	filter ledger.TransactionEntryFilter,
-	movement ledger.ListTransactionsCreditMovement,
-) (predicate.LedgerTransaction, error) {
+func ledgerTransactionCreditMovementPredicate(input ledger.ListTransactionsInput) (predicate.LedgerTransaction, error) {
 	var having *sql.Predicate
 
-	switch movement {
+	switch input.CreditMovement {
 	case ledger.ListTransactionsCreditMovementPositive:
 		having = scopedEntryAmountSumPredicate(">")
 	case ledger.ListTransactionsCreditMovementNegative:
@@ -614,10 +617,10 @@ func ledgerTransactionCreditMovementPredicate(
 	case ledger.ListTransactionsCreditMovementUnspecified:
 		return nil, nil
 	default:
-		return nil, fmt.Errorf("unsupported credit movement filter: %d", movement)
+		return nil, fmt.Errorf("unsupported credit movement filter: %d", input.CreditMovement)
 	}
 
-	selector, err := scopedFBOMovementTransactionSelector(filter, having)
+	selector, err := scopedFBOMovementTransactionSelector(input, having)
 	if err != nil {
 		return nil, err
 	}
@@ -631,11 +634,12 @@ func ledgerTransactionCreditMovementPredicate(
 }
 
 func scopedFBOMovementTransactionSelector(
-	filter ledger.TransactionEntryFilter,
+	input ledger.ListTransactionsInput,
 	having *sql.Predicate,
 ) (*sql.Selector, error) {
 	const routeTableAlias = "lsar"
 
+	filter := input.EntryFilter
 	entries := sql.Table(ledgerentrydb.Table).As("le")
 	subAccounts := sql.Table(ledgersubaccountdb.Table).As("lsa")
 	accounts := sql.Table(ledgeraccountdb.Table).As("la")
@@ -646,7 +650,9 @@ func scopedFBOMovementTransactionSelector(
 		On(entries.C(ledgerentrydb.FieldSubAccountID), subAccounts.C(ledgersubaccountdb.FieldID)).
 		Join(accounts).
 		On(subAccounts.C(ledgersubaccountdb.FieldAccountID), accounts.C(ledgeraccountdb.FieldID)).
-		Where(sql.EQ(accounts.C(ledgeraccountdb.FieldAccountType), ledger.AccountTypeCustomerFBO))
+		Where(sql.EQ(accounts.C(ledgeraccountdb.FieldAccountType), ledger.AccountTypeCustomerFBO)).
+		Where(sql.EQ(entries.C(ledgerentrydb.FieldNamespace), input.Namespace)).
+		Where(sql.EQ(subAccounts.C(ledgersubaccountdb.FieldNamespace), input.Namespace))
 
 	if len(filter.AccountIDs) > 0 {
 		selector.Where(sql.In(subAccounts.C(ledgersubaccountdb.FieldAccountID), stringsToAny(filter.AccountIDs)...))

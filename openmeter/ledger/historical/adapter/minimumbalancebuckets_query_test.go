@@ -33,23 +33,23 @@ WITH "movements" AS (SELECT
         ON "ledger_entries"."transaction_id" = "transactions"."id"
     WHERE "ledger_entries"."namespace" = $2 AND EXISTS (SELECT "ledger_sub_accounts"."id"
         FROM "ledger_sub_accounts"
-        WHERE "ledger_entries"."sub_account_id" = "ledger_sub_accounts"."id"
-            AND "ledger_sub_accounts"."account_id" = $3) AND "transactions"."booked_at" <= $4
+        WHERE ("ledger_entries"."sub_account_id" = "ledger_sub_accounts"."id"
+            AND "ledger_sub_accounts"."account_id" = $3) AND "ledger_sub_accounts"."namespace" = $4) AND "transactions"."booked_at" <= $5
     GROUP BY "ledger_entries"."sub_account_id", "ledger_entries"."source_charge_id"
     UNION ALL
     SELECT
         "ledger_entries"."sub_account_id", "ledger_entries"."source_charge_id",
         "transactions"."booked_at" AS "effective_at",
         (SUM(CASE WHEN (NOT ("transactions"."annotations"->'movement' IS NOT NULL))
-            OR "transactions"."annotations"->>'movement' <> $5 THEN "ledger_entries"."amount" ELSE 0 END)) AS "amount",
+            OR "transactions"."annotations"->>'movement' <> $6 THEN "ledger_entries"."amount" ELSE 0 END)) AS "amount",
         MIN("ledger_entries"."created_at") AS "oldest_matching_entry_created_at"
     FROM "ledger_entries"
     JOIN "ledger_transactions" AS "transactions"
         ON "ledger_entries"."transaction_id" = "transactions"."id"
-    WHERE "ledger_entries"."namespace" = $6 AND EXISTS (SELECT "ledger_sub_accounts"."id"
+    WHERE "ledger_entries"."namespace" = $7 AND EXISTS (SELECT "ledger_sub_accounts"."id"
         FROM "ledger_sub_accounts"
-        WHERE "ledger_entries"."sub_account_id" = "ledger_sub_accounts"."id"
-            AND "ledger_sub_accounts"."account_id" = $7) AND "transactions"."booked_at" > $8
+        WHERE ("ledger_entries"."sub_account_id" = "ledger_sub_accounts"."id"
+            AND "ledger_sub_accounts"."account_id" = $8) AND "ledger_sub_accounts"."namespace" = $9) AND "transactions"."booked_at" > $10
     GROUP BY "ledger_entries"."sub_account_id", "ledger_entries"."source_charge_id", "transactions"."booked_at"),
 "running_balances" AS (SELECT
         "sub_account_id", "source_charge_id", "effective_at",
@@ -62,7 +62,7 @@ WITH "movements" AS (SELECT
         "running_balances"."source_charge_id",
         NULL AS "spend_charge_id",
         NULL AS "collection_origin_id",
-        (CASE WHEN MIN("effective_at") > $9 THEN LEAST(MIN(balance), 0) ELSE MIN(balance) END) AS "sum_amount",
+        (CASE WHEN MIN("effective_at") > $11 THEN LEAST(MIN(balance), 0) ELSE MIN(balance) END) AS "sum_amount",
         MIN("oldest_matching_entry_created_at") AS "oldest_matching_entry_created_at"
     FROM "running_balances"
     GROUP BY "sub_account_id", "source_charge_id")
@@ -99,7 +99,7 @@ ORDER BY
     "balance_buckets"."collection_origin_id"
 `
 	require.Equal(t, strings.Join(strings.Fields(expectedSQL), " "), query)
-	require.Equal(t, []any{at, "ns-test", "account", at, "ignored", "ns-test", "account", at, at}, args)
+	require.Equal(t, []any{at, "ns-test", "account", "ns-test", at, "ignored", "ns-test", "account", "ns-test", at, at}, args)
 }
 
 func TestMinimumBalanceBucketsQuery_ScopedEntriesSQLTemplate(t *testing.T) {
@@ -114,11 +114,11 @@ JOIN "ledger_transactions" AS "transactions"
     ON "ledger_entries"."transaction_id" = "transactions"."id"
 WHERE "ledger_entries"."namespace" = $1 AND EXISTS (SELECT "ledger_sub_accounts"."id"
     FROM "ledger_sub_accounts"
-    WHERE "ledger_entries"."sub_account_id" = "ledger_sub_accounts"."id"
-        AND "ledger_sub_accounts"."account_id" = $2)
+    WHERE ("ledger_entries"."sub_account_id" = "ledger_sub_accounts"."id"
+        AND "ledger_sub_accounts"."account_id" = $2) AND "ledger_sub_accounts"."namespace" = $3)
 `
 	require.Equal(t, strings.Join(strings.Fields(expectedSQL), " "), query)
-	require.Equal(t, []any{"ns-test", "account"}, args)
+	require.Equal(t, []any{"ns-test", "account", "ns-test"}, args)
 }
 
 func TestMinimumBalanceBucketsQuery_OpeningBalancesSQLTemplate(t *testing.T) {
@@ -138,12 +138,12 @@ JOIN "ledger_transactions" AS "transactions"
     ON "ledger_entries"."transaction_id" = "transactions"."id"
 WHERE "ledger_entries"."namespace" = $2 AND EXISTS (SELECT "ledger_sub_accounts"."id"
     FROM "ledger_sub_accounts"
-    WHERE "ledger_entries"."sub_account_id" = "ledger_sub_accounts"."id"
-        AND "ledger_sub_accounts"."account_id" = $3) AND "transactions"."booked_at" <= $4
+    WHERE ("ledger_entries"."sub_account_id" = "ledger_sub_accounts"."id"
+        AND "ledger_sub_accounts"."account_id" = $3) AND "ledger_sub_accounts"."namespace" = $4) AND "transactions"."booked_at" <= $5
 GROUP BY "ledger_entries"."sub_account_id", "ledger_entries"."source_charge_id"
 `
 	require.Equal(t, strings.Join(strings.Fields(expectedSQL), " "), query)
-	require.Equal(t, []any{*q.query.Filters.AsOf, "ns-test", "account", *q.query.Filters.AsOf}, args)
+	require.Equal(t, []any{*q.query.Filters.AsOf, "ns-test", "account", "ns-test", *q.query.Filters.AsOf}, args)
 }
 
 func TestMinimumBalanceBucketsQuery_FutureMovementsSQLTemplate(t *testing.T) {
@@ -165,12 +165,12 @@ JOIN "ledger_transactions" AS "transactions"
     ON "ledger_entries"."transaction_id" = "transactions"."id"
 WHERE "ledger_entries"."namespace" = $2 AND EXISTS (SELECT "ledger_sub_accounts"."id"
     FROM "ledger_sub_accounts"
-    WHERE "ledger_entries"."sub_account_id" = "ledger_sub_accounts"."id"
-        AND "ledger_sub_accounts"."account_id" = $3) AND "transactions"."booked_at" > $4
+    WHERE ("ledger_entries"."sub_account_id" = "ledger_sub_accounts"."id"
+        AND "ledger_sub_accounts"."account_id" = $3) AND "ledger_sub_accounts"."namespace" = $4) AND "transactions"."booked_at" > $5
 GROUP BY "ledger_entries"."sub_account_id", "ledger_entries"."source_charge_id", "transactions"."booked_at"
 `
 		require.Equal(t, strings.Join(strings.Fields(expectedSQL), " "), query)
-		require.Equal(t, []any{"ignored", "ns-test", "account", *q.query.Filters.AsOf}, args)
+		require.Equal(t, []any{"ignored", "ns-test", "account", "ns-test", *q.query.Filters.AsOf}, args)
 	})
 
 	t.Run("without future exclusions", func(t *testing.T) {
@@ -191,12 +191,12 @@ JOIN "ledger_transactions" AS "transactions"
     ON "ledger_entries"."transaction_id" = "transactions"."id"
 WHERE "ledger_entries"."namespace" = $1 AND EXISTS (SELECT "ledger_sub_accounts"."id"
     FROM "ledger_sub_accounts"
-    WHERE "ledger_entries"."sub_account_id" = "ledger_sub_accounts"."id"
-        AND "ledger_sub_accounts"."account_id" = $2) AND "transactions"."booked_at" > $3
+    WHERE ("ledger_entries"."sub_account_id" = "ledger_sub_accounts"."id"
+        AND "ledger_sub_accounts"."account_id" = $2) AND "ledger_sub_accounts"."namespace" = $3) AND "transactions"."booked_at" > $4
 GROUP BY "ledger_entries"."sub_account_id", "ledger_entries"."source_charge_id", "transactions"."booked_at"
 `
 		require.Equal(t, strings.Join(strings.Fields(expectedSQL), " "), query)
-		require.Equal(t, []any{"ns-test", "account", *q.query.Filters.AsOf}, args)
+		require.Equal(t, []any{"ns-test", "account", "ns-test", *q.query.Filters.AsOf}, args)
 	})
 }
 

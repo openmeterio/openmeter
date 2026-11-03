@@ -32,14 +32,14 @@ WITH "movements" AS (SELECT ($1::integer) AS "scope_index", "ledger_entries"."am
     JOIN "ledger_transactions" AS "transactions"
         ON "ledger_entries"."transaction_id" = "transactions"."id"
     WHERE ("ledger_entries"."namespace" = $2 AND EXISTS (SELECT "ledger_sub_accounts"."id" FROM "ledger_sub_accounts"
-        WHERE "ledger_entries"."sub_account_id" = "ledger_sub_accounts"."id"
-            AND "ledger_sub_accounts"."account_id" = $3))
-        AND "transactions"."booked_at" <= $4
+        WHERE ("ledger_entries"."sub_account_id" = "ledger_sub_accounts"."id"
+            AND "ledger_sub_accounts"."account_id" = $3) AND "ledger_sub_accounts"."namespace" = $4))
+        AND "transactions"."booked_at" <= $5
     UNION ALL
     SELECT "scope_index", 0::numeric AS amount, "booked_at", "created_at",
         "transaction_id", "boundary_index"
-    FROM (VALUES ($5::integer, $6::timestamptz, NULL::timestamptz, NULL::bpchar, $7::integer),
-        ($8::integer, $9::timestamptz, $10::timestamptz, $11::bpchar, $12::integer))
+    FROM (VALUES ($6::integer, $7::timestamptz, NULL::timestamptz, NULL::bpchar, $8::integer),
+        ($9::integer, $10::timestamptz, $11::timestamptz, $12::bpchar, $13::integer))
         AS boundaries(scope_index, booked_at, created_at, transaction_id, boundary_index)),
 "running_balances" AS (SELECT "boundary_index", (SUM("amount") OVER (PARTITION BY "scope_index"
         ORDER BY booked_at, created_at NULLS LAST, transaction_id NULLS LAST,
@@ -47,7 +47,7 @@ WITH "movements" AS (SELECT ($1::integer) AS "scope_index", "ledger_entries"."am
     FROM "movements")
 SELECT "balance", "boundary_index" FROM "running_balances" WHERE "boundary_index" IS NOT NULL`
 	require.Equal(t, strings.Join(strings.Fields(expected), " "), query)
-	require.Equal(t, []any{0, "ns", "account", at, 0, at, 0, 0, at, cursor.CreatedAt, cursor.ID.ID, 1}, args)
+	require.Equal(t, []any{0, "ns", "account", "ns", at, 0, at, 0, 0, at, cursor.CreatedAt, cursor.ID.ID, 1}, args)
 }
 
 func TestBalancesAtBoundariesQuerySharesHistoryAcrossPage(t *testing.T) {
