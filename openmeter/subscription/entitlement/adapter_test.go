@@ -56,11 +56,13 @@ func TestGetForItemsAtReturnsEntitlementsDeletedAfterAt(t *testing.T) {
 
 	// when: an edit deletes their entitlements after viewAt, before the entitlements are read
 	clock.FreezeTime(viewAt.Add(time.Minute))
+	defer clock.UnFreeze()
 	for _, item := range entItems {
 		require.NoError(t, deps.EntitlementAdapter.DeleteByItemID(subscription.NewSubscriptionOperationContext(ctx), item.NamespacedID))
 	}
 
 	clock.FreezeTime(viewAt.Add(2 * time.Minute))
+	defer clock.UnFreeze()
 
 	ents, err := deps.EntitlementAdapter.GetForItemsAt(ctx, subscription.GetForItemsAtInput{
 		Items: items,
