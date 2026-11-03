@@ -143,6 +143,12 @@ events:
 postgres:
   url: postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable
   autoMigrate: migration # Valid values are: migration, migration-job, false
+  # Maximum size of the connection pool. When unset, pgx defaults to max(4, NumCPU), which can be
+  # exhausted by concurrent API requests. Size it well above the peak number of in-flight requests.
+  # See https://github.com/openmeterio/openmeter/pull/5433 (nested acquire fix) and
+  # https://github.com/openmeterio/openmeter/pull/5261 (e2e tests use a pool of 64).
+  # options:
+  #   poolMaxConns: 64
 
 meters:
   # Sample meter to count API requests

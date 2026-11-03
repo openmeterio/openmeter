@@ -115,6 +115,15 @@ affinity: {}
 # -- OpenMeter configuration
 config: {}
 
+# Example: size the Postgres connection pool. When unset, pgx defaults to max(4, NumCPU), which can be
+# exhausted by concurrent API requests. Keep it well above the peak number of in-flight requests
+# (see https://github.com/openmeterio/openmeter/pull/5433 and https://github.com/openmeterio/openmeter/pull/5261).
+#
+# config:
+#   postgres:
+#     options:
+#       poolMaxConns: 64
+
 # -- Defines parameters for the InitContainers
 init:
   busybox:
