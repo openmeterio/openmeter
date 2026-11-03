@@ -980,36 +980,36 @@ type SimulateInvoiceInput struct {
 }
 
 func (i SimulateInvoiceInput) Validate() error {
-	if i.CustomerID != nil {
-		if *i.CustomerID == "" {
-			return errors.New("customer ID is required")
-		}
+	var errs []error
+
+	if i.CustomerID != nil && *i.CustomerID == "" {
+		errs = append(errs, errors.New("customer ID is required"))
 	}
 
 	if i.Customer != nil {
 		if err := i.Customer.Validate(); err != nil {
-			return fmt.Errorf("customer: %w", err)
+			errs = append(errs, fmt.Errorf("customer: %w", err))
 		}
 	}
 
 	if i.CustomerID == nil && i.Customer == nil {
-		return errors.New("either customer ID or customer is required")
+		errs = append(errs, errors.New("either customer ID or customer is required"))
 	}
 
 	if i.CustomerID != nil && i.Customer != nil {
-		return errors.New("only one of customer ID or customer can be specified")
+		errs = append(errs, errors.New("only one of customer ID or customer can be specified"))
 	}
 
 	if i.Namespace == "" {
-		return errors.New("namespace is required")
+		errs = append(errs, errors.New("namespace is required"))
 	}
 
 	if i.Currency == "" {
-		return errors.New("currency is required")
+		errs = append(errs, errors.New("currency is required"))
 	}
 
 	if len(i.Lines.OrEmpty()) == 0 {
-		return errors.New("lines are required")
+		errs = append(errs, errors.New("lines are required"))
 	}
 
 	// Simulation rates each line through its engine. Report a bad engine as a
@@ -1020,11 +1020,11 @@ func (i SimulateInvoiceInput) Validate() error {
 		}
 
 		if err := line.Engine.Validate(); err != nil {
-			return ValidationError{Err: fmt.Errorf("line[%d]: %w", idx, err)}
+			errs = append(errs, fmt.Errorf("line[%d]: %w", idx, err))
 		}
 	}
 
-	return nil
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type UpsertValidationIssuesInput struct {

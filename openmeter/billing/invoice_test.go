@@ -36,23 +36,26 @@ func TestListInvoicesAdapterInputValidateRequiresNamespace(t *testing.T) {
 
 func TestSimulateInvoiceInputValidateRejectsLineWithoutEngine(t *testing.T) {
 	// given:
-	// - a simulation input whose line has no engine
+	// - a simulation input with one line without an engine and one with an unknown engine
 	// when:
 	// - the input is validated
 	// then:
-	// - validation returns a ValidationError, so the API responds with 400
+	// - validation reports every bad line as a generic validation error, so the API responds with 400
 	input := SimulateInvoiceInput{
 		Namespace:  "ns",
 		CustomerID: lo.ToPtr("customer"),
 		Currency:   "USD",
-		Lines:      NewStandardInvoiceLines([]*StandardLine{{}}),
+		Lines: NewStandardInvoiceLines([]*StandardLine{
+			{},
+			{StandardLineBase: StandardLineBase{Engine: "unknown"}},
+		}),
 	}
 
 	err := input.Validate()
 
 	require.ErrorContains(t, err, "line[0]: invalid line engine type")
-	_, ok := lo.ErrorsAs[ValidationError](err)
-	require.True(t, ok)
+	require.ErrorContains(t, err, "line[1]: invalid line engine type: unknown")
+	require.True(t, models.IsGenericValidationError(err))
 }
 
 func TestSimulateInvoiceInputValidateSkipsDeletedLineWithoutEngine(t *testing.T) {
