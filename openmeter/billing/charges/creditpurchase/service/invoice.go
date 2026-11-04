@@ -114,11 +114,13 @@ func (s *InvoiceCreditPurchaseStateMachine) SettleInvoicedPayment(ctx context.Co
 func (s *InvoiceCreditPurchaseStateMachine) RecognizeSettledPayment(_ context.Context, lineWithHeader billing.StandardLineWithInvoiceHeader) error {
 	booked := s.Charge.Realizations.InvoiceSettlement
 	if booked == nil {
-		return payment.ErrCannotSettleNotAuthorizedPayment.WithAttrs(s.Charge.ErrorAttributes())
+		return payment.ErrPaymentMissingOnFinalCharge.WithAttrs(s.Charge.ErrorAttributes())
 	}
 
 	if booked.Status != payment.StatusSettled {
-		return fmt.Errorf("charge %s is final but its payment is %s", s.Charge.ID, booked.Status)
+		return payment.ErrPaymentNotSettledOnFinalCharge.
+			WithAttrs(s.Charge.ErrorAttributes()).
+			WithAttrs(booked.ErrorAttributes())
 	}
 
 	line := lineWithHeader.Line

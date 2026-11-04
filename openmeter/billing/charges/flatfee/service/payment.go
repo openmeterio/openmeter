@@ -128,7 +128,7 @@ func (s *service) postInvoicePaymentSettled(ctx context.Context, charge flatfee.
 		}
 
 		if paymentSettlement.Status != payment.StatusAuthorized {
-			return payment.ErrPaymentAlreadySettled.
+			return payment.ErrPaymentBookingMismatch.
 				WithAttrs(charge.ErrorAttributes()).
 				WithAttrs(paymentSettlement.ErrorAttributes())
 		}

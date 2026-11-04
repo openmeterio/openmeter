@@ -42,3 +42,21 @@ var ErrPaymentBookingMismatch = models.NewValidationIssue(
 	models.WithCriticalSeverity(),
 	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
+
+const ErrCodePaymentMissingOnFinalCharge models.ErrorCode = "payment_missing_on_final_charge"
+
+var ErrPaymentMissingOnFinalCharge = models.NewValidationIssue(
+	ErrCodePaymentMissingOnFinalCharge,
+	"final charge has no payment booking",
+	models.WithCriticalSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
+)
+
+const ErrCodePaymentNotSettledOnFinalCharge models.ErrorCode = "payment_not_settled_on_final_charge"
+
+var ErrPaymentNotSettledOnFinalCharge = models.NewValidationIssue(
+	ErrCodePaymentNotSettledOnFinalCharge,
+	"final charge has an unsettled payment booking",
+	models.WithCriticalSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
+)
