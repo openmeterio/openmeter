@@ -34,15 +34,21 @@ type (
 		// AddonID or Key.
 		PlanIDOrKey string
 	}
-	ListPlanAddonsHandler httptransport.HandlerWithArgs[ListPlanAddonsRequest, ListPlanAddonsResponse, ListPlanAddonsParams]
+
+	ListPlanAddonsHandlerRequest struct {
+		Namespace string
+		ListPlanAddonsRequest
+	}
+
+	ListPlanAddonsHandler httptransport.HandlerWithArgs[ListPlanAddonsHandlerRequest, ListPlanAddonsResponse, ListPlanAddonsParams]
 )
 
 func (h *handler) ListPlanAddons() ListPlanAddonsHandler {
 	return httptransport.NewHandlerWithArgs(
-		func(ctx context.Context, r *http.Request, params ListPlanAddonsParams) (ListPlanAddonsRequest, error) {
+		func(ctx context.Context, r *http.Request, params ListPlanAddonsParams) (ListPlanAddonsHandlerRequest, error) {
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
-				return ListPlanAddonsRequest{}, fmt.Errorf("failed to resolve namespace [namespace=%s]: %w", ns, err)
+				return ListPlanAddonsHandlerRequest{}, fmt.Errorf("failed to resolve namespace [namespace=%s]: %w", ns, err)
 			}
 
 			req := ListPlanAddonsRequest{
@@ -72,20 +78,18 @@ func (h *handler) ListPlanAddons() ListPlanAddonsHandler {
 				req.AddonKey = &filter.FilterString{In: lo.ToPtr(keys)}
 			}
 
-			return req, nil
+			return ListPlanAddonsHandlerRequest{
+				Namespace:             ns,
+				ListPlanAddonsRequest: req,
+			}, nil
 		},
-		func(ctx context.Context, request ListPlanAddonsRequest) (ListPlanAddonsResponse, error) {
-			// The decoder scopes the list to the caller's namespace; tax codes are looked up there.
-			if len(request.Namespaces) != 1 {
-				return ListPlanAddonsResponse{}, fmt.Errorf("expected exactly one namespace, got %d", len(request.Namespaces))
-			}
-
-			resp, err := h.service.ListPlanAddons(ctx, request)
+		func(ctx context.Context, request ListPlanAddonsHandlerRequest) (ListPlanAddonsResponse, error) {
+			resp, err := h.service.ListPlanAddons(ctx, request.ListPlanAddonsRequest)
 			if err != nil {
 				return ListPlanAddonsResponse{}, fmt.Errorf("failed to list plan add-on assignments: %w", err)
 			}
 
-			taxCodes, err := h.taxCodesForPlanAddons(ctx, request.Namespaces[0], resp.Items...)
+			taxCodes, err := h.taxCodesForPlanAddons(ctx, request.Namespace, resp.Items...)
 			if err != nil {
 				return ListPlanAddonsResponse{}, err
 			}
