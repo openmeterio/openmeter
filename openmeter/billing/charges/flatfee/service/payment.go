@@ -33,7 +33,12 @@ func (s *service) postInvoicePaymentAuthorized(ctx context.Context, charge flatf
 				return fmt.Errorf("validating existing invoice payment: %w", err)
 			}
 
-			if run.Payment.IsBookedFor(charge.Namespace, lineWithHeader.Invoice.ID, lineWithHeader.Line.ID, fiatAmount) {
+			if run.Payment.IsBookedFor(payment.BookingKey{
+				Namespace:  charge.Namespace,
+				InvoiceID:  lineWithHeader.Invoice.ID,
+				LineID:     lineWithHeader.Line.ID,
+				FiatAmount: fiatAmount,
+			}) {
 				return nil
 			}
 
@@ -113,7 +118,12 @@ func (s *service) postInvoicePaymentSettled(ctx context.Context, charge flatfee.
 		}
 
 		if paymentSettlement.Status == payment.StatusSettled &&
-			paymentSettlement.IsBookedFor(charge.Namespace, lineWithHeader.Invoice.ID, lineWithHeader.Line.ID, fiatAmount) {
+			paymentSettlement.IsBookedFor(payment.BookingKey{
+				Namespace:  charge.Namespace,
+				InvoiceID:  lineWithHeader.Invoice.ID,
+				LineID:     lineWithHeader.Line.ID,
+				FiatAmount: fiatAmount,
+			}) {
 			return nil
 		}
 

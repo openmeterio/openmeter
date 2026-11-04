@@ -119,7 +119,12 @@ func (s *InvoiceCreditPurchaseStateMachine) RecognizeSettledPayment(_ context.Co
 
 	line := lineWithHeader.Line
 	if booked.Status != payment.StatusSettled ||
-		!booked.IsBookedFor(s.Charge.Namespace, lineWithHeader.Invoice.ID, line.ID, line.Totals.Total) {
+		!booked.IsBookedFor(payment.BookingKey{
+			Namespace:  s.Charge.Namespace,
+			InvoiceID:  lineWithHeader.Invoice.ID,
+			LineID:     line.ID,
+			FiatAmount: line.Totals.Total,
+		}) {
 		return payment.ErrPaymentAlreadySettled.
 			WithAttrs(s.Charge.ErrorAttributes()).
 			WithAttrs(booked.ErrorAttributes())
