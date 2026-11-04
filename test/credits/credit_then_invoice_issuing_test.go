@@ -12,7 +12,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/invoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -25,13 +24,6 @@ type chargeBookingInvoice struct {
 	Customer customer.CustomerID
 	Invoice  billing.StandardInvoice
 	Charges  [2]meta.ChargeID
-}
-
-type completedChargeBooking struct {
-	RunID        string
-	LineID       string
-	InvoiceID    string
-	AccruedUsage *invoicedusage.AccruedUsage
 }
 
 func (s *CreditThenInvoiceTestSuite) setupChargeBookingInvoice(chargeType meta.ChargeType) chargeBookingInvoice {
@@ -92,11 +84,12 @@ func (s *CreditThenInvoiceTestSuite) setupChargeBookingInvoice(chargeType meta.C
 	if chargeType == meta.ChargeTypeUsageBased {
 		require.Equal(t, billing.StandardInvoiceStatusDraftWaitingForCollection, invoice.Status)
 		// The clock stores one global frozen value, so restore the caller's test time.
-		callerTime := clock.Now()
-		clock.FreezeTime(invoice.DefaultCollectionAtForStandardInvoice())
-		invoice, err = s.BillingService.AdvanceInvoice(ctx, invoice.GetInvoiceID())
-		require.NoError(t, err)
-		clock.FreezeTime(callerTime)
+		func() {
+			defer clock.FreezeTime(clock.Now())
+			clock.FreezeTime(invoice.DefaultCollectionAtForStandardInvoice())
+			invoice, err = s.BillingService.AdvanceInvoice(ctx, invoice.GetInvoiceID())
+			require.NoError(t, err)
+		}()
 	}
 
 	require.Equal(t, billing.StandardInvoiceStatusDraftWaitingAutoApproval, invoice.Status)

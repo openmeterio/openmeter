@@ -1459,8 +1459,6 @@ func (s *CreditThenInvoiceTestSuite) replaceBookingRetryLineEngine(fault, origin
 	})
 }
 
-// triggerBookingRetryPayment uses the app boundary, whose validation failures
-// commit prior line progress instead of rolling the enclosing transaction back.
 func (s *CreditThenInvoiceTestSuite) triggerBookingRetryPayment(fixture chargeBookingInvoice, trigger billing.InvoiceTrigger) billing.StandardInvoice {
 	t := s.T()
 	t.Helper()
@@ -1581,61 +1579,4 @@ func (s *CreditThenInvoiceTestSuite) bookingRetryTransactionIDs(fixture chargeBo
 	require.Nil(t, transactions.NextCursor)
 
 	return lo.Map(transactions.Items, func(tx ledger.Transaction, _ int) string { return tx.ID().ID })
-}
-
-type failOncePaymentLineEngine struct {
-	billing.LineEngine
-	AuthorizationLineID string
-	SettlementLineID    string
-	Failed              bool
-}
-
-func (e *failOncePaymentLineEngine) OnPaymentAuthorized(ctx context.Context, input billing.OnPaymentAuthorizedInput) error {
-	if e.AuthorizationLineID == "" || e.Failed {
-		return e.LineEngine.OnPaymentAuthorized(ctx, input)
-	}
-
-	for _, line := range input.Lines {
-		if line.ID == e.AuthorizationLineID {
-			e.Failed = true
-			return bookingRetryCallbackFailure()
-		}
-
-		one := input
-		one.Lines = billing.StandardLines{line}
-		if err := e.LineEngine.OnPaymentAuthorized(ctx, one); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (e *failOncePaymentLineEngine) OnPaymentSettled(ctx context.Context, input billing.OnPaymentSettledInput) error {
-	if e.SettlementLineID == "" || e.Failed {
-		return e.LineEngine.OnPaymentSettled(ctx, input)
-	}
-
-	for _, line := range input.Lines {
-		if line.ID == e.SettlementLineID {
-			e.Failed = true
-			return bookingRetryCallbackFailure()
-		}
-
-		one := input
-		one.Lines = billing.StandardLines{line}
-		if err := e.LineEngine.OnPaymentSettled(ctx, one); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func bookingRetryCallbackFailure() error {
-	return billing.ValidationIssue{
-		Severity: billing.ValidationIssueSeverityCritical,
-		Code:     "test_transient_line_callback_failed",
-		Message:  "transient line callback failure after prior progress committed",
-	}
 }

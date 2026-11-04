@@ -81,9 +81,7 @@ func (e *LineEngine) recordPaymentSettled(ctx context.Context, stateMachine Stat
 		return err
 	}
 
-	// Billing retries paid for every line when any line callback fails, so a
-	// payment already settled for this line keeps its booking and only the
-	// charge is advanced.
+	// A settled booking keeps its ledger entries; the charge may still need advancing.
 	booked := run.Payment
 	alreadySettled := booked != nil && booked.Status == payment.StatusSettled &&
 		booked.IsBookedFor(charge.Namespace, invoice.ID, line.ID, line.Totals.Total)

@@ -284,8 +284,9 @@ func (s *CreditThenInvoiceTestSuite) requireSettledPaymentBookings(fixture payme
 	return *booked
 }
 
-// The fault is reported after the delegated settlement so billing sees an error
-// while the real charge and journal have completed; no persisted state is injected.
+// The fault is reported after the delegated settlement, so billing records the
+// failure and rolls the whole attempt back. The completed state the retry must
+// recognize is seeded separately by the test.
 type failOnceAfterPaymentSettlementLineEngine struct {
 	billing.LineEngine
 	Failed bool

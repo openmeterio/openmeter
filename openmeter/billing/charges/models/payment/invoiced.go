@@ -118,9 +118,9 @@ func (r Invoiced) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-// IsBookedFor reports whether this payment is the booking for the given invoice
-// line. Billing retries payment callbacks for every line when any line fails,
-// so callers use it to recognize completed work instead of booking it again.
+// Billing retries payment callbacks for every line when any line fails, so a
+// retried line can meet its own completed booking. Matching on namespace,
+// invoice, line, and amount tells that apart from a booking for another line.
 func (r Invoiced) IsBookedFor(namespace, invoiceID, lineID string, fiatAmount alpacadecimal.Decimal) bool {
 	return r.DeletedAt == nil &&
 		r.Namespace == namespace &&

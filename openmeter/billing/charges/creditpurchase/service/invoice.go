@@ -70,8 +70,7 @@ func (s *InvoiceCreditPurchaseStateMachine) configureStates() {
 		Permit(meta.TriggerNext, creditpurchase.StatusFinal).
 		OnActive(s.SettleInvoicedPayment)
 
-	// Billing retries paid for every line when any line callback fails, so a
-	// charge that already settled must accept the replay without booking again.
+	// A retried paid callback reaches a charge that already settled.
 	s.Configure(creditpurchase.StatusFinal).
 		InternalTransition(billing.TriggerPaid, statelessx.WithParameters(s.RecognizeSettledPayment))
 }
