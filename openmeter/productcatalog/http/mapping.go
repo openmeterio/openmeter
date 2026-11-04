@@ -42,7 +42,7 @@ func FromRateCard(r productcatalog.RateCard, taxCodes map[string]*taxcode.TaxCod
 
 	var taxConfig *api.TaxConfig
 	if meta.TaxConfig != nil {
-		taxConfig = lo.ToPtr(FromTaxCodeConfig(*meta.TaxConfig, taxCodes))
+		taxConfig = lo.ToPtr(ToAPITaxConfig(*meta.TaxConfig, taxCodes))
 	}
 
 	switch r.Type() {
@@ -256,10 +256,10 @@ func FromTaxConfig(c productcatalog.TaxConfig) api.TaxConfig {
 	}
 }
 
-// FromTaxCodeConfig renders a Tax Code reference in the v1 shape. stripe.code comes from the
+// ToAPITaxConfig renders a Tax Code reference in the v1 shape. stripe.code comes from the
 // referenced Tax Code's current Stripe mapping and is left out when the code isn't in taxCodes or
 // has no Stripe mapping.
-func FromTaxCodeConfig(cfg productcatalog.TaxCodeConfig, taxCodes map[string]*taxcode.TaxCode) api.TaxConfig {
+func ToAPITaxConfig(cfg productcatalog.TaxCodeConfig, taxCodes map[string]*taxcode.TaxCode) api.TaxConfig {
 	out := api.TaxConfig{
 		Behavior:  (*api.TaxBehavior)(cfg.Clone().Behavior),
 		TaxCodeId: lo.EmptyableToPtr(cfg.TaxCodeID),
@@ -451,7 +451,7 @@ func AsFlatFeeRateCard(ctx context.Context, resolver productcatalog.TaxCodeBackf
 	}
 
 	if flat.TaxConfig != nil {
-		rc.TaxConfig, err = AsTaxCodeConfig(ctx, resolver, namespace, *flat.TaxConfig)
+		rc.TaxConfig, err = FromAPITaxConfig(ctx, resolver, namespace, *flat.TaxConfig)
 		if err != nil {
 			return rc, fmt.Errorf("failed to cast TaxConfig: %w", err)
 		}
@@ -525,7 +525,7 @@ func AsUsageBasedRateCard(ctx context.Context, resolver productcatalog.TaxCodeBa
 	}
 
 	if usage.TaxConfig != nil {
-		rc.TaxConfig, err = AsTaxCodeConfig(ctx, resolver, namespace, *usage.TaxConfig)
+		rc.TaxConfig, err = FromAPITaxConfig(ctx, resolver, namespace, *usage.TaxConfig)
 		if err != nil {
 			return rc, fmt.Errorf("failed to cast TaxConfig: %w", err)
 		}
@@ -932,14 +932,14 @@ func (e *TaxCodeResolutionError) Unwrap() error {
 	return e.Err
 }
 
-// AsTaxCodeConfig turns v1 tax config input into a Tax Code reference. taxCodeId wins when set
+// FromAPITaxConfig turns v1 tax config input into a Tax Code reference. taxCodeId wins when set
 // and is passed through unchecked: services validate Tax Code references. Otherwise a stripe.code
 // is resolved to a Tax Code, creating one if the namespace doesn't have it yet. Returns nil when
 // the input carries nothing.
 //
 // stripe.code is format-checked even when taxCodeId wins, because the API always rejected
 // malformed codes with a 400.
-func AsTaxCodeConfig(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver, namespace string, in api.TaxConfig) (*productcatalog.TaxCodeConfig, error) {
+func FromAPITaxConfig(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver, namespace string, in api.TaxConfig) (*productcatalog.TaxCodeConfig, error) {
 	stripeCode := lo.FromPtr(in.Stripe).Code
 
 	if err := (&productcatalog.StripeTaxConfig{Code: stripeCode}).Validate(); err != nil {

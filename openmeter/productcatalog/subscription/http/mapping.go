@@ -255,7 +255,7 @@ func MapSubscriptionItemToAPI(item subscription.SubscriptionItemView, taxCodes m
 	var tx *api.TaxConfig
 
 	if item.SubscriptionItem.RateCard.AsMeta().TaxConfig != nil {
-		txv := productcataloghttp.FromTaxCodeConfig(*item.SubscriptionItem.RateCard.AsMeta().TaxConfig, taxCodes)
+		txv := productcataloghttp.ToAPITaxConfig(*item.SubscriptionItem.RateCard.AsMeta().TaxConfig, taxCodes)
 		tx = &txv
 	}
 

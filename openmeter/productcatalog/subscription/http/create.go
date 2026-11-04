@@ -175,7 +175,7 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 
 					req.PlanInput.FromInput(&planReq)
 
-					// We map the plan name, description and metadata to the subscription's
+					// The subscription takes the custom plan's name, description and metadata.
 					req.WorkflowInput.Name = planReq.Name
 					req.WorkflowInput.Description = planReq.Description
 					req.WorkflowInput.Metadata = planReq.Metadata
