@@ -6,6 +6,7 @@ import (
 	"errors"
 	"log/slog"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -425,11 +426,17 @@ func TestEventRegistryValidators(t *testing.T) {
 
 		// given a payload marshaled from the generated struct
 		payload, err := json.Marshal(billingevents.BillingInvoiceCreatedV1Payload{
-			InvoiceId:  "01J2KNAG7SY9X6V8E5P4D3C2ZF",
-			CustomerId: "01J2KNBH8TZ0Y7W9F6Q5E4D3AG",
-			Status:     "draft",
-			Currency:   "USD",
-			Total:      "12.50",
+			Invoice: billingevents.BillingInvoiceSnapshot{
+				Id:         "01J2KNAG7SY9X6V8E5P4D3C2ZF",
+				Number:     "INV-0001",
+				Type:       "standard",
+				Status:     "draft",
+				CustomerId: "01J2KNBH8TZ0Y7W9F6Q5E4D3AG",
+				Currency:   "USD",
+				Total:      "12.50",
+				CreatedAt:  time.Date(2026, 11, 1, 10, 0, 0, 0, time.UTC),
+				UpdatedAt:  time.Date(2026, 11, 1, 10, 0, 0, 0, time.UTC),
+			},
 		})
 		require.NoError(t, err)
 

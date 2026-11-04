@@ -24,3 +24,20 @@ var BillingInvoiceCreatedV1Definition = v4.EventTypeDefinition{
 	EventType:         BillingInvoiceCreatedV1EventType,
 	PayloadJSONSchema: BillingInvoiceCreatedV1PayloadJSONSchema,
 }
+
+// BillingInvoiceUpdatedV1EventType is v1.billing.invoice.updated.
+var BillingInvoiceUpdatedV1EventType = v4.EventType{
+	Name:    "billing.invoice.updated",
+	Version: 1,
+}
+
+// BillingInvoiceUpdatedV1PayloadJSONSchema is the JSON Schema (draft 2020-12) of BillingInvoiceUpdatedV1Payload.
+//
+//go:embed schemas/v1.billing.invoice.updated.payload.json
+var BillingInvoiceUpdatedV1PayloadJSONSchema []byte
+
+// BillingInvoiceUpdatedV1Definition is the definition of v1.billing.invoice.updated.
+var BillingInvoiceUpdatedV1Definition = v4.EventTypeDefinition{
+	EventType:         BillingInvoiceUpdatedV1EventType,
+	PayloadJSONSchema: BillingInvoiceUpdatedV1PayloadJSONSchema,
+}

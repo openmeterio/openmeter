@@ -10,23 +10,57 @@ components:
     BillingInvoiceCreatedV1Payload:
       type: object
       required:
-        - invoice_id
-        - customer_id
+        - invoice
+      properties:
+        invoice:
+          allOf:
+            - $ref: "#/components/schemas/BillingInvoiceSnapshot"
+          description: The invoice as it was created.
+      additionalProperties: false
+      description: Payload of `v1.billing.invoice.created`.
+    BillingInvoiceSnapshot:
+      type: object
+      required:
+        - id
+        - number
+        - type
         - status
+        - customer_id
         - currency
         - total
+        - created_at
+        - updated_at
       properties:
-        invoice_id:
+        id:
           allOf:
             - $ref: "#/components/schemas/ULID"
-          description: Invoice that was created.
+          description: Invoice ID.
+        number:
+          type: string
+          description: Human-readable invoice number.
+        type:
+          type: string
+          description: |-
+            Invoice type. Known values: `standard`.
+
+            New types can be added without a new Event type version, so consumers
+            must handle values they do not know.
+        status:
+          type: string
+          description: |-
+            Invoice status. Known values: `draft`, `issuing`, `issued`,
+            `payment_processing`, `overdue`, `paid`, `uncollectible`, `voided`.
+
+            New statuses can be added without a new Event type version, so consumers
+            must handle values they do not know.
         customer_id:
           allOf:
             - $ref: "#/components/schemas/ULID"
           description: Customer the invoice belongs to.
-        status:
-          type: string
-          description: Invoice status at creation time.
+        customer_key:
+          allOf:
+            - $ref: "#/components/schemas/ExternalResourceKey"
+          description: Key of the customer, if the customer has one.
         currency:
           allOf:
             - $ref: "#/components/schemas/CurrencyCode"
@@ -34,13 +68,62 @@ components:
         total:
           allOf:
             - $ref: "#/components/schemas/Numeric"
-          description: Invoice total at creation time.
+          description: Total amount of the invoice, including taxes, discounts and credits.
+        service_period:
+          allOf:
+            - $ref: "#/components/schemas/BillingInvoiceSnapshotPeriod"
+          description: Service period covered by the invoice, once it is known.
+        issued_at:
+          allOf:
+            - $ref: "#/components/schemas/DateTime"
+          description: When the invoice was issued to the customer.
+        due_at:
+          allOf:
+            - $ref: "#/components/schemas/DateTime"
+          description: When payment is due.
+        created_at:
+          allOf:
+            - $ref: "#/components/schemas/DateTime"
+          description: When the invoice was created.
+        updated_at:
+          allOf:
+            - $ref: "#/components/schemas/DateTime"
+          description: When the invoice was last updated.
       additionalProperties: false
       description: |-
-        Payload of `v1.billing.invoice.created`.
+        Key facts of an invoice at the time of the Event.
 
-        The payload identifies the invoice and carries its state at creation time;
-        consumers fetch the full invoice through the API when they need it.
+        The snapshot carries what identifies the invoice and what most consumers act
+        on. Consumers fetch the full invoice through the API when they need lines or
+        other details. The fetched invoice can be newer than the Event; compare
+        `updated_at` to tell.
+    BillingInvoiceSnapshotPeriod:
+      type: object
+      required:
+        - from
+        - to
+      properties:
+        from:
+          allOf:
+            - $ref: "#/components/schemas/DateTime"
+          description: Start of the period, inclusive.
+        to:
+          allOf:
+            - $ref: "#/components/schemas/DateTime"
+          description: End of the period, exclusive.
+      additionalProperties: false
+      description: Period an invoice covers.
+    BillingInvoiceUpdatedV1Payload:
+      type: object
+      required:
+        - invoice
+      properties:
+        invoice:
+          allOf:
+            - $ref: "#/components/schemas/BillingInvoiceSnapshot"
+          description: The invoice after the update.
+      additionalProperties: false
+      description: Payload of `v1.billing.invoice.updated`.
     CurrencyCode:
       type: string
       minLength: 3
@@ -51,6 +134,23 @@ components:
         currency code. Custom three-letter currency codes are also supported for
         convenience.
       example: USD
+    DateTime:
+      type: string
+      format: date-time
+      description: |-
+        [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in
+        UTC.
+      title: RFC3339 Date-Time
+      example: 2023-01-01T01:01:01.001Z
+    ExternalResourceKey:
+      type: string
+      minLength: 1
+      maxLength: 256
+      description: |-
+        ExternalResourceKey is a unique string that is used to identify a resource in an
+        external system.
+      title: External Resource Key
+      example: 019ae40f-4258-7f15-9491-842f42a7d6ac
     Numeric:
       type: string
       pattern: ^\-?[0-9]+(\.[0-9]+)?$

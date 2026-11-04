@@ -11,20 +11,57 @@ using NotificationCodegen;
 namespace Billing.NotificationEvents;
 
 /**
- * Payload of `v1.billing.invoice.created`.
- *
- * The payload identifies the invoice and carries its state at creation time;
- * consumers fetch the full invoice through the API when they need it.
+ * Period an invoice covers.
  */
-@jsonSchema
-@id("v1.billing.invoice.created.payload")
-@eventType("v1.billing.invoice.created")
-@friendlyName("BillingInvoiceCreatedV1Payload")
-model InvoiceCreatedV1Payload {
+@friendlyName("BillingInvoiceSnapshotPeriod")
+model InvoiceSnapshotPeriod {
   /**
-   * Invoice that was created.
+   * Start of the period, inclusive.
    */
-  invoice_id: Shared.ULID;
+  from: Shared.DateTime;
+
+  /**
+   * End of the period, exclusive.
+   */
+  to: Shared.DateTime;
+}
+
+/**
+ * Key facts of an invoice at the time of the Event.
+ *
+ * The snapshot carries what identifies the invoice and what most consumers act
+ * on. Consumers fetch the full invoice through the API when they need lines or
+ * other details. The fetched invoice can be newer than the Event; compare
+ * `updated_at` to tell.
+ */
+@friendlyName("BillingInvoiceSnapshot")
+model InvoiceSnapshot {
+  /**
+   * Invoice ID.
+   */
+  id: Shared.ULID;
+
+  /**
+   * Human-readable invoice number.
+   */
+  number: string;
+
+  /**
+   * Invoice type. Known values: `standard`.
+   *
+   * New types can be added without a new Event type version, so consumers
+   * must handle values they do not know.
+   */
+  type: string;
+
+  /**
+   * Invoice status. Known values: `draft`, `issuing`, `issued`,
+   * `payment_processing`, `overdue`, `paid`, `uncollectible`, `voided`.
+   *
+   * New statuses can be added without a new Event type version, so consumers
+   * must handle values they do not know.
+   */
+  status: string;
 
   /**
    * Customer the invoice belongs to.
@@ -32,9 +69,9 @@ model InvoiceCreatedV1Payload {
   customer_id: Shared.ULID;
 
   /**
-   * Invoice status at creation time.
+   * Key of the customer, if the customer has one.
    */
-  status: string;
+  customer_key?: Shared.ExternalResourceKey;
 
   /**
    * Invoice currency.
@@ -42,7 +79,60 @@ model InvoiceCreatedV1Payload {
   currency: Shared.CurrencyCode;
 
   /**
-   * Invoice total at creation time.
+   * Total amount of the invoice, including taxes, discounts and credits.
    */
   total: Shared.Numeric;
+
+  /**
+   * Service period covered by the invoice, once it is known.
+   */
+  service_period?: InvoiceSnapshotPeriod;
+
+  /**
+   * When the invoice was issued to the customer.
+   */
+  issued_at?: Shared.DateTime;
+
+  /**
+   * When payment is due.
+   */
+  due_at?: Shared.DateTime;
+
+  /**
+   * When the invoice was created.
+   */
+  created_at: Shared.DateTime;
+
+  /**
+   * When the invoice was last updated.
+   */
+  updated_at: Shared.DateTime;
+}
+
+/**
+ * Payload of `v1.billing.invoice.created`.
+ */
+@jsonSchema
+@id("v1.billing.invoice.created.payload")
+@eventType("v1.billing.invoice.created")
+@friendlyName("BillingInvoiceCreatedV1Payload")
+model InvoiceCreatedV1Payload {
+  /**
+   * The invoice as it was created.
+   */
+  invoice: InvoiceSnapshot;
+}
+
+/**
+ * Payload of `v1.billing.invoice.updated`.
+ */
+@jsonSchema
+@id("v1.billing.invoice.updated.payload")
+@eventType("v1.billing.invoice.updated")
+@friendlyName("BillingInvoiceUpdatedV1Payload")
+model InvoiceUpdatedV1Payload {
+  /**
+   * The invoice after the update.
+   */
+  invoice: InvoiceSnapshot;
 }
