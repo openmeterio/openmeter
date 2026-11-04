@@ -352,10 +352,10 @@ func TestPostgresAdapter(t *testing.T) {
 					Namespace: namespace,
 				},
 				Annotations: map[string]interface{}{
-					"openmeter.key": "openmeter.value",
+					"annotation.key": "annotation.value",
 				},
 				Metadata: models.Metadata{
-					"openmeter.key": "openmeter.value",
+					"metadata.key": "metadata.value",
 				},
 				PlanID:        planV1.ID,
 				AddonID:       addonV1.ID,
