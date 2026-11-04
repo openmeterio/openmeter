@@ -33,11 +33,7 @@ func (s *service) postInvoicePaymentAuthorized(ctx context.Context, charge flatf
 				return fmt.Errorf("validating existing invoice payment: %w", err)
 			}
 
-			if run.Payment.DeletedAt == nil &&
-				run.Payment.Namespace == charge.Namespace &&
-				run.Payment.InvoiceID == lineWithHeader.Invoice.ID &&
-				run.Payment.LineID == lineWithHeader.Line.ID &&
-				run.Payment.FiatAmount.Equal(fiatAmount) {
+			if run.Payment.IsBookedFor(charge.Namespace, lineWithHeader.Invoice.ID, lineWithHeader.Line.ID, fiatAmount) {
 				return nil
 			}
 
@@ -116,8 +112,15 @@ func (s *service) postInvoicePaymentSettled(ctx context.Context, charge flatfee.
 			return fmt.Errorf("payment settlement line ID does not match the line ID: %s != %s", paymentSettlement.LineID, lineWithHeader.Line.ID)
 		}
 
+		if paymentSettlement.Status == payment.StatusSettled &&
+			paymentSettlement.IsBookedFor(charge.Namespace, lineWithHeader.Invoice.ID, lineWithHeader.Line.ID, fiatAmount) {
+			return nil
+		}
+
 		if paymentSettlement.Status != payment.StatusAuthorized {
-			return payment.ErrPaymentAlreadySettled.WithAttrs(charge.ErrorAttributes())
+			return payment.ErrPaymentAlreadySettled.
+				WithAttrs(charge.ErrorAttributes()).
+				WithAttrs(paymentSettlement.ErrorAttributes())
 		}
 
 		eventAt := clock.Now()

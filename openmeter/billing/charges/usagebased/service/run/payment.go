@@ -58,11 +58,7 @@ func (s *Service) BookInvoicedPaymentAuthorized(ctx context.Context, in BookInvo
 
 	fiatAmount := in.Line.Totals.Total
 	if booked := in.Run.Payment; booked != nil {
-		if booked.DeletedAt == nil &&
-			booked.Namespace == in.Charge.Namespace &&
-			booked.InvoiceID == in.Invoice.ID &&
-			booked.LineID == in.Line.ID &&
-			booked.FiatAmount.Equal(fiatAmount) {
+		if booked.IsBookedFor(in.Charge.Namespace, in.Invoice.ID, in.Line.ID, fiatAmount) {
 			return BookInvoicedPaymentAuthorizedResult{Run: in.Run, Payment: booked}, nil
 		}
 

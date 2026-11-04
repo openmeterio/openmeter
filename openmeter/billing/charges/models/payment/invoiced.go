@@ -7,6 +7,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/schema/field"
+	"github.com/alpacahq/alpacadecimal"
 
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -115,6 +116,17 @@ func (r Invoiced) Validate() error {
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+// IsBookedFor reports whether this payment is the booking for the given invoice
+// line. Billing retries payment callbacks for every line when any line fails,
+// so callers use it to recognize completed work instead of booking it again.
+func (r Invoiced) IsBookedFor(namespace, invoiceID, lineID string, fiatAmount alpacadecimal.Decimal) bool {
+	return r.DeletedAt == nil &&
+		r.Namespace == namespace &&
+		r.InvoiceID == invoiceID &&
+		r.LineID == lineID &&
+		r.FiatAmount.Equal(fiatAmount)
 }
 
 func (r Invoiced) ErrorAttributes() models.Attributes {

@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	creditpurchaserealizations "github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase/service/realizations"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/statelessx"
 )
@@ -204,6 +205,19 @@ func (s *service) handleInvoiceLifecycleTrigger(ctx context.Context, input Handl
 
 	if err := stateMachine.AdvanceUntilStable(ctx); err != nil {
 		return creditpurchase.Charge{}, fmt.Errorf("reconcile invoice credit purchase state: %w", err)
+	}
+
+	// A settled charge has already left the authorized state, so a replayed paid
+	// trigger is recognized from the booked payment instead of being fired.
+	if booked := input.Charge.Realizations.InvoiceSettlement; input.Trigger == billing.TriggerPaid && booked != nil && booked.Status == payment.StatusSettled {
+		line := input.LineWithHeader.Line
+		if !booked.IsBookedFor(input.Charge.Namespace, input.LineWithHeader.Invoice.ID, line.ID, line.Totals.Total) {
+			return creditpurchase.Charge{}, payment.ErrPaymentAlreadySettled.
+				WithAttrs(input.Charge.ErrorAttributes()).
+				WithAttrs(booked.ErrorAttributes())
+		}
+
+		return stateMachine.GetCharge(), nil
 	}
 
 	if err := stateMachine.FireAndAdvanceUntilStable(ctx, input.Trigger, input.LineWithHeader); err != nil {
