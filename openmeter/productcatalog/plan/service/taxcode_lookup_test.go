@@ -85,7 +85,7 @@ func TestPlanTaxCodeLookupErrors(t *testing.T) {
 	}
 
 	rateCard := func() productcatalog.RateCard {
-		return newTestFlatRateCard("rc", &productcatalog.TaxCodeConfig{TaxCodeID: "01JTAXCODE00000000000000000"})
+		return pctestutils.NewTestFlatRateCard("rc", &productcatalog.TaxCodeConfig{TaxCodeID: "01JTAXCODE00000000000000000"})
 	}
 
 	updatePhases := func() *[]productcatalog.Phase {
@@ -112,7 +112,7 @@ func TestPlanTaxCodeLookupErrors(t *testing.T) {
 	requirePhaseValidationError := func(t *testing.T, err error) {
 		t.Helper()
 
-		requireTaxCodeNotFound(t, err)
+		pctestutils.RequireTaxCodeNotFound(t, err)
 
 		issues, issuesErr := models.AsValidationIssues(err)
 		require.NoError(t, issuesErr)
@@ -146,7 +146,7 @@ func TestPlanTaxCodeLookupErrors(t *testing.T) {
 	})
 
 	t.Run("Update", func(t *testing.T) {
-		p, err := env.Plan.CreatePlan(t.Context(), newTestPlanInput(t, namespace, "update-lookup", newTestFlatRateCard("rc", nil)))
+		p, err := env.Plan.CreatePlan(t.Context(), newTestPlanInput(t, namespace, "update-lookup", pctestutils.NewTestFlatRateCard("rc", nil)))
 		require.NoError(t, err)
 
 		t.Run("lookup failure", func(t *testing.T) {

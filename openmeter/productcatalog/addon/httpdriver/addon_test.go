@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon/httpdriver"
+	pctestutils "github.com/openmeterio/openmeter/openmeter/productcatalog/testutils"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -36,20 +37,6 @@ func (s *listAddonsService) ListAddons(_ context.Context, input addon.ListAddons
 	return pagination.Result[addon.Addon]{Items: s.addons, TotalCount: len(s.addons)}, nil
 }
 
-// countingTaxCodeResolver records BatchResolve calls and serves them from taxCodes.
-type countingTaxCodeResolver struct {
-	productcatalog.TransactionalTaxCodeResolver
-
-	taxCodes map[string]*taxcode.TaxCode
-	calls    [][]string
-}
-
-func (r *countingTaxCodeResolver) BatchResolve(_ context.Context, _ string, ids ...string) (map[string]*taxcode.TaxCode, error) {
-	r.calls = append(r.calls, ids)
-
-	return lo.PickByKeys(r.taxCodes, ids), nil
-}
-
 func TestListAddonsResolvesTaxCodesOnce(t *testing.T) {
 	const (
 		namespace = "ns"
@@ -59,8 +46,8 @@ func TestListAddonsResolvesTaxCodesOnce(t *testing.T) {
 
 	stripeCodes := map[string]string{taxCodeA: "txcd_10000000", taxCodeB: "txcd_20030000"}
 
-	resolver := &countingTaxCodeResolver{
-		taxCodes: lo.MapValues(stripeCodes, func(code string, id string) *taxcode.TaxCode {
+	resolver := &pctestutils.CountingTaxCodeResolver{
+		TaxCodes: lo.MapValues(stripeCodes, func(code string, id string) *taxcode.TaxCode {
 			return &taxcode.TaxCode{
 				NamespacedID: models.NamespacedID{Namespace: namespace, ID: id},
 				AppMappings:  taxcode.TaxCodeAppMappings{{AppType: app.AppTypeStripe, TaxCode: code}},
@@ -104,8 +91,8 @@ func TestListAddonsResolvesTaxCodesOnce(t *testing.T) {
 
 	// then: the Tax Codes are looked up once, with each ID once
 	assert.Equal(t, []string{namespace}, svc.input.Namespaces)
-	require.Len(t, resolver.calls, 1)
-	assert.ElementsMatch(t, []string{taxCodeA, taxCodeB}, resolver.calls[0])
+	require.Len(t, resolver.Calls, 1)
+	assert.ElementsMatch(t, []string{taxCodeA, taxCodeB}, resolver.Calls[0])
 
 	// then: every rate card shows its Tax Code ID and the Stripe code mapped to it
 	var resp httpdriver.ListAddonsResponse

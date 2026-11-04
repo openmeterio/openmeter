@@ -4,7 +4,6 @@ import (
 	"testing"
 	"time"
 
-	decimal "github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -16,21 +15,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
-
-func newTestAddonFlatRateCard(key string, tc *productcatalog.TaxCodeConfig) productcatalog.RateCard {
-	return &productcatalog.FlatFeeRateCard{
-		RateCardMeta: productcatalog.RateCardMeta{
-			Key:       key,
-			Name:      key,
-			TaxConfig: tc,
-			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
-				Amount:      decimal.NewFromInt(100),
-				PaymentTerm: productcatalog.InArrearsPaymentTerm,
-			}),
-		},
-		BillingCadence: &pctestutils.MonthPeriod,
-	}
-}
 
 func newTestAddonInput(t *testing.T, namespace string, key string, rc productcatalog.RateCard) addon.CreateAddonInput {
 	t.Helper()
@@ -48,14 +32,6 @@ func firstAddonRateCardTaxConfig(t *testing.T, a *addon.Addon) *productcatalog.T
 	require.NotEmpty(t, a.RateCards)
 
 	return a.RateCards[0].AsMeta().TaxConfig
-}
-
-func requireTaxCodeNotFound(t *testing.T, err error) {
-	t.Helper()
-
-	require.Error(t, err)
-	assert.True(t, models.IsGenericValidationError(err), "expected validation error, got: %v", err)
-	assert.ErrorIs(t, err, productcatalog.ErrRateCardTaxCodeNotFound)
 }
 
 func TestAddonTaxCodeReferences(t *testing.T) {
@@ -95,7 +71,7 @@ func TestAddonTaxCodeReferences(t *testing.T) {
 			}
 
 			// when: the add-on is created
-			a, err := env.Addon.CreateAddon(t.Context(), newTestAddonInput(t, namespace, "existing-tax-code", newTestAddonFlatRateCard("rc", want)))
+			a, err := env.Addon.CreateAddon(t.Context(), newTestAddonInput(t, namespace, "existing-tax-code", pctestutils.NewTestFlatRateCard("rc", want)))
 			require.NoError(t, err)
 
 			// then: the reference is returned and stored
@@ -111,7 +87,7 @@ func TestAddonTaxCodeReferences(t *testing.T) {
 			want := &productcatalog.TaxCodeConfig{Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}
 
 			// when: the add-on is created
-			a, err := env.Addon.CreateAddon(t.Context(), newTestAddonInput(t, namespace, "behavior-only", newTestAddonFlatRateCard("rc", want)))
+			a, err := env.Addon.CreateAddon(t.Context(), newTestAddonInput(t, namespace, "behavior-only", pctestutils.NewTestFlatRateCard("rc", want)))
 			require.NoError(t, err)
 
 			// then: the behavior is stored without a Tax Code
@@ -121,7 +97,7 @@ func TestAddonTaxCodeReferences(t *testing.T) {
 		})
 
 		t.Run("no tax config", func(t *testing.T) {
-			a, err := env.Addon.CreateAddon(t.Context(), newTestAddonInput(t, namespace, "no-tax-config", newTestAddonFlatRateCard("rc", nil)))
+			a, err := env.Addon.CreateAddon(t.Context(), newTestAddonInput(t, namespace, "no-tax-config", pctestutils.NewTestFlatRateCard("rc", nil)))
 			require.NoError(t, err)
 
 			assert.Nil(t, firstAddonRateCardTaxConfig(t, a))
@@ -130,7 +106,7 @@ func TestAddonTaxCodeReferences(t *testing.T) {
 		for _, ref := range invalidReferences {
 			t.Run(ref.name+" tax code", func(t *testing.T) {
 				// given: a rate card referencing a Tax Code the namespace can't use
-				input := newTestAddonInput(t, namespace, "create-"+ref.key, newTestAddonFlatRateCard("rc", &productcatalog.TaxCodeConfig{
+				input := newTestAddonInput(t, namespace, "create-"+ref.key, pctestutils.NewTestFlatRateCard("rc", &productcatalog.TaxCodeConfig{
 					TaxCodeID: ref.taxCodeID,
 				}))
 
@@ -138,7 +114,7 @@ func TestAddonTaxCodeReferences(t *testing.T) {
 				_, err := env.Addon.CreateAddon(t.Context(), input)
 
 				// then: it is rejected as a validation error
-				requireTaxCodeNotFound(t, err)
+				pctestutils.RequireTaxCodeNotFound(t, err)
 			})
 		}
 	})
@@ -146,7 +122,7 @@ func TestAddonTaxCodeReferences(t *testing.T) {
 	t.Run("Update", func(t *testing.T) {
 		t.Run("add existing tax code", func(t *testing.T) {
 			// given: an add-on without tax config
-			a, err := env.Addon.CreateAddon(t.Context(), newTestAddonInput(t, namespace, "update-add-tax-code", newTestAddonFlatRateCard("rc", nil)))
+			a, err := env.Addon.CreateAddon(t.Context(), newTestAddonInput(t, namespace, "update-add-tax-code", pctestutils.NewTestFlatRateCard("rc", nil)))
 			require.NoError(t, err)
 
 			// when: its rate card is updated to reference a live Tax Code
@@ -154,7 +130,7 @@ func TestAddonTaxCodeReferences(t *testing.T) {
 
 			updated, err := env.Addon.UpdateAddon(t.Context(), addon.UpdateAddonInput{
 				NamespacedID: a.NamespacedID,
-				RateCards:    &productcatalog.RateCards{newTestAddonFlatRateCard("rc", want)},
+				RateCards:    &productcatalog.RateCards{pctestutils.NewTestFlatRateCard("rc", want)},
 			})
 			require.NoError(t, err)
 
@@ -168,7 +144,7 @@ func TestAddonTaxCodeReferences(t *testing.T) {
 
 		t.Run("remove tax config", func(t *testing.T) {
 			// given: an add-on referencing a Tax Code
-			a, err := env.Addon.CreateAddon(t.Context(), newTestAddonInput(t, namespace, "update-remove-tax-code", newTestAddonFlatRateCard("rc", &productcatalog.TaxCodeConfig{
+			a, err := env.Addon.CreateAddon(t.Context(), newTestAddonInput(t, namespace, "update-remove-tax-code", pctestutils.NewTestFlatRateCard("rc", &productcatalog.TaxCodeConfig{
 				TaxCodeID: taxCode.ID,
 			})))
 			require.NoError(t, err)
@@ -176,7 +152,7 @@ func TestAddonTaxCodeReferences(t *testing.T) {
 			// when: the rate card is updated without tax config
 			updated, err := env.Addon.UpdateAddon(t.Context(), addon.UpdateAddonInput{
 				NamespacedID: a.NamespacedID,
-				RateCards:    &productcatalog.RateCards{newTestAddonFlatRateCard("rc", nil)},
+				RateCards:    &productcatalog.RateCards{pctestutils.NewTestFlatRateCard("rc", nil)},
 			})
 			require.NoError(t, err)
 
@@ -189,19 +165,19 @@ func TestAddonTaxCodeReferences(t *testing.T) {
 				// given: an add-on referencing a live Tax Code
 				original := &productcatalog.TaxCodeConfig{TaxCodeID: taxCode.ID}
 
-				a, err := env.Addon.CreateAddon(t.Context(), newTestAddonInput(t, namespace, "update-"+ref.key, newTestAddonFlatRateCard("rc", original)))
+				a, err := env.Addon.CreateAddon(t.Context(), newTestAddonInput(t, namespace, "update-"+ref.key, pctestutils.NewTestFlatRateCard("rc", original)))
 				require.NoError(t, err)
 
 				// when: the rate card is updated to a Tax Code the namespace can't use
 				_, err = env.Addon.UpdateAddon(t.Context(), addon.UpdateAddonInput{
 					NamespacedID: a.NamespacedID,
-					RateCards: &productcatalog.RateCards{newTestAddonFlatRateCard("rc", &productcatalog.TaxCodeConfig{
+					RateCards: &productcatalog.RateCards{pctestutils.NewTestFlatRateCard("rc", &productcatalog.TaxCodeConfig{
 						TaxCodeID: ref.taxCodeID,
 					})},
 				})
 
 				// then: it is rejected and the stored reference is unchanged
-				requireTaxCodeNotFound(t, err)
+				pctestutils.RequireTaxCodeNotFound(t, err)
 
 				fetched, err := env.Addon.GetAddon(t.Context(), addon.GetAddonInput{NamespacedID: a.NamespacedID})
 				require.NoError(t, err)
@@ -214,7 +190,7 @@ func TestAddonTaxCodeReferences(t *testing.T) {
 			doomed := env.TaxCodeEnv.CreateTaxCode(t, namespace)
 			want := &productcatalog.TaxCodeConfig{TaxCodeID: doomed.ID}
 
-			a, err := env.Addon.CreateAddon(t.Context(), newTestAddonInput(t, namespace, "update-metadata-deleted-tax-code", newTestAddonFlatRateCard("rc", want)))
+			a, err := env.Addon.CreateAddon(t.Context(), newTestAddonInput(t, namespace, "update-metadata-deleted-tax-code", pctestutils.NewTestFlatRateCard("rc", want)))
 			require.NoError(t, err)
 
 			require.NoError(t, env.TaxCode.DeleteTaxCode(t.Context(), taxcode.DeleteTaxCodeInput{NamespacedID: doomed.NamespacedID}))
@@ -240,7 +216,7 @@ func TestAddonWithPlanTaxCode(t *testing.T) {
 	taxCode := env.TaxCodeEnv.CreateTaxCode(t, namespace)
 
 	// given: a published add-on attached to a plan whose rate card references a Tax Code
-	a, err := env.Addon.CreateAddon(t.Context(), newTestAddonInput(t, namespace, "addon-with-tax-plan", newTestAddonFlatRateCard("rc", nil)))
+	a, err := env.Addon.CreateAddon(t.Context(), newTestAddonInput(t, namespace, "addon-with-tax-plan", pctestutils.NewTestFlatRateCard("rc", nil)))
 	require.NoError(t, err)
 
 	publishAt := time.Now().Truncate(time.Microsecond)
@@ -259,7 +235,7 @@ func TestAddonWithPlanTaxCode(t *testing.T) {
 		pctestutils.WithPlanKey("plan-with-tax-code"),
 		pctestutils.WithPlanPhases(productcatalog.Phase{
 			PhaseMeta: productcatalog.PhaseMeta{Key: "default", Name: "Default"},
-			RateCards: productcatalog.RateCards{newTestAddonFlatRateCard("rc", want)},
+			RateCards: productcatalog.RateCards{pctestutils.NewTestFlatRateCard("rc", want)},
 		}),
 	))
 	require.NoError(t, err)

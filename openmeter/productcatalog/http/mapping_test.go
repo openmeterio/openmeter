@@ -34,7 +34,7 @@ func (s *stubBackfillResolver) ResolveOrBackfillTaxCode(_ context.Context, input
 	return &taxcode.TaxCode{NamespacedID: models.NamespacedID{Namespace: input.Namespace, ID: s.id}}, nil
 }
 
-func TestAsTaxCodeConfig(t *testing.T) {
+func TestFromAPITaxConfig(t *testing.T) {
 	const (
 		namespace  = "ns"
 		inputID    = "01JTAXCODE00000000000000000"
@@ -116,7 +116,7 @@ func TestAsTaxCodeConfig(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			resolver := &stubBackfillResolver{id: resolvedID, err: tt.resolverErr}
 
-			got, err := productcataloghttp.AsTaxCodeConfig(t.Context(), resolver, namespace, tt.in)
+			got, err := productcataloghttp.FromAPITaxConfig(t.Context(), resolver, namespace, tt.in)
 
 			assert.Equal(t, tt.wantCalls, resolver.calls)
 
@@ -133,7 +133,7 @@ func TestAsTaxCodeConfig(t *testing.T) {
 	}
 }
 
-func TestFromTaxCodeConfig(t *testing.T) {
+func TestToAPITaxConfig(t *testing.T) {
 	const id = "01JTAXCODE00000000000000000"
 
 	taxCodes := map[string]*taxcode.TaxCode{
@@ -182,7 +182,7 @@ func TestFromTaxCodeConfig(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.want, productcataloghttp.FromTaxCodeConfig(tt.cfg, tt.taxCodes))
+			assert.Equal(t, tt.want, productcataloghttp.ToAPITaxConfig(tt.cfg, tt.taxCodes))
 		})
 	}
 }
