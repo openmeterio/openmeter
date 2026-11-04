@@ -27,15 +27,21 @@ type (
 	ListAddonsRequest  = addon.ListAddonsInput
 	ListAddonsResponse = api.AddonPaginatedResponse
 	ListAddonsParams   = api.ListAddonsParams
-	ListAddonsHandler  httptransport.HandlerWithArgs[ListAddonsRequest, ListAddonsResponse, ListAddonsParams]
+
+	ListAddonsHandlerRequest struct {
+		Namespace string
+		ListAddonsRequest
+	}
+
+	ListAddonsHandler httptransport.HandlerWithArgs[ListAddonsHandlerRequest, ListAddonsResponse, ListAddonsParams]
 )
 
 func (h *handler) ListAddons() ListAddonsHandler {
 	return httptransport.NewHandlerWithArgs(
-		func(ctx context.Context, r *http.Request, params ListAddonsParams) (ListAddonsRequest, error) {
+		func(ctx context.Context, r *http.Request, params ListAddonsParams) (ListAddonsHandlerRequest, error) {
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
-				return ListAddonsRequest{}, fmt.Errorf("failed to resolve namespace [namespace=%s]: %w", ns, err)
+				return ListAddonsHandlerRequest{}, fmt.Errorf("failed to resolve namespace [namespace=%s]: %w", ns, err)
 			}
 
 			var statusFilter []productcatalog.AddonStatus
@@ -74,20 +80,18 @@ func (h *handler) ListAddons() ListAddonsHandler {
 				req.Currency = &filter.FilterString{In: params.Currency}
 			}
 
-			return req, nil
+			return ListAddonsHandlerRequest{
+				Namespace:         ns,
+				ListAddonsRequest: req,
+			}, nil
 		},
-		func(ctx context.Context, request ListAddonsRequest) (ListAddonsResponse, error) {
-			// The decoder scopes the list to the caller's namespace; tax codes are looked up there.
-			if len(request.Namespaces) != 1 {
-				return ListAddonsResponse{}, fmt.Errorf("expected exactly one namespace, got %d", len(request.Namespaces))
-			}
-
-			resp, err := h.service.ListAddons(ctx, request)
+		func(ctx context.Context, request ListAddonsHandlerRequest) (ListAddonsResponse, error) {
+			resp, err := h.service.ListAddons(ctx, request.ListAddonsRequest)
 			if err != nil {
 				return ListAddonsResponse{}, fmt.Errorf("failed to list add-ons: %w", err)
 			}
 
-			taxCodes, err := h.taxCodesForAddons(ctx, request.Namespaces[0], resp.Items...)
+			taxCodes, err := h.taxCodesForAddons(ctx, request.Namespace, resp.Items...)
 			if err != nil {
 				return ListAddonsResponse{}, err
 			}

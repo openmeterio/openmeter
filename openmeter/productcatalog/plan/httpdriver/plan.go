@@ -28,15 +28,21 @@ type (
 	ListPlansRequest  = plan.ListPlansInput
 	ListPlansResponse = api.PlanPaginatedResponse
 	ListPlansParams   = api.ListPlansParams
-	ListPlansHandler  httptransport.HandlerWithArgs[ListPlansRequest, ListPlansResponse, ListPlansParams]
+
+	ListPlansHandlerRequest struct {
+		Namespace string
+		ListPlansRequest
+	}
+
+	ListPlansHandler httptransport.HandlerWithArgs[ListPlansHandlerRequest, ListPlansResponse, ListPlansParams]
 )
 
 func (h *handler) ListPlans() ListPlansHandler {
 	return httptransport.NewHandlerWithArgs(
-		func(ctx context.Context, r *http.Request, params ListPlansParams) (ListPlansRequest, error) {
+		func(ctx context.Context, r *http.Request, params ListPlansParams) (ListPlansHandlerRequest, error) {
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
-				return ListPlansRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
+				return ListPlansHandlerRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
 			}
 
 			var statusFilter []productcatalog.PlanStatus
@@ -64,20 +70,18 @@ func (h *handler) ListPlans() ListPlansHandler {
 				ExcludeUnrepresentableCurrencies: true,
 			}
 
-			return req, nil
+			return ListPlansHandlerRequest{
+				Namespace:        ns,
+				ListPlansRequest: req,
+			}, nil
 		},
-		func(ctx context.Context, request ListPlansRequest) (ListPlansResponse, error) {
-			// The decoder scopes the list to the caller's namespace; tax codes are looked up there.
-			if len(request.Namespaces) != 1 {
-				return ListPlansResponse{}, fmt.Errorf("expected exactly one namespace, got %d", len(request.Namespaces))
-			}
-
-			resp, err := h.service.ListPlans(ctx, request)
+		func(ctx context.Context, request ListPlansHandlerRequest) (ListPlansResponse, error) {
+			resp, err := h.service.ListPlans(ctx, request.ListPlansRequest)
 			if err != nil {
 				return ListPlansResponse{}, fmt.Errorf("failed to list plans: %w", err)
 			}
 
-			taxCodes, err := h.taxCodesForPlans(ctx, request.Namespaces[0], resp.Items...)
+			taxCodes, err := h.taxCodesForPlans(ctx, request.Namespace, resp.Items...)
 			if err != nil {
 				return ListPlansResponse{}, err
 			}
