@@ -23,3 +23,11 @@ func TestDefinitionsRegister(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, registry.EventTypes(nil), len(defs))
 }
+
+// definitions.sum records the fingerprint and replacement of every
+// definition, so changing one in place shows up in review.
+func TestDefinitionsSum(t *testing.T) {
+	require.NoError(t, definitions.Verify(),
+		"An Event type definition or its deprecation changed. A released definition must not change: add a new version instead. "+
+			"If the changed definitions were never released, run: make update-notification-definitions-sum")
+}

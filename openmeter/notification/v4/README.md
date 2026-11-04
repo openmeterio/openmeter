@@ -3,7 +3,7 @@
 Package `v4` holds the Notification vNext model. It is built next to the
 existing [Notifications](../README.md) domain, which keeps serving V1. This
 README covers Event types and the Event Registry. Providers are documented in
-[Svix](providers/svix/README.md) and [no-op](providers/noop/README.md).
+[Svix](provider/svix/README.md) and [no-op](provider/noop/README.md).
 
 Producing domains import `v4` for `EventType`, so `v4` must not import
 Notification or any domain package; doing so would create an import cycle.
@@ -66,8 +66,22 @@ An `EventTypeDefinition` binds an Event type to its contracts:
 checked by the registry. Callers with stricter needs, such as requiring a
 Rule-capable type, add their own checks through `ValidateWith`.
 
-Definitions are equal when their identity, schema bytes, Rule presence, and
-replacement match. Schemas that differ only in formatting are not equal.
+Definitions are equal when their identity, schemas, Rule presence, and
+replacement match. Schemas are compared in canonical form, so formatting and
+object key order do not matter, but array order and number text do.
+
+A released definition must not change in place; a changed contract is a new
+Event type version. `definitions.Fingerprint` hashes what must stay fixed: the
+Event type and its schemas in canonical form, but not `DeprecatedBy`, which is
+set on released definitions. [`definitions.sum`](definitions/definitions.sum)
+records the fingerprint of every definition and, in a separate column, its
+replacement. The file is embedded, and `definitions.Verify` fails a test when
+either no longer matches, so removing or changing a deprecation is caught too.
+Only the author can tell whether a definition was released, so fixing an
+unreleased one means rewriting the file with
+`make update-notification-definitions-sum`, and the change shows up in review.
+`make generate` deliberately does not rewrite it, so routine regeneration
+cannot silently accept a changed contract.
 
 A definition is pure contract data. Domain validation of Rule configurations
 needs domain services, such as checking that referenced features exist, so it
@@ -139,6 +153,7 @@ registers. Channel Event type filters are meant to use the same grammar.
 - The registry is process-local. Each replica knows only the types built into
   its binary, so during a rolling deployment replicas can disagree about which
   types exist.
-- Released contracts are immutable by review rule only. No contract ledger or
-  CI check detects an in-place change yet.
+- `definitions.sum` catches an in-place change in CI, but whether the change
+  is safe is decided in review. Nothing checks what a given database has
+  already seen.
 - Listing is not paginated; the list is small and held in memory.

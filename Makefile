@@ -39,6 +39,11 @@ update-openapi: patch-oapi-templates ## Update OpenAPI spec
 	$(MAKE) -C api/spec generate
 	go generate ./api/... ./openmeter/.../notificationevents
 
+.PHONY: update-notification-definitions-sum
+update-notification-definitions-sum: ## Rewrite notification/v4/definitions/definitions.sum; only for definitions that were never released
+	$(call print-target)
+	go run ./openmeter/notification/v4/definitions/internal/sumgen openmeter/notification/v4/definitions/definitions.sum
+
 .PHONY: generate-javascript-sdk
 generate-javascript-sdk: ## Generate JavaScript SDK
 	$(call print-target)
