@@ -44,6 +44,10 @@ func TestAppStripe(t *testing.T) {
 			testSuite.TestUpdate(ctx, t)
 		})
 
+		t.Run("UpdateAPIKeyThroughAppUpdate", func(t *testing.T) {
+			testSuite.TestUpdateAPIKeyThroughAppUpdate(t)
+		})
+
 		t.Run("Uninstall", func(t *testing.T) {
 			testSuite.TestUninstall(ctx, t)
 		})

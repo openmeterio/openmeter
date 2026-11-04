@@ -158,6 +158,56 @@ func (s *AppHandlerTestSuite) TestUpdate(ctx context.Context, t *testing.T) {
 	require.Empty(t, updateApp.GetAppBase().Metadata, "Metadata must be updated")
 }
 
+func (s *AppHandlerTestSuite) TestUpdateAPIKeyThroughAppUpdate(t *testing.T) {
+	// Given an installed Stripe app and a valid replacement key for the same account.
+	ctx := t.Context()
+	s.setupNamespace(t)
+
+	installedApp, err := s.Env.Fixture().setupApp(ctx, s.namespace)
+	require.NoError(t, err)
+
+	stripeAppData, err := s.Env.AppStripe().GetStripeAppData(ctx, appstripe.GetStripeAppDataInput{
+		AppID: installedApp.GetID(),
+	})
+	require.NoError(t, err)
+
+	s.Env.StripeAppClient().
+		On("GetAccount").
+		Return(stripeclient.StripeAccount{StripeAccountID: stripeAppData.StripeAccountID}, nil).
+		Once()
+	defer s.Env.StripeAppClient().Restore()
+	defer s.Env.StripeAppClient().AssertExpectations(t)
+
+	// When rotating through the app update, the outer transaction already holds the app row lock.
+	updateCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	newAPIKey := "sk_live_regression_rotated_key"
+	_, err = s.Env.App().UpdateApp(updateCtx, app.UpdateAppInput{
+		AppID: installedApp.GetID(),
+		Name:  installedApp.GetAppBase().Name,
+		AppConfigUpdate: appstripe.Configuration{
+			SecretAPIKey: lo.ToPtr(newAPIKey),
+		},
+	})
+
+	// Then the status update must share that transaction so the new key can commit.
+	require.NoError(t, err, "rotating the Stripe key through UpdateApp must not wait on its own app row lock")
+
+	updatedApp, err := s.Env.App().GetApp(ctx, installedApp.GetID())
+	require.NoError(t, err)
+	require.Equal(t, app.AppStatusReady, updatedApp.GetStatus())
+
+	updatedStripeAppData, err := s.Env.AppStripe().GetStripeAppData(ctx, appstripe.GetStripeAppDataInput{
+		AppID: installedApp.GetID(),
+	})
+	require.NoError(t, err)
+
+	updatedSecret, err := s.Env.Secret().GetAppSecret(ctx, updatedStripeAppData.APIKey)
+	require.NoError(t, err)
+	require.Equal(t, newAPIKey, updatedSecret.Value)
+}
+
 // TestUninstall tests uninstalling a stripe app
 func (s *AppHandlerTestSuite) TestUninstall(ctx context.Context, t *testing.T) {
 	// Given an active Stripe app with provider metadata and credentials.

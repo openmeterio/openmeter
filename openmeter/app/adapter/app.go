@@ -61,16 +61,18 @@ func (a *adapter) CreateApp(ctx context.Context, input app.CreateAppInput) (app.
 
 // UpdateAppStatus updates an app status
 func (a *adapter) UpdateAppStatus(ctx context.Context, input app.UpdateAppStatusInput) error {
-	_, err := a.db.App.Update().
-		Where(appdb.Namespace(input.ID.Namespace)).
-		Where(appdb.ID(input.ID.ID)).
-		SetStatus(input.Status).
-		Save(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to update app status: %w", err)
-	}
+	return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, repo *adapter) error {
+		_, err := repo.db.App.Update().
+			Where(appdb.Namespace(input.ID.Namespace)).
+			Where(appdb.ID(input.ID.ID)).
+			SetStatus(input.Status).
+			Save(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to update app status: %w", err)
+		}
 
-	return nil
+		return nil
+	})
 }
 
 // ListApps lists apps
