@@ -124,7 +124,8 @@ config: {}
 #   postgres:
 #     url: postgres://user:password@host:5432/dbname?sslmode=disable&pool_max_conns=64
 #
-# With separate fields and no `url`, use `options` (ignored when `url` is set):
+# With separate fields, use `options` (ignored when `url` is set). The bundled PostgreSQL injects a
+# `url`, so set `postgresql.enabled: false` and omit `url`:
 # config:
 #   postgres:
 #     host: host
