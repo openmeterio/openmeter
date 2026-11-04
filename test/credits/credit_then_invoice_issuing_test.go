@@ -34,47 +34,6 @@ type completedChargeBooking struct {
 	AccruedUsage *invoicedusage.AccruedUsage
 }
 
-// requireCompletedChargeBooking checks the durable issued run independently of
-// charge scheduling: flat fees retain the current run, while usage charges release it.
-func (s *CreditThenInvoiceTestSuite) requireCompletedChargeBooking(fixture chargeBookingInvoice) completedChargeBooking {
-	t := s.T()
-	t.Helper()
-	charge := s.MustGetChargeByID(fixture.Charges[0])
-	var booked completedChargeBooking
-	switch charge.Type() {
-	case meta.ChargeTypeFlatFee:
-		flatFeeCharge, err := charge.AsFlatFeeCharge()
-		require.NoError(t, err)
-		require.Equal(t, flatfee.StatusActiveAwaitingPaymentSettlement, flatFeeCharge.Status)
-		run := flatFeeCharge.Realizations.CurrentRun
-		require.NotNil(t, run)
-		require.True(t, run.Immutable)
-		require.Nil(t, run.DeletedAt)
-		require.Nil(t, run.Payment)
-		booked = completedChargeBooking{RunID: run.ID.ID, LineID: lo.FromPtr(run.LineID), InvoiceID: lo.FromPtr(run.InvoiceID), AccruedUsage: run.AccruedUsage}
-	case meta.ChargeTypeUsageBased:
-		usageCharge, err := charge.AsUsageBasedCharge()
-		require.NoError(t, err)
-		require.Equal(t, usagebased.StatusActiveAwaitingPaymentSettlement, usageCharge.Status)
-		require.Nil(t, usageCharge.State.CurrentRealizationRunID)
-		run, err := usageCharge.Realizations.GetByLineID(fixture.Invoice.Lines.OrEmpty()[0].ID)
-		require.NoError(t, err)
-		require.True(t, run.Immutable)
-		require.Nil(t, run.DeletedAt)
-		require.Nil(t, run.Payment)
-		booked = completedChargeBooking{RunID: run.ID.ID, LineID: lo.FromPtr(run.LineID), InvoiceID: lo.FromPtr(run.InvoiceID), AccruedUsage: run.InvoiceUsage}
-	default:
-		t.Fatalf("unexpected charge type: %s", charge.Type())
-	}
-
-	require.NotEmpty(t, booked.RunID)
-	require.Equal(t, fixture.Invoice.Lines.OrEmpty()[0].ID, booked.LineID)
-	require.Equal(t, fixture.Invoice.ID, booked.InvoiceID)
-	require.NotNil(t, booked.AccruedUsage)
-
-	return booked
-}
-
 func (s *CreditThenInvoiceTestSuite) setupChargeBookingInvoice(chargeType meta.ChargeType) chargeBookingInvoice {
 	t := s.T()
 	t.Helper()
