@@ -117,15 +117,18 @@ func (s *InvoiceCreditPurchaseStateMachine) RecognizeSettledPayment(_ context.Co
 		return payment.ErrCannotSettleNotAuthorizedPayment.WithAttrs(s.Charge.ErrorAttributes())
 	}
 
+	if booked.Status != payment.StatusSettled {
+		return fmt.Errorf("charge %s is final but its payment is %s", s.Charge.ID, booked.Status)
+	}
+
 	line := lineWithHeader.Line
-	if booked.Status != payment.StatusSettled ||
-		!booked.IsBookedFor(payment.BookingKey{
-			Namespace:  s.Charge.Namespace,
-			InvoiceID:  lineWithHeader.Invoice.ID,
-			LineID:     line.ID,
-			FiatAmount: line.Totals.Total,
-		}) {
-		return payment.ErrPaymentAlreadySettled.
+	if !booked.IsBookedFor(payment.BookingKey{
+		Namespace:  s.Charge.Namespace,
+		InvoiceID:  lineWithHeader.Invoice.ID,
+		LineID:     line.ID,
+		FiatAmount: line.Totals.Total,
+	}) {
+		return payment.ErrPaymentBookingMismatch.
 			WithAttrs(s.Charge.ErrorAttributes()).
 			WithAttrs(booked.ErrorAttributes())
 	}

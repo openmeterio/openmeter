@@ -33,3 +33,12 @@ var ErrCannotSettleNotAuthorizedPayment = models.NewValidationIssue(
 	models.WithCriticalSeverity(),
 	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
+
+const ErrCodePaymentBookingMismatch models.ErrorCode = "payment_booking_mismatch"
+
+var ErrPaymentBookingMismatch = models.NewValidationIssue(
+	ErrCodePaymentBookingMismatch,
+	"payment is booked for a different invoice line",
+	models.WithCriticalSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
+)
