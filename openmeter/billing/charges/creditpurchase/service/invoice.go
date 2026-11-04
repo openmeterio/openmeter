@@ -70,7 +70,10 @@ func (s *InvoiceCreditPurchaseStateMachine) configureStates() {
 		Permit(meta.TriggerNext, creditpurchase.StatusFinal).
 		OnActive(s.SettleInvoicedPayment)
 
-	s.Configure(creditpurchase.StatusFinal)
+	// Billing retries paid for every line when any line callback fails, so a
+	// charge that already settled must accept the replay without booking again.
+	s.Configure(creditpurchase.StatusFinal).
+		InternalTransition(billing.TriggerPaid, statelessx.WithParameters(s.RecognizeSettledPayment))
 }
 
 func (s *InvoiceCreditPurchaseStateMachine) GrantCredits(ctx context.Context) error {
@@ -105,6 +108,23 @@ func (s *InvoiceCreditPurchaseStateMachine) SettleInvoicedPayment(ctx context.Co
 	}
 
 	s.Charge = updatedCharge
+
+	return nil
+}
+
+func (s *InvoiceCreditPurchaseStateMachine) RecognizeSettledPayment(_ context.Context, lineWithHeader billing.StandardLineWithInvoiceHeader) error {
+	booked := s.Charge.Realizations.InvoiceSettlement
+	if booked == nil {
+		return payment.ErrCannotSettleNotAuthorizedPayment.WithAttrs(s.Charge.ErrorAttributes())
+	}
+
+	line := lineWithHeader.Line
+	if booked.Status != payment.StatusSettled ||
+		!booked.IsBookedFor(s.Charge.Namespace, lineWithHeader.Invoice.ID, line.ID, line.Totals.Total) {
+		return payment.ErrPaymentAlreadySettled.
+			WithAttrs(s.Charge.ErrorAttributes()).
+			WithAttrs(booked.ErrorAttributes())
+	}
 
 	return nil
 }
@@ -205,19 +225,6 @@ func (s *service) handleInvoiceLifecycleTrigger(ctx context.Context, input Handl
 
 	if err := stateMachine.AdvanceUntilStable(ctx); err != nil {
 		return creditpurchase.Charge{}, fmt.Errorf("reconcile invoice credit purchase state: %w", err)
-	}
-
-	// A settled charge has already left the authorized state, so a replayed paid
-	// trigger is recognized from the booked payment instead of being fired.
-	if booked := input.Charge.Realizations.InvoiceSettlement; input.Trigger == billing.TriggerPaid && booked != nil && booked.Status == payment.StatusSettled {
-		line := input.LineWithHeader.Line
-		if !booked.IsBookedFor(input.Charge.Namespace, input.LineWithHeader.Invoice.ID, line.ID, line.Totals.Total) {
-			return creditpurchase.Charge{}, payment.ErrPaymentAlreadySettled.
-				WithAttrs(input.Charge.ErrorAttributes()).
-				WithAttrs(booked.ErrorAttributes())
-		}
-
-		return stateMachine.GetCharge(), nil
 	}
 
 	if err := stateMachine.FireAndAdvanceUntilStable(ctx, input.Trigger, input.LineWithHeader); err != nil {
