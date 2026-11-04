@@ -147,8 +147,18 @@ postgres:
   # exhausted by concurrent API requests. Size it well above the peak number of in-flight requests.
   # See https://github.com/openmeterio/openmeter/pull/5433 (nested acquire fix) and
   # https://github.com/openmeterio/openmeter/pull/5261 (e2e tests use a pool of 64).
-  # options:
-  #   poolMaxConns: 64
+  #
+  # With `url`, set it in the query string: pool_max_conns=64
+  #   url: postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable&pool_max_conns=64
+  #
+  # With separate fields and no `url`, use `options` (ignored when `url` is set):
+  #   host: localhost
+  #   port: 5432
+  #   user: postgres
+  #   password: postgres
+  #   database: postgres
+  #   options:
+  #     poolMaxConns: 64
 
 meters:
   # Sample meter to count API requests

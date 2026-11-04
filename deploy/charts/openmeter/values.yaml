@@ -119,8 +119,19 @@ config: {}
 # exhausted by concurrent API requests. Keep it well above the peak number of in-flight requests
 # (see https://github.com/openmeterio/openmeter/pull/5433 and https://github.com/openmeterio/openmeter/pull/5261).
 #
+# With `url`, set it in the query string:
 # config:
 #   postgres:
+#     url: postgres://user:password@host:5432/dbname?sslmode=disable&pool_max_conns=64
+#
+# With separate fields and no `url`, use `options` (ignored when `url` is set):
+# config:
+#   postgres:
+#     host: host
+#     port: 5432
+#     user: user
+#     password: password
+#     database: dbname
 #     options:
 #       poolMaxConns: 64
 
