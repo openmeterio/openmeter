@@ -84,6 +84,16 @@ func TestFromPlan(t *testing.T) {
 		assert.Equal(t, "A great plan", *result.Description)
 	})
 
+	t.Run("maps metadata to labels", func(t *testing.T) {
+		p := newTestPlan(t)
+		p.Metadata = models.Metadata{"tier": "pro"}
+
+		result, err := ToAPIBillingPlan(p)
+		require.NoError(t, err)
+		require.NotNil(t, result.Labels)
+		assert.Equal(t, api.Labels{"tier": "pro"}, *result.Labels)
+	})
+
 	t.Run("maps deleted at", func(t *testing.T) {
 		p := newTestPlan(t)
 		deleted := now.Add(-time.Hour)
@@ -200,6 +210,23 @@ func TestFromPlanPhase(t *testing.T) {
 		assert.Equal(t, "First 3 months", *result.Description)
 		require.NotNil(t, result.Duration)
 		assert.Equal(t, api.ISO8601Duration("P3M"), *result.Duration)
+	})
+
+	t.Run("maps metadata to labels", func(t *testing.T) {
+		phase := plan.Phase{
+			Phase: productcatalog.Phase{
+				PhaseMeta: productcatalog.PhaseMeta{
+					Key:      "trial",
+					Name:     "Trial Phase",
+					Metadata: models.Metadata{"stage": "trial"},
+				},
+			},
+		}
+
+		result, err := ToAPIBillingPlanPhase(phase)
+		require.NoError(t, err)
+		require.NotNil(t, result.Labels)
+		assert.Equal(t, api.Labels{"stage": "trial"}, *result.Labels)
 	})
 
 	t.Run("nil duration maps to nil", func(t *testing.T) {
@@ -363,6 +390,21 @@ func TestFromRateCard(t *testing.T) {
 		disc, err := result.Price.Discriminator()
 		require.NoError(t, err)
 		assert.Equal(t, "free", disc)
+	})
+
+	t.Run("maps metadata to labels", func(t *testing.T) {
+		rc := &productcatalog.FlatFeeRateCard{
+			RateCardMeta: productcatalog.RateCardMeta{
+				Key:      "setup",
+				Name:     "Setup Fee",
+				Metadata: models.Metadata{"kind": "setup"},
+			},
+		}
+
+		result, err := ToAPIBillingRateCard(rc)
+		require.NoError(t, err)
+		require.NotNil(t, result.Labels)
+		assert.Equal(t, api.Labels{"kind": "setup"}, *result.Labels)
 	})
 
 	t.Run("flat fee — with price and cadence", func(t *testing.T) {

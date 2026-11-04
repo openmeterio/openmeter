@@ -53,6 +53,7 @@ func ToAPIBillingPlan(p plan.Plan) (api.BillingPlan, error) {
 		EffectiveTo:      p.EffectiveTo,
 		Id:               p.ID,
 		Key:              p.Key,
+		Labels:           labels.FromMetadata(p.Metadata),
 		Name:             p.Name,
 		UpdatedAt:        p.UpdatedAt,
 		Version:          p.Version,
@@ -95,6 +96,7 @@ func ToAPIBillingPlanPhase(p plan.Phase) (api.BillingPlanPhase, error) {
 		Description: p.Description,
 		Duration:    (*api.ISO8601Duration)(p.Duration.ISOStringPtrOrNil()),
 		Key:         p.Key,
+		Labels:      labels.FromMetadata(p.Metadata),
 		Name:        p.Name,
 		RateCards:   make([]api.BillingRateCard, 0, len(p.RateCards)),
 	}
@@ -116,6 +118,7 @@ func ToAPIBillingRateCard(rc productcatalog.RateCard) (api.BillingRateCard, erro
 
 	result := api.BillingRateCard{
 		Key:         meta.Key,
+		Labels:      labels.FromMetadata(meta.Metadata),
 		Name:        meta.Name,
 		Description: meta.Description,
 		Discounts:   ToAPIBillingRateCardDiscount(meta.Discounts),

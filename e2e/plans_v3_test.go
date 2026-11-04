@@ -712,3 +712,32 @@ func TestV3PlanReadTranslatesV1DynamicAndPackagePrices(t *testing.T) {
 		assert.Equal(t, v3sdk.UnitConfigRoundingModeCeiling, *pkgRC.UnitConfig.Rounding)
 	})
 }
+
+func TestV3PlanLabelsRoundTrip(t *testing.T) {
+	c := newV3Client(t)
+
+	createBody := validPlanRequest("test_v3_plan_labels")
+	createBody.Labels = &map[string]string{"tier": "pro"}
+	createBody.Phases[0].Labels = &map[string]string{"stage": "main"}
+	createBody.Phases[0].RateCards[0].Labels = &map[string]string{"kind": "base_fee"}
+
+	assertLabels := func(t *testing.T, plan *v3sdk.Plan) {
+		t.Helper()
+
+		require.NotNil(t, plan)
+		require.Len(t, plan.Phases, 1)
+		require.Len(t, plan.Phases[0].RateCards, 1)
+
+		assert.Equal(t, map[string]string{"tier": "pro"}, plan.Labels)
+		assert.Equal(t, map[string]string{"stage": "main"}, plan.Phases[0].Labels)
+		assert.Equal(t, map[string]string{"kind": "base_fee"}, plan.Phases[0].RateCards[0].Labels)
+	}
+
+	created, err := c.Plans.Create(t.Context(), createBody)
+	c.requireStatus(http.StatusCreated, err)
+	assertLabels(t, created)
+
+	fetched, err := c.Plans.Get(t.Context(), created.ID)
+	c.requireStatus(http.StatusOK, err)
+	assertLabels(t, fetched)
+}
