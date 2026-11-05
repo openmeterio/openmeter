@@ -110,7 +110,7 @@ func TestV3ListCharges(t *testing.T) {
 		flatFee, err := list.Data[0].AsChargeFlatFee()
 		require.NoError(t, err)
 		assert.Equal(t, v3sdk.ChargeStatusCreated, flatFee.Status)
-		assertOutstandingRealization(t, flatFee.Realizations, flatFee.ServicePeriod, false)
+		assertOutstandingRealization(t, flatFee.Realizations, flatFee.ServicePeriod)
 	})
 
 	t.Run("filter by customer_id oeq spans both customers", func(t *testing.T) {

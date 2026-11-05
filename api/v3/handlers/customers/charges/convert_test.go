@@ -625,17 +625,17 @@ func TestConvertUsageBasedRealizationsToAPI(t *testing.T) {
 		{
 			Run:           &firstRun,
 			ServicePeriod: timeutil.ClosedPeriod{From: now, To: now.Add(30 * time.Minute)},
-			Quantity:      decimal.NewFromInt(10),
+			Quantity:      lo.ToPtr(decimal.NewFromInt(10)),
 		},
 		{
 			Run:           &secondRun,
 			ServicePeriod: timeutil.ClosedPeriod{From: now.Add(30 * time.Minute), To: now.Add(time.Hour)},
-			Quantity:      decimal.NewFromInt(15),
+			Quantity:      lo.ToPtr(decimal.NewFromInt(15)),
 		},
 		{
 			Run:           &deletedRun,
 			ServicePeriod: timeutil.ClosedPeriod{From: now.Add(time.Hour), To: now.Add(90 * time.Minute)},
-			Quantity:      decimal.NewFromInt(15),
+			Quantity:      lo.ToPtr(decimal.NewFromInt(15)),
 			Voided:        true,
 		},
 	}
@@ -681,6 +681,7 @@ func TestConvertUsageBasedRealizationsToAPI(t *testing.T) {
 	assert.Equal(t, api.BillingChargeRealizationTypeOutstanding, out[3].Type)
 	assert.Equal(t, api.ClosedPeriod{From: now.Add(time.Hour), To: period.To}, out[3].ServicePeriod,
 		"outstanding starts at the last live run's end; voided history does not cover the period")
+	assert.Nil(t, out[3].Usage)
 	assert.Nil(t, out[3].Invoice)
 	assert.Nil(t, out[3].Totals)
 
@@ -702,16 +703,24 @@ func TestConvertUsageBasedRealizationsToAPI(t *testing.T) {
 		// cumulative (10 + 15)
 		live := append(bookedAndVoided, billingcharges.CustomerChargeUsageBasedRealization{
 			ServicePeriod: timeutil.ClosedPeriod{From: now.Add(time.Hour), To: period.To},
-			Quantity:      decimal.NewFromInt(6),
+			Quantity:      lo.ToPtr(decimal.NewFromInt(6)),
 		})
 
-		out, err := convertUsageBasedRealizationsToAPI(live, meta.ExpandNone)
+		out, err := convertUsageBasedRealizationsToAPI(live, meta.Expands{meta.ExpandRealtimeUsage})
 		require.NoError(t, err)
 
 		require.Len(t, out, 4)
 		assert.Equal(t, lo.ToPtr("10"), out[0].Usage, "booked usage is a billing fact and stays untouched")
 		assert.Equal(t, lo.ToPtr("15"), out[1].Usage)
 		assert.Equal(t, lo.ToPtr("6"), out[3].Usage, "outstanding reports the live read minus the booked non-voided cumulative (31 - 25)")
+	})
+
+	t.Run("measured zero is present", func(t *testing.T) {
+		resolved := []billingcharges.CustomerChargeUsageBasedRealization{{Quantity: lo.ToPtr(decimal.Zero)}}
+		out, err := convertUsageBasedRealizationsToAPI(resolved, meta.Expands{meta.ExpandRealtimeUsage})
+		require.NoError(t, err)
+		require.Len(t, out, 1)
+		assert.Equal(t, lo.ToPtr("0"), out[0].Usage)
 	})
 
 	// and a deleted charge keeps its original service period without ever
@@ -993,7 +1002,7 @@ func TestConvertCustomCurrencyChargeWithInvoiceExpand(t *testing.T) {
 				{
 					Run:           &run,
 					ServicePeriod: period,
-					Quantity:      decimal.NewFromInt(10),
+					Quantity:      lo.ToPtr(decimal.NewFromInt(10)),
 					Invoice:       invoice,
 				},
 			},

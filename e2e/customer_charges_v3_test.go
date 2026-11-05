@@ -13,13 +13,8 @@ import (
 	v3sdk "github.com/openmeterio/openmeter/api/v3/client"
 )
 
-// assertOutstandingRealization asserts realizations carries exactly one entry: a
-// projected `outstanding` run spanning the charge's whole service period. A
-// freshly created charge has booked no realization run yet, so the outstanding
-// entry built inline in the realization converters (convertFlatFeeRealizationsToAPI /
-// convertUsageBasedRealizationsToAPI in api/v3/handlers/customers/charges/convert.go)
-// always reports the entire, still-uncovered span with no persisted identity.
-func assertOutstandingRealization(t *testing.T, realizations []v3sdk.ChargeRealization, servicePeriod v3sdk.ClosedPeriod, metered bool) {
+// A newly created charge has one outstanding entry for its full service period.
+func assertOutstandingRealization(t *testing.T, realizations []v3sdk.ChargeRealization, servicePeriod v3sdk.ClosedPeriod) {
 	t.Helper()
 	require.Len(t, realizations, 1)
 
@@ -32,22 +27,7 @@ func assertOutstandingRealization(t *testing.T, realizations []v3sdk.ChargeReali
 	assert.True(t, servicePeriod.From.Equal(r.ServicePeriod.From), "service_period.from: want %v, got %v", servicePeriod.From, r.ServicePeriod.From)
 	assert.True(t, servicePeriod.To.Equal(r.ServicePeriod.To), "service_period.to: want %v, got %v", servicePeriod.To, r.ServicePeriod.To)
 
-	if !metered {
-		// Flat fees are not metered, so their realizations carry no usage
-		// field at all.
-		assert.Nil(t, r.Usage)
-		return
-	}
-
-	// The outstanding entry's usage is zero here because no real_time_usage
-	// expand is applied; under that expand it reports the not-yet-booked
-	// remainder of a live metering read (the outstanding entry built inline
-	// in convertUsageBasedRealizationsToAPI, convert.go). Parse rather than
-	// comparing against the raw string, since decimals are normalized.
-	require.NotNil(t, r.Usage, "usage-based realizations always carry a usage field")
-	usage, err := strconv.ParseFloat(*r.Usage, 64)
-	require.NoError(t, err)
-	assert.Zero(t, usage)
+	assert.Nil(t, r.Usage, "outstanding usage is omitted without a live reading")
 }
 
 // TestV3CustomerChargeFlatFeeRealizations verifies that a freshly created flat
@@ -125,7 +105,7 @@ func TestV3CustomerChargeFlatFeeRealizations(t *testing.T) {
 		assert.Equal(t, float64(10), amount)
 
 		// - realizations carries exactly the outstanding projection
-		assertOutstandingRealization(t, flatFee.Realizations, flatFee.ServicePeriod, false)
+		assertOutstandingRealization(t, flatFee.Realizations, flatFee.ServicePeriod)
 	})
 
 	t.Run("list response carries the same realization shape", func(t *testing.T) {
@@ -155,7 +135,7 @@ func TestV3CustomerChargeFlatFeeRealizations(t *testing.T) {
 		// then:
 		// - the listed copy carries the same realization shape as the create
 		//   response - this is the converter path under test
-		assertOutstandingRealization(t, listed.Realizations, listed.ServicePeriod, false)
+		assertOutstandingRealization(t, listed.Realizations, listed.ServicePeriod)
 	})
 
 	t.Run("realizations never serializes as null on the raw wire body", func(t *testing.T) {
@@ -264,7 +244,7 @@ func TestV3CustomerChargeUsageBasedRealizations(t *testing.T) {
 		assert.Equal(t, 1.5, priceAmount)
 
 		// - realizations carries exactly the outstanding projection
-		assertOutstandingRealization(t, usageBased.Realizations, usageBased.ServicePeriod, true)
+		assertOutstandingRealization(t, usageBased.Realizations, usageBased.ServicePeriod)
 	})
 
 	t.Run("list response carries the same realization shape", func(t *testing.T) {
@@ -294,6 +274,6 @@ func TestV3CustomerChargeUsageBasedRealizations(t *testing.T) {
 		// then:
 		// - the listed copy carries the same realization shape as the create
 		//   response - this is the converter path under test
-		assertOutstandingRealization(t, listed.Realizations, listed.ServicePeriod, true)
+		assertOutstandingRealization(t, listed.Realizations, listed.ServicePeriod)
 	})
 }

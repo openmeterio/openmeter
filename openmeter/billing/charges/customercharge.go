@@ -124,9 +124,9 @@ type CustomerChargeUsageBasedRealization struct {
 	ServicePeriod timeutil.ClosedPeriod
 	// Quantity is the usage this entry realized since the previous live run.
 	// It is signed, as a downward usage correction is a valid billing event.
-	// The outstanding entry is never negative and is zero unless the realtime
-	// usage expand supplied a live quantity.
-	Quantity alpacadecimal.Decimal
+	// For an outstanding entry, it is nil until a live reading is available,
+	// then holds the nonnegative remainder after booked usage.
+	Quantity *alpacadecimal.Decimal
 	Voided   bool
 	Invoice  *billing.StandardInvoice
 }
