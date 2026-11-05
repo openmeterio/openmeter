@@ -24,6 +24,8 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/sortx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -144,6 +146,63 @@ func newDetailedLine(in newLineInput) billing.DetailedLine {
 				Category:               stddetailedline.CategoryRegular,
 			},
 		},
+	}
+}
+
+func (s *BillingAdapterTestSuite) TestListInvoicesWithSameCreatedAt() {
+	t := s.T()
+	ctx := t.Context()
+	namespace := s.GetUniqueNamespace("invoice-pagination")
+	app := s.InstallSandboxApp(t, namespace)
+	profile := s.ProvisionBillingProfile(ctx, namespace, app.GetID())
+	customer := s.CreateTestCustomer(namespace, "invoice-pagination")
+
+	// Given two invoices created at the same time.
+	clock.FreezeTime(time.Now())
+	defer clock.UnFreeze()
+	var ids []string
+	for _, number := range []string{"INV-1", "INV-2"} {
+		invoice, err := s.BillingAdapter.CreateInvoice(ctx, billing.CreateInvoiceAdapterInput{
+			Namespace: namespace,
+			Customer:  *customer,
+			Profile:   *profile,
+			Currency:  currencyx.FiatCode(currency.USD),
+			Status:    billing.StandardInvoiceStatusIssued,
+			Type:      billing.InvoiceTypeStandard,
+			Number:    number,
+			IssuedAt:  clock.Now(),
+		})
+		require.NoError(t, err)
+		ids = append(ids, invoice.ID)
+	}
+
+	// Updating the first invoice puts the rows in a different physical order
+	// while preserving their creation times.
+	err := s.DBClient.BillingInvoice.UpdateOneID(ids[0]).
+		SetUpdatedAt(clock.Now().Add(time.Minute)).
+		Exec(ctx)
+	require.NoError(t, err)
+	slices.Sort(ids)
+
+	// When reading one invoice per page, ties follow the requested direction.
+	for order, expectedIDs := range map[sortx.Order][]string{
+		sortx.OrderAsc:  ids,
+		sortx.OrderDesc: {ids[1], ids[0]},
+	} {
+		s.Run(order.String(), func() {
+			for i, wantID := range expectedIDs {
+				page, err := s.BillingAdapter.ListInvoices(ctx, billing.ListInvoicesAdapterInput{
+					Namespace: namespace,
+					Page:      pagination.NewPage(i+1, 1),
+					Order:     order,
+				})
+				s.Require().NoError(err)
+				s.Require().Len(page.Items, 1)
+				invoice, err := page.Items[0].AsStandardInvoice()
+				s.Require().NoError(err)
+				s.Equal(wantID, invoice.ID)
+			}
+		})
 	}
 }
 
