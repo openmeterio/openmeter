@@ -420,16 +420,19 @@ func TestEventRegistryValidators(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("payload", func(t *testing.T) {
-		validate, err := registry.PayloadValidator(billingevents.BillingInvoiceCreatedV1EventType)
+		validate, err := registry.PayloadValidator(entitlementevents.EntitlementBalanceThresholdTriggeredV1EventType)
 		require.NoError(t, err)
 
 		// given a payload marshaled from the generated struct
-		payload, err := json.Marshal(billingevents.BillingInvoiceCreatedV1Payload{
-			InvoiceId:  "01J2KNAG7SY9X6V8E5P4D3C2ZF",
-			CustomerId: "01J2KNBH8TZ0Y7W9F6Q5E4D3AG",
-			Status:     "draft",
-			Currency:   "USD",
-			Total:      "12.50",
+		payload, err := json.Marshal(entitlementevents.EntitlementBalanceThresholdTriggeredV1Payload{
+			CustomerId:     "01J2KNBH8TZ0Y7W9F6Q5E4D3AG",
+			EntitlementId:  "01J2KNAG7SY9X6V8E5P4D3C2ZF",
+			FeatureKey:     "api_requests",
+			CurrentBalance: 20,
+			Threshold: entitlementevents.EntitlementBalanceThreshold{
+				Type:  entitlementevents.EntitlementBalanceThresholdTypeUsagePercentageAtOrAbove,
+				Value: 80,
+			},
 		})
 		require.NoError(t, err)
 
