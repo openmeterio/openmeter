@@ -147,7 +147,7 @@ func (s *service) createItem(
 ) (subscription.SubscriptionItem, error) {
 	// Only new items are checked: existing items may still point at a Tax Code deleted since.
 	//
-	// TODO: this leniency is unintended and must be fixed. Replacing, cancelling, editing or
+	// TODO: this leniency is unintended and must be fixed. Replacing, canceling, editing or
 	// migrating an item that references a deleted Tax Code should fail validation pointing at the
 	// item, not silently proceed against a dead reference.
 	// TestSubscriptionItemTaxCodeReferences ("Should keep existing items referencing a

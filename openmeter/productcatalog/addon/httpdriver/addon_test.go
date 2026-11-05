@@ -89,6 +89,7 @@ func TestListAddonsResolvesTaxCodesOnce(t *testing.T) {
 		}
 	}
 }
+
 // lookupTestRateCard returns a flat fee rate card referencing the given Tax Code by ID.
 func lookupTestRateCard(key, taxCodeID string) productcatalog.RateCard {
 	return &productcatalog.FlatFeeRateCard{

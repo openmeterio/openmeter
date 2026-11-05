@@ -54,7 +54,6 @@ func TestPlanTaxCodeLookupErrors(t *testing.T) {
 	featureResolver, err := featureresolver.New(env.Feature)
 	require.NoError(t, err)
 
-
 	t.Run("Create", func(t *testing.T) {
 		t.Run("lookup failure", func(t *testing.T) {
 			// given: a tax code resolver that can't reach the database
