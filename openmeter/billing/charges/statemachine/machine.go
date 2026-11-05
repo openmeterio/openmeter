@@ -14,8 +14,9 @@ import (
 )
 
 var (
-	ErrUnsupportedOperation    = models.NewGenericPreConditionFailedError(errors.New("unsupported operation"))
-	ErrUnhandledInvoicePatches = errors.New("unhandled invoice patches")
+	ErrCodeUnsupportedOperation = models.ErrorCode("unsupported_operation")
+	ErrUnsupportedOperation     = models.NewGenericPreConditionFailedError(errors.New("unsupported operation"))
+	ErrUnhandledInvoicePatches  = errors.New("unhandled invoice patches")
 )
 
 type Status interface {
@@ -191,13 +192,22 @@ func (m *Machine[CHARGE, BASE, STATUS]) fireAndActivate(ctx context.Context, tri
 	}
 
 	if !canFire {
-		return fmt.Errorf(
-			"%w: %s [status=%s,id=%s]",
-			ErrUnsupportedOperation,
-			trigger,
-			m.Charge.GetStatus(),
-			m.Charge.GetChargeID().ID,
-		)
+		return models.NewError(
+			ErrCodeUnsupportedOperation,
+			fmt.Sprintf(
+				"%v: %s [status=%s,id=%s]",
+				ErrUnsupportedOperation,
+				trigger,
+				m.Charge.GetStatus(),
+				m.Charge.GetChargeID().ID,
+			),
+			models.WithCriticalSeverity(),
+			models.WithCause(ErrUnsupportedOperation),
+		).WithAttrs(models.Attributes{
+			"trigger":       trigger,
+			"charge_id":     m.Charge.GetChargeID().ID,
+			"charge_status": string(m.Charge.GetStatus()),
+		})
 	}
 
 	if err := m.stateMachine.FireCtx(ctx, trigger, fireArgs...); err != nil {
