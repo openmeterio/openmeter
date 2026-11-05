@@ -398,6 +398,8 @@ one.
   nominal period. Its service period therefore describes the nominal checkpoint
   covered by the run, not strict provenance for every event included in its
   metered quantity.
+- An outstanding usage-based realization exposes `usage` only when a live read
+  is available. A value of `"0"` means the read has no unbooked usage.
 - A usage-based run's metered quantity is cumulative from charge start to the run
   boundary and preserves the raw meter snapshot, even when negative. A billing
   standard line retains the signed line-period difference and preceding snapshot

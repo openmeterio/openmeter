@@ -460,15 +460,18 @@ func convertUsageBasedRealizationsToAPI(realizations []billingcharges.CustomerCh
 	out := make([]api.BillingChargeRealization, 0, len(realizations))
 
 	for _, resolved := range realizations {
+		var usage *api.Numeric
+		if resolved.Quantity != nil {
+			usage = lo.ToPtr(resolved.Quantity.String())
+		}
+
 		if resolved.Run == nil {
 			// The outstanding entry is not a persisted run, so it has no ID,
-			// invoice, line, or payment. Its quantity is the not-yet-booked
-			// remainder of the live read under the real_time_usage expand, zero
-			// otherwise.
+			// invoice, line, or payment.
 			out = append(out, api.BillingChargeRealization{
 				ServicePeriod: ConvertClosedPeriodToAPI(resolved.ServicePeriod),
 				Type:          api.BillingChargeRealizationTypeOutstanding,
-				Usage:         lo.ToPtr(resolved.Quantity.String()),
+				Usage:         usage,
 			})
 
 			continue
@@ -499,7 +502,7 @@ func convertUsageBasedRealizationsToAPI(realizations []billingcharges.CustomerCh
 			Payment:       convertRealizationPaymentToAPI(run.Payment),
 			ServicePeriod: ConvertClosedPeriodToAPI(resolved.ServicePeriod),
 			Type:          realizationType,
-			Usage:         lo.ToPtr(resolved.Quantity.String()),
+			Usage:         usage,
 		}
 
 		if expands.Has(meta.ExpandRealizationTotals) {

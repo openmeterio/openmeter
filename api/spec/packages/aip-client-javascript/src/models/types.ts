@@ -7087,9 +7087,9 @@ export interface ChargeRealization {
    * correction (or a voided run that snapshotted behind its live neighbors) instead
    * of masking it as zero.
    *
-   * On an `outstanding` entry this is `0` unless the `real_time_usage` expand is
-   * applied, in which case it is the not-yet-booked remainder of the live metering
-   * read (never negative).
+   * On an `outstanding` entry, usage is omitted unless `real_time_usage` supplies
+   * a live reading. When present, it is the unbooked remainder of that reading,
+   * floored at zero.
    */
   usage?: string
   /**
@@ -10448,9 +10448,9 @@ export interface ChargeRealizationInput {
    * correction (or a voided run that snapshotted behind its live neighbors) instead
    * of masking it as zero.
    *
-   * On an `outstanding` entry this is `0` unless the `real_time_usage` expand is
-   * applied, in which case it is the not-yet-booked remainder of the live metering
-   * read (never negative).
+   * On an `outstanding` entry, usage is omitted unless `real_time_usage` supplies
+   * a live reading. When present, it is the unbooked remainder of that reading,
+   * floored at zero.
    */
   usage?: string
   /**
