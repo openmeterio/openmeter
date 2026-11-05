@@ -15,7 +15,7 @@ components:
       properties:
         type:
           allOf:
-            - $ref: "#/components/schemas/EntitlementBalanceThresholdType"
+            - $ref: '#/components/schemas/EntitlementBalanceThresholdType'
           description: Condition kind of the threshold.
         value:
           type: number
@@ -34,15 +34,15 @@ components:
       properties:
         customer_id:
           allOf:
-            - $ref: "#/components/schemas/ULID"
+            - $ref: '#/components/schemas/ULID'
           description: Customer owning the entitlement.
         entitlement_id:
           allOf:
-            - $ref: "#/components/schemas/ULID"
+            - $ref: '#/components/schemas/ULID'
           description: Entitlement whose balance crossed the threshold.
         feature_key:
           allOf:
-            - $ref: "#/components/schemas/ResourceKey"
+            - $ref: '#/components/schemas/ResourceKey'
           description: Feature of the entitlement.
         current_balance:
           type: number
@@ -50,7 +50,7 @@ components:
           description: Balance at evaluation time.
         threshold:
           allOf:
-            - $ref: "#/components/schemas/EntitlementBalanceThreshold"
+            - $ref: '#/components/schemas/EntitlementBalanceThreshold'
           description: Threshold that was crossed.
       additionalProperties: false
       description: Payload of `v1.entitlement.balance_threshold.triggered`.
@@ -62,13 +62,13 @@ components:
         thresholds:
           type: array
           items:
-            $ref: "#/components/schemas/EntitlementBalanceThreshold"
+            $ref: '#/components/schemas/EntitlementBalanceThreshold'
           minItems: 1
           description: Thresholds evaluated against the entitlement balance.
         features:
           type: array
           items:
-            $ref: "#/components/schemas/ResourceKey"
+            $ref: '#/components/schemas/ResourceKey'
           description: Feature keys the Rule is limited to. All features when omitted.
       additionalProperties: false
       description: Rule configuration of `v1.entitlement.balance_threshold.triggered`.
