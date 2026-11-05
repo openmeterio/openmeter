@@ -38,8 +38,8 @@ func TestSubscriptionEditProratedCreditHistory(t *testing.T) {
 	deps := setup(t, setupConfig{enableCharges: true})
 	defer deps.cleanup(t)
 	ctx := t.Context()
-	provisionSubscriptionDefaultTaxCodes(t, deps, namespace)
-	_, err := deps.billingService.CreateProfile(ctx, minimalCreateProfileInputTemplate(deps.sandboxApp.GetID()))
+	deps.TaxCodeEnv.ProvisionDefaultTaxCodes(t, namespace)
+	_, err := deps.billingService.CreateProfile(ctx, MinimalCreateProfileInputTemplate(deps.sandboxApp.GetID()))
 	require.NoError(t, err)
 	customer := createUSDSubscriptionCustomer(t, deps, namespace, "prorated-credit-history")
 	currency := currenciestestutils.NewFiatCurrency(t, "USD")
@@ -154,13 +154,13 @@ func TestSubscriptionEditProratedCreditHistory(t *testing.T) {
 	require.NoError(t, err)
 	versions := edited.Phases[0].ItemsByKey[rateCard.Key()]
 	require.Len(t, versions, 2)
-	require.NotEqual(t, originalItem.ID, versions[0].SubscriptionItem.ID, "the edit must exercise recreated subscription items")
+	require.NotEqual(t, originalItem.ID, versions[1].SubscriptionItem.ID, "the edit must exercise recreated subscription items")
 	require.NoError(t, deps.subscriptionSyncService.SyncByView(ctx, edited, editAt))
 	_, err = deps.chargesService.AdvanceCharges(ctx, charges.AdvanceChargesInput{Customer: customer.GetID()})
 	require.NoError(t, err)
 
 	// then: history retains the original rows and adds the refund and replacement
-	// usage, so every visible movement adds up to the customer's settled balance.
+	// usage, so every visible movement adds up to the customer's booked balance.
 	after, err := deps.customerBalanceService.ListCreditTransactions(ctx, historyInput)
 	require.NoError(t, err)
 	require.Len(t, after.Items, 4)
@@ -186,10 +186,11 @@ func TestSubscriptionEditProratedCreditHistory(t *testing.T) {
 	for _, item := range after.Items {
 		total = total.Add(item.Amount)
 	}
-	settled, err := deps.customerBalanceService.GetSettledBalance(ctx, customerbalance.GetBalanceServiceInput{
+
+	booked, err := deps.customerBalanceService.GetBookedBalance(ctx, customerbalance.GetBalanceServiceInput{
 		CustomerID: customer.GetID(), Currency: currency.Reference(),
 	})
 	require.NoError(t, err)
-	require.Equal(t, float64(73), settled.InexactFloat64())
-	require.Equal(t, settled.InexactFloat64(), total.InexactFloat64())
+	require.Equal(t, float64(73), booked.InexactFloat64())
+	require.Equal(t, booked.InexactFloat64(), total.InexactFloat64())
 }

@@ -40,6 +40,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger/creditvoid"
 	creditvoidadapter "github.com/openmeterio/openmeter/openmeter/ledger/creditvoid/adapter"
 	"github.com/openmeterio/openmeter/openmeter/ledger/customerbalance"
+	fbotestutils "github.com/openmeterio/openmeter/openmeter/ledger/fbo/testutils"
 	"github.com/openmeterio/openmeter/openmeter/ledger/recognizer"
 	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
@@ -263,7 +264,7 @@ func setup(t *testing.T, config setupConfig) testDeps {
 		require.NoError(t, err)
 		customerBalanceService, err = customerbalance.New(customerbalance.Config{
 			AccountResolver:   ledgerDeps.ResolversService,
-			SubAccountService: ledgerDeps.AccountService,
+			FBO:               fbotestutils.NewService(t, ledgerDeps, breakageService),
 			ChargesService:    stack.ChargesService,
 			UsageBasedService: stack.UsageBasedService,
 			Currencies:        stack.CurrencyService,

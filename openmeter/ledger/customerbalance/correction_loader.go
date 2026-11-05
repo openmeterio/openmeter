@@ -23,7 +23,6 @@ func newCorrectionCreditTransactionLoader(s *service) creditTransactionLoader {
 func (l *correctionCreditTransactionLoader) Load(ctx context.Context, input creditTransactionLoaderInput) (creditTransactionLoaderResult, error) {
 	items := make([]CreditTransaction, 0, input.Limit+1)
 	after, before := input.After, input.Before
-	resolved := make(map[string][]CreditTransaction)
 	accountIDs := []string{input.AccountID}
 	if input.ReceivableAccountID != "" {
 		accountIDs = append(accountIDs, input.ReceivableAccountID)
@@ -53,6 +52,7 @@ func (l *correctionCreditTransactionLoader) Load(ctx context.Context, input cred
 		if err != nil {
 			return creditTransactionLoaderResult{}, err
 		}
+
 		if len(page.Items) == 0 {
 			break
 		}
@@ -62,6 +62,8 @@ func (l *correctionCreditTransactionLoader) Load(ctx context.Context, input cred
 			resume = page.Items[0].Cursor()
 			slices.Reverse(page.Items)
 		}
+
+		resolved := make(map[string][]CreditTransaction)
 		for _, candidate := range page.Items {
 			groupID := candidate.GroupID()
 			rows, ok := resolved[groupID.ID]
@@ -70,21 +72,26 @@ func (l *correctionCreditTransactionLoader) Load(ctx context.Context, input cred
 				if err != nil {
 					return creditTransactionLoaderResult{}, fmt.Errorf("get correction group: %w", err)
 				}
+
 				rows = correctionCreditTransactions(group, input)
 				resolved[groupID.ID] = rows
 			}
+
 			for _, row := range rows {
 				if row.balanceCursor.Compare(candidate.Cursor()) == 0 && creditTransactionMatchesCursorWindow(row, input.After, input.Before) {
 					items = append(items, row)
 				}
 			}
+
 			if len(items) > input.Limit {
 				break
 			}
 		}
+
 		if page.NextCursor == nil {
 			break
 		}
+
 		if before != nil {
 			before = &resume
 		} else {
@@ -96,9 +103,11 @@ func (l *correctionCreditTransactionLoader) Load(ctx context.Context, input cred
 	if hasMore {
 		items = items[:input.Limit]
 	}
+
 	if input.Before != nil {
 		slices.Reverse(items)
 	}
+
 	return creditTransactionLoaderResult{Items: items, HasMore: hasMore}, nil
 }
 
@@ -120,6 +129,7 @@ func correctionCreditTransactions(group ledger.TransactionGroup, input creditTra
 			tx.BookedAt().After(input.AsOf) {
 			continue
 		}
+
 		if _, voided := annotations[creditvoid.AnnotationCreditVoidRecordID]; voided {
 			continue
 		}
@@ -134,9 +144,11 @@ func correctionCreditTransactions(group ledger.TransactionGroup, input creditTra
 				(address.AccountType() != ledger.AccountTypeCustomerReceivable || route.CostBasis != nil) {
 				continue
 			}
+
 			if !route.Matches(featureRoute) || (input.Currency != nil && route.Currency.GetCode() != *input.Currency) {
 				continue
 			}
+
 			key := impactKey{bookedAt: tx.BookedAt().UTC(), currency: route.Currency.IdentityKey()}
 			row, ok := impacts[key]
 			if !ok {
@@ -153,32 +165,40 @@ func correctionCreditTransactions(group ledger.TransactionGroup, input creditTra
 					balanceCursor:    &cursor,
 				}
 			}
+
 			row.Amount = row.Amount.Add(entry.Amount())
 			impacts[key] = row
 		}
+
 		for key, impact := range impacts {
 			if impact.Amount.IsZero() {
 				continue
 			}
+
 			row, ok := byImpact[key]
 			if !ok {
 				byImpact[key] = impact
 				continue
 			}
+
 			amount := row.Amount.Add(impact.Amount)
 			if impact.balanceCursor.Compare(*row.balanceCursor) > 0 {
 				row = impact
 			}
+
 			row.Amount = amount
 			byImpact[key] = row
 		}
 	}
+
 	rows := make([]CreditTransaction, 0, len(byImpact))
 	for _, row := range byImpact {
 		if !row.Amount.IsZero() {
 			rows = append(rows, row)
 		}
 	}
+
 	slices.SortFunc(rows, func(a, b CreditTransaction) int { return -compareCreditTransactionsByCursor(a, b) })
+
 	return rows
 }

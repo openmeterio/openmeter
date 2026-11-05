@@ -45,6 +45,7 @@ func TestListCreditTransactionsCorrections(t *testing.T) {
 			if tt.funded > 0 {
 				env.createPromotionalCreditGrant(t, alpacadecimal.NewFromInt(tt.funded), env.Currency, nil)
 			}
+
 			bookedAt := start.Add(time.Hour)
 			period := timeutil.ClosedPeriod{From: bookedAt, To: bookedAt.Add(24 * time.Hour)}
 			created, err := env.flatFeeService.Create(t.Context(), flatfee.CreateInput{
@@ -122,6 +123,7 @@ func TestListCreditTransactionsCorrections(t *testing.T) {
 					consumed = append(consumed, item)
 				}
 			}
+
 			require.Len(t, corrections, 2)
 			require.Len(t, consumed, 1, "internal advance reversals must not be displayed as new usage")
 			require.Equal(t, float64(-9), consumed[0].Amount.InexactFloat64())
@@ -142,6 +144,7 @@ func TestListCreditTransactionsCorrections(t *testing.T) {
 					requireCreditTransactionBalanceMatches(t, want, backward[idx])
 				}
 			}
+
 			input.Type = lo.ToPtr(CreditTransactionTypeCorrection)
 			input.AsOf = lo.ToPtr(bookedAt.Add(-time.Second))
 			before, err := env.Service.ListCreditTransactions(t.Context(), input)
@@ -183,7 +186,8 @@ func TestCorrectionCreditTransactionsProjection(t *testing.T) {
 		for key, value := range movement.annotations {
 			annotations[key] = value
 		}
-		route := ledger.Route{Currency: movement.currency, Features: movement.features}
+
+		route := ledger.Route{Currency: movement.currency, Filters: ledger.CreditFilters{Features: movement.features}}
 		key, err := ledger.BuildRoutingKey(route)
 		require.NoError(t, err)
 		tx, err := ledgerhistorical.NewTransactionFromData(ledgerhistorical.TransactionData{
@@ -198,6 +202,7 @@ func TestCorrectionCreditTransactionsProjection(t *testing.T) {
 		require.NoError(t, err)
 		txs = append(txs, tx)
 	}
+
 	group := ledgerhistorical.NewTransactionGroupFromData(ledgerhistorical.TransactionGroupData{Namespace: "ns", ID: "group-id"}, txs)
 
 	for _, tt := range []struct {
@@ -255,6 +260,7 @@ func TestListCreditTransactionsLegacyCorrection(t *testing.T) {
 			}
 		}
 	}
+
 	require.NotNil(t, source)
 	clock.FreezeTime(start.Add(time.Hour))
 	chargeID := "legacy-spend"

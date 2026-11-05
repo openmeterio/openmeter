@@ -2,6 +2,7 @@ package customerbalance
 
 import (
 	"context"
+	"slices"
 
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/creditvoid"
@@ -51,7 +52,18 @@ func (l *ledgerCreditTransactionLoader) Load(ctx context.Context, input creditTr
 			return creditTransactionLoaderResult{}, err
 		}
 
-		for _, tx := range result.Items {
+		page := result.Items
+		if len(page) == 0 {
+			break
+		}
+
+		if before != nil {
+			// Scan nearest first so hidden rows can be replaced from the next page.
+			page = slices.Clone(page)
+			slices.Reverse(page)
+		}
+
+		for _, tx := range page {
 			if _, ok := tx.Annotations()[creditvoid.AnnotationCreditVoidRecordID]; ok {
 				continue
 			}
@@ -69,7 +81,8 @@ func (l *ledgerCreditTransactionLoader) Load(ctx context.Context, input creditTr
 		}
 
 		if before != nil {
-			before = result.NextCursor
+			cursor := page[len(page)-1].Cursor()
+			before = &cursor
 		} else {
 			after = result.NextCursor
 		}
@@ -77,6 +90,10 @@ func (l *ledgerCreditTransactionLoader) Load(ctx context.Context, input creditTr
 
 	if len(txs) > input.Limit {
 		txs = txs[:input.Limit]
+	}
+
+	if input.Before != nil {
+		slices.Reverse(txs)
 	}
 
 	items, err := creditTransactionsFromLedgerTransactions(txs)

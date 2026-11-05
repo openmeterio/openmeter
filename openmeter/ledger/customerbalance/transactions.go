@@ -187,8 +187,10 @@ func (s *service) ListCreditTransactions(ctx context.Context, input ListCreditTr
 		for _, items := range loadedLists {
 			slices.Reverse(items)
 		}
+
 		compare = func(a, b CreditTransaction) int { return -compareCreditTransactionsByCursor(a, b) }
 	}
+
 	mergedItems, bufferedHasMore := mergeSortedLists(
 		loadedLists,
 		input.Limit,
@@ -197,6 +199,7 @@ func (s *service) ListCreditTransactions(ctx context.Context, input ListCreditTr
 	if input.Before != nil {
 		slices.Reverse(mergedItems)
 	}
+
 	// bufferedHasMore only reflects whether there are still items in the fetched in-memory lists.
 	// loadersHaveMore captures additional records in the requested cursor direction beyond each loader's in-memory window.
 	hasMoreInQueryDirection := bufferedHasMore || loadersHaveMore
