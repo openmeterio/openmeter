@@ -93,8 +93,6 @@ type RateCardMeta struct {
 	EntitlementTemplate *EntitlementTemplate `json:"entitlementTemplate,omitempty"`
 
 	// TaxConfig references the Tax Code applied to the RateCard, plus an optional tax behavior.
-	// Provider codes (e.g. Stripe) aren't stored here: v1 handlers resolve them to a Tax Code at
-	// the API boundary.
 	TaxConfig *TaxCodeConfig `json:"taxConfig,omitempty"`
 
 	// Price defines the price for the RateCard
@@ -725,8 +723,8 @@ func (c RateCards) Clone() RateCards {
 	return clone
 }
 
-// TaxCodeIDs returns the distinct Tax Code IDs the rate cards reference, in first-seen order, so
-// callers can look them all up in one batch.
+// TaxCodeIDs returns the distinct Tax Code IDs the rate cards reference, so callers can look them
+// all up in one batch before rendering v1 output.
 func (c RateCards) TaxCodeIDs() []string {
 	return lo.Uniq(lo.FilterMap(c, func(rc RateCard, _ int) (string, bool) {
 		cfg := rc.AsMeta().TaxConfig

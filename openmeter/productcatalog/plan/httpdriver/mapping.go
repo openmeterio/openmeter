@@ -17,8 +17,8 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-// FromPlan maps a plan to its v1 shape. taxCodes holds the Tax Codes referenced by the plan's rate
-// cards, used to fill in the legacy stripe.code.
+// FromPlan maps a plan to its v1 shape. taxCodes must hold every Tax Code the plan's rate cards
+// reference: a missing entry is an error.
 func FromPlan(p plan.Plan, taxCodes map[string]*taxcode.TaxCode) (api.Plan, error) {
 	validationIssues, _ := p.AsProductCatalogPlan().ValidationErrors()
 

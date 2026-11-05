@@ -76,7 +76,7 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 										}),
 										TaxConfig: &TaxCodeConfig{
 											Behavior:  lo.ToPtr(InclusiveTaxBehavior),
-											TaxCodeID: "01JTAXCODE00000000000000000",
+											TaxCodeID: "01JTAXC0DE0000000000000000",
 										},
 										Price: nil,
 									},
@@ -88,7 +88,7 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 										Name: "Base fee",
 										TaxConfig: &TaxCodeConfig{
 											Behavior:  lo.ToPtr(InclusiveTaxBehavior),
-											TaxCodeID: "01JTAXCODE00000000000000001",
+											TaxCodeID: "01JTAXC0DE0000000000000001",
 										},
 										Price: nil,
 									},
@@ -116,7 +116,7 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 										}),
 										TaxConfig: &TaxCodeConfig{
 											Behavior:  lo.ToPtr(InclusiveTaxBehavior),
-											TaxCodeID: "01JTAXCODE00000000000000000",
+											TaxCodeID: "01JTAXC0DE0000000000000000",
 										},
 										Price: NewPriceFrom(FlatPrice{
 											Amount:      alpacadecimal.NewFromInt(100),
@@ -131,7 +131,7 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 										Name: "Base fee",
 										TaxConfig: &TaxCodeConfig{
 											Behavior:  lo.ToPtr(InclusiveTaxBehavior),
-											TaxCodeID: "01JTAXCODE00000000000000001",
+											TaxCodeID: "01JTAXC0DE0000000000000001",
 										},
 										Price: NewPriceFrom(FlatPrice{
 											Amount: alpacadecimal.NewFromInt(250),
@@ -169,7 +169,7 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 								}),
 								TaxConfig: &TaxCodeConfig{
 									Behavior:  lo.ToPtr(InclusiveTaxBehavior),
-									TaxCodeID: "01JTAXCODE00000000000000000",
+									TaxCodeID: "01JTAXC0DE0000000000000000",
 								},
 								Price: NewPriceFrom(FlatPrice{
 									Amount:      alpacadecimal.NewFromInt(99),
@@ -230,7 +230,7 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 										}),
 										TaxConfig: &TaxCodeConfig{
 											Behavior:  lo.ToPtr(InclusiveTaxBehavior),
-											TaxCodeID: "01JTAXCODE00000000000000000",
+											TaxCodeID: "01JTAXC0DE0000000000000000",
 										},
 										Price: nil,
 									},
@@ -242,7 +242,7 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 										Name: "Base fee",
 										TaxConfig: &TaxCodeConfig{
 											Behavior:  lo.ToPtr(InclusiveTaxBehavior),
-											TaxCodeID: "01JTAXCODE00000000000000001",
+											TaxCodeID: "01JTAXC0DE0000000000000001",
 										},
 										Price: nil,
 									},
@@ -270,7 +270,7 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 										}),
 										TaxConfig: &TaxCodeConfig{
 											Behavior:  lo.ToPtr(InclusiveTaxBehavior),
-											TaxCodeID: "01JTAXCODE00000000000000000",
+											TaxCodeID: "01JTAXC0DE0000000000000000",
 										},
 										Price: NewPriceFrom(UnitPrice{
 											Amount: alpacadecimal.NewFromInt(100),
@@ -284,7 +284,7 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 										Name: "Base fee",
 										TaxConfig: &TaxCodeConfig{
 											Behavior:  lo.ToPtr(InclusiveTaxBehavior),
-											TaxCodeID: "01JTAXCODE00000000000000001",
+											TaxCodeID: "01JTAXC0DE0000000000000001",
 										},
 										Price: NewPriceFrom(FlatPrice{
 											Amount: alpacadecimal.NewFromInt(250),
@@ -323,7 +323,7 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 								}),
 								TaxConfig: &TaxCodeConfig{
 									Behavior:  lo.ToPtr(InclusiveTaxBehavior),
-									TaxCodeID: "01JTAXCODE00000000000000000",
+									TaxCodeID: "01JTAXC0DE0000000000000000",
 								},
 								Price: NewPriceFrom(FlatPrice{
 									Amount:      alpacadecimal.NewFromInt(99),
@@ -405,7 +405,7 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 										}),
 										TaxConfig: &TaxCodeConfig{
 											Behavior:  lo.ToPtr(InclusiveTaxBehavior),
-											TaxCodeID: "01JTAXCODE00000000000000000",
+											TaxCodeID: "01JTAXC0DE0000000000000000",
 										},
 										Price: nil,
 									},
@@ -417,7 +417,7 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 										Name: "Base fee",
 										TaxConfig: &TaxCodeConfig{
 											Behavior:  lo.ToPtr(InclusiveTaxBehavior),
-											TaxCodeID: "01JTAXCODE00000000000000001",
+											TaxCodeID: "01JTAXC0DE0000000000000001",
 										},
 										Price: nil,
 									},
@@ -445,7 +445,7 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 										}),
 										TaxConfig: &TaxCodeConfig{
 											Behavior:  lo.ToPtr(InclusiveTaxBehavior),
-											TaxCodeID: "01JTAXCODE00000000000000000",
+											TaxCodeID: "01JTAXC0DE0000000000000000",
 										},
 										Price: NewPriceFrom(UnitPrice{
 											Amount: alpacadecimal.NewFromInt(100),
@@ -459,7 +459,7 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 										Name: "Base fee",
 										TaxConfig: &TaxCodeConfig{
 											Behavior:  lo.ToPtr(InclusiveTaxBehavior),
-											TaxCodeID: "01JTAXCODE00000000000000001",
+											TaxCodeID: "01JTAXC0DE0000000000000001",
 										},
 										Price: NewPriceFrom(FlatPrice{
 											Amount: alpacadecimal.NewFromInt(250),
@@ -493,7 +493,7 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 								}),
 								TaxConfig: &TaxCodeConfig{
 									Behavior:  lo.ToPtr(InclusiveTaxBehavior),
-									TaxCodeID: "01JTAXCODE00000000000000000",
+									TaxCodeID: "01JTAXC0DE0000000000000000",
 								},
 								Price: NewPriceFrom(FlatPrice{
 									Amount:      alpacadecimal.NewFromInt(99),

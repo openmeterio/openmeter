@@ -41,8 +41,8 @@ func (s *listPlanAddonsService) ListPlanAddons(_ context.Context, input planaddo
 func TestListPlanAddonsResolvesTaxCodesOnce(t *testing.T) {
 	const (
 		namespace = "ns"
-		taxCodeA  = "01JTAXCODE0000000000000000A"
-		taxCodeB  = "01JTAXCODE0000000000000000B"
+		taxCodeA  = "01JTAXC0DE0000000000000000A"
+		taxCodeB  = "01JTAXC0DE0000000000000000B"
 	)
 
 	stripeCodes := map[string]string{taxCodeA: "txcd_10000000", taxCodeB: "txcd_20030000"}
@@ -56,49 +56,10 @@ func TestListPlanAddonsResolvesTaxCodesOnce(t *testing.T) {
 		}),
 	}
 
-	rateCard := func(key, taxCodeID string) productcatalog.RateCard {
-		return &productcatalog.FlatFeeRateCard{
-			RateCardMeta: productcatalog.RateCardMeta{
-				Key:       key,
-				Name:      key,
-				TaxConfig: &productcatalog.TaxCodeConfig{TaxCodeID: taxCodeID},
-			},
-		}
-	}
-
-	newAddon := func(id string) addon.Addon {
-		return addon.Addon{
-			NamespacedID: models.NamespacedID{Namespace: namespace, ID: id},
-			AddonMeta: productcatalog.AddonMeta{
-				Key:          id,
-				Name:         id,
-				Version:      1,
-				Currency:     currencies.NewCurrencyReference("USD"),
-				InstanceType: productcatalog.AddonInstanceTypeSingle,
-			},
-			// taxCodeA is shared by both add-ons, so the batch must deduplicate it.
-			RateCards: addon.RateCards{{RateCard: rateCard("a", taxCodeA)}, {RateCard: rateCard("b", taxCodeB)}},
-		}
-	}
-
-	newPlanAddon := func(addonID string) planaddon.PlanAddon {
-		return planaddon.PlanAddon{
-			NamespacedID: models.NamespacedID{Namespace: namespace, ID: "plan-1-" + addonID},
-			Plan: plan.Plan{
-				NamespacedID: models.NamespacedID{Namespace: namespace, ID: "plan-1"},
-				PlanMeta: productcatalog.PlanMeta{
-					Key:      "plan-1",
-					Name:     "plan-1",
-					Version:  1,
-					Currency: currencies.NewCurrencyReference("USD"),
-				},
-			},
-			Addon: newAddon(addonID),
-		}
-	}
+	original, target := lookupTestPlanAddon(namespace, "addon-1", taxCodeA, taxCodeB), lookupTestPlanAddon(namespace, "addon-2", taxCodeA, taxCodeB)
 
 	// given: two plan add-ons whose add-on rate cards reference two distinct Tax Codes, one of them repeated
-	svc := &listPlanAddonsService{planAddons: []planaddon.PlanAddon{newPlanAddon("addon-1"), newPlanAddon("addon-2")}}
+	svc := &listPlanAddonsService{planAddons: []planaddon.PlanAddon{original, target}}
 	handler := httpdriver.New(namespacedriver.StaticNamespaceDecoder(namespace), svc, resolver)
 
 	// when: the plan's add-ons are listed
@@ -127,5 +88,49 @@ func TestListPlanAddonsResolvesTaxCodesOnce(t *testing.T) {
 			require.NotNil(t, flat.TaxConfig.Stripe, "rate card %s", flat.Key)
 			assert.Equal(t, stripeCodes[*flat.TaxConfig.TaxCodeId], flat.TaxConfig.Stripe.Code, "rate card %s", flat.Key)
 		}
+	}
+}
+// lookupTestRateCard returns a flat fee rate card referencing the given Tax Code by ID.
+func lookupTestRateCard(key, taxCodeID string) productcatalog.RateCard {
+	return &productcatalog.FlatFeeRateCard{
+		RateCardMeta: productcatalog.RateCardMeta{
+			Key:       key,
+			Name:      key,
+			TaxConfig: &productcatalog.TaxCodeConfig{TaxCodeID: taxCodeID},
+		},
+	}
+}
+
+// lookupTestPlanAddon returns a minimal plan add-on assignment whose add-on rate cards reference
+// two Tax Codes; taxCodeA is shared by both cards, so a listing batch must deduplicate it.
+func lookupTestPlanAddon(namespace, key, taxCodeA, taxCodeB string) planaddon.PlanAddon {
+	return planaddon.PlanAddon{
+		NamespacedID: models.NamespacedID{Namespace: namespace, ID: "plan-1-" + key},
+		Plan: plan.Plan{
+			NamespacedID: models.NamespacedID{Namespace: namespace, ID: "plan-1"},
+			PlanMeta: productcatalog.PlanMeta{
+				Key:      "plan-1",
+				Name:     "plan-1",
+				Version:  1,
+				Currency: currencies.NewCurrencyReference("USD"),
+			},
+		},
+		Addon: lookupTestAddon(namespace, key, taxCodeA, taxCodeB),
+	}
+}
+
+// lookupTestAddon returns a minimal add-on whose rate cards reference two Tax Codes; taxCodeA is
+// shared by both cards, so a listing batch must deduplicate it.
+func lookupTestAddon(namespace, key, taxCodeA, taxCodeB string) addon.Addon {
+	return addon.Addon{
+		NamespacedID: models.NamespacedID{Namespace: namespace, ID: key},
+		AddonMeta: productcatalog.AddonMeta{
+			Key:          key,
+			Name:         key,
+			Version:      1,
+			Currency:     currencies.NewCurrencyReference("USD"),
+			InstanceType: productcatalog.AddonInstanceTypeSingle,
+		},
+		RateCards: addon.RateCards{{RateCard: lookupTestRateCard("a", taxCodeA)}, {RateCard: lookupTestRateCard("b", taxCodeB)}},
 	}
 }

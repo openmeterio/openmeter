@@ -54,94 +54,28 @@ func TestPlanTaxCodeLookupErrors(t *testing.T) {
 	featureResolver, err := featureresolver.New(env.Feature)
 	require.NoError(t, err)
 
-	newPlanService := func(t *testing.T, resolver productcatalog.TaxCodeResolver) plan.Service {
-		t.Helper()
-
-		svc, err := planservice.New(planservice.Config{
-			Adapter:          env.PlanRepository,
-			Logger:           env.Logger,
-			Publisher:        env.Publisher,
-			FeatureResolver:  featureResolver,
-			CurrencyResolver: env.CurrencyResolver,
-			TaxCodeResolver:  resolver,
-		})
-		require.NoError(t, err)
-
-		return svc
-	}
-
-	// handledAsValidationError reports whether the v1 plan error encoder answers err with a 400.
-	handledAsValidationError := func(t *testing.T, err error) bool {
-		t.Helper()
-
-		rec := httptest.NewRecorder()
-		handled := productcataloghttp.ValidationErrorEncoder(productcataloghttp.ResourceKindPlan)(
-			t.Context(), err, rec, httptest.NewRequest(http.MethodPost, "/", nil))
-		if handled {
-			assert.Equal(t, http.StatusBadRequest, rec.Code)
-		}
-
-		return handled
-	}
-
-	rateCard := func() productcatalog.RateCard {
-		return pctestutils.NewTestFlatRateCard("rc", &productcatalog.TaxCodeConfig{TaxCodeID: "01JTAXCODE00000000000000000"})
-	}
-
-	updatePhases := func() *[]productcatalog.Phase {
-		return &[]productcatalog.Phase{{
-			PhaseMeta: productcatalog.PhaseMeta{Key: "default", Name: "Default"},
-			RateCards: productcatalog.RateCards{rateCard()},
-		}}
-	}
-
-	lookupErr := errors.New("connection refused")
-
-	requireInternalError := func(t *testing.T, err error) {
-		t.Helper()
-
-		require.Error(t, err)
-		assert.ErrorIs(t, err, lookupErr)
-		assert.False(t, models.IsGenericValidationError(err), "lookup failure must not be a validation error: %v", err)
-
-		_, issuesErr := models.AsValidationIssues(err)
-		assert.Error(t, issuesErr, "lookup failure must not convert to validation issues")
-		assert.False(t, handledAsValidationError(t, err), "lookup failure must not be answered with a 400")
-	}
-
-	requirePhaseValidationError := func(t *testing.T, err error) {
-		t.Helper()
-
-		pctestutils.RequireTaxCodeNotFound(t, err)
-
-		issues, issuesErr := models.AsValidationIssues(err)
-		require.NoError(t, issuesErr)
-		require.NotEmpty(t, issues)
-		assert.Contains(t, issues[0].Field().String(), "phases")
-		assert.True(t, handledAsValidationError(t, err))
-	}
 
 	t.Run("Create", func(t *testing.T) {
 		t.Run("lookup failure", func(t *testing.T) {
 			// given: a tax code resolver that can't reach the database
-			svc := newPlanService(t, failingTaxCodeResolver{err: lookupErr})
+			svc := newLookupTestPlanService(t, env, featureResolver, failingTaxCodeResolver{err: errTaxCodeLookupFailure})
 
 			// when: a plan referencing a Tax Code is created
-			_, err := svc.CreatePlan(t.Context(), newTestPlanInput(t, namespace, "create-lookup-failure", rateCard()))
+			_, err := svc.CreatePlan(t.Context(), newTestPlanInput(t, namespace, "create-lookup-failure", lookupTestRateCard()))
 
 			// then: the error stays internal
-			requireInternalError(t, err)
+			requireLookupInternalError(t, err)
 		})
 
 		t.Run("missing tax code", func(t *testing.T) {
 			// given: a tax code resolver that finds nothing
-			svc := newPlanService(t, failingTaxCodeResolver{})
+			svc := newLookupTestPlanService(t, env, featureResolver, failingTaxCodeResolver{})
 
 			// when: a plan referencing a Tax Code is created
-			_, err := svc.CreatePlan(t.Context(), newTestPlanInput(t, namespace, "create-missing", rateCard()))
+			_, err := svc.CreatePlan(t.Context(), newTestPlanInput(t, namespace, "create-missing", lookupTestRateCard()))
 
 			// then: it is a validation issue on the phase
-			requirePhaseValidationError(t, err)
+			requireLookupPhaseValidationError(t, err)
 		})
 	})
 
@@ -151,30 +85,108 @@ func TestPlanTaxCodeLookupErrors(t *testing.T) {
 
 		t.Run("lookup failure", func(t *testing.T) {
 			// given: a tax code resolver that can't reach the database
-			svc := newPlanService(t, failingTaxCodeResolver{err: lookupErr})
+			svc := newLookupTestPlanService(t, env, featureResolver, failingTaxCodeResolver{err: errTaxCodeLookupFailure})
 
 			// when: the plan's rate card is updated to reference a Tax Code
 			_, err := svc.UpdatePlan(t.Context(), plan.UpdatePlanInput{
 				NamespacedID: p.NamespacedID,
-				Phases:       updatePhases(),
+				Phases:       lookupTestUpdatePhases(),
 			})
 
 			// then: the error stays internal
-			requireInternalError(t, err)
+			requireLookupInternalError(t, err)
 		})
 
 		t.Run("missing tax code", func(t *testing.T) {
 			// given: a tax code resolver that finds nothing
-			svc := newPlanService(t, failingTaxCodeResolver{})
+			svc := newLookupTestPlanService(t, env, featureResolver, failingTaxCodeResolver{})
 
 			// when: the plan's rate card is updated to reference a Tax Code
 			_, err := svc.UpdatePlan(t.Context(), plan.UpdatePlanInput{
 				NamespacedID: p.NamespacedID,
-				Phases:       updatePhases(),
+				Phases:       lookupTestUpdatePhases(),
 			})
 
 			// then: it is a validation issue on the phase
-			requirePhaseValidationError(t, err)
+			requireLookupPhaseValidationError(t, err)
 		})
 	})
+}
+
+// errTaxCodeLookupFailure simulates the resolver failing to reach the database.
+var errTaxCodeLookupFailure = errors.New("connection refused")
+
+// newLookupTestPlanService builds the plan service around a custom Tax Code resolver.
+func newLookupTestPlanService(
+	t *testing.T,
+	env *pctestutils.TestEnv,
+	featureResolver productcatalog.FeatureResolver,
+	resolver productcatalog.TaxCodeResolver,
+) plan.Service {
+	t.Helper()
+
+	svc, err := planservice.New(planservice.Config{
+		Adapter:          env.PlanRepository,
+		Logger:           env.Logger,
+		Publisher:        env.Publisher,
+		FeatureResolver:  featureResolver,
+		CurrencyResolver: env.CurrencyResolver,
+		TaxCodeResolver:  resolver,
+	})
+	require.NoError(t, err)
+
+	return svc
+}
+
+// handledAsValidationError reports whether the v1 plan error encoder answers err with a 400.
+func handledAsValidationError(t *testing.T, err error) bool {
+	t.Helper()
+
+	rec := httptest.NewRecorder()
+	handled := productcataloghttp.ValidationErrorEncoder(productcataloghttp.ResourceKindPlan)(
+		t.Context(), err, rec, httptest.NewRequest(http.MethodPost, "/", nil))
+	if handled {
+		assert.Equal(t, http.StatusBadRequest, rec.Code)
+	}
+
+	return handled
+}
+
+// lookupTestRateCard returns a flat fee rate card referencing a Tax Code by ID.
+func lookupTestRateCard() productcatalog.RateCard {
+	return pctestutils.NewTestFlatRateCard("rc", &productcatalog.TaxCodeConfig{TaxCodeID: "01JTAXC0DE0000000000000000"})
+}
+
+// lookupTestUpdatePhases wraps a taxed rate card in a single replacement phase.
+func lookupTestUpdatePhases() *[]productcatalog.Phase {
+	return &[]productcatalog.Phase{{
+		PhaseMeta: productcatalog.PhaseMeta{Key: "default", Name: "Default"},
+		RateCards: productcatalog.RateCards{lookupTestRateCard()},
+	}}
+}
+
+// requireLookupInternalError asserts the error stays an internal failure, not a validation issue.
+func requireLookupInternalError(t *testing.T, err error) {
+	t.Helper()
+
+	require.Error(t, err)
+	assert.ErrorIs(t, err, errTaxCodeLookupFailure)
+	assert.False(t, models.IsGenericValidationError(err), "lookup failure must not be a validation error: %v", err)
+
+	_, issuesErr := models.AsValidationIssues(err)
+	assert.Error(t, issuesErr, "lookup failure must not convert to validation issues")
+	assert.False(t, handledAsValidationError(t, err), "lookup failure must not be answered with a 400")
+}
+
+// requireLookupPhaseValidationError asserts the error is a validation issue on the phase.
+func requireLookupPhaseValidationError(t *testing.T, err error) {
+	t.Helper()
+
+	pctestutils.RequireTaxCodeNotFound(t, err)
+
+	issues, issuesErr := models.AsValidationIssues(err)
+	require.NoError(t, issuesErr)
+	require.NotEmpty(t, issues)
+	assert.Contains(t, issues[0].Field().String(), "phases")
+	assert.True(t, handledAsValidationError(t, err))
 }

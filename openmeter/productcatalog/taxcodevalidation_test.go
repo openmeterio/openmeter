@@ -42,12 +42,18 @@ func (s *stubTaxCodeResolver) WithNamespace(string) productcatalog.NamespacedTax
 	return nil
 }
 
+func newFlatRateCard(key string, cfg *productcatalog.TaxCodeConfig) productcatalog.RateCard {
+	return &productcatalog.FlatFeeRateCard{
+		RateCardMeta: productcatalog.RateCardMeta{Key: key, Name: key, TaxConfig: cfg},
+	}
+}
+
 func TestValidateRateCardTaxCodes(t *testing.T) {
 	const (
 		namespace = "ns"
-		liveID    = "01JTAXCODE00000000000000000"
-		deletedID = "01JTAXCODE00000000000000001"
-		missingID = "01JTAXCODE00000000000000002"
+		liveID    = "01JTAXC0DE0000000000000000"
+		deletedID = "01JTAXC0DE0000000000000001"
+		missingID = "01JTAXC0DE0000000000000002"
 	)
 
 	taxCodes := map[string]*taxcode.TaxCode{
@@ -56,12 +62,6 @@ func TestValidateRateCardTaxCodes(t *testing.T) {
 			NamespacedID: models.NamespacedID{Namespace: namespace, ID: deletedID},
 			ManagedModel: models.ManagedModel{DeletedAt: lo.ToPtr(clock.Now().Add(-1))},
 		},
-	}
-
-	rateCard := func(key string, cfg *productcatalog.TaxCodeConfig) productcatalog.RateCard {
-		return &productcatalog.FlatFeeRateCard{
-			RateCardMeta: productcatalog.RateCardMeta{Key: key, Name: key, TaxConfig: cfg},
-		}
 	}
 
 	tests := []struct {
@@ -74,34 +74,34 @@ func TestValidateRateCardTaxCodes(t *testing.T) {
 	}{
 		{
 			name:      "no tax configs skip the lookup",
-			rateCards: productcatalog.RateCards{rateCard("a", nil)},
+			rateCards: productcatalog.RateCards{newFlatRateCard("a", nil)},
 		},
 		{
 			name: "behavior only skips the lookup",
 			rateCards: productcatalog.RateCards{
-				rateCard("a", &productcatalog.TaxCodeConfig{Behavior: lo.ToPtr(productcatalog.InclusiveTaxBehavior)}),
+				newFlatRateCard("a", &productcatalog.TaxCodeConfig{Behavior: lo.ToPtr(productcatalog.InclusiveTaxBehavior)}),
 			},
 		},
 		{
 			name:      "existing tax code",
-			rateCards: productcatalog.RateCards{rateCard("a", &productcatalog.TaxCodeConfig{TaxCodeID: liveID})},
+			rateCards: productcatalog.RateCards{newFlatRateCard("a", &productcatalog.TaxCodeConfig{TaxCodeID: liveID})},
 			wantCalls: [][]string{{liveID}},
 		},
 		{
 			name:         "missing tax code",
-			rateCards:    productcatalog.RateCards{rateCard("a", &productcatalog.TaxCodeConfig{TaxCodeID: missingID})},
+			rateCards:    productcatalog.RateCards{newFlatRateCard("a", &productcatalog.TaxCodeConfig{TaxCodeID: missingID})},
 			wantCalls:    [][]string{{missingID}},
 			wantNotFound: true,
 		},
 		{
 			name:         "deleted tax code",
-			rateCards:    productcatalog.RateCards{rateCard("a", &productcatalog.TaxCodeConfig{TaxCodeID: deletedID})},
+			rateCards:    productcatalog.RateCards{newFlatRateCard("a", &productcatalog.TaxCodeConfig{TaxCodeID: deletedID})},
 			wantCalls:    [][]string{{deletedID}},
 			wantNotFound: true,
 		},
 		{
 			name:          "resolver failure is not a validation error",
-			rateCards:     productcatalog.RateCards{rateCard("a", &productcatalog.TaxCodeConfig{TaxCodeID: liveID})},
+			rateCards:     productcatalog.RateCards{newFlatRateCard("a", &productcatalog.TaxCodeConfig{TaxCodeID: liveID})},
 			resolverErr:   errors.New("db down"),
 			wantCalls:     [][]string{{liveID}},
 			wantErrNonVal: true,
@@ -109,8 +109,8 @@ func TestValidateRateCardTaxCodes(t *testing.T) {
 		{
 			name: "shared tax code is looked up once",
 			rateCards: productcatalog.RateCards{
-				rateCard("a", &productcatalog.TaxCodeConfig{TaxCodeID: liveID}),
-				rateCard("b", &productcatalog.TaxCodeConfig{TaxCodeID: liveID}),
+				newFlatRateCard("a", &productcatalog.TaxCodeConfig{TaxCodeID: liveID}),
+				newFlatRateCard("b", &productcatalog.TaxCodeConfig{TaxCodeID: liveID}),
 			},
 			wantCalls: [][]string{{liveID}},
 		},

@@ -113,7 +113,7 @@ func TestRateCardTaxConfigJSON(t *testing.T) {
 }
 
 func TestRateCardMetaEqualTaxConfig(t *testing.T) {
-	const id = "01JTAXCODE00000000000000000"
+	const id = "01JTAXC0DE0000000000000000"
 
 	tests := []struct {
 		name  string
@@ -123,7 +123,7 @@ func TestRateCardMetaEqualTaxConfig(t *testing.T) {
 	}{
 		{name: "nil and empty config", left: nil, right: &TaxCodeConfig{}, want: true},
 		{name: "same tax code", left: &TaxCodeConfig{TaxCodeID: id}, right: &TaxCodeConfig{TaxCodeID: id}, want: true},
-		{name: "different tax code", left: &TaxCodeConfig{TaxCodeID: id}, right: &TaxCodeConfig{TaxCodeID: "01JTAXCODE00000000000000001"}},
+		{name: "different tax code", left: &TaxCodeConfig{TaxCodeID: id}, right: &TaxCodeConfig{TaxCodeID: "01JTAXC0DE0000000000000001"}},
 		{
 			name:  "different behavior",
 			left:  &TaxCodeConfig{TaxCodeID: id, Behavior: lo.ToPtr(InclusiveTaxBehavior)},
@@ -273,7 +273,7 @@ func TestFlatFeeRateCard(t *testing.T) {
 							},
 						),
 						TaxConfig: &TaxCodeConfig{
-							TaxCodeID: "01JTAXCODE00000000000000099",
+							TaxCodeID: "01JTAXC0DE0000000000000099",
 						},
 						Price: NewPriceFrom(FlatPrice{
 							Amount:      decimal.NewFromInt(1000),
@@ -433,7 +433,7 @@ func TestUsageBasedRateCard(t *testing.T) {
 							},
 						),
 						TaxConfig: &TaxCodeConfig{
-							TaxCodeID: "01JTAXCODE00000000000000099",
+							TaxCodeID: "01JTAXC0DE0000000000000099",
 						},
 						Price: NewPriceFrom(
 							UnitPrice{
@@ -710,7 +710,7 @@ func TestRateCardsEqual(t *testing.T) {
 								},
 							),
 							TaxConfig: &TaxCodeConfig{
-								TaxCodeID: "01JTAXCODE00000000000000099",
+								TaxCodeID: "01JTAXC0DE0000000000000099",
 							},
 							Price: NewPriceFrom(
 								UnitPrice{
@@ -756,7 +756,7 @@ func TestRateCardsEqual(t *testing.T) {
 								},
 							),
 							TaxConfig: &TaxCodeConfig{
-								TaxCodeID: "01JTAXCODE00000000000000099",
+								TaxCodeID: "01JTAXC0DE0000000000000099",
 							},
 							Price: NewPriceFrom(
 								UnitPrice{
@@ -806,7 +806,7 @@ func TestRateCardsEqual(t *testing.T) {
 								},
 							),
 							TaxConfig: &TaxCodeConfig{
-								TaxCodeID: "01JTAXCODE00000000000000099",
+								TaxCodeID: "01JTAXC0DE0000000000000099",
 							},
 							Price: NewPriceFrom(
 								UnitPrice{
@@ -840,7 +840,7 @@ func TestRateCardsEqual(t *testing.T) {
 								},
 							),
 							TaxConfig: &TaxCodeConfig{
-								TaxCodeID: "01JTAXCODE00000000000000099",
+								TaxCodeID: "01JTAXC0DE0000000000000099",
 							},
 							Price: NewPriceFrom(FlatPrice{
 								Amount:      decimal.NewFromInt(1000),

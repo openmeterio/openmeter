@@ -1,6 +1,7 @@
 package httpdriver_test
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -25,6 +26,53 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 )
+
+// editSubscriptionSuite holds the fixtures shared by the v1 edit tests: the handler under test,
+// the services behind it, and the subscription being edited.
+type editSubscriptionSuite struct {
+	handler        subscriptionhttp.Handler
+	deps           subscriptiontestutils.SubscriptionDependencies
+	ns             string
+	phaseKey       string
+	subscriptionID string
+}
+
+// addItemOp renders an add_item edit operation with a rate card carrying the given stripe.code.
+func (s *editSubscriptionSuite) addItemOp(itemKey, stripeCode string) string {
+	return fmt.Sprintf(`{
+		"op": "add_item",
+		"phaseKey": %q,
+		"rateCard": {
+			"type": "flat_fee",
+			"key": %q,
+			"name": %q,
+			"billingCadence": "P1M",
+			"price": {"type": "flat", "amount": "10", "paymentTerm": "in_advance"},
+			"taxConfig": {"behavior": "exclusive", "stripe": {"code": %q}}
+		}
+	}`, s.phaseKey, itemKey, itemKey, stripeCode)
+}
+
+// edit serves the edit request with the given customizations.
+func (s *editSubscriptionSuite) edit(customizations ...string) *httptest.ResponseRecorder {
+	rec := httptest.NewRecorder()
+	body := fmt.Sprintf(`{"customizations": [%s]}`, strings.Join(customizations, ","))
+
+	s.handler.EditSubscription().
+		With(subscriptionhttp.EditSubscriptionParams{ID: s.subscriptionID}).
+		ServeHTTP(rec, httptest.NewRequest(http.MethodPatch, "/", strings.NewReader(body)))
+
+	return rec
+}
+
+// getTaxCode returns the Tax Code mapped to the Stripe code, if any.
+func (s *editSubscriptionSuite) getTaxCode(ctx context.Context, stripeCode string) (taxcode.TaxCode, error) {
+	return s.deps.TaxCodeEnv.Service.GetTaxCodeByAppMapping(ctx, taxcode.GetTaxCodeByAppMappingInput{
+		Namespace: s.ns,
+		AppType:   app.AppTypeStripe,
+		TaxCode:   stripeCode,
+	})
+}
 
 func TestV1EditSubscriptionResolvesLegacyStripeTaxCodes(t *testing.T) {
 	now := time.Now().UTC().Truncate(time.Second)
@@ -64,51 +112,25 @@ func TestV1EditSubscriptionResolvesLegacyStripeTaxCodes(t *testing.T) {
 
 	phaseKey := view.Phases[0].SubscriptionPhase.Key
 
-	addItem := func(itemKey, stripeCode string) string {
-		return fmt.Sprintf(`{
-			"op": "add_item",
-			"phaseKey": %q,
-			"rateCard": {
-				"type": "flat_fee",
-				"key": %q,
-				"name": %q,
-				"billingCadence": "P1M",
-				"price": {"type": "flat", "amount": "10", "paymentTerm": "in_advance"},
-				"taxConfig": {"behavior": "exclusive", "stripe": {"code": %q}}
-			}
-		}`, phaseKey, itemKey, itemKey, stripeCode)
-	}
-
-	edit := func(customizations ...string) *httptest.ResponseRecorder {
-		rec := httptest.NewRecorder()
-		body := fmt.Sprintf(`{"customizations": [%s]}`, strings.Join(customizations, ","))
-
-		handler.EditSubscription().
-			With(subscriptionhttp.EditSubscriptionParams{ID: view.Subscription.ID}).
-			ServeHTTP(rec, httptest.NewRequest(http.MethodPatch, "/", strings.NewReader(body)))
-
-		return rec
-	}
-
-	getTaxCode := func(stripeCode string) (taxcode.TaxCode, error) {
-		return deps.TaxCodeEnv.Service.GetTaxCodeByAppMapping(t.Context(), taxcode.GetTaxCodeByAppMappingInput{
-			Namespace: ns,
-			AppType:   app.AppTypeStripe,
-			TaxCode:   stripeCode,
-		})
+	s := editSubscriptionSuite{
+		handler:        handler,
+		deps:           deps,
+		ns:             ns,
+		phaseKey:       phaseKey,
+		subscriptionID: view.Subscription.ID,
 	}
 
 	t.Run("added item references a Tax Code created for its stripe.code", func(t *testing.T) {
 		// given: no Tax Code is mapped to the Stripe code yet
-		_, err := getTaxCode("txcd_20000000")
+		_, err := s.getTaxCode(t.Context(), "txcd_20000000")
 		require.True(t, taxcode.IsTaxCodeNotFoundError(err), "expected not found, got: %v", err)
 
 		// when: an item with that legacy stripe.code is added through the v1 API
-		rec := edit(addItem("taxed", "txcd_20000000"))
+		rec := s.edit(s.addItemOp("taxed", "txcd_20000000"))
 		require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
 
 		// then: a Tax Code is created and the item references it
-		tc, err := getTaxCode("txcd_20000000")
+		tc, err := s.getTaxCode(t.Context(), "txcd_20000000")
 		require.NoError(t, err)
 
 		updated, err := deps.SubscriptionService.GetView(t.Context(), view.Subscription.NamespacedID)
@@ -141,14 +163,14 @@ func TestV1EditSubscriptionResolvesLegacyStripeTaxCodes(t *testing.T) {
 
 	t.Run("failed edit doesn't leave a Tax Code behind", func(t *testing.T) {
 		// when: an edit adds an item with a new stripe.code but another operation in it fails
-		rec := edit(
-			addItem("taxed-2", "txcd_30000000"),
+		rec := s.edit(
+			s.addItemOp("taxed-2", "txcd_30000000"),
 			fmt.Sprintf(`{"op": "remove_item", "phaseKey": %q, "itemKey": "does-not-exist"}`, phaseKey),
 		)
 		require.NotEqual(t, http.StatusOK, rec.Code, rec.Body.String())
 
 		// then: the Tax Code created for the stripe.code is rolled back with the edit
-		_, err := getTaxCode("txcd_30000000")
+		_, err := s.getTaxCode(t.Context(), "txcd_30000000")
 		require.True(t, taxcode.IsTaxCodeNotFoundError(err), "expected not found, got: %v", err)
 	})
 }

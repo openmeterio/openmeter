@@ -37,8 +37,8 @@ func (s *stubBackfillResolver) ResolveOrBackfillTaxCode(_ context.Context, input
 func TestFromAPITaxConfig(t *testing.T) {
 	const (
 		namespace  = "ns"
-		inputID    = "01JTAXCODE00000000000000000"
-		resolvedID = "01JTAXCODE00000000000000001"
+		inputID    = "01JTAXC0DE0000000000000000"
+		resolvedID = "01JTAXC0DE0000000000000001"
 		stripeCode = "txcd_10000000"
 	)
 
@@ -134,7 +134,7 @@ func TestFromAPITaxConfig(t *testing.T) {
 }
 
 func TestToAPITaxConfig(t *testing.T) {
-	const id = "01JTAXCODE00000000000000000"
+	const id = "01JTAXC0DE0000000000000000"
 
 	taxCodes := map[string]*taxcode.TaxCode{
 		id: {
@@ -148,6 +148,7 @@ func TestToAPITaxConfig(t *testing.T) {
 		cfg      productcatalog.TaxCodeConfig
 		taxCodes map[string]*taxcode.TaxCode
 		want     api.TaxConfig
+		wantErr  bool
 	}{
 		{
 			name:     "stripe code from the referenced tax code",
@@ -160,9 +161,9 @@ func TestToAPITaxConfig(t *testing.T) {
 			},
 		},
 		{
-			name: "tax code not in the map",
-			cfg:  productcatalog.TaxCodeConfig{TaxCodeID: id},
-			want: api.TaxConfig{TaxCodeId: lo.ToPtr(id)},
+			name:    "tax code not in the map",
+			cfg:     productcatalog.TaxCodeConfig{TaxCodeID: id},
+			wantErr: true,
 		},
 		{
 			name: "tax code without stripe mapping",
@@ -182,7 +183,17 @@ func TestToAPITaxConfig(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.want, productcataloghttp.ToAPITaxConfig(tt.cfg, tt.taxCodes))
+			got, err := productcataloghttp.ToAPITaxConfig(tt.cfg, tt.taxCodes)
+
+			if tt.wantErr {
+				require.Error(t, err)
+				assert.ErrorContains(t, err, "tax code "+id+" not found in taxCodes")
+
+				return
+			}
+
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }

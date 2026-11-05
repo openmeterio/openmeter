@@ -13,8 +13,8 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-// FromPlanAddon maps a plan add-on assignment to its v1 shape. taxCodes holds the Tax Codes
-// referenced by the add-on's rate cards, used to fill in the legacy stripe.code.
+// FromPlanAddon maps a plan add-on assignment to its v1 shape. taxCodes must hold every Tax Code
+// referenced by the add-on's rate cards: a missing entry is an error.
 func FromPlanAddon(a planaddon.PlanAddon, taxCodes map[string]*taxcode.TaxCode) (api.PlanAddon, error) {
 	validationIssues, _ := a.AsProductCatalogPlanAddon().ValidationErrors()
 

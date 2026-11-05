@@ -9,10 +9,10 @@ import (
 	apilegacy "github.com/openmeterio/openmeter/api"
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
-	"github.com/openmeterio/openmeter/api/v3/handlers/addons"
 	"github.com/openmeterio/openmeter/api/v3/handlers/billingcommon"
 	"github.com/openmeterio/openmeter/api/v3/handlers/billingprofiles"
 	"github.com/openmeterio/openmeter/api/v3/handlers/plans"
+	"github.com/openmeterio/openmeter/api/v3/handlers/tax"
 	"github.com/openmeterio/openmeter/api/v3/labels"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
@@ -386,7 +386,7 @@ func mapRateCard(line *billing.StandardLine) (api.BillingInvoiceLineRateCard, er
 		Discounts:  toAPIRateCardDiscounts(line.RateCardDiscounts),
 		// Invoice lines still carry the legacy TaxConfig; the v3 shape only has the Tax Code ID and
 		// behavior, so dropping the Stripe code here loses nothing.
-		TaxConfig: addons.ToAPITaxCodeConfig(lo.ToPtr(productcatalog.TaxCodeConfigFrom(line.TaxConfig.ToProductCatalog()))),
+		TaxConfig: tax.ToAPITaxCodeConfig(lo.ToPtr(productcatalog.TaxCodeConfigFrom(line.TaxConfig.ToProductCatalog()))),
 	}
 
 	if uc := line.GetUnitConfig(); uc != nil {
@@ -831,7 +831,7 @@ func mapRateCardFromAPI(rc api.UpdateInvoiceLineRateCard) (*productcatalog.Price
 	// rule is enforced here, and an explicit code must carry an id. The billing validation
 	// error wrap makes the route's error encoder respond with a 400 instead of the 500
 	// fallback.
-	pcTaxConfig, err := addons.FromAPITaxCodeConfig(fromAPIUpdateTaxCodeConfig(rc.TaxConfig))
+	pcTaxConfig, err := tax.FromAPITaxCodeConfig(fromAPIUpdateTaxCodeConfig(rc.TaxConfig))
 	if err != nil {
 		return nil, nil, "", productcatalog.Discounts{}, billing.ValidationError{
 			Err: fmt.Errorf("mapping tax config: %w", err),

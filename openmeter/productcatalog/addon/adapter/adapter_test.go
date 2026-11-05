@@ -465,21 +465,6 @@ func TestAddonRateCardTaxColumns(t *testing.T) {
 		},
 	})
 
-	flatFee := func(key string, cfg *productcatalog.TaxCodeConfig) productcatalog.RateCard {
-		return &productcatalog.FlatFeeRateCard{
-			RateCardMeta: productcatalog.RateCardMeta{
-				Key:       key,
-				Name:      key,
-				TaxConfig: cfg,
-				Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
-					Amount:      decimal.NewFromInt(10),
-					PaymentTerm: productcatalog.InAdvancePaymentTerm,
-				}),
-			},
-			BillingCadence: &pctestutils.MonthPeriod,
-		}
-	}
-
 	expected := map[string]*productcatalog.TaxCodeConfig{
 		"id-and-behavior": {TaxCodeID: taxCode.ID, Behavior: lo.ToPtr(productcatalog.InclusiveTaxBehavior)},
 		"id-only":         {TaxCodeID: taxCode.ID},
@@ -489,10 +474,10 @@ func TestAddonRateCardTaxColumns(t *testing.T) {
 
 	// given: rate cards covering every combination of Tax Code ID and behavior
 	input := pctestutils.NewTestAddon(t, namespace,
-		flatFee("id-and-behavior", expected["id-and-behavior"]),
-		flatFee("id-only", expected["id-only"]),
-		flatFee("behavior-only", expected["behavior-only"]),
-		flatFee("none", expected["none"]),
+		pctestutils.NewTestFlatRateCard("id-and-behavior", expected["id-and-behavior"]),
+		pctestutils.NewTestFlatRateCard("id-only", expected["id-only"]),
+		pctestutils.NewTestFlatRateCard("behavior-only", expected["behavior-only"]),
+		pctestutils.NewTestFlatRateCard("none", expected["none"]),
 	)
 
 	// when: the add-on is written and read back

@@ -172,13 +172,11 @@ func (s StripeTaxConfig) Clone() StripeTaxConfig {
 	return s
 }
 
-// TaxCodeConfig is the internal tax reference rate cards and charge intents carry: only the Tax
-// Code ID and the behavior flag. Provider-specific codes (e.g. Stripe.Code) aren't stored here;
-// they're resolved from the Tax Code at the API boundary and at invoice time.
+// TaxCodeConfig is the internal tax reference: a Tax Code ID plus an optional behavior.
 //
-// A behavior-only config (no TaxCodeID) is valid here; callers that need a Tax Code, like charge
-// intents, check for the ID themselves. TaxCodeID is omitted from JSON when empty so the document
-// stays readable as a legacy TaxConfig, whose tax_code_id is optional.
+// The omitempty on TaxCodeID matters: an empty-ID config must serialize as {}, not
+// {"tax_code_id": ""} — the DB CHECK constraint compares the JSON against the column with
+// IS NOT DISTINCT FROM, and legacy TaxConfig readers decode this document.
 type TaxCodeConfig struct {
 	Behavior  *TaxBehavior `json:"behavior,omitempty"`
 	TaxCodeID string       `json:"tax_code_id,omitempty"`

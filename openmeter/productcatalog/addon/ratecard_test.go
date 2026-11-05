@@ -53,7 +53,7 @@ func TestRateCard_JSON(t *testing.T) {
 								Config: []byte(`{"key":"value"}`),
 							}),
 						TaxConfig: &productcatalog.TaxCodeConfig{
-							TaxCodeID: "01JTAXCODE0000000000000000",
+							TaxCodeID: "01JTAXC0DE0000000000000000",
 						},
 						Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 							Amount:      decimal.NewFromInt(1000),
@@ -100,7 +100,7 @@ func TestRateCard_JSON(t *testing.T) {
 								UsagePeriod:             datetime.MustParseDuration(t, "P1M"),
 							}),
 						TaxConfig: &productcatalog.TaxCodeConfig{
-							TaxCodeID: "01JTAXCODE0000000000000000",
+							TaxCodeID: "01JTAXC0DE0000000000000000",
 						},
 						Price: productcatalog.NewPriceFrom(
 							productcatalog.UnitPrice{
@@ -180,7 +180,7 @@ func TestFlatFeeRateCard(t *testing.T) {
 									Config: []byte(`"test"`),
 								}),
 							TaxConfig: &productcatalog.TaxCodeConfig{
-								TaxCodeID: "01JTAXCODE0000000000000000",
+								TaxCodeID: "01JTAXC0DE0000000000000000",
 							},
 							Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 								Amount:      decimal.NewFromInt(1000),
@@ -296,7 +296,7 @@ func TestUsageBasedRateCard(t *testing.T) {
 									UsagePeriod:             datetime.MustParseDuration(t, "P1M"),
 								}),
 							TaxConfig: &productcatalog.TaxCodeConfig{
-								TaxCodeID: "01JTAXCODE0000000000000000",
+								TaxCodeID: "01JTAXC0DE0000000000000000",
 							},
 							Price: productcatalog.NewPriceFrom(
 								productcatalog.UnitPrice{

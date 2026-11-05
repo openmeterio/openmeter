@@ -57,7 +57,7 @@ func TestAddonTaxCodeReferences(t *testing.T) {
 		key       string
 		taxCodeID string
 	}{
-		{name: "unknown", key: "unknown", taxCodeID: "01JNONEXISTENTTAXCODE00000"},
+		{name: "unknown", key: "unknown", taxCodeID: "01JABSENTTAXC0DE0000000000"},
 		{name: "from another namespace", key: "other-namespace", taxCodeID: otherNamespaceTaxCode.ID},
 		{name: "soft-deleted", key: "deleted", taxCodeID: deletedTaxCode.ID},
 	}

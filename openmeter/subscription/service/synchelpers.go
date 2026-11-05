@@ -146,6 +146,12 @@ func (s *service) createItem(
 	ent *subscription.SubscriptionEntitlement,
 ) (subscription.SubscriptionItem, error) {
 	// Only new items are checked: existing items may still point at a Tax Code deleted since.
+	//
+	// TODO: this leniency is unintended and must be fixed. Replacing, cancelling, editing or
+	// migrating an item that references a deleted Tax Code should fail validation pointing at the
+	// item, not silently proceed against a dead reference.
+	// TestSubscriptionItemTaxCodeReferences ("Should keep existing items referencing a
+	// since-deleted Tax Code on update") pins the current behavior and has to change with the fix.
 	if err := productcatalog.ValidateRateCardTaxCodes(ctx, s.TaxCodeResolver, opts.sub.Namespace, productcatalog.RateCards{opts.itemSpec.RateCard}); err != nil {
 		return subscription.SubscriptionItem{}, fmt.Errorf("invalid tax code for item %s: %w", opts.itemSpec.ItemKey, err)
 	}

@@ -142,7 +142,7 @@ func TestTaxCodeConfigFrom(t *testing.T) {
 }
 
 func TestFromDBTaxColumns(t *testing.T) {
-	const taxCodeID = "01JTAXCODE0000000000000000"
+	const taxCodeID = "01JTAXC0DE0000000000000000"
 
 	tests := []struct {
 		name        string
@@ -173,7 +173,7 @@ func TestFromDBTaxColumns(t *testing.T) {
 }
 
 func TestTaxCodeConfigEqual(t *testing.T) {
-	const id = "01JTAXCODE00000000000000000"
+	const id = "01JTAXC0DE0000000000000000"
 
 	tests := []struct {
 		name  string
@@ -194,7 +194,7 @@ func TestTaxCodeConfigEqual(t *testing.T) {
 		{
 			name:  "different tax code ID",
 			left:  &TaxCodeConfig{TaxCodeID: id},
-			right: &TaxCodeConfig{TaxCodeID: "01JTAXCODE00000000000000001"},
+			right: &TaxCodeConfig{TaxCodeID: "01JTAXC0DE0000000000000001"},
 		},
 		{
 			name:  "different behavior",
@@ -218,7 +218,7 @@ func TestTaxCodeConfigEqual(t *testing.T) {
 
 func TestTaxCodeConfigClone(t *testing.T) {
 	original := TaxCodeConfig{
-		TaxCodeID: "01JTAXCODE00000000000000000",
+		TaxCodeID: "01JTAXC0DE0000000000000000",
 		Behavior:  lo.ToPtr(InclusiveTaxBehavior),
 	}
 

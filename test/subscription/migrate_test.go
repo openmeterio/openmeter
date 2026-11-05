@@ -154,6 +154,29 @@ func TestMigrationMetadataChangePreservesItems(t *testing.T) {
 // Rate cards used to carry the Tax Code's Stripe code, stamped when the plan or
 // item was written. Remapping the code between two plan versions then made
 // every item look changed, so migration cut and recreated them.
+// remapTestPlanInput builds the plan used by the Stripe-remap test: both rate cards reference
+// the given Tax Code with an explicit behavior, so the remap affects every card.
+func remapTestPlanInput(t *testing.T, taxCodeID string) plan.CreatePlanInput {
+	t.Helper()
+
+	rateCards := []productcatalog.RateCard{
+		subscriptiontestutils.ExampleRateCard1(productcatalog.TaxCodeConfig{}),
+		subscriptiontestutils.ExampleRateCard2.Clone(),
+	}
+	for _, rc := range rateCards {
+		require.NoError(t, rc.ChangeMeta(func(meta productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
+			meta.TaxConfig = &productcatalog.TaxCodeConfig{
+				Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
+				TaxCodeID: taxCodeID,
+			}
+
+			return meta, nil
+		}))
+	}
+
+	return subscriptiontestutils.BuildTestPlanInput(t).AddPhase(nil, rateCards...).Build()
+}
+
 func TestMigrationTaxCodeStripeRemapPreservesItems(t *testing.T) {
 	start := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 	clock.FreezeTime(start)
@@ -170,26 +193,7 @@ func TestMigrationTaxCodeStripeRemapPreservesItems(t *testing.T) {
 		AppMappings: taxcode.TaxCodeAppMappings{{AppType: app.AppTypeStripe, TaxCode: "txcd_10000000"}},
 	})
 
-	planInput := func() plan.CreatePlanInput {
-		rateCards := []productcatalog.RateCard{
-			subscriptiontestutils.ExampleRateCard1(productcatalog.TaxCodeConfig{}),
-			subscriptiontestutils.ExampleRateCard2.Clone(),
-		}
-		for _, rc := range rateCards {
-			require.NoError(t, rc.ChangeMeta(func(meta productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
-				meta.TaxConfig = &productcatalog.TaxCodeConfig{
-					Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
-					TaxCodeID: taxCode.ID,
-				}
-
-				return meta, nil
-			}))
-		}
-
-		return subscriptiontestutils.BuildTestPlanInput(t).AddPhase(nil, rateCards...).Build()
-	}
-
-	original := deps.PlanHelper.CreatePlan(t, planInput())
+	original := deps.PlanHelper.CreatePlan(t, remapTestPlanInput(t, taxCode.ID))
 
 	before, err := deps.WorkflowService.CreateFromPlan(t.Context(), subscriptionworkflow.CreateSubscriptionWorkflowInput{
 		Namespace:  customer.Namespace,
@@ -214,7 +218,7 @@ func TestMigrationTaxCodeStripeRemapPreservesItems(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	target := deps.PlanHelper.CreatePlan(t, planInput())
+	target := deps.PlanHelper.CreatePlan(t, remapTestPlanInput(t, taxCode.ID))
 
 	// and the subscription is migrated mid-cycle
 	clock.FreezeTime(start.Add(10 * 24 * time.Hour))

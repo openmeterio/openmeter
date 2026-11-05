@@ -45,6 +45,8 @@ func NewTestFlatRateCard(key string, tc *productcatalog.TaxCodeConfig) productca
 	}
 }
 
+// RequireTaxCodeNotFound asserts the error is the validation error for an unusable Tax Code
+// reference (missing, other namespace, or deleted).
 func RequireTaxCodeNotFound(t *testing.T, err error) {
 	t.Helper()
 
