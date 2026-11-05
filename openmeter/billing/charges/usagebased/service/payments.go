@@ -82,14 +82,18 @@ func (e *LineEngine) recordPaymentSettled(ctx context.Context, stateMachine Stat
 	}
 
 	// A settled booking keeps its ledger entries; the charge may still need advancing.
-	booked := run.Payment
-	alreadySettled := booked != nil && booked.Status == payment.StatusSettled &&
-		booked.IsBookedFor(payment.BookingKey{
+	alreadySettled := false
+	if booked := run.Payment; booked != nil {
+		alreadySettled, err = booked.IsSettledFor(payment.BookingKey{
 			Namespace:  charge.Namespace,
 			InvoiceID:  invoice.ID,
 			LineID:     line.ID,
 			FiatAmount: line.Totals.Total,
 		})
+		if err != nil {
+			return fmt.Errorf("charge[%s]: %w", charge.ID, err)
+		}
+	}
 
 	if !alreadySettled {
 		result, err := e.service.runs.SettleInvoicedPayment(ctx, usagebasedrun.SettleInvoicedPaymentInput{

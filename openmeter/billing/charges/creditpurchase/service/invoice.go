@@ -117,25 +117,30 @@ func (s *InvoiceCreditPurchaseStateMachine) RecognizeSettledPayment(_ context.Co
 		return payment.ErrPaymentMissingOnFinalCharge.WithAttrs(s.Charge.ErrorAttributes())
 	}
 
+	line := lineWithHeader.Line
+	settled, err := booked.IsSettledFor(payment.BookingKey{
+		Namespace:  s.Charge.Namespace,
+		InvoiceID:  lineWithHeader.Invoice.ID,
+		LineID:     line.ID,
+		FiatAmount: line.Totals.Total,
+	})
+	if err != nil {
+		return err
+	}
+
+	if settled {
+		return nil
+	}
+
 	if booked.Status != payment.StatusSettled {
 		return payment.ErrPaymentNotSettledOnFinalCharge.
 			WithAttrs(s.Charge.ErrorAttributes()).
 			WithAttrs(booked.ErrorAttributes())
 	}
 
-	line := lineWithHeader.Line
-	if !booked.IsBookedFor(payment.BookingKey{
-		Namespace:  s.Charge.Namespace,
-		InvoiceID:  lineWithHeader.Invoice.ID,
-		LineID:     line.ID,
-		FiatAmount: line.Totals.Total,
-	}) {
-		return payment.ErrPaymentBookingMismatch.
-			WithAttrs(s.Charge.ErrorAttributes()).
-			WithAttrs(booked.ErrorAttributes())
-	}
-
-	return nil
+	return payment.ErrPaymentBookingMismatch.
+		WithAttrs(s.Charge.ErrorAttributes()).
+		WithAttrs(booked.ErrorAttributes())
 }
 
 type HandleInvoiceLifecycleTriggerInput struct {

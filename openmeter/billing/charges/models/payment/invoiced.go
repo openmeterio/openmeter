@@ -136,6 +136,16 @@ func (r Invoiced) IsBookedFor(key BookingKey) bool {
 		r.FiatAmount.Equal(key.FiatAmount)
 }
 
+// A malformed booking is an error rather than a non-match, so a settled status
+// without its ledger reference is never accepted as completed work.
+func (r Invoiced) IsSettledFor(key BookingKey) (bool, error) {
+	if err := r.Validate(); err != nil {
+		return false, fmt.Errorf("validating booked payment: %w", err)
+	}
+
+	return r.Status == StatusSettled && r.IsBookedFor(key), nil
+}
+
 func (r Invoiced) ErrorAttributes() models.Attributes {
 	return models.Attributes{
 		PaymentSettlementStatusAttributeKey: string(r.Status),

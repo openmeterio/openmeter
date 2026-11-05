@@ -117,13 +117,17 @@ func (s *service) postInvoicePaymentSettled(ctx context.Context, charge flatfee.
 			return fmt.Errorf("payment settlement line ID does not match the line ID: %s != %s", paymentSettlement.LineID, lineWithHeader.Line.ID)
 		}
 
-		if paymentSettlement.Status == payment.StatusSettled &&
-			paymentSettlement.IsBookedFor(payment.BookingKey{
-				Namespace:  charge.Namespace,
-				InvoiceID:  lineWithHeader.Invoice.ID,
-				LineID:     lineWithHeader.Line.ID,
-				FiatAmount: fiatAmount,
-			}) {
+		alreadySettled, err := paymentSettlement.IsSettledFor(payment.BookingKey{
+			Namespace:  charge.Namespace,
+			InvoiceID:  lineWithHeader.Invoice.ID,
+			LineID:     lineWithHeader.Line.ID,
+			FiatAmount: fiatAmount,
+		})
+		if err != nil {
+			return err
+		}
+
+		if alreadySettled {
 			return nil
 		}
 
