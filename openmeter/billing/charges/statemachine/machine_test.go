@@ -184,6 +184,7 @@ func TestMachine_UnsupportedInvoiceIssuedErrorPreservesValidationContext(t *test
 	// then the rejected event and structured charge context survive extraction
 	require.Equal(t, billing.ValidationIssueSeverityCritical, issues[0].Severity)
 	require.Equal(t, component, issues[0].Component)
+	require.Equal(t, issues[0].Code, string(ErrCodeUnsupportedOperation))
 	require.Contains(t, issues[0].Message, "unsupported operation")
 	// TODO: Add invoice-line context assertions when line engines attach invoice and line ID attributes.
 	assert.Contains(t, issues[0].Message, "invoice_issued")
