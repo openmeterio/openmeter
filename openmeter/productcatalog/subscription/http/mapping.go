@@ -27,7 +27,7 @@ import (
 )
 
 // MapAPISubscriptionEditOperationToPatch maps a v1 edit operation to a patch. Legacy stripe.code
-// values on added items are resolved to Tax Codes through resolver, which may create them.
+// values on added items are resolved to Tax Codes through the resolver, which may create them.
 func MapAPISubscriptionEditOperationToPatch(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver, namespace string, apiPatch api.SubscriptionEditOperation) (subscription.Patch, error) {
 	disc, err := apiPatch.Discriminator()
 	if err != nil {
@@ -227,8 +227,8 @@ func MapSubscriptionToAPI(sub subscription.Subscription) api.Subscription {
 	}
 }
 
-// MapSubscriptionItemToAPI maps an item to its v1 shape. taxCodes holds the Tax Codes referenced by
-// the items being rendered, used to fill in the legacy stripe.code.
+// MapSubscriptionItemToAPI maps an item to its v1 shape. taxCodes must hold every Tax Code the
+// items reference: a missing entry is an error.
 func MapSubscriptionItemToAPI(item subscription.SubscriptionItemView, taxCodes map[string]*taxcode.TaxCode) (api.SubscriptionItem, error) {
 	var included *api.SubscriptionItemIncluded
 
@@ -255,7 +255,11 @@ func MapSubscriptionItemToAPI(item subscription.SubscriptionItemView, taxCodes m
 	var tx *api.TaxConfig
 
 	if item.SubscriptionItem.RateCard.AsMeta().TaxConfig != nil {
-		txv := productcataloghttp.ToAPITaxConfig(*item.SubscriptionItem.RateCard.AsMeta().TaxConfig, taxCodes)
+		txv, err := productcataloghttp.ToAPITaxConfig(*item.SubscriptionItem.RateCard.AsMeta().TaxConfig, taxCodes)
+		if err != nil {
+			return api.SubscriptionItem{}, err
+		}
+
 		tx = &txv
 	}
 
@@ -429,8 +433,8 @@ func MapSubscriptionPhaseToAPI(subView subscription.SubscriptionView, phaseView 
 	}, nil
 }
 
-// MapSubscriptionViewToAPI maps a view to its v1 shape. taxCodes holds the Tax Codes referenced by
-// the view's items (see taxCodesForView), used to fill in the legacy stripe.code.
+// MapSubscriptionViewToAPI maps a view to its v1 shape. taxCodes must hold every Tax Code
+// the view's items reference (see taxCodesForView): a missing entry is an error.
 func MapSubscriptionViewToAPI(view subscription.SubscriptionView, taxCodes map[string]*taxcode.TaxCode) (api.SubscriptionExpanded, error) {
 	apiSub := MapSubscriptionToAPI(view.Subscription)
 	alg := api.SubscriptionAlignment{

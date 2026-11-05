@@ -38,8 +38,8 @@ func MapCreateSubscriptionAddonRequestToInput(req api.SubscriptionAddonCreate) (
 	return r, nil
 }
 
-// MapSubscriptionAddonToResponse maps a subscription add-on to its v1 shape. taxCodes holds the Tax
-// Codes referenced by the add-on's rate cards, used to fill in the legacy stripe.code.
+// MapSubscriptionAddonToResponse maps a subscription add-on to its v1 shape. taxCodes must hold
+// every Tax Code the add-on's rate cards reference: a missing entry is an error.
 func MapSubscriptionAddonToResponse(view subscription.SubscriptionView, addon subscriptionaddon.SubscriptionAddon, taxCodes map[string]*taxcode.TaxCode) (api.SubscriptionAddon, error) {
 	now := clock.Now()
 

@@ -148,6 +148,13 @@ func (h *handler) CreatePlan() CreatePlanHandler {
 		func(ctx context.Context, request CreatePlanHandlerRequest) (CreatePlanResponse, error) {
 			var resp CreatePlanResponse
 
+			// The settlement mode gate only needs the request and feature flags, so check it before
+			// opening the transaction that tax code mapping runs in.
+			creditEnabled := featuregate.ContextResolver().Credits(ctx)
+			if !creditEnabled && lo.FromPtr(request.Body.SettlementMode) == api.BillingSettlementModeCreditOnly {
+				return CreatePlanResponse{}, models.NewGenericValidationError(fmt.Errorf("credits are not enabled on this deployment of OpenMeter"))
+			}
+
 			err := h.taxCodeResolver.WithResolver(ctx, func(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver) error {
 				req, err := AsCreatePlanRequest(ctx, resolver, request.Body, request.Namespace)
 				if err != nil {
@@ -164,11 +171,6 @@ func (h *handler) CreatePlan() CreatePlanHandler {
 				}
 
 				req.IgnoreNonCriticalIssues = true
-
-				creditEnabled := featuregate.ContextResolver().Credits(ctx)
-				if !creditEnabled && req.SettlementMode == productcatalog.CreditOnlySettlementMode {
-					return models.NewGenericValidationError(fmt.Errorf("credits are not enabled on this deployment of OpenMeter"))
-				}
 
 				p, err := h.service.CreatePlan(ctx, req)
 				if err != nil {
@@ -233,6 +235,13 @@ func (h *handler) UpdatePlan() UpdatePlanHandler {
 		func(ctx context.Context, request UpdatePlanHandlerRequest) (UpdatePlanResponse, error) {
 			var resp UpdatePlanResponse
 
+			// Same as create: the settlement mode gate only needs the request, so check it before
+			// the transaction that tax code mapping runs in.
+			creditEnabled := featuregate.ContextResolver().Credits(ctx)
+			if !creditEnabled && request.Body.SettlementMode != nil && *request.Body.SettlementMode == api.BillingSettlementModeCreditOnly {
+				return UpdatePlanResponse{}, models.NewGenericValidationError(fmt.Errorf("credits are not enabled on this deployment of OpenMeter"))
+			}
+
 			err := h.taxCodeResolver.WithResolver(ctx, func(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver) error {
 				req, err := AsUpdatePlanRequest(ctx, resolver, request.Body, request.Namespace, request.ID)
 				if err != nil {
@@ -244,12 +253,6 @@ func (h *handler) UpdatePlan() UpdatePlanHandler {
 				req.IgnoreNonCriticalIssues = true
 				req.RejectUnitConfig = true
 				req.RejectUnrepresentableCurrencies = true
-
-				// Validate credit_only settlement mode when credits are disabled
-				creditEnabled := featuregate.ContextResolver().Credits(ctx)
-				if !creditEnabled && req.SettlementMode != nil && *req.SettlementMode == productcatalog.CreditOnlySettlementMode {
-					return models.NewGenericValidationError(fmt.Errorf("credits are not enabled on this deployment of OpenMeter"))
-				}
 
 				p, err := h.service.UpdatePlan(ctx, req)
 				if err != nil {

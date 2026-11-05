@@ -18,8 +18,8 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-// FromRateCard maps a rate card to its v1 shape. taxCodes holds the Tax Codes referenced by the
-// rate cards being rendered (see RateCards.TaxCodeIDs), used to fill in the legacy stripe.code.
+// FromRateCard maps a rate card to its v1 shape. taxCodes must hold every Tax Code the rate cards
+// reference (see RateCards.TaxCodeIDs): a missing entry silently drops stripe.code from the output.
 func FromRateCard(r productcatalog.RateCard, taxCodes map[string]*taxcode.TaxCode) (api.RateCard, error) {
 	var err error
 
@@ -42,7 +42,12 @@ func FromRateCard(r productcatalog.RateCard, taxCodes map[string]*taxcode.TaxCod
 
 	var taxConfig *api.TaxConfig
 	if meta.TaxConfig != nil {
-		taxConfig = lo.ToPtr(ToAPITaxConfig(*meta.TaxConfig, taxCodes))
+		tc, err := ToAPITaxConfig(*meta.TaxConfig, taxCodes)
+		if err != nil {
+			return resp, fmt.Errorf("failed to map TaxConfig: %w", err)
+		}
+
+		taxConfig = lo.ToPtr(tc)
 	}
 
 	switch r.Type() {
@@ -256,22 +261,29 @@ func FromTaxConfig(c productcatalog.TaxConfig) api.TaxConfig {
 	}
 }
 
-// ToAPITaxConfig renders a Tax Code reference in the v1 shape. stripe.code comes from the
-// referenced Tax Code's current Stripe mapping and is left out when the code isn't in taxCodes or
-// has no Stripe mapping.
-func ToAPITaxConfig(cfg productcatalog.TaxCodeConfig, taxCodes map[string]*taxcode.TaxCode) api.TaxConfig {
+// ToAPITaxConfig maps a Tax Code reference to the v1 shape. The stripe.code comes from the
+// referenced Tax Code's current Stripe mapping, not the one the record was created with.
+// taxCodes must contain every referenced Tax Code.
+func ToAPITaxConfig(cfg productcatalog.TaxCodeConfig, taxCodes map[string]*taxcode.TaxCode) (api.TaxConfig, error) {
 	out := api.TaxConfig{
 		Behavior:  (*api.TaxBehavior)(cfg.Clone().Behavior),
 		TaxCodeId: lo.EmptyableToPtr(cfg.TaxCodeID),
 	}
 
-	if tc := taxCodes[cfg.TaxCodeID]; tc != nil {
-		if m, ok := tc.GetAppMapping(app.AppTypeStripe); ok {
-			out.Stripe = &api.StripeTaxConfig{Code: m.TaxCode}
-		}
+	if cfg.TaxCodeID == "" {
+		return out, nil
 	}
 
-	return out
+	tc := taxCodes[cfg.TaxCodeID]
+	if tc == nil {
+		return api.TaxConfig{}, fmt.Errorf("tax code %s not found in taxCodes", cfg.TaxCodeID)
+	}
+
+	if m, ok := tc.GetAppMapping(app.AppTypeStripe); ok {
+		out.Stripe = &api.StripeTaxConfig{Code: m.TaxCode}
+	}
+
+	return out, nil
 }
 
 func FromPaymentTerm(t productcatalog.PaymentTermType) api.PricePaymentTerm {
@@ -934,8 +946,7 @@ func (e *TaxCodeResolutionError) Unwrap() error {
 
 // FromAPITaxConfig turns v1 tax config input into a Tax Code reference. taxCodeId wins when set
 // and is passed through unchecked: services validate Tax Code references. Otherwise a stripe.code
-// is resolved to a Tax Code, creating one if the namespace doesn't have it yet. Returns nil when
-// the input carries nothing.
+// is resolved to a Tax Code, creating one if the namespace doesn't have it yet.
 //
 // stripe.code is format-checked even when taxCodeId wins, because the API always rejected
 // malformed codes with a 400.

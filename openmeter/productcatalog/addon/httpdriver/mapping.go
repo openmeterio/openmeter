@@ -16,8 +16,8 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-// FromAddon maps an add-on to its v1 shape. taxCodes holds the Tax Codes referenced by the add-on's
-// rate cards, used to fill in the legacy stripe.code.
+// FromAddon maps an add-on to its v1 shape. taxCodes must hold every Tax Code the add-on's
+// rate cards reference: a missing entry is an error.
 func FromAddon(a addon.Addon, taxCodes map[string]*taxcode.TaxCode) (api.Addon, error) {
 	validationIssues, _ := a.AsProductCatalogAddon().ValidationErrors()
 

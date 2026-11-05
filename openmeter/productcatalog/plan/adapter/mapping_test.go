@@ -103,7 +103,7 @@ func TestFromPlanRateCardRowHydratesFeatureReference(t *testing.T) {
 }
 
 func TestRateCardRowsReadTaxFromColumns(t *testing.T) {
-	const taxCodeID = "01JTAXCODE0000000000000000"
+	const taxCodeID = "01JTAXC0DE0000000000000000"
 
 	// Old rows may still hold a Stripe code in the legacy JSON; only the columns count.
 	legacyJSON := &productcatalog.TaxConfig{
@@ -154,7 +154,7 @@ func TestRateCardRowsReadTaxFromColumns(t *testing.T) {
 }
 
 func TestAsPlanRateCardRowWritesTaxColumnsAndLegacyCopy(t *testing.T) {
-	const taxCodeID = "01JTAXCODE0000000000000000"
+	const taxCodeID = "01JTAXC0DE0000000000000000"
 
 	tests := []struct {
 		name string

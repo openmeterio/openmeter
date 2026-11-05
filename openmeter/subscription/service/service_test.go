@@ -1199,53 +1199,64 @@ func TestSubscriptionChangeTrackingAnnotations(t *testing.T) {
 	})
 }
 
+// newTaxedRateCard returns a billable flat fee rate card with the given Tax Code config.
+func newTaxedRateCard(taxConfig *productcatalog.TaxCodeConfig) productcatalog.RateCard {
+	return &productcatalog.FlatFeeRateCard{
+		RateCardMeta: productcatalog.RateCardMeta{
+			Key:       "taxed-rc",
+			Name:      "Taxed RC",
+			TaxConfig: taxConfig,
+			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      alpacadecimal.NewFromInt(100),
+				PaymentTerm: productcatalog.InAdvancePaymentTerm,
+			}),
+		},
+	}
+}
+
+// newTaxedSpec builds a subscription spec from a one-phase plan whose only rate card is
+// newTaxedRateCard, active from activeFrom.
+func newTaxedSpec(
+	t *testing.T,
+	deps subscriptiontestutils.SubscriptionDependencies,
+	customerID string,
+	planKey string,
+	taxConfig *productcatalog.TaxCodeConfig,
+	activeFrom time.Time,
+) subscription.SubscriptionSpec {
+	t.Helper()
+
+	planInput := subscriptiontestutils.BuildTestPlanInput(t).AddPhase(nil, newTaxedRateCard(taxConfig)).Build()
+	planInput.Key = planKey
+
+	plan := deps.PlanHelper.CreatePlan(t, planInput)
+
+	spec, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
+		CustomerId:      customerID,
+		InvoiceCurrency: "USD",
+		ActiveFrom:      activeFrom,
+		BillingAnchor:   activeFrom,
+		Name:            "Test Subscription",
+		Annotations:     models.Annotations{},
+	})
+	require.NoError(t, err)
+
+	return spec
+}
+
+// taxedSubscriptionItem returns the subscription item created from newTaxedRateCard.
+func taxedSubscriptionItem(t *testing.T, view subscription.SubscriptionView) subscription.SubscriptionItem {
+	t.Helper()
+
+	require.Len(t, view.Phases, 1)
+	items := view.Phases[0].ItemsByKey["taxed-rc"]
+	require.Len(t, items, 1)
+
+	return items[0].SubscriptionItem
+}
+
 func TestSubscriptionItemTaxCodeReferences(t *testing.T) {
 	currentTime := testutils.GetRFC3339Time(t, "2021-01-01T00:00:11Z")
-
-	newRateCard := func(taxConfig *productcatalog.TaxCodeConfig) productcatalog.RateCard {
-		return &productcatalog.FlatFeeRateCard{
-			RateCardMeta: productcatalog.RateCardMeta{
-				Key:       "taxed-rc",
-				Name:      "Taxed RC",
-				TaxConfig: taxConfig,
-				Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
-					Amount:      alpacadecimal.NewFromInt(100),
-					PaymentTerm: productcatalog.InAdvancePaymentTerm,
-				}),
-			},
-		}
-	}
-
-	newSpec := func(t *testing.T, deps subscriptiontestutils.SubscriptionDependencies, customerID string, planKey string, taxConfig *productcatalog.TaxCodeConfig) subscription.SubscriptionSpec {
-		t.Helper()
-
-		planInput := subscriptiontestutils.BuildTestPlanInput(t).AddPhase(nil, newRateCard(taxConfig)).Build()
-		planInput.Key = planKey
-
-		plan := deps.PlanHelper.CreatePlan(t, planInput)
-
-		spec, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
-			CustomerId:      customerID,
-			InvoiceCurrency: "USD",
-			ActiveFrom:      currentTime,
-			BillingAnchor:   currentTime,
-			Name:            "Test Subscription",
-			Annotations:     models.Annotations{},
-		})
-		require.NoError(t, err)
-
-		return spec
-	}
-
-	taxedItem := func(t *testing.T, view subscription.SubscriptionView) subscription.SubscriptionItem {
-		t.Helper()
-
-		require.Len(t, view.Phases, 1)
-		items := view.Phases[0].ItemsByKey["taxed-rc"]
-		require.Len(t, items, 1)
-
-		return items[0].SubscriptionItem
-	}
 
 	t.Run("Should store the Tax Code reference of created items", func(t *testing.T) {
 		clock.FreezeTime(currentTime)
@@ -1266,14 +1277,14 @@ func TestSubscriptionItemTaxCodeReferences(t *testing.T) {
 		// when: a subscription is created from it
 		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
 
-		sub, err := deps.SubscriptionService.Create(t.Context(), subscriptiontestutils.ExampleNamespace, newSpec(t, deps, cust.ID, "taxed-plan", want))
+		sub, err := deps.SubscriptionService.Create(t.Context(), subscriptiontestutils.ExampleNamespace, newTaxedSpec(t, deps, cust.ID, "taxed-plan", want, currentTime))
 		require.NoError(t, err)
 
 		// then: the item carries the reference, both in the view and when read from the repo
 		view, err := deps.SubscriptionService.GetView(t.Context(), sub.NamespacedID)
 		require.NoError(t, err)
 
-		item := taxedItem(t, view)
+		item := taxedSubscriptionItem(t, view)
 		assert.Equal(t, want, item.RateCard.AsMeta().TaxConfig)
 
 		repoItem, err := deps.ItemRepo.GetByID(t.Context(), item.NamespacedID)
@@ -1304,13 +1315,13 @@ func TestSubscriptionItemTaxCodeReferences(t *testing.T) {
 			name      string
 			taxCodeID string
 		}{
-			{name: "unknown", taxCodeID: "01JNONEXISTENTTAXCODE00000"},
+			{name: "unknown", taxCodeID: "01JABSENTTAXC0DE0000000000"},
 			{name: "soft-deleted", taxCodeID: deletedTaxCode.ID},
 		} {
 			t.Run(tc.name, func(t *testing.T) {
 				// given: a spec whose item references the Tax Code. The plan itself has no tax config,
 				// like a plan whose Tax Code was deleted after the plan was created.
-				spec := newSpec(t, deps, cust.ID, "untaxed-plan-"+tc.name, nil)
+				spec := newTaxedSpec(t, deps, cust.ID, "untaxed-plan-"+tc.name, nil, currentTime)
 
 				for _, phase := range spec.Phases {
 					for _, items := range phase.ItemsByKey {
@@ -1351,7 +1362,7 @@ func TestSubscriptionItemTaxCodeReferences(t *testing.T) {
 
 		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
 
-		sub, err := deps.SubscriptionService.Create(t.Context(), subscriptiontestutils.ExampleNamespace, newSpec(t, deps, cust.ID, "taxed-plan", want))
+		sub, err := deps.SubscriptionService.Create(t.Context(), subscriptiontestutils.ExampleNamespace, newTaxedSpec(t, deps, cust.ID, "taxed-plan", want, currentTime))
 		require.NoError(t, err)
 
 		require.NoError(t, deps.TaxCodeEnv.Service.DeleteTaxCode(t.Context(), taxcode.DeleteTaxCodeInput{
@@ -1372,7 +1383,7 @@ func TestSubscriptionItemTaxCodeReferences(t *testing.T) {
 
 		view, err = deps.SubscriptionService.GetView(t.Context(), sub.NamespacedID)
 		require.NoError(t, err)
-		assert.Equal(t, want, taxedItem(t, view).RateCard.AsMeta().TaxConfig)
+		assert.Equal(t, want, taxedSubscriptionItem(t, view).RateCard.AsMeta().TaxConfig)
 	})
 }
 

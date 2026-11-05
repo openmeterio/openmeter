@@ -41,6 +41,14 @@ func firstRateCardTaxConfig(t *testing.T, p *plan.Plan) *productcatalog.TaxCodeC
 	return p.Phases[0].RateCards[0].AsMeta().TaxConfig
 }
 
+// newUpdatePhases wraps the rate card in a single replacement phase.
+func newUpdatePhases(rc productcatalog.RateCard) *[]productcatalog.Phase {
+	return &[]productcatalog.Phase{{
+		PhaseMeta: productcatalog.PhaseMeta{Key: "default", Name: "Default"},
+		RateCards: productcatalog.RateCards{rc},
+	}}
+}
+
 func TestPlanTaxCodeReferences(t *testing.T) {
 	env := pctestutils.NewTestEnv(t)
 	t.Cleanup(func() { env.Close(t) })
@@ -64,7 +72,7 @@ func TestPlanTaxCodeReferences(t *testing.T) {
 		key       string
 		taxCodeID string
 	}{
-		{name: "unknown", key: "unknown", taxCodeID: "01JNONEXISTENTTAXCODE00000"},
+		{name: "unknown", key: "unknown", taxCodeID: "01JABSENTTAXC0DE0000000000"},
 		{name: "from another namespace", key: "other-namespace", taxCodeID: otherNamespaceTaxCode.ID},
 		{name: "soft-deleted", key: "deleted", taxCodeID: deletedTaxCode.ID},
 	}
@@ -127,13 +135,6 @@ func TestPlanTaxCodeReferences(t *testing.T) {
 	})
 
 	t.Run("Update", func(t *testing.T) {
-		updatePhases := func(rc productcatalog.RateCard) *[]productcatalog.Phase {
-			return &[]productcatalog.Phase{{
-				PhaseMeta: productcatalog.PhaseMeta{Key: "default", Name: "Default"},
-				RateCards: productcatalog.RateCards{rc},
-			}}
-		}
-
 		t.Run("add existing tax code", func(t *testing.T) {
 			// given: a plan without tax config
 			p, err := env.Plan.CreatePlan(t.Context(), newTestPlanInput(t, namespace, "update-add-tax-code", pctestutils.NewTestFlatRateCard("rc", nil)))
@@ -144,7 +145,7 @@ func TestPlanTaxCodeReferences(t *testing.T) {
 
 			updated, err := env.Plan.UpdatePlan(t.Context(), plan.UpdatePlanInput{
 				NamespacedID: p.NamespacedID,
-				Phases:       updatePhases(pctestutils.NewTestFlatRateCard("rc", want)),
+				Phases:       newUpdatePhases(pctestutils.NewTestFlatRateCard("rc", want)),
 			})
 			require.NoError(t, err)
 
@@ -166,7 +167,7 @@ func TestPlanTaxCodeReferences(t *testing.T) {
 			// when: the rate card is updated without tax config
 			updated, err := env.Plan.UpdatePlan(t.Context(), plan.UpdatePlanInput{
 				NamespacedID: p.NamespacedID,
-				Phases:       updatePhases(pctestutils.NewTestFlatRateCard("rc", nil)),
+				Phases:       newUpdatePhases(pctestutils.NewTestFlatRateCard("rc", nil)),
 			})
 			require.NoError(t, err)
 
@@ -185,7 +186,7 @@ func TestPlanTaxCodeReferences(t *testing.T) {
 				// when: the rate card is updated to a Tax Code the namespace can't use
 				_, err = env.Plan.UpdatePlan(t.Context(), plan.UpdatePlanInput{
 					NamespacedID: p.NamespacedID,
-					Phases: updatePhases(pctestutils.NewTestFlatRateCard("rc", &productcatalog.TaxCodeConfig{
+					Phases: newUpdatePhases(pctestutils.NewTestFlatRateCard("rc", &productcatalog.TaxCodeConfig{
 						TaxCodeID: ref.taxCodeID,
 					})),
 				})
