@@ -175,6 +175,7 @@ func (s *BillingAdapterTestSuite) TestListInvoicesWithSameCreatedAt() {
 		require.NoError(t, err)
 		ids = append(ids, invoice.ID)
 	}
+
 	// Updating the first invoice puts the rows in a different physical order
 	// while preserving their creation times.
 	err := s.DBClient.BillingInvoice.UpdateOneID(ids[0]).
