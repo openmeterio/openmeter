@@ -73,6 +73,11 @@ func (a appOperations) UpsertStandardInvoice(ctx context.Context, invoice billin
 
 // DeleteStandardInvoice deletes the invoice for the app
 func (a appOperations) DeleteStandardInvoice(ctx context.Context, invoice billing.StandardInvoice) error {
+	// If the invoice has not been synced to Stripe yet, there is no Stripe invoice to delete.
+	if invoice.ExternalIDs.Invoicing == "" {
+		return nil
+	}
+
 	// Get the Stripe client
 	_, stripeClient, err := a.getStripeClient(ctx, "deleteInvoice", "invoice_id", invoice.ID, "stripe_invoice_id", invoice.ExternalIDs.GetInvoicingOrEmpty())
 	if err != nil {
