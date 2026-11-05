@@ -369,8 +369,8 @@ type ChargeRealization struct {
 	// correction (or a voided run that snapshotted behind its live neighbors) instead
 	// of masking it as zero.
 	//
-	// On an `outstanding` entry, usage is omitted unless `real_time_usage` supplies
-	// a live reading. When present, it is the unbooked remainder of that reading,
+	// On an `outstanding` entry, usage is omitted unless `real_time_usage` supplies a
+	// live reading. When present, it is the unbooked remainder of that reading,
 	// floored at zero.
 	Usage *Numeric `json:"usage,omitempty"`
 	// The payment state of the realization, when the charge requires a fiat
