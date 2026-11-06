@@ -696,7 +696,7 @@ func TestV1TaxConfigSubscriptionInvoiceLines(t *testing.T) {
 	})
 }
 
-func TestV1TaxConfigUnmappedStripeCode(t *testing.T) {
+func TestV1TaxConfigUnmappedStripeCodeInvoiceLines(t *testing.T) {
 	// given: a fresh unmapped Stripe code and a customer pinned to a manual-approval billing profile
 	// when:
 	//   1. a pending line is created with a stripe-only tax config
