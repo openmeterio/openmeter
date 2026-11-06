@@ -61,6 +61,12 @@ func (p ModelPricing) Validate() error {
 		errs = append(errs, ErrPriceMustBeNonNegative)
 	}
 
+	for _, price := range []*alpacadecimal.Decimal{p.CacheReadPerToken, p.CacheWritePerToken, p.ReasoningPerToken} {
+		if price != nil && price.IsNegative() {
+			errs = append(errs, ErrPriceMustBeNonNegative)
+		}
+	}
+
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
