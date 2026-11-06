@@ -210,11 +210,13 @@ func TestMigrationTaxCodeStripeRemapPreservesItems(t *testing.T) {
 	require.NotNil(t, beforeEntitlement)
 
 	// when the Tax Code's Stripe code changes and an identical plan version is published
+	// (the API keeps mappings immutable, but internal callers can still override them)
 	clock.FreezeTime(start.Add(24 * time.Hour))
 	_, err = deps.TaxCodeEnv.Service.UpdateTaxCode(t.Context(), taxcode.UpdateTaxCodeInput{
-		NamespacedID: taxCode.NamespacedID,
-		Name:         taxCode.Name,
-		AppMappings:  taxcode.TaxCodeAppMappings{{AppType: app.AppTypeStripe, TaxCode: "txcd_20000000"}},
+		NamespacedID:            taxCode.NamespacedID,
+		Name:                    taxCode.Name,
+		AppMappings:             taxcode.TaxCodeAppMappings{{AppType: app.AppTypeStripe, TaxCode: "txcd_20000000"}},
+		AllowAppMappingOverride: true,
 	})
 	require.NoError(t, err)
 
