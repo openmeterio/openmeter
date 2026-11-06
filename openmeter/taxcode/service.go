@@ -142,11 +142,6 @@ type GetTaxCodeInput struct {
 	// IncludeDeleted controls whether soft-deleted records are returned.
 	// Only for internal service-to-service use; never set from API handlers.
 	IncludeDeleted bool
-
-	// ForUpdate locks the row against concurrent updates until the transaction
-	// ends. Callers that decide based on the read must set it, or a concurrent
-	// update can slip in between the read and their write.
-	ForUpdate bool
 }
 
 func (i GetTaxCodeInput) Validate() error {
