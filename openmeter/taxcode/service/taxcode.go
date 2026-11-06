@@ -26,7 +26,13 @@ func (s *Service) UpdateTaxCode(ctx context.Context, input taxcode.UpdateTaxCode
 	}
 
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (taxcode.TaxCode, error) {
-		existing, err := s.adapter.GetTaxCode(ctx, taxcode.GetTaxCodeInput{NamespacedID: input.NamespacedID})
+		// The row lock makes the checks below and the write one serialized step:
+		// a concurrent update blocks here and re-reads the committed state, so it
+		// fails the checks instead of overwriting what this transaction decided on.
+		existing, err := s.adapter.GetTaxCode(ctx, taxcode.GetTaxCodeInput{
+			NamespacedID: input.NamespacedID,
+			ForUpdate:    true,
+		})
 		if err != nil {
 			return taxcode.TaxCode{}, err
 		}
@@ -149,7 +155,11 @@ func (s *Service) DeleteTaxCode(ctx context.Context, input taxcode.DeleteTaxCode
 	}
 
 	return transaction.RunWithNoValue(ctx, s.adapter, func(ctx context.Context) error {
-		existing, err := s.adapter.GetTaxCode(ctx, taxcode.GetTaxCodeInput{NamespacedID: input.NamespacedID})
+		// Same locking rationale as in UpdateTaxCode.
+		existing, err := s.adapter.GetTaxCode(ctx, taxcode.GetTaxCodeInput{
+			NamespacedID: input.NamespacedID,
+			ForUpdate:    true,
+		})
 		if err != nil {
 			return err
 		}

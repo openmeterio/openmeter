@@ -116,6 +116,10 @@ func (a *adapter) GetTaxCode(ctx context.Context, input taxcode.GetTaxCodeInput)
 			query = query.Where(taxcodedb.DeletedAtIsNil())
 		}
 
+		if input.ForUpdate {
+			query = query.ForUpdate()
+		}
+
 		entity, err := query.Only(ctx)
 		if err != nil {
 			if db.IsNotFound(err) {
