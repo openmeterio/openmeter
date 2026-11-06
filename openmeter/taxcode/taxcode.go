@@ -151,10 +151,16 @@ func (t TaxCode) IsManagedBySystem() bool {
 }
 
 // GetAppMapping returns the app mapping for the given app type, if it exists.
-func (t TaxCode) GetAppMapping(appType app.AppType) (TaxCodeAppMapping, bool) {
-	return lo.Find(t.AppMappings, func(m TaxCodeAppMapping) bool {
+// App types are unique per tax code, so there is at most one match.
+func (t TaxCodeAppMappings) GetAppMapping(appType app.AppType) (TaxCodeAppMapping, bool) {
+	return lo.Find(t, func(m TaxCodeAppMapping) bool {
 		return m.AppType == appType
 	})
+}
+
+// GetAppMapping returns the app mapping for the given app type, if it exists.
+func (t TaxCode) GetAppMapping(appType app.AppType) (TaxCodeAppMapping, bool) {
+	return t.AppMappings.GetAppMapping(appType)
 }
 
 func (t TaxCode) Validate() error {

@@ -32,6 +32,11 @@ type OrganizationDefaultTaxCodesService interface {
 
 type inputOptions struct {
 	AllowAnnotations bool
+
+	// AllowAppMappingOverride bypasses the update-time guard that keeps existing
+	// app mappings unchanged. Only for internal callers and tests; never set from
+	// API handlers.
+	AllowAppMappingOverride bool
 }
 
 var (
