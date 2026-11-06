@@ -51,6 +51,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/taxcoderesolver"
+	"github.com/openmeterio/openmeter/openmeter/registry"
 	registrybuilder "github.com/openmeterio/openmeter/openmeter/registry/builder"
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
 	"github.com/openmeterio/openmeter/openmeter/subject"
@@ -82,6 +83,7 @@ type BaseSuite struct {
 	SequenceService         billingsequence.Service
 	InvoiceCalculator       *invoicecalc.MockableInvoiceCalculator
 
+	Entitlements           *registry.Entitlement
 	FeatureService         feature.FeatureConnector
 	FeatureRepo            feature.FeatureRepo
 	MeterAdapter           *meteradapter.TestAdapter
@@ -200,6 +202,8 @@ func (s *BaseSuite) setupSuite() {
 		Locker: locker,
 		Tracer: noop.NewTracerProvider().Tracer("test_env"),
 	})
+
+	s.Entitlements = entitlementRegistry
 
 	// Feature
 	s.FeatureRepo = entitlementRegistry.FeatureRepo
