@@ -34,15 +34,21 @@ type (
 		// AddonID or Key.
 		PlanIDOrKey string
 	}
-	ListPlanAddonsHandler httptransport.HandlerWithArgs[ListPlanAddonsRequest, ListPlanAddonsResponse, ListPlanAddonsParams]
+
+	ListPlanAddonsHandlerRequest struct {
+		Namespace string
+		ListPlanAddonsRequest
+	}
+
+	ListPlanAddonsHandler httptransport.HandlerWithArgs[ListPlanAddonsHandlerRequest, ListPlanAddonsResponse, ListPlanAddonsParams]
 )
 
 func (h *handler) ListPlanAddons() ListPlanAddonsHandler {
 	return httptransport.NewHandlerWithArgs(
-		func(ctx context.Context, r *http.Request, params ListPlanAddonsParams) (ListPlanAddonsRequest, error) {
+		func(ctx context.Context, r *http.Request, params ListPlanAddonsParams) (ListPlanAddonsHandlerRequest, error) {
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
-				return ListPlanAddonsRequest{}, fmt.Errorf("failed to resolve namespace [namespace=%s]: %w", ns, err)
+				return ListPlanAddonsHandlerRequest{}, fmt.Errorf("failed to resolve namespace [namespace=%s]: %w", ns, err)
 			}
 
 			req := ListPlanAddonsRequest{
@@ -72,12 +78,20 @@ func (h *handler) ListPlanAddons() ListPlanAddonsHandler {
 				req.AddonKey = &filter.FilterString{In: lo.ToPtr(keys)}
 			}
 
-			return req, nil
+			return ListPlanAddonsHandlerRequest{
+				Namespace:             ns,
+				ListPlanAddonsRequest: req,
+			}, nil
 		},
-		func(ctx context.Context, request ListPlanAddonsRequest) (ListPlanAddonsResponse, error) {
-			resp, err := h.service.ListPlanAddons(ctx, request)
+		func(ctx context.Context, request ListPlanAddonsHandlerRequest) (ListPlanAddonsResponse, error) {
+			resp, err := h.service.ListPlanAddons(ctx, request.ListPlanAddonsRequest)
 			if err != nil {
 				return ListPlanAddonsResponse{}, fmt.Errorf("failed to list plan add-on assignments: %w", err)
+			}
+
+			taxCodes, err := h.taxCodesForPlanAddons(ctx, request.Namespace, resp.Items...)
+			if err != nil {
+				return ListPlanAddonsResponse{}, err
 			}
 
 			items := make([]api.PlanAddon, 0, len(resp.Items))
@@ -97,7 +111,7 @@ func (h *handler) ListPlanAddons() ListPlanAddonsHandler {
 					return ListPlanAddonsResponse{}, productcatalog.ErrRateCardCurrencyNotRepresentable
 				}
 
-				item, err = FromPlanAddon(a)
+				item, err = FromPlanAddon(a, taxCodes)
 				if err != nil {
 					return ListPlanAddonsResponse{}, fmt.Errorf("failed to cast plan add-on assignment [namespace=%s plan.id=%s addon.id=%s]: %w",
 						a.Namespace, a.Plan.ID, a.Addon.ID, err)
@@ -159,7 +173,12 @@ func (h *handler) CreatePlanAddon() CreatePlanAddonHandler {
 					request.Namespace, request.PlanID, request.AddonID, err)
 			}
 
-			return FromPlanAddon(*a)
+			taxCodes, err := h.taxCodesForPlanAddons(ctx, a.Namespace, *a)
+			if err != nil {
+				return CreatePlanAddonResponse{}, err
+			}
+
+			return FromPlanAddon(*a, taxCodes)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[CreatePlanAddonResponse](http.StatusCreated),
 		httptransport.AppendOptions(
@@ -211,7 +230,12 @@ func (h *handler) UpdatePlanAddon() UpdatePlanAddonHandler {
 					request.Namespace, request.PlanID, request.AddonID, err)
 			}
 
-			return FromPlanAddon(*a)
+			taxCodes, err := h.taxCodesForPlanAddons(ctx, a.Namespace, *a)
+			if err != nil {
+				return UpdatePlanAddonResponse{}, err
+			}
+
+			return FromPlanAddon(*a, taxCodes)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[UpdatePlanAddonResponse](http.StatusOK),
 		httptransport.AppendOptions(
@@ -311,7 +335,12 @@ func (h *handler) GetPlanAddon() GetPlanAddonHandler {
 				return GetPlanAddonResponse{}, productcatalog.ErrRateCardCurrencyNotRepresentable
 			}
 
-			return FromPlanAddon(*a)
+			taxCodes, err := h.taxCodesForPlanAddons(ctx, a.Namespace, *a)
+			if err != nil {
+				return GetPlanAddonResponse{}, err
+			}
+
+			return FromPlanAddon(*a, taxCodes)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[GetPlanAddonResponse](http.StatusOK),
 		httptransport.AppendOptions(

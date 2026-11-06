@@ -2,6 +2,7 @@ package httpdriver
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -27,15 +28,21 @@ type (
 	ListPlansRequest  = plan.ListPlansInput
 	ListPlansResponse = api.PlanPaginatedResponse
 	ListPlansParams   = api.ListPlansParams
-	ListPlansHandler  httptransport.HandlerWithArgs[ListPlansRequest, ListPlansResponse, ListPlansParams]
+
+	ListPlansHandlerRequest struct {
+		Namespace string
+		ListPlansRequest
+	}
+
+	ListPlansHandler httptransport.HandlerWithArgs[ListPlansHandlerRequest, ListPlansResponse, ListPlansParams]
 )
 
 func (h *handler) ListPlans() ListPlansHandler {
 	return httptransport.NewHandlerWithArgs(
-		func(ctx context.Context, r *http.Request, params ListPlansParams) (ListPlansRequest, error) {
+		func(ctx context.Context, r *http.Request, params ListPlansParams) (ListPlansHandlerRequest, error) {
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
-				return ListPlansRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
+				return ListPlansHandlerRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
 			}
 
 			var statusFilter []productcatalog.PlanStatus
@@ -63,12 +70,20 @@ func (h *handler) ListPlans() ListPlansHandler {
 				ExcludeUnrepresentableCurrencies: true,
 			}
 
-			return req, nil
+			return ListPlansHandlerRequest{
+				Namespace:        ns,
+				ListPlansRequest: req,
+			}, nil
 		},
-		func(ctx context.Context, request ListPlansRequest) (ListPlansResponse, error) {
-			resp, err := h.service.ListPlans(ctx, request)
+		func(ctx context.Context, request ListPlansHandlerRequest) (ListPlansResponse, error) {
+			resp, err := h.service.ListPlans(ctx, request.ListPlansRequest)
 			if err != nil {
 				return ListPlansResponse{}, fmt.Errorf("failed to list plans: %w", err)
+			}
+
+			taxCodes, err := h.taxCodesForPlans(ctx, request.Namespace, resp.Items...)
+			if err != nil {
+				return ListPlansResponse{}, err
 			}
 
 			items := make([]api.Plan, 0, len(resp.Items))
@@ -76,7 +91,7 @@ func (h *handler) ListPlans() ListPlansHandler {
 			for _, p := range resp.Items {
 				var item api.Plan
 
-				item, err = FromPlan(p)
+				item, err = FromPlan(p, taxCodes)
 				if err != nil {
 					return ListPlansResponse{}, fmt.Errorf("failed to cast plan: %w", err)
 				}
@@ -101,49 +116,79 @@ func (h *handler) ListPlans() ListPlansHandler {
 }
 
 type (
-	CreatePlanRequest  = plan.CreatePlanInput
+	CreatePlanRequest = plan.CreatePlanInput
+	// CreatePlanHandlerRequest holds the undecoded body: mapping it may create Tax Codes for
+	// legacy stripe.code values, which has to happen in the same transaction as the create.
+	CreatePlanHandlerRequest struct {
+		Namespace string
+		Body      api.PlanCreate
+	}
 	CreatePlanResponse = api.Plan
-	CreatePlanHandler  httptransport.Handler[CreatePlanRequest, CreatePlanResponse]
+	CreatePlanHandler  httptransport.Handler[CreatePlanHandlerRequest, CreatePlanResponse]
 )
 
 func (h *handler) CreatePlan() CreatePlanHandler {
 	return httptransport.NewHandler(
-		func(ctx context.Context, r *http.Request) (CreatePlanRequest, error) {
+		func(ctx context.Context, r *http.Request) (CreatePlanHandlerRequest, error) {
 			body := api.PlanCreate{}
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
-				return CreatePlanRequest{}, fmt.Errorf("failed to decode create plan request: %w", err)
+				return CreatePlanHandlerRequest{}, fmt.Errorf("failed to decode create plan request: %w", err)
 			}
 
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
-				return CreatePlanRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
+				return CreatePlanHandlerRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
 			}
 
-			req, err := AsCreatePlanRequest(body, ns)
-			if err != nil {
-				return CreatePlanRequest{}, models.NewGenericValidationError(fmt.Errorf("failed to create plan request: %w", err))
-			}
-
-			req.NamespacedModel = models.NamespacedModel{
+			return CreatePlanHandlerRequest{
 				Namespace: ns,
-			}
-
-			req.IgnoreNonCriticalIssues = true
-
-			return req, nil
+				Body:      body,
+			}, nil
 		},
-		func(ctx context.Context, request CreatePlanRequest) (CreatePlanResponse, error) {
+		func(ctx context.Context, request CreatePlanHandlerRequest) (CreatePlanResponse, error) {
+			var resp CreatePlanResponse
+
+			// The settlement mode gate only needs the request and feature flags, so check it before
+			// opening the transaction that tax code mapping runs in.
 			creditEnabled := featuregate.ContextResolver().Credits(ctx)
-			if !creditEnabled && request.SettlementMode == productcatalog.CreditOnlySettlementMode {
+			if !creditEnabled && lo.FromPtr(request.Body.SettlementMode) == api.BillingSettlementModeCreditOnly {
 				return CreatePlanResponse{}, models.NewGenericValidationError(fmt.Errorf("credits are not enabled on this deployment of OpenMeter"))
 			}
 
-			p, err := h.service.CreatePlan(ctx, request)
-			if err != nil {
-				return CreatePlanResponse{}, fmt.Errorf("failed to create plan: %w", err)
-			}
+			err := h.taxCodeResolver.WithResolver(ctx, func(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver) error {
+				req, err := AsCreatePlanRequest(ctx, resolver, request.Body, request.Namespace)
+				if err != nil {
+					var resolveErr *productcataloghttp.TaxCodeResolutionError
+					if errors.As(err, &resolveErr) {
+						return err
+					}
 
-			return FromPlan(*p)
+					return models.NewGenericValidationError(fmt.Errorf("failed to create plan request: %w", err))
+				}
+
+				req.NamespacedModel = models.NamespacedModel{
+					Namespace: request.Namespace,
+				}
+
+				req.IgnoreNonCriticalIssues = true
+
+				p, err := h.service.CreatePlan(ctx, req)
+				if err != nil {
+					return fmt.Errorf("failed to create plan: %w", err)
+				}
+
+				// Inside the transaction so Tax Codes created for this request are visible.
+				taxCodes, err := h.taxCodesForPlans(ctx, p.Namespace, *p)
+				if err != nil {
+					return err
+				}
+
+				resp, err = FromPlan(*p, taxCodes)
+
+				return err
+			})
+
+			return resp, err
 		},
 		commonhttp.JSONResponseEncoderWithStatus[CreatePlanResponse](http.StatusCreated),
 		httptransport.AppendOptions(
@@ -155,53 +200,77 @@ func (h *handler) CreatePlan() CreatePlanHandler {
 }
 
 type (
-	UpdatePlanRequest  = plan.UpdatePlanInput
+	UpdatePlanRequest = plan.UpdatePlanInput
+	// UpdatePlanHandlerRequest holds the undecoded body for the same reason as
+	// CreatePlanHandlerRequest.
+	UpdatePlanHandlerRequest struct {
+		models.NamespacedID
+		Body api.PlanReplaceUpdate
+	}
 	UpdatePlanResponse = api.Plan
-	UpdatePlanHandler  httptransport.HandlerWithArgs[UpdatePlanRequest, UpdatePlanResponse, string]
+	UpdatePlanHandler  httptransport.HandlerWithArgs[UpdatePlanHandlerRequest, UpdatePlanResponse, string]
 )
 
 func (h *handler) UpdatePlan() UpdatePlanHandler {
 	return httptransport.NewHandlerWithArgs(
-		func(ctx context.Context, r *http.Request, planID string) (UpdatePlanRequest, error) {
+		func(ctx context.Context, r *http.Request, planID string) (UpdatePlanHandlerRequest, error) {
 			body := api.PlanReplaceUpdate{}
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
-				return UpdatePlanRequest{}, fmt.Errorf("failed to decode update plan request: %w", err)
+				return UpdatePlanHandlerRequest{}, fmt.Errorf("failed to decode update plan request: %w", err)
 			}
 
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
-				return UpdatePlanRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
+				return UpdatePlanHandlerRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
 			}
 
-			req, err := AsUpdatePlanRequest(body, ns, planID)
-			if err != nil {
-				return UpdatePlanRequest{}, fmt.Errorf("failed to parse update plan request: %w", err)
-			}
-
-			req.NamespacedID = models.NamespacedID{
-				Namespace: ns,
-				ID:        planID,
-			}
-
-			req.IgnoreNonCriticalIssues = true
-			req.RejectUnitConfig = true
-			req.RejectUnrepresentableCurrencies = true
-
-			return req, nil
+			return UpdatePlanHandlerRequest{
+				NamespacedID: models.NamespacedID{
+					Namespace: ns,
+					ID:        planID,
+				},
+				Body: body,
+			}, nil
 		},
-		func(ctx context.Context, request UpdatePlanRequest) (UpdatePlanResponse, error) {
-			// Validate credit_only settlement mode when credits are disabled
+		func(ctx context.Context, request UpdatePlanHandlerRequest) (UpdatePlanResponse, error) {
+			var resp UpdatePlanResponse
+
+			// Same as create: the settlement mode gate only needs the request, so check it before
+			// the transaction that tax code mapping runs in.
 			creditEnabled := featuregate.ContextResolver().Credits(ctx)
-			if !creditEnabled && request.SettlementMode != nil && *request.SettlementMode == productcatalog.CreditOnlySettlementMode {
+			if !creditEnabled && request.Body.SettlementMode != nil && *request.Body.SettlementMode == api.BillingSettlementModeCreditOnly {
 				return UpdatePlanResponse{}, models.NewGenericValidationError(fmt.Errorf("credits are not enabled on this deployment of OpenMeter"))
 			}
 
-			p, err := h.service.UpdatePlan(ctx, request)
-			if err != nil {
-				return UpdatePlanResponse{}, fmt.Errorf("failed to update plan: %w", err)
-			}
+			err := h.taxCodeResolver.WithResolver(ctx, func(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver) error {
+				req, err := AsUpdatePlanRequest(ctx, resolver, request.Body, request.Namespace, request.ID)
+				if err != nil {
+					return fmt.Errorf("failed to parse update plan request: %w", err)
+				}
 
-			return FromPlan(*p)
+				req.NamespacedID = request.NamespacedID
+
+				req.IgnoreNonCriticalIssues = true
+				req.RejectUnitConfig = true
+				req.RejectUnrepresentableCurrencies = true
+
+				p, err := h.service.UpdatePlan(ctx, req)
+				if err != nil {
+					return fmt.Errorf("failed to update plan: %w", err)
+				}
+
+				// Inside the transaction so Tax Codes created for this request are visible.
+				taxCodes, err := h.taxCodesForPlans(ctx, p.Namespace, *p)
+				if err != nil {
+					return err
+				}
+
+				resp, err = FromPlan(*p, taxCodes)
+
+				return err
+			})
+
+			return resp, err
 		},
 		commonhttp.JSONResponseEncoderWithStatus[UpdatePlanResponse](http.StatusOK),
 		httptransport.AppendOptions(
@@ -307,7 +376,12 @@ func (h *handler) GetPlan() GetPlanHandler {
 				return GetPlanResponse{}, productcatalog.ErrRateCardCurrencyNotRepresentable
 			}
 
-			return FromPlan(*p)
+			taxCodes, err := h.taxCodesForPlans(ctx, p.Namespace, *p)
+			if err != nil {
+				return GetPlanResponse{}, err
+			}
+
+			return FromPlan(*p, taxCodes)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[GetPlanResponse](http.StatusOK),
 		httptransport.AppendOptions(
@@ -354,7 +428,12 @@ func (h *handler) PublishPlan() PublishPlanHandler {
 				return PublishPlanResponse{}, fmt.Errorf("failed to Publish plan: %w", err)
 			}
 
-			return FromPlan(*p)
+			taxCodes, err := h.taxCodesForPlans(ctx, p.Namespace, *p)
+			if err != nil {
+				return PublishPlanResponse{}, err
+			}
+
+			return FromPlan(*p, taxCodes)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[GetPlanResponse](http.StatusOK),
 		httptransport.AppendOptions(
@@ -399,7 +478,12 @@ func (h *handler) ArchivePlan() ArchivePlanHandler {
 				return ArchivePlanResponse{}, fmt.Errorf("failed to archive plan: %w", err)
 			}
 
-			return FromPlan(*p)
+			taxCodes, err := h.taxCodesForPlans(ctx, p.Namespace, *p)
+			if err != nil {
+				return ArchivePlanResponse{}, err
+			}
+
+			return FromPlan(*p, taxCodes)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[GetPlanResponse](http.StatusOK),
 		httptransport.AppendOptions(
@@ -450,7 +534,12 @@ func (h *handler) NextPlan() NextPlanHandler {
 
 			// TODO(chrisgacsal): update api.Response in TypeSpec definition to allow returning Plan
 
-			return FromPlan(*p)
+			taxCodes, err := h.taxCodesForPlans(ctx, p.Namespace, *p)
+			if err != nil {
+				return NextPlanResponse{}, err
+			}
+
+			return FromPlan(*p, taxCodes)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[GetPlanResponse](http.StatusOK),
 		httptransport.AppendOptions(

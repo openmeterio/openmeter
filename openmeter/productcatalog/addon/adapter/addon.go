@@ -466,7 +466,7 @@ func addonEagerLoadActivePlans(currencyExpand *currencies.CurrencyExpandOptions)
 							ratecarddb.DeletedAtIsNil(),
 							ratecarddb.DeletedAtGT(clock.Now().UTC()),
 						),
-					).WithFeatures().WithTaxCode()
+					).WithFeatures()
 					if currencyExpand != nil {
 						prcq.WithCustomCurrency(eagerLoadCustomCurrency(*currencyExpand))
 					}
@@ -593,7 +593,6 @@ func addonEagerLoadRateCards(currencyExpand *currencies.CurrencyExpandOptions) f
 				addonratecarddb.DeletedAtGT(clock.Now().UTC()),
 			))
 		rateCardEagerLoadFeaturesFn(q)
-		rateCardEagerLoadTaxCodesFn(q)
 		if currencyExpand != nil {
 			q.WithCustomCurrency(eagerLoadCustomCurrency(*currencyExpand))
 		}
@@ -602,10 +601,6 @@ func addonEagerLoadRateCards(currencyExpand *currencies.CurrencyExpandOptions) f
 
 var rateCardEagerLoadFeaturesFn = func(q *entdb.AddonRateCardQuery) {
 	q.WithFeatures()
-}
-
-var rateCardEagerLoadTaxCodesFn = func(q *entdb.AddonRateCardQuery) {
-	q.WithTaxCode()
 }
 
 func eagerLoadCustomCurrency(expand currencies.CurrencyExpandOptions) func(*entdb.CustomCurrencyQuery) {

@@ -172,28 +172,47 @@ func (s StripeTaxConfig) Clone() StripeTaxConfig {
 	return s
 }
 
-// TaxCodeConfig holds a lean reference to a tax code entry — only the FK and the behavior flag.
-// Used in charge intents where provider-specific fields (e.g. Stripe.Code) are not stored and
-// are resolved at invoice snapshot time via BackfillTaxConfig.
+// TaxCodeConfig is the internal tax reference: a Tax Code ID plus an optional behavior.
+//
+// The omitempty on TaxCodeID matters: an empty-ID config must serialize as {}, not
+// {"tax_code_id": ""} — the DB CHECK constraint compares the JSON against the column with
+// IS NOT DISTINCT FROM, and legacy TaxConfig readers decode this document.
 type TaxCodeConfig struct {
 	Behavior  *TaxBehavior `json:"behavior,omitempty"`
-	TaxCodeID string       `json:"tax_code_id"`
+	TaxCodeID string       `json:"tax_code_id,omitempty"`
 }
 
 func (c TaxCodeConfig) Validate() error {
-	var errs []error
+	if c.Behavior != nil {
+		return models.NewNillableGenericValidationError(c.Behavior.Validate())
+	}
+
+	return nil
+}
+
+// Equal treats nil and the zero value as the same "no tax config": adapters produce either one.
+func (c *TaxCodeConfig) Equal(v *TaxCodeConfig) bool {
+	left, right := lo.FromPtr(c), lo.FromPtr(v)
+
+	if left.TaxCodeID != right.TaxCodeID {
+		return false
+	}
+
+	if (left.Behavior == nil) != (right.Behavior == nil) {
+		return false
+	}
+
+	return left.Behavior == nil || *left.Behavior == *right.Behavior
+}
+
+func (c TaxCodeConfig) Clone() TaxCodeConfig {
+	out := TaxCodeConfig{TaxCodeID: c.TaxCodeID}
 
 	if c.Behavior != nil {
-		if err := c.Behavior.Validate(); err != nil {
-			errs = append(errs, err)
-		}
+		out.Behavior = lo.ToPtr(*c.Behavior)
 	}
 
-	if c.TaxCodeID == "" {
-		errs = append(errs, fmt.Errorf("tax code id is required"))
-	}
-
-	return models.NewNillableGenericValidationError(errors.Join(errs...))
+	return out
 }
 
 // ToTaxConfig converts TaxCodeConfig to TaxConfig (without provider-specific fields).
@@ -228,6 +247,20 @@ func TaxCodeConfigFrom(cfg *TaxConfig) TaxCodeConfig {
 	}
 
 	return out
+}
+
+// FromDBTaxColumns reads tax settings from the tax_code_id and tax_behavior columns only. The legacy
+// tax_config JSON may still hold a Stripe code on old rows, but those rows were backfilled with a
+// tax_code_id (a CHECK constraint keeps it that way), so the columns are the source of truth.
+func FromDBTaxColumns(taxCodeID *string, behavior *TaxBehavior) *TaxCodeConfig {
+	if taxCodeID == nil && behavior == nil {
+		return nil
+	}
+
+	return &TaxCodeConfig{
+		TaxCodeID: lo.FromPtr(taxCodeID),
+		Behavior:  behavior,
+	}
 }
 
 type resolveTaxConfigOptions struct {

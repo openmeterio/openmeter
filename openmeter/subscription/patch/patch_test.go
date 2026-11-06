@@ -197,7 +197,7 @@ func (ts *testsuite[T]) Run(t *testing.T) {
 }
 
 func getDefaultSpec(t *testing.T, activeFrom time.Time) (*subscription.SubscriptionSpec, *psubs.Plan) {
-	pInp := subscriptiontestutils.GetExamplePlanInput(t, productcatalog.TaxConfig{TaxCodeID: lo.ToPtr("example-tax-code")})
+	pInp := subscriptiontestutils.GetExamplePlanInput(t, productcatalog.TaxCodeConfig{TaxCodeID: "example-tax-code"})
 	p := &psubs.Plan{
 		Plan: pInp.Plan,
 		Ref:  &models.NamespacedID{Namespace: pInp.Namespace, ID: pInp.Key},

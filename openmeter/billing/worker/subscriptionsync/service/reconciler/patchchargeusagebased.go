@@ -124,7 +124,7 @@ func newUsageBasedChargeIntent(target targetstate.StateItem) (charges.ChargeInte
 			Annotations:       annotations,
 			Currency:          target.Currency,
 			UniqueReferenceID: &target.UniqueID,
-			TaxConfig:         productcatalog.TaxCodeConfigFrom(rateCardMeta.TaxConfig),
+			TaxConfig:         lo.FromPtr(rateCardMeta.TaxConfig).Clone(),
 			Subscription: &chargesmeta.SubscriptionReference{
 				SubscriptionID: target.Subscription.ID,
 				PhaseID:        target.PhaseID,

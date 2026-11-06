@@ -10,7 +10,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
-	taxcodeadapter "github.com/openmeterio/openmeter/openmeter/taxcode/adapter"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -228,7 +227,7 @@ func MapDBSubscriptionItem(item *db.SubscriptionItem) (subscription.Subscription
 		Description:         item.Description,
 		Feature:             productcatalog.NewFeatureReference(nil, item.FeatureKey),
 		EntitlementTemplate: item.EntitlementTemplate,
-		TaxConfig:           item.TaxConfig,
+		TaxConfig:           productcatalog.FromDBTaxColumns(item.TaxCodeID, item.TaxBehavior),
 		Price:               item.Price,
 		Discounts:           lo.FromPtr(item.Discounts),
 		UnitConfig:          item.UnitConfig,
@@ -236,19 +235,6 @@ func MapDBSubscriptionItem(item *db.SubscriptionItem) (subscription.Subscription
 		// NOTE: resolving feature is done on service level as there is no direct relationship between subscription items and features.
 		Currency: itemCurrency,
 	}
-
-	// Map TaxCode if eagerly loaded.
-	if taxCodeRow, err := item.Edges.TaxCodeOrErr(); err == nil {
-		tc, err := taxcodeadapter.MapTaxCodeFromEntity(taxCodeRow)
-		if err != nil {
-			return subscription.SubscriptionItem{}, fmt.Errorf("invalid tax code for subscription item %s: %w", item.ID, err)
-		}
-
-		rcMeta.TaxCode = &tc
-	}
-
-	// Backfill legacy TaxConfig fields from new normalized columns.
-	rcMeta.TaxConfig = productcatalog.BackfillTaxConfig(rcMeta.TaxConfig, item.TaxBehavior, rcMeta.TaxCode)
 
 	switch {
 	case item.Price == nil:

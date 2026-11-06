@@ -51,7 +51,7 @@ func WithRateCardTaxCode(tc taxcode.TaxCode) TransformerFunc[productcatalog.Plan
 						behavior = m.TaxConfig.Behavior
 					}
 
-					m.TaxConfig = &productcatalog.TaxConfig{TaxCodeID: &tc.ID, Behavior: behavior}
+					m.TaxConfig = &productcatalog.TaxCodeConfig{TaxCodeID: tc.ID, Behavior: behavior}
 
 					return m, nil
 				}))
