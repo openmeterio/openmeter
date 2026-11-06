@@ -16,6 +16,7 @@ import (
 	"github.com/stretchr/testify/suite"
 	"github.com/stripe/stripe-go/v80"
 	metricnoop "go.opentelemetry.io/otel/metric/noop"
+	tracenoop "go.opentelemetry.io/otel/trace/noop"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
@@ -28,8 +29,12 @@ import (
 	creditgrant "github.com/openmeterio/openmeter/openmeter/billing/creditgrant"
 	creditgrantservice "github.com/openmeterio/openmeter/openmeter/billing/creditgrant/service"
 	billinghttpdriver "github.com/openmeterio/openmeter/openmeter/billing/httpdriver"
+	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
+	subscriptionsyncadapter "github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/adapter"
+	subscriptionsyncservice "github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
+	"github.com/openmeterio/openmeter/openmeter/ledger"
 	advancetestutils "github.com/openmeterio/openmeter/openmeter/ledger/advance/testutils"
 	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	ledgerchargeadapter "github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
@@ -52,6 +57,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/featuregate"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 	billingtest "github.com/openmeterio/openmeter/test/billing"
@@ -59,6 +65,7 @@ import (
 
 type StripeInvoiceTestSuite struct {
 	billingtest.BaseSuite
+	billingtest.SubscriptionMixin
 
 	AppStripeService appstripe.Service
 	Fixture          *Fixture
@@ -67,6 +74,8 @@ type StripeInvoiceTestSuite struct {
 	Charges          charges.Service
 	CreditGrant      creditgrant.Service
 	LedgerResolver   *ledgerresolvers.AccountResolver
+	BalanceQuerier   ledger.BalanceQuerier
+	SubscriptionSync subscriptionsync.Service
 }
 
 func TestStripeInvoicing(t *testing.T) {
@@ -75,6 +84,7 @@ func TestStripeInvoicing(t *testing.T) {
 
 func (s *StripeInvoiceTestSuite) SetupSuite() {
 	s.BaseSuite.SetupSuite()
+	s.SubscriptionMixin.SetupSuite(s.T(), s.GetSubscriptionMixInDependencies())
 
 	// Secret
 	secretAdapter := secretadapter.New()
@@ -102,7 +112,12 @@ func (s *StripeInvoiceTestSuite) SetupSuite() {
 		StripeClientFactory: func(config stripeclient.StripeClientConfig) (stripeclient.StripeClient, error) {
 			return stripeClient, nil
 		},
+		// Apps installed with a real secret key talk to Stripe; everything else stays on the mock.
 		StripeAppClientFactory: func(config stripeclient.StripeAppClientConfig) (stripeclient.StripeAppClient, error) {
+			if config.APIKey != TestStripeAPIKey {
+				return stripeclient.NewStripeAppClient(config)
+			}
+
 			return stripeAppClient, nil
 		},
 		Logger: slog.Default(),
@@ -131,6 +146,7 @@ func (s *StripeInvoiceTestSuite) SetupSuite() {
 	s.Require().NoError(err, "failed to initialize ledger dependencies")
 
 	s.LedgerResolver = ledgerDeps.ResolversService
+	s.BalanceQuerier = ledgerDeps.HistoricalLedger
 
 	breakageService := ledgerbreakage.NewNoopService()
 
@@ -171,6 +187,7 @@ func (s *StripeInvoiceTestSuite) SetupSuite() {
 		StreamingConnector:    s.MockStreamingConnector,
 		TaxCodeService:        s.TaxCodeEnv.Service,
 		CustomerService:       s.CustomerService,
+		SubscriptionService:   s.SubscriptionService,
 		FlatFeeHandler:        ledgerchargeadapter.NewFlatFeeHandler(ledgerDeps.HistoricalLedger, transactions.ResolverDependencies{AccountService: ledgerDeps.ResolversService, AccountCatalog: ledgerDeps.AccountService, BalanceQuerier: ledgerDeps.HistoricalLedger}, collectorService),
 		CreditPurchaseHandler: creditPurchaseHandler,
 		UsageBasedHandler:     ledgerchargeadapter.NewUsageBasedHandler(ledgerDeps.HistoricalLedger, transactions.ResolverDependencies{AccountService: ledgerDeps.ResolversService, AccountCatalog: ledgerDeps.AccountService, BalanceQuerier: ledgerDeps.HistoricalLedger}, collectorService),
@@ -189,6 +206,29 @@ func (s *StripeInvoiceTestSuite) SetupSuite() {
 	})
 	s.Require().NoError(err, "failed to initialize credit grant service")
 	s.CreditGrant = creditGrantService
+
+	subscriptionSyncAdapter, err := subscriptionsyncadapter.New(subscriptionsyncadapter.Config{
+		Client: s.DBClient,
+	})
+	s.Require().NoError(err, "failed to create subscription sync adapter")
+
+	subscriptionSyncService, err := subscriptionsyncservice.New(subscriptionsyncservice.Config{
+		BillingService:          s.BillingService,
+		LegacyBillingLineEngine: s.LegacyBillingLineEngine,
+		ChargesService:          s.Charges,
+		Logger:                  slog.Default(),
+		Tracer:                  tracenoop.NewTracerProvider().Tracer("test"),
+		SubscriptionSyncAdapter: subscriptionSyncAdapter,
+		SubscriptionService:     s.SubscriptionService,
+		FeatureFlags: subscriptionsyncservice.FeatureFlags{
+			EnableCreditThenInvoice: true,
+		},
+		FeatureGate: featuregate.NewFeatureGateChecker(featuregate.NewNoop(), featuregate.Flags{
+			featuregate.CtxKeyCredits: string(featuregate.CtxKeyCredits),
+		}, map[featuregate.FeatureFlag]bool{featuregate.CtxKeyCredits: true}),
+	})
+	s.Require().NoError(err, "failed to create subscription sync service")
+	s.SubscriptionSync = subscriptionSyncService
 
 	// Fixture
 	s.Fixture = NewFixture(s.AppService, s.CustomerService, stripeClient, stripeAppClient)
