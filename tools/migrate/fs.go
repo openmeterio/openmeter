@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"io/fs"
-	"path/filepath"
+	"path"
 	"strings"
 )
 
@@ -29,15 +29,15 @@ func (s *SourceWrapper) Open(name string) (fs.File, error) {
 	return s.fsys.Open(name)
 }
 
-func (s *SourceWrapper) ReadDir(path string) ([]fs.DirEntry, error) {
-	entries, err := fs.ReadDir(s.fsys, path)
+func (s *SourceWrapper) ReadDir(dir string) ([]fs.DirEntry, error) {
+	entries, err := fs.ReadDir(s.fsys, dir)
 	if err != nil {
 		return nil, err
 	}
 
 	results := make([]fs.DirEntry, 0, len(entries))
 	for _, entry := range entries {
-		filePath := filepath.Join(path, entry.Name())
+		filePath := path.Join(dir, entry.Name())
 
 		if entry.IsDir() {
 			r, err := s.ReadDir(filePath)
