@@ -5,8 +5,10 @@ import (
 
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	api "github.com/openmeterio/openmeter/api/client/go"
+	v3sdk "github.com/openmeterio/openmeter/api/v3/client"
 )
 
 // AssertTaxConfigs checks that every expected key is present in got with the expected
@@ -45,4 +47,32 @@ func InvoiceLineTaxConfigs(t *testing.T, lines []api.InvoiceLine) map[string]*ap
 	}
 
 	return got
+}
+
+// StripeOnlyWant returns the taxConfig a write that sent only the given Stripe code must
+// render: the code, plus the ID of the tax code the server looked up or created for it. The ID
+// is only known after the write, so it is taken from got, which must carry one. Compare got
+// against the result in a then step; this doesn't check the rest of got.
+func StripeOnlyWant(t *testing.T, stripeCode string, got *api.TaxConfig) *api.TaxConfig {
+	t.Helper()
+
+	require.NotNil(t, got, "taxConfig of a stripe-only write")
+	require.NotEmpty(t, lo.FromPtr(got.TaxCodeId), "taxCodeId of a stripe-only write")
+
+	return &api.TaxConfig{
+		Stripe:    &api.StripeTaxConfig{Code: stripeCode},
+		TaxCodeId: lo.ToPtr(*got.TaxCodeId),
+	}
+}
+
+// AssertTaxCodeStripeMapping checks through v3 that the tax code with the given ID has a
+// Stripe app mapping for the given code.
+func AssertTaxCodeStripeMapping(t *testing.T, client *v3sdk.Client, taxCodeID, stripeCode string) {
+	t.Helper()
+
+	taxCode, err := client.Tax.GetCode(t.Context(), taxCodeID)
+	require.NoError(t, err)
+	require.NotNil(t, taxCode)
+
+	assert.Equal(t, stripeCode, StripeAppMapping(*taxCode), "stripe app mapping of tax code %s", taxCodeID)
 }

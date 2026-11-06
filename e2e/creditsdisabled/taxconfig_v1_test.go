@@ -695,3 +695,90 @@ func TestV1TaxConfigSubscriptionInvoiceLines(t *testing.T) {
 		taxconfigv1.AssertTaxConfigs(t, want, got)
 	})
 }
+
+func TestV1TaxConfigUnmappedStripeCode(t *testing.T) {
+	// given: a fresh unmapped Stripe code and a customer pinned to a manual-approval billing profile
+	// when:
+	//   1. a pending line is created with a stripe-only tax config
+	//   2. a second pending line is created with the same code
+	// then: each write resolves the code to a tax code and renders stripe.code with its
+	// taxCodeId, the gathering invoice renders the first line's config, and the second line
+	// reuses the first line's tax code
+	client := initClient(t)
+	c := newV3Client(t)
+
+	// given: a fresh unmapped Stripe code and a customer pinned to a manual-approval billing profile
+	lineCode := taxconfigv1.RandomStripeTaxCode()
+
+	profile := createManualApprovalBillingProfile(t, client)
+	customer := taxconfigv1.CreateCustomer(t, client, "v1_taxconfig_unmapped_customer")
+
+	overrideResp, err := client.UpsertBillingProfileCustomerOverrideWithResponse(t.Context(), customer.Id, api.BillingProfileCustomerOverrideCreate{
+		BillingProfileId: lo.ToPtr(profile.Id),
+	})
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, overrideResp.StatusCode(), "pin customer to billing profile: %s", string(overrideResp.Body))
+
+	periodEnd := time.Now().UTC().Truncate(time.Second)
+	period := api.Period{From: periodEnd.Add(-24 * time.Hour), To: periodEnd}
+
+	// when: a pending line is created with a stripe-only tax config
+	firstLine := taxconfigv1.LineInput{
+		Name:      "flat_unmapped_code",
+		InvoiceAt: period.From,
+		Period:    period,
+		RateCard: &api.InvoiceUsageBasedRateCard{
+			Price:     taxconfigv1.FlatLinePrice(t),
+			TaxConfig: &api.TaxConfig{Stripe: &api.StripeTaxConfig{Code: lineCode}},
+		},
+	}
+
+	firstResp, err := client.CreatePendingInvoiceLineWithResponse(t.Context(), customer.Id, api.InvoicePendingLineCreateInput{
+		Currency: "USD",
+		Lines:    taxconfigv1.PendingLines([]taxconfigv1.LineInput{firstLine}),
+	})
+	require.NoError(t, err)
+	require.Equal(t, http.StatusCreated, firstResp.StatusCode(), "create pending line: %s", string(firstResp.Body))
+	require.NotNil(t, firstResp.JSON201)
+
+	gatheringInvoiceID := firstResp.JSON201.Invoice.Id
+	t.Logf("customer=%s gathering invoice=%s", customer.Id, gatheringInvoiceID)
+
+	lineWant := taxconfigv1.StripeOnlyWant(t, lineCode, taxconfigv1.InvoiceLineTaxConfigs(t, firstResp.JSON201.Lines)["flat_unmapped_code"])
+
+	// when: a second pending line is created with the same code
+	secondLine := taxconfigv1.LineInput{
+		Name:      "flat_unmapped_code_again",
+		InvoiceAt: period.From,
+		Period:    period,
+		RateCard: &api.InvoiceUsageBasedRateCard{
+			Price:     taxconfigv1.FlatLinePrice(t),
+			TaxConfig: &api.TaxConfig{Stripe: &api.StripeTaxConfig{Code: lineCode}},
+		},
+	}
+
+	secondResp, err := client.CreatePendingInvoiceLineWithResponse(t.Context(), customer.Id, api.InvoicePendingLineCreateInput{
+		Currency: "USD",
+		Lines:    taxconfigv1.PendingLines([]taxconfigv1.LineInput{secondLine}),
+	})
+	require.NoError(t, err)
+	require.Equal(t, http.StatusCreated, secondResp.StatusCode(), "create second pending line: %s", string(secondResp.Body))
+	require.NotNil(t, secondResp.JSON201)
+
+	t.Run("then: the first create response renders the auto-created tax code", func(t *testing.T) {
+		taxconfigv1.AssertTaxConfigs(t, map[string]*api.TaxConfig{"flat_unmapped_code": lineWant}, taxconfigv1.InvoiceLineTaxConfigs(t, firstResp.JSON201.Lines))
+	})
+
+	t.Run("then: the gathering invoice renders the auto-created tax code", func(t *testing.T) {
+		gathering := taxconfigv1.Invoice(t, client, gatheringInvoiceID)
+		taxconfigv1.AssertTaxConfigs(t, map[string]*api.TaxConfig{"flat_unmapped_code": lineWant}, taxconfigv1.InvoiceLineTaxConfigs(t, *gathering.Lines))
+	})
+
+	t.Run("then: the auto-created tax code is visible through v3 with the sent stripe mapping", func(t *testing.T) {
+		taxconfigv1.AssertTaxCodeStripeMapping(t, c, *lineWant.TaxCodeId, lineCode)
+	})
+
+	t.Run("then: the second create reuses the first line's tax code", func(t *testing.T) {
+		taxconfigv1.AssertTaxConfigs(t, map[string]*api.TaxConfig{"flat_unmapped_code_again": lineWant}, taxconfigv1.InvoiceLineTaxConfigs(t, secondResp.JSON201.Lines))
+	})
+}

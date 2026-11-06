@@ -1242,3 +1242,445 @@ func TestV1TaxConfigInvoiceLines(t *testing.T) {
 		assert.Equal(t, &api.TaxConfig{Behavior: lo.ToPtr(api.TaxBehaviorExclusive)}, reread.Workflow.Workflow.Invoicing.DefaultTaxConfig)
 	})
 }
+
+func TestV1TaxConfigUnmappedStripeCode(t *testing.T) {
+	// given: fresh unmapped Stripe codes for the plan, addon and invoice line writes, and a
+	// mapped tax code for the ID-wins write
+	// when:
+	//   1. a plan (flat fee and usage based rate cards), an addon and a pending invoice line
+	//      are written with stripe-only tax configs; the plan is published and subscribed to
+	//   2. a second plan is written with the plan's Stripe code again
+	//   3. an addon rate card sends a mapped tax code ID next to a fresh unmapped code
+	// then: every stripe-only write resolves to a tax code rendered as
+	// {stripe: {code: sent}, taxCodeId: <id>}, the reused code resolves to the same tax code,
+	// and the ID wins without creating a tax code for the ignored code
+	client := initClient(t)
+	c := newV3Client(t)
+
+	// given: one unmapped Stripe code per write path, and a mapped tax code for the ID-wins write
+	planCode := taxconfigv1.RandomStripeTaxCode()
+	addonCode := taxconfigv1.RandomStripeTaxCode()
+	lineCode := taxconfigv1.RandomStripeTaxCode()
+	ignoredCode := taxconfigv1.RandomStripeTaxCode()
+
+	mappedTaxCode := createStripeMappedTaxCode(t, c)
+
+	// given: the plan scenario's metered feature, so the plan carries the code on a flat fee
+	// and a usage based rate card
+	planScenarios := withV1TaxConfigFeatures(t, client, []v1TaxConfigScenario{{
+		key:   "flat",
+		input: &api.TaxConfig{Stripe: &api.StripeTaxConfig{Code: planCode}},
+	}})
+	planRateCards, _ := v1TaxConfigRateCards(t, "", planScenarios)
+
+	addonRateCards, _ := v1TaxConfigFlatFeeRateCards(t, "addon_", []v1TaxConfigScenario{{
+		key:   "flat",
+		input: &api.TaxConfig{Stripe: &api.StripeTaxConfig{Code: addonCode}},
+	}})
+
+	reuseRateCards, _ := v1TaxConfigFlatFeeRateCards(t, "reuse_", []v1TaxConfigScenario{{
+		key:   "flat",
+		input: &api.TaxConfig{Stripe: &api.StripeTaxConfig{Code: planCode}},
+	}})
+
+	winnerRateCards, _ := v1TaxConfigFlatFeeRateCards(t, "ignored_", []v1TaxConfigScenario{{
+		key: "flat",
+		input: &api.TaxConfig{
+			Stripe:    &api.StripeTaxConfig{Code: ignoredCode},
+			TaxCodeId: lo.ToPtr(mappedTaxCode.ID),
+		},
+	}})
+
+	customer := taxconfigv1.CreateCustomer(t, client, "v1_taxconfig_unmapped_sub_customer")
+
+	// given: a customer pinned to a billing profile that doesn't auto-advance invoices and
+	// defaults to an exclusive tax behavior, like the invoice line test's customer
+	profileCreate := v1BillingProfileCreateFromDefault(t, client)
+	profileCreate.Workflow.Invoicing.AutoAdvance = lo.ToPtr(false)
+	profileCreate.Workflow.Invoicing.DefaultTaxConfig = &api.TaxConfig{Behavior: lo.ToPtr(api.TaxBehaviorExclusive)}
+
+	profileResp, err := client.CreateBillingProfileWithResponse(t.Context(), profileCreate)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusCreated, profileResp.StatusCode(), "create billing profile: %s", string(profileResp.Body))
+	require.NotNil(t, profileResp.JSON201)
+
+	lineCustomer := taxconfigv1.CreateCustomer(t, client, "v1_taxconfig_unmapped_line_customer")
+
+	overrideResp, err := client.UpsertBillingProfileCustomerOverrideWithResponse(t.Context(), lineCustomer.Id, api.BillingProfileCustomerOverrideCreate{
+		BillingProfileId: lo.ToPtr(profileResp.JSON201.Id),
+	})
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, overrideResp.StatusCode(), "pin customer to billing profile: %s", string(overrideResp.Body))
+
+	periodEnd := time.Now().UTC().Truncate(time.Second)
+	period := api.Period{From: periodEnd.Add(-24 * time.Hour), To: periodEnd}
+
+	lineInput := taxconfigv1.LineInput{
+		Name:      "flat_unmapped_code",
+		InvoiceAt: period.From,
+		Period:    period,
+		RateCard: &api.InvoiceUsageBasedRateCard{
+			Price:     taxconfigv1.FlatLinePrice(t),
+			TaxConfig: &api.TaxConfig{Stripe: &api.StripeTaxConfig{Code: lineCode}},
+		},
+	}
+
+	// when: a draft plan is created with the plan rate cards, then published
+	planResp, err := client.CreatePlanWithResponse(t.Context(), api.PlanCreate{
+		Key:            uniqueKey("v1_taxconfig_unmapped_plan"),
+		Name:           "v1 taxConfig unmapped stripe plan",
+		Currency:       "USD",
+		BillingCadence: "P1M",
+		SettlementMode: lo.ToPtr(api.BillingSettlementModeCreditThenInvoice),
+		Phases: []api.PlanPhase{{
+			Key:       "default",
+			Name:      "Default",
+			RateCards: planRateCards,
+		}},
+	})
+	require.NoError(t, err)
+	require.Equal(t, http.StatusCreated, planResp.StatusCode(), "create plan: %s", string(planResp.Body))
+	require.NotNil(t, planResp.JSON201)
+	require.Len(t, planResp.JSON201.Phases, 1)
+
+	planID := planResp.JSON201.Id
+
+	publishPlanResp, err := client.PublishPlanWithResponse(t.Context(), planID)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, publishPlanResp.StatusCode(), "publish plan: %s", string(publishPlanResp.Body))
+	require.NotNil(t, publishPlanResp.JSON200)
+
+	// when: a draft addon is created with the addon's unmapped code
+	addonResp, err := client.CreateAddonWithResponse(t.Context(), api.AddonCreate{
+		Key:          uniqueKey("v1_taxconfig_unmapped_addon"),
+		Name:         "v1 taxConfig unmapped stripe addon",
+		Currency:     "USD",
+		InstanceType: api.AddonInstanceTypeSingle,
+		RateCards:    addonRateCards,
+	})
+	require.NoError(t, err)
+	require.Equal(t, http.StatusCreated, addonResp.StatusCode(), "create addon: %s", string(addonResp.Body))
+	require.NotNil(t, addonResp.JSON201)
+
+	// when: a customer subscribes to the published plan
+	timing := api.SubscriptionTiming{}
+	require.NoError(t, timing.FromSubscriptionTimingEnum(api.SubscriptionTimingEnumImmediate))
+
+	subscriptionCreate := api.SubscriptionCreate{}
+	require.NoError(t, subscriptionCreate.FromPlanSubscriptionCreate(api.PlanSubscriptionCreate{
+		Timing:     &timing,
+		CustomerId: lo.ToPtr(customer.Id),
+		Plan: api.PlanReferenceInput{
+			Key:     publishPlanResp.JSON200.Key,
+			Version: lo.ToPtr(publishPlanResp.JSON200.Version),
+		},
+	}))
+
+	subscriptionResp, err := client.CreateSubscriptionWithResponse(t.Context(), subscriptionCreate)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusCreated, subscriptionResp.StatusCode(), "create subscription: %s", string(subscriptionResp.Body))
+	require.NotNil(t, subscriptionResp.JSON201)
+
+	subscriptionID := subscriptionResp.JSON201.Id
+	t.Logf("customer=%s subscription=%s", customer.Id, subscriptionID)
+
+	// when: a pending invoice line is created with the line's unmapped code
+	lineCreateResp, err := client.CreatePendingInvoiceLineWithResponse(t.Context(), lineCustomer.Id, api.InvoicePendingLineCreateInput{
+		Currency: "USD",
+		Lines:    taxconfigv1.PendingLines([]taxconfigv1.LineInput{lineInput}),
+	})
+	require.NoError(t, err)
+	require.Equal(t, http.StatusCreated, lineCreateResp.StatusCode(), "create pending line: %s", string(lineCreateResp.Body))
+	require.NotNil(t, lineCreateResp.JSON201)
+
+	gatheringInvoiceID := lineCreateResp.JSON201.Invoice.Id
+	t.Logf("line customer=%s gathering invoice=%s", lineCustomer.Id, gatheringInvoiceID)
+
+	// when: a second plan is written with the plan's Stripe code again
+	reusePlanResp, err := client.CreatePlanWithResponse(t.Context(), api.PlanCreate{
+		Key:            uniqueKey("v1_taxconfig_reuse_plan"),
+		Name:           "v1 taxConfig unmapped stripe reuse plan",
+		Currency:       "USD",
+		BillingCadence: "P1M",
+		Phases: []api.PlanPhase{{
+			Key:       "default",
+			Name:      "Default",
+			RateCards: reuseRateCards,
+		}},
+	})
+	require.NoError(t, err)
+	require.Equal(t, http.StatusCreated, reusePlanResp.StatusCode(), "create reuse plan: %s", string(reusePlanResp.Body))
+	require.NotNil(t, reusePlanResp.JSON201)
+	require.Len(t, reusePlanResp.JSON201.Phases, 1)
+
+	// when: an addon rate card sends a mapped tax code ID next to a fresh unmapped code
+	winnerAddonResp, err := client.CreateAddonWithResponse(t.Context(), api.AddonCreate{
+		Key:          uniqueKey("v1_taxconfig_id_wins_addon"),
+		Name:         "v1 taxConfig ID wins addon",
+		Currency:     "USD",
+		InstanceType: api.AddonInstanceTypeSingle,
+		RateCards:    winnerRateCards,
+	})
+	require.NoError(t, err)
+	require.Equal(t, http.StatusCreated, winnerAddonResp.StatusCode(), "create ID wins addon: %s", string(winnerAddonResp.Body))
+	require.NotNil(t, winnerAddonResp.JSON201)
+
+	// The auto-created tax code IDs are only known from the create responses; every later read
+	// of the same resource must render them.
+	planCreateGot := v1RateCardTaxConfigs(t, planResp.JSON201.Phases[0].RateCards)
+	planWant := taxconfigv1.StripeOnlyWant(t, planCode, planCreateGot["flat"])
+	planCardWant := map[string]*api.TaxConfig{
+		"flat":                      planWant,
+		planScenarios[0].featureKey: planWant,
+	}
+
+	addonCreateGot := v1RateCardTaxConfigs(t, addonResp.JSON201.RateCards)
+	addonWant := taxconfigv1.StripeOnlyWant(t, addonCode, addonCreateGot["addon_flat"])
+
+	lineCreateGot := taxconfigv1.InvoiceLineTaxConfigs(t, lineCreateResp.JSON201.Lines)
+	lineWant := taxconfigv1.StripeOnlyWant(t, lineCode, lineCreateGot["flat_unmapped_code"])
+
+	// The ID wins, so the ignored code is replaced by the mapped tax code's own mapping.
+	winnerWant := &api.TaxConfig{
+		Stripe:    &api.StripeTaxConfig{Code: taxconfigv1.StripeAppMapping(mappedTaxCode)},
+		TaxCodeId: lo.ToPtr(mappedTaxCode.ID),
+	}
+
+	t.Run("then: the plan create response and GET render the auto-created tax code", func(t *testing.T) {
+		taxconfigv1.AssertTaxConfigs(t, planCardWant, planCreateGot)
+
+		getResp, err := client.GetPlanWithResponse(t.Context(), planID, nil)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, getResp.StatusCode(), "get plan: %s", string(getResp.Body))
+		require.NotNil(t, getResp.JSON200)
+		require.Len(t, getResp.JSON200.Phases, 1)
+
+		taxconfigv1.AssertTaxConfigs(t, planCardWant, v1RateCardTaxConfigs(t, getResp.JSON200.Phases[0].RateCards))
+	})
+
+	t.Run("then: the addon create response and GET render the auto-created tax code", func(t *testing.T) {
+		taxconfigv1.AssertTaxConfigs(t, map[string]*api.TaxConfig{"addon_flat": addonWant}, addonCreateGot)
+
+		getResp, err := client.GetAddonWithResponse(t.Context(), addonResp.JSON201.Id, nil)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, getResp.StatusCode(), "get addon: %s", string(getResp.Body))
+		require.NotNil(t, getResp.JSON200)
+
+		taxconfigv1.AssertTaxConfigs(t, map[string]*api.TaxConfig{"addon_flat": addonWant}, v1RateCardTaxConfigs(t, getResp.JSON200.RateCards))
+	})
+
+	t.Run("then: the subscription items render the plan's tax code", func(t *testing.T) {
+		taxconfigv1.AssertTaxConfigs(t, planCardWant, v1SubscriptionItemTaxConfigs(t, client, subscriptionID))
+	})
+
+	t.Run("then: the pending line create response and the gathering invoice render the auto-created tax code", func(t *testing.T) {
+		taxconfigv1.AssertTaxConfigs(t, map[string]*api.TaxConfig{"flat_unmapped_code": lineWant}, lineCreateGot)
+
+		gathering := taxconfigv1.Invoice(t, client, gatheringInvoiceID)
+		taxconfigv1.AssertTaxConfigs(t, map[string]*api.TaxConfig{"flat_unmapped_code": lineWant}, taxconfigv1.InvoiceLineTaxConfigs(t, *gathering.Lines))
+	})
+
+	t.Run("then: the auto-created tax codes are visible through v3 with the sent stripe mappings", func(t *testing.T) {
+		taxconfigv1.AssertTaxCodeStripeMapping(t, c.Client, *planWant.TaxCodeId, planCode)
+		taxconfigv1.AssertTaxCodeStripeMapping(t, c.Client, *addonWant.TaxCodeId, addonCode)
+		taxconfigv1.AssertTaxCodeStripeMapping(t, c.Client, *lineWant.TaxCodeId, lineCode)
+	})
+
+	t.Run("then: writing the plan's stripe code again returns the same tax code", func(t *testing.T) {
+		reuseGot := v1RateCardTaxConfigs(t, reusePlanResp.JSON201.Phases[0].RateCards)
+		taxconfigv1.AssertTaxConfigs(t, map[string]*api.TaxConfig{"reuse_flat": planWant}, reuseGot)
+	})
+
+	t.Run("then: the tax code ID wins over the ignored stripe code and no tax code is created for it", func(t *testing.T) {
+		winnerGot := v1RateCardTaxConfigs(t, winnerAddonResp.JSON201.RateCards)
+		taxconfigv1.AssertTaxConfigs(t, map[string]*api.TaxConfig{"ignored_flat": winnerWant}, winnerGot)
+
+		getResp, err := client.GetAddonWithResponse(t.Context(), winnerAddonResp.JSON201.Id, nil)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, getResp.StatusCode(), "get ID wins addon: %s", string(getResp.Body))
+		require.NotNil(t, getResp.JSON200)
+
+		taxconfigv1.AssertTaxConfigs(t, map[string]*api.TaxConfig{"ignored_flat": winnerWant}, v1RateCardTaxConfigs(t, getResp.JSON200.RateCards))
+
+		for taxCode, err := range c.Tax.ListCodesAll(t.Context(), v3sdk.TaxCodeListParams{}) {
+			require.NoError(t, err)
+			assert.NotEqual(t, ignoredCode, taxconfigv1.StripeAppMapping(taxCode), "tax code %s must not carry the ignored stripe code", taxCode.ID)
+		}
+	})
+}
+
+// v3TaxCodeFlatRateCard builds a v3 flat fee rate card keyed key, referencing the tax code by ID.
+func v3TaxCodeFlatRateCard(key, taxCodeID string) v3sdk.RateCardInput {
+	cadence := "P1M"
+	paymentTerm := v3sdk.PricePaymentTermInAdvance
+
+	return v3sdk.RateCardInput{
+		Key:            key,
+		Name:           key,
+		Price:          lo.Must(v3sdk.PriceFromPriceFlat(v3sdk.PriceFlat{Amount: "10"})),
+		BillingCadence: &cadence,
+		PaymentTerm:    &paymentTerm,
+		TaxConfig:      &v3sdk.TaxCodeConfig{Code: &v3sdk.TaxCodeReference{ID: taxCodeID}},
+	}
+}
+
+func TestV1TaxConfigV3CreatedCatalog(t *testing.T) {
+	// given: a tax code with a Stripe app mapping and one without any
+	// when:
+	//   1. a v3 plan and addon are created with one flat fee rate card per tax code and
+	//      published, and a customer subscribes to the plan through v3
+	//   2. billing syncs the subscription into gathering invoice lines
+	// then: v1 renders the mapped tax code's stripe.code next to its ID and omits stripe for
+	// the unmapped tax code, on the plan, the addon, the subscription items and the gathering
+	// invoice lines
+	client := initClient(t)
+	c := newV3Client(t)
+
+	// given: a tax code with a Stripe app mapping and one without any
+	mappedCode := createStripeMappedTaxCode(t, c)
+
+	unmappedCode, err := c.Tax.CreateCode(t.Context(), v3sdk.CreateTaxCodeRequest{
+		Key:         uniqueKey("v1_taxconfig"),
+		Name:        "v1 taxConfig characterization",
+		AppMappings: []v3sdk.TaxCodeAppMapping{},
+	})
+	c.requireStatus(http.StatusCreated, err)
+	require.NotNil(t, unmappedCode)
+
+	// v1 renders the mapped tax code's config from its Stripe app mapping and leaves the
+	// unmapped one with its ID only.
+	mappedWant := &api.TaxConfig{
+		Stripe:    &api.StripeTaxConfig{Code: taxconfigv1.StripeAppMapping(mappedCode)},
+		TaxCodeId: lo.ToPtr(mappedCode.ID),
+	}
+	unmappedWant := &api.TaxConfig{TaxCodeId: lo.ToPtr(unmappedCode.ID)}
+
+	rateCardWant := map[string]*api.TaxConfig{
+		"mapped_flat":   mappedWant,
+		"unmapped_flat": unmappedWant,
+	}
+
+	// when: a v3 plan carries one flat fee rate card per tax code and is published
+	plan, err := c.Plans.Create(t.Context(), v3sdk.CreatePlanRequest{
+		Key:            uniqueKey("v1_taxconfig_v3_plan"),
+		Name:           "v1 taxConfig v3 plan",
+		Currency:       "USD",
+		BillingCadence: "P1M",
+		Phases: []v3sdk.PlanPhaseInput{{
+			Key:  "default",
+			Name: "Default",
+			RateCards: []v3sdk.RateCardInput{
+				v3TaxCodeFlatRateCard("mapped_flat", mappedCode.ID),
+				v3TaxCodeFlatRateCard("unmapped_flat", unmappedCode.ID),
+			},
+		}},
+	})
+	c.requireStatus(http.StatusCreated, err)
+	require.NotNil(t, plan)
+
+	publishedPlan, err := c.Plans.Publish(t.Context(), plan.ID)
+	c.requireStatus(http.StatusOK, err)
+	require.NotNil(t, publishedPlan)
+	require.Equal(t, v3sdk.PlanStatusActive, publishedPlan.Status)
+
+	// when: a v3 addon carries the same rate cards and is published
+	addon, err := c.Addons.Create(t.Context(), v3sdk.CreateAddonRequest{
+		Key:          uniqueKey("v1_taxconfig_v3_addon"),
+		Name:         "v1 taxConfig v3 addon",
+		Currency:     "USD",
+		InstanceType: v3sdk.AddonInstanceTypeSingle,
+		RateCards: []v3sdk.RateCardInput{
+			v3TaxCodeFlatRateCard("mapped_flat", mappedCode.ID),
+			v3TaxCodeFlatRateCard("unmapped_flat", unmappedCode.ID),
+		},
+	})
+	c.requireStatus(http.StatusCreated, err)
+	require.NotNil(t, addon)
+
+	publishedAddon, err := c.Addons.Publish(t.Context(), addon.ID)
+	c.requireStatus(http.StatusOK, err)
+	require.NotNil(t, publishedAddon)
+
+	// when: a customer subscribes to the published plan through v3
+	customer := taxconfigv1.CreateCustomer(t, client, "v1_taxconfig_v3_customer")
+
+	subscription, err := c.Subscriptions.Create(t.Context(), v3sdk.SubscriptionCreate{
+		Customer:       v3sdk.SubscriptionChangeCustomer{ID: lo.ToPtr(customer.Id)},
+		Plan:           &v3sdk.SubscriptionChangePlan{ID: lo.ToPtr(publishedPlan.ID)},
+		SettlementMode: lo.ToPtr(v3sdk.SettlementModeCreditThenInvoice),
+	})
+	c.requireStatus(http.StatusCreated, err)
+	require.NotNil(t, subscription)
+	require.Equal(t, v3sdk.SubscriptionStatusActive, subscription.Status)
+
+	t.Logf("customer=%s subscription=%s", customer.Id, subscription.ID)
+
+	t.Run("then: v1 GET and list render the plan rate cards' tax configs", func(t *testing.T) {
+		getResp, err := client.GetPlanWithResponse(t.Context(), plan.ID, nil)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, getResp.StatusCode(), "get plan: %s", string(getResp.Body))
+		require.NotNil(t, getResp.JSON200)
+		require.Len(t, getResp.JSON200.Phases, 1)
+
+		taxconfigv1.AssertTaxConfigs(t, rateCardWant, v1RateCardTaxConfigs(t, getResp.JSON200.Phases[0].RateCards))
+
+		listed := v1ListedPlan(t, client, api.Plan{Id: plan.ID, Key: plan.Key})
+		taxconfigv1.AssertTaxConfigs(t, rateCardWant, v1RateCardTaxConfigs(t, listed.Phases[0].RateCards))
+	})
+
+	t.Run("then: v1 GET and list render the addon rate cards' tax configs", func(t *testing.T) {
+		getResp, err := client.GetAddonWithResponse(t.Context(), addon.ID, nil)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, getResp.StatusCode(), "get addon: %s", string(getResp.Body))
+		require.NotNil(t, getResp.JSON200)
+
+		taxconfigv1.AssertTaxConfigs(t, rateCardWant, v1RateCardTaxConfigs(t, getResp.JSON200.RateCards))
+
+		listed := v1ListedAddon(t, client, api.Addon{Id: addon.ID, Key: addon.Key})
+		taxconfigv1.AssertTaxConfigs(t, rateCardWant, v1RateCardTaxConfigs(t, listed.RateCards))
+	})
+
+	t.Run("then: the subscription items render the rate cards' tax configs", func(t *testing.T) {
+		taxconfigv1.AssertTaxConfigs(t, rateCardWant, v1SubscriptionItemTaxConfigs(t, client, subscription.ID))
+	})
+
+	t.Run("then: the gathering invoice lines render the rate cards' tax configs", func(t *testing.T) {
+		// given: the subscription whose items carry both tax codes
+		// when: billing syncs the subscription into gathering invoice lines
+		// then: each line renders its item's tax config, with or without the mapped stripe code
+		customers := api.InvoiceListParamsCustomers{customer.Id}
+		expand := api.InvoiceListParamsExpand{api.InvoiceExpandLines}
+
+		var subscriptionLines []api.InvoiceLine
+		assert.EventuallyWithT(t, func(collect *assert.CollectT) {
+			resp, err := client.ListInvoicesWithResponse(t.Context(), &api.ListInvoicesParams{
+				Customers: &customers,
+				Expand:    &expand,
+				PageSize:  lo.ToPtr(api.PaginationPageSize(100)),
+			})
+			require.NoError(collect, err)
+			require.Equal(collect, http.StatusOK, resp.StatusCode(), "list invoices: %s", string(resp.Body))
+			require.NotNil(collect, resp.JSON200)
+
+			subscriptionLines = nil
+			for _, invoice := range resp.JSON200.Items {
+				for _, line := range lo.FromPtr(invoice.Lines) {
+					if line.Subscription != nil {
+						subscriptionLines = append(subscriptionLines, line)
+					}
+				}
+			}
+
+			names := make(map[string]struct{}, len(subscriptionLines))
+			for _, line := range subscriptionLines {
+				names[line.Name] = struct{}{}
+			}
+
+			for key := range rateCardWant {
+				require.Contains(collect, names, key)
+			}
+		}, time.Minute, time.Second)
+
+		taxconfigv1.AssertTaxConfigs(t, rateCardWant, taxconfigv1.InvoiceLineTaxConfigs(t, subscriptionLines))
+	})
+}
