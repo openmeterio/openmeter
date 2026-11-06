@@ -93,7 +93,7 @@ require (
 	github.com/RoaringBitmap/roaring/v2 v2.24.0 // indirect
 	github.com/SAP/go-hdb v1.16.8 // indirect
 	github.com/alpacahq/alpacadecimal v0.0.9 // indirect
-	github.com/andybalholm/brotli v1.2.6 // indirect
+	github.com/andybalholm/brotli v1.2.7 // indirect
 	github.com/apache/arrow-go/v18 v18.7.0 // indirect
 	github.com/apache/arrow/go/arrow v0.0.0-20211112161151-bc219186db40 // indirect
 	github.com/apache/arrow/go/v12 v12.0.1 // indirect
