@@ -119,6 +119,15 @@ var ErrTaxCodeStripeInvalid = models.NewValidationIssue(
 	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
+const ErrCodeTaxCodeAppMappingImmutable models.ErrorCode = "tax_code_app_mapping_immutable"
+
+var ErrTaxCodeAppMappingImmutable = models.NewValidationIssue(
+	ErrCodeTaxCodeAppMappingImmutable,
+	"existing app mappings cannot be changed or removed",
+	models.WithCriticalSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusConflict),
+)
+
 const ErrCodeOrganizationDefaultTaxCodesNotFound models.ErrorCode = "organization_default_tax_codes_not_found"
 
 var ErrOrganizationDefaultTaxCodesNotFound = models.NewValidationIssue(
