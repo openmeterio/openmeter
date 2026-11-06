@@ -26,6 +26,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
 	planaddonadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon/adapter"
 	planaddonservice "github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon/service"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/taxcoderesolver"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
@@ -33,6 +34,7 @@ import (
 
 var ProductCatalog = wire.NewSet(
 	Feature,
+	TaxCodeResolver,
 	Cost,
 	Plan,
 	Addon,
@@ -42,6 +44,10 @@ var ProductCatalog = wire.NewSet(
 var Feature = wire.NewSet(
 	NewFeatureConnector,
 	NewFeatureResolver,
+)
+
+var TaxCodeResolver = wire.NewSet(
+	NewTaxCodeResolver,
 )
 
 var Cost = wire.NewSet(
@@ -71,6 +77,8 @@ func NewFeatureConnector(
 }
 
 var NewFeatureResolver = featureresolver.New
+
+var NewTaxCodeResolver = taxcoderesolver.New
 
 func NewCostService(
 	featureConnector feature.FeatureConnector,

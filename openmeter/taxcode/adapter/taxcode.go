@@ -94,7 +94,11 @@ func (a *adapter) ListTaxCodes(ctx context.Context, input taxcode.ListTaxCodesIn
 			query = query.Where(taxcodedb.DeletedAtIsNil())
 		}
 
-		entities, err := query.Paginate(ctx, input.Page)
+		if len(input.IDs) > 0 {
+			query = query.Where(taxcodedb.IDIn(input.IDs...))
+		}
+
+		entities, err := query.Order(taxcodedb.ByID()).Paginate(ctx, input.Page)
 		if err != nil {
 			return pagination.Result[taxcode.TaxCode]{}, fmt.Errorf("failed to list tax codes: %w", err)
 		}
