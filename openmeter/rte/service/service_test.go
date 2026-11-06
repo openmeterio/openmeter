@@ -1,4 +1,4 @@
-package service_test
+package service
 
 import (
 	"context"
@@ -6,288 +6,170 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alpacahq/alpacadecimal"
-	"github.com/oklog/ulid/v2"
-	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
-	"github.com/openmeterio/openmeter/openmeter/currencies"
-	"github.com/openmeterio/openmeter/openmeter/customer"
-	"github.com/openmeterio/openmeter/openmeter/ledger/customerbalance"
 	"github.com/openmeterio/openmeter/openmeter/rte"
-	"github.com/openmeterio/openmeter/openmeter/rte/adapter"
-	"github.com/openmeterio/openmeter/openmeter/rte/service"
-	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-type calculatorFunc func(context.Context, customerbalance.GetBalanceServiceInput) (customerbalance.Balance, error)
+type testKey string
 
-func (f calculatorFunc) GetBalance(ctx context.Context, input customerbalance.GetBalanceServiceInput) (customerbalance.Balance, error) {
+func (k testKey) Validate() error {
+	if k == "" {
+		return models.NewGenericValidationError(errors.New("key is required"))
+	}
+
+	return nil
+}
+
+type calculatorFunc func(context.Context, rte.CalculateInput[testKey]) (int, error)
+
+func (f calculatorFunc) Calculate(ctx context.Context, input rte.CalculateInput[testKey]) (int, error) {
 	return f(ctx, input)
 }
 
-type balanceValues struct{ booked, spendable, live, pending int64 }
-
-func (b balanceValues) Booked() alpacadecimal.Decimal {
-	return alpacadecimal.NewFromInt(b.booked)
+type storeStub struct {
+	store func(context.Context, rte.StoreInput[testKey, int]) (rte.State[int], error)
+	get   func(context.Context, testKey) (rte.State[int], error)
 }
 
-func (b balanceValues) Spendable() alpacadecimal.Decimal {
-	return alpacadecimal.NewFromInt(b.spendable)
+func (s storeStub) Store(ctx context.Context, input rte.StoreInput[testKey, int]) (rte.State[int], error) {
+	return s.store(ctx, input)
 }
 
-func (b balanceValues) Live() alpacadecimal.Decimal {
-	return alpacadecimal.NewFromInt(b.live)
+func (s storeStub) Get(ctx context.Context, key testKey) (rte.State[int], error) {
+	return s.get(ctx, key)
 }
 
-func (b balanceValues) Pending() alpacadecimal.Decimal {
-	return alpacadecimal.NewFromInt(b.pending)
-}
+func TestServiceLifecycle(t *testing.T) {
+	// Given a calculator that can fail and a store that records only explicit writes.
+	now := time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC)
+	clock.FreezeTime(now)
+	defer clock.UnFreeze()
 
-func TestCreditBalanceState(t *testing.T) {
-	// Given independent service instances backed by the same migrated PostgreSQL database.
-	database := testutils.InitPostgresDB(t, testutils.PostgresDBStateAtlasMigrated)
-	t.Cleanup(func() {
-		require.NoError(t, database.EntDriver.Close())
-		require.NoError(t, database.PGDriver.Close())
-	})
-	logger := testutils.NewDiscardLogger(t)
-	newAdapter := func() rte.Adapter {
-		repo, err := adapter.New(adapter.Config{Client: database.EntDriver.Client(), Logger: logger})
-		require.NoError(t, err)
+	key := testKey("calculation")
+	calls, writes := 0, 0
+	sourceErr := errors.New("source unavailable")
+	var stored *rte.State[int]
+	engine := newCalculation(Registration[testKey, int]{
+		Calculator: calculatorFunc(func(_ context.Context, input rte.CalculateInput[testKey]) (int, error) {
+			calls++
+			require.Equal(t, key, input.Key)
 
-		return repo
-	}
-	newService := func(calculator calculatorFunc) rte.Service {
-		svc, err := service.New(service.Config{Adapter: newAdapter(), Calculator: calculator, Logger: logger})
-		require.NoError(t, err)
+			return 0, sourceErr
+		}),
+		Store: storeStub{
+			store: func(_ context.Context, input rte.StoreInput[testKey, int]) (rte.State[int], error) {
+				writes++
+				require.Equal(t, key, input.Key)
+				stored = &input.State
 
-		return svc
-	}
+				return *stored, nil
+			},
+			get: func(_ context.Context, got testKey) (rte.State[int], error) {
+				require.Equal(t, key, got)
+				if stored == nil {
+					return rte.State[int]{}, rte.NewNotCalculatedError()
+				}
 
-	key := rte.CreditBalanceKey{CustomerID: customer.CustomerID{Namespace: "rte-test", ID: ulid.Make().String()}, Currency: currencies.NewCurrencyReference("USD")}
-	calls := 0
-	source := balanceValues{100, 90, 80, 10}
-	var sourceErr error
-	svc := newService(func(_ context.Context, input customerbalance.GetBalanceServiceInput) (customerbalance.Balance, error) {
-		calls++
-		require.Equal(t, key.CustomerID, input.CustomerID)
-		require.Equal(t, key.Currency, input.Currency)
-		require.Equal(t, key.FeatureFilter, input.FeatureFilter)
-		require.Nil(t, input.BalanceQuery.AsOf, "current calculation must include live usage")
-
-		return source, sourceErr
+				return *stored, nil
+			},
+		},
 	})
 
-	// When reading before the first calculation, no source calculation runs.
-	_, err := svc.GetCreditBalance(t.Context(), key)
+	// When reading before a successful calculation, no calculator or write runs.
+	_, err := engine.Get(t.Context(), key)
 	require.True(t, models.IsGenericNotFoundError(err))
 	require.Zero(t, calls)
-	sourceErr = errors.New("source unavailable")
-	_, err = svc.CalculateCreditBalance(t.Context(), key)
-	require.ErrorContains(t, err, "source unavailable")
-	_, err = svc.GetCreditBalance(t.Context(), key)
-	require.True(t, models.IsGenericNotFoundError(err), "a failed calculation is not a calculated zero")
+	require.Zero(t, writes)
+	_, err = engine.Calculate(t.Context(), key)
+	require.ErrorIs(t, err, sourceErr)
+	require.Zero(t, writes)
+	_, err = engine.Get(t.Context(), key)
+	require.True(t, models.IsGenericNotFoundError(err))
 
-	rows, err := database.EntDriver.Client().RTECreditBalance.Query().Count(t.Context())
-	require.NoError(t, err)
-	require.Zero(t, rows, "failed calculations must not create placeholder state")
-
-	// Then an explicit successful calculation persists all four existing balance values.
+	// Then a successful zero is stored, and a failed refresh leaves that success intact.
 	sourceErr = nil
-	calculated, err := svc.CalculateCreditBalance(t.Context(), key)
+	calculated, err := engine.Calculate(t.Context(), key)
 	require.NoError(t, err)
-	require.False(t, calculated.CalculatedAt.IsZero())
-	require.Equal(t, float64(100), calculated.Booked.InexactFloat64())
-	require.Equal(t, float64(90), calculated.Spendable.InexactFloat64())
-	require.Equal(t, float64(80), calculated.Live.InexactFloat64())
-	require.Equal(t, float64(10), calculated.Pending.InexactFloat64())
-	source = balanceValues{500, 500, 500, 0}
-	reader := newService(func(context.Context, customerbalance.GetBalanceServiceInput) (customerbalance.Balance, error) {
-		t.Error("read refreshed source")
-
-		return nil, errors.New("unexpected calculation")
-	})
-	stored, err := reader.GetCreditBalance(t.Context(), key)
-	require.NoError(t, err)
-	require.True(t, calculated.CalculatedAt.Equal(stored.CalculatedAt))
-	require.Equal(t, float64(80), stored.Live.InexactFloat64())
+	require.Equal(t, rte.State[int]{CalculatedAt: now, Value: 0}, calculated)
+	require.Equal(t, 1, writes)
 	sourceErr = errors.New("refresh failed")
-	_, err = svc.CalculateCreditBalance(t.Context(), key)
-	require.Error(t, err)
-	stored, err = reader.GetCreditBalance(t.Context(), key)
+	_, err = engine.Calculate(t.Context(), key)
+	require.ErrorIs(t, err, sourceErr)
+	require.Equal(t, 1, writes)
+	callsBeforeRead := calls
+	result, err := engine.Get(t.Context(), key)
 	require.NoError(t, err)
-	require.True(t, calculated.CalculatedAt.Equal(stored.CalculatedAt))
+	require.Equal(t, calculated, result)
+	require.Equal(t, callsBeforeRead, calls, "Get must not invoke the calculator")
+}
 
-	t.Run("timestamp is captured before calculation", func(t *testing.T) {
-		// Given a calculation whose source work finishes at a later time.
-		startedAt := time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC)
-		clock.FreezeTime(startedAt)
-		defer clock.UnFreeze()
+func TestCalculatePreservesStartAndReturnsStoredWinner(t *testing.T) {
+	// Given a calculator that finishes later and a store retaining another attempt's result.
+	startedAt := time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC)
+	clock.FreezeTime(startedAt)
+	defer clock.UnFreeze()
 
-		freshKey := key
-		freshKey.CustomerID.ID = ulid.Make().String()
-		engine := newService(func(context.Context, customerbalance.GetBalanceServiceInput) (customerbalance.Balance, error) {
+	ctx := t.Context()
+	key := testKey("calculation")
+	winner := rte.State[int]{CalculatedAt: startedAt.Add(time.Minute), Value: 100}
+	engine := newCalculation(Registration[testKey, int]{
+		Calculator: calculatorFunc(func(gotCtx context.Context, input rte.CalculateInput[testKey]) (int, error) {
+			require.Equal(t, ctx, gotCtx)
+			require.Equal(t, rte.CalculateInput[testKey]{Key: key, At: startedAt}, input)
 			clock.FreezeTime(startedAt.Add(time.Hour))
 			defer clock.UnFreeze()
 
-			return balanceValues{100, 90, 80, 10}, nil
-		})
+			return 42, nil
+		}),
+		Store: storeStub{store: func(gotCtx context.Context, input rte.StoreInput[testKey, int]) (rte.State[int], error) {
+			require.Equal(t, ctx, gotCtx)
+			require.Equal(t, key, input.Key)
+			require.Equal(t, rte.State[int]{CalculatedAt: startedAt, Value: 42}, input.State)
 
-		// When calculation completes, state is ordered by its start time.
-		result, err := engine.CalculateCreditBalance(t.Context(), freshKey)
-		require.NoError(t, err)
-		require.True(t, result.CalculatedAt.Equal(startedAt))
+			return winner, nil
+		}},
 	})
 
-	t.Run("older and equal completions retain newer state", func(t *testing.T) {
-		// Given explicit start times from two independent replicas. No clock
-		// mutation is needed while the delayed completion is in flight.
-		freshKey := key
-		freshKey.CustomerID.ID = ulid.Make().String()
-		startedAt := time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC)
-		older := rte.StoreCreditBalanceInput{
-			Key:     freshKey,
-			Balance: rte.CreditBalance{CalculatedAt: startedAt, Live: alpacadecimal.NewFromInt(80)},
-		}
-		newer := rte.StoreCreditBalanceInput{
-			Key:     freshKey,
-			Balance: rte.CreditBalance{CalculatedAt: startedAt.Add(time.Second), Live: alpacadecimal.NewFromInt(180)},
-		}
-		first, second := newAdapter(), newAdapter()
-		release := make(chan struct{})
-		defer close(release)
-		type outcome struct {
-			balance rte.CreditBalance
-			err     error
-		}
-		done := make(chan outcome, 1)
-		ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
-		defer cancel()
+	// When calculation completes, RTE passes its original start to storage.
+	result, err := engine.Calculate(ctx, key)
+	require.NoError(t, err)
 
-		go func() {
-			select {
-			case <-release:
-				result, err := first.StoreCreditBalance(ctx, older)
-				done <- outcome{result, err}
-			case <-ctx.Done():
-				done <- outcome{err: ctx.Err()}
-			}
-		}()
+	// Then it returns the store's retained winner rather than its own stale output.
+	require.Equal(t, winner, result)
+}
 
-		// When the newer calculation is stored first, the older completion
-		// returns that winner instead of replacing it.
-		fresh, err := second.StoreCreditBalance(ctx, newer)
-		require.NoError(t, err)
-		release <- struct{}{}
-		late := <-done
-		require.NoError(t, late.err)
-		require.True(t, late.balance.CalculatedAt.Equal(fresh.CalculatedAt))
-		require.Equal(t, float64(180), late.balance.Live.InexactFloat64())
+func TestServiceRejectsInvalidKeys(t *testing.T) {
+	// Given collaborators that record any accidental invocation.
+	calls := 0
+	engine := newCalculation(Registration[testKey, int]{
+		Calculator: calculatorFunc(func(context.Context, rte.CalculateInput[testKey]) (int, error) {
+			calls++
 
-		// Equal timestamps also retain the existing success.
-		older.Balance.CalculatedAt = newer.Balance.CalculatedAt
-		equal, err := first.StoreCreditBalance(ctx, older)
-		require.NoError(t, err)
-		require.Equal(t, float64(180), equal.Live.InexactFloat64())
+			return 0, nil
+		}),
+		Store: storeStub{
+			store: func(context.Context, rte.StoreInput[testKey, int]) (rte.State[int], error) {
+				calls++
 
-		stored, err := reader.GetCreditBalance(ctx, freshKey)
-		require.NoError(t, err)
-		require.True(t, stored.CalculatedAt.Equal(fresh.CalculatedAt))
-		require.Equal(t, float64(180), stored.Live.InexactFloat64())
+				return rte.State[int]{}, nil
+			},
+			get: func(context.Context, testKey) (rte.State[int], error) {
+				calls++
+
+				return rte.State[int]{}, nil
+			},
+		},
 	})
 
-	t.Run("simultaneous successful calculations", func(t *testing.T) {
-		// Given a previously uncalculated scope and distinct calculation starts.
-		freshKey := key
-		freshKey.CustomerID.ID = ulid.Make().String()
-		startedAt := time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC)
-		const attempts = 12
-		replicas := make([]rte.Adapter, attempts)
-		for i := range replicas {
-			replicas[i] = newAdapter()
-		}
+	// When either operation receives an invalid identity.
+	_, err := engine.Calculate(t.Context(), "")
+	require.True(t, models.IsGenericValidationError(err))
+	_, err = engine.Get(t.Context(), "")
+	require.True(t, models.IsGenericValidationError(err))
 
-		failures := make(chan error, attempts)
-		start := make(chan struct{})
-		ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
-		defer cancel()
-		for i, replica := range replicas {
-			go func() {
-				<-start
-				_, err := replica.StoreCreditBalance(ctx, rte.StoreCreditBalanceInput{
-					Key: freshKey,
-					Balance: rte.CreditBalance{
-						CalculatedAt: startedAt.Add(time.Duration(i) * time.Second),
-						Live:         alpacadecimal.NewFromInt(int64(i)),
-					},
-				})
-				failures <- err
-			}()
-		}
-
-		close(start)
-		for range attempts {
-			require.NoError(t, <-failures)
-		}
-
-		// Then the latest start wins regardless of concurrent arrival order.
-		result, err := reader.GetCreditBalance(ctx, freshKey)
-		require.NoError(t, err)
-		require.True(t, result.CalculatedAt.Equal(startedAt.Add((attempts-1)*time.Second)))
-		require.Equal(t, float64(attempts-1), result.Live.InexactFloat64())
-	})
-
-	t.Run("scope isolation", func(t *testing.T) {
-		// Given keys differing in each supported dimension, including same-code custom currencies.
-		keys := []rte.CreditBalanceKey{}
-		other := key
-		other.CustomerID.Namespace = "other"
-		keys = append(keys, other)
-
-		other = key
-		other.CustomerID.ID = ulid.Make().String()
-		keys = append(keys, other)
-
-		other = key
-		other.Currency = currencies.NewCurrencyReference("EUR")
-		keys = append(keys, other)
-
-		other = key
-		other.Currency = currencies.CurrencyReference{Code: "POINTS", CustomCurrencyID: lo.ToPtr(ulid.Make().String())}
-		keys = append(keys, other)
-
-		other.Currency.CustomCurrencyID = lo.ToPtr(ulid.Make().String())
-		keys = append(keys, other)
-
-		other = key
-		other.FeatureFilter = customerbalance.NewUnrestrictedFeatureFilter()
-		keys = append(keys, other)
-
-		other = key
-		other.FeatureFilter = customerbalance.NewFeatureFilter([]string{"feature-a"})
-		keys = append(keys, other)
-
-		other.FeatureFilter = customerbalance.NewFeatureFilter([]string{"feature-b"})
-		keys = append(keys, other)
-
-		for i, k := range keys {
-			_, err := reader.GetCreditBalance(t.Context(), k)
-			require.True(t, models.IsGenericNotFoundError(err))
-			writer := newService(func(context.Context, customerbalance.GetBalanceServiceInput) (customerbalance.Balance, error) {
-				return balanceValues{int64(i + 1), 0, 0, 0}, nil
-			})
-			_, err = writer.CalculateCreditBalance(t.Context(), k)
-			require.NoError(t, err)
-		}
-
-		// Then every stored result remains independently addressable.
-		for i, k := range keys {
-			result, err := reader.GetCreditBalance(t.Context(), k)
-			require.NoError(t, err)
-			require.Equal(t, float64(i+1), result.Booked.InexactFloat64())
-		}
-	})
+	// Then validation stops execution before calculation or storage.
+	require.Zero(t, calls)
 }

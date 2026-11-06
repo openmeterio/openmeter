@@ -5483,6 +5483,38 @@ var (
 			},
 		},
 	}
+	// RteMeteredEntitlementBalancesColumns holds the columns for the "rte_metered_entitlement_balances" table.
+	RteMeteredEntitlementBalancesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "entitlement_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "calculated_at", Type: field.TypeTime},
+		{Name: "balance", Type: field.TypeString, SchemaType: map[string]string{"postgres": "jsonb"}},
+	}
+	// RteMeteredEntitlementBalancesTable holds the schema information for the "rte_metered_entitlement_balances" table.
+	RteMeteredEntitlementBalancesTable = &schema.Table{
+		Name:       "rte_metered_entitlement_balances",
+		Columns:    RteMeteredEntitlementBalancesColumns,
+		PrimaryKey: []*schema.Column{RteMeteredEntitlementBalancesColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "rtemeteredentitlementbalance_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{RteMeteredEntitlementBalancesColumns[1]},
+			},
+			{
+				Name:    "rte_metered_balance_scope",
+				Unique:  true,
+				Columns: []*schema.Column{RteMeteredEntitlementBalancesColumns[1], RteMeteredEntitlementBalancesColumns[5]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "deleted_at IS NULL",
+				},
+			},
+		},
+	}
 	// SubjectsColumns holds the columns for the "subjects" table.
 	SubjectsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -6227,6 +6259,7 @@ var (
 		PlanPhasesTable,
 		PlanRateCardsTable,
 		RteCreditBalancesTable,
+		RteMeteredEntitlementBalancesTable,
 		SubjectsTable,
 		SubscriptionsTable,
 		SubscriptionAddonsTable,

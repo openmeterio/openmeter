@@ -8,7 +8,6 @@ import (
 	"log/slog"
 
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
-	"github.com/openmeterio/openmeter/openmeter/rte"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -35,7 +34,7 @@ func (c Config) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-func New(config Config) (rte.Adapter, error) {
+func newAdapter(config Config) (*adapter, error) {
 	if err := config.Validate(); err != nil {
 		return nil, err
 	}
@@ -45,8 +44,6 @@ func New(config Config) (rte.Adapter, error) {
 		logger: config.Logger,
 	}, nil
 }
-
-var _ rte.Adapter = (*adapter)(nil)
 
 type adapter struct {
 	db *entdb.Client

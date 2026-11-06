@@ -3,6 +3,7 @@
 package db
 
 import (
+	"encoding/json/jsontext"
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
@@ -89,6 +90,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/rtecreditbalance"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/rtemeteredentitlementbalance"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subject"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddon"
@@ -3063,6 +3065,34 @@ func init() {
 	rtecreditbalanceDescFeatureScope := rtecreditbalanceFields[2].Descriptor()
 	// rtecreditbalance.FeatureScopeValidator is a validator for the "feature_scope" field. It is called by the builders before save.
 	rtecreditbalance.FeatureScopeValidator = rtecreditbalanceDescFeatureScope.Validators[0].(func(string) error)
+	rtemeteredentitlementbalanceMixin := schema.RTEMeteredEntitlementBalance{}.Mixin()
+	rtemeteredentitlementbalanceMixinFields0 := rtemeteredentitlementbalanceMixin[0].Fields()
+	_ = rtemeteredentitlementbalanceMixinFields0
+	rtemeteredentitlementbalanceMixinFields1 := rtemeteredentitlementbalanceMixin[1].Fields()
+	_ = rtemeteredentitlementbalanceMixinFields1
+	rtemeteredentitlementbalanceFields := schema.RTEMeteredEntitlementBalance{}.Fields()
+	_ = rtemeteredentitlementbalanceFields
+	// rtemeteredentitlementbalanceDescNamespace is the schema descriptor for namespace field.
+	rtemeteredentitlementbalanceDescNamespace := rtemeteredentitlementbalanceMixinFields0[0].Descriptor()
+	// rtemeteredentitlementbalance.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	rtemeteredentitlementbalance.NamespaceValidator = rtemeteredentitlementbalanceDescNamespace.Validators[0].(func(string) error)
+	// rtemeteredentitlementbalanceDescCreatedAt is the schema descriptor for created_at field.
+	rtemeteredentitlementbalanceDescCreatedAt := rtemeteredentitlementbalanceMixinFields1[0].Descriptor()
+	// rtemeteredentitlementbalance.DefaultCreatedAt holds the default value on creation for the created_at field.
+	rtemeteredentitlementbalance.DefaultCreatedAt = rtemeteredentitlementbalanceDescCreatedAt.Default.(func() time.Time)
+	// rtemeteredentitlementbalanceDescUpdatedAt is the schema descriptor for updated_at field.
+	rtemeteredentitlementbalanceDescUpdatedAt := rtemeteredentitlementbalanceMixinFields1[1].Descriptor()
+	// rtemeteredentitlementbalance.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	rtemeteredentitlementbalance.DefaultUpdatedAt = rtemeteredentitlementbalanceDescUpdatedAt.Default.(func() time.Time)
+	// rtemeteredentitlementbalance.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	rtemeteredentitlementbalance.UpdateDefaultUpdatedAt = rtemeteredentitlementbalanceDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// rtemeteredentitlementbalanceDescEntitlementID is the schema descriptor for entitlement_id field.
+	rtemeteredentitlementbalanceDescEntitlementID := rtemeteredentitlementbalanceFields[0].Descriptor()
+	// rtemeteredentitlementbalance.EntitlementIDValidator is a validator for the "entitlement_id" field. It is called by the builders before save.
+	rtemeteredentitlementbalance.EntitlementIDValidator = rtemeteredentitlementbalanceDescEntitlementID.Validators[0].(func(string) error)
+	// rtemeteredentitlementbalanceDescBalance is the schema descriptor for balance field.
+	rtemeteredentitlementbalanceDescBalance := rtemeteredentitlementbalanceFields[2].Descriptor()
+	rtemeteredentitlementbalance.ValueScanner.Balance = rtemeteredentitlementbalanceDescBalance.ValueScanner.(field.TypeValueScanner[jsontext.Value])
 	subjectMixin := schema.Subject{}.Mixin()
 	subjectMixinFields0 := subjectMixin[0].Fields()
 	_ = subjectMixinFields0

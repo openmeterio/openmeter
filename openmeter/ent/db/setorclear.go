@@ -6056,6 +6056,20 @@ func (u *RTECreditBalanceUpdateOne) SetOrClearDeletedAt(value *time.Time) *RTECr
 	return u.SetDeletedAt(*value)
 }
 
+func (u *RTEMeteredEntitlementBalanceUpdate) SetOrClearDeletedAt(value *time.Time) *RTEMeteredEntitlementBalanceUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *RTEMeteredEntitlementBalanceUpdateOne) SetOrClearDeletedAt(value *time.Time) *RTEMeteredEntitlementBalanceUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
 func (u *SubjectUpdate) SetOrClearDeletedAt(value *time.Time) *SubjectUpdate {
 	if value == nil {
 		return u.ClearDeletedAt()

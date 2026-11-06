@@ -1,4 +1,4 @@
-h1:iTqviQDnaKA9I7E4UdxqCBVojDHs663Vgb6dGDSaNHU=
+h1:0hAmGI+lT++u7thrk53+qoi9wi35VjjZLSDKJXTQSXY=
 20240826120919_init.up.sql h1:tc1V91/smlmaeJGQ8h+MzTEeFjjnrrFDbDAjOYJK91o=
 20240903155435_entitlement-expired-index.up.sql h1:Hp8u5uckmLXc1cRvWU0AtVnnK8ShlpzZNp8pbiJLhac=
 20240917172257_billing-entities.up.sql h1:Q1dAMo0Vjiit76OybClNfYPGC5nmvov2/M2W1ioi4Kw=
@@ -304,3 +304,4 @@ h1:iTqviQDnaKA9I7E4UdxqCBVojDHs663Vgb6dGDSaNHU=
 20261021082257_deprecate_invoice_flat_fee_config_reference.up.sql h1:jYuKrJhT9zjokooweKTRhZHSBUMEQtenAWMNaHNDkhM=
 20261021133408_cleanup_legacy_invoice_detailed_lines.up.sql h1:hQ50ue3tk3OjEt64yAaED5k+/dH+OUjpuYAd3oh0Y5g=
 20261103115722_rte_credit_balance.up.sql h1:lm5vsiCdmBNMn0PvBqYqdHhzTOqCMJxI1/pzJYkF7J4=
+20261104133121_rte_metered_entitlement_balance.up.sql h1:jSnMpmX8oZPxsYmQcOxKFdeXteTIuR9aYHTdy79mSEU=
