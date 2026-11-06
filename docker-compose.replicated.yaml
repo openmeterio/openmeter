@@ -1,0 +1,219 @@
+# 2-node replicated ClickHouse cluster for testing the OpenMeter
+# `aggregation.clickhouse.eventsTableEngine.type = ReplicatedMergeTree` code
+# path against a self-hosted (non-Cloud) topology.
+#
+# Topology:
+#   - 1 ClickHouse Keeper node  (clickhouse-keeper-01)
+#   - 2 ClickHouse server nodes (clickhouse-01, clickhouse-02), one shard,
+#     two replicas, cluster name "openmeter_cluster".
+#
+# This file is intentionally separate from docker-compose.yaml so it can run
+# alongside the default single-node stack without port conflicts. Ports are
+# namespaced into the 38000/39000 range (matching the convention used by
+# e2e/docker-compose.infra.yaml).
+#
+# Bring it up with:
+#   make up-replicated
+#   # or directly:
+#   docker compose -f docker-compose.replicated.yaml up -d
+#
+# Run integration tests against it with:
+#   TEST_CLICKHOUSE_DSN=clickhouse://default:default@127.0.0.1:39000/openmeter \
+#     go test -tags=dynamic -run='TestEventsTableEngine$' \
+#     ./openmeter/streaming/clickhouse/...
+
+services:
+  clickhouse-keeper-01:
+    image: clickhouse/clickhouse-keeper:25.12.3-alpine@sha256:ebccfa614db8cd3d73139b3b836ace69042d5a08736103d0e26d7e43039e931b
+    hostname: clickhouse-keeper-01
+    ports:
+      - "127.0.0.1:39181:9181"
+    configs:
+      - source: keeper_config
+        target: /etc/clickhouse-keeper/keeper_config.xml
+        mode: 0444
+    healthcheck:
+      # BusyBox nc has no `-q`, so wrap with `timeout` and use 127.0.0.1 (the
+      # keeper image's nc resolves `localhost` to ::1 first; keeper only
+      # listens on IPv4).
+      test: ["CMD-SHELL", "echo ruok | timeout 2 nc 127.0.0.1 9181 | grep -q imok"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  clickhouse-01:
+    image: clickhouse/clickhouse-server:25.12.3-alpine@sha256:74da41cd61db84f652c6364fd30d59e19b7276d34f7c82515f5f0e70d6f325da
+    hostname: clickhouse-01
+    depends_on:
+      clickhouse-keeper-01:
+        condition: service_healthy
+    environment:
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: default
+      CLICKHOUSE_DB: openmeter
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    ports:
+      - "127.0.0.1:38123:8123"
+      - "127.0.0.1:39000:9000"
+      - "127.0.0.1:39009:9009"
+    configs:
+      - source: cluster_config
+        target: /etc/clickhouse-server/config.d/cluster.xml
+        mode: 0444
+      - source: keeper_client_config
+        target: /etc/clickhouse-server/config.d/keeper.xml
+        mode: 0444
+      - source: logger_config
+        target: /etc/clickhouse-server/config.d/logger.xml
+        mode: 0444
+      - source: macros_node_01
+        target: /etc/clickhouse-server/config.d/macros.xml
+        mode: 0444
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "http://clickhouse-01:8123/ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  clickhouse-02:
+    image: clickhouse/clickhouse-server:25.12.3-alpine@sha256:74da41cd61db84f652c6364fd30d59e19b7276d34f7c82515f5f0e70d6f325da
+    hostname: clickhouse-02
+    depends_on:
+      clickhouse-keeper-01:
+        condition: service_healthy
+    environment:
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: default
+      CLICKHOUSE_DB: openmeter
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    ports:
+      - "127.0.0.1:38124:8123"
+      - "127.0.0.1:39001:9000"
+      - "127.0.0.1:39010:9009"
+    configs:
+      - source: cluster_config
+        target: /etc/clickhouse-server/config.d/cluster.xml
+        mode: 0444
+      - source: keeper_client_config
+        target: /etc/clickhouse-server/config.d/keeper.xml
+        mode: 0444
+      - source: logger_config
+        target: /etc/clickhouse-server/config.d/logger.xml
+        mode: 0444
+      - source: macros_node_02
+        target: /etc/clickhouse-server/config.d/macros.xml
+        mode: 0444
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "http://clickhouse-02:8123/ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+configs:
+  keeper_config:
+    content: |
+      <clickhouse>
+          <listen_host>0.0.0.0</listen_host>
+          <logger>
+              <level>information</level>
+              <console>true</console>
+          </logger>
+          <keeper_server>
+              <tcp_port>9181</tcp_port>
+              <server_id>1</server_id>
+              <log_storage_path>/var/lib/clickhouse-keeper/coordination/logs</log_storage_path>
+              <snapshot_storage_path>/var/lib/clickhouse-keeper/coordination/snapshots</snapshot_storage_path>
+              <coordination_settings>
+                  <operation_timeout_ms>10000</operation_timeout_ms>
+                  <session_timeout_ms>30000</session_timeout_ms>
+                  <raft_logs_level>warning</raft_logs_level>
+              </coordination_settings>
+              <raft_configuration>
+                  <server>
+                      <id>1</id>
+                      <hostname>clickhouse-keeper-01</hostname>
+                      <port>9234</port>
+                  </server>
+              </raft_configuration>
+          </keeper_server>
+      </clickhouse>
+
+  cluster_config:
+    content: |
+      <clickhouse>
+          <remote_servers>
+              <openmeter_cluster>
+                  <shard>
+                      <internal_replication>true</internal_replication>
+                      <replica>
+                          <host>clickhouse-01</host>
+                          <port>9000</port>
+                          <user>default</user>
+                          <password>default</password>
+                      </replica>
+                      <replica>
+                          <host>clickhouse-02</host>
+                          <port>9000</port>
+                          <user>default</user>
+                          <password>default</password>
+                      </replica>
+                  </shard>
+              </openmeter_cluster>
+          </remote_servers>
+      </clickhouse>
+
+  keeper_client_config:
+    content: |
+      <clickhouse>
+          <zookeeper>
+              <node>
+                  <host>clickhouse-keeper-01</host>
+                  <port>9181</port>
+              </node>
+          </zookeeper>
+          <distributed_ddl>
+              <path>/clickhouse/task_queue/ddl</path>
+          </distributed_ddl>
+      </clickhouse>
+
+  logger_config:
+    # Stream server logs to stdout (visible via `docker logs`) instead of the
+    # default file sink at /var/log/clickhouse-server/. The `<log>` /
+    # `<errorlog>` paths are zeroed out so the file sink stays disabled.
+    content: |
+      <clickhouse>
+          <logger>
+              <level>information</level>
+              <console>true</console>
+              <log remove="remove"/>
+              <errorlog remove="remove"/>
+          </logger>
+      </clickhouse>
+
+  macros_node_01:
+    content: |
+      <clickhouse>
+          <macros>
+              <cluster>openmeter_cluster</cluster>
+              <shard>01</shard>
+              <replica>clickhouse-01</replica>
+          </macros>
+      </clickhouse>
+
+  macros_node_02:
+    content: |
+      <clickhouse>
+          <macros>
+              <cluster>openmeter_cluster</cluster>
+              <shard>01</shard>
+              <replica>clickhouse-02</replica>
+          </macros>
+      </clickhouse>
