@@ -1,33 +1,19 @@
 package rte_test
 
 import (
-	"testing"
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
-	"github.com/stretchr/testify/suite"
 
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
-	"github.com/openmeterio/openmeter/openmeter/rte"
-	rteadapter "github.com/openmeterio/openmeter/openmeter/rte/adapter"
-	rteservice "github.com/openmeterio/openmeter/openmeter/rte/service"
-	"github.com/openmeterio/openmeter/openmeter/testutils"
+	"github.com/openmeterio/openmeter/openmeter/rte/creditbalance"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
 	creditstest "github.com/openmeterio/openmeter/test/credits"
 )
 
-// Reuse the credits fixture so RTE runs against the real calculator and ledger.
-type RTECreditBalanceIntegrationSuite struct {
-	creditstest.BaseSuite
-}
-
-func TestRTECreditBalanceIntegration(t *testing.T) {
-	suite.Run(t, new(RTECreditBalanceIntegrationSuite))
-}
-
-func (s *RTECreditBalanceIntegrationSuite) TestCalculateStoreAndRead() {
+func (s *RTEIntegrationSuite) TestCalculateStoreAndRead() {
 	ctx := s.T().Context()
 	now := time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC)
 	clock.FreezeTime(now)
@@ -81,51 +67,40 @@ func (s *RTECreditBalanceIntegrationSuite) TestCalculateStoreAndRead() {
 
 	postCredits(100)
 
-	logger := testutils.NewDiscardLogger(s.T())
-	newRTE := func() rte.Service {
-		repo, err := rteadapter.New(rteadapter.Config{Client: s.DBClient, Logger: logger})
-		s.Require().NoError(err)
+	engine := s.newRTE()
+	key := creditbalance.Key{CustomerID: cust.GetID(), Currency: currency}
 
-		engine, err := rteservice.New(rteservice.Config{Adapter: repo, Calculator: s.CustomerBalanceSvc, Logger: logger})
-		s.Require().NoError(err)
-
-		return engine
-	}
-
-	engine := newRTE()
-	key := rte.CreditBalanceKey{CustomerID: cust.GetID(), Currency: currency}
-
-	_, err := engine.GetCreditBalance(ctx, key)
+	_, err := engine.CreditBalances().Get(ctx, key)
 	s.True(models.IsGenericNotFoundError(err))
 
 	// When explicitly calculated, the current live balance is preserved too.
-	calculated, err := engine.CalculateCreditBalance(ctx, key)
+	calculated, err := engine.CreditBalances().Calculate(ctx, key)
 	s.Require().NoError(err)
-	s.Equal(float64(100), calculated.Booked.InexactFloat64())
-	s.Equal(float64(100), calculated.Spendable.InexactFloat64())
-	s.Equal(float64(100), calculated.Live.InexactFloat64())
-	s.Equal(float64(0), calculated.Pending.InexactFloat64())
+	s.Equal(float64(100), calculated.Value.Booked.InexactFloat64())
+	s.Equal(float64(100), calculated.Value.Spendable.InexactFloat64())
+	s.Equal(float64(100), calculated.Value.Live.InexactFloat64())
+	s.Equal(float64(0), calculated.Value.Pending.InexactFloat64())
 
 	// Then a fresh service instance still reads that stored result after the
 	// actual ledger changes. Only another calculate request picks up the change.
 	postCredits(25)
-	reader := newRTE()
-	stored, err := reader.GetCreditBalance(ctx, key)
+	reader := s.newRTE()
+	stored, err := reader.CreditBalances().Get(ctx, key)
 	s.Require().NoError(err)
 	s.True(calculated.CalculatedAt.Equal(stored.CalculatedAt))
-	s.Equal(float64(100), stored.Booked.InexactFloat64())
-	s.Equal(float64(100), stored.Spendable.InexactFloat64())
-	s.Equal(float64(100), stored.Live.InexactFloat64())
-	s.Equal(float64(0), stored.Pending.InexactFloat64())
+	s.Equal(float64(100), stored.Value.Booked.InexactFloat64())
+	s.Equal(float64(100), stored.Value.Spendable.InexactFloat64())
+	s.Equal(float64(100), stored.Value.Live.InexactFloat64())
+	s.Equal(float64(0), stored.Value.Pending.InexactFloat64())
 
 	clock.UnFreeze()
 	clock.FreezeTime(now.Add(time.Second))
 	defer clock.UnFreeze()
 
-	refreshed, err := reader.CalculateCreditBalance(ctx, key)
+	refreshed, err := reader.CreditBalances().Calculate(ctx, key)
 	s.Require().NoError(err)
 	s.True(refreshed.CalculatedAt.After(stored.CalculatedAt))
-	s.Equal(float64(125), refreshed.Booked.InexactFloat64())
-	s.Equal(float64(125), refreshed.Spendable.InexactFloat64())
-	s.Equal(float64(125), refreshed.Live.InexactFloat64())
+	s.Equal(float64(125), refreshed.Value.Booked.InexactFloat64())
+	s.Equal(float64(125), refreshed.Value.Spendable.InexactFloat64())
+	s.Equal(float64(125), refreshed.Value.Live.InexactFloat64())
 }
