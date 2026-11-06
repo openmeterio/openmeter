@@ -1,0 +1,156 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "v1.billing.invoice.updated.payload",
+    "type": "object",
+    "properties": {
+        "invoice": {
+            "$ref": "#/$defs/InvoiceSnapshot",
+            "description": "The invoice after the update."
+        }
+    },
+    "required": [
+        "invoice"
+    ],
+    "unevaluatedProperties": {
+        "not": {}
+    },
+    "description": "Payload of `v1.billing.invoice.updated`.",
+    "$defs": {
+        "InvoiceSnapshot": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "$ref": "#/$defs/ULID",
+                    "description": "Invoice ID."
+                },
+                "number": {
+                    "type": "string",
+                    "description": "Human-readable invoice number."
+                },
+                "type": {
+                    "type": "string",
+                    "description": "Invoice type. Known values: `standard`.\n\nNew types can be added without a new Event type version, so consumers\nmust handle values they do not know."
+                },
+                "status": {
+                    "type": "string",
+                    "description": "Invoice status. Known values: `draft`, `issuing`, `issued`,\n`payment_processing`, `overdue`, `paid`, `uncollectible`, `voided`.\n\nNew statuses can be added without a new Event type version, so consumers\nmust handle values they do not know."
+                },
+                "customer_id": {
+                    "$ref": "#/$defs/ULID",
+                    "description": "Customer the invoice belongs to."
+                },
+                "customer_key": {
+                    "$ref": "#/$defs/ExternalResourceKey",
+                    "description": "Key of the customer, if the customer has one."
+                },
+                "currency": {
+                    "$ref": "#/$defs/CurrencyCode",
+                    "description": "Invoice currency."
+                },
+                "total": {
+                    "$ref": "#/$defs/Numeric",
+                    "description": "Total amount of the invoice, including taxes, discounts and credits."
+                },
+                "service_period": {
+                    "$ref": "#/$defs/InvoiceSnapshotPeriod",
+                    "description": "Service period covered by the invoice, once it is known."
+                },
+                "issued_at": {
+                    "$ref": "#/$defs/DateTime",
+                    "description": "When the invoice was issued to the customer."
+                },
+                "due_at": {
+                    "$ref": "#/$defs/DateTime",
+                    "description": "When payment is due."
+                },
+                "created_at": {
+                    "$ref": "#/$defs/DateTime",
+                    "description": "When the invoice was created."
+                },
+                "updated_at": {
+                    "$ref": "#/$defs/DateTime",
+                    "description": "When the invoice was last updated."
+                }
+            },
+            "required": [
+                "id",
+                "number",
+                "type",
+                "status",
+                "customer_id",
+                "currency",
+                "total",
+                "created_at",
+                "updated_at"
+            ],
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "Key facts of an invoice at the time of the Event.\n\nThe snapshot carries what identifies the invoice and what most consumers act\non. Consumers fetch the full invoice through the API when they need lines or\nother details. The fetched invoice can be newer than the Event; compare\n`updated_at` to tell."
+        },
+        "ULID": {
+            "type": "string",
+            "examples": [
+                "01G65Z755AFWAKHE12NY0CQ9FH"
+            ],
+            "pattern": "^[0-7][0-9A-HJKMNP-TV-Z]{25}$",
+            "description": "ULID (Universally Unique Lexicographically Sortable Identifier).",
+            "title": "ULID"
+        },
+        "ExternalResourceKey": {
+            "type": "string",
+            "examples": [
+                "019ae40f-4258-7f15-9491-842f42a7d6ac"
+            ],
+            "minLength": 1,
+            "maxLength": 256,
+            "description": "ExternalResourceKey is a unique string that is used to identify a resource in an\nexternal system.",
+            "title": "External Resource Key"
+        },
+        "CurrencyCode": {
+            "type": "string",
+            "examples": [
+                "USD"
+            ],
+            "minLength": 3,
+            "maxLength": 3,
+            "pattern": "^[A-Z]{3}$",
+            "description": "Three-letter [ISO4217](https://www.iso.org/iso-4217-currency-codes.html)\ncurrency code. Custom three-letter currency codes are also supported for\nconvenience."
+        },
+        "Numeric": {
+            "type": "string",
+            "pattern": "^\\-?[0-9]+(\\.[0-9]+)?$",
+            "description": "Numeric represents an arbitrary precision number."
+        },
+        "InvoiceSnapshotPeriod": {
+            "type": "object",
+            "properties": {
+                "from": {
+                    "$ref": "#/$defs/DateTime",
+                    "description": "Start of the period, inclusive."
+                },
+                "to": {
+                    "$ref": "#/$defs/DateTime",
+                    "description": "End of the period, exclusive."
+                }
+            },
+            "required": [
+                "from",
+                "to"
+            ],
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "Period an invoice covers."
+        },
+        "DateTime": {
+            "type": "string",
+            "format": "date-time",
+            "examples": [
+                "2023-01-01T01:01:01.001Z"
+            ],
+            "description": "[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in\nUTC.",
+            "title": "RFC3339 Date-Time"
+        }
+    }
+}
