@@ -844,3 +844,37 @@ func TestMachine_AdvanceUntilStablePropagatesPersistenceErrors(t *testing.T) {
 	require.ErrorIs(t, err, persistErr)
 	require.ErrorContains(t, err, "persist charge")
 }
+
+func TestMachine_UnhandledInvoicePatchesErrorPreservesValidationContext(t *testing.T) {
+	// given a charge holding an invoice patch that no caller drained
+	charge := newFakeCharge(fakeStatusCreated)
+	machine := newTestMachine(
+		t,
+		charge,
+		func(ctx context.Context, base fakeBase) (fakeBase, error) { return base, nil },
+		func(ctx context.Context, chargeID meta.ChargeID) (fakeCharge, error) { return fakeCharge{}, nil },
+	)
+	machine.Configure(fakeStatusCreated).Permit(meta.TriggerInvoiceCreated, fakeStatusActive)
+	machine.AddInvoicePatch(invoiceupdater.NewDeleteGatheringLineByChargeIDPatch(charge.ChargeID.ID))
+
+	// when billing converts the rejected trigger into a validation issue
+	fireErr := machine.FireAndAdvanceUntilStable(t.Context(), meta.TriggerInvoiceCreated)
+	require.ErrorIs(t, fireErr, ErrUnhandledInvoicePatches)
+	component := billing.LineEngineValidationComponent(billing.LineEngineTypeChargeFlatFee)
+	issues, err := billing.ToValidationIssues(billing.WrapAsValidationIssue(
+		billing.ValidationWithComponent(component, fireErr),
+	))
+	require.NoError(t, err)
+	require.Len(t, issues, 1)
+
+	// then the rejected trigger and charge survive extraction the same way the
+	// unsupported-operation rejection does
+	require.Equal(t, billing.ValidationIssueSeverityCritical, issues[0].Severity)
+	require.Equal(t, component, issues[0].Component)
+	require.Contains(t, issues[0].Message, "unhandled invoice patches")
+	assert.Contains(t, issues[0].Message, fmt.Sprint(meta.TriggerInvoiceCreated))
+	assert.Equal(t, models.Annotations{
+		"trigger":   fmt.Sprint(meta.TriggerInvoiceCreated),
+		"charge_id": charge.ChargeID.ID,
+	}, issues[0].Attributes)
+}
