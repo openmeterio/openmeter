@@ -526,9 +526,8 @@ func TestV3ListBillingInvoices(t *testing.T) {
 //     only draft invoices can be updated via v3, and the default profile's
 //     auto-collect settings otherwise advance the invoice to paid too quickly
 //     for the update test to observe a draft invoice.
-//   - Create a meter, feature, plan, and subscription (v3)
-//   - Create a standard invoice (v1)
 //   - Create a gathering invoice (v1) for the gathering-invoice-update case
+//   - Create a due pending line and explicitly collect it into a standard invoice (v1)
 //   - Update the standard invoice via v3 PUT and assert the response shape
 //   - Update the standard invoice with an invalid type and assert 400
 //   - Update a gathering invoice via v3 PUT and assert 404
@@ -541,8 +540,6 @@ func TestV3UpdateBillingInvoice(t *testing.T) {
 
 	var (
 		customerID         string
-		planID             string
-		feature            *v3sdk.Feature
 		invoice            api.Invoice
 		gatheringInvoiceID string
 	)
@@ -616,93 +613,21 @@ func TestV3UpdateBillingInvoice(t *testing.T) {
 		require.NotEmpty(t, gatheringInvoiceID)
 	})
 
-	t.Run("Should create meter, feature, plan, and subscription", func(t *testing.T) {
-		require.NotEmpty(t, customerID, "depends on customer creation")
-
-		meter, err := c.Meters.Create(t.Context(), v3sdk.CreateMeterRequest{
-			Key:         uniqueKey("listinv_meter"),
-			Name:        gofakeit.ProductName(),
-			Aggregation: v3sdk.MeterAggregationCount,
-			EventType:   uniqueKey("listinv_event"),
-		})
-		c.requireStatus(http.StatusCreated, err)
-
-		feature, err = c.Features.Create(t.Context(), v3sdk.CreateFeatureRequest{
-			Key:   uniqueKey("listinv_feature"),
-			Name:  gofakeit.ProductName(),
-			Meter: &v3sdk.FeatureMeterReferenceInput{ID: meter.ID},
-		})
-		c.requireStatus(http.StatusCreated, err)
-
-		plan, err := c.Plans.Create(t.Context(), v3sdk.CreatePlanRequest{
-			Key:            uniqueKey("listinv_plan"),
-			Name:           gofakeit.ProductName(),
-			Currency:       "USD",
-			BillingCadence: "P1M",
-			Phases: []v3sdk.PlanPhaseInput{{
-				Key:       uniqueKey("inv_phase_1"),
-				Name:      uniqueKey("Test Phase"),
-				RateCards: []v3sdk.RateCardInput{validUnitRateCard(*feature)},
-			}},
-		})
-		c.requireStatus(http.StatusCreated, err)
-		planID = plan.ID
-
-		plan, err = c.Plans.Publish(t.Context(), planID)
-		c.requireStatus(http.StatusOK, err)
-		assert.Equal(t, v3sdk.PlanStatusActive, plan.Status)
-
-		_, err = c.Subscriptions.Create(t.Context(), v3sdk.SubscriptionCreate{
-			Customer: v3sdk.SubscriptionChangeCustomer{ID: lo.ToPtr(customerID)},
-			Plan:     &v3sdk.SubscriptionChangePlan{ID: lo.ToPtr(planID)},
-		})
-		c.requireStatus(http.StatusCreated, err)
-	})
-
-	t.Run("Should create a standard invoice and wait for it to advance", func(t *testing.T) {
+	t.Run("Should create a standard invoice in draft status", func(t *testing.T) {
+		// Given a due pending line and a separate line that is not due yet.
 		require.NotEmpty(t, customerID)
-		require.NotNil(t, feature)
 
 		now := time.Now().UTC()
-		price := api.RateCardUsageBasedPrice{}
-		require.NoError(t, price.FromFlatPriceWithPaymentTerm(api.FlatPriceWithPaymentTerm{
-			Amount:      api.Numeric("10.00"),
-			Type:        api.FlatPriceWithPaymentTermTypeFlat,
-			PaymentTerm: lo.ToPtr(api.PricePaymentTermInAdvance),
-		}))
-
-		lineResp, err := v1.CreatePendingInvoiceLineWithResponse(t.Context(), customerID, api.InvoicePendingLineCreateInput{
-			Currency: "USD",
-			Lines: []api.InvoicePendingLineCreate{{
-				Name:      uniqueKey("listinv_line"),
-				InvoiceAt: now.Add(-10 * time.Hour),
-				Period: api.Period{
-					From: now.Add(-24 * time.Hour),
-					To:   now.Add(-2 * time.Hour),
-				},
-				Price: &price,
-			}},
+		createFlatPendingLine(t, v1, customerID, uniqueKey("updateinv_line"), now.Add(-10*time.Hour), api.Period{
+			From: now.Add(-24 * time.Hour),
+			To:   now.Add(-2 * time.Hour),
 		})
-		require.NoError(t, err)
-		require.Equal(t, http.StatusCreated, lineResp.StatusCode())
 
-		ctx := t.Context()
-		customers := api.InvoiceListParamsCustomers{customerID}
-		assert.EventuallyWithT(t, func(co *assert.CollectT) {
-			listResp, err := v1.ListInvoicesWithResponse(ctx, &api.ListInvoicesParams{
-				Customers: &customers,
-				PageSize:  lo.ToPtr(api.PaginationPageSize(100)),
-			})
-			require.NoError(co, err)
-			require.Equal(co, http.StatusOK, listResp.StatusCode())
+		// When collection is requested explicitly, no subscription event is needed.
+		invoice = invoicePendingLinesNow(t, v1, customerID, nil)
 
-			idx := slices.IndexFunc(listResp.JSON200.Items, func(inv api.Invoice) bool {
-				return inv.Status != api.InvoiceStatusGathering
-			})
-			require.NotEqual(co, -1, idx, "charges have not advanced a pending line into a standard invoice yet")
-			invoice = listResp.JSON200.Items[idx]
-		}, time.Minute, time.Second)
-		require.NotEmpty(t, invoice)
+		// Then the standard invoice is ready for the update checks.
+		require.Equal(t, api.InvoiceStatusDraft, invoice.Status)
 	})
 
 	t.Run("Should update the standard invoice via v3 PUT", func(t *testing.T) {
