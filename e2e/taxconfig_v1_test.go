@@ -2,10 +2,9 @@ package e2e
 
 import (
 	"encoding/json"
-	"fmt"
 	"maps"
-	"math/rand/v2"
 	"net/http"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -16,6 +15,7 @@ import (
 
 	api "github.com/openmeterio/openmeter/api/client/go"
 	v3sdk "github.com/openmeterio/openmeter/api/v3/client"
+	"github.com/openmeterio/openmeter/e2e/internal/taxconfigv1"
 )
 
 // These tests pin the v1 taxConfig response shape (behavior, stripe.code, taxCodeId) that v1
@@ -28,12 +28,14 @@ type v1TaxConfigScenario struct {
 	key   string
 	input *api.TaxConfig
 	want  *api.TaxConfig
+
+	featureKey string // metered feature for this scenario's usage based rate card or line
 }
 
 // v1TaxConfigCatalogScenarios covers the inputs v1 accepts. taxCode must have a Stripe app
 // mapping: the response renders stripe.code from the tax code's mapping, not from the input.
 func v1TaxConfigCatalogScenarios(taxCode v3sdk.TaxCode) []v1TaxConfigScenario {
-	stripeCode := stripeAppMapping(taxCode)
+	stripeCode := taxconfigv1.StripeAppMapping(taxCode)
 
 	resolved := &api.TaxConfig{
 		Stripe:    &api.StripeTaxConfig{Code: stripeCode},
@@ -55,7 +57,7 @@ func v1TaxConfigCatalogScenarios(taxCode v3sdk.TaxCode) []v1TaxConfigScenario {
 			// The ID wins, and the client's stripe.code is replaced by the tax code's mapping.
 			key: "tax_code_id_wins_over_stripe_code",
 			input: &api.TaxConfig{
-				Stripe:    &api.StripeTaxConfig{Code: randomStripeTaxCode()},
+				Stripe:    &api.StripeTaxConfig{Code: taxconfigv1.RandomStripeTaxCode()},
 				TaxCodeId: lo.ToPtr(taxCode.ID),
 			},
 			want: resolved,
@@ -69,6 +71,39 @@ func v1TaxConfigCatalogScenarios(taxCode v3sdk.TaxCode) []v1TaxConfigScenario {
 			key: "none",
 		},
 	}
+}
+
+// withV1TaxConfigFeatures creates one meter and one metered feature per scenario, so every
+// scenario can also be expressed as a usage based rate card or line, and returns the scenarios
+// with their feature keys filled in.
+func withV1TaxConfigFeatures(t *testing.T, client *api.ClientWithResponses, scenarios []v1TaxConfigScenario) []v1TaxConfigScenario {
+	t.Helper()
+
+	meterSlug := uniqueKey("v1_taxconfig_meter")
+	meterResp, err := client.CreateMeterWithResponse(t.Context(), api.MeterCreate{
+		Slug:          meterSlug,
+		Aggregation:   api.MeterAggregationSum,
+		EventType:     meterSlug,
+		ValueProperty: lo.ToPtr("$.value"),
+	})
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, meterResp.StatusCode(), "create meter: %s", string(meterResp.Body))
+
+	scenarios = slices.Clone(scenarios)
+	for i, scenario := range scenarios {
+		featureResp, err := client.CreateFeatureWithResponse(t.Context(), api.CreateFeatureJSONRequestBody{
+			Key:       uniqueKey("usage_" + scenario.key),
+			Name:      "v1 taxConfig " + scenario.key,
+			MeterSlug: lo.ToPtr(meterSlug),
+		})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusCreated, featureResp.StatusCode(), "create feature: %s", string(featureResp.Body))
+		require.NotNil(t, featureResp.JSON201)
+
+		scenarios[i].featureKey = featureResp.JSON201.Key
+	}
+
+	return scenarios
 }
 
 // v1TaxConfigInvoiceLineWant is what invoice lines return per scenario. Unlike the catalog
@@ -89,12 +124,6 @@ func v1TaxConfigInvoiceLineWant(scenarios []v1TaxConfigScenario, defaultTaxCodeI
 	return want
 }
 
-// randomStripeTaxCode returns a Stripe code that is very unlikely to be mapped already, since
-// all e2e tests share one namespace and a mapped Stripe code resolves to the existing tax code.
-func randomStripeTaxCode() string {
-	return fmt.Sprintf("txcd_%08d", rand.IntN(100_000_000))
-}
-
 func createStripeMappedTaxCode(t *testing.T, c *v3Client) v3sdk.TaxCode {
 	t.Helper()
 
@@ -103,21 +132,13 @@ func createStripeMappedTaxCode(t *testing.T, c *v3Client) v3sdk.TaxCode {
 		Name: "v1 taxConfig characterization",
 		AppMappings: []v3sdk.TaxCodeAppMapping{{
 			AppType: v3sdk.AppTypeStripe,
-			TaxCode: randomStripeTaxCode(),
+			TaxCode: taxconfigv1.RandomStripeTaxCode(),
 		}},
 	})
 	c.requireStatus(http.StatusCreated, err)
 	require.NotNil(t, taxCode)
 
 	return *taxCode
-}
-
-func stripeAppMapping(taxCode v3sdk.TaxCode) string {
-	mapping, _ := lo.Find(taxCode.AppMappings, func(m v3sdk.TaxCodeAppMapping) bool {
-		return m.AppType == v3sdk.AppTypeStripe
-	})
-
-	return mapping.TaxCode
 }
 
 // defaultInvoicingTaxCodeID returns the organization's invoicing default tax code, which charges
@@ -132,71 +153,63 @@ func defaultInvoicingTaxCodeID(t *testing.T, c *v3Client) string {
 	return defaults.InvoicingTaxCode.ID
 }
 
-// createV1TaxConfigFeatures creates one metered feature per scenario, keyed by scenario, so
-// every scenario can also be expressed as a usage based rate card.
-func createV1TaxConfigFeatures(t *testing.T, client *api.ClientWithResponses, scenarios []v1TaxConfigScenario) map[string]string {
+// v1TaxConfigFlatFeeRateCard builds the flat fee rate card of one scenario, keyed
+// keyPrefix+scenario.key, carrying the scenario's tax config.
+func v1TaxConfigFlatFeeRateCard(t *testing.T, keyPrefix string, scenario v1TaxConfigScenario) api.RateCard {
 	t.Helper()
 
-	meterSlug := uniqueKey("v1_taxconfig_meter")
-	meterResp, err := client.CreateMeterWithResponse(t.Context(), api.MeterCreate{
-		Slug:          meterSlug,
-		Aggregation:   api.MeterAggregationSum,
-		EventType:     meterSlug,
-		ValueProperty: lo.ToPtr("$.value"),
-	})
-	require.NoError(t, err)
-	require.Equal(t, http.StatusOK, meterResp.StatusCode(), "create meter: %s", string(meterResp.Body))
+	flatFee := api.RateCard{}
+	require.NoError(t, flatFee.FromRateCardFlatFee(api.RateCardFlatFee{
+		Key:  keyPrefix + scenario.key,
+		Name: keyPrefix + scenario.key,
+		Type: api.RateCardFlatFeeTypeFlatFee,
+		Price: &api.FlatPriceWithPaymentTerm{
+			Amount:      "10",
+			PaymentTerm: lo.ToPtr(api.PricePaymentTermInAdvance),
+			Type:        api.FlatPriceWithPaymentTermTypeFlat,
+		},
+		BillingCadence: lo.ToPtr("P1M"),
+		TaxConfig:      scenario.input,
+	}))
 
-	featureKeys := make(map[string]string, len(scenarios))
-	for _, scenario := range scenarios {
-		featureResp, err := client.CreateFeatureWithResponse(t.Context(), api.CreateFeatureJSONRequestBody{
-			Key:       uniqueKey("usage_" + scenario.key),
-			Name:      "v1 taxConfig " + scenario.key,
-			MeterSlug: lo.ToPtr(meterSlug),
-		})
-		require.NoError(t, err)
-		require.Equal(t, http.StatusCreated, featureResp.StatusCode(), "create feature: %s", string(featureResp.Body))
-		require.NotNil(t, featureResp.JSON201)
-
-		featureKeys[scenario.key] = featureResp.JSON201.Key
-	}
-
-	return featureKeys
+	return flatFee
 }
 
-// v1TaxConfigRateCards builds a flat fee rate card per scenario, keyed keyPrefix+scenario, and
-// a usage based one per scenario for the features in featureKeys (keyed by the feature, as v1
-// requires). It returns the rate cards and the taxConfig each one must come back with.
-func v1TaxConfigRateCards(t *testing.T, keyPrefix string, scenarios []v1TaxConfigScenario, featureKeys map[string]string) ([]api.RateCard, map[string]*api.TaxConfig) {
+// v1TaxConfigFlatFeeRateCards builds one flat fee rate card per scenario, keyed
+// keyPrefix+scenario, and returns the rate cards with the taxConfig each one must come back
+// with.
+//
+// Addon rate cards and items added by a subscription edit use flat fee cards only: they can't
+// reuse the plan's features, because v1 keys usage based rate cards by feature key and the
+// keys would collide on the subscription.
+func v1TaxConfigFlatFeeRateCards(t *testing.T, keyPrefix string, scenarios []v1TaxConfigScenario) ([]api.RateCard, map[string]*api.TaxConfig) {
+	t.Helper()
+
+	rateCards := make([]api.RateCard, 0, len(scenarios))
+	want := make(map[string]*api.TaxConfig, len(scenarios))
+	for _, scenario := range scenarios {
+		rateCards = append(rateCards, v1TaxConfigFlatFeeRateCard(t, keyPrefix, scenario))
+		want[keyPrefix+scenario.key] = scenario.want
+	}
+
+	return rateCards, want
+}
+
+// v1TaxConfigRateCards builds a flat fee rate card and a usage based one per scenario. The
+// usage based card is keyed by the scenario's feature, as v1 requires, so scenarios must come
+// from withV1TaxConfigFeatures. It returns the rate cards and the taxConfig each one must come
+// back with.
+func v1TaxConfigRateCards(t *testing.T, keyPrefix string, scenarios []v1TaxConfigScenario) ([]api.RateCard, map[string]*api.TaxConfig) {
 	t.Helper()
 
 	rateCards := make([]api.RateCard, 0, 2*len(scenarios))
 	want := make(map[string]*api.TaxConfig, 2*len(scenarios))
 
 	for _, scenario := range scenarios {
-		key := keyPrefix + scenario.key
+		require.NotEmpty(t, scenario.featureKey, "feature of scenario %s", scenario.key)
 
-		flatFee := api.RateCard{}
-		require.NoError(t, flatFee.FromRateCardFlatFee(api.RateCardFlatFee{
-			Key:  key,
-			Name: key,
-			Type: api.RateCardFlatFeeTypeFlatFee,
-			Price: &api.FlatPriceWithPaymentTerm{
-				Amount:      "10",
-				PaymentTerm: lo.ToPtr(api.PricePaymentTermInAdvance),
-				Type:        api.FlatPriceWithPaymentTermTypeFlat,
-			},
-			BillingCadence: lo.ToPtr("P1M"),
-			TaxConfig:      scenario.input,
-		}))
-
-		rateCards = append(rateCards, flatFee)
-		want[key] = scenario.want
-
-		featureKey, ok := featureKeys[scenario.key]
-		if !ok {
-			continue
-		}
+		rateCards = append(rateCards, v1TaxConfigFlatFeeRateCard(t, keyPrefix, scenario))
+		want[keyPrefix+scenario.key] = scenario.want
 
 		price := api.RateCardUsageBasedPrice{}
 		require.NoError(t, price.FromUnitPriceWithCommitments(api.UnitPriceWithCommitments{
@@ -206,17 +219,17 @@ func v1TaxConfigRateCards(t *testing.T, keyPrefix string, scenarios []v1TaxConfi
 
 		usageBased := api.RateCard{}
 		require.NoError(t, usageBased.FromRateCardUsageBased(api.RateCardUsageBased{
-			Key:            featureKey,
-			Name:           featureKey,
+			Key:            scenario.featureKey,
+			Name:           scenario.featureKey,
 			Type:           api.RateCardUsageBasedTypeUsageBased,
-			FeatureKey:     lo.ToPtr(featureKey),
+			FeatureKey:     lo.ToPtr(scenario.featureKey),
 			Price:          &price,
 			BillingCadence: "P1M",
 			TaxConfig:      scenario.input,
 		}))
 
 		rateCards = append(rateCards, usageBased)
-		want[featureKey] = scenario.want
+		want[scenario.featureKey] = scenario.want
 	}
 
 	return rateCards, want
@@ -250,17 +263,11 @@ func v1RateCardTaxConfigs(t *testing.T, rateCards []api.RateCard) map[string]*ap
 	return got
 }
 
-// assertV1TaxConfigs checks that every expected key is present in got with the expected
-// taxConfig. Extra keys in got are ignored.
-func assertV1TaxConfigs(t *testing.T, want, got map[string]*api.TaxConfig) {
-	t.Helper()
-
-	for key, wantTaxConfig := range want {
-		gotTaxConfig, ok := got[key]
-		if assert.True(t, ok, "missing %s", key) {
-			assert.Equal(t, wantTaxConfig, gotTaxConfig, "taxConfig of %s", key)
-		}
-	}
+// v1SubscriptionAddonRateCards unwraps the rate cards of a subscription addon.
+func v1SubscriptionAddonRateCards(rateCards []api.SubscriptionAddonRateCard) []api.RateCard {
+	return lo.Map(rateCards, func(rc api.SubscriptionAddonRateCard, _ int) api.RateCard {
+		return rc.RateCard
+	})
 }
 
 func v1SubscriptionItemTaxConfigs(t *testing.T, client *api.ClientWithResponses, subscriptionID string) map[string]*api.TaxConfig {
@@ -275,31 +282,6 @@ func v1SubscriptionItemTaxConfigs(t *testing.T, client *api.ClientWithResponses,
 	got := make(map[string]*api.TaxConfig, len(resp.JSON200.Phases[0].Items))
 	for _, item := range resp.JSON200.Phases[0].Items {
 		got[item.Key] = item.TaxConfig
-	}
-
-	return got
-}
-
-// v1InvoiceLineTaxConfigs returns the taxConfig of each line by name. It also checks that the
-// line's rateCard.taxConfig and the taxConfig of its detailed lines match the line's own.
-func v1InvoiceLineTaxConfigs(t *testing.T, lines []api.InvoiceLine) map[string]*api.TaxConfig {
-	t.Helper()
-
-	got := make(map[string]*api.TaxConfig, len(lines))
-	for _, line := range lines {
-		got[line.Name] = line.TaxConfig
-
-		if assert.NotNil(t, line.RateCard, "rate card of line %s", line.Name) {
-			assert.Equal(t, line.TaxConfig, line.RateCard.TaxConfig, "rateCard.taxConfig of line %s", line.Name)
-		}
-
-		for _, child := range lo.FromPtr(line.Children) {
-			assert.Equal(t, line.TaxConfig, child.TaxConfig, "taxConfig of detailed line %s of %s", child.Name, line.Name)
-
-			if assert.NotNil(t, child.RateCard, "rate card of detailed line %s of %s", child.Name, line.Name) {
-				assert.Equal(t, line.TaxConfig, child.RateCard.TaxConfig, "rateCard.taxConfig of detailed line %s of %s", child.Name, line.Name)
-			}
-		}
 	}
 
 	return got
@@ -361,31 +343,45 @@ func v1BillingProfileCreateFromDefault(t *testing.T, client *api.ClientWithRespo
 	}
 }
 
-func createV1TaxConfigCustomer(t *testing.T, client *api.ClientWithResponses, keyPrefix string) api.Customer {
+// v1ListedPlan lists plans filtered by the plan under test's key and returns it.
+func v1ListedPlan(t *testing.T, client *api.ClientWithResponses, plan api.Plan) api.Plan {
 	t.Helper()
 
-	resp, err := client.CreateCustomerWithResponse(t.Context(), api.CustomerCreate{
-		Name:     "v1 taxConfig " + keyPrefix,
-		Key:      lo.ToPtr(uniqueKey(keyPrefix)),
-		Currency: lo.ToPtr(api.CurrencyCode("USD")),
+	resp, err := client.ListPlansWithResponse(t.Context(), &api.ListPlansParams{
+		Key:      &[]string{plan.Key},
+		PageSize: lo.ToPtr(api.PaginationPageSize(100)),
 	})
 	require.NoError(t, err)
-	require.Equal(t, http.StatusCreated, resp.StatusCode(), "create customer: %s", string(resp.Body))
-	require.NotNil(t, resp.JSON201)
+	require.Equal(t, http.StatusOK, resp.StatusCode(), "list plans: %s", string(resp.Body))
+	require.NotNil(t, resp.JSON200)
 
-	return *resp.JSON201
+	listed, found := lo.Find(resp.JSON200.Items, func(p api.Plan) bool { return p.Id == plan.Id })
+	require.True(t, found, "plan %s not found in list", plan.Id)
+	require.Len(t, listed.Phases, 1)
+
+	return listed
 }
 
 func TestV1TaxConfigPlanRateCards(t *testing.T) {
+	// given: a flat fee and a usage based rate card per scenario
+	// when:
+	//   1. a draft plan is created with them
+	//   2. the plan is updated with every scenario on new flat fee keys
+	// then: the create, GET, list and update responses render each scenario's tax config
+
 	client := initClient(t)
 	c := newV3Client(t)
 
-	scenarios := v1TaxConfigCatalogScenarios(createStripeMappedTaxCode(t, c))
-	featureKeys := createV1TaxConfigFeatures(t, client, scenarios)
-	rateCards, want := v1TaxConfigRateCards(t, "", scenarios, featureKeys)
+	// given: a flat fee and a usage based rate card per scenario
+	taxCode := createStripeMappedTaxCode(t, c)
+	scenarios := withV1TaxConfigFeatures(t, client, v1TaxConfigCatalogScenarios(taxCode))
 
-	planCreate := api.PlanCreate{
-		Key:            uniqueKey("v1_taxconfig_plan"),
+	rateCards, want := v1TaxConfigRateCards(t, "", scenarios)
+
+	// when: a draft plan is created with them
+	planKey := uniqueKey("v1_taxconfig_plan")
+	createResp, err := client.CreatePlanWithResponse(t.Context(), api.PlanCreate{
+		Key:            planKey,
 		Name:           "v1 taxConfig plan",
 		Currency:       "USD",
 		BillingCadence: "P1M",
@@ -394,9 +390,7 @@ func TestV1TaxConfigPlanRateCards(t *testing.T) {
 			Name:      "Default",
 			RateCards: rateCards,
 		}},
-	}
-
-	createResp, err := client.CreatePlanWithResponse(t.Context(), planCreate)
+	})
 	require.NoError(t, err)
 	require.Equal(t, http.StatusCreated, createResp.StatusCode(), "create plan: %s", string(createResp.Body))
 	require.NotNil(t, createResp.JSON201)
@@ -404,8 +398,8 @@ func TestV1TaxConfigPlanRateCards(t *testing.T) {
 
 	plan := *createResp.JSON201
 
-	t.Run("create", func(t *testing.T) {
-		assertV1TaxConfigs(t, want, v1RateCardTaxConfigs(t, plan.Phases[0].RateCards))
+	t.Run("then: the create response and GET render the scenario tax configs", func(t *testing.T) {
+		taxconfigv1.AssertTaxConfigs(t, want, v1RateCardTaxConfigs(t, plan.Phases[0].RateCards))
 
 		getResp, err := client.GetPlanWithResponse(t.Context(), plan.Id, nil)
 		require.NoError(t, err)
@@ -413,31 +407,35 @@ func TestV1TaxConfigPlanRateCards(t *testing.T) {
 		require.NotNil(t, getResp.JSON200)
 		require.Len(t, getResp.JSON200.Phases, 1)
 
-		assertV1TaxConfigs(t, want, v1RateCardTaxConfigs(t, getResp.JSON200.Phases[0].RateCards))
+		taxconfigv1.AssertTaxConfigs(t, want, v1RateCardTaxConfigs(t, getResp.JSON200.Phases[0].RateCards))
 	})
 
-	t.Run("update", func(t *testing.T) {
-		// given: the created plan or addon
-		// when: it is updated with every scenario again, on new flat fee keys (so new rate cards
-		// are written) and on the usage based cards, which are keyed by their feature
-		// then: the update response and a re-read return the same tax configs as create
-		updatedRateCards, updatedWant := v1TaxConfigRateCards(t, "updated_", scenarios, featureKeys)
+	t.Run("then: listing plans by the plan key renders the created tax configs", func(t *testing.T) {
+		listed := v1ListedPlan(t, client, plan)
+		taxconfigv1.AssertTaxConfigs(t, want, v1RateCardTaxConfigs(t, listed.Phases[0].RateCards))
+	})
 
-		updateResp, err := client.UpdatePlanWithResponse(t.Context(), plan.Id, api.PlanReplaceUpdate{
-			Name:           plan.Name,
-			BillingCadence: plan.BillingCadence,
-			Phases: []api.PlanPhase{{
-				Key:       "default",
-				Name:      "Default",
-				RateCards: updatedRateCards,
-			}},
-		})
-		require.NoError(t, err)
-		require.Equal(t, http.StatusOK, updateResp.StatusCode(), "update plan: %s", string(updateResp.Body))
-		require.NotNil(t, updateResp.JSON200)
-		require.Len(t, updateResp.JSON200.Phases, 1)
+	// Edits run at the top level, so every subtest only reads and can run on its own.
+	// when: the plan is updated with every scenario again, on new flat fee keys (so new rate
+	// cards are written) and on the usage based cards, which are keyed by their feature
+	updatedRateCards, updatedWant := v1TaxConfigRateCards(t, "updated_", scenarios)
 
-		assertV1TaxConfigs(t, updatedWant, v1RateCardTaxConfigs(t, updateResp.JSON200.Phases[0].RateCards))
+	updateResp, err := client.UpdatePlanWithResponse(t.Context(), plan.Id, api.PlanReplaceUpdate{
+		Name:           plan.Name,
+		BillingCadence: plan.BillingCadence,
+		Phases: []api.PlanPhase{{
+			Key:       "default",
+			Name:      "Default",
+			RateCards: updatedRateCards,
+		}},
+	})
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, updateResp.StatusCode(), "update plan: %s", string(updateResp.Body))
+	require.NotNil(t, updateResp.JSON200)
+	require.Len(t, updateResp.JSON200.Phases, 1)
+
+	t.Run("then: the update response and a re-read return the same tax configs as create", func(t *testing.T) {
+		taxconfigv1.AssertTaxConfigs(t, updatedWant, v1RateCardTaxConfigs(t, updateResp.JSON200.Phases[0].RateCards))
 
 		getResp, err := client.GetPlanWithResponse(t.Context(), plan.Id, nil)
 		require.NoError(t, err)
@@ -445,20 +443,52 @@ func TestV1TaxConfigPlanRateCards(t *testing.T) {
 		require.NotNil(t, getResp.JSON200)
 		require.Len(t, getResp.JSON200.Phases, 1)
 
-		assertV1TaxConfigs(t, updatedWant, v1RateCardTaxConfigs(t, getResp.JSON200.Phases[0].RateCards))
+		taxconfigv1.AssertTaxConfigs(t, updatedWant, v1RateCardTaxConfigs(t, getResp.JSON200.Phases[0].RateCards))
+
+		// The list response renders the plan through the same mapping as GET.
+		listed := v1ListedPlan(t, client, plan)
+		taxconfigv1.AssertTaxConfigs(t, updatedWant, v1RateCardTaxConfigs(t, listed.Phases[0].RateCards))
 	})
 }
 
+// v1ListedAddon lists addons filtered by the addon under test's key and returns it.
+func v1ListedAddon(t *testing.T, client *api.ClientWithResponses, addon api.Addon) api.Addon {
+	t.Helper()
+
+	resp, err := client.ListAddonsWithResponse(t.Context(), &api.ListAddonsParams{
+		Key:      &[]string{addon.Key},
+		PageSize: lo.ToPtr(api.PaginationPageSize(100)),
+	})
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, resp.StatusCode(), "list addons: %s", string(resp.Body))
+	require.NotNil(t, resp.JSON200)
+
+	listed, found := lo.Find(resp.JSON200.Items, func(a api.Addon) bool { return a.Id == addon.Id })
+	require.True(t, found, "addon %s not found in list", addon.Id)
+
+	return listed
+}
+
 func TestV1TaxConfigAddonRateCards(t *testing.T) {
+	// given: a flat fee and a usage based rate card per scenario
+	// when:
+	//   1. a draft addon is created with them
+	//   2. the addon is updated with every scenario on new flat fee keys
+	// then: the create, GET, list and update responses render each scenario's tax config
+
 	client := initClient(t)
 	c := newV3Client(t)
 
-	scenarios := v1TaxConfigCatalogScenarios(createStripeMappedTaxCode(t, c))
-	featureKeys := createV1TaxConfigFeatures(t, client, scenarios)
-	rateCards, want := v1TaxConfigRateCards(t, "", scenarios, featureKeys)
+	// given: a flat fee and a usage based rate card per scenario
+	taxCode := createStripeMappedTaxCode(t, c)
+	scenarios := withV1TaxConfigFeatures(t, client, v1TaxConfigCatalogScenarios(taxCode))
 
+	rateCards, want := v1TaxConfigRateCards(t, "", scenarios)
+
+	// when: a draft addon is created with them
+	addonKey := uniqueKey("v1_taxconfig_addon")
 	createResp, err := client.CreateAddonWithResponse(t.Context(), api.AddonCreate{
-		Key:          uniqueKey("v1_taxconfig_addon"),
+		Key:          addonKey,
 		Name:         "v1 taxConfig addon",
 		Currency:     "USD",
 		InstanceType: api.AddonInstanceTypeSingle,
@@ -470,57 +500,78 @@ func TestV1TaxConfigAddonRateCards(t *testing.T) {
 
 	addon := *createResp.JSON201
 
-	t.Run("create", func(t *testing.T) {
-		assertV1TaxConfigs(t, want, v1RateCardTaxConfigs(t, addon.RateCards))
+	t.Run("then: the create response and GET render the scenario tax configs", func(t *testing.T) {
+		taxconfigv1.AssertTaxConfigs(t, want, v1RateCardTaxConfigs(t, addon.RateCards))
 
 		getResp, err := client.GetAddonWithResponse(t.Context(), addon.Id, nil)
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, getResp.StatusCode(), "get addon: %s", string(getResp.Body))
 		require.NotNil(t, getResp.JSON200)
 
-		assertV1TaxConfigs(t, want, v1RateCardTaxConfigs(t, getResp.JSON200.RateCards))
+		taxconfigv1.AssertTaxConfigs(t, want, v1RateCardTaxConfigs(t, getResp.JSON200.RateCards))
 	})
 
-	t.Run("update", func(t *testing.T) {
-		// given: the created plan or addon
-		// when: it is updated with every scenario again, on new flat fee keys (so new rate cards
-		// are written) and on the usage based cards, which are keyed by their feature
-		// then: the update response and a re-read return the same tax configs as create
-		updatedRateCards, updatedWant := v1TaxConfigRateCards(t, "updated_", scenarios, featureKeys)
+	t.Run("then: listing addons by the addon key renders the created tax configs", func(t *testing.T) {
+		listed := v1ListedAddon(t, client, addon)
+		taxconfigv1.AssertTaxConfigs(t, want, v1RateCardTaxConfigs(t, listed.RateCards))
+	})
 
-		updateResp, err := client.UpdateAddonWithResponse(t.Context(), addon.Id, api.AddonReplaceUpdate{
-			Name:         addon.Name,
-			InstanceType: addon.InstanceType,
-			RateCards:    updatedRateCards,
-		})
-		require.NoError(t, err)
-		require.Equal(t, http.StatusOK, updateResp.StatusCode(), "update addon: %s", string(updateResp.Body))
-		require.NotNil(t, updateResp.JSON200)
+	// Edits run at the top level, so every subtest only reads and can run on its own.
+	// when: the addon is updated with every scenario again, on new flat fee keys (so new rate
+	// cards are written) and on the usage based cards, which are keyed by their feature
+	updatedRateCards, updatedWant := v1TaxConfigRateCards(t, "updated_", scenarios)
 
-		assertV1TaxConfigs(t, updatedWant, v1RateCardTaxConfigs(t, updateResp.JSON200.RateCards))
+	updateResp, err := client.UpdateAddonWithResponse(t.Context(), addon.Id, api.AddonReplaceUpdate{
+		Name:         addon.Name,
+		InstanceType: addon.InstanceType,
+		RateCards:    updatedRateCards,
+	})
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, updateResp.StatusCode(), "update addon: %s", string(updateResp.Body))
+	require.NotNil(t, updateResp.JSON200)
+
+	t.Run("then: the update response and a re-read return the same tax configs as create", func(t *testing.T) {
+		taxconfigv1.AssertTaxConfigs(t, updatedWant, v1RateCardTaxConfigs(t, updateResp.JSON200.RateCards))
 
 		getResp, err := client.GetAddonWithResponse(t.Context(), addon.Id, nil)
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, getResp.StatusCode(), "get addon: %s", string(getResp.Body))
 		require.NotNil(t, getResp.JSON200)
 
-		assertV1TaxConfigs(t, updatedWant, v1RateCardTaxConfigs(t, getResp.JSON200.RateCards))
+		taxconfigv1.AssertTaxConfigs(t, updatedWant, v1RateCardTaxConfigs(t, getResp.JSON200.RateCards))
+
+		// The list response renders the addon through the same mapping as GET.
+		listed := v1ListedAddon(t, client, addon)
+		taxconfigv1.AssertTaxConfigs(t, updatedWant, v1RateCardTaxConfigs(t, listed.RateCards))
 	})
 }
 
 func TestV1TaxConfigSubscriptions(t *testing.T) {
+	// given: scenarios covering every v1 taxConfig input, a published plan and addon with a rate
+	// card per scenario, and a customer subscribed to the plan
+	// when:
+	//   1. billing syncs the subscription into gathering invoice lines
+	//   2. an edit adds a flat fee item per scenario
+	//   3. the addon is added to the subscription
+	//   4. a new customer subscribes to a custom plan with every scenario
+	// then: the subscription items, gathering lines, plan addons, subscription addons and custom
+	// subscription items return each scenario's tax config
+
 	client := initClient(t)
 	c := newV3Client(t)
 
-	scenarios := v1TaxConfigCatalogScenarios(createStripeMappedTaxCode(t, c))
-	featureKeys := createV1TaxConfigFeatures(t, client, scenarios)
-	rateCards, want := v1TaxConfigRateCards(t, "", scenarios, featureKeys)
+	// given: scenarios covering every v1 taxConfig input, with a metered feature each
+	taxCode := createStripeMappedTaxCode(t, c)
+	scenarios := withV1TaxConfigFeatures(t, client, v1TaxConfigCatalogScenarios(taxCode))
 
 	timing := api.SubscriptionTiming{}
 	require.NoError(t, timing.FromSubscriptionTimingEnum(api.SubscriptionTimingEnumImmediate))
 
+	rateCards, want := v1TaxConfigRateCards(t, "", scenarios)
+
+	// given: a published addon with a rate card per scenario
 	// The addon is attached to the plan before publishing, so subscriptions can add it.
-	addonRateCards, addonWant := v1TaxConfigRateCards(t, "addon_", scenarios, nil)
+	addonRateCards, addonWant := v1TaxConfigFlatFeeRateCards(t, "addon_", scenarios)
 
 	addonResp, err := client.CreateAddonWithResponse(t.Context(), api.AddonCreate{
 		Key:          uniqueKey("v1_taxconfig_sub_addon"),
@@ -537,6 +588,9 @@ func TestV1TaxConfigSubscriptions(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, publishAddonResp.StatusCode(), "publish addon: %s", string(publishAddonResp.Body))
 
+	addonID := addonResp.JSON201.Id
+
+	// given: a published plan with a rate card per scenario and the addon attached
 	planResp, err := client.CreatePlanWithResponse(t.Context(), api.PlanCreate{
 		Key:            uniqueKey("v1_taxconfig_sub_plan"),
 		Name:           "v1 taxConfig subscription plan",
@@ -553,19 +607,22 @@ func TestV1TaxConfigSubscriptions(t *testing.T) {
 	require.Equal(t, http.StatusCreated, planResp.StatusCode(), "create plan: %s", string(planResp.Body))
 	require.NotNil(t, planResp.JSON201)
 
-	planAddonResp, err := client.CreatePlanAddonWithResponse(t.Context(), planResp.JSON201.Id, api.PlanAddonCreate{
-		AddonId:       addonResp.JSON201.Id,
+	planID := planResp.JSON201.Id
+
+	planAddonResp, err := client.CreatePlanAddonWithResponse(t.Context(), planID, api.PlanAddonCreate{
+		AddonId:       addonID,
 		FromPlanPhase: "default",
 	})
 	require.NoError(t, err)
 	require.Equal(t, http.StatusCreated, planAddonResp.StatusCode(), "attach addon to plan: %s", string(planAddonResp.Body))
 
-	publishPlanResp, err := client.PublishPlanWithResponse(t.Context(), planResp.JSON201.Id)
+	publishPlanResp, err := client.PublishPlanWithResponse(t.Context(), planID)
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, publishPlanResp.StatusCode(), "publish plan: %s", string(publishPlanResp.Body))
 	require.NotNil(t, publishPlanResp.JSON200)
 
-	customer := createV1TaxConfigCustomer(t, client, "v1_taxconfig_sub_customer")
+	// given: a customer subscribed to the plan
+	customer := taxconfigv1.CreateCustomer(t, client, "v1_taxconfig_sub_customer")
 
 	subscriptionCreate := api.SubscriptionCreate{}
 	require.NoError(t, subscriptionCreate.FromPlanSubscriptionCreate(api.PlanSubscriptionCreate{
@@ -585,14 +642,31 @@ func TestV1TaxConfigSubscriptions(t *testing.T) {
 	subscriptionID := subscriptionResp.JSON201.Id
 	t.Logf("customer=%s subscription=%s", customer.Id, subscriptionID)
 
-	t.Run("plan subscription items", func(t *testing.T) {
-		assertV1TaxConfigs(t, want, v1SubscriptionItemTaxConfigs(t, client, subscriptionID))
+	t.Run("then: the subscription items return the plan's tax configs", func(t *testing.T) {
+		taxconfigv1.AssertTaxConfigs(t, want, v1SubscriptionItemTaxConfigs(t, client, subscriptionID))
 	})
 
-	t.Run("invoice lines generated from subscription items", func(t *testing.T) {
+	t.Run("then: listing plan addons renders the addon's tax configs", func(t *testing.T) {
+		resp, err := client.ListPlanAddonsWithResponse(t.Context(), planID, &api.ListPlanAddonsParams{
+			PageSize: lo.ToPtr(api.PaginationPageSize(100)),
+		})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, resp.StatusCode(), "list plan addons: %s", string(resp.Body))
+		require.NotNil(t, resp.JSON200)
+
+		planAddon, found := lo.Find(resp.JSON200.Items, func(planAddon api.PlanAddon) bool {
+			return planAddon.Addon.Id == addonID
+		})
+		require.True(t, found, "plan addon of addon %s not found in list", addonID)
+
+		taxconfigv1.AssertTaxConfigs(t, addonWant, v1RateCardTaxConfigs(t, planAddon.Addon.RateCards))
+	})
+
+	t.Run("then: gathering invoice lines get their item's tax config", func(t *testing.T) {
 		// given: a subscription whose flat fee and usage based items carry every scenario
 		// when: billing syncs the subscription into gathering invoice lines
 		// then: each line has its item's tax config, with the default tax code filled in
+
 		lineWant := v1TaxConfigInvoiceLineWant(scenarios, defaultInvoicingTaxCodeID(t, c))
 
 		// Gathering lines are named after their rate card: the flat fee key, or the feature key
@@ -600,7 +674,7 @@ func TestV1TaxConfigSubscriptions(t *testing.T) {
 		subscriptionLineWant := make(map[string]*api.TaxConfig, 2*len(scenarios))
 		for _, scenario := range scenarios {
 			subscriptionLineWant[scenario.key] = lineWant[scenario.key]
-			subscriptionLineWant[featureKeys[scenario.key]] = lineWant[scenario.key]
+			subscriptionLineWant[scenario.featureKey] = lineWant[scenario.key]
 		}
 
 		customers := api.InvoiceListParamsCustomers{customer.Id}
@@ -631,108 +705,137 @@ func TestV1TaxConfigSubscriptions(t *testing.T) {
 			}
 		}, time.Minute, time.Second)
 
-		assertV1TaxConfigs(t, subscriptionLineWant, got)
+		taxconfigv1.AssertTaxConfigs(t, subscriptionLineWant, got)
 	})
 
-	t.Run("edit adds items", func(t *testing.T) {
-		// given: the plan subscription
-		// when: an edit adds a flat fee item per scenario
-		// then: the added items return the same tax configs as plan items
-		addedRateCards, addedWant := v1TaxConfigRateCards(t, "added_", scenarios, nil)
+	// Edits run at the top level, so every subtest only reads and can run on its own. They stay
+	// after the polling subtest, which waits for the plan's own items; the items added below are
+	// extra keys to it.
 
-		operations := lo.Map(addedRateCards, func(rateCard api.RateCard, _ int) api.SubscriptionEditOperation {
-			operation := api.SubscriptionEditOperation{}
-			require.NoError(t, operation.FromEditSubscriptionAddItem(api.EditSubscriptionAddItem{
-				Op:       api.EditSubscriptionAddItemOpAddItem,
-				PhaseKey: "default",
-				RateCard: rateCard,
-			}))
+	// when: an edit adds a flat fee item per scenario
+	addedRateCards, addedWant := v1TaxConfigFlatFeeRateCards(t, "added_", scenarios)
 
-			return operation
-		})
+	operations := lo.Map(addedRateCards, func(rateCard api.RateCard, _ int) api.SubscriptionEditOperation {
+		operation := api.SubscriptionEditOperation{}
+		require.NoError(t, operation.FromEditSubscriptionAddItem(api.EditSubscriptionAddItem{
+			Op:       api.EditSubscriptionAddItemOpAddItem,
+			PhaseKey: "default",
+			RateCard: rateCard,
+		}))
 
-		editResp, err := client.EditSubscriptionWithResponse(t.Context(), subscriptionID, api.SubscriptionEdit{
-			Customizations: operations,
-			Timing:         &timing,
-		})
-		require.NoError(t, err)
-		require.Equal(t, http.StatusOK, editResp.StatusCode(), "edit subscription: %s", string(editResp.Body))
-		require.NotNil(t, editResp.JSON200)
-
-		assertV1TaxConfigs(t, addedWant, v1SubscriptionItemTaxConfigs(t, client, editResp.JSON200.Id))
+		return operation
 	})
 
-	t.Run("addon rate cards", func(t *testing.T) {
-		// given: the plan subscription and an addon attached to its plan
-		// when: the addon is added to the subscription
-		// then: the subscription addon's rate cards and the items created from them return the
-		// addon's tax configs
-		createResp, err := client.CreateSubscriptionAddonWithResponse(t.Context(), subscriptionID, api.SubscriptionAddonCreate{
-			Addon: struct {
-				Id string `json:"id"`
-			}{Id: addonResp.JSON201.Id},
-			Name:     "v1 taxConfig subscription addon",
-			Quantity: 1,
-			Timing:   timing,
-		})
-		require.NoError(t, err)
-		// The v1 subscription addon create answers 200 instead of the documented 201, so the
-		// generated client doesn't decode the body.
-		require.Equal(t, http.StatusOK, createResp.StatusCode(), "add addon to subscription: %s", string(createResp.Body))
+	editResp, err := client.EditSubscriptionWithResponse(t.Context(), subscriptionID, api.SubscriptionEdit{
+		Customizations: operations,
+		Timing:         &timing,
+	})
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, editResp.StatusCode(), "edit subscription: %s", string(editResp.Body))
+	require.NotNil(t, editResp.JSON200)
 
-		var subscriptionAddon api.SubscriptionAddon
-		require.NoError(t, json.Unmarshal(createResp.Body, &subscriptionAddon))
+	t.Run("then: the added items return the same tax configs as plan items", func(t *testing.T) {
+		taxconfigv1.AssertTaxConfigs(t, addedWant, v1SubscriptionItemTaxConfigs(t, client, editResp.JSON200.Id))
+	})
 
-		subscriptionAddonRateCards := func(rateCards []api.SubscriptionAddonRateCard) []api.RateCard {
-			return lo.Map(rateCards, func(rc api.SubscriptionAddonRateCard, _ int) api.RateCard {
-				return rc.RateCard
-			})
-		}
+	// when: the addon is added to the subscription
+	addonAddResp, err := client.CreateSubscriptionAddonWithResponse(t.Context(), subscriptionID, api.SubscriptionAddonCreate{
+		Addon: struct {
+			Id string `json:"id"`
+		}{Id: addonID},
+		Name:     "v1 taxConfig subscription addon",
+		Quantity: 1,
+		Timing:   timing,
+	})
+	require.NoError(t, err)
+	// The v1 subscription addon create answers 200 instead of the documented 201, so the
+	// generated client doesn't decode the body.
+	require.Equal(t, http.StatusOK, addonAddResp.StatusCode(), "add addon to subscription: %s", string(addonAddResp.Body))
 
-		assertV1TaxConfigs(t, addonWant, v1RateCardTaxConfigs(t, subscriptionAddonRateCards(subscriptionAddon.RateCards)))
+	var subscriptionAddon api.SubscriptionAddon
+	require.NoError(t, json.Unmarshal(addonAddResp.Body, &subscriptionAddon))
+
+	t.Run("then: the subscription addon's rate cards and items return the addon's tax configs", func(t *testing.T) {
+		taxconfigv1.AssertTaxConfigs(t, addonWant, v1RateCardTaxConfigs(t, v1SubscriptionAddonRateCards(subscriptionAddon.RateCards)))
 
 		getResp, err := client.GetSubscriptionAddonWithResponse(t.Context(), subscriptionID, subscriptionAddon.Id)
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, getResp.StatusCode(), "get subscription addon: %s", string(getResp.Body))
 		require.NotNil(t, getResp.JSON200)
 
-		assertV1TaxConfigs(t, addonWant, v1RateCardTaxConfigs(t, subscriptionAddonRateCards(getResp.JSON200.RateCards)))
+		taxconfigv1.AssertTaxConfigs(t, addonWant, v1RateCardTaxConfigs(t, v1SubscriptionAddonRateCards(getResp.JSON200.RateCards)))
+
+		listResp, err := client.ListSubscriptionAddonsWithResponse(t.Context(), subscriptionID)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, listResp.StatusCode(), "list subscription addons: %s", string(listResp.Body))
+		require.NotNil(t, listResp.JSON200)
+
+		listedAddon, found := lo.Find(*listResp.JSON200, func(listed api.SubscriptionAddon) bool {
+			return listed.Id == subscriptionAddon.Id
+		})
+		require.True(t, found, "subscription addon %s not found in list", subscriptionAddon.Id)
+
+		taxconfigv1.AssertTaxConfigs(t, addonWant, v1RateCardTaxConfigs(t, v1SubscriptionAddonRateCards(listedAddon.RateCards)))
 
 		// The addon's rate cards become subscription items of their own, since no plan item
 		// shares their keys.
-		assertV1TaxConfigs(t, addonWant, v1SubscriptionItemTaxConfigs(t, client, subscriptionID))
+		taxconfigv1.AssertTaxConfigs(t, addonWant, v1SubscriptionItemTaxConfigs(t, client, subscriptionID))
 	})
 
-	t.Run("custom subscription items", func(t *testing.T) {
-		// given: a new customer
-		// when: it subscribes to a custom plan with every scenario
-		// then: the subscription items return the same tax configs as plan items
-		customRateCards, customWant := v1TaxConfigRateCards(t, "", scenarios, featureKeys)
-		customCustomer := createV1TaxConfigCustomer(t, client, "v1_taxconfig_custom_sub_customer")
+	// when: a new customer subscribes to a custom plan with every scenario
+	customRateCards, customWant := v1TaxConfigRateCards(t, "", scenarios)
+	customCustomer := taxconfigv1.CreateCustomer(t, client, "v1_taxconfig_custom_sub_customer")
 
-		create := api.SubscriptionCreate{}
-		require.NoError(t, create.FromCustomSubscriptionCreate(api.CustomSubscriptionCreate{
-			Timing:     &timing,
-			CustomerId: lo.ToPtr(customCustomer.Id),
-			CustomPlan: api.CustomPlanInput{
-				Name:           "v1 taxConfig custom plan",
-				Currency:       "USD",
-				BillingCadence: "P1M",
-				Phases: []api.PlanPhase{{
-					Key:       "default",
-					Name:      "Default",
-					RateCards: customRateCards,
-				}},
-			},
-		}))
+	create := api.SubscriptionCreate{}
+	require.NoError(t, create.FromCustomSubscriptionCreate(api.CustomSubscriptionCreate{
+		Timing:     &timing,
+		CustomerId: lo.ToPtr(customCustomer.Id),
+		CustomPlan: api.CustomPlanInput{
+			Name:           "v1 taxConfig custom plan",
+			Currency:       "USD",
+			BillingCadence: "P1M",
+			Phases: []api.PlanPhase{{
+				Key:       "default",
+				Name:      "Default",
+				RateCards: customRateCards,
+			}},
+		},
+	}))
 
-		createResp, err := client.CreateSubscriptionWithResponse(t.Context(), create)
-		require.NoError(t, err)
-		require.Equal(t, http.StatusCreated, createResp.StatusCode(), "create custom subscription: %s", string(createResp.Body))
-		require.NotNil(t, createResp.JSON201)
+	customResp, err := client.CreateSubscriptionWithResponse(t.Context(), create)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusCreated, customResp.StatusCode(), "create custom subscription: %s", string(customResp.Body))
+	require.NotNil(t, customResp.JSON201)
 
-		assertV1TaxConfigs(t, customWant, v1SubscriptionItemTaxConfigs(t, client, createResp.JSON201.Id))
+	t.Run("then: the custom subscription items return the same tax configs as plan items", func(t *testing.T) {
+		taxconfigv1.AssertTaxConfigs(t, customWant, v1SubscriptionItemTaxConfigs(t, client, customResp.JSON201.Id))
 	})
+}
+
+// v1BillingProfileCreateWithDefaultTaxConfig returns a create request for a profile with the
+// given default tax config.
+func v1BillingProfileCreateWithDefaultTaxConfig(t *testing.T, client *api.ClientWithResponses, defaultTaxConfig *api.TaxConfig) api.BillingProfileCreate {
+	t.Helper()
+
+	create := v1BillingProfileCreateFromDefault(t, client)
+	create.Workflow.Invoicing.DefaultTaxConfig = defaultTaxConfig
+
+	return create
+}
+
+// v1BillingProfileUpdateWithDefaultTaxConfig returns an update request that keeps the profile
+// as is and sets the given default tax config.
+func v1BillingProfileUpdateWithDefaultTaxConfig(profile api.BillingProfile, defaultTaxConfig *api.TaxConfig) api.BillingProfileReplaceUpdateWithWorkflow {
+	workflow := profile.Workflow
+	invoicing := *workflow.Invoicing
+	invoicing.DefaultTaxConfig = defaultTaxConfig
+	workflow.Invoicing = &invoicing
+
+	return api.BillingProfileReplaceUpdateWithWorkflow{
+		Name:     profile.Name,
+		Supplier: profile.Supplier,
+		Workflow: workflow,
+	}
 }
 
 // Billing profiles no longer accept a tax code in defaultTaxConfig: create rejects it, and update
@@ -740,27 +843,38 @@ func TestV1TaxConfigSubscriptions(t *testing.T) {
 // code, so only rejection and behavior round-trips are reachable here; echo and removal are
 // covered by test/billing/taxcode_dual_write_test.go.
 func TestV1TaxConfigBillingProfileDefaultTaxConfig(t *testing.T) {
-	client := initClient(t)
-	c := newV3Client(t)
-
-	taxCode := createStripeMappedTaxCode(t, c)
-
-	profileCreate := func(defaultTaxConfig *api.TaxConfig) api.BillingProfileCreate {
-		create := v1BillingProfileCreateFromDefault(t, client)
-		create.Workflow.Invoicing.DefaultTaxConfig = defaultTaxConfig
-
-		return create
-	}
+	// given: a tax code with a Stripe mapping
+	// when:
+	//   1. billing profiles are created and updated with a tax code, no default tax config and
+	//      behaviors
+	//   2. a customer is pinned to the profile
+	// then: tax codes are rejected with the deprecation detail, behaviors are kept and can be
+	// removed, and the pinned customer's profile shows the profile's default tax config
 
 	const deprecationDetail = "defaultTaxConfig is deprecated"
 
-	t.Run("create rejects a tax code", func(t *testing.T) {
-		for name, taxConfig := range map[string]*api.TaxConfig{
-			"stripe_code_only": {Stripe: &api.StripeTaxConfig{Code: stripeAppMapping(taxCode)}},
-			"tax_code_id_only": {TaxCodeId: lo.ToPtr(taxCode.ID)},
+	client := initClient(t)
+	c := newV3Client(t)
+
+	// given: a tax code with a Stripe mapping
+	taxCode := createStripeMappedTaxCode(t, c)
+
+	t.Run("then: create rejects a tax code", func(t *testing.T) {
+		for _, tt := range []struct {
+			name      string
+			taxConfig *api.TaxConfig
+		}{
+			{
+				name:      "stripe_code_only",
+				taxConfig: &api.TaxConfig{Stripe: &api.StripeTaxConfig{Code: taxconfigv1.StripeAppMapping(taxCode)}},
+			},
+			{
+				name:      "tax_code_id_only",
+				taxConfig: &api.TaxConfig{TaxCodeId: lo.ToPtr(taxCode.ID)},
+			},
 		} {
-			t.Run(name, func(t *testing.T) {
-				resp, err := client.CreateBillingProfileWithResponse(t.Context(), profileCreate(taxConfig))
+			t.Run(tt.name, func(t *testing.T) {
+				resp, err := client.CreateBillingProfileWithResponse(t.Context(), v1BillingProfileCreateWithDefaultTaxConfig(t, client, tt.taxConfig))
 				require.NoError(t, err)
 				require.Equal(t, http.StatusBadRequest, resp.StatusCode(), "create billing profile: %s", string(resp.Body))
 				assert.Contains(t, string(resp.Body), deprecationDetail)
@@ -768,119 +882,189 @@ func TestV1TaxConfigBillingProfileDefaultTaxConfig(t *testing.T) {
 		}
 	})
 
-	t.Run("create without a default tax config", func(t *testing.T) {
-		resp, err := client.CreateBillingProfileWithResponse(t.Context(), profileCreate(nil))
-		require.NoError(t, err)
-		require.Equal(t, http.StatusCreated, resp.StatusCode(), "create billing profile: %s", string(resp.Body))
-		require.NotNil(t, resp.JSON201)
-		require.NotNil(t, resp.JSON201.Workflow.Invoicing)
+	// when: a profile is created without a default tax config
+	withoutDefaultResp, err := client.CreateBillingProfileWithResponse(t.Context(), v1BillingProfileCreateWithDefaultTaxConfig(t, client, nil))
+	require.NoError(t, err)
+	require.Equal(t, http.StatusCreated, withoutDefaultResp.StatusCode(), "create billing profile: %s", string(withoutDefaultResp.Body))
+	require.NotNil(t, withoutDefaultResp.JSON201)
+	require.NotNil(t, withoutDefaultResp.JSON201.Workflow.Invoicing)
 
-		assert.Nil(t, resp.JSON201.Workflow.Invoicing.DefaultTaxConfig)
+	t.Run("then: the create response has no default tax config", func(t *testing.T) {
+		assert.Nil(t, withoutDefaultResp.JSON201.Workflow.Invoicing.DefaultTaxConfig)
 	})
 
-	t.Run("behavior round-trips through create and update", func(t *testing.T) {
-		// given: a profile created with an exclusive default behavior
-		// when: it is read through a customer and updated
-		// then: the behavior can be read, changed and removed, but a tax code can't be added
-		createResp, err := client.CreateBillingProfileWithResponse(t.Context(), profileCreate(&api.TaxConfig{
-			Behavior: lo.ToPtr(api.TaxBehaviorExclusive),
-		}))
-		require.NoError(t, err)
-		require.Equal(t, http.StatusCreated, createResp.StatusCode(), "create billing profile: %s", string(createResp.Body))
-		require.NotNil(t, createResp.JSON201)
-		require.NotNil(t, createResp.JSON201.Workflow.Invoicing)
+	// when: a profile is created with an exclusive default behavior
+	createResp, err := client.CreateBillingProfileWithResponse(t.Context(), v1BillingProfileCreateWithDefaultTaxConfig(t, client, &api.TaxConfig{
+		Behavior: lo.ToPtr(api.TaxBehaviorExclusive),
+	}))
+	require.NoError(t, err)
+	require.Equal(t, http.StatusCreated, createResp.StatusCode(), "create billing profile: %s", string(createResp.Body))
+	require.NotNil(t, createResp.JSON201)
+	require.NotNil(t, createResp.JSON201.Workflow.Invoicing)
 
-		profile := *createResp.JSON201
+	profile := *createResp.JSON201
+
+	t.Run("then: the create response renders the default behavior", func(t *testing.T) {
 		assert.Equal(t, &api.TaxConfig{Behavior: lo.ToPtr(api.TaxBehaviorExclusive)}, profile.Workflow.Invoicing.DefaultTaxConfig)
+	})
 
-		profileUpdate := func(defaultTaxConfig *api.TaxConfig) api.BillingProfileReplaceUpdateWithWorkflow {
-			workflow := profile.Workflow
-			invoicing := *workflow.Invoicing
-			invoicing.DefaultTaxConfig = defaultTaxConfig
-			workflow.Invoicing = &invoicing
+	// when: a customer is pinned to the profile
+	customer := taxconfigv1.CreateCustomer(t, client, "v1_taxconfig_profile_customer")
 
-			return api.BillingProfileReplaceUpdateWithWorkflow{
-				Name:     profile.Name,
-				Supplier: profile.Supplier,
-				Workflow: workflow,
-			}
-		}
+	overrideResp, err := client.UpsertBillingProfileCustomerOverrideWithResponse(t.Context(), customer.Id, api.BillingProfileCustomerOverrideCreate{
+		BillingProfileId: lo.ToPtr(profile.Id),
+	})
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, overrideResp.StatusCode(), "pin customer to billing profile: %s", string(overrideResp.Body))
 
-		t.Run("customer profile shows the default tax config", func(t *testing.T) {
-			// given: a customer pinned to the profile
-			// when: the customer's billing profile is read
-			// then: it returns the profile's default tax config
-			customer := createV1TaxConfigCustomer(t, client, "v1_taxconfig_profile_customer")
+	t.Run("then: the customer's profile shows the default tax config", func(t *testing.T) {
+		getResp, err := client.GetBillingProfileCustomerOverrideWithResponse(t.Context(), customer.Id, nil)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, getResp.StatusCode(), "get customer billing profile: %s", string(getResp.Body))
+		require.NotNil(t, getResp.JSON200)
+		require.NotNil(t, getResp.JSON200.CustomerProfile)
+		require.NotNil(t, getResp.JSON200.CustomerProfile.Workflow.Invoicing)
 
-			overrideResp, err := client.UpsertBillingProfileCustomerOverrideWithResponse(t.Context(), customer.Id, api.BillingProfileCustomerOverrideCreate{
-				BillingProfileId: lo.ToPtr(profile.Id),
-			})
-			require.NoError(t, err)
-			require.Equal(t, http.StatusOK, overrideResp.StatusCode(), "pin customer to billing profile: %s", string(overrideResp.Body))
+		assert.Equal(t, &api.TaxConfig{Behavior: lo.ToPtr(api.TaxBehaviorExclusive)}, getResp.JSON200.CustomerProfile.Workflow.Invoicing.DefaultTaxConfig)
+	})
 
-			getResp, err := client.GetBillingProfileCustomerOverrideWithResponse(t.Context(), customer.Id, nil)
-			require.NoError(t, err)
-			require.Equal(t, http.StatusOK, getResp.StatusCode(), "get customer billing profile: %s", string(getResp.Body))
-			require.NotNil(t, getResp.JSON200)
-			require.NotNil(t, getResp.JSON200.CustomerProfile)
-			require.NotNil(t, getResp.JSON200.CustomerProfile.Workflow.Invoicing)
-
-			assert.Equal(t, &api.TaxConfig{Behavior: lo.ToPtr(api.TaxBehaviorExclusive)}, getResp.JSON200.CustomerProfile.Workflow.Invoicing.DefaultTaxConfig)
-		})
-
-		t.Run("update rejects adding a tax code", func(t *testing.T) {
-			for name, taxConfig := range map[string]*api.TaxConfig{
-				"stripe_code_only": {
+	t.Run("then: update rejects adding a tax code", func(t *testing.T) {
+		for _, tt := range []struct {
+			name      string
+			taxConfig *api.TaxConfig
+		}{
+			{
+				name: "stripe_code_only",
+				taxConfig: &api.TaxConfig{
 					Behavior: lo.ToPtr(api.TaxBehaviorExclusive),
-					Stripe:   &api.StripeTaxConfig{Code: stripeAppMapping(taxCode)},
+					Stripe:   &api.StripeTaxConfig{Code: taxconfigv1.StripeAppMapping(taxCode)},
 				},
-				"tax_code_id_only": {
+			},
+			{
+				name: "tax_code_id_only",
+				taxConfig: &api.TaxConfig{
 					Behavior:  lo.ToPtr(api.TaxBehaviorExclusive),
 					TaxCodeId: lo.ToPtr(taxCode.ID),
 				},
-			} {
-				t.Run(name, func(t *testing.T) {
-					resp, err := client.UpdateBillingProfileWithResponse(t.Context(), profile.Id, profileUpdate(taxConfig))
-					require.NoError(t, err)
-					require.Equal(t, http.StatusBadRequest, resp.StatusCode(), "update billing profile: %s", string(resp.Body))
-					assert.Contains(t, string(resp.Body), deprecationDetail)
-				})
-			}
-		})
+			},
+		} {
+			t.Run(tt.name, func(t *testing.T) {
+				resp, err := client.UpdateBillingProfileWithResponse(t.Context(), profile.Id, v1BillingProfileUpdateWithDefaultTaxConfig(profile, tt.taxConfig))
+				require.NoError(t, err)
+				require.Equal(t, http.StatusBadRequest, resp.StatusCode(), "update billing profile: %s", string(resp.Body))
+				assert.Contains(t, string(resp.Body), deprecationDetail)
+			})
+		}
+	})
 
-		t.Run("update changes the behavior", func(t *testing.T) {
-			resp, err := client.UpdateBillingProfileWithResponse(t.Context(), profile.Id, profileUpdate(&api.TaxConfig{
-				Behavior: lo.ToPtr(api.TaxBehaviorInclusive),
-			}))
-			require.NoError(t, err)
-			require.Equal(t, http.StatusOK, resp.StatusCode(), "update billing profile: %s", string(resp.Body))
-			require.NotNil(t, resp.JSON200)
-			require.NotNil(t, resp.JSON200.Workflow.Invoicing)
+	// when: the default behavior is updated to inclusive
+	inclusiveResp, err := client.UpdateBillingProfileWithResponse(t.Context(), profile.Id, v1BillingProfileUpdateWithDefaultTaxConfig(profile, &api.TaxConfig{
+		Behavior: lo.ToPtr(api.TaxBehaviorInclusive),
+	}))
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, inclusiveResp.StatusCode(), "update billing profile: %s", string(inclusiveResp.Body))
+	require.NotNil(t, inclusiveResp.JSON200)
+	require.NotNil(t, inclusiveResp.JSON200.Workflow.Invoicing)
 
-			assert.Equal(t, &api.TaxConfig{Behavior: lo.ToPtr(api.TaxBehaviorInclusive)}, resp.JSON200.Workflow.Invoicing.DefaultTaxConfig)
-		})
+	t.Run("then: the update response renders the inclusive behavior", func(t *testing.T) {
+		assert.Equal(t, &api.TaxConfig{Behavior: lo.ToPtr(api.TaxBehaviorInclusive)}, inclusiveResp.JSON200.Workflow.Invoicing.DefaultTaxConfig)
+	})
 
-		t.Run("update removes the default tax config", func(t *testing.T) {
-			resp, err := client.UpdateBillingProfileWithResponse(t.Context(), profile.Id, profileUpdate(nil))
-			require.NoError(t, err)
-			require.Equal(t, http.StatusOK, resp.StatusCode(), "update billing profile: %s", string(resp.Body))
-			require.NotNil(t, resp.JSON200)
-			require.NotNil(t, resp.JSON200.Workflow.Invoicing)
+	// when: the default tax config is removed
+	removedResp, err := client.UpdateBillingProfileWithResponse(t.Context(), profile.Id, v1BillingProfileUpdateWithDefaultTaxConfig(profile, nil))
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, removedResp.StatusCode(), "update billing profile: %s", string(removedResp.Body))
+	require.NotNil(t, removedResp.JSON200)
+	require.NotNil(t, removedResp.JSON200.Workflow.Invoicing)
 
-			assert.Nil(t, resp.JSON200.Workflow.Invoicing.DefaultTaxConfig)
-		})
+	t.Run("then: the update response no longer has a default tax config", func(t *testing.T) {
+		assert.Nil(t, removedResp.JSON200.Workflow.Invoicing.DefaultTaxConfig)
 	})
 }
 
+// v1TaxConfigLineInputs returns, per scenario, a flat fee line, a usage based line and a flat
+// fee line in the deprecated shape, named prefix+{flat,usage,legacy}_+scenario, with each
+// line's expected taxConfig taken from its scenario's entry in scenarioWant.
+func v1TaxConfigLineInputs(t *testing.T, prefix string, scenarios []v1TaxConfigScenario, period api.Period, scenarioWant map[string]*api.TaxConfig) ([]taxconfigv1.LineInput, map[string]*api.TaxConfig) {
+	t.Helper()
+
+	inputs := make([]taxconfigv1.LineInput, 0, 3*len(scenarios))
+	want := make(map[string]*api.TaxConfig, 3*len(scenarios))
+
+	for _, scenario := range scenarios {
+		flat := taxconfigv1.LineInput{
+			Name:      prefix + "flat_" + scenario.key,
+			InvoiceAt: period.From,
+			Period:    period,
+			RateCard:  &api.InvoiceUsageBasedRateCard{Price: taxconfigv1.FlatLinePrice(t), TaxConfig: scenario.input},
+		}
+		// Usage is billed in arrears, at the end of the period.
+		usage := taxconfigv1.LineInput{
+			Name:      prefix + "usage_" + scenario.key,
+			InvoiceAt: period.To,
+			Period:    period,
+			RateCard: &api.InvoiceUsageBasedRateCard{
+				FeatureKey: lo.ToPtr(scenario.featureKey),
+				Price:      taxconfigv1.UnitLinePrice(t),
+				TaxConfig:  scenario.input,
+			},
+		}
+		legacy := taxconfigv1.LineInput{
+			Name:      prefix + "legacy_" + scenario.key,
+			InvoiceAt: period.From,
+			Period:    period,
+			Price:     taxconfigv1.FlatLinePrice(t),
+			TaxConfig: scenario.input,
+		}
+
+		for _, input := range []taxconfigv1.LineInput{flat, usage, legacy} {
+			inputs = append(inputs, input)
+			want[input.Name] = scenarioWant[scenario.key]
+		}
+	}
+
+	return inputs, want
+}
+
+func v1UpdateInvoice(t *testing.T, client *api.ClientWithResponses, invoice api.Invoice, lines []api.InvoiceLineReplaceUpdate, workflow api.InvoiceWorkflowReplaceUpdate) api.Invoice {
+	t.Helper()
+
+	resp, err := client.UpdateInvoiceWithResponse(t.Context(), invoice.Id, api.InvoiceReplaceUpdate{
+		Customer:    billingPartyReplaceUpdateFromInvoiceCustomer(invoice.Customer),
+		Supplier:    billingPartyReplaceUpdateFromParty(invoice.Supplier),
+		Description: invoice.Description,
+		Metadata:    invoice.Metadata,
+		Lines:       lines,
+		Workflow:    workflow,
+	})
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, resp.StatusCode(), "update invoice: %s", string(resp.Body))
+	require.NotNil(t, resp.JSON200)
+	require.NotNil(t, resp.JSON200.Lines)
+
+	return *resp.JSON200
+}
+
 func TestV1TaxConfigInvoiceLines(t *testing.T) {
+	// given: scenarios covering every v1 taxConfig input, and a customer pinned to a billing
+	// profile that doesn't auto-advance invoices and defaults to an exclusive tax behavior
+	// when:
+	//   1. pending lines are created, one per scenario in every shape, on a gathering invoice
+	//   2. the gathering invoice is edited with its lines echoed and new lines added
+	//   3. the pending lines are billed into a standard invoice, which is edited
+	// then: the responses render each line's tax config, the standard invoice merges the profile
+	// behavior into its lines, changing a line's tax config is rejected, and the edit ignores
+	// the invoice's default tax config
+
 	client := initClient(t)
 	c := newV3Client(t)
 
+	// given: scenarios covering every v1 taxConfig input, with a metered feature each
 	taxCode := createStripeMappedTaxCode(t, c)
-	scenarios := v1TaxConfigCatalogScenarios(taxCode)
-	featureKeys := createV1TaxConfigFeatures(t, client, scenarios)
-	lineWant := v1TaxConfigInvoiceLineWant(scenarios, defaultInvoicingTaxCodeID(t, c))
+	scenarios := withV1TaxConfigFeatures(t, client, v1TaxConfigCatalogScenarios(taxCode))
 
+	// given: a customer pinned to a billing profile that doesn't auto-advance invoices and
+	// defaults to an exclusive tax behavior
 	// Without auto-advance the standard invoice stays in draft, so its lines can be edited. The
 	// profile's default behavior is copied onto the invoice's workflow settings.
 	profileCreate := v1BillingProfileCreateFromDefault(t, client)
@@ -892,10 +1076,12 @@ func TestV1TaxConfigInvoiceLines(t *testing.T) {
 	require.Equal(t, http.StatusCreated, profileResp.StatusCode(), "create billing profile: %s", string(profileResp.Body))
 	require.NotNil(t, profileResp.JSON201)
 
-	customer := createV1TaxConfigCustomer(t, client, "v1_taxconfig_line_customer")
+	profile := *profileResp.JSON201
+
+	customer := taxconfigv1.CreateCustomer(t, client, "v1_taxconfig_line_customer")
 
 	overrideResp, err := client.UpsertBillingProfileCustomerOverrideWithResponse(t.Context(), customer.Id, api.BillingProfileCustomerOverrideCreate{
-		BillingProfileId: lo.ToPtr(profileResp.JSON201.Id),
+		BillingProfileId: lo.ToPtr(profile.Id),
 	})
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, overrideResp.StatusCode(), "pin customer to billing profile: %s", string(overrideResp.Body))
@@ -903,159 +1089,14 @@ func TestV1TaxConfigInvoiceLines(t *testing.T) {
 	periodEnd := time.Now().UTC().Truncate(time.Second)
 	period := api.Period{From: periodEnd.Add(-24 * time.Hour), To: periodEnd}
 
-	flatPrice := func() *api.RateCardUsageBasedPrice {
-		price := api.RateCardUsageBasedPrice{}
-		require.NoError(t, price.FromFlatPriceWithPaymentTerm(api.FlatPriceWithPaymentTerm{
-			Amount:      "10",
-			Type:        api.FlatPriceWithPaymentTermTypeFlat,
-			PaymentTerm: lo.ToPtr(api.PricePaymentTermInAdvance),
-		}))
-
-		return &price
-	}
-
-	unitPrice := func() *api.RateCardUsageBasedPrice {
-		price := api.RateCardUsageBasedPrice{}
-		require.NoError(t, price.FromUnitPriceWithCommitments(api.UnitPriceWithCommitments{
-			Amount: "0.1",
-			Type:   api.UnitPriceWithCommitmentsTypeUnit,
-		}))
-
-		return &price
-	}
-
-	// v1 accepts a line's tax config in rateCard.taxConfig, or in the deprecated top-level
-	// taxConfig next to a top-level price. lineInput holds either shape.
-	type lineInput struct {
-		name      string
-		invoiceAt time.Time
-		rateCard  *api.InvoiceUsageBasedRateCard
-		price     *api.RateCardUsageBasedPrice
-		taxConfig *api.TaxConfig
-	}
-
-	// lineInputs returns, per scenario, a flat fee line, a usage based line and a flat fee line
-	// in the deprecated shape, named prefix+{flat,usage,legacy}_+scenario, with the taxConfig
-	// each one returns on a gathering invoice.
-	lineInputs := func(prefix string) ([]lineInput, map[string]*api.TaxConfig) {
-		inputs := make([]lineInput, 0, 3*len(scenarios))
-		want := make(map[string]*api.TaxConfig, 3*len(scenarios))
-
-		for _, scenario := range scenarios {
-			flat := lineInput{
-				name:      prefix + "flat_" + scenario.key,
-				invoiceAt: period.From,
-				rateCard:  &api.InvoiceUsageBasedRateCard{Price: flatPrice(), TaxConfig: scenario.input},
-			}
-			// Usage is billed in arrears, at the end of the period.
-			usage := lineInput{
-				name:      prefix + "usage_" + scenario.key,
-				invoiceAt: period.To,
-				rateCard: &api.InvoiceUsageBasedRateCard{
-					FeatureKey: lo.ToPtr(featureKeys[scenario.key]),
-					Price:      unitPrice(),
-					TaxConfig:  scenario.input,
-				},
-			}
-			legacy := lineInput{
-				name:      prefix + "legacy_" + scenario.key,
-				invoiceAt: period.From,
-				price:     flatPrice(),
-				taxConfig: scenario.input,
-			}
-
-			for _, input := range []lineInput{flat, usage, legacy} {
-				inputs = append(inputs, input)
-				want[input.name] = lineWant[scenario.key]
-			}
-		}
-
-		return inputs, want
-	}
-
-	pendingLines := func(inputs []lineInput) []api.InvoicePendingLineCreate {
-		return lo.Map(inputs, func(in lineInput, _ int) api.InvoicePendingLineCreate {
-			return api.InvoicePendingLineCreate{
-				Name:      in.name,
-				InvoiceAt: in.invoiceAt,
-				Period:    period,
-				RateCard:  in.rateCard,
-				Price:     in.price,
-				TaxConfig: in.taxConfig,
-			}
-		})
-	}
-
-	updateLines := func(inputs []lineInput) []api.InvoiceLineReplaceUpdate {
-		return lo.Map(inputs, func(in lineInput, _ int) api.InvoiceLineReplaceUpdate {
-			return api.InvoiceLineReplaceUpdate{
-				Name:      in.name,
-				InvoiceAt: in.invoiceAt,
-				Period:    period,
-				RateCard:  in.rateCard,
-				Price:     in.price,
-				TaxConfig: in.taxConfig,
-			}
-		})
-	}
-
-	// Standard invoices merge the invoice's defaultTaxConfig into their lines, so lines without
-	// a behavior get the profile's. Gathering invoices don't.
-	withProfileBehavior := func(want map[string]*api.TaxConfig) map[string]*api.TaxConfig {
-		merged := make(map[string]*api.TaxConfig, len(want))
-		for key, taxConfig := range want {
-			mergedTaxConfig := lo.FromPtr(taxConfig)
-			if mergedTaxConfig.Behavior == nil {
-				mergedTaxConfig.Behavior = lo.ToPtr(api.TaxBehaviorExclusive)
-			}
-
-			merged[key] = &mergedTaxConfig
-		}
-
-		return merged
-	}
-
-	expand := []api.InvoiceExpand{api.InvoiceExpandLines}
-
-	getInvoice := func(t *testing.T, invoiceID string) api.Invoice {
-		t.Helper()
-
-		resp, err := client.GetInvoiceWithResponse(t.Context(), invoiceID, &api.GetInvoiceParams{Expand: &expand})
-		require.NoError(t, err)
-		require.Equal(t, http.StatusOK, resp.StatusCode(), "get invoice: %s", string(resp.Body))
-		require.NotNil(t, resp.JSON200)
-		require.NotNil(t, resp.JSON200.Lines)
-
-		return *resp.JSON200
-	}
-
-	updateInvoice := func(t *testing.T, invoice api.Invoice, lines []api.InvoiceLineReplaceUpdate, workflow api.InvoiceWorkflowReplaceUpdate) api.Invoice {
-		t.Helper()
-
-		resp, err := client.UpdateInvoiceWithResponse(t.Context(), invoice.Id, api.InvoiceReplaceUpdate{
-			Customer:    billingPartyReplaceUpdateFromInvoiceCustomer(invoice.Customer),
-			Supplier:    billingPartyReplaceUpdateFromParty(invoice.Supplier),
-			Description: invoice.Description,
-			Metadata:    invoice.Metadata,
-			Lines:       lines,
-			Workflow:    workflow,
-		})
-		require.NoError(t, err)
-		require.Equal(t, http.StatusOK, resp.StatusCode(), "update invoice: %s", string(resp.Body))
-		require.NotNil(t, resp.JSON200)
-		require.NotNil(t, resp.JSON200.Lines)
-
-		return *resp.JSON200
-	}
-
-	t.Run("create rejects different taxConfig and rateCard.taxConfig", func(t *testing.T) {
+	t.Run("then: create rejects different taxConfig and rateCard.taxConfig", func(t *testing.T) {
 		resp, err := client.CreatePendingInvoiceLineWithResponse(t.Context(), customer.Id, api.InvoicePendingLineCreateInput{
 			Currency: "USD",
 			Lines: []api.InvoicePendingLineCreate{{
 				Name:      "mismatch",
 				InvoiceAt: period.From,
 				Period:    period,
-				RateCard:  &api.InvoiceUsageBasedRateCard{Price: flatPrice(), TaxConfig: &api.TaxConfig{TaxCodeId: lo.ToPtr(taxCode.ID)}},
+				RateCard:  &api.InvoiceUsageBasedRateCard{Price: taxconfigv1.FlatLinePrice(t), TaxConfig: &api.TaxConfig{TaxCodeId: lo.ToPtr(taxCode.ID)}},
 				TaxConfig: &api.TaxConfig{Behavior: lo.ToPtr(api.TaxBehaviorExclusive)},
 			}},
 		})
@@ -1064,11 +1105,15 @@ func TestV1TaxConfigInvoiceLines(t *testing.T) {
 		assert.Contains(t, string(resp.Body), "taxConfig must be equal to rateCard.taxConfig")
 	})
 
-	createdInputs, createdWant := lineInputs("")
+	// Charges give lines without a tax code the organization's default one.
+	lineWant := v1TaxConfigInvoiceLineWant(scenarios, defaultInvoicingTaxCodeID(t, c))
+
+	// when: pending lines are created, one per scenario in every shape, on a gathering invoice
+	createdInputs, createdWant := v1TaxConfigLineInputs(t, "", scenarios, period, lineWant)
 
 	createResp, err := client.CreatePendingInvoiceLineWithResponse(t.Context(), customer.Id, api.InvoicePendingLineCreateInput{
 		Currency: "USD",
-		Lines:    pendingLines(createdInputs),
+		Lines:    taxconfigv1.PendingLines(createdInputs),
 	})
 	require.NoError(t, err)
 	require.Equal(t, http.StatusCreated, createResp.StatusCode(), "create pending lines: %s", string(createResp.Body))
@@ -1076,46 +1121,45 @@ func TestV1TaxConfigInvoiceLines(t *testing.T) {
 
 	gatheringInvoiceID := createResp.JSON201.Invoice.Id
 
-	t.Run("create response", func(t *testing.T) {
-		assertV1TaxConfigs(t, createdWant, v1InvoiceLineTaxConfigs(t, createResp.JSON201.Lines))
+	t.Run("then: the create response renders the created lines' tax configs", func(t *testing.T) {
+		taxconfigv1.AssertTaxConfigs(t, createdWant, taxconfigv1.InvoiceLineTaxConfigs(t, createResp.JSON201.Lines))
 	})
 
-	t.Run("gathering invoice", func(t *testing.T) {
-		assertV1TaxConfigs(t, createdWant, v1InvoiceLineTaxConfigs(t, *getInvoice(t, gatheringInvoiceID).Lines))
+	t.Run("then: the gathering invoice renders the created lines' tax configs", func(t *testing.T) {
+		taxconfigv1.AssertTaxConfigs(t, createdWant, taxconfigv1.InvoiceLineTaxConfigs(t, *taxconfigv1.Invoice(t, client, gatheringInvoiceID).Lines))
 	})
 
 	// Edits run at the top level, so every subtest only reads and can run on its own.
-	gatheringEditedInputs, gatheringEditedWant := lineInputs("gathering_edited_")
+	// when: the edit echoes the created lines and adds a line per scenario and shape
+	gatheringEditedInputs, gatheringEditedWant := v1TaxConfigLineInputs(t, "gathering_edited_", scenarios, period, lineWant)
 
-	gatheringInvoice := getInvoice(t, gatheringInvoiceID)
+	gatheringInvoice := taxconfigv1.Invoice(t, client, gatheringInvoiceID)
 
 	gatheringLines := lo.Map(*gatheringInvoice.Lines, func(line api.InvoiceLine, _ int) api.InvoiceLineReplaceUpdate {
 		return invoiceLineReplaceUpdateFromLine(t, line)
 	})
-	gatheringLines = append(gatheringLines, updateLines(gatheringEditedInputs)...)
+	gatheringLines = append(gatheringLines, taxconfigv1.NewInvoiceLines(gatheringEditedInputs)...)
 
-	gatheringEdited := updateInvoice(t, gatheringInvoice, gatheringLines, invoiceWorkflowReplaceUpdateFromInvoice(gatheringInvoice))
+	gatheringEdited := v1UpdateInvoice(t, client, gatheringInvoice, gatheringLines, invoiceWorkflowReplaceUpdateFromInvoice(gatheringInvoice))
 
-	t.Run("gathering invoice edit adds lines", func(t *testing.T) {
-		// given: the gathering invoice with the created lines
-		// when: the edit above echoes those lines and adds a line per scenario and shape
-		// then: the edit response and a re-read return the created and added lines' tax configs
-		got := v1InvoiceLineTaxConfigs(t, *gatheringEdited.Lines)
-		assertV1TaxConfigs(t, createdWant, got)
-		assertV1TaxConfigs(t, gatheringEditedWant, got)
+	t.Run("then: the edit response and a re-read return the created and added lines' tax configs", func(t *testing.T) {
+		got := taxconfigv1.InvoiceLineTaxConfigs(t, *gatheringEdited.Lines)
+		taxconfigv1.AssertTaxConfigs(t, createdWant, got)
+		taxconfigv1.AssertTaxConfigs(t, gatheringEditedWant, got)
 
-		got = v1InvoiceLineTaxConfigs(t, *getInvoice(t, gatheringInvoiceID).Lines)
-		assertV1TaxConfigs(t, createdWant, got)
-		assertV1TaxConfigs(t, gatheringEditedWant, got)
+		got = taxconfigv1.InvoiceLineTaxConfigs(t, *taxconfigv1.Invoice(t, client, gatheringInvoiceID).Lines)
+		taxconfigv1.AssertTaxConfigs(t, createdWant, got)
+		taxconfigv1.AssertTaxConfigs(t, gatheringEditedWant, got)
 	})
 
-	invoice := getInvoice(t, invoicePendingLinesNow(t, client, customer.Id, nil).Id)
+	// given: a standard invoice billed now from the pending lines
+	invoice := taxconfigv1.Invoice(t, client, invoicePendingLinesNow(t, client, customer.Id, nil).Id)
 	t.Logf("customer=%s invoice=%s status=%s", customer.Id, invoice.Id, invoice.StatusDetails.ExtendedStatus)
 
-	standardWant := withProfileBehavior(createdWant)
-	standardGatheringEditedWant := withProfileBehavior(gatheringEditedWant)
+	standardWant := taxconfigv1.WithProfileBehavior(createdWant)
+	standardGatheringEditedWant := taxconfigv1.WithProfileBehavior(gatheringEditedWant)
 
-	t.Run("standard invoice", func(t *testing.T) {
+	t.Run("then: the standard invoice merges the profile behavior into its lines", func(t *testing.T) {
 		for _, line := range *invoice.Lines {
 			// Usage based lines without usage have no detailed lines.
 			if !strings.Contains(line.Name, "usage_") {
@@ -1123,9 +1167,9 @@ func TestV1TaxConfigInvoiceLines(t *testing.T) {
 			}
 		}
 
-		got := v1InvoiceLineTaxConfigs(t, *invoice.Lines)
-		assertV1TaxConfigs(t, standardWant, got)
-		assertV1TaxConfigs(t, standardGatheringEditedWant, got)
+		got := taxconfigv1.InvoiceLineTaxConfigs(t, *invoice.Lines)
+		taxconfigv1.AssertTaxConfigs(t, standardWant, got)
+		taxconfigv1.AssertTaxConfigs(t, standardGatheringEditedWant, got)
 
 		require.NotNil(t, invoice.Workflow.Workflow.Invoicing)
 		assert.Equal(t, &api.TaxConfig{Behavior: lo.ToPtr(api.TaxBehaviorExclusive)}, invoice.Workflow.Workflow.Invoicing.DefaultTaxConfig)
@@ -1133,10 +1177,11 @@ func TestV1TaxConfigInvoiceLines(t *testing.T) {
 
 	// Lines created through the pending lines API are managed by charges in credits mode, so
 	// their tax config can't be changed through an invoice edit.
-	t.Run("standard invoice edit rejects changing a line's tax config", func(t *testing.T) {
+	t.Run("then: the standard invoice edit rejects changing a line's tax config", func(t *testing.T) {
 		// given: the standard invoice
 		// when: an edit gives the flat_none line a tax code
 		// then: the edit is rejected
+
 		lines := lo.Map(*invoice.Lines, func(line api.InvoiceLine, _ int) api.InvoiceLineReplaceUpdate {
 			update := invoiceLineReplaceUpdateFromLine(t, line)
 
@@ -1167,6 +1212,8 @@ func TestV1TaxConfigInvoiceLines(t *testing.T) {
 
 	// The edit also sends workflow.invoicing.defaultTaxConfig, which the server accepts but
 	// doesn't apply, so the invoice keeps the profile's default.
+	// when: the edit echoes the invoice's lines, adds a line per scenario and shape, and sets an
+	// inclusive default behavior
 	existingWant := maps.Clone(standardWant)
 	maps.Copy(existingWant, standardGatheringEditedWant)
 
@@ -1174,32 +1221,30 @@ func TestV1TaxConfigInvoiceLines(t *testing.T) {
 		return invoiceLineReplaceUpdateFromLine(t, line)
 	})
 
-	editedInputs, editedWant := lineInputs("edited_")
-	editLines = append(editLines, updateLines(editedInputs)...)
-	standardEditedWant := withProfileBehavior(editedWant)
+	editedInputs, editedWant := v1TaxConfigLineInputs(t, "edited_", scenarios, period, lineWant)
+	editLines = append(editLines, taxconfigv1.NewInvoiceLines(editedInputs)...)
+	standardEditedWant := taxconfigv1.WithProfileBehavior(editedWant)
 
 	workflow := invoiceWorkflowReplaceUpdateFromInvoice(invoice)
 	workflow.Workflow.Invoicing.DefaultTaxConfig = &api.TaxConfig{Behavior: lo.ToPtr(api.TaxBehaviorInclusive)}
 
-	updated := updateInvoice(t, invoice, editLines, workflow)
+	updated := v1UpdateInvoice(t, client, invoice, editLines, workflow)
 
-	t.Run("standard invoice edit adds lines and ignores the default tax config", func(t *testing.T) {
+	t.Run("then: the standard invoice edit adds lines and ignores the default tax config", func(t *testing.T) {
 		// given: the standard invoice, with an exclusive default behavior
-		// when: the edit above echoes its lines, adds a line per scenario and shape, and sets an
-		// inclusive default behavior
-		// then: every line gets the exclusive behavior, and the invoice default stays exclusive
-		got := v1InvoiceLineTaxConfigs(t, *updated.Lines)
-		assertV1TaxConfigs(t, existingWant, got)
-		assertV1TaxConfigs(t, standardEditedWant, got)
+
+		got := taxconfigv1.InvoiceLineTaxConfigs(t, *updated.Lines)
+		taxconfigv1.AssertTaxConfigs(t, existingWant, got)
+		taxconfigv1.AssertTaxConfigs(t, standardEditedWant, got)
 
 		require.NotNil(t, updated.Workflow.Workflow.Invoicing)
 		assert.Equal(t, &api.TaxConfig{Behavior: lo.ToPtr(api.TaxBehaviorExclusive)}, updated.Workflow.Workflow.Invoicing.DefaultTaxConfig)
 
-		reread := getInvoice(t, invoice.Id)
+		reread := taxconfigv1.Invoice(t, client, invoice.Id)
 
-		got = v1InvoiceLineTaxConfigs(t, *reread.Lines)
-		assertV1TaxConfigs(t, existingWant, got)
-		assertV1TaxConfigs(t, standardEditedWant, got)
+		got = taxconfigv1.InvoiceLineTaxConfigs(t, *reread.Lines)
+		taxconfigv1.AssertTaxConfigs(t, existingWant, got)
+		taxconfigv1.AssertTaxConfigs(t, standardEditedWant, got)
 
 		require.NotNil(t, reread.Workflow.Workflow.Invoicing)
 		assert.Equal(t, &api.TaxConfig{Behavior: lo.ToPtr(api.TaxBehaviorExclusive)}, reread.Workflow.Workflow.Invoicing.DefaultTaxConfig)
