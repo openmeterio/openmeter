@@ -1,0 +1,84 @@
+name: Rebase API via PR Comment
+
+on:
+  issue_comment:
+    types: [created, edited]
+
+permissions:
+  contents: write # Need write access to push the rebased code and commit
+  pull-requests: write # Need write access to react to the comment
+
+jobs:
+  rebase:
+    # Only run on comments on PRs, by users with write/admin access, containing the trigger
+    if: |
+      github.event.issue.pull_request &&
+      (github.event.comment.author_association == 'COLLABORATOR' || github.event.comment.author_association == 'MEMBER' || github.event.comment.author_association == 'OWNER')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code (Fetch Full History)
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          fetch-depth: 0 # Necessary for rebase
+          # Don't use the URL directly as it's not a valid ref
+          ref: refs/pull/${{ github.event.issue.number }}/head
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Fetch PR Base Branch
+        run: git fetch origin ${{ github.event.repository.default_branch }}:${{ github.event.repository.default_branch }} --no-tags --depth=1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get PR Branch Info
+        id: get_pr_data
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const prNumber = context.issue.number;
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber,
+            });
+            core.setOutput('headRef', pr.head.ref); // The actual branch name, e.g., feature-branch
+            core.setOutput('baseRef', pr.base.ref); // The base branch name, e.g., main
+            core.setOutput('headSha', pr.head.sha); // The sha to checkout
+            console.log(`PR #${prNumber}: Head ref is ${pr.head.ref} (${pr.head.sha}), Base ref is ${pr.base.ref}`);
+            return pr.head.ref; // Return value not strictly needed but good practice
+
+      # Checkout the correct SHA after potentially checking out the wrong thing initially
+      - name: Checkout Correct PR Head SHA
+        run: git checkout ${{ steps.get_pr_data.outputs.headSha }}
+
+      - name: Create Local Branch
+        run: |
+          git checkout -b local-branch
+          git branch --set-upstream-to=origin/${{ steps.get_pr_data.outputs.headRef }} local-branch
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Build Rebase API Action
+        run: |
+          cd .github/actions/rebase-api
+          npm ci
+          npx @vercel/ncc build src/main.ts -o dist
+
+      - name: Run Rebase API Action
+        id: rebase_api
+        uses: ./.github/actions/rebase-api
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          comment_id: ${{ github.event.comment.id }}
+          pr_branch_ref: "local-branch" # Using our local branch
+          base_branch: ${{ steps.get_pr_data.outputs.baseRef }} # Use the actual base branch name
+          api_directory: "api" # Specify your API directory
+          # trigger_phrase: '/rebase-api' # Optional: uses default from action.yml if not set
+        continue-on-error: true # Allow workflow to continue to report status
+
+      - name: Check Action Status
+        if: steps.rebase_api.outcome != 'success'
+        run: echo "Rebase API action failed." && exit 1
