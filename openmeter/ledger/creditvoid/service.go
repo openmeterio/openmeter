@@ -351,12 +351,12 @@ func (s *service) executeVoid(ctx context.Context, input VoidCreditPurchaseInput
 	groupID := ulid.Make().String()
 
 	for _, slice := range plan.slices {
-		voidTx, voidRecord, err := s.resolveVoidSlice(ctx, input, plan.voidedAt, slice)
+		voidTxs, voidRecord, err := s.resolveVoidSlice(ctx, input, plan.voidedAt, slice)
 		if err != nil {
 			return VoidCreditPurchaseResult{}, err
 		}
 
-		inputs = append(inputs, voidTx)
+		inputs = append(inputs, voidTxs...)
 		pendingVoidRecords = append(pendingVoidRecords, voidRecord)
 		amount = amount.Add(slice.amount)
 
@@ -404,7 +404,7 @@ func (s *service) executeVoid(ctx context.Context, input VoidCreditPurchaseInput
 	}, nil
 }
 
-func (s *service) resolveVoidSlice(ctx context.Context, input VoidCreditPurchaseInput, voidedAt time.Time, slice voidSlice) (ledger.TransactionInput, pendingVoidRecord, error) {
+func (s *service) resolveVoidSlice(ctx context.Context, input VoidCreditPurchaseInput, voidedAt time.Time, slice voidSlice) ([]ledger.TransactionInput, pendingVoidRecord, error) {
 	recordID := newRecordID(input.CustomerID.Namespace)
 	route := slice.fboAddress.Route().Route()
 
@@ -446,7 +446,37 @@ func (s *service) resolveVoidSlice(ctx context.Context, input VoidCreditPurchase
 		ReceivableSubAccountID: correctedReceivable,
 	}
 
-	return transactions.WithAnnotations(inputs[0], creditVoidRecordAnnotations(recordID.ID)), record, nil
+	resultInputs := []ledger.TransactionInput{
+		transactions.WithAnnotations(inputs[0], creditVoidRecordAnnotations(recordID.ID)),
+	}
+
+	// Reverse any promotional settlement transactions committed alongside the issuance so the
+	// open receivable is not left with an advance balance after voiding.
+	if issueGroup, err := s.ledger.GetTransactionGroup(ctx, issueTx.GroupID()); err == nil {
+		for _, tx := range issueGroup.Transactions() {
+			dir, err := ledger.TransactionDirectionFromAnnotations(tx.Annotations())
+			if err != nil || dir != ledger.TransactionDirectionForward {
+				continue
+			}
+			code := tx.Annotations()[ledger.AnnotationTransactionTemplateCode]
+			if code == string(transactions.TemplateCodeAuthorizeCustomerReceivablePayment) ||
+				code == string(transactions.TemplateCodeSettleCustomerReceivableFromPayment) {
+				corrInputs, err := transactions.CorrectTransaction(ctx, s.deps, transactions.CorrectionInput{
+					At:                  voidedAt,
+					Amount:              slice.amount,
+					OriginalTransaction: tx,
+				})
+				if err != nil {
+					return nil, pendingVoidRecord{}, fmt.Errorf("resolve settlement correction: %w", err)
+				}
+				for _, ci := range corrInputs {
+					resultInputs = append(resultInputs, transactions.WithAnnotations(ci, creditVoidRecordAnnotations(recordID.ID)))
+				}
+			}
+		}
+	}
+
+	return resultInputs, record, nil
 }
 
 func (s *service) originalIssueTransaction(ctx context.Context, input VoidCreditPurchaseInput, voidedAt time.Time, slice voidSlice) (ledger.Transaction, error) {

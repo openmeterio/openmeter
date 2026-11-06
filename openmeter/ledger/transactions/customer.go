@@ -244,8 +244,64 @@ func (t SettleCustomerReceivableFromPaymentTemplate) Validate() error {
 
 var _ CustomerTransactionTemplate = (SettleCustomerReceivableFromPaymentTemplate{})
 
-func (t SettleCustomerReceivableFromPaymentTemplate) correct(CorrectionInput) ([]ledger.TransactionInput, error) {
-	return nil, templateCorrectionNotImplemented(TemplateCode(t))
+func (t SettleCustomerReceivableFromPaymentTemplate) correct(scope CorrectionInput) ([]ledger.TransactionInput, error) {
+	var washAddress ledger.PostingAddress
+	var receivableAddress ledger.PostingAddress
+	var washAmount alpacadecimal.Decimal
+	var receivableAmount alpacadecimal.Decimal
+	var sourceChargeID *string
+	var spendChargeID *string
+
+	for _, entry := range scope.OriginalTransaction.Entries() {
+		switch {
+		case entry.PostingAddress().AccountType() == ledger.AccountTypeWash && entry.Amount().IsNegative():
+			washAddress = entry.PostingAddress()
+			washAmount = washAmount.Add(entry.Amount().Abs())
+			sourceChargeID = entry.Provenance().SourceChargeID
+			spendChargeID = entry.Provenance().SpendChargeID
+		case entry.PostingAddress().AccountType() == ledger.AccountTypeCustomerReceivable && entry.Amount().IsPositive():
+			receivableAddress = entry.PostingAddress()
+			receivableAmount = receivableAmount.Add(entry.Amount())
+			sourceChargeID = entry.Provenance().SourceChargeID
+			spendChargeID = entry.Provenance().SpendChargeID
+		}
+	}
+
+	if washAddress == nil || receivableAddress == nil {
+		return nil, fmt.Errorf("settle receivable payment correction requires original wash and receivable entries")
+	}
+
+	if scope.Amount.GreaterThan(washAmount) || scope.Amount.GreaterThan(receivableAmount) {
+		return nil, fmt.Errorf("settle receivable payment correction amount %s exceeds original transaction amount", scope.Amount.String())
+	}
+
+	return []ledger.TransactionInput{
+		&TransactionInput{
+			bookedAt: scope.At,
+			entryInputs: []*EntryInput{
+				{
+					address: washAddress,
+					amount:  scope.Amount,
+					identity: ledger.EntryIdentityParts{
+						Provenance: ledger.Provenance{
+							SourceChargeID: sourceChargeID,
+							SpendChargeID:  spendChargeID,
+						},
+					},
+				},
+				{
+					address: receivableAddress,
+					amount:  scope.Amount.Neg(),
+					identity: ledger.EntryIdentityParts{
+						Provenance: ledger.Provenance{
+							SourceChargeID: sourceChargeID,
+							SpendChargeID:  spendChargeID,
+						},
+					},
+				},
+			},
+		},
+	}, nil
 }
 
 func (t SettleCustomerReceivableFromPaymentTemplate) typeGuard() guard {
@@ -367,8 +423,64 @@ func (t AuthorizeCustomerReceivablePaymentTemplate) code() TransactionTemplateCo
 
 var _ CustomerTransactionTemplate = (AuthorizeCustomerReceivablePaymentTemplate{})
 
-func (t AuthorizeCustomerReceivablePaymentTemplate) correct(CorrectionInput) ([]ledger.TransactionInput, error) {
-	return nil, templateCorrectionNotImplemented(TemplateCode(t))
+func (t AuthorizeCustomerReceivablePaymentTemplate) correct(scope CorrectionInput) ([]ledger.TransactionInput, error) {
+	var authorizedAddress ledger.PostingAddress
+	var openAddress ledger.PostingAddress
+	var authorizedAmount alpacadecimal.Decimal
+	var openAmount alpacadecimal.Decimal
+	var sourceChargeID *string
+	var spendChargeID *string
+
+	for _, entry := range scope.OriginalTransaction.Entries() {
+		switch {
+		case entry.PostingAddress().AccountType() == ledger.AccountTypeCustomerReceivable && entry.Amount().IsNegative():
+			authorizedAddress = entry.PostingAddress()
+			authorizedAmount = authorizedAmount.Add(entry.Amount().Abs())
+			sourceChargeID = entry.Provenance().SourceChargeID
+			spendChargeID = entry.Provenance().SpendChargeID
+		case entry.PostingAddress().AccountType() == ledger.AccountTypeCustomerReceivable && entry.Amount().IsPositive():
+			openAddress = entry.PostingAddress()
+			openAmount = openAmount.Add(entry.Amount())
+			sourceChargeID = entry.Provenance().SourceChargeID
+			spendChargeID = entry.Provenance().SpendChargeID
+		}
+	}
+
+	if authorizedAddress == nil || openAddress == nil {
+		return nil, fmt.Errorf("authorize receivable payment correction requires original authorized and open receivable entries")
+	}
+
+	if scope.Amount.GreaterThan(authorizedAmount) || scope.Amount.GreaterThan(openAmount) {
+		return nil, fmt.Errorf("authorize receivable payment correction amount %s exceeds original transaction amount", scope.Amount.String())
+	}
+
+	return []ledger.TransactionInput{
+		&TransactionInput{
+			bookedAt: scope.At,
+			entryInputs: []*EntryInput{
+				{
+					address: authorizedAddress,
+					amount:  scope.Amount,
+					identity: ledger.EntryIdentityParts{
+						Provenance: ledger.Provenance{
+							SourceChargeID: sourceChargeID,
+							SpendChargeID:  spendChargeID,
+						},
+					},
+				},
+				{
+					address: openAddress,
+					amount:  scope.Amount.Neg(),
+					identity: ledger.EntryIdentityParts{
+						Provenance: ledger.Provenance{
+							SourceChargeID: sourceChargeID,
+							SpendChargeID:  spendChargeID,
+						},
+					},
+				},
+			},
+		},
+	}, nil
 }
 
 func (t AuthorizeCustomerReceivablePaymentTemplate) resolve(ctx context.Context, customerID customer.CustomerID, resolvers ResolverDependencies) (ledger.TransactionInput, error) {
