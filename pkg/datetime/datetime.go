@@ -51,17 +51,20 @@ func (dt DateTime) Add(d ISODuration) DateTime {
 	months := d.Months()
 	weeks := d.Weeks()
 	days := d.Days()
-	hours := d.Hours()
-	minutes := d.Minutes()
-	// We can safely ignore this error
+	// Hours and minutes have a fixed length, so they are added as seconds to keep
+	// fractional values such as PT1.5H exact. Each is added on its own, so the
+	// sum of large components cannot overflow a time.Duration. We can safely
+	// ignore these errors.
+	hours, _ := alpacadecimal.NewFromString(d.HoursDecimal().String())
+	minutes, _ := alpacadecimal.NewFromString(d.MinutesDecimal().String())
 	seconds, _ := alpacadecimal.NewFromString(d.SecondsDecimal().String())
 
 	dt = dt.AddYearsNoOverflow(years).
 		AddMonthsNoOverflow(months).
 		AddWeeks(weeks).
 		AddDays(days).
-		AddHours(hours).
-		AddMinutes(minutes).
+		AddSeconds(hours.Mul(alpacadecimal.NewFromInt(3600))).
+		AddSeconds(minutes.Mul(alpacadecimal.NewFromInt(60))).
 		AddSeconds(seconds)
 
 	return dt
