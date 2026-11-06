@@ -368,7 +368,6 @@ func TestV1TaxConfigPlanRateCards(t *testing.T) {
 	//   1. a draft plan is created with them
 	//   2. the plan is updated with every scenario on new flat fee keys
 	// then: the create, GET, list and update responses render each scenario's tax config
-
 	client := initClient(t)
 	c := newV3Client(t)
 
@@ -475,7 +474,6 @@ func TestV1TaxConfigAddonRateCards(t *testing.T) {
 	//   1. a draft addon is created with them
 	//   2. the addon is updated with every scenario on new flat fee keys
 	// then: the create, GET, list and update responses render each scenario's tax config
-
 	client := initClient(t)
 	c := newV3Client(t)
 
@@ -556,7 +554,6 @@ func TestV1TaxConfigSubscriptions(t *testing.T) {
 	//   4. a new customer subscribes to a custom plan with every scenario
 	// then: the subscription items, gathering lines, plan addons, subscription addons and custom
 	// subscription items return each scenario's tax config
-
 	client := initClient(t)
 	c := newV3Client(t)
 
@@ -666,7 +663,6 @@ func TestV1TaxConfigSubscriptions(t *testing.T) {
 		// given: a subscription whose flat fee and usage based items carry every scenario
 		// when: billing syncs the subscription into gathering invoice lines
 		// then: each line has its item's tax config, with the default tax code filled in
-
 		lineWant := v1TaxConfigInvoiceLineWant(scenarios, defaultInvoicingTaxCodeID(t, c))
 
 		// Gathering lines are named after their rate card: the flat fee key, or the feature key
@@ -850,7 +846,6 @@ func TestV1TaxConfigBillingProfileDefaultTaxConfig(t *testing.T) {
 	//   2. a customer is pinned to the profile
 	// then: tax codes are rejected with the deprecation detail, behaviors are kept and can be
 	// removed, and the pinned customer's profile shows the profile's default tax config
-
 	const deprecationDetail = "defaultTaxConfig is deprecated"
 
 	client := initClient(t)
@@ -1055,7 +1050,6 @@ func TestV1TaxConfigInvoiceLines(t *testing.T) {
 	// then: the responses render each line's tax config, the standard invoice merges the profile
 	// behavior into its lines, changing a line's tax config is rejected, and the edit ignores
 	// the invoice's default tax config
-
 	client := initClient(t)
 	c := newV3Client(t)
 
@@ -1181,7 +1175,6 @@ func TestV1TaxConfigInvoiceLines(t *testing.T) {
 		// given: the standard invoice
 		// when: an edit gives the flat_none line a tax code
 		// then: the edit is rejected
-
 		lines := lo.Map(*invoice.Lines, func(line api.InvoiceLine, _ int) api.InvoiceLineReplaceUpdate {
 			update := invoiceLineReplaceUpdateFromLine(t, line)
 
@@ -1232,7 +1225,6 @@ func TestV1TaxConfigInvoiceLines(t *testing.T) {
 
 	t.Run("then: the standard invoice edit adds lines and ignores the default tax config", func(t *testing.T) {
 		// given: the standard invoice, with an exclusive default behavior
-
 		got := taxconfigv1.InvoiceLineTaxConfigs(t, *updated.Lines)
 		taxconfigv1.AssertTaxConfigs(t, existingWant, got)
 		taxconfigv1.AssertTaxConfigs(t, standardEditedWant, got)

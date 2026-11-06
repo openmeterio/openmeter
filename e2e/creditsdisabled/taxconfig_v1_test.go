@@ -366,7 +366,6 @@ func TestV1TaxConfigInvoiceLines(t *testing.T) {
 	// then: created lines keep the tax config they were given, invoice edits fill in the default
 	// tax code, the standard invoice merges the profile behavior into its lines, and the edit
 	// changes a line's tax config and ignores the invoice's default tax config
-
 	client := initClient(t)
 	c := newV3Client(t)
 
@@ -446,7 +445,6 @@ func TestV1TaxConfigInvoiceLines(t *testing.T) {
 
 	t.Run("then: the gathering invoice edit adds lines and fills in the default tax code", func(t *testing.T) {
 		// given: the gathering invoice with the created lines, stored as given
-
 		got := taxconfigv1.InvoiceLineTaxConfigs(t, *gatheringEdited.Lines)
 		taxconfigv1.AssertTaxConfigs(t, createdAfterEditWant, got)
 		taxconfigv1.AssertTaxConfigs(t, gatheringEditedWant, got)
@@ -539,7 +537,6 @@ func TestV1TaxConfigInvoiceLines(t *testing.T) {
 
 	t.Run("then: the standard invoice edit adds lines, changes a line's tax config and ignores the default tax config", func(t *testing.T) {
 		// given: the standard invoice, with an exclusive default behavior
-
 		taxconfigv1.AssertTaxConfigs(t, editedWant, taxconfigv1.InvoiceLineTaxConfigs(t, *updated.Lines))
 
 		require.NotNil(t, updated.Workflow.Workflow.Invoicing)
@@ -611,7 +608,6 @@ func TestV1TaxConfigSubscriptionInvoiceLines(t *testing.T) {
 	// given: a published plan with a rate card per scenario, and a customer subscribed to it
 	// when: billing syncs the subscription into gathering invoice lines
 	// then: each line keeps the item's tax config as is
-
 	client := initClient(t)
 	c := newV3Client(t)
 
@@ -668,7 +664,6 @@ func TestV1TaxConfigSubscriptionInvoiceLines(t *testing.T) {
 		// given: the subscription whose items carry every scenario
 		// when: billing syncs the subscription into gathering invoice lines
 		// then: each line keeps the item's tax config as is
-
 		customers := api.InvoiceListParamsCustomers{customer.Id}
 		expand := api.InvoiceListParamsExpand{api.InvoiceExpandLines}
 
