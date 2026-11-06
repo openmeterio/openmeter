@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -339,14 +340,14 @@ func FromDiscounts(discounts productcatalog.Discounts) *api.Discounts {
 	return &discountsAPI
 }
 
-func AsRateCards(rcs []api.RateCard) (productcatalog.RateCards, error) {
+func AsRateCards(rcs []api.RateCard, resolver taxcode.Resolver) (productcatalog.RateCards, error) {
 	var rateCards productcatalog.RateCards
 
 	if len(rcs) > 0 {
 		rateCards = make(productcatalog.RateCards, 0, len(rcs))
 
 		for _, rc := range rcs {
-			rateCard, err := AsRateCard(rc)
+			rateCard, err := AsRateCard(rc, resolver)
 			if err != nil {
 				return nil, fmt.Errorf("failed to cast ratecard: %w", err)
 			}
@@ -358,7 +359,7 @@ func AsRateCards(rcs []api.RateCard) (productcatalog.RateCards, error) {
 	return rateCards, nil
 }
 
-func AsRateCard(r api.RateCard) (productcatalog.RateCard, error) {
+func AsRateCard(r api.RateCard, resolver taxcode.Resolver) (productcatalog.RateCard, error) {
 	rType, err := r.Discriminator()
 	if err != nil {
 		return nil, fmt.Errorf("failed to cast type: %w", err)
@@ -371,7 +372,7 @@ func AsRateCard(r api.RateCard) (productcatalog.RateCard, error) {
 			return nil, fmt.Errorf("failed to cast FlatFeeRateCard: %w", err)
 		}
 
-		flatRateCard, err := AsFlatFeeRateCard(flat)
+		flatRateCard, err := AsFlatFeeRateCard(flat, resolver)
 		if err != nil {
 			return nil, fmt.Errorf("failed to cast FlatFeeRateCard: %w", err)
 		}
@@ -394,7 +395,7 @@ func AsRateCard(r api.RateCard) (productcatalog.RateCard, error) {
 	}
 }
 
-func AsFlatFeeRateCard(flat api.RateCardFlatFee) (productcatalog.FlatFeeRateCard, error) {
+func AsFlatFeeRateCard(flat api.RateCardFlatFee, resolver taxcode.Resolver) (productcatalog.FlatFeeRateCard, error) {
 	var err error
 
 	rc := productcatalog.FlatFeeRateCard{
@@ -428,7 +429,16 @@ func AsFlatFeeRateCard(flat api.RateCardFlatFee) (productcatalog.FlatFeeRateCard
 	}
 
 	if flat.TaxConfig != nil {
-		rc.TaxConfig = lo.ToPtr(AsTaxConfig(*flat.TaxConfig))
+		resolvedOrBackfilledTaxCodeID, err := resolver.ResolveOrBackfillTaxCode(ctx, taxcode.TaxConfig{
+			StripeCode: flat.TaxConfig.StripeCode,
+		})
+		if err != nil {
+			return productcatalog.FlatFeeRateCard{}, fmt.Errorf("failed to resolve or backfill tax code: %w", err)
+		}
+
+		rc.TaxConfig = &productcatalog.TaxCodeConfig{
+			TaxCodeID: resolvedOrBackfilledTaxCodeID,
+		}
 	}
 
 	if flat.Price != nil {

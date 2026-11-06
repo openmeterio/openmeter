@@ -54,8 +54,6 @@ type AddonRateCard struct {
 	Annotations models.Annotations `json:"annotations,omitempty"`
 	// EntitlementTemplate holds the value of the "entitlement_template" field.
 	EntitlementTemplate *productcatalog.EntitlementTemplate `json:"entitlement_template,omitempty"`
-	// TaxConfig holds the value of the "tax_config" field.
-	TaxConfig *productcatalog.TaxConfig `json:"tax_config,omitempty"`
 	// BillingCadence holds the value of the "billing_cadence" field.
 	BillingCadence *datetime.ISODurationString `json:"billing_cadence,omitempty"`
 	// Price holds the value of the "price" field.
@@ -68,6 +66,8 @@ type AddonRateCard struct {
 	Discounts *productcatalog.Discounts `json:"discounts,omitempty"`
 	// UnitConfig holds the value of the "unit_config" field.
 	UnitConfig *unitconfig.UnitConfig `json:"unit_config,omitempty"`
+	// TaxConfig holds the value of the "tax_config" field.
+	TaxConfig *productcatalog.TaxConfig `json:"tax_config,omitempty"`
 	// The add-on identifier the ratecard is assigned to.
 	AddonID string `json:"addon_id,omitempty"`
 	// The feature identifier the ratecard is related to.
@@ -150,14 +150,14 @@ func (*AddonRateCard) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullTime)
 		case addonratecard.FieldEntitlementTemplate:
 			values[i] = addonratecard.ValueScanner.EntitlementTemplate.ScanValue()
-		case addonratecard.FieldTaxConfig:
-			values[i] = addonratecard.ValueScanner.TaxConfig.ScanValue()
 		case addonratecard.FieldPrice:
 			values[i] = addonratecard.ValueScanner.Price.ScanValue()
 		case addonratecard.FieldDiscounts:
 			values[i] = addonratecard.ValueScanner.Discounts.ScanValue()
 		case addonratecard.FieldUnitConfig:
 			values[i] = addonratecard.ValueScanner.UnitConfig.ScanValue()
+		case addonratecard.FieldTaxConfig:
+			values[i] = addonratecard.ValueScanner.TaxConfig.ScanValue()
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -272,12 +272,6 @@ func (_m *AddonRateCard) assignValues(columns []string, values []any) error {
 			} else {
 				_m.EntitlementTemplate = value
 			}
-		case addonratecard.FieldTaxConfig:
-			if value, err := addonratecard.ValueScanner.TaxConfig.FromValue(values[i]); err != nil {
-				return err
-			} else {
-				_m.TaxConfig = value
-			}
 		case addonratecard.FieldBillingCadence:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field billing_cadence", values[i])
@@ -316,6 +310,12 @@ func (_m *AddonRateCard) assignValues(columns []string, values []any) error {
 				return err
 			} else {
 				_m.UnitConfig = value
+			}
+		case addonratecard.FieldTaxConfig:
+			if value, err := addonratecard.ValueScanner.TaxConfig.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				_m.TaxConfig = value
 			}
 		case addonratecard.FieldAddonID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -440,11 +440,6 @@ func (_m *AddonRateCard) String() string {
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
-	if v := _m.TaxConfig; v != nil {
-		builder.WriteString("tax_config=")
-		builder.WriteString(fmt.Sprintf("%v", *v))
-	}
-	builder.WriteString(", ")
 	if v := _m.BillingCadence; v != nil {
 		builder.WriteString("billing_cadence=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
@@ -472,6 +467,11 @@ func (_m *AddonRateCard) String() string {
 	builder.WriteString(", ")
 	if v := _m.UnitConfig; v != nil {
 		builder.WriteString("unit_config=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.TaxConfig; v != nil {
+		builder.WriteString("tax_config=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")

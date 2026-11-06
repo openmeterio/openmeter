@@ -218,20 +218,6 @@ func (u *AddonRateCardUpdateOne) SetOrClearEntitlementTemplate(value **productca
 	return u.SetEntitlementTemplate(*value)
 }
 
-func (u *AddonRateCardUpdate) SetOrClearTaxConfig(value **productcatalog.TaxConfig) *AddonRateCardUpdate {
-	if value == nil {
-		return u.ClearTaxConfig()
-	}
-	return u.SetTaxConfig(*value)
-}
-
-func (u *AddonRateCardUpdateOne) SetOrClearTaxConfig(value **productcatalog.TaxConfig) *AddonRateCardUpdateOne {
-	if value == nil {
-		return u.ClearTaxConfig()
-	}
-	return u.SetTaxConfig(*value)
-}
-
 func (u *AddonRateCardUpdate) SetOrClearBillingCadence(value *datetime.ISODurationString) *AddonRateCardUpdate {
 	if value == nil {
 		return u.ClearBillingCadence()
@@ -314,6 +300,20 @@ func (u *AddonRateCardUpdateOne) SetOrClearUnitConfig(value **unitconfig.UnitCon
 		return u.ClearUnitConfig()
 	}
 	return u.SetUnitConfig(*value)
+}
+
+func (u *AddonRateCardUpdate) SetOrClearTaxConfig(value **productcatalog.TaxConfig) *AddonRateCardUpdate {
+	if value == nil {
+		return u.ClearTaxConfig()
+	}
+	return u.SetTaxConfig(*value)
+}
+
+func (u *AddonRateCardUpdateOne) SetOrClearTaxConfig(value **productcatalog.TaxConfig) *AddonRateCardUpdateOne {
+	if value == nil {
+		return u.ClearTaxConfig()
+	}
+	return u.SetTaxConfig(*value)
 }
 
 func (u *AddonRateCardUpdate) SetOrClearFeatureID(value *string) *AddonRateCardUpdate {
@@ -5930,20 +5930,6 @@ func (u *PlanRateCardUpdateOne) SetOrClearEntitlementTemplate(value **productcat
 	return u.SetEntitlementTemplate(*value)
 }
 
-func (u *PlanRateCardUpdate) SetOrClearTaxConfig(value **productcatalog.TaxConfig) *PlanRateCardUpdate {
-	if value == nil {
-		return u.ClearTaxConfig()
-	}
-	return u.SetTaxConfig(*value)
-}
-
-func (u *PlanRateCardUpdateOne) SetOrClearTaxConfig(value **productcatalog.TaxConfig) *PlanRateCardUpdateOne {
-	if value == nil {
-		return u.ClearTaxConfig()
-	}
-	return u.SetTaxConfig(*value)
-}
-
 func (u *PlanRateCardUpdate) SetOrClearBillingCadence(value *datetime.ISODurationString) *PlanRateCardUpdate {
 	if value == nil {
 		return u.ClearBillingCadence()
@@ -6026,6 +6012,20 @@ func (u *PlanRateCardUpdateOne) SetOrClearUnitConfig(value **unitconfig.UnitConf
 		return u.ClearUnitConfig()
 	}
 	return u.SetUnitConfig(*value)
+}
+
+func (u *PlanRateCardUpdate) SetOrClearTaxConfig(value **productcatalog.TaxConfig) *PlanRateCardUpdate {
+	if value == nil {
+		return u.ClearTaxConfig()
+	}
+	return u.SetTaxConfig(*value)
+}
+
+func (u *PlanRateCardUpdateOne) SetOrClearTaxConfig(value **productcatalog.TaxConfig) *PlanRateCardUpdateOne {
+	if value == nil {
+		return u.ClearTaxConfig()
+	}
+	return u.SetTaxConfig(*value)
 }
 
 func (u *PlanRateCardUpdate) SetOrClearFeatureID(value *string) *PlanRateCardUpdate {

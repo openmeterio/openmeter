@@ -192,18 +192,6 @@ func (_u *AddonRateCardUpdate) ClearEntitlementTemplate() *AddonRateCardUpdate {
 	return _u
 }
 
-// SetTaxConfig sets the "tax_config" field.
-func (_u *AddonRateCardUpdate) SetTaxConfig(v *productcatalog.TaxConfig) *AddonRateCardUpdate {
-	_u.mutation.SetTaxConfig(v)
-	return _u
-}
-
-// ClearTaxConfig clears the value of the "tax_config" field.
-func (_u *AddonRateCardUpdate) ClearTaxConfig() *AddonRateCardUpdate {
-	_u.mutation.ClearTaxConfig()
-	return _u
-}
-
 // SetBillingCadence sets the "billing_cadence" field.
 func (_u *AddonRateCardUpdate) SetBillingCadence(v datetime.ISODurationString) *AddonRateCardUpdate {
 	_u.mutation.SetBillingCadence(v)
@@ -297,6 +285,18 @@ func (_u *AddonRateCardUpdate) SetUnitConfig(v *unitconfig.UnitConfig) *AddonRat
 // ClearUnitConfig clears the value of the "unit_config" field.
 func (_u *AddonRateCardUpdate) ClearUnitConfig() *AddonRateCardUpdate {
 	_u.mutation.ClearUnitConfig()
+	return _u
+}
+
+// SetTaxConfig sets the "tax_config" field.
+func (_u *AddonRateCardUpdate) SetTaxConfig(v *productcatalog.TaxConfig) *AddonRateCardUpdate {
+	_u.mutation.SetTaxConfig(v)
+	return _u
+}
+
+// ClearTaxConfig clears the value of the "tax_config" field.
+func (_u *AddonRateCardUpdate) ClearTaxConfig() *AddonRateCardUpdate {
+	_u.mutation.ClearTaxConfig()
 	return _u
 }
 
@@ -450,11 +450,6 @@ func (_u *AddonRateCardUpdate) check() error {
 			return &ValidationError{Name: "entitlement_template", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.entitlement_template": %w`, err)}
 		}
 	}
-	if v, ok := _u.mutation.TaxConfig(); ok {
-		if err := v.Validate(); err != nil {
-			return &ValidationError{Name: "tax_config", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.tax_config": %w`, err)}
-		}
-	}
 	if v, ok := _u.mutation.Price(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "price", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.price": %w`, err)}
@@ -478,6 +473,11 @@ func (_u *AddonRateCardUpdate) check() error {
 	if v, ok := _u.mutation.UnitConfig(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "unit_config", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.unit_config": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.TaxConfig(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "tax_config", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.tax_config": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.AddonID(); ok {
@@ -560,16 +560,6 @@ func (_u *AddonRateCardUpdate) sqlSave(ctx context.Context) (_node int, err erro
 	if _u.mutation.EntitlementTemplateCleared() {
 		_spec.ClearField(addonratecard.FieldEntitlementTemplate, field.TypeString)
 	}
-	if value, ok := _u.mutation.TaxConfig(); ok {
-		vv, err := addonratecard.ValueScanner.TaxConfig.Value(value)
-		if err != nil {
-			return 0, err
-		}
-		_spec.SetField(addonratecard.FieldTaxConfig, field.TypeString, vv)
-	}
-	if _u.mutation.TaxConfigCleared() {
-		_spec.ClearField(addonratecard.FieldTaxConfig, field.TypeString)
-	}
 	if value, ok := _u.mutation.BillingCadence(); ok {
 		_spec.SetField(addonratecard.FieldBillingCadence, field.TypeString, value)
 	}
@@ -611,6 +601,16 @@ func (_u *AddonRateCardUpdate) sqlSave(ctx context.Context) (_node int, err erro
 	}
 	if _u.mutation.UnitConfigCleared() {
 		_spec.ClearField(addonratecard.FieldUnitConfig, field.TypeString)
+	}
+	if value, ok := _u.mutation.TaxConfig(); ok {
+		vv, err := addonratecard.ValueScanner.TaxConfig.Value(value)
+		if err != nil {
+			return 0, err
+		}
+		_spec.SetField(addonratecard.FieldTaxConfig, field.TypeString, vv)
+	}
+	if _u.mutation.TaxConfigCleared() {
+		_spec.ClearField(addonratecard.FieldTaxConfig, field.TypeString)
 	}
 	if _u.mutation.AddonCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -904,18 +904,6 @@ func (_u *AddonRateCardUpdateOne) ClearEntitlementTemplate() *AddonRateCardUpdat
 	return _u
 }
 
-// SetTaxConfig sets the "tax_config" field.
-func (_u *AddonRateCardUpdateOne) SetTaxConfig(v *productcatalog.TaxConfig) *AddonRateCardUpdateOne {
-	_u.mutation.SetTaxConfig(v)
-	return _u
-}
-
-// ClearTaxConfig clears the value of the "tax_config" field.
-func (_u *AddonRateCardUpdateOne) ClearTaxConfig() *AddonRateCardUpdateOne {
-	_u.mutation.ClearTaxConfig()
-	return _u
-}
-
 // SetBillingCadence sets the "billing_cadence" field.
 func (_u *AddonRateCardUpdateOne) SetBillingCadence(v datetime.ISODurationString) *AddonRateCardUpdateOne {
 	_u.mutation.SetBillingCadence(v)
@@ -1009,6 +997,18 @@ func (_u *AddonRateCardUpdateOne) SetUnitConfig(v *unitconfig.UnitConfig) *Addon
 // ClearUnitConfig clears the value of the "unit_config" field.
 func (_u *AddonRateCardUpdateOne) ClearUnitConfig() *AddonRateCardUpdateOne {
 	_u.mutation.ClearUnitConfig()
+	return _u
+}
+
+// SetTaxConfig sets the "tax_config" field.
+func (_u *AddonRateCardUpdateOne) SetTaxConfig(v *productcatalog.TaxConfig) *AddonRateCardUpdateOne {
+	_u.mutation.SetTaxConfig(v)
+	return _u
+}
+
+// ClearTaxConfig clears the value of the "tax_config" field.
+func (_u *AddonRateCardUpdateOne) ClearTaxConfig() *AddonRateCardUpdateOne {
+	_u.mutation.ClearTaxConfig()
 	return _u
 }
 
@@ -1175,11 +1175,6 @@ func (_u *AddonRateCardUpdateOne) check() error {
 			return &ValidationError{Name: "entitlement_template", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.entitlement_template": %w`, err)}
 		}
 	}
-	if v, ok := _u.mutation.TaxConfig(); ok {
-		if err := v.Validate(); err != nil {
-			return &ValidationError{Name: "tax_config", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.tax_config": %w`, err)}
-		}
-	}
 	if v, ok := _u.mutation.Price(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "price", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.price": %w`, err)}
@@ -1203,6 +1198,11 @@ func (_u *AddonRateCardUpdateOne) check() error {
 	if v, ok := _u.mutation.UnitConfig(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "unit_config", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.unit_config": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.TaxConfig(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "tax_config", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.tax_config": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.AddonID(); ok {
@@ -1302,16 +1302,6 @@ func (_u *AddonRateCardUpdateOne) sqlSave(ctx context.Context) (_node *AddonRate
 	if _u.mutation.EntitlementTemplateCleared() {
 		_spec.ClearField(addonratecard.FieldEntitlementTemplate, field.TypeString)
 	}
-	if value, ok := _u.mutation.TaxConfig(); ok {
-		vv, err := addonratecard.ValueScanner.TaxConfig.Value(value)
-		if err != nil {
-			return nil, err
-		}
-		_spec.SetField(addonratecard.FieldTaxConfig, field.TypeString, vv)
-	}
-	if _u.mutation.TaxConfigCleared() {
-		_spec.ClearField(addonratecard.FieldTaxConfig, field.TypeString)
-	}
 	if value, ok := _u.mutation.BillingCadence(); ok {
 		_spec.SetField(addonratecard.FieldBillingCadence, field.TypeString, value)
 	}
@@ -1353,6 +1343,16 @@ func (_u *AddonRateCardUpdateOne) sqlSave(ctx context.Context) (_node *AddonRate
 	}
 	if _u.mutation.UnitConfigCleared() {
 		_spec.ClearField(addonratecard.FieldUnitConfig, field.TypeString)
+	}
+	if value, ok := _u.mutation.TaxConfig(); ok {
+		vv, err := addonratecard.ValueScanner.TaxConfig.Value(value)
+		if err != nil {
+			return nil, err
+		}
+		_spec.SetField(addonratecard.FieldTaxConfig, field.TypeString, vv)
+	}
+	if _u.mutation.TaxConfigCleared() {
+		_spec.ClearField(addonratecard.FieldTaxConfig, field.TypeString)
 	}
 	if _u.mutation.AddonCleared() {
 		edge := &sqlgraph.EdgeSpec{

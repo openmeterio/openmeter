@@ -177,9 +177,12 @@ func (PlanRateCard) Mixin() []ent.Mixin {
 }
 
 func (PlanRateCard) Fields() []ent.Field {
-	fields := RateCard{}.Fields() // We have to use it like so due to some ent/runtime.go bug
+	fields := RateCard{
+		deprecatedTaxConfig: true,
+	}.Fields() // We have to use it like so due to some ent/runtime.go bug
 
-	fields = append(fields,
+	fields = append(
+		fields,
 		field.String("phase_id").
 			NotEmpty().
 			Comment("The phase identifier the ratecard is assigned to."),

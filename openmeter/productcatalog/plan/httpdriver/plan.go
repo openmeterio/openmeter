@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	productcataloghttp "github.com/openmeterio/openmeter/openmeter/productcatalog/http"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/featuregate"
@@ -100,48 +101,60 @@ func (h *handler) ListPlans() ListPlansHandler {
 	)
 }
 
+type PlanCreateRequest struct {
+	api.PlanCreate
+	Namespace string
+}
+
 type (
 	CreatePlanRequest  = plan.CreatePlanInput
 	CreatePlanResponse = api.Plan
-	CreatePlanHandler  httptransport.Handler[CreatePlanRequest, CreatePlanResponse]
+	CreatePlanHandler  httptransport.Handler[PlanCreateRequest, CreatePlanResponse]
 )
 
 func (h *handler) CreatePlan() CreatePlanHandler {
 	return httptransport.NewHandler(
-		func(ctx context.Context, r *http.Request) (CreatePlanRequest, error) {
+		func(ctx context.Context, r *http.Request) (PlanCreateRequest, error) {
 			body := api.PlanCreate{}
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
-				return CreatePlanRequest{}, fmt.Errorf("failed to decode create plan request: %w", err)
+				return PlanCreateRequest{}, fmt.Errorf("failed to decode create plan request: %w", err)
 			}
 
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
-				return CreatePlanRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
+				return PlanCreateRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
 			}
 
-			req, err := AsCreatePlanRequest(body, ns)
-			if err != nil {
-				return CreatePlanRequest{}, models.NewGenericValidationError(fmt.Errorf("failed to create plan request: %w", err))
-			}
-
-			req.NamespacedModel = models.NamespacedModel{
-				Namespace: ns,
-			}
-
-			req.IgnoreNonCriticalIssues = true
-
-			return req, nil
+			return PlanCreateRequest{
+				PlanCreate: body,
+				Namespace:  ns,
+			}, nil
 		},
-		func(ctx context.Context, request CreatePlanRequest) (CreatePlanResponse, error) {
-			creditEnabled := featuregate.ContextResolver().Credits(ctx)
-			if !creditEnabled && request.SettlementMode == productcatalog.CreditOnlySettlementMode {
-				return CreatePlanResponse{}, models.NewGenericValidationError(fmt.Errorf("credits are not enabled on this deployment of OpenMeter"))
-			}
+		func(ctx context.Context, req PlanCreateRequest) (CreatePlanResponse, error) {
+			var resp CreatePlanResponse
 
-			p, err := h.service.CreatePlan(ctx, request)
-			if err != nil {
-				return CreatePlanResponse{}, fmt.Errorf("failed to create plan: %w", err)
-			}
+			err := h.taxCodeResolver.WithResolver(ctx, func(ctx context.Context, resolver taxcode.Resolver) error {
+				req, err := AsCreatePlanRequest(req.PlanCreate, req.Namespace, resolver)
+				if err != nil {
+					return models.NewGenericValidationError(fmt.Errorf("failed to create plan request: %w", err))
+				}
+
+				creditEnabled := featuregate.ContextResolver().Credits(ctx)
+				if !creditEnabled && request.SettlementMode == productcatalog.CreditOnlySettlementMode {
+					return CreatePlanResponse{}, models.NewGenericValidationError(fmt.Errorf("credits are not enabled on this deployment of OpenMeter"))
+				}
+
+				req.NamespacedModel = models.NamespacedModel{
+					Namespace: ns,
+				}
+
+				req.IgnoreNonCriticalIssues = true
+
+				p, err := h.service.CreatePlan(ctx, request)
+				if err != nil {
+					return CreatePlanResponse{}, fmt.Errorf("failed to create plan: %w", err)
+				}
+			})
 
 			return FromPlan(*p)
 		},
