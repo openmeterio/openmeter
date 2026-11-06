@@ -299,6 +299,24 @@ func (c *Connector) createEventsTable(ctx context.Context) error {
 		return fmt.Errorf("create events table: %w", err)
 	}
 
+	// Schema metadata, not a table scan: skip add/backfill once store_row_id exists.
+	var storeRowIDColumns uint64
+	if err := c.config.ClickHouse.QueryRow(ctx, table.hasStoreRowIDColumnSQL(), table.Database, table.EventsTableName).Scan(&storeRowIDColumns); err != nil {
+		return fmt.Errorf("check events table schema: %w", err)
+	}
+
+	if storeRowIDColumns > 0 {
+		return nil
+	}
+
+	if err := c.config.ClickHouse.Exec(ctx, table.addStoreRowIDSQL()); err != nil {
+		return fmt.Errorf("migrate events table: %w", err)
+	}
+
+	if err := c.config.ClickHouse.Exec(ctx, table.backfillStoreRowIDSQL()); err != nil {
+		return fmt.Errorf("backfill events table: %w", err)
+	}
+
 	return nil
 }
 
