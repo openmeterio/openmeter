@@ -6042,6 +6042,34 @@ func (u *PlanRateCardUpdateOne) SetOrClearFeatureID(value *string) *PlanRateCard
 	return u.SetFeatureID(*value)
 }
 
+func (u *RTECreditBalanceUpdate) SetOrClearDeletedAt(value *time.Time) *RTECreditBalanceUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *RTECreditBalanceUpdateOne) SetOrClearDeletedAt(value *time.Time) *RTECreditBalanceUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *RTEMeteredEntitlementBalanceUpdate) SetOrClearDeletedAt(value *time.Time) *RTEMeteredEntitlementBalanceUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *RTEMeteredEntitlementBalanceUpdateOne) SetOrClearDeletedAt(value *time.Time) *RTEMeteredEntitlementBalanceUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
 func (u *SubjectUpdate) SetOrClearDeletedAt(value *time.Time) *SubjectUpdate {
 	if value == nil {
 		return u.ClearDeletedAt()
