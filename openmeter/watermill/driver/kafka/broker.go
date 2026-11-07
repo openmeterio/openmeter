@@ -2,9 +2,11 @@ package kafka
 
 import (
 	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"log/slog"
+	"os"
 	"time"
 
 	"github.com/IBM/sarama"
@@ -42,6 +44,31 @@ func (o *BrokerOptions) Validate() error {
 	if o.MetricMeter == nil {
 		return errors.New("metric meter is required")
 	}
+
+	return nil
+}
+
+// applyCACertificates sets the trusted root CAs of tlsConfig from KafkaConfig.SslCaLocation, if configured.
+//
+// Like librdkafka's ssl.ca.location (used by the ingest producer/consumer), the configured file replaces the
+// default trust store instead of extending it, so both Kafka clients trust the same CAs. When no location is
+// configured tlsConfig is left untouched and the system trust store is used.
+func (o *BrokerOptions) applyCACertificates(tlsConfig *tls.Config) error {
+	if o.KafkaConfig.SslCaLocation == "" {
+		return nil
+	}
+
+	pemData, err := os.ReadFile(o.KafkaConfig.SslCaLocation)
+	if err != nil {
+		return fmt.Errorf("failed to read kafka ssl ca location: %w", err)
+	}
+
+	pool := x509.NewCertPool()
+	if !pool.AppendCertsFromPEM(pemData) {
+		return fmt.Errorf("kafka ssl ca location %q does not contain any valid PEM certificates", o.KafkaConfig.SslCaLocation)
+	}
+
+	tlsConfig.RootCAs = pool
 
 	return nil
 }
@@ -90,6 +117,10 @@ func (o *BrokerOptions) createKafkaConfig(role string) (*sarama.Config, error) {
 		// remote error: tls: protocol version not supported
 		config.Net.TLS.Config = &tls.Config{} // nosemgrep
 
+		if err := o.applyCACertificates(config.Net.TLS.Config); err != nil {
+			return nil, err
+		}
+
 		config.Net.SASL.User = o.KafkaConfig.SaslUsername
 		config.Net.SASL.Password = o.KafkaConfig.SaslPassword
 		// We rely on sarama to validate the SASL mechanism
@@ -106,6 +137,13 @@ func (o *BrokerOptions) createKafkaConfig(role string) (*sarama.Config, error) {
 			config.Net.SASL.SCRAMClientGeneratorFunc = func() sarama.SCRAMClient {
 				return &XDGSCRAMClient{HashGeneratorFcn: SHA512}
 			}
+		}
+	} else if o.KafkaConfig.SecurityProtocol == "SSL" {
+		config.Net.TLS.Enable = true
+		config.Net.TLS.Config = &tls.Config{MinVersion: tls.VersionTLS12}
+
+		if err := o.applyCACertificates(config.Net.TLS.Config); err != nil {
+			return nil, err
 		}
 	}
 
