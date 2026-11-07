@@ -29,7 +29,7 @@ postgres:
 {{/* Overwrite svix config if self-hosted svix is used */}}
 {{- if .Values.svix.enabled -}}
 svix:
-  apiKey: {{ .Values.svix.signedJwt }}
+  apiKey: {{ required "svix.signedJwt is required when svix.enabled is true" .Values.svix.signedJwt }}
   serverURL: http://{{ include "openmeter.componentName" (list . "svix" ) }}:{{ .Values.svix.service.port }}
   debug: true
 {{- end }}

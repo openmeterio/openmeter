@@ -50,16 +50,13 @@ See [values.example.yaml](values.example.yaml) for more details.
 
 ## Running OpenMeter in production
 
-This Helm chart comes with a default setups for Kafka, ClickHouse, Postgres, Redis and Svix.
+This Helm chart comes with a default setups for Kafka, ClickHouse, Postgres and Redis.
 
 **It is highly recommended to use your own dependencies in production.**
 
 You can disable installing the above dependencies to bring your own:
 
 ```yaml
-svix:
-  enabled: false
-
 redis:
   enabled: false
 
@@ -93,10 +90,23 @@ config:
       autoMigrate: migration
 
     svix:
-      apiKey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdml4LXNlcnZlciIsInN1YiI6Im9yZ18yM3JiOFlkR3FNVDBxSXpwZ0d3ZFhmSGlyTXUiLCJleHAiOjE4OTM0NTYwMDAsIm5iZiI6MTcwNDA2NzIwMCwiaWF0IjoxNzIzNTUzMTQ0fQ.JVOFgHymisTD-Zw_p03qD4iUXXXw-VwABda2Q3f1wfs
+      apiKey: SVIX_JWT
       serverURL: http://127.0.0.1:8071/
       debug: true
 ```
+
+## Notifications with a bundled Svix server
+
+Webhook notifications need a [Svix](https://github.com/svix/svix-webhooks) server. The chart can install one for development, but it is disabled by default because it needs a secret pair you generate:
+
+```yaml
+svix:
+  enabled: true
+  signingSecret: SVIX_JWT_SECRET
+  signedJwt: SVIX_JWT
+```
+
+Generate the token with `SVIX_JWT_SECRET=<signingSecret> svix-server jwt generate`.
 
 ## Per-component scheduling and resources
 
@@ -182,9 +192,9 @@ jobs:
 | kafka.listeners.controller.sslClientAuth | string | `""` |  |
 | clickhouse.enabled | bool | `true` | Specifies whether Clickhouse (using the [Clickhouse Operator](https://github.com/Altinity/clickhouse-operator)) should be installed. **Not recommended for production environments.** |
 | clickhouse.operator.install | bool | `true` | Specifies whether [Clickhouse Operator](https://github.com/Altinity/clickhouse-operator) should be installed. **Not recommended for production environments.** |
-| svix.enabled | bool | `true` |  |
-| svix.signingSecret | string | `"CeRc6WK8KjzRXrKkd9YFnSWcNyqLSIY8JwiaCeRc6WK4UkM"` | Specifies the JWT secret SVIX uses for authentication. For details, [see](https://github.com/svix/svix-webhooks?tab=readme-ov-file#authentication). **It is recommended to change this before deployment.** |
-| svix.signedJwt | string | `"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJzdml4LXNlcnZlciIsImlhdCI6MTczMDk4NzU0MywiZXhwIjoyMjM1OTA5MDAwLCJhdWQiOiIiLCJzdWIiOiJvcmdfMjNyYjhZZEdxTVQwcUl6cGdHd2RYZkhpck11In0.J90SzVuNwecyCtWAQlOoWplJaK4rnIb3rCWXrHQPqJY"` | Specifies the JWT OpenMeter uses to authenticate with Svix. This is an example Token intended for development purposes. You should create your own using the instructions in [svix documentation](https://github.com/svix/svix-webhooks?tab=readme-ov-file#authentication). |
+| svix.enabled | bool | `false` | Install a self-hosted Svix server. Requires `signingSecret` and `signedJwt`. **Not recommended for production environments.** |
+| svix.signingSecret | string | `""` | JWT secret the Svix server uses to verify API tokens. Required when `enabled` is true. For details, [see](https://github.com/svix/svix-webhooks?tab=readme-ov-file#authentication). |
+| svix.signedJwt | string | `""` | JWT OpenMeter uses to authenticate with Svix, signed with `signingSecret`. Required when `enabled` is true. Generate one with `svix-server jwt generate` (run with `SVIX_JWT_SECRET` set to `signingSecret`). |
 | svix.database | object | `{"dsn":""}` | External database configuration for Svix |
 | svix.database.dsn | string | `""` | External PostgreSQL DSN for Svix. If not provided, uses internal PostgreSQL. |
 | svix.redis | object | `{"dsn":""}` | External Redis configuration for Svix |
