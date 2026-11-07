@@ -66,6 +66,7 @@ jobs:
         with:
           context: .
           build-args: |
+            COMMIT_SHA=${{ github.sha }}
             VERSION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.version'] }}
           platforms: linux/amd64,linux/arm64 # The confluent library doesn't support ARMv7
           tags: ${{ steps.meta.outputs.tags }}

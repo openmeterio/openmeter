@@ -51,6 +51,11 @@ entries. Minimum balance buckets take the lowest balance from `AsOf` onward;
 
 - Every transaction sums to zero. Each entry amount is valid at the posting
   currency's precision.
+- New transaction groups carry `ledger.writer.commit_sha` and `ledger.writer.version`
+  when the writer knows its Git revision and release version, respectively.
+  The application supplies its embedded build identifiers as defaults for
+  `metadata.revision` and `metadata.version`. Historical groups can
+  omit either annotation.
 - `CommitGroup` validates the whole input, locks every affected parent account,
   and books the group atomically in the caller's database transaction.
 - IDs can be assigned to resolved postings before commit; `ledger.PreassignIDs`

@@ -12,6 +12,7 @@ import (
 type Metadata struct {
 	ServiceName       string
 	Version           string
+	Revision          string
 	Environment       string
 	OpenTelemetryName string
 
@@ -19,9 +20,14 @@ type Metadata struct {
 }
 
 func NewMetadata(conf config.Configuration, version string, serviceName string, additionalAttributes ...attribute.KeyValue) Metadata {
+	if conf.Metadata.Version != "" {
+		version = conf.Metadata.Version
+	}
+
 	return Metadata{
 		ServiceName:          fmt.Sprintf("openmeter-%s", serviceName),
 		Version:              version,
+		Revision:             conf.Metadata.Revision,
 		Environment:          conf.Environment,
 		OpenTelemetryName:    fmt.Sprintf("openmeter.io/%s", serviceName),
 		AdditionalAttributes: additionalAttributes,

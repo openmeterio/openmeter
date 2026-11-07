@@ -79,6 +79,7 @@ type Application struct {
 	LedgerNamespaceHandler           namespace.Handler
 	LLMCostService                   llmcost.Service
 	Logger                           *slog.Logger
+	Metadata                         common.Metadata
 	MetricMeter                      metric.Meter
 	MeterConfigInitializer           common.MeterConfigInitializer
 	MeterManageService               meter.ManageService
