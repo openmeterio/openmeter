@@ -13,6 +13,7 @@ func loadConfig(configFile string) error {
 	v, flags := viper.NewWithOptions(viper.WithDecodeHook(config.DecodeHook())), pflag.NewFlagSet("OpenMeter", pflag.ExitOnError)
 
 	config.SetViperDefaults(v, flags)
+	config.CreditsWriterConfiguration{Revision: revision, Version: version}.SetDefaults(v, "credits")
 	if configFile != "" {
 		v.SetConfigFile(configFile)
 	}

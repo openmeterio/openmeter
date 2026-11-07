@@ -1,8 +1,6 @@
 package internal
 
-import (
-	"runtime/debug"
-)
+import "github.com/openmeterio/openmeter/pkg/buildinfo"
 
 //nolint:gochecknoglobals
 var (
@@ -17,20 +15,7 @@ func init() {
 		version = "unknown"
 	}
 
-	buildInfo, _ := debug.ReadBuildInfo()
-
-	revision = "unknown"
-	revisionDate = "unknown"
-
-	for _, setting := range buildInfo.Settings {
-		if setting.Key == "vcs.revision" {
-			revision = setting.Value
-		}
-
-		if setting.Key == "vcs.time" {
-			revisionDate = setting.Value
-		}
-	}
+	revision, revisionDate = buildinfo.Revision(revision)
 }
 
 func Version() (string, string, string) {

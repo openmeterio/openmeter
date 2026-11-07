@@ -21,6 +21,7 @@ func main() {
 	ctx := context.Background()
 
 	config.SetViperDefaults(v, flags)
+	config.CreditsWriterConfiguration{Revision: revision, Version: version}.SetDefaults(v, "credits")
 
 	flags.String("config", "", "Configuration file")
 	flags.Bool("version", false, "Show version information")
