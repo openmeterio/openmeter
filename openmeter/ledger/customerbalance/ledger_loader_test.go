@@ -58,6 +58,7 @@ func TestLedgerCreditTransactionLoaderDoesNotRetainHasMoreAfterHiddenFinalPage(t
 	require.Len(t, fakeLedger.inputs, 2)
 	require.NotNil(t, fakeLedger.inputs[1].Cursor)
 	require.Equal(t, map[string]string{
+		ledger.AnnotationTransactionDirection:      string(ledger.TransactionDirectionCorrection),
 		ledger.AnnotationCollectionType:            ledger.CollectionTypeBreakage,
 		ledger.AnnotationCustomerBalanceVisibility: ledger.CustomerBalanceVisibilityInternal,
 	}, fakeLedger.inputs[0].ExcludeAnnotationFilters)
@@ -154,6 +155,36 @@ func TestLedgerCreditTransactionLoaderScansPastHiddenRowsToFindVisibleHasMore(t 
 	require.Equal(t, 1, fakeLedger.inputs[0].Limit)
 	require.NotNil(t, fakeLedger.inputs[1].Cursor)
 	require.NotNil(t, fakeLedger.inputs[2].Cursor)
+}
+
+func TestConsumedBeforePageSkipsHiddenRows(t *testing.T) {
+	now := time.Date(2026, 7, 9, 12, 0, 0, 0, time.UTC)
+	older := ledgerLoaderTestTransaction(t, "older", now.Add(time.Minute), nil, ledger.AccountTypeCustomerAccrued)
+	hidden := ledgerLoaderTestTransaction(t, "void", now.Add(2*time.Minute), models.Annotations{
+		creditvoid.AnnotationCreditVoidRecordID: "void-record",
+	}, ledger.AccountTypeCustomerReceivable)
+	newer := ledgerLoaderTestTransaction(t, "newer", now.Add(3*time.Minute), nil, ledger.AccountTypeCustomerAccrued)
+	furthest := ledgerLoaderTestTransaction(t, "furthest", now.Add(4*time.Minute), nil, ledger.AccountTypeCustomerAccrued)
+
+	// The ledger returns each before-page newest first, even when the next
+	// visible row is on a different page.
+	next := older.Cursor()
+	fakeLedger := &ledgerLoaderFakeLedger{pages: []ledger.ListTransactionsResult{
+		{Items: []ledger.Transaction{hidden, older}, NextCursor: &next},
+		{Items: []ledger.Transaction{furthest, newer}},
+	}}
+	loader := newLedgerCreditTransactionLoader(&service{Ledger: fakeLedger}, ledger.ListTransactionsCreditMovementNegative)
+	page, err := loader.Load(t.Context(), creditTransactionLoaderInput{
+		Limit: 2, Before: &ledger.TransactionCursor{BookedAt: now},
+		CustomerID: customer.CustomerID{Namespace: "ns", ID: "customer"}, AccountID: "fbo-account", AsOf: now.Add(time.Hour),
+	})
+	require.NoError(t, err)
+	require.Len(t, page.Items, 2)
+	require.Equal(t, "newer", page.Items[0].ID.ID)
+	require.Equal(t, "older", page.Items[1].ID.ID)
+	require.True(t, page.HasMore)
+	require.Len(t, fakeLedger.inputs, 2)
+	require.Equal(t, hidden.Cursor(), *fakeLedger.inputs[1].Before)
 }
 
 type ledgerLoaderFakeLedger struct {
