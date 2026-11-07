@@ -109,6 +109,8 @@ The temporary issuance and consumption used to construct a custom-currency
 `credit_then_invoice` overage are internal accounting movements, not customer
 credit activity, and are excluded from this view.
 
+Voiding a promotional grant returns its unused credit to wash. The customer receivable stays settled and the booked balance falls by the voided amount.
+
 Funded rows include the response label `voided: "true"` when the backing grant
 has since been voided. The label is absent from active funded rows and from
 other transaction types.

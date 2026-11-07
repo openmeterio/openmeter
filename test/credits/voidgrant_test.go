@@ -64,7 +64,7 @@ func (s *VoidGrantTestSuite) TestVoidFullyUnusedGrant() {
 	// when:
 	// - the grant is voided
 	// then:
-	// - the full remaining value moves from customer FBO back to open receivable
+	// - the full remaining value moves from customer FBO back to wash
 	// - the grant derives as voided and the listing shows a voided transaction
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("voidgrant-unused")
@@ -95,7 +95,8 @@ func (s *VoidGrantTestSuite) TestVoidFullyUnusedGrant() {
 	s.Equal(voidedAt, grant.State.VoidedAt.UTC())
 
 	s.Equal(float64(0), s.MustCustomerFBOBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal]()).InexactFloat64())
-	s.Equal(float64(100), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen).InexactFloat64())
+	s.Equal(float64(0), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen).InexactFloat64())
+	s.Equal(float64(0), s.MustWashBalance(ns, USD, mo.None[*alpacadecimal.Decimal]()).InexactFloat64())
 	s.Equal(float64(0), s.MustBreakageBalanceAsOf(ns, USD, mo.None[*alpacadecimal.Decimal](), voidedAt).InexactFloat64())
 
 	s.requireCreditTransactionAmountsByType(cust.GetID(), nil, map[customerbalance.CreditTransactionType]float64{
@@ -116,6 +117,41 @@ func (s *VoidGrantTestSuite) TestVoidFullyUnusedGrant() {
 	s.Require().Len(voidedImpacts.Items, 1)
 	s.Equal(string(transactions.TemplateCodeIssueCustomerReceivable), voidedImpacts.Items[0].Annotations[ledger.AnnotationTransactionTemplateCode])
 	s.Equal(string(ledger.TransactionDirectionCorrection), voidedImpacts.Items[0].Annotations[ledger.AnnotationTransactionDirection])
+}
+
+func (s *VoidGrantTestSuite) TestVoidPromotionalCustomCurrencyBalance() {
+	// Given an unused grant issued on the custom currency's nil-cost-basis route.
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("void-custom-promo")
+	cust := s.setupVoidTestCustomer(ctx, ns)
+	tokens := s.CreateCustomCurrency(ns, "TOKENS")
+	at := time.Date(2026, 4, 17, 11, 0, 0, 0, time.UTC)
+	clock.FreezeTime(at)
+	defer clock.UnFreeze()
+
+	grant, err := s.CreditGrantService.Create(ctx, creditgrant.CreateInput{
+		Namespace: ns, CustomerID: cust.ID, Name: "promotional credits",
+		Currency: tokens.GetCode(), Amount: alpacadecimal.NewFromInt(100),
+		FundingMethod: creditgrant.FundingMethodNone,
+	})
+	s.Require().NoError(err)
+	balanceInput := customerbalance.GetBalanceServiceInput{CustomerID: cust.GetID(), Currency: tokens.Reference(), FeatureFilter: customerbalance.AllFeatureFilter()}
+	before, err := s.CustomerBalanceSvc.GetBalance(ctx, balanceInput)
+	s.Require().NoError(err)
+	s.Equal(float64(100), before.Booked().InexactFloat64())
+	s.Equal(float64(100), before.Spendable().InexactFloat64())
+
+	// When the grant is voided, both the posted credit and its wash funding are removed.
+	clock.FreezeTime(at.Add(time.Hour))
+	_, err = s.CreditGrantService.Void(ctx, creditgrant.VoidInput{Namespace: ns, CustomerID: cust.ID, ChargeID: grant.ID})
+	s.Require().NoError(err)
+	after, err := s.CustomerBalanceSvc.GetBalance(ctx, balanceInput)
+	s.Require().NoError(err)
+	s.Equal(float64(0), after.Booked().InexactFloat64())
+	s.Equal(float64(0), after.Spendable().InexactFloat64())
+	s.Equal(float64(0), s.MustCustomerReceivableBalance(cust.GetID(), tokens.GetCode(), mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusOpen).InexactFloat64())
+	s.Equal(float64(0), s.MustCustomerReceivableBalance(cust.GetID(), tokens.GetCode(), mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusAuthorized).InexactFloat64())
+	s.Equal(float64(0), s.MustWashBalance(ns, tokens.GetCode(), mo.Some[*alpacadecimal.Decimal](nil)).InexactFloat64())
 }
 
 func (s *VoidGrantTestSuite) TestVoidTwiceIsIdempotent() {
@@ -164,7 +200,8 @@ func (s *VoidGrantTestSuite) TestVoidTwiceIsIdempotent() {
 	s.Equal(first.State.VoidedAt.UTC(), second.State.VoidedAt.UTC())
 
 	s.Equal(float64(0), s.MustBreakageBalanceAsOf(ns, USD, mo.None[*alpacadecimal.Decimal](), clock.Now()).InexactFloat64())
-	s.Equal(float64(100), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen).InexactFloat64())
+	s.Equal(float64(0), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen).InexactFloat64())
+	s.Equal(float64(0), s.MustWashBalance(ns, USD, mo.None[*alpacadecimal.Decimal]()).InexactFloat64())
 }
 
 func (s *VoidGrantTestSuite) TestVoidPartiallyConsumedGrant() {
@@ -173,7 +210,7 @@ func (s *VoidGrantTestSuite) TestVoidPartiallyConsumedGrant() {
 	// when:
 	// - the grant is voided
 	// then:
-	// - only the remaining 60 moves back to receivable and consumed credit stays untouched
+	// - only the remaining 60 moves back to wash and consumed credit stays untouched
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("voidgrant-partial")
 	cust := s.setupVoidTestCustomer(ctx, ns)
@@ -206,7 +243,8 @@ func (s *VoidGrantTestSuite) TestVoidPartiallyConsumedGrant() {
 	s.Equal(float64(0), s.MustCustomerFBOBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal]()).InexactFloat64())
 	s.Equal(float64(0), s.MustBreakageBalanceAsOf(ns, USD, mo.None[*alpacadecimal.Decimal](), voidedAt).InexactFloat64())
 	s.Equal(float64(40), s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal]()).InexactFloat64())
-	s.Equal(float64(60), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen).InexactFloat64())
+	s.Equal(float64(0), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen).InexactFloat64())
+	s.Equal(float64(-40), s.MustWashBalance(ns, USD, mo.None[*alpacadecimal.Decimal]()).InexactFloat64())
 }
 
 func (s *VoidGrantTestSuite) TestVoidFullyConsumedGrantReturnsConflict() {
@@ -283,7 +321,8 @@ func (s *VoidGrantTestSuite) TestVoidExpiringGrantReleasesFutureExpiry() {
 	s.Require().NotNil(grant.State.VoidedAt)
 
 	s.Equal(float64(0), s.MustBreakageBalanceAsOf(ns, USD, mo.None[*alpacadecimal.Decimal](), voidedAt).InexactFloat64())
-	s.Equal(float64(100), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen).InexactFloat64())
+	s.Equal(float64(0), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen).InexactFloat64())
+	s.Equal(float64(0), s.MustWashBalance(ns, USD, mo.None[*alpacadecimal.Decimal]()).InexactFloat64())
 
 	afterExpiry := expiresAt.Add(time.Hour)
 	clock.FreezeTime(afterExpiry)
@@ -711,7 +750,8 @@ func (s *VoidGrantTestSuite) TestConcurrentVoidsDoNotDoubleBook() {
 
 	s.Equal(float64(0), s.MustBreakageBalanceAsOf(ns, USD, mo.None[*alpacadecimal.Decimal](), clock.Now()).InexactFloat64())
 	s.Equal(float64(0), s.MustCustomerFBOBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal]()).InexactFloat64())
-	s.Equal(float64(100), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen).InexactFloat64())
+	s.Equal(float64(0), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen).InexactFloat64())
+	s.Equal(float64(0), s.MustWashBalance(ns, USD, mo.None[*alpacadecimal.Decimal]()).InexactFloat64())
 }
 
 func (s *VoidGrantTestSuite) setupVoidTestCustomer(ctx context.Context, ns string) *customer.Customer {

@@ -244,8 +244,25 @@ func (t SettleCustomerReceivableFromPaymentTemplate) Validate() error {
 
 var _ CustomerTransactionTemplate = (SettleCustomerReceivableFromPaymentTemplate{})
 
-func (t SettleCustomerReceivableFromPaymentTemplate) correct(CorrectionInput) ([]ledger.TransactionInput, error) {
-	return nil, templateCorrectionNotImplemented(TemplateCode(t))
+func (t SettleCustomerReceivableFromPaymentTemplate) correct(scope CorrectionInput) ([]ledger.TransactionInput, error) {
+	return correctReceivablePayment(scope)
+}
+
+// Authorization and settlement each move a single amount between two routes.
+// A partial reversal must use the original sub-accounts and provenance.
+func correctReceivablePayment(scope CorrectionInput) ([]ledger.TransactionInput, error) {
+	entries := scope.OriginalTransaction.Entries()
+	if len(entries) != 2 || !entries[0].Amount().Neg().Equal(entries[1].Amount()) || scope.Amount.GreaterThan(entries[0].Amount().Abs()) {
+		return nil, fmt.Errorf("receivable payment correction requires a balanced entry pair covering %s", scope.Amount)
+	}
+
+	return []ledger.TransactionInput{&TransactionInput{
+		bookedAt: scope.At,
+		entryInputs: []*EntryInput{
+			reverseOriginalEntry(entries[0], scope.Amount),
+			reverseOriginalEntry(entries[1], scope.Amount),
+		},
+	}}, nil
 }
 
 func (t SettleCustomerReceivableFromPaymentTemplate) typeGuard() guard {
@@ -367,8 +384,8 @@ func (t AuthorizeCustomerReceivablePaymentTemplate) code() TransactionTemplateCo
 
 var _ CustomerTransactionTemplate = (AuthorizeCustomerReceivablePaymentTemplate{})
 
-func (t AuthorizeCustomerReceivablePaymentTemplate) correct(CorrectionInput) ([]ledger.TransactionInput, error) {
-	return nil, templateCorrectionNotImplemented(TemplateCode(t))
+func (t AuthorizeCustomerReceivablePaymentTemplate) correct(scope CorrectionInput) ([]ledger.TransactionInput, error) {
+	return correctReceivablePayment(scope)
 }
 
 func (t AuthorizeCustomerReceivablePaymentTemplate) resolve(ctx context.Context, customerID customer.CustomerID, resolvers ResolverDependencies) (ledger.TransactionInput, error) {
