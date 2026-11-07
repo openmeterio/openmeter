@@ -43,7 +43,7 @@ var LedgerStack = wire.NewSet(
 	NewLedgerAccountRepo,
 	NewLedgerHistoricalRepo,
 	NewLedgerResolversRepo,
-	NewLedgerHistoricalLedger,
+	NewLedgerHistoricalLedgerWithMetadata,
 	NewLedgerAccountService,
 	NewLedgerAccountCatalog,
 	NewLedgerAccountLocker,
@@ -89,11 +89,25 @@ func NewLedgerHistoricalLedger(
 	accountLocker ledger.AccountLocker,
 	routingValidator ledger.RoutingValidator,
 ) ledgerReadWriter {
+	return NewLedgerHistoricalLedgerWithMetadata(Metadata{CommitSHA: writerCommitSHA()}, creditsConfig, repo, accountCatalog, accountLocker, routingValidator)
+}
+
+func NewLedgerHistoricalLedgerWithMetadata(
+	metadata Metadata,
+	creditsConfig config.CreditsConfiguration,
+	repo historical.Repo,
+	accountCatalog ledger.AccountCatalog,
+	accountLocker ledger.AccountLocker,
+	routingValidator ledger.RoutingValidator,
+) ledgerReadWriter {
 	if !creditsConfig.Enabled {
 		return ledgernoop.Ledger{}
 	}
 
-	return historical.NewLedger(repo, accountCatalog, accountLocker, routingValidator)
+	return historical.NewLedgerWithWriterBuild(repo, accountCatalog, accountLocker, routingValidator, historical.WriterBuild{
+		CommitSHA: metadata.CommitSHA,
+		Version:   metadata.Version,
+	})
 }
 
 func NewLedgerBalanceQuerier(historicalLedger ledgerReadWriter) ledger.BalanceQuerier {

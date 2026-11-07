@@ -7,6 +7,9 @@ import (
 )
 
 const (
+	AnnotationWriterCommitSHA = "ledger.writer.commit_sha"
+	AnnotationWriterVersion   = "ledger.writer.version"
+
 	AnnotationChargeNamespace     = "ledger.charge.namespace"
 	AnnotationChargeID            = "ledger.charge.id"
 	AnnotationSubscriptionID      = "ledger.subscription.id"

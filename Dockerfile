@@ -26,6 +26,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
     xx-go mod download -x
 
 ARG VERSION
+ARG COMMIT_SHA
 
 COPY --link . .
 
@@ -36,42 +37,42 @@ RUN chmod +x entrypoint.sh
 # Build server binary (default)
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/go/cache \
-    xx-go build -ldflags "-linkmode external -extldflags \"-static\" -X main.version=${VERSION}" -tags musl -o /usr/local/bin/openmeter ./cmd/server
+    xx-go build -ldflags "-linkmode external -extldflags \"-static\" -X main.version=${VERSION} -X github.com/openmeterio/openmeter/app/common.commitSHA=${COMMIT_SHA}" -tags musl -o /usr/local/bin/openmeter ./cmd/server
 
 RUN xx-verify /usr/local/bin/openmeter
 
 # Build sink-worker binary
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/go/cache \
-    xx-go build -ldflags "-linkmode external -extldflags \"-static\" -X main.version=${VERSION}" -tags musl -o /usr/local/bin/openmeter-sink-worker ./cmd/sink-worker
+    xx-go build -ldflags "-linkmode external -extldflags \"-static\" -X main.version=${VERSION} -X github.com/openmeterio/openmeter/app/common.commitSHA=${COMMIT_SHA}" -tags musl -o /usr/local/bin/openmeter-sink-worker ./cmd/sink-worker
 
 RUN xx-verify /usr/local/bin/openmeter-sink-worker
 
 # Build balance-worker binary
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/go/cache \
-    xx-go build -ldflags "-linkmode external -extldflags \"-static\" -X main.version=${VERSION}" -tags musl -o /usr/local/bin/openmeter-balance-worker ./cmd/balance-worker
+    xx-go build -ldflags "-linkmode external -extldflags \"-static\" -X main.version=${VERSION} -X github.com/openmeterio/openmeter/app/common.commitSHA=${COMMIT_SHA}" -tags musl -o /usr/local/bin/openmeter-balance-worker ./cmd/balance-worker
 
 RUN xx-verify /usr/local/bin/openmeter-balance-worker
 
 # Build notification-service binary
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/go/cache \
-    xx-go build -ldflags "-linkmode external -extldflags \"-static\" -X main.version=${VERSION}" -tags musl -o /usr/local/bin/openmeter-notification-service ./cmd/notification-service
+    xx-go build -ldflags "-linkmode external -extldflags \"-static\" -X main.version=${VERSION} -X github.com/openmeterio/openmeter/app/common.commitSHA=${COMMIT_SHA}" -tags musl -o /usr/local/bin/openmeter-notification-service ./cmd/notification-service
 
 RUN xx-verify /usr/local/bin/openmeter-notification-service
 
 # Build billing-worker binary
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/go/cache \
-    xx-go build -ldflags "-linkmode external -extldflags \"-static\" -X main.version=${VERSION}" -tags musl -o /usr/local/bin/openmeter-billing-worker ./cmd/billing-worker
+    xx-go build -ldflags "-linkmode external -extldflags \"-static\" -X main.version=${VERSION} -X github.com/openmeterio/openmeter/app/common.commitSHA=${COMMIT_SHA}" -tags musl -o /usr/local/bin/openmeter-billing-worker ./cmd/billing-worker
 
 RUN xx-verify /usr/local/bin/openmeter-billing-worker
 
 # Build periodic jobs binary
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/go/cache \
-    xx-go build -ldflags "-linkmode external -extldflags \"-static\" -X main.version=${VERSION}" -tags musl -o /usr/local/bin/openmeter-jobs ./cmd/jobs
+    xx-go build -ldflags "-linkmode external -extldflags \"-static\" -X github.com/openmeterio/openmeter/cmd/jobs/internal.version=${VERSION} -X github.com/openmeterio/openmeter/app/common.commitSHA=${COMMIT_SHA}" -tags musl -o /usr/local/bin/openmeter-jobs ./cmd/jobs
 
 RUN xx-verify /usr/local/bin/openmeter-jobs
 

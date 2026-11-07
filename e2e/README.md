@@ -14,6 +14,11 @@ Server listens on `http://localhost:38888`. `config.yaml` is bind-mounted, so co
 changes need only `make env-local-up` (force-recreate), not a full down/up. Logs land in
 `e2e/logs/`.
 
+The local E2E build stamps the checked-out Git SHA and version `v0.0.0-e2e`.
+When running `TestLedgerWriterBuild` against a separately built server, set
+`OPENMETER_E2E_EXPECTED_COMMIT_SHA` and `OPENMETER_E2E_EXPECTED_VERSION` to
+its build inputs. Set the expected version to an empty string for an unversioned build.
+
 ## Benchmarks
 
 `BenchmarkEntitlementAccessQuery` measures `POST /api/v3/openmeter/entitlement-access/query` latency

@@ -39,7 +39,7 @@ jobs:
           persist-credentials: false
 
       - name: Build OpenMeter image
-        run: docker build --build-arg "VERSION=${GITHUB_SHA}" --tag "${OPENMETER_IMAGE}" .
+        run: docker build --build-arg "COMMIT_SHA=${GITHUB_SHA}" --build-arg VERSION=v0.0.0-e2e --tag "${OPENMETER_IMAGE}" .
 
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
@@ -135,7 +135,9 @@ jobs:
         uses: depot/build-push-action@98e78adca7817480b8185f474a400b451d74e287 # v1.18.0
         with:
           context: .
-          build-args: VERSION=${{ github.sha }}
+          build-args: |
+            COMMIT_SHA=${{ github.sha }}
+            VERSION=v0.0.0-e2e
           platforms: linux/amd64
           tags: openmeter-ci:${{ github.sha }}
           push: false
