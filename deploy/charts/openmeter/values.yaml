@@ -187,17 +187,17 @@ clickhouse:
     install: true
 
 svix:
+  # -- Install a self-hosted Svix server. Requires `signingSecret` and `signedJwt`.
   # **Not recommended for production environments.**
-  enabled: true
+  enabled: false
 
-  # -- Specifies the JWT secret SVIX uses for authentication.
+  # -- JWT secret the Svix server uses to verify API tokens. Required when `enabled` is true.
   # For details, [see](https://github.com/svix/svix-webhooks?tab=readme-ov-file#authentication).
-  # **It is recommended to change this before deployment.**
-  signingSecret: "CeRc6WK8KjzRXrKkd9YFnSWcNyqLSIY8JwiaCeRc6WK4UkM"
+  signingSecret: ""
 
-  # -- Specifies the JWT OpenMeter uses to authenticate with Svix.
-  # This is an example Token intended for development purposes. You should create your own using the instructions in [svix documentation](https://github.com/svix/svix-webhooks?tab=readme-ov-file#authentication).
-  signedJwt: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJzdml4LXNlcnZlciIsImlhdCI6MTczMDk4NzU0MywiZXhwIjoyMjM1OTA5MDAwLCJhdWQiOiIiLCJzdWIiOiJvcmdfMjNyYjhZZEdxTVQwcUl6cGdHd2RYZkhpck11In0.J90SzVuNwecyCtWAQlOoWplJaK4rnIb3rCWXrHQPqJY"
+  # -- JWT OpenMeter uses to authenticate with Svix, signed with `signingSecret`. Required when `enabled` is true.
+  # Generate one with `svix-server jwt generate` (run with `SVIX_JWT_SECRET` set to `signingSecret`).
+  signedJwt: ""
 
   # -- External database configuration for Svix
   database:
