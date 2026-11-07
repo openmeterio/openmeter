@@ -54,7 +54,7 @@ entries. Minimum balance buckets take the lowest balance from `AsOf` onward;
 - New transaction groups carry `ledger.writer.commit_sha` and `ledger.writer.version`
   when the writer knows its Git revision and release version, respectively.
   The application supplies its embedded build identifiers as defaults for
-  `credits.writer.revision` and `credits.writer.version`. Historical groups can
+  `metadata.revision` and `metadata.version`. Historical groups can
   omit either annotation.
 - `CommitGroup` validates the whole input, locks every affected parent account,
   and books the group atomically in the caller's database transaction.

@@ -1,9 +1,12 @@
 package e2e
 
 import (
+	"encoding/json"
 	"net/http"
 	"os"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
@@ -41,11 +44,29 @@ func TestLedgerWriterBuild(t *testing.T) {
 		require.Equal(t, sha, annotations[ledger.AnnotationWriterCommitSHA])
 	}
 
-	if version, ok := os.LookupEnv("OPENMETER_E2E_EXPECTED_VERSION"); ok {
-		if version == "" {
-			require.NotContains(t, annotations, ledger.AnnotationWriterVersion)
-		} else {
-			require.Equal(t, version, annotations[ledger.AnnotationWriterVersion])
-		}
+	// The server's version endpoint and ledger consume the same service metadata.
+	url := strings.TrimRight(os.Getenv("OPENMETER_ADDRESS"), "/") + "/version"
+	req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, url, nil)
+	require.NoError(t, err)
+	resp, err := (&http.Client{Timeout: 30 * time.Second}).Do(req)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	var server struct{ Version string }
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&server))
+	version := server.Version
+	if version == "unknown" {
+		version = ""
+	}
+
+	if expected, ok := os.LookupEnv("OPENMETER_E2E_EXPECTED_VERSION"); ok {
+		require.Equal(t, expected, version)
+	}
+
+	if version == "" {
+		require.NotContains(t, annotations, ledger.AnnotationWriterVersion)
+	} else {
+		require.Equal(t, version, annotations[ledger.AnnotationWriterVersion])
 	}
 }

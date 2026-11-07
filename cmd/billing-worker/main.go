@@ -20,8 +20,7 @@ func main() {
 	v, flags := viper.NewWithOptions(viper.WithDecodeHook(config.DecodeHook())), pflag.NewFlagSet("OpenMeter", pflag.ExitOnError)
 	ctx := context.Background()
 
-	config.SetViperDefaults(v, flags)
-	config.CreditsWriterConfiguration{Revision: revision, Version: version}.SetDefaults(v, "credits")
+	config.SetViperDefaultsWithMetadata(v, flags, config.MetadataConfiguration{Revision: revision, Version: version})
 
 	flags.String("config", "", "Configuration file")
 	flags.Bool("version", false, "Show version information")

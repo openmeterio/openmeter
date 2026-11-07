@@ -13,17 +13,25 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/openmeterio/openmeter/openmeter/meter"
+	"github.com/openmeterio/openmeter/pkg/buildinfo"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type ReservedEventTypePattern = string
 
+// MetadataConfiguration identifies the build running a service.
+type MetadataConfiguration struct {
+	Revision string `yaml:"revision"`
+	Version  string `yaml:"version"`
+}
+
 // Configuration holds any kind of Configuration that comes from the outside world and
 // is necessary for running the application.
 type Configuration struct {
 	Address     string
 	Environment string
+	Metadata    MetadataConfiguration
 
 	Telemetry TelemetryConfig
 
@@ -197,6 +205,13 @@ func (c Configuration) Validate() error {
 }
 
 func SetViperDefaults(v *viper.Viper, flags *pflag.FlagSet) {
+	revision, _ := buildinfo.Revision("")
+	SetViperDefaultsWithMetadata(v, flags, MetadataConfiguration{Revision: revision})
+}
+
+// SetViperDefaultsWithMetadata uses the binary's build identity as the default
+// for all consumers. A config file or environment variable may override it.
+func SetViperDefaultsWithMetadata(v *viper.Viper, flags *pflag.FlagSet, metadata MetadataConfiguration) {
 	// Viper settings
 	// TODO: remove this: it's not in use
 	v.AddConfigPath(".")
@@ -215,6 +230,8 @@ func SetViperDefaults(v *viper.Viper, flags *pflag.FlagSet) {
 
 	// Environment used for identifying the service environment
 	v.SetDefault("environment", "unknown")
+	v.SetDefault("metadata.revision", metadata.Revision)
+	v.SetDefault("metadata.version", metadata.Version)
 
 	ConfigureTelemetry(v, flags)
 

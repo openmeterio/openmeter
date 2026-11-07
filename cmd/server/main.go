@@ -35,8 +35,7 @@ func main() {
 	v, flags := viper.NewWithOptions(viper.WithDecodeHook(config.DecodeHook())), pflag.NewFlagSet("OpenMeter", pflag.ExitOnError)
 	ctx := context.Background()
 
-	config.SetViperDefaults(v, flags)
-	config.CreditsWriterConfiguration{Revision: revision, Version: version}.SetDefaults(v, "credits")
+	config.SetViperDefaultsWithMetadata(v, flags, config.MetadataConfiguration{Revision: revision, Version: version})
 
 	flags.String("config", "", "Configuration file")
 	flags.Bool("version", false, "Show version information")
@@ -214,7 +213,7 @@ func main() {
 
 	s.Get("/version", func(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewEncoder(w).Encode(map[string]string{
-			"version": version,
+			"version": app.Metadata.Version,
 			"os":      runtime.GOOS,
 			"arch":    runtime.GOARCH,
 		})

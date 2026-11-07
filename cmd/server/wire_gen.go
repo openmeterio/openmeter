@@ -388,7 +388,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	accountCatalog := common.NewLedgerAccountCatalog(accountService)
 	accountLocker := common.NewLedgerAccountLocker(accountService)
 	routingValidator := common.NewLedgerRoutingValidator()
-	ledgerReadWriter := common.NewLedgerHistoricalLedger(creditsConfiguration, repo, accountCatalog, accountLocker, routingValidator)
+	ledgerReadWriter := common.NewLedgerHistoricalLedgerWithMetadata(commonMetadata, creditsConfiguration, repo, accountCatalog, accountLocker, routingValidator)
 	ledger := common.NewLedgerService(ledgerReadWriter)
 	balanceQuerier := common.NewLedgerBalanceQuerier(ledgerReadWriter)
 	customerAccountRepo := common.NewLedgerResolversRepo(client)
@@ -929,6 +929,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		LedgerNamespaceHandler:           handler,
 		LLMCostService:                   llmcostService,
 		Logger:                           logger,
+		Metadata:                         commonMetadata,
 		MetricMeter:                      meter,
 		MeterConfigInitializer:           v7,
 		MeterManageService:               manageService,
@@ -1003,6 +1004,7 @@ type Application struct {
 	LedgerNamespaceHandler           namespace.Handler
 	LLMCostService                   llmcost.Service
 	Logger                           *slog.Logger
+	Metadata                         common.Metadata
 	MetricMeter                      metric.Meter
 	MeterConfigInitializer           common.MeterConfigInitializer
 	MeterManageService               meter.ManageService
