@@ -3,20 +3,15 @@
 package db
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
-	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/datetime"
 )
 
 // BillingCustomerOverride is the model entity for the BillingCustomerOverride schema.
@@ -35,51 +30,7 @@ type BillingCustomerOverride struct {
 	// CustomerID holds the value of the "customer_id" field.
 	CustomerID string `json:"customer_id,omitempty"`
 	// BillingProfileID holds the value of the "billing_profile_id" field.
-	BillingProfileID *string `json:"billing_profile_id,omitempty"`
-	// CollectionAlignment holds the value of the "collection_alignment" field.
-	//
-	// Deprecated: customer workflow overrides are no longer supported; assign a billing profile instead
-	CollectionAlignment *billing.AlignmentKind `json:"collection_alignment,omitempty"`
-	// AnchoredAlignmentDetail holds the value of the "anchored_alignment_detail" field.
-	//
-	// Deprecated: Field "anchored_alignment_detail" was marked as deprecated in the schema.
-	AnchoredAlignmentDetail *billing.AnchoredAlignmentDetail `json:"anchored_alignment_detail,omitempty"`
-	// LineCollectionPeriod holds the value of the "line_collection_period" field.
-	//
-	// Deprecated: customer workflow overrides are no longer supported; assign a billing profile instead
-	LineCollectionPeriod *datetime.ISODurationString `json:"line_collection_period,omitempty"`
-	// InvoiceAutoAdvance holds the value of the "invoice_auto_advance" field.
-	//
-	// Deprecated: customer workflow overrides are no longer supported; assign a billing profile instead
-	InvoiceAutoAdvance *bool `json:"invoice_auto_advance,omitempty"`
-	// InvoiceDraftPeriod holds the value of the "invoice_draft_period" field.
-	//
-	// Deprecated: customer workflow overrides are no longer supported; assign a billing profile instead
-	InvoiceDraftPeriod *datetime.ISODurationString `json:"invoice_draft_period,omitempty"`
-	// InvoiceDueAfter holds the value of the "invoice_due_after" field.
-	//
-	// Deprecated: customer workflow overrides are no longer supported; assign a billing profile instead
-	InvoiceDueAfter *datetime.ISODurationString `json:"invoice_due_after,omitempty"`
-	// InvoiceCollectionMethod holds the value of the "invoice_collection_method" field.
-	//
-	// Deprecated: customer workflow overrides are no longer supported; assign a billing profile instead
-	InvoiceCollectionMethod *billing.CollectionMethod `json:"invoice_collection_method,omitempty"`
-	// InvoiceProgressiveBilling holds the value of the "invoice_progressive_billing" field.
-	//
-	// Deprecated: customer workflow overrides are no longer supported; assign a billing profile instead
-	InvoiceProgressiveBilling *bool `json:"invoice_progressive_billing,omitempty"`
-	// InvoiceDefaultTaxConfig holds the value of the "invoice_default_tax_config" field.
-	//
-	// Deprecated: Field "invoice_default_tax_config" was marked as deprecated in the schema.
-	InvoiceDefaultTaxConfig productcatalog.TaxConfig `json:"invoice_default_tax_config,omitempty"`
-	// TaxCodeID holds the value of the "tax_code_id" field.
-	//
-	// Deprecated: customer workflow overrides are no longer supported; assign a billing profile instead
-	TaxCodeID *string `json:"tax_code_id,omitempty"`
-	// TaxBehavior holds the value of the "tax_behavior" field.
-	//
-	// Deprecated: customer workflow overrides are no longer supported; assign a billing profile instead
-	TaxBehavior *productcatalog.TaxBehavior `json:"tax_behavior,omitempty"`
+	BillingProfileID string `json:"billing_profile_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the BillingCustomerOverrideQuery when eager-loading is set.
 	Edges        BillingCustomerOverrideEdges `json:"edges"`
@@ -92,11 +43,9 @@ type BillingCustomerOverrideEdges struct {
 	Customer *Customer `json:"customer,omitempty"`
 	// BillingProfile holds the value of the billing_profile edge.
 	BillingProfile *BillingProfile `json:"billing_profile,omitempty"`
-	// TaxCode holds the value of the tax_code edge.
-	TaxCode *TaxCode `json:"tax_code,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [3]bool
+	loadedTypes [2]bool
 }
 
 // CustomerOrErr returns the Customer value or an error if the edge
@@ -121,27 +70,12 @@ func (e BillingCustomerOverrideEdges) BillingProfileOrErr() (*BillingProfile, er
 	return nil, &NotLoadedError{edge: "billing_profile"}
 }
 
-// TaxCodeOrErr returns the TaxCode value or an error if the edge
-// was not loaded in eager-loading, or loaded but was not found.
-func (e BillingCustomerOverrideEdges) TaxCodeOrErr() (*TaxCode, error) {
-	if e.TaxCode != nil {
-		return e.TaxCode, nil
-	} else if e.loadedTypes[2] {
-		return nil, &NotFoundError{label: dbtaxcode.Label}
-	}
-	return nil, &NotLoadedError{edge: "tax_code"}
-}
-
 // scanValues returns the types for scanning values from sql.Rows.
 func (*BillingCustomerOverride) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case billingcustomeroverride.FieldAnchoredAlignmentDetail, billingcustomeroverride.FieldInvoiceDefaultTaxConfig:
-			values[i] = new([]byte)
-		case billingcustomeroverride.FieldInvoiceAutoAdvance, billingcustomeroverride.FieldInvoiceProgressiveBilling:
-			values[i] = new(sql.NullBool)
-		case billingcustomeroverride.FieldID, billingcustomeroverride.FieldNamespace, billingcustomeroverride.FieldCustomerID, billingcustomeroverride.FieldBillingProfileID, billingcustomeroverride.FieldCollectionAlignment, billingcustomeroverride.FieldLineCollectionPeriod, billingcustomeroverride.FieldInvoiceDraftPeriod, billingcustomeroverride.FieldInvoiceDueAfter, billingcustomeroverride.FieldInvoiceCollectionMethod, billingcustomeroverride.FieldTaxCodeID, billingcustomeroverride.FieldTaxBehavior:
+		case billingcustomeroverride.FieldID, billingcustomeroverride.FieldNamespace, billingcustomeroverride.FieldCustomerID, billingcustomeroverride.FieldBillingProfileID:
 			values[i] = new(sql.NullString)
 		case billingcustomeroverride.FieldCreatedAt, billingcustomeroverride.FieldUpdatedAt, billingcustomeroverride.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -201,87 +135,7 @@ func (_m *BillingCustomerOverride) assignValues(columns []string, values []any) 
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field billing_profile_id", values[i])
 			} else if value.Valid {
-				_m.BillingProfileID = new(string)
-				*_m.BillingProfileID = value.String
-			}
-		case billingcustomeroverride.FieldCollectionAlignment:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field collection_alignment", values[i])
-			} else if value.Valid {
-				_m.CollectionAlignment = new(billing.AlignmentKind)
-				*_m.CollectionAlignment = billing.AlignmentKind(value.String)
-			}
-		case billingcustomeroverride.FieldAnchoredAlignmentDetail:
-			if value, ok := values[i].(*[]byte); !ok {
-				return fmt.Errorf("unexpected type %T for field anchored_alignment_detail", values[i])
-			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &_m.AnchoredAlignmentDetail); err != nil {
-					return fmt.Errorf("unmarshal field anchored_alignment_detail: %w", err)
-				}
-			}
-		case billingcustomeroverride.FieldLineCollectionPeriod:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field line_collection_period", values[i])
-			} else if value.Valid {
-				_m.LineCollectionPeriod = new(datetime.ISODurationString)
-				*_m.LineCollectionPeriod = datetime.ISODurationString(value.String)
-			}
-		case billingcustomeroverride.FieldInvoiceAutoAdvance:
-			if value, ok := values[i].(*sql.NullBool); !ok {
-				return fmt.Errorf("unexpected type %T for field invoice_auto_advance", values[i])
-			} else if value.Valid {
-				_m.InvoiceAutoAdvance = new(bool)
-				*_m.InvoiceAutoAdvance = value.Bool
-			}
-		case billingcustomeroverride.FieldInvoiceDraftPeriod:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field invoice_draft_period", values[i])
-			} else if value.Valid {
-				_m.InvoiceDraftPeriod = new(datetime.ISODurationString)
-				*_m.InvoiceDraftPeriod = datetime.ISODurationString(value.String)
-			}
-		case billingcustomeroverride.FieldInvoiceDueAfter:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field invoice_due_after", values[i])
-			} else if value.Valid {
-				_m.InvoiceDueAfter = new(datetime.ISODurationString)
-				*_m.InvoiceDueAfter = datetime.ISODurationString(value.String)
-			}
-		case billingcustomeroverride.FieldInvoiceCollectionMethod:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field invoice_collection_method", values[i])
-			} else if value.Valid {
-				_m.InvoiceCollectionMethod = new(billing.CollectionMethod)
-				*_m.InvoiceCollectionMethod = billing.CollectionMethod(value.String)
-			}
-		case billingcustomeroverride.FieldInvoiceProgressiveBilling:
-			if value, ok := values[i].(*sql.NullBool); !ok {
-				return fmt.Errorf("unexpected type %T for field invoice_progressive_billing", values[i])
-			} else if value.Valid {
-				_m.InvoiceProgressiveBilling = new(bool)
-				*_m.InvoiceProgressiveBilling = value.Bool
-			}
-		case billingcustomeroverride.FieldInvoiceDefaultTaxConfig:
-			if value, ok := values[i].(*[]byte); !ok {
-				return fmt.Errorf("unexpected type %T for field invoice_default_tax_config", values[i])
-			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &_m.InvoiceDefaultTaxConfig); err != nil {
-					return fmt.Errorf("unmarshal field invoice_default_tax_config: %w", err)
-				}
-			}
-		case billingcustomeroverride.FieldTaxCodeID:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field tax_code_id", values[i])
-			} else if value.Valid {
-				_m.TaxCodeID = new(string)
-				*_m.TaxCodeID = value.String
-			}
-		case billingcustomeroverride.FieldTaxBehavior:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field tax_behavior", values[i])
-			} else if value.Valid {
-				_m.TaxBehavior = new(productcatalog.TaxBehavior)
-				*_m.TaxBehavior = productcatalog.TaxBehavior(value.String)
+				_m.BillingProfileID = value.String
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
@@ -304,11 +158,6 @@ func (_m *BillingCustomerOverride) QueryCustomer() *CustomerQuery {
 // QueryBillingProfile queries the "billing_profile" edge of the BillingCustomerOverride entity.
 func (_m *BillingCustomerOverride) QueryBillingProfile() *BillingProfileQuery {
 	return NewBillingCustomerOverrideClient(_m.config).QueryBillingProfile(_m)
-}
-
-// QueryTaxCode queries the "tax_code" edge of the BillingCustomerOverride entity.
-func (_m *BillingCustomerOverride) QueryTaxCode() *TaxCodeQuery {
-	return NewBillingCustomerOverrideClient(_m.config).QueryTaxCode(_m)
 }
 
 // Update returns a builder for updating this BillingCustomerOverride.
@@ -351,61 +200,8 @@ func (_m *BillingCustomerOverride) String() string {
 	builder.WriteString("customer_id=")
 	builder.WriteString(_m.CustomerID)
 	builder.WriteString(", ")
-	if v := _m.BillingProfileID; v != nil {
-		builder.WriteString("billing_profile_id=")
-		builder.WriteString(*v)
-	}
-	builder.WriteString(", ")
-	if v := _m.CollectionAlignment; v != nil {
-		builder.WriteString("collection_alignment=")
-		builder.WriteString(fmt.Sprintf("%v", *v))
-	}
-	builder.WriteString(", ")
-	builder.WriteString("anchored_alignment_detail=")
-	builder.WriteString(fmt.Sprintf("%v", _m.AnchoredAlignmentDetail))
-	builder.WriteString(", ")
-	if v := _m.LineCollectionPeriod; v != nil {
-		builder.WriteString("line_collection_period=")
-		builder.WriteString(fmt.Sprintf("%v", *v))
-	}
-	builder.WriteString(", ")
-	if v := _m.InvoiceAutoAdvance; v != nil {
-		builder.WriteString("invoice_auto_advance=")
-		builder.WriteString(fmt.Sprintf("%v", *v))
-	}
-	builder.WriteString(", ")
-	if v := _m.InvoiceDraftPeriod; v != nil {
-		builder.WriteString("invoice_draft_period=")
-		builder.WriteString(fmt.Sprintf("%v", *v))
-	}
-	builder.WriteString(", ")
-	if v := _m.InvoiceDueAfter; v != nil {
-		builder.WriteString("invoice_due_after=")
-		builder.WriteString(fmt.Sprintf("%v", *v))
-	}
-	builder.WriteString(", ")
-	if v := _m.InvoiceCollectionMethod; v != nil {
-		builder.WriteString("invoice_collection_method=")
-		builder.WriteString(fmt.Sprintf("%v", *v))
-	}
-	builder.WriteString(", ")
-	if v := _m.InvoiceProgressiveBilling; v != nil {
-		builder.WriteString("invoice_progressive_billing=")
-		builder.WriteString(fmt.Sprintf("%v", *v))
-	}
-	builder.WriteString(", ")
-	builder.WriteString("invoice_default_tax_config=")
-	builder.WriteString(fmt.Sprintf("%v", _m.InvoiceDefaultTaxConfig))
-	builder.WriteString(", ")
-	if v := _m.TaxCodeID; v != nil {
-		builder.WriteString("tax_code_id=")
-		builder.WriteString(*v)
-	}
-	builder.WriteString(", ")
-	if v := _m.TaxBehavior; v != nil {
-		builder.WriteString("tax_behavior=")
-		builder.WriteString(fmt.Sprintf("%v", *v))
-	}
+	builder.WriteString("billing_profile_id=")
+	builder.WriteString(_m.BillingProfileID)
 	builder.WriteByte(')')
 	return builder.String()
 }
