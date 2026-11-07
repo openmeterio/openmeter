@@ -31,13 +31,13 @@ stripe listen  -l --forward-to http://127.0.0.1:8000/api/v1/apps/01JK62H967WX20W
 
 The output should look something like this:
 ```
-> Ready! You are using Stripe API Version [2025-01-27.acacia]. Your webhook signing secret is whsec_c67e0e4f97227eb66ca026a4fcd9124923035ff778a1945601d109756ca707f4 (^C to quit)
+> Ready! You are using Stripe API Version [2025-01-27.acacia]. Your webhook signing secret is whsec_*** (^C to quit)
 ```
 
 The last thing needs to be done is to update the signing secret for the stripe app:
 ```sh
 psql -h 127.0.0.1 -U postgres postgres
-UPDATE app_stripes set webhook_secret = 'whsec_c67e0e4f97227eb66ca026a4fcd9124923035ff778a1945601d109756ca707f4'
+UPDATE app_stripes set webhook_secret = 'whsec_***'
 ```
 
 ## Creating a stripe enabled customer

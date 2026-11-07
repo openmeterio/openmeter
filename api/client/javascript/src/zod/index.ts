@@ -8327,7 +8327,7 @@ export const IngestEventsBody = zod
         'The event payload.\nOptional, if present it must be a JSON object.',
       ),
     datacontenttype: zod
-      .enum(['application/json'])
+      .union([zod.literal('application/json'), zod.literal(null)])
       .nullish()
       .describe(
         'Content type of the CloudEvents data value. Only the value "application/json" is allowed over HTTP.',
