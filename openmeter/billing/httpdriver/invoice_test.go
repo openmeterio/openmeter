@@ -76,6 +76,29 @@ func TestMapInvoiceLineCreditsToAPIOmitsEmptyCredits(t *testing.T) {
 	require.Nil(t, mapInvoiceLineCreditsToAPI(nil))
 }
 
+func TestMapSubscriptionReferencesToAPIKeepsIdsOnDocumentedFields(t *testing.T) {
+	from := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
+	to := time.Date(2025, 2, 1, 0, 0, 0, 0, time.UTC)
+
+	got := mapSubscriptionReferencesToAPI(&billing.SubscriptionReference{
+		SubscriptionID: "01M6QNHXFHPA5QN3TGVPYFHZPR",
+		PhaseID:        "01PHASE0000000000000000001",
+		ItemID:         "01ITEM00000000000000000001",
+		BillingPeriod: timeutil.ClosedPeriod{
+			From: from,
+			To:   to,
+		},
+	})
+
+	require.NotNil(t, got)
+	require.Equal(t, "01M6QNHXFHPA5QN3TGVPYFHZPR", got.Subscription.Id)
+	require.Equal(t, "01PHASE0000000000000000001", got.Phase.Id)
+	require.Equal(t, "01ITEM00000000000000000001", got.Item.Id)
+	require.True(t, from.Equal(got.BillingPeriod.From))
+	require.True(t, to.Equal(got.BillingPeriod.To))
+	require.Nil(t, mapSubscriptionReferencesToAPI(nil))
+}
+
 func TestValidateAPIGenericInvoiceDeleteSupportedForGatheringInvoices(t *testing.T) {
 	t.Parallel()
 
