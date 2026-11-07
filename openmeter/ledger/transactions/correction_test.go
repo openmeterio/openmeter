@@ -70,13 +70,13 @@ func TestCorrectTransactionDispatchesTemplateStub(t *testing.T) {
 		OriginalTransaction: &correctionTestTransaction{
 			id: models.NamespacedID{Namespace: "ns", ID: "tx"},
 			annotations: ledger.TransactionAnnotations(
-				TemplateCode(SettleCustomerReceivableFromPaymentTemplate{}),
+				TemplateCode(PlanCustomerFBOBreakageTemplate{}),
 				ledger.TransactionDirectionForward,
 			),
 		},
 	})
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "customer.receivable.payment.settle correction is not implemented")
+	require.Contains(t, err.Error(), "customer.fbo.breakage.plan correction is not implemented")
 }
 
 func TestCorrectTransactionDispatchesArchivedReceivablePaymentTemplates(t *testing.T) {
@@ -129,13 +129,13 @@ func TestCorrectTransactionDispatchesLegacyTemplateNames(t *testing.T) {
 		OriginalTransaction: &correctionTestTransaction{
 			id: models.NamespacedID{Namespace: "ns", ID: "tx"},
 			annotations: models.Annotations{
-				legacyAnnotationTransactionTemplateName: legacyTemplateNameSettleCustomerReceivableFromPayment,
+				legacyAnnotationTransactionTemplateName: legacyTemplateNamePlanCustomerFBOBreakage,
 				ledger.AnnotationTransactionDirection:   string(ledger.TransactionDirectionForward),
 			},
 		},
 	})
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "customer.receivable.payment.settle correction is not implemented")
+	require.Contains(t, err.Error(), "customer.fbo.breakage.plan correction is not implemented")
 }
 
 func TestCorrectTransactionDoesNotFallbackToLegacyTemplateNameWhenCodeExists(t *testing.T) {
