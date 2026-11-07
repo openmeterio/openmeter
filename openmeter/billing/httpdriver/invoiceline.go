@@ -429,13 +429,13 @@ func mapSubscriptionReferencesToAPI(optSub *billing.SubscriptionReference) *api.
 
 	out := &api.InvoiceLineSubscriptionReference{
 		Item: api.IDResource{
-			Id: optSub.SubscriptionID,
+			Id: optSub.ItemID,
 		},
 		Phase: api.IDResource{
 			Id: optSub.PhaseID,
 		},
 		Subscription: api.IDResource{
-			Id: optSub.ItemID,
+			Id: optSub.SubscriptionID,
 		},
 	}
 
