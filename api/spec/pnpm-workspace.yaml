@@ -4,6 +4,12 @@ blockExoticSubdeps: true
 minimumReleaseAge: 4320
 minimumReleaseAgeExclude: []
 trustPolicy: no-downgrade
+saveExact: true
+# @typespec/http-client-python builds a Python venv in its postinstall. With
+# the side-effects cache on, that venv is stored in the (CI-cached) pnpm store
+# and restored on machines whose Python lives elsewhere, which breaks the
+# emitter with "No module named 'encodings'".
+sideEffectsCache: false
 patchedDependencies:
   '@typespec/compiler@1.16.0': patches/@typespec__compiler@1.16.0.patch
   '@typespec/emitter-framework': patches/@typespec__emitter-framework.patch
