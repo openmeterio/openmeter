@@ -81,7 +81,13 @@ func (s *LineEngineTestSuite) TestOnPaymentSettledFailureThroughSandboxHookOnlyP
 		_, err := s.BillingService.ApproveInvoice(ctx, invoice.GetInvoiceID())
 		s.Require().ErrorIs(err, plainLeaf)
 
-		reloaded := s.reloadStandardInvoice(ctx, invoice.GetInvoiceID())
+		generic, err := s.BillingService.GetInvoiceById(ctx, ombilling.GetInvoiceByIdInput{
+			Invoice: invoice.GetInvoiceID(),
+			Expand:  ombilling.InvoiceExpandAll,
+		})
+		s.Require().NoError(err)
+		reloaded, err := generic.AsStandardInvoice()
+		s.Require().NoError(err)
 		s.Equal(ombilling.StandardInvoiceStatusDraftWaitingAutoApproval, reloaded.Status)
 		s.Empty(reloaded.ValidationIssues)
 
@@ -139,19 +145,6 @@ func (s *LineEngineTestSuite) TestOnPaymentSettledFailureThroughSandboxHookOnlyP
 		s.Equal(critical[0].Component, live[0].Component)
 		s.Equal(critical[0].Attributes, live[0].Attributes)
 	})
-}
-
-func (s *LineEngineTestSuite) reloadStandardInvoice(ctx context.Context, id ombilling.InvoiceID) ombilling.StandardInvoice {
-	generic, err := s.BillingService.GetInvoiceById(ctx, ombilling.GetInvoiceByIdInput{
-		Invoice: id,
-		Expand:  ombilling.InvoiceExpandAll,
-	})
-	s.Require().NoError(err)
-
-	invoice, err := generic.AsStandardInvoice()
-	s.Require().NoError(err)
-
-	return invoice
 }
 
 func stubCollectionCompletedQuantities(_ context.Context, input ombilling.OnCollectionCompletedInput) (ombilling.StandardLines, error) {
