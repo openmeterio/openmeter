@@ -43,7 +43,7 @@ var LedgerStack = wire.NewSet(
 	NewLedgerAccountRepo,
 	NewLedgerHistoricalRepo,
 	NewLedgerResolversRepo,
-	NewLedgerHistoricalLedger,
+	NewLedgerHistoricalLedgerWithMetadata,
 	NewLedgerAccountService,
 	NewLedgerAccountCatalog,
 	NewLedgerAccountLocker,
@@ -82,7 +82,20 @@ func NewLedgerAccountService(
 	return accountservice.New(repo, locker)
 }
 
+// NewLedgerHistoricalLedger is retained for callers without service metadata.
+// Use NewLedgerHistoricalLedgerWithMetadata to stamp the writer's build.
 func NewLedgerHistoricalLedger(
+	creditsConfig config.CreditsConfiguration,
+	repo historical.Repo,
+	accountCatalog ledger.AccountCatalog,
+	accountLocker ledger.AccountLocker,
+	routingValidator ledger.RoutingValidator,
+) ledgerReadWriter {
+	return NewLedgerHistoricalLedgerWithMetadata(Metadata{}, creditsConfig, repo, accountCatalog, accountLocker, routingValidator)
+}
+
+func NewLedgerHistoricalLedgerWithMetadata(
+	metadata Metadata,
 	creditsConfig config.CreditsConfiguration,
 	repo historical.Repo,
 	accountCatalog ledger.AccountCatalog,
@@ -93,7 +106,10 @@ func NewLedgerHistoricalLedger(
 		return ledgernoop.Ledger{}
 	}
 
-	return historical.NewLedger(repo, accountCatalog, accountLocker, routingValidator)
+	return historical.NewLedgerWithWriterBuild(repo, accountCatalog, accountLocker, routingValidator, historical.WriterBuild{
+		CommitSHA: metadata.Revision,
+		Version:   metadata.Version,
+	})
 }
 
 func NewLedgerBalanceQuerier(historicalLedger ledgerReadWriter) ledger.BalanceQuerier {

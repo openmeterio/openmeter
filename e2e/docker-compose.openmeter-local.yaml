@@ -2,12 +2,18 @@
 #  docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml up
 #
 # Given this is governed by the Makefile, it's fine to not to add all the extends here.
+x-openmeter-build: &openmeter-build
+  context: ..
+  args:
+    COMMIT_SHA: ${OPENMETER_E2E_EXPECTED_COMMIT_SHA:-}
+    VERSION: ${OPENMETER_E2E_EXPECTED_VERSION:-}
+
 services:
   openmeter:
-    build: ..
+    build: *openmeter-build
 
   sink-worker:
-    build: ..
+    build: *openmeter-build
 
   billing-worker:
-    build: ..
+    build: *openmeter-build

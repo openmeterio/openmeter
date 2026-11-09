@@ -3,11 +3,40 @@ package historical
 import (
 	"context"
 	"fmt"
+	"maps"
 
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
+
+// WriterBuild identifies the binary that commits new transaction groups.
+type WriterBuild struct {
+	CommitSHA string
+	Version   string
+}
+
+func (b WriterBuild) stamp(annotations models.Annotations) models.Annotations {
+	stamped := make(models.Annotations, len(annotations)+2)
+	maps.Copy(stamped, annotations)
+	// Callers may copy annotations from an earlier group when correcting it.
+	// Only this writer can identify the build that booked the new group.
+	delete(stamped, ledger.AnnotationWriterCommitSHA)
+	delete(stamped, ledger.AnnotationWriterVersion)
+	if b.CommitSHA != "" && b.CommitSHA != "unknown" {
+		stamped[ledger.AnnotationWriterCommitSHA] = b.CommitSHA
+	}
+
+	if b.Version != "" && b.Version != "unknown" {
+		stamped[ledger.AnnotationWriterVersion] = b.Version
+	}
+
+	if len(stamped) == 0 && annotations == nil {
+		return nil
+	}
+
+	return stamped
+}
 
 // Ledger represents a historical ledger for settled balances.
 type Ledger struct {
@@ -16,15 +45,21 @@ type Ledger struct {
 	repo           Repo
 
 	routingValidator ledger.RoutingValidator
+	writerBuild      WriterBuild
 }
 
 // NewLedger constructs a Ledger with the given repo and account collaborators.
 func NewLedger(repo Repo, accountCatalog ledger.AccountCatalog, accountLocker ledger.AccountLocker, routingValidator ledger.RoutingValidator) *Ledger {
+	return NewLedgerWithWriterBuild(repo, accountCatalog, accountLocker, routingValidator, WriterBuild{})
+}
+
+func NewLedgerWithWriterBuild(repo Repo, accountCatalog ledger.AccountCatalog, accountLocker ledger.AccountLocker, routingValidator ledger.RoutingValidator, writerBuild WriterBuild) *Ledger {
 	return &Ledger{
 		accountCatalog:   accountCatalog,
 		accountLocker:    accountLocker,
 		repo:             repo,
 		routingValidator: routingValidator,
+		writerBuild:      writerBuild,
 	}
 }
 
@@ -83,7 +118,7 @@ func (l *Ledger) CommitGroup(ctx context.Context, group ledger.TransactionGroupI
 		txG, err := l.repo.CreateTransactionGroup(ctx, CreateTransactionGroupInput{
 			ID:          group.AssignedID(),
 			Namespace:   group.Namespace(),
-			Annotations: group.Annotations(),
+			Annotations: l.writerBuild.stamp(group.Annotations()),
 		})
 		if err != nil {
 			return nil, fmt.Errorf("failed to create transaction group: %w", err)

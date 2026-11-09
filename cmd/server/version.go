@@ -1,6 +1,6 @@
 package main
 
-import "runtime/debug"
+import "github.com/openmeterio/openmeter/pkg/buildinfo"
 
 // Provisioned by ldflags.
 var version string
@@ -17,18 +17,5 @@ func init() {
 		version = "unknown"
 	}
 
-	buildInfo, _ := debug.ReadBuildInfo()
-
-	revision = "unknown"
-	revisionDate = "unknown"
-
-	for _, setting := range buildInfo.Settings {
-		if setting.Key == "vcs.revision" {
-			revision = setting.Value
-		}
-
-		if setting.Key == "vcs.time" {
-			revisionDate = setting.Value
-		}
-	}
+	revision, revisionDate = buildinfo.Revision(revision)
 }
