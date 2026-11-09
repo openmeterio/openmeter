@@ -49,6 +49,10 @@ updates:
       prometheus:
         patterns:
           - "github.com/prometheus/*"
+      clickhouse:
+        patterns:
+          - "github.com/ClickHouse/clickhouse-go/v2"
+          - "github.com/ClickHouse/ch-go"
       redis:
         patterns:
           - "github.com/redis/go-redis/*"
