@@ -30,8 +30,6 @@ ARG COMMIT_SHA
 
 COPY --link . .
 
-RUN chmod +x entrypoint.sh
-
 # See https://github.com/confluentinc/confluent-kafka-go#librdkafka
 # See https://github.com/confluentinc/confluent-kafka-go#static-builds-on-linux
 # Build server binary (default)
@@ -78,7 +76,9 @@ RUN xx-verify /usr/local/bin/openmeter-jobs
 
 FROM alpine:3.24.3@sha256:be2656061b536c1883c4034790e21d0a09c5aaaf51968b89368a3c0371ea2c9a
 
-RUN apk add --update --no-cache ca-certificates tzdata bash
+RUN apk add --update --no-cache ca-certificates tzdata bash \
+    && addgroup -S -g 10001 openmeter \
+    && adduser -S -D -H -u 10001 -G openmeter openmeter
 
 SHELL ["/bin/bash", "-c"]
 
@@ -89,8 +89,11 @@ COPY --link --from=builder /usr/local/bin/openmeter-notification-service /usr/lo
 COPY --link --from=builder /usr/local/bin/openmeter-billing-worker /usr/local/bin/
 COPY --link --from=builder /usr/local/bin/openmeter-jobs /usr/local/bin/
 COPY --link --from=builder /src/go.* /usr/local/src/openmeter/
-COPY --link --from=builder /src/entrypoint.sh /entrypoint.sh
+COPY --link --chmod=755 entrypoint.sh /entrypoint.sh
+COPY --link --chmod=755 prepare-ca-bundle.sh /usr/local/bin/prepare-ca-bundle
+
+USER 10001:10001
 
 ENTRYPOINT ["/entrypoint.sh"]
 
-CMD openmeter
+CMD ["openmeter"]

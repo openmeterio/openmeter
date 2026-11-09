@@ -11,8 +11,11 @@ make env-local-down    # tear down
 ```
 
 Server listens on `http://localhost:38888`. `config.yaml` is bind-mounted, so config
-changes need only `make env-local-up` (force-recreate), not a full down/up. Logs land in
-`e2e/logs/`.
+changes need only `make env-local-up` (force-recreate), not a full down/up. View service logs from this directory with
+
+```sh
+docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.openmeter-local.yaml logs -f
+```
 
 The local E2E build stamps the checked-out Git SHA and version `v0.0.0-e2e`.
 When running `TestLedgerWriterBuild` against a separately built server, set

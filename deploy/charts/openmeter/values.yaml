@@ -40,18 +40,13 @@ podLabels: {}
 
 # -- Pod [security context](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-pod).
 # See the [API reference](https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#security-context) for details.
-podSecurityContext: {}
-  # fsGroup: 2000
+podSecurityContext:
+  fsGroup: 10001
 
 # -- Container [security context](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-container).
 # See the [API reference](https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#security-context-1) for details.
+# OpenMeter containers default to runAsNonRoot, disable privilege escalation, and drop all capabilities.
 securityContext: {}
-  # capabilities:
-  #   drop:
-  #   - ALL
-  # readOnlyRootFilesystem: true
-  # runAsNonRoot: true
-  # runAsUser: 1000
 
 service:
   # -- Kubernetes [service type](https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types).
@@ -422,7 +417,7 @@ billingWorker:
   # @default -- The chart-wide `affinity` value.
   affinity: {}
 
-# -- List of CA Root certificates to inject into pods at runtime.
+# -- PEM root certificates to add to the image trust bundle at pod startup.
 # See [values.yaml](values.yaml)
 caRootCertificates: {}
 #  ca: |

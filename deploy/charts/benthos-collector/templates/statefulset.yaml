@@ -15,6 +15,9 @@ spec:
       annotations:
         checksum/config: {{ .Values.config | toYaml | sha256sum }}
         checksum/secret: {{ .Values.openmeter | toYaml | sha256sum }}
+        {{- if .Values.caRootCertificates }}
+        checksum/ca-certificates: {{ .Values.caRootCertificates | toYaml | sha256sum }}
+        {{- end }}
       {{- with .Values.podAnnotations }}
         {{- toYaml . | nindent 8 }}
       {{- end }}
@@ -31,6 +34,21 @@ spec:
       serviceAccountName: {{ include "benthos-collector.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- if .Values.caRootCertificates }}
+      initContainers:
+        - name: prepare-ca-bundle
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["/usr/local/bin/prepare-ca-bundle"]
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          volumeMounts:
+            - name: ca-certificates
+              mountPath: /usr/local/share/ca-certificates
+              readOnly: true
+            - name: ca-bundle
+              mountPath: /var/run/openmeter-ca
+      {{- end }}
       containers:
         - name: {{ .Chart.Name }}
           securityContext:
@@ -113,9 +131,10 @@ spec:
             - name: data
               mountPath: {{ .Values.storage.mountPath }}
           {{- end }}
-          {{- if ne (len .Values.caRootCertificates) 0 }}
-            - name: ca-certificates
-              mountPath: /usr/local/share/ca-certificates
+          {{- if .Values.caRootCertificates }}
+            - name: ca-bundle
+              mountPath: /etc/ssl/certs/ca-certificates.crt
+              subPath: ca-certificates.crt
               readOnly: true
           {{- end }}
           {{- with .Values.volumeMounts }}
@@ -125,10 +144,12 @@ spec:
         - name: config
           secret:
             secretName: {{ include "benthos-collector.componentName" (list . "config") }}
-      {{- if ne (len .Values.caRootCertificates) 0 }}
+      {{- if .Values.caRootCertificates }}
         - name: ca-certificates
           configMap:
-            name: ca-certificates
+            name: {{ include "benthos-collector.componentName" (list . "ca-certificates") }}
+        - name: ca-bundle
+          emptyDir: {}
       {{- end }}
       {{- with .Values.volumes }}
         {{- toYaml . | nindent 8 }}

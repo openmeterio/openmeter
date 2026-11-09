@@ -29,15 +29,15 @@ ARG VERSION
 
 COPY --link . .
 
-RUN chmod +x entrypoint.sh
-
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/go/cache \
     go build -C ./collector -ldflags "-X main.version=${VERSION}" -o /usr/local/bin/benthos ./cmd
 
 FROM alpine:3.24.3@sha256:be2656061b536c1883c4034790e21d0a09c5aaaf51968b89368a3c0371ea2c9a
 
-RUN apk add --update --no-cache ca-certificates tzdata bash
+RUN apk add --update --no-cache ca-certificates tzdata bash \
+    && addgroup -S -g 10001 openmeter \
+    && adduser -S -D -H -u 10001 -G openmeter openmeter
 
 SHELL ["/bin/bash", "-c"]
 
@@ -49,6 +49,9 @@ COPY cloudevents.spec.json /etc/benthos/
 COPY collector/benthos/presets /etc/benthos/presets
 
 COPY --link --from=builder /usr/local/bin/benthos /usr/local/bin/
-COPY --link --from=builder /src/entrypoint.sh /entrypoint.sh
+COPY --link --chmod=755 entrypoint.sh /entrypoint.sh
+COPY --link --chmod=755 prepare-ca-bundle.sh /usr/local/bin/prepare-ca-bundle
+
+USER 10001:10001
 
 ENTRYPOINT ["/entrypoint.sh", "/usr/local/bin/benthos"]

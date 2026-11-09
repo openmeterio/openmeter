@@ -5,9 +5,8 @@ telemetry:
   log:
     level: debug
     exporters:
-      file:
+      stdout:
         enabled: true
-        filepath: "/var/log/openmeter/openmeter.log"
         prettyprint: true
 
 ingest:

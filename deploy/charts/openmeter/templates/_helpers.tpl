@@ -164,3 +164,54 @@ Checks if redis is ready
             fi
         done
 {{- end }}
+
+{{/* These defaults apply to our images. Svix has its own image user and capabilities. */}}
+{{- define "openmeter.securityContext" -}}
+{{- $defaults := dict "runAsNonRoot" true "allowPrivilegeEscalation" false "capabilities" (dict "drop" (list "ALL")) -}}
+{{- mustMergeOverwrite $defaults .Values.securityContext | toYaml -}}
+{{- end }}
+
+{{- define "openmeter.initContainers" -}}
+{{- if or .Values.postgresql.enabled .Values.clickhouse.enabled .Values.caRootCertificates }}
+initContainers:
+  {{- if .Values.postgresql.enabled }}
+  {{- include "openmeter.init.postgres" (list .) | nindent 2 }}
+  {{- end }}
+  {{- if .Values.clickhouse.enabled }}
+  {{- include "openmeter.init.clickhouse" (list .) | nindent 2 }}
+  {{- end }}
+  {{- if .Values.caRootCertificates }}
+  - name: prepare-ca-bundle
+    image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+    imagePullPolicy: {{ .Values.image.pullPolicy }}
+    command: ["/usr/local/bin/prepare-ca-bundle"]
+    securityContext:
+      {{- include "openmeter.securityContext" . | nindent 6 }}
+    volumeMounts:
+      - name: ca-certificates
+        mountPath: /usr/local/share/ca-certificates
+        readOnly: true
+      - name: ca-bundle
+        mountPath: /var/run/openmeter-ca
+  {{- end }}
+{{- end }}
+{{- end }}
+
+{{- define "openmeter.caVolumes" -}}
+{{- if .Values.caRootCertificates }}
+- name: ca-certificates
+  configMap:
+    name: {{ include "openmeter.componentName" (list . "ca-certificates") }}
+- name: ca-bundle
+  emptyDir: {}
+{{- end }}
+{{- end }}
+
+{{- define "openmeter.caBundleMount" -}}
+{{- if .Values.caRootCertificates }}
+- name: ca-bundle
+  mountPath: /etc/ssl/certs/ca-certificates.crt
+  subPath: ca-certificates.crt
+  readOnly: true
+{{- end }}
+{{- end }}

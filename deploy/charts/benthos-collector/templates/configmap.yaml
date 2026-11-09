@@ -2,7 +2,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: ca-certificates
+  name: {{ include "benthos-collector.componentName" (list . "ca-certificates") }}
   labels:
     {{- include "benthos-collector.labels" . | nindent 4 }}
 data:
