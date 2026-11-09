@@ -4,6 +4,7 @@ package db
 
 import (
 	"context"
+	"encoding/json/jsontext"
 	"errors"
 	"fmt"
 	"sync"
@@ -106,6 +107,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/rtecreditbalance"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/rtemeteredentitlementbalance"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subject"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddon"
@@ -217,6 +220,8 @@ const (
 	TypePlanAddon                                        = "PlanAddon"
 	TypePlanPhase                                        = "PlanPhase"
 	TypePlanRateCard                                     = "PlanRateCard"
+	TypeRTECreditBalance                                 = "RTECreditBalance"
+	TypeRTEMeteredEntitlementBalance                     = "RTEMeteredEntitlementBalance"
 	TypeSubject                                          = "Subject"
 	TypeSubscription                                     = "Subscription"
 	TypeSubscriptionAddon                                = "SubscriptionAddon"
@@ -117296,6 +117301,1620 @@ func (m *PlanRateCardMutation) ResetEdge(name string) error {
 		return nil
 	}
 	return fmt.Errorf("unknown PlanRateCard edge %s", name)
+}
+
+// RTECreditBalanceMutation represents an operation that mutates the RTECreditBalance nodes in the graph.
+type RTECreditBalanceMutation struct {
+	config
+	op            Op
+	typ           string
+	id            *int
+	namespace     *string
+	created_at    *time.Time
+	updated_at    *time.Time
+	deleted_at    *time.Time
+	customer_id   *string
+	currency_key  *string
+	feature_scope *string
+	calculated_at *time.Time
+	booked        *alpacadecimal.Decimal
+	spendable     *alpacadecimal.Decimal
+	live          *alpacadecimal.Decimal
+	pending       *alpacadecimal.Decimal
+	clearedFields map[string]struct{}
+	done          bool
+	oldValue      func(context.Context) (*RTECreditBalance, error)
+	predicates    []predicate.RTECreditBalance
+}
+
+var _ ent.Mutation = (*RTECreditBalanceMutation)(nil)
+
+// rtecreditbalanceOption allows management of the mutation configuration using functional options.
+type rtecreditbalanceOption func(*RTECreditBalanceMutation)
+
+// newRTECreditBalanceMutation creates new mutation for the RTECreditBalance entity.
+func newRTECreditBalanceMutation(c config, op Op, opts ...rtecreditbalanceOption) *RTECreditBalanceMutation {
+	m := &RTECreditBalanceMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeRTECreditBalance,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withRTECreditBalanceID sets the ID field of the mutation.
+func withRTECreditBalanceID(id int) rtecreditbalanceOption {
+	return func(m *RTECreditBalanceMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *RTECreditBalance
+		)
+		m.oldValue = func(ctx context.Context) (*RTECreditBalance, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().RTECreditBalance.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withRTECreditBalance sets the old RTECreditBalance of the mutation.
+func withRTECreditBalance(node *RTECreditBalance) rtecreditbalanceOption {
+	return func(m *RTECreditBalanceMutation) {
+		m.oldValue = func(context.Context) (*RTECreditBalance, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m RTECreditBalanceMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m RTECreditBalanceMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("db: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *RTECreditBalanceMutation) ID() (id int, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *RTECreditBalanceMutation) IDs(ctx context.Context) ([]int, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().RTECreditBalance.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetNamespace sets the "namespace" field.
+func (m *RTECreditBalanceMutation) SetNamespace(s string) {
+	m.namespace = &s
+}
+
+// Namespace returns the value of the "namespace" field in the mutation.
+func (m *RTECreditBalanceMutation) Namespace() (r string, exists bool) {
+	v := m.namespace
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNamespace returns the old "namespace" field's value of the RTECreditBalance entity.
+// If the RTECreditBalance object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RTECreditBalanceMutation) OldNamespace(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNamespace is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNamespace requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNamespace: %w", err)
+	}
+	return oldValue.Namespace, nil
+}
+
+// ResetNamespace resets all changes to the "namespace" field.
+func (m *RTECreditBalanceMutation) ResetNamespace() {
+	m.namespace = nil
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *RTECreditBalanceMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *RTECreditBalanceMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the RTECreditBalance entity.
+// If the RTECreditBalance object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RTECreditBalanceMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *RTECreditBalanceMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *RTECreditBalanceMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *RTECreditBalanceMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the RTECreditBalance entity.
+// If the RTECreditBalance object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RTECreditBalanceMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *RTECreditBalanceMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (m *RTECreditBalanceMutation) SetDeletedAt(t time.Time) {
+	m.deleted_at = &t
+}
+
+// DeletedAt returns the value of the "deleted_at" field in the mutation.
+func (m *RTECreditBalanceMutation) DeletedAt() (r time.Time, exists bool) {
+	v := m.deleted_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDeletedAt returns the old "deleted_at" field's value of the RTECreditBalance entity.
+// If the RTECreditBalance object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RTECreditBalanceMutation) OldDeletedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDeletedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDeletedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDeletedAt: %w", err)
+	}
+	return oldValue.DeletedAt, nil
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (m *RTECreditBalanceMutation) ClearDeletedAt() {
+	m.deleted_at = nil
+	m.clearedFields[rtecreditbalance.FieldDeletedAt] = struct{}{}
+}
+
+// DeletedAtCleared returns if the "deleted_at" field was cleared in this mutation.
+func (m *RTECreditBalanceMutation) DeletedAtCleared() bool {
+	_, ok := m.clearedFields[rtecreditbalance.FieldDeletedAt]
+	return ok
+}
+
+// ResetDeletedAt resets all changes to the "deleted_at" field.
+func (m *RTECreditBalanceMutation) ResetDeletedAt() {
+	m.deleted_at = nil
+	delete(m.clearedFields, rtecreditbalance.FieldDeletedAt)
+}
+
+// SetCustomerID sets the "customer_id" field.
+func (m *RTECreditBalanceMutation) SetCustomerID(s string) {
+	m.customer_id = &s
+}
+
+// CustomerID returns the value of the "customer_id" field in the mutation.
+func (m *RTECreditBalanceMutation) CustomerID() (r string, exists bool) {
+	v := m.customer_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCustomerID returns the old "customer_id" field's value of the RTECreditBalance entity.
+// If the RTECreditBalance object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RTECreditBalanceMutation) OldCustomerID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCustomerID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCustomerID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCustomerID: %w", err)
+	}
+	return oldValue.CustomerID, nil
+}
+
+// ResetCustomerID resets all changes to the "customer_id" field.
+func (m *RTECreditBalanceMutation) ResetCustomerID() {
+	m.customer_id = nil
+}
+
+// SetCurrencyKey sets the "currency_key" field.
+func (m *RTECreditBalanceMutation) SetCurrencyKey(s string) {
+	m.currency_key = &s
+}
+
+// CurrencyKey returns the value of the "currency_key" field in the mutation.
+func (m *RTECreditBalanceMutation) CurrencyKey() (r string, exists bool) {
+	v := m.currency_key
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCurrencyKey returns the old "currency_key" field's value of the RTECreditBalance entity.
+// If the RTECreditBalance object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RTECreditBalanceMutation) OldCurrencyKey(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCurrencyKey is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCurrencyKey requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCurrencyKey: %w", err)
+	}
+	return oldValue.CurrencyKey, nil
+}
+
+// ResetCurrencyKey resets all changes to the "currency_key" field.
+func (m *RTECreditBalanceMutation) ResetCurrencyKey() {
+	m.currency_key = nil
+}
+
+// SetFeatureScope sets the "feature_scope" field.
+func (m *RTECreditBalanceMutation) SetFeatureScope(s string) {
+	m.feature_scope = &s
+}
+
+// FeatureScope returns the value of the "feature_scope" field in the mutation.
+func (m *RTECreditBalanceMutation) FeatureScope() (r string, exists bool) {
+	v := m.feature_scope
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldFeatureScope returns the old "feature_scope" field's value of the RTECreditBalance entity.
+// If the RTECreditBalance object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RTECreditBalanceMutation) OldFeatureScope(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldFeatureScope is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldFeatureScope requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldFeatureScope: %w", err)
+	}
+	return oldValue.FeatureScope, nil
+}
+
+// ResetFeatureScope resets all changes to the "feature_scope" field.
+func (m *RTECreditBalanceMutation) ResetFeatureScope() {
+	m.feature_scope = nil
+}
+
+// SetCalculatedAt sets the "calculated_at" field.
+func (m *RTECreditBalanceMutation) SetCalculatedAt(t time.Time) {
+	m.calculated_at = &t
+}
+
+// CalculatedAt returns the value of the "calculated_at" field in the mutation.
+func (m *RTECreditBalanceMutation) CalculatedAt() (r time.Time, exists bool) {
+	v := m.calculated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCalculatedAt returns the old "calculated_at" field's value of the RTECreditBalance entity.
+// If the RTECreditBalance object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RTECreditBalanceMutation) OldCalculatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCalculatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCalculatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCalculatedAt: %w", err)
+	}
+	return oldValue.CalculatedAt, nil
+}
+
+// ResetCalculatedAt resets all changes to the "calculated_at" field.
+func (m *RTECreditBalanceMutation) ResetCalculatedAt() {
+	m.calculated_at = nil
+}
+
+// SetBooked sets the "booked" field.
+func (m *RTECreditBalanceMutation) SetBooked(a alpacadecimal.Decimal) {
+	m.booked = &a
+}
+
+// Booked returns the value of the "booked" field in the mutation.
+func (m *RTECreditBalanceMutation) Booked() (r alpacadecimal.Decimal, exists bool) {
+	v := m.booked
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBooked returns the old "booked" field's value of the RTECreditBalance entity.
+// If the RTECreditBalance object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RTECreditBalanceMutation) OldBooked(ctx context.Context) (v alpacadecimal.Decimal, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBooked is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBooked requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBooked: %w", err)
+	}
+	return oldValue.Booked, nil
+}
+
+// ResetBooked resets all changes to the "booked" field.
+func (m *RTECreditBalanceMutation) ResetBooked() {
+	m.booked = nil
+}
+
+// SetSpendable sets the "spendable" field.
+func (m *RTECreditBalanceMutation) SetSpendable(a alpacadecimal.Decimal) {
+	m.spendable = &a
+}
+
+// Spendable returns the value of the "spendable" field in the mutation.
+func (m *RTECreditBalanceMutation) Spendable() (r alpacadecimal.Decimal, exists bool) {
+	v := m.spendable
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSpendable returns the old "spendable" field's value of the RTECreditBalance entity.
+// If the RTECreditBalance object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RTECreditBalanceMutation) OldSpendable(ctx context.Context) (v alpacadecimal.Decimal, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSpendable is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSpendable requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSpendable: %w", err)
+	}
+	return oldValue.Spendable, nil
+}
+
+// ResetSpendable resets all changes to the "spendable" field.
+func (m *RTECreditBalanceMutation) ResetSpendable() {
+	m.spendable = nil
+}
+
+// SetLive sets the "live" field.
+func (m *RTECreditBalanceMutation) SetLive(a alpacadecimal.Decimal) {
+	m.live = &a
+}
+
+// Live returns the value of the "live" field in the mutation.
+func (m *RTECreditBalanceMutation) Live() (r alpacadecimal.Decimal, exists bool) {
+	v := m.live
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLive returns the old "live" field's value of the RTECreditBalance entity.
+// If the RTECreditBalance object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RTECreditBalanceMutation) OldLive(ctx context.Context) (v alpacadecimal.Decimal, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLive is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLive requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLive: %w", err)
+	}
+	return oldValue.Live, nil
+}
+
+// ResetLive resets all changes to the "live" field.
+func (m *RTECreditBalanceMutation) ResetLive() {
+	m.live = nil
+}
+
+// SetPending sets the "pending" field.
+func (m *RTECreditBalanceMutation) SetPending(a alpacadecimal.Decimal) {
+	m.pending = &a
+}
+
+// Pending returns the value of the "pending" field in the mutation.
+func (m *RTECreditBalanceMutation) Pending() (r alpacadecimal.Decimal, exists bool) {
+	v := m.pending
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPending returns the old "pending" field's value of the RTECreditBalance entity.
+// If the RTECreditBalance object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RTECreditBalanceMutation) OldPending(ctx context.Context) (v alpacadecimal.Decimal, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPending is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPending requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPending: %w", err)
+	}
+	return oldValue.Pending, nil
+}
+
+// ResetPending resets all changes to the "pending" field.
+func (m *RTECreditBalanceMutation) ResetPending() {
+	m.pending = nil
+}
+
+// Where appends a list predicates to the RTECreditBalanceMutation builder.
+func (m *RTECreditBalanceMutation) Where(ps ...predicate.RTECreditBalance) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the RTECreditBalanceMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *RTECreditBalanceMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.RTECreditBalance, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *RTECreditBalanceMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *RTECreditBalanceMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (RTECreditBalance).
+func (m *RTECreditBalanceMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *RTECreditBalanceMutation) Fields() []string {
+	fields := make([]string, 0, 12)
+	if m.namespace != nil {
+		fields = append(fields, rtecreditbalance.FieldNamespace)
+	}
+	if m.created_at != nil {
+		fields = append(fields, rtecreditbalance.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, rtecreditbalance.FieldUpdatedAt)
+	}
+	if m.deleted_at != nil {
+		fields = append(fields, rtecreditbalance.FieldDeletedAt)
+	}
+	if m.customer_id != nil {
+		fields = append(fields, rtecreditbalance.FieldCustomerID)
+	}
+	if m.currency_key != nil {
+		fields = append(fields, rtecreditbalance.FieldCurrencyKey)
+	}
+	if m.feature_scope != nil {
+		fields = append(fields, rtecreditbalance.FieldFeatureScope)
+	}
+	if m.calculated_at != nil {
+		fields = append(fields, rtecreditbalance.FieldCalculatedAt)
+	}
+	if m.booked != nil {
+		fields = append(fields, rtecreditbalance.FieldBooked)
+	}
+	if m.spendable != nil {
+		fields = append(fields, rtecreditbalance.FieldSpendable)
+	}
+	if m.live != nil {
+		fields = append(fields, rtecreditbalance.FieldLive)
+	}
+	if m.pending != nil {
+		fields = append(fields, rtecreditbalance.FieldPending)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *RTECreditBalanceMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case rtecreditbalance.FieldNamespace:
+		return m.Namespace()
+	case rtecreditbalance.FieldCreatedAt:
+		return m.CreatedAt()
+	case rtecreditbalance.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case rtecreditbalance.FieldDeletedAt:
+		return m.DeletedAt()
+	case rtecreditbalance.FieldCustomerID:
+		return m.CustomerID()
+	case rtecreditbalance.FieldCurrencyKey:
+		return m.CurrencyKey()
+	case rtecreditbalance.FieldFeatureScope:
+		return m.FeatureScope()
+	case rtecreditbalance.FieldCalculatedAt:
+		return m.CalculatedAt()
+	case rtecreditbalance.FieldBooked:
+		return m.Booked()
+	case rtecreditbalance.FieldSpendable:
+		return m.Spendable()
+	case rtecreditbalance.FieldLive:
+		return m.Live()
+	case rtecreditbalance.FieldPending:
+		return m.Pending()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *RTECreditBalanceMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case rtecreditbalance.FieldNamespace:
+		return m.OldNamespace(ctx)
+	case rtecreditbalance.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case rtecreditbalance.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case rtecreditbalance.FieldDeletedAt:
+		return m.OldDeletedAt(ctx)
+	case rtecreditbalance.FieldCustomerID:
+		return m.OldCustomerID(ctx)
+	case rtecreditbalance.FieldCurrencyKey:
+		return m.OldCurrencyKey(ctx)
+	case rtecreditbalance.FieldFeatureScope:
+		return m.OldFeatureScope(ctx)
+	case rtecreditbalance.FieldCalculatedAt:
+		return m.OldCalculatedAt(ctx)
+	case rtecreditbalance.FieldBooked:
+		return m.OldBooked(ctx)
+	case rtecreditbalance.FieldSpendable:
+		return m.OldSpendable(ctx)
+	case rtecreditbalance.FieldLive:
+		return m.OldLive(ctx)
+	case rtecreditbalance.FieldPending:
+		return m.OldPending(ctx)
+	}
+	return nil, fmt.Errorf("unknown RTECreditBalance field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *RTECreditBalanceMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case rtecreditbalance.FieldNamespace:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNamespace(v)
+		return nil
+	case rtecreditbalance.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case rtecreditbalance.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case rtecreditbalance.FieldDeletedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDeletedAt(v)
+		return nil
+	case rtecreditbalance.FieldCustomerID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCustomerID(v)
+		return nil
+	case rtecreditbalance.FieldCurrencyKey:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCurrencyKey(v)
+		return nil
+	case rtecreditbalance.FieldFeatureScope:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetFeatureScope(v)
+		return nil
+	case rtecreditbalance.FieldCalculatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCalculatedAt(v)
+		return nil
+	case rtecreditbalance.FieldBooked:
+		v, ok := value.(alpacadecimal.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBooked(v)
+		return nil
+	case rtecreditbalance.FieldSpendable:
+		v, ok := value.(alpacadecimal.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSpendable(v)
+		return nil
+	case rtecreditbalance.FieldLive:
+		v, ok := value.(alpacadecimal.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLive(v)
+		return nil
+	case rtecreditbalance.FieldPending:
+		v, ok := value.(alpacadecimal.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPending(v)
+		return nil
+	}
+	return fmt.Errorf("unknown RTECreditBalance field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *RTECreditBalanceMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *RTECreditBalanceMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *RTECreditBalanceMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown RTECreditBalance numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *RTECreditBalanceMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(rtecreditbalance.FieldDeletedAt) {
+		fields = append(fields, rtecreditbalance.FieldDeletedAt)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *RTECreditBalanceMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *RTECreditBalanceMutation) ClearField(name string) error {
+	switch name {
+	case rtecreditbalance.FieldDeletedAt:
+		m.ClearDeletedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown RTECreditBalance nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *RTECreditBalanceMutation) ResetField(name string) error {
+	switch name {
+	case rtecreditbalance.FieldNamespace:
+		m.ResetNamespace()
+		return nil
+	case rtecreditbalance.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case rtecreditbalance.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case rtecreditbalance.FieldDeletedAt:
+		m.ResetDeletedAt()
+		return nil
+	case rtecreditbalance.FieldCustomerID:
+		m.ResetCustomerID()
+		return nil
+	case rtecreditbalance.FieldCurrencyKey:
+		m.ResetCurrencyKey()
+		return nil
+	case rtecreditbalance.FieldFeatureScope:
+		m.ResetFeatureScope()
+		return nil
+	case rtecreditbalance.FieldCalculatedAt:
+		m.ResetCalculatedAt()
+		return nil
+	case rtecreditbalance.FieldBooked:
+		m.ResetBooked()
+		return nil
+	case rtecreditbalance.FieldSpendable:
+		m.ResetSpendable()
+		return nil
+	case rtecreditbalance.FieldLive:
+		m.ResetLive()
+		return nil
+	case rtecreditbalance.FieldPending:
+		m.ResetPending()
+		return nil
+	}
+	return fmt.Errorf("unknown RTECreditBalance field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *RTECreditBalanceMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *RTECreditBalanceMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *RTECreditBalanceMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *RTECreditBalanceMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *RTECreditBalanceMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *RTECreditBalanceMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *RTECreditBalanceMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown RTECreditBalance unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *RTECreditBalanceMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown RTECreditBalance edge %s", name)
+}
+
+// RTEMeteredEntitlementBalanceMutation represents an operation that mutates the RTEMeteredEntitlementBalance nodes in the graph.
+type RTEMeteredEntitlementBalanceMutation struct {
+	config
+	op             Op
+	typ            string
+	id             *int
+	namespace      *string
+	created_at     *time.Time
+	updated_at     *time.Time
+	deleted_at     *time.Time
+	entitlement_id *string
+	calculated_at  *time.Time
+	balance        *jsontext.Value
+	clearedFields  map[string]struct{}
+	done           bool
+	oldValue       func(context.Context) (*RTEMeteredEntitlementBalance, error)
+	predicates     []predicate.RTEMeteredEntitlementBalance
+}
+
+var _ ent.Mutation = (*RTEMeteredEntitlementBalanceMutation)(nil)
+
+// rtemeteredentitlementbalanceOption allows management of the mutation configuration using functional options.
+type rtemeteredentitlementbalanceOption func(*RTEMeteredEntitlementBalanceMutation)
+
+// newRTEMeteredEntitlementBalanceMutation creates new mutation for the RTEMeteredEntitlementBalance entity.
+func newRTEMeteredEntitlementBalanceMutation(c config, op Op, opts ...rtemeteredentitlementbalanceOption) *RTEMeteredEntitlementBalanceMutation {
+	m := &RTEMeteredEntitlementBalanceMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeRTEMeteredEntitlementBalance,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withRTEMeteredEntitlementBalanceID sets the ID field of the mutation.
+func withRTEMeteredEntitlementBalanceID(id int) rtemeteredentitlementbalanceOption {
+	return func(m *RTEMeteredEntitlementBalanceMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *RTEMeteredEntitlementBalance
+		)
+		m.oldValue = func(ctx context.Context) (*RTEMeteredEntitlementBalance, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().RTEMeteredEntitlementBalance.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withRTEMeteredEntitlementBalance sets the old RTEMeteredEntitlementBalance of the mutation.
+func withRTEMeteredEntitlementBalance(node *RTEMeteredEntitlementBalance) rtemeteredentitlementbalanceOption {
+	return func(m *RTEMeteredEntitlementBalanceMutation) {
+		m.oldValue = func(context.Context) (*RTEMeteredEntitlementBalance, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m RTEMeteredEntitlementBalanceMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m RTEMeteredEntitlementBalanceMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("db: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *RTEMeteredEntitlementBalanceMutation) ID() (id int, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *RTEMeteredEntitlementBalanceMutation) IDs(ctx context.Context) ([]int, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().RTEMeteredEntitlementBalance.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetNamespace sets the "namespace" field.
+func (m *RTEMeteredEntitlementBalanceMutation) SetNamespace(s string) {
+	m.namespace = &s
+}
+
+// Namespace returns the value of the "namespace" field in the mutation.
+func (m *RTEMeteredEntitlementBalanceMutation) Namespace() (r string, exists bool) {
+	v := m.namespace
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNamespace returns the old "namespace" field's value of the RTEMeteredEntitlementBalance entity.
+// If the RTEMeteredEntitlementBalance object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RTEMeteredEntitlementBalanceMutation) OldNamespace(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNamespace is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNamespace requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNamespace: %w", err)
+	}
+	return oldValue.Namespace, nil
+}
+
+// ResetNamespace resets all changes to the "namespace" field.
+func (m *RTEMeteredEntitlementBalanceMutation) ResetNamespace() {
+	m.namespace = nil
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *RTEMeteredEntitlementBalanceMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *RTEMeteredEntitlementBalanceMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the RTEMeteredEntitlementBalance entity.
+// If the RTEMeteredEntitlementBalance object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RTEMeteredEntitlementBalanceMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *RTEMeteredEntitlementBalanceMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *RTEMeteredEntitlementBalanceMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *RTEMeteredEntitlementBalanceMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the RTEMeteredEntitlementBalance entity.
+// If the RTEMeteredEntitlementBalance object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RTEMeteredEntitlementBalanceMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *RTEMeteredEntitlementBalanceMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (m *RTEMeteredEntitlementBalanceMutation) SetDeletedAt(t time.Time) {
+	m.deleted_at = &t
+}
+
+// DeletedAt returns the value of the "deleted_at" field in the mutation.
+func (m *RTEMeteredEntitlementBalanceMutation) DeletedAt() (r time.Time, exists bool) {
+	v := m.deleted_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDeletedAt returns the old "deleted_at" field's value of the RTEMeteredEntitlementBalance entity.
+// If the RTEMeteredEntitlementBalance object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RTEMeteredEntitlementBalanceMutation) OldDeletedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDeletedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDeletedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDeletedAt: %w", err)
+	}
+	return oldValue.DeletedAt, nil
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (m *RTEMeteredEntitlementBalanceMutation) ClearDeletedAt() {
+	m.deleted_at = nil
+	m.clearedFields[rtemeteredentitlementbalance.FieldDeletedAt] = struct{}{}
+}
+
+// DeletedAtCleared returns if the "deleted_at" field was cleared in this mutation.
+func (m *RTEMeteredEntitlementBalanceMutation) DeletedAtCleared() bool {
+	_, ok := m.clearedFields[rtemeteredentitlementbalance.FieldDeletedAt]
+	return ok
+}
+
+// ResetDeletedAt resets all changes to the "deleted_at" field.
+func (m *RTEMeteredEntitlementBalanceMutation) ResetDeletedAt() {
+	m.deleted_at = nil
+	delete(m.clearedFields, rtemeteredentitlementbalance.FieldDeletedAt)
+}
+
+// SetEntitlementID sets the "entitlement_id" field.
+func (m *RTEMeteredEntitlementBalanceMutation) SetEntitlementID(s string) {
+	m.entitlement_id = &s
+}
+
+// EntitlementID returns the value of the "entitlement_id" field in the mutation.
+func (m *RTEMeteredEntitlementBalanceMutation) EntitlementID() (r string, exists bool) {
+	v := m.entitlement_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEntitlementID returns the old "entitlement_id" field's value of the RTEMeteredEntitlementBalance entity.
+// If the RTEMeteredEntitlementBalance object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RTEMeteredEntitlementBalanceMutation) OldEntitlementID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEntitlementID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEntitlementID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEntitlementID: %w", err)
+	}
+	return oldValue.EntitlementID, nil
+}
+
+// ResetEntitlementID resets all changes to the "entitlement_id" field.
+func (m *RTEMeteredEntitlementBalanceMutation) ResetEntitlementID() {
+	m.entitlement_id = nil
+}
+
+// SetCalculatedAt sets the "calculated_at" field.
+func (m *RTEMeteredEntitlementBalanceMutation) SetCalculatedAt(t time.Time) {
+	m.calculated_at = &t
+}
+
+// CalculatedAt returns the value of the "calculated_at" field in the mutation.
+func (m *RTEMeteredEntitlementBalanceMutation) CalculatedAt() (r time.Time, exists bool) {
+	v := m.calculated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCalculatedAt returns the old "calculated_at" field's value of the RTEMeteredEntitlementBalance entity.
+// If the RTEMeteredEntitlementBalance object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RTEMeteredEntitlementBalanceMutation) OldCalculatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCalculatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCalculatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCalculatedAt: %w", err)
+	}
+	return oldValue.CalculatedAt, nil
+}
+
+// ResetCalculatedAt resets all changes to the "calculated_at" field.
+func (m *RTEMeteredEntitlementBalanceMutation) ResetCalculatedAt() {
+	m.calculated_at = nil
+}
+
+// SetBalance sets the "balance" field.
+func (m *RTEMeteredEntitlementBalanceMutation) SetBalance(j jsontext.Value) {
+	m.balance = &j
+}
+
+// Balance returns the value of the "balance" field in the mutation.
+func (m *RTEMeteredEntitlementBalanceMutation) Balance() (r jsontext.Value, exists bool) {
+	v := m.balance
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBalance returns the old "balance" field's value of the RTEMeteredEntitlementBalance entity.
+// If the RTEMeteredEntitlementBalance object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RTEMeteredEntitlementBalanceMutation) OldBalance(ctx context.Context) (v jsontext.Value, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBalance is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBalance requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBalance: %w", err)
+	}
+	return oldValue.Balance, nil
+}
+
+// ResetBalance resets all changes to the "balance" field.
+func (m *RTEMeteredEntitlementBalanceMutation) ResetBalance() {
+	m.balance = nil
+}
+
+// Where appends a list predicates to the RTEMeteredEntitlementBalanceMutation builder.
+func (m *RTEMeteredEntitlementBalanceMutation) Where(ps ...predicate.RTEMeteredEntitlementBalance) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the RTEMeteredEntitlementBalanceMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *RTEMeteredEntitlementBalanceMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.RTEMeteredEntitlementBalance, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *RTEMeteredEntitlementBalanceMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *RTEMeteredEntitlementBalanceMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (RTEMeteredEntitlementBalance).
+func (m *RTEMeteredEntitlementBalanceMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *RTEMeteredEntitlementBalanceMutation) Fields() []string {
+	fields := make([]string, 0, 7)
+	if m.namespace != nil {
+		fields = append(fields, rtemeteredentitlementbalance.FieldNamespace)
+	}
+	if m.created_at != nil {
+		fields = append(fields, rtemeteredentitlementbalance.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, rtemeteredentitlementbalance.FieldUpdatedAt)
+	}
+	if m.deleted_at != nil {
+		fields = append(fields, rtemeteredentitlementbalance.FieldDeletedAt)
+	}
+	if m.entitlement_id != nil {
+		fields = append(fields, rtemeteredentitlementbalance.FieldEntitlementID)
+	}
+	if m.calculated_at != nil {
+		fields = append(fields, rtemeteredentitlementbalance.FieldCalculatedAt)
+	}
+	if m.balance != nil {
+		fields = append(fields, rtemeteredentitlementbalance.FieldBalance)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *RTEMeteredEntitlementBalanceMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case rtemeteredentitlementbalance.FieldNamespace:
+		return m.Namespace()
+	case rtemeteredentitlementbalance.FieldCreatedAt:
+		return m.CreatedAt()
+	case rtemeteredentitlementbalance.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case rtemeteredentitlementbalance.FieldDeletedAt:
+		return m.DeletedAt()
+	case rtemeteredentitlementbalance.FieldEntitlementID:
+		return m.EntitlementID()
+	case rtemeteredentitlementbalance.FieldCalculatedAt:
+		return m.CalculatedAt()
+	case rtemeteredentitlementbalance.FieldBalance:
+		return m.Balance()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *RTEMeteredEntitlementBalanceMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case rtemeteredentitlementbalance.FieldNamespace:
+		return m.OldNamespace(ctx)
+	case rtemeteredentitlementbalance.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case rtemeteredentitlementbalance.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case rtemeteredentitlementbalance.FieldDeletedAt:
+		return m.OldDeletedAt(ctx)
+	case rtemeteredentitlementbalance.FieldEntitlementID:
+		return m.OldEntitlementID(ctx)
+	case rtemeteredentitlementbalance.FieldCalculatedAt:
+		return m.OldCalculatedAt(ctx)
+	case rtemeteredentitlementbalance.FieldBalance:
+		return m.OldBalance(ctx)
+	}
+	return nil, fmt.Errorf("unknown RTEMeteredEntitlementBalance field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *RTEMeteredEntitlementBalanceMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case rtemeteredentitlementbalance.FieldNamespace:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNamespace(v)
+		return nil
+	case rtemeteredentitlementbalance.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case rtemeteredentitlementbalance.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case rtemeteredentitlementbalance.FieldDeletedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDeletedAt(v)
+		return nil
+	case rtemeteredentitlementbalance.FieldEntitlementID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEntitlementID(v)
+		return nil
+	case rtemeteredentitlementbalance.FieldCalculatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCalculatedAt(v)
+		return nil
+	case rtemeteredentitlementbalance.FieldBalance:
+		v, ok := value.(jsontext.Value)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBalance(v)
+		return nil
+	}
+	return fmt.Errorf("unknown RTEMeteredEntitlementBalance field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *RTEMeteredEntitlementBalanceMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *RTEMeteredEntitlementBalanceMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *RTEMeteredEntitlementBalanceMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown RTEMeteredEntitlementBalance numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *RTEMeteredEntitlementBalanceMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(rtemeteredentitlementbalance.FieldDeletedAt) {
+		fields = append(fields, rtemeteredentitlementbalance.FieldDeletedAt)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *RTEMeteredEntitlementBalanceMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *RTEMeteredEntitlementBalanceMutation) ClearField(name string) error {
+	switch name {
+	case rtemeteredentitlementbalance.FieldDeletedAt:
+		m.ClearDeletedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown RTEMeteredEntitlementBalance nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *RTEMeteredEntitlementBalanceMutation) ResetField(name string) error {
+	switch name {
+	case rtemeteredentitlementbalance.FieldNamespace:
+		m.ResetNamespace()
+		return nil
+	case rtemeteredentitlementbalance.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case rtemeteredentitlementbalance.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case rtemeteredentitlementbalance.FieldDeletedAt:
+		m.ResetDeletedAt()
+		return nil
+	case rtemeteredentitlementbalance.FieldEntitlementID:
+		m.ResetEntitlementID()
+		return nil
+	case rtemeteredentitlementbalance.FieldCalculatedAt:
+		m.ResetCalculatedAt()
+		return nil
+	case rtemeteredentitlementbalance.FieldBalance:
+		m.ResetBalance()
+		return nil
+	}
+	return fmt.Errorf("unknown RTEMeteredEntitlementBalance field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *RTEMeteredEntitlementBalanceMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *RTEMeteredEntitlementBalanceMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *RTEMeteredEntitlementBalanceMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *RTEMeteredEntitlementBalanceMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *RTEMeteredEntitlementBalanceMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *RTEMeteredEntitlementBalanceMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *RTEMeteredEntitlementBalanceMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown RTEMeteredEntitlementBalance unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *RTEMeteredEntitlementBalanceMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown RTEMeteredEntitlementBalance edge %s", name)
 }
 
 // SubjectMutation represents an operation that mutates the Subject nodes in the graph.
