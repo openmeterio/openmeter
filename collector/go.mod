@@ -71,8 +71,8 @@ require (
 	github.com/Azure/go-amqp v1.5.1 // indirect
 	github.com/AzureAD/microsoft-authentication-library-for-go v1.7.2 // indirect
 	github.com/BurntSushi/toml v1.6.0 // indirect
-	github.com/ClickHouse/ch-go v0.74.0 // indirect
-	github.com/ClickHouse/clickhouse-go/v2 v2.49.0 // indirect
+	github.com/ClickHouse/ch-go v0.75.0 // indirect
+	github.com/ClickHouse/clickhouse-go/v2 v2.50.0 // indirect
 	github.com/DataDog/zstd v1.5.7 // indirect
 	github.com/GoogleCloudPlatform/grpc-gcp-go/grpcgcp v1.6.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp v1.35.0 // indirect
@@ -185,7 +185,7 @@ require (
 	github.com/dnephin/pflag v1.0.7 // indirect
 	github.com/dop251/goja v0.0.0-20260311135729-065cd970411c // indirect
 	github.com/dop251/goja_nodejs v0.0.0-20260212111938-1f56ff5bcf14 // indirect
-	github.com/dustin/go-humanize v1.0.1 // indirect
+	github.com/dustin/go-humanize v1.1.0 // indirect
 	github.com/dvsekhvalnov/jose2go v1.8.0 // indirect
 	github.com/eapache/go-resiliency v1.7.0 // indirect
 	github.com/ebitengine/purego v0.10.1 // indirect
@@ -209,7 +209,7 @@ require (
 	github.com/go-chi/chi/v5 v5.5.0 // indirect
 	github.com/go-faker/faker/v4 v4.7.0 // indirect
 	github.com/go-faster/city v1.0.1 // indirect
-	github.com/go-faster/errors v0.7.1 // indirect
+	github.com/go-faster/errors v0.8.0 // indirect
 	github.com/go-git/gcfg v1.5.1-0.20230307220236-3a3c6141e376 // indirect
 	github.com/go-git/go-billy/v5 v5.9.0 // indirect
 	github.com/go-git/go-git/v5 v5.19.2 // indirect
@@ -296,7 +296,7 @@ require (
 	github.com/jzelinskie/stringz v0.0.3 // indirect
 	github.com/kevinburke/ssh_config v1.6.0 // indirect
 	github.com/klauspost/asmfmt v1.3.2 // indirect
-	github.com/klauspost/compress v1.20.1 // indirect
+	github.com/klauspost/compress v1.20.3 // indirect
 	github.com/klauspost/cpuid/v2 v2.4.0 // indirect
 	github.com/klauspost/pgzip v1.2.6 // indirect
 	github.com/knadh/koanf/maps v0.1.2 // indirect
@@ -350,7 +350,7 @@ require (
 	github.com/petermattis/goid v0.0.0-20260226131333-17d1149c6ac6 // indirect
 	github.com/pgvector/pgvector-go v0.3.0 // indirect
 	github.com/pierrec/lz4 v2.6.1+incompatible // indirect
-	github.com/pierrec/lz4/v4 v4.1.31 // indirect
+	github.com/pierrec/lz4/v4 v4.1.33 // indirect
 	github.com/pinecone-io/go-pinecone v1.1.1 // indirect
 	github.com/pingcap/errors v0.11.5-0.20250523034308-74f78ae071ee // indirect
 	github.com/pingcap/failpoint v0.0.0-20251231045439-91d91e123837 // indirect
