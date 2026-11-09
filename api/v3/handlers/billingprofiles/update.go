@@ -5,10 +5,14 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/samber/lo"
+
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	billinghttpdriver "github.com/openmeterio/openmeter/openmeter/billing/httpdriver"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -19,6 +23,8 @@ type (
 		Namespace string
 		ProfileID string
 		Profile   billing.UpdateProfileInput
+		// DefaultTaxConfig is kept raw for the same reason as in CreateBillingProfileRequest.
+		DefaultTaxConfig *productcatalog.TaxConfig
 	}
 	UpdateBillingProfileParams   = string
 	UpdateBillingProfileResponse = api.BillingProfile
@@ -46,25 +52,71 @@ func (h *handler) UpdateBillingProfile() UpdateBillingProfileHandler {
 				return UpdateBillingProfileRequest{}, err
 			}
 
+			defaultTaxConfig, err := FromAPIBillingTaxConfigFull(lo.FromPtr(body.Workflow.Tax).DefaultTaxConfig)
+			if err != nil {
+				return UpdateBillingProfileRequest{}, err
+			}
+
 			req := UpdateBillingProfileRequest{
-				Namespace: ns,
-				ProfileID: profileID,
-				Profile:   profile,
+				Namespace:        ns,
+				ProfileID:        profileID,
+				Profile:          profile,
+				DefaultTaxConfig: defaultTaxConfig,
 			}
 
 			return req, nil
 		},
 		func(ctx context.Context, request UpdateBillingProfileRequest) (UpdateBillingProfileResponse, error) {
-			updatedProfile, err := h.service.UpdateProfile(ctx, request.Profile)
-			if err != nil {
-				return UpdateBillingProfileResponse{}, err
-			}
+			var resp UpdateBillingProfileResponse
 
-			if updatedProfile == nil {
-				return UpdateBillingProfileResponse{}, errors.New("failed to update billing profile")
-			}
+			err := h.taxCodeResolver.WithResolver(ctx, func(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver) error {
+				input := request.Profile
 
-			return ToAPIBillingProfile(*updatedProfile)
+				stored, err := h.service.GetProfile(ctx, billing.GetProfileInput{
+					Profile: input.ProfileID(),
+				})
+				if err != nil {
+					return err
+				}
+
+				// The gate compares against the stored default the way responses show it.
+				var storedDefaultTaxConfig *productcatalog.TaxConfig
+				if cfg := stored.WorkflowConfig.Invoicing.DefaultTaxConfig; cfg != nil {
+					storedTaxCodes, err := h.taxCodesForProfiles(ctx, request.Namespace, *stored)
+					if err != nil {
+						return err
+					}
+
+					storedDefaultTaxConfig = lo.ToPtr(cfg.ToLegacyTaxConfig(storedTaxCodes))
+				}
+
+				defaultTaxConfig, err := billinghttpdriver.ResolveProfileDefaultTaxConfig(ctx, resolver, request.Namespace, request.DefaultTaxConfig, storedDefaultTaxConfig)
+				if err != nil {
+					return err
+				}
+
+				input.WorkflowConfig.Invoicing.DefaultTaxConfig = defaultTaxConfig
+
+				updatedProfile, err := h.service.UpdateProfile(ctx, input)
+				if err != nil {
+					return err
+				}
+
+				if updatedProfile == nil {
+					return errors.New("failed to update billing profile")
+				}
+
+				taxCodes, err := h.taxCodesForProfiles(ctx, request.Namespace, *updatedProfile)
+				if err != nil {
+					return err
+				}
+
+				resp, err = ToAPIBillingProfile(*updatedProfile, taxCodes)
+
+				return err
+			})
+
+			return resp, err
 		},
 		commonhttp.JSONResponseEncoderWithStatus[UpdateBillingProfileResponse](http.StatusOK),
 		httptransport.AppendOptions(

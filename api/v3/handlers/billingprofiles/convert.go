@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -36,11 +37,13 @@ var (
 	// goverter:map Namespace | NamespaceFromContext
 	FromAPIBillingAppReferenceToAppID func(namespace string, ref api.BillingAppReference) app.AppID
 	ToAPIBillingAppReferenceFromAppID func(appID app.AppID) api.BillingAppReference
+	// goverter:context taxCodes
 	// goverter:autoMap BaseProfile
 	// goverter:map BaseProfile.Metadata Labels
 	// goverter:map BaseProfile.WorkflowConfig Workflow
-	ToAPIBillingProfile  func(profile billing.Profile) (api.BillingProfile, error)
-	ToAPIBillingProfiles func(profiles []billing.Profile) ([]api.BillingProfile, error)
+	ToAPIBillingProfile func(profile billing.Profile, taxCodes TaxCodes) (api.BillingProfile, error)
+	// goverter:context taxCodes
+	ToAPIBillingProfiles func(profiles []billing.Profile, taxCodes TaxCodes) ([]api.BillingProfile, error)
 	// goverter:context namespace
 	// goverter:map Namespace | NamespaceFromContext
 	// goverter:map Labels Metadata | ConvertLabelsToMetadata
@@ -71,6 +74,10 @@ var (
 	// goverter:map Stripe Stripe
 	FromAPIBillingTaxConfig func(config *api.BillingTaxConfig) (*productcatalog.TaxConfig, error)
 )
+
+// TaxCodes are the Tax Codes the rendered profiles' default tax configs reference, keyed by ID.
+// Responses take the deprecated stripe / external_invoicing codes from their Stripe mapping.
+type TaxCodes map[string]*taxcode.TaxCode
 
 var (
 	ConvertMetadataToLabels = labels.FromMetadata[billing.Metadata]
@@ -198,7 +205,8 @@ func FromAPIBillingParty(party api.BillingParty) billing.SupplierContact {
 }
 
 // ToAPIBillingWorkflow converts billing.WorkflowConfig to API BillingWorkflow
-func ToAPIBillingWorkflow(config billing.WorkflowConfig) (api.BillingWorkflow, error) {
+// goverter:context taxCodes
+func ToAPIBillingWorkflow(config billing.WorkflowConfig, taxCodes TaxCodes) (api.BillingWorkflow, error) {
 	workflow := api.BillingWorkflow{}
 
 	// Collection settings
@@ -245,7 +253,12 @@ func ToAPIBillingWorkflow(config billing.WorkflowConfig) (api.BillingWorkflow, e
 	}
 
 	// Tax settings
-	defaultTaxConfig, err := toAPIBillingTaxConfigFull(config.Invoicing.DefaultTaxConfig)
+	var legacyDefaultTaxConfig *productcatalog.TaxConfig
+	if cfg := config.Invoicing.DefaultTaxConfig; cfg != nil {
+		legacyDefaultTaxConfig = lo.ToPtr(cfg.ToLegacyTaxConfig(taxCodes))
+	}
+
+	defaultTaxConfig, err := toAPIBillingTaxConfigFull(legacyDefaultTaxConfig)
 	if err != nil {
 		return api.BillingWorkflow{}, err
 	}
@@ -284,12 +297,15 @@ func ToAPIBillingWorkflow(config billing.WorkflowConfig) (api.BillingWorkflow, e
 	return workflow, nil
 }
 
-// FromAPIBillingWorkflow converts API BillingWorkflow to billing.WorkflowConfig
+// FromAPIBillingWorkflow converts API BillingWorkflow to billing.WorkflowConfig. It leaves the
+// default tax config unset: handlers map it through the tax code resolver, because that needs the
+// stored profile and may resolve a deprecated Stripe code.
 func FromAPIBillingWorkflow(workflow api.BillingWorkflow) (billing.WorkflowConfig, error) {
 	return fromAPIBillingWorkflow(workflow, "")
 }
 
-// FromAPIBillingWorkflowCreate converts API BillingWorkflow to billing.WorkflowConfig for profile creation.
+// FromAPIBillingWorkflowCreate converts API BillingWorkflow to billing.WorkflowConfig for profile
+// creation. Like FromAPIBillingWorkflow, it leaves the default tax config unset for the handlers.
 func FromAPIBillingWorkflowCreate(workflow api.BillingWorkflow) (billing.WorkflowConfig, error) {
 	return fromAPIBillingWorkflow(workflow, billing.DefaultWorkflowConfig.Invoicing.SubscriptionEndProrationMode)
 }
@@ -377,15 +393,6 @@ func fromAPIBillingWorkflow(workflow api.BillingWorkflow, defaultSubscriptionEnd
 		}
 	}
 
-	defaultTaxConfig := def.Invoicing.DefaultTaxConfig
-	if workflow.Tax.DefaultTaxConfig != nil {
-		var err error
-		defaultTaxConfig, err = FromAPIBillingTaxConfigFull(workflow.Tax.DefaultTaxConfig)
-		if err != nil {
-			return billing.WorkflowConfig{}, err
-		}
-	}
-
 	subscriptionEndProrationMode := defaultSubscriptionEndProrationMode
 	if workflow.Invoicing.SubscriptionEndProrationMode != nil {
 		subscriptionEndProrationMode = billing.SubscriptionEndProrationMode(*workflow.Invoicing.SubscriptionEndProrationMode)
@@ -403,7 +410,9 @@ func fromAPIBillingWorkflow(workflow api.BillingWorkflow, defaultSubscriptionEnd
 			DueAfter:                     dueAfter,
 			ProgressiveBilling:           lo.FromPtrOr(workflow.Invoicing.ProgressiveBilling, def.Invoicing.ProgressiveBilling),
 			SubscriptionEndProrationMode: subscriptionEndProrationMode,
-			DefaultTaxConfig:             defaultTaxConfig,
+			// The default tax config is mapped by the handlers (see
+			// billinghttpdriver.ResolveProfileDefaultTaxConfig): it may need the stored profile
+			// and resolving a deprecated Stripe code.
 		},
 		Payment: billing.PaymentConfig{
 			CollectionMethod: collectionMethod,
