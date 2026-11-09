@@ -8,7 +8,6 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	appcustominvoicing "github.com/openmeterio/openmeter/openmeter/app/custominvoicing"
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	billinghttpdriver "github.com/openmeterio/openmeter/openmeter/billing/httpdriver"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 )
@@ -53,7 +52,7 @@ func (h *handler) DraftSyncronized() DraftSyncronizedHandler {
 				return DraftSyncronizedResponse{}, err
 			}
 
-			return billinghttpdriver.MapStandardInvoiceToAPI(invoice)
+			return h.mapInvoiceToAPI(ctx, invoice)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[DraftSyncronizedResponse](http.StatusOK),
 		httptransport.AppendOptions(
@@ -104,7 +103,7 @@ func (h *handler) IssuingSyncronized() IssuingSyncronizedHandler {
 				return IssuingSyncronizedResponse{}, err
 			}
 
-			return billinghttpdriver.MapStandardInvoiceToAPI(invoice)
+			return h.mapInvoiceToAPI(ctx, invoice)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[IssuingSyncronizedResponse](http.StatusOK),
 		httptransport.AppendOptions(
@@ -160,7 +159,7 @@ func (h *handler) UpdatePaymentStatus() UpdatePaymentStatusHandler {
 				return UpdatePaymentStatusResponse{}, err
 			}
 
-			return billinghttpdriver.MapStandardInvoiceToAPI(invoice)
+			return h.mapInvoiceToAPI(ctx, invoice)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[UpdatePaymentStatusResponse](http.StatusOK),
 		httptransport.AppendOptions(

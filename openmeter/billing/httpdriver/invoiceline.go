@@ -109,7 +109,12 @@ func (h *handler) CreatePendingLine() CreatePendingLineHandler {
 				return CreatePendingLineResponse{}, fmt.Errorf("failed to get customer override: %w", err)
 			}
 
-			out.Invoice, err = MapGatheringInvoiceToAPI(res.Invoice, mergedProfile.Customer, mergedProfile.EffectiveProfile)
+			taxCodes, err := ResolveWorkflowTaxCodes(ctx, h.taxCodeResolver, request.Customer.Namespace, mergedProfile.EffectiveProfile.WorkflowConfig)
+			if err != nil {
+				return CreatePendingLineResponse{}, err
+			}
+
+			out.Invoice, err = MapGatheringInvoiceToAPI(res.Invoice, mergedProfile.Customer, mergedProfile.EffectiveProfile, taxCodes)
 			if err != nil {
 				return CreatePendingLineResponse{}, fmt.Errorf("failed to map invoice: %w", err)
 			}

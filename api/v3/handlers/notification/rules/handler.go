@@ -6,6 +6,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/notification/testevent"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 )
 
@@ -29,12 +30,13 @@ func New(
 	resolveNamespace func(ctx context.Context) (string, error),
 	service notification.Service,
 	billingService billing.Service,
+	taxCodeResolver productcatalog.TaxCodeResolver,
 	options ...httptransport.HandlerOption,
 ) Handler {
 	return &handler{
 		resolveNamespace:   resolveNamespace,
 		service:            service,
-		testEventGenerator: testevent.NewGenerator(billingService),
+		testEventGenerator: testevent.NewGenerator(billingService, taxCodeResolver),
 		options:            options,
 	}
 }

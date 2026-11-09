@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billinghttp "github.com/openmeterio/openmeter/openmeter/billing/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/notification"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/sortx"
@@ -17,7 +18,9 @@ import (
 
 type InvoiceEventHandler struct {
 	Notification notification.Service
-	Logger       *slog.Logger
+	// TaxCodeResolver fills in the invoice default's stripe.code, which the event doesn't carry.
+	TaxCodeResolver productcatalog.TaxCodeResolver
+	Logger          *slog.Logger
 }
 
 func (h *InvoiceEventHandler) Handle(ctx context.Context, event billing.EventStandardInvoice, eventType notification.EventType) error {
@@ -52,7 +55,12 @@ func (h *InvoiceEventHandler) Handle(ctx context.Context, event billing.EventSta
 		return nil
 	}
 
-	apiInvoice, err := billinghttp.MapEventInvoiceToAPI(event)
+	taxCodes, err := billinghttp.ResolveWorkflowTaxCodes(ctx, h.TaxCodeResolver, event.Invoice.Namespace, event.Invoice.Workflow.Config)
+	if err != nil {
+		return fmt.Errorf("failed to resolve tax codes for event invoice: %w", err)
+	}
+
+	apiInvoice, err := billinghttp.MapEventInvoiceToAPI(event, taxCodes)
 	if err != nil {
 		return fmt.Errorf("failed to map event invoice to API: %w", err)
 	}
