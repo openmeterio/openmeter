@@ -397,7 +397,7 @@ require (
 	github.com/snowflakedb/gosnowflake/v2 v2.2.0 // indirect
 	github.com/sourcegraph/conc v0.3.1-0.20240121214520-5f936abd7ae8 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
-	github.com/spf13/pflag v1.0.10 // indirect
+	github.com/spf13/pflag v1.1.0 // indirect
 	github.com/spiffe/go-spiffe/v2 v2.8.1 // indirect
 	github.com/stretchr/testify v1.12.1 // indirect
 	github.com/tetratelabs/wazero v1.12.1-0.20260714071631-236c2458ed22 // indirect
