@@ -37,7 +37,8 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 
 FROM alpine:3.24.2@sha256:294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6
 
-RUN apk add --update --no-cache ca-certificates tzdata bash
+RUN apk add --update --no-cache ca-certificates tzdata bash \
+    && adduser -D -H -u 10001 openmeter
 
 SHELL ["/bin/bash", "-c"]
 
@@ -50,5 +51,7 @@ COPY collector/benthos/presets /etc/benthos/presets
 
 COPY --link --from=builder /usr/local/bin/benthos /usr/local/bin/
 COPY --link --from=builder /src/entrypoint.sh /entrypoint.sh
+
+USER 10001
 
 ENTRYPOINT ["/entrypoint.sh", "/usr/local/bin/benthos"]
