@@ -13,6 +13,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/app"
 	apphttpdriver "github.com/openmeterio/openmeter/openmeter/app/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	productcataloghttp "github.com/openmeterio/openmeter/openmeter/productcatalog/http"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
@@ -26,7 +29,12 @@ import (
 var _ ProfileHandler = (*handler)(nil)
 
 type (
-	CreateProfileRequest  = billing.CreateProfileInput
+	// CreateProfileRequest keeps the default tax config unmapped: mapping it may create Tax Codes
+	// for legacy stripe.code values, which has to happen in the same transaction as the create.
+	CreateProfileRequest struct {
+		Input            billing.CreateProfileInput
+		DefaultTaxConfig *api.TaxConfig
+	}
 	CreateProfileResponse = api.BillingProfile
 	CreateProfileHandler  httptransport.Handler[CreateProfileRequest, CreateProfileResponse]
 )
@@ -50,41 +58,63 @@ func (h *handler) CreateProfile() CreateProfileHandler {
 			}
 
 			return CreateProfileRequest{
-				Namespace: ns,
+				Input: billing.CreateProfileInput{
+					Namespace: ns,
 
-				Name:        body.Name,
-				Description: body.Description,
+					Name:        body.Name,
+					Description: body.Description,
 
-				Metadata: lo.FromPtrOr(body.Metadata, map[string]string{}),
+					Metadata: lo.FromPtrOr(body.Metadata, map[string]string{}),
 
-				Supplier: apiBillingPartyCreateToSupplierContact(body.Supplier),
+					Supplier: apiBillingPartyCreateToSupplierContact(body.Supplier),
 
-				Default: body.Default,
+					Default: body.Default,
 
-				WorkflowConfig: workflow,
-				Apps: billing.CreateProfileAppsInput{
-					Tax: app.AppID{
-						Namespace: ns,
-						ID:        body.Apps.Tax,
-					},
-					Invoicing: app.AppID{
-						Namespace: ns,
-						ID:        body.Apps.Invoicing,
-					},
-					Payment: app.AppID{
-						Namespace: ns,
-						ID:        body.Apps.Payment,
+					WorkflowConfig: workflow,
+					Apps: billing.CreateProfileAppsInput{
+						Tax: app.AppID{
+							Namespace: ns,
+							ID:        body.Apps.Tax,
+						},
+						Invoicing: app.AppID{
+							Namespace: ns,
+							ID:        body.Apps.Invoicing,
+						},
+						Payment: app.AppID{
+							Namespace: ns,
+							ID:        body.Apps.Payment,
+						},
 					},
 				},
+				DefaultTaxConfig: lo.FromPtr(body.Workflow.Invoicing).DefaultTaxConfig,
 			}, nil
 		},
 		func(ctx context.Context, request CreateProfileRequest) (CreateProfileResponse, error) {
-			profile, err := h.service.CreateProfile(ctx, request)
-			if err != nil {
-				return CreateProfileResponse{}, fmt.Errorf("failed to create profile: %w", err)
-			}
+			var resp CreateProfileResponse
 
-			return h.MapProfileToApi(ctx, profile)
+			err := h.taxCodeResolver.WithResolver(ctx, func(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver) error {
+				input := request.Input
+
+				// Nothing is stored yet, so the gate rejects any tax code and nothing gets resolved
+				// or created; only behavior can get through.
+				defaultTaxConfig, err := ResolveProfileDefaultTaxConfig(ctx, resolver, input.Namespace, mapTaxConfigToEntity(request.DefaultTaxConfig), nil)
+				if err != nil {
+					return err
+				}
+
+				input.WorkflowConfig.Invoicing.DefaultTaxConfig = defaultTaxConfig
+
+				profile, err := h.service.CreateProfile(ctx, input)
+				if err != nil {
+					return fmt.Errorf("failed to create profile: %w", err)
+				}
+
+				resp, err = h.mapProfileWithTaxCodesToAPI(ctx, profile)
+
+				return err
+			})
+
+			return resp, err
 		},
 		commonhttp.JSONResponseEncoderWithStatus[CreateProfileResponse](http.StatusCreated),
 		httptransport.AppendOptions(
@@ -127,7 +157,7 @@ func (h *handler) GetProfile() GetProfileHandler {
 				return GetProfileResponse{}, fmt.Errorf("failed to get profile: %w", err)
 			}
 
-			return h.MapProfileToApi(ctx, profile)
+			return h.mapProfileWithTaxCodesToAPI(ctx, profile)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[CreateProfileResponse](http.StatusOK),
 		httptransport.AppendOptions(
@@ -174,7 +204,12 @@ func (h *handler) DeleteProfile() DeleteProfileHandler {
 }
 
 type (
-	UpdateProfileRequest  = billing.UpdateProfileInput
+	// UpdateProfileRequest keeps the default tax config unmapped for the same reason as
+	// CreateProfileRequest.
+	UpdateProfileRequest struct {
+		Input            billing.UpdateProfileInput
+		DefaultTaxConfig *api.TaxConfig
+	}
 	UpdateProfileResponse = api.BillingProfile
 	UpdateProfileHandler  httptransport.HandlerWithArgs[UpdateProfileRequest, UpdateProfileResponse, string]
 )
@@ -198,28 +233,60 @@ func (h *handler) UpdateProfile() UpdateProfileHandler {
 			}
 
 			return UpdateProfileRequest{
-				Namespace: ns,
-				ID:        id,
+				Input: billing.UpdateProfileInput{
+					Namespace: ns,
+					ID:        id,
 
-				Name:        body.Name,
-				Description: body.Description,
+					Name:        body.Name,
+					Description: body.Description,
 
-				Metadata: lo.FromPtrOr(body.Metadata, map[string]string{}),
+					Metadata: lo.FromPtrOr(body.Metadata, map[string]string{}),
 
-				Supplier: apiBillingPartyToSupplierContact(body.Supplier),
+					Supplier: apiBillingPartyToSupplierContact(body.Supplier),
 
-				Default: body.Default,
+					Default: body.Default,
 
-				WorkflowConfig: workflow,
+					WorkflowConfig: workflow,
+				},
+				DefaultTaxConfig: lo.FromPtr(body.Workflow.Invoicing).DefaultTaxConfig,
 			}, nil
 		},
 		func(ctx context.Context, request UpdateProfileRequest) (UpdateProfileResponse, error) {
-			profile, err := h.service.UpdateProfile(ctx, request)
-			if err != nil {
-				return UpdateProfileResponse{}, fmt.Errorf("failed to update profile: %w", err)
-			}
+			var resp UpdateProfileResponse
 
-			return h.MapProfileToApi(ctx, profile)
+			err := h.taxCodeResolver.WithResolver(ctx, func(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver) error {
+				input := request.Input
+
+				stored, err := h.service.GetProfile(ctx, billing.GetProfileInput{
+					Profile: input.ProfileID(),
+				})
+				if err != nil {
+					return fmt.Errorf("failed to get profile: %w", err)
+				}
+
+				storedDefaultTaxConfig, err := h.legacyDefaultTaxConfig(ctx, input.Namespace, stored.WorkflowConfig)
+				if err != nil {
+					return err
+				}
+
+				defaultTaxConfig, err := ResolveProfileDefaultTaxConfig(ctx, resolver, input.Namespace, mapTaxConfigToEntity(request.DefaultTaxConfig), storedDefaultTaxConfig)
+				if err != nil {
+					return err
+				}
+
+				input.WorkflowConfig.Invoicing.DefaultTaxConfig = defaultTaxConfig
+
+				profile, err := h.service.UpdateProfile(ctx, input)
+				if err != nil {
+					return fmt.Errorf("failed to update profile: %w", err)
+				}
+
+				resp, err = h.mapProfileWithTaxCodesToAPI(ctx, profile)
+
+				return err
+			})
+
+			return resp, err
 		},
 		commonhttp.JSONResponseEncoderWithStatus[UpdateProfileResponse](http.StatusOK),
 		httptransport.AppendOptions(
@@ -228,6 +295,69 @@ func (h *handler) UpdateProfile() UpdateProfileHandler {
 			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)
+}
+
+// legacyDefaultTaxConfig renders a stored default tax config the way v1 shows it, so the
+// deprecation gate can compare the request against what the client last read.
+func (h *handler) legacyDefaultTaxConfig(ctx context.Context, namespace string, workflow billing.WorkflowConfig) (*productcatalog.TaxConfig, error) {
+	cfg := workflow.Invoicing.DefaultTaxConfig
+	if cfg == nil {
+		return nil, nil
+	}
+
+	taxCodes, err := ResolveWorkflowTaxCodes(ctx, h.taxCodeResolver, namespace, workflow)
+	if err != nil {
+		return nil, err
+	}
+
+	return lo.ToPtr(cfg.ToLegacyTaxConfig(taxCodes)), nil
+}
+
+// ResolveProfileDefaultTaxConfig turns a billing profile's raw default tax config from a v1 or v3
+// request into a Tax Code reference. raw and stored are in the legacy shape; stored is the profile's
+// current default as responses show it (nil on create).
+//
+// It runs the deprecation gate first, so only removals, behavior changes and echoes of the stored
+// tax code get through. taxCodeId wins over stripe.code. A stripe.code echoed without taxCodeId
+// can only be the stored one, so it maps to the stored Tax Code ID: looking it up by Stripe mapping
+// could return another Tax Code with the same mapping, or a new one when the stored code was
+// deleted, and the service would then reject the no-op update.
+//
+// Errors are a billing.ValidationError for bad input, and a TaxCodeResolutionError (passed
+// through, so it's a 500) when resolving a Stripe code fails. Call it inside
+// TransactionalTaxCodeResolver.WithResolver, together with the service call.
+func ResolveProfileDefaultTaxConfig(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver, namespace string, raw, stored *productcatalog.TaxConfig) (*productcatalog.TaxCodeConfig, error) {
+	if err := raw.Validate(); err != nil {
+		return nil, billing.ValidationError{
+			Err: fmt.Errorf("invalid default tax config: %w", err),
+		}
+	}
+
+	normalized, err := billing.WithDeprecatedDefaultTaxCodeEnforced(raw, stored)
+	if err != nil {
+		return nil, err
+	}
+
+	if normalized == nil {
+		return nil, nil
+	}
+
+	storedTaxCodeID := lo.FromPtr(lo.FromPtr(stored).TaxCodeID)
+	if normalized.TaxCodeID == nil && lo.FromPtr(normalized.Stripe).Code != "" && storedTaxCodeID != "" {
+		normalized.TaxCodeID = lo.ToPtr(storedTaxCodeID)
+	}
+
+	cfg, err := productcataloghttp.FromAPITaxConfig(ctx, resolver, namespace, productcataloghttp.FromTaxConfig(*normalized))
+	if err != nil {
+		var resolveErr *productcataloghttp.TaxCodeResolutionError
+		if errors.As(err, &resolveErr) {
+			return nil, err
+		}
+
+		return nil, billing.ValidationError{Err: err}
+	}
+
+	return cfg, nil
 }
 
 type (
@@ -283,8 +413,16 @@ func (h *handler) ListProfiles() ListProfilesHandler {
 				TotalCount: profiles.TotalCount,
 			}
 
+			taxCodes, err := ResolveWorkflowTaxCodes(ctx, h.taxCodeResolver, request.Namespace,
+				lo.Map(profiles.Items, func(p billing.Profile, _ int) billing.WorkflowConfig {
+					return p.WorkflowConfig
+				})...)
+			if err != nil {
+				return ListProfilesResponse{}, err
+			}
+
 			for _, profile := range profiles.Items {
-				apiProfile, err := h.MapProfileToApi(ctx, &profile)
+				apiProfile, err := mapProfileToAPI(&profile, taxCodes)
 				if err != nil {
 					return ListProfilesResponse{}, fmt.Errorf("failed to convert profile to API: %w", err)
 				}
@@ -414,7 +552,8 @@ func fromAPIBillingWorkflowWithSubscriptionEndProrationModeDefault(i api.Billing
 			DueAfter:                     dueAfter,
 			ProgressiveBilling:           lo.FromPtrOr(i.Invoicing.ProgressiveBilling, def.Invoicing.ProgressiveBilling),
 			SubscriptionEndProrationMode: subscriptionEndProrationMode,
-			DefaultTaxConfig:             mapTaxConfigToEntity(i.Invoicing.DefaultTaxConfig),
+			// The default tax config is mapped by the handlers: it needs the stored profile and
+			// the tax code resolver.
 		},
 
 		Payment: billing.PaymentConfig{
@@ -443,12 +582,25 @@ func parseDurationPtr(d *string, defaultDuration datetime.ISODuration) (datetime
 	return datetime.ISODurationString(*d).Parse()
 }
 
-func (h *handler) MapProfileToApi(ctx context.Context, p *billing.Profile) (api.BillingProfile, error) {
+func (h *handler) mapProfileWithTaxCodesToAPI(ctx context.Context, p *billing.Profile) (api.BillingProfile, error) {
 	if p == nil {
 		return api.BillingProfile{}, errors.New("profile is nil")
 	}
 
-	workflowConfig, err := mapWorkflowConfigToAPI(p.WorkflowConfig)
+	taxCodes, err := ResolveWorkflowTaxCodes(ctx, h.taxCodeResolver, p.Namespace, p.WorkflowConfig)
+	if err != nil {
+		return api.BillingProfile{}, err
+	}
+
+	return mapProfileToAPI(p, taxCodes)
+}
+
+func mapProfileToAPI(p *billing.Profile, taxCodes map[string]*taxcode.TaxCode) (api.BillingProfile, error) {
+	if p == nil {
+		return api.BillingProfile{}, errors.New("profile is nil")
+	}
+
+	workflowConfig, err := mapWorkflowConfigToAPI(p.WorkflowConfig, taxCodes)
 	if err != nil {
 		return api.BillingProfile{}, fmt.Errorf("failed to map workflow config to API: %w", err)
 	}
@@ -630,10 +782,15 @@ func mapAlignmentToAPI(c billing.CollectionConfig) (*api.BillingWorkflowCollecti
 	return apiAlignment, nil
 }
 
-func mapWorkflowConfigToAPI(c billing.WorkflowConfig) (api.BillingWorkflow, error) {
+func mapWorkflowConfigToAPI(c billing.WorkflowConfig, taxCodes map[string]*taxcode.TaxCode) (api.BillingWorkflow, error) {
 	apiAlignment, err := mapAlignmentToAPI(c.Collection)
 	if err != nil {
 		return api.BillingWorkflow{}, fmt.Errorf("failed to map alignment to API: %w", err)
+	}
+
+	defaultTaxConfig, err := mapDefaultTaxConfigToAPI(c.Invoicing.DefaultTaxConfig, taxCodes)
+	if err != nil {
+		return api.BillingWorkflow{}, fmt.Errorf("failed to map default tax config to API: %w", err)
 	}
 
 	return api.BillingWorkflow{
@@ -648,7 +805,7 @@ func mapWorkflowConfigToAPI(c billing.WorkflowConfig) (api.BillingWorkflow, erro
 			DueAfter:                     lo.EmptyableToPtr(c.Invoicing.DueAfter.String()),
 			ProgressiveBilling:           lo.ToPtr(c.Invoicing.ProgressiveBilling),
 			SubscriptionEndProrationMode: lo.ToPtr(api.BillingWorkflowInvoicingSubscriptionEndProrationMode(c.Invoicing.SubscriptionEndProrationMode)),
-			DefaultTaxConfig:             mapTaxConfigToAPI(c.Invoicing.DefaultTaxConfig),
+			DefaultTaxConfig:             defaultTaxConfig,
 		},
 
 		Payment: &api.BillingWorkflowPaymentSettings{
@@ -662,10 +819,15 @@ func mapWorkflowConfigToAPI(c billing.WorkflowConfig) (api.BillingWorkflow, erro
 	}, nil
 }
 
-func mapWorkflowConfigSettingsToAPI(c billing.WorkflowConfig) (api.BillingWorkflow, error) {
+func mapWorkflowConfigSettingsToAPI(c billing.WorkflowConfig, taxCodes map[string]*taxcode.TaxCode) (api.BillingWorkflow, error) {
 	apiAlignment, err := mapAlignmentToAPI(c.Collection)
 	if err != nil {
 		return api.BillingWorkflow{}, fmt.Errorf("failed to map alignment to API: %w", err)
+	}
+
+	defaultTaxConfig, err := mapDefaultTaxConfigToAPI(c.Invoicing.DefaultTaxConfig, taxCodes)
+	if err != nil {
+		return api.BillingWorkflow{}, fmt.Errorf("failed to map default tax config to API: %w", err)
 	}
 
 	return api.BillingWorkflow{
@@ -680,7 +842,7 @@ func mapWorkflowConfigSettingsToAPI(c billing.WorkflowConfig) (api.BillingWorkfl
 			DueAfter:                     lo.EmptyableToPtr(c.Invoicing.DueAfter.String()),
 			ProgressiveBilling:           lo.ToPtr(c.Invoicing.ProgressiveBilling),
 			SubscriptionEndProrationMode: lo.ToPtr(api.BillingWorkflowInvoicingSubscriptionEndProrationMode(c.Invoicing.SubscriptionEndProrationMode)),
-			DefaultTaxConfig:             mapTaxConfigToAPI(c.Invoicing.DefaultTaxConfig),
+			DefaultTaxConfig:             defaultTaxConfig,
 		},
 
 		Payment: &api.BillingWorkflowPaymentSettings{
@@ -692,4 +854,19 @@ func mapWorkflowConfigSettingsToAPI(c billing.WorkflowConfig) (api.BillingWorkfl
 			Enforced: lo.ToPtr(c.Tax.Enforced),
 		},
 	}, nil
+}
+
+// mapDefaultTaxConfigToAPI renders a workflow's default tax config in the v1 shape; stripe.code
+// comes from the referenced Tax Code's current mapping.
+func mapDefaultTaxConfigToAPI(cfg *productcatalog.TaxCodeConfig, taxCodes map[string]*taxcode.TaxCode) (*api.TaxConfig, error) {
+	if cfg == nil {
+		return nil, nil
+	}
+
+	taxConfig, err := productcataloghttp.ToAPITaxConfig(*cfg, taxCodes)
+	if err != nil {
+		return nil, fmt.Errorf("mapping default tax config to API: %w", err)
+	}
+
+	return &taxConfig, nil
 }

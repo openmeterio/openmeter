@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customerhttpdriver "github.com/openmeterio/openmeter/openmeter/customer/httpdriver"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -72,8 +73,16 @@ func (h *handler) ListCustomerOverrides() ListCustomerOverridesHandler {
 				TotalCount: overrides.TotalCount,
 			}
 
+			taxCodes, err := ResolveWorkflowTaxCodes(ctx, h.taxCodeResolver, input.Namespace,
+				lo.Map(overrides.Items, func(o billing.CustomerBillingProfile, _ int) billing.WorkflowConfig {
+					return o.EffectiveProfile.WorkflowConfig
+				})...)
+			if err != nil {
+				return ListCustomerOverridesResponse{}, err
+			}
+
 			for _, override := range overrides.Items {
-				override, err := h.mapCustomerOverrideToAPI(ctx, override)
+				override, err := mapCustomerOverrideToAPI(override, taxCodes)
 				if err != nil {
 					return ListCustomerOverridesResponse{}, err
 				}
@@ -129,7 +138,7 @@ func (h *handler) GetCustomerOverride() GetCustomerOverrideHandler {
 				return GetCustomerOverrideResponse{}, err
 			}
 
-			res, err := h.mapCustomerOverrideToAPI(ctx, override)
+			res, err := h.mapCustomerOverrideWithTaxCodesToAPI(ctx, override)
 			if err != nil {
 				return GetCustomerOverrideResponse{}, err
 			}
@@ -203,7 +212,7 @@ func (h *handler) UpsertCustomerOverride() UpsertCustomerOverrideHandler {
 				return UpsertCustomerOverrideResponse{}, err
 			}
 
-			return h.mapCustomerOverrideToAPI(ctx, profile)
+			return h.mapCustomerOverrideWithTaxCodesToAPI(ctx, profile)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[UpsertCustomerOverrideResponse](http.StatusOK),
 		httptransport.AppendOptions(
@@ -276,7 +285,16 @@ func (h *handler) mapCustomerBillingProfileExpandToEntity(in *api.BillingProfile
 	return expand, nil
 }
 
-func (h *handler) mapCustomerOverrideToAPI(ctx context.Context, in billing.CustomerBillingProfile) (api.BillingProfileCustomerOverrideWithDetails, error) {
+func (h *handler) mapCustomerOverrideWithTaxCodesToAPI(ctx context.Context, in billing.CustomerBillingProfile) (api.BillingProfileCustomerOverrideWithDetails, error) {
+	taxCodes, err := ResolveWorkflowTaxCodes(ctx, h.taxCodeResolver, in.CustomerID.Namespace, in.EffectiveProfile.WorkflowConfig)
+	if err != nil {
+		return api.BillingProfileCustomerOverrideWithDetails{}, err
+	}
+
+	return mapCustomerOverrideToAPI(in, taxCodes)
+}
+
+func mapCustomerOverrideToAPI(in billing.CustomerBillingProfile, taxCodes map[string]*taxcode.TaxCode) (api.BillingProfileCustomerOverrideWithDetails, error) {
 	res := api.BillingProfileCustomerOverrideWithDetails{}
 
 	if in.AssignedProfile != nil {
@@ -299,7 +317,7 @@ func (h *handler) mapCustomerOverrideToAPI(ctx context.Context, in billing.Custo
 
 	res.BaseBillingProfileId = in.EffectiveProfile.ID
 
-	profile, err := h.mapCustomerProfileToAPI(ctx, in.EffectiveProfile)
+	profile, err := mapCustomerProfileToAPI(in.EffectiveProfile, taxCodes)
 	if err != nil {
 		return res, err
 	}
@@ -309,8 +327,8 @@ func (h *handler) mapCustomerOverrideToAPI(ctx context.Context, in billing.Custo
 	return res, nil
 }
 
-func (h *handler) mapCustomerProfileToAPI(ctx context.Context, in billing.Profile) (api.BillingCustomerProfile, error) {
-	profile, err := h.MapProfileToApi(ctx, &in)
+func mapCustomerProfileToAPI(in billing.Profile, taxCodes map[string]*taxcode.TaxCode) (api.BillingCustomerProfile, error) {
+	profile, err := mapProfileToAPI(&in, taxCodes)
 	if err != nil {
 		return api.BillingCustomerProfile{}, err
 	}

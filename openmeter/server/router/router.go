@@ -384,6 +384,7 @@ func NewRouter(config Config) (*Router, error) {
 		config.NamespaceDecoder,
 		config.Notification,
 		config.Billing,
+		config.TaxCodeResolver,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
 
@@ -430,6 +431,7 @@ func NewRouter(config Config) (*Router, error) {
 	router.appCustomInvoicingHandler = appcustominvoicinghttpdriver.New(
 		config.AppCustomInvoicing,
 		config.NamespaceDecoder,
+		config.TaxCodeResolver,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
 
@@ -444,6 +446,7 @@ func NewRouter(config Config) (*Router, error) {
 		config.ChargeService,
 		config.Credits,
 		config.FeatureGate,
+		config.TaxCodeResolver,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
 

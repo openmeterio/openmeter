@@ -3,8 +3,11 @@ package httpdriver
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
+
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/app"
@@ -12,6 +15,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingcharges "github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/featuregate"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
@@ -62,6 +67,7 @@ type handler struct {
 	featureSwitches  config.BillingFeatureSwitchesConfiguration
 	credits          config.CreditsConfiguration
 	featureGate      *featuregate.FeatureGateChecker
+	taxCodeResolver  productcatalog.TransactionalTaxCodeResolver
 	options          []httptransport.HandlerOption
 }
 
@@ -84,6 +90,7 @@ func New(
 	chargeService billingcharges.ChargeService,
 	credits config.CreditsConfiguration,
 	featureGate *featuregate.FeatureGateChecker,
+	taxCodeResolver productcatalog.TransactionalTaxCodeResolver,
 	options ...httptransport.HandlerOption,
 ) Handler {
 	return &handler{
@@ -96,5 +103,30 @@ func New(
 		featureSwitches:  featureSwitches,
 		credits:          credits,
 		featureGate:      featureGate,
+		taxCodeResolver:  taxCodeResolver,
 	}
+}
+
+// ResolveWorkflowTaxCodes looks up, in one batch, the Tax Codes referenced by the workflows'
+// default tax configs, so v1 responses can show their stripe.code.
+func ResolveWorkflowTaxCodes(ctx context.Context, resolver productcatalog.TaxCodeResolver, namespace string, workflows ...billing.WorkflowConfig) (map[string]*taxcode.TaxCode, error) {
+	ids := lo.Uniq(lo.FilterMap(workflows, func(wf billing.WorkflowConfig, _ int) (string, bool) {
+		id := wf.Invoicing.DefaultTaxCodeID()
+		return id, id != ""
+	}))
+
+	if len(ids) == 0 {
+		return nil, nil
+	}
+
+	if resolver == nil {
+		return nil, errors.New("tax code resolver is required to render default tax configs")
+	}
+
+	taxCodes, err := resolver.BatchResolve(ctx, namespace, ids...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve tax codes: %w", err)
+	}
+
+	return taxCodes, nil
 }
