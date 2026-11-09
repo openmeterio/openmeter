@@ -125,7 +125,6 @@ describe('emitter', () => {
     'eventtype-import-path': 'github.com/example/mod/openmeter/notification/v4',
     'definitions-import-path':
       'github.com/example/mod/openmeter/notification/v4/definitions',
-    'oapi-codegen-config': 'api/oapi-codegen.yaml',
     'spec-dir': 'api/notificationevents',
   })
 
@@ -137,7 +136,7 @@ describe('emitter', () => {
 
 package notificationevents
 
-//go:generate go tool github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen -config ../../../api/oapi-codegen.yaml -package notificationevents -o payloads.gen.go ../../../api/notificationevents/widget/openapi.yaml
+//go:generate go tool github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen -config oapi-codegen.gen.yaml -package notificationevents -o payloads.gen.go ../../../api/notificationevents/widget/openapi.yaml
 `)
 
     expect(outputs['openmeter/widget/notificationevents/events.gen.go'])

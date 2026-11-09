@@ -1,7 +1,11 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/oapi-codegen/oapi-codegen/HEAD/configuration-schema.json
 # Shared oapi-codegen configuration of every domain notificationevents package.
-# The generated go:generate directive in each package (generate.gen.go) passes
-# the package name (-package) and the output file (-o), so neither is set here.
+# scripts/generate-notification-events-go-config.mjs copies it into each package
+# as oapi-codegen.gen.yaml, adding the Overlay that aliases v3 models. The
+# generated go:generate directive in each package (generate.gen.go) passes the
+# package name (-package) and the output file (-o), so neither is set here.
+# Keep the model options in line with api/v3/codegen.yaml: aliased types are
+# generated with those.
 generate:
   models: true
 compatibility:
