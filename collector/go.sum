@@ -148,8 +148,8 @@ github.com/99designs/go-keychain v0.0.0-20191008050251-8e49817e8af4 h1:/vQbFIOMb
 github.com/99designs/go-keychain v0.0.0-20191008050251-8e49817e8af4/go.mod h1:hN7oaIRCjzsZ2dE+yG5k+rsdt3qcwykqK6HVGcKwsw4=
 github.com/99designs/keyring v1.2.2 h1:pZd3neh/EmUzWONb35LxQfvuY7kiSXAq3HQd97+XBn0=
 github.com/99designs/keyring v1.2.2/go.mod h1:wes/FrByc8j7lFOAGLGSNEg8f/PaI3cgTBqhFkHUrPk=
-github.com/AthenZ/athenz v1.12.36 h1:dlNtcwEaIcbPhMJAWnmv6B0JSUXnFzCA1c4HAPT+N9I=
-github.com/AthenZ/athenz v1.12.36/go.mod h1:WusvLX1KJdxMc3Kcdu6F4CUUg+JfryrZ9WiBCtETLho=
+github.com/AthenZ/athenz v1.12.39 h1:d9h0Uy69fO7Jw9GY1Y0HETRJ+lLIsVscxEypGylu8BQ=
+github.com/AthenZ/athenz v1.12.39/go.mod h1:7N7hq+Z1NCOcGy1UO5+BrNtg0u8f18x+dFedUsp18Os=
 github.com/Azure/azure-amqp-common-go/v3 v3.2.1/go.mod h1:O6X1iYHP7s2x7NjUKsXVhkwWrQhxrd+d8/3rRadj4CI=
 github.com/Azure/azure-amqp-common-go/v3 v3.2.2/go.mod h1:O6X1iYHP7s2x7NjUKsXVhkwWrQhxrd+d8/3rRadj4CI=
 github.com/Azure/azure-pipeline-go v0.2.3/go.mod h1:x841ezTBIMG6O3lAcl8ATHnsOPVl2bqk7S3ta6S6u4k=
