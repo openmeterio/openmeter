@@ -14,9 +14,10 @@ import (
 )
 
 var (
-	ErrCodeUnsupportedOperation = models.ErrorCode("unsupported_operation")
-	ErrUnsupportedOperation     = models.NewGenericPreConditionFailedError(errors.New("unsupported operation"))
-	ErrUnhandledInvoicePatches  = errors.New("unhandled invoice patches")
+	ErrCodeUnsupportedOperation    = models.ErrorCode("unsupported_operation")
+	ErrUnsupportedOperation        = models.NewGenericPreConditionFailedError(errors.New("unsupported operation"))
+	ErrCodeUnhandledInvoicePatches = models.ErrorCode("unhandled_invoice_patches")
+	ErrUnhandledInvoicePatches     = errors.New("unhandled invoice patches")
 )
 
 type Status interface {
@@ -158,7 +159,7 @@ func (m *Machine[CHARGE, BASE, STATUS]) AddInvoicePatch(patches ...invoiceupdate
 
 func (m *Machine[CHARGE, BASE, STATUS]) fireAndActivate(ctx context.Context, trigger meta.Trigger, args ...models.Validator) error {
 	if len(m.invoicePatches) > 0 {
-		return fmt.Errorf("%w: cannot fire trigger %v with %d pending invoice patches", ErrUnhandledInvoicePatches, trigger, len(m.invoicePatches))
+		return m.unhandledInvoicePatchesError(fmt.Sprintf("cannot fire trigger %v with %d pending invoice patches", trigger, len(m.invoicePatches)), trigger)
 	}
 
 	var validationErrors []error
@@ -286,7 +287,7 @@ func (m *Machine[CHARGE, BASE, STATUS]) FireAndAdvanceUntilStable(ctx context.Co
 	}
 
 	if len(patches) > 0 {
-		return fmt.Errorf("%w: trigger %v produced %d invoice patches", ErrUnhandledInvoicePatches, trigger, len(patches))
+		return m.unhandledInvoicePatchesError(fmt.Sprintf("trigger %v produced %d invoice patches", trigger, len(patches)), trigger)
 	}
 
 	return nil
@@ -302,10 +303,27 @@ func (m *Machine[CHARGE, BASE, STATUS]) AdvanceUntilStable(ctx context.Context) 
 	}
 
 	if len(patches) > 0 {
-		return fmt.Errorf("%w: transition produced %d invoice patches", ErrUnhandledInvoicePatches, len(patches))
+		return m.unhandledInvoicePatchesError(fmt.Sprintf("transition produced %d invoice patches", len(patches)), nil)
 	}
 
 	return nil
+}
+
+func (m *Machine[CHARGE, BASE, STATUS]) unhandledInvoicePatchesError(detail string, trigger meta.Trigger) error {
+	chargeID := m.Charge.GetChargeID().ID
+
+	err := models.NewError(
+		ErrCodeUnhandledInvoicePatches,
+		fmt.Sprintf("%v: %s [status=%s,id=%s]", ErrUnhandledInvoicePatches, detail, m.Charge.GetStatus(), chargeID),
+		models.WithCriticalSeverity(),
+		models.WithCause(ErrUnhandledInvoicePatches),
+	).WithAttr("charge_id", chargeID)
+
+	if trigger != nil {
+		err = err.WithAttr("trigger", trigger)
+	}
+
+	return err
 }
 
 func (m *Machine[CHARGE, BASE, STATUS]) RefetchCharge(ctx context.Context) error {
