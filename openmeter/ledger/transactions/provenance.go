@@ -84,20 +84,7 @@ func ReverseOriginEntryPair(input ReverseOriginEntryPairInput) (ledger.Transacti
 	entries := make([]*EntryInput, 0, 2)
 
 	for _, original := range []ledger.Entry{input.NegativeEntry, input.PositiveEntry} {
-		amount := input.Amount
-		if original.Amount().IsPositive() {
-			amount = amount.Neg()
-		}
-
-		id := original.ID().ID
-		entries = append(entries, &EntryInput{
-			address: original.PostingAddress(),
-			amount:  amount,
-			identity: ledger.EntryIdentityParts{
-				Provenance:       original.Provenance(),
-				CorrectionSource: &id,
-			},
-		})
+		entries = append(entries, reverseOriginalEntry(original, input.Amount))
 	}
 
 	return &TransactionInput{
@@ -105,4 +92,23 @@ func ReverseOriginEntryPair(input ReverseOriginEntryPairInput) (ledger.Transacti
 		entryInputs: entries,
 		annotations: ledger.TransactionAnnotations(code, ledger.TransactionDirectionCorrection),
 	}, nil
+}
+
+// reverseOriginalEntry keeps a partial reversal on the entry's original route
+// and links it to the posting being offset.
+func reverseOriginalEntry(original ledger.Entry, amount alpacadecimal.Decimal) *EntryInput {
+	if original.Amount().IsPositive() {
+		amount = amount.Neg()
+	}
+
+	id := original.ID().ID
+
+	return &EntryInput{
+		address: original.PostingAddress(),
+		amount:  amount,
+		identity: ledger.EntryIdentityParts{
+			Provenance:       original.Provenance(),
+			CorrectionSource: &id,
+		},
+	}
 }

@@ -304,8 +304,12 @@ func (r RequireReceivableAuthorizationStageRule) Validate(tx TxView) error {
 		})
 	}
 
-	if allEntriesHaveAuthorizationStatus(negativeEntries, ledger.TransactionAuthorizationStatusAuthorized) &&
-		allEntriesHaveAuthorizationStatus(positiveEntries, ledger.TransactionAuthorizationStatusOpen) {
+	forward := allEntriesHaveAuthorizationStatus(negativeEntries, ledger.TransactionAuthorizationStatusAuthorized) &&
+		allEntriesHaveAuthorizationStatus(positiveEntries, ledger.TransactionAuthorizationStatusOpen)
+	reversal := allEntriesHaveAuthorizationStatus(negativeEntries, ledger.TransactionAuthorizationStatusOpen) &&
+		allEntriesHaveAuthorizationStatus(positiveEntries, ledger.TransactionAuthorizationStatusAuthorized) &&
+		allEntriesCorrectOriginals(tx.EntriesOf(ledger.AccountTypeCustomerReceivable))
+	if forward || reversal {
 		return requireMatchingRouteFields(
 			negativeEntries,
 			positiveEntries,
@@ -316,6 +320,7 @@ func (r RequireReceivableAuthorizationStageRule) Validate(tx TxView) error {
 				RouteFieldTaxCode,
 				RouteFieldFilters,
 				RouteFieldCostBasis,
+				RouteFieldCostBasisCurrency,
 				RouteFieldCreditPriority,
 			},
 		)
@@ -344,6 +349,17 @@ func (r RequireReceivableAuthorizationStageRule) Validate(tx TxView) error {
 		"reason":       "unsupported_receivable_same_account_transition",
 		"account_type": ledger.AccountTypeCustomerReceivable,
 	})
+}
+
+func allEntriesCorrectOriginals(entries []EntryView) bool {
+	for _, entry := range entries {
+		_, identity, err := ledger.EntryIdentityKeyText(entry.Entry().IdentityKey()).Parse()
+		if err != nil || identity.CorrectionSource == nil {
+			return false
+		}
+	}
+
+	return true
 }
 
 type RequireAccruedCostBasisTranslationRule struct{}
