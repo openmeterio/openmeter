@@ -81,6 +81,9 @@ services:
     pull_policy: ${pull_policy}
 EOF
 
+# The images run as UID 10001, so the bind-mounted log directories must be writable by it.
+mkdir -p logs/openmeter logs/sink-worker logs/billing-worker
+chmod a+rwx logs/openmeter logs/sink-worker logs/billing-worker
 mkdir -p "${log_dir}"
 "${compose[@]}" up -d
 "${compose[@]}" logs --no-color --timestamps --follow > "${log_dir}/compose-follow.log" 2>&1 &

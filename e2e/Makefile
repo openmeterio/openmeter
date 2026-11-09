@@ -89,6 +89,8 @@ env-local-down:
 .PHONY: env-local-up
 env-local-up:
 	$(call print-target)
+	mkdir -p logs/openmeter logs/sink-worker logs/billing-worker
+	chmod a+rwx logs/openmeter logs/sink-worker logs/billing-worker
 	docker compose \
 		-f docker-compose.infra.yaml \
 		-f docker-compose.debug-ports.yaml \
