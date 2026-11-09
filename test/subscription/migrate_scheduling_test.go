@@ -24,7 +24,7 @@ func TestMigrationNextCycleAcrossPhaseBoundary(t *testing.T) {
 	defer clock.UnFreeze()
 
 	// given matching timelines with the next billing cycle in the second phase
-	fixture := newMigrationFixtureWithPlan(t, func(taxConfig productcatalog.TaxConfig) plan.CreatePlanInput {
+	fixture := newMigrationFixtureWithPlan(t, func(taxConfig productcatalog.TaxCodeConfig) plan.CreatePlanInput {
 		return migrationPlanWithTwoPhases(t, taxConfig)
 	})
 	clock.FreezeTime(start.Add(10 * 24 * time.Hour))
@@ -48,7 +48,7 @@ func TestMigrationCustomTimeInLaterPhase(t *testing.T) {
 	defer clock.UnFreeze()
 
 	// given matching timelines and a target that adds an item
-	fixture := newMigrationFixtureWithPlan(t, func(taxConfig productcatalog.TaxConfig) plan.CreatePlanInput {
+	fixture := newMigrationFixtureWithPlan(t, func(taxConfig productcatalog.TaxCodeConfig) plan.CreatePlanInput {
 		return migrationPlanWithTwoPhases(t, taxConfig)
 	})
 	clock.FreezeTime(start.Add(10 * 24 * time.Hour))
@@ -111,7 +111,7 @@ func TestMigrationRejectsPastCustomTime(t *testing.T) {
 	assertMigrationViewUnchanged(t, fixture)
 }
 
-func migrationPlanWithTwoPhases(t *testing.T, taxConfig productcatalog.TaxConfig) plan.CreatePlanInput {
+func migrationPlanWithTwoPhases(t *testing.T, taxConfig productcatalog.TaxCodeConfig) plan.CreatePlanInput {
 	t.Helper()
 
 	return subscriptiontestutils.BuildTestPlanInput(t).
@@ -119,7 +119,7 @@ func migrationPlanWithTwoPhases(t *testing.T, taxConfig productcatalog.TaxConfig
 		AddPhase(nil, subscriptiontestutils.ExampleRateCard1(taxConfig)).Build()
 }
 
-func migrationPlanAddingItemToBothPhases(t *testing.T, taxConfig productcatalog.TaxConfig) plan.CreatePlanInput {
+func migrationPlanAddingItemToBothPhases(t *testing.T, taxConfig productcatalog.TaxCodeConfig) plan.CreatePlanInput {
 	t.Helper()
 
 	input := migrationPlanWithTwoPhases(t, taxConfig)
@@ -194,7 +194,7 @@ func TestMigrationScheduledPriceChangeInLaterPhase(t *testing.T) {
 	defer clock.UnFreeze()
 
 	// given a target that reprices the second phase
-	fixture := newMigrationFixtureWithPlan(t, func(taxConfig productcatalog.TaxConfig) plan.CreatePlanInput {
+	fixture := newMigrationFixtureWithPlan(t, func(taxConfig productcatalog.TaxCodeConfig) plan.CreatePlanInput {
 		return migrationPlanWithTwoPhases(t, taxConfig)
 	})
 	next := migrationPlanWithTwoPhases(t, fixture.taxConfig)

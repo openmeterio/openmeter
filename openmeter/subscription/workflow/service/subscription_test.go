@@ -1154,7 +1154,7 @@ func TestChangeToPlan(t *testing.T) {
 			taxConfig := subscriptiontestutils.ExampleTaxConfig(taxCode)
 
 			// Let's define two plans. One is the example plan, and the second is a slightly modified version of that.
-			// Build them per invocation so plan service mutations (e.g. resolving TaxCodeIDs) don't leak across subtests.
+			// Build them per invocation so plan service mutations don't leak across subtests.
 			examplePlanInput1 := subscriptiontestutils.GetExamplePlanInput(t, taxConfig)
 
 			// Plan 2's new rate cards use a different tax code than the example plan.
@@ -1170,7 +1170,7 @@ func TestChangeToPlan(t *testing.T) {
 						IssueAfterReset: lo.ToPtr(111.0),
 						UsagePeriod:     subscriptiontestutils.ISOMonth,
 					}),
-					TaxConfig: &productcatalog.TaxConfig{TaxCodeID: &plan2TaxCode.ID},
+					TaxConfig: &productcatalog.TaxCodeConfig{TaxCodeID: plan2TaxCode.ID},
 					Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 						Amount: alpacadecimal.NewFromInt(int64(1)),
 					}),
@@ -1183,7 +1183,7 @@ func TestChangeToPlan(t *testing.T) {
 					Key:         "new-rc-2",
 					Name:        "Rate Card 2",
 					Description: lo.ToPtr("Rate Card 2 Description"),
-					TaxConfig:   &productcatalog.TaxConfig{TaxCodeID: &plan2TaxCode.ID},
+					TaxConfig:   &productcatalog.TaxCodeConfig{TaxCodeID: plan2TaxCode.ID},
 					Price:       nil,
 				},
 				BillingCadence: nil,
@@ -1327,7 +1327,7 @@ func TestEditCombinations(t *testing.T) {
 		DBDeps          *subscriptiontestutils.DBDeps
 		Plan1           subscription.Plan
 		SubsDeps        *subscriptiontestutils.SubscriptionDependencies
-		TaxConfig       productcatalog.TaxConfig
+		TaxConfig       productcatalog.TaxCodeConfig
 	}
 
 	withDeps := func(t *testing.T) func(fn func(t *testing.T, deps testCaseDeps)) {

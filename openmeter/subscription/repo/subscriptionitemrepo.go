@@ -74,7 +74,6 @@ func (r *subscriptionItemRepo) GetForSubscriptionAt(ctx context.Context, input s
 		items, err := repo.db.SubscriptionItem.Query().
 			Where(getItemForSubscriptionAtFilter(input)).
 			WithPhase().
-			WithTaxCode().
 			WithCustomCurrency().
 			All(ctx)
 		if err != nil {
@@ -107,7 +106,6 @@ func (r *subscriptionItemRepo) GetForSubscriptionsAt(ctx context.Context, input 
 				slicesx.Map(input, getItemForSubscriptionAtFilter)...,
 			)).
 			WithPhase().
-			WithTaxCode().
 			WithCustomCurrency().
 			All(ctx)
 		if err != nil {
@@ -139,7 +137,6 @@ func (r *subscriptionItemRepo) GetByID(ctx context.Context, id models.Namespaced
 				dbsubscriptionitem.DeletedAtGT(clock.Now()),
 			)).
 			WithPhase().
-			WithTaxCode().
 			WithCustomCurrency().
 			Only(ctx)
 
@@ -193,10 +190,13 @@ func (r *subscriptionItemRepo) Create(ctx context.Context, input subscription.Cr
 			cmd.SetEntitlementTemplate(input.RateCard.AsMeta().EntitlementTemplate)
 		}
 
-		if input.RateCard.AsMeta().TaxConfig != nil {
-			cmd.SetTaxConfig(input.RateCard.AsMeta().TaxConfig)
-			cmd.SetNillableTaxCodeID(input.RateCard.AsMeta().TaxConfig.TaxCodeID)
-			cmd.SetNillableTaxBehavior(input.RateCard.AsMeta().TaxConfig.Behavior)
+		// The legacy tax_config JSON is still written as a copy of the columns: DB checks require it to
+		// agree with tax_code_id/tax_behavior, and binaries from before Tax Code IDs still read it. It
+		// never carries a Stripe code anymore and goes away in a later cleanup.
+		if taxConfig := input.RateCard.AsMeta().TaxConfig; taxConfig != nil {
+			cmd.SetTaxConfig(lo.ToPtr(taxConfig.ToTaxConfig()))
+			cmd.SetNillableTaxCodeID(lo.EmptyableToPtr(taxConfig.TaxCodeID))
+			cmd.SetNillableTaxBehavior(taxConfig.Behavior)
 		}
 
 		if input.RateCard.AsMeta().Price != nil {

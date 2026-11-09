@@ -17,7 +17,7 @@ import (
 )
 
 // GetExamplePlanInput builds the example plan in ExampleNamespace; its taxed rate cards carry taxConfig.
-func GetExamplePlanInput(t *testing.T, taxConfig productcatalog.TaxConfig) plan.CreatePlanInput {
+func GetExamplePlanInput(t *testing.T, taxConfig productcatalog.TaxCodeConfig) plan.CreatePlanInput {
 	b := BuildTestPlanInput(t)
 
 	b.AddPhase(lo.ToPtr(datetime.MustParseDuration(t, "P1M")), ExampleRateCard1(taxConfig))

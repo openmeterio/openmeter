@@ -56,7 +56,12 @@ func (h *handler) GetSubscriptionAddon() GetSubscriptionAddonHandler {
 				return GetSubscriptionAddonResponse{}, productcatalog.ErrUnitConfigNotRepresentable
 			}
 
-			return MapSubscriptionAddonToResponse(view, *res)
+			taxCodes, err := h.taxCodesForAddons(ctx, req.SubscriptionAddonID.Namespace, *res)
+			if err != nil {
+				return GetSubscriptionAddonResponse{}, err
+			}
+
+			return MapSubscriptionAddonToResponse(view, *res, taxCodes)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[GetSubscriptionAddonResponse](http.StatusOK),
 		httptransport.AppendOptions(

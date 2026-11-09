@@ -11,7 +11,7 @@ import (
 // (POST /api/v1/subscriptions)
 func (a *Router) CreateSubscription(w http.ResponseWriter, r *http.Request) {
 	a.subscriptionHandler.CreateSubscription().
-		Chain(featuregate.NewMiddleware[subscriptionhttpdriver.CreateSubscriptionRequest, subscriptionhttpdriver.CreateSubscriptionResponse](
+		Chain(featuregate.NewMiddleware[subscriptionhttpdriver.CreateSubscriptionHandlerRequest, subscriptionhttpdriver.CreateSubscriptionResponse](
 			a.config.NamespaceDecoder.GetNamespace,
 			a.config.FeatureGate,
 		)).
@@ -20,7 +20,7 @@ func (a *Router) CreateSubscription(w http.ResponseWriter, r *http.Request) {
 
 func (a *Router) ChangeSubscription(w http.ResponseWriter, r *http.Request, subscriptionId string) {
 	a.subscriptionHandler.ChangeSubscription().
-		Chain(featuregate.NewMiddleware[subscriptionhttpdriver.ChangeSubscriptionRequest, subscriptionhttpdriver.ChangeSubscriptionResponse](
+		Chain(featuregate.NewMiddleware[subscriptionhttpdriver.ChangeSubscriptionHandlerRequest, subscriptionhttpdriver.ChangeSubscriptionResponse](
 			a.config.NamespaceDecoder.GetNamespace,
 			a.config.FeatureGate,
 		)).

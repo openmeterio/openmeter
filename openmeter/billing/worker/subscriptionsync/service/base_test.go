@@ -1116,7 +1116,7 @@ type subscriptionAddItem struct {
 	Price          *productcatalog.Price
 	BillingCadence *datetime.ISODuration
 	FeatureKey     string
-	TaxConfig      *productcatalog.TaxConfig
+	TaxConfig      *productcatalog.TaxCodeConfig
 }
 
 func (i subscriptionAddItem) AsPatch() subscription.Patch {
