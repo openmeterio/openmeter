@@ -147,6 +147,7 @@ require (
 	github.com/bits-and-blooms/bitset v1.24.4 // indirect
 	github.com/bmatcuk/doublestar/v4 v4.10.0 // indirect
 	github.com/bradfitz/gomemcache v0.0.0-20250403215159-8d39553ac7cf // indirect
+	github.com/breml/rootcerts v0.3.8 // indirect
 	github.com/brunoga/deep v1.3.1 // indirect
 	github.com/btnguyen2k/consu/checksum v1.1.1 // indirect
 	github.com/btnguyen2k/consu/g18 v0.1.0 // indirect
@@ -159,7 +160,6 @@ require (
 	github.com/bwmarrin/snowflake v0.3.0 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
 	github.com/cenkalti/backoff/v5 v5.0.3 // indirect
-	github.com/certifi/gocertifi v0.0.0-20210507211836-431795d63e8d // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/clbanning/mxj/v2 v2.7.0 // indirect
 	github.com/cloudevents/sdk-go/v2 v2.16.2 // indirect
@@ -504,3 +504,6 @@ replace (
 	go.opentelemetry.io/otel/log => go.opentelemetry.io/otel/log v0.20.0
 	go.opentelemetry.io/otel/sdk/log => go.opentelemetry.io/otel/sdk/log v0.20.0
 )
+
+// Use the rootcerts fallback until https://github.com/authzed/grpcutil/pull/81 is available upstream.
+replace github.com/authzed/grpcutil => github.com/chrisgacsal/grpcutil v0.0.0-20261109125501-8c076ae8f796
