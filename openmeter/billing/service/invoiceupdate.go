@@ -723,20 +723,13 @@ func (s *Service) defaultInvoicingTaxCodeIDForInvoiceUpdate(
 	getCustomerOverride func(context.Context) (billing.CustomerBillingProfile, error),
 	getOrganizationDefaultTaxCodes func(context.Context) (taxcode.OrganizationDefaultTaxCodes, error),
 ) (string, error) {
-	namespace := invoice.GetInvoiceID().Namespace
-
 	if invoice.GetType() == billing.InvoiceTypeStandard {
 		standardInvoice, err := invoice.AsInvoice().AsStandardInvoice()
 		if err != nil {
 			return "", fmt.Errorf("getting standard invoice: %w", err)
 		}
 
-		taxCodeID, err := s.taxCodeIDWithBackfill(ctx, namespace, standardInvoice.Workflow.Config.Invoicing.DefaultTaxConfig)
-		if err != nil {
-			return "", fmt.Errorf("resolving standard invoice default tax config: %w", err)
-		}
-
-		if taxCodeID != "" {
+		if taxCodeID := standardInvoice.Workflow.Config.Invoicing.DefaultTaxCodeID(); taxCodeID != "" {
 			return taxCodeID, nil
 		}
 	}
@@ -746,12 +739,7 @@ func (s *Service) defaultInvoicingTaxCodeIDForInvoiceUpdate(
 		return "", fmt.Errorf("getting customer billing profile: %w", err)
 	}
 
-	taxCodeID, err := s.taxCodeIDWithBackfill(ctx, namespace, customerOverride.EffectiveProfile.WorkflowConfig.Invoicing.DefaultTaxConfig)
-	if err != nil {
-		return "", fmt.Errorf("resolving customer billing profile default tax config: %w", err)
-	}
-
-	if taxCodeID != "" {
+	if taxCodeID := customerOverride.EffectiveProfile.WorkflowConfig.Invoicing.DefaultTaxCodeID(); taxCodeID != "" {
 		return taxCodeID, nil
 	}
 
@@ -761,19 +749,6 @@ func (s *Service) defaultInvoicingTaxCodeIDForInvoiceUpdate(
 	}
 
 	return defaults.InvoicingTaxCodeID, nil
-}
-
-func (s *Service) taxCodeIDWithBackfill(ctx context.Context, namespace string, taxConfig *productcatalog.TaxConfig) (string, error) {
-	if taxConfig == nil {
-		return "", nil
-	}
-
-	resolved := taxConfig.Clone()
-	if err := productcatalog.ResolveTaxConfig(ctx, s.taxCodeService, namespace, &resolved); err != nil {
-		return "", err
-	}
-
-	return lo.FromPtr(resolved.TaxCodeID), nil
 }
 
 type preallocatedCreatedStandardLinesInput struct {

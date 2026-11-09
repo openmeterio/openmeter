@@ -29,6 +29,7 @@ import (
 	customerservice "github.com/openmeterio/openmeter/openmeter/customer/service"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/mockadapter"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/taxcoderesolver"
 	registrybuilder "github.com/openmeterio/openmeter/openmeter/registry/builder"
 	secretadapter "github.com/openmeterio/openmeter/openmeter/secret/adapter"
 	secretservice "github.com/openmeterio/openmeter/openmeter/secret/service"
@@ -288,6 +289,9 @@ func InitBillingService(t *testing.T, ctx context.Context, in InitBillingService
 	})
 	require.NoError(t, err)
 
+	taxCodeResolver, err := taxcoderesolver.New(taxCodeEnv.Service)
+	require.NoError(t, err)
+
 	return billingservice.New(billingservice.Config{
 		Adapter:                 billingAdapter,
 		SequenceService:         billingSequenceService,
@@ -299,5 +303,6 @@ func InitBillingService(t *testing.T, ctx context.Context, in InitBillingService
 		Publisher:               eventbus.NewMock(t),
 		AdvancementStrategy:     billing.ForegroundAdvancementStrategy,
 		TaxCodeService:          taxCodeEnv.Service,
+		TaxCodeResolver:         taxCodeResolver,
 	})
 }

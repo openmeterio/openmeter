@@ -11,7 +11,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -83,12 +82,9 @@ func (s *Service) CreateProfile(ctx context.Context, input billing.CreateProfile
 		}
 
 		// billing.InvoicingConfig{} is the zero-value stored state for creates (no prior tax-code to compare against).
-		normalizedInvoicing, err := input.WorkflowConfig.Invoicing.WithDeprecatedTaxCodeEnforced(billing.InvoicingConfig{})
-		if err != nil {
+		if err := input.WorkflowConfig.Invoicing.ValidateDefaultTaxCodeUnchanged(billing.InvoicingConfig{}); err != nil {
 			return nil, err
 		}
-
-		input.WorkflowConfig.Invoicing = normalizedInvoicing
 
 		profile, err := s.adapter.CreateProfile(ctx, input)
 		if err != nil {
@@ -301,17 +297,7 @@ func (s *Service) UpdateProfile(ctx context.Context, input billing.UpdateProfile
 			}
 		}
 
-		normalizedInvoicing, err := targetState.WorkflowConfig.Invoicing.WithDeprecatedTaxCodeEnforced(profile.WorkflowConfig.Invoicing)
-		if err != nil {
-			return nil, err
-		}
-
-		targetState.WorkflowConfig.Invoicing = normalizedInvoicing
-
-		// Resolution must run after the deprecation gate and cannot be removed: legacy clients
-		// that predate taxCodeId echo only stripe.code on no-op updates, and resolution is what
-		// re-stamps TaxCodeID from that echoed code.
-		if err := productcatalog.ResolveTaxConfig(ctx, s.taxCodeService, input.Namespace, targetState.WorkflowConfig.Invoicing.DefaultTaxConfig); err != nil {
+		if err := targetState.WorkflowConfig.Invoicing.ValidateDefaultTaxCodeUnchanged(profile.WorkflowConfig.Invoicing); err != nil {
 			return nil, err
 		}
 
