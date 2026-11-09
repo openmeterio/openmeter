@@ -65,12 +65,22 @@ func TestInvoiceEventPayloadsAcceptV3Invoice(t *testing.T) {
 	raw, err := json.Marshal(map[string]any{"invoice": apiInvoice})
 	require.NoError(t, err)
 
-	for eventType, schemaJSON := range map[string][]byte{
-		billingevents.BillingInvoiceCreatedV1EventType.String(): billingevents.BillingInvoiceCreatedV1PayloadJSONSchema,
-		billingevents.BillingInvoiceUpdatedV1EventType.String(): billingevents.BillingInvoiceUpdatedV1PayloadJSONSchema,
+	for eventType, tc := range map[string]struct {
+		schema []byte
+		// typed returns a pointer to the generated payload struct of the type.
+		typed func() any
+	}{
+		billingevents.BillingInvoiceCreatedV1EventType.String(): {
+			schema: billingevents.BillingInvoiceCreatedV1PayloadJSONSchema,
+			typed:  func() any { return &billingevents.BillingInvoiceCreatedV1Payload{} },
+		},
+		billingevents.BillingInvoiceUpdatedV1EventType.String(): {
+			schema: billingevents.BillingInvoiceUpdatedV1PayloadJSONSchema,
+			typed:  func() any { return &billingevents.BillingInvoiceUpdatedV1Payload{} },
+		},
 	} {
 		t.Run(eventType, func(t *testing.T) {
-			doc, err := jsonschema.UnmarshalJSON(bytes.NewReader(schemaJSON))
+			doc, err := jsonschema.UnmarshalJSON(bytes.NewReader(tc.schema))
 			require.NoError(t, err)
 
 			c := jsonschema.NewCompiler()
@@ -85,8 +95,8 @@ func TestInvoiceEventPayloadsAcceptV3Invoice(t *testing.T) {
 			require.NoError(t, schema.Validate(payload))
 
 			// The generated payload struct round-trips the API JSON unchanged.
-			var typed billingevents.BillingInvoiceCreatedV1Payload
-			require.NoError(t, json.Unmarshal(raw, &typed))
+			typed := tc.typed()
+			require.NoError(t, json.Unmarshal(raw, typed))
 
 			again, err := json.Marshal(typed)
 			require.NoError(t, err)
