@@ -307,6 +307,11 @@ package-helm-chart: ## Package a helm chart for release (set CHART and VERSION)
 lint-go: ## Lint Go code
 	$(call print-target)
 	golangci-lint run -v $(GO_LINT_PATH)
+	@# Domain notificationevents packages import api/v3, so api/v3 must not
+	@# depend on openmeter/..., even transitively or through generated code.
+	@if go list -deps ./api/v3 | grep '^github.com/openmeterio/openmeter/openmeter/'; then \
+		echo "error: api/v3 must not depend on the packages above"; exit 1; \
+	fi
 	cd api/v3/client && golangci-lint run -v ./...
 	go vet -C e2e ./...
 	cd e2e && golangci-lint run -v ./...
