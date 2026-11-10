@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"io/fs"
 	"log/slog"
 	"os"
@@ -59,6 +60,11 @@ func (entMigrator) Hash() (string, error) {
 }
 
 func (entMigrator) Migrate(ctx context.Context, db *sql.DB, _ pgtestdb.Config) error {
+	// Ent cannot create extensions; the schema needs pg_trgm for gin_trgm_ops indexes.
+	if _, err := db.ExecContext(ctx, "CREATE EXTENSION IF NOT EXISTS pg_trgm"); err != nil {
+		return fmt.Errorf("failed to create pg_trgm extension: %w", err)
+	}
+
 	driver := entsql.OpenDB(dialect.Postgres, db)
 	client := entdb.NewClient(entdb.Driver(driver))
 
