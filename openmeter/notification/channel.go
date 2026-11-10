@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	ChannelTypeWebhook ChannelType = "WEBHOOK"
+	ChannelTypeWebhook ChannelType = "webhook"
 )
 
 var _ models.Validator = (*ChannelType)(nil)
@@ -32,6 +32,29 @@ func (t ChannelType) Validate() error {
 		return nil
 	default:
 		return models.NewGenericValidationError(fmt.Errorf("invalid channel type: %s", t))
+	}
+}
+
+// ChannelReconcileStatus describes the last known reconciliation outcome.
+// Unknown means provider state has not been established, including legacy Channels.
+type ChannelReconcileStatus string
+
+const (
+	ChannelReconcileStatusUnknown ChannelReconcileStatus = "unknown"
+	ChannelReconcileStatusPending ChannelReconcileStatus = "pending"
+	ChannelReconcileStatusInSync  ChannelReconcileStatus = "in_sync"
+	ChannelReconcileStatusError   ChannelReconcileStatus = "error"
+)
+
+var _ models.Validator = ChannelReconcileStatus("")
+
+func (s ChannelReconcileStatus) Validate() error {
+	switch s {
+	case ChannelReconcileStatusUnknown, ChannelReconcileStatusPending,
+		ChannelReconcileStatusInSync, ChannelReconcileStatusError:
+		return nil
+	default:
+		return models.NewGenericValidationError(fmt.Errorf("invalid channel reconcile status: %s", s))
 	}
 }
 

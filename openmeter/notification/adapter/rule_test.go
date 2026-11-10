@@ -1,6 +1,7 @@
-package adapter_test
+package adapter
 
 import (
+	"encoding/json"
 	"testing"
 	"time"
 
@@ -188,6 +189,66 @@ func TestListRules_Filters(t *testing.T) {
 			}
 
 			assert.ElementsMatch(t, tc.wantIDs, gotIDs)
+		})
+	}
+}
+
+func TestRuleChannelConfigCompatibility(t *testing.T) {
+	tests := []struct {
+		name    string
+		data    string
+		wantErr bool
+	}{
+		{
+			name: "flat config",
+			data: `{"url":"https://example.com/hook","custom_headers":{"X-Team":"billing"},"signing_secret":"original-secret"}`,
+		},
+		{
+			name:    "malformed config",
+			data:    `{"type":"WEBHOOK","data":[]}`,
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// given: a rule referencing a channel whose config uses a new or malformed shape
+			env := newChannelTestEnv(t)
+			channel := createChannel(t, env, ulid.Make().String(), clock.Now(), nil)
+			created := createRule(t, env, channel.Namespace, clock.Now(), func(input *notification.CreateRuleInput) {
+				input.Channels = []string{channel.ID}
+			})
+
+			_, err := env.db.NotificationChannel.UpdateOneID(channel.ID).
+				SetConfig(json.RawMessage(tt.data)).Save(t.Context())
+			require.NoError(t, err)
+
+			// when: reading the rule with its nested channels
+			item, getErr := env.adapter.GetRule(t.Context(), notification.GetRuleInput(created.NamespacedID))
+			listed, listErr := env.adapter.ListRules(t.Context(), notification.ListRulesInput{
+				Namespace: created.Namespace, Page: pagination.NewPage(1, 20),
+			})
+
+			// then: config values or decoding errors propagate through both read paths
+			if tt.wantErr {
+				require.ErrorContains(t, getErr, "invalid notification channel config")
+				require.ErrorContains(t, listErr, "invalid notification channel config")
+
+				assert.Nil(t, item)
+
+				return
+			}
+
+			require.NoError(t, getErr)
+			require.NoError(t, listErr)
+			require.Len(t, listed.Items, 1)
+
+			require.Len(t, item.Channels, 1)
+			require.Len(t, listed.Items[0].Channels, 1)
+
+			assert.Equal(t, "original-secret", item.Channels[0].Config.WebHook.SigningSecret)
+			assert.Equal(t, map[string]string{"X-Team": "billing"}, item.Channels[0].Config.WebHook.CustomHeaders)
+			assert.Equal(t, item.Channels[0].Config, listed.Items[0].Channels[0].Config)
 		})
 	}
 }

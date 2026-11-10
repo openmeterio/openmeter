@@ -5496,6 +5496,48 @@ func (u *NotificationChannelUpdateOne) SetOrClearDisabled(value *bool) *Notifica
 	return u.SetDisabled(*value)
 }
 
+func (u *NotificationChannelUpdate) SetOrClearEventTypeFilter(value *[]string) *NotificationChannelUpdate {
+	if value == nil {
+		return u.ClearEventTypeFilter()
+	}
+	return u.SetEventTypeFilter(*value)
+}
+
+func (u *NotificationChannelUpdateOne) SetOrClearEventTypeFilter(value *[]string) *NotificationChannelUpdateOne {
+	if value == nil {
+		return u.ClearEventTypeFilter()
+	}
+	return u.SetEventTypeFilter(*value)
+}
+
+func (u *NotificationChannelUpdate) SetOrClearProviderData(value *map[string]string) *NotificationChannelUpdate {
+	if value == nil {
+		return u.ClearProviderData()
+	}
+	return u.SetProviderData(*value)
+}
+
+func (u *NotificationChannelUpdateOne) SetOrClearProviderData(value *map[string]string) *NotificationChannelUpdateOne {
+	if value == nil {
+		return u.ClearProviderData()
+	}
+	return u.SetProviderData(*value)
+}
+
+func (u *NotificationChannelUpdate) SetOrClearReconcileNextAt(value *time.Time) *NotificationChannelUpdate {
+	if value == nil {
+		return u.ClearReconcileNextAt()
+	}
+	return u.SetReconcileNextAt(*value)
+}
+
+func (u *NotificationChannelUpdateOne) SetOrClearReconcileNextAt(value *time.Time) *NotificationChannelUpdateOne {
+	if value == nil {
+		return u.ClearReconcileNextAt()
+	}
+	return u.SetReconcileNextAt(*value)
+}
+
 func (u *NotificationEventUpdate) SetOrClearAnnotations(value *models.Annotations) *NotificationEventUpdate {
 	if value == nil {
 		return u.ClearAnnotations()

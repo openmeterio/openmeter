@@ -4,6 +4,7 @@ package db
 
 import (
 	"context"
+	"encoding/json/jsontext"
 	"errors"
 	"fmt"
 	"time"
@@ -116,16 +117,87 @@ func (_u *NotificationChannelUpdate) ClearDisabled() *NotificationChannelUpdate 
 }
 
 // SetConfig sets the "config" field.
-func (_u *NotificationChannelUpdate) SetConfig(v notification.ChannelConfig) *NotificationChannelUpdate {
+func (_u *NotificationChannelUpdate) SetConfig(v jsontext.Value) *NotificationChannelUpdate {
 	_u.mutation.SetConfig(v)
 	return _u
 }
 
-// SetNillableConfig sets the "config" field if the given value is not nil.
-func (_u *NotificationChannelUpdate) SetNillableConfig(v *notification.ChannelConfig) *NotificationChannelUpdate {
+// SetEventTypeFilter sets the "event_type_filter" field.
+func (_u *NotificationChannelUpdate) SetEventTypeFilter(v []string) *NotificationChannelUpdate {
+	_u.mutation.SetEventTypeFilter(v)
+	return _u
+}
+
+// ClearEventTypeFilter clears the value of the "event_type_filter" field.
+func (_u *NotificationChannelUpdate) ClearEventTypeFilter() *NotificationChannelUpdate {
+	_u.mutation.ClearEventTypeFilter()
+	return _u
+}
+
+// SetProviderData sets the "provider_data" field.
+func (_u *NotificationChannelUpdate) SetProviderData(v map[string]string) *NotificationChannelUpdate {
+	_u.mutation.SetProviderData(v)
+	return _u
+}
+
+// ClearProviderData clears the value of the "provider_data" field.
+func (_u *NotificationChannelUpdate) ClearProviderData() *NotificationChannelUpdate {
+	_u.mutation.ClearProviderData()
+	return _u
+}
+
+// SetGeneration sets the "generation" field.
+func (_u *NotificationChannelUpdate) SetGeneration(v int) *NotificationChannelUpdate {
+	_u.mutation.ResetGeneration()
+	_u.mutation.SetGeneration(v)
+	return _u
+}
+
+// SetNillableGeneration sets the "generation" field if the given value is not nil.
+func (_u *NotificationChannelUpdate) SetNillableGeneration(v *int) *NotificationChannelUpdate {
 	if v != nil {
-		_u.SetConfig(*v)
+		_u.SetGeneration(*v)
 	}
+	return _u
+}
+
+// AddGeneration adds value to the "generation" field.
+func (_u *NotificationChannelUpdate) AddGeneration(v int) *NotificationChannelUpdate {
+	_u.mutation.AddGeneration(v)
+	return _u
+}
+
+// SetReconcileStatus sets the "reconcile_status" field.
+func (_u *NotificationChannelUpdate) SetReconcileStatus(v notification.ChannelReconcileStatus) *NotificationChannelUpdate {
+	_u.mutation.SetReconcileStatus(v)
+	return _u
+}
+
+// SetNillableReconcileStatus sets the "reconcile_status" field if the given value is not nil.
+func (_u *NotificationChannelUpdate) SetNillableReconcileStatus(v *notification.ChannelReconcileStatus) *NotificationChannelUpdate {
+	if v != nil {
+		_u.SetReconcileStatus(*v)
+	}
+	return _u
+}
+
+// SetReconcileNextAt sets the "reconcile_next_at" field.
+func (_u *NotificationChannelUpdate) SetReconcileNextAt(v time.Time) *NotificationChannelUpdate {
+	_u.mutation.SetReconcileNextAt(v)
+	return _u
+}
+
+// SetNillableReconcileNextAt sets the "reconcile_next_at" field if the given value is not nil.
+func (_u *NotificationChannelUpdate) SetNillableReconcileNextAt(v *time.Time) *NotificationChannelUpdate {
+	if v != nil {
+		_u.SetReconcileNextAt(*v)
+	}
+	return _u
+}
+
+// ClearReconcileNextAt clears the value of the "reconcile_next_at" field.
+func (_u *NotificationChannelUpdate) ClearReconcileNextAt() *NotificationChannelUpdate {
+	_u.mutation.ClearReconcileNextAt()
 	return _u
 }
 
@@ -213,9 +285,14 @@ func (_u *NotificationChannelUpdate) check() error {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`db: validator failed for field "NotificationChannel.name": %w`, err)}
 		}
 	}
-	if v, ok := _u.mutation.Config(); ok {
-		if err := v.Validate(); err != nil {
-			return &ValidationError{Name: "config", err: fmt.Errorf(`db: validator failed for field "NotificationChannel.config": %w`, err)}
+	if v, ok := _u.mutation.Generation(); ok {
+		if err := notificationchannel.GenerationValidator(v); err != nil {
+			return &ValidationError{Name: "generation", err: fmt.Errorf(`db: validator failed for field "NotificationChannel.generation": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.ReconcileStatus(); ok {
+		if err := notificationchannel.ReconcileStatusValidator(string(v)); err != nil {
+			return &ValidationError{Name: "reconcile_status", err: fmt.Errorf(`db: validator failed for field "NotificationChannel.reconcile_status": %w`, err)}
 		}
 	}
 	return nil
@@ -269,6 +346,41 @@ func (_u *NotificationChannelUpdate) sqlSave(ctx context.Context) (_node int, er
 			return 0, err
 		}
 		_spec.SetField(notificationchannel.FieldConfig, field.TypeString, vv)
+	}
+	if value, ok := _u.mutation.EventTypeFilter(); ok {
+		vv, err := notificationchannel.ValueScanner.EventTypeFilter.Value(value)
+		if err != nil {
+			return 0, err
+		}
+		_spec.SetField(notificationchannel.FieldEventTypeFilter, field.TypeString, vv)
+	}
+	if _u.mutation.EventTypeFilterCleared() {
+		_spec.ClearField(notificationchannel.FieldEventTypeFilter, field.TypeString)
+	}
+	if value, ok := _u.mutation.ProviderData(); ok {
+		vv, err := notificationchannel.ValueScanner.ProviderData.Value(value)
+		if err != nil {
+			return 0, err
+		}
+		_spec.SetField(notificationchannel.FieldProviderData, field.TypeString, vv)
+	}
+	if _u.mutation.ProviderDataCleared() {
+		_spec.ClearField(notificationchannel.FieldProviderData, field.TypeString)
+	}
+	if value, ok := _u.mutation.Generation(); ok {
+		_spec.SetField(notificationchannel.FieldGeneration, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedGeneration(); ok {
+		_spec.AddField(notificationchannel.FieldGeneration, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.ReconcileStatus(); ok {
+		_spec.SetField(notificationchannel.FieldReconcileStatus, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.ReconcileNextAt(); ok {
+		_spec.SetField(notificationchannel.FieldReconcileNextAt, field.TypeTime, value)
+	}
+	if _u.mutation.ReconcileNextAtCleared() {
+		_spec.ClearField(notificationchannel.FieldReconcileNextAt, field.TypeTime)
 	}
 	if _u.mutation.RulesCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -420,16 +532,87 @@ func (_u *NotificationChannelUpdateOne) ClearDisabled() *NotificationChannelUpda
 }
 
 // SetConfig sets the "config" field.
-func (_u *NotificationChannelUpdateOne) SetConfig(v notification.ChannelConfig) *NotificationChannelUpdateOne {
+func (_u *NotificationChannelUpdateOne) SetConfig(v jsontext.Value) *NotificationChannelUpdateOne {
 	_u.mutation.SetConfig(v)
 	return _u
 }
 
-// SetNillableConfig sets the "config" field if the given value is not nil.
-func (_u *NotificationChannelUpdateOne) SetNillableConfig(v *notification.ChannelConfig) *NotificationChannelUpdateOne {
+// SetEventTypeFilter sets the "event_type_filter" field.
+func (_u *NotificationChannelUpdateOne) SetEventTypeFilter(v []string) *NotificationChannelUpdateOne {
+	_u.mutation.SetEventTypeFilter(v)
+	return _u
+}
+
+// ClearEventTypeFilter clears the value of the "event_type_filter" field.
+func (_u *NotificationChannelUpdateOne) ClearEventTypeFilter() *NotificationChannelUpdateOne {
+	_u.mutation.ClearEventTypeFilter()
+	return _u
+}
+
+// SetProviderData sets the "provider_data" field.
+func (_u *NotificationChannelUpdateOne) SetProviderData(v map[string]string) *NotificationChannelUpdateOne {
+	_u.mutation.SetProviderData(v)
+	return _u
+}
+
+// ClearProviderData clears the value of the "provider_data" field.
+func (_u *NotificationChannelUpdateOne) ClearProviderData() *NotificationChannelUpdateOne {
+	_u.mutation.ClearProviderData()
+	return _u
+}
+
+// SetGeneration sets the "generation" field.
+func (_u *NotificationChannelUpdateOne) SetGeneration(v int) *NotificationChannelUpdateOne {
+	_u.mutation.ResetGeneration()
+	_u.mutation.SetGeneration(v)
+	return _u
+}
+
+// SetNillableGeneration sets the "generation" field if the given value is not nil.
+func (_u *NotificationChannelUpdateOne) SetNillableGeneration(v *int) *NotificationChannelUpdateOne {
 	if v != nil {
-		_u.SetConfig(*v)
+		_u.SetGeneration(*v)
 	}
+	return _u
+}
+
+// AddGeneration adds value to the "generation" field.
+func (_u *NotificationChannelUpdateOne) AddGeneration(v int) *NotificationChannelUpdateOne {
+	_u.mutation.AddGeneration(v)
+	return _u
+}
+
+// SetReconcileStatus sets the "reconcile_status" field.
+func (_u *NotificationChannelUpdateOne) SetReconcileStatus(v notification.ChannelReconcileStatus) *NotificationChannelUpdateOne {
+	_u.mutation.SetReconcileStatus(v)
+	return _u
+}
+
+// SetNillableReconcileStatus sets the "reconcile_status" field if the given value is not nil.
+func (_u *NotificationChannelUpdateOne) SetNillableReconcileStatus(v *notification.ChannelReconcileStatus) *NotificationChannelUpdateOne {
+	if v != nil {
+		_u.SetReconcileStatus(*v)
+	}
+	return _u
+}
+
+// SetReconcileNextAt sets the "reconcile_next_at" field.
+func (_u *NotificationChannelUpdateOne) SetReconcileNextAt(v time.Time) *NotificationChannelUpdateOne {
+	_u.mutation.SetReconcileNextAt(v)
+	return _u
+}
+
+// SetNillableReconcileNextAt sets the "reconcile_next_at" field if the given value is not nil.
+func (_u *NotificationChannelUpdateOne) SetNillableReconcileNextAt(v *time.Time) *NotificationChannelUpdateOne {
+	if v != nil {
+		_u.SetReconcileNextAt(*v)
+	}
+	return _u
+}
+
+// ClearReconcileNextAt clears the value of the "reconcile_next_at" field.
+func (_u *NotificationChannelUpdateOne) ClearReconcileNextAt() *NotificationChannelUpdateOne {
+	_u.mutation.ClearReconcileNextAt()
 	return _u
 }
 
@@ -530,9 +713,14 @@ func (_u *NotificationChannelUpdateOne) check() error {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`db: validator failed for field "NotificationChannel.name": %w`, err)}
 		}
 	}
-	if v, ok := _u.mutation.Config(); ok {
-		if err := v.Validate(); err != nil {
-			return &ValidationError{Name: "config", err: fmt.Errorf(`db: validator failed for field "NotificationChannel.config": %w`, err)}
+	if v, ok := _u.mutation.Generation(); ok {
+		if err := notificationchannel.GenerationValidator(v); err != nil {
+			return &ValidationError{Name: "generation", err: fmt.Errorf(`db: validator failed for field "NotificationChannel.generation": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.ReconcileStatus(); ok {
+		if err := notificationchannel.ReconcileStatusValidator(string(v)); err != nil {
+			return &ValidationError{Name: "reconcile_status", err: fmt.Errorf(`db: validator failed for field "NotificationChannel.reconcile_status": %w`, err)}
 		}
 	}
 	return nil
@@ -603,6 +791,41 @@ func (_u *NotificationChannelUpdateOne) sqlSave(ctx context.Context) (_node *Not
 			return nil, err
 		}
 		_spec.SetField(notificationchannel.FieldConfig, field.TypeString, vv)
+	}
+	if value, ok := _u.mutation.EventTypeFilter(); ok {
+		vv, err := notificationchannel.ValueScanner.EventTypeFilter.Value(value)
+		if err != nil {
+			return nil, err
+		}
+		_spec.SetField(notificationchannel.FieldEventTypeFilter, field.TypeString, vv)
+	}
+	if _u.mutation.EventTypeFilterCleared() {
+		_spec.ClearField(notificationchannel.FieldEventTypeFilter, field.TypeString)
+	}
+	if value, ok := _u.mutation.ProviderData(); ok {
+		vv, err := notificationchannel.ValueScanner.ProviderData.Value(value)
+		if err != nil {
+			return nil, err
+		}
+		_spec.SetField(notificationchannel.FieldProviderData, field.TypeString, vv)
+	}
+	if _u.mutation.ProviderDataCleared() {
+		_spec.ClearField(notificationchannel.FieldProviderData, field.TypeString)
+	}
+	if value, ok := _u.mutation.Generation(); ok {
+		_spec.SetField(notificationchannel.FieldGeneration, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedGeneration(); ok {
+		_spec.AddField(notificationchannel.FieldGeneration, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.ReconcileStatus(); ok {
+		_spec.SetField(notificationchannel.FieldReconcileStatus, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.ReconcileNextAt(); ok {
+		_spec.SetField(notificationchannel.FieldReconcileNextAt, field.TypeTime, value)
+	}
+	if _u.mutation.ReconcileNextAtCleared() {
+		_spec.ClearField(notificationchannel.FieldReconcileNextAt, field.TypeTime)
 	}
 	if _u.mutation.RulesCleared() {
 		edge := &sqlgraph.EdgeSpec{

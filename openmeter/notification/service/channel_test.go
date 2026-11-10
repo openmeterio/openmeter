@@ -148,15 +148,15 @@ func TestListChannels_ServiceFilters(t *testing.T) {
 		wantIDs []string
 	}{
 		{
-			// given: three webhook channels, all of type WEBHOOK
-			// when: filtering with Type oeq against ["WEBHOOK", "UNKNOWN_TYPE"]
+			// given: three webhook channels, all of type webhook
+			// when: filtering with Type oeq against ["webhook", "UNKNOWN_TYPE"]
 			// then: every channel matching the real value comes back; the bogus
 			// value in the list contributes no matches but must not error or
 			// narrow the result, proving oeq performs an OR/IN match rather than
 			// requiring every listed value to match.
 			//
 			// This row alone would pass even if the Type predicate were dropped
-			// entirely (WEBHOOK is the only channel type in the domain, so "match
+			// entirely (webhook is the only channel type in the domain, so "match
 			// everything" is indistinguishable from "no filter applied"). The
 			// negative row directly below is what actually proves the predicate
 			// is wired in: a list containing only the bogus value must exclude
@@ -168,7 +168,7 @@ func TestListChannels_ServiceFilters(t *testing.T) {
 			wantIDs: []string{alpha.ID, beta.ID, gamma.ID},
 		},
 		{
-			// given: three webhook channels, all of type WEBHOOK
+			// given: three webhook channels, all of type webhook
 			// when: filtering with Type oeq against a list that excludes the real value
 			// then: no channels match, proving the In predicate is actually applied
 			// rather than being a no-op that happens to return everything
@@ -258,6 +258,52 @@ func TestListChannels_InvalidFilterCombinationRejected(t *testing.T) {
 	require.Error(t, err)
 	assert.True(t, models.IsGenericValidationError(err), "expected a models.GenericValidationError, got: %v", err)
 	assert.ErrorIs(t, err, filter.ErrFilterMultipleOperators)
+}
+
+func TestCreateChannel_InvalidType(t *testing.T) {
+	env := newServiceTestEnv(t)
+
+	tests := []struct {
+		name        string
+		channelType notification.ChannelType
+	}{
+		{
+			name:        "empty",
+			channelType: "",
+		},
+		{
+			name:        "unknown",
+			channelType: "UNKNOWN",
+		},
+		{
+			name:        "uppercase webhook",
+			channelType: "WEBHOOK",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// given: valid webhook configuration with an unsupported Channel type
+			input := notification.CreateChannelInput{
+				NamespacedModel: models.NamespacedModel{Namespace: ulid.Make().String()},
+				Type:            tt.channelType,
+				Name:            "webhook",
+				Config: notification.ChannelConfig{
+					ChannelConfigMeta: notification.ChannelConfigMeta{Type: notification.ChannelTypeWebhook},
+					WebHook:           notification.WebHookChannelConfig{URL: "https://example.com/hook"},
+				},
+			}
+
+			// when: the service validates the request before persistence or provider calls
+			channel, err := env.service.CreateChannel(t.Context(), input)
+
+			// then: the relaxed storage type does not relax the public contract
+			require.Error(t, err)
+
+			assert.True(t, models.IsGenericValidationError(err))
+			assert.Nil(t, channel)
+		})
+	}
 }
 
 // TestUpdateChannel_AfterDeleteReturnsUpdateAfterDeleteError covers the read-before-write

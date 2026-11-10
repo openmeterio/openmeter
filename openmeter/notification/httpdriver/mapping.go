@@ -11,6 +11,26 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
+// ToChannelType keeps the legacy uppercase spelling at the V1 boundary.
+func ToChannelType(value api.NotificationChannelType) (notification.ChannelType, error) {
+	switch value {
+	case api.NotificationChannelTypeWebhook:
+		return notification.ChannelTypeWebhook, nil
+	default:
+		return "", models.NewGenericValidationError(fmt.Errorf("invalid channel type: %s", value))
+	}
+}
+
+// FromChannelType preserves V1 channel references in Rule and Event responses.
+func FromChannelType(value notification.ChannelType) api.NotificationChannelType {
+	switch value {
+	case notification.ChannelTypeWebhook:
+		return api.NotificationChannelTypeWebhook
+	default:
+		return api.NotificationChannelType(value)
+	}
+}
+
 func FromChannel(c notification.Channel) (api.NotificationChannel, error) {
 	var channel api.NotificationChannel
 
@@ -63,17 +83,22 @@ func FromMetadata(m models.Metadata) api.Metadata {
 	return api.Metadata(m)
 }
 
-func AsChannelWebhookCreateRequest(r api.NotificationChannelWebhookCreateRequest, namespace string) notification.CreateChannelInput {
+func AsChannelWebhookCreateRequest(r api.NotificationChannelWebhookCreateRequest, namespace string) (notification.CreateChannelInput, error) {
+	channelType, err := ToChannelType(api.NotificationChannelType(r.Type))
+	if err != nil {
+		return notification.CreateChannelInput{}, err
+	}
+
 	return notification.CreateChannelInput{
 		NamespacedModel: models.NamespacedModel{
 			Namespace: namespace,
 		},
 		Name:     r.Name,
-		Type:     notification.ChannelType(r.Type),
+		Type:     channelType,
 		Disabled: lo.FromPtrOr(r.Disabled, notification.DefaultDisabled),
 		Config: notification.ChannelConfig{
 			ChannelConfigMeta: notification.ChannelConfigMeta{
-				Type: notification.ChannelType(r.Type),
+				Type: channelType,
 			},
 			WebHook: notification.WebHookChannelConfig{
 				CustomHeaders: lo.FromPtr(r.CustomHeaders),
@@ -82,7 +107,7 @@ func AsChannelWebhookCreateRequest(r api.NotificationChannelWebhookCreateRequest
 			},
 		},
 		Metadata: lo.FromPtr(r.Metadata),
-	}
+	}, nil
 }
 
 func AsMetadata(m *api.Metadata) models.Metadata {
@@ -93,18 +118,23 @@ func AsMetadata(m *api.Metadata) models.Metadata {
 	return *m
 }
 
-func AsChannelWebhookUpdateRequest(r api.NotificationChannelWebhookCreateRequest, namespace, channelID string) notification.UpdateChannelInput {
+func AsChannelWebhookUpdateRequest(r api.NotificationChannelWebhookCreateRequest, namespace, channelID string) (notification.UpdateChannelInput, error) {
+	channelType, err := ToChannelType(api.NotificationChannelType(r.Type))
+	if err != nil {
+		return notification.UpdateChannelInput{}, err
+	}
+
 	return notification.UpdateChannelInput{
 		NamespacedID: models.NamespacedID{
 			Namespace: namespace,
 			ID:        channelID,
 		},
 		Name:     r.Name,
-		Type:     notification.ChannelType(r.Type),
+		Type:     channelType,
 		Disabled: lo.FromPtrOr(r.Disabled, notification.DefaultDisabled),
 		Config: notification.ChannelConfig{
 			ChannelConfigMeta: notification.ChannelConfigMeta{
-				Type: notification.ChannelType(r.Type),
+				Type: channelType,
 			},
 			WebHook: notification.WebHookChannelConfig{
 				CustomHeaders: lo.FromPtr(r.CustomHeaders),
@@ -113,7 +143,7 @@ func AsChannelWebhookUpdateRequest(r api.NotificationChannelWebhookCreateRequest
 			},
 		},
 		Metadata: AsMetadata(r.Metadata),
-	}
+	}, nil
 }
 
 func AsRuleBalanceThresholdCreateRequest(r api.NotificationRuleBalanceThresholdCreateRequest, namespace string) notification.CreateRuleInput {
@@ -321,7 +351,7 @@ func FromRuleBalanceThreshold(r notification.Rule) api.NotificationRuleBalanceTh
 	for _, channel := range r.Channels {
 		channels = append(channels, api.NotificationChannelMeta{
 			Id:   channel.ID,
-			Type: api.NotificationChannelType(channel.Type),
+			Type: FromChannelType(channel.Type),
 		})
 	}
 
@@ -360,7 +390,7 @@ func FromRuleEntitlementReset(r notification.Rule) api.NotificationRuleEntitleme
 	for _, channel := range r.Channels {
 		channels = append(channels, api.NotificationChannelMeta{
 			Id:   channel.ID,
-			Type: api.NotificationChannelType(channel.Type),
+			Type: FromChannelType(channel.Type),
 		})
 	}
 
@@ -398,7 +428,7 @@ func FromRuleInvoiceCreated(r notification.Rule) api.NotificationRuleInvoiceCrea
 	for _, channel := range r.Channels {
 		channels = append(channels, api.NotificationChannelMeta{
 			Id:   channel.ID,
-			Type: api.NotificationChannelType(channel.Type),
+			Type: FromChannelType(channel.Type),
 		})
 	}
 
@@ -422,7 +452,7 @@ func FromRuleInvoiceUpdated(r notification.Rule) api.NotificationRuleInvoiceUpda
 	for _, channel := range r.Channels {
 		channels = append(channels, api.NotificationChannelMeta{
 			Id:   channel.ID,
-			Type: api.NotificationChannelType(channel.Type),
+			Type: FromChannelType(channel.Type),
 		})
 	}
 
@@ -475,7 +505,7 @@ func FromEvent(e notification.Event) (api.NotificationEvent, error) {
 		if channel, ok := channelsByID[deliveryStatus.ChannelID]; ok {
 			status.Channel = api.NotificationChannelMeta{
 				Id:   deliveryStatus.ChannelID,
-				Type: api.NotificationChannelType(channel.Type),
+				Type: FromChannelType(channel.Type),
 			}
 		}
 

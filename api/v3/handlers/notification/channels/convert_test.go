@@ -14,7 +14,7 @@ import (
 )
 
 // TestFromAPICreateChannelRequest_TypeCasing covers the type casing mapping: the v3 wire enum value
-// ("webhook") must translate to the domain/DB value ("WEBHOOK") on create, and an
+// ("webhook") must translate to the domain/DB value ("webhook") on create, and an
 // unrecognized wire value must be rejected rather than silently stored — a bad
 // ChannelType would otherwise reach ChannelConfig.Validate()'s type switch and fail
 // deep inside domain validation with a confusing error instead of a clear one here.
@@ -27,11 +27,11 @@ func TestFromAPICreateChannelRequest_TypeCasing(t *testing.T) {
 		}
 	}
 
-	t.Run("lowercase wire value maps to uppercase domain value", func(t *testing.T) {
+	t.Run("lowercase wire value maps to lowercase domain value", func(t *testing.T) {
 		result, err := FromAPICreateChannelRequest("ns1", baseBody(api.BillingNotificationChannelTypeWebhook))
 		require.NoError(t, err)
 		assert.Equal(t, notification.ChannelTypeWebhook, result.Type)
-		assert.Equal(t, notification.ChannelType("WEBHOOK"), result.Type)
+		assert.Equal(t, notification.ChannelType("webhook"), result.Type)
 		// The nested config's type meta must carry the same mapped value, since
 		// ChannelConfig.Validate() switches on it independently of Type above.
 		assert.Equal(t, notification.ChannelTypeWebhook, result.Config.ChannelConfigMeta.Type)
@@ -48,9 +48,7 @@ func TestFromAPICreateChannelRequest_TypeCasing(t *testing.T) {
 	})
 
 	t.Run("uppercase V1-style value is rejected under the v3 lowercase casing convention", func(t *testing.T) {
-		// v3 deliberately spells the wire value "webhook" (lowercase); the domain's
-		// own uppercase "WEBHOOK" spelling must not be silently accepted as-is on the
-		// v3 wire, or a client copying the V1 casing would get an inconsistent channel.
+		// V1 spelling must remain invalid on the V3 API.
 		_, err := FromAPICreateChannelRequest("ns1", baseBody("WEBHOOK"))
 		require.Error(t, err)
 	})
@@ -137,10 +135,7 @@ func TestToAPIChannel_TypeCasing(t *testing.T) {
 	})
 }
 
-// TestMapAPIChannelTypeFilter covers the filter direction of the type casing: filter[type][...] wire
-// values must be translated to the domain/DB value before the predicate reaches the
-// adapter, or filter[type][eq]=webhook would silently match zero rows against a
-// column that stores "WEBHOOK".
+// TestMapAPIChannelTypeFilter checks exact lowercase types and rejects unsupported values.
 func TestMapAPIChannelTypeFilter(t *testing.T) {
 	testCases := []struct {
 		name    string
@@ -156,17 +151,17 @@ func TestMapAPIChannelTypeFilter(t *testing.T) {
 		{
 			name:  "eq translates the wire value to the domain value",
 			input: &filter.FilterString{Eq: lo.ToPtr("webhook")},
-			want:  &filter.FilterString{Eq: lo.ToPtr("WEBHOOK")},
+			want:  &filter.FilterString{Eq: lo.ToPtr("webhook")},
 		},
 		{
 			name:  "ne translates the wire value to the domain value",
 			input: &filter.FilterString{Ne: lo.ToPtr("webhook")},
-			want:  &filter.FilterString{Ne: lo.ToPtr("WEBHOOK")},
+			want:  &filter.FilterString{Ne: lo.ToPtr("webhook")},
 		},
 		{
 			name:  "in translates every wire value to its domain value",
 			input: &filter.FilterString{In: &[]string{"webhook"}},
-			want:  &filter.FilterString{In: &[]string{"WEBHOOK"}},
+			want:  &filter.FilterString{In: &[]string{"webhook"}},
 		},
 		{
 			name:    "unknown eq value is rejected rather than silently matching zero rows",

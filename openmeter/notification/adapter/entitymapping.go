@@ -12,7 +12,12 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-func ChannelFromDBEntity(e db.NotificationChannel) *notification.Channel {
+func ChannelFromDBEntity(e db.NotificationChannel) (*notification.Channel, error) {
+	config, err := fromDBChannelConfig(e.Type, e.Config)
+	if err != nil {
+		return nil, fmt.Errorf("invalid notification channel config [namespace=%s channel.id=%s]: %w", e.Namespace, e.ID, err)
+	}
+
 	return &notification.Channel{
 		NamespacedID: models.NamespacedID{
 			Namespace: e.Namespace,
@@ -34,14 +39,14 @@ func ChannelFromDBEntity(e db.NotificationChannel) *notification.Channel {
 		Type:     e.Type,
 		Name:     e.Name,
 		Disabled: e.Disabled,
-		Config:   e.Config,
+		Config:   config,
 
 		Annotations: e.Annotations,
 		Metadata:    e.Metadata,
-	}
+	}, nil
 }
 
-func RuleFromDBEntity(e db.NotificationRule) *notification.Rule {
+func RuleFromDBEntity(e db.NotificationRule) (*notification.Rule, error) {
 	var channels []notification.Channel
 	if len(e.Edges.Channels) > 0 {
 		for _, channel := range e.Edges.Channels {
@@ -49,7 +54,12 @@ func RuleFromDBEntity(e db.NotificationRule) *notification.Rule {
 				continue
 			}
 
-			channels = append(channels, *ChannelFromDBEntity(*channel))
+			mapped, err := ChannelFromDBEntity(*channel)
+			if err != nil {
+				return nil, fmt.Errorf("failed to map notification rule channel [rule.id=%s]: %w", e.ID, err)
+			}
+
+			channels = append(channels, *mapped)
 		}
 	}
 
@@ -79,7 +89,7 @@ func RuleFromDBEntity(e db.NotificationRule) *notification.Rule {
 
 		Annotations: e.Annotations,
 		Metadata:    e.Metadata,
-	}
+	}, nil
 }
 
 func EventFromDBEntity(e db.NotificationEvent) (*notification.Event, error) {
@@ -105,7 +115,10 @@ func EventFromDBEntity(e db.NotificationEvent) (*notification.Event, error) {
 		return nil, err
 	}
 
-	rule := RuleFromDBEntity(*ruleRow)
+	rule, err := RuleFromDBEntity(*ruleRow)
+	if err != nil {
+		return nil, fmt.Errorf("failed to map notification event rule [event.id=%s]: %w", e.ID, err)
+	}
 
 	return &notification.Event{
 		NamespacedID: models.NamespacedID{

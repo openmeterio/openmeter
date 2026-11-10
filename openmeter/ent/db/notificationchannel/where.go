@@ -3,6 +3,8 @@
 package notificationchannel
 
 import (
+	"encoding/json/jsontext"
+	"fmt"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
@@ -86,6 +88,12 @@ func DeletedAt(v time.Time) predicate.NotificationChannel {
 	return predicate.NotificationChannel(sql.FieldEQ(FieldDeletedAt, v))
 }
 
+// Type applies equality check predicate on the "type" field. It's identical to TypeEQ.
+func Type(v notification.ChannelType) predicate.NotificationChannel {
+	vc, err := ValueScanner.Type.Value(v)
+	return predicate.NotificationChannelOrErr(sql.FieldEQ(FieldType, vc), err)
+}
+
 // Name applies equality check predicate on the "name" field. It's identical to NameEQ.
 func Name(v string) predicate.NotificationChannel {
 	return predicate.NotificationChannel(sql.FieldEQ(FieldName, v))
@@ -94,6 +102,28 @@ func Name(v string) predicate.NotificationChannel {
 // Disabled applies equality check predicate on the "disabled" field. It's identical to DisabledEQ.
 func Disabled(v bool) predicate.NotificationChannel {
 	return predicate.NotificationChannel(sql.FieldEQ(FieldDisabled, v))
+}
+
+// Config applies equality check predicate on the "config" field. It's identical to ConfigEQ.
+func Config(v jsontext.Value) predicate.NotificationChannel {
+	vc, err := ValueScanner.Config.Value(v)
+	return predicate.NotificationChannelOrErr(sql.FieldEQ(FieldConfig, vc), err)
+}
+
+// Generation applies equality check predicate on the "generation" field. It's identical to GenerationEQ.
+func Generation(v int) predicate.NotificationChannel {
+	return predicate.NotificationChannel(sql.FieldEQ(FieldGeneration, v))
+}
+
+// ReconcileStatus applies equality check predicate on the "reconcile_status" field. It's identical to ReconcileStatusEQ.
+func ReconcileStatus(v notification.ChannelReconcileStatus) predicate.NotificationChannel {
+	vc := string(v)
+	return predicate.NotificationChannel(sql.FieldEQ(FieldReconcileStatus, vc))
+}
+
+// ReconcileNextAt applies equality check predicate on the "reconcile_next_at" field. It's identical to ReconcileNextAtEQ.
+func ReconcileNextAt(v time.Time) predicate.NotificationChannel {
+	return predicate.NotificationChannel(sql.FieldEQ(FieldReconcileNextAt, v))
 }
 
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
@@ -313,32 +343,116 @@ func MetadataNotNil() predicate.NotificationChannel {
 
 // TypeEQ applies the EQ predicate on the "type" field.
 func TypeEQ(v notification.ChannelType) predicate.NotificationChannel {
-	vc := v
-	return predicate.NotificationChannel(sql.FieldEQ(FieldType, vc))
+	vc, err := ValueScanner.Type.Value(v)
+	return predicate.NotificationChannelOrErr(sql.FieldEQ(FieldType, vc), err)
 }
 
 // TypeNEQ applies the NEQ predicate on the "type" field.
 func TypeNEQ(v notification.ChannelType) predicate.NotificationChannel {
-	vc := v
-	return predicate.NotificationChannel(sql.FieldNEQ(FieldType, vc))
+	vc, err := ValueScanner.Type.Value(v)
+	return predicate.NotificationChannelOrErr(sql.FieldNEQ(FieldType, vc), err)
 }
 
 // TypeIn applies the In predicate on the "type" field.
 func TypeIn(vs ...notification.ChannelType) predicate.NotificationChannel {
-	v := make([]any, len(vs))
+	var (
+		err error
+		v   = make([]any, len(vs))
+	)
 	for i := range v {
-		v[i] = vs[i]
+		if v[i], err = ValueScanner.Type.Value(vs[i]); err != nil {
+			break
+		}
 	}
-	return predicate.NotificationChannel(sql.FieldIn(FieldType, v...))
+	return predicate.NotificationChannelOrErr(sql.FieldIn(FieldType, v...), err)
 }
 
 // TypeNotIn applies the NotIn predicate on the "type" field.
 func TypeNotIn(vs ...notification.ChannelType) predicate.NotificationChannel {
-	v := make([]any, len(vs))
+	var (
+		err error
+		v   = make([]any, len(vs))
+	)
 	for i := range v {
-		v[i] = vs[i]
+		if v[i], err = ValueScanner.Type.Value(vs[i]); err != nil {
+			break
+		}
 	}
-	return predicate.NotificationChannel(sql.FieldNotIn(FieldType, v...))
+	return predicate.NotificationChannelOrErr(sql.FieldNotIn(FieldType, v...), err)
+}
+
+// TypeGT applies the GT predicate on the "type" field.
+func TypeGT(v notification.ChannelType) predicate.NotificationChannel {
+	vc, err := ValueScanner.Type.Value(v)
+	return predicate.NotificationChannelOrErr(sql.FieldGT(FieldType, vc), err)
+}
+
+// TypeGTE applies the GTE predicate on the "type" field.
+func TypeGTE(v notification.ChannelType) predicate.NotificationChannel {
+	vc, err := ValueScanner.Type.Value(v)
+	return predicate.NotificationChannelOrErr(sql.FieldGTE(FieldType, vc), err)
+}
+
+// TypeLT applies the LT predicate on the "type" field.
+func TypeLT(v notification.ChannelType) predicate.NotificationChannel {
+	vc, err := ValueScanner.Type.Value(v)
+	return predicate.NotificationChannelOrErr(sql.FieldLT(FieldType, vc), err)
+}
+
+// TypeLTE applies the LTE predicate on the "type" field.
+func TypeLTE(v notification.ChannelType) predicate.NotificationChannel {
+	vc, err := ValueScanner.Type.Value(v)
+	return predicate.NotificationChannelOrErr(sql.FieldLTE(FieldType, vc), err)
+}
+
+// TypeContains applies the Contains predicate on the "type" field.
+func TypeContains(v notification.ChannelType) predicate.NotificationChannel {
+	vc, err := ValueScanner.Type.Value(v)
+	vcs, ok := vc.(string)
+	if err == nil && !ok {
+		err = fmt.Errorf("type value is not a string: %T", vc)
+	}
+	return predicate.NotificationChannelOrErr(sql.FieldContains(FieldType, vcs), err)
+}
+
+// TypeHasPrefix applies the HasPrefix predicate on the "type" field.
+func TypeHasPrefix(v notification.ChannelType) predicate.NotificationChannel {
+	vc, err := ValueScanner.Type.Value(v)
+	vcs, ok := vc.(string)
+	if err == nil && !ok {
+		err = fmt.Errorf("type value is not a string: %T", vc)
+	}
+	return predicate.NotificationChannelOrErr(sql.FieldHasPrefix(FieldType, vcs), err)
+}
+
+// TypeHasSuffix applies the HasSuffix predicate on the "type" field.
+func TypeHasSuffix(v notification.ChannelType) predicate.NotificationChannel {
+	vc, err := ValueScanner.Type.Value(v)
+	vcs, ok := vc.(string)
+	if err == nil && !ok {
+		err = fmt.Errorf("type value is not a string: %T", vc)
+	}
+	return predicate.NotificationChannelOrErr(sql.FieldHasSuffix(FieldType, vcs), err)
+}
+
+// TypeEqualFold applies the EqualFold predicate on the "type" field.
+func TypeEqualFold(v notification.ChannelType) predicate.NotificationChannel {
+	vc, err := ValueScanner.Type.Value(v)
+	vcs, ok := vc.(string)
+	if err == nil && !ok {
+		err = fmt.Errorf("type value is not a string: %T", vc)
+	}
+	return predicate.NotificationChannelOrErr(sql.FieldEqualFold(FieldType, vcs), err)
+}
+
+// TypeContainsFold applies the ContainsFold predicate on the "type" field.
+func TypeContainsFold(v notification.ChannelType) predicate.NotificationChannel {
+	vc, err := ValueScanner.Type.Value(v)
+	vcs, ok := vc.(string)
+	if err == nil && !ok {
+		err = fmt.Errorf("type value is not a string: %T", vc)
+	}
+	return predicate.NotificationChannelOrErr(sql.FieldContainsFold(FieldType, vcs), err)
 }
 
 // NameEQ applies the EQ predicate on the "name" field.
@@ -424,6 +538,314 @@ func DisabledIsNil() predicate.NotificationChannel {
 // DisabledNotNil applies the NotNil predicate on the "disabled" field.
 func DisabledNotNil() predicate.NotificationChannel {
 	return predicate.NotificationChannel(sql.FieldNotNull(FieldDisabled))
+}
+
+// ConfigEQ applies the EQ predicate on the "config" field.
+func ConfigEQ(v jsontext.Value) predicate.NotificationChannel {
+	vc, err := ValueScanner.Config.Value(v)
+	return predicate.NotificationChannelOrErr(sql.FieldEQ(FieldConfig, vc), err)
+}
+
+// ConfigNEQ applies the NEQ predicate on the "config" field.
+func ConfigNEQ(v jsontext.Value) predicate.NotificationChannel {
+	vc, err := ValueScanner.Config.Value(v)
+	return predicate.NotificationChannelOrErr(sql.FieldNEQ(FieldConfig, vc), err)
+}
+
+// ConfigIn applies the In predicate on the "config" field.
+func ConfigIn(vs ...jsontext.Value) predicate.NotificationChannel {
+	var (
+		err error
+		v   = make([]any, len(vs))
+	)
+	for i := range v {
+		if v[i], err = ValueScanner.Config.Value(vs[i]); err != nil {
+			break
+		}
+	}
+	return predicate.NotificationChannelOrErr(sql.FieldIn(FieldConfig, v...), err)
+}
+
+// ConfigNotIn applies the NotIn predicate on the "config" field.
+func ConfigNotIn(vs ...jsontext.Value) predicate.NotificationChannel {
+	var (
+		err error
+		v   = make([]any, len(vs))
+	)
+	for i := range v {
+		if v[i], err = ValueScanner.Config.Value(vs[i]); err != nil {
+			break
+		}
+	}
+	return predicate.NotificationChannelOrErr(sql.FieldNotIn(FieldConfig, v...), err)
+}
+
+// ConfigGT applies the GT predicate on the "config" field.
+func ConfigGT(v jsontext.Value) predicate.NotificationChannel {
+	vc, err := ValueScanner.Config.Value(v)
+	return predicate.NotificationChannelOrErr(sql.FieldGT(FieldConfig, vc), err)
+}
+
+// ConfigGTE applies the GTE predicate on the "config" field.
+func ConfigGTE(v jsontext.Value) predicate.NotificationChannel {
+	vc, err := ValueScanner.Config.Value(v)
+	return predicate.NotificationChannelOrErr(sql.FieldGTE(FieldConfig, vc), err)
+}
+
+// ConfigLT applies the LT predicate on the "config" field.
+func ConfigLT(v jsontext.Value) predicate.NotificationChannel {
+	vc, err := ValueScanner.Config.Value(v)
+	return predicate.NotificationChannelOrErr(sql.FieldLT(FieldConfig, vc), err)
+}
+
+// ConfigLTE applies the LTE predicate on the "config" field.
+func ConfigLTE(v jsontext.Value) predicate.NotificationChannel {
+	vc, err := ValueScanner.Config.Value(v)
+	return predicate.NotificationChannelOrErr(sql.FieldLTE(FieldConfig, vc), err)
+}
+
+// ConfigContains applies the Contains predicate on the "config" field.
+func ConfigContains(v jsontext.Value) predicate.NotificationChannel {
+	vc, err := ValueScanner.Config.Value(v)
+	vcs, ok := vc.(string)
+	if err == nil && !ok {
+		err = fmt.Errorf("config value is not a string: %T", vc)
+	}
+	return predicate.NotificationChannelOrErr(sql.FieldContains(FieldConfig, vcs), err)
+}
+
+// ConfigHasPrefix applies the HasPrefix predicate on the "config" field.
+func ConfigHasPrefix(v jsontext.Value) predicate.NotificationChannel {
+	vc, err := ValueScanner.Config.Value(v)
+	vcs, ok := vc.(string)
+	if err == nil && !ok {
+		err = fmt.Errorf("config value is not a string: %T", vc)
+	}
+	return predicate.NotificationChannelOrErr(sql.FieldHasPrefix(FieldConfig, vcs), err)
+}
+
+// ConfigHasSuffix applies the HasSuffix predicate on the "config" field.
+func ConfigHasSuffix(v jsontext.Value) predicate.NotificationChannel {
+	vc, err := ValueScanner.Config.Value(v)
+	vcs, ok := vc.(string)
+	if err == nil && !ok {
+		err = fmt.Errorf("config value is not a string: %T", vc)
+	}
+	return predicate.NotificationChannelOrErr(sql.FieldHasSuffix(FieldConfig, vcs), err)
+}
+
+// ConfigEqualFold applies the EqualFold predicate on the "config" field.
+func ConfigEqualFold(v jsontext.Value) predicate.NotificationChannel {
+	vc, err := ValueScanner.Config.Value(v)
+	vcs, ok := vc.(string)
+	if err == nil && !ok {
+		err = fmt.Errorf("config value is not a string: %T", vc)
+	}
+	return predicate.NotificationChannelOrErr(sql.FieldEqualFold(FieldConfig, vcs), err)
+}
+
+// ConfigContainsFold applies the ContainsFold predicate on the "config" field.
+func ConfigContainsFold(v jsontext.Value) predicate.NotificationChannel {
+	vc, err := ValueScanner.Config.Value(v)
+	vcs, ok := vc.(string)
+	if err == nil && !ok {
+		err = fmt.Errorf("config value is not a string: %T", vc)
+	}
+	return predicate.NotificationChannelOrErr(sql.FieldContainsFold(FieldConfig, vcs), err)
+}
+
+// EventTypeFilterIsNil applies the IsNil predicate on the "event_type_filter" field.
+func EventTypeFilterIsNil() predicate.NotificationChannel {
+	return predicate.NotificationChannel(sql.FieldIsNull(FieldEventTypeFilter))
+}
+
+// EventTypeFilterNotNil applies the NotNil predicate on the "event_type_filter" field.
+func EventTypeFilterNotNil() predicate.NotificationChannel {
+	return predicate.NotificationChannel(sql.FieldNotNull(FieldEventTypeFilter))
+}
+
+// ProviderDataIsNil applies the IsNil predicate on the "provider_data" field.
+func ProviderDataIsNil() predicate.NotificationChannel {
+	return predicate.NotificationChannel(sql.FieldIsNull(FieldProviderData))
+}
+
+// ProviderDataNotNil applies the NotNil predicate on the "provider_data" field.
+func ProviderDataNotNil() predicate.NotificationChannel {
+	return predicate.NotificationChannel(sql.FieldNotNull(FieldProviderData))
+}
+
+// GenerationEQ applies the EQ predicate on the "generation" field.
+func GenerationEQ(v int) predicate.NotificationChannel {
+	return predicate.NotificationChannel(sql.FieldEQ(FieldGeneration, v))
+}
+
+// GenerationNEQ applies the NEQ predicate on the "generation" field.
+func GenerationNEQ(v int) predicate.NotificationChannel {
+	return predicate.NotificationChannel(sql.FieldNEQ(FieldGeneration, v))
+}
+
+// GenerationIn applies the In predicate on the "generation" field.
+func GenerationIn(vs ...int) predicate.NotificationChannel {
+	return predicate.NotificationChannel(sql.FieldIn(FieldGeneration, vs...))
+}
+
+// GenerationNotIn applies the NotIn predicate on the "generation" field.
+func GenerationNotIn(vs ...int) predicate.NotificationChannel {
+	return predicate.NotificationChannel(sql.FieldNotIn(FieldGeneration, vs...))
+}
+
+// GenerationGT applies the GT predicate on the "generation" field.
+func GenerationGT(v int) predicate.NotificationChannel {
+	return predicate.NotificationChannel(sql.FieldGT(FieldGeneration, v))
+}
+
+// GenerationGTE applies the GTE predicate on the "generation" field.
+func GenerationGTE(v int) predicate.NotificationChannel {
+	return predicate.NotificationChannel(sql.FieldGTE(FieldGeneration, v))
+}
+
+// GenerationLT applies the LT predicate on the "generation" field.
+func GenerationLT(v int) predicate.NotificationChannel {
+	return predicate.NotificationChannel(sql.FieldLT(FieldGeneration, v))
+}
+
+// GenerationLTE applies the LTE predicate on the "generation" field.
+func GenerationLTE(v int) predicate.NotificationChannel {
+	return predicate.NotificationChannel(sql.FieldLTE(FieldGeneration, v))
+}
+
+// ReconcileStatusEQ applies the EQ predicate on the "reconcile_status" field.
+func ReconcileStatusEQ(v notification.ChannelReconcileStatus) predicate.NotificationChannel {
+	vc := string(v)
+	return predicate.NotificationChannel(sql.FieldEQ(FieldReconcileStatus, vc))
+}
+
+// ReconcileStatusNEQ applies the NEQ predicate on the "reconcile_status" field.
+func ReconcileStatusNEQ(v notification.ChannelReconcileStatus) predicate.NotificationChannel {
+	vc := string(v)
+	return predicate.NotificationChannel(sql.FieldNEQ(FieldReconcileStatus, vc))
+}
+
+// ReconcileStatusIn applies the In predicate on the "reconcile_status" field.
+func ReconcileStatusIn(vs ...notification.ChannelReconcileStatus) predicate.NotificationChannel {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = string(vs[i])
+	}
+	return predicate.NotificationChannel(sql.FieldIn(FieldReconcileStatus, v...))
+}
+
+// ReconcileStatusNotIn applies the NotIn predicate on the "reconcile_status" field.
+func ReconcileStatusNotIn(vs ...notification.ChannelReconcileStatus) predicate.NotificationChannel {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = string(vs[i])
+	}
+	return predicate.NotificationChannel(sql.FieldNotIn(FieldReconcileStatus, v...))
+}
+
+// ReconcileStatusGT applies the GT predicate on the "reconcile_status" field.
+func ReconcileStatusGT(v notification.ChannelReconcileStatus) predicate.NotificationChannel {
+	vc := string(v)
+	return predicate.NotificationChannel(sql.FieldGT(FieldReconcileStatus, vc))
+}
+
+// ReconcileStatusGTE applies the GTE predicate on the "reconcile_status" field.
+func ReconcileStatusGTE(v notification.ChannelReconcileStatus) predicate.NotificationChannel {
+	vc := string(v)
+	return predicate.NotificationChannel(sql.FieldGTE(FieldReconcileStatus, vc))
+}
+
+// ReconcileStatusLT applies the LT predicate on the "reconcile_status" field.
+func ReconcileStatusLT(v notification.ChannelReconcileStatus) predicate.NotificationChannel {
+	vc := string(v)
+	return predicate.NotificationChannel(sql.FieldLT(FieldReconcileStatus, vc))
+}
+
+// ReconcileStatusLTE applies the LTE predicate on the "reconcile_status" field.
+func ReconcileStatusLTE(v notification.ChannelReconcileStatus) predicate.NotificationChannel {
+	vc := string(v)
+	return predicate.NotificationChannel(sql.FieldLTE(FieldReconcileStatus, vc))
+}
+
+// ReconcileStatusContains applies the Contains predicate on the "reconcile_status" field.
+func ReconcileStatusContains(v notification.ChannelReconcileStatus) predicate.NotificationChannel {
+	vc := string(v)
+	return predicate.NotificationChannel(sql.FieldContains(FieldReconcileStatus, vc))
+}
+
+// ReconcileStatusHasPrefix applies the HasPrefix predicate on the "reconcile_status" field.
+func ReconcileStatusHasPrefix(v notification.ChannelReconcileStatus) predicate.NotificationChannel {
+	vc := string(v)
+	return predicate.NotificationChannel(sql.FieldHasPrefix(FieldReconcileStatus, vc))
+}
+
+// ReconcileStatusHasSuffix applies the HasSuffix predicate on the "reconcile_status" field.
+func ReconcileStatusHasSuffix(v notification.ChannelReconcileStatus) predicate.NotificationChannel {
+	vc := string(v)
+	return predicate.NotificationChannel(sql.FieldHasSuffix(FieldReconcileStatus, vc))
+}
+
+// ReconcileStatusEqualFold applies the EqualFold predicate on the "reconcile_status" field.
+func ReconcileStatusEqualFold(v notification.ChannelReconcileStatus) predicate.NotificationChannel {
+	vc := string(v)
+	return predicate.NotificationChannel(sql.FieldEqualFold(FieldReconcileStatus, vc))
+}
+
+// ReconcileStatusContainsFold applies the ContainsFold predicate on the "reconcile_status" field.
+func ReconcileStatusContainsFold(v notification.ChannelReconcileStatus) predicate.NotificationChannel {
+	vc := string(v)
+	return predicate.NotificationChannel(sql.FieldContainsFold(FieldReconcileStatus, vc))
+}
+
+// ReconcileNextAtEQ applies the EQ predicate on the "reconcile_next_at" field.
+func ReconcileNextAtEQ(v time.Time) predicate.NotificationChannel {
+	return predicate.NotificationChannel(sql.FieldEQ(FieldReconcileNextAt, v))
+}
+
+// ReconcileNextAtNEQ applies the NEQ predicate on the "reconcile_next_at" field.
+func ReconcileNextAtNEQ(v time.Time) predicate.NotificationChannel {
+	return predicate.NotificationChannel(sql.FieldNEQ(FieldReconcileNextAt, v))
+}
+
+// ReconcileNextAtIn applies the In predicate on the "reconcile_next_at" field.
+func ReconcileNextAtIn(vs ...time.Time) predicate.NotificationChannel {
+	return predicate.NotificationChannel(sql.FieldIn(FieldReconcileNextAt, vs...))
+}
+
+// ReconcileNextAtNotIn applies the NotIn predicate on the "reconcile_next_at" field.
+func ReconcileNextAtNotIn(vs ...time.Time) predicate.NotificationChannel {
+	return predicate.NotificationChannel(sql.FieldNotIn(FieldReconcileNextAt, vs...))
+}
+
+// ReconcileNextAtGT applies the GT predicate on the "reconcile_next_at" field.
+func ReconcileNextAtGT(v time.Time) predicate.NotificationChannel {
+	return predicate.NotificationChannel(sql.FieldGT(FieldReconcileNextAt, v))
+}
+
+// ReconcileNextAtGTE applies the GTE predicate on the "reconcile_next_at" field.
+func ReconcileNextAtGTE(v time.Time) predicate.NotificationChannel {
+	return predicate.NotificationChannel(sql.FieldGTE(FieldReconcileNextAt, v))
+}
+
+// ReconcileNextAtLT applies the LT predicate on the "reconcile_next_at" field.
+func ReconcileNextAtLT(v time.Time) predicate.NotificationChannel {
+	return predicate.NotificationChannel(sql.FieldLT(FieldReconcileNextAt, v))
+}
+
+// ReconcileNextAtLTE applies the LTE predicate on the "reconcile_next_at" field.
+func ReconcileNextAtLTE(v time.Time) predicate.NotificationChannel {
+	return predicate.NotificationChannel(sql.FieldLTE(FieldReconcileNextAt, v))
+}
+
+// ReconcileNextAtIsNil applies the IsNil predicate on the "reconcile_next_at" field.
+func ReconcileNextAtIsNil() predicate.NotificationChannel {
+	return predicate.NotificationChannel(sql.FieldIsNull(FieldReconcileNextAt))
+}
+
+// ReconcileNextAtNotNil applies the NotNil predicate on the "reconcile_next_at" field.
+func ReconcileNextAtNotNil() predicate.NotificationChannel {
+	return predicate.NotificationChannel(sql.FieldNotNull(FieldReconcileNextAt))
 }
 
 // HasRules applies the HasEdge predicate on the "rules" edge.

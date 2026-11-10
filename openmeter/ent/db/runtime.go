@@ -3,6 +3,7 @@
 package db
 
 import (
+	"encoding/json/jsontext"
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
@@ -2697,6 +2698,11 @@ func init() {
 	notificationchannel.DefaultUpdatedAt = notificationchannelDescUpdatedAt.Default.(func() time.Time)
 	// notificationchannel.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	notificationchannel.UpdateDefaultUpdatedAt = notificationchannelDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// notificationchannelDescType is the schema descriptor for type field.
+	notificationchannelDescType := notificationchannelFields[0].Descriptor()
+	notificationchannel.ValueScanner.Type = notificationchannelDescType.ValueScanner.(field.TypeValueScanner[notification.ChannelType])
+	// notificationchannel.TypeValidator is a validator for the "type" field. It is called by the builders before save.
+	notificationchannel.TypeValidator = notificationchannelDescType.Validators[0].(func(string) error)
 	// notificationchannelDescName is the schema descriptor for name field.
 	notificationchannelDescName := notificationchannelFields[1].Descriptor()
 	// notificationchannel.NameValidator is a validator for the "name" field. It is called by the builders before save.
@@ -2707,7 +2713,39 @@ func init() {
 	notificationchannel.DefaultDisabled = notificationchannelDescDisabled.Default.(bool)
 	// notificationchannelDescConfig is the schema descriptor for config field.
 	notificationchannelDescConfig := notificationchannelFields[3].Descriptor()
-	notificationchannel.ValueScanner.Config = notificationchannelDescConfig.ValueScanner.(field.TypeValueScanner[notification.ChannelConfig])
+	notificationchannel.ValueScanner.Config = notificationchannelDescConfig.ValueScanner.(field.TypeValueScanner[jsontext.Value])
+	// notificationchannelDescEventTypeFilter is the schema descriptor for event_type_filter field.
+	notificationchannelDescEventTypeFilter := notificationchannelFields[4].Descriptor()
+	notificationchannel.ValueScanner.EventTypeFilter = notificationchannelDescEventTypeFilter.ValueScanner.(field.TypeValueScanner[[]string])
+	// notificationchannelDescProviderData is the schema descriptor for provider_data field.
+	notificationchannelDescProviderData := notificationchannelFields[5].Descriptor()
+	notificationchannel.ValueScanner.ProviderData = notificationchannelDescProviderData.ValueScanner.(field.TypeValueScanner[map[string]string])
+	// notificationchannelDescGeneration is the schema descriptor for generation field.
+	notificationchannelDescGeneration := notificationchannelFields[6].Descriptor()
+	// notificationchannel.DefaultGeneration holds the default value on creation for the generation field.
+	notificationchannel.DefaultGeneration = notificationchannelDescGeneration.Default.(int)
+	// notificationchannel.GenerationValidator is a validator for the "generation" field. It is called by the builders before save.
+	notificationchannel.GenerationValidator = func() func(int) error {
+		validators := notificationchannelDescGeneration.Validators
+		fns := [...]func(int) error{
+			validators[0].(func(int) error),
+			validators[1].(func(int) error),
+		}
+		return func(generation int) error {
+			for _, fn := range fns {
+				if err := fn(generation); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// notificationchannelDescReconcileStatus is the schema descriptor for reconcile_status field.
+	notificationchannelDescReconcileStatus := notificationchannelFields[7].Descriptor()
+	// notificationchannel.DefaultReconcileStatus holds the default value on creation for the reconcile_status field.
+	notificationchannel.DefaultReconcileStatus = notification.ChannelReconcileStatus(notificationchannelDescReconcileStatus.Default.(string))
+	// notificationchannel.ReconcileStatusValidator is a validator for the "reconcile_status" field. It is called by the builders before save.
+	notificationchannel.ReconcileStatusValidator = notificationchannelDescReconcileStatus.Validators[0].(func(string) error)
 	// notificationchannelDescID is the schema descriptor for id field.
 	notificationchannelDescID := notificationchannelMixinFields0[0].Descriptor()
 	// notificationchannel.DefaultID holds the default value on creation for the id field.

@@ -3,7 +3,7 @@
 package notificationchannel
 
 import (
-	"fmt"
+	"encoding/json/jsontext"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
@@ -37,6 +37,16 @@ const (
 	FieldDisabled = "disabled"
 	// FieldConfig holds the string denoting the config field in the database.
 	FieldConfig = "config"
+	// FieldEventTypeFilter holds the string denoting the event_type_filter field in the database.
+	FieldEventTypeFilter = "event_type_filter"
+	// FieldProviderData holds the string denoting the provider_data field in the database.
+	FieldProviderData = "provider_data"
+	// FieldGeneration holds the string denoting the generation field in the database.
+	FieldGeneration = "generation"
+	// FieldReconcileStatus holds the string denoting the reconcile_status field in the database.
+	FieldReconcileStatus = "reconcile_status"
+	// FieldReconcileNextAt holds the string denoting the reconcile_next_at field in the database.
+	FieldReconcileNextAt = "reconcile_next_at"
 	// EdgeRules holds the string denoting the rules edge name in mutations.
 	EdgeRules = "rules"
 	// Table holds the table name of the notificationchannel in the database.
@@ -61,6 +71,11 @@ var Columns = []string{
 	FieldName,
 	FieldDisabled,
 	FieldConfig,
+	FieldEventTypeFilter,
+	FieldProviderData,
+	FieldGeneration,
+	FieldReconcileStatus,
+	FieldReconcileNextAt,
 }
 
 var (
@@ -88,27 +103,30 @@ var (
 	DefaultUpdatedAt func() time.Time
 	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
 	UpdateDefaultUpdatedAt func() time.Time
+	// TypeValidator is a validator for the "type" field. It is called by the builders before save.
+	TypeValidator func(string) error
 	// NameValidator is a validator for the "name" field. It is called by the builders before save.
 	NameValidator func(string) error
 	// DefaultDisabled holds the default value on creation for the "disabled" field.
 	DefaultDisabled bool
+	// DefaultGeneration holds the default value on creation for the "generation" field.
+	DefaultGeneration int
+	// GenerationValidator is a validator for the "generation" field. It is called by the builders before save.
+	GenerationValidator func(int) error
+	// DefaultReconcileStatus holds the default value on creation for the "reconcile_status" field.
+	DefaultReconcileStatus notification.ChannelReconcileStatus
+	// ReconcileStatusValidator is a validator for the "reconcile_status" field. It is called by the builders before save.
+	ReconcileStatusValidator func(string) error
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 	// ValueScanner of all NotificationChannel fields.
 	ValueScanner struct {
-		Config field.TypeValueScanner[notification.ChannelConfig]
+		Type            field.TypeValueScanner[notification.ChannelType]
+		Config          field.TypeValueScanner[jsontext.Value]
+		EventTypeFilter field.TypeValueScanner[[]string]
+		ProviderData    field.TypeValueScanner[map[string]string]
 	}
 )
-
-// TypeValidator is a validator for the "type" field enum values. It is called by the builders before save.
-func TypeValidator(_type notification.ChannelType) error {
-	switch _type {
-	case "WEBHOOK":
-		return nil
-	default:
-		return fmt.Errorf("notificationchannel: invalid enum value for type field: %q", _type)
-	}
-}
 
 // OrderOption defines the ordering options for the NotificationChannel queries.
 type OrderOption func(*sql.Selector)
@@ -156,6 +174,31 @@ func ByDisabled(opts ...sql.OrderTermOption) OrderOption {
 // ByConfig orders the results by the config field.
 func ByConfig(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldConfig, opts...).ToFunc()
+}
+
+// ByEventTypeFilter orders the results by the event_type_filter field.
+func ByEventTypeFilter(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldEventTypeFilter, opts...).ToFunc()
+}
+
+// ByProviderData orders the results by the provider_data field.
+func ByProviderData(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldProviderData, opts...).ToFunc()
+}
+
+// ByGeneration orders the results by the generation field.
+func ByGeneration(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldGeneration, opts...).ToFunc()
+}
+
+// ByReconcileStatus orders the results by the reconcile_status field.
+func ByReconcileStatus(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldReconcileStatus, opts...).ToFunc()
+}
+
+// ByReconcileNextAt orders the results by the reconcile_next_at field.
+func ByReconcileNextAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldReconcileNextAt, opts...).ToFunc()
 }
 
 // ByRulesCount orders the results by rules count.
