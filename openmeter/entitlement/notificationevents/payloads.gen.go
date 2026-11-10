@@ -25,6 +25,75 @@ func (e EntitlementBalanceThresholdType) Valid() bool {
 	}
 }
 
+// Address Address
+type Address = apiv3.Address
+
+// BillingCustomer Customers can be individuals or organizations that can subscribe to plans and
+// have access to features.
+type BillingCustomer = apiv3.BillingCustomer
+
+// BillingCustomerUsageAttribution Mapping to attribute metered usage to the customer. One customer can have zero
+// or more subjects, but one subject can only belong to one customer.
+type BillingCustomerUsageAttribution = apiv3.BillingCustomerUsageAttribution
+
+// BillingEntitlementAccessValue Balance details of a metered entitlement at the evaluation time, which is the
+// `at` query parameter when given and the current time otherwise.
+type BillingEntitlementAccessValue = apiv3.BillingEntitlementAccessValue
+
+// BillingEntitlementIssueAfterReset Usage granted automatically after each reset of a metered entitlement. The
+// balance returns to `amount` after every reset.
+type BillingEntitlementIssueAfterReset = apiv3.BillingEntitlementIssueAfterReset
+
+// BillingEntitlementMetered A metered entitlement grants a usage allowance for a feature. Access is
+// determined by the balance: the allowance provided by grants is burnt down by
+// usage.
+type BillingEntitlementMetered = apiv3.BillingEntitlementMetered
+
+// BillingEntitlementType The type of the entitlement.
+type BillingEntitlementType = apiv3.BillingEntitlementType
+
+// BillingEntitlementValueResult Entitlement value result.
+type BillingEntitlementValueResult = apiv3.BillingEntitlementValueResult
+
+// BillingFeatureLLMTokenType Token type for LLM cost lookup.
+type BillingFeatureLLMTokenType = apiv3.BillingFeatureLLMTokenType
+
+// BillingFeatureLLMUnitCost LLM cost lookup configuration. Each dimension (provider, model, token type) can
+// be specified as either a static value or a meter group-by property name
+// (mutually exclusive).
+type BillingFeatureLLMUnitCost = apiv3.BillingFeatureLLMUnitCost
+
+// BillingFeatureLLMUnitCostPricing Resolved per-token pricing from the LLM cost database.
+type BillingFeatureLLMUnitCostPricing = apiv3.BillingFeatureLLMUnitCostPricing
+
+// BillingFeatureManualUnitCost A fixed per-unit cost amount.
+type BillingFeatureManualUnitCost = apiv3.BillingFeatureManualUnitCost
+
+// BillingFeatureUnitCost Per-unit cost configuration for a feature. Either a fixed manual amount or a
+// dynamic LLM cost lookup.
+type BillingFeatureUnitCost = apiv3.BillingFeatureUnitCost
+
+// ClosedPeriod A period with defined start and end dates.
+//
+// The period is always inclusive at the start and exclusive at the end.
+type ClosedPeriod = apiv3.ClosedPeriod
+
+// CountryCode [ISO 3166-1](https://www.iso.org/iso-3166-country-codes.html) alpha-2 country
+// code. Custom two-letter country codes are also supported for convenience.
+type CountryCode = apiv3.CountryCode
+
+// CurrencyCode Three-letter [ISO4217](https://www.iso.org/iso-4217-currency-codes.html)
+// currency code. Custom three-letter currency codes are also supported for
+// convenience.
+type CurrencyCode = apiv3.CurrencyCode
+
+// CustomerReference Customer reference.
+type CustomerReference = apiv3.CustomerReference
+
+// DateTime [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in
+// UTC.
+type DateTime = apiv3.DateTime
+
 // EntitlementBalanceThreshold A single entitlement balance threshold.
 type EntitlementBalanceThreshold struct {
 	// Type Condition kind of the threshold.
@@ -35,21 +104,26 @@ type EntitlementBalanceThreshold struct {
 }
 
 // EntitlementBalanceThresholdTriggeredV1Payload Payload of `v1.entitlement.balance_threshold.triggered`.
+//
+// The entitlement, feature, customer and value have the shapes the v3 API
+// returns. A change to those models changes this contract, so definitions.sum
+// fails until the change is either accepted as a new Event type version or
+// this payload is frozen into dedicated models.
 type EntitlementBalanceThresholdTriggeredV1Payload struct {
-	// CurrentBalance Balance at evaluation time.
-	CurrentBalance float64 `json:"current_balance"`
+	// Customer Customer owning the entitlement.
+	Customer BillingCustomer `json:"customer"`
 
-	// CustomerId Customer owning the entitlement.
-	CustomerId ULID `json:"customer_id"`
+	// Entitlement Entitlement whose balance crossed the threshold.
+	Entitlement BillingEntitlementMetered `json:"entitlement"`
 
-	// EntitlementId Entitlement whose balance crossed the threshold.
-	EntitlementId ULID `json:"entitlement_id"`
-
-	// FeatureKey Feature of the entitlement.
-	FeatureKey ResourceKey `json:"feature_key"`
+	// Feature Feature of the entitlement.
+	Feature Feature `json:"feature"`
 
 	// Threshold Threshold that was crossed.
 	Threshold EntitlementBalanceThreshold `json:"threshold"`
+
+	// Value Value of the entitlement at evaluation time.
+	Value BillingEntitlementValueResult `json:"value"`
 }
 
 // EntitlementBalanceThresholdTriggeredV1RuleConfig Rule configuration of `v1.entitlement.balance_threshold.triggered`.
@@ -64,8 +138,47 @@ type EntitlementBalanceThresholdTriggeredV1RuleConfig struct {
 // EntitlementBalanceThresholdType Condition kind of an entitlement balance threshold.
 type EntitlementBalanceThresholdType string
 
+// ExternalResourceKey ExternalResourceKey is a unique string that is used to identify a resource in an
+// external system.
+type ExternalResourceKey = apiv3.ExternalResourceKey
+
+// Feature A capability or billable dimension offered by a provider.
+type Feature = apiv3.Feature
+
+// FeatureMeterReference Reference to a meter associated with a feature.
+type FeatureMeterReference = apiv3.FeatureMeterReference
+
+// FeatureReference Feature reference.
+type FeatureReference = apiv3.FeatureReference
+
+// ISO8601Duration [ISO 8601 Duration](https://docs.digi.com/resources/documentation/digidocs/90001488-13/reference/r_iso_8601_duration_format.htm)
+// string.
+type ISO8601Duration = apiv3.ISO8601Duration
+
+// Labels Labels store metadata of an entity that can be used for filtering an entity list or for searching across entity types.
+//
+// Keys must be of length 1-63 characters, and cannot start with "kong", "konnect", "mesh", "kic", or "_".
+type Labels = apiv3.Labels
+
+// Numeric Numeric represents an arbitrary precision number.
+type Numeric = apiv3.Numeric
+
+// QueryFilterString A query filter for a string attribute. Operators are mutually exclusive, only
+// one operator is allowed at a time.
+type QueryFilterString = apiv3.QueryFilterString
+
+// QueryFilterStringMapItem A query filter for an item in a string map attribute. Operators are mutually
+// exclusive, only one operator is allowed at a time.
+type QueryFilterStringMapItem = apiv3.QueryFilterStringMapItem
+
+// RecurringPeriod Recurring period with an anchor and an interval.
+type RecurringPeriod = apiv3.RecurringPeriod
+
 // ResourceKey A key is a unique string that is used to identify a resource.
 type ResourceKey = apiv3.ResourceKey
 
 // ULID ULID (Universally Unique Lexicographically Sortable Identifier).
 type ULID = apiv3.ULID
+
+// UsageAttributionSubjectKey Subject key.
+type UsageAttributionSubjectKey = apiv3.UsageAttributionSubjectKey

@@ -4,13 +4,129 @@ info:
   title: Alias v3 models in openmeter/entitlement/notificationevents
   version: 1.0.0
 actions:
-  - target: $.components.schemas.ResourceKey
+  - target: $.components.schemas.Address
     update:
-      x-go-type: apiv3.ResourceKey
+      x-go-type: apiv3.Address
       x-go-type-import: &a1
         path: github.com/openmeterio/openmeter/api/v3
         name: apiv3
+  - target: $.components.schemas.BillingCustomer
+    update:
+      x-go-type: apiv3.BillingCustomer
+      x-go-type-import: *a1
+  - target: $.components.schemas.BillingCustomerUsageAttribution
+    update:
+      x-go-type: apiv3.BillingCustomerUsageAttribution
+      x-go-type-import: *a1
+  - target: $.components.schemas.BillingEntitlementAccessValue
+    update:
+      x-go-type: apiv3.BillingEntitlementAccessValue
+      x-go-type-import: *a1
+  - target: $.components.schemas.BillingEntitlementIssueAfterReset
+    update:
+      x-go-type: apiv3.BillingEntitlementIssueAfterReset
+      x-go-type-import: *a1
+  - target: $.components.schemas.BillingEntitlementMetered
+    update:
+      x-go-type: apiv3.BillingEntitlementMetered
+      x-go-type-import: *a1
+  - target: $.components.schemas.BillingEntitlementType
+    update:
+      x-go-type: apiv3.BillingEntitlementType
+      x-go-type-import: *a1
+  - target: $.components.schemas.BillingEntitlementValueResult
+    update:
+      x-go-type: apiv3.BillingEntitlementValueResult
+      x-go-type-import: *a1
+  - target: $.components.schemas.BillingFeatureLLMTokenType
+    update:
+      x-go-type: apiv3.BillingFeatureLLMTokenType
+      x-go-type-import: *a1
+  - target: $.components.schemas.BillingFeatureLLMUnitCost
+    update:
+      x-go-type: apiv3.BillingFeatureLLMUnitCost
+      x-go-type-import: *a1
+  - target: $.components.schemas.BillingFeatureLLMUnitCostPricing
+    update:
+      x-go-type: apiv3.BillingFeatureLLMUnitCostPricing
+      x-go-type-import: *a1
+  - target: $.components.schemas.BillingFeatureManualUnitCost
+    update:
+      x-go-type: apiv3.BillingFeatureManualUnitCost
+      x-go-type-import: *a1
+  - target: $.components.schemas.BillingFeatureUnitCost
+    update:
+      x-go-type: apiv3.BillingFeatureUnitCost
+      x-go-type-import: *a1
+  - target: $.components.schemas.ClosedPeriod
+    update:
+      x-go-type: apiv3.ClosedPeriod
+      x-go-type-import: *a1
+  - target: $.components.schemas.CountryCode
+    update:
+      x-go-type: apiv3.CountryCode
+      x-go-type-import: *a1
+  - target: $.components.schemas.CurrencyCode
+    update:
+      x-go-type: apiv3.CurrencyCode
+      x-go-type-import: *a1
+  - target: $.components.schemas.CustomerReference
+    update:
+      x-go-type: apiv3.CustomerReference
+      x-go-type-import: *a1
+  - target: $.components.schemas.DateTime
+    update:
+      x-go-type: apiv3.DateTime
+      x-go-type-import: *a1
+  - target: $.components.schemas.ExternalResourceKey
+    update:
+      x-go-type: apiv3.ExternalResourceKey
+      x-go-type-import: *a1
+  - target: $.components.schemas.Feature
+    update:
+      x-go-type: apiv3.Feature
+      x-go-type-import: *a1
+  - target: $.components.schemas.FeatureMeterReference
+    update:
+      x-go-type: apiv3.FeatureMeterReference
+      x-go-type-import: *a1
+  - target: $.components.schemas.FeatureReference
+    update:
+      x-go-type: apiv3.FeatureReference
+      x-go-type-import: *a1
+  - target: $.components.schemas.ISO8601Duration
+    update:
+      x-go-type: apiv3.ISO8601Duration
+      x-go-type-import: *a1
+  - target: $.components.schemas.Labels
+    update:
+      x-go-type: apiv3.Labels
+      x-go-type-import: *a1
+  - target: $.components.schemas.Numeric
+    update:
+      x-go-type: apiv3.Numeric
+      x-go-type-import: *a1
+  - target: $.components.schemas.QueryFilterString
+    update:
+      x-go-type: apiv3.QueryFilterString
+      x-go-type-import: *a1
+  - target: $.components.schemas.QueryFilterStringMapItem
+    update:
+      x-go-type: apiv3.QueryFilterStringMapItem
+      x-go-type-import: *a1
+  - target: $.components.schemas.RecurringPeriod
+    update:
+      x-go-type: apiv3.RecurringPeriod
+      x-go-type-import: *a1
+  - target: $.components.schemas.ResourceKey
+    update:
+      x-go-type: apiv3.ResourceKey
+      x-go-type-import: *a1
   - target: $.components.schemas.ULID
     update:
       x-go-type: apiv3.ULID
+      x-go-type-import: *a1
+  - target: $.components.schemas.UsageAttributionSubjectKey
+    update:
+      x-go-type: apiv3.UsageAttributionSubjectKey
       x-go-type-import: *a1
