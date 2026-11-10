@@ -138,6 +138,32 @@ type EntitlementBalanceThresholdTriggeredV1RuleConfig struct {
 // EntitlementBalanceThresholdType Condition kind of an entitlement balance threshold.
 type EntitlementBalanceThresholdType string
 
+// EntitlementUsageResetV1Payload Payload of `v1.entitlement.usage.reset`.
+//
+// The entitlement, feature, customer and value have the shapes the v3 API
+// returns. A change to those models changes this contract, so definitions.sum
+// fails until the change is either accepted as a new Event type version or
+// this payload is frozen into dedicated models.
+type EntitlementUsageResetV1Payload struct {
+	// Customer Customer owning the entitlement.
+	Customer BillingCustomer `json:"customer"`
+
+	// Entitlement Entitlement whose usage was reset.
+	Entitlement BillingEntitlementMetered `json:"entitlement"`
+
+	// Feature Feature of the entitlement.
+	Feature Feature `json:"feature"`
+
+	// Value Value of the entitlement right after the reset.
+	Value BillingEntitlementValueResult `json:"value"`
+}
+
+// EntitlementUsageResetV1RuleConfig Rule configuration of `v1.entitlement.usage.reset`.
+type EntitlementUsageResetV1RuleConfig struct {
+	// Features Feature keys the Rule is limited to. All features when omitted.
+	Features *[]ResourceKey `json:"features,omitempty"`
+}
+
 // ExternalResourceKey ExternalResourceKey is a unique string that is used to identify a resource in an
 // external system.
 type ExternalResourceKey = apiv3.ExternalResourceKey

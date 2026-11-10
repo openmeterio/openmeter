@@ -166,3 +166,40 @@ func TestBalanceThresholdTriggeredContract(t *testing.T) {
 		require.Error(t, validateJSON(t, schema, `{"thresholds": []}`), "at least one threshold is required")
 	})
 }
+
+func TestUsageResetContract(t *testing.T) {
+	require.Equal(t, "v1.entitlement.usage.reset", EntitlementUsageResetV1EventType.String())
+	require.NoError(t, EntitlementUsageResetV1EventType.Validate())
+
+	e := newMeteredEntitlement()
+
+	t.Run("payload struct matches payload schema", func(t *testing.T) {
+		schema := compileSchema(t, EntitlementUsageResetV1PayloadJSONSchema)
+
+		raw, err := json.Marshal(EntitlementUsageResetV1Payload{
+			Entitlement: e.entitlement,
+			Feature:     e.feature,
+			Customer:    e.customer,
+			Value:       e.value,
+		})
+		require.NoError(t, err)
+
+		require.NoError(t, validateJSON(t, schema, string(raw)))
+		require.Error(t, validateJSON(t, schema, withProperty(t, raw, "unexpected", true)))
+	})
+
+	t.Run("rule config struct matches rule config schema", func(t *testing.T) {
+		schema := compileSchema(t, EntitlementUsageResetV1RuleConfigJSONSchema)
+
+		for _, config := range []EntitlementUsageResetV1RuleConfig{
+			{},
+			{Features: &[]ResourceKey{"api_requests"}},
+		} {
+			raw, err := json.Marshal(config)
+			require.NoError(t, err)
+			require.NoError(t, validateJSON(t, schema, string(raw)))
+		}
+
+		require.Error(t, validateJSON(t, schema, `{"unexpected": true}`))
+	})
+}

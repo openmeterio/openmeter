@@ -668,6 +668,48 @@ components:
         - balance_at_or_below
         - usage_percentage_at_or_above
       description: Condition kind of an entitlement balance threshold.
+    EntitlementUsageResetV1Payload:
+      type: object
+      required:
+        - entitlement
+        - feature
+        - customer
+        - value
+      properties:
+        entitlement:
+          allOf:
+            - $ref: '#/components/schemas/BillingEntitlementMetered'
+          description: Entitlement whose usage was reset.
+        feature:
+          allOf:
+            - $ref: '#/components/schemas/Feature'
+          description: Feature of the entitlement.
+        customer:
+          allOf:
+            - $ref: '#/components/schemas/BillingCustomer'
+          description: Customer owning the entitlement.
+        value:
+          allOf:
+            - $ref: '#/components/schemas/BillingEntitlementValueResult'
+          description: Value of the entitlement right after the reset.
+      additionalProperties: false
+      description: |-
+        Payload of `v1.entitlement.usage.reset`.
+
+        The entitlement, feature, customer and value have the shapes the v3 API
+        returns. A change to those models changes this contract, so definitions.sum
+        fails until the change is either accepted as a new Event type version or
+        this payload is frozen into dedicated models.
+    EntitlementUsageResetV1RuleConfig:
+      type: object
+      properties:
+        features:
+          type: array
+          items:
+            $ref: '#/components/schemas/ResourceKey'
+          description: Feature keys the Rule is limited to. All features when omitted.
+      additionalProperties: false
+      description: Rule configuration of `v1.entitlement.usage.reset`.
     ExternalResourceKey:
       type: string
       minLength: 1

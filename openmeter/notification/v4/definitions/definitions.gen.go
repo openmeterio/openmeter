@@ -14,5 +14,6 @@ func All() []v4.EventTypeDefinition {
 		billingevents.BillingInvoiceCreatedV1Definition,
 		billingevents.BillingInvoiceUpdatedV1Definition,
 		entitlementevents.EntitlementBalanceThresholdTriggeredV1Definition,
+		entitlementevents.EntitlementUsageResetV1Definition,
 	}
 }

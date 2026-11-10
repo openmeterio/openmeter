@@ -33,3 +33,29 @@ var EntitlementBalanceThresholdTriggeredV1Definition = v4.EventTypeDefinition{
 		JSONSchema: EntitlementBalanceThresholdTriggeredV1RuleConfigJSONSchema,
 	},
 }
+
+// EntitlementUsageResetV1EventType is v1.entitlement.usage.reset.
+var EntitlementUsageResetV1EventType = v4.EventType{
+	Name:    "entitlement.usage.reset",
+	Version: 1,
+}
+
+// EntitlementUsageResetV1PayloadJSONSchema is the JSON Schema (draft 2020-12) of EntitlementUsageResetV1Payload.
+//
+//go:embed schemas/v1.entitlement.usage.reset.payload.json
+var EntitlementUsageResetV1PayloadJSONSchema []byte
+
+// EntitlementUsageResetV1RuleConfigJSONSchema is the JSON Schema (draft 2020-12) of
+// EntitlementUsageResetV1RuleConfig, the Rule configuration of v1.entitlement.usage.reset.
+//
+//go:embed schemas/v1.entitlement.usage.reset.rule_config.json
+var EntitlementUsageResetV1RuleConfigJSONSchema []byte
+
+// EntitlementUsageResetV1Definition is the definition of v1.entitlement.usage.reset.
+var EntitlementUsageResetV1Definition = v4.EventTypeDefinition{
+	EventType:         EntitlementUsageResetV1EventType,
+	PayloadJSONSchema: EntitlementUsageResetV1PayloadJSONSchema,
+	Rule: &v4.RuleConfigDefinition{
+		JSONSchema: EntitlementUsageResetV1RuleConfigJSONSchema,
+	},
+}
