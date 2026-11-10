@@ -915,8 +915,6 @@ func (s *CollectionTestSuite) TestAnchoredAlignment_StandardInvoiceWaitsForLateE
 }
 
 func (s *CollectionTestSuite) TestCollectionFlowWithUBPEditingExtendingCollectionPeriod() {
-	s.T().Skip("OM-589: charges reject attaching future usage-based lines to draft invoices because invoice_created is unsupported in created state")
-
 	namespace := "ns-collection-flow-ubp-editing-extending-collection-period"
 	ctx := context.Background()
 
@@ -1058,4 +1056,134 @@ func (s *CollectionTestSuite) TestCollectionFlowWithUBPEditingExtendingCollectio
 		s.NotEqual(previousSnapshot, *invoice.QuantitySnapshotedAt)
 		s.True(!invoice.QuantitySnapshotedAt.Before(newLinePeriod.To), "quantity should be snapshoted after the new line period")
 	})
+}
+
+func (s *CollectionTestSuite) TestCollectionFlowWithFlatFeeEditingFuturePeriod() {
+	namespace := "ns-collection-flow-flat-fee-editing-future-period"
+	ctx := context.Background()
+
+	res := s.setupNS(ctx, namespace)
+	defer res.Cleanup()
+	s.TaxCodeEnv.ProvisionProviderDefaultTaxCode(s.T(), namespace)
+
+	customer := res.customer
+	apiRequestsTotalFeature := res.TestFeature
+
+	periodStart := lo.Must(time.Parse(time.RFC3339, "2025-01-01T00:00:00Z"))
+	periodEnd := periodStart.Add(time.Hour * 12)
+
+	clock.SetTime(periodStart)
+	defer clock.ResetTime()
+
+	// Given an invoice with UBP, collection done, in waiting for auto approval state
+	// When a flat fee whose service period has not started yet is added
+	// Then the edit succeeds, matching legacy billing
+
+	// Given
+	s.MockStreamingConnector.AddSimpleEvent(apiRequestsTotalFeature.Feature.Key, 1, periodStart.Add(time.Minute*30))
+	defer s.MockStreamingConnector.Reset()
+
+	pendingLineResult, err := s.Charges.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
+		Customer: customer.GetID(),
+		Currency: currencyx.FiatCode(currency.USD),
+		Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
+			{
+				GatheringLineBase: billing.GatheringLineBase{
+					ManagedResource: models.NewManagedResource(models.ManagedResourceInput{Name: "UBP - unit"}),
+					ServicePeriod:   timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
+					InvoiceAt:       periodEnd,
+					ManagedBy:       billing.ManuallyManagedLine,
+					FeatureKey:      apiRequestsTotalFeature.Feature.Key,
+					Price:           *productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromFloat(1)}),
+				},
+			},
+		}),
+	})
+	s.NoError(err)
+	s.Len(pendingLineResult.Lines, 1)
+	s.NotNil(pendingLineResult.Invoice.NextCollectionAt)
+
+	// Accepted difference from legacy billing: charges need the additional internal
+	// collection period to finish the usage snapshot before the invoice edit.
+	clock.SetTime(periodEnd.Add(time.Hour + usagebased.InternalCollectionPeriod))
+	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		Customer: customer.GetID(),
+	})
+	s.NoError(err)
+	s.Len(invoices, 1)
+
+	invoice := invoices[0]
+	s.Equal(billing.StandardInvoiceStatusDraftWaitingAutoApproval, invoice.Status)
+	s.Equal(float64(1), invoice.Totals.Amount.InexactFloat64())
+
+	s.NotNil(invoice.QuantitySnapshotedAt)
+	clock.FreezeTime(*invoice.QuantitySnapshotedAt)
+	previousSnapshot := *invoice.QuantitySnapshotedAt
+	s.NotNil(invoice.CollectionAt)
+	previousCollectionAt := *invoice.CollectionAt
+
+	// When adding a flat fee (in arrears) for a future service period
+	newLinePeriod := timeutil.ClosedPeriod{
+		From: lo.Must(time.Parse(time.RFC3339, "2025-01-02T00:00:00Z")),
+		To:   lo.Must(time.Parse(time.RFC3339, "2025-01-03T00:00:00Z")),
+	}
+
+	invoice, err = s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
+		Invoice:      invoice.GetInvoiceID(),
+		ChangeSource: billing.ChangeSourceAPIRequest,
+		EditFn: func(invoice *billing.StandardInvoice) error {
+			line := billing.NewFlatFeeLine(billing.NewFlatFeeLineInput{
+				Namespace: namespace,
+				Currency:  currencyx.FiatCode(currency.USD),
+				InvoiceID: invoice.ID,
+				Period:    newLinePeriod,
+				InvoiceAt: newLinePeriod.To,
+				Name:      "Flat fee - future",
+				ManagedBy: billing.ManuallyManagedLine,
+
+				PerUnitAmount: alpacadecimal.NewFromFloat(10),
+				PaymentTerm:   productcatalog.InArrearsPaymentTerm,
+			})
+			// NewFlatFeeLine presets the legacy invoicing engine; route this line to the flat fee charge.
+			line.Engine = billing.LineEngineTypeChargeFlatFee
+			invoice.Lines.Append(line)
+
+			return nil
+		},
+	})
+	s.NoError(err)
+
+	// Then the flat fee line does not affect collectionAt, so the invoice remains advanceable.
+	s.Equal(billing.StandardInvoiceStatusDraftWaitingAutoApproval, invoice.Status)
+	s.NotNil(invoice.CollectionAt)
+	s.Equal(previousCollectionAt, *invoice.CollectionAt)
+
+	// No new snapshot should happen
+	s.NotNil(invoice.QuantitySnapshotedAt)
+	s.Equal(previousSnapshot, *invoice.QuantitySnapshotedAt)
+	s.Equal(float64(11), invoice.Totals.Amount.InexactFloat64())
+
+	invoice, err = s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
+		Invoice: invoice.GetInvoiceID(),
+		Expand:  billing.StandardInvoiceExpands{billing.StandardInvoiceExpandLines},
+	})
+	s.NoError(err)
+
+	lines := invoice.Lines.OrEmpty()
+	s.Len(lines, 2)
+
+	for _, line := range lines {
+		switch line.Name {
+		case "UBP - unit":
+			s.Equal(billing.LineEngineTypeChargeUsageBased, line.Engine)
+			s.NotNil(line.UsageBased)
+			s.NotNil(line.UsageBased.Quantity)
+			s.Equal(float64(1), line.UsageBased.Quantity.InexactFloat64())
+		case "Flat fee - future":
+			s.Equal(billing.LineEngineTypeChargeFlatFee, line.Engine)
+			s.NotNil(line.ChargeID)
+		default:
+			s.Failf("unexpected line", "name=%s", line.Name)
+		}
+	}
 }

@@ -74,7 +74,7 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 		Permit(
 			meta.TriggerNext,
 			usagebased.StatusActive,
-			statelessx.BoolFn(s.IsInsideServicePeriod),
+			statelessx.BoolFn(s.IsManuallyManagedOrInsideServicePeriod),
 		).
 		Permit(meta.TriggerClearOverride, usagebased.StatusDeletedClearOverride, statelessx.BoolFn(s.IsBaseIntentDeleted)).
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
