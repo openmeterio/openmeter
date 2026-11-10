@@ -432,10 +432,14 @@ func (e *LineEngine) OnStandardInvoiceCreated(ctx context.Context, input billing
 			})
 		}
 
-		if err := stateMachine.FireAndAdvanceUntilStable(ctx, meta.TriggerInvoiceCreated, invoiceCreatedInput{
-			LineID:        stdLine.ID,
-			InvoiceID:     input.Invoice.ID,
-			ServicePeriod: stdLine.Period,
+		// Early activation is persisted before the run starts and cannot be resumed after a
+		// reload, so a failed run start has to undo it even when the caller keeps its transaction.
+		if err := transaction.RunWithNoValue(ctx, e.service.adapter, func(ctx context.Context) error {
+			return stateMachine.FireAndAdvanceUntilStable(ctx, meta.TriggerInvoiceCreated, invoiceCreatedInput{
+				LineID:        stdLine.ID,
+				InvoiceID:     input.Invoice.ID,
+				ServicePeriod: stdLine.Period,
+			})
 		}); err != nil {
 			return stdLine, fmt.Errorf("triggering %s for charge[%s]: %w", meta.TriggerInvoiceCreated, stateMachine.GetCharge().ID, err)
 		}
@@ -687,10 +691,12 @@ func (e *LineEngine) attachManualStandardLine(ctx context.Context, standardInvoi
 		))
 	}
 
-	if err := stateMachine.FireAndAdvanceUntilStable(ctx, meta.TriggerInvoiceCreated, invoiceCreatedInput{
-		LineID:        standardLine.ID,
-		InvoiceID:     standardInvoice.ID,
-		ServicePeriod: standardLine.Period,
+	if err := transaction.RunWithNoValue(ctx, e.service.adapter, func(ctx context.Context) error {
+		return stateMachine.FireAndAdvanceUntilStable(ctx, meta.TriggerInvoiceCreated, invoiceCreatedInput{
+			LineID:        standardLine.ID,
+			InvoiceID:     standardInvoice.ID,
+			ServicePeriod: standardLine.Period,
+		})
 	}); err != nil {
 		return nil, fmt.Errorf("triggering %s for charge[%s]: %w", meta.TriggerInvoiceCreated, charge.ID, err)
 	}

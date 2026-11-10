@@ -723,9 +723,13 @@ func (e *LineEngine) attachManualStandardLine(ctx context.Context, invoice billi
 		return nil, fmt.Errorf("new state machine for flat fee charge[%s]: %w", charge.ID, err)
 	}
 
-	patches, err := stateMachine.FireAndAdvanceUntilInvoicePatchesOrStable(ctx, meta.TriggerAttachInvoiceLine, billing.StandardLineWithInvoiceHeader{
-		Line:    &standardLine,
-		Invoice: standardInvoice,
+	// Early activation is persisted before the run starts and cannot be resumed after a
+	// reload, so a failed attach has to undo it even when the caller keeps its transaction.
+	patches, err := transaction.Run(ctx, e.service.adapter, func(ctx context.Context) (invoiceupdater.Patches, error) {
+		return stateMachine.FireAndAdvanceUntilInvoicePatchesOrStable(ctx, meta.TriggerAttachInvoiceLine, billing.StandardLineWithInvoiceHeader{
+			Line:    &standardLine,
+			Invoice: standardInvoice,
+		})
 	})
 	if err != nil {
 		return nil, fmt.Errorf("triggering %s for charge[%s]: %w", meta.TriggerAttachInvoiceLine, charge.ID, err)
