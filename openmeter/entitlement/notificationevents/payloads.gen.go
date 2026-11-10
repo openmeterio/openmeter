@@ -52,9 +52,6 @@ type BillingEntitlementMetered = apiv3.BillingEntitlementMetered
 // BillingEntitlementType The type of the entitlement.
 type BillingEntitlementType = apiv3.BillingEntitlementType
 
-// BillingEntitlementValueResult Entitlement value result.
-type BillingEntitlementValueResult = apiv3.BillingEntitlementValueResult
-
 // BillingFeatureLLMTokenType Token type for LLM cost lookup.
 type BillingFeatureLLMTokenType = apiv3.BillingFeatureLLMTokenType
 
@@ -123,7 +120,7 @@ type EntitlementBalanceThresholdTriggeredV1Payload struct {
 	Threshold EntitlementBalanceThreshold `json:"threshold"`
 
 	// Value Value of the entitlement at evaluation time.
-	Value BillingEntitlementValueResult `json:"value"`
+	Value EntitlementMeteredValueResult `json:"value"`
 }
 
 // EntitlementBalanceThresholdTriggeredV1RuleConfig Rule configuration of `v1.entitlement.balance_threshold.triggered`.
@@ -137,6 +134,30 @@ type EntitlementBalanceThresholdTriggeredV1RuleConfig struct {
 
 // EntitlementBalanceThresholdType Condition kind of an entitlement balance threshold.
 type EntitlementBalanceThresholdType string
+
+// EntitlementMeteredValueResult Value of a metered entitlement when the Event happened.
+//
+// The v3 value result with its balance details required. The API returns them
+// only on request, but an Event payload never changes after it is created, so
+// a missing balance could not be recovered later.
+type EntitlementMeteredValueResult struct {
+	// Config Only available for static entitlements. Config is the JSON parsable
+	// configuration of the entitlement. Useful to describe per customer configuration.
+	Config *string `json:"config,omitempty"`
+
+	// FeatureKey The feature key being evaluated.
+	FeatureKey ResourceKey `json:"feature_key"`
+
+	// HasAccess Whether the customer has access to the feature. Always true for `boolean` and
+	// `static` entitlements. Depends on balance for `metered` entitlements.
+	HasAccess bool `json:"has_access"`
+
+	// Type The type of the entitlement.
+	Type BillingEntitlementType `json:"type"`
+
+	// Value The balance details of the entitlement when the Event happened.
+	Value BillingEntitlementAccessValue `json:"value"`
+}
 
 // EntitlementUsageResetV1Payload Payload of `v1.entitlement.usage.reset`.
 //
@@ -155,7 +176,7 @@ type EntitlementUsageResetV1Payload struct {
 	Feature Feature `json:"feature"`
 
 	// Value Value of the entitlement right after the reset.
-	Value BillingEntitlementValueResult `json:"value"`
+	Value EntitlementMeteredValueResult `json:"value"`
 }
 
 // EntitlementUsageResetV1RuleConfig Rule configuration of `v1.entitlement.usage.reset`.

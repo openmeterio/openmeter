@@ -3,7 +3,7 @@ import "@openmeter/typespec-notification-events";
 import "../../shared/index.tsp";
 import "../../customers/customer.tsp";
 import "../../customers/entitlements/entitlement.tsp";
-import "../../entitlements/access.tsp";
+import "./metered-value.tsp";
 import "../../features/feature.tsp";
 
 using TypeSpec.JsonSchema;
@@ -55,5 +55,5 @@ model UsageResetV1Payload {
   /**
    * Value of the entitlement right after the reset.
    */
-  value: Entitlements.EntitlementValueResult;
+  value: MeteredValueResult;
 }

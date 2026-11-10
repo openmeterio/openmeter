@@ -53,12 +53,30 @@ func withProperty(t *testing.T, raw []byte, key string, value any) string {
 	return string(out)
 }
 
+// withoutBalance returns the payload raw without the balance details of its
+// value. The API omits them unless asked, but a payload has to carry them.
+func withoutBalance(t *testing.T, raw []byte) string {
+	t.Helper()
+
+	var doc map[string]any
+	require.NoError(t, json.Unmarshal(raw, &doc))
+
+	value, ok := doc["value"].(map[string]any)
+	require.True(t, ok)
+	delete(value, "value")
+
+	out, err := json.Marshal(doc)
+	require.NoError(t, err)
+
+	return string(out)
+}
+
 // meteredEntitlement holds the v3 resources both entitlement payloads carry.
 type meteredEntitlement struct {
 	entitlement apiv3.BillingEntitlementMetered
 	feature     apiv3.Feature
 	customer    apiv3.BillingCustomer
-	value       apiv3.BillingEntitlementValueResult
+	value       EntitlementMeteredValueResult
 }
 
 func newMeteredEntitlement() meteredEntitlement {
@@ -92,11 +110,11 @@ func newMeteredEntitlement() meteredEntitlement {
 			CreatedAt: now,
 			UpdatedAt: now,
 		},
-		value: apiv3.BillingEntitlementValueResult{
+		value: EntitlementMeteredValueResult{
 			Type:       apiv3.BillingEntitlementTypeMetered,
 			FeatureKey: "api_requests",
 			HasAccess:  true,
-			Value: &apiv3.BillingEntitlementAccessValue{
+			Value: apiv3.BillingEntitlementAccessValue{
 				Balance:                   "18",
 				Usage:                     "82",
 				Overage:                   "0",
@@ -150,6 +168,7 @@ func TestBalanceThresholdTriggeredContract(t *testing.T) {
 
 		require.Error(t, validateJSON(t, schema, withProperty(t, raw, "unexpected", true)))
 		require.Error(t, validateJSON(t, schema, withProperty(t, raw, "threshold", map[string]any{"type": "bogus", "value": 20})))
+		require.Error(t, validateJSON(t, schema, withoutBalance(t, raw)), "the balance details are required")
 	})
 
 	t.Run("rule config struct matches rule config schema", func(t *testing.T) {
@@ -186,6 +205,7 @@ func TestUsageResetContract(t *testing.T) {
 
 		require.NoError(t, validateJSON(t, schema, string(raw)))
 		require.Error(t, validateJSON(t, schema, withProperty(t, raw, "unexpected", true)))
+		require.Error(t, validateJSON(t, schema, withoutBalance(t, raw)), "the balance details are required")
 	})
 
 	t.Run("rule config struct matches rule config schema", func(t *testing.T) {

@@ -34,10 +34,6 @@ actions:
     update:
       x-go-type: apiv3.BillingEntitlementType
       x-go-type-import: *a1
-  - target: $.components.schemas.BillingEntitlementValueResult
-    update:
-      x-go-type: apiv3.BillingEntitlementValueResult
-      x-go-type-import: *a1
   - target: $.components.schemas.BillingFeatureLLMTokenType
     update:
       x-go-type: apiv3.BillingFeatureLLMTokenType

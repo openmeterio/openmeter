@@ -16,7 +16,7 @@
             "description": "Customer owning the entitlement."
         },
         "value": {
-            "$ref": "#/$defs/EntitlementValueResult",
+            "$ref": "#/$defs/MeteredValueResult",
             "description": "Value of the entitlement right after the reset."
         }
     },
@@ -279,7 +279,7 @@
             },
             "description": "Customers can be individuals or organizations that can subscribe to plans and\nhave access to features."
         },
-        "EntitlementValueResult": {
+        "MeteredValueResult": {
             "type": "object",
             "properties": {
                 "type": {
@@ -312,18 +312,19 @@
                 },
                 "value": {
                     "$ref": "#/$defs/EntitlementAccessValue",
-                    "description": "Only available for metered entitlements. The balance details of the entitlement\nat the evaluation time. Requires the `value` expand."
+                    "description": "The balance details of the entitlement when the Event happened."
                 }
             },
             "required": [
                 "type",
                 "feature_key",
-                "has_access"
+                "has_access",
+                "value"
             ],
             "unevaluatedProperties": {
                 "not": {}
             },
-            "description": "Entitlement value result."
+            "description": "Value of a metered entitlement when the Event happened.\n\nThe v3 value result with its balance details required. The API returns them\nonly on request, but an Event payload never changes after it is created, so\na missing balance could not be recovered later."
         },
         "ULID": {
             "type": "string",

@@ -455,10 +455,17 @@ func TestEventRegistryValidators(t *testing.T) {
 				CreatedAt: now,
 				UpdatedAt: now,
 			},
-			Value: apiv3.BillingEntitlementValueResult{
+			Value: entitlementevents.EntitlementMeteredValueResult{
 				Type:       apiv3.BillingEntitlementTypeMetered,
 				FeatureKey: "api_requests",
 				HasAccess:  true,
+				Value: apiv3.BillingEntitlementAccessValue{
+					Balance:                   "20",
+					Usage:                     "80",
+					Overage:                   "0",
+					TotalAvailableGrantAmount: "100",
+					GrantBalances:             map[string]apiv3.Numeric{},
+				},
 			},
 			Threshold: entitlementevents.EntitlementBalanceThreshold{
 				Type:  entitlementevents.EntitlementBalanceThresholdTypeUsagePercentageAtOrAbove,

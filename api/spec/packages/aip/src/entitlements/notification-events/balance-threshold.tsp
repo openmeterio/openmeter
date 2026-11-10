@@ -3,7 +3,7 @@ import "@openmeter/typespec-notification-events";
 import "../../shared/index.tsp";
 import "../../customers/customer.tsp";
 import "../../customers/entitlements/entitlement.tsp";
-import "../../entitlements/access.tsp";
+import "./metered-value.tsp";
 import "../../features/feature.tsp";
 
 using TypeSpec.JsonSchema;
@@ -99,7 +99,7 @@ model BalanceThresholdTriggeredV1Payload {
   /**
    * Value of the entitlement at evaluation time.
    */
-  value: Entitlements.EntitlementValueResult;
+  value: MeteredValueResult;
 
   /**
    * Threshold that was crossed.

@@ -348,48 +348,6 @@ components:
         - static
         - boolean
       description: The type of the entitlement.
-    BillingEntitlementValueResult:
-      type: object
-      required:
-        - type
-        - feature_key
-        - has_access
-      properties:
-        type:
-          allOf:
-            - $ref: '#/components/schemas/BillingEntitlementType'
-          description: The type of the entitlement.
-          example: static
-          readOnly: true
-        feature_key:
-          allOf:
-            - $ref: '#/components/schemas/ResourceKey'
-          description: The feature key being evaluated.
-          example: available_models
-          readOnly: true
-        has_access:
-          type: boolean
-          description: |-
-            Whether the customer has access to the feature. Always true for `boolean` and
-            `static` entitlements. Depends on balance for `metered` entitlements.
-          example: true
-          readOnly: true
-        config:
-          type: string
-          description: |-
-            Only available for static entitlements. Config is the JSON parsable
-            configuration of the entitlement. Useful to describe per customer configuration.
-          example: '{ "availableModels": ["gpt-5", "gpt-4o"] }'
-          readOnly: true
-        value:
-          allOf:
-            - $ref: '#/components/schemas/BillingEntitlementAccessValue'
-          description: |-
-            Only available for metered entitlements. The balance details of the entitlement
-            at the evaluation time. Requires the `value` expand.
-          readOnly: true
-      additionalProperties: false
-      description: Entitlement value result.
     BillingFeatureLLMTokenType:
       type: string
       enum:
@@ -630,7 +588,7 @@ components:
           description: Customer owning the entitlement.
         value:
           allOf:
-            - $ref: '#/components/schemas/BillingEntitlementValueResult'
+            - $ref: '#/components/schemas/EntitlementMeteredValueResult'
           description: Value of the entitlement at evaluation time.
         threshold:
           allOf:
@@ -668,6 +626,51 @@ components:
         - balance_at_or_below
         - usage_percentage_at_or_above
       description: Condition kind of an entitlement balance threshold.
+    EntitlementMeteredValueResult:
+      type: object
+      required:
+        - type
+        - feature_key
+        - has_access
+        - value
+      properties:
+        type:
+          allOf:
+            - $ref: '#/components/schemas/BillingEntitlementType'
+          description: The type of the entitlement.
+          example: static
+          readOnly: true
+        feature_key:
+          allOf:
+            - $ref: '#/components/schemas/ResourceKey'
+          description: The feature key being evaluated.
+          example: available_models
+          readOnly: true
+        has_access:
+          type: boolean
+          description: |-
+            Whether the customer has access to the feature. Always true for `boolean` and
+            `static` entitlements. Depends on balance for `metered` entitlements.
+          example: true
+          readOnly: true
+        config:
+          type: string
+          description: |-
+            Only available for static entitlements. Config is the JSON parsable
+            configuration of the entitlement. Useful to describe per customer configuration.
+          example: '{ "availableModels": ["gpt-5", "gpt-4o"] }'
+          readOnly: true
+        value:
+          allOf:
+            - $ref: '#/components/schemas/BillingEntitlementAccessValue'
+          description: The balance details of the entitlement when the Event happened.
+      additionalProperties: false
+      description: |-
+        Value of a metered entitlement when the Event happened.
+
+        The v3 value result with its balance details required. The API returns them
+        only on request, but an Event payload never changes after it is created, so
+        a missing balance could not be recovered later.
     EntitlementUsageResetV1Payload:
       type: object
       required:
@@ -690,7 +693,7 @@ components:
           description: Customer owning the entitlement.
         value:
           allOf:
-            - $ref: '#/components/schemas/BillingEntitlementValueResult'
+            - $ref: '#/components/schemas/EntitlementMeteredValueResult'
           description: Value of the entitlement right after the reset.
       additionalProperties: false
       description: |-
