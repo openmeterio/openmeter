@@ -47,6 +47,11 @@ func ChannelFromDBEntity(e db.NotificationChannel) (*notification.Channel, error
 }
 
 func RuleFromDBEntity(e db.NotificationRule) (*notification.Rule, error) {
+	config, err := fromDBRuleConfig(e.Type, e.Config)
+	if err != nil {
+		return nil, fmt.Errorf("invalid notification rule config [namespace=%s rule.id=%s]: %w", e.Namespace, e.ID, err)
+	}
+
 	var channels []notification.Channel
 	if len(e.Edges.Channels) > 0 {
 		for _, channel := range e.Edges.Channels {
@@ -84,7 +89,7 @@ func RuleFromDBEntity(e db.NotificationRule) (*notification.Rule, error) {
 		Type:     e.Type,
 		Name:     e.Name,
 		Disabled: e.Disabled,
-		Config:   e.Config,
+		Config:   config,
 		Channels: channels,
 
 		Annotations: e.Annotations,

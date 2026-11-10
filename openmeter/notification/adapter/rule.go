@@ -1,8 +1,11 @@
 package adapter
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
 	"time"
 
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
@@ -117,12 +120,17 @@ func (a *adapter) ListRules(ctx context.Context, params notification.ListRulesIn
 
 func (a *adapter) CreateRule(ctx context.Context, params notification.CreateRuleInput) (*notification.Rule, error) {
 	fn := func(ctx context.Context, a *adapter) (*notification.Rule, error) {
+		config, err := toDBRuleConfig(params.Config)
+		if err != nil {
+			return nil, fmt.Errorf("failed to encode notification rule config: %w", err)
+		}
+
 		query := a.db.NotificationRule.Create().
 			SetType(params.Type).
 			SetName(params.Name).
 			SetNamespace(params.Namespace).
 			SetDisabled(params.Disabled).
-			SetConfig(params.Config).
+			SetConfig(config).
 			SetAnnotations(params.Annotations).
 			SetMetadata(params.Metadata).
 			AddChannelIDs(params.Channels...)
@@ -213,10 +221,15 @@ func (a *adapter) GetRule(ctx context.Context, params notification.GetRuleInput)
 
 func (a *adapter) UpdateRule(ctx context.Context, params notification.UpdateRuleInput) (*notification.Rule, error) {
 	fn := func(ctx context.Context, a *adapter) (*notification.Rule, error) {
+		config, err := toDBRuleConfig(params.Config)
+		if err != nil {
+			return nil, fmt.Errorf("failed to encode notification rule config: %w", err)
+		}
+
 		query := a.db.NotificationRule.UpdateOneID(params.ID).
 			Where(ruledb.Namespace(params.Namespace)).
 			SetDisabled(params.Disabled).
-			SetConfig(params.Config).
+			SetConfig(config).
 			SetName(params.Name).
 			SetAnnotations(params.Annotations).
 			SetMetadata(params.Metadata).
@@ -256,4 +269,110 @@ func (a *adapter) UpdateRule(ctx context.Context, params notification.UpdateRule
 	}
 
 	return entutils.TransactingRepo(ctx, a, fn)
+}
+
+// fromDBRuleConfig uses the row's type for unwrapped configs. Decoding does not
+// revalidate historical rule conditions; validation belongs to the write path.
+func fromDBRuleConfig(eventType notification.EventType, data json.RawMessage) (notification.RuleConfig, error) {
+	config := notification.RuleConfig{
+		RuleConfigMeta: notification.RuleConfigMeta{Type: eventType},
+	}
+
+	var err error
+
+	switch eventType {
+	case notification.EventTypeBalanceThreshold:
+		config.BalanceThreshold, err = fromDBRuleConfigPayload[notification.BalanceThresholdRuleConfig](eventType, data)
+	case notification.EventTypeEntitlementReset:
+		config.EntitlementReset, err = fromDBRuleConfigPayload[notification.EntitlementResetRuleConfig](eventType, data)
+	case notification.EventTypeInvoiceCreated, notification.EventTypeInvoiceUpdated:
+		config.Invoice, err = fromDBRuleConfigPayload[notification.InvoiceRuleConfig](eventType, data)
+	default:
+		return notification.RuleConfig{}, fmt.Errorf("invalid rule type: %s", eventType)
+	}
+
+	if err != nil {
+		return notification.RuleConfig{}, err
+	}
+
+	return config, nil
+}
+
+// fromDBRuleConfigPayload tries the legacy envelope before the flat contract.
+// Strict flat decoding prevents malformed envelopes from becoming empty invoice
+// configs, since InvoiceRuleConfig has no fields.
+func fromDBRuleConfigPayload[T any](eventType notification.EventType, data json.RawMessage) (*T, error) {
+	// TODO(notification-v4): remove envelope decoding after all writers and
+	// stored configs use the final representation.
+	var legacy struct {
+		Type notification.EventType `json:"type"`
+		Data *T                     `json:"data"`
+	}
+
+	legacyErr := json.Unmarshal(data, &legacy)
+	if legacyErr == nil {
+		switch {
+		case legacy.Type != eventType:
+			legacyErr = fmt.Errorf("invalid rule config discriminator")
+		case legacy.Data == nil:
+			legacyErr = fmt.Errorf("invalid rule config envelope: missing data")
+		default:
+			return legacy.Data, nil
+		}
+	}
+
+	var flat *T
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.DisallowUnknownFields()
+
+	flatErr := decoder.Decode(&flat)
+	if flatErr == nil {
+		switch flat {
+		case nil:
+			flatErr = fmt.Errorf("invalid flat rule config: expected an object")
+		default:
+			if err := decoder.Decode(new(any)); err != io.EOF {
+				flatErr = fmt.Errorf("invalid flat rule config: expected a single JSON object")
+			}
+		}
+	}
+
+	if flatErr != nil {
+		return nil, fmt.Errorf("invalid rule config: envelope: %w; flat: %w", legacyErr, flatErr)
+	}
+
+	return flat, nil
+}
+
+func toDBRuleConfig(config notification.RuleConfig) (json.RawMessage, error) {
+	// Preserve the validation previously performed by Ent's typed config field.
+	if err := config.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid rule config: %w", err)
+	}
+
+	var data any
+
+	switch config.Type {
+	case notification.EventTypeBalanceThreshold:
+		data = config.BalanceThreshold
+	case notification.EventTypeEntitlementReset:
+		data = config.EntitlementReset
+	case notification.EventTypeInvoiceCreated, notification.EventTypeInvoiceUpdated:
+		data = config.Invoice
+	}
+
+	// TODO(notification-v4): keep legacy envelope writes until all deployed and
+	// supported rollback versions can read the final config contract.
+	encoded, err := json.Marshal(struct {
+		Type notification.EventType `json:"type"`
+		Data any                    `json:"data"`
+	}{
+		Type: config.Type,
+		Data: data,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to encode rule config: %w", err)
+	}
+
+	return encoded, nil
 }

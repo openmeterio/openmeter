@@ -110088,7 +110088,7 @@ type NotificationRuleMutation struct {
 	_type           *notification.EventType
 	name            *string
 	disabled        *bool
-	_config         *notification.RuleConfig
+	_config         *jsontext.Value
 	clearedFields   map[string]struct{}
 	channels        map[string]struct{}
 	removedchannels map[string]struct{}
@@ -110582,12 +110582,12 @@ func (m *NotificationRuleMutation) ResetDisabled() {
 }
 
 // SetConfig sets the "config" field.
-func (m *NotificationRuleMutation) SetConfig(nc notification.RuleConfig) {
-	m._config = &nc
+func (m *NotificationRuleMutation) SetConfig(j jsontext.Value) {
+	m._config = &j
 }
 
 // Config returns the value of the "config" field in the mutation.
-func (m *NotificationRuleMutation) Config() (r notification.RuleConfig, exists bool) {
+func (m *NotificationRuleMutation) Config() (r jsontext.Value, exists bool) {
 	v := m._config
 	if v == nil {
 		return
@@ -110598,7 +110598,7 @@ func (m *NotificationRuleMutation) Config() (r notification.RuleConfig, exists b
 // OldConfig returns the old "config" field's value of the NotificationRule entity.
 // If the NotificationRule object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *NotificationRuleMutation) OldConfig(ctx context.Context) (v notification.RuleConfig, err error) {
+func (m *NotificationRuleMutation) OldConfig(ctx context.Context) (v jsontext.Value, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldConfig is only allowed on UpdateOne operations")
 	}
@@ -110920,7 +110920,7 @@ func (m *NotificationRuleMutation) SetField(name string, value ent.Value) error 
 		m.SetDisabled(v)
 		return nil
 	case notificationrule.FieldConfig:
-		v, ok := value.(notification.RuleConfig)
+		v, ok := value.(jsontext.Value)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
