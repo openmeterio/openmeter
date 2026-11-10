@@ -278,14 +278,8 @@ func (s *stateMachine) rejectHiddenIntentTarget(target meta.ChangeTarget) error 
 	return nil
 }
 
-// Manual charges can be attached to a draft invoice through an API edit before their
-// service period starts, and invoice_created is only permitted from active.
-func (s *stateMachine) IsManuallyManagedOrInsideServicePeriod() bool {
-	if s.Charge.Intent.GetBaseManagedBy() == billing.ManuallyManagedLine {
-		return true
-	}
-
-	return s.IsInsideServicePeriod()
+func (s *stateMachine) IsManuallyManaged() bool {
+	return s.Charge.Intent.GetBaseManagedBy() == billing.ManuallyManagedLine
 }
 
 func (s *stateMachine) IsInsideServicePeriod() bool {

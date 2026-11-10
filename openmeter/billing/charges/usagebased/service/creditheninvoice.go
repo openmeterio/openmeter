@@ -74,7 +74,12 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 		Permit(
 			meta.TriggerNext,
 			usagebased.StatusActive,
-			statelessx.BoolFn(s.IsManuallyManagedOrInsideServicePeriod),
+			statelessx.BoolFn(s.IsInsideServicePeriod),
+		).
+		Permit(
+			meta.TriggerInvoiceCreated,
+			usagebased.StatusActiveRealizationStarted,
+			statelessx.BoolFn(s.IsManuallyManaged),
 		).
 		Permit(meta.TriggerClearOverride, usagebased.StatusDeletedClearOverride, statelessx.BoolFn(s.IsBaseIntentDeleted)).
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
@@ -129,7 +134,7 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
 		InternalTransition(meta.TriggerShrinkToRealizedPeriod, statelessx.WithParameters(s.ShrinkToRealizedPeriod)).
-		OnEntryFrom(meta.TriggerInvoiceCreated, statelessx.WithParameters(s.StartInvoiceRun))
+		OnEntryFrom(meta.TriggerInvoiceCreated, statelessx.WithParameters(s.ActivateAndStartInvoiceRun))
 
 	s.Configure(usagebased.StatusActiveRealizationWaitingForCollection).
 		Permit(
@@ -1083,6 +1088,22 @@ func (i invoiceCreatedInput) Validate() error {
 	}
 
 	return nil
+}
+
+// A manual line can be attached to a draft invoice before its service period
+// starts, so invoice_created is also permitted from created for manual charges.
+// That path never enters active, so its activation hooks run here; both are
+// no-ops once resolved.
+func (s *CreditThenInvoiceStateMachine) ActivateAndStartInvoiceRun(ctx context.Context, input invoiceCreatedInput) error {
+	if err := s.ResolveDynamicCostBasis(ctx); err != nil {
+		return err
+	}
+
+	if err := s.SyncFeatureIDFromFeatureMeter(ctx); err != nil {
+		return err
+	}
+
+	return s.StartInvoiceRun(ctx, input)
 }
 
 func (s *CreditThenInvoiceStateMachine) StartInvoiceRun(
