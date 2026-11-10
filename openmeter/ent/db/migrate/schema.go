@@ -3861,6 +3861,15 @@ var (
 				Unique:  false,
 				Columns: []*schema.Column{CustomerSubjectsColumns[4], CustomerSubjectsColumns[5]},
 			},
+			{
+				Name:    "customersubjects_subject_key_trgm",
+				Unique:  false,
+				Columns: []*schema.Column{CustomerSubjectsColumns[2]},
+				Annotation: &entsql.IndexAnnotation{
+					OpClass: "gin_trgm_ops",
+					Type:    "GIN",
+				},
+			},
 		},
 	}
 	// EntitlementsColumns holds the columns for the "entitlements" table.
