@@ -278,8 +278,8 @@ func (s *stateMachine) rejectHiddenIntentTarget(target meta.ChangeTarget) error 
 	return nil
 }
 
-func (s *stateMachine) IsManuallyManaged() bool {
-	return s.Charge.Intent.GetBaseManagedBy() == billing.ManuallyManagedLine
+func (s *stateMachine) IsManuallyManagedBeforeServicePeriod() bool {
+	return s.Charge.Intent.GetBaseManagedBy() == billing.ManuallyManagedLine && !s.IsInsideServicePeriod()
 }
 
 func (s *stateMachine) IsInsideServicePeriod() bool {

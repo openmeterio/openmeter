@@ -27,6 +27,10 @@ import (
 
 type CreditThenInvoiceStateMachine struct {
 	*stateMachine
+
+	// Set when invoice_created arrives in created: early activation has to run
+	// before the run starts, and the follow-up next trigger carries no input.
+	earlyActivationInvoiceCreatedInput *invoiceCreatedInput
 }
 
 var triggerSystemInvoiceLineDeleted meta.Trigger = "system_invoice_line_deleted"
@@ -78,8 +82,8 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 		).
 		Permit(
 			meta.TriggerInvoiceCreated,
-			usagebased.StatusActiveRealizationStarted,
-			statelessx.BoolFn(s.IsManuallyManaged),
+			usagebased.StatusActiveEarlyActivation,
+			statelessx.BoolFn(s.IsManuallyManagedBeforeServicePeriod),
 		).
 		Permit(meta.TriggerClearOverride, usagebased.StatusDeletedClearOverride, statelessx.BoolFn(s.IsBaseIntentDeleted)).
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
@@ -90,6 +94,16 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 		InternalTransition(meta.TriggerShrinkToRealizedPeriod, statelessx.WithParameters(s.ShrinkToRealizedPeriod)).
 		OnActive(
 			s.AdvanceAfterServicePeriodFrom,
+		)
+
+	s.Configure(usagebased.StatusActiveEarlyActivation).
+		Permit(meta.TriggerNext, usagebased.StatusActiveRealizationStarted).
+		OnEntryFrom(meta.TriggerInvoiceCreated, statelessx.WithParameters(s.KeepEarlyActivationInvoiceCreatedInput)).
+		OnActive(
+			statelessx.AllOf(
+				s.ResolveDynamicCostBasis,
+				s.SyncFeatureIDFromFeatureMeter,
+			),
 		)
 
 	// Active
@@ -134,7 +148,8 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
 		InternalTransition(meta.TriggerShrinkToRealizedPeriod, statelessx.WithParameters(s.ShrinkToRealizedPeriod)).
-		OnEntryFrom(meta.TriggerInvoiceCreated, statelessx.WithParameters(s.ActivateAndStartInvoiceRun))
+		OnEntryFrom(meta.TriggerInvoiceCreated, statelessx.WithParameters(s.StartInvoiceRun)).
+		OnEntryFrom(meta.TriggerNext, statelessx.EntryFunc(s.StartInvoiceRunAfterEarlyActivation))
 
 	s.Configure(usagebased.StatusActiveRealizationWaitingForCollection).
 		Permit(
@@ -1090,20 +1105,18 @@ func (i invoiceCreatedInput) Validate() error {
 	return nil
 }
 
-// A manual line can be attached to a draft invoice before its service period
-// starts, so invoice_created is also permitted from created for manual charges.
-// That path never enters active, so its activation hooks run here; both are
-// no-ops once resolved.
-func (s *CreditThenInvoiceStateMachine) ActivateAndStartInvoiceRun(ctx context.Context, input invoiceCreatedInput) error {
-	if err := s.ResolveDynamicCostBasis(ctx); err != nil {
-		return err
+func (s *CreditThenInvoiceStateMachine) KeepEarlyActivationInvoiceCreatedInput(_ context.Context, input invoiceCreatedInput) error {
+	s.earlyActivationInvoiceCreatedInput = &input
+
+	return nil
+}
+
+func (s *CreditThenInvoiceStateMachine) StartInvoiceRunAfterEarlyActivation(ctx context.Context) error {
+	if s.earlyActivationInvoiceCreatedInput == nil {
+		return fmt.Errorf("invoice created input is missing after early activation [charge_id=%s]", s.Charge.ID)
 	}
 
-	if err := s.SyncFeatureIDFromFeatureMeter(ctx); err != nil {
-		return err
-	}
-
-	return s.StartInvoiceRun(ctx, input)
+	return s.StartInvoiceRun(ctx, *s.earlyActivationInvoiceCreatedInput)
 }
 
 func (s *CreditThenInvoiceStateMachine) StartInvoiceRun(
