@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
@@ -6379,4 +6380,123 @@ func (s *CreditThenInvoiceTestSuite) setupDeletedLineIssuanceInvoice(chargeType 
 	}
 
 	return fixture
+}
+
+// Reproduces: a custom-currency credit_then_invoice usage charge whose service
+// period has already started stays in `created` with no advance_after and no
+// resolved cost basis, because nothing schedules the customer for the advance
+// job. credit_only charges are auto-advanced on create; credit_then_invoice
+// ones are not, and the advance job only lists customers with a non-null
+// advance_after <= now.
+func (s *CreditThenInvoiceTestSuite) TestUsageBasedChargeInsideServicePeriodIsScheduledForAdvancing() {
+	t := s.T()
+	ctx := t.Context()
+	ns := s.GetUniqueNamespace("charges-cti-usage-stuck-created")
+	defaults := s.TaxCodeEnv.ProvisionDefaultTaxCodes(t, ns)
+
+	sandboxApp := s.InstallSandboxApp(t, ns)
+	_ = s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID(), billingtest.WithManualApproval())
+	cust := s.CreateLedgerBackedCustomer(ns, "pixelforge-invoice")
+	feature := s.SetupApiRequestsTotalFeature(ctx, ns)
+	t.Cleanup(feature.Cleanup)
+
+	servicePeriod := timeutil.ClosedPeriod{
+		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		To:   time.Date(2026, 1, 8, 0, 0, 0, 0, time.UTC),
+	}
+
+	clock.FreezeTime(servicePeriod.From.Add(-time.Hour))
+	defer clock.UnFreeze()
+
+	// given:
+	// - a custom currency with a dynamic USD cost basis
+	// - a subscription-managed credit_then_invoice usage charge created at its service period start
+	uicr := s.CreateCustomCurrency(ns, "UICR")
+	_, err := s.CurrencyService.CreateCostBasis(ctx, currencies.CreateCostBasisInput{
+		Namespace:  ns,
+		CurrencyID: uicr.ID,
+		FiatCode:   USD,
+		Rate:       alpacadecimal.NewFromFloat(0.01),
+	})
+	s.Require().NoError(err)
+
+	usd, err := currencyx.NewFiatCurrency(USD)
+	s.Require().NoError(err)
+
+	clock.FreezeTime(servicePeriod.From)
+
+	created, err := s.Charges.Create(ctx, charges.CreateInput{
+		Namespace: ns,
+		Intents: charges.NewCreateChargeIntents(usagebased.Intent{
+			Intent: meta.Intent{
+				ManagedBy:         billing.SubscriptionManagedLine,
+				UniqueReferenceID: lo.ToPtr("stuck-created-generations"),
+				CustomerID:        cust.ID,
+				Currency:          uicr,
+				TaxConfig: productcatalog.TaxCodeConfig{
+					TaxCodeID: defaults.InvoicingTaxCodeID,
+				},
+			},
+			IntentMutableFields: usagebased.IntentMutableFields{
+				IntentMutableFields: meta.IntentMutableFields{
+					Name:              "generations",
+					ServicePeriod:     servicePeriod,
+					FullServicePeriod: servicePeriod,
+					BillingPeriod:     servicePeriod,
+				},
+				InvoiceAt: servicePeriod.To,
+				Price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+					Amount: alpacadecimal.NewFromInt(2),
+				}),
+			},
+			SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+			FeatureKey:     feature.Feature.Key,
+			CostBasis:      lo.ToPtr(costbasis.NewIntent(costbasis.DynamicIntent{FiatCurrency: usd})),
+		}),
+	})
+	s.Require().NoError(err)
+	s.Require().Len(created, 1)
+
+	charge, err := created[0].AsUsageBasedCharge()
+	s.Require().NoError(err)
+	t.Logf("after create: status=%s advanceAfter=%v resolvedCostBasis=%v", charge.Status, charge.State.AdvanceAfter, charge.State.ResolvedCostBasis)
+
+	// when:
+	// - a few minutes pass inside the service period
+	// - the advance job runs: list customers with advance_after <= now, advance each of them
+	clock.FreezeTime(servicePeriod.From.Add(7 * time.Minute))
+
+	customersToAdvance, err := s.Charges.ListCustomersToAdvance(ctx, charges.ListCustomersToAdvanceInput{
+		Namespaces:      []string{ns},
+		AdvanceAfterLTE: clock.Now(),
+	})
+	s.Require().NoError(err)
+	t.Logf("advance job sees customers: %v", customersToAdvance.Items)
+
+	for _, customerID := range customersToAdvance.Items {
+		_, err := s.Charges.AdvanceCharges(ctx, charges.AdvanceChargesInput{Customer: customerID})
+		s.Require().NoError(err)
+	}
+
+	// then:
+	// - the charge is active with its cost basis resolved and the next advance scheduled at period end
+	afterJob := s.MustGetChargeByID(charge.GetChargeID())
+	afterJobUsage, err := afterJob.AsUsageBasedCharge()
+	s.Require().NoError(err)
+	s.Equal(usagebased.StatusActive, afterJobUsage.Status, "advance job never schedules a credit_then_invoice usage charge sitting in created")
+	s.NotNil(afterJobUsage.State.ResolvedCostBasis)
+	if s.NotNil(afterJobUsage.State.AdvanceAfter) {
+		s.True(servicePeriod.To.Equal(*afterJobUsage.State.AdvanceAfter))
+	}
+
+	// - the state machine itself is able to activate the charge once anything advances the customer
+	s.Run("advancing the customer directly activates the charge", func() {
+		_, err := s.Charges.AdvanceCharges(ctx, charges.AdvanceChargesInput{Customer: cust.GetID()})
+		s.Require().NoError(err)
+
+		active := s.RequireUsageBasedChargeStatus(charge.GetChargeID(), usagebased.StatusActive)
+		s.Require().NotNil(active.State.AdvanceAfter)
+		s.True(servicePeriod.To.Equal(*active.State.AdvanceAfter))
+		s.NotNil(active.State.ResolvedCostBasis)
+	})
 }
