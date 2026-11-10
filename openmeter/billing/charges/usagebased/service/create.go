@@ -9,6 +9,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -93,12 +94,13 @@ func (s *service) Create(ctx context.Context, input usagebased.CreateInput) ([]u
 			}
 
 			return usagebased.CreateIntentAdapterInput{
-				Intent:            chargeIntent.AsOverridableIntent(),
-				Annotations:       chargeIntent.Annotations,
-				FeatureID:         featureID,
-				RatingEngine:      s.rater.GetPreferredRatingEngineFor(chargeIntent),
-				ResolvedCostBasis: resolvedCostBasis,
-				ValidationIssues:  validationIssues,
+				Intent:              chargeIntent.AsOverridableIntent(),
+				Annotations:         chargeIntent.Annotations,
+				FeatureID:           featureID,
+				RatingEngine:        s.rater.GetPreferredRatingEngineFor(chargeIntent),
+				ResolvedCostBasis:   resolvedCostBasis,
+				ValidationIssues:    validationIssues,
+				InitialAdvanceAfter: initialAdvanceAfter(chargeIntent, now),
 			}, nil
 		})
 		if err != nil {
@@ -124,6 +126,22 @@ func (s *service) Create(ctx context.Context, input usagebased.CreateInput) ([]u
 			return gatheringLineFromUsageBasedChargeForPeriod(charge, charge.Intent.GetEffectiveServicePeriod(), charge.Intent.GetEffectiveInvoiceAt())
 		})
 	})
+}
+
+// A credit_then_invoice charge that is already inside its service period has
+// nothing else to activate it: create-time auto-advance only covers
+// credit_only, and the advance job only visits customers with a scheduled
+// advance_after. Future-start charges are left unscheduled here on purpose.
+func initialAdvanceAfter(intent usagebased.Intent, now time.Time) *time.Time {
+	if intent.SettlementMode != productcatalog.CreditThenInvoiceSettlementMode {
+		return nil
+	}
+
+	if now.Before(intent.ServicePeriod.From) {
+		return nil
+	}
+
+	return lo.ToPtr(meta.NormalizeTimestamp(intent.ServicePeriod.From))
 }
 
 func gatheringLineFromUsageBasedChargeForPeriod(charge usagebased.Charge, servicePeriod timeutil.ClosedPeriod, invoiceAt time.Time) (usagebased.ChargeWithGatheringLine, error) {

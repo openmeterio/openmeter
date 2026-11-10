@@ -431,6 +431,7 @@ func (a *adapter) buildCreateUsageBasedCharge(ctx context.Context, ns string, in
 		Intent:              baseIntent.Intent,
 		IntentMutableFields: baseIntent.IntentMutableFields.IntentMutableFields,
 		Status:              meta.ChargeStatusCreated,
+		AdvanceAfter:        meta.NormalizeOptionalTimestamp(intent.InitialAdvanceAfter),
 		ValidationIssues:    intent.ValidationIssues,
 	})
 	if err != nil {
