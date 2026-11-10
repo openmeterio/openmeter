@@ -85,7 +85,7 @@ func (a *adapter) ListEvents(ctx context.Context, params notification.ListEvents
 
 		if !params.NextAttemptBefore.IsZero() {
 			query = query.Where(eventdb.HasDeliveryStatusesWith(
-				statusdb.StateNotIn(toDBDeliveryStates(notification.EventDeliveryStatusStateSuccess, notification.EventDeliveryStatusStateFailed)...),
+				statusdb.StateNotIn(toDBEventDeliveryStatusStates(notification.EventDeliveryStatusStateSuccess, notification.EventDeliveryStatusStateFailed)...),
 				statusdb.Or(
 					statusdb.NextAttemptAtIsNil(),
 					statusdb.NextAttemptAtLTE(params.NextAttemptBefore.UTC()),
@@ -296,7 +296,7 @@ func deprecatedEventPredicates(params notification.ListEventsInput) []predicate.
 	}
 
 	if len(params.DeliveryStatusStates) > 0 {
-		states := toDBDeliveryStates(params.DeliveryStatusStates...)
+		states := toDBEventDeliveryStatusStates(params.DeliveryStatusStates...)
 		preds = append(preds, eventdb.HasDeliveryStatusesWith(statusdb.StateIn(states...)))
 	}
 

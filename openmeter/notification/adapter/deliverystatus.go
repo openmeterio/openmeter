@@ -35,7 +35,7 @@ func (a *adapter) ListEventsDeliveryStatus(ctx context.Context, params notificat
 		}
 
 		if len(params.States) > 0 {
-			query = query.Where(statusdb.StateIn(toDBDeliveryStates(params.States...)...))
+			query = query.Where(statusdb.StateIn(toDBEventDeliveryStatusStates(params.States...)...))
 		}
 
 		if !params.From.IsZero() {
@@ -99,7 +99,7 @@ func deliveryStateSpellings(state notification.EventDeliveryStatusState) (legacy
 }
 
 // The Event filter uses strings, while Ent predicates use EventDeliveryStatusState.
-func toDBDeliveryStates[T ~string](states ...T) []T {
+func toDBEventDeliveryStatusStates[T ~string](states ...T) []T {
 	values := make([]T, 0, 2*len(states))
 	for _, state := range states {
 		legacy, lowercase := deliveryStateSpellings(notification.EventDeliveryStatusState(state))
@@ -120,10 +120,10 @@ func toDBDeliveryStateFilter(input *filter.FilterString) *filter.FilterString {
 
 	switch {
 	case input.Eq != nil:
-		values := toDBDeliveryStates(*input.Eq)
+		values := toDBEventDeliveryStatusStates(*input.Eq)
 		return &filter.FilterString{In: &values}
 	case input.In != nil:
-		values := toDBDeliveryStates((*input.In)...)
+		values := toDBEventDeliveryStatusStates((*input.In)...)
 		return &filter.FilterString{In: &values}
 	default:
 		return input
