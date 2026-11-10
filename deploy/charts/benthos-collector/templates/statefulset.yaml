@@ -1,3 +1,4 @@
+{{- $httpPreset := and (eq .Values.preset "http-server") (not .Values.config) (not .Values.configFile) -}}
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -55,7 +56,6 @@ spec:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          command: ["/entrypoint.sh", "/usr/local/bin/benthos"]
           args: {{ include "benthos-collector.args" . }}
           livenessProbe:
             httpGet:
@@ -127,7 +127,7 @@ spec:
               mountPath: /etc/benthos/config.yaml
               readOnly: true
               subPath: config.yaml
-          {{- if .Values.storage.enabled }}
+          {{- if or .Values.storage.enabled $httpPreset }}
             - name: data
               mountPath: {{ .Values.storage.mountPath }}
           {{- end }}
@@ -141,6 +141,10 @@ spec:
             {{- toYaml . | nindent 12 }}
           {{- end }}
       volumes:
+      {{- if and $httpPreset (not .Values.storage.enabled) }}
+        - name: data
+          emptyDir: {}
+      {{- end }}
         - name: config
           secret:
             secretName: {{ include "benthos-collector.componentName" (list . "config") }}

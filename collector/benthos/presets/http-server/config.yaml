@@ -65,7 +65,7 @@ input:
 # Persistent buffer to ensure data isn't lost during processing
 buffer:
   sqlite:
-    path: "${BUFFER_PATH:./buffer.db}"
+    path: "${BUFFER_PATH:/var/lib/collector/buffer.db}"
     post_processors:
       # Split buffered data into smaller batches for processing
       - label: "buffer_split_batch"

@@ -37,7 +37,9 @@ FROM alpine:3.24.3@sha256:be2656061b536c1883c4034790e21d0a09c5aaaf51968b89368a3c
 
 RUN apk add --update --no-cache ca-certificates tzdata bash \
     && addgroup -S -g 10001 openmeter \
-    && adduser -S -D -H -u 10001 -G openmeter openmeter
+    && adduser -S -D -H -u 10001 -G openmeter openmeter \
+    && mkdir -p /var/run/openmeter-ca /var/lib/collector \
+    && chown openmeter:openmeter /var/run/openmeter-ca /var/lib/collector
 
 SHELL ["/bin/bash", "-c"]
 
@@ -49,9 +51,8 @@ COPY cloudevents.spec.json /etc/benthos/
 COPY collector/benthos/presets /etc/benthos/presets
 
 COPY --link --from=builder /usr/local/bin/benthos /usr/local/bin/
-COPY --link --chmod=755 entrypoint.sh /entrypoint.sh
 COPY --link --chmod=755 prepare-ca-bundle.sh /usr/local/bin/prepare-ca-bundle
 
 USER 10001:10001
 
-ENTRYPOINT ["/entrypoint.sh", "/usr/local/bin/benthos"]
+ENTRYPOINT ["/usr/local/bin/benthos"]

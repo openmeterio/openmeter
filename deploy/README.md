@@ -41,15 +41,30 @@ Both Helm charts accept PEM-encoded roots through `caRootCertificates`. For exam
 On pod startup, a non-root init container combines those roots with the ones shipped in
 the application image. Updating the value rolls the affected pods.
 
-For plain Docker or Compose, replace any custom CA directory mount with a read-only
-file mount at `/etc/ssl/certs/ca-certificates.crt`. Prepare the bundle from the same
-image tag you deploy and rebuild it when the image or your roots change.
+Upgrade the charts and images together. The init container uses the application image
+to read its Alpine roots and run the bundle helper.
+
+For Compose, both the [server quickstart](../quickstart/docker-compose.ca.yaml) and
+[collector quickstart](../collector/quickstart/docker-compose.ca.yaml) include an optional
+override. From the corresponding quickstart directory, run
 
 ```sh
-docker run --rm --entrypoint cat "$IMAGE" /etc/ssl/certs/ca-certificates.crt > combined.pem
-printf '\n' >> combined.pem
-cat company-root.crt >> combined.pem
+export CA_CERTIFICATES_DIR=/absolute/path/to/company-certs
+docker compose -f docker-compose.yaml -f docker-compose.ca.yaml up -d
 ```
 
-Use `./combined.pem:/etc/ssl/certs/ca-certificates.crt:ro` in Compose. Give UID/GID
-10001 access to any writable data or log directories you bind-mount.
+A one-shot service prepares the bundle in a named volume. The application services
+wait for it to succeed and mount only the bundle file, read-only. Recreate the
+helper and consumers with `up -d --force-recreate` after changing the certificates.
+The collector override also applies the server override to its included OpenMeter stack.
+Set `OPENMETER_IMAGE` and `COLLECTOR_IMAGE` to pin the application and helper to the
+same release. The overrides require Compose and Engine support for volume file subpaths.
+
+For plain Docker, bind-mount a combined PEM file read-only at
+`/etc/ssl/certs/ca-certificates.crt`. Rebuild it from the deployed image when its
+public roots or your custom roots change. Give UID/GID 10001 access to writable
+data and log directories. The collector HTTP preset writes SQLite to its data volume (ephemeral
+by default, persistent with `storage.enabled`). Plain Docker uses
+`/var/lib/collector/buffer.db`. An explicit `BUFFER_PATH` takes precedence.
+Drain or migrate an existing SQLite buffer in the old container working directory
+before upgrading.

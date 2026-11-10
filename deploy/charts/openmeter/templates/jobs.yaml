@@ -49,7 +49,7 @@ spec:
                 {{- include "openmeter.securityContext" . | nindent 16 }}
               image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
               imagePullPolicy: {{ .Values.image.pullPolicy }}
-              command: ["/entrypoint.sh", "openmeter-jobs"]
+              command: ["openmeter-jobs"]
               args: [ "--config", "/etc/openmeter/config.yaml", "billing", "subscriptionsync", "all"]
               ports:
                 - name: telemetry-http
@@ -129,7 +129,7 @@ spec:
                 {{- include "openmeter.securityContext" . | nindent 16 }}
               image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
               imagePullPolicy: {{ .Values.image.pullPolicy }}
-              command: ["/entrypoint.sh", "openmeter-jobs"]
+              command: ["openmeter-jobs"]
               args: [ "--config", "/etc/openmeter/config.yaml", "billing", "collect", "all"]
               ports:
                 - name: telemetry-http
@@ -209,7 +209,7 @@ spec:
                 {{- include "openmeter.securityContext" . | nindent 16 }}
               image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
               imagePullPolicy: {{ .Values.image.pullPolicy }}
-              command: ["/entrypoint.sh", "openmeter-jobs"]
+              command: ["openmeter-jobs"]
               args: [ "--config", "/etc/openmeter/config.yaml", "billing", "advance", "all"]
               ports:
                 - name: telemetry-http

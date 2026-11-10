@@ -36,7 +36,7 @@ spec:
             {{- include "openmeter.securityContext" . | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          command: ["/entrypoint.sh", "openmeter"]
+          command: ["openmeter"]
           args: ["--address", "0.0.0.0:8080", "--telemetry-address", "0.0.0.0:10000", "--config", "/etc/openmeter/config.yaml"]
           ports:
             - name: http
@@ -115,7 +115,7 @@ spec:
             {{- include "openmeter.securityContext" . | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          command: ["/entrypoint.sh", "openmeter-balance-worker"]
+          command: ["openmeter-balance-worker"]
           args: ["--telemetry-address", "0.0.0.0:10000", "--config", "/etc/openmeter/config.yaml"]
           ports:
             - name: telemetry-http
@@ -191,7 +191,7 @@ spec:
             {{- include "openmeter.securityContext" . | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          command: ["/entrypoint.sh", "openmeter-notification-service"]
+          command: ["openmeter-notification-service"]
           args: ["--telemetry-address", "0.0.0.0:10000", "--config", "/etc/openmeter/config.yaml"]
           ports:
             - name: telemetry-http
@@ -267,7 +267,7 @@ spec:
             {{- include "openmeter.securityContext" . | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          command: ["/entrypoint.sh", "openmeter-sink-worker"]
+          command: ["openmeter-sink-worker"]
           args: ["--telemetry-address", "0.0.0.0:10000", "--config", "/etc/openmeter/config.yaml"]
           ports:
             - name: telemetry-http
@@ -343,7 +343,7 @@ spec:
             {{- include "openmeter.securityContext" . | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          command: ["/entrypoint.sh", "openmeter-billing-worker"]
+          command: ["openmeter-billing-worker"]
           args: ["--telemetry-address", "0.0.0.0:10000", "--config", "/etc/openmeter/config.yaml"]
           ports:
             - name: telemetry-http
