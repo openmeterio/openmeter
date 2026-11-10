@@ -984,17 +984,10 @@ func buildBillingProfileIDPredicate(f filter.FilterULID, defaultProfileID string
 	}
 
 	if defaultSelector := f.Select(billingprofiledb.FieldID); defaultSelector != nil {
-		// Resolves to the default profile: no live override OR a live override
-		// with NULL profile_id.
-		resolvesToDefault := customerdb.Or(
-			customerdb.Not(customerdb.HasBillingCustomerOverrideWith(
-				billingcustomeroverridedb.DeletedAtIsNil(),
-			)),
-			customerdb.HasBillingCustomerOverrideWith(
-				billingcustomeroverridedb.DeletedAtIsNil(),
-				billingcustomeroverridedb.BillingProfileIDIsNil(),
-			),
-		)
+		// Customers without a live assignment follow the namespace default.
+		resolvesToDefault := customerdb.Not(customerdb.HasBillingCustomerOverrideWith(
+			billingcustomeroverridedb.DeletedAtIsNil(),
+		))
 
 		// EXISTS subquery that pins the namespace default profile row by id
 		// and applies the user's filter to that row's id. This lets eq, ne,

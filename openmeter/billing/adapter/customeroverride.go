@@ -21,7 +21,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
-// Stay below PostgreSQL's parameter limit even while the legacy columns remain.
+// Stay below PostgreSQL's parameter limit when assigning customer profiles in bulk.
 var defaultBulkAssignCustomersToProfileBatchSize = (65535 / len(billingcustomeroverride.Columns)) - 1
 
 var _ billing.CustomerBillingProfileAdapter = (*adapter)(nil)
@@ -55,7 +55,6 @@ func (a *adapter) GetCustomerBillingProfile(ctx context.Context, input billing.G
 			Where(billingcustomeroverride.Namespace(input.Customer.Namespace)).
 			Where(billingcustomeroverride.CustomerID(input.Customer.ID)).
 			Where(billingcustomeroverride.DeletedAtIsNil()).
-			Where(billingcustomeroverride.BillingProfileIDNotNil()).
 			WithBillingProfile(func(query *db.BillingProfileQuery) {
 				query.Where(billingprofile.Namespace(input.Customer.Namespace))
 				query.WithWorkflowConfig(workflowConfigWithTaxCode(input.Customer.Namespace))
@@ -120,11 +119,10 @@ func (a *adapter) ListCustomerBillingProfiles(ctx context.Context, input billing
 			query = query.Order(dbcustomer.ByID(order...))
 		}
 
-		// A historical empty or deleted override row is not an active profile pin.
+		// Only live assignments prevent a customer from following the namespace default.
 		activePin := []predicate.BillingCustomerOverride{
 			billingcustomeroverride.NamespaceEQ(input.Namespace),
 			billingcustomeroverride.DeletedAtIsNil(),
-			billingcustomeroverride.BillingProfileIDNotNil(),
 		}
 		matchingPin := append([]predicate.BillingCustomerOverride{}, activePin...)
 		if len(input.BillingProfiles) > 0 {
@@ -154,8 +152,7 @@ func (a *adapter) ListCustomerBillingProfiles(ctx context.Context, input billing
 
 		query = query.WithBillingCustomerOverride(func(overrideQuery *db.BillingCustomerOverrideQuery) {
 			overrideQuery = overrideQuery.Where(billingcustomeroverride.NamespaceEQ(input.Namespace)).
-				Where(billingcustomeroverride.DeletedAtIsNil()).
-				Where(billingcustomeroverride.BillingProfileIDNotNil())
+				Where(billingcustomeroverride.DeletedAtIsNil())
 
 			overrideQuery.WithBillingProfile(func(profileQuery *db.BillingProfileQuery) {
 				profileQuery.Where(billingprofile.Namespace(input.Namespace))
@@ -187,7 +184,6 @@ func (a *adapter) ClearCustomerBillingProfile(ctx context.Context, input billing
 			Where(billingcustomeroverride.CustomerID(input.Customer.ID)).
 			Where(billingcustomeroverride.Namespace(input.Customer.Namespace)).
 			Where(billingcustomeroverride.DeletedAtIsNil()).
-			Where(billingcustomeroverride.BillingProfileIDNotNil()).
 			SetDeletedAt(clock.Now()).
 			Save(ctx)
 		if err != nil {
@@ -303,7 +299,7 @@ func (a *adapter) BulkAssignCustomersToProfile(ctx context.Context, input billin
 
 // mapCustomerBillingProfileFromDB must never substitute a default for the persisted pin.
 func (a *adapter) mapCustomerBillingProfileFromDB(ctx context.Context, row *db.BillingCustomerOverride) (billing.CustomerBillingProfileAdapterResult, error) {
-	if row == nil || row.DeletedAt != nil || row.BillingProfileID == nil {
+	if row == nil || row.DeletedAt != nil {
 		return billing.CustomerBillingProfileAdapterResult{}, nil
 	}
 
@@ -311,10 +307,10 @@ func (a *adapter) mapCustomerBillingProfileFromDB(ctx context.Context, row *db.B
 		a.logger.ErrorContext(ctx, "billing customer profile pin namespace isolation violation",
 			"customer_override_id", row.ID,
 			"expected_namespace", row.Namespace,
-			"billing_profile_id", *row.BillingProfileID,
+			"billing_profile_id", row.BillingProfileID,
 		)
 
-		return billing.CustomerBillingProfileAdapterResult{}, billing.NotFoundError{Err: fmt.Errorf("%w [id=%s]", billing.ErrProfileNotFound, *row.BillingProfileID)}
+		return billing.CustomerBillingProfileAdapterResult{}, billing.NotFoundError{Err: fmt.Errorf("%w [id=%s]", billing.ErrProfileNotFound, row.BillingProfileID)}
 	}
 
 	profile, err := a.mapProfileFromDB(ctx, row.Edges.BillingProfile)
@@ -328,7 +324,7 @@ func (a *adapter) mapCustomerBillingProfileFromDB(ctx context.Context, row *db.B
 			ID:        row.ID,
 			CreatedAt: row.CreatedAt,
 			UpdatedAt: row.UpdatedAt,
-			ProfileID: *row.BillingProfileID,
+			ProfileID: row.BillingProfileID,
 		},
 		Profile: &billing.Profile{BaseProfile: profile.BaseProfile},
 	}, nil

@@ -2856,22 +2856,6 @@ func (c *BillingCustomerOverrideClient) QueryBillingProfile(_m *BillingCustomerO
 	return query
 }
 
-// QueryTaxCode queries the tax_code edge of a BillingCustomerOverride.
-func (c *BillingCustomerOverrideClient) QueryTaxCode(_m *BillingCustomerOverride) *TaxCodeQuery {
-	query := (&TaxCodeClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := _m.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(billingcustomeroverride.Table, billingcustomeroverride.FieldID, id),
-			sqlgraph.To(dbtaxcode.Table, dbtaxcode.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, billingcustomeroverride.TaxCodeTable, billingcustomeroverride.TaxCodeColumn),
-		)
-		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
 // Hooks returns the client hooks.
 func (c *BillingCustomerOverrideClient) Hooks() []Hook {
 	return c.hooks.BillingCustomerOverride
@@ -17675,22 +17659,6 @@ func (c *TaxCodeClient) QueryBillingWorkflowConfigs(_m *TaxCode) *BillingWorkflo
 			sqlgraph.From(dbtaxcode.Table, dbtaxcode.FieldID, id),
 			sqlgraph.To(billingworkflowconfig.Table, billingworkflowconfig.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, dbtaxcode.BillingWorkflowConfigsTable, dbtaxcode.BillingWorkflowConfigsColumn),
-		)
-		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
-// QueryBillingCustomerOverrides queries the billing_customer_overrides edge of a TaxCode.
-func (c *TaxCodeClient) QueryBillingCustomerOverrides(_m *TaxCode) *BillingCustomerOverrideQuery {
-	query := (&BillingCustomerOverrideClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := _m.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(dbtaxcode.Table, dbtaxcode.FieldID, id),
-			sqlgraph.To(billingcustomeroverride.Table, billingcustomeroverride.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, dbtaxcode.BillingCustomerOverridesTable, dbtaxcode.BillingCustomerOverridesColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
