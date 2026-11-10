@@ -1,0 +1,2 @@
+-- No-op: pg_trgm may be shared with other objects or have existed before this
+-- migration, so it is left installed on rollback (same as the pgcrypto migrations).
