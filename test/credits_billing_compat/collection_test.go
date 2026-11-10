@@ -1060,7 +1060,7 @@ func (s *CollectionTestSuite) TestCollectionFlowWithUBPEditingExtendingCollectio
 
 func (s *CollectionTestSuite) TestCollectionFlowWithFlatFeeEditingFuturePeriod() {
 	namespace := "ns-collection-flow-flat-fee-editing-future-period"
-	ctx := context.Background()
+	ctx := s.T().Context()
 
 	res := s.setupNS(ctx, namespace)
 	defer res.Cleanup()
@@ -1118,6 +1118,7 @@ func (s *CollectionTestSuite) TestCollectionFlowWithFlatFeeEditingFuturePeriod()
 
 	s.NotNil(invoice.QuantitySnapshotedAt)
 	clock.FreezeTime(*invoice.QuantitySnapshotedAt)
+	defer clock.UnFreeze()
 	previousSnapshot := *invoice.QuantitySnapshotedAt
 	s.NotNil(invoice.CollectionAt)
 	previousCollectionAt := *invoice.CollectionAt
