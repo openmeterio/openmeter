@@ -58,7 +58,7 @@ func TestChannelTypeCompatibility(t *testing.T) {
 			require.NoError(t, err)
 
 			assert.Equal(t, api.NotificationChannelWebhookTypeWEBHOOK, channel.Type)
-			assert.Equal(t, api.NotificationChannelTypeWebhook, FromChannelType(created.Type))
+			assert.Equal(t, api.NotificationChannelTypeWebhook, ToAPINotificationChannelType(created.Type))
 		})
 	}
 }
