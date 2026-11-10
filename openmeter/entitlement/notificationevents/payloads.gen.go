@@ -10,6 +10,7 @@ import (
 // Defines values for EntitlementBalanceThresholdType.
 const (
 	EntitlementBalanceThresholdTypeBalanceAtOrBelow         EntitlementBalanceThresholdType = "balance_at_or_below"
+	EntitlementBalanceThresholdTypeUsageAtOrAbove           EntitlementBalanceThresholdType = "usage_at_or_above"
 	EntitlementBalanceThresholdTypeUsagePercentageAtOrAbove EntitlementBalanceThresholdType = "usage_percentage_at_or_above"
 )
 
@@ -17,6 +18,8 @@ const (
 func (e EntitlementBalanceThresholdType) Valid() bool {
 	switch e {
 	case EntitlementBalanceThresholdTypeBalanceAtOrBelow:
+		return true
+	case EntitlementBalanceThresholdTypeUsageAtOrAbove:
 		return true
 	case EntitlementBalanceThresholdTypeUsagePercentageAtOrAbove:
 		return true

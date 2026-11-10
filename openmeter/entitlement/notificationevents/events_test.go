@@ -177,6 +177,7 @@ func TestBalanceThresholdTriggeredContract(t *testing.T) {
 		raw, err := json.Marshal(EntitlementBalanceThresholdTriggeredV1RuleConfig{
 			Thresholds: []EntitlementBalanceThreshold{
 				{Type: EntitlementBalanceThresholdTypeUsagePercentageAtOrAbove, Value: 80},
+				{Type: EntitlementBalanceThresholdTypeUsageAtOrAbove, Value: 1000},
 			},
 		})
 		require.NoError(t, err)

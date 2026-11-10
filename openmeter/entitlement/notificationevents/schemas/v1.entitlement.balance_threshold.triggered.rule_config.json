@@ -63,7 +63,8 @@
             "type": "string",
             "enum": [
                 "balance_at_or_below",
-                "usage_percentage_at_or_above"
+                "usage_percentage_at_or_above",
+                "usage_at_or_above"
             ],
             "description": "Condition kind of an entitlement balance threshold."
         }

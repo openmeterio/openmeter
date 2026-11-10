@@ -28,6 +28,11 @@ enum BalanceThresholdType {
    * Triggers when the used percentage of the entitlement reaches the value.
    */
   UsagePercentageAtOrAbove: "usage_percentage_at_or_above",
+
+  /**
+   * Triggers when the usage in the current usage period reaches the value.
+   */
+  UsageAtOrAbove: "usage_at_or_above",
 }
 
 /**
