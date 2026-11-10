@@ -6,9 +6,11 @@ import (
 	"errors"
 	"log/slog"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
+	apiv3 "github.com/openmeterio/openmeter/api/v3"
 	billingevents "github.com/openmeterio/openmeter/openmeter/billing/notificationevents"
 	entitlementevents "github.com/openmeterio/openmeter/openmeter/entitlement/notificationevents"
 	v4 "github.com/openmeterio/openmeter/openmeter/notification/v4"
@@ -424,11 +426,47 @@ func TestEventRegistryValidators(t *testing.T) {
 		require.NoError(t, err)
 
 		// given a payload marshaled from the generated struct
+		now := time.Date(2026, 8, 6, 10, 0, 0, 0, time.UTC)
 		payload, err := json.Marshal(entitlementevents.EntitlementBalanceThresholdTriggeredV1Payload{
-			CustomerId:     "01J2KNBH8TZ0Y7W9F6Q5E4D3AG",
-			EntitlementId:  "01J2KNAG7SY9X6V8E5P4D3C2ZF",
-			FeatureKey:     "api_requests",
-			CurrentBalance: 20,
+			Entitlement: apiv3.BillingEntitlementMetered{
+				Id:                 "01J2KNAG7SY9X6V8E5P4D3C2ZF",
+				Type:               apiv3.BillingEntitlementMeteredTypeMetered,
+				Feature:            apiv3.FeatureReference{Id: "01J2KNCJ9V01Z8XAG7R6F5E4BH"},
+				Customer:           apiv3.CustomerReference{Id: "01J2KNBH8TZ0Y7W9F6Q5E4D3AG"},
+				ActiveFrom:         now,
+				CreatedAt:          now,
+				UpdatedAt:          now,
+				UsagePeriod:        apiv3.RecurringPeriod{Anchor: now, Interval: "P1M"},
+				CurrentUsagePeriod: apiv3.ClosedPeriod{From: now, To: now.AddDate(0, 1, 0)},
+				MeasureUsageFrom:   now,
+				LastReset:          now,
+			},
+			Feature: apiv3.Feature{
+				Id:        "01J2KNCJ9V01Z8XAG7R6F5E4BH",
+				Key:       "api_requests",
+				Name:      "API requests",
+				CreatedAt: now,
+				UpdatedAt: now,
+			},
+			Customer: apiv3.BillingCustomer{
+				Id:        "01J2KNBH8TZ0Y7W9F6Q5E4D3AG",
+				Key:       "acme",
+				Name:      "ACME Inc.",
+				CreatedAt: now,
+				UpdatedAt: now,
+			},
+			Value: entitlementevents.EntitlementMeteredValueResult{
+				Type:       apiv3.BillingEntitlementTypeMetered,
+				FeatureKey: "api_requests",
+				HasAccess:  true,
+				Value: apiv3.BillingEntitlementAccessValue{
+					Balance:                   "20",
+					Usage:                     "80",
+					Overage:                   "0",
+					TotalAvailableGrantAmount: "100",
+					GrantBalances:             map[string]apiv3.Numeric{},
+				},
+			},
 			Threshold: entitlementevents.EntitlementBalanceThreshold{
 				Type:  entitlementevents.EntitlementBalanceThresholdTypeUsagePercentageAtOrAbove,
 				Value: 80,

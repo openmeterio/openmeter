@@ -1,0 +1,32 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "v1.entitlement.usage.reset.rule_config",
+    "type": "object",
+    "properties": {
+        "features": {
+            "type": "array",
+            "items": {
+                "$ref": "#/$defs/ResourceKey"
+            },
+            "minItems": 1,
+            "description": "Feature keys the Rule is limited to. All features when omitted."
+        }
+    },
+    "unevaluatedProperties": {
+        "not": {}
+    },
+    "description": "Rule configuration of `v1.entitlement.usage.reset`.",
+    "$defs": {
+        "ResourceKey": {
+            "type": "string",
+            "examples": [
+                "resource_key"
+            ],
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9]+(?:_[a-z0-9]+)*$",
+            "description": "A key is a unique string that is used to identify a resource.",
+            "title": "Resource Key"
+        }
+    }
+}
