@@ -1,4 +1,4 @@
-h1:TQa8l32M3jPtAM58ATku22aoOwHT1pQCr+dc2uxTZZc=
+h1:Fbbyc5mwQkyjcGT4ioMw50eIU3nYdce7H2A1PKH1DR4=
 20240826120919_init.up.sql h1:tc1V91/smlmaeJGQ8h+MzTEeFjjnrrFDbDAjOYJK91o=
 20240903155435_entitlement-expired-index.up.sql h1:Hp8u5uckmLXc1cRvWU0AtVnnK8ShlpzZNp8pbiJLhac=
 20240917172257_billing-entities.up.sql h1:Q1dAMo0Vjiit76OybClNfYPGC5nmvov2/M2W1ioi4Kw=
@@ -304,4 +304,4 @@ h1:TQa8l32M3jPtAM58ATku22aoOwHT1pQCr+dc2uxTZZc=
 20261021082257_deprecate_invoice_flat_fee_config_reference.up.sql h1:jYuKrJhT9zjokooweKTRhZHSBUMEQtenAWMNaHNDkhM=
 20261021133408_cleanup_legacy_invoice_detailed_lines.up.sql h1:hQ50ue3tk3OjEt64yAaED5k+/dH+OUjpuYAd3oh0Y5g=
 20261110114746_enable_pg_trgm.up.sql h1:ZcOumw1IUeEavPmph+ddZVasmM3ZBQfq1L7J0xuLuec=
-20261110114747_customer_subjects_trgm.up.sql h1:PwdhOBYXnC+3ZN0rzHFbOC7KPhPZZleIUPHN56worbE=
+20261110114747_customer_subjects_trgm.up.sql h1:P36efvIu5Zk9mqH7TLQyUIqRZjvLEmjNnDUfbndyNlE=
