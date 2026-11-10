@@ -737,6 +737,10 @@ func TestEventTypeStorageCompatibility(t *testing.T) {
 			}
 
 			// when: creating through the existing adapter
+			// Include sub-microsecond precision even on hosts with a coarser clock.
+			clock.FreezeTime(time.Date(2026, time.November, 10, 14, 51, 17, 323346255, time.UTC))
+			defer clock.UnFreeze()
+
 			created, err := env.adapter.CreateEvent(t.Context(), notification.CreateEventInput{
 				NamespacedModel: models.NamespacedModel{Namespace: namespace},
 				Type:            tt.eventType,
@@ -775,7 +779,7 @@ func TestEventTypeStorageCompatibility(t *testing.T) {
 			assert.Equal(t, tt.eventType, fetched.Type)
 			assert.Equal(t, tt.eventType, listed.Items[0].Type)
 			assert.Equal(t, rule.ID, fetched.Rule.ID)
-			assert.Equal(t, created.CreatedAt, fetched.CreatedAt)
+			assert.Equal(t, created.CreatedAt.Truncate(time.Microsecond), fetched.CreatedAt)
 			assert.Equal(t, created.Payload, fetched.Payload)
 			assert.Equal(t, created.Payload, listed.Items[0].Payload)
 
@@ -882,6 +886,9 @@ func TestEventPayloadStorageCompatibility(t *testing.T) {
 					})
 					require.NoError(t, err)
 
+					before, err := env.adapter.GetEvent(t.Context(), notification.GetEventInput(created.NamespacedID))
+					require.NoError(t, err)
+
 					// when: storing JSON with fields unknown to the current domain model
 					switch writer {
 					case "legacy SQL":
@@ -928,9 +935,9 @@ func TestEventPayloadStorageCompatibility(t *testing.T) {
 					assert.Equal(t, expected, fetched.Payload)
 					assert.Equal(t, expected, listed.Items[0].Payload)
 					assert.Equal(t, created.ID, fetched.ID)
-					assert.Equal(t, created.CreatedAt, fetched.CreatedAt)
+					assert.Equal(t, before.CreatedAt, fetched.CreatedAt)
 					assert.Equal(t, rule.ID, fetched.Rule.ID)
-					assert.Equal(t, created.DeliveryStatus, fetched.DeliveryStatus)
+					assert.Equal(t, before.DeliveryStatus, fetched.DeliveryStatus)
 
 					var afterRead string
 					err = env.sqlDB.QueryRowContext(t.Context(),
@@ -1115,7 +1122,7 @@ func TestEventRuleReferenceStorage(t *testing.T) {
 
 			assert.Equal(t, legacy.ID, fetched.ID)
 			assert.Equal(t, rule.ID, fetched.Rule.ID)
-			assert.Equal(t, legacy.CreatedAt, fetched.CreatedAt)
+			assert.Equal(t, legacy.CreatedAt.Truncate(time.Microsecond), fetched.CreatedAt)
 			assert.Equal(t, legacy.Payload, fetched.Payload)
 		})
 	}

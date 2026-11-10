@@ -467,11 +467,13 @@ func TestDeliveryStatusAttemptSerializationFailure(t *testing.T) {
 			event := seedEvent(t, env, namespace, rule, clock.Now(), nil)
 			require.Len(t, event.DeliveryStatus, 1)
 
-			before := event.DeliveryStatus[0]
+			statusID := event.DeliveryStatus[0].NamespacedID
+			before, err := env.adapter.GetEventDeliveryStatus(t.Context(), notification.GetEventDeliveryStatusInput{NamespacedID: statusID})
+			require.NoError(t, err)
 
 			// when: the update includes an attempt that JSON cannot represent
-			_, err := env.adapter.UpdateEventDeliveryStatus(t.Context(), notification.UpdateEventDeliveryStatusInput{
-				NamespacedID: before.NamespacedID,
+			_, err = env.adapter.UpdateEventDeliveryStatus(t.Context(), notification.UpdateEventDeliveryStatusInput{
+				NamespacedID: statusID,
 				State:        notification.EventDeliveryStatusStateFailed,
 				Reason:       "must not persist",
 				Attempts: []notification.EventDeliveryAttempt{
@@ -481,10 +483,10 @@ func TestDeliveryStatusAttemptSerializationFailure(t *testing.T) {
 			require.ErrorContains(t, err, "failed to serialize notification event delivery attempts")
 
 			// then: no part of the update reaches storage
-			after, err := env.adapter.GetEventDeliveryStatus(t.Context(), notification.GetEventDeliveryStatusInput{NamespacedID: before.NamespacedID})
+			after, err := env.adapter.GetEventDeliveryStatus(t.Context(), notification.GetEventDeliveryStatusInput{NamespacedID: statusID})
 			require.NoError(t, err)
 
-			assert.Equal(t, before, *after)
+			assert.Equal(t, before, after)
 		})
 	}
 }
