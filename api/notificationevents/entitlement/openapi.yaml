@@ -617,6 +617,7 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ResourceKey'
+          minItems: 1
           description: Feature keys the Rule is limited to. All features when omitted.
       additionalProperties: false
       description: Rule configuration of `v1.entitlement.balance_threshold.triggered`.
@@ -711,6 +712,7 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ResourceKey'
+          minItems: 1
           description: Feature keys the Rule is limited to. All features when omitted.
       additionalProperties: false
       description: Rule configuration of `v1.entitlement.usage.reset`.

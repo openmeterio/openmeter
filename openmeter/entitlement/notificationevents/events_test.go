@@ -184,6 +184,7 @@ func TestBalanceThresholdTriggeredContract(t *testing.T) {
 		require.NoError(t, validateJSON(t, schema, string(raw)))
 
 		require.Error(t, validateJSON(t, schema, `{"thresholds": []}`), "at least one threshold is required")
+		require.Error(t, validateJSON(t, schema, `{"thresholds": [{"type": "usage_at_or_above", "value": 1000}], "features": []}`), "an empty feature list is not allowed")
 	})
 }
 
@@ -222,5 +223,6 @@ func TestUsageResetContract(t *testing.T) {
 		}
 
 		require.Error(t, validateJSON(t, schema, `{"unexpected": true}`))
+		require.Error(t, validateJSON(t, schema, `{"features": []}`), "an empty feature list is not allowed")
 	})
 }

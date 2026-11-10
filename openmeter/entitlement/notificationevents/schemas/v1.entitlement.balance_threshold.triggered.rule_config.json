@@ -16,6 +16,7 @@
             "items": {
                 "$ref": "#/$defs/ResourceKey"
             },
+            "minItems": 1,
             "description": "Feature keys the Rule is limited to. All features when omitted."
         }
     },

@@ -21,6 +21,7 @@ model UsageResetV1RuleConfig {
   /**
    * Feature keys the Rule is limited to. All features when omitted.
    */
+  @minItems(1)
   features?: Shared.ResourceKey[];
 }
 
