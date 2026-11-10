@@ -4,6 +4,7 @@ package db
 
 import (
 	"context"
+	"encoding/json/jsontext"
 	"errors"
 	"fmt"
 	"time"
@@ -92,6 +93,34 @@ func (_c *NotificationEventDeliveryStatusCreate) SetNillableState(v *notificatio
 	return _c
 }
 
+// SetDispatchGeneration sets the "dispatch_generation" field.
+func (_c *NotificationEventDeliveryStatusCreate) SetDispatchGeneration(v int) *NotificationEventDeliveryStatusCreate {
+	_c.mutation.SetDispatchGeneration(v)
+	return _c
+}
+
+// SetNillableDispatchGeneration sets the "dispatch_generation" field if the given value is not nil.
+func (_c *NotificationEventDeliveryStatusCreate) SetNillableDispatchGeneration(v *int) *NotificationEventDeliveryStatusCreate {
+	if v != nil {
+		_c.SetDispatchGeneration(*v)
+	}
+	return _c
+}
+
+// SetDispatchQueuedAt sets the "dispatch_queued_at" field.
+func (_c *NotificationEventDeliveryStatusCreate) SetDispatchQueuedAt(v time.Time) *NotificationEventDeliveryStatusCreate {
+	_c.mutation.SetDispatchQueuedAt(v)
+	return _c
+}
+
+// SetNillableDispatchQueuedAt sets the "dispatch_queued_at" field if the given value is not nil.
+func (_c *NotificationEventDeliveryStatusCreate) SetNillableDispatchQueuedAt(v *time.Time) *NotificationEventDeliveryStatusCreate {
+	if v != nil {
+		_c.SetDispatchQueuedAt(*v)
+	}
+	return _c
+}
+
 // SetReason sets the "reason" field.
 func (_c *NotificationEventDeliveryStatusCreate) SetReason(v string) *NotificationEventDeliveryStatusCreate {
 	_c.mutation.SetReason(v)
@@ -121,8 +150,14 @@ func (_c *NotificationEventDeliveryStatusCreate) SetNillableNextAttemptAt(v *tim
 }
 
 // SetAttempts sets the "attempts" field.
-func (_c *NotificationEventDeliveryStatusCreate) SetAttempts(v []notification.EventDeliveryAttempt) *NotificationEventDeliveryStatusCreate {
+func (_c *NotificationEventDeliveryStatusCreate) SetAttempts(v jsontext.Value) *NotificationEventDeliveryStatusCreate {
 	_c.mutation.SetAttempts(v)
+	return _c
+}
+
+// SetProviderData sets the "provider_data" field.
+func (_c *NotificationEventDeliveryStatusCreate) SetProviderData(v map[string]string) *NotificationEventDeliveryStatusCreate {
+	_c.mutation.SetProviderData(v)
 	return _c
 }
 
@@ -202,6 +237,10 @@ func (_c *NotificationEventDeliveryStatusCreate) defaults() {
 		v := notificationeventdeliverystatus.DefaultState
 		_c.mutation.SetState(v)
 	}
+	if _, ok := _c.mutation.DispatchGeneration(); !ok {
+		v := notificationeventdeliverystatus.DefaultDispatchGeneration
+		_c.mutation.SetDispatchGeneration(v)
+	}
 	if _, ok := _c.mutation.ID(); !ok {
 		v := notificationeventdeliverystatus.DefaultID()
 		_c.mutation.SetID(v)
@@ -244,8 +283,16 @@ func (_c *NotificationEventDeliveryStatusCreate) check() error {
 		return &ValidationError{Name: "state", err: errors.New(`db: missing required field "NotificationEventDeliveryStatus.state"`)}
 	}
 	if v, ok := _c.mutation.State(); ok {
-		if err := notificationeventdeliverystatus.StateValidator(v); err != nil {
+		if err := notificationeventdeliverystatus.StateValidator(string(v)); err != nil {
 			return &ValidationError{Name: "state", err: fmt.Errorf(`db: validator failed for field "NotificationEventDeliveryStatus.state": %w`, err)}
+		}
+	}
+	if _, ok := _c.mutation.DispatchGeneration(); !ok {
+		return &ValidationError{Name: "dispatch_generation", err: errors.New(`db: missing required field "NotificationEventDeliveryStatus.dispatch_generation"`)}
+	}
+	if v, ok := _c.mutation.DispatchGeneration(); ok {
+		if err := notificationeventdeliverystatus.DispatchGenerationValidator(v); err != nil {
+			return &ValidationError{Name: "dispatch_generation", err: fmt.Errorf(`db: validator failed for field "NotificationEventDeliveryStatus.dispatch_generation": %w`, err)}
 		}
 	}
 	return nil
@@ -255,7 +302,10 @@ func (_c *NotificationEventDeliveryStatusCreate) sqlSave(ctx context.Context) (*
 	if err := _c.check(); err != nil {
 		return nil, err
 	}
-	_node, _spec := _c.createSpec()
+	_node, _spec, err := _c.createSpec()
+	if err != nil {
+		return nil, err
+	}
 	if err := sqlgraph.CreateNode(ctx, _c.driver, _spec); err != nil {
 		if sqlgraph.IsConstraintError(err) {
 			err = &ConstraintError{msg: err.Error(), wrap: err}
@@ -274,7 +324,7 @@ func (_c *NotificationEventDeliveryStatusCreate) sqlSave(ctx context.Context) (*
 	return _node, nil
 }
 
-func (_c *NotificationEventDeliveryStatusCreate) createSpec() (*NotificationEventDeliveryStatus, *sqlgraph.CreateSpec) {
+func (_c *NotificationEventDeliveryStatusCreate) createSpec() (*NotificationEventDeliveryStatus, *sqlgraph.CreateSpec, error) {
 	var (
 		_node = &NotificationEventDeliveryStatus{config: _c.config}
 		_spec = sqlgraph.NewCreateSpec(notificationeventdeliverystatus.Table, sqlgraph.NewFieldSpec(notificationeventdeliverystatus.FieldID, field.TypeString))
@@ -309,8 +359,16 @@ func (_c *NotificationEventDeliveryStatusCreate) createSpec() (*NotificationEven
 		_node.ChannelID = value
 	}
 	if value, ok := _c.mutation.State(); ok {
-		_spec.SetField(notificationeventdeliverystatus.FieldState, field.TypeEnum, value)
+		_spec.SetField(notificationeventdeliverystatus.FieldState, field.TypeString, value)
 		_node.State = value
+	}
+	if value, ok := _c.mutation.DispatchGeneration(); ok {
+		_spec.SetField(notificationeventdeliverystatus.FieldDispatchGeneration, field.TypeInt, value)
+		_node.DispatchGeneration = value
+	}
+	if value, ok := _c.mutation.DispatchQueuedAt(); ok {
+		_spec.SetField(notificationeventdeliverystatus.FieldDispatchQueuedAt, field.TypeTime, value)
+		_node.DispatchQueuedAt = &value
 	}
 	if value, ok := _c.mutation.Reason(); ok {
 		_spec.SetField(notificationeventdeliverystatus.FieldReason, field.TypeString, value)
@@ -321,8 +379,20 @@ func (_c *NotificationEventDeliveryStatusCreate) createSpec() (*NotificationEven
 		_node.NextAttemptAt = &value
 	}
 	if value, ok := _c.mutation.Attempts(); ok {
-		_spec.SetField(notificationeventdeliverystatus.FieldAttempts, field.TypeJSON, value)
+		vv, err := notificationeventdeliverystatus.ValueScanner.Attempts.Value(value)
+		if err != nil {
+			return nil, nil, err
+		}
+		_spec.SetField(notificationeventdeliverystatus.FieldAttempts, field.TypeString, vv)
 		_node.Attempts = value
+	}
+	if value, ok := _c.mutation.ProviderData(); ok {
+		vv, err := notificationeventdeliverystatus.ValueScanner.ProviderData.Value(value)
+		if err != nil {
+			return nil, nil, err
+		}
+		_spec.SetField(notificationeventdeliverystatus.FieldProviderData, field.TypeString, vv)
+		_node.ProviderData = value
 	}
 	if nodes := _c.mutation.EventsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -340,7 +410,7 @@ func (_c *NotificationEventDeliveryStatusCreate) createSpec() (*NotificationEven
 		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	return _node, _spec
+	return _node, _spec, nil
 }
 
 // OnConflict allows configuring the `ON CONFLICT` / `ON DUPLICATE KEY` clause
@@ -434,6 +504,42 @@ func (u *NotificationEventDeliveryStatusUpsert) UpdateState() *NotificationEvent
 	return u
 }
 
+// SetDispatchGeneration sets the "dispatch_generation" field.
+func (u *NotificationEventDeliveryStatusUpsert) SetDispatchGeneration(v int) *NotificationEventDeliveryStatusUpsert {
+	u.Set(notificationeventdeliverystatus.FieldDispatchGeneration, v)
+	return u
+}
+
+// UpdateDispatchGeneration sets the "dispatch_generation" field to the value that was provided on create.
+func (u *NotificationEventDeliveryStatusUpsert) UpdateDispatchGeneration() *NotificationEventDeliveryStatusUpsert {
+	u.SetExcluded(notificationeventdeliverystatus.FieldDispatchGeneration)
+	return u
+}
+
+// AddDispatchGeneration adds v to the "dispatch_generation" field.
+func (u *NotificationEventDeliveryStatusUpsert) AddDispatchGeneration(v int) *NotificationEventDeliveryStatusUpsert {
+	u.Add(notificationeventdeliverystatus.FieldDispatchGeneration, v)
+	return u
+}
+
+// SetDispatchQueuedAt sets the "dispatch_queued_at" field.
+func (u *NotificationEventDeliveryStatusUpsert) SetDispatchQueuedAt(v time.Time) *NotificationEventDeliveryStatusUpsert {
+	u.Set(notificationeventdeliverystatus.FieldDispatchQueuedAt, v)
+	return u
+}
+
+// UpdateDispatchQueuedAt sets the "dispatch_queued_at" field to the value that was provided on create.
+func (u *NotificationEventDeliveryStatusUpsert) UpdateDispatchQueuedAt() *NotificationEventDeliveryStatusUpsert {
+	u.SetExcluded(notificationeventdeliverystatus.FieldDispatchQueuedAt)
+	return u
+}
+
+// ClearDispatchQueuedAt clears the value of the "dispatch_queued_at" field.
+func (u *NotificationEventDeliveryStatusUpsert) ClearDispatchQueuedAt() *NotificationEventDeliveryStatusUpsert {
+	u.SetNull(notificationeventdeliverystatus.FieldDispatchQueuedAt)
+	return u
+}
+
 // SetReason sets the "reason" field.
 func (u *NotificationEventDeliveryStatusUpsert) SetReason(v string) *NotificationEventDeliveryStatusUpsert {
 	u.Set(notificationeventdeliverystatus.FieldReason, v)
@@ -471,7 +577,7 @@ func (u *NotificationEventDeliveryStatusUpsert) ClearNextAttemptAt() *Notificati
 }
 
 // SetAttempts sets the "attempts" field.
-func (u *NotificationEventDeliveryStatusUpsert) SetAttempts(v []notification.EventDeliveryAttempt) *NotificationEventDeliveryStatusUpsert {
+func (u *NotificationEventDeliveryStatusUpsert) SetAttempts(v jsontext.Value) *NotificationEventDeliveryStatusUpsert {
 	u.Set(notificationeventdeliverystatus.FieldAttempts, v)
 	return u
 }
@@ -485,6 +591,24 @@ func (u *NotificationEventDeliveryStatusUpsert) UpdateAttempts() *NotificationEv
 // ClearAttempts clears the value of the "attempts" field.
 func (u *NotificationEventDeliveryStatusUpsert) ClearAttempts() *NotificationEventDeliveryStatusUpsert {
 	u.SetNull(notificationeventdeliverystatus.FieldAttempts)
+	return u
+}
+
+// SetProviderData sets the "provider_data" field.
+func (u *NotificationEventDeliveryStatusUpsert) SetProviderData(v map[string]string) *NotificationEventDeliveryStatusUpsert {
+	u.Set(notificationeventdeliverystatus.FieldProviderData, v)
+	return u
+}
+
+// UpdateProviderData sets the "provider_data" field to the value that was provided on create.
+func (u *NotificationEventDeliveryStatusUpsert) UpdateProviderData() *NotificationEventDeliveryStatusUpsert {
+	u.SetExcluded(notificationeventdeliverystatus.FieldProviderData)
+	return u
+}
+
+// ClearProviderData clears the value of the "provider_data" field.
+func (u *NotificationEventDeliveryStatusUpsert) ClearProviderData() *NotificationEventDeliveryStatusUpsert {
+	u.SetNull(notificationeventdeliverystatus.FieldProviderData)
 	return u
 }
 
@@ -597,6 +721,48 @@ func (u *NotificationEventDeliveryStatusUpsertOne) UpdateState() *NotificationEv
 	})
 }
 
+// SetDispatchGeneration sets the "dispatch_generation" field.
+func (u *NotificationEventDeliveryStatusUpsertOne) SetDispatchGeneration(v int) *NotificationEventDeliveryStatusUpsertOne {
+	return u.Update(func(s *NotificationEventDeliveryStatusUpsert) {
+		s.SetDispatchGeneration(v)
+	})
+}
+
+// AddDispatchGeneration adds v to the "dispatch_generation" field.
+func (u *NotificationEventDeliveryStatusUpsertOne) AddDispatchGeneration(v int) *NotificationEventDeliveryStatusUpsertOne {
+	return u.Update(func(s *NotificationEventDeliveryStatusUpsert) {
+		s.AddDispatchGeneration(v)
+	})
+}
+
+// UpdateDispatchGeneration sets the "dispatch_generation" field to the value that was provided on create.
+func (u *NotificationEventDeliveryStatusUpsertOne) UpdateDispatchGeneration() *NotificationEventDeliveryStatusUpsertOne {
+	return u.Update(func(s *NotificationEventDeliveryStatusUpsert) {
+		s.UpdateDispatchGeneration()
+	})
+}
+
+// SetDispatchQueuedAt sets the "dispatch_queued_at" field.
+func (u *NotificationEventDeliveryStatusUpsertOne) SetDispatchQueuedAt(v time.Time) *NotificationEventDeliveryStatusUpsertOne {
+	return u.Update(func(s *NotificationEventDeliveryStatusUpsert) {
+		s.SetDispatchQueuedAt(v)
+	})
+}
+
+// UpdateDispatchQueuedAt sets the "dispatch_queued_at" field to the value that was provided on create.
+func (u *NotificationEventDeliveryStatusUpsertOne) UpdateDispatchQueuedAt() *NotificationEventDeliveryStatusUpsertOne {
+	return u.Update(func(s *NotificationEventDeliveryStatusUpsert) {
+		s.UpdateDispatchQueuedAt()
+	})
+}
+
+// ClearDispatchQueuedAt clears the value of the "dispatch_queued_at" field.
+func (u *NotificationEventDeliveryStatusUpsertOne) ClearDispatchQueuedAt() *NotificationEventDeliveryStatusUpsertOne {
+	return u.Update(func(s *NotificationEventDeliveryStatusUpsert) {
+		s.ClearDispatchQueuedAt()
+	})
+}
+
 // SetReason sets the "reason" field.
 func (u *NotificationEventDeliveryStatusUpsertOne) SetReason(v string) *NotificationEventDeliveryStatusUpsertOne {
 	return u.Update(func(s *NotificationEventDeliveryStatusUpsert) {
@@ -640,7 +806,7 @@ func (u *NotificationEventDeliveryStatusUpsertOne) ClearNextAttemptAt() *Notific
 }
 
 // SetAttempts sets the "attempts" field.
-func (u *NotificationEventDeliveryStatusUpsertOne) SetAttempts(v []notification.EventDeliveryAttempt) *NotificationEventDeliveryStatusUpsertOne {
+func (u *NotificationEventDeliveryStatusUpsertOne) SetAttempts(v jsontext.Value) *NotificationEventDeliveryStatusUpsertOne {
 	return u.Update(func(s *NotificationEventDeliveryStatusUpsert) {
 		s.SetAttempts(v)
 	})
@@ -657,6 +823,27 @@ func (u *NotificationEventDeliveryStatusUpsertOne) UpdateAttempts() *Notificatio
 func (u *NotificationEventDeliveryStatusUpsertOne) ClearAttempts() *NotificationEventDeliveryStatusUpsertOne {
 	return u.Update(func(s *NotificationEventDeliveryStatusUpsert) {
 		s.ClearAttempts()
+	})
+}
+
+// SetProviderData sets the "provider_data" field.
+func (u *NotificationEventDeliveryStatusUpsertOne) SetProviderData(v map[string]string) *NotificationEventDeliveryStatusUpsertOne {
+	return u.Update(func(s *NotificationEventDeliveryStatusUpsert) {
+		s.SetProviderData(v)
+	})
+}
+
+// UpdateProviderData sets the "provider_data" field to the value that was provided on create.
+func (u *NotificationEventDeliveryStatusUpsertOne) UpdateProviderData() *NotificationEventDeliveryStatusUpsertOne {
+	return u.Update(func(s *NotificationEventDeliveryStatusUpsert) {
+		s.UpdateProviderData()
+	})
+}
+
+// ClearProviderData clears the value of the "provider_data" field.
+func (u *NotificationEventDeliveryStatusUpsertOne) ClearProviderData() *NotificationEventDeliveryStatusUpsertOne {
+	return u.Update(func(s *NotificationEventDeliveryStatusUpsert) {
+		s.ClearProviderData()
 	})
 }
 
@@ -728,7 +915,10 @@ func (_c *NotificationEventDeliveryStatusCreateBulk) Save(ctx context.Context) (
 				}
 				builder.mutation = mutation
 				var err error
-				nodes[i], specs[i] = builder.createSpec()
+				nodes[i], specs[i], err = builder.createSpec()
+				if err != nil {
+					return nil, err
+				}
 				if i < len(mutators)-1 {
 					_, err = mutators[i+1].Mutate(root, _c.builders[i+1].mutation)
 				} else {
@@ -936,6 +1126,48 @@ func (u *NotificationEventDeliveryStatusUpsertBulk) UpdateState() *NotificationE
 	})
 }
 
+// SetDispatchGeneration sets the "dispatch_generation" field.
+func (u *NotificationEventDeliveryStatusUpsertBulk) SetDispatchGeneration(v int) *NotificationEventDeliveryStatusUpsertBulk {
+	return u.Update(func(s *NotificationEventDeliveryStatusUpsert) {
+		s.SetDispatchGeneration(v)
+	})
+}
+
+// AddDispatchGeneration adds v to the "dispatch_generation" field.
+func (u *NotificationEventDeliveryStatusUpsertBulk) AddDispatchGeneration(v int) *NotificationEventDeliveryStatusUpsertBulk {
+	return u.Update(func(s *NotificationEventDeliveryStatusUpsert) {
+		s.AddDispatchGeneration(v)
+	})
+}
+
+// UpdateDispatchGeneration sets the "dispatch_generation" field to the value that was provided on create.
+func (u *NotificationEventDeliveryStatusUpsertBulk) UpdateDispatchGeneration() *NotificationEventDeliveryStatusUpsertBulk {
+	return u.Update(func(s *NotificationEventDeliveryStatusUpsert) {
+		s.UpdateDispatchGeneration()
+	})
+}
+
+// SetDispatchQueuedAt sets the "dispatch_queued_at" field.
+func (u *NotificationEventDeliveryStatusUpsertBulk) SetDispatchQueuedAt(v time.Time) *NotificationEventDeliveryStatusUpsertBulk {
+	return u.Update(func(s *NotificationEventDeliveryStatusUpsert) {
+		s.SetDispatchQueuedAt(v)
+	})
+}
+
+// UpdateDispatchQueuedAt sets the "dispatch_queued_at" field to the value that was provided on create.
+func (u *NotificationEventDeliveryStatusUpsertBulk) UpdateDispatchQueuedAt() *NotificationEventDeliveryStatusUpsertBulk {
+	return u.Update(func(s *NotificationEventDeliveryStatusUpsert) {
+		s.UpdateDispatchQueuedAt()
+	})
+}
+
+// ClearDispatchQueuedAt clears the value of the "dispatch_queued_at" field.
+func (u *NotificationEventDeliveryStatusUpsertBulk) ClearDispatchQueuedAt() *NotificationEventDeliveryStatusUpsertBulk {
+	return u.Update(func(s *NotificationEventDeliveryStatusUpsert) {
+		s.ClearDispatchQueuedAt()
+	})
+}
+
 // SetReason sets the "reason" field.
 func (u *NotificationEventDeliveryStatusUpsertBulk) SetReason(v string) *NotificationEventDeliveryStatusUpsertBulk {
 	return u.Update(func(s *NotificationEventDeliveryStatusUpsert) {
@@ -979,7 +1211,7 @@ func (u *NotificationEventDeliveryStatusUpsertBulk) ClearNextAttemptAt() *Notifi
 }
 
 // SetAttempts sets the "attempts" field.
-func (u *NotificationEventDeliveryStatusUpsertBulk) SetAttempts(v []notification.EventDeliveryAttempt) *NotificationEventDeliveryStatusUpsertBulk {
+func (u *NotificationEventDeliveryStatusUpsertBulk) SetAttempts(v jsontext.Value) *NotificationEventDeliveryStatusUpsertBulk {
 	return u.Update(func(s *NotificationEventDeliveryStatusUpsert) {
 		s.SetAttempts(v)
 	})
@@ -996,6 +1228,27 @@ func (u *NotificationEventDeliveryStatusUpsertBulk) UpdateAttempts() *Notificati
 func (u *NotificationEventDeliveryStatusUpsertBulk) ClearAttempts() *NotificationEventDeliveryStatusUpsertBulk {
 	return u.Update(func(s *NotificationEventDeliveryStatusUpsert) {
 		s.ClearAttempts()
+	})
+}
+
+// SetProviderData sets the "provider_data" field.
+func (u *NotificationEventDeliveryStatusUpsertBulk) SetProviderData(v map[string]string) *NotificationEventDeliveryStatusUpsertBulk {
+	return u.Update(func(s *NotificationEventDeliveryStatusUpsert) {
+		s.SetProviderData(v)
+	})
+}
+
+// UpdateProviderData sets the "provider_data" field to the value that was provided on create.
+func (u *NotificationEventDeliveryStatusUpsertBulk) UpdateProviderData() *NotificationEventDeliveryStatusUpsertBulk {
+	return u.Update(func(s *NotificationEventDeliveryStatusUpsert) {
+		s.UpdateProviderData()
+	})
+}
+
+// ClearProviderData clears the value of the "provider_data" field.
+func (u *NotificationEventDeliveryStatusUpsertBulk) ClearProviderData() *NotificationEventDeliveryStatusUpsertBulk {
+	return u.Update(func(s *NotificationEventDeliveryStatusUpsert) {
+		s.ClearProviderData()
 	})
 }
 

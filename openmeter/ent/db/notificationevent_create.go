@@ -4,6 +4,7 @@ package db
 
 import (
 	"context"
+	"encoding/json/jsontext"
 	"errors"
 	"fmt"
 	"time"
@@ -65,9 +66,29 @@ func (_c *NotificationEventCreate) SetRuleID(v string) *NotificationEventCreate 
 	return _c
 }
 
+// SetNillableRuleID sets the "rule_id" field if the given value is not nil.
+func (_c *NotificationEventCreate) SetNillableRuleID(v *string) *NotificationEventCreate {
+	if v != nil {
+		_c.SetRuleID(*v)
+	}
+	return _c
+}
+
 // SetPayload sets the "payload" field.
-func (_c *NotificationEventCreate) SetPayload(v string) *NotificationEventCreate {
+func (_c *NotificationEventCreate) SetPayload(v jsontext.Value) *NotificationEventCreate {
 	_c.mutation.SetPayload(v)
+	return _c
+}
+
+// SetRuleSnapshot sets the "rule_snapshot" field.
+func (_c *NotificationEventCreate) SetRuleSnapshot(v jsontext.Value) *NotificationEventCreate {
+	_c.mutation.SetRuleSnapshot(v)
+	return _c
+}
+
+// SetProviderData sets the "provider_data" field.
+func (_c *NotificationEventCreate) SetProviderData(v map[string]string) *NotificationEventCreate {
+	_c.mutation.SetProviderData(v)
 	return _c
 }
 
@@ -103,6 +124,14 @@ func (_c *NotificationEventCreate) AddDeliveryStatuses(v ...*NotificationEventDe
 // SetRulesID sets the "rules" edge to the NotificationRule entity by ID.
 func (_c *NotificationEventCreate) SetRulesID(id string) *NotificationEventCreate {
 	_c.mutation.SetRulesID(id)
+	return _c
+}
+
+// SetNillableRulesID sets the "rules" edge to the NotificationRule entity by ID if the given value is not nil.
+func (_c *NotificationEventCreate) SetNillableRulesID(id *string) *NotificationEventCreate {
+	if id != nil {
+		_c = _c.SetRulesID(*id)
+	}
 	return _c
 }
 
@@ -173,18 +202,12 @@ func (_c *NotificationEventCreate) check() error {
 		return &ValidationError{Name: "type", err: errors.New(`db: missing required field "NotificationEvent.type"`)}
 	}
 	if v, ok := _c.mutation.GetType(); ok {
-		if err := notificationevent.TypeValidator(v); err != nil {
+		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "type", err: fmt.Errorf(`db: validator failed for field "NotificationEvent.type": %w`, err)}
 		}
 	}
-	if _, ok := _c.mutation.RuleID(); !ok {
-		return &ValidationError{Name: "rule_id", err: errors.New(`db: missing required field "NotificationEvent.rule_id"`)}
-	}
 	if _, ok := _c.mutation.Payload(); !ok {
 		return &ValidationError{Name: "payload", err: errors.New(`db: missing required field "NotificationEvent.payload"`)}
-	}
-	if len(_c.mutation.RulesIDs()) == 0 {
-		return &ValidationError{Name: "rules", err: errors.New(`db: missing required edge "NotificationEvent.rules"`)}
 	}
 	return nil
 }
@@ -193,7 +216,10 @@ func (_c *NotificationEventCreate) sqlSave(ctx context.Context) (*NotificationEv
 	if err := _c.check(); err != nil {
 		return nil, err
 	}
-	_node, _spec := _c.createSpec()
+	_node, _spec, err := _c.createSpec()
+	if err != nil {
+		return nil, err
+	}
 	if err := sqlgraph.CreateNode(ctx, _c.driver, _spec); err != nil {
 		if sqlgraph.IsConstraintError(err) {
 			err = &ConstraintError{msg: err.Error(), wrap: err}
@@ -212,7 +238,7 @@ func (_c *NotificationEventCreate) sqlSave(ctx context.Context) (*NotificationEv
 	return _node, nil
 }
 
-func (_c *NotificationEventCreate) createSpec() (*NotificationEvent, *sqlgraph.CreateSpec) {
+func (_c *NotificationEventCreate) createSpec() (*NotificationEvent, *sqlgraph.CreateSpec, error) {
 	var (
 		_node = &NotificationEvent{config: _c.config}
 		_spec = sqlgraph.NewCreateSpec(notificationevent.Table, sqlgraph.NewFieldSpec(notificationevent.FieldID, field.TypeString))
@@ -235,12 +261,32 @@ func (_c *NotificationEventCreate) createSpec() (*NotificationEvent, *sqlgraph.C
 		_node.CreatedAt = value
 	}
 	if value, ok := _c.mutation.GetType(); ok {
-		_spec.SetField(notificationevent.FieldType, field.TypeEnum, value)
+		_spec.SetField(notificationevent.FieldType, field.TypeString, value)
 		_node.Type = value
 	}
 	if value, ok := _c.mutation.Payload(); ok {
-		_spec.SetField(notificationevent.FieldPayload, field.TypeString, value)
+		vv, err := notificationevent.ValueScanner.Payload.Value(value)
+		if err != nil {
+			return nil, nil, err
+		}
+		_spec.SetField(notificationevent.FieldPayload, field.TypeString, vv)
 		_node.Payload = value
+	}
+	if value, ok := _c.mutation.RuleSnapshot(); ok {
+		vv, err := notificationevent.ValueScanner.RuleSnapshot.Value(value)
+		if err != nil {
+			return nil, nil, err
+		}
+		_spec.SetField(notificationevent.FieldRuleSnapshot, field.TypeString, vv)
+		_node.RuleSnapshot = value
+	}
+	if value, ok := _c.mutation.ProviderData(); ok {
+		vv, err := notificationevent.ValueScanner.ProviderData.Value(value)
+		if err != nil {
+			return nil, nil, err
+		}
+		_spec.SetField(notificationevent.FieldProviderData, field.TypeString, vv)
+		_node.ProviderData = value
 	}
 	if nodes := _c.mutation.DeliveryStatusesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -275,7 +321,7 @@ func (_c *NotificationEventCreate) createSpec() (*NotificationEvent, *sqlgraph.C
 		_node.RuleID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	return _node, _spec
+	return _node, _spec, nil
 }
 
 // OnConflict allows configuring the `ON CONFLICT` / `ON DUPLICATE KEY` clause
@@ -346,7 +392,7 @@ func (u *NotificationEventUpsert) ClearAnnotations() *NotificationEventUpsert {
 }
 
 // SetPayload sets the "payload" field.
-func (u *NotificationEventUpsert) SetPayload(v string) *NotificationEventUpsert {
+func (u *NotificationEventUpsert) SetPayload(v jsontext.Value) *NotificationEventUpsert {
 	u.Set(notificationevent.FieldPayload, v)
 	return u
 }
@@ -354,6 +400,24 @@ func (u *NotificationEventUpsert) SetPayload(v string) *NotificationEventUpsert 
 // UpdatePayload sets the "payload" field to the value that was provided on create.
 func (u *NotificationEventUpsert) UpdatePayload() *NotificationEventUpsert {
 	u.SetExcluded(notificationevent.FieldPayload)
+	return u
+}
+
+// SetProviderData sets the "provider_data" field.
+func (u *NotificationEventUpsert) SetProviderData(v map[string]string) *NotificationEventUpsert {
+	u.Set(notificationevent.FieldProviderData, v)
+	return u
+}
+
+// UpdateProviderData sets the "provider_data" field to the value that was provided on create.
+func (u *NotificationEventUpsert) UpdateProviderData() *NotificationEventUpsert {
+	u.SetExcluded(notificationevent.FieldProviderData)
+	return u
+}
+
+// ClearProviderData clears the value of the "provider_data" field.
+func (u *NotificationEventUpsert) ClearProviderData() *NotificationEventUpsert {
+	u.SetNull(notificationevent.FieldProviderData)
 	return u
 }
 
@@ -385,6 +449,9 @@ func (u *NotificationEventUpsertOne) UpdateNewValues() *NotificationEventUpsertO
 		}
 		if _, exists := u.create.mutation.RuleID(); exists {
 			s.SetIgnore(notificationevent.FieldRuleID)
+		}
+		if _, exists := u.create.mutation.RuleSnapshot(); exists {
+			s.SetIgnore(notificationevent.FieldRuleSnapshot)
 		}
 	}))
 	return u
@@ -439,7 +506,7 @@ func (u *NotificationEventUpsertOne) ClearAnnotations() *NotificationEventUpsert
 }
 
 // SetPayload sets the "payload" field.
-func (u *NotificationEventUpsertOne) SetPayload(v string) *NotificationEventUpsertOne {
+func (u *NotificationEventUpsertOne) SetPayload(v jsontext.Value) *NotificationEventUpsertOne {
 	return u.Update(func(s *NotificationEventUpsert) {
 		s.SetPayload(v)
 	})
@@ -449,6 +516,27 @@ func (u *NotificationEventUpsertOne) SetPayload(v string) *NotificationEventUpse
 func (u *NotificationEventUpsertOne) UpdatePayload() *NotificationEventUpsertOne {
 	return u.Update(func(s *NotificationEventUpsert) {
 		s.UpdatePayload()
+	})
+}
+
+// SetProviderData sets the "provider_data" field.
+func (u *NotificationEventUpsertOne) SetProviderData(v map[string]string) *NotificationEventUpsertOne {
+	return u.Update(func(s *NotificationEventUpsert) {
+		s.SetProviderData(v)
+	})
+}
+
+// UpdateProviderData sets the "provider_data" field to the value that was provided on create.
+func (u *NotificationEventUpsertOne) UpdateProviderData() *NotificationEventUpsertOne {
+	return u.Update(func(s *NotificationEventUpsert) {
+		s.UpdateProviderData()
+	})
+}
+
+// ClearProviderData clears the value of the "provider_data" field.
+func (u *NotificationEventUpsertOne) ClearProviderData() *NotificationEventUpsertOne {
+	return u.Update(func(s *NotificationEventUpsert) {
+		s.ClearProviderData()
 	})
 }
 
@@ -520,7 +608,10 @@ func (_c *NotificationEventCreateBulk) Save(ctx context.Context) ([]*Notificatio
 				}
 				builder.mutation = mutation
 				var err error
-				nodes[i], specs[i] = builder.createSpec()
+				nodes[i], specs[i], err = builder.createSpec()
+				if err != nil {
+					return nil, err
+				}
 				if i < len(mutators)-1 {
 					_, err = mutators[i+1].Mutate(root, _c.builders[i+1].mutation)
 				} else {
@@ -647,6 +738,9 @@ func (u *NotificationEventUpsertBulk) UpdateNewValues() *NotificationEventUpsert
 			if _, exists := b.mutation.RuleID(); exists {
 				s.SetIgnore(notificationevent.FieldRuleID)
 			}
+			if _, exists := b.mutation.RuleSnapshot(); exists {
+				s.SetIgnore(notificationevent.FieldRuleSnapshot)
+			}
 		}
 	}))
 	return u
@@ -701,7 +795,7 @@ func (u *NotificationEventUpsertBulk) ClearAnnotations() *NotificationEventUpser
 }
 
 // SetPayload sets the "payload" field.
-func (u *NotificationEventUpsertBulk) SetPayload(v string) *NotificationEventUpsertBulk {
+func (u *NotificationEventUpsertBulk) SetPayload(v jsontext.Value) *NotificationEventUpsertBulk {
 	return u.Update(func(s *NotificationEventUpsert) {
 		s.SetPayload(v)
 	})
@@ -711,6 +805,27 @@ func (u *NotificationEventUpsertBulk) SetPayload(v string) *NotificationEventUps
 func (u *NotificationEventUpsertBulk) UpdatePayload() *NotificationEventUpsertBulk {
 	return u.Update(func(s *NotificationEventUpsert) {
 		s.UpdatePayload()
+	})
+}
+
+// SetProviderData sets the "provider_data" field.
+func (u *NotificationEventUpsertBulk) SetProviderData(v map[string]string) *NotificationEventUpsertBulk {
+	return u.Update(func(s *NotificationEventUpsert) {
+		s.SetProviderData(v)
+	})
+}
+
+// UpdateProviderData sets the "provider_data" field to the value that was provided on create.
+func (u *NotificationEventUpsertBulk) UpdateProviderData() *NotificationEventUpsertBulk {
+	return u.Update(func(s *NotificationEventUpsert) {
+		s.UpdateProviderData()
+	})
+}
+
+// ClearProviderData clears the value of the "provider_data" field.
+func (u *NotificationEventUpsertBulk) ClearProviderData() *NotificationEventUpsertBulk {
+	return u.Update(func(s *NotificationEventUpsert) {
+		s.ClearProviderData()
 	})
 }
 

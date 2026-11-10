@@ -7,6 +7,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
@@ -146,7 +147,9 @@ func (NotificationRule) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("channels", NotificationChannel.Type).
 			Ref("rules"),
-		edge.To("events", NotificationEvent.Type),
+		// Keep Rule deletion from clearing historical Event references.
+		edge.To("events", NotificationEvent.Type).
+			Annotations(entsql.OnDelete(entsql.NoAction)),
 	}
 }
 
@@ -174,18 +177,42 @@ func (NotificationEvent) Fields() []ent.Field {
 		field.Time("created_at").
 			Default(clock.Now).
 			Immutable(),
-		field.Enum("type").
+		field.String("type").
 			GoType(notification.EventType("")).
 			Immutable().
-			Comment("The event type the rule associated with"),
-		field.String("rule_id").Immutable().SchemaType(map[string]string{
-			dialect.Postgres: "char(26)",
-		}),
-		// TODO(chrisgacsal): add custom value scanner
+			Comment("The notification event type."),
+		// TODO(notification-v4): current creation paths still require a Rule;
+		// allow Rule-free writes only after readers and reconciliation support them.
+		field.String("rule_id").
+			Optional().
+			Immutable().
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}),
 		field.String("payload").
+			GoType(json.RawMessage{}).
+			ValueScanner(entutils.JSONStringValueScanner[json.RawMessage]()).
 			SchemaType(map[string]string{
 				dialect.Postgres: "jsonb",
 			}),
+		// TODO(notification-v4): populate only with the Rule state evaluated by
+		// the producer; the current Rule cannot reconstruct a historical snapshot.
+		field.String("rule_snapshot").
+			GoType(json.RawMessage{}).
+			ValueScanner(entutils.JSONStringValueScanner[json.RawMessage]()).
+			Optional().
+			Immutable().
+			SchemaType(map[string]string{
+				dialect.Postgres: "jsonb",
+			}),
+		field.String("provider_data").
+			GoType(map[string]string{}).
+			ValueScanner(entutils.JSONStringValueScanner[map[string]string]()).
+			SchemaType(map[string]string{
+				dialect.Postgres: "jsonb",
+			}).
+			Optional().
+			Comment("Provider-owned operational data for V4."),
 	}
 }
 
@@ -196,7 +223,6 @@ func (NotificationEvent) Edges() []ent.Edge {
 		edge.From("rules", NotificationRule.Type).
 			Ref("events").
 			Field("rule_id").
-			Required().
 			Unique().
 			Immutable(),
 	}
@@ -235,16 +261,43 @@ func (NotificationEventDeliveryStatus) Fields() []ent.Field {
 		field.String("channel_id").
 			NotEmpty().
 			Immutable(),
-		field.Enum("state").
+		// The generated GoType check only covers creates; retain update validation too.
+		field.String("state").
 			GoType(notification.EventDeliveryStatusState("")).
+			Validate(func(state string) error {
+				return notification.EventDeliveryStatusState(state).Validate()
+			}).
 			Default(string(notification.EventDeliveryStatusStatePending)),
+		// TODO(notification-v4): enable resend increments only after all writers
+		// can maintain this baseline; it does not reconstruct historical resends.
+		field.Int("dispatch_generation").
+			Min(1).
+			Max(math.MaxInt32).
+			Default(1).
+			SchemaType(map[string]string{dialect.Postgres: "integer"}).
+			Comment("Dispatch generation for V4; inactive during migration Phase 1."),
+		field.Time("dispatch_queued_at").
+			Optional().
+			Nillable().
+			Comment("Time the current dispatch was queued. Includes time spent waiting for Channel synchronization."),
 		field.String("reason").
 			Optional(),
 		field.Time("next_attempt_at").
 			Optional().
 			Nillable(),
-		field.JSON("attempts", []notification.EventDeliveryAttempt{}).
+		field.String("attempts").
+			GoType(json.RawMessage{}).
+			ValueScanner(entutils.JSONStringValueScanner[json.RawMessage]()).
+			SchemaType(map[string]string{dialect.Postgres: "jsonb"}).
 			Optional(),
+		field.String("provider_data").
+			GoType(map[string]string{}).
+			ValueScanner(entutils.JSONStringValueScanner[map[string]string]()).
+			SchemaType(map[string]string{
+				dialect.Postgres: "jsonb",
+			}).
+			Optional().
+			Comment("Provider-owned operational data for V4."),
 	}
 }
 

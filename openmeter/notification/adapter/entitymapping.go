@@ -98,7 +98,7 @@ func RuleFromDBEntity(e db.NotificationRule) (*notification.Rule, error) {
 }
 
 func EventFromDBEntity(e db.NotificationEvent) (*notification.Event, error) {
-	payload, err := eventPayloadFromJSON([]byte(e.Payload))
+	payload, err := eventPayloadFromJSON(e.Payload)
 	if err != nil {
 		return nil, err
 	}
@@ -111,7 +111,12 @@ func EventFromDBEntity(e db.NotificationEvent) (*notification.Event, error) {
 				continue
 			}
 
-			statuses = append(statuses, *EventDeliveryStatusFromDBEntity(*status))
+			mapped, err := EventDeliveryStatusFromDBEntity(*status)
+			if err != nil {
+				return nil, fmt.Errorf("failed to map notification event delivery status [event.id=%s]: %w", e.ID, err)
+			}
+
+			statuses = append(statuses, *mapped)
 		}
 	}
 
@@ -160,7 +165,16 @@ func eventPayloadFromJSON(data []byte) (notification.EventPayload, error) {
 	return payload, nil
 }
 
-func EventDeliveryStatusFromDBEntity(e db.NotificationEventDeliveryStatus) *notification.EventDeliveryStatus {
+func EventDeliveryStatusFromDBEntity(e db.NotificationEventDeliveryStatus) (*notification.EventDeliveryStatus, error) {
+	var attempts []notification.EventDeliveryAttempt
+	if len(e.Attempts) > 0 {
+		if err := json.Unmarshal(e.Attempts, &attempts); err != nil {
+			return nil, fmt.Errorf("invalid notification event delivery attempts [namespace=%s delivery_status.id=%s]: %w", e.Namespace, e.ID, err)
+		}
+	}
+
+	state, _ := deliveryStateSpellings(e.State)
+
 	return &notification.EventDeliveryStatus{
 		NamespacedID: models.NamespacedID{
 			Namespace: e.Namespace,
@@ -168,7 +182,7 @@ func EventDeliveryStatusFromDBEntity(e db.NotificationEventDeliveryStatus) *noti
 		},
 		ChannelID: e.ChannelID,
 		EventID:   e.EventID,
-		State:     e.State,
+		State:     state,
 		Reason:    e.Reason,
 		CreatedAt: e.CreatedAt.UTC(),
 		UpdatedAt: e.UpdatedAt.UTC(),
@@ -180,8 +194,8 @@ func EventDeliveryStatusFromDBEntity(e db.NotificationEventDeliveryStatus) *noti
 
 			return lo.ToPtr(lo.FromPtr(e.NextAttemptAt).UTC())
 		}(),
-		Attempts: e.Attempts,
+		Attempts: attempts,
 
 		Annotations: e.Annotations,
-	}
+	}, nil
 }

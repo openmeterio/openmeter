@@ -4939,9 +4939,11 @@ var (
 		{Name: "namespace", Type: field.TypeString},
 		{Name: "annotations", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "created_at", Type: field.TypeTime},
-		{Name: "type", Type: field.TypeEnum, Enums: []string{"entitlements.balance.threshold", "entitlements.reset", "invoice.created", "invoice.updated"}},
+		{Name: "type", Type: field.TypeString},
 		{Name: "payload", Type: field.TypeString, SchemaType: map[string]string{"postgres": "jsonb"}},
-		{Name: "rule_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "rule_snapshot", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "provider_data", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "rule_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// NotificationEventsTable holds the schema information for the "notification_events" table.
 	NotificationEventsTable = &schema.Table{
@@ -4951,7 +4953,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "notification_events_notification_rules_events",
-				Columns:    []*schema.Column{NotificationEventsColumns[6]},
+				Columns:    []*schema.Column{NotificationEventsColumns[8]},
 				RefColumns: []*schema.Column{NotificationRulesColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -4998,10 +5000,13 @@ var (
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "event_id", Type: field.TypeString},
 		{Name: "channel_id", Type: field.TypeString},
-		{Name: "state", Type: field.TypeEnum, Enums: []string{"SUCCESS", "FAILED", "SENDING", "PENDING", "RESENDING"}, Default: "PENDING"},
+		{Name: "state", Type: field.TypeString, Default: "PENDING"},
+		{Name: "dispatch_generation", Type: field.TypeInt, Default: 1, SchemaType: map[string]string{"postgres": "integer"}},
+		{Name: "dispatch_queued_at", Type: field.TypeTime, Nullable: true},
 		{Name: "reason", Type: field.TypeString, Nullable: true},
 		{Name: "next_attempt_at", Type: field.TypeTime, Nullable: true},
-		{Name: "attempts", Type: field.TypeJSON, Nullable: true},
+		{Name: "attempts", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "provider_data", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 	}
 	// NotificationEventDeliveryStatusTable holds the schema information for the "notification_event_delivery_status" table.
 	NotificationEventDeliveryStatusTable = &schema.Table{
@@ -5047,7 +5052,7 @@ var (
 			{
 				Name:    "notificationeventdeliverystatus_namespace_state_next_attempt_at",
 				Unique:  false,
-				Columns: []*schema.Column{NotificationEventDeliveryStatusColumns[1], NotificationEventDeliveryStatusColumns[7], NotificationEventDeliveryStatusColumns[9]},
+				Columns: []*schema.Column{NotificationEventDeliveryStatusColumns[1], NotificationEventDeliveryStatusColumns[7], NotificationEventDeliveryStatusColumns[11]},
 			},
 		},
 	}

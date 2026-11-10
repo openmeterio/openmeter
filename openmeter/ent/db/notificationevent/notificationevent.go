@@ -3,12 +3,12 @@
 package notificationevent
 
 import (
-	"fmt"
+	"encoding/json/jsontext"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
-	"github.com/openmeterio/openmeter/openmeter/notification"
+	"entgo.io/ent/schema/field"
 )
 
 const (
@@ -28,6 +28,10 @@ const (
 	FieldRuleID = "rule_id"
 	// FieldPayload holds the string denoting the payload field in the database.
 	FieldPayload = "payload"
+	// FieldRuleSnapshot holds the string denoting the rule_snapshot field in the database.
+	FieldRuleSnapshot = "rule_snapshot"
+	// FieldProviderData holds the string denoting the provider_data field in the database.
+	FieldProviderData = "provider_data"
 	// EdgeDeliveryStatuses holds the string denoting the delivery_statuses edge name in mutations.
 	EdgeDeliveryStatuses = "delivery_statuses"
 	// EdgeRules holds the string denoting the rules edge name in mutations.
@@ -57,6 +61,8 @@ var Columns = []string{
 	FieldType,
 	FieldRuleID,
 	FieldPayload,
+	FieldRuleSnapshot,
+	FieldProviderData,
 }
 
 var (
@@ -82,17 +88,13 @@ var (
 	DefaultCreatedAt func() time.Time
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
-)
-
-// TypeValidator is a validator for the "type" field enum values. It is called by the builders before save.
-func TypeValidator(_type notification.EventType) error {
-	switch _type.String() {
-	case "entitlements.balance.threshold", "entitlements.reset", "invoice.created", "invoice.updated":
-		return nil
-	default:
-		return fmt.Errorf("notificationevent: invalid enum value for type field: %q", _type)
+	// ValueScanner of all NotificationEvent fields.
+	ValueScanner struct {
+		Payload      field.TypeValueScanner[jsontext.Value]
+		RuleSnapshot field.TypeValueScanner[jsontext.Value]
+		ProviderData field.TypeValueScanner[map[string]string]
 	}
-}
+)
 
 // OrderOption defines the ordering options for the NotificationEvent queries.
 type OrderOption func(*sql.Selector)
@@ -125,6 +127,16 @@ func ByRuleID(opts ...sql.OrderTermOption) OrderOption {
 // ByPayload orders the results by the payload field.
 func ByPayload(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldPayload, opts...).ToFunc()
+}
+
+// ByRuleSnapshot orders the results by the rule_snapshot field.
+func ByRuleSnapshot(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldRuleSnapshot, opts...).ToFunc()
+}
+
+// ByProviderData orders the results by the provider_data field.
+func ByProviderData(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldProviderData, opts...).ToFunc()
 }
 
 // ByDeliveryStatusesCount orders the results by delivery_statuses count.

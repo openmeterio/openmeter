@@ -1,6 +1,7 @@
 package service_test
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -9,6 +10,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	eventdb "github.com/openmeterio/openmeter/openmeter/ent/db/notificationevent"
+	statusdb "github.com/openmeterio/openmeter/openmeter/ent/db/notificationeventdeliverystatus"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/filter"
@@ -205,6 +208,87 @@ func TestResendEvent(t *testing.T) {
 	})
 }
 
+func TestDispatchQueuedAtPreservation(t *testing.T) {
+	env := newServiceTestEnv(t)
+	queued := time.Date(2026, time.November, 1, 10, 0, 0, 0, time.UTC)
+	tests := []struct {
+		name     string
+		queuedAt *time.Time
+	}{
+		{name: "legacy delivery"},
+		{name: "delivery with a recorded queue time", queuedAt: &queued},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// given: a delivery created through the current service
+			ns := ulid.Make().String()
+			channel := seedChannel(t, env, ns, clock.Now(), "channel-"+ulid.Make().String())
+			rule := seedBalanceThresholdRule(t, env, ns, channel.ID)
+			event := seedEvent(t, env, ns, rule)
+			require.Len(t, event.DeliveryStatus, 1)
+
+			id := event.DeliveryStatus[0].NamespacedID
+			deliveries := env.db.NotificationEventDeliveryStatus
+			row, err := deliveries.Get(t.Context(), id.ID)
+			require.NoError(t, err)
+			require.Nil(t, row.DispatchQueuedAt)
+
+			if tt.queuedAt != nil {
+				err = deliveries.UpdateOneID(id.ID).SetDispatchQueuedAt(*tt.queuedAt).Exec(t.Context())
+				require.NoError(t, err)
+			}
+
+			assertDispatchQueuedAt := func(got *time.Time) {
+				t.Helper()
+
+				if tt.queuedAt == nil {
+					require.Nil(t, got)
+					return
+				}
+
+				require.NotNil(t, got)
+
+				assert.WithinDuration(t, *tt.queuedAt, *got, 0)
+			}
+
+			// when: reconciliation writes a report with a next attempt and the caller later requests a resend
+			next := queued.Add(3 * time.Hour)
+			_, err = env.service.UpdateEventDeliveryStatus(t.Context(), notification.UpdateEventDeliveryStatusInput{
+				NamespacedID: id,
+				State:        notification.EventDeliveryStatusStateFailed,
+				Reason:       "delivery failed",
+				Attempts: []notification.EventDeliveryAttempt{
+					{State: notification.EventDeliveryStatusStateFailed, Timestamp: queued.Add(time.Hour)},
+				},
+				NextAttempt: &next,
+			})
+			require.NoError(t, err)
+
+			row, err = deliveries.Get(t.Context(), id.ID)
+			require.NoError(t, err)
+			require.NotNil(t, row.NextAttemptAt)
+
+			assert.WithinDuration(t, next, *row.NextAttemptAt, 0)
+			assertDispatchQueuedAt(row.DispatchQueuedAt)
+
+			err = env.service.ResendEvent(t.Context(), notification.ResendEventInput{
+				NamespacedID: event.NamespacedID,
+				Channels:     []string{channel.ID},
+			})
+			require.NoError(t, err)
+
+			// then: resend clears the retry schedule and preserves the stored queue time
+			row, err = deliveries.Get(t.Context(), id.ID)
+			require.NoError(t, err)
+
+			assert.Equal(t, notification.EventDeliveryStatusStateResending, row.State)
+			assert.Nil(t, row.NextAttemptAt)
+			assertDispatchQueuedAt(row.DispatchQueuedAt)
+		})
+	}
+}
+
 func TestResendEvent_SkipsChannelDisabledAfterDelivery(t *testing.T) {
 	env := newServiceTestEnv(t)
 	ns := ulid.Make().String()
@@ -261,4 +345,83 @@ func TestResendEvent_SkipsChannelDisabledAfterDelivery(t *testing.T) {
 	})
 	assert.Equal(t, notification.EventDeliveryStatusStateResending, stateByChannel[active.ID])
 	assert.Equal(t, notification.EventDeliveryStatusStateFailed, stateByChannel[disabled.ID])
+}
+
+func TestCreateEventRequiresRule(t *testing.T) {
+	env := newServiceTestEnv(t)
+	paths := []struct {
+		name   string
+		create func(context.Context, notification.CreateEventInput) (*notification.Event, error)
+	}{
+		{name: "service", create: env.service.CreateEvent},
+		{name: "adapter", create: env.adapter.CreateEvent},
+	}
+	tests := []struct {
+		name   string
+		ruleID string
+		valid  bool
+	}{
+		{name: "omitted Rule"},
+		{name: "unknown Rule", ruleID: ulid.Make().String()},
+		{name: "existing Rule", valid: true},
+	}
+
+	for _, path := range paths {
+		t.Run(path.name, func(t *testing.T) {
+			for _, tt := range tests {
+				t.Run(tt.name, func(t *testing.T) {
+					// given: a nullable Rule column, but unchanged legacy creation requirements
+					namespace := ulid.Make().String()
+					channel := seedChannel(t, env, namespace, clock.Now(), "test-channel")
+					rule := seedBalanceThresholdRule(t, env, namespace, channel.ID)
+					ruleID := tt.ruleID
+					if tt.valid {
+						ruleID = rule.ID
+					}
+
+					// when: creating through the service or directly through the adapter
+					event, err := path.create(t.Context(), notification.CreateEventInput{
+						NamespacedModel: models.NamespacedModel{Namespace: namespace},
+						Type:            rule.Type,
+						RuleID:          ruleID,
+						Payload: notification.EventPayload{
+							EventPayloadMeta: notification.EventPayloadMeta{
+								Type:    rule.Type,
+								Version: notification.EventPayloadVersionCurrent,
+							},
+							BalanceThreshold: &notification.BalanceThresholdPayload{},
+						},
+					})
+
+					// then: only an existing Rule permits Event and delivery creation
+					wantCount := 0
+					if tt.valid {
+						require.NoError(t, err)
+						require.NotNil(t, event)
+
+						assert.Equal(t, rule.ID, event.Rule.ID)
+
+						require.Len(t, event.DeliveryStatus, 1)
+
+						assert.Equal(t, channel.ID, event.DeliveryStatus[0].ChannelID)
+
+						wantCount = 1
+					} else {
+						require.Error(t, err)
+
+						assert.Nil(t, event)
+					}
+
+					eventCount, err := env.db.NotificationEvent.Query().Where(eventdb.Namespace(namespace)).Count(t.Context())
+					require.NoError(t, err)
+
+					statusCount, err := env.db.NotificationEventDeliveryStatus.Query().Where(statusdb.Namespace(namespace)).Count(t.Context())
+					require.NoError(t, err)
+
+					assert.Equal(t, wantCount, eventCount)
+					assert.Equal(t, wantCount, statusCount)
+				})
+			}
+		})
+	}
 }

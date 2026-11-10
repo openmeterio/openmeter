@@ -2,6 +2,7 @@ package adapter
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -11,6 +12,7 @@ import (
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	statusdb "github.com/openmeterio/openmeter/openmeter/ent/db/notificationeventdeliverystatus"
 	"github.com/openmeterio/openmeter/openmeter/notification"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -33,7 +35,7 @@ func (a *adapter) ListEventsDeliveryStatus(ctx context.Context, params notificat
 		}
 
 		if len(params.States) > 0 {
-			query = query.Where(statusdb.StateIn(params.States...))
+			query = query.Where(statusdb.StateIn(toDBDeliveryStates(params.States...)...))
 		}
 
 		if !params.From.IsZero() {
@@ -60,7 +62,12 @@ func (a *adapter) ListEventsDeliveryStatus(ctx context.Context, params notificat
 				continue
 			}
 
-			result = append(result, *EventDeliveryStatusFromDBEntity(*statusRow))
+			status, err := EventDeliveryStatusFromDBEntity(*statusRow)
+			if err != nil {
+				return response, err
+			}
+
+			result = append(result, *status)
 		}
 
 		response.TotalCount = paged.TotalCount
@@ -70,6 +77,57 @@ func (a *adapter) ListEventsDeliveryStatus(ctx context.Context, params notificat
 	}
 
 	return entutils.TransactingRepo(ctx, a, fn)
+}
+
+// TODO(notification-v4): retire the legacy spellings once all writers and stored
+// rows use lowercase and the service accepts the final state representation.
+func deliveryStateSpellings(state notification.EventDeliveryStatusState) (legacy, lowercase notification.EventDeliveryStatusState) {
+	switch state {
+	case notification.EventDeliveryStatusStatePending, "pending":
+		return notification.EventDeliveryStatusStatePending, "pending"
+	case notification.EventDeliveryStatusStateSending, "sending":
+		return notification.EventDeliveryStatusStateSending, "sending"
+	case notification.EventDeliveryStatusStateResending, "resending":
+		return notification.EventDeliveryStatusStateResending, "resending"
+	case notification.EventDeliveryStatusStateSuccess, "success":
+		return notification.EventDeliveryStatusStateSuccess, "success"
+	case notification.EventDeliveryStatusStateFailed, "failed":
+		return notification.EventDeliveryStatusStateFailed, "failed"
+	default:
+		return state, state
+	}
+}
+
+// The Event filter uses strings, while Ent predicates use EventDeliveryStatusState.
+func toDBDeliveryStates[T ~string](states ...T) []T {
+	values := make([]T, 0, 2*len(states))
+	for _, state := range states {
+		legacy, lowercase := deliveryStateSpellings(notification.EventDeliveryStatusState(state))
+		values = append(values, T(legacy))
+
+		if legacy != lowercase {
+			values = append(values, T(lowercase))
+		}
+	}
+
+	return values
+}
+
+func toDBDeliveryStateFilter(input *filter.FilterString) *filter.FilterString {
+	if input == nil {
+		return nil
+	}
+
+	switch {
+	case input.Eq != nil:
+		values := toDBDeliveryStates(*input.Eq)
+		return &filter.FilterString{In: &values}
+	case input.In != nil:
+		values := toDBDeliveryStates((*input.In)...)
+		return &filter.FilterString{In: &values}
+	default:
+		return input
+	}
 }
 
 func (a *adapter) GetEventDeliveryStatus(ctx context.Context, params notification.GetEventDeliveryStatusInput) (*notification.EventDeliveryStatus, error) {
@@ -96,7 +154,7 @@ func (a *adapter) GetEventDeliveryStatus(ctx context.Context, params notificatio
 			return nil, errors.New("invalid query response: no delivery status received")
 		}
 
-		return EventDeliveryStatusFromDBEntity(*queryRow), nil
+		return EventDeliveryStatusFromDBEntity(*queryRow)
 	}
 
 	return entutils.TransactingRepo(ctx, a, fn)
@@ -112,13 +170,18 @@ func (a *adapter) UpdateEventDeliveryStatus(ctx context.Context, params notifica
 			return lo.ToPtr(lo.FromPtr(params.NextAttempt).UTC())
 		}()
 
+		attempts, err := json.Marshal(params.Attempts)
+		if err != nil {
+			return nil, fmt.Errorf("failed to serialize notification event delivery attempts: %w", err)
+		}
+
 		query := a.db.NotificationEventDeliveryStatus.UpdateOneID(params.ID).
 			Where(statusdb.Namespace(params.Namespace)).
 			SetState(params.State).
 			SetReason(params.Reason).
 			SetAnnotations(params.Annotations).
 			SetOrClearNextAttemptAt(nextAttempt).
-			SetAttempts(params.Attempts)
+			SetAttempts(attempts)
 
 		row, err := query.Save(ctx)
 		if err != nil {
@@ -128,14 +191,14 @@ func (a *adapter) UpdateEventDeliveryStatus(ctx context.Context, params notifica
 				}
 			}
 
-			return nil, fmt.Errorf("failed to create notification event delivery status: %w", err)
+			return nil, fmt.Errorf("failed to update notification event delivery status: %w", err)
 		}
 
 		if row == nil {
 			return nil, fmt.Errorf("invalid query response: no delivery status received")
 		}
 
-		return EventDeliveryStatusFromDBEntity(*row), nil
+		return EventDeliveryStatusFromDBEntity(*row)
 	}
 
 	return entutils.TransactingRepo(ctx, a, fn)

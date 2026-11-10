@@ -108300,7 +108300,9 @@ type NotificationEventMutation struct {
 	annotations              *models.Annotations
 	created_at               *time.Time
 	_type                    *notification.EventType
-	payload                  *string
+	payload                  *jsontext.Value
+	rule_snapshot            *jsontext.Value
+	provider_data            *map[string]string
 	clearedFields            map[string]struct{}
 	delivery_statuses        map[string]struct{}
 	removeddelivery_statuses map[string]struct{}
@@ -108604,18 +108606,31 @@ func (m *NotificationEventMutation) OldRuleID(ctx context.Context) (v string, er
 	return oldValue.RuleID, nil
 }
 
+// ClearRuleID clears the value of the "rule_id" field.
+func (m *NotificationEventMutation) ClearRuleID() {
+	m.rules = nil
+	m.clearedFields[notificationevent.FieldRuleID] = struct{}{}
+}
+
+// RuleIDCleared returns if the "rule_id" field was cleared in this mutation.
+func (m *NotificationEventMutation) RuleIDCleared() bool {
+	_, ok := m.clearedFields[notificationevent.FieldRuleID]
+	return ok
+}
+
 // ResetRuleID resets all changes to the "rule_id" field.
 func (m *NotificationEventMutation) ResetRuleID() {
 	m.rules = nil
+	delete(m.clearedFields, notificationevent.FieldRuleID)
 }
 
 // SetPayload sets the "payload" field.
-func (m *NotificationEventMutation) SetPayload(s string) {
-	m.payload = &s
+func (m *NotificationEventMutation) SetPayload(j jsontext.Value) {
+	m.payload = &j
 }
 
 // Payload returns the value of the "payload" field in the mutation.
-func (m *NotificationEventMutation) Payload() (r string, exists bool) {
+func (m *NotificationEventMutation) Payload() (r jsontext.Value, exists bool) {
 	v := m.payload
 	if v == nil {
 		return
@@ -108626,7 +108641,7 @@ func (m *NotificationEventMutation) Payload() (r string, exists bool) {
 // OldPayload returns the old "payload" field's value of the NotificationEvent entity.
 // If the NotificationEvent object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *NotificationEventMutation) OldPayload(ctx context.Context) (v string, err error) {
+func (m *NotificationEventMutation) OldPayload(ctx context.Context) (v jsontext.Value, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldPayload is only allowed on UpdateOne operations")
 	}
@@ -108643,6 +108658,104 @@ func (m *NotificationEventMutation) OldPayload(ctx context.Context) (v string, e
 // ResetPayload resets all changes to the "payload" field.
 func (m *NotificationEventMutation) ResetPayload() {
 	m.payload = nil
+}
+
+// SetRuleSnapshot sets the "rule_snapshot" field.
+func (m *NotificationEventMutation) SetRuleSnapshot(j jsontext.Value) {
+	m.rule_snapshot = &j
+}
+
+// RuleSnapshot returns the value of the "rule_snapshot" field in the mutation.
+func (m *NotificationEventMutation) RuleSnapshot() (r jsontext.Value, exists bool) {
+	v := m.rule_snapshot
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRuleSnapshot returns the old "rule_snapshot" field's value of the NotificationEvent entity.
+// If the NotificationEvent object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *NotificationEventMutation) OldRuleSnapshot(ctx context.Context) (v jsontext.Value, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRuleSnapshot is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRuleSnapshot requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRuleSnapshot: %w", err)
+	}
+	return oldValue.RuleSnapshot, nil
+}
+
+// ClearRuleSnapshot clears the value of the "rule_snapshot" field.
+func (m *NotificationEventMutation) ClearRuleSnapshot() {
+	m.rule_snapshot = nil
+	m.clearedFields[notificationevent.FieldRuleSnapshot] = struct{}{}
+}
+
+// RuleSnapshotCleared returns if the "rule_snapshot" field was cleared in this mutation.
+func (m *NotificationEventMutation) RuleSnapshotCleared() bool {
+	_, ok := m.clearedFields[notificationevent.FieldRuleSnapshot]
+	return ok
+}
+
+// ResetRuleSnapshot resets all changes to the "rule_snapshot" field.
+func (m *NotificationEventMutation) ResetRuleSnapshot() {
+	m.rule_snapshot = nil
+	delete(m.clearedFields, notificationevent.FieldRuleSnapshot)
+}
+
+// SetProviderData sets the "provider_data" field.
+func (m *NotificationEventMutation) SetProviderData(value map[string]string) {
+	m.provider_data = &value
+}
+
+// ProviderData returns the value of the "provider_data" field in the mutation.
+func (m *NotificationEventMutation) ProviderData() (r map[string]string, exists bool) {
+	v := m.provider_data
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldProviderData returns the old "provider_data" field's value of the NotificationEvent entity.
+// If the NotificationEvent object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *NotificationEventMutation) OldProviderData(ctx context.Context) (v map[string]string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldProviderData is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldProviderData requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldProviderData: %w", err)
+	}
+	return oldValue.ProviderData, nil
+}
+
+// ClearProviderData clears the value of the "provider_data" field.
+func (m *NotificationEventMutation) ClearProviderData() {
+	m.provider_data = nil
+	m.clearedFields[notificationevent.FieldProviderData] = struct{}{}
+}
+
+// ProviderDataCleared returns if the "provider_data" field was cleared in this mutation.
+func (m *NotificationEventMutation) ProviderDataCleared() bool {
+	_, ok := m.clearedFields[notificationevent.FieldProviderData]
+	return ok
+}
+
+// ResetProviderData resets all changes to the "provider_data" field.
+func (m *NotificationEventMutation) ResetProviderData() {
+	m.provider_data = nil
+	delete(m.clearedFields, notificationevent.FieldProviderData)
 }
 
 // AddDeliveryStatusIDs adds the "delivery_statuses" edge to the NotificationEventDeliveryStatus entity by ids.
@@ -108712,7 +108825,7 @@ func (m *NotificationEventMutation) ClearRules() {
 
 // RulesCleared reports if the "rules" edge to the NotificationRule entity was cleared.
 func (m *NotificationEventMutation) RulesCleared() bool {
-	return m.clearedrules
+	return m.RuleIDCleared() || m.clearedrules
 }
 
 // RulesID returns the "rules" edge ID in the mutation.
@@ -108773,7 +108886,7 @@ func (m *NotificationEventMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *NotificationEventMutation) Fields() []string {
-	fields := make([]string, 0, 6)
+	fields := make([]string, 0, 8)
 	if m.namespace != nil {
 		fields = append(fields, notificationevent.FieldNamespace)
 	}
@@ -108791,6 +108904,12 @@ func (m *NotificationEventMutation) Fields() []string {
 	}
 	if m.payload != nil {
 		fields = append(fields, notificationevent.FieldPayload)
+	}
+	if m.rule_snapshot != nil {
+		fields = append(fields, notificationevent.FieldRuleSnapshot)
+	}
+	if m.provider_data != nil {
+		fields = append(fields, notificationevent.FieldProviderData)
 	}
 	return fields
 }
@@ -108812,6 +108931,10 @@ func (m *NotificationEventMutation) Field(name string) (ent.Value, bool) {
 		return m.RuleID()
 	case notificationevent.FieldPayload:
 		return m.Payload()
+	case notificationevent.FieldRuleSnapshot:
+		return m.RuleSnapshot()
+	case notificationevent.FieldProviderData:
+		return m.ProviderData()
 	}
 	return nil, false
 }
@@ -108833,6 +108956,10 @@ func (m *NotificationEventMutation) OldField(ctx context.Context, name string) (
 		return m.OldRuleID(ctx)
 	case notificationevent.FieldPayload:
 		return m.OldPayload(ctx)
+	case notificationevent.FieldRuleSnapshot:
+		return m.OldRuleSnapshot(ctx)
+	case notificationevent.FieldProviderData:
+		return m.OldProviderData(ctx)
 	}
 	return nil, fmt.Errorf("unknown NotificationEvent field %s", name)
 }
@@ -108878,11 +109005,25 @@ func (m *NotificationEventMutation) SetField(name string, value ent.Value) error
 		m.SetRuleID(v)
 		return nil
 	case notificationevent.FieldPayload:
-		v, ok := value.(string)
+		v, ok := value.(jsontext.Value)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetPayload(v)
+		return nil
+	case notificationevent.FieldRuleSnapshot:
+		v, ok := value.(jsontext.Value)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRuleSnapshot(v)
+		return nil
+	case notificationevent.FieldProviderData:
+		v, ok := value.(map[string]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetProviderData(v)
 		return nil
 	}
 	return fmt.Errorf("unknown NotificationEvent field %s", name)
@@ -108917,6 +109058,15 @@ func (m *NotificationEventMutation) ClearedFields() []string {
 	if m.FieldCleared(notificationevent.FieldAnnotations) {
 		fields = append(fields, notificationevent.FieldAnnotations)
 	}
+	if m.FieldCleared(notificationevent.FieldRuleID) {
+		fields = append(fields, notificationevent.FieldRuleID)
+	}
+	if m.FieldCleared(notificationevent.FieldRuleSnapshot) {
+		fields = append(fields, notificationevent.FieldRuleSnapshot)
+	}
+	if m.FieldCleared(notificationevent.FieldProviderData) {
+		fields = append(fields, notificationevent.FieldProviderData)
+	}
 	return fields
 }
 
@@ -108933,6 +109083,15 @@ func (m *NotificationEventMutation) ClearField(name string) error {
 	switch name {
 	case notificationevent.FieldAnnotations:
 		m.ClearAnnotations()
+		return nil
+	case notificationevent.FieldRuleID:
+		m.ClearRuleID()
+		return nil
+	case notificationevent.FieldRuleSnapshot:
+		m.ClearRuleSnapshot()
+		return nil
+	case notificationevent.FieldProviderData:
+		m.ClearProviderData()
 		return nil
 	}
 	return fmt.Errorf("unknown NotificationEvent nullable field %s", name)
@@ -108959,6 +109118,12 @@ func (m *NotificationEventMutation) ResetField(name string) error {
 		return nil
 	case notificationevent.FieldPayload:
 		m.ResetPayload()
+		return nil
+	case notificationevent.FieldRuleSnapshot:
+		m.ResetRuleSnapshot()
+		return nil
+	case notificationevent.FieldProviderData:
+		m.ResetProviderData()
 		return nil
 	}
 	return fmt.Errorf("unknown NotificationEvent field %s", name)
@@ -109069,27 +109234,30 @@ func (m *NotificationEventMutation) ResetEdge(name string) error {
 // NotificationEventDeliveryStatusMutation represents an operation that mutates the NotificationEventDeliveryStatus nodes in the graph.
 type NotificationEventDeliveryStatusMutation struct {
 	config
-	op              Op
-	typ             string
-	id              *string
-	namespace       *string
-	annotations     *models.Annotations
-	created_at      *time.Time
-	updated_at      *time.Time
-	event_id        *string
-	channel_id      *string
-	state           *notification.EventDeliveryStatusState
-	reason          *string
-	next_attempt_at *time.Time
-	attempts        *[]notification.EventDeliveryAttempt
-	appendattempts  []notification.EventDeliveryAttempt
-	clearedFields   map[string]struct{}
-	events          map[string]struct{}
-	removedevents   map[string]struct{}
-	clearedevents   bool
-	done            bool
-	oldValue        func(context.Context) (*NotificationEventDeliveryStatus, error)
-	predicates      []predicate.NotificationEventDeliveryStatus
+	op                     Op
+	typ                    string
+	id                     *string
+	namespace              *string
+	annotations            *models.Annotations
+	created_at             *time.Time
+	updated_at             *time.Time
+	event_id               *string
+	channel_id             *string
+	state                  *notification.EventDeliveryStatusState
+	dispatch_generation    *int
+	adddispatch_generation *int
+	dispatch_queued_at     *time.Time
+	reason                 *string
+	next_attempt_at        *time.Time
+	attempts               *jsontext.Value
+	provider_data          *map[string]string
+	clearedFields          map[string]struct{}
+	events                 map[string]struct{}
+	removedevents          map[string]struct{}
+	clearedevents          bool
+	done                   bool
+	oldValue               func(context.Context) (*NotificationEventDeliveryStatus, error)
+	predicates             []predicate.NotificationEventDeliveryStatus
 }
 
 var _ ent.Mutation = (*NotificationEventDeliveryStatusMutation)(nil)
@@ -109461,6 +109629,111 @@ func (m *NotificationEventDeliveryStatusMutation) ResetState() {
 	m.state = nil
 }
 
+// SetDispatchGeneration sets the "dispatch_generation" field.
+func (m *NotificationEventDeliveryStatusMutation) SetDispatchGeneration(i int) {
+	m.dispatch_generation = &i
+	m.adddispatch_generation = nil
+}
+
+// DispatchGeneration returns the value of the "dispatch_generation" field in the mutation.
+func (m *NotificationEventDeliveryStatusMutation) DispatchGeneration() (r int, exists bool) {
+	v := m.dispatch_generation
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDispatchGeneration returns the old "dispatch_generation" field's value of the NotificationEventDeliveryStatus entity.
+// If the NotificationEventDeliveryStatus object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *NotificationEventDeliveryStatusMutation) OldDispatchGeneration(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDispatchGeneration is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDispatchGeneration requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDispatchGeneration: %w", err)
+	}
+	return oldValue.DispatchGeneration, nil
+}
+
+// AddDispatchGeneration adds i to the "dispatch_generation" field.
+func (m *NotificationEventDeliveryStatusMutation) AddDispatchGeneration(i int) {
+	if m.adddispatch_generation != nil {
+		*m.adddispatch_generation += i
+	} else {
+		m.adddispatch_generation = &i
+	}
+}
+
+// AddedDispatchGeneration returns the value that was added to the "dispatch_generation" field in this mutation.
+func (m *NotificationEventDeliveryStatusMutation) AddedDispatchGeneration() (r int, exists bool) {
+	v := m.adddispatch_generation
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetDispatchGeneration resets all changes to the "dispatch_generation" field.
+func (m *NotificationEventDeliveryStatusMutation) ResetDispatchGeneration() {
+	m.dispatch_generation = nil
+	m.adddispatch_generation = nil
+}
+
+// SetDispatchQueuedAt sets the "dispatch_queued_at" field.
+func (m *NotificationEventDeliveryStatusMutation) SetDispatchQueuedAt(t time.Time) {
+	m.dispatch_queued_at = &t
+}
+
+// DispatchQueuedAt returns the value of the "dispatch_queued_at" field in the mutation.
+func (m *NotificationEventDeliveryStatusMutation) DispatchQueuedAt() (r time.Time, exists bool) {
+	v := m.dispatch_queued_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDispatchQueuedAt returns the old "dispatch_queued_at" field's value of the NotificationEventDeliveryStatus entity.
+// If the NotificationEventDeliveryStatus object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *NotificationEventDeliveryStatusMutation) OldDispatchQueuedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDispatchQueuedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDispatchQueuedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDispatchQueuedAt: %w", err)
+	}
+	return oldValue.DispatchQueuedAt, nil
+}
+
+// ClearDispatchQueuedAt clears the value of the "dispatch_queued_at" field.
+func (m *NotificationEventDeliveryStatusMutation) ClearDispatchQueuedAt() {
+	m.dispatch_queued_at = nil
+	m.clearedFields[notificationeventdeliverystatus.FieldDispatchQueuedAt] = struct{}{}
+}
+
+// DispatchQueuedAtCleared returns if the "dispatch_queued_at" field was cleared in this mutation.
+func (m *NotificationEventDeliveryStatusMutation) DispatchQueuedAtCleared() bool {
+	_, ok := m.clearedFields[notificationeventdeliverystatus.FieldDispatchQueuedAt]
+	return ok
+}
+
+// ResetDispatchQueuedAt resets all changes to the "dispatch_queued_at" field.
+func (m *NotificationEventDeliveryStatusMutation) ResetDispatchQueuedAt() {
+	m.dispatch_queued_at = nil
+	delete(m.clearedFields, notificationeventdeliverystatus.FieldDispatchQueuedAt)
+}
+
 // SetReason sets the "reason" field.
 func (m *NotificationEventDeliveryStatusMutation) SetReason(s string) {
 	m.reason = &s
@@ -109560,13 +109833,12 @@ func (m *NotificationEventDeliveryStatusMutation) ResetNextAttemptAt() {
 }
 
 // SetAttempts sets the "attempts" field.
-func (m *NotificationEventDeliveryStatusMutation) SetAttempts(nda []notification.EventDeliveryAttempt) {
-	m.attempts = &nda
-	m.appendattempts = nil
+func (m *NotificationEventDeliveryStatusMutation) SetAttempts(j jsontext.Value) {
+	m.attempts = &j
 }
 
 // Attempts returns the value of the "attempts" field in the mutation.
-func (m *NotificationEventDeliveryStatusMutation) Attempts() (r []notification.EventDeliveryAttempt, exists bool) {
+func (m *NotificationEventDeliveryStatusMutation) Attempts() (r jsontext.Value, exists bool) {
 	v := m.attempts
 	if v == nil {
 		return
@@ -109577,7 +109849,7 @@ func (m *NotificationEventDeliveryStatusMutation) Attempts() (r []notification.E
 // OldAttempts returns the old "attempts" field's value of the NotificationEventDeliveryStatus entity.
 // If the NotificationEventDeliveryStatus object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *NotificationEventDeliveryStatusMutation) OldAttempts(ctx context.Context) (v []notification.EventDeliveryAttempt, err error) {
+func (m *NotificationEventDeliveryStatusMutation) OldAttempts(ctx context.Context) (v jsontext.Value, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldAttempts is only allowed on UpdateOne operations")
 	}
@@ -109591,23 +109863,9 @@ func (m *NotificationEventDeliveryStatusMutation) OldAttempts(ctx context.Contex
 	return oldValue.Attempts, nil
 }
 
-// AppendAttempts adds nda to the "attempts" field.
-func (m *NotificationEventDeliveryStatusMutation) AppendAttempts(nda []notification.EventDeliveryAttempt) {
-	m.appendattempts = append(m.appendattempts, nda...)
-}
-
-// AppendedAttempts returns the list of values that were appended to the "attempts" field in this mutation.
-func (m *NotificationEventDeliveryStatusMutation) AppendedAttempts() ([]notification.EventDeliveryAttempt, bool) {
-	if len(m.appendattempts) == 0 {
-		return nil, false
-	}
-	return m.appendattempts, true
-}
-
 // ClearAttempts clears the value of the "attempts" field.
 func (m *NotificationEventDeliveryStatusMutation) ClearAttempts() {
 	m.attempts = nil
-	m.appendattempts = nil
 	m.clearedFields[notificationeventdeliverystatus.FieldAttempts] = struct{}{}
 }
 
@@ -109620,8 +109878,56 @@ func (m *NotificationEventDeliveryStatusMutation) AttemptsCleared() bool {
 // ResetAttempts resets all changes to the "attempts" field.
 func (m *NotificationEventDeliveryStatusMutation) ResetAttempts() {
 	m.attempts = nil
-	m.appendattempts = nil
 	delete(m.clearedFields, notificationeventdeliverystatus.FieldAttempts)
+}
+
+// SetProviderData sets the "provider_data" field.
+func (m *NotificationEventDeliveryStatusMutation) SetProviderData(value map[string]string) {
+	m.provider_data = &value
+}
+
+// ProviderData returns the value of the "provider_data" field in the mutation.
+func (m *NotificationEventDeliveryStatusMutation) ProviderData() (r map[string]string, exists bool) {
+	v := m.provider_data
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldProviderData returns the old "provider_data" field's value of the NotificationEventDeliveryStatus entity.
+// If the NotificationEventDeliveryStatus object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *NotificationEventDeliveryStatusMutation) OldProviderData(ctx context.Context) (v map[string]string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldProviderData is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldProviderData requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldProviderData: %w", err)
+	}
+	return oldValue.ProviderData, nil
+}
+
+// ClearProviderData clears the value of the "provider_data" field.
+func (m *NotificationEventDeliveryStatusMutation) ClearProviderData() {
+	m.provider_data = nil
+	m.clearedFields[notificationeventdeliverystatus.FieldProviderData] = struct{}{}
+}
+
+// ProviderDataCleared returns if the "provider_data" field was cleared in this mutation.
+func (m *NotificationEventDeliveryStatusMutation) ProviderDataCleared() bool {
+	_, ok := m.clearedFields[notificationeventdeliverystatus.FieldProviderData]
+	return ok
+}
+
+// ResetProviderData resets all changes to the "provider_data" field.
+func (m *NotificationEventDeliveryStatusMutation) ResetProviderData() {
+	m.provider_data = nil
+	delete(m.clearedFields, notificationeventdeliverystatus.FieldProviderData)
 }
 
 // AddEventIDs adds the "events" edge to the NotificationEvent entity by ids.
@@ -109712,7 +110018,7 @@ func (m *NotificationEventDeliveryStatusMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *NotificationEventDeliveryStatusMutation) Fields() []string {
-	fields := make([]string, 0, 10)
+	fields := make([]string, 0, 13)
 	if m.namespace != nil {
 		fields = append(fields, notificationeventdeliverystatus.FieldNamespace)
 	}
@@ -109734,6 +110040,12 @@ func (m *NotificationEventDeliveryStatusMutation) Fields() []string {
 	if m.state != nil {
 		fields = append(fields, notificationeventdeliverystatus.FieldState)
 	}
+	if m.dispatch_generation != nil {
+		fields = append(fields, notificationeventdeliverystatus.FieldDispatchGeneration)
+	}
+	if m.dispatch_queued_at != nil {
+		fields = append(fields, notificationeventdeliverystatus.FieldDispatchQueuedAt)
+	}
 	if m.reason != nil {
 		fields = append(fields, notificationeventdeliverystatus.FieldReason)
 	}
@@ -109742,6 +110054,9 @@ func (m *NotificationEventDeliveryStatusMutation) Fields() []string {
 	}
 	if m.attempts != nil {
 		fields = append(fields, notificationeventdeliverystatus.FieldAttempts)
+	}
+	if m.provider_data != nil {
+		fields = append(fields, notificationeventdeliverystatus.FieldProviderData)
 	}
 	return fields
 }
@@ -109765,12 +110080,18 @@ func (m *NotificationEventDeliveryStatusMutation) Field(name string) (ent.Value,
 		return m.ChannelID()
 	case notificationeventdeliverystatus.FieldState:
 		return m.State()
+	case notificationeventdeliverystatus.FieldDispatchGeneration:
+		return m.DispatchGeneration()
+	case notificationeventdeliverystatus.FieldDispatchQueuedAt:
+		return m.DispatchQueuedAt()
 	case notificationeventdeliverystatus.FieldReason:
 		return m.Reason()
 	case notificationeventdeliverystatus.FieldNextAttemptAt:
 		return m.NextAttemptAt()
 	case notificationeventdeliverystatus.FieldAttempts:
 		return m.Attempts()
+	case notificationeventdeliverystatus.FieldProviderData:
+		return m.ProviderData()
 	}
 	return nil, false
 }
@@ -109794,12 +110115,18 @@ func (m *NotificationEventDeliveryStatusMutation) OldField(ctx context.Context, 
 		return m.OldChannelID(ctx)
 	case notificationeventdeliverystatus.FieldState:
 		return m.OldState(ctx)
+	case notificationeventdeliverystatus.FieldDispatchGeneration:
+		return m.OldDispatchGeneration(ctx)
+	case notificationeventdeliverystatus.FieldDispatchQueuedAt:
+		return m.OldDispatchQueuedAt(ctx)
 	case notificationeventdeliverystatus.FieldReason:
 		return m.OldReason(ctx)
 	case notificationeventdeliverystatus.FieldNextAttemptAt:
 		return m.OldNextAttemptAt(ctx)
 	case notificationeventdeliverystatus.FieldAttempts:
 		return m.OldAttempts(ctx)
+	case notificationeventdeliverystatus.FieldProviderData:
+		return m.OldProviderData(ctx)
 	}
 	return nil, fmt.Errorf("unknown NotificationEventDeliveryStatus field %s", name)
 }
@@ -109858,6 +110185,20 @@ func (m *NotificationEventDeliveryStatusMutation) SetField(name string, value en
 		}
 		m.SetState(v)
 		return nil
+	case notificationeventdeliverystatus.FieldDispatchGeneration:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDispatchGeneration(v)
+		return nil
+	case notificationeventdeliverystatus.FieldDispatchQueuedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDispatchQueuedAt(v)
+		return nil
 	case notificationeventdeliverystatus.FieldReason:
 		v, ok := value.(string)
 		if !ok {
@@ -109873,11 +110214,18 @@ func (m *NotificationEventDeliveryStatusMutation) SetField(name string, value en
 		m.SetNextAttemptAt(v)
 		return nil
 	case notificationeventdeliverystatus.FieldAttempts:
-		v, ok := value.([]notification.EventDeliveryAttempt)
+		v, ok := value.(jsontext.Value)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetAttempts(v)
+		return nil
+	case notificationeventdeliverystatus.FieldProviderData:
+		v, ok := value.(map[string]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetProviderData(v)
 		return nil
 	}
 	return fmt.Errorf("unknown NotificationEventDeliveryStatus field %s", name)
@@ -109886,13 +110234,21 @@ func (m *NotificationEventDeliveryStatusMutation) SetField(name string, value en
 // AddedFields returns all numeric fields that were incremented/decremented during
 // this mutation.
 func (m *NotificationEventDeliveryStatusMutation) AddedFields() []string {
-	return nil
+	var fields []string
+	if m.adddispatch_generation != nil {
+		fields = append(fields, notificationeventdeliverystatus.FieldDispatchGeneration)
+	}
+	return fields
 }
 
 // AddedField returns the numeric value that was incremented/decremented on a field
 // with the given name. The second boolean return value indicates that this field
 // was not set, or was not defined in the schema.
 func (m *NotificationEventDeliveryStatusMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case notificationeventdeliverystatus.FieldDispatchGeneration:
+		return m.AddedDispatchGeneration()
+	}
 	return nil, false
 }
 
@@ -109901,6 +110257,13 @@ func (m *NotificationEventDeliveryStatusMutation) AddedField(name string) (ent.V
 // type.
 func (m *NotificationEventDeliveryStatusMutation) AddField(name string, value ent.Value) error {
 	switch name {
+	case notificationeventdeliverystatus.FieldDispatchGeneration:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddDispatchGeneration(v)
+		return nil
 	}
 	return fmt.Errorf("unknown NotificationEventDeliveryStatus numeric field %s", name)
 }
@@ -109912,6 +110275,9 @@ func (m *NotificationEventDeliveryStatusMutation) ClearedFields() []string {
 	if m.FieldCleared(notificationeventdeliverystatus.FieldAnnotations) {
 		fields = append(fields, notificationeventdeliverystatus.FieldAnnotations)
 	}
+	if m.FieldCleared(notificationeventdeliverystatus.FieldDispatchQueuedAt) {
+		fields = append(fields, notificationeventdeliverystatus.FieldDispatchQueuedAt)
+	}
 	if m.FieldCleared(notificationeventdeliverystatus.FieldReason) {
 		fields = append(fields, notificationeventdeliverystatus.FieldReason)
 	}
@@ -109920,6 +110286,9 @@ func (m *NotificationEventDeliveryStatusMutation) ClearedFields() []string {
 	}
 	if m.FieldCleared(notificationeventdeliverystatus.FieldAttempts) {
 		fields = append(fields, notificationeventdeliverystatus.FieldAttempts)
+	}
+	if m.FieldCleared(notificationeventdeliverystatus.FieldProviderData) {
+		fields = append(fields, notificationeventdeliverystatus.FieldProviderData)
 	}
 	return fields
 }
@@ -109938,6 +110307,9 @@ func (m *NotificationEventDeliveryStatusMutation) ClearField(name string) error 
 	case notificationeventdeliverystatus.FieldAnnotations:
 		m.ClearAnnotations()
 		return nil
+	case notificationeventdeliverystatus.FieldDispatchQueuedAt:
+		m.ClearDispatchQueuedAt()
+		return nil
 	case notificationeventdeliverystatus.FieldReason:
 		m.ClearReason()
 		return nil
@@ -109946,6 +110318,9 @@ func (m *NotificationEventDeliveryStatusMutation) ClearField(name string) error 
 		return nil
 	case notificationeventdeliverystatus.FieldAttempts:
 		m.ClearAttempts()
+		return nil
+	case notificationeventdeliverystatus.FieldProviderData:
+		m.ClearProviderData()
 		return nil
 	}
 	return fmt.Errorf("unknown NotificationEventDeliveryStatus nullable field %s", name)
@@ -109976,6 +110351,12 @@ func (m *NotificationEventDeliveryStatusMutation) ResetField(name string) error 
 	case notificationeventdeliverystatus.FieldState:
 		m.ResetState()
 		return nil
+	case notificationeventdeliverystatus.FieldDispatchGeneration:
+		m.ResetDispatchGeneration()
+		return nil
+	case notificationeventdeliverystatus.FieldDispatchQueuedAt:
+		m.ResetDispatchQueuedAt()
+		return nil
 	case notificationeventdeliverystatus.FieldReason:
 		m.ResetReason()
 		return nil
@@ -109984,6 +110365,9 @@ func (m *NotificationEventDeliveryStatusMutation) ResetField(name string) error 
 		return nil
 	case notificationeventdeliverystatus.FieldAttempts:
 		m.ResetAttempts()
+		return nil
+	case notificationeventdeliverystatus.FieldProviderData:
+		m.ResetProviderData()
 		return nil
 	}
 	return fmt.Errorf("unknown NotificationEventDeliveryStatus field %s", name)
