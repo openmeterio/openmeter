@@ -35,7 +35,9 @@ func AllOf(fn ...ActionFn) ActionFn {
 	}
 }
 
-func WithParameters[T models.Validator](fn func(context.Context, T) error) func(context.Context, ...any) error {
+// WithParameters validates the trigger argument once, then runs the actions in
+// order and stops at the first error.
+func WithParameters[T models.Validator](fns ...func(context.Context, T) error) func(context.Context, ...any) error {
 	return func(ctx context.Context, args ...any) error {
 		if len(args) == 0 {
 			return fmt.Errorf("no arguments provided: expected %T", new(T))
@@ -50,7 +52,21 @@ func WithParameters[T models.Validator](fn func(context.Context, T) error) func(
 			return fmt.Errorf("validate: %w", err)
 		}
 
-		return fn(ctx, converted)
+		for _, fn := range fns {
+			if err := fn(ctx, converted); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	}
+}
+
+// WithoutParameters lets an action that ignores the trigger argument take part
+// in a WithParameters sequence.
+func WithoutParameters[T any](fn ActionFn) func(context.Context, T) error {
+	return func(ctx context.Context, _ T) error {
+		return fn(ctx)
 	}
 }
 

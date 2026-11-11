@@ -148,7 +148,11 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.SetOverride)).
 		Permit(meta.TriggerClearOverride, flatfee.StatusDeletedClearOverride, statelessx.BoolFn(s.IsBaseIntentDeleted)).
 		Permit(meta.TriggerClearOverride, flatfee.StatusActiveClearOverride, statelessx.BoolFn(statelessx.Not(s.IsBaseIntentDeleted))).
-		OnEntryFrom(meta.TriggerAttachInvoiceLine, statelessx.WithParameters(s.AttachInvoiceLine))
+		// The charge skipped active, so the cost basis is still unresolved here.
+		OnEntryFrom(meta.TriggerAttachInvoiceLine, statelessx.WithParameters(
+			statelessx.WithoutParameters[billing.StandardLineWithInvoiceHeader](s.ResolveDynamicCostBasis),
+			s.AttachInvoiceLine,
+		))
 
 	s.Configure(flatfee.StatusActiveRealizationIssuing).
 		Permit(meta.TriggerInvoiceIssued, flatfee.StatusActiveRealizationCompleted).
