@@ -4885,10 +4885,15 @@ var (
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
 		{Name: "annotations", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "metadata", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
-		{Name: "type", Type: field.TypeEnum, Enums: []string{"WEBHOOK"}},
+		{Name: "type", Type: field.TypeString},
 		{Name: "name", Type: field.TypeString},
 		{Name: "disabled", Type: field.TypeBool, Nullable: true, Default: false},
 		{Name: "config", Type: field.TypeString, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "event_type_filter", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "provider_data", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "generation", Type: field.TypeInt, Default: 1, SchemaType: map[string]string{"postgres": "integer"}},
+		{Name: "reconcile_status", Type: field.TypeString, Default: "unknown", SchemaType: map[string]string{"postgres": "text"}},
+		{Name: "reconcile_next_at", Type: field.TypeTime, Nullable: true},
 	}
 	// NotificationChannelsTable holds the schema information for the "notification_channels" table.
 	NotificationChannelsTable = &schema.Table{

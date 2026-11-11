@@ -98,7 +98,12 @@ func (a *adapter) ListRules(ctx context.Context, params notification.ListRulesIn
 				continue
 			}
 
-			result = append(result, *RuleFromDBEntity(*ruleRow))
+			rule, err := RuleFromDBEntity(*ruleRow)
+			if err != nil {
+				return response, err
+			}
+
+			result = append(result, *rule)
 		}
 
 		response.TotalCount = paged.TotalCount
@@ -142,7 +147,7 @@ func (a *adapter) CreateRule(ctx context.Context, params notification.CreateRule
 
 		queryRow.Edges.Channels = channelRows
 
-		return RuleFromDBEntity(*queryRow), nil
+		return RuleFromDBEntity(*queryRow)
 	}
 
 	return entutils.TransactingRepo(ctx, a, fn)
@@ -200,7 +205,7 @@ func (a *adapter) GetRule(ctx context.Context, params notification.GetRuleInput)
 			return nil, fmt.Errorf("invalid query result: nil notification rule received")
 		}
 
-		return RuleFromDBEntity(*ruleRow), nil
+		return RuleFromDBEntity(*ruleRow)
 	}
 
 	return entutils.TransactingRepo(ctx, a, fn)
@@ -247,7 +252,7 @@ func (a *adapter) UpdateRule(ctx context.Context, params notification.UpdateRule
 
 		queryRow.Edges.Channels = channelRows
 
-		return RuleFromDBEntity(*queryRow), nil
+		return RuleFromDBEntity(*queryRow)
 	}
 
 	return entutils.TransactingRepo(ctx, a, fn)

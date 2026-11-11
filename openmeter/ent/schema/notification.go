@@ -4,6 +4,7 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"fmt"
+	"math"
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
@@ -34,8 +35,10 @@ func (NotificationChannel) Mixin() []ent.Mixin {
 
 func (NotificationChannel) Fields() []ent.Field {
 	return []ent.Field{
-		field.Enum("type").
+		field.String("type").
 			GoType(notification.ChannelType("")).
+			ValueScanner(ChannelTypeValueScanner).
+			NotEmpty().
 			Immutable(),
 		field.String("name").
 			NotEmpty(),
@@ -43,11 +46,51 @@ func (NotificationChannel) Fields() []ent.Field {
 			Default(false).
 			Optional(),
 		field.String("config").
-			GoType(notification.ChannelConfig{}).
-			ValueScanner(ChannelConfigValueScanner).
+			GoType(json.RawMessage{}).
+			ValueScanner(entutils.JSONStringValueScanner[json.RawMessage]()).
 			SchemaType(map[string]string{
 				dialect.Postgres: "jsonb",
 			}),
+		field.String("event_type_filter").
+			GoType([]string{}).
+			ValueScanner(entutils.JSONStringValueScanner[[]string]()).
+			SchemaType(map[string]string{
+				dialect.Postgres: "jsonb",
+			}).
+			Optional().
+			Comment("Unique resolved event types for V4 routing; inactive during migration Phase 1."),
+		field.String("provider_data").
+			GoType(map[string]string{}).
+			ValueScanner(entutils.JSONStringValueScanner[map[string]string]()).
+			SchemaType(map[string]string{
+				dialect.Postgres: "jsonb",
+			}).
+			Optional().
+			Comment("Provider-owned operational data for V4."),
+		// TODO(notification-v4): activate generation tracking and reconciliation
+		// only after all writers support them; legacy updates preserve these fields.
+		field.Int("generation").
+			Min(1).
+			Max(math.MaxInt32).
+			Default(1).
+			SchemaType(map[string]string{
+				dialect.Postgres: "integer",
+			}).
+			Comment("Desired-state generation for V4; inactive during migration Phase 1."),
+		field.String("reconcile_status").
+			GoType(notification.ChannelReconcileStatus("")).
+			Validate(func(status string) error {
+				return notification.ChannelReconcileStatus(status).Validate()
+			}).
+			Default(string(notification.ChannelReconcileStatusUnknown)).
+			SchemaType(map[string]string{
+				dialect.Postgres: "text",
+			}).
+			Comment("Channel reconciliation status for V4; unknown until provider adoption."),
+		field.Time("reconcile_next_at").
+			Optional().
+			Nillable().
+			Comment("Scheduled Channel reconciliation time for V4; inactive during migration Phase 1."),
 	}
 }
 
@@ -221,64 +264,26 @@ func (NotificationEventDeliveryStatus) Indexes() []ent.Index {
 	}
 }
 
-type channelConfigSerde[T any] struct {
-	notification.ChannelConfigMeta
-
-	Data T `json:"data"`
-}
-
-var ChannelConfigValueScanner = field.ValueScannerFunc[notification.ChannelConfig, *sql.NullString]{
-	V: func(config notification.ChannelConfig) (driver.Value, error) {
-		switch config.Type {
-		case notification.ChannelTypeWebhook:
-			serde := channelConfigSerde[notification.WebHookChannelConfig]{
-				ChannelConfigMeta: notification.ChannelConfigMeta{
-					Type: config.Type,
-				},
-				Data: config.WebHook,
-			}
-
-			return json.Marshal(serde)
-		default:
-			return nil, fmt.Errorf("unknown channel type: %s", config.Type)
+// TODO(notification-v4): keep legacy writes until every deployed and rollback
+// version supports the final format; remove legacy reads after data conversion.
+var ChannelTypeValueScanner = field.ValueScannerFunc[notification.ChannelType, *sql.NullString]{
+	V: func(channelType notification.ChannelType) (driver.Value, error) {
+		if channelType == notification.ChannelTypeWebhook {
+			return "WEBHOOK", nil
 		}
+
+		return string(channelType), nil
 	},
-	S: func(ns *sql.NullString) (notification.ChannelConfig, error) {
-		var channelConfig notification.ChannelConfig
-		if ns == nil || !ns.Valid {
-			return channelConfig, nil
+	S: func(value *sql.NullString) (notification.ChannelType, error) {
+		if value == nil || !value.Valid {
+			return "", nil
 		}
 
-		data := []byte(ns.String)
-
-		var meta notification.ChannelConfigMeta
-		if err := json.Unmarshal(data, &meta); err != nil {
-			return channelConfig, err
+		if value.String == "WEBHOOK" {
+			return notification.ChannelTypeWebhook, nil
 		}
 
-		switch meta.Type {
-		case notification.ChannelTypeWebhook:
-			serde := channelConfigSerde[notification.WebHookChannelConfig]{
-				ChannelConfigMeta: notification.ChannelConfigMeta{
-					Type: meta.Type,
-				},
-				Data: notification.WebHookChannelConfig{},
-			}
-
-			if err := json.Unmarshal(data, &serde); err != nil {
-				return channelConfig, err
-			}
-
-			channelConfig = notification.ChannelConfig{
-				ChannelConfigMeta: serde.ChannelConfigMeta,
-				WebHook:           serde.Data,
-			}
-
-		default:
-			return channelConfig, fmt.Errorf("unknown channel type: %s", meta.Type)
-		}
-
-		return channelConfig, nil
+		return notification.ChannelType(value.String), nil
 	},
 }
 
