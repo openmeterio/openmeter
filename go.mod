@@ -78,7 +78,7 @@ require (
 	github.com/stripe/stripe-go/v80 v80.2.1
 	github.com/svix/svix-webhooks/v2 v2.9.1
 	github.com/wI2L/jsondiff v0.7.1
-	github.com/xdg-go/scram v1.2.0
+	github.com/xdg-go/scram v1.3.0
 	github.com/zeebo/xxh3 v1.1.0
 	go.opentelemetry.io/contrib/bridges/otelslog v0.21.0
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.72.0
