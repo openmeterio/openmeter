@@ -39,12 +39,12 @@ func balanceScope(key creditbalance.Key) predicate.RTECreditBalance {
 	)
 }
 
-func (a *creditBalanceStore) Store(ctx context.Context, input rte.StoreInput[creditbalance.Key, creditbalance.Balance]) (rte.State[creditbalance.Balance], error) {
+func (a *creditBalanceStore) Store(ctx context.Context, input rte.StoreInput[creditbalance.Key, creditbalance.Balance]) (rte.StoreResult[creditbalance.Balance], error) {
 	if err := input.Validate(); err != nil {
-		return rte.State[creditbalance.Balance]{}, err
+		return rte.StoreResult[creditbalance.Balance]{}, err
 	}
 
-	return entutils.TransactingRepo(ctx, a.adapter, func(ctx context.Context, a *adapter) (rte.State[creditbalance.Balance], error) {
+	return entutils.TransactingRepo(ctx, a.adapter, func(ctx context.Context, a *adapter) (rte.StoreResult[creditbalance.Balance], error) {
 		err := a.db.RTECreditBalance.Create().
 			SetNamespace(input.Key.CustomerID.Namespace).
 			SetCustomerID(input.Key.CustomerID.ID).
@@ -63,11 +63,16 @@ func (a *creditBalanceStore) Store(ctx context.Context, input rte.StoreInput[cre
 		// PostgreSQL returns no row when the conflict condition retains the
 		// existing result. Ent's RETURNING reports that as sql.ErrNoRows.
 		if err != nil && !errors.Is(err, stdsql.ErrNoRows) {
-			return rte.State[creditbalance.Balance]{}, fmt.Errorf("store credit balance: %w", err)
+			return rte.StoreResult[creditbalance.Balance]{}, fmt.Errorf("store credit balance: %w", err)
 		}
 
 		// A superseded attempt returns the retained result, not its stale output.
-		return (&creditBalanceStore{adapter: a}).Get(ctx, input.Key)
+		state, readErr := (&creditBalanceStore{adapter: a}).Get(ctx, input.Key)
+		if readErr != nil {
+			return rte.StoreResult[creditbalance.Balance]{}, readErr
+		}
+
+		return rte.StoreResult[creditbalance.Balance]{State: state, Updated: err == nil}, nil
 	})
 }
 

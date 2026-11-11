@@ -9,6 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/rte"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
+	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	creditstest "github.com/openmeterio/openmeter/test/credits"
 )
 
@@ -30,6 +31,7 @@ func (s *RTEIntegrationSuite) newRTE() rte.Service {
 		s.Entitlements,
 		testutils.NewDiscardLogger(s.T()),
 		config.CreditsConfiguration{Enabled: true},
+		eventbus.NewMock(s.T()),
 	)
 	s.Require().NoError(err)
 

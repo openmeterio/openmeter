@@ -6,7 +6,8 @@ calculations. Credit balance calculation calls
 booked, spendable, live, and pending semantics. It does not change existing
 customer balance endpoints or the entitlement worker.
 
-RTE owns the typed calculate/read lifecycle, timestamped state, and persistence.
+RTE owns the typed calculate/read lifecycle, timestamped state, persistence, and
+calculation events.
 Each calculation package supplies its key, result, and `Calculator` implementation.
 The service constructor pairs each registered calculator with its typed store.
 Callers select `CreditBalances()` or `MeteredEntitlements()` and use its `Calculate`
@@ -29,9 +30,22 @@ state. Equal or older timestamps retain and return the stored result. Failed
 calculations do not write state. This ordering relies on replica clocks being
 aligned; it is not a source revision or a transactional snapshot guarantee.
 
-The process currently reuses the calculator’s existing service wiring, including
-Kafka, ClickHouse, and the shared system-event outbox publisher. It does not
-subscribe to events.
+`CalculationRequestedEvent` selects a calculation kind and its typed key. The RTE
+worker consumes these requests from the shared system-events topic in its own
+consumer group (`rte.consumerGroupName`), using the standard retry and DLQ pipeline
+(`rte.retry`, `rte.dlq`). Other event types do not trigger calculations.
+
+Every accepted state write enqueues a `CalculationUpdatedEvent` in the same
+transaction. It carries the kind, key, and complete persisted state. Failed,
+equal-timestamp, and older attempts emit no update. Updates use the existing
+system-event outbox; a successful calculation means the update is queued, not
+necessarily delivered.
+
+The pipeline can redeliver events. A repeated request can run a fresh calculation
+and produce a newer update. Updates may repeat or arrive out of order; consumers can
+compare `calculated_at` for the same kind and key. See the
+[outbox delivery and retry semantics](../watermill/outbox/README.md). No
+source-event routing or invalidation is included.
 
 Run the separate process with the usual OpenMeter configuration and credits enabled:
 
@@ -39,6 +53,6 @@ Run the separate process with the usual OpenMeter configuration and credits enab
 go run -tags=dynamic ./cmd/rte --config config.yaml
 ```
 
-The Go service exposes explicit calculate and read operations. The process shell
-runs through the shared application runner; a request transport is not selected
-yet. No balance routes or event consumers are registered.
+The Go service exposes explicit calculate and read operations. The process uses
+the shared application runner and calculator wiring. Reads remain Go-only; no
+HTTP endpoints are registered.

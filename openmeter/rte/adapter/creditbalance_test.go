@@ -82,7 +82,7 @@ func TestCreditBalanceStore(t *testing.T) {
 		release := make(chan struct{})
 		defer close(release)
 		type outcome struct {
-			balance rte.State[creditbalance.Balance]
+			balance rte.StoreResult[creditbalance.Balance]
 			err     error
 		}
 		done := make(chan outcome, 1)
@@ -106,6 +106,8 @@ func TestCreditBalanceStore(t *testing.T) {
 		release <- struct{}{}
 		late := <-done
 		require.NoError(t, late.err)
+		require.True(t, fresh.Updated)
+		require.False(t, late.balance.Updated)
 		require.True(t, late.balance.CalculatedAt.Equal(fresh.CalculatedAt))
 		require.Equal(t, float64(180), late.balance.Value.Live.InexactFloat64())
 
@@ -113,6 +115,7 @@ func TestCreditBalanceStore(t *testing.T) {
 		older.State.CalculatedAt = newer.State.CalculatedAt
 		equal, err := first.Store(ctx, older)
 		require.NoError(t, err)
+		require.False(t, equal.Updated)
 		require.Equal(t, float64(180), equal.Value.Live.InexactFloat64())
 
 		stored, err := reader.Get(ctx, freshKey)

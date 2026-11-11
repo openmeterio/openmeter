@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/taxcoderesolver"
 	"github.com/openmeterio/openmeter/openmeter/rte"
 	"github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
+	"github.com/openmeterio/openmeter/openmeter/watermill/router"
 	"github.com/openmeterio/openmeter/pkg/featuregate"
 	"github.com/openmeterio/openmeter/pkg/ffx"
 	"log/slog"
@@ -73,11 +74,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	health := common.NewHealthChecker(logger)
 	telemetryHandler := common.NewTelemetryHandler(metricsTelemetryConfig, health, logger)
 	telemetryServer, cleanup6 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
-	group := common.RTEGroup(ctx, telemetryServer)
-	runner := common.Runner{
-		Group:  group,
-		Logger: logger,
-	}
 	creditsConfiguration := conf.Credits
 	repo := common.NewLedgerHistoricalRepo(client)
 	accountRepo := common.NewLedgerAccountRepo(client)
@@ -105,8 +101,20 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	kafkaIngestConfiguration := ingestConfiguration.Kafka
 	kafkaConfiguration := kafkaIngestConfiguration.KafkaConfiguration
 	brokerOptions := common.NewBrokerConfiguration(kafkaConfiguration, commonMetadata, logger, meter)
-	v2 := common.NewEmptyProvisionTopics()
-	topicProvisioner := common.NewNoopKafkaTopicProvisioner()
+	rteConfiguration := conf.RTE
+	eventsConfiguration := conf.Events
+	v2 := common.RTEProvisionTopics(rteConfiguration, eventsConfiguration)
+	topicProvisionerConfig := kafkaIngestConfiguration.TopicProvisioner
+	topicProvisioner, err := common.NewKafkaTopicProvisioner(kafkaConfiguration, topicProvisionerConfig, logger, meter)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
 	publisherOptions := kafka.PublisherOptions{
 		Broker:           brokerOptions,
 		ProvisionTopics:  v2,
@@ -122,7 +130,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	eventsConfiguration := conf.Events
 	eventbusPublisher, cleanup8, err := common.NewEventBusPublisher(ctx, publisher, client, eventsConfiguration, logger)
 	if err != nil {
 		cleanup7()
@@ -458,7 +465,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	rteService, err := common.NewRTEService(client, customerbalanceService, entitlement, logger, creditsConfiguration)
+	rteService, err := common.NewRTEService(client, customerbalanceService, entitlement, logger, creditsConfiguration, eventbusPublisher)
 	if err != nil {
 		cleanup9()
 		cleanup8()
@@ -470,6 +477,47 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup2()
 		cleanup()
 		return Application{}, nil, err
+	}
+	subscriptionStatus := common.NewRTESubscriptionStatus(eventsConfiguration)
+	subscriber, err := common.RTESubscriber(rteConfiguration, brokerOptions, subscriptionStatus)
+	if err != nil {
+		cleanup9()
+		cleanup8()
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	consumerConfiguration := rteConfiguration.ConsumerConfiguration
+	options := router.Options{
+		Subscriber:  subscriber,
+		Publisher:   publisher,
+		Logger:      logger,
+		MetricMeter: meter,
+		Tracer:      tracer,
+		Config:      consumerConfiguration,
+	}
+	worker, err := common.NewRTEWorker(rteService, eventsConfiguration, options, eventbusPublisher)
+	if err != nil {
+		cleanup9()
+		cleanup8()
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	group := common.RTEGroup(ctx, telemetryServer, worker, subscriptionStatus)
+	runner := common.Runner{
+		Group:  group,
+		Logger: logger,
 	}
 	runtimeMetricsCollector, err := common.NewRuntimeMetricsCollector(meterProvider, logger)
 	if err != nil {
