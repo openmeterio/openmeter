@@ -29,9 +29,11 @@ func (e ChargeInputsChangedEvent) Validate() error {
 	if e.Namespace == "" {
 		errs = append(errs, errors.New("namespace is required"))
 	}
+
 	if e.CustomerID == "" {
 		errs = append(errs, errors.New("customer ID is required"))
 	}
+
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 

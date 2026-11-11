@@ -19,9 +19,11 @@ func (e TransactionGroupCommittedEvent) Validate() error {
 	if e.Namespace == "" {
 		errs = append(errs, errors.New("namespace is required"))
 	}
+
 	if e.GroupID == "" {
 		errs = append(errs, errors.New("group ID is required"))
 	}
+
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
