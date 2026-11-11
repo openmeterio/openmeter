@@ -1,3 +1,4 @@
+{{- $httpPreset := and (eq .Values.preset "http-server") (not .Values.config) (not .Values.configFile) -}}
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -15,6 +16,9 @@ spec:
       annotations:
         checksum/config: {{ .Values.config | toYaml | sha256sum }}
         checksum/secret: {{ .Values.openmeter | toYaml | sha256sum }}
+        {{- if .Values.caRootCertificates }}
+        checksum/ca-certificates: {{ .Values.caRootCertificates | toYaml | sha256sum }}
+        {{- end }}
       {{- with .Values.podAnnotations }}
         {{- toYaml . | nindent 8 }}
       {{- end }}
@@ -31,13 +35,27 @@ spec:
       serviceAccountName: {{ include "benthos-collector.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- if .Values.caRootCertificates }}
+      initContainers:
+        - name: prepare-ca-bundle
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["/usr/local/bin/prepare-ca-bundle"]
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          volumeMounts:
+            - name: ca-certificates
+              mountPath: /usr/local/share/ca-certificates
+              readOnly: true
+            - name: ca-bundle
+              mountPath: /var/run/openmeter-ca
+      {{- end }}
       containers:
         - name: {{ .Chart.Name }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          command: ["/entrypoint.sh", "/usr/local/bin/benthos"]
           args: {{ include "benthos-collector.args" . }}
           livenessProbe:
             httpGet:
@@ -109,26 +127,33 @@ spec:
               mountPath: /etc/benthos/config.yaml
               readOnly: true
               subPath: config.yaml
-          {{- if .Values.storage.enabled }}
+          {{- if or .Values.storage.enabled $httpPreset }}
             - name: data
               mountPath: {{ .Values.storage.mountPath }}
           {{- end }}
-          {{- if ne (len .Values.caRootCertificates) 0 }}
-            - name: ca-certificates
-              mountPath: /usr/local/share/ca-certificates
+          {{- if .Values.caRootCertificates }}
+            - name: ca-bundle
+              mountPath: /etc/ssl/certs/ca-certificates.crt
+              subPath: ca-certificates.crt
               readOnly: true
           {{- end }}
           {{- with .Values.volumeMounts }}
             {{- toYaml . | nindent 12 }}
           {{- end }}
       volumes:
+      {{- if and $httpPreset (not .Values.storage.enabled) }}
+        - name: data
+          emptyDir: {}
+      {{- end }}
         - name: config
           secret:
             secretName: {{ include "benthos-collector.componentName" (list . "config") }}
-      {{- if ne (len .Values.caRootCertificates) 0 }}
+      {{- if .Values.caRootCertificates }}
         - name: ca-certificates
           configMap:
-            name: ca-certificates
+            name: {{ include "benthos-collector.componentName" (list . "ca-certificates") }}
+        - name: ca-bundle
+          emptyDir: {}
       {{- end }}
       {{- with .Values.volumes }}
         {{- toYaml . | nindent 8 }}

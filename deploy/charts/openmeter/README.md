@@ -162,8 +162,8 @@ jobs:
 | serviceAccount.name | string | `""` | The name of the service account to use. If not set and create is true, a name is generated using the fullname template |
 | podAnnotations | object | `{}` | Annotations to be added to pods. |
 | podLabels | object | `{}` | Labels to be added to pods. |
-| podSecurityContext | object | `{}` | Pod [security context](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-pod). See the [API reference](https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#security-context) for details. |
-| securityContext | object | `{}` | Container [security context](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-container). See the [API reference](https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#security-context-1) for details. |
+| podSecurityContext | object | `{"fsGroup":10001}` | Pod [security context](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-pod). See the [API reference](https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#security-context) for details. |
+| securityContext | object | `{}` | Container [security context](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-container). See the [API reference](https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#security-context-1) for details. OpenMeter containers default to runAsNonRoot, disable privilege escalation, and drop all capabilities. |
 | service.type | string | `"ClusterIP"` | Kubernetes [service type](https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types). |
 | service.port | int | `80` | Service port. |
 | ingress.enabled | bool | `false` | Enable [ingress](https://kubernetes.io/docs/concepts/services-networking/ingress/). |
@@ -249,7 +249,7 @@ jobs:
 | billingWorker.nodeSelector | object | The chart-wide `nodeSelector` value. | [Node selector](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#nodeselector) for the Billing Worker. |
 | billingWorker.tolerations | list | The chart-wide `tolerations` value. | [Tolerations](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/) for the Billing Worker. |
 | billingWorker.affinity | object | The chart-wide `affinity` value. | [Affinity](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#affinity-and-anti-affinity) for the Billing Worker. |
-| caRootCertificates | object | `{}` | List of CA Root certificates to inject into pods at runtime. See [values.yaml](values.yaml) |
+| caRootCertificates | object | `{}` | PEM root certificates to add to the image trust bundle at pod startup. See [values.yaml](values.yaml) |
 | jobs.subscriptionSync | object | `{"affinity":{},"nodeSelector":{},"resources":{},"schedule":"0 * * * *","tolerations":[]}` | Subscription sync job is a backup reconciler to make sure that all subscriptions are properly billed even if there is some kind of issue with the billing worker. |
 | jobs.subscriptionSync.schedule | string | `"0 * * * *"` | Schedule for the subscription sync job. Default is every hour. |
 | jobs.subscriptionSync.resources | object | The chart-wide `resources` value. | Container resource [requests and limits](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/) for the subscription sync job. |

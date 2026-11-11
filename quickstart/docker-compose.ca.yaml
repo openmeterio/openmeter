@@ -1,0 +1,41 @@
+x-image: &image "${OPENMETER_IMAGE:-ghcr.io/openmeterio/openmeter:latest}"
+x-trust: &trust
+  image: *image
+  depends_on:
+    openmeter-prepare-ca:
+      condition: service_completed_successfully
+  volumes:
+    - type: volume
+      source: openmeter-ca
+      target: /etc/ssl/certs/ca-certificates.crt
+      read_only: true
+      volume:
+        nocopy: true
+        subpath: ca-certificates.crt
+
+services:
+  openmeter-prepare-ca:
+    image: *image
+    entrypoint: ["/usr/local/bin/prepare-ca-bundle"]
+    network_mode: none
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    volumes:
+      - type: bind
+        source: "${CA_CERTIFICATES_DIR:?Set CA_CERTIFICATES_DIR to the directory containing your .crt files}"
+        target: /usr/local/share/ca-certificates
+        read_only: true
+        bind:
+          create_host_path: false
+      - openmeter-ca:/var/run/openmeter-ca
+
+  openmeter: *trust
+  sink-worker: *trust
+  balance-worker: *trust
+  notification-service: *trust
+  billing-worker: *trust
+  openmeter-jobs: *trust
+
+volumes:
+  openmeter-ca:

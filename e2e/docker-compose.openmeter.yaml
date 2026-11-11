@@ -18,7 +18,6 @@ services:
       - "127.0.0.1:38888:8888"
     volumes:
       - ./config.yaml:/etc/openmeter/config.yaml
-      - ./logs/openmeter:/var/log/openmeter/
     healthcheck:
       test: ["CMD", "wget", "--spider", "http://openmeter:8888/api/v1/debug/metrics"]
       interval: 5s
@@ -42,7 +41,6 @@ services:
       - "127.0.0.1:30000:10000"
     volumes:
       - ./config.yaml:/etc/openmeter/config.yaml
-      - ./logs/sink-worker:/var/log/openmeter
 
   billing-worker:
     command: openmeter-billing-worker --config /etc/openmeter/config.yaml
@@ -61,4 +59,3 @@ services:
       - "127.0.0.1:30001:10000"
     volumes:
       - ./config.yaml:/etc/openmeter/config.yaml
-      - ./logs/billing-worker:/var/log/openmeter

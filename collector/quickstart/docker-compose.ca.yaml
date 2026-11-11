@@ -1,0 +1,42 @@
+include: !override
+  - path:
+      - ../../quickstart/docker-compose.yaml
+      - ../../quickstart/docker-compose.ca.yaml
+
+x-image: &image "${COLLECTOR_IMAGE:-ghcr.io/openmeterio/benthos-collector:latest}"
+x-trust: &trust
+  image: *image
+  depends_on:
+    collector-prepare-ca:
+      condition: service_completed_successfully
+  volumes:
+    - type: volume
+      source: collector-ca
+      target: /etc/ssl/certs/ca-certificates.crt
+      read_only: true
+      volume:
+        nocopy: true
+        subpath: ca-certificates.crt
+
+services:
+  collector-prepare-ca:
+    image: *image
+    entrypoint: ["/usr/local/bin/prepare-ca-bundle"]
+    network_mode: none
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    volumes:
+      - type: bind
+        source: "${CA_CERTIFICATES_DIR:?Set CA_CERTIFICATES_DIR to the directory containing your .crt files}"
+        target: /usr/local/share/ca-certificates
+        read_only: true
+        bind:
+          create_host_path: false
+      - collector-ca:/var/run/openmeter-ca
+
+  collector: *trust
+  seeder: *trust
+
+volumes:
+  collector-ca:
