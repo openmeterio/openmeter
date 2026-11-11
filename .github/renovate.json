@@ -20,7 +20,7 @@
   "semanticCommitScope": "deps",
   "dependencyDashboard": false,
   "vulnerabilityAlerts": {
-    "enabled": false
+    "enabled": true
   },
   "gomod": {
     "postUpgradeTasks": {
@@ -212,7 +212,7 @@
     ],
     "packageRules": [
       {
-        "description": "The JavaScript SDK receives security updates through Dependabot during the dry run.",
+        "description": "Only propose JavaScript SDK updates for dependencies with a GitHub vulnerability alert.",
         "matchPackageNames": ["**"],
         "enabled": false
       }
