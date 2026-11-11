@@ -196,6 +196,7 @@ func (s *RTELiveProcessSuite) TestDemandAndSourceChangesAcrossProcessBoundary() 
 			if !s.T().Failed() {
 				return
 			}
+
 			lastCredit, creditErr := creditStore.Get(ctx, creditKey)
 			lastMetered, meteredErr := meteredStore.Get(ctx, meteredKey)
 			s.T().Logf("last credit: booked=%s live=%s err=%v; metered: balance=%g usage=%g err=%v",
@@ -229,6 +230,7 @@ func (s *RTELiveProcessSuite) TestDemandAndSourceChangesAcrossProcessBoundary() 
 		for _, row := range rows {
 			storedUsage += row.Value
 		}
+
 		s.Require().Equal(float64(25), storedUsage, "persisted production meter must see inserted usage")
 		s.T().Logf("inserted usage=%g meter=%s aggregation=%s eventType=%s topic=%s",
 			storedUsage, definition.Key, definition.Aggregation, definition.EventType, live.conf.Events.IngestEvents.Topic)

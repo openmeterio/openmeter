@@ -71,6 +71,9 @@ func (s *RTEIntegrationSuite) TestPendingPurchaseInputFactRefreshesCreditsBefore
 	demands, err := common.NewRTEDemandService(s.DBClient, pipeline.service, logger, metricnoop.NewMeterProvider().Meter("test"), config.RTEConfiguration{CalculationTimeout: 30 * time.Second})
 	s.Require().NoError(err)
 	s.Require().NoError(demands.Activate(ctx, rte.ActivateDemandInput{Target: target.CalculationTarget}))
+	defer func() {
+		s.Require().NoError(demands.Deactivate(ctx, target.CalculationTarget))
+	}()
 	s.Require().NoError(demands.EnsureFresh(ctx, rte.EnsureFreshInput{Target: target.CalculationTarget, PullTTL: time.Minute}))
 	baseline, err := pipeline.service.CreditBalances().Get(ctx, key)
 	s.Require().NoError(err)

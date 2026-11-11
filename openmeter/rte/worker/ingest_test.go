@@ -66,6 +66,7 @@ func TestSourceInvalidationWaitsOnlyForCreditIngest(t *testing.T) {
 			if test.ingest {
 				event = &ingestevents.EventBatchedIngest{Namespace: eventmodels.NamespaceID{ID: "ns"}, SubjectKey: "subject", StoredAt: test.storedAt}
 			}
+
 			msg, err := marshaler.New(nil).Marshal(event)
 			require.NoError(t, err)
 			ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
@@ -77,6 +78,7 @@ func TestSourceInvalidationWaitsOnlyForCreditIngest(t *testing.T) {
 				if test.ingest && test.kind == rte.CalculationKindCreditBalance {
 					require.Greater(t, time.Now().Unix(), test.storedAt.Unix())
 				}
+
 				return nil
 			})
 
@@ -113,5 +115,6 @@ func sourceWorker(t *testing.T, kind rte.CalculationKind, invalidate func(contex
 	require.NoError(t, err)
 	lag, err := meter.Float64Histogram("lag")
 	require.NoError(t, err)
+
 	return &worker{sources: fixedSources{selectors: []rte.DemandSelector{{Namespace: "ns", Kind: kind}}}, demand: recordingDemand{invalidate: invalidate}, sourceEvents: count, sourceLag: lag}
 }
