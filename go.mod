@@ -1,6 +1,6 @@
 module github.com/openmeterio/openmeter
 
-go 1.27.3
+go 1.27.4
 
 // ee: https://github.com/oklog/run/pull/35
 replace github.com/oklog/run => github.com/openmeterio/run v0.0.0-20250217124527-c72029d4b634
