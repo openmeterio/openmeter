@@ -521,3 +521,80 @@ func TestEventChannelConfigCompatibility(t *testing.T) {
 		})
 	}
 }
+
+func TestEventRuleConfigCompatibility(t *testing.T) {
+	tests := []struct {
+		name    string
+		data    string
+		wantErr bool
+	}{
+		{
+			name: "legacy envelope",
+			data: `{"type":"entitlements.balance.threshold","data":{"features":["feature-a"],"thresholds":[{"type":"usage_percentage","value":50}]}}`,
+		},
+		{
+			name: "flat config",
+			data: `{"features":["feature-a"],"thresholds":[{"type":"usage_percentage","value":50}]}`,
+		},
+		{
+			name:    "malformed envelope",
+			data:    `{"type":"entitlements.balance.threshold","data":[]}`,
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// given: an existing event whose rule has a stored config in either format
+			env := newEventTestEnv(t)
+			channel := seedChannel(t, env, ulid.Make().String())
+			rule := seedRule(t, env, channel.Namespace, notification.EventTypeBalanceThreshold, channel.ID)
+			created := seedEvent(t, env, channel.Namespace, rule, clock.Now(), nil)
+
+			_, err := env.db.NotificationRule.UpdateOneID(rule.ID).
+				SetConfig(json.RawMessage(tt.data)).Save(t.Context())
+			require.NoError(t, err)
+
+			// when: reading the rule directly and through its event
+			_, ruleGetErr := env.adapter.GetRule(t.Context(), notification.GetRuleInput(rule.NamespacedID))
+			_, ruleListErr := env.adapter.ListRules(t.Context(), notification.ListRulesInput{
+				Namespace: rule.Namespace,
+				Page:      pagination.NewPage(1, 20),
+			})
+			item, getErr := env.adapter.GetEvent(t.Context(), notification.GetEventInput(created.NamespacedID))
+			listed, listErr := env.adapter.ListEvents(t.Context(), notification.ListEventsInput{
+				Namespaces: []string{created.Namespace},
+				Page:       pagination.NewPage(1, 20),
+			})
+
+			// then: values and decoding errors propagate through every read path
+			if tt.wantErr {
+				require.ErrorContains(t, ruleGetErr, "invalid notification rule config")
+				require.ErrorContains(t, ruleListErr, "invalid notification rule config")
+				require.ErrorContains(t, getErr, "invalid notification rule config")
+				require.ErrorContains(t, listErr, "invalid notification rule config")
+
+				assert.Nil(t, item)
+
+				return
+			}
+
+			require.NoError(t, ruleGetErr)
+			require.NoError(t, ruleListErr)
+			require.NoError(t, getErr)
+			require.NoError(t, listErr)
+			require.Len(t, listed.Items, 1)
+
+			assert.Equal(t, []string{"feature-a"}, item.Rule.Config.BalanceThreshold.Features)
+			assert.Equal(t, []notification.BalanceThreshold{
+				{Type: notification.BalanceThresholdTypeUsagePercentage, Value: 50},
+			}, item.Rule.Config.BalanceThreshold.Thresholds)
+			assert.Equal(t, item.Rule.Config, listed.Items[0].Rule.Config)
+
+			entity, err := env.db.NotificationRule.Get(t.Context(), rule.ID)
+			require.NoError(t, err)
+
+			assert.JSONEq(t, tt.data, string(entity.Config))
+		})
+	}
+}

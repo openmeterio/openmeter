@@ -2835,7 +2835,7 @@ func init() {
 	notificationrule.DefaultDisabled = notificationruleDescDisabled.Default.(bool)
 	// notificationruleDescConfig is the schema descriptor for config field.
 	notificationruleDescConfig := notificationruleFields[3].Descriptor()
-	notificationrule.ValueScanner.Config = notificationruleDescConfig.ValueScanner.(field.TypeValueScanner[notification.RuleConfig])
+	notificationrule.ValueScanner.Config = notificationruleDescConfig.ValueScanner.(field.TypeValueScanner[jsontext.Value])
 	// notificationruleDescID is the schema descriptor for id field.
 	notificationruleDescID := notificationruleMixinFields0[0].Descriptor()
 	// notificationrule.DefaultID holds the default value on creation for the id field.

@@ -3,7 +3,6 @@ package schema
 import (
 	"database/sql/driver"
 	"encoding/json"
-	"fmt"
 	"math"
 
 	"entgo.io/ent"
@@ -123,10 +122,10 @@ func (NotificationRule) Mixin() []ent.Mixin {
 
 func (NotificationRule) Fields() []ent.Field {
 	return []ent.Field{
-		field.Enum("type").
+		field.String("type").
 			GoType(notification.EventType("")).
 			Immutable().
-			Comment("The event type the rule associated with"),
+			Comment("The event type emitted by the Rule."),
 		field.String("name").
 			NotEmpty().
 			Comment("The name of the rule"),
@@ -135,8 +134,8 @@ func (NotificationRule) Fields() []ent.Field {
 			Optional().
 			Comment("Whether the rule is disabled or not"),
 		field.String("config").
-			GoType(notification.RuleConfig{}).
-			ValueScanner(RuleConfigValueScanner).
+			GoType(json.RawMessage{}).
+			ValueScanner(entutils.JSONStringValueScanner[json.RawMessage]()).
 			SchemaType(map[string]string{
 				dialect.Postgres: "jsonb",
 			}),
@@ -284,118 +283,6 @@ var ChannelTypeValueScanner = field.ValueScannerFunc[notification.ChannelType, *
 		}
 
 		return notification.ChannelType(value.String), nil
-	},
-}
-
-type ruleConfigSerde[T any] struct {
-	notification.RuleConfigMeta
-
-	Data *T `json:"data"`
-}
-
-var RuleConfigValueScanner = field.ValueScannerFunc[notification.RuleConfig, *sql.NullString]{
-	V: func(config notification.RuleConfig) (driver.Value, error) {
-		switch config.Type {
-		case notification.EventTypeBalanceThreshold:
-			serde := ruleConfigSerde[notification.BalanceThresholdRuleConfig]{
-				RuleConfigMeta: notification.RuleConfigMeta{
-					Type: config.Type,
-				},
-				Data: config.BalanceThreshold,
-			}
-
-			return json.Marshal(serde)
-		case notification.EventTypeEntitlementReset:
-			serde := ruleConfigSerde[notification.EntitlementResetRuleConfig]{
-				RuleConfigMeta: notification.RuleConfigMeta{
-					Type: config.Type,
-				},
-				Data: config.EntitlementReset,
-			}
-
-			return json.Marshal(serde)
-		case notification.EventTypeInvoiceCreated, notification.EventTypeInvoiceUpdated:
-			serde := ruleConfigSerde[notification.InvoiceRuleConfig]{
-				RuleConfigMeta: notification.RuleConfigMeta{
-					Type: config.Type,
-				},
-				Data: config.Invoice,
-			}
-
-			return json.Marshal(serde)
-		default:
-			return nil, fmt.Errorf("unknown rule config type: %s", config.Type)
-		}
-	},
-	S: func(ns *sql.NullString) (notification.RuleConfig, error) {
-		var ruleConfig notification.RuleConfig
-		if ns == nil || !ns.Valid {
-			return ruleConfig, nil
-		}
-
-		data := []byte(ns.String)
-
-		var meta notification.RuleConfigMeta
-		if err := json.Unmarshal(data, &meta); err != nil {
-			return ruleConfig, err
-		}
-
-		switch meta.Type {
-		case notification.EventTypeBalanceThreshold:
-			serde := ruleConfigSerde[notification.BalanceThresholdRuleConfig]{
-				RuleConfigMeta: notification.RuleConfigMeta{
-					Type: meta.Type,
-				},
-				Data: &notification.BalanceThresholdRuleConfig{},
-			}
-
-			if err := json.Unmarshal(data, &serde); err != nil {
-				return ruleConfig, err
-			}
-
-			ruleConfig = notification.RuleConfig{
-				RuleConfigMeta:   serde.RuleConfigMeta,
-				BalanceThreshold: serde.Data,
-			}
-
-		case notification.EventTypeEntitlementReset:
-			serde := ruleConfigSerde[notification.EntitlementResetRuleConfig]{
-				RuleConfigMeta: notification.RuleConfigMeta{
-					Type: meta.Type,
-				},
-				Data: &notification.EntitlementResetRuleConfig{},
-			}
-
-			if err := json.Unmarshal(data, &serde); err != nil {
-				return ruleConfig, err
-			}
-
-			ruleConfig = notification.RuleConfig{
-				RuleConfigMeta:   serde.RuleConfigMeta,
-				EntitlementReset: serde.Data,
-			}
-		case notification.EventTypeInvoiceCreated, notification.EventTypeInvoiceUpdated:
-			serde := ruleConfigSerde[notification.InvoiceRuleConfig]{
-				RuleConfigMeta: notification.RuleConfigMeta{
-					Type: meta.Type,
-				},
-				Data: &notification.InvoiceRuleConfig{},
-			}
-
-			if err := json.Unmarshal(data, &serde); err != nil {
-				return ruleConfig, err
-			}
-
-			ruleConfig = notification.RuleConfig{
-				RuleConfigMeta: serde.RuleConfigMeta,
-				Invoice:        serde.Data,
-			}
-
-		default:
-			return ruleConfig, fmt.Errorf("unknown rule type: %s", meta.Type)
-		}
-
-		return ruleConfig, nil
 	},
 }
 

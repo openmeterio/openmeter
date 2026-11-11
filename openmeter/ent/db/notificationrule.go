@@ -4,6 +4,7 @@ package db
 
 import (
 	"encoding/json"
+	"encoding/json/jsontext"
 	"fmt"
 	"strings"
 	"time"
@@ -32,14 +33,14 @@ type NotificationRule struct {
 	Annotations models.Annotations `json:"annotations,omitempty"`
 	// Metadata holds the value of the "metadata" field.
 	Metadata map[string]string `json:"metadata,omitempty"`
-	// The event type the rule associated with
+	// The event type emitted by the Rule.
 	Type notification.EventType `json:"type,omitempty"`
 	// The name of the rule
 	Name string `json:"name,omitempty"`
 	// Whether the rule is disabled or not
 	Disabled bool `json:"disabled,omitempty"`
 	// Config holds the value of the "config" field.
-	Config notification.RuleConfig `json:"config,omitempty"`
+	Config jsontext.Value `json:"config,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the NotificationRuleQuery when eager-loading is set.
 	Edges        NotificationRuleEdges `json:"edges"`

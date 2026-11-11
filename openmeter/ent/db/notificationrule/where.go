@@ -3,6 +3,8 @@
 package notificationrule
 
 import (
+	"encoding/json/jsontext"
+	"fmt"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
@@ -86,6 +88,12 @@ func DeletedAt(v time.Time) predicate.NotificationRule {
 	return predicate.NotificationRule(sql.FieldEQ(FieldDeletedAt, v))
 }
 
+// Type applies equality check predicate on the "type" field. It's identical to TypeEQ.
+func Type(v notification.EventType) predicate.NotificationRule {
+	vc := string(v)
+	return predicate.NotificationRule(sql.FieldEQ(FieldType, vc))
+}
+
 // Name applies equality check predicate on the "name" field. It's identical to NameEQ.
 func Name(v string) predicate.NotificationRule {
 	return predicate.NotificationRule(sql.FieldEQ(FieldName, v))
@@ -94,6 +102,12 @@ func Name(v string) predicate.NotificationRule {
 // Disabled applies equality check predicate on the "disabled" field. It's identical to DisabledEQ.
 func Disabled(v bool) predicate.NotificationRule {
 	return predicate.NotificationRule(sql.FieldEQ(FieldDisabled, v))
+}
+
+// Config applies equality check predicate on the "config" field. It's identical to ConfigEQ.
+func Config(v jsontext.Value) predicate.NotificationRule {
+	vc, err := ValueScanner.Config.Value(v)
+	return predicate.NotificationRuleOrErr(sql.FieldEQ(FieldConfig, vc), err)
 }
 
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
@@ -313,13 +327,13 @@ func MetadataNotNil() predicate.NotificationRule {
 
 // TypeEQ applies the EQ predicate on the "type" field.
 func TypeEQ(v notification.EventType) predicate.NotificationRule {
-	vc := v
+	vc := string(v)
 	return predicate.NotificationRule(sql.FieldEQ(FieldType, vc))
 }
 
 // TypeNEQ applies the NEQ predicate on the "type" field.
 func TypeNEQ(v notification.EventType) predicate.NotificationRule {
-	vc := v
+	vc := string(v)
 	return predicate.NotificationRule(sql.FieldNEQ(FieldType, vc))
 }
 
@@ -327,7 +341,7 @@ func TypeNEQ(v notification.EventType) predicate.NotificationRule {
 func TypeIn(vs ...notification.EventType) predicate.NotificationRule {
 	v := make([]any, len(vs))
 	for i := range v {
-		v[i] = vs[i]
+		v[i] = string(vs[i])
 	}
 	return predicate.NotificationRule(sql.FieldIn(FieldType, v...))
 }
@@ -336,9 +350,63 @@ func TypeIn(vs ...notification.EventType) predicate.NotificationRule {
 func TypeNotIn(vs ...notification.EventType) predicate.NotificationRule {
 	v := make([]any, len(vs))
 	for i := range v {
-		v[i] = vs[i]
+		v[i] = string(vs[i])
 	}
 	return predicate.NotificationRule(sql.FieldNotIn(FieldType, v...))
+}
+
+// TypeGT applies the GT predicate on the "type" field.
+func TypeGT(v notification.EventType) predicate.NotificationRule {
+	vc := string(v)
+	return predicate.NotificationRule(sql.FieldGT(FieldType, vc))
+}
+
+// TypeGTE applies the GTE predicate on the "type" field.
+func TypeGTE(v notification.EventType) predicate.NotificationRule {
+	vc := string(v)
+	return predicate.NotificationRule(sql.FieldGTE(FieldType, vc))
+}
+
+// TypeLT applies the LT predicate on the "type" field.
+func TypeLT(v notification.EventType) predicate.NotificationRule {
+	vc := string(v)
+	return predicate.NotificationRule(sql.FieldLT(FieldType, vc))
+}
+
+// TypeLTE applies the LTE predicate on the "type" field.
+func TypeLTE(v notification.EventType) predicate.NotificationRule {
+	vc := string(v)
+	return predicate.NotificationRule(sql.FieldLTE(FieldType, vc))
+}
+
+// TypeContains applies the Contains predicate on the "type" field.
+func TypeContains(v notification.EventType) predicate.NotificationRule {
+	vc := string(v)
+	return predicate.NotificationRule(sql.FieldContains(FieldType, vc))
+}
+
+// TypeHasPrefix applies the HasPrefix predicate on the "type" field.
+func TypeHasPrefix(v notification.EventType) predicate.NotificationRule {
+	vc := string(v)
+	return predicate.NotificationRule(sql.FieldHasPrefix(FieldType, vc))
+}
+
+// TypeHasSuffix applies the HasSuffix predicate on the "type" field.
+func TypeHasSuffix(v notification.EventType) predicate.NotificationRule {
+	vc := string(v)
+	return predicate.NotificationRule(sql.FieldHasSuffix(FieldType, vc))
+}
+
+// TypeEqualFold applies the EqualFold predicate on the "type" field.
+func TypeEqualFold(v notification.EventType) predicate.NotificationRule {
+	vc := string(v)
+	return predicate.NotificationRule(sql.FieldEqualFold(FieldType, vc))
+}
+
+// TypeContainsFold applies the ContainsFold predicate on the "type" field.
+func TypeContainsFold(v notification.EventType) predicate.NotificationRule {
+	vc := string(v)
+	return predicate.NotificationRule(sql.FieldContainsFold(FieldType, vc))
 }
 
 // NameEQ applies the EQ predicate on the "name" field.
@@ -424,6 +492,120 @@ func DisabledIsNil() predicate.NotificationRule {
 // DisabledNotNil applies the NotNil predicate on the "disabled" field.
 func DisabledNotNil() predicate.NotificationRule {
 	return predicate.NotificationRule(sql.FieldNotNull(FieldDisabled))
+}
+
+// ConfigEQ applies the EQ predicate on the "config" field.
+func ConfigEQ(v jsontext.Value) predicate.NotificationRule {
+	vc, err := ValueScanner.Config.Value(v)
+	return predicate.NotificationRuleOrErr(sql.FieldEQ(FieldConfig, vc), err)
+}
+
+// ConfigNEQ applies the NEQ predicate on the "config" field.
+func ConfigNEQ(v jsontext.Value) predicate.NotificationRule {
+	vc, err := ValueScanner.Config.Value(v)
+	return predicate.NotificationRuleOrErr(sql.FieldNEQ(FieldConfig, vc), err)
+}
+
+// ConfigIn applies the In predicate on the "config" field.
+func ConfigIn(vs ...jsontext.Value) predicate.NotificationRule {
+	var (
+		err error
+		v   = make([]any, len(vs))
+	)
+	for i := range v {
+		if v[i], err = ValueScanner.Config.Value(vs[i]); err != nil {
+			break
+		}
+	}
+	return predicate.NotificationRuleOrErr(sql.FieldIn(FieldConfig, v...), err)
+}
+
+// ConfigNotIn applies the NotIn predicate on the "config" field.
+func ConfigNotIn(vs ...jsontext.Value) predicate.NotificationRule {
+	var (
+		err error
+		v   = make([]any, len(vs))
+	)
+	for i := range v {
+		if v[i], err = ValueScanner.Config.Value(vs[i]); err != nil {
+			break
+		}
+	}
+	return predicate.NotificationRuleOrErr(sql.FieldNotIn(FieldConfig, v...), err)
+}
+
+// ConfigGT applies the GT predicate on the "config" field.
+func ConfigGT(v jsontext.Value) predicate.NotificationRule {
+	vc, err := ValueScanner.Config.Value(v)
+	return predicate.NotificationRuleOrErr(sql.FieldGT(FieldConfig, vc), err)
+}
+
+// ConfigGTE applies the GTE predicate on the "config" field.
+func ConfigGTE(v jsontext.Value) predicate.NotificationRule {
+	vc, err := ValueScanner.Config.Value(v)
+	return predicate.NotificationRuleOrErr(sql.FieldGTE(FieldConfig, vc), err)
+}
+
+// ConfigLT applies the LT predicate on the "config" field.
+func ConfigLT(v jsontext.Value) predicate.NotificationRule {
+	vc, err := ValueScanner.Config.Value(v)
+	return predicate.NotificationRuleOrErr(sql.FieldLT(FieldConfig, vc), err)
+}
+
+// ConfigLTE applies the LTE predicate on the "config" field.
+func ConfigLTE(v jsontext.Value) predicate.NotificationRule {
+	vc, err := ValueScanner.Config.Value(v)
+	return predicate.NotificationRuleOrErr(sql.FieldLTE(FieldConfig, vc), err)
+}
+
+// ConfigContains applies the Contains predicate on the "config" field.
+func ConfigContains(v jsontext.Value) predicate.NotificationRule {
+	vc, err := ValueScanner.Config.Value(v)
+	vcs, ok := vc.(string)
+	if err == nil && !ok {
+		err = fmt.Errorf("config value is not a string: %T", vc)
+	}
+	return predicate.NotificationRuleOrErr(sql.FieldContains(FieldConfig, vcs), err)
+}
+
+// ConfigHasPrefix applies the HasPrefix predicate on the "config" field.
+func ConfigHasPrefix(v jsontext.Value) predicate.NotificationRule {
+	vc, err := ValueScanner.Config.Value(v)
+	vcs, ok := vc.(string)
+	if err == nil && !ok {
+		err = fmt.Errorf("config value is not a string: %T", vc)
+	}
+	return predicate.NotificationRuleOrErr(sql.FieldHasPrefix(FieldConfig, vcs), err)
+}
+
+// ConfigHasSuffix applies the HasSuffix predicate on the "config" field.
+func ConfigHasSuffix(v jsontext.Value) predicate.NotificationRule {
+	vc, err := ValueScanner.Config.Value(v)
+	vcs, ok := vc.(string)
+	if err == nil && !ok {
+		err = fmt.Errorf("config value is not a string: %T", vc)
+	}
+	return predicate.NotificationRuleOrErr(sql.FieldHasSuffix(FieldConfig, vcs), err)
+}
+
+// ConfigEqualFold applies the EqualFold predicate on the "config" field.
+func ConfigEqualFold(v jsontext.Value) predicate.NotificationRule {
+	vc, err := ValueScanner.Config.Value(v)
+	vcs, ok := vc.(string)
+	if err == nil && !ok {
+		err = fmt.Errorf("config value is not a string: %T", vc)
+	}
+	return predicate.NotificationRuleOrErr(sql.FieldEqualFold(FieldConfig, vcs), err)
+}
+
+// ConfigContainsFold applies the ContainsFold predicate on the "config" field.
+func ConfigContainsFold(v jsontext.Value) predicate.NotificationRule {
+	vc, err := ValueScanner.Config.Value(v)
+	vcs, ok := vc.(string)
+	if err == nil && !ok {
+		err = fmt.Errorf("config value is not a string: %T", vc)
+	}
+	return predicate.NotificationRuleOrErr(sql.FieldContainsFold(FieldConfig, vcs), err)
 }
 
 // HasChannels applies the HasEdge predicate on the "channels" edge.

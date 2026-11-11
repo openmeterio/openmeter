@@ -5060,7 +5060,7 @@ var (
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
 		{Name: "annotations", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "metadata", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
-		{Name: "type", Type: field.TypeEnum, Enums: []string{"entitlements.balance.threshold", "entitlements.reset", "invoice.created", "invoice.updated"}},
+		{Name: "type", Type: field.TypeString},
 		{Name: "name", Type: field.TypeString},
 		{Name: "disabled", Type: field.TypeBool, Nullable: true, Default: false},
 		{Name: "config", Type: field.TypeString, SchemaType: map[string]string{"postgres": "jsonb"}},
