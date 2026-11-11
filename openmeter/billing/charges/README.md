@@ -245,6 +245,19 @@ invoice validation issue.
   post-create auto-advance, so worker retries do not lose the intent. Credit
   purchases follow their own creation and invoice-event lifecycle.
 
+### No ephemeral state on state machines
+
+Ephemeral state on a charge state machine is forbidden. A state machine holds
+only the charge and its configured dependencies, so it can be rebuilt from the
+persisted charge between any two transitions without losing anything.
+
+A trigger's input is consumed by the transition that receives it. When several
+actions need the same input, run them in sequence in that transition's entry
+action (`statelessx.WithParameters`) instead of storing the input on the machine
+for a later transition; a later `next` trigger after a reload would find it
+missing. Invoice patches are the only exception and follow the ownership
+contract above.
+
 ### Validation issues alongside successful results
 
 Use billing's [validation issue boundary contracts](../README.md#validation-issues-alongside-successful-results)

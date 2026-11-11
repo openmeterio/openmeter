@@ -27,7 +27,7 @@ func TestAttachInvoiceLineResolvesDynamicCostBasisBeforeStartingRun(t *testing.T
 	// when:
 	// - an invoice line is attached before the charge ever became active
 	// then:
-	// - the charge is persisted in early activation with the resolved cost basis
+	// - the cost basis is resolved before the realization run starts
 	// - the realization run is started from a charge that already carries it
 	servicePeriod := timeutil.ClosedPeriod{
 		From: time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC),
@@ -50,13 +50,13 @@ func TestAttachInvoiceLineResolvesDynamicCostBasisBeforeStartingRun(t *testing.T
 		ResolvedAt: servicePeriod.From,
 	}
 	errRunStarted := errors.New("run started")
-	adapter := &earlyActivationAdapter{errRunStarted: errRunStarted}
-	resolver := &earlyActivationCostBasisResolver{state: resolvedState}
+	adapter := &attachBeforeActiveAdapter{errRunStarted: errRunStarted}
+	resolver := &attachBeforeActiveCostBasisResolver{state: resolvedState}
 
 	realizations, err := flatfeerealizations.New(flatfeerealizations.Config{
 		Adapter:       adapter,
-		Handler:       earlyActivationHandler{},
-		Lineage:       earlyActivationLineage{},
+		Handler:       attachBeforeActiveHandler{},
+		Lineage:       attachBeforeActiveLineage{},
 		RatingService: &billabilityRatingService{},
 	})
 	require.NoError(t, err)
@@ -85,55 +85,44 @@ func TestAttachInvoiceLineResolvesDynamicCostBasisBeforeStartingRun(t *testing.T
 
 	require.Equal(t, []time.Time{servicePeriod.From}, resolver.servicePeriodFroms)
 
-	require.Len(t, adapter.persisted, 1)
-	require.Equal(t, flatfee.StatusActiveEarlyActivation, adapter.persisted[0].Status)
-	require.Equal(t, &resolvedState, adapter.persisted[0].State.ResolvedCostBasis)
-
 	require.Len(t, adapter.runCharges, 1)
 	require.Equal(t, &resolvedState, adapter.runCharges[0].State.ResolvedCostBasis)
 }
 
-type earlyActivationAdapter struct {
+type attachBeforeActiveAdapter struct {
 	flatfee.Adapter
 
 	errRunStarted error
-	persisted     []flatfee.ChargeBase
 	runCharges    []flatfee.ChargeBase
 }
 
-func (a *earlyActivationAdapter) SetResolvedCostBasis(_ context.Context, input costbasis.SetResolvedCostBasisInput) (costbasis.CostBasis, error) {
+func (a *attachBeforeActiveAdapter) SetResolvedCostBasis(_ context.Context, input costbasis.SetResolvedCostBasisInput) (costbasis.CostBasis, error) {
 	return costbasis.CostBasis{State: &input.State}, nil
 }
 
-func (a *earlyActivationAdapter) UpdateCharge(_ context.Context, charge flatfee.ChargeBase) (flatfee.ChargeBase, error) {
-	a.persisted = append(a.persisted, charge)
-
-	return charge, nil
-}
-
-func (a *earlyActivationAdapter) CreateCurrentRun(_ context.Context, input flatfee.CreateCurrentRunInput) (flatfee.RealizationRunBase, error) {
+func (a *attachBeforeActiveAdapter) CreateCurrentRun(_ context.Context, input flatfee.CreateCurrentRunInput) (flatfee.RealizationRunBase, error) {
 	a.runCharges = append(a.runCharges, input.Charge)
 
 	return flatfee.RealizationRunBase{}, a.errRunStarted
 }
 
-type earlyActivationCostBasisResolver struct {
+type attachBeforeActiveCostBasisResolver struct {
 	costbasis.Resolver
 
 	state              costbasis.State
 	servicePeriodFroms []time.Time
 }
 
-func (r *earlyActivationCostBasisResolver) ResolveDynamicState(_ context.Context, input costbasis.ResolveDynamicStateInput) (costbasis.State, error) {
+func (r *attachBeforeActiveCostBasisResolver) ResolveDynamicState(_ context.Context, input costbasis.ResolveDynamicStateInput) (costbasis.State, error) {
 	r.servicePeriodFroms = append(r.servicePeriodFroms, input.ServicePeriodFrom)
 
 	return r.state, nil
 }
 
-type earlyActivationHandler struct {
+type attachBeforeActiveHandler struct {
 	flatfee.Handler
 }
 
-type earlyActivationLineage struct {
+type attachBeforeActiveLineage struct {
 	legacylineage.Service
 }

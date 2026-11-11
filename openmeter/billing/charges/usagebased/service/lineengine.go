@@ -432,8 +432,8 @@ func (e *LineEngine) OnStandardInvoiceCreated(ctx context.Context, input billing
 			})
 		}
 
-		// Early activation is persisted before the run starts and cannot be resumed after a
-		// reload, so a failed run start has to undo it even when the caller keeps its transaction.
+		// Early activation saves the resolved cost basis before the run starts, so a failed
+		// run start has to undo it even when the caller keeps its transaction.
 		if err := transaction.RunWithNoValue(ctx, e.service.adapter, func(ctx context.Context) error {
 			return stateMachine.FireAndAdvanceUntilStable(ctx, meta.TriggerInvoiceCreated, invoiceCreatedInput{
 				LineID:        stdLine.ID,

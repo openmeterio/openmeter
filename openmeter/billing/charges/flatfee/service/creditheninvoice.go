@@ -26,10 +26,6 @@ import (
 
 type CreditThenInvoiceStateMachine struct {
 	*stateMachine
-
-	// Set when attach_invoice_line arrives in created: early activation has to
-	// run before the line is attached, and the follow-up next trigger carries no input.
-	earlyActivationAttachInvoiceLineInput *billing.StandardLineWithInvoiceHeader
 }
 
 type periodPatch interface {
@@ -96,13 +92,8 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.SetOverride)).
 		Permit(meta.TriggerClearOverride, flatfee.StatusDeletedClearOverride, statelessx.BoolFn(s.IsBaseIntentDeleted)).
 		Permit(meta.TriggerClearOverride, flatfee.StatusActiveClearOverride, statelessx.BoolFn(statelessx.Not(s.IsBaseIntentDeleted))).
-		Permit(meta.TriggerAttachInvoiceLine, flatfee.StatusActiveEarlyActivation).
+		Permit(meta.TriggerAttachInvoiceLine, flatfee.StatusActiveRealizationProcessing).
 		OnActive(s.AdvanceAfterInvoiceAt)
-
-	s.Configure(flatfee.StatusActiveEarlyActivation).
-		Permit(meta.TriggerNext, flatfee.StatusActiveRealizationProcessing).
-		OnEntryFrom(meta.TriggerAttachInvoiceLine, statelessx.WithParameters(s.KeepEarlyActivationAttachInvoiceLineInput)).
-		OnActive(s.ResolveDynamicCostBasis)
 
 	s.Configure(flatfee.StatusActive).
 		// This also repairs previously active zero-amount charges. They have
@@ -157,7 +148,11 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.SetOverride)).
 		Permit(meta.TriggerClearOverride, flatfee.StatusDeletedClearOverride, statelessx.BoolFn(s.IsBaseIntentDeleted)).
 		Permit(meta.TriggerClearOverride, flatfee.StatusActiveClearOverride, statelessx.BoolFn(statelessx.Not(s.IsBaseIntentDeleted))).
-		OnEntryFrom(meta.TriggerNext, statelessx.EntryFunc(s.AttachInvoiceLineAfterEarlyActivation))
+		// The charge skipped active, so the cost basis is still unresolved here.
+		OnEntryFrom(meta.TriggerAttachInvoiceLine, statelessx.WithParameters(
+			statelessx.WithoutParameters[billing.StandardLineWithInvoiceHeader](s.ResolveDynamicCostBasis),
+			s.AttachInvoiceLine,
+		))
 
 	s.Configure(flatfee.StatusActiveRealizationIssuing).
 		Permit(meta.TriggerInvoiceIssued, flatfee.StatusActiveRealizationCompleted).
@@ -701,20 +696,6 @@ func (s *CreditThenInvoiceStateMachine) StartRealization(ctx context.Context, in
 // standard line identity. The emitted patch is local to the API invoice edit
 // flow: the line engine consumes it and returns the realized target state to
 // billing instead of sending it through the subscription-sync invoice updater.
-func (s *CreditThenInvoiceStateMachine) KeepEarlyActivationAttachInvoiceLineInput(_ context.Context, input billing.StandardLineWithInvoiceHeader) error {
-	s.earlyActivationAttachInvoiceLineInput = &input
-
-	return nil
-}
-
-func (s *CreditThenInvoiceStateMachine) AttachInvoiceLineAfterEarlyActivation(ctx context.Context) error {
-	if s.earlyActivationAttachInvoiceLineInput == nil {
-		return fmt.Errorf("attach invoice line input is missing after early activation [charge_id=%s]", s.Charge.ID)
-	}
-
-	return s.AttachInvoiceLine(ctx, *s.earlyActivationAttachInvoiceLineInput)
-}
-
 func (s *CreditThenInvoiceStateMachine) AttachInvoiceLine(ctx context.Context, input billing.StandardLineWithInvoiceHeader) error {
 	if err := input.Validate(); err != nil {
 		return err
