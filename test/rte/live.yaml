@@ -1,0 +1,28 @@
+# Local-only inputs; the test creates isolated databases, topics and telemetry ports.
+ingest:
+  kafka:
+    broker: 127.0.0.1:29092
+
+aggregation:
+  clickhouse:
+    address: 127.0.0.1:9000
+
+postgres:
+  host: 127.0.0.1
+  port: 5432
+  database: postgres
+  user: postgres
+  password: postgres
+  options:
+    sslVerify: disable
+
+credits:
+  enabled: true
+  enableCreditThenInvoice: true
+
+unitConfig:
+  enabled: true
+
+notification:
+  lock:
+    owner: rte-live-test
