@@ -9,7 +9,10 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/rte"
+	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
+	"github.com/openmeterio/openmeter/openmeter/watermill/marshaler"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -30,11 +33,11 @@ func (f calculatorFunc) Calculate(ctx context.Context, input rte.CalculateInput[
 }
 
 type storeStub struct {
-	store func(context.Context, rte.StoreInput[testKey, int]) (rte.State[int], error)
+	store func(context.Context, rte.StoreInput[testKey, int]) (rte.StoreResult[int], error)
 	get   func(context.Context, testKey) (rte.State[int], error)
 }
 
-func (s storeStub) Store(ctx context.Context, input rte.StoreInput[testKey, int]) (rte.State[int], error) {
+func (s storeStub) Store(ctx context.Context, input rte.StoreInput[testKey, int]) (rte.StoreResult[int], error) {
 	return s.store(ctx, input)
 }
 
@@ -49,7 +52,7 @@ func TestServiceLifecycle(t *testing.T) {
 	defer clock.UnFreeze()
 
 	key := testKey("calculation")
-	calls, writes := 0, 0
+	calls, writes, updates := 0, 0, 0
 	sourceErr := errors.New("source unavailable")
 	var stored *rte.State[int]
 	engine := newCalculation(Registration[testKey, int]{
@@ -60,12 +63,12 @@ func TestServiceLifecycle(t *testing.T) {
 			return 0, sourceErr
 		}),
 		Store: storeStub{
-			store: func(_ context.Context, input rte.StoreInput[testKey, int]) (rte.State[int], error) {
+			store: func(_ context.Context, input rte.StoreInput[testKey, int]) (rte.StoreResult[int], error) {
 				writes++
 				require.Equal(t, key, input.Key)
 				stored = &input.State
 
-				return *stored, nil
+				return rte.StoreResult[int]{State: *stored, Updated: true}, nil
 			},
 			get: func(_ context.Context, got testKey) (rte.State[int], error) {
 				require.Equal(t, key, got)
@@ -76,16 +79,21 @@ func TestServiceLifecycle(t *testing.T) {
 				return *stored, nil
 			},
 		},
-	})
+	}, publisherStub{publish: func(context.Context, marshaler.Event) error {
+		updates++
+		return nil
+	}}, updatedEvent)
 
 	// When reading before a successful calculation, no calculator or write runs.
 	_, err := engine.Get(t.Context(), key)
 	require.True(t, models.IsGenericNotFoundError(err))
 	require.Zero(t, calls)
 	require.Zero(t, writes)
+	require.Zero(t, updates)
 	_, err = engine.Calculate(t.Context(), key)
 	require.ErrorIs(t, err, sourceErr)
 	require.Zero(t, writes)
+	require.Zero(t, updates)
 	_, err = engine.Get(t.Context(), key)
 	require.True(t, models.IsGenericNotFoundError(err))
 
@@ -95,10 +103,12 @@ func TestServiceLifecycle(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, rte.State[int]{CalculatedAt: now, Value: 0}, calculated)
 	require.Equal(t, 1, writes)
+	require.Equal(t, 1, updates)
 	sourceErr = errors.New("refresh failed")
 	_, err = engine.Calculate(t.Context(), key)
 	require.ErrorIs(t, err, sourceErr)
 	require.Equal(t, 1, writes)
+	require.Equal(t, 1, updates)
 	callsBeforeRead := calls
 	result, err := engine.Get(t.Context(), key)
 	require.NoError(t, err)
@@ -124,14 +134,14 @@ func TestCalculatePreservesStartAndReturnsStoredWinner(t *testing.T) {
 
 			return 42, nil
 		}),
-		Store: storeStub{store: func(gotCtx context.Context, input rte.StoreInput[testKey, int]) (rte.State[int], error) {
-			require.Equal(t, ctx, gotCtx)
+		Store: storeStub{store: func(gotCtx context.Context, input rte.StoreInput[testKey, int]) (rte.StoreResult[int], error) {
+			require.Equal(t, ctx.Err(), gotCtx.Err())
 			require.Equal(t, key, input.Key)
 			require.Equal(t, rte.State[int]{CalculatedAt: startedAt, Value: 42}, input.State)
 
-			return winner, nil
+			return rte.StoreResult[int]{State: winner, Updated: false}, nil
 		}},
-	})
+	}, publisherStub{}, updatedEvent)
 
 	// When calculation completes, RTE passes its original start to storage.
 	result, err := engine.Calculate(ctx, key)
@@ -151,10 +161,10 @@ func TestServiceRejectsInvalidKeys(t *testing.T) {
 			return 0, nil
 		}),
 		Store: storeStub{
-			store: func(context.Context, rte.StoreInput[testKey, int]) (rte.State[int], error) {
+			store: func(context.Context, rte.StoreInput[testKey, int]) (rte.StoreResult[int], error) {
 				calls++
 
-				return rte.State[int]{}, nil
+				return rte.StoreResult[int]{}, nil
 			},
 			get: func(context.Context, testKey) (rte.State[int], error) {
 				calls++
@@ -162,7 +172,7 @@ func TestServiceRejectsInvalidKeys(t *testing.T) {
 				return rte.State[int]{}, nil
 			},
 		},
-	})
+	}, publisherStub{}, updatedEvent)
 
 	// When either operation receives an invalid identity.
 	_, err := engine.Calculate(t.Context(), "")
@@ -172,4 +182,30 @@ func TestServiceRejectsInvalidKeys(t *testing.T) {
 
 	// Then validation stops execution before calculation or storage.
 	require.Zero(t, calls)
+}
+
+type txStub struct{}
+
+func (txStub) Commit() error    { return nil }
+func (txStub) Rollback() error  { return nil }
+func (txStub) SavePoint() error { return nil }
+func (storeStub) Tx(ctx context.Context) (context.Context, transaction.Driver, error) {
+	return ctx, txStub{}, nil
+}
+
+type publisherStub struct {
+	eventbus.Publisher
+	publish func(context.Context, marshaler.Event) error
+}
+
+func (p publisherStub) Publish(ctx context.Context, event marshaler.Event) error {
+	if p.publish != nil {
+		return p.publish(ctx, event)
+	}
+
+	return nil
+}
+
+func updatedEvent(rte.StoreInput[testKey, int]) (rte.CalculationUpdatedEvent, error) {
+	return rte.CalculationUpdatedEvent{}, nil
 }

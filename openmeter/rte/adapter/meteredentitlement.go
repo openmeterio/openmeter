@@ -38,17 +38,17 @@ func meteredBalanceScope(key meteredentitlement.Key) predicate.RTEMeteredEntitle
 	)
 }
 
-func (a *meteredEntitlementStore) Store(ctx context.Context, input rte.StoreInput[meteredentitlement.Key, meteredentitlement.Balance]) (rte.State[meteredentitlement.Balance], error) {
+func (a *meteredEntitlementStore) Store(ctx context.Context, input rte.StoreInput[meteredentitlement.Key, meteredentitlement.Balance]) (rte.StoreResult[meteredentitlement.Balance], error) {
 	if err := input.Validate(); err != nil {
-		return rte.State[meteredentitlement.Balance]{}, err
+		return rte.StoreResult[meteredentitlement.Balance]{}, err
 	}
 
 	encoded, err := json.Marshal(input.State.Value)
 	if err != nil {
-		return rte.State[meteredentitlement.Balance]{}, fmt.Errorf("encode metered entitlement balance: %w", err)
+		return rte.StoreResult[meteredentitlement.Balance]{}, fmt.Errorf("encode metered entitlement balance: %w", err)
 	}
 
-	return entutils.TransactingRepo(ctx, a.adapter, func(ctx context.Context, a *adapter) (rte.State[meteredentitlement.Balance], error) {
+	return entutils.TransactingRepo(ctx, a.adapter, func(ctx context.Context, a *adapter) (rte.StoreResult[meteredentitlement.Balance], error) {
 		err := a.db.RTEMeteredEntitlementBalance.Create().
 			SetNamespace(input.Key.EntitlementID.Namespace).
 			SetEntitlementID(input.Key.EntitlementID.ID).
@@ -62,11 +62,16 @@ func (a *meteredEntitlementStore) Store(ctx context.Context, input rte.StoreInpu
 		// PostgreSQL returns no row when the conflict condition retains the
 		// existing result. Ent's RETURNING reports that as sql.ErrNoRows.
 		if err != nil && !errors.Is(err, stdsql.ErrNoRows) {
-			return rte.State[meteredentitlement.Balance]{}, fmt.Errorf("store metered entitlement balance: %w", err)
+			return rte.StoreResult[meteredentitlement.Balance]{}, fmt.Errorf("store metered entitlement balance: %w", err)
 		}
 
 		// A superseded attempt returns the retained result, not its stale output.
-		return (&meteredEntitlementStore{adapter: a}).Get(ctx, input.Key)
+		state, readErr := (&meteredEntitlementStore{adapter: a}).Get(ctx, input.Key)
+		if readErr != nil {
+			return rte.StoreResult[meteredentitlement.Balance]{}, readErr
+		}
+
+		return rte.StoreResult[meteredentitlement.Balance]{State: state, Updated: err == nil}, nil
 	})
 }
 

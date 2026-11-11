@@ -1,6 +1,7 @@
 package creditbalance
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -16,9 +17,38 @@ import (
 
 // Key identifies a current balance, not a historical query.
 type Key struct {
-	CustomerID    customer.CustomerID
-	Currency      currencies.CurrencyReference
-	FeatureFilter mo.Option[creditpurchase.FeatureFilters]
+	CustomerID    customer.CustomerID                      `json:"customerId"`
+	Currency      currencies.CurrencyReference             `json:"currency"`
+	FeatureFilter mo.Option[creditpurchase.FeatureFilters] `json:"featureFilter"`
+}
+
+func (k Key) MarshalJSON() ([]byte, error) {
+	// A present empty filter means unrestricted credits. Encode it as [] so it
+	// survives a round-trip separately from the absent filter's null (all credits).
+	if k.FeatureFilter.IsPresent() && len(k.FeatureFilter.OrEmpty()) == 0 {
+		k.FeatureFilter = mo.Some(creditpurchase.FeatureFilters{})
+	}
+
+	type wireKey Key
+
+	return json.Marshal(wireKey(k))
+}
+
+func (k *Key) UnmarshalJSON(data []byte) error {
+	type wireKey Key
+	var decoded wireKey
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return err
+	}
+
+	// The calculator represents unrestricted credits as Some(nil), not Some([]).
+	if decoded.FeatureFilter.IsPresent() && len(decoded.FeatureFilter.OrEmpty()) == 0 {
+		decoded.FeatureFilter = customerbalance.NewUnrestrictedFeatureFilter()
+	}
+
+	*k = Key(decoded)
+
+	return nil
 }
 
 func (k Key) Validate() error {

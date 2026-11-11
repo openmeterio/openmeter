@@ -7,7 +7,7 @@ import (
 
 // Key identifies the current calculation for an entitlement.
 type Key struct {
-	EntitlementID models.NamespacedID
+	EntitlementID models.NamespacedID `json:"entitlementId"`
 }
 
 func (k Key) Validate() error {

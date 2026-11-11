@@ -6,7 +6,9 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/rte"
+	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -31,12 +33,14 @@ func (r Registration[K, Result]) Validate() error {
 }
 
 type calculation[K rte.Key, Result any] struct {
-	calculator rte.Calculator[K, Result]
-	store      rte.Store[K, Result]
+	calculator   rte.Calculator[K, Result]
+	store        rte.Store[K, Result]
+	publisher    eventbus.Publisher
+	updatedEvent func(rte.StoreInput[K, Result]) (rte.CalculationUpdatedEvent, error)
 }
 
-func newCalculation[K rte.Key, Result any](r Registration[K, Result]) rte.Calculation[K, Result] {
-	return &calculation[K, Result]{calculator: r.Calculator, store: r.Store}
+func newCalculation[K rte.Key, Result any](r Registration[K, Result], publisher eventbus.Publisher, updatedEvent func(rte.StoreInput[K, Result]) (rte.CalculationUpdatedEvent, error)) rte.Calculation[K, Result] {
+	return &calculation[K, Result]{calculator: r.Calculator, store: r.Store, publisher: publisher, updatedEvent: updatedEvent}
 }
 
 func (c *calculation[K, Result]) Calculate(ctx context.Context, key K) (rte.State[Result], error) {
@@ -50,9 +54,27 @@ func (c *calculation[K, Result]) Calculate(ctx context.Context, key K) (rte.Stat
 		return rte.State[Result]{}, fmt.Errorf("calculate: %w", err)
 	}
 
-	return c.store.Store(ctx, rte.StoreInput[K, Result]{
-		Key:   key,
-		State: rte.State[Result]{CalculatedAt: calculatedAt, Value: value},
+	return transaction.Run(ctx, c.store, func(ctx context.Context) (rte.State[Result], error) {
+		result, err := c.store.Store(ctx, rte.StoreInput[K, Result]{
+			Key:   key,
+			State: rte.State[Result]{CalculatedAt: calculatedAt, Value: value},
+		})
+		if err != nil {
+			return rte.State[Result]{}, err
+		}
+
+		if result.Updated {
+			event, err := c.updatedEvent(rte.StoreInput[K, Result]{Key: key, State: result.State})
+			if err != nil {
+				return rte.State[Result]{}, err
+			}
+
+			if err := c.publisher.Publish(ctx, event); err != nil {
+				return rte.State[Result]{}, fmt.Errorf("publish calculation update: %w", err)
+			}
+		}
+
+		return result.State, nil
 	})
 }
 
