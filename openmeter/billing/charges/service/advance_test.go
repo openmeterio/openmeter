@@ -197,7 +197,7 @@ func (s *AdvanceChargesTestSuite) TestAdvanceChargesActivatesCreditThenInvoiceUs
 		To:   datetime.MustParseTimeInLocation(s.T(), "2026-06-01T00:00:00Z", time.UTC).AsTime(),
 	}
 
-	clock.SetTime(servicePeriod.From)
+	clock.SetTime(servicePeriod.From.Add(-24 * time.Hour))
 
 	createdCharges, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
@@ -222,6 +222,14 @@ func (s *AdvanceChargesTestSuite) TestAdvanceChargesActivatesCreditThenInvoiceUs
 
 	usageBasedChargeID, err := createdCharges[0].GetChargeID()
 	s.NoError(err)
+
+	createdCharge, err := createdCharges[0].AsUsageBasedCharge()
+	s.NoError(err)
+	s.Equal(meta.ChargeStatusCreated, meta.ChargeStatus(createdCharge.Status))
+	s.Require().NotNil(createdCharge.State.AdvanceAfter)
+	s.True(servicePeriod.From.Equal(*createdCharge.State.AdvanceAfter))
+
+	clock.SetTime(servicePeriod.From)
 
 	advancedCharges, err := s.Charges.AdvanceCharges(ctx, charges.AdvanceChargesInput{
 		Customer: cust.GetID(),

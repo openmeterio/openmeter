@@ -100,7 +100,7 @@ func (s *service) Create(ctx context.Context, input usagebased.CreateInput) ([]u
 				RatingEngine:        s.rater.GetPreferredRatingEngineFor(chargeIntent),
 				ResolvedCostBasis:   resolvedCostBasis,
 				ValidationIssues:    validationIssues,
-				InitialAdvanceAfter: initialAdvanceAfter(chargeIntent, now),
+				InitialAdvanceAfter: initialAdvanceAfter(chargeIntent),
 			}, nil
 		})
 		if err != nil {
@@ -128,16 +128,11 @@ func (s *service) Create(ctx context.Context, input usagebased.CreateInput) ([]u
 	})
 }
 
-// A credit_then_invoice charge that is already inside its service period has
-// nothing else to activate it: create-time auto-advance only covers
-// credit_only, and the advance job only visits customers with a scheduled
-// advance_after. Future-start charges are left unscheduled here on purpose.
-func initialAdvanceAfter(intent usagebased.Intent, now time.Time) *time.Time {
+// Nothing else activates a credit_then_invoice charge at its service period
+// start: the advance job only visits customers with a scheduled advance_after.
+// credit_only charges keep nil and are activated by create-time auto-advance.
+func initialAdvanceAfter(intent usagebased.Intent) *time.Time {
 	if intent.SettlementMode != productcatalog.CreditThenInvoiceSettlementMode {
-		return nil
-	}
-
-	if now.Before(intent.ServicePeriod.From) {
 		return nil
 	}
 
