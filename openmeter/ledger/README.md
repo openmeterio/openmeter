@@ -87,6 +87,12 @@ persist the returned group reference with its own lifecycle state. Ledger
 annotations and entry identity preserve accounting meaning and provenance; they
 are not operation idempotency keys.
 
+When configured with a system-event publisher, `CommitGroup` queues a
+`TransactionGroupCommittedEvent` in the posting transaction. A publication error
+rolls back the group; outer rollback removes the event too. The event identifies
+changed journal facts, including historical and future-dated postings. It does
+not mean that a future booked timestamp has become effective. Delivery can repeat.
+
 ## Error diagnostics
 
 Accounting guards use fixed diagnostic reasons, such as

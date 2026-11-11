@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -16,16 +17,30 @@ type Ledger struct {
 	repo           Repo
 
 	routingValidator ledger.RoutingValidator
+	publisher        eventbus.Publisher
+}
+
+type Option func(*Ledger)
+
+// WithEventPublisher queues committed-posting notifications in the caller's
+// transaction when backed by the system-event outbox.
+func WithEventPublisher(publisher eventbus.Publisher) Option {
+	return func(l *Ledger) { l.publisher = publisher }
 }
 
 // NewLedger constructs a Ledger with the given repo and account collaborators.
-func NewLedger(repo Repo, accountCatalog ledger.AccountCatalog, accountLocker ledger.AccountLocker, routingValidator ledger.RoutingValidator) *Ledger {
-	return &Ledger{
+func NewLedger(repo Repo, accountCatalog ledger.AccountCatalog, accountLocker ledger.AccountLocker, routingValidator ledger.RoutingValidator, options ...Option) *Ledger {
+	l := &Ledger{
 		accountCatalog:   accountCatalog,
 		accountLocker:    accountLocker,
 		repo:             repo,
 		routingValidator: routingValidator,
 	}
+	for _, option := range options {
+		option(l)
+	}
+
+	return l
 }
 
 // ----------------------------------------------------------------------------
@@ -100,6 +115,11 @@ func (l *Ledger) CommitGroup(ctx context.Context, group ledger.TransactionGroupI
 			}
 
 			txGroup.transactions = append(txGroup.transactions, tx)
+		}
+		if l.publisher != nil {
+			if err := l.publisher.Publish(ctx, ledger.TransactionGroupCommittedEvent{Namespace: group.Namespace(), GroupID: txG.ID}); err != nil {
+				return nil, fmt.Errorf("publish committed transaction group: %w", err)
+			}
 		}
 
 		return txGroup, nil

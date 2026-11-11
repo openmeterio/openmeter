@@ -311,6 +311,21 @@ func (s *service) create(ctx context.Context, input charges.CreateInput) (*charg
 		if err := s.recognizeCreatedCreditPurchaseEarnings(ctx, result); err != nil {
 			return nil, err
 		}
+		if s.inputChangePublisher != nil {
+			owners := make([]customer.CustomerID, 0, len(result))
+			for _, charge := range result {
+				owner, err := charge.GetCustomerID()
+				if err != nil {
+					return nil, err
+				}
+
+				owners = append(owners, owner)
+			}
+
+			if err := s.publishInputChanges(ctx, owners); err != nil {
+				return nil, err
+			}
+		}
 
 		return &chargesWithInvoiceNowActions{
 			charges:                          result,
