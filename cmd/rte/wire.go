@@ -26,6 +26,7 @@ type Application struct {
 func initializeApplication(ctx context.Context, conf config.Configuration) (Application, func(), error) {
 	wire.Build(
 		metadata,
+		wire.FieldsOf(new(config.RTEConfiguration), "ConsumerConfiguration"),
 		common.RTE,
 		common.NewCustomerBalanceService,
 		common.NewCreditVoidService,
@@ -52,7 +53,8 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.Telemetry,
 		common.TelemetryLoggerNoAdditionalMiddlewares,
 		common.Watermill,
-		common.WatermillNoTopicProvisioning,
+		common.NewKafkaTopicProvisioner,
+		common.WatermillRouter,
 		common.FeatureGateChecker,
 		wire.Struct(new(Application), "*"),
 	)

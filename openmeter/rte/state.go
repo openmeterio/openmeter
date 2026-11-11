@@ -5,6 +5,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -34,11 +35,18 @@ func (i StoreInput[K, Result]) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
+type StoreResult[Result any] struct {
+	State[Result]
+	// Updated reports whether this attempt inserted or replaced persisted state.
+	Updated bool
+}
+
 type Store[K Key, Result any] interface {
+	transaction.Creator
 	// Store atomically compares CalculatedAt across writers and replaces state
 	// only for a strictly later start. Equal or older attempts return the
 	// retained success; callers must use this returned state, not their input.
-	Store(context.Context, StoreInput[K, Result]) (State[Result], error)
+	Store(context.Context, StoreInput[K, Result]) (StoreResult[Result], error)
 
 	// Get returns the stored success, or NewNotCalculatedError when none exists.
 	Get(context.Context, K) (State[Result], error)

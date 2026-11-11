@@ -59,7 +59,7 @@ func TestMeteredEntitlementBalanceStore(t *testing.T) {
 	expected.GrantBalances["grant"] = 0
 	stored, err = repo.Get(t.Context(), key)
 	require.NoError(t, err)
-	require.Equal(t, calculated, stored)
+	require.Equal(t, calculated.State, stored)
 
 	t.Run("older and equal results retain stored success", func(t *testing.T) {
 		// Given a newer success and a delayed result from another service replica.
@@ -69,23 +69,26 @@ func TestMeteredEntitlementBalanceStore(t *testing.T) {
 		fresh.CalculatedAt = startedAt.Add(time.Second)
 		fresh.Value.Overage = 7
 		fresh.Value.Balance = 0
-		fresh, err = second.Store(t.Context(), rte.StoreInput[meteredentitlement.Key, meteredentitlement.Balance]{Key: key, State: fresh})
+		fresh, err = second.Store(t.Context(), rte.StoreInput[meteredentitlement.Key, meteredentitlement.Balance]{Key: key, State: fresh.State})
 		require.NoError(t, err)
 
 		// When the delayed result arrives, the whole newer result survives.
-		older, err := repo.Store(t.Context(), rte.StoreInput[meteredentitlement.Key, meteredentitlement.Balance]{Key: key, State: calculated})
+		older, err := repo.Store(t.Context(), rte.StoreInput[meteredentitlement.Key, meteredentitlement.Balance]{Key: key, State: calculated.State})
 		require.NoError(t, err)
-		require.Equal(t, fresh, older)
+		require.True(t, fresh.Updated)
+		require.False(t, older.Updated)
+		require.Equal(t, fresh.State, older.State)
 
 		calculated.CalculatedAt = fresh.CalculatedAt
-		equal, err := repo.Store(t.Context(), rte.StoreInput[meteredentitlement.Key, meteredentitlement.Balance]{Key: key, State: calculated})
+		equal, err := repo.Store(t.Context(), rte.StoreInput[meteredentitlement.Key, meteredentitlement.Balance]{Key: key, State: calculated.State})
 		require.NoError(t, err)
-		require.Equal(t, fresh, equal)
+		require.False(t, equal.Updated)
+		require.Equal(t, fresh.State, equal.State)
 
 		// Then reads also return the retained state.
 		stored, err := repo.Get(t.Context(), key)
 		require.NoError(t, err)
-		require.Equal(t, fresh, stored)
+		require.Equal(t, fresh.State, stored)
 	})
 
 	t.Run("simultaneous successful calculations", func(t *testing.T) {

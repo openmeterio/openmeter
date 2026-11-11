@@ -1,12 +1,14 @@
 package rte_test
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
 
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
+	"github.com/openmeterio/openmeter/openmeter/rte"
 	"github.com/openmeterio/openmeter/openmeter/rte/creditbalance"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -15,7 +17,7 @@ import (
 
 func (s *RTEIntegrationSuite) TestCalculateStoreAndRead() {
 	ctx := s.T().Context()
-	now := time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC)
+	now := time.Date(2026, time.January, 1, 0, 0, 0, 123456789, time.UTC)
 	clock.FreezeTime(now)
 	defer clock.UnFreeze()
 
@@ -67,15 +69,21 @@ func (s *RTEIntegrationSuite) TestCalculateStoreAndRead() {
 
 	postCredits(100)
 
-	engine := s.newRTE()
+	pipeline := s.newEventPipeline()
+	engine := pipeline.service
 	key := creditbalance.Key{CustomerID: cust.GetID(), Currency: currency}
 
 	_, err := engine.CreditBalances().Get(ctx, key)
 	s.True(models.IsGenericNotFoundError(err))
 
 	// When explicitly calculated, the current live balance is preserved too.
-	calculated, err := engine.CreditBalances().Calculate(ctx, key)
+	updated := pipeline.calculate(s.T(), key)
+	var calculated rte.State[creditbalance.Balance]
+	s.Require().NoError(json.Unmarshal(updated.State, &calculated))
+	storedAfterEvent, err := engine.CreditBalances().Get(ctx, key)
 	s.Require().NoError(err)
+	s.True(calculated.CalculatedAt.Equal(storedAfterEvent.CalculatedAt))
+	s.Equal(calculated.Value, storedAfterEvent.Value)
 	s.Equal(float64(100), calculated.Value.Booked.InexactFloat64())
 	s.Equal(float64(100), calculated.Value.Spendable.InexactFloat64())
 	s.Equal(float64(100), calculated.Value.Live.InexactFloat64())
