@@ -15,10 +15,15 @@ import (
 
 	"github.com/openmeterio/openmeter/app/common"
 	"github.com/openmeterio/openmeter/app/config"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/rte"
+	"github.com/openmeterio/openmeter/openmeter/rte/creditbalance"
+	"github.com/openmeterio/openmeter/openmeter/rte/meteredentitlement"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/openmeter/watermill/router"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type eventPipeline struct {
@@ -45,7 +50,26 @@ func (s *RTEIntegrationSuite) newEventPipeline() eventPipeline {
 	}
 	bus, closeBus, err := common.NewEventBusPublisher(ctx, transport, s.DBClient, events, logger)
 	require.NoError(t, err)
-	t.Cleanup(closeBus)
+	var worker rte.Worker
+	done := make(chan error, 1)
+	t.Cleanup(func() {
+		cancel()
+		closeBus()
+		if worker == nil {
+			return
+		}
+
+		if err := worker.Close(); err != nil {
+			t.Errorf("close RTE test worker: %v", err)
+		}
+
+		select {
+		case err := <-done:
+			require.NoError(t, err)
+		case <-time.After(10 * time.Second):
+			t.Error("RTE test worker did not stop")
+		}
+	})
 	service, err := common.NewRTEService(s.DBClient, s.CustomerBalanceSvc, s.Entitlements, logger, config.CreditsConfiguration{Enabled: true}, bus, metricnoop.NewMeterProvider().Meter("test"))
 	require.NoError(t, err)
 	observed, err := transport.Subscribe(ctx, events.SystemEvents.Topic)
@@ -55,7 +79,7 @@ func (s *RTEIntegrationSuite) newEventPipeline() eventPipeline {
 	workerConfig := config.RTEConfiguration{PollInterval: time.Second, CalculationTimeout: 30 * time.Second}
 	demands, err := common.NewRTEDemandService(s.DBClient, service, logger, metricnoop.NewMeterProvider().Meter("test"), workerConfig)
 	require.NoError(t, err)
-	worker, err := common.NewRTEWorker(service, demands, s.DBClient, workerConfig, events, router.Options{
+	worker, err = common.NewRTEWorker(service, demands, s.DBClient, workerConfig, events, router.Options{
 		Subscriber:  transport,
 		Publisher:   transport,
 		Logger:      logger,
@@ -68,15 +92,10 @@ func (s *RTEIntegrationSuite) newEventPipeline() eventPipeline {
 		},
 	}, bus)
 	require.NoError(t, err)
-	done := make(chan error, 1)
 	go func() {
 		done <- worker.Run(ctx)
 		close(done)
 	}()
-	t.Cleanup(func() {
-		require.NoError(t, worker.Close())
-		require.NoError(t, <-done)
-	})
 	select {
 	case <-worker.Running():
 	case err := <-done:
@@ -92,6 +111,8 @@ func (p eventPipeline) calculate(t *testing.T, key rte.Key) rte.CalculationUpdat
 	t.Helper()
 	request, err := rte.NewCalculationRequestedEvent(key)
 	require.NoError(t, err)
+	identity, err := request.CalculationTarget.Identity()
+	require.NoError(t, err)
 	require.NoError(t, p.publisher.Publish(t.Context(), request))
 	timer := time.NewTimer(10 * time.Second)
 	defer timer.Stop()
@@ -106,8 +127,15 @@ func (p eventPipeline) calculate(t *testing.T, key rte.Key) rte.CalculationUpdat
 			}
 
 			require.NoError(t, p.publisher.Marshaler().Unmarshal(msg, &event))
-			require.Equal(t, request.Kind, event.Kind)
-			require.JSONEq(t, string(request.Key), string(event.Key))
+			if event.Kind != request.Kind {
+				continue
+			}
+
+			eventIdentity, err := event.CalculationTarget.Identity()
+			require.NoError(t, err)
+			if eventIdentity != identity {
+				continue
+			}
 
 			return event
 		case <-timer.C:
@@ -148,4 +176,44 @@ func (s *RTEIntegrationSuite) TestInvalidCalculationRequestReachesDLQ() {
 	updates, err := s.DBClient.EventOutbox.Query().Count(ctx)
 	s.Require().NoError(err)
 	s.Zero(updates)
+}
+
+func TestEventPipelineCalculateSelectsMatchingTarget(t *testing.T) {
+	// Given valid updates from other calculations on the shared topic.
+	publisher := eventbus.NewMock(t)
+	messages := make(chan *message.Message, 3)
+	key := meteredentitlement.Key{EntitlementID: models.NamespacedID{Namespace: "test", ID: "wanted"}}
+	var delivered []*message.Message
+	for _, target := range []rte.Key{
+		creditbalance.Key{CustomerID: customer.CustomerID{Namespace: "test", ID: "customer"}, Currency: currencies.NewCurrencyReference("USD")},
+		meteredentitlement.Key{EntitlementID: models.NamespacedID{Namespace: "test", ID: "other"}},
+		key,
+	} {
+		event, err := rte.NewCalculationUpdatedEvent(rte.StoreInput[rte.Key, map[string]int]{
+			Key: target, State: rte.State[map[string]int]{CalculatedAt: time.Now(), Value: map[string]int{"balance": 1}},
+		})
+		require.NoError(t, err)
+		msg, err := publisher.Marshaler().Marshal(event)
+		require.NoError(t, err)
+		delivered = append(delivered, msg)
+		messages <- msg
+	}
+
+	// When awaiting one result, unrelated kinds and owners are acknowledged.
+	pipeline := eventPipeline{publisher: publisher, messages: messages}
+	result := pipeline.calculate(t, key)
+	identity, err := result.CalculationTarget.Identity()
+	require.NoError(t, err)
+	expected, err := rte.NewCalculationTarget(key)
+	require.NoError(t, err)
+	expectedIdentity, err := expected.Identity()
+	require.NoError(t, err)
+	require.Equal(t, expectedIdentity, identity)
+	for _, msg := range delivered {
+		select {
+		case <-msg.Acked():
+		default:
+			t.Fatal("shared topic message was not acknowledged")
+		}
+	}
 }

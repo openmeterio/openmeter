@@ -88,6 +88,9 @@ func (s *RTEIntegrationSuite) TestUpstreamUsageTargetsActiveDemand() {
 		target, err := rte.NewCalculationRequestedEvent(key)
 		s.Require().NoError(err)
 		s.Require().NoError(repository.Activate(ctx, rte.ActivateDemandInput{Target: target.CalculationTarget}))
+		defer func() {
+			s.Require().NoError(repository.Deactivate(ctx, target.CalculationTarget))
+		}()
 	}
 
 	now := start.Add(48 * time.Hour)
