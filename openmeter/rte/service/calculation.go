@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/rte"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
@@ -33,14 +34,15 @@ func (r Registration[K, Result]) Validate() error {
 }
 
 type calculation[K rte.Key, Result any] struct {
+	metrics      calculationMetrics
 	calculator   rte.Calculator[K, Result]
 	store        rte.Store[K, Result]
 	publisher    eventbus.Publisher
 	updatedEvent func(rte.StoreInput[K, Result]) (rte.CalculationUpdatedEvent, error)
 }
 
-func newCalculation[K rte.Key, Result any](r Registration[K, Result], publisher eventbus.Publisher, updatedEvent func(rte.StoreInput[K, Result]) (rte.CalculationUpdatedEvent, error)) rte.Calculation[K, Result] {
-	return &calculation[K, Result]{calculator: r.Calculator, store: r.Store, publisher: publisher, updatedEvent: updatedEvent}
+func newCalculation[K rte.Key, Result any](r Registration[K, Result], metrics calculationMetrics, publisher eventbus.Publisher, updatedEvent func(rte.StoreInput[K, Result]) (rte.CalculationUpdatedEvent, error)) rte.Calculation[K, Result] {
+	return &calculation[K, Result]{metrics: metrics, calculator: r.Calculator, store: r.Store, publisher: publisher, updatedEvent: updatedEvent}
 }
 
 func (c *calculation[K, Result]) Calculate(ctx context.Context, key K) (rte.State[Result], error) {
@@ -48,13 +50,18 @@ func (c *calculation[K, Result]) Calculate(ctx context.Context, key K) (rte.Stat
 		return rte.State[Result]{}, err
 	}
 
+	started := time.Now()
+	outcome := "failed"
+	defer func() { c.metrics.calculated(ctx, started, outcome) }()
+
 	calculatedAt := clock.Now()
 	value, err := c.calculator.Calculate(ctx, rte.CalculateInput[K]{Key: key, At: calculatedAt})
 	if err != nil {
 		return rte.State[Result]{}, fmt.Errorf("calculate: %w", err)
 	}
 
-	return transaction.Run(ctx, c.store, func(ctx context.Context) (rte.State[Result], error) {
+	updated := false
+	state, err := transaction.Run(ctx, c.store, func(ctx context.Context) (rte.State[Result], error) {
 		result, err := c.store.Store(ctx, rte.StoreInput[K, Result]{
 			Key:   key,
 			State: rte.State[Result]{CalculatedAt: calculatedAt, Value: value},
@@ -63,7 +70,8 @@ func (c *calculation[K, Result]) Calculate(ctx context.Context, key K) (rte.Stat
 			return rte.State[Result]{}, err
 		}
 
-		if result.Updated {
+		updated = result.Updated
+		if updated {
 			event, err := c.updatedEvent(rte.StoreInput[K, Result]{Key: key, State: result.State})
 			if err != nil {
 				return rte.State[Result]{}, err
@@ -76,6 +84,14 @@ func (c *calculation[K, Result]) Calculate(ctx context.Context, key K) (rte.Stat
 
 		return result.State, nil
 	})
+	if err == nil {
+		outcome = "superseded"
+		if updated {
+			outcome = "updated"
+		}
+	}
+
+	return state, err
 }
 
 func (c *calculation[K, Result]) Get(ctx context.Context, key K) (rte.State[Result], error) {
@@ -83,5 +99,15 @@ func (c *calculation[K, Result]) Get(ctx context.Context, key K) (rte.State[Resu
 		return rte.State[Result]{}, err
 	}
 
-	return c.store.Get(ctx, key)
+	state, err := c.store.Get(ctx, key)
+	switch {
+	case err == nil:
+		c.metrics.read(ctx, "hit")
+	case models.IsGenericNotFoundError(err):
+		c.metrics.read(ctx, "missing")
+	default:
+		c.metrics.read(ctx, "failed")
+	}
+
+	return state, err
 }

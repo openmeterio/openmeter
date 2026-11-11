@@ -2,6 +2,7 @@ package rte
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/event/metadata"
@@ -25,14 +26,31 @@ type CalculationTarget struct {
 
 type CalculationRequestedEvent struct {
 	CalculationTarget
+	Freshness *FreshnessPolicy `json:"freshness,omitempty"`
+}
+
+// FreshnessPolicy permits reuse of a clean result. TrackForSeconds controls
+// how long source changes continue to mark the key dirty between pulls.
+type FreshnessPolicy struct {
+	TrackForSeconds int32 `json:"track_for_seconds"`
+	MaxAgeSeconds   int32 `json:"max_age_seconds"`
+}
+
+func (e CalculationRequestedEvent) Validate() error {
+	var err error
+	if p := e.Freshness; p != nil && (p.TrackForSeconds <= 0 || p.MaxAgeSeconds < 0) {
+		err = errors.New("track_for_seconds must be positive and max_age_seconds must be non-negative")
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(err, e.CalculationTarget.Validate()))
 }
 
 func NewCalculationRequestedEvent(key Key) (CalculationRequestedEvent, error) {
-	target, err := newCalculationTarget(key)
+	target, err := NewCalculationTarget(key)
 	return CalculationRequestedEvent{CalculationTarget: target}, err
 }
 
-func newCalculationTarget(key Key) (CalculationTarget, error) {
+func NewCalculationTarget(key Key) (CalculationTarget, error) {
 	if err := key.Validate(); err != nil {
 		return CalculationTarget{}, err
 	}
@@ -124,7 +142,7 @@ func NewCalculationUpdatedEvent[K Key, Result any](input StoreInput[K, Result]) 
 		return CalculationUpdatedEvent{}, err
 	}
 
-	target, err := newCalculationTarget(input.Key)
+	target, err := NewCalculationTarget(input.Key)
 	if err != nil {
 		return CalculationUpdatedEvent{}, err
 	}

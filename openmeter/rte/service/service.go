@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log/slog"
 
+	"go.opentelemetry.io/otel/metric"
+
 	"github.com/openmeterio/openmeter/openmeter/rte"
 	"github.com/openmeterio/openmeter/openmeter/rte/creditbalance"
 	"github.com/openmeterio/openmeter/openmeter/rte/meteredentitlement"
@@ -13,6 +15,7 @@ import (
 )
 
 type Config struct {
+	Meter               metric.Meter
 	CreditBalances      Registration[creditbalance.Key, creditbalance.Balance]
 	MeteredEntitlements Registration[meteredentitlement.Key, meteredentitlement.Balance]
 	Logger              *slog.Logger
@@ -28,6 +31,10 @@ func (c Config) Validate() error {
 
 	if err := c.MeteredEntitlements.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("metered entitlements: %w", err))
+	}
+
+	if c.Meter == nil {
+		errs = append(errs, errors.New("meter is required"))
 	}
 
 	if c.Publisher == nil {
@@ -51,9 +58,19 @@ func New(config Config) (rte.Service, error) {
 		return nil, err
 	}
 
+	creditMetrics, err := newCalculationMetrics(config.Meter, rte.CalculationKindCreditBalance)
+	if err != nil {
+		return nil, err
+	}
+
+	meteredMetrics, err := newCalculationMetrics(config.Meter, rte.CalculationKindMeteredEntitlement)
+	if err != nil {
+		return nil, err
+	}
+
 	return &service{
-		creditBalances:      newCalculation(config.CreditBalances, config.Publisher, rte.NewCalculationUpdatedEvent[creditbalance.Key, creditbalance.Balance]),
-		meteredEntitlements: newCalculation(config.MeteredEntitlements, config.Publisher, rte.NewCalculationUpdatedEvent[meteredentitlement.Key, meteredentitlement.Balance]),
+		creditBalances:      newCalculation(config.CreditBalances, creditMetrics, config.Publisher, rte.NewCalculationUpdatedEvent[creditbalance.Key, creditbalance.Balance]),
+		meteredEntitlements: newCalculation(config.MeteredEntitlements, meteredMetrics, config.Publisher, rte.NewCalculationUpdatedEvent[meteredentitlement.Key, meteredentitlement.Balance]),
 	}, nil
 }
 

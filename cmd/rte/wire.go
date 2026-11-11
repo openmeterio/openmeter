@@ -18,6 +18,7 @@ type Application struct {
 	common.Migrator
 	common.Runner
 
+	AppRegistry             common.AppRegistry
 	RTE                     rte.Service
 	Logger                  *slog.Logger
 	RuntimeMetricsCollector common.RuntimeMetricsCollector
@@ -31,6 +32,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.NewCustomerBalanceService,
 		common.NewCreditVoidService,
 		common.App,
+		common.Secret,
 		common.Billing,
 		common.ClickHouse,
 		common.Config,

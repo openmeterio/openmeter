@@ -109,7 +109,7 @@ build-dir:
 	@mkdir -p build
 
 .PHONY: build
-build: build-server build-sink-worker build-benthos-collector build-balance-worker build-billing-worker build-notification-service build-jobs ## Build all binaries
+build: build-server build-sink-worker build-benthos-collector build-balance-worker build-rte build-billing-worker build-notification-service build-jobs ## Build all binaries
 
 COLLECTOR_DIR := $(ROOT_DIR)/collector
 COLLECTOR_RELEASE_OUTPUT_DIR := $(ROOT_DIR)/build/release/benthos-collector_$(GOOS)_$(GOARCH)
@@ -158,6 +158,11 @@ build-sink-worker: | build-dir ## Build sink-worker binary
 build-benthos-collector: | build-dir ## Build benthos collector binary
 	$(call print-target)
 	go build -C $(COLLECTOR_DIR) -o ../build/benthos-collector ${GO_BUILD_FLAGS} ./cmd
+
+.PHONY: build-rte
+build-rte: | build-dir ## Build RTE binary
+	$(call print-target)
+	go build -o build/rte ${GO_BUILD_FLAGS} ./cmd/rte
 
 .PHONY: build-balance-worker
 build-balance-worker: | build-dir ## Build balance-worker binary

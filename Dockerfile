@@ -54,6 +54,13 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 
 RUN xx-verify /usr/local/bin/openmeter-balance-worker
 
+# Build rte binary
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/go/cache \
+    xx-go build -ldflags "-linkmode external -extldflags \"-static\" -X main.version=${VERSION}" -tags musl -o /usr/local/bin/openmeter-rte ./cmd/rte
+
+RUN xx-verify /usr/local/bin/openmeter-rte
+
 # Build notification-service binary
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/go/cache \
@@ -84,6 +91,7 @@ SHELL ["/bin/bash", "-c"]
 COPY --link --from=builder /usr/local/bin/openmeter /usr/local/bin/
 COPY --link --from=builder /usr/local/bin/openmeter-sink-worker /usr/local/bin/
 COPY --link --from=builder /usr/local/bin/openmeter-balance-worker /usr/local/bin/
+COPY --link --from=builder /usr/local/bin/openmeter-rte /usr/local/bin/
 COPY --link --from=builder /usr/local/bin/openmeter-notification-service /usr/local/bin/
 COPY --link --from=builder /usr/local/bin/openmeter-billing-worker /usr/local/bin/
 COPY --link --from=builder /usr/local/bin/openmeter-jobs /usr/local/bin/

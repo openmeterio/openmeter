@@ -23,6 +23,7 @@ import (
 	resolversadapter "github.com/openmeterio/openmeter/openmeter/ledger/resolvers/adapter"
 	"github.com/openmeterio/openmeter/openmeter/ledger/routingrules"
 	"github.com/openmeterio/openmeter/openmeter/namespace"
+	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 )
 
@@ -88,12 +89,19 @@ func NewLedgerHistoricalLedger(
 	accountCatalog ledger.AccountCatalog,
 	accountLocker ledger.AccountLocker,
 	routingValidator ledger.RoutingValidator,
+	rteConf config.RTEConfiguration,
+	publisher eventbus.Publisher,
 ) ledgerReadWriter {
 	if !creditsConfig.Enabled {
 		return ledgernoop.Ledger{}
 	}
 
-	return historical.NewLedger(repo, accountCatalog, accountLocker, routingValidator)
+	var options []historical.Option
+	if rteConf.PublishSourceEvents {
+		options = append(options, historical.WithEventPublisher(publisher))
+	}
+
+	return historical.NewLedger(repo, accountCatalog, accountLocker, routingValidator, options...)
 }
 
 func NewLedgerBalanceQuerier(historicalLedger ledgerReadWriter) ledger.BalanceQuerier {

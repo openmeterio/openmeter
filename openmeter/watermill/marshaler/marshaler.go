@@ -121,22 +121,27 @@ func NewCloudEvent(ev Event) (cloudevents.Event, error) {
 }
 
 func (m *marshaler) Unmarshal(msg *message.Message, v interface{}) error {
-	cloudEvent := cloudevents.Event{}
-	if err := cloudEvent.UnmarshalJSON(msg.Payload); err != nil {
-		return fmt.Errorf("failed to unmarshal CloudEvent: %w", err)
-	}
-
-	err := json.Unmarshal(cloudEvent.Data(), v)
-	if err != nil {
-		return err
-	}
-
 	ev, ok := v.(Event)
 	if !ok {
 		return errors.New("invalid event type")
 	}
+	_, err := DecodeCloudEvent(msg, ev)
 
-	return ev.Validate()
+	return err
+}
+
+// DecodeCloudEvent preserves source identity for consumers that track redelivery.
+func DecodeCloudEvent(msg *message.Message, ev Event) (cloudevents.Event, error) {
+	cloudEvent := cloudevents.Event{}
+	if err := cloudEvent.UnmarshalJSON(msg.Payload); err != nil {
+		return cloudEvent, fmt.Errorf("failed to unmarshal CloudEvent: %w", err)
+	}
+
+	if err := json.Unmarshal(cloudEvent.Data(), ev); err != nil {
+		return cloudEvent, err
+	}
+
+	return cloudEvent, ev.Validate()
 }
 
 func (m *marshaler) Name(v interface{}) string {
