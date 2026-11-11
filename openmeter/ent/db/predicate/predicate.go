@@ -499,6 +499,12 @@ func PlanRateCardOrErr(p PlanRateCard, err error) PlanRateCard {
 // RTECreditBalance is the predicate function for rtecreditbalance builders.
 type RTECreditBalance func(*sql.Selector)
 
+// RTEDemand is the predicate function for rtedemand builders.
+type RTEDemand func(*sql.Selector)
+
+// RTEInvalidation is the predicate function for rteinvalidation builders.
+type RTEInvalidation func(*sql.Selector)
+
 // RTEMeteredEntitlementBalance is the predicate function for rtemeteredentitlementbalance builders.
 type RTEMeteredEntitlementBalance func(*sql.Selector)
 

@@ -249,6 +249,10 @@ func NewTxClientFromRawConfig(ctx context.Context, cfg entutils.RawEntConfig) *T
 
 		RTECreditBalance: NewRTECreditBalanceClient(config),
 
+		RTEDemand: NewRTEDemandClient(config),
+
+		RTEInvalidation: NewRTEInvalidationClient(config),
+
 		RTEMeteredEntitlementBalance: NewRTEMeteredEntitlementBalanceClient(config),
 
 		Subject: NewSubjectClient(config),

@@ -174,6 +174,10 @@ type Tx struct {
 	PlanRateCard *PlanRateCardClient
 	// RTECreditBalance is the client for interacting with the RTECreditBalance builders.
 	RTECreditBalance *RTECreditBalanceClient
+	// RTEDemand is the client for interacting with the RTEDemand builders.
+	RTEDemand *RTEDemandClient
+	// RTEInvalidation is the client for interacting with the RTEInvalidation builders.
+	RTEInvalidation *RTEInvalidationClient
 	// RTEMeteredEntitlementBalance is the client for interacting with the RTEMeteredEntitlementBalance builders.
 	RTEMeteredEntitlementBalance *RTEMeteredEntitlementBalanceClient
 	// Subject is the client for interacting with the Subject builders.
@@ -407,6 +411,8 @@ func (tx *Tx) init() {
 	tx.PlanPhase = NewPlanPhaseClient(tx.config)
 	tx.PlanRateCard = NewPlanRateCardClient(tx.config)
 	tx.RTECreditBalance = NewRTECreditBalanceClient(tx.config)
+	tx.RTEDemand = NewRTEDemandClient(tx.config)
+	tx.RTEInvalidation = NewRTEInvalidationClient(tx.config)
 	tx.RTEMeteredEntitlementBalance = NewRTEMeteredEntitlementBalanceClient(tx.config)
 	tx.Subject = NewSubjectClient(tx.config)
 	tx.Subscription = NewSubscriptionClient(tx.config)

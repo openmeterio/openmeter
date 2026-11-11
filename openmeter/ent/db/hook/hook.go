@@ -957,6 +957,30 @@ func (f RTECreditBalanceFunc) Mutate(ctx context.Context, m db.Mutation) (db.Val
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.RTECreditBalanceMutation", m)
 }
 
+// The RTEDemandFunc type is an adapter to allow the use of ordinary
+// function as RTEDemand mutator.
+type RTEDemandFunc func(context.Context, *db.RTEDemandMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f RTEDemandFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.RTEDemandMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.RTEDemandMutation", m)
+}
+
+// The RTEInvalidationFunc type is an adapter to allow the use of ordinary
+// function as RTEInvalidation mutator.
+type RTEInvalidationFunc func(context.Context, *db.RTEInvalidationMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f RTEInvalidationFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.RTEInvalidationMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.RTEInvalidationMutation", m)
+}
+
 // The RTEMeteredEntitlementBalanceFunc type is an adapter to allow the use of ordinary
 // function as RTEMeteredEntitlementBalance mutator.
 type RTEMeteredEntitlementBalanceFunc func(context.Context, *db.RTEMeteredEntitlementBalanceMutation) (db.Value, error)

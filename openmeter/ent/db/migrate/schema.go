@@ -5483,6 +5483,88 @@ var (
 			},
 		},
 	}
+	// RteDemandsColumns holds the columns for the "rte_demands" table.
+	RteDemandsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "kind", Type: field.TypeString},
+		{Name: "owner_id", Type: field.TypeString},
+		{Name: "key_hash", Type: field.TypeString},
+		{Name: "key", Type: field.TypeJSON},
+		{Name: "push_enabled", Type: field.TypeBool, Default: false},
+		{Name: "pull_until", Type: field.TypeTime, Nullable: true},
+		{Name: "dirty_version", Type: field.TypeInt64, Default: 1},
+		{Name: "completed_version", Type: field.TypeInt64, Default: 0},
+		{Name: "refresh_interval", Type: field.TypeInt64, Default: 0},
+		{Name: "next_refresh_at", Type: field.TypeTime, Nullable: true},
+		{Name: "last_calculated_at", Type: field.TypeTime, Nullable: true},
+		{Name: "next_attempt_at", Type: field.TypeTime},
+		{Name: "attempts", Type: field.TypeInt, Default: 0},
+	}
+	// RteDemandsTable holds the schema information for the "rte_demands" table.
+	RteDemandsTable = &schema.Table{
+		Name:       "rte_demands",
+		Columns:    RteDemandsColumns,
+		PrimaryKey: []*schema.Column{RteDemandsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "rtedemand_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{RteDemandsColumns[1]},
+			},
+			{
+				Name:    "rte_demand_identity",
+				Unique:  true,
+				Columns: []*schema.Column{RteDemandsColumns[1], RteDemandsColumns[5], RteDemandsColumns[7]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "deleted_at IS NULL",
+				},
+			},
+			{
+				Name:    "rte_demand_owner",
+				Unique:  false,
+				Columns: []*schema.Column{RteDemandsColumns[1], RteDemandsColumns[5], RteDemandsColumns[6]},
+			},
+			{
+				Name:    "rte_demand_work",
+				Unique:  false,
+				Columns: []*schema.Column{RteDemandsColumns[16], RteDemandsColumns[0]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "deleted_at IS NULL AND push_enabled AND (dirty_version > completed_version OR next_refresh_at IS NOT NULL)",
+				},
+			},
+		},
+	}
+	// RteInvalidationsColumns holds the columns for the "rte_invalidations" table.
+	RteInvalidationsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "source", Type: field.TypeString},
+		{Name: "event_id", Type: field.TypeString},
+	}
+	// RteInvalidationsTable holds the schema information for the "rte_invalidations" table.
+	RteInvalidationsTable = &schema.Table{
+		Name:       "rte_invalidations",
+		Columns:    RteInvalidationsColumns,
+		PrimaryKey: []*schema.Column{RteInvalidationsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "rteinvalidation_source_event_id",
+				Unique:  true,
+				Columns: []*schema.Column{RteInvalidationsColumns[4], RteInvalidationsColumns[5]},
+			},
+			{
+				Name:    "rte_invalidation_retention",
+				Unique:  false,
+				Columns: []*schema.Column{RteInvalidationsColumns[1], RteInvalidationsColumns[0]},
+			},
+		},
+	}
 	// RteMeteredEntitlementBalancesColumns holds the columns for the "rte_metered_entitlement_balances" table.
 	RteMeteredEntitlementBalancesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -6259,6 +6341,8 @@ var (
 		PlanPhasesTable,
 		PlanRateCardsTable,
 		RteCreditBalancesTable,
+		RteDemandsTable,
+		RteInvalidationsTable,
 		RteMeteredEntitlementBalancesTable,
 		SubjectsTable,
 		SubscriptionsTable,

@@ -6056,6 +6056,76 @@ func (u *RTECreditBalanceUpdateOne) SetOrClearDeletedAt(value *time.Time) *RTECr
 	return u.SetDeletedAt(*value)
 }
 
+func (u *RTEDemandUpdate) SetOrClearDeletedAt(value *time.Time) *RTEDemandUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *RTEDemandUpdateOne) SetOrClearDeletedAt(value *time.Time) *RTEDemandUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *RTEDemandUpdate) SetOrClearPullUntil(value *time.Time) *RTEDemandUpdate {
+	if value == nil {
+		return u.ClearPullUntil()
+	}
+	return u.SetPullUntil(*value)
+}
+
+func (u *RTEDemandUpdateOne) SetOrClearPullUntil(value *time.Time) *RTEDemandUpdateOne {
+	if value == nil {
+		return u.ClearPullUntil()
+	}
+	return u.SetPullUntil(*value)
+}
+
+func (u *RTEDemandUpdate) SetOrClearNextRefreshAt(value *time.Time) *RTEDemandUpdate {
+	if value == nil {
+		return u.ClearNextRefreshAt()
+	}
+	return u.SetNextRefreshAt(*value)
+}
+
+func (u *RTEDemandUpdateOne) SetOrClearNextRefreshAt(value *time.Time) *RTEDemandUpdateOne {
+	if value == nil {
+		return u.ClearNextRefreshAt()
+	}
+	return u.SetNextRefreshAt(*value)
+}
+
+func (u *RTEDemandUpdate) SetOrClearLastCalculatedAt(value *time.Time) *RTEDemandUpdate {
+	if value == nil {
+		return u.ClearLastCalculatedAt()
+	}
+	return u.SetLastCalculatedAt(*value)
+}
+
+func (u *RTEDemandUpdateOne) SetOrClearLastCalculatedAt(value *time.Time) *RTEDemandUpdateOne {
+	if value == nil {
+		return u.ClearLastCalculatedAt()
+	}
+	return u.SetLastCalculatedAt(*value)
+}
+
+func (u *RTEInvalidationUpdate) SetOrClearDeletedAt(value *time.Time) *RTEInvalidationUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *RTEInvalidationUpdateOne) SetOrClearDeletedAt(value *time.Time) *RTEInvalidationUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
 func (u *RTEMeteredEntitlementBalanceUpdate) SetOrClearDeletedAt(value *time.Time) *RTEMeteredEntitlementBalanceUpdate {
 	if value == nil {
 		return u.ClearDeletedAt()

@@ -96,6 +96,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/rtecreditbalance"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/rtedemand"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/rteinvalidation"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/rtemeteredentitlementbalance"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subject"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
@@ -248,6 +250,8 @@ func checkColumn(t, c string) error {
 			planphase.Table:                                        planphase.ValidColumn,
 			planratecard.Table:                                     planratecard.ValidColumn,
 			rtecreditbalance.Table:                                 rtecreditbalance.ValidColumn,
+			rtedemand.Table:                                        rtedemand.ValidColumn,
+			rteinvalidation.Table:                                  rteinvalidation.ValidColumn,
 			rtemeteredentitlementbalance.Table:                     rtemeteredentitlementbalance.ValidColumn,
 			subject.Table:                                          subject.ValidColumn,
 			subscription.Table:                                     subscription.ValidColumn,
