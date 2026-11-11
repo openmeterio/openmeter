@@ -46,6 +46,28 @@ func (s *service) ApplyPatches(ctx context.Context, input charges.ApplyPatchesIn
 				return err
 			}
 		}
+		if s.inputChangePublisher != nil && len(input.PatchesByChargeID) > 0 {
+			// A nested create for this owner already announces the whole committed
+			// change. Creates may target other customers, so check their owners.
+			announced := false
+			for _, create := range input.Creates {
+				owner, err := create.GetCustomerID()
+				if err != nil {
+					return err
+				}
+
+				if owner == input.CustomerID.ID {
+					announced = true
+					break
+				}
+			}
+
+			if !announced {
+				if err := s.publishInputChanges(ctx, []customer.CustomerID{input.CustomerID}); err != nil {
+					return err
+				}
+			}
+		}
 
 		return nil
 	})

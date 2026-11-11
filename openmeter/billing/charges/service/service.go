@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger/recognizer"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
+	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 )
 
 type service struct {
@@ -41,7 +42,8 @@ type service struct {
 	customerService     customer.Service
 	subscriptionService charges.SubscriptionService
 
-	fsNamespaceLockdown []string
+	fsNamespaceLockdown  []string
+	inputChangePublisher eventbus.Publisher
 }
 
 type Config struct {
@@ -65,6 +67,9 @@ type Config struct {
 	SubscriptionService charges.SubscriptionService
 
 	FSNamespaceLockdown []string
+	// InputChangePublisher optionally queues customer input facts in Create and
+	// ApplyPatches transactions. Configure the system-event outbox for atomicity.
+	InputChangePublisher eventbus.Publisher
 }
 
 func (c Config) Validate() error {
@@ -154,6 +159,7 @@ func New(config Config) (*service, error) {
 		customerService:       config.CustomerService,
 		subscriptionService:   config.SubscriptionService,
 		fsNamespaceLockdown:   config.FSNamespaceLockdown,
+		inputChangePublisher:  config.InputChangePublisher,
 	}
 
 	standardInvoiceEventHandler := &standardInvoiceEventHandler{
