@@ -394,7 +394,7 @@ require (
 	github.com/sirupsen/logrus v1.10.2 // indirect
 	github.com/skeema/knownhosts v1.3.2 // indirect
 	github.com/smira/go-statsd v1.3.4 // indirect
-	github.com/snowflakedb/gosnowflake/v2 v2.2.0 // indirect
+	github.com/snowflakedb/gosnowflake/v2 v2.3.0 // indirect
 	github.com/sourcegraph/conc v0.3.1-0.20240121214520-5f936abd7ae8 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/spf13/pflag v1.1.0 // indirect
