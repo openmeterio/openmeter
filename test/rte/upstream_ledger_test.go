@@ -92,6 +92,9 @@ func (s *RTEIntegrationSuite) TestLedgerSourceFactSharesPostingTransaction() {
 		event, err := rte.NewCalculationRequestedEvent(key)
 		s.Require().NoError(err)
 		s.Require().NoError(repository.Activate(ctx, rte.ActivateDemandInput{Target: event.CalculationTarget}))
+		defer func() {
+			s.Require().NoError(repository.Deactivate(ctx, event.CalculationTarget))
+		}()
 	}
 
 	selectors, err := resolver.Resolve(ctx, ledger.TransactionGroupCommittedEvent{Namespace: ns, GroupID: group.ID().ID})
@@ -118,6 +121,9 @@ func (s *RTEIntegrationSuite) TestLedgerSourceFactSharesPostingTransaction() {
 		event, err := rte.NewCalculationRequestedEvent(key)
 		s.Require().NoError(err)
 		s.Require().NoError(repository.Activate(ctx, rte.ActivateDemandInput{Target: event.CalculationTarget}))
+		defer func() {
+			s.Require().NoError(repository.Deactivate(ctx, event.CalculationTarget))
+		}()
 	}
 
 	customInputs, err := transactions.ResolveTransactions(ctx, transactions.ResolverDependencies{

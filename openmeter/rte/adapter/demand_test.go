@@ -524,6 +524,7 @@ func TestDemandTimeoutRecoveryRetainsConcurrentPeriodicSuccess(t *testing.T) {
 		if err != nil {
 			return err
 		}
+
 		client := db.NewTxClientFromRawConfig(ctx, *driver.GetConfig()).Client()
 		_, timeoutErr := client.ExecContext(ctx, "SELECT pg_sleep(1)")
 		otherCtx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
@@ -534,7 +535,9 @@ func TestDemandTimeoutRecoveryRetainsConcurrentPeriodicSuccess(t *testing.T) {
 		if err != nil {
 			return err
 		}
+
 		require.True(t, other.Processed)
+
 		return errors.Join(ctx.Err(), timeoutErr)
 	})
 

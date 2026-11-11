@@ -155,6 +155,7 @@ func (w *worker) handleSource(msg *message.Message, event marshaler.Event) error
 		outcome = "no_target"
 		return nil
 	}
+
 	if batch, ok := event.(*ingestevents.EventBatchedIngest); ok && slices.ContainsFunc(selectors, func(selector rte.DemandSelector) bool {
 		return selector.Kind == rte.CalculationKindCreditBalance
 	}) {
