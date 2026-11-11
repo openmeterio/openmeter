@@ -45,6 +45,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/subscription/validators/itemreference"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
+	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/featuregate"
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
@@ -392,8 +393,10 @@ func NewChargesService(
 	customerService customer.Service,
 	subscriptionService charges.SubscriptionService,
 	fsNamespaceLockdown []string,
+	inputChangePublisher eventbus.Publisher,
 ) (charges.Service, error) {
 	chargesSvc, err := chargesservice.New(chargesservice.Config{
+		InputChangePublisher:  inputChangePublisher,
 		Logger:                logger,
 		Adapter:               rootAdapter,
 		MetaAdapter:           metaAdapter,
@@ -461,6 +464,7 @@ func newChargesRegistry(
 	fsNamespaceLockdown []string,
 	creditsConfig config.CreditsConfiguration,
 	featureGate *featuregate.FeatureGateChecker,
+	inputChangePublisher eventbus.Publisher,
 ) (*ChargesRegistry, error) {
 	metaAdapter, err := NewChargesMetaAdapter(db, logger)
 	if err != nil {
@@ -614,6 +618,7 @@ func newChargesRegistry(
 		customerService,
 		subscriptionService,
 		fsNamespaceLockdown,
+		inputChangePublisher,
 	)
 	if err != nil {
 		return nil, err

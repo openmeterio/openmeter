@@ -46,13 +46,16 @@ func (s *RTEIntegrationSuite) newEventPipeline() eventPipeline {
 	bus, closeBus, err := common.NewEventBusPublisher(ctx, transport, s.DBClient, events, logger)
 	require.NoError(t, err)
 	t.Cleanup(closeBus)
-	service, err := common.NewRTEService(s.DBClient, s.CustomerBalanceSvc, s.Entitlements, logger, config.CreditsConfiguration{Enabled: true}, bus)
+	service, err := common.NewRTEService(s.DBClient, s.CustomerBalanceSvc, s.Entitlements, logger, config.CreditsConfiguration{Enabled: true}, bus, metricnoop.NewMeterProvider().Meter("test"))
 	require.NoError(t, err)
 	observed, err := transport.Subscribe(ctx, events.SystemEvents.Topic)
 	require.NoError(t, err)
 	deadLetters, err := transport.Subscribe(ctx, "rte-dlq")
 	require.NoError(t, err)
-	worker, err := common.NewRTEWorker(service, events, router.Options{
+	workerConfig := config.RTEConfiguration{PollInterval: time.Second, CalculationTimeout: 30 * time.Second}
+	demands, err := common.NewRTEDemandService(s.DBClient, service, logger, metricnoop.NewMeterProvider().Meter("test"), workerConfig)
+	require.NoError(t, err)
+	worker, err := common.NewRTEWorker(service, demands, s.DBClient, workerConfig, events, router.Options{
 		Subscriber:  transport,
 		Publisher:   transport,
 		Logger:      logger,

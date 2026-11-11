@@ -23,6 +23,7 @@ import (
 	resolversadapter "github.com/openmeterio/openmeter/openmeter/ledger/resolvers/adapter"
 	"github.com/openmeterio/openmeter/openmeter/ledger/routingrules"
 	"github.com/openmeterio/openmeter/openmeter/namespace"
+	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 )
 
@@ -43,7 +44,7 @@ var LedgerStack = wire.NewSet(
 	NewLedgerAccountRepo,
 	NewLedgerHistoricalRepo,
 	NewLedgerResolversRepo,
-	NewLedgerHistoricalLedgerWithMetadata,
+	NewLedgerHistoricalLedgerWithSourceEvents,
 	NewLedgerAccountService,
 	NewLedgerAccountCatalog,
 	NewLedgerAccountLocker,
@@ -102,14 +103,32 @@ func NewLedgerHistoricalLedgerWithMetadata(
 	accountLocker ledger.AccountLocker,
 	routingValidator ledger.RoutingValidator,
 ) ledgerReadWriter {
+	return NewLedgerHistoricalLedgerWithSourceEvents(metadata, creditsConfig, repo, accountCatalog, accountLocker, routingValidator, config.RTEConfiguration{}, nil)
+}
+
+func NewLedgerHistoricalLedgerWithSourceEvents(
+	metadata Metadata,
+	creditsConfig config.CreditsConfiguration,
+	repo historical.Repo,
+	accountCatalog ledger.AccountCatalog,
+	accountLocker ledger.AccountLocker,
+	routingValidator ledger.RoutingValidator,
+	rteConf config.RTEConfiguration,
+	publisher eventbus.Publisher,
+) ledgerReadWriter {
 	if !creditsConfig.Enabled {
 		return ledgernoop.Ledger{}
+	}
+
+	var options []historical.Option
+	if rteConf.PublishSourceEvents {
+		options = append(options, historical.WithEventPublisher(publisher))
 	}
 
 	return historical.NewLedgerWithWriterBuild(repo, accountCatalog, accountLocker, routingValidator, historical.WriterBuild{
 		CommitSHA: metadata.Revision,
 		Version:   metadata.Version,
-	})
+	}, options...)
 }
 
 func NewLedgerBalanceQuerier(historicalLedger ledgerReadWriter) ledger.BalanceQuerier {

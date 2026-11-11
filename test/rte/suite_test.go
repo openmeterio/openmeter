@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/suite"
+	"go.opentelemetry.io/otel/metric/noop"
 
 	"github.com/openmeterio/openmeter/app/common"
 	"github.com/openmeterio/openmeter/app/config"
@@ -32,6 +33,7 @@ func (s *RTEIntegrationSuite) newRTE() rte.Service {
 		testutils.NewDiscardLogger(s.T()),
 		config.CreditsConfiguration{Enabled: true},
 		eventbus.NewMock(s.T()),
+		noop.NewMeterProvider().Meter("test"),
 	)
 	s.Require().NoError(err)
 
