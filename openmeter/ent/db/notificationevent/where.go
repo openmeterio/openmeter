@@ -3,6 +3,8 @@
 package notificationevent
 
 import (
+	"encoding/json/jsontext"
+	"fmt"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
@@ -76,14 +78,27 @@ func CreatedAt(v time.Time) predicate.NotificationEvent {
 	return predicate.NotificationEvent(sql.FieldEQ(FieldCreatedAt, v))
 }
 
+// Type applies equality check predicate on the "type" field. It's identical to TypeEQ.
+func Type(v notification.EventType) predicate.NotificationEvent {
+	vc := string(v)
+	return predicate.NotificationEvent(sql.FieldEQ(FieldType, vc))
+}
+
 // RuleID applies equality check predicate on the "rule_id" field. It's identical to RuleIDEQ.
 func RuleID(v string) predicate.NotificationEvent {
 	return predicate.NotificationEvent(sql.FieldEQ(FieldRuleID, v))
 }
 
 // Payload applies equality check predicate on the "payload" field. It's identical to PayloadEQ.
-func Payload(v string) predicate.NotificationEvent {
-	return predicate.NotificationEvent(sql.FieldEQ(FieldPayload, v))
+func Payload(v jsontext.Value) predicate.NotificationEvent {
+	vc, err := ValueScanner.Payload.Value(v)
+	return predicate.NotificationEventOrErr(sql.FieldEQ(FieldPayload, vc), err)
+}
+
+// RuleSnapshot applies equality check predicate on the "rule_snapshot" field. It's identical to RuleSnapshotEQ.
+func RuleSnapshot(v jsontext.Value) predicate.NotificationEvent {
+	vc, err := ValueScanner.RuleSnapshot.Value(v)
+	return predicate.NotificationEventOrErr(sql.FieldEQ(FieldRuleSnapshot, vc), err)
 }
 
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
@@ -203,13 +218,13 @@ func CreatedAtLTE(v time.Time) predicate.NotificationEvent {
 
 // TypeEQ applies the EQ predicate on the "type" field.
 func TypeEQ(v notification.EventType) predicate.NotificationEvent {
-	vc := v
+	vc := string(v)
 	return predicate.NotificationEvent(sql.FieldEQ(FieldType, vc))
 }
 
 // TypeNEQ applies the NEQ predicate on the "type" field.
 func TypeNEQ(v notification.EventType) predicate.NotificationEvent {
-	vc := v
+	vc := string(v)
 	return predicate.NotificationEvent(sql.FieldNEQ(FieldType, vc))
 }
 
@@ -217,7 +232,7 @@ func TypeNEQ(v notification.EventType) predicate.NotificationEvent {
 func TypeIn(vs ...notification.EventType) predicate.NotificationEvent {
 	v := make([]any, len(vs))
 	for i := range v {
-		v[i] = vs[i]
+		v[i] = string(vs[i])
 	}
 	return predicate.NotificationEvent(sql.FieldIn(FieldType, v...))
 }
@@ -226,9 +241,63 @@ func TypeIn(vs ...notification.EventType) predicate.NotificationEvent {
 func TypeNotIn(vs ...notification.EventType) predicate.NotificationEvent {
 	v := make([]any, len(vs))
 	for i := range v {
-		v[i] = vs[i]
+		v[i] = string(vs[i])
 	}
 	return predicate.NotificationEvent(sql.FieldNotIn(FieldType, v...))
+}
+
+// TypeGT applies the GT predicate on the "type" field.
+func TypeGT(v notification.EventType) predicate.NotificationEvent {
+	vc := string(v)
+	return predicate.NotificationEvent(sql.FieldGT(FieldType, vc))
+}
+
+// TypeGTE applies the GTE predicate on the "type" field.
+func TypeGTE(v notification.EventType) predicate.NotificationEvent {
+	vc := string(v)
+	return predicate.NotificationEvent(sql.FieldGTE(FieldType, vc))
+}
+
+// TypeLT applies the LT predicate on the "type" field.
+func TypeLT(v notification.EventType) predicate.NotificationEvent {
+	vc := string(v)
+	return predicate.NotificationEvent(sql.FieldLT(FieldType, vc))
+}
+
+// TypeLTE applies the LTE predicate on the "type" field.
+func TypeLTE(v notification.EventType) predicate.NotificationEvent {
+	vc := string(v)
+	return predicate.NotificationEvent(sql.FieldLTE(FieldType, vc))
+}
+
+// TypeContains applies the Contains predicate on the "type" field.
+func TypeContains(v notification.EventType) predicate.NotificationEvent {
+	vc := string(v)
+	return predicate.NotificationEvent(sql.FieldContains(FieldType, vc))
+}
+
+// TypeHasPrefix applies the HasPrefix predicate on the "type" field.
+func TypeHasPrefix(v notification.EventType) predicate.NotificationEvent {
+	vc := string(v)
+	return predicate.NotificationEvent(sql.FieldHasPrefix(FieldType, vc))
+}
+
+// TypeHasSuffix applies the HasSuffix predicate on the "type" field.
+func TypeHasSuffix(v notification.EventType) predicate.NotificationEvent {
+	vc := string(v)
+	return predicate.NotificationEvent(sql.FieldHasSuffix(FieldType, vc))
+}
+
+// TypeEqualFold applies the EqualFold predicate on the "type" field.
+func TypeEqualFold(v notification.EventType) predicate.NotificationEvent {
+	vc := string(v)
+	return predicate.NotificationEvent(sql.FieldEqualFold(FieldType, vc))
+}
+
+// TypeContainsFold applies the ContainsFold predicate on the "type" field.
+func TypeContainsFold(v notification.EventType) predicate.NotificationEvent {
+	vc := string(v)
+	return predicate.NotificationEvent(sql.FieldContainsFold(FieldType, vc))
 }
 
 // RuleIDEQ applies the EQ predicate on the "rule_id" field.
@@ -286,6 +355,16 @@ func RuleIDHasSuffix(v string) predicate.NotificationEvent {
 	return predicate.NotificationEvent(sql.FieldHasSuffix(FieldRuleID, v))
 }
 
+// RuleIDIsNil applies the IsNil predicate on the "rule_id" field.
+func RuleIDIsNil() predicate.NotificationEvent {
+	return predicate.NotificationEvent(sql.FieldIsNull(FieldRuleID))
+}
+
+// RuleIDNotNil applies the NotNil predicate on the "rule_id" field.
+func RuleIDNotNil() predicate.NotificationEvent {
+	return predicate.NotificationEvent(sql.FieldNotNull(FieldRuleID))
+}
+
 // RuleIDEqualFold applies the EqualFold predicate on the "rule_id" field.
 func RuleIDEqualFold(v string) predicate.NotificationEvent {
 	return predicate.NotificationEvent(sql.FieldEqualFold(FieldRuleID, v))
@@ -297,68 +376,251 @@ func RuleIDContainsFold(v string) predicate.NotificationEvent {
 }
 
 // PayloadEQ applies the EQ predicate on the "payload" field.
-func PayloadEQ(v string) predicate.NotificationEvent {
-	return predicate.NotificationEvent(sql.FieldEQ(FieldPayload, v))
+func PayloadEQ(v jsontext.Value) predicate.NotificationEvent {
+	vc, err := ValueScanner.Payload.Value(v)
+	return predicate.NotificationEventOrErr(sql.FieldEQ(FieldPayload, vc), err)
 }
 
 // PayloadNEQ applies the NEQ predicate on the "payload" field.
-func PayloadNEQ(v string) predicate.NotificationEvent {
-	return predicate.NotificationEvent(sql.FieldNEQ(FieldPayload, v))
+func PayloadNEQ(v jsontext.Value) predicate.NotificationEvent {
+	vc, err := ValueScanner.Payload.Value(v)
+	return predicate.NotificationEventOrErr(sql.FieldNEQ(FieldPayload, vc), err)
 }
 
 // PayloadIn applies the In predicate on the "payload" field.
-func PayloadIn(vs ...string) predicate.NotificationEvent {
-	return predicate.NotificationEvent(sql.FieldIn(FieldPayload, vs...))
+func PayloadIn(vs ...jsontext.Value) predicate.NotificationEvent {
+	var (
+		err error
+		v   = make([]any, len(vs))
+	)
+	for i := range v {
+		if v[i], err = ValueScanner.Payload.Value(vs[i]); err != nil {
+			break
+		}
+	}
+	return predicate.NotificationEventOrErr(sql.FieldIn(FieldPayload, v...), err)
 }
 
 // PayloadNotIn applies the NotIn predicate on the "payload" field.
-func PayloadNotIn(vs ...string) predicate.NotificationEvent {
-	return predicate.NotificationEvent(sql.FieldNotIn(FieldPayload, vs...))
+func PayloadNotIn(vs ...jsontext.Value) predicate.NotificationEvent {
+	var (
+		err error
+		v   = make([]any, len(vs))
+	)
+	for i := range v {
+		if v[i], err = ValueScanner.Payload.Value(vs[i]); err != nil {
+			break
+		}
+	}
+	return predicate.NotificationEventOrErr(sql.FieldNotIn(FieldPayload, v...), err)
 }
 
 // PayloadGT applies the GT predicate on the "payload" field.
-func PayloadGT(v string) predicate.NotificationEvent {
-	return predicate.NotificationEvent(sql.FieldGT(FieldPayload, v))
+func PayloadGT(v jsontext.Value) predicate.NotificationEvent {
+	vc, err := ValueScanner.Payload.Value(v)
+	return predicate.NotificationEventOrErr(sql.FieldGT(FieldPayload, vc), err)
 }
 
 // PayloadGTE applies the GTE predicate on the "payload" field.
-func PayloadGTE(v string) predicate.NotificationEvent {
-	return predicate.NotificationEvent(sql.FieldGTE(FieldPayload, v))
+func PayloadGTE(v jsontext.Value) predicate.NotificationEvent {
+	vc, err := ValueScanner.Payload.Value(v)
+	return predicate.NotificationEventOrErr(sql.FieldGTE(FieldPayload, vc), err)
 }
 
 // PayloadLT applies the LT predicate on the "payload" field.
-func PayloadLT(v string) predicate.NotificationEvent {
-	return predicate.NotificationEvent(sql.FieldLT(FieldPayload, v))
+func PayloadLT(v jsontext.Value) predicate.NotificationEvent {
+	vc, err := ValueScanner.Payload.Value(v)
+	return predicate.NotificationEventOrErr(sql.FieldLT(FieldPayload, vc), err)
 }
 
 // PayloadLTE applies the LTE predicate on the "payload" field.
-func PayloadLTE(v string) predicate.NotificationEvent {
-	return predicate.NotificationEvent(sql.FieldLTE(FieldPayload, v))
+func PayloadLTE(v jsontext.Value) predicate.NotificationEvent {
+	vc, err := ValueScanner.Payload.Value(v)
+	return predicate.NotificationEventOrErr(sql.FieldLTE(FieldPayload, vc), err)
 }
 
 // PayloadContains applies the Contains predicate on the "payload" field.
-func PayloadContains(v string) predicate.NotificationEvent {
-	return predicate.NotificationEvent(sql.FieldContains(FieldPayload, v))
+func PayloadContains(v jsontext.Value) predicate.NotificationEvent {
+	vc, err := ValueScanner.Payload.Value(v)
+	vcs, ok := vc.(string)
+	if err == nil && !ok {
+		err = fmt.Errorf("payload value is not a string: %T", vc)
+	}
+	return predicate.NotificationEventOrErr(sql.FieldContains(FieldPayload, vcs), err)
 }
 
 // PayloadHasPrefix applies the HasPrefix predicate on the "payload" field.
-func PayloadHasPrefix(v string) predicate.NotificationEvent {
-	return predicate.NotificationEvent(sql.FieldHasPrefix(FieldPayload, v))
+func PayloadHasPrefix(v jsontext.Value) predicate.NotificationEvent {
+	vc, err := ValueScanner.Payload.Value(v)
+	vcs, ok := vc.(string)
+	if err == nil && !ok {
+		err = fmt.Errorf("payload value is not a string: %T", vc)
+	}
+	return predicate.NotificationEventOrErr(sql.FieldHasPrefix(FieldPayload, vcs), err)
 }
 
 // PayloadHasSuffix applies the HasSuffix predicate on the "payload" field.
-func PayloadHasSuffix(v string) predicate.NotificationEvent {
-	return predicate.NotificationEvent(sql.FieldHasSuffix(FieldPayload, v))
+func PayloadHasSuffix(v jsontext.Value) predicate.NotificationEvent {
+	vc, err := ValueScanner.Payload.Value(v)
+	vcs, ok := vc.(string)
+	if err == nil && !ok {
+		err = fmt.Errorf("payload value is not a string: %T", vc)
+	}
+	return predicate.NotificationEventOrErr(sql.FieldHasSuffix(FieldPayload, vcs), err)
 }
 
 // PayloadEqualFold applies the EqualFold predicate on the "payload" field.
-func PayloadEqualFold(v string) predicate.NotificationEvent {
-	return predicate.NotificationEvent(sql.FieldEqualFold(FieldPayload, v))
+func PayloadEqualFold(v jsontext.Value) predicate.NotificationEvent {
+	vc, err := ValueScanner.Payload.Value(v)
+	vcs, ok := vc.(string)
+	if err == nil && !ok {
+		err = fmt.Errorf("payload value is not a string: %T", vc)
+	}
+	return predicate.NotificationEventOrErr(sql.FieldEqualFold(FieldPayload, vcs), err)
 }
 
 // PayloadContainsFold applies the ContainsFold predicate on the "payload" field.
-func PayloadContainsFold(v string) predicate.NotificationEvent {
-	return predicate.NotificationEvent(sql.FieldContainsFold(FieldPayload, v))
+func PayloadContainsFold(v jsontext.Value) predicate.NotificationEvent {
+	vc, err := ValueScanner.Payload.Value(v)
+	vcs, ok := vc.(string)
+	if err == nil && !ok {
+		err = fmt.Errorf("payload value is not a string: %T", vc)
+	}
+	return predicate.NotificationEventOrErr(sql.FieldContainsFold(FieldPayload, vcs), err)
+}
+
+// RuleSnapshotEQ applies the EQ predicate on the "rule_snapshot" field.
+func RuleSnapshotEQ(v jsontext.Value) predicate.NotificationEvent {
+	vc, err := ValueScanner.RuleSnapshot.Value(v)
+	return predicate.NotificationEventOrErr(sql.FieldEQ(FieldRuleSnapshot, vc), err)
+}
+
+// RuleSnapshotNEQ applies the NEQ predicate on the "rule_snapshot" field.
+func RuleSnapshotNEQ(v jsontext.Value) predicate.NotificationEvent {
+	vc, err := ValueScanner.RuleSnapshot.Value(v)
+	return predicate.NotificationEventOrErr(sql.FieldNEQ(FieldRuleSnapshot, vc), err)
+}
+
+// RuleSnapshotIn applies the In predicate on the "rule_snapshot" field.
+func RuleSnapshotIn(vs ...jsontext.Value) predicate.NotificationEvent {
+	var (
+		err error
+		v   = make([]any, len(vs))
+	)
+	for i := range v {
+		if v[i], err = ValueScanner.RuleSnapshot.Value(vs[i]); err != nil {
+			break
+		}
+	}
+	return predicate.NotificationEventOrErr(sql.FieldIn(FieldRuleSnapshot, v...), err)
+}
+
+// RuleSnapshotNotIn applies the NotIn predicate on the "rule_snapshot" field.
+func RuleSnapshotNotIn(vs ...jsontext.Value) predicate.NotificationEvent {
+	var (
+		err error
+		v   = make([]any, len(vs))
+	)
+	for i := range v {
+		if v[i], err = ValueScanner.RuleSnapshot.Value(vs[i]); err != nil {
+			break
+		}
+	}
+	return predicate.NotificationEventOrErr(sql.FieldNotIn(FieldRuleSnapshot, v...), err)
+}
+
+// RuleSnapshotGT applies the GT predicate on the "rule_snapshot" field.
+func RuleSnapshotGT(v jsontext.Value) predicate.NotificationEvent {
+	vc, err := ValueScanner.RuleSnapshot.Value(v)
+	return predicate.NotificationEventOrErr(sql.FieldGT(FieldRuleSnapshot, vc), err)
+}
+
+// RuleSnapshotGTE applies the GTE predicate on the "rule_snapshot" field.
+func RuleSnapshotGTE(v jsontext.Value) predicate.NotificationEvent {
+	vc, err := ValueScanner.RuleSnapshot.Value(v)
+	return predicate.NotificationEventOrErr(sql.FieldGTE(FieldRuleSnapshot, vc), err)
+}
+
+// RuleSnapshotLT applies the LT predicate on the "rule_snapshot" field.
+func RuleSnapshotLT(v jsontext.Value) predicate.NotificationEvent {
+	vc, err := ValueScanner.RuleSnapshot.Value(v)
+	return predicate.NotificationEventOrErr(sql.FieldLT(FieldRuleSnapshot, vc), err)
+}
+
+// RuleSnapshotLTE applies the LTE predicate on the "rule_snapshot" field.
+func RuleSnapshotLTE(v jsontext.Value) predicate.NotificationEvent {
+	vc, err := ValueScanner.RuleSnapshot.Value(v)
+	return predicate.NotificationEventOrErr(sql.FieldLTE(FieldRuleSnapshot, vc), err)
+}
+
+// RuleSnapshotContains applies the Contains predicate on the "rule_snapshot" field.
+func RuleSnapshotContains(v jsontext.Value) predicate.NotificationEvent {
+	vc, err := ValueScanner.RuleSnapshot.Value(v)
+	vcs, ok := vc.(string)
+	if err == nil && !ok {
+		err = fmt.Errorf("rule_snapshot value is not a string: %T", vc)
+	}
+	return predicate.NotificationEventOrErr(sql.FieldContains(FieldRuleSnapshot, vcs), err)
+}
+
+// RuleSnapshotHasPrefix applies the HasPrefix predicate on the "rule_snapshot" field.
+func RuleSnapshotHasPrefix(v jsontext.Value) predicate.NotificationEvent {
+	vc, err := ValueScanner.RuleSnapshot.Value(v)
+	vcs, ok := vc.(string)
+	if err == nil && !ok {
+		err = fmt.Errorf("rule_snapshot value is not a string: %T", vc)
+	}
+	return predicate.NotificationEventOrErr(sql.FieldHasPrefix(FieldRuleSnapshot, vcs), err)
+}
+
+// RuleSnapshotHasSuffix applies the HasSuffix predicate on the "rule_snapshot" field.
+func RuleSnapshotHasSuffix(v jsontext.Value) predicate.NotificationEvent {
+	vc, err := ValueScanner.RuleSnapshot.Value(v)
+	vcs, ok := vc.(string)
+	if err == nil && !ok {
+		err = fmt.Errorf("rule_snapshot value is not a string: %T", vc)
+	}
+	return predicate.NotificationEventOrErr(sql.FieldHasSuffix(FieldRuleSnapshot, vcs), err)
+}
+
+// RuleSnapshotIsNil applies the IsNil predicate on the "rule_snapshot" field.
+func RuleSnapshotIsNil() predicate.NotificationEvent {
+	return predicate.NotificationEvent(sql.FieldIsNull(FieldRuleSnapshot))
+}
+
+// RuleSnapshotNotNil applies the NotNil predicate on the "rule_snapshot" field.
+func RuleSnapshotNotNil() predicate.NotificationEvent {
+	return predicate.NotificationEvent(sql.FieldNotNull(FieldRuleSnapshot))
+}
+
+// RuleSnapshotEqualFold applies the EqualFold predicate on the "rule_snapshot" field.
+func RuleSnapshotEqualFold(v jsontext.Value) predicate.NotificationEvent {
+	vc, err := ValueScanner.RuleSnapshot.Value(v)
+	vcs, ok := vc.(string)
+	if err == nil && !ok {
+		err = fmt.Errorf("rule_snapshot value is not a string: %T", vc)
+	}
+	return predicate.NotificationEventOrErr(sql.FieldEqualFold(FieldRuleSnapshot, vcs), err)
+}
+
+// RuleSnapshotContainsFold applies the ContainsFold predicate on the "rule_snapshot" field.
+func RuleSnapshotContainsFold(v jsontext.Value) predicate.NotificationEvent {
+	vc, err := ValueScanner.RuleSnapshot.Value(v)
+	vcs, ok := vc.(string)
+	if err == nil && !ok {
+		err = fmt.Errorf("rule_snapshot value is not a string: %T", vc)
+	}
+	return predicate.NotificationEventOrErr(sql.FieldContainsFold(FieldRuleSnapshot, vcs), err)
+}
+
+// ProviderDataIsNil applies the IsNil predicate on the "provider_data" field.
+func ProviderDataIsNil() predicate.NotificationEvent {
+	return predicate.NotificationEvent(sql.FieldIsNull(FieldProviderData))
+}
+
+// ProviderDataNotNil applies the NotNil predicate on the "provider_data" field.
+func ProviderDataNotNil() predicate.NotificationEvent {
+	return predicate.NotificationEvent(sql.FieldNotNull(FieldProviderData))
 }
 
 // HasDeliveryStatuses applies the HasEdge predicate on the "delivery_statuses" edge.

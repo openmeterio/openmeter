@@ -4,6 +4,7 @@ package db
 
 import (
 	"encoding/json"
+	"encoding/json/jsontext"
 	"fmt"
 	"strings"
 	"time"
@@ -34,12 +35,18 @@ type NotificationEventDeliveryStatus struct {
 	ChannelID string `json:"channel_id,omitempty"`
 	// State holds the value of the "state" field.
 	State notification.EventDeliveryStatusState `json:"state,omitempty"`
+	// Dispatch generation for V4; inactive during migration Phase 1.
+	DispatchGeneration int `json:"dispatch_generation,omitempty"`
+	// Time the current dispatch was queued. Includes time spent waiting for Channel synchronization.
+	DispatchQueuedAt *time.Time `json:"dispatch_queued_at,omitempty"`
 	// Reason holds the value of the "reason" field.
 	Reason string `json:"reason,omitempty"`
 	// NextAttemptAt holds the value of the "next_attempt_at" field.
 	NextAttemptAt *time.Time `json:"next_attempt_at,omitempty"`
 	// Attempts holds the value of the "attempts" field.
-	Attempts []notification.EventDeliveryAttempt `json:"attempts,omitempty"`
+	Attempts jsontext.Value `json:"attempts,omitempty"`
+	// Provider-owned operational data for V4.
+	ProviderData map[string]string `json:"provider_data,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the NotificationEventDeliveryStatusQuery when eager-loading is set.
 	Edges        NotificationEventDeliveryStatusEdges `json:"edges"`
@@ -69,12 +76,18 @@ func (*NotificationEventDeliveryStatus) scanValues(columns []string) ([]any, err
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case notificationeventdeliverystatus.FieldAnnotations, notificationeventdeliverystatus.FieldAttempts:
+		case notificationeventdeliverystatus.FieldAnnotations:
 			values[i] = new([]byte)
+		case notificationeventdeliverystatus.FieldDispatchGeneration:
+			values[i] = new(sql.NullInt64)
 		case notificationeventdeliverystatus.FieldID, notificationeventdeliverystatus.FieldNamespace, notificationeventdeliverystatus.FieldEventID, notificationeventdeliverystatus.FieldChannelID, notificationeventdeliverystatus.FieldState, notificationeventdeliverystatus.FieldReason:
 			values[i] = new(sql.NullString)
-		case notificationeventdeliverystatus.FieldCreatedAt, notificationeventdeliverystatus.FieldUpdatedAt, notificationeventdeliverystatus.FieldNextAttemptAt:
+		case notificationeventdeliverystatus.FieldCreatedAt, notificationeventdeliverystatus.FieldUpdatedAt, notificationeventdeliverystatus.FieldDispatchQueuedAt, notificationeventdeliverystatus.FieldNextAttemptAt:
 			values[i] = new(sql.NullTime)
+		case notificationeventdeliverystatus.FieldAttempts:
+			values[i] = notificationeventdeliverystatus.ValueScanner.Attempts.ScanValue()
+		case notificationeventdeliverystatus.FieldProviderData:
+			values[i] = notificationeventdeliverystatus.ValueScanner.ProviderData.ScanValue()
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -140,6 +153,19 @@ func (_m *NotificationEventDeliveryStatus) assignValues(columns []string, values
 			} else if value.Valid {
 				_m.State = notification.EventDeliveryStatusState(value.String)
 			}
+		case notificationeventdeliverystatus.FieldDispatchGeneration:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field dispatch_generation", values[i])
+			} else if value.Valid {
+				_m.DispatchGeneration = int(value.Int64)
+			}
+		case notificationeventdeliverystatus.FieldDispatchQueuedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field dispatch_queued_at", values[i])
+			} else if value.Valid {
+				_m.DispatchQueuedAt = new(time.Time)
+				*_m.DispatchQueuedAt = value.Time
+			}
 		case notificationeventdeliverystatus.FieldReason:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field reason", values[i])
@@ -154,12 +180,16 @@ func (_m *NotificationEventDeliveryStatus) assignValues(columns []string, values
 				*_m.NextAttemptAt = value.Time
 			}
 		case notificationeventdeliverystatus.FieldAttempts:
-			if value, ok := values[i].(*[]byte); !ok {
-				return fmt.Errorf("unexpected type %T for field attempts", values[i])
-			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &_m.Attempts); err != nil {
-					return fmt.Errorf("unmarshal field attempts: %w", err)
-				}
+			if value, err := notificationeventdeliverystatus.ValueScanner.Attempts.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				_m.Attempts = value
+			}
+		case notificationeventdeliverystatus.FieldProviderData:
+			if value, err := notificationeventdeliverystatus.ValueScanner.ProviderData.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				_m.ProviderData = value
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
@@ -223,6 +253,14 @@ func (_m *NotificationEventDeliveryStatus) String() string {
 	builder.WriteString("state=")
 	builder.WriteString(fmt.Sprintf("%v", _m.State))
 	builder.WriteString(", ")
+	builder.WriteString("dispatch_generation=")
+	builder.WriteString(fmt.Sprintf("%v", _m.DispatchGeneration))
+	builder.WriteString(", ")
+	if v := _m.DispatchQueuedAt; v != nil {
+		builder.WriteString("dispatch_queued_at=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
 	builder.WriteString("reason=")
 	builder.WriteString(_m.Reason)
 	builder.WriteString(", ")
@@ -233,6 +271,9 @@ func (_m *NotificationEventDeliveryStatus) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("attempts=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Attempts))
+	builder.WriteString(", ")
+	builder.WriteString("provider_data=")
+	builder.WriteString(fmt.Sprintf("%v", _m.ProviderData))
 	builder.WriteByte(')')
 	return builder.String()
 }

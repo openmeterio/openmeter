@@ -2765,6 +2765,15 @@ func init() {
 	notificationeventDescCreatedAt := notificationeventFields[0].Descriptor()
 	// notificationevent.DefaultCreatedAt holds the default value on creation for the created_at field.
 	notificationevent.DefaultCreatedAt = notificationeventDescCreatedAt.Default.(func() time.Time)
+	// notificationeventDescPayload is the schema descriptor for payload field.
+	notificationeventDescPayload := notificationeventFields[3].Descriptor()
+	notificationevent.ValueScanner.Payload = notificationeventDescPayload.ValueScanner.(field.TypeValueScanner[jsontext.Value])
+	// notificationeventDescRuleSnapshot is the schema descriptor for rule_snapshot field.
+	notificationeventDescRuleSnapshot := notificationeventFields[4].Descriptor()
+	notificationevent.ValueScanner.RuleSnapshot = notificationeventDescRuleSnapshot.ValueScanner.(field.TypeValueScanner[jsontext.Value])
+	// notificationeventDescProviderData is the schema descriptor for provider_data field.
+	notificationeventDescProviderData := notificationeventFields[5].Descriptor()
+	notificationevent.ValueScanner.ProviderData = notificationeventDescProviderData.ValueScanner.(field.TypeValueScanner[map[string]string])
 	// notificationeventDescID is the schema descriptor for id field.
 	notificationeventDescID := notificationeventMixinFields0[0].Descriptor()
 	// notificationevent.DefaultID holds the default value on creation for the id field.
@@ -2798,6 +2807,38 @@ func init() {
 	notificationeventdeliverystatusDescChannelID := notificationeventdeliverystatusFields[3].Descriptor()
 	// notificationeventdeliverystatus.ChannelIDValidator is a validator for the "channel_id" field. It is called by the builders before save.
 	notificationeventdeliverystatus.ChannelIDValidator = notificationeventdeliverystatusDescChannelID.Validators[0].(func(string) error)
+	// notificationeventdeliverystatusDescState is the schema descriptor for state field.
+	notificationeventdeliverystatusDescState := notificationeventdeliverystatusFields[4].Descriptor()
+	// notificationeventdeliverystatus.DefaultState holds the default value on creation for the state field.
+	notificationeventdeliverystatus.DefaultState = notification.EventDeliveryStatusState(notificationeventdeliverystatusDescState.Default.(string))
+	// notificationeventdeliverystatus.StateValidator is a validator for the "state" field. It is called by the builders before save.
+	notificationeventdeliverystatus.StateValidator = notificationeventdeliverystatusDescState.Validators[0].(func(string) error)
+	// notificationeventdeliverystatusDescDispatchGeneration is the schema descriptor for dispatch_generation field.
+	notificationeventdeliverystatusDescDispatchGeneration := notificationeventdeliverystatusFields[5].Descriptor()
+	// notificationeventdeliverystatus.DefaultDispatchGeneration holds the default value on creation for the dispatch_generation field.
+	notificationeventdeliverystatus.DefaultDispatchGeneration = notificationeventdeliverystatusDescDispatchGeneration.Default.(int)
+	// notificationeventdeliverystatus.DispatchGenerationValidator is a validator for the "dispatch_generation" field. It is called by the builders before save.
+	notificationeventdeliverystatus.DispatchGenerationValidator = func() func(int) error {
+		validators := notificationeventdeliverystatusDescDispatchGeneration.Validators
+		fns := [...]func(int) error{
+			validators[0].(func(int) error),
+			validators[1].(func(int) error),
+		}
+		return func(dispatch_generation int) error {
+			for _, fn := range fns {
+				if err := fn(dispatch_generation); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// notificationeventdeliverystatusDescAttempts is the schema descriptor for attempts field.
+	notificationeventdeliverystatusDescAttempts := notificationeventdeliverystatusFields[9].Descriptor()
+	notificationeventdeliverystatus.ValueScanner.Attempts = notificationeventdeliverystatusDescAttempts.ValueScanner.(field.TypeValueScanner[jsontext.Value])
+	// notificationeventdeliverystatusDescProviderData is the schema descriptor for provider_data field.
+	notificationeventdeliverystatusDescProviderData := notificationeventdeliverystatusFields[10].Descriptor()
+	notificationeventdeliverystatus.ValueScanner.ProviderData = notificationeventdeliverystatusDescProviderData.ValueScanner.(field.TypeValueScanner[map[string]string])
 	// notificationeventdeliverystatusDescID is the schema descriptor for id field.
 	notificationeventdeliverystatusDescID := notificationeventdeliverystatusMixinFields0[0].Descriptor()
 	// notificationeventdeliverystatus.DefaultID holds the default value on creation for the id field.

@@ -63,6 +63,7 @@ are `unknown`, `pending`, `in_sync`, and `error`. Current updates and soft delet
 preserve these fields; they do not activate scheduling or change synchronous
 provider operations. Migration defaults do not establish provider synchronization.
 
+This is the compatibility phase of the [V4 migration](../../notification%20v4%20migration.md).
 No data conversion is required in this phase. Finalization switches writes and
 converts remaining rows only after all active and supported rollback versions
 can read the final format. Temporary storage mappings remain until all writers
@@ -82,6 +83,63 @@ Flat configs reject unknown fields so malformed envelopes cannot become empty
 invoice configs. Reads do not rewrite rows or revalidate historical conditions.
 Writes retain the existing config validation and legacy envelope. Decode errors
 propagate through Rule reads and nested Event reads.
+
+## Event type storage compatibility
+
+Event types use an Ent string field with the existing `EventType` validation.
+Phase 1 preserves unversioned values, immutable types, payload representation,
+and required Rule references. Existing API and routing behavior stay unchanged;
+canonical versioned names and data conversion remain deferred.
+
+Ent exposes Event payloads as `json.RawMessage`; the adapter continues writing
+and decoding the existing typed JSON format, including invoice payload version
+checks. Raw payloads remain JSON objects in PostgreSQL, without an extra JSON
+string or base64 encoding. Reads do not rewrite historical payloads.
+
+The Event `rule_id` column is nullable in preparation for system Events. Current
+service and adapter creation paths still require an existing Rule and write its
+ID; readers and workers still depend on that relation. The foreign key retains
+`NO ACTION` on Rule deletion. Rule-free writes remain disabled until all readers
+and delivery paths support them.
+
+Event `rule_snapshot` is nullable JSONB reserved for the evaluated Rule state.
+Current creation paths leave it unset, and existing operations preserve any
+stored snapshot. It is immutable in Ent and is not exposed by the current API.
+Historical snapshots must not be reconstructed from the live Rule.
+
+Event `provider_data` is nullable JSONB reserved for V4 provider-owned data,
+separate from annotations. Current creation paths leave it unset, and existing
+operations preserve stored values. Existing provider identifiers remain
+authoritative; there are no dual writes, backfills, or API exposure yet.
+
+Delivery state uses an Ent string field with the existing
+`EventDeliveryStatusState` validation. Writes use uppercase and omitted states
+default to `PENDING`. The adapter reads either stored spelling as uppercase.
+Event and delivery filters match both spellings, including the poller's check
+for an active destination whose next attempt is due.
+
+Delivery attempts are raw JSON in Ent and typed at the adapter boundary. Stored
+arrays retain uppercase states and legacy response fields, including durations
+in nanoseconds. Reads do not rewrite SQL NULL, JSON null, or empty arrays; an
+update with nil attempts still writes JSON null. Invalid attempt data fails
+both delivery reads and Event reads that include those deliveries.
+
+Delivery-status `provider_data` is nullable JSONB reserved for V4. Current
+creation leaves it unset, and delivery updates preserve stored values independently
+of annotations and attempts. Provider lookups and reconciliation still use their
+existing sources; the field is not exposed by the current API.
+
+Delivery `dispatch_generation` uses Go `int` and PostgreSQL `integer`, with
+default `1` and Ent validation within `1..MaxInt32`. This is a migration baseline,
+not a reconstructed resend count. Current updates and resends preserve it;
+generation tracking and provider adoption remain inactive until all writers
+support them.
+
+Delivery `dispatch_queued_at` is nullable and reserved for the current dispatch
+generation. Phase 1 creation leaves it unset and delivery updates preserve it.
+After activation, queueing a delivery or accepting an explicit resend starts its
+timeout, including time spent waiting for the Channel to reach `in_sync`.
+`next_attempt_at` continues to schedule the next delivery attempt.
 
 ## Ownership and runtime boundaries
 

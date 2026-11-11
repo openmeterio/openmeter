@@ -4,6 +4,7 @@ package db
 
 import (
 	"encoding/json"
+	"encoding/json/jsontext"
 	"fmt"
 	"strings"
 	"time"
@@ -27,12 +28,16 @@ type NotificationEvent struct {
 	Annotations models.Annotations `json:"annotations,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
-	// The event type the rule associated with
+	// The notification event type.
 	Type notification.EventType `json:"type,omitempty"`
 	// RuleID holds the value of the "rule_id" field.
 	RuleID string `json:"rule_id,omitempty"`
 	// Payload holds the value of the "payload" field.
-	Payload string `json:"payload,omitempty"`
+	Payload jsontext.Value `json:"payload,omitempty"`
+	// RuleSnapshot holds the value of the "rule_snapshot" field.
+	RuleSnapshot jsontext.Value `json:"rule_snapshot,omitempty"`
+	// Provider-owned operational data for V4.
+	ProviderData map[string]string `json:"provider_data,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the NotificationEventQuery when eager-loading is set.
 	Edges        NotificationEventEdges `json:"edges"`
@@ -77,10 +82,16 @@ func (*NotificationEvent) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case notificationevent.FieldAnnotations:
 			values[i] = new([]byte)
-		case notificationevent.FieldID, notificationevent.FieldNamespace, notificationevent.FieldType, notificationevent.FieldRuleID, notificationevent.FieldPayload:
+		case notificationevent.FieldID, notificationevent.FieldNamespace, notificationevent.FieldType, notificationevent.FieldRuleID:
 			values[i] = new(sql.NullString)
 		case notificationevent.FieldCreatedAt:
 			values[i] = new(sql.NullTime)
+		case notificationevent.FieldPayload:
+			values[i] = notificationevent.ValueScanner.Payload.ScanValue()
+		case notificationevent.FieldRuleSnapshot:
+			values[i] = notificationevent.ValueScanner.RuleSnapshot.ScanValue()
+		case notificationevent.FieldProviderData:
+			values[i] = notificationevent.ValueScanner.ProviderData.ScanValue()
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -135,10 +146,22 @@ func (_m *NotificationEvent) assignValues(columns []string, values []any) error 
 				_m.RuleID = value.String
 			}
 		case notificationevent.FieldPayload:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field payload", values[i])
-			} else if value.Valid {
-				_m.Payload = value.String
+			if value, err := notificationevent.ValueScanner.Payload.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				_m.Payload = value
+			}
+		case notificationevent.FieldRuleSnapshot:
+			if value, err := notificationevent.ValueScanner.RuleSnapshot.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				_m.RuleSnapshot = value
+			}
+		case notificationevent.FieldProviderData:
+			if value, err := notificationevent.ValueScanner.ProviderData.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				_m.ProviderData = value
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
@@ -202,7 +225,13 @@ func (_m *NotificationEvent) String() string {
 	builder.WriteString(_m.RuleID)
 	builder.WriteString(", ")
 	builder.WriteString("payload=")
-	builder.WriteString(_m.Payload)
+	builder.WriteString(fmt.Sprintf("%v", _m.Payload))
+	builder.WriteString(", ")
+	builder.WriteString("rule_snapshot=")
+	builder.WriteString(fmt.Sprintf("%v", _m.RuleSnapshot))
+	builder.WriteString(", ")
+	builder.WriteString("provider_data=")
+	builder.WriteString(fmt.Sprintf("%v", _m.ProviderData))
 	builder.WriteByte(')')
 	return builder.String()
 }

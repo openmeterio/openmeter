@@ -3,11 +3,12 @@
 package notificationeventdeliverystatus
 
 import (
-	"fmt"
+	"encoding/json/jsontext"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 )
 
@@ -30,12 +31,18 @@ const (
 	FieldChannelID = "channel_id"
 	// FieldState holds the string denoting the state field in the database.
 	FieldState = "state"
+	// FieldDispatchGeneration holds the string denoting the dispatch_generation field in the database.
+	FieldDispatchGeneration = "dispatch_generation"
+	// FieldDispatchQueuedAt holds the string denoting the dispatch_queued_at field in the database.
+	FieldDispatchQueuedAt = "dispatch_queued_at"
 	// FieldReason holds the string denoting the reason field in the database.
 	FieldReason = "reason"
 	// FieldNextAttemptAt holds the string denoting the next_attempt_at field in the database.
 	FieldNextAttemptAt = "next_attempt_at"
 	// FieldAttempts holds the string denoting the attempts field in the database.
 	FieldAttempts = "attempts"
+	// FieldProviderData holds the string denoting the provider_data field in the database.
+	FieldProviderData = "provider_data"
 	// EdgeEvents holds the string denoting the events edge name in mutations.
 	EdgeEvents = "events"
 	// Table holds the table name of the notificationeventdeliverystatus in the database.
@@ -57,9 +64,12 @@ var Columns = []string{
 	FieldEventID,
 	FieldChannelID,
 	FieldState,
+	FieldDispatchGeneration,
+	FieldDispatchQueuedAt,
 	FieldReason,
 	FieldNextAttemptAt,
 	FieldAttempts,
+	FieldProviderData,
 }
 
 var (
@@ -91,21 +101,22 @@ var (
 	EventIDValidator func(string) error
 	// ChannelIDValidator is a validator for the "channel_id" field. It is called by the builders before save.
 	ChannelIDValidator func(string) error
+	// DefaultState holds the default value on creation for the "state" field.
+	DefaultState notification.EventDeliveryStatusState
+	// StateValidator is a validator for the "state" field. It is called by the builders before save.
+	StateValidator func(string) error
+	// DefaultDispatchGeneration holds the default value on creation for the "dispatch_generation" field.
+	DefaultDispatchGeneration int
+	// DispatchGenerationValidator is a validator for the "dispatch_generation" field. It is called by the builders before save.
+	DispatchGenerationValidator func(int) error
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
-)
-
-const DefaultState notification.EventDeliveryStatusState = "PENDING"
-
-// StateValidator is a validator for the "state" field enum values. It is called by the builders before save.
-func StateValidator(s notification.EventDeliveryStatusState) error {
-	switch s.String() {
-	case "SUCCESS", "FAILED", "SENDING", "PENDING", "RESENDING":
-		return nil
-	default:
-		return fmt.Errorf("notificationeventdeliverystatus: invalid enum value for state field: %q", s)
+	// ValueScanner of all NotificationEventDeliveryStatus fields.
+	ValueScanner struct {
+		Attempts     field.TypeValueScanner[jsontext.Value]
+		ProviderData field.TypeValueScanner[map[string]string]
 	}
-}
+)
 
 // OrderOption defines the ordering options for the NotificationEventDeliveryStatus queries.
 type OrderOption func(*sql.Selector)
@@ -145,6 +156,16 @@ func ByState(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldState, opts...).ToFunc()
 }
 
+// ByDispatchGeneration orders the results by the dispatch_generation field.
+func ByDispatchGeneration(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDispatchGeneration, opts...).ToFunc()
+}
+
+// ByDispatchQueuedAt orders the results by the dispatch_queued_at field.
+func ByDispatchQueuedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDispatchQueuedAt, opts...).ToFunc()
+}
+
 // ByReason orders the results by the reason field.
 func ByReason(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldReason, opts...).ToFunc()
@@ -153,6 +174,16 @@ func ByReason(opts ...sql.OrderTermOption) OrderOption {
 // ByNextAttemptAt orders the results by the next_attempt_at field.
 func ByNextAttemptAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldNextAttemptAt, opts...).ToFunc()
+}
+
+// ByAttempts orders the results by the attempts field.
+func ByAttempts(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldAttempts, opts...).ToFunc()
+}
+
+// ByProviderData orders the results by the provider_data field.
+func ByProviderData(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldProviderData, opts...).ToFunc()
 }
 
 // ByEventsCount orders the results by events count.

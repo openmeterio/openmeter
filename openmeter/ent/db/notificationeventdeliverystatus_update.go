@@ -4,13 +4,13 @@ package db
 
 import (
 	"context"
+	"encoding/json/jsontext"
 	"errors"
 	"fmt"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
-	"entgo.io/ent/dialect/sql/sqljson"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationevent"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationeventdeliverystatus"
@@ -64,6 +64,47 @@ func (_u *NotificationEventDeliveryStatusUpdate) SetNillableState(v *notificatio
 	return _u
 }
 
+// SetDispatchGeneration sets the "dispatch_generation" field.
+func (_u *NotificationEventDeliveryStatusUpdate) SetDispatchGeneration(v int) *NotificationEventDeliveryStatusUpdate {
+	_u.mutation.ResetDispatchGeneration()
+	_u.mutation.SetDispatchGeneration(v)
+	return _u
+}
+
+// SetNillableDispatchGeneration sets the "dispatch_generation" field if the given value is not nil.
+func (_u *NotificationEventDeliveryStatusUpdate) SetNillableDispatchGeneration(v *int) *NotificationEventDeliveryStatusUpdate {
+	if v != nil {
+		_u.SetDispatchGeneration(*v)
+	}
+	return _u
+}
+
+// AddDispatchGeneration adds value to the "dispatch_generation" field.
+func (_u *NotificationEventDeliveryStatusUpdate) AddDispatchGeneration(v int) *NotificationEventDeliveryStatusUpdate {
+	_u.mutation.AddDispatchGeneration(v)
+	return _u
+}
+
+// SetDispatchQueuedAt sets the "dispatch_queued_at" field.
+func (_u *NotificationEventDeliveryStatusUpdate) SetDispatchQueuedAt(v time.Time) *NotificationEventDeliveryStatusUpdate {
+	_u.mutation.SetDispatchQueuedAt(v)
+	return _u
+}
+
+// SetNillableDispatchQueuedAt sets the "dispatch_queued_at" field if the given value is not nil.
+func (_u *NotificationEventDeliveryStatusUpdate) SetNillableDispatchQueuedAt(v *time.Time) *NotificationEventDeliveryStatusUpdate {
+	if v != nil {
+		_u.SetDispatchQueuedAt(*v)
+	}
+	return _u
+}
+
+// ClearDispatchQueuedAt clears the value of the "dispatch_queued_at" field.
+func (_u *NotificationEventDeliveryStatusUpdate) ClearDispatchQueuedAt() *NotificationEventDeliveryStatusUpdate {
+	_u.mutation.ClearDispatchQueuedAt()
+	return _u
+}
+
 // SetReason sets the "reason" field.
 func (_u *NotificationEventDeliveryStatusUpdate) SetReason(v string) *NotificationEventDeliveryStatusUpdate {
 	_u.mutation.SetReason(v)
@@ -105,20 +146,26 @@ func (_u *NotificationEventDeliveryStatusUpdate) ClearNextAttemptAt() *Notificat
 }
 
 // SetAttempts sets the "attempts" field.
-func (_u *NotificationEventDeliveryStatusUpdate) SetAttempts(v []notification.EventDeliveryAttempt) *NotificationEventDeliveryStatusUpdate {
+func (_u *NotificationEventDeliveryStatusUpdate) SetAttempts(v jsontext.Value) *NotificationEventDeliveryStatusUpdate {
 	_u.mutation.SetAttempts(v)
-	return _u
-}
-
-// AppendAttempts appends value to the "attempts" field.
-func (_u *NotificationEventDeliveryStatusUpdate) AppendAttempts(v []notification.EventDeliveryAttempt) *NotificationEventDeliveryStatusUpdate {
-	_u.mutation.AppendAttempts(v)
 	return _u
 }
 
 // ClearAttempts clears the value of the "attempts" field.
 func (_u *NotificationEventDeliveryStatusUpdate) ClearAttempts() *NotificationEventDeliveryStatusUpdate {
 	_u.mutation.ClearAttempts()
+	return _u
+}
+
+// SetProviderData sets the "provider_data" field.
+func (_u *NotificationEventDeliveryStatusUpdate) SetProviderData(v map[string]string) *NotificationEventDeliveryStatusUpdate {
+	_u.mutation.SetProviderData(v)
+	return _u
+}
+
+// ClearProviderData clears the value of the "provider_data" field.
+func (_u *NotificationEventDeliveryStatusUpdate) ClearProviderData() *NotificationEventDeliveryStatusUpdate {
+	_u.mutation.ClearProviderData()
 	return _u
 }
 
@@ -202,8 +249,13 @@ func (_u *NotificationEventDeliveryStatusUpdate) defaults() {
 // check runs all checks and user-defined validators on the builder.
 func (_u *NotificationEventDeliveryStatusUpdate) check() error {
 	if v, ok := _u.mutation.State(); ok {
-		if err := notificationeventdeliverystatus.StateValidator(v); err != nil {
+		if err := notificationeventdeliverystatus.StateValidator(string(v)); err != nil {
 			return &ValidationError{Name: "state", err: fmt.Errorf(`db: validator failed for field "NotificationEventDeliveryStatus.state": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.DispatchGeneration(); ok {
+		if err := notificationeventdeliverystatus.DispatchGenerationValidator(v); err != nil {
+			return &ValidationError{Name: "dispatch_generation", err: fmt.Errorf(`db: validator failed for field "NotificationEventDeliveryStatus.dispatch_generation": %w`, err)}
 		}
 	}
 	return nil
@@ -231,7 +283,19 @@ func (_u *NotificationEventDeliveryStatusUpdate) sqlSave(ctx context.Context) (_
 		_spec.SetField(notificationeventdeliverystatus.FieldUpdatedAt, field.TypeTime, value)
 	}
 	if value, ok := _u.mutation.State(); ok {
-		_spec.SetField(notificationeventdeliverystatus.FieldState, field.TypeEnum, value)
+		_spec.SetField(notificationeventdeliverystatus.FieldState, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.DispatchGeneration(); ok {
+		_spec.SetField(notificationeventdeliverystatus.FieldDispatchGeneration, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedDispatchGeneration(); ok {
+		_spec.AddField(notificationeventdeliverystatus.FieldDispatchGeneration, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.DispatchQueuedAt(); ok {
+		_spec.SetField(notificationeventdeliverystatus.FieldDispatchQueuedAt, field.TypeTime, value)
+	}
+	if _u.mutation.DispatchQueuedAtCleared() {
+		_spec.ClearField(notificationeventdeliverystatus.FieldDispatchQueuedAt, field.TypeTime)
 	}
 	if value, ok := _u.mutation.Reason(); ok {
 		_spec.SetField(notificationeventdeliverystatus.FieldReason, field.TypeString, value)
@@ -246,15 +310,24 @@ func (_u *NotificationEventDeliveryStatusUpdate) sqlSave(ctx context.Context) (_
 		_spec.ClearField(notificationeventdeliverystatus.FieldNextAttemptAt, field.TypeTime)
 	}
 	if value, ok := _u.mutation.Attempts(); ok {
-		_spec.SetField(notificationeventdeliverystatus.FieldAttempts, field.TypeJSON, value)
-	}
-	if value, ok := _u.mutation.AppendedAttempts(); ok {
-		_spec.AddModifier(func(u *sql.UpdateBuilder) {
-			sqljson.Append(u, notificationeventdeliverystatus.FieldAttempts, value)
-		})
+		vv, err := notificationeventdeliverystatus.ValueScanner.Attempts.Value(value)
+		if err != nil {
+			return 0, err
+		}
+		_spec.SetField(notificationeventdeliverystatus.FieldAttempts, field.TypeString, vv)
 	}
 	if _u.mutation.AttemptsCleared() {
-		_spec.ClearField(notificationeventdeliverystatus.FieldAttempts, field.TypeJSON)
+		_spec.ClearField(notificationeventdeliverystatus.FieldAttempts, field.TypeString)
+	}
+	if value, ok := _u.mutation.ProviderData(); ok {
+		vv, err := notificationeventdeliverystatus.ValueScanner.ProviderData.Value(value)
+		if err != nil {
+			return 0, err
+		}
+		_spec.SetField(notificationeventdeliverystatus.FieldProviderData, field.TypeString, vv)
+	}
+	if _u.mutation.ProviderDataCleared() {
+		_spec.ClearField(notificationeventdeliverystatus.FieldProviderData, field.TypeString)
 	}
 	if _u.mutation.EventsCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -353,6 +426,47 @@ func (_u *NotificationEventDeliveryStatusUpdateOne) SetNillableState(v *notifica
 	return _u
 }
 
+// SetDispatchGeneration sets the "dispatch_generation" field.
+func (_u *NotificationEventDeliveryStatusUpdateOne) SetDispatchGeneration(v int) *NotificationEventDeliveryStatusUpdateOne {
+	_u.mutation.ResetDispatchGeneration()
+	_u.mutation.SetDispatchGeneration(v)
+	return _u
+}
+
+// SetNillableDispatchGeneration sets the "dispatch_generation" field if the given value is not nil.
+func (_u *NotificationEventDeliveryStatusUpdateOne) SetNillableDispatchGeneration(v *int) *NotificationEventDeliveryStatusUpdateOne {
+	if v != nil {
+		_u.SetDispatchGeneration(*v)
+	}
+	return _u
+}
+
+// AddDispatchGeneration adds value to the "dispatch_generation" field.
+func (_u *NotificationEventDeliveryStatusUpdateOne) AddDispatchGeneration(v int) *NotificationEventDeliveryStatusUpdateOne {
+	_u.mutation.AddDispatchGeneration(v)
+	return _u
+}
+
+// SetDispatchQueuedAt sets the "dispatch_queued_at" field.
+func (_u *NotificationEventDeliveryStatusUpdateOne) SetDispatchQueuedAt(v time.Time) *NotificationEventDeliveryStatusUpdateOne {
+	_u.mutation.SetDispatchQueuedAt(v)
+	return _u
+}
+
+// SetNillableDispatchQueuedAt sets the "dispatch_queued_at" field if the given value is not nil.
+func (_u *NotificationEventDeliveryStatusUpdateOne) SetNillableDispatchQueuedAt(v *time.Time) *NotificationEventDeliveryStatusUpdateOne {
+	if v != nil {
+		_u.SetDispatchQueuedAt(*v)
+	}
+	return _u
+}
+
+// ClearDispatchQueuedAt clears the value of the "dispatch_queued_at" field.
+func (_u *NotificationEventDeliveryStatusUpdateOne) ClearDispatchQueuedAt() *NotificationEventDeliveryStatusUpdateOne {
+	_u.mutation.ClearDispatchQueuedAt()
+	return _u
+}
+
 // SetReason sets the "reason" field.
 func (_u *NotificationEventDeliveryStatusUpdateOne) SetReason(v string) *NotificationEventDeliveryStatusUpdateOne {
 	_u.mutation.SetReason(v)
@@ -394,20 +508,26 @@ func (_u *NotificationEventDeliveryStatusUpdateOne) ClearNextAttemptAt() *Notifi
 }
 
 // SetAttempts sets the "attempts" field.
-func (_u *NotificationEventDeliveryStatusUpdateOne) SetAttempts(v []notification.EventDeliveryAttempt) *NotificationEventDeliveryStatusUpdateOne {
+func (_u *NotificationEventDeliveryStatusUpdateOne) SetAttempts(v jsontext.Value) *NotificationEventDeliveryStatusUpdateOne {
 	_u.mutation.SetAttempts(v)
-	return _u
-}
-
-// AppendAttempts appends value to the "attempts" field.
-func (_u *NotificationEventDeliveryStatusUpdateOne) AppendAttempts(v []notification.EventDeliveryAttempt) *NotificationEventDeliveryStatusUpdateOne {
-	_u.mutation.AppendAttempts(v)
 	return _u
 }
 
 // ClearAttempts clears the value of the "attempts" field.
 func (_u *NotificationEventDeliveryStatusUpdateOne) ClearAttempts() *NotificationEventDeliveryStatusUpdateOne {
 	_u.mutation.ClearAttempts()
+	return _u
+}
+
+// SetProviderData sets the "provider_data" field.
+func (_u *NotificationEventDeliveryStatusUpdateOne) SetProviderData(v map[string]string) *NotificationEventDeliveryStatusUpdateOne {
+	_u.mutation.SetProviderData(v)
+	return _u
+}
+
+// ClearProviderData clears the value of the "provider_data" field.
+func (_u *NotificationEventDeliveryStatusUpdateOne) ClearProviderData() *NotificationEventDeliveryStatusUpdateOne {
+	_u.mutation.ClearProviderData()
 	return _u
 }
 
@@ -504,8 +624,13 @@ func (_u *NotificationEventDeliveryStatusUpdateOne) defaults() {
 // check runs all checks and user-defined validators on the builder.
 func (_u *NotificationEventDeliveryStatusUpdateOne) check() error {
 	if v, ok := _u.mutation.State(); ok {
-		if err := notificationeventdeliverystatus.StateValidator(v); err != nil {
+		if err := notificationeventdeliverystatus.StateValidator(string(v)); err != nil {
 			return &ValidationError{Name: "state", err: fmt.Errorf(`db: validator failed for field "NotificationEventDeliveryStatus.state": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.DispatchGeneration(); ok {
+		if err := notificationeventdeliverystatus.DispatchGenerationValidator(v); err != nil {
+			return &ValidationError{Name: "dispatch_generation", err: fmt.Errorf(`db: validator failed for field "NotificationEventDeliveryStatus.dispatch_generation": %w`, err)}
 		}
 	}
 	return nil
@@ -550,7 +675,19 @@ func (_u *NotificationEventDeliveryStatusUpdateOne) sqlSave(ctx context.Context)
 		_spec.SetField(notificationeventdeliverystatus.FieldUpdatedAt, field.TypeTime, value)
 	}
 	if value, ok := _u.mutation.State(); ok {
-		_spec.SetField(notificationeventdeliverystatus.FieldState, field.TypeEnum, value)
+		_spec.SetField(notificationeventdeliverystatus.FieldState, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.DispatchGeneration(); ok {
+		_spec.SetField(notificationeventdeliverystatus.FieldDispatchGeneration, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedDispatchGeneration(); ok {
+		_spec.AddField(notificationeventdeliverystatus.FieldDispatchGeneration, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.DispatchQueuedAt(); ok {
+		_spec.SetField(notificationeventdeliverystatus.FieldDispatchQueuedAt, field.TypeTime, value)
+	}
+	if _u.mutation.DispatchQueuedAtCleared() {
+		_spec.ClearField(notificationeventdeliverystatus.FieldDispatchQueuedAt, field.TypeTime)
 	}
 	if value, ok := _u.mutation.Reason(); ok {
 		_spec.SetField(notificationeventdeliverystatus.FieldReason, field.TypeString, value)
@@ -565,15 +702,24 @@ func (_u *NotificationEventDeliveryStatusUpdateOne) sqlSave(ctx context.Context)
 		_spec.ClearField(notificationeventdeliverystatus.FieldNextAttemptAt, field.TypeTime)
 	}
 	if value, ok := _u.mutation.Attempts(); ok {
-		_spec.SetField(notificationeventdeliverystatus.FieldAttempts, field.TypeJSON, value)
-	}
-	if value, ok := _u.mutation.AppendedAttempts(); ok {
-		_spec.AddModifier(func(u *sql.UpdateBuilder) {
-			sqljson.Append(u, notificationeventdeliverystatus.FieldAttempts, value)
-		})
+		vv, err := notificationeventdeliverystatus.ValueScanner.Attempts.Value(value)
+		if err != nil {
+			return nil, err
+		}
+		_spec.SetField(notificationeventdeliverystatus.FieldAttempts, field.TypeString, vv)
 	}
 	if _u.mutation.AttemptsCleared() {
-		_spec.ClearField(notificationeventdeliverystatus.FieldAttempts, field.TypeJSON)
+		_spec.ClearField(notificationeventdeliverystatus.FieldAttempts, field.TypeString)
+	}
+	if value, ok := _u.mutation.ProviderData(); ok {
+		vv, err := notificationeventdeliverystatus.ValueScanner.ProviderData.Value(value)
+		if err != nil {
+			return nil, err
+		}
+		_spec.SetField(notificationeventdeliverystatus.FieldProviderData, field.TypeString, vv)
+	}
+	if _u.mutation.ProviderDataCleared() {
+		_spec.ClearField(notificationeventdeliverystatus.FieldProviderData, field.TypeString)
 	}
 	if _u.mutation.EventsCleared() {
 		edge := &sqlgraph.EdgeSpec{
