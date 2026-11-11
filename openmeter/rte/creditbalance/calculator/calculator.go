@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log/slog"
 
+	usagebasedrating "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/rating"
 	customerbalance "github.com/openmeterio/openmeter/openmeter/ledger/customerbalance"
 	"github.com/openmeterio/openmeter/openmeter/rte"
 	"github.com/openmeterio/openmeter/openmeter/rte/creditbalance"
@@ -16,8 +17,9 @@ type Source interface {
 }
 
 type Config struct {
-	Source Source
-	Logger *slog.Logger
+	Source              Source
+	Logger              *slog.Logger
+	RatingReuseObserver func(context.Context, bool)
 }
 
 func (c Config) Validate() error {
@@ -39,18 +41,32 @@ func New(config Config) (rte.Calculator[creditbalance.Key, creditbalance.Balance
 		return nil, err
 	}
 
-	return &calculator{source: config.Source, logger: config.Logger}, nil
+	reuse, err := usagebasedrating.NewTotalsReuse(256)
+	if err != nil {
+		return nil, err
+	}
+
+	return &calculator{
+		source:              config.Source,
+		logger:              config.Logger,
+		ratingReuse:         reuse,
+		ratingReuseObserver: config.RatingReuseObserver,
+	}, nil
 }
 
 type calculator struct {
-	source Source
-	logger *slog.Logger
+	source              Source
+	logger              *slog.Logger
+	ratingReuse         *usagebasedrating.TotalsReuse
+	ratingReuseObserver func(context.Context, bool)
 }
 
 func (c *calculator) Calculate(ctx context.Context, input rte.CalculateInput[creditbalance.Key]) (creditbalance.Balance, error) {
 	if err := input.Validate(); err != nil {
 		return creditbalance.Balance{}, err
 	}
+
+	ctx = usagebasedrating.WithTotalsReuse(ctx, c.ratingReuse, c.ratingReuseObserver)
 
 	// Leave AsOf unset: historical queries intentionally omit live usage.
 	balance, err := c.source.GetBalance(ctx, customerbalance.GetBalanceServiceInput{

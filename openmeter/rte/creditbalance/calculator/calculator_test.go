@@ -43,7 +43,8 @@ func (b sourceBalance) Pending() alpacadecimal.Decimal {
 
 func TestCalculateUsesCurrentCustomerBalance(t *testing.T) {
 	// Given a scoped credit calculation and the existing customer balance source.
-	ctx := t.Context()
+	type requestContextKey struct{}
+	ctx := context.WithValue(t.Context(), requestContextKey{}, "request")
 	key := creditbalance.Key{
 		CustomerID:    customer.CustomerID{Namespace: "rte-credit", ID: "customer"},
 		Currency:      currencies.NewCurrencyReference("USD"),
@@ -52,7 +53,8 @@ func TestCalculateUsesCurrentCustomerBalance(t *testing.T) {
 	calc, err := calculator.New(calculator.Config{
 		Logger: testutils.NewDiscardLogger(t),
 		Source: sourceFunc(func(gotCtx context.Context, input customerbalance.GetBalanceServiceInput) (customerbalance.Balance, error) {
-			require.Equal(t, ctx, gotCtx)
+			require.Equal(t, ctx.Value(requestContextKey{}), gotCtx.Value(requestContextKey{}))
+			require.Equal(t, ctx.Done(), gotCtx.Done())
 			require.Equal(t, key.CustomerID, input.CustomerID)
 			require.Equal(t, key.Currency, input.Currency)
 			require.Equal(t, key.FeatureFilter, input.FeatureFilter)
