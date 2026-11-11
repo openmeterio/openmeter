@@ -356,6 +356,8 @@ func TestComplete(t *testing.T) {
 			},
 		},
 		RTE: RTEConfiguration{
+			CalculationTimeout: 30 * time.Second,
+			PollInterval:       time.Second,
 			ConsumerConfiguration: ConsumerConfiguration{
 				ProcessingTimeout: 30 * time.Second,
 				Retry: RetryConfiguration{

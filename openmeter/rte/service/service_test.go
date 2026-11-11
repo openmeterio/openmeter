@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"go.opentelemetry.io/otel/metric/noop"
 
 	"github.com/openmeterio/openmeter/openmeter/rte"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
@@ -55,6 +56,8 @@ func TestServiceLifecycle(t *testing.T) {
 	calls, writes, updates := 0, 0, 0
 	sourceErr := errors.New("source unavailable")
 	var stored *rte.State[int]
+	metrics, err := newCalculationMetrics(noop.NewMeterProvider().Meter("test"), rte.CalculationKindCreditBalance)
+	require.NoError(t, err)
 	engine := newCalculation(Registration[testKey, int]{
 		Calculator: calculatorFunc(func(_ context.Context, input rte.CalculateInput[testKey]) (int, error) {
 			calls++
@@ -79,13 +82,13 @@ func TestServiceLifecycle(t *testing.T) {
 				return *stored, nil
 			},
 		},
-	}, publisherStub{publish: func(context.Context, marshaler.Event) error {
+	}, metrics, publisherStub{publish: func(context.Context, marshaler.Event) error {
 		updates++
 		return nil
 	}}, updatedEvent)
 
 	// When reading before a successful calculation, no calculator or write runs.
-	_, err := engine.Get(t.Context(), key)
+	_, err = engine.Get(t.Context(), key)
 	require.True(t, models.IsGenericNotFoundError(err))
 	require.Zero(t, calls)
 	require.Zero(t, writes)
@@ -125,6 +128,8 @@ func TestCalculatePreservesStartAndReturnsStoredWinner(t *testing.T) {
 	ctx := t.Context()
 	key := testKey("calculation")
 	winner := rte.State[int]{CalculatedAt: startedAt.Add(time.Minute), Value: 100}
+	metrics, err := newCalculationMetrics(noop.NewMeterProvider().Meter("test"), rte.CalculationKindCreditBalance)
+	require.NoError(t, err)
 	engine := newCalculation(Registration[testKey, int]{
 		Calculator: calculatorFunc(func(gotCtx context.Context, input rte.CalculateInput[testKey]) (int, error) {
 			require.Equal(t, ctx, gotCtx)
@@ -141,7 +146,7 @@ func TestCalculatePreservesStartAndReturnsStoredWinner(t *testing.T) {
 
 			return rte.StoreResult[int]{State: winner, Updated: false}, nil
 		}},
-	}, publisherStub{}, updatedEvent)
+	}, metrics, publisherStub{}, updatedEvent)
 
 	// When calculation completes, RTE passes its original start to storage.
 	result, err := engine.Calculate(ctx, key)
@@ -154,6 +159,8 @@ func TestCalculatePreservesStartAndReturnsStoredWinner(t *testing.T) {
 func TestServiceRejectsInvalidKeys(t *testing.T) {
 	// Given collaborators that record any accidental invocation.
 	calls := 0
+	metrics, err := newCalculationMetrics(noop.NewMeterProvider().Meter("test"), rte.CalculationKindCreditBalance)
+	require.NoError(t, err)
 	engine := newCalculation(Registration[testKey, int]{
 		Calculator: calculatorFunc(func(context.Context, rte.CalculateInput[testKey]) (int, error) {
 			calls++
@@ -172,10 +179,10 @@ func TestServiceRejectsInvalidKeys(t *testing.T) {
 				return rte.State[int]{}, nil
 			},
 		},
-	}, publisherStub{}, updatedEvent)
+	}, metrics, publisherStub{}, updatedEvent)
 
 	// When either operation receives an invalid identity.
-	_, err := engine.Calculate(t.Context(), "")
+	_, err = engine.Calculate(t.Context(), "")
 	require.True(t, models.IsGenericValidationError(err))
 	_, err = engine.Get(t.Context(), "")
 	require.True(t, models.IsGenericValidationError(err))
