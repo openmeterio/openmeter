@@ -3468,6 +3468,8 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceDueAtCreateBook
 	startLedger := s.CreateLedgerSnapshot(ledgerSnapshotInput)
 	s.AssertDecimalEqual(alpacadecimal.NewFromInt(30), startLedger.FBO, "granted credits")
 
+	clock.FreezeTime(createdAt)
+
 	var flatFeeChargeID meta.ChargeID
 	s.Run("given a flat fee charge created with invoice_at already due", func() {
 		// given:
@@ -3476,8 +3478,6 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceDueAtCreateBook
 		// - an in-advance credit-then-invoice flat fee is created
 		// then:
 		// - the charge is scheduled for the advance job, its gathering line is not invoiced yet and the ledger is untouched
-		clock.FreezeTime(createdAt)
-
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
 			Intents: charges.NewCreateChargeIntents(
