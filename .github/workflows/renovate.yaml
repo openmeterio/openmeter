@@ -17,11 +17,6 @@ concurrency:
 
 jobs:
   updates:
-    name: ${{ matrix.manager }}
-    strategy:
-      fail-fast: false
-      matrix:
-        manager: [gomod, github-actions, dockerfile, poetry, npm]
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     steps:
@@ -30,7 +25,6 @@ jobs:
           persist-credentials: false
 
       - name: Read the repository Go version
-        if: matrix.manager == 'gomod'
         id: go
         run: echo "version=$(cat .go-version)" >> "$GITHUB_OUTPUT"
 
@@ -43,12 +37,9 @@ jobs:
         env:
           RENOVATE_REPOSITORIES: ${{ github.repository }}
           RENOVATE_DRY_RUN: full
-          RENOVATE_ENABLED_MANAGERS: ${{ matrix.manager }}
-          RENOVATE_BRANCH_PREFIX: renovate/${{ matrix.manager == 'gomod' && 'go' || matrix.manager }}/
-          RENOVATE_PR_CONCURRENT_LIMIT: ${{ matrix.manager == 'gomod' && '10' || matrix.manager == 'poetry' && '1' || '5' }}
-          RENOVATE_ALLOWED_COMMANDS: ${{ matrix.manager == 'gomod' && '["^make mod$"]' || '[]' }}
+          RENOVATE_ALLOWED_COMMANDS: '["^make mod$"]'
           RENOVATE_BINARY_SOURCE: install
-          RENOVATE_CONSTRAINTS: ${{ matrix.manager == 'gomod' && format('{{"golang":"{0}"}}', steps.go.outputs.version) || '{}' }}
+          RENOVATE_CONSTRAINTS: ${{ format('{{"golang":"{0}"}}', steps.go.outputs.version) }}
           RENOVATE_ONBOARDING: 'false'
           # The action loads configurationFile from the checkout.
           RENOVATE_REQUIRE_CONFIG: ignored
