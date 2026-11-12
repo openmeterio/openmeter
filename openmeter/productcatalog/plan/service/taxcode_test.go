@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
 	pctestutils "github.com/openmeterio/openmeter/openmeter/productcatalog/testutils"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -74,7 +75,6 @@ func TestPlanTaxCodeReferences(t *testing.T) {
 	}{
 		{name: "unknown", key: "unknown", taxCodeID: "01JABSENTTAXC0DE0000000000"},
 		{name: "from another namespace", key: "other-namespace", taxCodeID: otherNamespaceTaxCode.ID},
-		{name: "soft-deleted", key: "deleted", taxCodeID: deletedTaxCode.ID},
 	}
 
 	t.Run("Create", func(t *testing.T) {
@@ -132,6 +132,20 @@ func TestPlanTaxCodeReferences(t *testing.T) {
 				pctestutils.RequireTaxCodeNotFound(t, err)
 			})
 		}
+
+		t.Run("soft-deleted tax code", func(t *testing.T) {
+			// given: a rate card referencing a soft-deleted Tax Code: creating the plan would
+			// author the reference, so it is rejected with the deleted error
+			input := newTestPlanInput(t, namespace, "create-deleted", pctestutils.NewTestFlatRateCard("rc", &productcatalog.TaxCodeConfig{
+				TaxCodeID: deletedTaxCode.ID,
+			}))
+
+			// when: the plan is created
+			_, err := env.Plan.CreatePlan(t.Context(), input)
+
+			// then: it is rejected with the deleted error, not the not-found one
+			pctestutils.RequireTaxCodeDeleted(t, err)
+		})
 	})
 
 	t.Run("Update", func(t *testing.T) {
@@ -200,6 +214,73 @@ func TestPlanTaxCodeReferences(t *testing.T) {
 			})
 		}
 
+		t.Run("bringing in a deleted tax code the stored version does not hold", func(t *testing.T) {
+			// given: a plan referencing a live Tax Code
+			p, err := env.Plan.CreatePlan(t.Context(), newTestPlanInput(t, namespace, "update-new-deleted", pctestutils.NewTestFlatRateCard("rc", &productcatalog.TaxCodeConfig{
+				TaxCodeID: taxCode.ID,
+			})))
+			require.NoError(t, err)
+
+			// when: the rate card is updated to reference the deleted Tax Code
+			_, err = env.Plan.UpdatePlan(t.Context(), plan.UpdatePlanInput{
+				NamespacedID: p.NamespacedID,
+				Phases: newUpdatePhases(pctestutils.NewTestFlatRateCard("rc", &productcatalog.TaxCodeConfig{
+					TaxCodeID: deletedTaxCode.ID,
+				})),
+			})
+
+			// then: the authored reference is rejected with the deleted error
+			pctestutils.RequireTaxCodeDeleted(t, err)
+		})
+
+		t.Run("moving and renaming a rate card holding a deleted tax code the stored version has", func(t *testing.T) {
+			// given: a two-phase plan whose second phase references the Tax Code that gets
+			// deleted afterwards
+			doomed := env.TaxCodeEnv.CreateTaxCode(t, namespace)
+			want := &productcatalog.TaxCodeConfig{TaxCodeID: doomed.ID}
+
+			twoMonths := datetime.MustParseDuration(t, "P2M")
+
+			p, err := env.Plan.CreatePlan(t.Context(), pctestutils.NewTestPlan(t, namespace,
+				pctestutils.WithPlanKey("update-move-deleted"),
+				pctestutils.WithPlanPhases(
+					productcatalog.Phase{
+						PhaseMeta: productcatalog.PhaseMeta{Key: "phase-1", Name: "Phase 1", Duration: &twoMonths},
+						RateCards: productcatalog.RateCards{pctestutils.NewTestFlatRateCard("rc-free", nil)},
+					},
+					productcatalog.Phase{
+						PhaseMeta: productcatalog.PhaseMeta{Key: "phase-2", Name: "Phase 2"},
+						RateCards: productcatalog.RateCards{pctestutils.NewTestFlatRateCard("rc-doomed", want)},
+					},
+				),
+			))
+			require.NoError(t, err)
+
+			require.NoError(t, env.TaxCode.DeleteTaxCode(t.Context(), taxcode.DeleteTaxCodeInput{
+				NamespacedID: doomed.NamespacedID,
+			}))
+
+			// when: the rate card holding the deleted reference is renamed and moved to the
+			// first phase
+			updated, err := env.Plan.UpdatePlan(t.Context(), plan.UpdatePlanInput{
+				NamespacedID: p.NamespacedID,
+				Phases: &[]productcatalog.Phase{
+					{
+						PhaseMeta: productcatalog.PhaseMeta{Key: "phase-1-renamed", Name: "Phase 1"},
+						RateCards: productcatalog.RateCards{
+							pctestutils.NewTestFlatRateCard("rc-free", nil),
+							pctestutils.NewTestFlatRateCard("rc-doomed-renamed", want),
+						},
+					},
+				},
+			})
+
+			// then: the reference is inherited from the stored version, so the update passes
+			require.NoError(t, err)
+			require.Len(t, updated.Phases, 1)
+			assert.Equal(t, want, updated.Phases[0].RateCards[1].AsMeta().TaxConfig)
+		})
+
 		t.Run("metadata-only update keeps a reference to a since-deleted tax code", func(t *testing.T) {
 			// given: a plan referencing a Tax Code that gets deleted afterwards
 			doomed := env.TaxCodeEnv.CreateTaxCode(t, namespace)
@@ -219,6 +300,182 @@ func TestPlanTaxCodeReferences(t *testing.T) {
 			// then: rate cards aren't re-validated, so the existing reference survives
 			require.NoError(t, err)
 			assert.Equal(t, want, firstRateCardTaxConfig(t, updated))
+		})
+
+		t.Run("scheduled plan update rejects a deleted tax code the stored version holds", func(t *testing.T) {
+			// given: a plan referencing a Tax Code, scheduled for later activation, whose Tax
+			// Code gets deleted afterwards
+			doomed := env.TaxCodeEnv.CreateTaxCode(t, namespace)
+
+			p, err := env.Plan.CreatePlan(t.Context(), newTestPlanInput(t, namespace, "update-scheduled-deleted", pctestutils.NewTestFlatRateCard("rc", &productcatalog.TaxCodeConfig{
+				TaxCodeID: doomed.ID,
+			})))
+			require.NoError(t, err)
+
+			publishAt := time.Now().Add(24 * time.Hour).Truncate(time.Microsecond)
+			scheduled, err := env.Plan.PublishPlan(t.Context(), plan.PublishPlanInput{
+				NamespacedID: p.NamespacedID,
+				EffectivePeriod: productcatalog.EffectivePeriod{
+					EffectiveFrom: &publishAt,
+				},
+			})
+			require.NoError(t, err)
+			require.Equal(t, productcatalog.PlanStatusScheduled, scheduled.Status())
+
+			require.NoError(t, env.TaxCode.DeleteTaxCode(t.Context(), taxcode.DeleteTaxCodeInput{NamespacedID: doomed.NamespacedID}))
+
+			// when: the scheduled plan's name is updated without touching rate cards
+			_, err = env.Plan.UpdatePlan(t.Context(), plan.UpdatePlanInput{
+				NamespacedID: p.NamespacedID,
+				Name:         lo.ToPtr("Renamed"),
+			})
+
+			// then: the update is rejected: a scheduled plan must stay publishable, and
+			// publish rejects deleted references
+			pctestutils.RequireTaxCodeDeleted(t, err)
+		})
+
+		t.Run("scheduled plan update replacing the deleted tax code passes", func(t *testing.T) {
+			// given: a scheduled plan whose Tax Code gets deleted afterwards
+			doomed := env.TaxCodeEnv.CreateTaxCode(t, namespace)
+
+			p, err := env.Plan.CreatePlan(t.Context(), newTestPlanInput(t, namespace, "update-scheduled-replace", pctestutils.NewTestFlatRateCard("rc", &productcatalog.TaxCodeConfig{
+				TaxCodeID: doomed.ID,
+			})))
+			require.NoError(t, err)
+
+			publishAt := time.Now().Add(24 * time.Hour).Truncate(time.Microsecond)
+			_, err = env.Plan.PublishPlan(t.Context(), plan.PublishPlanInput{
+				NamespacedID: p.NamespacedID,
+				EffectivePeriod: productcatalog.EffectivePeriod{
+					EffectiveFrom: &publishAt,
+				},
+			})
+			require.NoError(t, err)
+
+			require.NoError(t, env.TaxCode.DeleteTaxCode(t.Context(), taxcode.DeleteTaxCodeInput{NamespacedID: doomed.NamespacedID}))
+
+			// when: the rate card is updated to a live Tax Code
+			updated, err := env.Plan.UpdatePlan(t.Context(), plan.UpdatePlanInput{
+				NamespacedID: p.NamespacedID,
+				Phases:       newUpdatePhases(pctestutils.NewTestFlatRateCard("rc", &productcatalog.TaxCodeConfig{TaxCodeID: taxCode.ID})),
+			})
+
+			// then: the update passes: the candidate is publishable again, and the reference
+			// is replaced
+			require.NoError(t, err)
+			assert.Equal(t, taxCode.ID, firstRateCardTaxConfig(t, updated).TaxCodeID)
+		})
+
+		t.Run("metadata-only update of a draft keeps a deleted tax code", func(t *testing.T) {
+			// given: a draft plan referencing a Tax Code that gets deleted afterwards
+			doomed := env.TaxCodeEnv.CreateTaxCode(t, namespace)
+
+			p, err := env.Plan.CreatePlan(t.Context(), newTestPlanInput(t, namespace, "update-draft-deleted", pctestutils.NewTestFlatRateCard("rc", &productcatalog.TaxCodeConfig{
+				TaxCodeID: doomed.ID,
+			})))
+			require.NoError(t, err)
+
+			require.NoError(t, env.TaxCode.DeleteTaxCode(t.Context(), taxcode.DeleteTaxCodeInput{NamespacedID: doomed.NamespacedID}))
+
+			// when: only the name is updated
+			updated, err := env.Plan.UpdatePlan(t.Context(), plan.UpdatePlanInput{
+				NamespacedID: p.NamespacedID,
+				Name:         lo.ToPtr("Renamed"),
+			})
+
+			// then: the draft keeps the inherited reference; publish blocks it later
+			require.NoError(t, err)
+			assert.Equal(t, doomed.ID, firstRateCardTaxConfig(t, updated).TaxCodeID)
+		})
+	})
+
+	t.Run("Publish", func(t *testing.T) {
+		t.Run("tax code deleted after creation", func(t *testing.T) {
+			// given: a draft plan referencing a Tax Code that gets deleted afterwards
+			doomed := env.TaxCodeEnv.CreateTaxCode(t, namespace)
+
+			p, err := env.Plan.CreatePlan(t.Context(), newTestPlanInput(t, namespace, "publish-deleted", pctestutils.NewTestFlatRateCard("rc", &productcatalog.TaxCodeConfig{
+				TaxCodeID: doomed.ID,
+			})))
+			require.NoError(t, err)
+
+			require.NoError(t, env.TaxCode.DeleteTaxCode(t.Context(), taxcode.DeleteTaxCodeInput{NamespacedID: doomed.NamespacedID}))
+
+			// when: the plan is published
+			publishAt := time.Now().Truncate(time.Microsecond)
+			_, err = env.Plan.PublishPlan(t.Context(), plan.PublishPlanInput{
+				NamespacedID: p.NamespacedID,
+				EffectivePeriod: productcatalog.EffectivePeriod{
+					EffectiveFrom: &publishAt,
+				},
+			})
+
+			// then: publish is the gate and names the rate card holding the deleted reference
+			pctestutils.RequireTaxCodeDeleted(t, err)
+			assert.Contains(t, err.Error(), "ratecard.key=rc")
+			assert.Contains(t, err.Error(), "tax_code.id="+doomed.ID)
+		})
+
+		t.Run("live tax code passes the gate", func(t *testing.T) {
+			// given: a draft plan referencing a live Tax Code
+			p, err := env.Plan.CreatePlan(t.Context(), newTestPlanInput(t, namespace, "publish-live", pctestutils.NewTestFlatRateCard("rc", &productcatalog.TaxCodeConfig{
+				TaxCodeID: taxCode.ID,
+			})))
+			require.NoError(t, err)
+
+			// when: the plan is published
+			publishAt := time.Now().Truncate(time.Microsecond)
+			_, err = env.Plan.PublishPlan(t.Context(), plan.PublishPlanInput{
+				NamespacedID: p.NamespacedID,
+				EffectivePeriod: productcatalog.EffectivePeriod{
+					EffectiveFrom: &publishAt,
+				},
+			})
+
+			// then: the live reference passes the gate
+			require.NoError(t, err)
+		})
+	})
+
+	t.Run("NextPlan", func(t *testing.T) {
+		t.Run("draft from a published plan whose tax code was deleted after publishing", func(t *testing.T) {
+			// given: a published plan referencing a Tax Code that gets deleted afterwards
+			doomed := env.TaxCodeEnv.CreateTaxCode(t, namespace)
+
+			p, err := env.Plan.CreatePlan(t.Context(), newTestPlanInput(t, namespace, "next-deleted", pctestutils.NewTestFlatRateCard("rc", &productcatalog.TaxCodeConfig{
+				TaxCodeID: doomed.ID,
+			})))
+			require.NoError(t, err)
+
+			publishAt := time.Now().Truncate(time.Microsecond)
+			published, err := env.Plan.PublishPlan(t.Context(), plan.PublishPlanInput{
+				NamespacedID: p.NamespacedID,
+				EffectivePeriod: productcatalog.EffectivePeriod{
+					EffectiveFrom: &publishAt,
+				},
+			})
+			require.NoError(t, err)
+
+			require.NoError(t, env.TaxCode.DeleteTaxCode(t.Context(), taxcode.DeleteTaxCodeInput{NamespacedID: doomed.NamespacedID}))
+
+			// when: the next draft is created
+			next, err := env.Plan.NextPlan(t.Context(), plan.NextPlanInput{NamespacedID: published.NamespacedID})
+
+			// then: the draft is created with the inherited reference; publishing it is
+			// rejected naming the rate card
+			require.NoError(t, err)
+			require.Equal(t, productcatalog.PlanStatusDraft, next.Status())
+			assert.Equal(t, doomed.ID, firstRateCardTaxConfig(t, next).TaxCodeID)
+
+			_, err = env.Plan.PublishPlan(t.Context(), plan.PublishPlanInput{
+				NamespacedID: next.NamespacedID,
+				EffectivePeriod: productcatalog.EffectivePeriod{
+					EffectiveFrom: lo.ToPtr(time.Now().Add(24 * time.Hour).Truncate(time.Microsecond)),
+				},
+			})
+			pctestutils.RequireTaxCodeDeleted(t, err)
+			assert.Contains(t, err.Error(), "ratecard.key=rc")
 		})
 	})
 }

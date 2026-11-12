@@ -1292,7 +1292,7 @@ func TestSubscriptionItemTaxCodeReferences(t *testing.T) {
 		assert.Equal(t, want, repoItem.RateCard.AsMeta().TaxConfig)
 	})
 
-	t.Run("Should reject created items referencing a Tax Code the namespace can't use", func(t *testing.T) {
+	t.Run("Should reject created items referencing an unknown or deleted Tax Code", func(t *testing.T) {
 		clock.FreezeTime(currentTime)
 		defer clock.UnFreeze()
 
@@ -1316,7 +1316,6 @@ func TestSubscriptionItemTaxCodeReferences(t *testing.T) {
 			taxCodeID string
 		}{
 			{name: "unknown", taxCodeID: "01JABSENTTAXC0DE0000000000"},
-			{name: "soft-deleted", taxCodeID: deletedTaxCode.ID},
 		} {
 			t.Run(tc.name, func(t *testing.T) {
 				// given: a spec whose item references the Tax Code. The plan itself has no tax config,
@@ -1344,6 +1343,32 @@ func TestSubscriptionItemTaxCodeReferences(t *testing.T) {
 				assert.ErrorIs(t, err, productcatalog.ErrRateCardTaxCodeNotFound)
 			})
 		}
+
+		t.Run("soft-deleted", func(t *testing.T) {
+			// given: a spec whose item references the deleted Tax Code: creating the subscription
+			// authors the reference, so it is rejected with the deleted error
+			spec := newTaxedSpec(t, deps, cust.ID, "untaxed-plan-deleted", nil, currentTime)
+
+			for _, phase := range spec.Phases {
+				for _, items := range phase.ItemsByKey {
+					for _, item := range items {
+						require.NoError(t, item.RateCard.ChangeMeta(func(m productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
+							m.TaxConfig = &productcatalog.TaxCodeConfig{TaxCodeID: deletedTaxCode.ID}
+
+							return m, nil
+						}))
+					}
+				}
+			}
+
+			// when: the subscription is created
+			_, err := deps.SubscriptionService.Create(t.Context(), subscriptiontestutils.ExampleNamespace, spec)
+
+			// then: it is rejected with the deleted error, not the not-found one
+			require.Error(t, err)
+			assert.True(t, models.IsGenericValidationError(err), "expected validation error, got: %v", err)
+			assert.ErrorIs(t, err, productcatalog.ErrRateCardTaxCodeDeleted)
+		})
 	})
 
 	t.Run("Should keep existing items referencing a since-deleted Tax Code on update", func(t *testing.T) {

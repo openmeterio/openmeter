@@ -45,12 +45,22 @@ func NewTestFlatRateCard(key string, tc *productcatalog.TaxCodeConfig) productca
 	}
 }
 
-// RequireTaxCodeNotFound asserts the error is the validation error for an unusable Tax Code
-// reference (missing, other namespace, or deleted).
+// RequireTaxCodeNotFound asserts the error is the validation error for a Tax Code reference the
+// namespace can't resolve (missing or from another namespace).
 func RequireTaxCodeNotFound(t *testing.T, err error) {
 	t.Helper()
 
 	require.Error(t, err)
 	assert.True(t, models.IsGenericValidationError(err), "expected validation error, got: %v", err)
 	assert.ErrorIs(t, err, productcatalog.ErrRateCardTaxCodeNotFound)
+}
+
+// RequireTaxCodeDeleted asserts the error is the validation error for a rate card referencing a
+// soft-deleted Tax Code.
+func RequireTaxCodeDeleted(t *testing.T, err error) {
+	t.Helper()
+
+	require.Error(t, err)
+	assert.True(t, models.IsGenericValidationError(err), "expected validation error, got: %v", err)
+	assert.ErrorIs(t, err, productcatalog.ErrRateCardTaxCodeDeleted)
 }

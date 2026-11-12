@@ -59,7 +59,6 @@ func TestAddonTaxCodeReferences(t *testing.T) {
 	}{
 		{name: "unknown", key: "unknown", taxCodeID: "01JABSENTTAXC0DE0000000000"},
 		{name: "from another namespace", key: "other-namespace", taxCodeID: otherNamespaceTaxCode.ID},
-		{name: "soft-deleted", key: "deleted", taxCodeID: deletedTaxCode.ID},
 	}
 
 	t.Run("Create", func(t *testing.T) {
@@ -117,6 +116,20 @@ func TestAddonTaxCodeReferences(t *testing.T) {
 				pctestutils.RequireTaxCodeNotFound(t, err)
 			})
 		}
+
+		t.Run("soft-deleted tax code", func(t *testing.T) {
+			// given: a rate card referencing a soft-deleted Tax Code: creating the add-on would
+			// author the reference, so it is rejected with the deleted error
+			input := newTestAddonInput(t, namespace, "create-deleted", pctestutils.NewTestFlatRateCard("rc", &productcatalog.TaxCodeConfig{
+				TaxCodeID: deletedTaxCode.ID,
+			}))
+
+			// when: the add-on is created
+			_, err := env.Addon.CreateAddon(t.Context(), input)
+
+			// then: it is rejected with the deleted error, not the not-found one
+			pctestutils.RequireTaxCodeDeleted(t, err)
+		})
 	})
 
 	t.Run("Update", func(t *testing.T) {
@@ -184,6 +197,25 @@ func TestAddonTaxCodeReferences(t *testing.T) {
 				assert.Equal(t, original, firstAddonRateCardTaxConfig(t, fetched))
 			})
 		}
+
+		t.Run("bringing in a deleted tax code the stored version does not hold", func(t *testing.T) {
+			// given: an add-on referencing a live Tax Code
+			a, err := env.Addon.CreateAddon(t.Context(), newTestAddonInput(t, namespace, "update-new-deleted", pctestutils.NewTestFlatRateCard("rc", &productcatalog.TaxCodeConfig{
+				TaxCodeID: taxCode.ID,
+			})))
+			require.NoError(t, err)
+
+			// when: the rate card is updated to reference the deleted Tax Code
+			_, err = env.Addon.UpdateAddon(t.Context(), addon.UpdateAddonInput{
+				NamespacedID: a.NamespacedID,
+				RateCards: &productcatalog.RateCards{pctestutils.NewTestFlatRateCard("rc", &productcatalog.TaxCodeConfig{
+					TaxCodeID: deletedTaxCode.ID,
+				})},
+			})
+
+			// then: the authored reference is rejected with the deleted error
+			pctestutils.RequireTaxCodeDeleted(t, err)
+		})
 
 		t.Run("metadata-only update keeps a reference to a since-deleted tax code", func(t *testing.T) {
 			// given: an add-on referencing a Tax Code that gets deleted afterwards

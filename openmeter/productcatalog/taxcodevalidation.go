@@ -5,6 +5,9 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/samber/lo"
+
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -14,7 +17,11 @@ import (
 //
 // BatchResolve returns deleted codes too (old rows may still point at them), which is why the
 // deleted check lives here rather than in the resolver.
-func ValidateRateCardTaxCodes(ctx context.Context, resolver TaxCodeResolver, namespace string, rateCards RateCards) error {
+//
+// allowDeleted lists Tax Code IDs the caller accepts even when soft-deleted: references
+// inherited from something already stored or approved, not picked in this request. Missing IDs
+// are rejected no matter what it lists. One BatchResolve runs per call.
+func ValidateRateCardTaxCodes(ctx context.Context, resolver TaxCodeResolver, namespace string, rateCards RateCards, allowDeleted ...string) error {
 	ids := rateCards.TaxCodeIDs()
 	if len(ids) == 0 {
 		return nil
@@ -25,6 +32,14 @@ func ValidateRateCardTaxCodes(ctx context.Context, resolver TaxCodeResolver, nam
 		return fmt.Errorf("failed to resolve tax codes: %w", err)
 	}
 
+	return checkRateCardTaxCodes(rateCards, taxCodes, allowDeleted)
+}
+
+// checkRateCardTaxCodes classifies the referenced Tax Codes against an already-fetched
+// BatchResolve result: an ID missing from the result is not found, a soft-deleted one is rejected
+// unless the caller allows it. Shared by the single-call and per-phase validators so both report
+// the same issues with the same rate-card-key-prefixed field.
+func checkRateCardTaxCodes(rateCards RateCards, taxCodes map[string]*taxcode.TaxCode, allowDeleted []string) error {
 	var errs []error
 
 	for _, rc := range rateCards {
@@ -33,20 +48,69 @@ func ValidateRateCardTaxCodes(ctx context.Context, resolver TaxCodeResolver, nam
 			continue
 		}
 
-		if tc, ok := taxCodes[cfg.TaxCodeID]; ok && tc != nil && !tc.IsDeleted() {
-			continue
+		tc := taxCodes[cfg.TaxCodeID]
+
+		switch {
+		case tc == nil:
+			errs = append(errs, rateCardTaxCodeError(rc, cfg.TaxCodeID, ErrRateCardTaxCodeNotFound))
+		case tc.IsDeleted() && !lo.Contains(allowDeleted, cfg.TaxCodeID):
+			errs = append(errs, rateCardTaxCodeError(rc, cfg.TaxCodeID, ErrRateCardTaxCodeDeleted))
 		}
-
-		fieldSelector := models.NewFieldSelectorGroup(
-			models.NewFieldSelector("ratecards").WithExpression(
-				models.NewFieldAttrValue("key", rc.Key())),
-		)
-
-		errs = append(errs, models.ErrorWithFieldPrefix(fieldSelector,
-			fmt.Errorf("tax code not found [ratecard.key=%s tax_code.id=%s]: %w",
-				rc.Key(), cfg.TaxCodeID, ErrRateCardTaxCodeNotFound),
-		))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+// rateCardTaxCodeError prefixes the tax code issue with the rate card key. Callers add the phase
+// prefix on top where a phase context exists.
+func rateCardTaxCodeError(rc RateCard, taxCodeID string, issue models.ValidationIssue) error {
+	fieldSelector := models.NewFieldSelectorGroup(
+		models.NewFieldSelector("ratecards").WithExpression(
+			models.NewFieldAttrValue("key", rc.Key()),
+		),
+	)
+
+	return models.ErrorWithFieldPrefix(fieldSelector,
+		fmt.Errorf("%s [ratecard.key=%s tax_code.id=%s]: %w",
+			issue.Message(), rc.Key(), taxCodeID, issue),
+	)
+}
+
+// ValidatePlanWithTaxCodes verifies the Tax Code references of every phase of the plan, rejecting
+// missing and soft-deleted codes. It is the publish gate for plans: a draft may inherit deleted
+// references, but a version cannot be published while it holds one. All phases share one
+// BatchResolve, and each issue is prefixed with the phase key so the offending rate card stays
+// identifiable.
+func ValidatePlanWithTaxCodes(ctx context.Context, resolver TaxCodeResolver, namespace string) models.ValidatorFunc[Plan] {
+	return func(p Plan) error {
+		ids := p.TaxCodeIDs()
+		if len(ids) == 0 {
+			return nil
+		}
+
+		taxCodes, err := resolver.BatchResolve(ctx, namespace, ids...)
+		if err != nil {
+			return fmt.Errorf("failed to resolve tax codes: %w", err)
+		}
+
+		var errs []error
+
+		for _, phase := range p.Phases {
+			phaseErr := checkRateCardTaxCodes(phase.RateCards, taxCodes, nil)
+			if phaseErr == nil {
+				continue
+			}
+
+			phaseFieldSelector := models.NewFieldSelectorGroup(
+				models.NewFieldSelector("phases").
+					WithExpression(
+						models.NewFieldAttrValue("key", phase.Key),
+					),
+			)
+
+			errs = append(errs, models.ErrorWithFieldPrefix(phaseFieldSelector, phaseErr))
+		}
+
+		return models.NewNillableGenericValidationError(errors.Join(errs...))
+	}
 }

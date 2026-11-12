@@ -67,9 +67,11 @@ func TestValidateRateCardTaxCodes(t *testing.T) {
 	tests := []struct {
 		name          string
 		rateCards     productcatalog.RateCards
+		allowDeleted  []string
 		resolverErr   error
 		wantCalls     [][]string
 		wantNotFound  bool
+		wantDeleted   bool
 		wantErrNonVal bool
 	}{
 		{
@@ -94,9 +96,22 @@ func TestValidateRateCardTaxCodes(t *testing.T) {
 			wantNotFound: true,
 		},
 		{
-			name:         "deleted tax code",
+			name:        "deleted tax code",
+			rateCards:   productcatalog.RateCards{newFlatRateCard("a", &productcatalog.TaxCodeConfig{TaxCodeID: deletedID})},
+			wantCalls:   [][]string{{deletedID}},
+			wantDeleted: true,
+		},
+		{
+			name:         "deleted tax code allowed passes",
 			rateCards:    productcatalog.RateCards{newFlatRateCard("a", &productcatalog.TaxCodeConfig{TaxCodeID: deletedID})},
+			allowDeleted: []string{deletedID},
 			wantCalls:    [][]string{{deletedID}},
+		},
+		{
+			name:         "missing tax code listed as allowed is still not found",
+			rateCards:    productcatalog.RateCards{newFlatRateCard("a", &productcatalog.TaxCodeConfig{TaxCodeID: missingID})},
+			allowDeleted: []string{missingID},
+			wantCalls:    [][]string{{missingID}},
 			wantNotFound: true,
 		},
 		{
@@ -114,13 +129,23 @@ func TestValidateRateCardTaxCodes(t *testing.T) {
 			},
 			wantCalls: [][]string{{liveID}},
 		},
+		{
+			name: "deleted and missing in one lookup",
+			rateCards: productcatalog.RateCards{
+				newFlatRateCard("a", &productcatalog.TaxCodeConfig{TaxCodeID: deletedID}),
+				newFlatRateCard("b", &productcatalog.TaxCodeConfig{TaxCodeID: missingID}),
+			},
+			wantCalls:    [][]string{{deletedID, missingID}},
+			wantNotFound: true,
+			wantDeleted:  true,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			resolver := &stubTaxCodeResolver{taxCodes: taxCodes, err: tt.resolverErr}
 
-			err := productcatalog.ValidateRateCardTaxCodes(t.Context(), resolver, namespace, tt.rateCards)
+			err := productcatalog.ValidateRateCardTaxCodes(t.Context(), resolver, namespace, tt.rateCards, tt.allowDeleted...)
 
 			assert.Equal(t, tt.wantCalls, resolver.calls)
 
@@ -129,6 +154,10 @@ func TestValidateRateCardTaxCodes(t *testing.T) {
 				require.Error(t, err)
 				assert.True(t, models.IsGenericValidationError(err), "expected validation error, got: %v", err)
 				assert.ErrorIs(t, err, productcatalog.ErrRateCardTaxCodeNotFound)
+			case tt.wantDeleted:
+				require.Error(t, err)
+				assert.True(t, models.IsGenericValidationError(err), "expected validation error, got: %v", err)
+				assert.ErrorIs(t, err, productcatalog.ErrRateCardTaxCodeDeleted)
 			case tt.wantErrNonVal:
 				require.Error(t, err)
 				assert.False(t, models.IsGenericValidationError(err), "resolver failures must not become validation errors")
@@ -138,4 +167,104 @@ func TestValidateRateCardTaxCodes(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestValidatePlanWithTaxCodes(t *testing.T) {
+	const (
+		namespace     = "ns"
+		liveID        = "01JTAXC0DE0000000000000000"
+		deletedID     = "01JTAXC0DE0000000000000001"
+		missingID     = "01JTAXC0DE0000000000000002"
+		untouchedLive = "01JTAXC0DE0000000000000003"
+	)
+
+	taxCodes := map[string]*taxcode.TaxCode{
+		liveID:        {NamespacedID: models.NamespacedID{Namespace: namespace, ID: liveID}},
+		untouchedLive: {NamespacedID: models.NamespacedID{Namespace: namespace, ID: untouchedLive}},
+		deletedID: {
+			NamespacedID: models.NamespacedID{Namespace: namespace, ID: deletedID},
+			ManagedModel: models.ManagedModel{DeletedAt: lo.ToPtr(clock.Now().Add(-1))},
+		},
+	}
+
+	// given: a plan whose phases reference a live, a deleted and a missing Tax Code
+	resolver := &stubTaxCodeResolver{taxCodes: taxCodes}
+
+	plan := productcatalog.Plan{
+		PlanMeta: productcatalog.PlanMeta{Key: "plan", Name: "Plan"},
+		Phases: []productcatalog.Phase{
+			{
+				PhaseMeta: productcatalog.PhaseMeta{Key: "phase-1", Name: "Phase 1"},
+				RateCards: productcatalog.RateCards{
+					newFlatRateCard("untouched", &productcatalog.TaxCodeConfig{TaxCodeID: untouchedLive}),
+				},
+			},
+			{
+				PhaseMeta: productcatalog.PhaseMeta{Key: "phase-2", Name: "Phase 2"},
+				RateCards: productcatalog.RateCards{
+					newFlatRateCard("deleted", &productcatalog.TaxCodeConfig{TaxCodeID: deletedID}),
+					newFlatRateCard("missing", &productcatalog.TaxCodeConfig{TaxCodeID: missingID}),
+				},
+			},
+		},
+	}
+
+	// when: the plan is validated across phases holding deleted and missing codes
+	err := productcatalog.ValidatePlanWithTaxCodes(t.Context(), resolver, namespace)(plan)
+
+	// then: both issues surface, prefixed with their phase, from one batch lookup
+	require.Error(t, err)
+	assert.True(t, models.IsGenericValidationError(err), "expected validation error, got: %v", err)
+	assert.ErrorIs(t, err, productcatalog.ErrRateCardTaxCodeDeleted)
+	assert.ErrorIs(t, err, productcatalog.ErrRateCardTaxCodeNotFound)
+
+	require.Len(t, resolver.calls, 1, "one BatchResolve must cover all phases")
+	assert.ElementsMatch(t, []string{untouchedLive, deletedID, missingID}, resolver.calls[0])
+
+	issues, convErr := models.AsValidationIssues(err)
+	require.NoError(t, convErr)
+	require.Len(t, issues, 2)
+
+	byCode := make(map[models.ErrorCode]models.ValidationIssue, len(issues))
+	for _, issue := range issues {
+		byCode[issue.Code()] = issue
+	}
+
+	deletedIssue, ok := byCode[productcatalog.ErrCodeRateCardTaxCodeDeleted]
+	require.True(t, ok, "deleted issue must be reported, got issues: %v", issues)
+	assert.Equal(t, "tax code deleted", deletedIssue.Message())
+	assert.Contains(t, deletedIssue.Field().String(), `phases[key=phase-2]`)
+	assert.Contains(t, deletedIssue.Field().String(), `ratecards[key=deleted]`)
+	assert.Contains(t, deletedIssue.Field().String(), "taxConfig")
+
+	missingIssue, ok := byCode[productcatalog.ErrCodeRateCardTaxCodeNotFound]
+	require.True(t, ok, "missing issue must be reported, got issues: %v", issues)
+	assert.Contains(t, missingIssue.Field().String(), `phases[key=phase-2]`)
+	assert.Contains(t, missingIssue.Field().String(), `ratecards[key=missing]`)
+}
+
+func TestValidatePlanWithTaxCodesLookupError(t *testing.T) {
+	// given: a resolver that fails
+	resolverErr := errors.New("db is down")
+	resolver := &stubTaxCodeResolver{err: resolverErr}
+
+	plan := productcatalog.Plan{
+		PlanMeta: productcatalog.PlanMeta{Key: "plan", Name: "Plan"},
+		Phases: []productcatalog.Phase{
+			{
+				PhaseMeta: productcatalog.PhaseMeta{Key: "phase-1", Name: "Phase 1"},
+				RateCards: productcatalog.RateCards{
+					newFlatRateCard("rc", &productcatalog.TaxCodeConfig{TaxCodeID: "01JTAXC0DE0000000000000000"}),
+				},
+			},
+		},
+	}
+
+	// when: the plan is validated
+	err := productcatalog.ValidatePlanWithTaxCodes(t.Context(), resolver, "ns")(plan)
+
+	// then: the lookup failure is passed through, not turned into a validation error
+	require.Error(t, err)
+	assert.False(t, models.IsGenericValidationError(err), "resolver failures must not become validation errors")
+	assert.ErrorIs(t, err, resolverErr)
 }

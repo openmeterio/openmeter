@@ -292,6 +292,11 @@ func (s service) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (*
 		params.EffectivePeriod = productcatalog.EffectivePeriod{}
 
 		if params.Phases != nil && len(*params.Phases) > 0 {
+			// A Tax Code the stored plan already holds on any rate card is inherited, not
+			// authored by this update, so it stays valid even when deleted. This lets drafts
+			// move or rename rate cards and phases without switching Tax Codes.
+			allowDeleted := pp.TaxCodeIDs()
+
 			for idx := range *params.Phases {
 				phaseFieldSelector := models.NewFieldSelectorGroup(
 					models.NewFieldSelector("phases").
@@ -306,16 +311,20 @@ func (s service) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (*
 							params.ID, (*params.Phases)[idx].Key, err))
 				}
 
-				if err := productcatalog.ValidateRateCardTaxCodes(ctx, s.taxCodeResolver, params.Namespace, (*params.Phases)[idx].RateCards); err != nil {
-					err = fmt.Errorf("invalid tax codes for ratecards in plan phase [plan.id=%s plan.phase.key=%s]: %w",
-						params.ID, (*params.Phases)[idx].Key, err)
+				// Scheduled plans are checked once below by the publish gate, which covers the
+				// phases being sent too.
+				if planStatus == productcatalog.PlanStatusDraft {
+					if err := productcatalog.ValidateRateCardTaxCodes(ctx, s.taxCodeResolver, params.Namespace, (*params.Phases)[idx].RateCards, allowDeleted...); err != nil {
+						err = fmt.Errorf("invalid tax codes for ratecards in plan phase [plan.id=%s plan.phase.key=%s]: %w",
+							params.ID, (*params.Phases)[idx].Key, err)
 
-					// Same as in CreatePlan: lookup failures must not be prefixed, or they become a 400.
-					if models.IsGenericValidationError(err) {
-						err = models.ErrorWithFieldPrefix(phaseFieldSelector, err)
+						// Same as in CreatePlan: lookup failures must not be prefixed, or they become a 400.
+						if models.IsGenericValidationError(err) {
+							err = models.ErrorWithFieldPrefix(phaseFieldSelector, err)
+						}
+
+						return nil, err
 					}
-
-					return nil, err
 				}
 			}
 
@@ -332,6 +341,26 @@ func (s service) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (*
 		// become stable currency identities.
 		if err = params.ValidateWithPlan(pp); err != nil {
 			return nil, fmt.Errorf("invalid Plan update: %w", err)
+		}
+
+		// A scheduled plan must stay publishable, so run the publish tax gate on the plan the
+		// update would store. That rejects a deleted reference the stored version holds as well
+		// as one the update brings in, while still letting the update fix it by replacing the
+		// code. Called directly rather than through ValidateWith, which would turn a failed lookup
+		// into a 400.
+		if planStatus == productcatalog.PlanStatusScheduled {
+			candidate := pp
+			if params.Phases != nil {
+				candidate.Phases = *params.Phases
+			}
+
+			if err = productcatalog.ValidatePlanWithTaxCodes(ctx, s.taxCodeResolver, params.Namespace)(candidate); err != nil {
+				if !models.IsGenericValidationError(err) {
+					return nil, fmt.Errorf("failed to validate tax codes of Plan update: %w", err)
+				}
+
+				return nil, fmt.Errorf("invalid Plan update: %w", err)
+			}
 		}
 
 		currencyCandidate := pp
@@ -484,6 +513,20 @@ func (s service) PublishPlan(ctx context.Context, params plan.PublishPlanInput) 
 			productcatalog.ValidatePlanWithFeatures(ctx, s.featureResolver.WithNamespace(params.Namespace)),
 		)
 		if err != nil {
+			errs = append(errs, fmt.Errorf("invalid plan [id=%s key=%s version=%d]: %w",
+				p.ID, p.Key, p.Version, err),
+			)
+		}
+
+		// Publishing is the gate for inherited deleted Tax Code references. The validator is called
+		// directly, not through ValidateWith: that wraps every error as a validation error, and a
+		// failed lookup must stay a 500 instead of a 400 carrying the DB error text.
+		if err = productcatalog.ValidatePlanWithTaxCodes(ctx, s.taxCodeResolver, params.Namespace)(pp); err != nil {
+			if !models.IsGenericValidationError(err) {
+				return nil, fmt.Errorf("failed to validate tax codes of plan [id=%s key=%s version=%d]: %w",
+					p.ID, p.Key, p.Version, err)
+			}
+
 			errs = append(errs, fmt.Errorf("invalid plan [id=%s key=%s version=%d]: %w",
 				p.ID, p.Key, p.Version, err),
 			)
