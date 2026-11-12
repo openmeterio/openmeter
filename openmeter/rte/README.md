@@ -59,8 +59,8 @@ The worker subscribes to separate ingest and system event topics. It handles cus
 subscription, feature, meter, entitlement, grant and reset facts. Enable `rte.publishSourceEvents`
 on **billing and ledger writers** to cover charge creation, charge patches and committed ledger
 posting groups. For example, a pending credit purchase can affect the answer before it produces
-any postings. When an ingest batch affects credits, the worker waits until the full stored
-second is visible to the ClickHouse rating query before invalidating those keys.
+any postings. For an ingest batch, the worker resolves demand after the batch’s storage second
+ends. This includes credit keys whose first pull ran too early to count that batch.
 
 Freshness is relative to the source facts RTE has processed. Set a finite `MaxAge` or
 `RefreshInterval` when the answer can change with time alone or through a writer without a

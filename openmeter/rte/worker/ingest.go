@@ -7,8 +7,8 @@ import (
 )
 
 // The sink assigns row stored_at before writing, then timestamps this notification
-// after the write succeeds. Credit rating uses stored_at < calculation Unix second,
-// so even a persisted batch is invisible until the notification's second closes.
+// after the write returns. Once the notification's second closes, the exclusive
+// stored_at cutoff used by credit rating can include the entire persisted batch.
 func waitForCreditUsage(ctx context.Context, storedAt time.Time) error {
 	if err := ctx.Err(); err != nil {
 		return err

@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"slices"
 	"time"
 
 	"github.com/ThreeDotsLabs/watermill/message"
@@ -146,6 +145,14 @@ func (w *worker) handleSource(msg *message.Message, event marshaler.Event) error
 		w.sourceLag.Record(ctx, max(0, time.Since(envelope.Time()).Seconds()), metric.WithAttributes(name))
 	}
 
+	if batch, ok := event.(*ingestevents.EventBatchedIngest); ok {
+		// A first pull can register and cache a balance during the stored
+		// second. Resolve after the cutoff so that key gets invalidated too.
+		if err := waitForCreditUsage(ctx, batch.StoredAt); err != nil {
+			return err
+		}
+	}
+
 	selectors, err := w.sources.Resolve(ctx, event)
 	if err != nil {
 		return err
@@ -154,14 +161,6 @@ func (w *worker) handleSource(msg *message.Message, event marshaler.Event) error
 	if len(selectors) == 0 {
 		outcome = "no_target"
 		return nil
-	}
-
-	if batch, ok := event.(*ingestevents.EventBatchedIngest); ok && slices.ContainsFunc(selectors, func(selector rte.DemandSelector) bool {
-		return selector.Kind == rte.CalculationKindCreditBalance
-	}) {
-		if err := waitForCreditUsage(ctx, batch.StoredAt); err != nil {
-			return err
-		}
 	}
 
 	if err := w.demand.Invalidate(ctx, rte.InvalidateInput{
