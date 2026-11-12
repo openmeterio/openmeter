@@ -35,7 +35,9 @@ var (
 		Prefix:         "OM-SANDBOX",
 		SuffixTemplate: "{{.CustomerPrefix}}-{{.NextSequenceNumber}}",
 		Scope:          "invoices/app/sandbox",
-		CommitMode:     sequence.CommitModeWithCaller,
+		// Sandbox permits gaps after rollback, so release the namespace/scope
+		// counter lock independently of the caller's transaction.
+		CommitMode: sequence.CommitModeIndependent,
 	}
 )
 
