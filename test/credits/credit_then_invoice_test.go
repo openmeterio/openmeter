@@ -29,6 +29,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 	billingtest "github.com/openmeterio/openmeter/test/billing"
@@ -3423,6 +3424,148 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceInArrearsActiva
 			Total:  5,
 		}, invoices[0].Lines.OrEmpty()[0].Totals)
 		s.AssertLedgerSnapshotUnchanged(ledgerSnapshotInput, startLedger)
+	})
+}
+
+func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceDueAtCreateBooksCreditsOnlyWhenInvoiced() {
+	t := s.T()
+	ctx := t.Context()
+	ns := s.GetUniqueNamespace("charges-credits-flatfee-credit-then-invoice-due-at-create")
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
+
+	customInvoicing := s.SetupCustomInvoicing(ns)
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
+
+	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
+		billingtest.WithCollectionInterval(datetime.MustParseDuration(t, "P2D")),
+		billingtest.WithManualApproval(),
+	)
+
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(t, "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(t, "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+	}
+	grantedAt := servicePeriod.From.Add(-24 * time.Hour)
+	createdAt := servicePeriod.From.Add(time.Hour)
+
+	clock.FreezeTime(grantedAt)
+	defer clock.UnFreeze()
+
+	s.CreatePromotionalCreditFunding(ctx, CreatePromotionalCreditFundingInput{
+		Namespace: ns,
+		Customer:  cust.GetID(),
+		Amount:    alpacadecimal.NewFromInt(30),
+		At:        grantedAt,
+		CostBasis: alpacadecimal.Zero,
+	})
+
+	ledgerSnapshotInput := LedgerSnapshotInput{
+		Namespace: ns,
+		Customer:  cust.GetID(),
+		Currency:  USD,
+		CostBasis: mo.None[*alpacadecimal.Decimal](),
+	}
+	startLedger := s.CreateLedgerSnapshot(ledgerSnapshotInput)
+	s.AssertDecimalEqual(alpacadecimal.NewFromInt(30), startLedger.FBO, "granted credits")
+
+	var flatFeeChargeID meta.ChargeID
+	s.Run("given a flat fee charge created with invoice_at already due", func() {
+		// given:
+		// - the customer holds 30 promotional credits and the service period has started
+		// when:
+		// - an in-advance credit-then-invoice flat fee is created
+		// then:
+		// - the charge is scheduled for the advance job, its gathering line is not invoiced yet and the ledger is untouched
+		clock.FreezeTime(createdAt)
+
+		res, err := s.Charges.Create(ctx, charges.CreateInput{
+			Namespace: ns,
+			Intents: charges.NewCreateChargeIntents(
+				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
+					Customer:       cust.GetID(),
+					Currency:       USD,
+					ServicePeriod:  servicePeriod,
+					SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+					Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+						Amount:      alpacadecimal.NewFromInt(100),
+						PaymentTerm: productcatalog.InAdvancePaymentTerm,
+					}),
+					Name:              "flatfee-credit-then-invoice-due-at-create",
+					ManagedBy:         billing.SubscriptionManagedLine,
+					UniqueReferenceID: "flatfee-credit-then-invoice-due-at-create",
+				}),
+			),
+		})
+		s.NoError(err)
+		s.Len(res, 1)
+
+		flatFeeCharge, err := res[0].AsFlatFeeCharge()
+		s.NoError(err)
+		flatFeeChargeID = flatFeeCharge.GetChargeID()
+		s.Equal(flatfee.StatusCreated, flatFeeCharge.Status)
+		s.Require().NotNil(flatFeeCharge.State.AdvanceAfter)
+		s.Equal(servicePeriod.From, *flatFeeCharge.State.AdvanceAfter)
+
+		gatheringLine := s.mustSingleActiveGatheringLineForCharge(ns, cust.ID, flatFeeChargeID.ID)
+		s.Equal(servicePeriod.From, gatheringLine.InvoiceAt)
+
+		invoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
+			Namespace:  ns,
+			CustomerID: &filter.FilterULID{FilterString: filter.FilterString{Eq: &cust.ID}},
+			Statuses:   []string{"draft"},
+		})
+		s.NoError(err)
+		s.Empty(invoices.Items)
+
+		s.AssertLedgerSnapshotUnchanged(ledgerSnapshotInput, startLedger)
+	})
+
+	s.Run("when the advance job activates the charge", func() {
+		// given:
+		// - the created charge is due for advancement
+		// when:
+		// - the advance job runs for the customer
+		// then:
+		// - the charge is active, still has no standard invoice and the ledger is untouched
+		advancedCharges, err := s.Charges.AdvanceCharges(ctx, charges.AdvanceChargesInput{
+			Customer: cust.GetID(),
+		})
+		s.NoError(err)
+		s.Require().Len(advancedCharges, 1)
+		s.RequireChargeStatus(flatFeeChargeID, flatfee.StatusActive)
+
+		s.mustSingleActiveGatheringLineForCharge(ns, cust.ID, flatFeeChargeID.ID)
+		s.AssertLedgerSnapshotUnchanged(ledgerSnapshotInput, startLedger)
+	})
+
+	s.Run("when billing invoices the pending line", func() {
+		// given:
+		// - the active charge has a due gathering line and no standard invoice
+		// when:
+		// - billing collects the pending lines
+		// then:
+		// - the invoice line is credited with the 30 promotional credits and the ledger books that allocation
+		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+			Customer: cust.GetID(),
+			AsOf:     lo.ToPtr(createdAt),
+		})
+		s.NoError(err)
+		s.Require().Len(invoices, 1)
+		s.Equal(billing.StandardInvoiceStatusDraftManualApprovalNeeded, invoices[0].Status)
+		s.Require().Len(invoices[0].Lines.OrEmpty(), 1)
+		line := invoices[0].Lines.OrEmpty()[0]
+		s.Equal(flatFeeChargeID.ID, lo.FromPtr(line.ChargeID))
+		s.RequireTotals(billingtest.ExpectedTotals{
+			Amount:       100,
+			CreditsTotal: 30,
+			Total:        70,
+		}, line.Totals)
+		s.RequireFlatFeeChargeStatus(flatFeeChargeID, flatfee.StatusActiveRealizationProcessing)
+
+		expected := startLedger
+		expected.FBO = startLedger.FBO.Sub(alpacadecimal.NewFromInt(30))
+		expected.Accrued = startLedger.Accrued.Add(alpacadecimal.NewFromInt(30))
+		s.AssertLedgerSnapshotEqual(expected, s.CreateLedgerSnapshot(ledgerSnapshotInput))
 	})
 }
 
