@@ -4396,7 +4396,8 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditThenInvoiceLifecycle() 
 		s.Equal(meta.ChargeStatusCreated, meta.ChargeStatus(fetched.Status))
 		s.Equal(usagebased.RatingEngineDelta, fetched.State.RatingEngine)
 		s.Empty(fetched.Realizations)
-		s.Nil(fetched.State.AdvanceAfter)
+		s.Require().NotNil(fetched.State.AdvanceAfter)
+		s.True(servicePeriod.From.Equal(*fetched.State.AdvanceAfter))
 	})
 
 	s.Run("#4 invoice pending lines at service period end", func() {
@@ -4693,7 +4694,8 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditThenInvoiceFullyCredite
 		fetched := s.mustGetUsageBasedChargeByID(usageBasedChargeID)
 		s.Equal(meta.ChargeStatusCreated, meta.ChargeStatus(fetched.Status))
 		s.Empty(fetched.Realizations)
-		s.Nil(fetched.State.AdvanceAfter)
+		s.Require().NotNil(fetched.State.AdvanceAfter)
+		s.True(servicePeriod.From.Equal(*fetched.State.AdvanceAfter))
 	})
 
 	s.Run("#3 invoice pending lines fully settled by credits", func() {

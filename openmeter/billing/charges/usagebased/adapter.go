@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
@@ -50,10 +51,11 @@ type CreateIntentAdapterInput struct {
 	Intent      OverridableIntent
 	Annotations models.Annotations `json:"annotations"`
 
-	FeatureID         string
-	RatingEngine      RatingEngine
-	ResolvedCostBasis *costbasis.State
-	ValidationIssues  billing.ValidationIssues
+	FeatureID           string
+	RatingEngine        RatingEngine
+	ResolvedCostBasis   *costbasis.State
+	ValidationIssues    billing.ValidationIssues
+	InitialAdvanceAfter *time.Time
 }
 
 func (i CreateIntentAdapterInput) Validate() error {

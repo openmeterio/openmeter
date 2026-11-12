@@ -330,7 +330,7 @@ func (s *service) create(ctx context.Context, input charges.CreateInput) (*charg
 // a separate transaction is used to make sure that we persist the creation state even if the advancing fails (as
 // a worker will try to advance the charges again).
 func (s *service) autoAdvanceCreatedCharges(ctx context.Context, created charges.Charges) (charges.Charges, error) {
-	// Collect unique customer IDs that have newly created credit-only charges.
+	// Collect unique customer IDs that have newly created charges due for advancement.
 	customerIDs := make([]customer.CustomerID, 0)
 	for _, c := range created {
 		switch c.Type() {
@@ -338,10 +338,6 @@ func (s *service) autoAdvanceCreatedCharges(ctx context.Context, created charges
 			ub, err := c.AsUsageBasedCharge()
 			if err != nil {
 				return nil, err
-			}
-
-			if ub.Intent.GetSettlementMode() != productcatalog.CreditOnlySettlementMode {
-				continue
 			}
 
 			if !isAdvanceDue(ub.State.AdvanceAfter) {

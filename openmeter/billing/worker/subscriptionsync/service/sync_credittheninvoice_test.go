@@ -853,7 +853,8 @@ func (s *CreditThenInvoiceTestSuite) TestSubscriptionHappyPath() {
 			ItemID:         discountedPhase.ItemsByKey[s.APIRequestsTotalFeature.Key][0].SubscriptionItem.ID,
 		})
 		s.Nil(charge.State.CurrentRealizationRunID)
-		s.Nil(charge.State.AdvanceAfter)
+		s.Require().NotNil(charge.State.AdvanceAfter)
+		s.True(expectedPeriod.From.Equal(*charge.State.AdvanceAfter))
 
 		s.Equal(billing.LineEngineTypeChargeUsageBased, line.Engine)
 		s.Require().NotNil(line.ChargeID)
@@ -880,7 +881,8 @@ func (s *CreditThenInvoiceTestSuite) TestSubscriptionHappyPath() {
 		s.Equal(charge.ID, reconciledCharge.ID)
 		s.Equal(usagebased.StatusCreated, reconciledCharge.Status)
 		s.Nil(reconciledCharge.State.CurrentRealizationRunID)
-		s.Nil(reconciledCharge.State.AdvanceAfter)
+		s.Require().NotNil(reconciledCharge.State.AdvanceAfter)
+		s.True(expectedPeriod.From.Equal(*reconciledCharge.State.AdvanceAfter))
 		s.Equal(chargeUpdatedAt, reconciledCharge.UpdatedAt)
 		s.assertCreditThenInvoiceBalances(startBalances)
 	})
@@ -3791,7 +3793,7 @@ func (s *CreditThenInvoiceTestSuite) TestAlignedSubscriptionProgressiveBillingCa
 				ItemKey:  s.APIRequestsTotalFeature.Key,
 			},
 			Type:   chargesmeta.ChargeTypeUsageBased,
-			Status: string(usagebased.StatusCreated),
+			Status: string(usagebased.StatusActive),
 			Price:  testPrice,
 			Periods: []timeutil.ClosedPeriod{
 				{
@@ -4434,7 +4436,7 @@ func (s *CreditThenInvoiceTestSuite) TestGatheringManualCreateSync() {
 				ItemKey:  s.APIRequestsTotalFeature.Key,
 			},
 			Type:   chargesmeta.ChargeTypeUsageBased,
-			Status: string(usagebased.StatusCreated),
+			Status: string(usagebased.StatusActive),
 			Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount: alpacadecimal.NewFromFloat(10),
 			}),
@@ -6673,7 +6675,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedGatheringUpdate() {
 				PeriodMax: 0,
 			},
 			Type:   chargesmeta.ChargeTypeUsageBased,
-			Status: string(usagebased.StatusCreated),
+			Status: string(usagebased.StatusActive),
 			Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount: alpacadecimal.NewFromFloat(10),
 			}),
@@ -6876,10 +6878,10 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedGatheringUpdateDraftInvoice()
 				ItemKey:   s.APIRequestsTotalFeature.Key,
 				Version:   0,
 				PeriodMin: 0,
-				PeriodMax: 1,
+				PeriodMax: 0,
 			},
 			Type:   chargesmeta.ChargeTypeUsageBased,
-			Status: string(usagebased.StatusCreated),
+			Status: string(usagebased.StatusActive),
 			Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount: alpacadecimal.NewFromFloat(10),
 			}),
@@ -6888,14 +6890,9 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedGatheringUpdateDraftInvoice()
 					From: s.mustParseTime("2024-01-01T00:00:00Z"),
 					To:   s.mustParseTime("2024-02-01T00:00:00Z"),
 				},
-				{
-					From: s.mustParseTime("2024-02-01T00:00:00Z"),
-					To:   s.mustParseTime("2024-03-01T00:00:00Z"),
-				},
 			},
 			InvoiceAt: []*time.Time{
 				lo.ToPtr(s.mustParseTime("2024-02-01T00:00:00Z")),
-				lo.ToPtr(s.mustParseTime("2024-03-01T00:00:00Z")),
 			},
 			GatheringLines: []expectedChargeGatheringLine{
 				{
@@ -6908,6 +6905,31 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedGatheringUpdateDraftInvoice()
 					},
 					InvoiceAt: lo.ToPtr(s.mustParseTime("2024-02-01T00:00:00Z")),
 				},
+			},
+		},
+		{
+			Matcher: recurringLineMatcher{
+				PhaseKey:  "first-phase",
+				ItemKey:   s.APIRequestsTotalFeature.Key,
+				Version:   0,
+				PeriodMin: 1,
+				PeriodMax: 1,
+			},
+			Type:   chargesmeta.ChargeTypeUsageBased,
+			Status: string(usagebased.StatusCreated),
+			Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+				Amount: alpacadecimal.NewFromFloat(10),
+			}),
+			Periods: []timeutil.ClosedPeriod{
+				{
+					From: s.mustParseTime("2024-02-01T00:00:00Z"),
+					To:   s.mustParseTime("2024-03-01T00:00:00Z"),
+				},
+			},
+			InvoiceAt: []*time.Time{
+				lo.ToPtr(s.mustParseTime("2024-03-01T00:00:00Z")),
+			},
+			GatheringLines: []expectedChargeGatheringLine{
 				{
 					LineMatcher: recurringLineMatcher{
 						PhaseKey:  "first-phase",
@@ -7078,7 +7100,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedGatheringUpdateDraftInvoice()
 				PeriodMax: 0,
 			},
 			Type:   chargesmeta.ChargeTypeUsageBased,
-			Status: string(usagebased.StatusCreated),
+			Status: string(usagebased.StatusActive),
 			Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount: alpacadecimal.NewFromFloat(5),
 			}),
@@ -7104,7 +7126,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedGatheringUpdateDraftInvoice()
 				PeriodMax: 1,
 			},
 			Type:   chargesmeta.ChargeTypeUsageBased,
-			Status: string(usagebased.StatusCreated),
+			Status: string(usagebased.StatusActive),
 			Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount: alpacadecimal.NewFromFloat(5),
 			}),
@@ -7283,10 +7305,10 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedGatheringUpdateIssuedInvoice(
 				ItemKey:   s.APIRequestsTotalFeature.Key,
 				Version:   0,
 				PeriodMin: 0,
-				PeriodMax: 1,
+				PeriodMax: 0,
 			},
 			Type:   chargesmeta.ChargeTypeUsageBased,
-			Status: string(usagebased.StatusCreated),
+			Status: string(usagebased.StatusActive),
 			Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount: alpacadecimal.NewFromFloat(10),
 			}),
@@ -7295,14 +7317,9 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedGatheringUpdateIssuedInvoice(
 					From: s.mustParseTime("2024-01-01T00:00:00Z"),
 					To:   s.mustParseTime("2024-02-01T00:00:00Z"),
 				},
-				{
-					From: s.mustParseTime("2024-02-01T00:00:00Z"),
-					To:   s.mustParseTime("2024-03-01T00:00:00Z"),
-				},
 			},
 			InvoiceAt: []*time.Time{
 				lo.ToPtr(s.mustParseTime("2024-02-01T00:00:00Z")),
-				lo.ToPtr(s.mustParseTime("2024-03-01T00:00:00Z")),
 			},
 			GatheringLines: []expectedChargeGatheringLine{
 				{
@@ -7315,6 +7332,31 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedGatheringUpdateIssuedInvoice(
 					},
 					InvoiceAt: lo.ToPtr(s.mustParseTime("2024-02-01T00:00:00Z")),
 				},
+			},
+		},
+		{
+			Matcher: recurringLineMatcher{
+				PhaseKey:  "first-phase",
+				ItemKey:   s.APIRequestsTotalFeature.Key,
+				Version:   0,
+				PeriodMin: 1,
+				PeriodMax: 1,
+			},
+			Type:   chargesmeta.ChargeTypeUsageBased,
+			Status: string(usagebased.StatusCreated),
+			Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+				Amount: alpacadecimal.NewFromFloat(10),
+			}),
+			Periods: []timeutil.ClosedPeriod{
+				{
+					From: s.mustParseTime("2024-02-01T00:00:00Z"),
+					To:   s.mustParseTime("2024-03-01T00:00:00Z"),
+				},
+			},
+			InvoiceAt: []*time.Time{
+				lo.ToPtr(s.mustParseTime("2024-03-01T00:00:00Z")),
+			},
+			GatheringLines: []expectedChargeGatheringLine{
 				{
 					LineMatcher: recurringLineMatcher{
 						PhaseKey:  "first-phase",
@@ -7473,7 +7515,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedGatheringUpdateIssuedInvoice(
 				PeriodMax: 0,
 			},
 			Type:   chargesmeta.ChargeTypeUsageBased,
-			Status: string(usagebased.StatusCreated),
+			Status: string(usagebased.StatusActive),
 			Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount: alpacadecimal.NewFromFloat(5),
 			}),
@@ -7499,7 +7541,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedGatheringUpdateIssuedInvoice(
 				PeriodMax: 1,
 			},
 			Type:   chargesmeta.ChargeTypeUsageBased,
-			Status: string(usagebased.StatusCreated),
+			Status: string(usagebased.StatusActive),
 			Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount: alpacadecimal.NewFromFloat(5),
 			}),
@@ -7629,7 +7671,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedUpdateWithLineSplits() {
 				PeriodMax: 0,
 			},
 			Type:   chargesmeta.ChargeTypeUsageBased,
-			Status: string(usagebased.StatusCreated),
+			Status: string(usagebased.StatusActive),
 			Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount: alpacadecimal.NewFromFloat(10),
 			}),
@@ -8002,7 +8044,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedUpdateWithLineSplits() {
 				PeriodMax: 0,
 			},
 			Type:   chargesmeta.ChargeTypeUsageBased,
-			Status: string(usagebased.StatusCreated),
+			Status: string(usagebased.StatusActive),
 			Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount: alpacadecimal.NewFromFloat(5),
 			}),
@@ -9369,7 +9411,7 @@ func (s *CreditThenInvoiceTestSuite) TestDiscountSynchronization() {
 					ItemKey:  s.APIRequestsTotalFeature.Key,
 				},
 				Type:   chargesmeta.ChargeTypeUsageBased,
-				Status: string(usagebased.StatusCreated),
+				Status: string(usagebased.StatusActive),
 				Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 					Amount: alpacadecimal.NewFromFloat(10),
 				}),
@@ -9613,7 +9655,7 @@ func (s *CreditThenInvoiceTestSuite) TestDiscountSynchronizationWithPartialDisco
 					ItemKey:  s.APIRequestsTotalFeature.Key,
 				},
 				Type:   chargesmeta.ChargeTypeUsageBased,
-				Status: string(usagebased.StatusCreated),
+				Status: string(usagebased.StatusActive),
 				Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 					Amount: alpacadecimal.NewFromFloat(10),
 				}),
@@ -9837,7 +9879,7 @@ func (s *CreditThenInvoiceTestSuite) TestAlignedSubscriptionProratingBehavior() 
 				ItemKey:  "in-advance",
 			},
 			Type:   chargesmeta.ChargeTypeFlatFee,
-			Status: string(flatfee.StatusCreated),
+			Status: string(flatfee.StatusActive),
 			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 				Amount:      alpacadecimal.NewFromFloat(5),
 				PaymentTerm: productcatalog.InAdvancePaymentTerm,
@@ -9865,7 +9907,7 @@ func (s *CreditThenInvoiceTestSuite) TestAlignedSubscriptionProratingBehavior() 
 				ItemKey:  "in-arrears",
 			},
 			Type:   chargesmeta.ChargeTypeFlatFee,
-			Status: string(flatfee.StatusCreated),
+			Status: string(flatfee.StatusActive),
 			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 				Amount:      alpacadecimal.NewFromFloat(5),
 				PaymentTerm: productcatalog.InArrearsPaymentTerm,
@@ -9893,7 +9935,7 @@ func (s *CreditThenInvoiceTestSuite) TestAlignedSubscriptionProratingBehavior() 
 				ItemKey:  "api-requests-total",
 			},
 			Type:   chargesmeta.ChargeTypeUsageBased,
-			Status: string(usagebased.StatusCreated),
+			Status: string(usagebased.StatusActive),
 			Price:  productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromFloat(10)}),
 			Periods: []timeutil.ClosedPeriod{
 				{
@@ -9919,7 +9961,7 @@ func (s *CreditThenInvoiceTestSuite) TestAlignedSubscriptionProratingBehavior() 
 				PeriodMax: 0,
 			},
 			Type:   chargesmeta.ChargeTypeFlatFee,
-			Status: string(flatfee.StatusCreated),
+			Status: string(flatfee.StatusActive),
 			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 				Amount:      alpacadecimal.NewFromFloat(5),
 				PaymentTerm: productcatalog.InAdvancePaymentTerm,
@@ -9949,7 +9991,7 @@ func (s *CreditThenInvoiceTestSuite) TestAlignedSubscriptionProratingBehavior() 
 				PeriodMax: 1,
 			},
 			Type:   chargesmeta.ChargeTypeFlatFee,
-			Status: string(flatfee.StatusCreated),
+			Status: string(flatfee.StatusActive),
 			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 				Amount:      alpacadecimal.NewFromFloat(5),
 				PaymentTerm: productcatalog.InAdvancePaymentTerm,
@@ -9975,7 +10017,7 @@ func (s *CreditThenInvoiceTestSuite) TestAlignedSubscriptionProratingBehavior() 
 				PeriodMax: 0,
 			},
 			Type:   chargesmeta.ChargeTypeFlatFee,
-			Status: string(flatfee.StatusCreated),
+			Status: string(flatfee.StatusActive),
 			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 				Amount:      alpacadecimal.NewFromFloat(5),
 				PaymentTerm: productcatalog.InArrearsPaymentTerm,
@@ -10005,7 +10047,7 @@ func (s *CreditThenInvoiceTestSuite) TestAlignedSubscriptionProratingBehavior() 
 				PeriodMax: 1,
 			},
 			Type:   chargesmeta.ChargeTypeFlatFee,
-			Status: string(flatfee.StatusCreated),
+			Status: string(flatfee.StatusActive),
 			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 				Amount:      alpacadecimal.NewFromFloat(5),
 				PaymentTerm: productcatalog.InArrearsPaymentTerm,
@@ -10032,7 +10074,7 @@ func (s *CreditThenInvoiceTestSuite) TestAlignedSubscriptionProratingBehavior() 
 			},
 			// UBP does not need prorating on price due to period being shorter
 			Type:   chargesmeta.ChargeTypeUsageBased,
-			Status: string(usagebased.StatusCreated),
+			Status: string(usagebased.StatusActive),
 			Price:  productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromFloat(10.0)}),
 			Periods: []timeutil.ClosedPeriod{
 				{
@@ -10318,7 +10360,7 @@ func (s *CreditThenInvoiceTestSuite) TestDeletedCustomerHandling() {
 				ItemKey:  s.APIRequestsTotalFeature.Key,
 			},
 			Type:   chargesmeta.ChargeTypeUsageBased,
-			Status: string(usagebased.StatusCreated),
+			Status: string(usagebased.StatusActive),
 			Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount: alpacadecimal.NewFromFloat(5),
 			}),

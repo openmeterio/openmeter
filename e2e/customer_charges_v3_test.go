@@ -225,7 +225,7 @@ func TestV3CustomerChargeUsageBasedRealizations(t *testing.T) {
 	t.Run("create response reflects the charge and carries the outstanding realization", func(t *testing.T) {
 		// then:
 		// - charge-level fields reflect what was sent
-		assert.Equal(t, v3sdk.ChargeStatusCreated, usageBased.Status)
+		assert.Equal(t, v3sdk.ChargeStatusActive, usageBased.Status)
 		customerRef, err := usageBased.Customer.AsCustomerReference()
 		require.NoError(t, err)
 		assert.Equal(t, customer.ID, customerRef.ID)

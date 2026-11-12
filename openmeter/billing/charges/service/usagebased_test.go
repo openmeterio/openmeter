@@ -21,6 +21,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -69,6 +70,18 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCustomCurrencyCreditThenInvoi
 	costBasisIntent := costbasis.NewIntent(costbasis.DynamicIntent{
 		FiatCurrency: fiatCurrency,
 	})
+	clock.FreezeTime(servicePeriod.From.Add(-time.Hour))
+	defer clock.UnFreeze()
+
+	_, err = s.CurrencyService.CreateCostBasis(ctx, currencies.CreateCostBasisInput{
+		Namespace:  ns,
+		CurrencyID: customCurrency.ID,
+		FiatCode:   USD,
+		Rate:       alpacadecimal.NewFromFloat(0.25),
+	})
+	s.Require().NoError(err)
+
+	clock.FreezeTime(servicePeriod.From)
 
 	var charge usagebased.Charge
 

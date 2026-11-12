@@ -9,6 +9,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -93,12 +94,13 @@ func (s *service) Create(ctx context.Context, input usagebased.CreateInput) ([]u
 			}
 
 			return usagebased.CreateIntentAdapterInput{
-				Intent:            chargeIntent.AsOverridableIntent(),
-				Annotations:       chargeIntent.Annotations,
-				FeatureID:         featureID,
-				RatingEngine:      s.rater.GetPreferredRatingEngineFor(chargeIntent),
-				ResolvedCostBasis: resolvedCostBasis,
-				ValidationIssues:  validationIssues,
+				Intent:              chargeIntent.AsOverridableIntent(),
+				Annotations:         chargeIntent.Annotations,
+				FeatureID:           featureID,
+				RatingEngine:        s.rater.GetPreferredRatingEngineFor(chargeIntent),
+				ResolvedCostBasis:   resolvedCostBasis,
+				ValidationIssues:    validationIssues,
+				InitialAdvanceAfter: initialAdvanceAfter(chargeIntent),
 			}, nil
 		})
 		if err != nil {
@@ -124,6 +126,17 @@ func (s *service) Create(ctx context.Context, input usagebased.CreateInput) ([]u
 			return gatheringLineFromUsageBasedChargeForPeriod(charge, charge.Intent.GetEffectiveServicePeriod(), charge.Intent.GetEffectiveInvoiceAt())
 		})
 	})
+}
+
+// Nothing else activates a credit_then_invoice charge at its service period
+// start: the advance job only visits customers with a scheduled advance_after.
+// credit_only charges keep nil and are activated by create-time auto-advance.
+func initialAdvanceAfter(intent usagebased.Intent) *time.Time {
+	if intent.SettlementMode != productcatalog.CreditThenInvoiceSettlementMode {
+		return nil
+	}
+
+	return lo.ToPtr(meta.NormalizeTimestamp(intent.ServicePeriod.From))
 }
 
 func gatheringLineFromUsageBasedChargeForPeriod(charge usagebased.Charge, servicePeriod timeutil.ClosedPeriod, invoiceAt time.Time) (usagebased.ChargeWithGatheringLine, error) {
