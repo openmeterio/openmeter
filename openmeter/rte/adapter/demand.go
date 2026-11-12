@@ -3,10 +3,12 @@ package adapter
 import (
 	"context"
 	stdsql "database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
 
+	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
 	"github.com/lib/pq"
 
@@ -32,13 +34,18 @@ func NewDemandRepository(config Config) (rte.DemandRepository, error) {
 	return &demandRepository{adapter: a}, nil
 }
 
-func demandIdentity(target rte.CalculationTarget) (predicate.RTEDemand, error) {
+func demandIdentity(target rte.CalculationTarget) (rte.TargetIdentity, predicate.RTEDemand, error) {
 	identity, err := target.Identity()
 	if err != nil {
-		return nil, err
+		return rte.TargetIdentity{}, nil, err
 	}
 
-	return demanddb.And(demanddb.NamespaceEQ(identity.Namespace), demanddb.KindEQ(string(target.Kind)), demanddb.KeyHashEQ(identity.KeyHash), demanddb.DeletedAtIsNil()), nil
+	return identity, demanddb.And(
+		demanddb.NamespaceEQ(identity.Namespace),
+		demanddb.KindEQ(string(target.Kind)),
+		demanddb.KeyHashEQ(identity.KeyHash),
+		demanddb.DeletedAtIsNil(),
+	), nil
 }
 
 func activeDemand(at time.Time) predicate.RTEDemand {
@@ -90,22 +97,38 @@ func (r *demandRepository) ensure(ctx context.Context, input ensureDemandInput) 
 		return err
 	}
 
-	identity, err := input.Target.Identity()
+	identity, condition, err := demandIdentity(input.Target)
 	if err != nil {
 		return err
 	}
 
-	condition, err := demandIdentity(input.Target)
+	key, err := input.Target.DecodeKey()
 	if err != nil {
 		return err
+	}
+
+	encodedKey, err := json.Marshal(key)
+	if err != nil {
+		return fmt.Errorf("encode demand key: %w", err)
 	}
 
 	return transaction.RunWithNoValue(ctx, r, func(ctx context.Context) error {
 		return entutils.TransactingRepoWithNoValue(ctx, r.adapter, func(ctx context.Context, a *adapter) error {
 			now := clock.Now()
 			err := a.db.RTEDemand.Create().SetNamespace(identity.Namespace).SetKind(string(input.Target.Kind)).SetOwnerID(identity.OwnerID).
-				SetKeyHash(identity.KeyHash).SetKey(input.Target.Key).SetNextAttemptAt(now).
-				OnConflict(sql.ConflictColumns(demanddb.FieldNamespace, demanddb.FieldKind, demanddb.FieldKeyHash), sql.ConflictWhere(sql.IsNull(demanddb.FieldDeletedAt))).DoNothing().Exec(ctx)
+				SetKeyHash(identity.KeyHash).SetKey(encodedKey).SetNextAttemptAt(now).
+				OnConflict(
+					sql.ConflictColumns(demanddb.FieldNamespace, demanddb.FieldKind, demanddb.FieldKeyHash),
+					sql.ConflictWhere(sql.IsNull(demanddb.FieldDeletedAt)),
+					sql.UpdateWhere(sql.ExprP("rte_demands.key <> excluded.key")),
+				).
+				Update(func(u *db.RTEDemandUpsert) {
+					// Earlier registrations stored the caller's raw JSON. Repair its field
+					// names and recalculate once for invalidations routing may have missed.
+					u.SetExcluded(demanddb.FieldKey)
+					markDemandDirty(u.UpdateBuilder, now)
+				}).
+				Exec(ctx)
 			if err != nil && !errors.Is(err, stdsql.ErrNoRows) {
 				return fmt.Errorf("create demand: %w", err)
 			}
@@ -151,7 +174,7 @@ func (r *demandRepository) ensure(ctx context.Context, input ensureDemandInput) 
 }
 
 func (r *demandRepository) Deactivate(ctx context.Context, target rte.CalculationTarget) error {
-	condition, err := demandIdentity(target)
+	_, condition, err := demandIdentity(target)
 	if err != nil {
 		return err
 	}
@@ -217,11 +240,34 @@ func (r *demandRepository) Invalidate(ctx context.Context, input rte.InvalidateI
 			}
 
 			now := clock.Now()
-			count, err := a.db.RTEDemand.Update().Where(activeDemand(now), demanddb.Or(selectors...)).AddDirtyVersion(1).SetNextAttemptAt(now).Save(ctx)
+			builder := sql.Dialect(dialect.Postgres)
+			matching := builder.Select().From(builder.Table(demanddb.Table))
+			demanddb.And(activeDemand(now), demanddb.Or(selectors...))(matching)
 
-			return rte.InvalidationResult{Matched: count}, err
+			update := builder.Update(demanddb.Table).FromSelect(matching)
+			markDemandDirty(update, now)
+			query, args := update.Query()
+			result, err := a.db.ExecContext(ctx, query, args...)
+			if err != nil {
+				return rte.InvalidationResult{}, err
+			}
+
+			matched, err := result.RowsAffected()
+
+			return rte.InvalidationResult{Matched: int(matched)}, err
 		})
 	})
+}
+
+// A new fact wakes healthy keys ahead of their next periodic refresh. Failed
+// keys accumulate the same work while keeping their existing retry deadline.
+func markDemandDirty(update *sql.UpdateBuilder, now time.Time) {
+	update.Add(demanddb.FieldDirtyVersion, 1).
+		Set(demanddb.FieldUpdatedAt, now).
+		Set(demanddb.FieldNextAttemptAt, sql.ExprFunc(func(b *sql.Builder) {
+			b.WriteString("CASE WHEN rte_demands.attempts = 0 THEN ").Arg(now).
+				WriteString(" ELSE rte_demands.next_attempt_at END")
+		}))
 }
 
 func (r *demandRepository) Process(ctx context.Context, input rte.ProcessDemandInput, calculate func(context.Context, rte.CalculationTarget) error) (rte.DemandWorkResult, error) {
@@ -251,7 +297,7 @@ func (r *demandRepository) Process(ctx context.Context, input rte.ProcessDemandI
 				// use the partial ready-work index too.
 				query.Where(func(s *sql.Selector) { s.Where(sql.IsTrue(s.C(demanddb.FieldPushEnabled))) }, demanddb.NextAttemptAtLTE(now)).ForUpdate(sql.WithLockAction(sql.SkipLocked))
 			} else {
-				condition, err := demandIdentity(*input.Target)
+				_, condition, err := demandIdentity(*input.Target)
 				if err != nil {
 					return rte.DemandWorkResult{}, err
 				}

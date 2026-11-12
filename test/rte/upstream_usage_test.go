@@ -1,6 +1,7 @@
 package rte_test
 
 import (
+	"bytes"
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
@@ -87,6 +88,9 @@ func (s *RTEIntegrationSuite) TestUpstreamUsageTargetsActiveDemand() {
 	for _, key := range []rte.Key{all, featureKey, unrestricted, otherFeature, otherCurrency, otherCustomer, meteredKey} {
 		target, err := rte.NewCalculationRequestedEvent(key)
 		s.Require().NoError(err)
+		// JSON decoding accepts this spelling. The SQL selectors must still
+		// distinguish currency and feature scope after registration.
+		target.Key = bytes.Replace(target.Key, []byte(`"currency":`), []byte(`"Currency":`), 1)
 		s.Require().NoError(repository.Activate(ctx, rte.ActivateDemandInput{Target: target.CalculationTarget}))
 		defer func() {
 			s.Require().NoError(repository.Deactivate(ctx, target.CalculationTarget))

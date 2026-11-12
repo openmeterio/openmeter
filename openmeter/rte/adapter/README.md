@@ -18,9 +18,10 @@ flag to decide what to publish. Comparing clocks in different replicas requires 
 clocks.
 
 The demand key hash comes from the decoded key dimensions. JSON field order or formatting cannot
-create a second demand row for the same key. The decoded key, stored alongside the hash, lets a
-worker dispatch work after a restart. Source selectors use the owner to narrow updates and the
-hash to select an exact balance.
+create a second demand row for the same key. Registration stores the typed key's JSON field
+names, so PostgreSQL can match currency and feature scope even when a caller used different
+casing. Registering a key again repairs a previously misencoded row and marks it dirty to
+cover changes it may have missed. The worker decodes the stored key after a restart.
 
 The repository keeps a demand row locked through the callback, including external usage reads.
 Background workers skip locked keys. An explicit pull for the same target waits for the owner.
