@@ -14,13 +14,15 @@
     "api/client/javascript/package.json"
   ],
   "minimumReleaseAge": "7 days",
+  "prConcurrentLimit": 10,
   "prHourlyLimit": 0,
   "semanticCommits": "enabled",
   "semanticCommitType": "chore",
   "semanticCommitScope": "deps",
   "dependencyDashboard": false,
   "vulnerabilityAlerts": {
-    "enabled": true
+    "enabled": true,
+    "prConcurrentLimit": 10
   },
   "gomod": {
     "postUpgradeTasks": {
@@ -212,8 +214,19 @@
     ],
     "packageRules": [
       {
-        "description": "Only propose JavaScript SDK updates for dependencies with a GitHub vulnerability alert.",
-        "matchPackageNames": ["**"],
+        "matchDepTypes": [
+          "dependencies",
+          "optionalDependencies",
+          "peerDependencies"
+        ],
+        "groupName": "JavaScript SDK production dependencies"
+      },
+      {
+        "matchDepTypes": ["devDependencies"],
+        "groupName": "JavaScript SDK development dependencies"
+      },
+      {
+        "matchPackageNames": ["eslint", "eslint-formatter-pretty"],
         "enabled": false
       }
     ]
