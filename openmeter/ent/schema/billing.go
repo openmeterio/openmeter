@@ -151,6 +151,10 @@ func (BillingWorkflowConfig) Fields() []ent.Field {
 			GoType(billing.SubscriptionEndProrationMode("")).
 			Default(string(billing.SubscriptionEndProrationModeBillActualPeriod)),
 
+		field.Enum("empty_invoice_mode").
+			GoType(billing.EmptyInvoiceMode("")).
+			Default(string(billing.EmptyInvoiceModeCreate)),
+
 		// TODO: remove this legacy JSON field after all workflow-config read and write
 		// paths use the normalized tax columns as the sole representation.
 		field.JSON("invoice_default_tax_settings", productcatalog.TaxConfig{}).

@@ -110,6 +110,7 @@ func (a *adapter) createWorkflowConfig(ctx context.Context, ns string, input bil
 		SetInvoiceCollectionMethod(input.Payment.CollectionMethod).
 		SetInvoiceProgressiveBilling(input.Invoicing.ProgressiveBilling).
 		SetSubscriptionEndProrationMode(input.Invoicing.SubscriptionEndProrationMode).
+		SetEmptyInvoiceMode(input.Invoicing.EmptyInvoiceMode).
 		SetNillableInvoiceDefaultTaxSettings(input.Invoicing.DefaultTaxConfig).
 		SetTaxEnabled(input.Tax.Enabled).
 		SetTaxEnforced(input.Tax.Enforced)
@@ -445,6 +446,7 @@ func (a *adapter) updateWorkflowConfig(ctx context.Context, ns string, id string
 		SetInvoiceCollectionMethod(input.Payment.CollectionMethod).
 		SetInvoiceProgressiveBilling(input.Invoicing.ProgressiveBilling).
 		SetSubscriptionEndProrationMode(input.Invoicing.SubscriptionEndProrationMode).
+		SetEmptyInvoiceMode(input.Invoicing.EmptyInvoiceMode).
 		SetOrClearInvoiceDefaultTaxSettings(input.Invoicing.DefaultTaxConfig).
 		SetTaxEnabled(input.Tax.Enabled).
 		SetTaxEnforced(input.Tax.Enforced)
@@ -570,6 +572,7 @@ func (a *adapter) mapWorkflowConfigFromDB(ctx context.Context, namespace string,
 		DueAfter:                     dueAfter,
 		ProgressiveBilling:           dbWC.InvoiceProgressiveBilling,
 		SubscriptionEndProrationMode: dbWC.SubscriptionEndProrationMode,
+		EmptyInvoiceMode:             dbWC.EmptyInvoiceMode,
 		DefaultTaxConfig:             lo.EmptyableToPtr(dbWC.InvoiceDefaultTaxSettings),
 	}
 

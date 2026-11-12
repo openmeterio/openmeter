@@ -167,6 +167,20 @@ func (_c *BillingWorkflowConfigCreate) SetNillableSubscriptionEndProrationMode(v
 	return _c
 }
 
+// SetEmptyInvoiceMode sets the "empty_invoice_mode" field.
+func (_c *BillingWorkflowConfigCreate) SetEmptyInvoiceMode(v billing.EmptyInvoiceMode) *BillingWorkflowConfigCreate {
+	_c.mutation.SetEmptyInvoiceMode(v)
+	return _c
+}
+
+// SetNillableEmptyInvoiceMode sets the "empty_invoice_mode" field if the given value is not nil.
+func (_c *BillingWorkflowConfigCreate) SetNillableEmptyInvoiceMode(v *billing.EmptyInvoiceMode) *BillingWorkflowConfigCreate {
+	if v != nil {
+		_c.SetEmptyInvoiceMode(*v)
+	}
+	return _c
+}
+
 // SetInvoiceDefaultTaxSettings sets the "invoice_default_tax_settings" field.
 func (_c *BillingWorkflowConfigCreate) SetInvoiceDefaultTaxSettings(v productcatalog.TaxConfig) *BillingWorkflowConfigCreate {
 	_c.mutation.SetInvoiceDefaultTaxSettings(v)
@@ -313,6 +327,10 @@ func (_c *BillingWorkflowConfigCreate) defaults() {
 		v := billingworkflowconfig.DefaultSubscriptionEndProrationMode
 		_c.mutation.SetSubscriptionEndProrationMode(v)
 	}
+	if _, ok := _c.mutation.EmptyInvoiceMode(); !ok {
+		v := billingworkflowconfig.DefaultEmptyInvoiceMode
+		_c.mutation.SetEmptyInvoiceMode(v)
+	}
 	if _, ok := _c.mutation.TaxEnabled(); !ok {
 		v := billingworkflowconfig.DefaultTaxEnabled
 		_c.mutation.SetTaxEnabled(v)
@@ -390,6 +408,14 @@ func (_c *BillingWorkflowConfigCreate) check() error {
 	if v, ok := _c.mutation.SubscriptionEndProrationMode(); ok {
 		if err := billingworkflowconfig.SubscriptionEndProrationModeValidator(v); err != nil {
 			return &ValidationError{Name: "subscription_end_proration_mode", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.subscription_end_proration_mode": %w`, err)}
+		}
+	}
+	if _, ok := _c.mutation.EmptyInvoiceMode(); !ok {
+		return &ValidationError{Name: "empty_invoice_mode", err: errors.New(`db: missing required field "BillingWorkflowConfig.empty_invoice_mode"`)}
+	}
+	if v, ok := _c.mutation.EmptyInvoiceMode(); ok {
+		if err := billingworkflowconfig.EmptyInvoiceModeValidator(v); err != nil {
+			return &ValidationError{Name: "empty_invoice_mode", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.empty_invoice_mode": %w`, err)}
 		}
 	}
 	if v, ok := _c.mutation.InvoiceDefaultTaxSettings(); ok {
@@ -494,6 +520,10 @@ func (_c *BillingWorkflowConfigCreate) createSpec() (*BillingWorkflowConfig, *sq
 	if value, ok := _c.mutation.SubscriptionEndProrationMode(); ok {
 		_spec.SetField(billingworkflowconfig.FieldSubscriptionEndProrationMode, field.TypeEnum, value)
 		_node.SubscriptionEndProrationMode = value
+	}
+	if value, ok := _c.mutation.EmptyInvoiceMode(); ok {
+		_spec.SetField(billingworkflowconfig.FieldEmptyInvoiceMode, field.TypeEnum, value)
+		_node.EmptyInvoiceMode = value
 	}
 	if value, ok := _c.mutation.InvoiceDefaultTaxSettings(); ok {
 		_spec.SetField(billingworkflowconfig.FieldInvoiceDefaultTaxSettings, field.TypeJSON, value)
@@ -785,6 +815,18 @@ func (u *BillingWorkflowConfigUpsert) SetSubscriptionEndProrationMode(v billing.
 // UpdateSubscriptionEndProrationMode sets the "subscription_end_proration_mode" field to the value that was provided on create.
 func (u *BillingWorkflowConfigUpsert) UpdateSubscriptionEndProrationMode() *BillingWorkflowConfigUpsert {
 	u.SetExcluded(billingworkflowconfig.FieldSubscriptionEndProrationMode)
+	return u
+}
+
+// SetEmptyInvoiceMode sets the "empty_invoice_mode" field.
+func (u *BillingWorkflowConfigUpsert) SetEmptyInvoiceMode(v billing.EmptyInvoiceMode) *BillingWorkflowConfigUpsert {
+	u.Set(billingworkflowconfig.FieldEmptyInvoiceMode, v)
+	return u
+}
+
+// UpdateEmptyInvoiceMode sets the "empty_invoice_mode" field to the value that was provided on create.
+func (u *BillingWorkflowConfigUpsert) UpdateEmptyInvoiceMode() *BillingWorkflowConfigUpsert {
+	u.SetExcluded(billingworkflowconfig.FieldEmptyInvoiceMode)
 	return u
 }
 
@@ -1091,6 +1133,20 @@ func (u *BillingWorkflowConfigUpsertOne) SetSubscriptionEndProrationMode(v billi
 func (u *BillingWorkflowConfigUpsertOne) UpdateSubscriptionEndProrationMode() *BillingWorkflowConfigUpsertOne {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
 		s.UpdateSubscriptionEndProrationMode()
+	})
+}
+
+// SetEmptyInvoiceMode sets the "empty_invoice_mode" field.
+func (u *BillingWorkflowConfigUpsertOne) SetEmptyInvoiceMode(v billing.EmptyInvoiceMode) *BillingWorkflowConfigUpsertOne {
+	return u.Update(func(s *BillingWorkflowConfigUpsert) {
+		s.SetEmptyInvoiceMode(v)
+	})
+}
+
+// UpdateEmptyInvoiceMode sets the "empty_invoice_mode" field to the value that was provided on create.
+func (u *BillingWorkflowConfigUpsertOne) UpdateEmptyInvoiceMode() *BillingWorkflowConfigUpsertOne {
+	return u.Update(func(s *BillingWorkflowConfigUpsert) {
+		s.UpdateEmptyInvoiceMode()
 	})
 }
 
@@ -1571,6 +1627,20 @@ func (u *BillingWorkflowConfigUpsertBulk) SetSubscriptionEndProrationMode(v bill
 func (u *BillingWorkflowConfigUpsertBulk) UpdateSubscriptionEndProrationMode() *BillingWorkflowConfigUpsertBulk {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
 		s.UpdateSubscriptionEndProrationMode()
+	})
+}
+
+// SetEmptyInvoiceMode sets the "empty_invoice_mode" field.
+func (u *BillingWorkflowConfigUpsertBulk) SetEmptyInvoiceMode(v billing.EmptyInvoiceMode) *BillingWorkflowConfigUpsertBulk {
+	return u.Update(func(s *BillingWorkflowConfigUpsert) {
+		s.SetEmptyInvoiceMode(v)
+	})
+}
+
+// UpdateEmptyInvoiceMode sets the "empty_invoice_mode" field to the value that was provided on create.
+func (u *BillingWorkflowConfigUpsertBulk) UpdateEmptyInvoiceMode() *BillingWorkflowConfigUpsertBulk {
+	return u.Update(func(s *BillingWorkflowConfigUpsert) {
+		s.UpdateEmptyInvoiceMode()
 	})
 }
 

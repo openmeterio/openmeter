@@ -255,6 +255,23 @@ type WorkflowCollectionSettings struct {
 	Interval *string `json:"interval,omitempty"`
 }
 
+// Billing workflow empty invoice mode.
+type WorkflowInvoicingEmptyInvoiceMode string
+
+const (
+	WorkflowInvoicingEmptyInvoiceModeCreate WorkflowInvoicingEmptyInvoiceMode = "create"
+	WorkflowInvoicingEmptyInvoiceModeOmit   WorkflowInvoicingEmptyInvoiceMode = "omit"
+)
+
+func (value WorkflowInvoicingEmptyInvoiceMode) Valid() bool {
+	switch value {
+	case WorkflowInvoicingEmptyInvoiceModeCreate, WorkflowInvoicingEmptyInvoiceModeOmit:
+		return true
+	default:
+		return false
+	}
+}
+
 // Invoice settings for a billing workflow.
 type WorkflowInvoicingSettings struct {
 	// Whether to automatically issue the invoice after the draftPeriod has passed.
@@ -265,6 +282,9 @@ type WorkflowInvoicingSettings struct {
 	ProgressiveBilling *bool `json:"progressive_billing,omitempty"`
 	// Controls how subscription-ending shortened service periods are billed.
 	SubscriptionEndProrationMode *WorkflowInvoicingSubscriptionEndProrationMode `json:"subscription_end_proration_mode,omitempty"`
+	// Controls whether empty invoices are created in the invoicing app. An invoice is
+	// empty when it has no line items or its total is zero.
+	EmptyInvoiceMode *WorkflowInvoicingEmptyInvoiceMode `json:"empty_invoice_mode,omitempty"`
 }
 
 // Billing workflow subscription end proration mode.
