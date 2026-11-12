@@ -3,6 +3,8 @@ package kafka
 import (
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -115,7 +117,7 @@ func TestConsumerConfig(t *testing.T) {
 			ExpectedConfigMap: kafka.ConfigMap{
 				"client.id": "client-id-1",
 			},
-			ExpectedAbsentKeys: []string{"client.rack"},
+			ExpectedAbsentKeys: []string{"client.rack", "ssl.ca.location"},
 		},
 	}
 
@@ -471,4 +473,36 @@ func TestAutoOffsetReset(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestCommonConfigSslCaLocation(t *testing.T) {
+	caFile := filepath.Join(t.TempDir(), "ca.pem")
+	require.NoError(t, os.WriteFile(caFile, []byte("not validated here"), 0o600))
+
+	t.Run("set", func(t *testing.T) {
+		params := CommonConfigParams{Brokers: "broker:9092", SecurityProtocol: "SSL", SslCaLocation: caFile}
+
+		require.NoError(t, params.Validate())
+
+		m, err := params.AsConfigMap()
+		require.NoError(t, err)
+		assert.Equal(t, caFile, m["ssl.ca.location"])
+	})
+
+	t.Run("unset", func(t *testing.T) {
+		params := CommonConfigParams{Brokers: "broker:9092", SecurityProtocol: "SSL"}
+
+		require.NoError(t, params.Validate())
+
+		m, err := params.AsConfigMap()
+		require.NoError(t, err)
+		_, ok := m["ssl.ca.location"]
+		assert.False(t, ok)
+	})
+
+	t.Run("missing file", func(t *testing.T) {
+		params := CommonConfigParams{Brokers: "broker:9092", SecurityProtocol: "SSL", SslCaLocation: filepath.Join(t.TempDir(), "missing.pem")}
+
+		require.ErrorContains(t, params.Validate(), "invalid ssl ca location")
+	})
 }

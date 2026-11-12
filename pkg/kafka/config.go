@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"slices"
 	"strconv"
 	"strings"
@@ -33,6 +34,11 @@ type CommonConfigParams struct {
 	SaslMechanisms   string
 	SaslUsername     string
 	SaslPassword     string
+
+	// SslCaLocation is the optional path to a PEM file with the CA certificate(s) used to verify the broker's
+	// certificate when SecurityProtocol is SSL or SASL_SSL. It maps to librdkafka's ssl.ca.location and replaces
+	// the default (system) trust store. When empty the system trust store is used.
+	SslCaLocation string
 
 	StatsInterval TimeDurationMilliSeconds
 
@@ -108,6 +114,12 @@ func (c CommonConfigParams) AsConfigMap() (kafka.ConfigMap, error) {
 		}
 	}
 
+	if c.SslCaLocation != "" {
+		if err := m.SetKey("ssl.ca.location", c.SslCaLocation); err != nil {
+			return nil, err
+		}
+	}
+
 	if c.StatsInterval > 0 {
 		if err := m.SetKey("statistics.interval.ms", c.StatsInterval); err != nil {
 			return nil, err
@@ -158,6 +170,12 @@ func (c CommonConfigParams) AsConfigMap() (kafka.ConfigMap, error) {
 func (c CommonConfigParams) Validate() error {
 	if c.Brokers == "" {
 		return errors.New("broker is required")
+	}
+
+	if c.SslCaLocation != "" {
+		if _, err := os.ReadFile(c.SslCaLocation); err != nil {
+			return fmt.Errorf("invalid ssl ca location: %w", err)
+		}
 	}
 
 	if c.StatsInterval > 0 && c.StatsInterval.Duration() < 5*time.Second {
