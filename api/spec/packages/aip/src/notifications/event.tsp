@@ -1,6 +1,7 @@
 import "../shared/index.tsp";
 import "../entitlements/index.tsp";
 import "./rule.tsp";
+import "./legacy-v1.tsp";
 
 namespace Notifications;
 
@@ -187,129 +188,6 @@ model NotificationEventDeliveryStatus {
 }
 
 /**
- * A reference to the feature of an entitlement notification event.
- */
-@friendlyName("BillingNotificationEventFeatureReference")
-model NotificationEventFeatureReference {
-  /**
-   * The unique identifier of the feature.
-   */
-  @visibility(Lifecycle.Read)
-  id: Shared.ULID;
-
-  /**
-   * The immutable key of the feature.
-   */
-  @visibility(Lifecycle.Read)
-  key: string;
-}
-
-/**
- * The entitlement, feature, and subject an entitlement notification event refers
- * to.
- */
-@friendlyName("BillingNotificationEventEntitlementData")
-model NotificationEventEntitlementData {
-  /**
-   * The identifier of the entitlement that triggered the event.
-   */
-  @visibility(Lifecycle.Read)
-  entitlement_id: Shared.ULID;
-
-  /**
-   * The feature the entitlement grants access to.
-   */
-  @visibility(Lifecycle.Read)
-  feature: NotificationEventFeatureReference;
-
-  /**
-   * The key of the subject the entitlement belongs to.
-   */
-  @visibility(Lifecycle.Read)
-  subject_key: string;
-
-  /**
-   * The identifier of the customer the subject belongs to, if any.
-   */
-  @visibility(Lifecycle.Read)
-  customer_id?: Shared.ULID;
-
-  /**
-   * The entitlement value at the time the event was generated.
-   */
-  @visibility(Lifecycle.Read)
-  value: Entitlements.EntitlementValueResult;
-}
-
-/**
- * The entities and threshold a balance threshold event refers to.
- */
-@friendlyName("BillingNotificationEventBalanceThresholdData")
-model NotificationEventBalanceThresholdData {
-  ...NotificationEventEntitlementData;
-
-  /**
-   * The threshold the balance crossed.
-   */
-  @visibility(Lifecycle.Read)
-  threshold: NotificationBalanceThreshold;
-}
-
-/**
- * A reference to the invoice of an invoice notification event.
- */
-@friendlyName("BillingNotificationEventInvoiceReference")
-model NotificationEventInvoiceReference {
-  /**
-   * The unique identifier of the invoice.
-   */
-  @visibility(Lifecycle.Read)
-  id: Shared.ULID;
-
-  /**
-   * The human-readable invoice number.
-   */
-  @visibility(Lifecycle.Read)
-  number: string;
-}
-
-/**
- * The invoice an invoice notification event refers to.
- */
-@friendlyName("BillingNotificationEventInvoiceData")
-model NotificationEventInvoiceData {
-  /**
-   * The invoice the event was generated for.
-   */
-  @visibility(Lifecycle.Read)
-  invoice: NotificationEventInvoiceReference;
-
-  /**
-   * The identifier of the customer the invoice was issued to.
-   */
-  @visibility(Lifecycle.Read)
-  customer_id?: Shared.ULID;
-
-  /**
-   * The currency the invoice is denominated in.
-   */
-  @visibility(Lifecycle.Read)
-  currency: Shared.CurrencyCode;
-
-  /**
-   * The status of the invoice at the time the event was generated.
-   */
-  @visibility(Lifecycle.Read)
-  status: string;
-
-  /**
-   * The invoice total, including taxes, at the time the event was generated.
-   */
-  @visibility(Lifecycle.Read)
-  total: Shared.Numeric;
-}
-
-/**
  * A balance threshold notification event payload.
  */
 @friendlyName("BillingNotificationEventBalanceThresholdPayload")
@@ -336,7 +214,7 @@ model NotificationEventBalanceThresholdPayload {
    * The entities and threshold the event refers to.
    */
   @visibility(Lifecycle.Read)
-  data: NotificationEventBalanceThresholdData;
+  data: LegacyV1.V1NotificationEventBalanceThresholdPayloadData;
 }
 
 /**
@@ -366,7 +244,7 @@ model NotificationEventResetPayload {
    * The entities the event refers to.
    */
   @visibility(Lifecycle.Read)
-  data: NotificationEventEntitlementData;
+  data: LegacyV1.V1NotificationEventEntitlementValuePayloadBase;
 }
 
 /**
@@ -396,7 +274,7 @@ model NotificationEventInvoiceCreatedPayload {
    * The invoice the event refers to.
    */
   @visibility(Lifecycle.Read)
-  data: NotificationEventInvoiceData;
+  data: LegacyV1.V1Invoice;
 }
 
 /**
@@ -426,7 +304,7 @@ model NotificationEventInvoiceUpdatedPayload {
    * The invoice the event refers to.
    */
   @visibility(Lifecycle.Read)
-  data: NotificationEventInvoiceData;
+  data: LegacyV1.V1Invoice;
 }
 
 /**
