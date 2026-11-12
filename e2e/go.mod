@@ -1,6 +1,6 @@
 module github.com/openmeterio/openmeter/e2e
 
-go 1.27.3
+go 1.27.4
 
 replace github.com/openmeterio/openmeter => ../
 

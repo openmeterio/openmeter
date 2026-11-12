@@ -319,6 +319,23 @@
         "type": "github"
       }
     },
+    "nixpkgs-go": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1794464135,
+        "narHash": "sha256-oY4g0ApwOs0EeRsMzHwoPg4cA/fV25DO9c9g01EJwng=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "2578a3f6178e116798c9294895df1dba62eac78b",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "2578a3f6178e116798c9294895df1dba62eac78b",
+        "type": "github"
+      }
+    },
     "nixpkgs-lib": {
       "locked": {
         "lastModified": 1785031560,
@@ -406,6 +423,7 @@
         "git-hooks": "git-hooks_2",
         "llm-agents": "llm-agents",
         "nixpkgs": "nixpkgs_3",
+        "nixpkgs-go": "nixpkgs-go",
         "nixpkgs-node": "nixpkgs-node",
         "pre-commit-hooks": [
           "git-hooks"
