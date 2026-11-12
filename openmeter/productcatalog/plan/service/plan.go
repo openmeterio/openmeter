@@ -292,9 +292,7 @@ func (s service) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (*
 		params.EffectivePeriod = productcatalog.EffectivePeriod{}
 
 		if params.Phases != nil && len(*params.Phases) > 0 {
-			// A Tax Code the stored plan already holds on any rate card is inherited, not
-			// authored by this update, so it stays valid even when deleted. This lets drafts
-			// move or rename rate cards and phases without switching Tax Codes.
+			// Tax Codes the stored plan already holds are inherited, so a deleted one can stay.
 			allowDeleted := pp.TaxCodeIDs()
 
 			for idx := range *params.Phases {
@@ -311,8 +309,7 @@ func (s service) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (*
 							params.ID, (*params.Phases)[idx].Key, err))
 				}
 
-				// Scheduled plans are checked once below by the publish gate, which covers the
-				// phases being sent too.
+				// Scheduled plans are checked once below by the publish gate.
 				if planStatus == productcatalog.PlanStatusDraft {
 					if err := productcatalog.ValidateRateCardTaxCodes(ctx, s.taxCodeResolver, params.Namespace, (*params.Phases)[idx].RateCards, allowDeleted...); err != nil {
 						err = fmt.Errorf("invalid tax codes for ratecards in plan phase [plan.id=%s plan.phase.key=%s]: %w",
@@ -344,10 +341,9 @@ func (s service) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (*
 		}
 
 		// A scheduled plan must stay publishable, so run the publish tax gate on the plan the
-		// update would store. That rejects a deleted reference the stored version holds as well
-		// as one the update brings in, while still letting the update fix it by replacing the
-		// code. Called directly rather than through ValidateWith, which would turn a failed lookup
-		// into a 400.
+		// update would store: it rejects a deleted reference the stored version holds as well as
+		// one the update brings in, while still letting the update fix it by replacing the code.
+		// Not via ValidateWith: it would turn a failed lookup into a 400.
 		if planStatus == productcatalog.PlanStatusScheduled {
 			candidate := pp
 			if params.Phases != nil {
@@ -518,9 +514,8 @@ func (s service) PublishPlan(ctx context.Context, params plan.PublishPlanInput) 
 			)
 		}
 
-		// Publishing is the gate for inherited deleted Tax Code references. The validator is called
-		// directly, not through ValidateWith: that wraps every error as a validation error, and a
-		// failed lookup must stay a 500 instead of a 400 carrying the DB error text.
+		// Publishing is the gate for inherited deleted Tax Code references.
+		// Not via ValidateWith: it would turn a failed lookup into a 400.
 		if err = productcatalog.ValidatePlanWithTaxCodes(ctx, s.taxCodeResolver, params.Namespace)(pp); err != nil {
 			if !models.IsGenericValidationError(err) {
 				return nil, fmt.Errorf("failed to validate tax codes of plan [id=%s key=%s version=%d]: %w",

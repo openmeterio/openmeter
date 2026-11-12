@@ -48,6 +48,9 @@ func newFlatRateCard(key string, cfg *productcatalog.TaxCodeConfig) productcatal
 	}
 }
 
+// ValidateRateCardTaxCodes pins the single-call validation: missing IDs are rejected as
+// rate_card_tax_code_not_found, soft-deleted ones as rate_card_tax_code_deleted unless the caller
+// allows them, and resolver failures stay plain errors.
 func TestValidateRateCardTaxCodes(t *testing.T) {
 	const (
 		namespace = "ns"
@@ -169,6 +172,9 @@ func TestValidateRateCardTaxCodes(t *testing.T) {
 	}
 }
 
+// ValidatePlanWithTaxCodes pins the plan publish gate: deleted and missing references from any
+// phase are rejected in one batch lookup, each issue prefixed with its phase, and lookup
+// failures are returned as is.
 func TestValidatePlanWithTaxCodes(t *testing.T) {
 	const (
 		namespace     = "ns"
@@ -243,6 +249,7 @@ func TestValidatePlanWithTaxCodes(t *testing.T) {
 	assert.Contains(t, missingIssue.Field().String(), `ratecards[key=missing]`)
 }
 
+// A failed lookup is returned as is, not wrapped as a validation error, so it stays a 500.
 func TestValidatePlanWithTaxCodesLookupError(t *testing.T) {
 	// given: a resolver that fails
 	resolverErr := errors.New("db is down")
@@ -269,6 +276,9 @@ func TestValidatePlanWithTaxCodesLookupError(t *testing.T) {
 	assert.ErrorIs(t, err, resolverErr)
 }
 
+// ValidateAddonWithTaxCodes pins the add-on publish gate: deleted and missing references are
+// rejected in one batch lookup, each issue prefixed with its rate card, and lookup failures are
+// returned as is.
 func TestValidateAddonWithTaxCodes(t *testing.T) {
 	const (
 		namespace = "ns"
@@ -329,6 +339,7 @@ func TestValidateAddonWithTaxCodes(t *testing.T) {
 	assert.Contains(t, missingIssue.Field().String(), `ratecards[key=missing]`)
 }
 
+// A failed lookup is returned as is, not wrapped as a validation error, so it stays a 500.
 func TestValidateAddonWithTaxCodesLookupError(t *testing.T) {
 	// given: a resolver that fails
 	resolverErr := errors.New("db is down")

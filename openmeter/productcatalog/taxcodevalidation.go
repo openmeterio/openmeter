@@ -18,9 +18,8 @@ import (
 // BatchResolve returns deleted codes too (old rows may still point at them), which is why the
 // deleted check lives here rather than in the resolver.
 //
-// allowDeleted lists Tax Code IDs the caller accepts even when soft-deleted: references
-// inherited from something already stored or approved, not picked in this request. Missing IDs
-// are rejected no matter what it lists. One BatchResolve runs per call.
+// allowDeleted lists Tax Code IDs the caller accepts even when soft-deleted: references inherited
+// from something already stored, not picked in this request. Missing IDs are rejected regardless.
 func ValidateRateCardTaxCodes(ctx context.Context, resolver TaxCodeResolver, namespace string, rateCards RateCards, allowDeleted ...string) error {
 	ids := rateCards.TaxCodeIDs()
 	if len(ids) == 0 {
@@ -36,9 +35,9 @@ func ValidateRateCardTaxCodes(ctx context.Context, resolver TaxCodeResolver, nam
 }
 
 // checkRateCardTaxCodes classifies the referenced Tax Codes against an already-fetched
-// BatchResolve result: an ID missing from the result is not found, a soft-deleted one is rejected
-// unless the caller allows it. Shared by the single-call and per-phase validators so both report
-// the same issues with the same rate-card-key-prefixed field.
+// BatchResolve result: a missing ID is not found, a soft-deleted one is rejected unless allowed.
+// Shared by the single-call and per-phase validators so both report the same issues with the same
+// rate-card-key-prefixed field.
 func checkRateCardTaxCodes(rateCards RateCards, taxCodes map[string]*taxcode.TaxCode, allowDeleted []string) error {
 	var errs []error
 
@@ -76,11 +75,9 @@ func rateCardTaxCodeError(rc RateCard, taxCodeID string, issue models.Validation
 	)
 }
 
-// ValidatePlanWithTaxCodes verifies the Tax Code references of every phase of the plan, rejecting
-// missing and soft-deleted codes. It is the publish gate for plans: a draft may inherit deleted
-// references, but a version cannot be published while it holds one. All phases share one
-// BatchResolve, and each issue is prefixed with the phase key so the offending rate card stays
-// identifiable.
+// ValidatePlanWithTaxCodes verifies every phase's Tax Code references, rejecting missing and
+// soft-deleted codes. It is the publish gate for plans: a draft may inherit deleted references,
+// but a version cannot be published while it holds one. Issues are prefixed with the phase key.
 func ValidatePlanWithTaxCodes(ctx context.Context, resolver TaxCodeResolver, namespace string) models.ValidatorFunc[Plan] {
 	return func(p Plan) error {
 		ids := p.TaxCodeIDs()
@@ -115,10 +112,9 @@ func ValidatePlanWithTaxCodes(ctx context.Context, resolver TaxCodeResolver, nam
 	}
 }
 
-// ValidateAddonWithTaxCodes verifies the Tax Code references of the add-on's rate cards, rejecting
-// missing and soft-deleted codes. It is the publish gate for add-ons: a draft may inherit deleted
-// references, but a version cannot be published while it holds one. All rate cards share one
-// BatchResolve, and each issue is prefixed with the rate card key.
+// ValidateAddonWithTaxCodes verifies the add-on's Tax Code references, rejecting missing and
+// soft-deleted codes. It is the publish gate for add-ons: a draft may inherit deleted references,
+// but a version cannot be published while it holds one.
 func ValidateAddonWithTaxCodes(ctx context.Context, resolver TaxCodeResolver, namespace string) models.ValidatorFunc[Addon] {
 	return func(a Addon) error {
 		ids := a.RateCards.TaxCodeIDs()

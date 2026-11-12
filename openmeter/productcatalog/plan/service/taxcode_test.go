@@ -50,6 +50,8 @@ func newUpdatePhases(rc productcatalog.RateCard) *[]productcatalog.Phase {
 	}}
 }
 
+// Draft updates may keep a deleted Tax Code the stored plan already holds; a deleted one the update
+// brings in is rejected, and publishing a version that holds one is rejected as well.
 func TestPlanTaxCodeReferences(t *testing.T) {
 	env := pctestutils.NewTestEnv(t)
 	t.Cleanup(func() { env.Close(t) })
@@ -221,7 +223,7 @@ func TestPlanTaxCodeReferences(t *testing.T) {
 			})))
 			require.NoError(t, err)
 
-			// when: the rate card is updated to reference the deleted Tax Code
+			// when: the rate card switches to the deleted Tax Code
 			_, err = env.Plan.UpdatePlan(t.Context(), plan.UpdatePlanInput{
 				NamespacedID: p.NamespacedID,
 				Phases: newUpdatePhases(pctestutils.NewTestFlatRateCard("rc", &productcatalog.TaxCodeConfig{
@@ -229,7 +231,7 @@ func TestPlanTaxCodeReferences(t *testing.T) {
 				})),
 			})
 
-			// then: the authored reference is rejected with the deleted error
+			// then: it is rejected with the deleted error
 			pctestutils.RequireTaxCodeDeleted(t, err)
 		})
 

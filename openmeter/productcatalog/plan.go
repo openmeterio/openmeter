@@ -82,8 +82,8 @@ func (p Plan) HasCurrencyOverrides() bool {
 	})
 }
 
-// TaxCodeIDs returns the distinct Tax Code IDs referenced across all phases, so callers can
-// look them all up in one batch.
+// TaxCodeIDs returns the distinct Tax Code IDs referenced across all phases, so callers can look
+// them all up in one batch.
 func (p Plan) TaxCodeIDs() []string {
 	ids := make([]string, 0, len(p.Phases))
 	for _, phase := range p.Phases {

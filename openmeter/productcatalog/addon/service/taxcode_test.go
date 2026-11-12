@@ -34,6 +34,8 @@ func firstAddonRateCardTaxConfig(t *testing.T, a *addon.Addon) *productcatalog.T
 	return a.RateCards[0].AsMeta().TaxConfig
 }
 
+// Draft updates may keep a deleted Tax Code the stored add-on already holds; a deleted one the
+// update brings in is rejected, and publishing a version that holds one is rejected as well.
 func TestAddonTaxCodeReferences(t *testing.T) {
 	env := pctestutils.NewTestEnv(t)
 	t.Cleanup(func() { env.Close(t) })
@@ -205,7 +207,7 @@ func TestAddonTaxCodeReferences(t *testing.T) {
 			})))
 			require.NoError(t, err)
 
-			// when: the rate card is updated to reference the deleted Tax Code
+			// when: the rate card switches to the deleted Tax Code
 			_, err = env.Addon.UpdateAddon(t.Context(), addon.UpdateAddonInput{
 				NamespacedID: a.NamespacedID,
 				RateCards: &productcatalog.RateCards{pctestutils.NewTestFlatRateCard("rc", &productcatalog.TaxCodeConfig{
@@ -213,7 +215,7 @@ func TestAddonTaxCodeReferences(t *testing.T) {
 				})},
 			})
 
-			// then: the authored reference is rejected with the deleted error
+			// then: it is rejected with the deleted error
 			pctestutils.RequireTaxCodeDeleted(t, err)
 		})
 

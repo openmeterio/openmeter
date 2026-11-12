@@ -329,9 +329,7 @@ func (s service) UpdateAddon(ctx context.Context, params addon.UpdateAddonInput)
 				return nil, fmt.Errorf("failed to expand features for ratecards in add-on: %w", err)
 			}
 
-			// A Tax Code the stored add-on already holds on any rate card is inherited, not
-			// authored by this update, so it stays valid even when deleted. This lets drafts
-			// move or rename rate cards without switching Tax Codes.
+			// Tax Codes the stored add-on already holds are inherited, so a deleted one can stay.
 			allowDeleted := add.AsProductCatalogAddon().RateCards.TaxCodeIDs()
 
 			if err := productcatalog.ValidateRateCardTaxCodes(ctx, s.taxCodeResolver, params.Namespace, *params.RateCards, allowDeleted...); err != nil {
@@ -478,9 +476,8 @@ func (s service) PublishAddon(ctx context.Context, params addon.PublishAddonInpu
 			)
 		}
 
-		// Publishing is the gate for inherited deleted Tax Code references. The validator is called
-		// directly, not through ValidateWith: that wraps every error as a validation error, and a
-		// failed lookup must stay a 500 instead of a 400 carrying the DB error text.
+		// Publishing is the gate for inherited deleted Tax Code references.
+		// Not via ValidateWith: it would turn a failed lookup into a 400.
 		if err = productcatalog.ValidateAddonWithTaxCodes(ctx, s.taxCodeResolver, params.Namespace)(pa); err != nil {
 			if !models.IsGenericValidationError(err) {
 				return nil, fmt.Errorf("failed to validate tax codes of add-on [id=%s key=%s version=%d]: %w",
