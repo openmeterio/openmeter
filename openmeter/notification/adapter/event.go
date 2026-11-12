@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqljson"
 
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	channeldb "github.com/openmeterio/openmeter/openmeter/ent/db/notificationchannel"
@@ -76,9 +77,17 @@ func (a *adapter) ListEvents(ctx context.Context, params notification.ListEvents
 		query = query.Where(annotationPreds...)
 
 		if len(params.DeduplicationHashes) > 0 {
-			query = query.Where(
-				entutils.JSONBIn(eventdb.FieldAnnotations, notification.AnnotationBalanceEventDedupeHash, params.DeduplicationHashes),
-			)
+			query = query.Where(func(s *sql.Selector) {
+				// Match whole JSON objects so PostgreSQL can use the annotations GIN index.
+				matches := make([]*sql.Predicate, 0, len(params.DeduplicationHashes))
+				for _, hash := range params.DeduplicationHashes {
+					matches = append(matches, sqljson.ValueContains(s.C(eventdb.FieldAnnotations), map[string]string{
+						notification.AnnotationBalanceEventDedupeHash: hash,
+					}))
+				}
+
+				s.Where(sql.Or(matches...))
+			})
 		}
 
 		query = query.Where(deprecatedEventPredicates(params)...)
