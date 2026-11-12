@@ -296,6 +296,47 @@ func (s *ListCustomersToAdvanceSuite) TestListChargesCustomerIDFilter() {
 	}))
 }
 
+func (s *ListCustomersToAdvanceSuite) TestListNonFinalCustomerCharges() {
+	ctx := s.T().Context()
+	ns := "test-list-non-final-customer-charges"
+	customerID := s.createCustomer(ns)
+
+	// Given non-final charges without unique references, plus unrelated history.
+	createdID := s.insertFlatFeeCharge(ns, customerID, meta.ChargeStatusCreated, nil)
+	activeID := s.insertFlatFeeCharge(ns, customerID, meta.ChargeStatusActive, nil)
+	deletedStatusID := s.insertFlatFeeCharge(ns, customerID, meta.ChargeStatusDeleted, nil)
+	s.insertFlatFeeCharge(ns, customerID, meta.ChargeStatusFinal, nil)
+	softDeletedID := s.insertFlatFeeCharge(ns, customerID, meta.ChargeStatusActive, nil)
+	_, err := s.dbClient.ChargeFlatFee.UpdateOneID(softDeletedID).
+		SetDeletedAt(time.Now().UTC()).
+		Save(ctx)
+	s.Require().NoError(err)
+
+	s.insertFlatFeeCharge(ns, s.createCustomer(ns), meta.ChargeStatusActive, nil)
+	otherNS := ns + "-other"
+	s.insertFlatFeeCharge(otherNS, customerID, meta.ChargeStatusActive, nil)
+
+	// When using the customer advancement lookup without pagination.
+	result, err := s.adapter.ListCharges(ctx, charges.ListChargesInput{
+		Namespace:   ns,
+		CustomerIDs: []string{customerID},
+		Status:      &filter.FilterString{Nin: &[]string{string(meta.ChargeStatusFinal)}},
+	})
+	s.Require().NoError(err)
+
+	// Then effective deletion and final status are independent exclusions, and
+	// every matching charge remains in creation order without a unique reference.
+	s.Equal(3, result.TotalCount)
+	s.Require().Len(result.Items, 3)
+	s.Equal(createdID, result.Items[0].ID.ID)
+	s.Equal(activeID, result.Items[1].ID.ID)
+	s.Equal(deletedStatusID, result.Items[2].ID.ID)
+	for _, item := range result.Items {
+		s.Equal(ns, item.ID.Namespace)
+		s.Equal(customerID, item.CustomerID)
+	}
+}
+
 func (s *ListCustomersToAdvanceSuite) TestReturnsOnlyEligibleCustomers() {
 	ctx := context.Background()
 	ns := "test-eligible"

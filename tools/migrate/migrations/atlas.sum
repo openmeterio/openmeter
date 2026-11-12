@@ -1,4 +1,4 @@
-h1:est9gKug5Yf7Q05yDAHAwy4zDcIGBIJ6KEis0flaAz0=
+h1:sUTX9VA4uLdrvACG3dqOimhX5oFNU6UO6tiFOA+Shlg=
 20240826120919_init.up.sql h1:tc1V91/smlmaeJGQ8h+MzTEeFjjnrrFDbDAjOYJK91o=
 20240903155435_entitlement-expired-index.up.sql h1:Hp8u5uckmLXc1cRvWU0AtVnnK8ShlpzZNp8pbiJLhac=
 20240917172257_billing-entities.up.sql h1:Q1dAMo0Vjiit76OybClNfYPGC5nmvov2/M2W1ioi4Kw=
@@ -310,3 +310,6 @@ h1:est9gKug5Yf7Q05yDAHAwy4zDcIGBIJ6KEis0flaAz0=
 20261112190449_charge_credit_purchase_subscription_lookup.up.sql h1:qvW23KAewwDe+6EwtIx4H2UosMFme/KVMZn8XyVsHxs=
 20261112190450_charge_flat_fee_subscription_lookup.up.sql h1:STATMoCMP59cjjpenerWBtnmGY5kNAMea05rQACB5lY=
 20261112190451_charge_usage_based_subscription_lookup.up.sql h1:qwvOzXdqhr+QP/1ekPJDBFRoiaPtEC8pOsvjt/GGVBE=
+20261112203036_charge_credit_purchase_nonfinal_customer_lookup.up.sql h1:ME7T8jWAlmj7ohEWA/gdCxj+c+26xHhMCilfdR8tl58=
+20261112203037_charge_flat_fee_nonfinal_customer_lookup.up.sql h1:bNTww490WDTUoUzyvpIHPMUbO2UCuJY3uIq5efuF/Oc=
+20261112203038_charge_usage_based_nonfinal_customer_lookup.up.sql h1:xxctyYd8f88G47a1hY6hwq3zAueoUc2oRMSBQjdR2P8=
