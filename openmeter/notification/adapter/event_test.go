@@ -343,6 +343,67 @@ func TestListEvents_Filters(t *testing.T) {
 	}
 }
 
+func TestListEvents_BalanceEventDeduplicationHashes(t *testing.T) {
+	env := newEventTestEnv(t)
+	ns := ulid.Make().String()
+	rule := seedRule(t, env, ns, notification.EventTypeBalanceThreshold, seedChannel(t, env, ns).ID)
+
+	const (
+		v1 = "bsnap_v1_legacy"
+		v2 = "bsnap_v2_current"
+	)
+
+	// Given a usage period with both hash versions and newer Events that must be excluded.
+	start := clock.Now().UTC().Truncate(time.Second)
+	end := start.Add(time.Hour)
+	legacy := seedEvent(t, env, ns, rule, start, models.Annotations{notification.AnnotationBalanceEventDedupeHash: v1})
+	current := seedEvent(t, env, ns, rule, start.Add(time.Minute), models.Annotations{notification.AnnotationBalanceEventDedupeHash: v2})
+	seedEvent(t, env, ns, rule, end, models.Annotations{"other.key": v2})
+	seedEvent(t, env, ns, rule, end.Add(time.Second), models.Annotations{notification.AnnotationBalanceEventDedupeHash: v2})
+
+	otherNS := ulid.Make().String()
+	otherRule := seedRule(t, env, otherNS, notification.EventTypeBalanceThreshold, seedChannel(t, env, otherNS).ID)
+	seedEvent(t, env, otherNS, otherRule, end, models.Annotations{notification.AnnotationBalanceEventDedupeHash: v1})
+
+	tests := []struct {
+		name   string
+		hashes []string
+		count  int
+		latest string
+	}{
+		{name: "V1", hashes: []string{v1}, count: 1, latest: legacy.ID},
+		{name: "V2", hashes: []string{v2}, count: 1, latest: current.ID},
+		{name: "both versions", hashes: []string{v1, v2}, count: 2, latest: current.ID},
+		{name: "unknown hash", hashes: []string{"bsnap_v2_unknown"}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// When the worker requests the latest matching Event in this usage period.
+			result, err := env.adapter.ListEvents(t.Context(), notification.ListEventsInput{
+				Page:                pagination.NewPage(1, 1),
+				Namespaces:          []string{ns},
+				CreatedAt:           filter.NewFilterTime(&start, &end),
+				DeduplicationHashes: tt.hashes,
+				OrderBy:             notification.OrderByCreatedAt,
+				Order:               sortx.OrderDesc,
+			})
+			require.NoError(t, err)
+
+			// Then pagination counts all matches, even though only one Event is requested.
+			assert.EqualValues(t, tt.count, result.TotalCount)
+
+			if tt.latest == "" {
+				require.Empty(t, result.Items)
+				return
+			}
+
+			require.Len(t, result.Items, 1)
+			assert.Equal(t, tt.latest, result.Items[0].ID)
+		})
+	}
+}
+
 func TestListEvents_MixedDeliveryStatesDueForReconciliation(t *testing.T) {
 	env := newEventTestEnv(t)
 	ns := ulid.Make().String()
