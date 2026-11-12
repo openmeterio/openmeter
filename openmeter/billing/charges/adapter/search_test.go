@@ -2,8 +2,10 @@ package adapter
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"sort"
+	"strings"
 	"testing"
 	"time"
 
@@ -23,6 +25,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
 func TestListCustomersToAdvance(t *testing.T) {
@@ -168,6 +171,84 @@ func (s *ListCustomersToAdvanceSuite) TestListChargesDeletedAtFilter() {
 	s.ElementsMatch([]string{liveChargeID, overrideDeletedChargeID, baseDeletedChargeID}, listIDs(charges.ListChargesInput{
 		IncludeDeleted: true,
 	}))
+}
+
+func (s *ListCustomersToAdvanceSuite) TestListChargesPagination() {
+	ctx := s.T().Context()
+	ns := "test-list-charges-pagination"
+	customerID := s.createCustomer(ns)
+
+	// Given live charges and an unrelated namespace with its own charge.
+	ids := []string{
+		s.insertFlatFeeCharge(ns, customerID, meta.ChargeStatusActive, nil),
+		s.insertFlatFeeCharge(ns, customerID, meta.ChargeStatusActive, nil),
+		s.insertFlatFeeCharge(ns, customerID, meta.ChargeStatusActive, nil),
+	}
+	sort.Strings(ids)
+	otherNS := ns + "-other"
+	s.insertFlatFeeCharge(otherNS, s.createCustomer(otherNS), meta.ChargeStatusActive, nil)
+
+	var queries []string
+	client := db.NewClient(db.Driver(s.testDB.EntDriver.Driver()), db.Debug(), db.Log(func(args ...any) {
+		message := fmt.Sprint(args...)
+		if strings.Contains(message, "SELECT") {
+			queries = append(queries, message)
+		}
+	}))
+	searchAdapter, err := New(Config{Client: client, Logger: slog.Default()})
+	s.Require().NoError(err)
+
+	for _, tc := range []struct {
+		name       string
+		page       pagination.Page
+		order      sortx.Order
+		expected   []string
+		queryCount int
+	}{
+		{name: "all", expected: ids, queryCount: 1},
+		{name: "all descending", order: sortx.OrderDesc, expected: []string{ids[2], ids[1], ids[0]}, queryCount: 1},
+		{name: "first page", page: pagination.NewPage(1, 2), expected: ids[:2], queryCount: 2},
+		{name: "last page", page: pagination.NewPage(2, 2), expected: ids[2:], queryCount: 2},
+		{name: "past last page", page: pagination.NewPage(3, 2), expected: []string{}, queryCount: 2},
+	} {
+		s.Run(tc.name, func() {
+			// When listing with or without an explicit page.
+			queries = nil
+			result, err := searchAdapter.ListCharges(ctx, charges.ListChargesInput{
+				Namespace: ns,
+				Page:      tc.page,
+				OrderBy:   "id",
+				Order:     tc.order,
+			})
+			s.Require().NoError(err)
+
+			// Then counts, ordering and page metadata agree with the matching rows.
+			s.Equal(tc.page, result.Page)
+			s.Equal(len(ids), result.TotalCount)
+			actualIDs := make([]string, 0, len(result.Items))
+			for _, item := range result.Items {
+				actualIDs = append(actualIDs, item.ID.ID)
+			}
+
+			s.Equal(tc.expected, actualIDs)
+			s.Len(queries, tc.queryCount)
+			if tc.page.IsZero() {
+				s.NotContains(strings.Join(queries, "\n"), "COUNT(")
+			}
+		})
+	}
+
+	s.Run("empty unpaginated result", func() {
+		queries = nil
+		result, err := searchAdapter.ListCharges(ctx, charges.ListChargesInput{Namespace: ns + "-empty"})
+		s.Require().NoError(err)
+		s.Zero(result.TotalCount)
+		s.Equal(pagination.Page{}, result.Page)
+		s.NotNil(result.Items)
+		s.Empty(result.Items)
+		s.Len(queries, 1)
+		s.NotContains(queries[0], "COUNT(")
+	})
 }
 
 func (s *ListCustomersToAdvanceSuite) TestListChargesCustomerIDFilter() {

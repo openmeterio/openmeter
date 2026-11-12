@@ -10,7 +10,7 @@ import (
 )
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *Example1Query) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*Example1], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -19,6 +19,22 @@ func (_m *Example1Query) Paginate(ctx context.Context, page pagination.Page) (pa
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*Example1]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -29,10 +45,6 @@ func (_m *Example1Query) Paginate(ctx context.Context, page pagination.Page) (pa
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*Example1]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -46,12 +58,6 @@ func (_m *Example1Query) Paginate(ctx context.Context, page pagination.Page) (pa
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*Example1, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
