@@ -28,3 +28,21 @@ func TestFromAPIBillingWorkflowSubscriptionEndProrationModeDefaults(t *testing.T
 	require.NoError(t, err)
 	require.Equal(t, billing.SubscriptionEndProrationModeBillFullPeriod, explicitConfig.Invoicing.SubscriptionEndProrationMode)
 }
+
+func TestBillingWorkflowEmptyInvoiceMode(t *testing.T) {
+	unsetConfig, err := FromAPIBillingWorkflowCreate(api.BillingWorkflow{})
+	require.NoError(t, err)
+	require.Empty(t, unsetConfig.Invoicing.EmptyInvoiceMode, "the service resolves an unset mode, not the converter")
+
+	explicitConfig, err := FromAPIBillingWorkflow(api.BillingWorkflow{
+		Invoicing: &api.BillingWorkflowInvoicingSettings{
+			EmptyInvoiceMode: lo.ToPtr(api.BillingWorkflowInvoicingEmptyInvoiceModeOmit),
+		},
+	})
+	require.NoError(t, err)
+	require.Equal(t, billing.EmptyInvoiceModeOmit, explicitConfig.Invoicing.EmptyInvoiceMode)
+
+	workflow, err := ToAPIBillingWorkflow(explicitConfig)
+	require.NoError(t, err)
+	require.Equal(t, lo.ToPtr(api.BillingWorkflowInvoicingEmptyInvoiceModeOmit), workflow.Invoicing.EmptyInvoiceMode)
+}

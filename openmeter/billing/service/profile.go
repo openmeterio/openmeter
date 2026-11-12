@@ -21,6 +21,10 @@ import (
 var _ billing.ProfileService = (*Service)(nil)
 
 func (s *Service) CreateProfile(ctx context.Context, input billing.CreateProfileInput) (*billing.Profile, error) {
+	if input.WorkflowConfig.Invoicing.EmptyInvoiceMode == "" {
+		input.WorkflowConfig.Invoicing.EmptyInvoiceMode = billing.DefaultWorkflowConfig.Invoicing.EmptyInvoiceMode
+	}
+
 	if err := input.Validate(); err != nil {
 		return nil, billing.ValidationError{
 			Err: err,
@@ -293,6 +297,12 @@ func (s *Service) UpdateProfile(ctx context.Context, input billing.UpdateProfile
 		targetState := billing.BaseProfile(input)
 		if targetState.WorkflowConfig.Invoicing.SubscriptionEndProrationMode == "" {
 			targetState.WorkflowConfig.Invoicing.SubscriptionEndProrationMode = profile.WorkflowConfig.Invoicing.SubscriptionEndProrationMode
+		}
+
+		// Clients that predate the field (the whole v1 API) never send it, so an
+		// unset value keeps what is stored instead of resetting it.
+		if targetState.WorkflowConfig.Invoicing.EmptyInvoiceMode == "" {
+			targetState.WorkflowConfig.Invoicing.EmptyInvoiceMode = profile.WorkflowConfig.Invoicing.EmptyInvoiceMode
 		}
 
 		if err := targetState.Validate(); err != nil {

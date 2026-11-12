@@ -205,6 +205,29 @@ model BillingWorkflowInvoicingSettings {
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   subscription_end_proration_mode?: BillingWorkflowInvoicingSubscriptionEndProrationMode = BillingWorkflowInvoicingSubscriptionEndProrationMode.BillActualPeriod;
+
+  /**
+   * Controls whether empty invoices are created in the invoicing app. An invoice is
+   * empty when it has no line items or its total is zero.
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+  empty_invoice_mode?: BillingWorkflowInvoicingEmptyInvoiceMode = BillingWorkflowInvoicingEmptyInvoiceMode.Create;
+}
+
+/**
+ * Billing workflow empty invoice mode.
+ */
+@friendlyName("BillingWorkflowInvoicingEmptyInvoiceMode")
+enum BillingWorkflowInvoicingEmptyInvoiceMode {
+  /**
+   * Create the invoice in the invoicing app even when it is empty.
+   */
+  Create: "create",
+
+  /**
+   * Do not create the invoice in the invoicing app when it is empty.
+   */
+  Omit: "omit",
 }
 
 /**

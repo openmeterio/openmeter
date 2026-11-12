@@ -1638,6 +1638,7 @@ var (
 		{Name: "invoice_collection_method", Type: field.TypeEnum, Enums: []string{"charge_automatically", "send_invoice"}},
 		{Name: "invoice_progressive_billing", Type: field.TypeBool},
 		{Name: "subscription_end_proration_mode", Type: field.TypeEnum, Enums: []string{"bill_full_period", "bill_actual_period"}, Default: "bill_actual_period"},
+		{Name: "empty_invoice_mode", Type: field.TypeEnum, Enums: []string{"create", "omit"}, Default: "create"},
 		{Name: "invoice_default_tax_settings", Type: field.TypeJSON, Nullable: true},
 		{Name: "tax_enabled", Type: field.TypeBool, Default: true},
 		{Name: "tax_enforced", Type: field.TypeBool, Default: false},
@@ -1651,7 +1652,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "billing_workflow_configs_tax_codes_billing_workflow_configs",
-				Columns:    []*schema.Column{BillingWorkflowConfigsColumns[18]},
+				Columns:    []*schema.Column{BillingWorkflowConfigsColumns[19]},
 				RefColumns: []*schema.Column{TaxCodesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -1670,7 +1671,7 @@ var (
 			{
 				Name:    "billingworkflowconfig_tax_code_id",
 				Unique:  false,
-				Columns: []*schema.Column{BillingWorkflowConfigsColumns[18]},
+				Columns: []*schema.Column{BillingWorkflowConfigsColumns[19]},
 			},
 			{
 				Name:    "billingworkflowconfig_namespace_id",

@@ -813,6 +813,36 @@ func SubscriptionEndProrationModeNotIn(vs ...billing.SubscriptionEndProrationMod
 	return predicate.BillingWorkflowConfig(sql.FieldNotIn(FieldSubscriptionEndProrationMode, v...))
 }
 
+// EmptyInvoiceModeEQ applies the EQ predicate on the "empty_invoice_mode" field.
+func EmptyInvoiceModeEQ(v billing.EmptyInvoiceMode) predicate.BillingWorkflowConfig {
+	vc := v
+	return predicate.BillingWorkflowConfig(sql.FieldEQ(FieldEmptyInvoiceMode, vc))
+}
+
+// EmptyInvoiceModeNEQ applies the NEQ predicate on the "empty_invoice_mode" field.
+func EmptyInvoiceModeNEQ(v billing.EmptyInvoiceMode) predicate.BillingWorkflowConfig {
+	vc := v
+	return predicate.BillingWorkflowConfig(sql.FieldNEQ(FieldEmptyInvoiceMode, vc))
+}
+
+// EmptyInvoiceModeIn applies the In predicate on the "empty_invoice_mode" field.
+func EmptyInvoiceModeIn(vs ...billing.EmptyInvoiceMode) predicate.BillingWorkflowConfig {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.BillingWorkflowConfig(sql.FieldIn(FieldEmptyInvoiceMode, v...))
+}
+
+// EmptyInvoiceModeNotIn applies the NotIn predicate on the "empty_invoice_mode" field.
+func EmptyInvoiceModeNotIn(vs ...billing.EmptyInvoiceMode) predicate.BillingWorkflowConfig {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.BillingWorkflowConfig(sql.FieldNotIn(FieldEmptyInvoiceMode, v...))
+}
+
 // InvoiceDefaultTaxSettingsIsNil applies the IsNil predicate on the "invoice_default_tax_settings" field.
 func InvoiceDefaultTaxSettingsIsNil() predicate.BillingWorkflowConfig {
 	return predicate.BillingWorkflowConfig(sql.FieldIsNull(FieldInvoiceDefaultTaxSettings))

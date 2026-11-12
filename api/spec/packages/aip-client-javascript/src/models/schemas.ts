@@ -1147,6 +1147,10 @@ export const workflowInvoicingSubscriptionEndProrationMode = z
   .enum(['bill_full_period', 'bill_actual_period'])
   .describe('Billing workflow subscription end proration mode.')
 
+export const workflowInvoicingEmptyInvoiceMode = z
+  .enum(['create', 'omit'])
+  .describe('Billing workflow empty invoice mode.')
+
 export const updateBillingInvoiceWorkflowInvoicingSettings = z
   .object({
     autoAdvance: z
@@ -3731,6 +3735,9 @@ export const workflowInvoicingSettings = z
     subscriptionEndProrationMode: workflowInvoicingSubscriptionEndProrationMode
       .optional()
       .default('bill_actual_period'),
+    emptyInvoiceMode: workflowInvoicingEmptyInvoiceMode
+      .optional()
+      .default('create'),
   })
   .describe('Invoice settings for a billing workflow.')
 
@@ -11014,6 +11021,10 @@ export const workflowInvoicingSubscriptionEndProrationModeWire = z
   .enum(['bill_full_period', 'bill_actual_period'])
   .describe('Billing workflow subscription end proration mode.')
 
+export const workflowInvoicingEmptyInvoiceModeWire = z
+  .enum(['create', 'omit'])
+  .describe('Billing workflow empty invoice mode.')
+
 export const updateBillingInvoiceWorkflowInvoicingSettingsWire = z
   .strictObject({
     auto_advance: z
@@ -13582,6 +13593,7 @@ export const workflowInvoicingSettingsWire = z
       .describe('Should progressive billing be allowed for this workflow?'),
     subscription_end_proration_mode:
       workflowInvoicingSubscriptionEndProrationModeWire.optional(),
+    empty_invoice_mode: workflowInvoicingEmptyInvoiceModeWire.optional(),
   })
   .describe('Invoice settings for a billing workflow.')
 
