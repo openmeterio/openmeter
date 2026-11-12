@@ -326,6 +326,12 @@ func (chargesMetaMixin) Fields() []ent.Field {
 func (chargesMetaMixin) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("namespace", "subscription_id"),
+		// Customer advancement must find charges without unique references, while
+		// keeping completed history out of the lookup.
+		index.Fields("namespace", "customer_id").
+			Annotations(
+				entsql.IndexWhere("deleted_at IS NULL AND status <> 'final'"),
+			),
 		index.Fields("namespace", "customer_id", "unique_reference_id").
 			Annotations(
 				entsql.IndexWhere("unique_reference_id IS NOT NULL AND deleted_at IS NULL"),

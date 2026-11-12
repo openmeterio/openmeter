@@ -1835,6 +1835,14 @@ var (
 				Columns: []*schema.Column{ChargeCreditPurchasesColumns[15], ChargeCreditPurchasesColumns[40]},
 			},
 			{
+				Name:    "chargecreditpurchase_namespace_customer_id",
+				Unique:  false,
+				Columns: []*schema.Column{ChargeCreditPurchasesColumns[15], ChargeCreditPurchasesColumns[39]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "deleted_at IS NULL AND status <> 'final'",
+				},
+			},
+			{
 				Name:    "chargecreditpurchase_namespace_customer_id_unique_reference_id",
 				Unique:  true,
 				Columns: []*schema.Column{ChargeCreditPurchasesColumns[15], ChargeCreditPurchasesColumns[39], ChargeCreditPurchasesColumns[8]},
@@ -2230,6 +2238,14 @@ var (
 				Name:    "chargeflatfee_namespace_subscription_id",
 				Unique:  false,
 				Columns: []*schema.Column{ChargeFlatFeesColumns[15], ChargeFlatFeesColumns[38]},
+			},
+			{
+				Name:    "chargeflatfee_namespace_customer_id",
+				Unique:  false,
+				Columns: []*schema.Column{ChargeFlatFeesColumns[15], ChargeFlatFeesColumns[36]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "deleted_at IS NULL AND status <> 'final'",
+				},
 			},
 			{
 				Name:    "chargeflatfee_namespace_customer_id_unique_reference_id",
@@ -2936,6 +2952,14 @@ var (
 				Name:    "chargeusagebased_namespace_subscription_id",
 				Unique:  false,
 				Columns: []*schema.Column{ChargeUsageBasedColumns[15], ChargeUsageBasedColumns[37]},
+			},
+			{
+				Name:    "chargeusagebased_namespace_customer_id",
+				Unique:  false,
+				Columns: []*schema.Column{ChargeUsageBasedColumns[15], ChargeUsageBasedColumns[35]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "deleted_at IS NULL AND status <> 'final'",
+				},
 			},
 			{
 				Name:    "chargeusagebased_namespace_customer_id_unique_reference_id",
