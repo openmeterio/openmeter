@@ -15,8 +15,123 @@ import (
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
+
+func TestSubscriptionItemGetForSubscriptionAt(t *testing.T) {
+	// given: two namespace-scoped item chains, with item and phase deletion at the same boundary
+	at := time.Date(2026, 8, 1, 12, 0, 0, 0, time.UTC)
+	before := at.Add(-time.Hour)
+	clock.FreezeTime(before)
+	defer clock.UnFreeze()
+
+	dbDeps := subscriptiontestutils.SetupDBDeps(t)
+	defer dbDeps.Cleanup(t)
+
+	subRepo := subscriptionrepo.NewSubscriptionRepo(dbDeps.DBClient)
+	phaseRepo := subscriptionrepo.NewSubscriptionPhaseRepo(dbDeps.DBClient)
+	itemRepo := subscriptionrepo.NewSubscriptionItemRepo(dbDeps.DBClient)
+	var lookups []subscription.GetForSubscriptionAtInput
+	var items []subscription.SubscriptionItem
+
+	for _, namespace := range []string{"alpha", "beta"} {
+		customer, err := dbDeps.DBClient.Customer.Create().
+			SetNamespace(namespace).
+			SetName("Customer").
+			SetCurrency(currencyx.Code("USD")).
+			Save(t.Context())
+		require.NoError(t, err)
+
+		sub, err := subRepo.Create(t.Context(), subscription.CreateSubscriptionEntityInput{
+			NamespacedModel: models.NamespacedModel{Namespace: namespace},
+			CadencedModel:   models.CadencedModel{ActiveFrom: before},
+			Name:            "Subscription",
+			CustomerId:      customer.ID,
+			InvoiceCurrency: currencyx.Code("USD"),
+			BillingCadence:  datetime.NewISODuration(0, 1, 0, 0, 0, 0, 0),
+			BillingAnchor:   before,
+			SettlementMode:  productcatalog.CreditThenInvoiceSettlementMode,
+		})
+		require.NoError(t, err)
+
+		phase, err := phaseRepo.Create(t.Context(), subscription.CreateSubscriptionPhaseEntityInput{
+			NamespacedModel: models.NamespacedModel{Namespace: namespace},
+			SubscriptionID:  sub.ID,
+			Key:             "phase",
+			Name:            "Phase",
+			ActiveFrom:      before,
+		})
+		require.NoError(t, err)
+
+		item, err := itemRepo.Create(t.Context(), subscription.CreateSubscriptionItemEntityInput{
+			NamespacedModel: models.NamespacedModel{Namespace: namespace},
+			CadencedModel:   models.CadencedModel{ActiveFrom: before},
+			PhaseID:         phase.ID,
+			Key:             "item",
+			RateCard: &productcatalog.FlatFeeRateCard{
+				RateCardMeta: productcatalog.RateCardMeta{Key: "item", Name: "Item"},
+			},
+		})
+		require.NoError(t, err)
+		items = append(items, item)
+		lookups = append(lookups, subscription.GetForSubscriptionAtInput{
+			Namespace:      namespace,
+			SubscriptionID: sub.ID,
+			At:             before,
+		})
+	}
+
+	require.NoError(t, dbDeps.DBClient.SubscriptionItem.UpdateOneID(items[0].ID).SetDeletedAt(at).Exec(t.Context()))
+	require.NoError(t, dbDeps.DBClient.SubscriptionPhase.UpdateOneID(items[1].PhaseId).SetDeletedAt(at).Exec(t.Context()))
+
+	// The foreign key alone permits a mismatched namespace; reads must exclude it.
+	_, err := dbDeps.DBClient.SubscriptionItem.Create().
+		SetNamespace("beta").
+		SetPhaseID(items[0].PhaseId).
+		SetKey("foreign-item").
+		SetName("Foreign item").
+		SetActiveFrom(before).
+		Save(t.Context())
+	require.NoError(t, err)
+
+	t.Run("namespace isolation", func(t *testing.T) {
+		// when: reading alpha before deletion, then: only alpha's item is returned
+		loaded, err := itemRepo.GetForSubscriptionAt(t.Context(), lookups[0])
+		require.NoError(t, err)
+		require.Len(t, loaded, 1)
+		require.Equal(t, items[0].NamespacedID, loaded[0].NamespacedID)
+
+		wrongNamespace := lookups[0]
+		wrongNamespace.Namespace = "beta"
+		loaded, err = itemRepo.GetForSubscriptionAt(t.Context(), wrongNamespace)
+		require.NoError(t, err)
+		require.Empty(t, loaded)
+	})
+
+	t.Run("mixed namespace batch retains each cutoff", func(t *testing.T) {
+		// when: one namespace is read at deletion and the other before it
+		// then: only the latter's item is returned, whichever namespace it belongs to
+		for i := range lookups {
+			inputs := append([]subscription.GetForSubscriptionAtInput(nil), lookups...)
+			inputs[i].At = at
+			loaded, err := itemRepo.GetForSubscriptionsAt(t.Context(), inputs)
+			require.NoError(t, err)
+			require.Len(t, loaded, 1)
+			require.Equal(t, items[1-i].NamespacedID, loaded[0].NamespacedID)
+		}
+	})
+
+	t.Run("item and phase deletion are exclusive at the boundary", func(t *testing.T) {
+		// when: reading exactly at deletion, then: both chains are excluded
+		for _, input := range lookups {
+			input.At = at
+			loaded, err := itemRepo.GetForSubscriptionAt(t.Context(), input)
+			require.NoError(t, err)
+			require.Empty(t, loaded)
+		}
+	})
+}
 
 func TestSubscriptionItemCustomCurrencyPersistence(t *testing.T) {
 	// given:

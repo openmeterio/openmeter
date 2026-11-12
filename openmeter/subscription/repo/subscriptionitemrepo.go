@@ -61,6 +61,8 @@ func validateCurrencyReferenceForPersistence(namespace string, reference currenc
 
 func getItemForSubscriptionAtFilter(input subscription.GetForSubscriptionAtInput) predicate.SubscriptionItem {
 	return dbsubscriptionitem.And(
+		// Scope items explicitly so PostgreSQL can use the (namespace, phase_id, key) index.
+		dbsubscriptionitem.Namespace(input.Namespace),
 		dbsubscriptionitem.HasPhaseWith(getPhaseForSubscriptionAtFilter(input)),
 		dbsubscriptionitem.Or(
 			dbsubscriptionitem.DeletedAtIsNil(),
