@@ -611,6 +611,7 @@ func TestEditRunning(t *testing.T) {
 					CustomerService:    tuDeps.CustomerService,
 					CurrencyResolver:   tuDeps.CurrencyResolver,
 					FeatureResolver:    featureResolver,
+					TaxCodeResolver:    tuDeps.TaxCodeResolver,
 					TransactionManager: tuDeps.CustomerAdapter,
 					AddonService:       tuDeps.SubscriptionAddonService,
 					PlanAddonService:   tuDeps.PlanAddonService,

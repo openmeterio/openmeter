@@ -14,6 +14,7 @@ func TestNewWorkflowServiceValidatesConfig(t *testing.T) {
 	require.ErrorContains(t, err, "customer service is required")
 	require.ErrorContains(t, err, "currency resolver is required")
 	require.ErrorContains(t, err, "feature resolver is required")
+	require.ErrorContains(t, err, "tax code resolver is required")
 	require.ErrorContains(t, err, "transaction manager is required")
 	require.ErrorContains(t, err, "logger is required")
 	require.ErrorContains(t, err, "locker is required")

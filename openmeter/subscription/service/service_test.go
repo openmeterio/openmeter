@@ -1255,6 +1255,8 @@ func taxedSubscriptionItem(t *testing.T, view subscription.SubscriptionView) sub
 	return items[0].SubscriptionItem
 }
 
+// Sync stores the item's Tax Code reference as given and doesn't validate it: a deleted code
+// stays stored, pinning that the operation boundaries run the checks instead.
 func TestSubscriptionItemTaxCodeReferences(t *testing.T) {
 	currentTime := testutils.GetRFC3339Time(t, "2021-01-01T00:00:11Z")
 
@@ -1292,7 +1294,7 @@ func TestSubscriptionItemTaxCodeReferences(t *testing.T) {
 		assert.Equal(t, want, repoItem.RateCard.AsMeta().TaxConfig)
 	})
 
-	t.Run("Should reject created items referencing an unknown or deleted Tax Code", func(t *testing.T) {
+	t.Run("Should sync items referencing a deleted Tax Code", func(t *testing.T) {
 		clock.FreezeTime(currentTime)
 		defer clock.UnFreeze()
 
@@ -1311,64 +1313,33 @@ func TestSubscriptionItemTaxCodeReferences(t *testing.T) {
 
 		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
 
-		for _, tc := range []struct {
-			name      string
-			taxCodeID string
-		}{
-			{name: "unknown", taxCodeID: "01JABSENTTAXC0DE0000000000"},
-		} {
-			t.Run(tc.name, func(t *testing.T) {
-				// given: a spec whose item references the Tax Code. The plan itself has no tax config,
-				// like a plan whose Tax Code was deleted after the plan was created.
-				spec := newTaxedSpec(t, deps, cust.ID, "untaxed-plan-"+tc.name, nil, currentTime)
+		// Sync re-creates items and cannot tell an authored reference from an inherited one, so
+		// it stores the soft-deleted Tax Code as given.
+		// given: a spec whose item references the deleted Tax Code. The plan itself has no tax
+		// config, like a plan whose Tax Code was deleted after the plan was created.
+		spec := newTaxedSpec(t, deps, cust.ID, "untaxed-plan", nil, currentTime)
 
-				for _, phase := range spec.Phases {
-					for _, items := range phase.ItemsByKey {
-						for _, item := range items {
-							require.NoError(t, item.RateCard.ChangeMeta(func(m productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
-								m.TaxConfig = &productcatalog.TaxCodeConfig{TaxCodeID: tc.taxCodeID}
+		for _, phase := range spec.Phases {
+			for _, items := range phase.ItemsByKey {
+				for _, item := range items {
+					require.NoError(t, item.RateCard.ChangeMeta(func(m productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
+						m.TaxConfig = &productcatalog.TaxCodeConfig{TaxCodeID: deletedTaxCode.ID}
 
-								return m, nil
-							}))
-						}
-					}
-				}
-
-				// when: the subscription is created
-				_, err := deps.SubscriptionService.Create(t.Context(), subscriptiontestutils.ExampleNamespace, spec)
-
-				// then: it is rejected as a validation error
-				require.Error(t, err)
-				assert.True(t, models.IsGenericValidationError(err), "expected validation error, got: %v", err)
-				assert.ErrorIs(t, err, productcatalog.ErrRateCardTaxCodeNotFound)
-			})
-		}
-
-		t.Run("soft-deleted", func(t *testing.T) {
-			// given: a spec whose item references the deleted Tax Code: creating the subscription
-			// authors the reference, so it is rejected with the deleted error
-			spec := newTaxedSpec(t, deps, cust.ID, "untaxed-plan-deleted", nil, currentTime)
-
-			for _, phase := range spec.Phases {
-				for _, items := range phase.ItemsByKey {
-					for _, item := range items {
-						require.NoError(t, item.RateCard.ChangeMeta(func(m productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
-							m.TaxConfig = &productcatalog.TaxCodeConfig{TaxCodeID: deletedTaxCode.ID}
-
-							return m, nil
-						}))
-					}
+						return m, nil
+					}))
 				}
 			}
+		}
 
-			// when: the subscription is created
-			_, err := deps.SubscriptionService.Create(t.Context(), subscriptiontestutils.ExampleNamespace, spec)
+		// when: the subscription is created
+		sub, err := deps.SubscriptionService.Create(t.Context(), subscriptiontestutils.ExampleNamespace, spec)
 
-			// then: it is rejected with the deleted error, not the not-found one
-			require.Error(t, err)
-			assert.True(t, models.IsGenericValidationError(err), "expected validation error, got: %v", err)
-			assert.ErrorIs(t, err, productcatalog.ErrRateCardTaxCodeDeleted)
-		})
+		// then: the deleted reference is stored
+		require.NoError(t, err)
+
+		view, err := deps.SubscriptionService.GetView(t.Context(), sub.NamespacedID)
+		require.NoError(t, err)
+		assert.Equal(t, deletedTaxCode.ID, taxedSubscriptionItem(t, view).RateCard.AsMeta().TaxConfig.TaxCodeID)
 	})
 
 	t.Run("Should keep existing items referencing a since-deleted Tax Code on update", func(t *testing.T) {
@@ -1403,7 +1374,8 @@ func TestSubscriptionItemTaxCodeReferences(t *testing.T) {
 
 		_, err = deps.SubscriptionService.Update(t.Context(), sub.NamespacedID, spec)
 
-		// then: only created items are checked, so the existing reference survives
+		// then: sync doesn't check Tax Codes, so the item's stored reference survives and keeps
+		// billing the valid provider code behind it
 		require.NoError(t, err)
 
 		view, err = deps.SubscriptionService.GetView(t.Context(), sub.NamespacedID)

@@ -31,6 +31,7 @@ type Config struct {
 	PlanService         plan.Service
 	FeatureResolver     productcatalog.FeatureResolver
 	CurrencyResolver    currencies.CurrencyResolver
+	TaxCodeResolver     productcatalog.TaxCodeResolver
 	Logger              *slog.Logger
 	CustomerService     customer.Service
 }
@@ -56,6 +57,10 @@ func (c Config) Validate() error {
 
 	if c.CurrencyResolver == nil {
 		errs = append(errs, errors.New("currency resolver is required"))
+	}
+
+	if c.TaxCodeResolver == nil {
+		errs = append(errs, errors.New("tax code resolver is required"))
 	}
 
 	if c.Logger == nil {

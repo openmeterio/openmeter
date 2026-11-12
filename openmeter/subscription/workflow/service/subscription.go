@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"maps"
+	"time"
 
 	"github.com/samber/lo"
 
@@ -193,6 +194,70 @@ func (s *service) resolveEditPatchRateCardReferences(ctx context.Context, namesp
 	return *addItem, nil
 }
 
+// validateAddItemTaxCode rejects a deleted Tax Code unless the item version the patch
+// replaces already holds it, so a price change that echoes the rate card back passes.
+func (s *service) validateAddItemTaxCode(ctx context.Context, curr subscription.SubscriptionView, editTime time.Time, customization subscription.Patch) error {
+	var addItem patch.PatchAddItem
+
+	switch value := customization.(type) {
+	case patch.PatchAddItem:
+		addItem = value
+	case *patch.PatchAddItem:
+		addItem = *value
+	default:
+		return nil
+	}
+
+	rateCard := addItem.CreateInput.RateCard
+	if rateCard == nil {
+		return nil
+	}
+
+	cfg := rateCard.AsMeta().TaxConfig
+	if cfg == nil || cfg.TaxCodeID == "" {
+		return nil
+	}
+
+	inheritedIDs := inheritedTaxCodeIDs(curr.Spec, editTime, addItem.PhaseKey, addItem.ItemKey)
+
+	rateCards := productcatalog.RateCards{rateCard}
+
+	if err := productcatalog.ValidateRateCardTaxCodes(ctx, s.TaxCodeResolver, curr.Subscription.Namespace, rateCards, inheritedIDs...); err != nil {
+		return fmt.Errorf("invalid tax code for item %s: %w", addItem.ItemKey, err)
+	}
+
+	return nil
+}
+
+// inheritedTaxCodeIDs returns the Tax Code ID of the item version the add-item patch
+// would close. Must pick the same version as PatchAddItem.ApplyTo.
+func inheritedTaxCodeIDs(spec subscription.SubscriptionSpec, editTime time.Time, phaseKey, itemKey string) []string {
+	// Adding to a past or future phase closes nothing.
+	phase, ok := spec.GetCurrentPhaseAt(editTime)
+	if !ok || phase.PhaseKey != phaseKey {
+		return nil
+	}
+
+	for _, item := range phase.ItemsByKey[itemKey] {
+		cadence := item.GetCadence(models.CadencedModel{
+			ActiveFrom: spec.ActiveFrom,
+			ActiveTo:   spec.ActiveTo,
+		})
+		if !cadence.IsActiveAt(editTime) {
+			continue
+		}
+
+		cfg := item.RateCard.AsMeta().TaxConfig
+		if cfg == nil || cfg.TaxCodeID == "" {
+			return nil
+		}
+
+		return []string{cfg.TaxCodeID}
+	}
+
+	return nil
+}
+
 func (s *service) EditRunning(ctx context.Context, subscriptionID models.NamespacedID, customizations []subscription.Patch, timing subscription.Timing) (subscription.SubscriptionView, error) {
 	// Finally, let's update the subscription
 	return transaction.Run(ctx, s.TransactionManager, func(ctx context.Context) (subscription.SubscriptionView, error) {
@@ -269,6 +334,13 @@ func (s *service) EditRunning(ctx context.Context, subscriptionID models.Namespa
 		editTime, err := timing.ResolveForSpec(curr.Spec)
 		if err != nil {
 			return subscription.SubscriptionView{}, fmt.Errorf("failed to resolve timing: %w", err)
+		}
+
+		// Runs after the timing is resolved: the inherited Tax Code depends on the edit time.
+		for i, customization := range customizations {
+			if err := s.validateAddItemTaxCode(ctx, curr, editTime, customization); err != nil {
+				return subscription.SubscriptionView{}, models.ErrorWithComponent(models.ComponentName(fmt.Sprintf("patch[%d]", i)), err)
+			}
 		}
 
 		// Let's apply the customizations

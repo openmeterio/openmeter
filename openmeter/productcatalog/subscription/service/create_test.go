@@ -37,6 +37,7 @@ func newPlanSubscriptionService(t *testing.T, deps subscriptiontestutils.Subscri
 		FeatureResolver:     featureResolver,
 		CurrencyResolver:    deps.CurrencyResolver,
 		CustomerService:     deps.CustomerService,
+		TaxCodeResolver:     deps.TaxCodeResolver,
 	})
 	require.NoError(t, err)
 

@@ -344,7 +344,6 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		Publisher:             publisher,
 		Lockr:                 locker,
 		FeatureFlags:          ffService,
-		TaxCodeResolver:       taxCodeResolver,
 		CostBasisService:      currencyService,
 	})
 	require.NoError(t, err)
@@ -409,6 +408,7 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		Logger:             logger.With("subsystem", "subscription.workflow.service"),
 		Lockr:              locker,
 		FeatureFlags:       ffService,
+		TaxCodeResolver:    taxCodeResolver,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create subscription workflow service: %w", err)
