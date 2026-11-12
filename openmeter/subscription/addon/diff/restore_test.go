@@ -107,6 +107,9 @@ func TestRestore(t *testing.T) {
 	}))
 
 	t.Run("Should delete a single RateCard that was created by the addon and leave in place the RateCard with the same key as that was part of the subscription", withDeps(func(t *testing.T, deps *tcDeps) {
+		taxCode := deps.deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace, subscriptiontestutils.GetExampleTaxCodeInput())
+		taxConfig := subscriptiontestutils.ExampleTaxConfig(taxCode)
+
 		oneMonth := datetime.MustParseDuration(t, "P1M")
 
 		oneMonthLater, _ := oneMonth.AddTo(now)
@@ -114,7 +117,7 @@ func TestRestore(t *testing.T) {
 		env := buildSubAndAddon(
 			t,
 			&deps.deps,
-			subscriptiontestutils.BuildTestPlanInput(t).AddPhase(nil, subscriptiontestutils.ExampleRateCard1.Clone(), subscriptiontestutils.ExampleRateCard2.Clone()).Build(),
+			subscriptiontestutils.BuildTestPlanInput(t).AddPhase(nil, subscriptiontestutils.ExampleRateCard1(taxConfig), subscriptiontestutils.ExampleRateCard2.Clone()).Build(),
 			subscriptiontestutils.BuildAddonForTesting(t, productcatalog.EffectivePeriod{
 				EffectiveFrom: &now,
 			}, productcatalog.AddonInstanceTypeSingle, subscriptiontestutils.ExampleAddonRateCard1.Clone()),
@@ -143,6 +146,9 @@ func TestRestore(t *testing.T) {
 	}))
 
 	t.Run("Should delete a single RateCard from a phase where it was created by the addon but leave RateCard with same key in another phase where it was already present", withDeps(func(t *testing.T, deps *tcDeps) {
+		taxCode := deps.deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace, subscriptiontestutils.GetExampleTaxCodeInput())
+		taxConfig := subscriptiontestutils.ExampleTaxConfig(taxCode)
+
 		oneMonth := datetime.MustParseDuration(t, "P1M")
 
 		oneMonthLater, _ := oneMonth.AddTo(now)
@@ -151,7 +157,7 @@ func TestRestore(t *testing.T) {
 			t,
 			&deps.deps,
 			subscriptiontestutils.BuildTestPlanInput(t).
-				AddPhase(&oneMonth, subscriptiontestutils.ExampleRateCard1.Clone(), subscriptiontestutils.ExampleRateCard2.Clone()).
+				AddPhase(&oneMonth, subscriptiontestutils.ExampleRateCard1(taxConfig), subscriptiontestutils.ExampleRateCard2.Clone()).
 				AddPhase(nil, subscriptiontestutils.ExampleRateCard2.Clone()).
 				Build(),
 			subscriptiontestutils.BuildAddonForTesting(t, productcatalog.EffectivePeriod{
@@ -178,11 +184,14 @@ func TestRestore(t *testing.T) {
 	}))
 
 	t.Run("Should restore a single RateCard by undoing the effects of the addon RateCard restoring original entitlement template", withDeps(func(t *testing.T, deps *tcDeps) {
+		taxCode := deps.deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace, subscriptiontestutils.GetExampleTaxCodeInput())
+		taxConfig := subscriptiontestutils.ExampleTaxConfig(taxCode)
+
 		env := buildSubAndAddon(
 			t,
 			&deps.deps,
 			subscriptiontestutils.BuildTestPlanInput(t).
-				AddPhase(nil, subscriptiontestutils.ExampleRateCard1.Clone()).
+				AddPhase(nil, subscriptiontestutils.ExampleRateCard1(taxConfig)).
 				Build(),
 			subscriptiontestutils.BuildAddonForTesting(t, productcatalog.EffectivePeriod{
 				EffectiveFrom: &now,
@@ -208,13 +217,16 @@ func TestRestore(t *testing.T) {
 	}))
 
 	t.Run("Should restore a single RateCard and delete subsequent created RateCards", withDeps(func(t *testing.T, deps *tcDeps) {
+		taxCode := deps.deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace, subscriptiontestutils.GetExampleTaxCodeInput())
+		taxConfig := subscriptiontestutils.ExampleTaxConfig(taxCode)
+
 		oneMonth := datetime.MustParseDuration(t, "P1M")
 
 		env := buildSubAndAddon(
 			t,
 			&deps.deps,
 			subscriptiontestutils.BuildTestPlanInput(t).
-				AddPhase(nil, subscriptiontestutils.ExampleRateCard1.Clone()).
+				AddPhase(nil, subscriptiontestutils.ExampleRateCard1(taxConfig)).
 				Build(),
 			subscriptiontestutils.BuildAddonForTesting(t, productcatalog.EffectivePeriod{
 				EffectiveFrom: &now,
@@ -244,6 +256,9 @@ func TestRestore(t *testing.T) {
 	}))
 
 	t.Run("Should restore a single RateCard and then delete it in the later step", withDeps(func(t *testing.T, deps *tcDeps) {
+		taxCode := deps.deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace, subscriptiontestutils.GetExampleTaxCodeInput())
+		taxConfig := subscriptiontestutils.ExampleTaxConfig(taxCode)
+
 		// First we add apply an AddonRateCard once,
 		// then twice,
 		// then remove it once, (which should leave the first addition in place)
@@ -254,7 +269,7 @@ func TestRestore(t *testing.T) {
 			t,
 			&deps.deps,
 			subscriptiontestutils.BuildTestPlanInput(t).
-				AddPhase(nil, subscriptiontestutils.ExampleRateCard1.Clone()).
+				AddPhase(nil, subscriptiontestutils.ExampleRateCard1(taxConfig)).
 				Build(),
 			subscriptiontestutils.BuildAddonForTesting(t, productcatalog.EffectivePeriod{
 				EffectiveFrom: &now,
@@ -303,6 +318,9 @@ func TestRestore(t *testing.T) {
 	}))
 
 	t.Run("Should re-combine single split item when restoring", withDeps(func(t *testing.T, deps *tcDeps) {
+		taxCode := deps.deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace, subscriptiontestutils.GetExampleTaxCodeInput())
+		taxConfig := subscriptiontestutils.ExampleTaxConfig(taxCode)
+
 		oneMonth := datetime.MustParseDuration(t, "P1M")
 
 		oneMonthLater, _ := oneMonth.AddTo(now)
@@ -311,7 +329,7 @@ func TestRestore(t *testing.T) {
 			t,
 			&deps.deps,
 			subscriptiontestutils.BuildTestPlanInput(t).
-				AddPhase(nil, subscriptiontestutils.ExampleRateCard1.Clone()).
+				AddPhase(nil, subscriptiontestutils.ExampleRateCard1(taxConfig)).
 				Build(),
 			subscriptiontestutils.BuildAddonForTesting(t, productcatalog.EffectivePeriod{
 				EffectiveFrom: &now,
@@ -338,6 +356,9 @@ func TestRestore(t *testing.T) {
 	}))
 
 	t.Run("Should not recombine different original items into one", withDeps(func(t *testing.T, deps *tcDeps) {
+		taxCode := deps.deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace, subscriptiontestutils.GetExampleTaxCodeInput())
+		taxConfig := subscriptiontestutils.ExampleTaxConfig(taxCode)
+
 		twoMonths := datetime.MustParseDuration(t, "P2M")
 
 		twoMonthsLater, _ := twoMonths.AddTo(now)
@@ -359,7 +380,7 @@ func TestRestore(t *testing.T) {
 					},
 					SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 				}).
-				AddPhase(nil, subscriptiontestutils.ExampleRateCard1.Clone()).
+				AddPhase(nil, subscriptiontestutils.ExampleRateCard1(taxConfig)).
 				Build(),
 			subscriptiontestutils.BuildAddonForTesting(t, productcatalog.EffectivePeriod{
 				EffectiveFrom: &now,
@@ -368,7 +389,7 @@ func TestRestore(t *testing.T) {
 
 		sView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps.deps, p, now)
 
-		ogItem := sView.Spec.Phases["test_phase_1"].ItemsByKey[subscriptiontestutils.ExampleRateCard1.Key()][0]
+		ogItem := sView.Spec.Phases["test_phase_1"].ItemsByKey[subscriptiontestutils.ExampleFeatureKey][0]
 
 		require.NoError(t, ogItem.RateCard.ChangeMeta(func(m productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
 			m.Name = "Different Name for This one"
@@ -385,17 +406,17 @@ func TestRestore(t *testing.T) {
 			[]subscription.Patch{
 				patch.PatchRemoveItem{
 					PhaseKey: "test_phase_1",
-					ItemKey:  subscriptiontestutils.ExampleRateCard1.Key(),
+					ItemKey:  subscriptiontestutils.ExampleFeatureKey,
 				},
 				patch.PatchAddItem{
 					PhaseKey: "test_phase_1",
-					ItemKey:  subscriptiontestutils.ExampleRateCard1.Key(),
+					ItemKey:  subscriptiontestutils.ExampleFeatureKey,
 					CreateInput: subscription.SubscriptionItemSpec{
 						CreateSubscriptionItemInput: subscription.CreateSubscriptionItemInput{
 							Annotations: ogItem.Annotations,
 							CreateSubscriptionItemPlanInput: subscription.CreateSubscriptionItemPlanInput{
 								PhaseKey: "test_phase_1",
-								ItemKey:  subscriptiontestutils.ExampleRateCard1.Key(),
+								ItemKey:  subscriptiontestutils.ExampleFeatureKey,
 								RateCard: ogItem.RateCard,
 							},
 						},
@@ -508,11 +529,14 @@ func TestRestore(t *testing.T) {
 	})
 
 	t.Run("Should respect addon quantity when restoring", withDeps(func(t *testing.T, deps *tcDeps) {
+		taxCode := deps.deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace, subscriptiontestutils.GetExampleTaxCodeInput())
+		taxConfig := subscriptiontestutils.ExampleTaxConfig(taxCode)
+
 		env := buildSubAndMultiInstanceAddon(
 			t,
 			&deps.deps,
 			subscriptiontestutils.BuildTestPlanInput(t).
-				AddPhase(nil, subscriptiontestutils.ExampleRateCard1.Clone()).
+				AddPhase(nil, subscriptiontestutils.ExampleRateCard1(taxConfig)).
 				Build(),
 			subscriptiontestutils.BuildAddonForTesting(t, productcatalog.EffectivePeriod{
 				EffectiveFrom: &now,
@@ -554,6 +578,9 @@ func TestRestore(t *testing.T) {
 	}))
 
 	t.Run("Should apply and remove same single instance addon 4 times in a row with slightly progressive times", withDeps(func(t *testing.T, deps *tcDeps) {
+		taxCode := deps.deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace, subscriptiontestutils.GetExampleTaxCodeInput())
+		taxConfig := subscriptiontestutils.ExampleTaxConfig(taxCode)
+
 		// We will set up a subscriptionAddon which has a series of quantities set:
 		// 1st, single quantity with 1 at t1
 		// 2nd, two quantities, second with 0 at t2
@@ -572,7 +599,7 @@ func TestRestore(t *testing.T) {
 			deps.deps,
 			subscriptiontestutils.BuildTestPlanInput(t).
 				AddPhase(nil,
-					subscriptiontestutils.ExampleRateCard1.Clone(), // Flat price
+					subscriptiontestutils.ExampleRateCard1(taxConfig), // Flat price
 					&productcatalog.UsageBasedRateCard{ // Dynamic price
 						RateCardMeta: productcatalog.RateCardMeta{
 							Key:     subscriptiontestutils.ExampleFeatureKey2,

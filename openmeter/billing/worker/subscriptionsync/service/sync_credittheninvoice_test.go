@@ -4000,9 +4000,9 @@ func (s *CreditThenInvoiceTestSuite) TestGatheringManualEditSync() {
 
 	defaultTaxCodes, err := s.TaxCodeEnv.Service.GetOrganizationDefaultTaxCodes(ctx, taxcode.GetOrganizationDefaultTaxCodesInput{Namespace: s.Namespace})
 	s.NoError(err)
-	baseTaxConfig := &productcatalog.TaxConfig{
+	baseTaxConfig := &productcatalog.TaxCodeConfig{
 		Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
-		TaxCodeID: lo.ToPtr(defaultTaxCodes.InvoicingTaxCodeID),
+		TaxCodeID: defaultTaxCodes.InvoicingTaxCodeID,
 	}
 
 	subsView := s.createSubscriptionFromPlan(plan.CreatePlanInput{
@@ -4060,7 +4060,7 @@ func (s *CreditThenInvoiceTestSuite) TestGatheringManualEditSync() {
 		},
 		Amount:      7,
 		PaymentTerm: productcatalog.InAdvancePaymentTerm,
-		TaxConfig:   productcatalog.TaxCodeConfigFrom(baseTaxConfig),
+		TaxConfig:   *baseTaxConfig,
 	}
 	updatedIntent.InvoiceAt = updatedIntent.ServicePeriod.To
 
@@ -4122,7 +4122,7 @@ func (s *CreditThenInvoiceTestSuite) TestGatheringManualEditSync() {
 			InvoiceAt:     originalLine.InvoiceAt,
 			Amount:        5,
 			PaymentTerm:   productcatalog.InArrearsPaymentTerm,
-			TaxConfig:     productcatalog.TaxCodeConfigFrom(baseTaxConfig),
+			TaxConfig:     *baseTaxConfig,
 		}, updatedIntent)
 	})
 
@@ -4151,7 +4151,7 @@ func (s *CreditThenInvoiceTestSuite) TestGatheringManualEditSync() {
 			InvoiceAt:     originalLine.InvoiceAt,
 			Amount:        5,
 			PaymentTerm:   productcatalog.InArrearsPaymentTerm,
-			TaxConfig:     productcatalog.TaxCodeConfigFrom(baseTaxConfig),
+			TaxConfig:     *baseTaxConfig,
 		}, updatedIntent)
 	})
 
@@ -4198,7 +4198,7 @@ func (s *CreditThenInvoiceTestSuite) TestGatheringManualEditSync() {
 			InvoiceAt:   cancelAt,
 			Amount:      5,
 			PaymentTerm: productcatalog.InArrearsPaymentTerm,
-			TaxConfig:   productcatalog.TaxCodeConfigFrom(baseTaxConfig),
+			TaxConfig:   *baseTaxConfig,
 		}, updatedIntent)
 	})
 
@@ -4262,9 +4262,9 @@ func (s *CreditThenInvoiceTestSuite) TestGatheringManualCreateSync() {
 
 	defaultTaxCodes, err := s.TaxCodeEnv.Service.GetOrganizationDefaultTaxCodes(ctx, taxcode.GetOrganizationDefaultTaxCodesInput{Namespace: s.Namespace})
 	s.NoError(err)
-	subscriptionTaxConfig := &productcatalog.TaxConfig{
+	subscriptionTaxConfig := &productcatalog.TaxCodeConfig{
 		Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
-		TaxCodeID: lo.ToPtr(defaultTaxCodes.InvoicingTaxCodeID),
+		TaxCodeID: defaultTaxCodes.InvoicingTaxCodeID,
 	}
 	manualTaxConfig := productcatalog.TaxCodeConfig{
 		TaxCodeID: defaultTaxCodes.InvoicingTaxCodeID,
@@ -4638,9 +4638,9 @@ func (s *CreditThenInvoiceTestSuite) TestGatheringManualDeleteSync() {
 		// - sync creates one customer-facing charge-backed gathering line
 		defaultTaxCodes, err := s.TaxCodeEnv.Service.GetOrganizationDefaultTaxCodes(ctx, taxcode.GetOrganizationDefaultTaxCodesInput{Namespace: s.Namespace})
 		s.NoError(err)
-		baseTaxConfig := &productcatalog.TaxConfig{
+		baseTaxConfig := &productcatalog.TaxCodeConfig{
 			Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
-			TaxCodeID: lo.ToPtr(defaultTaxCodes.InvoicingTaxCodeID),
+			TaxCodeID: defaultTaxCodes.InvoicingTaxCodeID,
 		}
 
 		subsView = s.createSubscriptionFromPlan(plan.CreatePlanInput{
@@ -4973,9 +4973,9 @@ func (s *CreditThenInvoiceTestSuite) TestStandardInvoiceManualEditSync() {
 
 	defaultTaxCodes, err := s.TaxCodeEnv.Service.GetOrganizationDefaultTaxCodes(ctx, taxcode.GetOrganizationDefaultTaxCodesInput{Namespace: s.Namespace})
 	s.NoError(err)
-	baseTaxConfig := &productcatalog.TaxConfig{
+	baseTaxConfig := &productcatalog.TaxCodeConfig{
 		Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
-		TaxCodeID: lo.ToPtr(defaultTaxCodes.InvoicingTaxCodeID),
+		TaxCodeID: defaultTaxCodes.InvoicingTaxCodeID,
 	}
 
 	s.createPromotionalCreditFunding(ctx, createPromotionalCreditFundingInput{
@@ -5088,7 +5088,7 @@ func (s *CreditThenInvoiceTestSuite) TestStandardInvoiceManualEditSync() {
 		InvoiceAt:   chargeBeforeEdit.Intent.GetEffectiveInvoiceAt(),
 		Amount:      7,
 		PaymentTerm: productcatalog.InAdvancePaymentTerm,
-		TaxConfig:   productcatalog.TaxCodeConfigFrom(baseTaxConfig),
+		TaxConfig:   *baseTaxConfig,
 	}
 
 	var updatedLine *billing.StandardLine
@@ -5146,14 +5146,14 @@ func (s *CreditThenInvoiceTestSuite) TestStandardInvoiceManualEditSync() {
 	s.Equal(updatedIntent.PaymentTerm, editedFlatPrice.PaymentTerm)
 
 	s.Require().NotNil(editedInvoiceLine.TaxConfig)
-	s.True(baseTaxConfig.Equal(editedInvoiceLine.TaxConfig.ToProductCatalog()), "edited standard line should keep base tax config")
+	s.True(lo.ToPtr(baseTaxConfig.ToTaxConfig()).Equal(editedInvoiceLine.TaxConfig.ToProductCatalog()), "edited standard line should keep base tax config")
 
 	s.assertFlatFeeChargeIntentsForInvoiceLine(ctx, "after standard line manual edit", updatedLine, expectedFlatFeeIntent{
 		ServicePeriod: originalLine.Period,
 		InvoiceAt:     chargeBeforeEdit.Intent.GetBaseIntent().InvoiceAt,
 		Amount:        5,
 		PaymentTerm:   productcatalog.InArrearsPaymentTerm,
-		TaxConfig:     productcatalog.TaxCodeConfigFrom(baseTaxConfig),
+		TaxConfig:     *baseTaxConfig,
 	}, updatedIntent)
 
 	chargeAfterEdit := s.mustGetFlatFeeChargeForInvoiceLineWithExpands(ctx, updatedLine, chargesmeta.Expands{chargesmeta.ExpandRealizations})
@@ -8635,9 +8635,9 @@ func (s *CreditThenInvoiceTestSuite) TestRateCardTaxSyncFlatFee() {
 	defaults, err := s.TaxCodeEnv.Service.GetOrganizationDefaultTaxCodes(ctx, taxcode.GetOrganizationDefaultTaxCodesInput{Namespace: s.Namespace})
 	s.Require().NoError(err)
 
-	taxConfig := &productcatalog.TaxConfig{
+	taxConfig := &productcatalog.TaxCodeConfig{
 		Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
-		TaxCodeID: lo.ToPtr(defaults.InvoicingTaxCodeID),
+		TaxCodeID: defaults.InvoicingTaxCodeID,
 	}
 
 	var subsView subscription.SubscriptionView
@@ -8805,9 +8805,9 @@ func (s *CreditThenInvoiceTestSuite) TestRateCardTaxSyncUsageBased() {
 	defaults, err := s.TaxCodeEnv.Service.GetOrganizationDefaultTaxCodes(ctx, taxcode.GetOrganizationDefaultTaxCodesInput{Namespace: s.Namespace})
 	s.Require().NoError(err)
 
-	taxConfig := &productcatalog.TaxConfig{
+	taxConfig := &productcatalog.TaxCodeConfig{
 		Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
-		TaxCodeID: lo.ToPtr(defaults.InvoicingTaxCodeID),
+		TaxCodeID: defaults.InvoicingTaxCodeID,
 	}
 
 	var subsView subscription.SubscriptionView
@@ -11090,30 +11090,30 @@ func (s *CreditThenInvoiceTestSuite) assertFlatFeeChargeIntentsForInvoiceLine(ct
 	s.assertFlatFeeIntent(label+": override intent", overrideIntent, expectedOverride)
 }
 
-func (s *CreditThenInvoiceTestSuite) assertGatheringLineTaxConfigs(lines []billing.GatheringLine, expected *productcatalog.TaxConfig) {
+func (s *CreditThenInvoiceTestSuite) assertGatheringLineTaxConfigs(lines []billing.GatheringLine, expected *productcatalog.TaxCodeConfig) {
 	s.T().Helper()
 
 	s.Require().NotEmpty(lines)
 	for _, line := range lines {
 		s.Require().NotNil(line.TaxConfig)
-		s.True(expected.Equal(line.TaxConfig), "line %s tax config: expected %+v, got %+v", line.ID, expected, line.TaxConfig)
+		s.True(lo.ToPtr(expected.ToTaxConfig()).Equal(line.TaxConfig), "line %s tax config: expected %+v, got %+v", line.ID, expected, line.TaxConfig)
 	}
 }
 
-func (s *CreditThenInvoiceTestSuite) assertStandardLineTaxConfigs(lines []*billing.StandardLine, expected *productcatalog.TaxConfig) {
+func (s *CreditThenInvoiceTestSuite) assertStandardLineTaxConfigs(lines []*billing.StandardLine, expected *productcatalog.TaxCodeConfig) {
 	s.T().Helper()
 
 	s.Require().NotEmpty(lines)
 	for _, line := range lines {
 		s.Require().NotNil(line.TaxConfig)
-		s.True(expected.Equal(line.TaxConfig.ToProductCatalog()), "line %s tax config: expected %+v, got %+v", line.ID, expected, line.TaxConfig)
+		s.True(lo.ToPtr(expected.ToTaxConfig()).Equal(line.TaxConfig.ToProductCatalog()), "line %s tax config: expected %+v, got %+v", line.ID, expected, line.TaxConfig)
 	}
 }
 
-func (s *CreditThenInvoiceTestSuite) assertCreditThenInvoiceChargeTaxConfigs(ctx context.Context, subscriptionID string, chargeType chargesmeta.ChargeType, expected *productcatalog.TaxConfig) {
+func (s *CreditThenInvoiceTestSuite) assertCreditThenInvoiceChargeTaxConfigs(ctx context.Context, subscriptionID string, chargeType chargesmeta.ChargeType, expected *productcatalog.TaxCodeConfig) {
 	s.T().Helper()
 
-	expectedChargeTaxConfig := productcatalog.TaxCodeConfigFrom(expected)
+	expectedChargeTaxConfig := lo.FromPtr(expected)
 	res, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
 		Namespace:       s.Namespace,
 		SubscriptionIDs: []string{subscriptionID},

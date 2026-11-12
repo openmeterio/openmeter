@@ -5,6 +5,7 @@ import (
 	"slices"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
@@ -129,7 +130,7 @@ func resolveUsageBasedRealizations(charge usagebased.Charge, invoiceLinesByID ma
 		entry := charges.CustomerChargeUsageBasedRealization{
 			Run:           &runs[idx],
 			ServicePeriod: runPeriod,
-			Quantity:      run.MeteredQuantity.Sub(priorQuantity),
+			Quantity:      lo.ToPtr(run.MeteredQuantity.Sub(priorQuantity)),
 			Voided:        voided,
 		}
 
@@ -150,7 +151,6 @@ func resolveUsageBasedRealizations(charge usagebased.Charge, invoiceLinesByID ma
 	if status != meta.ChargeStatusFinal && status != meta.ChargeStatusDeleted && maxCoveredTo.Before(servicePeriodTo) {
 		outstanding := charges.CustomerChargeUsageBasedRealization{
 			ServicePeriod: timeutil.ClosedPeriod{From: maxCoveredTo, To: servicePeriodTo},
-			Quantity:      alpacadecimal.Zero,
 		}
 
 		// The unrealized remainder is the live read minus the cumulative of
@@ -167,7 +167,7 @@ func resolveUsageBasedRealizations(charge usagebased.Charge, invoiceLinesByID ma
 				realtimeOutstanding = alpacadecimal.Zero
 			}
 
-			outstanding.Quantity = realtimeOutstanding
+			outstanding.Quantity = &realtimeOutstanding
 		}
 
 		out = append(out, outstanding)

@@ -33,11 +33,12 @@ func (s *service) postInvoicePaymentAuthorized(ctx context.Context, charge flatf
 				return fmt.Errorf("validating existing invoice payment: %w", err)
 			}
 
-			if run.Payment.DeletedAt == nil &&
-				run.Payment.Namespace == charge.Namespace &&
-				run.Payment.InvoiceID == lineWithHeader.Invoice.ID &&
-				run.Payment.LineID == lineWithHeader.Line.ID &&
-				run.Payment.FiatAmount.Equal(fiatAmount) {
+			if run.Payment.IsBookedFor(payment.BookingKey{
+				Namespace:  charge.Namespace,
+				InvoiceID:  lineWithHeader.Invoice.ID,
+				LineID:     lineWithHeader.Line.ID,
+				FiatAmount: fiatAmount,
+			}) {
 				return nil
 			}
 
@@ -116,8 +117,24 @@ func (s *service) postInvoicePaymentSettled(ctx context.Context, charge flatfee.
 			return fmt.Errorf("payment settlement line ID does not match the line ID: %s != %s", paymentSettlement.LineID, lineWithHeader.Line.ID)
 		}
 
+		alreadySettled, err := paymentSettlement.IsSettledFor(payment.BookingKey{
+			Namespace:  charge.Namespace,
+			InvoiceID:  lineWithHeader.Invoice.ID,
+			LineID:     lineWithHeader.Line.ID,
+			FiatAmount: fiatAmount,
+		})
+		if err != nil {
+			return err
+		}
+
+		if alreadySettled {
+			return nil
+		}
+
 		if paymentSettlement.Status != payment.StatusAuthorized {
-			return payment.ErrPaymentAlreadySettled.WithAttrs(charge.ErrorAttributes())
+			return payment.ErrPaymentBookingMismatch.
+				WithAttrs(charge.ErrorAttributes()).
+				WithAttrs(paymentSettlement.ErrorAttributes())
 		}
 
 		eventAt := clock.Now()

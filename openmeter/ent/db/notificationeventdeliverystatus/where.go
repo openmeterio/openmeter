@@ -3,6 +3,8 @@
 package notificationeventdeliverystatus
 
 import (
+	"encoding/json/jsontext"
+	"fmt"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
@@ -91,6 +93,22 @@ func ChannelID(v string) predicate.NotificationEventDeliveryStatus {
 	return predicate.NotificationEventDeliveryStatus(sql.FieldEQ(FieldChannelID, v))
 }
 
+// State applies equality check predicate on the "state" field. It's identical to StateEQ.
+func State(v notification.EventDeliveryStatusState) predicate.NotificationEventDeliveryStatus {
+	vc := string(v)
+	return predicate.NotificationEventDeliveryStatus(sql.FieldEQ(FieldState, vc))
+}
+
+// DispatchGeneration applies equality check predicate on the "dispatch_generation" field. It's identical to DispatchGenerationEQ.
+func DispatchGeneration(v int) predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldEQ(FieldDispatchGeneration, v))
+}
+
+// DispatchQueuedAt applies equality check predicate on the "dispatch_queued_at" field. It's identical to DispatchQueuedAtEQ.
+func DispatchQueuedAt(v time.Time) predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldEQ(FieldDispatchQueuedAt, v))
+}
+
 // Reason applies equality check predicate on the "reason" field. It's identical to ReasonEQ.
 func Reason(v string) predicate.NotificationEventDeliveryStatus {
 	return predicate.NotificationEventDeliveryStatus(sql.FieldEQ(FieldReason, v))
@@ -99,6 +117,12 @@ func Reason(v string) predicate.NotificationEventDeliveryStatus {
 // NextAttemptAt applies equality check predicate on the "next_attempt_at" field. It's identical to NextAttemptAtEQ.
 func NextAttemptAt(v time.Time) predicate.NotificationEventDeliveryStatus {
 	return predicate.NotificationEventDeliveryStatus(sql.FieldEQ(FieldNextAttemptAt, v))
+}
+
+// Attempts applies equality check predicate on the "attempts" field. It's identical to AttemptsEQ.
+func Attempts(v jsontext.Value) predicate.NotificationEventDeliveryStatus {
+	vc, err := ValueScanner.Attempts.Value(v)
+	return predicate.NotificationEventDeliveryStatusOrErr(sql.FieldEQ(FieldAttempts, vc), err)
 }
 
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
@@ -388,13 +412,13 @@ func ChannelIDContainsFold(v string) predicate.NotificationEventDeliveryStatus {
 
 // StateEQ applies the EQ predicate on the "state" field.
 func StateEQ(v notification.EventDeliveryStatusState) predicate.NotificationEventDeliveryStatus {
-	vc := v
+	vc := string(v)
 	return predicate.NotificationEventDeliveryStatus(sql.FieldEQ(FieldState, vc))
 }
 
 // StateNEQ applies the NEQ predicate on the "state" field.
 func StateNEQ(v notification.EventDeliveryStatusState) predicate.NotificationEventDeliveryStatus {
-	vc := v
+	vc := string(v)
 	return predicate.NotificationEventDeliveryStatus(sql.FieldNEQ(FieldState, vc))
 }
 
@@ -402,7 +426,7 @@ func StateNEQ(v notification.EventDeliveryStatusState) predicate.NotificationEve
 func StateIn(vs ...notification.EventDeliveryStatusState) predicate.NotificationEventDeliveryStatus {
 	v := make([]any, len(vs))
 	for i := range v {
-		v[i] = vs[i]
+		v[i] = string(vs[i])
 	}
 	return predicate.NotificationEventDeliveryStatus(sql.FieldIn(FieldState, v...))
 }
@@ -411,9 +435,153 @@ func StateIn(vs ...notification.EventDeliveryStatusState) predicate.Notification
 func StateNotIn(vs ...notification.EventDeliveryStatusState) predicate.NotificationEventDeliveryStatus {
 	v := make([]any, len(vs))
 	for i := range v {
-		v[i] = vs[i]
+		v[i] = string(vs[i])
 	}
 	return predicate.NotificationEventDeliveryStatus(sql.FieldNotIn(FieldState, v...))
+}
+
+// StateGT applies the GT predicate on the "state" field.
+func StateGT(v notification.EventDeliveryStatusState) predicate.NotificationEventDeliveryStatus {
+	vc := string(v)
+	return predicate.NotificationEventDeliveryStatus(sql.FieldGT(FieldState, vc))
+}
+
+// StateGTE applies the GTE predicate on the "state" field.
+func StateGTE(v notification.EventDeliveryStatusState) predicate.NotificationEventDeliveryStatus {
+	vc := string(v)
+	return predicate.NotificationEventDeliveryStatus(sql.FieldGTE(FieldState, vc))
+}
+
+// StateLT applies the LT predicate on the "state" field.
+func StateLT(v notification.EventDeliveryStatusState) predicate.NotificationEventDeliveryStatus {
+	vc := string(v)
+	return predicate.NotificationEventDeliveryStatus(sql.FieldLT(FieldState, vc))
+}
+
+// StateLTE applies the LTE predicate on the "state" field.
+func StateLTE(v notification.EventDeliveryStatusState) predicate.NotificationEventDeliveryStatus {
+	vc := string(v)
+	return predicate.NotificationEventDeliveryStatus(sql.FieldLTE(FieldState, vc))
+}
+
+// StateContains applies the Contains predicate on the "state" field.
+func StateContains(v notification.EventDeliveryStatusState) predicate.NotificationEventDeliveryStatus {
+	vc := string(v)
+	return predicate.NotificationEventDeliveryStatus(sql.FieldContains(FieldState, vc))
+}
+
+// StateHasPrefix applies the HasPrefix predicate on the "state" field.
+func StateHasPrefix(v notification.EventDeliveryStatusState) predicate.NotificationEventDeliveryStatus {
+	vc := string(v)
+	return predicate.NotificationEventDeliveryStatus(sql.FieldHasPrefix(FieldState, vc))
+}
+
+// StateHasSuffix applies the HasSuffix predicate on the "state" field.
+func StateHasSuffix(v notification.EventDeliveryStatusState) predicate.NotificationEventDeliveryStatus {
+	vc := string(v)
+	return predicate.NotificationEventDeliveryStatus(sql.FieldHasSuffix(FieldState, vc))
+}
+
+// StateEqualFold applies the EqualFold predicate on the "state" field.
+func StateEqualFold(v notification.EventDeliveryStatusState) predicate.NotificationEventDeliveryStatus {
+	vc := string(v)
+	return predicate.NotificationEventDeliveryStatus(sql.FieldEqualFold(FieldState, vc))
+}
+
+// StateContainsFold applies the ContainsFold predicate on the "state" field.
+func StateContainsFold(v notification.EventDeliveryStatusState) predicate.NotificationEventDeliveryStatus {
+	vc := string(v)
+	return predicate.NotificationEventDeliveryStatus(sql.FieldContainsFold(FieldState, vc))
+}
+
+// DispatchGenerationEQ applies the EQ predicate on the "dispatch_generation" field.
+func DispatchGenerationEQ(v int) predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldEQ(FieldDispatchGeneration, v))
+}
+
+// DispatchGenerationNEQ applies the NEQ predicate on the "dispatch_generation" field.
+func DispatchGenerationNEQ(v int) predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldNEQ(FieldDispatchGeneration, v))
+}
+
+// DispatchGenerationIn applies the In predicate on the "dispatch_generation" field.
+func DispatchGenerationIn(vs ...int) predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldIn(FieldDispatchGeneration, vs...))
+}
+
+// DispatchGenerationNotIn applies the NotIn predicate on the "dispatch_generation" field.
+func DispatchGenerationNotIn(vs ...int) predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldNotIn(FieldDispatchGeneration, vs...))
+}
+
+// DispatchGenerationGT applies the GT predicate on the "dispatch_generation" field.
+func DispatchGenerationGT(v int) predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldGT(FieldDispatchGeneration, v))
+}
+
+// DispatchGenerationGTE applies the GTE predicate on the "dispatch_generation" field.
+func DispatchGenerationGTE(v int) predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldGTE(FieldDispatchGeneration, v))
+}
+
+// DispatchGenerationLT applies the LT predicate on the "dispatch_generation" field.
+func DispatchGenerationLT(v int) predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldLT(FieldDispatchGeneration, v))
+}
+
+// DispatchGenerationLTE applies the LTE predicate on the "dispatch_generation" field.
+func DispatchGenerationLTE(v int) predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldLTE(FieldDispatchGeneration, v))
+}
+
+// DispatchQueuedAtEQ applies the EQ predicate on the "dispatch_queued_at" field.
+func DispatchQueuedAtEQ(v time.Time) predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldEQ(FieldDispatchQueuedAt, v))
+}
+
+// DispatchQueuedAtNEQ applies the NEQ predicate on the "dispatch_queued_at" field.
+func DispatchQueuedAtNEQ(v time.Time) predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldNEQ(FieldDispatchQueuedAt, v))
+}
+
+// DispatchQueuedAtIn applies the In predicate on the "dispatch_queued_at" field.
+func DispatchQueuedAtIn(vs ...time.Time) predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldIn(FieldDispatchQueuedAt, vs...))
+}
+
+// DispatchQueuedAtNotIn applies the NotIn predicate on the "dispatch_queued_at" field.
+func DispatchQueuedAtNotIn(vs ...time.Time) predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldNotIn(FieldDispatchQueuedAt, vs...))
+}
+
+// DispatchQueuedAtGT applies the GT predicate on the "dispatch_queued_at" field.
+func DispatchQueuedAtGT(v time.Time) predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldGT(FieldDispatchQueuedAt, v))
+}
+
+// DispatchQueuedAtGTE applies the GTE predicate on the "dispatch_queued_at" field.
+func DispatchQueuedAtGTE(v time.Time) predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldGTE(FieldDispatchQueuedAt, v))
+}
+
+// DispatchQueuedAtLT applies the LT predicate on the "dispatch_queued_at" field.
+func DispatchQueuedAtLT(v time.Time) predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldLT(FieldDispatchQueuedAt, v))
+}
+
+// DispatchQueuedAtLTE applies the LTE predicate on the "dispatch_queued_at" field.
+func DispatchQueuedAtLTE(v time.Time) predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldLTE(FieldDispatchQueuedAt, v))
+}
+
+// DispatchQueuedAtIsNil applies the IsNil predicate on the "dispatch_queued_at" field.
+func DispatchQueuedAtIsNil() predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldIsNull(FieldDispatchQueuedAt))
+}
+
+// DispatchQueuedAtNotNil applies the NotNil predicate on the "dispatch_queued_at" field.
+func DispatchQueuedAtNotNil() predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldNotNull(FieldDispatchQueuedAt))
 }
 
 // ReasonEQ applies the EQ predicate on the "reason" field.
@@ -541,6 +709,100 @@ func NextAttemptAtNotNil() predicate.NotificationEventDeliveryStatus {
 	return predicate.NotificationEventDeliveryStatus(sql.FieldNotNull(FieldNextAttemptAt))
 }
 
+// AttemptsEQ applies the EQ predicate on the "attempts" field.
+func AttemptsEQ(v jsontext.Value) predicate.NotificationEventDeliveryStatus {
+	vc, err := ValueScanner.Attempts.Value(v)
+	return predicate.NotificationEventDeliveryStatusOrErr(sql.FieldEQ(FieldAttempts, vc), err)
+}
+
+// AttemptsNEQ applies the NEQ predicate on the "attempts" field.
+func AttemptsNEQ(v jsontext.Value) predicate.NotificationEventDeliveryStatus {
+	vc, err := ValueScanner.Attempts.Value(v)
+	return predicate.NotificationEventDeliveryStatusOrErr(sql.FieldNEQ(FieldAttempts, vc), err)
+}
+
+// AttemptsIn applies the In predicate on the "attempts" field.
+func AttemptsIn(vs ...jsontext.Value) predicate.NotificationEventDeliveryStatus {
+	var (
+		err error
+		v   = make([]any, len(vs))
+	)
+	for i := range v {
+		if v[i], err = ValueScanner.Attempts.Value(vs[i]); err != nil {
+			break
+		}
+	}
+	return predicate.NotificationEventDeliveryStatusOrErr(sql.FieldIn(FieldAttempts, v...), err)
+}
+
+// AttemptsNotIn applies the NotIn predicate on the "attempts" field.
+func AttemptsNotIn(vs ...jsontext.Value) predicate.NotificationEventDeliveryStatus {
+	var (
+		err error
+		v   = make([]any, len(vs))
+	)
+	for i := range v {
+		if v[i], err = ValueScanner.Attempts.Value(vs[i]); err != nil {
+			break
+		}
+	}
+	return predicate.NotificationEventDeliveryStatusOrErr(sql.FieldNotIn(FieldAttempts, v...), err)
+}
+
+// AttemptsGT applies the GT predicate on the "attempts" field.
+func AttemptsGT(v jsontext.Value) predicate.NotificationEventDeliveryStatus {
+	vc, err := ValueScanner.Attempts.Value(v)
+	return predicate.NotificationEventDeliveryStatusOrErr(sql.FieldGT(FieldAttempts, vc), err)
+}
+
+// AttemptsGTE applies the GTE predicate on the "attempts" field.
+func AttemptsGTE(v jsontext.Value) predicate.NotificationEventDeliveryStatus {
+	vc, err := ValueScanner.Attempts.Value(v)
+	return predicate.NotificationEventDeliveryStatusOrErr(sql.FieldGTE(FieldAttempts, vc), err)
+}
+
+// AttemptsLT applies the LT predicate on the "attempts" field.
+func AttemptsLT(v jsontext.Value) predicate.NotificationEventDeliveryStatus {
+	vc, err := ValueScanner.Attempts.Value(v)
+	return predicate.NotificationEventDeliveryStatusOrErr(sql.FieldLT(FieldAttempts, vc), err)
+}
+
+// AttemptsLTE applies the LTE predicate on the "attempts" field.
+func AttemptsLTE(v jsontext.Value) predicate.NotificationEventDeliveryStatus {
+	vc, err := ValueScanner.Attempts.Value(v)
+	return predicate.NotificationEventDeliveryStatusOrErr(sql.FieldLTE(FieldAttempts, vc), err)
+}
+
+// AttemptsContains applies the Contains predicate on the "attempts" field.
+func AttemptsContains(v jsontext.Value) predicate.NotificationEventDeliveryStatus {
+	vc, err := ValueScanner.Attempts.Value(v)
+	vcs, ok := vc.(string)
+	if err == nil && !ok {
+		err = fmt.Errorf("attempts value is not a string: %T", vc)
+	}
+	return predicate.NotificationEventDeliveryStatusOrErr(sql.FieldContains(FieldAttempts, vcs), err)
+}
+
+// AttemptsHasPrefix applies the HasPrefix predicate on the "attempts" field.
+func AttemptsHasPrefix(v jsontext.Value) predicate.NotificationEventDeliveryStatus {
+	vc, err := ValueScanner.Attempts.Value(v)
+	vcs, ok := vc.(string)
+	if err == nil && !ok {
+		err = fmt.Errorf("attempts value is not a string: %T", vc)
+	}
+	return predicate.NotificationEventDeliveryStatusOrErr(sql.FieldHasPrefix(FieldAttempts, vcs), err)
+}
+
+// AttemptsHasSuffix applies the HasSuffix predicate on the "attempts" field.
+func AttemptsHasSuffix(v jsontext.Value) predicate.NotificationEventDeliveryStatus {
+	vc, err := ValueScanner.Attempts.Value(v)
+	vcs, ok := vc.(string)
+	if err == nil && !ok {
+		err = fmt.Errorf("attempts value is not a string: %T", vc)
+	}
+	return predicate.NotificationEventDeliveryStatusOrErr(sql.FieldHasSuffix(FieldAttempts, vcs), err)
+}
+
 // AttemptsIsNil applies the IsNil predicate on the "attempts" field.
 func AttemptsIsNil() predicate.NotificationEventDeliveryStatus {
 	return predicate.NotificationEventDeliveryStatus(sql.FieldIsNull(FieldAttempts))
@@ -549,6 +811,36 @@ func AttemptsIsNil() predicate.NotificationEventDeliveryStatus {
 // AttemptsNotNil applies the NotNil predicate on the "attempts" field.
 func AttemptsNotNil() predicate.NotificationEventDeliveryStatus {
 	return predicate.NotificationEventDeliveryStatus(sql.FieldNotNull(FieldAttempts))
+}
+
+// AttemptsEqualFold applies the EqualFold predicate on the "attempts" field.
+func AttemptsEqualFold(v jsontext.Value) predicate.NotificationEventDeliveryStatus {
+	vc, err := ValueScanner.Attempts.Value(v)
+	vcs, ok := vc.(string)
+	if err == nil && !ok {
+		err = fmt.Errorf("attempts value is not a string: %T", vc)
+	}
+	return predicate.NotificationEventDeliveryStatusOrErr(sql.FieldEqualFold(FieldAttempts, vcs), err)
+}
+
+// AttemptsContainsFold applies the ContainsFold predicate on the "attempts" field.
+func AttemptsContainsFold(v jsontext.Value) predicate.NotificationEventDeliveryStatus {
+	vc, err := ValueScanner.Attempts.Value(v)
+	vcs, ok := vc.(string)
+	if err == nil && !ok {
+		err = fmt.Errorf("attempts value is not a string: %T", vc)
+	}
+	return predicate.NotificationEventDeliveryStatusOrErr(sql.FieldContainsFold(FieldAttempts, vcs), err)
+}
+
+// ProviderDataIsNil applies the IsNil predicate on the "provider_data" field.
+func ProviderDataIsNil() predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldIsNull(FieldProviderData))
+}
+
+// ProviderDataNotNil applies the NotNil predicate on the "provider_data" field.
+func ProviderDataNotNil() predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldNotNull(FieldProviderData))
 }
 
 // HasEvents applies the HasEdge predicate on the "events" edge.

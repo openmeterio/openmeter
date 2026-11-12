@@ -57,7 +57,7 @@ func (a *adapter) ListEvents(ctx context.Context, params notification.ListEvents
 		// matching delivery status / channel. Negation would silently invert to "has some
 		// other status/channel", so ListEventsInput.Validate rejects it.
 		var statusPreds []predicate.NotificationEventDeliveryStatus
-		statusPreds = filter.ApplyToPredicate(statusPreds, params.DeliveryStatus, statusdb.FieldState)
+		statusPreds = filter.ApplyToPredicate(statusPreds, toDBDeliveryStateFilter(params.DeliveryStatus), statusdb.FieldState)
 		if len(statusPreds) > 0 {
 			query = query.Where(eventdb.HasDeliveryStatusesWith(statusPreds...))
 		}
@@ -85,7 +85,7 @@ func (a *adapter) ListEvents(ctx context.Context, params notification.ListEvents
 
 		if !params.NextAttemptBefore.IsZero() {
 			query = query.Where(eventdb.HasDeliveryStatusesWith(
-				statusdb.StateNotIn(notification.EventDeliveryStatusStateSuccess, notification.EventDeliveryStatusStateFailed),
+				statusdb.StateNotIn(toDBEventDeliveryStatusStates(notification.EventDeliveryStatusStateSuccess, notification.EventDeliveryStatusStateFailed)...),
 				statusdb.Or(
 					statusdb.NextAttemptAtIsNil(),
 					statusdb.NextAttemptAtLTE(params.NextAttemptBefore.UTC()),
@@ -186,11 +186,13 @@ func (a *adapter) CreateEvent(ctx context.Context, params notification.CreateEve
 			return nil, fmt.Errorf("failed to serialize notification event payload: %w", err)
 		}
 
+		// TODO(notification-v4): keep writing a Rule reference until Rule-free
+		// Events are supported by readers, API mappings, and reconciliation.
 		query := a.db.NotificationEvent.Create().
 			SetType(params.Type).
 			SetNamespace(params.Namespace).
 			SetRuleID(params.RuleID).
-			SetPayload(string(payloadJSON)).
+			SetPayload(payloadJSON).
 			SetAnnotations(params.Annotations)
 
 		eventRow, err := query.Save(ctx)
@@ -294,7 +296,8 @@ func deprecatedEventPredicates(params notification.ListEventsInput) []predicate.
 	}
 
 	if len(params.DeliveryStatusStates) > 0 {
-		preds = append(preds, eventdb.HasDeliveryStatusesWith(statusdb.StateIn(params.DeliveryStatusStates...)))
+		states := toDBEventDeliveryStatusStates(params.DeliveryStatusStates...)
+		preds = append(preds, eventdb.HasDeliveryStatusesWith(statusdb.StateIn(states...)))
 	}
 
 	if len(params.Features) > 0 {

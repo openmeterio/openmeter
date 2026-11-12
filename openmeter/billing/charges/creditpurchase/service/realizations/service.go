@@ -222,11 +222,12 @@ func (s *Service) AuthorizeInvoicedPayment(ctx context.Context, input AuthorizeI
 			return creditpurchase.Charge{}, fmt.Errorf("validating existing invoice payment: %w", err)
 		}
 
-		if booked.DeletedAt == nil &&
-			booked.Namespace == charge.Namespace &&
-			booked.InvoiceID == lineWithHeader.Invoice.ID &&
-			booked.LineID == lineWithHeader.Line.ID &&
-			booked.FiatAmount.Equal(lineWithHeader.Line.Totals.Total) {
+		if booked.IsBookedFor(payment.BookingKey{
+			Namespace:  charge.Namespace,
+			InvoiceID:  lineWithHeader.Invoice.ID,
+			LineID:     lineWithHeader.Line.ID,
+			FiatAmount: lineWithHeader.Line.Totals.Total,
+		}) {
 			return charge, nil
 		}
 

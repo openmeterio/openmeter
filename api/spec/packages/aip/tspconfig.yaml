@@ -51,7 +51,7 @@ options:
       - 'Billing'
       - 'OpenMeter'
       - 'Metering'
-    go-version: '1.24'
+    go-version: '1.26.11'
 linter:
   extends:
     - '@openmeter/api-spec-aip/all'

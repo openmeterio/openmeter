@@ -13,6 +13,7 @@ import (
 	"github.com/santhosh-tekuri/jsonschema/v6"
 
 	"github.com/openmeterio/openmeter/pkg/equal"
+	"github.com/openmeterio/openmeter/pkg/jsonx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -38,7 +39,7 @@ type RuleConfigDefinition struct {
 var _ models.Equaler[RuleConfigDefinition] = (*RuleConfigDefinition)(nil)
 
 func (c RuleConfigDefinition) Equal(other RuleConfigDefinition) bool {
-	return bytes.Equal(c.JSONSchema, other.JSONSchema)
+	return jsonSchemaEqual(c.JSONSchema, other.JSONSchema)
 }
 
 var (
@@ -48,8 +49,9 @@ var (
 )
 
 // EventTypeDefinition binds an Event type to the contracts generated from its
-// TypeSpec models. Released definitions are immutable: a changed contract is a
-// new Event type version.
+// TypeSpec models. Once released, the Event type and its schemas must not
+// change: a changed contract is a new Event type version. DeprecatedBy can
+// still be set later.
 type EventTypeDefinition struct {
 	EventType         EventType
 	PayloadJSONSchema json.RawMessage
@@ -101,11 +103,11 @@ func (d EventTypeDefinition) ValidateWith(validators ...models.ValidatorFunc[Eve
 	return models.Validate(d, validators...)
 }
 
-// Equal compares the contract: identity, byte-equal schemas, Rule capability,
-// and replacement.
+// Equal compares the contract: identity, schemas in canonical form, Rule
+// capability, and replacement.
 func (d EventTypeDefinition) Equal(other EventTypeDefinition) bool {
 	return d.EventType == other.EventType &&
-		bytes.Equal(d.PayloadJSONSchema, other.PayloadJSONSchema) &&
+		jsonSchemaEqual(d.PayloadJSONSchema, other.PayloadJSONSchema) &&
 		equal.PtrEqual(d.Rule, other.Rule) &&
 		equal.ComparablePtrEqual(d.DeprecatedBy, other.DeprecatedBy)
 }
@@ -536,4 +538,18 @@ func validateJSONSchemaDocument(schema json.RawMessage) error {
 	}
 
 	return nil
+}
+
+// jsonSchemaEqual compares canonical forms. Documents that are not valid JSON
+// fall back to byte comparison; only definitions that never passed Validate
+// can hold them.
+func jsonSchemaEqual(a, b json.RawMessage) bool {
+	canonicalA, errA := jsonx.Canonical(a)
+	canonicalB, errB := jsonx.Canonical(b)
+
+	if errA != nil || errB != nil {
+		return bytes.Equal(a, b)
+	}
+
+	return bytes.Equal(canonicalA, canonicalB)
 }

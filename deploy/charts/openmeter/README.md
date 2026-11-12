@@ -50,16 +50,13 @@ See [values.example.yaml](values.example.yaml) for more details.
 
 ## Running OpenMeter in production
 
-This Helm chart comes with a default setups for Kafka, ClickHouse, Postgres, Redis and Svix.
+This Helm chart comes with a default setups for Kafka, ClickHouse, Postgres and Redis.
 
 **It is highly recommended to use your own dependencies in production.**
 
 You can disable installing the above dependencies to bring your own:
 
 ```yaml
-svix:
-  enabled: false
-
 redis:
   enabled: false
 
@@ -93,10 +90,23 @@ config:
       autoMigrate: migration
 
     svix:
-      apiKey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdml4LXNlcnZlciIsInN1YiI6Im9yZ18yM3JiOFlkR3FNVDBxSXpwZ0d3ZFhmSGlyTXUiLCJleHAiOjE4OTM0NTYwMDAsIm5iZiI6MTcwNDA2NzIwMCwiaWF0IjoxNzIzNTUzMTQ0fQ.JVOFgHymisTD-Zw_p03qD4iUXXXw-VwABda2Q3f1wfs
+      apiKey: SVIX_JWT
       serverURL: http://127.0.0.1:8071/
       debug: true
 ```
+
+## Notifications with a bundled Svix server
+
+Webhook notifications need a [Svix](https://github.com/svix/svix-webhooks) server. The chart can install one for development, but it is disabled by default because it needs a secret pair you generate:
+
+```yaml
+svix:
+  enabled: true
+  signingSecret: SVIX_JWT_SECRET
+  signedJwt: SVIX_JWT
+```
+
+Generate the token with `SVIX_JWT_SECRET=<signingSecret> svix-server jwt generate`.
 
 ## Per-component scheduling and resources
 
@@ -152,8 +162,8 @@ jobs:
 | serviceAccount.name | string | `""` | The name of the service account to use. If not set and create is true, a name is generated using the fullname template |
 | podAnnotations | object | `{}` | Annotations to be added to pods. |
 | podLabels | object | `{}` | Labels to be added to pods. |
-| podSecurityContext | object | `{}` | Pod [security context](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-pod). See the [API reference](https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#security-context) for details. |
-| securityContext | object | `{}` | Container [security context](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-container). See the [API reference](https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#security-context-1) for details. |
+| podSecurityContext | object | `{"fsGroup":10001}` | Pod [security context](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-pod). See the [API reference](https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#security-context) for details. |
+| securityContext | object | `{}` | Container [security context](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-container). See the [API reference](https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#security-context-1) for details. OpenMeter containers default to runAsNonRoot, disable privilege escalation, and drop all capabilities. |
 | service.type | string | `"ClusterIP"` | Kubernetes [service type](https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types). |
 | service.port | int | `80` | Service port. |
 | ingress.enabled | bool | `false` | Enable [ingress](https://kubernetes.io/docs/concepts/services-networking/ingress/). |
@@ -182,9 +192,9 @@ jobs:
 | kafka.listeners.controller.sslClientAuth | string | `""` |  |
 | clickhouse.enabled | bool | `true` | Specifies whether Clickhouse (using the [Clickhouse Operator](https://github.com/Altinity/clickhouse-operator)) should be installed. **Not recommended for production environments.** |
 | clickhouse.operator.install | bool | `true` | Specifies whether [Clickhouse Operator](https://github.com/Altinity/clickhouse-operator) should be installed. **Not recommended for production environments.** |
-| svix.enabled | bool | `true` |  |
-| svix.signingSecret | string | `"CeRc6WK8KjzRXrKkd9YFnSWcNyqLSIY8JwiaCeRc6WK4UkM"` | Specifies the JWT secret SVIX uses for authentication. For details, [see](https://github.com/svix/svix-webhooks?tab=readme-ov-file#authentication). **It is recommended to change this before deployment.** |
-| svix.signedJwt | string | `"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJzdml4LXNlcnZlciIsImlhdCI6MTczMDk4NzU0MywiZXhwIjoyMjM1OTA5MDAwLCJhdWQiOiIiLCJzdWIiOiJvcmdfMjNyYjhZZEdxTVQwcUl6cGdHd2RYZkhpck11In0.J90SzVuNwecyCtWAQlOoWplJaK4rnIb3rCWXrHQPqJY"` | Specifies the JWT OpenMeter uses to authenticate with Svix. This is an example Token intended for development purposes. You should create your own using the instructions in [svix documentation](https://github.com/svix/svix-webhooks?tab=readme-ov-file#authentication). |
+| svix.enabled | bool | `false` | Install a self-hosted Svix server. Requires `signingSecret` and `signedJwt`. **Not recommended for production environments.** |
+| svix.signingSecret | string | `""` | JWT secret the Svix server uses to verify API tokens. Required when `enabled` is true. For details, [see](https://github.com/svix/svix-webhooks?tab=readme-ov-file#authentication). |
+| svix.signedJwt | string | `""` | JWT OpenMeter uses to authenticate with Svix, signed with `signingSecret`. Required when `enabled` is true. Generate one with `svix-server jwt generate` (run with `SVIX_JWT_SECRET` set to `signingSecret`). |
 | svix.database | object | `{"dsn":""}` | External database configuration for Svix |
 | svix.database.dsn | string | `""` | External PostgreSQL DSN for Svix. If not provided, uses internal PostgreSQL. |
 | svix.redis | object | `{"dsn":""}` | External Redis configuration for Svix |
@@ -239,7 +249,7 @@ jobs:
 | billingWorker.nodeSelector | object | The chart-wide `nodeSelector` value. | [Node selector](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#nodeselector) for the Billing Worker. |
 | billingWorker.tolerations | list | The chart-wide `tolerations` value. | [Tolerations](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/) for the Billing Worker. |
 | billingWorker.affinity | object | The chart-wide `affinity` value. | [Affinity](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#affinity-and-anti-affinity) for the Billing Worker. |
-| caRootCertificates | object | `{}` | List of CA Root certificates to inject into pods at runtime. See [values.yaml](values.yaml) |
+| caRootCertificates | object | `{}` | PEM root certificates to add to the image trust bundle at pod startup. See [values.yaml](values.yaml) |
 | jobs.subscriptionSync | object | `{"affinity":{},"nodeSelector":{},"resources":{},"schedule":"0 * * * *","tolerations":[]}` | Subscription sync job is a backup reconciler to make sure that all subscriptions are properly billed even if there is some kind of issue with the billing worker. |
 | jobs.subscriptionSync.schedule | string | `"0 * * * *"` | Schedule for the subscription sync job. Default is every hour. |
 | jobs.subscriptionSync.resources | object | The chart-wide `resources` value. | Container resource [requests and limits](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/) for the subscription sync job. |

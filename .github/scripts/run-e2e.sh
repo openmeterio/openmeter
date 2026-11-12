@@ -53,12 +53,14 @@ cleanup() {
   status=$?
   trap - EXIT
   set +e
+  mkdir -p "${log_dir}"
+  "${compose[@]}" ps --all > "${log_dir}/compose-ps.txt" 2>&1
+  # Let services flush their final logs before collecting the artifacts.
+  "${compose[@]}" stop
   if [ -n "${log_pid}" ]; then
     kill "${log_pid}" 2>/dev/null
     wait "${log_pid}" 2>/dev/null
   fi
-  mkdir -p "${log_dir}"
-  "${compose[@]}" ps --all > "${log_dir}/compose-ps.txt" 2>&1
   mapfile -t services < <("${compose[@]}" config --services)
   for service in "${services[@]}"; do
     "${compose[@]}" logs --no-color --timestamps "${service}" > "${log_dir}/${service}.log" 2>&1

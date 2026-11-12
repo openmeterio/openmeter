@@ -29,26 +29,18 @@ spec:
       serviceAccountName: {{ include "openmeter.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
-      {{ if or .Values.postgresql.enabled .Values.clickhouse.enabled -}}
-      initContainers:
-        {{- if .Values.postgresql.enabled -}}
-        {{- include "openmeter.init.postgres" (list .) | nindent 8 }}
-        {{- end }}
-        {{- if .Values.clickhouse.enabled -}}
-        {{- include "openmeter.init.clickhouse" (list .) | nindent 8 }}
-        {{- end }}
-      {{- end }}
+      {{- include "openmeter.initContainers" . | nindent 6 }}
       containers:
         - name: {{ .Chart.Name }}
           securityContext:
-            {{- toYaml .Values.securityContext | nindent 12 }}
+            {{- include "openmeter.securityContext" . | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          command: ["/entrypoint.sh", "openmeter"]
-          args: ["--address", "0.0.0.0:80", "--telemetry-address", "0.0.0.0:10000", "--config", "/etc/openmeter/config.yaml"]
+          command: ["openmeter"]
+          args: ["--address", "0.0.0.0:8080", "--telemetry-address", "0.0.0.0:10000", "--config", "/etc/openmeter/config.yaml"]
           ports:
             - name: http
-              containerPort: 80
+              containerPort: 8080
               protocol: TCP
             - name: telemetry-http
               containerPort: 10000
@@ -66,20 +58,12 @@ spec:
           volumeMounts:
             - name: config
               mountPath: /etc/openmeter
-            {{- if ne (len .Values.caRootCertificates) 0 }}
-            - name: ca-certificates
-              mountPath: /usr/local/share/ca-certificates
-              readOnly: true
-            {{- end }}
+            {{- include "openmeter.caBundleMount" . | nindent 12 }}
       volumes:
         - name: config
           configMap:
             name: {{ include "openmeter.fullname" . }}
-        {{- if ne (len .Values.caRootCertificates) 0 }}
-        - name: ca-certificates
-          configMap:
-            name: ca-certificates
-        {{- end }}
+        {{- include "openmeter.caVolumes" . | nindent 8 }}
       {{- with (.Values.api.nodeSelector | default .Values.nodeSelector) }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
@@ -124,22 +108,14 @@ spec:
       serviceAccountName: {{ include "openmeter.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
-      {{ if or .Values.postgresql.enabled .Values.clickhouse.enabled -}}
-      initContainers:
-        {{- if .Values.postgresql.enabled -}}
-        {{- include "openmeter.init.postgres" (list .) | nindent 8 }}
-        {{- end }}
-        {{- if .Values.clickhouse.enabled -}}
-        {{- include "openmeter.init.clickhouse" (list .) | nindent 8 }}
-        {{- end }}
-      {{- end }}
+      {{- include "openmeter.initContainers" . | nindent 6 }}
       containers:
         - name: {{ .Chart.Name }}
           securityContext:
-            {{- toYaml .Values.securityContext | nindent 12 }}
+            {{- include "openmeter.securityContext" . | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          command: ["/entrypoint.sh", "openmeter-balance-worker"]
+          command: ["openmeter-balance-worker"]
           args: ["--telemetry-address", "0.0.0.0:10000", "--config", "/etc/openmeter/config.yaml"]
           ports:
             - name: telemetry-http
@@ -158,20 +134,12 @@ spec:
           volumeMounts:
             - name: config
               mountPath: /etc/openmeter
-            {{- if ne (len .Values.caRootCertificates) 0 }}
-            - name: ca-certificates
-              mountPath: /usr/local/share/ca-certificates
-              readOnly: true
-            {{- end }}
+            {{- include "openmeter.caBundleMount" . | nindent 12 }}
       volumes:
         - name: config
           configMap:
             name: {{ include "openmeter.fullname" . }}
-        {{- if ne (len .Values.caRootCertificates) 0 }}
-        - name: ca-certificates
-          configMap:
-            name: ca-certificates
-        {{- end }}
+        {{- include "openmeter.caVolumes" . | nindent 8 }}
       {{- with (.Values.balanceWorker.nodeSelector | default .Values.nodeSelector) }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
@@ -216,22 +184,14 @@ spec:
       serviceAccountName: {{ include "openmeter.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
-      {{ if or .Values.postgresql.enabled .Values.clickhouse.enabled -}}
-      initContainers:
-        {{- if .Values.postgresql.enabled -}}
-        {{- include "openmeter.init.postgres" (list .) | nindent 8 }}
-        {{- end }}
-        {{- if .Values.clickhouse.enabled -}}
-        {{- include "openmeter.init.clickhouse" (list .) | nindent 8 }}
-        {{- end }}
-      {{- end }}
+      {{- include "openmeter.initContainers" . | nindent 6 }}
       containers:
         - name: {{ .Chart.Name }}
           securityContext:
-            {{- toYaml .Values.securityContext | nindent 12 }}
+            {{- include "openmeter.securityContext" . | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          command: ["/entrypoint.sh", "openmeter-notification-service"]
+          command: ["openmeter-notification-service"]
           args: ["--telemetry-address", "0.0.0.0:10000", "--config", "/etc/openmeter/config.yaml"]
           ports:
             - name: telemetry-http
@@ -250,20 +210,12 @@ spec:
           volumeMounts:
             - name: config
               mountPath: /etc/openmeter
-            {{- if ne (len .Values.caRootCertificates) 0 }}
-            - name: ca-certificates
-              mountPath: /usr/local/share/ca-certificates
-              readOnly: true
-            {{- end }}
+            {{- include "openmeter.caBundleMount" . | nindent 12 }}
       volumes:
         - name: config
           configMap:
             name: {{ include "openmeter.fullname" . }}
-        {{- if ne (len .Values.caRootCertificates) 0 }}
-        - name: ca-certificates
-          configMap:
-            name: ca-certificates
-        {{- end }}
+        {{- include "openmeter.caVolumes" . | nindent 8 }}
       {{- with (.Values.notificationService.nodeSelector | default .Values.nodeSelector) }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
@@ -308,22 +260,14 @@ spec:
       serviceAccountName: {{ include "openmeter.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
-      {{ if or .Values.postgresql.enabled .Values.clickhouse.enabled -}}
-      initContainers:
-        {{- if .Values.postgresql.enabled -}}
-        {{- include "openmeter.init.postgres" (list .) | nindent 8 }}
-        {{- end }}
-        {{- if .Values.clickhouse.enabled -}}
-        {{- include "openmeter.init.clickhouse" (list .) | nindent 8 }}
-        {{- end }}
-      {{- end }}
+      {{- include "openmeter.initContainers" . | nindent 6 }}
       containers:
         - name: {{ .Chart.Name }}
           securityContext:
-            {{- toYaml .Values.securityContext | nindent 12 }}
+            {{- include "openmeter.securityContext" . | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          command: ["/entrypoint.sh", "openmeter-sink-worker"]
+          command: ["openmeter-sink-worker"]
           args: ["--telemetry-address", "0.0.0.0:10000", "--config", "/etc/openmeter/config.yaml"]
           ports:
             - name: telemetry-http
@@ -342,20 +286,12 @@ spec:
           volumeMounts:
             - name: config
               mountPath: /etc/openmeter
-            {{- if ne (len .Values.caRootCertificates) 0 }}
-            - name: ca-certificates
-              mountPath: /usr/local/share/ca-certificates
-              readOnly: true
-            {{- end }}
+            {{- include "openmeter.caBundleMount" . | nindent 12 }}
       volumes:
         - name: config
           configMap:
             name: {{ include "openmeter.fullname" . }}
-        {{- if ne (len .Values.caRootCertificates) 0 }}
-        - name: ca-certificates
-          configMap:
-            name: ca-certificates
-        {{- end }}
+        {{- include "openmeter.caVolumes" . | nindent 8 }}
       {{- with (.Values.sinkWorker.nodeSelector | default .Values.nodeSelector) }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
@@ -400,22 +336,14 @@ spec:
       serviceAccountName: {{ include "openmeter.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
-      {{ if or .Values.postgresql.enabled .Values.clickhouse.enabled -}}
-      initContainers:
-        {{- if .Values.postgresql.enabled -}}
-        {{- include "openmeter.init.postgres" (list .) | nindent 8 }}
-        {{- end }}
-        {{- if .Values.clickhouse.enabled -}}
-        {{- include "openmeter.init.clickhouse" (list .) | nindent 8 }}
-        {{- end }}
-      {{- end }}
+      {{- include "openmeter.initContainers" . | nindent 6 }}
       containers:
         - name: {{ .Chart.Name }}
           securityContext:
-            {{- toYaml .Values.securityContext | nindent 12 }}
+            {{- include "openmeter.securityContext" . | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          command: ["/entrypoint.sh", "openmeter-billing-worker"]
+          command: ["openmeter-billing-worker"]
           args: ["--telemetry-address", "0.0.0.0:10000", "--config", "/etc/openmeter/config.yaml"]
           ports:
             - name: telemetry-http
@@ -434,20 +362,12 @@ spec:
           volumeMounts:
             - name: config
               mountPath: /etc/openmeter
-            {{- if ne (len .Values.caRootCertificates) 0 }}
-            - name: ca-certificates
-              mountPath: /usr/local/share/ca-certificates
-              readOnly: true
-            {{- end }}
+            {{- include "openmeter.caBundleMount" . | nindent 12 }}
       volumes:
         - name: config
           configMap:
             name: {{ include "openmeter.fullname" . }}
-        {{- if ne (len .Values.caRootCertificates) 0 }}
-        - name: ca-certificates
-          configMap:
-            name: ca-certificates
-        {{- end }}
+        {{- include "openmeter.caVolumes" . | nindent 8 }}
       {{- with (.Values.billingWorker.nodeSelector | default .Values.nodeSelector) }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

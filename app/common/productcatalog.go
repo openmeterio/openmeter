@@ -26,6 +26,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
 	planaddonadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon/adapter"
 	planaddonservice "github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon/service"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/taxcoderesolver"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
@@ -33,6 +34,7 @@ import (
 
 var ProductCatalog = wire.NewSet(
 	Feature,
+	TaxCodeResolver,
 	Cost,
 	Plan,
 	Addon,
@@ -42,6 +44,11 @@ var ProductCatalog = wire.NewSet(
 var Feature = wire.NewSet(
 	NewFeatureConnector,
 	NewFeatureResolver,
+)
+
+var TaxCodeResolver = wire.NewSet(
+	NewTaxCodeResolver,
+	NewTransactionalTaxCodeResolver,
 )
 
 var Cost = wire.NewSet(
@@ -72,6 +79,13 @@ func NewFeatureConnector(
 
 var NewFeatureResolver = featureresolver.New
 
+var NewTaxCodeResolver = taxcoderesolver.New
+
+// NewTransactionalTaxCodeResolver opens WithResolver's transaction on the tax code repository.
+func NewTransactionalTaxCodeResolver(service taxcode.Service, repository taxcode.Repository) (productcatalog.TransactionalTaxCodeResolver, error) {
+	return taxcoderesolver.NewTransactional(service, repository)
+}
+
 func NewCostService(
 	featureConnector feature.FeatureConnector,
 	meterService meter.Service,
@@ -90,7 +104,7 @@ func NewPlanService(
 	db *entdb.Client,
 	featureResolver productcatalog.FeatureResolver,
 	currencyResolver currencies.CurrencyResolver,
-	taxCodeService taxcode.Service,
+	taxCodeResolver productcatalog.TaxCodeResolver,
 	publisher eventbus.Publisher,
 ) (plan.Service, error) {
 	adapter, err := planadapter.New(planadapter.Config{
@@ -105,7 +119,7 @@ func NewPlanService(
 		Adapter:          adapter,
 		FeatureResolver:  featureResolver,
 		CurrencyResolver: currencyResolver,
-		TaxCode:          taxCodeService,
+		TaxCodeResolver:  taxCodeResolver,
 		Logger:           logger.With("subsystem", "productcatalog.plan"),
 		Publisher:        publisher,
 	})
@@ -116,7 +130,7 @@ func NewAddonService(
 	db *entdb.Client,
 	featureResolver productcatalog.FeatureResolver,
 	currencyResolver currencies.CurrencyResolver,
-	taxCodeService taxcode.Service,
+	taxCodeResolver productcatalog.TaxCodeResolver,
 	publisher eventbus.Publisher,
 ) (addon.Service, error) {
 	adapter, err := addonadapter.New(addonadapter.Config{
@@ -131,7 +145,7 @@ func NewAddonService(
 		Adapter:          adapter,
 		FeatureResolver:  featureResolver,
 		CurrencyResolver: currencyResolver,
-		TaxCode:          taxCodeService,
+		TaxCodeResolver:  taxCodeResolver,
 		Logger:           logger.With("subsystem", "productcatalog.addon"),
 		Publisher:        publisher,
 	})

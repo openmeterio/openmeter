@@ -5,3 +5,7 @@ paths:
     - 'SC2046' # quoting issues on runners
     # actionlint predates GitHub's $/ syntax; zizmor validates this self-repository reference.
     - 'reusable workflow call "\$/\.github/workflows/cancel-stale-pr-runs\.yaml" at "uses" is not following the format'
+  .github/workflows/renovate.yaml:
+    ignore:
+    # Remove once actionlint supports this permission: https://github.com/rhysd/actionlint/issues/713
+    - 'unknown permission scope "vulnerability-alerts"'

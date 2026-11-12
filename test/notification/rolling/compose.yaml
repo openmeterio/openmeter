@@ -1,0 +1,54 @@
+x-server: &server
+  command: ["openmeter", "--config", "/etc/openmeter/config.yaml"]
+  volumes:
+    - ../../../quickstart/config.yaml:/etc/openmeter/config.yaml:ro
+  environment: &environment
+    POSTGRES_AUTOMIGRATE: "false"
+    NOTIFICATION_RECONCILEINTERVAL: ${RECONCILE_INTERVAL:-1h}
+  ports:
+    - "127.0.0.1::8888"
+
+x-jobs: &jobs
+  command: ["openmeter-jobs", "--config", "/etc/openmeter/config.yaml", "migrate"]
+  volumes:
+    - ../../../quickstart/config.yaml:/etc/openmeter/config.yaml:ro
+  environment: *environment
+
+services:
+  old:
+    <<: *server
+    image: ${OLD_IMAGE:?provide the baseline image}
+  candidate:
+    <<: *server
+    image: ${CANDIDATE_IMAGE:?provide the candidate image}
+  old-jobs:
+    <<: *jobs
+    image: ${OLD_JOBS_IMAGE:-${OLD_IMAGE}}
+  candidate-jobs:
+    <<: *jobs
+    image: ${CANDIDATE_JOBS_IMAGE:-${CANDIDATE_IMAGE}}
+
+  postgres:
+    extends: {file: ../../../docker-compose.base.yaml, service: postgres}
+  kafka:
+    extends: {file: ../../../docker-compose.base.yaml, service: kafka}
+  clickhouse:
+    extends: {file: ../../../docker-compose.base.yaml, service: clickhouse}
+  redis:
+    extends: {file: ../../../docker-compose.base.yaml, service: redis}
+  svix:
+    extends: {file: ../../../docker-compose.base.yaml, service: svix}
+    environment:
+      # Permit delivery to the receiver on this private Compose network.
+      SVIX_WHITELIST_SUBNETS: "[10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16]"
+  receiver:
+    image: python:3.13-alpine@sha256:1e1f6334529d1fb26a2ef619d7cffb30a7c7d7cc1cc7338ebee283a58d1aeaca
+    command: ["python", "/receiver.py"]
+    volumes:
+      - ./receiver.py:/receiver.py:ro
+
+configs:
+  svix_sql:
+    content: |
+      CREATE USER svix WITH PASSWORD 'svix';
+      CREATE DATABASE svix OWNER svix;

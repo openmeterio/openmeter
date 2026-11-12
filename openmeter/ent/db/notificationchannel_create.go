@@ -4,6 +4,7 @@ package db
 
 import (
 	"context"
+	"encoding/json/jsontext"
 	"errors"
 	"fmt"
 	"time"
@@ -113,8 +114,62 @@ func (_c *NotificationChannelCreate) SetNillableDisabled(v *bool) *NotificationC
 }
 
 // SetConfig sets the "config" field.
-func (_c *NotificationChannelCreate) SetConfig(v notification.ChannelConfig) *NotificationChannelCreate {
+func (_c *NotificationChannelCreate) SetConfig(v jsontext.Value) *NotificationChannelCreate {
 	_c.mutation.SetConfig(v)
+	return _c
+}
+
+// SetEventTypeFilter sets the "event_type_filter" field.
+func (_c *NotificationChannelCreate) SetEventTypeFilter(v []string) *NotificationChannelCreate {
+	_c.mutation.SetEventTypeFilter(v)
+	return _c
+}
+
+// SetProviderData sets the "provider_data" field.
+func (_c *NotificationChannelCreate) SetProviderData(v map[string]string) *NotificationChannelCreate {
+	_c.mutation.SetProviderData(v)
+	return _c
+}
+
+// SetGeneration sets the "generation" field.
+func (_c *NotificationChannelCreate) SetGeneration(v int) *NotificationChannelCreate {
+	_c.mutation.SetGeneration(v)
+	return _c
+}
+
+// SetNillableGeneration sets the "generation" field if the given value is not nil.
+func (_c *NotificationChannelCreate) SetNillableGeneration(v *int) *NotificationChannelCreate {
+	if v != nil {
+		_c.SetGeneration(*v)
+	}
+	return _c
+}
+
+// SetReconcileStatus sets the "reconcile_status" field.
+func (_c *NotificationChannelCreate) SetReconcileStatus(v notification.ChannelReconcileStatus) *NotificationChannelCreate {
+	_c.mutation.SetReconcileStatus(v)
+	return _c
+}
+
+// SetNillableReconcileStatus sets the "reconcile_status" field if the given value is not nil.
+func (_c *NotificationChannelCreate) SetNillableReconcileStatus(v *notification.ChannelReconcileStatus) *NotificationChannelCreate {
+	if v != nil {
+		_c.SetReconcileStatus(*v)
+	}
+	return _c
+}
+
+// SetReconcileNextAt sets the "reconcile_next_at" field.
+func (_c *NotificationChannelCreate) SetReconcileNextAt(v time.Time) *NotificationChannelCreate {
+	_c.mutation.SetReconcileNextAt(v)
+	return _c
+}
+
+// SetNillableReconcileNextAt sets the "reconcile_next_at" field if the given value is not nil.
+func (_c *NotificationChannelCreate) SetNillableReconcileNextAt(v *time.Time) *NotificationChannelCreate {
+	if v != nil {
+		_c.SetReconcileNextAt(*v)
+	}
 	return _c
 }
 
@@ -194,6 +249,14 @@ func (_c *NotificationChannelCreate) defaults() {
 		v := notificationchannel.DefaultDisabled
 		_c.mutation.SetDisabled(v)
 	}
+	if _, ok := _c.mutation.Generation(); !ok {
+		v := notificationchannel.DefaultGeneration
+		_c.mutation.SetGeneration(v)
+	}
+	if _, ok := _c.mutation.ReconcileStatus(); !ok {
+		v := notificationchannel.DefaultReconcileStatus
+		_c.mutation.SetReconcileStatus(v)
+	}
 	if _, ok := _c.mutation.ID(); !ok {
 		v := notificationchannel.DefaultID()
 		_c.mutation.SetID(v)
@@ -220,7 +283,7 @@ func (_c *NotificationChannelCreate) check() error {
 		return &ValidationError{Name: "type", err: errors.New(`db: missing required field "NotificationChannel.type"`)}
 	}
 	if v, ok := _c.mutation.GetType(); ok {
-		if err := notificationchannel.TypeValidator(v); err != nil {
+		if err := notificationchannel.TypeValidator(string(v)); err != nil {
 			return &ValidationError{Name: "type", err: fmt.Errorf(`db: validator failed for field "NotificationChannel.type": %w`, err)}
 		}
 	}
@@ -235,9 +298,20 @@ func (_c *NotificationChannelCreate) check() error {
 	if _, ok := _c.mutation.Config(); !ok {
 		return &ValidationError{Name: "config", err: errors.New(`db: missing required field "NotificationChannel.config"`)}
 	}
-	if v, ok := _c.mutation.Config(); ok {
-		if err := v.Validate(); err != nil {
-			return &ValidationError{Name: "config", err: fmt.Errorf(`db: validator failed for field "NotificationChannel.config": %w`, err)}
+	if _, ok := _c.mutation.Generation(); !ok {
+		return &ValidationError{Name: "generation", err: errors.New(`db: missing required field "NotificationChannel.generation"`)}
+	}
+	if v, ok := _c.mutation.Generation(); ok {
+		if err := notificationchannel.GenerationValidator(v); err != nil {
+			return &ValidationError{Name: "generation", err: fmt.Errorf(`db: validator failed for field "NotificationChannel.generation": %w`, err)}
+		}
+	}
+	if _, ok := _c.mutation.ReconcileStatus(); !ok {
+		return &ValidationError{Name: "reconcile_status", err: errors.New(`db: missing required field "NotificationChannel.reconcile_status"`)}
+	}
+	if v, ok := _c.mutation.ReconcileStatus(); ok {
+		if err := notificationchannel.ReconcileStatusValidator(string(v)); err != nil {
+			return &ValidationError{Name: "reconcile_status", err: fmt.Errorf(`db: validator failed for field "NotificationChannel.reconcile_status": %w`, err)}
 		}
 	}
 	return nil
@@ -304,7 +378,11 @@ func (_c *NotificationChannelCreate) createSpec() (*NotificationChannel, *sqlgra
 		_node.Metadata = value
 	}
 	if value, ok := _c.mutation.GetType(); ok {
-		_spec.SetField(notificationchannel.FieldType, field.TypeEnum, value)
+		vv, err := notificationchannel.ValueScanner.Type.Value(value)
+		if err != nil {
+			return nil, nil, err
+		}
+		_spec.SetField(notificationchannel.FieldType, field.TypeString, vv)
 		_node.Type = value
 	}
 	if value, ok := _c.mutation.Name(); ok {
@@ -322,6 +400,34 @@ func (_c *NotificationChannelCreate) createSpec() (*NotificationChannel, *sqlgra
 		}
 		_spec.SetField(notificationchannel.FieldConfig, field.TypeString, vv)
 		_node.Config = value
+	}
+	if value, ok := _c.mutation.EventTypeFilter(); ok {
+		vv, err := notificationchannel.ValueScanner.EventTypeFilter.Value(value)
+		if err != nil {
+			return nil, nil, err
+		}
+		_spec.SetField(notificationchannel.FieldEventTypeFilter, field.TypeString, vv)
+		_node.EventTypeFilter = value
+	}
+	if value, ok := _c.mutation.ProviderData(); ok {
+		vv, err := notificationchannel.ValueScanner.ProviderData.Value(value)
+		if err != nil {
+			return nil, nil, err
+		}
+		_spec.SetField(notificationchannel.FieldProviderData, field.TypeString, vv)
+		_node.ProviderData = value
+	}
+	if value, ok := _c.mutation.Generation(); ok {
+		_spec.SetField(notificationchannel.FieldGeneration, field.TypeInt, value)
+		_node.Generation = value
+	}
+	if value, ok := _c.mutation.ReconcileStatus(); ok {
+		_spec.SetField(notificationchannel.FieldReconcileStatus, field.TypeString, value)
+		_node.ReconcileStatus = value
+	}
+	if value, ok := _c.mutation.ReconcileNextAt(); ok {
+		_spec.SetField(notificationchannel.FieldReconcileNextAt, field.TypeTime, value)
+		_node.ReconcileNextAt = &value
 	}
 	if nodes := _c.mutation.RulesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -488,7 +594,7 @@ func (u *NotificationChannelUpsert) ClearDisabled() *NotificationChannelUpsert {
 }
 
 // SetConfig sets the "config" field.
-func (u *NotificationChannelUpsert) SetConfig(v notification.ChannelConfig) *NotificationChannelUpsert {
+func (u *NotificationChannelUpsert) SetConfig(v jsontext.Value) *NotificationChannelUpsert {
 	u.Set(notificationchannel.FieldConfig, v)
 	return u
 }
@@ -496,6 +602,90 @@ func (u *NotificationChannelUpsert) SetConfig(v notification.ChannelConfig) *Not
 // UpdateConfig sets the "config" field to the value that was provided on create.
 func (u *NotificationChannelUpsert) UpdateConfig() *NotificationChannelUpsert {
 	u.SetExcluded(notificationchannel.FieldConfig)
+	return u
+}
+
+// SetEventTypeFilter sets the "event_type_filter" field.
+func (u *NotificationChannelUpsert) SetEventTypeFilter(v []string) *NotificationChannelUpsert {
+	u.Set(notificationchannel.FieldEventTypeFilter, v)
+	return u
+}
+
+// UpdateEventTypeFilter sets the "event_type_filter" field to the value that was provided on create.
+func (u *NotificationChannelUpsert) UpdateEventTypeFilter() *NotificationChannelUpsert {
+	u.SetExcluded(notificationchannel.FieldEventTypeFilter)
+	return u
+}
+
+// ClearEventTypeFilter clears the value of the "event_type_filter" field.
+func (u *NotificationChannelUpsert) ClearEventTypeFilter() *NotificationChannelUpsert {
+	u.SetNull(notificationchannel.FieldEventTypeFilter)
+	return u
+}
+
+// SetProviderData sets the "provider_data" field.
+func (u *NotificationChannelUpsert) SetProviderData(v map[string]string) *NotificationChannelUpsert {
+	u.Set(notificationchannel.FieldProviderData, v)
+	return u
+}
+
+// UpdateProviderData sets the "provider_data" field to the value that was provided on create.
+func (u *NotificationChannelUpsert) UpdateProviderData() *NotificationChannelUpsert {
+	u.SetExcluded(notificationchannel.FieldProviderData)
+	return u
+}
+
+// ClearProviderData clears the value of the "provider_data" field.
+func (u *NotificationChannelUpsert) ClearProviderData() *NotificationChannelUpsert {
+	u.SetNull(notificationchannel.FieldProviderData)
+	return u
+}
+
+// SetGeneration sets the "generation" field.
+func (u *NotificationChannelUpsert) SetGeneration(v int) *NotificationChannelUpsert {
+	u.Set(notificationchannel.FieldGeneration, v)
+	return u
+}
+
+// UpdateGeneration sets the "generation" field to the value that was provided on create.
+func (u *NotificationChannelUpsert) UpdateGeneration() *NotificationChannelUpsert {
+	u.SetExcluded(notificationchannel.FieldGeneration)
+	return u
+}
+
+// AddGeneration adds v to the "generation" field.
+func (u *NotificationChannelUpsert) AddGeneration(v int) *NotificationChannelUpsert {
+	u.Add(notificationchannel.FieldGeneration, v)
+	return u
+}
+
+// SetReconcileStatus sets the "reconcile_status" field.
+func (u *NotificationChannelUpsert) SetReconcileStatus(v notification.ChannelReconcileStatus) *NotificationChannelUpsert {
+	u.Set(notificationchannel.FieldReconcileStatus, v)
+	return u
+}
+
+// UpdateReconcileStatus sets the "reconcile_status" field to the value that was provided on create.
+func (u *NotificationChannelUpsert) UpdateReconcileStatus() *NotificationChannelUpsert {
+	u.SetExcluded(notificationchannel.FieldReconcileStatus)
+	return u
+}
+
+// SetReconcileNextAt sets the "reconcile_next_at" field.
+func (u *NotificationChannelUpsert) SetReconcileNextAt(v time.Time) *NotificationChannelUpsert {
+	u.Set(notificationchannel.FieldReconcileNextAt, v)
+	return u
+}
+
+// UpdateReconcileNextAt sets the "reconcile_next_at" field to the value that was provided on create.
+func (u *NotificationChannelUpsert) UpdateReconcileNextAt() *NotificationChannelUpsert {
+	u.SetExcluded(notificationchannel.FieldReconcileNextAt)
+	return u
+}
+
+// ClearReconcileNextAt clears the value of the "reconcile_next_at" field.
+func (u *NotificationChannelUpsert) ClearReconcileNextAt() *NotificationChannelUpsert {
+	u.SetNull(notificationchannel.FieldReconcileNextAt)
 	return u
 }
 
@@ -669,7 +859,7 @@ func (u *NotificationChannelUpsertOne) ClearDisabled() *NotificationChannelUpser
 }
 
 // SetConfig sets the "config" field.
-func (u *NotificationChannelUpsertOne) SetConfig(v notification.ChannelConfig) *NotificationChannelUpsertOne {
+func (u *NotificationChannelUpsertOne) SetConfig(v jsontext.Value) *NotificationChannelUpsertOne {
 	return u.Update(func(s *NotificationChannelUpsert) {
 		s.SetConfig(v)
 	})
@@ -679,6 +869,104 @@ func (u *NotificationChannelUpsertOne) SetConfig(v notification.ChannelConfig) *
 func (u *NotificationChannelUpsertOne) UpdateConfig() *NotificationChannelUpsertOne {
 	return u.Update(func(s *NotificationChannelUpsert) {
 		s.UpdateConfig()
+	})
+}
+
+// SetEventTypeFilter sets the "event_type_filter" field.
+func (u *NotificationChannelUpsertOne) SetEventTypeFilter(v []string) *NotificationChannelUpsertOne {
+	return u.Update(func(s *NotificationChannelUpsert) {
+		s.SetEventTypeFilter(v)
+	})
+}
+
+// UpdateEventTypeFilter sets the "event_type_filter" field to the value that was provided on create.
+func (u *NotificationChannelUpsertOne) UpdateEventTypeFilter() *NotificationChannelUpsertOne {
+	return u.Update(func(s *NotificationChannelUpsert) {
+		s.UpdateEventTypeFilter()
+	})
+}
+
+// ClearEventTypeFilter clears the value of the "event_type_filter" field.
+func (u *NotificationChannelUpsertOne) ClearEventTypeFilter() *NotificationChannelUpsertOne {
+	return u.Update(func(s *NotificationChannelUpsert) {
+		s.ClearEventTypeFilter()
+	})
+}
+
+// SetProviderData sets the "provider_data" field.
+func (u *NotificationChannelUpsertOne) SetProviderData(v map[string]string) *NotificationChannelUpsertOne {
+	return u.Update(func(s *NotificationChannelUpsert) {
+		s.SetProviderData(v)
+	})
+}
+
+// UpdateProviderData sets the "provider_data" field to the value that was provided on create.
+func (u *NotificationChannelUpsertOne) UpdateProviderData() *NotificationChannelUpsertOne {
+	return u.Update(func(s *NotificationChannelUpsert) {
+		s.UpdateProviderData()
+	})
+}
+
+// ClearProviderData clears the value of the "provider_data" field.
+func (u *NotificationChannelUpsertOne) ClearProviderData() *NotificationChannelUpsertOne {
+	return u.Update(func(s *NotificationChannelUpsert) {
+		s.ClearProviderData()
+	})
+}
+
+// SetGeneration sets the "generation" field.
+func (u *NotificationChannelUpsertOne) SetGeneration(v int) *NotificationChannelUpsertOne {
+	return u.Update(func(s *NotificationChannelUpsert) {
+		s.SetGeneration(v)
+	})
+}
+
+// AddGeneration adds v to the "generation" field.
+func (u *NotificationChannelUpsertOne) AddGeneration(v int) *NotificationChannelUpsertOne {
+	return u.Update(func(s *NotificationChannelUpsert) {
+		s.AddGeneration(v)
+	})
+}
+
+// UpdateGeneration sets the "generation" field to the value that was provided on create.
+func (u *NotificationChannelUpsertOne) UpdateGeneration() *NotificationChannelUpsertOne {
+	return u.Update(func(s *NotificationChannelUpsert) {
+		s.UpdateGeneration()
+	})
+}
+
+// SetReconcileStatus sets the "reconcile_status" field.
+func (u *NotificationChannelUpsertOne) SetReconcileStatus(v notification.ChannelReconcileStatus) *NotificationChannelUpsertOne {
+	return u.Update(func(s *NotificationChannelUpsert) {
+		s.SetReconcileStatus(v)
+	})
+}
+
+// UpdateReconcileStatus sets the "reconcile_status" field to the value that was provided on create.
+func (u *NotificationChannelUpsertOne) UpdateReconcileStatus() *NotificationChannelUpsertOne {
+	return u.Update(func(s *NotificationChannelUpsert) {
+		s.UpdateReconcileStatus()
+	})
+}
+
+// SetReconcileNextAt sets the "reconcile_next_at" field.
+func (u *NotificationChannelUpsertOne) SetReconcileNextAt(v time.Time) *NotificationChannelUpsertOne {
+	return u.Update(func(s *NotificationChannelUpsert) {
+		s.SetReconcileNextAt(v)
+	})
+}
+
+// UpdateReconcileNextAt sets the "reconcile_next_at" field to the value that was provided on create.
+func (u *NotificationChannelUpsertOne) UpdateReconcileNextAt() *NotificationChannelUpsertOne {
+	return u.Update(func(s *NotificationChannelUpsert) {
+		s.UpdateReconcileNextAt()
+	})
+}
+
+// ClearReconcileNextAt clears the value of the "reconcile_next_at" field.
+func (u *NotificationChannelUpsertOne) ClearReconcileNextAt() *NotificationChannelUpsertOne {
+	return u.Update(func(s *NotificationChannelUpsert) {
+		s.ClearReconcileNextAt()
 	})
 }
 
@@ -1022,7 +1310,7 @@ func (u *NotificationChannelUpsertBulk) ClearDisabled() *NotificationChannelUpse
 }
 
 // SetConfig sets the "config" field.
-func (u *NotificationChannelUpsertBulk) SetConfig(v notification.ChannelConfig) *NotificationChannelUpsertBulk {
+func (u *NotificationChannelUpsertBulk) SetConfig(v jsontext.Value) *NotificationChannelUpsertBulk {
 	return u.Update(func(s *NotificationChannelUpsert) {
 		s.SetConfig(v)
 	})
@@ -1032,6 +1320,104 @@ func (u *NotificationChannelUpsertBulk) SetConfig(v notification.ChannelConfig) 
 func (u *NotificationChannelUpsertBulk) UpdateConfig() *NotificationChannelUpsertBulk {
 	return u.Update(func(s *NotificationChannelUpsert) {
 		s.UpdateConfig()
+	})
+}
+
+// SetEventTypeFilter sets the "event_type_filter" field.
+func (u *NotificationChannelUpsertBulk) SetEventTypeFilter(v []string) *NotificationChannelUpsertBulk {
+	return u.Update(func(s *NotificationChannelUpsert) {
+		s.SetEventTypeFilter(v)
+	})
+}
+
+// UpdateEventTypeFilter sets the "event_type_filter" field to the value that was provided on create.
+func (u *NotificationChannelUpsertBulk) UpdateEventTypeFilter() *NotificationChannelUpsertBulk {
+	return u.Update(func(s *NotificationChannelUpsert) {
+		s.UpdateEventTypeFilter()
+	})
+}
+
+// ClearEventTypeFilter clears the value of the "event_type_filter" field.
+func (u *NotificationChannelUpsertBulk) ClearEventTypeFilter() *NotificationChannelUpsertBulk {
+	return u.Update(func(s *NotificationChannelUpsert) {
+		s.ClearEventTypeFilter()
+	})
+}
+
+// SetProviderData sets the "provider_data" field.
+func (u *NotificationChannelUpsertBulk) SetProviderData(v map[string]string) *NotificationChannelUpsertBulk {
+	return u.Update(func(s *NotificationChannelUpsert) {
+		s.SetProviderData(v)
+	})
+}
+
+// UpdateProviderData sets the "provider_data" field to the value that was provided on create.
+func (u *NotificationChannelUpsertBulk) UpdateProviderData() *NotificationChannelUpsertBulk {
+	return u.Update(func(s *NotificationChannelUpsert) {
+		s.UpdateProviderData()
+	})
+}
+
+// ClearProviderData clears the value of the "provider_data" field.
+func (u *NotificationChannelUpsertBulk) ClearProviderData() *NotificationChannelUpsertBulk {
+	return u.Update(func(s *NotificationChannelUpsert) {
+		s.ClearProviderData()
+	})
+}
+
+// SetGeneration sets the "generation" field.
+func (u *NotificationChannelUpsertBulk) SetGeneration(v int) *NotificationChannelUpsertBulk {
+	return u.Update(func(s *NotificationChannelUpsert) {
+		s.SetGeneration(v)
+	})
+}
+
+// AddGeneration adds v to the "generation" field.
+func (u *NotificationChannelUpsertBulk) AddGeneration(v int) *NotificationChannelUpsertBulk {
+	return u.Update(func(s *NotificationChannelUpsert) {
+		s.AddGeneration(v)
+	})
+}
+
+// UpdateGeneration sets the "generation" field to the value that was provided on create.
+func (u *NotificationChannelUpsertBulk) UpdateGeneration() *NotificationChannelUpsertBulk {
+	return u.Update(func(s *NotificationChannelUpsert) {
+		s.UpdateGeneration()
+	})
+}
+
+// SetReconcileStatus sets the "reconcile_status" field.
+func (u *NotificationChannelUpsertBulk) SetReconcileStatus(v notification.ChannelReconcileStatus) *NotificationChannelUpsertBulk {
+	return u.Update(func(s *NotificationChannelUpsert) {
+		s.SetReconcileStatus(v)
+	})
+}
+
+// UpdateReconcileStatus sets the "reconcile_status" field to the value that was provided on create.
+func (u *NotificationChannelUpsertBulk) UpdateReconcileStatus() *NotificationChannelUpsertBulk {
+	return u.Update(func(s *NotificationChannelUpsert) {
+		s.UpdateReconcileStatus()
+	})
+}
+
+// SetReconcileNextAt sets the "reconcile_next_at" field.
+func (u *NotificationChannelUpsertBulk) SetReconcileNextAt(v time.Time) *NotificationChannelUpsertBulk {
+	return u.Update(func(s *NotificationChannelUpsert) {
+		s.SetReconcileNextAt(v)
+	})
+}
+
+// UpdateReconcileNextAt sets the "reconcile_next_at" field to the value that was provided on create.
+func (u *NotificationChannelUpsertBulk) UpdateReconcileNextAt() *NotificationChannelUpsertBulk {
+	return u.Update(func(s *NotificationChannelUpsert) {
+		s.UpdateReconcileNextAt()
+	})
+}
+
+// ClearReconcileNextAt clears the value of the "reconcile_next_at" field.
+func (u *NotificationChannelUpsertBulk) ClearReconcileNextAt() *NotificationChannelUpsertBulk {
+	return u.Update(func(s *NotificationChannelUpsert) {
+		s.ClearReconcileNextAt()
 	})
 }
 

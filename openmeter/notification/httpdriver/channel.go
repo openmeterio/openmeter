@@ -102,9 +102,7 @@ func (h *handler) CreateChannel() CreateChannelHandler {
 				return CreateChannelRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
 			}
 
-			req := AsChannelWebhookCreateRequest(body, ns)
-
-			return req, nil
+			return AsChannelWebhookCreateRequest(body, ns)
 		},
 		func(ctx context.Context, request CreateChannelRequest) (CreateChannelResponse, error) {
 			channel, err := h.service.CreateChannel(ctx, request)
@@ -146,9 +144,7 @@ func (h *handler) UpdateChannel() UpdateChannelHandler {
 				return UpdateChannelRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
 			}
 
-			req := AsChannelWebhookUpdateRequest(body, ns, channelID)
-
-			return req, nil
+			return AsChannelWebhookUpdateRequest(body, ns, channelID)
 		},
 		func(ctx context.Context, request UpdateChannelRequest) (UpdateChannelResponse, error) {
 			channel, err := h.service.UpdateChannel(ctx, request)

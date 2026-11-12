@@ -27,7 +27,7 @@ jobs:
       contents: read
 
     steps:
-      - uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2 # v2.22.2
+      - uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
         with:
           egress-policy: audit
           use-policy-store: ${{ secrets.STEP_SECURITY_API_KEY != '' }}
@@ -39,7 +39,7 @@ jobs:
           persist-credentials: false
 
       - name: Build OpenMeter image
-        run: docker build --build-arg "VERSION=${GITHUB_SHA}" --tag "${OPENMETER_IMAGE}" .
+        run: docker build --build-arg "COMMIT_SHA=${GITHUB_SHA}" --build-arg VERSION=v0.0.0-e2e --tag "${OPENMETER_IMAGE}" .
 
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
@@ -74,7 +74,6 @@ jobs:
           name: "[${{ github.job }}] OpenMeter logs"
           path: |
             quickstart/artifacts/logs/**
-            e2e/logs/**
             e2e/artifacts/logs/**
           retention-days: 14
 
@@ -116,7 +115,7 @@ jobs:
       image: registry.depot.dev/${{ steps.build.outputs.project-id }}@${{ steps.build.outputs.imageid }}
 
     steps:
-      - uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2 # v2.22.2
+      - uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
         with:
           egress-policy: audit
           use-policy-store: ${{ secrets.STEP_SECURITY_API_KEY != '' }}
@@ -132,10 +131,12 @@ jobs:
 
       - name: Build OpenMeter image
         id: build
-        uses: depot/build-push-action@98e78adca7817480b8185f474a400b451d74e287 # v1.18.0
+        uses: depot/build-push-action@0f27be7c41d76663a98518dfe68f1c46582242c4 # v1.19.0
         with:
           context: .
-          build-args: VERSION=${{ github.sha }}
+          build-args: |
+            COMMIT_SHA=${{ github.sha }}
+            VERSION=v0.0.0-e2e
           platforms: linux/amd64
           tags: openmeter-ci:${{ github.sha }}
           push: false
@@ -173,7 +174,7 @@ jobs:
       id-token: write
 
     steps:
-      - uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2 # v2.22.2
+      - uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
         with:
           egress-policy: audit
           use-policy-store: ${{ secrets.STEP_SECURITY_API_KEY != '' }}
@@ -235,7 +236,6 @@ jobs:
           name: "[${{ github.job }}-${{ matrix.suite }}] OpenMeter logs"
           path: |
             quickstart/artifacts/logs/**
-            e2e/logs/**
             e2e/artifacts/logs/**
           retention-days: 14
 

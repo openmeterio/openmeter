@@ -4,6 +4,7 @@ package db
 
 import (
 	"context"
+	"encoding/json/jsontext"
 	"errors"
 	"fmt"
 	"time"
@@ -15,7 +16,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationevent"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationrule"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
-	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -117,16 +117,8 @@ func (_u *NotificationRuleUpdate) ClearDisabled() *NotificationRuleUpdate {
 }
 
 // SetConfig sets the "config" field.
-func (_u *NotificationRuleUpdate) SetConfig(v notification.RuleConfig) *NotificationRuleUpdate {
+func (_u *NotificationRuleUpdate) SetConfig(v jsontext.Value) *NotificationRuleUpdate {
 	_u.mutation.SetConfig(v)
-	return _u
-}
-
-// SetNillableConfig sets the "config" field if the given value is not nil.
-func (_u *NotificationRuleUpdate) SetNillableConfig(v *notification.RuleConfig) *NotificationRuleUpdate {
-	if v != nil {
-		_u.SetConfig(*v)
-	}
 	return _u
 }
 
@@ -248,11 +240,6 @@ func (_u *NotificationRuleUpdate) check() error {
 	if v, ok := _u.mutation.Name(); ok {
 		if err := notificationrule.NameValidator(v); err != nil {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`db: validator failed for field "NotificationRule.name": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.Config(); ok {
-		if err := v.Validate(); err != nil {
-			return &ValidationError{Name: "config", err: fmt.Errorf(`db: validator failed for field "NotificationRule.config": %w`, err)}
 		}
 	}
 	return nil
@@ -502,16 +489,8 @@ func (_u *NotificationRuleUpdateOne) ClearDisabled() *NotificationRuleUpdateOne 
 }
 
 // SetConfig sets the "config" field.
-func (_u *NotificationRuleUpdateOne) SetConfig(v notification.RuleConfig) *NotificationRuleUpdateOne {
+func (_u *NotificationRuleUpdateOne) SetConfig(v jsontext.Value) *NotificationRuleUpdateOne {
 	_u.mutation.SetConfig(v)
-	return _u
-}
-
-// SetNillableConfig sets the "config" field if the given value is not nil.
-func (_u *NotificationRuleUpdateOne) SetNillableConfig(v *notification.RuleConfig) *NotificationRuleUpdateOne {
-	if v != nil {
-		_u.SetConfig(*v)
-	}
 	return _u
 }
 
@@ -646,11 +625,6 @@ func (_u *NotificationRuleUpdateOne) check() error {
 	if v, ok := _u.mutation.Name(); ok {
 		if err := notificationrule.NameValidator(v); err != nil {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`db: validator failed for field "NotificationRule.name": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.Config(); ok {
-		if err := v.Validate(); err != nil {
-			return &ValidationError{Name: "config", err: fmt.Errorf(`db: validator failed for field "NotificationRule.config": %w`, err)}
 		}
 	}
 	return nil

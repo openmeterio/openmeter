@@ -15,6 +15,13 @@ purged or both valid secret references are reconstructed. Purging soft-deleted S
 is the expected rollback preparation because uninstallation intentionally removes the underlying
 secrets.
 
+## API key rotation
+
+Rotating a key through an app update persists the new credential reference and restores the app's
+`ready` status in the same database transaction. The status update must use the caller's transaction:
+the app update already holds the app row lock, so a separate connection would wait on that lock
+while preventing the caller from committing.
+
 ## Webhook namespace bootstrap
 
 Stripe webhook routes receive a globally unique app ID but no trusted namespace. Resolving the

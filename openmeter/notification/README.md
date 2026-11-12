@@ -27,6 +27,120 @@ Rules and channels are namespaced and soft-deleted. A channel cannot be deleted
 while a rule still references it. Events have no update or delete lifecycle;
 payload compatibility and retention therefore matter for historical data.
 
+## Channel type storage compatibility
+
+The service uses `webhook`; V1 HTTP uses `WEBHOOK`, while V3 uses `webhook`.
+The Ent field scanner reads either stored spelling as the lowercase domain value.
+New Channels still store `WEBHOOK`, and configuration writes retain the legacy
+`{type, data}` envelope with an uppercase discriminator, so older backends can
+read resources written during a rolling deployment. Channel type filters match
+both stored spellings using `in`/`nin`, including exclusions and nested `and`/`or`.
+Type filters accept exact comparisons and existence checks; pattern and range
+operators are rejected. Other string filters retain their existing operators.
+
+Ent exposes Channel config as `json.RawMessage`. The adapter decodes it using
+the Channel's type, trying the legacy envelope first and falling back to flat
+config with `custom_headers` and `signing_secret` if envelope decoding fails. Create/update still write the legacy
+envelope and camelCase keys. Reads do not rewrite stored config or rotate secrets.
+Malformed configs propagate errors through Channel, Rule, and Event reads.
+
+The nullable `event_type_filter` column is reserved for V4 routing. Current
+operations leave it unset on creation and preserve it on updates; Rule
+assignments remain authoritative. There are no dual writes. Backfilling and
+activating the filter, including catch-all behavior, belong to Phase 2.
+The future V4 adapter must enforce unique filter entries, and the Phase 2
+backfill must produce distinct values. No uniqueness validation is active yet.
+
+Channel `provider_data` is nullable JSONB reserved for V4 provider-owned data,
+separate from metadata and annotations. Current operations leave it unset on
+creation and preserve it on updates. Provider identity adoption and backfilling
+remain deferred; current provider lookups and annotations are unchanged.
+
+Channel reconciliation fields are reserved for V4: `generation` defaults to `1`,
+`reconcile_status` to `unknown`, and `reconcile_next_at` to NULL. Generations use
+Go `int` / PostgreSQL `integer`, validated by Ent within `1..MaxInt32`. Statuses
+are `unknown`, `pending`, `in_sync`, and `error`. Current updates and soft deletes
+preserve these fields; they do not activate scheduling or change synchronous
+provider operations. Migration defaults do not establish provider synchronization.
+
+This is the compatibility phase of the [V4 migration](../../notification%20v4%20migration.md).
+No data conversion is required in this phase. Finalization switches writes and
+converts remaining rows only after all active and supported rollback versions
+can read the final format. Temporary storage mappings remain until all writers
+and rows have converged. Already-lowercase rows are readable by the new adapter;
+this does not make those rows readable by an old backend.
+
+## Rule type storage compatibility
+
+Rule types use an Ent string field with the existing `EventType` validation.
+Phase 1 retains the unversioned names, immutable Rule type, configuration
+envelope, and routing. Canonical versioned names and data conversion remain
+deferred until their contracts and compatibility mappings are agreed.
+
+Ent exposes Rule config as `json.RawMessage`; the adapter decodes the legacy
+envelope first, then the unwrapped existing contract using the Rule's type.
+Flat configs reject unknown fields so malformed envelopes cannot become empty
+invoice configs. Reads do not rewrite rows or revalidate historical conditions.
+Writes retain the existing config validation and legacy envelope. Decode errors
+propagate through Rule reads and nested Event reads.
+
+## Event type storage compatibility
+
+Event types use an Ent string field with the existing `EventType` validation.
+Phase 1 preserves unversioned values, immutable types, payload representation,
+and required Rule references. Existing API and routing behavior stay unchanged;
+canonical versioned names and data conversion remain deferred.
+
+Ent exposes Event payloads as `json.RawMessage`; the adapter continues writing
+and decoding the existing typed JSON format, including invoice payload version
+checks. Raw payloads remain JSON objects in PostgreSQL, without an extra JSON
+string or base64 encoding. Reads do not rewrite historical payloads.
+
+The Event `rule_id` column is nullable in preparation for system Events. Current
+service and adapter creation paths still require an existing Rule and write its
+ID; readers and workers still depend on that relation. The foreign key retains
+`NO ACTION` on Rule deletion. Rule-free writes remain disabled until all readers
+and delivery paths support them.
+
+Event `rule_snapshot` is nullable JSONB reserved for the evaluated Rule state.
+Current creation paths leave it unset, and existing operations preserve any
+stored snapshot. It is immutable in Ent and is not exposed by the current API.
+Historical snapshots must not be reconstructed from the live Rule.
+
+Event `provider_data` is nullable JSONB reserved for V4 provider-owned data,
+separate from annotations. Current creation paths leave it unset, and existing
+operations preserve stored values. Existing provider identifiers remain
+authoritative; there are no dual writes, backfills, or API exposure yet.
+
+Delivery state uses an Ent string field with the existing
+`EventDeliveryStatusState` validation. Writes use uppercase and omitted states
+default to `PENDING`. The adapter reads either stored spelling as uppercase.
+Event and delivery filters match both spellings, including the poller's check
+for an active destination whose next attempt is due.
+
+Delivery attempts are raw JSON in Ent and typed at the adapter boundary. Stored
+arrays retain uppercase states and legacy response fields, including durations
+in nanoseconds. Reads do not rewrite SQL NULL, JSON null, or empty arrays; an
+update with nil attempts still writes JSON null. Invalid attempt data fails
+both delivery reads and Event reads that include those deliveries.
+
+Delivery-status `provider_data` is nullable JSONB reserved for V4. Current
+creation leaves it unset, and delivery updates preserve stored values independently
+of annotations and attempts. Provider lookups and reconciliation still use their
+existing sources; the field is not exposed by the current API.
+
+Delivery `dispatch_generation` uses Go `int` and PostgreSQL `integer`, with
+default `1` and Ent validation within `1..MaxInt32`. This is a migration baseline,
+not a reconstructed resend count. Current updates and resends preserve it;
+generation tracking and provider adoption remain inactive until all writers
+support them.
+
+Delivery `dispatch_queued_at` is nullable and reserved for the current dispatch
+generation. Phase 1 creation leaves it unset and delivery updates preserve it.
+After activation, queueing a delivery or accepting an explicit resend starts its
+timeout, including time spent waiting for the Channel to reach `in_sync`.
+`next_attempt_at` continues to schedule the next delivery attempt.
+
 ## Ownership and runtime boundaries
 
 - [Billing](../billing/README.md) owns invoice lifecycle and invoice domain

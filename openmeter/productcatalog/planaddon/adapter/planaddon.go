@@ -144,6 +144,7 @@ func (a *adapter) CreatePlanAddon(ctx context.Context, params planaddon.CreatePl
 			SetPlanID(params.PlanID).
 			SetAddonID(params.AddonID).
 			SetAnnotations(params.Annotations).
+			SetMetadata(params.Metadata).
 			SetFromPlanPhase(params.FromPlanPhase).
 			SetNillableMaxQuantity(params.MaxQuantity).
 			Save(ctx)
@@ -187,7 +188,6 @@ var PlanEagerLoadPhasesWithRateCardsWithFeaturesFn = func(pq *entdb.PlanQuery) {
 	pq.WithPhases(func(ppq *entdb.PlanPhaseQuery) {
 		ppq.WithRatecards(func(prq *entdb.PlanRateCardQuery) {
 			prq.WithFeatures()
-			prq.WithTaxCode()
 		})
 	})
 }
@@ -195,7 +195,6 @@ var PlanEagerLoadPhasesWithRateCardsWithFeaturesFn = func(pq *entdb.PlanQuery) {
 var AddonEagerLoadRateCardsWithFeaturesFn = func(aq *entdb.AddonQuery) {
 	aq.WithRatecards(func(arq *entdb.AddonRateCardQuery) {
 		arq.WithFeatures()
-		arq.WithTaxCode()
 	})
 }
 

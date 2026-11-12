@@ -41,7 +41,7 @@ spec:
             - name: SVIX_CACHE_TYPE
               value: "redis"
             - name: SVIX_JWT_SECRET
-              value: {{ .Values.svix.signingSecret | quote }}
+              value: {{ required "svix.signingSecret is required when svix.enabled is true" .Values.svix.signingSecret | quote }}
             - name: SVIX_LOG_LEVEL
               value: "debug"
             - name: SVIX_QUEUE_TYPE

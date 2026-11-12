@@ -12,7 +12,7 @@ import (
 func loadConfig(configFile string) error {
 	v, flags := viper.NewWithOptions(viper.WithDecodeHook(config.DecodeHook())), pflag.NewFlagSet("OpenMeter", pflag.ExitOnError)
 
-	config.SetViperDefaults(v, flags)
+	config.SetViperDefaultsWithMetadata(v, flags, config.MetadataConfiguration{Revision: revision, Version: version})
 	if configFile != "" {
 		v.SetConfigFile(configFile)
 	}

@@ -4,6 +4,7 @@ package db
 
 import (
 	"context"
+	"encoding/json/jsontext"
 	"errors"
 	"fmt"
 
@@ -42,16 +43,20 @@ func (_u *NotificationEventUpdate) ClearAnnotations() *NotificationEventUpdate {
 }
 
 // SetPayload sets the "payload" field.
-func (_u *NotificationEventUpdate) SetPayload(v string) *NotificationEventUpdate {
+func (_u *NotificationEventUpdate) SetPayload(v jsontext.Value) *NotificationEventUpdate {
 	_u.mutation.SetPayload(v)
 	return _u
 }
 
-// SetNillablePayload sets the "payload" field if the given value is not nil.
-func (_u *NotificationEventUpdate) SetNillablePayload(v *string) *NotificationEventUpdate {
-	if v != nil {
-		_u.SetPayload(*v)
-	}
+// SetProviderData sets the "provider_data" field.
+func (_u *NotificationEventUpdate) SetProviderData(v map[string]string) *NotificationEventUpdate {
+	_u.mutation.SetProviderData(v)
+	return _u
+}
+
+// ClearProviderData clears the value of the "provider_data" field.
+func (_u *NotificationEventUpdate) ClearProviderData() *NotificationEventUpdate {
+	_u.mutation.ClearProviderData()
 	return _u
 }
 
@@ -123,18 +128,7 @@ func (_u *NotificationEventUpdate) ExecX(ctx context.Context) {
 	}
 }
 
-// check runs all checks and user-defined validators on the builder.
-func (_u *NotificationEventUpdate) check() error {
-	if _u.mutation.RulesCleared() && len(_u.mutation.RulesIDs()) > 0 {
-		return errors.New(`db: clearing a required unique edge "NotificationEvent.rules"`)
-	}
-	return nil
-}
-
 func (_u *NotificationEventUpdate) sqlSave(ctx context.Context) (_node int, err error) {
-	if err := _u.check(); err != nil {
-		return _node, err
-	}
 	_spec := sqlgraph.NewUpdateSpec(notificationevent.Table, notificationevent.Columns, sqlgraph.NewFieldSpec(notificationevent.FieldID, field.TypeString))
 	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
@@ -150,7 +144,24 @@ func (_u *NotificationEventUpdate) sqlSave(ctx context.Context) (_node int, err 
 		_spec.ClearField(notificationevent.FieldAnnotations, field.TypeJSON)
 	}
 	if value, ok := _u.mutation.Payload(); ok {
-		_spec.SetField(notificationevent.FieldPayload, field.TypeString, value)
+		vv, err := notificationevent.ValueScanner.Payload.Value(value)
+		if err != nil {
+			return 0, err
+		}
+		_spec.SetField(notificationevent.FieldPayload, field.TypeString, vv)
+	}
+	if _u.mutation.RuleSnapshotCleared() {
+		_spec.ClearField(notificationevent.FieldRuleSnapshot, field.TypeString)
+	}
+	if value, ok := _u.mutation.ProviderData(); ok {
+		vv, err := notificationevent.ValueScanner.ProviderData.Value(value)
+		if err != nil {
+			return 0, err
+		}
+		_spec.SetField(notificationevent.FieldProviderData, field.TypeString, vv)
+	}
+	if _u.mutation.ProviderDataCleared() {
+		_spec.ClearField(notificationevent.FieldProviderData, field.TypeString)
 	}
 	if _u.mutation.DeliveryStatusesCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -230,16 +241,20 @@ func (_u *NotificationEventUpdateOne) ClearAnnotations() *NotificationEventUpdat
 }
 
 // SetPayload sets the "payload" field.
-func (_u *NotificationEventUpdateOne) SetPayload(v string) *NotificationEventUpdateOne {
+func (_u *NotificationEventUpdateOne) SetPayload(v jsontext.Value) *NotificationEventUpdateOne {
 	_u.mutation.SetPayload(v)
 	return _u
 }
 
-// SetNillablePayload sets the "payload" field if the given value is not nil.
-func (_u *NotificationEventUpdateOne) SetNillablePayload(v *string) *NotificationEventUpdateOne {
-	if v != nil {
-		_u.SetPayload(*v)
-	}
+// SetProviderData sets the "provider_data" field.
+func (_u *NotificationEventUpdateOne) SetProviderData(v map[string]string) *NotificationEventUpdateOne {
+	_u.mutation.SetProviderData(v)
+	return _u
+}
+
+// ClearProviderData clears the value of the "provider_data" field.
+func (_u *NotificationEventUpdateOne) ClearProviderData() *NotificationEventUpdateOne {
+	_u.mutation.ClearProviderData()
 	return _u
 }
 
@@ -324,18 +339,7 @@ func (_u *NotificationEventUpdateOne) ExecX(ctx context.Context) {
 	}
 }
 
-// check runs all checks and user-defined validators on the builder.
-func (_u *NotificationEventUpdateOne) check() error {
-	if _u.mutation.RulesCleared() && len(_u.mutation.RulesIDs()) > 0 {
-		return errors.New(`db: clearing a required unique edge "NotificationEvent.rules"`)
-	}
-	return nil
-}
-
 func (_u *NotificationEventUpdateOne) sqlSave(ctx context.Context) (_node *NotificationEvent, err error) {
-	if err := _u.check(); err != nil {
-		return _node, err
-	}
 	_spec := sqlgraph.NewUpdateSpec(notificationevent.Table, notificationevent.Columns, sqlgraph.NewFieldSpec(notificationevent.FieldID, field.TypeString))
 	id, ok := _u.mutation.ID()
 	if !ok {
@@ -368,7 +372,24 @@ func (_u *NotificationEventUpdateOne) sqlSave(ctx context.Context) (_node *Notif
 		_spec.ClearField(notificationevent.FieldAnnotations, field.TypeJSON)
 	}
 	if value, ok := _u.mutation.Payload(); ok {
-		_spec.SetField(notificationevent.FieldPayload, field.TypeString, value)
+		vv, err := notificationevent.ValueScanner.Payload.Value(value)
+		if err != nil {
+			return nil, err
+		}
+		_spec.SetField(notificationevent.FieldPayload, field.TypeString, vv)
+	}
+	if _u.mutation.RuleSnapshotCleared() {
+		_spec.ClearField(notificationevent.FieldRuleSnapshot, field.TypeString)
+	}
+	if value, ok := _u.mutation.ProviderData(); ok {
+		vv, err := notificationevent.ValueScanner.ProviderData.Value(value)
+		if err != nil {
+			return nil, err
+		}
+		_spec.SetField(notificationevent.FieldProviderData, field.TypeString, vv)
+	}
+	if _u.mutation.ProviderDataCleared() {
+		_spec.ClearField(notificationevent.FieldProviderData, field.TypeString)
 	}
 	if _u.mutation.DeliveryStatusesCleared() {
 		edge := &sqlgraph.EdgeSpec{

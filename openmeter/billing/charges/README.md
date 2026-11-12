@@ -245,6 +245,19 @@ invoice validation issue.
   post-create auto-advance, so worker retries do not lose the intent. Credit
   purchases follow their own creation and invoice-event lifecycle.
 
+### No ephemeral state on state machines
+
+Ephemeral state on a charge state machine is forbidden. A state machine holds
+only the charge and its configured dependencies, so it can be rebuilt from the
+persisted charge between any two transitions without losing anything.
+
+A trigger's input is consumed by the transition that receives it. When several
+actions need the same input, run them in sequence in that transition's entry
+action (`statelessx.WithParameters`) instead of storing the input on the machine
+for a later transition; a later `next` trigger after a reload would find it
+missing. Invoice patches are the only exception and follow the ownership
+contract above.
+
 ### Validation issues alongside successful results
 
 Use billing's [validation issue boundary contracts](../README.md#validation-issues-alongside-successful-results)
@@ -398,6 +411,8 @@ one.
   nominal period. Its service period therefore describes the nominal checkpoint
   covered by the run, not strict provenance for every event included in its
   metered quantity.
+- An outstanding usage-based realization exposes `usage` only when a live read
+  is available. A value of `"0"` means the read has no unbooked usage.
 - A usage-based run's metered quantity is cumulative from charge start to the run
   boundary and preserves the raw meter snapshot, even when negative. A billing
   standard line retains the signed line-period difference and preceding snapshot

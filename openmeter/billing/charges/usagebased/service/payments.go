@@ -81,18 +81,34 @@ func (e *LineEngine) recordPaymentSettled(ctx context.Context, stateMachine Stat
 		return err
 	}
 
-	result, err := e.service.runs.SettleInvoicedPayment(ctx, usagebasedrun.SettleInvoicedPaymentInput{
-		Charge:  charge,
-		Run:     run,
-		Invoice: invoice,
-		Line:    line,
-	})
-	if err != nil {
-		return fmt.Errorf("settle invoice payment for charge[%s]: %w", charge.ID, err)
+	// A settled booking keeps its ledger entries; the charge may still need advancing.
+	alreadySettled := false
+	if booked := run.Payment; booked != nil {
+		alreadySettled, err = booked.IsSettledFor(payment.BookingKey{
+			Namespace:  charge.Namespace,
+			InvoiceID:  invoice.ID,
+			LineID:     line.ID,
+			FiatAmount: line.Totals.Total,
+		})
+		if err != nil {
+			return fmt.Errorf("charge[%s]: %w", charge.ID, err)
+		}
 	}
 
-	if err := charge.Realizations.SetRealizationRun(result.Run); err != nil {
-		return fmt.Errorf("update realization run: %w", err)
+	if !alreadySettled {
+		result, err := e.service.runs.SettleInvoicedPayment(ctx, usagebasedrun.SettleInvoicedPaymentInput{
+			Charge:  charge,
+			Run:     run,
+			Invoice: invoice,
+			Line:    line,
+		})
+		if err != nil {
+			return fmt.Errorf("settle invoice payment for charge[%s]: %w", charge.ID, err)
+		}
+
+		if err := charge.Realizations.SetRealizationRun(result.Run); err != nil {
+			return fmt.Errorf("update realization run: %w", err)
+		}
 	}
 
 	advancementStateMachine, err := e.service.newStateMachineForCharge(ctx, charge)

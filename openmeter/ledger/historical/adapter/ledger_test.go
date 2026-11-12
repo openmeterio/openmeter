@@ -2,6 +2,7 @@ package adapter
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -306,12 +307,29 @@ func TestRepo_GetTransactionGroup_PreservesTaxBehavior(t *testing.T) {
 	}, txInput)
 	require.NoError(t, err)
 
-	hydratedGroup, err := env.repo.GetTransactionGroup(ctx, models.NamespacedID{
+	// Eager loading issues a separate query. Check its namespace binding too:
+	// correct hydration alone cannot catch a missing index-prefix predicate.
+	var transactionQueries []string
+	reader := NewRepo(entdb.NewClient(
+		entdb.Driver(env.db.EntDriver.Driver()),
+		entdb.Debug(),
+		entdb.Log(func(args ...any) {
+			if _, query, ok := strings.Cut(fmt.Sprint(args...), `FROM "ledger_transactions" WHERE `); ok {
+				transactionQueries = append(transactionQueries, query)
+			}
+		}),
+	))
+
+	hydratedGroup, err := reader.GetTransactionGroup(ctx, models.NamespacedID{
 		Namespace: namespace,
 		ID:        group.ID,
 	})
 	require.NoError(t, err)
 	require.Len(t, hydratedGroup.Transactions(), 1)
+	require.Equal(t, []string{fmt.Sprintf(
+		`"ledger_transactions"."namespace" = $1 AND "ledger_transactions"."group_id" IN ($2) ORDER BY "ledger_transactions"."created_at", "ledger_transactions"."id" args=[%s %s]`,
+		namespace, group.ID,
+	)}, transactionQueries)
 
 	for _, entry := range hydratedGroup.Transactions()[0].Entries() {
 		hydratedRoute := entry.PostingAddress().Route().Route()
@@ -1388,7 +1406,7 @@ func TestSumEntriesQuery_SQL(t *testing.T) {
 	sqlStr, args, err := q.SQL()
 	require.NoError(t, err)
 
-	require.Equal(t, `SELECT SUM("ledger_entries"."amount") AS "sum_amount" FROM "ledger_entries" WHERE (("ledger_entries"."namespace" = $1 AND "ledger_entries"."transaction_id" = $2) AND EXISTS (SELECT "ledger_transactions"."id" FROM "ledger_transactions" WHERE "ledger_entries"."transaction_id" = "ledger_transactions"."id" AND "ledger_transactions"."booked_at" >= $3)) AND EXISTS (SELECT "ledger_sub_accounts"."id" FROM "ledger_sub_accounts" WHERE "ledger_entries"."sub_account_id" = "ledger_sub_accounts"."id" AND EXISTS (SELECT "ledger_sub_account_routes"."id" FROM "ledger_sub_account_routes" WHERE (("ledger_sub_accounts"."route_id" = "ledger_sub_account_routes"."id" AND "ledger_sub_account_routes"."currency" = $4) AND "ledger_sub_account_routes"."credit_priority" = $5) AND "ledger_sub_account_routes"."cost_basis" = $6))`, sqlStr)
+	require.Equal(t, `SELECT SUM("ledger_entries"."amount") AS "sum_amount" FROM "ledger_entries" WHERE (("ledger_entries"."namespace" = $1 AND "ledger_entries"."transaction_id" = $2) AND EXISTS (SELECT "ledger_transactions"."id" FROM "ledger_transactions" WHERE "ledger_entries"."transaction_id" = "ledger_transactions"."id" AND "ledger_transactions"."booked_at" >= $3)) AND EXISTS (SELECT "ledger_sub_accounts"."id" FROM "ledger_sub_accounts" WHERE ("ledger_entries"."sub_account_id" = "ledger_sub_accounts"."id" AND EXISTS (SELECT "ledger_sub_account_routes"."id" FROM "ledger_sub_account_routes" WHERE (("ledger_sub_accounts"."route_id" = "ledger_sub_account_routes"."id" AND "ledger_sub_account_routes"."currency" = $4) AND "ledger_sub_account_routes"."credit_priority" = $5) AND "ledger_sub_account_routes"."cost_basis" = $6)) AND "ledger_sub_accounts"."namespace" = $7)`, sqlStr)
 	require.Equal(t, []any{
 		"ns-test",
 		txID,
@@ -1396,6 +1414,7 @@ func TestSumEntriesQuery_SQL(t *testing.T) {
 		"USD",
 		7,
 		mustDecimal(t, "0.7"),
+		"ns-test",
 	}, args)
 }
 
@@ -1421,6 +1440,7 @@ func TestSumEntriesQuery_SQLMatchFeature(t *testing.T) {
 		"ns-test",
 		"USD",
 		`["api-calls"]`,
+		"ns-test",
 	}, args)
 }
 

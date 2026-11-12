@@ -40,18 +40,13 @@ podLabels: {}
 
 # -- Pod [security context](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-pod).
 # See the [API reference](https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#security-context) for details.
-podSecurityContext: {}
-  # fsGroup: 2000
+podSecurityContext:
+  fsGroup: 10001
 
 # -- Container [security context](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-container).
 # See the [API reference](https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#security-context-1) for details.
+# OpenMeter containers default to runAsNonRoot, disable privilege escalation, and drop all capabilities.
 securityContext: {}
-  # capabilities:
-  #   drop:
-  #   - ALL
-  # readOnlyRootFilesystem: true
-  # runAsNonRoot: true
-  # runAsUser: 1000
 
 service:
   # -- Kubernetes [service type](https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types).
@@ -115,6 +110,27 @@ affinity: {}
 # -- OpenMeter configuration
 config: {}
 
+# Example: size the Postgres connection pool. When unset, pgx defaults to max(4, NumCPU), which can be
+# exhausted by concurrent API requests. Keep it well above the peak number of in-flight requests
+# (see https://github.com/openmeterio/openmeter/pull/5433 and https://github.com/openmeterio/openmeter/pull/5261).
+#
+# With `url`, set it in the query string:
+# config:
+#   postgres:
+#     url: postgres://user:password@host:5432/dbname?sslmode=disable&pool_max_conns=64
+#
+# With separate fields, use `options` (ignored when `url` is set). The bundled PostgreSQL injects a
+# `url`, so set `postgresql.enabled: false` and omit `url`:
+# config:
+#   postgres:
+#     host: host
+#     port: 5432
+#     user: user
+#     password: password
+#     database: dbname
+#     options:
+#       poolMaxConns: 64
+
 # -- Defines parameters for the InitContainers
 init:
   busybox:
@@ -166,17 +182,17 @@ clickhouse:
     install: true
 
 svix:
+  # -- Install a self-hosted Svix server. Requires `signingSecret` and `signedJwt`.
   # **Not recommended for production environments.**
-  enabled: true
+  enabled: false
 
-  # -- Specifies the JWT secret SVIX uses for authentication.
+  # -- JWT secret the Svix server uses to verify API tokens. Required when `enabled` is true.
   # For details, [see](https://github.com/svix/svix-webhooks?tab=readme-ov-file#authentication).
-  # **It is recommended to change this before deployment.**
-  signingSecret: "CeRc6WK8KjzRXrKkd9YFnSWcNyqLSIY8JwiaCeRc6WK4UkM"
+  signingSecret: ""
 
-  # -- Specifies the JWT OpenMeter uses to authenticate with Svix.
-  # This is an example Token intended for development purposes. You should create your own using the instructions in [svix documentation](https://github.com/svix/svix-webhooks?tab=readme-ov-file#authentication).
-  signedJwt: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJzdml4LXNlcnZlciIsImlhdCI6MTczMDk4NzU0MywiZXhwIjoyMjM1OTA5MDAwLCJhdWQiOiIiLCJzdWIiOiJvcmdfMjNyYjhZZEdxTVQwcUl6cGdHd2RYZkhpck11In0.J90SzVuNwecyCtWAQlOoWplJaK4rnIb3rCWXrHQPqJY"
+  # -- JWT OpenMeter uses to authenticate with Svix, signed with `signingSecret`. Required when `enabled` is true.
+  # Generate one with `svix-server jwt generate` (run with `SVIX_JWT_SECRET` set to `signingSecret`).
+  signedJwt: ""
 
   # -- External database configuration for Svix
   database:
@@ -401,7 +417,7 @@ billingWorker:
   # @default -- The chart-wide `affinity` value.
   affinity: {}
 
-# -- List of CA Root certificates to inject into pods at runtime.
+# -- PEM root certificates to add to the image trust bundle at pod startup.
 # See [values.yaml](values.yaml)
 caRootCertificates: {}
 #  ca: |

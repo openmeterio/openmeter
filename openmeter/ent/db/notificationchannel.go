@@ -4,6 +4,7 @@ package db
 
 import (
 	"encoding/json"
+	"encoding/json/jsontext"
 	"fmt"
 	"strings"
 	"time"
@@ -39,7 +40,17 @@ type NotificationChannel struct {
 	// Disabled holds the value of the "disabled" field.
 	Disabled bool `json:"disabled,omitempty"`
 	// Config holds the value of the "config" field.
-	Config notification.ChannelConfig `json:"config,omitempty"`
+	Config jsontext.Value `json:"config,omitempty"`
+	// Unique resolved event types for V4 routing; inactive during migration Phase 1.
+	EventTypeFilter []string `json:"event_type_filter,omitempty"`
+	// Provider-owned operational data for V4.
+	ProviderData map[string]string `json:"provider_data,omitempty"`
+	// Desired-state generation for V4; inactive during migration Phase 1.
+	Generation int `json:"generation,omitempty"`
+	// Channel reconciliation status for V4; unknown until provider adoption.
+	ReconcileStatus notification.ChannelReconcileStatus `json:"reconcile_status,omitempty"`
+	// Scheduled Channel reconciliation time for V4; inactive during migration Phase 1.
+	ReconcileNextAt *time.Time `json:"reconcile_next_at,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the NotificationChannelQuery when eager-loading is set.
 	Edges        NotificationChannelEdges `json:"edges"`
@@ -73,12 +84,20 @@ func (*NotificationChannel) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case notificationchannel.FieldDisabled:
 			values[i] = new(sql.NullBool)
-		case notificationchannel.FieldID, notificationchannel.FieldNamespace, notificationchannel.FieldType, notificationchannel.FieldName:
+		case notificationchannel.FieldGeneration:
+			values[i] = new(sql.NullInt64)
+		case notificationchannel.FieldID, notificationchannel.FieldNamespace, notificationchannel.FieldName, notificationchannel.FieldReconcileStatus:
 			values[i] = new(sql.NullString)
-		case notificationchannel.FieldCreatedAt, notificationchannel.FieldUpdatedAt, notificationchannel.FieldDeletedAt:
+		case notificationchannel.FieldCreatedAt, notificationchannel.FieldUpdatedAt, notificationchannel.FieldDeletedAt, notificationchannel.FieldReconcileNextAt:
 			values[i] = new(sql.NullTime)
+		case notificationchannel.FieldType:
+			values[i] = notificationchannel.ValueScanner.Type.ScanValue()
 		case notificationchannel.FieldConfig:
 			values[i] = notificationchannel.ValueScanner.Config.ScanValue()
+		case notificationchannel.FieldEventTypeFilter:
+			values[i] = notificationchannel.ValueScanner.EventTypeFilter.ScanValue()
+		case notificationchannel.FieldProviderData:
+			values[i] = notificationchannel.ValueScanner.ProviderData.ScanValue()
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -142,10 +161,10 @@ func (_m *NotificationChannel) assignValues(columns []string, values []any) erro
 				}
 			}
 		case notificationchannel.FieldType:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field type", values[i])
-			} else if value.Valid {
-				_m.Type = notification.ChannelType(value.String)
+			if value, err := notificationchannel.ValueScanner.Type.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				_m.Type = value
 			}
 		case notificationchannel.FieldName:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -164,6 +183,37 @@ func (_m *NotificationChannel) assignValues(columns []string, values []any) erro
 				return err
 			} else {
 				_m.Config = value
+			}
+		case notificationchannel.FieldEventTypeFilter:
+			if value, err := notificationchannel.ValueScanner.EventTypeFilter.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				_m.EventTypeFilter = value
+			}
+		case notificationchannel.FieldProviderData:
+			if value, err := notificationchannel.ValueScanner.ProviderData.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				_m.ProviderData = value
+			}
+		case notificationchannel.FieldGeneration:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field generation", values[i])
+			} else if value.Valid {
+				_m.Generation = int(value.Int64)
+			}
+		case notificationchannel.FieldReconcileStatus:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field reconcile_status", values[i])
+			} else if value.Valid {
+				_m.ReconcileStatus = notification.ChannelReconcileStatus(value.String)
+			}
+		case notificationchannel.FieldReconcileNextAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field reconcile_next_at", values[i])
+			} else if value.Valid {
+				_m.ReconcileNextAt = new(time.Time)
+				*_m.ReconcileNextAt = value.Time
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
@@ -237,6 +287,23 @@ func (_m *NotificationChannel) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("config=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Config))
+	builder.WriteString(", ")
+	builder.WriteString("event_type_filter=")
+	builder.WriteString(fmt.Sprintf("%v", _m.EventTypeFilter))
+	builder.WriteString(", ")
+	builder.WriteString("provider_data=")
+	builder.WriteString(fmt.Sprintf("%v", _m.ProviderData))
+	builder.WriteString(", ")
+	builder.WriteString("generation=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Generation))
+	builder.WriteString(", ")
+	builder.WriteString("reconcile_status=")
+	builder.WriteString(fmt.Sprintf("%v", _m.ReconcileStatus))
+	builder.WriteString(", ")
+	if v := _m.ReconcileNextAt; v != nil {
+		builder.WriteString("reconcile_next_at=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
 	builder.WriteByte(')')
 	return builder.String()
 }

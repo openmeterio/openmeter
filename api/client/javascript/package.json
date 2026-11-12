@@ -85,7 +85,7 @@
     "@types/react": "19.2.17",
     "fetch-mock": "12.6.0",
     "openapi-typescript": "7.13.0",
-    "orval": "8.26.0",
+    "orval": "8.46.0",
     "prettier": "3.8.3",
     "react": "19.2.7",
     "rollup": "4.61.1",
@@ -94,7 +94,7 @@
     "typescript": "5.9.3",
     "vite": "7.3.7",
     "vitest": "4.1.12",
-    "zod": "4.4.3"
+    "zod": "4.6.7"
   },
   "packageManager": "pnpm@11.1.2+sha512.415a1cc25974731e75455c1468371be74c5aa5fb7621b50d4056d222451609f11412f23fd602e6169f1e060466641f798597e1be961a10688836a67b16569499",
   "peerDependencies": {

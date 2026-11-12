@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	creditpurchaserealizations "github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase/service/realizations"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/statelessx"
 )
@@ -69,7 +70,9 @@ func (s *InvoiceCreditPurchaseStateMachine) configureStates() {
 		Permit(meta.TriggerNext, creditpurchase.StatusFinal).
 		OnActive(s.SettleInvoicedPayment)
 
-	s.Configure(creditpurchase.StatusFinal)
+	// A retried paid callback reaches a charge that already settled.
+	s.Configure(creditpurchase.StatusFinal).
+		InternalTransition(billing.TriggerPaid, statelessx.WithParameters(s.RecognizeSettledPayment))
 }
 
 func (s *InvoiceCreditPurchaseStateMachine) GrantCredits(ctx context.Context) error {
@@ -106,6 +109,38 @@ func (s *InvoiceCreditPurchaseStateMachine) SettleInvoicedPayment(ctx context.Co
 	s.Charge = updatedCharge
 
 	return nil
+}
+
+func (s *InvoiceCreditPurchaseStateMachine) RecognizeSettledPayment(_ context.Context, lineWithHeader billing.StandardLineWithInvoiceHeader) error {
+	booked := s.Charge.Realizations.InvoiceSettlement
+	if booked == nil {
+		return payment.ErrPaymentMissingOnFinalCharge.WithAttrs(s.Charge.ErrorAttributes())
+	}
+
+	line := lineWithHeader.Line
+	settled, err := booked.IsSettledFor(payment.BookingKey{
+		Namespace:  s.Charge.Namespace,
+		InvoiceID:  lineWithHeader.Invoice.ID,
+		LineID:     line.ID,
+		FiatAmount: line.Totals.Total,
+	})
+	if err != nil {
+		return err
+	}
+
+	if settled {
+		return nil
+	}
+
+	if booked.Status != payment.StatusSettled {
+		return payment.ErrPaymentNotSettledOnFinalCharge.
+			WithAttrs(s.Charge.ErrorAttributes()).
+			WithAttrs(booked.ErrorAttributes())
+	}
+
+	return payment.ErrPaymentBookingMismatch.
+		WithAttrs(s.Charge.ErrorAttributes()).
+		WithAttrs(booked.ErrorAttributes())
 }
 
 type HandleInvoiceLifecycleTriggerInput struct {

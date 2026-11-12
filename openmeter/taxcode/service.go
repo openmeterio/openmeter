@@ -32,6 +32,11 @@ type OrganizationDefaultTaxCodesService interface {
 
 type inputOptions struct {
 	AllowAnnotations bool
+
+	// AllowAppMappingOverride bypasses the update-time guard that keeps existing
+	// app mappings unchanged. Only for internal callers and tests; never set from
+	// API handlers.
+	AllowAppMappingOverride bool
 }
 
 var (
@@ -114,12 +119,22 @@ type ListTaxCodesInput struct {
 	pagination.Page
 
 	IncludeDeleted bool
+
+	IDs []string
 }
 
 func (i ListTaxCodesInput) Validate() error {
 	var errs []error
 	if i.Namespace == "" {
 		errs = append(errs, ErrResourceNamespaceEmpty)
+	}
+
+	for idx, id := range i.IDs {
+		if id == "" {
+			errs = append(errs, ErrResourceIDEmpty.WithField(
+				models.NewFieldSelector("ids").WithExpression(models.NewFieldArrIndex(idx)),
+			))
+		}
 	}
 
 	if !i.Page.IsZero() {

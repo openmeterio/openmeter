@@ -8,6 +8,8 @@ OPENMETER_ADDRESS ?= http://localhost:38888
 BENCHTIME ?= 20x
 # Number of times to repeat the whole benchmark (feed >1 into benchstat for variance).
 COUNT ?= 1
+export OPENMETER_E2E_EXPECTED_COMMIT_SHA ?= $(shell git rev-parse HEAD)
+export OPENMETER_E2E_EXPECTED_VERSION ?= v0.0.0-e2e
 OPENMETER_E2E_EXTRA_COMPOSE_FILES ?=
 OPENMETER_E2E_POSTGRES_URL ?= postgres://postgres:postgres@127.0.0.1:35432/postgres?sslmode=disable
 

@@ -13,6 +13,11 @@ func main() {
 	cmd := &cobra.Command{
 		Use: "entschema",
 		RunE: func(cmd *cobra.Command, _ []string) error {
+			extensions, err := os.ReadFile("tools/migrate/extensions.sql")
+			if err != nil {
+				return err
+			}
+
 			constraints, err := os.ReadFile("tools/migrate/deferred_constraints.sql")
 			if err != nil {
 				return err
@@ -27,7 +32,7 @@ func main() {
 				return err
 			}
 
-			_, err = fmt.Fprint(cmd.OutOrStdout(), ddl)
+			_, err = fmt.Fprint(cmd.OutOrStdout(), string(extensions)+"\n"+ddl)
 
 			return err
 		},

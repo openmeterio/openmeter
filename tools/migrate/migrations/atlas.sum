@@ -1,4 +1,4 @@
-h1:VJ/5+wN8F32Awgt+51JDVYKBwI5YgJ+AE+7QpJ3Etwg=
+h1:1UKW5tC7L/4bet7VKwd5HXzLRXFu5sxPX+Q0BGn1YY4=
 20240826120919_init.up.sql h1:tc1V91/smlmaeJGQ8h+MzTEeFjjnrrFDbDAjOYJK91o=
 20240903155435_entitlement-expired-index.up.sql h1:Hp8u5uckmLXc1cRvWU0AtVnnK8ShlpzZNp8pbiJLhac=
 20240917172257_billing-entities.up.sql h1:Q1dAMo0Vjiit76OybClNfYPGC5nmvov2/M2W1ioi4Kw=
@@ -303,3 +303,7 @@ h1:VJ/5+wN8F32Awgt+51JDVYKBwI5YgJ+AE+7QpJ3Etwg=
 20261021070812_migrate_invoices_to_schema_level_2.up.sql h1:fXcPaae+O1FUgOU4yL3hpkhq4t/XNN0VJ7maG6Bm1n8=
 20261021082257_deprecate_invoice_flat_fee_config_reference.up.sql h1:jYuKrJhT9zjokooweKTRhZHSBUMEQtenAWMNaHNDkhM=
 20261021133408_cleanup_legacy_invoice_detailed_lines.up.sql h1:hQ50ue3tk3OjEt64yAaED5k+/dH+OUjpuYAd3oh0Y5g=
+20261110114746_enable_pg_trgm.up.sql h1:ZcOumw1IUeEavPmph+ddZVasmM3ZBQfq1L7J0xuLuec=
+20261110114747_customer_subjects_trgm.up.sql h1:P36efvIu5Zk9mqH7TLQyUIqRZjvLEmjNnDUfbndyNlE=
+20261110143316_notification_channel_compatibility.up.sql h1:HZ87Jw5fTXbd0e89o/ZJGTJy2a76AybJivWuJqNDFjc=
+20261110144149_notification_event_compatibility.up.sql h1:bYd6Cvoh3LM7fKzZHRZAutOfGtF1LoS9VpwHYNmkL9w=

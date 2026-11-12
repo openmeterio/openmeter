@@ -84,6 +84,16 @@ func TestFromPlan(t *testing.T) {
 		assert.Equal(t, "A great plan", *result.Description)
 	})
 
+	t.Run("maps metadata to labels", func(t *testing.T) {
+		p := newTestPlan(t)
+		p.Metadata = models.Metadata{"tier": "pro"}
+
+		result, err := ToAPIBillingPlan(p)
+		require.NoError(t, err)
+		require.NotNil(t, result.Labels)
+		assert.Equal(t, api.Labels{"tier": "pro"}, *result.Labels)
+	})
+
 	t.Run("maps deleted at", func(t *testing.T) {
 		p := newTestPlan(t)
 		deleted := now.Add(-time.Hour)
@@ -200,6 +210,23 @@ func TestFromPlanPhase(t *testing.T) {
 		assert.Equal(t, "First 3 months", *result.Description)
 		require.NotNil(t, result.Duration)
 		assert.Equal(t, api.ISO8601Duration("P3M"), *result.Duration)
+	})
+
+	t.Run("maps metadata to labels", func(t *testing.T) {
+		phase := plan.Phase{
+			Phase: productcatalog.Phase{
+				PhaseMeta: productcatalog.PhaseMeta{
+					Key:      "trial",
+					Name:     "Trial Phase",
+					Metadata: models.Metadata{"stage": "trial"},
+				},
+			},
+		}
+
+		result, err := ToAPIBillingPlanPhase(phase)
+		require.NoError(t, err)
+		require.NotNil(t, result.Labels)
+		assert.Equal(t, api.Labels{"stage": "trial"}, *result.Labels)
 	})
 
 	t.Run("nil duration maps to nil", func(t *testing.T) {
@@ -363,6 +390,21 @@ func TestFromRateCard(t *testing.T) {
 		disc, err := result.Price.Discriminator()
 		require.NoError(t, err)
 		assert.Equal(t, "free", disc)
+	})
+
+	t.Run("maps metadata to labels", func(t *testing.T) {
+		rc := &productcatalog.FlatFeeRateCard{
+			RateCardMeta: productcatalog.RateCardMeta{
+				Key:      "setup",
+				Name:     "Setup Fee",
+				Metadata: models.Metadata{"kind": "setup"},
+			},
+		}
+
+		result, err := ToAPIBillingRateCard(rc)
+		require.NoError(t, err)
+		require.NotNil(t, result.Labels)
+		assert.Equal(t, api.Labels{"kind": "setup"}, *result.Labels)
 	})
 
 	t.Run("flat fee — with price and cadence", func(t *testing.T) {
@@ -1036,54 +1078,6 @@ func TestFromBillingCommitments(t *testing.T) {
 	})
 }
 
-func TestToAPITaxCodeConfig(t *testing.T) {
-	t.Run("nil when tax config is nil", func(t *testing.T) {
-		result := ToAPITaxCodeConfig(nil)
-		assert.Nil(t, result)
-	})
-
-	t.Run("nil when tax config has no shared fields", func(t *testing.T) {
-		result := ToAPITaxCodeConfig(&productcatalog.TaxConfig{})
-		assert.Nil(t, result)
-	})
-
-	t.Run("maps normalized tax code ID", func(t *testing.T) {
-		c := &productcatalog.TaxConfig{
-			TaxCodeID: lo.ToPtr("01TAXCODE000000000000000001"),
-		}
-
-		result := ToAPITaxCodeConfig(c)
-		require.NotNil(t, result)
-		require.NotNil(t, result.Code)
-		assert.Equal(t, "01TAXCODE000000000000000001", result.Code.Id)
-		assert.Nil(t, result.Behavior)
-	})
-
-	t.Run("maps behavior", func(t *testing.T) {
-		cfg := &productcatalog.TaxConfig{
-			Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
-			TaxCodeID: lo.ToPtr("01TAXCODE000000000000000000"),
-		}
-
-		result := ToAPITaxCodeConfig(cfg)
-		require.NotNil(t, result)
-		require.NotNil(t, result.Behavior)
-		assert.Equal(t, api.BillingTaxBehavior("inclusive"), *result.Behavior)
-	})
-
-	t.Run("maps behavior-only config without code", func(t *testing.T) {
-		c := &productcatalog.TaxConfig{
-			Behavior: lo.ToPtr(productcatalog.InclusiveTaxBehavior),
-		}
-
-		result := ToAPITaxCodeConfig(c)
-		require.NotNil(t, result)
-		assert.Nil(t, result.Code)
-		require.NotNil(t, result.Behavior)
-		assert.Equal(t, api.BillingTaxBehavior("inclusive"), *result.Behavior)
-	})
-}
-
 func TestFromPlanPhaseWithRateCards(t *testing.T) {
 	t.Run("phase with flat fee rate card", func(t *testing.T) {
 		rc := &productcatalog.FlatFeeRateCard{
@@ -1670,77 +1664,6 @@ func TestToBillingPriceTiers(t *testing.T) {
 		assert.Nil(t, result[1].FlatPrice)
 		require.NotNil(t, result[1].UnitPrice)
 		assert.Equal(t, "0.005", result[1].UnitPrice.Amount.String())
-	})
-}
-
-func TestFromAPITaxCodeConfig(t *testing.T) {
-	t.Run("maps code ID", func(t *testing.T) {
-		tc := api.TaxCodeConfig{
-			Code: &api.TaxCodeReference{Id: "01TAXCODE000"},
-		}
-
-		result, err := FromAPITaxCodeConfig(tc)
-		require.NoError(t, err)
-		require.NotNil(t, result)
-		require.NotNil(t, result.TaxCodeID)
-		assert.Equal(t, "01TAXCODE000", *result.TaxCodeID)
-		assert.Nil(t, result.Behavior)
-	})
-
-	t.Run("maps behavior", func(t *testing.T) {
-		tc := api.TaxCodeConfig{
-			Code:     &api.TaxCodeReference{Id: "01TAXCODE000"},
-			Behavior: lo.ToPtr(api.BillingTaxBehavior("inclusive")),
-		}
-
-		result, err := FromAPITaxCodeConfig(tc)
-		require.NoError(t, err)
-		require.NotNil(t, result)
-		require.NotNil(t, result.Behavior)
-		assert.Equal(t, productcatalog.InclusiveTaxBehavior, *result.Behavior)
-	})
-
-	t.Run("maps behavior-only config", func(t *testing.T) {
-		tc := api.TaxCodeConfig{
-			Behavior: lo.ToPtr(api.BillingTaxBehavior("inclusive")),
-		}
-
-		result, err := FromAPITaxCodeConfig(tc)
-		require.NoError(t, err)
-		require.NotNil(t, result)
-		assert.Nil(t, result.TaxCodeID)
-		require.NotNil(t, result.Behavior)
-		assert.Equal(t, productcatalog.InclusiveTaxBehavior, *result.Behavior)
-	})
-
-	t.Run("rejects empty code ID", func(t *testing.T) {
-		tc := api.TaxCodeConfig{
-			Code: &api.TaxCodeReference{Id: ""},
-		}
-
-		result, err := FromAPITaxCodeConfig(tc)
-		require.Error(t, err)
-		assert.Nil(t, result)
-		assert.True(t, models.IsGenericValidationError(err), "an explicit code reference without an id must surface as a validation error")
-	})
-
-	t.Run("rejects empty code ID even with behavior", func(t *testing.T) {
-		tc := api.TaxCodeConfig{
-			Code:     &api.TaxCodeReference{Id: ""},
-			Behavior: lo.ToPtr(api.BillingTaxBehavior("inclusive")),
-		}
-
-		result, err := FromAPITaxCodeConfig(tc)
-		require.Error(t, err)
-		assert.Nil(t, result)
-		assert.True(t, models.IsGenericValidationError(err), "an explicit code reference without an id must surface as a validation error")
-	})
-
-	t.Run("rejects empty tax config", func(t *testing.T) {
-		result, err := FromAPITaxCodeConfig(api.TaxCodeConfig{})
-		require.Error(t, err)
-		assert.Nil(t, result)
-		assert.True(t, models.IsGenericValidationError(err), "tax config without code or behavior must surface as a validation error")
 	})
 }
 

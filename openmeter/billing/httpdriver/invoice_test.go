@@ -1,8 +1,11 @@
 package httpdriver
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -14,9 +17,11 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
+	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -394,4 +399,67 @@ func toString(member any) (string, error) {
 	default:
 		return "", fmt.Errorf("expected string, got %T", member)
 	}
+}
+
+func (s *InvoicingTestSuite) TestSimulateInvoiceHTTP() {
+	namespace := "ns-simulate-invoice-http"
+	ctx := s.T().Context()
+
+	// given:
+	// - a customer with a billing profile
+	// - a simulate invoice request with one flat price line
+	appSandbox := s.InstallSandboxApp(s.T(), namespace)
+
+	cust, err := s.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
+		Namespace: namespace,
+
+		CustomerMutate: customer.CustomerMutate{
+			Key:      lo.ToPtr("test-customer"),
+			Name:     "Test Customer",
+			Currency: lo.ToPtr(currencyx.Code(currency.USD)),
+		},
+	})
+	s.Require().NoError(err)
+
+	s.ProvisionBillingProfile(ctx, namespace, appSandbox.GetID())
+
+	price := api.RateCardUsageBasedPrice{}
+	s.NoError(price.FromFlatPriceWithPaymentTerm(api.FlatPriceWithPaymentTerm{
+		Amount: "10",
+		Type:   api.FlatPriceWithPaymentTermTypeFlat,
+	}))
+
+	period := invoiceLineTestPeriod()
+	body, err := json.Marshal(api.InvoiceSimulationInput{
+		Currency: api.CurrencyCode(currency.USD),
+		Lines: []api.InvoiceSimulationLine{
+			{
+				Name:      "simulated flat fee",
+				Period:    api.Period(period),
+				InvoiceAt: period.To,
+				RateCard:  &api.InvoiceUsageBasedRateCard{Price: &price},
+			},
+		},
+	})
+	s.NoError(err)
+
+	h := &handler{
+		service:          s.BillingService,
+		namespaceDecoder: namespacedriver.StaticNamespaceDecoder(namespace),
+	}
+
+	// when:
+	// - the request goes through the HTTP handler and the billing service
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest(http.MethodPost, "/api/v1/billing/customers/"+cust.ID+"/invoices/simulate", bytes.NewReader(body))
+	h.SimulateInvoice().With(SimulateInvoiceParams{CustomerID: cust.ID}).ServeHTTP(w, r)
+
+	// then:
+	// - the service rates the line through the invoicing engine and returns the simulated invoice
+	s.Require().Equal(http.StatusOK, w.Code, w.Body.String())
+
+	var invoice api.Invoice
+	s.NoError(json.Unmarshal(w.Body.Bytes(), &invoice))
+	s.Len(lo.FromPtr(invoice.Lines), 1)
+	s.Equal(10.0, alpacadecimal.RequireFromString(invoice.Totals.Total).InexactFloat64())
 }

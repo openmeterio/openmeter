@@ -1,0 +1,234 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "enabledManagers": ["gomod", "github-actions", "dockerfile", "poetry", "npm"],
+  "includePaths": [
+    "go.mod",
+    "collector/go.mod",
+    "api/v3/client/go.mod",
+    "e2e/go.mod",
+    ".github/workflows/*.{yml,yaml}",
+    "Dockerfile",
+    "benthos-collector.Dockerfile",
+    "api/client/python/pyproject.toml",
+    "api/client/python/examples/pyproject.toml",
+    "api/client/javascript/package.json"
+  ],
+  "minimumReleaseAge": "7 days",
+  "prConcurrentLimit": 10,
+  "prHourlyLimit": 0,
+  "semanticCommits": "enabled",
+  "semanticCommitType": "chore",
+  "semanticCommitScope": "deps",
+  "dependencyDashboard": false,
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "prConcurrentLimit": 10
+  },
+  "gomod": {
+    "postUpgradeTasks": {
+      "executionMode": "branch",
+      "commands": ["make mod"],
+      "installTools": {
+        "golang": {}
+      },
+      "fileFilters": [
+        "go.mod",
+        "go.sum",
+        "collector/go.mod",
+        "collector/go.sum",
+        "api/v3/client/go.mod",
+        "api/v3/client/go.sum",
+        "e2e/go.mod",
+        "e2e/go.sum"
+      ]
+    },
+    "labels": [
+      "area/dependencies",
+      "dependency/go",
+      "release-note/dependency-update"
+    ],
+    "packageRules": [
+      {
+        "matchDepTypes": ["require", "indirect"],
+        "matchPackageNames": ["k8s.io/**", "sigs.k8s.io/**"],
+        "enabled": true,
+        "groupName": "k8s"
+      },
+      {
+        "matchDepTypes": ["require", "indirect"],
+        "matchPackageNames": ["github.com/aws/**"],
+        "enabled": true,
+        "groupName": "aws"
+      },
+      {
+        "matchDepTypes": ["require", "indirect"],
+        "matchPackageNames": [
+          "github.com/Azure/azure-sdk-for-go",
+          "github.com/Azure/azure-sdk-for-go/**"
+        ],
+        "enabled": true,
+        "groupName": "azure"
+      },
+      {
+        "matchDepTypes": ["require", "indirect"],
+        "matchPackageNames": [
+          "cloud.google.com/go",
+          "cloud.google.com/go/**",
+          "github.com/GoogleCloudPlatform/**",
+          "google.golang.org/**"
+        ],
+        "enabled": true,
+        "groupName": "googlecloud"
+      },
+      {
+        "matchDepTypes": ["require", "indirect"],
+        "matchPackageNames": ["golang.org/x/**"],
+        "enabled": true,
+        "groupName": "golang"
+      },
+      {
+        "matchDepTypes": ["require", "indirect"],
+        "matchPackageNames": ["go.opentelemetry.io/**"],
+        "enabled": true,
+        "groupName": "otel"
+      },
+      {
+        "matchDepTypes": ["require", "indirect"],
+        "matchPackageNames": ["github.com/samber/**"],
+        "enabled": true,
+        "groupName": "samber"
+      },
+      {
+        "matchDepTypes": ["require", "indirect"],
+        "matchPackageNames": ["github.com/prometheus/**"],
+        "enabled": true,
+        "groupName": "prometheus"
+      },
+      {
+        "matchDepTypes": ["require", "indirect"],
+        "matchPackageNames": [
+          "github.com/ClickHouse/clickhouse-go/v2",
+          "github.com/ClickHouse/ch-go"
+        ],
+        "enabled": true,
+        "groupName": "clickhouse"
+      },
+      {
+        "matchDepTypes": ["require", "indirect"],
+        "matchPackageNames": ["github.com/redis/go-redis/**"],
+        "enabled": true,
+        "groupName": "redis"
+      },
+      {
+        "matchDepTypes": ["require", "indirect"],
+        "matchPackageNames": [
+          "github.com/redpanda-data/benthos/**",
+          "github.com/redpanda-data/connect/**"
+        ],
+        "enabled": true,
+        "groupName": "benthos"
+      },
+      {
+        "matchDepTypes": ["require", "indirect"],
+        "matchPackageNames": ["github.com/oapi-codegen/**"],
+        "enabled": true,
+        "groupName": "oapi-codegen"
+      },
+      {
+        "matchPackageNames": ["ariga.io/atlas"],
+        "enabled": false
+      },
+      {
+        "description": "The collector and e2e modules resolve these dependencies from the local checkout.",
+        "matchFileNames": ["collector/go.mod", "e2e/go.mod"],
+        "matchPackageNames": [
+          "github.com/openmeterio/openmeter",
+          "github.com/openmeterio/openmeter/api/v3/client"
+        ],
+        "enabled": false
+      },
+      {
+        "description": "Coordinate Go toolchain updates with the SDK generator, Docker builders and nixpkgs.",
+        "matchDepTypes": ["golang", "toolchain"],
+        "enabled": false
+      }
+    ]
+  },
+  "github-actions": {
+    "labels": [
+      "area/dependencies",
+      "dependency/github_actions",
+      "release-note/ignore"
+    ],
+    "packageRules": [
+      {
+        "description": "Track external action and reusable workflow references.",
+        "matchDepTypes": ["!action", "!workflow"],
+        "enabled": false
+      },
+      {
+        "matchPackageNames": ["github/codeql-action"],
+        "groupName": "codeql"
+      },
+      {
+        "matchPackageNames": ["Kong/public-shared-actions"],
+        "groupName": "kong"
+      }
+    ]
+  },
+  "dockerfile": {
+    "labels": [
+      "area/dependencies",
+      "dependency/docker",
+      "release-note/dependency-update"
+    ],
+    "packageRules": [
+      {
+        "matchDatasources": ["apk", "deb"],
+        "enabled": false
+      }
+    ]
+  },
+  "poetry": {
+    "labels": [
+      "area/dependencies",
+      "dependency/python",
+      "release-note/dependency-update"
+    ],
+    "packageRules": [
+      {
+        "matchDepTypes": ["dependencies", "extras"],
+        "groupName": "production-dependencies"
+      },
+      {
+        "matchDepTypes": ["dev", "dev-dependencies"],
+        "groupName": "development-dependencies"
+      }
+    ]
+  },
+  "npm": {
+    "labels": [
+      "area/dependencies",
+      "dependency/javascript",
+      "release-note/dependency-update"
+    ],
+    "packageRules": [
+      {
+        "matchDepTypes": [
+          "dependencies",
+          "optionalDependencies",
+          "peerDependencies"
+        ],
+        "groupName": "JavaScript SDK production dependencies"
+      },
+      {
+        "matchDepTypes": ["devDependencies"],
+        "groupName": "JavaScript SDK development dependencies"
+      },
+      {
+        "matchPackageNames": ["eslint", "eslint-formatter-pretty"],
+        "enabled": false
+      }
+    ]
+  }
+}

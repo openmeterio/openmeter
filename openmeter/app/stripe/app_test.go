@@ -53,3 +53,17 @@ func TestMetaActionsReportsOutdatedWebhookSchema(t *testing.T) {
 		require.Nil(t, deleted.Actions())
 	})
 }
+
+func TestDeleteStandardInvoice(t *testing.T) {
+	t.Run("skips Stripe deletion when invoice is not synced", func(t *testing.T) {
+		appOps := appOperations{}
+		invoice := billing.StandardInvoice{
+			StandardInvoiceBase: billing.StandardInvoiceBase{
+				ID: "inv_123",
+			},
+		}
+
+		err := appOps.DeleteStandardInvoice(t.Context(), invoice)
+		require.NoError(t, err)
+	})
+}

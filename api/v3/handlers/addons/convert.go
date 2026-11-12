@@ -3,7 +3,6 @@ package addons
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 
 	decimal "github.com/alpacahq/alpacadecimal"
@@ -11,6 +10,7 @@ import (
 
 	apiv3 "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	"github.com/openmeterio/openmeter/api/v3/handlers/tax"
 	"github.com/openmeterio/openmeter/api/v3/labels"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
@@ -272,7 +272,7 @@ func ToAPIBillingRateCard(rc productcatalog.RateCard) (apiv3.BillingRateCard, er
 
 	// TaxConfig
 	if meta.TaxConfig != nil {
-		result.TaxConfig = ToAPITaxCodeConfig(meta.TaxConfig)
+		result.TaxConfig = tax.ToAPITaxCodeConfig(meta.TaxConfig)
 	}
 
 	// Discounts
@@ -625,24 +625,6 @@ func ToAPIBillingPricePaymentTerm(t productcatalog.PaymentTermType) (*apiv3.Bill
 	}
 }
 
-func ToAPITaxCodeConfig(tc *productcatalog.TaxConfig) *apiv3.TaxCodeConfig {
-	if tc == nil || (tc.Behavior == nil && tc.TaxCodeID == nil) {
-		return nil
-	}
-
-	result := &apiv3.TaxCodeConfig{}
-
-	if tc.Behavior != nil {
-		result.Behavior = (*apiv3.BillingTaxBehavior)(tc.Behavior)
-	}
-
-	if tc.TaxCodeID != nil {
-		result.Code = &apiv3.TaxCodeReference{Id: *tc.TaxCodeID}
-	}
-
-	return result
-}
-
 func ToAPIBillingRateCardDiscounts(d productcatalog.Discounts) *apiv3.BillingRateCardDiscounts {
 	if d.IsEmpty() {
 		return nil
@@ -844,7 +826,7 @@ func FromAPIBillingRateCard(rc apiv3.BillingRateCard) (productcatalog.RateCard, 
 	}
 
 	if rc.TaxConfig != nil {
-		taxConfig, err := FromAPITaxCodeConfig(rc.TaxConfig)
+		taxConfig, err := tax.FromAPITaxCodeConfig(rc.TaxConfig)
 		if err != nil {
 			return nil, err
 		}
@@ -1147,32 +1129,6 @@ func FromAPIBillingSpendCommitments(c *apiv3.BillingSpendCommitments) (productca
 		}
 
 		result.MaximumAmount = &d
-	}
-
-	return result, nil
-}
-
-func FromAPITaxCodeConfig(tc *apiv3.TaxCodeConfig) (*productcatalog.TaxConfig, error) {
-	if tc == nil {
-		return nil, nil
-	}
-
-	if tc.Code != nil && tc.Code.Id == "" {
-		return nil, models.NewGenericValidationError(errors.New("tax_config.code.id must be set when tax_config.code is present"))
-	}
-
-	if tc.Code == nil && tc.Behavior == nil {
-		return nil, models.NewGenericValidationError(errors.New("tax_config.code.id or tax_config.behavior must be set"))
-	}
-
-	result := &productcatalog.TaxConfig{}
-
-	if tc.Code != nil {
-		result.TaxCodeID = &tc.Code.Id
-	}
-
-	if tc.Behavior != nil {
-		result.Behavior = (*productcatalog.TaxBehavior)(tc.Behavior)
 	}
 
 	return result, nil

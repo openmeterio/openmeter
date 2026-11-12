@@ -1,6 +1,7 @@
 package http
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -8,14 +9,18 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-func FromRateCard(r productcatalog.RateCard) (api.RateCard, error) {
+// FromRateCard maps a rate card to its v1 shape. taxCodes must hold every Tax Code the rate cards
+// reference (see RateCards.TaxCodeIDs): a missing entry silently drops stripe.code from the output.
+func FromRateCard(r productcatalog.RateCard, taxCodes map[string]*taxcode.TaxCode) (api.RateCard, error) {
 	var err error
 
 	resp := api.RateCard{}
@@ -37,7 +42,12 @@ func FromRateCard(r productcatalog.RateCard) (api.RateCard, error) {
 
 	var taxConfig *api.TaxConfig
 	if meta.TaxConfig != nil {
-		taxConfig = lo.ToPtr(FromTaxConfig(*meta.TaxConfig))
+		tc, err := ToAPITaxConfig(*meta.TaxConfig, taxCodes)
+		if err != nil {
+			return resp, fmt.Errorf("failed to map TaxConfig: %w", err)
+		}
+
+		taxConfig = lo.ToPtr(tc)
 	}
 
 	switch r.Type() {
@@ -251,6 +261,31 @@ func FromTaxConfig(c productcatalog.TaxConfig) api.TaxConfig {
 	}
 }
 
+// ToAPITaxConfig maps a Tax Code reference to the v1 shape. The stripe.code comes from the
+// referenced Tax Code's current Stripe mapping, not the one the record was created with.
+// taxCodes must contain every referenced Tax Code.
+func ToAPITaxConfig(cfg productcatalog.TaxCodeConfig, taxCodes map[string]*taxcode.TaxCode) (api.TaxConfig, error) {
+	out := api.TaxConfig{
+		Behavior:  (*api.TaxBehavior)(cfg.Clone().Behavior),
+		TaxCodeId: lo.EmptyableToPtr(cfg.TaxCodeID),
+	}
+
+	if cfg.TaxCodeID == "" {
+		return out, nil
+	}
+
+	tc := taxCodes[cfg.TaxCodeID]
+	if tc == nil {
+		return api.TaxConfig{}, fmt.Errorf("tax code %s not found in taxCodes", cfg.TaxCodeID)
+	}
+
+	if m, ok := tc.GetAppMapping(app.AppTypeStripe); ok {
+		out.Stripe = &api.StripeTaxConfig{Code: m.TaxCode}
+	}
+
+	return out, nil
+}
+
 func FromPaymentTerm(t productcatalog.PaymentTermType) api.PricePaymentTerm {
 	switch t {
 	case productcatalog.InArrearsPaymentTerm:
@@ -339,14 +374,14 @@ func FromDiscounts(discounts productcatalog.Discounts) *api.Discounts {
 	return &discountsAPI
 }
 
-func AsRateCards(rcs []api.RateCard) (productcatalog.RateCards, error) {
+func AsRateCards(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver, namespace string, rcs []api.RateCard) (productcatalog.RateCards, error) {
 	var rateCards productcatalog.RateCards
 
 	if len(rcs) > 0 {
 		rateCards = make(productcatalog.RateCards, 0, len(rcs))
 
 		for _, rc := range rcs {
-			rateCard, err := AsRateCard(rc)
+			rateCard, err := AsRateCard(ctx, resolver, namespace, rc)
 			if err != nil {
 				return nil, fmt.Errorf("failed to cast ratecard: %w", err)
 			}
@@ -358,7 +393,7 @@ func AsRateCards(rcs []api.RateCard) (productcatalog.RateCards, error) {
 	return rateCards, nil
 }
 
-func AsRateCard(r api.RateCard) (productcatalog.RateCard, error) {
+func AsRateCard(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver, namespace string, r api.RateCard) (productcatalog.RateCard, error) {
 	rType, err := r.Discriminator()
 	if err != nil {
 		return nil, fmt.Errorf("failed to cast type: %w", err)
@@ -371,7 +406,7 @@ func AsRateCard(r api.RateCard) (productcatalog.RateCard, error) {
 			return nil, fmt.Errorf("failed to cast FlatFeeRateCard: %w", err)
 		}
 
-		flatRateCard, err := AsFlatFeeRateCard(flat)
+		flatRateCard, err := AsFlatFeeRateCard(ctx, resolver, namespace, flat)
 		if err != nil {
 			return nil, fmt.Errorf("failed to cast FlatFeeRateCard: %w", err)
 		}
@@ -383,7 +418,7 @@ func AsRateCard(r api.RateCard) (productcatalog.RateCard, error) {
 			return nil, fmt.Errorf("failed to cast UsageBasedRateCard: %w", err)
 		}
 
-		usageBasedRateCard, err := AsUsageBasedRateCard(usage)
+		usageBasedRateCard, err := AsUsageBasedRateCard(ctx, resolver, namespace, usage)
 		if err != nil {
 			return nil, fmt.Errorf("failed to cast UsageBasedRateCard: %w", err)
 		}
@@ -394,7 +429,7 @@ func AsRateCard(r api.RateCard) (productcatalog.RateCard, error) {
 	}
 }
 
-func AsFlatFeeRateCard(flat api.RateCardFlatFee) (productcatalog.FlatFeeRateCard, error) {
+func AsFlatFeeRateCard(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver, namespace string, flat api.RateCardFlatFee) (productcatalog.FlatFeeRateCard, error) {
 	var err error
 
 	rc := productcatalog.FlatFeeRateCard{
@@ -428,7 +463,10 @@ func AsFlatFeeRateCard(flat api.RateCardFlatFee) (productcatalog.FlatFeeRateCard
 	}
 
 	if flat.TaxConfig != nil {
-		rc.TaxConfig = lo.ToPtr(AsTaxConfig(*flat.TaxConfig))
+		rc.TaxConfig, err = FromAPITaxConfig(ctx, resolver, namespace, *flat.TaxConfig)
+		if err != nil {
+			return rc, fmt.Errorf("failed to cast TaxConfig: %w", err)
+		}
 	}
 
 	if flat.Price != nil {
@@ -467,7 +505,7 @@ func AsFlatFeeRateCard(flat api.RateCardFlatFee) (productcatalog.FlatFeeRateCard
 	return rc, nil
 }
 
-func AsUsageBasedRateCard(usage api.RateCardUsageBased) (productcatalog.UsageBasedRateCard, error) {
+func AsUsageBasedRateCard(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver, namespace string, usage api.RateCardUsageBased) (productcatalog.UsageBasedRateCard, error) {
 	var err error
 
 	rc := productcatalog.UsageBasedRateCard{
@@ -499,7 +537,10 @@ func AsUsageBasedRateCard(usage api.RateCardUsageBased) (productcatalog.UsageBas
 	}
 
 	if usage.TaxConfig != nil {
-		rc.TaxConfig = lo.ToPtr(AsTaxConfig(*usage.TaxConfig))
+		rc.TaxConfig, err = FromAPITaxConfig(ctx, resolver, namespace, *usage.TaxConfig)
+		if err != nil {
+			return rc, fmt.Errorf("failed to cast TaxConfig: %w", err)
+		}
 	}
 
 	if usage.Price != nil {
@@ -887,6 +928,79 @@ func AsTaxConfig(c api.TaxConfig) productcatalog.TaxConfig {
 	}
 
 	return tc
+}
+
+// TaxCodeResolutionError is a failure to resolve a v1 stripe.code to a Tax Code (e.g. a database
+// error). It isn't caused by the request, so handlers must not report it as a validation error.
+type TaxCodeResolutionError struct {
+	Err error
+}
+
+func (e *TaxCodeResolutionError) Error() string {
+	return e.Err.Error()
+}
+
+func (e *TaxCodeResolutionError) Unwrap() error {
+	return e.Err
+}
+
+// FromAPITaxConfig turns v1 tax config input into a Tax Code reference. taxCodeId wins when set
+// and is passed through unchecked: services validate Tax Code references. Otherwise a stripe.code
+// is resolved to a Tax Code, creating one if the namespace doesn't have it yet.
+//
+// stripe.code is format-checked even when taxCodeId wins, because the API always rejected
+// malformed codes with a 400.
+func FromAPITaxConfig(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver, namespace string, in api.TaxConfig) (*productcatalog.TaxCodeConfig, error) {
+	stripeCode := lo.FromPtr(in.Stripe).Code
+
+	if err := (&productcatalog.StripeTaxConfig{Code: stripeCode}).Validate(); err != nil {
+		return nil, models.ErrorWithFieldPrefix(
+			models.NewFieldSelectorGroup(
+				models.NewFieldSelector("taxConfig"),
+				models.NewFieldSelector("stripe"),
+				models.NewFieldSelector("code"),
+			),
+			err,
+		)
+	}
+
+	// An explicit empty ID was always rejected; don't let it fall through to the Stripe code.
+	if in.TaxCodeId != nil && *in.TaxCodeId == "" {
+		return nil, models.ErrorWithFieldPrefix(
+			models.NewFieldSelectorGroup(
+				models.NewFieldSelector("taxConfig"),
+				models.NewFieldSelector("taxCodeId"),
+			),
+			models.NewGenericValidationError(errors.New("tax code id must not be empty")),
+		)
+	}
+
+	out := productcatalog.TaxCodeConfig{
+		Behavior:  (*productcatalog.TaxBehavior)(in.Behavior),
+		TaxCodeID: lo.FromPtr(in.TaxCodeId),
+	}
+
+	if out.TaxCodeID == "" && stripeCode != "" {
+		if resolver == nil {
+			return nil, &TaxCodeResolutionError{Err: errors.New("tax code resolver is required to resolve stripe tax codes")}
+		}
+
+		tc, err := resolver.ResolveOrBackfillTaxCode(ctx, productcatalog.ResolveOrBackfillTaxCodeInput{
+			Namespace:  namespace,
+			StripeCode: stripeCode,
+		})
+		if err != nil {
+			return nil, &TaxCodeResolutionError{Err: fmt.Errorf("failed to resolve tax code for stripe code %s: %w", stripeCode, err)}
+		}
+
+		out.TaxCodeID = tc.ID
+	}
+
+	if out.TaxCodeID == "" && out.Behavior == nil {
+		return nil, nil
+	}
+
+	return lo.ToPtr(out.Clone()), nil
 }
 
 func FromMetadata(metadata models.Metadata) *api.Metadata {

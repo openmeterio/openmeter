@@ -12,7 +12,12 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-func ChannelFromDBEntity(e db.NotificationChannel) *notification.Channel {
+func ChannelFromDBEntity(e db.NotificationChannel) (*notification.Channel, error) {
+	config, err := fromDBChannelConfig(e.Type, e.Config)
+	if err != nil {
+		return nil, fmt.Errorf("invalid notification channel config [namespace=%s channel.id=%s]: %w", e.Namespace, e.ID, err)
+	}
+
 	return &notification.Channel{
 		NamespacedID: models.NamespacedID{
 			Namespace: e.Namespace,
@@ -34,14 +39,19 @@ func ChannelFromDBEntity(e db.NotificationChannel) *notification.Channel {
 		Type:     e.Type,
 		Name:     e.Name,
 		Disabled: e.Disabled,
-		Config:   e.Config,
+		Config:   config,
 
 		Annotations: e.Annotations,
 		Metadata:    e.Metadata,
-	}
+	}, nil
 }
 
-func RuleFromDBEntity(e db.NotificationRule) *notification.Rule {
+func RuleFromDBEntity(e db.NotificationRule) (*notification.Rule, error) {
+	config, err := fromDBRuleConfig(e.Type, e.Config)
+	if err != nil {
+		return nil, fmt.Errorf("invalid notification rule config [namespace=%s rule.id=%s]: %w", e.Namespace, e.ID, err)
+	}
+
 	var channels []notification.Channel
 	if len(e.Edges.Channels) > 0 {
 		for _, channel := range e.Edges.Channels {
@@ -49,7 +59,12 @@ func RuleFromDBEntity(e db.NotificationRule) *notification.Rule {
 				continue
 			}
 
-			channels = append(channels, *ChannelFromDBEntity(*channel))
+			mapped, err := ChannelFromDBEntity(*channel)
+			if err != nil {
+				return nil, fmt.Errorf("failed to map notification rule channel [rule.id=%s]: %w", e.ID, err)
+			}
+
+			channels = append(channels, *mapped)
 		}
 	}
 
@@ -74,16 +89,16 @@ func RuleFromDBEntity(e db.NotificationRule) *notification.Rule {
 		Type:     e.Type,
 		Name:     e.Name,
 		Disabled: e.Disabled,
-		Config:   e.Config,
+		Config:   config,
 		Channels: channels,
 
 		Annotations: e.Annotations,
 		Metadata:    e.Metadata,
-	}
+	}, nil
 }
 
 func EventFromDBEntity(e db.NotificationEvent) (*notification.Event, error) {
-	payload, err := eventPayloadFromJSON([]byte(e.Payload))
+	payload, err := eventPayloadFromJSON(e.Payload)
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +111,12 @@ func EventFromDBEntity(e db.NotificationEvent) (*notification.Event, error) {
 				continue
 			}
 
-			statuses = append(statuses, *EventDeliveryStatusFromDBEntity(*status))
+			mapped, err := EventDeliveryStatusFromDBEntity(*status)
+			if err != nil {
+				return nil, fmt.Errorf("failed to map notification event delivery status [event.id=%s]: %w", e.ID, err)
+			}
+
+			statuses = append(statuses, *mapped)
 		}
 	}
 
@@ -105,7 +125,10 @@ func EventFromDBEntity(e db.NotificationEvent) (*notification.Event, error) {
 		return nil, err
 	}
 
-	rule := RuleFromDBEntity(*ruleRow)
+	rule, err := RuleFromDBEntity(*ruleRow)
+	if err != nil {
+		return nil, fmt.Errorf("failed to map notification event rule [event.id=%s]: %w", e.ID, err)
+	}
 
 	return &notification.Event{
 		NamespacedID: models.NamespacedID{
@@ -142,7 +165,16 @@ func eventPayloadFromJSON(data []byte) (notification.EventPayload, error) {
 	return payload, nil
 }
 
-func EventDeliveryStatusFromDBEntity(e db.NotificationEventDeliveryStatus) *notification.EventDeliveryStatus {
+func EventDeliveryStatusFromDBEntity(e db.NotificationEventDeliveryStatus) (*notification.EventDeliveryStatus, error) {
+	var attempts []notification.EventDeliveryAttempt
+	if len(e.Attempts) > 0 {
+		if err := json.Unmarshal(e.Attempts, &attempts); err != nil {
+			return nil, fmt.Errorf("invalid notification event delivery attempts [namespace=%s delivery_status.id=%s]: %w", e.Namespace, e.ID, err)
+		}
+	}
+
+	state, _ := deliveryStateSpellings(e.State)
+
 	return &notification.EventDeliveryStatus{
 		NamespacedID: models.NamespacedID{
 			Namespace: e.Namespace,
@@ -150,7 +182,7 @@ func EventDeliveryStatusFromDBEntity(e db.NotificationEventDeliveryStatus) *noti
 		},
 		ChannelID: e.ChannelID,
 		EventID:   e.EventID,
-		State:     e.State,
+		State:     state,
 		Reason:    e.Reason,
 		CreatedAt: e.CreatedAt.UTC(),
 		UpdatedAt: e.UpdatedAt.UTC(),
@@ -162,8 +194,8 @@ func EventDeliveryStatusFromDBEntity(e db.NotificationEventDeliveryStatus) *noti
 
 			return lo.ToPtr(lo.FromPtr(e.NextAttemptAt).UTC())
 		}(),
-		Attempts: e.Attempts,
+		Attempts: attempts,
 
 		Annotations: e.Annotations,
-	}
+	}, nil
 }

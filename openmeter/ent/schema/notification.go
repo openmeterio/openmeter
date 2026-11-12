@@ -3,10 +3,11 @@ package schema
 import (
 	"database/sql/driver"
 	"encoding/json"
-	"fmt"
+	"math"
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
@@ -34,8 +35,10 @@ func (NotificationChannel) Mixin() []ent.Mixin {
 
 func (NotificationChannel) Fields() []ent.Field {
 	return []ent.Field{
-		field.Enum("type").
+		field.String("type").
 			GoType(notification.ChannelType("")).
+			ValueScanner(ChannelTypeValueScanner).
+			NotEmpty().
 			Immutable(),
 		field.String("name").
 			NotEmpty(),
@@ -43,11 +46,51 @@ func (NotificationChannel) Fields() []ent.Field {
 			Default(false).
 			Optional(),
 		field.String("config").
-			GoType(notification.ChannelConfig{}).
-			ValueScanner(ChannelConfigValueScanner).
+			GoType(json.RawMessage{}).
+			ValueScanner(entutils.JSONStringValueScanner[json.RawMessage]()).
 			SchemaType(map[string]string{
 				dialect.Postgres: "jsonb",
 			}),
+		field.String("event_type_filter").
+			GoType([]string{}).
+			ValueScanner(entutils.JSONStringValueScanner[[]string]()).
+			SchemaType(map[string]string{
+				dialect.Postgres: "jsonb",
+			}).
+			Optional().
+			Comment("Unique resolved event types for V4 routing; inactive during migration Phase 1."),
+		field.String("provider_data").
+			GoType(map[string]string{}).
+			ValueScanner(entutils.JSONStringValueScanner[map[string]string]()).
+			SchemaType(map[string]string{
+				dialect.Postgres: "jsonb",
+			}).
+			Optional().
+			Comment("Provider-owned operational data for V4."),
+		// TODO(notification-v4): activate generation tracking and reconciliation
+		// only after all writers support them; legacy updates preserve these fields.
+		field.Int("generation").
+			Min(1).
+			Max(math.MaxInt32).
+			Default(1).
+			SchemaType(map[string]string{
+				dialect.Postgres: "integer",
+			}).
+			Comment("Desired-state generation for V4; inactive during migration Phase 1."),
+		field.String("reconcile_status").
+			GoType(notification.ChannelReconcileStatus("")).
+			Validate(func(status string) error {
+				return notification.ChannelReconcileStatus(status).Validate()
+			}).
+			Default(string(notification.ChannelReconcileStatusUnknown)).
+			SchemaType(map[string]string{
+				dialect.Postgres: "text",
+			}).
+			Comment("Channel reconciliation status for V4; unknown until provider adoption."),
+		field.Time("reconcile_next_at").
+			Optional().
+			Nillable().
+			Comment("Scheduled Channel reconciliation time for V4; inactive during migration Phase 1."),
 	}
 }
 
@@ -80,10 +123,10 @@ func (NotificationRule) Mixin() []ent.Mixin {
 
 func (NotificationRule) Fields() []ent.Field {
 	return []ent.Field{
-		field.Enum("type").
+		field.String("type").
 			GoType(notification.EventType("")).
 			Immutable().
-			Comment("The event type the rule associated with"),
+			Comment("The event type emitted by the Rule."),
 		field.String("name").
 			NotEmpty().
 			Comment("The name of the rule"),
@@ -92,8 +135,8 @@ func (NotificationRule) Fields() []ent.Field {
 			Optional().
 			Comment("Whether the rule is disabled or not"),
 		field.String("config").
-			GoType(notification.RuleConfig{}).
-			ValueScanner(RuleConfigValueScanner).
+			GoType(json.RawMessage{}).
+			ValueScanner(entutils.JSONStringValueScanner[json.RawMessage]()).
 			SchemaType(map[string]string{
 				dialect.Postgres: "jsonb",
 			}),
@@ -104,7 +147,9 @@ func (NotificationRule) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("channels", NotificationChannel.Type).
 			Ref("rules"),
-		edge.To("events", NotificationEvent.Type),
+		// Keep Rule deletion from clearing historical Event references.
+		edge.To("events", NotificationEvent.Type).
+			Annotations(entsql.OnDelete(entsql.NoAction)),
 	}
 }
 
@@ -132,18 +177,42 @@ func (NotificationEvent) Fields() []ent.Field {
 		field.Time("created_at").
 			Default(clock.Now).
 			Immutable(),
-		field.Enum("type").
+		field.String("type").
 			GoType(notification.EventType("")).
 			Immutable().
-			Comment("The event type the rule associated with"),
-		field.String("rule_id").Immutable().SchemaType(map[string]string{
-			dialect.Postgres: "char(26)",
-		}),
-		// TODO(chrisgacsal): add custom value scanner
+			Comment("The notification event type."),
+		// TODO(notification-v4): current creation paths still require a Rule;
+		// allow Rule-free writes only after readers and reconciliation support them.
+		field.String("rule_id").
+			Optional().
+			Immutable().
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}),
 		field.String("payload").
+			GoType(json.RawMessage{}).
+			ValueScanner(entutils.JSONStringValueScanner[json.RawMessage]()).
 			SchemaType(map[string]string{
 				dialect.Postgres: "jsonb",
 			}),
+		// TODO(notification-v4): populate only with the Rule state evaluated by
+		// the producer; the current Rule cannot reconstruct a historical snapshot.
+		field.String("rule_snapshot").
+			GoType(json.RawMessage{}).
+			ValueScanner(entutils.JSONStringValueScanner[json.RawMessage]()).
+			Optional().
+			Immutable().
+			SchemaType(map[string]string{
+				dialect.Postgres: "jsonb",
+			}),
+		field.String("provider_data").
+			GoType(map[string]string{}).
+			ValueScanner(entutils.JSONStringValueScanner[map[string]string]()).
+			SchemaType(map[string]string{
+				dialect.Postgres: "jsonb",
+			}).
+			Optional().
+			Comment("Provider-owned operational data for V4."),
 	}
 }
 
@@ -154,7 +223,6 @@ func (NotificationEvent) Edges() []ent.Edge {
 		edge.From("rules", NotificationRule.Type).
 			Ref("events").
 			Field("rule_id").
-			Required().
 			Unique().
 			Immutable(),
 	}
@@ -193,16 +261,43 @@ func (NotificationEventDeliveryStatus) Fields() []ent.Field {
 		field.String("channel_id").
 			NotEmpty().
 			Immutable(),
-		field.Enum("state").
+		// The generated GoType check only covers creates; retain update validation too.
+		field.String("state").
 			GoType(notification.EventDeliveryStatusState("")).
+			Validate(func(state string) error {
+				return notification.EventDeliveryStatusState(state).Validate()
+			}).
 			Default(string(notification.EventDeliveryStatusStatePending)),
+		// TODO(notification-v4): enable resend increments only after all writers
+		// can maintain this baseline; it does not reconstruct historical resends.
+		field.Int("dispatch_generation").
+			Min(1).
+			Max(math.MaxInt32).
+			Default(1).
+			SchemaType(map[string]string{dialect.Postgres: "integer"}).
+			Comment("Dispatch generation for V4; inactive during migration Phase 1."),
+		field.Time("dispatch_queued_at").
+			Optional().
+			Nillable().
+			Comment("Time the current dispatch was queued. Includes time spent waiting for Channel synchronization."),
 		field.String("reason").
 			Optional(),
 		field.Time("next_attempt_at").
 			Optional().
 			Nillable(),
-		field.JSON("attempts", []notification.EventDeliveryAttempt{}).
+		field.String("attempts").
+			GoType(json.RawMessage{}).
+			ValueScanner(entutils.JSONStringValueScanner[json.RawMessage]()).
+			SchemaType(map[string]string{dialect.Postgres: "jsonb"}).
 			Optional(),
+		field.String("provider_data").
+			GoType(map[string]string{}).
+			ValueScanner(entutils.JSONStringValueScanner[map[string]string]()).
+			SchemaType(map[string]string{
+				dialect.Postgres: "jsonb",
+			}).
+			Optional().
+			Comment("Provider-owned operational data for V4."),
 	}
 }
 
@@ -221,176 +316,26 @@ func (NotificationEventDeliveryStatus) Indexes() []ent.Index {
 	}
 }
 
-type channelConfigSerde[T any] struct {
-	notification.ChannelConfigMeta
-
-	Data T `json:"data"`
-}
-
-var ChannelConfigValueScanner = field.ValueScannerFunc[notification.ChannelConfig, *sql.NullString]{
-	V: func(config notification.ChannelConfig) (driver.Value, error) {
-		switch config.Type {
-		case notification.ChannelTypeWebhook:
-			serde := channelConfigSerde[notification.WebHookChannelConfig]{
-				ChannelConfigMeta: notification.ChannelConfigMeta{
-					Type: config.Type,
-				},
-				Data: config.WebHook,
-			}
-
-			return json.Marshal(serde)
-		default:
-			return nil, fmt.Errorf("unknown channel type: %s", config.Type)
+// TODO(notification-v4): keep legacy writes until every deployed and rollback
+// version supports the final format; remove legacy reads after data conversion.
+var ChannelTypeValueScanner = field.ValueScannerFunc[notification.ChannelType, *sql.NullString]{
+	V: func(channelType notification.ChannelType) (driver.Value, error) {
+		if channelType == notification.ChannelTypeWebhook {
+			return "WEBHOOK", nil
 		}
+
+		return string(channelType), nil
 	},
-	S: func(ns *sql.NullString) (notification.ChannelConfig, error) {
-		var channelConfig notification.ChannelConfig
-		if ns == nil || !ns.Valid {
-			return channelConfig, nil
+	S: func(value *sql.NullString) (notification.ChannelType, error) {
+		if value == nil || !value.Valid {
+			return "", nil
 		}
 
-		data := []byte(ns.String)
-
-		var meta notification.ChannelConfigMeta
-		if err := json.Unmarshal(data, &meta); err != nil {
-			return channelConfig, err
+		if value.String == "WEBHOOK" {
+			return notification.ChannelTypeWebhook, nil
 		}
 
-		switch meta.Type {
-		case notification.ChannelTypeWebhook:
-			serde := channelConfigSerde[notification.WebHookChannelConfig]{
-				ChannelConfigMeta: notification.ChannelConfigMeta{
-					Type: meta.Type,
-				},
-				Data: notification.WebHookChannelConfig{},
-			}
-
-			if err := json.Unmarshal(data, &serde); err != nil {
-				return channelConfig, err
-			}
-
-			channelConfig = notification.ChannelConfig{
-				ChannelConfigMeta: serde.ChannelConfigMeta,
-				WebHook:           serde.Data,
-			}
-
-		default:
-			return channelConfig, fmt.Errorf("unknown channel type: %s", meta.Type)
-		}
-
-		return channelConfig, nil
-	},
-}
-
-type ruleConfigSerde[T any] struct {
-	notification.RuleConfigMeta
-
-	Data *T `json:"data"`
-}
-
-var RuleConfigValueScanner = field.ValueScannerFunc[notification.RuleConfig, *sql.NullString]{
-	V: func(config notification.RuleConfig) (driver.Value, error) {
-		switch config.Type {
-		case notification.EventTypeBalanceThreshold:
-			serde := ruleConfigSerde[notification.BalanceThresholdRuleConfig]{
-				RuleConfigMeta: notification.RuleConfigMeta{
-					Type: config.Type,
-				},
-				Data: config.BalanceThreshold,
-			}
-
-			return json.Marshal(serde)
-		case notification.EventTypeEntitlementReset:
-			serde := ruleConfigSerde[notification.EntitlementResetRuleConfig]{
-				RuleConfigMeta: notification.RuleConfigMeta{
-					Type: config.Type,
-				},
-				Data: config.EntitlementReset,
-			}
-
-			return json.Marshal(serde)
-		case notification.EventTypeInvoiceCreated, notification.EventTypeInvoiceUpdated:
-			serde := ruleConfigSerde[notification.InvoiceRuleConfig]{
-				RuleConfigMeta: notification.RuleConfigMeta{
-					Type: config.Type,
-				},
-				Data: config.Invoice,
-			}
-
-			return json.Marshal(serde)
-		default:
-			return nil, fmt.Errorf("unknown rule config type: %s", config.Type)
-		}
-	},
-	S: func(ns *sql.NullString) (notification.RuleConfig, error) {
-		var ruleConfig notification.RuleConfig
-		if ns == nil || !ns.Valid {
-			return ruleConfig, nil
-		}
-
-		data := []byte(ns.String)
-
-		var meta notification.RuleConfigMeta
-		if err := json.Unmarshal(data, &meta); err != nil {
-			return ruleConfig, err
-		}
-
-		switch meta.Type {
-		case notification.EventTypeBalanceThreshold:
-			serde := ruleConfigSerde[notification.BalanceThresholdRuleConfig]{
-				RuleConfigMeta: notification.RuleConfigMeta{
-					Type: meta.Type,
-				},
-				Data: &notification.BalanceThresholdRuleConfig{},
-			}
-
-			if err := json.Unmarshal(data, &serde); err != nil {
-				return ruleConfig, err
-			}
-
-			ruleConfig = notification.RuleConfig{
-				RuleConfigMeta:   serde.RuleConfigMeta,
-				BalanceThreshold: serde.Data,
-			}
-
-		case notification.EventTypeEntitlementReset:
-			serde := ruleConfigSerde[notification.EntitlementResetRuleConfig]{
-				RuleConfigMeta: notification.RuleConfigMeta{
-					Type: meta.Type,
-				},
-				Data: &notification.EntitlementResetRuleConfig{},
-			}
-
-			if err := json.Unmarshal(data, &serde); err != nil {
-				return ruleConfig, err
-			}
-
-			ruleConfig = notification.RuleConfig{
-				RuleConfigMeta:   serde.RuleConfigMeta,
-				EntitlementReset: serde.Data,
-			}
-		case notification.EventTypeInvoiceCreated, notification.EventTypeInvoiceUpdated:
-			serde := ruleConfigSerde[notification.InvoiceRuleConfig]{
-				RuleConfigMeta: notification.RuleConfigMeta{
-					Type: meta.Type,
-				},
-				Data: &notification.InvoiceRuleConfig{},
-			}
-
-			if err := json.Unmarshal(data, &serde); err != nil {
-				return ruleConfig, err
-			}
-
-			ruleConfig = notification.RuleConfig{
-				RuleConfigMeta: serde.RuleConfigMeta,
-				Invoice:        serde.Data,
-			}
-
-		default:
-			return ruleConfig, fmt.Errorf("unknown rule type: %s", meta.Type)
-		}
-
-		return ruleConfig, nil
+		return notification.ChannelType(value.String), nil
 	},
 }
 

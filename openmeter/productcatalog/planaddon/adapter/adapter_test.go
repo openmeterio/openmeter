@@ -27,30 +27,23 @@ import (
 
 var MonthPeriod = datetime.NewISODuration(0, 1, 0, 0, 0, 0, 0)
 
-func TestPlanAddonAdapterBackfillsTaxConfigFromTaxCode(t *testing.T) {
+// Rate cards loaded through a plan add-on carry only the Tax Code ID; the Stripe code is looked up
+// by whoever renders v1 responses.
+func TestPlanAddonAdapterReadsTaxCodeIDFromColumns(t *testing.T) {
 	ctx := t.Context()
 	env := pctestutils.NewTestEnv(t)
 	t.Cleanup(func() { env.Close(t) })
 	namespace := pctestutils.NewTestNamespace(t)
 
-	const stripeCode = "txcd_10000000"
 	taxCode := env.TaxCodeEnv.CreateTaxCode(t, namespace, taxcode.CreateTaxCodeInput{
 		Key:  "stripe-tax-code",
 		Name: "Stripe tax code",
 		AppMappings: taxcode.TaxCodeAppMappings{
-			{AppType: app.AppTypeStripe, TaxCode: stripeCode},
+			{AppType: app.AppTypeStripe, TaxCode: "txcd_10000000"},
 		},
 	})
 
-	planInput := pctestutils.NewTestPlan(t, namespace)
-	err := planInput.Phases[0].RateCards[0].ChangeMeta(func(meta productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
-		meta.TaxConfig = &productcatalog.TaxConfig{
-			TaxCodeID: lo.ToPtr(taxCode.ID),
-		}
-
-		return meta, nil
-	})
-	require.NoError(t, err)
+	planInput := pctestutils.NewTestPlan(t, namespace, pctestutils.WithRateCardTaxCode(taxCode))
 
 	createdPlan, err := env.PlanRepository.CreatePlan(ctx, planInput)
 	require.NoError(t, err)
@@ -58,8 +51,8 @@ func TestPlanAddonAdapterBackfillsTaxConfigFromTaxCode(t *testing.T) {
 	addonInput := pctestutils.NewTestAddon(t, namespace, &productcatalog.FlatFeeRateCard{
 		RateCardMeta: productcatalog.RateCardMeta{
 			Key: "flat-fee",
-			TaxConfig: &productcatalog.TaxConfig{
-				TaxCodeID: lo.ToPtr(taxCode.ID),
+			TaxConfig: &productcatalog.TaxCodeConfig{
+				TaxCodeID: taxCode.ID,
 			},
 			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 				Amount:      decimal.NewFromInt(10),
@@ -86,21 +79,11 @@ func TestPlanAddonAdapterBackfillsTaxConfigFromTaxCode(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, got.Addon.RateCards, 1)
 
-	config := got.Addon.RateCards[0].AsMeta().TaxConfig
-	require.NotNil(t, config)
-	require.NotNil(t, config.TaxCodeID)
-	assert.Equal(t, taxCode.ID, *config.TaxCodeID)
-	require.NotNil(t, config.Stripe)
-	assert.Equal(t, stripeCode, config.Stripe.Code)
+	assert.Equal(t, &productcatalog.TaxCodeConfig{TaxCodeID: taxCode.ID}, got.Addon.RateCards[0].AsMeta().TaxConfig)
 
 	require.Len(t, got.Plan.Phases, 1)
 	require.Len(t, got.Plan.Phases[0].RateCards, 1)
-	config = got.Plan.Phases[0].RateCards[0].AsMeta().TaxConfig
-	require.NotNil(t, config)
-	require.NotNil(t, config.TaxCodeID)
-	assert.Equal(t, taxCode.ID, *config.TaxCodeID)
-	require.NotNil(t, config.Stripe)
-	assert.Equal(t, stripeCode, config.Stripe.Code)
+	assert.Equal(t, &productcatalog.TaxCodeConfig{TaxCodeID: taxCode.ID}, got.Plan.Phases[0].RateCards[0].AsMeta().TaxConfig)
 }
 
 func TestPostgresAdapter(t *testing.T) {
@@ -163,10 +146,8 @@ func TestPostgresAdapter(t *testing.T) {
 								Metadata:            models.Metadata{"name": features[0].Name},
 								Feature:             productcatalog.NewFeatureReference(lo.ToPtr(features[0].ID), lo.ToPtr(features[0].Key)),
 								EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.BooleanEntitlementTemplate{}),
-								TaxConfig: &productcatalog.TaxConfig{
-									Stripe: &productcatalog.StripeTaxConfig{
-										Code: "txcd_10000000",
-									},
+								TaxConfig: &productcatalog.TaxCodeConfig{
+									Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
 								},
 								Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 									Amount:      decimal.NewFromInt(0),
@@ -194,10 +175,8 @@ func TestPostgresAdapter(t *testing.T) {
 								Metadata:            models.Metadata{"name": features[0].Name},
 								Feature:             productcatalog.NewFeatureReference(lo.ToPtr(features[0].ID), lo.ToPtr(features[0].Key)),
 								EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.BooleanEntitlementTemplate{}),
-								TaxConfig: &productcatalog.TaxConfig{
-									Stripe: &productcatalog.StripeTaxConfig{
-										Code: "txcd_10000000",
-									},
+								TaxConfig: &productcatalog.TaxCodeConfig{
+									Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
 								},
 								Price: productcatalog.NewPriceFrom(productcatalog.TieredPrice{
 									Mode: productcatalog.VolumeTieredPrice,
@@ -248,10 +227,8 @@ func TestPostgresAdapter(t *testing.T) {
 								Metadata:            models.Metadata{"name": features[0].Name},
 								Feature:             productcatalog.NewFeatureReference(lo.ToPtr(features[0].ID), lo.ToPtr(features[0].Key)),
 								EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.BooleanEntitlementTemplate{}),
-								TaxConfig: &productcatalog.TaxConfig{
-									Stripe: &productcatalog.StripeTaxConfig{
-										Code: "txcd_10000000",
-									},
+								TaxConfig: &productcatalog.TaxCodeConfig{
+									Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
 								},
 								Price: productcatalog.NewPriceFrom(productcatalog.TieredPrice{
 									Mode: productcatalog.VolumeTieredPrice,
@@ -301,10 +278,8 @@ func TestPostgresAdapter(t *testing.T) {
 						Metadata:            models.Metadata{"name": features[0].Name},
 						Feature:             productcatalog.NewFeatureReference(lo.ToPtr(features[0].ID), lo.ToPtr(features[0].Key)),
 						EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.BooleanEntitlementTemplate{}),
-						TaxConfig: &productcatalog.TaxConfig{
-							Stripe: &productcatalog.StripeTaxConfig{
-								Code: "txcd_10000000",
-							},
+						TaxConfig: &productcatalog.TaxCodeConfig{
+							Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
 						},
 						Price: productcatalog.NewPriceFrom(productcatalog.TieredPrice{
 							Mode: productcatalog.VolumeTieredPrice,
@@ -360,7 +335,10 @@ func TestPostgresAdapter(t *testing.T) {
 					Namespace: namespace,
 				},
 				Annotations: map[string]interface{}{
-					"openmeter.key": "openmeter.value",
+					"annotation.key": "annotation.value",
+				},
+				Metadata: models.Metadata{
+					"metadata.key": "metadata.value",
 				},
 				PlanID:        planV1.ID,
 				AddonID:       addonV1.ID,

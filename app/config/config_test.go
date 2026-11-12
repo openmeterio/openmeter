@@ -58,6 +58,10 @@ func TestComplete(t *testing.T) {
 	}
 
 	expected := Configuration{
+		Metadata: MetadataConfiguration{
+			Revision: "0123456789abcdef0123456789abcdef01234567",
+			Version:  "v1.2.3",
+		},
 		Postgres: PostgresConfig{
 			AutoMigrate: AutoMigrateMigration,
 		},

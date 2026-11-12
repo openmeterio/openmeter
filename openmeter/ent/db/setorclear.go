@@ -3,6 +3,7 @@
 package db
 
 import (
+	"encoding/json/jsontext"
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
@@ -12,7 +13,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/detailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/creditsapplied"
 	"github.com/openmeterio/openmeter/openmeter/llmcost"
-	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/unitconfig"
@@ -5496,6 +5496,48 @@ func (u *NotificationChannelUpdateOne) SetOrClearDisabled(value *bool) *Notifica
 	return u.SetDisabled(*value)
 }
 
+func (u *NotificationChannelUpdate) SetOrClearEventTypeFilter(value *[]string) *NotificationChannelUpdate {
+	if value == nil {
+		return u.ClearEventTypeFilter()
+	}
+	return u.SetEventTypeFilter(*value)
+}
+
+func (u *NotificationChannelUpdateOne) SetOrClearEventTypeFilter(value *[]string) *NotificationChannelUpdateOne {
+	if value == nil {
+		return u.ClearEventTypeFilter()
+	}
+	return u.SetEventTypeFilter(*value)
+}
+
+func (u *NotificationChannelUpdate) SetOrClearProviderData(value *map[string]string) *NotificationChannelUpdate {
+	if value == nil {
+		return u.ClearProviderData()
+	}
+	return u.SetProviderData(*value)
+}
+
+func (u *NotificationChannelUpdateOne) SetOrClearProviderData(value *map[string]string) *NotificationChannelUpdateOne {
+	if value == nil {
+		return u.ClearProviderData()
+	}
+	return u.SetProviderData(*value)
+}
+
+func (u *NotificationChannelUpdate) SetOrClearReconcileNextAt(value *time.Time) *NotificationChannelUpdate {
+	if value == nil {
+		return u.ClearReconcileNextAt()
+	}
+	return u.SetReconcileNextAt(*value)
+}
+
+func (u *NotificationChannelUpdateOne) SetOrClearReconcileNextAt(value *time.Time) *NotificationChannelUpdateOne {
+	if value == nil {
+		return u.ClearReconcileNextAt()
+	}
+	return u.SetReconcileNextAt(*value)
+}
+
 func (u *NotificationEventUpdate) SetOrClearAnnotations(value *models.Annotations) *NotificationEventUpdate {
 	if value == nil {
 		return u.ClearAnnotations()
@@ -5510,6 +5552,20 @@ func (u *NotificationEventUpdateOne) SetOrClearAnnotations(value *models.Annotat
 	return u.SetAnnotations(*value)
 }
 
+func (u *NotificationEventUpdate) SetOrClearProviderData(value *map[string]string) *NotificationEventUpdate {
+	if value == nil {
+		return u.ClearProviderData()
+	}
+	return u.SetProviderData(*value)
+}
+
+func (u *NotificationEventUpdateOne) SetOrClearProviderData(value *map[string]string) *NotificationEventUpdateOne {
+	if value == nil {
+		return u.ClearProviderData()
+	}
+	return u.SetProviderData(*value)
+}
+
 func (u *NotificationEventDeliveryStatusUpdate) SetOrClearAnnotations(value *models.Annotations) *NotificationEventDeliveryStatusUpdate {
 	if value == nil {
 		return u.ClearAnnotations()
@@ -5522,6 +5578,20 @@ func (u *NotificationEventDeliveryStatusUpdateOne) SetOrClearAnnotations(value *
 		return u.ClearAnnotations()
 	}
 	return u.SetAnnotations(*value)
+}
+
+func (u *NotificationEventDeliveryStatusUpdate) SetOrClearDispatchQueuedAt(value *time.Time) *NotificationEventDeliveryStatusUpdate {
+	if value == nil {
+		return u.ClearDispatchQueuedAt()
+	}
+	return u.SetDispatchQueuedAt(*value)
+}
+
+func (u *NotificationEventDeliveryStatusUpdateOne) SetOrClearDispatchQueuedAt(value *time.Time) *NotificationEventDeliveryStatusUpdateOne {
+	if value == nil {
+		return u.ClearDispatchQueuedAt()
+	}
+	return u.SetDispatchQueuedAt(*value)
 }
 
 func (u *NotificationEventDeliveryStatusUpdate) SetOrClearReason(value *string) *NotificationEventDeliveryStatusUpdate {
@@ -5552,18 +5622,32 @@ func (u *NotificationEventDeliveryStatusUpdateOne) SetOrClearNextAttemptAt(value
 	return u.SetNextAttemptAt(*value)
 }
 
-func (u *NotificationEventDeliveryStatusUpdate) SetOrClearAttempts(value *[]notification.EventDeliveryAttempt) *NotificationEventDeliveryStatusUpdate {
+func (u *NotificationEventDeliveryStatusUpdate) SetOrClearAttempts(value *jsontext.Value) *NotificationEventDeliveryStatusUpdate {
 	if value == nil {
 		return u.ClearAttempts()
 	}
 	return u.SetAttempts(*value)
 }
 
-func (u *NotificationEventDeliveryStatusUpdateOne) SetOrClearAttempts(value *[]notification.EventDeliveryAttempt) *NotificationEventDeliveryStatusUpdateOne {
+func (u *NotificationEventDeliveryStatusUpdateOne) SetOrClearAttempts(value *jsontext.Value) *NotificationEventDeliveryStatusUpdateOne {
 	if value == nil {
 		return u.ClearAttempts()
 	}
 	return u.SetAttempts(*value)
+}
+
+func (u *NotificationEventDeliveryStatusUpdate) SetOrClearProviderData(value *map[string]string) *NotificationEventDeliveryStatusUpdate {
+	if value == nil {
+		return u.ClearProviderData()
+	}
+	return u.SetProviderData(*value)
+}
+
+func (u *NotificationEventDeliveryStatusUpdateOne) SetOrClearProviderData(value *map[string]string) *NotificationEventDeliveryStatusUpdateOne {
+	if value == nil {
+		return u.ClearProviderData()
+	}
+	return u.SetProviderData(*value)
 }
 
 func (u *NotificationRuleUpdate) SetOrClearDeletedAt(value *time.Time) *NotificationRuleUpdate {

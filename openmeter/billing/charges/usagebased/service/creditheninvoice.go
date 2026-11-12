@@ -76,6 +76,11 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 			usagebased.StatusActive,
 			statelessx.BoolFn(s.IsInsideServicePeriod),
 		).
+		Permit(
+			meta.TriggerInvoiceCreated,
+			usagebased.StatusActiveEarlyActivation,
+			statelessx.BoolFn(s.IsManuallyManagedBeforeServicePeriod),
+		).
 		Permit(meta.TriggerClearOverride, usagebased.StatusDeletedClearOverride, statelessx.BoolFn(s.IsBaseIntentDeleted)).
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.SetOverride)).
@@ -86,6 +91,14 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 		OnActive(
 			s.AdvanceAfterServicePeriodFrom,
 		)
+
+	s.Configure(usagebased.StatusActiveEarlyActivation).
+		Permit(meta.TriggerNext, usagebased.StatusActiveRealizationWaitingForCollection).
+		OnEntryFrom(meta.TriggerInvoiceCreated, statelessx.WithParameters(
+			statelessx.WithoutParameters[invoiceCreatedInput](s.ResolveDynamicCostBasis),
+			statelessx.WithoutParameters[invoiceCreatedInput](s.SyncFeatureIDFromFeatureMeter),
+			s.StartInvoiceRun,
+		))
 
 	// Active
 

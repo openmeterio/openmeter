@@ -20,7 +20,6 @@ import (
 	appconfig "github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/portal/authenticator"
 	"github.com/openmeterio/openmeter/openmeter/server/router"
-	"github.com/openmeterio/openmeter/pkg/contextx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/server"
 )
@@ -122,14 +121,7 @@ func NewServer(config *Config) (*Server, error) {
 	v3Middlewares = append(v3Middlewares, []server.MiddlewareFunc{
 		config.ClientIPMiddleware,
 		middleware.RequestID,
-		func(h http.Handler) http.Handler {
-			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				ctx := r.Context()
-				ctx = contextx.WithAttrs(ctx, server.GetRequestAttributes(r))
-
-				h.ServeHTTP(w, r.WithContext(ctx))
-			})
-		},
+		server.NewRequestAttributesMiddleware(),
 		server.NewRequestLoggerMiddleware(slog.Default().Handler()),
 		middleware.Recoverer,
 	}...)
@@ -193,14 +185,7 @@ func NewServer(config *Config) (*Server, error) {
 
 		r.Use(config.ClientIPMiddleware)
 		r.Use(middleware.RequestID)
-		r.Use(func(h http.Handler) http.Handler {
-			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				ctx := r.Context()
-				ctx = contextx.WithAttrs(ctx, server.GetRequestAttributes(r))
-
-				h.ServeHTTP(w, r.WithContext(ctx))
-			})
-		})
+		r.Use(server.NewRequestAttributesMiddleware())
 		r.Use(server.NewRequestLoggerMiddleware(slog.Default().Handler()))
 		r.Use(middleware.Recoverer)
 		if config.RouterConfig.PortalCORSEnabled {

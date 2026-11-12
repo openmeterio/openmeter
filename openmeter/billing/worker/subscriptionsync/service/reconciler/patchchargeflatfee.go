@@ -3,13 +3,14 @@ package reconciler
 import (
 	"fmt"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	chargesflatfee "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	chargesmeta "github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/persistedstate"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/targetstate"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -112,7 +113,7 @@ func newFlatFeeChargeIntent(target targetstate.StateItem) (charges.ChargeIntent,
 			Annotations:       annotations,
 			Currency:          target.Currency,
 			UniqueReferenceID: &target.UniqueID,
-			TaxConfig:         productcatalog.TaxCodeConfigFrom(rateCardMeta.TaxConfig),
+			TaxConfig:         lo.FromPtr(rateCardMeta.TaxConfig).Clone(),
 			Subscription: &chargesmeta.SubscriptionReference{
 				SubscriptionID: target.Subscription.ID,
 				PhaseID:        target.PhaseID,

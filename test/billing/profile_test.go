@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/filter"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
@@ -709,4 +710,40 @@ func (s *ProfileTestSuite) TestListProfilesRejectsInvalidInput() {
 		Name:      &filter.FilterString{Eq: lo.ToPtr("a"), Ne: lo.ToPtr("b")},
 	})
 	s.ErrorContains(err, "invalid name filter")
+}
+
+func (s *ProfileTestSuite) TestProfileReadsReuseTransactionConnection() {
+	// given:
+	// - a profile and a connection pool limited to a single connection
+	// when:
+	// - the profile is read through the adapter inside a transaction
+	// then:
+	// - the reads reuse the transaction's connection instead of waiting for a second one
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("profile-tx-reads")
+	profile := s.ProvisionBillingProfile(ctx, ns, s.InstallSandboxApp(s.T(), ns).GetID())
+
+	sqlDB := s.TestDB.PGDriver.DB()
+	sqlDB.SetMaxOpenConns(1)
+	s.T().Cleanup(func() { sqlDB.SetMaxOpenConns(0) })
+
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	err := transaction.RunWithNoValue(ctx, s.BillingAdapter, func(ctx context.Context) error {
+		got, err := s.BillingAdapter.GetProfile(ctx, billing.GetProfileInput{Profile: profile.ProfileID()})
+		require.NoError(s.T(), err)
+		require.Equal(s.T(), profile.ID, got.ID)
+
+		got, err = s.BillingAdapter.GetDefaultProfile(ctx, billing.GetDefaultProfileInput{Namespace: ns})
+		require.NoError(s.T(), err)
+		require.Equal(s.T(), profile.ID, got.ID)
+
+		list, err := s.BillingAdapter.ListProfiles(ctx, billing.ListProfilesInput{Namespace: ns})
+		require.NoError(s.T(), err)
+		require.Len(s.T(), list.Items, 1)
+
+		return nil
+	})
+	require.NoError(s.T(), err)
 }
