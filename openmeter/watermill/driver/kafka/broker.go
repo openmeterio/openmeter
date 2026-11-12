@@ -108,7 +108,8 @@ func (o *BrokerOptions) createKafkaConfig(role string) (*sarama.Config, error) {
 		loggerFunc: logger.Debug,
 	}
 
-	if o.KafkaConfig.SecurityProtocol == "SASL_SSL" {
+	switch o.KafkaConfig.SecurityProtocol {
+	case "SASL_SSL":
 		config.Net.SASL.Enable = true
 		config.Net.SASL.Handshake = true
 
@@ -138,7 +139,7 @@ func (o *BrokerOptions) createKafkaConfig(role string) (*sarama.Config, error) {
 				return &XDGSCRAMClient{HashGeneratorFcn: SHA512}
 			}
 		}
-	} else if o.KafkaConfig.SecurityProtocol == "SSL" {
+	case "SSL":
 		config.Net.TLS.Enable = true
 		config.Net.TLS.Config = &tls.Config{MinVersion: tls.VersionTLS12}
 

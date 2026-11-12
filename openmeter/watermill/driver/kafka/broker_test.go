@@ -129,7 +129,7 @@ func TestCreateKafkaConfigSslCaLocation(t *testing.T) {
 			require.NotNil(t, cfg.Net.TLS.Config.RootCAs)
 
 			// The pool contains exactly the configured CA (it replaces the system roots).
-			subjects := cfg.Net.TLS.Config.RootCAs.Subjects() //nolint:staticcheck // only used to inspect a custom pool
+			subjects := cfg.Net.TLS.Config.RootCAs.Subjects()
 			require.Equal(t, [][]byte{caCert.RawSubject}, subjects)
 		})
 
