@@ -18,11 +18,11 @@ again. Consumers waiting for updates on the shared topic must match the calculat
 semantic key, and handle duplicates or out-of-order delivery. A freshness request served from
 storage delivers no acknowledgement through the update event.
 
-For a credit-affecting ingest batch, the sink has confirmed persistence, but credit rating applies
-a strict storage-time cutoff at whole-second precision. The worker waits until the next whole
-second after the batch’s `StoredAt` before marking keys dirty. Otherwise a fast push calculation
-could omit the new rows and mark that result fresh. A metered-only batch bypasses this wait.
-Cancellation interrupts it.
+Credit rating uses a strict storage-time cutoff at whole-second precision. For an ingest batch,
+the worker waits until the next whole second after `StoredAt` before looking up active demand.
+A first pull can register during that second and calculate a balance that excludes the batch.
+Resolving demand after the cutoff lets the same notification invalidate that result.
+Older batches proceed immediately, and cancellation interrupts the wait.
 
 `rte.upstream.events` distinguishes `no_target`, `routed` and `error`. A routed fact was passed to
 demand processing, where it may still be a duplicate or match no active row. Compare with

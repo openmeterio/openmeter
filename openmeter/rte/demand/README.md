@@ -60,8 +60,9 @@ the lock, then advances dirtiness after completion. Successful state and
 completion commit together. A crash rolls both back, leaving the work ready.
 
 Failed attempts roll back their writes to a savepoint and commit bounded
-exponential retry backoff. A pull can retry immediately. Polls order work by its
-next attempt time and ID, so one failing key does not monopolize the queue.
+exponential retry backoff. New input still advances the dirty version during backoff.
+The next scheduled push attempt covers those changes. An explicit pull can retry immediately.
+Polls order work by its next attempt time and ID, so one failing key does not monopolize the queue.
 Each attempt has a configured timeout, while retry bookkeeping uses the outer
 context. A canceled database read can close its connection. After rolling that
 transaction back, an owning worker records backoff on a fresh connection only

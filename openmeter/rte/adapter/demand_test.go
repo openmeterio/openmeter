@@ -1,6 +1,7 @@
 package adapter_test
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"testing"
@@ -49,10 +50,53 @@ func newDemandFixture(t *testing.T) demandFixture {
 	return demandFixture{repository: repository, client: config.Client, store: store, key: key, target: event.CalculationTarget, input: rte.ProcessDemandInput{CalculationTimeout: time.Second, RetryMinDelay: time.Minute, RetryMaxDelay: time.Hour}}
 }
 
-func TestDemandInvalidationCoalescesDistinctAndDuplicateFacts(t *testing.T) {
-	// Given one active tracked key, its clean state and an unrelated inactive key.
+func TestDemandRegistrationCanonicalizesAndRepairsWireKey(t *testing.T) {
 	f := newDemandFixture(t)
-	require.NoError(t, f.repository.Activate(t.Context(), rte.ActivateDemandInput{Target: f.target}))
+	now := clock.Now().UTC().Truncate(time.Second)
+	clock.FreezeTime(now)
+	defer clock.UnFreeze()
+
+	// Given a valid credit request with a noncanonical JSON field spelling.
+	incoming := f.target
+	incoming.Key = bytes.Replace(f.target.Key, []byte(`"currency"`), []byte(`"Currency"`), 1)
+	require.NotEqual(t, f.target.Key, incoming.Key)
+	require.NoError(t, f.repository.Activate(t.Context(), rte.ActivateDemandInput{Target: incoming, RefreshInterval: time.Hour}))
+	row, err := f.client.RTEDemand.Query().Only(t.Context())
+	require.NoError(t, err)
+	require.JSONEq(t, string(f.target.Key), string(row.Key))
+
+	// When an existing clean row was created by a writer that saved raw JSON.
+	result, err := f.repository.Process(t.Context(), f.input, func(context.Context, rte.CalculationTarget) error { return nil })
+	require.NoError(t, err)
+	require.True(t, result.Processed)
+	_, err = f.client.ExecContext(t.Context(), "UPDATE rte_demands SET key = $1 WHERE id = $2", string(incoming.Key), row.ID)
+	require.NoError(t, err)
+	pull := rte.EnsureFreshInput{Target: f.target, PullTTL: time.Hour}
+	require.NoError(t, f.repository.EnsurePull(t.Context(), pull))
+
+	// Then registration repairs the same identity and wakes it once to cover missed facts.
+	repaired, err := f.client.RTEDemand.Query().Only(t.Context())
+	require.NoError(t, err)
+	require.Equal(t, row.ID, repaired.ID)
+	require.JSONEq(t, string(f.target.Key), string(repaired.Key))
+	require.Equal(t, repaired.CompletedVersion+1, repaired.DirtyVersion)
+	require.True(t, repaired.NextAttemptAt.Equal(now))
+	result, err = f.repository.Process(t.Context(), f.input, func(context.Context, rte.CalculationTarget) error { return nil })
+	require.NoError(t, err)
+	require.True(t, result.Processed)
+
+	pull.Target = incoming
+	require.NoError(t, f.repository.EnsurePull(t.Context(), pull))
+	clean, err := f.client.RTEDemand.Query().Only(t.Context())
+	require.NoError(t, err)
+	require.Equal(t, repaired.DirtyVersion, clean.DirtyVersion)
+	require.Equal(t, clean.DirtyVersion, clean.CompletedVersion)
+}
+
+func TestDemandInvalidationCoalescesDistinctAndDuplicateFacts(t *testing.T) {
+	// Given a clean push key whose next periodic refresh is an hour away.
+	f := newDemandFixture(t)
+	require.NoError(t, f.repository.Activate(t.Context(), rte.ActivateDemandInput{Target: f.target, RefreshInterval: time.Hour}))
 	result, err := f.repository.Process(t.Context(), f.input, func(context.Context, rte.CalculationTarget) error { return nil })
 	require.NoError(t, err)
 	require.True(t, result.Processed)
@@ -119,6 +163,18 @@ func TestDemandFailedAttemptRollsBackStateAndPersistsRetry(t *testing.T) {
 	require.Equal(t, 1, row.Attempts)
 	require.Greater(t, row.DirtyVersion, row.CompletedVersion)
 	require.True(t, row.NextAttemptAt.After(clock.Now()))
+
+	// Another source change adds work, but a busy key must respect its retry deadline.
+	invalidation, err := f.repository.Invalidate(t.Context(), rte.InvalidateInput{
+		Source: "usage", EventID: "during-retry",
+		Selectors: []rte.DemandSelector{{Namespace: f.key.CustomerID.Namespace, Kind: f.target.Kind}},
+	})
+	require.NoError(t, err)
+	require.Equal(t, 1, invalidation.Matched)
+	dirty, err := f.client.RTEDemand.Get(t.Context(), row.ID)
+	require.NoError(t, err)
+	require.Equal(t, row.DirtyVersion+1, dirty.DirtyVersion)
+	require.Equal(t, row.NextAttemptAt, dirty.NextAttemptAt)
 	result, err = f.repository.Process(t.Context(), f.input, func(context.Context, rte.CalculationTarget) error { t.Fatal("retry backoff ignored"); return nil })
 	require.NoError(t, err)
 	require.False(t, result.Processed)

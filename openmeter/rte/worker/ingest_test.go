@@ -3,6 +3,7 @@ package worker
 import (
 	"context"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	"github.com/stretchr/testify/require"
@@ -49,46 +50,55 @@ func TestCreditUsageVisibilityWait(t *testing.T) {
 	})
 }
 
-func TestSourceInvalidationWaitsOnlyForCreditIngest(t *testing.T) {
-	for _, test := range []struct {
-		name     string
-		kind     rte.CalculationKind
-		ingest   bool
-		storedAt time.Time
-	}{
-		{name: "credit batch reaches first visible second", kind: rte.CalculationKindCreditBalance, ingest: true, storedAt: time.Now()},
-		{name: "metered batch skips credit cutoff", kind: rte.CalculationKindMeteredEntitlement, ingest: true, storedAt: time.Now().Add(time.Hour)},
-		{name: "ledger fact skips ingest cutoff", kind: rte.CalculationKindCreditBalance},
-	} {
-		t.Run(test.name, func(t *testing.T) {
-			// Given a routed fact and a demand spy that observes invalidation time.
-			var event marshaler.Event = &ledger.TransactionGroupCommittedEvent{Namespace: "ns", GroupID: "group"}
-			if test.ingest {
-				event = &ingestevents.EventBatchedIngest{Namespace: eventmodels.NamespaceID{ID: "ns"}, SubjectKey: "subject", StoredAt: test.storedAt}
-			}
-
-			msg, err := marshaler.New(nil).Marshal(event)
-			require.NoError(t, err)
-			ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
-			defer cancel()
-			msg.SetContext(ctx)
-			calls := 0
-			w := sourceWorker(t, test.kind, func(_ context.Context, input rte.InvalidateInput) error {
-				calls++
-				if test.ingest && test.kind == rte.CalculationKindCreditBalance {
-					require.Greater(t, time.Now().Unix(), test.storedAt.Unix())
-				}
-
-				return nil
-			})
-
-			// When the source handler reaches the single atomic invalidation.
-			require.NoError(t, w.handleSource(msg, event))
-
-			// Then only credit ingestion waits for stored usage to become visible.
-			require.Equal(t, 1, calls)
+func TestIngestInvalidatesCreditDemandRegisteredDuringVisibilityWait(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		// Given an ingest notification for a customer with no demand yet.
+		sources := &fixedSources{}
+		var invalidations []rte.InvalidateInput
+		w := sourceWorker(t, sources, func(_ context.Context, input rte.InvalidateInput) error {
+			invalidations = append(invalidations, input)
+			return nil
 		})
-	}
+
+		event := &ingestevents.EventBatchedIngest{Namespace: eventmodels.NamespaceID{ID: "ns"}, SubjectKey: "subject", StoredAt: time.Now()}
+		msg, err := marshaler.New(nil).Marshal(event)
+		require.NoError(t, err)
+		msg.SetContext(t.Context())
+
+		// When a first pull registers before credit rating can see the batch.
+		done := make(chan error, 1)
+		go func() { done <- w.handleSource(msg, event) }()
+		synctest.Wait()
+		sources.selectors = []rte.DemandSelector{{Namespace: "ns", Kind: rte.CalculationKindCreditBalance, OwnerIDs: []string{"customer"}}}
+
+		// Then the worker includes the new demand when the storage second closes.
+		require.NoError(t, <-done)
+		require.Len(t, invalidations, 1)
+		require.Equal(t, sources.selectors, invalidations[0].Selectors)
+		require.Greater(t, time.Now().Unix(), event.StoredAt.Unix())
+	})
+}
+
+func TestLedgerFactInvalidatesDemandImmediately(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		event := &ledger.TransactionGroupCommittedEvent{Namespace: "ns", GroupID: "group"}
+		msg, err := marshaler.New(nil).Marshal(event)
+		require.NoError(t, err)
+		msg.SetContext(t.Context())
+
+		sources := fixedSources{selectors: []rte.DemandSelector{{Namespace: "ns", Kind: rte.CalculationKindCreditBalance}}}
+		var invalidations []rte.InvalidateInput
+		w := sourceWorker(t, sources, func(_ context.Context, input rte.InvalidateInput) error {
+			invalidations = append(invalidations, input)
+			return nil
+		})
+
+		start := time.Now()
+		require.NoError(t, w.handleSource(msg, event))
+		require.Equal(t, start, time.Now())
+		require.Len(t, invalidations, 1)
+		require.Equal(t, sources.selectors, invalidations[0].Selectors)
+	})
 }
 
 func TestCanceledCreditIngestDoesNotInvalidate(t *testing.T) {
@@ -99,7 +109,7 @@ func TestCanceledCreditIngestDoesNotInvalidate(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Millisecond)
 	defer cancel()
 	msg.SetContext(ctx)
-	w := sourceWorker(t, rte.CalculationKindCreditBalance, func(context.Context, rte.InvalidateInput) error {
+	w := sourceWorker(t, &fixedSources{}, func(context.Context, rte.InvalidateInput) error {
 		t.Fatal("canceled batch invalidated demand")
 		return nil
 	})
@@ -108,7 +118,7 @@ func TestCanceledCreditIngestDoesNotInvalidate(t *testing.T) {
 	require.ErrorIs(t, w.handleSource(msg, event), context.DeadlineExceeded)
 }
 
-func sourceWorker(t *testing.T, kind rte.CalculationKind, invalidate func(context.Context, rte.InvalidateInput) error) *worker {
+func sourceWorker(t *testing.T, sources rte.UpstreamResolver, invalidate func(context.Context, rte.InvalidateInput) error) *worker {
 	t.Helper()
 	meter := noop.NewMeterProvider().Meter("rte-worker-test")
 	count, err := meter.Int64Counter("events")
@@ -116,5 +126,5 @@ func sourceWorker(t *testing.T, kind rte.CalculationKind, invalidate func(contex
 	lag, err := meter.Float64Histogram("lag")
 	require.NoError(t, err)
 
-	return &worker{sources: fixedSources{selectors: []rte.DemandSelector{{Namespace: "ns", Kind: kind}}}, demand: recordingDemand{invalidate: invalidate}, sourceEvents: count, sourceLag: lag}
+	return &worker{sources: sources, demand: recordingDemand{invalidate: invalidate}, sourceEvents: count, sourceLag: lag}
 }
