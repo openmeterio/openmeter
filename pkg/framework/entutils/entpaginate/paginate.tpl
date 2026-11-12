@@ -12,7 +12,7 @@
 {{ range $n := $.Nodes }}
     {{ $receiver := $n.Receiver }}
     // Paginate runs the query and returns a paginated response.
-    // If page is its 0 value then it will return all the items and populate the response page accordingly.
+    // If page is its zero value, it returns all items and derives the total from them.
     func ({{ $receiver }} *{{ $n.QueryName }}) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*{{ $n.Name }}], error) {
         // Get the limit and offset
         limit, offset := page.Limit(), page.Offset()
@@ -21,6 +21,22 @@
         zero := 0
         {{ $receiver }}.ctx.Offset = &zero
         {{ $receiver }}.ctx.Limit = &zero
+
+        pagedResponse := pagination.Result[*{{ $n.Name }}]{
+            Page: page,
+        }
+
+        if page.IsZero() {
+            // All matching rows are loaded, so a separate count would repeat the work.
+            items, err := {{ $receiver }}.All(ctx)
+            if err != nil {
+                return pagedResponse, err
+            }
+
+            pagedResponse.Items = items
+            pagedResponse.TotalCount = len(items)
+            return pagedResponse, nil
+        }
 
         // Create duplicate of the query to run for
         countQuery := {{ $receiver }}.Clone()
@@ -31,10 +47,6 @@
 
         // Unset ordering for count query
         countQuery.order = nil
-
-        pagedResponse := pagination.Result[*{{ $n.Name }}]{
-            Page: page,
-        }
 
         // Get the total count
         count, err := countQuery.Count(ctx)
@@ -48,12 +60,6 @@
             // Items should be [] not null.
             pagedResponse.Items = make([]*{{ $n.Name }}, 0)
             return pagedResponse, nil
-        }
-
-        // If page is its 0 value then return all the items
-        if page.IsZero() {
-            offset = 0
-            limit = count
         }
 
         // Set the limit and offset

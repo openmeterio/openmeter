@@ -1830,6 +1830,11 @@ var (
 		},
 		Indexes: []*schema.Index{
 			{
+				Name:    "chargecreditpurchase_namespace_subscription_id",
+				Unique:  false,
+				Columns: []*schema.Column{ChargeCreditPurchasesColumns[15], ChargeCreditPurchasesColumns[40]},
+			},
+			{
 				Name:    "chargecreditpurchase_namespace_customer_id_unique_reference_id",
 				Unique:  true,
 				Columns: []*schema.Column{ChargeCreditPurchasesColumns[15], ChargeCreditPurchasesColumns[39], ChargeCreditPurchasesColumns[8]},
@@ -2221,6 +2226,11 @@ var (
 			},
 		},
 		Indexes: []*schema.Index{
+			{
+				Name:    "chargeflatfee_namespace_subscription_id",
+				Unique:  false,
+				Columns: []*schema.Column{ChargeFlatFeesColumns[15], ChargeFlatFeesColumns[38]},
+			},
 			{
 				Name:    "chargeflatfee_namespace_customer_id_unique_reference_id",
 				Unique:  true,
@@ -2922,6 +2932,11 @@ var (
 			},
 		},
 		Indexes: []*schema.Index{
+			{
+				Name:    "chargeusagebased_namespace_subscription_id",
+				Unique:  false,
+				Columns: []*schema.Column{ChargeUsageBasedColumns[15], ChargeUsageBasedColumns[37]},
+			},
 			{
 				Name:    "chargeusagebased_namespace_customer_id_unique_reference_id",
 				Unique:  true,

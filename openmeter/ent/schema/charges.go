@@ -325,6 +325,7 @@ func (chargesMetaMixin) Fields() []ent.Field {
 
 func (chargesMetaMixin) Indexes() []ent.Index {
 	return []ent.Index{
+		index.Fields("namespace", "subscription_id"),
 		index.Fields("namespace", "customer_id", "unique_reference_id").
 			Annotations(
 				entsql.IndexWhere("unique_reference_id IS NOT NULL AND deleted_at IS NULL"),

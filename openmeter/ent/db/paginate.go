@@ -10,7 +10,7 @@ import (
 )
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *AddonQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*Addon], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -19,6 +19,22 @@ func (_m *AddonQuery) Paginate(ctx context.Context, page pagination.Page) (pagin
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*Addon]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -29,10 +45,6 @@ func (_m *AddonQuery) Paginate(ctx context.Context, page pagination.Page) (pagin
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*Addon]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -46,12 +58,6 @@ func (_m *AddonQuery) Paginate(ctx context.Context, page pagination.Page) (pagin
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*Addon, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -68,7 +74,7 @@ func (_m *AddonQuery) Paginate(ctx context.Context, page pagination.Page) (pagin
 var _ pagination.Paginator[*Addon] = (*AddonQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *AddonRateCardQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*AddonRateCard], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -77,6 +83,22 @@ func (_m *AddonRateCardQuery) Paginate(ctx context.Context, page pagination.Page
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*AddonRateCard]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -87,10 +109,6 @@ func (_m *AddonRateCardQuery) Paginate(ctx context.Context, page pagination.Page
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*AddonRateCard]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -104,12 +122,6 @@ func (_m *AddonRateCardQuery) Paginate(ctx context.Context, page pagination.Page
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*AddonRateCard, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -126,7 +138,7 @@ func (_m *AddonRateCardQuery) Paginate(ctx context.Context, page pagination.Page
 var _ pagination.Paginator[*AddonRateCard] = (*AddonRateCardQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *AppQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*App], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -135,6 +147,22 @@ func (_m *AppQuery) Paginate(ctx context.Context, page pagination.Page) (paginat
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*App]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -145,10 +173,6 @@ func (_m *AppQuery) Paginate(ctx context.Context, page pagination.Page) (paginat
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*App]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -162,12 +186,6 @@ func (_m *AppQuery) Paginate(ctx context.Context, page pagination.Page) (paginat
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*App, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -184,7 +202,7 @@ func (_m *AppQuery) Paginate(ctx context.Context, page pagination.Page) (paginat
 var _ pagination.Paginator[*App] = (*AppQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *AppCustomInvoicingQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*AppCustomInvoicing], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -193,6 +211,22 @@ func (_m *AppCustomInvoicingQuery) Paginate(ctx context.Context, page pagination
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*AppCustomInvoicing]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -203,10 +237,6 @@ func (_m *AppCustomInvoicingQuery) Paginate(ctx context.Context, page pagination
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*AppCustomInvoicing]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -220,12 +250,6 @@ func (_m *AppCustomInvoicingQuery) Paginate(ctx context.Context, page pagination
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*AppCustomInvoicing, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -242,7 +266,7 @@ func (_m *AppCustomInvoicingQuery) Paginate(ctx context.Context, page pagination
 var _ pagination.Paginator[*AppCustomInvoicing] = (*AppCustomInvoicingQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *AppCustomInvoicingCustomerQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*AppCustomInvoicingCustomer], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -251,6 +275,22 @@ func (_m *AppCustomInvoicingCustomerQuery) Paginate(ctx context.Context, page pa
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*AppCustomInvoicingCustomer]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -261,10 +301,6 @@ func (_m *AppCustomInvoicingCustomerQuery) Paginate(ctx context.Context, page pa
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*AppCustomInvoicingCustomer]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -278,12 +314,6 @@ func (_m *AppCustomInvoicingCustomerQuery) Paginate(ctx context.Context, page pa
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*AppCustomInvoicingCustomer, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -300,7 +330,7 @@ func (_m *AppCustomInvoicingCustomerQuery) Paginate(ctx context.Context, page pa
 var _ pagination.Paginator[*AppCustomInvoicingCustomer] = (*AppCustomInvoicingCustomerQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *AppCustomerQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*AppCustomer], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -309,6 +339,22 @@ func (_m *AppCustomerQuery) Paginate(ctx context.Context, page pagination.Page) 
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*AppCustomer]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -319,10 +365,6 @@ func (_m *AppCustomerQuery) Paginate(ctx context.Context, page pagination.Page) 
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*AppCustomer]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -336,12 +378,6 @@ func (_m *AppCustomerQuery) Paginate(ctx context.Context, page pagination.Page) 
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*AppCustomer, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -358,7 +394,7 @@ func (_m *AppCustomerQuery) Paginate(ctx context.Context, page pagination.Page) 
 var _ pagination.Paginator[*AppCustomer] = (*AppCustomerQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *AppStripeQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*AppStripe], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -367,6 +403,22 @@ func (_m *AppStripeQuery) Paginate(ctx context.Context, page pagination.Page) (p
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*AppStripe]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -377,10 +429,6 @@ func (_m *AppStripeQuery) Paginate(ctx context.Context, page pagination.Page) (p
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*AppStripe]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -394,12 +442,6 @@ func (_m *AppStripeQuery) Paginate(ctx context.Context, page pagination.Page) (p
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*AppStripe, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -416,7 +458,7 @@ func (_m *AppStripeQuery) Paginate(ctx context.Context, page pagination.Page) (p
 var _ pagination.Paginator[*AppStripe] = (*AppStripeQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *AppStripeCustomerQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*AppStripeCustomer], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -425,6 +467,22 @@ func (_m *AppStripeCustomerQuery) Paginate(ctx context.Context, page pagination.
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*AppStripeCustomer]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -435,10 +493,6 @@ func (_m *AppStripeCustomerQuery) Paginate(ctx context.Context, page pagination.
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*AppStripeCustomer]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -452,12 +506,6 @@ func (_m *AppStripeCustomerQuery) Paginate(ctx context.Context, page pagination.
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*AppStripeCustomer, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -474,7 +522,7 @@ func (_m *AppStripeCustomerQuery) Paginate(ctx context.Context, page pagination.
 var _ pagination.Paginator[*AppStripeCustomer] = (*AppStripeCustomerQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *BalanceSnapshotQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*BalanceSnapshot], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -483,6 +531,22 @@ func (_m *BalanceSnapshotQuery) Paginate(ctx context.Context, page pagination.Pa
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*BalanceSnapshot]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -493,10 +557,6 @@ func (_m *BalanceSnapshotQuery) Paginate(ctx context.Context, page pagination.Pa
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*BalanceSnapshot]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -510,12 +570,6 @@ func (_m *BalanceSnapshotQuery) Paginate(ctx context.Context, page pagination.Pa
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*BalanceSnapshot, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -532,7 +586,7 @@ func (_m *BalanceSnapshotQuery) Paginate(ctx context.Context, page pagination.Pa
 var _ pagination.Paginator[*BalanceSnapshot] = (*BalanceSnapshotQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *BillingCustomerLockQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*BillingCustomerLock], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -541,6 +595,22 @@ func (_m *BillingCustomerLockQuery) Paginate(ctx context.Context, page paginatio
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*BillingCustomerLock]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -551,10 +621,6 @@ func (_m *BillingCustomerLockQuery) Paginate(ctx context.Context, page paginatio
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*BillingCustomerLock]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -568,12 +634,6 @@ func (_m *BillingCustomerLockQuery) Paginate(ctx context.Context, page paginatio
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*BillingCustomerLock, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -590,7 +650,7 @@ func (_m *BillingCustomerLockQuery) Paginate(ctx context.Context, page paginatio
 var _ pagination.Paginator[*BillingCustomerLock] = (*BillingCustomerLockQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *BillingCustomerOverrideQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*BillingCustomerOverride], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -599,6 +659,22 @@ func (_m *BillingCustomerOverrideQuery) Paginate(ctx context.Context, page pagin
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*BillingCustomerOverride]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -609,10 +685,6 @@ func (_m *BillingCustomerOverrideQuery) Paginate(ctx context.Context, page pagin
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*BillingCustomerOverride]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -626,12 +698,6 @@ func (_m *BillingCustomerOverrideQuery) Paginate(ctx context.Context, page pagin
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*BillingCustomerOverride, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -648,7 +714,7 @@ func (_m *BillingCustomerOverrideQuery) Paginate(ctx context.Context, page pagin
 var _ pagination.Paginator[*BillingCustomerOverride] = (*BillingCustomerOverrideQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *BillingGatheringInvoiceLineQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*BillingGatheringInvoiceLine], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -657,6 +723,22 @@ func (_m *BillingGatheringInvoiceLineQuery) Paginate(ctx context.Context, page p
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*BillingGatheringInvoiceLine]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -667,10 +749,6 @@ func (_m *BillingGatheringInvoiceLineQuery) Paginate(ctx context.Context, page p
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*BillingGatheringInvoiceLine]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -684,12 +762,6 @@ func (_m *BillingGatheringInvoiceLineQuery) Paginate(ctx context.Context, page p
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*BillingGatheringInvoiceLine, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -706,7 +778,7 @@ func (_m *BillingGatheringInvoiceLineQuery) Paginate(ctx context.Context, page p
 var _ pagination.Paginator[*BillingGatheringInvoiceLine] = (*BillingGatheringInvoiceLineQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *BillingInvoiceQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*BillingInvoice], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -715,6 +787,22 @@ func (_m *BillingInvoiceQuery) Paginate(ctx context.Context, page pagination.Pag
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*BillingInvoice]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -725,10 +813,6 @@ func (_m *BillingInvoiceQuery) Paginate(ctx context.Context, page pagination.Pag
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*BillingInvoice]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -742,12 +826,6 @@ func (_m *BillingInvoiceQuery) Paginate(ctx context.Context, page pagination.Pag
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*BillingInvoice, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -764,7 +842,7 @@ func (_m *BillingInvoiceQuery) Paginate(ctx context.Context, page pagination.Pag
 var _ pagination.Paginator[*BillingInvoice] = (*BillingInvoiceQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *BillingInvoiceLineQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*BillingInvoiceLine], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -773,6 +851,22 @@ func (_m *BillingInvoiceLineQuery) Paginate(ctx context.Context, page pagination
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*BillingInvoiceLine]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -783,10 +877,6 @@ func (_m *BillingInvoiceLineQuery) Paginate(ctx context.Context, page pagination
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*BillingInvoiceLine]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -800,12 +890,6 @@ func (_m *BillingInvoiceLineQuery) Paginate(ctx context.Context, page pagination
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*BillingInvoiceLine, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -822,7 +906,7 @@ func (_m *BillingInvoiceLineQuery) Paginate(ctx context.Context, page pagination
 var _ pagination.Paginator[*BillingInvoiceLine] = (*BillingInvoiceLineQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *BillingInvoiceLineUsageDiscountQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*BillingInvoiceLineUsageDiscount], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -831,6 +915,22 @@ func (_m *BillingInvoiceLineUsageDiscountQuery) Paginate(ctx context.Context, pa
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*BillingInvoiceLineUsageDiscount]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -841,10 +941,6 @@ func (_m *BillingInvoiceLineUsageDiscountQuery) Paginate(ctx context.Context, pa
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*BillingInvoiceLineUsageDiscount]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -858,12 +954,6 @@ func (_m *BillingInvoiceLineUsageDiscountQuery) Paginate(ctx context.Context, pa
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*BillingInvoiceLineUsageDiscount, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -880,7 +970,7 @@ func (_m *BillingInvoiceLineUsageDiscountQuery) Paginate(ctx context.Context, pa
 var _ pagination.Paginator[*BillingInvoiceLineUsageDiscount] = (*BillingInvoiceLineUsageDiscountQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *BillingInvoiceSplitLineGroupQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*BillingInvoiceSplitLineGroup], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -889,6 +979,22 @@ func (_m *BillingInvoiceSplitLineGroupQuery) Paginate(ctx context.Context, page 
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*BillingInvoiceSplitLineGroup]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -899,10 +1005,6 @@ func (_m *BillingInvoiceSplitLineGroupQuery) Paginate(ctx context.Context, page 
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*BillingInvoiceSplitLineGroup]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -916,12 +1018,6 @@ func (_m *BillingInvoiceSplitLineGroupQuery) Paginate(ctx context.Context, page 
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*BillingInvoiceSplitLineGroup, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -938,7 +1034,7 @@ func (_m *BillingInvoiceSplitLineGroupQuery) Paginate(ctx context.Context, page 
 var _ pagination.Paginator[*BillingInvoiceSplitLineGroup] = (*BillingInvoiceSplitLineGroupQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *BillingInvoiceUsageBasedLineConfigQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*BillingInvoiceUsageBasedLineConfig], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -947,6 +1043,22 @@ func (_m *BillingInvoiceUsageBasedLineConfigQuery) Paginate(ctx context.Context,
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*BillingInvoiceUsageBasedLineConfig]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -957,10 +1069,6 @@ func (_m *BillingInvoiceUsageBasedLineConfigQuery) Paginate(ctx context.Context,
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*BillingInvoiceUsageBasedLineConfig]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -974,12 +1082,6 @@ func (_m *BillingInvoiceUsageBasedLineConfigQuery) Paginate(ctx context.Context,
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*BillingInvoiceUsageBasedLineConfig, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -996,7 +1098,7 @@ func (_m *BillingInvoiceUsageBasedLineConfigQuery) Paginate(ctx context.Context,
 var _ pagination.Paginator[*BillingInvoiceUsageBasedLineConfig] = (*BillingInvoiceUsageBasedLineConfigQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *BillingInvoiceValidationIssueQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*BillingInvoiceValidationIssue], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -1005,6 +1107,22 @@ func (_m *BillingInvoiceValidationIssueQuery) Paginate(ctx context.Context, page
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*BillingInvoiceValidationIssue]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -1015,10 +1133,6 @@ func (_m *BillingInvoiceValidationIssueQuery) Paginate(ctx context.Context, page
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*BillingInvoiceValidationIssue]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -1032,12 +1146,6 @@ func (_m *BillingInvoiceValidationIssueQuery) Paginate(ctx context.Context, page
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*BillingInvoiceValidationIssue, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -1054,7 +1162,7 @@ func (_m *BillingInvoiceValidationIssueQuery) Paginate(ctx context.Context, page
 var _ pagination.Paginator[*BillingInvoiceValidationIssue] = (*BillingInvoiceValidationIssueQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *BillingInvoiceWriteSchemaLevelQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*BillingInvoiceWriteSchemaLevel], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -1063,6 +1171,22 @@ func (_m *BillingInvoiceWriteSchemaLevelQuery) Paginate(ctx context.Context, pag
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*BillingInvoiceWriteSchemaLevel]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -1073,10 +1197,6 @@ func (_m *BillingInvoiceWriteSchemaLevelQuery) Paginate(ctx context.Context, pag
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*BillingInvoiceWriteSchemaLevel]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -1090,12 +1210,6 @@ func (_m *BillingInvoiceWriteSchemaLevelQuery) Paginate(ctx context.Context, pag
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*BillingInvoiceWriteSchemaLevel, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -1112,7 +1226,7 @@ func (_m *BillingInvoiceWriteSchemaLevelQuery) Paginate(ctx context.Context, pag
 var _ pagination.Paginator[*BillingInvoiceWriteSchemaLevel] = (*BillingInvoiceWriteSchemaLevelQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *BillingProfileQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*BillingProfile], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -1121,6 +1235,22 @@ func (_m *BillingProfileQuery) Paginate(ctx context.Context, page pagination.Pag
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*BillingProfile]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -1131,10 +1261,6 @@ func (_m *BillingProfileQuery) Paginate(ctx context.Context, page pagination.Pag
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*BillingProfile]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -1148,12 +1274,6 @@ func (_m *BillingProfileQuery) Paginate(ctx context.Context, page pagination.Pag
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*BillingProfile, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -1170,7 +1290,7 @@ func (_m *BillingProfileQuery) Paginate(ctx context.Context, page pagination.Pag
 var _ pagination.Paginator[*BillingProfile] = (*BillingProfileQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *BillingSequenceNumbersQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*BillingSequenceNumbers], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -1179,6 +1299,22 @@ func (_m *BillingSequenceNumbersQuery) Paginate(ctx context.Context, page pagina
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*BillingSequenceNumbers]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -1189,10 +1325,6 @@ func (_m *BillingSequenceNumbersQuery) Paginate(ctx context.Context, page pagina
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*BillingSequenceNumbers]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -1206,12 +1338,6 @@ func (_m *BillingSequenceNumbersQuery) Paginate(ctx context.Context, page pagina
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*BillingSequenceNumbers, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -1228,7 +1354,7 @@ func (_m *BillingSequenceNumbersQuery) Paginate(ctx context.Context, page pagina
 var _ pagination.Paginator[*BillingSequenceNumbers] = (*BillingSequenceNumbersQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *BillingStandardInvoiceDetailedLineQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*BillingStandardInvoiceDetailedLine], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -1237,6 +1363,22 @@ func (_m *BillingStandardInvoiceDetailedLineQuery) Paginate(ctx context.Context,
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*BillingStandardInvoiceDetailedLine]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -1247,10 +1389,6 @@ func (_m *BillingStandardInvoiceDetailedLineQuery) Paginate(ctx context.Context,
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*BillingStandardInvoiceDetailedLine]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -1264,12 +1402,6 @@ func (_m *BillingStandardInvoiceDetailedLineQuery) Paginate(ctx context.Context,
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*BillingStandardInvoiceDetailedLine, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -1286,7 +1418,7 @@ func (_m *BillingStandardInvoiceDetailedLineQuery) Paginate(ctx context.Context,
 var _ pagination.Paginator[*BillingStandardInvoiceDetailedLine] = (*BillingStandardInvoiceDetailedLineQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *BillingStandardInvoiceDetailedLineAmountDiscountQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*BillingStandardInvoiceDetailedLineAmountDiscount], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -1295,6 +1427,22 @@ func (_m *BillingStandardInvoiceDetailedLineAmountDiscountQuery) Paginate(ctx co
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*BillingStandardInvoiceDetailedLineAmountDiscount]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -1305,10 +1453,6 @@ func (_m *BillingStandardInvoiceDetailedLineAmountDiscountQuery) Paginate(ctx co
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*BillingStandardInvoiceDetailedLineAmountDiscount]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -1322,12 +1466,6 @@ func (_m *BillingStandardInvoiceDetailedLineAmountDiscountQuery) Paginate(ctx co
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*BillingStandardInvoiceDetailedLineAmountDiscount, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -1344,7 +1482,7 @@ func (_m *BillingStandardInvoiceDetailedLineAmountDiscountQuery) Paginate(ctx co
 var _ pagination.Paginator[*BillingStandardInvoiceDetailedLineAmountDiscount] = (*BillingStandardInvoiceDetailedLineAmountDiscountQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *BillingWorkflowConfigQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*BillingWorkflowConfig], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -1353,6 +1491,22 @@ func (_m *BillingWorkflowConfigQuery) Paginate(ctx context.Context, page paginat
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*BillingWorkflowConfig]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -1363,10 +1517,6 @@ func (_m *BillingWorkflowConfigQuery) Paginate(ctx context.Context, page paginat
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*BillingWorkflowConfig]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -1380,12 +1530,6 @@ func (_m *BillingWorkflowConfigQuery) Paginate(ctx context.Context, page paginat
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*BillingWorkflowConfig, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -1402,7 +1546,7 @@ func (_m *BillingWorkflowConfigQuery) Paginate(ctx context.Context, page paginat
 var _ pagination.Paginator[*BillingWorkflowConfig] = (*BillingWorkflowConfigQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *ChargeQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*Charge], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -1411,6 +1555,22 @@ func (_m *ChargeQuery) Paginate(ctx context.Context, page pagination.Page) (pagi
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*Charge]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -1421,10 +1581,6 @@ func (_m *ChargeQuery) Paginate(ctx context.Context, page pagination.Page) (pagi
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*Charge]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -1438,12 +1594,6 @@ func (_m *ChargeQuery) Paginate(ctx context.Context, page pagination.Page) (pagi
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*Charge, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -1460,7 +1610,7 @@ func (_m *ChargeQuery) Paginate(ctx context.Context, page pagination.Page) (pagi
 var _ pagination.Paginator[*Charge] = (*ChargeQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *ChargeCreditPurchaseQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*ChargeCreditPurchase], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -1469,6 +1619,22 @@ func (_m *ChargeCreditPurchaseQuery) Paginate(ctx context.Context, page paginati
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*ChargeCreditPurchase]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -1479,10 +1645,6 @@ func (_m *ChargeCreditPurchaseQuery) Paginate(ctx context.Context, page paginati
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*ChargeCreditPurchase]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -1496,12 +1658,6 @@ func (_m *ChargeCreditPurchaseQuery) Paginate(ctx context.Context, page paginati
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*ChargeCreditPurchase, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -1518,7 +1674,7 @@ func (_m *ChargeCreditPurchaseQuery) Paginate(ctx context.Context, page paginati
 var _ pagination.Paginator[*ChargeCreditPurchase] = (*ChargeCreditPurchaseQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *ChargeCreditPurchaseCostBasisQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*ChargeCreditPurchaseCostBasis], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -1527,6 +1683,22 @@ func (_m *ChargeCreditPurchaseCostBasisQuery) Paginate(ctx context.Context, page
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*ChargeCreditPurchaseCostBasis]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -1537,10 +1709,6 @@ func (_m *ChargeCreditPurchaseCostBasisQuery) Paginate(ctx context.Context, page
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*ChargeCreditPurchaseCostBasis]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -1554,12 +1722,6 @@ func (_m *ChargeCreditPurchaseCostBasisQuery) Paginate(ctx context.Context, page
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*ChargeCreditPurchaseCostBasis, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -1576,7 +1738,7 @@ func (_m *ChargeCreditPurchaseCostBasisQuery) Paginate(ctx context.Context, page
 var _ pagination.Paginator[*ChargeCreditPurchaseCostBasis] = (*ChargeCreditPurchaseCostBasisQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *ChargeCreditPurchaseCreditGrantQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*ChargeCreditPurchaseCreditGrant], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -1585,6 +1747,22 @@ func (_m *ChargeCreditPurchaseCreditGrantQuery) Paginate(ctx context.Context, pa
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*ChargeCreditPurchaseCreditGrant]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -1595,10 +1773,6 @@ func (_m *ChargeCreditPurchaseCreditGrantQuery) Paginate(ctx context.Context, pa
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*ChargeCreditPurchaseCreditGrant]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -1612,12 +1786,6 @@ func (_m *ChargeCreditPurchaseCreditGrantQuery) Paginate(ctx context.Context, pa
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*ChargeCreditPurchaseCreditGrant, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -1634,7 +1802,7 @@ func (_m *ChargeCreditPurchaseCreditGrantQuery) Paginate(ctx context.Context, pa
 var _ pagination.Paginator[*ChargeCreditPurchaseCreditGrant] = (*ChargeCreditPurchaseCreditGrantQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *ChargeCreditPurchaseExternalPaymentQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*ChargeCreditPurchaseExternalPayment], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -1643,6 +1811,22 @@ func (_m *ChargeCreditPurchaseExternalPaymentQuery) Paginate(ctx context.Context
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*ChargeCreditPurchaseExternalPayment]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -1653,10 +1837,6 @@ func (_m *ChargeCreditPurchaseExternalPaymentQuery) Paginate(ctx context.Context
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*ChargeCreditPurchaseExternalPayment]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -1670,12 +1850,6 @@ func (_m *ChargeCreditPurchaseExternalPaymentQuery) Paginate(ctx context.Context
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*ChargeCreditPurchaseExternalPayment, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -1692,7 +1866,7 @@ func (_m *ChargeCreditPurchaseExternalPaymentQuery) Paginate(ctx context.Context
 var _ pagination.Paginator[*ChargeCreditPurchaseExternalPayment] = (*ChargeCreditPurchaseExternalPaymentQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *ChargeCreditPurchaseInvoicedPaymentQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*ChargeCreditPurchaseInvoicedPayment], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -1701,6 +1875,22 @@ func (_m *ChargeCreditPurchaseInvoicedPaymentQuery) Paginate(ctx context.Context
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*ChargeCreditPurchaseInvoicedPayment]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -1711,10 +1901,6 @@ func (_m *ChargeCreditPurchaseInvoicedPaymentQuery) Paginate(ctx context.Context
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*ChargeCreditPurchaseInvoicedPayment]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -1728,12 +1914,6 @@ func (_m *ChargeCreditPurchaseInvoicedPaymentQuery) Paginate(ctx context.Context
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*ChargeCreditPurchaseInvoicedPayment, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -1750,7 +1930,7 @@ func (_m *ChargeCreditPurchaseInvoicedPaymentQuery) Paginate(ctx context.Context
 var _ pagination.Paginator[*ChargeCreditPurchaseInvoicedPayment] = (*ChargeCreditPurchaseInvoicedPaymentQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *ChargeFlatFeeQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*ChargeFlatFee], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -1759,6 +1939,22 @@ func (_m *ChargeFlatFeeQuery) Paginate(ctx context.Context, page pagination.Page
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*ChargeFlatFee]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -1769,10 +1965,6 @@ func (_m *ChargeFlatFeeQuery) Paginate(ctx context.Context, page pagination.Page
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*ChargeFlatFee]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -1786,12 +1978,6 @@ func (_m *ChargeFlatFeeQuery) Paginate(ctx context.Context, page pagination.Page
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*ChargeFlatFee, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -1808,7 +1994,7 @@ func (_m *ChargeFlatFeeQuery) Paginate(ctx context.Context, page pagination.Page
 var _ pagination.Paginator[*ChargeFlatFee] = (*ChargeFlatFeeQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *ChargeFlatFeeCostBasisQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*ChargeFlatFeeCostBasis], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -1817,6 +2003,22 @@ func (_m *ChargeFlatFeeCostBasisQuery) Paginate(ctx context.Context, page pagina
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*ChargeFlatFeeCostBasis]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -1827,10 +2029,6 @@ func (_m *ChargeFlatFeeCostBasisQuery) Paginate(ctx context.Context, page pagina
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*ChargeFlatFeeCostBasis]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -1844,12 +2042,6 @@ func (_m *ChargeFlatFeeCostBasisQuery) Paginate(ctx context.Context, page pagina
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*ChargeFlatFeeCostBasis, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -1866,7 +2058,7 @@ func (_m *ChargeFlatFeeCostBasisQuery) Paginate(ctx context.Context, page pagina
 var _ pagination.Paginator[*ChargeFlatFeeCostBasis] = (*ChargeFlatFeeCostBasisQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *ChargeFlatFeeOverrideQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*ChargeFlatFeeOverride], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -1875,6 +2067,22 @@ func (_m *ChargeFlatFeeOverrideQuery) Paginate(ctx context.Context, page paginat
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*ChargeFlatFeeOverride]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -1885,10 +2093,6 @@ func (_m *ChargeFlatFeeOverrideQuery) Paginate(ctx context.Context, page paginat
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*ChargeFlatFeeOverride]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -1902,12 +2106,6 @@ func (_m *ChargeFlatFeeOverrideQuery) Paginate(ctx context.Context, page paginat
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*ChargeFlatFeeOverride, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -1924,7 +2122,7 @@ func (_m *ChargeFlatFeeOverrideQuery) Paginate(ctx context.Context, page paginat
 var _ pagination.Paginator[*ChargeFlatFeeOverride] = (*ChargeFlatFeeOverrideQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *ChargeFlatFeeRunQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*ChargeFlatFeeRun], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -1933,6 +2131,22 @@ func (_m *ChargeFlatFeeRunQuery) Paginate(ctx context.Context, page pagination.P
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*ChargeFlatFeeRun]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -1943,10 +2157,6 @@ func (_m *ChargeFlatFeeRunQuery) Paginate(ctx context.Context, page pagination.P
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*ChargeFlatFeeRun]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -1960,12 +2170,6 @@ func (_m *ChargeFlatFeeRunQuery) Paginate(ctx context.Context, page pagination.P
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*ChargeFlatFeeRun, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -1982,7 +2186,7 @@ func (_m *ChargeFlatFeeRunQuery) Paginate(ctx context.Context, page pagination.P
 var _ pagination.Paginator[*ChargeFlatFeeRun] = (*ChargeFlatFeeRunQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *ChargeFlatFeeRunCreditAllocationsQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*ChargeFlatFeeRunCreditAllocations], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -1991,6 +2195,22 @@ func (_m *ChargeFlatFeeRunCreditAllocationsQuery) Paginate(ctx context.Context, 
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*ChargeFlatFeeRunCreditAllocations]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -2001,10 +2221,6 @@ func (_m *ChargeFlatFeeRunCreditAllocationsQuery) Paginate(ctx context.Context, 
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*ChargeFlatFeeRunCreditAllocations]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -2018,12 +2234,6 @@ func (_m *ChargeFlatFeeRunCreditAllocationsQuery) Paginate(ctx context.Context, 
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*ChargeFlatFeeRunCreditAllocations, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -2040,7 +2250,7 @@ func (_m *ChargeFlatFeeRunCreditAllocationsQuery) Paginate(ctx context.Context, 
 var _ pagination.Paginator[*ChargeFlatFeeRunCreditAllocations] = (*ChargeFlatFeeRunCreditAllocationsQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *ChargeFlatFeeRunDetailedLineQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*ChargeFlatFeeRunDetailedLine], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -2049,6 +2259,22 @@ func (_m *ChargeFlatFeeRunDetailedLineQuery) Paginate(ctx context.Context, page 
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*ChargeFlatFeeRunDetailedLine]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -2059,10 +2285,6 @@ func (_m *ChargeFlatFeeRunDetailedLineQuery) Paginate(ctx context.Context, page 
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*ChargeFlatFeeRunDetailedLine]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -2076,12 +2298,6 @@ func (_m *ChargeFlatFeeRunDetailedLineQuery) Paginate(ctx context.Context, page 
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*ChargeFlatFeeRunDetailedLine, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -2098,7 +2314,7 @@ func (_m *ChargeFlatFeeRunDetailedLineQuery) Paginate(ctx context.Context, page 
 var _ pagination.Paginator[*ChargeFlatFeeRunDetailedLine] = (*ChargeFlatFeeRunDetailedLineQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *ChargeFlatFeeRunInvoicedUsageQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*ChargeFlatFeeRunInvoicedUsage], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -2107,6 +2323,22 @@ func (_m *ChargeFlatFeeRunInvoicedUsageQuery) Paginate(ctx context.Context, page
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*ChargeFlatFeeRunInvoicedUsage]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -2117,10 +2349,6 @@ func (_m *ChargeFlatFeeRunInvoicedUsageQuery) Paginate(ctx context.Context, page
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*ChargeFlatFeeRunInvoicedUsage]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -2134,12 +2362,6 @@ func (_m *ChargeFlatFeeRunInvoicedUsageQuery) Paginate(ctx context.Context, page
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*ChargeFlatFeeRunInvoicedUsage, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -2156,7 +2378,7 @@ func (_m *ChargeFlatFeeRunInvoicedUsageQuery) Paginate(ctx context.Context, page
 var _ pagination.Paginator[*ChargeFlatFeeRunInvoicedUsage] = (*ChargeFlatFeeRunInvoicedUsageQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *ChargeFlatFeeRunOverageCreditAllocationsQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*ChargeFlatFeeRunOverageCreditAllocations], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -2165,6 +2387,22 @@ func (_m *ChargeFlatFeeRunOverageCreditAllocationsQuery) Paginate(ctx context.Co
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*ChargeFlatFeeRunOverageCreditAllocations]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -2175,10 +2413,6 @@ func (_m *ChargeFlatFeeRunOverageCreditAllocationsQuery) Paginate(ctx context.Co
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*ChargeFlatFeeRunOverageCreditAllocations]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -2192,12 +2426,6 @@ func (_m *ChargeFlatFeeRunOverageCreditAllocationsQuery) Paginate(ctx context.Co
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*ChargeFlatFeeRunOverageCreditAllocations, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -2214,7 +2442,7 @@ func (_m *ChargeFlatFeeRunOverageCreditAllocationsQuery) Paginate(ctx context.Co
 var _ pagination.Paginator[*ChargeFlatFeeRunOverageCreditAllocations] = (*ChargeFlatFeeRunOverageCreditAllocationsQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *ChargeFlatFeeRunPaymentQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*ChargeFlatFeeRunPayment], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -2223,6 +2451,22 @@ func (_m *ChargeFlatFeeRunPaymentQuery) Paginate(ctx context.Context, page pagin
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*ChargeFlatFeeRunPayment]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -2233,10 +2477,6 @@ func (_m *ChargeFlatFeeRunPaymentQuery) Paginate(ctx context.Context, page pagin
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*ChargeFlatFeeRunPayment]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -2250,12 +2490,6 @@ func (_m *ChargeFlatFeeRunPaymentQuery) Paginate(ctx context.Context, page pagin
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*ChargeFlatFeeRunPayment, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -2272,7 +2506,7 @@ func (_m *ChargeFlatFeeRunPaymentQuery) Paginate(ctx context.Context, page pagin
 var _ pagination.Paginator[*ChargeFlatFeeRunPayment] = (*ChargeFlatFeeRunPaymentQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *ChargeUsageBasedQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*ChargeUsageBased], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -2281,6 +2515,22 @@ func (_m *ChargeUsageBasedQuery) Paginate(ctx context.Context, page pagination.P
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*ChargeUsageBased]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -2291,10 +2541,6 @@ func (_m *ChargeUsageBasedQuery) Paginate(ctx context.Context, page pagination.P
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*ChargeUsageBased]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -2308,12 +2554,6 @@ func (_m *ChargeUsageBasedQuery) Paginate(ctx context.Context, page pagination.P
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*ChargeUsageBased, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -2330,7 +2570,7 @@ func (_m *ChargeUsageBasedQuery) Paginate(ctx context.Context, page pagination.P
 var _ pagination.Paginator[*ChargeUsageBased] = (*ChargeUsageBasedQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *ChargeUsageBasedCostBasisQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*ChargeUsageBasedCostBasis], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -2339,6 +2579,22 @@ func (_m *ChargeUsageBasedCostBasisQuery) Paginate(ctx context.Context, page pag
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*ChargeUsageBasedCostBasis]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -2349,10 +2605,6 @@ func (_m *ChargeUsageBasedCostBasisQuery) Paginate(ctx context.Context, page pag
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*ChargeUsageBasedCostBasis]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -2366,12 +2618,6 @@ func (_m *ChargeUsageBasedCostBasisQuery) Paginate(ctx context.Context, page pag
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*ChargeUsageBasedCostBasis, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -2388,7 +2634,7 @@ func (_m *ChargeUsageBasedCostBasisQuery) Paginate(ctx context.Context, page pag
 var _ pagination.Paginator[*ChargeUsageBasedCostBasis] = (*ChargeUsageBasedCostBasisQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *ChargeUsageBasedOverrideQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*ChargeUsageBasedOverride], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -2397,6 +2643,22 @@ func (_m *ChargeUsageBasedOverrideQuery) Paginate(ctx context.Context, page pagi
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*ChargeUsageBasedOverride]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -2407,10 +2669,6 @@ func (_m *ChargeUsageBasedOverrideQuery) Paginate(ctx context.Context, page pagi
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*ChargeUsageBasedOverride]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -2424,12 +2682,6 @@ func (_m *ChargeUsageBasedOverrideQuery) Paginate(ctx context.Context, page pagi
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*ChargeUsageBasedOverride, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -2446,7 +2698,7 @@ func (_m *ChargeUsageBasedOverrideQuery) Paginate(ctx context.Context, page pagi
 var _ pagination.Paginator[*ChargeUsageBasedOverride] = (*ChargeUsageBasedOverrideQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *ChargeUsageBasedRunCreditAllocationsQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*ChargeUsageBasedRunCreditAllocations], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -2455,6 +2707,22 @@ func (_m *ChargeUsageBasedRunCreditAllocationsQuery) Paginate(ctx context.Contex
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*ChargeUsageBasedRunCreditAllocations]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -2465,10 +2733,6 @@ func (_m *ChargeUsageBasedRunCreditAllocationsQuery) Paginate(ctx context.Contex
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*ChargeUsageBasedRunCreditAllocations]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -2482,12 +2746,6 @@ func (_m *ChargeUsageBasedRunCreditAllocationsQuery) Paginate(ctx context.Contex
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*ChargeUsageBasedRunCreditAllocations, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -2504,7 +2762,7 @@ func (_m *ChargeUsageBasedRunCreditAllocationsQuery) Paginate(ctx context.Contex
 var _ pagination.Paginator[*ChargeUsageBasedRunCreditAllocations] = (*ChargeUsageBasedRunCreditAllocationsQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *ChargeUsageBasedRunDetailedLineQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*ChargeUsageBasedRunDetailedLine], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -2513,6 +2771,22 @@ func (_m *ChargeUsageBasedRunDetailedLineQuery) Paginate(ctx context.Context, pa
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*ChargeUsageBasedRunDetailedLine]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -2523,10 +2797,6 @@ func (_m *ChargeUsageBasedRunDetailedLineQuery) Paginate(ctx context.Context, pa
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*ChargeUsageBasedRunDetailedLine]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -2540,12 +2810,6 @@ func (_m *ChargeUsageBasedRunDetailedLineQuery) Paginate(ctx context.Context, pa
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*ChargeUsageBasedRunDetailedLine, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -2562,7 +2826,7 @@ func (_m *ChargeUsageBasedRunDetailedLineQuery) Paginate(ctx context.Context, pa
 var _ pagination.Paginator[*ChargeUsageBasedRunDetailedLine] = (*ChargeUsageBasedRunDetailedLineQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *ChargeUsageBasedRunInvoicedUsageQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*ChargeUsageBasedRunInvoicedUsage], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -2571,6 +2835,22 @@ func (_m *ChargeUsageBasedRunInvoicedUsageQuery) Paginate(ctx context.Context, p
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*ChargeUsageBasedRunInvoicedUsage]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -2581,10 +2861,6 @@ func (_m *ChargeUsageBasedRunInvoicedUsageQuery) Paginate(ctx context.Context, p
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*ChargeUsageBasedRunInvoicedUsage]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -2598,12 +2874,6 @@ func (_m *ChargeUsageBasedRunInvoicedUsageQuery) Paginate(ctx context.Context, p
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*ChargeUsageBasedRunInvoicedUsage, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -2620,7 +2890,7 @@ func (_m *ChargeUsageBasedRunInvoicedUsageQuery) Paginate(ctx context.Context, p
 var _ pagination.Paginator[*ChargeUsageBasedRunInvoicedUsage] = (*ChargeUsageBasedRunInvoicedUsageQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *ChargeUsageBasedRunOverageCreditAllocationsQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*ChargeUsageBasedRunOverageCreditAllocations], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -2629,6 +2899,22 @@ func (_m *ChargeUsageBasedRunOverageCreditAllocationsQuery) Paginate(ctx context
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*ChargeUsageBasedRunOverageCreditAllocations]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -2639,10 +2925,6 @@ func (_m *ChargeUsageBasedRunOverageCreditAllocationsQuery) Paginate(ctx context
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*ChargeUsageBasedRunOverageCreditAllocations]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -2656,12 +2938,6 @@ func (_m *ChargeUsageBasedRunOverageCreditAllocationsQuery) Paginate(ctx context
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*ChargeUsageBasedRunOverageCreditAllocations, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -2678,7 +2954,7 @@ func (_m *ChargeUsageBasedRunOverageCreditAllocationsQuery) Paginate(ctx context
 var _ pagination.Paginator[*ChargeUsageBasedRunOverageCreditAllocations] = (*ChargeUsageBasedRunOverageCreditAllocationsQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *ChargeUsageBasedRunPaymentQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*ChargeUsageBasedRunPayment], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -2687,6 +2963,22 @@ func (_m *ChargeUsageBasedRunPaymentQuery) Paginate(ctx context.Context, page pa
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*ChargeUsageBasedRunPayment]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -2697,10 +2989,6 @@ func (_m *ChargeUsageBasedRunPaymentQuery) Paginate(ctx context.Context, page pa
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*ChargeUsageBasedRunPayment]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -2714,12 +3002,6 @@ func (_m *ChargeUsageBasedRunPaymentQuery) Paginate(ctx context.Context, page pa
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*ChargeUsageBasedRunPayment, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -2736,7 +3018,7 @@ func (_m *ChargeUsageBasedRunPaymentQuery) Paginate(ctx context.Context, page pa
 var _ pagination.Paginator[*ChargeUsageBasedRunPayment] = (*ChargeUsageBasedRunPaymentQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *ChargeUsageBasedRunsQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*ChargeUsageBasedRuns], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -2745,6 +3027,22 @@ func (_m *ChargeUsageBasedRunsQuery) Paginate(ctx context.Context, page paginati
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*ChargeUsageBasedRuns]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -2755,10 +3053,6 @@ func (_m *ChargeUsageBasedRunsQuery) Paginate(ctx context.Context, page paginati
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*ChargeUsageBasedRuns]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -2772,12 +3066,6 @@ func (_m *ChargeUsageBasedRunsQuery) Paginate(ctx context.Context, page paginati
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*ChargeUsageBasedRuns, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -2794,7 +3082,7 @@ func (_m *ChargeUsageBasedRunsQuery) Paginate(ctx context.Context, page paginati
 var _ pagination.Paginator[*ChargeUsageBasedRuns] = (*ChargeUsageBasedRunsQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *ChargesSearchV1Query) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*ChargesSearchV1], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -2803,6 +3091,22 @@ func (_m *ChargesSearchV1Query) Paginate(ctx context.Context, page pagination.Pa
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*ChargesSearchV1]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -2813,10 +3117,6 @@ func (_m *ChargesSearchV1Query) Paginate(ctx context.Context, page pagination.Pa
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*ChargesSearchV1]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -2830,12 +3130,6 @@ func (_m *ChargesSearchV1Query) Paginate(ctx context.Context, page pagination.Pa
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*ChargesSearchV1, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -2852,7 +3146,7 @@ func (_m *ChargesSearchV1Query) Paginate(ctx context.Context, page pagination.Pa
 var _ pagination.Paginator[*ChargesSearchV1] = (*ChargesSearchV1Query)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *CreditRealizationLineageQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*CreditRealizationLineage], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -2861,6 +3155,22 @@ func (_m *CreditRealizationLineageQuery) Paginate(ctx context.Context, page pagi
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*CreditRealizationLineage]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -2871,10 +3181,6 @@ func (_m *CreditRealizationLineageQuery) Paginate(ctx context.Context, page pagi
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*CreditRealizationLineage]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -2888,12 +3194,6 @@ func (_m *CreditRealizationLineageQuery) Paginate(ctx context.Context, page pagi
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*CreditRealizationLineage, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -2910,7 +3210,7 @@ func (_m *CreditRealizationLineageQuery) Paginate(ctx context.Context, page pagi
 var _ pagination.Paginator[*CreditRealizationLineage] = (*CreditRealizationLineageQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *CreditRealizationLineageSegmentQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*CreditRealizationLineageSegment], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -2919,6 +3219,22 @@ func (_m *CreditRealizationLineageSegmentQuery) Paginate(ctx context.Context, pa
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*CreditRealizationLineageSegment]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -2929,10 +3245,6 @@ func (_m *CreditRealizationLineageSegmentQuery) Paginate(ctx context.Context, pa
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*CreditRealizationLineageSegment]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -2946,12 +3258,6 @@ func (_m *CreditRealizationLineageSegmentQuery) Paginate(ctx context.Context, pa
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*CreditRealizationLineageSegment, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -2968,7 +3274,7 @@ func (_m *CreditRealizationLineageSegmentQuery) Paginate(ctx context.Context, pa
 var _ pagination.Paginator[*CreditRealizationLineageSegment] = (*CreditRealizationLineageSegmentQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *CurrencyCostBasisQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*CurrencyCostBasis], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -2977,6 +3283,22 @@ func (_m *CurrencyCostBasisQuery) Paginate(ctx context.Context, page pagination.
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*CurrencyCostBasis]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -2987,10 +3309,6 @@ func (_m *CurrencyCostBasisQuery) Paginate(ctx context.Context, page pagination.
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*CurrencyCostBasis]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -3004,12 +3322,6 @@ func (_m *CurrencyCostBasisQuery) Paginate(ctx context.Context, page pagination.
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*CurrencyCostBasis, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -3026,7 +3338,7 @@ func (_m *CurrencyCostBasisQuery) Paginate(ctx context.Context, page pagination.
 var _ pagination.Paginator[*CurrencyCostBasis] = (*CurrencyCostBasisQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *CustomCurrencyQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*CustomCurrency], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -3035,6 +3347,22 @@ func (_m *CustomCurrencyQuery) Paginate(ctx context.Context, page pagination.Pag
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*CustomCurrency]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -3045,10 +3373,6 @@ func (_m *CustomCurrencyQuery) Paginate(ctx context.Context, page pagination.Pag
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*CustomCurrency]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -3062,12 +3386,6 @@ func (_m *CustomCurrencyQuery) Paginate(ctx context.Context, page pagination.Pag
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*CustomCurrency, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -3084,7 +3402,7 @@ func (_m *CustomCurrencyQuery) Paginate(ctx context.Context, page pagination.Pag
 var _ pagination.Paginator[*CustomCurrency] = (*CustomCurrencyQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *CustomerQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*Customer], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -3093,6 +3411,22 @@ func (_m *CustomerQuery) Paginate(ctx context.Context, page pagination.Page) (pa
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*Customer]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -3103,10 +3437,6 @@ func (_m *CustomerQuery) Paginate(ctx context.Context, page pagination.Page) (pa
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*Customer]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -3120,12 +3450,6 @@ func (_m *CustomerQuery) Paginate(ctx context.Context, page pagination.Page) (pa
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*Customer, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -3142,7 +3466,7 @@ func (_m *CustomerQuery) Paginate(ctx context.Context, page pagination.Page) (pa
 var _ pagination.Paginator[*Customer] = (*CustomerQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *CustomerSubjectsQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*CustomerSubjects], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -3151,6 +3475,22 @@ func (_m *CustomerSubjectsQuery) Paginate(ctx context.Context, page pagination.P
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*CustomerSubjects]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -3161,10 +3501,6 @@ func (_m *CustomerSubjectsQuery) Paginate(ctx context.Context, page pagination.P
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*CustomerSubjects]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -3178,12 +3514,6 @@ func (_m *CustomerSubjectsQuery) Paginate(ctx context.Context, page pagination.P
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*CustomerSubjects, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -3200,7 +3530,7 @@ func (_m *CustomerSubjectsQuery) Paginate(ctx context.Context, page pagination.P
 var _ pagination.Paginator[*CustomerSubjects] = (*CustomerSubjectsQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *EntitlementQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*Entitlement], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -3209,6 +3539,22 @@ func (_m *EntitlementQuery) Paginate(ctx context.Context, page pagination.Page) 
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*Entitlement]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -3219,10 +3565,6 @@ func (_m *EntitlementQuery) Paginate(ctx context.Context, page pagination.Page) 
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*Entitlement]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -3236,12 +3578,6 @@ func (_m *EntitlementQuery) Paginate(ctx context.Context, page pagination.Page) 
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*Entitlement, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -3258,7 +3594,7 @@ func (_m *EntitlementQuery) Paginate(ctx context.Context, page pagination.Page) 
 var _ pagination.Paginator[*Entitlement] = (*EntitlementQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *EventOutboxQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*EventOutbox], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -3267,6 +3603,22 @@ func (_m *EventOutboxQuery) Paginate(ctx context.Context, page pagination.Page) 
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*EventOutbox]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -3277,10 +3629,6 @@ func (_m *EventOutboxQuery) Paginate(ctx context.Context, page pagination.Page) 
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*EventOutbox]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -3294,12 +3642,6 @@ func (_m *EventOutboxQuery) Paginate(ctx context.Context, page pagination.Page) 
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*EventOutbox, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -3316,7 +3658,7 @@ func (_m *EventOutboxQuery) Paginate(ctx context.Context, page pagination.Page) 
 var _ pagination.Paginator[*EventOutbox] = (*EventOutboxQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *FeatureQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*Feature], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -3325,6 +3667,22 @@ func (_m *FeatureQuery) Paginate(ctx context.Context, page pagination.Page) (pag
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*Feature]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -3335,10 +3693,6 @@ func (_m *FeatureQuery) Paginate(ctx context.Context, page pagination.Page) (pag
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*Feature]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -3352,12 +3706,6 @@ func (_m *FeatureQuery) Paginate(ctx context.Context, page pagination.Page) (pag
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*Feature, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -3374,7 +3722,7 @@ func (_m *FeatureQuery) Paginate(ctx context.Context, page pagination.Page) (pag
 var _ pagination.Paginator[*Feature] = (*FeatureQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *GrantQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*Grant], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -3383,6 +3731,22 @@ func (_m *GrantQuery) Paginate(ctx context.Context, page pagination.Page) (pagin
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*Grant]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -3393,10 +3757,6 @@ func (_m *GrantQuery) Paginate(ctx context.Context, page pagination.Page) (pagin
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*Grant]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -3410,12 +3770,6 @@ func (_m *GrantQuery) Paginate(ctx context.Context, page pagination.Page) (pagin
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*Grant, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -3432,7 +3786,7 @@ func (_m *GrantQuery) Paginate(ctx context.Context, page pagination.Page) (pagin
 var _ pagination.Paginator[*Grant] = (*GrantQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *LLMCostPriceQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*LLMCostPrice], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -3441,6 +3795,22 @@ func (_m *LLMCostPriceQuery) Paginate(ctx context.Context, page pagination.Page)
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*LLMCostPrice]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -3451,10 +3821,6 @@ func (_m *LLMCostPriceQuery) Paginate(ctx context.Context, page pagination.Page)
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*LLMCostPrice]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -3468,12 +3834,6 @@ func (_m *LLMCostPriceQuery) Paginate(ctx context.Context, page pagination.Page)
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*LLMCostPrice, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -3490,7 +3850,7 @@ func (_m *LLMCostPriceQuery) Paginate(ctx context.Context, page pagination.Page)
 var _ pagination.Paginator[*LLMCostPrice] = (*LLMCostPriceQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *LedgerAccountQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*LedgerAccount], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -3499,6 +3859,22 @@ func (_m *LedgerAccountQuery) Paginate(ctx context.Context, page pagination.Page
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*LedgerAccount]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -3509,10 +3885,6 @@ func (_m *LedgerAccountQuery) Paginate(ctx context.Context, page pagination.Page
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*LedgerAccount]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -3526,12 +3898,6 @@ func (_m *LedgerAccountQuery) Paginate(ctx context.Context, page pagination.Page
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*LedgerAccount, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -3548,7 +3914,7 @@ func (_m *LedgerAccountQuery) Paginate(ctx context.Context, page pagination.Page
 var _ pagination.Paginator[*LedgerAccount] = (*LedgerAccountQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *LedgerBreakageRecordQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*LedgerBreakageRecord], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -3557,6 +3923,22 @@ func (_m *LedgerBreakageRecordQuery) Paginate(ctx context.Context, page paginati
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*LedgerBreakageRecord]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -3567,10 +3949,6 @@ func (_m *LedgerBreakageRecordQuery) Paginate(ctx context.Context, page paginati
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*LedgerBreakageRecord]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -3584,12 +3962,6 @@ func (_m *LedgerBreakageRecordQuery) Paginate(ctx context.Context, page paginati
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*LedgerBreakageRecord, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -3606,7 +3978,7 @@ func (_m *LedgerBreakageRecordQuery) Paginate(ctx context.Context, page paginati
 var _ pagination.Paginator[*LedgerBreakageRecord] = (*LedgerBreakageRecordQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *LedgerCreditVoidRecordQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*LedgerCreditVoidRecord], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -3615,6 +3987,22 @@ func (_m *LedgerCreditVoidRecordQuery) Paginate(ctx context.Context, page pagina
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*LedgerCreditVoidRecord]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -3625,10 +4013,6 @@ func (_m *LedgerCreditVoidRecordQuery) Paginate(ctx context.Context, page pagina
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*LedgerCreditVoidRecord]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -3642,12 +4026,6 @@ func (_m *LedgerCreditVoidRecordQuery) Paginate(ctx context.Context, page pagina
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*LedgerCreditVoidRecord, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -3664,7 +4042,7 @@ func (_m *LedgerCreditVoidRecordQuery) Paginate(ctx context.Context, page pagina
 var _ pagination.Paginator[*LedgerCreditVoidRecord] = (*LedgerCreditVoidRecordQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *LedgerCustomerAccountQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*LedgerCustomerAccount], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -3673,6 +4051,22 @@ func (_m *LedgerCustomerAccountQuery) Paginate(ctx context.Context, page paginat
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*LedgerCustomerAccount]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -3683,10 +4077,6 @@ func (_m *LedgerCustomerAccountQuery) Paginate(ctx context.Context, page paginat
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*LedgerCustomerAccount]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -3700,12 +4090,6 @@ func (_m *LedgerCustomerAccountQuery) Paginate(ctx context.Context, page paginat
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*LedgerCustomerAccount, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -3722,7 +4106,7 @@ func (_m *LedgerCustomerAccountQuery) Paginate(ctx context.Context, page paginat
 var _ pagination.Paginator[*LedgerCustomerAccount] = (*LedgerCustomerAccountQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *LedgerEntryQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*LedgerEntry], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -3731,6 +4115,22 @@ func (_m *LedgerEntryQuery) Paginate(ctx context.Context, page pagination.Page) 
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*LedgerEntry]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -3741,10 +4141,6 @@ func (_m *LedgerEntryQuery) Paginate(ctx context.Context, page pagination.Page) 
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*LedgerEntry]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -3758,12 +4154,6 @@ func (_m *LedgerEntryQuery) Paginate(ctx context.Context, page pagination.Page) 
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*LedgerEntry, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -3780,7 +4170,7 @@ func (_m *LedgerEntryQuery) Paginate(ctx context.Context, page pagination.Page) 
 var _ pagination.Paginator[*LedgerEntry] = (*LedgerEntryQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *LedgerSubAccountQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*LedgerSubAccount], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -3789,6 +4179,22 @@ func (_m *LedgerSubAccountQuery) Paginate(ctx context.Context, page pagination.P
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*LedgerSubAccount]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -3799,10 +4205,6 @@ func (_m *LedgerSubAccountQuery) Paginate(ctx context.Context, page pagination.P
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*LedgerSubAccount]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -3816,12 +4218,6 @@ func (_m *LedgerSubAccountQuery) Paginate(ctx context.Context, page pagination.P
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*LedgerSubAccount, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -3838,7 +4234,7 @@ func (_m *LedgerSubAccountQuery) Paginate(ctx context.Context, page pagination.P
 var _ pagination.Paginator[*LedgerSubAccount] = (*LedgerSubAccountQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *LedgerSubAccountRouteQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*LedgerSubAccountRoute], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -3847,6 +4243,22 @@ func (_m *LedgerSubAccountRouteQuery) Paginate(ctx context.Context, page paginat
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*LedgerSubAccountRoute]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -3857,10 +4269,6 @@ func (_m *LedgerSubAccountRouteQuery) Paginate(ctx context.Context, page paginat
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*LedgerSubAccountRoute]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -3874,12 +4282,6 @@ func (_m *LedgerSubAccountRouteQuery) Paginate(ctx context.Context, page paginat
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*LedgerSubAccountRoute, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -3896,7 +4298,7 @@ func (_m *LedgerSubAccountRouteQuery) Paginate(ctx context.Context, page paginat
 var _ pagination.Paginator[*LedgerSubAccountRoute] = (*LedgerSubAccountRouteQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *LedgerTransactionQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*LedgerTransaction], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -3905,6 +4307,22 @@ func (_m *LedgerTransactionQuery) Paginate(ctx context.Context, page pagination.
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*LedgerTransaction]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -3915,10 +4333,6 @@ func (_m *LedgerTransactionQuery) Paginate(ctx context.Context, page pagination.
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*LedgerTransaction]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -3932,12 +4346,6 @@ func (_m *LedgerTransactionQuery) Paginate(ctx context.Context, page pagination.
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*LedgerTransaction, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -3954,7 +4362,7 @@ func (_m *LedgerTransactionQuery) Paginate(ctx context.Context, page pagination.
 var _ pagination.Paginator[*LedgerTransaction] = (*LedgerTransactionQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *LedgerTransactionGroupQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*LedgerTransactionGroup], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -3963,6 +4371,22 @@ func (_m *LedgerTransactionGroupQuery) Paginate(ctx context.Context, page pagina
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*LedgerTransactionGroup]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -3973,10 +4397,6 @@ func (_m *LedgerTransactionGroupQuery) Paginate(ctx context.Context, page pagina
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*LedgerTransactionGroup]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -3990,12 +4410,6 @@ func (_m *LedgerTransactionGroupQuery) Paginate(ctx context.Context, page pagina
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*LedgerTransactionGroup, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -4012,7 +4426,7 @@ func (_m *LedgerTransactionGroupQuery) Paginate(ctx context.Context, page pagina
 var _ pagination.Paginator[*LedgerTransactionGroup] = (*LedgerTransactionGroupQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *MeterQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*Meter], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -4021,6 +4435,22 @@ func (_m *MeterQuery) Paginate(ctx context.Context, page pagination.Page) (pagin
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*Meter]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -4031,10 +4461,6 @@ func (_m *MeterQuery) Paginate(ctx context.Context, page pagination.Page) (pagin
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*Meter]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -4048,12 +4474,6 @@ func (_m *MeterQuery) Paginate(ctx context.Context, page pagination.Page) (pagin
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*Meter, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -4070,7 +4490,7 @@ func (_m *MeterQuery) Paginate(ctx context.Context, page pagination.Page) (pagin
 var _ pagination.Paginator[*Meter] = (*MeterQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *NotificationChannelQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*NotificationChannel], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -4079,6 +4499,22 @@ func (_m *NotificationChannelQuery) Paginate(ctx context.Context, page paginatio
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*NotificationChannel]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -4089,10 +4525,6 @@ func (_m *NotificationChannelQuery) Paginate(ctx context.Context, page paginatio
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*NotificationChannel]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -4106,12 +4538,6 @@ func (_m *NotificationChannelQuery) Paginate(ctx context.Context, page paginatio
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*NotificationChannel, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -4128,7 +4554,7 @@ func (_m *NotificationChannelQuery) Paginate(ctx context.Context, page paginatio
 var _ pagination.Paginator[*NotificationChannel] = (*NotificationChannelQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *NotificationEventQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*NotificationEvent], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -4137,6 +4563,22 @@ func (_m *NotificationEventQuery) Paginate(ctx context.Context, page pagination.
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*NotificationEvent]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -4147,10 +4589,6 @@ func (_m *NotificationEventQuery) Paginate(ctx context.Context, page pagination.
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*NotificationEvent]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -4164,12 +4602,6 @@ func (_m *NotificationEventQuery) Paginate(ctx context.Context, page pagination.
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*NotificationEvent, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -4186,7 +4618,7 @@ func (_m *NotificationEventQuery) Paginate(ctx context.Context, page pagination.
 var _ pagination.Paginator[*NotificationEvent] = (*NotificationEventQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *NotificationEventDeliveryStatusQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*NotificationEventDeliveryStatus], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -4195,6 +4627,22 @@ func (_m *NotificationEventDeliveryStatusQuery) Paginate(ctx context.Context, pa
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*NotificationEventDeliveryStatus]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -4205,10 +4653,6 @@ func (_m *NotificationEventDeliveryStatusQuery) Paginate(ctx context.Context, pa
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*NotificationEventDeliveryStatus]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -4222,12 +4666,6 @@ func (_m *NotificationEventDeliveryStatusQuery) Paginate(ctx context.Context, pa
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*NotificationEventDeliveryStatus, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -4244,7 +4682,7 @@ func (_m *NotificationEventDeliveryStatusQuery) Paginate(ctx context.Context, pa
 var _ pagination.Paginator[*NotificationEventDeliveryStatus] = (*NotificationEventDeliveryStatusQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *NotificationRuleQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*NotificationRule], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -4253,6 +4691,22 @@ func (_m *NotificationRuleQuery) Paginate(ctx context.Context, page pagination.P
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*NotificationRule]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -4263,10 +4717,6 @@ func (_m *NotificationRuleQuery) Paginate(ctx context.Context, page pagination.P
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*NotificationRule]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -4280,12 +4730,6 @@ func (_m *NotificationRuleQuery) Paginate(ctx context.Context, page pagination.P
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*NotificationRule, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -4302,7 +4746,7 @@ func (_m *NotificationRuleQuery) Paginate(ctx context.Context, page pagination.P
 var _ pagination.Paginator[*NotificationRule] = (*NotificationRuleQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *OrganizationDefaultTaxCodesQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*OrganizationDefaultTaxCodes], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -4311,6 +4755,22 @@ func (_m *OrganizationDefaultTaxCodesQuery) Paginate(ctx context.Context, page p
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*OrganizationDefaultTaxCodes]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -4321,10 +4781,6 @@ func (_m *OrganizationDefaultTaxCodesQuery) Paginate(ctx context.Context, page p
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*OrganizationDefaultTaxCodes]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -4338,12 +4794,6 @@ func (_m *OrganizationDefaultTaxCodesQuery) Paginate(ctx context.Context, page p
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*OrganizationDefaultTaxCodes, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -4360,7 +4810,7 @@ func (_m *OrganizationDefaultTaxCodesQuery) Paginate(ctx context.Context, page p
 var _ pagination.Paginator[*OrganizationDefaultTaxCodes] = (*OrganizationDefaultTaxCodesQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *PlanQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*Plan], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -4369,6 +4819,22 @@ func (_m *PlanQuery) Paginate(ctx context.Context, page pagination.Page) (pagina
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*Plan]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -4379,10 +4845,6 @@ func (_m *PlanQuery) Paginate(ctx context.Context, page pagination.Page) (pagina
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*Plan]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -4396,12 +4858,6 @@ func (_m *PlanQuery) Paginate(ctx context.Context, page pagination.Page) (pagina
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*Plan, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -4418,7 +4874,7 @@ func (_m *PlanQuery) Paginate(ctx context.Context, page pagination.Page) (pagina
 var _ pagination.Paginator[*Plan] = (*PlanQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *PlanAddonQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*PlanAddon], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -4427,6 +4883,22 @@ func (_m *PlanAddonQuery) Paginate(ctx context.Context, page pagination.Page) (p
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*PlanAddon]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -4437,10 +4909,6 @@ func (_m *PlanAddonQuery) Paginate(ctx context.Context, page pagination.Page) (p
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*PlanAddon]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -4454,12 +4922,6 @@ func (_m *PlanAddonQuery) Paginate(ctx context.Context, page pagination.Page) (p
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*PlanAddon, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -4476,7 +4938,7 @@ func (_m *PlanAddonQuery) Paginate(ctx context.Context, page pagination.Page) (p
 var _ pagination.Paginator[*PlanAddon] = (*PlanAddonQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *PlanPhaseQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*PlanPhase], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -4485,6 +4947,22 @@ func (_m *PlanPhaseQuery) Paginate(ctx context.Context, page pagination.Page) (p
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*PlanPhase]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -4495,10 +4973,6 @@ func (_m *PlanPhaseQuery) Paginate(ctx context.Context, page pagination.Page) (p
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*PlanPhase]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -4512,12 +4986,6 @@ func (_m *PlanPhaseQuery) Paginate(ctx context.Context, page pagination.Page) (p
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*PlanPhase, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -4534,7 +5002,7 @@ func (_m *PlanPhaseQuery) Paginate(ctx context.Context, page pagination.Page) (p
 var _ pagination.Paginator[*PlanPhase] = (*PlanPhaseQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *PlanRateCardQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*PlanRateCard], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -4543,6 +5011,22 @@ func (_m *PlanRateCardQuery) Paginate(ctx context.Context, page pagination.Page)
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*PlanRateCard]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -4553,10 +5037,6 @@ func (_m *PlanRateCardQuery) Paginate(ctx context.Context, page pagination.Page)
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*PlanRateCard]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -4570,12 +5050,6 @@ func (_m *PlanRateCardQuery) Paginate(ctx context.Context, page pagination.Page)
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*PlanRateCard, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -4592,7 +5066,7 @@ func (_m *PlanRateCardQuery) Paginate(ctx context.Context, page pagination.Page)
 var _ pagination.Paginator[*PlanRateCard] = (*PlanRateCardQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *SubjectQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*Subject], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -4601,6 +5075,22 @@ func (_m *SubjectQuery) Paginate(ctx context.Context, page pagination.Page) (pag
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*Subject]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -4611,10 +5101,6 @@ func (_m *SubjectQuery) Paginate(ctx context.Context, page pagination.Page) (pag
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*Subject]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -4628,12 +5114,6 @@ func (_m *SubjectQuery) Paginate(ctx context.Context, page pagination.Page) (pag
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*Subject, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -4650,7 +5130,7 @@ func (_m *SubjectQuery) Paginate(ctx context.Context, page pagination.Page) (pag
 var _ pagination.Paginator[*Subject] = (*SubjectQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *SubscriptionQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*Subscription], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -4659,6 +5139,22 @@ func (_m *SubscriptionQuery) Paginate(ctx context.Context, page pagination.Page)
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*Subscription]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -4669,10 +5165,6 @@ func (_m *SubscriptionQuery) Paginate(ctx context.Context, page pagination.Page)
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*Subscription]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -4686,12 +5178,6 @@ func (_m *SubscriptionQuery) Paginate(ctx context.Context, page pagination.Page)
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*Subscription, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -4708,7 +5194,7 @@ func (_m *SubscriptionQuery) Paginate(ctx context.Context, page pagination.Page)
 var _ pagination.Paginator[*Subscription] = (*SubscriptionQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *SubscriptionAddonQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*SubscriptionAddon], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -4717,6 +5203,22 @@ func (_m *SubscriptionAddonQuery) Paginate(ctx context.Context, page pagination.
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*SubscriptionAddon]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -4727,10 +5229,6 @@ func (_m *SubscriptionAddonQuery) Paginate(ctx context.Context, page pagination.
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*SubscriptionAddon]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -4744,12 +5242,6 @@ func (_m *SubscriptionAddonQuery) Paginate(ctx context.Context, page pagination.
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*SubscriptionAddon, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -4766,7 +5258,7 @@ func (_m *SubscriptionAddonQuery) Paginate(ctx context.Context, page pagination.
 var _ pagination.Paginator[*SubscriptionAddon] = (*SubscriptionAddonQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *SubscriptionAddonQuantityQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*SubscriptionAddonQuantity], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -4775,6 +5267,22 @@ func (_m *SubscriptionAddonQuantityQuery) Paginate(ctx context.Context, page pag
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*SubscriptionAddonQuantity]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -4785,10 +5293,6 @@ func (_m *SubscriptionAddonQuantityQuery) Paginate(ctx context.Context, page pag
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*SubscriptionAddonQuantity]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -4802,12 +5306,6 @@ func (_m *SubscriptionAddonQuantityQuery) Paginate(ctx context.Context, page pag
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*SubscriptionAddonQuantity, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -4824,7 +5322,7 @@ func (_m *SubscriptionAddonQuantityQuery) Paginate(ctx context.Context, page pag
 var _ pagination.Paginator[*SubscriptionAddonQuantity] = (*SubscriptionAddonQuantityQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *SubscriptionBillingSyncStateQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*SubscriptionBillingSyncState], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -4833,6 +5331,22 @@ func (_m *SubscriptionBillingSyncStateQuery) Paginate(ctx context.Context, page 
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*SubscriptionBillingSyncState]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -4843,10 +5357,6 @@ func (_m *SubscriptionBillingSyncStateQuery) Paginate(ctx context.Context, page 
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*SubscriptionBillingSyncState]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -4860,12 +5370,6 @@ func (_m *SubscriptionBillingSyncStateQuery) Paginate(ctx context.Context, page 
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*SubscriptionBillingSyncState, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -4882,7 +5386,7 @@ func (_m *SubscriptionBillingSyncStateQuery) Paginate(ctx context.Context, page 
 var _ pagination.Paginator[*SubscriptionBillingSyncState] = (*SubscriptionBillingSyncStateQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *SubscriptionCostBasisPinQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*SubscriptionCostBasisPin], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -4891,6 +5395,22 @@ func (_m *SubscriptionCostBasisPinQuery) Paginate(ctx context.Context, page pagi
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*SubscriptionCostBasisPin]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -4901,10 +5421,6 @@ func (_m *SubscriptionCostBasisPinQuery) Paginate(ctx context.Context, page pagi
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*SubscriptionCostBasisPin]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -4918,12 +5434,6 @@ func (_m *SubscriptionCostBasisPinQuery) Paginate(ctx context.Context, page pagi
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*SubscriptionCostBasisPin, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -4940,7 +5450,7 @@ func (_m *SubscriptionCostBasisPinQuery) Paginate(ctx context.Context, page pagi
 var _ pagination.Paginator[*SubscriptionCostBasisPin] = (*SubscriptionCostBasisPinQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *SubscriptionItemQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*SubscriptionItem], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -4949,6 +5459,22 @@ func (_m *SubscriptionItemQuery) Paginate(ctx context.Context, page pagination.P
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*SubscriptionItem]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -4959,10 +5485,6 @@ func (_m *SubscriptionItemQuery) Paginate(ctx context.Context, page pagination.P
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*SubscriptionItem]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -4976,12 +5498,6 @@ func (_m *SubscriptionItemQuery) Paginate(ctx context.Context, page pagination.P
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*SubscriptionItem, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -4998,7 +5514,7 @@ func (_m *SubscriptionItemQuery) Paginate(ctx context.Context, page pagination.P
 var _ pagination.Paginator[*SubscriptionItem] = (*SubscriptionItemQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *SubscriptionPhaseQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*SubscriptionPhase], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -5007,6 +5523,22 @@ func (_m *SubscriptionPhaseQuery) Paginate(ctx context.Context, page pagination.
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*SubscriptionPhase]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -5017,10 +5549,6 @@ func (_m *SubscriptionPhaseQuery) Paginate(ctx context.Context, page pagination.
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*SubscriptionPhase]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -5034,12 +5562,6 @@ func (_m *SubscriptionPhaseQuery) Paginate(ctx context.Context, page pagination.
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*SubscriptionPhase, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -5056,7 +5578,7 @@ func (_m *SubscriptionPhaseQuery) Paginate(ctx context.Context, page pagination.
 var _ pagination.Paginator[*SubscriptionPhase] = (*SubscriptionPhaseQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *TaxCodeQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*TaxCode], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -5065,6 +5587,22 @@ func (_m *TaxCodeQuery) Paginate(ctx context.Context, page pagination.Page) (pag
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*TaxCode]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -5075,10 +5613,6 @@ func (_m *TaxCodeQuery) Paginate(ctx context.Context, page pagination.Page) (pag
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*TaxCode]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -5092,12 +5626,6 @@ func (_m *TaxCodeQuery) Paginate(ctx context.Context, page pagination.Page) (pag
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*TaxCode, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
@@ -5114,7 +5642,7 @@ func (_m *TaxCodeQuery) Paginate(ctx context.Context, page pagination.Page) (pag
 var _ pagination.Paginator[*TaxCode] = (*TaxCodeQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *UsageResetQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*UsageReset], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -5123,6 +5651,22 @@ func (_m *UsageResetQuery) Paginate(ctx context.Context, page pagination.Page) (
 	zero := 0
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*UsageReset]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
 
 	// Create duplicate of the query to run for
 	countQuery := _m.Clone()
@@ -5133,10 +5677,6 @@ func (_m *UsageResetQuery) Paginate(ctx context.Context, page pagination.Page) (
 
 	// Unset ordering for count query
 	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*UsageReset]{
-		Page: page,
-	}
 
 	// Get the total count
 	count, err := countQuery.Count(ctx)
@@ -5150,12 +5690,6 @@ func (_m *UsageResetQuery) Paginate(ctx context.Context, page pagination.Page) (
 		// Items should be [] not null.
 		pagedResponse.Items = make([]*UsageReset, 0)
 		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
 	}
 
 	// Set the limit and offset
