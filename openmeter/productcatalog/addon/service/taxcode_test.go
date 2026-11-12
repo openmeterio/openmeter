@@ -217,6 +217,48 @@ func TestAddonTaxCodeReferences(t *testing.T) {
 			pctestutils.RequireTaxCodeDeleted(t, err)
 		})
 
+		t.Run("renaming a rate card holding a deleted tax code the stored version has", func(t *testing.T) {
+			// given: an add-on referencing a Tax Code that gets deleted afterwards
+			doomed := env.TaxCodeEnv.CreateTaxCode(t, namespace)
+			want := &productcatalog.TaxCodeConfig{TaxCodeID: doomed.ID}
+
+			a, err := env.Addon.CreateAddon(t.Context(), newTestAddonInput(t, namespace, "update-rename-deleted", pctestutils.NewTestFlatRateCard("rc-doomed", want)))
+			require.NoError(t, err)
+
+			require.NoError(t, env.TaxCode.DeleteTaxCode(t.Context(), taxcode.DeleteTaxCodeInput{
+				NamespacedID: doomed.NamespacedID,
+			}))
+
+			// when: the rate card holding the deleted reference is renamed
+			updated, err := env.Addon.UpdateAddon(t.Context(), addon.UpdateAddonInput{
+				NamespacedID: a.NamespacedID,
+				RateCards:    &productcatalog.RateCards{pctestutils.NewTestFlatRateCard("rc-doomed-renamed", want)},
+			})
+
+			// then: the reference is inherited from the stored version, so the update passes
+			require.NoError(t, err)
+			assert.Equal(t, want, firstAddonRateCardTaxConfig(t, updated))
+		})
+
+		t.Run("missing tax code", func(t *testing.T) {
+			// given: an add-on referencing a live Tax Code
+			a, err := env.Addon.CreateAddon(t.Context(), newTestAddonInput(t, namespace, "update-missing", pctestutils.NewTestFlatRateCard("rc", &productcatalog.TaxCodeConfig{
+				TaxCodeID: taxCode.ID,
+			})))
+			require.NoError(t, err)
+
+			// when: the rate card is updated to reference an unknown Tax Code
+			_, err = env.Addon.UpdateAddon(t.Context(), addon.UpdateAddonInput{
+				NamespacedID: a.NamespacedID,
+				RateCards: &productcatalog.RateCards{pctestutils.NewTestFlatRateCard("rc", &productcatalog.TaxCodeConfig{
+					TaxCodeID: "01JABSENTTAXC0DE0000000000",
+				})},
+			})
+
+			// then: the missing ID is rejected even though the stored version's IDs are allowed
+			pctestutils.RequireTaxCodeNotFound(t, err)
+		})
+
 		t.Run("metadata-only update keeps a reference to a since-deleted tax code", func(t *testing.T) {
 			// given: an add-on referencing a Tax Code that gets deleted afterwards
 			doomed := env.TaxCodeEnv.CreateTaxCode(t, namespace)
@@ -236,6 +278,90 @@ func TestAddonTaxCodeReferences(t *testing.T) {
 			// then: rate cards aren't re-validated, so the existing reference survives
 			require.NoError(t, err)
 			assert.Equal(t, want, firstAddonRateCardTaxConfig(t, updated))
+		})
+	})
+
+	t.Run("Publish", func(t *testing.T) {
+		t.Run("tax code deleted after creation", func(t *testing.T) {
+			// given: a draft add-on referencing a Tax Code that gets deleted afterwards
+			doomed := env.TaxCodeEnv.CreateTaxCode(t, namespace)
+
+			a, err := env.Addon.CreateAddon(t.Context(), newTestAddonInput(t, namespace, "publish-deleted", pctestutils.NewTestFlatRateCard("rc", &productcatalog.TaxCodeConfig{
+				TaxCodeID: doomed.ID,
+			})))
+			require.NoError(t, err)
+
+			require.NoError(t, env.TaxCode.DeleteTaxCode(t.Context(), taxcode.DeleteTaxCodeInput{NamespacedID: doomed.NamespacedID}))
+
+			// when: the add-on is published
+			publishAt := time.Now().Truncate(time.Microsecond)
+			_, err = env.Addon.PublishAddon(t.Context(), addon.PublishAddonInput{
+				NamespacedID:    a.NamespacedID,
+				EffectivePeriod: productcatalog.EffectivePeriod{EffectiveFrom: &publishAt},
+			})
+
+			// then: publish is the gate and names the rate card holding the deleted reference
+			pctestutils.RequireTaxCodeDeleted(t, err)
+			assert.Contains(t, err.Error(), "ratecard.key=rc")
+			assert.Contains(t, err.Error(), "tax_code.id="+doomed.ID)
+		})
+
+		t.Run("live tax code passes the gate", func(t *testing.T) {
+			// given: a draft add-on referencing a live Tax Code
+			a, err := env.Addon.CreateAddon(t.Context(), newTestAddonInput(t, namespace, "publish-live", pctestutils.NewTestFlatRateCard("rc", &productcatalog.TaxCodeConfig{
+				TaxCodeID: taxCode.ID,
+			})))
+			require.NoError(t, err)
+
+			// when: the add-on is published
+			publishAt := time.Now().Truncate(time.Microsecond)
+			_, err = env.Addon.PublishAddon(t.Context(), addon.PublishAddonInput{
+				NamespacedID:    a.NamespacedID,
+				EffectivePeriod: productcatalog.EffectivePeriod{EffectiveFrom: &publishAt},
+			})
+
+			// then: the live reference passes the gate
+			require.NoError(t, err)
+		})
+	})
+
+	t.Run("NextAddon", func(t *testing.T) {
+		t.Run("draft from a published add-on whose tax code was deleted after publishing", func(t *testing.T) {
+			// given: a published add-on referencing a Tax Code that gets deleted afterwards
+			doomed := env.TaxCodeEnv.CreateTaxCode(t, namespace)
+
+			a, err := env.Addon.CreateAddon(t.Context(), newTestAddonInput(t, namespace, "next-deleted", pctestutils.NewTestFlatRateCard("rc", &productcatalog.TaxCodeConfig{
+				TaxCodeID: doomed.ID,
+			})))
+			require.NoError(t, err)
+
+			publishAt := time.Now().Truncate(time.Microsecond)
+			published, err := env.Addon.PublishAddon(t.Context(), addon.PublishAddonInput{
+				NamespacedID:    a.NamespacedID,
+				EffectivePeriod: productcatalog.EffectivePeriod{EffectiveFrom: &publishAt},
+			})
+			require.NoError(t, err)
+
+			require.NoError(t, env.TaxCode.DeleteTaxCode(t.Context(), taxcode.DeleteTaxCodeInput{NamespacedID: doomed.NamespacedID}))
+
+			// when: the next draft is created
+			next, err := env.Addon.NextAddon(t.Context(), addon.NextAddonInput{
+				NamespacedID: models.NamespacedID{Namespace: published.Namespace},
+				Key:          published.Key,
+			})
+
+			// then: the draft is created with the inherited reference; publishing it is
+			// rejected naming the rate card
+			require.NoError(t, err)
+			require.Equal(t, productcatalog.AddonStatusDraft, next.Status())
+			assert.Equal(t, doomed.ID, firstAddonRateCardTaxConfig(t, next).TaxCodeID)
+
+			_, err = env.Addon.PublishAddon(t.Context(), addon.PublishAddonInput{
+				NamespacedID:    next.NamespacedID,
+				EffectivePeriod: productcatalog.EffectivePeriod{EffectiveFrom: lo.ToPtr(time.Now().Add(24 * time.Hour).Truncate(time.Microsecond))},
+			})
+			pctestutils.RequireTaxCodeDeleted(t, err)
+			assert.Contains(t, err.Error(), "ratecard.key=rc")
 		})
 	})
 }

@@ -114,3 +114,23 @@ func ValidatePlanWithTaxCodes(ctx context.Context, resolver TaxCodeResolver, nam
 		return models.NewNillableGenericValidationError(errors.Join(errs...))
 	}
 }
+
+// ValidateAddonWithTaxCodes verifies the Tax Code references of the add-on's rate cards, rejecting
+// missing and soft-deleted codes. It is the publish gate for add-ons: a draft may inherit deleted
+// references, but a version cannot be published while it holds one. All rate cards share one
+// BatchResolve, and each issue is prefixed with the rate card key.
+func ValidateAddonWithTaxCodes(ctx context.Context, resolver TaxCodeResolver, namespace string) models.ValidatorFunc[Addon] {
+	return func(a Addon) error {
+		ids := a.RateCards.TaxCodeIDs()
+		if len(ids) == 0 {
+			return nil
+		}
+
+		taxCodes, err := resolver.BatchResolve(ctx, namespace, ids...)
+		if err != nil {
+			return fmt.Errorf("failed to resolve tax codes: %w", err)
+		}
+
+		return checkRateCardTaxCodes(a.RateCards, taxCodes, nil)
+	}
+}

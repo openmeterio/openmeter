@@ -268,3 +268,84 @@ func TestValidatePlanWithTaxCodesLookupError(t *testing.T) {
 	assert.False(t, models.IsGenericValidationError(err), "resolver failures must not become validation errors")
 	assert.ErrorIs(t, err, resolverErr)
 }
+
+func TestValidateAddonWithTaxCodes(t *testing.T) {
+	const (
+		namespace = "ns"
+		liveID    = "01JTAXC0DE0000000000000000"
+		deletedID = "01JTAXC0DE0000000000000001"
+		missingID = "01JTAXC0DE0000000000000002"
+	)
+
+	taxCodes := map[string]*taxcode.TaxCode{
+		liveID: {NamespacedID: models.NamespacedID{Namespace: namespace, ID: liveID}},
+		deletedID: {
+			NamespacedID: models.NamespacedID{Namespace: namespace, ID: deletedID},
+			ManagedModel: models.ManagedModel{DeletedAt: lo.ToPtr(clock.Now().Add(-1))},
+		},
+	}
+
+	// given: an add-on whose rate cards reference a live, a deleted and a missing Tax Code
+	resolver := &stubTaxCodeResolver{taxCodes: taxCodes}
+
+	addon := productcatalog.Addon{
+		AddonMeta: productcatalog.AddonMeta{Key: "addon", Name: "Addon"},
+		RateCards: productcatalog.RateCards{
+			newFlatRateCard("live", &productcatalog.TaxCodeConfig{TaxCodeID: liveID}),
+			newFlatRateCard("deleted", &productcatalog.TaxCodeConfig{TaxCodeID: deletedID}),
+			newFlatRateCard("missing", &productcatalog.TaxCodeConfig{TaxCodeID: missingID}),
+		},
+	}
+
+	// when: the add-on is validated
+	err := productcatalog.ValidateAddonWithTaxCodes(t.Context(), resolver, namespace)(addon)
+
+	// then: both issues surface, prefixed with their rate card, from one batch lookup
+	require.Error(t, err)
+	assert.True(t, models.IsGenericValidationError(err), "expected validation error, got: %v", err)
+	assert.ErrorIs(t, err, productcatalog.ErrRateCardTaxCodeDeleted)
+	assert.ErrorIs(t, err, productcatalog.ErrRateCardTaxCodeNotFound)
+
+	require.Len(t, resolver.calls, 1, "one BatchResolve must cover all rate cards")
+	assert.ElementsMatch(t, []string{liveID, deletedID, missingID}, resolver.calls[0])
+
+	issues, convErr := models.AsValidationIssues(err)
+	require.NoError(t, convErr)
+	require.Len(t, issues, 2)
+
+	byCode := make(map[models.ErrorCode]models.ValidationIssue, len(issues))
+	for _, issue := range issues {
+		byCode[issue.Code()] = issue
+	}
+
+	deletedIssue, ok := byCode[productcatalog.ErrCodeRateCardTaxCodeDeleted]
+	require.True(t, ok, "deleted issue must be reported, got issues: %v", issues)
+	assert.Equal(t, "tax code deleted", deletedIssue.Message())
+	assert.Contains(t, deletedIssue.Field().String(), `ratecards[key=deleted]`)
+	assert.Contains(t, deletedIssue.Field().String(), "taxConfig")
+
+	missingIssue, ok := byCode[productcatalog.ErrCodeRateCardTaxCodeNotFound]
+	require.True(t, ok, "missing issue must be reported, got issues: %v", issues)
+	assert.Contains(t, missingIssue.Field().String(), `ratecards[key=missing]`)
+}
+
+func TestValidateAddonWithTaxCodesLookupError(t *testing.T) {
+	// given: a resolver that fails
+	resolverErr := errors.New("db is down")
+	resolver := &stubTaxCodeResolver{err: resolverErr}
+
+	addon := productcatalog.Addon{
+		AddonMeta: productcatalog.AddonMeta{Key: "addon", Name: "Addon"},
+		RateCards: productcatalog.RateCards{
+			newFlatRateCard("rc", &productcatalog.TaxCodeConfig{TaxCodeID: "01JTAXC0DE0000000000000000"}),
+		},
+	}
+
+	// when: the add-on is validated
+	err := productcatalog.ValidateAddonWithTaxCodes(t.Context(), resolver, "ns")(addon)
+
+	// then: the lookup failure is passed through, not turned into a validation error
+	require.Error(t, err)
+	assert.False(t, models.IsGenericValidationError(err), "resolver failures must not become validation errors")
+	assert.ErrorIs(t, err, resolverErr)
+}
