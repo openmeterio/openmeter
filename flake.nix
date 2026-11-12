@@ -1,6 +1,11 @@
 {
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    # Use the staging Go recipe until 1.27.4 reaches nixpkgs-unstable.
+    nixpkgs-go = {
+      url = "github:NixOS/nixpkgs/2578a3f6178e116798c9294895df1dba62eac78b";
+      flake = false;
+    };
     nixpkgs-node.url = "github:NixOS/nixpkgs/04a1d3aa7f0c1ef4fd84974b757ba4c279747642";
     flake-parts.url = "github:hercules-ci/flake-parts";
     devenv.url = "github:cachix/devenv";
@@ -39,17 +44,20 @@
                 # its store identity. Wrap cmd/link with the active loader as an explicit argument
                 # and derivation input so every internal link, including Nix checks, uses it.
                 package =
+                  let
+                    go = pkgs.callPackage "${inputs.nixpkgs-go}/pkgs/development/compilers/go/1.27.nix" { };
+                  in
                   if pkgs.stdenv.hostPlatform.isLinux then
                     pkgs.symlinkJoin
                       {
-                        name = "${pkgs.go_1_27.name}-openmeter";
-                        paths = [ pkgs.go_1_27 ];
-                        inherit (pkgs.go_1_27) CGO_ENABLED GOARCH GOOS meta passthru version;
+                        name = "${go.name}-openmeter";
+                        paths = [ go ];
+                        inherit (go) CGO_ENABLED GOARCH GOOS meta passthru version;
                         nativeBuildInputs = [ pkgs.makeWrapper ];
                         postBuild = ''
-                          linkTool="share/go/pkg/tool/${pkgs.go_1_27.GOOS}_${pkgs.go_1_27.GOARCH}/link"
+                          linkTool="share/go/pkg/tool/${go.GOOS}_${go.GOARCH}/link"
                           rm "$out/$linkTool"
-                          makeWrapper "${pkgs.go_1_27}/$linkTool" "$out/$linkTool" \
+                          makeWrapper "${go}/$linkTool" "$out/$linkTool" \
                             --add-flags "-I=${pkgs.stdenv.cc.bintools.dynamicLinker}"
 
                           wrapProgram "$out/bin/go" \
@@ -57,7 +65,7 @@
                         '';
                       }
                   else
-                    pkgs.go_1_27;
+                    go;
 
                 delve.package = pkgs.delve.overrideAttrs (old: {
                   # Delve runs these generator checks only with the latest Go release. They invoke
