@@ -32,8 +32,6 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceAddonQuantityIncreaseAfterPaid
 
 	addonPublishedAt := start.Add(-time.Hour)
 
-	clock.FreezeTime(addonPublishedAt)
-	defer clock.UnFreeze()
 	s.enableProrating()
 
 	seatPrice := productcatalog.NewPriceFrom(productcatalog.FlatPrice{
@@ -61,6 +59,9 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceAddonQuantityIncreaseAfterPaid
 	var paidInvoice billing.StandardInvoice
 
 	s.Run("subscribe with two seats", func() {
+		clock.FreezeTime(addonPublishedAt)
+		defer clock.UnFreeze()
+
 		// given:
 		// - a plan whose monthly in-advance fee is the first seat
 		// - an add-on that adds the same fee for every extra seat
@@ -159,10 +160,13 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceAddonQuantityIncreaseAfterPaid
 		// - both seats are billed through a single $12 item
 		seatItems := s.getPhaseByKey(s.T(), subsView, "first-phase").ItemsByKey["seats"]
 		s.Require().Len(seatItems, 1)
-		s.Equal(12.0, flatAmount(seatItems[0].Spec.RateCard.AsMeta().Price))
+		s.Require().Equal(12.0, flatAmount(seatItems[0].Spec.RateCard.AsMeta().Price))
 	})
 
 	s.Run("pay january in advance", func() {
+		clock.FreezeTime(start)
+		defer clock.UnFreeze()
+
 		// when:
 		// - the first period is invoiced and paid
 		s.Require().NoError(s.Service.SyncByView(ctx, subsView, periodEnd))
@@ -181,10 +185,13 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceAddonQuantityIncreaseAfterPaid
 		// then:
 		// - the customer paid $12 for two seats for all of January
 		s.Equal(billing.StandardInvoiceStatusPaid, paidInvoice.Status)
-		s.Equal(12.0, paidInvoice.Totals.Total.InexactFloat64())
+		s.Require().Equal(12.0, paidInvoice.Totals.Total.InexactFloat64())
 	})
 
 	s.Run("add a third seat on january 2", func() {
+		clock.FreezeTime(seatAddedAt)
+		defer clock.UnFreeze()
+
 		// when:
 		// - the add-on quantity goes from one extra seat to two
 		// - the resulting pending lines are invoiced
@@ -207,7 +214,7 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceAddonQuantityIncreaseAfterPaid
 
 		// then:
 		// - the customer owes only the added seat for the rest of January: $6 * 30/31 = $5.81
-		s.Equal(5.81, draftInvoices[0].Totals.Total.InexactFloat64())
+		s.Require().Equal(5.81, draftInvoices[0].Totals.Total.InexactFloat64())
 
 		// - the $12 already paid for the first two seats stands
 		paidInvoice, err = s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
@@ -216,6 +223,6 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceAddonQuantityIncreaseAfterPaid
 		})
 		s.Require().NoError(err)
 		s.Equal(billing.StandardInvoiceStatusPaid, paidInvoice.Status)
-		s.Equal(12.0, paidInvoice.Totals.Total.InexactFloat64())
+		s.Require().Equal(12.0, paidInvoice.Totals.Total.InexactFloat64())
 	})
 }
