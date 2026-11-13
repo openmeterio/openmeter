@@ -1,0 +1,174 @@
+{
+  "type": "invoice.updated",
+  "version": 1,
+  "invoice": {
+    "collectionAt": "2026-02-01T00:00:00Z",
+    "createdAt": "2026-01-01T00:00:00Z",
+    "currency": "USD",
+    "customer": {
+      "id": "customer-1",
+      "name": "Test Customer",
+      "usageAttribution": {
+        "subjectKeys": null
+      }
+    },
+    "id": "invoice-1",
+    "lines": [
+      {
+        "children": null,
+        "createdAt": "2026-01-01T00:00:00Z",
+        "currency": "USD",
+        "id": "Compute",
+        "invoice": {
+          "id": "invoice-1"
+        },
+        "invoiceAt": "2026-02-01T00:00:00Z",
+        "managedBy": "system",
+        "name": "Compute",
+        "period": {
+          "from": "2026-01-01T00:00:00Z",
+          "to": "2026-02-01T00:00:00Z"
+        },
+        "price": {
+          "amount": "12.5",
+          "paymentTerm": "in_advance",
+          "type": "flat"
+        },
+        "rateCard": {
+          "price": {
+            "amount": "12.5",
+            "paymentTerm": "in_advance",
+            "type": "flat"
+          }
+        },
+        "status": "valid",
+        "totals": {
+          "amount": "0",
+          "chargesTotal": "0",
+          "creditsTotal": "0",
+          "discountsTotal": "0",
+          "taxesExclusiveTotal": "0",
+          "taxesInclusiveTotal": "0",
+          "taxesTotal": "0",
+          "total": "0"
+        },
+        "type": "usage_based",
+        "updatedAt": "2026-01-01T00:00:00Z"
+      },
+      {
+        "children": null,
+        "createdAt": "2026-01-01T00:00:00Z",
+        "creditAllocations": [
+          {
+            "amount": "2",
+            "description": "credit grant"
+          }
+        ],
+        "currency": "USD",
+        "id": "Storage",
+        "invoice": {
+          "id": "invoice-1"
+        },
+        "invoiceAt": "2026-02-01T00:00:00Z",
+        "managedBy": "system",
+        "name": "Storage",
+        "period": {
+          "from": "2026-01-01T00:00:00Z",
+          "to": "2026-02-01T00:00:00Z"
+        },
+        "price": {
+          "amount": "12.5",
+          "paymentTerm": "in_advance",
+          "type": "flat"
+        },
+        "rateCard": {
+          "price": {
+            "amount": "12.5",
+            "paymentTerm": "in_advance",
+            "type": "flat"
+          }
+        },
+        "status": "valid",
+        "totals": {
+          "amount": "0",
+          "chargesTotal": "0",
+          "creditsTotal": "0",
+          "discountsTotal": "0",
+          "taxesExclusiveTotal": "0",
+          "taxesInclusiveTotal": "0",
+          "taxesTotal": "0",
+          "total": "0"
+        },
+        "type": "usage_based",
+        "updatedAt": "2026-01-01T00:00:00Z"
+      }
+    ],
+    "number": "INV-1",
+    "status": "draft",
+    "statusDetails": {
+      "availableActions": {},
+      "extendedStatus": "draft.created",
+      "failed": false,
+      "immutable": false
+    },
+    "supplier": {
+      "addresses": [
+        {}
+      ]
+    },
+    "totals": {
+      "amount": "0",
+      "chargesTotal": "0",
+      "creditsTotal": "0",
+      "discountsTotal": "0",
+      "taxesExclusiveTotal": "0",
+      "taxesInclusiveTotal": "0",
+      "taxesTotal": "0",
+      "total": "0"
+    },
+    "type": "standard",
+    "updatedAt": "2026-01-01T00:00:00Z",
+    "workflow": {
+      "apps": {
+        "invoicing": null,
+        "payment": {
+          "createdAt": "0001-01-01T00:00:00Z",
+          "id": "snapshot-payment",
+          "listing": {
+            "capabilities": [],
+            "description": "",
+            "installMethods": [],
+            "name": "",
+            "type": ""
+          },
+          "name": "Payment app at event time",
+          "status": "",
+          "type": "sandbox",
+          "updatedAt": "0001-01-01T00:00:00Z"
+        },
+        "tax": null
+      },
+      "sourceBillingProfileId": "",
+      "workflow": {
+        "collection": {
+          "alignment": {
+            "type": "subscription"
+          },
+          "interval": "P0D"
+        },
+        "invoicing": {
+          "autoAdvance": false,
+          "draftPeriod": "P0D",
+          "dueAfter": "P0D",
+          "progressiveBilling": false,
+          "subscriptionEndProrationMode": ""
+        },
+        "payment": {},
+        "tax": {
+          "enabled": false,
+          "enforced": false
+        }
+      }
+    }
+  }
+}

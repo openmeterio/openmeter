@@ -12,8 +12,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	catalogconvert "github.com/openmeterio/openmeter/openmeter/productcatalog/apiconvert"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
-	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -127,138 +127,11 @@ func FromRateCard(r productcatalog.RateCard, taxCodes map[string]*taxcode.TaxCod
 }
 
 func FromRateCardUsageBasedPrice(price productcatalog.Price) (api.RateCardUsageBasedPrice, error) {
-	var resp api.RateCardUsageBasedPrice
-
-	switch price.Type() {
-	case productcatalog.FlatPriceType:
-		flatPrice, err := price.AsFlat()
-		if err != nil {
-			return resp, fmt.Errorf("failed to cast FlatPrice: %w", err)
-		}
-
-		err = resp.FromFlatPriceWithPaymentTerm(api.FlatPriceWithPaymentTerm{
-			Amount:      flatPrice.Amount.String(),
-			PaymentTerm: lo.ToPtr(FromPaymentTerm(flatPrice.PaymentTerm)),
-			Type:        api.FlatPriceWithPaymentTermTypeFlat,
-		})
-		if err != nil {
-			return resp, fmt.Errorf("failed to cast FlatPrice: %w", err)
-		}
-	case productcatalog.UnitPriceType:
-		unitPrice, err := price.AsUnit()
-		if err != nil {
-			return resp, fmt.Errorf("failed to cast UnitPrice: %w", err)
-		}
-
-		err = resp.FromUnitPriceWithCommitments(api.UnitPriceWithCommitments{
-			Amount:        unitPrice.Amount.String(),
-			MinimumAmount: convert.StringerPtrToStringPtr(unitPrice.MinimumAmount),
-			MaximumAmount: convert.StringerPtrToStringPtr(unitPrice.MaximumAmount),
-			Type:          api.UnitPriceWithCommitmentsTypeUnit,
-		})
-		if err != nil {
-			return resp, fmt.Errorf("failed to cast UnitPrice: %w", err)
-		}
-	case productcatalog.TieredPriceType:
-		tieredPrice, err := price.AsTiered()
-		if err != nil {
-			return resp, fmt.Errorf("failed to cast TieredPrice: %w", err)
-		}
-
-		err = resp.FromTieredPriceWithCommitments(api.TieredPriceWithCommitments{
-			Type:          api.TieredPriceWithCommitmentsTypeTiered,
-			Mode:          api.TieredPriceMode(tieredPrice.Mode),
-			MinimumAmount: convert.StringerPtrToStringPtr(tieredPrice.MinimumAmount),
-			MaximumAmount: convert.StringerPtrToStringPtr(tieredPrice.MaximumAmount),
-			Tiers: lo.Map(tieredPrice.Tiers, func(t productcatalog.PriceTier, _ int) api.PriceTier {
-				var upToAmount *api.Numeric
-				if t.UpToAmount != nil {
-					upToAmount = lo.ToPtr(t.UpToAmount.String())
-				}
-
-				var unitPrice *api.UnitPrice
-				if t.UnitPrice != nil {
-					unitPrice = &api.UnitPrice{
-						Type:   api.UnitPriceTypeUnit,
-						Amount: t.UnitPrice.Amount.String(),
-					}
-				}
-
-				var flatPrice *api.FlatPrice
-				if t.FlatPrice != nil {
-					flatPrice = &api.FlatPrice{
-						Type:   api.FlatPriceTypeFlat,
-						Amount: t.FlatPrice.Amount.String(),
-					}
-				}
-
-				return api.PriceTier{
-					UpToAmount: upToAmount,
-					UnitPrice:  unitPrice,
-					FlatPrice:  flatPrice,
-				}
-			}),
-		})
-		if err != nil {
-			return resp, fmt.Errorf("failed to cast TieredPrice: %w", err)
-		}
-	case productcatalog.DynamicPriceType:
-		dynamicPrice, err := price.AsDynamic()
-		if err != nil {
-			return resp, fmt.Errorf("failed to cast DynamicPrice: %w", err)
-		}
-
-		var multiplier *string
-		if !dynamicPrice.Multiplier.Equal(productcatalog.DynamicPriceDefaultMultiplier) {
-			multiplier = lo.ToPtr(dynamicPrice.Multiplier.String())
-		}
-
-		err = resp.FromDynamicPriceWithCommitments(api.DynamicPriceWithCommitments{
-			Type:          api.DynamicPriceWithCommitmentsTypeDynamic,
-			MinimumAmount: convert.StringerPtrToStringPtr(dynamicPrice.MinimumAmount),
-			MaximumAmount: convert.StringerPtrToStringPtr(dynamicPrice.MaximumAmount),
-			Multiplier:    multiplier,
-		})
-		if err != nil {
-			return resp, fmt.Errorf("failed to cast DynamicPrice: %w", err)
-		}
-	case productcatalog.PackagePriceType:
-		packagePrice, err := price.AsPackage()
-		if err != nil {
-			return resp, fmt.Errorf("failed to cast PackagePrice: %w", err)
-		}
-
-		err = resp.FromPackagePriceWithCommitments(api.PackagePriceWithCommitments{
-			Type:               api.PackagePriceWithCommitmentsTypePackage,
-			Amount:             packagePrice.Amount.String(),
-			QuantityPerPackage: packagePrice.QuantityPerPackage.String(),
-			MinimumAmount:      convert.StringerPtrToStringPtr(packagePrice.MinimumAmount),
-			MaximumAmount:      convert.StringerPtrToStringPtr(packagePrice.MaximumAmount),
-		})
-		if err != nil {
-			return resp, fmt.Errorf("failed to cast PackagePrice: %w", err)
-		}
-	default:
-		return resp, fmt.Errorf("invalid Price type: %s", price.Type())
-	}
-
-	return resp, nil
+	return catalogconvert.ToAPIRateCardUsageBasedPrice(price)
 }
 
 func FromTaxConfig(c productcatalog.TaxConfig) api.TaxConfig {
-	var stripe *api.StripeTaxConfig
-
-	if c.Stripe != nil {
-		stripe = &api.StripeTaxConfig{
-			Code: c.Stripe.Code,
-		}
-	}
-
-	return api.TaxConfig{
-		Stripe:    stripe,
-		Behavior:  (*api.TaxBehavior)(c.Behavior),
-		TaxCodeId: c.TaxCodeID,
-	}
+	return catalogconvert.ToAPITaxConfig(c)
 }
 
 // ToAPITaxConfig maps a Tax Code reference to the v1 shape. The stripe.code comes from the
@@ -287,14 +160,7 @@ func ToAPITaxConfig(cfg productcatalog.TaxCodeConfig, taxCodes map[string]*taxco
 }
 
 func FromPaymentTerm(t productcatalog.PaymentTermType) api.PricePaymentTerm {
-	switch t {
-	case productcatalog.InArrearsPaymentTerm:
-		return api.PricePaymentTermInArrears
-	case productcatalog.InAdvancePaymentTerm:
-		fallthrough
-	default:
-		return api.PricePaymentTermInAdvance
-	}
+	return catalogconvert.ToAPIPricePaymentTerm(t)
 }
 
 func FromEntitlementTemplate(t productcatalog.EntitlementTemplate) (api.RateCardEntitlement, error) {

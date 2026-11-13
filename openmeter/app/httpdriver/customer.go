@@ -9,6 +9,7 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/app"
+	appconvert "github.com/openmeterio/openmeter/openmeter/app/apiconvert"
 	appcustominvoicing "github.com/openmeterio/openmeter/openmeter/app/custominvoicing"
 	appsandbox "github.com/openmeterio/openmeter/openmeter/app/sandbox"
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
@@ -382,7 +383,7 @@ func (h *handler) toAPICustomerAppData(a app.CustomerApp) (api.CustomerAppData, 
 			return apiCustomerAppData, fmt.Errorf("error casting app to sandbox app")
 		}
 
-		apiApp := mapSandboxAppToAPI(sandboxApp.Meta)
+		apiApp := appconvert.ToAPISandboxApp(sandboxApp.Meta)
 
 		apiSandboxCustomerAppData := api.SandboxCustomerAppData{
 			Id:   &appId,
@@ -401,7 +402,7 @@ func (h *handler) toAPICustomerAppData(a app.CustomerApp) (api.CustomerAppData, 
 			return apiCustomerAppData, fmt.Errorf("error casting app to custom invoicing app")
 		}
 
-		apiApp := mapCustomInvoicingAppToAPI(customInvoicingApp.Meta)
+		apiApp := appconvert.ToAPICustomInvoicingApp(customInvoicingApp.Meta)
 
 		apiCustomInvoicingCustomerAppData := api.CustomInvoicingCustomerAppData{
 			Id:   &appId,

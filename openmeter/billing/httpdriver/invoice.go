@@ -10,13 +10,10 @@ import (
 	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/api"
-	apphttpdriver "github.com/openmeterio/openmeter/openmeter/app/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/openmeter/billing/models/externalid"
-	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
+	billingconvert "github.com/openmeterio/openmeter/openmeter/billing/apiconvert"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customerhttpdriver "github.com/openmeterio/openmeter/openmeter/customer/httpdriver"
-	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/filter"
@@ -26,7 +23,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 	"github.com/openmeterio/openmeter/pkg/sortx"
-	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 var _ InvoiceHandler = (*handler)(nil)
@@ -671,209 +667,11 @@ func (h *handler) MapInvoiceToAPI(ctx context.Context, invoice billing.Invoice) 
 }
 
 func MapStandardInvoiceToAPI(invoice billing.StandardInvoice) (api.Invoice, error) {
-	var apps *api.BillingProfileAppsOrReference
-	var err error
-	collectionAt := invoice.CollectionAt
-
-	// Preserve the historic API shape for standard invoices by emulating collectionAt when the
-	// domain model intentionally leaves it nil (for example, flat-fee-only invoices).
-	if collectionAt == nil {
-		collectionAt = lo.ToPtr(invoice.CreatedAt)
-	}
-
-	// Sort the lines to make the response more consistent (internally we don't care about the order)
-	invoice.SortLines()
-
-	if invoice.Workflow.Apps != nil {
-		apps, err = mapProfileAppsToAPI(invoice.Workflow.Apps)
-		if err != nil {
-			return api.Invoice{}, fmt.Errorf("failed to map profile apps to API: %w", err)
-		}
-	} else {
-		apps, err = mapProfileAppReferencesToAPI(&invoice.Workflow.AppReferences)
-		if err != nil {
-			return api.Invoice{}, fmt.Errorf("failed to map profile app references to API: %w", err)
-		}
-	}
-
-	out := api.Invoice{
-		Id: invoice.ID,
-
-		CreatedAt:            invoice.CreatedAt,
-		UpdatedAt:            invoice.UpdatedAt,
-		DeletedAt:            invoice.DeletedAt,
-		IssuedAt:             invoice.IssuedAt,
-		VoidedAt:             invoice.VoidedAt,
-		DueAt:                invoice.DueAt,
-		CollectionAt:         collectionAt,
-		DraftUntil:           invoice.DraftUntil,
-		SentToCustomerAt:     invoice.SentToCustomerAt,
-		QuantitySnapshotedAt: invoice.QuantitySnapshotedAt,
-		Period:               mapPeriodToAPI(invoice.Period),
-
-		Currency: string(invoice.Currency),
-		Customer: mapInvoiceCustomerToAPI(invoice.Customer),
-
-		Number:      invoice.Number,
-		Description: invoice.Description,
-		Metadata:    convert.MapToPointer(invoice.Metadata),
-
-		Status: api.InvoiceStatus(invoice.Status.ShortStatus()),
-		StatusDetails: api.InvoiceStatusDetails{
-			Failed:         invoice.StatusDetails.Failed,
-			Immutable:      invoice.StatusDetails.Immutable,
-			ExtendedStatus: string(invoice.Status),
-
-			AvailableActions: mapInvoiceAvailableActionsToAPI(invoice.StatusDetails.AvailableActions),
-		},
-		Supplier: mapSupplierContactToAPI(invoice.Supplier),
-		Totals:   mapTotalsToAPI(invoice.Totals),
-		// TODO[OM-943]: Implement
-		Payment: nil,
-		Type:    api.InvoiceType(invoice.Type),
-		ValidationIssues: convert.SliceToPointer(
-			lo.Map(invoice.ValidationIssues, func(v billing.ValidationIssue, _ int) api.ValidationIssue {
-				return api.ValidationIssue{
-					Id:        v.ID,
-					CreatedAt: v.CreatedAt,
-					UpdatedAt: v.UpdatedAt,
-					DeletedAt: v.DeletedAt,
-
-					Severity:  api.ValidationIssueSeverity(v.Severity),
-					Message:   v.Message,
-					Code:      lo.EmptyableToPtr(v.Code),
-					Component: string(v.Component),
-					Field:     lo.EmptyableToPtr(v.Path),
-				}
-			})),
-		ExternalIds: mapInvoiceAppExternalIdsToAPI(invoice.ExternalIDs),
-	}
-
-	workflowConfig, err := mapWorkflowConfigSettingsToAPI(invoice.Workflow.Config)
-	if err != nil {
-		return api.Invoice{}, fmt.Errorf("failed to map workflow config to API: %w", err)
-	}
-
-	out.Workflow = api.InvoiceWorkflowSettings{
-		Apps:                   apps,
-		SourceBillingProfileId: invoice.Workflow.SourceBillingProfileID,
-		Workflow:               workflowConfig,
-	}
-
-	outLines, err := slicesx.MapWithErr(invoice.Lines.OrEmpty(), func(line *billing.StandardLine) (api.InvoiceLine, error) {
-		mappedLine, err := mapInvoiceLineToAPI(line)
-		if err != nil {
-			return api.InvoiceLine{}, fmt.Errorf("failed to map billing line[%s] to API: %w", line.ID, err)
-		}
-
-		return mappedLine, nil
-	})
-	if err != nil {
-		return api.Invoice{}, err
-	}
-
-	if len(outLines) > 0 {
-		out.Lines = &outLines
-	}
-
-	return out, nil
-}
-
-func mapInvoiceAppExternalIdsToAPI(externalIds externalid.InvoiceExternalIDs) *api.InvoiceAppExternalIds {
-	if lo.IsEmpty(externalIds) {
-		return nil
-	}
-
-	return &api.InvoiceAppExternalIds{
-		Invoicing: lo.EmptyableToPtr(externalIds.Invoicing),
-		Payment:   lo.EmptyableToPtr(externalIds.Payment),
-	}
+	return billingconvert.ToAPIStandardInvoice(invoice)
 }
 
 func MapEventInvoiceToAPI(event billing.EventStandardInvoice) (api.Invoice, error) {
-	// Prefer the apps from the event
-	event.Invoice.Workflow.Apps = nil
-
-	invoice, err := MapStandardInvoiceToAPI(event.Invoice)
-	if err != nil {
-		return api.Invoice{}, err
-	}
-
-	// Let's map the apps, if there are no apps in the event, we will skip generating the profile apps
-
-	apps := api.BillingProfileApps{}
-
-	if event.Apps.Invoicing.Type != "" {
-		apps.Invoicing, err = apphttpdriver.MapEventAppToAPI(event.Apps.Invoicing)
-		if err != nil {
-			return api.Invoice{}, err
-		}
-	}
-
-	if event.Apps.Payment.Type != "" {
-		apps.Payment, err = apphttpdriver.MapEventAppToAPI(event.Apps.Payment)
-		if err != nil {
-			return api.Invoice{}, err
-		}
-	}
-
-	if event.Apps.Tax.Type != "" {
-		apps.Tax, err = apphttpdriver.MapEventAppToAPI(event.Apps.Tax)
-		if err != nil {
-			return api.Invoice{}, err
-		}
-	}
-
-	invoice.Workflow.Apps = &api.BillingProfileAppsOrReference{}
-	if err := invoice.Workflow.Apps.FromBillingProfileApps(apps); err != nil {
-		return api.Invoice{}, err
-	}
-
-	return invoice, nil
-}
-
-func mapPeriodToAPI(p *timeutil.ClosedPeriod) *api.Period {
-	if p == nil {
-		return nil
-	}
-
-	// TODO[later]: let's use a common model for this
-	return &api.Period{
-		From: p.From,
-		To:   p.To,
-	}
-}
-
-func mapInvoiceCustomerToAPI(c billing.InvoiceCustomer) api.BillingInvoiceCustomerExtendedDetails {
-	a := c.BillingAddress
-
-	out := api.BillingInvoiceCustomerExtendedDetails{
-		Id:   lo.ToPtr(c.CustomerID),
-		Key:  c.Key,
-		Name: lo.EmptyableToPtr(c.Name),
-	}
-
-	if c.UsageAttribution != nil {
-		out.UsageAttribution = api.CustomerUsageAttribution{
-			SubjectKeys: c.UsageAttribution.SubjectKeys,
-		}
-	}
-
-	if a != nil && !lo.IsEmpty(*a) {
-		out.Addresses = lo.ToPtr([]api.Address{
-			{
-				Country:     (*string)(a.Country),
-				PostalCode:  a.PostalCode,
-				State:       a.State,
-				City:        a.City,
-				Line1:       a.Line1,
-				Line2:       a.Line2,
-				PhoneNumber: a.PhoneNumber,
-			},
-		})
-	}
-
-	return out
+	return billingconvert.ToAPIEventInvoice(event)
 }
 
 func mapInvoiceExpandsToEntity(expand []api.InvoiceExpand) billing.InvoiceExpands {
@@ -883,41 +681,6 @@ func mapInvoiceExpandsToEntity(expand []api.InvoiceExpand) billing.InvoiceExpand
 
 	return billing.InvoiceExpands{}.
 		SetOrUnsetIf(slices.Contains(expand, api.InvoiceExpandLines), billing.InvoiceExpandLines)
-}
-
-func mapTotalsToAPI(t totals.Totals) api.InvoiceTotals {
-	return api.InvoiceTotals{
-		Amount:              t.Amount.String(),
-		ChargesTotal:        t.ChargesTotal.String(),
-		CreditsTotal:        t.CreditsTotal.String(),
-		DiscountsTotal:      t.DiscountsTotal.String(),
-		TaxesInclusiveTotal: t.TaxesInclusiveTotal.String(),
-		TaxesExclusiveTotal: t.TaxesExclusiveTotal.String(),
-		TaxesTotal:          t.TaxesTotal.String(),
-		Total:               t.Total.String(),
-	}
-}
-
-func mapInvoiceAvailableActionsToAPI(actions billing.StandardInvoiceAvailableActions) api.InvoiceAvailableActions {
-	return api.InvoiceAvailableActions{
-		Advance:            mapInvoiceAvailableActionDetailsToAPI(actions.Advance),
-		Approve:            mapInvoiceAvailableActionDetailsToAPI(actions.Approve),
-		Delete:             mapInvoiceAvailableActionDetailsToAPI(actions.Delete),
-		Retry:              mapInvoiceAvailableActionDetailsToAPI(actions.Retry),
-		Void:               mapInvoiceAvailableActionDetailsToAPI(actions.Void),
-		SnapshotQuantities: mapInvoiceAvailableActionDetailsToAPI(actions.SnapshotQuantities),
-		Invoice:            lo.If(actions.Invoice != nil, &api.InvoiceAvailableActionInvoiceDetails{}).Else(nil),
-	}
-}
-
-func mapInvoiceAvailableActionDetailsToAPI(actions *billing.StandardInvoiceAvailableActionDetails) *api.InvoiceAvailableActionDetails {
-	if actions == nil {
-		return nil
-	}
-
-	return &api.InvoiceAvailableActionDetails{
-		ResultingState: string(actions.ResultingState),
-	}
 }
 
 func mergeInvoiceSupplierFromAPI(existing billing.SupplierContact, updatedSupplier api.BillingPartyReplaceUpdate) billing.SupplierContact {
