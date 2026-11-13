@@ -78,7 +78,7 @@ require (
 	github.com/stripe/stripe-go/v80 v80.2.1
 	github.com/svix/svix-webhooks/v2 v2.9.1
 	github.com/wI2L/jsondiff v0.7.1
-	github.com/xdg-go/scram v1.3.0
+	github.com/xdg-go/scram v1.4.0
 	github.com/zeebo/xxh3 v1.1.0
 	go.opentelemetry.io/contrib/bridges/otelslog v0.21.0
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.72.0
@@ -204,7 +204,6 @@ require (
 	github.com/tidwall/pretty v1.2.1 // indirect
 	github.com/tidwall/sjson v1.2.5 // indirect
 	github.com/vmware-labs/yaml-jsonpath v0.3.2 // indirect
-	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/stringprep v1.0.4 // indirect
 	github.com/zclconf/go-cty v1.16.2 // indirect
 	github.com/zclconf/go-cty-yaml v1.1.0 // indirect
