@@ -575,6 +575,7 @@ func (BillingInvoiceLine) Indexes() []ent.Index {
 		index.Fields("parent_line_id").
 			StorageKey("billing_invoice_lines_parent_id_idx"),
 		index.Fields("namespace", "invoice_id"),
+		index.Fields("namespace", "charge_id"),
 		index.Fields("namespace", "parent_line_id"),
 		index.Fields("namespace", "parent_line_id", "child_unique_reference_id").
 			Annotations(
