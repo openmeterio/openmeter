@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/entitlement/snapshot"
 	"github.com/openmeterio/openmeter/openmeter/notification"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/watermill/grouphandler"
 	"github.com/openmeterio/openmeter/openmeter/watermill/marshaler"
 	"github.com/openmeterio/openmeter/openmeter/watermill/router"
@@ -22,6 +23,8 @@ type Options struct {
 	Router router.Options
 
 	Notification notification.Service
+
+	TaxCodeResolver productcatalog.TaxCodeResolver
 
 	Marshaler marshaler.Marshaler
 
@@ -37,6 +40,10 @@ func (o Options) Validate() error {
 
 	if o.Notification == nil {
 		errs = append(errs, errors.New("notification service is required"))
+	}
+
+	if o.TaxCodeResolver == nil {
+		errs = append(errs, errors.New("tax code resolver is required"))
 	}
 
 	if o.Logger == nil {
@@ -61,8 +68,9 @@ func New(opts Options) (*Consumer, error) {
 	}
 
 	invoiceEventHandler := &InvoiceEventHandler{
-		Notification: opts.Notification,
-		Logger:       opts.Logger.WithGroup("invoice_event_handler"),
+		Notification:    opts.Notification,
+		TaxCodeResolver: opts.TaxCodeResolver,
+		Logger:          opts.Logger.WithGroup("invoice_event_handler"),
 	}
 
 	r, err := router.NewDefaultRouter(opts.Router)

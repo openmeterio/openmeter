@@ -48,7 +48,12 @@ func (h *handler) GetBillingProfile() GetBillingProfileHandler {
 				return GetBillingProfileResponse{}, apierrors.NewNotFoundError(ctx, errors.New("billing profile not found"), "billing profile")
 			}
 
-			return ToAPIBillingProfile(*profile)
+			taxCodes, err := h.taxCodesForProfiles(ctx, profile.Namespace, *profile)
+			if err != nil {
+				return GetBillingProfileResponse{}, err
+			}
+
+			return ToAPIBillingProfile(*profile, taxCodes)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[GetBillingProfileResponse](http.StatusOK),
 		httptransport.AppendOptions(

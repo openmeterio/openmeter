@@ -79,6 +79,23 @@ func TestTaxConfigEqualDetectsTaxCode(t *testing.T) {
 		"Equal uses ID-only comparison: same TaxCode.ID means equal regardless of other TaxCode fields")
 }
 
+func newSnapshotTestInvoice(status billing.StandardInvoiceStatus, lines ...*billing.StandardLine) billing.StandardInvoice {
+	return billing.StandardInvoice{
+		StandardInvoiceBase: billing.StandardInvoiceBase{
+			Status: status,
+		},
+		Lines: billing.NewStandardInvoiceLines(lines),
+	}
+}
+
+func newSnapshotTestLine(tc *productcatalog.TaxConfig) *billing.StandardLine {
+	return &billing.StandardLine{
+		StandardLineBase: billing.StandardLineBase{
+			TaxConfig: billing.FromProductCatalog(tc),
+		},
+	}
+}
+
 func TestSnapshotTaxConfigIntoLines(t *testing.T) {
 	tc1 := taxcode.TaxCode{
 		NamespacedID: models.NamespacedID{Namespace: "ns", ID: "tc-1"},
@@ -93,30 +110,6 @@ func TestSnapshotTaxConfigIntoLines(t *testing.T) {
 		},
 	}
 
-	newInvoice := func(status billing.StandardInvoiceStatus, defaultTC *productcatalog.TaxConfig, lines ...*billing.StandardLine) billing.StandardInvoice {
-		return billing.StandardInvoice{
-			StandardInvoiceBase: billing.StandardInvoiceBase{
-				Status: status,
-				Workflow: billing.InvoiceWorkflow{
-					Config: billing.WorkflowConfig{
-						Invoicing: billing.InvoicingConfig{
-							DefaultTaxConfig: defaultTC,
-						},
-					},
-				},
-			},
-			Lines: billing.NewStandardInvoiceLines(lines),
-		}
-	}
-
-	newLine := func(tc *productcatalog.TaxConfig) *billing.StandardLine {
-		return &billing.StandardLine{
-			StandardLineBase: billing.StandardLineBase{
-				TaxConfig: billing.FromProductCatalog(tc),
-			},
-		}
-	}
-
 	tests := []struct {
 		name      string
 		invoice   billing.StandardInvoice
@@ -126,10 +119,9 @@ func TestSnapshotTaxConfigIntoLines(t *testing.T) {
 	}{
 		{
 			name: "gathering invoice is a no-op",
-			invoice: newInvoice(
+			invoice: newSnapshotTestInvoice(
 				billing.StandardInvoiceStatusGathering,
-				nil,
-				newLine(&productcatalog.TaxConfig{
+				newSnapshotTestLine(&productcatalog.TaxConfig{
 					Stripe: &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
 				}),
 			),
@@ -139,10 +131,9 @@ func TestSnapshotTaxConfigIntoLines(t *testing.T) {
 		},
 		{
 			name: "stamps TaxCodeID and TaxCode entity when code is in deps",
-			invoice: newInvoice(
+			invoice: newSnapshotTestInvoice(
 				billing.StandardInvoiceStatusDraftCollecting,
-				nil,
-				newLine(&productcatalog.TaxConfig{
+				newSnapshotTestLine(&productcatalog.TaxConfig{
 					Stripe: &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
 				}),
 			),
@@ -158,10 +149,9 @@ func TestSnapshotTaxConfigIntoLines(t *testing.T) {
 		},
 		{
 			name: "preserves existing TaxCodeID but still stamps TaxCode entity",
-			invoice: newInvoice(
+			invoice: newSnapshotTestInvoice(
 				billing.StandardInvoiceStatusDraftCollecting,
-				nil,
-				newLine(&productcatalog.TaxConfig{
+				newSnapshotTestLine(&productcatalog.TaxConfig{
 					Stripe:    &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
 					TaxCodeID: lo.ToPtr("already-set"),
 				}),
@@ -178,10 +168,9 @@ func TestSnapshotTaxConfigIntoLines(t *testing.T) {
 		},
 		{
 			name: "gracefully skips when stripe code is absent from deps",
-			invoice: newInvoice(
+			invoice: newSnapshotTestInvoice(
 				billing.StandardInvoiceStatusDraftCollecting,
-				nil,
-				newLine(&productcatalog.TaxConfig{
+				newSnapshotTestLine(&productcatalog.TaxConfig{
 					Stripe: &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
 				}),
 			),
@@ -195,15 +184,17 @@ func TestSnapshotTaxConfigIntoLines(t *testing.T) {
 		},
 		{
 			name: "DefaultTaxConfig is merged into line with nil TaxConfig",
-			invoice: newInvoice(
+			invoice: newSnapshotTestInvoice(
 				billing.StandardInvoiceStatusDraftCollecting,
-				&productcatalog.TaxConfig{
+				newSnapshotTestLine(nil),
+			),
+			deps: StandardInvoiceCalculatorDependencies{
+				TaxCodes: TaxCodes{"txcd_10000000": tc1},
+				DefaultTaxConfig: billing.FromProductCatalog(&productcatalog.TaxConfig{
 					Behavior: lo.ToPtr(productcatalog.InclusiveTaxBehavior),
 					Stripe:   &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
-				},
-				newLine(nil),
-			),
-			deps: StandardInvoiceCalculatorDependencies{TaxCodes: TaxCodes{"txcd_10000000": tc1}},
+				}),
+			},
 			wantTC: &billing.TaxConfig{
 				TaxConfig: productcatalog.TaxConfig{
 					Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
@@ -216,19 +207,21 @@ func TestSnapshotTaxConfigIntoLines(t *testing.T) {
 		},
 		{
 			name: "line stripe code takes precedence over DefaultTaxConfig stripe code",
-			invoice: newInvoice(
+			invoice: newSnapshotTestInvoice(
 				billing.StandardInvoiceStatusDraftCollecting,
-				&productcatalog.TaxConfig{
-					Stripe: &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
-				},
-				newLine(&productcatalog.TaxConfig{
+				newSnapshotTestLine(&productcatalog.TaxConfig{
 					Stripe: &productcatalog.StripeTaxConfig{Code: "txcd_20000000"},
 				}),
 			),
-			deps: StandardInvoiceCalculatorDependencies{TaxCodes: TaxCodes{
-				"txcd_10000000": tc1,
-				"txcd_20000000": tc2,
-			}},
+			deps: StandardInvoiceCalculatorDependencies{
+				TaxCodes: TaxCodes{
+					"txcd_10000000": tc1,
+					"txcd_20000000": tc2,
+				},
+				DefaultTaxConfig: billing.FromProductCatalog(&productcatalog.TaxConfig{
+					Stripe: &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
+				}),
+			},
 			wantTC: &billing.TaxConfig{
 				TaxConfig: productcatalog.TaxConfig{
 					Stripe:    &productcatalog.StripeTaxConfig{Code: "txcd_20000000"},
@@ -240,10 +233,9 @@ func TestSnapshotTaxConfigIntoLines(t *testing.T) {
 		},
 		{
 			name: "line with behavior-only TaxConfig skips entity stamping",
-			invoice: newInvoice(
+			invoice: newSnapshotTestInvoice(
 				billing.StandardInvoiceStatusDraftCollecting,
-				nil,
-				newLine(&productcatalog.TaxConfig{
+				newSnapshotTestLine(&productcatalog.TaxConfig{
 					Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
 				}),
 			),
@@ -257,10 +249,9 @@ func TestSnapshotTaxConfigIntoLines(t *testing.T) {
 		},
 		{
 			name: "nil TaxConfig line with no DefaultTaxConfig stays nil",
-			invoice: newInvoice(
+			invoice: newSnapshotTestInvoice(
 				billing.StandardInvoiceStatusDraftCollecting,
-				nil,
-				newLine(nil),
+				newSnapshotTestLine(nil),
 			),
 			deps:      StandardInvoiceCalculatorDependencies{},
 			wantTC:    nil,

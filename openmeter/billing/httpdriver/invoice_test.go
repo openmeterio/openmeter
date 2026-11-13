@@ -255,7 +255,7 @@ func (s *InvoicingTestSuite) TestGatheringInvoiceSerialization() {
 	s.Equal(billing.StandardInvoiceStatusGathering, standardInvoice.Status)
 
 	// Let's serialize the invoice
-	apiInvoice, err := MapStandardInvoiceToAPI(standardInvoice)
+	apiInvoice, err := MapStandardInvoiceToAPI(standardInvoice, nil)
 	s.NoError(err)
 
 	// Let's deserialize the invoice

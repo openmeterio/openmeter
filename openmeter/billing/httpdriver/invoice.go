@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customerhttpdriver "github.com/openmeterio/openmeter/openmeter/customer/httpdriver"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
@@ -104,14 +105,12 @@ func (h *handler) ListInvoices() ListInvoicesHandler {
 				TotalCount: invoices.TotalCount,
 			}
 
-			for _, invoice := range invoices.Items {
-				invoice, err := h.MapInvoiceToAPI(ctx, invoice)
-				if err != nil {
-					return ListInvoicesResponse{}, err
-				}
-
-				res.Items = append(res.Items, invoice)
+			items, err := h.mapInvoicesToAPI(ctx, request.Namespace, invoices.Items...)
+			if err != nil {
+				return ListInvoicesResponse{}, err
 			}
+
+			res.Items = append(res.Items, items...)
 
 			return res, nil
 		},
@@ -185,8 +184,13 @@ func (h *handler) InvoicePendingLinesAction() InvoicePendingLinesActionHandler {
 
 			out := make([]api.Invoice, 0, len(invoices))
 
+			taxCodes, err := h.taxCodesForStandardInvoices(ctx, request.Customer.Namespace, invoices...)
+			if err != nil {
+				return nil, err
+			}
+
 			for _, invoice := range invoices {
-				invoice, err := MapStandardInvoiceToAPI(invoice)
+				invoice, err := MapStandardInvoiceToAPI(invoice, taxCodes)
 				if err != nil {
 					return nil, err
 				}
@@ -330,7 +334,7 @@ func (h *handler) ProgressInvoice(action ProgressAction) ProgressInvoiceHandler 
 				return ProgressInvoiceResponse{}, err
 			}
 
-			return MapStandardInvoiceToAPI(invoice)
+			return h.mapStandardInvoiceWithTaxCodesToAPI(ctx, invoice)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[ProgressInvoiceResponse](http.StatusOK),
 		httptransport.AppendOptions(
@@ -473,7 +477,7 @@ func (h *handler) SimulateInvoice() SimulateInvoiceHandler {
 				return SimulateInvoiceResponse{}, err
 			}
 
-			return MapStandardInvoiceToAPI(invoice)
+			return h.mapStandardInvoiceWithTaxCodesToAPI(ctx, invoice)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[SimulateInvoiceResponse](http.StatusOK),
 		httptransport.AppendOptions(
@@ -638,39 +642,122 @@ func (h *handler) updateStandardInvoice(ctx context.Context, invoice billing.Inv
 }
 
 func (h *handler) MapInvoiceToAPI(ctx context.Context, invoice billing.Invoice) (api.Invoice, error) {
-	switch invoice.Type() {
-	case billing.InvoiceTypeStandard:
-		standardInvoice, err := invoice.AsStandardInvoice()
-		if err != nil {
-			return api.Invoice{}, fmt.Errorf("converting invoice to standard invoice: %w", err)
-		}
-
-		return MapStandardInvoiceToAPI(standardInvoice)
-	case billing.InvoiceTypeGathering:
-		gatheringInvoice, err := invoice.AsGatheringInvoice()
-		if err != nil {
-			return api.Invoice{}, fmt.Errorf("converting invoice to gathering invoice: %w", err)
-		}
-
-		// TODO: For the V3 api let's make sure that we don't return gathering invoice customer data (or even gathering invoices)
-		mergedProfile, err := h.service.GetCustomerBillingProfile(ctx, billing.GetCustomerBillingProfileInput{
-			Customer: gatheringInvoice.GetCustomerID(),
-			Expand: billing.CustomerBillingProfileExpand{
-				Customer: true,
-				Apps:     true,
-			},
-		})
-		if err != nil {
-			return UpdateInvoiceResponse{}, fmt.Errorf("failed to get customer override: %w", err)
-		}
-
-		return MapGatheringInvoiceToAPI(gatheringInvoice, mergedProfile.Customer, mergedProfile.EffectiveProfile)
-	default:
-		return api.Invoice{}, fmt.Errorf("invalid invoice type: %s", invoice.Type())
+	genericInvoice, err := invoice.AsGenericInvoice()
+	if err != nil {
+		return api.Invoice{}, fmt.Errorf("converting invoice to generic invoice: %w", err)
 	}
+
+	mapped, err := h.mapInvoicesToAPI(ctx, genericInvoice.GetInvoiceID().Namespace, invoice)
+	if err != nil {
+		return api.Invoice{}, err
+	}
+
+	return mapped[0], nil
 }
 
-func MapStandardInvoiceToAPI(invoice billing.StandardInvoice) (api.Invoice, error) {
+// invoiceToMap is an invoice prepared for mapping: standard invoices show their own workflow,
+// gathering invoices their customer's current billing profile.
+type invoiceToMap struct {
+	standard      *billing.StandardInvoice
+	gathering     *billing.GatheringInvoice
+	mergedProfile billing.CustomerBillingProfile
+}
+
+func (i invoiceToMap) workflow() billing.WorkflowConfig {
+	if i.standard != nil {
+		return i.standard.Workflow.Config
+	}
+
+	return i.mergedProfile.EffectiveProfile.WorkflowConfig
+}
+
+// mapInvoicesToAPI maps invoices with one Tax Code lookup for all of their default tax configs.
+func (h *handler) mapInvoicesToAPI(ctx context.Context, namespace string, invoices ...billing.Invoice) ([]api.Invoice, error) {
+	prepared := make([]invoiceToMap, 0, len(invoices))
+
+	for _, invoice := range invoices {
+		switch invoice.Type() {
+		case billing.InvoiceTypeStandard:
+			standardInvoice, err := invoice.AsStandardInvoice()
+			if err != nil {
+				return nil, fmt.Errorf("converting invoice to standard invoice: %w", err)
+			}
+
+			prepared = append(prepared, invoiceToMap{standard: &standardInvoice})
+		case billing.InvoiceTypeGathering:
+			gatheringInvoice, err := invoice.AsGatheringInvoice()
+			if err != nil {
+				return nil, fmt.Errorf("converting invoice to gathering invoice: %w", err)
+			}
+
+			// TODO: For the V3 api let's make sure that we don't return gathering invoice customer data (or even gathering invoices)
+			mergedProfile, err := h.service.GetCustomerBillingProfile(ctx, billing.GetCustomerBillingProfileInput{
+				Customer: gatheringInvoice.GetCustomerID(),
+				Expand: billing.CustomerBillingProfileExpand{
+					Customer: true,
+					Apps:     true,
+				},
+			})
+			if err != nil {
+				return nil, fmt.Errorf("failed to get customer override: %w", err)
+			}
+
+			prepared = append(prepared, invoiceToMap{gathering: &gatheringInvoice, mergedProfile: mergedProfile})
+		default:
+			return nil, fmt.Errorf("invalid invoice type: %s", invoice.Type())
+		}
+	}
+
+	taxCodes, err := ResolveWorkflowTaxCodes(ctx, h.taxCodeResolver, namespace,
+		lo.Map(prepared, func(i invoiceToMap, _ int) billing.WorkflowConfig {
+			return i.workflow()
+		})...)
+	if err != nil {
+		return nil, err
+	}
+
+	out := make([]api.Invoice, 0, len(prepared))
+
+	for _, i := range prepared {
+		var (
+			mapped api.Invoice
+			err    error
+		)
+
+		if i.standard != nil {
+			mapped, err = MapStandardInvoiceToAPI(*i.standard, taxCodes)
+		} else {
+			mapped, err = MapGatheringInvoiceToAPI(*i.gathering, i.mergedProfile.Customer, i.mergedProfile.EffectiveProfile, taxCodes)
+		}
+
+		if err != nil {
+			return nil, err
+		}
+
+		out = append(out, mapped)
+	}
+
+	return out, nil
+}
+
+func (h *handler) taxCodesForStandardInvoices(ctx context.Context, namespace string, invoices ...billing.StandardInvoice) (map[string]*taxcode.TaxCode, error) {
+	return ResolveWorkflowTaxCodes(ctx, h.taxCodeResolver, namespace, lo.Map(invoices, func(invoice billing.StandardInvoice, _ int) billing.WorkflowConfig {
+		return invoice.Workflow.Config
+	})...)
+}
+
+func (h *handler) mapStandardInvoiceWithTaxCodesToAPI(ctx context.Context, invoice billing.StandardInvoice) (api.Invoice, error) {
+	taxCodes, err := h.taxCodesForStandardInvoices(ctx, invoice.Namespace, invoice)
+	if err != nil {
+		return api.Invoice{}, err
+	}
+
+	return MapStandardInvoiceToAPI(invoice, taxCodes)
+}
+
+// MapStandardInvoiceToAPI maps a standard invoice. taxCodes must hold the invoice's default Tax
+// Code (see ResolveWorkflowTaxCodes) for its stripe.code to show.
+func MapStandardInvoiceToAPI(invoice billing.StandardInvoice, taxCodes map[string]*taxcode.TaxCode) (api.Invoice, error) {
 	var apps *api.BillingProfileAppsOrReference
 	var err error
 	collectionAt := invoice.CollectionAt
@@ -749,7 +836,7 @@ func MapStandardInvoiceToAPI(invoice billing.StandardInvoice) (api.Invoice, erro
 		ExternalIds: mapInvoiceAppExternalIdsToAPI(invoice.ExternalIDs),
 	}
 
-	workflowConfig, err := mapWorkflowConfigSettingsToAPI(invoice.Workflow.Config)
+	workflowConfig, err := mapWorkflowConfigSettingsToAPI(invoice.Workflow.Config, taxCodes)
 	if err != nil {
 		return api.Invoice{}, fmt.Errorf("failed to map workflow config to API: %w", err)
 	}
@@ -790,11 +877,13 @@ func mapInvoiceAppExternalIdsToAPI(externalIds externalid.InvoiceExternalIDs) *a
 	}
 }
 
-func MapEventInvoiceToAPI(event billing.EventStandardInvoice) (api.Invoice, error) {
+// MapEventInvoiceToAPI maps an invoice event to the v1 invoice shape notifications carry. The event
+// has no Stripe code for the invoice default; taxCodes (see ResolveWorkflowTaxCodes) supplies it.
+func MapEventInvoiceToAPI(event billing.EventStandardInvoice, taxCodes map[string]*taxcode.TaxCode) (api.Invoice, error) {
 	// Prefer the apps from the event
 	event.Invoice.Workflow.Apps = nil
 
-	invoice, err := MapStandardInvoiceToAPI(event.Invoice)
+	invoice, err := MapStandardInvoiceToAPI(event.Invoice, taxCodes)
 	if err != nil {
 		return api.Invoice{}, err
 	}

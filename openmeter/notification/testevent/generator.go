@@ -23,12 +23,14 @@ import (
 )
 
 type Generator struct {
-	billingService billing.Service
+	billingService  billing.Service
+	taxCodeResolver productcatalog.TaxCodeResolver
 }
 
-func NewGenerator(billingService billing.Service) *Generator {
+func NewGenerator(billingService billing.Service, taxCodeResolver productcatalog.TaxCodeResolver) *Generator {
 	return &Generator{
-		billingService: billingService,
+		billingService:  billingService,
+		taxCodeResolver: taxCodeResolver,
 	}
 }
 
@@ -235,7 +237,12 @@ func (t *Generator) newTestInvoicePayload(ctx context.Context, namespace string,
 		return notification.EventPayload{}, err
 	}
 
-	apiInvoice, err := billinghttp.MapEventInvoiceToAPI(eventInvoice)
+	taxCodes, err := billinghttp.ResolveWorkflowTaxCodes(ctx, t.taxCodeResolver, invoice.Namespace, invoice.Workflow.Config)
+	if err != nil {
+		return notification.EventPayload{}, err
+	}
+
+	apiInvoice, err := billinghttp.MapEventInvoiceToAPI(eventInvoice, taxCodes)
 	if err != nil {
 		return notification.EventPayload{}, err
 	}

@@ -229,6 +229,21 @@ func (c TaxCodeConfig) ToTaxConfig() TaxConfig {
 	return out
 }
 
+// ToLegacyTaxConfig renders the reference in the legacy v1 shape, taking stripe.code from the
+// referenced Tax Code's current Stripe mapping. stripe.code is left out when the Tax Code isn't in
+// taxCodes or has no Stripe mapping. Only for code that still has to speak the legacy shape.
+func (c TaxCodeConfig) ToLegacyTaxConfig(taxCodes map[string]*taxcode.TaxCode) TaxConfig {
+	out := c.ToTaxConfig()
+
+	if tc := taxCodes[c.TaxCodeID]; tc != nil && c.TaxCodeID != "" {
+		if m, ok := tc.GetAppMapping(app.AppTypeStripe); ok {
+			out.Stripe = &StripeTaxConfig{Code: m.TaxCode}
+		}
+	}
+
+	return out
+}
+
 // TaxCodeConfigFrom extracts the lean reference fields from a full TaxConfig.
 // Returns the zero value when cfg is nil or when neither Behavior nor TaxCodeID is set
 // (e.g. Stripe-only config).

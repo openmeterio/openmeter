@@ -58,7 +58,7 @@ func (a *adapter) GetCustomerBillingProfile(ctx context.Context, input billing.G
 			Where(billingcustomeroverride.BillingProfileIDNotNil()).
 			WithBillingProfile(func(query *db.BillingProfileQuery) {
 				query.Where(billingprofile.Namespace(input.Customer.Namespace))
-				query.WithWorkflowConfig(workflowConfigWithTaxCode(input.Customer.Namespace))
+				query.WithWorkflowConfig(workflowConfigInNamespace(input.Customer.Namespace))
 			}).Only(ctx)
 		if err != nil && !db.IsNotFound(err) {
 			return billing.CustomerBillingProfileAdapterResult{}, err
@@ -159,7 +159,7 @@ func (a *adapter) ListCustomerBillingProfiles(ctx context.Context, input billing
 
 			overrideQuery.WithBillingProfile(func(profileQuery *db.BillingProfileQuery) {
 				profileQuery.Where(billingprofile.Namespace(input.Namespace))
-				profileQuery.WithWorkflowConfig(workflowConfigWithTaxCode(input.Namespace))
+				profileQuery.WithWorkflowConfig(workflowConfigInNamespace(input.Namespace))
 			})
 		})
 

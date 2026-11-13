@@ -29,6 +29,20 @@ func (r *CountingTaxCodeResolver) BatchResolve(_ context.Context, _ string, ids 
 	return lo.PickByKeys(r.TaxCodes, ids), nil
 }
 
+// CountingProductionTaxCodeResolver wraps a production resolver and counts BatchResolve calls, so
+// tests can assert a handler batched its Tax Code lookups.
+type CountingProductionTaxCodeResolver struct {
+	productcatalog.TransactionalTaxCodeResolver
+
+	BatchResolveCalls int
+}
+
+func (r *CountingProductionTaxCodeResolver) BatchResolve(ctx context.Context, namespace string, ids ...string) (map[string]*taxcode.TaxCode, error) {
+	r.BatchResolveCalls++
+
+	return r.TransactionalTaxCodeResolver.BatchResolve(ctx, namespace, ids...)
+}
+
 // NewTestFlatRateCard returns a billable flat fee rate card with the given Tax Code config.
 func NewTestFlatRateCard(key string, tc *productcatalog.TaxCodeConfig) productcatalog.RateCard {
 	return &productcatalog.FlatFeeRateCard{

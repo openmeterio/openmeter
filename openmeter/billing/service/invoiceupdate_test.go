@@ -1134,8 +1134,8 @@ func standardInvoicePairForTaxConfigDiffTest(beforeTaxConfig, afterTaxConfig *bi
 			Workflow: billing.InvoiceWorkflow{
 				Config: billing.WorkflowConfig{
 					Invoicing: billing.InvoicingConfig{
-						DefaultTaxConfig: &productcatalog.TaxConfig{
-							TaxCodeID: lo.ToPtr(invoiceUpdateDefaultTaxCodeID),
+						DefaultTaxConfig: &productcatalog.TaxCodeConfig{
+							TaxCodeID: invoiceUpdateDefaultTaxCodeID,
 						},
 					},
 				},

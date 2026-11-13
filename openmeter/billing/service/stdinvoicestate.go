@@ -844,7 +844,7 @@ func (m *InvoiceStateMachine) validateDraftInvoice(ctx context.Context) error {
 }
 
 func (m *InvoiceStateMachine) calculateInvoice(ctx context.Context) error {
-	taxCodes, err := m.Service.resolveTaxCodes(ctx, resolveTaxCodesInput{
+	calculatorDeps, err := m.Service.resolveTaxCodes(ctx, resolveTaxCodesInput{
 		Namespace: m.Invoice.Namespace,
 		Invoice:   &m.Invoice,
 		ReadOnly:  false,
@@ -853,9 +853,7 @@ func (m *InvoiceStateMachine) calculateInvoice(ctx context.Context) error {
 		return fmt.Errorf("resolving tax codes: %w", err)
 	}
 
-	return m.Calculator.Calculate(&m.Invoice, invoicecalc.StandardInvoiceCalculatorDependencies{
-		TaxCodes: taxCodes,
-	})
+	return m.Calculator.Calculate(&m.Invoice, calculatorDeps)
 }
 
 // syncDraftInvoice syncs the draft invoice with the external system.

@@ -129,7 +129,7 @@ func init() {
 		v3BillingAppReference.Id = source.ID
 		return v3BillingAppReference
 	}
-	ToAPIBillingProfile = func(source billing.Profile) (v3.BillingProfile, error) {
+	ToAPIBillingProfile = func(source billing.Profile, context TaxCodes) (v3.BillingProfile, error) {
 		var v3BillingProfile v3.BillingProfile
 		v3BillingProfile.Apps = pBillingProfileAppsToV3BillingProfileAppReferences(source.Apps)
 		v3BillingProfile.CreatedAt = timeTimeToTimeTime(source.BaseProfile.CreatedAt)
@@ -141,7 +141,7 @@ func init() {
 		v3BillingProfile.Name = source.BaseProfile.Name
 		v3BillingProfile.Supplier = ToAPIBillingParty(source.BaseProfile.Supplier)
 		v3BillingProfile.UpdatedAt = timeTimeToTimeTime(source.BaseProfile.UpdatedAt)
-		v3BillingWorkflow, err := ToAPIBillingWorkflow(source.BaseProfile.WorkflowConfig)
+		v3BillingWorkflow, err := ToAPIBillingWorkflow(source.BaseProfile.WorkflowConfig, context)
 		if err != nil {
 			return v3BillingProfile, err
 		}
@@ -157,12 +157,12 @@ func init() {
 		}
 		return v3BillingProfileAppReferences
 	}
-	ToAPIBillingProfiles = func(source []billing.Profile) ([]v3.BillingProfile, error) {
+	ToAPIBillingProfiles = func(source []billing.Profile, context TaxCodes) ([]v3.BillingProfile, error) {
 		var v3BillingProfileList []v3.BillingProfile
 		if source != nil {
 			v3BillingProfileList = make([]v3.BillingProfile, len(source))
 			for i := 0; i < len(source); i++ {
-				v3BillingProfile, err := ToAPIBillingProfile(source[i])
+				v3BillingProfile, err := ToAPIBillingProfile(source[i], context)
 				if err != nil {
 					return nil, err
 				}

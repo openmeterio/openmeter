@@ -118,6 +118,8 @@ func main() {
 
 		Notification: app.Notification,
 
+		TaxCodeResolver: app.TaxCodeResolver,
+
 		Logger: logger,
 	}
 
