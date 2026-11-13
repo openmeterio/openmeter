@@ -8191,13 +8191,9 @@ export const notificationEventV1TieredPriceWithCommitments = z
 
 export const notificationEventV1Customer = z
   .object({
-    id: z
-      .string()
-      .regex(new RegExp('^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'))
-      .describe('A unique identifier for the resource.'),
+    id: z.string().describe('A unique identifier for the resource.'),
     name: z
       .string()
-      .min(1)
       .max(256)
 
       .describe(
@@ -20204,13 +20200,9 @@ export const notificationEventV1TieredPriceWithCommitmentsWire = z
 
 export const notificationEventV1CustomerWire = z
   .strictObject({
-    id: z
-      .string()
-      .regex(new RegExp('^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'))
-      .describe('A unique identifier for the resource.'),
+    id: z.string().describe('A unique identifier for the resource.'),
     name: z
       .string()
-      .min(1)
       .max(256)
 
       .describe(
