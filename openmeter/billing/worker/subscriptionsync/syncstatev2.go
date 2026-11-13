@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -23,7 +24,7 @@ func (SyncStateV2State) Values() []string {
 }
 
 func (s SyncStateV2State) Validate() error {
-	if s != SyncStateV2StateSubscriptionDeleted {
+	if !slices.Contains(s.Values(), string(s)) {
 		return fmt.Errorf("invalid sync state v2 state: %q", s)
 	}
 
