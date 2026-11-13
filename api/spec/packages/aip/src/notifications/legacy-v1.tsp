@@ -1076,7 +1076,6 @@ model V1EntitlementMetered {
    * The identifier key unique to the subject. NOTE: Subjects are being deprecated,
    * please use the new customer APIs.
    */
-  @minLength(1)
   subject_key: string;
 
   /**
@@ -3527,7 +3526,6 @@ model V1Subject {
    * A unique identifier for the subject.
    */
   @visibility(Lifecycle.Read)
-  @pattern("^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$")
   id: string;
 
   /**

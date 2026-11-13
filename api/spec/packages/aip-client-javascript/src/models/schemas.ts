@@ -1524,10 +1524,7 @@ export const notificationEventV1Subject = z
       .date()
       .optional()
       .describe('Timestamp of when the resource was permanently deleted.'),
-    id: z
-      .string()
-      .regex(new RegExp('^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'))
-      .describe('A unique identifier for the subject.'),
+    id: z.string().describe('A unique identifier for the subject.'),
     key: z
       .string()
 
@@ -8125,7 +8122,6 @@ export const notificationEventV1EntitlementMetered = z
       .describe('Readonly unique ULID identifier.'),
     subjectKey: z
       .string()
-      .min(1)
 
       .describe(
         'The identifier key unique to the subject. NOTE: Subjects are being deprecated, please use the new customer APIs.',
@@ -13528,10 +13524,7 @@ export const notificationEventV1SubjectWire = z
       .datetime({ offset: true })
       .optional()
       .describe('Timestamp of when the resource was permanently deleted.'),
-    id: z
-      .string()
-      .regex(new RegExp('^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'))
-      .describe('A unique identifier for the subject.'),
+    id: z.string().describe('A unique identifier for the subject.'),
     key: z
       .string()
 
@@ -20137,7 +20130,6 @@ export const notificationEventV1EntitlementMeteredWire = z
       .describe('Readonly unique ULID identifier.'),
     subject_key: z
       .string()
-      .min(1)
 
       .describe(
         'The identifier key unique to the subject. NOTE: Subjects are being deprecated, please use the new customer APIs.',
