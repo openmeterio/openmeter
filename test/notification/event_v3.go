@@ -335,6 +335,11 @@ func (s *LegacyEventV3TestSuite) TestBalanceThresholdAndReset(ctx context.Contex
 				Key:             lo.ToPtr("unattributed-customer"),
 			},
 		},
+		{
+			// Snapshots from before customers were added carry no customer, and the
+			// v1 mapper still sends an empty one.
+			name: "no customer",
+		},
 	}
 
 	for _, sc := range scenarios {
@@ -379,6 +384,10 @@ func (s *LegacyEventV3TestSuite) TestBalanceThresholdAndReset(ctx context.Contex
 					require.True(t, ok, "payload.data.subject must be an object: %v", data)
 					require.Equal(t, sc.subject.Id, v3Subject["id"])
 					require.Equal(t, sc.subject.Key, v3Subject["key"])
+
+					v3Customer, ok := data["customer"].(map[string]any)
+					require.True(t, ok, "payload.data.customer must be an object: %v", data)
+					require.Equal(t, sc.customer.ID, v3Customer["id"])
 
 					v3Entitlement, ok := data["entitlement"].(map[string]any)
 					require.True(t, ok, "payload.data.entitlement must be an object: %v", data)
@@ -462,7 +471,11 @@ func (s *LegacyEventV3TestSuite) TestInvoiceCreated(ctx context.Context, t *test
 			}, notification.EventTypeInvoiceCreated))
 
 			// then both APIs return the same content and v3 matches the spec
-			s.readEvent(t, s.newestEventID(ctx, t, notification.EventTypeInvoiceCreated), notification.EventTypeInvoiceCreated)
+			_, v3Payload := s.readEvent(t, s.newestEventID(ctx, t, notification.EventTypeInvoiceCreated), notification.EventTypeInvoiceCreated)
+
+			data, ok := v3Payload["data"].(map[string]any)
+			require.True(t, ok, "payload.data must be an object: %v", v3Payload)
+			require.Equal(t, invoice.ID, data["id"], "the Event must be the one of this invoice")
 		})
 	}
 }
