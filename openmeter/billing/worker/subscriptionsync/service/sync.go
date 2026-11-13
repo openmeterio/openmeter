@@ -60,27 +60,28 @@ func (s *Service) HandleSubscriptionSyncEvent(ctx context.Context, event *subscr
 		return nil
 	}
 
-	return s.synchronizeSubscriptionAndInvoiceCustomer(
-		ctx,
-		newSubscriptionReferenceOrView(event.Subscription),
-		time.Now(),
-	)
+	return s.SyncByID(ctx, event.Subscription.NamespacedID, time.Now(), subscriptionsync.WithInvoicePendingLines())
 }
 
-func (s *Service) synchronizeSubscriptionAndInvoiceCustomer(ctx context.Context, refOrView subscriptionReferenceOrView, asOf time.Time, opts ...subscriptionsync.SynchronizeSubscriptionOption) error {
-	res, err := s.synchronizeSubscription(ctx, refOrView, asOf, opts...)
+func (s *Service) SyncByID(ctx context.Context, subscriptionID models.NamespacedID, asOf time.Time, opts ...subscriptionsync.SynchronizeSubscriptionOption) error {
+	options := subscriptionsync.SynchronizeSubscriptionOptions{}
+	for _, opt := range opts {
+		opt(&options)
+	}
+
+	res, err := s.synchronizeSubscription(ctx, synchronizeSubscriptionInput{
+		SubscriptionID: subscriptionID,
+		AsOf:           asOf,
+		Options:        options,
+	})
 	if err != nil {
 		return fmt.Errorf("synchronize subscription: %w", err)
 	}
 
-	if res != nil && res.View != nil {
-		customerID := customer.CustomerID{
-			Namespace: res.View.Subscription.Namespace,
-			ID:        res.View.Subscription.CustomerId,
-		}
-		// Invoice any pending lines invoicable now, so that any in advance fees are invoiced immediately.
-		if err := s.invoicePendingLines(ctx, customerID); err != nil {
-			return fmt.Errorf("invoice pending lines (post): %w [customer_id=%s]", err, customerID.ID)
+	if options.InvoicePendingLines && !options.DryRun && res.ShouldInvoicePendingLines {
+		// Collect after reconciliation so newly generated advance fees can be invoiced.
+		if err := s.invoicePendingLines(ctx, res.CustomerID); err != nil {
+			return fmt.Errorf("invoice pending lines (post): %w [customer_id=%s]", err, res.CustomerID.ID)
 		}
 	}
 
@@ -88,22 +89,41 @@ func (s *Service) synchronizeSubscriptionAndInvoiceCustomer(ctx context.Context,
 }
 
 type synchronizeSubscriptionResult struct {
-	View    *subscription.SubscriptionView
-	Deleted bool
+	CustomerID                customer.CustomerID
+	ShouldInvoicePendingLines bool
 }
 
-func (s *Service) synchronizeSubscription(ctx context.Context, refOrView subscriptionReferenceOrView, asOf time.Time, opts ...subscriptionsync.SynchronizeSubscriptionOption) (*synchronizeSubscriptionResult, error) {
-	subscriptionID := refOrView.GetID()
+type synchronizeSubscriptionInput struct {
+	SubscriptionID models.NamespacedID
+	AsOf           time.Time
+	Options        subscriptionsync.SynchronizeSubscriptionOptions
+}
 
+func (i synchronizeSubscriptionInput) Validate() error {
+	var errs []error
+	if err := i.SubscriptionID.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("subscription ID: %w", err))
+	}
+
+	if i.AsOf.IsZero() {
+		errs = append(errs, errors.New("as of is required"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+func (s *Service) synchronizeSubscription(ctx context.Context, in synchronizeSubscriptionInput) (*synchronizeSubscriptionResult, error) {
+	if err := in.Validate(); err != nil {
+		return nil, err
+	}
+
+	subscriptionID := in.SubscriptionID
+	asOf := in.AsOf
+	options := in.Options
 	span := tracex.Start[*synchronizeSubscriptionResult](ctx, s.tracer, "billing.worker.subscription.sync.SynchronizeSubscription", trace.WithAttributes(
 		attribute.String("subscription_id", subscriptionID.ID),
 		attribute.String("as_of", asOf.Format(time.RFC3339)),
 	))
-
-	options := subscriptionsync.SynchronizeSubscriptionOptions{}
-	for _, opt := range opts {
-		opt(&options)
-	}
 
 	return span.Wrap(func(ctx context.Context) (*synchronizeSubscriptionResult, error) {
 		subs, err := s.getSubscription(ctx, subscriptionID)
@@ -112,44 +132,22 @@ func (s *Service) synchronizeSubscription(ctx context.Context, refOrView subscri
 		}
 
 		var subsView *subscription.SubscriptionView
-		if subs.IsDeleted() {
-			subsView = nil
-		} else if refOrView.Type() == SubscriptionReferenceTypeView {
-			view, err := refOrView.AsSubscriptionView()
-			if err != nil {
-				return nil, err
-			}
-
-			subsView = &view
-			currentView, err := s.subscriptionService.GetView(ctx, subscriptionID)
-			if err != nil {
-				return nil, err
-			}
-
-			// Currency definitions are runtime-only snapshots and are deliberately not
-			// serialized into subscription events. Reload custom-priced views before
-			// planning so billing has authoritative identity and precision, and so a
-			// delayed event cannot reconcile obsolete custom-currency state.
-			if view.Spec.HasCustomCurrencyBillables() || currentView.Spec.HasCustomCurrencyBillables() {
-				subsView = &currentView
-			}
-		} else {
+		if !subs.IsDeleted() {
 			view, err := s.subscriptionService.GetView(ctx, subscriptionID)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("getting subscription view: %w", err)
 			}
 
 			subsView = &view
-		}
-
-		res := &synchronizeSubscriptionResult{
-			View:    subsView,
-			Deleted: subs.IsDeleted(),
 		}
 
 		customerID := customer.CustomerID{
 			Namespace: subs.Namespace,
 			ID:        subs.CustomerId,
+		}
+		res := &synchronizeSubscriptionResult{
+			CustomerID:                customerID,
+			ShouldInvoicePendingLines: !subs.IsDeleted(),
 		}
 
 		var customerDeletedAt *time.Time

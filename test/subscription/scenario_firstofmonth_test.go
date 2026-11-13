@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -204,7 +205,7 @@ func TestBillingOnFirstOfMonth(t *testing.T) {
 	clock.SetTime(currentTime.Add(time.Minute))
 
 	// 5th, let's synchronize the invoice
-	require.NoError(t, tDeps.subscriptionSyncService.SyncByView(ctx, view, firstOfMonth.AddDate(0, 1, 0)))
+	require.NoError(t, tDeps.subscriptionSyncService.SyncByID(ctx, view.Subscription.NamespacedID, firstOfMonth.AddDate(0, 1, 0)))
 
 	// 6th, let's check the invoice
 	invoices, err := tDeps.billingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
@@ -405,7 +406,7 @@ func TestAnchoredAlignment_MidMonthStart_EarlyCancel_IssueNextAnchor(t *testing.
 	clock.SetTime(cancelAt.Add(time.Hour * 1))
 
 	// Sync up to the next anchor (July 1st). Lines should remain on gathering invoice until then.
-	require.NoError(t, tDeps.subscriptionSyncService.SyncByViewAndInvoiceCustomer(ctx, view, firstOfNextMonth))
+	require.NoError(t, tDeps.subscriptionSyncService.SyncByID(ctx, view.Subscription.NamespacedID, firstOfNextMonth, subscriptionsync.WithInvoicePendingLines()))
 
 	invoices, err := tDeps.billingService.ListInvoices(ctx, billing.ListInvoicesInput{
 		Namespace:  namespace,

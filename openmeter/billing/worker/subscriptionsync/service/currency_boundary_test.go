@@ -22,7 +22,7 @@ func TestDeletedSubscriptionReconcilesBillingArtifacts(t *testing.T) {
 	// given:
 	// - a deleted subscription whose billing artifacts still need cleanup
 	// when:
-	// - subscription sync runs from the last event-carried view
+	// - subscription sync reloads the deleted subscription by ID
 	// then:
 	// - it plans an empty target and records that no future billables remain
 	deletedAt := time.Now()
@@ -45,10 +45,11 @@ func TestDeletedSubscriptionReconcilesBillingArtifacts(t *testing.T) {
 		tracer:                  noop.NewTracerProvider().Tracer("test"),
 	}
 
-	err := service.SyncByView(t.Context(), view, time.Now())
+	err := service.SyncByID(t.Context(), view.Subscription.NamespacedID, time.Now(), subscriptionsync.WithInvoicePendingLines())
 
 	require.NoError(t, err)
 	require.True(t, billingService.withLockCalled)
+	require.Zero(t, billingService.invoicePendingLinesCalls)
 	require.True(t, reconciler.planCalled)
 	require.Len(t, syncAdapter.upserts, 1)
 	require.False(t, syncAdapter.upserts[0].HasBillables)
@@ -56,7 +57,13 @@ func TestDeletedSubscriptionReconcilesBillingArtifacts(t *testing.T) {
 
 type billingServiceSpy struct {
 	billing.Service
-	withLockCalled bool
+	withLockCalled           bool
+	invoicePendingLinesCalls int
+}
+
+func (s *billingServiceSpy) InvoicePendingLines(ctx context.Context, input billing.InvoicePendingLinesInput, opts ...billing.InvoicePendingLinesOption) ([]billing.StandardInvoice, error) {
+	s.invoicePendingLinesCalls++
+	return s.Service.InvoicePendingLines(ctx, input, opts...)
 }
 
 func (s *billingServiceSpy) WithLock(ctx context.Context, _ customer.CustomerID, fn func(context.Context) error) error {

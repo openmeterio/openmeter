@@ -20,6 +20,7 @@ import (
 	chargesmeta "github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	chargestestutils "github.com/openmeterio/openmeter/openmeter/billing/charges/testutils"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	currencyadapter "github.com/openmeterio/openmeter/openmeter/currencies/adapter"
 	currencyservice "github.com/openmeterio/openmeter/openmeter/currencies/service"
@@ -206,7 +207,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestUnschedulingAndReplacingFu
 	//   Charges:
 	//   - v[0]/period[0] $100 [Jan 1, Feb 1)
 	//   - v[1]/period[0] $200 [Feb 1, Mar 1)
-	s.Require().NoError(s.Service.SyncByView(ctx, scheduledView, syncUntil))
+	s.Require().NoError(s.Service.SyncByID(ctx, scheduledView.Subscription.NamespacedID, syncUntil))
 	futureChildID := recurringLineMatcher{
 		PhaseKey:  "default",
 		ItemKey:   "flat-fee",
@@ -299,7 +300,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestUnschedulingAndReplacingFu
 	//   Charges:
 	//   - the old v[1]/period[0] $200 charge is deleted
 	//   - a new v[1]/period[0] $300 charge covers [Jan 20, Feb 1) and references the replacement item
-	s.Require().NoError(s.Service.SyncByView(ctx, rescheduledView, syncUntil))
+	s.Require().NoError(s.Service.SyncByID(ctx, rescheduledView.Subscription.NamespacedID, syncUntil))
 	reconciledCharges, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
 		Namespace:       s.Namespace,
 		SubscriptionIDs: []string{subscriptionView.Subscription.ID},
@@ -330,7 +331,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestUnschedulingAndReplacingFu
 	s.Equal(flatfee.StatusDeleted, deletedFlatFeeCharge.Status)
 
 	// Repeating the same sync converges without replacing the new charge again.
-	s.Require().NoError(s.Service.SyncByView(ctx, rescheduledView, syncUntil))
+	s.Require().NoError(s.Service.SyncByID(ctx, rescheduledView.Subscription.NamespacedID, syncUntil))
 	stableCharges, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
 		Namespace:       s.Namespace,
 		SubscriptionIDs: []string{subscriptionView.Subscription.ID},
@@ -395,7 +396,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestSchedulingFutureReplacemen
 		},
 	}, startAt)
 	originalItemID := subscriptionView.Phases[0].ItemsByKey["flat-fee"][0].SubscriptionItem.ID
-	s.Require().NoError(s.Service.SyncByView(ctx, subscriptionView, syncUntil))
+	s.Require().NoError(s.Service.SyncByID(ctx, subscriptionView.Subscription.NamespacedID, syncUntil))
 
 	childID := recurringLineMatcher{
 		PhaseKey:  "default",
@@ -445,7 +446,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestSchedulingFutureReplacemen
 	// Subscription sync:
 	//   Charges:
 	//   - v[0]/period[0] keeps its charge ID, references the recreated item, and shrinks to [Jan 1, Jan 10)
-	s.Require().NoError(s.Service.SyncByView(ctx, scheduledView, syncUntil))
+	s.Require().NoError(s.Service.SyncByID(ctx, scheduledView.Subscription.NamespacedID, syncUntil))
 	reconciled, err := s.Charges.GetByID(ctx, charges.GetByIDInput{
 		ChargeID: chargesmeta.ChargeID{Namespace: s.Namespace, ID: originalCharge.GetID()},
 	})
@@ -458,7 +459,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestSchedulingFutureReplacemen
 
 	// Repeating the same sync converges without another reference or period update.
 	updatedAt := reconciledCharge.UpdatedAt
-	s.Require().NoError(s.Service.SyncByView(ctx, scheduledView, syncUntil))
+	s.Require().NoError(s.Service.SyncByID(ctx, scheduledView.Subscription.NamespacedID, syncUntil))
 	stable, err := s.Charges.GetByID(ctx, charges.GetByIDInput{
 		ChargeID: chargesmeta.ChargeID{Namespace: s.Namespace, ID: originalCharge.GetID()},
 	})
@@ -514,7 +515,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestSchedulingFutureReplacemen
 		},
 	}, startAt)
 	originalItemID := subscriptionView.Phases[0].ItemsByKey[itemKey][0].SubscriptionItem.ID
-	s.Require().NoError(s.Service.SyncByView(ctx, subscriptionView, syncUntil))
+	s.Require().NoError(s.Service.SyncByID(ctx, subscriptionView.Subscription.NamespacedID, syncUntil))
 
 	childID := recurringLineMatcher{
 		PhaseKey: "default", ItemKey: itemKey, Version: 0, PeriodMin: 0, PeriodMax: 0,
@@ -558,7 +559,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestSchedulingFutureReplacemen
 	// Then sync keeps v[0]'s charge ID while repairing its reference and shrinking it:
 	//   Charges:
 	//   - v[0]/period[0] $1/unit [Jan 1, Jan 10), referencing the recreated item row
-	s.Require().NoError(s.Service.SyncByView(ctx, scheduledView, syncUntil))
+	s.Require().NoError(s.Service.SyncByID(ctx, scheduledView.Subscription.NamespacedID, syncUntil))
 	reconciled, err := s.Charges.GetByID(ctx, charges.GetByIDInput{ChargeID: chargesmeta.ChargeID{Namespace: s.Namespace, ID: originalCharge.GetID()}})
 	s.Require().NoError(err)
 	reconciledCharge, err := reconciled.AsUsageBasedCharge()
@@ -569,7 +570,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestSchedulingFutureReplacemen
 
 	// Repeating the sync makes no further charge update.
 	updatedAt := reconciledCharge.UpdatedAt
-	s.Require().NoError(s.Service.SyncByView(ctx, scheduledView, syncUntil))
+	s.Require().NoError(s.Service.SyncByID(ctx, scheduledView.Subscription.NamespacedID, syncUntil))
 	stable, err := s.Charges.GetByID(ctx, charges.GetByIDInput{ChargeID: chargesmeta.ChargeID{Namespace: s.Namespace, ID: originalCharge.GetID()}})
 	s.Require().NoError(err)
 	stableCharge, err := stable.AsUsageBasedCharge()
@@ -660,7 +661,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestRecreatingFuturePhaseRepai
 	//   Charges:
 	//   - first-phase/v[0]/period[0] $100 [Jan 1, Feb 1)
 	//   - second-phase/v[0]/period[0] $200 [Feb 1, Mar 1), referencing the original second-phase and item rows
-	s.Require().NoError(s.Service.SyncByView(ctx, subscriptionView, syncUntil))
+	s.Require().NoError(s.Service.SyncByID(ctx, subscriptionView.Subscription.NamespacedID, syncUntil))
 
 	secondPhaseChildID := recurringLineMatcher{
 		PhaseKey:  "second-phase",
@@ -759,7 +760,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestRecreatingFuturePhaseRepai
 	//   - expected: recognize second-phase/v[0] as the same billing intent despite its new physical ID
 	//   Charges:
 	//   - expected: keep the existing charge and repair both subscription references
-	s.Require().NoError(s.Service.SyncByView(ctx, recreatedView, syncUntil))
+	s.Require().NoError(s.Service.SyncByID(ctx, recreatedView.Subscription.NamespacedID, syncUntil))
 
 	reconciled, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
 		Namespace:       s.Namespace,
@@ -785,7 +786,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestRecreatingFuturePhaseRepai
 	s.Equal(recreatedSecondItemID, reconciledCharge.Intent.GetSubscription().ItemID)
 
 	// Repeating the same sync converges without replacing the repaired charge.
-	s.Require().NoError(s.Service.SyncByView(ctx, recreatedView, syncUntil))
+	s.Require().NoError(s.Service.SyncByID(ctx, recreatedView.Subscription.NamespacedID, syncUntil))
 	stable, err := s.Charges.GetByID(ctx, charges.GetByIDInput{ChargeID: originalCharge.GetChargeID()})
 	s.Require().NoError(err)
 	stableCharge, err := stable.AsFlatFeeCharge()
@@ -867,7 +868,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCustomCurrencyFlatFeeProvi
 	s.NotNil(eventCurrency)
 	s.False(eventCurrency.IsResolved())
 
-	s.NoError(s.Service.SyncByView(ctx, eventView, syncUntil))
+	s.NoError(s.Service.SyncByID(ctx, eventView.Subscription.NamespacedID, syncUntil))
 
 	result, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
 		Namespace:       s.Namespace,
@@ -979,7 +980,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyFlatFeeProvisio
 
 	s.Run("provisions the next two billing cycles", func() {
 		// When we provision the next two billing cycles.
-		s.NoError(s.Service.SyncByView(ctx, subscriptionView, syncUntil))
+		s.NoError(s.Service.SyncByID(ctx, subscriptionView.Subscription.NamespacedID, syncUntil))
 
 		// Then two matching flat fee charges are created.
 		initialCharges = s.expectCreditsOnlyFlatFeeCharges(ctx, subscriptionView.Subscription.ID, expectedCharges)
@@ -993,7 +994,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyFlatFeeProvisio
 
 		// When the clock advances and we re-provision the same next two billing cycles.
 		clock.SetTime(s.mustParseTime("2024-01-15T00:00:00Z"))
-		s.NoError(s.Service.SyncByView(ctx, subscriptionView, syncUntil))
+		s.NoError(s.Service.SyncByID(ctx, subscriptionView.Subscription.NamespacedID, syncUntil))
 
 		// Then the existing charges are unchanged.
 		reconciledCharges := s.expectCreditsOnlyFlatFeeCharges(ctx, subscriptionView.Subscription.ID, expectedCharges)
@@ -1098,7 +1099,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyFlatFeeCancella
 	var originalSecondPeriodCharge flatfee.Charge
 
 	s.Run("provisions the next two billing cycles", func() {
-		s.NoError(s.Service.SyncByViewAndInvoiceCustomer(ctx, subscriptionView, syncUntil))
+		s.NoError(s.Service.SyncByID(ctx, subscriptionView.Subscription.NamespacedID, syncUntil, subscriptionsync.WithInvoicePendingLines()))
 		provisionedCharges := s.expectCreditsOnlyFlatFeeCharges(ctx, subscriptionView.Subscription.ID, expectedCharges)
 		s.Len(provisionedCharges, 2)
 
@@ -1118,7 +1119,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyFlatFeeCancella
 		subscriptionView, err = s.SubscriptionService.GetView(ctx, subscriptionModel.NamespacedID)
 		s.NoError(err)
 
-		s.NoError(s.Service.SyncByView(ctx, subscriptionView, syncUntil))
+		s.NoError(s.Service.SyncByID(ctx, subscriptionView.Subscription.NamespacedID, syncUntil))
 
 		remainingCharges := s.expectCreditsOnlyFlatFeeCharges(ctx, subscriptionView.Subscription.ID, []expectedFlatFeeCharge{
 			expectedCharges[0].Indexes(0),
@@ -1236,7 +1237,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyFlatFeeMidPerio
 	var originalSecondPeriodCharge flatfee.Charge
 
 	s.Run("provisions the current and next billing cycle", func() {
-		s.NoError(s.Service.SyncByView(ctx, subscriptionView, initialSyncUntil))
+		s.NoError(s.Service.SyncByID(ctx, subscriptionView.Subscription.NamespacedID, initialSyncUntil))
 
 		provisionedCharges := s.expectCreditsOnlyFlatFeeCharges(ctx, subscriptionView.Subscription.ID, expectedCharges)
 		s.Len(provisionedCharges, 2)
@@ -1257,7 +1258,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyFlatFeeMidPerio
 		subscriptionView, err = s.SubscriptionService.GetView(ctx, subscriptionModel.NamespacedID)
 		s.NoError(err)
 
-		s.NoError(s.Service.SyncByView(ctx, subscriptionView, resyncUntil))
+		s.NoError(s.Service.SyncByID(ctx, subscriptionView.Subscription.NamespacedID, resyncUntil))
 
 		remainingCharges := s.expectCreditsOnlyFlatFeeCharges(ctx, subscriptionView.Subscription.ID, []expectedFlatFeeCharge{
 			{
@@ -1395,7 +1396,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedProvi
 	var initialCharges []usagebased.Charge
 
 	s.Run("provisions the next two billing cycles", func() {
-		s.NoError(s.Service.SyncByView(ctx, subscriptionView, syncUntil))
+		s.NoError(s.Service.SyncByID(ctx, subscriptionView.Subscription.NamespacedID, syncUntil))
 		initialCharges = s.expectCreditsOnlyUsageBasedCharges(ctx, subscriptionView.Subscription.ID, expectedCharges)
 	})
 
@@ -1405,7 +1406,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedProvi
 		})
 
 		clock.SetTime(s.mustParseTime("2024-01-15T00:00:00Z"))
-		s.NoError(s.Service.SyncByView(ctx, subscriptionView, syncUntil))
+		s.NoError(s.Service.SyncByID(ctx, subscriptionView.Subscription.NamespacedID, syncUntil))
 
 		reconciledCharges := s.expectCreditsOnlyUsageBasedCharges(ctx, subscriptionView.Subscription.ID, expectedCharges)
 		s.Len(reconciledCharges, len(initialCharges))
@@ -1508,7 +1509,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedCance
 	var originalCharge usagebased.Charge
 
 	s.Run("provisions the charge in created state", func() {
-		s.NoError(s.Service.SyncByView(ctx, subscriptionView, syncUntil))
+		s.NoError(s.Service.SyncByID(ctx, subscriptionView.Subscription.NamespacedID, syncUntil))
 		provisionedCharges := s.expectCreditsOnlyUsageBasedCharges(ctx, subscriptionView.Subscription.ID, expectedCharges)
 		s.Len(provisionedCharges, 1)
 		originalCharge = provisionedCharges[0]
@@ -1527,7 +1528,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedCance
 		subscriptionView, err = s.SubscriptionService.GetView(ctx, subscriptionModel.NamespacedID)
 		s.NoError(err)
 
-		s.NoError(s.Service.SyncByView(ctx, subscriptionView, syncUntil))
+		s.NoError(s.Service.SyncByID(ctx, subscriptionView.Subscription.NamespacedID, syncUntil))
 		s.expectCreditsOnlyUsageBasedCharges(ctx, subscriptionView.Subscription.ID, nil)
 
 		deletedChargeRes, err := s.Charges.GetByID(ctx, charges.GetByIDInput{
@@ -1605,7 +1606,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedOverr
 			},
 		}, startAt)
 
-		s.NoError(s.Service.SyncByView(ctx, subscriptionView, periodEnd))
+		s.NoError(s.Service.SyncByID(ctx, subscriptionView.Subscription.NamespacedID, periodEnd))
 		result, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
 			Namespace:       s.Namespace,
 			SubscriptionIDs: []string{subscriptionView.Subscription.ID},
@@ -1639,7 +1640,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedOverr
 		s.NoError(err)
 		canceledView, err := s.SubscriptionService.GetView(ctx, model.NamespacedID)
 		s.NoError(err)
-		s.NoError(s.Service.SyncByView(ctx, canceledView, cancelAt))
+		s.NoError(s.Service.SyncByID(ctx, canceledView.Subscription.NamespacedID, cancelAt))
 	})
 
 	s.Run("then the override remains effective over the changed base", func() {
@@ -1770,7 +1771,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedMidPe
 	var originalFirstPeriodCharge usagebased.Charge
 
 	s.Run("provisions the current and next billing cycle", func() {
-		s.NoError(s.Service.SyncByView(ctx, subscriptionView, initialSyncUntil))
+		s.NoError(s.Service.SyncByID(ctx, subscriptionView.Subscription.NamespacedID, initialSyncUntil))
 
 		provisionedCharges := s.expectCreditsOnlyUsageBasedCharges(ctx, subscriptionView.Subscription.ID, expectedCharges)
 		s.Len(provisionedCharges, 2)
@@ -1821,7 +1822,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedMidPe
 		subscriptionView, err = s.SubscriptionService.GetView(ctx, subscriptionModel.NamespacedID)
 		s.NoError(err)
 
-		s.NoError(s.Service.SyncByView(ctx, subscriptionView, initialSyncUntil))
+		s.NoError(s.Service.SyncByID(ctx, subscriptionView.Subscription.NamespacedID, initialSyncUntil))
 
 		remainingCharges := s.expectCreditsOnlyUsageBasedCharges(ctx, subscriptionView.Subscription.ID, []expectedUsageBasedCharge{
 			{
@@ -2001,7 +2002,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyMixedProvisioni
 		}).Indexes(0),
 	}
 
-	s.NoError(s.Service.SyncByView(ctx, subscriptionView, syncUntil))
+	s.NoError(s.Service.SyncByID(ctx, subscriptionView.Subscription.NamespacedID, syncUntil))
 	s.expectCreditsOnlyMixedCharges(ctx, subscriptionView.Subscription.ID, expectedFlatFeeCharges, expectedUsageBasedCharges)
 }
 
@@ -2255,7 +2256,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyFlatFeeTaxCodeP
 		},
 	}, startAt)
 
-	s.NoError(s.Service.SyncByView(ctx, subscriptionView, syncUntil))
+	s.NoError(s.Service.SyncByID(ctx, subscriptionView.Subscription.NamespacedID, syncUntil))
 
 	res, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
 		Namespace:       s.Namespace,
@@ -2335,7 +2336,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedTaxCo
 		},
 	}, startAt)
 
-	s.NoError(s.Service.SyncByView(ctx, subscriptionView, syncUntil))
+	s.NoError(s.Service.SyncByID(ctx, subscriptionView.Subscription.NamespacedID, syncUntil))
 
 	res, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
 		Namespace:       s.Namespace,

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"time"
 
 	"go.opentelemetry.io/otel/trace"
 
@@ -16,7 +15,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/featuregate"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type FeatureFlags struct {
@@ -120,22 +118,4 @@ func (s *Service) GetSyncStates(ctx context.Context, input subscriptionsync.GetS
 	return transaction.Run(ctx, s.subscriptionSyncAdapter, func(ctx context.Context) ([]subscriptionsync.SyncState, error) {
 		return s.subscriptionSyncAdapter.GetSyncStates(ctx, input)
 	})
-}
-
-func (s *Service) SyncByViewAndInvoiceCustomer(ctx context.Context, view subscription.SubscriptionView, asOf time.Time, opts ...subscriptionsync.SynchronizeSubscriptionOption) error {
-	return s.synchronizeSubscriptionAndInvoiceCustomer(ctx, newSubscriptionReferenceOrView(view), asOf, opts...)
-}
-
-func (s *Service) SyncByIDAndInvoiceCustomer(ctx context.Context, subscriptionID models.NamespacedID, asOf time.Time, opts ...subscriptionsync.SynchronizeSubscriptionOption) error {
-	return s.synchronizeSubscriptionAndInvoiceCustomer(ctx, newSubscriptionReferenceOrView(subscriptionID), asOf, opts...)
-}
-
-func (s *Service) SyncByView(ctx context.Context, view subscription.SubscriptionView, asOf time.Time, opts ...subscriptionsync.SynchronizeSubscriptionOption) error {
-	_, err := s.synchronizeSubscription(ctx, newSubscriptionReferenceOrView(view), asOf, opts...)
-	return err
-}
-
-func (s *Service) SyncByID(ctx context.Context, subscriptionID models.NamespacedID, asOf time.Time, opts ...subscriptionsync.SynchronizeSubscriptionOption) error {
-	_, err := s.synchronizeSubscription(ctx, newSubscriptionReferenceOrView(subscriptionID), asOf, opts...)
-	return err
 }

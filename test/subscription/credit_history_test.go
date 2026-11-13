@@ -111,7 +111,7 @@ func TestSubscriptionEditProratedCreditHistory(t *testing.T) {
 	originalItem := view.Phases[0].ItemsByKey[rateCard.Key()][0].SubscriptionItem
 
 	clock.FreezeTime(startsAt)
-	require.NoError(t, deps.subscriptionSyncService.SyncByView(ctx, view, startsAt))
+	require.NoError(t, deps.subscriptionSyncService.SyncByID(ctx, view.Subscription.NamespacedID, startsAt))
 	_, err = deps.chargesService.AdvanceCharges(ctx, charges.AdvanceChargesInput{Customer: customer.GetID()})
 	require.NoError(t, err)
 
@@ -155,7 +155,7 @@ func TestSubscriptionEditProratedCreditHistory(t *testing.T) {
 	versions := edited.Phases[0].ItemsByKey[rateCard.Key()]
 	require.Len(t, versions, 2)
 	require.NotEqual(t, originalItem.ID, versions[1].SubscriptionItem.ID, "the edit must exercise recreated subscription items")
-	require.NoError(t, deps.subscriptionSyncService.SyncByView(ctx, edited, editAt))
+	require.NoError(t, deps.subscriptionSyncService.SyncByID(ctx, edited.Subscription.NamespacedID, editAt))
 	_, err = deps.chargesService.AdvanceCharges(ctx, charges.AdvanceChargesInput{Customer: customer.GetID()})
 	require.NoError(t, err)
 

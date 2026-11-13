@@ -2,6 +2,7 @@ package billingworker
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"slices"
@@ -21,6 +22,15 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/watermill/router"
 )
 
+// SubscriptionSyncEventHandler processes the subscription and invoice events
+// consumed by the billing worker.
+type SubscriptionSyncEventHandler interface {
+	HandleCancelledEvent(context.Context, *subscription.CancelledEvent) error
+	HandleDeletedEvent(context.Context, *subscription.DeletedEvent) error
+	HandleSubscriptionSyncEvent(context.Context, *subscription.SubscriptionSyncEvent) error
+	HandleInvoiceCreation(context.Context, *billing.StandardInvoiceCreatedEvent) error
+}
+
 type WorkerOptions struct {
 	SystemEventsTopic string
 
@@ -29,9 +39,10 @@ type WorkerOptions struct {
 
 	Logger *slog.Logger
 
-	BillingService          billing.Service
-	BillingSubscriptionSync subscriptionsync.Service
-	BillingCollector        *billingworkercollect.InvoiceCollector
+	BillingService               billing.Service
+	BillingSubscriptionSync      subscriptionsync.Service
+	SubscriptionSyncEventHandler SubscriptionSyncEventHandler
+	BillingCollector             *billingworkercollect.InvoiceCollector
 	// ChargesService is optional; when non-nil the worker handles AdvanceChargesEvent.
 	ChargesService charges.ChargeService
 	// External connectors
@@ -69,6 +80,10 @@ func (w WorkerOptions) Validate() error {
 		return fmt.Errorf("billing subscription sync handler is required")
 	}
 
+	if w.SubscriptionSyncEventHandler == nil {
+		return errors.New("subscription sync event handler is required")
+	}
+
 	if w.BillingCollector == nil {
 		return fmt.Errorf("billing collector is required")
 	}
@@ -79,13 +94,14 @@ func (w WorkerOptions) Validate() error {
 type Worker struct {
 	router *message.Router
 
-	billingService             billing.Service
-	subscriptionSync           subscriptionsync.Service
-	invoiceCollector           *billingworkercollect.InvoiceCollector
-	asyncAdvanceHandler        *asyncadvance.Handler
-	asyncAdvanceChargesHandler *chargesasyncadvance.Handler
-	nonPublishingHandler       *grouphandler.NoPublishingHandler
-	lockdownNamespaces         []string
+	billingService               billing.Service
+	subscriptionSync             subscriptionsync.Service
+	subscriptionSyncEventHandler SubscriptionSyncEventHandler
+	invoiceCollector             *billingworkercollect.InvoiceCollector
+	asyncAdvanceHandler          *asyncadvance.Handler
+	asyncAdvanceChargesHandler   *chargesasyncadvance.Handler
+	nonPublishingHandler         *grouphandler.NoPublishingHandler
+	lockdownNamespaces           []string
 }
 
 func New(opts WorkerOptions) (*Worker, error) {
@@ -114,12 +130,13 @@ func New(opts WorkerOptions) (*Worker, error) {
 	}
 
 	worker := &Worker{
-		billingService:             opts.BillingService,
-		subscriptionSync:           opts.BillingSubscriptionSync,
-		invoiceCollector:           opts.BillingCollector,
-		asyncAdvanceHandler:        asyncAdvancer,
-		asyncAdvanceChargesHandler: asyncAdvanceChargesHandler,
-		lockdownNamespaces:         opts.LockdownNamespaces,
+		billingService:               opts.BillingService,
+		subscriptionSync:             opts.BillingSubscriptionSync,
+		subscriptionSyncEventHandler: opts.SubscriptionSyncEventHandler,
+		invoiceCollector:             opts.BillingCollector,
+		asyncAdvanceHandler:          asyncAdvancer,
+		asyncAdvanceChargesHandler:   asyncAdvanceChargesHandler,
+		lockdownNamespaces:           opts.LockdownNamespaces,
 	}
 
 	router, err := router.NewDefaultRouter(opts.Router)
@@ -163,10 +180,11 @@ func (w *Worker) eventHandler(opts WorkerOptions) (*grouphandler.NoPublishingHan
 				return nil
 			}
 
-			return w.subscriptionSync.SyncByViewAndInvoiceCustomer(
+			return w.subscriptionSync.SyncByID(
 				ctx,
-				event.SubscriptionView,
+				event.Subscription.NamespacedID,
 				time.Now(),
+				subscriptionsync.WithInvoicePendingLines(),
 			)
 		}),
 		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *subscription.CancelledEvent) error {
@@ -174,24 +192,25 @@ func (w *Worker) eventHandler(opts WorkerOptions) (*grouphandler.NoPublishingHan
 				return nil
 			}
 
-			return w.subscriptionSync.HandleCancelledEvent(ctx, event)
+			return w.subscriptionSyncEventHandler.HandleCancelledEvent(ctx, event)
 		}),
 		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *subscription.DeletedEvent) error {
 			if event != nil && slices.Contains(w.lockdownNamespaces, event.Subscription.Namespace) {
 				return nil
 			}
 
-			return w.subscriptionSync.HandleDeletedEvent(ctx, event)
+			return w.subscriptionSyncEventHandler.HandleDeletedEvent(ctx, event)
 		}),
 		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *subscription.ContinuedEvent) error {
 			if event != nil && slices.Contains(w.lockdownNamespaces, event.Subscription.Namespace) {
 				return nil
 			}
 
-			return w.subscriptionSync.SyncByViewAndInvoiceCustomer(
+			return w.subscriptionSync.SyncByID(
 				ctx,
-				event.SubscriptionView,
+				event.Subscription.NamespacedID,
 				time.Now(),
+				subscriptionsync.WithInvoicePendingLines(),
 			)
 		}),
 		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *subscription.UpdatedEvent) error {
@@ -199,10 +218,11 @@ func (w *Worker) eventHandler(opts WorkerOptions) (*grouphandler.NoPublishingHan
 				return nil
 			}
 
-			return w.subscriptionSync.SyncByViewAndInvoiceCustomer(
+			return w.subscriptionSync.SyncByID(
 				ctx,
-				event.UpdatedView,
+				event.UpdatedView.Subscription.NamespacedID,
 				time.Now(),
+				subscriptionsync.WithInvoicePendingLines(),
 			)
 		}),
 		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *subscription.SubscriptionSyncEvent) error {
@@ -210,7 +230,7 @@ func (w *Worker) eventHandler(opts WorkerOptions) (*grouphandler.NoPublishingHan
 				return nil
 			}
 
-			return w.subscriptionSync.HandleSubscriptionSyncEvent(ctx, event)
+			return w.subscriptionSyncEventHandler.HandleSubscriptionSyncEvent(ctx, event)
 		}),
 		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *billing.AdvanceStandardInvoiceEvent) error {
 			if event != nil && slices.Contains(w.lockdownNamespaces, event.Invoice.Namespace) {
@@ -242,7 +262,7 @@ func (w *Worker) eventHandler(opts WorkerOptions) (*grouphandler.NoPublishingHan
 				return nil
 			}
 
-			return w.subscriptionSync.HandleInvoiceCreation(ctx, event)
+			return w.subscriptionSyncEventHandler.HandleInvoiceCreation(ctx, event)
 		}),
 	)
 	if err != nil {

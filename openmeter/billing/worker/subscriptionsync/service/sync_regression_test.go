@@ -7,7 +7,6 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/invopop/gobl/currency"
-	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
@@ -15,11 +14,13 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	chargesmeta "github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
+	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	productcatalogsubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	subscriptionrepo "github.com/openmeterio/openmeter/openmeter/subscription/repo"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -161,7 +162,7 @@ func (s *CreditThenInvoiceTestSuite) TestCancellationReconcilesPeriodsByServiceD
 					s.MockStreamingConnector.AddSimpleEvent(*s.APIRequestsTotalFeature.MeterSlug, 0, start)
 				}
 
-				s.Require().NoError(s.Service.SyncByView(ctx, subsView, start.Add(time.Minute)))
+				s.Require().NoError(s.Service.SyncByID(ctx, subsView.Subscription.NamespacedID, start.Add(time.Minute)))
 				chargePage, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
 					Namespace:       subsView.Subscription.Namespace,
 					SubscriptionIDs: []string{subsView.Subscription.ID},
@@ -203,7 +204,7 @@ func (s *CreditThenInvoiceTestSuite) TestCancellationReconcilesPeriodsByServiceD
 
 				canceledView, err = s.SubscriptionService.GetView(ctx, subscriptionModel.NamespacedID)
 				s.Require().NoError(err)
-				s.Require().NoError(s.Service.SyncByView(ctx, canceledView, cancelAt.Add(time.Minute)))
+				s.Require().NoError(s.Service.SyncByID(ctx, canceledView.Subscription.NamespacedID, cancelAt.Add(time.Minute)))
 
 				updatedGeneric, err := s.Charges.GetByID(ctx, charges.GetByIDInput{ChargeID: initial.ID})
 				s.Require().NoError(err)
@@ -230,7 +231,7 @@ func (s *CreditThenInvoiceTestSuite) TestCancellationReconcilesPeriodsByServiceD
 				}
 
 				// And retrying the same synchronization is an idempotent no-op.
-				s.Require().NoError(s.Service.SyncByView(ctx, canceledView, cancelAt.Add(time.Minute)))
+				s.Require().NoError(s.Service.SyncByID(ctx, canceledView.Subscription.NamespacedID, cancelAt.Add(time.Minute)))
 				retriedGeneric, err := s.Charges.GetByID(ctx, charges.GetByIDInput{ChargeID: initial.ID})
 				s.Require().NoError(err)
 				retried := cancellationRegressionSnapshot(s.T(), retriedGeneric, tc.chargeType)
@@ -424,7 +425,7 @@ func (s *CreditThenInvoiceTestSuite) testCancellationRetainsPaidMonthlyFlatFees(
 	s.RequireRun("bill three monthly periods", func() {
 		for i := 0; i < 3; i++ {
 			clock.FreezeTime(boundaries[i].Add(time.Minute))
-			s.Require().NoError(s.Service.SyncByView(ctx, view, boundaries[i+1]))
+			s.Require().NoError(s.Service.SyncByID(ctx, view.Subscription.NamespacedID, boundaries[i+1]))
 
 			invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
 				Customer: s.Customer.GetID(),
@@ -499,16 +500,18 @@ func (s *CreditThenInvoiceTestSuite) testCancellationRetainsPaidMonthlyFlatFees(
 			s.Require().Equal(itemAnnotations[migrationAnnotation], canceledView.Phases[0].ItemsByKey[itemKey][0].SubscriptionItem.Annotations[migrationAnnotation])
 		}
 
-		s.Require().NoError(s.Service.SyncByViewAndInvoiceCustomer(ctx, canceledView, boundaries[3]))
+		s.Require().NoError(s.Service.SyncByID(ctx, canceledView.Subscription.NamespacedID, boundaries[3], subscriptionsync.
+
+			// then: paid history remains attached to the recreated item, with no duplicate collectible work.
+			WithInvoicePendingLines()))
 	})
 
-	// then: paid history remains attached to the recreated item, with no duplicate collectible work.
 	var first paidCancellationHistorySnapshot
 	s.Run("preserve paid charge and invoice history", func() {
 		first = s.assertPaidCancellationHistory(view.Subscription.ID, newItemID, paid)
 	})
 	s.Run("repeat reconciliation without new work", func() {
-		s.Require().NoError(s.Service.SyncByViewAndInvoiceCustomer(ctx, canceledView, boundaries[3]))
+		s.Require().NoError(s.Service.SyncByID(ctx, canceledView.Subscription.NamespacedID, boundaries[3], subscriptionsync.WithInvoicePendingLines()))
 		second := s.assertPaidCancellationHistory(view.Subscription.ID, newItemID, paid)
 		s.ElementsMatch(first.chargeIDs, second.chargeIDs, "a repeated sync must not create more charges")
 		s.ElementsMatch(first.lineIDs, second.lineIDs, "a repeated collection must not create more lines")
@@ -654,7 +657,7 @@ func (s *CreditThenInvoiceTestSuite) TestChargeReplacementRejectsPaidFlatFeeWith
 		oldItemID = view.Phases[0].ItemsByKey[itemKey][0].SubscriptionItem.ID
 		referenceOnlyItemID = view.Phases[0].ItemsByKey[referenceOnlyItemKey][0].SubscriptionItem.ID
 		subscriptionID = view.Subscription.NamespacedID
-		s.Require().NoError(s.Service.SyncByView(ctx, view, start.AddDate(0, 1, 0)))
+		s.Require().NoError(s.Service.SyncByID(ctx, view.Subscription.NamespacedID, start.AddDate(0, 1, 0)))
 
 		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
 			Customer: s.Customer.GetID(),
@@ -706,21 +709,29 @@ func (s *CreditThenInvoiceTestSuite) TestChargeReplacementRejectsPaidFlatFeeWith
 	s.RequireRun("reject the changed item", func() {
 		revised, err := s.SubscriptionService.GetView(ctx, subscriptionID)
 		s.Require().NoError(err)
-		item := &revised.Phases[0].ItemsByKey[itemKey][0]
-		item.SubscriptionItem.ID = ulid.Make().String()
-		s.Require().NotEqual(oldItemID, item.SubscriptionItem.ID)
-		changedRateCard, ok := item.SubscriptionItem.RateCard.Clone().(*productcatalog.FlatFeeRateCard)
-		s.Require().True(ok)
-		changedRateCard.Price = productcatalog.NewPriceFrom(productcatalog.FlatPrice{
-			Amount:      alpacadecimal.NewFromInt(40),
-			PaymentTerm: productcatalog.InAdvancePaymentTerm,
-		})
-		item.SubscriptionItem.RateCard = changedRateCard
-		item.Spec.RateCard = changedRateCard.Clone()
-		revised.Phases[0].ItemsByKey[referenceOnlyItemKey][0].SubscriptionItem.ID = ulid.Make().String()
-		s.Require().NoError(revised.Validate(true))
+		itemRepo := subscriptionrepo.NewSubscriptionItemRepo(s.DBClient)
+		// Persist replacement rows: SyncByID must reload them instead of accepting a
+		// fabricated view. The repository lets this test exercise sync's own guard.
+		for _, key := range []string{itemKey, referenceOnlyItemKey} {
+			originalItem := revised.Phases[0].ItemsByKey[key][0].SubscriptionItem
+			replacement := originalItem.AsEntityInput()
+			replacement.RateCard = originalItem.RateCard.Clone()
+			if key == itemKey {
+				changedRateCard, ok := replacement.RateCard.(*productcatalog.FlatFeeRateCard)
+				s.Require().True(ok)
+				changedRateCard.Price = productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+					Amount:      alpacadecimal.NewFromInt(40),
+					PaymentTerm: productcatalog.InAdvancePaymentTerm,
+				})
+			}
 
-		err = s.Service.SyncByViewAndInvoiceCustomer(ctx, revised, start.AddDate(0, 1, 0))
+			s.Require().NoError(itemRepo.Delete(ctx, originalItem.NamespacedID))
+			recreatedItem, err := itemRepo.Create(ctx, replacement)
+			s.Require().NoError(err)
+			s.Require().NotEqual(originalItem.ID, recreatedItem.ID)
+		}
+
+		err = s.Service.SyncByID(ctx, revised.Subscription.NamespacedID, start.AddDate(0, 1, 0), subscriptionsync.WithInvoicePendingLines())
 		s.Require().ErrorContains(err, "immutable")
 	})
 

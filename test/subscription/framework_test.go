@@ -28,7 +28,6 @@ import (
 	billingsequenceservice "github.com/openmeterio/openmeter/openmeter/billing/sequence/service"
 	billingservice "github.com/openmeterio/openmeter/openmeter/billing/service"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
-	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
 	subscriptionsyncadapter "github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/adapter"
 	subscriptionsyncservice "github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
@@ -62,7 +61,7 @@ type testDeps struct {
 	pcSubscriptionService       pcsubscription.PlanSubscriptionService
 	subscriptionService         subscription.Service
 	subscriptionWorkflowService subscriptionworkflow.Service
-	subscriptionSyncService     subscriptionsync.Service
+	subscriptionSyncService     *subscriptionsyncservice.Service
 	billingService              billing.Service
 	chargesService              charges.Service
 	customerBalanceService      customerbalance.Service
