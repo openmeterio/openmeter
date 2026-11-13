@@ -82,7 +82,6 @@ func (Subscription) Indexes() []ent.Index {
 			StorageKey("subscription_deleted_reconciliation_cursor").
 			Annotations(
 				entsql.IndexWhere("deleted_at IS NOT NULL"),
-				entsql.IncludeColumns("deleted_at"),
 			),
 	}
 }

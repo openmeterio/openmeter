@@ -300,6 +300,10 @@ func (s *DeletedSubscriptionsToReconcileSuite) TestPaginationWhileCleanupComplet
 }
 
 func TestDeletedSubscriptionsToReconcileQuery(t *testing.T) {
+	// Result assertions cannot detect a query that returns the same rows but drops
+	// the namespace filter on the v2 subquery or expands the cursor into a filter
+	// instead of a tuple comparison. Keep exact SQL assertions so Ent upgrades
+	// require reviewing those query changes; the benchmark uses this same builder.
 	now := time.Date(2026, 11, 13, 12, 0, 0, 0, time.UTC)
 	cursor := paginationv2.NewCursor(now.Add(-time.Hour), "00000000000000000000000100")
 	tests := []struct {

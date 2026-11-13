@@ -5652,9 +5652,6 @@ var (
 				Unique:  false,
 				Columns: []*schema.Column{SubscriptionsColumns[1], SubscriptionsColumns[3], SubscriptionsColumns[0]},
 				Annotation: &entsql.IndexAnnotation{
-					IncludeColumns: []string{
-						SubscriptionsColumns[5].Name,
-					},
 					Where: "deleted_at IS NOT NULL",
 				},
 			},

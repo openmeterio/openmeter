@@ -89,8 +89,9 @@ func (i ReconcilerListSubscriptionsInput) Validate() error {
 
 type SubscriptionWithSyncState struct {
 	subscription.Subscription
-	// Leave legacy state unset for deleted subscriptions so workers still using
-	// v1 scheduling checks do not suppress pending deletion cleanup.
+	// TODO: Once Cloud's SubscriptionSyncSendSyncEvents activity uses ShouldReconcile,
+	// restore legacy state for deleted subscriptions and remove the legacyIDs filter
+	// below. Until then, nil prevents Cloud's legacy checks from skipping cleanup.
 	*subscriptionsync.SyncState
 	SyncStateV2 *subscriptionsync.SyncStateV2Managed
 }
@@ -98,8 +99,6 @@ type SubscriptionWithSyncState struct {
 // ShouldReconcile decides whether periodic subscription sync has work to do.
 // Deleted subscriptions need a v2 cleanup result; legacy no-billables state
 // cannot establish that their billing artifacts were reconciled after deletion.
-// DeletedAt is an immediate cleanup marker, not a schedule: future gathering
-// lines must be removed before billing can collect them.
 func (s SubscriptionWithSyncState) ShouldReconcile(now time.Time) bool {
 	if s.Subscription.DeletedAt != nil {
 		if s.SyncStateV2 == nil {
@@ -147,8 +146,7 @@ func (r *Reconciler) ListSubscriptions(ctx context.Context, in ReconcilerListSub
 		subscriptions, err := r.subscriptionService.List(ctx, subscription.ListSubscriptionsInput{
 			Namespaces: in.Namespaces,
 			CustomerID: customerID,
-			// Deleted roots belong exclusively to the cleanup query, even when their
-			// deletion timestamp is ahead of this worker's clock.
+			// Keep deleted subscriptions exclusively in the cleanup query.
 			DeletedAt: &filter.FilterTime{Exists: lo.ToPtr(false)},
 			ActiveInPeriod: &timeutil.StartBoundedPeriod{
 				From: clock.Now().Add(-in.Lookback),
@@ -227,8 +225,8 @@ func (r *Reconciler) ListSubscriptions(ctx context.Context, in ReconcilerListSub
 }
 
 func (r *Reconciler) mapToSubscriptionWithSyncState(ctx context.Context, subs []subscription.Subscription) ([]SubscriptionWithSyncState, error) {
-	ids := lo.Map(subs, func(item subscription.Subscription, _ int) models.NamespacedID {
-		return item.NamespacedID
+	deletedIDs := lo.FilterMap(subs, func(item subscription.Subscription, _ int) (models.NamespacedID, bool) {
+		return item.NamespacedID, item.DeletedAt != nil
 	})
 	legacyIDs := lo.FilterMap(subs, func(item subscription.Subscription, _ int) (models.NamespacedID, bool) {
 		return item.NamespacedID, item.DeletedAt == nil
@@ -243,9 +241,13 @@ func (r *Reconciler) mapToSubscriptionWithSyncState(ctx context.Context, subs []
 		}
 	}
 
-	syncStatesV2, err := r.subscriptionSync.GetSyncStatesV2(ctx, ids)
-	if err != nil {
-		return nil, fmt.Errorf("getting v2 sync states: %w", err)
+	var syncStatesV2 []subscriptionsync.SyncStateV2Managed
+	if len(deletedIDs) > 0 {
+		var err error
+		syncStatesV2, err = r.subscriptionSync.GetSyncStatesV2(ctx, deletedIDs)
+		if err != nil {
+			return nil, fmt.Errorf("getting v2 sync states: %w", err)
+		}
 	}
 
 	syncStatesBySubscriptionID := lo.SliceToMap(syncStates, func(state subscriptionsync.SyncState) (models.NamespacedID, subscriptionsync.SyncState) {

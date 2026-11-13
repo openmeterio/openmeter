@@ -8,12 +8,8 @@ import (
 	paginationv2 "github.com/openmeterio/openmeter/pkg/pagination/v2"
 )
 
-// ListDeletedSubscriptionsToReconcileInput selects deleted subscriptions whose
-// gathering lines still need cleanup. Only subscriptions that have not started
-// can be deleted, but sync may already have generated their future gathering lines.
-// Billing collection can pick up those lines while deletion cleanup is pending,
-// so cleanup must not wait for ActiveFrom or DeletedAt to pass. A successful v2
-// subscription_deleted result is what stops further cleanup attempts.
+// ListDeletedSubscriptionsToReconcileInput selects subscriptions with non-nil
+// DeletedAt and no successful v2 subscription_deleted result.
 type ListDeletedSubscriptionsToReconcileInput struct {
 	Namespaces []string
 	Customers  []string

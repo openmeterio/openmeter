@@ -40,6 +40,7 @@ type subscriptionSyncSpy struct {
 	statesV2     []subscriptionsync.SyncStateV2Managed
 	legacyIDs    subscriptionsync.GetSyncStatesInput
 	v2IDs        subscriptionsync.GetSyncStatesV2Input
+	v2Calls      int
 }
 
 func (s *subscriptionSyncSpy) SyncByID(_ context.Context, _ models.NamespacedID, _ time.Time, opts ...subscriptionsync.SynchronizeSubscriptionOption) error {
@@ -56,7 +57,9 @@ func (s *subscriptionSyncSpy) GetSyncStates(_ context.Context, ids subscriptions
 }
 
 func (s *subscriptionSyncSpy) GetSyncStatesV2(_ context.Context, ids subscriptionsync.GetSyncStatesV2Input) ([]subscriptionsync.SyncStateV2Managed, error) {
+	s.v2Calls++
 	s.v2IDs = ids
+
 	return s.statesV2, nil
 }
 
@@ -203,7 +206,7 @@ func TestSubscriptionWithSyncStateShouldReconcile(t *testing.T) {
 	}
 }
 
-func TestMapToSubscriptionWithSyncStateIncludesV2(t *testing.T) {
+func TestMapToSubscriptionWithSyncStateLoadsV2OnlyForDeletedSubscriptions(t *testing.T) {
 	now := time.Date(2026, 11, 13, 12, 0, 0, 0, time.UTC)
 	clock.FreezeTime(now)
 	defer clock.UnFreeze()
@@ -226,15 +229,12 @@ func TestMapToSubscriptionWithSyncStateIncludesV2(t *testing.T) {
 		NamespacedID: models.NamespacedID{Namespace: "namespace", ID: "state-row-id"},
 		ManagedModel: models.ManagedModel{CreatedAt: now, UpdatedAt: now},
 	}
-	activeStateV2 := completed
-	activeStateV2.SubscriptionID = activeID
-	activeStateV2.ID = "active-state-row"
 	foreignStateV2 := completed
 	foreignStateV2.SubscriptionID = models.NamespacedID{Namespace: "other", ID: missingID.ID}
 	foreignStateV2.NamespacedID = models.NamespacedID{Namespace: "other", ID: "foreign-state-row"}
 	spy := &subscriptionSyncSpy{
 		legacyStates: []subscriptionsync.SyncState{legacy},
-		statesV2:     []subscriptionsync.SyncStateV2Managed{completed, activeStateV2, foreignStateV2},
+		statesV2:     []subscriptionsync.SyncStateV2Managed{completed, foreignStateV2},
 	}
 	r := Reconciler{subscriptionSync: spy}
 
@@ -245,20 +245,42 @@ func TestMapToSubscriptionWithSyncStateIncludesV2(t *testing.T) {
 			NamespacedID: deletedID,
 			ManagedModel: models.ManagedModel{DeletedAt: lo.ToPtr(now.Add(2 * time.Second))},
 		},
-		{NamespacedID: missingID},
+		{
+			NamespacedID: missingID,
+			ManagedModel: models.ManagedModel{DeletedAt: lo.ToPtr(now.Add(-time.Hour))},
+		},
 	})
 
-	// then: non-deleted subscriptions retain legacy scheduling and v2 metadata
+	// then: non-deleted subscriptions retain legacy scheduling without loading v2
 	require.NoError(t, err)
 	require.Len(t, mapped, 3)
 	require.Equal(t, &legacy, mapped[0].SyncState)
-	require.Equal(t, &activeStateV2, mapped[0].SyncStateV2)
+	require.Nil(t, mapped[0].SyncStateV2)
 	require.True(t, mapped[0].ShouldReconcile(now))
 	// And a deleted subscription is not suppressed by legacy state or requeued after cleanup.
 	require.Nil(t, mapped[1].SyncState)
 	require.Equal(t, &completed, mapped[1].SyncStateV2)
 	require.False(t, mapped[1].ShouldReconcile(now))
 	require.Nil(t, mapped[2].SyncStateV2, "sync state from another namespace must not match")
-	require.Equal(t, subscriptionsync.GetSyncStatesInput{activeID, missingID}, spy.legacyIDs)
-	require.Equal(t, subscriptionsync.GetSyncStatesV2Input{activeID, deletedID, missingID}, spy.v2IDs)
+	require.True(t, mapped[2].ShouldReconcile(now))
+	require.Equal(t, subscriptionsync.GetSyncStatesInput{activeID}, spy.legacyIDs)
+	require.Equal(t, subscriptionsync.GetSyncStatesV2Input{deletedID, missingID}, spy.v2IDs)
+	require.Equal(t, 1, spy.v2Calls)
+}
+
+func TestMapActiveSubscriptionsDoesNotQueryV2(t *testing.T) {
+	// given: the regular list contains only subscriptions without a deletion marker
+	id := models.NamespacedID{Namespace: "namespace", ID: "active"}
+	spy := &subscriptionSyncSpy{}
+	r := Reconciler{subscriptionSync: spy}
+
+	// when: legacy scheduling is loaded for the regular list
+	mapped, err := r.mapToSubscriptionWithSyncState(t.Context(), []subscription.Subscription{{NamespacedID: id}})
+
+	// then: no v2 database query is needed
+	require.NoError(t, err)
+	require.Len(t, mapped, 1)
+	require.Nil(t, mapped[0].SyncStateV2)
+	require.Equal(t, subscriptionsync.GetSyncStatesInput{id}, spy.legacyIDs)
+	require.Zero(t, spy.v2Calls)
 }

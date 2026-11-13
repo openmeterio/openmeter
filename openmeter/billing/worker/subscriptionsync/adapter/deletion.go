@@ -55,8 +55,15 @@ func (a *adapter) ListDeletedSubscriptionsToReconcile(ctx context.Context, input
 	})
 }
 
-// DeletedSubscriptionsToReconcileQuery builds the cleanup query without executing
-// it, so SQL tests can preserve the namespace filters and index-seeking cursor.
+// DeletedSubscriptionsToReconcileQuery builds the SQL used by the adapter and
+// the benchmark's EXPLAIN, so both measure the same cleanup query.
+// Reproduce BenchmarkListDeletedSubscriptionsToReconcile in deletion_benchmark_test.go
+// from the repository root with local PostgreSQL running (200,000 synthetic subscriptions):
+//
+//	direnv exec . env POSTGRES_HOST=127.0.0.1 POSTGRES_PORT=5432 SUBSCRIPTION_SYNC_BENCH_PLAN_DIR=/tmp/subscription-sync-plans go test -tags=dynamic ./openmeter/billing/worker/subscriptionsync/adapter -run '^$' -bench BenchmarkListDeletedSubscriptionsToReconcile -benchtime=20x -count=3
+//
+// Set POSTGRES_PORT to the local database port. SUBSCRIPTION_SYNC_BENCH_PLAN_DIR
+// saves the SQL and EXPLAIN (ANALYZE, BUFFERS) plans for each benchmark scenario.
 func DeletedSubscriptionsToReconcileQuery(dialect string, input subscriptionsync.ListDeletedSubscriptionsToReconcileInput) (string, []any) {
 	completed := []predicate.SubscriptionSyncStateV2{
 		subscriptionsyncstatev2.LastSuccessStateEQ(subscriptionsync.SyncStateV2StateSubscriptionDeleted),
@@ -72,9 +79,6 @@ func DeletedSubscriptionsToReconcileQuery(dialect string, input subscriptionsync
 		sub.C(dbsubscription.FieldNamespace),
 		sub.C(dbsubscription.FieldCreatedAt),
 	).From(sub)
-	// Deleted subscriptions were scheduled for the future. Their gathering lines
-	// need cleanup before billing collects them, even if DeletedAt is ahead of
-	// this worker's clock; it is not a scheduled deletion time.
 	dbsubscription.DeletedAtNotNil()(query)
 	dbsubscription.Not(dbsubscription.HasSyncStateV2With(completed...))(query)
 	if len(input.Namespaces) > 0 {
