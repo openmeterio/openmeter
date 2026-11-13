@@ -205,12 +205,17 @@ func TestToAPIBillingNotificationEventPayloadFieldNames(t *testing.T) {
 		Payload: notification.EventPayload{
 			EventPayloadMeta: notification.EventPayloadMeta{Type: notification.EventTypeEntitlementReset},
 			EntitlementReset: &notification.EntitlementResetPayload{
-				Entitlement: apiv1models.EntitlementMetered{Id: "01ARZ3NDEKTSV4RRFFQ69G5FAX", IsSoftLimit: lo.ToPtr(true)},
+				Entitlement: apiv1models.EntitlementMetered{
+					Id:          "01ARZ3NDEKTSV4RRFFQ69G5FAX",
+					IsSoftLimit: lo.ToPtr(true),
+					Annotations: &apiv1models.Annotations{"someAnnotation": "value"},
+				},
 				Feature: apiv1models.Feature{
-					Id:                  "01ARZ3NDEKTSV4RRFFQ69G5FAY",
-					Key:                 "gpt4_tokens",
-					Metadata:            &apiv1models.Metadata{"someKey": "value"},
-					MeterGroupByFilters: &map[string]string{"modelName": "gpt-4"},
+					Id:                          "01ARZ3NDEKTSV4RRFFQ69G5FAY",
+					Key:                         "gpt4_tokens",
+					Metadata:                    &apiv1models.Metadata{"someKey": "value"},
+					MeterGroupByFilters:         &map[string]string{"modelName": "gpt-4"},
+					AdvancedMeterGroupByFilters: &map[string]apiv1models.FilterString{"modelName": {In: &[]string{"gpt-4"}}},
 				},
 				Subject: apiv1models.Subject{Key: "customer-1", DisplayName: lo.ToPtr("Customer 1")},
 				Value:   apiv1models.EntitlementValue{HasAccess: true, Balance: lo.ToPtr(100.0)},
@@ -239,6 +244,9 @@ func TestToAPIBillingNotificationEventPayloadFieldNames(t *testing.T) {
 	// Map keys are user data and keep their case.
 	assert.Equal(t, map[string]any{"someKey": "value"}, feature["metadata"])
 	assert.Equal(t, map[string]any{"modelName": "gpt-4"}, feature["meter_group_by_filters"])
+	assert.Equal(t, map[string]any{"someAnnotation": "value"}, entitlement["annotations"])
+	// The filter objects keep the v1 operator names.
+	assert.Equal(t, map[string]any{"modelName": map[string]any{"$in": []any{"gpt-4"}}}, feature["advanced_meter_group_by_filters"])
 }
 
 func TestToSnakeCase(t *testing.T) {
