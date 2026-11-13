@@ -66,6 +66,26 @@ func TestCreateKafkaConfigSecurityProtocol(t *testing.T) {
 	}
 }
 
+func TestCreateKafkaConfigProtocolVersion(t *testing.T) {
+	for _, role := range []string{"publisher", "subscriber"} {
+		t.Run(role, func(t *testing.T) {
+			opts := BrokerOptions{
+				KafkaConfig: config.KafkaConfiguration{
+					Broker: "localhost:9092",
+				},
+				ClientID:    "test",
+				Logger:      slog.New(slog.DiscardHandler),
+				MetricMeter: noop.NewMeterProvider().Meter("test"),
+			}
+
+			cfg, err := opts.createKafkaConfig(role)
+			require.NoError(t, err)
+			require.Equal(t, sarama.V2_6_2_0, cfg.Version)
+			require.False(t, cfg.ApiVersionsRequest)
+		})
+	}
+}
+
 func newCAFile(t *testing.T) (path string, cert *x509.Certificate) {
 	t.Helper()
 
