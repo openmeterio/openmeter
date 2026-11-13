@@ -27,6 +27,7 @@ import (
 	entitlementservice "github.com/openmeterio/openmeter/openmeter/entitlement/service"
 	staticentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/static"
 	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/mockadapter"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	addonrepo "github.com/openmeterio/openmeter/openmeter/productcatalog/addon/adapter"
 	addonservice "github.com/openmeterio/openmeter/openmeter/productcatalog/addon/service"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
@@ -34,6 +35,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	planadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/adapter"
 	planservice "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/service"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
 	planaddonrepo "github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon/adapter"
 	planaddonservice "github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon/service"
 	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription/testutils"
@@ -57,6 +59,8 @@ import (
 
 type SubscriptionMixin struct {
 	PlanService                 plan.Service
+	AddonService                addon.Service
+	PlanAddonService            planaddon.Service
 	SubscriptionService         subscription.Service
 	SubscriptionAddonService    subscriptionaddon.Service
 	SubscriptionPlanAdapter     subscriptiontestutils.PlanSubscriptionAdapter
@@ -198,6 +202,8 @@ func (s *SubscriptionMixin) SetupSuite(t *testing.T, deps SubscriptionMixInDepen
 	})
 	require.NoError(t, err)
 
+	s.AddonService = addonService
+
 	planAddonRepo, err := planaddonrepo.New(planaddonrepo.Config{
 		Client: deps.DBClient,
 		Logger: slog.Default(),
@@ -212,6 +218,8 @@ func (s *SubscriptionMixin) SetupSuite(t *testing.T, deps SubscriptionMixInDepen
 		Publisher: publisher,
 	})
 	require.NoError(t, err)
+
+	s.PlanAddonService = planAddonService
 
 	subAddRepo := subscriptionaddonrepo.NewSubscriptionAddonRepo(deps.DBClient)
 	subAddQtyRepo := subscriptionaddonrepo.NewSubscriptionAddonQuantityRepo(deps.DBClient)
