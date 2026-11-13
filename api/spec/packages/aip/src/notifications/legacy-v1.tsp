@@ -503,7 +503,7 @@ model V1BillingWorkflowCollectionSettings {
   /**
    * The alignment for collecting the pending line items into an invoice.
    */
-  alignment?: V1BillingWorkflowCollectionAlignment = #{ type: "subscription" };
+  alignment?: V1BillingWorkflowCollectionAlignment;
 
   /**
    * This grace period can be used to delay the collection of the pending line items
@@ -512,7 +512,7 @@ model V1BillingWorkflowCollectionSettings {
    * This is useful, in case of multiple subscriptions having slightly different
    * billing periods.
    */
-  @format("ISO8601") interval?: string = "PT1H";
+  @format("ISO8601") interval?: string;
 }
 
 /**
@@ -526,28 +526,28 @@ model V1BillingWorkflowInvoicingSettings {
   /**
    * Whether to automatically issue the invoice after the draftPeriod has passed.
    */
-  auto_advance?: boolean = true;
+  auto_advance?: boolean;
 
   /**
    * The period for the invoice to be kept in draft status for manual reviews.
    */
-  @format("ISO8601") draft_period?: string = "P0D";
+  @format("ISO8601") draft_period?: string;
 
   /**
    * The period after which the invoice is due. With some payment solutions it's only
    * applicable for manual collection method.
    */
-  @format("ISO8601") due_after?: string = "P30D";
+  @format("ISO8601") due_after?: string;
 
   /**
    * Should progressive billing be allowed for this workflow?
    */
-  progressive_billing?: boolean = true;
+  progressive_billing?: boolean;
 
   /**
    * Controls how subscription-ending shortened service periods are billed.
    */
-  subscription_end_proration_mode?: V1BillingWorkflowInvoicingSubscriptionEndProrationMode = V1BillingWorkflowInvoicingSubscriptionEndProrationMode.bill_actual_period;
+  subscription_end_proration_mode?: V1BillingWorkflowInvoicingSubscriptionEndProrationMode;
 
   /**
    * Default tax configuration to apply to the invoices.
@@ -581,7 +581,7 @@ model V1BillingWorkflowPaymentSettings {
   /**
    * The payment method for the invoice.
    */
-  collection_method?: V1CollectionMethod = V1CollectionMethod.charge_automatically;
+  collection_method?: V1CollectionMethod;
 }
 
 /**
@@ -595,7 +595,7 @@ model V1BillingWorkflowTaxSettings {
    * Enable automatic tax calculation when tax is supported by the app. For example,
    * with Stripe Invoicing when enabled, tax is calculated via Stripe Tax.
    */
-  enabled?: boolean = true;
+  enabled?: boolean;
 
   /**
    * Enforce tax calculation when tax is supported by the app. When enabled,
@@ -603,7 +603,7 @@ model V1BillingWorkflowTaxSettings {
    * Enforcement is different per apps, for example, Stripe app requires customer to
    * have a tax location when starting a paid subscription.
    */
-  enforced?: boolean = false;
+  enforced?: boolean;
 }
 
 /**
@@ -959,7 +959,7 @@ model V1DynamicPriceWithCommitments {
    * - 1.5: the price is 150% of the base price
    */
   @summary("The multiplier to apply to the base price to get the dynamic price")
-  multiplier?: V1Numeric = "1";
+  multiplier?: V1Numeric;
 
   /**
    * The customer is committed to spend at least the amount.
@@ -992,14 +992,14 @@ model V1EntitlementMetered {
    * If softLimit=true the subject can use the feature even if the entitlement is
    * exhausted, hasAccess will always be true.
    */
-  @summary("Soft limit") is_soft_limit?: boolean = false;
+  @summary("Soft limit") is_soft_limit?: boolean;
 
   /**
    * Deprecated, ignored by the backend. Please use isSoftLimit instead; this field
    * will be removed in the future.
    */
   #deprecated "deprecated"
-  is_unlimited?: boolean = false;
+  is_unlimited?: boolean;
 
   /**
    * You can grant usage automatically alongside the entitlement, the example
@@ -1018,13 +1018,13 @@ model V1EntitlementMetered {
   @minValue(1)
   @maxValue(255)
   @summary("Issue grant after reset priority")
-  issue_after_reset_priority?: uint8 = 1;
+  issue_after_reset_priority?: uint8;
 
   /**
    * If true, the overage is preserved at reset. If false, the usage is reset to 0.
    */
   @summary("Preserve overage at reset")
-  preserve_overage_at_reset?: boolean = false;
+  preserve_overage_at_reset?: boolean;
 
   /**
    * Timestamp of when the resource was created.
@@ -1077,8 +1077,6 @@ model V1EntitlementMetered {
    * please use the new customer APIs.
    */
   @minLength(1)
-  @maxLength(64)
-  @pattern("^[a-z0-9]+(?:_[a-z0-9]+)*$")
   subject_key: string;
 
   /**
@@ -1221,8 +1219,6 @@ model V1Feature {
    * A key is a unique string that is used to identify a resource.
    */
   @minLength(1)
-  @maxLength(64)
-  @pattern("^[a-z0-9]+(?:_[a-z0-9]+)*$")
   @summary("Meter slug")
   meter_slug?: string;
 
@@ -1531,7 +1527,7 @@ model V1FlatPriceWithPaymentTerm {
   /**
    * The payment term of the flat price. Defaults to in advance.
    */
-  payment_term?: V1PricePaymentTerm = V1PricePaymentTerm.in_advance;
+  payment_term?: V1PricePaymentTerm;
 }
 
 /**
@@ -1992,7 +1988,7 @@ model V1InvoiceDetailedLine {
    * Payment term of the line.
    */
   #deprecated "deprecated"
-  payment_term?: V1PricePaymentTerm = V1PricePaymentTerm.in_advance;
+  payment_term?: V1PricePaymentTerm;
 
   /**
    * Quantity of the item being sold.
@@ -2009,7 +2005,7 @@ model V1InvoiceDetailedLine {
    * Category of the flat fee.
    */
   @visibility(Lifecycle.Read)
-  category?: V1InvoiceDetailedLineCostCategory = V1InvoiceDetailedLineCostCategory.regular;
+  category?: V1InvoiceDetailedLineCostCategory;
 }
 
 /**
@@ -3210,13 +3206,13 @@ model V1ProRatingConfig {
   /**
    * Whether pro-rating is enabled for this plan.
    */
-  @summary("Enable pro-rating") enabled: boolean = true;
+  @summary("Enable pro-rating") enabled: boolean;
 
   /**
    * How to handle pro-rating for billing period changes.
    */
   @summary("Pro-rating mode")
-  mode: V1ProRatingMode = V1ProRatingMode.prorate_prices;
+  mode: V1ProRatingMode;
 }
 
 /**
@@ -3662,7 +3658,7 @@ model V1Subscription {
   /**
    * The fiat currency in which the subscription is invoiced.
    */
-  @summary("Currency") currency: V1CurrencyCode = "USD";
+  @summary("Currency") currency: V1CurrencyCode;
 
   /**
    * Controls whether custom-currency cost bases are resolved dynamically or pinned
@@ -3670,7 +3666,7 @@ model V1Subscription {
    */
   @visibility(Lifecycle.Read)
   @summary("Cost basis mode")
-  cost_basis_mode: V1SubscriptionCostBasisMode = V1SubscriptionCostBasisMode.dynamic;
+  cost_basis_mode: V1SubscriptionCostBasisMode;
 
   /**
    * Cost bases pinned to custom-currency pairs for this subscription.
@@ -3693,10 +3689,7 @@ model V1Subscription {
    */
   @visibility(Lifecycle.Read)
   @summary("Pro-rating configuration")
-  pro_rating_config?: V1ProRatingConfig = #{
-    enabled: true,
-    mode: V1ProRatingMode.prorate_prices,
-  };
+  pro_rating_config?: V1ProRatingConfig;
 
   /**
    * The normalizedbilling anchor of the subscription.
@@ -3716,7 +3709,7 @@ model V1Subscription {
    */
   @visibility(Lifecycle.Read)
   @summary("Settlement mode")
-  settlement_mode: V1BillingSettlementMode = V1BillingSettlementMode.credit_then_invoice;
+  settlement_mode: V1BillingSettlementMode;
 }
 
 /**

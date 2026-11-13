@@ -12128,8 +12128,6 @@ components:
           allOf:
             - $ref: '#/components/schemas/BillingNotificationEventV1BillingWorkflowCollectionAlignment'
           description: The alignment for collecting the pending line items into an invoice.
-          default:
-            type: subscription
         interval:
           type: string
           format: ISO8601
@@ -12139,7 +12137,6 @@ components:
 
             This is useful, in case of multiple subscriptions having slightly different
             billing periods.
-          default: PT1H
       additionalProperties: false
       description: |-
         Workflow collection specifies how to collect the pending line items for an
@@ -12150,28 +12147,23 @@ components:
         auto_advance:
           type: boolean
           description: Whether to automatically issue the invoice after the draftPeriod has passed.
-          default: true
         draft_period:
           type: string
           format: ISO8601
           description: The period for the invoice to be kept in draft status for manual reviews.
-          default: P0D
         due_after:
           type: string
           format: ISO8601
           description: |-
             The period after which the invoice is due. With some payment solutions it's only
             applicable for manual collection method.
-          default: P30D
         progressive_billing:
           type: boolean
           description: Should progressive billing be allowed for this workflow?
-          default: true
         subscription_end_proration_mode:
           allOf:
             - $ref: '#/components/schemas/BillingNotificationEventV1BillingWorkflowInvoicingSubscriptionEndProrationMode'
           description: Controls how subscription-ending shortened service periods are billed.
-          default: bill_actual_period
         default_tax_config:
           allOf:
             - $ref: '#/components/schemas/BillingNotificationEventV1TaxConfig'
@@ -12200,7 +12192,6 @@ components:
           allOf:
             - $ref: '#/components/schemas/BillingNotificationEventV1CollectionMethod'
           description: The payment method for the invoice.
-          default: charge_automatically
       additionalProperties: false
       description: |-
         BillingWorkflowPaymentSettings represents the payment settings for a billing
@@ -12214,7 +12205,6 @@ components:
           description: |-
             Enable automatic tax calculation when tax is supported by the app. For example,
             with Stripe Invoicing when enabled, tax is calculated via Stripe Tax.
-          default: true
         enforced:
           type: boolean
           description: |-
@@ -12222,7 +12212,6 @@ components:
             OpenMeter will not allow to create an invoice without tax calculation.
             Enforcement is different per apps, for example, Stripe app requires customer to
             have a tax location when starting a paid subscription.
-          default: false
       additionalProperties: false
       description: BillingWorkflowTaxSettings represents the tax settings for a billing workflow
       title: Workflow tax settings
@@ -12577,7 +12566,6 @@ components:
             - 1.0: the price is the same as the base price
             - 1.5: the price is 150% of the base price
           title: The multiplier to apply to the base price to get the dynamic price
-          default: '1'
         minimum_amount:
           allOf:
             - $ref: '#/components/schemas/BillingNotificationEventV1Numeric'
@@ -12617,14 +12605,12 @@ components:
             If softLimit=true the subject can use the feature even if the entitlement is
             exhausted, hasAccess will always be true.
           title: Soft limit
-          default: false
         is_unlimited:
           type: boolean
           description: |-
             Deprecated, ignored by the backend. Please use isSoftLimit instead; this field
             will be removed in the future.
           deprecated: true
-          default: false
         issue_after_reset:
           type: number
           format: double
@@ -12645,12 +12631,10 @@ components:
           maximum: 255
           description: Defines the grant priority for the default grant.
           title: Issue grant after reset priority
-          default: 1
         preserve_overage_at_reset:
           type: boolean
           description: If true, the overage is preserved at reset. If false, the usage is reset to 0.
           title: Preserve overage at reset
-          default: false
         created_at:
           type: string
           format: date-time
@@ -12694,8 +12678,6 @@ components:
         subject_key:
           type: string
           minLength: 1
-          maxLength: 64
-          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
           description: |-
             The identifier key unique to the subject. NOTE: Subjects are being deprecated,
             please use the new customer APIs.
@@ -12882,8 +12864,6 @@ components:
         meter_slug:
           type: string
           minLength: 1
-          maxLength: 64
-          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
           description: A key is a unique string that is used to identify a resource.
           title: Meter slug
         meter_group_by_filters:
@@ -13167,7 +13147,6 @@ components:
           allOf:
             - $ref: '#/components/schemas/BillingNotificationEventV1PricePaymentTerm'
           description: The payment term of the flat price. Defaults to in advance.
-          default: in_advance
       additionalProperties: false
       description: Flat price with payment term.
     BillingNotificationEventV1IDResource:
@@ -13639,7 +13618,6 @@ components:
             - $ref: '#/components/schemas/BillingNotificationEventV1PricePaymentTerm'
           description: Payment term of the line.
           deprecated: true
-          default: in_advance
         quantity:
           allOf:
             - $ref: '#/components/schemas/BillingNotificationEventV1Numeric'
@@ -13653,7 +13631,6 @@ components:
           allOf:
             - $ref: '#/components/schemas/BillingNotificationEventV1InvoiceDetailedLineCostCategory'
           description: Category of the flat fee.
-          default: regular
           readOnly: true
       additionalProperties: false
       description: |-
@@ -14697,13 +14674,11 @@ components:
           type: boolean
           description: Whether pro-rating is enabled for this plan.
           title: Enable pro-rating
-          default: true
         mode:
           allOf:
             - $ref: '#/components/schemas/BillingNotificationEventV1ProRatingMode'
           description: How to handle pro-rating for billing period changes.
           title: Pro-rating mode
-          default: prorate_prices
       additionalProperties: false
       description: Configuration for pro-rating behavior.
     BillingNotificationEventV1ProRatingMode:
@@ -15171,7 +15146,6 @@ components:
             - $ref: '#/components/schemas/BillingNotificationEventV1CurrencyCode'
           description: The fiat currency in which the subscription is invoiced.
           title: Currency
-          default: USD
         cost_basis_mode:
           allOf:
             - $ref: '#/components/schemas/BillingNotificationEventV1SubscriptionCostBasisMode'
@@ -15179,7 +15153,6 @@ components:
             Controls whether custom-currency cost bases are resolved dynamically or pinned
             when their currency pair is introduced to the subscription.
           title: Cost basis mode
-          default: dynamic
           readOnly: true
         cost_basis_pins:
           type: array
@@ -15202,9 +15175,6 @@ components:
             - $ref: '#/components/schemas/BillingNotificationEventV1ProRatingConfig'
           description: The pro-rating configuration for the subscriptions.
           title: Pro-rating configuration
-          default:
-            enabled: true
-            mode: prorate_prices
           readOnly: true
         billing_anchor:
           type: string
@@ -15224,7 +15194,6 @@ components:
             applied. No invoices are generated for the subscription. This is the default
             and most common settlement mode.
           title: Settlement mode
-          default: credit_then_invoice
           readOnly: true
       additionalProperties: false
       description: Subscription is an exact subscription instance.

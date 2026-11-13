@@ -1856,7 +1856,6 @@ export const notificationEventV1BillingWorkflowTaxSettings = z
     enabled: z
       .boolean()
       .optional()
-      .default(true)
 
       .describe(
         'Enable automatic tax calculation when tax is supported by the app. For example, with Stripe Invoicing when enabled, tax is calculated via Stripe Tax.',
@@ -1864,7 +1863,6 @@ export const notificationEventV1BillingWorkflowTaxSettings = z
     enforced: z
       .boolean()
       .optional()
-      .default(false)
 
       .describe(
         'Enforce tax calculation when tax is supported by the app. When enabled, OpenMeter will not allow to create an invoice without tax calculation. Enforcement is different per apps, for example, Stripe app requires customer to have a tax location when starting a paid subscription.',
@@ -4623,7 +4621,7 @@ export const notificationEventV1UnitPrice = z
 export const notificationEventV1DynamicPriceWithCommitments = z
   .object({
     type: z.literal('dynamic').describe('The type of the price.'),
-    multiplier: notificationEventV1Numeric.optional().default('1'),
+    multiplier: notificationEventV1Numeric.optional(),
     minimumAmount: notificationEventV1Numeric.optional(),
     maximumAmount: notificationEventV1Numeric.optional(),
   })
@@ -4686,9 +4684,8 @@ export const notificationEventV1ProRatingConfig = z
   .object({
     enabled: z
       .boolean()
-      .default(true)
       .describe('Whether pro-rating is enabled for this plan.'),
-    mode: notificationEventV1ProRatingMode.default('prorate_prices'),
+    mode: notificationEventV1ProRatingMode,
   })
   .describe('Configuration for pro-rating behavior.')
 
@@ -4809,9 +4806,7 @@ export const notificationEventV1TaxConfig = z
 
 export const notificationEventV1BillingWorkflowPaymentSettings = z
   .object({
-    collectionMethod: notificationEventV1CollectionMethod
-      .optional()
-      .default('charge_automatically'),
+    collectionMethod: notificationEventV1CollectionMethod.optional(),
   })
 
   .describe(
@@ -4879,9 +4874,7 @@ export const notificationEventV1FlatPriceWithPaymentTerm = z
   .object({
     type: z.literal('flat').describe('The type of the price.'),
     amount: notificationEventV1Numeric,
-    paymentTerm: notificationEventV1PricePaymentTerm
-      .optional()
-      .default('in_advance'),
+    paymentTerm: notificationEventV1PricePaymentTerm.optional(),
   })
   .describe('Flat price with payment term.')
 
@@ -6986,9 +6979,8 @@ export const notificationEventV1Subscription = z
       .regex(new RegExp('^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'))
       .describe('The customer ID of the subscription.'),
     plan: notificationEventV1PlanReference.optional(),
-    currency: notificationEventV1CurrencyCode.default('USD'),
-    costBasisMode:
-      notificationEventV1SubscriptionCostBasisMode.default('dynamic'),
+    currency: notificationEventV1CurrencyCode,
+    costBasisMode: notificationEventV1SubscriptionCostBasisMode,
     costBasisPins: z
       .array(notificationEventV1SubscriptionCostBasisPin)
 
@@ -7002,16 +6994,11 @@ export const notificationEventV1Subscription = z
       .describe(
         'The billing cadence for the subscriptions. Defines how often customers are billed using ISO8601 duration format. Examples: "P1M" (monthly), "P3M" (quarterly), "P1Y" (annually).',
       ),
-    proRatingConfig: notificationEventV1ProRatingConfig.optional().default({
-      enabled: true,
-      mode: 'prorate_prices',
-    }),
+    proRatingConfig: notificationEventV1ProRatingConfig.optional(),
     billingAnchor: z
       .date()
       .describe('The normalizedbilling anchor of the subscription.'),
-    settlementMode: notificationEventV1BillingSettlementMode.default(
-      'credit_then_invoice',
-    ),
+    settlementMode: notificationEventV1BillingSettlementMode,
   })
   .describe('Subscription is an exact subscription instance.')
 
@@ -7111,7 +7098,6 @@ export const notificationEventV1BillingWorkflowInvoicingSettings = z
     autoAdvance: z
       .boolean()
       .optional()
-      .default(true)
 
       .describe(
         'Whether to automatically issue the invoice after the draftPeriod has passed.',
@@ -7119,7 +7105,6 @@ export const notificationEventV1BillingWorkflowInvoicingSettings = z
     draftPeriod: z
       .string()
       .optional()
-      .default('P0D')
 
       .describe(
         'The period for the invoice to be kept in draft status for manual reviews.',
@@ -7127,7 +7112,6 @@ export const notificationEventV1BillingWorkflowInvoicingSettings = z
     dueAfter: z
       .string()
       .optional()
-      .default('P30D')
 
       .describe(
         "The period after which the invoice is due. With some payment solutions it's only applicable for manual collection method.",
@@ -7135,12 +7119,9 @@ export const notificationEventV1BillingWorkflowInvoicingSettings = z
     progressiveBilling: z
       .boolean()
       .optional()
-      .default(true)
       .describe('Should progressive billing be allowed for this workflow?'),
     subscriptionEndProrationMode:
-      notificationEventV1BillingWorkflowInvoicingSubscriptionEndProrationMode
-        .optional()
-        .default('bill_actual_period'),
+      notificationEventV1BillingWorkflowInvoicingSubscriptionEndProrationMode.optional(),
     defaultTaxConfig: notificationEventV1TaxConfig.optional(),
   })
 
@@ -8100,7 +8081,6 @@ export const notificationEventV1EntitlementMetered = z
     isSoftLimit: z
       .boolean()
       .optional()
-      .default(false)
 
       .describe(
         'If softLimit=true the subject can use the feature even if the entitlement is exhausted, hasAccess will always be true.',
@@ -8108,7 +8088,6 @@ export const notificationEventV1EntitlementMetered = z
     isUnlimited: z
       .boolean()
       .optional()
-      .default(false)
 
       .describe(
         'Deprecated, ignored by the backend. Please use isSoftLimit instead; this field will be removed in the future.',
@@ -8127,12 +8106,10 @@ export const notificationEventV1EntitlementMetered = z
       .gte(1)
       .lte(255)
       .optional()
-      .default(1)
       .describe('Defines the grant priority for the default grant.'),
     preserveOverageAtReset: z
       .boolean()
       .optional()
-      .default(false)
 
       .describe(
         'If true, the overage is preserved at reset. If false, the usage is reset to 0.',
@@ -8156,8 +8133,6 @@ export const notificationEventV1EntitlementMetered = z
     subjectKey: z
       .string()
       .min(1)
-      .max(64)
-      .regex(new RegExp('^[a-z0-9]+(?:_[a-z0-9]+)*$'))
 
       .describe(
         'The identifier key unique to the subject. NOTE: Subjects are being deprecated, please use the new customer APIs.',
@@ -8915,8 +8890,6 @@ export const notificationEventV1Feature = z
     meterSlug: z
       .string()
       .min(1)
-      .max(64)
-      .regex(new RegExp('^[a-z0-9]+(?:_[a-z0-9]+)*$'))
       .optional()
 
       .describe(
@@ -9161,15 +9134,10 @@ export const profileApps = z
 
 export const notificationEventV1BillingWorkflowCollectionSettings = z
   .object({
-    alignment: notificationEventV1BillingWorkflowCollectionAlignment
-      .optional()
-      .default({
-        type: 'subscription',
-      }),
+    alignment: notificationEventV1BillingWorkflowCollectionAlignment.optional(),
     interval: z
       .string()
       .optional()
-      .default('PT1H')
 
       .describe(
         'This grace period can be used to delay the collection of the pending line items specified in alignment. This is useful, in case of multiple subscriptions having slightly different billing periods.',
@@ -9297,14 +9265,10 @@ export const notificationEventV1InvoiceDetailedLine = z
     invoiceAt: z.date().describe('The time this line item should be invoiced.'),
     type: z.literal('flat_fee').describe('Type of the line.'),
     perUnitAmount: notificationEventV1Numeric.optional(),
-    paymentTerm: notificationEventV1PricePaymentTerm
-      .optional()
-      .default('in_advance'),
+    paymentTerm: notificationEventV1PricePaymentTerm.optional(),
     quantity: notificationEventV1Numeric.optional(),
     rateCard: notificationEventV1InvoiceDetailedLineRateCard.optional(),
-    category: notificationEventV1InvoiceDetailedLineCostCategory
-      .optional()
-      .default('regular'),
+    category: notificationEventV1InvoiceDetailedLineCostCategory.optional(),
   })
 
   .describe(
@@ -20186,8 +20150,6 @@ export const notificationEventV1EntitlementMeteredWire = z
     subject_key: z
       .string()
       .min(1)
-      .max(64)
-      .regex(new RegExp('^[a-z0-9]+(?:_[a-z0-9]+)*$'))
 
       .describe(
         'The identifier key unique to the subject. NOTE: Subjects are being deprecated, please use the new customer APIs.',
@@ -20990,8 +20952,6 @@ export const notificationEventV1FeatureWire = z
     meter_slug: z
       .string()
       .min(1)
-      .max(64)
-      .regex(new RegExp('^[a-z0-9]+(?:_[a-z0-9]+)*$'))
       .optional()
 
       .describe(
