@@ -70,8 +70,9 @@ func ToAPIBillingNotificationEventDeliveryState(v notification.EventDeliveryStat
 }
 
 // The stored value is the v1 API model, where `NUMBER` and `PERCENT` are deprecated
-// aliases of `usage_value` and `usage_percentage`; events written before the rename
-// must not leak the legacy spelling.
+// aliases of `usage_value` and `usage_percentage`. Rules written before the rename
+// must not show the legacy spelling on the v3 rules API. Legacy Event payloads keep
+// it, because they return the same content as v1.
 func ToAPIBillingNotificationBalanceThresholdType(v apimodels.NotificationRuleBalanceThresholdValueType) (api.BillingNotificationBalanceThresholdType, error) {
 	switch v {
 	case apimodels.NotificationRuleBalanceThresholdValueTypeBalanceValue:
