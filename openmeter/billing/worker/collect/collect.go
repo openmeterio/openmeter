@@ -109,6 +109,23 @@ func (a *InvoiceCollector) CollectCustomerInvoice(ctx context.Context, params Co
 		}
 
 		if errors.Is(err, billing.ErrInvoiceCreateNoLines) {
+			// A duplicate or late trigger finds the lines already invoiced: the customer is
+			// no longer pending collection, so there is nothing to repair.
+			due, err := a.gatheringInvoices.ListCustomerIDsPendingCollection(ctx, billing.ListCustomerIDsPendingCollectionInput{
+				Namespaces:  []string{params.CustomerID.Namespace},
+				CustomerIDs: []string{params.CustomerID.ID},
+				AsOf:        params.AsOf,
+			})
+			if err != nil {
+				return nil, fmt.Errorf("failed to check pending collection for customer [customer=%s]: %w", params.CustomerID, err)
+			}
+
+			if len(due) == 0 {
+				a.logger.DebugContext(ctx, "stale collection trigger, customer has no gathering invoice due", "customer", params.CustomerID)
+
+				return nil, nil
+			}
+
 			a.logger.WarnContext(ctx, "no invoices generated for customer during collection (possible data inconsistency), recalculating gathering invoices", "customer", params.CustomerID)
 
 			if err := a.gatheringInvoices.RecalculateGatheringInvoices(ctx, params.CustomerID); err != nil {
