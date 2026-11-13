@@ -15,13 +15,13 @@ import (
 	"github.com/zeebo/xxh3"
 
 	apimodels "github.com/openmeterio/openmeter/api/models"
-	customerhttphandler "github.com/openmeterio/openmeter/openmeter/customer/httpdriver"
+	customerconvert "github.com/openmeterio/openmeter/openmeter/customer/apiconvert"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
-	entitlementdriver "github.com/openmeterio/openmeter/openmeter/entitlement/driver"
+	entitlementconvert "github.com/openmeterio/openmeter/openmeter/entitlement/apiconvert"
 	"github.com/openmeterio/openmeter/openmeter/entitlement/snapshot"
 	"github.com/openmeterio/openmeter/openmeter/notification"
-	productcatalogdriver "github.com/openmeterio/openmeter/openmeter/productcatalog/driver"
-	subjecthttphandler "github.com/openmeterio/openmeter/openmeter/subject/httphandler"
+	featureconvert "github.com/openmeterio/openmeter/openmeter/productcatalog/feature/apiconvert"
+	subjectconvert "github.com/openmeterio/openmeter/openmeter/subject/apiconvert"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -182,7 +182,7 @@ type createBalanceThresholdEventInput struct {
 }
 
 func (b *EntitlementSnapshotHandler) createEvent(ctx context.Context, in createBalanceThresholdEventInput) error {
-	entitlementAPIEntity, err := entitlementdriver.Parser.ToMetered(&entitlement.EntitlementWithCustomer{Entitlement: in.Snapshot.Entitlement, Customer: in.Snapshot.Customer})
+	entitlementAPIEntity, err := entitlementconvert.ToAPIEntitlementMetered(&entitlement.EntitlementWithCustomer{Entitlement: in.Snapshot.Entitlement, Customer: in.Snapshot.Customer})
 	if err != nil {
 		return fmt.Errorf("failed to map entitlement value to API: %w", err)
 	}
@@ -206,7 +206,7 @@ func (b *EntitlementSnapshotHandler) createEvent(ctx context.Context, in createB
 		annotations[notification.AnnotationEventFeatureID] = in.Snapshot.Feature.ID
 	}
 
-	featureResp, err := productcatalogdriver.MapFeatureToResponse(in.Snapshot.Feature)
+	featureResp, err := featureconvert.ToAPIFeature(in.Snapshot.Feature)
 	if err != nil {
 		return fmt.Errorf("failed to map feature to API: %w", err)
 	}
@@ -214,18 +214,13 @@ func (b *EntitlementSnapshotHandler) createEvent(ctx context.Context, in createB
 	valueBase := notification.EntitlementValuePayloadBase{
 		Entitlement: *entitlementAPIEntity,
 		Feature:     featureResp,
-		Subject:     subjecthttphandler.FromSubject(in.Snapshot.Subject),
+		Subject:     subjectconvert.ToAPISubject(in.Snapshot.Subject),
 		Value:       apimodels.EntitlementValue(*in.Snapshot.Value),
 	}
 
 	// TODO(OM-1508): As we're reusing the same event version, we need to add this temporary check
 	if in.Snapshot.Customer.ID != "" {
-		apiCustomer, err := customerhttphandler.CustomerToAPI(in.Snapshot.Customer, nil, nil)
-		if err != nil {
-			return fmt.Errorf("failed to map customer to API: %w", err)
-		}
-
-		valueBase.Customer = apiCustomer
+		valueBase.Customer = customerconvert.ToAPICustomer(in.Snapshot.Customer)
 	}
 
 	_, err = b.Notification.CreateEvent(ctx, notification.CreateEventInput{

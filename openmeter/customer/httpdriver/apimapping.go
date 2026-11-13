@@ -5,6 +5,7 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/customer/apiconvert"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	entitlementdriver "github.com/openmeterio/openmeter/openmeter/entitlement/driver"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
@@ -110,75 +111,16 @@ func MapAddress(apiAddress *api.Address) *models.Address {
 }
 
 func FromMetadata(metadata models.Metadata) *api.Metadata {
-	if len(metadata) == 0 {
-		return nil
-	}
-
-	result := make(api.Metadata)
-	if len(metadata) > 0 {
-		for k, v := range metadata {
-			result[k] = v
-		}
-	}
-
-	return &result
+	return apiconvert.ToAPIMetadata(metadata)
 }
 
 func FromAnnotations(annotations models.Annotations) *api.Annotations {
-	if len(annotations) == 0 {
-		return nil
-	}
-
-	result := make(api.Annotations)
-	if len(annotations) > 0 {
-		for k, v := range annotations {
-			result[k] = v
-		}
-	}
-
-	return &result
+	return apiconvert.ToAPIAnnotations(annotations)
 }
 
 // CustomerToAPI converts a Customer to an API Customer
 func CustomerToAPI(c customer.Customer, subscriptions []subscription.Subscription, expand customer.Expands) (api.Customer, error) {
-	// Map the customer to the API Customer
-	apiCustomer := api.Customer{
-		Id:           c.ManagedResource.ID,
-		Key:          c.Key,
-		Name:         c.Name,
-		PrimaryEmail: c.PrimaryEmail,
-		Description:  c.Description,
-		CreatedAt:    c.CreatedAt,
-		UpdatedAt:    c.UpdatedAt,
-		DeletedAt:    c.DeletedAt,
-		Metadata:     FromMetadata(lo.FromPtr(c.Metadata)),
-		Annotations:  FromAnnotations(lo.FromPtr(c.Annotation)),
-	}
-
-	if c.UsageAttribution != nil {
-		apiCustomer.UsageAttribution = &api.CustomerUsageAttribution{SubjectKeys: c.UsageAttribution.SubjectKeys}
-	}
-
-	if c.BillingAddress != nil {
-		address := api.Address{
-			City:        c.BillingAddress.City,
-			State:       c.BillingAddress.State,
-			PostalCode:  c.BillingAddress.PostalCode,
-			Line1:       c.BillingAddress.Line1,
-			Line2:       c.BillingAddress.Line2,
-			PhoneNumber: c.BillingAddress.PhoneNumber,
-		}
-
-		if c.BillingAddress.Country != nil {
-			address.Country = lo.ToPtr(string(*c.BillingAddress.Country))
-		}
-
-		apiCustomer.BillingAddress = &address
-	}
-
-	if c.Currency != nil {
-		apiCustomer.Currency = lo.ToPtr(string(*c.Currency))
-	}
+	apiCustomer := apiconvert.ToAPICustomer(c)
 
 	// Map the subscriptions to the API Subscriptions
 	if len(subscriptions) > 0 {
