@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 var _ customer.RequestValidator = (*Validator)(nil)
@@ -100,22 +101,22 @@ func (v *Validator) ValidateUpdateCustomer(ctx context.Context, input customer.U
 }
 
 func (v *Validator) ValidateDeleteCustomer(ctx context.Context, input customer.DeleteCustomerInput) error {
-	// A customer can only be deleted if all of his invocies are in final state
 	if err := input.Validate(); err != nil {
 		return err
 	}
 
+	// Scheduled subscriptions block deletion too: they would start for a deleted customer.
 	subscriptions, err := v.subscriptionService.List(ctx, subscription.ListSubscriptionsInput{
-		Namespaces: []string{input.Namespace},
-		CustomerID: &filter.FilterULID{FilterString: filter.FilterString{Eq: &input.ID}},
-		ActiveAt:   lo.ToPtr(clock.Now()),
+		Namespaces:     []string{input.Namespace},
+		CustomerID:     &filter.FilterULID{FilterString: filter.FilterString{Eq: &input.ID}},
+		ActiveInPeriod: &timeutil.StartBoundedPeriod{From: clock.Now()},
 	})
 	if err != nil {
 		return err
 	}
 
 	if len(subscriptions.Items) > 0 {
-		return fmt.Errorf("customer %s still have active subscriptions, please cancel them before deleting the customer", input.ID)
+		return fmt.Errorf("customer %s still has active or scheduled subscriptions, please cancel or delete them before deleting the customer", input.ID)
 	}
 
 	return nil

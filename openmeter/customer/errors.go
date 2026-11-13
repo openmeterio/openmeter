@@ -98,7 +98,7 @@ const ErrCodeDeletingCustomerWithActiveSubscriptions models.ErrorCode = "deletin
 
 var ErrDeletingCustomerWithActiveSubscriptions = models.NewValidationIssue(
 	ErrCodeDeletingCustomerWithActiveSubscriptions,
-	"cannot delete customer with active subscriptions",
+	"cannot delete customer with active or scheduled subscriptions",
 )
 
 func NewErrDeletingCustomerWithActiveSubscriptions(subscriptionIDs []string) error {

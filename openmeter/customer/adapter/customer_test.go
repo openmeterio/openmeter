@@ -22,6 +22,8 @@ import (
 	customersubjectsdb "github.com/openmeterio/openmeter/openmeter/ent/db/customersubjects"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -794,4 +796,44 @@ func TestListCustomersBillingProfileFilterHistoricalEmptyPin(t *testing.T) {
 			require.ElementsMatch(t, tc.customerIDs, ids)
 		})
 	}
+}
+
+func TestListNotEndedSubscriptionIDs(t *testing.T) {
+	env := newTestEnv(t)
+	ctx := t.Context()
+	ns := ulid.Make().String()
+	customerID := env.seedCustomerWithKey(ns, "cust-key")
+	otherCustomerID := env.seedCustomerWithKey(ns, "other-cust-key")
+
+	now := freezeTime(t, time.Now())
+
+	seedSubscription := func(customerID string, activeFrom time.Time, activeTo, deletedAt *time.Time) string {
+		sub, err := env.db.Subscription.Create().
+			SetNamespace(ns).
+			SetCustomerID(customerID).
+			SetInvoiceCurrency(currencyx.Code("USD")).
+			SetBillingAnchor(activeFrom).
+			SetBillingCadence(datetime.ISODurationString("P1M")).
+			SetActiveFrom(activeFrom).
+			SetNillableActiveTo(activeTo).
+			SetNillableDeletedAt(deletedAt).
+			Save(ctx)
+		require.NoError(t, err, "seeding subscription must not fail")
+
+		return sub.ID
+	}
+
+	past := now.Add(-time.Hour)
+	future := now.Add(time.Hour)
+
+	active := seedSubscription(customerID, past.Add(-time.Hour), nil, nil)
+	canceled := seedSubscription(customerID, past.Add(-time.Hour), &future, nil)
+	scheduled := seedSubscription(customerID, future, nil, nil)
+	seedSubscription(customerID, past.Add(-time.Hour), &past, nil)
+	seedSubscription(customerID, future, nil, &past)
+	seedSubscription(otherCustomerID, future, nil, nil)
+
+	got, err := env.adapter.ListNotEndedSubscriptionIDs(ctx, customer.CustomerID{Namespace: ns, ID: customerID})
+	require.NoError(t, err)
+	require.ElementsMatch(t, []string{active, canceled, scheduled}, got)
 }

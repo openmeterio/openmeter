@@ -61,7 +61,6 @@ func (s *Service) DeleteCustomer(ctx context.Context, input customer.DeleteCusto
 	return transaction.RunWithNoValue(ctx, s.adapter, func(ctx context.Context) error {
 		cus, err := s.adapter.GetCustomer(ctx, customer.GetCustomerInput{
 			CustomerID: &input,
-			Expands:    customer.Expands{customer.ExpandSubscriptions},
 		})
 		if err != nil {
 			if models.IsGenericNotFoundError(err) {
@@ -72,20 +71,21 @@ func (s *Service) DeleteCustomer(ctx context.Context, input customer.DeleteCusto
 				input.Namespace, input.ID, err)
 		}
 
-		if cus != nil {
-			if cus.IsDeleted() {
-				return nil
-			}
+		if cus != nil && cus.IsDeleted() {
+			return nil
+		}
 
-			if cus.ActiveSubscriptionIDs.IsAbsent() {
-				return fmt.Errorf("customer subscriptions are not expanded")
-			}
+		// Scheduled subscriptions block deletion too: they would start for a deleted customer.
+		subscriptionIDs, err := s.adapter.ListNotEndedSubscriptionIDs(ctx, input)
+		if err != nil {
+			return fmt.Errorf("failed to list subscriptions [namespace=%s customer.id=%s]: %w",
+				input.Namespace, input.ID, err)
+		}
 
-			if len(cus.ActiveSubscriptionIDs.OrEmpty()) > 0 {
-				return models.NewGenericPreConditionFailedError(
-					customer.NewErrDeletingCustomerWithActiveSubscriptions(cus.ActiveSubscriptionIDs.OrEmpty()),
-				)
-			}
+		if len(subscriptionIDs) > 0 {
+			return models.NewGenericPreConditionFailedError(
+				customer.NewErrDeletingCustomerWithActiveSubscriptions(subscriptionIDs),
+			)
 		}
 
 		// Run pre delete hooks

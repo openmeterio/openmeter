@@ -386,6 +386,32 @@ func (a *adapter) CreateCustomer(ctx context.Context, input customer.CreateCusto
 	})
 }
 
+func (a *adapter) ListNotEndedSubscriptionIDs(ctx context.Context, input customer.CustomerID) ([]string, error) {
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, repo *adapter) ([]string, error) {
+		now := clock.Now().UTC()
+
+		ids, err := repo.db.Subscription.Query().
+			Where(
+				subscriptiondb.Namespace(input.Namespace),
+				subscriptiondb.CustomerID(input.ID),
+				subscriptiondb.Or(
+					subscriptiondb.ActiveToIsNil(),
+					subscriptiondb.ActiveToGT(now),
+				),
+				subscriptiondb.Or(
+					subscriptiondb.DeletedAtIsNil(),
+					subscriptiondb.DeletedAtGT(now),
+				),
+			).
+			IDs(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to list not ended subscriptions: %w", err)
+		}
+
+		return ids, nil
+	})
+}
+
 // DeleteCustomer deletes a customer
 func (a *adapter) DeleteCustomer(ctx context.Context, input customer.DeleteCustomerInput) error {
 	if err := input.Validate(); err != nil {
