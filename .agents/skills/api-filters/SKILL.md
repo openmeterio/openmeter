@@ -89,7 +89,7 @@ Operator constants live in `api/v3/filters/parse.go` as `OpEq`, `OpNeq`, `OpGt`,
 | `FilterLabel`       | `Eq`, `Neq`, `Contains`, `Oeq`, `Ocontains` (label map value predicates)       |
 | `FilterLabels`      | type alias: `map[string]FilterLabel`                                           |
 
-The wire operator for `Exists` is plain `exists` (see `OpExists` in `api/v3/filters/parse.go`), matching its `json:"exists,omitempty"` tag — don't confuse it with the unrelated `$`-prefixed Mongo-style tags used by the v1 API (`api/api.gen.go`).
+The wire operator for `Exists` is plain `exists` (see `OpExists` in `api/v3/filters/parse.go`), matching its `json:"exists,omitempty"` tag. The v1 filter models in `api/models/models.gen.go` use `$`-prefixed JSON tags.
 
 **Important:** the API-layer types do NOT have `Validate()` methods. Validation (mutual exclusivity, complexity bounds, format checks) happens on the internal `pkg/filter.*` predicates — typically from the service input struct's own `Validate()`, calling `f.Validate()` on each non-nil filter.
 
@@ -144,7 +144,7 @@ The canonical rule for *which* `Common.*FieldFilter` type to pick, the `Shared.R
 
 The events list endpoint (`api/spec/packages/aip/src/events/operations.tsp`) and the customer list endpoint are the canonical worked examples.
 
-After editing TypeSpec, run `make gen-api` so the generated `params.Filter` struct in `api/v3/api.gen.go` picks up the new fields.
+After editing TypeSpec, run `make gen-api`. Check the generated filter type in `api/v3/models/models.gen.go` for the new fields (for example, `ListCustomersParamsFilter` for `ListCustomersParams.Filter`).
 
 ### Step 2: Store `pkg/filter` predicates on the service input struct
 

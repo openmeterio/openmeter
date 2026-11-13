@@ -54,7 +54,7 @@ The Go types in `api/v3/filters/filter.go` deliberately expose a **superset** of
 
 The existence check (`exists`) and `nexists` are AIP-160 operators, but they are not currently modeled in any `Common.*FieldFilter` `oneOf` shape, so picking e.g. `Common.StringFieldFilter` in TypeSpec does not advertise them. Do not rely on `gt`/`gte`/`lt`/`lte` on string fields as a stable contract — the Common type is the public surface.
 
-Note: the v3 `exists` operator is unrelated to the `$`-prefixed Mongo-style tags (`$eq`, `$in`, ...) used by the v1 API (`api/api.gen.go`) — don't conflate the two.
+The v3 operator is `exists`. The v1 filter models in `api/models/models.gen.go` use JSON tags such as `$eq` and `$in`.
 
 ## Operators
 
