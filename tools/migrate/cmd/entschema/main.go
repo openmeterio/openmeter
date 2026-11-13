@@ -18,7 +18,7 @@ func main() {
 				return err
 			}
 
-			constraints, err := os.ReadFile("tools/migrate/deferred_constraints.sql")
+			supplementalDDL, err := os.ReadFile("tools/migrate/supplemental_schema.sql")
 			if err != nil {
 				return err
 			}
@@ -26,7 +26,7 @@ func main() {
 			ddl, err := entschema.GenerateSQL(cmd.Context(), entschema.GenerateSQLInput{
 				SchemaPath:      "./openmeter/ent/schema",
 				PostgresVersion: "15",
-				SupplementalDDL: string(constraints),
+				SupplementalDDL: string(supplementalDDL),
 			})
 			if err != nil {
 				return err
