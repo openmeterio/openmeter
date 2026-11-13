@@ -175,7 +175,6 @@ func (s *SubscriptionMixin) SetupSuite(t *testing.T, deps SubscriptionMixInDepen
 		TransactionManager: subsRepo,
 		Lockr:              lockr,
 		FeatureFlags:       ffService,
-		TaxCodeResolver:    taxCodeResolver,
 		CostBasisService:   currencyService,
 		// events
 		Publisher: publisher,
@@ -244,6 +243,7 @@ func (s *SubscriptionMixin) SetupSuite(t *testing.T, deps SubscriptionMixInDepen
 		Logger:             slog.Default(),
 		Lockr:              lockr,
 		FeatureFlags:       ffService,
+		TaxCodeResolver:    taxCodeResolver,
 	})
 	require.NoError(t, err)
 }

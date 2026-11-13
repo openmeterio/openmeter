@@ -225,7 +225,6 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 		Publisher:             publisher,
 		Lockr:                 lockr,
 		FeatureFlags:          ffService,
-		TaxCodeResolver:       taxCodeResolver,
 		CostBasisService:      currencyService,
 	})
 	require.NoError(t, err)
@@ -290,6 +289,7 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 		Logger:             logger.With("subsystem", "subscription.workflow.service"),
 		Lockr:              lockr,
 		FeatureFlags:       ffService,
+		TaxCodeResolver:    taxCodeResolver,
 	})
 	require.NoError(t, err)
 

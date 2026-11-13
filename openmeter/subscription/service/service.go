@@ -10,7 +10,6 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionvalidators "github.com/openmeterio/openmeter/openmeter/subscription/validators/subscription"
@@ -39,7 +38,6 @@ type ServiceConfig struct {
 	Publisher          eventbus.Publisher
 	Lockr              *lockr.Locker
 	FeatureFlags       ffx.Service
-	TaxCodeResolver    productcatalog.TaxCodeResolver
 	CostBasisService   currencies.CostBasisService
 
 	// Hooks
@@ -53,10 +51,6 @@ func New(conf ServiceConfig) (subscription.Service, error) {
 
 	if conf.CostBasisService == nil {
 		return nil, errors.New("cost basis service is required")
-	}
-
-	if conf.TaxCodeResolver == nil {
-		return nil, errors.New("tax code resolver is required")
 	}
 
 	svc := &service{

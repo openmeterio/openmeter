@@ -84,7 +84,7 @@ func TestMigrateSubscriptionHandler(t *testing.T) {
 	service, err := pcservice.New(pcservice.Config{
 		WorkflowService: deps.WorkflowService, SubscriptionService: deps.SubscriptionService,
 		PlanService: deps.PlanService, FeatureResolver: resolver, CurrencyResolver: deps.CurrencyResolver,
-		CustomerService: deps.CustomerService, Logger: testutils.NewLogger(t),
+		CustomerService: deps.CustomerService, TaxCodeResolver: deps.TaxCodeResolver, Logger: testutils.NewLogger(t),
 	})
 	require.NoError(t, err)
 

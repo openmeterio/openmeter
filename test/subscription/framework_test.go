@@ -97,6 +97,7 @@ func setup(t *testing.T, config setupConfig) testDeps {
 		PlanService:         deps.PlanService,
 		FeatureResolver:     featureResolver,
 		CurrencyResolver:    deps.CurrencyResolver,
+		TaxCodeResolver:     deps.TaxCodeResolver,
 		Logger:              testutils.NewLogger(t),
 		CustomerService:     deps.CustomerService,
 	})

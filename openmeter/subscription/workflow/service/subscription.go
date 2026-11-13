@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"maps"
+	"time"
 
 	"github.com/samber/lo"
 
@@ -193,6 +194,77 @@ func (s *service) resolveEditPatchRateCardReferences(ctx context.Context, namesp
 	return *addItem, nil
 }
 
+// withAddItemTaxCodeCheck checks an add-item patch's Tax Code against the spec as the earlier
+// patches of the request left it, right before the patch is applied. Checking against the stored
+// spec would let one patch replace the item and a later one bring back a deleted code.
+func (s *service) withAddItemTaxCodeCheck(ctx context.Context, namespace string, p subscription.Patch) subscription.AppliesToSpec {
+	return subscription.NewAppliesToSpec(func(spec *subscription.SubscriptionSpec, actx subscription.ApplyContext) error {
+		if err := s.validateAddItemTaxCode(ctx, namespace, *spec, actx.CurrentTime, p); err != nil {
+			return err
+		}
+
+		return p.ApplyTo(spec, actx)
+	})
+}
+
+// validateAddItemTaxCode rejects a deleted Tax Code unless the item version the patch
+// replaces already holds it, so a price change that echoes the rate card back passes.
+func (s *service) validateAddItemTaxCode(ctx context.Context, namespace string, spec subscription.SubscriptionSpec, at time.Time, customization subscription.Patch) error {
+	var addItem patch.PatchAddItem
+
+	switch value := customization.(type) {
+	case patch.PatchAddItem:
+		addItem = value
+	case *patch.PatchAddItem:
+		addItem = *value
+	default:
+		return nil
+	}
+
+	rateCard := addItem.CreateInput.RateCard
+	if rateCard == nil {
+		return nil
+	}
+
+	cfg := rateCard.AsMeta().TaxConfig
+	if cfg == nil || cfg.TaxCodeID == "" {
+		return nil
+	}
+
+	inheritedIDs := inheritedTaxCodeIDs(spec, at, addItem.PhaseKey, addItem.ItemKey)
+
+	rateCards := productcatalog.RateCards{rateCard}
+
+	if err := productcatalog.ValidateRateCardTaxCodes(ctx, s.TaxCodeResolver, namespace, rateCards, inheritedIDs...); err != nil {
+		return fmt.Errorf("invalid tax code for item %s: %w", addItem.ItemKey, err)
+	}
+
+	return nil
+}
+
+// inheritedTaxCodeIDs returns the Tax Code ID of the item version the add-item patch
+// would close. Must pick the same version as PatchAddItem.ApplyTo: the last one stored
+// for the key, and only when the patch targets the current phase.
+func inheritedTaxCodeIDs(spec subscription.SubscriptionSpec, at time.Time, phaseKey, itemKey string) []string {
+	// Adding to a past or future phase closes nothing.
+	phase, ok := spec.GetCurrentPhaseAt(at)
+	if !ok || phase.PhaseKey != phaseKey {
+		return nil
+	}
+
+	items := phase.ItemsByKey[itemKey]
+	if len(items) == 0 {
+		return nil
+	}
+
+	cfg := items[len(items)-1].RateCard.AsMeta().TaxConfig
+	if cfg == nil || cfg.TaxCodeID == "" {
+		return nil
+	}
+
+	return []string{cfg.TaxCodeID}
+}
+
 func (s *service) EditRunning(ctx context.Context, subscriptionID models.NamespacedID, customizations []subscription.Patch, timing subscription.Timing) (subscription.SubscriptionView, error) {
 	// Finally, let's update the subscription
 	return transaction.Run(ctx, s.TransactionManager, func(ctx context.Context) (subscription.SubscriptionView, error) {
@@ -274,7 +346,11 @@ func (s *service) EditRunning(ctx context.Context, subscriptionID models.Namespa
 		// Let's apply the customizations
 		spec := curr.AsSpec()
 
-		err = spec.ApplyMany(lo.Map(customizations, subscription.ToApplies), subscription.ApplyContext{
+		applies := lo.Map(customizations, func(p subscription.Patch, _ int) subscription.AppliesToSpec {
+			return s.withAddItemTaxCodeCheck(ctx, subscriptionID.Namespace, p)
+		})
+
+		err = spec.ApplyMany(applies, subscription.ApplyContext{
 			CurrentTime: editTime,
 		})
 		if err := subscriptionworkflow.MapSubscriptionErrors(err); err != nil {

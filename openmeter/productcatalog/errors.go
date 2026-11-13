@@ -131,6 +131,16 @@ var ErrRateCardTaxCodeNotFound = models.NewValidationIssue(
 	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
+const ErrCodeRateCardTaxCodeDeleted models.ErrorCode = "rate_card_tax_code_deleted"
+
+var ErrRateCardTaxCodeDeleted = models.NewValidationIssue(
+	ErrCodeRateCardTaxCodeDeleted,
+	"tax code deleted",
+	models.WithFieldString("taxConfig"),
+	models.WithCriticalSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
+)
+
 const ErrCodeRateCardFeatureMismatch models.ErrorCode = "rate_card_feature_mismatch"
 
 var ErrRateCardFeatureMismatch = models.NewValidationIssue(
