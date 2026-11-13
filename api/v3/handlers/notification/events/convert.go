@@ -1,16 +1,20 @@
 package events
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"regexp"
+	"strings"
 
-	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
-	v1api "github.com/openmeterio/openmeter/api"
+	apimodels "github.com/openmeterio/openmeter/api/models"
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/openmeter/notification"
+	"github.com/openmeterio/openmeter/openmeter/notification/httpdriver"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -66,17 +70,18 @@ func ToAPIBillingNotificationEventDeliveryState(v notification.EventDeliveryStat
 }
 
 // The stored value is the v1 API model, where `NUMBER` and `PERCENT` are deprecated
-// aliases of `usage_value` and `usage_percentage`; events written before the rename
-// must not leak the legacy spelling.
-func ToAPIBillingNotificationBalanceThresholdType(v v1api.NotificationRuleBalanceThresholdValueType) (api.BillingNotificationBalanceThresholdType, error) {
+// aliases of `usage_value` and `usage_percentage`. Rules written before the rename
+// must not show the legacy spelling on the v3 rules API. Legacy Event payloads keep
+// it, because they return the same content as v1.
+func ToAPIBillingNotificationBalanceThresholdType(v apimodels.NotificationRuleBalanceThresholdValueType) (api.BillingNotificationBalanceThresholdType, error) {
 	switch v {
-	case v1api.NotificationRuleBalanceThresholdValueTypeBalanceValue:
+	case apimodels.NotificationRuleBalanceThresholdValueTypeBalanceValue:
 		return api.BillingNotificationBalanceThresholdTypeBalanceValue, nil
-	case v1api.NotificationRuleBalanceThresholdValueTypeUsagePercentage,
-		v1api.NotificationRuleBalanceThresholdValueTypePercent:
+	case apimodels.NotificationRuleBalanceThresholdValueTypeUsagePercentage,
+		apimodels.NotificationRuleBalanceThresholdValueTypePercent:
 		return api.BillingNotificationBalanceThresholdTypeUsagePercentage, nil
-	case v1api.NotificationRuleBalanceThresholdValueTypeUsageValue,
-		v1api.NotificationRuleBalanceThresholdValueTypeNumber:
+	case apimodels.NotificationRuleBalanceThresholdValueTypeUsageValue,
+		apimodels.NotificationRuleBalanceThresholdValueTypeNumber:
 		return api.BillingNotificationBalanceThresholdTypeUsageValue, nil
 	default:
 		return "", fmt.Errorf("invalid notification balance threshold type: %s", v)
@@ -168,116 +173,116 @@ func ToAPIBillingNotificationEventDeliveryAttempts(attempts []notification.Event
 	return result, nil
 }
 
-// The stored payload holds v1 API models; only the identifiers and scalars the v3
-// surface exposes are extracted, never the v1 shapes.
+// The v3 API returns the legacy payloads with the v1 content: build the v1 payload with
+// the v1 mapping and rename its fields to snake_case, so the two APIs cannot drift.
 func setAPIEventPayload(event *api.BillingNotificationEvent, e notification.Event) error {
+	var (
+		payload any
+		err     error
+	)
+
 	switch e.Type {
 	case notification.EventTypeBalanceThreshold:
-		if e.Payload.BalanceThreshold == nil {
-			return fmt.Errorf("missing balance threshold payload on notification event %s", e.ID)
-		}
-
-		thresholdType, err := ToAPIBillingNotificationBalanceThresholdType(e.Payload.BalanceThreshold.Threshold.Type)
-		if err != nil {
-			return err
-		}
-
-		return event.Payload.FromBillingNotificationEventBalanceThresholdPayload(api.BillingNotificationEventBalanceThresholdPayload{
-			Id:        e.ID,
-			Type:      api.BillingNotificationEventBalanceThresholdPayloadTypeEntitlementsBalanceThreshold,
-			Timestamp: e.CreatedAt,
-			Data: api.BillingNotificationEventBalanceThresholdData{
-				EntitlementId: e.Payload.BalanceThreshold.Entitlement.Id,
-				Feature: api.BillingNotificationEventFeatureReference{
-					Id:  e.Payload.BalanceThreshold.Feature.Id,
-					Key: e.Payload.BalanceThreshold.Feature.Key,
-				},
-				SubjectKey: e.Payload.BalanceThreshold.Subject.Key,
-				CustomerId: lo.EmptyableToPtr(e.Payload.BalanceThreshold.Customer.Id),
-				Value:      toAPIEntitlementValue(e.Payload.BalanceThreshold.Feature.Key, e.Payload.BalanceThreshold.Value),
-				Threshold: api.BillingNotificationBalanceThreshold{
-					Type:  thresholdType,
-					Value: e.Payload.BalanceThreshold.Threshold.Value,
-				},
-			},
-		})
-
+		payload, err = httpdriver.FromEventAsBalanceThresholdPayload(e)
 	case notification.EventTypeEntitlementReset:
-		if e.Payload.EntitlementReset == nil {
-			return fmt.Errorf("missing entitlement reset payload on notification event %s", e.ID)
-		}
-
-		return event.Payload.FromBillingNotificationEventResetPayload(api.BillingNotificationEventResetPayload{
-			Id:        e.ID,
-			Type:      api.BillingNotificationEventResetPayloadTypeEntitlementsReset,
-			Timestamp: e.CreatedAt,
-			Data: api.BillingNotificationEventEntitlementData{
-				EntitlementId: e.Payload.EntitlementReset.Entitlement.Id,
-				Feature: api.BillingNotificationEventFeatureReference{
-					Id:  e.Payload.EntitlementReset.Feature.Id,
-					Key: e.Payload.EntitlementReset.Feature.Key,
-				},
-				SubjectKey: e.Payload.EntitlementReset.Subject.Key,
-				CustomerId: lo.EmptyableToPtr(e.Payload.EntitlementReset.Customer.Id),
-				Value:      toAPIEntitlementValue(e.Payload.EntitlementReset.Feature.Key, e.Payload.EntitlementReset.Value),
-			},
-		})
-
+		payload, err = httpdriver.FromEventAsEntitlementResetPayload(e)
 	case notification.EventTypeInvoiceCreated:
-		if e.Payload.Invoice == nil {
-			return fmt.Errorf("missing invoice payload on notification event %s", e.ID)
-		}
-
-		return event.Payload.FromBillingNotificationEventInvoiceCreatedPayload(api.BillingNotificationEventInvoiceCreatedPayload{
-			Id:        e.ID,
-			Type:      api.BillingNotificationEventInvoiceCreatedPayloadTypeInvoiceCreated,
-			Timestamp: e.CreatedAt,
-			Data:      toAPIInvoiceData(e.Payload.Invoice.Invoice),
-		})
-
+		payload, err = httpdriver.FromEventAsInvoiceCreatedPayload(e)
 	case notification.EventTypeInvoiceUpdated:
-		if e.Payload.Invoice == nil {
-			return fmt.Errorf("missing invoice payload on notification event %s", e.ID)
-		}
-
-		return event.Payload.FromBillingNotificationEventInvoiceUpdatedPayload(api.BillingNotificationEventInvoiceUpdatedPayload{
-			Id:        e.ID,
-			Type:      api.BillingNotificationEventInvoiceUpdatedPayloadTypeInvoiceUpdated,
-			Timestamp: e.CreatedAt,
-			Data:      toAPIInvoiceData(e.Payload.Invoice.Invoice),
-		})
-
+		payload, err = httpdriver.FromEventAsInvoiceUpdatedPayload(e)
 	default:
 		return models.NewGenericValidationError(fmt.Errorf("invalid notification event type: %s", e.Type))
 	}
+
+	if err != nil {
+		return fmt.Errorf("failed to map payload of notification event %s: %w", e.ID, err)
+	}
+
+	v1Body, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal payload of notification event %s: %w", e.ID, err)
+	}
+
+	decoder := json.NewDecoder(bytes.NewReader(v1Body))
+	// Keep numbers as written, float64 would round large or precise values.
+	decoder.UseNumber()
+
+	var v1Value any
+	if err := decoder.Decode(&v1Value); err != nil {
+		return fmt.Errorf("failed to decode payload of notification event %s: %w", e.ID, err)
+	}
+
+	body, err := json.Marshal(toSnakeCaseKeys(v1Value))
+	if err != nil {
+		return fmt.Errorf("failed to marshal payload of notification event %s: %w", e.ID, err)
+	}
+
+	return event.Payload.UnmarshalJSON(body)
 }
 
-func toAPIEntitlementValue(featureKey string, v v1api.EntitlementValue) api.BillingEntitlementValueResult {
-	return api.BillingEntitlementValueResult{
-		Type:       api.BillingEntitlementTypeMetered,
-		FeatureKey: featureKey,
-		HasAccess:  v.HasAccess,
-		Config:     v.Config,
-		Value: &api.BillingEntitlementAccessValue{
-			Balance:                   alpacadecimal.NewFromFloat(lo.FromPtr(v.Balance)).String(),
-			Usage:                     alpacadecimal.NewFromFloat(lo.FromPtr(v.Usage)).String(),
-			Overage:                   alpacadecimal.NewFromFloat(lo.FromPtr(v.Overage)).String(),
-			TotalAvailableGrantAmount: alpacadecimal.NewFromFloat(lo.FromPtr(v.TotalAvailableGrantAmount)).String(),
-			// keep it empty to satisfy the api contract
-			GrantBalances: make(map[string]api.Numeric),
-		},
+// The keys of these v1 fields are user data, not field names, so they keep their case.
+// The values of advancedMeterGroupByFilters are filter objects with v1 field names.
+var (
+	userKeyedFields = map[string]bool{
+		"metadata":            true,
+		"annotations":         true,
+		"meterGroupByFilters": true,
+	}
+	userKeyedFieldsWithV1Values = map[string]bool{
+		"advancedMeterGroupByFilters": true,
+	}
+)
+
+func toSnakeCaseKeys(v any) any {
+	switch v := v.(type) {
+	case map[string]any:
+		out := make(map[string]any, len(v))
+		for key, value := range v {
+			switch {
+			case userKeyedFields[key]:
+				out[toSnakeCase(key)] = value
+			case userKeyedFieldsWithV1Values[key]:
+				filters, ok := value.(map[string]any)
+				if !ok {
+					out[toSnakeCase(key)] = value
+
+					continue
+				}
+
+				mapped := make(map[string]any, len(filters))
+				for filterKey, filter := range filters {
+					mapped[filterKey] = toSnakeCaseKeys(filter)
+				}
+
+				out[toSnakeCase(key)] = mapped
+			default:
+				out[toSnakeCase(key)] = toSnakeCaseKeys(value)
+			}
+		}
+
+		return out
+	case []any:
+		out := make([]any, len(v))
+		for i, item := range v {
+			out[i] = toSnakeCaseKeys(item)
+		}
+
+		return out
+	default:
+		return v
 	}
 }
 
-func toAPIInvoiceData(invoice v1api.Invoice) api.BillingNotificationEventInvoiceData {
-	return api.BillingNotificationEventInvoiceData{
-		Invoice: api.BillingNotificationEventInvoiceReference{
-			Id:     invoice.Id,
-			Number: invoice.Number,
-		},
-		CustomerId: invoice.Customer.Id,
-		Currency:   invoice.Currency,
-		Status:     string(invoice.Status),
-		Total:      invoice.Totals.Total,
-	}
+var (
+	snakeCaseAcronymBoundary = regexp.MustCompile(`([A-Z]+)([A-Z][a-z])`)
+	snakeCaseWordBoundary    = regexp.MustCompile(`([a-z0-9])([A-Z])`)
+)
+
+// toSnakeCase must match the renaming used to create the v3 copies of the v1 models,
+// for example maskedAPIKey becomes masked_api_key.
+func toSnakeCase(name string) string {
+	name = snakeCaseAcronymBoundary.ReplaceAllString(name, "${1}_${2}")
+	name = snakeCaseWordBoundary.ReplaceAllString(name, "${1}_${2}")
+
+	return strings.ToLower(name)
 }

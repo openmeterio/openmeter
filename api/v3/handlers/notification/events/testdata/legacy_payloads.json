@@ -1,0 +1,4419 @@
+{
+  "invoice_0": {
+    "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+    "description": "description",
+    "metadata": {
+      "someKey": "v"
+    },
+    "createdAt": "2024-01-01T01:01:01.001Z",
+    "updatedAt": "2024-01-01T01:01:01.001Z",
+    "deletedAt": "2024-01-01T01:01:01.001Z",
+    "type": "standard",
+    "supplier": {
+      "id": "id",
+      "key": "key",
+      "name": "name",
+      "taxId": {
+        "code": "code"
+      },
+      "addresses": [
+        {
+          "country": "US",
+          "postalCode": "postalCode",
+          "state": "state",
+          "city": "city",
+          "line1": "line1",
+          "line2": "line2",
+          "phoneNumber": "phoneNumber"
+        }
+      ]
+    },
+    "customer": {
+      "id": "id",
+      "key": "key",
+      "name": "name",
+      "taxId": {
+        "code": "code"
+      },
+      "addresses": [
+        {
+          "country": "US",
+          "postalCode": "postalCode",
+          "state": "state",
+          "city": "city",
+          "line1": "line1",
+          "line2": "line2",
+          "phoneNumber": "phoneNumber"
+        }
+      ],
+      "usageAttribution": {
+        "subjectKeys": [
+          "subjectKeys"
+        ]
+      }
+    },
+    "number": "INV-2024-01-01-01",
+    "currency": "USD",
+    "preceding": [
+      {
+        "type": "credit_note_original_invoice",
+        "reason": "reason",
+        "description": "description",
+        "issuedAt": "2023-01-01T01:01:01.001Z",
+        "number": "INV-2024-01-01-01",
+        "url": "https://example.com/doc"
+      }
+    ],
+    "totals": {
+      "amount": "key_1",
+      "chargesTotal": "key_1",
+      "discountsTotal": "key_1",
+      "creditsTotal": "key_1",
+      "taxesInclusiveTotal": "key_1",
+      "taxesExclusiveTotal": "key_1",
+      "taxesTotal": "key_1",
+      "total": "key_1"
+    },
+    "status": "gathering",
+    "statusDetails": {
+      "immutable": true,
+      "failed": true,
+      "extendedStatus": "extendedStatus",
+      "availableActions": {
+        "advance": {
+          "resultingState": "resultingState"
+        },
+        "approve": {
+          "resultingState": "resultingState"
+        },
+        "delete": {
+          "resultingState": "resultingState"
+        },
+        "retry": {
+          "resultingState": "resultingState"
+        },
+        "snapshotQuantities": {
+          "resultingState": "resultingState"
+        },
+        "void": {
+          "resultingState": "resultingState"
+        },
+        "invoice": {
+          "someKey": "value"
+        }
+      }
+    },
+    "issuedAt": "2023-01-01T01:01:01.001Z",
+    "draftUntil": "2023-01-01T01:01:01.001Z",
+    "quantitySnapshotedAt": "2023-01-01T01:01:01.001Z",
+    "collectionAt": "2023-01-01T01:01:01.001Z",
+    "dueAt": "2023-01-01T01:01:01.001Z",
+    "period": {
+      "from": "2023-01-01T01:01:01.001Z",
+      "to": "2023-02-01T01:01:01.001Z"
+    },
+    "voidedAt": "2023-01-01T01:01:01.001Z",
+    "sentToCustomerAt": "2023-01-01T01:01:01.001Z",
+    "workflow": {
+      "apps": {
+        "tax": {
+          "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+          "name": "name",
+          "description": "description",
+          "metadata": {
+            "someKey": "v"
+          },
+          "createdAt": "2024-01-01T01:01:01.001Z",
+          "updatedAt": "2024-01-01T01:01:01.001Z",
+          "deletedAt": "2024-01-01T01:01:01.001Z",
+          "listing": {
+            "type": "stripe",
+            "name": "name",
+            "description": "description",
+            "capabilities": [
+              {
+                "type": "reportUsage",
+                "key": "key_1",
+                "name": "name",
+                "description": "description"
+              }
+            ],
+            "installMethods": [
+              "with_oauth2"
+            ]
+          },
+          "status": "ready",
+          "type": "stripe",
+          "stripeAccountId": "stripeAccountId",
+          "livemode": true,
+          "maskedAPIKey": "maskedAPIKey"
+        },
+        "invoicing": {
+          "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+          "name": "name",
+          "description": "description",
+          "metadata": {
+            "someKey": "v"
+          },
+          "createdAt": "2024-01-01T01:01:01.001Z",
+          "updatedAt": "2024-01-01T01:01:01.001Z",
+          "deletedAt": "2024-01-01T01:01:01.001Z",
+          "listing": {
+            "type": "stripe",
+            "name": "name",
+            "description": "description",
+            "capabilities": [
+              {
+                "type": "reportUsage",
+                "key": "key_1",
+                "name": "name",
+                "description": "description"
+              }
+            ],
+            "installMethods": [
+              "with_oauth2"
+            ]
+          },
+          "status": "ready",
+          "type": "stripe",
+          "stripeAccountId": "stripeAccountId",
+          "livemode": true,
+          "maskedAPIKey": "maskedAPIKey"
+        },
+        "payment": {
+          "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+          "name": "name",
+          "description": "description",
+          "metadata": {
+            "someKey": "v"
+          },
+          "createdAt": "2024-01-01T01:01:01.001Z",
+          "updatedAt": "2024-01-01T01:01:01.001Z",
+          "deletedAt": "2024-01-01T01:01:01.001Z",
+          "listing": {
+            "type": "stripe",
+            "name": "name",
+            "description": "description",
+            "capabilities": [
+              {
+                "type": "reportUsage",
+                "key": "key_1",
+                "name": "name",
+                "description": "description"
+              }
+            ],
+            "installMethods": [
+              "with_oauth2"
+            ]
+          },
+          "status": "ready",
+          "type": "stripe",
+          "stripeAccountId": "stripeAccountId",
+          "livemode": true,
+          "maskedAPIKey": "maskedAPIKey"
+        }
+      },
+      "sourceBillingProfileId": "01G65Z755AFWAKHE12NY0CQ9FH",
+      "workflow": {
+        "collection": {
+          "alignment": {
+            "type": "subscription"
+          },
+          "interval": "P1D"
+        },
+        "invoicing": {
+          "autoAdvance": true,
+          "draftPeriod": "P1D",
+          "dueAfter": "P30D",
+          "progressiveBilling": true,
+          "subscriptionEndProrationMode": "bill_full_period",
+          "defaultTaxConfig": {
+            "behavior": "inclusive",
+            "stripe": {
+              "code": "txcd_10000000"
+            },
+            "customInvoicing": {
+              "code": "code"
+            },
+            "taxCodeId": "01G65Z755AFWAKHE12NY0CQ9FH"
+          }
+        },
+        "payment": {
+          "collectionMethod": "charge_automatically"
+        },
+        "tax": {
+          "enabled": true,
+          "enforced": true
+        }
+      }
+    },
+    "lines": [
+      {
+        "name": "name",
+        "description": "description",
+        "metadata": {
+          "someKey": "v"
+        },
+        "createdAt": "2024-01-01T01:01:01.001Z",
+        "updatedAt": "2024-01-01T01:01:01.001Z",
+        "deletedAt": "2024-01-01T01:01:01.001Z",
+        "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+        "managedBy": "subscription",
+        "status": "valid",
+        "discounts": {
+          "amount": [
+            {
+              "createdAt": "2024-01-01T01:01:01.001Z",
+              "updatedAt": "2024-01-01T01:01:01.001Z",
+              "deletedAt": "2024-01-01T01:01:01.001Z",
+              "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+              "reason": {
+                "type": "maximum_spend"
+              },
+              "description": "description",
+              "externalIds": {
+                "invoicing": "invoicing",
+                "tax": "tax"
+              },
+              "amount": "key_1"
+            }
+          ],
+          "usage": [
+            {
+              "createdAt": "2024-01-01T01:01:01.001Z",
+              "updatedAt": "2024-01-01T01:01:01.001Z",
+              "deletedAt": "2024-01-01T01:01:01.001Z",
+              "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+              "reason": {
+                "type": "maximum_spend"
+              },
+              "description": "description",
+              "externalIds": {
+                "invoicing": "invoicing",
+                "tax": "tax"
+              },
+              "quantity": "key_1",
+              "preLinePeriodQuantity": "key_1"
+            }
+          ]
+        },
+        "creditAllocations": [
+          {
+            "amount": "key_1",
+            "description": "description"
+          }
+        ],
+        "invoice": {
+          "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+          "number": "INV-2024-01-01-01"
+        },
+        "currency": "USD",
+        "taxes": [
+          {
+            "config": {
+              "behavior": "inclusive",
+              "stripe": {
+                "code": "txcd_10000000"
+              },
+              "customInvoicing": {
+                "code": "code"
+              },
+              "taxCodeId": "01G65Z755AFWAKHE12NY0CQ9FH"
+            },
+            "percent": 50,
+            "surcharge": "key_1",
+            "behavior": "inclusive"
+          }
+        ],
+        "taxConfig": {
+          "behavior": "inclusive",
+          "stripe": {
+            "code": "txcd_10000000"
+          },
+          "customInvoicing": {
+            "code": "code"
+          },
+          "taxCodeId": "01G65Z755AFWAKHE12NY0CQ9FH"
+        },
+        "totals": {
+          "amount": "key_1",
+          "chargesTotal": "key_1",
+          "discountsTotal": "key_1",
+          "creditsTotal": "key_1",
+          "taxesInclusiveTotal": "key_1",
+          "taxesExclusiveTotal": "key_1",
+          "taxesTotal": "key_1",
+          "total": "key_1"
+        },
+        "period": {
+          "from": "2023-01-01T01:01:01.001Z",
+          "to": "2023-02-01T01:01:01.001Z"
+        },
+        "invoiceAt": "2023-01-01T01:01:01.001Z",
+        "externalIds": {
+          "invoicing": "invoicing",
+          "tax": "tax"
+        },
+        "subscription": {
+          "subscription": {
+            "id": "01G65Z755AFWAKHE12NY0CQ9FH"
+          },
+          "phase": {
+            "id": "01G65Z755AFWAKHE12NY0CQ9FH"
+          },
+          "item": {
+            "id": "01G65Z755AFWAKHE12NY0CQ9FH"
+          },
+          "billingPeriod": {
+            "from": "2023-01-01T01:01:01.001Z",
+            "to": "2023-02-01T01:01:01.001Z"
+          }
+        },
+        "type": "usage_based",
+        "price": {
+          "type": "flat",
+          "amount": "key_1",
+          "paymentTerm": "in_advance"
+        },
+        "featureKey": "key_1",
+        "children": [
+          {
+            "name": "name",
+            "description": "description",
+            "metadata": {
+              "someKey": "v"
+            },
+            "createdAt": "2024-01-01T01:01:01.001Z",
+            "updatedAt": "2024-01-01T01:01:01.001Z",
+            "deletedAt": "2024-01-01T01:01:01.001Z",
+            "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+            "managedBy": "subscription",
+            "status": "valid",
+            "discounts": {
+              "amount": [
+                {
+                  "createdAt": "2024-01-01T01:01:01.001Z",
+                  "updatedAt": "2024-01-01T01:01:01.001Z",
+                  "deletedAt": "2024-01-01T01:01:01.001Z",
+                  "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+                  "reason": {
+                    "type": "maximum_spend"
+                  },
+                  "description": "description",
+                  "externalIds": {
+                    "invoicing": "invoicing",
+                    "tax": "tax"
+                  },
+                  "amount": "key_1"
+                }
+              ],
+              "usage": [
+                {
+                  "createdAt": "2024-01-01T01:01:01.001Z",
+                  "updatedAt": "2024-01-01T01:01:01.001Z",
+                  "deletedAt": "2024-01-01T01:01:01.001Z",
+                  "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+                  "reason": {
+                    "type": "maximum_spend"
+                  },
+                  "description": "description",
+                  "externalIds": {
+                    "invoicing": "invoicing",
+                    "tax": "tax"
+                  },
+                  "quantity": "key_1",
+                  "preLinePeriodQuantity": "key_1"
+                }
+              ]
+            },
+            "creditAllocations": [
+              {
+                "amount": "key_1",
+                "description": "description"
+              }
+            ],
+            "invoice": {
+              "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+              "number": "INV-2024-01-01-01"
+            },
+            "currency": "USD",
+            "taxes": [
+              {
+                "config": {
+                  "behavior": "inclusive",
+                  "stripe": {
+                    "code": "txcd_10000000"
+                  },
+                  "customInvoicing": {
+                    "code": "code"
+                  },
+                  "taxCodeId": "01G65Z755AFWAKHE12NY0CQ9FH"
+                },
+                "percent": 50,
+                "surcharge": "key_1",
+                "behavior": "inclusive"
+              }
+            ],
+            "taxConfig": {
+              "behavior": "inclusive",
+              "stripe": {
+                "code": "txcd_10000000"
+              },
+              "customInvoicing": {
+                "code": "code"
+              },
+              "taxCodeId": "01G65Z755AFWAKHE12NY0CQ9FH"
+            },
+            "totals": {
+              "amount": "key_1",
+              "chargesTotal": "key_1",
+              "discountsTotal": "key_1",
+              "creditsTotal": "key_1",
+              "taxesInclusiveTotal": "key_1",
+              "taxesExclusiveTotal": "key_1",
+              "taxesTotal": "key_1",
+              "total": "key_1"
+            },
+            "period": {
+              "from": "2023-01-01T01:01:01.001Z",
+              "to": "2023-02-01T01:01:01.001Z"
+            },
+            "externalIds": {
+              "invoicing": "invoicing",
+              "tax": "tax"
+            },
+            "subscription": {
+              "subscription": {
+                "id": "01G65Z755AFWAKHE12NY0CQ9FH"
+              },
+              "phase": {
+                "id": "01G65Z755AFWAKHE12NY0CQ9FH"
+              },
+              "item": {
+                "id": "01G65Z755AFWAKHE12NY0CQ9FH"
+              },
+              "billingPeriod": {
+                "from": "2023-01-01T01:01:01.001Z",
+                "to": "2023-02-01T01:01:01.001Z"
+              }
+            },
+            "invoiceAt": "2023-01-01T01:01:01.001Z",
+            "type": "flat_fee",
+            "perUnitAmount": "key_1",
+            "paymentTerm": "in_advance",
+            "quantity": "key_1",
+            "rateCard": {
+              "taxConfig": {
+                "behavior": "inclusive",
+                "stripe": {
+                  "code": "txcd_10000000"
+                },
+                "customInvoicing": {
+                  "code": "code"
+                },
+                "taxCodeId": "01G65Z755AFWAKHE12NY0CQ9FH"
+              },
+              "price": {
+                "type": "flat",
+                "amount": "key_1",
+                "paymentTerm": "in_advance"
+              },
+              "quantity": "key_1",
+              "discounts": {
+                "percentage": {
+                  "percentage": 50,
+                  "correlationId": "01G65Z755AFWAKHE12NY0CQ9FH"
+                },
+                "usage": {
+                  "quantity": "key_1",
+                  "correlationId": "01G65Z755AFWAKHE12NY0CQ9FH"
+                }
+              }
+            },
+            "category": "regular"
+          }
+        ],
+        "rateCard": {
+          "featureKey": "key_1",
+          "taxConfig": {
+            "behavior": "inclusive",
+            "stripe": {
+              "code": "txcd_10000000"
+            },
+            "customInvoicing": {
+              "code": "code"
+            },
+            "taxCodeId": "01G65Z755AFWAKHE12NY0CQ9FH"
+          },
+          "price": {
+            "type": "flat",
+            "amount": "key_1",
+            "paymentTerm": "in_advance"
+          },
+          "discounts": {
+            "percentage": {
+              "percentage": 50,
+              "correlationId": "01G65Z755AFWAKHE12NY0CQ9FH"
+            },
+            "usage": {
+              "quantity": "key_1",
+              "correlationId": "01G65Z755AFWAKHE12NY0CQ9FH"
+            }
+          }
+        },
+        "quantity": "key_1",
+        "meteredQuantity": "key_1",
+        "preLinePeriodQuantity": "key_1",
+        "meteredPreLinePeriodQuantity": "key_1"
+      }
+    ],
+    "payment": {
+      "terms": {
+        "type": "instant",
+        "detail": "detail",
+        "notes": "notes"
+      }
+    },
+    "validationIssues": [
+      {
+        "createdAt": "2024-01-01T01:01:01.001Z",
+        "updatedAt": "2024-01-01T01:01:01.001Z",
+        "deletedAt": "2024-01-01T01:01:01.001Z",
+        "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+        "severity": "critical",
+        "field": "field",
+        "code": "code",
+        "component": "component",
+        "message": "message",
+        "metadata": {
+          "someKey": "v"
+        }
+      }
+    ],
+    "externalIds": {
+      "invoicing": "invoicing",
+      "tax": "tax",
+      "payment": "payment"
+    }
+  },
+  "balance_threshold_0": {
+    "entitlement": {
+      "type": "metered",
+      "isSoftLimit": true,
+      "isUnlimited": true,
+      "issueAfterReset": 1.5,
+      "issueAfterResetPriority": 1,
+      "preserveOverageAtReset": true,
+      "createdAt": "2024-01-01T01:01:01.001Z",
+      "updatedAt": "2024-01-01T01:01:01.001Z",
+      "deletedAt": "2024-01-01T01:01:01.001Z",
+      "metadata": {
+        "someKey": "v"
+      },
+      "activeFrom": "2023-01-01T01:01:01.001Z",
+      "activeTo": "2023-01-01T01:01:01.001Z",
+      "annotations": {
+        "someKey": null
+      },
+      "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+      "subjectKey": "customer-1",
+      "featureKey": "example-feature-key",
+      "featureId": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+      "lastReset": "2023-01-01T01:01:01.001Z",
+      "currentUsagePeriod": {
+        "from": "2023-01-01T01:01:01.001Z",
+        "to": "2023-02-01T01:01:01.001Z"
+      },
+      "measureUsageFrom": "2023-01-01T01:01:01.001Z",
+      "usagePeriod": {
+        "interval": "P1M",
+        "anchor": "2023-01-01T01:01:01.001Z",
+        "intervalISO": "intervalISO"
+      }
+    },
+    "feature": {
+      "createdAt": "2024-01-01T01:01:01.001Z",
+      "updatedAt": "2024-01-01T01:01:01.001Z",
+      "deletedAt": "2024-01-01T01:01:01.001Z",
+      "archivedAt": "2023-01-01T01:01:01.001Z",
+      "key": "key_1",
+      "name": "name",
+      "metadata": {
+        "someKey": "v"
+      },
+      "meterSlug": "tokens_total",
+      "meterGroupByFilters": {
+        "someKey": "v"
+      },
+      "advancedMeterGroupByFilters": {
+        "someKey": {
+          "$eq": "$eq",
+          "$ne": "$ne",
+          "$in": [
+            "$in"
+          ],
+          "$nin": [
+            "$nin"
+          ],
+          "$like": "$like",
+          "$nlike": "$nlike",
+          "$ilike": "$ilike",
+          "$nilike": "$nilike",
+          "$gt": "$gt",
+          "$gte": "$gte",
+          "$lt": "$lt",
+          "$lte": "$lte",
+          "$and": [
+            null
+          ],
+          "$or": [
+            null
+          ]
+        }
+      },
+      "unitCost": {
+        "type": "manual",
+        "amount": "key_1"
+      },
+      "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+    },
+    "subject": {
+      "createdAt": "2024-01-01T01:01:01.001Z",
+      "updatedAt": "2024-01-01T01:01:01.001Z",
+      "deletedAt": "2024-01-01T01:01:01.001Z",
+      "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+      "key": "customer-db-id-123",
+      "displayName": "Customer Name",
+      "metadata": {
+        "someKey": null
+      },
+      "currentPeriodStart": "2023-01-01T00:00:00Z",
+      "currentPeriodEnd": "2023-02-01T00:00:00Z",
+      "stripeCustomerId": "cus_JMOlctsKV8"
+    },
+    "value": {
+      "hasAccess": true,
+      "balance": 100,
+      "usage": 50,
+      "overage": 0,
+      "totalAvailableGrantAmount": 100,
+      "config": "{ key: \"value\" }"
+    },
+    "customer": {
+      "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+      "name": "name",
+      "description": "description",
+      "metadata": {
+        "someKey": "v"
+      },
+      "createdAt": "2024-01-01T01:01:01.001Z",
+      "updatedAt": "2024-01-01T01:01:01.001Z",
+      "deletedAt": "2024-01-01T01:01:01.001Z",
+      "key": "key",
+      "usageAttribution": {
+        "subjectKeys": [
+          "subjectKeys"
+        ]
+      },
+      "primaryEmail": "primaryEmail",
+      "currency": "USD",
+      "billingAddress": {
+        "country": "US",
+        "postalCode": "postalCode",
+        "state": "state",
+        "city": "city",
+        "line1": "line1",
+        "line2": "line2",
+        "phoneNumber": "phoneNumber"
+      },
+      "currentSubscriptionId": "01G65Z755AFWAKHE12NY0CQ9FH",
+      "subscriptions": [
+        {
+          "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+          "name": "name",
+          "description": "description",
+          "metadata": {
+            "someKey": "v"
+          },
+          "createdAt": "2024-01-01T01:01:01.001Z",
+          "updatedAt": "2024-01-01T01:01:01.001Z",
+          "deletedAt": "2024-01-01T01:01:01.001Z",
+          "activeFrom": "2023-01-01T01:01:01.001Z",
+          "activeTo": "2023-01-01T01:01:01.001Z",
+          "annotations": {
+            "someKey": null
+          },
+          "alignment": {
+            "billablesMustAlign": true
+          },
+          "status": "active",
+          "customerId": "01G65Z755AFWAKHE12NY0CQ9FH",
+          "plan": {
+            "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+            "key": "key_1",
+            "version": 1
+          },
+          "currency": "USD",
+          "costBasisMode": "dynamic",
+          "costBasisPins": [
+            {
+              "customCurrencyId": "01G65Z755AFWAKHE12NY0CQ9FH",
+              "invoiceCurrency": "USD",
+              "costBasisId": "01G65Z755AFWAKHE12NY0CQ9FH"
+            }
+          ],
+          "billingCadence": "P1M",
+          "proRatingConfig": {
+            "enabled": true,
+            "mode": "prorate_prices"
+          },
+          "billingAnchor": "2023-01-01T01:01:01.001Z",
+          "settlementMode": "credit_then_invoice"
+        }
+      ],
+      "annotations": {
+        "someKey": null
+      }
+    },
+    "threshold": {
+      "value": 100,
+      "type": "PERCENT"
+    }
+  },
+  "entitlement_reset_0": {
+    "entitlement": {
+      "type": "metered",
+      "isSoftLimit": true,
+      "isUnlimited": true,
+      "issueAfterReset": 1.5,
+      "issueAfterResetPriority": 1,
+      "preserveOverageAtReset": true,
+      "createdAt": "2024-01-01T01:01:01.001Z",
+      "updatedAt": "2024-01-01T01:01:01.001Z",
+      "deletedAt": "2024-01-01T01:01:01.001Z",
+      "metadata": {
+        "someKey": "v"
+      },
+      "activeFrom": "2023-01-01T01:01:01.001Z",
+      "activeTo": "2023-01-01T01:01:01.001Z",
+      "annotations": {
+        "someKey": null
+      },
+      "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+      "subjectKey": "customer-1",
+      "featureKey": "example-feature-key",
+      "featureId": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+      "lastReset": "2023-01-01T01:01:01.001Z",
+      "currentUsagePeriod": {
+        "from": "2023-01-01T01:01:01.001Z",
+        "to": "2023-02-01T01:01:01.001Z"
+      },
+      "measureUsageFrom": "2023-01-01T01:01:01.001Z",
+      "usagePeriod": {
+        "interval": "P1M",
+        "anchor": "2023-01-01T01:01:01.001Z",
+        "intervalISO": "intervalISO"
+      }
+    },
+    "feature": {
+      "createdAt": "2024-01-01T01:01:01.001Z",
+      "updatedAt": "2024-01-01T01:01:01.001Z",
+      "deletedAt": "2024-01-01T01:01:01.001Z",
+      "archivedAt": "2023-01-01T01:01:01.001Z",
+      "key": "key_1",
+      "name": "name",
+      "metadata": {
+        "someKey": "v"
+      },
+      "meterSlug": "tokens_total",
+      "meterGroupByFilters": {
+        "someKey": "v"
+      },
+      "advancedMeterGroupByFilters": {
+        "someKey": {
+          "$eq": "$eq",
+          "$ne": "$ne",
+          "$in": [
+            "$in"
+          ],
+          "$nin": [
+            "$nin"
+          ],
+          "$like": "$like",
+          "$nlike": "$nlike",
+          "$ilike": "$ilike",
+          "$nilike": "$nilike",
+          "$gt": "$gt",
+          "$gte": "$gte",
+          "$lt": "$lt",
+          "$lte": "$lte",
+          "$and": [
+            null
+          ],
+          "$or": [
+            null
+          ]
+        }
+      },
+      "unitCost": {
+        "type": "manual",
+        "amount": "key_1"
+      },
+      "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+    },
+    "subject": {
+      "createdAt": "2024-01-01T01:01:01.001Z",
+      "updatedAt": "2024-01-01T01:01:01.001Z",
+      "deletedAt": "2024-01-01T01:01:01.001Z",
+      "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+      "key": "customer-db-id-123",
+      "displayName": "Customer Name",
+      "metadata": {
+        "someKey": null
+      },
+      "currentPeriodStart": "2023-01-01T00:00:00Z",
+      "currentPeriodEnd": "2023-02-01T00:00:00Z",
+      "stripeCustomerId": "cus_JMOlctsKV8"
+    },
+    "value": {
+      "hasAccess": true,
+      "balance": 100,
+      "usage": 50,
+      "overage": 0,
+      "totalAvailableGrantAmount": 100,
+      "config": "{ key: \"value\" }"
+    },
+    "customer": {
+      "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+      "name": "name",
+      "description": "description",
+      "metadata": {
+        "someKey": "v"
+      },
+      "createdAt": "2024-01-01T01:01:01.001Z",
+      "updatedAt": "2024-01-01T01:01:01.001Z",
+      "deletedAt": "2024-01-01T01:01:01.001Z",
+      "key": "key",
+      "usageAttribution": {
+        "subjectKeys": [
+          "subjectKeys"
+        ]
+      },
+      "primaryEmail": "primaryEmail",
+      "currency": "USD",
+      "billingAddress": {
+        "country": "US",
+        "postalCode": "postalCode",
+        "state": "state",
+        "city": "city",
+        "line1": "line1",
+        "line2": "line2",
+        "phoneNumber": "phoneNumber"
+      },
+      "currentSubscriptionId": "01G65Z755AFWAKHE12NY0CQ9FH",
+      "subscriptions": [
+        {
+          "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+          "name": "name",
+          "description": "description",
+          "metadata": {
+            "someKey": "v"
+          },
+          "createdAt": "2024-01-01T01:01:01.001Z",
+          "updatedAt": "2024-01-01T01:01:01.001Z",
+          "deletedAt": "2024-01-01T01:01:01.001Z",
+          "activeFrom": "2023-01-01T01:01:01.001Z",
+          "activeTo": "2023-01-01T01:01:01.001Z",
+          "annotations": {
+            "someKey": null
+          },
+          "alignment": {
+            "billablesMustAlign": true
+          },
+          "status": "active",
+          "customerId": "01G65Z755AFWAKHE12NY0CQ9FH",
+          "plan": {
+            "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+            "key": "key_1",
+            "version": 1
+          },
+          "currency": "USD",
+          "costBasisMode": "dynamic",
+          "costBasisPins": [
+            {
+              "customCurrencyId": "01G65Z755AFWAKHE12NY0CQ9FH",
+              "invoiceCurrency": "USD",
+              "costBasisId": "01G65Z755AFWAKHE12NY0CQ9FH"
+            }
+          ],
+          "billingCadence": "P1M",
+          "proRatingConfig": {
+            "enabled": true,
+            "mode": "prorate_prices"
+          },
+          "billingAnchor": "2023-01-01T01:01:01.001Z",
+          "settlementMode": "credit_then_invoice"
+        }
+      ],
+      "annotations": {
+        "someKey": null
+      }
+    }
+  },
+  "invoice_1": {
+    "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+    "description": "description",
+    "metadata": {
+      "someKey": "v"
+    },
+    "createdAt": "2024-01-01T01:01:01.001Z",
+    "updatedAt": "2024-01-01T01:01:01.001Z",
+    "deletedAt": "2024-01-01T01:01:01.001Z",
+    "type": "standard",
+    "supplier": {
+      "id": "id",
+      "key": "key",
+      "name": "name",
+      "taxId": {
+        "code": "code"
+      },
+      "addresses": [
+        {
+          "country": "US",
+          "postalCode": "postalCode",
+          "state": "state",
+          "city": "city",
+          "line1": "line1",
+          "line2": "line2",
+          "phoneNumber": "phoneNumber"
+        }
+      ]
+    },
+    "customer": {
+      "id": "id",
+      "key": "key",
+      "name": "name",
+      "taxId": {
+        "code": "code"
+      },
+      "addresses": [
+        {
+          "country": "US",
+          "postalCode": "postalCode",
+          "state": "state",
+          "city": "city",
+          "line1": "line1",
+          "line2": "line2",
+          "phoneNumber": "phoneNumber"
+        }
+      ],
+      "usageAttribution": {
+        "subjectKeys": [
+          "subjectKeys"
+        ]
+      }
+    },
+    "number": "INV-2024-01-01-01",
+    "currency": "USD",
+    "preceding": [
+      {
+        "type": "credit_note_original_invoice",
+        "reason": "reason",
+        "description": "description",
+        "issuedAt": "2023-01-01T01:01:01.001Z",
+        "number": "INV-2024-01-01-01",
+        "url": "https://example.com/doc"
+      }
+    ],
+    "totals": {
+      "amount": "key_1",
+      "chargesTotal": "key_1",
+      "discountsTotal": "key_1",
+      "creditsTotal": "key_1",
+      "taxesInclusiveTotal": "key_1",
+      "taxesExclusiveTotal": "key_1",
+      "taxesTotal": "key_1",
+      "total": "key_1"
+    },
+    "status": "gathering",
+    "statusDetails": {
+      "immutable": true,
+      "failed": true,
+      "extendedStatus": "extendedStatus",
+      "availableActions": {
+        "advance": {
+          "resultingState": "resultingState"
+        },
+        "approve": {
+          "resultingState": "resultingState"
+        },
+        "delete": {
+          "resultingState": "resultingState"
+        },
+        "retry": {
+          "resultingState": "resultingState"
+        },
+        "snapshotQuantities": {
+          "resultingState": "resultingState"
+        },
+        "void": {
+          "resultingState": "resultingState"
+        },
+        "invoice": {
+          "someKey": "value"
+        }
+      }
+    },
+    "issuedAt": "2023-01-01T01:01:01.001Z",
+    "draftUntil": "2023-01-01T01:01:01.001Z",
+    "quantitySnapshotedAt": "2023-01-01T01:01:01.001Z",
+    "collectionAt": "2023-01-01T01:01:01.001Z",
+    "dueAt": "2023-01-01T01:01:01.001Z",
+    "period": {
+      "from": "2023-01-01T01:01:01.001Z",
+      "to": "2023-02-01T01:01:01.001Z"
+    },
+    "voidedAt": "2023-01-01T01:01:01.001Z",
+    "sentToCustomerAt": "2023-01-01T01:01:01.001Z",
+    "workflow": {
+      "apps": {
+        "tax": {
+          "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+          "name": "name",
+          "description": "description",
+          "metadata": {
+            "someKey": "v"
+          },
+          "createdAt": "2024-01-01T01:01:01.001Z",
+          "updatedAt": "2024-01-01T01:01:01.001Z",
+          "deletedAt": "2024-01-01T01:01:01.001Z",
+          "listing": {
+            "type": "stripe",
+            "name": "name",
+            "description": "description",
+            "capabilities": [
+              {
+                "type": "reportUsage",
+                "key": "key_1",
+                "name": "name",
+                "description": "description"
+              }
+            ],
+            "installMethods": [
+              "with_oauth2"
+            ]
+          },
+          "status": "ready",
+          "type": "sandbox"
+        },
+        "invoicing": {
+          "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+          "name": "name",
+          "description": "description",
+          "metadata": {
+            "someKey": "v"
+          },
+          "createdAt": "2024-01-01T01:01:01.001Z",
+          "updatedAt": "2024-01-01T01:01:01.001Z",
+          "deletedAt": "2024-01-01T01:01:01.001Z",
+          "listing": {
+            "type": "stripe",
+            "name": "name",
+            "description": "description",
+            "capabilities": [
+              {
+                "type": "reportUsage",
+                "key": "key_1",
+                "name": "name",
+                "description": "description"
+              }
+            ],
+            "installMethods": [
+              "with_oauth2"
+            ]
+          },
+          "status": "ready",
+          "type": "sandbox"
+        },
+        "payment": {
+          "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+          "name": "name",
+          "description": "description",
+          "metadata": {
+            "someKey": "v"
+          },
+          "createdAt": "2024-01-01T01:01:01.001Z",
+          "updatedAt": "2024-01-01T01:01:01.001Z",
+          "deletedAt": "2024-01-01T01:01:01.001Z",
+          "listing": {
+            "type": "stripe",
+            "name": "name",
+            "description": "description",
+            "capabilities": [
+              {
+                "type": "reportUsage",
+                "key": "key_1",
+                "name": "name",
+                "description": "description"
+              }
+            ],
+            "installMethods": [
+              "with_oauth2"
+            ]
+          },
+          "status": "ready",
+          "type": "sandbox"
+        }
+      },
+      "sourceBillingProfileId": "01G65Z755AFWAKHE12NY0CQ9FH",
+      "workflow": {
+        "collection": {
+          "alignment": {
+            "type": "anchored",
+            "recurringPeriod": {
+              "interval": "DAY",
+              "anchor": "2023-01-01T01:01:01.001Z"
+            }
+          },
+          "interval": "P1D"
+        },
+        "invoicing": {
+          "autoAdvance": true,
+          "draftPeriod": "P1D",
+          "dueAfter": "P30D",
+          "progressiveBilling": true,
+          "subscriptionEndProrationMode": "bill_full_period",
+          "defaultTaxConfig": {
+            "behavior": "inclusive",
+            "stripe": {
+              "code": "txcd_10000000"
+            },
+            "customInvoicing": {
+              "code": "code"
+            },
+            "taxCodeId": "01G65Z755AFWAKHE12NY0CQ9FH"
+          }
+        },
+        "payment": {
+          "collectionMethod": "charge_automatically"
+        },
+        "tax": {
+          "enabled": true,
+          "enforced": true
+        }
+      }
+    },
+    "lines": [
+      {
+        "name": "name",
+        "description": "description",
+        "metadata": {
+          "someKey": "v"
+        },
+        "createdAt": "2024-01-01T01:01:01.001Z",
+        "updatedAt": "2024-01-01T01:01:01.001Z",
+        "deletedAt": "2024-01-01T01:01:01.001Z",
+        "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+        "managedBy": "subscription",
+        "status": "valid",
+        "discounts": {
+          "amount": [
+            {
+              "createdAt": "2024-01-01T01:01:01.001Z",
+              "updatedAt": "2024-01-01T01:01:01.001Z",
+              "deletedAt": "2024-01-01T01:01:01.001Z",
+              "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+              "reason": {
+                "type": "ratecard_percentage",
+                "percentage": 50,
+                "correlationId": "01G65Z755AFWAKHE12NY0CQ9FH"
+              },
+              "description": "description",
+              "externalIds": {
+                "invoicing": "invoicing",
+                "tax": "tax"
+              },
+              "amount": "key_1"
+            }
+          ],
+          "usage": [
+            {
+              "createdAt": "2024-01-01T01:01:01.001Z",
+              "updatedAt": "2024-01-01T01:01:01.001Z",
+              "deletedAt": "2024-01-01T01:01:01.001Z",
+              "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+              "reason": {
+                "type": "ratecard_percentage",
+                "percentage": 50,
+                "correlationId": "01G65Z755AFWAKHE12NY0CQ9FH"
+              },
+              "description": "description",
+              "externalIds": {
+                "invoicing": "invoicing",
+                "tax": "tax"
+              },
+              "quantity": "key_1",
+              "preLinePeriodQuantity": "key_1"
+            }
+          ]
+        },
+        "creditAllocations": [
+          {
+            "amount": "key_1",
+            "description": "description"
+          }
+        ],
+        "invoice": {
+          "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+          "number": "INV-2024-01-01-01"
+        },
+        "currency": "USD",
+        "taxes": [
+          {
+            "config": {
+              "behavior": "inclusive",
+              "stripe": {
+                "code": "txcd_10000000"
+              },
+              "customInvoicing": {
+                "code": "code"
+              },
+              "taxCodeId": "01G65Z755AFWAKHE12NY0CQ9FH"
+            },
+            "percent": 50,
+            "surcharge": "key_1",
+            "behavior": "inclusive"
+          }
+        ],
+        "taxConfig": {
+          "behavior": "inclusive",
+          "stripe": {
+            "code": "txcd_10000000"
+          },
+          "customInvoicing": {
+            "code": "code"
+          },
+          "taxCodeId": "01G65Z755AFWAKHE12NY0CQ9FH"
+        },
+        "totals": {
+          "amount": "key_1",
+          "chargesTotal": "key_1",
+          "discountsTotal": "key_1",
+          "creditsTotal": "key_1",
+          "taxesInclusiveTotal": "key_1",
+          "taxesExclusiveTotal": "key_1",
+          "taxesTotal": "key_1",
+          "total": "key_1"
+        },
+        "period": {
+          "from": "2023-01-01T01:01:01.001Z",
+          "to": "2023-02-01T01:01:01.001Z"
+        },
+        "invoiceAt": "2023-01-01T01:01:01.001Z",
+        "externalIds": {
+          "invoicing": "invoicing",
+          "tax": "tax"
+        },
+        "subscription": {
+          "subscription": {
+            "id": "01G65Z755AFWAKHE12NY0CQ9FH"
+          },
+          "phase": {
+            "id": "01G65Z755AFWAKHE12NY0CQ9FH"
+          },
+          "item": {
+            "id": "01G65Z755AFWAKHE12NY0CQ9FH"
+          },
+          "billingPeriod": {
+            "from": "2023-01-01T01:01:01.001Z",
+            "to": "2023-02-01T01:01:01.001Z"
+          }
+        },
+        "type": "usage_based",
+        "price": {
+          "type": "unit",
+          "amount": "key_1",
+          "minimumAmount": "key_1",
+          "maximumAmount": "key_1"
+        },
+        "featureKey": "key_1",
+        "children": [
+          {
+            "name": "name",
+            "description": "description",
+            "metadata": {
+              "someKey": "v"
+            },
+            "createdAt": "2024-01-01T01:01:01.001Z",
+            "updatedAt": "2024-01-01T01:01:01.001Z",
+            "deletedAt": "2024-01-01T01:01:01.001Z",
+            "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+            "managedBy": "subscription",
+            "status": "valid",
+            "discounts": {
+              "amount": [
+                {
+                  "createdAt": "2024-01-01T01:01:01.001Z",
+                  "updatedAt": "2024-01-01T01:01:01.001Z",
+                  "deletedAt": "2024-01-01T01:01:01.001Z",
+                  "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+                  "reason": {
+                    "type": "ratecard_percentage",
+                    "percentage": 50,
+                    "correlationId": "01G65Z755AFWAKHE12NY0CQ9FH"
+                  },
+                  "description": "description",
+                  "externalIds": {
+                    "invoicing": "invoicing",
+                    "tax": "tax"
+                  },
+                  "amount": "key_1"
+                }
+              ],
+              "usage": [
+                {
+                  "createdAt": "2024-01-01T01:01:01.001Z",
+                  "updatedAt": "2024-01-01T01:01:01.001Z",
+                  "deletedAt": "2024-01-01T01:01:01.001Z",
+                  "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+                  "reason": {
+                    "type": "ratecard_percentage",
+                    "percentage": 50,
+                    "correlationId": "01G65Z755AFWAKHE12NY0CQ9FH"
+                  },
+                  "description": "description",
+                  "externalIds": {
+                    "invoicing": "invoicing",
+                    "tax": "tax"
+                  },
+                  "quantity": "key_1",
+                  "preLinePeriodQuantity": "key_1"
+                }
+              ]
+            },
+            "creditAllocations": [
+              {
+                "amount": "key_1",
+                "description": "description"
+              }
+            ],
+            "invoice": {
+              "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+              "number": "INV-2024-01-01-01"
+            },
+            "currency": "USD",
+            "taxes": [
+              {
+                "config": {
+                  "behavior": "inclusive",
+                  "stripe": {
+                    "code": "txcd_10000000"
+                  },
+                  "customInvoicing": {
+                    "code": "code"
+                  },
+                  "taxCodeId": "01G65Z755AFWAKHE12NY0CQ9FH"
+                },
+                "percent": 50,
+                "surcharge": "key_1",
+                "behavior": "inclusive"
+              }
+            ],
+            "taxConfig": {
+              "behavior": "inclusive",
+              "stripe": {
+                "code": "txcd_10000000"
+              },
+              "customInvoicing": {
+                "code": "code"
+              },
+              "taxCodeId": "01G65Z755AFWAKHE12NY0CQ9FH"
+            },
+            "totals": {
+              "amount": "key_1",
+              "chargesTotal": "key_1",
+              "discountsTotal": "key_1",
+              "creditsTotal": "key_1",
+              "taxesInclusiveTotal": "key_1",
+              "taxesExclusiveTotal": "key_1",
+              "taxesTotal": "key_1",
+              "total": "key_1"
+            },
+            "period": {
+              "from": "2023-01-01T01:01:01.001Z",
+              "to": "2023-02-01T01:01:01.001Z"
+            },
+            "externalIds": {
+              "invoicing": "invoicing",
+              "tax": "tax"
+            },
+            "subscription": {
+              "subscription": {
+                "id": "01G65Z755AFWAKHE12NY0CQ9FH"
+              },
+              "phase": {
+                "id": "01G65Z755AFWAKHE12NY0CQ9FH"
+              },
+              "item": {
+                "id": "01G65Z755AFWAKHE12NY0CQ9FH"
+              },
+              "billingPeriod": {
+                "from": "2023-01-01T01:01:01.001Z",
+                "to": "2023-02-01T01:01:01.001Z"
+              }
+            },
+            "invoiceAt": "2023-01-01T01:01:01.001Z",
+            "type": "flat_fee",
+            "perUnitAmount": "key_1",
+            "paymentTerm": "in_advance",
+            "quantity": "key_1",
+            "rateCard": {
+              "taxConfig": {
+                "behavior": "inclusive",
+                "stripe": {
+                  "code": "txcd_10000000"
+                },
+                "customInvoicing": {
+                  "code": "code"
+                },
+                "taxCodeId": "01G65Z755AFWAKHE12NY0CQ9FH"
+              },
+              "price": {
+                "type": "flat",
+                "amount": "key_1",
+                "paymentTerm": "in_advance"
+              },
+              "quantity": "key_1",
+              "discounts": {
+                "percentage": {
+                  "percentage": 50,
+                  "correlationId": "01G65Z755AFWAKHE12NY0CQ9FH"
+                },
+                "usage": {
+                  "quantity": "key_1",
+                  "correlationId": "01G65Z755AFWAKHE12NY0CQ9FH"
+                }
+              }
+            },
+            "category": "regular"
+          }
+        ],
+        "rateCard": {
+          "featureKey": "key_1",
+          "taxConfig": {
+            "behavior": "inclusive",
+            "stripe": {
+              "code": "txcd_10000000"
+            },
+            "customInvoicing": {
+              "code": "code"
+            },
+            "taxCodeId": "01G65Z755AFWAKHE12NY0CQ9FH"
+          },
+          "price": {
+            "type": "unit",
+            "amount": "key_1",
+            "minimumAmount": "key_1",
+            "maximumAmount": "key_1"
+          },
+          "discounts": {
+            "percentage": {
+              "percentage": 50,
+              "correlationId": "01G65Z755AFWAKHE12NY0CQ9FH"
+            },
+            "usage": {
+              "quantity": "key_1",
+              "correlationId": "01G65Z755AFWAKHE12NY0CQ9FH"
+            }
+          }
+        },
+        "quantity": "key_1",
+        "meteredQuantity": "key_1",
+        "preLinePeriodQuantity": "key_1",
+        "meteredPreLinePeriodQuantity": "key_1"
+      }
+    ],
+    "payment": {
+      "terms": {
+        "type": "due_date",
+        "detail": "detail",
+        "notes": "notes",
+        "dueAt": [
+          {
+            "dueAt": "2023-01-01T01:01:01.001Z",
+            "notes": "notes",
+            "amount": "key_1",
+            "percent": 50,
+            "currency": "USD"
+          }
+        ]
+      }
+    },
+    "validationIssues": [
+      {
+        "createdAt": "2024-01-01T01:01:01.001Z",
+        "updatedAt": "2024-01-01T01:01:01.001Z",
+        "deletedAt": "2024-01-01T01:01:01.001Z",
+        "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+        "severity": "critical",
+        "field": "field",
+        "code": "code",
+        "component": "component",
+        "message": "message",
+        "metadata": {
+          "someKey": "v"
+        }
+      }
+    ],
+    "externalIds": {
+      "invoicing": "invoicing",
+      "tax": "tax",
+      "payment": "payment"
+    }
+  },
+  "balance_threshold_1": {
+    "entitlement": {
+      "type": "metered",
+      "isSoftLimit": true,
+      "isUnlimited": true,
+      "issueAfterReset": 1.5,
+      "issueAfterResetPriority": 1,
+      "preserveOverageAtReset": true,
+      "createdAt": "2024-01-01T01:01:01.001Z",
+      "updatedAt": "2024-01-01T01:01:01.001Z",
+      "deletedAt": "2024-01-01T01:01:01.001Z",
+      "metadata": {
+        "someKey": "v"
+      },
+      "activeFrom": "2023-01-01T01:01:01.001Z",
+      "activeTo": "2023-01-01T01:01:01.001Z",
+      "annotations": {
+        "someKey": null
+      },
+      "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+      "subjectKey": "customer-1",
+      "featureKey": "example-feature-key",
+      "featureId": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+      "lastReset": "2023-01-01T01:01:01.001Z",
+      "currentUsagePeriod": {
+        "from": "2023-01-01T01:01:01.001Z",
+        "to": "2023-02-01T01:01:01.001Z"
+      },
+      "measureUsageFrom": "2023-01-01T01:01:01.001Z",
+      "usagePeriod": {
+        "interval": "DAY",
+        "anchor": "2023-01-01T01:01:01.001Z",
+        "intervalISO": "intervalISO"
+      }
+    },
+    "feature": {
+      "createdAt": "2024-01-01T01:01:01.001Z",
+      "updatedAt": "2024-01-01T01:01:01.001Z",
+      "deletedAt": "2024-01-01T01:01:01.001Z",
+      "archivedAt": "2023-01-01T01:01:01.001Z",
+      "key": "key_1",
+      "name": "name",
+      "metadata": {
+        "someKey": "v"
+      },
+      "meterSlug": "tokens_total",
+      "meterGroupByFilters": {
+        "someKey": "v"
+      },
+      "advancedMeterGroupByFilters": {
+        "someKey": {
+          "$eq": "$eq",
+          "$ne": "$ne",
+          "$in": [
+            "$in"
+          ],
+          "$nin": [
+            "$nin"
+          ],
+          "$like": "$like",
+          "$nlike": "$nlike",
+          "$ilike": "$ilike",
+          "$nilike": "$nilike",
+          "$gt": "$gt",
+          "$gte": "$gte",
+          "$lt": "$lt",
+          "$lte": "$lte",
+          "$and": [
+            null
+          ],
+          "$or": [
+            null
+          ]
+        }
+      },
+      "unitCost": {
+        "type": "llm",
+        "providerProperty": "providerProperty",
+        "provider": "provider",
+        "modelProperty": "modelProperty",
+        "model": "model",
+        "tokenTypeProperty": "tokenTypeProperty",
+        "tokenType": "tokenType",
+        "pricing": {
+          "inputPerToken": "key_1",
+          "outputPerToken": "key_1",
+          "cacheReadPerToken": "key_1",
+          "reasoningPerToken": "key_1",
+          "cacheWritePerToken": "key_1"
+        }
+      },
+      "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+    },
+    "subject": {
+      "createdAt": "2024-01-01T01:01:01.001Z",
+      "updatedAt": "2024-01-01T01:01:01.001Z",
+      "deletedAt": "2024-01-01T01:01:01.001Z",
+      "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+      "key": "customer-db-id-123",
+      "displayName": "Customer Name",
+      "metadata": {
+        "someKey": null
+      },
+      "currentPeriodStart": "2023-01-01T00:00:00Z",
+      "currentPeriodEnd": "2023-02-01T00:00:00Z",
+      "stripeCustomerId": "cus_JMOlctsKV8"
+    },
+    "value": {
+      "hasAccess": true,
+      "balance": 100,
+      "usage": 50,
+      "overage": 0,
+      "totalAvailableGrantAmount": 100,
+      "config": "{ key: \"value\" }"
+    },
+    "customer": {
+      "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+      "name": "name",
+      "description": "description",
+      "metadata": {
+        "someKey": "v"
+      },
+      "createdAt": "2024-01-01T01:01:01.001Z",
+      "updatedAt": "2024-01-01T01:01:01.001Z",
+      "deletedAt": "2024-01-01T01:01:01.001Z",
+      "key": "key",
+      "usageAttribution": {
+        "subjectKeys": [
+          "subjectKeys"
+        ]
+      },
+      "primaryEmail": "primaryEmail",
+      "currency": "USD",
+      "billingAddress": {
+        "country": "US",
+        "postalCode": "postalCode",
+        "state": "state",
+        "city": "city",
+        "line1": "line1",
+        "line2": "line2",
+        "phoneNumber": "phoneNumber"
+      },
+      "currentSubscriptionId": "01G65Z755AFWAKHE12NY0CQ9FH",
+      "subscriptions": [
+        {
+          "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+          "name": "name",
+          "description": "description",
+          "metadata": {
+            "someKey": "v"
+          },
+          "createdAt": "2024-01-01T01:01:01.001Z",
+          "updatedAt": "2024-01-01T01:01:01.001Z",
+          "deletedAt": "2024-01-01T01:01:01.001Z",
+          "activeFrom": "2023-01-01T01:01:01.001Z",
+          "activeTo": "2023-01-01T01:01:01.001Z",
+          "annotations": {
+            "someKey": null
+          },
+          "alignment": {
+            "billablesMustAlign": true
+          },
+          "status": "active",
+          "customerId": "01G65Z755AFWAKHE12NY0CQ9FH",
+          "plan": {
+            "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+            "key": "key_1",
+            "version": 1
+          },
+          "currency": "USD",
+          "costBasisMode": "dynamic",
+          "costBasisPins": [
+            {
+              "customCurrencyId": "01G65Z755AFWAKHE12NY0CQ9FH",
+              "invoiceCurrency": "USD",
+              "costBasisId": "01G65Z755AFWAKHE12NY0CQ9FH"
+            }
+          ],
+          "billingCadence": "P1M",
+          "proRatingConfig": {
+            "enabled": true,
+            "mode": "prorate_prices"
+          },
+          "billingAnchor": "2023-01-01T01:01:01.001Z",
+          "settlementMode": "credit_then_invoice"
+        }
+      ],
+      "annotations": {
+        "someKey": null
+      }
+    },
+    "threshold": {
+      "value": 100,
+      "type": "PERCENT"
+    }
+  },
+  "entitlement_reset_1": {
+    "entitlement": {
+      "type": "metered",
+      "isSoftLimit": true,
+      "isUnlimited": true,
+      "issueAfterReset": 1.5,
+      "issueAfterResetPriority": 1,
+      "preserveOverageAtReset": true,
+      "createdAt": "2024-01-01T01:01:01.001Z",
+      "updatedAt": "2024-01-01T01:01:01.001Z",
+      "deletedAt": "2024-01-01T01:01:01.001Z",
+      "metadata": {
+        "someKey": "v"
+      },
+      "activeFrom": "2023-01-01T01:01:01.001Z",
+      "activeTo": "2023-01-01T01:01:01.001Z",
+      "annotations": {
+        "someKey": null
+      },
+      "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+      "subjectKey": "customer-1",
+      "featureKey": "example-feature-key",
+      "featureId": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+      "lastReset": "2023-01-01T01:01:01.001Z",
+      "currentUsagePeriod": {
+        "from": "2023-01-01T01:01:01.001Z",
+        "to": "2023-02-01T01:01:01.001Z"
+      },
+      "measureUsageFrom": "2023-01-01T01:01:01.001Z",
+      "usagePeriod": {
+        "interval": "DAY",
+        "anchor": "2023-01-01T01:01:01.001Z",
+        "intervalISO": "intervalISO"
+      }
+    },
+    "feature": {
+      "createdAt": "2024-01-01T01:01:01.001Z",
+      "updatedAt": "2024-01-01T01:01:01.001Z",
+      "deletedAt": "2024-01-01T01:01:01.001Z",
+      "archivedAt": "2023-01-01T01:01:01.001Z",
+      "key": "key_1",
+      "name": "name",
+      "metadata": {
+        "someKey": "v"
+      },
+      "meterSlug": "tokens_total",
+      "meterGroupByFilters": {
+        "someKey": "v"
+      },
+      "advancedMeterGroupByFilters": {
+        "someKey": {
+          "$eq": "$eq",
+          "$ne": "$ne",
+          "$in": [
+            "$in"
+          ],
+          "$nin": [
+            "$nin"
+          ],
+          "$like": "$like",
+          "$nlike": "$nlike",
+          "$ilike": "$ilike",
+          "$nilike": "$nilike",
+          "$gt": "$gt",
+          "$gte": "$gte",
+          "$lt": "$lt",
+          "$lte": "$lte",
+          "$and": [
+            null
+          ],
+          "$or": [
+            null
+          ]
+        }
+      },
+      "unitCost": {
+        "type": "llm",
+        "providerProperty": "providerProperty",
+        "provider": "provider",
+        "modelProperty": "modelProperty",
+        "model": "model",
+        "tokenTypeProperty": "tokenTypeProperty",
+        "tokenType": "tokenType",
+        "pricing": {
+          "inputPerToken": "key_1",
+          "outputPerToken": "key_1",
+          "cacheReadPerToken": "key_1",
+          "reasoningPerToken": "key_1",
+          "cacheWritePerToken": "key_1"
+        }
+      },
+      "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+    },
+    "subject": {
+      "createdAt": "2024-01-01T01:01:01.001Z",
+      "updatedAt": "2024-01-01T01:01:01.001Z",
+      "deletedAt": "2024-01-01T01:01:01.001Z",
+      "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+      "key": "customer-db-id-123",
+      "displayName": "Customer Name",
+      "metadata": {
+        "someKey": null
+      },
+      "currentPeriodStart": "2023-01-01T00:00:00Z",
+      "currentPeriodEnd": "2023-02-01T00:00:00Z",
+      "stripeCustomerId": "cus_JMOlctsKV8"
+    },
+    "value": {
+      "hasAccess": true,
+      "balance": 100,
+      "usage": 50,
+      "overage": 0,
+      "totalAvailableGrantAmount": 100,
+      "config": "{ key: \"value\" }"
+    },
+    "customer": {
+      "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+      "name": "name",
+      "description": "description",
+      "metadata": {
+        "someKey": "v"
+      },
+      "createdAt": "2024-01-01T01:01:01.001Z",
+      "updatedAt": "2024-01-01T01:01:01.001Z",
+      "deletedAt": "2024-01-01T01:01:01.001Z",
+      "key": "key",
+      "usageAttribution": {
+        "subjectKeys": [
+          "subjectKeys"
+        ]
+      },
+      "primaryEmail": "primaryEmail",
+      "currency": "USD",
+      "billingAddress": {
+        "country": "US",
+        "postalCode": "postalCode",
+        "state": "state",
+        "city": "city",
+        "line1": "line1",
+        "line2": "line2",
+        "phoneNumber": "phoneNumber"
+      },
+      "currentSubscriptionId": "01G65Z755AFWAKHE12NY0CQ9FH",
+      "subscriptions": [
+        {
+          "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+          "name": "name",
+          "description": "description",
+          "metadata": {
+            "someKey": "v"
+          },
+          "createdAt": "2024-01-01T01:01:01.001Z",
+          "updatedAt": "2024-01-01T01:01:01.001Z",
+          "deletedAt": "2024-01-01T01:01:01.001Z",
+          "activeFrom": "2023-01-01T01:01:01.001Z",
+          "activeTo": "2023-01-01T01:01:01.001Z",
+          "annotations": {
+            "someKey": null
+          },
+          "alignment": {
+            "billablesMustAlign": true
+          },
+          "status": "active",
+          "customerId": "01G65Z755AFWAKHE12NY0CQ9FH",
+          "plan": {
+            "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+            "key": "key_1",
+            "version": 1
+          },
+          "currency": "USD",
+          "costBasisMode": "dynamic",
+          "costBasisPins": [
+            {
+              "customCurrencyId": "01G65Z755AFWAKHE12NY0CQ9FH",
+              "invoiceCurrency": "USD",
+              "costBasisId": "01G65Z755AFWAKHE12NY0CQ9FH"
+            }
+          ],
+          "billingCadence": "P1M",
+          "proRatingConfig": {
+            "enabled": true,
+            "mode": "prorate_prices"
+          },
+          "billingAnchor": "2023-01-01T01:01:01.001Z",
+          "settlementMode": "credit_then_invoice"
+        }
+      ],
+      "annotations": {
+        "someKey": null
+      }
+    }
+  },
+  "invoice_2": {
+    "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+    "description": "description",
+    "metadata": {
+      "someKey": "v"
+    },
+    "createdAt": "2024-01-01T01:01:01.001Z",
+    "updatedAt": "2024-01-01T01:01:01.001Z",
+    "deletedAt": "2024-01-01T01:01:01.001Z",
+    "type": "standard",
+    "supplier": {
+      "id": "id",
+      "key": "key",
+      "name": "name",
+      "taxId": {
+        "code": "code"
+      },
+      "addresses": [
+        {
+          "country": "US",
+          "postalCode": "postalCode",
+          "state": "state",
+          "city": "city",
+          "line1": "line1",
+          "line2": "line2",
+          "phoneNumber": "phoneNumber"
+        }
+      ]
+    },
+    "customer": {
+      "id": "id",
+      "key": "key",
+      "name": "name",
+      "taxId": {
+        "code": "code"
+      },
+      "addresses": [
+        {
+          "country": "US",
+          "postalCode": "postalCode",
+          "state": "state",
+          "city": "city",
+          "line1": "line1",
+          "line2": "line2",
+          "phoneNumber": "phoneNumber"
+        }
+      ],
+      "usageAttribution": {
+        "subjectKeys": [
+          "subjectKeys"
+        ]
+      }
+    },
+    "number": "INV-2024-01-01-01",
+    "currency": "USD",
+    "preceding": [
+      {
+        "type": "credit_note_original_invoice",
+        "reason": "reason",
+        "description": "description",
+        "issuedAt": "2023-01-01T01:01:01.001Z",
+        "number": "INV-2024-01-01-01",
+        "url": "https://example.com/doc"
+      }
+    ],
+    "totals": {
+      "amount": "key_1",
+      "chargesTotal": "key_1",
+      "discountsTotal": "key_1",
+      "creditsTotal": "key_1",
+      "taxesInclusiveTotal": "key_1",
+      "taxesExclusiveTotal": "key_1",
+      "taxesTotal": "key_1",
+      "total": "key_1"
+    },
+    "status": "gathering",
+    "statusDetails": {
+      "immutable": true,
+      "failed": true,
+      "extendedStatus": "extendedStatus",
+      "availableActions": {
+        "advance": {
+          "resultingState": "resultingState"
+        },
+        "approve": {
+          "resultingState": "resultingState"
+        },
+        "delete": {
+          "resultingState": "resultingState"
+        },
+        "retry": {
+          "resultingState": "resultingState"
+        },
+        "snapshotQuantities": {
+          "resultingState": "resultingState"
+        },
+        "void": {
+          "resultingState": "resultingState"
+        },
+        "invoice": {
+          "someKey": "value"
+        }
+      }
+    },
+    "issuedAt": "2023-01-01T01:01:01.001Z",
+    "draftUntil": "2023-01-01T01:01:01.001Z",
+    "quantitySnapshotedAt": "2023-01-01T01:01:01.001Z",
+    "collectionAt": "2023-01-01T01:01:01.001Z",
+    "dueAt": "2023-01-01T01:01:01.001Z",
+    "period": {
+      "from": "2023-01-01T01:01:01.001Z",
+      "to": "2023-02-01T01:01:01.001Z"
+    },
+    "voidedAt": "2023-01-01T01:01:01.001Z",
+    "sentToCustomerAt": "2023-01-01T01:01:01.001Z",
+    "workflow": {
+      "apps": {
+        "tax": {
+          "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+          "name": "name",
+          "description": "description",
+          "metadata": {
+            "someKey": "v"
+          },
+          "createdAt": "2024-01-01T01:01:01.001Z",
+          "updatedAt": "2024-01-01T01:01:01.001Z",
+          "deletedAt": "2024-01-01T01:01:01.001Z",
+          "listing": {
+            "type": "stripe",
+            "name": "name",
+            "description": "description",
+            "capabilities": [
+              {
+                "type": "reportUsage",
+                "key": "key_1",
+                "name": "name",
+                "description": "description"
+              }
+            ],
+            "installMethods": [
+              "with_oauth2"
+            ]
+          },
+          "status": "ready",
+          "type": "custom_invoicing",
+          "enableDraftSyncHook": true,
+          "enableIssuingSyncHook": true
+        },
+        "invoicing": {
+          "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+          "name": "name",
+          "description": "description",
+          "metadata": {
+            "someKey": "v"
+          },
+          "createdAt": "2024-01-01T01:01:01.001Z",
+          "updatedAt": "2024-01-01T01:01:01.001Z",
+          "deletedAt": "2024-01-01T01:01:01.001Z",
+          "listing": {
+            "type": "stripe",
+            "name": "name",
+            "description": "description",
+            "capabilities": [
+              {
+                "type": "reportUsage",
+                "key": "key_1",
+                "name": "name",
+                "description": "description"
+              }
+            ],
+            "installMethods": [
+              "with_oauth2"
+            ]
+          },
+          "status": "ready",
+          "type": "custom_invoicing",
+          "enableDraftSyncHook": true,
+          "enableIssuingSyncHook": true
+        },
+        "payment": {
+          "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+          "name": "name",
+          "description": "description",
+          "metadata": {
+            "someKey": "v"
+          },
+          "createdAt": "2024-01-01T01:01:01.001Z",
+          "updatedAt": "2024-01-01T01:01:01.001Z",
+          "deletedAt": "2024-01-01T01:01:01.001Z",
+          "listing": {
+            "type": "stripe",
+            "name": "name",
+            "description": "description",
+            "capabilities": [
+              {
+                "type": "reportUsage",
+                "key": "key_1",
+                "name": "name",
+                "description": "description"
+              }
+            ],
+            "installMethods": [
+              "with_oauth2"
+            ]
+          },
+          "status": "ready",
+          "type": "custom_invoicing",
+          "enableDraftSyncHook": true,
+          "enableIssuingSyncHook": true
+        }
+      },
+      "sourceBillingProfileId": "01G65Z755AFWAKHE12NY0CQ9FH",
+      "workflow": {
+        "collection": {
+          "alignment": {
+            "type": "subscription"
+          },
+          "interval": "P1D"
+        },
+        "invoicing": {
+          "autoAdvance": true,
+          "draftPeriod": "P1D",
+          "dueAfter": "P30D",
+          "progressiveBilling": true,
+          "subscriptionEndProrationMode": "bill_full_period",
+          "defaultTaxConfig": {
+            "behavior": "inclusive",
+            "stripe": {
+              "code": "txcd_10000000"
+            },
+            "customInvoicing": {
+              "code": "code"
+            },
+            "taxCodeId": "01G65Z755AFWAKHE12NY0CQ9FH"
+          }
+        },
+        "payment": {
+          "collectionMethod": "charge_automatically"
+        },
+        "tax": {
+          "enabled": true,
+          "enforced": true
+        }
+      }
+    },
+    "lines": [
+      {
+        "name": "name",
+        "description": "description",
+        "metadata": {
+          "someKey": "v"
+        },
+        "createdAt": "2024-01-01T01:01:01.001Z",
+        "updatedAt": "2024-01-01T01:01:01.001Z",
+        "deletedAt": "2024-01-01T01:01:01.001Z",
+        "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+        "managedBy": "subscription",
+        "status": "valid",
+        "discounts": {
+          "amount": [
+            {
+              "createdAt": "2024-01-01T01:01:01.001Z",
+              "updatedAt": "2024-01-01T01:01:01.001Z",
+              "deletedAt": "2024-01-01T01:01:01.001Z",
+              "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+              "reason": {
+                "type": "ratecard_usage",
+                "quantity": "key_1",
+                "correlationId": "01G65Z755AFWAKHE12NY0CQ9FH"
+              },
+              "description": "description",
+              "externalIds": {
+                "invoicing": "invoicing",
+                "tax": "tax"
+              },
+              "amount": "key_1"
+            }
+          ],
+          "usage": [
+            {
+              "createdAt": "2024-01-01T01:01:01.001Z",
+              "updatedAt": "2024-01-01T01:01:01.001Z",
+              "deletedAt": "2024-01-01T01:01:01.001Z",
+              "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+              "reason": {
+                "type": "ratecard_usage",
+                "quantity": "key_1",
+                "correlationId": "01G65Z755AFWAKHE12NY0CQ9FH"
+              },
+              "description": "description",
+              "externalIds": {
+                "invoicing": "invoicing",
+                "tax": "tax"
+              },
+              "quantity": "key_1",
+              "preLinePeriodQuantity": "key_1"
+            }
+          ]
+        },
+        "creditAllocations": [
+          {
+            "amount": "key_1",
+            "description": "description"
+          }
+        ],
+        "invoice": {
+          "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+          "number": "INV-2024-01-01-01"
+        },
+        "currency": "USD",
+        "taxes": [
+          {
+            "config": {
+              "behavior": "inclusive",
+              "stripe": {
+                "code": "txcd_10000000"
+              },
+              "customInvoicing": {
+                "code": "code"
+              },
+              "taxCodeId": "01G65Z755AFWAKHE12NY0CQ9FH"
+            },
+            "percent": 50,
+            "surcharge": "key_1",
+            "behavior": "inclusive"
+          }
+        ],
+        "taxConfig": {
+          "behavior": "inclusive",
+          "stripe": {
+            "code": "txcd_10000000"
+          },
+          "customInvoicing": {
+            "code": "code"
+          },
+          "taxCodeId": "01G65Z755AFWAKHE12NY0CQ9FH"
+        },
+        "totals": {
+          "amount": "key_1",
+          "chargesTotal": "key_1",
+          "discountsTotal": "key_1",
+          "creditsTotal": "key_1",
+          "taxesInclusiveTotal": "key_1",
+          "taxesExclusiveTotal": "key_1",
+          "taxesTotal": "key_1",
+          "total": "key_1"
+        },
+        "period": {
+          "from": "2023-01-01T01:01:01.001Z",
+          "to": "2023-02-01T01:01:01.001Z"
+        },
+        "invoiceAt": "2023-01-01T01:01:01.001Z",
+        "externalIds": {
+          "invoicing": "invoicing",
+          "tax": "tax"
+        },
+        "subscription": {
+          "subscription": {
+            "id": "01G65Z755AFWAKHE12NY0CQ9FH"
+          },
+          "phase": {
+            "id": "01G65Z755AFWAKHE12NY0CQ9FH"
+          },
+          "item": {
+            "id": "01G65Z755AFWAKHE12NY0CQ9FH"
+          },
+          "billingPeriod": {
+            "from": "2023-01-01T01:01:01.001Z",
+            "to": "2023-02-01T01:01:01.001Z"
+          }
+        },
+        "type": "usage_based",
+        "price": {
+          "type": "tiered",
+          "mode": "volume",
+          "tiers": [
+            {
+              "upToAmount": "key_1",
+              "flatPrice": {
+                "type": "flat",
+                "amount": "key_1"
+              },
+              "unitPrice": {
+                "type": "unit",
+                "amount": "key_1"
+              }
+            }
+          ],
+          "minimumAmount": "key_1",
+          "maximumAmount": "key_1"
+        },
+        "featureKey": "key_1",
+        "children": [
+          {
+            "name": "name",
+            "description": "description",
+            "metadata": {
+              "someKey": "v"
+            },
+            "createdAt": "2024-01-01T01:01:01.001Z",
+            "updatedAt": "2024-01-01T01:01:01.001Z",
+            "deletedAt": "2024-01-01T01:01:01.001Z",
+            "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+            "managedBy": "subscription",
+            "status": "valid",
+            "discounts": {
+              "amount": [
+                {
+                  "createdAt": "2024-01-01T01:01:01.001Z",
+                  "updatedAt": "2024-01-01T01:01:01.001Z",
+                  "deletedAt": "2024-01-01T01:01:01.001Z",
+                  "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+                  "reason": {
+                    "type": "ratecard_usage",
+                    "quantity": "key_1",
+                    "correlationId": "01G65Z755AFWAKHE12NY0CQ9FH"
+                  },
+                  "description": "description",
+                  "externalIds": {
+                    "invoicing": "invoicing",
+                    "tax": "tax"
+                  },
+                  "amount": "key_1"
+                }
+              ],
+              "usage": [
+                {
+                  "createdAt": "2024-01-01T01:01:01.001Z",
+                  "updatedAt": "2024-01-01T01:01:01.001Z",
+                  "deletedAt": "2024-01-01T01:01:01.001Z",
+                  "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+                  "reason": {
+                    "type": "ratecard_usage",
+                    "quantity": "key_1",
+                    "correlationId": "01G65Z755AFWAKHE12NY0CQ9FH"
+                  },
+                  "description": "description",
+                  "externalIds": {
+                    "invoicing": "invoicing",
+                    "tax": "tax"
+                  },
+                  "quantity": "key_1",
+                  "preLinePeriodQuantity": "key_1"
+                }
+              ]
+            },
+            "creditAllocations": [
+              {
+                "amount": "key_1",
+                "description": "description"
+              }
+            ],
+            "invoice": {
+              "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+              "number": "INV-2024-01-01-01"
+            },
+            "currency": "USD",
+            "taxes": [
+              {
+                "config": {
+                  "behavior": "inclusive",
+                  "stripe": {
+                    "code": "txcd_10000000"
+                  },
+                  "customInvoicing": {
+                    "code": "code"
+                  },
+                  "taxCodeId": "01G65Z755AFWAKHE12NY0CQ9FH"
+                },
+                "percent": 50,
+                "surcharge": "key_1",
+                "behavior": "inclusive"
+              }
+            ],
+            "taxConfig": {
+              "behavior": "inclusive",
+              "stripe": {
+                "code": "txcd_10000000"
+              },
+              "customInvoicing": {
+                "code": "code"
+              },
+              "taxCodeId": "01G65Z755AFWAKHE12NY0CQ9FH"
+            },
+            "totals": {
+              "amount": "key_1",
+              "chargesTotal": "key_1",
+              "discountsTotal": "key_1",
+              "creditsTotal": "key_1",
+              "taxesInclusiveTotal": "key_1",
+              "taxesExclusiveTotal": "key_1",
+              "taxesTotal": "key_1",
+              "total": "key_1"
+            },
+            "period": {
+              "from": "2023-01-01T01:01:01.001Z",
+              "to": "2023-02-01T01:01:01.001Z"
+            },
+            "externalIds": {
+              "invoicing": "invoicing",
+              "tax": "tax"
+            },
+            "subscription": {
+              "subscription": {
+                "id": "01G65Z755AFWAKHE12NY0CQ9FH"
+              },
+              "phase": {
+                "id": "01G65Z755AFWAKHE12NY0CQ9FH"
+              },
+              "item": {
+                "id": "01G65Z755AFWAKHE12NY0CQ9FH"
+              },
+              "billingPeriod": {
+                "from": "2023-01-01T01:01:01.001Z",
+                "to": "2023-02-01T01:01:01.001Z"
+              }
+            },
+            "invoiceAt": "2023-01-01T01:01:01.001Z",
+            "type": "flat_fee",
+            "perUnitAmount": "key_1",
+            "paymentTerm": "in_advance",
+            "quantity": "key_1",
+            "rateCard": {
+              "taxConfig": {
+                "behavior": "inclusive",
+                "stripe": {
+                  "code": "txcd_10000000"
+                },
+                "customInvoicing": {
+                  "code": "code"
+                },
+                "taxCodeId": "01G65Z755AFWAKHE12NY0CQ9FH"
+              },
+              "price": {
+                "type": "flat",
+                "amount": "key_1",
+                "paymentTerm": "in_advance"
+              },
+              "quantity": "key_1",
+              "discounts": {
+                "percentage": {
+                  "percentage": 50,
+                  "correlationId": "01G65Z755AFWAKHE12NY0CQ9FH"
+                },
+                "usage": {
+                  "quantity": "key_1",
+                  "correlationId": "01G65Z755AFWAKHE12NY0CQ9FH"
+                }
+              }
+            },
+            "category": "regular"
+          }
+        ],
+        "rateCard": {
+          "featureKey": "key_1",
+          "taxConfig": {
+            "behavior": "inclusive",
+            "stripe": {
+              "code": "txcd_10000000"
+            },
+            "customInvoicing": {
+              "code": "code"
+            },
+            "taxCodeId": "01G65Z755AFWAKHE12NY0CQ9FH"
+          },
+          "price": {
+            "type": "tiered",
+            "mode": "volume",
+            "tiers": [
+              {
+                "upToAmount": "key_1",
+                "flatPrice": {
+                  "type": "flat",
+                  "amount": "key_1"
+                },
+                "unitPrice": {
+                  "type": "unit",
+                  "amount": "key_1"
+                }
+              }
+            ],
+            "minimumAmount": "key_1",
+            "maximumAmount": "key_1"
+          },
+          "discounts": {
+            "percentage": {
+              "percentage": 50,
+              "correlationId": "01G65Z755AFWAKHE12NY0CQ9FH"
+            },
+            "usage": {
+              "quantity": "key_1",
+              "correlationId": "01G65Z755AFWAKHE12NY0CQ9FH"
+            }
+          }
+        },
+        "quantity": "key_1",
+        "meteredQuantity": "key_1",
+        "preLinePeriodQuantity": "key_1",
+        "meteredPreLinePeriodQuantity": "key_1"
+      }
+    ],
+    "payment": {
+      "terms": {
+        "type": "instant",
+        "detail": "detail",
+        "notes": "notes"
+      }
+    },
+    "validationIssues": [
+      {
+        "createdAt": "2024-01-01T01:01:01.001Z",
+        "updatedAt": "2024-01-01T01:01:01.001Z",
+        "deletedAt": "2024-01-01T01:01:01.001Z",
+        "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+        "severity": "critical",
+        "field": "field",
+        "code": "code",
+        "component": "component",
+        "message": "message",
+        "metadata": {
+          "someKey": "v"
+        }
+      }
+    ],
+    "externalIds": {
+      "invoicing": "invoicing",
+      "tax": "tax",
+      "payment": "payment"
+    }
+  },
+  "invoice_3": {
+    "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+    "description": "description",
+    "metadata": {
+      "someKey": "v"
+    },
+    "createdAt": "2024-01-01T01:01:01.001Z",
+    "updatedAt": "2024-01-01T01:01:01.001Z",
+    "deletedAt": "2024-01-01T01:01:01.001Z",
+    "type": "standard",
+    "supplier": {
+      "id": "id",
+      "key": "key",
+      "name": "name",
+      "taxId": {
+        "code": "code"
+      },
+      "addresses": [
+        {
+          "country": "US",
+          "postalCode": "postalCode",
+          "state": "state",
+          "city": "city",
+          "line1": "line1",
+          "line2": "line2",
+          "phoneNumber": "phoneNumber"
+        }
+      ]
+    },
+    "customer": {
+      "id": "id",
+      "key": "key",
+      "name": "name",
+      "taxId": {
+        "code": "code"
+      },
+      "addresses": [
+        {
+          "country": "US",
+          "postalCode": "postalCode",
+          "state": "state",
+          "city": "city",
+          "line1": "line1",
+          "line2": "line2",
+          "phoneNumber": "phoneNumber"
+        }
+      ],
+      "usageAttribution": {
+        "subjectKeys": [
+          "subjectKeys"
+        ]
+      }
+    },
+    "number": "INV-2024-01-01-01",
+    "currency": "USD",
+    "preceding": [
+      {
+        "type": "credit_note_original_invoice",
+        "reason": "reason",
+        "description": "description",
+        "issuedAt": "2023-01-01T01:01:01.001Z",
+        "number": "INV-2024-01-01-01",
+        "url": "https://example.com/doc"
+      }
+    ],
+    "totals": {
+      "amount": "key_1",
+      "chargesTotal": "key_1",
+      "discountsTotal": "key_1",
+      "creditsTotal": "key_1",
+      "taxesInclusiveTotal": "key_1",
+      "taxesExclusiveTotal": "key_1",
+      "taxesTotal": "key_1",
+      "total": "key_1"
+    },
+    "status": "gathering",
+    "statusDetails": {
+      "immutable": true,
+      "failed": true,
+      "extendedStatus": "extendedStatus",
+      "availableActions": {
+        "advance": {
+          "resultingState": "resultingState"
+        },
+        "approve": {
+          "resultingState": "resultingState"
+        },
+        "delete": {
+          "resultingState": "resultingState"
+        },
+        "retry": {
+          "resultingState": "resultingState"
+        },
+        "snapshotQuantities": {
+          "resultingState": "resultingState"
+        },
+        "void": {
+          "resultingState": "resultingState"
+        },
+        "invoice": {
+          "someKey": "value"
+        }
+      }
+    },
+    "issuedAt": "2023-01-01T01:01:01.001Z",
+    "draftUntil": "2023-01-01T01:01:01.001Z",
+    "quantitySnapshotedAt": "2023-01-01T01:01:01.001Z",
+    "collectionAt": "2023-01-01T01:01:01.001Z",
+    "dueAt": "2023-01-01T01:01:01.001Z",
+    "period": {
+      "from": "2023-01-01T01:01:01.001Z",
+      "to": "2023-02-01T01:01:01.001Z"
+    },
+    "voidedAt": "2023-01-01T01:01:01.001Z",
+    "sentToCustomerAt": "2023-01-01T01:01:01.001Z",
+    "workflow": {
+      "apps": {
+        "tax": {
+          "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+          "name": "name",
+          "description": "description",
+          "metadata": {
+            "someKey": "v"
+          },
+          "createdAt": "2024-01-01T01:01:01.001Z",
+          "updatedAt": "2024-01-01T01:01:01.001Z",
+          "deletedAt": "2024-01-01T01:01:01.001Z",
+          "listing": {
+            "type": "stripe",
+            "name": "name",
+            "description": "description",
+            "capabilities": [
+              {
+                "type": "reportUsage",
+                "key": "key_1",
+                "name": "name",
+                "description": "description"
+              }
+            ],
+            "installMethods": [
+              "with_oauth2"
+            ]
+          },
+          "status": "ready",
+          "type": "stripe",
+          "stripeAccountId": "stripeAccountId",
+          "livemode": true,
+          "maskedAPIKey": "maskedAPIKey"
+        },
+        "invoicing": {
+          "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+          "name": "name",
+          "description": "description",
+          "metadata": {
+            "someKey": "v"
+          },
+          "createdAt": "2024-01-01T01:01:01.001Z",
+          "updatedAt": "2024-01-01T01:01:01.001Z",
+          "deletedAt": "2024-01-01T01:01:01.001Z",
+          "listing": {
+            "type": "stripe",
+            "name": "name",
+            "description": "description",
+            "capabilities": [
+              {
+                "type": "reportUsage",
+                "key": "key_1",
+                "name": "name",
+                "description": "description"
+              }
+            ],
+            "installMethods": [
+              "with_oauth2"
+            ]
+          },
+          "status": "ready",
+          "type": "stripe",
+          "stripeAccountId": "stripeAccountId",
+          "livemode": true,
+          "maskedAPIKey": "maskedAPIKey"
+        },
+        "payment": {
+          "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+          "name": "name",
+          "description": "description",
+          "metadata": {
+            "someKey": "v"
+          },
+          "createdAt": "2024-01-01T01:01:01.001Z",
+          "updatedAt": "2024-01-01T01:01:01.001Z",
+          "deletedAt": "2024-01-01T01:01:01.001Z",
+          "listing": {
+            "type": "stripe",
+            "name": "name",
+            "description": "description",
+            "capabilities": [
+              {
+                "type": "reportUsage",
+                "key": "key_1",
+                "name": "name",
+                "description": "description"
+              }
+            ],
+            "installMethods": [
+              "with_oauth2"
+            ]
+          },
+          "status": "ready",
+          "type": "stripe",
+          "stripeAccountId": "stripeAccountId",
+          "livemode": true,
+          "maskedAPIKey": "maskedAPIKey"
+        }
+      },
+      "sourceBillingProfileId": "01G65Z755AFWAKHE12NY0CQ9FH",
+      "workflow": {
+        "collection": {
+          "alignment": {
+            "type": "anchored",
+            "recurringPeriod": {
+              "interval": "DAY",
+              "anchor": "2023-01-01T01:01:01.001Z"
+            }
+          },
+          "interval": "P1D"
+        },
+        "invoicing": {
+          "autoAdvance": true,
+          "draftPeriod": "P1D",
+          "dueAfter": "P30D",
+          "progressiveBilling": true,
+          "subscriptionEndProrationMode": "bill_full_period",
+          "defaultTaxConfig": {
+            "behavior": "inclusive",
+            "stripe": {
+              "code": "txcd_10000000"
+            },
+            "customInvoicing": {
+              "code": "code"
+            },
+            "taxCodeId": "01G65Z755AFWAKHE12NY0CQ9FH"
+          }
+        },
+        "payment": {
+          "collectionMethod": "charge_automatically"
+        },
+        "tax": {
+          "enabled": true,
+          "enforced": true
+        }
+      }
+    },
+    "lines": [
+      {
+        "name": "name",
+        "description": "description",
+        "metadata": {
+          "someKey": "v"
+        },
+        "createdAt": "2024-01-01T01:01:01.001Z",
+        "updatedAt": "2024-01-01T01:01:01.001Z",
+        "deletedAt": "2024-01-01T01:01:01.001Z",
+        "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+        "managedBy": "subscription",
+        "status": "valid",
+        "discounts": {
+          "amount": [
+            {
+              "createdAt": "2024-01-01T01:01:01.001Z",
+              "updatedAt": "2024-01-01T01:01:01.001Z",
+              "deletedAt": "2024-01-01T01:01:01.001Z",
+              "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+              "reason": {
+                "type": "maximum_spend"
+              },
+              "description": "description",
+              "externalIds": {
+                "invoicing": "invoicing",
+                "tax": "tax"
+              },
+              "amount": "key_1"
+            }
+          ],
+          "usage": [
+            {
+              "createdAt": "2024-01-01T01:01:01.001Z",
+              "updatedAt": "2024-01-01T01:01:01.001Z",
+              "deletedAt": "2024-01-01T01:01:01.001Z",
+              "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+              "reason": {
+                "type": "maximum_spend"
+              },
+              "description": "description",
+              "externalIds": {
+                "invoicing": "invoicing",
+                "tax": "tax"
+              },
+              "quantity": "key_1",
+              "preLinePeriodQuantity": "key_1"
+            }
+          ]
+        },
+        "creditAllocations": [
+          {
+            "amount": "key_1",
+            "description": "description"
+          }
+        ],
+        "invoice": {
+          "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+          "number": "INV-2024-01-01-01"
+        },
+        "currency": "USD",
+        "taxes": [
+          {
+            "config": {
+              "behavior": "inclusive",
+              "stripe": {
+                "code": "txcd_10000000"
+              },
+              "customInvoicing": {
+                "code": "code"
+              },
+              "taxCodeId": "01G65Z755AFWAKHE12NY0CQ9FH"
+            },
+            "percent": 50,
+            "surcharge": "key_1",
+            "behavior": "inclusive"
+          }
+        ],
+        "taxConfig": {
+          "behavior": "inclusive",
+          "stripe": {
+            "code": "txcd_10000000"
+          },
+          "customInvoicing": {
+            "code": "code"
+          },
+          "taxCodeId": "01G65Z755AFWAKHE12NY0CQ9FH"
+        },
+        "totals": {
+          "amount": "key_1",
+          "chargesTotal": "key_1",
+          "discountsTotal": "key_1",
+          "creditsTotal": "key_1",
+          "taxesInclusiveTotal": "key_1",
+          "taxesExclusiveTotal": "key_1",
+          "taxesTotal": "key_1",
+          "total": "key_1"
+        },
+        "period": {
+          "from": "2023-01-01T01:01:01.001Z",
+          "to": "2023-02-01T01:01:01.001Z"
+        },
+        "invoiceAt": "2023-01-01T01:01:01.001Z",
+        "externalIds": {
+          "invoicing": "invoicing",
+          "tax": "tax"
+        },
+        "subscription": {
+          "subscription": {
+            "id": "01G65Z755AFWAKHE12NY0CQ9FH"
+          },
+          "phase": {
+            "id": "01G65Z755AFWAKHE12NY0CQ9FH"
+          },
+          "item": {
+            "id": "01G65Z755AFWAKHE12NY0CQ9FH"
+          },
+          "billingPeriod": {
+            "from": "2023-01-01T01:01:01.001Z",
+            "to": "2023-02-01T01:01:01.001Z"
+          }
+        },
+        "type": "usage_based",
+        "price": {
+          "type": "dynamic",
+          "multiplier": "key_1",
+          "minimumAmount": "key_1",
+          "maximumAmount": "key_1"
+        },
+        "featureKey": "key_1",
+        "children": [
+          {
+            "name": "name",
+            "description": "description",
+            "metadata": {
+              "someKey": "v"
+            },
+            "createdAt": "2024-01-01T01:01:01.001Z",
+            "updatedAt": "2024-01-01T01:01:01.001Z",
+            "deletedAt": "2024-01-01T01:01:01.001Z",
+            "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+            "managedBy": "subscription",
+            "status": "valid",
+            "discounts": {
+              "amount": [
+                {
+                  "createdAt": "2024-01-01T01:01:01.001Z",
+                  "updatedAt": "2024-01-01T01:01:01.001Z",
+                  "deletedAt": "2024-01-01T01:01:01.001Z",
+                  "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+                  "reason": {
+                    "type": "maximum_spend"
+                  },
+                  "description": "description",
+                  "externalIds": {
+                    "invoicing": "invoicing",
+                    "tax": "tax"
+                  },
+                  "amount": "key_1"
+                }
+              ],
+              "usage": [
+                {
+                  "createdAt": "2024-01-01T01:01:01.001Z",
+                  "updatedAt": "2024-01-01T01:01:01.001Z",
+                  "deletedAt": "2024-01-01T01:01:01.001Z",
+                  "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+                  "reason": {
+                    "type": "maximum_spend"
+                  },
+                  "description": "description",
+                  "externalIds": {
+                    "invoicing": "invoicing",
+                    "tax": "tax"
+                  },
+                  "quantity": "key_1",
+                  "preLinePeriodQuantity": "key_1"
+                }
+              ]
+            },
+            "creditAllocations": [
+              {
+                "amount": "key_1",
+                "description": "description"
+              }
+            ],
+            "invoice": {
+              "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+              "number": "INV-2024-01-01-01"
+            },
+            "currency": "USD",
+            "taxes": [
+              {
+                "config": {
+                  "behavior": "inclusive",
+                  "stripe": {
+                    "code": "txcd_10000000"
+                  },
+                  "customInvoicing": {
+                    "code": "code"
+                  },
+                  "taxCodeId": "01G65Z755AFWAKHE12NY0CQ9FH"
+                },
+                "percent": 50,
+                "surcharge": "key_1",
+                "behavior": "inclusive"
+              }
+            ],
+            "taxConfig": {
+              "behavior": "inclusive",
+              "stripe": {
+                "code": "txcd_10000000"
+              },
+              "customInvoicing": {
+                "code": "code"
+              },
+              "taxCodeId": "01G65Z755AFWAKHE12NY0CQ9FH"
+            },
+            "totals": {
+              "amount": "key_1",
+              "chargesTotal": "key_1",
+              "discountsTotal": "key_1",
+              "creditsTotal": "key_1",
+              "taxesInclusiveTotal": "key_1",
+              "taxesExclusiveTotal": "key_1",
+              "taxesTotal": "key_1",
+              "total": "key_1"
+            },
+            "period": {
+              "from": "2023-01-01T01:01:01.001Z",
+              "to": "2023-02-01T01:01:01.001Z"
+            },
+            "externalIds": {
+              "invoicing": "invoicing",
+              "tax": "tax"
+            },
+            "subscription": {
+              "subscription": {
+                "id": "01G65Z755AFWAKHE12NY0CQ9FH"
+              },
+              "phase": {
+                "id": "01G65Z755AFWAKHE12NY0CQ9FH"
+              },
+              "item": {
+                "id": "01G65Z755AFWAKHE12NY0CQ9FH"
+              },
+              "billingPeriod": {
+                "from": "2023-01-01T01:01:01.001Z",
+                "to": "2023-02-01T01:01:01.001Z"
+              }
+            },
+            "invoiceAt": "2023-01-01T01:01:01.001Z",
+            "type": "flat_fee",
+            "perUnitAmount": "key_1",
+            "paymentTerm": "in_advance",
+            "quantity": "key_1",
+            "rateCard": {
+              "taxConfig": {
+                "behavior": "inclusive",
+                "stripe": {
+                  "code": "txcd_10000000"
+                },
+                "customInvoicing": {
+                  "code": "code"
+                },
+                "taxCodeId": "01G65Z755AFWAKHE12NY0CQ9FH"
+              },
+              "price": {
+                "type": "flat",
+                "amount": "key_1",
+                "paymentTerm": "in_advance"
+              },
+              "quantity": "key_1",
+              "discounts": {
+                "percentage": {
+                  "percentage": 50,
+                  "correlationId": "01G65Z755AFWAKHE12NY0CQ9FH"
+                },
+                "usage": {
+                  "quantity": "key_1",
+                  "correlationId": "01G65Z755AFWAKHE12NY0CQ9FH"
+                }
+              }
+            },
+            "category": "regular"
+          }
+        ],
+        "rateCard": {
+          "featureKey": "key_1",
+          "taxConfig": {
+            "behavior": "inclusive",
+            "stripe": {
+              "code": "txcd_10000000"
+            },
+            "customInvoicing": {
+              "code": "code"
+            },
+            "taxCodeId": "01G65Z755AFWAKHE12NY0CQ9FH"
+          },
+          "price": {
+            "type": "dynamic",
+            "multiplier": "key_1",
+            "minimumAmount": "key_1",
+            "maximumAmount": "key_1"
+          },
+          "discounts": {
+            "percentage": {
+              "percentage": 50,
+              "correlationId": "01G65Z755AFWAKHE12NY0CQ9FH"
+            },
+            "usage": {
+              "quantity": "key_1",
+              "correlationId": "01G65Z755AFWAKHE12NY0CQ9FH"
+            }
+          }
+        },
+        "quantity": "key_1",
+        "meteredQuantity": "key_1",
+        "preLinePeriodQuantity": "key_1",
+        "meteredPreLinePeriodQuantity": "key_1"
+      }
+    ],
+    "payment": {
+      "terms": {
+        "type": "due_date",
+        "detail": "detail",
+        "notes": "notes",
+        "dueAt": [
+          {
+            "dueAt": "2023-01-01T01:01:01.001Z",
+            "notes": "notes",
+            "amount": "key_1",
+            "percent": 50,
+            "currency": "USD"
+          }
+        ]
+      }
+    },
+    "validationIssues": [
+      {
+        "createdAt": "2024-01-01T01:01:01.001Z",
+        "updatedAt": "2024-01-01T01:01:01.001Z",
+        "deletedAt": "2024-01-01T01:01:01.001Z",
+        "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+        "severity": "critical",
+        "field": "field",
+        "code": "code",
+        "component": "component",
+        "message": "message",
+        "metadata": {
+          "someKey": "v"
+        }
+      }
+    ],
+    "externalIds": {
+      "invoicing": "invoicing",
+      "tax": "tax",
+      "payment": "payment"
+    }
+  },
+  "invoice_4": {
+    "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+    "description": "description",
+    "metadata": {
+      "someKey": "v"
+    },
+    "createdAt": "2024-01-01T01:01:01.001Z",
+    "updatedAt": "2024-01-01T01:01:01.001Z",
+    "deletedAt": "2024-01-01T01:01:01.001Z",
+    "type": "standard",
+    "supplier": {
+      "id": "id",
+      "key": "key",
+      "name": "name",
+      "taxId": {
+        "code": "code"
+      },
+      "addresses": [
+        {
+          "country": "US",
+          "postalCode": "postalCode",
+          "state": "state",
+          "city": "city",
+          "line1": "line1",
+          "line2": "line2",
+          "phoneNumber": "phoneNumber"
+        }
+      ]
+    },
+    "customer": {
+      "id": "id",
+      "key": "key",
+      "name": "name",
+      "taxId": {
+        "code": "code"
+      },
+      "addresses": [
+        {
+          "country": "US",
+          "postalCode": "postalCode",
+          "state": "state",
+          "city": "city",
+          "line1": "line1",
+          "line2": "line2",
+          "phoneNumber": "phoneNumber"
+        }
+      ],
+      "usageAttribution": {
+        "subjectKeys": [
+          "subjectKeys"
+        ]
+      }
+    },
+    "number": "INV-2024-01-01-01",
+    "currency": "USD",
+    "preceding": [
+      {
+        "type": "credit_note_original_invoice",
+        "reason": "reason",
+        "description": "description",
+        "issuedAt": "2023-01-01T01:01:01.001Z",
+        "number": "INV-2024-01-01-01",
+        "url": "https://example.com/doc"
+      }
+    ],
+    "totals": {
+      "amount": "key_1",
+      "chargesTotal": "key_1",
+      "discountsTotal": "key_1",
+      "creditsTotal": "key_1",
+      "taxesInclusiveTotal": "key_1",
+      "taxesExclusiveTotal": "key_1",
+      "taxesTotal": "key_1",
+      "total": "key_1"
+    },
+    "status": "gathering",
+    "statusDetails": {
+      "immutable": true,
+      "failed": true,
+      "extendedStatus": "extendedStatus",
+      "availableActions": {
+        "advance": {
+          "resultingState": "resultingState"
+        },
+        "approve": {
+          "resultingState": "resultingState"
+        },
+        "delete": {
+          "resultingState": "resultingState"
+        },
+        "retry": {
+          "resultingState": "resultingState"
+        },
+        "snapshotQuantities": {
+          "resultingState": "resultingState"
+        },
+        "void": {
+          "resultingState": "resultingState"
+        },
+        "invoice": {
+          "someKey": "value"
+        }
+      }
+    },
+    "issuedAt": "2023-01-01T01:01:01.001Z",
+    "draftUntil": "2023-01-01T01:01:01.001Z",
+    "quantitySnapshotedAt": "2023-01-01T01:01:01.001Z",
+    "collectionAt": "2023-01-01T01:01:01.001Z",
+    "dueAt": "2023-01-01T01:01:01.001Z",
+    "period": {
+      "from": "2023-01-01T01:01:01.001Z",
+      "to": "2023-02-01T01:01:01.001Z"
+    },
+    "voidedAt": "2023-01-01T01:01:01.001Z",
+    "sentToCustomerAt": "2023-01-01T01:01:01.001Z",
+    "workflow": {
+      "apps": {
+        "tax": {
+          "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+          "name": "name",
+          "description": "description",
+          "metadata": {
+            "someKey": "v"
+          },
+          "createdAt": "2024-01-01T01:01:01.001Z",
+          "updatedAt": "2024-01-01T01:01:01.001Z",
+          "deletedAt": "2024-01-01T01:01:01.001Z",
+          "listing": {
+            "type": "stripe",
+            "name": "name",
+            "description": "description",
+            "capabilities": [
+              {
+                "type": "reportUsage",
+                "key": "key_1",
+                "name": "name",
+                "description": "description"
+              }
+            ],
+            "installMethods": [
+              "with_oauth2"
+            ]
+          },
+          "status": "ready",
+          "type": "sandbox"
+        },
+        "invoicing": {
+          "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+          "name": "name",
+          "description": "description",
+          "metadata": {
+            "someKey": "v"
+          },
+          "createdAt": "2024-01-01T01:01:01.001Z",
+          "updatedAt": "2024-01-01T01:01:01.001Z",
+          "deletedAt": "2024-01-01T01:01:01.001Z",
+          "listing": {
+            "type": "stripe",
+            "name": "name",
+            "description": "description",
+            "capabilities": [
+              {
+                "type": "reportUsage",
+                "key": "key_1",
+                "name": "name",
+                "description": "description"
+              }
+            ],
+            "installMethods": [
+              "with_oauth2"
+            ]
+          },
+          "status": "ready",
+          "type": "sandbox"
+        },
+        "payment": {
+          "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+          "name": "name",
+          "description": "description",
+          "metadata": {
+            "someKey": "v"
+          },
+          "createdAt": "2024-01-01T01:01:01.001Z",
+          "updatedAt": "2024-01-01T01:01:01.001Z",
+          "deletedAt": "2024-01-01T01:01:01.001Z",
+          "listing": {
+            "type": "stripe",
+            "name": "name",
+            "description": "description",
+            "capabilities": [
+              {
+                "type": "reportUsage",
+                "key": "key_1",
+                "name": "name",
+                "description": "description"
+              }
+            ],
+            "installMethods": [
+              "with_oauth2"
+            ]
+          },
+          "status": "ready",
+          "type": "sandbox"
+        }
+      },
+      "sourceBillingProfileId": "01G65Z755AFWAKHE12NY0CQ9FH",
+      "workflow": {
+        "collection": {
+          "alignment": {
+            "type": "subscription"
+          },
+          "interval": "P1D"
+        },
+        "invoicing": {
+          "autoAdvance": true,
+          "draftPeriod": "P1D",
+          "dueAfter": "P30D",
+          "progressiveBilling": true,
+          "subscriptionEndProrationMode": "bill_full_period",
+          "defaultTaxConfig": {
+            "behavior": "inclusive",
+            "stripe": {
+              "code": "txcd_10000000"
+            },
+            "customInvoicing": {
+              "code": "code"
+            },
+            "taxCodeId": "01G65Z755AFWAKHE12NY0CQ9FH"
+          }
+        },
+        "payment": {
+          "collectionMethod": "charge_automatically"
+        },
+        "tax": {
+          "enabled": true,
+          "enforced": true
+        }
+      }
+    },
+    "lines": [
+      {
+        "name": "name",
+        "description": "description",
+        "metadata": {
+          "someKey": "v"
+        },
+        "createdAt": "2024-01-01T01:01:01.001Z",
+        "updatedAt": "2024-01-01T01:01:01.001Z",
+        "deletedAt": "2024-01-01T01:01:01.001Z",
+        "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+        "managedBy": "subscription",
+        "status": "valid",
+        "discounts": {
+          "amount": [
+            {
+              "createdAt": "2024-01-01T01:01:01.001Z",
+              "updatedAt": "2024-01-01T01:01:01.001Z",
+              "deletedAt": "2024-01-01T01:01:01.001Z",
+              "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+              "reason": {
+                "type": "ratecard_percentage",
+                "percentage": 50,
+                "correlationId": "01G65Z755AFWAKHE12NY0CQ9FH"
+              },
+              "description": "description",
+              "externalIds": {
+                "invoicing": "invoicing",
+                "tax": "tax"
+              },
+              "amount": "key_1"
+            }
+          ],
+          "usage": [
+            {
+              "createdAt": "2024-01-01T01:01:01.001Z",
+              "updatedAt": "2024-01-01T01:01:01.001Z",
+              "deletedAt": "2024-01-01T01:01:01.001Z",
+              "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+              "reason": {
+                "type": "ratecard_percentage",
+                "percentage": 50,
+                "correlationId": "01G65Z755AFWAKHE12NY0CQ9FH"
+              },
+              "description": "description",
+              "externalIds": {
+                "invoicing": "invoicing",
+                "tax": "tax"
+              },
+              "quantity": "key_1",
+              "preLinePeriodQuantity": "key_1"
+            }
+          ]
+        },
+        "creditAllocations": [
+          {
+            "amount": "key_1",
+            "description": "description"
+          }
+        ],
+        "invoice": {
+          "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+          "number": "INV-2024-01-01-01"
+        },
+        "currency": "USD",
+        "taxes": [
+          {
+            "config": {
+              "behavior": "inclusive",
+              "stripe": {
+                "code": "txcd_10000000"
+              },
+              "customInvoicing": {
+                "code": "code"
+              },
+              "taxCodeId": "01G65Z755AFWAKHE12NY0CQ9FH"
+            },
+            "percent": 50,
+            "surcharge": "key_1",
+            "behavior": "inclusive"
+          }
+        ],
+        "taxConfig": {
+          "behavior": "inclusive",
+          "stripe": {
+            "code": "txcd_10000000"
+          },
+          "customInvoicing": {
+            "code": "code"
+          },
+          "taxCodeId": "01G65Z755AFWAKHE12NY0CQ9FH"
+        },
+        "totals": {
+          "amount": "key_1",
+          "chargesTotal": "key_1",
+          "discountsTotal": "key_1",
+          "creditsTotal": "key_1",
+          "taxesInclusiveTotal": "key_1",
+          "taxesExclusiveTotal": "key_1",
+          "taxesTotal": "key_1",
+          "total": "key_1"
+        },
+        "period": {
+          "from": "2023-01-01T01:01:01.001Z",
+          "to": "2023-02-01T01:01:01.001Z"
+        },
+        "invoiceAt": "2023-01-01T01:01:01.001Z",
+        "externalIds": {
+          "invoicing": "invoicing",
+          "tax": "tax"
+        },
+        "subscription": {
+          "subscription": {
+            "id": "01G65Z755AFWAKHE12NY0CQ9FH"
+          },
+          "phase": {
+            "id": "01G65Z755AFWAKHE12NY0CQ9FH"
+          },
+          "item": {
+            "id": "01G65Z755AFWAKHE12NY0CQ9FH"
+          },
+          "billingPeriod": {
+            "from": "2023-01-01T01:01:01.001Z",
+            "to": "2023-02-01T01:01:01.001Z"
+          }
+        },
+        "type": "usage_based",
+        "price": {
+          "type": "package",
+          "amount": "key_1",
+          "quantityPerPackage": "key_1",
+          "minimumAmount": "key_1",
+          "maximumAmount": "key_1"
+        },
+        "featureKey": "key_1",
+        "children": [
+          {
+            "name": "name",
+            "description": "description",
+            "metadata": {
+              "someKey": "v"
+            },
+            "createdAt": "2024-01-01T01:01:01.001Z",
+            "updatedAt": "2024-01-01T01:01:01.001Z",
+            "deletedAt": "2024-01-01T01:01:01.001Z",
+            "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+            "managedBy": "subscription",
+            "status": "valid",
+            "discounts": {
+              "amount": [
+                {
+                  "createdAt": "2024-01-01T01:01:01.001Z",
+                  "updatedAt": "2024-01-01T01:01:01.001Z",
+                  "deletedAt": "2024-01-01T01:01:01.001Z",
+                  "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+                  "reason": {
+                    "type": "ratecard_percentage",
+                    "percentage": 50,
+                    "correlationId": "01G65Z755AFWAKHE12NY0CQ9FH"
+                  },
+                  "description": "description",
+                  "externalIds": {
+                    "invoicing": "invoicing",
+                    "tax": "tax"
+                  },
+                  "amount": "key_1"
+                }
+              ],
+              "usage": [
+                {
+                  "createdAt": "2024-01-01T01:01:01.001Z",
+                  "updatedAt": "2024-01-01T01:01:01.001Z",
+                  "deletedAt": "2024-01-01T01:01:01.001Z",
+                  "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+                  "reason": {
+                    "type": "ratecard_percentage",
+                    "percentage": 50,
+                    "correlationId": "01G65Z755AFWAKHE12NY0CQ9FH"
+                  },
+                  "description": "description",
+                  "externalIds": {
+                    "invoicing": "invoicing",
+                    "tax": "tax"
+                  },
+                  "quantity": "key_1",
+                  "preLinePeriodQuantity": "key_1"
+                }
+              ]
+            },
+            "creditAllocations": [
+              {
+                "amount": "key_1",
+                "description": "description"
+              }
+            ],
+            "invoice": {
+              "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+              "number": "INV-2024-01-01-01"
+            },
+            "currency": "USD",
+            "taxes": [
+              {
+                "config": {
+                  "behavior": "inclusive",
+                  "stripe": {
+                    "code": "txcd_10000000"
+                  },
+                  "customInvoicing": {
+                    "code": "code"
+                  },
+                  "taxCodeId": "01G65Z755AFWAKHE12NY0CQ9FH"
+                },
+                "percent": 50,
+                "surcharge": "key_1",
+                "behavior": "inclusive"
+              }
+            ],
+            "taxConfig": {
+              "behavior": "inclusive",
+              "stripe": {
+                "code": "txcd_10000000"
+              },
+              "customInvoicing": {
+                "code": "code"
+              },
+              "taxCodeId": "01G65Z755AFWAKHE12NY0CQ9FH"
+            },
+            "totals": {
+              "amount": "key_1",
+              "chargesTotal": "key_1",
+              "discountsTotal": "key_1",
+              "creditsTotal": "key_1",
+              "taxesInclusiveTotal": "key_1",
+              "taxesExclusiveTotal": "key_1",
+              "taxesTotal": "key_1",
+              "total": "key_1"
+            },
+            "period": {
+              "from": "2023-01-01T01:01:01.001Z",
+              "to": "2023-02-01T01:01:01.001Z"
+            },
+            "externalIds": {
+              "invoicing": "invoicing",
+              "tax": "tax"
+            },
+            "subscription": {
+              "subscription": {
+                "id": "01G65Z755AFWAKHE12NY0CQ9FH"
+              },
+              "phase": {
+                "id": "01G65Z755AFWAKHE12NY0CQ9FH"
+              },
+              "item": {
+                "id": "01G65Z755AFWAKHE12NY0CQ9FH"
+              },
+              "billingPeriod": {
+                "from": "2023-01-01T01:01:01.001Z",
+                "to": "2023-02-01T01:01:01.001Z"
+              }
+            },
+            "invoiceAt": "2023-01-01T01:01:01.001Z",
+            "type": "flat_fee",
+            "perUnitAmount": "key_1",
+            "paymentTerm": "in_advance",
+            "quantity": "key_1",
+            "rateCard": {
+              "taxConfig": {
+                "behavior": "inclusive",
+                "stripe": {
+                  "code": "txcd_10000000"
+                },
+                "customInvoicing": {
+                  "code": "code"
+                },
+                "taxCodeId": "01G65Z755AFWAKHE12NY0CQ9FH"
+              },
+              "price": {
+                "type": "flat",
+                "amount": "key_1",
+                "paymentTerm": "in_advance"
+              },
+              "quantity": "key_1",
+              "discounts": {
+                "percentage": {
+                  "percentage": 50,
+                  "correlationId": "01G65Z755AFWAKHE12NY0CQ9FH"
+                },
+                "usage": {
+                  "quantity": "key_1",
+                  "correlationId": "01G65Z755AFWAKHE12NY0CQ9FH"
+                }
+              }
+            },
+            "category": "regular"
+          }
+        ],
+        "rateCard": {
+          "featureKey": "key_1",
+          "taxConfig": {
+            "behavior": "inclusive",
+            "stripe": {
+              "code": "txcd_10000000"
+            },
+            "customInvoicing": {
+              "code": "code"
+            },
+            "taxCodeId": "01G65Z755AFWAKHE12NY0CQ9FH"
+          },
+          "price": {
+            "type": "package",
+            "amount": "key_1",
+            "quantityPerPackage": "key_1",
+            "minimumAmount": "key_1",
+            "maximumAmount": "key_1"
+          },
+          "discounts": {
+            "percentage": {
+              "percentage": 50,
+              "correlationId": "01G65Z755AFWAKHE12NY0CQ9FH"
+            },
+            "usage": {
+              "quantity": "key_1",
+              "correlationId": "01G65Z755AFWAKHE12NY0CQ9FH"
+            }
+          }
+        },
+        "quantity": "key_1",
+        "meteredQuantity": "key_1",
+        "preLinePeriodQuantity": "key_1",
+        "meteredPreLinePeriodQuantity": "key_1"
+      }
+    ],
+    "payment": {
+      "terms": {
+        "type": "instant",
+        "detail": "detail",
+        "notes": "notes"
+      }
+    },
+    "validationIssues": [
+      {
+        "createdAt": "2024-01-01T01:01:01.001Z",
+        "updatedAt": "2024-01-01T01:01:01.001Z",
+        "deletedAt": "2024-01-01T01:01:01.001Z",
+        "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+        "severity": "critical",
+        "field": "field",
+        "code": "code",
+        "component": "component",
+        "message": "message",
+        "metadata": {
+          "someKey": "v"
+        }
+      }
+    ],
+    "externalIds": {
+      "invoicing": "invoicing",
+      "tax": "tax",
+      "payment": "payment"
+    }
+  },
+  "invoice_5": {
+    "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+    "description": "description",
+    "metadata": {
+      "someKey": "v"
+    },
+    "createdAt": "2024-01-01T01:01:01.001Z",
+    "updatedAt": "2024-01-01T01:01:01.001Z",
+    "deletedAt": "2024-01-01T01:01:01.001Z",
+    "type": "standard",
+    "supplier": {
+      "id": "id",
+      "key": "key",
+      "name": "name",
+      "taxId": {
+        "code": "code"
+      },
+      "addresses": [
+        {
+          "country": "US",
+          "postalCode": "postalCode",
+          "state": "state",
+          "city": "city",
+          "line1": "line1",
+          "line2": "line2",
+          "phoneNumber": "phoneNumber"
+        }
+      ]
+    },
+    "customer": {
+      "id": "id",
+      "key": "key",
+      "name": "name",
+      "taxId": {
+        "code": "code"
+      },
+      "addresses": [
+        {
+          "country": "US",
+          "postalCode": "postalCode",
+          "state": "state",
+          "city": "city",
+          "line1": "line1",
+          "line2": "line2",
+          "phoneNumber": "phoneNumber"
+        }
+      ],
+      "usageAttribution": {
+        "subjectKeys": [
+          "subjectKeys"
+        ]
+      }
+    },
+    "number": "INV-2024-01-01-01",
+    "currency": "USD",
+    "preceding": [
+      {
+        "type": "credit_note_original_invoice",
+        "reason": "reason",
+        "description": "description",
+        "issuedAt": "2023-01-01T01:01:01.001Z",
+        "number": "INV-2024-01-01-01",
+        "url": "https://example.com/doc"
+      }
+    ],
+    "totals": {
+      "amount": "key_1",
+      "chargesTotal": "key_1",
+      "discountsTotal": "key_1",
+      "creditsTotal": "key_1",
+      "taxesInclusiveTotal": "key_1",
+      "taxesExclusiveTotal": "key_1",
+      "taxesTotal": "key_1",
+      "total": "key_1"
+    },
+    "status": "gathering",
+    "statusDetails": {
+      "immutable": true,
+      "failed": true,
+      "extendedStatus": "extendedStatus",
+      "availableActions": {
+        "advance": {
+          "resultingState": "resultingState"
+        },
+        "approve": {
+          "resultingState": "resultingState"
+        },
+        "delete": {
+          "resultingState": "resultingState"
+        },
+        "retry": {
+          "resultingState": "resultingState"
+        },
+        "snapshotQuantities": {
+          "resultingState": "resultingState"
+        },
+        "void": {
+          "resultingState": "resultingState"
+        },
+        "invoice": {
+          "someKey": "value"
+        }
+      }
+    },
+    "issuedAt": "2023-01-01T01:01:01.001Z",
+    "draftUntil": "2023-01-01T01:01:01.001Z",
+    "quantitySnapshotedAt": "2023-01-01T01:01:01.001Z",
+    "collectionAt": "2023-01-01T01:01:01.001Z",
+    "dueAt": "2023-01-01T01:01:01.001Z",
+    "period": {
+      "from": "2023-01-01T01:01:01.001Z",
+      "to": "2023-02-01T01:01:01.001Z"
+    },
+    "voidedAt": "2023-01-01T01:01:01.001Z",
+    "sentToCustomerAt": "2023-01-01T01:01:01.001Z",
+    "workflow": {
+      "apps": {
+        "tax": {
+          "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+          "name": "name",
+          "description": "description",
+          "metadata": {
+            "someKey": "v"
+          },
+          "createdAt": "2024-01-01T01:01:01.001Z",
+          "updatedAt": "2024-01-01T01:01:01.001Z",
+          "deletedAt": "2024-01-01T01:01:01.001Z",
+          "listing": {
+            "type": "stripe",
+            "name": "name",
+            "description": "description",
+            "capabilities": [
+              {
+                "type": "reportUsage",
+                "key": "key_1",
+                "name": "name",
+                "description": "description"
+              }
+            ],
+            "installMethods": [
+              "with_oauth2"
+            ]
+          },
+          "status": "ready",
+          "type": "custom_invoicing",
+          "enableDraftSyncHook": true,
+          "enableIssuingSyncHook": true
+        },
+        "invoicing": {
+          "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+          "name": "name",
+          "description": "description",
+          "metadata": {
+            "someKey": "v"
+          },
+          "createdAt": "2024-01-01T01:01:01.001Z",
+          "updatedAt": "2024-01-01T01:01:01.001Z",
+          "deletedAt": "2024-01-01T01:01:01.001Z",
+          "listing": {
+            "type": "stripe",
+            "name": "name",
+            "description": "description",
+            "capabilities": [
+              {
+                "type": "reportUsage",
+                "key": "key_1",
+                "name": "name",
+                "description": "description"
+              }
+            ],
+            "installMethods": [
+              "with_oauth2"
+            ]
+          },
+          "status": "ready",
+          "type": "custom_invoicing",
+          "enableDraftSyncHook": true,
+          "enableIssuingSyncHook": true
+        },
+        "payment": {
+          "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+          "name": "name",
+          "description": "description",
+          "metadata": {
+            "someKey": "v"
+          },
+          "createdAt": "2024-01-01T01:01:01.001Z",
+          "updatedAt": "2024-01-01T01:01:01.001Z",
+          "deletedAt": "2024-01-01T01:01:01.001Z",
+          "listing": {
+            "type": "stripe",
+            "name": "name",
+            "description": "description",
+            "capabilities": [
+              {
+                "type": "reportUsage",
+                "key": "key_1",
+                "name": "name",
+                "description": "description"
+              }
+            ],
+            "installMethods": [
+              "with_oauth2"
+            ]
+          },
+          "status": "ready",
+          "type": "custom_invoicing",
+          "enableDraftSyncHook": true,
+          "enableIssuingSyncHook": true
+        }
+      },
+      "sourceBillingProfileId": "01G65Z755AFWAKHE12NY0CQ9FH",
+      "workflow": {
+        "collection": {
+          "alignment": {
+            "type": "anchored",
+            "recurringPeriod": {
+              "interval": "DAY",
+              "anchor": "2023-01-01T01:01:01.001Z"
+            }
+          },
+          "interval": "P1D"
+        },
+        "invoicing": {
+          "autoAdvance": true,
+          "draftPeriod": "P1D",
+          "dueAfter": "P30D",
+          "progressiveBilling": true,
+          "subscriptionEndProrationMode": "bill_full_period",
+          "defaultTaxConfig": {
+            "behavior": "inclusive",
+            "stripe": {
+              "code": "txcd_10000000"
+            },
+            "customInvoicing": {
+              "code": "code"
+            },
+            "taxCodeId": "01G65Z755AFWAKHE12NY0CQ9FH"
+          }
+        },
+        "payment": {
+          "collectionMethod": "charge_automatically"
+        },
+        "tax": {
+          "enabled": true,
+          "enforced": true
+        }
+      }
+    },
+    "lines": [
+      {
+        "name": "name",
+        "description": "description",
+        "metadata": {
+          "someKey": "v"
+        },
+        "createdAt": "2024-01-01T01:01:01.001Z",
+        "updatedAt": "2024-01-01T01:01:01.001Z",
+        "deletedAt": "2024-01-01T01:01:01.001Z",
+        "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+        "managedBy": "subscription",
+        "status": "valid",
+        "discounts": {
+          "amount": [
+            {
+              "createdAt": "2024-01-01T01:01:01.001Z",
+              "updatedAt": "2024-01-01T01:01:01.001Z",
+              "deletedAt": "2024-01-01T01:01:01.001Z",
+              "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+              "reason": {
+                "type": "ratecard_usage",
+                "quantity": "key_1",
+                "correlationId": "01G65Z755AFWAKHE12NY0CQ9FH"
+              },
+              "description": "description",
+              "externalIds": {
+                "invoicing": "invoicing",
+                "tax": "tax"
+              },
+              "amount": "key_1"
+            }
+          ],
+          "usage": [
+            {
+              "createdAt": "2024-01-01T01:01:01.001Z",
+              "updatedAt": "2024-01-01T01:01:01.001Z",
+              "deletedAt": "2024-01-01T01:01:01.001Z",
+              "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+              "reason": {
+                "type": "ratecard_usage",
+                "quantity": "key_1",
+                "correlationId": "01G65Z755AFWAKHE12NY0CQ9FH"
+              },
+              "description": "description",
+              "externalIds": {
+                "invoicing": "invoicing",
+                "tax": "tax"
+              },
+              "quantity": "key_1",
+              "preLinePeriodQuantity": "key_1"
+            }
+          ]
+        },
+        "creditAllocations": [
+          {
+            "amount": "key_1",
+            "description": "description"
+          }
+        ],
+        "invoice": {
+          "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+          "number": "INV-2024-01-01-01"
+        },
+        "currency": "USD",
+        "taxes": [
+          {
+            "config": {
+              "behavior": "inclusive",
+              "stripe": {
+                "code": "txcd_10000000"
+              },
+              "customInvoicing": {
+                "code": "code"
+              },
+              "taxCodeId": "01G65Z755AFWAKHE12NY0CQ9FH"
+            },
+            "percent": 50,
+            "surcharge": "key_1",
+            "behavior": "inclusive"
+          }
+        ],
+        "taxConfig": {
+          "behavior": "inclusive",
+          "stripe": {
+            "code": "txcd_10000000"
+          },
+          "customInvoicing": {
+            "code": "code"
+          },
+          "taxCodeId": "01G65Z755AFWAKHE12NY0CQ9FH"
+        },
+        "totals": {
+          "amount": "key_1",
+          "chargesTotal": "key_1",
+          "discountsTotal": "key_1",
+          "creditsTotal": "key_1",
+          "taxesInclusiveTotal": "key_1",
+          "taxesExclusiveTotal": "key_1",
+          "taxesTotal": "key_1",
+          "total": "key_1"
+        },
+        "period": {
+          "from": "2023-01-01T01:01:01.001Z",
+          "to": "2023-02-01T01:01:01.001Z"
+        },
+        "invoiceAt": "2023-01-01T01:01:01.001Z",
+        "externalIds": {
+          "invoicing": "invoicing",
+          "tax": "tax"
+        },
+        "subscription": {
+          "subscription": {
+            "id": "01G65Z755AFWAKHE12NY0CQ9FH"
+          },
+          "phase": {
+            "id": "01G65Z755AFWAKHE12NY0CQ9FH"
+          },
+          "item": {
+            "id": "01G65Z755AFWAKHE12NY0CQ9FH"
+          },
+          "billingPeriod": {
+            "from": "2023-01-01T01:01:01.001Z",
+            "to": "2023-02-01T01:01:01.001Z"
+          }
+        },
+        "type": "usage_based",
+        "price": {
+          "type": "flat",
+          "amount": "key_1",
+          "paymentTerm": "in_advance"
+        },
+        "featureKey": "key_1",
+        "children": [
+          {
+            "name": "name",
+            "description": "description",
+            "metadata": {
+              "someKey": "v"
+            },
+            "createdAt": "2024-01-01T01:01:01.001Z",
+            "updatedAt": "2024-01-01T01:01:01.001Z",
+            "deletedAt": "2024-01-01T01:01:01.001Z",
+            "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+            "managedBy": "subscription",
+            "status": "valid",
+            "discounts": {
+              "amount": [
+                {
+                  "createdAt": "2024-01-01T01:01:01.001Z",
+                  "updatedAt": "2024-01-01T01:01:01.001Z",
+                  "deletedAt": "2024-01-01T01:01:01.001Z",
+                  "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+                  "reason": {
+                    "type": "ratecard_usage",
+                    "quantity": "key_1",
+                    "correlationId": "01G65Z755AFWAKHE12NY0CQ9FH"
+                  },
+                  "description": "description",
+                  "externalIds": {
+                    "invoicing": "invoicing",
+                    "tax": "tax"
+                  },
+                  "amount": "key_1"
+                }
+              ],
+              "usage": [
+                {
+                  "createdAt": "2024-01-01T01:01:01.001Z",
+                  "updatedAt": "2024-01-01T01:01:01.001Z",
+                  "deletedAt": "2024-01-01T01:01:01.001Z",
+                  "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+                  "reason": {
+                    "type": "ratecard_usage",
+                    "quantity": "key_1",
+                    "correlationId": "01G65Z755AFWAKHE12NY0CQ9FH"
+                  },
+                  "description": "description",
+                  "externalIds": {
+                    "invoicing": "invoicing",
+                    "tax": "tax"
+                  },
+                  "quantity": "key_1",
+                  "preLinePeriodQuantity": "key_1"
+                }
+              ]
+            },
+            "creditAllocations": [
+              {
+                "amount": "key_1",
+                "description": "description"
+              }
+            ],
+            "invoice": {
+              "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+              "number": "INV-2024-01-01-01"
+            },
+            "currency": "USD",
+            "taxes": [
+              {
+                "config": {
+                  "behavior": "inclusive",
+                  "stripe": {
+                    "code": "txcd_10000000"
+                  },
+                  "customInvoicing": {
+                    "code": "code"
+                  },
+                  "taxCodeId": "01G65Z755AFWAKHE12NY0CQ9FH"
+                },
+                "percent": 50,
+                "surcharge": "key_1",
+                "behavior": "inclusive"
+              }
+            ],
+            "taxConfig": {
+              "behavior": "inclusive",
+              "stripe": {
+                "code": "txcd_10000000"
+              },
+              "customInvoicing": {
+                "code": "code"
+              },
+              "taxCodeId": "01G65Z755AFWAKHE12NY0CQ9FH"
+            },
+            "totals": {
+              "amount": "key_1",
+              "chargesTotal": "key_1",
+              "discountsTotal": "key_1",
+              "creditsTotal": "key_1",
+              "taxesInclusiveTotal": "key_1",
+              "taxesExclusiveTotal": "key_1",
+              "taxesTotal": "key_1",
+              "total": "key_1"
+            },
+            "period": {
+              "from": "2023-01-01T01:01:01.001Z",
+              "to": "2023-02-01T01:01:01.001Z"
+            },
+            "externalIds": {
+              "invoicing": "invoicing",
+              "tax": "tax"
+            },
+            "subscription": {
+              "subscription": {
+                "id": "01G65Z755AFWAKHE12NY0CQ9FH"
+              },
+              "phase": {
+                "id": "01G65Z755AFWAKHE12NY0CQ9FH"
+              },
+              "item": {
+                "id": "01G65Z755AFWAKHE12NY0CQ9FH"
+              },
+              "billingPeriod": {
+                "from": "2023-01-01T01:01:01.001Z",
+                "to": "2023-02-01T01:01:01.001Z"
+              }
+            },
+            "invoiceAt": "2023-01-01T01:01:01.001Z",
+            "type": "flat_fee",
+            "perUnitAmount": "key_1",
+            "paymentTerm": "in_advance",
+            "quantity": "key_1",
+            "rateCard": {
+              "taxConfig": {
+                "behavior": "inclusive",
+                "stripe": {
+                  "code": "txcd_10000000"
+                },
+                "customInvoicing": {
+                  "code": "code"
+                },
+                "taxCodeId": "01G65Z755AFWAKHE12NY0CQ9FH"
+              },
+              "price": {
+                "type": "flat",
+                "amount": "key_1",
+                "paymentTerm": "in_advance"
+              },
+              "quantity": "key_1",
+              "discounts": {
+                "percentage": {
+                  "percentage": 50,
+                  "correlationId": "01G65Z755AFWAKHE12NY0CQ9FH"
+                },
+                "usage": {
+                  "quantity": "key_1",
+                  "correlationId": "01G65Z755AFWAKHE12NY0CQ9FH"
+                }
+              }
+            },
+            "category": "regular"
+          }
+        ],
+        "rateCard": {
+          "featureKey": "key_1",
+          "taxConfig": {
+            "behavior": "inclusive",
+            "stripe": {
+              "code": "txcd_10000000"
+            },
+            "customInvoicing": {
+              "code": "code"
+            },
+            "taxCodeId": "01G65Z755AFWAKHE12NY0CQ9FH"
+          },
+          "price": {
+            "type": "flat",
+            "amount": "key_1",
+            "paymentTerm": "in_advance"
+          },
+          "discounts": {
+            "percentage": {
+              "percentage": 50,
+              "correlationId": "01G65Z755AFWAKHE12NY0CQ9FH"
+            },
+            "usage": {
+              "quantity": "key_1",
+              "correlationId": "01G65Z755AFWAKHE12NY0CQ9FH"
+            }
+          }
+        },
+        "quantity": "key_1",
+        "meteredQuantity": "key_1",
+        "preLinePeriodQuantity": "key_1",
+        "meteredPreLinePeriodQuantity": "key_1"
+      }
+    ],
+    "payment": {
+      "terms": {
+        "type": "due_date",
+        "detail": "detail",
+        "notes": "notes",
+        "dueAt": [
+          {
+            "dueAt": "2023-01-01T01:01:01.001Z",
+            "notes": "notes",
+            "amount": "key_1",
+            "percent": 50,
+            "currency": "USD"
+          }
+        ]
+      }
+    },
+    "validationIssues": [
+      {
+        "createdAt": "2024-01-01T01:01:01.001Z",
+        "updatedAt": "2024-01-01T01:01:01.001Z",
+        "deletedAt": "2024-01-01T01:01:01.001Z",
+        "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+        "severity": "critical",
+        "field": "field",
+        "code": "code",
+        "component": "component",
+        "message": "message",
+        "metadata": {
+          "someKey": "v"
+        }
+      }
+    ],
+    "externalIds": {
+      "invoicing": "invoicing",
+      "tax": "tax",
+      "payment": "payment"
+    }
+  }
+}

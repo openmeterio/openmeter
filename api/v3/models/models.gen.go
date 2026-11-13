@@ -10,6 +10,7 @@ import (
 
 	"github.com/oapi-codegen/nullable"
 	"github.com/oapi-codegen/runtime"
+	"github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/api/v3/filters"
 )
 
@@ -1333,6 +1334,807 @@ func (e BillingNotificationEventType) Valid() bool {
 	case BillingNotificationEventTypeInvoiceCreated:
 		return true
 	case BillingNotificationEventTypeInvoiceUpdated:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BillingNotificationEventV1AppCapabilityType.
+const (
+	BillingNotificationEventV1AppCapabilityTypeCalculateTax     BillingNotificationEventV1AppCapabilityType = "calculateTax"
+	BillingNotificationEventV1AppCapabilityTypeCollectPayments  BillingNotificationEventV1AppCapabilityType = "collectPayments"
+	BillingNotificationEventV1AppCapabilityTypeInvoiceCustomers BillingNotificationEventV1AppCapabilityType = "invoiceCustomers"
+	BillingNotificationEventV1AppCapabilityTypeReportEvents     BillingNotificationEventV1AppCapabilityType = "reportEvents"
+	BillingNotificationEventV1AppCapabilityTypeReportUsage      BillingNotificationEventV1AppCapabilityType = "reportUsage"
+)
+
+// Valid indicates whether the value is a known member of the BillingNotificationEventV1AppCapabilityType enum.
+func (e BillingNotificationEventV1AppCapabilityType) Valid() bool {
+	switch e {
+	case BillingNotificationEventV1AppCapabilityTypeCalculateTax:
+		return true
+	case BillingNotificationEventV1AppCapabilityTypeCollectPayments:
+		return true
+	case BillingNotificationEventV1AppCapabilityTypeInvoiceCustomers:
+		return true
+	case BillingNotificationEventV1AppCapabilityTypeReportEvents:
+		return true
+	case BillingNotificationEventV1AppCapabilityTypeReportUsage:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BillingNotificationEventV1AppStatus.
+const (
+	BillingNotificationEventV1AppStatusReady        BillingNotificationEventV1AppStatus = "ready"
+	BillingNotificationEventV1AppStatusUnauthorized BillingNotificationEventV1AppStatus = "unauthorized"
+)
+
+// Valid indicates whether the value is a known member of the BillingNotificationEventV1AppStatus enum.
+func (e BillingNotificationEventV1AppStatus) Valid() bool {
+	switch e {
+	case BillingNotificationEventV1AppStatusReady:
+		return true
+	case BillingNotificationEventV1AppStatusUnauthorized:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BillingNotificationEventV1AppType.
+const (
+	BillingNotificationEventV1AppTypeCustomInvoicing BillingNotificationEventV1AppType = "custom_invoicing"
+	BillingNotificationEventV1AppTypeSandbox         BillingNotificationEventV1AppType = "sandbox"
+	BillingNotificationEventV1AppTypeStripe          BillingNotificationEventV1AppType = "stripe"
+)
+
+// Valid indicates whether the value is a known member of the BillingNotificationEventV1AppType enum.
+func (e BillingNotificationEventV1AppType) Valid() bool {
+	switch e {
+	case BillingNotificationEventV1AppTypeCustomInvoicing:
+		return true
+	case BillingNotificationEventV1AppTypeSandbox:
+		return true
+	case BillingNotificationEventV1AppTypeStripe:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BillingNotificationEventV1BillingSettlementMode.
+const (
+	BillingNotificationEventV1BillingSettlementModeCreditOnly        BillingNotificationEventV1BillingSettlementMode = "credit_only"
+	BillingNotificationEventV1BillingSettlementModeCreditThenInvoice BillingNotificationEventV1BillingSettlementMode = "credit_then_invoice"
+)
+
+// Valid indicates whether the value is a known member of the BillingNotificationEventV1BillingSettlementMode enum.
+func (e BillingNotificationEventV1BillingSettlementMode) Valid() bool {
+	switch e {
+	case BillingNotificationEventV1BillingSettlementModeCreditOnly:
+		return true
+	case BillingNotificationEventV1BillingSettlementModeCreditThenInvoice:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BillingNotificationEventV1BillingWorkflowCollectionAlignmentAnchoredType.
+const (
+	BillingNotificationEventV1BillingWorkflowCollectionAlignmentAnchoredTypeAnchored BillingNotificationEventV1BillingWorkflowCollectionAlignmentAnchoredType = "anchored"
+)
+
+// Valid indicates whether the value is a known member of the BillingNotificationEventV1BillingWorkflowCollectionAlignmentAnchoredType enum.
+func (e BillingNotificationEventV1BillingWorkflowCollectionAlignmentAnchoredType) Valid() bool {
+	switch e {
+	case BillingNotificationEventV1BillingWorkflowCollectionAlignmentAnchoredTypeAnchored:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BillingNotificationEventV1BillingWorkflowCollectionAlignmentSubscriptionType.
+const (
+	BillingNotificationEventV1BillingWorkflowCollectionAlignmentSubscriptionTypeSubscription BillingNotificationEventV1BillingWorkflowCollectionAlignmentSubscriptionType = "subscription"
+)
+
+// Valid indicates whether the value is a known member of the BillingNotificationEventV1BillingWorkflowCollectionAlignmentSubscriptionType enum.
+func (e BillingNotificationEventV1BillingWorkflowCollectionAlignmentSubscriptionType) Valid() bool {
+	switch e {
+	case BillingNotificationEventV1BillingWorkflowCollectionAlignmentSubscriptionTypeSubscription:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BillingNotificationEventV1BillingWorkflowInvoicingSubscriptionEndProrationMode.
+const (
+	BillingNotificationEventV1BillingWorkflowInvoicingSubscriptionEndProrationModeBillActualPeriod BillingNotificationEventV1BillingWorkflowInvoicingSubscriptionEndProrationMode = "bill_actual_period"
+	BillingNotificationEventV1BillingWorkflowInvoicingSubscriptionEndProrationModeBillFullPeriod   BillingNotificationEventV1BillingWorkflowInvoicingSubscriptionEndProrationMode = "bill_full_period"
+)
+
+// Valid indicates whether the value is a known member of the BillingNotificationEventV1BillingWorkflowInvoicingSubscriptionEndProrationMode enum.
+func (e BillingNotificationEventV1BillingWorkflowInvoicingSubscriptionEndProrationMode) Valid() bool {
+	switch e {
+	case BillingNotificationEventV1BillingWorkflowInvoicingSubscriptionEndProrationModeBillActualPeriod:
+		return true
+	case BillingNotificationEventV1BillingWorkflowInvoicingSubscriptionEndProrationModeBillFullPeriod:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BillingNotificationEventV1CollectionMethod.
+const (
+	BillingNotificationEventV1CollectionMethodChargeAutomatically BillingNotificationEventV1CollectionMethod = "charge_automatically"
+	BillingNotificationEventV1CollectionMethodSendInvoice         BillingNotificationEventV1CollectionMethod = "send_invoice"
+)
+
+// Valid indicates whether the value is a known member of the BillingNotificationEventV1CollectionMethod enum.
+func (e BillingNotificationEventV1CollectionMethod) Valid() bool {
+	switch e {
+	case BillingNotificationEventV1CollectionMethodChargeAutomatically:
+		return true
+	case BillingNotificationEventV1CollectionMethodSendInvoice:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BillingNotificationEventV1CustomInvoicingAppType.
+const (
+	BillingNotificationEventV1CustomInvoicingAppTypeCustomInvoicing BillingNotificationEventV1CustomInvoicingAppType = "custom_invoicing"
+)
+
+// Valid indicates whether the value is a known member of the BillingNotificationEventV1CustomInvoicingAppType enum.
+func (e BillingNotificationEventV1CustomInvoicingAppType) Valid() bool {
+	switch e {
+	case BillingNotificationEventV1CustomInvoicingAppTypeCustomInvoicing:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BillingNotificationEventV1DiscountReasonMaximumSpendType.
+const (
+	BillingNotificationEventV1DiscountReasonMaximumSpendTypeMaximumSpend BillingNotificationEventV1DiscountReasonMaximumSpendType = "maximum_spend"
+)
+
+// Valid indicates whether the value is a known member of the BillingNotificationEventV1DiscountReasonMaximumSpendType enum.
+func (e BillingNotificationEventV1DiscountReasonMaximumSpendType) Valid() bool {
+	switch e {
+	case BillingNotificationEventV1DiscountReasonMaximumSpendTypeMaximumSpend:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BillingNotificationEventV1DiscountReasonRatecardPercentageType.
+const (
+	BillingNotificationEventV1DiscountReasonRatecardPercentageTypeRatecardPercentage BillingNotificationEventV1DiscountReasonRatecardPercentageType = "ratecard_percentage"
+)
+
+// Valid indicates whether the value is a known member of the BillingNotificationEventV1DiscountReasonRatecardPercentageType enum.
+func (e BillingNotificationEventV1DiscountReasonRatecardPercentageType) Valid() bool {
+	switch e {
+	case BillingNotificationEventV1DiscountReasonRatecardPercentageTypeRatecardPercentage:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BillingNotificationEventV1DiscountReasonRatecardUsageType.
+const (
+	BillingNotificationEventV1DiscountReasonRatecardUsageTypeRatecardUsage BillingNotificationEventV1DiscountReasonRatecardUsageType = "ratecard_usage"
+)
+
+// Valid indicates whether the value is a known member of the BillingNotificationEventV1DiscountReasonRatecardUsageType enum.
+func (e BillingNotificationEventV1DiscountReasonRatecardUsageType) Valid() bool {
+	switch e {
+	case BillingNotificationEventV1DiscountReasonRatecardUsageTypeRatecardUsage:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BillingNotificationEventV1DynamicPriceWithCommitmentsType.
+const (
+	BillingNotificationEventV1DynamicPriceWithCommitmentsTypeDynamic BillingNotificationEventV1DynamicPriceWithCommitmentsType = "dynamic"
+)
+
+// Valid indicates whether the value is a known member of the BillingNotificationEventV1DynamicPriceWithCommitmentsType enum.
+func (e BillingNotificationEventV1DynamicPriceWithCommitmentsType) Valid() bool {
+	switch e {
+	case BillingNotificationEventV1DynamicPriceWithCommitmentsTypeDynamic:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BillingNotificationEventV1EntitlementMeteredType.
+const (
+	BillingNotificationEventV1EntitlementMeteredTypeMetered BillingNotificationEventV1EntitlementMeteredType = "metered"
+)
+
+// Valid indicates whether the value is a known member of the BillingNotificationEventV1EntitlementMeteredType enum.
+func (e BillingNotificationEventV1EntitlementMeteredType) Valid() bool {
+	switch e {
+	case BillingNotificationEventV1EntitlementMeteredTypeMetered:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BillingNotificationEventV1FeatureLLMUnitCostType.
+const (
+	BillingNotificationEventV1FeatureLLMUnitCostTypeLlm BillingNotificationEventV1FeatureLLMUnitCostType = "llm"
+)
+
+// Valid indicates whether the value is a known member of the BillingNotificationEventV1FeatureLLMUnitCostType enum.
+func (e BillingNotificationEventV1FeatureLLMUnitCostType) Valid() bool {
+	switch e {
+	case BillingNotificationEventV1FeatureLLMUnitCostTypeLlm:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BillingNotificationEventV1FeatureManualUnitCostType.
+const (
+	BillingNotificationEventV1FeatureManualUnitCostTypeManual BillingNotificationEventV1FeatureManualUnitCostType = "manual"
+)
+
+// Valid indicates whether the value is a known member of the BillingNotificationEventV1FeatureManualUnitCostType enum.
+func (e BillingNotificationEventV1FeatureManualUnitCostType) Valid() bool {
+	switch e {
+	case BillingNotificationEventV1FeatureManualUnitCostTypeManual:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BillingNotificationEventV1FlatPriceType.
+const (
+	BillingNotificationEventV1FlatPriceTypeFlat BillingNotificationEventV1FlatPriceType = "flat"
+)
+
+// Valid indicates whether the value is a known member of the BillingNotificationEventV1FlatPriceType enum.
+func (e BillingNotificationEventV1FlatPriceType) Valid() bool {
+	switch e {
+	case BillingNotificationEventV1FlatPriceTypeFlat:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BillingNotificationEventV1FlatPriceWithPaymentTermType.
+const (
+	BillingNotificationEventV1FlatPriceWithPaymentTermTypeFlat BillingNotificationEventV1FlatPriceWithPaymentTermType = "flat"
+)
+
+// Valid indicates whether the value is a known member of the BillingNotificationEventV1FlatPriceWithPaymentTermType enum.
+func (e BillingNotificationEventV1FlatPriceWithPaymentTermType) Valid() bool {
+	switch e {
+	case BillingNotificationEventV1FlatPriceWithPaymentTermTypeFlat:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BillingNotificationEventV1InstallMethod.
+const (
+	BillingNotificationEventV1InstallMethodNoCredentialsRequired BillingNotificationEventV1InstallMethod = "no_credentials_required"
+	BillingNotificationEventV1InstallMethodWithApiKey            BillingNotificationEventV1InstallMethod = "with_api_key"
+	BillingNotificationEventV1InstallMethodWithOauth2            BillingNotificationEventV1InstallMethod = "with_oauth2"
+)
+
+// Valid indicates whether the value is a known member of the BillingNotificationEventV1InstallMethod enum.
+func (e BillingNotificationEventV1InstallMethod) Valid() bool {
+	switch e {
+	case BillingNotificationEventV1InstallMethodNoCredentialsRequired:
+		return true
+	case BillingNotificationEventV1InstallMethodWithApiKey:
+		return true
+	case BillingNotificationEventV1InstallMethodWithOauth2:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BillingNotificationEventV1InvoiceDetailedLineType.
+const (
+	BillingNotificationEventV1InvoiceDetailedLineTypeFlatFee BillingNotificationEventV1InvoiceDetailedLineType = "flat_fee"
+)
+
+// Valid indicates whether the value is a known member of the BillingNotificationEventV1InvoiceDetailedLineType enum.
+func (e BillingNotificationEventV1InvoiceDetailedLineType) Valid() bool {
+	switch e {
+	case BillingNotificationEventV1InvoiceDetailedLineTypeFlatFee:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BillingNotificationEventV1InvoiceDetailedLineCostCategory.
+const (
+	BillingNotificationEventV1InvoiceDetailedLineCostCategoryCommitment BillingNotificationEventV1InvoiceDetailedLineCostCategory = "commitment"
+	BillingNotificationEventV1InvoiceDetailedLineCostCategoryRegular    BillingNotificationEventV1InvoiceDetailedLineCostCategory = "regular"
+)
+
+// Valid indicates whether the value is a known member of the BillingNotificationEventV1InvoiceDetailedLineCostCategory enum.
+func (e BillingNotificationEventV1InvoiceDetailedLineCostCategory) Valid() bool {
+	switch e {
+	case BillingNotificationEventV1InvoiceDetailedLineCostCategoryCommitment:
+		return true
+	case BillingNotificationEventV1InvoiceDetailedLineCostCategoryRegular:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BillingNotificationEventV1InvoiceDocumentRefType.
+const (
+	BillingNotificationEventV1InvoiceDocumentRefTypeCreditNoteOriginalInvoice BillingNotificationEventV1InvoiceDocumentRefType = "credit_note_original_invoice"
+)
+
+// Valid indicates whether the value is a known member of the BillingNotificationEventV1InvoiceDocumentRefType enum.
+func (e BillingNotificationEventV1InvoiceDocumentRefType) Valid() bool {
+	switch e {
+	case BillingNotificationEventV1InvoiceDocumentRefTypeCreditNoteOriginalInvoice:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BillingNotificationEventV1InvoiceLineType.
+const (
+	BillingNotificationEventV1InvoiceLineTypeUsageBased BillingNotificationEventV1InvoiceLineType = "usage_based"
+)
+
+// Valid indicates whether the value is a known member of the BillingNotificationEventV1InvoiceLineType enum.
+func (e BillingNotificationEventV1InvoiceLineType) Valid() bool {
+	switch e {
+	case BillingNotificationEventV1InvoiceLineTypeUsageBased:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BillingNotificationEventV1InvoiceLineManagedBy.
+const (
+	BillingNotificationEventV1InvoiceLineManagedByManual       BillingNotificationEventV1InvoiceLineManagedBy = "manual"
+	BillingNotificationEventV1InvoiceLineManagedBySubscription BillingNotificationEventV1InvoiceLineManagedBy = "subscription"
+	BillingNotificationEventV1InvoiceLineManagedBySystem       BillingNotificationEventV1InvoiceLineManagedBy = "system"
+)
+
+// Valid indicates whether the value is a known member of the BillingNotificationEventV1InvoiceLineManagedBy enum.
+func (e BillingNotificationEventV1InvoiceLineManagedBy) Valid() bool {
+	switch e {
+	case BillingNotificationEventV1InvoiceLineManagedByManual:
+		return true
+	case BillingNotificationEventV1InvoiceLineManagedBySubscription:
+		return true
+	case BillingNotificationEventV1InvoiceLineManagedBySystem:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BillingNotificationEventV1InvoiceLineStatus.
+const (
+	BillingNotificationEventV1InvoiceLineStatusDetailed BillingNotificationEventV1InvoiceLineStatus = "detailed"
+	BillingNotificationEventV1InvoiceLineStatusSplit    BillingNotificationEventV1InvoiceLineStatus = "split"
+	BillingNotificationEventV1InvoiceLineStatusValid    BillingNotificationEventV1InvoiceLineStatus = "valid"
+)
+
+// Valid indicates whether the value is a known member of the BillingNotificationEventV1InvoiceLineStatus enum.
+func (e BillingNotificationEventV1InvoiceLineStatus) Valid() bool {
+	switch e {
+	case BillingNotificationEventV1InvoiceLineStatusDetailed:
+		return true
+	case BillingNotificationEventV1InvoiceLineStatusSplit:
+		return true
+	case BillingNotificationEventV1InvoiceLineStatusValid:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BillingNotificationEventV1InvoiceLineTaxBehavior.
+const (
+	BillingNotificationEventV1InvoiceLineTaxBehaviorExclusive BillingNotificationEventV1InvoiceLineTaxBehavior = "exclusive"
+	BillingNotificationEventV1InvoiceLineTaxBehaviorInclusive BillingNotificationEventV1InvoiceLineTaxBehavior = "inclusive"
+)
+
+// Valid indicates whether the value is a known member of the BillingNotificationEventV1InvoiceLineTaxBehavior enum.
+func (e BillingNotificationEventV1InvoiceLineTaxBehavior) Valid() bool {
+	switch e {
+	case BillingNotificationEventV1InvoiceLineTaxBehaviorExclusive:
+		return true
+	case BillingNotificationEventV1InvoiceLineTaxBehaviorInclusive:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BillingNotificationEventV1InvoiceStatus.
+const (
+	BillingNotificationEventV1InvoiceStatusDraft             BillingNotificationEventV1InvoiceStatus = "draft"
+	BillingNotificationEventV1InvoiceStatusGathering         BillingNotificationEventV1InvoiceStatus = "gathering"
+	BillingNotificationEventV1InvoiceStatusIssued            BillingNotificationEventV1InvoiceStatus = "issued"
+	BillingNotificationEventV1InvoiceStatusIssuing           BillingNotificationEventV1InvoiceStatus = "issuing"
+	BillingNotificationEventV1InvoiceStatusOverdue           BillingNotificationEventV1InvoiceStatus = "overdue"
+	BillingNotificationEventV1InvoiceStatusPaid              BillingNotificationEventV1InvoiceStatus = "paid"
+	BillingNotificationEventV1InvoiceStatusPaymentProcessing BillingNotificationEventV1InvoiceStatus = "payment_processing"
+	BillingNotificationEventV1InvoiceStatusUncollectible     BillingNotificationEventV1InvoiceStatus = "uncollectible"
+	BillingNotificationEventV1InvoiceStatusVoided            BillingNotificationEventV1InvoiceStatus = "voided"
+)
+
+// Valid indicates whether the value is a known member of the BillingNotificationEventV1InvoiceStatus enum.
+func (e BillingNotificationEventV1InvoiceStatus) Valid() bool {
+	switch e {
+	case BillingNotificationEventV1InvoiceStatusDraft:
+		return true
+	case BillingNotificationEventV1InvoiceStatusGathering:
+		return true
+	case BillingNotificationEventV1InvoiceStatusIssued:
+		return true
+	case BillingNotificationEventV1InvoiceStatusIssuing:
+		return true
+	case BillingNotificationEventV1InvoiceStatusOverdue:
+		return true
+	case BillingNotificationEventV1InvoiceStatusPaid:
+		return true
+	case BillingNotificationEventV1InvoiceStatusPaymentProcessing:
+		return true
+	case BillingNotificationEventV1InvoiceStatusUncollectible:
+		return true
+	case BillingNotificationEventV1InvoiceStatusVoided:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BillingNotificationEventV1InvoiceType.
+const (
+	BillingNotificationEventV1InvoiceTypeCreditNote BillingNotificationEventV1InvoiceType = "credit_note"
+	BillingNotificationEventV1InvoiceTypeStandard   BillingNotificationEventV1InvoiceType = "standard"
+)
+
+// Valid indicates whether the value is a known member of the BillingNotificationEventV1InvoiceType enum.
+func (e BillingNotificationEventV1InvoiceType) Valid() bool {
+	switch e {
+	case BillingNotificationEventV1InvoiceTypeCreditNote:
+		return true
+	case BillingNotificationEventV1InvoiceTypeStandard:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BillingNotificationEventV1PackagePriceWithCommitmentsType.
+const (
+	BillingNotificationEventV1PackagePriceWithCommitmentsTypePackage BillingNotificationEventV1PackagePriceWithCommitmentsType = "package"
+)
+
+// Valid indicates whether the value is a known member of the BillingNotificationEventV1PackagePriceWithCommitmentsType enum.
+func (e BillingNotificationEventV1PackagePriceWithCommitmentsType) Valid() bool {
+	switch e {
+	case BillingNotificationEventV1PackagePriceWithCommitmentsTypePackage:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BillingNotificationEventV1PaymentTermDueDateType.
+const (
+	BillingNotificationEventV1PaymentTermDueDateTypeDueDate BillingNotificationEventV1PaymentTermDueDateType = "due_date"
+)
+
+// Valid indicates whether the value is a known member of the BillingNotificationEventV1PaymentTermDueDateType enum.
+func (e BillingNotificationEventV1PaymentTermDueDateType) Valid() bool {
+	switch e {
+	case BillingNotificationEventV1PaymentTermDueDateTypeDueDate:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BillingNotificationEventV1PaymentTermInstantType.
+const (
+	BillingNotificationEventV1PaymentTermInstantTypeInstant BillingNotificationEventV1PaymentTermInstantType = "instant"
+)
+
+// Valid indicates whether the value is a known member of the BillingNotificationEventV1PaymentTermInstantType enum.
+func (e BillingNotificationEventV1PaymentTermInstantType) Valid() bool {
+	switch e {
+	case BillingNotificationEventV1PaymentTermInstantTypeInstant:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BillingNotificationEventV1PricePaymentTerm.
+const (
+	BillingNotificationEventV1PricePaymentTermInAdvance BillingNotificationEventV1PricePaymentTerm = "in_advance"
+	BillingNotificationEventV1PricePaymentTermInArrears BillingNotificationEventV1PricePaymentTerm = "in_arrears"
+)
+
+// Valid indicates whether the value is a known member of the BillingNotificationEventV1PricePaymentTerm enum.
+func (e BillingNotificationEventV1PricePaymentTerm) Valid() bool {
+	switch e {
+	case BillingNotificationEventV1PricePaymentTermInAdvance:
+		return true
+	case BillingNotificationEventV1PricePaymentTermInArrears:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BillingNotificationEventV1ProRatingMode.
+const (
+	BillingNotificationEventV1ProRatingModeProratePrices BillingNotificationEventV1ProRatingMode = "prorate_prices"
+)
+
+// Valid indicates whether the value is a known member of the BillingNotificationEventV1ProRatingMode enum.
+func (e BillingNotificationEventV1ProRatingMode) Valid() bool {
+	switch e {
+	case BillingNotificationEventV1ProRatingModeProratePrices:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BillingNotificationEventV1RecurringPeriodIntervalEnum.
+const (
+	BillingNotificationEventV1RecurringPeriodIntervalEnumDAY   BillingNotificationEventV1RecurringPeriodIntervalEnum = "DAY"
+	BillingNotificationEventV1RecurringPeriodIntervalEnumMONTH BillingNotificationEventV1RecurringPeriodIntervalEnum = "MONTH"
+	BillingNotificationEventV1RecurringPeriodIntervalEnumWEEK  BillingNotificationEventV1RecurringPeriodIntervalEnum = "WEEK"
+	BillingNotificationEventV1RecurringPeriodIntervalEnumYEAR  BillingNotificationEventV1RecurringPeriodIntervalEnum = "YEAR"
+)
+
+// Valid indicates whether the value is a known member of the BillingNotificationEventV1RecurringPeriodIntervalEnum enum.
+func (e BillingNotificationEventV1RecurringPeriodIntervalEnum) Valid() bool {
+	switch e {
+	case BillingNotificationEventV1RecurringPeriodIntervalEnumDAY:
+		return true
+	case BillingNotificationEventV1RecurringPeriodIntervalEnumMONTH:
+		return true
+	case BillingNotificationEventV1RecurringPeriodIntervalEnumWEEK:
+		return true
+	case BillingNotificationEventV1RecurringPeriodIntervalEnumYEAR:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BillingNotificationEventV1RuleBalanceThresholdValueType.
+const (
+	BillingNotificationEventV1RuleBalanceThresholdValueTypeBalanceValue    BillingNotificationEventV1RuleBalanceThresholdValueType = "balance_value"
+	BillingNotificationEventV1RuleBalanceThresholdValueTypeNumber          BillingNotificationEventV1RuleBalanceThresholdValueType = "NUMBER"
+	BillingNotificationEventV1RuleBalanceThresholdValueTypePercent         BillingNotificationEventV1RuleBalanceThresholdValueType = "PERCENT"
+	BillingNotificationEventV1RuleBalanceThresholdValueTypeUsagePercentage BillingNotificationEventV1RuleBalanceThresholdValueType = "usage_percentage"
+	BillingNotificationEventV1RuleBalanceThresholdValueTypeUsageValue      BillingNotificationEventV1RuleBalanceThresholdValueType = "usage_value"
+)
+
+// Valid indicates whether the value is a known member of the BillingNotificationEventV1RuleBalanceThresholdValueType enum.
+func (e BillingNotificationEventV1RuleBalanceThresholdValueType) Valid() bool {
+	switch e {
+	case BillingNotificationEventV1RuleBalanceThresholdValueTypeBalanceValue:
+		return true
+	case BillingNotificationEventV1RuleBalanceThresholdValueTypeNumber:
+		return true
+	case BillingNotificationEventV1RuleBalanceThresholdValueTypePercent:
+		return true
+	case BillingNotificationEventV1RuleBalanceThresholdValueTypeUsagePercentage:
+		return true
+	case BillingNotificationEventV1RuleBalanceThresholdValueTypeUsageValue:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BillingNotificationEventV1SandboxAppType.
+const (
+	BillingNotificationEventV1SandboxAppTypeSandbox BillingNotificationEventV1SandboxAppType = "sandbox"
+)
+
+// Valid indicates whether the value is a known member of the BillingNotificationEventV1SandboxAppType enum.
+func (e BillingNotificationEventV1SandboxAppType) Valid() bool {
+	switch e {
+	case BillingNotificationEventV1SandboxAppTypeSandbox:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BillingNotificationEventV1StripeAppType.
+const (
+	BillingNotificationEventV1StripeAppTypeStripe BillingNotificationEventV1StripeAppType = "stripe"
+)
+
+// Valid indicates whether the value is a known member of the BillingNotificationEventV1StripeAppType enum.
+func (e BillingNotificationEventV1StripeAppType) Valid() bool {
+	switch e {
+	case BillingNotificationEventV1StripeAppTypeStripe:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BillingNotificationEventV1SubscriptionCostBasisMode.
+const (
+	BillingNotificationEventV1SubscriptionCostBasisModeDynamic BillingNotificationEventV1SubscriptionCostBasisMode = "dynamic"
+	BillingNotificationEventV1SubscriptionCostBasisModePinned  BillingNotificationEventV1SubscriptionCostBasisMode = "pinned"
+)
+
+// Valid indicates whether the value is a known member of the BillingNotificationEventV1SubscriptionCostBasisMode enum.
+func (e BillingNotificationEventV1SubscriptionCostBasisMode) Valid() bool {
+	switch e {
+	case BillingNotificationEventV1SubscriptionCostBasisModeDynamic:
+		return true
+	case BillingNotificationEventV1SubscriptionCostBasisModePinned:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BillingNotificationEventV1SubscriptionStatus.
+const (
+	BillingNotificationEventV1SubscriptionStatusActive    BillingNotificationEventV1SubscriptionStatus = "active"
+	BillingNotificationEventV1SubscriptionStatusCanceled  BillingNotificationEventV1SubscriptionStatus = "canceled"
+	BillingNotificationEventV1SubscriptionStatusInactive  BillingNotificationEventV1SubscriptionStatus = "inactive"
+	BillingNotificationEventV1SubscriptionStatusScheduled BillingNotificationEventV1SubscriptionStatus = "scheduled"
+)
+
+// Valid indicates whether the value is a known member of the BillingNotificationEventV1SubscriptionStatus enum.
+func (e BillingNotificationEventV1SubscriptionStatus) Valid() bool {
+	switch e {
+	case BillingNotificationEventV1SubscriptionStatusActive:
+		return true
+	case BillingNotificationEventV1SubscriptionStatusCanceled:
+		return true
+	case BillingNotificationEventV1SubscriptionStatusInactive:
+		return true
+	case BillingNotificationEventV1SubscriptionStatusScheduled:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BillingNotificationEventV1TaxBehavior.
+const (
+	BillingNotificationEventV1TaxBehaviorExclusive BillingNotificationEventV1TaxBehavior = "exclusive"
+	BillingNotificationEventV1TaxBehaviorInclusive BillingNotificationEventV1TaxBehavior = "inclusive"
+)
+
+// Valid indicates whether the value is a known member of the BillingNotificationEventV1TaxBehavior enum.
+func (e BillingNotificationEventV1TaxBehavior) Valid() bool {
+	switch e {
+	case BillingNotificationEventV1TaxBehaviorExclusive:
+		return true
+	case BillingNotificationEventV1TaxBehaviorInclusive:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BillingNotificationEventV1TieredPriceMode.
+const (
+	BillingNotificationEventV1TieredPriceModeGraduated BillingNotificationEventV1TieredPriceMode = "graduated"
+	BillingNotificationEventV1TieredPriceModeVolume    BillingNotificationEventV1TieredPriceMode = "volume"
+)
+
+// Valid indicates whether the value is a known member of the BillingNotificationEventV1TieredPriceMode enum.
+func (e BillingNotificationEventV1TieredPriceMode) Valid() bool {
+	switch e {
+	case BillingNotificationEventV1TieredPriceModeGraduated:
+		return true
+	case BillingNotificationEventV1TieredPriceModeVolume:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BillingNotificationEventV1TieredPriceWithCommitmentsType.
+const (
+	BillingNotificationEventV1TieredPriceWithCommitmentsTypeTiered BillingNotificationEventV1TieredPriceWithCommitmentsType = "tiered"
+)
+
+// Valid indicates whether the value is a known member of the BillingNotificationEventV1TieredPriceWithCommitmentsType enum.
+func (e BillingNotificationEventV1TieredPriceWithCommitmentsType) Valid() bool {
+	switch e {
+	case BillingNotificationEventV1TieredPriceWithCommitmentsTypeTiered:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BillingNotificationEventV1UnitPriceType.
+const (
+	BillingNotificationEventV1UnitPriceTypeUnit BillingNotificationEventV1UnitPriceType = "unit"
+)
+
+// Valid indicates whether the value is a known member of the BillingNotificationEventV1UnitPriceType enum.
+func (e BillingNotificationEventV1UnitPriceType) Valid() bool {
+	switch e {
+	case BillingNotificationEventV1UnitPriceTypeUnit:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BillingNotificationEventV1UnitPriceWithCommitmentsType.
+const (
+	BillingNotificationEventV1UnitPriceWithCommitmentsTypeUnit BillingNotificationEventV1UnitPriceWithCommitmentsType = "unit"
+)
+
+// Valid indicates whether the value is a known member of the BillingNotificationEventV1UnitPriceWithCommitmentsType enum.
+func (e BillingNotificationEventV1UnitPriceWithCommitmentsType) Valid() bool {
+	switch e {
+	case BillingNotificationEventV1UnitPriceWithCommitmentsTypeUnit:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BillingNotificationEventV1ValidationIssueSeverity.
+const (
+	BillingNotificationEventV1ValidationIssueSeverityCritical BillingNotificationEventV1ValidationIssueSeverity = "critical"
+	BillingNotificationEventV1ValidationIssueSeverityWarning  BillingNotificationEventV1ValidationIssueSeverity = "warning"
+)
+
+// Valid indicates whether the value is a known member of the BillingNotificationEventV1ValidationIssueSeverity enum.
+func (e BillingNotificationEventV1ValidationIssueSeverity) Valid() bool {
+	switch e {
+	case BillingNotificationEventV1ValidationIssueSeverityCritical:
+		return true
+	case BillingNotificationEventV1ValidationIssueSeverityWarning:
 		return true
 	default:
 		return false
@@ -6115,31 +6917,10 @@ type BillingNotificationEvent struct {
 	Type BillingNotificationEventType `json:"type"`
 }
 
-// BillingNotificationEventBalanceThresholdData The entities and threshold a balance threshold event refers to.
-type BillingNotificationEventBalanceThresholdData struct {
-	// CustomerId The identifier of the customer the subject belongs to, if any.
-	CustomerId *ULID `json:"customer_id,omitempty"`
-
-	// EntitlementId The identifier of the entitlement that triggered the event.
-	EntitlementId ULID `json:"entitlement_id"`
-
-	// Feature The feature the entitlement grants access to.
-	Feature BillingNotificationEventFeatureReference `json:"feature"`
-
-	// SubjectKey The key of the subject the entitlement belongs to.
-	SubjectKey string `json:"subject_key"`
-
-	// Threshold The threshold the balance crossed.
-	Threshold BillingNotificationBalanceThreshold `json:"threshold"`
-
-	// Value The entitlement value at the time the event was generated.
-	Value BillingEntitlementValueResult `json:"value"`
-}
-
 // BillingNotificationEventBalanceThresholdPayload A balance threshold notification event payload.
 type BillingNotificationEventBalanceThresholdPayload struct {
 	// Data The entities and threshold the event refers to.
-	Data BillingNotificationEventBalanceThresholdData `json:"data"`
+	Data BillingNotificationEventV1BalanceThresholdPayloadData `json:"data"`
 
 	// Id The identifier of the event the payload belongs to.
 	Id ULID `json:"id"`
@@ -6209,38 +6990,10 @@ type BillingNotificationEventDeliveryStatus struct {
 	UpdatedAt DateTime `json:"updated_at"`
 }
 
-// BillingNotificationEventEntitlementData The entitlement, feature, and subject an entitlement notification event refers
-// to.
-type BillingNotificationEventEntitlementData struct {
-	// CustomerId The identifier of the customer the subject belongs to, if any.
-	CustomerId *ULID `json:"customer_id,omitempty"`
-
-	// EntitlementId The identifier of the entitlement that triggered the event.
-	EntitlementId ULID `json:"entitlement_id"`
-
-	// Feature The feature the entitlement grants access to.
-	Feature BillingNotificationEventFeatureReference `json:"feature"`
-
-	// SubjectKey The key of the subject the entitlement belongs to.
-	SubjectKey string `json:"subject_key"`
-
-	// Value The entitlement value at the time the event was generated.
-	Value BillingEntitlementValueResult `json:"value"`
-}
-
-// BillingNotificationEventFeatureReference A reference to the feature of an entitlement notification event.
-type BillingNotificationEventFeatureReference struct {
-	// Id The unique identifier of the feature.
-	Id ULID `json:"id"`
-
-	// Key The immutable key of the feature.
-	Key string `json:"key"`
-}
-
 // BillingNotificationEventInvoiceCreatedPayload An invoice created notification event payload.
 type BillingNotificationEventInvoiceCreatedPayload struct {
 	// Data The invoice the event refers to.
-	Data BillingNotificationEventInvoiceData `json:"data"`
+	Data BillingNotificationEventV1Invoice `json:"data"`
 
 	// Id The identifier of the event the payload belongs to.
 	Id ULID `json:"id"`
@@ -6255,37 +7008,10 @@ type BillingNotificationEventInvoiceCreatedPayload struct {
 // BillingNotificationEventInvoiceCreatedPayloadType The type of the event.
 type BillingNotificationEventInvoiceCreatedPayloadType string
 
-// BillingNotificationEventInvoiceData The invoice an invoice notification event refers to.
-type BillingNotificationEventInvoiceData struct {
-	// Currency The currency the invoice is denominated in.
-	Currency CurrencyCode `json:"currency"`
-
-	// CustomerId The identifier of the customer the invoice was issued to.
-	CustomerId *ULID `json:"customer_id,omitempty"`
-
-	// Invoice The invoice the event was generated for.
-	Invoice BillingNotificationEventInvoiceReference `json:"invoice"`
-
-	// Status The status of the invoice at the time the event was generated.
-	Status string `json:"status"`
-
-	// Total The invoice total, including taxes, at the time the event was generated.
-	Total Numeric `json:"total"`
-}
-
-// BillingNotificationEventInvoiceReference A reference to the invoice of an invoice notification event.
-type BillingNotificationEventInvoiceReference struct {
-	// Id The unique identifier of the invoice.
-	Id ULID `json:"id"`
-
-	// Number The human-readable invoice number.
-	Number string `json:"number"`
-}
-
 // BillingNotificationEventInvoiceUpdatedPayload An invoice updated notification event payload.
 type BillingNotificationEventInvoiceUpdatedPayload struct {
 	// Data The invoice the event refers to.
-	Data BillingNotificationEventInvoiceData `json:"data"`
+	Data BillingNotificationEventV1Invoice `json:"data"`
 
 	// Id The identifier of the event the payload belongs to.
 	Id ULID `json:"id"`
@@ -6308,7 +7034,7 @@ type BillingNotificationEventPayload struct {
 // BillingNotificationEventResetPayload An entitlement reset notification event payload.
 type BillingNotificationEventResetPayload struct {
 	// Data The entities the event refers to.
-	Data BillingNotificationEventEntitlementData `json:"data"`
+	Data BillingNotificationEventV1EntitlementValuePayloadBase `json:"data"`
 
 	// Id The identifier of the event the payload belongs to.
 	Id ULID `json:"id"`
@@ -6326,6 +7052,2191 @@ type BillingNotificationEventResetPayloadType string
 // BillingNotificationEventType The type of a notification event. It determines which payload variant the event
 // carries.
 type BillingNotificationEventType string
+
+// BillingNotificationEventV1Address Address
+type BillingNotificationEventV1Address struct {
+	// City City.
+	City *string `json:"city,omitempty"`
+
+	// Country Country code in [ISO 3166-1](https://www.iso.org/iso-3166-country-codes.html)
+	// alpha-2 format.
+	Country *BillingNotificationEventV1CountryCode `json:"country,omitempty"`
+
+	// Line1 First line of the address.
+	Line1 *string `json:"line1,omitempty"`
+
+	// Line2 Second line of the address.
+	Line2 *string `json:"line2,omitempty"`
+
+	// PhoneNumber Phone number.
+	PhoneNumber *string `json:"phone_number,omitempty"`
+
+	// PostalCode Postal code.
+	PostalCode *string `json:"postal_code,omitempty"`
+
+	// State State or province.
+	State *string `json:"state,omitempty"`
+}
+
+// BillingNotificationEventV1Alignment Alignment configuration for a plan or subscription.
+type BillingNotificationEventV1Alignment struct {
+	// BillablesMustAlign Whether all Billable items and RateCards must align. Alignment means the Price's
+	// BillingCadence must align for both duration and anchor time.
+	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
+	BillablesMustAlign *bool `json:"billables_must_align,omitempty"`
+}
+
+// BillingNotificationEventV1Annotations Set of key-value pairs managed by the system. Cannot be modified by user.
+type BillingNotificationEventV1Annotations map[string]interface{}
+
+// BillingNotificationEventV1App App. One of: stripe
+type BillingNotificationEventV1App struct {
+	union json.RawMessage
+}
+
+// BillingNotificationEventV1AppCapability App capability.
+//
+// Capabilities only exist in config so they don't extend the Resource model.
+type BillingNotificationEventV1AppCapability struct {
+	// Description The capability description.
+	Description string `json:"description"`
+
+	// Key Key
+	Key string `json:"key"`
+
+	// Name The capability name.
+	Name string `json:"name"`
+
+	// Type The capability type.
+	Type BillingNotificationEventV1AppCapabilityType `json:"type"`
+}
+
+// BillingNotificationEventV1AppCapabilityType App capability type.
+type BillingNotificationEventV1AppCapabilityType string
+
+// BillingNotificationEventV1AppStatus App installed status.
+type BillingNotificationEventV1AppStatus string
+
+// BillingNotificationEventV1AppType Type of the app.
+type BillingNotificationEventV1AppType string
+
+// BillingNotificationEventV1BalanceThresholdPayloadData Data of the payload for notification event with `entitlements.balance.threshold`
+// type.
+type BillingNotificationEventV1BalanceThresholdPayloadData struct {
+	// Customer Customer.
+	Customer *BillingNotificationEventV1Customer `json:"customer,omitempty"`
+
+	// Entitlement Entitlement.
+	Entitlement BillingNotificationEventV1EntitlementMetered `json:"entitlement"`
+
+	// Feature Feature.
+	Feature BillingNotificationEventV1Feature `json:"feature"`
+
+	// Subject Subject.
+	Subject BillingNotificationEventV1Subject `json:"subject"`
+
+	// Threshold Threshold.
+	Threshold BillingNotificationEventV1RuleBalanceThresholdValue `json:"threshold"`
+
+	// Value Entitlement Value.
+	Value BillingNotificationEventV1EntitlementValue `json:"value"`
+}
+
+// BillingNotificationEventV1BillingDiscountPercentage A percentage discount.
+type BillingNotificationEventV1BillingDiscountPercentage struct {
+	// CorrelationId Correlation ID for the discount.
+	//
+	// This is used to link discounts across different invoices (progressive billing
+	// use case).
+	//
+	// If not provided, the invoicing engine will auto-generate one. When editing an
+	// invoice line, please make sure to keep the same correlation ID of the discount
+	// or in progressive billing setups the discount amounts might be incorrect.
+	CorrelationId *string `json:"correlation_id,omitempty"`
+
+	// Percentage The percentage of the discount.
+	Percentage BillingNotificationEventV1Percentage `json:"percentage"`
+}
+
+// BillingNotificationEventV1BillingDiscountReason The reason for the discount.
+type BillingNotificationEventV1BillingDiscountReason struct {
+	union json.RawMessage
+}
+
+// BillingNotificationEventV1BillingDiscountUsage A usage discount.
+type BillingNotificationEventV1BillingDiscountUsage struct {
+	// CorrelationId Correlation ID for the discount.
+	//
+	// This is used to link discounts across different invoices (progressive billing
+	// use case).
+	//
+	// If not provided, the invoicing engine will auto-generate one. When editing an
+	// invoice line, please make sure to keep the same correlation ID of the discount
+	// or in progressive billing setups the discount amounts might be incorrect.
+	CorrelationId *string `json:"correlation_id,omitempty"`
+
+	// Quantity The quantity of the usage discount.
+	//
+	// Must be positive.
+	Quantity BillingNotificationEventV1Numeric `json:"quantity"`
+}
+
+// BillingNotificationEventV1BillingDiscounts A discount by type.
+type BillingNotificationEventV1BillingDiscounts struct {
+	// Percentage The percentage discount.
+	Percentage *BillingNotificationEventV1BillingDiscountPercentage `json:"percentage,omitempty"`
+
+	// Usage The usage discount.
+	Usage *BillingNotificationEventV1BillingDiscountUsage `json:"usage,omitempty"`
+}
+
+// BillingNotificationEventV1BillingInvoiceCustomerExtendedDetails BillingInvoiceCustomerExtendedDetails is a collection of fields that are used to
+// extend the billing party details for invoices.
+//
+// These fields contain the OpenMeter specific details for the customer, that are
+// not strictly required for the invoice itself.
+type BillingNotificationEventV1BillingInvoiceCustomerExtendedDetails struct {
+	// Addresses Regular post addresses for where information should be sent if needed.
+	Addresses *[]BillingNotificationEventV1Address `json:"addresses,omitempty"`
+
+	// Id Unique identifier for the party (if available)
+	Id *string `json:"id,omitempty"`
+
+	// Key An optional unique key of the party (if available)
+	Key *string `json:"key,omitempty"`
+
+	// Name Legal name or representation of the organization.
+	Name *string `json:"name,omitempty"`
+
+	// TaxId The entity's legal ID code used for tax purposes. They may have other numbers,
+	// but we're only interested in those valid for tax purposes.
+	TaxId *BillingNotificationEventV1BillingPartyTaxIdentity `json:"tax_id,omitempty"`
+
+	// UsageAttribution Mapping to attribute metered usage to the customer
+	UsageAttribution BillingNotificationEventV1CustomerUsageAttribution `json:"usage_attribution"`
+}
+
+// BillingNotificationEventV1BillingParty Party represents a person or business entity.
+type BillingNotificationEventV1BillingParty struct {
+	// Addresses Regular post addresses for where information should be sent if needed.
+	Addresses *[]BillingNotificationEventV1Address `json:"addresses,omitempty"`
+
+	// Id Unique identifier for the party (if available)
+	Id *string `json:"id,omitempty"`
+
+	// Key An optional unique key of the party (if available)
+	Key *string `json:"key,omitempty"`
+
+	// Name Legal name or representation of the organization.
+	Name *string `json:"name,omitempty"`
+
+	// TaxId The entity's legal ID code used for tax purposes. They may have other numbers,
+	// but we're only interested in those valid for tax purposes.
+	TaxId *BillingNotificationEventV1BillingPartyTaxIdentity `json:"tax_id,omitempty"`
+}
+
+// BillingNotificationEventV1BillingPartyTaxIdentity Identity stores the details required to identify an entity for tax purposes in a
+// specific country.
+type BillingNotificationEventV1BillingPartyTaxIdentity struct {
+	// Code Normalized tax code shown on the original identity document.
+	Code *BillingNotificationEventV1BillingTaxIdentificationCode `json:"code,omitempty"`
+}
+
+// BillingNotificationEventV1BillingProfileApps BillingProfileApps represents the applications used by a billing profile
+type BillingNotificationEventV1BillingProfileApps struct {
+	// Invoicing The invoicing app used for this workflow
+	Invoicing BillingNotificationEventV1App `json:"invoicing"`
+
+	// Payment The payment app used for this workflow
+	Payment BillingNotificationEventV1App `json:"payment"`
+
+	// Tax The tax app used for this workflow
+	Tax BillingNotificationEventV1App `json:"tax"`
+}
+
+// BillingNotificationEventV1BillingSettlementMode The settlement mode of a plan. It determines how the billing system generates
+// invoices and credits for the subscriptions using this plan.
+//
+// - credit_then_invoice: credits from the previous billing period are applied
+// first, then the remaining balance is invoiced. This is the default and most
+// common settlement mode.
+// - credit_only: only credits from the previous billing period are generated and
+// applied. No invoices are generated for the subscription.
+type BillingNotificationEventV1BillingSettlementMode string
+
+// BillingNotificationEventV1BillingTaxIdentificationCode TaxIdentificationCode is a normalized tax code shown on the original identity
+// document.
+type BillingNotificationEventV1BillingTaxIdentificationCode = string
+
+// BillingNotificationEventV1BillingWorkflow BillingWorkflow represents the settings for a billing workflow.
+type BillingNotificationEventV1BillingWorkflow struct {
+	// Collection The collection settings for this workflow
+	Collection *BillingNotificationEventV1BillingWorkflowCollectionSettings `json:"collection,omitempty"`
+
+	// Invoicing The invoicing settings for this workflow
+	Invoicing *BillingNotificationEventV1BillingWorkflowInvoicingSettings `json:"invoicing,omitempty"`
+
+	// Payment The payment settings for this workflow
+	Payment *BillingNotificationEventV1BillingWorkflowPaymentSettings `json:"payment,omitempty"`
+
+	// Tax The tax settings for this workflow
+	Tax *BillingNotificationEventV1BillingWorkflowTaxSettings `json:"tax,omitempty"`
+}
+
+// BillingNotificationEventV1BillingWorkflowCollectionAlignment The alignment for collecting the pending line items into an invoice.
+//
+// Defaults to subscription, which means that we are to create a new invoice every
+// time the a subscription period starts (for in advance items) or ends (for in
+// arrears items).
+type BillingNotificationEventV1BillingWorkflowCollectionAlignment struct {
+	union json.RawMessage
+}
+
+// BillingNotificationEventV1BillingWorkflowCollectionAlignmentAnchored BillingWorkflowCollectionAlignmentAnchored specifies the alignment for
+// collecting the pending line items into an invoice.
+type BillingNotificationEventV1BillingWorkflowCollectionAlignmentAnchored struct {
+	// RecurringPeriod The recurring period for the alignment.
+	RecurringPeriod BillingNotificationEventV1RecurringPeriodV2 `json:"recurring_period"`
+
+	// Type The type of alignment.
+	Type BillingNotificationEventV1BillingWorkflowCollectionAlignmentAnchoredType `json:"type"`
+}
+
+// BillingNotificationEventV1BillingWorkflowCollectionAlignmentAnchoredType The type of alignment.
+type BillingNotificationEventV1BillingWorkflowCollectionAlignmentAnchoredType string
+
+// BillingNotificationEventV1BillingWorkflowCollectionAlignmentSubscription BillingWorkflowCollectionAlignmentSubscription specifies the alignment for
+// collecting the pending line items into an invoice.
+type BillingNotificationEventV1BillingWorkflowCollectionAlignmentSubscription struct {
+	// Type The type of alignment.
+	Type BillingNotificationEventV1BillingWorkflowCollectionAlignmentSubscriptionType `json:"type"`
+}
+
+// BillingNotificationEventV1BillingWorkflowCollectionAlignmentSubscriptionType The type of alignment.
+type BillingNotificationEventV1BillingWorkflowCollectionAlignmentSubscriptionType string
+
+// BillingNotificationEventV1BillingWorkflowCollectionSettings Workflow collection specifies how to collect the pending line items for an
+// invoice
+type BillingNotificationEventV1BillingWorkflowCollectionSettings struct {
+	// Alignment The alignment for collecting the pending line items into an invoice.
+	Alignment *BillingNotificationEventV1BillingWorkflowCollectionAlignment `json:"alignment,omitempty"`
+
+	// Interval This grace period can be used to delay the collection of the pending line items
+	// specified in alignment.
+	//
+	// This is useful, in case of multiple subscriptions having slightly different
+	// billing periods.
+	Interval *string `json:"interval,omitempty"`
+}
+
+// BillingNotificationEventV1BillingWorkflowInvoicingSettings BillingWorkflowInvoicingSettings represents the invoice settings for a billing
+// workflow
+type BillingNotificationEventV1BillingWorkflowInvoicingSettings struct {
+	// AutoAdvance Whether to automatically issue the invoice after the draftPeriod has passed.
+	AutoAdvance *bool `json:"auto_advance,omitempty"`
+
+	// DefaultTaxConfig Default tax configuration to apply to the invoices.
+	//
+	// Setting a tax code (`stripe.code` / `taxCodeId`) on a profile's default tax
+	// config is deprecated and can no longer be added or changed: the organization
+	// default tax code is used instead. Existing tax-code values may still be removed,
+	// and `behavior` remains fully supported.
+	DefaultTaxConfig *BillingNotificationEventV1TaxConfig `json:"default_tax_config,omitempty"`
+
+	// DraftPeriod The period for the invoice to be kept in draft status for manual reviews.
+	DraftPeriod *string `json:"draft_period,omitempty"`
+
+	// DueAfter The period after which the invoice is due. With some payment solutions it's only
+	// applicable for manual collection method.
+	DueAfter *string `json:"due_after,omitempty"`
+
+	// ProgressiveBilling Should progressive billing be allowed for this workflow?
+	ProgressiveBilling *bool `json:"progressive_billing,omitempty"`
+
+	// SubscriptionEndProrationMode Controls how subscription-ending shortened service periods are billed.
+	SubscriptionEndProrationMode *BillingNotificationEventV1BillingWorkflowInvoicingSubscriptionEndProrationMode `json:"subscription_end_proration_mode,omitempty"`
+}
+
+// BillingNotificationEventV1BillingWorkflowInvoicingSubscriptionEndProrationMode Billing workflow subscription end proration mode.
+type BillingNotificationEventV1BillingWorkflowInvoicingSubscriptionEndProrationMode string
+
+// BillingNotificationEventV1BillingWorkflowPaymentSettings BillingWorkflowPaymentSettings represents the payment settings for a billing
+// workflow
+type BillingNotificationEventV1BillingWorkflowPaymentSettings struct {
+	// CollectionMethod The payment method for the invoice.
+	CollectionMethod *BillingNotificationEventV1CollectionMethod `json:"collection_method,omitempty"`
+}
+
+// BillingNotificationEventV1BillingWorkflowTaxSettings BillingWorkflowTaxSettings represents the tax settings for a billing workflow
+type BillingNotificationEventV1BillingWorkflowTaxSettings struct {
+	// Enabled Enable automatic tax calculation when tax is supported by the app. For example,
+	// with Stripe Invoicing when enabled, tax is calculated via Stripe Tax.
+	Enabled *bool `json:"enabled,omitempty"`
+
+	// Enforced Enforce tax calculation when tax is supported by the app. When enabled,
+	// OpenMeter will not allow to create an invoice without tax calculation.
+	// Enforcement is different per apps, for example, Stripe app requires customer to
+	// have a tax location when starting a paid subscription.
+	Enforced *bool `json:"enforced,omitempty"`
+}
+
+// BillingNotificationEventV1CollectionMethod CollectionMethod specifies how the invoice should be collected (automatic vs
+// manual)
+type BillingNotificationEventV1CollectionMethod string
+
+// BillingNotificationEventV1CountryCode [ISO 3166-1](https://www.iso.org/iso-3166-country-codes.html) alpha-2 country
+// code. Custom two-letter country codes are also supported for convenience.
+type BillingNotificationEventV1CountryCode = string
+
+// BillingNotificationEventV1CurrencyCode Three-letter [ISO4217](https://www.iso.org/iso-4217-currency-codes.html)
+// currency code. Custom three-letter currency codes are also supported for
+// convenience.
+type BillingNotificationEventV1CurrencyCode = string
+
+// BillingNotificationEventV1CustomInvoicingApp Custom Invoicing app can be used for interface with any invoicing or payment
+// system.
+//
+// This app provides ways to manipulate invoices and payments, however the
+// integration must rely on Notifications API to get notified about invoice
+// changes.
+type BillingNotificationEventV1CustomInvoicingApp struct {
+	// CreatedAt Timestamp of when the resource was created.
+	CreatedAt time.Time `json:"created_at"`
+
+	// DeletedAt Timestamp of when the resource was permanently deleted.
+	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+
+	// Description Optional description of the resource. Maximum 1024 characters.
+	Description *string `json:"description,omitempty"`
+
+	// EnableDraftSyncHook Enable draft.sync hook.
+	//
+	// If the hook is not enabled, the invoice will be progressed to the next state
+	// automatically.
+	EnableDraftSyncHook bool `json:"enable_draft_sync_hook"`
+
+	// EnableIssuingSyncHook Enable issuing.sync hook.
+	//
+	// If the hook is not enabled, the invoice will be progressed to the next state
+	// automatically.
+	EnableIssuingSyncHook bool `json:"enable_issuing_sync_hook"`
+
+	// Id A unique identifier for the resource.
+	Id string `json:"id"`
+
+	// Listing The marketplace listing that this installed app is based on.
+	Listing BillingNotificationEventV1MarketplaceListing `json:"listing"`
+
+	// Metadata Additional metadata for the resource.
+	Metadata nullable.Nullable[BillingNotificationEventV1Metadata] `json:"metadata,omitempty"`
+
+	// Name Human-readable name for the resource. Between 1 and 256 characters.
+	Name string `json:"name"`
+
+	// Status Status of the app connection.
+	Status BillingNotificationEventV1AppStatus `json:"status"`
+
+	// Type The app's type is CustomInvoicing.
+	Type BillingNotificationEventV1CustomInvoicingAppType `json:"type"`
+
+	// UpdatedAt Timestamp of when the resource was last updated.
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+// BillingNotificationEventV1CustomInvoicingAppType The app's type is CustomInvoicing.
+type BillingNotificationEventV1CustomInvoicingAppType string
+
+// BillingNotificationEventV1CustomInvoicingTaxConfig Custom invoicing tax config.
+type BillingNotificationEventV1CustomInvoicingTaxConfig struct {
+	// Code Tax code.
+	//
+	// The tax code should be interpreted by the custom invoicing provider.
+	Code string `json:"code"`
+}
+
+// BillingNotificationEventV1Customer A customer object.
+type BillingNotificationEventV1Customer struct {
+	// Annotations Set of key-value pairs managed by the system. Cannot be modified by user.
+	Annotations *BillingNotificationEventV1Annotations `json:"annotations,omitempty"`
+
+	// BillingAddress The billing address of the customer. Used for tax and invoicing.
+	BillingAddress *BillingNotificationEventV1Address `json:"billing_address,omitempty"`
+
+	// CreatedAt Timestamp of when the resource was created.
+	CreatedAt time.Time `json:"created_at"`
+
+	// Currency Currency of the customer. Used for billing, tax and invoicing.
+	Currency *BillingNotificationEventV1CurrencyCode `json:"currency,omitempty"`
+
+	// CurrentSubscriptionId The ID of the Subscription if the customer has one.
+	CurrentSubscriptionId *string `json:"current_subscription_id,omitempty"`
+
+	// DeletedAt Timestamp of when the resource was permanently deleted.
+	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+
+	// Description Optional description of the resource. Maximum 1024 characters.
+	Description *string `json:"description,omitempty"`
+
+	// Id A unique identifier for the resource.
+	Id string `json:"id"`
+
+	// Key An optional unique key of the customer. Either key or
+	// usageAttribution.subjectKeys must be provided. Useful to reference the customer
+	// in external systems. For example, your database ID.
+	Key *string `json:"key,omitempty"`
+
+	// Metadata Additional metadata for the resource.
+	Metadata nullable.Nullable[BillingNotificationEventV1Metadata] `json:"metadata,omitempty"`
+
+	// Name Human-readable name for the resource. Between 1 and 256 characters.
+	Name string `json:"name"`
+
+	// PrimaryEmail The primary email address of the customer.
+	PrimaryEmail *string `json:"primary_email,omitempty"`
+
+	// Subscriptions The subscriptions of the customer. Only with the `subscriptions` expand option.
+	Subscriptions *[]BillingNotificationEventV1Subscription `json:"subscriptions,omitempty"`
+
+	// UpdatedAt Timestamp of when the resource was last updated.
+	UpdatedAt time.Time `json:"updated_at"`
+
+	// UsageAttribution Mapping to attribute metered usage to the customer Either key or
+	// usageAttribution.subjectKeys must be provided.
+	UsageAttribution *BillingNotificationEventV1CustomerUsageAttribution `json:"usage_attribution,omitempty"`
+}
+
+// BillingNotificationEventV1CustomerUsageAttribution Mapping to attribute metered usage to the customer. One customer can have zero
+// or more subjects, but one subject can only belong to one customer.
+type BillingNotificationEventV1CustomerUsageAttribution struct {
+	// SubjectKeys The subjects that are attributed to the customer. Can be empty when no subjects
+	// are associated with the customer.
+	SubjectKeys []string `json:"subject_keys"`
+}
+
+// BillingNotificationEventV1DiscountReasonMaximumSpend The reason for the discount is a maximum spend.
+type BillingNotificationEventV1DiscountReasonMaximumSpend struct {
+	// Type type.
+	Type BillingNotificationEventV1DiscountReasonMaximumSpendType `json:"type"`
+}
+
+// BillingNotificationEventV1DiscountReasonMaximumSpendType type.
+type BillingNotificationEventV1DiscountReasonMaximumSpendType string
+
+// BillingNotificationEventV1DiscountReasonRatecardPercentage The reason for the discount is a ratecard percentage.
+type BillingNotificationEventV1DiscountReasonRatecardPercentage struct {
+	// CorrelationId Correlation ID for the discount.
+	//
+	// This is used to link discounts across different invoices (progressive billing
+	// use case).
+	//
+	// If not provided, the invoicing engine will auto-generate one. When editing an
+	// invoice line, please make sure to keep the same correlation ID of the discount
+	// or in progressive billing setups the discount amounts might be incorrect.
+	CorrelationId *string `json:"correlation_id,omitempty"`
+
+	// Percentage The percentage of the discount.
+	Percentage BillingNotificationEventV1Percentage `json:"percentage"`
+
+	// Type type.
+	Type BillingNotificationEventV1DiscountReasonRatecardPercentageType `json:"type"`
+}
+
+// BillingNotificationEventV1DiscountReasonRatecardPercentageType type.
+type BillingNotificationEventV1DiscountReasonRatecardPercentageType string
+
+// BillingNotificationEventV1DiscountReasonRatecardUsage The reason for the discount is a ratecard usage.
+type BillingNotificationEventV1DiscountReasonRatecardUsage struct {
+	// CorrelationId Correlation ID for the discount.
+	//
+	// This is used to link discounts across different invoices (progressive billing
+	// use case).
+	//
+	// If not provided, the invoicing engine will auto-generate one. When editing an
+	// invoice line, please make sure to keep the same correlation ID of the discount
+	// or in progressive billing setups the discount amounts might be incorrect.
+	CorrelationId *string `json:"correlation_id,omitempty"`
+
+	// Quantity The quantity of the usage discount.
+	//
+	// Must be positive.
+	Quantity BillingNotificationEventV1Numeric `json:"quantity"`
+
+	// Type type.
+	Type BillingNotificationEventV1DiscountReasonRatecardUsageType `json:"type"`
+}
+
+// BillingNotificationEventV1DiscountReasonRatecardUsageType type.
+type BillingNotificationEventV1DiscountReasonRatecardUsageType string
+
+// BillingNotificationEventV1DynamicPriceWithCommitments Dynamic price with spend commitments.
+type BillingNotificationEventV1DynamicPriceWithCommitments struct {
+	// MaximumAmount The customer is limited to spend at most the amount.
+	MaximumAmount *BillingNotificationEventV1Numeric `json:"maximum_amount,omitempty"`
+
+	// MinimumAmount The customer is committed to spend at least the amount.
+	MinimumAmount *BillingNotificationEventV1Numeric `json:"minimum_amount,omitempty"`
+
+	// Multiplier The multiplier to apply to the base price to get the dynamic price.
+	//
+	// Examples:
+	//
+	// - 0.0: the price is zero
+	// - 0.5: the price is 50% of the base price
+	// - 1.0: the price is the same as the base price
+	// - 1.5: the price is 150% of the base price
+	Multiplier *BillingNotificationEventV1Numeric `json:"multiplier,omitempty"`
+
+	// Type The type of the price.
+	Type BillingNotificationEventV1DynamicPriceWithCommitmentsType `json:"type"`
+}
+
+// BillingNotificationEventV1DynamicPriceWithCommitmentsType The type of the price.
+type BillingNotificationEventV1DynamicPriceWithCommitmentsType string
+
+// BillingNotificationEventV1EntitlementMetered Metered entitlements are useful for many different use cases, from setting up
+// usage based access to implementing complex credit systems. Access is determined
+// based on feature usage using a balance calculation (the "usage allowance"
+// provided by the issued grants is "burnt down" by the usage).
+type BillingNotificationEventV1EntitlementMetered struct {
+	// ActiveFrom The cadence start of the resource.
+	ActiveFrom time.Time `json:"active_from"`
+
+	// ActiveTo The cadence end of the resource.
+	ActiveTo *time.Time `json:"active_to,omitempty"`
+
+	// Annotations The annotations of the entitlement.
+	Annotations *BillingNotificationEventV1Annotations `json:"annotations,omitempty"`
+
+	// CreatedAt Timestamp of when the resource was created.
+	CreatedAt time.Time `json:"created_at"`
+
+	// CurrentUsagePeriod The current usage period.
+	CurrentUsagePeriod BillingNotificationEventV1Period `json:"current_usage_period"`
+
+	// DeletedAt Timestamp of when the resource was permanently deleted.
+	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+
+	// FeatureId The feature the subject is entitled to use.
+	FeatureId string `json:"feature_id"`
+
+	// FeatureKey The feature the subject is entitled to use.
+	FeatureKey string `json:"feature_key"`
+
+	// Id Readonly unique ULID identifier.
+	Id string `json:"id"`
+
+	// IsSoftLimit If softLimit=true the subject can use the feature even if the entitlement is
+	// exhausted, hasAccess will always be true.
+	IsSoftLimit *bool `json:"is_soft_limit,omitempty"`
+
+	// IsUnlimited Deprecated, ignored by the backend. Please use isSoftLimit instead; this field
+	// will be removed in the future.
+	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
+	IsUnlimited *bool `json:"is_unlimited,omitempty"`
+
+	// IssueAfterReset You can grant usage automatically alongside the entitlement, the example
+	// scenario would be creating a starting balance. If an amount is specified here, a
+	// grant will be created alongside the entitlement with the specified amount. That
+	// grant will have it's rollover settings configured in a way that after each reset
+	// operation, the balance will return the original amount specified here. Manually
+	// creating such a grant would mean having the "amount", "minRolloverAmount", and
+	// "maxRolloverAmount" fields all be the same.
+	IssueAfterReset *float64 `json:"issue_after_reset,omitempty"`
+
+	// IssueAfterResetPriority Defines the grant priority for the default grant.
+	IssueAfterResetPriority *uint8 `json:"issue_after_reset_priority,omitempty"`
+
+	// LastReset The time the last reset happened.
+	LastReset time.Time `json:"last_reset"`
+
+	// MeasureUsageFrom The time from which usage is measured. If not specified on creation, defaults to
+	// entitlement creation time.
+	MeasureUsageFrom time.Time `json:"measure_usage_from"`
+
+	// Metadata Additional metadata for the feature.
+	Metadata *BillingNotificationEventV1Metadata `json:"metadata,omitempty"`
+
+	// PreserveOverageAtReset If true, the overage is preserved at reset. If false, the usage is reset to 0.
+	PreserveOverageAtReset *bool `json:"preserve_overage_at_reset,omitempty"`
+
+	// SubjectKey The identifier key unique to the subject. NOTE: Subjects are being deprecated,
+	// please use the new customer APIs.
+	SubjectKey string `json:"subject_key"`
+
+	// Type type.
+	Type BillingNotificationEventV1EntitlementMeteredType `json:"type"`
+
+	// UpdatedAt Timestamp of when the resource was last updated.
+	UpdatedAt time.Time `json:"updated_at"`
+
+	// UsagePeriod THe usage period of the entitlement.
+	UsagePeriod BillingNotificationEventV1RecurringPeriod `json:"usage_period"`
+}
+
+// BillingNotificationEventV1EntitlementMeteredType type.
+type BillingNotificationEventV1EntitlementMeteredType string
+
+// BillingNotificationEventV1EntitlementValue Entitlements are the core of OpenMeter access management. They define access to
+// features for subjects. Entitlements can be metered, boolean, or static.
+type BillingNotificationEventV1EntitlementValue struct {
+	// Balance Only available for metered entitlements. Metered entitlements are built around a
+	// balance calculation where feature usage is deducted from the issued grants.
+	// Balance represents the remaining balance of the entitlement, it's value never
+	// turns negative.
+	Balance *float64 `json:"balance,omitempty"`
+
+	// Config Only available for static entitlements. The JSON parsable config of the
+	// entitlement.
+	Config *string `json:"config,omitempty"`
+
+	// HasAccess Whether the subject has access to the feature. Shared accross all entitlement
+	// types.
+	HasAccess bool `json:"has_access"`
+
+	// Overage Only available for metered entitlements. Overage represents the usage that
+	// wasn't covered by grants, e.g. if the subject had a total feature usage of 100
+	// in the period but they were only granted 80, there would be 20 overage.
+	Overage *float64 `json:"overage,omitempty"`
+
+	// TotalAvailableGrantAmount Only available for metered entitlements. The summed amount of all grant active
+	// at query time PLUS the used amount of since inactive grants.
+	TotalAvailableGrantAmount *float64 `json:"total_available_grant_amount,omitempty"`
+
+	// Usage Only available for metered entitlements. Returns the total feature usage in the
+	// current period.
+	Usage *float64 `json:"usage,omitempty"`
+}
+
+// BillingNotificationEventV1EntitlementValuePayloadBase Base data for any payload with entitlement entitlement value.
+type BillingNotificationEventV1EntitlementValuePayloadBase struct {
+	// Customer Customer.
+	Customer *BillingNotificationEventV1Customer `json:"customer,omitempty"`
+
+	// Entitlement Entitlement.
+	Entitlement BillingNotificationEventV1EntitlementMetered `json:"entitlement"`
+
+	// Feature Feature.
+	Feature BillingNotificationEventV1Feature `json:"feature"`
+
+	// Subject Subject.
+	Subject BillingNotificationEventV1Subject `json:"subject"`
+
+	// Value Entitlement Value.
+	Value BillingNotificationEventV1EntitlementValue `json:"value"`
+}
+
+// BillingNotificationEventV1Feature Represents a feature that can be enabled or disabled for a plan. Used both for
+// product catalog and entitlements.
+type BillingNotificationEventV1Feature struct {
+	// AdvancedMeterGroupByFilters Optional advanced meter group by filters. You can use this to filter for values
+	// of the meter groupBy fields.
+	AdvancedMeterGroupByFilters *map[string]BillingNotificationEventV1FilterString `json:"advanced_meter_group_by_filters,omitempty"`
+
+	// ArchivedAt Timestamp of when the resource was archived.
+	ArchivedAt *time.Time `json:"archived_at,omitempty"`
+
+	// CreatedAt Timestamp of when the resource was created.
+	CreatedAt time.Time `json:"created_at"`
+
+	// DeletedAt Timestamp of when the resource was permanently deleted.
+	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+
+	// Id Readonly unique ULID identifier.
+	Id string `json:"id"`
+
+	// Key A key is a unique string that is used to identify a resource.
+	Key string `json:"key"`
+
+	// Metadata Optional metadata.
+	Metadata *BillingNotificationEventV1Metadata `json:"metadata,omitempty"`
+
+	// MeterGroupByFilters Optional meter group by filters. Useful if the meter scope is broader than what
+	// feature tracks. Example scenario would be a meter tracking all token use with
+	// groupBy fields for the model, then the feature could filter for model=gpt-4.
+	//
+	// ⚠️ **Deprecated**: Use advancedMeterGroupByFilters instead
+	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
+	MeterGroupByFilters *map[string]string `json:"meter_group_by_filters,omitempty"`
+
+	// MeterSlug A key is a unique string that is used to identify a resource.
+	MeterSlug *string `json:"meter_slug,omitempty"`
+
+	// Name The human-readable name of the feature.
+	Name string `json:"name"`
+
+	// UnitCost Optional per-unit cost configuration. Use "manual" for a fixed per-unit cost, or
+	// "llm" to look up cost from the LLM cost database based on meter group-by
+	// properties.
+	UnitCost *BillingNotificationEventV1FeatureUnitCost `json:"unit_cost,omitempty"`
+
+	// UpdatedAt Timestamp of when the resource was last updated.
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+// BillingNotificationEventV1FeatureLLMUnitCost LLM cost lookup configuration. Maps meter group-by dimensions to LLM cost
+// database fields.
+type BillingNotificationEventV1FeatureLLMUnitCost struct {
+	// Model Static model ID value (e.g., "gpt-4", "claude-3-5-sonnet"). Use this when the
+	// feature tracks a single model. Mutually exclusive with `modelProperty`.
+	Model *string `json:"model,omitempty"`
+
+	// ModelProperty Meter group-by property that holds the model ID. Use this when the meter has a
+	// group-by dimension for model. Mutually exclusive with `model`.
+	ModelProperty *string `json:"model_property,omitempty"`
+
+	// Pricing Resolved per-token pricing from the LLM cost database. Only populated in
+	// responses when the feature's meter group-by filters specify exact provider and
+	// model values.
+	Pricing *BillingNotificationEventV1FeatureLLMUnitCostPricing `json:"pricing,omitempty"`
+
+	// Provider Static LLM provider value (e.g., "openai", "anthropic"). Use this when the
+	// feature tracks a single provider. Mutually exclusive with `providerProperty`.
+	Provider *string `json:"provider,omitempty"`
+
+	// ProviderProperty Meter group-by property that holds the LLM provider. Use this when the meter has
+	// a group-by dimension for provider. Mutually exclusive with `provider`.
+	ProviderProperty *string `json:"provider_property,omitempty"`
+
+	// TokenType Static token type value. Use this when the feature tracks a single token type
+	// (e.g., only input tokens). Expected values: input, output, cache_read,
+	// reasoning, cache_write, request, response. `request` is an alias for `input`,
+	// `response` is an alias for `output`. Mutually exclusive with
+	// `tokenTypeProperty`.
+	TokenType *string `json:"token_type,omitempty"`
+
+	// TokenTypeProperty Meter group-by property that holds the token type. Use this when the meter has a
+	// group-by dimension for token type. Mutually exclusive with `tokenType`.
+	TokenTypeProperty *string `json:"token_type_property,omitempty"`
+
+	// Type type.
+	Type BillingNotificationEventV1FeatureLLMUnitCostType `json:"type"`
+}
+
+// BillingNotificationEventV1FeatureLLMUnitCostType type.
+type BillingNotificationEventV1FeatureLLMUnitCostType string
+
+// BillingNotificationEventV1FeatureLLMUnitCostPricing Resolved per-token pricing from the LLM cost database.
+type BillingNotificationEventV1FeatureLLMUnitCostPricing struct {
+	// CacheReadPerToken Cost per cache read token in USD.
+	CacheReadPerToken *BillingNotificationEventV1Numeric `json:"cache_read_per_token,omitempty"`
+
+	// CacheWritePerToken Cost per cache write token in USD.
+	CacheWritePerToken *BillingNotificationEventV1Numeric `json:"cache_write_per_token,omitempty"`
+
+	// InputPerToken Cost per input token in USD.
+	InputPerToken BillingNotificationEventV1Numeric `json:"input_per_token"`
+
+	// OutputPerToken Cost per output token in USD.
+	OutputPerToken BillingNotificationEventV1Numeric `json:"output_per_token"`
+
+	// ReasoningPerToken Cost per reasoning token in USD.
+	ReasoningPerToken *BillingNotificationEventV1Numeric `json:"reasoning_per_token,omitempty"`
+}
+
+// BillingNotificationEventV1FeatureManualUnitCost A fixed per-unit cost amount.
+type BillingNotificationEventV1FeatureManualUnitCost struct {
+	// Amount Fixed per-unit cost amount in USD.
+	Amount BillingNotificationEventV1Numeric `json:"amount"`
+
+	// Type type.
+	Type BillingNotificationEventV1FeatureManualUnitCostType `json:"type"`
+}
+
+// BillingNotificationEventV1FeatureManualUnitCostType type.
+type BillingNotificationEventV1FeatureManualUnitCostType string
+
+// BillingNotificationEventV1FeatureUnitCost Per-unit cost configuration for a feature. Either a fixed manual amount or a
+// dynamic LLM cost lookup.
+type BillingNotificationEventV1FeatureUnitCost struct {
+	union json.RawMessage
+}
+
+// BillingNotificationEventV1FilterString A filter for a string field.
+type BillingNotificationEventV1FilterString struct {
+	// And Provide a list of filters to be combined with a logical AND.
+	And nullable.Nullable[[]BillingNotificationEventV1FilterString] `json:"$and,omitempty"`
+
+	// Eq The field must be equal to the provided value.
+	Eq nullable.Nullable[string] `json:"$eq,omitempty"`
+
+	// Gt The field must be greater than the provided value.
+	Gt nullable.Nullable[string] `json:"$gt,omitempty"`
+
+	// Gte The field must be greater than or equal to the provided value.
+	Gte nullable.Nullable[string] `json:"$gte,omitempty"`
+
+	// Ilike The field must match the provided value, ignoring case.
+	Ilike nullable.Nullable[string] `json:"$ilike,omitempty"`
+
+	// In The field must be in the provided list of values.
+	In nullable.Nullable[[]string] `json:"$in,omitempty"`
+
+	// Like The field must match the provided value.
+	Like nullable.Nullable[string] `json:"$like,omitempty"`
+
+	// Lt The field must be less than the provided value.
+	Lt nullable.Nullable[string] `json:"$lt,omitempty"`
+
+	// Lte The field must be less than or equal to the provided value.
+	Lte nullable.Nullable[string] `json:"$lte,omitempty"`
+
+	// Ne The field must not be equal to the provided value.
+	Ne nullable.Nullable[string] `json:"$ne,omitempty"`
+
+	// Nilike The field must not match the provided value, ignoring case.
+	Nilike nullable.Nullable[string] `json:"$nilike,omitempty"`
+
+	// Nin The field must not be in the provided list of values.
+	Nin nullable.Nullable[[]string] `json:"$nin,omitempty"`
+
+	// Nlike The field must not match the provided value.
+	Nlike nullable.Nullable[string] `json:"$nlike,omitempty"`
+
+	// Or Provide a list of filters to be combined with a logical OR.
+	Or nullable.Nullable[[]BillingNotificationEventV1FilterString] `json:"$or,omitempty"`
+}
+
+// BillingNotificationEventV1FlatPrice Flat price.
+type BillingNotificationEventV1FlatPrice struct {
+	// Amount The amount of the flat price.
+	Amount BillingNotificationEventV1Numeric `json:"amount"`
+
+	// Type The type of the price.
+	Type BillingNotificationEventV1FlatPriceType `json:"type"`
+}
+
+// BillingNotificationEventV1FlatPriceType The type of the price.
+type BillingNotificationEventV1FlatPriceType string
+
+// BillingNotificationEventV1FlatPriceWithPaymentTerm Flat price with payment term.
+type BillingNotificationEventV1FlatPriceWithPaymentTerm struct {
+	// Amount The amount of the flat price.
+	Amount BillingNotificationEventV1Numeric `json:"amount"`
+
+	// PaymentTerm The payment term of the flat price. Defaults to in advance.
+	PaymentTerm *BillingNotificationEventV1PricePaymentTerm `json:"payment_term,omitempty"`
+
+	// Type The type of the price.
+	Type BillingNotificationEventV1FlatPriceWithPaymentTermType `json:"type"`
+}
+
+// BillingNotificationEventV1FlatPriceWithPaymentTermType The type of the price.
+type BillingNotificationEventV1FlatPriceWithPaymentTermType string
+
+// BillingNotificationEventV1IDResource IDResource is a resouce with an ID.
+type BillingNotificationEventV1IDResource struct {
+	// Id A unique identifier for the resource.
+	Id string `json:"id"`
+}
+
+// BillingNotificationEventV1InstallMethod Install method of the application.
+type BillingNotificationEventV1InstallMethod string
+
+// BillingNotificationEventV1Invoice Invoice represents an invoice in the system.
+type BillingNotificationEventV1Invoice struct {
+	// CollectionAt The time when the invoice will be/has been collected.
+	CollectionAt *time.Time `json:"collection_at,omitempty"`
+
+	// CreatedAt Timestamp of when the resource was created.
+	CreatedAt time.Time `json:"created_at"`
+
+	// Currency Currency for all invoice line items.
+	//
+	// Multi currency invoices are not supported yet.
+	Currency BillingNotificationEventV1CurrencyCode `json:"currency"`
+
+	// Customer Legal entity receiving the goods or services.
+	Customer BillingNotificationEventV1BillingInvoiceCustomerExtendedDetails `json:"customer"`
+
+	// DeletedAt Timestamp of when the resource was permanently deleted.
+	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+
+	// Description Optional description of the resource. Maximum 1024 characters.
+	Description *string `json:"description,omitempty"`
+
+	// DraftUntil The time until the invoice is in draft status.
+	//
+	// On draft invoice creation it is calculated from the workflow settings.
+	//
+	// If manual approval is required, the draftUntil time is set.
+	DraftUntil *time.Time `json:"draft_until,omitempty"`
+
+	// DueAt Due time of the fulfillment of the invoice (if available).
+	DueAt *time.Time `json:"due_at,omitempty"`
+
+	// ExternalIds External IDs of the invoice in other apps such as Stripe.
+	ExternalIds *BillingNotificationEventV1InvoiceAppExternalIds `json:"external_ids,omitempty"`
+
+	// Id A unique identifier for the resource.
+	Id string `json:"id"`
+
+	// IssuedAt The time the invoice was issued.
+	//
+	// Depending on the status of the invoice this can mean multiple things:
+	//
+	// - draft, gathering: The time the invoice will be issued based on the workflow
+	// settings.
+	// - issued: The time the invoice was issued.
+	IssuedAt *time.Time `json:"issued_at,omitempty"`
+
+	// Lines List of invoice lines representing each of the items sold to the customer.
+	Lines *[]BillingNotificationEventV1InvoiceLine `json:"lines,omitempty"`
+
+	// Metadata Additional metadata for the resource.
+	Metadata nullable.Nullable[BillingNotificationEventV1Metadata] `json:"metadata,omitempty"`
+
+	// Number Number specifies the human readable key used to reference this Invoice.
+	//
+	// The invoice number can change in the draft phases, as we are allocating
+	// temporary draft invoice numbers, but it's final as soon as the invoice gets
+	// finalized (issued state).
+	//
+	// Please note that the number is (depending on the upstream settings) either
+	// unique for the whole organization or unique for the customer, or in multi
+	// (stripe) account setups unique for the account.
+	Number BillingNotificationEventV1InvoiceNumber `json:"number"`
+
+	// Payment Information on when, how, and to whom the invoice should be paid.
+	Payment *BillingNotificationEventV1InvoicePaymentTerms `json:"payment,omitempty"`
+
+	// Period The period the invoice covers. If the invoice has no line items, it's not set.
+	Period *BillingNotificationEventV1Period `json:"period,omitempty"`
+
+	// Preceding Key information regarding previous invoices and potentially details as to why
+	// they were corrected.
+	Preceding *[]BillingNotificationEventV1InvoiceDocumentRef `json:"preceding,omitempty"`
+
+	// QuantitySnapshotedAt The time when the quantity snapshots on the invoice lines were taken.
+	QuantitySnapshotedAt *time.Time `json:"quantity_snapshoted_at,omitempty"`
+
+	// SentToCustomerAt The time the invoice was sent to customer.
+	SentToCustomerAt *time.Time `json:"sent_to_customer_at,omitempty"`
+
+	// Status The status of the invoice.
+	//
+	// This field only conatins a simplified status, for more detailed information use
+	// the statusDetails field.
+	Status BillingNotificationEventV1InvoiceStatus `json:"status"`
+
+	// StatusDetails The details of the current invoice status.
+	StatusDetails BillingNotificationEventV1InvoiceStatusDetails `json:"status_details"`
+
+	// Supplier The taxable entity supplying the goods or services.
+	Supplier BillingNotificationEventV1BillingParty `json:"supplier"`
+
+	// Totals Summary of all the invoice totals, including taxes (calculated).
+	Totals BillingNotificationEventV1InvoiceTotals `json:"totals"`
+
+	// Type Type of the invoice.
+	//
+	// The type of invoice determines the purpose of the invoice and how it should be
+	// handled.
+	//
+	// Supported types:
+	//
+	// - standard: A regular commercial invoice document between a supplier and
+	// customer.
+	// - credit_note: Reflects a refund either partial or complete of the preceding
+	// document. A credit note effectively _extends_ the previous document.
+	Type BillingNotificationEventV1InvoiceType `json:"type"`
+
+	// UpdatedAt Timestamp of when the resource was last updated.
+	UpdatedAt time.Time `json:"updated_at"`
+
+	// ValidationIssues Validation issues reported by the invoice workflow.
+	ValidationIssues *[]BillingNotificationEventV1ValidationIssue `json:"validation_issues,omitempty"`
+
+	// VoidedAt The time the invoice was voided.
+	//
+	// If the invoice was voided, this field will be set to the time the invoice was
+	// voided.
+	VoidedAt *time.Time `json:"voided_at,omitempty"`
+
+	// Workflow The workflow associated with the invoice.
+	//
+	// It is always a snapshot of the workflow settings at the time of invoice
+	// creation. The field is optional as it should be explicitly requested with expand
+	// options.
+	Workflow BillingNotificationEventV1InvoiceWorkflowSettings `json:"workflow"`
+}
+
+// BillingNotificationEventV1InvoiceAppExternalIds InvoiceAppExternalIds contains the external IDs of the invoice in other apps
+// such as Stripe.
+type BillingNotificationEventV1InvoiceAppExternalIds struct {
+	// Invoicing The external ID of the invoice in the invoicing app if available.
+	Invoicing *string `json:"invoicing,omitempty"`
+
+	// Payment The external ID of the invoice in the payment app if available.
+	Payment *string `json:"payment,omitempty"`
+
+	// Tax The external ID of the invoice in the tax app if available.
+	Tax *string `json:"tax,omitempty"`
+}
+
+// BillingNotificationEventV1InvoiceAvailableActionDetails InvoiceAvailableActionInvoiceDetails represents the details of the invoice
+// action for non-gathering invoices.
+type BillingNotificationEventV1InvoiceAvailableActionDetails struct {
+	// ResultingState The state the invoice will reach if the action is activated and all intermediate
+	// steps are successful.
+	//
+	// For example advancing a draft_created invoice will result in a
+	// draft_manual_approval_needed invoice.
+	ResultingState string `json:"resulting_state"`
+}
+
+// BillingNotificationEventV1InvoiceAvailableActionInvoiceDetails InvoiceAvailableActionInvoiceDetails represents the details of the invoice
+// action for gathering invoices.
+type BillingNotificationEventV1InvoiceAvailableActionInvoiceDetails = map[string]interface{}
+
+// BillingNotificationEventV1InvoiceAvailableActions InvoiceAvailableActions represents the actions that can be performed on the
+// invoice.
+type BillingNotificationEventV1InvoiceAvailableActions struct {
+	// Advance Advance the invoice to the next status.
+	Advance *BillingNotificationEventV1InvoiceAvailableActionDetails `json:"advance,omitempty"`
+
+	// Approve Approve an invoice that requires manual approval.
+	Approve *BillingNotificationEventV1InvoiceAvailableActionDetails `json:"approve,omitempty"`
+
+	// Delete Delete the invoice (only non-issued invoices can be deleted).
+	Delete *BillingNotificationEventV1InvoiceAvailableActionDetails `json:"delete,omitempty"`
+
+	// Invoice Invoice a gathering invoice
+	Invoice *BillingNotificationEventV1InvoiceAvailableActionInvoiceDetails `json:"invoice,omitempty"`
+
+	// Retry Retry an invoice issuing step that failed.
+	Retry *BillingNotificationEventV1InvoiceAvailableActionDetails `json:"retry,omitempty"`
+
+	// SnapshotQuantities Snapshot quantities for usage based line items.
+	SnapshotQuantities *BillingNotificationEventV1InvoiceAvailableActionDetails `json:"snapshot_quantities,omitempty"`
+
+	// Void Void an already issued invoice.
+	Void *BillingNotificationEventV1InvoiceAvailableActionDetails `json:"void,omitempty"`
+}
+
+// BillingNotificationEventV1InvoiceDetailedLine InvoiceDetailedLine represents a line item that is sold to the customer as a
+// manually added fee.
+type BillingNotificationEventV1InvoiceDetailedLine struct {
+	// Category Category of the flat fee.
+	Category *BillingNotificationEventV1InvoiceDetailedLineCostCategory `json:"category,omitempty"`
+
+	// CreatedAt Timestamp of when the resource was created.
+	CreatedAt time.Time `json:"created_at"`
+
+	// CreditAllocations Credit allocations applied to this line.
+	//
+	// Credits are deducted from the line total before taxes are applied.
+	CreditAllocations *[]BillingNotificationEventV1InvoiceLineCreditAllocation `json:"credit_allocations,omitempty"`
+
+	// Currency The currency of this line.
+	Currency BillingNotificationEventV1CurrencyCode `json:"currency"`
+
+	// DeletedAt Timestamp of when the resource was permanently deleted.
+	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+
+	// Description Optional description of the resource. Maximum 1024 characters.
+	Description *string `json:"description,omitempty"`
+
+	// Discounts Discounts detailes applied to this line.
+	//
+	// New discounts can be added via the invoice's discounts API, to facilitate
+	// discounts that are affecting multiple lines.
+	Discounts *BillingNotificationEventV1InvoiceLineDiscounts `json:"discounts,omitempty"`
+
+	// ExternalIds External IDs of the invoice in other apps such as Stripe.
+	ExternalIds *BillingNotificationEventV1InvoiceLineAppExternalIds `json:"external_ids,omitempty"`
+
+	// Id ID of the line.
+	Id string `json:"id"`
+
+	// Invoice The invoice this item belongs to.
+	Invoice *BillingNotificationEventV1InvoiceReference `json:"invoice,omitempty"`
+
+	// InvoiceAt The time this line item should be invoiced.
+	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
+	InvoiceAt time.Time `json:"invoice_at"`
+
+	// ManagedBy managedBy specifies if the line is manually added via the api or managed by
+	// OpenMeter.
+	ManagedBy BillingNotificationEventV1InvoiceLineManagedBy `json:"managed_by"`
+
+	// Metadata Additional metadata for the resource.
+	Metadata nullable.Nullable[BillingNotificationEventV1Metadata] `json:"metadata,omitempty"`
+
+	// Name Human-readable name for the resource. Between 1 and 256 characters.
+	Name string `json:"name"`
+
+	// PaymentTerm Payment term of the line.
+	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
+	PaymentTerm *BillingNotificationEventV1PricePaymentTerm `json:"payment_term,omitempty"`
+
+	// PerUnitAmount Price of the item being sold.
+	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
+	PerUnitAmount *BillingNotificationEventV1Numeric `json:"per_unit_amount,omitempty"`
+
+	// Period Period of the line item applies to for revenue recognition pruposes.
+	//
+	// Billing always treats periods as start being inclusive and end being exclusive.
+	Period BillingNotificationEventV1Period `json:"period"`
+
+	// Quantity Quantity of the item being sold.
+	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
+	Quantity *BillingNotificationEventV1Numeric `json:"quantity,omitempty"`
+
+	// RateCard The rate card that is used for this line.
+	RateCard *BillingNotificationEventV1InvoiceDetailedLineRateCard `json:"rate_card,omitempty"`
+
+	// Status Status of the line.
+	//
+	// External calls always create valid lines, other line types are managed by the
+	// billing engine of OpenMeter.
+	Status BillingNotificationEventV1InvoiceLineStatus `json:"status"`
+
+	// Subscription Subscription are the references to the subscritpions that this line is related
+	// to.
+	Subscription *BillingNotificationEventV1InvoiceLineSubscriptionReference `json:"subscription,omitempty"`
+
+	// TaxConfig Tax config specify the tax configuration for this line.
+	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
+	TaxConfig *BillingNotificationEventV1TaxConfig `json:"tax_config,omitempty"`
+
+	// Taxes Taxes applied to the invoice totals.
+	Taxes *[]BillingNotificationEventV1InvoiceLineTaxItem `json:"taxes,omitempty"`
+
+	// Totals Totals for this line.
+	Totals BillingNotificationEventV1InvoiceTotals `json:"totals"`
+
+	// Type Type of the line.
+	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
+	Type BillingNotificationEventV1InvoiceDetailedLineType `json:"type"`
+
+	// UpdatedAt Timestamp of when the resource was last updated.
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+// BillingNotificationEventV1InvoiceDetailedLineType Type of the line.
+type BillingNotificationEventV1InvoiceDetailedLineType string
+
+// BillingNotificationEventV1InvoiceDetailedLineCostCategory InvoiceDetailedLineCostCategory determines if the flat fee is a regular fee due
+// to use due to a commitment.
+type BillingNotificationEventV1InvoiceDetailedLineCostCategory string
+
+// BillingNotificationEventV1InvoiceDetailedLineRateCard InvoiceDetailedLineRateCard represents the rate card (intent) for a flat fee
+// line.
+type BillingNotificationEventV1InvoiceDetailedLineRateCard struct {
+	// Discounts The discounts that are applied to the line.
+	Discounts *BillingNotificationEventV1BillingDiscounts `json:"discounts,omitempty"`
+
+	// Price The price of the rate card. When null, the feature or service is free.
+	Price nullable.Nullable[BillingNotificationEventV1FlatPriceWithPaymentTerm] `json:"price"`
+
+	// Quantity Quantity of the item being sold.
+	//
+	// Default: 1
+	Quantity *BillingNotificationEventV1Numeric `json:"quantity,omitempty"`
+
+	// TaxConfig The tax config of the rate card. When undefined, the tax config of the feature
+	// or the default tax config of the plan is used.
+	TaxConfig *BillingNotificationEventV1TaxConfig `json:"tax_config,omitempty"`
+}
+
+// BillingNotificationEventV1InvoiceDocumentRef InvoiceDocumentRef is used to describe a reference to an existing document
+// (invoice).
+//
+// The v1 schema describes credit note references with issued_at, number and url,
+// but the v1 API only ever sends the generic fields below.
+type BillingNotificationEventV1InvoiceDocumentRef struct {
+	// Description Additional details about the document.
+	Description *string `json:"description,omitempty"`
+
+	// Reason Human readable description on why this reference is here or needs to be used.
+	Reason *string `json:"reason,omitempty"`
+
+	// Type Type of the document referenced.
+	Type BillingNotificationEventV1InvoiceDocumentRefType `json:"type"`
+}
+
+// BillingNotificationEventV1InvoiceDocumentRefType InvoiceDocumentRefType defines the type of document that is being referenced.
+type BillingNotificationEventV1InvoiceDocumentRefType string
+
+// BillingNotificationEventV1InvoiceLine InvoiceUsageBasedLine represents a line item that is sold to the customer based
+// on usage.
+type BillingNotificationEventV1InvoiceLine struct {
+	// Children The lines detailing the item or service sold.
+	Children *[]BillingNotificationEventV1InvoiceDetailedLine `json:"children,omitempty"`
+
+	// CreatedAt Timestamp of when the resource was created.
+	CreatedAt time.Time `json:"created_at"`
+
+	// CreditAllocations Credit allocations applied to this line.
+	//
+	// Credits are deducted from the line total before taxes are applied.
+	CreditAllocations *[]BillingNotificationEventV1InvoiceLineCreditAllocation `json:"credit_allocations,omitempty"`
+
+	// Currency The currency of this line.
+	Currency BillingNotificationEventV1CurrencyCode `json:"currency"`
+
+	// DeletedAt Timestamp of when the resource was permanently deleted.
+	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+
+	// Description Optional description of the resource. Maximum 1024 characters.
+	Description *string `json:"description,omitempty"`
+
+	// Discounts Discounts detailes applied to this line.
+	//
+	// New discounts can be added via the invoice's discounts API, to facilitate
+	// discounts that are affecting multiple lines.
+	Discounts *BillingNotificationEventV1InvoiceLineDiscounts `json:"discounts,omitempty"`
+
+	// ExternalIds External IDs of the invoice in other apps such as Stripe.
+	ExternalIds *BillingNotificationEventV1InvoiceLineAppExternalIds `json:"external_ids,omitempty"`
+
+	// FeatureKey The feature that the usage is based on.
+	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
+	FeatureKey *string `json:"feature_key,omitempty"`
+
+	// Id ID of the line.
+	Id string `json:"id"`
+
+	// Invoice The invoice this item belongs to.
+	Invoice *BillingNotificationEventV1InvoiceReference `json:"invoice,omitempty"`
+
+	// InvoiceAt The time this line item should be invoiced.
+	InvoiceAt time.Time `json:"invoice_at"`
+
+	// ManagedBy managedBy specifies if the line is manually added via the api or managed by
+	// OpenMeter.
+	ManagedBy BillingNotificationEventV1InvoiceLineManagedBy `json:"managed_by"`
+
+	// Metadata Additional metadata for the resource.
+	Metadata nullable.Nullable[BillingNotificationEventV1Metadata] `json:"metadata,omitempty"`
+
+	// MeteredPreLinePeriodQuantity The metered quantity of the item used in before this line's period without any
+	// discounts applied.
+	//
+	// It is non-zero in case of progressive billing, when this shows how much of the
+	// usage was already billed.
+	MeteredPreLinePeriodQuantity *BillingNotificationEventV1Numeric `json:"metered_pre_line_period_quantity,omitempty"`
+
+	// MeteredQuantity The quantity of the item that has been metered for the period before any
+	// discounts were applied.
+	MeteredQuantity *BillingNotificationEventV1Numeric `json:"metered_quantity,omitempty"`
+
+	// Name Human-readable name for the resource. Between 1 and 256 characters.
+	Name string `json:"name"`
+
+	// Period Period of the line item applies to for revenue recognition pruposes.
+	//
+	// Billing always treats periods as start being inclusive and end being exclusive.
+	Period BillingNotificationEventV1Period `json:"period"`
+
+	// PreLinePeriodQuantity The quantity of the item used before this line's period.
+	//
+	// It is non-zero in case of progressive billing, when this shows how much of the
+	// usage was already billed.
+	//
+	// Any usage discounts applied previously are deducted from this quantity.
+	PreLinePeriodQuantity *BillingNotificationEventV1Numeric `json:"pre_line_period_quantity,omitempty"`
+
+	// Price Price of the usage-based item being sold.
+	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
+	Price *BillingNotificationEventV1RateCardUsageBasedPrice `json:"price,omitempty"`
+
+	// Quantity The quantity of the item being sold.
+	//
+	// Any usage discounts applied previously are deducted from this quantity.
+	Quantity *BillingNotificationEventV1Numeric `json:"quantity,omitempty"`
+
+	// RateCard The rate card that is used for this line.
+	//
+	// The rate card captures the intent of the price and discounts for the usage-based
+	// item.
+	RateCard *BillingNotificationEventV1InvoiceUsageBasedRateCard `json:"rate_card,omitempty"`
+
+	// Status Status of the line.
+	//
+	// External calls always create valid lines, other line types are managed by the
+	// billing engine of OpenMeter.
+	Status BillingNotificationEventV1InvoiceLineStatus `json:"status"`
+
+	// Subscription Subscription are the references to the subscritpions that this line is related
+	// to.
+	Subscription *BillingNotificationEventV1InvoiceLineSubscriptionReference `json:"subscription,omitempty"`
+
+	// TaxConfig Tax config specify the tax configuration for this line.
+	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
+	TaxConfig *BillingNotificationEventV1TaxConfig `json:"tax_config,omitempty"`
+
+	// Taxes Taxes applied to the invoice totals.
+	Taxes *[]BillingNotificationEventV1InvoiceLineTaxItem `json:"taxes,omitempty"`
+
+	// Totals Totals for this line.
+	Totals BillingNotificationEventV1InvoiceTotals `json:"totals"`
+
+	// Type Type of the line.
+	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
+	Type BillingNotificationEventV1InvoiceLineType `json:"type"`
+
+	// UpdatedAt Timestamp of when the resource was last updated.
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+// BillingNotificationEventV1InvoiceLineType Type of the line.
+type BillingNotificationEventV1InvoiceLineType string
+
+// BillingNotificationEventV1InvoiceLineAmountDiscount InvoiceLineAmountDiscount represents an amount deducted from the line, and will
+// be applied before taxes.
+type BillingNotificationEventV1InvoiceLineAmountDiscount struct {
+	// Amount Fixed discount amount to apply (calculated if percent present).
+	Amount BillingNotificationEventV1Numeric `json:"amount"`
+
+	// CreatedAt Timestamp of when the resource was created.
+	CreatedAt time.Time `json:"created_at"`
+
+	// DeletedAt Timestamp of when the resource was permanently deleted.
+	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+
+	// Description Text description as to why the discount was applied.
+	Description *string `json:"description,omitempty"`
+
+	// ExternalIds External IDs of the invoice in other apps such as Stripe.
+	ExternalIds *BillingNotificationEventV1InvoiceLineAppExternalIds `json:"external_ids,omitempty"`
+
+	// Id ID of the charge or discount.
+	Id string `json:"id"`
+
+	// Reason Reason code.
+	Reason BillingNotificationEventV1BillingDiscountReason `json:"reason"`
+
+	// UpdatedAt Timestamp of when the resource was last updated.
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+// BillingNotificationEventV1InvoiceLineAppExternalIds InvoiceLineAppExternalIds contains the external IDs of the invoice in other apps
+// such as Stripe.
+type BillingNotificationEventV1InvoiceLineAppExternalIds struct {
+	// Invoicing The external ID of the invoice in the invoicing app if available.
+	Invoicing *string `json:"invoicing,omitempty"`
+
+	// Tax The external ID of the invoice in the tax app if available.
+	Tax *string `json:"tax,omitempty"`
+}
+
+// BillingNotificationEventV1InvoiceLineCreditAllocation InvoiceLineCreditAllocation represents a credit amount allocated to the line
+// before taxes are applied.
+type BillingNotificationEventV1InvoiceLineCreditAllocation struct {
+	// Amount Amount allocated from credits.
+	Amount BillingNotificationEventV1Numeric `json:"amount"`
+
+	// Description Text description as to why the credit was allocated.
+	Description *string `json:"description,omitempty"`
+}
+
+// BillingNotificationEventV1InvoiceLineDiscounts InvoiceLineDiscounts represents the discounts applied to the invoice line by
+// type.
+type BillingNotificationEventV1InvoiceLineDiscounts struct {
+	// Amount Amount based discounts applied to the line.
+	//
+	// Amount based discounts are deduced from the total price of the line.
+	Amount *[]BillingNotificationEventV1InvoiceLineAmountDiscount `json:"amount,omitempty"`
+
+	// Usage Usage based discounts applied to the line.
+	//
+	// Usage based discounts are deduced from the usage of the line before price
+	// calculations are applied.
+	Usage *[]BillingNotificationEventV1InvoiceLineUsageDiscount `json:"usage,omitempty"`
+}
+
+// BillingNotificationEventV1InvoiceLineManagedBy InvoiceLineManagedBy specifies who manages the line.
+type BillingNotificationEventV1InvoiceLineManagedBy string
+
+// BillingNotificationEventV1InvoiceLineStatus Line status specifies the status of the line.
+type BillingNotificationEventV1InvoiceLineStatus string
+
+// BillingNotificationEventV1InvoiceLineSubscriptionReference InvoiceLineSubscriptionReference contains the references to the subscription
+// that this line is related to.
+type BillingNotificationEventV1InvoiceLineSubscriptionReference struct {
+	// BillingPeriod The billing period of the subscription. In case the subscription item's billing
+	// period is different from the subscription's billing period, this field will
+	// contain the billing period of the subscription itself.
+	//
+	// For example, in case of:
+	//
+	// - A monthly billed subscription anchored to 2025-01-01
+	// - A subscription item billed daily
+	//
+	// An example line would have the period of 2025-01-02 to 2025-01-03 as the item is
+	// billed daily, but the subscription's billing period will be 2025-01-01 to
+	// 2025-01-31.
+	BillingPeriod BillingNotificationEventV1Period `json:"billing_period"`
+
+	// Item The item this line is related to.
+	Item BillingNotificationEventV1IDResource `json:"item"`
+
+	// Phase The phase of the subscription.
+	Phase BillingNotificationEventV1IDResource `json:"phase"`
+
+	// Subscription The subscription.
+	Subscription BillingNotificationEventV1IDResource `json:"subscription"`
+}
+
+// BillingNotificationEventV1InvoiceLineTaxBehavior InvoiceLineTaxBehavior details how the tax item is applied to the base amount.
+//
+// Inclusive means the tax is included in the base amount. Exclusive means the tax
+// is added to the base amount.
+type BillingNotificationEventV1InvoiceLineTaxBehavior string
+
+// BillingNotificationEventV1InvoiceLineTaxItem TaxConfig stores the configuration for a tax line relative to an invoice line.
+type BillingNotificationEventV1InvoiceLineTaxItem struct {
+	// Behavior Is the tax item inclusive or exclusive of the base amount.
+	Behavior *BillingNotificationEventV1InvoiceLineTaxBehavior `json:"behavior,omitempty"`
+
+	// Config Tax provider configuration.
+	Config *BillingNotificationEventV1TaxConfig `json:"config,omitempty"`
+
+	// Percent Percent defines the percentage set manually or determined from the rate key
+	// (calculated if rate present). A nil percent implies that this tax combo is
+	// **exempt** from tax.")
+	Percent *BillingNotificationEventV1Percentage `json:"percent,omitempty"`
+
+	// Surcharge Some countries require an additional surcharge (calculated if rate present).
+	Surcharge *BillingNotificationEventV1Numeric `json:"surcharge,omitempty"`
+}
+
+// BillingNotificationEventV1InvoiceLineUsageDiscount InvoiceLineUsageDiscount represents an usage-based discount applied to the line.
+//
+// The deduction is done before the pricing algorithm is applied.
+type BillingNotificationEventV1InvoiceLineUsageDiscount struct {
+	// CreatedAt Timestamp of when the resource was created.
+	CreatedAt time.Time `json:"created_at"`
+
+	// DeletedAt Timestamp of when the resource was permanently deleted.
+	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+
+	// Description Text description as to why the discount was applied.
+	Description *string `json:"description,omitempty"`
+
+	// ExternalIds External IDs of the invoice in other apps such as Stripe.
+	ExternalIds *BillingNotificationEventV1InvoiceLineAppExternalIds `json:"external_ids,omitempty"`
+
+	// Id ID of the charge or discount.
+	Id string `json:"id"`
+
+	// PreLinePeriodQuantity The usage discount already applied to the previous split lines.
+	//
+	// Only set if progressive billing is enabled and the line is a split line.
+	PreLinePeriodQuantity *BillingNotificationEventV1Numeric `json:"pre_line_period_quantity,omitempty"`
+
+	// Quantity The usage to apply.
+	Quantity BillingNotificationEventV1Numeric `json:"quantity"`
+
+	// Reason Reason code.
+	Reason BillingNotificationEventV1BillingDiscountReason `json:"reason"`
+
+	// UpdatedAt Timestamp of when the resource was last updated.
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+// BillingNotificationEventV1InvoiceNumber InvoiceNumber is a unique identifier for the invoice, generated by the invoicing
+// app.
+//
+// The uniqueness depends on a lot of factors:
+//
+// - app setting (unique per app or unique per customer)
+// - multiple app scenarios (multiple apps generating invoices with the same
+// prefix)
+type BillingNotificationEventV1InvoiceNumber = string
+
+// BillingNotificationEventV1InvoicePaymentTerms Payment contains details as to how the invoice should be paid.
+type BillingNotificationEventV1InvoicePaymentTerms struct {
+	// Terms The terms of payment for the invoice.
+	Terms *BillingNotificationEventV1PaymentTerms `json:"terms,omitempty"`
+}
+
+// BillingNotificationEventV1InvoiceReference Reference to an invoice.
+type BillingNotificationEventV1InvoiceReference struct {
+	// Id The ID of the invoice.
+	Id string `json:"id"`
+
+	// Number The number of the invoice.
+	Number *BillingNotificationEventV1InvoiceNumber `json:"number,omitempty"`
+}
+
+// BillingNotificationEventV1InvoiceStatus InvoiceStatus describes the status of an invoice.
+type BillingNotificationEventV1InvoiceStatus string
+
+// BillingNotificationEventV1InvoiceStatusDetails InvoiceStatusDetails represents the details of the invoice status.
+//
+// API users are encouraged to rely on the immutable/failed/avaliableActions fields
+// to determine the next steps of the invoice instead of the extendedStatus field.
+type BillingNotificationEventV1InvoiceStatusDetails struct {
+	// AvailableActions The actions that can be performed on the invoice.
+	AvailableActions BillingNotificationEventV1InvoiceAvailableActions `json:"available_actions"`
+
+	// ExtendedStatus Extended status information for the invoice.
+	ExtendedStatus string `json:"extended_status"`
+
+	// Failed Is the invoice in a failed state?
+	Failed bool `json:"failed"`
+
+	// Immutable Is the invoice editable?
+	Immutable bool `json:"immutable"`
+}
+
+// BillingNotificationEventV1InvoiceTotals Totals contains the summaries of all calculations for the invoice.
+type BillingNotificationEventV1InvoiceTotals struct {
+	// Amount The total value of the line before taxes, discounts and commitments.
+	Amount BillingNotificationEventV1Numeric `json:"amount"`
+
+	// ChargesTotal The amount of value of the line that are due to additional charges.
+	ChargesTotal BillingNotificationEventV1Numeric `json:"charges_total"`
+
+	// CreditsTotal The amount of value of the line that are due to credits.
+	CreditsTotal BillingNotificationEventV1Numeric `json:"credits_total"`
+
+	// DiscountsTotal The amount of value of the line that are due to discounts.
+	DiscountsTotal BillingNotificationEventV1Numeric `json:"discounts_total"`
+
+	// TaxesExclusiveTotal The total amount of taxes that are added on top of amount from the line.
+	TaxesExclusiveTotal BillingNotificationEventV1Numeric `json:"taxes_exclusive_total"`
+
+	// TaxesInclusiveTotal The total amount of taxes that are included in the line.
+	TaxesInclusiveTotal BillingNotificationEventV1Numeric `json:"taxes_inclusive_total"`
+
+	// TaxesTotal The total amount of taxes for this line.
+	TaxesTotal BillingNotificationEventV1Numeric `json:"taxes_total"`
+
+	// Total The total amount value of the line after taxes, discounts and commitments.
+	Total BillingNotificationEventV1Numeric `json:"total"`
+}
+
+// BillingNotificationEventV1InvoiceType InvoiceType represents the type of invoice.
+//
+// The type of invoice determines the purpose of the invoice and how it should be
+// handled.
+type BillingNotificationEventV1InvoiceType string
+
+// BillingNotificationEventV1InvoiceUsageBasedRateCard InvoiceUsageBasedRateCard represents the rate card (intent) for an usage-based
+// line.
+type BillingNotificationEventV1InvoiceUsageBasedRateCard struct {
+	// Discounts The discounts that are applied to the line.
+	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
+	Discounts *BillingNotificationEventV1BillingDiscounts `json:"discounts,omitempty"`
+
+	// FeatureKey The feature the customer is entitled to use.
+	FeatureKey *string `json:"feature_key,omitempty"`
+
+	// Price The price of the rate card. When null, the feature or service is free.
+	Price nullable.Nullable[BillingNotificationEventV1RateCardUsageBasedPrice] `json:"price"`
+
+	// TaxConfig The tax config of the rate card. When undefined, the tax config of the feature
+	// or the default tax config of the plan is used.
+	TaxConfig *BillingNotificationEventV1TaxConfig `json:"tax_config,omitempty"`
+}
+
+// BillingNotificationEventV1InvoiceWorkflowSettings InvoiceWorkflowSettings represents the workflow settings used by the invoice.
+//
+// This is a clone of the billing profile's workflow settings at the time of
+// invoice creation with customer overrides considered.
+type BillingNotificationEventV1InvoiceWorkflowSettings struct {
+	// Apps The apps that will be used to orchestrate the invoice's workflow.
+	//
+	// The v1 schema allows app references here too, but the v1 Event payloads always
+	// carry the full apps.
+	Apps *BillingNotificationEventV1BillingProfileApps `json:"apps,omitempty"`
+
+	// SourceBillingProfileId sourceBillingProfileID is the billing profile on which the workflow was based
+	// on.
+	//
+	// The profile is snapshotted on invoice creation, after which it can be altered
+	// independently of the profile itself.
+	SourceBillingProfileId string `json:"source_billing_profile_id"`
+
+	// Workflow The workflow details used by this invoice.
+	Workflow BillingNotificationEventV1BillingWorkflow `json:"workflow"`
+}
+
+// BillingNotificationEventV1MarketplaceListing A marketplace listing. Represent an available app in the app marketplace that
+// can be installed to the organization.
+//
+// Marketplace apps only exist in config so they don't extend the Resource model.
+type BillingNotificationEventV1MarketplaceListing struct {
+	// Capabilities The app's capabilities.
+	Capabilities []BillingNotificationEventV1AppCapability `json:"capabilities"`
+
+	// Description The app's description.
+	Description string `json:"description"`
+
+	// InstallMethods Install methods.
+	//
+	// List of methods to install the app.
+	InstallMethods []BillingNotificationEventV1InstallMethod `json:"install_methods"`
+
+	// Name The app's name.
+	Name string `json:"name"`
+
+	// Type The app's type
+	Type BillingNotificationEventV1AppType `json:"type"`
+}
+
+// BillingNotificationEventV1Metadata Set of key-value pairs. Metadata can be used to store additional information
+// about a resource.
+type BillingNotificationEventV1Metadata = map[string]string
+
+// BillingNotificationEventV1Numeric Numeric represents an arbitrary precision number.
+type BillingNotificationEventV1Numeric = string
+
+// BillingNotificationEventV1PackagePriceWithCommitments Package price with spend commitments.
+type BillingNotificationEventV1PackagePriceWithCommitments struct {
+	// Amount The price of one package.
+	Amount BillingNotificationEventV1Numeric `json:"amount"`
+
+	// MaximumAmount The customer is limited to spend at most the amount.
+	MaximumAmount *BillingNotificationEventV1Numeric `json:"maximum_amount,omitempty"`
+
+	// MinimumAmount The customer is committed to spend at least the amount.
+	MinimumAmount *BillingNotificationEventV1Numeric `json:"minimum_amount,omitempty"`
+
+	// QuantityPerPackage The quantity per package.
+	QuantityPerPackage BillingNotificationEventV1Numeric `json:"quantity_per_package"`
+
+	// Type The type of the price.
+	Type BillingNotificationEventV1PackagePriceWithCommitmentsType `json:"type"`
+}
+
+// BillingNotificationEventV1PackagePriceWithCommitmentsType The type of the price.
+type BillingNotificationEventV1PackagePriceWithCommitmentsType string
+
+// BillingNotificationEventV1PaymentDueDate PaymentDueDate contains an amount that should be paid by the given date.
+type BillingNotificationEventV1PaymentDueDate struct {
+	// Amount How much needs to be paid by the date.
+	Amount BillingNotificationEventV1Numeric `json:"amount"`
+
+	// Currency If different from the parent document's base currency.
+	Currency *BillingNotificationEventV1CurrencyCode `json:"currency,omitempty"`
+
+	// DueAt When the payment is due.
+	DueAt time.Time `json:"due_at"`
+
+	// Notes Other details to take into account for the due date.
+	Notes *string `json:"notes,omitempty"`
+
+	// Percent Percentage of the total that should be paid by the date.
+	Percent *BillingNotificationEventV1Percentage `json:"percent,omitempty"`
+}
+
+// BillingNotificationEventV1PaymentTermDueDate PaymentTermDueDate defines the terms for payment on a specific date.
+type BillingNotificationEventV1PaymentTermDueDate struct {
+	// Detail Text detail of the chosen payment terms.
+	Detail *string `json:"detail,omitempty"`
+
+	// DueAt When the payment is due.
+	DueAt []BillingNotificationEventV1PaymentDueDate `json:"due_at"`
+
+	// Notes Description of the conditions for payment.
+	Notes *string `json:"notes,omitempty"`
+
+	// Type Type of terms to be applied.
+	Type BillingNotificationEventV1PaymentTermDueDateType `json:"type"`
+}
+
+// BillingNotificationEventV1PaymentTermDueDateType Type of terms to be applied.
+type BillingNotificationEventV1PaymentTermDueDateType string
+
+// BillingNotificationEventV1PaymentTermInstant PaymentTermInstant defines the terms for payment on receipt of invoice.
+type BillingNotificationEventV1PaymentTermInstant struct {
+	// Detail Text detail of the chosen payment terms.
+	Detail *string `json:"detail,omitempty"`
+
+	// Notes Description of the conditions for payment.
+	Notes *string `json:"notes,omitempty"`
+
+	// Type Type of terms to be applied.
+	Type BillingNotificationEventV1PaymentTermInstantType `json:"type"`
+}
+
+// BillingNotificationEventV1PaymentTermInstantType Type of terms to be applied.
+type BillingNotificationEventV1PaymentTermInstantType string
+
+// BillingNotificationEventV1PaymentTerms PaymentTerms defines the terms for payment.
+type BillingNotificationEventV1PaymentTerms struct {
+	union json.RawMessage
+}
+
+// BillingNotificationEventV1Percentage Numeric representation of a percentage
+//
+// 50% is represented as 50
+type BillingNotificationEventV1Percentage = models.Percentage
+
+// BillingNotificationEventV1Period A period with a start and end time.
+type BillingNotificationEventV1Period struct {
+	// From Period start time.
+	From time.Time `json:"from"`
+
+	// To Period end time.
+	To time.Time `json:"to"`
+}
+
+// BillingNotificationEventV1PlanReference References an exact plan.
+type BillingNotificationEventV1PlanReference struct {
+	// Id The plan ID.
+	Id string `json:"id"`
+
+	// Key The plan key.
+	Key string `json:"key"`
+
+	// Version The plan version.
+	Version int `json:"version"`
+}
+
+// BillingNotificationEventV1PricePaymentTerm The payment term of a flat price. One of: in_advance or in_arrears.
+type BillingNotificationEventV1PricePaymentTerm string
+
+// BillingNotificationEventV1PriceTier A price tier. At least one price component is required in each tier.
+type BillingNotificationEventV1PriceTier struct {
+	// FlatPrice The flat price component of the tier.
+	FlatPrice nullable.Nullable[BillingNotificationEventV1FlatPrice] `json:"flat_price"`
+
+	// UnitPrice The unit price component of the tier.
+	UnitPrice nullable.Nullable[BillingNotificationEventV1UnitPrice] `json:"unit_price"`
+
+	// UpToAmount Up to and including to this quantity will be contained in the tier. If null, the
+	// tier is open-ended.
+	UpToAmount *BillingNotificationEventV1Numeric `json:"up_to_amount,omitempty"`
+}
+
+// BillingNotificationEventV1ProRatingConfig Configuration for pro-rating behavior.
+type BillingNotificationEventV1ProRatingConfig struct {
+	// Enabled Whether pro-rating is enabled for this plan.
+	Enabled bool `json:"enabled"`
+
+	// Mode How to handle pro-rating for billing period changes.
+	Mode BillingNotificationEventV1ProRatingMode `json:"mode"`
+}
+
+// BillingNotificationEventV1ProRatingMode Pro-rating mode options for handling billing period changes.
+type BillingNotificationEventV1ProRatingMode string
+
+// BillingNotificationEventV1RateCardUsageBasedPrice The price of the usage based rate card.
+type BillingNotificationEventV1RateCardUsageBasedPrice struct {
+	union json.RawMessage
+}
+
+// BillingNotificationEventV1RecurringPeriod Recurring period with an interval and an anchor.
+type BillingNotificationEventV1RecurringPeriod struct {
+	// Anchor A date-time anchor to base the recurring period on.
+	Anchor time.Time `json:"anchor"`
+
+	// Interval The unit of time for the interval. Heuristically maps ISO duraitons to enum
+	// values or returns the ISO duration.
+	Interval BillingNotificationEventV1RecurringPeriodInterval `json:"interval"`
+
+	// IntervalIso The unit of time for the interval in ISO8601 format.
+	IntervalIso string `json:"interval_iso"`
+}
+
+// BillingNotificationEventV1RecurringPeriodInterval Period duration for the recurrence
+type BillingNotificationEventV1RecurringPeriodInterval struct {
+	union json.RawMessage
+}
+
+// BillingNotificationEventV1RecurringPeriodInterval0 defines model for .
+type BillingNotificationEventV1RecurringPeriodInterval0 = string
+
+// BillingNotificationEventV1RecurringPeriodIntervalEnum The unit of time for the interval. One of: `day`, `week`, `month`, or `year`.
+type BillingNotificationEventV1RecurringPeriodIntervalEnum string
+
+// BillingNotificationEventV1RecurringPeriodV2 Recurring period with an interval and an anchor.
+type BillingNotificationEventV1RecurringPeriodV2 struct {
+	// Anchor A date-time anchor to base the recurring period on.
+	Anchor time.Time `json:"anchor"`
+
+	// Interval The unit of time for the interval. Heuristically maps ISO duraitons to enum
+	// values or returns the ISO duration.
+	Interval BillingNotificationEventV1RecurringPeriodInterval `json:"interval"`
+}
+
+// BillingNotificationEventV1RuleBalanceThresholdValue Threshold value with multiple supported types.
+type BillingNotificationEventV1RuleBalanceThresholdValue struct {
+	// Type Type of the threshold.
+	Type BillingNotificationEventV1RuleBalanceThresholdValueType `json:"type"`
+
+	// Value Value of the threshold.
+	Value float64 `json:"value"`
+}
+
+// BillingNotificationEventV1RuleBalanceThresholdValueType Type of the rule in the balance threshold specification:
+//
+// - `balance_value`: threshold defined by the remaining balance value based on
+// usage and the total of grants in the current usage period
+// - `usage_percentage`: threshold defined by the usage percentage compared to the
+// total of grants in the current usage period
+// - `usage_value`: threshold defined by the usage value in the current usage
+// period
+// - `NUMBER` (**deprecated**): see `usage_value`
+// - `PERCENT` (**deprecated**): see `usage_percentage`
+type BillingNotificationEventV1RuleBalanceThresholdValueType string
+
+// BillingNotificationEventV1SandboxApp Sandbox app can be used for testing OpenMeter features.
+//
+// The app is not creating anything in external systems, thus it is safe to use for
+// verifying OpenMeter features.
+type BillingNotificationEventV1SandboxApp struct {
+	// CreatedAt Timestamp of when the resource was created.
+	CreatedAt time.Time `json:"created_at"`
+
+	// DeletedAt Timestamp of when the resource was permanently deleted.
+	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+
+	// Description Optional description of the resource. Maximum 1024 characters.
+	Description *string `json:"description,omitempty"`
+
+	// Id A unique identifier for the resource.
+	Id string `json:"id"`
+
+	// Listing The marketplace listing that this installed app is based on.
+	Listing BillingNotificationEventV1MarketplaceListing `json:"listing"`
+
+	// Metadata Additional metadata for the resource.
+	Metadata nullable.Nullable[BillingNotificationEventV1Metadata] `json:"metadata,omitempty"`
+
+	// Name Human-readable name for the resource. Between 1 and 256 characters.
+	Name string `json:"name"`
+
+	// Status Status of the app connection.
+	Status BillingNotificationEventV1AppStatus `json:"status"`
+
+	// Type The app's type is Sandbox.
+	Type BillingNotificationEventV1SandboxAppType `json:"type"`
+
+	// UpdatedAt Timestamp of when the resource was last updated.
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+// BillingNotificationEventV1SandboxAppType The app's type is Sandbox.
+type BillingNotificationEventV1SandboxAppType string
+
+// BillingNotificationEventV1StripeApp A installed Stripe app object.
+type BillingNotificationEventV1StripeApp struct {
+	// CreatedAt Timestamp of when the resource was created.
+	CreatedAt time.Time `json:"created_at"`
+
+	// DeletedAt Timestamp of when the resource was permanently deleted.
+	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+
+	// Description Optional description of the resource. Maximum 1024 characters.
+	Description *string `json:"description,omitempty"`
+
+	// Id A unique identifier for the resource.
+	Id string `json:"id"`
+
+	// Listing The marketplace listing that this installed app is based on.
+	Listing BillingNotificationEventV1MarketplaceListing `json:"listing"`
+
+	// Livemode Livemode, true if the app is in production mode.
+	Livemode bool `json:"livemode"`
+
+	// MaskedApiKey The masked API key. Only shows the first 8 and last 3 characters.
+	MaskedApiKey string `json:"masked_api_key"`
+
+	// Metadata Additional metadata for the resource.
+	Metadata nullable.Nullable[BillingNotificationEventV1Metadata] `json:"metadata,omitempty"`
+
+	// Name Human-readable name for the resource. Between 1 and 256 characters.
+	Name string `json:"name"`
+
+	// Status Status of the app connection.
+	Status BillingNotificationEventV1AppStatus `json:"status"`
+
+	// StripeAccountId The Stripe account ID.
+	StripeAccountId string `json:"stripe_account_id"`
+
+	// Type The app's type is Stripe.
+	Type BillingNotificationEventV1StripeAppType `json:"type"`
+
+	// UpdatedAt Timestamp of when the resource was last updated.
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+// BillingNotificationEventV1StripeAppType The app's type is Stripe.
+type BillingNotificationEventV1StripeAppType string
+
+// BillingNotificationEventV1StripeTaxConfig The tax config for Stripe.
+type BillingNotificationEventV1StripeTaxConfig struct {
+	// Code Product tax code.
+	//
+	// See: https://docs.stripe.com/tax/tax-codes
+	Code string `json:"code"`
+}
+
+// BillingNotificationEventV1Subject A subject is a unique identifier for a usage attribution by its key. Subjects
+// only exist in the concept of metering. Subjects are optional to create and work
+// as an enrichment for the subject key like displayName, metadata, etc. Subjects
+// are useful when you are reporting usage events with your own database ID but
+// want to enrich the subject with a human-readable name or metadata. For most use
+// cases, a subject is equivalent to a customer.
+//
+// ⚠️ **Deprecated**: Subjects as managable entities are being depracated, use
+// customers with subject key usage attribution instead.
+type BillingNotificationEventV1Subject struct {
+	// CreatedAt Timestamp of when the resource was created.
+	CreatedAt time.Time `json:"created_at"`
+
+	// CurrentPeriodEnd The end of the current period for the subject.
+	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
+	CurrentPeriodEnd *time.Time `json:"current_period_end,omitempty"`
+
+	// CurrentPeriodStart The start of the current period for the subject.
+	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
+	CurrentPeriodStart *time.Time `json:"current_period_start,omitempty"`
+
+	// DeletedAt Timestamp of when the resource was permanently deleted.
+	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+
+	// DisplayName A human-readable display name for the subject.
+	DisplayName nullable.Nullable[string] `json:"display_name,omitempty"`
+
+	// Id A unique identifier for the subject.
+	Id string `json:"id"`
+
+	// Key A unique, human-readable identifier for the subject. This is typically a
+	// database ID or a customer key.
+	Key string `json:"key"`
+
+	// Metadata Metadata for the subject.
+	Metadata nullable.Nullable[map[string]interface{}] `json:"metadata,omitempty"`
+
+	// StripeCustomerId The Stripe customer ID for the subject.
+	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
+	StripeCustomerId nullable.Nullable[string] `json:"stripe_customer_id,omitempty"`
+
+	// UpdatedAt Timestamp of when the resource was last updated.
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+// BillingNotificationEventV1Subscription Subscription is an exact subscription instance.
+type BillingNotificationEventV1Subscription struct {
+	// ActiveFrom The cadence start of the resource.
+	ActiveFrom time.Time `json:"active_from"`
+
+	// ActiveTo The cadence end of the resource.
+	ActiveTo *time.Time `json:"active_to,omitempty"`
+
+	// Alignment Alignment configuration for the plan.
+	Alignment *BillingNotificationEventV1Alignment `json:"alignment,omitempty"`
+
+	// Annotations Set of key-value pairs managed by the system. Cannot be modified by user.
+	Annotations *BillingNotificationEventV1Annotations `json:"annotations,omitempty"`
+
+	// BillingAnchor The normalizedbilling anchor of the subscription.
+	BillingAnchor time.Time `json:"billing_anchor"`
+
+	// BillingCadence The billing cadence for the subscriptions. Defines how often customers are
+	// billed using ISO8601 duration format. Examples: "P1M" (monthly), "P3M"
+	// (quarterly), "P1Y" (annually).
+	BillingCadence string `json:"billing_cadence"`
+
+	// CostBasisMode Controls whether custom-currency cost bases are resolved dynamically or pinned
+	// when their currency pair is introduced to the subscription.
+	CostBasisMode BillingNotificationEventV1SubscriptionCostBasisMode `json:"cost_basis_mode"`
+
+	// CostBasisPins Cost bases pinned to custom-currency pairs for this subscription.
+	CostBasisPins []BillingNotificationEventV1SubscriptionCostBasisPin `json:"cost_basis_pins"`
+
+	// CreatedAt Timestamp of when the resource was created.
+	CreatedAt time.Time `json:"created_at"`
+
+	// Currency The fiat currency in which the subscription is invoiced.
+	Currency BillingNotificationEventV1CurrencyCode `json:"currency"`
+
+	// CustomerId The customer ID of the subscription.
+	CustomerId string `json:"customer_id"`
+
+	// DeletedAt Timestamp of when the resource was permanently deleted.
+	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+
+	// Description Optional description of the resource. Maximum 1024 characters.
+	Description *string `json:"description,omitempty"`
+
+	// Id A unique identifier for the resource.
+	Id string `json:"id"`
+
+	// Metadata Additional metadata for the resource.
+	Metadata nullable.Nullable[BillingNotificationEventV1Metadata] `json:"metadata,omitempty"`
+
+	// Name Human-readable name for the resource. Between 1 and 256 characters.
+	Name string `json:"name"`
+
+	// Plan The plan of the subscription.
+	Plan *BillingNotificationEventV1PlanReference `json:"plan,omitempty"`
+
+	// ProRatingConfig The pro-rating configuration for the subscriptions.
+	ProRatingConfig *BillingNotificationEventV1ProRatingConfig `json:"pro_rating_config,omitempty"`
+
+	// SettlementMode The settlement mode of the subscription.
+	//
+	// - credit_then_invoice: credits from the previous billing period are applied
+	// first, then the remaining balance is invoiced.
+	// - credit_only: only credits from the previous billing period are generated and
+	// applied. No invoices are generated for the subscription. This is the default
+	// and most common settlement mode.
+	SettlementMode BillingNotificationEventV1BillingSettlementMode `json:"settlement_mode"`
+
+	// Status The status of the subscription.
+	Status BillingNotificationEventV1SubscriptionStatus `json:"status"`
+
+	// UpdatedAt Timestamp of when the resource was last updated.
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+// BillingNotificationEventV1SubscriptionCostBasisMode Controls how custom-currency cost bases are selected for the subscription.
+type BillingNotificationEventV1SubscriptionCostBasisMode string
+
+// BillingNotificationEventV1SubscriptionCostBasisPin A cost basis pinned to a custom-currency pair for the subscription.
+type BillingNotificationEventV1SubscriptionCostBasisPin struct {
+	// CostBasisId The pinned cost basis resource ID.
+	CostBasisId string `json:"cost_basis_id"`
+
+	// CustomCurrencyId The managed custom currency ID.
+	CustomCurrencyId string `json:"custom_currency_id"`
+
+	// InvoiceCurrency The fiat currency in which the subscription is invoiced.
+	InvoiceCurrency BillingNotificationEventV1CurrencyCode `json:"invoice_currency"`
+}
+
+// BillingNotificationEventV1SubscriptionStatus Subscription status.
+type BillingNotificationEventV1SubscriptionStatus string
+
+// BillingNotificationEventV1TaxBehavior Tax behavior.
+//
+// This enum is used to specify whether tax is included in the price or excluded
+// from the price.
+type BillingNotificationEventV1TaxBehavior string
+
+// BillingNotificationEventV1TaxConfig Set of provider specific tax configs.
+type BillingNotificationEventV1TaxConfig struct {
+	// Behavior Tax behavior.
+	//
+	// If not specified the billing profile is used to determine the tax behavior. If
+	// not specified in the billing profile, the provider's default behavior is used.
+	Behavior *BillingNotificationEventV1TaxBehavior `json:"behavior,omitempty"`
+
+	// CustomInvoicing Custom invoicing tax config.
+	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
+	CustomInvoicing *BillingNotificationEventV1CustomInvoicingTaxConfig `json:"custom_invoicing,omitempty"`
+
+	// Stripe Stripe tax config.
+	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
+	Stripe *BillingNotificationEventV1StripeTaxConfig `json:"stripe,omitempty"`
+
+	// TaxCodeId Tax code reference.
+	//
+	// When both `taxCodeId` and `stripe.code` are provided, `taxCodeId` takes
+	// precedence: the referenced tax code entity is used and `stripe.code` is ignored.
+	TaxCodeId *string `json:"tax_code_id,omitempty"`
+}
+
+// BillingNotificationEventV1TieredPriceMode The mode of the tiered price.
+type BillingNotificationEventV1TieredPriceMode string
+
+// BillingNotificationEventV1TieredPriceWithCommitments Tiered price with spend commitments.
+type BillingNotificationEventV1TieredPriceWithCommitments struct {
+	// MaximumAmount The customer is limited to spend at most the amount.
+	MaximumAmount *BillingNotificationEventV1Numeric `json:"maximum_amount,omitempty"`
+
+	// MinimumAmount The customer is committed to spend at least the amount.
+	MinimumAmount *BillingNotificationEventV1Numeric `json:"minimum_amount,omitempty"`
+
+	// Mode Defines if the tiering mode is volume-based or graduated:
+	//
+	// - In `volume`-based tiering, the maximum quantity within a period determines the
+	// per unit price.
+	// - In `graduated` tiering, pricing can change as the quantity grows.
+	Mode BillingNotificationEventV1TieredPriceMode `json:"mode"`
+
+	// Tiers The tiers of the tiered price. At least one price component is required in each
+	// tier.
+	Tiers []BillingNotificationEventV1PriceTier `json:"tiers"`
+
+	// Type The type of the price.
+	//
+	// One of: flat, unit, or tiered.
+	Type BillingNotificationEventV1TieredPriceWithCommitmentsType `json:"type"`
+}
+
+// BillingNotificationEventV1TieredPriceWithCommitmentsType The type of the price.
+//
+// One of: flat, unit, or tiered.
+type BillingNotificationEventV1TieredPriceWithCommitmentsType string
+
+// BillingNotificationEventV1UnitPrice Unit price.
+type BillingNotificationEventV1UnitPrice struct {
+	// Amount The amount of the unit price.
+	Amount BillingNotificationEventV1Numeric `json:"amount"`
+
+	// Type The type of the price.
+	Type BillingNotificationEventV1UnitPriceType `json:"type"`
+}
+
+// BillingNotificationEventV1UnitPriceType The type of the price.
+type BillingNotificationEventV1UnitPriceType string
+
+// BillingNotificationEventV1UnitPriceWithCommitments Unit price with spend commitments.
+type BillingNotificationEventV1UnitPriceWithCommitments struct {
+	// Amount The amount of the unit price.
+	Amount BillingNotificationEventV1Numeric `json:"amount"`
+
+	// MaximumAmount The customer is limited to spend at most the amount.
+	MaximumAmount *BillingNotificationEventV1Numeric `json:"maximum_amount,omitempty"`
+
+	// MinimumAmount The customer is committed to spend at least the amount.
+	MinimumAmount *BillingNotificationEventV1Numeric `json:"minimum_amount,omitempty"`
+
+	// Type The type of the price.
+	Type BillingNotificationEventV1UnitPriceWithCommitmentsType `json:"type"`
+}
+
+// BillingNotificationEventV1UnitPriceWithCommitmentsType The type of the price.
+type BillingNotificationEventV1UnitPriceWithCommitmentsType string
+
+// BillingNotificationEventV1ValidationIssue ValidationIssue captures any validation issues related to the invoice.
+//
+// Issues with severity "critical" will prevent the invoice from being issued.
+type BillingNotificationEventV1ValidationIssue struct {
+	// Code Machine indentifiable code for the issue, if available.
+	Code *string `json:"code,omitempty"`
+
+	// Component Component reporting the issue.
+	Component string `json:"component"`
+
+	// CreatedAt Timestamp of when the resource was created.
+	CreatedAt time.Time `json:"created_at"`
+
+	// DeletedAt Timestamp of when the resource was permanently deleted.
+	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+
+	// Field The field that the issue is related to, if available in JSON path format.
+	Field *string `json:"field,omitempty"`
+
+	// Id ID of the charge or discount.
+	Id string `json:"id"`
+
+	// Message A human-readable description of the issue.
+	Message string `json:"message"`
+
+	// Metadata Additional context for the issue.
+	Metadata *BillingNotificationEventV1Metadata `json:"metadata,omitempty"`
+
+	// Severity The severity of the issue.
+	Severity BillingNotificationEventV1ValidationIssueSeverity `json:"severity"`
+
+	// UpdatedAt Timestamp of when the resource was last updated.
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+// BillingNotificationEventV1ValidationIssueSeverity ValidationIssueSeverity describes the severity of a validation issue.
+//
+// Issues with severity "critical" will prevent the invoice from being issued.
+type BillingNotificationEventV1ValidationIssueSeverity string
 
 // BillingNotificationRule A notification rule selects the type of event to generate, the conditions
 // specific to that type, and the channels to deliver the events to.
@@ -13861,6 +16772,752 @@ func (t BillingNotificationEventPayload) MarshalJSON() ([]byte, error) {
 }
 
 func (t *BillingNotificationEventPayload) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsBillingNotificationEventV1StripeApp returns the union data inside the BillingNotificationEventV1App as a BillingNotificationEventV1StripeApp
+func (t BillingNotificationEventV1App) AsBillingNotificationEventV1StripeApp() (BillingNotificationEventV1StripeApp, error) {
+	var body BillingNotificationEventV1StripeApp
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromBillingNotificationEventV1StripeApp overwrites any union data inside the BillingNotificationEventV1App as the provided BillingNotificationEventV1StripeApp
+func (t *BillingNotificationEventV1App) FromBillingNotificationEventV1StripeApp(v BillingNotificationEventV1StripeApp) error {
+	v.Type = "stripe"
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeBillingNotificationEventV1StripeApp performs a merge with any union data inside the BillingNotificationEventV1App, using the provided BillingNotificationEventV1StripeApp
+func (t *BillingNotificationEventV1App) MergeBillingNotificationEventV1StripeApp(v BillingNotificationEventV1StripeApp) error {
+	v.Type = "stripe"
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsBillingNotificationEventV1SandboxApp returns the union data inside the BillingNotificationEventV1App as a BillingNotificationEventV1SandboxApp
+func (t BillingNotificationEventV1App) AsBillingNotificationEventV1SandboxApp() (BillingNotificationEventV1SandboxApp, error) {
+	var body BillingNotificationEventV1SandboxApp
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromBillingNotificationEventV1SandboxApp overwrites any union data inside the BillingNotificationEventV1App as the provided BillingNotificationEventV1SandboxApp
+func (t *BillingNotificationEventV1App) FromBillingNotificationEventV1SandboxApp(v BillingNotificationEventV1SandboxApp) error {
+	v.Type = "sandbox"
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeBillingNotificationEventV1SandboxApp performs a merge with any union data inside the BillingNotificationEventV1App, using the provided BillingNotificationEventV1SandboxApp
+func (t *BillingNotificationEventV1App) MergeBillingNotificationEventV1SandboxApp(v BillingNotificationEventV1SandboxApp) error {
+	v.Type = "sandbox"
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsBillingNotificationEventV1CustomInvoicingApp returns the union data inside the BillingNotificationEventV1App as a BillingNotificationEventV1CustomInvoicingApp
+func (t BillingNotificationEventV1App) AsBillingNotificationEventV1CustomInvoicingApp() (BillingNotificationEventV1CustomInvoicingApp, error) {
+	var body BillingNotificationEventV1CustomInvoicingApp
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromBillingNotificationEventV1CustomInvoicingApp overwrites any union data inside the BillingNotificationEventV1App as the provided BillingNotificationEventV1CustomInvoicingApp
+func (t *BillingNotificationEventV1App) FromBillingNotificationEventV1CustomInvoicingApp(v BillingNotificationEventV1CustomInvoicingApp) error {
+	v.Type = "custom_invoicing"
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeBillingNotificationEventV1CustomInvoicingApp performs a merge with any union data inside the BillingNotificationEventV1App, using the provided BillingNotificationEventV1CustomInvoicingApp
+func (t *BillingNotificationEventV1App) MergeBillingNotificationEventV1CustomInvoicingApp(v BillingNotificationEventV1CustomInvoicingApp) error {
+	v.Type = "custom_invoicing"
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t BillingNotificationEventV1App) Discriminator() (string, error) {
+	var discriminator struct {
+		Discriminator string `json:"type"`
+	}
+	err := json.Unmarshal(t.union, &discriminator)
+	return discriminator.Discriminator, err
+}
+
+func (t BillingNotificationEventV1App) ValueByDiscriminator() (interface{}, error) {
+	discriminator, err := t.Discriminator()
+	if err != nil {
+		return nil, err
+	}
+	switch discriminator {
+	case "custom_invoicing":
+		return t.AsBillingNotificationEventV1CustomInvoicingApp()
+	case "sandbox":
+		return t.AsBillingNotificationEventV1SandboxApp()
+	case "stripe":
+		return t.AsBillingNotificationEventV1StripeApp()
+	default:
+		return nil, errors.New("unknown discriminator value: " + discriminator)
+	}
+}
+
+func (t BillingNotificationEventV1App) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *BillingNotificationEventV1App) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsBillingNotificationEventV1DiscountReasonMaximumSpend returns the union data inside the BillingNotificationEventV1BillingDiscountReason as a BillingNotificationEventV1DiscountReasonMaximumSpend
+func (t BillingNotificationEventV1BillingDiscountReason) AsBillingNotificationEventV1DiscountReasonMaximumSpend() (BillingNotificationEventV1DiscountReasonMaximumSpend, error) {
+	var body BillingNotificationEventV1DiscountReasonMaximumSpend
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromBillingNotificationEventV1DiscountReasonMaximumSpend overwrites any union data inside the BillingNotificationEventV1BillingDiscountReason as the provided BillingNotificationEventV1DiscountReasonMaximumSpend
+func (t *BillingNotificationEventV1BillingDiscountReason) FromBillingNotificationEventV1DiscountReasonMaximumSpend(v BillingNotificationEventV1DiscountReasonMaximumSpend) error {
+	v.Type = "maximum_spend"
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeBillingNotificationEventV1DiscountReasonMaximumSpend performs a merge with any union data inside the BillingNotificationEventV1BillingDiscountReason, using the provided BillingNotificationEventV1DiscountReasonMaximumSpend
+func (t *BillingNotificationEventV1BillingDiscountReason) MergeBillingNotificationEventV1DiscountReasonMaximumSpend(v BillingNotificationEventV1DiscountReasonMaximumSpend) error {
+	v.Type = "maximum_spend"
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsBillingNotificationEventV1DiscountReasonRatecardPercentage returns the union data inside the BillingNotificationEventV1BillingDiscountReason as a BillingNotificationEventV1DiscountReasonRatecardPercentage
+func (t BillingNotificationEventV1BillingDiscountReason) AsBillingNotificationEventV1DiscountReasonRatecardPercentage() (BillingNotificationEventV1DiscountReasonRatecardPercentage, error) {
+	var body BillingNotificationEventV1DiscountReasonRatecardPercentage
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromBillingNotificationEventV1DiscountReasonRatecardPercentage overwrites any union data inside the BillingNotificationEventV1BillingDiscountReason as the provided BillingNotificationEventV1DiscountReasonRatecardPercentage
+func (t *BillingNotificationEventV1BillingDiscountReason) FromBillingNotificationEventV1DiscountReasonRatecardPercentage(v BillingNotificationEventV1DiscountReasonRatecardPercentage) error {
+	v.Type = "ratecard_percentage"
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeBillingNotificationEventV1DiscountReasonRatecardPercentage performs a merge with any union data inside the BillingNotificationEventV1BillingDiscountReason, using the provided BillingNotificationEventV1DiscountReasonRatecardPercentage
+func (t *BillingNotificationEventV1BillingDiscountReason) MergeBillingNotificationEventV1DiscountReasonRatecardPercentage(v BillingNotificationEventV1DiscountReasonRatecardPercentage) error {
+	v.Type = "ratecard_percentage"
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsBillingNotificationEventV1DiscountReasonRatecardUsage returns the union data inside the BillingNotificationEventV1BillingDiscountReason as a BillingNotificationEventV1DiscountReasonRatecardUsage
+func (t BillingNotificationEventV1BillingDiscountReason) AsBillingNotificationEventV1DiscountReasonRatecardUsage() (BillingNotificationEventV1DiscountReasonRatecardUsage, error) {
+	var body BillingNotificationEventV1DiscountReasonRatecardUsage
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromBillingNotificationEventV1DiscountReasonRatecardUsage overwrites any union data inside the BillingNotificationEventV1BillingDiscountReason as the provided BillingNotificationEventV1DiscountReasonRatecardUsage
+func (t *BillingNotificationEventV1BillingDiscountReason) FromBillingNotificationEventV1DiscountReasonRatecardUsage(v BillingNotificationEventV1DiscountReasonRatecardUsage) error {
+	v.Type = "ratecard_usage"
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeBillingNotificationEventV1DiscountReasonRatecardUsage performs a merge with any union data inside the BillingNotificationEventV1BillingDiscountReason, using the provided BillingNotificationEventV1DiscountReasonRatecardUsage
+func (t *BillingNotificationEventV1BillingDiscountReason) MergeBillingNotificationEventV1DiscountReasonRatecardUsage(v BillingNotificationEventV1DiscountReasonRatecardUsage) error {
+	v.Type = "ratecard_usage"
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t BillingNotificationEventV1BillingDiscountReason) Discriminator() (string, error) {
+	var discriminator struct {
+		Discriminator string `json:"type"`
+	}
+	err := json.Unmarshal(t.union, &discriminator)
+	return discriminator.Discriminator, err
+}
+
+func (t BillingNotificationEventV1BillingDiscountReason) ValueByDiscriminator() (interface{}, error) {
+	discriminator, err := t.Discriminator()
+	if err != nil {
+		return nil, err
+	}
+	switch discriminator {
+	case "maximum_spend":
+		return t.AsBillingNotificationEventV1DiscountReasonMaximumSpend()
+	case "ratecard_percentage":
+		return t.AsBillingNotificationEventV1DiscountReasonRatecardPercentage()
+	case "ratecard_usage":
+		return t.AsBillingNotificationEventV1DiscountReasonRatecardUsage()
+	default:
+		return nil, errors.New("unknown discriminator value: " + discriminator)
+	}
+}
+
+func (t BillingNotificationEventV1BillingDiscountReason) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *BillingNotificationEventV1BillingDiscountReason) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsBillingNotificationEventV1BillingWorkflowCollectionAlignmentSubscription returns the union data inside the BillingNotificationEventV1BillingWorkflowCollectionAlignment as a BillingNotificationEventV1BillingWorkflowCollectionAlignmentSubscription
+func (t BillingNotificationEventV1BillingWorkflowCollectionAlignment) AsBillingNotificationEventV1BillingWorkflowCollectionAlignmentSubscription() (BillingNotificationEventV1BillingWorkflowCollectionAlignmentSubscription, error) {
+	var body BillingNotificationEventV1BillingWorkflowCollectionAlignmentSubscription
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromBillingNotificationEventV1BillingWorkflowCollectionAlignmentSubscription overwrites any union data inside the BillingNotificationEventV1BillingWorkflowCollectionAlignment as the provided BillingNotificationEventV1BillingWorkflowCollectionAlignmentSubscription
+func (t *BillingNotificationEventV1BillingWorkflowCollectionAlignment) FromBillingNotificationEventV1BillingWorkflowCollectionAlignmentSubscription(v BillingNotificationEventV1BillingWorkflowCollectionAlignmentSubscription) error {
+	v.Type = "subscription"
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeBillingNotificationEventV1BillingWorkflowCollectionAlignmentSubscription performs a merge with any union data inside the BillingNotificationEventV1BillingWorkflowCollectionAlignment, using the provided BillingNotificationEventV1BillingWorkflowCollectionAlignmentSubscription
+func (t *BillingNotificationEventV1BillingWorkflowCollectionAlignment) MergeBillingNotificationEventV1BillingWorkflowCollectionAlignmentSubscription(v BillingNotificationEventV1BillingWorkflowCollectionAlignmentSubscription) error {
+	v.Type = "subscription"
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsBillingNotificationEventV1BillingWorkflowCollectionAlignmentAnchored returns the union data inside the BillingNotificationEventV1BillingWorkflowCollectionAlignment as a BillingNotificationEventV1BillingWorkflowCollectionAlignmentAnchored
+func (t BillingNotificationEventV1BillingWorkflowCollectionAlignment) AsBillingNotificationEventV1BillingWorkflowCollectionAlignmentAnchored() (BillingNotificationEventV1BillingWorkflowCollectionAlignmentAnchored, error) {
+	var body BillingNotificationEventV1BillingWorkflowCollectionAlignmentAnchored
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromBillingNotificationEventV1BillingWorkflowCollectionAlignmentAnchored overwrites any union data inside the BillingNotificationEventV1BillingWorkflowCollectionAlignment as the provided BillingNotificationEventV1BillingWorkflowCollectionAlignmentAnchored
+func (t *BillingNotificationEventV1BillingWorkflowCollectionAlignment) FromBillingNotificationEventV1BillingWorkflowCollectionAlignmentAnchored(v BillingNotificationEventV1BillingWorkflowCollectionAlignmentAnchored) error {
+	v.Type = "anchored"
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeBillingNotificationEventV1BillingWorkflowCollectionAlignmentAnchored performs a merge with any union data inside the BillingNotificationEventV1BillingWorkflowCollectionAlignment, using the provided BillingNotificationEventV1BillingWorkflowCollectionAlignmentAnchored
+func (t *BillingNotificationEventV1BillingWorkflowCollectionAlignment) MergeBillingNotificationEventV1BillingWorkflowCollectionAlignmentAnchored(v BillingNotificationEventV1BillingWorkflowCollectionAlignmentAnchored) error {
+	v.Type = "anchored"
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t BillingNotificationEventV1BillingWorkflowCollectionAlignment) Discriminator() (string, error) {
+	var discriminator struct {
+		Discriminator string `json:"type"`
+	}
+	err := json.Unmarshal(t.union, &discriminator)
+	return discriminator.Discriminator, err
+}
+
+func (t BillingNotificationEventV1BillingWorkflowCollectionAlignment) ValueByDiscriminator() (interface{}, error) {
+	discriminator, err := t.Discriminator()
+	if err != nil {
+		return nil, err
+	}
+	switch discriminator {
+	case "anchored":
+		return t.AsBillingNotificationEventV1BillingWorkflowCollectionAlignmentAnchored()
+	case "subscription":
+		return t.AsBillingNotificationEventV1BillingWorkflowCollectionAlignmentSubscription()
+	default:
+		return nil, errors.New("unknown discriminator value: " + discriminator)
+	}
+}
+
+func (t BillingNotificationEventV1BillingWorkflowCollectionAlignment) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *BillingNotificationEventV1BillingWorkflowCollectionAlignment) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsBillingNotificationEventV1FeatureManualUnitCost returns the union data inside the BillingNotificationEventV1FeatureUnitCost as a BillingNotificationEventV1FeatureManualUnitCost
+func (t BillingNotificationEventV1FeatureUnitCost) AsBillingNotificationEventV1FeatureManualUnitCost() (BillingNotificationEventV1FeatureManualUnitCost, error) {
+	var body BillingNotificationEventV1FeatureManualUnitCost
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromBillingNotificationEventV1FeatureManualUnitCost overwrites any union data inside the BillingNotificationEventV1FeatureUnitCost as the provided BillingNotificationEventV1FeatureManualUnitCost
+func (t *BillingNotificationEventV1FeatureUnitCost) FromBillingNotificationEventV1FeatureManualUnitCost(v BillingNotificationEventV1FeatureManualUnitCost) error {
+	v.Type = "manual"
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeBillingNotificationEventV1FeatureManualUnitCost performs a merge with any union data inside the BillingNotificationEventV1FeatureUnitCost, using the provided BillingNotificationEventV1FeatureManualUnitCost
+func (t *BillingNotificationEventV1FeatureUnitCost) MergeBillingNotificationEventV1FeatureManualUnitCost(v BillingNotificationEventV1FeatureManualUnitCost) error {
+	v.Type = "manual"
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsBillingNotificationEventV1FeatureLLMUnitCost returns the union data inside the BillingNotificationEventV1FeatureUnitCost as a BillingNotificationEventV1FeatureLLMUnitCost
+func (t BillingNotificationEventV1FeatureUnitCost) AsBillingNotificationEventV1FeatureLLMUnitCost() (BillingNotificationEventV1FeatureLLMUnitCost, error) {
+	var body BillingNotificationEventV1FeatureLLMUnitCost
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromBillingNotificationEventV1FeatureLLMUnitCost overwrites any union data inside the BillingNotificationEventV1FeatureUnitCost as the provided BillingNotificationEventV1FeatureLLMUnitCost
+func (t *BillingNotificationEventV1FeatureUnitCost) FromBillingNotificationEventV1FeatureLLMUnitCost(v BillingNotificationEventV1FeatureLLMUnitCost) error {
+	v.Type = "llm"
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeBillingNotificationEventV1FeatureLLMUnitCost performs a merge with any union data inside the BillingNotificationEventV1FeatureUnitCost, using the provided BillingNotificationEventV1FeatureLLMUnitCost
+func (t *BillingNotificationEventV1FeatureUnitCost) MergeBillingNotificationEventV1FeatureLLMUnitCost(v BillingNotificationEventV1FeatureLLMUnitCost) error {
+	v.Type = "llm"
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t BillingNotificationEventV1FeatureUnitCost) Discriminator() (string, error) {
+	var discriminator struct {
+		Discriminator string `json:"type"`
+	}
+	err := json.Unmarshal(t.union, &discriminator)
+	return discriminator.Discriminator, err
+}
+
+func (t BillingNotificationEventV1FeatureUnitCost) ValueByDiscriminator() (interface{}, error) {
+	discriminator, err := t.Discriminator()
+	if err != nil {
+		return nil, err
+	}
+	switch discriminator {
+	case "llm":
+		return t.AsBillingNotificationEventV1FeatureLLMUnitCost()
+	case "manual":
+		return t.AsBillingNotificationEventV1FeatureManualUnitCost()
+	default:
+		return nil, errors.New("unknown discriminator value: " + discriminator)
+	}
+}
+
+func (t BillingNotificationEventV1FeatureUnitCost) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *BillingNotificationEventV1FeatureUnitCost) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsBillingNotificationEventV1PaymentTermInstant returns the union data inside the BillingNotificationEventV1PaymentTerms as a BillingNotificationEventV1PaymentTermInstant
+func (t BillingNotificationEventV1PaymentTerms) AsBillingNotificationEventV1PaymentTermInstant() (BillingNotificationEventV1PaymentTermInstant, error) {
+	var body BillingNotificationEventV1PaymentTermInstant
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromBillingNotificationEventV1PaymentTermInstant overwrites any union data inside the BillingNotificationEventV1PaymentTerms as the provided BillingNotificationEventV1PaymentTermInstant
+func (t *BillingNotificationEventV1PaymentTerms) FromBillingNotificationEventV1PaymentTermInstant(v BillingNotificationEventV1PaymentTermInstant) error {
+	v.Type = "instant"
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeBillingNotificationEventV1PaymentTermInstant performs a merge with any union data inside the BillingNotificationEventV1PaymentTerms, using the provided BillingNotificationEventV1PaymentTermInstant
+func (t *BillingNotificationEventV1PaymentTerms) MergeBillingNotificationEventV1PaymentTermInstant(v BillingNotificationEventV1PaymentTermInstant) error {
+	v.Type = "instant"
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsBillingNotificationEventV1PaymentTermDueDate returns the union data inside the BillingNotificationEventV1PaymentTerms as a BillingNotificationEventV1PaymentTermDueDate
+func (t BillingNotificationEventV1PaymentTerms) AsBillingNotificationEventV1PaymentTermDueDate() (BillingNotificationEventV1PaymentTermDueDate, error) {
+	var body BillingNotificationEventV1PaymentTermDueDate
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromBillingNotificationEventV1PaymentTermDueDate overwrites any union data inside the BillingNotificationEventV1PaymentTerms as the provided BillingNotificationEventV1PaymentTermDueDate
+func (t *BillingNotificationEventV1PaymentTerms) FromBillingNotificationEventV1PaymentTermDueDate(v BillingNotificationEventV1PaymentTermDueDate) error {
+	v.Type = "due_date"
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeBillingNotificationEventV1PaymentTermDueDate performs a merge with any union data inside the BillingNotificationEventV1PaymentTerms, using the provided BillingNotificationEventV1PaymentTermDueDate
+func (t *BillingNotificationEventV1PaymentTerms) MergeBillingNotificationEventV1PaymentTermDueDate(v BillingNotificationEventV1PaymentTermDueDate) error {
+	v.Type = "due_date"
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t BillingNotificationEventV1PaymentTerms) Discriminator() (string, error) {
+	var discriminator struct {
+		Discriminator string `json:"type"`
+	}
+	err := json.Unmarshal(t.union, &discriminator)
+	return discriminator.Discriminator, err
+}
+
+func (t BillingNotificationEventV1PaymentTerms) ValueByDiscriminator() (interface{}, error) {
+	discriminator, err := t.Discriminator()
+	if err != nil {
+		return nil, err
+	}
+	switch discriminator {
+	case "due_date":
+		return t.AsBillingNotificationEventV1PaymentTermDueDate()
+	case "instant":
+		return t.AsBillingNotificationEventV1PaymentTermInstant()
+	default:
+		return nil, errors.New("unknown discriminator value: " + discriminator)
+	}
+}
+
+func (t BillingNotificationEventV1PaymentTerms) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *BillingNotificationEventV1PaymentTerms) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsBillingNotificationEventV1FlatPriceWithPaymentTerm returns the union data inside the BillingNotificationEventV1RateCardUsageBasedPrice as a BillingNotificationEventV1FlatPriceWithPaymentTerm
+func (t BillingNotificationEventV1RateCardUsageBasedPrice) AsBillingNotificationEventV1FlatPriceWithPaymentTerm() (BillingNotificationEventV1FlatPriceWithPaymentTerm, error) {
+	var body BillingNotificationEventV1FlatPriceWithPaymentTerm
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromBillingNotificationEventV1FlatPriceWithPaymentTerm overwrites any union data inside the BillingNotificationEventV1RateCardUsageBasedPrice as the provided BillingNotificationEventV1FlatPriceWithPaymentTerm
+func (t *BillingNotificationEventV1RateCardUsageBasedPrice) FromBillingNotificationEventV1FlatPriceWithPaymentTerm(v BillingNotificationEventV1FlatPriceWithPaymentTerm) error {
+	v.Type = "flat"
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeBillingNotificationEventV1FlatPriceWithPaymentTerm performs a merge with any union data inside the BillingNotificationEventV1RateCardUsageBasedPrice, using the provided BillingNotificationEventV1FlatPriceWithPaymentTerm
+func (t *BillingNotificationEventV1RateCardUsageBasedPrice) MergeBillingNotificationEventV1FlatPriceWithPaymentTerm(v BillingNotificationEventV1FlatPriceWithPaymentTerm) error {
+	v.Type = "flat"
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsBillingNotificationEventV1UnitPriceWithCommitments returns the union data inside the BillingNotificationEventV1RateCardUsageBasedPrice as a BillingNotificationEventV1UnitPriceWithCommitments
+func (t BillingNotificationEventV1RateCardUsageBasedPrice) AsBillingNotificationEventV1UnitPriceWithCommitments() (BillingNotificationEventV1UnitPriceWithCommitments, error) {
+	var body BillingNotificationEventV1UnitPriceWithCommitments
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromBillingNotificationEventV1UnitPriceWithCommitments overwrites any union data inside the BillingNotificationEventV1RateCardUsageBasedPrice as the provided BillingNotificationEventV1UnitPriceWithCommitments
+func (t *BillingNotificationEventV1RateCardUsageBasedPrice) FromBillingNotificationEventV1UnitPriceWithCommitments(v BillingNotificationEventV1UnitPriceWithCommitments) error {
+	v.Type = "unit"
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeBillingNotificationEventV1UnitPriceWithCommitments performs a merge with any union data inside the BillingNotificationEventV1RateCardUsageBasedPrice, using the provided BillingNotificationEventV1UnitPriceWithCommitments
+func (t *BillingNotificationEventV1RateCardUsageBasedPrice) MergeBillingNotificationEventV1UnitPriceWithCommitments(v BillingNotificationEventV1UnitPriceWithCommitments) error {
+	v.Type = "unit"
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsBillingNotificationEventV1TieredPriceWithCommitments returns the union data inside the BillingNotificationEventV1RateCardUsageBasedPrice as a BillingNotificationEventV1TieredPriceWithCommitments
+func (t BillingNotificationEventV1RateCardUsageBasedPrice) AsBillingNotificationEventV1TieredPriceWithCommitments() (BillingNotificationEventV1TieredPriceWithCommitments, error) {
+	var body BillingNotificationEventV1TieredPriceWithCommitments
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromBillingNotificationEventV1TieredPriceWithCommitments overwrites any union data inside the BillingNotificationEventV1RateCardUsageBasedPrice as the provided BillingNotificationEventV1TieredPriceWithCommitments
+func (t *BillingNotificationEventV1RateCardUsageBasedPrice) FromBillingNotificationEventV1TieredPriceWithCommitments(v BillingNotificationEventV1TieredPriceWithCommitments) error {
+	v.Type = "tiered"
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeBillingNotificationEventV1TieredPriceWithCommitments performs a merge with any union data inside the BillingNotificationEventV1RateCardUsageBasedPrice, using the provided BillingNotificationEventV1TieredPriceWithCommitments
+func (t *BillingNotificationEventV1RateCardUsageBasedPrice) MergeBillingNotificationEventV1TieredPriceWithCommitments(v BillingNotificationEventV1TieredPriceWithCommitments) error {
+	v.Type = "tiered"
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsBillingNotificationEventV1DynamicPriceWithCommitments returns the union data inside the BillingNotificationEventV1RateCardUsageBasedPrice as a BillingNotificationEventV1DynamicPriceWithCommitments
+func (t BillingNotificationEventV1RateCardUsageBasedPrice) AsBillingNotificationEventV1DynamicPriceWithCommitments() (BillingNotificationEventV1DynamicPriceWithCommitments, error) {
+	var body BillingNotificationEventV1DynamicPriceWithCommitments
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromBillingNotificationEventV1DynamicPriceWithCommitments overwrites any union data inside the BillingNotificationEventV1RateCardUsageBasedPrice as the provided BillingNotificationEventV1DynamicPriceWithCommitments
+func (t *BillingNotificationEventV1RateCardUsageBasedPrice) FromBillingNotificationEventV1DynamicPriceWithCommitments(v BillingNotificationEventV1DynamicPriceWithCommitments) error {
+	v.Type = "dynamic"
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeBillingNotificationEventV1DynamicPriceWithCommitments performs a merge with any union data inside the BillingNotificationEventV1RateCardUsageBasedPrice, using the provided BillingNotificationEventV1DynamicPriceWithCommitments
+func (t *BillingNotificationEventV1RateCardUsageBasedPrice) MergeBillingNotificationEventV1DynamicPriceWithCommitments(v BillingNotificationEventV1DynamicPriceWithCommitments) error {
+	v.Type = "dynamic"
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsBillingNotificationEventV1PackagePriceWithCommitments returns the union data inside the BillingNotificationEventV1RateCardUsageBasedPrice as a BillingNotificationEventV1PackagePriceWithCommitments
+func (t BillingNotificationEventV1RateCardUsageBasedPrice) AsBillingNotificationEventV1PackagePriceWithCommitments() (BillingNotificationEventV1PackagePriceWithCommitments, error) {
+	var body BillingNotificationEventV1PackagePriceWithCommitments
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromBillingNotificationEventV1PackagePriceWithCommitments overwrites any union data inside the BillingNotificationEventV1RateCardUsageBasedPrice as the provided BillingNotificationEventV1PackagePriceWithCommitments
+func (t *BillingNotificationEventV1RateCardUsageBasedPrice) FromBillingNotificationEventV1PackagePriceWithCommitments(v BillingNotificationEventV1PackagePriceWithCommitments) error {
+	v.Type = "package"
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeBillingNotificationEventV1PackagePriceWithCommitments performs a merge with any union data inside the BillingNotificationEventV1RateCardUsageBasedPrice, using the provided BillingNotificationEventV1PackagePriceWithCommitments
+func (t *BillingNotificationEventV1RateCardUsageBasedPrice) MergeBillingNotificationEventV1PackagePriceWithCommitments(v BillingNotificationEventV1PackagePriceWithCommitments) error {
+	v.Type = "package"
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t BillingNotificationEventV1RateCardUsageBasedPrice) Discriminator() (string, error) {
+	var discriminator struct {
+		Discriminator string `json:"type"`
+	}
+	err := json.Unmarshal(t.union, &discriminator)
+	return discriminator.Discriminator, err
+}
+
+func (t BillingNotificationEventV1RateCardUsageBasedPrice) ValueByDiscriminator() (interface{}, error) {
+	discriminator, err := t.Discriminator()
+	if err != nil {
+		return nil, err
+	}
+	switch discriminator {
+	case "dynamic":
+		return t.AsBillingNotificationEventV1DynamicPriceWithCommitments()
+	case "flat":
+		return t.AsBillingNotificationEventV1FlatPriceWithPaymentTerm()
+	case "package":
+		return t.AsBillingNotificationEventV1PackagePriceWithCommitments()
+	case "tiered":
+		return t.AsBillingNotificationEventV1TieredPriceWithCommitments()
+	case "unit":
+		return t.AsBillingNotificationEventV1UnitPriceWithCommitments()
+	default:
+		return nil, errors.New("unknown discriminator value: " + discriminator)
+	}
+}
+
+func (t BillingNotificationEventV1RateCardUsageBasedPrice) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *BillingNotificationEventV1RateCardUsageBasedPrice) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsBillingNotificationEventV1RecurringPeriodInterval0 returns the union data inside the BillingNotificationEventV1RecurringPeriodInterval as a BillingNotificationEventV1RecurringPeriodInterval0
+func (t BillingNotificationEventV1RecurringPeriodInterval) AsBillingNotificationEventV1RecurringPeriodInterval0() (BillingNotificationEventV1RecurringPeriodInterval0, error) {
+	var body BillingNotificationEventV1RecurringPeriodInterval0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromBillingNotificationEventV1RecurringPeriodInterval0 overwrites any union data inside the BillingNotificationEventV1RecurringPeriodInterval as the provided BillingNotificationEventV1RecurringPeriodInterval0
+func (t *BillingNotificationEventV1RecurringPeriodInterval) FromBillingNotificationEventV1RecurringPeriodInterval0(v BillingNotificationEventV1RecurringPeriodInterval0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeBillingNotificationEventV1RecurringPeriodInterval0 performs a merge with any union data inside the BillingNotificationEventV1RecurringPeriodInterval, using the provided BillingNotificationEventV1RecurringPeriodInterval0
+func (t *BillingNotificationEventV1RecurringPeriodInterval) MergeBillingNotificationEventV1RecurringPeriodInterval0(v BillingNotificationEventV1RecurringPeriodInterval0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsBillingNotificationEventV1RecurringPeriodIntervalEnum returns the union data inside the BillingNotificationEventV1RecurringPeriodInterval as a BillingNotificationEventV1RecurringPeriodIntervalEnum
+func (t BillingNotificationEventV1RecurringPeriodInterval) AsBillingNotificationEventV1RecurringPeriodIntervalEnum() (BillingNotificationEventV1RecurringPeriodIntervalEnum, error) {
+	var body BillingNotificationEventV1RecurringPeriodIntervalEnum
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromBillingNotificationEventV1RecurringPeriodIntervalEnum overwrites any union data inside the BillingNotificationEventV1RecurringPeriodInterval as the provided BillingNotificationEventV1RecurringPeriodIntervalEnum
+func (t *BillingNotificationEventV1RecurringPeriodInterval) FromBillingNotificationEventV1RecurringPeriodIntervalEnum(v BillingNotificationEventV1RecurringPeriodIntervalEnum) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeBillingNotificationEventV1RecurringPeriodIntervalEnum performs a merge with any union data inside the BillingNotificationEventV1RecurringPeriodInterval, using the provided BillingNotificationEventV1RecurringPeriodIntervalEnum
+func (t *BillingNotificationEventV1RecurringPeriodInterval) MergeBillingNotificationEventV1RecurringPeriodIntervalEnum(v BillingNotificationEventV1RecurringPeriodIntervalEnum) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t BillingNotificationEventV1RecurringPeriodInterval) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *BillingNotificationEventV1RecurringPeriodInterval) UnmarshalJSON(b []byte) error {
 	err := t.union.UnmarshalJSON(b)
 	return err
 }

@@ -1,6 +1,10 @@
 package events
 
 import (
+	_ "embed"
+	"encoding/json"
+	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -8,9 +12,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	v1api "github.com/openmeterio/openmeter/api"
+	apimodels "github.com/openmeterio/openmeter/api/models"
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/openmeter/notification"
+	"github.com/openmeterio/openmeter/openmeter/notification/httpdriver"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -96,14 +101,14 @@ func TestDeliveryStateCasing(t *testing.T) {
 
 func TestToAPIBillingNotificationBalanceThresholdType(t *testing.T) {
 	testCases := []struct {
-		in   v1api.NotificationRuleBalanceThresholdValueType
+		in   apimodels.NotificationRuleBalanceThresholdValueType
 		want api.BillingNotificationBalanceThresholdType
 	}{
-		{v1api.NotificationRuleBalanceThresholdValueTypeBalanceValue, api.BillingNotificationBalanceThresholdTypeBalanceValue},
-		{v1api.NotificationRuleBalanceThresholdValueTypeUsagePercentage, api.BillingNotificationBalanceThresholdTypeUsagePercentage},
-		{v1api.NotificationRuleBalanceThresholdValueTypeUsageValue, api.BillingNotificationBalanceThresholdTypeUsageValue},
-		{v1api.NotificationRuleBalanceThresholdValueTypePercent, api.BillingNotificationBalanceThresholdTypeUsagePercentage},
-		{v1api.NotificationRuleBalanceThresholdValueTypeNumber, api.BillingNotificationBalanceThresholdTypeUsageValue},
+		{apimodels.NotificationRuleBalanceThresholdValueTypeBalanceValue, api.BillingNotificationBalanceThresholdTypeBalanceValue},
+		{apimodels.NotificationRuleBalanceThresholdValueTypeUsagePercentage, api.BillingNotificationBalanceThresholdTypeUsagePercentage},
+		{apimodels.NotificationRuleBalanceThresholdValueTypeUsageValue, api.BillingNotificationBalanceThresholdTypeUsageValue},
+		{apimodels.NotificationRuleBalanceThresholdValueTypePercent, api.BillingNotificationBalanceThresholdTypeUsagePercentage},
+		{apimodels.NotificationRuleBalanceThresholdValueTypeNumber, api.BillingNotificationBalanceThresholdTypeUsageValue},
 	}
 
 	for _, tc := range testCases {
@@ -115,99 +120,105 @@ func TestToAPIBillingNotificationBalanceThresholdType(t *testing.T) {
 	}
 
 	t.Run("unknown value is rejected", func(t *testing.T) {
-		_, err := ToAPIBillingNotificationBalanceThresholdType(v1api.NotificationRuleBalanceThresholdValueType("nonsense"))
+		_, err := ToAPIBillingNotificationBalanceThresholdType(apimodels.NotificationRuleBalanceThresholdValueType("nonsense"))
 		require.Error(t, err)
 	})
 }
 
-func TestToAPIBillingNotificationEvent_BalanceThreshold(t *testing.T) {
-	createdAt := time.Date(2024, 5, 1, 12, 0, 0, 0, time.UTC)
+// testdata/legacy_payloads.json holds v1 payload data with every property set and
+// every union variant used at least once, generated from the v1 OpenAPI schemas.
+//
+//go:embed testdata/legacy_payloads.json
+var legacyPayloadFixtures []byte
 
-	event := notification.Event{
-		NamespacedID: models.NamespacedID{Namespace: "ns", ID: "01ARZ3NDEKTSV4RRFFQ69G5FAV"},
-		Type:         notification.EventTypeBalanceThreshold,
-		CreatedAt:    createdAt,
-		Rule: notification.Rule{
-			NamespacedID: models.NamespacedID{Namespace: "ns", ID: "01ARZ3NDEKTSV4RRFFQ69G5FAW"},
-			Type:         notification.EventTypeBalanceThreshold,
-			Name:         "threshold rule",
-		},
-		Payload: notification.EventPayload{
-			EventPayloadMeta: notification.EventPayloadMeta{Type: notification.EventTypeBalanceThreshold},
-			BalanceThreshold: &notification.BalanceThresholdPayload{
-				EntitlementValuePayloadBase: notification.EntitlementValuePayloadBase{
-					Entitlement: v1api.EntitlementMetered{Id: "01ARZ3NDEKTSV4RRFFQ69G5FAX"},
-					Feature:     v1api.Feature{Id: "01ARZ3NDEKTSV4RRFFQ69G5FAY", Key: "gpt4_tokens"},
-					Subject:     v1api.Subject{Key: "customer-1"},
-					Customer:    v1api.Customer{Id: "01ARZ3NDEKTSV4RRFFQ69G5FAZ"},
-					Value: v1api.EntitlementValue{
-						HasAccess: true,
-						Balance:   lo.ToPtr(100.0),
-						Usage:     lo.ToPtr(900.0),
-						Overage:   lo.ToPtr(0.0),
-					},
-				},
-				// The legacy PERCENT spelling must normalize to usage_percentage.
-				Threshold: v1api.NotificationRuleBalanceThresholdValue{
-					Type:  v1api.NotificationRuleBalanceThresholdValueTypePercent,
-					Value: 90,
-				},
-			},
-		},
+// The v3 API must return the legacy payloads with the v1 content under snake_case
+// field names, and the v3 payload models must hold all of it.
+func TestToAPIBillingNotificationEventPayloadMatchesV1(t *testing.T) {
+	var fixtures map[string]json.RawMessage
+	require.NoError(t, json.Unmarshal(legacyPayloadFixtures, &fixtures))
+
+	for name, raw := range fixtures {
+		for _, event := range legacyFixtureEvents(t, name, raw) {
+			t.Run(name+"/"+string(event.Type), func(t *testing.T) {
+				var (
+					v1Payload any
+					err       error
+				)
+
+				switch event.Type {
+				case notification.EventTypeBalanceThreshold:
+					v1Payload, err = httpdriver.FromEventAsBalanceThresholdPayload(event)
+				case notification.EventTypeEntitlementReset:
+					v1Payload, err = httpdriver.FromEventAsEntitlementResetPayload(event)
+				case notification.EventTypeInvoiceCreated:
+					v1Payload, err = httpdriver.FromEventAsInvoiceCreatedPayload(event)
+				case notification.EventTypeInvoiceUpdated:
+					v1Payload, err = httpdriver.FromEventAsInvoiceUpdatedPayload(event)
+				}
+
+				require.NoError(t, err)
+
+				v1JSON, err := json.Marshal(v1Payload)
+				require.NoError(t, err)
+
+				got, err := ToAPIBillingNotificationEvent(event)
+				require.NoError(t, err)
+
+				assert.Equal(t, event.ID, got.Id)
+				assert.Equal(t, string(event.Type), string(got.Type))
+
+				v3JSON, err := json.Marshal(got.Payload)
+				require.NoError(t, err)
+
+				// Only field names change: every value of the v1 payload is still there.
+				assert.ElementsMatch(t, jsonLeaves(t, v1JSON), jsonLeaves(t, v3JSON))
+
+				// Decoding into the typed v3 models and encoding again must not lose
+				// or change anything, so every renamed field exists in the v3 models.
+				var typed any
+				switch event.Type {
+				case notification.EventTypeBalanceThreshold:
+					typed, err = got.Payload.AsBillingNotificationEventBalanceThresholdPayload()
+				case notification.EventTypeEntitlementReset:
+					typed, err = got.Payload.AsBillingNotificationEventResetPayload()
+				case notification.EventTypeInvoiceCreated:
+					typed, err = got.Payload.AsBillingNotificationEventInvoiceCreatedPayload()
+				case notification.EventTypeInvoiceUpdated:
+					typed, err = got.Payload.AsBillingNotificationEventInvoiceUpdatedPayload()
+				}
+
+				require.NoError(t, err)
+
+				typedJSON, err := json.Marshal(typed)
+				require.NoError(t, err)
+				assert.JSONEq(t, string(v3JSON), string(typedJSON))
+			})
+		}
 	}
-
-	got, err := ToAPIBillingNotificationEvent(event)
-	require.NoError(t, err)
-
-	assert.Equal(t, event.ID, got.Id)
-	assert.Equal(t, api.BillingNotificationEventTypeEntitlementsBalanceThreshold, got.Type)
-	assert.Equal(t, createdAt, got.CreatedAt)
-	assert.Equal(t, event.Rule.ID, got.Rule.Id)
-	assert.Equal(t, "threshold rule", got.Rule.Name)
-	assert.Equal(t, api.BillingNotificationEventTypeEntitlementsBalanceThreshold, got.Rule.Type)
-
-	payload, err := got.Payload.AsBillingNotificationEventBalanceThresholdPayload()
-	require.NoError(t, err)
-
-	assert.Equal(t, event.ID, payload.Id)
-	assert.Equal(t, createdAt, payload.Timestamp)
-	assert.Equal(t, "01ARZ3NDEKTSV4RRFFQ69G5FAX", payload.Data.EntitlementId)
-	assert.Equal(t, "01ARZ3NDEKTSV4RRFFQ69G5FAY", payload.Data.Feature.Id)
-	assert.Equal(t, "gpt4_tokens", payload.Data.Feature.Key)
-	assert.Equal(t, "customer-1", payload.Data.SubjectKey)
-	assert.Equal(t, "01ARZ3NDEKTSV4RRFFQ69G5FAZ", lo.FromPtr(payload.Data.CustomerId))
-	assert.Equal(t, api.BillingEntitlementValueResult{
-		Type:       api.BillingEntitlementTypeMetered,
-		FeatureKey: "gpt4_tokens",
-		HasAccess:  true,
-		Value: &api.BillingEntitlementAccessValue{
-			Balance:                   "100",
-			Usage:                     "900",
-			Overage:                   "0",
-			TotalAvailableGrantAmount: "0",
-			GrantBalances:             map[string]api.Numeric{},
-		},
-	}, payload.Data.Value)
-	assert.Equal(t, api.BillingNotificationBalanceThresholdTypeUsagePercentage, payload.Data.Threshold.Type)
-	assert.Equal(t, 90.0, payload.Data.Threshold.Value)
 }
 
-func TestToAPIBillingNotificationEvent_EntitlementReset(t *testing.T) {
+func TestToAPIBillingNotificationEventPayloadFieldNames(t *testing.T) {
 	event := notification.Event{
 		NamespacedID: models.NamespacedID{Namespace: "ns", ID: "01ARZ3NDEKTSV4RRFFQ69G5FAV"},
 		Type:         notification.EventTypeEntitlementReset,
-		Rule: notification.Rule{
-			NamespacedID: models.NamespacedID{Namespace: "ns", ID: "01ARZ3NDEKTSV4RRFFQ69G5FAW"},
-			Type:         notification.EventTypeEntitlementReset,
-			Name:         "reset rule",
-		},
+		CreatedAt:    time.Date(2024, 5, 1, 12, 0, 0, 0, time.UTC),
 		Payload: notification.EventPayload{
 			EventPayloadMeta: notification.EventPayloadMeta{Type: notification.EventTypeEntitlementReset},
 			EntitlementReset: &notification.EntitlementResetPayload{
-				Entitlement: v1api.EntitlementMetered{Id: "01ARZ3NDEKTSV4RRFFQ69G5FAX"},
-				Feature:     v1api.Feature{Id: "01ARZ3NDEKTSV4RRFFQ69G5FAY", Key: "gpt4_tokens"},
-				Subject:     v1api.Subject{Key: "customer-1"},
-				Value:       v1api.EntitlementValue{HasAccess: true},
+				Entitlement: apimodels.EntitlementMetered{
+					Id:          "01ARZ3NDEKTSV4RRFFQ69G5FAX",
+					IsSoftLimit: lo.ToPtr(true),
+					Annotations: &apimodels.Annotations{"someAnnotation": "value"},
+				},
+				Feature: apimodels.Feature{
+					Id:                          "01ARZ3NDEKTSV4RRFFQ69G5FAY",
+					Key:                         "gpt4_tokens",
+					Metadata:                    &apimodels.Metadata{"someKey": "value"},
+					MeterGroupByFilters:         &map[string]string{"modelName": "gpt-4"},
+					AdvancedMeterGroupByFilters: &map[string]apimodels.FilterString{"modelName": {In: &[]string{"gpt-4"}}},
+				},
+				Subject: apimodels.Subject{Key: "customer-1", DisplayName: lo.ToPtr("Customer 1")},
+				Value:   apimodels.EntitlementValue{HasAccess: true, Balance: lo.ToPtr(100.0)},
 			},
 		},
 	}
@@ -215,56 +226,137 @@ func TestToAPIBillingNotificationEvent_EntitlementReset(t *testing.T) {
 	got, err := ToAPIBillingNotificationEvent(event)
 	require.NoError(t, err)
 
-	payload, err := got.Payload.AsBillingNotificationEventResetPayload()
+	body, err := json.Marshal(got.Payload)
 	require.NoError(t, err)
 
-	assert.Equal(t, api.BillingNotificationEventResetPayloadTypeEntitlementsReset, payload.Type)
-	assert.Equal(t, "01ARZ3NDEKTSV4RRFFQ69G5FAX", payload.Data.EntitlementId)
-	assert.Equal(t, "gpt4_tokens", payload.Data.Feature.Key)
-	// The customer is absent on this payload, so the optional field must stay unset
-	// rather than reporting an empty id.
-	assert.Nil(t, payload.Data.CustomerId)
+	var payload map[string]any
+	require.NoError(t, json.Unmarshal(body, &payload))
+
+	data := payload["data"].(map[string]any)
+	entitlement := data["entitlement"].(map[string]any)
+	feature := data["feature"].(map[string]any)
+	subject := data["subject"].(map[string]any)
+	value := data["value"].(map[string]any)
+
+	assert.Equal(t, true, entitlement["is_soft_limit"])
+	assert.Equal(t, "Customer 1", subject["display_name"])
+	assert.Equal(t, true, value["has_access"])
+	// Map keys are user data and keep their case.
+	assert.Equal(t, map[string]any{"someKey": "value"}, feature["metadata"])
+	assert.Equal(t, map[string]any{"modelName": "gpt-4"}, feature["meter_group_by_filters"])
+	assert.Equal(t, map[string]any{"someAnnotation": "value"}, entitlement["annotations"])
+	// The filter objects keep the v1 operator names.
+	assert.Equal(t, map[string]any{"modelName": map[string]any{"$in": []any{"gpt-4"}}}, feature["advanced_meter_group_by_filters"])
 }
 
-func TestToAPIBillingNotificationEvent_InvoiceCreated(t *testing.T) {
+func TestToSnakeCase(t *testing.T) {
+	for in, want := range map[string]string{
+		"id":                        "id",
+		"createdAt":                 "created_at",
+		"maskedAPIKey":              "masked_api_key",
+		"intervalISO":               "interval_iso",
+		"line1":                     "line1",
+		"totalAvailableGrantAmount": "total_available_grant_amount",
+		"$eq":                       "$eq",
+	} {
+		assert.Equal(t, want, toSnakeCase(in), in)
+	}
+}
+
+// jsonLeaves lists every scalar value of a JSON document, ignoring where it sits.
+func jsonLeaves(t *testing.T, body []byte) []string {
+	t.Helper()
+
+	var value any
+	require.NoError(t, json.Unmarshal(body, &value))
+
+	var leaves []string
+	var walk func(v any)
+	walk = func(v any) {
+		switch v := v.(type) {
+		case map[string]any:
+			for _, item := range v {
+				walk(item)
+			}
+		case []any:
+			for _, item := range v {
+				walk(item)
+			}
+		default:
+			leaves = append(leaves, fmt.Sprintf("%v", v))
+		}
+	}
+	walk(value)
+
+	return leaves
+}
+
+func legacyFixtureEvents(t *testing.T, name string, raw json.RawMessage) []notification.Event {
+	t.Helper()
+
 	event := notification.Event{
 		NamespacedID: models.NamespacedID{Namespace: "ns", ID: "01ARZ3NDEKTSV4RRFFQ69G5FAV"},
-		Type:         notification.EventTypeInvoiceCreated,
-		Rule: notification.Rule{
-			NamespacedID: models.NamespacedID{Namespace: "ns", ID: "01ARZ3NDEKTSV4RRFFQ69G5FAW"},
-			Type:         notification.EventTypeInvoiceCreated,
-			Name:         "invoice rule",
-		},
-		Payload: notification.EventPayload{
-			EventPayloadMeta: notification.EventPayloadMeta{Type: notification.EventTypeInvoiceCreated},
-			Invoice: &notification.InvoicePayload{
-				Invoice: v1api.Invoice{
-					Id:       "01ARZ3NDEKTSV4RRFFQ69G5FB0",
-					Number:   "INV-2024-0001",
-					Currency: "USD",
-					Status:   v1api.InvoiceStatusDraft,
-					Customer: v1api.BillingInvoiceCustomerExtendedDetails{
-						Id: lo.ToPtr("01ARZ3NDEKTSV4RRFFQ69G5FB1"),
-					},
-					Totals: v1api.InvoiceTotals{Total: "123.45"},
-				},
-			},
-		},
+		CreatedAt:    time.Date(2024, 5, 1, 12, 0, 0, 0, time.UTC),
 	}
 
-	got, err := ToAPIBillingNotificationEvent(event)
-	require.NoError(t, err)
+	withType := func(eventType notification.EventType, payload notification.EventPayload) notification.Event {
+		e := event
+		e.Type = eventType
+		payload.EventPayloadMeta = notification.EventPayloadMeta{Type: eventType}
+		e.Payload = payload
 
-	payload, err := got.Payload.AsBillingNotificationEventInvoiceCreatedPayload()
-	require.NoError(t, err)
+		return e
+	}
 
-	assert.Equal(t, api.BillingNotificationEventInvoiceCreatedPayloadTypeInvoiceCreated, payload.Type)
-	assert.Equal(t, "01ARZ3NDEKTSV4RRFFQ69G5FB0", payload.Data.Invoice.Id)
-	assert.Equal(t, "INV-2024-0001", payload.Data.Invoice.Number)
-	assert.Equal(t, "01ARZ3NDEKTSV4RRFFQ69G5FB1", lo.FromPtr(payload.Data.CustomerId))
-	assert.Equal(t, "USD", payload.Data.Currency)
-	assert.Equal(t, string(v1api.InvoiceStatusDraft), payload.Data.Status)
-	assert.Equal(t, "123.45", payload.Data.Total)
+	switch {
+	case strings.HasPrefix(name, "invoice_"):
+		var invoice apimodels.Invoice
+		require.NoError(t, json.Unmarshal(raw, &invoice))
+
+		payload := notification.EventPayload{Invoice: &notification.InvoicePayload{Invoice: invoice}}
+
+		return []notification.Event{
+			withType(notification.EventTypeInvoiceCreated, payload),
+			withType(notification.EventTypeInvoiceUpdated, payload),
+		}
+	case strings.HasPrefix(name, "balance_threshold_"):
+		var data apimodels.NotificationEventBalanceThresholdPayloadData
+		require.NoError(t, json.Unmarshal(raw, &data))
+
+		return []notification.Event{
+			withType(notification.EventTypeBalanceThreshold, notification.EventPayload{
+				BalanceThreshold: &notification.BalanceThresholdPayload{
+					EntitlementValuePayloadBase: notification.EntitlementValuePayloadBase{
+						Entitlement: data.Entitlement,
+						Feature:     data.Feature,
+						Subject:     data.Subject,
+						Value:       data.Value,
+						Customer:    lo.FromPtr(data.Customer),
+					},
+					Threshold: data.Threshold,
+				},
+			}),
+		}
+	case strings.HasPrefix(name, "entitlement_reset_"):
+		var data apimodels.NotificationEventEntitlementValuePayloadBase
+		require.NoError(t, json.Unmarshal(raw, &data))
+
+		return []notification.Event{
+			withType(notification.EventTypeEntitlementReset, notification.EventPayload{
+				EntitlementReset: &notification.EntitlementResetPayload{
+					Entitlement: data.Entitlement,
+					Feature:     data.Feature,
+					Subject:     data.Subject,
+					Value:       data.Value,
+					Customer:    lo.FromPtr(data.Customer),
+				},
+			}),
+		}
+	default:
+		require.Failf(t, "unknown fixture", "%s", name)
+
+		return nil
+	}
 }
 
 func TestToAPIBillingNotificationEvent_MissingPayloadIsRejected(t *testing.T) {

@@ -11429,46 +11429,6 @@ components:
         A notification event records that a notification rule fired and tracks the
         delivery of its payload to each channel of the rule. Events are created by the
         system and cannot be modified.
-    BillingNotificationEventBalanceThresholdData:
-      type: object
-      required:
-        - entitlement_id
-        - feature
-        - subject_key
-        - value
-        - threshold
-      properties:
-        entitlement_id:
-          allOf:
-            - $ref: '#/components/schemas/ULID'
-          description: The identifier of the entitlement that triggered the event.
-          readOnly: true
-        feature:
-          allOf:
-            - $ref: '#/components/schemas/BillingNotificationEventFeatureReference'
-          description: The feature the entitlement grants access to.
-          readOnly: true
-        subject_key:
-          type: string
-          description: The key of the subject the entitlement belongs to.
-          readOnly: true
-        customer_id:
-          allOf:
-            - $ref: '#/components/schemas/ULID'
-          description: The identifier of the customer the subject belongs to, if any.
-          readOnly: true
-        value:
-          allOf:
-            - $ref: '#/components/schemas/BillingEntitlementValueResult'
-          description: The entitlement value at the time the event was generated.
-          readOnly: true
-        threshold:
-          allOf:
-            - $ref: '#/components/schemas/BillingNotificationBalanceThreshold'
-          description: The threshold the balance crossed.
-          readOnly: true
-      additionalProperties: false
-      description: The entities and threshold a balance threshold event refers to.
     BillingNotificationEventBalanceThresholdPayload:
       type: object
       required:
@@ -11495,7 +11455,7 @@ components:
           readOnly: true
         data:
           allOf:
-            - $ref: '#/components/schemas/BillingNotificationEventBalanceThresholdData'
+            - $ref: '#/components/schemas/BillingNotificationEventV1BalanceThresholdPayloadData'
           description: The entities and threshold the event refers to.
           readOnly: true
       additionalProperties: false
@@ -11608,59 +11568,6 @@ components:
       description: |-
         The delivery status of a notification event for one channel of the generating
         rule.
-    BillingNotificationEventEntitlementData:
-      type: object
-      required:
-        - entitlement_id
-        - feature
-        - subject_key
-        - value
-      properties:
-        entitlement_id:
-          allOf:
-            - $ref: '#/components/schemas/ULID'
-          description: The identifier of the entitlement that triggered the event.
-          readOnly: true
-        feature:
-          allOf:
-            - $ref: '#/components/schemas/BillingNotificationEventFeatureReference'
-          description: The feature the entitlement grants access to.
-          readOnly: true
-        subject_key:
-          type: string
-          description: The key of the subject the entitlement belongs to.
-          readOnly: true
-        customer_id:
-          allOf:
-            - $ref: '#/components/schemas/ULID'
-          description: The identifier of the customer the subject belongs to, if any.
-          readOnly: true
-        value:
-          allOf:
-            - $ref: '#/components/schemas/BillingEntitlementValueResult'
-          description: The entitlement value at the time the event was generated.
-          readOnly: true
-      additionalProperties: false
-      description: |-
-        The entitlement, feature, and subject an entitlement notification event refers
-        to.
-    BillingNotificationEventFeatureReference:
-      type: object
-      required:
-        - id
-        - key
-      properties:
-        id:
-          allOf:
-            - $ref: '#/components/schemas/ULID'
-          description: The unique identifier of the feature.
-          readOnly: true
-        key:
-          type: string
-          description: The immutable key of the feature.
-          readOnly: true
-      additionalProperties: false
-      description: A reference to the feature of an entitlement notification event.
     BillingNotificationEventInvoiceCreatedPayload:
       type: object
       required:
@@ -11687,62 +11594,11 @@ components:
           readOnly: true
         data:
           allOf:
-            - $ref: '#/components/schemas/BillingNotificationEventInvoiceData'
+            - $ref: '#/components/schemas/BillingNotificationEventV1Invoice'
           description: The invoice the event refers to.
           readOnly: true
       additionalProperties: false
       description: An invoice created notification event payload.
-    BillingNotificationEventInvoiceData:
-      type: object
-      required:
-        - invoice
-        - currency
-        - status
-        - total
-      properties:
-        invoice:
-          allOf:
-            - $ref: '#/components/schemas/BillingNotificationEventInvoiceReference'
-          description: The invoice the event was generated for.
-          readOnly: true
-        customer_id:
-          allOf:
-            - $ref: '#/components/schemas/ULID'
-          description: The identifier of the customer the invoice was issued to.
-          readOnly: true
-        currency:
-          allOf:
-            - $ref: '#/components/schemas/CurrencyCode'
-          description: The currency the invoice is denominated in.
-          readOnly: true
-        status:
-          type: string
-          description: The status of the invoice at the time the event was generated.
-          readOnly: true
-        total:
-          allOf:
-            - $ref: '#/components/schemas/Numeric'
-          description: The invoice total, including taxes, at the time the event was generated.
-          readOnly: true
-      additionalProperties: false
-      description: The invoice an invoice notification event refers to.
-    BillingNotificationEventInvoiceReference:
-      type: object
-      required:
-        - id
-        - number
-      properties:
-        id:
-          allOf:
-            - $ref: '#/components/schemas/ULID'
-          description: The unique identifier of the invoice.
-          readOnly: true
-        number:
-          type: string
-          description: The human-readable invoice number.
-          readOnly: true
-      additionalProperties: false
-      description: A reference to the invoice of an invoice notification event.
     BillingNotificationEventInvoiceUpdatedPayload:
       type: object
       required:
@@ -11769,7 +11625,7 @@ components:
           readOnly: true
         data:
           allOf:
-            - $ref: '#/components/schemas/BillingNotificationEventInvoiceData'
+            - $ref: '#/components/schemas/BillingNotificationEventV1Invoice'
           description: The invoice the event refers to.
           readOnly: true
       additionalProperties: false
@@ -11815,7 +11671,7 @@ components:
           readOnly: true
         data:
           allOf:
-            - $ref: '#/components/schemas/BillingNotificationEventEntitlementData'
+            - $ref: '#/components/schemas/BillingNotificationEventV1EntitlementValuePayloadBase'
           description: The entities the event refers to.
           readOnly: true
       additionalProperties: false
@@ -11830,6 +11686,3765 @@ components:
       description: |-
         The type of a notification event. It determines which payload variant the event
         carries.
+    BillingNotificationEventV1Address:
+      type: object
+      properties:
+        country:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1CountryCode'
+          description: |-
+            Country code in [ISO 3166-1](https://www.iso.org/iso-3166-country-codes.html)
+            alpha-2 format.
+        postal_code:
+          type: string
+          description: Postal code.
+        state:
+          type: string
+          description: State or province.
+        city:
+          type: string
+          description: City.
+        line1:
+          type: string
+          description: First line of the address.
+        line2:
+          type: string
+          description: Second line of the address.
+        phone_number:
+          type: string
+          description: Phone number.
+      additionalProperties: false
+      description: Address
+    BillingNotificationEventV1Alignment:
+      type: object
+      properties:
+        billables_must_align:
+          type: boolean
+          description: |-
+            Whether all Billable items and RateCards must align. Alignment means the Price's
+            BillingCadence must align for both duration and anchor time.
+          deprecated: true
+      additionalProperties: false
+      description: Alignment configuration for a plan or subscription.
+      deprecated: true
+    BillingNotificationEventV1Annotations:
+      type: object
+      additionalProperties: {}
+      description: Set of key-value pairs managed by the system. Cannot be modified by user.
+    BillingNotificationEventV1App:
+      type: object
+      oneOf:
+        - $ref: '#/components/schemas/BillingNotificationEventV1StripeApp'
+        - $ref: '#/components/schemas/BillingNotificationEventV1SandboxApp'
+        - $ref: '#/components/schemas/BillingNotificationEventV1CustomInvoicingApp'
+      discriminator:
+        propertyName: type
+        mapping:
+          stripe: '#/components/schemas/BillingNotificationEventV1StripeApp'
+          sandbox: '#/components/schemas/BillingNotificationEventV1SandboxApp'
+          custom_invoicing: '#/components/schemas/BillingNotificationEventV1CustomInvoicingApp'
+      description: 'App. One of: stripe'
+    BillingNotificationEventV1AppCapability:
+      type: object
+      required:
+        - type
+        - key
+        - name
+        - description
+      properties:
+        type:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1AppCapabilityType'
+          description: The capability type.
+        key:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+          description: Key
+        name:
+          type: string
+          description: The capability name.
+        description:
+          type: string
+          description: The capability description.
+      additionalProperties: false
+      description: |-
+        App capability.
+
+        Capabilities only exist in config so they don't extend the Resource model.
+    BillingNotificationEventV1AppCapabilityType:
+      type: string
+      enum:
+        - reportUsage
+        - reportEvents
+        - calculateTax
+        - invoiceCustomers
+        - collectPayments
+      description: App capability type.
+    BillingNotificationEventV1AppStatus:
+      type: string
+      enum:
+        - ready
+        - unauthorized
+      description: App installed status.
+    BillingNotificationEventV1AppType:
+      type: string
+      enum:
+        - stripe
+        - sandbox
+        - custom_invoicing
+      description: Type of the app.
+    BillingNotificationEventV1BalanceThresholdPayloadData:
+      type: object
+      required:
+        - entitlement
+        - feature
+        - subject
+        - value
+        - threshold
+      properties:
+        entitlement:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1EntitlementMetered'
+          description: Entitlement.
+          title: Entitlement
+          readOnly: true
+        feature:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Feature'
+          description: Feature.
+          title: Feature
+          readOnly: true
+        subject:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Subject'
+          description: Subject.
+          title: Subject
+          readOnly: true
+        value:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1EntitlementValue'
+          description: Entitlement Value.
+          title: Entitlement Value
+          readOnly: true
+        customer:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Customer'
+          description: Customer.
+          title: Customer
+          readOnly: true
+        threshold:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1RuleBalanceThresholdValue'
+          description: Threshold.
+          title: Threshold
+          readOnly: true
+      additionalProperties: false
+      description: |-
+        Data of the payload for notification event with `entitlements.balance.threshold`
+        type.
+    BillingNotificationEventV1BillingDiscountPercentage:
+      type: object
+      required:
+        - percentage
+      properties:
+        percentage:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Percentage'
+          minimum: 0
+          maximum: 100
+          description: The percentage of the discount.
+          title: Percentage
+        correlation_id:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: |-
+            Correlation ID for the discount.
+
+            This is used to link discounts across different invoices (progressive billing
+            use case).
+
+            If not provided, the invoicing engine will auto-generate one. When editing an
+            invoice line, please make sure to keep the same correlation ID of the discount
+            or in progressive billing setups the discount amounts might be incorrect.
+      additionalProperties: false
+      description: A percentage discount.
+    BillingNotificationEventV1BillingDiscountReason:
+      type: object
+      oneOf:
+        - $ref: '#/components/schemas/BillingNotificationEventV1DiscountReasonMaximumSpend'
+        - $ref: '#/components/schemas/BillingNotificationEventV1DiscountReasonRatecardPercentage'
+        - $ref: '#/components/schemas/BillingNotificationEventV1DiscountReasonRatecardUsage'
+      discriminator:
+        propertyName: type
+        mapping:
+          maximum_spend: '#/components/schemas/BillingNotificationEventV1DiscountReasonMaximumSpend'
+          ratecard_percentage: '#/components/schemas/BillingNotificationEventV1DiscountReasonRatecardPercentage'
+          ratecard_usage: '#/components/schemas/BillingNotificationEventV1DiscountReasonRatecardUsage'
+      description: The reason for the discount.
+    BillingNotificationEventV1BillingDiscountUsage:
+      type: object
+      required:
+        - quantity
+      properties:
+        quantity:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Numeric'
+          description: |-
+            The quantity of the usage discount.
+
+            Must be positive.
+          title: Usage
+        correlation_id:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: |-
+            Correlation ID for the discount.
+
+            This is used to link discounts across different invoices (progressive billing
+            use case).
+
+            If not provided, the invoicing engine will auto-generate one. When editing an
+            invoice line, please make sure to keep the same correlation ID of the discount
+            or in progressive billing setups the discount amounts might be incorrect.
+      additionalProperties: false
+      description: A usage discount.
+    BillingNotificationEventV1BillingDiscounts:
+      type: object
+      properties:
+        percentage:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1BillingDiscountPercentage'
+          description: The percentage discount.
+        usage:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1BillingDiscountUsage'
+          description: The usage discount.
+      additionalProperties: false
+      description: A discount by type.
+    BillingNotificationEventV1BillingInvoiceCustomerExtendedDetails:
+      type: object
+      required:
+        - usage_attribution
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the party (if available)
+          readOnly: true
+        key:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: An optional unique key of the party (if available)
+          title: Key
+        name:
+          type: string
+          description: Legal name or representation of the organization.
+        tax_id:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1BillingPartyTaxIdentity'
+          description: |-
+            The entity's legal ID code used for tax purposes. They may have other numbers,
+            but we're only interested in those valid for tax purposes.
+        addresses:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingNotificationEventV1Address'
+          maxItems: 1
+          description: Regular post addresses for where information should be sent if needed.
+        usage_attribution:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1CustomerUsageAttribution'
+          description: Mapping to attribute metered usage to the customer
+          title: Usage Attribution
+      additionalProperties: false
+      description: |-
+        BillingInvoiceCustomerExtendedDetails is a collection of fields that are used to
+        extend the billing party details for invoices.
+
+        These fields contain the OpenMeter specific details for the customer, that are
+        not strictly required for the invoice itself.
+    BillingNotificationEventV1BillingParty:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the party (if available)
+          readOnly: true
+        key:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: An optional unique key of the party (if available)
+          title: Key
+        name:
+          type: string
+          description: Legal name or representation of the organization.
+        tax_id:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1BillingPartyTaxIdentity'
+          description: |-
+            The entity's legal ID code used for tax purposes. They may have other numbers,
+            but we're only interested in those valid for tax purposes.
+        addresses:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingNotificationEventV1Address'
+          maxItems: 1
+          description: Regular post addresses for where information should be sent if needed.
+      additionalProperties: false
+      description: Party represents a person or business entity.
+    BillingNotificationEventV1BillingPartyTaxIdentity:
+      type: object
+      properties:
+        code:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1BillingTaxIdentificationCode'
+          description: Normalized tax code shown on the original identity document.
+      additionalProperties: false
+      description: |-
+        Identity stores the details required to identify an entity for tax purposes in a
+        specific country.
+    BillingNotificationEventV1BillingProfileApps:
+      type: object
+      required:
+        - tax
+        - invoicing
+        - payment
+      properties:
+        tax:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1App'
+          description: The tax app used for this workflow
+          readOnly: true
+        invoicing:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1App'
+          description: The invoicing app used for this workflow
+          readOnly: true
+        payment:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1App'
+          description: The payment app used for this workflow
+          readOnly: true
+      additionalProperties: false
+      description: BillingProfileApps represents the applications used by a billing profile
+    BillingNotificationEventV1BillingSettlementMode:
+      type: string
+      enum:
+        - credit_then_invoice
+        - credit_only
+      description: |-
+        The settlement mode of a plan. It determines how the billing system generates
+        invoices and credits for the subscriptions using this plan.
+
+        - credit_then_invoice: credits from the previous billing period are applied
+        first, then the remaining balance is invoiced. This is the default and most
+        common settlement mode.
+        - credit_only: only credits from the previous billing period are generated and
+        applied. No invoices are generated for the subscription.
+    BillingNotificationEventV1BillingTaxIdentificationCode:
+      type: string
+      minLength: 1
+      maxLength: 32
+      description: |-
+        TaxIdentificationCode is a normalized tax code shown on the original identity
+        document.
+    BillingNotificationEventV1BillingWorkflow:
+      type: object
+      properties:
+        collection:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1BillingWorkflowCollectionSettings'
+          description: The collection settings for this workflow
+        invoicing:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1BillingWorkflowInvoicingSettings'
+          description: The invoicing settings for this workflow
+        payment:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1BillingWorkflowPaymentSettings'
+          description: The payment settings for this workflow
+        tax:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1BillingWorkflowTaxSettings'
+          description: The tax settings for this workflow
+      additionalProperties: false
+      description: BillingWorkflow represents the settings for a billing workflow.
+    BillingNotificationEventV1BillingWorkflowCollectionAlignment:
+      type: object
+      oneOf:
+        - $ref: '#/components/schemas/BillingNotificationEventV1BillingWorkflowCollectionAlignmentSubscription'
+        - $ref: '#/components/schemas/BillingNotificationEventV1BillingWorkflowCollectionAlignmentAnchored'
+      discriminator:
+        propertyName: type
+        mapping:
+          subscription: '#/components/schemas/BillingNotificationEventV1BillingWorkflowCollectionAlignmentSubscription'
+          anchored: '#/components/schemas/BillingNotificationEventV1BillingWorkflowCollectionAlignmentAnchored'
+      description: |-
+        The alignment for collecting the pending line items into an invoice.
+
+        Defaults to subscription, which means that we are to create a new invoice every
+        time the a subscription period starts (for in advance items) or ends (for in
+        arrears items).
+    BillingNotificationEventV1BillingWorkflowCollectionAlignmentAnchored:
+      type: object
+      required:
+        - type
+        - recurring_period
+      properties:
+        type:
+          type: string
+          enum:
+            - anchored
+          description: The type of alignment.
+        recurring_period:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1RecurringPeriodV2'
+          description: The recurring period for the alignment.
+      additionalProperties: false
+      description: |-
+        BillingWorkflowCollectionAlignmentAnchored specifies the alignment for
+        collecting the pending line items into an invoice.
+    BillingNotificationEventV1BillingWorkflowCollectionAlignmentSubscription:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          enum:
+            - subscription
+          description: The type of alignment.
+      additionalProperties: false
+      description: |-
+        BillingWorkflowCollectionAlignmentSubscription specifies the alignment for
+        collecting the pending line items into an invoice.
+    BillingNotificationEventV1BillingWorkflowCollectionSettings:
+      type: object
+      properties:
+        alignment:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1BillingWorkflowCollectionAlignment'
+          description: The alignment for collecting the pending line items into an invoice.
+        interval:
+          type: string
+          format: ISO8601
+          description: |-
+            This grace period can be used to delay the collection of the pending line items
+            specified in alignment.
+
+            This is useful, in case of multiple subscriptions having slightly different
+            billing periods.
+      additionalProperties: false
+      description: |-
+        Workflow collection specifies how to collect the pending line items for an
+        invoice
+    BillingNotificationEventV1BillingWorkflowInvoicingSettings:
+      type: object
+      properties:
+        auto_advance:
+          type: boolean
+          description: Whether to automatically issue the invoice after the draftPeriod has passed.
+        draft_period:
+          type: string
+          format: ISO8601
+          description: The period for the invoice to be kept in draft status for manual reviews.
+        due_after:
+          type: string
+          format: ISO8601
+          description: |-
+            The period after which the invoice is due. With some payment solutions it's only
+            applicable for manual collection method.
+        progressive_billing:
+          type: boolean
+          description: Should progressive billing be allowed for this workflow?
+        subscription_end_proration_mode:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1BillingWorkflowInvoicingSubscriptionEndProrationMode'
+          description: Controls how subscription-ending shortened service periods are billed.
+        default_tax_config:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1TaxConfig'
+          description: |-
+            Default tax configuration to apply to the invoices.
+
+            Setting a tax code (`stripe.code` / `taxCodeId`) on a profile's default tax
+            config is deprecated and can no longer be added or changed: the organization
+            default tax code is used instead. Existing tax-code values may still be removed,
+            and `behavior` remains fully supported.
+      additionalProperties: false
+      description: |-
+        BillingWorkflowInvoicingSettings represents the invoice settings for a billing
+        workflow
+      title: Workflow invoice settings
+    BillingNotificationEventV1BillingWorkflowInvoicingSubscriptionEndProrationMode:
+      type: string
+      enum:
+        - bill_full_period
+        - bill_actual_period
+      description: Billing workflow subscription end proration mode.
+    BillingNotificationEventV1BillingWorkflowPaymentSettings:
+      type: object
+      properties:
+        collection_method:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1CollectionMethod'
+          description: The payment method for the invoice.
+      additionalProperties: false
+      description: |-
+        BillingWorkflowPaymentSettings represents the payment settings for a billing
+        workflow
+      title: Workflow payment settings
+    BillingNotificationEventV1BillingWorkflowTaxSettings:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+          description: |-
+            Enable automatic tax calculation when tax is supported by the app. For example,
+            with Stripe Invoicing when enabled, tax is calculated via Stripe Tax.
+        enforced:
+          type: boolean
+          description: |-
+            Enforce tax calculation when tax is supported by the app. When enabled,
+            OpenMeter will not allow to create an invoice without tax calculation.
+            Enforcement is different per apps, for example, Stripe app requires customer to
+            have a tax location when starting a paid subscription.
+      additionalProperties: false
+      description: BillingWorkflowTaxSettings represents the tax settings for a billing workflow
+      title: Workflow tax settings
+    BillingNotificationEventV1CollectionMethod:
+      type: string
+      enum:
+        - charge_automatically
+        - send_invoice
+      description: |-
+        CollectionMethod specifies how the invoice should be collected (automatic vs
+        manual)
+      title: Collection method
+    BillingNotificationEventV1CountryCode:
+      type: string
+      minLength: 2
+      maxLength: 2
+      pattern: ^[A-Z]{2}$
+      description: |-
+        [ISO 3166-1](https://www.iso.org/iso-3166-country-codes.html) alpha-2 country
+        code. Custom two-letter country codes are also supported for convenience.
+    BillingNotificationEventV1CurrencyCode:
+      type: string
+      minLength: 3
+      maxLength: 3
+      pattern: ^[A-Z]{3}$
+      description: |-
+        Three-letter [ISO4217](https://www.iso.org/iso-4217-currency-codes.html)
+        currency code. Custom three-letter currency codes are also supported for
+        convenience.
+    BillingNotificationEventV1CustomInvoicingApp:
+      type: object
+      required:
+        - id
+        - name
+        - created_at
+        - updated_at
+        - listing
+        - status
+        - type
+        - enable_draft_sync_hook
+        - enable_issuing_sync_hook
+      properties:
+        id:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: A unique identifier for the resource.
+          title: ID
+          readOnly: true
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Human-readable name for the resource. Between 1 and 256 characters.
+          title: Display name
+        description:
+          type: string
+          maxLength: 1024
+          description: Optional description of the resource. Maximum 1024 characters.
+          title: Description
+        metadata:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Metadata'
+          nullable: true
+          description: Additional metadata for the resource.
+          title: Metadata
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was created.
+          title: Creation Time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was last updated.
+          title: Last Update Time
+          readOnly: true
+        deleted_at:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was permanently deleted.
+          title: Deletion Time
+          readOnly: true
+        listing:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1MarketplaceListing'
+          description: The marketplace listing that this installed app is based on.
+          readOnly: true
+        status:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1AppStatus'
+          description: Status of the app connection.
+          readOnly: true
+        type:
+          type: string
+          enum:
+            - custom_invoicing
+          description: The app's type is CustomInvoicing.
+        enable_draft_sync_hook:
+          type: boolean
+          description: |-
+            Enable draft.sync hook.
+
+            If the hook is not enabled, the invoice will be progressed to the next state
+            automatically.
+        enable_issuing_sync_hook:
+          type: boolean
+          description: |-
+            Enable issuing.sync hook.
+
+            If the hook is not enabled, the invoice will be progressed to the next state
+            automatically.
+      additionalProperties: false
+      description: |-
+        Custom Invoicing app can be used for interface with any invoicing or payment
+        system.
+
+        This app provides ways to manipulate invoices and payments, however the
+        integration must rely on Notifications API to get notified about invoice
+        changes.
+    BillingNotificationEventV1CustomInvoicingTaxConfig:
+      type: object
+      required:
+        - code
+      properties:
+        code:
+          type: string
+          description: |-
+            Tax code.
+
+            The tax code should be interpreted by the custom invoicing provider.
+          title: Tax code
+      additionalProperties: false
+      description: Custom invoicing tax config.
+    BillingNotificationEventV1Customer:
+      type: object
+      required:
+        - id
+        - name
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          description: A unique identifier for the resource.
+          title: ID
+          readOnly: true
+        name:
+          type: string
+          maxLength: 256
+          description: Human-readable name for the resource. Between 1 and 256 characters.
+          title: Display name
+        description:
+          type: string
+          maxLength: 1024
+          description: Optional description of the resource. Maximum 1024 characters.
+          title: Description
+        metadata:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Metadata'
+          nullable: true
+          description: Additional metadata for the resource.
+          title: Metadata
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was created.
+          title: Creation Time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was last updated.
+          title: Last Update Time
+          readOnly: true
+        deleted_at:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was permanently deleted.
+          title: Deletion Time
+          readOnly: true
+        key:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            An optional unique key of the customer. Either key or
+            usageAttribution.subjectKeys must be provided. Useful to reference the customer
+            in external systems. For example, your database ID.
+          title: Key
+        usage_attribution:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1CustomerUsageAttribution'
+          description: |-
+            Mapping to attribute metered usage to the customer Either key or
+            usageAttribution.subjectKeys must be provided.
+          title: Usage Attribution
+        primary_email:
+          type: string
+          description: The primary email address of the customer.
+          title: Primary Email
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1CurrencyCode'
+          description: Currency of the customer. Used for billing, tax and invoicing.
+          title: Currency
+        billing_address:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Address'
+          description: The billing address of the customer. Used for tax and invoicing.
+          title: Billing Address
+        current_subscription_id:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: The ID of the Subscription if the customer has one.
+          title: Current Subscription ID
+          readOnly: true
+        subscriptions:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingNotificationEventV1Subscription'
+          description: The subscriptions of the customer. Only with the `subscriptions` expand option.
+          title: Subscriptions
+          readOnly: true
+        annotations:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Annotations'
+          description: Set of key-value pairs managed by the system. Cannot be modified by user.
+          title: Annotations
+          readOnly: true
+      additionalProperties: false
+      description: A customer object.
+    BillingNotificationEventV1CustomerUsageAttribution:
+      type: object
+      required:
+        - subject_keys
+      properties:
+        subject_keys:
+          type: array
+          items:
+            type: string
+          minItems: 0
+          description: |-
+            The subjects that are attributed to the customer. Can be empty when no subjects
+            are associated with the customer.
+          title: SubjectKeys
+      additionalProperties: false
+      description: |-
+        Mapping to attribute metered usage to the customer. One customer can have zero
+        or more subjects, but one subject can only belong to one customer.
+    BillingNotificationEventV1DiscountReasonMaximumSpend:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          enum:
+            - maximum_spend
+          description: type.
+      additionalProperties: false
+      description: The reason for the discount is a maximum spend.
+    BillingNotificationEventV1DiscountReasonRatecardPercentage:
+      type: object
+      required:
+        - type
+        - percentage
+      properties:
+        type:
+          type: string
+          enum:
+            - ratecard_percentage
+          description: type.
+        percentage:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Percentage'
+          minimum: 0
+          maximum: 100
+          description: The percentage of the discount.
+          title: Percentage
+        correlation_id:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: |-
+            Correlation ID for the discount.
+
+            This is used to link discounts across different invoices (progressive billing
+            use case).
+
+            If not provided, the invoicing engine will auto-generate one. When editing an
+            invoice line, please make sure to keep the same correlation ID of the discount
+            or in progressive billing setups the discount amounts might be incorrect.
+      additionalProperties: false
+      description: The reason for the discount is a ratecard percentage.
+    BillingNotificationEventV1DiscountReasonRatecardUsage:
+      type: object
+      required:
+        - type
+        - quantity
+      properties:
+        type:
+          type: string
+          enum:
+            - ratecard_usage
+          description: type.
+        quantity:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Numeric'
+          description: |-
+            The quantity of the usage discount.
+
+            Must be positive.
+          title: Usage
+        correlation_id:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: |-
+            Correlation ID for the discount.
+
+            This is used to link discounts across different invoices (progressive billing
+            use case).
+
+            If not provided, the invoicing engine will auto-generate one. When editing an
+            invoice line, please make sure to keep the same correlation ID of the discount
+            or in progressive billing setups the discount amounts might be incorrect.
+      additionalProperties: false
+      description: The reason for the discount is a ratecard usage.
+    BillingNotificationEventV1DynamicPriceWithCommitments:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          enum:
+            - dynamic
+          description: The type of the price.
+        multiplier:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Numeric'
+          description: |-
+            The multiplier to apply to the base price to get the dynamic price.
+
+            Examples:
+
+            - 0.0: the price is zero
+            - 0.5: the price is 50% of the base price
+            - 1.0: the price is the same as the base price
+            - 1.5: the price is 150% of the base price
+          title: The multiplier to apply to the base price to get the dynamic price
+        minimum_amount:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Numeric'
+          description: The customer is committed to spend at least the amount.
+          title: Minimum amount
+        maximum_amount:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Numeric'
+          description: The customer is limited to spend at most the amount.
+          title: Maximum amount
+      additionalProperties: false
+      description: Dynamic price with spend commitments.
+    BillingNotificationEventV1EntitlementMetered:
+      type: object
+      required:
+        - type
+        - created_at
+        - updated_at
+        - active_from
+        - id
+        - subject_key
+        - feature_key
+        - feature_id
+        - last_reset
+        - current_usage_period
+        - measure_usage_from
+        - usage_period
+      properties:
+        type:
+          type: string
+          enum:
+            - metered
+          description: type.
+        is_soft_limit:
+          type: boolean
+          description: |-
+            If softLimit=true the subject can use the feature even if the entitlement is
+            exhausted, hasAccess will always be true.
+          title: Soft limit
+        is_unlimited:
+          type: boolean
+          description: |-
+            Deprecated, ignored by the backend. Please use isSoftLimit instead; this field
+            will be removed in the future.
+          deprecated: true
+        issue_after_reset:
+          type: number
+          format: double
+          minimum: 0
+          description: |-
+            You can grant usage automatically alongside the entitlement, the example
+            scenario would be creating a starting balance. If an amount is specified here, a
+            grant will be created alongside the entitlement with the specified amount. That
+            grant will have it's rollover settings configured in a way that after each reset
+            operation, the balance will return the original amount specified here. Manually
+            creating such a grant would mean having the "amount", "minRolloverAmount", and
+            "maxRolloverAmount" fields all be the same.
+          title: Initial grant amount
+        issue_after_reset_priority:
+          type: integer
+          format: uint8
+          minimum: 1
+          maximum: 255
+          description: Defines the grant priority for the default grant.
+          title: Issue grant after reset priority
+        preserve_overage_at_reset:
+          type: boolean
+          description: If true, the overage is preserved at reset. If false, the usage is reset to 0.
+          title: Preserve overage at reset
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was created.
+          title: Creation Time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was last updated.
+          title: Last Update Time
+          readOnly: true
+        deleted_at:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was permanently deleted.
+          title: Deletion Time
+          readOnly: true
+        metadata:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Metadata'
+          description: Additional metadata for the feature.
+        active_from:
+          type: string
+          format: date-time
+          description: The cadence start of the resource.
+        active_to:
+          type: string
+          format: date-time
+          description: The cadence end of the resource.
+        annotations:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Annotations'
+          description: The annotations of the entitlement.
+          readOnly: true
+        id:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: Readonly unique ULID identifier.
+          readOnly: true
+        subject_key:
+          type: string
+          description: |-
+            The identifier key unique to the subject. NOTE: Subjects are being deprecated,
+            please use the new customer APIs.
+        feature_key:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+          description: The feature the subject is entitled to use.
+        feature_id:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: The feature the subject is entitled to use.
+        last_reset:
+          type: string
+          format: date-time
+          description: The time the last reset happened.
+          readOnly: true
+        current_usage_period:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Period'
+          description: The current usage period.
+          readOnly: true
+        measure_usage_from:
+          type: string
+          format: date-time
+          description: |-
+            The time from which usage is measured. If not specified on creation, defaults to
+            entitlement creation time.
+          readOnly: true
+        usage_period:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1RecurringPeriod'
+          description: THe usage period of the entitlement.
+          readOnly: true
+      additionalProperties: false
+      description: |-
+        Metered entitlements are useful for many different use cases, from setting up
+        usage based access to implementing complex credit systems. Access is determined
+        based on feature usage using a balance calculation (the "usage allowance"
+        provided by the issued grants is "burnt down" by the usage).
+      deprecated: true
+    BillingNotificationEventV1EntitlementValue:
+      type: object
+      required:
+        - has_access
+      properties:
+        has_access:
+          type: boolean
+          description: |-
+            Whether the subject has access to the feature. Shared accross all entitlement
+            types.
+          readOnly: true
+        balance:
+          type: number
+          format: double
+          description: |-
+            Only available for metered entitlements. Metered entitlements are built around a
+            balance calculation where feature usage is deducted from the issued grants.
+            Balance represents the remaining balance of the entitlement, it's value never
+            turns negative.
+          readOnly: true
+        usage:
+          type: number
+          format: double
+          description: |-
+            Only available for metered entitlements. Returns the total feature usage in the
+            current period.
+          readOnly: true
+        overage:
+          type: number
+          format: double
+          description: |-
+            Only available for metered entitlements. Overage represents the usage that
+            wasn't covered by grants, e.g. if the subject had a total feature usage of 100
+            in the period but they were only granted 80, there would be 20 overage.
+          readOnly: true
+        total_available_grant_amount:
+          type: number
+          format: double
+          description: |-
+            Only available for metered entitlements. The summed amount of all grant active
+            at query time PLUS the used amount of since inactive grants.
+          readOnly: true
+        config:
+          type: string
+          description: |-
+            Only available for static entitlements. The JSON parsable config of the
+            entitlement.
+          readOnly: true
+      additionalProperties: false
+      description: |-
+        Entitlements are the core of OpenMeter access management. They define access to
+        features for subjects. Entitlements can be metered, boolean, or static.
+    BillingNotificationEventV1EntitlementValuePayloadBase:
+      type: object
+      required:
+        - entitlement
+        - feature
+        - subject
+        - value
+      properties:
+        entitlement:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1EntitlementMetered'
+          description: Entitlement.
+          title: Entitlement
+          readOnly: true
+        feature:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Feature'
+          description: Feature.
+          title: Feature
+          readOnly: true
+        subject:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Subject'
+          description: Subject.
+          title: Subject
+          readOnly: true
+        value:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1EntitlementValue'
+          description: Entitlement Value.
+          title: Entitlement Value
+          readOnly: true
+        customer:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Customer'
+          description: Customer.
+          title: Customer
+          readOnly: true
+      additionalProperties: false
+      description: Base data for any payload with entitlement entitlement value.
+    BillingNotificationEventV1Feature:
+      type: object
+      required:
+        - created_at
+        - updated_at
+        - key
+        - name
+        - id
+      properties:
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was created.
+          title: Creation Time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was last updated.
+          title: Last Update Time
+          readOnly: true
+        deleted_at:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was permanently deleted.
+          title: Deletion Time
+          readOnly: true
+        archived_at:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was archived.
+          title: Archival Time
+          readOnly: true
+        key:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+          description: A key is a unique string that is used to identify a resource.
+          title: The unique key of the feature
+        name:
+          type: string
+          description: The human-readable name of the feature.
+          title: The human-readable name of the feature
+        metadata:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Metadata'
+          description: Optional metadata.
+          title: Optional metadata
+        meter_slug:
+          type: string
+          minLength: 1
+          description: A key is a unique string that is used to identify a resource.
+          title: Meter slug
+        meter_group_by_filters:
+          type: object
+          additionalProperties:
+            type: string
+          description: |-
+            Optional meter group by filters. Useful if the meter scope is broader than what
+            feature tracks. Example scenario would be a meter tracking all token use with
+            groupBy fields for the model, then the feature could filter for model=gpt-4.
+
+            ⚠️ **Deprecated**: Use advancedMeterGroupByFilters instead
+          title: Meter group by filters
+          deprecated: true
+        advanced_meter_group_by_filters:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/BillingNotificationEventV1FilterString'
+          description: |-
+            Optional advanced meter group by filters. You can use this to filter for values
+            of the meter groupBy fields.
+          title: Advanced meter group by filters
+        unit_cost:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1FeatureUnitCost'
+          description: |-
+            Optional per-unit cost configuration. Use "manual" for a fixed per-unit cost, or
+            "llm" to look up cost from the LLM cost database based on meter group-by
+            properties.
+          title: Unit cost
+        id:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: Readonly unique ULID identifier.
+          readOnly: true
+      additionalProperties: false
+      description: |-
+        Represents a feature that can be enabled or disabled for a plan. Used both for
+        product catalog and entitlements.
+    BillingNotificationEventV1FeatureLLMUnitCost:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          enum:
+            - llm
+          description: type.
+        provider_property:
+          type: string
+          description: |-
+            Meter group-by property that holds the LLM provider. Use this when the meter has
+            a group-by dimension for provider. Mutually exclusive with `provider`.
+          title: Provider property
+        provider:
+          type: string
+          description: |-
+            Static LLM provider value (e.g., "openai", "anthropic"). Use this when the
+            feature tracks a single provider. Mutually exclusive with `providerProperty`.
+          title: Provider
+        model_property:
+          type: string
+          description: |-
+            Meter group-by property that holds the model ID. Use this when the meter has a
+            group-by dimension for model. Mutually exclusive with `model`.
+          title: Model property
+        model:
+          type: string
+          description: |-
+            Static model ID value (e.g., "gpt-4", "claude-3-5-sonnet"). Use this when the
+            feature tracks a single model. Mutually exclusive with `modelProperty`.
+          title: Model
+        token_type_property:
+          type: string
+          description: |-
+            Meter group-by property that holds the token type. Use this when the meter has a
+            group-by dimension for token type. Mutually exclusive with `tokenType`.
+          title: Token type property
+        token_type:
+          type: string
+          description: |-
+            Static token type value. Use this when the feature tracks a single token type
+            (e.g., only input tokens). Expected values: input, output, cache_read,
+            reasoning, cache_write, request, response. `request` is an alias for `input`,
+            `response` is an alias for `output`. Mutually exclusive with
+            `tokenTypeProperty`.
+          title: Token type
+        pricing:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1FeatureLLMUnitCostPricing'
+          description: |-
+            Resolved per-token pricing from the LLM cost database. Only populated in
+            responses when the feature's meter group-by filters specify exact provider and
+            model values.
+          title: Resolved pricing
+          readOnly: true
+      additionalProperties: false
+      description: |-
+        LLM cost lookup configuration. Maps meter group-by dimensions to LLM cost
+        database fields.
+    BillingNotificationEventV1FeatureLLMUnitCostPricing:
+      type: object
+      required:
+        - input_per_token
+        - output_per_token
+      properties:
+        input_per_token:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Numeric'
+          description: Cost per input token in USD.
+          title: Input per token
+        output_per_token:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Numeric'
+          description: Cost per output token in USD.
+          title: Output per token
+        cache_read_per_token:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Numeric'
+          description: Cost per cache read token in USD.
+          title: Cache read per token
+        reasoning_per_token:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Numeric'
+          description: Cost per reasoning token in USD.
+          title: Reasoning per token
+        cache_write_per_token:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Numeric'
+          description: Cost per cache write token in USD.
+          title: Cache write per token
+      additionalProperties: false
+      description: Resolved per-token pricing from the LLM cost database.
+    BillingNotificationEventV1FeatureManualUnitCost:
+      type: object
+      required:
+        - type
+        - amount
+      properties:
+        type:
+          type: string
+          enum:
+            - manual
+          description: type.
+        amount:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Numeric'
+          description: Fixed per-unit cost amount in USD.
+      additionalProperties: false
+      description: A fixed per-unit cost amount.
+    BillingNotificationEventV1FeatureUnitCost:
+      type: object
+      oneOf:
+        - $ref: '#/components/schemas/BillingNotificationEventV1FeatureManualUnitCost'
+        - $ref: '#/components/schemas/BillingNotificationEventV1FeatureLLMUnitCost'
+      discriminator:
+        propertyName: type
+        mapping:
+          manual: '#/components/schemas/BillingNotificationEventV1FeatureManualUnitCost'
+          llm: '#/components/schemas/BillingNotificationEventV1FeatureLLMUnitCost'
+      description: |-
+        Per-unit cost configuration for a feature. Either a fixed manual amount or a
+        dynamic LLM cost lookup.
+    BillingNotificationEventV1FilterString:
+      type: object
+      properties:
+        $eq:
+          type: string
+          nullable: true
+          description: The field must be equal to the provided value.
+          x-omitempty: true
+        $ne:
+          type: string
+          nullable: true
+          description: The field must not be equal to the provided value.
+          x-omitempty: true
+        $in:
+          type: array
+          items:
+            type: string
+          nullable: true
+          description: The field must be in the provided list of values.
+          x-omitempty: true
+        $nin:
+          type: array
+          items:
+            type: string
+          nullable: true
+          description: The field must not be in the provided list of values.
+          x-omitempty: true
+        $like:
+          type: string
+          nullable: true
+          description: The field must match the provided value.
+          x-omitempty: true
+        $nlike:
+          type: string
+          nullable: true
+          description: The field must not match the provided value.
+          x-omitempty: true
+        $ilike:
+          type: string
+          nullable: true
+          description: The field must match the provided value, ignoring case.
+          x-omitempty: true
+        $nilike:
+          type: string
+          nullable: true
+          description: The field must not match the provided value, ignoring case.
+          x-omitempty: true
+        $gt:
+          type: string
+          nullable: true
+          description: The field must be greater than the provided value.
+          x-omitempty: true
+        $gte:
+          type: string
+          nullable: true
+          description: The field must be greater than or equal to the provided value.
+          x-omitempty: true
+        $lt:
+          type: string
+          nullable: true
+          description: The field must be less than the provided value.
+          x-omitempty: true
+        $lte:
+          type: string
+          nullable: true
+          description: The field must be less than or equal to the provided value.
+          x-omitempty: true
+        $and:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingNotificationEventV1FilterString'
+          nullable: true
+          description: Provide a list of filters to be combined with a logical AND.
+          x-omitempty: true
+        $or:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingNotificationEventV1FilterString'
+          nullable: true
+          description: Provide a list of filters to be combined with a logical OR.
+          x-omitempty: true
+      additionalProperties: false
+      description: A filter for a string field.
+    BillingNotificationEventV1FlatPrice:
+      type: object
+      required:
+        - type
+        - amount
+      properties:
+        type:
+          type: string
+          enum:
+            - flat
+          description: The type of the price.
+        amount:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Numeric'
+          description: The amount of the flat price.
+      additionalProperties: false
+      description: Flat price.
+    BillingNotificationEventV1FlatPriceWithPaymentTerm:
+      type: object
+      required:
+        - type
+        - amount
+      properties:
+        type:
+          type: string
+          enum:
+            - flat
+          description: The type of the price.
+        amount:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Numeric'
+          description: The amount of the flat price.
+        payment_term:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1PricePaymentTerm'
+          description: The payment term of the flat price. Defaults to in advance.
+      additionalProperties: false
+      description: Flat price with payment term.
+    BillingNotificationEventV1IDResource:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: A unique identifier for the resource.
+          title: ID
+          readOnly: true
+      additionalProperties: false
+      description: IDResource is a resouce with an ID.
+    BillingNotificationEventV1InstallMethod:
+      type: string
+      enum:
+        - with_oauth2
+        - with_api_key
+        - no_credentials_required
+      description: Install method of the application.
+    BillingNotificationEventV1Invoice:
+      type: object
+      required:
+        - id
+        - created_at
+        - updated_at
+        - type
+        - supplier
+        - customer
+        - number
+        - currency
+        - totals
+        - status
+        - status_details
+        - workflow
+      properties:
+        id:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: A unique identifier for the resource.
+          title: ID
+          readOnly: true
+        description:
+          type: string
+          maxLength: 1024
+          description: Optional description of the resource. Maximum 1024 characters.
+          title: Description
+        metadata:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Metadata'
+          nullable: true
+          description: Additional metadata for the resource.
+          title: Metadata
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was created.
+          title: Creation Time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was last updated.
+          title: Last Update Time
+          readOnly: true
+        deleted_at:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was permanently deleted.
+          title: Deletion Time
+          readOnly: true
+        type:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1InvoiceType'
+          description: |-
+            Type of the invoice.
+
+            The type of invoice determines the purpose of the invoice and how it should be
+            handled.
+
+            Supported types:
+
+            - standard: A regular commercial invoice document between a supplier and
+            customer.
+            - credit_note: Reflects a refund either partial or complete of the preceding
+            document. A credit note effectively _extends_ the previous document.
+          readOnly: true
+        supplier:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1BillingParty'
+          description: The taxable entity supplying the goods or services.
+        customer:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1BillingInvoiceCustomerExtendedDetails'
+          description: Legal entity receiving the goods or services.
+        number:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1InvoiceNumber'
+          description: |-
+            Number specifies the human readable key used to reference this Invoice.
+
+            The invoice number can change in the draft phases, as we are allocating
+            temporary draft invoice numbers, but it's final as soon as the invoice gets
+            finalized (issued state).
+
+            Please note that the number is (depending on the upstream settings) either
+            unique for the whole organization or unique for the customer, or in multi
+            (stripe) account setups unique for the account.
+          readOnly: true
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1CurrencyCode'
+          description: |-
+            Currency for all invoice line items.
+
+            Multi currency invoices are not supported yet.
+        preceding:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingNotificationEventV1InvoiceDocumentRef'
+          description: |-
+            Key information regarding previous invoices and potentially details as to why
+            they were corrected.
+          readOnly: true
+        totals:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1InvoiceTotals'
+          description: Summary of all the invoice totals, including taxes (calculated).
+          readOnly: true
+        status:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1InvoiceStatus'
+          description: |-
+            The status of the invoice.
+
+            This field only conatins a simplified status, for more detailed information use
+            the statusDetails field.
+          readOnly: true
+        status_details:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1InvoiceStatusDetails'
+          description: The details of the current invoice status.
+          readOnly: true
+        issued_at:
+          type: string
+          format: date-time
+          description: |-
+            The time the invoice was issued.
+
+            Depending on the status of the invoice this can mean multiple things:
+
+            - draft, gathering: The time the invoice will be issued based on the workflow
+            settings.
+            - issued: The time the invoice was issued.
+          readOnly: true
+        draft_until:
+          type: string
+          format: date-time
+          description: |-
+            The time until the invoice is in draft status.
+
+            On draft invoice creation it is calculated from the workflow settings.
+
+            If manual approval is required, the draftUntil time is set.
+        quantity_snapshoted_at:
+          type: string
+          format: date-time
+          description: The time when the quantity snapshots on the invoice lines were taken.
+          readOnly: true
+        collection_at:
+          type: string
+          format: date-time
+          description: The time when the invoice will be/has been collected.
+          readOnly: true
+        due_at:
+          type: string
+          format: date-time
+          description: Due time of the fulfillment of the invoice (if available).
+          readOnly: true
+        period:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Period'
+          description: The period the invoice covers. If the invoice has no line items, it's not set.
+        voided_at:
+          type: string
+          format: date-time
+          description: |-
+            The time the invoice was voided.
+
+            If the invoice was voided, this field will be set to the time the invoice was
+            voided.
+          readOnly: true
+        sent_to_customer_at:
+          type: string
+          format: date-time
+          description: The time the invoice was sent to customer.
+          readOnly: true
+        workflow:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1InvoiceWorkflowSettings'
+          description: |-
+            The workflow associated with the invoice.
+
+            It is always a snapshot of the workflow settings at the time of invoice
+            creation. The field is optional as it should be explicitly requested with expand
+            options.
+        lines:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingNotificationEventV1InvoiceLine'
+          description: List of invoice lines representing each of the items sold to the customer.
+        payment:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1InvoicePaymentTerms'
+          description: Information on when, how, and to whom the invoice should be paid.
+          readOnly: true
+        validation_issues:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingNotificationEventV1ValidationIssue'
+          description: Validation issues reported by the invoice workflow.
+          readOnly: true
+        external_ids:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1InvoiceAppExternalIds'
+          description: External IDs of the invoice in other apps such as Stripe.
+          readOnly: true
+      additionalProperties: false
+      description: Invoice represents an invoice in the system.
+    BillingNotificationEventV1InvoiceAppExternalIds:
+      type: object
+      properties:
+        invoicing:
+          type: string
+          description: The external ID of the invoice in the invoicing app if available.
+          readOnly: true
+        tax:
+          type: string
+          description: The external ID of the invoice in the tax app if available.
+          readOnly: true
+        payment:
+          type: string
+          description: The external ID of the invoice in the payment app if available.
+          readOnly: true
+      additionalProperties: false
+      description: |-
+        InvoiceAppExternalIds contains the external IDs of the invoice in other apps
+        such as Stripe.
+    BillingNotificationEventV1InvoiceAvailableActionDetails:
+      type: object
+      required:
+        - resulting_state
+      properties:
+        resulting_state:
+          type: string
+          description: |-
+            The state the invoice will reach if the action is activated and all intermediate
+            steps are successful.
+
+            For example advancing a draft_created invoice will result in a
+            draft_manual_approval_needed invoice.
+          readOnly: true
+      additionalProperties: false
+      description: |-
+        InvoiceAvailableActionInvoiceDetails represents the details of the invoice
+        action for non-gathering invoices.
+    BillingNotificationEventV1InvoiceAvailableActionInvoiceDetails:
+      type: object
+      additionalProperties: false
+      description: |-
+        InvoiceAvailableActionInvoiceDetails represents the details of the invoice
+        action for gathering invoices.
+    BillingNotificationEventV1InvoiceAvailableActions:
+      type: object
+      properties:
+        advance:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1InvoiceAvailableActionDetails'
+          description: Advance the invoice to the next status.
+          readOnly: true
+        approve:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1InvoiceAvailableActionDetails'
+          description: Approve an invoice that requires manual approval.
+          readOnly: true
+        delete:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1InvoiceAvailableActionDetails'
+          description: Delete the invoice (only non-issued invoices can be deleted).
+          readOnly: true
+        retry:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1InvoiceAvailableActionDetails'
+          description: Retry an invoice issuing step that failed.
+          readOnly: true
+        snapshot_quantities:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1InvoiceAvailableActionDetails'
+          description: Snapshot quantities for usage based line items.
+          readOnly: true
+        void:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1InvoiceAvailableActionDetails'
+          description: Void an already issued invoice.
+          readOnly: true
+        invoice:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1InvoiceAvailableActionInvoiceDetails'
+          description: Invoice a gathering invoice
+          readOnly: true
+      additionalProperties: false
+      description: |-
+        InvoiceAvailableActions represents the actions that can be performed on the
+        invoice.
+    BillingNotificationEventV1InvoiceDetailedLine:
+      type: object
+      required:
+        - name
+        - created_at
+        - updated_at
+        - id
+        - managed_by
+        - status
+        - currency
+        - totals
+        - period
+        - invoice_at
+        - type
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Human-readable name for the resource. Between 1 and 256 characters.
+          title: Display name
+        description:
+          type: string
+          maxLength: 1024
+          description: Optional description of the resource. Maximum 1024 characters.
+          title: Description
+        metadata:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Metadata'
+          nullable: true
+          description: Additional metadata for the resource.
+          title: Metadata
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was created.
+          title: Creation Time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was last updated.
+          title: Last Update Time
+          readOnly: true
+        deleted_at:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was permanently deleted.
+          title: Deletion Time
+          readOnly: true
+        id:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: ID of the line.
+        managed_by:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1InvoiceLineManagedBy'
+          description: |-
+            managedBy specifies if the line is manually added via the api or managed by
+            OpenMeter.
+          readOnly: true
+        status:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1InvoiceLineStatus'
+          description: |-
+            Status of the line.
+
+            External calls always create valid lines, other line types are managed by the
+            billing engine of OpenMeter.
+          readOnly: true
+        discounts:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1InvoiceLineDiscounts'
+          description: |-
+            Discounts detailes applied to this line.
+
+            New discounts can be added via the invoice's discounts API, to facilitate
+            discounts that are affecting multiple lines.
+          readOnly: true
+        credit_allocations:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingNotificationEventV1InvoiceLineCreditAllocation'
+          description: |-
+            Credit allocations applied to this line.
+
+            Credits are deducted from the line total before taxes are applied.
+          readOnly: true
+        invoice:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1InvoiceReference'
+          description: The invoice this item belongs to.
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1CurrencyCode'
+          description: The currency of this line.
+        taxes:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingNotificationEventV1InvoiceLineTaxItem'
+          description: Taxes applied to the invoice totals.
+          readOnly: true
+        tax_config:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1TaxConfig'
+          description: Tax config specify the tax configuration for this line.
+          deprecated: true
+        totals:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1InvoiceTotals'
+          description: Totals for this line.
+          readOnly: true
+        period:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Period'
+          description: |-
+            Period of the line item applies to for revenue recognition pruposes.
+
+            Billing always treats periods as start being inclusive and end being exclusive.
+        external_ids:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1InvoiceLineAppExternalIds'
+          description: External IDs of the invoice in other apps such as Stripe.
+          readOnly: true
+        subscription:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1InvoiceLineSubscriptionReference'
+          description: |-
+            Subscription are the references to the subscritpions that this line is related
+            to.
+          readOnly: true
+        invoice_at:
+          type: string
+          format: date-time
+          description: The time this line item should be invoiced.
+          deprecated: true
+        type:
+          type: string
+          enum:
+            - flat_fee
+          description: Type of the line.
+          deprecated: true
+          readOnly: true
+        per_unit_amount:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Numeric'
+          description: Price of the item being sold.
+          deprecated: true
+        payment_term:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1PricePaymentTerm'
+          description: Payment term of the line.
+          deprecated: true
+        quantity:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Numeric'
+          description: Quantity of the item being sold.
+          deprecated: true
+        rate_card:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1InvoiceDetailedLineRateCard'
+          description: The rate card that is used for this line.
+        category:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1InvoiceDetailedLineCostCategory'
+          description: Category of the flat fee.
+          readOnly: true
+      additionalProperties: false
+      description: |-
+        InvoiceDetailedLine represents a line item that is sold to the customer as a
+        manually added fee.
+    BillingNotificationEventV1InvoiceDetailedLineCostCategory:
+      type: string
+      enum:
+        - regular
+        - commitment
+      description: |-
+        InvoiceDetailedLineCostCategory determines if the flat fee is a regular fee due
+        to use due to a commitment.
+    BillingNotificationEventV1InvoiceDetailedLineRateCard:
+      type: object
+      required:
+        - price
+      properties:
+        tax_config:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1TaxConfig'
+          description: |-
+            The tax config of the rate card. When undefined, the tax config of the feature
+            or the default tax config of the plan is used.
+          title: Tax config
+        price:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1FlatPriceWithPaymentTerm'
+          nullable: true
+          description: The price of the rate card. When null, the feature or service is free.
+          title: Price
+        quantity:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Numeric'
+          description: |-
+            Quantity of the item being sold.
+
+            Default: 1
+        discounts:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1BillingDiscounts'
+          description: The discounts that are applied to the line.
+      additionalProperties: false
+      description: |-
+        InvoiceDetailedLineRateCard represents the rate card (intent) for a flat fee
+        line.
+    BillingNotificationEventV1InvoiceDocumentRef:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1InvoiceDocumentRefType'
+          description: Type of the document referenced.
+          readOnly: true
+        reason:
+          type: string
+          description: Human readable description on why this reference is here or needs to be used.
+          readOnly: true
+        description:
+          type: string
+          description: Additional details about the document.
+          readOnly: true
+      additionalProperties: false
+      description: |-
+        InvoiceDocumentRef is used to describe a reference to an existing document
+        (invoice).
+
+        The v1 schema describes credit note references with issued_at, number and url,
+        but the v1 API only ever sends the generic fields below.
+    BillingNotificationEventV1InvoiceDocumentRefType:
+      type: string
+      enum:
+        - credit_note_original_invoice
+      description: InvoiceDocumentRefType defines the type of document that is being referenced.
+    BillingNotificationEventV1InvoiceLine:
+      type: object
+      required:
+        - name
+        - created_at
+        - updated_at
+        - id
+        - managed_by
+        - status
+        - currency
+        - totals
+        - period
+        - invoice_at
+        - type
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Human-readable name for the resource. Between 1 and 256 characters.
+          title: Display name
+        description:
+          type: string
+          maxLength: 1024
+          description: Optional description of the resource. Maximum 1024 characters.
+          title: Description
+        metadata:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Metadata'
+          nullable: true
+          description: Additional metadata for the resource.
+          title: Metadata
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was created.
+          title: Creation Time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was last updated.
+          title: Last Update Time
+          readOnly: true
+        deleted_at:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was permanently deleted.
+          title: Deletion Time
+          readOnly: true
+        id:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: ID of the line.
+        managed_by:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1InvoiceLineManagedBy'
+          description: |-
+            managedBy specifies if the line is manually added via the api or managed by
+            OpenMeter.
+          readOnly: true
+        status:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1InvoiceLineStatus'
+          description: |-
+            Status of the line.
+
+            External calls always create valid lines, other line types are managed by the
+            billing engine of OpenMeter.
+          readOnly: true
+        discounts:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1InvoiceLineDiscounts'
+          description: |-
+            Discounts detailes applied to this line.
+
+            New discounts can be added via the invoice's discounts API, to facilitate
+            discounts that are affecting multiple lines.
+          readOnly: true
+        credit_allocations:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingNotificationEventV1InvoiceLineCreditAllocation'
+          description: |-
+            Credit allocations applied to this line.
+
+            Credits are deducted from the line total before taxes are applied.
+          readOnly: true
+        invoice:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1InvoiceReference'
+          description: The invoice this item belongs to.
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1CurrencyCode'
+          description: The currency of this line.
+        taxes:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingNotificationEventV1InvoiceLineTaxItem'
+          description: Taxes applied to the invoice totals.
+          readOnly: true
+        tax_config:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1TaxConfig'
+          description: Tax config specify the tax configuration for this line.
+          deprecated: true
+        totals:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1InvoiceTotals'
+          description: Totals for this line.
+          readOnly: true
+        period:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Period'
+          description: |-
+            Period of the line item applies to for revenue recognition pruposes.
+
+            Billing always treats periods as start being inclusive and end being exclusive.
+        invoice_at:
+          type: string
+          format: date-time
+          description: The time this line item should be invoiced.
+        external_ids:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1InvoiceLineAppExternalIds'
+          description: External IDs of the invoice in other apps such as Stripe.
+          readOnly: true
+        subscription:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1InvoiceLineSubscriptionReference'
+          description: |-
+            Subscription are the references to the subscritpions that this line is related
+            to.
+          readOnly: true
+        type:
+          type: string
+          enum:
+            - usage_based
+          description: Type of the line.
+          deprecated: true
+          readOnly: true
+        price:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1RateCardUsageBasedPrice'
+          description: Price of the usage-based item being sold.
+          deprecated: true
+        feature_key:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+          description: The feature that the usage is based on.
+          deprecated: true
+        children:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingNotificationEventV1InvoiceDetailedLine'
+          description: The lines detailing the item or service sold.
+          readOnly: true
+        rate_card:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1InvoiceUsageBasedRateCard'
+          description: |-
+            The rate card that is used for this line.
+
+            The rate card captures the intent of the price and discounts for the usage-based
+            item.
+        quantity:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Numeric'
+          description: |-
+            The quantity of the item being sold.
+
+            Any usage discounts applied previously are deducted from this quantity.
+          readOnly: true
+        metered_quantity:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Numeric'
+          description: |-
+            The quantity of the item that has been metered for the period before any
+            discounts were applied.
+          readOnly: true
+        pre_line_period_quantity:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Numeric'
+          description: |-
+            The quantity of the item used before this line's period.
+
+            It is non-zero in case of progressive billing, when this shows how much of the
+            usage was already billed.
+
+            Any usage discounts applied previously are deducted from this quantity.
+          readOnly: true
+        metered_pre_line_period_quantity:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Numeric'
+          description: |-
+            The metered quantity of the item used in before this line's period without any
+            discounts applied.
+
+            It is non-zero in case of progressive billing, when this shows how much of the
+            usage was already billed.
+          readOnly: true
+      additionalProperties: false
+      description: |-
+        InvoiceUsageBasedLine represents a line item that is sold to the customer based
+        on usage.
+    BillingNotificationEventV1InvoiceLineAmountDiscount:
+      type: object
+      required:
+        - created_at
+        - updated_at
+        - id
+        - reason
+        - amount
+      properties:
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was created.
+          title: Creation Time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was last updated.
+          title: Last Update Time
+          readOnly: true
+        deleted_at:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was permanently deleted.
+          title: Deletion Time
+          readOnly: true
+        id:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: ID of the charge or discount.
+          readOnly: true
+        reason:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1BillingDiscountReason'
+          description: Reason code.
+          readOnly: true
+        description:
+          type: string
+          description: Text description as to why the discount was applied.
+          readOnly: true
+        external_ids:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1InvoiceLineAppExternalIds'
+          description: External IDs of the invoice in other apps such as Stripe.
+          readOnly: true
+        amount:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Numeric'
+          description: Fixed discount amount to apply (calculated if percent present).
+          title: Amount in the currency of the invoice
+          readOnly: true
+      additionalProperties: false
+      description: |-
+        InvoiceLineAmountDiscount represents an amount deducted from the line, and will
+        be applied before taxes.
+    BillingNotificationEventV1InvoiceLineAppExternalIds:
+      type: object
+      properties:
+        invoicing:
+          type: string
+          description: The external ID of the invoice in the invoicing app if available.
+          readOnly: true
+        tax:
+          type: string
+          description: The external ID of the invoice in the tax app if available.
+          readOnly: true
+      additionalProperties: false
+      description: |-
+        InvoiceLineAppExternalIds contains the external IDs of the invoice in other apps
+        such as Stripe.
+    BillingNotificationEventV1InvoiceLineCreditAllocation:
+      type: object
+      required:
+        - amount
+      properties:
+        amount:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Numeric'
+          description: Amount allocated from credits.
+          title: Amount in the currency of the invoice
+          readOnly: true
+        description:
+          type: string
+          description: Text description as to why the credit was allocated.
+          readOnly: true
+      additionalProperties: false
+      description: |-
+        InvoiceLineCreditAllocation represents a credit amount allocated to the line
+        before taxes are applied.
+    BillingNotificationEventV1InvoiceLineDiscounts:
+      type: object
+      properties:
+        amount:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingNotificationEventV1InvoiceLineAmountDiscount'
+          description: |-
+            Amount based discounts applied to the line.
+
+            Amount based discounts are deduced from the total price of the line.
+        usage:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingNotificationEventV1InvoiceLineUsageDiscount'
+          description: |-
+            Usage based discounts applied to the line.
+
+            Usage based discounts are deduced from the usage of the line before price
+            calculations are applied.
+      additionalProperties: false
+      description: |-
+        InvoiceLineDiscounts represents the discounts applied to the invoice line by
+        type.
+    BillingNotificationEventV1InvoiceLineManagedBy:
+      type: string
+      enum:
+        - subscription
+        - system
+        - manual
+      description: InvoiceLineManagedBy specifies who manages the line.
+    BillingNotificationEventV1InvoiceLineStatus:
+      type: string
+      enum:
+        - valid
+        - detailed
+        - split
+      description: Line status specifies the status of the line.
+    BillingNotificationEventV1InvoiceLineSubscriptionReference:
+      type: object
+      required:
+        - subscription
+        - phase
+        - item
+        - billing_period
+      properties:
+        subscription:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1IDResource'
+          description: The subscription.
+          readOnly: true
+        phase:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1IDResource'
+          description: The phase of the subscription.
+          readOnly: true
+        item:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1IDResource'
+          description: The item this line is related to.
+          readOnly: true
+        billing_period:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Period'
+          description: |-
+            The billing period of the subscription. In case the subscription item's billing
+            period is different from the subscription's billing period, this field will
+            contain the billing period of the subscription itself.
+
+            For example, in case of:
+
+            - A monthly billed subscription anchored to 2025-01-01
+            - A subscription item billed daily
+
+            An example line would have the period of 2025-01-02 to 2025-01-03 as the item is
+            billed daily, but the subscription's billing period will be 2025-01-01 to
+            2025-01-31.
+          readOnly: true
+      additionalProperties: false
+      description: |-
+        InvoiceLineSubscriptionReference contains the references to the subscription
+        that this line is related to.
+    BillingNotificationEventV1InvoiceLineTaxBehavior:
+      type: string
+      enum:
+        - inclusive
+        - exclusive
+      description: |-
+        InvoiceLineTaxBehavior details how the tax item is applied to the base amount.
+
+        Inclusive means the tax is included in the base amount. Exclusive means the tax
+        is added to the base amount.
+    BillingNotificationEventV1InvoiceLineTaxItem:
+      type: object
+      properties:
+        config:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1TaxConfig'
+          description: Tax provider configuration.
+          readOnly: true
+        percent:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Percentage'
+          description: |-
+            Percent defines the percentage set manually or determined from the rate key
+            (calculated if rate present). A nil percent implies that this tax combo is
+            **exempt** from tax.")
+          readOnly: true
+        surcharge:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Numeric'
+          description: Some countries require an additional surcharge (calculated if rate present).
+          readOnly: true
+        behavior:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1InvoiceLineTaxBehavior'
+          description: Is the tax item inclusive or exclusive of the base amount.
+          readOnly: true
+      additionalProperties: false
+      description: TaxConfig stores the configuration for a tax line relative to an invoice line.
+    BillingNotificationEventV1InvoiceLineUsageDiscount:
+      type: object
+      required:
+        - created_at
+        - updated_at
+        - id
+        - reason
+        - quantity
+      properties:
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was created.
+          title: Creation Time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was last updated.
+          title: Last Update Time
+          readOnly: true
+        deleted_at:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was permanently deleted.
+          title: Deletion Time
+          readOnly: true
+        id:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: ID of the charge or discount.
+          readOnly: true
+        reason:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1BillingDiscountReason'
+          description: Reason code.
+          readOnly: true
+        description:
+          type: string
+          description: Text description as to why the discount was applied.
+          readOnly: true
+        external_ids:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1InvoiceLineAppExternalIds'
+          description: External IDs of the invoice in other apps such as Stripe.
+          readOnly: true
+        quantity:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Numeric'
+          description: The usage to apply.
+          title: Usage quantity in the unit of the underlying meter
+          readOnly: true
+        pre_line_period_quantity:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Numeric'
+          description: |-
+            The usage discount already applied to the previous split lines.
+
+            Only set if progressive billing is enabled and the line is a split line.
+          title: Usage quantity in the unit of the underlying meter
+          readOnly: true
+      additionalProperties: false
+      description: |-
+        InvoiceLineUsageDiscount represents an usage-based discount applied to the line.
+
+        The deduction is done before the pricing algorithm is applied.
+    BillingNotificationEventV1InvoiceNumber:
+      type: string
+      minLength: 1
+      maxLength: 256
+      description: |-
+        InvoiceNumber is a unique identifier for the invoice, generated by the invoicing
+        app.
+
+        The uniqueness depends on a lot of factors:
+
+        - app setting (unique per app or unique per customer)
+        - multiple app scenarios (multiple apps generating invoices with the same
+        prefix)
+    BillingNotificationEventV1InvoicePaymentTerms:
+      type: object
+      properties:
+        terms:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1PaymentTerms'
+          description: The terms of payment for the invoice.
+      additionalProperties: false
+      description: Payment contains details as to how the invoice should be paid.
+    BillingNotificationEventV1InvoiceReference:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: The ID of the invoice.
+          readOnly: true
+        number:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1InvoiceNumber'
+          description: The number of the invoice.
+          readOnly: true
+      additionalProperties: false
+      description: Reference to an invoice.
+    BillingNotificationEventV1InvoiceStatus:
+      type: string
+      enum:
+        - gathering
+        - draft
+        - issuing
+        - issued
+        - payment_processing
+        - overdue
+        - paid
+        - uncollectible
+        - voided
+      description: InvoiceStatus describes the status of an invoice.
+    BillingNotificationEventV1InvoiceStatusDetails:
+      type: object
+      required:
+        - immutable
+        - failed
+        - extended_status
+        - available_actions
+      properties:
+        immutable:
+          type: boolean
+          description: Is the invoice editable?
+          readOnly: true
+        failed:
+          type: boolean
+          description: Is the invoice in a failed state?
+          readOnly: true
+        extended_status:
+          type: string
+          description: Extended status information for the invoice.
+          readOnly: true
+        available_actions:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1InvoiceAvailableActions'
+          description: The actions that can be performed on the invoice.
+      additionalProperties: false
+      description: |-
+        InvoiceStatusDetails represents the details of the invoice status.
+
+        API users are encouraged to rely on the immutable/failed/avaliableActions fields
+        to determine the next steps of the invoice instead of the extendedStatus field.
+    BillingNotificationEventV1InvoiceTotals:
+      type: object
+      required:
+        - amount
+        - charges_total
+        - discounts_total
+        - credits_total
+        - taxes_inclusive_total
+        - taxes_exclusive_total
+        - taxes_total
+        - total
+      properties:
+        amount:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Numeric'
+          description: The total value of the line before taxes, discounts and commitments.
+          readOnly: true
+        charges_total:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Numeric'
+          description: The amount of value of the line that are due to additional charges.
+          readOnly: true
+        discounts_total:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Numeric'
+          description: The amount of value of the line that are due to discounts.
+          readOnly: true
+        credits_total:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Numeric'
+          description: The amount of value of the line that are due to credits.
+          readOnly: true
+        taxes_inclusive_total:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Numeric'
+          description: The total amount of taxes that are included in the line.
+          readOnly: true
+        taxes_exclusive_total:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Numeric'
+          description: The total amount of taxes that are added on top of amount from the line.
+          readOnly: true
+        taxes_total:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Numeric'
+          description: The total amount of taxes for this line.
+          readOnly: true
+        total:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Numeric'
+          description: The total amount value of the line after taxes, discounts and commitments.
+          readOnly: true
+      additionalProperties: false
+      description: Totals contains the summaries of all calculations for the invoice.
+    BillingNotificationEventV1InvoiceType:
+      type: string
+      enum:
+        - standard
+        - credit_note
+      description: |-
+        InvoiceType represents the type of invoice.
+
+        The type of invoice determines the purpose of the invoice and how it should be
+        handled.
+    BillingNotificationEventV1InvoiceUsageBasedRateCard:
+      type: object
+      required:
+        - price
+      properties:
+        feature_key:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+          description: The feature the customer is entitled to use.
+          title: Feature key
+        tax_config:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1TaxConfig'
+          description: |-
+            The tax config of the rate card. When undefined, the tax config of the feature
+            or the default tax config of the plan is used.
+          title: Tax config
+        price:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1RateCardUsageBasedPrice'
+          nullable: true
+          description: The price of the rate card. When null, the feature or service is free.
+        discounts:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1BillingDiscounts'
+          description: The discounts that are applied to the line.
+          deprecated: true
+      additionalProperties: false
+      description: |-
+        InvoiceUsageBasedRateCard represents the rate card (intent) for an usage-based
+        line.
+    BillingNotificationEventV1InvoiceWorkflowSettings:
+      type: object
+      required:
+        - source_billing_profile_id
+        - workflow
+      properties:
+        apps:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1BillingProfileApps'
+          description: |-
+            The apps that will be used to orchestrate the invoice's workflow.
+
+            The v1 schema allows app references here too, but the v1 Event payloads always
+            carry the full apps.
+          readOnly: true
+        source_billing_profile_id:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: |-
+            sourceBillingProfileID is the billing profile on which the workflow was based
+            on.
+
+            The profile is snapshotted on invoice creation, after which it can be altered
+            independently of the profile itself.
+          readOnly: true
+        workflow:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1BillingWorkflow'
+          description: The workflow details used by this invoice.
+      additionalProperties: false
+      description: |-
+        InvoiceWorkflowSettings represents the workflow settings used by the invoice.
+
+        This is a clone of the billing profile's workflow settings at the time of
+        invoice creation with customer overrides considered.
+    BillingNotificationEventV1MarketplaceListing:
+      type: object
+      required:
+        - type
+        - name
+        - description
+        - capabilities
+        - install_methods
+      properties:
+        type:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1AppType'
+          description: The app's type
+        name:
+          type: string
+          description: The app's name.
+        description:
+          type: string
+          description: The app's description.
+        capabilities:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingNotificationEventV1AppCapability'
+          description: The app's capabilities.
+        install_methods:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingNotificationEventV1InstallMethod'
+          description: |-
+            Install methods.
+
+            List of methods to install the app.
+      additionalProperties: false
+      description: |-
+        A marketplace listing. Represent an available app in the app marketplace that
+        can be installed to the organization.
+
+        Marketplace apps only exist in config so they don't extend the Resource model.
+    BillingNotificationEventV1Metadata:
+      type: object
+      additionalProperties:
+        type: string
+      description: |-
+        Set of key-value pairs. Metadata can be used to store additional information
+        about a resource.
+      x-go-type: map[string]string
+    BillingNotificationEventV1Numeric:
+      type: string
+      pattern: ^\-?[0-9]+(\.[0-9]+)?$
+      description: Numeric represents an arbitrary precision number.
+    BillingNotificationEventV1PackagePriceWithCommitments:
+      type: object
+      required:
+        - type
+        - amount
+        - quantity_per_package
+      properties:
+        type:
+          type: string
+          enum:
+            - package
+          description: The type of the price.
+        amount:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Numeric'
+          description: The price of one package.
+          title: Amount
+        quantity_per_package:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Numeric'
+          description: The quantity per package.
+          title: Quantity per package
+        minimum_amount:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Numeric'
+          description: The customer is committed to spend at least the amount.
+          title: Minimum amount
+        maximum_amount:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Numeric'
+          description: The customer is limited to spend at most the amount.
+          title: Maximum amount
+      additionalProperties: false
+      description: Package price with spend commitments.
+    BillingNotificationEventV1PaymentDueDate:
+      type: object
+      required:
+        - due_at
+        - amount
+      properties:
+        due_at:
+          type: string
+          format: date-time
+          description: When the payment is due.
+          readOnly: true
+        notes:
+          type: string
+          description: Other details to take into account for the due date.
+          readOnly: true
+        amount:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Numeric'
+          description: How much needs to be paid by the date.
+          readOnly: true
+        percent:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Percentage'
+          description: Percentage of the total that should be paid by the date.
+          readOnly: true
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1CurrencyCode'
+          description: If different from the parent document's base currency.
+          readOnly: true
+      additionalProperties: false
+      description: PaymentDueDate contains an amount that should be paid by the given date.
+    BillingNotificationEventV1PaymentTermDueDate:
+      type: object
+      required:
+        - type
+        - due_at
+      properties:
+        type:
+          type: string
+          enum:
+            - due_date
+          description: Type of terms to be applied.
+        detail:
+          type: string
+          description: Text detail of the chosen payment terms.
+          readOnly: true
+        notes:
+          type: string
+          description: Description of the conditions for payment.
+          readOnly: true
+        due_at:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingNotificationEventV1PaymentDueDate'
+          minItems: 1
+          description: When the payment is due.
+          readOnly: true
+      additionalProperties: false
+      description: PaymentTermDueDate defines the terms for payment on a specific date.
+    BillingNotificationEventV1PaymentTermInstant:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          enum:
+            - instant
+          description: Type of terms to be applied.
+        detail:
+          type: string
+          description: Text detail of the chosen payment terms.
+          readOnly: true
+        notes:
+          type: string
+          description: Description of the conditions for payment.
+          readOnly: true
+      additionalProperties: false
+      description: PaymentTermInstant defines the terms for payment on receipt of invoice.
+    BillingNotificationEventV1PaymentTerms:
+      type: object
+      oneOf:
+        - $ref: '#/components/schemas/BillingNotificationEventV1PaymentTermInstant'
+        - $ref: '#/components/schemas/BillingNotificationEventV1PaymentTermDueDate'
+      discriminator:
+        propertyName: type
+        mapping:
+          instant: '#/components/schemas/BillingNotificationEventV1PaymentTermInstant'
+          due_date: '#/components/schemas/BillingNotificationEventV1PaymentTermDueDate'
+      description: PaymentTerms defines the terms for payment.
+    BillingNotificationEventV1Percentage:
+      type: number
+      format: double
+      description: |-
+        Numeric representation of a percentage
+
+        50% is represented as 50
+      x-go-type: models.Percentage
+      x-go-package: github.com/openmeterio/openmeter/pkg/models
+    BillingNotificationEventV1Period:
+      type: object
+      required:
+        - from
+        - to
+      properties:
+        from:
+          type: string
+          format: date-time
+          description: Period start time.
+        to:
+          type: string
+          format: date-time
+          description: Period end time.
+      additionalProperties: false
+      description: A period with a start and end time.
+    BillingNotificationEventV1PlanReference:
+      type: object
+      required:
+        - id
+        - key
+        - version
+      properties:
+        id:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: The plan ID.
+        key:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+          description: The plan key.
+        version:
+          type: integer
+          description: The plan version.
+      additionalProperties: false
+      description: References an exact plan.
+    BillingNotificationEventV1PricePaymentTerm:
+      type: string
+      enum:
+        - in_advance
+        - in_arrears
+      description: 'The payment term of a flat price. One of: in_advance or in_arrears.'
+    BillingNotificationEventV1PriceTier:
+      type: object
+      required:
+        - flat_price
+        - unit_price
+      properties:
+        up_to_amount:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Numeric'
+          description: |-
+            Up to and including to this quantity will be contained in the tier. If null, the
+            tier is open-ended.
+          title: Up to quantity
+        flat_price:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1FlatPrice'
+          nullable: true
+          description: The flat price component of the tier.
+          title: Flat price component
+        unit_price:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1UnitPrice'
+          nullable: true
+          description: The unit price component of the tier.
+          title: Unit price component
+      additionalProperties: false
+      description: A price tier. At least one price component is required in each tier.
+    BillingNotificationEventV1ProRatingConfig:
+      type: object
+      required:
+        - enabled
+        - mode
+      properties:
+        enabled:
+          type: boolean
+          description: Whether pro-rating is enabled for this plan.
+          title: Enable pro-rating
+        mode:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1ProRatingMode'
+          description: How to handle pro-rating for billing period changes.
+          title: Pro-rating mode
+      additionalProperties: false
+      description: Configuration for pro-rating behavior.
+    BillingNotificationEventV1ProRatingMode:
+      type: string
+      enum:
+        - prorate_prices
+      description: Pro-rating mode options for handling billing period changes.
+    BillingNotificationEventV1RateCardUsageBasedPrice:
+      type: object
+      oneOf:
+        - $ref: '#/components/schemas/BillingNotificationEventV1FlatPriceWithPaymentTerm'
+        - $ref: '#/components/schemas/BillingNotificationEventV1UnitPriceWithCommitments'
+        - $ref: '#/components/schemas/BillingNotificationEventV1TieredPriceWithCommitments'
+        - $ref: '#/components/schemas/BillingNotificationEventV1DynamicPriceWithCommitments'
+        - $ref: '#/components/schemas/BillingNotificationEventV1PackagePriceWithCommitments'
+      discriminator:
+        propertyName: type
+        mapping:
+          flat: '#/components/schemas/BillingNotificationEventV1FlatPriceWithPaymentTerm'
+          unit: '#/components/schemas/BillingNotificationEventV1UnitPriceWithCommitments'
+          tiered: '#/components/schemas/BillingNotificationEventV1TieredPriceWithCommitments'
+          dynamic: '#/components/schemas/BillingNotificationEventV1DynamicPriceWithCommitments'
+          package: '#/components/schemas/BillingNotificationEventV1PackagePriceWithCommitments'
+      description: The price of the usage based rate card.
+    BillingNotificationEventV1RecurringPeriod:
+      type: object
+      required:
+        - interval
+        - anchor
+        - interval_iso
+      properties:
+        interval:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1RecurringPeriodInterval'
+          description: |-
+            The unit of time for the interval. Heuristically maps ISO duraitons to enum
+            values or returns the ISO duration.
+          title: Interval
+        anchor:
+          type: string
+          format: date-time
+          description: A date-time anchor to base the recurring period on.
+          title: Anchor time
+        interval_iso:
+          type: string
+          format: duration
+          description: The unit of time for the interval in ISO8601 format.
+      additionalProperties: false
+      description: Recurring period with an interval and an anchor.
+      deprecated: true
+    BillingNotificationEventV1RecurringPeriodInterval:
+      anyOf:
+        - type: string
+        - $ref: '#/components/schemas/BillingNotificationEventV1RecurringPeriodIntervalEnum'
+      description: Period duration for the recurrence
+    BillingNotificationEventV1RecurringPeriodIntervalEnum:
+      type: string
+      enum:
+        - DAY
+        - WEEK
+        - MONTH
+        - YEAR
+      description: 'The unit of time for the interval. One of: `day`, `week`, `month`, or `year`.'
+    BillingNotificationEventV1RecurringPeriodV2:
+      type: object
+      required:
+        - interval
+        - anchor
+      properties:
+        interval:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1RecurringPeriodInterval'
+          description: |-
+            The unit of time for the interval. Heuristically maps ISO duraitons to enum
+            values or returns the ISO duration.
+          title: Interval
+        anchor:
+          type: string
+          format: date-time
+          description: A date-time anchor to base the recurring period on.
+          title: Anchor time
+      additionalProperties: false
+      description: Recurring period with an interval and an anchor.
+    BillingNotificationEventV1RuleBalanceThresholdValue:
+      type: object
+      required:
+        - value
+        - type
+      properties:
+        value:
+          type: number
+          format: double
+          description: Value of the threshold.
+          title: Threshold Value
+        type:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1RuleBalanceThresholdValueType'
+          description: Type of the threshold.
+      additionalProperties: false
+      description: Threshold value with multiple supported types.
+    BillingNotificationEventV1RuleBalanceThresholdValueType:
+      type: string
+      enum:
+        - PERCENT
+        - NUMBER
+        - balance_value
+        - usage_percentage
+        - usage_value
+      description: |-
+        Type of the rule in the balance threshold specification:
+
+        - `balance_value`: threshold defined by the remaining balance value based on
+        usage and the total of grants in the current usage period
+        - `usage_percentage`: threshold defined by the usage percentage compared to the
+        total of grants in the current usage period
+        - `usage_value`: threshold defined by the usage value in the current usage
+        period
+        - `NUMBER` (**deprecated**): see `usage_value`
+        - `PERCENT` (**deprecated**): see `usage_percentage`
+      title: Notification balance threshold type
+      x-enum-varnames:
+        - Percent
+        - Number
+        - BalanceValue
+        - UsagePercentage
+        - UsageValue
+    BillingNotificationEventV1SandboxApp:
+      type: object
+      required:
+        - id
+        - name
+        - created_at
+        - updated_at
+        - listing
+        - status
+        - type
+      properties:
+        id:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: A unique identifier for the resource.
+          title: ID
+          readOnly: true
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Human-readable name for the resource. Between 1 and 256 characters.
+          title: Display name
+        description:
+          type: string
+          maxLength: 1024
+          description: Optional description of the resource. Maximum 1024 characters.
+          title: Description
+        metadata:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Metadata'
+          nullable: true
+          description: Additional metadata for the resource.
+          title: Metadata
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was created.
+          title: Creation Time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was last updated.
+          title: Last Update Time
+          readOnly: true
+        deleted_at:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was permanently deleted.
+          title: Deletion Time
+          readOnly: true
+        listing:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1MarketplaceListing'
+          description: The marketplace listing that this installed app is based on.
+          readOnly: true
+        status:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1AppStatus'
+          description: Status of the app connection.
+          readOnly: true
+        type:
+          type: string
+          enum:
+            - sandbox
+          description: The app's type is Sandbox.
+      additionalProperties: false
+      description: |-
+        Sandbox app can be used for testing OpenMeter features.
+
+        The app is not creating anything in external systems, thus it is safe to use for
+        verifying OpenMeter features.
+    BillingNotificationEventV1StripeApp:
+      type: object
+      required:
+        - id
+        - name
+        - created_at
+        - updated_at
+        - listing
+        - status
+        - type
+        - stripe_account_id
+        - livemode
+        - masked_api_key
+      properties:
+        id:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: A unique identifier for the resource.
+          title: ID
+          readOnly: true
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Human-readable name for the resource. Between 1 and 256 characters.
+          title: Display name
+        description:
+          type: string
+          maxLength: 1024
+          description: Optional description of the resource. Maximum 1024 characters.
+          title: Description
+        metadata:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Metadata'
+          nullable: true
+          description: Additional metadata for the resource.
+          title: Metadata
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was created.
+          title: Creation Time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was last updated.
+          title: Last Update Time
+          readOnly: true
+        deleted_at:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was permanently deleted.
+          title: Deletion Time
+          readOnly: true
+        listing:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1MarketplaceListing'
+          description: The marketplace listing that this installed app is based on.
+          readOnly: true
+        status:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1AppStatus'
+          description: Status of the app connection.
+          readOnly: true
+        type:
+          type: string
+          enum:
+            - stripe
+          description: The app's type is Stripe.
+        stripe_account_id:
+          type: string
+          description: The Stripe account ID.
+          readOnly: true
+        livemode:
+          type: boolean
+          description: Livemode, true if the app is in production mode.
+          readOnly: true
+        masked_api_key:
+          type: string
+          description: The masked API key. Only shows the first 8 and last 3 characters.
+          readOnly: true
+      additionalProperties: false
+      description: A installed Stripe app object.
+    BillingNotificationEventV1StripeTaxConfig:
+      type: object
+      required:
+        - code
+      properties:
+        code:
+          type: string
+          pattern: ^txcd_\d{8}$
+          description: |-
+            Product tax code.
+
+            See: https://docs.stripe.com/tax/tax-codes
+          title: Tax code
+      additionalProperties: false
+      description: The tax config for Stripe.
+    BillingNotificationEventV1Subject:
+      type: object
+      required:
+        - created_at
+        - updated_at
+        - id
+        - key
+      properties:
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was created.
+          title: Creation Time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was last updated.
+          title: Last Update Time
+          readOnly: true
+        deleted_at:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was permanently deleted.
+          title: Deletion Time
+          readOnly: true
+        id:
+          type: string
+          description: A unique identifier for the subject.
+          readOnly: true
+        key:
+          type: string
+          description: |-
+            A unique, human-readable identifier for the subject. This is typically a
+            database ID or a customer key.
+        display_name:
+          type: string
+          nullable: true
+          description: A human-readable display name for the subject.
+        metadata:
+          type: object
+          additionalProperties: {}
+          nullable: true
+          description: Metadata for the subject.
+        current_period_start:
+          type: string
+          format: date-time
+          description: The start of the current period for the subject.
+          deprecated: true
+        current_period_end:
+          type: string
+          format: date-time
+          description: The end of the current period for the subject.
+          deprecated: true
+        stripe_customer_id:
+          type: string
+          nullable: true
+          description: The Stripe customer ID for the subject.
+          deprecated: true
+      additionalProperties: false
+      description: |-
+        A subject is a unique identifier for a usage attribution by its key. Subjects
+        only exist in the concept of metering. Subjects are optional to create and work
+        as an enrichment for the subject key like displayName, metadata, etc. Subjects
+        are useful when you are reporting usage events with your own database ID but
+        want to enrich the subject with a human-readable name or metadata. For most use
+        cases, a subject is equivalent to a customer.
+
+        ⚠️ **Deprecated**: Subjects as managable entities are being depracated, use
+        customers with subject key usage attribution instead.
+      deprecated: true
+    BillingNotificationEventV1Subscription:
+      type: object
+      required:
+        - id
+        - name
+        - created_at
+        - updated_at
+        - active_from
+        - status
+        - customer_id
+        - currency
+        - cost_basis_mode
+        - cost_basis_pins
+        - billing_cadence
+        - billing_anchor
+        - settlement_mode
+      properties:
+        id:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: A unique identifier for the resource.
+          title: ID
+          readOnly: true
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Human-readable name for the resource. Between 1 and 256 characters.
+          title: Display name
+        description:
+          type: string
+          maxLength: 1024
+          description: Optional description of the resource. Maximum 1024 characters.
+          title: Description
+        metadata:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Metadata'
+          nullable: true
+          description: Additional metadata for the resource.
+          title: Metadata
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was created.
+          title: Creation Time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was last updated.
+          title: Last Update Time
+          readOnly: true
+        deleted_at:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was permanently deleted.
+          title: Deletion Time
+          readOnly: true
+        active_from:
+          type: string
+          format: date-time
+          description: The cadence start of the resource.
+        active_to:
+          type: string
+          format: date-time
+          description: The cadence end of the resource.
+        annotations:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Annotations'
+          description: Set of key-value pairs managed by the system. Cannot be modified by user.
+          title: Annotations
+          readOnly: true
+        alignment:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Alignment'
+          description: Alignment configuration for the plan.
+        status:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1SubscriptionStatus'
+          description: The status of the subscription.
+          readOnly: true
+        customer_id:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: The customer ID of the subscription.
+        plan:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1PlanReference'
+          description: The plan of the subscription.
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1CurrencyCode'
+          description: The fiat currency in which the subscription is invoiced.
+          title: Currency
+        cost_basis_mode:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1SubscriptionCostBasisMode'
+          description: |-
+            Controls whether custom-currency cost bases are resolved dynamically or pinned
+            when their currency pair is introduced to the subscription.
+          title: Cost basis mode
+          readOnly: true
+        cost_basis_pins:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingNotificationEventV1SubscriptionCostBasisPin'
+          description: Cost bases pinned to custom-currency pairs for this subscription.
+          title: Pinned cost bases
+          readOnly: true
+        billing_cadence:
+          type: string
+          format: duration
+          description: |-
+            The billing cadence for the subscriptions. Defines how often customers are
+            billed using ISO8601 duration format. Examples: "P1M" (monthly), "P3M"
+            (quarterly), "P1Y" (annually).
+          title: Billing cadence
+          readOnly: true
+        pro_rating_config:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1ProRatingConfig'
+          description: The pro-rating configuration for the subscriptions.
+          title: Pro-rating configuration
+          readOnly: true
+        billing_anchor:
+          type: string
+          format: date-time
+          description: The normalizedbilling anchor of the subscription.
+          title: Billing anchor
+          readOnly: true
+        settlement_mode:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1BillingSettlementMode'
+          description: |-
+            The settlement mode of the subscription.
+
+            - credit_then_invoice: credits from the previous billing period are applied
+            first, then the remaining balance is invoiced.
+            - credit_only: only credits from the previous billing period are generated and
+            applied. No invoices are generated for the subscription. This is the default
+            and most common settlement mode.
+          title: Settlement mode
+          readOnly: true
+      additionalProperties: false
+      description: Subscription is an exact subscription instance.
+    BillingNotificationEventV1SubscriptionCostBasisMode:
+      type: string
+      enum:
+        - dynamic
+        - pinned
+      description: Controls how custom-currency cost bases are selected for the subscription.
+    BillingNotificationEventV1SubscriptionCostBasisPin:
+      type: object
+      required:
+        - custom_currency_id
+        - invoice_currency
+        - cost_basis_id
+      properties:
+        custom_currency_id:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: The managed custom currency ID.
+          readOnly: true
+        invoice_currency:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1CurrencyCode'
+          description: The fiat currency in which the subscription is invoiced.
+          readOnly: true
+        cost_basis_id:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: The pinned cost basis resource ID.
+          readOnly: true
+      additionalProperties: false
+      description: A cost basis pinned to a custom-currency pair for the subscription.
+    BillingNotificationEventV1SubscriptionStatus:
+      type: string
+      enum:
+        - active
+        - inactive
+        - canceled
+        - scheduled
+      description: Subscription status.
+    BillingNotificationEventV1TaxBehavior:
+      type: string
+      enum:
+        - inclusive
+        - exclusive
+      description: |-
+        Tax behavior.
+
+        This enum is used to specify whether tax is included in the price or excluded
+        from the price.
+    BillingNotificationEventV1TaxConfig:
+      type: object
+      properties:
+        behavior:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1TaxBehavior'
+          description: |-
+            Tax behavior.
+
+            If not specified the billing profile is used to determine the tax behavior. If
+            not specified in the billing profile, the provider's default behavior is used.
+          title: Tax behavior
+        stripe:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1StripeTaxConfig'
+          description: Stripe tax config.
+          title: Stripe tax config
+          deprecated: true
+        custom_invoicing:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1CustomInvoicingTaxConfig'
+          description: Custom invoicing tax config.
+          title: Custom invoicing tax config
+          deprecated: true
+        tax_code_id:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: |-
+            Tax code reference.
+
+            When both `taxCodeId` and `stripe.code` are provided, `taxCodeId` takes
+            precedence: the referenced tax code entity is used and `stripe.code` is ignored.
+          title: Tax code ID
+      additionalProperties: false
+      description: Set of provider specific tax configs.
+    BillingNotificationEventV1TieredPriceMode:
+      type: string
+      enum:
+        - volume
+        - graduated
+      description: The mode of the tiered price.
+    BillingNotificationEventV1TieredPriceWithCommitments:
+      type: object
+      required:
+        - type
+        - mode
+        - tiers
+      properties:
+        type:
+          type: string
+          enum:
+            - tiered
+          description: |-
+            The type of the price.
+
+            One of: flat, unit, or tiered.
+        mode:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1TieredPriceMode'
+          description: |-
+            Defines if the tiering mode is volume-based or graduated:
+
+            - In `volume`-based tiering, the maximum quantity within a period determines the
+            per unit price.
+            - In `graduated` tiering, pricing can change as the quantity grows.
+          title: Mode
+        tiers:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingNotificationEventV1PriceTier'
+          minItems: 1
+          description: |-
+            The tiers of the tiered price. At least one price component is required in each
+            tier.
+          title: Tiers
+        minimum_amount:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Numeric'
+          description: The customer is committed to spend at least the amount.
+          title: Minimum amount
+        maximum_amount:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Numeric'
+          description: The customer is limited to spend at most the amount.
+          title: Maximum amount
+      additionalProperties: false
+      description: Tiered price with spend commitments.
+    BillingNotificationEventV1UnitPrice:
+      type: object
+      required:
+        - type
+        - amount
+      properties:
+        type:
+          type: string
+          enum:
+            - unit
+          description: The type of the price.
+        amount:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Numeric'
+          description: The amount of the unit price.
+      additionalProperties: false
+      description: Unit price.
+    BillingNotificationEventV1UnitPriceWithCommitments:
+      type: object
+      required:
+        - type
+        - amount
+      properties:
+        type:
+          type: string
+          enum:
+            - unit
+          description: The type of the price.
+        amount:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Numeric'
+          description: The amount of the unit price.
+        minimum_amount:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Numeric'
+          description: The customer is committed to spend at least the amount.
+          title: Minimum amount
+        maximum_amount:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Numeric'
+          description: The customer is limited to spend at most the amount.
+          title: Maximum amount
+      additionalProperties: false
+      description: Unit price with spend commitments.
+    BillingNotificationEventV1ValidationIssue:
+      type: object
+      required:
+        - created_at
+        - updated_at
+        - id
+        - severity
+        - component
+        - message
+      properties:
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was created.
+          title: Creation Time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was last updated.
+          title: Last Update Time
+          readOnly: true
+        deleted_at:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was permanently deleted.
+          title: Deletion Time
+          readOnly: true
+        id:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: ID of the charge or discount.
+          readOnly: true
+        severity:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1ValidationIssueSeverity'
+          description: The severity of the issue.
+          readOnly: true
+        field:
+          type: string
+          description: The field that the issue is related to, if available in JSON path format.
+          readOnly: true
+        code:
+          type: string
+          description: Machine indentifiable code for the issue, if available.
+          readOnly: true
+        component:
+          type: string
+          description: Component reporting the issue.
+          readOnly: true
+        message:
+          type: string
+          description: A human-readable description of the issue.
+          readOnly: true
+        metadata:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Metadata'
+          description: Additional context for the issue.
+          readOnly: true
+      additionalProperties: false
+      description: |-
+        ValidationIssue captures any validation issues related to the invoice.
+
+        Issues with severity "critical" will prevent the invoice from being issued.
+    BillingNotificationEventV1ValidationIssueSeverity:
+      type: string
+      enum:
+        - critical
+        - warning
+      description: |-
+        ValidationIssueSeverity describes the severity of a validation issue.
+
+        Issues with severity "critical" will prevent the invoice from being issued.
     BillingNotificationRule:
       type: object
       oneOf:

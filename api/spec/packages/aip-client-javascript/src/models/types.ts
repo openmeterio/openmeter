@@ -479,6 +479,278 @@ export interface NotificationEventDeliveryAttemptResponse {
 }
 
 /**
+ * Set of key-value pairs. Metadata can be used to store additional information
+ * about a resource.
+ */
+export type NotificationEventV1Metadata = Record<string, string>
+
+/** Set of key-value pairs managed by the system. Cannot be modified by user. */
+export type NotificationEventV1Annotations = Record<string, unknown>
+
+/** A period with a start and end time. */
+export interface NotificationEventV1Period {
+  /** Period start time. */
+  from: Date
+  /** Period end time. */
+  to: Date
+}
+
+/** A filter for a string field. */
+export interface NotificationEventV1FilterString {
+  /** The field must be equal to the provided value. */
+  $eq?: string | null
+  /** The field must not be equal to the provided value. */
+  $ne?: string | null
+  /** The field must be in the provided list of values. */
+  $in?: string[] | null
+  /** The field must not be in the provided list of values. */
+  $nin?: string[] | null
+  /** The field must match the provided value. */
+  $like?: string | null
+  /** The field must not match the provided value. */
+  $nlike?: string | null
+  /** The field must match the provided value, ignoring case. */
+  $ilike?: string | null
+  /** The field must not match the provided value, ignoring case. */
+  $nilike?: string | null
+  /** The field must be greater than the provided value. */
+  $gt?: string | null
+  /** The field must be greater than or equal to the provided value. */
+  $gte?: string | null
+  /** The field must be less than the provided value. */
+  $lt?: string | null
+  /** The field must be less than or equal to the provided value. */
+  $lte?: string | null
+  /** Provide a list of filters to be combined with a logical AND. */
+  $and?: NotificationEventV1FilterString[] | null
+  /** Provide a list of filters to be combined with a logical OR. */
+  $or?: NotificationEventV1FilterString[] | null
+}
+
+/**
+ * A subject is a unique identifier for a usage attribution by its key. Subjects
+ * only exist in the concept of metering. Subjects are optional to create and work
+ * as an enrichment for the subject key like displayName, metadata, etc. Subjects
+ * are useful when you are reporting usage events with your own database ID but
+ * want to enrich the subject with a human-readable name or metadata. For most use
+ * cases, a subject is equivalent to a customer.
+ *
+ * ⚠️ **Deprecated**: Subjects as managable entities are being depracated, use
+ * customers with subject key usage attribution instead.
+ */
+export interface NotificationEventV1Subject {
+  /** Timestamp of when the resource was created. */
+  createdAt: Date
+  /** Timestamp of when the resource was last updated. */
+  updatedAt: Date
+  /** Timestamp of when the resource was permanently deleted. */
+  deletedAt?: Date
+  /** A unique identifier for the subject. */
+  id: string
+  /**
+   * A unique, human-readable identifier for the subject. This is typically a
+   * database ID or a customer key.
+   */
+  key: string
+  /** A human-readable display name for the subject. */
+  displayName?: string | null
+  /** Metadata for the subject. */
+  metadata?: Record<string, unknown> | null
+  /** The start of the current period for the subject. */
+  currentPeriodStart?: Date
+  /** The end of the current period for the subject. */
+  currentPeriodEnd?: Date
+  /** The Stripe customer ID for the subject. */
+  stripeCustomerId?: string | null
+}
+
+/**
+ * Entitlements are the core of OpenMeter access management. They define access to
+ * features for subjects. Entitlements can be metered, boolean, or static.
+ */
+export interface NotificationEventV1EntitlementValue {
+  /**
+   * Whether the subject has access to the feature. Shared accross all entitlement
+   * types.
+   */
+  hasAccess: boolean
+  /**
+   * Only available for metered entitlements. Metered entitlements are built around a
+   * balance calculation where feature usage is deducted from the issued grants.
+   * Balance represents the remaining balance of the entitlement, it's value never
+   * turns negative.
+   */
+  balance?: number
+  /**
+   * Only available for metered entitlements. Returns the total feature usage in the
+   * current period.
+   */
+  usage?: number
+  /**
+   * Only available for metered entitlements. Overage represents the usage that
+   * wasn't covered by grants, e.g. if the subject had a total feature usage of 100
+   * in the period but they were only granted 80, there would be 20 overage.
+   */
+  overage?: number
+  /**
+   * Only available for metered entitlements. The summed amount of all grant active
+   * at query time PLUS the used amount of since inactive grants.
+   */
+  totalAvailableGrantAmount?: number
+  /**
+   * Only available for static entitlements. The JSON parsable config of the
+   * entitlement.
+   */
+  config?: string
+}
+
+/**
+ * Mapping to attribute metered usage to the customer. One customer can have zero
+ * or more subjects, but one subject can only belong to one customer.
+ */
+export interface NotificationEventV1CustomerUsageAttribution {
+  /**
+   * The subjects that are attributed to the customer. Can be empty when no subjects
+   * are associated with the customer.
+   */
+  subjectKeys: string[]
+}
+
+/** Alignment configuration for a plan or subscription. */
+export interface NotificationEventV1Alignment {
+  /**
+   * Whether all Billable items and RateCards must align. Alignment means the Price's
+   * BillingCadence must align for both duration and anchor time.
+   */
+  billablesMustAlign?: boolean
+}
+
+/** References an exact plan. */
+export interface NotificationEventV1PlanReference {
+  /** The plan ID. */
+  id: string
+  /** The plan key. */
+  key: string
+  /** The plan version. */
+  version: number
+}
+
+/**
+ * InvoiceAvailableActionInvoiceDetails represents the details of the invoice
+ * action for non-gathering invoices.
+ */
+export interface NotificationEventV1InvoiceAvailableActionDetails {
+  /**
+   * The state the invoice will reach if the action is activated and all intermediate
+   * steps are successful.
+   *
+   * For example advancing a draft_created invoice will result in a
+   * draft_manual_approval_needed invoice.
+   */
+  resultingState: string
+}
+
+/**
+ * InvoiceAvailableActionInvoiceDetails represents the details of the invoice
+ * action for gathering invoices.
+ */
+export type NotificationEventV1InvoiceAvailableActionInvoiceDetails = Record<
+  string,
+  never
+>
+
+/**
+ * BillingWorkflowCollectionAlignmentSubscription specifies the alignment for
+ * collecting the pending line items into an invoice.
+ */
+export interface NotificationEventV1BillingWorkflowCollectionAlignmentSubscription {
+  /** The type of alignment. */
+  type: 'subscription'
+}
+
+/** The tax config for Stripe. */
+export interface NotificationEventV1StripeTaxConfig {
+  /**
+   * Product tax code.
+   *
+   * See: https://docs.stripe.com/tax/tax-codes
+   */
+  code: string
+}
+
+/** Custom invoicing tax config. */
+export interface NotificationEventV1CustomInvoicingTaxConfig {
+  /**
+   * Tax code.
+   *
+   * The tax code should be interpreted by the custom invoicing provider.
+   */
+  code: string
+}
+
+/** BillingWorkflowTaxSettings represents the tax settings for a billing workflow */
+export interface NotificationEventV1BillingWorkflowTaxSettings {
+  /**
+   * Enable automatic tax calculation when tax is supported by the app. For example,
+   * with Stripe Invoicing when enabled, tax is calculated via Stripe Tax.
+   */
+  enabled?: boolean
+  /**
+   * Enforce tax calculation when tax is supported by the app. When enabled,
+   * OpenMeter will not allow to create an invoice without tax calculation.
+   * Enforcement is different per apps, for example, Stripe app requires customer to
+   * have a tax location when starting a paid subscription.
+   */
+  enforced?: boolean
+}
+
+/** The reason for the discount is a maximum spend. */
+export interface NotificationEventV1DiscountReasonMaximumSpend {
+  /** type. */
+  type: 'maximum_spend'
+}
+
+/**
+ * InvoiceLineAppExternalIds contains the external IDs of the invoice in other apps
+ * such as Stripe.
+ */
+export interface NotificationEventV1InvoiceLineAppExternalIds {
+  /** The external ID of the invoice in the invoicing app if available. */
+  invoicing?: string
+  /** The external ID of the invoice in the tax app if available. */
+  tax?: string
+}
+
+/** IDResource is a resouce with an ID. */
+export interface NotificationEventV1IdResource {
+  /** A unique identifier for the resource. */
+  id: string
+}
+
+/** PaymentTermInstant defines the terms for payment on receipt of invoice. */
+export interface NotificationEventV1PaymentTermInstant {
+  /** Type of terms to be applied. */
+  type: 'instant'
+  /** Text detail of the chosen payment terms. */
+  detail?: string
+  /** Description of the conditions for payment. */
+  notes?: string
+}
+
+/**
+ * InvoiceAppExternalIds contains the external IDs of the invoice in other apps
+ * such as Stripe.
+ */
+export interface NotificationEventV1InvoiceAppExternalIds {
+  /** The external ID of the invoice in the invoicing app if available. */
+  invoicing?: string
+  /** The external ID of the invoice in the tax app if available. */
+  tax?: string
+  /** The external ID of the invoice in the payment app if available. */
+  payment?: string
+}
+
+/**
  * A query filter for an integer attribute. Operators are mutually exclusive, only
  * one operator is allowed at a time.
  */
@@ -1152,22 +1424,6 @@ export interface UpdateResourceReference {
 /** NotificationChannel reference. */
 export interface NotificationChannelReference {
   id: string
-}
-
-/** A reference to the feature of an entitlement notification event. */
-export interface NotificationEventFeatureReference {
-  /** The unique identifier of the feature. */
-  id: string
-  /** The immutable key of the feature. */
-  key: string
-}
-
-/** A reference to the invoice of an invoice notification event. */
-export interface NotificationEventInvoiceReference {
-  /** The unique identifier of the invoice. */
-  id: string
-  /** The human-readable invoice number. */
-  number: string
 }
 
 /** Customer reference. */
@@ -2722,6 +2978,451 @@ export interface NotificationEventDeliveryAttempt {
   timestamp: Date
 }
 
+/** A fixed per-unit cost amount. */
+export interface NotificationEventV1FeatureManualUnitCost {
+  /** type. */
+  type: 'manual'
+  /** Fixed per-unit cost amount in USD. */
+  amount: string
+}
+
+/** Resolved per-token pricing from the LLM cost database. */
+export interface NotificationEventV1FeatureLlmUnitCostPricing {
+  /** Cost per input token in USD. */
+  inputPerToken: string
+  /** Cost per output token in USD. */
+  outputPerToken: string
+  /** Cost per cache read token in USD. */
+  cacheReadPerToken?: string
+  /** Cost per reasoning token in USD. */
+  reasoningPerToken?: string
+  /** Cost per cache write token in USD. */
+  cacheWritePerToken?: string
+}
+
+/** Totals contains the summaries of all calculations for the invoice. */
+export interface NotificationEventV1InvoiceTotals {
+  /** The total value of the line before taxes, discounts and commitments. */
+  amount: string
+  /** The amount of value of the line that are due to additional charges. */
+  chargesTotal: string
+  /** The amount of value of the line that are due to discounts. */
+  discountsTotal: string
+  /** The amount of value of the line that are due to credits. */
+  creditsTotal: string
+  /** The total amount of taxes that are included in the line. */
+  taxesInclusiveTotal: string
+  /** The total amount of taxes that are added on top of amount from the line. */
+  taxesExclusiveTotal: string
+  /** The total amount of taxes for this line. */
+  taxesTotal: string
+  /** The total amount value of the line after taxes, discounts and commitments. */
+  total: string
+}
+
+/** The reason for the discount is a ratecard usage. */
+export interface NotificationEventV1DiscountReasonRatecardUsage {
+  /** type. */
+  type: 'ratecard_usage'
+  /**
+   * The quantity of the usage discount.
+   *
+   * Must be positive.
+   */
+  quantity: string
+  /**
+   * Correlation ID for the discount.
+   *
+   * This is used to link discounts across different invoices (progressive billing
+   * use case).
+   *
+   * If not provided, the invoicing engine will auto-generate one. When editing an
+   * invoice line, please make sure to keep the same correlation ID of the discount
+   * or in progressive billing setups the discount amounts might be incorrect.
+   */
+  correlationId?: string
+}
+
+/**
+ * InvoiceLineCreditAllocation represents a credit amount allocated to the line
+ * before taxes are applied.
+ */
+export interface NotificationEventV1InvoiceLineCreditAllocation {
+  /** Amount allocated from credits. */
+  amount: string
+  /** Text description as to why the credit was allocated. */
+  description?: string
+}
+
+/** Unit price with spend commitments. */
+export interface NotificationEventV1UnitPriceWithCommitments {
+  /** The type of the price. */
+  type: 'unit'
+  /** The amount of the unit price. */
+  amount: string
+  /** The customer is committed to spend at least the amount. */
+  minimumAmount?: string
+  /** The customer is limited to spend at most the amount. */
+  maximumAmount?: string
+}
+
+/** Flat price. */
+export interface NotificationEventV1FlatPrice {
+  /** The type of the price. */
+  type: 'flat'
+  /** The amount of the flat price. */
+  amount: string
+}
+
+/** Unit price. */
+export interface NotificationEventV1UnitPrice {
+  /** The type of the price. */
+  type: 'unit'
+  /** The amount of the unit price. */
+  amount: string
+}
+
+/** Dynamic price with spend commitments. */
+export interface NotificationEventV1DynamicPriceWithCommitments {
+  /** The type of the price. */
+  type: 'dynamic'
+  /**
+   * The multiplier to apply to the base price to get the dynamic price.
+   *
+   * Examples:
+   *
+   * - 0.0: the price is zero
+   * - 0.5: the price is 50% of the base price
+   * - 1.0: the price is the same as the base price
+   * - 1.5: the price is 150% of the base price
+   */
+  multiplier?: string
+  /** The customer is committed to spend at least the amount. */
+  minimumAmount?: string
+  /** The customer is limited to spend at most the amount. */
+  maximumAmount?: string
+}
+
+/** Package price with spend commitments. */
+export interface NotificationEventV1PackagePriceWithCommitments {
+  /** The type of the price. */
+  type: 'package'
+  /** The price of one package. */
+  amount: string
+  /** The quantity per package. */
+  quantityPerPackage: string
+  /** The customer is committed to spend at least the amount. */
+  minimumAmount?: string
+  /** The customer is limited to spend at most the amount. */
+  maximumAmount?: string
+}
+
+/** A usage discount. */
+export interface NotificationEventV1BillingDiscountUsage {
+  /**
+   * The quantity of the usage discount.
+   *
+   * Must be positive.
+   */
+  quantity: string
+  /**
+   * Correlation ID for the discount.
+   *
+   * This is used to link discounts across different invoices (progressive billing
+   * use case).
+   *
+   * If not provided, the invoicing engine will auto-generate one. When editing an
+   * invoice line, please make sure to keep the same correlation ID of the discount
+   * or in progressive billing setups the discount amounts might be incorrect.
+   */
+  correlationId?: string
+}
+
+/** A cost basis pinned to a custom-currency pair for the subscription. */
+export interface NotificationEventV1SubscriptionCostBasisPin {
+  /** The managed custom currency ID. */
+  customCurrencyId: string
+  /** The fiat currency in which the subscription is invoiced. */
+  invoiceCurrency: string
+  /** The pinned cost basis resource ID. */
+  costBasisId: string
+}
+
+/** Address */
+export interface NotificationEventV1Address {
+  /**
+   * Country code in [ISO 3166-1](https://www.iso.org/iso-3166-country-codes.html)
+   * alpha-2 format.
+   */
+  country?: string
+  /** Postal code. */
+  postalCode?: string
+  /** State or province. */
+  state?: string
+  /** City. */
+  city?: string
+  /** First line of the address. */
+  line1?: string
+  /** Second line of the address. */
+  line2?: string
+  /** Phone number. */
+  phoneNumber?: string
+}
+
+/** Configuration for pro-rating behavior. */
+export interface NotificationEventV1ProRatingConfig {
+  /** Whether pro-rating is enabled for this plan. */
+  enabled: boolean
+  /** How to handle pro-rating for billing period changes. */
+  mode: 'prorate_prices'
+}
+
+/** Threshold value with multiple supported types. */
+export interface NotificationEventV1RuleBalanceThresholdValue {
+  /** Value of the threshold. */
+  value: number
+  /** Type of the threshold. */
+  type:
+    'PERCENT' | 'NUMBER' | 'balance_value' | 'usage_percentage' | 'usage_value'
+}
+
+/**
+ * Identity stores the details required to identify an entity for tax purposes in a
+ * specific country.
+ */
+export interface NotificationEventV1BillingPartyTaxIdentity {
+  /** Normalized tax code shown on the original identity document. */
+  code?: string
+}
+
+/** Reference to an invoice. */
+export interface NotificationEventV1InvoiceReference {
+  /** The ID of the invoice. */
+  id: string
+  /** The number of the invoice. */
+  number?: string
+}
+
+/**
+ * InvoiceDocumentRef is used to describe a reference to an existing document
+ * (invoice).
+ *
+ * The v1 schema describes credit note references with issued_at, number and url,
+ * but the v1 API only ever sends the generic fields below.
+ */
+export interface NotificationEventV1InvoiceDocumentRef {
+  /** Type of the document referenced. */
+  type: 'credit_note_original_invoice'
+  /** Human readable description on why this reference is here or needs to be used. */
+  reason?: string
+  /** Additional details about the document. */
+  description?: string
+}
+
+/**
+ * Omitted fields: period: Tax period in which the referred document had an effect
+ * required by some tax regimes and formats. stamps: Seals of approval from other
+ * organisations that may need to be listed. ext: Extensions for additional codes
+ * that may be required.
+ */
+export interface NotificationEventV1InvoiceGenericDocumentRef {
+  /** Type of the document referenced. */
+  type: 'credit_note_original_invoice'
+  /** Human readable description on why this reference is here or needs to be used. */
+  reason?: string
+  /** Additional details about the document. */
+  description?: string
+}
+
+/**
+ * InvoiceAvailableActions represents the actions that can be performed on the
+ * invoice.
+ */
+export interface NotificationEventV1InvoiceAvailableActions {
+  /** Advance the invoice to the next status. */
+  advance?: NotificationEventV1InvoiceAvailableActionDetails
+  /** Approve an invoice that requires manual approval. */
+  approve?: NotificationEventV1InvoiceAvailableActionDetails
+  /** Delete the invoice (only non-issued invoices can be deleted). */
+  delete?: NotificationEventV1InvoiceAvailableActionDetails
+  /** Retry an invoice issuing step that failed. */
+  retry?: NotificationEventV1InvoiceAvailableActionDetails
+  /** Snapshot quantities for usage based line items. */
+  snapshotQuantities?: NotificationEventV1InvoiceAvailableActionDetails
+  /** Void an already issued invoice. */
+  void?: NotificationEventV1InvoiceAvailableActionDetails
+  /** Invoice a gathering invoice */
+  invoice?: NotificationEventV1InvoiceAvailableActionInvoiceDetails
+}
+
+/**
+ * App capability.
+ *
+ * Capabilities only exist in config so they don't extend the Resource model.
+ */
+export interface NotificationEventV1AppCapability {
+  /** The capability type. */
+  type:
+    | 'reportUsage'
+    | 'reportEvents'
+    | 'calculateTax'
+    | 'invoiceCustomers'
+    | 'collectPayments'
+  /** Key */
+  key: string
+  /** The capability name. */
+  name: string
+  /** The capability description. */
+  description: string
+}
+
+/** Set of provider specific tax configs. */
+export interface NotificationEventV1TaxConfig {
+  /**
+   * Tax behavior.
+   *
+   * If not specified the billing profile is used to determine the tax behavior. If
+   * not specified in the billing profile, the provider's default behavior is used.
+   */
+  behavior?: 'inclusive' | 'exclusive'
+  /** Stripe tax config. */
+  stripe?: NotificationEventV1StripeTaxConfig
+  /** Custom invoicing tax config. */
+  customInvoicing?: NotificationEventV1CustomInvoicingTaxConfig
+  /**
+   * Tax code reference.
+   *
+   * When both `taxCodeId` and `stripe.code` are provided, `taxCodeId` takes
+   * precedence: the referenced tax code entity is used and `stripe.code` is ignored.
+   */
+  taxCodeId?: string
+}
+
+/**
+ * BillingWorkflowPaymentSettings represents the payment settings for a billing
+ * workflow
+ */
+export interface NotificationEventV1BillingWorkflowPaymentSettings {
+  /** The payment method for the invoice. */
+  collectionMethod?: 'charge_automatically' | 'send_invoice'
+}
+
+/** The reason for the discount is a ratecard percentage. */
+export interface NotificationEventV1DiscountReasonRatecardPercentage {
+  /** type. */
+  type: 'ratecard_percentage'
+  /** The percentage of the discount. */
+  percentage: number
+  /**
+   * Correlation ID for the discount.
+   *
+   * This is used to link discounts across different invoices (progressive billing
+   * use case).
+   *
+   * If not provided, the invoicing engine will auto-generate one. When editing an
+   * invoice line, please make sure to keep the same correlation ID of the discount
+   * or in progressive billing setups the discount amounts might be incorrect.
+   */
+  correlationId?: string
+}
+
+/** A percentage discount. */
+export interface NotificationEventV1BillingDiscountPercentage {
+  /** The percentage of the discount. */
+  percentage: number
+  /**
+   * Correlation ID for the discount.
+   *
+   * This is used to link discounts across different invoices (progressive billing
+   * use case).
+   *
+   * If not provided, the invoicing engine will auto-generate one. When editing an
+   * invoice line, please make sure to keep the same correlation ID of the discount
+   * or in progressive billing setups the discount amounts might be incorrect.
+   */
+  correlationId?: string
+}
+
+/** PaymentDueDate contains an amount that should be paid by the given date. */
+export interface NotificationEventV1PaymentDueDate {
+  /** When the payment is due. */
+  dueAt: Date
+  /** Other details to take into account for the due date. */
+  notes?: string
+  /** How much needs to be paid by the date. */
+  amount: string
+  /** Percentage of the total that should be paid by the date. */
+  percent?: number
+  /** If different from the parent document's base currency. */
+  currency?: string
+}
+
+/**
+ * InvoiceLineSubscriptionReference contains the references to the subscription
+ * that this line is related to.
+ */
+export interface NotificationEventV1InvoiceLineSubscriptionReference {
+  /** The subscription. */
+  subscription: NotificationEventV1IdResource
+  /** The phase of the subscription. */
+  phase: NotificationEventV1IdResource
+  /** The item this line is related to. */
+  item: NotificationEventV1IdResource
+  /**
+   * The billing period of the subscription. In case the subscription item's billing
+   * period is different from the subscription's billing period, this field will
+   * contain the billing period of the subscription itself.
+   *
+   * For example, in case of:
+   *
+   * - A monthly billed subscription anchored to 2025-01-01
+   * - A subscription item billed daily
+   *
+   * An example line would have the period of 2025-01-02 to 2025-01-03 as the item is
+   * billed daily, but the subscription's billing period will be 2025-01-01 to
+   * 2025-01-31.
+   */
+  billingPeriod: NotificationEventV1Period
+}
+
+/** Flat price with payment term. */
+export interface NotificationEventV1FlatPriceWithPaymentTerm {
+  /** The type of the price. */
+  type: 'flat'
+  /** The amount of the flat price. */
+  amount: string
+  /** The payment term of the flat price. Defaults to in advance. */
+  paymentTerm?: 'in_advance' | 'in_arrears'
+}
+
+/**
+ * ValidationIssue captures any validation issues related to the invoice.
+ *
+ * Issues with severity "critical" will prevent the invoice from being issued.
+ */
+export interface NotificationEventV1ValidationIssue {
+  /** Timestamp of when the resource was created. */
+  createdAt: Date
+  /** Timestamp of when the resource was last updated. */
+  updatedAt: Date
+  /** Timestamp of when the resource was permanently deleted. */
+  deletedAt?: Date
+  /** ID of the charge or discount. */
+  id: string
+  /** The severity of the issue. */
+  severity: 'critical' | 'warning'
+  /** The field that the issue is related to, if available in JSON path format. */
+  field?: string
+  /** Machine indentifiable code for the issue, if available. */
+  code?: string
+  /** Component reporting the issue. */
+  component: string
+  /** A human-readable description of the issue. */
+  message: string
+  /** Additional context for the issue. */
+  metadata?: NotificationEventV1Metadata
+}
+
 /** App customer data. */
 export interface AppCustomerData {
   /**
@@ -3619,20 +4320,6 @@ export interface ResendBillingNotificationEventRequest {
    * disabled are rejected.
    */
   channels?: NotificationChannelReference[]
-}
-
-/** The invoice an invoice notification event refers to. */
-export interface NotificationEventInvoiceData {
-  /** The invoice the event was generated for. */
-  invoice: NotificationEventInvoiceReference
-  /** The identifier of the customer the invoice was issued to. */
-  customerId?: string
-  /** The currency the invoice is denominated in. */
-  currency: string
-  /** The status of the invoice at the time the event was generated. */
-  status: string
-  /** The invoice total, including taxes, at the time the event was generated. */
-  total: string
 }
 
 /** Filter options for listing ingested events. */
@@ -4866,6 +5553,299 @@ export interface NotificationEventDeliveryStatus {
   attempts: NotificationEventDeliveryAttempt[]
 }
 
+/** Recurring period with an interval and an anchor. */
+export interface NotificationEventV1RecurringPeriod {
+  /**
+   * The unit of time for the interval. Heuristically maps ISO duraitons to enum
+   * values or returns the ISO duration.
+   */
+  interval: NotificationEventV1RecurringPeriodInterval
+  /** A date-time anchor to base the recurring period on. */
+  anchor: Date
+  /** The unit of time for the interval in ISO8601 format. */
+  intervalIso: string
+}
+
+/** Recurring period with an interval and an anchor. */
+export interface NotificationEventV1RecurringPeriodV2 {
+  /**
+   * The unit of time for the interval. Heuristically maps ISO duraitons to enum
+   * values or returns the ISO duration.
+   */
+  interval: NotificationEventV1RecurringPeriodInterval
+  /** A date-time anchor to base the recurring period on. */
+  anchor: Date
+}
+
+/**
+ * LLM cost lookup configuration. Maps meter group-by dimensions to LLM cost
+ * database fields.
+ */
+export interface NotificationEventV1FeatureLlmUnitCost {
+  /** type. */
+  type: 'llm'
+  /**
+   * Meter group-by property that holds the LLM provider. Use this when the meter has
+   * a group-by dimension for provider. Mutually exclusive with `provider`.
+   */
+  providerProperty?: string
+  /**
+   * Static LLM provider value (e.g., "openai", "anthropic"). Use this when the
+   * feature tracks a single provider. Mutually exclusive with `providerProperty`.
+   */
+  provider?: string
+  /**
+   * Meter group-by property that holds the model ID. Use this when the meter has a
+   * group-by dimension for model. Mutually exclusive with `model`.
+   */
+  modelProperty?: string
+  /**
+   * Static model ID value (e.g., "gpt-4", "claude-3-5-sonnet"). Use this when the
+   * feature tracks a single model. Mutually exclusive with `modelProperty`.
+   */
+  model?: string
+  /**
+   * Meter group-by property that holds the token type. Use this when the meter has a
+   * group-by dimension for token type. Mutually exclusive with `tokenType`.
+   */
+  tokenTypeProperty?: string
+  /**
+   * Static token type value. Use this when the feature tracks a single token type
+   * (e.g., only input tokens). Expected values: input, output, cache_read,
+   * reasoning, cache_write, request, response. `request` is an alias for `input`,
+   * `response` is an alias for `output`. Mutually exclusive with
+   * `tokenTypeProperty`.
+   */
+  tokenType?: string
+  /**
+   * Resolved per-token pricing from the LLM cost database. Only populated in
+   * responses when the feature's meter group-by filters specify exact provider and
+   * model values.
+   */
+  pricing?: NotificationEventV1FeatureLlmUnitCostPricing
+}
+
+/** A price tier. At least one price component is required in each tier. */
+export interface NotificationEventV1PriceTier {
+  /**
+   * Up to and including to this quantity will be contained in the tier. If null, the
+   * tier is open-ended.
+   */
+  upToAmount?: string
+  /** The flat price component of the tier. */
+  flatPrice: NotificationEventV1FlatPrice | null
+  /** The unit price component of the tier. */
+  unitPrice: NotificationEventV1UnitPrice | null
+}
+
+/** Subscription is an exact subscription instance. */
+export interface NotificationEventV1Subscription {
+  /** A unique identifier for the resource. */
+  id: string
+  /** Human-readable name for the resource. Between 1 and 256 characters. */
+  name: string
+  /** Optional description of the resource. Maximum 1024 characters. */
+  description?: string
+  /** Additional metadata for the resource. */
+  metadata?: NotificationEventV1Metadata | null
+  /** Timestamp of when the resource was created. */
+  createdAt: Date
+  /** Timestamp of when the resource was last updated. */
+  updatedAt: Date
+  /** Timestamp of when the resource was permanently deleted. */
+  deletedAt?: Date
+  /** The cadence start of the resource. */
+  activeFrom: Date
+  /** The cadence end of the resource. */
+  activeTo?: Date
+  /** Set of key-value pairs managed by the system. Cannot be modified by user. */
+  annotations?: NotificationEventV1Annotations
+  /** Alignment configuration for the plan. */
+  alignment?: NotificationEventV1Alignment
+  /** The status of the subscription. */
+  status: 'active' | 'inactive' | 'canceled' | 'scheduled'
+  /** The customer ID of the subscription. */
+  customerId: string
+  /** The plan of the subscription. */
+  plan?: NotificationEventV1PlanReference
+  /** The fiat currency in which the subscription is invoiced. */
+  currency: string
+  /**
+   * Controls whether custom-currency cost bases are resolved dynamically or pinned
+   * when their currency pair is introduced to the subscription.
+   */
+  costBasisMode: 'dynamic' | 'pinned'
+  /** Cost bases pinned to custom-currency pairs for this subscription. */
+  costBasisPins: NotificationEventV1SubscriptionCostBasisPin[]
+  /**
+   * The billing cadence for the subscriptions. Defines how often customers are
+   * billed using ISO8601 duration format. Examples: "P1M" (monthly), "P3M"
+   * (quarterly), "P1Y" (annually).
+   */
+  billingCadence: string
+  /** The pro-rating configuration for the subscriptions. */
+  proRatingConfig?: NotificationEventV1ProRatingConfig
+  /** The normalizedbilling anchor of the subscription. */
+  billingAnchor: Date
+  /**
+   * The settlement mode of the subscription.
+   *
+   * - credit_then_invoice: credits from the previous billing period are applied
+   * first, then the remaining balance is invoiced.
+   * - credit_only: only credits from the previous billing period are generated and
+   * applied. No invoices are generated for the subscription. This is the default
+   * and most common settlement mode.
+   */
+  settlementMode: 'credit_then_invoice' | 'credit_only'
+}
+
+/** Party represents a person or business entity. */
+export interface NotificationEventV1BillingParty {
+  /** Unique identifier for the party (if available) */
+  id?: string
+  /** An optional unique key of the party (if available) */
+  key?: string
+  /** Legal name or representation of the organization. */
+  name?: string
+  /**
+   * The entity's legal ID code used for tax purposes. They may have other numbers,
+   * but we're only interested in those valid for tax purposes.
+   */
+  taxId?: NotificationEventV1BillingPartyTaxIdentity
+  /** Regular post addresses for where information should be sent if needed. */
+  addresses?: NotificationEventV1Address[]
+}
+
+/**
+ * BillingInvoiceCustomerExtendedDetails is a collection of fields that are used to
+ * extend the billing party details for invoices.
+ *
+ * These fields contain the OpenMeter specific details for the customer, that are
+ * not strictly required for the invoice itself.
+ */
+export interface NotificationEventV1BillingInvoiceCustomerExtendedDetails {
+  /** Unique identifier for the party (if available) */
+  id?: string
+  /** An optional unique key of the party (if available) */
+  key?: string
+  /** Legal name or representation of the organization. */
+  name?: string
+  /**
+   * The entity's legal ID code used for tax purposes. They may have other numbers,
+   * but we're only interested in those valid for tax purposes.
+   */
+  taxId?: NotificationEventV1BillingPartyTaxIdentity
+  /** Regular post addresses for where information should be sent if needed. */
+  addresses?: NotificationEventV1Address[]
+  /** Mapping to attribute metered usage to the customer */
+  usageAttribution: NotificationEventV1CustomerUsageAttribution
+}
+
+/**
+ * InvoiceStatusDetails represents the details of the invoice status.
+ *
+ * API users are encouraged to rely on the immutable/failed/avaliableActions fields
+ * to determine the next steps of the invoice instead of the extendedStatus field.
+ */
+export interface NotificationEventV1InvoiceStatusDetails {
+  /** Is the invoice editable? */
+  immutable: boolean
+  /** Is the invoice in a failed state? */
+  failed: boolean
+  /** Extended status information for the invoice. */
+  extendedStatus: string
+  /** The actions that can be performed on the invoice. */
+  availableActions: NotificationEventV1InvoiceAvailableActions
+}
+
+/**
+ * A marketplace listing. Represent an available app in the app marketplace that
+ * can be installed to the organization.
+ *
+ * Marketplace apps only exist in config so they don't extend the Resource model.
+ */
+export interface NotificationEventV1MarketplaceListing {
+  /** The app's type */
+  type: 'stripe' | 'sandbox' | 'custom_invoicing'
+  /** The app's name. */
+  name: string
+  /** The app's description. */
+  description: string
+  /** The app's capabilities. */
+  capabilities: NotificationEventV1AppCapability[]
+  /**
+   * Install methods.
+   *
+   * List of methods to install the app.
+   */
+  installMethods: ('with_oauth2' | 'with_api_key' | 'no_credentials_required')[]
+}
+
+/**
+ * BillingWorkflowInvoicingSettings represents the invoice settings for a billing
+ * workflow
+ */
+export interface NotificationEventV1BillingWorkflowInvoicingSettings {
+  /** Whether to automatically issue the invoice after the draftPeriod has passed. */
+  autoAdvance?: boolean
+  /** The period for the invoice to be kept in draft status for manual reviews. */
+  draftPeriod?: string
+  /**
+   * The period after which the invoice is due. With some payment solutions it's only
+   * applicable for manual collection method.
+   */
+  dueAfter?: string
+  /** Should progressive billing be allowed for this workflow? */
+  progressiveBilling?: boolean
+  /** Controls how subscription-ending shortened service periods are billed. */
+  subscriptionEndProrationMode?: 'bill_full_period' | 'bill_actual_period'
+  /**
+   * Default tax configuration to apply to the invoices.
+   *
+   * Setting a tax code (`stripe.code` / `taxCodeId`) on a profile's default tax
+   * config is deprecated and can no longer be added or changed: the organization
+   * default tax code is used instead. Existing tax-code values may still be removed,
+   * and `behavior` remains fully supported.
+   */
+  defaultTaxConfig?: NotificationEventV1TaxConfig
+}
+
+/** TaxConfig stores the configuration for a tax line relative to an invoice line. */
+export interface NotificationEventV1InvoiceLineTaxItem {
+  /** Tax provider configuration. */
+  config?: NotificationEventV1TaxConfig
+  /**
+   * Percent defines the percentage set manually or determined from the rate key
+   * (calculated if rate present). A nil percent implies that this tax combo is
+   * **exempt** from tax.")
+   */
+  percent?: number
+  /** Some countries require an additional surcharge (calculated if rate present). */
+  surcharge?: string
+  /** Is the tax item inclusive or exclusive of the base amount. */
+  behavior?: 'inclusive' | 'exclusive'
+}
+
+/** A discount by type. */
+export interface NotificationEventV1BillingDiscounts {
+  /** The percentage discount. */
+  percentage?: NotificationEventV1BillingDiscountPercentage
+  /** The usage discount. */
+  usage?: NotificationEventV1BillingDiscountUsage
+}
+
+/** PaymentTermDueDate defines the terms for payment on a specific date. */
+export interface NotificationEventV1PaymentTermDueDate {
+  /** Type of terms to be applied. */
+  type: 'due_date'
+  /** Text detail of the chosen payment terms. */
+  detail?: string
+  /** Description of the conditions for payment. */
+  notes?: string
+  /** When the payment is due. */
+  dueAt: NotificationEventV1PaymentDueDate[]
+}
+
 /** Billing customer data. */
 export interface CustomerData {
   /**
@@ -4942,39 +5922,6 @@ export interface ChargeFlatFeeSystemIntent {
 export interface ListCustomerEntitlementAccessResponseData {
   /** The list of entitlement access results. */
   data: EntitlementValueResult[]
-}
-
-/** The entities and threshold a balance threshold event refers to. */
-export interface NotificationEventBalanceThresholdData {
-  /** The identifier of the entitlement that triggered the event. */
-  entitlementId: string
-  /** The feature the entitlement grants access to. */
-  feature: NotificationEventFeatureReference
-  /** The key of the subject the entitlement belongs to. */
-  subjectKey: string
-  /** The identifier of the customer the subject belongs to, if any. */
-  customerId?: string
-  /** The entitlement value at the time the event was generated. */
-  value: EntitlementValueResult
-  /** The threshold the balance crossed. */
-  threshold: NotificationBalanceThreshold
-}
-
-/**
- * The entitlement, feature, and subject an entitlement notification event refers
- * to.
- */
-export interface NotificationEventEntitlementData {
-  /** The identifier of the entitlement that triggered the event. */
-  entitlementId: string
-  /** The feature the entitlement grants access to. */
-  feature: NotificationEventFeatureReference
-  /** The key of the subject the entitlement belongs to. */
-  subjectKey: string
-  /** The identifier of the customer the subject belongs to, if any. */
-  customerId?: string
-  /** The entitlement value at the time the event was generated. */
-  value: EntitlementValueResult
 }
 
 /**
@@ -5224,30 +6171,6 @@ export interface WorkflowTaxSettings {
 export interface PlanAddonPagePaginatedResponse {
   data: PlanAddon[]
   meta: PaginatedMeta
-}
-
-/** An invoice created notification event payload. */
-export interface NotificationEventInvoiceCreatedPayload {
-  /** The identifier of the event the payload belongs to. */
-  id: string
-  /** The type of the event. */
-  type: 'invoice.created'
-  /** When the event was generated. */
-  timestamp: Date
-  /** The invoice the event refers to. */
-  data: NotificationEventInvoiceData
-}
-
-/** An invoice updated notification event payload. */
-export interface NotificationEventInvoiceUpdatedPayload {
-  /** The identifier of the event the payload belongs to. */
-  id: string
-  /** The type of the event. */
-  type: 'invoice.updated'
-  /** When the event was generated. */
-  timestamp: Date
-  /** The invoice the event refers to. */
-  data: NotificationEventInvoiceData
 }
 
 /** Cursor paginated response. */
@@ -5922,28 +6845,333 @@ export interface EntitlementAccessQueryResult {
   updatedAt: Date
 }
 
-/** A balance threshold notification event payload. */
-export interface NotificationEventBalanceThresholdPayload {
-  /** The identifier of the event the payload belongs to. */
+/**
+ * Metered entitlements are useful for many different use cases, from setting up
+ * usage based access to implementing complex credit systems. Access is determined
+ * based on feature usage using a balance calculation (the "usage allowance"
+ * provided by the issued grants is "burnt down" by the usage).
+ */
+export interface NotificationEventV1EntitlementMetered {
+  /** type. */
+  type: 'metered'
+  /**
+   * If softLimit=true the subject can use the feature even if the entitlement is
+   * exhausted, hasAccess will always be true.
+   */
+  isSoftLimit?: boolean
+  /**
+   * Deprecated, ignored by the backend. Please use isSoftLimit instead; this field
+   * will be removed in the future.
+   */
+  isUnlimited?: boolean
+  /**
+   * You can grant usage automatically alongside the entitlement, the example
+   * scenario would be creating a starting balance. If an amount is specified here, a
+   * grant will be created alongside the entitlement with the specified amount. That
+   * grant will have it's rollover settings configured in a way that after each reset
+   * operation, the balance will return the original amount specified here. Manually
+   * creating such a grant would mean having the "amount", "minRolloverAmount", and
+   * "maxRolloverAmount" fields all be the same.
+   */
+  issueAfterReset?: number
+  /** Defines the grant priority for the default grant. */
+  issueAfterResetPriority?: number
+  /** If true, the overage is preserved at reset. If false, the usage is reset to 0. */
+  preserveOverageAtReset?: boolean
+  /** Timestamp of when the resource was created. */
+  createdAt: Date
+  /** Timestamp of when the resource was last updated. */
+  updatedAt: Date
+  /** Timestamp of when the resource was permanently deleted. */
+  deletedAt?: Date
+  /** Additional metadata for the feature. */
+  metadata?: NotificationEventV1Metadata
+  /** The cadence start of the resource. */
+  activeFrom: Date
+  /** The cadence end of the resource. */
+  activeTo?: Date
+  /** The annotations of the entitlement. */
+  annotations?: NotificationEventV1Annotations
+  /** Readonly unique ULID identifier. */
   id: string
-  /** The type of the event. */
-  type: 'entitlements.balance.threshold'
-  /** When the event was generated. */
-  timestamp: Date
-  /** The entities and threshold the event refers to. */
-  data: NotificationEventBalanceThresholdData
+  /**
+   * The identifier key unique to the subject. NOTE: Subjects are being deprecated,
+   * please use the new customer APIs.
+   */
+  subjectKey: string
+  /** The feature the subject is entitled to use. */
+  featureKey: string
+  /** The feature the subject is entitled to use. */
+  featureId: string
+  /** The time the last reset happened. */
+  lastReset: Date
+  /** The current usage period. */
+  currentUsagePeriod: NotificationEventV1Period
+  /**
+   * The time from which usage is measured. If not specified on creation, defaults to
+   * entitlement creation time.
+   */
+  measureUsageFrom: Date
+  /** THe usage period of the entitlement. */
+  usagePeriod: NotificationEventV1RecurringPeriod
 }
 
-/** An entitlement reset notification event payload. */
-export interface NotificationEventResetPayload {
-  /** The identifier of the event the payload belongs to. */
+/**
+ * BillingWorkflowCollectionAlignmentAnchored specifies the alignment for
+ * collecting the pending line items into an invoice.
+ */
+export interface NotificationEventV1BillingWorkflowCollectionAlignmentAnchored {
+  /** The type of alignment. */
+  type: 'anchored'
+  /** The recurring period for the alignment. */
+  recurringPeriod: NotificationEventV1RecurringPeriodV2
+}
+
+/** Tiered price with spend commitments. */
+export interface NotificationEventV1TieredPriceWithCommitments {
+  /**
+   * The type of the price.
+   *
+   * One of: flat, unit, or tiered.
+   */
+  type: 'tiered'
+  /**
+   * Defines if the tiering mode is volume-based or graduated:
+   *
+   * - In `volume`-based tiering, the maximum quantity within a period determines the
+   * per unit price.
+   * - In `graduated` tiering, pricing can change as the quantity grows.
+   */
+  mode: 'volume' | 'graduated'
+  /**
+   * The tiers of the tiered price. At least one price component is required in each
+   * tier.
+   */
+  tiers: NotificationEventV1PriceTier[]
+  /** The customer is committed to spend at least the amount. */
+  minimumAmount?: string
+  /** The customer is limited to spend at most the amount. */
+  maximumAmount?: string
+}
+
+/** A customer object. */
+export interface NotificationEventV1Customer {
+  /** A unique identifier for the resource. */
   id: string
-  /** The type of the event. */
-  type: 'entitlements.reset'
-  /** When the event was generated. */
-  timestamp: Date
-  /** The entities the event refers to. */
-  data: NotificationEventEntitlementData
+  /** Human-readable name for the resource. Between 1 and 256 characters. */
+  name: string
+  /** Optional description of the resource. Maximum 1024 characters. */
+  description?: string
+  /** Additional metadata for the resource. */
+  metadata?: NotificationEventV1Metadata | null
+  /** Timestamp of when the resource was created. */
+  createdAt: Date
+  /** Timestamp of when the resource was last updated. */
+  updatedAt: Date
+  /** Timestamp of when the resource was permanently deleted. */
+  deletedAt?: Date
+  /**
+   * An optional unique key of the customer. Either key or
+   * usageAttribution.subjectKeys must be provided. Useful to reference the customer
+   * in external systems. For example, your database ID.
+   */
+  key?: string
+  /**
+   * Mapping to attribute metered usage to the customer Either key or
+   * usageAttribution.subjectKeys must be provided.
+   */
+  usageAttribution?: NotificationEventV1CustomerUsageAttribution
+  /** The primary email address of the customer. */
+  primaryEmail?: string
+  /** Currency of the customer. Used for billing, tax and invoicing. */
+  currency?: string
+  /** The billing address of the customer. Used for tax and invoicing. */
+  billingAddress?: NotificationEventV1Address
+  /** The ID of the Subscription if the customer has one. */
+  currentSubscriptionId?: string
+  /** The subscriptions of the customer. Only with the `subscriptions` expand option. */
+  subscriptions?: NotificationEventV1Subscription[]
+  /** Set of key-value pairs managed by the system. Cannot be modified by user. */
+  annotations?: NotificationEventV1Annotations
+}
+
+/** A installed Stripe app object. */
+export interface NotificationEventV1StripeApp {
+  /** A unique identifier for the resource. */
+  id: string
+  /** Human-readable name for the resource. Between 1 and 256 characters. */
+  name: string
+  /** Optional description of the resource. Maximum 1024 characters. */
+  description?: string
+  /** Additional metadata for the resource. */
+  metadata?: NotificationEventV1Metadata | null
+  /** Timestamp of when the resource was created. */
+  createdAt: Date
+  /** Timestamp of when the resource was last updated. */
+  updatedAt: Date
+  /** Timestamp of when the resource was permanently deleted. */
+  deletedAt?: Date
+  /** The marketplace listing that this installed app is based on. */
+  listing: NotificationEventV1MarketplaceListing
+  /** Status of the app connection. */
+  status: 'ready' | 'unauthorized'
+  /** The app's type is Stripe. */
+  type: 'stripe'
+  /** The Stripe account ID. */
+  stripeAccountId: string
+  /** Livemode, true if the app is in production mode. */
+  livemode: boolean
+  /** The masked API key. Only shows the first 8 and last 3 characters. */
+  maskedApiKey: string
+}
+
+/**
+ * Sandbox app can be used for testing OpenMeter features.
+ *
+ * The app is not creating anything in external systems, thus it is safe to use for
+ * verifying OpenMeter features.
+ */
+export interface NotificationEventV1SandboxApp {
+  /** A unique identifier for the resource. */
+  id: string
+  /** Human-readable name for the resource. Between 1 and 256 characters. */
+  name: string
+  /** Optional description of the resource. Maximum 1024 characters. */
+  description?: string
+  /** Additional metadata for the resource. */
+  metadata?: NotificationEventV1Metadata | null
+  /** Timestamp of when the resource was created. */
+  createdAt: Date
+  /** Timestamp of when the resource was last updated. */
+  updatedAt: Date
+  /** Timestamp of when the resource was permanently deleted. */
+  deletedAt?: Date
+  /** The marketplace listing that this installed app is based on. */
+  listing: NotificationEventV1MarketplaceListing
+  /** Status of the app connection. */
+  status: 'ready' | 'unauthorized'
+  /** The app's type is Sandbox. */
+  type: 'sandbox'
+}
+
+/**
+ * Custom Invoicing app can be used for interface with any invoicing or payment
+ * system.
+ *
+ * This app provides ways to manipulate invoices and payments, however the
+ * integration must rely on Notifications API to get notified about invoice
+ * changes.
+ */
+export interface NotificationEventV1CustomInvoicingApp {
+  /** A unique identifier for the resource. */
+  id: string
+  /** Human-readable name for the resource. Between 1 and 256 characters. */
+  name: string
+  /** Optional description of the resource. Maximum 1024 characters. */
+  description?: string
+  /** Additional metadata for the resource. */
+  metadata?: NotificationEventV1Metadata | null
+  /** Timestamp of when the resource was created. */
+  createdAt: Date
+  /** Timestamp of when the resource was last updated. */
+  updatedAt: Date
+  /** Timestamp of when the resource was permanently deleted. */
+  deletedAt?: Date
+  /** The marketplace listing that this installed app is based on. */
+  listing: NotificationEventV1MarketplaceListing
+  /** Status of the app connection. */
+  status: 'ready' | 'unauthorized'
+  /** The app's type is CustomInvoicing. */
+  type: 'custom_invoicing'
+  /**
+   * Enable draft.sync hook.
+   *
+   * If the hook is not enabled, the invoice will be progressed to the next state
+   * automatically.
+   */
+  enableDraftSyncHook: boolean
+  /**
+   * Enable issuing.sync hook.
+   *
+   * If the hook is not enabled, the invoice will be progressed to the next state
+   * automatically.
+   */
+  enableIssuingSyncHook: boolean
+}
+
+/**
+ * InvoiceLineAmountDiscount represents an amount deducted from the line, and will
+ * be applied before taxes.
+ */
+export interface NotificationEventV1InvoiceLineAmountDiscount {
+  /** Timestamp of when the resource was created. */
+  createdAt: Date
+  /** Timestamp of when the resource was last updated. */
+  updatedAt: Date
+  /** Timestamp of when the resource was permanently deleted. */
+  deletedAt?: Date
+  /** ID of the charge or discount. */
+  id: string
+  /** Reason code. */
+  reason: NotificationEventV1BillingDiscountReason
+  /** Text description as to why the discount was applied. */
+  description?: string
+  /** External IDs of the invoice in other apps such as Stripe. */
+  externalIds?: NotificationEventV1InvoiceLineAppExternalIds
+  /** Fixed discount amount to apply (calculated if percent present). */
+  amount: string
+}
+
+/**
+ * InvoiceLineUsageDiscount represents an usage-based discount applied to the line.
+ *
+ * The deduction is done before the pricing algorithm is applied.
+ */
+export interface NotificationEventV1InvoiceLineUsageDiscount {
+  /** Timestamp of when the resource was created. */
+  createdAt: Date
+  /** Timestamp of when the resource was last updated. */
+  updatedAt: Date
+  /** Timestamp of when the resource was permanently deleted. */
+  deletedAt?: Date
+  /** ID of the charge or discount. */
+  id: string
+  /** Reason code. */
+  reason: NotificationEventV1BillingDiscountReason
+  /** Text description as to why the discount was applied. */
+  description?: string
+  /** External IDs of the invoice in other apps such as Stripe. */
+  externalIds?: NotificationEventV1InvoiceLineAppExternalIds
+  /** The usage to apply. */
+  quantity: string
+  /**
+   * The usage discount already applied to the previous split lines.
+   *
+   * Only set if progressive billing is enabled and the line is a split line.
+   */
+  preLinePeriodQuantity?: string
+}
+
+/**
+ * InvoiceDetailedLineRateCard represents the rate card (intent) for a flat fee
+ * line.
+ */
+export interface NotificationEventV1InvoiceDetailedLineRateCard {
+  /**
+   * The tax config of the rate card. When undefined, the tax config of the feature
+   * or the default tax config of the plan is used.
+   */
+  taxConfig?: NotificationEventV1TaxConfig
+  /** The price of the rate card. When null, the feature or service is free. */
+  price: NotificationEventV1FlatPriceWithPaymentTerm | null
+  /**
+   * Quantity of the item being sold.
+   *
+   * Default: 1
+   */
+  quantity?: string
+  /** The discounts that are applied to the line. */
+  discounts?: NotificationEventV1BillingDiscounts
 }
 
 /** A capability or billable dimension offered by a provider. */
@@ -6385,6 +7613,76 @@ export interface NotificationRulePagePaginatedResponse {
   meta: PaginatedMeta
 }
 
+/**
+ * Represents a feature that can be enabled or disabled for a plan. Used both for
+ * product catalog and entitlements.
+ */
+export interface NotificationEventV1Feature {
+  /** Timestamp of when the resource was created. */
+  createdAt: Date
+  /** Timestamp of when the resource was last updated. */
+  updatedAt: Date
+  /** Timestamp of when the resource was permanently deleted. */
+  deletedAt?: Date
+  /** Timestamp of when the resource was archived. */
+  archivedAt?: Date
+  /** A key is a unique string that is used to identify a resource. */
+  key: string
+  /** The human-readable name of the feature. */
+  name: string
+  /** Optional metadata. */
+  metadata?: NotificationEventV1Metadata
+  /** A key is a unique string that is used to identify a resource. */
+  meterSlug?: string
+  /**
+   * Optional meter group by filters. Useful if the meter scope is broader than what
+   * feature tracks. Example scenario would be a meter tracking all token use with
+   * groupBy fields for the model, then the feature could filter for model=gpt-4.
+   *
+   * ⚠️ **Deprecated**: Use advancedMeterGroupByFilters instead
+   */
+  meterGroupByFilters?: Record<string, string>
+  /**
+   * Optional advanced meter group by filters. You can use this to filter for values
+   * of the meter groupBy fields.
+   */
+  advancedMeterGroupByFilters?: Record<string, NotificationEventV1FilterString>
+  /**
+   * Optional per-unit cost configuration. Use "manual" for a fixed per-unit cost, or
+   * "llm" to look up cost from the LLM cost database based on meter group-by
+   * properties.
+   */
+  unitCost?: NotificationEventV1FeatureUnitCost
+  /** Readonly unique ULID identifier. */
+  id: string
+}
+
+/**
+ * InvoiceLineDiscounts represents the discounts applied to the invoice line by
+ * type.
+ */
+export interface NotificationEventV1InvoiceLineDiscounts {
+  /**
+   * Amount based discounts applied to the line.
+   *
+   * Amount based discounts are deduced from the total price of the line.
+   */
+  amount?: NotificationEventV1InvoiceLineAmountDiscount[]
+  /**
+   * Usage based discounts applied to the line.
+   *
+   * Usage based discounts are deduced from the usage of the line before price
+   * calculations are applied.
+   */
+  usage?: NotificationEventV1InvoiceLineUsageDiscount[]
+}
+
+/** Payment contains details as to how the invoice should be paid. */
+export interface NotificationEventV1InvoicePaymentTerms {
+  /** The terms of payment for the invoice. */
+  terms?: NotificationEventV1PaymentTerms
+}
+
 /** A rate card defines the pricing and entitlement of a feature or service. */
 export interface RateCard {
   /**
@@ -6638,27 +7936,164 @@ export interface ProfileApps {
 }
 
 /**
- * A notification event records that a notification rule fired and tracks the
- * delivery of its payload to each channel of the rule. Events are created by the
- * system and cannot be modified.
+ * Workflow collection specifies how to collect the pending line items for an
+ * invoice
  */
-export interface NotificationEvent {
-  /** The unique identifier of the event. */
-  id: string
-  /** The type of the event. */
-  type:
-    | 'entitlements.balance.threshold'
-    | 'entitlements.reset'
-    | 'invoice.created'
-    | 'invoice.updated'
-  /** When the event was generated. */
+export interface NotificationEventV1BillingWorkflowCollectionSettings {
+  /** The alignment for collecting the pending line items into an invoice. */
+  alignment?: NotificationEventV1BillingWorkflowCollectionAlignment
+  /**
+   * This grace period can be used to delay the collection of the pending line items
+   * specified in alignment.
+   *
+   * This is useful, in case of multiple subscriptions having slightly different
+   * billing periods.
+   */
+  interval?: string
+}
+
+/**
+ * Data of the payload for notification event with `entitlements.balance.threshold`
+ * type.
+ */
+export interface NotificationEventV1BalanceThresholdPayloadData {
+  /** Entitlement. */
+  entitlement: NotificationEventV1EntitlementMetered
+  /** Feature. */
+  feature: NotificationEventV1Feature
+  /** Subject. */
+  subject: NotificationEventV1Subject
+  /** Entitlement Value. */
+  value: NotificationEventV1EntitlementValue
+  /** Customer. */
+  customer?: NotificationEventV1Customer
+  /** Threshold. */
+  threshold: NotificationEventV1RuleBalanceThresholdValue
+}
+
+/** Base data for any payload with entitlement entitlement value. */
+export interface NotificationEventV1EntitlementValuePayloadBase {
+  /** Entitlement. */
+  entitlement: NotificationEventV1EntitlementMetered
+  /** Feature. */
+  feature: NotificationEventV1Feature
+  /** Subject. */
+  subject: NotificationEventV1Subject
+  /** Entitlement Value. */
+  value: NotificationEventV1EntitlementValue
+  /** Customer. */
+  customer?: NotificationEventV1Customer
+}
+
+/**
+ * InvoiceUsageBasedRateCard represents the rate card (intent) for an usage-based
+ * line.
+ */
+export interface NotificationEventV1InvoiceUsageBasedRateCard {
+  /** The feature the customer is entitled to use. */
+  featureKey?: string
+  /**
+   * The tax config of the rate card. When undefined, the tax config of the feature
+   * or the default tax config of the plan is used.
+   */
+  taxConfig?: NotificationEventV1TaxConfig
+  /** The price of the rate card. When null, the feature or service is free. */
+  price: NotificationEventV1RateCardUsageBasedPrice | null
+  /** The discounts that are applied to the line. */
+  discounts?: NotificationEventV1BillingDiscounts
+}
+
+/** BillingProfileApps represents the applications used by a billing profile */
+export interface NotificationEventV1BillingProfileApps {
+  /** The tax app used for this workflow */
+  tax: NotificationEventV1App
+  /** The invoicing app used for this workflow */
+  invoicing: NotificationEventV1App
+  /** The payment app used for this workflow */
+  payment: NotificationEventV1App
+}
+
+/**
+ * InvoiceDetailedLine represents a line item that is sold to the customer as a
+ * manually added fee.
+ */
+export interface NotificationEventV1InvoiceDetailedLine {
+  /** Human-readable name for the resource. Between 1 and 256 characters. */
+  name: string
+  /** Optional description of the resource. Maximum 1024 characters. */
+  description?: string
+  /** Additional metadata for the resource. */
+  metadata?: NotificationEventV1Metadata | null
+  /** Timestamp of when the resource was created. */
   createdAt: Date
-  /** The rule that generated the event. */
-  rule: NotificationRuleReference
-  /** The delivery status of the event, one entry per channel of the rule. */
-  deliveryStatus: NotificationEventDeliveryStatus[]
-  /** The payload delivered to the channels. */
-  payload: NotificationEventPayload
+  /** Timestamp of when the resource was last updated. */
+  updatedAt: Date
+  /** Timestamp of when the resource was permanently deleted. */
+  deletedAt?: Date
+  /** ID of the line. */
+  id: string
+  /**
+   * managedBy specifies if the line is manually added via the api or managed by
+   * OpenMeter.
+   */
+  managedBy: 'subscription' | 'system' | 'manual'
+  /**
+   * Status of the line.
+   *
+   * External calls always create valid lines, other line types are managed by the
+   * billing engine of OpenMeter.
+   */
+  status: 'valid' | 'detailed' | 'split'
+  /**
+   * Discounts detailes applied to this line.
+   *
+   * New discounts can be added via the invoice's discounts API, to facilitate
+   * discounts that are affecting multiple lines.
+   */
+  discounts?: NotificationEventV1InvoiceLineDiscounts
+  /**
+   * Credit allocations applied to this line.
+   *
+   * Credits are deducted from the line total before taxes are applied.
+   */
+  creditAllocations?: NotificationEventV1InvoiceLineCreditAllocation[]
+  /** The invoice this item belongs to. */
+  invoice?: NotificationEventV1InvoiceReference
+  /** The currency of this line. */
+  currency: string
+  /** Taxes applied to the invoice totals. */
+  taxes?: NotificationEventV1InvoiceLineTaxItem[]
+  /** Tax config specify the tax configuration for this line. */
+  taxConfig?: NotificationEventV1TaxConfig
+  /** Totals for this line. */
+  totals: NotificationEventV1InvoiceTotals
+  /**
+   * Period of the line item applies to for revenue recognition pruposes.
+   *
+   * Billing always treats periods as start being inclusive and end being exclusive.
+   */
+  period: NotificationEventV1Period
+  /** External IDs of the invoice in other apps such as Stripe. */
+  externalIds?: NotificationEventV1InvoiceLineAppExternalIds
+  /**
+   * Subscription are the references to the subscritpions that this line is related
+   * to.
+   */
+  subscription?: NotificationEventV1InvoiceLineSubscriptionReference
+  /** The time this line item should be invoiced. */
+  invoiceAt: Date
+  /** Type of the line. */
+  type: 'flat_fee'
+  /** Price of the item being sold. */
+  perUnitAmount?: string
+  /** Payment term of the line. */
+  paymentTerm?: 'in_advance' | 'in_arrears'
+  /** Quantity of the item being sold. */
+  quantity?: string
+  /** The rate card that is used for this line. */
+  rateCard?: NotificationEventV1InvoiceDetailedLineRateCard
+  /** Category of the flat fee. */
+  category?: 'regular' | 'commitment'
 }
 
 /** A subscription item pins a rate card to a cadence within a subscription phase. */
@@ -7111,10 +8546,154 @@ export interface ChargeRealization {
   detailedLines?: ChargeRealizationDetailedLine[]
 }
 
-/** Page paginated response. */
-export interface NotificationEventPagePaginatedResponse {
-  data: NotificationEvent[]
-  meta: PaginatedMeta
+/** BillingWorkflow represents the settings for a billing workflow. */
+export interface NotificationEventV1BillingWorkflow {
+  /** The collection settings for this workflow */
+  collection?: NotificationEventV1BillingWorkflowCollectionSettings
+  /** The invoicing settings for this workflow */
+  invoicing?: NotificationEventV1BillingWorkflowInvoicingSettings
+  /** The payment settings for this workflow */
+  payment?: NotificationEventV1BillingWorkflowPaymentSettings
+  /** The tax settings for this workflow */
+  tax?: NotificationEventV1BillingWorkflowTaxSettings
+}
+
+/** A balance threshold notification event payload. */
+export interface NotificationEventBalanceThresholdPayload {
+  /** The identifier of the event the payload belongs to. */
+  id: string
+  /** The type of the event. */
+  type: 'entitlements.balance.threshold'
+  /** When the event was generated. */
+  timestamp: Date
+  /** The entities and threshold the event refers to. */
+  data: NotificationEventV1BalanceThresholdPayloadData
+}
+
+/** An entitlement reset notification event payload. */
+export interface NotificationEventResetPayload {
+  /** The identifier of the event the payload belongs to. */
+  id: string
+  /** The type of the event. */
+  type: 'entitlements.reset'
+  /** When the event was generated. */
+  timestamp: Date
+  /** The entities the event refers to. */
+  data: NotificationEventV1EntitlementValuePayloadBase
+}
+
+/**
+ * InvoiceUsageBasedLine represents a line item that is sold to the customer based
+ * on usage.
+ */
+export interface NotificationEventV1InvoiceLine {
+  /** Human-readable name for the resource. Between 1 and 256 characters. */
+  name: string
+  /** Optional description of the resource. Maximum 1024 characters. */
+  description?: string
+  /** Additional metadata for the resource. */
+  metadata?: NotificationEventV1Metadata | null
+  /** Timestamp of when the resource was created. */
+  createdAt: Date
+  /** Timestamp of when the resource was last updated. */
+  updatedAt: Date
+  /** Timestamp of when the resource was permanently deleted. */
+  deletedAt?: Date
+  /** ID of the line. */
+  id: string
+  /**
+   * managedBy specifies if the line is manually added via the api or managed by
+   * OpenMeter.
+   */
+  managedBy: 'subscription' | 'system' | 'manual'
+  /**
+   * Status of the line.
+   *
+   * External calls always create valid lines, other line types are managed by the
+   * billing engine of OpenMeter.
+   */
+  status: 'valid' | 'detailed' | 'split'
+  /**
+   * Discounts detailes applied to this line.
+   *
+   * New discounts can be added via the invoice's discounts API, to facilitate
+   * discounts that are affecting multiple lines.
+   */
+  discounts?: NotificationEventV1InvoiceLineDiscounts
+  /**
+   * Credit allocations applied to this line.
+   *
+   * Credits are deducted from the line total before taxes are applied.
+   */
+  creditAllocations?: NotificationEventV1InvoiceLineCreditAllocation[]
+  /** The invoice this item belongs to. */
+  invoice?: NotificationEventV1InvoiceReference
+  /** The currency of this line. */
+  currency: string
+  /** Taxes applied to the invoice totals. */
+  taxes?: NotificationEventV1InvoiceLineTaxItem[]
+  /** Tax config specify the tax configuration for this line. */
+  taxConfig?: NotificationEventV1TaxConfig
+  /** Totals for this line. */
+  totals: NotificationEventV1InvoiceTotals
+  /**
+   * Period of the line item applies to for revenue recognition pruposes.
+   *
+   * Billing always treats periods as start being inclusive and end being exclusive.
+   */
+  period: NotificationEventV1Period
+  /** The time this line item should be invoiced. */
+  invoiceAt: Date
+  /** External IDs of the invoice in other apps such as Stripe. */
+  externalIds?: NotificationEventV1InvoiceLineAppExternalIds
+  /**
+   * Subscription are the references to the subscritpions that this line is related
+   * to.
+   */
+  subscription?: NotificationEventV1InvoiceLineSubscriptionReference
+  /** Type of the line. */
+  type: 'usage_based'
+  /** Price of the usage-based item being sold. */
+  price?: NotificationEventV1RateCardUsageBasedPrice
+  /** The feature that the usage is based on. */
+  featureKey?: string
+  /** The lines detailing the item or service sold. */
+  children?: NotificationEventV1InvoiceDetailedLine[]
+  /**
+   * The rate card that is used for this line.
+   *
+   * The rate card captures the intent of the price and discounts for the usage-based
+   * item.
+   */
+  rateCard?: NotificationEventV1InvoiceUsageBasedRateCard
+  /**
+   * The quantity of the item being sold.
+   *
+   * Any usage discounts applied previously are deducted from this quantity.
+   */
+  quantity?: string
+  /**
+   * The quantity of the item that has been metered for the period before any
+   * discounts were applied.
+   */
+  meteredQuantity?: string
+  /**
+   * The quantity of the item used before this line's period.
+   *
+   * It is non-zero in case of progressive billing, when this shows how much of the
+   * usage was already billed.
+   *
+   * Any usage discounts applied previously are deducted from this quantity.
+   */
+  preLinePeriodQuantity?: string
+  /**
+   * The metered quantity of the item used in before this line's period without any
+   * discounts applied.
+   *
+   * It is non-zero in case of progressive billing, when this shows how much of the
+   * usage was already billed.
+   */
+  meteredPreLinePeriodQuantity?: string
 }
 
 /**
@@ -7398,6 +8977,32 @@ export interface AddonPagePaginatedResponse {
 export interface ProfilePagePaginatedResponse {
   data: Profile[]
   meta: PaginatedMeta
+}
+
+/**
+ * InvoiceWorkflowSettings represents the workflow settings used by the invoice.
+ *
+ * This is a clone of the billing profile's workflow settings at the time of
+ * invoice creation with customer overrides considered.
+ */
+export interface NotificationEventV1InvoiceWorkflowSettings {
+  /**
+   * The apps that will be used to orchestrate the invoice's workflow.
+   *
+   * The v1 schema allows app references here too, but the v1 Event payloads always
+   * carry the full apps.
+   */
+  apps?: NotificationEventV1BillingProfileApps
+  /**
+   * sourceBillingProfileID is the billing profile on which the workflow was based
+   * on.
+   *
+   * The profile is snapshotted on invoice creation, after which it can be altered
+   * independently of the profile itself.
+   */
+  sourceBillingProfileId: string
+  /** The workflow details used by this invoice. */
+  workflow: NotificationEventV1BillingWorkflow
 }
 
 /** Subscription. */
@@ -7757,6 +9362,134 @@ export interface UpdateInvoiceStandardRequest {
   lines?: UpdateInvoiceLine[]
 }
 
+/** Invoice represents an invoice in the system. */
+export interface NotificationEventV1Invoice {
+  /** A unique identifier for the resource. */
+  id: string
+  /** Optional description of the resource. Maximum 1024 characters. */
+  description?: string
+  /** Additional metadata for the resource. */
+  metadata?: NotificationEventV1Metadata | null
+  /** Timestamp of when the resource was created. */
+  createdAt: Date
+  /** Timestamp of when the resource was last updated. */
+  updatedAt: Date
+  /** Timestamp of when the resource was permanently deleted. */
+  deletedAt?: Date
+  /**
+   * Type of the invoice.
+   *
+   * The type of invoice determines the purpose of the invoice and how it should be
+   * handled.
+   *
+   * Supported types:
+   *
+   * - standard: A regular commercial invoice document between a supplier and
+   * customer.
+   * - credit_note: Reflects a refund either partial or complete of the preceding
+   * document. A credit note effectively _extends_ the previous document.
+   */
+  type: 'standard' | 'credit_note'
+  /** The taxable entity supplying the goods or services. */
+  supplier: NotificationEventV1BillingParty
+  /** Legal entity receiving the goods or services. */
+  customer: NotificationEventV1BillingInvoiceCustomerExtendedDetails
+  /**
+   * Number specifies the human readable key used to reference this Invoice.
+   *
+   * The invoice number can change in the draft phases, as we are allocating
+   * temporary draft invoice numbers, but it's final as soon as the invoice gets
+   * finalized (issued state).
+   *
+   * Please note that the number is (depending on the upstream settings) either
+   * unique for the whole organization or unique for the customer, or in multi
+   * (stripe) account setups unique for the account.
+   */
+  number: string
+  /**
+   * Currency for all invoice line items.
+   *
+   * Multi currency invoices are not supported yet.
+   */
+  currency: string
+  /**
+   * Key information regarding previous invoices and potentially details as to why
+   * they were corrected.
+   */
+  preceding?: NotificationEventV1InvoiceDocumentRef[]
+  /** Summary of all the invoice totals, including taxes (calculated). */
+  totals: NotificationEventV1InvoiceTotals
+  /**
+   * The status of the invoice.
+   *
+   * This field only conatins a simplified status, for more detailed information use
+   * the statusDetails field.
+   */
+  status:
+    | 'gathering'
+    | 'draft'
+    | 'issuing'
+    | 'issued'
+    | 'payment_processing'
+    | 'overdue'
+    | 'paid'
+    | 'uncollectible'
+    | 'voided'
+  /** The details of the current invoice status. */
+  statusDetails: NotificationEventV1InvoiceStatusDetails
+  /**
+   * The time the invoice was issued.
+   *
+   * Depending on the status of the invoice this can mean multiple things:
+   *
+   * - draft, gathering: The time the invoice will be issued based on the workflow
+   * settings.
+   * - issued: The time the invoice was issued.
+   */
+  issuedAt?: Date
+  /**
+   * The time until the invoice is in draft status.
+   *
+   * On draft invoice creation it is calculated from the workflow settings.
+   *
+   * If manual approval is required, the draftUntil time is set.
+   */
+  draftUntil?: Date
+  /** The time when the quantity snapshots on the invoice lines were taken. */
+  quantitySnapshotedAt?: Date
+  /** The time when the invoice will be/has been collected. */
+  collectionAt?: Date
+  /** Due time of the fulfillment of the invoice (if available). */
+  dueAt?: Date
+  /** The period the invoice covers. If the invoice has no line items, it's not set. */
+  period?: NotificationEventV1Period
+  /**
+   * The time the invoice was voided.
+   *
+   * If the invoice was voided, this field will be set to the time the invoice was
+   * voided.
+   */
+  voidedAt?: Date
+  /** The time the invoice was sent to customer. */
+  sentToCustomerAt?: Date
+  /**
+   * The workflow associated with the invoice.
+   *
+   * It is always a snapshot of the workflow settings at the time of invoice
+   * creation. The field is optional as it should be explicitly requested with expand
+   * options.
+   */
+  workflow: NotificationEventV1InvoiceWorkflowSettings
+  /** List of invoice lines representing each of the items sold to the customer. */
+  lines?: NotificationEventV1InvoiceLine[]
+  /** Information on when, how, and to whom the invoice should be paid. */
+  payment?: NotificationEventV1InvoicePaymentTerms
+  /** Validation issues reported by the invoice workflow. */
+  validationIssues?: NotificationEventV1ValidationIssue[]
+  /** External IDs of the invoice in other apps such as Stripe. */
+  externalIds?: NotificationEventV1InvoiceAppExternalIds
+}
+
 /** Page paginated response. */
 export interface SubscriptionPagePaginatedResponse {
   data: Subscription[]
@@ -7781,6 +9514,30 @@ export interface SubscriptionMigrateResponse {
   current: SubscriptionBase
   /** The resulting subscription, including its phases and items. */
   next: Subscription
+}
+
+/** An invoice created notification event payload. */
+export interface NotificationEventInvoiceCreatedPayload {
+  /** The identifier of the event the payload belongs to. */
+  id: string
+  /** The type of the event. */
+  type: 'invoice.created'
+  /** When the event was generated. */
+  timestamp: Date
+  /** The invoice the event refers to. */
+  data: NotificationEventV1Invoice
+}
+
+/** An invoice updated notification event payload. */
+export interface NotificationEventInvoiceUpdatedPayload {
+  /** The identifier of the event the payload belongs to. */
+  id: string
+  /** The type of the event. */
+  type: 'invoice.updated'
+  /** When the event was generated. */
+  timestamp: Date
+  /** The invoice the event refers to. */
+  data: NotificationEventV1Invoice
 }
 
 /** A flat fee charge for a customer. */
@@ -8020,9 +9777,39 @@ export interface InvoicePagePaginatedResponse {
   meta: PaginatedMeta
 }
 
+/**
+ * A notification event records that a notification rule fired and tracks the
+ * delivery of its payload to each channel of the rule. Events are created by the
+ * system and cannot be modified.
+ */
+export interface NotificationEvent {
+  /** The unique identifier of the event. */
+  id: string
+  /** The type of the event. */
+  type:
+    | 'entitlements.balance.threshold'
+    | 'entitlements.reset'
+    | 'invoice.created'
+    | 'invoice.updated'
+  /** When the event was generated. */
+  createdAt: Date
+  /** The rule that generated the event. */
+  rule: NotificationRuleReference
+  /** The delivery status of the event, one entry per channel of the rule. */
+  deliveryStatus: NotificationEventDeliveryStatus[]
+  /** The payload delivered to the channels. */
+  payload: NotificationEventPayload
+}
+
 /** Page paginated response. */
 export interface ChargePagePaginatedResponse {
   data: Charge[]
+  meta: PaginatedMeta
+}
+
+/** Page paginated response. */
+export interface NotificationEventPagePaginatedResponse {
+  data: NotificationEvent[]
   meta: PaginatedMeta
 }
 
@@ -8127,6 +9914,10 @@ export type UpdateBillingWorkflowPaymentSettings =
   | UpdateBillingWorkflowPaymentChargeAutomaticallySettings
   | UpdateBillingWorkflowPaymentSendInvoiceSettings
 
+/** Period duration for the recurrence */
+export type NotificationEventV1RecurringPeriodInterval =
+  string | 'DAY' | 'WEEK' | 'MONTH' | 'YEAR'
+
 /**
  * Cost basis selection for a custom-currency charge. The variant chosen fixes when
  * and how the conversion rate is determined.
@@ -8165,6 +9956,12 @@ export type UpdateAppRequest =
   | UpdateAppStripeRequest
   | UpdateAppSandboxRequest
   | UpdateAppExternalInvoicingRequest
+
+/** The reason for the discount. */
+export type NotificationEventV1BillingDiscountReason =
+  | NotificationEventV1DiscountReasonMaximumSpend
+  | NotificationEventV1DiscountReasonRatecardPercentage
+  | NotificationEventV1DiscountReasonRatecardUsage
 
 /**
  * Per-unit cost configuration for a feature. Either a fixed manual amount or a
@@ -8225,6 +10022,18 @@ export type NotificationRuleRequest =
   | NotificationRuleInvoiceCreatedRequest
   | NotificationRuleInvoiceUpdatedRequest
 
+/**
+ * Per-unit cost configuration for a feature. Either a fixed manual amount or a
+ * dynamic LLM cost lookup.
+ */
+export type NotificationEventV1FeatureUnitCost =
+  | NotificationEventV1FeatureManualUnitCost
+  | NotificationEventV1FeatureLlmUnitCost
+
+/** PaymentTerms defines the terms for payment. */
+export type NotificationEventV1PaymentTerms =
+  NotificationEventV1PaymentTermInstant | NotificationEventV1PaymentTermDueDate
+
 /** Price. */
 export type Price =
   PriceFree | PriceFlat | PriceUnit | PriceGraduated | PriceVolume
@@ -8258,12 +10067,30 @@ export type App = AppStripe | AppSandbox | AppExternalInvoicing
 export type BillingInstallAppResponse =
   InstalledAppStripe | InstalledAppSandbox | InstalledAppExternalInvoicing
 
-/** The payload delivered to the channels, discriminated by the event type. */
-export type NotificationEventPayload =
-  | NotificationEventBalanceThresholdPayload
-  | NotificationEventResetPayload
-  | NotificationEventInvoiceCreatedPayload
-  | NotificationEventInvoiceUpdatedPayload
+/**
+ * The alignment for collecting the pending line items into an invoice.
+ *
+ * Defaults to subscription, which means that we are to create a new invoice every
+ * time the a subscription period starts (for in advance items) or ends (for in
+ * arrears items).
+ */
+export type NotificationEventV1BillingWorkflowCollectionAlignment =
+  | NotificationEventV1BillingWorkflowCollectionAlignmentSubscription
+  | NotificationEventV1BillingWorkflowCollectionAlignmentAnchored
+
+/** The price of the usage based rate card. */
+export type NotificationEventV1RateCardUsageBasedPrice =
+  | NotificationEventV1FlatPriceWithPaymentTerm
+  | NotificationEventV1UnitPriceWithCommitments
+  | NotificationEventV1TieredPriceWithCommitments
+  | NotificationEventV1DynamicPriceWithCommitments
+  | NotificationEventV1PackagePriceWithCommitments
+
+/** App. One of: stripe */
+export type NotificationEventV1App =
+  | NotificationEventV1StripeApp
+  | NotificationEventV1SandboxApp
+  | NotificationEventV1CustomInvoicingApp
 
 /** Feature or reference. */
 export type FeatureOrReference = Feature | FeatureReference
@@ -8320,6 +10147,13 @@ export type Invoice = InvoiceStandard
 
 /** UpdateInvoiceRequest update request. */
 export type UpdateInvoiceRequest = UpdateInvoiceStandardRequest
+
+/** The payload delivered to the channels, discriminated by the event type. */
+export type NotificationEventPayload =
+  | NotificationEventBalanceThresholdPayload
+  | NotificationEventResetPayload
+  | NotificationEventInvoiceCreatedPayload
+  | NotificationEventInvoiceUpdatedPayload
 
 /** Customer charge. */
 export type Charge = ChargeFlatFee | ChargeUsageBased
