@@ -24,6 +24,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionbillingsyncstate"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptioncostbasispin"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionsyncstatev2"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -333,6 +334,25 @@ func (_u *SubscriptionUpdate) AddAddons(v ...*SubscriptionAddon) *SubscriptionUp
 	return _u.AddAddonIDs(ids...)
 }
 
+// SetSyncStateV2ID sets the "sync_state_v2" edge to the SubscriptionSyncStateV2 entity by ID.
+func (_u *SubscriptionUpdate) SetSyncStateV2ID(id string) *SubscriptionUpdate {
+	_u.mutation.SetSyncStateV2ID(id)
+	return _u
+}
+
+// SetNillableSyncStateV2ID sets the "sync_state_v2" edge to the SubscriptionSyncStateV2 entity by ID if the given value is not nil.
+func (_u *SubscriptionUpdate) SetNillableSyncStateV2ID(id *string) *SubscriptionUpdate {
+	if id != nil {
+		_u = _u.SetSyncStateV2ID(*id)
+	}
+	return _u
+}
+
+// SetSyncStateV2 sets the "sync_state_v2" edge to the SubscriptionSyncStateV2 entity.
+func (_u *SubscriptionUpdate) SetSyncStateV2(v *SubscriptionSyncStateV2) *SubscriptionUpdate {
+	return _u.SetSyncStateV2ID(v.ID)
+}
+
 // SetBillingSyncStateID sets the "billing_sync_state" edge to the SubscriptionBillingSyncState entity by ID.
 func (_u *SubscriptionUpdate) SetBillingSyncStateID(id string) *SubscriptionUpdate {
 	_u.mutation.SetBillingSyncStateID(id)
@@ -544,6 +564,12 @@ func (_u *SubscriptionUpdate) RemoveAddons(v ...*SubscriptionAddon) *Subscriptio
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveAddonIDs(ids...)
+}
+
+// ClearSyncStateV2 clears the "sync_state_v2" edge to the SubscriptionSyncStateV2 entity.
+func (_u *SubscriptionUpdate) ClearSyncStateV2() *SubscriptionUpdate {
+	_u.mutation.ClearSyncStateV2()
+	return _u
 }
 
 // ClearBillingSyncState clears the "billing_sync_state" edge to the SubscriptionBillingSyncState entity.
@@ -1077,6 +1103,35 @@ func (_u *SubscriptionUpdate) sqlSave(ctx context.Context) (_node int, err error
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if _u.mutation.SyncStateV2Cleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   subscription.SyncStateV2Table,
+			Columns: []string{subscription.SyncStateV2Column},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionsyncstatev2.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.SyncStateV2IDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   subscription.SyncStateV2Table,
+			Columns: []string{subscription.SyncStateV2Column},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionsyncstatev2.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if _u.mutation.BillingSyncStateCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2O,
@@ -1462,6 +1517,25 @@ func (_u *SubscriptionUpdateOne) AddAddons(v ...*SubscriptionAddon) *Subscriptio
 	return _u.AddAddonIDs(ids...)
 }
 
+// SetSyncStateV2ID sets the "sync_state_v2" edge to the SubscriptionSyncStateV2 entity by ID.
+func (_u *SubscriptionUpdateOne) SetSyncStateV2ID(id string) *SubscriptionUpdateOne {
+	_u.mutation.SetSyncStateV2ID(id)
+	return _u
+}
+
+// SetNillableSyncStateV2ID sets the "sync_state_v2" edge to the SubscriptionSyncStateV2 entity by ID if the given value is not nil.
+func (_u *SubscriptionUpdateOne) SetNillableSyncStateV2ID(id *string) *SubscriptionUpdateOne {
+	if id != nil {
+		_u = _u.SetSyncStateV2ID(*id)
+	}
+	return _u
+}
+
+// SetSyncStateV2 sets the "sync_state_v2" edge to the SubscriptionSyncStateV2 entity.
+func (_u *SubscriptionUpdateOne) SetSyncStateV2(v *SubscriptionSyncStateV2) *SubscriptionUpdateOne {
+	return _u.SetSyncStateV2ID(v.ID)
+}
+
 // SetBillingSyncStateID sets the "billing_sync_state" edge to the SubscriptionBillingSyncState entity by ID.
 func (_u *SubscriptionUpdateOne) SetBillingSyncStateID(id string) *SubscriptionUpdateOne {
 	_u.mutation.SetBillingSyncStateID(id)
@@ -1673,6 +1747,12 @@ func (_u *SubscriptionUpdateOne) RemoveAddons(v ...*SubscriptionAddon) *Subscrip
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveAddonIDs(ids...)
+}
+
+// ClearSyncStateV2 clears the "sync_state_v2" edge to the SubscriptionSyncStateV2 entity.
+func (_u *SubscriptionUpdateOne) ClearSyncStateV2() *SubscriptionUpdateOne {
+	_u.mutation.ClearSyncStateV2()
+	return _u
 }
 
 // ClearBillingSyncState clears the "billing_sync_state" edge to the SubscriptionBillingSyncState entity.
@@ -2229,6 +2309,35 @@ func (_u *SubscriptionUpdateOne) sqlSave(ctx context.Context) (_node *Subscripti
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(subscriptionaddon.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.SyncStateV2Cleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   subscription.SyncStateV2Table,
+			Columns: []string{subscription.SyncStateV2Column},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionsyncstatev2.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.SyncStateV2IDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   subscription.SyncStateV2Table,
+			Columns: []string{subscription.SyncStateV2Column},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionsyncstatev2.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

@@ -11,6 +11,7 @@ import (
 
 type Adapter interface {
 	SyncStateAdapter
+	SyncStateV2Adapter
 
 	entutils.TxCreator
 }

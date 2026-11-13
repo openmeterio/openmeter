@@ -1041,6 +1041,18 @@ func (f SubscriptionPhaseFunc) Mutate(ctx context.Context, m db.Mutation) (db.Va
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.SubscriptionPhaseMutation", m)
 }
 
+// The SubscriptionSyncStateV2Func type is an adapter to allow the use of ordinary
+// function as SubscriptionSyncStateV2 mutator.
+type SubscriptionSyncStateV2Func func(context.Context, *db.SubscriptionSyncStateV2Mutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f SubscriptionSyncStateV2Func) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.SubscriptionSyncStateV2Mutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.SubscriptionSyncStateV2Mutation", m)
+}
+
 // The TaxCodeFunc type is an adapter to allow the use of ordinary
 // function as TaxCode mutator.
 type TaxCodeFunc func(context.Context, *db.TaxCodeMutation) (db.Value, error)

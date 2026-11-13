@@ -6658,6 +6658,20 @@ func (u *SubscriptionPhaseUpdateOne) SetOrClearSortHint(value *uint8) *Subscript
 	return u.SetSortHint(*value)
 }
 
+func (u *SubscriptionSyncStateV2Update) SetOrClearDeletedAt(value *time.Time) *SubscriptionSyncStateV2Update {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *SubscriptionSyncStateV2UpdateOne) SetOrClearDeletedAt(value *time.Time) *SubscriptionSyncStateV2UpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
 func (u *TaxCodeUpdate) SetOrClearMetadata(value *map[string]string) *TaxCodeUpdate {
 	if value == nil {
 		return u.ClearMetadata()

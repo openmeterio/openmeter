@@ -3300,6 +3300,26 @@ func (e *SubscriptionPhase) GetMetadata() map[string]string {
 	return e.Metadata
 }
 
+func (e *SubscriptionSyncStateV2) GetID() string {
+	return e.ID
+}
+
+func (e *SubscriptionSyncStateV2) GetNamespace() string {
+	return e.Namespace
+}
+
+func (e *SubscriptionSyncStateV2) GetCreatedAt() time.Time {
+	return e.CreatedAt
+}
+
+func (e *SubscriptionSyncStateV2) GetUpdatedAt() time.Time {
+	return e.UpdatedAt
+}
+
+func (e *SubscriptionSyncStateV2) GetDeletedAt() *time.Time {
+	return e.DeletedAt
+}
+
 func (e *TaxCode) GetID() string {
 	return e.ID
 }

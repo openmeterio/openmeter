@@ -97,6 +97,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptioncostbasispin"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionsyncstatev2"
 	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/usagereset"
 	"github.com/openmeterio/openmeter/openmeter/ent/schema"
@@ -3472,6 +3473,37 @@ func init() {
 	subscriptionphaseDescID := subscriptionphaseMixinFields0[0].Descriptor()
 	// subscriptionphase.DefaultID holds the default value on creation for the id field.
 	subscriptionphase.DefaultID = subscriptionphaseDescID.Default.(func() string)
+	subscriptionsyncstatev2Mixin := schema.SubscriptionSyncStateV2{}.Mixin()
+	subscriptionsyncstatev2MixinFields0 := subscriptionsyncstatev2Mixin[0].Fields()
+	_ = subscriptionsyncstatev2MixinFields0
+	subscriptionsyncstatev2MixinFields1 := subscriptionsyncstatev2Mixin[1].Fields()
+	_ = subscriptionsyncstatev2MixinFields1
+	subscriptionsyncstatev2MixinFields2 := subscriptionsyncstatev2Mixin[2].Fields()
+	_ = subscriptionsyncstatev2MixinFields2
+	subscriptionsyncstatev2Fields := schema.SubscriptionSyncStateV2{}.Fields()
+	_ = subscriptionsyncstatev2Fields
+	// subscriptionsyncstatev2DescNamespace is the schema descriptor for namespace field.
+	subscriptionsyncstatev2DescNamespace := subscriptionsyncstatev2MixinFields1[0].Descriptor()
+	// subscriptionsyncstatev2.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	subscriptionsyncstatev2.NamespaceValidator = subscriptionsyncstatev2DescNamespace.Validators[0].(func(string) error)
+	// subscriptionsyncstatev2DescCreatedAt is the schema descriptor for created_at field.
+	subscriptionsyncstatev2DescCreatedAt := subscriptionsyncstatev2MixinFields2[0].Descriptor()
+	// subscriptionsyncstatev2.DefaultCreatedAt holds the default value on creation for the created_at field.
+	subscriptionsyncstatev2.DefaultCreatedAt = subscriptionsyncstatev2DescCreatedAt.Default.(func() time.Time)
+	// subscriptionsyncstatev2DescUpdatedAt is the schema descriptor for updated_at field.
+	subscriptionsyncstatev2DescUpdatedAt := subscriptionsyncstatev2MixinFields2[1].Descriptor()
+	// subscriptionsyncstatev2.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	subscriptionsyncstatev2.DefaultUpdatedAt = subscriptionsyncstatev2DescUpdatedAt.Default.(func() time.Time)
+	// subscriptionsyncstatev2.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	subscriptionsyncstatev2.UpdateDefaultUpdatedAt = subscriptionsyncstatev2DescUpdatedAt.UpdateDefault.(func() time.Time)
+	// subscriptionsyncstatev2DescSubscriptionID is the schema descriptor for subscription_id field.
+	subscriptionsyncstatev2DescSubscriptionID := subscriptionsyncstatev2Fields[0].Descriptor()
+	// subscriptionsyncstatev2.SubscriptionIDValidator is a validator for the "subscription_id" field. It is called by the builders before save.
+	subscriptionsyncstatev2.SubscriptionIDValidator = subscriptionsyncstatev2DescSubscriptionID.Validators[0].(func(string) error)
+	// subscriptionsyncstatev2DescID is the schema descriptor for id field.
+	subscriptionsyncstatev2DescID := subscriptionsyncstatev2MixinFields0[0].Descriptor()
+	// subscriptionsyncstatev2.DefaultID holds the default value on creation for the id field.
+	subscriptionsyncstatev2.DefaultID = subscriptionsyncstatev2DescID.Default.(func() string)
 	dbtaxcodeMixin := schema.TaxCode{}.Mixin()
 	dbtaxcodeMixinFields0 := dbtaxcodeMixin[0].Fields()
 	_ = dbtaxcodeMixinFields0

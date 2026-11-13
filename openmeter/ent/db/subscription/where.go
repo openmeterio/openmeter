@@ -1208,6 +1208,29 @@ func HasAddonsWith(preds ...predicate.SubscriptionAddon) predicate.Subscription 
 	})
 }
 
+// HasSyncStateV2 applies the HasEdge predicate on the "sync_state_v2" edge.
+func HasSyncStateV2() predicate.Subscription {
+	return predicate.Subscription(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, SyncStateV2Table, SyncStateV2Column),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasSyncStateV2With applies the HasEdge predicate on the "sync_state_v2" edge with a given conditions (other predicates).
+func HasSyncStateV2With(preds ...predicate.SubscriptionSyncStateV2) predicate.Subscription {
+	return predicate.Subscription(func(s *sql.Selector) {
+		step := newSyncStateV2Step()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // HasBillingSyncState applies the HasEdge predicate on the "billing_sync_state" edge.
 func HasBillingSyncState() predicate.Subscription {
 	return predicate.Subscription(func(s *sql.Selector) {

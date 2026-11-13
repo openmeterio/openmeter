@@ -97,6 +97,10 @@ func (Subscription) Edges() []ent.Edge {
 			Annotations(entsql.Annotation{
 				OnDelete: entsql.Cascade,
 			}),
+		edge.To("sync_state_v2", SubscriptionSyncStateV2.Type).
+			Unique().
+			StorageKey(edge.Symbol("subscription_sync_state_v2_subscription_fk")).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("billing_sync_state", SubscriptionBillingSyncState.Type).
 			Unique().
 			Annotations(entsql.Annotation{
