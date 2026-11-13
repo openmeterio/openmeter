@@ -214,8 +214,8 @@ means.
 
 - Entitlement payloads contain API-shaped entitlement, feature, customer,
   subject, and calculated value data from the consumed snapshot.
-- Invoice payloads are eagerly converted from the billing event to
-  `api.Invoice` before persistence. The notification package does not persist
+- Invoice payloads are eagerly converted from the billing event to the v1 API
+  `Invoice` model (`api/models`) before persistence. The notification package does not persist
   the internal billing aggregate.
 - Current invoice payloads use persisted payload version `1`. Invoice reads
   reject unsupported versions. Entitlement payloads remain unversioned, so
@@ -245,8 +245,9 @@ and v3 can't drift apart.
 When changing the copies:
 
 - Match what the v1 mapper sends, not the v1 schema. The copies only appear in
-  responses, so they have no defaults or request-only key patterns, and they
-  leave out union variants the mapper never sends.
+  responses, so they have no defaults and no patterns or length limits the
+  server doesn't guarantee (for example, the subject `id` and `subject_key` can
+  be empty), and they leave out union variants the mapper never sends.
 - Keep the v1 enum spellings, including the deprecated `PERCENT` and `NUMBER`
   threshold types.
 - Keep `metadata` and `annotations` instead of v3 `labels`. Labels are
@@ -254,6 +255,10 @@ When changing the copies:
   annotation values and any key or value that fails label validation, and
   would add the `openmeter_` prefix to annotation keys. Keys of these maps are
   user data and keep their case.
+
+[`event_v3.go`](../../test/notification/event_v3.go) runs the real consumers,
+reads the Events through both APIs and validates the v3 responses against the
+spec. When a producer can send a new shape, add a case there.
 
 Event types built from v3 models use `labels`; the copies exist only for these
 legacy types.
