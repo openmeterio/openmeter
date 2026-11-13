@@ -154,20 +154,6 @@ enum V1AppCapabilityType {
 }
 
 /**
- * App reference
- *
- * Can be used as a short reference to an app if the full app object is not needed.
- */
-#suppress "@openmeter/api-spec-aip/casing" "Copied v1 type and enum member names."
-@friendlyName("BillingNotificationEventV1AppReference")
-model V1AppReference {
-  /**
-   * The ID of the app.
-   */
-  @pattern("^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$") id: string;
-}
-
-/**
  * App installed status.
  */
 #suppress "@openmeter/api-spec-aip/casing" "Copied v1 type and enum member names."

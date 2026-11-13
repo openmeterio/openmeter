@@ -135,7 +135,6 @@ export type {
   QueryFilterBoolean,
   PagePaginationQuery,
   PublicLabels,
-  NotificationEventV1AppReference,
   SystemAccountAccessToken,
   PersonalAccessToken,
   KonnectAccessToken,
