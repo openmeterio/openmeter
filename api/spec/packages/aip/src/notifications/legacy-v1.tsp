@@ -751,14 +751,12 @@ model V1Customer {
    * A unique identifier for the resource.
    */
   @visibility(Lifecycle.Read)
-  @pattern("^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$")
   @summary("ID")
   id: string;
 
   /**
    * Human-readable name for the resource. Between 1 and 256 characters.
    */
-  @minLength(1)
   @maxLength(256)
   @summary("Display name")
   name: string;
