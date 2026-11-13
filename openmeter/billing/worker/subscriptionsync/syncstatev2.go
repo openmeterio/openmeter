@@ -62,6 +62,7 @@ func (s SyncStateV2Managed) Validate() error {
 }
 
 type GetSyncStatesV2Input = []models.NamespacedID
+
 type UpsertSyncStateV2Input = SyncStateV2
 
 var _ models.Validator = UpsertSyncStateV2Input{}
