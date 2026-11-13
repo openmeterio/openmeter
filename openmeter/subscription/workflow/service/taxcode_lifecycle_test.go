@@ -380,8 +380,9 @@ func TestWorkflowPlanReferenceWithDeletedTaxCode(t *testing.T) {
 		// when: the subscription is created from the plan reference
 		subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps.Deps, plan, now)
 
-		// then: the inherited reference passes
+		// then: the inherited reference passes and the items keep it
 		require.NotEmpty(t, subView.Subscription.ID)
+		requireItemsWithTaxCodes(t, subView, plan.TaxCodeIDs())
 	})
 
 	t.Run("change to a plan reference holding a deleted tax code succeeds", func(t *testing.T) {
@@ -403,10 +404,32 @@ func TestWorkflowPlanReferenceWithDeletedTaxCode(t *testing.T) {
 			Name:   subView.Subscription.Name,
 		}, targetPlan)
 
-		// then: the inherited reference passes
+		// then: the inherited reference passes and the new items keep it
 		require.NoError(t, err)
 		require.Equal(t, "change-target-deleted-tax-code", new.Subscription.PlanRef.Key)
+		requireItemsWithTaxCodes(t, new, targetPlan.TaxCodeIDs())
 	})
+}
+
+// requireItemsWithTaxCodes fails unless the subscription's items reference exactly the given
+// Tax Codes, so a sync that silently drops an inherited deleted reference is caught.
+func requireItemsWithTaxCodes(t *testing.T, view subscription.SubscriptionView, taxCodeIDs []string) {
+	t.Helper()
+
+	require.NotEmpty(t, taxCodeIDs)
+
+	var got []string
+	for _, phase := range view.Phases {
+		for _, items := range phase.ItemsByKey {
+			for _, item := range items {
+				if cfg := item.SubscriptionItem.RateCard.AsMeta().TaxConfig; cfg != nil && cfg.TaxCodeID != "" {
+					got = append(got, cfg.TaxCodeID)
+				}
+			}
+		}
+	}
+
+	require.ElementsMatch(t, lo.Uniq(taxCodeIDs), lo.Uniq(got))
 }
 
 // taxCodeLifecycleSuite holds the frozen-clock environment shared by the deleted-tax-code
@@ -418,19 +441,16 @@ type taxCodeLifecycleSuite struct {
 	now time.Time
 }
 
-// newTaxCodeLifecycleDeps freezes the clock and builds the test dependencies. A t.Cleanup
-// registered here unfreezes the clock and tears the database down when the subtest ends.
+// newTaxCodeLifecycleDeps freezes the clock and builds the test dependencies. Cleanups
+// registered here unfreeze the clock and tear the database down when the subtest ends.
 func newTaxCodeLifecycleDeps(t *testing.T, now time.Time) *taxCodeLifecycleSuite {
 	t.Helper()
 
 	clock.FreezeTime(now.Add(time.Millisecond))
+	t.Cleanup(clock.UnFreeze)
 
 	dbDeps := subscriptiontestutils.SetupDBDeps(t)
-
-	t.Cleanup(func() {
-		clock.UnFreeze()
-		dbDeps.Cleanup(t)
-	})
+	t.Cleanup(func() { dbDeps.Cleanup(t) })
 
 	return &taxCodeLifecycleSuite{
 		Deps: subscriptiontestutils.NewService(t, dbDeps),

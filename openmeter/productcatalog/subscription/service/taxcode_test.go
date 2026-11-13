@@ -280,19 +280,7 @@ func TestCreateFromPlanRefTaxCodeDeleted(t *testing.T) {
 	view, err := deps.SubscriptionService.GetView(t.Context(), sub.NamespacedID)
 	require.NoError(t, err)
 
-	found := false
-	for _, phase := range view.Phases {
-		for _, items := range phase.ItemsByKey {
-			for _, item := range items {
-				cfg := item.SubscriptionItem.RateCard.AsMeta().TaxConfig
-				if cfg != nil && cfg.TaxCodeID == doomedTaxCode.ID {
-					found = true
-				}
-			}
-		}
-	}
-
-	require.True(t, found, "expected an item to carry the deleted tax code reference")
+	requireItemWithTaxCode(t, view, doomedTaxCode.ID)
 }
 
 // Changing to a plan reference inherits the published plan's references: the deleted Tax Code
@@ -378,9 +366,29 @@ func TestChangeToPlanRefTaxCodeDeleted(t *testing.T) {
 		},
 	})
 
-	// then: the change succeeds
+	// then: the change succeeds and the new subscription keeps the deleted reference
 	require.NoError(t, err)
 	require.Equal(t, targetPlan.Key, resp.Next.Subscription.PlanRef.Key)
+	requireItemWithTaxCode(t, resp.Next, doomedTaxCode.ID)
+}
+
+// requireItemWithTaxCode fails unless an item of the subscription references the Tax Code,
+// so a sync that silently drops an inherited deleted reference is caught.
+func requireItemWithTaxCode(t *testing.T, view subscription.SubscriptionView, taxCodeID string) {
+	t.Helper()
+
+	for _, phase := range view.Phases {
+		for _, items := range phase.ItemsByKey {
+			for _, item := range items {
+				cfg := item.SubscriptionItem.RateCard.AsMeta().TaxConfig
+				if cfg != nil && cfg.TaxCodeID == taxCodeID {
+					return
+				}
+			}
+		}
+	}
+
+	require.Fail(t, "expected an item to reference the tax code", taxCodeID)
 }
 
 // assertIssueOnField requires the error to carry a validation issue whose field path

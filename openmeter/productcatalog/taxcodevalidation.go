@@ -4,8 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-
-	"github.com/samber/lo"
+	"slices"
 
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -52,7 +51,7 @@ func checkRateCardTaxCodes(rateCards RateCards, taxCodes map[string]*taxcode.Tax
 		switch {
 		case tc == nil:
 			errs = append(errs, rateCardTaxCodeError(rc, cfg.TaxCodeID, ErrRateCardTaxCodeNotFound))
-		case tc.IsDeleted() && !lo.Contains(allowDeleted, cfg.TaxCodeID):
+		case tc.IsDeleted() && !slices.Contains(allowDeleted, cfg.TaxCodeID):
 			errs = append(errs, rateCardTaxCodeError(rc, cfg.TaxCodeID, ErrRateCardTaxCodeDeleted))
 		}
 	}
