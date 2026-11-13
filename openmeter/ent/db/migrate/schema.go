@@ -3823,9 +3823,9 @@ var (
 				Columns: []*schema.Column{CustomersColumns[1], CustomersColumns[16], CustomersColumns[5]},
 			},
 			{
-				Name:    "customer_name",
+				Name:    "customer_namespace_name",
 				Unique:  false,
-				Columns: []*schema.Column{CustomersColumns[6]},
+				Columns: []*schema.Column{CustomersColumns[1], CustomersColumns[6]},
 			},
 			{
 				Name:    "customer_primary_email",
@@ -3833,9 +3833,9 @@ var (
 				Columns: []*schema.Column{CustomersColumns[17]},
 			},
 			{
-				Name:    "customer_created_at",
+				Name:    "customer_namespace_created_at",
 				Unique:  false,
-				Columns: []*schema.Column{CustomersColumns[3]},
+				Columns: []*schema.Column{CustomersColumns[1], CustomersColumns[3]},
 			},
 		},
 	}

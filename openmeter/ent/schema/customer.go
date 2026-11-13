@@ -61,10 +61,10 @@ func (Customer) Indexes() []ent.Index {
 			).
 			Unique(),
 		index.Fields("namespace", "key", "deleted_at"),
-		index.Fields("name"),
+		index.Fields("namespace", "name"),
 		index.Fields("primary_email"),
 		// Indexes because of API OrderBy
-		index.Fields("created_at"),
+		index.Fields("namespace", "created_at"),
 	}
 }
 
