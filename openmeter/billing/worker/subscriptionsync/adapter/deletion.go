@@ -72,7 +72,10 @@ func DeletedSubscriptionsToReconcileQuery(dialect string, input subscriptionsync
 		sub.C(dbsubscription.FieldNamespace),
 		sub.C(dbsubscription.FieldCreatedAt),
 	).From(sub)
-	dbsubscription.DeletedAtLTE(input.AsOf)(query)
+	// Deleted subscriptions were scheduled for the future. Their gathering lines
+	// need cleanup before billing collects them, even if DeletedAt is ahead of
+	// this worker's clock; it is not a scheduled deletion time.
+	dbsubscription.DeletedAtNotNil()(query)
 	dbsubscription.Not(dbsubscription.HasSyncStateV2With(completed...))(query)
 	if len(input.Namespaces) > 0 {
 		dbsubscription.NamespaceIn(input.Namespaces...)(query)

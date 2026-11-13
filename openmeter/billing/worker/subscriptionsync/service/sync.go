@@ -144,7 +144,10 @@ func (s *Service) synchronizeSubscription(ctx context.Context, in synchronizeSub
 				return nil, err
 			}
 
-			subscriptionDeleted := subs.IsDeleted()
+			// Only subscriptions that have not started can be deleted. Remove their
+			// future gathering lines immediately so billing cannot collect them;
+			// a DeletedAt ahead of this worker's clock must not delay cleanup.
+			subscriptionDeleted := subs.DeletedAt != nil
 			var subsView *subscription.SubscriptionView
 			if !subscriptionDeleted {
 				view, err := s.subscriptionService.GetView(ctx, subscriptionID)

@@ -144,7 +144,13 @@ changes. A deleted subscription has no view and
 therefore produces an empty target, asking reconciliation to remove its remaining
 owned artifacts subject to immutable-invoice rules. Cleanup must
 load the deleted subscription record separately because the normal subscription
-view lookup excludes deleted records.
+view lookup excludes deleted records. For reconciliation, any non-nil `DeletedAt`
+means cleanup is needed immediately, including timestamps ahead of the worker
+clock. Only subscriptions that have not started can be deleted, but sync may
+already have generated their future gathering lines. Billing collection can pick
+up those lines while deletion cleanup is pending, so cleanup must not wait for
+`ActiveFrom` or `DeletedAt` to pass. Subscription deletion has no supported
+delayed-delete operation.
 
 Sync state is written only after the plan has been applied. `HasBillables`
 prevents needless future scheduling; `NextSyncAfter` is the end of the
@@ -159,7 +165,8 @@ has been recorded. Successful deleted-subscription syncs write this result in
 the same transaction as billing cleanup, even when there are no artifacts left.
 Dry runs and failed syncs do not record completion.
 
-The periodic reconciler queries deleted subscriptions whose v2 result is not
+The regular periodic list requires `DeletedAt` to be nil. A separate cleanup
+query selects all subscriptions with non-nil `DeletedAt` whose v2 result is not
 `subscription_deleted`. This query has no service-period or deletion lookback:
 a missed deletion remains eligible until cleanup succeeds. Legacy `HasBillables`
 and `NextSyncAfter` do not suppress these candidates; they only schedule non-deleted

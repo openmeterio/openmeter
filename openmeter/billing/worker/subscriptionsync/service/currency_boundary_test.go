@@ -14,49 +14,67 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func TestDeletedSubscriptionReconcilesBillingArtifacts(t *testing.T) {
-	// given:
-	// - a deleted subscription whose billing artifacts still need cleanup
-	// when:
-	// - subscription sync reloads the deleted subscription by ID
-	// then:
-	// - it plans an empty target and records that no future billables remain
-	deletedAt := time.Now()
-	view := subscription.SubscriptionView{Subscription: subscription.Subscription{
-		NamespacedID:    models.NamespacedID{Namespace: "namespace", ID: "subscription-id"},
-		ManagedModel:    models.ManagedModel{DeletedAt: &deletedAt},
-		CustomerId:      "customer-id",
-		InvoiceCurrency: currencyx.Code("USD"),
-	}}
-
-	billingService := &billingServiceSpy{}
-	syncAdapter := &subscriptionSyncAdapterSpy{}
-	reconciler := &syncReconcilerSpy{}
-	service := &Service{
-		billingService:          billingService,
-		reconciler:              reconciler,
-		subscriptionService:     &subscriptionServiceSpy{view: view},
-		subscriptionSyncAdapter: syncAdapter,
-		logger:                  testutils.NewDiscardLogger(t),
-		tracer:                  noop.NewTracerProvider().Tracer("test"),
+	now := time.Date(2026, 11, 13, 12, 0, 0, 0, time.UTC)
+	clock.FreezeTime(now)
+	defer clock.UnFreeze()
+	tests := []struct {
+		name   string
+		offset time.Duration
+	}{
+		{name: "past deletion", offset: -time.Hour},
+		{name: "deletion at worker time"},
+		{name: "deletion ahead of worker clock", offset: 2 * time.Second},
 	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			// given:
+			// - a deleted subscription whose billing artifacts still need cleanup
+			// when:
+			// - subscription sync reloads the deleted subscription by ID
+			// then:
+			// - it plans an empty target and records that no future billables remain
+			deletedAt := now.Add(tc.offset)
+			view := subscription.SubscriptionView{Subscription: subscription.Subscription{
+				NamespacedID:    models.NamespacedID{Namespace: "namespace", ID: "subscription-id"},
+				ManagedModel:    models.ManagedModel{DeletedAt: &deletedAt},
+				CustomerId:      "customer-id",
+				InvoiceCurrency: currencyx.Code("USD"),
+			}}
 
-	err := service.SyncByID(t.Context(), view.Subscription.NamespacedID, time.Now(), subscriptionsync.WithInvoicePendingLines())
+			subscriptionService := &subscriptionServiceSpy{view: view}
+			billingService := &billingServiceSpy{}
+			syncAdapter := &subscriptionSyncAdapterSpy{}
+			reconciler := &syncReconcilerSpy{}
+			service := &Service{
+				billingService:          billingService,
+				reconciler:              reconciler,
+				subscriptionService:     subscriptionService,
+				subscriptionSyncAdapter: syncAdapter,
+				logger:                  testutils.NewDiscardLogger(t),
+				tracer:                  noop.NewTracerProvider().Tracer("test"),
+			}
 
-	require.NoError(t, err)
-	require.True(t, billingService.withLockCalled)
-	require.Zero(t, billingService.invoicePendingLinesCalls)
-	require.True(t, reconciler.planCalled)
-	require.Empty(t, reconciler.planInput.Target.Items)
-	require.Len(t, syncAdapter.upsertsV2, 1)
-	require.Equal(t, view.Subscription.NamespacedID, syncAdapter.upsertsV2[0].SubscriptionID)
-	require.Equal(t, subscriptionsync.SyncStateV2StateSubscriptionDeleted, syncAdapter.upsertsV2[0].LastSuccessState)
-	require.Len(t, syncAdapter.upserts, 1)
-	require.False(t, syncAdapter.upserts[0].HasBillables)
+			err := service.SyncByID(t.Context(), view.Subscription.NamespacedID, now, subscriptionsync.WithInvoicePendingLines())
+
+			require.NoError(t, err)
+			require.Zero(t, subscriptionService.getViewCalls)
+			require.True(t, billingService.withLockCalled)
+			require.Zero(t, billingService.invoicePendingLinesCalls)
+			require.True(t, reconciler.planCalled)
+			require.Empty(t, reconciler.planInput.Target.Items)
+			require.Len(t, syncAdapter.upsertsV2, 1)
+			require.Equal(t, view.Subscription.NamespacedID, syncAdapter.upsertsV2[0].SubscriptionID)
+			require.Equal(t, subscriptionsync.SyncStateV2StateSubscriptionDeleted, syncAdapter.upsertsV2[0].LastSuccessState)
+			require.Len(t, syncAdapter.upserts, 1)
+			require.False(t, syncAdapter.upserts[0].HasBillables)
+		})
+	}
 }
 
 func TestSyncReloadsDeletionAfterBillingLock(t *testing.T) {

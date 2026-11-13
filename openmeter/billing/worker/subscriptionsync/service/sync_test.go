@@ -175,7 +175,6 @@ func (s *SubscriptionHandlerTestSuite) TestDeletedSubscriptionCleanupRollback() 
 	s.Empty(states)
 	candidates, err := s.Service.ListDeletedSubscriptionsToReconcile(ctx, subscriptionsync.ListDeletedSubscriptionsToReconcileInput{
 		Namespaces: []string{s.Namespace},
-		AsOf:       now,
 		Limit:      10,
 	})
 	s.Require().NoError(err)
@@ -207,7 +206,6 @@ func (s *SubscriptionHandlerTestSuite) TestDeletedSubscriptionCleanupRecordsSucc
 	}, states[0].SyncStateV2)
 	candidates, err := s.Service.ListDeletedSubscriptionsToReconcile(ctx, subscriptionsync.ListDeletedSubscriptionsToReconcileInput{
 		Namespaces: []string{s.Namespace},
-		AsOf:       now,
 		Limit:      10,
 	})
 	s.Require().NoError(err)
@@ -254,6 +252,121 @@ func (s *SubscriptionHandlerTestSuite) TestDeletedSubscriptionCleanupWithLegacyS
 
 	// then: cleanup runs despite the legacy flag and the subscription is no longer listed
 	s.expectNoGatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+	pending, err = periodic.ListSubscriptions(ctx, listInput)
+	s.Require().NoError(err)
+	s.Empty(pending)
+}
+
+func (s *SubscriptionHandlerTestSuite) TestPeriodicListKeepsActiveAndCanceledSubscriptions() {
+	ctx := s.T().Context()
+	createdAt := s.mustParseTime("2024-01-01T00:00:00Z")
+	clock.FreezeTime(createdAt)
+	defer clock.UnFreeze()
+
+	// given: a non-deleted subscription whose service period overlaps the lookback
+	subscriptionID, _ := s.createScheduledSubscriptionWithBillingLines()
+	now := createdAt.Add(25 * time.Hour)
+	clock.FreezeTime(now)
+	defer clock.UnFreeze()
+	periodic, err := periodicreconciler.NewReconciler(periodicreconciler.ReconcilerConfig{
+		SubscriptionSync:    s.Service,
+		SubscriptionService: s.SubscriptionService,
+		CustomerService:     s.CustomerService,
+		Logger:              s.Service.logger,
+	})
+	s.Require().NoError(err)
+	listInput := periodicreconciler.ReconcilerListSubscriptionsInput{
+		Namespaces: []string{s.Namespace},
+		Lookback:   24 * time.Hour,
+	}
+
+	// when/then: active subscriptions remain in the regular list with legacy state
+	pending, err := periodic.ListSubscriptions(ctx, listInput)
+	s.Require().NoError(err)
+	s.Require().Len(pending, 1)
+	s.Equal(subscriptionID, pending[0].Subscription.NamespacedID)
+	s.NotNil(pending[0].SyncState)
+	s.Nil(pending[0].Subscription.DeletedAt)
+
+	// when: that subscription is canceled, rather than deleted
+	canceled, err := s.SubscriptionService.Cancel(ctx, subscriptionID, subscription.Timing{
+		Enum: lo.ToPtr(subscription.TimingNextBillingCycle),
+	})
+	s.Require().NoError(err)
+	s.Require().NotNil(canceled.ActiveTo)
+	clock.FreezeTime(canceled.ActiveTo.Add(time.Hour))
+	defer clock.UnFreeze()
+	pending, err = periodic.ListSubscriptions(ctx, listInput)
+	s.Require().NoError(err)
+
+	// then: the regular list still includes its final billing work
+	s.Require().Len(pending, 1)
+	s.Equal(subscriptionID, pending[0].Subscription.NamespacedID)
+	s.NotNil(pending[0].SyncState)
+	s.Nil(pending[0].Subscription.DeletedAt)
+	s.Require().NotNil(pending[0].ActiveTo)
+	s.Equal(*canceled.ActiveTo, *pending[0].ActiveTo)
+}
+
+func (s *SubscriptionHandlerTestSuite) TestDeletedSubscriptionCleanupAheadOfWorkerClock() {
+	ctx := s.T().Context()
+	createdAt := s.mustParseTime("2024-01-01T00:00:00Z")
+	clock.FreezeTime(createdAt)
+	defer clock.UnFreeze()
+
+	// given: a subscription deleted while scheduled still has generated gathering lines
+	subscriptionID, _ := s.createScheduledSubscriptionWithBillingLines()
+	s.Require().NoError(s.SubscriptionService.Delete(ctx, subscriptionID))
+	// Exercise an existing record whose service period overlaps the regular list,
+	// but whose deletion timestamp is ahead of the worker clock. The API has no
+	// delayed-delete operation, so seed that timestamp directly.
+	now := createdAt.Add(25 * time.Hour)
+	deletedAt := now.Add(2 * time.Second)
+	s.Require().NoError(s.DBClient.Subscription.UpdateOneID(subscriptionID.ID).SetDeletedAt(deletedAt).Exec(ctx))
+	clock.FreezeTime(now)
+	defer clock.UnFreeze()
+	periodic, err := periodicreconciler.NewReconciler(periodicreconciler.ReconcilerConfig{
+		SubscriptionSync:    s.Service,
+		SubscriptionService: s.SubscriptionService,
+		CustomerService:     s.CustomerService,
+		Logger:              s.Service.logger,
+	})
+	s.Require().NoError(err)
+	listInput := periodicreconciler.ReconcilerListSubscriptionsInput{
+		Namespaces: []string{s.Namespace},
+		Lookback:   24 * time.Hour,
+	}
+
+	// when: periodic reconciliation lists work before the deletion timestamp
+	pending, err := periodic.ListSubscriptions(ctx, listInput)
+	s.Require().NoError(err)
+
+	// then: only the cleanup query selects it, and legacy scheduling cannot suppress it
+	s.Require().Len(pending, 1)
+	s.Equal(subscriptionID, pending[0].Subscription.NamespacedID)
+	s.Nil(pending[0].SyncState)
+	s.Nil(pending[0].SyncStateV2)
+	s.True(pending[0].ShouldReconcile(now))
+	s.Require().NoError(periodic.All(ctx, periodicreconciler.ReconcilerAllInput{
+		ReconcilerListSubscriptionsInput: listInput,
+	}))
+	s.expectNoGatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+	states, err := s.Adapter.GetSyncStatesV2(ctx, subscriptionsync.GetSyncStatesV2Input{subscriptionID})
+	s.Require().NoError(err)
+	s.Require().Len(states, 1)
+	s.Equal(subscriptionsync.SyncStateV2{
+		SubscriptionID:   subscriptionID,
+		LastSuccessState: subscriptionsync.SyncStateV2StateSubscriptionDeleted,
+		LastSuccessAt:    now,
+	}, states[0].SyncStateV2)
+	// Completion excludes it from both lists even while DeletedAt is still in the future.
+	pending, err = periodic.ListSubscriptions(ctx, listInput)
+	s.Require().NoError(err)
+	s.Empty(pending)
+
+	// A later poll must not requeue it when the worker clock passes DeletedAt either.
+	clock.FreezeTime(deletedAt.Add(time.Second))
+	defer clock.UnFreeze()
 	pending, err = periodic.ListSubscriptions(ctx, listInput)
 	s.Require().NoError(err)
 	s.Empty(pending)

@@ -152,22 +152,41 @@ func TestSubscriptionWithSyncStateShouldReconcile(t *testing.T) {
 			want: true,
 		},
 		{
-			name: "future deletion does not require cleanup yet",
-			// The subscription is deleted in the future and has no pending billing work.
+			name:      "future deletion without any sync state",
 			deletedAt: &future,
-			state:     &subscriptionsync.SyncState{},
-			want:      false,
+			want:      true,
 		},
 		{
-			name:      "future deletion still follows billing deadline",
+			name:      "future deletion ignores a future billing deadline",
+			deletedAt: &future,
+			state:     &subscriptionsync.SyncState{HasBillables: true, NextSyncAfter: &future},
+			want:      true,
+		},
+		{
+			name:      "future deletion with another v2 result",
+			deletedAt: &future,
+			stateV2: &subscriptionsync.SyncStateV2Managed{
+				SyncStateV2: subscriptionsync.SyncStateV2{LastSuccessState: "active"},
+			},
+			want: true,
+		},
+		{
+			name: "future deletion requires cleanup despite legacy no billables",
+			// Deletion is immediate even when its timestamp is ahead of the worker clock.
+			deletedAt: &future,
+			state:     &subscriptionsync.SyncState{},
+			want:      true,
+		},
+		{
+			name:      "future deletion with completed cleanup ignores due billing",
 			deletedAt: &future,
 			state: &subscriptionsync.SyncState{
 				HasBillables:  true,
 				NextSyncAfter: &past,
 			},
 			stateV2: completedDeletion,
-			// V2 deletion results only suppress sync once the subscription is deleted.
-			want: true,
+			// Cleanup already removed the future gathering lines; do not schedule them again.
+			want: false,
 		},
 	}
 	for _, tc := range tests {
@@ -224,7 +243,7 @@ func TestMapToSubscriptionWithSyncStateIncludesV2(t *testing.T) {
 		{NamespacedID: activeID},
 		{
 			NamespacedID: deletedID,
-			ManagedModel: models.ManagedModel{DeletedAt: lo.ToPtr(now.Add(-time.Hour))},
+			ManagedModel: models.ManagedModel{DeletedAt: lo.ToPtr(now.Add(2 * time.Second))},
 		},
 		{NamespacedID: missingID},
 	})

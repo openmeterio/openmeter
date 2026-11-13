@@ -52,7 +52,6 @@ FROM generate_series(1, 200000) AS i`)
 
 	adapter, err := syncadapter.New(syncadapter.Config{Client: testDB.EntDriver.Client()})
 	require.NoError(b, err)
-	now := time.Date(2026, 11, 13, 0, 0, 0, 0, time.UTC)
 	createdAt := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
 
 	for _, completion := range []struct {
@@ -107,7 +106,6 @@ WHERE position <= 160000 * $1 / 1000`, completion.completed)
 			} {
 				b.Run(selection.name, func(b *testing.B) {
 					input := subscriptionsync.ListDeletedSubscriptionsToReconcileInput{
-						AsOf:       now,
 						Namespaces: selection.namespaces,
 						Customers:  selection.customers,
 						Cursor:     selection.cursor,

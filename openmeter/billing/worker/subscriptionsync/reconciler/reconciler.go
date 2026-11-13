@@ -98,8 +98,10 @@ type SubscriptionWithSyncState struct {
 // ShouldReconcile decides whether periodic subscription sync has work to do.
 // Deleted subscriptions need a v2 cleanup result; legacy no-billables state
 // cannot establish that their billing artifacts were reconciled after deletion.
+// DeletedAt is an immediate cleanup marker, not a schedule: future gathering
+// lines must be removed before billing can collect them.
 func (s SubscriptionWithSyncState) ShouldReconcile(now time.Time) bool {
-	if s.Subscription.IsDeletedAt(now) {
+	if s.Subscription.DeletedAt != nil {
 		if s.SyncStateV2 == nil {
 			return true
 		}
@@ -145,6 +147,9 @@ func (r *Reconciler) ListSubscriptions(ctx context.Context, in ReconcilerListSub
 		subscriptions, err := r.subscriptionService.List(ctx, subscription.ListSubscriptionsInput{
 			Namespaces: in.Namespaces,
 			CustomerID: customerID,
+			// Deleted roots belong exclusively to the cleanup query, even when their
+			// deletion timestamp is ahead of this worker's clock.
+			DeletedAt: &filter.FilterTime{Exists: lo.ToPtr(false)},
 			ActiveInPeriod: &timeutil.StartBoundedPeriod{
 				From: clock.Now().Add(-in.Lookback),
 				To:   lo.ToPtr(clock.Now()),
@@ -175,7 +180,6 @@ func (r *Reconciler) ListSubscriptions(ctx context.Context, in ReconcilerListSub
 	deletedInput := subscriptionsync.ListDeletedSubscriptionsToReconcileInput{
 		Namespaces: in.Namespaces,
 		Customers:  in.Customers,
-		AsOf:       clock.Now(),
 		Limit:      defaultWindowSize,
 	}
 	for {
@@ -227,7 +231,7 @@ func (r *Reconciler) mapToSubscriptionWithSyncState(ctx context.Context, subs []
 		return item.NamespacedID
 	})
 	legacyIDs := lo.FilterMap(subs, func(item subscription.Subscription, _ int) (models.NamespacedID, bool) {
-		return item.NamespacedID, !item.IsDeleted()
+		return item.NamespacedID, item.DeletedAt == nil
 	})
 
 	var syncStates []subscriptionsync.SyncState
