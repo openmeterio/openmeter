@@ -15,7 +15,7 @@ func TestCloudAliasRejectsSharedOnlyJSONMethod(t *testing.T) {
 	client, err := declarations("client.go", []byte(model))
 	require.NoError(t, err)
 
-	_, _, err = mergeModels(server, client)
+	_, _, err = mergeV1CloudModels(server, client)
 	require.ErrorContains(t, err, "Invoice differs from shared models")
 }
 
@@ -37,7 +37,7 @@ const NewAuthScopes newAuthContextKey = "NewAuth.Scopes"
 `))
 	require.NoError(t, err)
 
-	extra, client, err := mergeModels(server, cloud)
+	extra, client, err := mergeV1CloudModels(server, cloud)
 	require.NoError(t, err)
 	require.Contains(t, string(extra), `"time"`)
 	require.Contains(t, string(extra), "type CloudOnly struct")
@@ -45,7 +45,7 @@ const NewAuthScopes newAuthContextKey = "NewAuth.Scopes"
 	require.NotContains(t, string(extra), "type Shared ")
 	require.NotContains(t, string(extra), "NewAuthScopes")
 
-	pub, err := aliases("openmeter", legacyModelsImport, client)
+	pub, err := v1Client.aliases(client)
 	require.NoError(t, err)
 	for _, name := range []string{"Shared", "ServerOnly", "State", "CloudOnly"} {
 		require.Contains(t, string(pub), "type "+name+" = models."+name)
@@ -54,7 +54,7 @@ const NewAuthScopes newAuthContextKey = "NewAuth.Scopes"
 	require.Contains(t, string(pub), "const Ready = models.Ready")
 	require.Contains(t, string(pub), `const NewAuthScopes newAuthContextKey = "NewAuth.Scopes"`)
 
-	pub, err = aliases("api", legacyModelsImport, server)
+	pub, err = v1Server.aliases(server)
 	require.NoError(t, err)
 	require.NotContains(t, string(pub), "CloudOnly")
 }
