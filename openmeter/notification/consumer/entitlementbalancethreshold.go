@@ -14,7 +14,7 @@ import (
 	"github.com/samber/lo"
 	"github.com/zeebo/xxh3"
 
-	"github.com/openmeterio/openmeter/api"
+	apimodels "github.com/openmeterio/openmeter/api/models"
 	customerhttphandler "github.com/openmeterio/openmeter/openmeter/customer/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	entitlementdriver "github.com/openmeterio/openmeter/openmeter/entitlement/driver"
@@ -215,7 +215,7 @@ func (b *EntitlementSnapshotHandler) createEvent(ctx context.Context, in createB
 		Entitlement: *entitlementAPIEntity,
 		Feature:     featureResp,
 		Subject:     subjecthttphandler.FromSubject(in.Snapshot.Subject),
-		Value:       api.EntitlementValue(*in.Snapshot.Value),
+		Value:       apimodels.EntitlementValue(*in.Snapshot.Value),
 	}
 
 	// TODO(OM-1508): As we're reusing the same event version, we need to add this temporary check
@@ -282,11 +282,11 @@ const (
 
 func thresholdKindFromThreshold(t notification.BalanceThreshold) (ThresholdKind, error) {
 	switch t.Type {
-	case api.NotificationRuleBalanceThresholdValueTypeBalanceValue:
+	case apimodels.NotificationRuleBalanceThresholdValueTypeBalanceValue:
 		return ThresholdKindBalanceThreshold, nil
-	case api.NotificationRuleBalanceThresholdValueTypePercent, api.NotificationRuleBalanceThresholdValueTypeNumber:
+	case apimodels.NotificationRuleBalanceThresholdValueTypePercent, apimodels.NotificationRuleBalanceThresholdValueTypeNumber:
 		fallthrough
-	case api.NotificationRuleBalanceThresholdValueTypeUsagePercentage, api.NotificationRuleBalanceThresholdValueTypeUsageValue:
+	case apimodels.NotificationRuleBalanceThresholdValueTypeUsagePercentage, apimodels.NotificationRuleBalanceThresholdValueTypeUsageValue:
 		return ThresholdKindUsageThreshold, nil
 	default:
 		return "", fmt.Errorf("unknown threshold type: %s", t.Type)
@@ -395,7 +395,7 @@ type numericThreshold struct {
 
 const absoluteZero = 1e-9
 
-func getNumericThreshold(threshold notification.BalanceThreshold, value api.EntitlementValue) (*numericThreshold, error) {
+func getNumericThreshold(threshold notification.BalanceThreshold, value apimodels.EntitlementValue) (*numericThreshold, error) {
 	var (
 		balance     = lo.FromPtr(value.Balance)
 		usage       = lo.FromPtr(value.Usage)
@@ -414,15 +414,15 @@ func getNumericThreshold(threshold notification.BalanceThreshold, value api.Enti
 	}
 
 	switch threshold.Type {
-	// Deprecated: obsoleted by api.NotificationRuleBalanceThresholdValueTypeUsageValue
-	case api.NotificationRuleBalanceThresholdValueTypeUsageValue, api.NotificationRuleBalanceThresholdValueTypeNumber:
+	// Deprecated: obsoleted by apimodels.NotificationRuleBalanceThresholdValueTypeUsageValue
+	case apimodels.NotificationRuleBalanceThresholdValueTypeUsageValue, apimodels.NotificationRuleBalanceThresholdValueTypeNumber:
 		return &numericThreshold{
 			BalanceThreshold: threshold,
 			ThresholdValue:   threshold.Value,
 			Active:           threshold.Value < usage,
 		}, nil
-	// Deprecated: obsoleted by api.NotificationRuleBalanceThresholdValueTypeUsagePercentage
-	case api.NotificationRuleBalanceThresholdValueTypeUsagePercentage, api.NotificationRuleBalanceThresholdValueTypePercent:
+	// Deprecated: obsoleted by apimodels.NotificationRuleBalanceThresholdValueTypeUsagePercentage
+	case apimodels.NotificationRuleBalanceThresholdValueTypeUsagePercentage, apimodels.NotificationRuleBalanceThresholdValueTypePercent:
 		thresholdValue := totalGrants * (threshold.Value / 100)
 
 		return &numericThreshold{
@@ -430,7 +430,7 @@ func getNumericThreshold(threshold notification.BalanceThreshold, value api.Enti
 			ThresholdValue:   thresholdValue,
 			Active:           thresholdValue < usage,
 		}, nil
-	case api.NotificationRuleBalanceThresholdValueTypeBalanceValue:
+	case apimodels.NotificationRuleBalanceThresholdValueTypeBalanceValue:
 		active := threshold.Value > balance
 
 		if threshold.Value == 0 {
@@ -471,7 +471,7 @@ func getActiveThresholdsWithHighestPriority(thresholds []notification.BalanceThr
 	)
 
 	for _, threshold := range thresholds {
-		numThreshold, err := getNumericThreshold(threshold, api.EntitlementValue(value))
+		numThreshold, err := getNumericThreshold(threshold, apimodels.EntitlementValue(value))
 		if err != nil {
 			if errors.Is(err, ErrNoBalanceAvailable) {
 				continue
@@ -486,27 +486,27 @@ func getActiveThresholdsWithHighestPriority(thresholds []notification.BalanceThr
 		}
 
 		switch numThreshold.BalanceThreshold.Type {
-		case api.NotificationRuleBalanceThresholdValueTypeBalanceValue:
+		case apimodels.NotificationRuleBalanceThresholdValueTypeBalanceValue:
 			if balance == nil {
 				balance = numThreshold
 			} else if balance.ThresholdValue > numThreshold.ThresholdValue {
 				balance = numThreshold
 			}
 
-		// Deprecated: obsoleted by api.NotificationRuleBalanceThresholdValueTypeUsagePercentage
-		case api.NotificationRuleBalanceThresholdValueTypePercent:
+		// Deprecated: obsoleted by apimodels.NotificationRuleBalanceThresholdValueTypeUsagePercentage
+		case apimodels.NotificationRuleBalanceThresholdValueTypePercent:
 			fallthrough
-		case api.NotificationRuleBalanceThresholdValueTypeUsagePercentage:
+		case apimodels.NotificationRuleBalanceThresholdValueTypeUsagePercentage:
 			if usage == nil {
 				usage = numThreshold
 			} else if usage.ThresholdValue <= numThreshold.ThresholdValue {
 				usage = numThreshold
 			}
 
-		// Deprecated: obsoleted by api.NotificationRuleBalanceThresholdValueTypeUsageValue
-		case api.NotificationRuleBalanceThresholdValueTypeNumber:
+		// Deprecated: obsoleted by apimodels.NotificationRuleBalanceThresholdValueTypeUsageValue
+		case apimodels.NotificationRuleBalanceThresholdValueTypeNumber:
 			fallthrough
-		case api.NotificationRuleBalanceThresholdValueTypeUsageValue:
+		case apimodels.NotificationRuleBalanceThresholdValueTypeUsageValue:
 			if usage == nil {
 				usage = numThreshold
 			} else if usage.ThresholdValue < numThreshold.ThresholdValue {

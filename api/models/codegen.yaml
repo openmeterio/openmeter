@@ -1,0 +1,8 @@
+package: models
+generate:
+  models: true
+compatibility:
+  disable-required-readonly-as-pointer: true
+  always-prefix-enum-values: true
+output-options:
+  skip-prune: true

@@ -3,15 +3,17 @@
 
 package api
 
+import models "github.com/openmeterio/openmeter/api/models"
+
 func init() {
-	FromBillingDiscountPercentageToDiscountPercentage = func(source BillingDiscountPercentage) DiscountPercentage {
-		var apiDiscountPercentage DiscountPercentage
-		apiDiscountPercentage.Percentage = source.Percentage
-		return apiDiscountPercentage
+	FromBillingDiscountPercentageToDiscountPercentage = func(source models.BillingDiscountPercentage) models.DiscountPercentage {
+		var modelsDiscountPercentage models.DiscountPercentage
+		modelsDiscountPercentage.Percentage = source.Percentage
+		return modelsDiscountPercentage
 	}
-	FromBillingDiscountUsageToDiscountUsage = func(source BillingDiscountUsage) DiscountUsage {
-		var apiDiscountUsage DiscountUsage
-		apiDiscountUsage.Quantity = source.Quantity
-		return apiDiscountUsage
+	FromBillingDiscountUsageToDiscountUsage = func(source models.BillingDiscountUsage) models.DiscountUsage {
+		var modelsDiscountUsage models.DiscountUsage
+		modelsDiscountUsage.Quantity = source.Quantity
+		return modelsDiscountUsage
 	}
 }

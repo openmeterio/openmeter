@@ -9,7 +9,7 @@ import (
 	"github.com/samber/lo"
 	"github.com/samber/mo"
 
-	"github.com/openmeterio/openmeter/api"
+	apimodels "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/expand"
@@ -322,7 +322,7 @@ type ListInvoicesInput struct {
 
 	Expand InvoiceExpands
 
-	OrderBy api.InvoiceOrderBy
+	OrderBy apimodels.InvoiceOrderBy
 	Order   sortx.Order
 }
 
@@ -395,7 +395,7 @@ type ListInvoicesAdapterInput struct {
 
 	Expand InvoiceExpands
 
-	OrderBy api.InvoiceOrderBy
+	OrderBy apimodels.InvoiceOrderBy
 	Order   sortx.Order
 
 	// OnlyStandard is used to filter for only standard invoices
