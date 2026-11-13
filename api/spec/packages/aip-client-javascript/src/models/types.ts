@@ -818,16 +818,6 @@ export interface PagePaginationQuery {
 export type PublicLabels = Record<string, string>
 
 /**
- * App reference
- *
- * Can be used as a short reference to an app if the full app object is not needed.
- */
-export interface NotificationEventV1AppReference {
-  /** The ID of the app. */
-  id: string
-}
-
-/**
  * The system account access token is meant for automations and integrations that
  * are not directly associated with a human identity.
  */

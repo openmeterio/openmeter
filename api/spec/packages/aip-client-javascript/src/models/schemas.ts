@@ -2239,18 +2239,6 @@ export const subscriptionEditOperationType = z
     'The type of a subscription edit operation. - `add_item`: Add a rate card to a phase. - `remove_item`: Remove a rate card from a phase. - `add_phase`: Add a new phase to the subscription. - `remove_phase`: Remove a phase from the subscription. - `stretch_phase`: Extend the duration of a phase. - `unschedule_edit`: Discard scheduled edits on the current phase.',
   )
 
-export const notificationEventV1AppReference = z
-  .object({
-    id: z
-      .string()
-      .regex(new RegExp('^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'))
-      .describe('The ID of the app.'),
-  })
-
-  .describe(
-    'App reference Can be used as a short reference to an app if the full app object is not needed.',
-  )
-
 export const systemAccountAccessToken = z
   .object({
     type: z.literal('http').describe('Http authentication'),
@@ -14289,18 +14277,6 @@ export const subscriptionEditOperationTypeWire = z
 
   .describe(
     'The type of a subscription edit operation. - `add_item`: Add a rate card to a phase. - `remove_item`: Remove a rate card from a phase. - `add_phase`: Add a new phase to the subscription. - `remove_phase`: Remove a phase from the subscription. - `stretch_phase`: Extend the duration of a phase. - `unschedule_edit`: Discard scheduled edits on the current phase.',
-  )
-
-export const notificationEventV1AppReferenceWire = z
-  .strictObject({
-    id: z
-      .string()
-      .regex(new RegExp('^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'))
-      .describe('The ID of the app.'),
-  })
-
-  .describe(
-    'App reference Can be used as a short reference to an app if the full app object is not needed.',
   )
 
 export const systemAccountAccessTokenWire = z
