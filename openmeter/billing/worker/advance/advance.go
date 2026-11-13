@@ -14,7 +14,8 @@ import (
 )
 
 type AutoAdvancer struct {
-	invoice billing.Service
+	invoice    billing.Service
+	minimumAge time.Duration
 
 	logger *slog.Logger
 }
@@ -81,6 +82,7 @@ func (a *AutoAdvancer) ListInvoicesToAdvance(ctx context.Context, namespaces []s
 		Namespaces: namespaces,
 		IDs:        ids,
 		AsOf:       time.Now(),
+		MinimumAge: a.minimumAge,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to list invoices pending advancement: %w", err)
@@ -126,6 +128,9 @@ func (a *AutoAdvancer) AdvanceInvoice(ctx context.Context, id billing.InvoiceID)
 type Config struct {
 	BillingService billing.Service
 	Logger         *slog.Logger
+	// MinimumAge excludes candidates that became eligible for advancement more
+	// recently than this, leaving room for in-flight asynchronous advance events.
+	MinimumAge time.Duration
 }
 
 func NewAdvancer(config Config) (*AutoAdvancer, error) {
@@ -137,8 +142,13 @@ func NewAdvancer(config Config) (*AutoAdvancer, error) {
 		return nil, fmt.Errorf("logger is required")
 	}
 
+	if config.MinimumAge < 0 {
+		return nil, fmt.Errorf("minimum age cannot be negative")
+	}
+
 	return &AutoAdvancer{
-		invoice: config.BillingService,
-		logger:  config.Logger,
+		invoice:    config.BillingService,
+		minimumAge: config.MinimumAge,
+		logger:     config.Logger,
 	}, nil
 }
