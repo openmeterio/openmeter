@@ -1,6 +1,7 @@
 import "@typespec/json-schema";
 import "@openmeter/typespec-notification-events";
 import "../../shared/index.tsp";
+import "../../invoices/invoice.tsp";
 
 using TypeSpec.JsonSchema;
 using NotificationCodegen;
@@ -13,8 +14,10 @@ namespace Billing.NotificationEvents;
 /**
  * Payload of `v1.billing.invoice.created`.
  *
- * The payload identifies the invoice and carries its state at creation time;
- * consumers fetch the full invoice through the API when they need it.
+ * The invoice has the same shape as the v3 invoice API returns. A change to
+ * that API changes this contract, so definitions.sum fails until the change is
+ * either accepted as a new Event type version or this payload is frozen into
+ * dedicated models.
  */
 @jsonSchema
 @id("v1.billing.invoice.created.payload")
@@ -22,27 +25,23 @@ namespace Billing.NotificationEvents;
 @friendlyName("BillingInvoiceCreatedV1Payload")
 model InvoiceCreatedV1Payload {
   /**
-   * Invoice that was created.
+   * The invoice as it was created.
    */
-  invoice_id: Shared.ULID;
+  invoice: Invoices.InvoiceStandard;
+}
 
+/**
+ * Payload of `v1.billing.invoice.updated`.
+ *
+ * Shares the v3 invoice shape with `v1.billing.invoice.created`.
+ */
+@jsonSchema
+@id("v1.billing.invoice.updated.payload")
+@eventType("v1.billing.invoice.updated")
+@friendlyName("BillingInvoiceUpdatedV1Payload")
+model InvoiceUpdatedV1Payload {
   /**
-   * Customer the invoice belongs to.
+   * The invoice after the update.
    */
-  customer_id: Shared.ULID;
-
-  /**
-   * Invoice status at creation time.
-   */
-  status: string;
-
-  /**
-   * Invoice currency.
-   */
-  currency: Shared.CurrencyCode;
-
-  /**
-   * Invoice total at creation time.
-   */
-  total: Shared.Numeric;
+  invoice: Invoices.InvoiceStandard;
 }

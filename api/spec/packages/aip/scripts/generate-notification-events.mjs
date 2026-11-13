@@ -63,6 +63,23 @@ for (const entry of manifest.packages) {
     },
   )
 
+  // Shared models such as Common.Labels point at Konnect definitions through
+  // @useRef, with paths relative to the v3 output directory. Rewrite them to
+  // this document's location and bundle, so the committed spec is
+  // self-contained like api/v3/openapi.yaml.
+  const specFile = join(openapiDir, 'openapi.yaml')
+  writeFileSync(
+    specFile,
+    readFileSync(specFile, 'utf8').replaceAll(
+      '../../../../common/definitions/',
+      `${relative(openapiDir, join(pkgRoot, 'common/definitions'))}/`,
+    ),
+  )
+  execFileSync('openapi', ['bundle', specFile, '-o', specFile], {
+    cwd: pkgRoot,
+    stdio: 'inherit',
+  })
+
   const goDir = join(repoRoot, entry.dir)
   mkdirSync(goDir, { recursive: true })
   mkdirSync(dirname(join(repoRoot, entry.spec)), { recursive: true })

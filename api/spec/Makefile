@@ -23,6 +23,8 @@ generate: ## Generate OpenAPI spec
 	@FILE="packages/aip/output/definitions/metering-and-billing/v3/openapi.MeteringAndBilling.yaml"; \
 	yq -i 'del(.. | select(has("x-go-type"))["x-go-type"], .. | select(has("x-go-type-import"))["x-go-type-import"])' "$$FILE"
 	pnpm --filter @openmeter/api-spec-aip exec openapi bundle output/definitions/metering-and-billing/v3/openapi.OpenMeter.yaml -o ../../../v3/openapi.yaml
+	# Notification event payloads alias the v3 models they reuse
+	node packages/aip/scripts/generate-notification-events-go-config.mjs
 	cp packages/legacy/output/openapi.OpenMeter.yaml ../openapi.yaml
 	cp packages/legacy/output/openapi.OpenMeterCloud.yaml ../openapi.cloud.yaml
 	cp packages/aip/output/definitions/metering-and-billing/v3/openapi.Test.yaml ../v3/test/openapi.test.yaml

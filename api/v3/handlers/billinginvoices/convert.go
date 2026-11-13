@@ -398,7 +398,7 @@ func mapRateCard(line *billing.StandardLine) (api.BillingInvoiceLineRateCard, er
 
 func mapDetailedLines(dls billing.DetailedLines) ([]api.BillingInvoiceDetailedLine, error) {
 	if len(dls) == 0 {
-		return lo.Empty[[]api.BillingInvoiceDetailedLine](), nil
+		return []api.BillingInvoiceDetailedLine{}, nil
 	}
 
 	return lo.MapErr(dls, func(dl billing.DetailedLine, _ int) (api.BillingInvoiceDetailedLine, error) {

@@ -40,14 +40,12 @@ export const $lib = createTypeSpecLibrary({
         'module-path': { type: 'string' },
         'eventtype-import-path': { type: 'string' },
         'definitions-import-path': { type: 'string' },
-        'oapi-codegen-config': { type: 'string' },
         'spec-dir': { type: 'string' },
       },
       required: [
         'module-path',
         'eventtype-import-path',
         'definitions-import-path',
-        'oapi-codegen-config',
         'spec-dir',
       ],
     },
@@ -165,7 +163,9 @@ export function $onValidate(program) {
 // Emits, under the emitter output directory:
 //   - <go package dir>/generate.gen.go for every @goPackage namespace, holding
 //     the go:generate directive that runs oapi-codegen on the package's
-//     events-only OpenAPI document with the shared configuration;
+//     events-only OpenAPI document with the package's oapi-codegen.gen.yaml,
+//     which scripts/generate-notification-events-go-config.mjs writes once
+//     the v3 OpenAPI document exists;
 //   - <go package dir>/events.gen.go for every package owning @eventType
 //     payloads: the Event type value, the embedded JSON Schemas and the
 //     Event type definition;
@@ -184,7 +184,6 @@ export async function $onEmit(context) {
   const eventTypeImportPath = context.options['eventtype-import-path']
   const eventTypePkg = eventTypeImportPath.split('/').pop()
   const definitionsImportPath = context.options['definitions-import-path']
-  const oapiCodegenConfig = context.options['oapi-codegen-config']
   const specDir = context.options['spec-dir']
 
   const eventsByNamespace = new Map()
@@ -226,7 +225,7 @@ export async function $onEmit(context) {
         ...header,
         [
           '//go:generate go tool github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen',
-          `-config ${posix.relative(dir, oapiCodegenConfig)}`,
+          '-config oapi-codegen.gen.yaml',
           `-package ${pkgName}`,
           '-o payloads.gen.go',
           posix.relative(dir, spec),
