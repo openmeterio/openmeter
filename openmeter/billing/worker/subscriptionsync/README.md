@@ -13,9 +13,10 @@ advance invoice and payment lifecycles.
 
 A sync is given a subscription ID and an `asOf` horizon. It reloads the current
 subscription view for non-deleted subscriptions, including when triggered by an
-event carrying an older view. It resolves deleted subscription records and the
-customer's billing profile before acquiring billing's customer lock. Under that
-lock it:
+event carrying an older view. It first identifies the customer, then acquires
+billing's customer lock and reloads the subscription and billing profile. Reading
+the view under this lock prevents a waiting sync from recreating billing artifacts
+after another sync completed deletion cleanup. Under that lock it:
 
 1. loads the persisted invoice-line and charge state owned by that subscription
 2. builds the target billable periods from the resolved subscription view
@@ -154,8 +155,55 @@ write artifacts or sync state.
 The separate v2 sync-state table stores the last successful reconciliation
 result and its completion time. Its first supported result is
 `subscription_deleted`; a missing row means no successful v2 reconciliation
-has been recorded. The adapter can write this result in the caller's
-transaction. The sync service and periodic reconciler do not use v2 state yet.
+has been recorded. Successful deleted-subscription syncs write this result in
+the same transaction as billing cleanup, even when there are no artifacts left.
+Dry runs and failed syncs do not record completion.
+
+The regular periodic list requires `DeletedAt` to be nil. A separate cleanup
+query selects all subscriptions with non-nil `DeletedAt` whose v2 result is not
+`subscription_deleted`. This query has no service-period or deletion lookback:
+a missed deletion remains eligible until cleanup succeeds. Legacy `HasBillables`
+and `NextSyncAfter` do not suppress these candidates; they only schedule non-deleted
+subscriptions. The list loads v2 state only for deleted subscriptions.
+`SubscriptionWithSyncState.ShouldReconcile(now)` checks v2 cleanup completion for
+deleted subscriptions and legacy billing deadlines for other subscriptions. It
+also catches cleanup completed between candidate selection and state loading.
+
+Forced periodic reconciliation bypasses billing deadlines, but still excludes
+deleted subscriptions with a successful v2 cleanup result. To put one back in
+the periodic cleanup queue, delete its `subscription_sync_states_v2` entry.
+
+## Race between billing collection and subscription deletion cleanup
+
+Only scheduled subscriptions can be deleted, but subscription sync may already
+have generated gathering lines for their future service periods. Deleting the
+subscription does not synchronously remove those lines. Billing collection can
+pick them up while subscription sync is still waiting to reconcile the deletion.
+Cleanup must therefore remove them as soon as it observes a deletion marker,
+without waiting for the subscription to start or for `DeletedAt` to pass.
+
+The subscription's inherited `IsDeleted()` and `IsDeletedAt(t)` accessors answer
+whether `DeletedAt` has passed at the supplied time. Subscription deletion writes
+the deleting process's current time; it has no supported delayed-delete operation.
+If that process's clock is ahead of the sync worker's clock, these accessors can
+still return false for a subscription whose deletion has already committed.
+**Subscription reconciliation intentionally uses `DeletedAt != nil` instead.**
+Do not replace this check with the timestamp-based accessors.
+
+For example, with `DeletedAt = worker now + 2 seconds`, using `IsDeleted()` would
+let sync load the subscription view and preserve or generate gathering lines
+instead of removing them. Billing collection could then invoice those lines.
+The regular candidate list must exclude this subscription, the cleanup query
+must include it immediately, and sync must use an empty target and skip pending-line
+invoicing. All three decisions must use the same non-nil deletion check. The
+[future-timestamp cleanup regression test](service/sync_test.go) verifies that
+cleanup runs before `DeletedAt` and that completion removes the subscription
+from subsequent polls.
+
+Sync reloads the subscription after acquiring the customer billing lock so a
+waiting sync cannot recreate lines from a view read before deletion cleanup.
+Cleanup and its v2 completion record share that transaction. Existing
+immutable-invoice rules still apply if billing collection finishes first.
 
 ## Intentional limitations
 

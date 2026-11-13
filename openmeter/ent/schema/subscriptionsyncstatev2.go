@@ -34,7 +34,12 @@ func (SubscriptionSyncStateV2) Fields() []ent.Field {
 }
 
 func (SubscriptionSyncStateV2) Indexes() []ent.Index {
-	return []ent.Index{index.Fields("namespace", "subscription_id").Unique()}
+	return []ent.Index{
+		// Include the result so deleted-subscription polling can check completed
+		// cleanup from this index without loading the sync-state rows.
+		index.Fields("namespace", "subscription_id").Unique().
+			Annotations(entsql.IncludeColumns("last_success_state")),
+	}
 }
 
 func (SubscriptionSyncStateV2) Edges() []ent.Edge {

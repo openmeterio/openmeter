@@ -76,6 +76,13 @@ func (Subscription) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("namespace", "id"),
 		index.Fields("namespace", "customer_id"),
+		// Periodic subscription sync pages through deleted subscriptions in each
+		// namespace without reading live subscriptions or sorting the full history.
+		index.Fields("namespace", "created_at", "id").
+			StorageKey("subscription_deleted_reconciliation_cursor").
+			Annotations(
+				entsql.IndexWhere("deleted_at IS NOT NULL"),
+			),
 	}
 }
 

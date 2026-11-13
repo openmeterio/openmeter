@@ -5647,6 +5647,14 @@ var (
 				Unique:  false,
 				Columns: []*schema.Column{SubscriptionsColumns[1], SubscriptionsColumns[17]},
 			},
+			{
+				Name:    "subscription_deleted_reconciliation_cursor",
+				Unique:  false,
+				Columns: []*schema.Column{SubscriptionsColumns[1], SubscriptionsColumns[3], SubscriptionsColumns[0]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "deleted_at IS NOT NULL",
+				},
+			},
 		},
 	}
 	// SubscriptionAddonsColumns holds the columns for the "subscription_addons" table.
@@ -6042,6 +6050,11 @@ var (
 				Name:    "subscriptionsyncstatev2_namespace_subscription_id",
 				Unique:  true,
 				Columns: []*schema.Column{SubscriptionSyncStatesV2Columns[1], SubscriptionSyncStatesV2Columns[7]},
+				Annotation: &entsql.IndexAnnotation{
+					IncludeColumns: []string{
+						SubscriptionSyncStatesV2Columns[5].Name,
+					},
+				},
 			},
 		},
 	}

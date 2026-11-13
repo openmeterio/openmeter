@@ -126,81 +126,88 @@ func (s *Service) synchronizeSubscription(ctx context.Context, in synchronizeSub
 	))
 
 	return span.Wrap(func(ctx context.Context) (*synchronizeSubscriptionResult, error) {
-		subs, err := s.getSubscription(ctx, subscriptionID)
+		subscriptionForCustomer, err := s.getSubscription(ctx, subscriptionID)
 		if err != nil {
 			return nil, err
 		}
 
-		var subsView *subscription.SubscriptionView
-		if !subs.IsDeleted() {
-			view, err := s.subscriptionService.GetView(ctx, subscriptionID)
-			if err != nil {
-				return nil, fmt.Errorf("getting subscription view: %w", err)
-			}
-
-			subsView = &view
-		}
-
 		customerID := customer.CustomerID{
-			Namespace: subs.Namespace,
-			ID:        subs.CustomerId,
-		}
-		res := &synchronizeSubscriptionResult{
-			CustomerID:                customerID,
-			ShouldInvoicePendingLines: !subs.IsDeleted(),
+			Namespace: subscriptionForCustomer.Namespace,
+			ID:        subscriptionForCustomer.CustomerId,
 		}
 
-		var customerDeletedAt *time.Time
-		var subscriptionEndProrationMode billing.SubscriptionEndProrationMode
-		if subsView != nil && subsView.Spec.HasBillables() {
-			// TODO[later]: Right now we are getting the billing profile as a validation step, but later if we allow more collection
-			// alignment settings, we should use the collection settings from here to determine the generation end (overriding asof).
-			customerOverride, err := s.billingService.GetCustomerBillingProfile(ctx, billing.GetCustomerBillingProfileInput{
-				Customer: customerID,
-				Expand: billing.CustomerBillingProfileExpand{
-					Customer: true,
-				},
-			})
+		return withBillingLock(ctx, s, customerID, func(ctx context.Context) (*synchronizeSubscriptionResult, error) {
+			// A sync waiting for the billing lock must observe any deletion cleanup
+			// that completed first, rather than recreate lines from an older view.
+			subs, err := s.getSubscription(ctx, subscriptionID)
 			if err != nil {
-				return nil, fmt.Errorf("getting billing profile: %w", err)
+				return nil, err
 			}
 
-			if customerOverride.Customer != nil {
-				customerDeletedAt = convert.SafeToUTC(customerOverride.Customer.GetDeletedAt())
+			// Intentionally differs from IsDeleted(); see "Race between billing collection and subscription deletion cleanup" in ../README.md.
+			subscriptionDeleted := subs.DeletedAt != nil
+			var subsView *subscription.SubscriptionView
+			if !subscriptionDeleted {
+				view, err := s.subscriptionService.GetView(ctx, subscriptionID)
+				if err != nil {
+					return nil, fmt.Errorf("getting subscription view: %w", err)
+				}
+
+				subsView = &view
 			}
 
-			subscriptionEndProrationMode = customerOverride.EffectiveProfile.WorkflowConfig.Invoicing.SubscriptionEndProrationMode
+			res := &synchronizeSubscriptionResult{
+				CustomerID:                customerID,
+				ShouldInvoicePendingLines: !subscriptionDeleted,
+			}
 
-			if customerOverride.Customer != nil && customerOverride.Customer.DeletedAt != nil && !customerOverride.Customer.DeletedAt.After(subsView.Spec.ActiveFrom) {
-				if options.DryRun {
+			var customerDeletedAt *time.Time
+			var subscriptionEndProrationMode billing.SubscriptionEndProrationMode
+			if subsView != nil && subsView.Spec.HasBillables() {
+				// TODO[later]: Right now we are getting the billing profile as a validation step, but later if we allow more collection
+				// alignment settings, we should use the collection settings from here to determine the generation end (overriding asof).
+				customerOverride, err := s.billingService.GetCustomerBillingProfile(ctx, billing.GetCustomerBillingProfileInput{
+					Customer: customerID,
+					Expand: billing.CustomerBillingProfileExpand{
+						Customer: true,
+					},
+				})
+				if err != nil {
+					return nil, fmt.Errorf("getting billing profile: %w", err)
+				}
+
+				if customerOverride.Customer != nil {
+					customerDeletedAt = convert.SafeToUTC(customerOverride.Customer.GetDeletedAt())
+				}
+
+				subscriptionEndProrationMode = customerOverride.EffectiveProfile.WorkflowConfig.Invoicing.SubscriptionEndProrationMode
+
+				if customerOverride.Customer != nil && customerOverride.Customer.DeletedAt != nil && !customerOverride.Customer.DeletedAt.After(subsView.Spec.ActiveFrom) {
+					if options.DryRun {
+						return res, nil
+					}
+
+					if err := s.updateSyncState(ctx, updateSyncStateInput{
+						SubscriptionID: subscriptionID,
+						// Prevent deleted customers from continuing to be scheduled for sync.
+						PreventFurtherSyncs: true,
+					}); err != nil {
+						return nil, fmt.Errorf("updating sync state: %w", err)
+					}
+
+					s.logger.WarnContext(ctx, "customer deleted before subscription start, skipping sync", "subscription_id", subscriptionID.ID, "customer_id", customerID.ID)
+
 					return res, nil
 				}
-
-				if err := s.updateSyncState(ctx, updateSyncStateInput{
-					SubscriptionID: subscriptionID,
-					// Prevent deleted customers from continuing to be scheduled for sync.
-					PreventFurtherSyncs: true,
-				}); err != nil {
-					return nil, fmt.Errorf("updating sync state: %w", err)
-				}
-
-				s.logger.WarnContext(ctx, "customer deleted before subscription start, skipping sync", "subscription_id", subscriptionID.ID, "customer_id", customerID.ID)
-
-				return res, nil
 			}
-		}
 
-		cur, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
-			WithCode(subs.InvoiceCurrency).
-			Build()
-		if err != nil {
-			return nil, fmt.Errorf("getting currency calculator: %w", err)
-		}
+			cur, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
+				WithCode(subs.InvoiceCurrency).
+				Build()
+			if err != nil {
+				return nil, fmt.Errorf("getting currency calculator: %w", err)
+			}
 
-		return withBillingLock(ctx, s, customer.CustomerID{
-			Namespace: subs.Namespace,
-			ID:        subs.CustomerId,
-		}, func(ctx context.Context) (*synchronizeSubscriptionResult, error) {
 			// Calculate per line patches
 			linesDiff, err := s.buildSyncPlan(ctx, buildSyncPlanInput{
 				Subscription:                 subs,
@@ -221,46 +228,44 @@ func (s *Service) synchronizeSubscription(ctx context.Context, in synchronizeSub
 				hasBillables = subsView.Spec.HasBillables()
 			}
 
-			if linesDiff == nil || linesDiff.IsEmpty() {
-				if options.DryRun {
-					return res, nil
-				}
-
-				generationLimit := time.Time{}
-				if linesDiff != nil {
-					generationLimit = linesDiff.SubscriptionMaxGenerationTimeLimit
-				}
-
-				if err := s.updateSyncState(ctx, updateSyncStateInput{
-					SubscriptionID:         subscriptionID,
-					MaxGenerationTimeLimit: generationLimit,
-					HasBillables:           hasBillables,
+			if linesDiff != nil && !linesDiff.IsEmpty() {
+				if err := s.reconciler.Apply(ctx, reconciler.ApplyInput{
+					DryRun:   options.DryRun,
+					Customer: customerID,
+					Currency: cur,
+					Plan:     linesDiff,
 				}); err != nil {
-					return nil, fmt.Errorf("updating sync state: %w", err)
+					return nil, err
 				}
-
-				return res, nil
-			}
-
-			if err := s.reconciler.Apply(ctx, reconciler.ApplyInput{
-				DryRun:   options.DryRun,
-				Customer: customerID,
-				Currency: cur,
-				Plan:     linesDiff,
-			}); err != nil {
-				return nil, err
 			}
 
 			if options.DryRun {
 				return res, nil
 			}
 
+			generationLimit := time.Time{}
+			if linesDiff != nil {
+				generationLimit = linesDiff.SubscriptionMaxGenerationTimeLimit
+			}
+
 			if err := s.updateSyncState(ctx, updateSyncStateInput{
 				SubscriptionID:         subscriptionID,
-				MaxGenerationTimeLimit: linesDiff.SubscriptionMaxGenerationTimeLimit,
+				MaxGenerationTimeLimit: generationLimit,
 				HasBillables:           hasBillables,
 			}); err != nil {
 				return nil, fmt.Errorf("updating sync state: %w", err)
+			}
+
+			if subscriptionDeleted {
+				// Record cleanup in the billing transaction, including when no artifacts
+				// remained. Failed cleanup must stay eligible for periodic reconciliation.
+				if err := s.subscriptionSyncAdapter.UpsertSyncStateV2(ctx, subscriptionsync.UpsertSyncStateV2Input{
+					SubscriptionID:   subscriptionID,
+					LastSuccessState: subscriptionsync.SyncStateV2StateSubscriptionDeleted,
+					LastSuccessAt:    clock.Now().UTC(),
+				}); err != nil {
+					return nil, fmt.Errorf("recording subscription deletion reconciliation: %w", err)
+				}
 			}
 
 			return res, nil

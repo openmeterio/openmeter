@@ -90,7 +90,7 @@ var AllCmd = func() *cobra.Command {
 	cmd.PersistentFlags().StringSliceVar(&namespaces, "n", nil, "filter by namespaces")
 	cmd.PersistentFlags().StringSliceVar(&customerIDs, "c", nil, "filter by customer ids")
 	cmd.PersistentFlags().DurationVar(&lookback, "l", defaultLookback, "lookback period")
-	cmd.PersistentFlags().BoolVar(&force, "f", false, "force reconciliation (even if the sync state would not necessarily require it)")
+	cmd.PersistentFlags().BoolVar(&force, "f", false, "force reconciliation regardless of billing deadlines; skips deleted subscriptions with completed cleanup (delete their v2 sync-state entry to retry)")
 
 	return cmd
 }
