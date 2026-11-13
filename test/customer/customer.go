@@ -1112,7 +1112,7 @@ func (s *CustomerHandlerTestSuite) TestDelete(ctx context.Context, t *testing.T)
 	err = custService.DeleteCustomer(ctx, customerId)
 
 	require.ErrorAs(t, err, lo.ToPtr(&models.GenericValidationError{}), "Deleting customer with active subscription must return validation error, got %T", err)
-	require.EqualError(t, err, fmt.Sprintf("validation error: customer %s still have active subscriptions, please cancel them before deleting the customer", customerId.ID), "Deleting customer with active subscription must return error")
+	require.EqualError(t, err, fmt.Sprintf("validation error: customer %s still has active or scheduled subscriptions, please cancel or delete them before deleting the customer", customerId.ID), "Deleting customer with active subscription must return error")
 
 	// Now let's delete the subscription
 	_, err = subService.Cancel(ctx, sub.NamespacedID, subscription.Timing{
@@ -1181,4 +1181,81 @@ func (s *CustomerHandlerTestSuite) TestDelete(ctx context.Context, t *testing.T)
 	// Deleting the customer is now allowed
 	err = custService.DeleteCustomer(ctx, createdCustomer.GetID())
 	require.NoError(t, err, "Deleting customer must not return error")
+}
+
+func (s *CustomerHandlerTestSuite) TestDeleteWithScheduledSubscription(ctx context.Context, t *testing.T) {
+	s.setupNamespace(t)
+
+	custService := s.Env.Customer()
+	subService := s.Env.Subscription()
+
+	// given a customer whose only subscription starts tomorrow
+	cus, err := custService.CreateCustomer(ctx, customer.CreateCustomerInput{
+		Namespace: s.namespace,
+		CustomerMutate: customer.CustomerMutate{
+			Name: TestName,
+			UsageAttribution: &customer.CustomerUsageAttribution{
+				SubjectKeys: TestSubjectKeys,
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	p, err := plansubscriptionservice.PlanFromPlanInput(plan.CreatePlanInput{
+		NamespacedModel: models.NamespacedModel{Namespace: s.namespace},
+		Plan: productcatalog.Plan{
+			PlanMeta: productcatalog.PlanMeta{
+				Name:           "Empty Plan",
+				Currency:       currencies.NewCurrencyReference(currencyx.Code("USD")),
+				BillingCadence: datetime.MustParseDuration(t, "P1M"),
+				ProRatingConfig: productcatalog.ProRatingConfig{
+					Enabled: true,
+					Mode:    productcatalog.ProRatingModeProratePrices,
+				},
+			},
+			Phases: []productcatalog.Phase{
+				{
+					PhaseMeta: productcatalog.PhaseMeta{Key: "empty-phase", Name: "Empty Phase"},
+					RateCards: []productcatalog.RateCard{
+						&productcatalog.FlatFeeRateCard{
+							RateCardMeta: productcatalog.RateCardMeta{Key: "empty-rate-card", Name: "Empty Rate Card"},
+						},
+					},
+				},
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	startsAt := clock.Now().Add(24 * time.Hour)
+
+	spec, err := subscription.NewSpecFromPlan(p, subscription.CreateSubscriptionCustomerInput{
+		CustomerId:      cus.ID,
+		Name:            "Scheduled Subscription",
+		InvoiceCurrency: currencyx.Code("USD"),
+		ActiveFrom:      startsAt,
+		BillingAnchor:   startsAt,
+	})
+	require.NoError(t, err)
+
+	sub, err := subService.Create(ctx, s.namespace, spec)
+	require.NoError(t, err)
+	require.Equal(t, subscription.SubscriptionStatusScheduled, sub.GetStatusAt(clock.Now()))
+
+	// when the customer is deleted before the subscription starts
+	err = custService.DeleteCustomer(ctx, cus.GetID())
+
+	// then the delete is rejected and the customer stays
+	require.ErrorAs(t, err, lo.ToPtr(&models.GenericValidationError{}))
+	require.ErrorContains(t, err, "active or scheduled subscriptions")
+
+	got, err := custService.GetCustomer(ctx, customer.GetCustomerInput{CustomerID: lo.ToPtr(cus.GetID())})
+	require.NoError(t, err)
+	require.Nil(t, got.DeletedAt)
+
+	// when the scheduled subscription is deleted first
+	require.NoError(t, subService.Delete(ctx, sub.NamespacedID))
+
+	// then the customer can be deleted
+	require.NoError(t, custService.DeleteCustomer(ctx, cus.GetID()))
 }

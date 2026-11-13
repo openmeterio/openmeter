@@ -22,4 +22,6 @@ type CustomerAdapter interface {
 	GetCustomer(ctx context.Context, customer GetCustomerInput) (*Customer, error)
 	GetCustomersByUsageAttribution(ctx context.Context, input GetCustomersByUsageAttributionInput) ([]Customer, error)
 	UpdateCustomer(ctx context.Context, params UpdateCustomerInput) (*Customer, error)
+	// ListNotEndedSubscriptionIDs returns the customer's subscriptions that are active or scheduled to start.
+	ListNotEndedSubscriptionIDs(ctx context.Context, customer CustomerID) ([]string, error)
 }

@@ -66,6 +66,10 @@ func TestCustomer(t *testing.T) {
 		t.Run("TestDelete", func(t *testing.T) {
 			testSuite.TestDelete(ctx, t)
 		})
+
+		t.Run("TestDeleteWithScheduledSubscription", func(t *testing.T) {
+			testSuite.TestDeleteWithScheduledSubscription(ctx, t)
+		})
 	})
 
 	t.Run("Subject", func(t *testing.T) {
