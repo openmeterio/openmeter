@@ -5,19 +5,19 @@ package billingprofiles
 
 import (
 	"fmt"
-	v3 "github.com/openmeterio/openmeter/api/v3"
+	models "github.com/openmeterio/openmeter/api/v3/models"
 	app "github.com/openmeterio/openmeter/openmeter/app"
 	billing "github.com/openmeterio/openmeter/openmeter/billing"
 	productcatalog "github.com/openmeterio/openmeter/openmeter/productcatalog"
-	models "github.com/openmeterio/openmeter/pkg/models"
+	models1 "github.com/openmeterio/openmeter/pkg/models"
 	"time"
 )
 
 func init() {
-	FromAPIAddress = func(source v3.Address) models.Address {
-		var modelsAddress models.Address
+	FromAPIAddress = func(source models.Address) models1.Address {
+		var modelsAddress models1.Address
 		if source.Country != nil {
-			modelsCountryCode := models.CountryCode(*source.Country)
+			modelsCountryCode := models1.CountryCode(*source.Country)
 			modelsAddress.Country = &modelsCountryCode
 		}
 		modelsAddress.PostalCode = source.PostalCode
@@ -28,32 +28,32 @@ func init() {
 		modelsAddress.PhoneNumber = source.PhoneNumber
 		return modelsAddress
 	}
-	FromAPIBillingAppReferenceToAppID = func(context string, source v3.BillingAppReference) app.AppID {
+	FromAPIBillingAppReferenceToAppID = func(context string, source models.BillingAppReference) app.AppID {
 		var appAppID app.AppID
 		appAppID.Namespace = NamespaceFromContext(context)
 		appAppID.ID = source.Id
 		return appAppID
 	}
-	FromAPIBillingProfileAppReferences = func(context string, source v3.BillingProfileAppReferences) billing.ProfileAppReferences {
+	FromAPIBillingProfileAppReferences = func(context string, source models.BillingProfileAppReferences) billing.ProfileAppReferences {
 		var billingProfileAppReferences billing.ProfileAppReferences
 		billingProfileAppReferences.Tax = FromAPIBillingAppReferenceToAppID(context, source.Tax)
 		billingProfileAppReferences.Invoicing = FromAPIBillingAppReferenceToAppID(context, source.Invoicing)
 		billingProfileAppReferences.Payment = FromAPIBillingAppReferenceToAppID(context, source.Payment)
 		return billingProfileAppReferences
 	}
-	FromAPIBillingTaxBehavior = func(source v3.BillingTaxBehavior) (productcatalog.TaxBehavior, error) {
+	FromAPIBillingTaxBehavior = func(source models.BillingTaxBehavior) (productcatalog.TaxBehavior, error) {
 		var productcatalogTaxBehavior productcatalog.TaxBehavior
 		switch source {
-		case v3.BillingTaxBehaviorExclusive:
+		case models.BillingTaxBehaviorExclusive:
 			productcatalogTaxBehavior = productcatalog.ExclusiveTaxBehavior
-		case v3.BillingTaxBehaviorInclusive:
+		case models.BillingTaxBehaviorInclusive:
 			productcatalogTaxBehavior = productcatalog.InclusiveTaxBehavior
 		default:
 			return productcatalogTaxBehavior, fmt.Errorf("unexpected enum element: %v", source)
 		}
 		return productcatalogTaxBehavior, nil
 	}
-	FromAPIBillingTaxConfig = func(source *v3.BillingTaxConfig) (*productcatalog.TaxConfig, error) {
+	FromAPIBillingTaxConfig = func(source *models.BillingTaxConfig) (*productcatalog.TaxConfig, error) {
 		var pProductcatalogTaxConfig *productcatalog.TaxConfig
 		if source != nil {
 			var productcatalogTaxConfig productcatalog.TaxConfig
@@ -64,13 +64,13 @@ func init() {
 				}
 				productcatalogTaxConfig.Behavior = &productcatalogTaxBehavior
 			}
-			productcatalogTaxConfig.Stripe = pV3BillingTaxConfigStripeToPProductcatalogStripeTaxConfig((*source).Stripe)
+			productcatalogTaxConfig.Stripe = pModelsBillingTaxConfigStripeToPProductcatalogStripeTaxConfig((*source).Stripe)
 			productcatalogTaxConfig.TaxCodeID = (*source).TaxCodeId
 			pProductcatalogTaxConfig = &productcatalogTaxConfig
 		}
 		return pProductcatalogTaxConfig, nil
 	}
-	FromAPICreateBillingProfileRequest = func(context string, source v3.CreateBillingProfileRequest) (billing.CreateProfileInput, error) {
+	FromAPICreateBillingProfileRequest = func(context string, source models.CreateBillingProfileRequest) (billing.CreateProfileInput, error) {
 		var billingCreateProfileInput billing.CreateProfileInput
 		billingCreateProfileInput.Namespace = NamespaceFromContext(context)
 		billingCreateProfileInput.Name = source.Name
@@ -90,7 +90,7 @@ func init() {
 		billingCreateProfileInput.Apps = FromAPIBillingProfileAppReferences(context, source.Apps)
 		return billingCreateProfileInput, nil
 	}
-	FromAPIUpsertBillingProfileRequest = func(context models.NamespacedID, source v3.UpsertBillingProfileRequest) (billing.UpdateProfileInput, error) {
+	FromAPIUpsertBillingProfileRequest = func(context models1.NamespacedID, source models.UpsertBillingProfileRequest) (billing.UpdateProfileInput, error) {
 		var billingUpdateProfileInput billing.UpdateProfileInput
 		billingUpdateProfileInput.ID = ResolveIDFromContext(context)
 		billingUpdateProfileInput.Namespace = ResolveNamespaceFromContext(context)
@@ -110,126 +110,108 @@ func init() {
 		billingUpdateProfileInput.Metadata = billingMetadata
 		return billingUpdateProfileInput, nil
 	}
-	ToAPIAddress = func(source models.Address) v3.Address {
-		var v3Address v3.Address
-		v3Address.City = source.City
+	ToAPIAddress = func(source models1.Address) models.Address {
+		var modelsAddress models.Address
+		modelsAddress.City = source.City
 		if source.Country != nil {
 			xstring := string(*source.Country)
-			v3Address.Country = &xstring
+			modelsAddress.Country = &xstring
 		}
-		v3Address.Line1 = source.Line1
-		v3Address.Line2 = source.Line2
-		v3Address.PhoneNumber = source.PhoneNumber
-		v3Address.PostalCode = source.PostalCode
-		v3Address.State = source.State
-		return v3Address
+		modelsAddress.Line1 = source.Line1
+		modelsAddress.Line2 = source.Line2
+		modelsAddress.PhoneNumber = source.PhoneNumber
+		modelsAddress.PostalCode = source.PostalCode
+		modelsAddress.State = source.State
+		return modelsAddress
 	}
-	ToAPIBillingAppReferenceFromAppID = func(source app.AppID) v3.BillingAppReference {
-		var v3BillingAppReference v3.BillingAppReference
-		v3BillingAppReference.Id = source.ID
-		return v3BillingAppReference
+	ToAPIBillingAppReferenceFromAppID = func(source app.AppID) models.BillingAppReference {
+		var modelsBillingAppReference models.BillingAppReference
+		modelsBillingAppReference.Id = source.ID
+		return modelsBillingAppReference
 	}
-	ToAPIBillingProfile = func(source billing.Profile) (v3.BillingProfile, error) {
-		var v3BillingProfile v3.BillingProfile
-		v3BillingProfile.Apps = pBillingProfileAppsToV3BillingProfileAppReferences(source.Apps)
-		v3BillingProfile.CreatedAt = timeTimeToTimeTime(source.BaseProfile.CreatedAt)
-		v3BillingProfile.Default = source.BaseProfile.Default
-		v3BillingProfile.DeletedAt = source.BaseProfile.DeletedAt
-		v3BillingProfile.Description = source.BaseProfile.Description
-		v3BillingProfile.Id = source.BaseProfile.ID
-		v3BillingProfile.Labels = ConvertMetadataToLabels(source.BaseProfile.Metadata)
-		v3BillingProfile.Name = source.BaseProfile.Name
-		v3BillingProfile.Supplier = ToAPIBillingParty(source.BaseProfile.Supplier)
-		v3BillingProfile.UpdatedAt = timeTimeToTimeTime(source.BaseProfile.UpdatedAt)
-		v3BillingWorkflow, err := ToAPIBillingWorkflow(source.BaseProfile.WorkflowConfig)
+	ToAPIBillingProfile = func(source billing.Profile) (models.BillingProfile, error) {
+		var modelsBillingProfile models.BillingProfile
+		modelsBillingProfile.Apps = pBillingProfileAppsToModelsBillingProfileAppReferences(source.Apps)
+		modelsBillingProfile.CreatedAt = timeTimeToTimeTime(source.BaseProfile.CreatedAt)
+		modelsBillingProfile.Default = source.BaseProfile.Default
+		modelsBillingProfile.DeletedAt = source.BaseProfile.DeletedAt
+		modelsBillingProfile.Description = source.BaseProfile.Description
+		modelsBillingProfile.Id = source.BaseProfile.ID
+		modelsBillingProfile.Labels = ConvertMetadataToLabels(source.BaseProfile.Metadata)
+		modelsBillingProfile.Name = source.BaseProfile.Name
+		modelsBillingProfile.Supplier = ToAPIBillingParty(source.BaseProfile.Supplier)
+		modelsBillingProfile.UpdatedAt = timeTimeToTimeTime(source.BaseProfile.UpdatedAt)
+		modelsBillingWorkflow, err := ToAPIBillingWorkflow(source.BaseProfile.WorkflowConfig)
 		if err != nil {
-			return v3BillingProfile, err
+			return modelsBillingProfile, err
 		}
-		v3BillingProfile.Workflow = v3BillingWorkflow
-		return v3BillingProfile, nil
+		modelsBillingProfile.Workflow = modelsBillingWorkflow
+		return modelsBillingProfile, nil
 	}
-	ToAPIBillingProfileAppReferences = func(source *billing.ProfileAppReferences) v3.BillingProfileAppReferences {
-		var v3BillingProfileAppReferences v3.BillingProfileAppReferences
+	ToAPIBillingProfileAppReferences = func(source *billing.ProfileAppReferences) models.BillingProfileAppReferences {
+		var modelsBillingProfileAppReferences models.BillingProfileAppReferences
 		if source != nil {
-			v3BillingProfileAppReferences.Invoicing = ToAPIBillingAppReferenceFromAppID((*source).Invoicing)
-			v3BillingProfileAppReferences.Payment = ToAPIBillingAppReferenceFromAppID((*source).Payment)
-			v3BillingProfileAppReferences.Tax = ToAPIBillingAppReferenceFromAppID((*source).Tax)
+			modelsBillingProfileAppReferences.Invoicing = ToAPIBillingAppReferenceFromAppID((*source).Invoicing)
+			modelsBillingProfileAppReferences.Payment = ToAPIBillingAppReferenceFromAppID((*source).Payment)
+			modelsBillingProfileAppReferences.Tax = ToAPIBillingAppReferenceFromAppID((*source).Tax)
 		}
-		return v3BillingProfileAppReferences
+		return modelsBillingProfileAppReferences
 	}
-	ToAPIBillingProfiles = func(source []billing.Profile) ([]v3.BillingProfile, error) {
-		var v3BillingProfileList []v3.BillingProfile
+	ToAPIBillingProfiles = func(source []billing.Profile) ([]models.BillingProfile, error) {
+		var modelsBillingProfileList []models.BillingProfile
 		if source != nil {
-			v3BillingProfileList = make([]v3.BillingProfile, len(source))
+			modelsBillingProfileList = make([]models.BillingProfile, len(source))
 			for i := 0; i < len(source); i++ {
-				v3BillingProfile, err := ToAPIBillingProfile(source[i])
+				modelsBillingProfile, err := ToAPIBillingProfile(source[i])
 				if err != nil {
 					return nil, err
 				}
-				v3BillingProfileList[i] = v3BillingProfile
+				modelsBillingProfileList[i] = modelsBillingProfile
 			}
 		}
-		return v3BillingProfileList, nil
+		return modelsBillingProfileList, nil
 	}
-	ToAPIBillingTaxBehavior = func(source productcatalog.TaxBehavior) (v3.BillingTaxBehavior, error) {
-		var v3BillingTaxBehavior v3.BillingTaxBehavior
+	ToAPIBillingTaxBehavior = func(source productcatalog.TaxBehavior) (models.BillingTaxBehavior, error) {
+		var modelsBillingTaxBehavior models.BillingTaxBehavior
 		switch source {
 		case productcatalog.ExclusiveTaxBehavior:
-			v3BillingTaxBehavior = v3.BillingTaxBehaviorExclusive
+			modelsBillingTaxBehavior = models.BillingTaxBehaviorExclusive
 		case productcatalog.InclusiveTaxBehavior:
-			v3BillingTaxBehavior = v3.BillingTaxBehaviorInclusive
+			modelsBillingTaxBehavior = models.BillingTaxBehaviorInclusive
 		default:
-			return v3BillingTaxBehavior, fmt.Errorf("unexpected enum element: %v", source)
+			return modelsBillingTaxBehavior, fmt.Errorf("unexpected enum element: %v", source)
 		}
-		return v3BillingTaxBehavior, nil
+		return modelsBillingTaxBehavior, nil
 	}
-	ToAPIBillingTaxConfig = func(source *productcatalog.TaxConfig) (*v3.BillingTaxConfig, error) {
-		var pV3BillingTaxConfig *v3.BillingTaxConfig
+	ToAPIBillingTaxConfig = func(source *productcatalog.TaxConfig) (*models.BillingTaxConfig, error) {
+		var pModelsBillingTaxConfig *models.BillingTaxConfig
 		if source != nil {
-			var v3BillingTaxConfig v3.BillingTaxConfig
+			var modelsBillingTaxConfig models.BillingTaxConfig
 			if (*source).Behavior != nil {
-				v3BillingTaxBehavior, err := ToAPIBillingTaxBehavior(*(*source).Behavior)
+				modelsBillingTaxBehavior, err := ToAPIBillingTaxBehavior(*(*source).Behavior)
 				if err != nil {
 					return nil, err
 				}
-				v3BillingTaxConfig.Behavior = &v3BillingTaxBehavior
+				modelsBillingTaxConfig.Behavior = &modelsBillingTaxBehavior
 			}
-			v3BillingTaxConfig.ExternalInvoicing = pProductcatalogStripeTaxConfigToPV3BillingTaxConfigExternalInvoicing((*source).Stripe)
-			v3BillingTaxConfig.Stripe = pProductcatalogStripeTaxConfigToPV3BillingTaxConfigStripe((*source).Stripe)
-			v3BillingTaxConfig.TaxCodeId = (*source).TaxCodeID
-			pV3BillingTaxConfig = &v3BillingTaxConfig
+			modelsBillingTaxConfig.ExternalInvoicing = pProductcatalogStripeTaxConfigToPModelsBillingTaxConfigExternalInvoicing((*source).Stripe)
+			modelsBillingTaxConfig.Stripe = pProductcatalogStripeTaxConfigToPModelsBillingTaxConfigStripe((*source).Stripe)
+			modelsBillingTaxConfig.TaxCodeId = (*source).TaxCodeID
+			pModelsBillingTaxConfig = &modelsBillingTaxConfig
 		}
-		return pV3BillingTaxConfig, nil
+		return pModelsBillingTaxConfig, nil
 	}
 }
-func pBillingProfileAppsToV3BillingProfileAppReferences(source *billing.ProfileApps) v3.BillingProfileAppReferences {
-	var v3BillingProfileAppReferences v3.BillingProfileAppReferences
+func pBillingProfileAppsToModelsBillingProfileAppReferences(source *billing.ProfileApps) models.BillingProfileAppReferences {
+	var modelsBillingProfileAppReferences models.BillingProfileAppReferences
 	if source != nil {
-		v3BillingProfileAppReferences.Invoicing = ToAPIBillingAppReference((*source).Invoicing)
-		v3BillingProfileAppReferences.Payment = ToAPIBillingAppReference((*source).Payment)
-		v3BillingProfileAppReferences.Tax = ToAPIBillingAppReference((*source).Tax)
+		modelsBillingProfileAppReferences.Invoicing = ToAPIBillingAppReference((*source).Invoicing)
+		modelsBillingProfileAppReferences.Payment = ToAPIBillingAppReference((*source).Payment)
+		modelsBillingProfileAppReferences.Tax = ToAPIBillingAppReference((*source).Tax)
 	}
-	return v3BillingProfileAppReferences
+	return modelsBillingProfileAppReferences
 }
-func pProductcatalogStripeTaxConfigToPV3BillingTaxConfigExternalInvoicing(source *productcatalog.StripeTaxConfig) *v3.BillingTaxConfigExternalInvoicing {
-	var pV3BillingTaxConfigExternalInvoicing *v3.BillingTaxConfigExternalInvoicing
-	if source != nil {
-		var v3BillingTaxConfigExternalInvoicing v3.BillingTaxConfigExternalInvoicing
-		v3BillingTaxConfigExternalInvoicing.Code = (*source).Code
-		pV3BillingTaxConfigExternalInvoicing = &v3BillingTaxConfigExternalInvoicing
-	}
-	return pV3BillingTaxConfigExternalInvoicing
-}
-func pProductcatalogStripeTaxConfigToPV3BillingTaxConfigStripe(source *productcatalog.StripeTaxConfig) *v3.BillingTaxConfigStripe {
-	var pV3BillingTaxConfigStripe *v3.BillingTaxConfigStripe
-	if source != nil {
-		var v3BillingTaxConfigStripe v3.BillingTaxConfigStripe
-		v3BillingTaxConfigStripe.Code = (*source).Code
-		pV3BillingTaxConfigStripe = &v3BillingTaxConfigStripe
-	}
-	return pV3BillingTaxConfigStripe
-}
-func pV3BillingTaxConfigStripeToPProductcatalogStripeTaxConfig(source *v3.BillingTaxConfigStripe) *productcatalog.StripeTaxConfig {
+func pModelsBillingTaxConfigStripeToPProductcatalogStripeTaxConfig(source *models.BillingTaxConfigStripe) *productcatalog.StripeTaxConfig {
 	var pProductcatalogStripeTaxConfig *productcatalog.StripeTaxConfig
 	if source != nil {
 		var productcatalogStripeTaxConfig productcatalog.StripeTaxConfig
@@ -237,6 +219,24 @@ func pV3BillingTaxConfigStripeToPProductcatalogStripeTaxConfig(source *v3.Billin
 		pProductcatalogStripeTaxConfig = &productcatalogStripeTaxConfig
 	}
 	return pProductcatalogStripeTaxConfig
+}
+func pProductcatalogStripeTaxConfigToPModelsBillingTaxConfigExternalInvoicing(source *productcatalog.StripeTaxConfig) *models.BillingTaxConfigExternalInvoicing {
+	var pModelsBillingTaxConfigExternalInvoicing *models.BillingTaxConfigExternalInvoicing
+	if source != nil {
+		var modelsBillingTaxConfigExternalInvoicing models.BillingTaxConfigExternalInvoicing
+		modelsBillingTaxConfigExternalInvoicing.Code = (*source).Code
+		pModelsBillingTaxConfigExternalInvoicing = &modelsBillingTaxConfigExternalInvoicing
+	}
+	return pModelsBillingTaxConfigExternalInvoicing
+}
+func pProductcatalogStripeTaxConfigToPModelsBillingTaxConfigStripe(source *productcatalog.StripeTaxConfig) *models.BillingTaxConfigStripe {
+	var pModelsBillingTaxConfigStripe *models.BillingTaxConfigStripe
+	if source != nil {
+		var modelsBillingTaxConfigStripe models.BillingTaxConfigStripe
+		modelsBillingTaxConfigStripe.Code = (*source).Code
+		pModelsBillingTaxConfigStripe = &modelsBillingTaxConfigStripe
+	}
+	return pModelsBillingTaxConfigStripe
 }
 func timeTimeToTimeTime(source time.Time) time.Time {
 	return source

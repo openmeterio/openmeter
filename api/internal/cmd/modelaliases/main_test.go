@@ -45,7 +45,7 @@ const NewAuthScopes newAuthContextKey = "NewAuth.Scopes"
 	require.NotContains(t, string(extra), "type Shared ")
 	require.NotContains(t, string(extra), "NewAuthScopes")
 
-	pub, err := aliases("openmeter", client)
+	pub, err := aliases("openmeter", legacyModelsImport, client)
 	require.NoError(t, err)
 	for _, name := range []string{"Shared", "ServerOnly", "State", "CloudOnly"} {
 		require.Contains(t, string(pub), "type "+name+" = models."+name)
@@ -54,7 +54,7 @@ const NewAuthScopes newAuthContextKey = "NewAuth.Scopes"
 	require.Contains(t, string(pub), "const Ready = models.Ready")
 	require.Contains(t, string(pub), `const NewAuthScopes newAuthContextKey = "NewAuth.Scopes"`)
 
-	pub, err = aliases("api", server)
+	pub, err = aliases("api", legacyModelsImport, server)
 	require.NoError(t, err)
 	require.NotContains(t, string(pub), "CloudOnly")
 }

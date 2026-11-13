@@ -9,8 +9,8 @@ import (
 	"github.com/samber/lo"
 
 	apimodels "github.com/openmeterio/openmeter/api/models"
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	api "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appcustominvoicing "github.com/openmeterio/openmeter/openmeter/app/custominvoicing"
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"

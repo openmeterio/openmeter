@@ -4,16 +4,16 @@
 package customers
 
 import (
-	v3 "github.com/openmeterio/openmeter/api/v3"
+	models "github.com/openmeterio/openmeter/api/v3/models"
 	response "github.com/openmeterio/openmeter/api/v3/response"
 	customer "github.com/openmeterio/openmeter/openmeter/customer"
 	currencyx "github.com/openmeterio/openmeter/pkg/currencyx"
-	models "github.com/openmeterio/openmeter/pkg/models"
+	models1 "github.com/openmeterio/openmeter/pkg/models"
 	"time"
 )
 
 func init() {
-	FromAPICreateCustomerRequest = func(context string, source v3.CreateCustomerRequest) (customer.CreateCustomerInput, error) {
+	FromAPICreateCustomerRequest = func(context string, source models.CreateCustomerRequest) (customer.CreateCustomerInput, error) {
 		var customerCreateCustomerInput customer.CreateCustomerInput
 		customerCreateCustomerInput.Namespace = NamespaceFromContext(context)
 		customerCustomerMutate, err := FromAPICreateCustomerRequestToMutate(source)
@@ -23,19 +23,19 @@ func init() {
 		customerCreateCustomerInput.CustomerMutate = customerCustomerMutate
 		return customerCreateCustomerInput, nil
 	}
-	FromAPICreateCustomerRequestToMutate = func(source v3.CreateCustomerRequest) (customer.CustomerMutate, error) {
+	FromAPICreateCustomerRequestToMutate = func(source models.CreateCustomerRequest) (customer.CustomerMutate, error) {
 		var customerCustomerMutate customer.CustomerMutate
 		pString := source.Key
 		customerCustomerMutate.Key = &pString
 		customerCustomerMutate.Name = source.Name
 		customerCustomerMutate.Description = source.Description
-		customerCustomerMutate.UsageAttribution = pV3BillingCustomerUsageAttributionToPCustomerCustomerUsageAttribution(source.UsageAttribution)
+		customerCustomerMutate.UsageAttribution = pModelsBillingCustomerUsageAttributionToPCustomerCustomerUsageAttribution(source.UsageAttribution)
 		customerCustomerMutate.PrimaryEmail = source.PrimaryEmail
 		if source.Currency != nil {
 			currencyxCode := currencyx.Code(*source.Currency)
 			customerCustomerMutate.Currency = &currencyxCode
 		}
-		customerCustomerMutate.BillingAddress = pV3AddressToPModelsAddress(source.BillingAddress)
+		customerCustomerMutate.BillingAddress = pModelsAddressToPModelsAddress(source.BillingAddress)
 		pModelsMetadata, err := ConvertLabelsToMetadata(source.Labels)
 		if err != nil {
 			return customerCustomerMutate, err
@@ -43,17 +43,17 @@ func init() {
 		customerCustomerMutate.Metadata = pModelsMetadata
 		return customerCustomerMutate, nil
 	}
-	FromAPIUpsertCustomerRequest = func(source v3.UpsertCustomerRequest) (customer.CustomerMutate, error) {
+	FromAPIUpsertCustomerRequest = func(source models.UpsertCustomerRequest) (customer.CustomerMutate, error) {
 		var customerCustomerMutate customer.CustomerMutate
 		customerCustomerMutate.Name = source.Name
 		customerCustomerMutate.Description = source.Description
-		customerCustomerMutate.UsageAttribution = pV3BillingCustomerUsageAttributionToPCustomerCustomerUsageAttribution(source.UsageAttribution)
+		customerCustomerMutate.UsageAttribution = pModelsBillingCustomerUsageAttributionToPCustomerCustomerUsageAttribution(source.UsageAttribution)
 		customerCustomerMutate.PrimaryEmail = source.PrimaryEmail
 		if source.Currency != nil {
 			currencyxCode := currencyx.Code(*source.Currency)
 			customerCustomerMutate.Currency = &currencyxCode
 		}
-		customerCustomerMutate.BillingAddress = pV3AddressToPModelsAddress(source.BillingAddress)
+		customerCustomerMutate.BillingAddress = pModelsAddressToPModelsAddress(source.BillingAddress)
 		pModelsMetadata, err := ConvertLabelsToMetadata(source.Labels)
 		if err != nil {
 			return customerCustomerMutate, err
@@ -61,72 +61,54 @@ func init() {
 		customerCustomerMutate.Metadata = pModelsMetadata
 		return customerCustomerMutate, nil
 	}
-	ToAPIBillingCustomer = func(source customer.Customer) v3.BillingCustomer {
-		var v3BillingCustomer v3.BillingCustomer
-		v3BillingCustomer.BillingAddress = pModelsAddressToPV3Address(source.BillingAddress)
-		v3BillingCustomer.CreatedAt = timeTimeToTimeTime(source.ManagedResource.ManagedModel.CreatedAt)
+	ToAPIBillingCustomer = func(source customer.Customer) models.BillingCustomer {
+		var modelsBillingCustomer models.BillingCustomer
+		modelsBillingCustomer.BillingAddress = pModelsAddressToPModelsAddress2(source.BillingAddress)
+		modelsBillingCustomer.CreatedAt = timeTimeToTimeTime(source.ManagedResource.ManagedModel.CreatedAt)
 		if source.Currency != nil {
 			xstring := string(*source.Currency)
-			v3BillingCustomer.Currency = &xstring
+			modelsBillingCustomer.Currency = &xstring
 		}
-		v3BillingCustomer.DeletedAt = source.ManagedResource.ManagedModel.DeletedAt
-		v3BillingCustomer.Description = source.ManagedResource.Description
-		v3BillingCustomer.Id = source.ManagedResource.ID
+		modelsBillingCustomer.DeletedAt = source.ManagedResource.ManagedModel.DeletedAt
+		modelsBillingCustomer.Description = source.ManagedResource.Description
+		modelsBillingCustomer.Id = source.ManagedResource.ID
 		if source.Key != nil {
-			v3BillingCustomer.Key = *source.Key
+			modelsBillingCustomer.Key = *source.Key
 		}
-		v3BillingCustomer.Labels = ConvertMetadataAnnotationsToLabels(source)
-		v3BillingCustomer.Name = source.ManagedResource.Name
-		v3BillingCustomer.PrimaryEmail = source.PrimaryEmail
-		v3BillingCustomer.UpdatedAt = timeTimeToTimeTime(source.ManagedResource.ManagedModel.UpdatedAt)
-		v3BillingCustomer.UsageAttribution = pCustomerCustomerUsageAttributionToPV3BillingCustomerUsageAttribution(source.UsageAttribution)
-		return v3BillingCustomer
+		modelsBillingCustomer.Labels = ConvertMetadataAnnotationsToLabels(source)
+		modelsBillingCustomer.Name = source.ManagedResource.Name
+		modelsBillingCustomer.PrimaryEmail = source.PrimaryEmail
+		modelsBillingCustomer.UpdatedAt = timeTimeToTimeTime(source.ManagedResource.ManagedModel.UpdatedAt)
+		modelsBillingCustomer.UsageAttribution = pCustomerCustomerUsageAttributionToPModelsBillingCustomerUsageAttribution(source.UsageAttribution)
+		return modelsBillingCustomer
 	}
-	ToAPICustomerPagePaginatedResponse = func(source response.PagePaginationResponse[customer.Customer]) v3.CustomerPagePaginatedResponse {
-		var v3CustomerPagePaginatedResponse v3.CustomerPagePaginatedResponse
+	ToAPICustomerPagePaginatedResponse = func(source response.PagePaginationResponse[customer.Customer]) models.CustomerPagePaginatedResponse {
+		var modelsCustomerPagePaginatedResponse models.CustomerPagePaginatedResponse
 		if source.Data != nil {
-			v3CustomerPagePaginatedResponse.Data = make([]v3.BillingCustomer, len(source.Data))
+			modelsCustomerPagePaginatedResponse.Data = make([]models.BillingCustomer, len(source.Data))
 			for i := 0; i < len(source.Data); i++ {
-				v3CustomerPagePaginatedResponse.Data[i] = ToAPIBillingCustomer(source.Data[i])
+				modelsCustomerPagePaginatedResponse.Data[i] = ToAPIBillingCustomer(source.Data[i])
 			}
 		}
-		v3CustomerPagePaginatedResponse.Meta = responsePageMetaToV3PaginatedMeta(source.Meta)
-		return v3CustomerPagePaginatedResponse
+		modelsCustomerPagePaginatedResponse.Meta = responsePageMetaToModelsPaginatedMeta(source.Meta)
+		return modelsCustomerPagePaginatedResponse
 	}
 }
-func pCustomerCustomerUsageAttributionToPV3BillingCustomerUsageAttribution(source *customer.CustomerUsageAttribution) *v3.BillingCustomerUsageAttribution {
-	var pV3BillingCustomerUsageAttribution *v3.BillingCustomerUsageAttribution
+func pCustomerCustomerUsageAttributionToPModelsBillingCustomerUsageAttribution(source *customer.CustomerUsageAttribution) *models.BillingCustomerUsageAttribution {
+	var pModelsBillingCustomerUsageAttribution *models.BillingCustomerUsageAttribution
 	if source != nil {
-		var v3BillingCustomerUsageAttribution v3.BillingCustomerUsageAttribution
-		v3BillingCustomerUsageAttribution.SubjectKeys = (*source).SubjectKeys
-		pV3BillingCustomerUsageAttribution = &v3BillingCustomerUsageAttribution
+		var modelsBillingCustomerUsageAttribution models.BillingCustomerUsageAttribution
+		modelsBillingCustomerUsageAttribution.SubjectKeys = (*source).SubjectKeys
+		pModelsBillingCustomerUsageAttribution = &modelsBillingCustomerUsageAttribution
 	}
-	return pV3BillingCustomerUsageAttribution
+	return pModelsBillingCustomerUsageAttribution
 }
-func pModelsAddressToPV3Address(source *models.Address) *v3.Address {
-	var pV3Address *v3.Address
+func pModelsAddressToPModelsAddress(source *models.Address) *models1.Address {
+	var pModelsAddress *models1.Address
 	if source != nil {
-		var v3Address v3.Address
-		v3Address.City = (*source).City
+		var modelsAddress models1.Address
 		if (*source).Country != nil {
-			xstring := string(*(*source).Country)
-			v3Address.Country = &xstring
-		}
-		v3Address.Line1 = (*source).Line1
-		v3Address.Line2 = (*source).Line2
-		v3Address.PhoneNumber = (*source).PhoneNumber
-		v3Address.PostalCode = (*source).PostalCode
-		v3Address.State = (*source).State
-		pV3Address = &v3Address
-	}
-	return pV3Address
-}
-func pV3AddressToPModelsAddress(source *v3.Address) *models.Address {
-	var pModelsAddress *models.Address
-	if source != nil {
-		var modelsAddress models.Address
-		if (*source).Country != nil {
-			modelsCountryCode := models.CountryCode(*(*source).Country)
+			modelsCountryCode := models1.CountryCode(*(*source).Country)
 			modelsAddress.Country = &modelsCountryCode
 		}
 		modelsAddress.PostalCode = (*source).PostalCode
@@ -139,7 +121,25 @@ func pV3AddressToPModelsAddress(source *v3.Address) *models.Address {
 	}
 	return pModelsAddress
 }
-func pV3BillingCustomerUsageAttributionToPCustomerCustomerUsageAttribution(source *v3.BillingCustomerUsageAttribution) *customer.CustomerUsageAttribution {
+func pModelsAddressToPModelsAddress2(source *models1.Address) *models.Address {
+	var pModelsAddress *models.Address
+	if source != nil {
+		var modelsAddress models.Address
+		modelsAddress.City = (*source).City
+		if (*source).Country != nil {
+			xstring := string(*(*source).Country)
+			modelsAddress.Country = &xstring
+		}
+		modelsAddress.Line1 = (*source).Line1
+		modelsAddress.Line2 = (*source).Line2
+		modelsAddress.PhoneNumber = (*source).PhoneNumber
+		modelsAddress.PostalCode = (*source).PostalCode
+		modelsAddress.State = (*source).State
+		pModelsAddress = &modelsAddress
+	}
+	return pModelsAddress
+}
+func pModelsBillingCustomerUsageAttributionToPCustomerCustomerUsageAttribution(source *models.BillingCustomerUsageAttribution) *customer.CustomerUsageAttribution {
 	var pCustomerCustomerUsageAttribution *customer.CustomerUsageAttribution
 	if source != nil {
 		var customerCustomerUsageAttribution customer.CustomerUsageAttribution
@@ -148,19 +148,19 @@ func pV3BillingCustomerUsageAttributionToPCustomerCustomerUsageAttribution(sourc
 	}
 	return pCustomerCustomerUsageAttribution
 }
-func responsePageMetaPageToV3PageMeta(source response.PageMetaPage) v3.PageMeta {
-	var v3PageMeta v3.PageMeta
-	v3PageMeta.Number = IntToFloat32(source.Number)
-	v3PageMeta.Size = IntToFloat32(source.Size)
+func responsePageMetaPageToModelsPageMeta(source response.PageMetaPage) models.PageMeta {
+	var modelsPageMeta models.PageMeta
+	modelsPageMeta.Number = IntToFloat32(source.Number)
+	modelsPageMeta.Size = IntToFloat32(source.Size)
 	if source.Total != nil {
-		v3PageMeta.Total = IntToFloat32(*source.Total)
+		modelsPageMeta.Total = IntToFloat32(*source.Total)
 	}
-	return v3PageMeta
+	return modelsPageMeta
 }
-func responsePageMetaToV3PaginatedMeta(source response.PageMeta) v3.PaginatedMeta {
-	var v3PaginatedMeta v3.PaginatedMeta
-	v3PaginatedMeta.Page = responsePageMetaPageToV3PageMeta(source.Page)
-	return v3PaginatedMeta
+func responsePageMetaToModelsPaginatedMeta(source response.PageMeta) models.PaginatedMeta {
+	var modelsPaginatedMeta models.PaginatedMeta
+	modelsPaginatedMeta.Page = responsePageMetaPageToModelsPageMeta(source.Page)
+	return modelsPaginatedMeta
 }
 func timeTimeToTimeTime(source time.Time) time.Time {
 	return source

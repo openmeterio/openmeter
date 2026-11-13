@@ -1,0 +1,10 @@
+package: models
+output: models/models.gen.go
+generate:
+  models: true
+compatibility:
+  disable-required-readonly-as-pointer: true
+  always-prefix-enum-values: true
+output-options:
+  skip-prune: true
+  nullable-type: true

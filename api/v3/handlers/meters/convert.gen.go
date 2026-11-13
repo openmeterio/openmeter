@@ -4,14 +4,14 @@
 package meters
 
 import (
-	v3 "github.com/openmeterio/openmeter/api/v3"
+	models "github.com/openmeterio/openmeter/api/v3/models"
 	response "github.com/openmeterio/openmeter/api/v3/response"
 	meter "github.com/openmeterio/openmeter/openmeter/meter"
 	"time"
 )
 
 func init() {
-	FromAPICreateMeterRequest = func(context string, source v3.CreateMeterRequest) (meter.CreateMeterInput, error) {
+	FromAPICreateMeterRequest = func(context string, source models.CreateMeterRequest) (meter.CreateMeterInput, error) {
 		var meterCreateMeterInput meter.CreateMeterInput
 		meterCreateMeterInput.Namespace = NamespaceFromContext(context)
 		meterCreateMeterInput.Name = source.Name
@@ -31,48 +31,48 @@ func init() {
 		meterCreateMeterInput.Metadata = modelsMetadata
 		return meterCreateMeterInput, nil
 	}
-	ToAPIMeter = func(source meter.Meter) v3.Meter {
-		var v3Meter v3.Meter
-		v3Meter.Aggregation = ToAPIMeterAggregation(source.Aggregation)
-		v3Meter.CreatedAt = timeTimeToTimeTime(source.ManagedResource.ManagedModel.CreatedAt)
-		v3Meter.DeletedAt = source.ManagedResource.ManagedModel.DeletedAt
-		v3Meter.Description = source.ManagedResource.Description
-		v3Meter.Dimensions = &source.GroupBy
-		v3Meter.EventType = source.EventType
-		v3Meter.EventsFrom = source.EventFrom
-		v3Meter.Id = source.ManagedResource.ID
-		v3Meter.Key = source.Key
-		v3Meter.Labels = ConvertMetadataAnnotationsToLabels(source)
-		v3Meter.Name = source.ManagedResource.Name
-		v3Meter.UpdatedAt = timeTimeToTimeTime(source.ManagedResource.ManagedModel.UpdatedAt)
-		v3Meter.ValueProperty = source.ValueProperty
-		return v3Meter
+	ToAPIMeter = func(source meter.Meter) models.Meter {
+		var modelsMeter models.Meter
+		modelsMeter.Aggregation = ToAPIMeterAggregation(source.Aggregation)
+		modelsMeter.CreatedAt = timeTimeToTimeTime(source.ManagedResource.ManagedModel.CreatedAt)
+		modelsMeter.DeletedAt = source.ManagedResource.ManagedModel.DeletedAt
+		modelsMeter.Description = source.ManagedResource.Description
+		modelsMeter.Dimensions = &source.GroupBy
+		modelsMeter.EventType = source.EventType
+		modelsMeter.EventsFrom = source.EventFrom
+		modelsMeter.Id = source.ManagedResource.ID
+		modelsMeter.Key = source.Key
+		modelsMeter.Labels = ConvertMetadataAnnotationsToLabels(source)
+		modelsMeter.Name = source.ManagedResource.Name
+		modelsMeter.UpdatedAt = timeTimeToTimeTime(source.ManagedResource.ManagedModel.UpdatedAt)
+		modelsMeter.ValueProperty = source.ValueProperty
+		return modelsMeter
 	}
-	ToAPIMeterPagePaginatedResponse = func(source response.PagePaginationResponse[meter.Meter]) v3.MeterPagePaginatedResponse {
-		var v3MeterPagePaginatedResponse v3.MeterPagePaginatedResponse
+	ToAPIMeterPagePaginatedResponse = func(source response.PagePaginationResponse[meter.Meter]) models.MeterPagePaginatedResponse {
+		var modelsMeterPagePaginatedResponse models.MeterPagePaginatedResponse
 		if source.Data != nil {
-			v3MeterPagePaginatedResponse.Data = make([]v3.Meter, len(source.Data))
+			modelsMeterPagePaginatedResponse.Data = make([]models.Meter, len(source.Data))
 			for i := 0; i < len(source.Data); i++ {
-				v3MeterPagePaginatedResponse.Data[i] = ToAPIMeter(source.Data[i])
+				modelsMeterPagePaginatedResponse.Data[i] = ToAPIMeter(source.Data[i])
 			}
 		}
-		v3MeterPagePaginatedResponse.Meta = responsePageMetaToV3PaginatedMeta(source.Meta)
-		return v3MeterPagePaginatedResponse
+		modelsMeterPagePaginatedResponse.Meta = responsePageMetaToModelsPaginatedMeta(source.Meta)
+		return modelsMeterPagePaginatedResponse
 	}
 }
-func responsePageMetaPageToV3PageMeta(source response.PageMetaPage) v3.PageMeta {
-	var v3PageMeta v3.PageMeta
-	v3PageMeta.Number = IntToFloat32(source.Number)
-	v3PageMeta.Size = IntToFloat32(source.Size)
+func responsePageMetaPageToModelsPageMeta(source response.PageMetaPage) models.PageMeta {
+	var modelsPageMeta models.PageMeta
+	modelsPageMeta.Number = IntToFloat32(source.Number)
+	modelsPageMeta.Size = IntToFloat32(source.Size)
 	if source.Total != nil {
-		v3PageMeta.Total = IntToFloat32(*source.Total)
+		modelsPageMeta.Total = IntToFloat32(*source.Total)
 	}
-	return v3PageMeta
+	return modelsPageMeta
 }
-func responsePageMetaToV3PaginatedMeta(source response.PageMeta) v3.PaginatedMeta {
-	var v3PaginatedMeta v3.PaginatedMeta
-	v3PaginatedMeta.Page = responsePageMetaPageToV3PageMeta(source.Page)
-	return v3PaginatedMeta
+func responsePageMetaToModelsPaginatedMeta(source response.PageMeta) models.PaginatedMeta {
+	var modelsPaginatedMeta models.PaginatedMeta
+	modelsPaginatedMeta.Page = responsePageMetaPageToModelsPageMeta(source.Page)
+	return modelsPaginatedMeta
 }
 func timeTimeToTimeTime(source time.Time) time.Time {
 	return source
