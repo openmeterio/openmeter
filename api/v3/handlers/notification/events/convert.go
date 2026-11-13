@@ -10,7 +10,7 @@ import (
 
 	"github.com/samber/lo"
 
-	v1api "github.com/openmeterio/openmeter/api"
+	apimodels "github.com/openmeterio/openmeter/api/models"
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/openmeter/notification"
@@ -72,15 +72,15 @@ func ToAPIBillingNotificationEventDeliveryState(v notification.EventDeliveryStat
 // The stored value is the v1 API model, where `NUMBER` and `PERCENT` are deprecated
 // aliases of `usage_value` and `usage_percentage`; events written before the rename
 // must not leak the legacy spelling.
-func ToAPIBillingNotificationBalanceThresholdType(v v1api.NotificationRuleBalanceThresholdValueType) (api.BillingNotificationBalanceThresholdType, error) {
+func ToAPIBillingNotificationBalanceThresholdType(v apimodels.NotificationRuleBalanceThresholdValueType) (api.BillingNotificationBalanceThresholdType, error) {
 	switch v {
-	case v1api.NotificationRuleBalanceThresholdValueTypeBalanceValue:
+	case apimodels.NotificationRuleBalanceThresholdValueTypeBalanceValue:
 		return api.BillingNotificationBalanceThresholdTypeBalanceValue, nil
-	case v1api.NotificationRuleBalanceThresholdValueTypeUsagePercentage,
-		v1api.NotificationRuleBalanceThresholdValueTypePercent:
+	case apimodels.NotificationRuleBalanceThresholdValueTypeUsagePercentage,
+		apimodels.NotificationRuleBalanceThresholdValueTypePercent:
 		return api.BillingNotificationBalanceThresholdTypeUsagePercentage, nil
-	case v1api.NotificationRuleBalanceThresholdValueTypeUsageValue,
-		v1api.NotificationRuleBalanceThresholdValueTypeNumber:
+	case apimodels.NotificationRuleBalanceThresholdValueTypeUsageValue,
+		apimodels.NotificationRuleBalanceThresholdValueTypeNumber:
 		return api.BillingNotificationBalanceThresholdTypeUsageValue, nil
 	default:
 		return "", fmt.Errorf("invalid notification balance threshold type: %s", v)

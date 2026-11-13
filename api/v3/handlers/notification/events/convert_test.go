@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	v1api "github.com/openmeterio/openmeter/api"
+	apimodels "github.com/openmeterio/openmeter/api/models"
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/notification/httpdriver"
@@ -101,14 +101,14 @@ func TestDeliveryStateCasing(t *testing.T) {
 
 func TestToAPIBillingNotificationBalanceThresholdType(t *testing.T) {
 	testCases := []struct {
-		in   v1api.NotificationRuleBalanceThresholdValueType
+		in   apimodels.NotificationRuleBalanceThresholdValueType
 		want api.BillingNotificationBalanceThresholdType
 	}{
-		{v1api.NotificationRuleBalanceThresholdValueTypeBalanceValue, api.BillingNotificationBalanceThresholdTypeBalanceValue},
-		{v1api.NotificationRuleBalanceThresholdValueTypeUsagePercentage, api.BillingNotificationBalanceThresholdTypeUsagePercentage},
-		{v1api.NotificationRuleBalanceThresholdValueTypeUsageValue, api.BillingNotificationBalanceThresholdTypeUsageValue},
-		{v1api.NotificationRuleBalanceThresholdValueTypePercent, api.BillingNotificationBalanceThresholdTypeUsagePercentage},
-		{v1api.NotificationRuleBalanceThresholdValueTypeNumber, api.BillingNotificationBalanceThresholdTypeUsageValue},
+		{apimodels.NotificationRuleBalanceThresholdValueTypeBalanceValue, api.BillingNotificationBalanceThresholdTypeBalanceValue},
+		{apimodels.NotificationRuleBalanceThresholdValueTypeUsagePercentage, api.BillingNotificationBalanceThresholdTypeUsagePercentage},
+		{apimodels.NotificationRuleBalanceThresholdValueTypeUsageValue, api.BillingNotificationBalanceThresholdTypeUsageValue},
+		{apimodels.NotificationRuleBalanceThresholdValueTypePercent, api.BillingNotificationBalanceThresholdTypeUsagePercentage},
+		{apimodels.NotificationRuleBalanceThresholdValueTypeNumber, api.BillingNotificationBalanceThresholdTypeUsageValue},
 	}
 
 	for _, tc := range testCases {
@@ -120,7 +120,7 @@ func TestToAPIBillingNotificationBalanceThresholdType(t *testing.T) {
 	}
 
 	t.Run("unknown value is rejected", func(t *testing.T) {
-		_, err := ToAPIBillingNotificationBalanceThresholdType(v1api.NotificationRuleBalanceThresholdValueType("nonsense"))
+		_, err := ToAPIBillingNotificationBalanceThresholdType(apimodels.NotificationRuleBalanceThresholdValueType("nonsense"))
 		require.Error(t, err)
 	})
 }
@@ -205,15 +205,15 @@ func TestToAPIBillingNotificationEventPayloadFieldNames(t *testing.T) {
 		Payload: notification.EventPayload{
 			EventPayloadMeta: notification.EventPayloadMeta{Type: notification.EventTypeEntitlementReset},
 			EntitlementReset: &notification.EntitlementResetPayload{
-				Entitlement: v1api.EntitlementMetered{Id: "01ARZ3NDEKTSV4RRFFQ69G5FAX", IsSoftLimit: lo.ToPtr(true)},
-				Feature: v1api.Feature{
+				Entitlement: apimodels.EntitlementMetered{Id: "01ARZ3NDEKTSV4RRFFQ69G5FAX", IsSoftLimit: lo.ToPtr(true)},
+				Feature: apimodels.Feature{
 					Id:                  "01ARZ3NDEKTSV4RRFFQ69G5FAY",
 					Key:                 "gpt4_tokens",
-					Metadata:            &v1api.Metadata{"someKey": "value"},
+					Metadata:            &apimodels.Metadata{"someKey": "value"},
 					MeterGroupByFilters: &map[string]string{"modelName": "gpt-4"},
 				},
-				Subject: v1api.Subject{Key: "customer-1", DisplayName: lo.ToPtr("Customer 1")},
-				Value:   v1api.EntitlementValue{HasAccess: true, Balance: lo.ToPtr(100.0)},
+				Subject: apimodels.Subject{Key: "customer-1", DisplayName: lo.ToPtr("Customer 1")},
+				Value:   apimodels.EntitlementValue{HasAccess: true, Balance: lo.ToPtr(100.0)},
 			},
 		},
 	}
@@ -302,7 +302,7 @@ func legacyFixtureEvents(t *testing.T, name string, raw json.RawMessage) []notif
 
 	switch {
 	case strings.HasPrefix(name, "invoice_"):
-		var invoice v1api.Invoice
+		var invoice apimodels.Invoice
 		require.NoError(t, json.Unmarshal(raw, &invoice))
 
 		payload := notification.EventPayload{Invoice: &notification.InvoicePayload{Invoice: invoice}}
@@ -312,7 +312,7 @@ func legacyFixtureEvents(t *testing.T, name string, raw json.RawMessage) []notif
 			withType(notification.EventTypeInvoiceUpdated, payload),
 		}
 	case strings.HasPrefix(name, "balance_threshold_"):
-		var data v1api.NotificationEventBalanceThresholdPayloadData
+		var data apimodels.NotificationEventBalanceThresholdPayloadData
 		require.NoError(t, json.Unmarshal(raw, &data))
 
 		return []notification.Event{
@@ -330,7 +330,7 @@ func legacyFixtureEvents(t *testing.T, name string, raw json.RawMessage) []notif
 			}),
 		}
 	case strings.HasPrefix(name, "entitlement_reset_"):
-		var data v1api.NotificationEventEntitlementValuePayloadBase
+		var data apimodels.NotificationEventEntitlementValuePayloadBase
 		require.NoError(t, json.Unmarshal(raw, &data))
 
 		return []notification.Event{
