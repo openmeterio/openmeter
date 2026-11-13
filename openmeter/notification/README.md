@@ -230,6 +230,34 @@ Testing a rule is not a dry-run. It creates a normal persisted notification
 event, marked with the `notification.rule.test` annotation, and its delivery
 statuses enter the same reconciliation flow.
 
+### Legacy payloads on the v3 API
+
+The v3 Event endpoints return the legacy Event types (`invoice.created`,
+`invoice.updated`, `entitlements.balance.threshold`, `entitlements.reset`) with
+the same content as v1, so clients moving to v3 don't lose data. The v3 spec
+can't import the legacy TypeSpec program, so
+[`legacy-v1.tsp`](../../api/spec/packages/aip/src/notifications/legacy-v1.tsp)
+holds copies of the v1 models these payloads use (`BillingNotificationEventV1*`).
+The [v3 handler](../../api/v3/handlers/notification/events/convert.go) builds
+the payload with the v1 mapping and only renames fields to snake_case, so v1
+and v3 can't drift apart.
+
+When changing the copies:
+
+- Match what the v1 mapper sends, not the v1 schema. The copies only appear in
+  responses, so they have no defaults or request-only key patterns, and they
+  leave out union variants the mapper never sends.
+- Keep the v1 enum spellings, including the deprecated `PERCENT` and `NUMBER`
+  threshold types.
+- Keep `metadata` and `annotations` instead of v3 `labels`. Labels are
+  validated string-to-string maps, so converting would drop non-string
+  annotation values and any key or value that fails label validation, and
+  would add the `openmeter_` prefix to annotation keys. Keys of these maps are
+  user data and keep their case.
+
+Event types built from v3 models use `labels`; the copies exist only for these
+legacy types.
+
 ## Delivery lifecycle
 
 Delivery is tracked independently for each channel:
