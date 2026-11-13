@@ -69,6 +69,7 @@ func TestInvoiceNotificationPayload(t *testing.T) {
 		})
 		lines = append(lines, line)
 	}
+
 	lines[0].CreditsApplied = billing.CreditsApplied{{Amount: alpacadecimal.NewFromInt(2), Description: "credit grant"}}
 	updated.Invoice.Lines = billing.NewStandardInvoiceLines(lines)
 	updated.Invoice.CollectionAt = &period.To
