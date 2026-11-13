@@ -5,117 +5,117 @@ package apps
 
 import (
 	"fmt"
-	v3 "github.com/openmeterio/openmeter/api/v3"
+	models "github.com/openmeterio/openmeter/api/v3/models"
 	response "github.com/openmeterio/openmeter/api/v3/response"
 	app "github.com/openmeterio/openmeter/openmeter/app"
 )
 
 func init() {
-	ToAPIAppPagePaginatedResponse = func(source response.PagePaginationResponse[v3.BillingApp]) v3.AppPagePaginatedResponse {
-		var v3AppPagePaginatedResponse v3.AppPagePaginatedResponse
-		v3AppPagePaginatedResponse.Data = source.Data
-		v3AppPagePaginatedResponse.Meta = responsePageMetaToV3PaginatedMeta(source.Meta)
-		return v3AppPagePaginatedResponse
+	ToAPIAppPagePaginatedResponse = func(source response.PagePaginationResponse[models.BillingApp]) models.AppPagePaginatedResponse {
+		var modelsAppPagePaginatedResponse models.AppPagePaginatedResponse
+		modelsAppPagePaginatedResponse.Data = source.Data
+		modelsAppPagePaginatedResponse.Meta = responsePageMetaToModelsPaginatedMeta(source.Meta)
+		return modelsAppPagePaginatedResponse
 	}
-	ToAPIBillingAppCapabilityTypeFromCapabilityType = func(source app.CapabilityType) (v3.BillingAppCapabilityType, error) {
-		var v3BillingAppCapabilityType v3.BillingAppCapabilityType
+	ToAPIBillingAppCapabilityTypeFromCapabilityType = func(source app.CapabilityType) (models.BillingAppCapabilityType, error) {
+		var modelsBillingAppCapabilityType models.BillingAppCapabilityType
 		switch source {
 		case app.CapabilityTypeCalculateTax:
-			v3BillingAppCapabilityType = v3.BillingAppCapabilityTypeCalculateTax
+			modelsBillingAppCapabilityType = models.BillingAppCapabilityTypeCalculateTax
 		case app.CapabilityTypeCollectPayments:
-			v3BillingAppCapabilityType = v3.BillingAppCapabilityTypeCollectPayments
+			modelsBillingAppCapabilityType = models.BillingAppCapabilityTypeCollectPayments
 		case app.CapabilityTypeInvoiceCustomers:
-			v3BillingAppCapabilityType = v3.BillingAppCapabilityTypeInvoiceCustomers
+			modelsBillingAppCapabilityType = models.BillingAppCapabilityTypeInvoiceCustomers
 		case app.CapabilityTypeReportEvents:
-			v3BillingAppCapabilityType = v3.BillingAppCapabilityTypeReportEvents
+			modelsBillingAppCapabilityType = models.BillingAppCapabilityTypeReportEvents
 		case app.CapabilityTypeReportUsage:
-			v3BillingAppCapabilityType = v3.BillingAppCapabilityTypeReportUsage
+			modelsBillingAppCapabilityType = models.BillingAppCapabilityTypeReportUsage
 		default:
-			return v3BillingAppCapabilityType, fmt.Errorf("unexpected enum element: %v", source)
+			return modelsBillingAppCapabilityType, fmt.Errorf("unexpected enum element: %v", source)
 		}
-		return v3BillingAppCapabilityType, nil
+		return modelsBillingAppCapabilityType, nil
 	}
-	ToAPIBillingAppCatalogItem = func(source app.MarketplaceListing) (v3.BillingAppCatalogItem, error) {
-		var v3BillingAppCatalogItem v3.BillingAppCatalogItem
+	ToAPIBillingAppCatalogItem = func(source app.MarketplaceListing) (models.BillingAppCatalogItem, error) {
+		var modelsBillingAppCatalogItem models.BillingAppCatalogItem
 		if source.Capabilities != nil {
-			v3BillingAppCatalogItem.Capabilities = make([]v3.BillingAppCapability, len(source.Capabilities))
+			modelsBillingAppCatalogItem.Capabilities = make([]models.BillingAppCapability, len(source.Capabilities))
 			for i := 0; i < len(source.Capabilities); i++ {
-				v3BillingAppCapability, err := appCapabilityToV3BillingAppCapability(source.Capabilities[i])
+				modelsBillingAppCapability, err := appCapabilityToModelsBillingAppCapability(source.Capabilities[i])
 				if err != nil {
-					return v3BillingAppCatalogItem, err
+					return modelsBillingAppCatalogItem, err
 				}
-				v3BillingAppCatalogItem.Capabilities[i] = v3BillingAppCapability
+				modelsBillingAppCatalogItem.Capabilities[i] = modelsBillingAppCapability
 			}
 		}
-		v3BillingAppCatalogItem.Description = source.Description
+		modelsBillingAppCatalogItem.Description = source.Description
 		if source.InstallMethods != nil {
-			v3BillingAppCatalogItem.InstallMethods = make([]v3.BillingAppInstallMethods, len(source.InstallMethods))
+			modelsBillingAppCatalogItem.InstallMethods = make([]models.BillingAppInstallMethods, len(source.InstallMethods))
 			for j := 0; j < len(source.InstallMethods); j++ {
-				v3BillingAppInstallMethods, err := ToAPIBillingAppInstallMethodsFromInstallMethod(source.InstallMethods[j])
+				modelsBillingAppInstallMethods, err := ToAPIBillingAppInstallMethodsFromInstallMethod(source.InstallMethods[j])
 				if err != nil {
-					return v3BillingAppCatalogItem, err
+					return modelsBillingAppCatalogItem, err
 				}
-				v3BillingAppCatalogItem.InstallMethods[j] = v3BillingAppInstallMethods
+				modelsBillingAppCatalogItem.InstallMethods[j] = modelsBillingAppInstallMethods
 			}
 		}
-		v3BillingAppCatalogItem.Name = source.Name
-		v3BillingAppType, err := ToAPIBillingAppTypeFromDomain(source.Type)
+		modelsBillingAppCatalogItem.Name = source.Name
+		modelsBillingAppType, err := ToAPIBillingAppTypeFromDomain(source.Type)
 		if err != nil {
-			return v3BillingAppCatalogItem, err
+			return modelsBillingAppCatalogItem, err
 		}
-		v3BillingAppCatalogItem.Type = v3BillingAppType
-		return v3BillingAppCatalogItem, nil
+		modelsBillingAppCatalogItem.Type = modelsBillingAppType
+		return modelsBillingAppCatalogItem, nil
 	}
-	ToAPIBillingAppInstallMethodsFromInstallMethod = func(source app.InstallMethod) (v3.BillingAppInstallMethods, error) {
-		var v3BillingAppInstallMethods v3.BillingAppInstallMethods
+	ToAPIBillingAppInstallMethodsFromInstallMethod = func(source app.InstallMethod) (models.BillingAppInstallMethods, error) {
+		var modelsBillingAppInstallMethods models.BillingAppInstallMethods
 		switch source {
 		case app.InstallMethodAPIKey:
-			v3BillingAppInstallMethods = v3.BillingAppInstallMethodsWithApiKey
+			modelsBillingAppInstallMethods = models.BillingAppInstallMethodsWithApiKey
 		case app.InstallMethodNoCredentials:
-			v3BillingAppInstallMethods = v3.BillingAppInstallMethodsNoCredentialsRequired
+			modelsBillingAppInstallMethods = models.BillingAppInstallMethodsNoCredentialsRequired
 		case app.InstallMethodOAuth2:
-			v3BillingAppInstallMethods = v3.BillingAppInstallMethodsWithOauth2
+			modelsBillingAppInstallMethods = models.BillingAppInstallMethodsWithOauth2
 		default:
-			return v3BillingAppInstallMethods, fmt.Errorf("unexpected enum element: %v", source)
+			return modelsBillingAppInstallMethods, fmt.Errorf("unexpected enum element: %v", source)
 		}
-		return v3BillingAppInstallMethods, nil
+		return modelsBillingAppInstallMethods, nil
 	}
-	ToAPIBillingAppTypeFromDomain = func(source app.AppType) (v3.BillingAppType, error) {
-		var v3BillingAppType v3.BillingAppType
+	ToAPIBillingAppTypeFromDomain = func(source app.AppType) (models.BillingAppType, error) {
+		var modelsBillingAppType models.BillingAppType
 		switch source {
 		case app.AppTypeCustomInvoicing:
-			v3BillingAppType = v3.BillingAppTypeExternalInvoicing
+			modelsBillingAppType = models.BillingAppTypeExternalInvoicing
 		case app.AppTypeSandbox:
-			v3BillingAppType = v3.BillingAppTypeSandbox
+			modelsBillingAppType = models.BillingAppTypeSandbox
 		case app.AppTypeStripe:
-			v3BillingAppType = v3.BillingAppTypeStripe
+			modelsBillingAppType = models.BillingAppTypeStripe
 		default:
-			return v3BillingAppType, fmt.Errorf("unexpected enum element: %v", source)
+			return modelsBillingAppType, fmt.Errorf("unexpected enum element: %v", source)
 		}
-		return v3BillingAppType, nil
+		return modelsBillingAppType, nil
 	}
-	ToAPIBillingApps = func(source []app.App) ([]v3.BillingApp, error) {
-		var v3BillingAppList []v3.BillingApp
+	ToAPIBillingApps = func(source []app.App) ([]models.BillingApp, error) {
+		var modelsBillingAppList []models.BillingApp
 		if source != nil {
-			v3BillingAppList = make([]v3.BillingApp, len(source))
+			modelsBillingAppList = make([]models.BillingApp, len(source))
 			for i := 0; i < len(source); i++ {
-				v3BillingApp, err := ToAPIBillingApp(source[i])
+				modelsBillingApp, err := ToAPIBillingApp(source[i])
 				if err != nil {
 					return nil, err
 				}
-				v3BillingAppList[i] = v3BillingApp
+				modelsBillingAppList[i] = modelsBillingApp
 			}
 		}
-		return v3BillingAppList, nil
+		return modelsBillingAppList, nil
 	}
-	ToDomainAppTypeFromAPIBillingAppType = func(source v3.BillingAppType) (app.AppType, error) {
+	ToDomainAppTypeFromAPIBillingAppType = func(source models.BillingAppType) (app.AppType, error) {
 		var appAppType app.AppType
 		switch source {
-		case v3.BillingAppTypeExternalInvoicing:
+		case models.BillingAppTypeExternalInvoicing:
 			appAppType = app.AppTypeCustomInvoicing
-		case v3.BillingAppTypeSandbox:
+		case models.BillingAppTypeSandbox:
 			appAppType = app.AppTypeSandbox
-		case v3.BillingAppTypeStripe:
+		case models.BillingAppTypeStripe:
 			appAppType = app.AppTypeStripe
 		default:
 			return appAppType, fmt.Errorf("unexpected enum element: %v", source)
@@ -123,29 +123,29 @@ func init() {
 		return appAppType, nil
 	}
 }
-func appCapabilityToV3BillingAppCapability(source app.Capability) (v3.BillingAppCapability, error) {
-	var v3BillingAppCapability v3.BillingAppCapability
-	v3BillingAppCapability.Description = source.Description
-	v3BillingAppCapability.Key = source.Key
-	v3BillingAppCapability.Name = source.Name
-	v3BillingAppCapabilityType, err := ToAPIBillingAppCapabilityTypeFromCapabilityType(source.Type)
+func appCapabilityToModelsBillingAppCapability(source app.Capability) (models.BillingAppCapability, error) {
+	var modelsBillingAppCapability models.BillingAppCapability
+	modelsBillingAppCapability.Description = source.Description
+	modelsBillingAppCapability.Key = source.Key
+	modelsBillingAppCapability.Name = source.Name
+	modelsBillingAppCapabilityType, err := ToAPIBillingAppCapabilityTypeFromCapabilityType(source.Type)
 	if err != nil {
-		return v3BillingAppCapability, err
+		return modelsBillingAppCapability, err
 	}
-	v3BillingAppCapability.Type = v3BillingAppCapabilityType
-	return v3BillingAppCapability, nil
+	modelsBillingAppCapability.Type = modelsBillingAppCapabilityType
+	return modelsBillingAppCapability, nil
 }
-func responsePageMetaPageToV3PageMeta(source response.PageMetaPage) v3.PageMeta {
-	var v3PageMeta v3.PageMeta
-	v3PageMeta.Number = IntToFloat32(source.Number)
-	v3PageMeta.Size = IntToFloat32(source.Size)
+func responsePageMetaPageToModelsPageMeta(source response.PageMetaPage) models.PageMeta {
+	var modelsPageMeta models.PageMeta
+	modelsPageMeta.Number = IntToFloat32(source.Number)
+	modelsPageMeta.Size = IntToFloat32(source.Size)
 	if source.Total != nil {
-		v3PageMeta.Total = IntToFloat32(*source.Total)
+		modelsPageMeta.Total = IntToFloat32(*source.Total)
 	}
-	return v3PageMeta
+	return modelsPageMeta
 }
-func responsePageMetaToV3PaginatedMeta(source response.PageMeta) v3.PaginatedMeta {
-	var v3PaginatedMeta v3.PaginatedMeta
-	v3PaginatedMeta.Page = responsePageMetaPageToV3PageMeta(source.Page)
-	return v3PaginatedMeta
+func responsePageMetaToModelsPaginatedMeta(source response.PageMeta) models.PaginatedMeta {
+	var modelsPaginatedMeta models.PaginatedMeta
+	modelsPaginatedMeta.Page = responsePageMetaPageToModelsPageMeta(source.Page)
+	return modelsPaginatedMeta
 }

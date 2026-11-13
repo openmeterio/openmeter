@@ -9,6 +9,7 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/app"
+	appconvert "github.com/openmeterio/openmeter/openmeter/app/apiconvert"
 	"github.com/openmeterio/openmeter/openmeter/app/billingprofile"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
@@ -45,7 +46,7 @@ func (h *handler) ListMarketplaceListings() ListMarketplaceListingsHandler {
 				PageSize:   result.Page.PageSize,
 				TotalCount: result.TotalCount,
 				Items: lo.Map(result.Items, func(item app.RegistryItem, _ int) api.MarketplaceListing {
-					return mapMarketplaceListing(item.Listing)
+					return appconvert.ToAPIMarketplaceListing(item.Listing)
 				}),
 			}, nil
 		},
@@ -78,7 +79,7 @@ func (h *handler) GetMarketplaceListing() GetMarketplaceListingHandler {
 				return GetMarketplaceListingResponse{}, fmt.Errorf("failed to get marketplace listing: %w", err)
 			}
 
-			return mapMarketplaceListing(result.Listing), nil
+			return appconvert.ToAPIMarketplaceListing(result.Listing), nil
 		},
 		commonhttp.JSONResponseEncoderWithStatus[GetMarketplaceListingResponse](http.StatusOK),
 		httptransport.AppendOptions(
@@ -231,24 +232,4 @@ func (h *handler) MarketplaceAppInstall() MarketplaceAppInstallHandler {
 			httptransport.WithOperationName("marketplaceAppInstall"),
 		)...,
 	)
-}
-
-// Map marketplace listing to API
-func mapMarketplaceListing(listing app.MarketplaceListing) api.MarketplaceListing {
-	return api.MarketplaceListing{
-		Type:        api.AppType(listing.Type),
-		Name:        listing.Name,
-		Description: listing.Description,
-		Capabilities: lo.Map(listing.Capabilities, func(v app.Capability, _ int) api.AppCapability {
-			return api.AppCapability{
-				Type:        api.AppCapabilityType(v.Type),
-				Key:         v.Key,
-				Name:        v.Name,
-				Description: v.Description,
-			}
-		}),
-		InstallMethods: lo.Map(listing.InstallMethods, func(v app.InstallMethod, _ int) api.InstallMethod {
-			return api.InstallMethod(v)
-		}),
-	}
 }

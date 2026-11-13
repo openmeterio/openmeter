@@ -8,7 +8,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	billinghttp "github.com/openmeterio/openmeter/openmeter/billing/httpdriver"
+	billingconvert "github.com/openmeterio/openmeter/openmeter/billing/apiconvert"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -52,7 +52,7 @@ func (h *InvoiceEventHandler) Handle(ctx context.Context, event billing.EventSta
 		return nil
 	}
 
-	apiInvoice, err := billinghttp.MapEventInvoiceToAPI(event)
+	apiInvoice, err := billingconvert.ToAPIEventInvoice(event)
 	if err != nil {
 		return fmt.Errorf("failed to map event invoice to API: %w", err)
 	}

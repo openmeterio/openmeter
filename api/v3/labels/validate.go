@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"regexp"
 
-	api "github.com/openmeterio/openmeter/api/v3"
+	api "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/models"
 )

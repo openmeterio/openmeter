@@ -4,14 +4,14 @@ import (
 	"errors"
 	"reflect"
 	"slices"
-
-	api "github.com/openmeterio/openmeter/api"
-	apiv3 "github.com/openmeterio/openmeter/api/v3"
 )
 
+//go:generate go run generate_module_path.go
+
+// Use package paths so callers can classify errors without importing the HTTP servers.
 var apiErrorPackages = []string{
-	reflect.TypeOf(api.InvalidParamFormatError{}).PkgPath(),
-	reflect.TypeOf(apiv3.InvalidParamFormatError{}).PkgPath(),
+	modulePath + "/api",
+	modulePath + "/api/v3",
 }
 
 func isAPIError(err error) bool {

@@ -4,17 +4,17 @@
 package apiconverter
 
 import (
-	api "github.com/openmeterio/openmeter/api"
+	models "github.com/openmeterio/openmeter/api/models"
 	filter "github.com/openmeterio/openmeter/pkg/filter"
 )
 
 func init() {
-	ConvertBoolean = func(source api.FilterBoolean) filter.FilterBoolean {
+	ConvertBoolean = func(source models.FilterBoolean) filter.FilterBoolean {
 		var filterFilterBoolean filter.FilterBoolean
 		filterFilterBoolean.Eq = source.Eq
 		return filterFilterBoolean
 	}
-	ConvertBooleanPtr = func(source *api.FilterBoolean) *filter.FilterBoolean {
+	ConvertBooleanPtr = func(source *models.FilterBoolean) *filter.FilterBoolean {
 		var pFilterFilterBoolean *filter.FilterBoolean
 		if source != nil {
 			filterFilterBoolean := ConvertBoolean((*source))
@@ -22,7 +22,7 @@ func init() {
 		}
 		return pFilterFilterBoolean
 	}
-	ConvertFloat = func(source api.FilterFloat) filter.FilterFloat {
+	ConvertFloat = func(source models.FilterFloat) filter.FilterFloat {
 		var filterFilterFloat filter.FilterFloat
 		filterFilterFloat.Eq = source.Eq
 		filterFilterFloat.Ne = source.Ne
@@ -52,7 +52,7 @@ func init() {
 		}
 		return filterFilterFloat
 	}
-	ConvertFloatPtr = func(source *api.FilterFloat) *filter.FilterFloat {
+	ConvertFloatPtr = func(source *models.FilterFloat) *filter.FilterFloat {
 		var pFilterFilterFloat *filter.FilterFloat
 		if source != nil {
 			filterFilterFloat := ConvertFloat((*source))
@@ -60,12 +60,12 @@ func init() {
 		}
 		return pFilterFilterFloat
 	}
-	ConvertIDExact = func(source api.FilterIDExact) filter.FilterString {
+	ConvertIDExact = func(source models.FilterIDExact) filter.FilterString {
 		var filterFilterString filter.FilterString
 		filterFilterString.In = source.In
 		return filterFilterString
 	}
-	ConvertIDExactPtr = func(source *api.FilterIDExact) *filter.FilterString {
+	ConvertIDExactPtr = func(source *models.FilterIDExact) *filter.FilterString {
 		var pFilterFilterString *filter.FilterString
 		if source != nil {
 			filterFilterString := ConvertIDExact((*source))
@@ -73,7 +73,7 @@ func init() {
 		}
 		return pFilterFilterString
 	}
-	ConvertInt = func(source api.FilterInteger) filter.FilterInteger {
+	ConvertInt = func(source models.FilterInteger) filter.FilterInteger {
 		var filterFilterInteger filter.FilterInteger
 		filterFilterInteger.Eq = source.Eq
 		filterFilterInteger.Ne = source.Ne
@@ -103,7 +103,7 @@ func init() {
 		}
 		return filterFilterInteger
 	}
-	ConvertIntPtr = func(source *api.FilterInteger) *filter.FilterInteger {
+	ConvertIntPtr = func(source *models.FilterInteger) *filter.FilterInteger {
 		var pFilterFilterInteger *filter.FilterInteger
 		if source != nil {
 			filterFilterInteger := ConvertInt((*source))
@@ -111,7 +111,7 @@ func init() {
 		}
 		return pFilterFilterInteger
 	}
-	ConvertString = func(source api.FilterString) filter.FilterString {
+	ConvertString = func(source models.FilterString) filter.FilterString {
 		var filterFilterString filter.FilterString
 		filterFilterString.Eq = source.Eq
 		filterFilterString.Ne = source.Ne
@@ -147,7 +147,7 @@ func init() {
 		}
 		return filterFilterString
 	}
-	ConvertStringMap = func(source map[string]api.FilterString) map[string]filter.FilterString {
+	ConvertStringMap = func(source map[string]models.FilterString) map[string]filter.FilterString {
 		var mapStringFilterFilterString map[string]filter.FilterString
 		if source != nil {
 			mapStringFilterFilterString = make(map[string]filter.FilterString, len(source))
@@ -157,7 +157,7 @@ func init() {
 		}
 		return mapStringFilterFilterString
 	}
-	ConvertStringMapPtr = func(source *map[string]api.FilterString) *map[string]filter.FilterString {
+	ConvertStringMapPtr = func(source *map[string]models.FilterString) *map[string]filter.FilterString {
 		var pMapStringFilterFilterString *map[string]filter.FilterString
 		if source != nil {
 			mapStringFilterFilterString := ConvertStringMap((*source))
@@ -165,17 +165,17 @@ func init() {
 		}
 		return pMapStringFilterFilterString
 	}
-	ConvertStringMapToAPIPtr = func(source map[string]filter.FilterString) map[string]api.FilterString {
-		var mapStringApiFilterString map[string]api.FilterString
+	ConvertStringMapToAPIPtr = func(source map[string]filter.FilterString) map[string]models.FilterString {
+		var mapStringModelsFilterString map[string]models.FilterString
 		if source != nil {
-			mapStringApiFilterString = make(map[string]api.FilterString, len(source))
+			mapStringModelsFilterString = make(map[string]models.FilterString, len(source))
 			for key, value := range source {
-				mapStringApiFilterString[key] = filterFilterStringToApiFilterString(value)
+				mapStringModelsFilterString[key] = filterFilterStringToModelsFilterString(value)
 			}
 		}
-		return mapStringApiFilterString
+		return mapStringModelsFilterString
 	}
-	ConvertStringPtr = func(source *api.FilterString) *filter.FilterString {
+	ConvertStringPtr = func(source *models.FilterString) *filter.FilterString {
 		var pFilterFilterString *filter.FilterString
 		if source != nil {
 			filterFilterString := ConvertString((*source))
@@ -183,15 +183,15 @@ func init() {
 		}
 		return pFilterFilterString
 	}
-	ConvertStringToAPI = func(source *filter.FilterString) *api.FilterString {
-		var pApiFilterString *api.FilterString
+	ConvertStringToAPI = func(source *filter.FilterString) *models.FilterString {
+		var pModelsFilterString *models.FilterString
 		if source != nil {
-			apiFilterString := filterFilterStringToApiFilterString((*source))
-			pApiFilterString = &apiFilterString
+			modelsFilterString := filterFilterStringToModelsFilterString((*source))
+			pModelsFilterString = &modelsFilterString
 		}
-		return pApiFilterString
+		return pModelsFilterString
 	}
-	ConvertTime = func(source api.FilterTime) filter.FilterTime {
+	ConvertTime = func(source models.FilterTime) filter.FilterTime {
 		var filterFilterTime filter.FilterTime
 		filterFilterTime.Gt = source.Gt
 		filterFilterTime.Gte = source.Gte
@@ -219,7 +219,7 @@ func init() {
 		}
 		return filterFilterTime
 	}
-	ConvertTimePtr = func(source *api.FilterTime) *filter.FilterTime {
+	ConvertTimePtr = func(source *models.FilterTime) *filter.FilterTime {
 		var pFilterFilterTime *filter.FilterTime
 		if source != nil {
 			filterFilterTime := ConvertTime((*source))
@@ -228,39 +228,39 @@ func init() {
 		return pFilterFilterTime
 	}
 }
-func filterFilterStringToApiFilterString(source filter.FilterString) api.FilterString {
-	var apiFilterString api.FilterString
+func filterFilterStringToModelsFilterString(source filter.FilterString) models.FilterString {
+	var modelsFilterString models.FilterString
 	if source.And != nil {
-		var apiFilterStringList []api.FilterString
+		var modelsFilterStringList []models.FilterString
 		if (*source.And) != nil {
-			apiFilterStringList = make([]api.FilterString, len((*source.And)))
+			modelsFilterStringList = make([]models.FilterString, len((*source.And)))
 			for i := 0; i < len((*source.And)); i++ {
-				apiFilterStringList[i] = filterFilterStringToApiFilterString((*source.And)[i])
+				modelsFilterStringList[i] = filterFilterStringToModelsFilterString((*source.And)[i])
 			}
 		}
-		apiFilterString.And = &apiFilterStringList
+		modelsFilterString.And = &modelsFilterStringList
 	}
-	apiFilterString.Eq = source.Eq
-	apiFilterString.Gt = source.Gt
-	apiFilterString.Gte = source.Gte
-	apiFilterString.Ilike = source.Ilike
-	apiFilterString.In = source.In
-	apiFilterString.Like = source.Like
-	apiFilterString.Lt = source.Lt
-	apiFilterString.Lte = source.Lte
-	apiFilterString.Ne = source.Ne
-	apiFilterString.Nilike = source.Nilike
-	apiFilterString.Nin = source.Nin
-	apiFilterString.Nlike = source.Nlike
+	modelsFilterString.Eq = source.Eq
+	modelsFilterString.Gt = source.Gt
+	modelsFilterString.Gte = source.Gte
+	modelsFilterString.Ilike = source.Ilike
+	modelsFilterString.In = source.In
+	modelsFilterString.Like = source.Like
+	modelsFilterString.Lt = source.Lt
+	modelsFilterString.Lte = source.Lte
+	modelsFilterString.Ne = source.Ne
+	modelsFilterString.Nilike = source.Nilike
+	modelsFilterString.Nin = source.Nin
+	modelsFilterString.Nlike = source.Nlike
 	if source.Or != nil {
-		var apiFilterStringList2 []api.FilterString
+		var modelsFilterStringList2 []models.FilterString
 		if (*source.Or) != nil {
-			apiFilterStringList2 = make([]api.FilterString, len((*source.Or)))
+			modelsFilterStringList2 = make([]models.FilterString, len((*source.Or)))
 			for j := 0; j < len((*source.Or)); j++ {
-				apiFilterStringList2[j] = filterFilterStringToApiFilterString((*source.Or)[j])
+				modelsFilterStringList2[j] = filterFilterStringToModelsFilterString((*source.Or)[j])
 			}
 		}
-		apiFilterString.Or = &apiFilterStringList2
+		modelsFilterString.Or = &modelsFilterStringList2
 	}
-	return apiFilterString
+	return modelsFilterString
 }

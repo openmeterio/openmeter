@@ -17,6 +17,7 @@ You are helping the user add or modify API endpoints in OpenMeter.
   - `api/openapi.yaml`, `api/openapi.cloud.yaml` — OpenAPI specs
   - `api/client/javascript/`, `api/client/go/` — SDK clients
   - `api/api.gen.go`, `api/v3/api.gen.go` — Go server code (oapi-codegen)
+  - `api/models/models.gen.go`, `api/v3/models/models.gen.go` — Go API models and operation parameters
 
 ## AIP (v3) API Structure
 
@@ -337,7 +338,7 @@ Reference: `api/v3/server/server.go:138-218`, `api/v3/server/routes.go`
 
 ### Step 5: Review
 
-- Check the generated `api/openapi.yaml` or `api/v3/api.gen.go` to verify the endpoints look correct
+- Check `api/v3/openapi.yaml` for the endpoint contract and `api/v3/api.gen.go` for the generated Go server signatures.
 - Present a summary of the API changes to the user
 
 ## AIP Standards (Kong AIP)

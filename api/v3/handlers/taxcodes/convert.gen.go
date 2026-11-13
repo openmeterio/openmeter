@@ -4,20 +4,20 @@
 package taxcodes
 
 import (
-	v3 "github.com/openmeterio/openmeter/api/v3"
+	models "github.com/openmeterio/openmeter/api/v3/models"
 	taxcode "github.com/openmeterio/openmeter/openmeter/taxcode"
-	models "github.com/openmeterio/openmeter/pkg/models"
+	models1 "github.com/openmeterio/openmeter/pkg/models"
 	"time"
 )
 
 func init() {
-	FromAPICreateTaxCodeRequest = func(context string, source v3.CreateTaxCodeRequest) (taxcode.CreateTaxCodeInput, error) {
+	FromAPICreateTaxCodeRequest = func(context string, source models.CreateTaxCodeRequest) (taxcode.CreateTaxCodeInput, error) {
 		var taxcodeCreateTaxCodeInput taxcode.CreateTaxCodeInput
 		taxcodeCreateTaxCodeInput.Namespace = NamespaceFromContext(context)
 		taxcodeCreateTaxCodeInput.Key = source.Key
 		taxcodeCreateTaxCodeInput.Name = source.Name
 		taxcodeCreateTaxCodeInput.Description = source.Description
-		taxcodeCreateTaxCodeInput.AppMappings = v3BillingTaxCodeAppMappingListToTaxcodeTaxCodeAppMappings(source.AppMappings)
+		taxcodeCreateTaxCodeInput.AppMappings = modelsBillingTaxCodeAppMappingListToTaxcodeTaxCodeAppMappings(source.AppMappings)
 		modelsMetadata, err := ConvertLabelsToMetadata(source.Labels)
 		if err != nil {
 			return taxcodeCreateTaxCodeInput, err
@@ -25,19 +25,19 @@ func init() {
 		taxcodeCreateTaxCodeInput.Metadata = modelsMetadata
 		return taxcodeCreateTaxCodeInput, nil
 	}
-	FromAPIUpdateOrganizationDefaultTaxCodesRequest = func(context string, source v3.UpdateOrganizationDefaultTaxCodesRequest) (taxcode.UpsertOrganizationDefaultTaxCodesInput, error) {
+	FromAPIUpdateOrganizationDefaultTaxCodesRequest = func(context string, source models.UpdateOrganizationDefaultTaxCodesRequest) (taxcode.UpsertOrganizationDefaultTaxCodesInput, error) {
 		var taxcodeUpsertOrganizationDefaultTaxCodesInput taxcode.UpsertOrganizationDefaultTaxCodesInput
 		taxcodeUpsertOrganizationDefaultTaxCodesInput.Namespace = NamespaceFromContext(context)
 		taxcodeUpsertOrganizationDefaultTaxCodesInput.InvoicingTaxCodeID = TaxCodeReferenceToIDString(source.InvoicingTaxCode)
 		taxcodeUpsertOrganizationDefaultTaxCodesInput.CreditGrantTaxCodeID = TaxCodeReferenceToIDString(source.CreditGrantTaxCode)
 		return taxcodeUpsertOrganizationDefaultTaxCodesInput, nil
 	}
-	FromAPIUpsertTaxCodeRequest = func(context models.NamespacedID, source v3.UpsertTaxCodeRequest) (taxcode.UpdateTaxCodeInput, error) {
+	FromAPIUpsertTaxCodeRequest = func(context models1.NamespacedID, source models.UpsertTaxCodeRequest) (taxcode.UpdateTaxCodeInput, error) {
 		var taxcodeUpdateTaxCodeInput taxcode.UpdateTaxCodeInput
 		taxcodeUpdateTaxCodeInput.NamespacedID = ResolveNamespacedIDFromContext(context)
 		taxcodeUpdateTaxCodeInput.Name = source.Name
 		taxcodeUpdateTaxCodeInput.Description = source.Description
-		taxcodeUpdateTaxCodeInput.AppMappings = v3BillingTaxCodeAppMappingListToTaxcodeTaxCodeAppMappings(source.AppMappings)
+		taxcodeUpdateTaxCodeInput.AppMappings = modelsBillingTaxCodeAppMappingListToTaxcodeTaxCodeAppMappings(source.AppMappings)
 		modelsMetadata, err := ConvertLabelsToMetadata(source.Labels)
 		if err != nil {
 			return taxcodeUpdateTaxCodeInput, err
@@ -45,44 +45,44 @@ func init() {
 		taxcodeUpdateTaxCodeInput.Metadata = modelsMetadata
 		return taxcodeUpdateTaxCodeInput, nil
 	}
-	ToAPIBillingTaxCode = func(source taxcode.TaxCode) (v3.BillingTaxCode, error) {
-		var v3BillingTaxCode v3.BillingTaxCode
-		v3BillingTaxCode.AppMappings = ToAPIBillingTaxCodeAppMappings(source.AppMappings)
-		v3BillingTaxCode.CreatedAt = timeTimeToTimeTime(source.ManagedModel.CreatedAt)
-		v3BillingTaxCode.DeletedAt = source.ManagedModel.DeletedAt
-		v3BillingTaxCode.Description = source.Description
-		v3BillingTaxCode.Id = source.NamespacedID.ID
-		v3BillingTaxCode.Key = source.Key
-		v3BillingTaxCode.Labels = ConvertMetadataAnnotationsToLabels(source)
-		v3BillingTaxCode.Name = source.Name
-		v3BillingTaxCode.UpdatedAt = timeTimeToTimeTime(source.ManagedModel.UpdatedAt)
-		return v3BillingTaxCode, nil
+	ToAPIBillingTaxCode = func(source taxcode.TaxCode) (models.BillingTaxCode, error) {
+		var modelsBillingTaxCode models.BillingTaxCode
+		modelsBillingTaxCode.AppMappings = ToAPIBillingTaxCodeAppMappings(source.AppMappings)
+		modelsBillingTaxCode.CreatedAt = timeTimeToTimeTime(source.ManagedModel.CreatedAt)
+		modelsBillingTaxCode.DeletedAt = source.ManagedModel.DeletedAt
+		modelsBillingTaxCode.Description = source.Description
+		modelsBillingTaxCode.Id = source.NamespacedID.ID
+		modelsBillingTaxCode.Key = source.Key
+		modelsBillingTaxCode.Labels = ConvertMetadataAnnotationsToLabels(source)
+		modelsBillingTaxCode.Name = source.Name
+		modelsBillingTaxCode.UpdatedAt = timeTimeToTimeTime(source.ManagedModel.UpdatedAt)
+		return modelsBillingTaxCode, nil
 	}
-	ToAPIOrganizationDefaultTaxCodes = func(source taxcode.OrganizationDefaultTaxCodes) (v3.OrganizationDefaultTaxCodes, error) {
-		var v3OrganizationDefaultTaxCodes v3.OrganizationDefaultTaxCodes
-		v3OrganizationDefaultTaxCodes.CreatedAt = timeTimeToTimeTime(source.ManagedModel.CreatedAt)
-		v3OrganizationDefaultTaxCodes.CreditGrantTaxCode = IDStringToTaxCodeReference(source.CreditGrantTaxCodeID)
-		v3OrganizationDefaultTaxCodes.InvoicingTaxCode = IDStringToTaxCodeReference(source.InvoicingTaxCodeID)
-		v3OrganizationDefaultTaxCodes.UpdatedAt = timeTimeToTimeTime(source.ManagedModel.UpdatedAt)
-		return v3OrganizationDefaultTaxCodes, nil
+	ToAPIOrganizationDefaultTaxCodes = func(source taxcode.OrganizationDefaultTaxCodes) (models.OrganizationDefaultTaxCodes, error) {
+		var modelsOrganizationDefaultTaxCodes models.OrganizationDefaultTaxCodes
+		modelsOrganizationDefaultTaxCodes.CreatedAt = timeTimeToTimeTime(source.ManagedModel.CreatedAt)
+		modelsOrganizationDefaultTaxCodes.CreditGrantTaxCode = IDStringToTaxCodeReference(source.CreditGrantTaxCodeID)
+		modelsOrganizationDefaultTaxCodes.InvoicingTaxCode = IDStringToTaxCodeReference(source.InvoicingTaxCodeID)
+		modelsOrganizationDefaultTaxCodes.UpdatedAt = timeTimeToTimeTime(source.ManagedModel.UpdatedAt)
+		return modelsOrganizationDefaultTaxCodes, nil
 	}
 }
-func timeTimeToTimeTime(source time.Time) time.Time {
-	return source
-}
-func v3BillingTaxCodeAppMappingListToTaxcodeTaxCodeAppMappings(source []v3.BillingTaxCodeAppMapping) taxcode.TaxCodeAppMappings {
+func modelsBillingTaxCodeAppMappingListToTaxcodeTaxCodeAppMappings(source []models.BillingTaxCodeAppMapping) taxcode.TaxCodeAppMappings {
 	var taxcodeTaxCodeAppMappings taxcode.TaxCodeAppMappings
 	if source != nil {
 		taxcodeTaxCodeAppMappings = make(taxcode.TaxCodeAppMappings, len(source))
 		for i := 0; i < len(source); i++ {
-			taxcodeTaxCodeAppMappings[i] = v3BillingTaxCodeAppMappingToTaxcodeTaxCodeAppMapping(source[i])
+			taxcodeTaxCodeAppMappings[i] = modelsBillingTaxCodeAppMappingToTaxcodeTaxCodeAppMapping(source[i])
 		}
 	}
 	return taxcodeTaxCodeAppMappings
 }
-func v3BillingTaxCodeAppMappingToTaxcodeTaxCodeAppMapping(source v3.BillingTaxCodeAppMapping) taxcode.TaxCodeAppMapping {
+func modelsBillingTaxCodeAppMappingToTaxcodeTaxCodeAppMapping(source models.BillingTaxCodeAppMapping) taxcode.TaxCodeAppMapping {
 	var taxcodeTaxCodeAppMapping taxcode.TaxCodeAppMapping
 	taxcodeTaxCodeAppMapping.AppType = FromAPIBillingAppType(source.AppType)
 	taxcodeTaxCodeAppMapping.TaxCode = source.TaxCode
 	return taxcodeTaxCodeAppMapping
+}
+func timeTimeToTimeTime(source time.Time) time.Time {
+	return source
 }

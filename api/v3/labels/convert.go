@@ -8,7 +8,7 @@ import (
 
 	"github.com/samber/lo"
 
-	api "github.com/openmeterio/openmeter/api/v3"
+	api "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 

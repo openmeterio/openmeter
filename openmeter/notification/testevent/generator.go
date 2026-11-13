@@ -11,9 +11,9 @@ import (
 	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/api"
+	apimodels "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	billinghttp "github.com/openmeterio/openmeter/openmeter/billing/httpdriver"
+	billingconvert "github.com/openmeterio/openmeter/openmeter/billing/apiconvert"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -72,8 +72,8 @@ func (t *Generator) newTestBalanceThresholdPayload() notification.EventPayload {
 	payload.Type = notification.EventTypeBalanceThreshold
 	payload.BalanceThreshold = &notification.BalanceThresholdPayload{
 		EntitlementValuePayloadBase: notification.EntitlementValuePayloadBase(*payload.EntitlementReset),
-		Threshold: api.NotificationRuleBalanceThresholdValue{
-			Type:  api.NotificationRuleBalanceThresholdValueTypePercent,
+		Threshold: apimodels.NotificationRuleBalanceThresholdValue{
+			Type:  apimodels.NotificationRuleBalanceThresholdValueTypePercent,
 			Value: 50,
 		},
 	}
@@ -90,9 +90,9 @@ func (t *Generator) newTestEntitlementResetPayload() notification.EventPayload {
 		to        = now.Add(-12 * time.Hour)
 	)
 
-	day := &api.RecurringPeriodInterval{}
+	day := &apimodels.RecurringPeriodInterval{}
 
-	_ = day.FromRecurringPeriodIntervalEnum(api.RecurringPeriodIntervalEnumDAY)
+	_ = day.FromRecurringPeriodIntervalEnum(apimodels.RecurringPeriodIntervalEnumDAY)
 
 	return notification.EventPayload{
 		EventPayloadMeta: notification.EventPayloadMeta{
@@ -100,9 +100,9 @@ func (t *Generator) newTestEntitlementResetPayload() notification.EventPayload {
 			Version: notification.EventPayloadVersionCurrent,
 		},
 		EntitlementReset: &notification.EntitlementResetPayload{
-			Entitlement: api.EntitlementMetered{
+			Entitlement: apimodels.EntitlementMetered{
 				CreatedAt: createdAt,
-				CurrentUsagePeriod: api.Period{
+				CurrentUsagePeriod: apimodels.Period{
 					From: from,
 					To:   to,
 				},
@@ -121,15 +121,15 @@ func (t *Generator) newTestEntitlementResetPayload() notification.EventPayload {
 				},
 				PreserveOverageAtReset: lo.ToPtr(true),
 				SubjectKey:             "test-subject-1",
-				Type:                   api.EntitlementMeteredTypeMetered,
+				Type:                   apimodels.EntitlementMeteredTypeMetered,
 				UpdatedAt:              updatedAt,
-				UsagePeriod: api.RecurringPeriod{
+				UsagePeriod: apimodels.RecurringPeriod{
 					Anchor:      from,
 					Interval:    *day,
 					IntervalISO: "P1D",
 				},
 			},
-			Feature: api.Feature{
+			Feature: apimodels.Feature{
 				ArchivedAt: nil,
 				CreatedAt:  createdAt,
 				DeletedAt:  nil,
@@ -143,7 +143,7 @@ func (t *Generator) newTestEntitlementResetPayload() notification.EventPayload {
 				Name:                "test-meter-1",
 				UpdatedAt:           updatedAt,
 			},
-			Subject: api.Subject{
+			Subject: apimodels.Subject{
 				CurrentPeriodEnd:   lo.ToPtr(from),
 				CurrentPeriodStart: lo.ToPtr(to),
 				DisplayName:        lo.ToPtr("Test Subject 1"),
@@ -154,13 +154,13 @@ func (t *Generator) newTestEntitlementResetPayload() notification.EventPayload {
 				},
 				StripeCustomerId: lo.ToPtr("01J5AW2XS6DYHH7E9PNJSQJ341"),
 			},
-			Value: api.EntitlementValue{
+			Value: apimodels.EntitlementValue{
 				Balance:   lo.ToPtr(10_000.0),
 				HasAccess: true,
 				Overage:   lo.ToPtr(99.0),
 				Usage:     lo.ToPtr(5_001.0),
 			},
-			Customer: api.Customer{
+			Customer: apimodels.Customer{
 				BillingAddress:        nil,
 				CreatedAt:             createdAt,
 				Currency:              nil,
@@ -174,7 +174,7 @@ func (t *Generator) newTestEntitlementResetPayload() notification.EventPayload {
 				PrimaryEmail:          nil,
 				Subscriptions:         nil,
 				UpdatedAt:             updatedAt,
-				UsageAttribution: &api.CustomerUsageAttribution{
+				UsageAttribution: &apimodels.CustomerUsageAttribution{
 					SubjectKeys: []string{"test-subject-1"},
 				},
 			},
@@ -235,7 +235,7 @@ func (t *Generator) newTestInvoicePayload(ctx context.Context, namespace string,
 		return notification.EventPayload{}, err
 	}
 
-	apiInvoice, err := billinghttp.MapEventInvoiceToAPI(eventInvoice)
+	apiInvoice, err := billingconvert.ToAPIEventInvoice(eventInvoice)
 	if err != nil {
 		return notification.EventPayload{}, err
 	}

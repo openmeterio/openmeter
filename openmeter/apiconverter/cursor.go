@@ -1,15 +1,15 @@
 package apiconverter
 
 import (
-	"github.com/openmeterio/openmeter/api"
+	apimodels "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/pkg/pagination/v2"
 )
 
-func ConvertCursor(s api.CursorPaginationCursor) (*pagination.Cursor, error) {
+func ConvertCursor(s apimodels.CursorPaginationCursor) (*pagination.Cursor, error) {
 	return pagination.DecodeCursor(s)
 }
 
-func ConvertCursorPtr(s *api.CursorPaginationCursor) (*pagination.Cursor, error) {
+func ConvertCursorPtr(s *apimodels.CursorPaginationCursor) (*pagination.Cursor, error) {
 	if s == nil {
 		return nil, nil
 	}

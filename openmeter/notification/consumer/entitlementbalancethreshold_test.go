@@ -7,7 +7,7 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/openmeterio/openmeter/api"
+	apimodels "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/entitlement/snapshot"
 	"github.com/openmeterio/openmeter/openmeter/event/models"
@@ -21,35 +21,35 @@ import (
 func newNumberThreshold(v float64) notification.BalanceThreshold {
 	return notification.BalanceThreshold{
 		Value: v,
-		Type:  api.NotificationRuleBalanceThresholdValueTypeNumber,
+		Type:  apimodels.NotificationRuleBalanceThresholdValueTypeNumber,
 	}
 }
 
 func newPercentThreshold(v float64) notification.BalanceThreshold {
 	return notification.BalanceThreshold{
 		Value: v,
-		Type:  api.NotificationRuleBalanceThresholdValueTypePercent,
+		Type:  apimodels.NotificationRuleBalanceThresholdValueTypePercent,
 	}
 }
 
 func newUsageValueThreshold(v float64) notification.BalanceThreshold {
 	return notification.BalanceThreshold{
 		Value: v,
-		Type:  api.NotificationRuleBalanceThresholdValueTypeUsageValue,
+		Type:  apimodels.NotificationRuleBalanceThresholdValueTypeUsageValue,
 	}
 }
 
 func newUsagePercentageThreshold(v float64) notification.BalanceThreshold {
 	return notification.BalanceThreshold{
 		Value: v,
-		Type:  api.NotificationRuleBalanceThresholdValueTypeUsagePercentage,
+		Type:  apimodels.NotificationRuleBalanceThresholdValueTypeUsagePercentage,
 	}
 }
 
 func newBalanceValueThreshold(v float64) notification.BalanceThreshold {
 	return notification.BalanceThreshold{
 		Value: v,
-		Type:  api.NotificationRuleBalanceThresholdValueTypeBalanceValue,
+		Type:  apimodels.NotificationRuleBalanceThresholdValueTypeBalanceValue,
 	}
 }
 

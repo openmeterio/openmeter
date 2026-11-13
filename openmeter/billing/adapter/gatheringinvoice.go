@@ -8,7 +8,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/api"
+	apimodels "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
@@ -236,17 +236,17 @@ func (a *adapter) ListGatheringInvoices(ctx context.Context, input billing.ListG
 		}
 
 		switch input.OrderBy {
-		case api.InvoiceOrderByCustomerName:
+		case apimodels.InvoiceOrderByCustomerName:
 			query = query.Order(billinginvoice.ByCustomerName(order...))
-		case api.InvoiceOrderByIssuedAt:
+		case apimodels.InvoiceOrderByIssuedAt:
 			query = query.Order(billinginvoice.ByIssuedAt(order...))
-		case api.InvoiceOrderByPeriodStart:
+		case apimodels.InvoiceOrderByPeriodStart:
 			query = query.Order(billinginvoice.ByPeriodStart(order...))
-		case api.InvoiceOrderByStatus:
+		case apimodels.InvoiceOrderByStatus:
 			query = query.Order(billinginvoice.ByStatus(order...))
-		case api.InvoiceOrderByUpdatedAt:
+		case apimodels.InvoiceOrderByUpdatedAt:
 			query = query.Order(billinginvoice.ByUpdatedAt(order...))
-		case api.InvoiceOrderByCreatedAt:
+		case apimodels.InvoiceOrderByCreatedAt:
 			fallthrough
 		default:
 			query = query.Order(billinginvoice.ByCreatedAt(order...))

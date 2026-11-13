@@ -7,6 +7,7 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	billingconvert "github.com/openmeterio/openmeter/openmeter/billing/apiconvert"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	productcataloghttp "github.com/openmeterio/openmeter/openmeter/productcatalog/http"
 	"github.com/openmeterio/openmeter/pkg/convert"
@@ -47,7 +48,7 @@ func MapGatheringInvoiceToAPI(invoice billing.GatheringInvoice, customer *custom
 		Period:       mapServicePeriodToAPI(invoice.ServicePeriod),
 
 		Currency: string(invoice.Currency),
-		Customer: mapInvoiceCustomerToAPI(invoiceCustomer),
+		Customer: billingconvert.ToAPIBillingInvoiceCustomerExtendedDetails(invoiceCustomer),
 
 		Number:      invoice.Number,
 		Description: invoice.Description,
@@ -60,7 +61,7 @@ func MapGatheringInvoiceToAPI(invoice billing.GatheringInvoice, customer *custom
 		Type:          api.InvoiceType(billing.StandardInvoiceStatusCategoryGathering),
 	}
 
-	workflowConfig, err := mapWorkflowConfigSettingsToAPI(profile.WorkflowConfig)
+	workflowConfig, err := billingconvert.ToAPIBillingWorkflow(profile.WorkflowConfig)
 	if err != nil {
 		return api.Invoice{}, fmt.Errorf("failed to map workflow config to API: %w", err)
 	}
@@ -132,19 +133,19 @@ func mapGatheringInvoiceLineToAPI(line billing.GatheringLine) (api.InvoiceLine, 
 			To:   line.ServicePeriod.To,
 		},
 
-		TaxConfig: mapTaxConfigToAPI(line.TaxConfig),
+		TaxConfig: billingconvert.ToAPITaxConfig(line.TaxConfig),
 
 		FeatureKey: lo.EmptyableToPtr(line.FeatureKey),
 
 		Price: lo.ToPtr(price),
 
 		RateCard: &api.InvoiceUsageBasedRateCard{
-			TaxConfig:  mapTaxConfigToAPI(line.TaxConfig),
+			TaxConfig:  billingconvert.ToAPITaxConfig(line.TaxConfig),
 			Price:      lo.ToPtr(price),
 			FeatureKey: lo.EmptyableToPtr(line.FeatureKey),
 		},
 
-		Subscription: mapSubscriptionReferencesToAPI(line.Subscription),
+		Subscription: billingconvert.ToAPIInvoiceLineSubscriptionReference(line.Subscription),
 	}
 
 	return invoiceLine, nil

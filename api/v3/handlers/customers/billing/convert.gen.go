@@ -5,304 +5,304 @@ package customersbilling
 
 import (
 	"fmt"
-	api "github.com/openmeterio/openmeter/api"
-	v3 "github.com/openmeterio/openmeter/api/v3"
+	models1 "github.com/openmeterio/openmeter/api/models"
+	models "github.com/openmeterio/openmeter/api/v3/models"
 	stripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 )
 
 func init() {
-	FromAPIBillingAppStripeCheckoutSessionUIMode = func(source v3.BillingAppStripeCheckoutSessionUIMode) (api.CheckoutSessionUIMode, error) {
-		var apiCheckoutSessionUIMode api.CheckoutSessionUIMode
+	FromAPIBillingAppStripeCheckoutSessionUIMode = func(source models.BillingAppStripeCheckoutSessionUIMode) (models1.CheckoutSessionUIMode, error) {
+		var modelsCheckoutSessionUIMode models1.CheckoutSessionUIMode
 		switch source {
-		case v3.BillingAppStripeCheckoutSessionUIModeEmbedded:
-			apiCheckoutSessionUIMode = api.CheckoutSessionUIModeEmbedded
-		case v3.BillingAppStripeCheckoutSessionUIModeHosted:
-			apiCheckoutSessionUIMode = api.CheckoutSessionUIModeHosted
+		case models.BillingAppStripeCheckoutSessionUIModeEmbedded:
+			modelsCheckoutSessionUIMode = models1.CheckoutSessionUIModeEmbedded
+		case models.BillingAppStripeCheckoutSessionUIModeHosted:
+			modelsCheckoutSessionUIMode = models1.CheckoutSessionUIModeHosted
 		default:
-			return apiCheckoutSessionUIMode, fmt.Errorf("unexpected enum element: %v", source)
+			return modelsCheckoutSessionUIMode, fmt.Errorf("unexpected enum element: %v", source)
 		}
-		return apiCheckoutSessionUIMode, nil
+		return modelsCheckoutSessionUIMode, nil
 	}
-	FromAPIBillingAppStripeCreateCheckoutSessionBillingAddressCollection = func(source v3.BillingAppStripeCreateCheckoutSessionBillingAddressCollection) (api.CreateStripeCheckoutSessionBillingAddressCollection, error) {
-		var apiCreateStripeCheckoutSessionBillingAddressCollection api.CreateStripeCheckoutSessionBillingAddressCollection
+	FromAPIBillingAppStripeCreateCheckoutSessionBillingAddressCollection = func(source models.BillingAppStripeCreateCheckoutSessionBillingAddressCollection) (models1.CreateStripeCheckoutSessionBillingAddressCollection, error) {
+		var modelsCreateStripeCheckoutSessionBillingAddressCollection models1.CreateStripeCheckoutSessionBillingAddressCollection
 		switch source {
-		case v3.BillingAppStripeCreateCheckoutSessionBillingAddressCollectionAuto:
-			apiCreateStripeCheckoutSessionBillingAddressCollection = api.CreateStripeCheckoutSessionBillingAddressCollectionAuto
-		case v3.BillingAppStripeCreateCheckoutSessionBillingAddressCollectionRequired:
-			apiCreateStripeCheckoutSessionBillingAddressCollection = api.CreateStripeCheckoutSessionBillingAddressCollectionRequired
+		case models.BillingAppStripeCreateCheckoutSessionBillingAddressCollectionAuto:
+			modelsCreateStripeCheckoutSessionBillingAddressCollection = models1.CreateStripeCheckoutSessionBillingAddressCollectionAuto
+		case models.BillingAppStripeCreateCheckoutSessionBillingAddressCollectionRequired:
+			modelsCreateStripeCheckoutSessionBillingAddressCollection = models1.CreateStripeCheckoutSessionBillingAddressCollectionRequired
 		default:
-			return apiCreateStripeCheckoutSessionBillingAddressCollection, fmt.Errorf("unexpected enum element: %v", source)
+			return modelsCreateStripeCheckoutSessionBillingAddressCollection, fmt.Errorf("unexpected enum element: %v", source)
 		}
-		return apiCreateStripeCheckoutSessionBillingAddressCollection, nil
+		return modelsCreateStripeCheckoutSessionBillingAddressCollection, nil
 	}
-	FromAPIBillingAppStripeCreateCheckoutSessionConsentCollectionPaymentMethodReuseAgreementPosition = func(source v3.BillingAppStripeCreateCheckoutSessionConsentCollectionPaymentMethodReuseAgreementPosition) (api.CreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreementPosition, error) {
-		var apiCreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreementPosition api.CreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreementPosition
+	FromAPIBillingAppStripeCreateCheckoutSessionConsentCollectionPaymentMethodReuseAgreementPosition = func(source models.BillingAppStripeCreateCheckoutSessionConsentCollectionPaymentMethodReuseAgreementPosition) (models1.CreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreementPosition, error) {
+		var modelsCreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreementPosition models1.CreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreementPosition
 		switch source {
-		case v3.BillingAppStripeCreateCheckoutSessionConsentCollectionPaymentMethodReuseAgreementPositionAuto:
-			apiCreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreementPosition = api.CreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreementPositionAuto
-		case v3.BillingAppStripeCreateCheckoutSessionConsentCollectionPaymentMethodReuseAgreementPositionHidden:
-			apiCreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreementPosition = api.CreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreementPositionHidden
+		case models.BillingAppStripeCreateCheckoutSessionConsentCollectionPaymentMethodReuseAgreementPositionAuto:
+			modelsCreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreementPosition = models1.CreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreementPositionAuto
+		case models.BillingAppStripeCreateCheckoutSessionConsentCollectionPaymentMethodReuseAgreementPositionHidden:
+			modelsCreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreementPosition = models1.CreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreementPositionHidden
 		default:
-			return apiCreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreementPosition, fmt.Errorf("unexpected enum element: %v", source)
+			return modelsCreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreementPosition, fmt.Errorf("unexpected enum element: %v", source)
 		}
-		return apiCreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreementPosition, nil
+		return modelsCreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreementPosition, nil
 	}
-	FromAPIBillingAppStripeCreateCheckoutSessionConsentCollectionPromotions = func(source v3.BillingAppStripeCreateCheckoutSessionConsentCollectionPromotions) (api.CreateStripeCheckoutSessionConsentCollectionPromotions, error) {
-		var apiCreateStripeCheckoutSessionConsentCollectionPromotions api.CreateStripeCheckoutSessionConsentCollectionPromotions
+	FromAPIBillingAppStripeCreateCheckoutSessionConsentCollectionPromotions = func(source models.BillingAppStripeCreateCheckoutSessionConsentCollectionPromotions) (models1.CreateStripeCheckoutSessionConsentCollectionPromotions, error) {
+		var modelsCreateStripeCheckoutSessionConsentCollectionPromotions models1.CreateStripeCheckoutSessionConsentCollectionPromotions
 		switch source {
-		case v3.BillingAppStripeCreateCheckoutSessionConsentCollectionPromotionsAuto:
-			apiCreateStripeCheckoutSessionConsentCollectionPromotions = api.CreateStripeCheckoutSessionConsentCollectionPromotionsAuto
-		case v3.BillingAppStripeCreateCheckoutSessionConsentCollectionPromotionsNone:
-			apiCreateStripeCheckoutSessionConsentCollectionPromotions = api.CreateStripeCheckoutSessionConsentCollectionPromotionsNone
+		case models.BillingAppStripeCreateCheckoutSessionConsentCollectionPromotionsAuto:
+			modelsCreateStripeCheckoutSessionConsentCollectionPromotions = models1.CreateStripeCheckoutSessionConsentCollectionPromotionsAuto
+		case models.BillingAppStripeCreateCheckoutSessionConsentCollectionPromotionsNone:
+			modelsCreateStripeCheckoutSessionConsentCollectionPromotions = models1.CreateStripeCheckoutSessionConsentCollectionPromotionsNone
 		default:
-			return apiCreateStripeCheckoutSessionConsentCollectionPromotions, fmt.Errorf("unexpected enum element: %v", source)
+			return modelsCreateStripeCheckoutSessionConsentCollectionPromotions, fmt.Errorf("unexpected enum element: %v", source)
 		}
-		return apiCreateStripeCheckoutSessionConsentCollectionPromotions, nil
+		return modelsCreateStripeCheckoutSessionConsentCollectionPromotions, nil
 	}
-	FromAPIBillingAppStripeCreateCheckoutSessionConsentCollectionTermsOfService = func(source v3.BillingAppStripeCreateCheckoutSessionConsentCollectionTermsOfService) (api.CreateStripeCheckoutSessionConsentCollectionTermsOfService, error) {
-		var apiCreateStripeCheckoutSessionConsentCollectionTermsOfService api.CreateStripeCheckoutSessionConsentCollectionTermsOfService
+	FromAPIBillingAppStripeCreateCheckoutSessionConsentCollectionTermsOfService = func(source models.BillingAppStripeCreateCheckoutSessionConsentCollectionTermsOfService) (models1.CreateStripeCheckoutSessionConsentCollectionTermsOfService, error) {
+		var modelsCreateStripeCheckoutSessionConsentCollectionTermsOfService models1.CreateStripeCheckoutSessionConsentCollectionTermsOfService
 		switch source {
-		case v3.BillingAppStripeCreateCheckoutSessionConsentCollectionTermsOfServiceNone:
-			apiCreateStripeCheckoutSessionConsentCollectionTermsOfService = api.CreateStripeCheckoutSessionConsentCollectionTermsOfServiceNone
-		case v3.BillingAppStripeCreateCheckoutSessionConsentCollectionTermsOfServiceRequired:
-			apiCreateStripeCheckoutSessionConsentCollectionTermsOfService = api.CreateStripeCheckoutSessionConsentCollectionTermsOfServiceRequired
+		case models.BillingAppStripeCreateCheckoutSessionConsentCollectionTermsOfServiceNone:
+			modelsCreateStripeCheckoutSessionConsentCollectionTermsOfService = models1.CreateStripeCheckoutSessionConsentCollectionTermsOfServiceNone
+		case models.BillingAppStripeCreateCheckoutSessionConsentCollectionTermsOfServiceRequired:
+			modelsCreateStripeCheckoutSessionConsentCollectionTermsOfService = models1.CreateStripeCheckoutSessionConsentCollectionTermsOfServiceRequired
 		default:
-			return apiCreateStripeCheckoutSessionConsentCollectionTermsOfService, fmt.Errorf("unexpected enum element: %v", source)
+			return modelsCreateStripeCheckoutSessionConsentCollectionTermsOfService, fmt.Errorf("unexpected enum element: %v", source)
 		}
-		return apiCreateStripeCheckoutSessionConsentCollectionTermsOfService, nil
+		return modelsCreateStripeCheckoutSessionConsentCollectionTermsOfService, nil
 	}
-	FromAPIBillingAppStripeCreateCheckoutSessionCustomerUpdateBehavior = func(source v3.BillingAppStripeCreateCheckoutSessionCustomerUpdateBehavior) (api.CreateStripeCheckoutSessionCustomerUpdateBehavior, error) {
-		var apiCreateStripeCheckoutSessionCustomerUpdateBehavior api.CreateStripeCheckoutSessionCustomerUpdateBehavior
+	FromAPIBillingAppStripeCreateCheckoutSessionCustomerUpdateBehavior = func(source models.BillingAppStripeCreateCheckoutSessionCustomerUpdateBehavior) (models1.CreateStripeCheckoutSessionCustomerUpdateBehavior, error) {
+		var modelsCreateStripeCheckoutSessionCustomerUpdateBehavior models1.CreateStripeCheckoutSessionCustomerUpdateBehavior
 		switch source {
-		case v3.BillingAppStripeCreateCheckoutSessionCustomerUpdateBehaviorAuto:
-			apiCreateStripeCheckoutSessionCustomerUpdateBehavior = api.CreateStripeCheckoutSessionCustomerUpdateBehaviorAuto
-		case v3.BillingAppStripeCreateCheckoutSessionCustomerUpdateBehaviorNever:
-			apiCreateStripeCheckoutSessionCustomerUpdateBehavior = api.CreateStripeCheckoutSessionCustomerUpdateBehaviorNever
+		case models.BillingAppStripeCreateCheckoutSessionCustomerUpdateBehaviorAuto:
+			modelsCreateStripeCheckoutSessionCustomerUpdateBehavior = models1.CreateStripeCheckoutSessionCustomerUpdateBehaviorAuto
+		case models.BillingAppStripeCreateCheckoutSessionCustomerUpdateBehaviorNever:
+			modelsCreateStripeCheckoutSessionCustomerUpdateBehavior = models1.CreateStripeCheckoutSessionCustomerUpdateBehaviorNever
 		default:
-			return apiCreateStripeCheckoutSessionCustomerUpdateBehavior, fmt.Errorf("unexpected enum element: %v", source)
+			return modelsCreateStripeCheckoutSessionCustomerUpdateBehavior, fmt.Errorf("unexpected enum element: %v", source)
 		}
-		return apiCreateStripeCheckoutSessionCustomerUpdateBehavior, nil
+		return modelsCreateStripeCheckoutSessionCustomerUpdateBehavior, nil
 	}
-	FromAPIBillingAppStripeCreateCheckoutSessionRedirectOnCompletion = func(source v3.BillingAppStripeCreateCheckoutSessionRedirectOnCompletion) (api.CreateStripeCheckoutSessionRedirectOnCompletion, error) {
-		var apiCreateStripeCheckoutSessionRedirectOnCompletion api.CreateStripeCheckoutSessionRedirectOnCompletion
+	FromAPIBillingAppStripeCreateCheckoutSessionRedirectOnCompletion = func(source models.BillingAppStripeCreateCheckoutSessionRedirectOnCompletion) (models1.CreateStripeCheckoutSessionRedirectOnCompletion, error) {
+		var modelsCreateStripeCheckoutSessionRedirectOnCompletion models1.CreateStripeCheckoutSessionRedirectOnCompletion
 		switch source {
-		case v3.BillingAppStripeCreateCheckoutSessionRedirectOnCompletionAlways:
-			apiCreateStripeCheckoutSessionRedirectOnCompletion = api.CreateStripeCheckoutSessionRedirectOnCompletionAlways
-		case v3.BillingAppStripeCreateCheckoutSessionRedirectOnCompletionIfRequired:
-			apiCreateStripeCheckoutSessionRedirectOnCompletion = api.CreateStripeCheckoutSessionRedirectOnCompletionIfRequired
-		case v3.BillingAppStripeCreateCheckoutSessionRedirectOnCompletionNever:
-			apiCreateStripeCheckoutSessionRedirectOnCompletion = api.CreateStripeCheckoutSessionRedirectOnCompletionNever
+		case models.BillingAppStripeCreateCheckoutSessionRedirectOnCompletionAlways:
+			modelsCreateStripeCheckoutSessionRedirectOnCompletion = models1.CreateStripeCheckoutSessionRedirectOnCompletionAlways
+		case models.BillingAppStripeCreateCheckoutSessionRedirectOnCompletionIfRequired:
+			modelsCreateStripeCheckoutSessionRedirectOnCompletion = models1.CreateStripeCheckoutSessionRedirectOnCompletionIfRequired
+		case models.BillingAppStripeCreateCheckoutSessionRedirectOnCompletionNever:
+			modelsCreateStripeCheckoutSessionRedirectOnCompletion = models1.CreateStripeCheckoutSessionRedirectOnCompletionNever
 		default:
-			return apiCreateStripeCheckoutSessionRedirectOnCompletion, fmt.Errorf("unexpected enum element: %v", source)
+			return modelsCreateStripeCheckoutSessionRedirectOnCompletion, fmt.Errorf("unexpected enum element: %v", source)
 		}
-		return apiCreateStripeCheckoutSessionRedirectOnCompletion, nil
+		return modelsCreateStripeCheckoutSessionRedirectOnCompletion, nil
 	}
-	FromAPIBillingAppStripeCreateCheckoutSessionRequestOptions = func(source v3.BillingAppStripeCreateCheckoutSessionRequestOptions) (api.CreateStripeCheckoutSessionRequestOptions, error) {
-		var apiCreateStripeCheckoutSessionRequestOptions api.CreateStripeCheckoutSessionRequestOptions
+	FromAPIBillingAppStripeCreateCheckoutSessionRequestOptions = func(source models.BillingAppStripeCreateCheckoutSessionRequestOptions) (models1.CreateStripeCheckoutSessionRequestOptions, error) {
+		var modelsCreateStripeCheckoutSessionRequestOptions models1.CreateStripeCheckoutSessionRequestOptions
 		if source.BillingAddressCollection != nil {
-			apiCreateStripeCheckoutSessionBillingAddressCollection, err := FromAPIBillingAppStripeCreateCheckoutSessionBillingAddressCollection(*source.BillingAddressCollection)
+			modelsCreateStripeCheckoutSessionBillingAddressCollection, err := FromAPIBillingAppStripeCreateCheckoutSessionBillingAddressCollection(*source.BillingAddressCollection)
 			if err != nil {
-				return apiCreateStripeCheckoutSessionRequestOptions, err
+				return modelsCreateStripeCheckoutSessionRequestOptions, err
 			}
-			apiCreateStripeCheckoutSessionRequestOptions.BillingAddressCollection = &apiCreateStripeCheckoutSessionBillingAddressCollection
+			modelsCreateStripeCheckoutSessionRequestOptions.BillingAddressCollection = &modelsCreateStripeCheckoutSessionBillingAddressCollection
 		}
-		apiCreateStripeCheckoutSessionRequestOptions.CancelURL = source.CancelUrl
-		apiCreateStripeCheckoutSessionRequestOptions.ClientReferenceID = source.ClientReferenceId
-		pApiCreateStripeCheckoutSessionConsentCollection, err := pV3BillingAppStripeCreateCheckoutSessionConsentCollectionToPApiCreateStripeCheckoutSessionConsentCollection(source.ConsentCollection)
+		modelsCreateStripeCheckoutSessionRequestOptions.CancelURL = source.CancelUrl
+		modelsCreateStripeCheckoutSessionRequestOptions.ClientReferenceID = source.ClientReferenceId
+		pModelsCreateStripeCheckoutSessionConsentCollection, err := pModelsBillingAppStripeCreateCheckoutSessionConsentCollectionToPModelsCreateStripeCheckoutSessionConsentCollection(source.ConsentCollection)
 		if err != nil {
-			return apiCreateStripeCheckoutSessionRequestOptions, err
+			return modelsCreateStripeCheckoutSessionRequestOptions, err
 		}
-		apiCreateStripeCheckoutSessionRequestOptions.ConsentCollection = pApiCreateStripeCheckoutSessionConsentCollection
-		apiCreateStripeCheckoutSessionRequestOptions.Currency = source.Currency
-		apiCreateStripeCheckoutSessionRequestOptions.CustomText = pV3BillingAppStripeCheckoutSessionCustomTextParamsToPApiCheckoutSessionCustomTextAfterSubmitParams(source.CustomText)
-		pApiCreateStripeCheckoutSessionCustomerUpdate, err := pV3BillingAppStripeCreateCheckoutSessionCustomerUpdateToPApiCreateStripeCheckoutSessionCustomerUpdate(source.CustomerUpdate)
+		modelsCreateStripeCheckoutSessionRequestOptions.ConsentCollection = pModelsCreateStripeCheckoutSessionConsentCollection
+		modelsCreateStripeCheckoutSessionRequestOptions.Currency = source.Currency
+		modelsCreateStripeCheckoutSessionRequestOptions.CustomText = pModelsBillingAppStripeCheckoutSessionCustomTextParamsToPModelsCheckoutSessionCustomTextAfterSubmitParams(source.CustomText)
+		pModelsCreateStripeCheckoutSessionCustomerUpdate, err := pModelsBillingAppStripeCreateCheckoutSessionCustomerUpdateToPModelsCreateStripeCheckoutSessionCustomerUpdate(source.CustomerUpdate)
 		if err != nil {
-			return apiCreateStripeCheckoutSessionRequestOptions, err
+			return modelsCreateStripeCheckoutSessionRequestOptions, err
 		}
-		apiCreateStripeCheckoutSessionRequestOptions.CustomerUpdate = pApiCreateStripeCheckoutSessionCustomerUpdate
-		apiCreateStripeCheckoutSessionRequestOptions.ExpiresAt = source.ExpiresAt
-		apiCreateStripeCheckoutSessionRequestOptions.Locale = source.Locale
-		apiCreateStripeCheckoutSessionRequestOptions.Metadata = source.Metadata
-		apiCreateStripeCheckoutSessionRequestOptions.PaymentMethodTypes = source.PaymentMethodTypes
+		modelsCreateStripeCheckoutSessionRequestOptions.CustomerUpdate = pModelsCreateStripeCheckoutSessionCustomerUpdate
+		modelsCreateStripeCheckoutSessionRequestOptions.ExpiresAt = source.ExpiresAt
+		modelsCreateStripeCheckoutSessionRequestOptions.Locale = source.Locale
+		modelsCreateStripeCheckoutSessionRequestOptions.Metadata = source.Metadata
+		modelsCreateStripeCheckoutSessionRequestOptions.PaymentMethodTypes = source.PaymentMethodTypes
 		if source.RedirectOnCompletion != nil {
-			apiCreateStripeCheckoutSessionRedirectOnCompletion, err := FromAPIBillingAppStripeCreateCheckoutSessionRedirectOnCompletion(*source.RedirectOnCompletion)
+			modelsCreateStripeCheckoutSessionRedirectOnCompletion, err := FromAPIBillingAppStripeCreateCheckoutSessionRedirectOnCompletion(*source.RedirectOnCompletion)
 			if err != nil {
-				return apiCreateStripeCheckoutSessionRequestOptions, err
+				return modelsCreateStripeCheckoutSessionRequestOptions, err
 			}
-			apiCreateStripeCheckoutSessionRequestOptions.RedirectOnCompletion = &apiCreateStripeCheckoutSessionRedirectOnCompletion
+			modelsCreateStripeCheckoutSessionRequestOptions.RedirectOnCompletion = &modelsCreateStripeCheckoutSessionRedirectOnCompletion
 		}
-		apiCreateStripeCheckoutSessionRequestOptions.ReturnURL = source.ReturnUrl
-		apiCreateStripeCheckoutSessionRequestOptions.SuccessURL = source.SuccessUrl
-		pApiCreateCheckoutSessionTaxIdCollection, err := pV3BillingAppStripeCreateCheckoutSessionTaxIdCollectionToPApiCreateCheckoutSessionTaxIdCollection(source.TaxIdCollection)
+		modelsCreateStripeCheckoutSessionRequestOptions.ReturnURL = source.ReturnUrl
+		modelsCreateStripeCheckoutSessionRequestOptions.SuccessURL = source.SuccessUrl
+		pModelsCreateCheckoutSessionTaxIdCollection, err := pModelsBillingAppStripeCreateCheckoutSessionTaxIdCollectionToPModelsCreateCheckoutSessionTaxIdCollection(source.TaxIdCollection)
 		if err != nil {
-			return apiCreateStripeCheckoutSessionRequestOptions, err
+			return modelsCreateStripeCheckoutSessionRequestOptions, err
 		}
-		apiCreateStripeCheckoutSessionRequestOptions.TaxIdCollection = pApiCreateCheckoutSessionTaxIdCollection
+		modelsCreateStripeCheckoutSessionRequestOptions.TaxIdCollection = pModelsCreateCheckoutSessionTaxIdCollection
 		if source.UiMode != nil {
-			apiCheckoutSessionUIMode, err := FromAPIBillingAppStripeCheckoutSessionUIMode(*source.UiMode)
+			modelsCheckoutSessionUIMode, err := FromAPIBillingAppStripeCheckoutSessionUIMode(*source.UiMode)
 			if err != nil {
-				return apiCreateStripeCheckoutSessionRequestOptions, err
+				return modelsCreateStripeCheckoutSessionRequestOptions, err
 			}
-			apiCreateStripeCheckoutSessionRequestOptions.UiMode = &apiCheckoutSessionUIMode
+			modelsCreateStripeCheckoutSessionRequestOptions.UiMode = &modelsCheckoutSessionUIMode
 		}
-		return apiCreateStripeCheckoutSessionRequestOptions, nil
+		return modelsCreateStripeCheckoutSessionRequestOptions, nil
 	}
-	FromAPIBillingAppStripeCreateCheckoutSessionTaxIdCollectionRequired = func(source v3.BillingAppStripeCreateCheckoutSessionTaxIdCollectionRequired) (api.CreateCheckoutSessionTaxIdCollectionRequired, error) {
-		var apiCreateCheckoutSessionTaxIdCollectionRequired api.CreateCheckoutSessionTaxIdCollectionRequired
+	FromAPIBillingAppStripeCreateCheckoutSessionTaxIdCollectionRequired = func(source models.BillingAppStripeCreateCheckoutSessionTaxIdCollectionRequired) (models1.CreateCheckoutSessionTaxIdCollectionRequired, error) {
+		var modelsCreateCheckoutSessionTaxIdCollectionRequired models1.CreateCheckoutSessionTaxIdCollectionRequired
 		switch source {
-		case v3.BillingAppStripeCreateCheckoutSessionTaxIdCollectionRequiredIfSupported:
-			apiCreateCheckoutSessionTaxIdCollectionRequired = api.CreateCheckoutSessionTaxIdCollectionRequiredIfSupported
-		case v3.BillingAppStripeCreateCheckoutSessionTaxIdCollectionRequiredNever:
-			apiCreateCheckoutSessionTaxIdCollectionRequired = api.CreateCheckoutSessionTaxIdCollectionRequiredNever
+		case models.BillingAppStripeCreateCheckoutSessionTaxIdCollectionRequiredIfSupported:
+			modelsCreateCheckoutSessionTaxIdCollectionRequired = models1.CreateCheckoutSessionTaxIdCollectionRequiredIfSupported
+		case models.BillingAppStripeCreateCheckoutSessionTaxIdCollectionRequiredNever:
+			modelsCreateCheckoutSessionTaxIdCollectionRequired = models1.CreateCheckoutSessionTaxIdCollectionRequiredNever
 		default:
-			return apiCreateCheckoutSessionTaxIdCollectionRequired, fmt.Errorf("unexpected enum element: %v", source)
+			return modelsCreateCheckoutSessionTaxIdCollectionRequired, fmt.Errorf("unexpected enum element: %v", source)
 		}
-		return apiCreateCheckoutSessionTaxIdCollectionRequired, nil
+		return modelsCreateCheckoutSessionTaxIdCollectionRequired, nil
 	}
-	ToAPIBillingAppStripeCreateCheckoutSessionResult = func(source stripe.CreateCheckoutSessionOutput) v3.BillingAppStripeCreateCheckoutSessionResult {
-		var v3BillingAppStripeCreateCheckoutSessionResult v3.BillingAppStripeCreateCheckoutSessionResult
-		v3BillingAppStripeCreateCheckoutSessionResult.CancelUrl = source.StripeCheckoutSession.CancelURL
-		v3BillingAppStripeCreateCheckoutSessionResult.ClientReferenceId = source.StripeCheckoutSession.ClientReferenceID
-		v3BillingAppStripeCreateCheckoutSessionResult.ClientSecret = source.StripeCheckoutSession.ClientSecret
-		v3BillingAppStripeCreateCheckoutSessionResult.CreatedAt = source.StripeCheckoutSession.CreatedAt
+	ToAPIBillingAppStripeCreateCheckoutSessionResult = func(source stripe.CreateCheckoutSessionOutput) models.BillingAppStripeCreateCheckoutSessionResult {
+		var modelsBillingAppStripeCreateCheckoutSessionResult models.BillingAppStripeCreateCheckoutSessionResult
+		modelsBillingAppStripeCreateCheckoutSessionResult.CancelUrl = source.StripeCheckoutSession.CancelURL
+		modelsBillingAppStripeCreateCheckoutSessionResult.ClientReferenceId = source.StripeCheckoutSession.ClientReferenceID
+		modelsBillingAppStripeCreateCheckoutSessionResult.ClientSecret = source.StripeCheckoutSession.ClientSecret
+		modelsBillingAppStripeCreateCheckoutSessionResult.CreatedAt = source.StripeCheckoutSession.CreatedAt
 		if source.StripeCheckoutSession.Currency != nil {
 			xstring := string(*source.StripeCheckoutSession.Currency)
-			v3BillingAppStripeCreateCheckoutSessionResult.Currency = &xstring
+			modelsBillingAppStripeCreateCheckoutSessionResult.Currency = &xstring
 		}
-		v3BillingAppStripeCreateCheckoutSessionResult.CustomerEmail = source.StripeCheckoutSession.CustomerEmail
-		v3BillingAppStripeCreateCheckoutSessionResult.CustomerId = ResolveIDFromCustomerId(source.CustomerID)
-		v3BillingAppStripeCreateCheckoutSessionResult.ExpiresAt = source.StripeCheckoutSession.ExpiresAt
-		v3BillingAppStripeCreateCheckoutSessionResult.Metadata = source.StripeCheckoutSession.Metadata
-		v3BillingAppStripeCreateCheckoutSessionResult.Mode = v3.BillingAppStripeCheckoutSessionMode(source.StripeCheckoutSession.Mode)
-		v3BillingAppStripeCreateCheckoutSessionResult.ReturnUrl = source.StripeCheckoutSession.ReturnURL
-		v3BillingAppStripeCreateCheckoutSessionResult.SessionId = source.StripeCheckoutSession.SessionID
-		v3BillingAppStripeCreateCheckoutSessionResult.SetupIntentId = source.StripeCheckoutSession.SetupIntentID
+		modelsBillingAppStripeCreateCheckoutSessionResult.CustomerEmail = source.StripeCheckoutSession.CustomerEmail
+		modelsBillingAppStripeCreateCheckoutSessionResult.CustomerId = ResolveIDFromCustomerId(source.CustomerID)
+		modelsBillingAppStripeCreateCheckoutSessionResult.ExpiresAt = source.StripeCheckoutSession.ExpiresAt
+		modelsBillingAppStripeCreateCheckoutSessionResult.Metadata = source.StripeCheckoutSession.Metadata
+		modelsBillingAppStripeCreateCheckoutSessionResult.Mode = models.BillingAppStripeCheckoutSessionMode(source.StripeCheckoutSession.Mode)
+		modelsBillingAppStripeCreateCheckoutSessionResult.ReturnUrl = source.StripeCheckoutSession.ReturnURL
+		modelsBillingAppStripeCreateCheckoutSessionResult.SessionId = source.StripeCheckoutSession.SessionID
+		modelsBillingAppStripeCreateCheckoutSessionResult.SetupIntentId = source.StripeCheckoutSession.SetupIntentID
 		if source.StripeCheckoutSession.Status != nil {
 			xstring2 := string(*source.StripeCheckoutSession.Status)
-			v3BillingAppStripeCreateCheckoutSessionResult.Status = &xstring2
+			modelsBillingAppStripeCreateCheckoutSessionResult.Status = &xstring2
 		}
-		v3BillingAppStripeCreateCheckoutSessionResult.StripeCustomerId = source.StripeCustomerID
-		v3BillingAppStripeCreateCheckoutSessionResult.SuccessUrl = source.StripeCheckoutSession.SuccessURL
-		v3BillingAppStripeCreateCheckoutSessionResult.Url = source.StripeCheckoutSession.URL
-		return v3BillingAppStripeCreateCheckoutSessionResult
+		modelsBillingAppStripeCreateCheckoutSessionResult.StripeCustomerId = source.StripeCustomerID
+		modelsBillingAppStripeCreateCheckoutSessionResult.SuccessUrl = source.StripeCheckoutSession.SuccessURL
+		modelsBillingAppStripeCreateCheckoutSessionResult.Url = source.StripeCheckoutSession.URL
+		return modelsBillingAppStripeCreateCheckoutSessionResult
 	}
-	ToAPIBillingAppStripeCreateCustomerPortalSessionResult = func(source stripe.StripePortalSession) v3.BillingAppStripeCreateCustomerPortalSessionResult {
-		var v3BillingAppStripeCreateCustomerPortalSessionResult v3.BillingAppStripeCreateCustomerPortalSessionResult
+	ToAPIBillingAppStripeCreateCustomerPortalSessionResult = func(source stripe.StripePortalSession) models.BillingAppStripeCreateCustomerPortalSessionResult {
+		var modelsBillingAppStripeCreateCustomerPortalSessionResult models.BillingAppStripeCreateCustomerPortalSessionResult
 		var pString *string
 		if source.Configuration != nil {
 			pString = &source.Configuration.ID
 		}
 		if pString != nil {
-			v3BillingAppStripeCreateCustomerPortalSessionResult.ConfigurationId = *pString
+			modelsBillingAppStripeCreateCustomerPortalSessionResult.ConfigurationId = *pString
 		}
-		v3BillingAppStripeCreateCustomerPortalSessionResult.CreatedAt = source.CreatedAt
-		v3BillingAppStripeCreateCustomerPortalSessionResult.Id = source.ID
-		v3BillingAppStripeCreateCustomerPortalSessionResult.Livemode = source.Livemode
-		v3BillingAppStripeCreateCustomerPortalSessionResult.Locale = source.Locale
-		v3BillingAppStripeCreateCustomerPortalSessionResult.ReturnUrl = source.ReturnURL
-		v3BillingAppStripeCreateCustomerPortalSessionResult.StripeCustomerId = source.StripeCustomerID
-		v3BillingAppStripeCreateCustomerPortalSessionResult.Url = source.URL
-		return v3BillingAppStripeCreateCustomerPortalSessionResult
+		modelsBillingAppStripeCreateCustomerPortalSessionResult.CreatedAt = source.CreatedAt
+		modelsBillingAppStripeCreateCustomerPortalSessionResult.Id = source.ID
+		modelsBillingAppStripeCreateCustomerPortalSessionResult.Livemode = source.Livemode
+		modelsBillingAppStripeCreateCustomerPortalSessionResult.Locale = source.Locale
+		modelsBillingAppStripeCreateCustomerPortalSessionResult.ReturnUrl = source.ReturnURL
+		modelsBillingAppStripeCreateCustomerPortalSessionResult.StripeCustomerId = source.StripeCustomerID
+		modelsBillingAppStripeCreateCustomerPortalSessionResult.Url = source.URL
+		return modelsBillingAppStripeCreateCustomerPortalSessionResult
 	}
 }
-func pV3BillingAppStripeCheckoutSessionCustomTextParamsToPApiCheckoutSessionCustomTextAfterSubmitParams(source *v3.BillingAppStripeCheckoutSessionCustomTextParams) *api.CheckoutSessionCustomTextAfterSubmitParams {
-	var pApiCheckoutSessionCustomTextAfterSubmitParams *api.CheckoutSessionCustomTextAfterSubmitParams
+func pModelsBillingAppStripeCheckoutSessionCustomTextParamsToPModelsCheckoutSessionCustomTextAfterSubmitParams(source *models.BillingAppStripeCheckoutSessionCustomTextParams) *models1.CheckoutSessionCustomTextAfterSubmitParams {
+	var pModelsCheckoutSessionCustomTextAfterSubmitParams *models1.CheckoutSessionCustomTextAfterSubmitParams
 	if source != nil {
-		var apiCheckoutSessionCustomTextAfterSubmitParams api.CheckoutSessionCustomTextAfterSubmitParams
-		apiCheckoutSessionCustomTextAfterSubmitParams.AfterSubmit = (*source).AfterSubmit
-		apiCheckoutSessionCustomTextAfterSubmitParams.ShippingAddress = (*source).ShippingAddress
-		apiCheckoutSessionCustomTextAfterSubmitParams.Submit = (*source).Submit
-		apiCheckoutSessionCustomTextAfterSubmitParams.TermsOfServiceAcceptance = (*source).TermsOfServiceAcceptance
-		pApiCheckoutSessionCustomTextAfterSubmitParams = &apiCheckoutSessionCustomTextAfterSubmitParams
+		var modelsCheckoutSessionCustomTextAfterSubmitParams models1.CheckoutSessionCustomTextAfterSubmitParams
+		modelsCheckoutSessionCustomTextAfterSubmitParams.AfterSubmit = (*source).AfterSubmit
+		modelsCheckoutSessionCustomTextAfterSubmitParams.ShippingAddress = (*source).ShippingAddress
+		modelsCheckoutSessionCustomTextAfterSubmitParams.Submit = (*source).Submit
+		modelsCheckoutSessionCustomTextAfterSubmitParams.TermsOfServiceAcceptance = (*source).TermsOfServiceAcceptance
+		pModelsCheckoutSessionCustomTextAfterSubmitParams = &modelsCheckoutSessionCustomTextAfterSubmitParams
 	}
-	return pApiCheckoutSessionCustomTextAfterSubmitParams
+	return pModelsCheckoutSessionCustomTextAfterSubmitParams
 }
-func pV3BillingAppStripeCreateCheckoutSessionConsentCollectionPaymentMethodReuseAgreementToPApiCreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreement(source *v3.BillingAppStripeCreateCheckoutSessionConsentCollectionPaymentMethodReuseAgreement) (*api.CreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreement, error) {
-	var pApiCreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreement *api.CreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreement
+func pModelsBillingAppStripeCreateCheckoutSessionConsentCollectionPaymentMethodReuseAgreementToPModelsCreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreement(source *models.BillingAppStripeCreateCheckoutSessionConsentCollectionPaymentMethodReuseAgreement) (*models1.CreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreement, error) {
+	var pModelsCreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreement *models1.CreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreement
 	if source != nil {
-		var apiCreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreement api.CreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreement
+		var modelsCreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreement models1.CreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreement
 		if (*source).Position != nil {
-			apiCreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreementPosition, err := FromAPIBillingAppStripeCreateCheckoutSessionConsentCollectionPaymentMethodReuseAgreementPosition(*(*source).Position)
+			modelsCreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreementPosition, err := FromAPIBillingAppStripeCreateCheckoutSessionConsentCollectionPaymentMethodReuseAgreementPosition(*(*source).Position)
 			if err != nil {
 				return nil, err
 			}
-			apiCreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreement.Position = &apiCreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreementPosition
+			modelsCreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreement.Position = &modelsCreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreementPosition
 		}
-		pApiCreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreement = &apiCreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreement
+		pModelsCreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreement = &modelsCreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreement
 	}
-	return pApiCreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreement, nil
+	return pModelsCreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreement, nil
 }
-func pV3BillingAppStripeCreateCheckoutSessionConsentCollectionToPApiCreateStripeCheckoutSessionConsentCollection(source *v3.BillingAppStripeCreateCheckoutSessionConsentCollection) (*api.CreateStripeCheckoutSessionConsentCollection, error) {
-	var pApiCreateStripeCheckoutSessionConsentCollection *api.CreateStripeCheckoutSessionConsentCollection
+func pModelsBillingAppStripeCreateCheckoutSessionConsentCollectionToPModelsCreateStripeCheckoutSessionConsentCollection(source *models.BillingAppStripeCreateCheckoutSessionConsentCollection) (*models1.CreateStripeCheckoutSessionConsentCollection, error) {
+	var pModelsCreateStripeCheckoutSessionConsentCollection *models1.CreateStripeCheckoutSessionConsentCollection
 	if source != nil {
-		var apiCreateStripeCheckoutSessionConsentCollection api.CreateStripeCheckoutSessionConsentCollection
-		pApiCreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreement, err := pV3BillingAppStripeCreateCheckoutSessionConsentCollectionPaymentMethodReuseAgreementToPApiCreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreement((*source).PaymentMethodReuseAgreement)
+		var modelsCreateStripeCheckoutSessionConsentCollection models1.CreateStripeCheckoutSessionConsentCollection
+		pModelsCreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreement, err := pModelsBillingAppStripeCreateCheckoutSessionConsentCollectionPaymentMethodReuseAgreementToPModelsCreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreement((*source).PaymentMethodReuseAgreement)
 		if err != nil {
 			return nil, err
 		}
-		apiCreateStripeCheckoutSessionConsentCollection.PaymentMethodReuseAgreement = pApiCreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreement
+		modelsCreateStripeCheckoutSessionConsentCollection.PaymentMethodReuseAgreement = pModelsCreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreement
 		if (*source).Promotions != nil {
-			apiCreateStripeCheckoutSessionConsentCollectionPromotions, err := FromAPIBillingAppStripeCreateCheckoutSessionConsentCollectionPromotions(*(*source).Promotions)
+			modelsCreateStripeCheckoutSessionConsentCollectionPromotions, err := FromAPIBillingAppStripeCreateCheckoutSessionConsentCollectionPromotions(*(*source).Promotions)
 			if err != nil {
 				return nil, err
 			}
-			apiCreateStripeCheckoutSessionConsentCollection.Promotions = &apiCreateStripeCheckoutSessionConsentCollectionPromotions
+			modelsCreateStripeCheckoutSessionConsentCollection.Promotions = &modelsCreateStripeCheckoutSessionConsentCollectionPromotions
 		}
 		if (*source).TermsOfService != nil {
-			apiCreateStripeCheckoutSessionConsentCollectionTermsOfService, err := FromAPIBillingAppStripeCreateCheckoutSessionConsentCollectionTermsOfService(*(*source).TermsOfService)
+			modelsCreateStripeCheckoutSessionConsentCollectionTermsOfService, err := FromAPIBillingAppStripeCreateCheckoutSessionConsentCollectionTermsOfService(*(*source).TermsOfService)
 			if err != nil {
 				return nil, err
 			}
-			apiCreateStripeCheckoutSessionConsentCollection.TermsOfService = &apiCreateStripeCheckoutSessionConsentCollectionTermsOfService
+			modelsCreateStripeCheckoutSessionConsentCollection.TermsOfService = &modelsCreateStripeCheckoutSessionConsentCollectionTermsOfService
 		}
-		pApiCreateStripeCheckoutSessionConsentCollection = &apiCreateStripeCheckoutSessionConsentCollection
+		pModelsCreateStripeCheckoutSessionConsentCollection = &modelsCreateStripeCheckoutSessionConsentCollection
 	}
-	return pApiCreateStripeCheckoutSessionConsentCollection, nil
+	return pModelsCreateStripeCheckoutSessionConsentCollection, nil
 }
-func pV3BillingAppStripeCreateCheckoutSessionCustomerUpdateToPApiCreateStripeCheckoutSessionCustomerUpdate(source *v3.BillingAppStripeCreateCheckoutSessionCustomerUpdate) (*api.CreateStripeCheckoutSessionCustomerUpdate, error) {
-	var pApiCreateStripeCheckoutSessionCustomerUpdate *api.CreateStripeCheckoutSessionCustomerUpdate
+func pModelsBillingAppStripeCreateCheckoutSessionCustomerUpdateToPModelsCreateStripeCheckoutSessionCustomerUpdate(source *models.BillingAppStripeCreateCheckoutSessionCustomerUpdate) (*models1.CreateStripeCheckoutSessionCustomerUpdate, error) {
+	var pModelsCreateStripeCheckoutSessionCustomerUpdate *models1.CreateStripeCheckoutSessionCustomerUpdate
 	if source != nil {
-		var apiCreateStripeCheckoutSessionCustomerUpdate api.CreateStripeCheckoutSessionCustomerUpdate
+		var modelsCreateStripeCheckoutSessionCustomerUpdate models1.CreateStripeCheckoutSessionCustomerUpdate
 		if (*source).Address != nil {
-			apiCreateStripeCheckoutSessionCustomerUpdateBehavior, err := FromAPIBillingAppStripeCreateCheckoutSessionCustomerUpdateBehavior(*(*source).Address)
+			modelsCreateStripeCheckoutSessionCustomerUpdateBehavior, err := FromAPIBillingAppStripeCreateCheckoutSessionCustomerUpdateBehavior(*(*source).Address)
 			if err != nil {
 				return nil, err
 			}
-			apiCreateStripeCheckoutSessionCustomerUpdate.Address = &apiCreateStripeCheckoutSessionCustomerUpdateBehavior
+			modelsCreateStripeCheckoutSessionCustomerUpdate.Address = &modelsCreateStripeCheckoutSessionCustomerUpdateBehavior
 		}
 		if (*source).Name != nil {
-			apiCreateStripeCheckoutSessionCustomerUpdateBehavior2, err := FromAPIBillingAppStripeCreateCheckoutSessionCustomerUpdateBehavior(*(*source).Name)
+			modelsCreateStripeCheckoutSessionCustomerUpdateBehavior2, err := FromAPIBillingAppStripeCreateCheckoutSessionCustomerUpdateBehavior(*(*source).Name)
 			if err != nil {
 				return nil, err
 			}
-			apiCreateStripeCheckoutSessionCustomerUpdate.Name = &apiCreateStripeCheckoutSessionCustomerUpdateBehavior2
+			modelsCreateStripeCheckoutSessionCustomerUpdate.Name = &modelsCreateStripeCheckoutSessionCustomerUpdateBehavior2
 		}
 		if (*source).Shipping != nil {
-			apiCreateStripeCheckoutSessionCustomerUpdateBehavior3, err := FromAPIBillingAppStripeCreateCheckoutSessionCustomerUpdateBehavior(*(*source).Shipping)
+			modelsCreateStripeCheckoutSessionCustomerUpdateBehavior3, err := FromAPIBillingAppStripeCreateCheckoutSessionCustomerUpdateBehavior(*(*source).Shipping)
 			if err != nil {
 				return nil, err
 			}
-			apiCreateStripeCheckoutSessionCustomerUpdate.Shipping = &apiCreateStripeCheckoutSessionCustomerUpdateBehavior3
+			modelsCreateStripeCheckoutSessionCustomerUpdate.Shipping = &modelsCreateStripeCheckoutSessionCustomerUpdateBehavior3
 		}
-		pApiCreateStripeCheckoutSessionCustomerUpdate = &apiCreateStripeCheckoutSessionCustomerUpdate
+		pModelsCreateStripeCheckoutSessionCustomerUpdate = &modelsCreateStripeCheckoutSessionCustomerUpdate
 	}
-	return pApiCreateStripeCheckoutSessionCustomerUpdate, nil
+	return pModelsCreateStripeCheckoutSessionCustomerUpdate, nil
 }
-func pV3BillingAppStripeCreateCheckoutSessionTaxIdCollectionToPApiCreateCheckoutSessionTaxIdCollection(source *v3.BillingAppStripeCreateCheckoutSessionTaxIdCollection) (*api.CreateCheckoutSessionTaxIdCollection, error) {
-	var pApiCreateCheckoutSessionTaxIdCollection *api.CreateCheckoutSessionTaxIdCollection
+func pModelsBillingAppStripeCreateCheckoutSessionTaxIdCollectionToPModelsCreateCheckoutSessionTaxIdCollection(source *models.BillingAppStripeCreateCheckoutSessionTaxIdCollection) (*models1.CreateCheckoutSessionTaxIdCollection, error) {
+	var pModelsCreateCheckoutSessionTaxIdCollection *models1.CreateCheckoutSessionTaxIdCollection
 	if source != nil {
-		var apiCreateCheckoutSessionTaxIdCollection api.CreateCheckoutSessionTaxIdCollection
+		var modelsCreateCheckoutSessionTaxIdCollection models1.CreateCheckoutSessionTaxIdCollection
 		if (*source).Enabled != nil {
-			apiCreateCheckoutSessionTaxIdCollection.Enabled = *(*source).Enabled
+			modelsCreateCheckoutSessionTaxIdCollection.Enabled = *(*source).Enabled
 		}
 		if (*source).Required != nil {
-			apiCreateCheckoutSessionTaxIdCollectionRequired, err := FromAPIBillingAppStripeCreateCheckoutSessionTaxIdCollectionRequired(*(*source).Required)
+			modelsCreateCheckoutSessionTaxIdCollectionRequired, err := FromAPIBillingAppStripeCreateCheckoutSessionTaxIdCollectionRequired(*(*source).Required)
 			if err != nil {
 				return nil, err
 			}
-			apiCreateCheckoutSessionTaxIdCollection.Required = &apiCreateCheckoutSessionTaxIdCollectionRequired
+			modelsCreateCheckoutSessionTaxIdCollection.Required = &modelsCreateCheckoutSessionTaxIdCollectionRequired
 		}
-		pApiCreateCheckoutSessionTaxIdCollection = &apiCreateCheckoutSessionTaxIdCollection
+		pModelsCreateCheckoutSessionTaxIdCollection = &modelsCreateCheckoutSessionTaxIdCollection
 	}
-	return pApiCreateCheckoutSessionTaxIdCollection, nil
+	return pModelsCreateCheckoutSessionTaxIdCollection, nil
 }

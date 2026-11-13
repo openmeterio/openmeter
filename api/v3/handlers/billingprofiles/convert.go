@@ -5,8 +5,8 @@ import (
 	"github.com/rickb777/period"
 	"github.com/samber/lo"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/labels"
+	api "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"

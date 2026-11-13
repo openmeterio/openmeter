@@ -2,7 +2,6 @@
 package: openmeter
 generate:
   client: true
-  models: true
   embedded-spec: true
 compatibility:
   # See: https://github.com/oapi-codegen/oapi-codegen/issues/778

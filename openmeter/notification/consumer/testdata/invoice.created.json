@@ -1,0 +1,70 @@
+{
+  "type": "invoice.created",
+  "version": 1,
+  "invoice": {
+    "collectionAt": "2026-01-01T00:00:00Z",
+    "createdAt": "2026-01-01T00:00:00Z",
+    "currency": "USD",
+    "customer": {
+      "id": "customer-1",
+      "name": "Test Customer",
+      "usageAttribution": {
+        "subjectKeys": null
+      }
+    },
+    "id": "invoice-1",
+    "number": "INV-1",
+    "status": "draft",
+    "statusDetails": {
+      "availableActions": {},
+      "extendedStatus": "draft.created",
+      "failed": false,
+      "immutable": false
+    },
+    "supplier": {
+      "addresses": [
+        {}
+      ]
+    },
+    "totals": {
+      "amount": "0",
+      "chargesTotal": "0",
+      "creditsTotal": "0",
+      "discountsTotal": "0",
+      "taxesExclusiveTotal": "0",
+      "taxesInclusiveTotal": "0",
+      "taxesTotal": "0",
+      "total": "0"
+    },
+    "type": "standard",
+    "updatedAt": "2026-01-01T00:00:00Z",
+    "workflow": {
+      "apps": {
+        "invoicing": null,
+        "payment": null,
+        "tax": null
+      },
+      "sourceBillingProfileId": "",
+      "workflow": {
+        "collection": {
+          "alignment": {
+            "type": "subscription"
+          },
+          "interval": "P0D"
+        },
+        "invoicing": {
+          "autoAdvance": false,
+          "draftPeriod": "P0D",
+          "dueAfter": "P0D",
+          "progressiveBilling": false,
+          "subscriptionEndProrationMode": ""
+        },
+        "payment": {},
+        "tax": {
+          "enabled": false,
+          "enforced": false
+        }
+      }
+    }
+  }
+}

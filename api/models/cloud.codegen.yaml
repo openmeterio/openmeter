@@ -1,0 +1,9 @@
+package: models
+generate:
+  models: true
+compatibility:
+  disable-required-readonly-as-pointer: true
+  always-prefix-enum-values: true
+output-options:
+  # Match the legacy client's exported models by pruning unused Cloud schemas.
+  skip-prune: false
