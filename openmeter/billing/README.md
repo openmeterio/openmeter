@@ -293,6 +293,14 @@ are defined in [Charges](charges/README.md#validation-issues-alongside-successfu
 
 ## Invoice lifecycle and failure
 
+Gathering and draft invoice numbers are internal; the invoicing app owns the
+final number. Stripe supplies its own final number without allocating an
+OpenMeter final number. Custom Invoicing's generated final numbers commit with
+the caller so rollback allows reuse and preserves continuity. Sandbox final
+numbers permit gaps and commit independently, releasing the namespace/scope
+counter lock before the caller finishes. Independent allocation needs a spare
+database connection and must not wait on locks held by its caller.
+
 The standard invoice state machine coordinates:
 
 1. collection and quantity snapshotting
