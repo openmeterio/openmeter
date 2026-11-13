@@ -23,6 +23,7 @@ func TestMergeCloudModels(t *testing.T) {
 	server, err := declarations("server.go", []byte(`package models
 type Shared string
 type ServerOnly int
+const ServerOnlyValue ServerOnly = 1
 `))
 	require.NoError(t, err)
 	cloud, err := declarations("cloud.go", []byte(`package models
@@ -47,10 +48,12 @@ const NewAuthScopes newAuthContextKey = "NewAuth.Scopes"
 
 	pub, err := v1Client.aliases(client)
 	require.NoError(t, err)
-	for _, name := range []string{"Shared", "ServerOnly", "State", "CloudOnly"} {
+	for _, name := range []string{"Shared", "State", "CloudOnly"} {
 		require.Contains(t, string(pub), "type "+name+" = models."+name)
 	}
 
+	require.NotContains(t, string(pub), "type ServerOnly ")
+	require.NotContains(t, string(pub), "const ServerOnlyValue ")
 	require.Contains(t, string(pub), "const Ready = models.Ready")
 	require.Contains(t, string(pub), `const NewAuthScopes newAuthContextKey = "NewAuth.Scopes"`)
 
