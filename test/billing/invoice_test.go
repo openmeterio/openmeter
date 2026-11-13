@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"math/rand/v2"
 	"slices"
 	"testing"
@@ -24,6 +25,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
+	billingworkeradvance "github.com/openmeterio/openmeter/openmeter/billing/worker/advance"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/meter"
@@ -4333,6 +4335,56 @@ func (s *InvoicingTestSuite) TestListPendingAdvancementDoesNotResolveWorkflowRef
 	s.Require().Len(candidates, 1)
 	s.Equal(invoices[0].GetInvoiceID(), candidates[0].InvoiceID)
 	s.Equal(customerEntity.ID, candidates[0].CustomerID)
+}
+
+func (s *InvoicingTestSuite) TestAutoAdvancerSkipsCandidatesYoungerThanMinimumAge() {
+	// given:
+	// - an advanceable invoice that was just updated
+	// - an auto advancer configured with a one hour minimum age
+	// when:
+	// - candidates are listed before and after the invoice is backdated past the minimum age
+	// then:
+	// - the invoice is only listed once it is older than the minimum age
+	ctx := s.T().Context()
+	namespace := s.GetUniqueNamespace("advancer-minimum-age")
+	s.ProvisionBillingProfile(ctx, namespace, s.InstallSandboxApp(s.T(), namespace).GetID())
+	customerEntity := s.CreateTestCustomer(namespace, "test-customer")
+	s.CreateGatheringInvoice(s.T(), ctx, DraftInvoiceInput{
+		Namespace: namespace,
+		Customer:  customerEntity,
+	})
+
+	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		Customer:          customerEntity.GetID(),
+		ForceAsyncAdvance: true,
+	})
+	s.Require().NoError(err)
+	s.Require().Len(invoices, 1)
+
+	advancer, err := billingworkeradvance.NewAdvancer(billingworkeradvance.Config{
+		BillingService: s.BillingService,
+		Logger:         slog.Default(),
+		MinimumAge:     time.Hour,
+	})
+	s.Require().NoError(err)
+
+	candidates, err := advancer.ListInvoicesToAdvance(ctx, []string{namespace}, nil)
+	s.Require().NoError(err)
+	s.Empty(candidates)
+
+	_, err = s.TestDB.PGDriver.DB().ExecContext(
+		ctx,
+		`UPDATE billing_invoices SET updated_at = $1 WHERE namespace = $2 AND id = $3`,
+		time.Now().Add(-2*time.Hour),
+		namespace,
+		invoices[0].ID,
+	)
+	s.Require().NoError(err)
+
+	candidates, err = advancer.ListInvoicesToAdvance(ctx, []string{namespace}, nil)
+	s.Require().NoError(err)
+	s.Require().Len(candidates, 1)
+	s.Equal(invoices[0].GetInvoiceID(), candidates[0].InvoiceID)
 }
 
 func (s *InvoicingTestSuite) TestProgressiveBillLate() {
