@@ -1091,6 +1091,11 @@ var (
 				Columns: []*schema.Column{BillingInvoiceLinesColumns[2], BillingInvoiceLinesColumns[35]},
 			},
 			{
+				Name:    "billinginvoiceline_namespace_charge_id",
+				Unique:  false,
+				Columns: []*schema.Column{BillingInvoiceLinesColumns[2], BillingInvoiceLinesColumns[39]},
+			},
+			{
 				Name:    "billinginvoiceline_namespace_parent_line_id",
 				Unique:  false,
 				Columns: []*schema.Column{BillingInvoiceLinesColumns[2], BillingInvoiceLinesColumns[37]},
