@@ -11,8 +11,9 @@ advance invoice and payment lifecycles.
 
 ## Reconciliation model
 
-A sync is given a subscription reference or expanded view and an `asOf`
-horizon. It resolves the subscription, including deleted records, and the
+A sync is given a subscription ID and an `asOf` horizon. It reloads the current
+subscription view for non-deleted subscriptions, including when triggered by an
+event carrying an older view. It resolves deleted subscription records and the
 customer's billing profile before acquiring billing's customer lock. Under that
 lock it:
 
@@ -32,9 +33,10 @@ Invoice patches, charge patches, and the sync-state update share the billing
 transaction. A failure rolls back the plan rather than leaving only the earlier
 patches applied.
 
-The entrypoints that also invoice the customer run pending-line collection
-after reconciliation so flat fees billed in advance can become invoices
-immediately.
+`SyncByID` collects the customer's pending lines after reconciliation when
+`WithInvoicePendingLines()` is provided, so flat fees billed in advance can
+become invoices immediately. Dry runs and deleted subscriptions do not collect
+pending lines.
 
 ## Target time model
 
@@ -133,15 +135,15 @@ responsibility of the downstream charge lifecycle rather than subscription sync.
 
 Cancellation syncs through the subscription end so artifacts are shortened or
 removed according to the final desired periods. When a cancellation event's root
-`UpdatedAt` predates the current subscription, sync uses the current view and
-current cancellation end; a continued subscription needs no cancellation sync.
+`UpdatedAt` predates the current subscription, the handler also uses the current
+cancellation end as its horizon; a continued subscription needs no cancellation sync.
 Annotation writes can also advance the root timestamp, so age alone must not
 discard a still-valid cancellation. This timestamp is not a version for all child
 changes. A deleted subscription has no view and
 therefore produces an empty target, asking reconciliation to remove its remaining
 owned artifacts subject to immutable-invoice rules. Cleanup must
-use an ID-based entrypoint because the normal subscription view lookup excludes
-deleted records.
+load the deleted subscription record separately because the normal subscription
+view lookup excludes deleted records.
 
 Sync state is written only after the plan has been applied. `HasBillables`
 prevents needless future scheduling; `NextSyncAfter` is the end of the

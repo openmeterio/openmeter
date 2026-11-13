@@ -25,7 +25,7 @@ func TestSubscriptionMigrationPreservesCollectionOrigins(t *testing.T) {
 	f := setupCustomCurrencyFlatFeeSubscription(t)
 	ctx := t.Context()
 	clock.FreezeTime(f.view.Subscription.ActiveFrom)
-	require.NoError(t, f.subscriptionSyncService.SyncByView(ctx, f.view, clock.Now()))
+	require.NoError(t, f.subscriptionSyncService.SyncByID(ctx, f.view.Subscription.NamespacedID, clock.Now()))
 
 	_, err := f.chargesService.AdvanceCharges(ctx, charges.AdvanceChargesInput{Customer: f.view.Customer.GetID()})
 	require.NoError(t, err)
@@ -121,7 +121,7 @@ func TestSubscriptionMigrationPreservesCollectionOrigins(t *testing.T) {
 
 	canceled, err := f.subscriptionService.GetView(ctx, f.view.Subscription.NamespacedID)
 	require.NoError(t, err)
-	require.NoError(t, f.subscriptionSyncService.SyncByView(ctx, canceled, clock.Now()))
+	require.NoError(t, f.subscriptionSyncService.SyncByID(ctx, canceled.Subscription.NamespacedID, clock.Now()))
 
 	final, err := f.ledgerDeps.HistoricalLedger.GetBalanceBuckets(ctx, query)
 	require.NoError(t, err)
@@ -145,7 +145,7 @@ func TestSubscriptionMigrationPreservesCollectionOrigins(t *testing.T) {
 	// Then retrying reconciliation neither posts entries nor changes the origin balances.
 	entries, err := f.DBDeps.DBClient.LedgerEntry.Query().Count(ctx)
 	require.NoError(t, err)
-	require.NoError(t, f.subscriptionSyncService.SyncByView(ctx, canceled, clock.Now()))
+	require.NoError(t, f.subscriptionSyncService.SyncByID(ctx, canceled.Subscription.NamespacedID, clock.Now()))
 
 	_, err = f.chargesService.AdvanceCharges(ctx, charges.AdvanceChargesInput{Customer: f.view.Customer.GetID()})
 	require.NoError(t, err)

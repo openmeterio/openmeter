@@ -118,7 +118,7 @@ func TestSubscriptionCustomCurrencyRealizedCancellation(t *testing.T) {
 	require.NoError(t, json.Unmarshal(raw, &staleView))
 
 	horizon := time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC)
-	require.NoError(t, f.subscriptionSyncService.SyncByView(ctx, f.view, horizon))
+	require.NoError(t, f.subscriptionSyncService.SyncByID(ctx, f.view.Subscription.NamespacedID, horizon))
 
 	ids := listSubscriptionChargeIDs(t, f.testDeps, f.view.Subscription.ID)
 	require.GreaterOrEqual(t, len(ids), 2)
@@ -189,7 +189,7 @@ func TestSubscriptionCustomCurrencyRealizedCancellation(t *testing.T) {
 	beforeEntries, err := f.DBDeps.DBClient.LedgerEntry.Query().Count(ctx)
 	require.NoError(t, err)
 	require.NoError(t, f.subscriptionSyncService.HandleCancelledEvent(ctx, &event))
-	require.NoError(t, f.subscriptionSyncService.SyncByView(ctx, staleView, horizon))
+	require.NoError(t, f.subscriptionSyncService.SyncByID(ctx, staleView.Subscription.NamespacedID, horizon))
 	require.Equal(t, remaining, listSubscriptionChargeIDs(t, f.testDeps, f.view.Subscription.ID))
 
 	afterEntries, err := f.DBDeps.DBClient.LedgerEntry.Query().Count(ctx)
@@ -231,7 +231,7 @@ func TestSubscriptionCustomCurrencyPlanChangeReconcilesCancellation(t *testing.T
 	defer clock.UnFreeze()
 	f := setupCustomCurrencyFlatFeeSubscription(t)
 	ctx := t.Context()
-	require.NoError(t, f.subscriptionSyncService.SyncByView(ctx, f.view, time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC)))
+	require.NoError(t, f.subscriptionSyncService.SyncByID(ctx, f.view.Subscription.NamespacedID, time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC)))
 	ids := listSubscriptionChargeIDs(t, f.testDeps, f.view.Subscription.ID)
 	require.Len(t, ids, 2)
 	clock.FreezeTime(f.view.Subscription.ActiveFrom)
@@ -328,7 +328,7 @@ func TestSubscriptionCustomCurrencyStaleCancellation(t *testing.T) {
 			}
 
 			horizon := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
-			require.NoError(t, f.subscriptionSyncService.SyncByView(ctx, current, horizon))
+			require.NoError(t, f.subscriptionSyncService.SyncByID(ctx, current.Subscription.NamespacedID, horizon))
 			ids := listSubscriptionChargeIDs(t, f.testDeps, f.view.Subscription.ID)
 			require.Len(t, ids, tc.expectedCharges)
 			states, err := f.subscriptionSyncService.GetSyncStates(ctx, []models.NamespacedID{f.view.Subscription.NamespacedID})
@@ -369,7 +369,7 @@ func TestSubscriptionCustomCurrencyScheduledDeletion(t *testing.T) {
 	f := setupCustomCurrencyFlatFeeSubscription(t)
 	ctx := t.Context()
 	horizon := time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC)
-	require.NoError(t, f.subscriptionSyncService.SyncByView(ctx, f.view, horizon))
+	require.NoError(t, f.subscriptionSyncService.SyncByID(ctx, f.view.Subscription.NamespacedID, horizon))
 	ids := listSubscriptionChargeIDs(t, f.testDeps, f.view.Subscription.ID)
 	require.NotEmpty(t, ids)
 	// when: deletion and its event are processed twice, then an older view arrives.
@@ -379,8 +379,10 @@ func TestSubscriptionCustomCurrencyScheduledDeletion(t *testing.T) {
 	beforeEntries, err := f.DBDeps.DBClient.LedgerEntry.Query().Count(ctx)
 	require.NoError(t, err)
 	require.NoError(t, f.subscriptionSyncService.HandleDeletedEvent(ctx, &event))
-	require.NoError(t, f.subscriptionSyncService.SyncByView(ctx, f.view, horizon))
-	// then: no future charges are resurrected and no accounting effects are duplicated.
+	require.NoError(t, f.subscriptionSyncService.SyncByID(ctx, f.view.Subscription.
+		// then: no future charges are resurrected and no accounting effects are duplicated.
+		NamespacedID, horizon))
+
 	require.Empty(t, listSubscriptionChargeIDs(t, f.testDeps, f.view.Subscription.ID))
 	states, err := f.subscriptionSyncService.GetSyncStates(ctx, []models.NamespacedID{f.view.Subscription.NamespacedID})
 	require.NoError(t, err)

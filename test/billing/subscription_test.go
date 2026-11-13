@@ -346,7 +346,7 @@ func (s *SubscriptionTestSuite) createCustomerWithSubscription(ctx context.Conte
 	s.NoError(err)
 	s.NotNil(subsView)
 
-	s.NoError(s.SubscriptionSyncService.SyncByView(ctx, subsView, clock.Now()))
+	s.NoError(s.SubscriptionSyncService.SyncByID(ctx, subsView.Subscription.NamespacedID, clock.Now()))
 
 	return cust
 }

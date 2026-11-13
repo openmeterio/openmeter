@@ -84,7 +84,7 @@ func createBilledComputeSubscription(t *testing.T, deps testDeps) (subscription.
 	}, p)
 	require.NoError(t, err)
 
-	require.NoError(t, deps.subscriptionSyncService.SyncByView(ctx, before, clock.Now()))
+	require.NoError(t, deps.subscriptionSyncService.SyncByID(ctx, before.Subscription.NamespacedID, clock.Now()))
 
 	clock.FreezeTime(clock.Now().Add(24 * time.Hour))
 	drafts, err := deps.billingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
@@ -131,7 +131,7 @@ func migrateAndSyncSubscription(t *testing.T, deps testDeps, before subscription
 	require.NoError(t, err)
 
 	for range 2 {
-		require.NoError(t, deps.subscriptionSyncService.SyncByView(t.Context(), response.Next, clock.Now()))
+		require.NoError(t, deps.subscriptionSyncService.SyncByID(t.Context(), response.Next.Subscription.NamespacedID, clock.Now()))
 	}
 
 	return response.Next

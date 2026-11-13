@@ -31,7 +31,7 @@ func TestSubscriptionCustomCurrencyBackfillAcrossPeriods(t *testing.T) {
 	for month := time.February; month <= time.May; month++ {
 		at := time.Date(2026, month, 1, 0, 0, 0, 0, time.UTC)
 		clock.FreezeTime(at)
-		require.NoError(t, f.subscriptionSyncService.SyncByView(ctx, f.view, at))
+		require.NoError(t, f.subscriptionSyncService.SyncByID(ctx, f.view.Subscription.NamespacedID, at))
 
 		_, err := f.chargesService.AdvanceCharges(ctx, charges.AdvanceChargesInput{Customer: f.view.Customer.GetID()})
 		require.NoError(t, err)

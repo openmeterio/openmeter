@@ -541,7 +541,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	subscriptionsyncService, err := common.NewBillingSubscriptionSyncService(logger, subscriptionServiceWithWorkflow, billingRegistry, subscriptionsyncAdapter, tracer, creditsConfiguration, billingFeatureSwitchesConfiguration, featureGateChecker)
+	serviceService, err := common.NewBillingSubscriptionSyncService(logger, subscriptionServiceWithWorkflow, billingRegistry, subscriptionsyncAdapter, tracer, creditsConfiguration, billingFeatureSwitchesConfiguration, featureGateChecker)
 	if err != nil {
 		cleanup8()
 		cleanup7()
@@ -553,7 +553,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	reconciler, err := common.NewBillingSubscriptionReconciler(logger, subscriptionServiceWithWorkflow, subscriptionsyncService, customerService)
+	reconciler, err := common.NewBillingSubscriptionReconciler(logger, subscriptionServiceWithWorkflow, serviceService, customerService)
 	if err != nil {
 		cleanup8()
 		cleanup7()

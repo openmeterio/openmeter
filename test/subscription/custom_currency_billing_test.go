@@ -95,7 +95,7 @@ func TestSubscriptionCustomCurrencyGatheringInvoiceLivePreviewOmitsUsageBasedLin
 
 	view, err := deps.subscriptionService.GetView(t.Context(), createdSubscription.NamespacedID)
 	require.NoError(t, err)
-	require.NoError(t, deps.subscriptionSyncService.SyncByView(t.Context(), view, invoiceAt))
+	require.NoError(t, deps.subscriptionSyncService.SyncByID(t.Context(), view.Subscription.NamespacedID, invoiceAt))
 
 	chargeListInput := charges.ListChargesInput{
 		Page:            pagination.Page{PageNumber: 1, PageSize: 100},
@@ -363,11 +363,11 @@ func TestSubscriptionSyncCustomCurrencyBilling(t *testing.T) {
 			// when:
 			// - the serialized subscription event is synchronized through the charge backend twice
 			// - usage is realized at the end of the billing period
-			require.NoError(t, deps.subscriptionSyncService.SyncByView(t.Context(), eventView, invoiceAt))
+			require.NoError(t, deps.subscriptionSyncService.SyncByID(t.Context(), eventView.Subscription.NamespacedID, invoiceAt))
 
 			chargeIDsBeforeRetry := listSubscriptionChargeIDs(t, deps, createdSubscription.ID)
 			require.NotEmpty(t, chargeIDsBeforeRetry)
-			require.NoError(t, deps.subscriptionSyncService.SyncByView(t.Context(), eventView, invoiceAt))
+			require.NoError(t, deps.subscriptionSyncService.SyncByID(t.Context(), eventView.Subscription.NamespacedID, invoiceAt))
 			require.Equal(t, chargeIDsBeforeRetry, listSubscriptionChargeIDs(t, deps, createdSubscription.ID))
 
 			assertSubscriptionChargeCurrenciesAndCostBasis(
@@ -457,7 +457,7 @@ func TestSubscriptionSyncCustomCurrencyBilling(t *testing.T) {
 			// not just stable charge identifiers.
 			beforeEntries, err := deps.DBDeps.DBClient.LedgerEntry.Query().Count(t.Context())
 			require.NoError(t, err)
-			require.NoError(t, deps.subscriptionSyncService.SyncByView(t.Context(), eventView, invoiceAt))
+			require.NoError(t, deps.subscriptionSyncService.SyncByID(t.Context(), eventView.Subscription.NamespacedID, invoiceAt))
 
 			_, err = deps.chargesService.AdvanceCharges(t.Context(), charges.AdvanceChargesInput{Customer: customer.GetID()})
 			require.NoError(t, err)
