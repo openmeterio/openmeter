@@ -7,6 +7,7 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/notification"
+	"github.com/openmeterio/openmeter/openmeter/notification/internal/eventpayload"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -610,66 +611,17 @@ func FromEventType(t notification.EventType) (api.NotificationEventType, error) 
 }
 
 func FromEventAsBalanceThresholdPayload(e notification.Event) (api.NotificationEventBalanceThresholdPayload, error) {
-	if e.Payload.BalanceThreshold == nil {
-		return api.NotificationEventBalanceThresholdPayload{}, fmt.Errorf("balance threshold is nil")
-	}
-
-	return api.NotificationEventBalanceThresholdPayload{
-		Id:        e.ID,
-		Timestamp: e.CreatedAt,
-		Type:      api.NotificationEventBalanceThresholdPayloadTypeEntitlementsBalanceThreshold,
-		Data: api.NotificationEventBalanceThresholdPayloadData{
-			Value:       e.Payload.BalanceThreshold.Value,
-			Entitlement: e.Payload.BalanceThreshold.Entitlement,
-			Feature:     e.Payload.BalanceThreshold.Feature,
-			Subject:     e.Payload.BalanceThreshold.Subject,
-			Customer:    lo.ToPtr(e.Payload.BalanceThreshold.Customer),
-			Threshold:   e.Payload.BalanceThreshold.Threshold,
-		},
-	}, nil
+	return eventpayload.ToAPINotificationEventBalanceThresholdPayload(e)
 }
 
 func FromEventAsEntitlementResetPayload(e notification.Event) (api.NotificationEventResetPayload, error) {
-	if e.Payload.EntitlementReset == nil {
-		return api.NotificationEventResetPayload{}, fmt.Errorf("entitlement reset is nil")
-	}
-
-	return api.NotificationEventResetPayload{
-		Id:        e.ID,
-		Timestamp: e.CreatedAt,
-		Type:      api.NotificationEventResetPayloadTypeEntitlementsReset,
-		Data: api.NotificationEventEntitlementValuePayloadBase{
-			Value:       e.Payload.EntitlementReset.Value,
-			Entitlement: e.Payload.EntitlementReset.Entitlement,
-			Feature:     e.Payload.EntitlementReset.Feature,
-			Subject:     e.Payload.EntitlementReset.Subject,
-			Customer:    lo.ToPtr(e.Payload.EntitlementReset.Customer),
-		},
-	}, nil
+	return eventpayload.ToAPINotificationEventResetPayload(e)
 }
 
 func FromEventAsInvoiceCreatedPayload(e notification.Event) (api.NotificationEventInvoiceCreatedPayload, error) {
-	if e.Payload.Invoice == nil {
-		return api.NotificationEventInvoiceCreatedPayload{}, fmt.Errorf("invoice is nil")
-	}
-
-	return api.NotificationEventInvoiceCreatedPayload{
-		Id:        e.ID,
-		Timestamp: e.CreatedAt,
-		Data:      e.Payload.Invoice.Invoice,
-		Type:      api.NotificationEventInvoiceCreatedPayloadTypeInvoiceCreated,
-	}, nil
+	return eventpayload.ToAPINotificationEventInvoiceCreatedPayload(e)
 }
 
 func FromEventAsInvoiceUpdatedPayload(e notification.Event) (api.NotificationEventInvoiceUpdatedPayload, error) {
-	if e.Payload.Invoice == nil {
-		return api.NotificationEventInvoiceUpdatedPayload{}, fmt.Errorf("invoice is nil")
-	}
-
-	return api.NotificationEventInvoiceUpdatedPayload{
-		Id:        e.ID,
-		Timestamp: e.CreatedAt,
-		Data:      e.Payload.Invoice.Invoice,
-		Type:      api.NotificationEventInvoiceUpdatedPayloadTypeInvoiceUpdated,
-	}, nil
+	return eventpayload.ToAPINotificationEventInvoiceUpdatedPayload(e)
 }

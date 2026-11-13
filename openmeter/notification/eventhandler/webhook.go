@@ -11,7 +11,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/openmeter/notification"
-	"github.com/openmeterio/openmeter/openmeter/notification/httpdriver"
+	"github.com/openmeterio/openmeter/openmeter/notification/internal/eventpayload"
 	"github.com/openmeterio/openmeter/openmeter/notification/webhook"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/tracex"
@@ -578,22 +578,22 @@ func eventAsPayload(event *notification.Event) (webhook.Payload, error) {
 
 	switch event.Type {
 	case notification.EventTypeBalanceThreshold:
-		payload, err = httpdriver.FromEventAsBalanceThresholdPayload(*event)
+		payload, err = eventpayload.ToAPINotificationEventBalanceThresholdPayload(*event)
 		if err != nil {
 			return nil, fmt.Errorf("failed to cast event payload: %w", err)
 		}
 	case notification.EventTypeEntitlementReset:
-		payload, err = httpdriver.FromEventAsEntitlementResetPayload(*event)
+		payload, err = eventpayload.ToAPINotificationEventResetPayload(*event)
 		if err != nil {
 			return nil, fmt.Errorf("failed to cast event payload: %w", err)
 		}
 	case notification.EventTypeInvoiceCreated:
-		payload, err = httpdriver.FromEventAsInvoiceCreatedPayload(*event)
+		payload, err = eventpayload.ToAPINotificationEventInvoiceCreatedPayload(*event)
 		if err != nil {
 			return nil, fmt.Errorf("failed to cast event payload: %w", err)
 		}
 	case notification.EventTypeInvoiceUpdated:
-		payload, err = httpdriver.FromEventAsInvoiceUpdatedPayload(*event)
+		payload, err = eventpayload.ToAPINotificationEventInvoiceUpdatedPayload(*event)
 		if err != nil {
 			return nil, fmt.Errorf("failed to cast event payload: %w", err)
 		}
