@@ -26,6 +26,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/creditsapplied"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
+	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
 	"github.com/openmeterio/openmeter/openmeter/credit/balance"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addon"
@@ -115,6 +116,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptioncostbasispin"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionsyncstatev2"
 	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/usagereset"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
@@ -226,6 +228,7 @@ const (
 	TypeSubscriptionCostBasisPin                         = "SubscriptionCostBasisPin"
 	TypeSubscriptionItem                                 = "SubscriptionItem"
 	TypeSubscriptionPhase                                = "SubscriptionPhase"
+	TypeSubscriptionSyncStateV2                          = "SubscriptionSyncStateV2"
 	TypeTaxCode                                          = "TaxCode"
 	TypeUsageReset                                       = "UsageReset"
 )
@@ -118886,6 +118889,8 @@ type SubscriptionMutation struct {
 	addons                                 map[string]struct{}
 	removedaddons                          map[string]struct{}
 	clearedaddons                          bool
+	sync_state_v2                          *string
+	clearedsync_state_v2                   bool
 	billing_sync_state                     *string
 	clearedbilling_sync_state              bool
 	cost_basis_pins                        map[string]struct{}
@@ -120212,6 +120217,45 @@ func (m *SubscriptionMutation) ResetAddons() {
 	m.removedaddons = nil
 }
 
+// SetSyncStateV2ID sets the "sync_state_v2" edge to the SubscriptionSyncStateV2 entity by id.
+func (m *SubscriptionMutation) SetSyncStateV2ID(id string) {
+	m.sync_state_v2 = &id
+}
+
+// ClearSyncStateV2 clears the "sync_state_v2" edge to the SubscriptionSyncStateV2 entity.
+func (m *SubscriptionMutation) ClearSyncStateV2() {
+	m.clearedsync_state_v2 = true
+}
+
+// SyncStateV2Cleared reports if the "sync_state_v2" edge to the SubscriptionSyncStateV2 entity was cleared.
+func (m *SubscriptionMutation) SyncStateV2Cleared() bool {
+	return m.clearedsync_state_v2
+}
+
+// SyncStateV2ID returns the "sync_state_v2" edge ID in the mutation.
+func (m *SubscriptionMutation) SyncStateV2ID() (id string, exists bool) {
+	if m.sync_state_v2 != nil {
+		return *m.sync_state_v2, true
+	}
+	return
+}
+
+// SyncStateV2IDs returns the "sync_state_v2" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// SyncStateV2ID instead. It exists only for internal usage by the builders.
+func (m *SubscriptionMutation) SyncStateV2IDs() (ids []string) {
+	if id := m.sync_state_v2; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetSyncStateV2 resets all changes to the "sync_state_v2" edge.
+func (m *SubscriptionMutation) ResetSyncStateV2() {
+	m.sync_state_v2 = nil
+	m.clearedsync_state_v2 = false
+}
+
 // SetBillingSyncStateID sets the "billing_sync_state" edge to the SubscriptionBillingSyncState entity by id.
 func (m *SubscriptionMutation) SetBillingSyncStateID(id string) {
 	m.billing_sync_state = &id
@@ -120766,7 +120810,7 @@ func (m *SubscriptionMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *SubscriptionMutation) AddedEdges() []string {
-	edges := make([]string, 0, 12)
+	edges := make([]string, 0, 13)
 	if m.plan != nil {
 		edges = append(edges, subscription.EdgePlan)
 	}
@@ -120796,6 +120840,9 @@ func (m *SubscriptionMutation) AddedEdges() []string {
 	}
 	if m.addons != nil {
 		edges = append(edges, subscription.EdgeAddons)
+	}
+	if m.sync_state_v2 != nil {
+		edges = append(edges, subscription.EdgeSyncStateV2)
 	}
 	if m.billing_sync_state != nil {
 		edges = append(edges, subscription.EdgeBillingSyncState)
@@ -120866,6 +120913,10 @@ func (m *SubscriptionMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case subscription.EdgeSyncStateV2:
+		if id := m.sync_state_v2; id != nil {
+			return []ent.Value{*id}
+		}
 	case subscription.EdgeBillingSyncState:
 		if id := m.billing_sync_state; id != nil {
 			return []ent.Value{*id}
@@ -120882,7 +120933,7 @@ func (m *SubscriptionMutation) AddedIDs(name string) []ent.Value {
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *SubscriptionMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 12)
+	edges := make([]string, 0, 13)
 	if m.removedphases != nil {
 		edges = append(edges, subscription.EdgePhases)
 	}
@@ -120977,7 +121028,7 @@ func (m *SubscriptionMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *SubscriptionMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 12)
+	edges := make([]string, 0, 13)
 	if m.clearedplan {
 		edges = append(edges, subscription.EdgePlan)
 	}
@@ -121007,6 +121058,9 @@ func (m *SubscriptionMutation) ClearedEdges() []string {
 	}
 	if m.clearedaddons {
 		edges = append(edges, subscription.EdgeAddons)
+	}
+	if m.clearedsync_state_v2 {
+		edges = append(edges, subscription.EdgeSyncStateV2)
 	}
 	if m.clearedbilling_sync_state {
 		edges = append(edges, subscription.EdgeBillingSyncState)
@@ -121041,6 +121095,8 @@ func (m *SubscriptionMutation) EdgeCleared(name string) bool {
 		return m.clearedcharges_flat_fee
 	case subscription.EdgeAddons:
 		return m.clearedaddons
+	case subscription.EdgeSyncStateV2:
+		return m.clearedsync_state_v2
 	case subscription.EdgeBillingSyncState:
 		return m.clearedbilling_sync_state
 	case subscription.EdgeCostBasisPins:
@@ -121058,6 +121114,9 @@ func (m *SubscriptionMutation) ClearEdge(name string) error {
 		return nil
 	case subscription.EdgeCustomer:
 		m.ClearCustomer()
+		return nil
+	case subscription.EdgeSyncStateV2:
+		m.ClearSyncStateV2()
 		return nil
 	case subscription.EdgeBillingSyncState:
 		m.ClearBillingSyncState()
@@ -121099,6 +121158,9 @@ func (m *SubscriptionMutation) ResetEdge(name string) error {
 		return nil
 	case subscription.EdgeAddons:
 		m.ResetAddons()
+		return nil
+	case subscription.EdgeSyncStateV2:
+		m.ResetSyncStateV2()
 		return nil
 	case subscription.EdgeBillingSyncState:
 		m.ResetBillingSyncState()
@@ -128696,6 +128758,738 @@ func (m *SubscriptionPhaseMutation) ResetEdge(name string) error {
 		return nil
 	}
 	return fmt.Errorf("unknown SubscriptionPhase edge %s", name)
+}
+
+// SubscriptionSyncStateV2Mutation represents an operation that mutates the SubscriptionSyncStateV2 nodes in the graph.
+type SubscriptionSyncStateV2Mutation struct {
+	config
+	op                  Op
+	typ                 string
+	id                  *string
+	namespace           *string
+	created_at          *time.Time
+	updated_at          *time.Time
+	deleted_at          *time.Time
+	last_success_state  *subscriptionsync.SyncStateV2State
+	last_success_at     *time.Time
+	clearedFields       map[string]struct{}
+	subscription        *string
+	clearedsubscription bool
+	done                bool
+	oldValue            func(context.Context) (*SubscriptionSyncStateV2, error)
+	predicates          []predicate.SubscriptionSyncStateV2
+}
+
+var _ ent.Mutation = (*SubscriptionSyncStateV2Mutation)(nil)
+
+// subscriptionsyncstatev2Option allows management of the mutation configuration using functional options.
+type subscriptionsyncstatev2Option func(*SubscriptionSyncStateV2Mutation)
+
+// newSubscriptionSyncStateV2Mutation creates new mutation for the SubscriptionSyncStateV2 entity.
+func newSubscriptionSyncStateV2Mutation(c config, op Op, opts ...subscriptionsyncstatev2Option) *SubscriptionSyncStateV2Mutation {
+	m := &SubscriptionSyncStateV2Mutation{
+		config:        c,
+		op:            op,
+		typ:           TypeSubscriptionSyncStateV2,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withSubscriptionSyncStateV2ID sets the ID field of the mutation.
+func withSubscriptionSyncStateV2ID(id string) subscriptionsyncstatev2Option {
+	return func(m *SubscriptionSyncStateV2Mutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *SubscriptionSyncStateV2
+		)
+		m.oldValue = func(ctx context.Context) (*SubscriptionSyncStateV2, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().SubscriptionSyncStateV2.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withSubscriptionSyncStateV2 sets the old SubscriptionSyncStateV2 of the mutation.
+func withSubscriptionSyncStateV2(node *SubscriptionSyncStateV2) subscriptionsyncstatev2Option {
+	return func(m *SubscriptionSyncStateV2Mutation) {
+		m.oldValue = func(context.Context) (*SubscriptionSyncStateV2, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m SubscriptionSyncStateV2Mutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m SubscriptionSyncStateV2Mutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("db: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of SubscriptionSyncStateV2 entities.
+func (m *SubscriptionSyncStateV2Mutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *SubscriptionSyncStateV2Mutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *SubscriptionSyncStateV2Mutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().SubscriptionSyncStateV2.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetNamespace sets the "namespace" field.
+func (m *SubscriptionSyncStateV2Mutation) SetNamespace(s string) {
+	m.namespace = &s
+}
+
+// Namespace returns the value of the "namespace" field in the mutation.
+func (m *SubscriptionSyncStateV2Mutation) Namespace() (r string, exists bool) {
+	v := m.namespace
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNamespace returns the old "namespace" field's value of the SubscriptionSyncStateV2 entity.
+// If the SubscriptionSyncStateV2 object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionSyncStateV2Mutation) OldNamespace(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNamespace is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNamespace requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNamespace: %w", err)
+	}
+	return oldValue.Namespace, nil
+}
+
+// ResetNamespace resets all changes to the "namespace" field.
+func (m *SubscriptionSyncStateV2Mutation) ResetNamespace() {
+	m.namespace = nil
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *SubscriptionSyncStateV2Mutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *SubscriptionSyncStateV2Mutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the SubscriptionSyncStateV2 entity.
+// If the SubscriptionSyncStateV2 object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionSyncStateV2Mutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *SubscriptionSyncStateV2Mutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *SubscriptionSyncStateV2Mutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *SubscriptionSyncStateV2Mutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the SubscriptionSyncStateV2 entity.
+// If the SubscriptionSyncStateV2 object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionSyncStateV2Mutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *SubscriptionSyncStateV2Mutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (m *SubscriptionSyncStateV2Mutation) SetDeletedAt(t time.Time) {
+	m.deleted_at = &t
+}
+
+// DeletedAt returns the value of the "deleted_at" field in the mutation.
+func (m *SubscriptionSyncStateV2Mutation) DeletedAt() (r time.Time, exists bool) {
+	v := m.deleted_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDeletedAt returns the old "deleted_at" field's value of the SubscriptionSyncStateV2 entity.
+// If the SubscriptionSyncStateV2 object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionSyncStateV2Mutation) OldDeletedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDeletedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDeletedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDeletedAt: %w", err)
+	}
+	return oldValue.DeletedAt, nil
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (m *SubscriptionSyncStateV2Mutation) ClearDeletedAt() {
+	m.deleted_at = nil
+	m.clearedFields[subscriptionsyncstatev2.FieldDeletedAt] = struct{}{}
+}
+
+// DeletedAtCleared returns if the "deleted_at" field was cleared in this mutation.
+func (m *SubscriptionSyncStateV2Mutation) DeletedAtCleared() bool {
+	_, ok := m.clearedFields[subscriptionsyncstatev2.FieldDeletedAt]
+	return ok
+}
+
+// ResetDeletedAt resets all changes to the "deleted_at" field.
+func (m *SubscriptionSyncStateV2Mutation) ResetDeletedAt() {
+	m.deleted_at = nil
+	delete(m.clearedFields, subscriptionsyncstatev2.FieldDeletedAt)
+}
+
+// SetSubscriptionID sets the "subscription_id" field.
+func (m *SubscriptionSyncStateV2Mutation) SetSubscriptionID(s string) {
+	m.subscription = &s
+}
+
+// SubscriptionID returns the value of the "subscription_id" field in the mutation.
+func (m *SubscriptionSyncStateV2Mutation) SubscriptionID() (r string, exists bool) {
+	v := m.subscription
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSubscriptionID returns the old "subscription_id" field's value of the SubscriptionSyncStateV2 entity.
+// If the SubscriptionSyncStateV2 object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionSyncStateV2Mutation) OldSubscriptionID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSubscriptionID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSubscriptionID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSubscriptionID: %w", err)
+	}
+	return oldValue.SubscriptionID, nil
+}
+
+// ResetSubscriptionID resets all changes to the "subscription_id" field.
+func (m *SubscriptionSyncStateV2Mutation) ResetSubscriptionID() {
+	m.subscription = nil
+}
+
+// SetLastSuccessState sets the "last_success_state" field.
+func (m *SubscriptionSyncStateV2Mutation) SetLastSuccessState(ssv subscriptionsync.SyncStateV2State) {
+	m.last_success_state = &ssv
+}
+
+// LastSuccessState returns the value of the "last_success_state" field in the mutation.
+func (m *SubscriptionSyncStateV2Mutation) LastSuccessState() (r subscriptionsync.SyncStateV2State, exists bool) {
+	v := m.last_success_state
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLastSuccessState returns the old "last_success_state" field's value of the SubscriptionSyncStateV2 entity.
+// If the SubscriptionSyncStateV2 object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionSyncStateV2Mutation) OldLastSuccessState(ctx context.Context) (v subscriptionsync.SyncStateV2State, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLastSuccessState is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLastSuccessState requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLastSuccessState: %w", err)
+	}
+	return oldValue.LastSuccessState, nil
+}
+
+// ResetLastSuccessState resets all changes to the "last_success_state" field.
+func (m *SubscriptionSyncStateV2Mutation) ResetLastSuccessState() {
+	m.last_success_state = nil
+}
+
+// SetLastSuccessAt sets the "last_success_at" field.
+func (m *SubscriptionSyncStateV2Mutation) SetLastSuccessAt(t time.Time) {
+	m.last_success_at = &t
+}
+
+// LastSuccessAt returns the value of the "last_success_at" field in the mutation.
+func (m *SubscriptionSyncStateV2Mutation) LastSuccessAt() (r time.Time, exists bool) {
+	v := m.last_success_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLastSuccessAt returns the old "last_success_at" field's value of the SubscriptionSyncStateV2 entity.
+// If the SubscriptionSyncStateV2 object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionSyncStateV2Mutation) OldLastSuccessAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLastSuccessAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLastSuccessAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLastSuccessAt: %w", err)
+	}
+	return oldValue.LastSuccessAt, nil
+}
+
+// ResetLastSuccessAt resets all changes to the "last_success_at" field.
+func (m *SubscriptionSyncStateV2Mutation) ResetLastSuccessAt() {
+	m.last_success_at = nil
+}
+
+// ClearSubscription clears the "subscription" edge to the Subscription entity.
+func (m *SubscriptionSyncStateV2Mutation) ClearSubscription() {
+	m.clearedsubscription = true
+	m.clearedFields[subscriptionsyncstatev2.FieldSubscriptionID] = struct{}{}
+}
+
+// SubscriptionCleared reports if the "subscription" edge to the Subscription entity was cleared.
+func (m *SubscriptionSyncStateV2Mutation) SubscriptionCleared() bool {
+	return m.clearedsubscription
+}
+
+// SubscriptionIDs returns the "subscription" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// SubscriptionID instead. It exists only for internal usage by the builders.
+func (m *SubscriptionSyncStateV2Mutation) SubscriptionIDs() (ids []string) {
+	if id := m.subscription; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetSubscription resets all changes to the "subscription" edge.
+func (m *SubscriptionSyncStateV2Mutation) ResetSubscription() {
+	m.subscription = nil
+	m.clearedsubscription = false
+}
+
+// Where appends a list predicates to the SubscriptionSyncStateV2Mutation builder.
+func (m *SubscriptionSyncStateV2Mutation) Where(ps ...predicate.SubscriptionSyncStateV2) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the SubscriptionSyncStateV2Mutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *SubscriptionSyncStateV2Mutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.SubscriptionSyncStateV2, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *SubscriptionSyncStateV2Mutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *SubscriptionSyncStateV2Mutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (SubscriptionSyncStateV2).
+func (m *SubscriptionSyncStateV2Mutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *SubscriptionSyncStateV2Mutation) Fields() []string {
+	fields := make([]string, 0, 7)
+	if m.namespace != nil {
+		fields = append(fields, subscriptionsyncstatev2.FieldNamespace)
+	}
+	if m.created_at != nil {
+		fields = append(fields, subscriptionsyncstatev2.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, subscriptionsyncstatev2.FieldUpdatedAt)
+	}
+	if m.deleted_at != nil {
+		fields = append(fields, subscriptionsyncstatev2.FieldDeletedAt)
+	}
+	if m.subscription != nil {
+		fields = append(fields, subscriptionsyncstatev2.FieldSubscriptionID)
+	}
+	if m.last_success_state != nil {
+		fields = append(fields, subscriptionsyncstatev2.FieldLastSuccessState)
+	}
+	if m.last_success_at != nil {
+		fields = append(fields, subscriptionsyncstatev2.FieldLastSuccessAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *SubscriptionSyncStateV2Mutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case subscriptionsyncstatev2.FieldNamespace:
+		return m.Namespace()
+	case subscriptionsyncstatev2.FieldCreatedAt:
+		return m.CreatedAt()
+	case subscriptionsyncstatev2.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case subscriptionsyncstatev2.FieldDeletedAt:
+		return m.DeletedAt()
+	case subscriptionsyncstatev2.FieldSubscriptionID:
+		return m.SubscriptionID()
+	case subscriptionsyncstatev2.FieldLastSuccessState:
+		return m.LastSuccessState()
+	case subscriptionsyncstatev2.FieldLastSuccessAt:
+		return m.LastSuccessAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *SubscriptionSyncStateV2Mutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case subscriptionsyncstatev2.FieldNamespace:
+		return m.OldNamespace(ctx)
+	case subscriptionsyncstatev2.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case subscriptionsyncstatev2.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case subscriptionsyncstatev2.FieldDeletedAt:
+		return m.OldDeletedAt(ctx)
+	case subscriptionsyncstatev2.FieldSubscriptionID:
+		return m.OldSubscriptionID(ctx)
+	case subscriptionsyncstatev2.FieldLastSuccessState:
+		return m.OldLastSuccessState(ctx)
+	case subscriptionsyncstatev2.FieldLastSuccessAt:
+		return m.OldLastSuccessAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown SubscriptionSyncStateV2 field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *SubscriptionSyncStateV2Mutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case subscriptionsyncstatev2.FieldNamespace:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNamespace(v)
+		return nil
+	case subscriptionsyncstatev2.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case subscriptionsyncstatev2.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case subscriptionsyncstatev2.FieldDeletedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDeletedAt(v)
+		return nil
+	case subscriptionsyncstatev2.FieldSubscriptionID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSubscriptionID(v)
+		return nil
+	case subscriptionsyncstatev2.FieldLastSuccessState:
+		v, ok := value.(subscriptionsync.SyncStateV2State)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLastSuccessState(v)
+		return nil
+	case subscriptionsyncstatev2.FieldLastSuccessAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLastSuccessAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown SubscriptionSyncStateV2 field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *SubscriptionSyncStateV2Mutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *SubscriptionSyncStateV2Mutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *SubscriptionSyncStateV2Mutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown SubscriptionSyncStateV2 numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *SubscriptionSyncStateV2Mutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(subscriptionsyncstatev2.FieldDeletedAt) {
+		fields = append(fields, subscriptionsyncstatev2.FieldDeletedAt)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *SubscriptionSyncStateV2Mutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *SubscriptionSyncStateV2Mutation) ClearField(name string) error {
+	switch name {
+	case subscriptionsyncstatev2.FieldDeletedAt:
+		m.ClearDeletedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown SubscriptionSyncStateV2 nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *SubscriptionSyncStateV2Mutation) ResetField(name string) error {
+	switch name {
+	case subscriptionsyncstatev2.FieldNamespace:
+		m.ResetNamespace()
+		return nil
+	case subscriptionsyncstatev2.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case subscriptionsyncstatev2.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case subscriptionsyncstatev2.FieldDeletedAt:
+		m.ResetDeletedAt()
+		return nil
+	case subscriptionsyncstatev2.FieldSubscriptionID:
+		m.ResetSubscriptionID()
+		return nil
+	case subscriptionsyncstatev2.FieldLastSuccessState:
+		m.ResetLastSuccessState()
+		return nil
+	case subscriptionsyncstatev2.FieldLastSuccessAt:
+		m.ResetLastSuccessAt()
+		return nil
+	}
+	return fmt.Errorf("unknown SubscriptionSyncStateV2 field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *SubscriptionSyncStateV2Mutation) AddedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.subscription != nil {
+		edges = append(edges, subscriptionsyncstatev2.EdgeSubscription)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *SubscriptionSyncStateV2Mutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case subscriptionsyncstatev2.EdgeSubscription:
+		if id := m.subscription; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *SubscriptionSyncStateV2Mutation) RemovedEdges() []string {
+	edges := make([]string, 0, 1)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *SubscriptionSyncStateV2Mutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *SubscriptionSyncStateV2Mutation) ClearedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.clearedsubscription {
+		edges = append(edges, subscriptionsyncstatev2.EdgeSubscription)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *SubscriptionSyncStateV2Mutation) EdgeCleared(name string) bool {
+	switch name {
+	case subscriptionsyncstatev2.EdgeSubscription:
+		return m.clearedsubscription
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *SubscriptionSyncStateV2Mutation) ClearEdge(name string) error {
+	switch name {
+	case subscriptionsyncstatev2.EdgeSubscription:
+		m.ClearSubscription()
+		return nil
+	}
+	return fmt.Errorf("unknown SubscriptionSyncStateV2 unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *SubscriptionSyncStateV2Mutation) ResetEdge(name string) error {
+	switch name {
+	case subscriptionsyncstatev2.EdgeSubscription:
+		m.ResetSubscription()
+		return nil
+	}
+	return fmt.Errorf("unknown SubscriptionSyncStateV2 edge %s", name)
 }
 
 // TaxCodeMutation represents an operation that mutates the TaxCode nodes in the graph.

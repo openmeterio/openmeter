@@ -151,6 +151,12 @@ generated horizon. Errors remain retryable through the event handler or
 periodic reconciler. Dry-run builds the same plan but only logs it and does not
 write artifacts or sync state.
 
+The separate v2 sync-state table stores the last successful reconciliation
+result and its completion time. Its first supported result is
+`subscription_deleted`; a missing row means no successful v2 reconciliation
+has been recorded. The adapter can write this result in the caller's
+transaction. The sync service and periodic reconciler do not use v2 state yet.
+
 ## Intentional limitations
 
 - invoice-backed subscription artifacts remain fiat-only; custom-currency items

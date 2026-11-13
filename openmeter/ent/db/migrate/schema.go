@@ -6003,6 +6003,48 @@ var (
 			},
 		},
 	}
+	// SubscriptionSyncStatesV2Columns holds the columns for the "subscription_sync_states_v2" table.
+	SubscriptionSyncStatesV2Columns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "last_success_state", Type: field.TypeEnum, Enums: []string{"subscription_deleted"}},
+		{Name: "last_success_at", Type: field.TypeTime},
+		{Name: "subscription_id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// SubscriptionSyncStatesV2Table holds the schema information for the "subscription_sync_states_v2" table.
+	SubscriptionSyncStatesV2Table = &schema.Table{
+		Name:       "subscription_sync_states_v2",
+		Columns:    SubscriptionSyncStatesV2Columns,
+		PrimaryKey: []*schema.Column{SubscriptionSyncStatesV2Columns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "subscription_sync_state_v2_subscription_fk",
+				Columns:    []*schema.Column{SubscriptionSyncStatesV2Columns[7]},
+				RefColumns: []*schema.Column{SubscriptionsColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "subscriptionsyncstatev2_id",
+				Unique:  true,
+				Columns: []*schema.Column{SubscriptionSyncStatesV2Columns[0]},
+			},
+			{
+				Name:    "subscriptionsyncstatev2_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{SubscriptionSyncStatesV2Columns[1]},
+			},
+			{
+				Name:    "subscriptionsyncstatev2_namespace_subscription_id",
+				Unique:  true,
+				Columns: []*schema.Column{SubscriptionSyncStatesV2Columns[1], SubscriptionSyncStatesV2Columns[7]},
+			},
+		},
+	}
 	// TaxCodesColumns holds the columns for the "tax_codes" table.
 	TaxCodesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -6260,6 +6302,7 @@ var (
 		SubscriptionCostBasisPinsTable,
 		SubscriptionItemsTable,
 		SubscriptionPhasesTable,
+		SubscriptionSyncStatesV2Table,
 		TaxCodesTable,
 		UsageResetsTable,
 		NotificationChannelRulesTable,
@@ -6562,6 +6605,10 @@ func init() {
 		"subscription_item_tax_code_consistency":     "(tax_code_id::text IS NOT DISTINCT FROM tax_config ->> 'tax_code_id') AND (NULLIF(btrim(tax_config -> 'stripe' ->> 'code'), '') IS NULL OR tax_code_id IS NOT NULL)",
 	}
 	SubscriptionPhasesTable.ForeignKeys[0].RefTable = SubscriptionsTable
+	SubscriptionSyncStatesV2Table.ForeignKeys[0].RefTable = SubscriptionsTable
+	SubscriptionSyncStatesV2Table.Annotation = &entsql.Annotation{
+		Table: "subscription_sync_states_v2",
+	}
 	UsageResetsTable.ForeignKeys[0].RefTable = EntitlementsTable
 	NotificationChannelRulesTable.ForeignKeys[0].RefTable = NotificationChannelsTable
 	NotificationChannelRulesTable.ForeignKeys[1].RefTable = NotificationRulesTable

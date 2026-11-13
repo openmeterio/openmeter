@@ -73,6 +73,8 @@ const (
 	EdgeChargesFlatFee = "charges_flat_fee"
 	// EdgeAddons holds the string denoting the addons edge name in mutations.
 	EdgeAddons = "addons"
+	// EdgeSyncStateV2 holds the string denoting the sync_state_v2 edge name in mutations.
+	EdgeSyncStateV2 = "sync_state_v2"
 	// EdgeBillingSyncState holds the string denoting the billing_sync_state edge name in mutations.
 	EdgeBillingSyncState = "billing_sync_state"
 	// EdgeCostBasisPins holds the string denoting the cost_basis_pins edge name in mutations.
@@ -149,6 +151,13 @@ const (
 	AddonsInverseTable = "subscription_addons"
 	// AddonsColumn is the table column denoting the addons relation/edge.
 	AddonsColumn = "subscription_id"
+	// SyncStateV2Table is the table that holds the sync_state_v2 relation/edge.
+	SyncStateV2Table = "subscription_sync_states_v2"
+	// SyncStateV2InverseTable is the table name for the SubscriptionSyncStateV2 entity.
+	// It exists in this package in order to avoid circular dependency with the "subscriptionsyncstatev2" package.
+	SyncStateV2InverseTable = "subscription_sync_states_v2"
+	// SyncStateV2Column is the table column denoting the sync_state_v2 relation/edge.
+	SyncStateV2Column = "subscription_id"
 	// BillingSyncStateTable is the table that holds the billing_sync_state relation/edge.
 	BillingSyncStateTable = "subscription_billing_sync_states"
 	// BillingSyncStateInverseTable is the table name for the SubscriptionBillingSyncState entity.
@@ -477,6 +486,13 @@ func ByAddons(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	}
 }
 
+// BySyncStateV2Field orders the results by sync_state_v2 field.
+func BySyncStateV2Field(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newSyncStateV2Step(), sql.OrderByField(field, opts...))
+	}
+}
+
 // ByBillingSyncStateField orders the results by billing_sync_state field.
 func ByBillingSyncStateField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -565,6 +581,13 @@ func newAddonsStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(AddonsInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, AddonsTable, AddonsColumn),
+	)
+}
+func newSyncStateV2Step() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(SyncStateV2InverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2O, false, SyncStateV2Table, SyncStateV2Column),
 	)
 }
 func newBillingSyncStateStep() *sqlgraph.Step {
