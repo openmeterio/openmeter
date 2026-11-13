@@ -13,9 +13,10 @@ advance invoice and payment lifecycles.
 
 A sync is given a subscription ID and an `asOf` horizon. It reloads the current
 subscription view for non-deleted subscriptions, including when triggered by an
-event carrying an older view. It resolves deleted subscription records and the
-customer's billing profile before acquiring billing's customer lock. Under that
-lock it:
+event carrying an older view. It first identifies the customer, then acquires
+billing's customer lock and reloads the subscription and billing profile. Reading
+the view under this lock prevents a waiting sync from recreating billing artifacts
+after another sync completed deletion cleanup. Under that lock it:
 
 1. loads the persisted invoice-line and charge state owned by that subscription
 2. builds the target billable periods from the resolved subscription view
@@ -154,8 +155,21 @@ write artifacts or sync state.
 The separate v2 sync-state table stores the last successful reconciliation
 result and its completion time. Its first supported result is
 `subscription_deleted`; a missing row means no successful v2 reconciliation
-has been recorded. The adapter can write this result in the caller's
-transaction. The sync service and periodic reconciler do not use v2 state yet.
+has been recorded. Successful deleted-subscription syncs write this result in
+the same transaction as billing cleanup, even when there are no artifacts left.
+Dry runs and failed syncs do not record completion.
+
+The periodic reconciler queries deleted subscriptions whose v2 result is not
+`subscription_deleted`. This query has no service-period or deletion lookback:
+a missed deletion remains eligible until cleanup succeeds. Legacy `HasBillables`
+and `NextSyncAfter` do not suppress these candidates; they only schedule non-deleted
+subscriptions. The list includes v2 state for both deleted and non-deleted
+subscriptions.
+`SubscriptionWithSyncState.ShouldReconcile(now)` checks v2 cleanup completion for
+deleted subscriptions and legacy billing deadlines for other subscriptions. It
+also catches cleanup completed between candidate selection and state loading.
+Deleted candidates retain no legacy state in this list, so Cloud workers still
+using v1 scheduling checks do not suppress pending cleanup.
 
 ## Intentional limitations
 

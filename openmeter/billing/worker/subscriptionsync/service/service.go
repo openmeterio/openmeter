@@ -15,6 +15,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/featuregate"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
+	"github.com/openmeterio/openmeter/pkg/models"
+	paginationv2 "github.com/openmeterio/openmeter/pkg/pagination/v2"
 )
 
 type FeatureFlags struct {
@@ -117,5 +119,17 @@ func New(config Config) (*Service, error) {
 func (s *Service) GetSyncStates(ctx context.Context, input subscriptionsync.GetSyncStatesInput) ([]subscriptionsync.SyncState, error) {
 	return transaction.Run(ctx, s.subscriptionSyncAdapter, func(ctx context.Context) ([]subscriptionsync.SyncState, error) {
 		return s.subscriptionSyncAdapter.GetSyncStates(ctx, input)
+	})
+}
+
+func (s *Service) GetSyncStatesV2(ctx context.Context, input subscriptionsync.GetSyncStatesV2Input) ([]subscriptionsync.SyncStateV2Managed, error) {
+	return transaction.Run(ctx, s.subscriptionSyncAdapter, func(ctx context.Context) ([]subscriptionsync.SyncStateV2Managed, error) {
+		return s.subscriptionSyncAdapter.GetSyncStatesV2(ctx, input)
+	})
+}
+
+func (s *Service) ListDeletedSubscriptionsToReconcile(ctx context.Context, input subscriptionsync.ListDeletedSubscriptionsToReconcileInput) (paginationv2.Result[models.NamespacedID], error) {
+	return transaction.Run(ctx, s.subscriptionSyncAdapter, func(ctx context.Context) (paginationv2.Result[models.NamespacedID], error) {
+		return s.subscriptionSyncAdapter.ListDeletedSubscriptionsToReconcile(ctx, input)
 	})
 }

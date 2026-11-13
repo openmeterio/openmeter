@@ -5,9 +5,12 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/pkg/models"
+	paginationv2 "github.com/openmeterio/openmeter/pkg/pagination/v2"
 )
 
 type Service interface {
+	ListDeletedSubscriptionsToReconcile(context.Context, ListDeletedSubscriptionsToReconcileInput) (paginationv2.Result[models.NamespacedID], error)
+
 	SyncService
 	SyncStateService
 }
@@ -18,6 +21,7 @@ type SyncService interface {
 
 type SyncStateService interface {
 	GetSyncStates(ctx context.Context, input GetSyncStatesInput) ([]SyncState, error)
+	GetSyncStatesV2(ctx context.Context, input GetSyncStatesV2Input) ([]SyncStateV2Managed, error)
 }
 
 type SynchronizeSubscriptionOptions struct {

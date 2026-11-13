@@ -7,9 +7,12 @@ import (
 
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
+	paginationv2 "github.com/openmeterio/openmeter/pkg/pagination/v2"
 )
 
 type Adapter interface {
+	ListDeletedSubscriptionsToReconcile(context.Context, ListDeletedSubscriptionsToReconcileInput) (paginationv2.Result[models.NamespacedID], error)
+
 	SyncStateAdapter
 	SyncStateV2Adapter
 

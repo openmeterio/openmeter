@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
+	periodicreconciler "github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/reconciler"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -52,6 +53,236 @@ type pendingLinesErrorBillingService struct {
 
 func (s pendingLinesErrorBillingService) InvoicePendingLines(context.Context, billing.InvoicePendingLinesInput, ...billing.InvoicePendingLinesOption) ([]billing.StandardInvoice, error) {
 	return nil, s.err
+}
+
+type failingDeletionSyncStateAdapter struct {
+	subscriptionsync.Adapter
+	err error
+}
+
+func (a failingDeletionSyncStateAdapter) UpsertSyncStateV2(context.Context, subscriptionsync.UpsertSyncStateV2Input) error {
+	return a.err
+}
+
+func (s *SubscriptionHandlerTestSuite) createScheduledSubscriptionWithBillingLines() (models.NamespacedID, billing.GatheringInvoice) {
+	s.T().Helper()
+	ctx := s.T().Context()
+	start := clock.Now().Add(24 * time.Hour)
+
+	view := s.createSubscriptionFromPlanAt(plan.CreatePlanInput{
+		NamespacedModel: models.NamespacedModel{Namespace: s.Namespace},
+		Plan: productcatalog.Plan{
+			PlanMeta: productcatalog.PlanMeta{
+				Name:           "Deletion cleanup",
+				Key:            "deletion-cleanup",
+				Version:        1,
+				Currency:       currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
+				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+			},
+			Phases: []productcatalog.Phase{
+				{
+					PhaseMeta: s.phaseMeta("default", ""),
+					RateCards: productcatalog.RateCards{
+						&productcatalog.UsageBasedRateCard{
+							RateCardMeta: productcatalog.RateCardMeta{
+								Key:     s.APIRequestsTotalFeature.Key,
+								Name:    s.APIRequestsTotalFeature.Key,
+								Feature: productcatalog.NewFeatureReference(nil, lo.ToPtr(s.APIRequestsTotalFeature.Key)),
+								Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+									Amount: alpacadecimal.NewFromInt(1),
+								}),
+							},
+							BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+						},
+					},
+				},
+			},
+		},
+	}, start)
+	subscriptionID := view.Subscription.NamespacedID
+	s.Require().NoError(s.Service.SyncByID(ctx, subscriptionID, start.Add(time.Minute)))
+	invoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+	s.Require().NotEmpty(invoice.Lines.OrEmpty())
+
+	return subscriptionID, invoice
+}
+
+func (s *SubscriptionHandlerTestSuite) TestActiveSubscriptionSyncDoesNotRecordDeletionCleanup() {
+	ctx := s.T().Context()
+	now := s.mustParseTime("2024-01-01T00:00:00Z")
+	clock.FreezeTime(now)
+	defer clock.UnFreeze()
+
+	// given/when: a scheduled subscription is synced to generate its future billing lines
+	subscriptionID, _ := s.createScheduledSubscriptionWithBillingLines()
+
+	// then: syncing a non-deleted subscription does not record deletion cleanup
+	states, err := s.Adapter.GetSyncStatesV2(ctx, subscriptionsync.GetSyncStatesV2Input{subscriptionID})
+	s.Require().NoError(err)
+	s.Empty(states)
+}
+
+func (s *SubscriptionHandlerTestSuite) TestDeletedSubscriptionCleanupDryRun() {
+	ctx := s.T().Context()
+	now := s.mustParseTime("2024-01-01T00:00:00Z")
+	clock.FreezeTime(now)
+	defer clock.UnFreeze()
+
+	// given: a deleted subscription with generated billing lines and legacy sync state
+	subscriptionID, invoice := s.createScheduledSubscriptionWithBillingLines()
+	legacyBefore, err := s.Adapter.GetSyncStates(ctx, subscriptionsync.GetSyncStatesInput{subscriptionID})
+	s.Require().NoError(err)
+	s.Require().NoError(s.SubscriptionService.Delete(ctx, subscriptionID))
+
+	// when: deletion cleanup is planned as a dry run
+	s.Require().NoError(s.Service.SyncByID(ctx, subscriptionID, now, subscriptionsync.EnableDryRun()))
+
+	// then: the lines and legacy state remain unchanged, with no v2 completion record
+	s.Equal(invoice.Lines.OrEmpty(), s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID).Lines.OrEmpty())
+	states, err := s.Adapter.GetSyncStatesV2(ctx, subscriptionsync.GetSyncStatesV2Input{subscriptionID})
+	s.Require().NoError(err)
+	s.Empty(states)
+	legacyAfter, err := s.Adapter.GetSyncStates(ctx, subscriptionsync.GetSyncStatesInput{subscriptionID})
+	s.Require().NoError(err)
+	s.Equal(legacyBefore, legacyAfter)
+}
+
+func (s *SubscriptionHandlerTestSuite) TestDeletedSubscriptionCleanupRollback() {
+	ctx := s.T().Context()
+	now := s.mustParseTime("2024-01-01T00:00:00Z")
+	clock.FreezeTime(now)
+	defer clock.UnFreeze()
+
+	// given: a deleted subscription whose billing lines still need cleanup
+	subscriptionID, invoice := s.createScheduledSubscriptionWithBillingLines()
+	legacyBefore, err := s.Adapter.GetSyncStates(ctx, subscriptionsync.GetSyncStatesInput{subscriptionID})
+	s.Require().NoError(err)
+	s.Require().NoError(s.SubscriptionService.Delete(ctx, subscriptionID))
+	persistErr := errors.New("cannot record deletion cleanup")
+	failingService := *s.Service
+	failingService.subscriptionSyncAdapter = failingDeletionSyncStateAdapter{Adapter: s.Adapter, err: persistErr}
+
+	// when: billing cleanup runs but its v2 completion record cannot be saved
+	s.Require().ErrorIs(failingService.SyncByID(ctx, subscriptionID, now), persistErr)
+
+	// then: billing changes and legacy state roll back, and cleanup remains eligible
+	s.Equal(invoice.Lines.OrEmpty(), s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID).Lines.OrEmpty())
+	legacyAfter, err := s.Adapter.GetSyncStates(ctx, subscriptionsync.GetSyncStatesInput{subscriptionID})
+	s.Require().NoError(err)
+	s.Equal(legacyBefore, legacyAfter)
+	states, err := s.Adapter.GetSyncStatesV2(ctx, subscriptionsync.GetSyncStatesV2Input{subscriptionID})
+	s.Require().NoError(err)
+	s.Empty(states)
+	candidates, err := s.Service.ListDeletedSubscriptionsToReconcile(ctx, subscriptionsync.ListDeletedSubscriptionsToReconcileInput{
+		Namespaces: []string{s.Namespace},
+		AsOf:       now,
+		Limit:      10,
+	})
+	s.Require().NoError(err)
+	s.Equal([]models.NamespacedID{subscriptionID}, candidates.Items)
+}
+
+func (s *SubscriptionHandlerTestSuite) TestDeletedSubscriptionCleanupRecordsSuccess() {
+	ctx := s.T().Context()
+	now := s.mustParseTime("2024-01-01T00:00:00Z")
+	clock.FreezeTime(now)
+	defer clock.UnFreeze()
+
+	// given: a deleted subscription with generated billing lines
+	subscriptionID, _ := s.createScheduledSubscriptionWithBillingLines()
+	s.Require().NoError(s.SubscriptionService.Delete(ctx, subscriptionID))
+
+	// when: deletion cleanup successfully reconciles the empty target
+	s.Require().NoError(s.Service.SyncByID(ctx, subscriptionID, now))
+
+	// then: its lines are removed and v2 completion excludes it from periodic cleanup
+	s.expectNoGatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+	states, err := s.Adapter.GetSyncStatesV2(ctx, subscriptionsync.GetSyncStatesV2Input{subscriptionID})
+	s.Require().NoError(err)
+	s.Require().Len(states, 1)
+	s.Equal(subscriptionsync.SyncStateV2{
+		SubscriptionID:   subscriptionID,
+		LastSuccessState: subscriptionsync.SyncStateV2StateSubscriptionDeleted,
+		LastSuccessAt:    now,
+	}, states[0].SyncStateV2)
+	candidates, err := s.Service.ListDeletedSubscriptionsToReconcile(ctx, subscriptionsync.ListDeletedSubscriptionsToReconcileInput{
+		Namespaces: []string{s.Namespace},
+		AsOf:       now,
+		Limit:      10,
+	})
+	s.Require().NoError(err)
+	s.Empty(candidates.Items)
+}
+
+func (s *SubscriptionHandlerTestSuite) TestDeletedSubscriptionCleanupWithLegacyState() {
+	ctx := s.T().Context()
+	now := s.mustParseTime("2024-01-01T00:00:00Z")
+	clock.FreezeTime(now)
+	defer clock.UnFreeze()
+
+	// given: an old sync marked a deleted subscription non-billable without cleaning its lines
+	subscriptionID, _ := s.createScheduledSubscriptionWithBillingLines()
+	s.Require().NoError(s.SubscriptionService.Delete(ctx, subscriptionID))
+	s.Require().NoError(s.Adapter.UpsertSyncState(ctx, subscriptionsync.UpsertSyncStateInput{
+		SubscriptionID: subscriptionID,
+		HasBillables:   false,
+		SyncedAt:       now,
+	}))
+	periodic, err := periodicreconciler.NewReconciler(periodicreconciler.ReconcilerConfig{
+		SubscriptionSync:    s.Service,
+		SubscriptionService: s.SubscriptionService,
+		CustomerService:     s.CustomerService,
+		Logger:              s.Service.logger,
+	})
+	s.Require().NoError(err)
+	listInput := periodicreconciler.ReconcilerListSubscriptionsInput{
+		Namespaces: []string{s.Namespace},
+		Lookback:   24 * time.Hour,
+	}
+	pending, err := periodic.ListSubscriptions(ctx, listInput)
+	s.Require().NoError(err)
+	s.Require().Len(pending, 1)
+	s.Equal(subscriptionID, pending[0].Subscription.NamespacedID)
+	s.Nil(pending[0].SyncState, "legacy scheduling must not suppress deletion cleanup")
+	s.Nil(pending[0].SyncStateV2)
+	s.True(pending[0].ShouldReconcile(now))
+
+	// when: periodic reconciliation processes the pending cleanup
+	s.Require().NoError(periodic.All(ctx, periodicreconciler.ReconcilerAllInput{
+		ReconcilerListSubscriptionsInput: listInput,
+	}))
+
+	// then: cleanup runs despite the legacy flag and the subscription is no longer listed
+	s.expectNoGatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+	pending, err = periodic.ListSubscriptions(ctx, listInput)
+	s.Require().NoError(err)
+	s.Empty(pending)
+}
+
+func (s *SubscriptionHandlerTestSuite) TestDeletedSubscriptionCleanupRepeated() {
+	ctx := s.T().Context()
+	now := s.mustParseTime("2024-01-01T00:00:00Z")
+	clock.FreezeTime(now)
+	defer clock.UnFreeze()
+
+	// given: deletion cleanup already removed the subscription's billing lines
+	subscriptionID, _ := s.createScheduledSubscriptionWithBillingLines()
+	s.Require().NoError(s.SubscriptionService.Delete(ctx, subscriptionID))
+	s.Require().NoError(s.Service.SyncByID(ctx, subscriptionID, now))
+	s.expectNoGatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+
+	// when: another sync reconciles the now-empty plan
+	later := now.Add(time.Minute)
+	clock.FreezeTime(later)
+	defer clock.UnFreeze()
+	s.Require().NoError(s.Service.SyncByID(ctx, subscriptionID, later))
+
+	// then: the repeated cleanup records its successful completion without recreating lines
+	states, err := s.Adapter.GetSyncStatesV2(ctx, subscriptionsync.GetSyncStatesV2Input{subscriptionID})
+	s.Require().NoError(err)
+	s.Require().Len(states, 1)
+	s.Equal(later, states[0].LastSuccessAt)
+	s.expectNoGatheringInvoice(ctx, s.Namespace, s.Customer.ID)
 }
 
 func (s *SubscriptionHandlerTestSuite) TestInvoicePendingLinesDeferredOutcomes() {

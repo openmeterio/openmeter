@@ -51,12 +51,55 @@ func TestDeletedSubscriptionReconcilesBillingArtifacts(t *testing.T) {
 	require.True(t, billingService.withLockCalled)
 	require.Zero(t, billingService.invoicePendingLinesCalls)
 	require.True(t, reconciler.planCalled)
+	require.Empty(t, reconciler.planInput.Target.Items)
+	require.Len(t, syncAdapter.upsertsV2, 1)
+	require.Equal(t, view.Subscription.NamespacedID, syncAdapter.upsertsV2[0].SubscriptionID)
+	require.Equal(t, subscriptionsync.SyncStateV2StateSubscriptionDeleted, syncAdapter.upsertsV2[0].LastSuccessState)
 	require.Len(t, syncAdapter.upserts, 1)
 	require.False(t, syncAdapter.upserts[0].HasBillables)
 }
 
+func TestSyncReloadsDeletionAfterBillingLock(t *testing.T) {
+	// given: a sync reads an active subscription, then deletion cleanup finishes
+	// before this sync acquires the customer's billing lock
+	now := time.Now()
+	subscriptionService := &subscriptionServiceSpy{view: subscription.SubscriptionView{
+		Subscription: subscription.Subscription{
+			NamespacedID:    models.NamespacedID{Namespace: "namespace", ID: "subscription-id"},
+			CustomerId:      "customer-id",
+			InvoiceCurrency: currencyx.Code("USD"),
+		},
+	}}
+	billingService := &billingServiceSpy{
+		beforeLock: func() {
+			subscriptionService.view.Subscription.DeletedAt = &now
+		},
+	}
+	syncAdapter := &subscriptionSyncAdapterSpy{}
+	reconciler := &syncReconcilerSpy{}
+	service := &Service{
+		billingService:          billingService,
+		reconciler:              reconciler,
+		subscriptionService:     subscriptionService,
+		subscriptionSyncAdapter: syncAdapter,
+		logger:                  testutils.NewDiscardLogger(t),
+		tracer:                  noop.NewTracerProvider().Tracer("test"),
+	}
+
+	// when: the waiting sync resumes
+	err := service.SyncByID(t.Context(), subscriptionService.view.Subscription.NamespacedID, now)
+
+	// then: it uses the deleted root and cannot recreate lines from an active view
+	require.NoError(t, err)
+	require.Zero(t, subscriptionService.getViewCalls)
+	require.True(t, reconciler.planCalled)
+	require.Empty(t, reconciler.planInput.Target.Items)
+	require.Len(t, syncAdapter.upsertsV2, 1)
+}
+
 type billingServiceSpy struct {
 	billing.Service
+	beforeLock               func()
 	withLockCalled           bool
 	invoicePendingLinesCalls int
 }
@@ -67,7 +110,12 @@ func (s *billingServiceSpy) InvoicePendingLines(ctx context.Context, input billi
 }
 
 func (s *billingServiceSpy) WithLock(ctx context.Context, _ customer.CustomerID, fn func(context.Context) error) error {
+	if s.beforeLock != nil {
+		s.beforeLock()
+	}
+
 	s.withLockCalled = true
+
 	return fn(ctx)
 }
 
@@ -85,16 +133,23 @@ func (s *billingServiceSpy) GetSplitLineGroupsForSubscription(context.Context, b
 
 type subscriptionServiceSpy struct {
 	subscription.Service
-	view subscription.SubscriptionView
+	view         subscription.SubscriptionView
+	getViewCalls int
 }
 
 func (s *subscriptionServiceSpy) List(context.Context, subscription.ListSubscriptionsInput) (subscription.SubscriptionList, error) {
 	return subscription.SubscriptionList{Items: []subscription.Subscription{s.view.Subscription}}, nil
 }
 
+func (s *subscriptionServiceSpy) GetView(context.Context, models.NamespacedID) (subscription.SubscriptionView, error) {
+	s.getViewCalls++
+	return s.view, nil
+}
+
 type subscriptionSyncAdapterSpy struct {
 	subscriptionsync.Adapter
-	upserts []subscriptionsync.UpsertSyncStateInput
+	upserts   []subscriptionsync.UpsertSyncStateInput
+	upsertsV2 []subscriptionsync.UpsertSyncStateV2Input
 }
 
 func (s *subscriptionSyncAdapterSpy) UpsertSyncState(_ context.Context, input subscriptionsync.UpsertSyncStateInput) error {
@@ -102,12 +157,20 @@ func (s *subscriptionSyncAdapterSpy) UpsertSyncState(_ context.Context, input su
 	return nil
 }
 
+func (s *subscriptionSyncAdapterSpy) UpsertSyncStateV2(_ context.Context, input subscriptionsync.UpsertSyncStateV2Input) error {
+	s.upsertsV2 = append(s.upsertsV2, input)
+	return nil
+}
+
 type syncReconcilerSpy struct {
 	syncreconciler.Reconciler
 	planCalled bool
+	planInput  syncreconciler.PlanInput
 }
 
-func (s *syncReconcilerSpy) Plan(context.Context, syncreconciler.PlanInput) (*syncreconciler.Plan, error) {
+func (s *syncReconcilerSpy) Plan(_ context.Context, input syncreconciler.PlanInput) (*syncreconciler.Plan, error) {
 	s.planCalled = true
+	s.planInput = input
+
 	return &syncreconciler.Plan{}, nil
 }
