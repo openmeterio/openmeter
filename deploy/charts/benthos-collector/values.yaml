@@ -75,6 +75,10 @@ leaderElection:
     renewDeadline: 5s
     # -- Retry period of the lease.
     retryPeriod: 2s
+    # -- Time a starting replica waits before it takes part in the leader election.
+    # A pod of the StatefulSet that is recreated or restarted keeps its name, which is its lease identity, so it would take the lease of its previous run back at once and the other replica would never take over.
+    # To leave the lease to a running replica, set it longer than `duration` plus five times `retryPeriod`.
+    startDelay: 0s
 
 rbac:
   # -- Specifies whether RBAC resources should be created.

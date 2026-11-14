@@ -107,6 +107,8 @@ spec:
               value: {{ .Values.leaderElection.lease.renewDeadline | quote }}
             - name: LEASE_RETRY_PERIOD
               value: {{ .Values.leaderElection.lease.retryPeriod | quote }}
+            - name: LEASE_START_DELAY
+              value: {{ .Values.leaderElection.lease.startDelay | quote }}
             {{- range $key, $value := .Values.env }}
             - name: {{ $key }}
               value: {{ $value | quote }}

@@ -47,6 +47,7 @@ helm install --generate-name --wait oci://ghcr.io/openmeterio/helm-charts/bentho
 | leaderElection.lease.duration | string | `"10s"` | Duration of the lease. |
 | leaderElection.lease.renewDeadline | string | `"5s"` | Renew deadline of the lease. |
 | leaderElection.lease.retryPeriod | string | `"2s"` | Retry period of the lease. |
+| leaderElection.lease.startDelay | string | `"0s"` | Time a starting replica waits before it takes part in the leader election. A pod of the StatefulSet that is recreated or restarted keeps its name, which is its lease identity, so it would take the lease of its previous run back at once and the other replica would never take over. To leave the lease to a running replica, set it longer than `duration` plus five times `retryPeriod`. |
 | rbac.create | bool | `true` | Specifies whether RBAC resources should be created. If disabled, the operator is responsible for creating the necessary resources based on the templates. |
 | podAnnotations | object | `{}` | Annotations to be added to pods. |
 | podLabels | object | `{}` | Labels to be added to pods. |
