@@ -34,6 +34,7 @@ input:
         include_pending_pods: true
         include_terminated_pods: true
         include_deleted_pods: true
+        deleted_pods_max_age: "${SCRAPE_LOOKBACK:5m}"
     interval: "${SCRAPE_INTERVAL:15s}"
 
 pipeline:

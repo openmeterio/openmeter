@@ -61,6 +61,9 @@ Each message carries the following metadata:
 			service.NewBoolField("include_deleted_pods").
 				Description("Emit each pod once more after it is deleted, in its last known state, with the metadata field `kubernetes_deleted_time`. Lets a mapping account for the time between the previous read and the deletion. Only applies when resource_type is 'pod'.").
 				Default(false),
+			service.NewDurationField("deleted_pods_max_age").
+				Description("How long a replica that is not the leader keeps the deleted pods it saw. It hands them over when it becomes the leader, because the previous leader may have stopped before it did. A pod the previous leader did hand over is then emitted a second time. Set it to the time the mapping looks back. Only applies when include_deleted_pods is true.").
+				Default("5m"),
 		)
 }
 
@@ -83,6 +86,7 @@ type kubernetesResourcesInput struct {
 
 	includeTerminatedPods bool
 	includeDeletedPods    bool
+	deletedPodsMaxAge     time.Duration
 
 	manager manager.Manager
 	client  client.Client
@@ -91,7 +95,7 @@ type kubernetesResourcesInput struct {
 	inFlight chan struct{}
 
 	mu sync.Mutex
-	// Pods the cache saw deleted since the last read.
+	// Pods the cache saw deleted and that were not handed over yet.
 	deletedPods []deletedPod
 	// Read time of the latest batch that was acknowledged without an error.
 	lastAckReadTime time.Time
@@ -134,6 +138,11 @@ func newKubernetesResourcesInput(conf *service.ParsedConfig, res *service.Resour
 	}
 
 	includeDeletedPods, err := conf.FieldBool("include_deleted_pods")
+	if err != nil {
+		return nil, err
+	}
+
+	deletedPodsMaxAge, err := conf.FieldDuration("deleted_pods_max_age")
 	if err != nil {
 		return nil, err
 	}
@@ -195,6 +204,7 @@ func newKubernetesResourcesInput(conf *service.ParsedConfig, res *service.Resour
 		includePendingPods:    includePendingPods,
 		includeTerminatedPods: includeTerminatedPods,
 		includeDeletedPods:    includeDeletedPods,
+		deletedPodsMaxAge:     deletedPodsMaxAge,
 		inFlight:              make(chan struct{}, 1),
 		manager:               mgr,
 		client:                client,
@@ -256,11 +266,6 @@ func (in *kubernetesResourcesInput) onPodDeleted(obj any) {
 		return
 	}
 
-	// Only the leader reads, so other replicas have nothing to hand over.
-	if !leaderelection.IsLeader(in.resources) {
-		return
-	}
-
 	if !lo.Contains(in.namespaces, corev1.NamespaceAll) && !lo.Contains(in.namespaces, pod.Namespace) {
 		return
 	}
@@ -283,6 +288,16 @@ func (in *kubernetesResourcesInput) requeueDeletedPods(pods []deletedPod) {
 		in.logger.Warnf("dropping %d deleted pods that were not read in time", dropped)
 		in.deletedPods = in.deletedPods[dropped:]
 	}
+}
+
+// dropDeletedPodsBefore drops the deleted pods seen before the given time.
+func (in *kubernetesResourcesInput) dropDeletedPodsBefore(t time.Time) {
+	in.mu.Lock()
+	defer in.mu.Unlock()
+
+	in.deletedPods = lo.Reject(in.deletedPods, func(deleted deletedPod, _ int) bool {
+		return deleted.deletedAt.Before(t)
+	})
 }
 
 // takeDeletedPods returns the deleted pods seen since the last read.
@@ -324,8 +339,10 @@ func (in *kubernetesResourcesInput) ReadBatch(ctx context.Context) (service.Mess
 	}()
 
 	if !leaderelection.IsLeader(in.resources) {
-		// Deletions seen while this replica was the leader are not handed over.
-		in.takeDeletedPods()
+		// Only the leader reads. The other replicas keep the deletions they
+		// see: the leader may stop before it handed them over, and the next
+		// leader cannot list a pod that is gone.
+		in.dropDeletedPodsBefore(time.Now().Add(-in.deletedPodsMaxAge))
 
 		return batch, func(context.Context, error) error { return nil }, nil
 	}

@@ -168,6 +168,7 @@ func TestKubernetesResourcesInputDeletedPodSelection(t *testing.T) {
 			name:     "not the leader",
 			isLeader: lo.ToPtr(false),
 			deleted:  newTestPod("default", "pod", corev1.PodRunning, nil),
+			want:     []string{"pod"},
 		},
 	}
 
@@ -229,20 +230,71 @@ func TestKubernetesResourcesInputDeletedPodHandOver(t *testing.T) {
 }
 
 func TestKubernetesResourcesInputDeletedPodsNotLeader(t *testing.T) {
-	in := newTestKubernetesResourcesInput(t, nil)
+	const maxAge = time.Minute
 
-	in.onPodDeleted(newTestPod("default", "deleted", corev1.PodRunning, nil))
+	tests := []struct {
+		name string
+		// Whether the replica is the leader when the pod is deleted.
+		leaderAtDelete bool
+		// How long ago the deletion was seen.
+		age time.Duration
+		// What the replica hands over once it is the leader.
+		want []string
+	}{
+		{
+			name: "seen by a replica that is not the leader",
+			want: []string{"deleted"},
+		},
+		{
+			name:           "seen by the leader, which loses the lease before the next read",
+			leaderAtDelete: true,
+			want:           []string{"deleted"},
+		},
+		{
+			name: "seen less than the maximum age ago",
+			age:  maxAge - 10*time.Second,
+			want: []string{"deleted"},
+		},
+		{
+			name: "seen more than the maximum age ago",
+			age:  maxAge + time.Second,
+		},
+	}
 
-	// Losing the leadership drops what was not handed over.
-	in.resources.SetGeneric(leaderelection.IsLeaderKey, false)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			in := newTestKubernetesResourcesInput(t, &kubernetesResourcesInput{deletedPodsMaxAge: maxAge})
 
-	names, _, _ := readPodNames(t, in)
-	assert.Empty(t, names)
+			in.resources.SetGeneric(leaderelection.IsLeaderKey, tt.leaderAtDelete)
+			in.onPodDeleted(newTestPod("default", "deleted", corev1.PodRunning, nil))
 
-	in.resources.SetGeneric(leaderelection.IsLeaderKey, true)
+			in.mu.Lock()
+			in.deletedPods[0].deletedAt = in.deletedPods[0].deletedAt.Add(-tt.age)
+			in.mu.Unlock()
 
-	names, _, _ = readPodNames(t, in)
-	assert.Empty(t, names)
+			// A replica that is not the leader hands nothing over, however
+			// often it reads.
+			in.resources.SetGeneric(leaderelection.IsLeaderKey, false)
+
+			for range 2 {
+				names, _, _ := readPodNames(t, in)
+				assert.Empty(t, names)
+			}
+
+			// The new leader hands over what it kept, once.
+			in.resources.SetGeneric(leaderelection.IsLeaderKey, true)
+
+			names, _, ack := readPodNames(t, in)
+			assert.ElementsMatch(t, tt.want, names)
+
+			if len(names) > 0 {
+				require.NoError(t, ack(t.Context(), nil))
+			}
+
+			names, _, _ = readPodNames(t, in)
+			assert.Empty(t, names)
+		})
+	}
 }
 
 func TestKubernetesResourcesInputDeletedPodsBound(t *testing.T) {
