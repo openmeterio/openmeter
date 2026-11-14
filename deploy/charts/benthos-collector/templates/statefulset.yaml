@@ -7,6 +7,7 @@ metadata:
     {{- include "benthos-collector.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicaCount | int }}
+  minReadySeconds: {{ .Values.minReadySeconds | int }}
   serviceName: {{ include "benthos-collector.fullname" . }}
   selector:
     matchLabels:

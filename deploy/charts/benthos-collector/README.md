@@ -26,6 +26,7 @@ helm install --generate-name --wait oci://ghcr.io/openmeterio/helm-charts/bentho
 | image.pullPolicy | string | `"IfNotPresent"` | [Image pull policy](https://kubernetes.io/docs/concepts/containers/images/#updating-images) for updating already existing images on a node. |
 | image.tag | string | `""` | Image tag override for the default value (chart appVersion). |
 | replicaCount | int | `1` | Number of replicas of pods in the StatefulSet |
+| minReadySeconds | int | `0` | Seconds a new pod must be ready before a rolling update moves on to the next pod. With leader election, set it longer than three scrape intervals, so the replica that takes over has watched the pods long enough. |
 | openmeter.url | string | `"https://openmeter.cloud"` | OpenMeter API URL |
 | openmeter.token | string | `""` | OpenMeter token |
 | config | object | `{}` | Benthos configuration Takes precedence over `configFile` and `preset`. |

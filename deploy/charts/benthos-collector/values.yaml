@@ -15,6 +15,10 @@ image:
 # -- Number of replicas of pods in the StatefulSet
 replicaCount: 1
 
+# -- Seconds a new pod must be ready before a rolling update moves on to the next pod.
+# With leader election, set it longer than three scrape intervals, so the replica that takes over has watched the pods long enough.
+minReadySeconds: 0
+
 openmeter:
   # -- OpenMeter API URL
   url: https://openmeter.cloud
