@@ -436,12 +436,24 @@ func TestKubernetesPodExecTimeExactPreset(t *testing.T) {
 			want: []presetWindow{{Start: 15, Seconds: 15}, {Start: 30, Seconds: 10}},
 		},
 		{
-			name:     "two containers, one without a finish time, end at the earlier of the known finish and not ready",
+			name:     "two containers, one without a finish time, not ready after the known finish",
 			metadata: meta(62, -1),
 			pod: func() corev1.Pod {
 				p := pod(corev1.PodFailed, terminated(20, 35))
 				p.Status.ContainerStatuses = append(p.Status.ContainerStatuses, unknown(18)...)
 				p.Status.Conditions = notReady(50)
+
+				return p
+			}(),
+			want: []presetWindow{{Start: 15, Seconds: 12}, {Start: 30, Seconds: 15}, {Start: 45, Seconds: 5}},
+		},
+		{
+			name:     "two containers, one without a finish time, never end before the known finish",
+			metadata: meta(62, -1),
+			pod: func() corev1.Pod {
+				p := pod(corev1.PodFailed, terminated(20, 35))
+				p.Status.ContainerStatuses = append(p.Status.ContainerStatuses, unknown(18)...)
+				p.Status.Conditions = notReady(25)
 
 				return p
 			}(),
@@ -686,6 +698,79 @@ func TestKubernetesPodExecTimeExactPresetReads(t *testing.T) {
 			assert.ElementsMatch(t, tt.want, got)
 		})
 	}
+}
+
+// TestKubernetesPodExecTimeExactPresetRestartReplay shows the one case where a
+// window does not keep its duration: a container that restarted more than
+// once no longer shows its first start, so the pod is counted from the pod
+// start time, which is earlier than the first container start. A replay
+// after the second restart then sends a window of the first read with a
+// longer duration, and a window before the first container start.
+func TestKubernetesPodExecTimeExactPresetRestartReplay(t *testing.T) {
+	pod := func(status corev1.ContainerStatus) corev1.Pod {
+		return corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{Namespace: "default", Name: "pod", UID: "0b8a5c1e-7a6f-4c0d-9d0e-3f1a2b4c5d6e"},
+			Spec:       corev1.PodSpec{Containers: []corev1.Container{{Name: "main"}}},
+			Status: corev1.PodStatus{
+				Phase: corev1.PodRunning,
+				// The pod started 20s before its first container.
+				StartTime:         lo.ToPtr(presetMetaTime(0)),
+				ContainerStatuses: []corev1.ContainerStatus{status},
+			},
+		}
+	}
+
+	windows := func(t *testing.T, metadata map[string]string, p corev1.Pod) []presetWindow {
+		t.Helper()
+
+		got := []presetWindow{}
+
+		for _, encoded := range runPreset(t, map[string]string{"SCRAPE_SETTLE": "5s"}, metadata, p) {
+			var event struct {
+				Time time.Time `json:"time"`
+				Data struct {
+					DurationSeconds int64 `json:"duration_seconds"`
+				} `json:"data"`
+			}
+			require.NoError(t, json.Unmarshal(encoded, &event))
+
+			got = append(got, presetWindow{Start: int64(event.Time.Sub(presetEpoch).Seconds()), Seconds: event.Data.DurationSeconds})
+		}
+
+		return got
+	}
+
+	t.Run("before a restart the pod runs from its first container start", func(t *testing.T) {
+		got := windows(t, map[string]string{
+			"schedule_interval":             "15s",
+			"kubernetes_read_time":          presetTime(47).Format(time.RFC3339),
+			"kubernetes_last_ack_read_time": presetTime(32).Format(time.RFC3339),
+		}, pod(corev1.ContainerStatus{
+			Name:  "main",
+			State: corev1.ContainerState{Running: &corev1.ContainerStateRunning{StartedAt: presetMetaTime(20)}},
+		}))
+
+		assert.ElementsMatch(t, []presetWindow{{Start: 15, Seconds: 10}}, got)
+	})
+
+	t.Run("a replay after the second restart runs from the pod start time", func(t *testing.T) {
+		got := windows(t, map[string]string{
+			"schedule_interval":    "15s",
+			"kubernetes_read_time": presetTime(62).Format(time.RFC3339),
+		}, pod(corev1.ContainerStatus{
+			Name:         "main",
+			RestartCount: 2,
+			State:        corev1.ContainerState{Running: &corev1.ContainerStateRunning{StartedAt: presetMetaTime(55)}},
+			LastTerminationState: corev1.ContainerState{Terminated: &corev1.ContainerStateTerminated{
+				StartedAt:  presetMetaTime(50),
+				FinishedAt: presetMetaTime(54),
+			}},
+		}))
+
+		// The window at 15 had 10 seconds in the first read; the window at 0
+		// is before the first container start.
+		assert.ElementsMatch(t, []presetWindow{{Start: 0, Seconds: 15}, {Start: 15, Seconds: 15}, {Start: 30, Seconds: 15}}, got)
+	})
 }
 
 // TestKubernetesPodExecTimeExactPresetInput checks that the preset asks the

@@ -10,6 +10,12 @@
 # same duration. The sink must deduplicate by event id: in OpenMeter enable
 # `sink.dedupe` with an expiration longer than SCRAPE_LOOKBACK.
 #
+# One exception: a pod with a container that restarted more than once. Its
+# first container start is no longer in the pod status, so it is counted from
+# the pod start time, which is earlier. A window near the start of such a pod
+# that is sent again after the second restart can carry a longer duration
+# than before, and a window before the first container start can appear.
+#
 # SCRAPE_INTERVAL        window length (default 15s)
 # SCRAPE_SETTLE          how long to wait for the status of a pod before a
 #                        window is final (default 15s)
@@ -77,7 +83,7 @@ pipeline:
         #   observed, at the latest the end of its grace period;
         # - the pod stopped without all finish times (its status was lost, its
         #   node shut down): the time it stopped being ready, or the latest
-        #   finish time that is known, whichever is earlier;
+        #   finish time that is known, whichever is later;
         # - none of these: the end is not known, and no window is sent.
         let finishes = $statuses.map_each(status -> status.state.terminated.finishedAt.ts_unix().or(0)).filter(time -> time > 0)
         let not_ready = this.status.conditions.or([]).filter(condition -> condition.type == "Ready" && condition.status != "True").map_each(condition -> condition.lastTransitionTime.ts_unix().or(0)).filter(time -> time > 0)
@@ -86,7 +92,7 @@ pipeline:
           !$ended => null,
           $stopped && $finishes.length() == $statuses.length() => $finishes.max(),
           !$terminal && !$stopped => [$deleted_time, $deletion_time].filter(time -> time != null).min(),
-          _ => $fixed.min().or(null),
+          _ => $fixed.max().or(null),
         }
         let end_known = !$ended || $end != null
 
