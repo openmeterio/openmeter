@@ -11,6 +11,7 @@ func DecodeHook() mapstructure.DecodeHookFunc {
 		mapstructure.TextUnmarshallerHookFunc(),
 		mapstructure.StringToTimeDurationHookFunc(),
 		mapstructure.StringToSliceHookFunc(","),
+		mapstructure.StringToBasicTypeHookFunc(),
 	)
 }
 
