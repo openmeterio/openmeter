@@ -163,6 +163,139 @@ func TestUnitConfigApply(t *testing.T) {
 	})
 }
 
+func TestUnitConfigApplyDivisionBoundaries(t *testing.T) {
+	for _, tc := range []struct {
+		name      string
+		raw       string
+		factor    string
+		rounding  UnitConfigRoundingMode
+		precision int
+		converted string
+		invoiced  string
+	}{
+		{
+			name:      "floor below whole unit",
+			raw:       "9.99999999999999999",
+			factor:    "10",
+			rounding:  UnitConfigRoundingModeFloor,
+			converted: "1",
+			invoiced:  "0",
+		},
+		{
+			name:      "ceiling above whole unit",
+			raw:       "10.00000000000000001",
+			factor:    "10",
+			rounding:  UnitConfigRoundingModeCeiling,
+			converted: "1",
+			invoiced:  "2",
+		},
+		{
+			name:      "half up below tie",
+			raw:       "4.99999999999999999",
+			factor:    "10",
+			rounding:  UnitConfigRoundingModeHalfUp,
+			converted: "0.5",
+			invoiced:  "0",
+		},
+		{
+			name:      "negative floor below whole unit",
+			raw:       "-10.00000000000000001",
+			factor:    "10",
+			rounding:  UnitConfigRoundingModeFloor,
+			converted: "-1",
+			invoiced:  "-2",
+		},
+		{
+			name:      "negative ceiling above whole unit",
+			raw:       "-9.99999999999999999",
+			factor:    "10",
+			rounding:  UnitConfigRoundingModeCeiling,
+			converted: "-1",
+			invoiced:  "0",
+		},
+		{
+			name:      "negative half up below tie magnitude",
+			raw:       "-4.99999999999999999",
+			factor:    "10",
+			rounding:  UnitConfigRoundingModeHalfUp,
+			converted: "-0.5",
+			invoiced:  "0",
+		},
+		{
+			name:      "floor at configured decimal precision",
+			raw:       "12.39999999999999999",
+			factor:    "10",
+			rounding:  UnitConfigRoundingModeFloor,
+			precision: 2,
+			converted: "1.24",
+			invoiced:  "1.23",
+		},
+		{
+			name:      "ceiling at configured decimal precision",
+			raw:       "12.40000000000000001",
+			factor:    "10",
+			rounding:  UnitConfigRoundingModeCeiling,
+			precision: 2,
+			converted: "1.24",
+			invoiced:  "1.25",
+		},
+		{
+			name:      "half up at configured decimal precision",
+			raw:       "12.34999999999999999",
+			factor:    "10",
+			rounding:  UnitConfigRoundingModeHalfUp,
+			precision: 2,
+			converted: "1.235",
+			invoiced:  "1.23",
+		},
+		{
+			name:      "floor beyond default division precision",
+			raw:       "1",
+			factor:    "3",
+			rounding:  UnitConfigRoundingModeFloor,
+			precision: 17,
+			converted: "0.3333333333333333",
+			invoiced:  "0.33333333333333333",
+		},
+		{
+			name:      "ceiling beyond default division precision",
+			raw:       "1",
+			factor:    "3",
+			rounding:  UnitConfigRoundingModeCeiling,
+			precision: 17,
+			converted: "0.3333333333333333",
+			invoiced:  "0.33333333333333334",
+		},
+		{
+			name:      "half up beyond default division precision",
+			raw:       "1",
+			factor:    "6",
+			rounding:  UnitConfigRoundingModeHalfUp,
+			precision: 17,
+			converted: "0.1666666666666667",
+			invoiced:  "0.16666666666666667",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			// given: division lands close enough to a boundary for Div to move it.
+			config := &UnitConfig{
+				Operation:        UnitConfigOperationDivide,
+				ConversionFactor: decimal.RequireFromString(tc.factor),
+				Rounding:         tc.rounding,
+				Precision:        tc.precision,
+			}
+			require.NoError(t, config.Validate())
+
+			// when: the raw quantity is converted for entitlement and invoicing.
+			converted, invoiced := config.Apply(decimal.RequireFromString(tc.raw))
+
+			// then: invoice rounding uses the original ratio; conversion stays compatible.
+			require.Equal(t, tc.converted, converted.String())
+			require.Equal(t, tc.invoiced, invoiced.String())
+		})
+	}
+}
+
 func TestUnitConfigValidate(t *testing.T) {
 	// requireValidationError asserts Validate failed with a generic validation error whose
 	// message mentions the expected rule, so a case can't pass by tripping a different rule.

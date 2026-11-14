@@ -11,6 +11,66 @@ import (
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
+func TestAllocateByWeightPreservesRemainderOrder(t *testing.T) {
+	// given: B has the larger exact remainder, even though Div rounds the shares equal.
+	usd := testCurrencyFiat(t, "USD")
+	input := currencyx.WeightedAllocationInput[string]{
+		Amount: dec("0.01"),
+		Items: []currencyx.WeightedAllocationItem[string]{
+			{
+				Key:    "A",
+				Weight: dec("1"),
+			},
+			{
+				Key:    "B",
+				Weight: dec("1.00000000000000001"),
+			},
+		},
+	}
+
+	// when: one cent is allocated by the largest-remainder method.
+	allocations, err := currencyx.AllocateByWeight(usd, input)
+	require.NoError(t, err)
+
+	// then: the larger remainder wins before any tie-breaker is considered.
+	requireAllocationsEqual(t, []currencyx.WeightedAllocation[string]{
+		{
+			Key:    "B",
+			Amount: dec("0.01"),
+		},
+	}, allocations)
+}
+
+func TestAllocateByAmountPreservesRemainderOrder(t *testing.T) {
+	// given: synthetic currency buckets differ by a cent and B has the larger remainder.
+	usd := testCurrencyFiat(t, "USD")
+	input := currencyx.AmountAllocationInput[string]{
+		Amount: dec("0.01"),
+		Items: []currencyx.AmountAllocationItem[string]{
+			{
+				Key:    "A",
+				Amount: dec("100000000000000"),
+			},
+			{
+				Key:    "B",
+				Amount: dec("100000000000000.01"),
+			},
+		},
+	}
+
+	// when: one cent is allocated across the buckets without exceeding their caps.
+	allocations, err := currencyx.AllocateByAmount(usd, input)
+	require.NoError(t, err)
+
+	// then: rounding must not replace the exact remainder ordering with input order.
+	requireAmountAllocationsEqual(t, []currencyx.AmountAllocation[string]{
+		{
+			Key:    "B",
+			Amount: dec("0.01"),
+		},
+	}, allocations)
+}
+
 func TestAllocateByWeight(t *testing.T) {
 	usd := testCurrencyFiat(t, "USD")
 

@@ -15,6 +15,41 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
+func TestUnitPriceConversionAboveBoundary(t *testing.T) {
+	// given: raw usage is just above one converted unit and invoicing rounds up.
+	input := testutil.CalculationTestCase{
+		Price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+			Amount: alpacadecimal.NewFromInt(15),
+		}),
+		LineMode: testutil.SinglePerPeriodLineMode,
+		Usage: testutil.FeatureUsageResponse{
+			LinePeriodQty: alpacadecimal.RequireFromString("10.00000000000000001"),
+		},
+		UnitConfig: &productcatalog.UnitConfig{
+			Operation:        productcatalog.UnitConfigOperationDivide,
+			ConversionFactor: alpacadecimal.NewFromInt(10),
+			Rounding:         productcatalog.UnitConfigRoundingModeCeiling,
+		},
+		UnitConfigEnabled: true,
+		Expect: rating.DetailedLines{
+			{
+				Name:                   "feature: usage in period",
+				PerUnitAmount:          alpacadecimal.NewFromInt(15),
+				Quantity:               alpacadecimal.NewFromInt(2),
+				ChildUniqueReferenceID: rating.UnitPriceUsageChildUniqueReferenceID,
+				PaymentTerm:            productcatalog.InArrearsPaymentTerm,
+				Totals: totals.Totals{
+					Amount: alpacadecimal.NewFromInt(30),
+					Total:  alpacadecimal.NewFromInt(30),
+				},
+			},
+		},
+	}
+
+	// when/then: rating bills two units rather than rounding the usage down to one.
+	testutil.RunCalculationTestCase(t, input)
+}
+
 func TestUnitPriceCalculation(t *testing.T) {
 	t.Run("unit price, no usage", func(t *testing.T) {
 		testutil.RunCalculationTestCase(t, testutil.CalculationTestCase{
