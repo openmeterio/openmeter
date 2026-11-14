@@ -15,6 +15,10 @@ image:
 # -- Number of replicas of pods in the StatefulSet
 replicaCount: 1
 
+# -- Seconds a new pod must be ready before a rolling update moves on to the next pod.
+# With leader election, set it longer than three scrape intervals, so the replica that takes over has watched the pods long enough.
+minReadySeconds: 0
+
 openmeter:
   # -- OpenMeter API URL
   url: https://openmeter.cloud
@@ -75,6 +79,10 @@ leaderElection:
     renewDeadline: 5s
     # -- Retry period of the lease.
     retryPeriod: 2s
+    # -- Time a starting replica waits before it takes part in the leader election.
+    # A pod of the StatefulSet that is recreated or restarted keeps its name, which is its lease identity, so it would take the lease of its previous run back at once and the other replica would never take over.
+    # To leave the lease to a running replica, set it longer than `duration` plus five times `retryPeriod`.
+    startDelay: 0s
 
 rbac:
   # -- Specifies whether RBAC resources should be created.

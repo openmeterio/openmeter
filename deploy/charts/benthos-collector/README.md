@@ -26,6 +26,7 @@ helm install --generate-name --wait oci://ghcr.io/openmeterio/helm-charts/bentho
 | image.pullPolicy | string | `"IfNotPresent"` | [Image pull policy](https://kubernetes.io/docs/concepts/containers/images/#updating-images) for updating already existing images on a node. |
 | image.tag | string | `""` | Image tag override for the default value (chart appVersion). |
 | replicaCount | int | `1` | Number of replicas of pods in the StatefulSet |
+| minReadySeconds | int | `0` | Seconds a new pod must be ready before a rolling update moves on to the next pod. With leader election, set it longer than three scrape intervals, so the replica that takes over has watched the pods long enough. |
 | openmeter.url | string | `"https://openmeter.cloud"` | OpenMeter API URL |
 | openmeter.token | string | `""` | OpenMeter token |
 | config | object | `{}` | Benthos configuration Takes precedence over `configFile` and `preset`. |
@@ -47,6 +48,7 @@ helm install --generate-name --wait oci://ghcr.io/openmeterio/helm-charts/bentho
 | leaderElection.lease.duration | string | `"10s"` | Duration of the lease. |
 | leaderElection.lease.renewDeadline | string | `"5s"` | Renew deadline of the lease. |
 | leaderElection.lease.retryPeriod | string | `"2s"` | Retry period of the lease. |
+| leaderElection.lease.startDelay | string | `"0s"` | Time a starting replica waits before it takes part in the leader election. A pod of the StatefulSet that is recreated or restarted keeps its name, which is its lease identity, so it would take the lease of its previous run back at once and the other replica would never take over. To leave the lease to a running replica, set it longer than `duration` plus five times `retryPeriod`. |
 | rbac.create | bool | `true` | Specifies whether RBAC resources should be created. If disabled, the operator is responsible for creating the necessary resources based on the templates. |
 | podAnnotations | object | `{}` | Annotations to be added to pods. |
 | podLabels | object | `{}` | Labels to be added to pods. |
