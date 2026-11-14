@@ -11,11 +11,14 @@ import (
 	"github.com/openmeterio/openmeter/api/v3/oasmiddleware"
 )
 
-func TestToAipError_AllOfInsideParameterKeepsSource(t *testing.T) {
-	// given: a deep-object query parameter with a property that wraps a pattern in allOf
+func TestToAipError_AllOfInsideParameterReportsEachViolation(t *testing.T) {
+	// given: a deep-object query parameter whose property breaks two allOf branches
 	schema := openapi3.NewObjectSchema().WithProperty(
 		"gt",
-		openapi3.NewAllOfSchema(openapi3.NewStringSchema().WithPattern(`^[0-9]+$`)),
+		openapi3.NewAllOfSchema(
+			openapi3.NewStringSchema().WithPattern(`^[0-9]+$`),
+			openapi3.NewStringSchema().WithMinLength(10),
+		),
 	)
 	schemaErr := schema.VisitJSON(map[string]any{"gt": "100."}, openapi3.MultiErrors())
 	require.IsType(t, openapi3.MultiError{}, schemaErr)
@@ -28,9 +31,19 @@ func TestToAipError_AllOfInsideParameterKeepsSource(t *testing.T) {
 		},
 	})
 
-	// then: the violated rule is reported as a query error, not as the allOf wrapper
-	require.Len(t, invalidParams, 1)
-	require.Equal(t, "gt", invalidParams[0].Field)
-	require.Equal(t, apierrors.InvalidParamSourceQuery, invalidParams[0].Source)
-	require.Equal(t, "pattern", invalidParams[0].Rule)
+	// then: each violated rule is reported as a query error, not as the allOf wrapper
+	require.Equal(t, []apierrors.InvalidParameter{
+		{
+			Field:  "gt",
+			Rule:   "pattern",
+			Reason: `string doesn't match the regular expression "^[0-9]+$"`,
+			Source: apierrors.InvalidParamSourceQuery,
+		},
+		{
+			Field:  "gt",
+			Rule:   "min_length",
+			Reason: "minimum string length is 10",
+			Source: apierrors.InvalidParamSourceQuery,
+		},
+	}, invalidParams)
 }
