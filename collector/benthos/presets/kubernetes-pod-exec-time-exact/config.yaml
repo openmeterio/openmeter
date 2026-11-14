@@ -40,8 +40,10 @@ pipeline:
   processors:
     # One event per pod and per window. Windows are aligned to the wall clock
     # (a multiple of the interval since the Unix epoch), so the same pod and
-    # window always give the same event id and the same duration, whenever the
+    # window give the same event id and the same duration, whenever the
     # collector reads them. A sink that deduplicates by id counts each once.
+    # The exception is a pod with a container that restarted more than once
+    # (see the header of this file): its start moves to the pod start time.
     - mapping: |
         let interval = (meta("schedule_interval").parse_duration() / 1000 / 1000 / 1000).round().int64()
         let settle = ("${SCRAPE_SETTLE:15s}".parse_duration() / 1000 / 1000 / 1000).round().int64()
