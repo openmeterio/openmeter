@@ -171,6 +171,45 @@ func TestUnscheduleEdit(t *testing.T) {
 					return *s
 				},
 			},
+			{
+				Name:  "Should preserve past completed versions when CurrentTime >= ActiveTo",
+				Patch: patch.PatchUnscheduleEdit{},
+				GetSpec: func(t *testing.T) *subscription.SubscriptionSpec {
+					s := getSpec(t)
+
+					phase := s.Phases["test_phase_1"]
+					items := phase.ItemsByKey[subscriptiontestutils.ExampleFeatureKey]
+
+					// Version 0 was active from phase start to day 1 (ended in the past)
+					items[0].ActiveToOverrideRelativeToPhaseStart = lo.ToPtr(datetime.MustParseDuration(t, "P1D"))
+
+					// Version 1 is scheduled in the future starting at day 5
+					futureItem := *items[0]
+					futureItem.ActiveFromOverrideRelativeToPhaseStart = lo.ToPtr(datetime.MustParseDuration(t, "P5D"))
+					futureItem.ActiveToOverrideRelativeToPhaseStart = nil
+
+					items = append(items, &futureItem)
+					phase.ItemsByKey[subscriptiontestutils.ExampleFeatureKey] = items
+
+					return s
+				},
+				Ctx: subscription.ApplyContext{
+					// Current time is at day 3, after version 0 ended (P1D) but before version 1 starts (P5D)
+					CurrentTime: now.AddDate(0, 0, 3),
+				},
+				GetExpectedSpec: func(t *testing.T) subscription.SubscriptionSpec {
+					s := getSpec(t)
+
+					// Version 1 (future scheduled) should be removed, and version 0 (historic) must be preserved
+					phase := s.Phases["test_phase_1"]
+					items := phase.ItemsByKey[subscriptiontestutils.ExampleFeatureKey]
+					items[0].ActiveToOverrideRelativeToPhaseStart = lo.ToPtr(datetime.MustParseDuration(t, "P1D"))
+
+					require.Len(t, phase.ItemsByKey[subscriptiontestutils.ExampleFeatureKey], 1)
+
+					return *s
+				},
+			},
 		},
 	}
 

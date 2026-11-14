@@ -50,14 +50,20 @@ func (p PatchUnscheduleEdit) ApplyTo(spec *subscription.SubscriptionSpec, actx s
 
 	for iK, items := range currentPhase.ItemsByKey {
 		for i := len(items) - 1; i >= 0; i-- {
-			if c := items[i].GetCadence(currentPhaseCadence); c.IsActiveAt(actx.CurrentTime) {
+			c := items[i].GetCadence(currentPhaseCadence)
+			if c.IsActiveAt(actx.CurrentTime) {
 				// Let's make sure there is no scheduled end time
 				currentPhase.ItemsByKey[iK][i].ActiveToOverrideRelativeToPhaseStart = nil
 
 				break
 			}
 
-			// Let's remove the item at index i from the array
+			// Historic version: started in the past and already ended in the past
+			if !c.ActiveFrom.After(actx.CurrentTime) && c.ActiveTo != nil && !c.ActiveTo.After(actx.CurrentTime) {
+				break
+			}
+
+			// Let's remove the scheduled item at index i from the array
 			currentPhase.ItemsByKey[iK] = items[:i]
 		}
 	}

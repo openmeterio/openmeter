@@ -156,10 +156,10 @@ func (a PatchAddItem) ApplyTo(spec *subscription.SubscriptionSpec, actx subscrip
 			if itemToCloseEndTime.After(itemToAddStartTime) {
 				return &subscription.PatchForbiddenError{Msg: fmt.Sprintf("cannot add item to phase %s which would overlap with a current item, you should delete first", a.PhaseKey)}
 			}
+		} else {
+			// Let's update the current item to close to actually close as the new item starts
+			itemToClose.ActiveToOverrideRelativeToPhaseStart = a.CreateInput.ActiveFromOverrideRelativeToPhaseStart
 		}
-
-		// Let's update the current item to close to actually close as the new item starts
-		itemToClose.ActiveToOverrideRelativeToPhaseStart = a.CreateInput.ActiveFromOverrideRelativeToPhaseStart
 	}
 
 	// Finally, we simply add it as the last Spec for its key in the phase
