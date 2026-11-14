@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"maps"
 	"os"
 	"slices"
@@ -141,6 +142,25 @@ func TestKubernetesPodExecTimeExactPreset(t *testing.T) {
 				StartedAt:  presetMetaTime(startedAt),
 				FinishedAt: presetMetaTime(finishedAt),
 			}},
+		}}
+	}
+
+	// unknown is a stopped container whose finish time was lost.
+	unknown := func(startedAt int64) []corev1.ContainerStatus {
+		return []corev1.ContainerStatus{{
+			Name: "main",
+			State: corev1.ContainerState{Terminated: &corev1.ContainerStateTerminated{
+				Reason:    "ContainerStatusUnknown",
+				StartedAt: presetMetaTime(startedAt),
+			}},
+		}}
+	}
+
+	notReady := func(since int64) []corev1.PodCondition {
+		return []corev1.PodCondition{{
+			Type:               corev1.PodReady,
+			Status:             corev1.ConditionFalse,
+			LastTransitionTime: presetMetaTime(since),
 		}}
 	}
 
@@ -389,16 +409,105 @@ func TestKubernetesPodExecTimeExactPreset(t *testing.T) {
 			}}),
 		},
 		{
-			name:     "stopped container without a finish time ends when the pod was read",
+			name:     "stopped container without a finish time ends when the pod stopped being ready",
 			metadata: meta(47, 32),
-			pod: pod(corev1.PodFailed, []corev1.ContainerStatus{{
-				Name: "main",
-				State: corev1.ContainerState{Terminated: &corev1.ContainerStateTerminated{
-					Reason:    "ContainerStatusUnknown",
-					StartedAt: presetMetaTime(10),
-				}},
-			}}),
-			want: []presetWindow{{Start: 15, Seconds: 15}, {Start: 30, Seconds: 15}, {Start: 45, Seconds: 2}},
+			pod: func() corev1.Pod {
+				p := pod(corev1.PodFailed, unknown(10))
+				p.Status.Conditions = notReady(40)
+
+				return p
+			}(),
+			want: []presetWindow{{Start: 15, Seconds: 15}, {Start: 30, Seconds: 10}},
+		},
+		{
+			name:     "stopped container without a finish time and no other fixed time has no known end",
+			metadata: meta(47, 32),
+			pod:      pod(corev1.PodFailed, unknown(10)),
+		},
+		{
+			name:     "failed pod whose container still shows as running ends when the pod stopped being ready",
+			metadata: meta(47, 32),
+			pod: func() corev1.Pod {
+				p := pod(corev1.PodFailed, running(10))
+				p.Status.Conditions = notReady(40)
+
+				return p
+			}(),
+			want: []presetWindow{{Start: 15, Seconds: 15}, {Start: 30, Seconds: 10}},
+		},
+		{
+			name:     "two containers, one without a finish time, end at the earlier of the known finish and not ready",
+			metadata: meta(62, -1),
+			pod: func() corev1.Pod {
+				p := pod(corev1.PodFailed, terminated(20, 35))
+				p.Status.ContainerStatuses = append(p.Status.ContainerStatuses, unknown(18)...)
+				p.Status.Conditions = notReady(50)
+
+				return p
+			}(),
+			want: []presetWindow{{Start: 15, Seconds: 12}, {Start: 30, Seconds: 5}},
+		},
+		{
+			name:     "running pod that is not ready is running",
+			metadata: meta(47, 32),
+			pod: func() corev1.Pod {
+				p := pod(corev1.PodRunning, running(-100))
+				p.Status.Conditions = notReady(20)
+
+				return p
+			}(),
+			want: []presetWindow{{Start: 15, Seconds: 15}},
+		},
+		{
+			name:     "deleted pod, last seen running, deletion observed after the read started",
+			metadata: with(meta(47, 32), "kubernetes_deleted_time", presetTime(49).Format(time.RFC3339)),
+			pod: func() corev1.Pod {
+				p := pod(corev1.PodRunning, running(10))
+				p.DeletionTimestamp = lo.ToPtr(presetMetaTime(70))
+
+				return p
+			}(),
+			want: []presetWindow{{Start: 15, Seconds: 15}, {Start: 30, Seconds: 15}, {Start: 45, Seconds: 4}},
+		},
+		{
+			name:     "deleted pod, last seen stopped without a finish time, has no known end",
+			metadata: with(meta(47, 32), "kubernetes_deleted_time", presetTime(41).Format(time.RFC3339)),
+			pod: func() corev1.Pod {
+				p := pod(corev1.PodFailed, unknown(10))
+				p.DeletionTimestamp = lo.ToPtr(presetMetaTime(70))
+
+				return p
+			}(),
+		},
+		{
+			name:     "pending pod with a started container runs from that start",
+			metadata: meta(47, 32),
+			pod: func() corev1.Pod {
+				p := pod(corev1.PodPending, running(20))
+				p.Status.ContainerStatuses = append(p.Status.ContainerStatuses, corev1.ContainerStatus{
+					Name:  "slow",
+					State: corev1.ContainerState{Waiting: &corev1.ContainerStateWaiting{Reason: "ImagePullBackOff"}},
+				})
+
+				return p
+			}(),
+			want: []presetWindow{{Start: 15, Seconds: 10}},
+		},
+		{
+			name:     "container restarted more than once runs from the pod start time",
+			metadata: meta(62, 47),
+			pod: func() corev1.Pod {
+				p := pod(corev1.PodRunning, running(55))
+				p.Status.StartTime = lo.ToPtr(presetMetaTime(-3))
+				p.Status.ContainerStatuses[0].RestartCount = 2
+				p.Status.ContainerStatuses[0].LastTerminationState = corev1.ContainerState{Terminated: &corev1.ContainerStateTerminated{
+					StartedAt:  presetMetaTime(50),
+					FinishedAt: presetMetaTime(54),
+				}}
+
+				return p
+			}(),
+			want: []presetWindow{{Start: 30, Seconds: 15}},
 		},
 		{
 			name:     "stopped container without a start or a finish time never ran",
@@ -443,6 +552,161 @@ func TestKubernetesPodExecTimeExactPreset(t *testing.T) {
 			assert.ElementsMatch(t, tt.want, got)
 			assert.Len(t, seconds, len(tt.want), "every window must have its own id")
 		})
+	}
+}
+
+// TestKubernetesPodExecTimeExactPresetReads reads the same pod several times.
+// No event id may come with two different durations, and the events of all
+// reads together are the time the pod ran.
+func TestKubernetesPodExecTimeExactPresetReads(t *testing.T) {
+	const uid = "0b8a5c1e-7a6f-4c0d-9d0e-3f1a2b4c5d6e"
+
+	type read struct {
+		now     int64
+		lastAck int64
+		pod     corev1.Pod
+	}
+
+	pod := func(phase corev1.PodPhase, status corev1.ContainerStatus) corev1.Pod {
+		return corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{Namespace: "default", Name: "pod", UID: uid},
+			Spec:       corev1.PodSpec{Containers: []corev1.Container{{Name: "main"}}},
+			Status: corev1.PodStatus{
+				Phase:             phase,
+				StartTime:         lo.ToPtr(presetMetaTime(0)),
+				ContainerStatuses: []corev1.ContainerStatus{status},
+			},
+		}
+	}
+
+	running := func(startedAt int64, restarts int32, previousStart, previousFinish int64) corev1.ContainerStatus {
+		status := corev1.ContainerStatus{
+			Name:         "main",
+			RestartCount: restarts,
+			State:        corev1.ContainerState{Running: &corev1.ContainerStateRunning{StartedAt: presetMetaTime(startedAt)}},
+		}
+
+		if restarts > 0 {
+			status.LastTerminationState = corev1.ContainerState{Terminated: &corev1.ContainerStateTerminated{
+				StartedAt:  presetMetaTime(previousStart),
+				FinishedAt: presetMetaTime(previousFinish),
+			}}
+		}
+
+		return status
+	}
+
+	// failed is a pod in a terminal phase whose container still shows as
+	// running, as after a node shutdown.
+	failed := func(conditions ...corev1.PodCondition) corev1.Pod {
+		p := pod(corev1.PodFailed, running(0, 0, 0, 0))
+		p.Status.Conditions = conditions
+
+		return p
+	}
+
+	tests := []struct {
+		name  string
+		reads []read
+		want  []presetWindow
+	}{
+		{
+			name: "finished pod without a finish time gets nothing more with later reads",
+			reads: []read{
+				{now: 47, lastAck: 32, pod: pod(corev1.PodRunning, running(0, 0, 0, 0))},
+				{now: 62, lastAck: 47, pod: failed(corev1.PodCondition{Type: corev1.PodReady, Status: corev1.ConditionFalse, LastTransitionTime: presetMetaTime(50)})},
+				{now: 77, lastAck: 62, pod: failed(corev1.PodCondition{Type: corev1.PodReady, Status: corev1.ConditionFalse, LastTransitionTime: presetMetaTime(50)})},
+				{now: 1000, lastAck: 985, pod: failed(corev1.PodCondition{Type: corev1.PodReady, Status: corev1.ConditionFalse, LastTransitionTime: presetMetaTime(50)})},
+			},
+			want: []presetWindow{{Start: 15, Seconds: 15}, {Start: 30, Seconds: 15}, {Start: 45, Seconds: 5}},
+		},
+		{
+			name: "finished pod without any fixed end gets nothing more with later reads",
+			reads: []read{
+				{now: 47, lastAck: 32, pod: pod(corev1.PodRunning, running(0, 0, 0, 0))},
+				{now: 62, lastAck: 47, pod: failed()},
+				{now: 77, lastAck: 62, pod: failed()},
+				{now: 1000, lastAck: 985, pod: failed()},
+			},
+			want: []presetWindow{{Start: 15, Seconds: 15}},
+		},
+		{
+			name: "container that restarts twice between two reads loses no window",
+			reads: []read{
+				{now: 47, lastAck: 32, pod: pod(corev1.PodRunning, running(0, 0, 0, 0))},
+				{now: 62, lastAck: 47, pod: pod(corev1.PodRunning, running(55, 2, 50, 54))},
+				{now: 77, lastAck: 62, pod: pod(corev1.PodRunning, running(55, 2, 50, 54))},
+			},
+			want: []presetWindow{{Start: 15, Seconds: 15}, {Start: 30, Seconds: 15}, {Start: 45, Seconds: 15}},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			seconds := map[int64]int64{}
+
+			for _, r := range tt.reads {
+				metadata := map[string]string{
+					"schedule_interval":             "15s",
+					"kubernetes_read_time":          presetTime(r.now).Format(time.RFC3339),
+					"kubernetes_last_ack_read_time": presetTime(r.lastAck).Format(time.RFC3339),
+				}
+
+				// runPreset changes the working directory for the test it gets.
+				var events [][]byte
+
+				t.Run(fmt.Sprintf("read at %d", r.now), func(t *testing.T) {
+					events = runPreset(t, map[string]string{"SCRAPE_SETTLE": "5s"}, metadata, r.pod)
+				})
+
+				for _, encoded := range events {
+					var event struct {
+						Time time.Time `json:"time"`
+						Data struct {
+							DurationSeconds int64 `json:"duration_seconds"`
+						} `json:"data"`
+					}
+					require.NoError(t, json.Unmarshal(encoded, &event))
+
+					start := int64(event.Time.Sub(presetEpoch).Seconds())
+
+					if previous, ok := seconds[start]; ok {
+						assert.Equal(t, previous, event.Data.DurationSeconds, "window %d changed between two reads", start)
+					}
+
+					seconds[start] = event.Data.DurationSeconds
+				}
+			}
+
+			got := make([]presetWindow, 0, len(seconds))
+			for start, duration := range seconds {
+				got = append(got, presetWindow{Start: start, Seconds: duration})
+			}
+
+			assert.ElementsMatch(t, tt.want, got)
+		})
+	}
+}
+
+// TestKubernetesPodExecTimeExactPresetInput checks that the preset asks the
+// input for every pod the mapping needs.
+func TestKubernetesPodExecTimeExactPresetInput(t *testing.T) {
+	raw, err := os.ReadFile("../benthos/presets/kubernetes-pod-exec-time-exact/config.yaml")
+	require.NoError(t, err)
+
+	var preset struct {
+		Input struct {
+			Schedule struct {
+				Input struct {
+					KubernetesResources map[string]any `json:"kubernetes_resources"`
+				} `json:"input"`
+			} `json:"schedule"`
+		} `json:"input"`
+	}
+	require.NoError(t, yaml.Unmarshal(raw, &preset))
+
+	for _, option := range []string{"include_pending_pods", "include_terminated_pods", "include_deleted_pods"} {
+		assert.Equal(t, true, preset.Input.Schedule.Input.KubernetesResources[option], option)
 	}
 }
 

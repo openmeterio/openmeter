@@ -24,6 +24,8 @@ input:
         namespaces:
           - ${SCRAPE_NAMESPACE:}
         label_selector: "app=seed"
+        # A pending pod can have a container that already runs.
+        include_pending_pods: true
         include_terminated_pods: true
         include_deleted_pods: true
     interval: "${SCRAPE_INTERVAL:15s}"
@@ -54,21 +56,39 @@ pipeline:
           status.state.terminated.startedAt,
           status.lastState.terminated.startedAt,
         ]).flatten().filter(time -> time != null).map_each(time -> time.ts_unix()).filter(time -> time > 0)
-        let start = [$starts.min().or(0), this.metadata.annotations."${START_TIME_ANNOTATION:openmeter.io/start-time}".ts_unix().or(0)].max()
+        # A container that restarted more than once no longer shows its first
+        # start. The pod then runs from the time the kubelet took it, which is
+        # a little earlier: it includes pulling the images.
+        let restarted = $statuses.any(status -> status.restartCount.or(0) > 1)
+        let first_start = if $restarted { this.status.startTime.ts_unix().or($starts.min().or(0)) } else { $starts.min().or(0) }
+        let start = [$first_start, this.metadata.annotations."${START_TIME_ANNOTATION:openmeter.io/start-time}".ts_unix().or(0)].max()
 
         # The pod ended if it is in a terminal phase, was deleted, or is being
         # deleted and all its containers stopped.
         let stopped = $statuses.length() > 0 && $statuses.all(status -> status.state.terminated != null)
         let deleted_time = meta("kubernetes_deleted_time").ts_unix().or(null)
         let deletion_time = this.metadata.deletionTimestamp.ts_unix().or(null)
-        let ended = ["Succeeded", "Failed"].contains(this.status.phase.or("")) || $deleted_time != null || ($deletion_time != null && $stopped)
-        # A stopped container can lack a finish time (its status was lost).
+        let terminal = ["Succeeded", "Failed"].contains(this.status.phase.or(""))
+        let ended = $terminal || $deleted_time != null || ($deletion_time != null && $stopped)
+
+        # The end is a time that no later read can change, never the read time:
+        # - every container has a finish time: the latest of them;
+        # - the pod was last seen running and is gone: the time the deletion was
+        #   observed, at the latest the end of its grace period;
+        # - the pod stopped without all finish times (its status was lost, its
+        #   node shut down): the time it stopped being ready, or the latest
+        #   finish time that is known, whichever is earlier;
+        # - none of these: the end is not known, and no window is sent.
         let finishes = $statuses.map_each(status -> status.state.terminated.finishedAt.ts_unix().or(0)).filter(time -> time > 0)
+        let not_ready = this.status.conditions.or([]).filter(condition -> condition.type == "Ready" && condition.status != "True").map_each(condition -> condition.lastTransitionTime.ts_unix().or(0)).filter(time -> time > 0)
+        let fixed = if $finishes.length() > 0 { $not_ready.append($finishes.max()) } else { $not_ready }
         let end = match {
           !$ended => null,
           $stopped && $finishes.length() == $statuses.length() => $finishes.max(),
-          _ => [$deleted_time, $deletion_time, $now].filter(time -> time != null).min(),
+          !$terminal && !$stopped => [$deleted_time, $deletion_time].filter(time -> time != null).min(),
+          _ => $fixed.min().or(null),
         }
+        let end_known = !$ended || $end != null
 
         # A running pod gets the windows that closed at least the settle time
         # before this read, so a late status update cannot change them. An ended
@@ -77,7 +97,7 @@ pipeline:
         let last = if $end == null { (($now - $settle) / $interval).floor() - 1 } else { (($end - 1) / $interval).floor() }
         let stop = $end.or($now)
 
-        let windows = if $starts.length() == 0 || $first > $last { [] } else {
+        let windows = if $starts.length() == 0 || !$end_known || $first > $last { [] } else {
           range($first, $last + 1).map_each(index -> {
             "start": index * $interval,
             "duration_seconds": [[$stop, (index + 1) * $interval].min() - [$start, index * $interval].max(), 0].max(),
