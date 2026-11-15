@@ -313,7 +313,21 @@ When issuing starts, a standard invoice with no non-deleted lines is deleted
 instead of finalized. Billing records this as a system deletion, synchronizes
 the deletion with the invoicing app, and skips charge booking and payment. This
 decision is based on line presence rather than monetary totals: a non-deleted
-line with a zero total still follows the normal issuing lifecycle.
+line with a zero total still follows the issuing lifecycle.
+
+The workflow's empty invoice mode decides whether such an invoice also exists in
+the invoicing app. With `create` it is synced and finalized like any other
+invoice. With `omit`, billing asks the invoicing app whether the invoice would
+be empty there. Stripe reports invoices without line items or with a zero total;
+the sandbox and custom invoicing apps never report one. For an empty
+invoice, draft synchronization and issuing delete the app's invoice instead of
+upserting it and clear the invoice's invoicing reference.
+A later edit that gives the invoice something to bill syncs it again. Issuing
+additionally records the invoicing app outcome as skipped with the reason
+`empty_invoice`, never calls the app's finalization, and still runs line
+finalization and charge booking. Because no payment event can arrive for an
+invoice the app never issued, billing then books authorization and settlement
+itself and the invoice ends as `paid`.
 
 The state machine runs [invoice sanity checks](stdinvoice/sanity/README.md)
 before app validation, synchronization, finalization and asynchronous readiness

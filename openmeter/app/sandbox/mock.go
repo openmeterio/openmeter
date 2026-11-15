@@ -112,6 +112,10 @@ func (m *MockApp) DeleteStandardInvoice(ctx context.Context, invoice billing.Sta
 	return m.deleteInvoiceResponse.MustGet()
 }
 
+func (m *MockApp) WouldStandardInvoiceBeEmpty(billing.StandardInvoice) (bool, error) {
+	return false, nil
+}
+
 func (m *MockApp) OnDeleteStandardInvoice(err error) {
 	m.deleteInvoiceResponse = mo.Some(err)
 }
@@ -221,6 +225,10 @@ func (m *mockAppInstance) FinalizeStandardInvoice(ctx context.Context, invoice b
 
 func (m *mockAppInstance) DeleteStandardInvoice(ctx context.Context, invoice billing.StandardInvoice) error {
 	return m.parent.DeleteStandardInvoice(ctx, invoice)
+}
+
+func (m *mockAppInstance) WouldStandardInvoiceBeEmpty(invoice billing.StandardInvoice) (bool, error) {
+	return m.parent.WouldStandardInvoiceBeEmpty(invoice)
 }
 
 func (m *mockAppInstance) GetEventAppData() (app.EventAppData, error) {

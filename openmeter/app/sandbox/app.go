@@ -136,6 +136,11 @@ func (a appOperations) DeleteStandardInvoice(ctx context.Context, invoice billin
 	return nil
 }
 
+// WouldStandardInvoiceBeEmpty never omits: the sandbox has no remote invoice to leave out.
+func (a appOperations) WouldStandardInvoiceBeEmpty(billing.StandardInvoice) (bool, error) {
+	return false, nil
+}
+
 func (a appOperations) PostAdvanceStandardInvoiceHook(ctx context.Context, invoice billing.StandardInvoice) (*billing.PostAdvanceHookResult, error) {
 	if invoice.Status != billing.StandardInvoiceStatusPaymentProcessingPending {
 		return nil, nil

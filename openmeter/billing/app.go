@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -180,6 +181,11 @@ type InvoicingApp interface {
 	// DeleteStandardInvoice deletes the invoice on the remote system, the invoice is read-only, the app should not modify it
 	// the invoice deletion is only invoked for non-finalized invoices.
 	DeleteStandardInvoice(ctx context.Context, invoice StandardInvoice) error
+
+	// WouldStandardInvoiceBeEmpty tells whether the invoice would be empty on the remote system. Billing only
+	// asks when the invoice's workflow uses EmptyInvoiceModeOmit, and then deletes the remote invoice instead of
+	// syncing or finalizing it. The app decides from the invoice alone, it must not call the remote system.
+	WouldStandardInvoiceBeEmpty(invoice StandardInvoice) (bool, error)
 }
 
 // DeletedInvoicingApp provides standard invoicing operations for a deleted app.
@@ -209,6 +215,11 @@ func (a DeletedInvoicingApp) DeleteStandardInvoice(context.Context, StandardInvo
 	return fmt.Errorf("app %s: %w", a.appID.ID, WarnInvoiceWorkflowAppDeleteSkipped)
 }
 
+// WouldStandardInvoiceBeEmpty never omits, so a deleted app keeps failing invoice sync the usual way.
+func (a DeletedInvoicingApp) WouldStandardInvoiceBeEmpty(StandardInvoice) (bool, error) {
+	return false, nil
+}
+
 type InvoicingAppPostAdvanceHook interface {
 	// PostAdvanceInvoiceHook is called after the invoice has been advanced to the next stable state
 	// (e.g. no next trigger is available)
@@ -224,6 +235,72 @@ type InvoicingAppAsyncSyncer interface {
 	CanDraftSyncAdvance(invoice StandardInvoice) (bool, error)
 	CanIssuingSyncAdvance(invoice StandardInvoice) (bool, error)
 	// TODO: finalization check
+}
+
+type InvoicingAppOutcome string
+
+const (
+	// InvoicingAppOutcomeSkipped means the invoice was issued without an invoice in the invoicing app.
+	InvoicingAppOutcomeSkipped InvoicingAppOutcome = "skipped"
+)
+
+func (InvoicingAppOutcome) Values() []string {
+	return []string{
+		string(InvoicingAppOutcomeSkipped),
+	}
+}
+
+func (o InvoicingAppOutcome) Validate() error {
+	if !slices.Contains(o.Values(), string(o)) {
+		return fmt.Errorf("invalid invoicing app outcome: %s", o)
+	}
+
+	return nil
+}
+
+type InvoicingAppOutcomeReason string
+
+const (
+	InvoicingAppOutcomeReasonEmptyInvoice InvoicingAppOutcomeReason = "empty_invoice"
+)
+
+func (InvoicingAppOutcomeReason) Values() []string {
+	return []string{
+		string(InvoicingAppOutcomeReasonEmptyInvoice),
+	}
+}
+
+func (r InvoicingAppOutcomeReason) Validate() error {
+	if !slices.Contains(r.Values(), string(r)) {
+		return fmt.Errorf("invalid invoicing app outcome reason: %s", r)
+	}
+
+	return nil
+}
+
+// InvoicingAppStatus records how issuing ended in the invoicing app when the app did not issue the
+// invoice. It stays empty for invoices that follow the normal issuing flow.
+type InvoicingAppStatus struct {
+	Outcome InvoicingAppOutcome       `json:"outcome,omitempty"`
+	Reason  InvoicingAppOutcomeReason `json:"reason,omitempty"`
+}
+
+func (s InvoicingAppStatus) Validate() error {
+	if s == (InvoicingAppStatus{}) {
+		return nil
+	}
+
+	var errs []error
+
+	if err := s.Outcome.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	if err := s.Reason.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 // GetApp returns the app from the app entity

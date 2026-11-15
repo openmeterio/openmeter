@@ -290,6 +290,13 @@ func allocateStateMachine() *InvoiceStateMachine {
 
 	// Payment states
 	stateMachine.Configure(billing.StandardInvoiceStatusPaymentProcessingPending).
+		// Nothing was issued in the invoicing app, so no payment event will ever arrive.
+		// The invoice has nothing to collect, so billing settles it itself.
+		Permit(
+			billing.TriggerNext,
+			billing.StandardInvoiceStatusPaymentProcessingBookingAuthorizedAndSettled,
+			statelessx.BoolFn(out.isInvoicingAppSkipped),
+		).
 		Permit(billing.TriggerAuthorized, billing.StandardInvoiceStatusPaymentProcessingBookingAuthorized).
 		Permit(billing.TriggerPaid, billing.StandardInvoiceStatusPaymentProcessingBookingAuthorizedAndSettled).
 		Permit(billing.TriggerFailed, billing.StandardInvoiceStatusPaymentProcessingFailed).
@@ -875,6 +882,11 @@ func (m *InvoiceStateMachine) syncDraftInvoice(ctx context.Context) error {
 			return nil, err
 		}
 
+		omitted, err := m.omitEmptyInvoice(ctx, app, clonedInvoice)
+		if err != nil || omitted {
+			return nil, err
+		}
+
 		results, err := app.UpsertStandardInvoice(ctx, clonedInvoice)
 		if err != nil {
 			// A provider sync failure is the result recorded by draft.sync_failed; classification
@@ -888,6 +900,33 @@ func (m *InvoiceStateMachine) syncDraftInvoice(ctx context.Context) error {
 
 		return nil, m.mergeUpsertInvoiceResult(results)
 	})
+}
+
+// omitEmptyInvoice removes the invoice from the invoicing app when the workflow omits empty
+// invoices and the app reports this one as empty. It returns false when the invoice has to be
+// synced as usual.
+func (m *InvoiceStateMachine) omitEmptyInvoice(ctx context.Context, app billing.InvoicingApp, invoice billing.StandardInvoice) (bool, error) {
+	if invoice.Workflow.Config.Invoicing.EmptyInvoiceMode != billing.EmptyInvoiceModeOmit {
+		return false, nil
+	}
+
+	empty, err := app.WouldStandardInvoiceBeEmpty(invoice)
+	if err != nil || !empty {
+		return false, err
+	}
+
+	if err := app.DeleteStandardInvoice(ctx, invoice); err != nil {
+		// The provider failure belongs to the sync step, so keep it retryable from the failed state.
+		return false, billing.WrapAsValidationIssue(err)
+	}
+
+	m.Invoice.ExternalIDs.Invoicing = ""
+
+	return true, nil
+}
+
+func (m *InvoiceStateMachine) isInvoicingAppSkipped() bool {
+	return m.Invoice.InvoicingAppStatus.Outcome == billing.InvoicingAppOutcomeSkipped
 }
 
 // finalizeInvoice finalizes the invoice using the invoicing app and payment app (later).
@@ -906,17 +945,25 @@ func (m *InvoiceStateMachine) finalizeInvoice(ctx context.Context) error {
 			return nil, err
 		}
 
-		// First we sync the invoice
-		upsertResults, err := app.UpsertStandardInvoice(ctx, clonedInvoice)
+		// Line finalization can empty an invoice that was synced as a draft, so decide again here.
+		omitted, err := m.omitEmptyInvoice(ctx, app, clonedInvoice)
 		if err != nil {
-			// Issuing sync is retried after line finalization has been persisted; classification
-			// preserves issuing.sync_failed instead of rolling back to the prior lifecycle state.
-			return nil, billing.WrapAsValidationIssue(err)
+			return nil, err
 		}
 
-		if upsertResults != nil {
-			if err := m.mergeUpsertInvoiceResult(upsertResults); err != nil {
-				return nil, err
+		if !omitted {
+			// First we sync the invoice
+			upsertResults, err := app.UpsertStandardInvoice(ctx, clonedInvoice)
+			if err != nil {
+				// Issuing sync is retried after line finalization has been persisted; classification
+				// preserves issuing.sync_failed instead of rolling back to the prior lifecycle state.
+				return nil, billing.WrapAsValidationIssue(err)
+			}
+
+			if upsertResults != nil {
+				if err := m.mergeUpsertInvoiceResult(upsertResults); err != nil {
+					return nil, err
+				}
 			}
 		}
 
@@ -931,6 +978,15 @@ func (m *InvoiceStateMachine) finalizeInvoice(ctx context.Context) error {
 
 		if err := m.checkInvoiceSanity(ctx); err != nil {
 			return nil, err
+		}
+
+		if omitted {
+			m.Invoice.InvoicingAppStatus = billing.InvoicingAppStatus{
+				Outcome: billing.InvoicingAppOutcomeSkipped,
+				Reason:  billing.InvoicingAppOutcomeReasonEmptyInvoice,
+			}
+
+			return nil, nil
 		}
 
 		// Let's update the cloned invoice so that the FinalizeStandardInvoice method can use the updated invoice

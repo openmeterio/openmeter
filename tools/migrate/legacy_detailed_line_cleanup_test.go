@@ -8,7 +8,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const legacyDetailedLineCleanupSeedVersion = 20261021082257
+const (
+	legacyDetailedLineCleanupSeedVersion = 20261021082257
+	legacyDetailedLineCleanupVersion     = 20261021133408
+)
 
 func TestLegacyDetailedLineCleanup(t *testing.T) {
 	db, migrator := newMigrationTestEnv(t)
@@ -119,7 +122,7 @@ func TestLegacyDetailedLineCleanup(t *testing.T) {
 	originalLiveData := legacyCleanupJSON(t, db, liveDataQuery, parentID, sharedUsageConfigID)
 
 	// When the cleanup archives and removes the retired storage.
-	require.NoError(t, migrator.Up())
+	require.NoError(t, migrator.Migrate(legacyDetailedLineCleanupVersion))
 
 	// Then the full source rows are recoverable and live data is unchanged.
 	for field, expected := range map[string]string{

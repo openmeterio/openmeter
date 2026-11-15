@@ -15324,6 +15324,8 @@ type BillingInvoiceMutation struct {
 	draft_until                              *time.Time
 	quantity_snapshoted_at                   *time.Time
 	deletion_source                          *billing.ChangeSource
+	invoicing_app_outcome                    *billing.InvoicingAppOutcome
+	invoicing_app_outcome_reason             *billing.InvoicingAppOutcomeReason
 	currency                                 *currencyx.FiatCode
 	due_at                                   *time.Time
 	status                                   *billing.StandardInvoiceStatus
@@ -17507,6 +17509,104 @@ func (m *BillingInvoiceMutation) ResetDeletionSource() {
 	delete(m.clearedFields, billinginvoice.FieldDeletionSource)
 }
 
+// SetInvoicingAppOutcome sets the "invoicing_app_outcome" field.
+func (m *BillingInvoiceMutation) SetInvoicingAppOutcome(bao billing.InvoicingAppOutcome) {
+	m.invoicing_app_outcome = &bao
+}
+
+// InvoicingAppOutcome returns the value of the "invoicing_app_outcome" field in the mutation.
+func (m *BillingInvoiceMutation) InvoicingAppOutcome() (r billing.InvoicingAppOutcome, exists bool) {
+	v := m.invoicing_app_outcome
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldInvoicingAppOutcome returns the old "invoicing_app_outcome" field's value of the BillingInvoice entity.
+// If the BillingInvoice object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingInvoiceMutation) OldInvoicingAppOutcome(ctx context.Context) (v *billing.InvoicingAppOutcome, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldInvoicingAppOutcome is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldInvoicingAppOutcome requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldInvoicingAppOutcome: %w", err)
+	}
+	return oldValue.InvoicingAppOutcome, nil
+}
+
+// ClearInvoicingAppOutcome clears the value of the "invoicing_app_outcome" field.
+func (m *BillingInvoiceMutation) ClearInvoicingAppOutcome() {
+	m.invoicing_app_outcome = nil
+	m.clearedFields[billinginvoice.FieldInvoicingAppOutcome] = struct{}{}
+}
+
+// InvoicingAppOutcomeCleared returns if the "invoicing_app_outcome" field was cleared in this mutation.
+func (m *BillingInvoiceMutation) InvoicingAppOutcomeCleared() bool {
+	_, ok := m.clearedFields[billinginvoice.FieldInvoicingAppOutcome]
+	return ok
+}
+
+// ResetInvoicingAppOutcome resets all changes to the "invoicing_app_outcome" field.
+func (m *BillingInvoiceMutation) ResetInvoicingAppOutcome() {
+	m.invoicing_app_outcome = nil
+	delete(m.clearedFields, billinginvoice.FieldInvoicingAppOutcome)
+}
+
+// SetInvoicingAppOutcomeReason sets the "invoicing_app_outcome_reason" field.
+func (m *BillingInvoiceMutation) SetInvoicingAppOutcomeReason(baor billing.InvoicingAppOutcomeReason) {
+	m.invoicing_app_outcome_reason = &baor
+}
+
+// InvoicingAppOutcomeReason returns the value of the "invoicing_app_outcome_reason" field in the mutation.
+func (m *BillingInvoiceMutation) InvoicingAppOutcomeReason() (r billing.InvoicingAppOutcomeReason, exists bool) {
+	v := m.invoicing_app_outcome_reason
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldInvoicingAppOutcomeReason returns the old "invoicing_app_outcome_reason" field's value of the BillingInvoice entity.
+// If the BillingInvoice object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingInvoiceMutation) OldInvoicingAppOutcomeReason(ctx context.Context) (v *billing.InvoicingAppOutcomeReason, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldInvoicingAppOutcomeReason is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldInvoicingAppOutcomeReason requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldInvoicingAppOutcomeReason: %w", err)
+	}
+	return oldValue.InvoicingAppOutcomeReason, nil
+}
+
+// ClearInvoicingAppOutcomeReason clears the value of the "invoicing_app_outcome_reason" field.
+func (m *BillingInvoiceMutation) ClearInvoicingAppOutcomeReason() {
+	m.invoicing_app_outcome_reason = nil
+	m.clearedFields[billinginvoice.FieldInvoicingAppOutcomeReason] = struct{}{}
+}
+
+// InvoicingAppOutcomeReasonCleared returns if the "invoicing_app_outcome_reason" field was cleared in this mutation.
+func (m *BillingInvoiceMutation) InvoicingAppOutcomeReasonCleared() bool {
+	_, ok := m.clearedFields[billinginvoice.FieldInvoicingAppOutcomeReason]
+	return ok
+}
+
+// ResetInvoicingAppOutcomeReason resets all changes to the "invoicing_app_outcome_reason" field.
+func (m *BillingInvoiceMutation) ResetInvoicingAppOutcomeReason() {
+	m.invoicing_app_outcome_reason = nil
+	delete(m.clearedFields, billinginvoice.FieldInvoicingAppOutcomeReason)
+}
+
 // SetCurrency sets the "currency" field.
 func (m *BillingInvoiceMutation) SetCurrency(cc currencyx.FiatCode) {
 	m.currency = &cc
@@ -18619,7 +18719,7 @@ func (m *BillingInvoiceMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *BillingInvoiceMutation) Fields() []string {
-	fields := make([]string, 0, 59)
+	fields := make([]string, 0, 61)
 	if m.namespace != nil {
 		fields = append(fields, billinginvoice.FieldNamespace)
 	}
@@ -18757,6 +18857,12 @@ func (m *BillingInvoiceMutation) Fields() []string {
 	}
 	if m.deletion_source != nil {
 		fields = append(fields, billinginvoice.FieldDeletionSource)
+	}
+	if m.invoicing_app_outcome != nil {
+		fields = append(fields, billinginvoice.FieldInvoicingAppOutcome)
+	}
+	if m.invoicing_app_outcome_reason != nil {
+		fields = append(fields, billinginvoice.FieldInvoicingAppOutcomeReason)
 	}
 	if m.currency != nil {
 		fields = append(fields, billinginvoice.FieldCurrency)
@@ -18897,6 +19003,10 @@ func (m *BillingInvoiceMutation) Field(name string) (ent.Value, bool) {
 		return m.QuantitySnapshotedAt()
 	case billinginvoice.FieldDeletionSource:
 		return m.DeletionSource()
+	case billinginvoice.FieldInvoicingAppOutcome:
+		return m.InvoicingAppOutcome()
+	case billinginvoice.FieldInvoicingAppOutcomeReason:
+		return m.InvoicingAppOutcomeReason()
 	case billinginvoice.FieldCurrency:
 		return m.Currency()
 	case billinginvoice.FieldDueAt:
@@ -19024,6 +19134,10 @@ func (m *BillingInvoiceMutation) OldField(ctx context.Context, name string) (ent
 		return m.OldQuantitySnapshotedAt(ctx)
 	case billinginvoice.FieldDeletionSource:
 		return m.OldDeletionSource(ctx)
+	case billinginvoice.FieldInvoicingAppOutcome:
+		return m.OldInvoicingAppOutcome(ctx)
+	case billinginvoice.FieldInvoicingAppOutcomeReason:
+		return m.OldInvoicingAppOutcomeReason(ctx)
 	case billinginvoice.FieldCurrency:
 		return m.OldCurrency(ctx)
 	case billinginvoice.FieldDueAt:
@@ -19381,6 +19495,20 @@ func (m *BillingInvoiceMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetDeletionSource(v)
 		return nil
+	case billinginvoice.FieldInvoicingAppOutcome:
+		v, ok := value.(billing.InvoicingAppOutcome)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetInvoicingAppOutcome(v)
+		return nil
+	case billinginvoice.FieldInvoicingAppOutcomeReason:
+		v, ok := value.(billing.InvoicingAppOutcomeReason)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetInvoicingAppOutcomeReason(v)
+		return nil
 	case billinginvoice.FieldCurrency:
 		v, ok := value.(currencyx.FiatCode)
 		if !ok {
@@ -19604,6 +19732,12 @@ func (m *BillingInvoiceMutation) ClearedFields() []string {
 	if m.FieldCleared(billinginvoice.FieldDeletionSource) {
 		fields = append(fields, billinginvoice.FieldDeletionSource)
 	}
+	if m.FieldCleared(billinginvoice.FieldInvoicingAppOutcome) {
+		fields = append(fields, billinginvoice.FieldInvoicingAppOutcome)
+	}
+	if m.FieldCleared(billinginvoice.FieldInvoicingAppOutcomeReason) {
+		fields = append(fields, billinginvoice.FieldInvoicingAppOutcomeReason)
+	}
 	if m.FieldCleared(billinginvoice.FieldDueAt) {
 		fields = append(fields, billinginvoice.FieldDueAt)
 	}
@@ -19722,6 +19856,12 @@ func (m *BillingInvoiceMutation) ClearField(name string) error {
 		return nil
 	case billinginvoice.FieldDeletionSource:
 		m.ClearDeletionSource()
+		return nil
+	case billinginvoice.FieldInvoicingAppOutcome:
+		m.ClearInvoicingAppOutcome()
+		return nil
+	case billinginvoice.FieldInvoicingAppOutcomeReason:
+		m.ClearInvoicingAppOutcomeReason()
 		return nil
 	case billinginvoice.FieldDueAt:
 		m.ClearDueAt()
@@ -19886,6 +20026,12 @@ func (m *BillingInvoiceMutation) ResetField(name string) error {
 		return nil
 	case billinginvoice.FieldDeletionSource:
 		m.ResetDeletionSource()
+		return nil
+	case billinginvoice.FieldInvoicingAppOutcome:
+		m.ResetInvoicingAppOutcome()
+		return nil
+	case billinginvoice.FieldInvoicingAppOutcomeReason:
+		m.ResetInvoicingAppOutcomeReason()
 		return nil
 	case billinginvoice.FieldCurrency:
 		m.ResetCurrency()
