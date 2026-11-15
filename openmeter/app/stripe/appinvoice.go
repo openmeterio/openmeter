@@ -71,6 +71,12 @@ func (a appOperations) UpsertStandardInvoice(ctx context.Context, invoice billin
 	return a.updateInvoice(ctx, invoice)
 }
 
+// WouldStandardInvoiceBeEmpty reports invoices that would reach Stripe without line items or with
+// nothing to pay.
+func (a appOperations) WouldStandardInvoiceBeEmpty(invoice billing.StandardInvoice) (bool, error) {
+	return len(invoice.GetLeafLinesWithResolvedTaxConfig()) == 0 || invoice.Totals.Total.IsZero(), nil
+}
+
 // DeleteStandardInvoice deletes the invoice for the app
 func (a appOperations) DeleteStandardInvoice(ctx context.Context, invoice billing.StandardInvoice) error {
 	// If the invoice has not been synced to Stripe yet, there is no Stripe invoice to delete.

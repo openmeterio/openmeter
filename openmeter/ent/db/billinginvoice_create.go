@@ -545,6 +545,34 @@ func (_c *BillingInvoiceCreate) SetNillableDeletionSource(v *billing.ChangeSourc
 	return _c
 }
 
+// SetInvoicingAppOutcome sets the "invoicing_app_outcome" field.
+func (_c *BillingInvoiceCreate) SetInvoicingAppOutcome(v billing.InvoicingAppOutcome) *BillingInvoiceCreate {
+	_c.mutation.SetInvoicingAppOutcome(v)
+	return _c
+}
+
+// SetNillableInvoicingAppOutcome sets the "invoicing_app_outcome" field if the given value is not nil.
+func (_c *BillingInvoiceCreate) SetNillableInvoicingAppOutcome(v *billing.InvoicingAppOutcome) *BillingInvoiceCreate {
+	if v != nil {
+		_c.SetInvoicingAppOutcome(*v)
+	}
+	return _c
+}
+
+// SetInvoicingAppOutcomeReason sets the "invoicing_app_outcome_reason" field.
+func (_c *BillingInvoiceCreate) SetInvoicingAppOutcomeReason(v billing.InvoicingAppOutcomeReason) *BillingInvoiceCreate {
+	_c.mutation.SetInvoicingAppOutcomeReason(v)
+	return _c
+}
+
+// SetNillableInvoicingAppOutcomeReason sets the "invoicing_app_outcome_reason" field if the given value is not nil.
+func (_c *BillingInvoiceCreate) SetNillableInvoicingAppOutcomeReason(v *billing.InvoicingAppOutcomeReason) *BillingInvoiceCreate {
+	if v != nil {
+		_c.SetInvoicingAppOutcomeReason(*v)
+	}
+	return _c
+}
+
 // SetCurrency sets the "currency" field.
 func (_c *BillingInvoiceCreate) SetCurrency(v currencyx.FiatCode) *BillingInvoiceCreate {
 	_c.mutation.SetCurrency(v)
@@ -981,6 +1009,16 @@ func (_c *BillingInvoiceCreate) check() error {
 			return &ValidationError{Name: "deletion_source", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.deletion_source": %w`, err)}
 		}
 	}
+	if v, ok := _c.mutation.InvoicingAppOutcome(); ok {
+		if err := billinginvoice.InvoicingAppOutcomeValidator(v); err != nil {
+			return &ValidationError{Name: "invoicing_app_outcome", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.invoicing_app_outcome": %w`, err)}
+		}
+	}
+	if v, ok := _c.mutation.InvoicingAppOutcomeReason(); ok {
+		if err := billinginvoice.InvoicingAppOutcomeReasonValidator(v); err != nil {
+			return &ValidationError{Name: "invoicing_app_outcome_reason", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.invoicing_app_outcome_reason": %w`, err)}
+		}
+	}
 	if _, ok := _c.mutation.Currency(); !ok {
 		return &ValidationError{Name: "currency", err: errors.New(`db: missing required field "BillingInvoice.currency"`)}
 	}
@@ -1241,6 +1279,14 @@ func (_c *BillingInvoiceCreate) createSpec() (*BillingInvoice, *sqlgraph.CreateS
 	if value, ok := _c.mutation.DeletionSource(); ok {
 		_spec.SetField(billinginvoice.FieldDeletionSource, field.TypeEnum, value)
 		_node.DeletionSource = &value
+	}
+	if value, ok := _c.mutation.InvoicingAppOutcome(); ok {
+		_spec.SetField(billinginvoice.FieldInvoicingAppOutcome, field.TypeEnum, value)
+		_node.InvoicingAppOutcome = &value
+	}
+	if value, ok := _c.mutation.InvoicingAppOutcomeReason(); ok {
+		_spec.SetField(billinginvoice.FieldInvoicingAppOutcomeReason, field.TypeEnum, value)
+		_node.InvoicingAppOutcomeReason = &value
 	}
 	if value, ok := _c.mutation.Currency(); ok {
 		_spec.SetField(billinginvoice.FieldCurrency, field.TypeString, value)
@@ -2203,6 +2249,42 @@ func (u *BillingInvoiceUpsert) UpdateDeletionSource() *BillingInvoiceUpsert {
 // ClearDeletionSource clears the value of the "deletion_source" field.
 func (u *BillingInvoiceUpsert) ClearDeletionSource() *BillingInvoiceUpsert {
 	u.SetNull(billinginvoice.FieldDeletionSource)
+	return u
+}
+
+// SetInvoicingAppOutcome sets the "invoicing_app_outcome" field.
+func (u *BillingInvoiceUpsert) SetInvoicingAppOutcome(v billing.InvoicingAppOutcome) *BillingInvoiceUpsert {
+	u.Set(billinginvoice.FieldInvoicingAppOutcome, v)
+	return u
+}
+
+// UpdateInvoicingAppOutcome sets the "invoicing_app_outcome" field to the value that was provided on create.
+func (u *BillingInvoiceUpsert) UpdateInvoicingAppOutcome() *BillingInvoiceUpsert {
+	u.SetExcluded(billinginvoice.FieldInvoicingAppOutcome)
+	return u
+}
+
+// ClearInvoicingAppOutcome clears the value of the "invoicing_app_outcome" field.
+func (u *BillingInvoiceUpsert) ClearInvoicingAppOutcome() *BillingInvoiceUpsert {
+	u.SetNull(billinginvoice.FieldInvoicingAppOutcome)
+	return u
+}
+
+// SetInvoicingAppOutcomeReason sets the "invoicing_app_outcome_reason" field.
+func (u *BillingInvoiceUpsert) SetInvoicingAppOutcomeReason(v billing.InvoicingAppOutcomeReason) *BillingInvoiceUpsert {
+	u.Set(billinginvoice.FieldInvoicingAppOutcomeReason, v)
+	return u
+}
+
+// UpdateInvoicingAppOutcomeReason sets the "invoicing_app_outcome_reason" field to the value that was provided on create.
+func (u *BillingInvoiceUpsert) UpdateInvoicingAppOutcomeReason() *BillingInvoiceUpsert {
+	u.SetExcluded(billinginvoice.FieldInvoicingAppOutcomeReason)
+	return u
+}
+
+// ClearInvoicingAppOutcomeReason clears the value of the "invoicing_app_outcome_reason" field.
+func (u *BillingInvoiceUpsert) ClearInvoicingAppOutcomeReason() *BillingInvoiceUpsert {
+	u.SetNull(billinginvoice.FieldInvoicingAppOutcomeReason)
 	return u
 }
 
@@ -3216,6 +3298,48 @@ func (u *BillingInvoiceUpsertOne) UpdateDeletionSource() *BillingInvoiceUpsertOn
 func (u *BillingInvoiceUpsertOne) ClearDeletionSource() *BillingInvoiceUpsertOne {
 	return u.Update(func(s *BillingInvoiceUpsert) {
 		s.ClearDeletionSource()
+	})
+}
+
+// SetInvoicingAppOutcome sets the "invoicing_app_outcome" field.
+func (u *BillingInvoiceUpsertOne) SetInvoicingAppOutcome(v billing.InvoicingAppOutcome) *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetInvoicingAppOutcome(v)
+	})
+}
+
+// UpdateInvoicingAppOutcome sets the "invoicing_app_outcome" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertOne) UpdateInvoicingAppOutcome() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateInvoicingAppOutcome()
+	})
+}
+
+// ClearInvoicingAppOutcome clears the value of the "invoicing_app_outcome" field.
+func (u *BillingInvoiceUpsertOne) ClearInvoicingAppOutcome() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearInvoicingAppOutcome()
+	})
+}
+
+// SetInvoicingAppOutcomeReason sets the "invoicing_app_outcome_reason" field.
+func (u *BillingInvoiceUpsertOne) SetInvoicingAppOutcomeReason(v billing.InvoicingAppOutcomeReason) *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetInvoicingAppOutcomeReason(v)
+	})
+}
+
+// UpdateInvoicingAppOutcomeReason sets the "invoicing_app_outcome_reason" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertOne) UpdateInvoicingAppOutcomeReason() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateInvoicingAppOutcomeReason()
+	})
+}
+
+// ClearInvoicingAppOutcomeReason clears the value of the "invoicing_app_outcome_reason" field.
+func (u *BillingInvoiceUpsertOne) ClearInvoicingAppOutcomeReason() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearInvoicingAppOutcomeReason()
 	})
 }
 
@@ -4421,6 +4545,48 @@ func (u *BillingInvoiceUpsertBulk) UpdateDeletionSource() *BillingInvoiceUpsertB
 func (u *BillingInvoiceUpsertBulk) ClearDeletionSource() *BillingInvoiceUpsertBulk {
 	return u.Update(func(s *BillingInvoiceUpsert) {
 		s.ClearDeletionSource()
+	})
+}
+
+// SetInvoicingAppOutcome sets the "invoicing_app_outcome" field.
+func (u *BillingInvoiceUpsertBulk) SetInvoicingAppOutcome(v billing.InvoicingAppOutcome) *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetInvoicingAppOutcome(v)
+	})
+}
+
+// UpdateInvoicingAppOutcome sets the "invoicing_app_outcome" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertBulk) UpdateInvoicingAppOutcome() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateInvoicingAppOutcome()
+	})
+}
+
+// ClearInvoicingAppOutcome clears the value of the "invoicing_app_outcome" field.
+func (u *BillingInvoiceUpsertBulk) ClearInvoicingAppOutcome() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearInvoicingAppOutcome()
+	})
+}
+
+// SetInvoicingAppOutcomeReason sets the "invoicing_app_outcome_reason" field.
+func (u *BillingInvoiceUpsertBulk) SetInvoicingAppOutcomeReason(v billing.InvoicingAppOutcomeReason) *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetInvoicingAppOutcomeReason(v)
+	})
+}
+
+// UpdateInvoicingAppOutcomeReason sets the "invoicing_app_outcome_reason" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertBulk) UpdateInvoicingAppOutcomeReason() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateInvoicingAppOutcomeReason()
+	})
+}
+
+// ClearInvoicingAppOutcomeReason clears the value of the "invoicing_app_outcome_reason" field.
+func (u *BillingInvoiceUpsertBulk) ClearInvoicingAppOutcomeReason() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearInvoicingAppOutcomeReason()
 	})
 }
 

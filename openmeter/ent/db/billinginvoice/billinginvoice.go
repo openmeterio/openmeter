@@ -108,6 +108,10 @@ const (
 	FieldQuantitySnapshotedAt = "quantity_snapshoted_at"
 	// FieldDeletionSource holds the string denoting the deletion_source field in the database.
 	FieldDeletionSource = "deletion_source"
+	// FieldInvoicingAppOutcome holds the string denoting the invoicing_app_outcome field in the database.
+	FieldInvoicingAppOutcome = "invoicing_app_outcome"
+	// FieldInvoicingAppOutcomeReason holds the string denoting the invoicing_app_outcome_reason field in the database.
+	FieldInvoicingAppOutcomeReason = "invoicing_app_outcome_reason"
 	// FieldCurrency holds the string denoting the currency field in the database.
 	FieldCurrency = "currency"
 	// FieldDueAt holds the string denoting the due_at field in the database.
@@ -295,6 +299,8 @@ var Columns = []string{
 	FieldDraftUntil,
 	FieldQuantitySnapshotedAt,
 	FieldDeletionSource,
+	FieldInvoicingAppOutcome,
+	FieldInvoicingAppOutcomeReason,
 	FieldCurrency,
 	FieldDueAt,
 	FieldStatus,
@@ -366,6 +372,26 @@ func DeletionSourceValidator(ds billing.ChangeSource) error {
 		return nil
 	default:
 		return fmt.Errorf("billinginvoice: invalid enum value for deletion_source field: %q", ds)
+	}
+}
+
+// InvoicingAppOutcomeValidator is a validator for the "invoicing_app_outcome" field enum values. It is called by the builders before save.
+func InvoicingAppOutcomeValidator(iao billing.InvoicingAppOutcome) error {
+	switch iao {
+	case "skipped":
+		return nil
+	default:
+		return fmt.Errorf("billinginvoice: invalid enum value for invoicing_app_outcome field: %q", iao)
+	}
+}
+
+// InvoicingAppOutcomeReasonValidator is a validator for the "invoicing_app_outcome_reason" field enum values. It is called by the builders before save.
+func InvoicingAppOutcomeReasonValidator(iaor billing.InvoicingAppOutcomeReason) error {
+	switch iaor {
+	case "empty_invoice":
+		return nil
+	default:
+		return fmt.Errorf("billinginvoice: invalid enum value for invoicing_app_outcome_reason field: %q", iaor)
 	}
 }
 
@@ -605,6 +631,16 @@ func ByQuantitySnapshotedAt(opts ...sql.OrderTermOption) OrderOption {
 // ByDeletionSource orders the results by the deletion_source field.
 func ByDeletionSource(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDeletionSource, opts...).ToFunc()
+}
+
+// ByInvoicingAppOutcome orders the results by the invoicing_app_outcome field.
+func ByInvoicingAppOutcome(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldInvoicingAppOutcome, opts...).ToFunc()
+}
+
+// ByInvoicingAppOutcomeReason orders the results by the invoicing_app_outcome_reason field.
+func ByInvoicingAppOutcomeReason(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldInvoicingAppOutcomeReason, opts...).ToFunc()
 }
 
 // ByCurrency orders the results by the currency field.

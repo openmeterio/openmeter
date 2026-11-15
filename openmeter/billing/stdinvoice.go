@@ -289,6 +289,8 @@ type StandardInvoiceBase struct {
 
 	ExternalIDs externalid.InvoiceExternalIDs `json:"externalIds,omitempty"`
 
+	InvoicingAppStatus InvoicingAppStatus `json:"invoicingAppStatus,omitzero"`
+
 	SchemaLevel int `json:"schemaLevel"`
 
 	// TODO[later]: Let's also include the totals here, as that's part of the invoice db table
@@ -321,6 +323,10 @@ func (i StandardInvoiceBase) Validate() error {
 		if err := i.Period.Validate(); err != nil {
 			outErr = errors.Join(outErr, ValidationWithFieldPrefix("period", err))
 		}
+	}
+
+	if err := i.InvoicingAppStatus.Validate(); err != nil {
+		outErr = errors.Join(outErr, ValidationWithFieldPrefix("invoicingAppStatus", err))
 	}
 
 	return outErr

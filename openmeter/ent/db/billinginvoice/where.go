@@ -3055,6 +3055,86 @@ func DeletionSourceNotNil() predicate.BillingInvoice {
 	return predicate.BillingInvoice(sql.FieldNotNull(FieldDeletionSource))
 }
 
+// InvoicingAppOutcomeEQ applies the EQ predicate on the "invoicing_app_outcome" field.
+func InvoicingAppOutcomeEQ(v billing.InvoicingAppOutcome) predicate.BillingInvoice {
+	vc := v
+	return predicate.BillingInvoice(sql.FieldEQ(FieldInvoicingAppOutcome, vc))
+}
+
+// InvoicingAppOutcomeNEQ applies the NEQ predicate on the "invoicing_app_outcome" field.
+func InvoicingAppOutcomeNEQ(v billing.InvoicingAppOutcome) predicate.BillingInvoice {
+	vc := v
+	return predicate.BillingInvoice(sql.FieldNEQ(FieldInvoicingAppOutcome, vc))
+}
+
+// InvoicingAppOutcomeIn applies the In predicate on the "invoicing_app_outcome" field.
+func InvoicingAppOutcomeIn(vs ...billing.InvoicingAppOutcome) predicate.BillingInvoice {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.BillingInvoice(sql.FieldIn(FieldInvoicingAppOutcome, v...))
+}
+
+// InvoicingAppOutcomeNotIn applies the NotIn predicate on the "invoicing_app_outcome" field.
+func InvoicingAppOutcomeNotIn(vs ...billing.InvoicingAppOutcome) predicate.BillingInvoice {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.BillingInvoice(sql.FieldNotIn(FieldInvoicingAppOutcome, v...))
+}
+
+// InvoicingAppOutcomeIsNil applies the IsNil predicate on the "invoicing_app_outcome" field.
+func InvoicingAppOutcomeIsNil() predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldIsNull(FieldInvoicingAppOutcome))
+}
+
+// InvoicingAppOutcomeNotNil applies the NotNil predicate on the "invoicing_app_outcome" field.
+func InvoicingAppOutcomeNotNil() predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldNotNull(FieldInvoicingAppOutcome))
+}
+
+// InvoicingAppOutcomeReasonEQ applies the EQ predicate on the "invoicing_app_outcome_reason" field.
+func InvoicingAppOutcomeReasonEQ(v billing.InvoicingAppOutcomeReason) predicate.BillingInvoice {
+	vc := v
+	return predicate.BillingInvoice(sql.FieldEQ(FieldInvoicingAppOutcomeReason, vc))
+}
+
+// InvoicingAppOutcomeReasonNEQ applies the NEQ predicate on the "invoicing_app_outcome_reason" field.
+func InvoicingAppOutcomeReasonNEQ(v billing.InvoicingAppOutcomeReason) predicate.BillingInvoice {
+	vc := v
+	return predicate.BillingInvoice(sql.FieldNEQ(FieldInvoicingAppOutcomeReason, vc))
+}
+
+// InvoicingAppOutcomeReasonIn applies the In predicate on the "invoicing_app_outcome_reason" field.
+func InvoicingAppOutcomeReasonIn(vs ...billing.InvoicingAppOutcomeReason) predicate.BillingInvoice {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.BillingInvoice(sql.FieldIn(FieldInvoicingAppOutcomeReason, v...))
+}
+
+// InvoicingAppOutcomeReasonNotIn applies the NotIn predicate on the "invoicing_app_outcome_reason" field.
+func InvoicingAppOutcomeReasonNotIn(vs ...billing.InvoicingAppOutcomeReason) predicate.BillingInvoice {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.BillingInvoice(sql.FieldNotIn(FieldInvoicingAppOutcomeReason, v...))
+}
+
+// InvoicingAppOutcomeReasonIsNil applies the IsNil predicate on the "invoicing_app_outcome_reason" field.
+func InvoicingAppOutcomeReasonIsNil() predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldIsNull(FieldInvoicingAppOutcomeReason))
+}
+
+// InvoicingAppOutcomeReasonNotNil applies the NotNil predicate on the "invoicing_app_outcome_reason" field.
+func InvoicingAppOutcomeReasonNotNil() predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldNotNull(FieldInvoicingAppOutcomeReason))
+}
+
 // CurrencyEQ applies the EQ predicate on the "currency" field.
 func CurrencyEQ(v currencyx.FiatCode) predicate.BillingInvoice {
 	vc := string(v)
