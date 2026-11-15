@@ -102,7 +102,18 @@ func (l Loader) LoadForSubscription(ctx context.Context, subs subscription.Subsc
 	invoiceItems := slices.Concat(lineItems, hierarchyItems)
 	itemsByUniqueID := lo.GroupBy(
 		lo.Filter(invoiceItems, func(item Item, _ int) bool {
-			return item.ChildUniqueReferenceID() != nil
+			if item.ChildUniqueReferenceID() == nil {
+				return false
+			}
+
+			// When credits.enable_credit_then_invoice is enabled, gathering lines created for charges
+			// are charge-backed mirrors that share the same unique reference ID as the charge.
+			// Skip charge-backed lines because the charge is already loaded and managed via chargesByUniqueID.
+			if lineGetter, ok := item.(LineGetter); ok && lineGetter.GetLine().GetChargeID() != nil {
+				return false
+			}
+
+			return true
 		}),
 		func(item Item) string {
 			return *item.ChildUniqueReferenceID()
