@@ -906,22 +906,16 @@ func (m *InvoiceStateMachine) syncDraftInvoice(ctx context.Context) error {
 // invoices and the app reports this one as empty. It returns false when the invoice has to be
 // synced as usual.
 func (m *InvoiceStateMachine) omitEmptyInvoice(ctx context.Context, app billing.InvoicingApp, invoice billing.StandardInvoice) (bool, error) {
-	empty := false
+	// Decided again on every sync: an omitted draft can get something to bill later.
+	m.Invoice.InvoicingAppStatus = billing.InvoicingAppStatus{}
 
-	if invoice.Workflow.Config.Invoicing.EmptyInvoiceMode == billing.EmptyInvoiceModeOmit {
-		var err error
-
-		empty, err = app.WouldStandardInvoiceBeEmpty(invoice)
-		if err != nil {
-			return false, err
-		}
+	if invoice.Workflow.Config.Invoicing.EmptyInvoiceMode != billing.EmptyInvoiceModeOmit {
+		return false, nil
 	}
 
-	if !empty {
-		// An omitted draft can get something to bill again, and then it is no longer skipped.
-		m.Invoice.InvoicingAppStatus = billing.InvoicingAppStatus{}
-
-		return false, nil
+	empty, err := app.WouldStandardInvoiceBeEmpty(invoice)
+	if err != nil || !empty {
+		return false, err
 	}
 
 	if err := app.DeleteStandardInvoice(ctx, invoice); err != nil {
