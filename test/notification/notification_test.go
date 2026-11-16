@@ -145,6 +145,23 @@ func TestNotification(t *testing.T) {
 		})
 	})
 
+	// Test suite covering how the legacy event payloads read through the v3 API
+	t.Run("LegacyEventV3", func(t *testing.T) {
+		testSuite := LegacyEventV3TestSuite{
+			Env: env,
+		}
+
+		testSuite.Setup(ctx, t)
+
+		t.Run("TestBalanceThresholdAndReset", func(t *testing.T) {
+			testSuite.TestBalanceThresholdAndReset(ctx, t)
+		})
+
+		t.Run("TestInvoiceCreated", func(t *testing.T) {
+			testSuite.TestInvoiceCreated(ctx, t)
+		})
+	})
+
 	// Test suite for repo methods
 	t.Run("Repository", func(t *testing.T) {
 		testSuite := RepositoryTestSuite{
