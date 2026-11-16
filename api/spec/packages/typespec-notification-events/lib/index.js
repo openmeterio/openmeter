@@ -2,12 +2,10 @@ import {
   createTypeSpecLibrary,
   emitFile,
   getFriendlyName,
-  getNamespaceFullName,
   paramMessage,
   resolvePath,
 } from '@typespec/compiler'
 import { getId, isJsonSchemaDeclaration } from '@typespec/json-schema'
-import { posix } from 'node:path'
 
 export const $lib = createTypeSpecLibrary({
   name: '@openmeter/typespec-notification-events',
@@ -24,13 +22,6 @@ export const $lib = createTypeSpecLibrary({
         default: paramMessage`${'detail'}`,
       },
     },
-    'event-type-outside-go-package': {
-      severity: 'error',
-      messages: {
-        default:
-          'Event payloads must be declared directly in a namespace decorated with @goPackage.',
-      },
-    },
   },
   emitter: {
     options: {
@@ -40,21 +31,16 @@ export const $lib = createTypeSpecLibrary({
         'module-path': { type: 'string' },
         'eventtype-import-path': { type: 'string' },
         'definitions-import-path': { type: 'string' },
-        'oapi-codegen-config': { type: 'string' },
-        'spec-dir': { type: 'string' },
       },
       required: [
         'module-path',
         'eventtype-import-path',
         'definitions-import-path',
-        'oapi-codegen-config',
-        'spec-dir',
       ],
     },
   },
 })
 
-const goPackageKey = $lib.createStateSymbol('goPackage')
 const eventTypeKey = $lib.createStateSymbol('eventType')
 
 // Canonical Event type: v<version>.<name>, where the name has at least two
@@ -64,9 +50,6 @@ const eventTypePattern =
 
 export const $decorators = {
   NotificationCodegen: {
-    goPackage(context, target, path) {
-      context.program.stateMap(goPackageKey).set(target, { path })
-    },
     eventType(context, target, eventType, ruleConfig) {
       const match = eventTypePattern.exec(eventType)
       if (!match) {
@@ -108,7 +91,6 @@ const compareEventTypes = (a, b) =>
 // (...V<version>Payload / ...V<version>RuleConfig, sharing one stem).
 // Nested types stay unversioned; changing one requires a new type.
 export function $onValidate(program) {
-  const packages = program.stateMap(goPackageKey)
   const invalid = (target, detail) =>
     program.reportDiagnostic(
       $lib.createDiagnostic({
@@ -119,15 +101,6 @@ export function $onValidate(program) {
     )
 
   for (const [model, e] of program.stateMap(eventTypeKey)) {
-    if (!packages.has(model.namespace)) {
-      program.reportDiagnostic(
-        $lib.createDiagnostic({
-          code: 'event-type-outside-go-package',
-          target: model,
-        }),
-      )
-    }
-
     const payload = goName(program, model)
     const payloadSuffix = `V${e.version}Payload`
     const hasPayloadSuffix = payload.endsWith(payloadSuffix)
@@ -163,19 +136,16 @@ export function $onValidate(program) {
 }
 
 // Emits, under the emitter output directory:
-//   - <go package dir>/generate.gen.go for every @goPackage namespace, holding
-//     the go:generate directive that runs oapi-codegen on the package's
-//     events-only OpenAPI document with the shared configuration;
-//   - <go package dir>/events.gen.go for every package owning @eventType
-//     payloads: the Event type value, the embedded JSON Schemas and the
-//     Event type definition;
-//   - <definitions package dir>/definitions.gen.go listing the definitions of
-//     every package, so the Event Registry and contract checks cannot miss a
-//     type;
-//   - manifest.json describing every @goPackage namespace and the definitions
-//     package, used by scripts/generate-notification-events.mjs to generate
-//     the events-only OpenAPI documents and copy them, the Go files and the
-//     schemas into the repository.
+//   - <definitions package dir>/definitions.gen.go holding, for every Event
+//     type, its EventType value, embedded JSON Schemas and definition, and
+//     All() listing every definition, so the Event Registry and contract
+//     checks cannot miss a type;
+//   - manifest.json naming the definitions package and the JSON Schemas to
+//     copy into its schemas directory, used by
+//     scripts/generate-notification-events.mjs.
+//
+// The payload and Rule configuration Go types are not generated here: the v3
+// API references them, so they are generated into api/v3/models.
 //
 // Paths in options and in the manifest are relative to the repository root.
 export async function $onEmit(context) {
@@ -184,177 +154,114 @@ export async function $onEmit(context) {
   const eventTypeImportPath = context.options['eventtype-import-path']
   const eventTypePkg = eventTypeImportPath.split('/').pop()
   const definitionsImportPath = context.options['definitions-import-path']
-  const oapiCodegenConfig = context.options['oapi-codegen-config']
-  const specDir = context.options['spec-dir']
 
-  const eventsByNamespace = new Map()
-  for (const [model, def] of program.stateMap(eventTypeKey)) {
-    const list = eventsByNamespace.get(model.namespace) ?? []
-    list.push({ model, ...def })
-    eventsByNamespace.set(model.namespace, list)
-  }
-
-  const moduleDir = (path) => {
-    if (!path.startsWith(modulePath + '/')) {
-      throw new Error(`Go package ${path} is outside module ${modulePath}`)
-    }
-    return path.slice(modulePath.length + 1)
-  }
-
-  const packages = []
-  // Every generated definition, as
-  // [Go import alias, import path, identifier, parsed Event type].
-  const definitions = []
-  for (const [ns, { path }] of program.stateMap(goPackageKey)) {
-    const dir = moduleDir(path)
-    const pkgName = path.split('/').pop()
-    // openmeter/entitlement/notificationevents -> <spec-dir>/entitlement/openapi.yaml
-    const domain = dir.replace(/^openmeter\//, '').replace(/\/[^/]+$/, '')
-    // openmeter/entitlement/notificationevents -> entitlementevents
-    const importAlias = `${domain.replaceAll('/', '')}events`
-    const spec = posix.join(specDir, domain, 'openapi.yaml')
-    const header = [
-      '// Code generated by @openmeter/typespec-notification-events, DO NOT EDIT.',
-      '',
-      `package ${pkgName}`,
-      '',
-    ]
-
-    await emitFile(program, {
-      path: resolvePath(context.emitterOutputDir, dir, 'generate.gen.go'),
-      content: [
-        ...header,
-        [
-          '//go:generate go tool github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen',
-          `-config ${posix.relative(dir, oapiCodegenConfig)}`,
-          `-package ${pkgName}`,
-          '-o payloads.gen.go',
-          posix.relative(dir, spec),
-        ].join(' '),
-        '',
-      ].join('\n'),
-    })
-
-    const schemas = []
-    const events = (eventsByNamespace.get(ns) ?? []).sort((a, b) =>
-      compareEventTypes(a, b),
+  if (!definitionsImportPath.startsWith(modulePath + '/')) {
+    throw new Error(
+      `Go package ${definitionsImportPath} is outside module ${modulePath}`,
     )
-    if (events.length > 0) {
-      const lines = [
-        ...header,
-        'import (',
-        '\t_ "embed"',
-        '',
-        `\t"${eventTypeImportPath}"`,
-        ')',
-        '',
-      ]
-      for (const e of events) {
-        const payload = goName(program, e.model)
-        const stem = payload.replace(/Payload$/, '')
-        // @typespec/json-schema names files after the TypeSpec declaration;
-        // the copy into the Go package renames them after their $id.
-        const payloadSchema = `${e.eventType}.payload.json`
-        schemas.push({ source: `${e.model.name}.json`, target: payloadSchema })
-        lines.push(
-          `// ${stem}EventType is ${e.eventType}.`,
-          `var ${stem}EventType = ${eventTypePkg}.EventType{`,
-          `\tName:    "${e.name}",`,
-          `\tVersion: ${e.version},`,
-          '}',
-          '',
-          `// ${stem}PayloadJSONSchema is the JSON Schema (draft 2020-12) of ${payload}.`,
-          '//',
-          `//go:embed schemas/${payloadSchema}`,
-          `var ${stem}PayloadJSONSchema []byte`,
-          '',
-        )
-        if (e.ruleConfig) {
-          const ruleConfigSchema = `${e.eventType}.rule_config.json`
-          schemas.push({
-            source: `${e.ruleConfig.name}.json`,
-            target: ruleConfigSchema,
-          })
-          lines.push(
-            `// ${stem}RuleConfigJSONSchema is the JSON Schema (draft 2020-12) of`,
-            `// ${goName(program, e.ruleConfig)}, the Rule configuration of ${e.eventType}.`,
-            '//',
-            `//go:embed schemas/${ruleConfigSchema}`,
-            `var ${stem}RuleConfigJSONSchema []byte`,
-            '',
-          )
-        }
-        lines.push(
-          `// ${stem}Definition is the definition of ${e.eventType}.`,
-          `var ${stem}Definition = ${eventTypePkg}.EventTypeDefinition{`,
-          `\tEventType:         ${stem}EventType,`,
-          `\tPayloadJSONSchema: ${stem}PayloadJSONSchema,`,
-          ...(e.ruleConfig
-            ? [
-                `\tRule: &${eventTypePkg}.RuleConfigDefinition{`,
-                `\t\tJSONSchema: ${stem}RuleConfigJSONSchema,`,
-                '\t},',
-              ]
-            : []),
-          '}',
-          '',
-        )
-        definitions.push([importAlias, path, `${stem}Definition`, e])
-      }
-      await emitFile(program, {
-        path: resolvePath(context.emitterOutputDir, dir, 'events.gen.go'),
-        content: lines.join('\n'),
-      })
-    }
-
-    packages.push({
-      namespace: getNamespaceFullName(ns),
-      dir,
-      package: pkgName,
-      spec,
-      schemas,
-    })
   }
-
-  const definitionsDir = moduleDir(definitionsImportPath)
+  const definitionsDir = definitionsImportPath.slice(modulePath.length + 1)
   const definitionsPkg = definitionsImportPath.split('/').pop()
-  definitions.sort((a, b) => compareEventTypes(a[3], b[3]))
-  const imports = [
-    ...new Map(definitions.map(([alias, path]) => [path, alias])),
-    [eventTypeImportPath, ''],
-  ].sort(([a], [b]) => compareStrings(a, b))
+
+  const events = [...program.stateMap(eventTypeKey)]
+    .map(([model, def]) => ({ model, ...def }))
+    .sort(compareEventTypes)
+
+  const schemas = []
+  const lines = [
+    '// Code generated by @openmeter/typespec-notification-events, DO NOT EDIT.',
+    '',
+    `package ${definitionsPkg}`,
+    '',
+    'import (',
+    '\t_ "embed"',
+    '',
+    `\t"${eventTypeImportPath}"`,
+    ')',
+    '',
+  ]
+  for (const e of events) {
+    const payload = goName(program, e.model)
+    const stem = payload.replace(/Payload$/, '')
+    // @typespec/json-schema names files after the TypeSpec declaration; the
+    // copy into the Go package renames them after their $id.
+    const payloadSchema = `${e.eventType}.payload.json`
+    schemas.push({ source: `${e.model.name}.json`, target: payloadSchema })
+    lines.push(
+      `// ${stem}EventType is ${e.eventType}.`,
+      `var ${stem}EventType = ${eventTypePkg}.EventType{`,
+      `\tName:    "${e.name}",`,
+      `\tVersion: ${e.version},`,
+      '}',
+      '',
+      `// ${stem}PayloadJSONSchema is the JSON Schema (draft 2020-12) of`,
+      `// apiv3models.${payload}.`,
+      '//',
+      `//go:embed schemas/${payloadSchema}`,
+      `var ${stem}PayloadJSONSchema []byte`,
+      '',
+    )
+    if (e.ruleConfig) {
+      const ruleConfigSchema = `${e.eventType}.rule_config.json`
+      schemas.push({
+        source: `${e.ruleConfig.name}.json`,
+        target: ruleConfigSchema,
+      })
+      lines.push(
+        `// ${stem}RuleConfigJSONSchema is the JSON Schema (draft 2020-12) of`,
+        `// apiv3models.${goName(program, e.ruleConfig)}, the Rule configuration of ${e.eventType}.`,
+        '//',
+        `//go:embed schemas/${ruleConfigSchema}`,
+        `var ${stem}RuleConfigJSONSchema []byte`,
+        '',
+      )
+    }
+    lines.push(
+      `// ${stem}Definition is the definition of ${e.eventType}.`,
+      `var ${stem}Definition = ${eventTypePkg}.EventTypeDefinition{`,
+      `\tEventType:         ${stem}EventType,`,
+      `\tPayloadJSONSchema: ${stem}PayloadJSONSchema,`,
+      ...(e.ruleConfig
+        ? [
+            `\tRule: &${eventTypePkg}.RuleConfigDefinition{`,
+            `\t\tJSONSchema: ${stem}RuleConfigJSONSchema,`,
+            '\t},',
+          ]
+        : []),
+      '}',
+      '',
+    )
+  }
+  lines.push(
+    '// All returns the definition of every Notification Event type.',
+    `func All() []${eventTypePkg}.EventTypeDefinition {`,
+    // gofmt writes an empty composite literal on one line.
+    ...(events.length === 0
+      ? [`\treturn []${eventTypePkg}.EventTypeDefinition{}`]
+      : [
+          `\treturn []${eventTypePkg}.EventTypeDefinition{`,
+          ...events.map(
+            (e) =>
+              `\t\t${goName(program, e.model).replace(/Payload$/, '')}Definition,`,
+          ),
+          '\t}',
+        ]),
+    '}',
+    '',
+  )
+
   await emitFile(program, {
     path: resolvePath(
       context.emitterOutputDir,
       definitionsDir,
       'definitions.gen.go',
     ),
-    content: [
-      '// Code generated by @openmeter/typespec-notification-events, DO NOT EDIT.',
-      '',
-      `package ${definitionsPkg}`,
-      '',
-      'import (',
-      ...imports.map(([path, alias]) =>
-        alias ? `\t${alias} "${path}"` : `\t"${path}"`,
-      ),
-      ')',
-      '',
-      '// All returns the definition of every Notification Event type.',
-      `func All() []${eventTypePkg}.EventTypeDefinition {`,
-      `\treturn []${eventTypePkg}.EventTypeDefinition{`,
-      ...definitions.map(
-        ([alias, , identifier]) => `\t\t${alias}.${identifier},`,
-      ),
-      '\t}',
-      '}',
-      '',
-    ].join('\n'),
+    content: lines.join('\n'),
   })
 
   await emitFile(program, {
     path: resolvePath(context.emitterOutputDir, 'manifest.json'),
     content:
-      JSON.stringify({ packages, definitions: definitionsDir }, null, 2) + '\n',
+      JSON.stringify({ definitions: definitionsDir, schemas }, null, 2) + '\n',
   })
 }

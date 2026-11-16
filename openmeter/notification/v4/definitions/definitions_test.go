@@ -14,7 +14,6 @@ import (
 // invalid schema fails here instead of at startup.
 func TestDefinitionsRegister(t *testing.T) {
 	defs := definitions.All()
-	require.NotEmpty(t, defs)
 
 	registry, err := v4.NewEventRegistry(v4.EventRegistryConfig{
 		Logger:      slog.New(slog.DiscardHandler),

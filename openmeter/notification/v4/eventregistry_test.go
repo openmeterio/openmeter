@@ -7,12 +7,9 @@ import (
 	"log/slog"
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
-	billingevents "github.com/openmeterio/openmeter/openmeter/billing/notificationevents"
-	entitlementevents "github.com/openmeterio/openmeter/openmeter/entitlement/notificationevents"
 	v4 "github.com/openmeterio/openmeter/openmeter/notification/v4"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/stretchr/testify/require"
 )
 
 const testSchema = `{"$schema": "https://json-schema.org/draft/2020-12/schema", "type": "object"}`
@@ -400,14 +397,35 @@ func TestEventRegistryEventTypes(t *testing.T) {
 func TestEventRegistryValidators(t *testing.T) {
 	errDomain := errors.New("domain rejected rule config")
 
+	invoiceCreated := v4.EventType{Name: "billing.invoice.created", Version: 1}
+	thresholdTriggered := v4.EventType{Name: "entitlement.balance_threshold.triggered", Version: 1}
+
 	registry, err := v4.NewEventRegistry(v4.EventRegistryConfig{
 		Logger: slog.New(slog.DiscardHandler),
 		Definitions: []v4.EventTypeDefinition{
-			billingevents.BillingInvoiceCreatedV1Definition,
-			entitlementevents.EntitlementBalanceThresholdTriggeredV1Definition,
+			{
+				EventType: invoiceCreated,
+				PayloadJSONSchema: json.RawMessage(`{
+					"$schema": "https://json-schema.org/draft/2020-12/schema",
+					"type": "object",
+					"properties": {"invoice_id": {"type": "string"}},
+					"required": ["invoice_id"],
+					"additionalProperties": false
+				}`),
+			},
+			{
+				EventType:         thresholdTriggered,
+				PayloadJSONSchema: json.RawMessage(testSchema),
+				Rule: &v4.RuleConfigDefinition{JSONSchema: json.RawMessage(`{
+					"$schema": "https://json-schema.org/draft/2020-12/schema",
+					"type": "object",
+					"properties": {"thresholds": {"type": "array", "items": {"type": "number"}, "minItems": 1}},
+					"required": ["thresholds"]
+				}`)},
+			},
 		},
 		RuleConfigValidators: []v4.RuleConfigValidatorBinding{{
-			EventType: entitlementevents.EntitlementBalanceThresholdTriggeredV1EventType,
+			EventType: thresholdTriggered,
 			Validate: func(_ context.Context, namespace string, _ json.RawMessage) error {
 				if namespace != "default" {
 					return errDomain
@@ -420,39 +438,23 @@ func TestEventRegistryValidators(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("payload", func(t *testing.T) {
-		validate, err := registry.PayloadValidator(billingevents.BillingInvoiceCreatedV1EventType)
+		validate, err := registry.PayloadValidator(invoiceCreated)
 		require.NoError(t, err)
 
-		// given a payload marshaled from the generated struct
-		payload, err := json.Marshal(billingevents.BillingInvoiceCreatedV1Payload{
-			InvoiceId:  "01J2KNAG7SY9X6V8E5P4D3C2ZF",
-			CustomerId: "01J2KNBH8TZ0Y7W9F6Q5E4D3AG",
-			Status:     "draft",
-			Currency:   "USD",
-			Total:      "12.50",
-		})
-		require.NoError(t, err)
+		require.NoError(t, validate(t.Context(), "default", json.RawMessage(`{"invoice_id": "01J2KNAG7SY9X6V8E5P4D3C2ZF"}`)))
 
-		// then the registered schema accepts it
-		require.NoError(t, validate(t.Context(), "default", payload))
-
-		// and rejects payloads that break the contract
-		for _, invalid := range []string{`{`, `{}`, `[]`} {
+		// Payloads that break the contract are rejected.
+		for _, invalid := range []string{`{`, `{}`, `[]`, `{"invoice_id": "x", "other": 1}`} {
 			err := validate(t.Context(), "default", json.RawMessage(invalid))
 			require.True(t, models.IsGenericValidationError(err), invalid)
 		}
 	})
 
 	t.Run("rule config", func(t *testing.T) {
-		validate, err := registry.RuleConfigValidator(entitlementevents.EntitlementBalanceThresholdTriggeredV1EventType)
+		validate, err := registry.RuleConfigValidator(thresholdTriggered)
 		require.NoError(t, err)
 
-		config, err := json.Marshal(entitlementevents.EntitlementBalanceThresholdTriggeredV1RuleConfig{
-			Thresholds: []entitlementevents.EntitlementBalanceThreshold{
-				{Type: entitlementevents.EntitlementBalanceThresholdTypeUsagePercentageAtOrAbove, Value: 80},
-			},
-		})
-		require.NoError(t, err)
+		config := json.RawMessage(`{"thresholds": [80]}`)
 
 		require.NoError(t, validate(t.Context(), "default", config))
 
@@ -465,7 +467,7 @@ func TestEventRegistryValidators(t *testing.T) {
 		require.ErrorIs(t, validate(t.Context(), "other", config), errDomain)
 
 		// Rule snapshots are checked against the schema only.
-		validateSchema, err := registry.RuleConfigSchemaValidator(entitlementevents.EntitlementBalanceThresholdTriggeredV1EventType)
+		validateSchema, err := registry.RuleConfigSchemaValidator(thresholdTriggered)
 		require.NoError(t, err)
 
 		require.NoError(t, validateSchema(t.Context(), "other", config))
@@ -475,10 +477,10 @@ func TestEventRegistryValidators(t *testing.T) {
 	})
 
 	t.Run("rule config of system event type", func(t *testing.T) {
-		_, err := registry.RuleConfigValidator(billingevents.BillingInvoiceCreatedV1EventType)
+		_, err := registry.RuleConfigValidator(invoiceCreated)
 		require.True(t, models.IsGenericValidationError(err), err)
 
-		_, err = registry.RuleConfigSchemaValidator(billingevents.BillingInvoiceCreatedV1EventType)
+		_, err = registry.RuleConfigSchemaValidator(invoiceCreated)
 		require.True(t, models.IsGenericValidationError(err), err)
 	})
 

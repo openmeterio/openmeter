@@ -37,7 +37,7 @@ patch-oapi-templates: ## Patch oapi-codegen chi-middleware template with custom 
 update-openapi: patch-oapi-templates ## Update OpenAPI spec
 	$(call print-target)
 	$(MAKE) -C api/spec generate
-	go generate ./api/... ./openmeter/.../notificationevents
+	go generate ./api/...
 
 .PHONY: update-notification-definitions-sum
 update-notification-definitions-sum: ## Rewrite notification/v4/definitions/definitions.sum; only for definitions that were never released

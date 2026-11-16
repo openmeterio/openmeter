@@ -26,10 +26,10 @@ The AIP package defines v3 metering and billing APIs in line with [Kong’s AIP 
 
 ---
 
-## Notification Event contracts (`packages/aip/src/<domain>/notification-events/`)
+## Notification Event contracts
 
-The producing domain owns the payload, and for rule-produced events the Rule configuration, of each Notification Event type. It declares them in a `<Domain>.NotificationEvents` namespace, mapped to a Go package in `packages/aip/src/notification-events.tsp`. `make update-openapi` generates the Go structs, JSON Schemas, event type values and event type definitions into `openmeter/<domain>/notificationevents`, the list of every definition into `openmeter/notification/v4/definitions`, and the events-only OpenAPI spec into `api/notificationevents/<domain>/`.
+The producing domain owns the payload, and for rule-produced events the Rule configuration, of each Notification Event type. They are ordinary models of this TypeSpec program, declared next to the domain's other models and marked with `@eventType` and `@jsonSchema`. The v3 Event API references them, so the Go types are generated into `api/v3/models` with the rest of the API. `make update-openapi` also generates their JSON Schemas, Event type values and definitions into `openmeter/notification/v4/definitions`.
 
 - A released contract is immutable. Change it by adding the next version (`v2.<name>`, `...V2Payload`) next to it, never by editing it in place. Nested types follow the same rule: a breaking change needs a new type. A test fails when a generated definition no longer matches [`definitions.sum`](../../openmeter/notification/v4/definitions/definitions.sum); rewrite the file with `make update-notification-definitions-sum` only for a definition that was never released.
-- Payloads are dedicated models. They may use `Shared` types but must not reuse API resource models, so that API changes cannot change a contract.
+- A payload may reuse API models. A change to such a model changes every contract that uses it, and `definitions.sum` catches that.
 - [`packages/typespec-notification-events`](packages/typespec-notification-events) enforces the naming and `@id` conventions at compile time.
