@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
@@ -11,6 +12,7 @@ import (
 	dbsubscription "github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionsyncstatev2"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -50,7 +52,7 @@ func mapSyncStateV2FromDB(state *entdb.SubscriptionSyncStateV2) subscriptionsync
 				ID:        state.SubscriptionID,
 			},
 			LastSuccessState:       state.LastSuccessState,
-			LastSuccessAt:          state.LastSuccessAt.UTC(),
+			LastSuccessAt:          convert.SafeToUTC(state.LastSuccessAt),
 			LastSyncedSubsRevision: state.LastSyncedSubsRevision,
 			CurrentSubsRevision:    state.CurrentSubsRevision,
 		},
@@ -62,29 +64,49 @@ func mapSyncStateV2FromDB(state *entdb.SubscriptionSyncStateV2) subscriptionsync
 	}
 }
 
+// MarkSubscriptionChangedV2 joins the subscription mutation's transaction and
+// advances only the current revision of an existing sync-state row.
+func (a *adapter) MarkSubscriptionChangedV2(ctx context.Context, subscriptionID models.NamespacedID) error {
+	if err := subscriptionID.Validate(); err != nil {
+		return fmt.Errorf("validating changed subscription: %w", err)
+	}
+
+	return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error {
+		if err := tx.ensureSubscriptionExists(ctx, subscriptionID); err != nil {
+			return err
+		}
+
+		revision := ulid.Make().String()
+		if err := tx.db.SubscriptionSyncStateV2.Create().
+			SetNamespace(subscriptionID.Namespace).
+			SetSubscriptionID(subscriptionID.ID).
+			SetLastSuccessState(subscriptionsync.SyncStateV2StateNew).
+			SetLastSyncedSubsRevision(revision).
+			SetCurrentSubsRevision(revision).
+			OnConflictColumns(subscriptionsyncstatev2.FieldNamespace, subscriptionsyncstatev2.FieldSubscriptionID).
+			UpdateCurrentSubsRevision().
+			UpdateUpdatedAt().
+			Exec(ctx); err != nil {
+			return fmt.Errorf("marking subscription changed for sync: %w", err)
+		}
+
+		return nil
+	})
+}
+
 func (a *adapter) RecordSyncResultV2(ctx context.Context, input subscriptionsync.RecordSyncResultV2Input) error {
 	if err := input.Validate(); err != nil {
 		return fmt.Errorf("validating subscription sync result v2: %w", err)
 	}
 
 	return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error {
-		// The foreign key checks the subscription ID; also enforce namespace ownership.
-		// Include soft-deleted subscriptions because their cleanup is recorded here.
-		exists, err := tx.db.Subscription.Query().Where(
-			dbsubscription.ID(input.SubscriptionID.ID),
-			dbsubscription.Namespace(input.SubscriptionID.Namespace),
-		).Exist(ctx)
-		if err != nil {
-			return fmt.Errorf("checking subscription for sync state v2: %w", err)
-		}
-
-		if !exists {
-			return subscription.NewSubscriptionNotFoundError(input.SubscriptionID.ID)
+		if err := tx.ensureSubscriptionExists(ctx, input.SubscriptionID); err != nil {
+			return err
 		}
 
 		// Do not add UpdateCurrentSubsRevision here: it would overwrite a revision
 		// written by a parallel subscription edit after sync read the state.
-		err = tx.db.SubscriptionSyncStateV2.Create().
+		err := tx.db.SubscriptionSyncStateV2.Create().
 			SetNamespace(input.SubscriptionID.Namespace).
 			SetSubscriptionID(input.SubscriptionID.ID).
 			SetLastSuccessState(input.LastSuccessState).
@@ -103,4 +125,22 @@ func (a *adapter) RecordSyncResultV2(ctx context.Context, input subscriptionsync
 
 		return nil
 	})
+}
+
+func (a *adapter) ensureSubscriptionExists(ctx context.Context, subscriptionID models.NamespacedID) error {
+	// The foreign key checks the subscription ID; also enforce namespace ownership.
+	// Include soft-deleted subscriptions because their cleanup is recorded here.
+	exists, err := a.db.Subscription.Query().Where(
+		dbsubscription.ID(subscriptionID.ID),
+		dbsubscription.Namespace(subscriptionID.Namespace),
+	).Exist(ctx)
+	if err != nil {
+		return fmt.Errorf("checking subscription for sync state v2: %w", err)
+	}
+
+	if !exists {
+		return subscription.NewSubscriptionNotFoundError(subscriptionID.ID)
+	}
+
+	return nil
 }

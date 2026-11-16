@@ -18,6 +18,7 @@ type SubscriptionCommandHook interface {
 	AfterUpdate(context.Context, SubscriptionView) error
 	AfterCancel(context.Context, SubscriptionView) error
 	AfterContinue(context.Context, SubscriptionView) error
+	AfterDelete(context.Context, models.NamespacedID) error
 }
 
 var _ SubscriptionCommandHook = (*NoOpSubscriptionCommandHook)(nil)
@@ -53,5 +54,9 @@ func (NoOpSubscriptionCommandHook) AfterContinue(context.Context, SubscriptionVi
 }
 
 func (NoOpSubscriptionCommandHook) BeforeDelete(context.Context, SubscriptionView) error {
+	return nil
+}
+
+func (NoOpSubscriptionCommandHook) AfterDelete(context.Context, models.NamespacedID) error {
 	return nil
 }

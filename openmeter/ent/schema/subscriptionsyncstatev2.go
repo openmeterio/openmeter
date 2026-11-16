@@ -13,8 +13,8 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
 
-// SubscriptionSyncStateV2 stores the last successful reconciliation. A missing
-// row means that no successful v2 reconciliation has been recorded.
+// SubscriptionSyncStateV2 stores subscription revisions and the last sync result.
+// New rows have no last_success_at until a sync result is recorded.
 type SubscriptionSyncStateV2 struct{ ent.Schema }
 
 func (SubscriptionSyncStateV2) Annotations() []schema.Annotation {
@@ -29,7 +29,7 @@ func (SubscriptionSyncStateV2) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("subscription_id").NotEmpty().Immutable().Unique().SchemaType(map[string]string{dialect.Postgres: "char(26)"}),
 		field.Enum("last_success_state").GoType(subscriptionsync.SyncStateV2State("")),
-		field.Time("last_success_at"),
+		field.Time("last_success_at").Optional().Nillable(),
 		field.String("last_synced_subs_revision").NotEmpty().SchemaType(map[string]string{dialect.Postgres: "char(26)"}),
 		field.String("current_subs_revision").NotEmpty().SchemaType(map[string]string{dialect.Postgres: "char(26)"}),
 	}

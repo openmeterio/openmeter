@@ -83,6 +83,12 @@ func (_u *SubscriptionSyncStateV2Update) SetNillableLastSuccessAt(v *time.Time) 
 	return _u
 }
 
+// ClearLastSuccessAt clears the value of the "last_success_at" field.
+func (_u *SubscriptionSyncStateV2Update) ClearLastSuccessAt() *SubscriptionSyncStateV2Update {
+	_u.mutation.ClearLastSuccessAt()
+	return _u
+}
+
 // SetLastSyncedSubsRevision sets the "last_synced_subs_revision" field.
 func (_u *SubscriptionSyncStateV2Update) SetLastSyncedSubsRevision(v string) *SubscriptionSyncStateV2Update {
 	_u.mutation.SetLastSyncedSubsRevision(v)
@@ -202,6 +208,9 @@ func (_u *SubscriptionSyncStateV2Update) sqlSave(ctx context.Context) (_node int
 	if value, ok := _u.mutation.LastSuccessAt(); ok {
 		_spec.SetField(subscriptionsyncstatev2.FieldLastSuccessAt, field.TypeTime, value)
 	}
+	if _u.mutation.LastSuccessAtCleared() {
+		_spec.ClearField(subscriptionsyncstatev2.FieldLastSuccessAt, field.TypeTime)
+	}
 	if value, ok := _u.mutation.LastSyncedSubsRevision(); ok {
 		_spec.SetField(subscriptionsyncstatev2.FieldLastSyncedSubsRevision, field.TypeString, value)
 	}
@@ -279,6 +288,12 @@ func (_u *SubscriptionSyncStateV2UpdateOne) SetNillableLastSuccessAt(v *time.Tim
 	if v != nil {
 		_u.SetLastSuccessAt(*v)
 	}
+	return _u
+}
+
+// ClearLastSuccessAt clears the value of the "last_success_at" field.
+func (_u *SubscriptionSyncStateV2UpdateOne) ClearLastSuccessAt() *SubscriptionSyncStateV2UpdateOne {
+	_u.mutation.ClearLastSuccessAt()
 	return _u
 }
 
@@ -430,6 +445,9 @@ func (_u *SubscriptionSyncStateV2UpdateOne) sqlSave(ctx context.Context) (_node 
 	}
 	if value, ok := _u.mutation.LastSuccessAt(); ok {
 		_spec.SetField(subscriptionsyncstatev2.FieldLastSuccessAt, field.TypeTime, value)
+	}
+	if _u.mutation.LastSuccessAtCleared() {
+		_spec.ClearField(subscriptionsyncstatev2.FieldLastSuccessAt, field.TypeTime)
 	}
 	if value, ok := _u.mutation.LastSyncedSubsRevision(); ok {
 		_spec.SetField(subscriptionsyncstatev2.FieldLastSyncedSubsRevision, field.TypeString, value)

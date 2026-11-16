@@ -129186,7 +129186,7 @@ func (m *SubscriptionSyncStateV2Mutation) LastSuccessAt() (r time.Time, exists b
 // OldLastSuccessAt returns the old "last_success_at" field's value of the SubscriptionSyncStateV2 entity.
 // If the SubscriptionSyncStateV2 object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *SubscriptionSyncStateV2Mutation) OldLastSuccessAt(ctx context.Context) (v time.Time, err error) {
+func (m *SubscriptionSyncStateV2Mutation) OldLastSuccessAt(ctx context.Context) (v *time.Time, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldLastSuccessAt is only allowed on UpdateOne operations")
 	}
@@ -129200,9 +129200,22 @@ func (m *SubscriptionSyncStateV2Mutation) OldLastSuccessAt(ctx context.Context) 
 	return oldValue.LastSuccessAt, nil
 }
 
+// ClearLastSuccessAt clears the value of the "last_success_at" field.
+func (m *SubscriptionSyncStateV2Mutation) ClearLastSuccessAt() {
+	m.last_success_at = nil
+	m.clearedFields[subscriptionsyncstatev2.FieldLastSuccessAt] = struct{}{}
+}
+
+// LastSuccessAtCleared returns if the "last_success_at" field was cleared in this mutation.
+func (m *SubscriptionSyncStateV2Mutation) LastSuccessAtCleared() bool {
+	_, ok := m.clearedFields[subscriptionsyncstatev2.FieldLastSuccessAt]
+	return ok
+}
+
 // ResetLastSuccessAt resets all changes to the "last_success_at" field.
 func (m *SubscriptionSyncStateV2Mutation) ResetLastSuccessAt() {
 	m.last_success_at = nil
+	delete(m.clearedFields, subscriptionsyncstatev2.FieldLastSuccessAt)
 }
 
 // SetLastSyncedSubsRevision sets the "last_synced_subs_revision" field.
@@ -129524,6 +129537,9 @@ func (m *SubscriptionSyncStateV2Mutation) ClearedFields() []string {
 	if m.FieldCleared(subscriptionsyncstatev2.FieldDeletedAt) {
 		fields = append(fields, subscriptionsyncstatev2.FieldDeletedAt)
 	}
+	if m.FieldCleared(subscriptionsyncstatev2.FieldLastSuccessAt) {
+		fields = append(fields, subscriptionsyncstatev2.FieldLastSuccessAt)
+	}
 	return fields
 }
 
@@ -129540,6 +129556,9 @@ func (m *SubscriptionSyncStateV2Mutation) ClearField(name string) error {
 	switch name {
 	case subscriptionsyncstatev2.FieldDeletedAt:
 		m.ClearDeletedAt()
+		return nil
+	case subscriptionsyncstatev2.FieldLastSuccessAt:
+		m.ClearLastSuccessAt()
 		return nil
 	}
 	return fmt.Errorf("unknown SubscriptionSyncStateV2 nullable field %s", name)

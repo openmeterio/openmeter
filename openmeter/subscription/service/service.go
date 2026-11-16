@@ -362,6 +362,13 @@ func (s *service) Delete(ctx context.Context, subscriptionID models.NamespacedID
 			return fmt.Errorf("failed to delete subscription: %w", err)
 		}
 
+		// Revision changes must roll back together with deletion if a hook fails.
+		if err := errors.Join(lo.Map(s.Hooks, func(v subscription.SubscriptionCommandHook, _ int) error {
+			return v.AfterDelete(ctx, view.Subscription.NamespacedID)
+		})...); err != nil {
+			return fmt.Errorf("running subscription deletion hooks: %w", err)
+		}
+
 		// Let's publish the event for the deletion
 		err = s.Publisher.Publish(ctx, subscription.NewDeletedEvent(ctx, view))
 		if err != nil {

@@ -20,10 +20,12 @@ import (
 	chargestestutils "github.com/openmeterio/openmeter/openmeter/billing/charges/testutils"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
 	syncadapter "github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/adapter"
+	synchooks "github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/hooks"
 	periodicreconciler "github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/reconciler"
 	syncservice "github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionsyncstatev2"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	advancetestutils "github.com/openmeterio/openmeter/openmeter/ledger/advance/testutils"
 	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
@@ -133,6 +135,9 @@ func (s *ReconciliationTestSuite) SetupSuite() {
 	s.Charges = stack.ChargesService
 	adapter, err := syncadapter.New(syncadapter.Config{Client: s.DBClient})
 	s.Require().NoError(err)
+	syncHook, err := synchooks.New(synchooks.Config{Adapter: adapter, Logger: logger})
+	s.Require().NoError(err)
+	s.Require().NoError(s.SubscriptionService.RegisterHook(syncHook))
 	s.Service, err = syncservice.New(syncservice.Config{
 		BillingService:          s.BillingService,
 		LegacyBillingLineEngine: s.LegacyBillingLineEngine,
@@ -367,7 +372,9 @@ func (s *ReconciliationTestSuite) TestCustomerDeletedBeforeCleanup() {
 			states, err := s.Service.GetSyncStatesV2(ctx, subscriptionsync.GetSyncStatesV2Input{subscriptionID})
 			s.Require().NoError(err)
 			if !tc.wantCleanup {
-				s.Empty(states)
+				s.Require().Len(states, 1)
+				s.Equal(subscriptionsync.SyncStateV2StateNew, states[0].LastSuccessState)
+				s.Nil(states[0].LastSuccessAt)
 				invoice := s.gatheringInvoice()
 				s.NotEmpty(invoice.Lines.OrEmpty())
 
@@ -378,7 +385,7 @@ func (s *ReconciliationTestSuite) TestCustomerDeletedBeforeCleanup() {
 			s.Require().Len(states, 1)
 			s.Equal(subscriptionID, states[0].SubscriptionID)
 			s.Equal(subscriptionsync.SyncStateV2StateCustomerDeletedBefore, states[0].LastSuccessState)
-			s.Equal(now, states[0].LastSuccessAt)
+			s.Equal(lo.ToPtr(now), states[0].LastSuccessAt)
 			s.NotEmpty(states[0].CurrentSubsRevision)
 			s.Equal(states[0].CurrentSubsRevision, states[0].LastSyncedSubsRevision)
 			s.NoError(states[0].Validate())
@@ -414,9 +421,8 @@ func (s *ReconciliationTestSuite) TestOrdinarySyncLeavesRevisionsUnchanged() {
 	// Given a live subscription and v2 state whose current revision has advanced.
 	view := s.createSubscriptionForReconciliation(reconciliationSubscriptionInput{})
 	subscriptionID := view.Subscription.NamespacedID
-	s.Require().NoError(s.DBClient.SubscriptionSyncStateV2.Create().
-		SetNamespace(s.Namespace).
-		SetSubscriptionID(subscriptionID.ID).
+	s.Require().NoError(s.DBClient.SubscriptionSyncStateV2.Update().
+		Where(subscriptionsyncstatev2.SubscriptionID(subscriptionID.ID)).
 		SetLastSuccessState(subscriptionsync.SyncStateV2StateCustomerDeletedBefore).
 		SetLastSuccessAt(now.Add(-time.Hour)).
 		SetLastSyncedSubsRevision(ulid.Make().String()).
@@ -442,9 +448,8 @@ func (s *ReconciliationTestSuite) TestCleanupAcknowledgesCurrentRevision() {
 	view := s.createSubscriptionForReconciliation(reconciliationSubscriptionInput{})
 	subscriptionID := view.Subscription.NamespacedID
 	currentRevision := ulid.Make().String()
-	s.Require().NoError(s.DBClient.SubscriptionSyncStateV2.Create().
-		SetNamespace(s.Namespace).
-		SetSubscriptionID(subscriptionID.ID).
+	s.Require().NoError(s.DBClient.SubscriptionSyncStateV2.Update().
+		Where(subscriptionsyncstatev2.SubscriptionID(subscriptionID.ID)).
 		SetLastSuccessState(subscriptionsync.SyncStateV2StateCustomerDeletedBefore).
 		SetLastSuccessAt(now.Add(-time.Hour)).
 		SetLastSyncedSubsRevision(ulid.Make().String()).
@@ -458,7 +463,7 @@ func (s *ReconciliationTestSuite) TestCleanupAcknowledgesCurrentRevision() {
 	s.Require().Len(states, 1)
 	s.Equal(currentRevision, states[0].CurrentSubsRevision)
 	s.Equal(states[0].CurrentSubsRevision, states[0].LastSyncedSubsRevision)
-	s.Equal(now, states[0].LastSuccessAt)
+	s.Equal(lo.ToPtr(now), states[0].LastSuccessAt)
 	s.expectNoGatheringInvoice()
 }
 
@@ -474,9 +479,8 @@ func (s *ReconciliationTestSuite) TestCustomerDeletedBeforeCleanupDryRun() {
 	invoice := s.gatheringInvoice()
 	legacyBefore, err := s.Service.GetSyncStates(ctx, subscriptionsync.GetSyncStatesInput{subscriptionID})
 	s.Require().NoError(err)
-	s.Require().NoError(s.DBClient.SubscriptionSyncStateV2.Create().
-		SetNamespace(s.Namespace).
-		SetSubscriptionID(subscriptionID.ID).
+	s.Require().NoError(s.DBClient.SubscriptionSyncStateV2.Update().
+		Where(subscriptionsyncstatev2.SubscriptionID(subscriptionID.ID)).
 		SetLastSuccessState(subscriptionsync.SyncStateV2StateCustomerDeletedBefore).
 		SetLastSuccessAt(now.Add(-time.Hour)).
 		SetLastSyncedSubsRevision(ulid.Make().String()).
@@ -534,9 +538,8 @@ func (s *ReconciliationTestSuite) TestCustomerDeletedBeforeCleanupRollback() {
 			invoice := s.gatheringInvoice()
 			legacyBefore, err := s.Service.GetSyncStates(ctx, subscriptionsync.GetSyncStatesInput{subscriptionID})
 			s.Require().NoError(err)
-			s.Require().NoError(s.DBClient.SubscriptionSyncStateV2.Create().
-				SetNamespace(s.Namespace).
-				SetSubscriptionID(subscriptionID.ID).
+			s.Require().NoError(s.DBClient.SubscriptionSyncStateV2.Update().
+				Where(subscriptionsyncstatev2.SubscriptionID(subscriptionID.ID)).
 				SetLastSuccessState(subscriptionsync.SyncStateV2StateCustomerDeletedBefore).
 				SetLastSuccessAt(now.Add(-time.Hour)).
 				SetLastSyncedSubsRevision(ulid.Make().String()).
@@ -621,7 +624,7 @@ func (s *ReconciliationTestSuite) TestCustomerDeletedBeforeCleanupRepeated() {
 	s.Require().NoError(err)
 	s.Require().Len(states, 1)
 	s.Equal(subscriptionsync.SyncStateV2StateCustomerDeletedBefore, states[0].LastSuccessState)
-	s.Equal(later, states[0].LastSuccessAt)
+	s.Equal(lo.ToPtr(later), states[0].LastSuccessAt)
 
 	// When the subscription itself is subsequently deleted, that result takes precedence.
 	s.Require().NoError(s.SubscriptionService.Delete(ctx, subscriptionID))
@@ -656,7 +659,7 @@ func (s *ReconciliationTestSuite) createCanceledSubscriptionForReconciliation() 
 	return subs
 }
 
-func (s *ReconciliationTestSuite) recordedSyncResult(subscriptionID models.NamespacedID) subscriptionsync.SyncStateV2Managed {
+func (s *ReconciliationTestSuite) getSyncStateV2(subscriptionID models.NamespacedID) subscriptionsync.SyncStateV2Managed {
 	s.T().Helper()
 	states, err := s.Service.GetSyncStatesV2(s.T().Context(), subscriptionsync.GetSyncStatesV2Input{subscriptionID})
 	s.Require().NoError(err)
@@ -727,14 +730,16 @@ func (s *ReconciliationTestSuite) TestEndedSubscriptionSyncResult() {
 			if tc.wantState == "" {
 				states, err := s.Service.GetSyncStatesV2(s.T().Context(), subscriptionsync.GetSyncStatesV2Input{subs.NamespacedID})
 				s.Require().NoError(err)
-				s.Empty(states)
+				s.Require().Len(states, 1)
+				s.Equal(subscriptionsync.SyncStateV2StateNew, states[0].LastSuccessState)
+				s.Nil(states[0].LastSuccessAt)
 
 				return
 			}
 
-			state := s.recordedSyncResult(subs.NamespacedID)
+			state := s.getSyncStateV2(subs.NamespacedID)
 			s.Equal(tc.wantState, state.LastSuccessState)
-			s.Equal(syncAt, state.LastSuccessAt)
+			s.Equal(lo.ToPtr(syncAt), state.LastSuccessAt)
 			s.Equal(state.CurrentSubsRevision, state.LastSyncedSubsRevision)
 			s.requireReconciledSubscriptionEnd(subs)
 		})
@@ -759,9 +764,9 @@ func (s *ReconciliationTestSuite) TestOldSubscriptionSyncSkipped() {
 	s.Require().NoError(s.Service.SyncByID(ctx, subs.NamespacedID, now, subscriptionsync.WithInvoicePendingLines()))
 
 	// Then only the intentional skip is recorded; artifacts and legacy scheduling remain unchanged.
-	state := s.recordedSyncResult(subs.NamespacedID)
+	state := s.getSyncStateV2(subs.NamespacedID)
 	s.Equal(subscriptionsync.SyncStateV2StateTooOld, state.LastSuccessState)
-	s.Equal(now, state.LastSuccessAt)
+	s.Equal(lo.ToPtr(now), state.LastSuccessAt)
 	s.Equal(state.CurrentSubsRevision, state.LastSyncedSubsRevision)
 	s.Equal(invoice.Lines.OrEmpty(), s.gatheringInvoice().Lines.OrEmpty())
 	legacyAfter, err := s.Service.GetSyncStates(ctx, subscriptionsync.GetSyncStatesInput{subs.NamespacedID})
@@ -780,14 +785,14 @@ func (s *ReconciliationTestSuite) TestForceResyncOldSubscription() {
 	clock.FreezeTime(now)
 	defer clock.UnFreeze()
 	s.Require().NoError(s.Service.SyncByID(ctx, subs.NamespacedID, now))
-	before := s.recordedSyncResult(subs.NamespacedID)
+	before := s.getSyncStateV2(subs.NamespacedID)
 	s.Require().Equal(subscriptionsync.SyncStateV2StateTooOld, before.LastSuccessState)
 
 	// When the caller explicitly overrides the thirty-day cutoff.
 	s.Require().NoError(s.Service.SyncByID(ctx, subs.NamespacedID, now, subscriptionsync.WithForceResyncOldSubscriptions()))
 
 	// Then normal billing reconciliation replaces the skip with an ended result.
-	after := s.recordedSyncResult(subs.NamespacedID)
+	after := s.getSyncStateV2(subs.NamespacedID)
 	s.Equal(subscriptionsync.SyncStateV2StateEnded, after.LastSuccessState)
 	s.Equal(before.CurrentSubsRevision, after.CurrentSubsRevision)
 	s.Equal(after.CurrentSubsRevision, after.LastSyncedSubsRevision)
@@ -805,7 +810,7 @@ func (s *ReconciliationTestSuite) TestForcedPeriodicResyncOldSubscription() {
 	clock.FreezeTime(now)
 	defer clock.UnFreeze()
 	s.Require().NoError(s.Service.SyncByID(ctx, subs.NamespacedID, now))
-	before := s.recordedSyncResult(subs.NamespacedID)
+	before := s.getSyncStateV2(subs.NamespacedID)
 	periodic, err := periodicreconciler.NewReconciler(periodicreconciler.ReconcilerConfig{
 		SubscriptionSync:    s.Service,
 		SubscriptionService: s.SubscriptionService,
@@ -824,17 +829,17 @@ func (s *ReconciliationTestSuite) TestForcedPeriodicResyncOldSubscription() {
 
 	// When force is used without widening selection, the old subscription stays outside the list.
 	s.Require().NoError(periodic.All(ctx, input))
-	s.Equal(before, s.recordedSyncResult(subs.NamespacedID))
+	s.Equal(before, s.getSyncStateV2(subs.NamespacedID))
 
 	// Widening selection and forcing billing deadlines does not override the age cutoff.
 	input.Lookback = 90 * 24 * time.Hour
 	s.Require().NoError(periodic.All(ctx, input))
-	s.Equal(subscriptionsync.SyncStateV2StateTooOld, s.recordedSyncResult(subs.NamespacedID).LastSuccessState)
+	s.Equal(subscriptionsync.SyncStateV2StateTooOld, s.getSyncStateV2(subs.NamespacedID).LastSuccessState)
 
 	// The separate old-subscription override, also enabled by CLI --force-all, reaches sync.
 	input.ForceResyncOldSubscriptions = true
 	s.Require().NoError(periodic.All(ctx, input))
-	s.Equal(subscriptionsync.SyncStateV2StateEnded, s.recordedSyncResult(subs.NamespacedID).LastSuccessState)
+	s.Equal(subscriptionsync.SyncStateV2StateEnded, s.getSyncStateV2(subs.NamespacedID).LastSuccessState)
 	s.requireReconciledSubscriptionEnd(subs)
 }
 
@@ -864,7 +869,9 @@ func (s *ReconciliationTestSuite) TestTerminalSubscriptionSyncDryRun() {
 			s.Equal(legacyBefore, legacyAfter)
 			states, err := s.Service.GetSyncStatesV2(ctx, subscriptionsync.GetSyncStatesV2Input{subs.NamespacedID})
 			s.Require().NoError(err)
-			s.Empty(states)
+			s.Require().Len(states, 1)
+			s.Equal(subscriptionsync.SyncStateV2StateNew, states[0].LastSuccessState)
+			s.Nil(states[0].LastSuccessAt)
 		})
 	}
 }
@@ -906,7 +913,7 @@ func (s *ReconciliationTestSuite) TestOldSubscriptionCleanupPrecedence() {
 			s.Require().NoError(s.Service.SyncByID(s.T().Context(), subs.NamespacedID, now, subscriptionsync.WithInvoicePendingLines()))
 
 			// Then artifacts are removed and the deletion result is recorded.
-			s.Equal(tc.wantState, s.recordedSyncResult(subs.NamespacedID).LastSuccessState)
+			s.Equal(tc.wantState, s.getSyncStateV2(subs.NamespacedID).LastSuccessState)
 			s.expectNoGatheringInvoice()
 		})
 	}
@@ -928,14 +935,13 @@ func (s *ReconciliationTestSuite) TestTerminalSyncResultRollback() {
 			now := subs.ActiveTo.Add(age)
 			clock.FreezeTime(now)
 			defer clock.UnFreeze()
-			s.Require().NoError(s.DBClient.SubscriptionSyncStateV2.Create().
-				SetNamespace(s.Namespace).
-				SetSubscriptionID(subs.ID).
+			s.Require().NoError(s.DBClient.SubscriptionSyncStateV2.Update().
+				Where(subscriptionsyncstatev2.SubscriptionID(subs.ID)).
 				SetLastSuccessState(subscriptionsync.SyncStateV2StateTooOld).
 				SetLastSuccessAt(now.Add(-time.Hour)).
 				SetLastSyncedSubsRevision(ulid.Make().String()).
 				SetCurrentSubsRevision(ulid.Make().String()).Exec(ctx))
-			before := s.recordedSyncResult(subs.NamespacedID)
+			before := s.getSyncStateV2(subs.NamespacedID)
 			const constraintName = "test_terminal_sync_result_failure"
 			_, err = s.TestDB.PGDriver.DB().ExecContext(ctx, fmt.Sprintf(
 				`ALTER TABLE subscription_sync_states_v2 ADD CONSTRAINT %s CHECK (subscription_id <> %s OR last_synced_subs_revision IS DISTINCT FROM current_subs_revision)`,
@@ -951,7 +957,7 @@ func (s *ReconciliationTestSuite) TestTerminalSyncResultRollback() {
 			s.Require().ErrorContains(s.Service.SyncByID(ctx, subs.NamespacedID, now), constraintName)
 
 			// Then existing results and any billing or scheduling changes are rolled back.
-			s.Equal(before, s.recordedSyncResult(subs.NamespacedID))
+			s.Equal(before, s.getSyncStateV2(subs.NamespacedID))
 			s.Equal(invoice.Lines.OrEmpty(), s.gatheringInvoice().Lines.OrEmpty())
 			legacyAfter, err := s.Service.GetSyncStates(ctx, subscriptionsync.GetSyncStatesInput{subs.NamespacedID})
 			s.Require().NoError(err)

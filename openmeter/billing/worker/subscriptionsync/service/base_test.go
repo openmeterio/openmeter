@@ -25,6 +25,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/adapter"
+	synchooks "github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/hooks"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
@@ -69,6 +70,9 @@ func (s *SuiteBase) SetupSuite() {
 	})
 	s.NoError(err)
 	s.Adapter = adapter
+	syncHook, err := synchooks.New(synchooks.Config{Adapter: adapter, Logger: testutils.NewDiscardLogger(s.T())})
+	s.Require().NoError(err)
+	s.Require().NoError(s.SubscriptionService.RegisterHook(syncHook))
 
 	service, err := New(Config{
 		BillingService:          s.BillingService,

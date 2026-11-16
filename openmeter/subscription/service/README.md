@@ -23,6 +23,13 @@ Create, update, cancellation, continuation, and deletion run in the
 subscription transaction. A failed materialization does not leave a partially
 updated subscription graph.
 
+The `After*` command hooks run in that transaction before event publication.
+Their writes commit or roll back with the subscription, and a hook failure aborts
+the command. `AfterDelete` receives the subscription ID because deletion has
+already removed its view. Billing uses these hooks to
+[mark subscription revisions](../../billing/worker/subscriptionsync/README.md#deletion-cancellation-and-retries)
+without waiting for event processing.
+
 ## Reconciliation model
 
 An update indexes the current `SubscriptionView` and complete target spec by

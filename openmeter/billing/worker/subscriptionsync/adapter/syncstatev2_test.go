@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/oklog/ulid/v2"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
@@ -64,7 +65,7 @@ func TestSyncStateV2Persistence(t *testing.T) {
 			SyncStateV2: subscriptionsync.SyncStateV2{
 				SubscriptionID:         f.input.SubscriptionID,
 				LastSuccessState:       f.input.LastSuccessState,
-				LastSuccessAt:          at,
+				LastSuccessAt:          lo.ToPtr(at),
 				LastSyncedSubsRevision: f.input.LastSyncedSubsRevision,
 				CurrentSubsRevision:    f.input.LastSyncedSubsRevision,
 			},
@@ -77,7 +78,6 @@ func TestSyncStateV2Persistence(t *testing.T) {
 				UpdatedAt: at,
 			},
 		}
-		expectedState.LastSuccessAt = at
 		require.Equal(t, []subscriptionsync.SyncStateV2Managed{expectedState}, states)
 		require.NoError(t, states[0].Validate())
 
@@ -93,7 +93,7 @@ func TestSyncStateV2Persistence(t *testing.T) {
 		states, err = f.adapter.GetSyncStatesV2(ctx, ids)
 		require.NoError(t, err)
 		expectedState.LastSuccessState = input.LastSuccessState
-		expectedState.LastSuccessAt = input.LastSuccessAt
+		expectedState.LastSuccessAt = lo.ToPtr(input.LastSuccessAt)
 		expectedState.UpdatedAt = at.Add(2 * time.Hour)
 		require.Equal(t, []subscriptionsync.SyncStateV2Managed{expectedState}, states)
 		count, err := f.db.SubscriptionSyncStateV2.Query().Count(ctx)
@@ -127,9 +127,12 @@ func TestSyncStateV2Persistence(t *testing.T) {
 		observed, err := f.adapter.GetSyncStatesV2(ctx, subscriptionsync.GetSyncStatesV2Input{f.input.SubscriptionID})
 		require.NoError(t, err)
 		require.Len(t, observed, 1)
-		newerRevision := ulid.Make().String()
-		require.NoError(t, f.db.SubscriptionSyncStateV2.UpdateOneID(observed[0].ID).
-			SetCurrentSubsRevision(newerRevision).Exec(ctx))
+		require.NoError(t, f.adapter.MarkSubscriptionChangedV2(ctx, f.input.SubscriptionID))
+		changed, err := f.adapter.GetSyncStatesV2(ctx, subscriptionsync.GetSyncStatesV2Input{f.input.SubscriptionID})
+		require.NoError(t, err)
+		require.Len(t, changed, 1)
+		newerRevision := changed[0].CurrentSubsRevision
+		require.NotEqual(t, observed[0].CurrentSubsRevision, newerRevision)
 
 		// When cleanup acknowledges only the revision that it read.
 		input := f.input
@@ -260,6 +263,126 @@ func TestSyncStateV2Persistence(t *testing.T) {
 
 		// then: its sync state is removed too
 		states, err = f.adapter.GetSyncStatesV2(ctx, ids)
+		require.NoError(t, err)
+		require.Empty(t, states)
+	})
+}
+
+func TestMarkSubscriptionChangedV2(t *testing.T) {
+	at := time.Date(2026, 11, 16, 12, 0, 0, 0, time.UTC)
+
+	t.Run("missing row initializes new state without claiming a result", func(t *testing.T) {
+		// Given a subscription that predates v2 state tracking.
+		clock.FreezeTime(at)
+		defer clock.UnFreeze()
+		f := setupSyncStateV2PersistenceTest(t, at)
+		ctx := t.Context()
+
+		// When its change is marked, the adapter inserts a new state.
+		require.NoError(t, f.adapter.MarkSubscriptionChangedV2(ctx, f.input.SubscriptionID))
+		states, err := f.adapter.GetSyncStatesV2(ctx, subscriptionsync.GetSyncStatesV2Input{f.input.SubscriptionID})
+		require.NoError(t, err)
+		require.Len(t, states, 1)
+		before := states[0]
+		require.Equal(t, subscriptionsync.SyncStateV2StateNew, before.LastSuccessState)
+		require.Nil(t, before.LastSuccessAt)
+		require.NotEmpty(t, before.CurrentSubsRevision)
+		require.Equal(t, before.CurrentSubsRevision, before.LastSyncedSubsRevision)
+		require.NoError(t, before.Validate())
+
+		// Then a second change advances current without acknowledging either revision.
+		require.NoError(t, f.adapter.MarkSubscriptionChangedV2(ctx, f.input.SubscriptionID))
+		states, err = f.adapter.GetSyncStatesV2(ctx, subscriptionsync.GetSyncStatesV2Input{f.input.SubscriptionID})
+		require.NoError(t, err)
+		require.Len(t, states, 1)
+		require.Equal(t, before.ID, states[0].ID)
+		require.Equal(t, subscriptionsync.SyncStateV2StateNew, states[0].LastSuccessState)
+		require.Nil(t, states[0].LastSuccessAt)
+		require.Equal(t, before.LastSyncedSubsRevision, states[0].LastSyncedSubsRevision)
+		require.NotEqual(t, before.CurrentSubsRevision, states[0].CurrentSubsRevision)
+	})
+
+	t.Run("existing result is preserved", func(t *testing.T) {
+		// Given a recorded result whose revision was acknowledged.
+		clock.FreezeTime(at)
+		defer clock.UnFreeze()
+		f := setupSyncStateV2PersistenceTest(t, at)
+		ctx := t.Context()
+		require.NoError(t, f.adapter.RecordSyncResultV2(ctx, f.input))
+		states, err := f.adapter.GetSyncStatesV2(ctx, subscriptionsync.GetSyncStatesV2Input{f.input.SubscriptionID})
+		require.NoError(t, err)
+		require.Len(t, states, 1)
+		before := states[0]
+		clock.FreezeTime(at.Add(time.Hour))
+		defer clock.UnFreeze()
+
+		// When the subscription changes, only current and the row update time advance.
+		require.NoError(t, f.adapter.MarkSubscriptionChangedV2(ctx, f.input.SubscriptionID))
+		states, err = f.adapter.GetSyncStatesV2(ctx, subscriptionsync.GetSyncStatesV2Input{f.input.SubscriptionID})
+		require.NoError(t, err)
+		require.Len(t, states, 1)
+		require.Equal(t, before.ID, states[0].ID)
+		require.Equal(t, before.CreatedAt, states[0].CreatedAt)
+		require.Equal(t, at.Add(time.Hour), states[0].UpdatedAt)
+		require.Equal(t, before.LastSuccessState, states[0].LastSuccessState)
+		require.Equal(t, before.LastSuccessAt, states[0].LastSuccessAt)
+		require.Equal(t, before.LastSyncedSubsRevision, states[0].LastSyncedSubsRevision)
+		require.NotEqual(t, before.CurrentSubsRevision, states[0].CurrentSubsRevision)
+	})
+
+	t.Run("namespace ownership and missing subscriptions return not found", func(t *testing.T) {
+		// Given a subscription that belongs to one namespace.
+		f := setupSyncStateV2PersistenceTest(t, at)
+		ctx := t.Context()
+
+		// When a caller uses another namespace or a missing ID, neither write is allowed.
+		for _, id := range []models.NamespacedID{
+			{Namespace: "other", ID: f.input.SubscriptionID.ID},
+			{Namespace: f.input.SubscriptionID.Namespace, ID: ulid.Make().String()},
+		} {
+			require.ErrorAs(t, f.adapter.MarkSubscriptionChangedV2(ctx, id), new(*subscription.SubscriptionNotFoundError))
+		}
+
+		// Then no sync-state row has been created.
+		states, err := f.adapter.GetSyncStatesV2(ctx, subscriptionsync.GetSyncStatesV2Input{f.input.SubscriptionID})
+		require.NoError(t, err)
+		require.Empty(t, states)
+	})
+
+	t.Run("revision changes join the caller transaction", func(t *testing.T) {
+		// Given an existing result and a mutation that will roll back.
+		f := setupSyncStateV2PersistenceTest(t, at)
+		ctx := t.Context()
+		require.NoError(t, f.adapter.RecordSyncResultV2(ctx, f.input))
+		before, err := f.adapter.GetSyncStatesV2(ctx, subscriptionsync.GetSyncStatesV2Input{f.input.SubscriptionID})
+		require.NoError(t, err)
+		rollbackErr := errors.New("subscription mutation failed")
+
+		// When the outer transaction fails after marking the change.
+		err = transaction.RunWithNoValue(ctx, f.adapter, func(ctx context.Context) error {
+			if err := f.adapter.MarkSubscriptionChangedV2(ctx, f.input.SubscriptionID); err != nil {
+				return err
+			}
+
+			return rollbackErr
+		})
+		require.ErrorIs(t, err, rollbackErr)
+
+		// Then the previous result and revision marker remain intact.
+		after, err := f.adapter.GetSyncStatesV2(ctx, subscriptionsync.GetSyncStatesV2Input{f.input.SubscriptionID})
+		require.NoError(t, err)
+		require.Equal(t, before, after)
+	})
+
+	t.Run("result recording cannot initialize new state", func(t *testing.T) {
+		// Given the result writer, which must only acknowledge completed outcomes.
+		f := setupSyncStateV2PersistenceTest(t, at)
+		input := f.input
+		input.LastSuccessState = subscriptionsync.SyncStateV2StateNew
+
+		// When a caller tries to record new as a completed result, validation rejects it.
+		require.ErrorContains(t, f.adapter.RecordSyncResultV2(t.Context(), input), "initialized by a subscription change")
+		states, err := f.adapter.GetSyncStatesV2(t.Context(), subscriptionsync.GetSyncStatesV2Input{input.SubscriptionID})
 		require.NoError(t, err)
 		require.Empty(t, states)
 	})
