@@ -248,8 +248,9 @@ When changing the copies:
   responses, so they have no defaults and no patterns or length limits the
   server doesn't guarantee (for example, the subject `id`, `subject_key`, and
   the customer `id` and `name` of entitlement Events stored before snapshots
-  carried a customer can be empty), and they leave out union variants the mapper
-  never sends.
+  carried a customer can be empty; an invoice's customer `subject_keys` and its
+  workflow apps can be null), and they leave out union variants the mapper never
+  sends.
 - Keep the v1 enum spellings, including the deprecated `PERCENT` and `NUMBER`
   threshold types.
 - Keep `metadata` and `annotations` instead of v3 `labels`. Labels are
