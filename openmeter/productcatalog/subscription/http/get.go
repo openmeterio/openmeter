@@ -7,7 +7,7 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
@@ -22,11 +22,11 @@ import (
 type (
 	GetSubscriptionRequest = struct {
 		ID    models.NamespacedID
-		Query api.GetSubscriptionParams
+		Query apiv1models.GetSubscriptionParams
 	}
-	GetSubscriptionResponse = api.SubscriptionExpanded
+	GetSubscriptionResponse = apiv1models.SubscriptionExpanded
 	GetSubscriptionParams   = struct {
-		Query api.GetSubscriptionParams
+		Query apiv1models.GetSubscriptionParams
 		ID    string
 	}
 	GetSubscriptionHandler = httptransport.HandlerWithArgs[GetSubscriptionRequest, GetSubscriptionResponse, GetSubscriptionParams]
@@ -87,7 +87,7 @@ func (h *handler) GetSubscription() GetSubscriptionHandler {
 type (
 	ListCustomerSubscriptionsParams = struct {
 		CustomerIDOrKey string
-		Params          api.ListCustomerSubscriptionsParams
+		Params          apiv1models.ListCustomerSubscriptionsParams
 	}
 	ListCustomerSubscriptionsRequest = struct {
 		CustomerID customer.CustomerID
@@ -96,7 +96,7 @@ type (
 		Order      sortx.Order
 		Status     []subscription.SubscriptionStatus
 	}
-	ListCustomerSubscriptionsResponse = pagination.Result[api.Subscription]
+	ListCustomerSubscriptionsResponse = pagination.Result[apiv1models.Subscription]
 	ListCustomerSubscriptionsHandler  = httptransport.HandlerWithArgs[ListCustomerSubscriptionsRequest, ListCustomerSubscriptionsResponse, ListCustomerSubscriptionsParams]
 )
 
@@ -138,8 +138,8 @@ func (h *handler) ListCustomerSubscriptions() ListCustomerSubscriptionsHandler {
 			}
 
 			var orderBy subscription.OrderBy
-			switch lo.FromPtrOr(params.Params.OrderBy, api.CustomerSubscriptionOrderByActiveFrom) {
-			case api.CustomerSubscriptionOrderByActiveTo:
+			switch lo.FromPtrOr(params.Params.OrderBy, apiv1models.CustomerSubscriptionOrderByActiveFrom) {
+			case apiv1models.CustomerSubscriptionOrderByActiveTo:
 				orderBy = subscription.OrderByActiveTo
 			default:
 				orderBy = subscription.OrderByActiveFrom
@@ -149,10 +149,10 @@ func (h *handler) ListCustomerSubscriptions() ListCustomerSubscriptionsHandler {
 				CustomerID: cus.GetID(),
 				Page:       page,
 				OrderBy:    orderBy,
-				Order:      sortx.Order(lo.FromPtrOr(params.Params.Order, api.SortOrderDESC)),
+				Order:      sortx.Order(lo.FromPtrOr(params.Params.Order, apiv1models.SortOrderDESC)),
 				Status: func() []subscription.SubscriptionStatus {
-					apiStatusFilter := lo.FromPtrOr(params.Params.Status, []api.SubscriptionStatus{})
-					statusFilter := lo.Map(apiStatusFilter, func(status api.SubscriptionStatus, _ int) subscription.SubscriptionStatus {
+					apiStatusFilter := lo.FromPtrOr(params.Params.Status, []apiv1models.SubscriptionStatus{})
+					statusFilter := lo.Map(apiStatusFilter, func(status apiv1models.SubscriptionStatus, _ int) subscription.SubscriptionStatus {
 						return subscription.SubscriptionStatus(status)
 					})
 
@@ -180,7 +180,7 @@ func (h *handler) ListCustomerSubscriptions() ListCustomerSubscriptionsHandler {
 				return def, err
 			}
 
-			apiSubs := make([]api.Subscription, len(subs.Items))
+			apiSubs := make([]apiv1models.Subscription, len(subs.Items))
 
 			for i, sub := range subs.Items {
 				apiSubs[i] = MapSubscriptionToAPI(sub)

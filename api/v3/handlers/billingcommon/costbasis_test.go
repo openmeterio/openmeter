@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	api "github.com/openmeterio/openmeter/api/v3"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
@@ -22,9 +22,9 @@ func TestFromAPIChargeCostBasis(t *testing.T) {
 	})
 
 	t.Run("dynamic", func(t *testing.T) {
-		var in api.BillingChargeCostBasis
-		require.NoError(t, in.FromBillingChargeCostBasisDynamic(api.BillingChargeCostBasisDynamic{
-			Type:         api.BillingChargeCostBasisDynamicTypeDynamic,
+		var in apiv3models.BillingChargeCostBasis
+		require.NoError(t, in.FromBillingChargeCostBasisDynamic(apiv3models.BillingChargeCostBasisDynamic{
+			Type:         apiv3models.BillingChargeCostBasisDynamicTypeDynamic,
 			FiatCurrency: "USD",
 		}))
 
@@ -39,9 +39,9 @@ func TestFromAPIChargeCostBasis(t *testing.T) {
 	})
 
 	t.Run("manual", func(t *testing.T) {
-		var in api.BillingChargeCostBasis
-		require.NoError(t, in.FromBillingChargeCostBasisManual(api.BillingChargeCostBasisManual{
-			Type:         api.BillingChargeCostBasisManualTypeManual,
+		var in apiv3models.BillingChargeCostBasis
+		require.NoError(t, in.FromBillingChargeCostBasisManual(apiv3models.BillingChargeCostBasisManual{
+			Type:         apiv3models.BillingChargeCostBasisManualTypeManual,
 			FiatCurrency: lo.ToPtr("USD"),
 			Rate:         "0.5",
 		}))
@@ -56,9 +56,9 @@ func TestFromAPIChargeCostBasis(t *testing.T) {
 	})
 
 	t.Run("pinned", func(t *testing.T) {
-		var in api.BillingChargeCostBasis
-		require.NoError(t, in.FromBillingChargeCostBasisPinned(api.BillingChargeCostBasisPinned{
-			Type:         api.BillingChargeCostBasisPinnedTypePinned,
+		var in apiv3models.BillingChargeCostBasis
+		require.NoError(t, in.FromBillingChargeCostBasisPinned(apiv3models.BillingChargeCostBasisPinned{
+			Type:         apiv3models.BillingChargeCostBasisPinnedTypePinned,
 			FiatCurrency: "USD",
 			CostBasisId:  "cb-1",
 		}))
@@ -73,9 +73,9 @@ func TestFromAPIChargeCostBasis(t *testing.T) {
 	})
 
 	t.Run("invalid rate", func(t *testing.T) {
-		var in api.BillingChargeCostBasis
-		require.NoError(t, in.FromBillingChargeCostBasisManual(api.BillingChargeCostBasisManual{
-			Type:         api.BillingChargeCostBasisManualTypeManual,
+		var in apiv3models.BillingChargeCostBasis
+		require.NoError(t, in.FromBillingChargeCostBasisManual(apiv3models.BillingChargeCostBasisManual{
+			Type:         apiv3models.BillingChargeCostBasisManualTypeManual,
 			FiatCurrency: lo.ToPtr("USD"),
 			Rate:         "not-a-number",
 		}))
@@ -111,7 +111,7 @@ func TestToAPIChargeResolvedCostBasis(t *testing.T) {
 		out, err := ToAPIChargeResolvedCostBasis(fiat, state)
 		require.NoError(t, err)
 		require.NotNil(t, out)
-		assert.Equal(t, api.CurrencyCode("USD"), out.FiatCurrency)
+		assert.Equal(t, apiv3models.CurrencyCode("USD"), out.FiatCurrency)
 		assert.Equal(t, "0.5", out.Rate)
 		assert.Equal(t, lo.ToPtr("cb-1"), out.CostBasisId)
 		assert.Equal(t, resolvedAt, out.ResolvedAt)

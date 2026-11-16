@@ -5,25 +5,25 @@ package tax
 import (
 	"errors"
 
-	api "github.com/openmeterio/openmeter/api/v3"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // ToAPITaxCodeConfig maps a lean tax config to the v3 shape, and nil or an empty config to nil.
-func ToAPITaxCodeConfig(c *productcatalog.TaxCodeConfig) *api.TaxCodeConfig {
+func ToAPITaxCodeConfig(c *productcatalog.TaxCodeConfig) *apiv3models.TaxCodeConfig {
 	if c == nil || (c.Behavior == nil && c.TaxCodeID == "") {
 		return nil
 	}
 
-	result := &api.TaxCodeConfig{}
+	result := &apiv3models.TaxCodeConfig{}
 
 	if c.TaxCodeID != "" {
-		result.Code = &api.TaxCodeReference{Id: c.TaxCodeID}
+		result.Code = &apiv3models.TaxCodeReference{Id: c.TaxCodeID}
 	}
 
 	if c.Behavior != nil {
-		result.Behavior = (*api.BillingTaxBehavior)(c.Behavior)
+		result.Behavior = (*apiv3models.BillingTaxBehavior)(c.Behavior)
 	}
 
 	return result
@@ -31,7 +31,7 @@ func ToAPITaxCodeConfig(c *productcatalog.TaxCodeConfig) *api.TaxCodeConfig {
 
 // FromAPITaxCodeConfig maps the v3 shape back to a lean tax config. A nil input is absent; an
 // explicit code reference without an ID, or a config without either field, is a validation error.
-func FromAPITaxCodeConfig(tc *api.TaxCodeConfig) (*productcatalog.TaxCodeConfig, error) {
+func FromAPITaxCodeConfig(tc *apiv3models.TaxCodeConfig) (*productcatalog.TaxCodeConfig, error) {
 	if tc == nil {
 		return nil, nil
 	}

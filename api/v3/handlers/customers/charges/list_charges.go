@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/response"
 	billingcharges "github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -15,8 +15,8 @@ import (
 
 type (
 	ListChargesRequest  = billingcharges.ListCustomerChargesInput
-	ListChargesResponse = response.PagePaginationResponse[api.BillingCharge]
-	ListChargesParams   = api.ListChargesParams
+	ListChargesResponse = response.PagePaginationResponse[apiv3models.BillingCharge]
+	ListChargesParams   = apiv3models.ListChargesParams
 	ListChargesHandler  = httptransport.HandlerWithArgs[ListChargesRequest, ListChargesResponse, ListChargesParams]
 )
 

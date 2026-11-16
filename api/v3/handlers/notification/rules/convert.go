@@ -6,11 +6,11 @@ import (
 
 	"github.com/samber/lo"
 
-	v1api "github.com/openmeterio/openmeter/api"
-	api "github.com/openmeterio/openmeter/api/v3"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/handlers/notification/events"
 	"github.com/openmeterio/openmeter/api/v3/labels"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -36,32 +36,32 @@ func FromAPIRuleSortField(ctx context.Context, field string) (notification.Order
 // The stored value is the v1 API model. Its deprecated aliases `NUMBER` and `PERCENT`
 // are not part of the v3 enum, so they are rejected on write even though reads still
 // normalize them (events.ToAPIBillingNotificationBalanceThresholdType).
-func FromAPIBillingNotificationBalanceThresholdType(v api.BillingNotificationBalanceThresholdType) (v1api.NotificationRuleBalanceThresholdValueType, error) {
+func FromAPIBillingNotificationBalanceThresholdType(v apiv3models.BillingNotificationBalanceThresholdType) (apiv1models.NotificationRuleBalanceThresholdValueType, error) {
 	switch v {
-	case api.BillingNotificationBalanceThresholdTypeBalanceValue:
-		return v1api.NotificationRuleBalanceThresholdValueTypeBalanceValue, nil
-	case api.BillingNotificationBalanceThresholdTypeUsagePercentage:
-		return v1api.NotificationRuleBalanceThresholdValueTypeUsagePercentage, nil
-	case api.BillingNotificationBalanceThresholdTypeUsageValue:
-		return v1api.NotificationRuleBalanceThresholdValueTypeUsageValue, nil
+	case apiv3models.BillingNotificationBalanceThresholdTypeBalanceValue:
+		return apiv1models.NotificationRuleBalanceThresholdValueTypeBalanceValue, nil
+	case apiv3models.BillingNotificationBalanceThresholdTypeUsagePercentage:
+		return apiv1models.NotificationRuleBalanceThresholdValueTypeUsagePercentage, nil
+	case apiv3models.BillingNotificationBalanceThresholdTypeUsageValue:
+		return apiv1models.NotificationRuleBalanceThresholdValueTypeUsageValue, nil
 	default:
 		return "", models.NewGenericValidationError(fmt.Errorf("invalid notification balance threshold type: %s", v))
 	}
 }
 
-func fromAPIBillingNotificationBalanceThresholds(thresholds []api.BillingNotificationBalanceThreshold) ([]notification.BalanceThreshold, error) {
-	return lo.MapErr(thresholds, func(threshold api.BillingNotificationBalanceThreshold, _ int) (notification.BalanceThreshold, error) {
+func fromAPIBillingNotificationBalanceThresholds(thresholds []apiv3models.BillingNotificationBalanceThreshold) ([]notification.BalanceThreshold, error) {
+	return lo.MapErr(thresholds, func(threshold apiv3models.BillingNotificationBalanceThreshold, _ int) (notification.BalanceThreshold, error) {
 		thresholdType, err := FromAPIBillingNotificationBalanceThresholdType(threshold.Type)
 
 		return notification.BalanceThreshold{Type: thresholdType, Value: threshold.Value}, err
 	})
 }
 
-func toAPIBillingNotificationBalanceThresholds(thresholds []notification.BalanceThreshold) ([]api.BillingNotificationBalanceThreshold, error) {
-	return lo.MapErr(thresholds, func(threshold notification.BalanceThreshold, _ int) (api.BillingNotificationBalanceThreshold, error) {
+func toAPIBillingNotificationBalanceThresholds(thresholds []notification.BalanceThreshold) ([]apiv3models.BillingNotificationBalanceThreshold, error) {
+	return lo.MapErr(thresholds, func(threshold notification.BalanceThreshold, _ int) (apiv3models.BillingNotificationBalanceThreshold, error) {
 		thresholdType, err := events.ToAPIBillingNotificationBalanceThresholdType(threshold.Type)
 
-		return api.BillingNotificationBalanceThreshold{Type: thresholdType, Value: threshold.Value}, err
+		return apiv3models.BillingNotificationBalanceThreshold{Type: thresholdType, Value: threshold.Value}, err
 	})
 }
 
@@ -76,7 +76,7 @@ type ruleRequest struct {
 	Annotations models.Annotations
 }
 
-func FromAPICreateRuleRequest(ns string, body api.BillingNotificationRuleRequest) (notification.CreateRuleInput, error) {
+func FromAPICreateRuleRequest(ns string, body apiv3models.BillingNotificationRuleRequest) (notification.CreateRuleInput, error) {
 	r, err := fromAPIRuleRequest(body)
 	if err != nil {
 		return notification.CreateRuleInput{}, err
@@ -96,7 +96,7 @@ func FromAPICreateRuleRequest(ns string, body api.BillingNotificationRuleRequest
 
 // Updates are full replacements: an omitted disabled, labels, or features resets the
 // field. The service rejects a type that differs from the stored rule.
-func FromAPIUpdateRuleRequest(ns string, id string, body api.BillingNotificationRuleRequest) (notification.UpdateRuleInput, error) {
+func FromAPIUpdateRuleRequest(ns string, id string, body apiv3models.BillingNotificationRuleRequest) (notification.UpdateRuleInput, error) {
 	r, err := fromAPIRuleRequest(body)
 	if err != nil {
 		return notification.UpdateRuleInput{}, err
@@ -114,7 +114,7 @@ func FromAPIUpdateRuleRequest(ns string, id string, body api.BillingNotification
 	}, nil
 }
 
-func fromAPIRuleRequest(body api.BillingNotificationRuleRequest) (ruleRequest, error) {
+func fromAPIRuleRequest(body apiv3models.BillingNotificationRuleRequest) (ruleRequest, error) {
 	discriminator, err := body.Discriminator()
 	if err != nil {
 		return ruleRequest{}, models.NewGenericValidationError(fmt.Errorf("invalid notification rule type: %w", err))
@@ -178,7 +178,7 @@ func fromAPIRuleRequest(body api.BillingNotificationRuleRequest) (ruleRequest, e
 	}
 }
 
-func newRuleRequest(ruleType notification.EventType, name string, disabled *bool, channels []api.NotificationChannelReference, apiLabels *api.Labels, config notification.RuleConfig) (ruleRequest, error) {
+func newRuleRequest(ruleType notification.EventType, name string, disabled *bool, channels []apiv3models.NotificationChannelReference, apiLabels *apiv3models.Labels, config notification.RuleConfig) (ruleRequest, error) {
 	ma, err := labels.ToMetadataAnnotations(apiLabels)
 	if err != nil {
 		return ruleRequest{}, err
@@ -188,7 +188,7 @@ func newRuleRequest(ruleType notification.EventType, name string, disabled *bool
 		Type:        ruleType,
 		Name:        name,
 		Disabled:    lo.FromPtr(disabled),
-		Channels:    lo.Map(channels, func(ref api.NotificationChannelReference, _ int) string { return ref.Id }),
+		Channels:    lo.Map(channels, func(ref apiv3models.NotificationChannelReference, _ int) string { return ref.Id }),
 		Config:      config,
 		Metadata:    ma.Metadata,
 		Annotations: ma.Annotations,
@@ -197,11 +197,11 @@ func newRuleRequest(ruleType notification.EventType, name string, disabled *bool
 
 // Only the rule's active channels are loaded on the domain object, so channels omits
 // those disabled or deleted since the assignment; features were resolved by the service.
-func ToAPIBillingNotificationRule(r notification.RuleView) (api.BillingNotificationRule, error) {
-	var rule api.BillingNotificationRule
+func ToAPIBillingNotificationRule(r notification.RuleView) (apiv3models.BillingNotificationRule, error) {
+	var rule apiv3models.BillingNotificationRule
 
-	channels := lo.Map(r.Channels, func(channel notification.Channel, _ int) api.NotificationChannelReference {
-		return api.NotificationChannelReference{Id: channel.ID}
+	channels := lo.Map(r.Channels, func(channel notification.Channel, _ int) apiv3models.NotificationChannelReference {
+		return apiv3models.NotificationChannelReference{Id: channel.ID}
 	})
 	features := toAPIFeatureReferences(r.Features)
 	ruleLabels := labels.FromMetadataAnnotations(r.Metadata, r.Annotations)
@@ -217,10 +217,10 @@ func ToAPIBillingNotificationRule(r notification.RuleView) (api.BillingNotificat
 			return rule, err
 		}
 
-		return rule, rule.FromBillingNotificationRuleBalanceThreshold(api.BillingNotificationRuleBalanceThreshold{
+		return rule, rule.FromBillingNotificationRuleBalanceThreshold(apiv3models.BillingNotificationRuleBalanceThreshold{
 			Id:         r.ID,
 			Name:       r.Name,
-			Type:       api.BillingNotificationRuleBalanceThresholdTypeEntitlementsBalanceThreshold,
+			Type:       apiv3models.BillingNotificationRuleBalanceThresholdTypeEntitlementsBalanceThreshold,
 			Disabled:   lo.ToPtr(r.Disabled),
 			Channels:   channels,
 			Thresholds: thresholds,
@@ -235,10 +235,10 @@ func ToAPIBillingNotificationRule(r notification.RuleView) (api.BillingNotificat
 			return rule, fmt.Errorf("missing entitlement reset config on notification rule %s", r.ID)
 		}
 
-		return rule, rule.FromBillingNotificationRuleEntitlementReset(api.BillingNotificationRuleEntitlementReset{
+		return rule, rule.FromBillingNotificationRuleEntitlementReset(apiv3models.BillingNotificationRuleEntitlementReset{
 			Id:        r.ID,
 			Name:      r.Name,
-			Type:      api.BillingNotificationRuleEntitlementResetTypeEntitlementsReset,
+			Type:      apiv3models.BillingNotificationRuleEntitlementResetTypeEntitlementsReset,
 			Disabled:  lo.ToPtr(r.Disabled),
 			Channels:  channels,
 			Features:  features,
@@ -248,10 +248,10 @@ func ToAPIBillingNotificationRule(r notification.RuleView) (api.BillingNotificat
 			DeletedAt: r.DeletedAt,
 		})
 	case notification.EventTypeInvoiceCreated:
-		return rule, rule.FromBillingNotificationRuleInvoiceCreated(api.BillingNotificationRuleInvoiceCreated{
+		return rule, rule.FromBillingNotificationRuleInvoiceCreated(apiv3models.BillingNotificationRuleInvoiceCreated{
 			Id:        r.ID,
 			Name:      r.Name,
-			Type:      api.BillingNotificationRuleInvoiceCreatedTypeInvoiceCreated,
+			Type:      apiv3models.BillingNotificationRuleInvoiceCreatedTypeInvoiceCreated,
 			Disabled:  lo.ToPtr(r.Disabled),
 			Channels:  channels,
 			Labels:    ruleLabels,
@@ -260,10 +260,10 @@ func ToAPIBillingNotificationRule(r notification.RuleView) (api.BillingNotificat
 			DeletedAt: r.DeletedAt,
 		})
 	case notification.EventTypeInvoiceUpdated:
-		return rule, rule.FromBillingNotificationRuleInvoiceUpdated(api.BillingNotificationRuleInvoiceUpdated{
+		return rule, rule.FromBillingNotificationRuleInvoiceUpdated(apiv3models.BillingNotificationRuleInvoiceUpdated{
 			Id:        r.ID,
 			Name:      r.Name,
-			Type:      api.BillingNotificationRuleInvoiceUpdatedTypeInvoiceUpdated,
+			Type:      apiv3models.BillingNotificationRuleInvoiceUpdatedTypeInvoiceUpdated,
 			Disabled:  lo.ToPtr(r.Disabled),
 			Channels:  channels,
 			Labels:    ruleLabels,
@@ -276,20 +276,20 @@ func ToAPIBillingNotificationRule(r notification.RuleView) (api.BillingNotificat
 	}
 }
 
-func fromAPIFeatureReferences(refs *[]api.FeatureReference) []string {
+func fromAPIFeatureReferences(refs *[]apiv3models.FeatureReference) []string {
 	if refs == nil {
 		return nil
 	}
 
-	return lo.Map(*refs, func(ref api.FeatureReference, _ int) string { return ref.Id })
+	return lo.Map(*refs, func(ref apiv3models.FeatureReference, _ int) string { return ref.Id })
 }
 
-func toAPIFeatureReferences(features []feature.Feature) *[]api.FeatureReference {
+func toAPIFeatureReferences(features []feature.Feature) *[]apiv3models.FeatureReference {
 	if len(features) == 0 {
 		return nil
 	}
 
-	return lo.ToPtr(lo.Map(features, func(f feature.Feature, _ int) api.FeatureReference {
-		return api.FeatureReference{Id: f.ID}
+	return lo.ToPtr(lo.Map(features, func(f feature.Feature, _ int) apiv3models.FeatureReference {
+		return apiv3models.FeatureReference{Id: f.ID}
 	}))
 }

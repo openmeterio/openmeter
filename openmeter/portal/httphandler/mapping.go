@@ -5,13 +5,13 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/portal"
 )
 
 // toAPIPortalToken maps a portal token to an API portal token.
-func toAPIPortalToken(t *portal.PortalToken) api.PortalToken {
-	apiPortalToken := api.PortalToken{
+func toAPIPortalToken(t *portal.PortalToken) apiv1models.PortalToken {
+	apiPortalToken := apiv1models.PortalToken{
 		Id:                t.Id,
 		ExpiresAt:         t.ExpiresAt,
 		Subject:           t.Subject,

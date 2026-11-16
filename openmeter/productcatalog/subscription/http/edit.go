@@ -8,7 +8,7 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	productcataloghttp "github.com/openmeterio/openmeter/openmeter/productcatalog/http"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
@@ -22,10 +22,10 @@ type (
 	// Tax Codes for legacy stripe.code values, which has to happen in the same transaction as the edit.
 	EditSubscriptionRequest = struct {
 		ID             models.NamespacedID
-		Customizations []api.SubscriptionEditOperation
+		Customizations []apiv1models.SubscriptionEditOperation
 		Timing         subscription.Timing
 	}
-	EditSubscriptionResponse = api.Subscription
+	EditSubscriptionResponse = apiv1models.Subscription
 	EditSubscriptionParams   = struct {
 		ID string
 	}
@@ -40,7 +40,7 @@ func (h *handler) EditSubscription() EditSubscriptionHandler {
 				return EditSubscriptionRequest{}, err
 			}
 
-			var body api.EditSubscriptionJSONRequestBody
+			var body apiv1models.EditSubscriptionJSONRequestBody
 
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
 				return EditSubscriptionRequest{}, err

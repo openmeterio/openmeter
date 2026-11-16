@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"net/http"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/handlers/notification/events"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/notification/testevent"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -17,7 +17,7 @@ import (
 
 type (
 	TestNotificationRuleRequest  = notification.GetRuleInput
-	TestNotificationRuleResponse = api.BillingNotificationEvent
+	TestNotificationRuleResponse = apiv3models.BillingNotificationEvent
 	TestNotificationRuleParams   = string
 	TestNotificationRuleHandler  = httptransport.HandlerWithArgs[TestNotificationRuleRequest, TestNotificationRuleResponse, TestNotificationRuleParams]
 )

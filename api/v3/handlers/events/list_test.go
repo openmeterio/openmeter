@@ -7,8 +7,8 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
@@ -23,7 +23,7 @@ func TestFromAPICustomerIDFilter(t *testing.T) {
 	})
 
 	t.Run("eq maps to In with one element", func(t *testing.T) {
-		out, err := fromAPICustomerIDFilter(ctx, &api.ULIDFieldFilter{Eq: lo.ToPtr("01G65Z755AFWAKHE12NY0CQ9FH")})
+		out, err := fromAPICustomerIDFilter(ctx, &apiv3models.ULIDFieldFilter{Eq: lo.ToPtr("01G65Z755AFWAKHE12NY0CQ9FH")})
 		require.NoError(t, err)
 		require.NotNil(t, out)
 		require.NotNil(t, out.In)
@@ -31,14 +31,14 @@ func TestFromAPICustomerIDFilter(t *testing.T) {
 	})
 
 	t.Run("oeq maps to In", func(t *testing.T) {
-		out, err := fromAPICustomerIDFilter(ctx, &api.ULIDFieldFilter{Oeq: []string{"a", "b"}})
+		out, err := fromAPICustomerIDFilter(ctx, &apiv3models.ULIDFieldFilter{Oeq: []string{"a", "b"}})
 		require.NoError(t, err)
 		require.NotNil(t, out)
 		require.Equal(t, []string{"a", "b"}, *out.In)
 	})
 
 	t.Run("neq is rejected", func(t *testing.T) {
-		_, err := fromAPICustomerIDFilter(ctx, &api.ULIDFieldFilter{Neq: lo.ToPtr("x")})
+		_, err := fromAPICustomerIDFilter(ctx, &apiv3models.ULIDFieldFilter{Neq: lo.ToPtr("x")})
 		require.Error(t, err)
 		assertBadRequestField(t, err, "filter[customer_id]")
 	})
@@ -55,7 +55,7 @@ func TestFromAPIEventSort(t *testing.T) {
 	})
 
 	t.Run("time defaults to desc when no suffix", func(t *testing.T) {
-		sort := api.SortQuery("time")
+		sort := apiv3models.SortQuery("time")
 		field, order, err := fromAPIEventSort(ctx, &sort)
 		require.NoError(t, err)
 		require.Equal(t, streaming.EventSortFieldTime, field)
@@ -63,7 +63,7 @@ func TestFromAPIEventSort(t *testing.T) {
 	})
 
 	t.Run("ingested_at desc", func(t *testing.T) {
-		sort := api.SortQuery("ingested_at desc")
+		sort := apiv3models.SortQuery("ingested_at desc")
 		field, order, err := fromAPIEventSort(ctx, &sort)
 		require.NoError(t, err)
 		require.Equal(t, streaming.EventSortFieldIngestedAt, field)
@@ -71,7 +71,7 @@ func TestFromAPIEventSort(t *testing.T) {
 	})
 
 	t.Run("stored_at defaults to desc when no suffix", func(t *testing.T) {
-		sort := api.SortQuery("stored_at")
+		sort := apiv3models.SortQuery("stored_at")
 		field, order, err := fromAPIEventSort(ctx, &sort)
 		require.NoError(t, err)
 		require.Equal(t, streaming.EventSortFieldStoredAt, field)
@@ -79,7 +79,7 @@ func TestFromAPIEventSort(t *testing.T) {
 	})
 
 	t.Run("time asc suffix is honored", func(t *testing.T) {
-		sort := api.SortQuery("time asc")
+		sort := apiv3models.SortQuery("time asc")
 		field, order, err := fromAPIEventSort(ctx, &sort)
 		require.NoError(t, err)
 		require.Equal(t, streaming.EventSortFieldTime, field)
@@ -87,14 +87,14 @@ func TestFromAPIEventSort(t *testing.T) {
 	})
 
 	t.Run("unknown field is rejected", func(t *testing.T) {
-		sort := api.SortQuery("created_at")
+		sort := apiv3models.SortQuery("created_at")
 		_, _, err := fromAPIEventSort(ctx, &sort)
 		require.Error(t, err)
 		assertBadRequestField(t, err, "sort")
 	})
 
 	t.Run("malformed input is rejected", func(t *testing.T) {
-		sort := api.SortQuery("time bogus extra")
+		sort := apiv3models.SortQuery("time bogus extra")
 		_, _, err := fromAPIEventSort(ctx, &sort)
 		require.Error(t, err)
 		assertBadRequestField(t, err, "sort")

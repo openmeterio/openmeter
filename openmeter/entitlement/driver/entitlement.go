@@ -10,7 +10,7 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
@@ -68,7 +68,7 @@ type (
 		SubjectIdOrKey string
 		Namespace      string
 	}
-	CreateEntitlementHandlerResponse = *api.Entitlement
+	CreateEntitlementHandlerResponse = *apiv1models.Entitlement
 	CreateEntitlementHandlerParams   = string
 )
 
@@ -77,7 +77,7 @@ type CreateEntitlementHandler httptransport.HandlerWithArgs[CreateEntitlementHan
 func (h *entitlementHandler) CreateEntitlement() CreateEntitlementHandler {
 	return httptransport.NewHandlerWithArgs[CreateEntitlementHandlerRequest, CreateEntitlementHandlerResponse, string](
 		func(ctx context.Context, r *http.Request, subjectIdOrKey string) (CreateEntitlementHandlerRequest, error) {
-			inp := &api.EntitlementCreateInputs{}
+			inp := &apiv1models.EntitlementCreateInputs{}
 			request := CreateEntitlementHandlerRequest{}
 			if err := commonhttp.JSONRequestBodyDecoder(r, &inp); err != nil {
 				return request, err
@@ -136,7 +136,7 @@ type (
 		SubjectIdOrKey            string
 		EntitlementIdOrFeatureKey string
 	}
-	OverrideEntitlementHandlerResponse = *api.Entitlement
+	OverrideEntitlementHandlerResponse = *apiv1models.Entitlement
 	OverrideEntitlementHandlerParams   struct {
 		SubjectIdOrKey            string
 		EntitlementIdOrFeatureKey string
@@ -148,7 +148,7 @@ type OverrideEntitlementHandler httptransport.HandlerWithArgs[OverrideEntitlemen
 func (h *entitlementHandler) OverrideEntitlement() OverrideEntitlementHandler {
 	return httptransport.NewHandlerWithArgs[OverrideEntitlementHandlerRequest, OverrideEntitlementHandlerResponse, OverrideEntitlementHandlerParams](
 		func(ctx context.Context, r *http.Request, params OverrideEntitlementHandlerParams) (OverrideEntitlementHandlerRequest, error) {
-			inp := &api.EntitlementCreateInputs{}
+			inp := &apiv1models.EntitlementCreateInputs{}
 			request := OverrideEntitlementHandlerRequest{}
 			if err := commonhttp.JSONRequestBodyDecoder(r, &inp); err != nil {
 				return request, err
@@ -208,11 +208,11 @@ type GetEntitlementValueHandlerRequest struct {
 	At                        time.Time
 }
 type (
-	GetEntitlementValueHandlerResponse = api.EntitlementValue
+	GetEntitlementValueHandlerResponse = apiv1models.EntitlementValue
 	GetEntitlementValueHandlerParams   struct {
 		SubjectKey                string
 		EntitlementIdOrFeatureKey string
-		Params                    api.GetEntitlementValueParams
+		Params                    apiv1models.GetEntitlementValueParams
 	}
 )
 type GetEntitlementValueHandler httptransport.HandlerWithArgs[GetEntitlementValueHandlerRequest, GetEntitlementValueHandlerResponse, GetEntitlementValueHandlerParams]
@@ -232,26 +232,26 @@ func (h *entitlementHandler) GetEntitlementValue() GetEntitlementValueHandler {
 				At:                        defaultx.WithDefault(params.Params.Time, clock.Now()),
 			}, nil
 		},
-		func(ctx context.Context, request GetEntitlementValueHandlerRequest) (api.EntitlementValue, error) {
+		func(ctx context.Context, request GetEntitlementValueHandlerRequest) (apiv1models.EntitlementValue, error) {
 			cust, err := h.resolveCustomerFromSubject(ctx, request.Namespace, request.SubjectKey)
 			if err != nil {
-				return api.EntitlementValue{}, err
+				return apiv1models.EntitlementValue{}, err
 			}
 
 			if cust == nil {
-				return api.EntitlementValue{}, models.NewGenericPreConditionFailedError(
+				return apiv1models.EntitlementValue{}, models.NewGenericPreConditionFailedError(
 					fmt.Errorf("customer not found [namespace=%s subject.id=%s]", request.Namespace, request.SubjectKey),
 				)
 			}
 
 			entitlementValue, err := h.connector.GetEntitlementValue(ctx, request.Namespace, cust.ID, request.EntitlementIdOrFeatureKey, request.At)
 			if err != nil {
-				return api.EntitlementValue{}, err
+				return apiv1models.EntitlementValue{}, err
 			}
 
 			return MapEntitlementValueToAPI(entitlementValue)
 		},
-		commonhttp.JSONResponseEncoder[api.EntitlementValue],
+		commonhttp.JSONResponseEncoder[apiv1models.EntitlementValue],
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("getEntitlementValue"),
@@ -264,12 +264,12 @@ type (
 	GetEntitlementsOfSubjectHandlerRequest = struct {
 		Namespace      string
 		SubjectIdOrKey string
-		Params         api.ListSubjectEntitlementsParams
+		Params         apiv1models.ListSubjectEntitlementsParams
 	}
-	GetEntitlementsOfSubjectHandlerResponse = []api.Entitlement
+	GetEntitlementsOfSubjectHandlerResponse = []apiv1models.Entitlement
 	GetEntitlementsOfSubjectHandlerParams   struct {
 		SubjectIdOrKey string
-		Params         api.ListSubjectEntitlementsParams
+		Params         apiv1models.ListSubjectEntitlementsParams
 	}
 )
 
@@ -320,7 +320,7 @@ func (h *entitlementHandler) GetEntitlementsOfSubjectHandler() GetEntitlementsOf
 
 			entitlements := ents.Items
 
-			res := make([]api.Entitlement, 0, len(entitlements))
+			res := make([]apiv1models.Entitlement, 0, len(entitlements))
 			for _, e := range entitlements {
 				ent, err := Parser.ToAPIGeneric(&entitlement.EntitlementWithCustomer{Entitlement: e, Customer: *cust})
 				if err != nil {
@@ -343,8 +343,8 @@ func (h *entitlementHandler) GetEntitlementsOfSubjectHandler() GetEntitlementsOf
 
 type (
 	ListEntitlementsHandlerRequest  = entitlement.ListEntitlementsParams
-	ListEntitlementsHandlerResponse = commonhttp.Union[[]api.Entitlement, pagination.Result[api.Entitlement]]
-	ListEntitlementsHandlerParams   = api.ListEntitlementsParams
+	ListEntitlementsHandlerResponse = commonhttp.Union[[]apiv1models.Entitlement, pagination.Result[apiv1models.Entitlement]]
+	ListEntitlementsHandlerParams   = apiv1models.ListEntitlementsParams
 )
 
 type ListEntitlementsHandler httptransport.HandlerWithArgs[ListEntitlementsHandlerRequest, ListEntitlementsHandlerResponse, ListEntitlementsHandlerParams]
@@ -386,7 +386,7 @@ func (h *entitlementHandler) ListEntitlements() ListEntitlementsHandler {
 				OrderBy: entitlement.ListEntitlementsOrderBy(
 					strcase.CamelToSnake(defaultx.WithDefault((*string)(params.OrderBy), string(entitlement.ListEntitlementsOrderByCreatedAt))),
 				),
-				Order:            commonhttp.GetSortOrder(api.SortOrderASC, params.Order),
+				Order:            commonhttp.GetSortOrder(apiv1models.SortOrderASC, params.Order),
 				SubjectKeys:      convert.DerefHeaderPtr[string](params.Subject),
 				FeatureIDsOrKeys: convert.DerefHeaderPtr[string](params.Feature),
 				EntitlementTypes: slicesx.Map[string, entitlement.EntitlementType](convert.DerefHeaderPtr[string](params.EntitlementType), func(s string) entitlement.EntitlementType {
@@ -412,8 +412,8 @@ func (h *entitlementHandler) ListEntitlements() ListEntitlementsHandler {
 		func(ctx context.Context, request ListEntitlementsHandlerRequest) (ListEntitlementsHandlerResponse, error) {
 			// due to backward compatibility, if pagination is not provided we return a simple array
 			response := ListEntitlementsHandlerResponse{
-				Option1: &[]api.Entitlement{},
-				Option2: &pagination.Result[api.Entitlement]{},
+				Option1: &[]apiv1models.Entitlement{},
+				Option2: &pagination.Result[apiv1models.Entitlement]{},
 			}
 			paged, err := h.connector.ListEntitlementsWithCustomer(ctx, request)
 			if err != nil {
@@ -422,7 +422,7 @@ func (h *entitlementHandler) ListEntitlements() ListEntitlementsHandler {
 
 			entitlements := paged.Entitlements.Items
 
-			mapped := make([]api.Entitlement, 0, len(entitlements))
+			mapped := make([]apiv1models.Entitlement, 0, len(entitlements))
 			for _, e := range entitlements {
 				cust, ok := paged.CustomersByID[models.NamespacedID{Namespace: e.Namespace, ID: e.CustomerID}]
 				if !ok || cust == nil {
@@ -441,7 +441,7 @@ func (h *entitlementHandler) ListEntitlements() ListEntitlementsHandler {
 				response.Option1 = &mapped
 			} else {
 				response.Option1 = nil
-				response.Option2 = &pagination.Result[api.Entitlement]{
+				response.Option2 = &pagination.Result[apiv1models.Entitlement]{
 					Items:      mapped,
 					TotalCount: paged.Entitlements.TotalCount,
 					Page:       paged.Entitlements.Page,
@@ -464,7 +464,7 @@ type GetEntitlementHandlerRequest struct {
 	Namespace     string
 }
 type (
-	GetEntitlementHandlerResponse = *api.Entitlement
+	GetEntitlementHandlerResponse = *apiv1models.Entitlement
 	GetEntitlementHandlerParams   struct {
 		EntitlementId string
 	}
@@ -506,7 +506,7 @@ type GetEntitlementByIdHandlerRequest struct {
 	Namespace     string
 }
 type (
-	GetEntitlementByIdHandlerResponse = *api.Entitlement
+	GetEntitlementByIdHandlerResponse = *apiv1models.Entitlement
 	GetEntitlementByIdHandlerParams   struct {
 		EntitlementId string
 	}

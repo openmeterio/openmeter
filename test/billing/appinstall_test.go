@@ -11,7 +11,7 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/app/billingprofile"
 	apphttpdriver "github.com/openmeterio/openmeter/openmeter/app/httpdriver"
@@ -146,7 +146,7 @@ func (s *ProfileTestSuite) TestV1CustomInvoicingInstallProfileFlag() {
 			recorder := httptest.NewRecorder()
 
 			// when: the production HTTP handler installs the app and optionally its profile.
-			handler.MarketplaceAppInstall().With(api.AppTypeCustomInvoicing).ServeHTTP(recorder, request)
+			handler.MarketplaceAppInstall().With(apiv1models.AppTypeCustomInvoicing).ServeHTTP(recorder, request)
 
 			// then: all requests succeed, with omitted and true flags provisioning a profile.
 			require.Equal(s.T(), http.StatusOK, recorder.Code, recorder.Body.String())

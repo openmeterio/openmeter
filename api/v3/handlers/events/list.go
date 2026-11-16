@@ -8,9 +8,9 @@ import (
 
 	"github.com/samber/lo"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/filters"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/response"
 	"github.com/openmeterio/openmeter/openmeter/meterevent"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -23,8 +23,8 @@ const defaultListMeteringEventsPageSize = 20
 
 type (
 	ListMeteringEventsRequest  = meterevent.ListEventsV2Params
-	ListMeteringEventsResponse = response.CursorPaginationResponse[api.MeteringIngestedEvent]
-	ListMeteringEventsParams   = api.ListMeteringEventsParams
+	ListMeteringEventsResponse = response.CursorPaginationResponse[apiv3models.MeteringIngestedEvent]
+	ListMeteringEventsParams   = apiv3models.ListMeteringEventsParams
 	ListMeteringEventsHandler  httptransport.HandlerWithArgs[ListMeteringEventsRequest, ListMeteringEventsResponse, ListMeteringEventsParams]
 )
 
@@ -128,7 +128,7 @@ func (h *handler) ListMeteringEvents() ListMeteringEventsHandler {
 	)
 }
 
-func applyFilters(ctx context.Context, req *ListMeteringEventsRequest, f *api.ListEventsParamsFilter) error {
+func applyFilters(ctx context.Context, req *ListMeteringEventsRequest, f *apiv3models.ListEventsParamsFilter) error {
 	id, err := filters.FromAPIFilterString(f.Id)
 	if err != nil {
 		return apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{

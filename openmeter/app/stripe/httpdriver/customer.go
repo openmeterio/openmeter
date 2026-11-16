@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	apphttphandler "github.com/openmeterio/openmeter/openmeter/app/httpdriver"
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
@@ -17,7 +17,7 @@ import (
 )
 
 type (
-	GetCustomerStripeAppDataResponse = api.StripeCustomerAppData
+	GetCustomerStripeAppDataResponse = apiv1models.StripeCustomerAppData
 	GetCustomerStripeAppDataHandler  httptransport.HandlerWithArgs[GetCustomerStripeAppDataRequest, GetCustomerStripeAppDataResponse, GetCustomerStripeAppDataParams]
 )
 
@@ -77,7 +77,7 @@ func (h *handler) GetCustomerStripeAppData() GetCustomerStripeAppDataHandler {
 
 type UpsertCustomerStripeAppDataRequest struct {
 	CustomerId customer.CustomerID
-	Data       api.StripeCustomerAppDataBase
+	Data       apiv1models.StripeCustomerAppDataBase
 }
 
 type UpsertCustomerStripeAppDataParams struct {
@@ -85,7 +85,7 @@ type UpsertCustomerStripeAppDataParams struct {
 }
 
 type (
-	UpsertCustomerStripeAppDataResponse = api.StripeCustomerAppData
+	UpsertCustomerStripeAppDataResponse = apiv1models.StripeCustomerAppData
 	UpsertCustomerStripeAppDataHandler  httptransport.HandlerWithArgs[UpsertCustomerStripeAppDataRequest, UpsertCustomerStripeAppDataResponse, UpsertCustomerStripeAppDataParams]
 )
 
@@ -94,7 +94,7 @@ func (h *handler) UpsertCustomerStripeAppData() UpsertCustomerStripeAppDataHandl
 	return httptransport.NewHandlerWithArgs(
 		func(ctx context.Context, r *http.Request, params UpsertCustomerStripeAppDataParams) (UpsertCustomerStripeAppDataRequest, error) {
 			// Parse the request body
-			body := api.StripeCustomerAppDataBase{}
+			body := apiv1models.StripeCustomerAppDataBase{}
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
 				return UpsertCustomerStripeAppDataRequest{}, fmt.Errorf("field to decode upsert customer data request: %w", err)
 			}
@@ -135,7 +135,7 @@ func (h *handler) UpsertCustomerStripeAppData() UpsertCustomerStripeAppDataHandl
 				AppType:    app.AppTypeStripe,
 			})
 			if err != nil {
-				return api.StripeCustomerAppData{}, err
+				return apiv1models.StripeCustomerAppData{}, err
 			}
 
 			// Upsert the customer data
@@ -144,7 +144,7 @@ func (h *handler) UpsertCustomerStripeAppData() UpsertCustomerStripeAppDataHandl
 				Data:       fromAPIAppStripeCustomerDataBase(req.Data),
 			})
 			if err != nil {
-				return api.StripeCustomerAppData{}, err
+				return apiv1models.StripeCustomerAppData{}, err
 			}
 
 			return h.getAPIStripeCustomerAppData(ctx, req.CustomerId)
@@ -158,13 +158,13 @@ func (h *handler) UpsertCustomerStripeAppData() UpsertCustomerStripeAppDataHandl
 }
 
 type (
-	CreateStripeCustomerPortalSessionResponse = api.StripeCustomerPortalSession
+	CreateStripeCustomerPortalSessionResponse = apiv1models.StripeCustomerPortalSession
 	CreateStripeCustomerPortalSessionHandler  httptransport.HandlerWithArgs[CreateStripeCustomerPortalSessionRequest, CreateStripeCustomerPortalSessionResponse, CreateStripeCustomerPortalSessionParams]
 )
 
 type CreateStripeCustomerPortalSessionRequest struct {
 	customerId customer.CustomerID
-	params     api.CreateStripeCustomerPortalSessionParams
+	params     apiv1models.CreateStripeCustomerPortalSessionParams
 }
 
 type CreateStripeCustomerPortalSessionParams struct {
@@ -176,7 +176,7 @@ func (h *handler) CreateStripeCustomerPortalSession() CreateStripeCustomerPortal
 	return httptransport.NewHandlerWithArgs(
 		func(ctx context.Context, r *http.Request, params CreateStripeCustomerPortalSessionParams) (CreateStripeCustomerPortalSessionRequest, error) {
 			// Parse request body
-			body := api.CreateStripeCustomerPortalSessionParams{}
+			body := apiv1models.CreateStripeCustomerPortalSessionParams{}
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
 				return CreateStripeCustomerPortalSessionRequest{}, fmt.Errorf("field to decode create app stripe checkout session request: %w", err)
 			}
@@ -252,7 +252,7 @@ func (h *handler) CreateStripeCustomerPortalSession() CreateStripeCustomerPortal
 }
 
 // getAPIStripeCustomerAppData returns the stripe customer app data for the given customer id.
-func (h *handler) getAPIStripeCustomerAppData(ctx context.Context, customerID customer.CustomerID) (api.StripeCustomerAppData, error) {
+func (h *handler) getAPIStripeCustomerAppData(ctx context.Context, customerID customer.CustomerID) (apiv1models.StripeCustomerAppData, error) {
 	// Resolve the customer app by billing profile
 	genericApp, err := h.billingService.GetCustomerApp(ctx, billing.GetCustomerAppInput{
 		CustomerID: customerID,

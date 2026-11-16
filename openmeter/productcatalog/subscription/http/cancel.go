@@ -6,7 +6,7 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
@@ -18,7 +18,7 @@ type (
 		Timing subscription.Timing
 		ID     models.NamespacedID
 	}
-	CancelSubscriptionResponse = api.Subscription
+	CancelSubscriptionResponse = apiv1models.Subscription
 	CancelSubscriptionParams   = struct {
 		ID string
 	}
@@ -33,7 +33,7 @@ func (h *handler) CancelSubscription() CancelSubscriptionHandler {
 				return CancelSubscriptionRequest{}, err
 			}
 
-			var body api.CancelSubscriptionJSONRequestBody
+			var body apiv1models.CancelSubscriptionJSONRequestBody
 
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
 				return CancelSubscriptionRequest{}, err
@@ -76,7 +76,7 @@ type (
 	ContinueSubscriptionRequest = struct {
 		ID models.NamespacedID
 	}
-	ContinueSubscriptionResponse = api.Subscription
+	ContinueSubscriptionResponse = apiv1models.Subscription
 	ContinueSubscriptionParams   = struct {
 		ID string
 	}
@@ -116,7 +116,7 @@ type (
 	RestoreSubscriptionRequest = struct {
 		ID models.NamespacedID
 	}
-	RestoreSubscriptionResponse = api.Subscription
+	RestoreSubscriptionResponse = apiv1models.Subscription
 	RestoreSubscriptionParams   = struct {
 		ID string
 	}

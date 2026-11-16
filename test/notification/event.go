@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
@@ -20,8 +20,8 @@ import (
 )
 
 func NewBalanceThresholdPayload() notification.EventPayload {
-	month := &api.RecurringPeriodInterval{}
-	_ = month.FromRecurringPeriodIntervalEnum(api.RecurringPeriodIntervalEnumMONTH)
+	month := &apiv1models.RecurringPeriodInterval{}
+	_ = month.FromRecurringPeriodIntervalEnum(apiv1models.RecurringPeriodIntervalEnumMONTH)
 
 	return notification.EventPayload{
 		EventPayloadMeta: notification.EventPayloadMeta{
@@ -29,9 +29,9 @@ func NewBalanceThresholdPayload() notification.EventPayload {
 		},
 		BalanceThreshold: &notification.BalanceThresholdPayload{
 			EntitlementValuePayloadBase: notification.EntitlementValuePayloadBase{
-				Entitlement: api.EntitlementMetered{
+				Entitlement: apiv1models.EntitlementMetered{
 					CreatedAt: time.Now().Add(-10 * 24 * time.Hour).UTC(),
-					CurrentUsagePeriod: api.Period{
+					CurrentUsagePeriod: apiv1models.Period{
 						From: time.Now().Add(-24 * time.Hour).UTC(),
 						To:   time.Now().UTC(),
 					},
@@ -49,13 +49,13 @@ func NewBalanceThresholdPayload() notification.EventPayload {
 					SubjectKey:              "customer-1",
 					Type:                    "",
 					UpdatedAt:               time.Now().Add(-2 * time.Hour).UTC(),
-					UsagePeriod: api.RecurringPeriod{
+					UsagePeriod: apiv1models.RecurringPeriod{
 						Anchor:      time.Date(2024, 1, 1, 8, 0, 0, 0, time.UTC),
 						Interval:    *month,
 						IntervalISO: "P1M",
 					},
 				},
-				Feature: api.Feature{
+				Feature: apiv1models.Feature{
 					ArchivedAt:          nil,
 					CreatedAt:           time.Now().Add(-10 * 24 * time.Hour).UTC(),
 					DeletedAt:           nil,
@@ -67,7 +67,7 @@ func NewBalanceThresholdPayload() notification.EventPayload {
 					Name:                "feature-1",
 					UpdatedAt:           time.Now().Add(-24 * time.Hour).UTC(),
 				},
-				Subject: api.Subject{
+				Subject: apiv1models.Subject{
 					CurrentPeriodEnd:   &time.Time{},
 					CurrentPeriodStart: &time.Time{},
 					DisplayName:        nil,
@@ -76,7 +76,7 @@ func NewBalanceThresholdPayload() notification.EventPayload {
 					Metadata:           nil,
 					StripeCustomerId:   nil,
 				},
-				Value: api.EntitlementValue{
+				Value: apiv1models.EntitlementValue{
 					Balance:   convert.ToPointer(10000.0),
 					Config:    nil,
 					HasAccess: true,
@@ -84,7 +84,7 @@ func NewBalanceThresholdPayload() notification.EventPayload {
 					Usage:     convert.ToPointer(50000.0),
 				},
 			},
-			Threshold: api.NotificationRuleBalanceThresholdValue{
+			Threshold: apiv1models.NotificationRuleBalanceThresholdValue{
 				Type:  notification.BalanceThresholdTypePercent,
 				Value: 50,
 			},
@@ -93,17 +93,17 @@ func NewBalanceThresholdPayload() notification.EventPayload {
 }
 
 func NewEntitlementResetPayload() notification.EventPayload {
-	month := &api.RecurringPeriodInterval{}
-	_ = month.FromRecurringPeriodIntervalEnum(api.RecurringPeriodIntervalEnumMONTH)
+	month := &apiv1models.RecurringPeriodInterval{}
+	_ = month.FromRecurringPeriodIntervalEnum(apiv1models.RecurringPeriodIntervalEnumMONTH)
 
 	return notification.EventPayload{
 		EventPayloadMeta: notification.EventPayloadMeta{
 			Type: notification.EventTypeEntitlementReset,
 		},
 		EntitlementReset: &notification.EntitlementResetPayload{
-			Entitlement: api.EntitlementMetered{
+			Entitlement: apiv1models.EntitlementMetered{
 				CreatedAt: time.Now().Add(-10 * 24 * time.Hour).UTC(),
-				CurrentUsagePeriod: api.Period{
+				CurrentUsagePeriod: apiv1models.Period{
 					From: time.Now().Add(-24 * time.Hour).UTC(),
 					To:   time.Now().UTC(),
 				},
@@ -121,13 +121,13 @@ func NewEntitlementResetPayload() notification.EventPayload {
 				SubjectKey:              "customer-1",
 				Type:                    "",
 				UpdatedAt:               time.Now().Add(-2 * time.Hour).UTC(),
-				UsagePeriod: api.RecurringPeriod{
+				UsagePeriod: apiv1models.RecurringPeriod{
 					Anchor:      time.Date(2024, 1, 1, 8, 0, 0, 0, time.UTC),
 					Interval:    *month,
 					IntervalISO: "P1M",
 				},
 			},
-			Feature: api.Feature{
+			Feature: apiv1models.Feature{
 				ArchivedAt:          nil,
 				CreatedAt:           time.Now().Add(-10 * 24 * time.Hour).UTC(),
 				DeletedAt:           nil,
@@ -139,7 +139,7 @@ func NewEntitlementResetPayload() notification.EventPayload {
 				Name:                "feature-1",
 				UpdatedAt:           time.Now().Add(-24 * time.Hour).UTC(),
 			},
-			Subject: api.Subject{
+			Subject: apiv1models.Subject{
 				CurrentPeriodEnd:   &time.Time{},
 				CurrentPeriodStart: &time.Time{},
 				DisplayName:        nil,
@@ -148,7 +148,7 @@ func NewEntitlementResetPayload() notification.EventPayload {
 				Metadata:           nil,
 				StripeCustomerId:   nil,
 			},
-			Value: api.EntitlementValue{
+			Value: apiv1models.EntitlementValue{
 				Balance:   convert.ToPointer(10000.0),
 				Config:    nil,
 				HasAccess: true,

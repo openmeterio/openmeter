@@ -7,7 +7,7 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -19,7 +19,7 @@ import (
 
 type (
 	CreateAppStripeCheckoutSessionRequest  = appstripe.CreateCheckoutSessionInput
-	CreateAppStripeCheckoutSessionResponse = api.CreateStripeCheckoutSessionResult
+	CreateAppStripeCheckoutSessionResponse = apiv1models.CreateStripeCheckoutSessionResult
 	CreateAppStripeCheckoutSessionHandler  httptransport.Handler[CreateAppStripeCheckoutSessionRequest, CreateAppStripeCheckoutSessionResponse]
 )
 
@@ -27,7 +27,7 @@ type (
 func (h *handler) CreateAppStripeCheckoutSession() CreateAppStripeCheckoutSessionHandler {
 	return httptransport.NewHandler(
 		func(ctx context.Context, r *http.Request) (CreateAppStripeCheckoutSessionRequest, error) {
-			body := api.CreateStripeCheckoutSessionRequest{}
+			body := apiv1models.CreateStripeCheckoutSessionRequest{}
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
 				return CreateAppStripeCheckoutSessionRequest{}, fmt.Errorf("field to decode create app stripe checkout session request: %w", err)
 			}
@@ -131,7 +131,7 @@ func (h *handler) CreateAppStripeCheckoutSession() CreateAppStripeCheckoutSessio
 			response := CreateAppStripeCheckoutSessionResponse{
 				CancelURL:        out.CancelURL,
 				CustomerId:       out.CustomerID.ID,
-				Mode:             api.StripeCheckoutSessionMode(out.Mode),
+				Mode:             apiv1models.StripeCheckoutSessionMode(out.Mode),
 				ReturnURL:        out.ReturnURL,
 				SessionId:        out.SessionID,
 				SetupIntentId:    out.SetupIntentID,
@@ -143,7 +143,7 @@ func (h *handler) CreateAppStripeCheckoutSession() CreateAppStripeCheckoutSessio
 				ClientSecret:      out.ClientSecret,
 				ClientReferenceId: out.ClientReferenceID,
 				CustomerEmail:     out.CustomerEmail,
-				Currency:          (*api.CurrencyCode)(out.Currency),
+				Currency:          (*apiv1models.CurrencyCode)(out.Currency),
 				CreatedAt:         out.CreatedAt,
 				Metadata:          out.Metadata,
 				Status:            (*string)(out.Status),

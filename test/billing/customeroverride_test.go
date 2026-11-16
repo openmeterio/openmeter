@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
-	legacyapi "github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billinghttpdriver "github.com/openmeterio/openmeter/openmeter/billing/httpdriver"
@@ -715,7 +715,7 @@ func (s *CustomerBillingProfileTestSuite) TestLegacyPUTSetsAndClearsPin() {
 			handler.UpsertCustomerOverride().With(billinghttpdriver.UpsertCustomerOverrideParams{CustomerId: cust.ID}).ServeHTTP(recorder, request)
 			// then: the legacy envelope exposes the persisted pin and the effective profile independently.
 			s.Require().Equal(http.StatusOK, recorder.Code, recorder.Body.String())
-			var response legacyapi.BillingProfileCustomerOverrideWithDetails
+			var response apiv1models.BillingProfileCustomerOverrideWithDetails
 			s.Require().NoError(json.Unmarshal(recorder.Body.Bytes(), &response))
 			s.Equal(profile.ID, response.BaseBillingProfileId)
 			if tc.pinned {

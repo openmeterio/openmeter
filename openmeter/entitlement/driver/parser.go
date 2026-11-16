@@ -9,7 +9,7 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/entitlement/apiconvert"
 	booleanentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/boolean"
@@ -27,11 +27,11 @@ type parser struct{}
 
 var Parser = parser{}
 
-func (parser) ToMetered(e *entitlement.EntitlementWithCustomer) (*api.EntitlementMetered, error) {
+func (parser) ToMetered(e *entitlement.EntitlementWithCustomer) (*apiv1models.EntitlementMetered, error) {
 	return apiconvert.ToAPIEntitlementMetered(e)
 }
 
-func (parser) ToStatic(e *entitlement.EntitlementWithCustomer) (*api.EntitlementStatic, error) {
+func (parser) ToStatic(e *entitlement.EntitlementWithCustomer) (*apiv1models.EntitlementStatic, error) {
 	static, err := staticentitlement.ParseFromGenericEntitlement(&e.Entitlement)
 	if err != nil {
 		return nil, err
@@ -45,7 +45,7 @@ func (parser) ToStatic(e *entitlement.EntitlementWithCustomer) (*api.Entitlement
 		}
 	}
 
-	apiRes := &api.EntitlementStatic{
+	apiRes := &apiv1models.EntitlementStatic{
 		ActiveFrom:         static.ActiveFromTime(),
 		ActiveTo:           static.ActiveToTime(),
 		CreatedAt:          static.CreatedAt,
@@ -54,9 +54,9 @@ func (parser) ToStatic(e *entitlement.EntitlementWithCustomer) (*api.Entitlement
 		FeatureKey:         static.FeatureKey,
 		Id:                 static.ID,
 		Metadata:           convert.MapToPointer(static.Metadata),
-		Annotations:        lo.EmptyableToPtr(api.Annotations(static.Annotations)),
+		Annotations:        lo.EmptyableToPtr(apiv1models.Annotations(static.Annotations)),
 		SubjectKey:         subjKey,
-		Type:               api.EntitlementStaticType(static.EntitlementType),
+		Type:               apiv1models.EntitlementStaticType(static.EntitlementType),
 		UpdatedAt:          static.UpdatedAt,
 		CurrentUsagePeriod: apiconvert.ToAPIPeriod(static.CurrentUsagePeriod),
 		UsagePeriod:        apiconvert.ToAPIRecurringPeriod(e.UsagePeriod),
@@ -70,7 +70,7 @@ func (parser) ToStatic(e *entitlement.EntitlementWithCustomer) (*api.Entitlement
 	return apiRes, nil
 }
 
-func (parser) ToBoolean(e *entitlement.EntitlementWithCustomer) (*api.EntitlementBoolean, error) {
+func (parser) ToBoolean(e *entitlement.EntitlementWithCustomer) (*apiv1models.EntitlementBoolean, error) {
 	boolean, err := booleanentitlement.ParseFromGenericEntitlement(&e.Entitlement)
 	if err != nil {
 		return nil, err
@@ -84,7 +84,7 @@ func (parser) ToBoolean(e *entitlement.EntitlementWithCustomer) (*api.Entitlemen
 		}
 	}
 
-	apiRes := &api.EntitlementBoolean{
+	apiRes := &apiv1models.EntitlementBoolean{
 		ActiveFrom:         boolean.ActiveFromTime(),
 		ActiveTo:           boolean.ActiveToTime(),
 		CreatedAt:          boolean.CreatedAt,
@@ -93,9 +93,9 @@ func (parser) ToBoolean(e *entitlement.EntitlementWithCustomer) (*api.Entitlemen
 		FeatureKey:         boolean.FeatureKey,
 		Id:                 boolean.ID,
 		Metadata:           convert.MapToPointer(boolean.Metadata),
-		Annotations:        lo.EmptyableToPtr(api.Annotations(boolean.Annotations)),
+		Annotations:        lo.EmptyableToPtr(apiv1models.Annotations(boolean.Annotations)),
 		SubjectKey:         subjKey,
-		Type:               api.EntitlementBooleanType(boolean.EntitlementType),
+		Type:               apiv1models.EntitlementBooleanType(boolean.EntitlementType),
 		UpdatedAt:          boolean.UpdatedAt,
 		CurrentUsagePeriod: apiconvert.ToAPIPeriod(boolean.CurrentUsagePeriod),
 		UsagePeriod:        apiconvert.ToAPIRecurringPeriod(e.UsagePeriod),
@@ -104,8 +104,8 @@ func (parser) ToBoolean(e *entitlement.EntitlementWithCustomer) (*api.Entitlemen
 	return apiRes, nil
 }
 
-func (p parser) ToAPIGeneric(e *entitlement.EntitlementWithCustomer) (*api.Entitlement, error) {
-	res := &api.Entitlement{}
+func (p parser) ToAPIGeneric(e *entitlement.EntitlementWithCustomer) (*apiv1models.Entitlement, error) {
+	res := &apiv1models.Entitlement{}
 	switch e.EntitlementType {
 	case entitlement.EntitlementTypeMetered:
 		c, err := p.ToMetered(e)
@@ -148,10 +148,10 @@ func (p parser) ToAPIGeneric(e *entitlement.EntitlementWithCustomer) (*api.Entit
 	}
 }
 
-func MapEntitlementValueToAPI(entitlementValue entitlement.EntitlementValue) (api.EntitlementValue, error) {
+func MapEntitlementValueToAPI(entitlementValue entitlement.EntitlementValue) (apiv1models.EntitlementValue, error) {
 	switch ent := entitlementValue.(type) {
 	case *meteredentitlement.MeteredEntitlementValue:
-		return api.EntitlementValue{
+		return apiv1models.EntitlementValue{
 			HasAccess:                 ent.HasAccess(),
 			Balance:                   &ent.Balance,
 			Usage:                     &ent.UsageInPeriod,
@@ -164,24 +164,24 @@ func MapEntitlementValueToAPI(entitlementValue entitlement.EntitlementValue) (ap
 			config = lo.ToPtr(ent.Config)
 		}
 
-		return api.EntitlementValue{
+		return apiv1models.EntitlementValue{
 			HasAccess: ent.HasAccess(),
 			Config:    config,
 		}, nil
 	case *booleanentitlement.BooleanEntitlementValue:
-		return api.EntitlementValue{
+		return apiv1models.EntitlementValue{
 			HasAccess: ent.HasAccess(),
 		}, nil
 	case *entitlement.NoAccessValue:
-		return api.EntitlementValue{
+		return apiv1models.EntitlementValue{
 			HasAccess: false,
 		}, nil
 	default:
-		return api.EntitlementValue{}, errors.New("unknown entitlement type")
+		return apiv1models.EntitlementValue{}, errors.New("unknown entitlement type")
 	}
 }
 
-func ParseAPICreateInput(inp *api.EntitlementCreateInputs, ns string, usageAttribution streaming.CustomerUsageAttribution) (entitlement.CreateEntitlementInputs, error) {
+func ParseAPICreateInput(inp *apiv1models.EntitlementCreateInputs, ns string, usageAttribution streaming.CustomerUsageAttribution) (entitlement.CreateEntitlementInputs, error) {
 	request := entitlement.CreateEntitlementInputs{}
 	if inp == nil {
 		return request, errors.New("input is nil")
@@ -193,7 +193,7 @@ func ParseAPICreateInput(inp *api.EntitlementCreateInputs, ns string, usageAttri
 	}
 
 	switch v := value.(type) {
-	case api.EntitlementMeteredCreateInputs:
+	case apiv1models.EntitlementMeteredCreateInputs:
 		iv, err := MapAPIPeriodIntervalToRecurrence(v.UsagePeriod.Interval)
 		if err != nil {
 			return request, fmt.Errorf("failed to map interval: %w", err)
@@ -252,7 +252,7 @@ func ParseAPICreateInput(inp *api.EntitlementCreateInputs, ns string, usageAttri
 
 			request.MeasureUsageFrom = measureUsageFrom
 		}
-	case api.EntitlementStaticCreateInputs:
+	case apiv1models.EntitlementStaticCreateInputs:
 		request = entitlement.CreateEntitlementInputs{
 			Namespace:        ns,
 			FeatureID:        v.FeatureId,
@@ -289,7 +289,7 @@ func ParseAPICreateInput(inp *api.EntitlementCreateInputs, ns string, usageAttri
 		if v.Metadata != nil {
 			request.Metadata = *v.Metadata
 		}
-	case api.EntitlementBooleanCreateInputs:
+	case apiv1models.EntitlementBooleanCreateInputs:
 		request = entitlement.CreateEntitlementInputs{
 			Namespace:        ns,
 			FeatureID:        v.FeatureId,
@@ -325,20 +325,20 @@ func ParseAPICreateInput(inp *api.EntitlementCreateInputs, ns string, usageAttri
 	return request, nil
 }
 
-func MapAPIPeriodIntervalToRecurrence(interval api.RecurringPeriodInterval) (timeutil.RecurrenceInterval, error) {
+func MapAPIPeriodIntervalToRecurrence(interval apiv1models.RecurringPeriodInterval) (timeutil.RecurrenceInterval, error) {
 	str, err := interval.AsRecurringPeriodInterval0()
 	if err != nil {
 		return timeutil.RecurrenceInterval{}, err
 	}
 
 	switch s := strings.ToUpper(str); s {
-	case string(api.RecurringPeriodIntervalEnumDAY):
+	case string(apiv1models.RecurringPeriodIntervalEnumDAY):
 		return timeutil.RecurrencePeriodDaily, nil
-	case string(api.RecurringPeriodIntervalEnumWEEK):
+	case string(apiv1models.RecurringPeriodIntervalEnumWEEK):
 		return timeutil.RecurrencePeriodWeek, nil
-	case string(api.RecurringPeriodIntervalEnumMONTH):
+	case string(apiv1models.RecurringPeriodIntervalEnumMONTH):
 		return timeutil.RecurrencePeriodMonth, nil
-	case string(api.RecurringPeriodIntervalEnumYEAR):
+	case string(apiv1models.RecurringPeriodIntervalEnumYEAR):
 		return timeutil.RecurrencePeriodYear, nil
 	default:
 		p, err := datetime.ISODurationString(s).Parse()
@@ -347,6 +347,6 @@ func MapAPIPeriodIntervalToRecurrence(interval api.RecurringPeriodInterval) (tim
 	}
 }
 
-func MapRecurrenceToAPI(r timeutil.RecurrenceInterval) api.RecurringPeriodInterval {
+func MapRecurrenceToAPI(r timeutil.RecurrenceInterval) apiv1models.RecurringPeriodInterval {
 	return apiconvert.ToAPIRecurringPeriodInterval(r)
 }

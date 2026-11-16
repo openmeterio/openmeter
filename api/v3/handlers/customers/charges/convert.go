@@ -10,7 +10,6 @@ import (
 	"github.com/samber/lo"
 	"github.com/samber/mo"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/filters"
 	"github.com/openmeterio/openmeter/api/v3/handlers/billingcommon"
@@ -21,6 +20,7 @@ import (
 	"github.com/openmeterio/openmeter/api/v3/handlers/plans"
 	"github.com/openmeterio/openmeter/api/v3/handlers/subscriptions"
 	"github.com/openmeterio/openmeter/api/v3/labels"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/api/v3/response"
 	"github.com/openmeterio/openmeter/openmeter/billing"
@@ -63,10 +63,10 @@ var ConvertMetadataToLabels = labels.FromMetadata[models.Metadata]
 // convertFlatFeeChargeToAPI maps the flat-fee branch of a CustomerCharge to
 // the API representation. Expanded entities select the full union branches,
 // references are used otherwise.
-func convertFlatFeeChargeToAPI(charge billingcharges.CustomerCharge, expands meta.Expands) (api.BillingChargeFlatFee, error) {
+func convertFlatFeeChargeToAPI(charge billingcharges.CustomerCharge, expands meta.Expands) (apiv3models.BillingChargeFlatFee, error) {
 	flatFee, err := charge.AsFlatFeeCharge()
 	if err != nil {
-		return api.BillingChargeFlatFee{}, fmt.Errorf("converting flat fee charge: %w", err)
+		return apiv3models.BillingChargeFlatFee{}, fmt.Errorf("converting flat fee charge: %w", err)
 	}
 
 	// The domain status carries detailed sub-states (e.g.
@@ -74,52 +74,52 @@ func convertFlatFeeChargeToAPI(charge billingcharges.CustomerCharge, expands met
 	// to the coarse charge status like the usage-based branch does.
 	status, err := flatFee.Status.ToMetaChargeStatus()
 	if err != nil {
-		return api.BillingChargeFlatFee{}, fmt.Errorf("converting flat fee charge status: %w", err)
+		return apiv3models.BillingChargeFlatFee{}, fmt.Errorf("converting flat fee charge status: %w", err)
 	}
 
 	intent := flatFee.ChargeBase.Intent.GetEffectiveIntent()
 
-	price := api.BillingPriceFlat{
+	price := apiv3models.BillingPriceFlat{
 		Amount: intent.AmountBeforeProration.String(),
-		Type:   api.BillingPriceFlatTypeFlat,
+		Type:   apiv3models.BillingPriceFlatTypeFlat,
 	}
 
 	feature, err := convertExpandedChargeFeatureToAPI(flatFee.State.FeatureID, charge.Feature)
 	if err != nil {
-		return api.BillingChargeFlatFee{}, err
+		return apiv3models.BillingChargeFlatFee{}, err
 	}
 
 	customer, err := convertChargeCustomerToAPI(flatFee.ChargeBase.Intent.GetCustomerID(), charge.Customer)
 	if err != nil {
-		return api.BillingChargeFlatFee{}, err
+		return apiv3models.BillingChargeFlatFee{}, err
 	}
 
 	subscription, err := convertChargeSubscriptionToAPI(flatFee.ChargeBase.Intent.GetSubscription(), charge.Subscription)
 	if err != nil {
-		return api.BillingChargeFlatFee{}, err
+		return apiv3models.BillingChargeFlatFee{}, err
 	}
 
 	realizations, err := convertFlatFeeRealizationsToAPI(charge.FlatFeeRealizations, expands)
 	if err != nil {
-		return api.BillingChargeFlatFee{}, fmt.Errorf("converting realizations: %w", err)
+		return apiv3models.BillingChargeFlatFee{}, fmt.Errorf("converting realizations: %w", err)
 	}
 
 	resolvedCostBasisState, err := charge.GetResolvedCostBasis()
 	if err != nil {
-		return api.BillingChargeFlatFee{}, fmt.Errorf("resolving cost basis: %w", err)
+		return apiv3models.BillingChargeFlatFee{}, fmt.Errorf("resolving cost basis: %w", err)
 	}
 
 	resolvedCostBasis, err := toAPIChargeResolvedCostBasis(flatFee.ChargeBase.Intent.GetCostBasisIntent(), resolvedCostBasisState)
 	if err != nil {
-		return api.BillingChargeFlatFee{}, fmt.Errorf("converting resolved cost basis: %w", err)
+		return apiv3models.BillingChargeFlatFee{}, fmt.Errorf("converting resolved cost basis: %w", err)
 	}
 
-	return api.BillingChargeFlatFee{
+	return apiv3models.BillingChargeFlatFee{
 		AdvanceAfter:           flatFee.State.AdvanceAfter,
 		AmountAfterProration:   ConvertDecimalToCurrencyAmount(flatFee.ChargeBase.State.AmountAfterProration, flatFee.ChargeBase.Intent.GetCurrency().GetCode()),
 		BillingPeriod:          ConvertClosedPeriodToAPI(intent.BillingPeriod),
 		CreatedAt:              flatFee.ChargeBase.ManagedResource.ManagedModel.CreatedAt,
-		Currency:               api.CurrencyCode(flatFee.ChargeBase.Intent.GetCurrency().GetCode()),
+		Currency:               apiv3models.CurrencyCode(flatFee.ChargeBase.Intent.GetCurrency().GetCode()),
 		Customer:               customer,
 		DeletedAt:              flatFee.ChargeBase.ManagedResource.ManagedModel.DeletedAt,
 		Description:            intent.Description,
@@ -131,18 +131,18 @@ func convertFlatFeeChargeToAPI(charge billingcharges.CustomerCharge, expands met
 		Labels:                 ConvertMetadataToLabels(intent.Metadata),
 		LifecycleController:    ConvertLifecycleControllerToAPI(intent.ManagedBy, WithManualOverride(flatFee.ChargeBase.Intent.HasOverrideLayer())),
 		Name:                   intent.Name,
-		PaymentTerm:            api.BillingPricePaymentTerm(intent.PaymentTerm),
+		PaymentTerm:            apiv3models.BillingPricePaymentTerm(intent.PaymentTerm),
 		Price:                  price,
 		ProrationConfiguration: ConvertProRatingConfigToAPI(intent.ProRating),
 		Realizations:           realizations,
 		ResolvedCostBasis:      resolvedCostBasis,
 		ServicePeriod:          ConvertClosedPeriodToAPI(intent.ServicePeriod),
-		SettlementMode:         api.BillingSettlementMode(flatFee.ChargeBase.Intent.GetSettlementMode()),
-		Status:                 api.BillingChargeStatus(status),
+		SettlementMode:         apiv3models.BillingSettlementMode(flatFee.ChargeBase.Intent.GetSettlementMode()),
+		Status:                 apiv3models.BillingChargeStatus(status),
 		Subscription:           subscription,
 		SystemIntent:           toAPIBillingChargeFlatFeeSystemIntent(flatFee.ChargeBase.Intent),
 		TaxConfig:              convertTaxCodeConfigToAPI(intent.TaxConfig),
-		Type:                   api.BillingChargeFlatFeeTypeFlatFee,
+		Type:                   apiv3models.BillingChargeFlatFeeTypeFlatFee,
 		UniqueReferenceId:      flatFee.ChargeBase.Intent.GetUniqueReferenceID(),
 		UpdatedAt:              flatFee.ChargeBase.ManagedResource.ManagedModel.UpdatedAt,
 		ValidationIssues:       billingcommon.ToAPIValidationIssues(flatFee.ValidationIssues),
@@ -152,77 +152,77 @@ func convertFlatFeeChargeToAPI(charge billingcharges.CustomerCharge, expands met
 // convertUsageBasedChargeToAPI maps the usage-based branch of a CustomerCharge
 // to the API representation. Expanded entities select the full union branches,
 // references are used otherwise.
-func convertUsageBasedChargeToAPI(charge billingcharges.CustomerCharge, expands meta.Expands) (api.BillingChargeUsageBased, error) {
+func convertUsageBasedChargeToAPI(charge billingcharges.CustomerCharge, expands meta.Expands) (apiv3models.BillingChargeUsageBased, error) {
 	usageBasedFee, err := charge.AsUsageBasedCharge()
 	if err != nil {
-		return api.BillingChargeUsageBased{}, fmt.Errorf("converting usage based charge: %w", err)
+		return apiv3models.BillingChargeUsageBased{}, fmt.Errorf("converting usage based charge: %w", err)
 	}
 
 	status, err := ConvertUsageBasedStatusToAPI(usageBasedFee.ChargeBase.Status)
 	if err != nil {
-		return api.BillingChargeUsageBased{}, fmt.Errorf("converting usage based charge status: %w", err)
+		return apiv3models.BillingChargeUsageBased{}, fmt.Errorf("converting usage based charge status: %w", err)
 	}
 
 	intent := usageBasedFee.ChargeBase.Intent.GetEffectiveIntent()
 
 	ratingConfiguration, err := toAPIBillingUsageBasedRatingConfiguration(intent.IntentMutableFields)
 	if err != nil {
-		return api.BillingChargeUsageBased{}, fmt.Errorf("converting rating configuration: %w", err)
+		return apiv3models.BillingChargeUsageBased{}, fmt.Errorf("converting rating configuration: %w", err)
 	}
 
 	systemIntent, err := toAPIBillingChargeUsageBasedSystemIntent(usageBasedFee.ChargeBase.Intent)
 	if err != nil {
-		return api.BillingChargeUsageBased{}, fmt.Errorf("converting system intent: %w", err)
+		return apiv3models.BillingChargeUsageBased{}, fmt.Errorf("converting system intent: %w", err)
 	}
 
 	feature, err := convertExpandedChargeFeatureToAPI(&usageBasedFee.State.FeatureID, charge.Feature)
 	if err != nil {
-		return api.BillingChargeUsageBased{}, err
+		return apiv3models.BillingChargeUsageBased{}, err
 	}
 
 	if feature == nil {
-		return api.BillingChargeUsageBased{}, fmt.Errorf("feature reference is required for usage-based charges")
+		return apiv3models.BillingChargeUsageBased{}, fmt.Errorf("feature reference is required for usage-based charges")
 	}
 
 	customer, err := convertChargeCustomerToAPI(usageBasedFee.ChargeBase.Intent.GetCustomerID(), charge.Customer)
 	if err != nil {
-		return api.BillingChargeUsageBased{}, err
+		return apiv3models.BillingChargeUsageBased{}, err
 	}
 
 	subscription, err := convertChargeSubscriptionToAPI(usageBasedFee.ChargeBase.Intent.GetSubscription(), charge.Subscription)
 	if err != nil {
-		return api.BillingChargeUsageBased{}, err
+		return apiv3models.BillingChargeUsageBased{}, err
 	}
 
 	realizations, err := convertUsageBasedRealizationsToAPI(charge.UsageBasedRealizations, expands)
 	if err != nil {
-		return api.BillingChargeUsageBased{}, fmt.Errorf("converting realizations: %w", err)
+		return apiv3models.BillingChargeUsageBased{}, fmt.Errorf("converting realizations: %w", err)
 	}
 
 	resolvedCostBasisState, err := charge.GetResolvedCostBasis()
 	if err != nil {
-		return api.BillingChargeUsageBased{}, fmt.Errorf("resolving cost basis: %w", err)
+		return apiv3models.BillingChargeUsageBased{}, fmt.Errorf("resolving cost basis: %w", err)
 	}
 
 	resolvedCostBasis, err := toAPIChargeResolvedCostBasis(usageBasedFee.ChargeBase.Intent.GetCostBasisIntent(), resolvedCostBasisState)
 	if err != nil {
-		return api.BillingChargeUsageBased{}, fmt.Errorf("converting resolved cost basis: %w", err)
+		return apiv3models.BillingChargeUsageBased{}, fmt.Errorf("converting resolved cost basis: %w", err)
 	}
 
 	// The contract promises the charge-level usage under the real_time_usage
 	// expand; the domain carries the live cumulative read alongside the rated
 	// realtime totals.
-	var usage *api.Numeric
+	var usage *apiv3models.Numeric
 	if usageBasedFee.Expands.RealtimeQuantity != nil {
 		usage = lo.ToPtr(usageBasedFee.Expands.RealtimeQuantity.String())
 	}
 
-	return api.BillingChargeUsageBased{
+	return apiv3models.BillingChargeUsageBased{
 		AdvanceAfter:        usageBasedFee.State.AdvanceAfter,
 		BillingPeriod:       ConvertClosedPeriodToAPI(intent.BillingPeriod),
 		Commitments:         ratingConfiguration.Commitments,
 		CreatedAt:           usageBasedFee.ChargeBase.ManagedResource.ManagedModel.CreatedAt,
-		Currency:            api.CurrencyCode(usageBasedFee.ChargeBase.Intent.GetCurrency().GetCode()),
+		Currency:            apiv3models.CurrencyCode(usageBasedFee.ChargeBase.Intent.GetCurrency().GetCode()),
 		Customer:            customer,
 		DeletedAt:           usageBasedFee.ChargeBase.ManagedResource.ManagedModel.DeletedAt,
 		Description:         intent.Description,
@@ -238,13 +238,13 @@ func convertUsageBasedChargeToAPI(charge billingcharges.CustomerCharge, expands 
 		Realizations:        realizations,
 		ResolvedCostBasis:   resolvedCostBasis,
 		ServicePeriod:       ConvertClosedPeriodToAPI(intent.ServicePeriod),
-		SettlementMode:      api.BillingSettlementMode(usageBasedFee.ChargeBase.Intent.GetSettlementMode()),
+		SettlementMode:      apiv3models.BillingSettlementMode(usageBasedFee.ChargeBase.Intent.GetSettlementMode()),
 		Status:              lo.FromPtr(status),
 		Subscription:        subscription,
 		SystemIntent:        systemIntent,
 		TaxConfig:           convertTaxCodeConfigToAPI(intent.TaxConfig),
 		Totals:              convertUsageBasedChargeTotals(usageBasedFee),
-		Type:                api.BillingChargeUsageBasedTypeUsageBased,
+		Type:                apiv3models.BillingChargeUsageBasedTypeUsageBased,
 		UnitConfig:          ratingConfiguration.UnitConfig,
 		UniqueReferenceId:   usageBasedFee.ChargeBase.Intent.GetUniqueReferenceID(),
 		UpdatedAt:           usageBasedFee.ChargeBase.ManagedResource.ManagedModel.UpdatedAt,
@@ -256,7 +256,7 @@ func convertUsageBasedChargeToAPI(charge billingcharges.CustomerCharge, expands 
 // toAPIChargeResolvedCostBasis pairs the resolved state with the fiat
 // currency of the write-only intent, as the intent itself is not exposed on
 // read.
-func toAPIChargeResolvedCostBasis(intent *costbasis.Intent, state *costbasis.State) (*api.BillingChargeResolvedCostBasis, error) {
+func toAPIChargeResolvedCostBasis(intent *costbasis.Intent, state *costbasis.State) (*apiv3models.BillingChargeResolvedCostBasis, error) {
 	if state == nil {
 		return nil, nil
 	}
@@ -273,14 +273,14 @@ func toAPIChargeResolvedCostBasis(intent *costbasis.Intent, state *costbasis.Sta
 	return billingcommon.ToAPIChargeResolvedCostBasis(fiat, state)
 }
 
-func toAPIBillingChargeFlatFeeSystemIntent(intent flatfee.OverridableIntent) *api.BillingChargeFlatFeeSystemIntent {
+func toAPIBillingChargeFlatFeeSystemIntent(intent flatfee.OverridableIntent) *apiv3models.BillingChargeFlatFeeSystemIntent {
 	if !intent.HasOverrideLayer() || intent.GetBaseManagedBy() == billing.ManuallyManagedLine {
 		return nil
 	}
 
 	baseIntent := intent.GetBaseIntent()
 
-	return &api.BillingChargeFlatFeeSystemIntent{
+	return &apiv3models.BillingChargeFlatFeeSystemIntent{
 		AmountBeforeProration:  ConvertDecimalToCurrencyAmount(baseIntent.AmountBeforeProration, baseIntent.Currency.GetCode()),
 		BillingPeriod:          ConvertClosedPeriodToAPI(baseIntent.BillingPeriod),
 		DeletedAt:              baseIntent.IntentDeletedAt,
@@ -290,13 +290,13 @@ func toAPIBillingChargeFlatFeeSystemIntent(intent flatfee.OverridableIntent) *ap
 		InvoiceAt:              baseIntent.InvoiceAt,
 		Labels:                 ConvertMetadataToLabels(baseIntent.Metadata),
 		Name:                   baseIntent.Name,
-		PaymentTerm:            api.BillingPricePaymentTerm(baseIntent.PaymentTerm),
+		PaymentTerm:            apiv3models.BillingPricePaymentTerm(baseIntent.PaymentTerm),
 		ProrationConfiguration: ConvertProRatingConfigToAPI(baseIntent.ProRating),
 		ServicePeriod:          ConvertClosedPeriodToAPI(baseIntent.ServicePeriod),
 	}
 }
 
-func toAPIBillingChargeUsageBasedSystemIntent(intent usagebased.OverridableIntent) (*api.BillingChargeUsageBasedSystemIntent, error) {
+func toAPIBillingChargeUsageBasedSystemIntent(intent usagebased.OverridableIntent) (*apiv3models.BillingChargeUsageBasedSystemIntent, error) {
 	if !intent.HasOverrideLayer() || intent.GetBaseManagedBy() == billing.ManuallyManagedLine {
 		return nil, nil
 	}
@@ -308,7 +308,7 @@ func toAPIBillingChargeUsageBasedSystemIntent(intent usagebased.OverridableInten
 		return nil, fmt.Errorf("converting rating configuration: %w", err)
 	}
 
-	return &api.BillingChargeUsageBasedSystemIntent{
+	return &apiv3models.BillingChargeUsageBasedSystemIntent{
 		BillingPeriod:     ConvertClosedPeriodToAPI(baseIntent.BillingPeriod),
 		Commitments:       ratingConfiguration.Commitments,
 		DeletedAt:         baseIntent.IntentDeletedAt,
@@ -324,22 +324,22 @@ func toAPIBillingChargeUsageBasedSystemIntent(intent usagebased.OverridableInten
 	}, nil
 }
 
-func convertFeatureIDToReference(id *string) *api.FeatureReference {
+func convertFeatureIDToReference(id *string) *apiv3models.FeatureReference {
 	if id == nil {
 		return nil
 	}
 
-	return &api.FeatureReference{
+	return &apiv3models.FeatureReference{
 		Id: *id,
 	}
 }
 
-func convertSubscriptionToReference(source *meta.SubscriptionReference) (*api.SubscriptionOrReference, error) {
+func convertSubscriptionToReference(source *meta.SubscriptionReference) (*apiv3models.SubscriptionOrReference, error) {
 	if source == nil {
 		return nil, nil
 	}
 
-	var result api.SubscriptionOrReference
+	var result apiv3models.SubscriptionOrReference
 	if err := result.FromBillingSubscriptionReference(ConvertSubscriptionRefToAPI(*source)); err != nil {
 		return nil, fmt.Errorf("converting subscription reference: %w", err)
 	}
@@ -347,13 +347,13 @@ func convertSubscriptionToReference(source *meta.SubscriptionReference) (*api.Su
 	return &result, nil
 }
 
-func convertChargeSubscriptionToAPI(source *meta.SubscriptionReference, expanded *subscription.Subscription) (*api.SubscriptionOrReference, error) {
+func convertChargeSubscriptionToAPI(source *meta.SubscriptionReference, expanded *subscription.Subscription) (*apiv3models.SubscriptionOrReference, error) {
 	if source == nil {
 		return nil, nil
 	}
 
 	if expanded != nil {
-		var out api.SubscriptionOrReference
+		var out apiv3models.SubscriptionOrReference
 
 		sub := subscriptions.ToAPIBillingSubscriptionWithoutView(*expanded)
 
@@ -367,9 +367,9 @@ func convertChargeSubscriptionToAPI(source *meta.SubscriptionReference, expanded
 	return convertSubscriptionToReference(source)
 }
 
-func convertChargeCustomerToAPI(id string, expanded *customer.Customer) (api.CustomerOrReference, error) {
+func convertChargeCustomerToAPI(id string, expanded *customer.Customer) (apiv3models.CustomerOrReference, error) {
 	if expanded != nil {
-		var out api.CustomerOrReference
+		var out apiv3models.CustomerOrReference
 		if err := out.FromBillingCustomer(customers.ToAPIBillingCustomer(*expanded)); err != nil {
 			return out, fmt.Errorf("setting customer union: %w", err)
 		}
@@ -380,8 +380,8 @@ func convertChargeCustomerToAPI(id string, expanded *customer.Customer) (api.Cus
 	return convertCustomerIDToReference(id)
 }
 
-func convertExpandedChargeFeatureToAPI(featureID *string, expanded *feature.Feature) (*api.FeatureOrReference, error) {
-	var feature api.FeatureOrReference
+func convertExpandedChargeFeatureToAPI(featureID *string, expanded *feature.Feature) (*apiv3models.FeatureOrReference, error) {
+	var feature apiv3models.FeatureOrReference
 
 	if expanded != nil {
 		apiFeature, err := features.ConvertFeatureToAPI(*expanded)
@@ -403,17 +403,17 @@ func convertExpandedChargeFeatureToAPI(featureID *string, expanded *feature.Feat
 	return &feature, nil
 }
 
-func convertFlatFeeRealizationsToAPI(realizations []billingcharges.CustomerChargeFlatFeeRealization, expands meta.Expands) ([]api.BillingChargeRealization, error) {
-	out := make([]api.BillingChargeRealization, 0, len(realizations))
+func convertFlatFeeRealizationsToAPI(realizations []billingcharges.CustomerChargeFlatFeeRealization, expands meta.Expands) ([]apiv3models.BillingChargeRealization, error) {
+	out := make([]apiv3models.BillingChargeRealization, 0, len(realizations))
 
 	for _, resolved := range realizations {
 		if resolved.Run == nil {
 			// The outstanding entry is not a persisted run, so it has no ID,
 			// invoice, line, or payment. Flat fees are not metered, so no entry
 			// carries usage.
-			out = append(out, api.BillingChargeRealization{
+			out = append(out, apiv3models.BillingChargeRealization{
 				ServicePeriod: ConvertClosedPeriodToAPI(resolved.ServicePeriod),
-				Type:          api.BillingChargeRealizationTypeOutstanding,
+				Type:          apiv3models.BillingChargeRealizationTypeOutstanding,
 			})
 
 			continue
@@ -436,7 +436,7 @@ func convertFlatFeeRealizationsToAPI(realizations []billingcharges.CustomerCharg
 			return nil, fmt.Errorf("realization run %s: %w", run.ID.ID, err)
 		}
 
-		realization := api.BillingChargeRealization{
+		realization := apiv3models.BillingChargeRealization{
 			DetailedLines: detailedLines,
 			Id:            lo.ToPtr(run.ID.ID),
 			Invoice:       invoice,
@@ -456,11 +456,11 @@ func convertFlatFeeRealizationsToAPI(realizations []billingcharges.CustomerCharg
 	return out, nil
 }
 
-func convertUsageBasedRealizationsToAPI(realizations []billingcharges.CustomerChargeUsageBasedRealization, expands meta.Expands) ([]api.BillingChargeRealization, error) {
-	out := make([]api.BillingChargeRealization, 0, len(realizations))
+func convertUsageBasedRealizationsToAPI(realizations []billingcharges.CustomerChargeUsageBasedRealization, expands meta.Expands) ([]apiv3models.BillingChargeRealization, error) {
+	out := make([]apiv3models.BillingChargeRealization, 0, len(realizations))
 
 	for _, resolved := range realizations {
-		var usage *api.Numeric
+		var usage *apiv3models.Numeric
 		if resolved.Quantity != nil {
 			usage = lo.ToPtr(resolved.Quantity.String())
 		}
@@ -468,9 +468,9 @@ func convertUsageBasedRealizationsToAPI(realizations []billingcharges.CustomerCh
 		if resolved.Run == nil {
 			// The outstanding entry is not a persisted run, so it has no ID,
 			// invoice, line, or payment.
-			out = append(out, api.BillingChargeRealization{
+			out = append(out, apiv3models.BillingChargeRealization{
 				ServicePeriod: ConvertClosedPeriodToAPI(resolved.ServicePeriod),
-				Type:          api.BillingChargeRealizationTypeOutstanding,
+				Type:          apiv3models.BillingChargeRealizationTypeOutstanding,
 				Usage:         usage,
 			})
 
@@ -494,7 +494,7 @@ func convertUsageBasedRealizationsToAPI(realizations []billingcharges.CustomerCh
 			return nil, fmt.Errorf("realization run %s: %w", run.ID.ID, err)
 		}
 
-		realization := api.BillingChargeRealization{
+		realization := apiv3models.BillingChargeRealization{
 			DetailedLines: detailedLines,
 			Id:            lo.ToPtr(run.ID.ID),
 			Invoice:       invoice,
@@ -516,14 +516,14 @@ func convertUsageBasedRealizationsToAPI(realizations []billingcharges.CustomerCh
 }
 
 // convertFlatFeeRealizationTypeToAPI maps a flat fee run type to the API enum.
-func convertFlatFeeRealizationTypeToAPI(t flatfee.RealizationRunType, voided bool) (api.BillingChargeRealizationType, error) {
+func convertFlatFeeRealizationTypeToAPI(t flatfee.RealizationRunType, voided bool) (apiv3models.BillingChargeRealizationType, error) {
 	if voided {
-		return api.BillingChargeRealizationTypeVoided, nil
+		return apiv3models.BillingChargeRealizationTypeVoided, nil
 	}
 
 	switch t {
 	case flatfee.RealizationRunTypeFinalRealization:
-		return api.BillingChargeRealizationTypeFinalRealization, nil
+		return apiv3models.BillingChargeRealizationTypeFinalRealization, nil
 	default:
 		return "", fmt.Errorf("unsupported flat fee realization run type: %s", t)
 	}
@@ -531,22 +531,22 @@ func convertFlatFeeRealizationTypeToAPI(t flatfee.RealizationRunType, voided boo
 
 // convertUsageBasedRealizationTypeToAPI maps a usage-based run type to the API
 // enum.
-func convertUsageBasedRealizationTypeToAPI(t usagebased.RealizationRunType, voided bool) (api.BillingChargeRealizationType, error) {
+func convertUsageBasedRealizationTypeToAPI(t usagebased.RealizationRunType, voided bool) (apiv3models.BillingChargeRealizationType, error) {
 	if voided {
-		return api.BillingChargeRealizationTypeVoided, nil
+		return apiv3models.BillingChargeRealizationTypeVoided, nil
 	}
 
 	switch t {
 	case usagebased.RealizationRunTypeFinalRealization:
-		return api.BillingChargeRealizationTypeFinalRealization, nil
+		return apiv3models.BillingChargeRealizationTypeFinalRealization, nil
 	case usagebased.RealizationRunTypePartialInvoice:
-		return api.BillingChargeRealizationTypePartialInvoice, nil
+		return apiv3models.BillingChargeRealizationTypePartialInvoice, nil
 	default:
 		return "", fmt.Errorf("unsupported usage based realization run type: %s", t)
 	}
 }
 
-func convertRealizationInvoiceToAPI(invoiceID *string, expanded *billing.StandardInvoice) (*api.ChargeRealizationInvoiceOrReference, error) {
+func convertRealizationInvoiceToAPI(invoiceID *string, expanded *billing.StandardInvoice) (*apiv3models.ChargeRealizationInvoiceOrReference, error) {
 	if invoiceID == nil {
 		return nil, nil
 	}
@@ -557,7 +557,7 @@ func convertRealizationInvoiceToAPI(invoiceID *string, expanded *billing.Standar
 			return nil, fmt.Errorf("converting invoice: %w", err)
 		}
 
-		var out api.ChargeRealizationInvoiceOrReference
+		var out apiv3models.ChargeRealizationInvoiceOrReference
 		if err := out.FromBillingChargeRealizationInvoice(apiInvoice); err != nil {
 			return nil, fmt.Errorf("setting invoice union: %w", err)
 		}
@@ -568,47 +568,47 @@ func convertRealizationInvoiceToAPI(invoiceID *string, expanded *billing.Standar
 	return convertInvoiceIDToReference(invoiceID)
 }
 
-func convertInvoiceIDToReference(invoiceID *string) (*api.ChargeRealizationInvoiceOrReference, error) {
+func convertInvoiceIDToReference(invoiceID *string) (*apiv3models.ChargeRealizationInvoiceOrReference, error) {
 	if invoiceID == nil {
 		return nil, nil
 	}
 
-	var invoice api.ChargeRealizationInvoiceOrReference
-	if err := invoice.FromChargeRealizationInvoiceReference(api.ChargeRealizationInvoiceReference{Id: *invoiceID}); err != nil {
+	var invoice apiv3models.ChargeRealizationInvoiceOrReference
+	if err := invoice.FromChargeRealizationInvoiceReference(apiv3models.ChargeRealizationInvoiceReference{Id: *invoiceID}); err != nil {
 		return nil, fmt.Errorf("converting invoice reference: %w", err)
 	}
 
 	return &invoice, nil
 }
 
-func convertRealizationPaymentToAPI(p *payment.Invoiced) *api.BillingChargeRealizationPayment {
+func convertRealizationPaymentToAPI(p *payment.Invoiced) *apiv3models.BillingChargeRealizationPayment {
 	if p == nil {
 		return nil
 	}
 
-	return &api.BillingChargeRealizationPayment{
-		Status: api.BillingChargeRealizationPaymentStatus(p.Status),
+	return &apiv3models.BillingChargeRealizationPayment{
+		Status: apiv3models.BillingChargeRealizationPaymentStatus(p.Status),
 	}
 }
 
-func convertFlatFeeDetailedLinesToAPI(source mo.Option[flatfee.DetailedLines]) (*[]api.BillingChargeRealizationDetailedLine, error) {
+func convertFlatFeeDetailedLinesToAPI(source mo.Option[flatfee.DetailedLines]) (*[]apiv3models.BillingChargeRealizationDetailedLine, error) {
 	if !source.IsPresent() {
 		return nil, nil
 	}
 
-	lines := make([]api.BillingChargeRealizationDetailedLine, 0, len(source.OrEmpty()))
+	lines := make([]apiv3models.BillingChargeRealizationDetailedLine, 0, len(source.OrEmpty()))
 	for _, line := range source.OrEmpty() {
-		var out api.BillingChargeRealizationDetailedLine
-		if err := out.FromBillingChargeRealizationDetailedLineFlatFee(api.BillingChargeRealizationDetailedLineFlatFee{
+		var out apiv3models.BillingChargeRealizationDetailedLine
+		if err := out.FromBillingChargeRealizationDetailedLineFlatFee(apiv3models.BillingChargeRealizationDetailedLineFlatFee{
 			AmountDiscounts: convertRealizationAmountDiscountsToAPI(line.AmountDiscounts),
-			Category:        api.BillingChargeRealizationDetailedLineCategory(line.Category),
+			Category:        apiv3models.BillingChargeRealizationDetailedLineCategory(line.Category),
 			CreatedAt:       line.CreatedAt,
 			CreditsApplied:  convertRealizationCreditsAppliedToAPI(line.CreditsApplied),
 			DeletedAt:       line.DeletedAt,
 			Id:              line.ID,
 			ServicePeriod:   ConvertClosedPeriodToAPI(line.ServicePeriod),
 			Totals:          ToAPIBillingTotals(line.Totals),
-			Type:            api.BillingChargeRealizationDetailedLineFlatFeeTypeFlatFee,
+			Type:            apiv3models.BillingChargeRealizationDetailedLineFlatFeeTypeFlatFee,
 			UnitPrice:       line.PerUnitAmount.String(),
 			UpdatedAt:       line.UpdatedAt,
 		}); err != nil {
@@ -621,17 +621,17 @@ func convertFlatFeeDetailedLinesToAPI(source mo.Option[flatfee.DetailedLines]) (
 	return &lines, nil
 }
 
-func convertUsageBasedDetailedLinesToAPI(source mo.Option[usagebased.DetailedLines]) (*[]api.BillingChargeRealizationDetailedLine, error) {
+func convertUsageBasedDetailedLinesToAPI(source mo.Option[usagebased.DetailedLines]) (*[]apiv3models.BillingChargeRealizationDetailedLine, error) {
 	if !source.IsPresent() {
 		return nil, nil
 	}
 
-	lines := make([]api.BillingChargeRealizationDetailedLine, 0, len(source.OrEmpty()))
+	lines := make([]apiv3models.BillingChargeRealizationDetailedLine, 0, len(source.OrEmpty()))
 	for _, line := range source.OrEmpty() {
-		var out api.BillingChargeRealizationDetailedLine
-		if err := out.FromBillingChargeRealizationDetailedLineUsageBased(api.BillingChargeRealizationDetailedLineUsageBased{
+		var out apiv3models.BillingChargeRealizationDetailedLine
+		if err := out.FromBillingChargeRealizationDetailedLineUsageBased(apiv3models.BillingChargeRealizationDetailedLineUsageBased{
 			AmountDiscounts: convertRealizationAmountDiscountsToAPI(line.AmountDiscounts),
-			Category:        api.BillingChargeRealizationDetailedLineCategory(line.Category),
+			Category:        apiv3models.BillingChargeRealizationDetailedLineCategory(line.Category),
 			CorrectsRunId:   line.CorrectsRunID,
 			CreatedAt:       line.CreatedAt,
 			CreditsApplied:  convertRealizationCreditsAppliedToAPI(line.CreditsApplied),
@@ -640,7 +640,7 @@ func convertUsageBasedDetailedLinesToAPI(source mo.Option[usagebased.DetailedLin
 			Quantity:        line.Quantity.String(),
 			ServicePeriod:   ConvertClosedPeriodToAPI(line.ServicePeriod),
 			Totals:          ToAPIBillingTotals(line.Totals),
-			Type:            api.BillingChargeRealizationDetailedLineUsageBasedTypeUsageBased,
+			Type:            apiv3models.BillingChargeRealizationDetailedLineUsageBasedTypeUsageBased,
 			UnitPrice:       line.PerUnitAmount.String(),
 			UpdatedAt:       line.UpdatedAt,
 		}); err != nil {
@@ -653,13 +653,13 @@ func convertUsageBasedDetailedLinesToAPI(source mo.Option[usagebased.DetailedLin
 	return &lines, nil
 }
 
-func convertRealizationCreditsAppliedToAPI(source creditsapplied.CreditsApplied) *[]api.BillingChargeRealizationDetailedLineCreditApplied {
+func convertRealizationCreditsAppliedToAPI(source creditsapplied.CreditsApplied) *[]apiv3models.BillingChargeRealizationDetailedLineCreditApplied {
 	if len(source) == 0 {
 		return nil
 	}
 
-	credits := lo.Map(source, func(credit creditsapplied.CreditApplied, _ int) api.BillingChargeRealizationDetailedLineCreditApplied {
-		out := api.BillingChargeRealizationDetailedLineCreditApplied{
+	credits := lo.Map(source, func(credit creditsapplied.CreditApplied, _ int) apiv3models.BillingChargeRealizationDetailedLineCreditApplied {
+		out := apiv3models.BillingChargeRealizationDetailedLineCreditApplied{
 			Amount:              credit.Amount.String(),
 			CreditRealizationId: credit.CreditRealizationID,
 		}
@@ -676,11 +676,11 @@ func convertRealizationCreditsAppliedToAPI(source creditsapplied.CreditsApplied)
 
 // convertRealizationAmountDiscountsToAPI maps the signed discount snapshots of a
 // detailed line. Negative amounts reverse a previously realized discount.
-func convertRealizationAmountDiscountsToAPI(source chargedetailedline.AmountDiscounts) []api.BillingChargeRealizationAmountDiscount {
-	discounts := make([]api.BillingChargeRealizationAmountDiscount, 0, len(source))
+func convertRealizationAmountDiscountsToAPI(source chargedetailedline.AmountDiscounts) []apiv3models.BillingChargeRealizationAmountDiscount {
+	discounts := make([]apiv3models.BillingChargeRealizationAmountDiscount, 0, len(source))
 
 	for _, discount := range source {
-		out := api.BillingChargeRealizationAmountDiscount{
+		out := apiv3models.BillingChargeRealizationAmountDiscount{
 			Amount:                 discount.Amount.String(),
 			ChildUniqueReferenceId: discount.ChildUniqueReferenceID,
 			Description:            discount.Description,
@@ -700,8 +700,8 @@ func convertRealizationAmountDiscountsToAPI(source chargedetailedline.AmountDisc
 // convertChargeToAPI dispatches on charge type and maps to the API union
 // type. Expanded entities are carried by the CustomerCharge; expands only
 // gates the emission of realization totals.
-func convertChargeToAPI(charge billingcharges.CustomerCharge, expands meta.Expands) (api.BillingCharge, error) {
-	var out api.BillingCharge
+func convertChargeToAPI(charge billingcharges.CustomerCharge, expands meta.Expands) (apiv3models.BillingCharge, error) {
+	var out apiv3models.BillingCharge
 
 	switch charge.Type() {
 	case meta.ChargeTypeFlatFee:
@@ -737,8 +737,8 @@ func convertChargeToAPI(charge billingcharges.CustomerCharge, expands meta.Expan
 }
 
 // convertUsageBasedChargeTotals aggregates booked totals from persisted realization runs.
-func convertUsageBasedChargeTotals(charge usagebased.Charge) api.BillingChargeTotals {
-	out := api.BillingChargeTotals{
+func convertUsageBasedChargeTotals(charge usagebased.Charge) apiv3models.BillingChargeTotals {
+	out := apiv3models.BillingChargeTotals{
 		Booked: ToAPIBillingTotals(charge.Realizations.Sum()),
 	}
 
@@ -755,9 +755,9 @@ func convertUsageBasedChargeTotals(charge usagebased.Charge) api.BillingChargeTo
 var ToAPIBillingTotals = billingcommon.ToAPIBillingTotals
 
 type apiUsageBasedRatingConfiguration struct {
-	Price       api.BillingPriceUsageBased
-	Commitments *api.BillingSpendCommitments
-	UnitConfig  *api.BillingUnitConfig
+	Price       apiv3models.BillingPriceUsageBased
+	Commitments *apiv3models.BillingSpendCommitments
+	UnitConfig  *apiv3models.BillingUnitConfig
 }
 
 // toAPIBillingUsageBasedRatingConfiguration maps the complete rating snapshot.
@@ -792,23 +792,23 @@ func toAPIBillingUsageBasedRatingConfiguration(intent usagebased.IntentMutableFi
 }
 
 // convertFlatFeeDiscounts maps the optional percentage discount to the anonymous API struct.
-func convertFlatFeeDiscounts(pd *billing.PercentageDiscount) *api.BillingChargeFlatFeeDiscounts {
+func convertFlatFeeDiscounts(pd *billing.PercentageDiscount) *apiv3models.BillingChargeFlatFeeDiscounts {
 	if pd == nil {
 		return nil
 	}
 
 	pct := float32(pd.Percentage.InexactFloat64())
 
-	return &api.BillingChargeFlatFeeDiscounts{Percentage: &pct}
+	return &apiv3models.BillingChargeFlatFeeDiscounts{Percentage: &pct}
 }
 
 // convertUsageBasedDiscounts maps usage-based discounts to the API type.
-func convertUsageBasedDiscounts(d billing.Discounts) *api.BillingRateCardDiscounts {
+func convertUsageBasedDiscounts(d billing.Discounts) *apiv3models.BillingRateCardDiscounts {
 	if d.Percentage == nil && d.Usage == nil {
 		return nil
 	}
 
-	result := &api.BillingRateCardDiscounts{}
+	result := &apiv3models.BillingRateCardDiscounts{}
 	if d.Percentage != nil {
 		pct := float32(d.Percentage.Percentage.InexactFloat64())
 		result.Percentage = &pct
@@ -824,26 +824,26 @@ func convertUsageBasedDiscounts(d billing.Discounts) *api.BillingRateCardDiscoun
 
 // ConvertUsageBasedStatusToAPI maps usage-based substates to their top-level API status.
 // For example, "active.final_realization.started" maps to "active".
-func ConvertUsageBasedStatusToAPI(status usagebased.Status) (*api.BillingChargeStatus, error) {
+func ConvertUsageBasedStatusToAPI(status usagebased.Status) (*apiv3models.BillingChargeStatus, error) {
 	s, err := status.ToMetaChargeStatus()
 	if err != nil {
 		return nil, fmt.Errorf("converting usage-based status to charge status: %w", err)
 	}
 
-	return lo.ToPtr(api.BillingChargeStatus(s)), nil
+	return lo.ToPtr(apiv3models.BillingChargeStatus(s)), nil
 }
 
 // ConvertClosedPeriodToAPI maps a domain ClosedPeriod to the API type.
 var ConvertClosedPeriodToAPI = billingcommon.ConvertClosedPeriodToAPI
 
 // ConvertDecimalToCurrencyAmount wraps a decimal amount and currency in a CurrencyAmount.
-func ConvertDecimalToCurrencyAmount(d alpacadecimal.Decimal, currency currencyx.Code) api.BillingCurrencyAmount {
-	return api.BillingCurrencyAmount{Amount: d.String(), Currency: api.BillingCurrencyCode(currency)}
+func ConvertDecimalToCurrencyAmount(d alpacadecimal.Decimal, currency currencyx.Code) apiv3models.BillingCurrencyAmount {
+	return apiv3models.BillingCurrencyAmount{Amount: d.String(), Currency: apiv3models.BillingCurrencyCode(currency)}
 }
 
-func convertCustomerIDToReference(id string) (api.CustomerOrReference, error) {
-	var customer api.CustomerOrReference
-	if err := customer.FromCustomerReference(api.CustomerReference{Id: id}); err != nil {
+func convertCustomerIDToReference(id string) (apiv3models.CustomerOrReference, error) {
+	var customer apiv3models.CustomerOrReference
+	if err := customer.FromCustomerReference(apiv3models.CustomerReference{Id: id}); err != nil {
 		return customer, fmt.Errorf("converting customer reference: %w", err)
 	}
 
@@ -851,15 +851,15 @@ func convertCustomerIDToReference(id string) (api.CustomerOrReference, error) {
 }
 
 // ConvertProRatingConfigToAPI maps a ProRatingConfig to the API proration configuration.
-func ConvertProRatingConfigToAPI(c productcatalog.ProRatingConfig) api.BillingRateCardProrationConfiguration {
+func ConvertProRatingConfigToAPI(c productcatalog.ProRatingConfig) apiv3models.BillingRateCardProrationConfiguration {
 	if !c.Enabled {
-		return api.BillingRateCardProrationConfiguration{
-			Mode: api.BillingRateCardProrationModeNoProration,
+		return apiv3models.BillingRateCardProrationConfiguration{
+			Mode: apiv3models.BillingRateCardProrationModeNoProration,
 		}
 	}
 
-	return api.BillingRateCardProrationConfiguration{
-		Mode: api.BillingRateCardProrationMode(c.Mode),
+	return apiv3models.BillingRateCardProrationConfiguration{
+		Mode: apiv3models.BillingRateCardProrationMode(c.Mode),
 	}
 }
 
@@ -878,17 +878,17 @@ var WithManualOverride = billingcommon.WithManualOverride
 var ConvertLifecycleControllerToAPI = billingcommon.ConvertLifecycleControllerToAPI
 
 // convertTaxCodeConfigToAPI maps a TaxCodeConfig (Behavior + TaxCodeID) to the API type.
-func convertTaxCodeConfigToAPI(cfg productcatalog.TaxCodeConfig) *api.BillingTaxConfig {
+func convertTaxCodeConfigToAPI(cfg productcatalog.TaxCodeConfig) *apiv3models.BillingTaxConfig {
 	if lo.IsEmpty(cfg) {
 		return nil
 	}
 
-	out := &api.BillingTaxConfig{
-		Behavior: (*api.BillingTaxBehavior)(cfg.Behavior),
+	out := &apiv3models.BillingTaxConfig{
+		Behavior: (*apiv3models.BillingTaxBehavior)(cfg.Behavior),
 	}
 
 	if cfg.TaxCodeID != "" {
-		out.TaxCode = &api.TaxCodeReference{Id: cfg.TaxCodeID}
+		out.TaxCode = &apiv3models.TaxCodeReference{Id: cfg.TaxCodeID}
 		out.TaxCodeId = lo.ToPtr(cfg.TaxCodeID)
 	}
 
@@ -898,28 +898,28 @@ func convertTaxCodeConfigToAPI(cfg productcatalog.TaxCodeConfig) *api.BillingTax
 // convertAPIChargesExpand maps an API expand token to its service-side
 // equivalent. The API's `realization.detailed_lines` maps onto the existing
 // detailed-lines expand, which the adapters resolve while loading runs.
-func convertAPIChargesExpand(e api.BillingChargesExpand) (meta.Expand, error) {
+func convertAPIChargesExpand(e apiv3models.BillingChargesExpand) (meta.Expand, error) {
 	switch e {
-	case api.BillingChargesExpandRealTimeUsage:
+	case apiv3models.BillingChargesExpandRealTimeUsage:
 		return meta.ExpandRealtimeUsage, nil
-	case api.BillingChargesExpandCustomer:
+	case apiv3models.BillingChargesExpandCustomer:
 		return meta.ExpandCustomer, nil
-	case api.BillingChargesExpandFeature:
+	case apiv3models.BillingChargesExpandFeature:
 		return meta.ExpandFeature, nil
-	case api.BillingChargesExpandSubscription:
+	case apiv3models.BillingChargesExpandSubscription:
 		return meta.ExpandSubscription, nil
-	case api.BillingChargesExpandRealizationInvoice:
+	case apiv3models.BillingChargesExpandRealizationInvoice:
 		return meta.ExpandRealizationInvoice, nil
-	case api.BillingChargesExpandRealizationTotals:
+	case apiv3models.BillingChargesExpandRealizationTotals:
 		return meta.ExpandRealizationTotals, nil
-	case api.BillingChargesExpandRealizationDetailedLines:
+	case apiv3models.BillingChargesExpandRealizationDetailedLines:
 		return meta.ExpandDetailedLines, nil
 	default:
 		return "", fmt.Errorf("unsupported expand: %s", e)
 	}
 }
 
-func fromAPICreateChargeFlatFeeRequest(namespace, customerID string, flatFee api.CreateChargeFlatFeeRequest) (billingcharges.CreateCustomerChargeInput, error) {
+func fromAPICreateChargeFlatFeeRequest(namespace, customerID string, flatFee apiv3models.CreateChargeFlatFeeRequest) (billingcharges.CreateCustomerChargeInput, error) {
 	var zero billingcharges.CreateCustomerChargeInput
 
 	taxConfig, err := billingprofiles.FromAPIBillingTaxConfigFull(flatFee.TaxConfig)
@@ -951,7 +951,7 @@ func fromAPICreateChargeFlatFeeRequest(namespace, customerID string, flatFee api
 	billingDiscount := billing.PercentageDiscountFromProductCatalog(percentageDiscount)
 
 	var proRating productcatalog.ProRatingConfig
-	if flatFee.ProrationConfiguration.Mode == api.BillingRateCardProrationModeProratePrices {
+	if flatFee.ProrationConfiguration.Mode == apiv3models.BillingRateCardProrationModeProratePrices {
 		proRating = productcatalog.ProRatingConfig{
 			Enabled: true,
 			Mode:    productcatalog.ProRatingModeProratePrices,
@@ -1001,7 +1001,7 @@ func fromAPICreateChargeFlatFeeRequest(namespace, customerID string, flatFee api
 	}, nil
 }
 
-func fromAPICreateChargeUsageBasedRequest(namespace, customerID string, usageBasedFee api.CreateChargeUsageBasedRequest) (billingcharges.CreateCustomerChargeInput, error) {
+func fromAPICreateChargeUsageBasedRequest(namespace, customerID string, usageBasedFee apiv3models.CreateChargeUsageBasedRequest) (billingcharges.CreateCustomerChargeInput, error) {
 	var zero billingcharges.CreateCustomerChargeInput
 
 	taxConfig, err := billingprofiles.FromAPIBillingTaxConfigFull(usageBasedFee.TaxConfig)
@@ -1087,7 +1087,7 @@ func fromAPICreateChargeUsageBasedRequest(namespace, customerID string, usageBas
 // hydration on top.
 const maxListChargesPageSize = 1000
 
-func fromAPIListChargesParams(ctx context.Context, namespace string, pageQuery *api.PagePaginationQuery, sortQuery *api.SortQuery, expand *[]api.BillingChargesExpand) (billingcharges.ListCustomerChargesInput, error) {
+func fromAPIListChargesParams(ctx context.Context, namespace string, pageQuery *apiv3models.PagePaginationQuery, sortQuery *apiv3models.SortQuery, expand *[]apiv3models.BillingChargesExpand) (billingcharges.ListCustomerChargesInput, error) {
 	page := pagination.NewPage(1, 20)
 	if pageQuery != nil {
 		page = pagination.NewPage(
@@ -1146,7 +1146,7 @@ func fromAPIListChargesParams(ctx context.Context, namespace string, pageQuery *
 	return req, nil
 }
 
-func fromAPIListChargesParamsFilter(ctx context.Context, f *api.ListChargesParamsFilter, req *billingcharges.ListCustomerChargesInput) error {
+func fromAPIListChargesParamsFilter(ctx context.Context, f *apiv3models.ListChargesParamsFilter, req *billingcharges.ListCustomerChargesInput) error {
 	customerID, err := filters.FromAPIFilterULID(f.CustomerId)
 	if err != nil {
 		return newInvalidQueryParamError(ctx, "filter[customer_id]", err)
@@ -1219,7 +1219,7 @@ func newInvalidQueryParamError(ctx context.Context, field string, err error) err
 }
 
 func toAPIListChargesResponse(result billingcharges.ListCustomerChargesResult, page pagination.Page) (ListChargesResponse, error) {
-	charges, err := slicesx.MapWithErr(result.Charges.Items, func(charge billingcharges.CustomerCharge) (api.BillingCharge, error) {
+	charges, err := slicesx.MapWithErr(result.Charges.Items, func(charge billingcharges.CustomerCharge) (apiv3models.BillingCharge, error) {
 		return convertChargeToAPI(charge, result.Expands)
 	})
 	if err != nil {

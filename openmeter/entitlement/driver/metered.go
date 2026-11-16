@@ -9,7 +9,7 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/credit"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -68,7 +68,7 @@ type (
 		Namespace                 string
 		SubjectKey                string
 	}
-	CreateGrantHandlerResponse = api.EntitlementGrant
+	CreateGrantHandlerResponse = apiv1models.EntitlementGrant
 	CreateGrantHandlerParams   struct {
 		SubjectKey                string
 		EntitlementIdOrFeatureKey string
@@ -80,7 +80,7 @@ type CreateGrantHandler httptransport.HandlerWithArgs[CreateGrantHandlerRequest,
 func (h *meteredEntitlementHandler) CreateGrant() CreateGrantHandler {
 	return httptransport.NewHandlerWithArgs[CreateGrantHandlerRequest, CreateGrantHandlerResponse, CreateGrantHandlerParams](
 		func(ctx context.Context, r *http.Request, params CreateGrantHandlerParams) (CreateGrantHandlerRequest, error) {
-			apiGrant := api.EntitlementGrantCreateInput{}
+			apiGrant := apiv1models.EntitlementGrantCreateInput{}
 			req := CreateGrantHandlerRequest{
 				SubjectKey: params.SubjectKey,
 			}
@@ -130,22 +130,22 @@ func (h *meteredEntitlementHandler) CreateGrant() CreateGrantHandler {
 
 			return req, nil
 		},
-		func(ctx context.Context, request CreateGrantHandlerRequest) (api.EntitlementGrant, error) {
+		func(ctx context.Context, request CreateGrantHandlerRequest) (apiv1models.EntitlementGrant, error) {
 			cust, err := h.resolveCustomerFromSubject(ctx, request.Namespace, request.SubjectKey)
 			if err != nil {
-				return api.EntitlementGrant{}, err
+				return apiv1models.EntitlementGrant{}, err
 			}
 
 			grant, err := h.balanceConnector.CreateGrant(ctx, request.Namespace, cust.ID, request.EntitlementIdOrFeatureKey, request.GrantInput)
 			if err != nil {
-				return api.EntitlementGrant{}, err
+				return apiv1models.EntitlementGrant{}, err
 			}
 
 			apiGrant := MapEntitlementGrantToAPI(&grant)
 
 			return apiGrant, nil
 		},
-		commonhttp.JSONResponseEncoderWithStatus[api.EntitlementGrant](http.StatusCreated),
+		commonhttp.JSONResponseEncoderWithStatus[apiv1models.EntitlementGrant](http.StatusCreated),
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithErrorEncoder(GetErrorEncoder()),
@@ -159,7 +159,7 @@ type ListEntitlementGrantHandlerRequest struct {
 	SubjectKey                string
 }
 type (
-	ListEntitlementGrantHandlerResponse = []api.EntitlementGrant
+	ListEntitlementGrantHandlerResponse = []apiv1models.EntitlementGrant
 	ListEntitlementGrantsHandlerParams  struct {
 		EntitlementIdOrFeatureKey string
 		SubjectKey                string
@@ -182,7 +182,7 @@ func (h *meteredEntitlementHandler) ListEntitlementGrants() ListEntitlementGrant
 				SubjectKey:                params.SubjectKey,
 			}, nil
 		},
-		func(ctx context.Context, request ListEntitlementGrantHandlerRequest) ([]api.EntitlementGrant, error) {
+		func(ctx context.Context, request ListEntitlementGrantHandlerRequest) ([]apiv1models.EntitlementGrant, error) {
 			cust, err := h.resolveCustomerFromSubject(ctx, request.Namespace, request.SubjectKey)
 			if err != nil {
 				return nil, err
@@ -198,7 +198,7 @@ func (h *meteredEntitlementHandler) ListEntitlementGrants() ListEntitlementGrant
 				return nil, err
 			}
 
-			apiGrants := make([]api.EntitlementGrant, 0, len(grants.Items))
+			apiGrants := make([]apiv1models.EntitlementGrant, 0, len(grants.Items))
 			for _, grant := range grants.Items {
 				apiGrant := MapEntitlementGrantToAPI(&grant)
 
@@ -207,7 +207,7 @@ func (h *meteredEntitlementHandler) ListEntitlementGrants() ListEntitlementGrant
 
 			return apiGrants, nil
 		},
-		commonhttp.JSONResponseEncoder[[]api.EntitlementGrant],
+		commonhttp.JSONResponseEncoder[[]apiv1models.EntitlementGrant],
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithErrorEncoder(GetErrorEncoder()),
@@ -240,7 +240,7 @@ func (h *meteredEntitlementHandler) ResetEntitlementUsage() ResetEntitlementUsag
 				return ResetEntitlementUsageHandlerRequest{}, err
 			}
 
-			var body api.ResetEntitlementUsageInput
+			var body apiv1models.ResetEntitlementUsageInput
 
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
 				return ResetEntitlementUsageHandlerRequest{}, err
@@ -280,11 +280,11 @@ type GetEntitlementBalanceHistoryHandlerRequest struct {
 	params meteredentitlement.BalanceHistoryParams
 }
 type (
-	GetEntitlementBalanceHistoryHandlerResponse = api.WindowedBalanceHistory
+	GetEntitlementBalanceHistoryHandlerResponse = apiv1models.WindowedBalanceHistory
 	GetEntitlementBalanceHistoryHandlerParams   struct {
 		EntitlementID string
 		SubjectKey    string
-		Params        api.GetEntitlementHistoryParams
+		Params        apiv1models.GetEntitlementHistoryParams
 	}
 )
 type GetEntitlementBalanceHistoryHandler httptransport.HandlerWithArgs[GetEntitlementBalanceHistoryHandlerRequest, GetEntitlementBalanceHistoryHandlerResponse, GetEntitlementBalanceHistoryHandlerParams]
@@ -322,13 +322,13 @@ func (h *meteredEntitlementHandler) GetEntitlementBalanceHistory() GetEntitlemen
 				},
 			}, nil
 		},
-		func(ctx context.Context, request GetEntitlementBalanceHistoryHandlerRequest) (api.WindowedBalanceHistory, error) {
+		func(ctx context.Context, request GetEntitlementBalanceHistoryHandlerRequest) (apiv1models.WindowedBalanceHistory, error) {
 			windowedHistory, burndownHistory, err := h.balanceConnector.GetEntitlementBalanceHistory(ctx, request.ID, request.params)
-			windows := make([]api.BalanceHistoryWindow, 0, len(windowedHistory))
+			windows := make([]apiv1models.BalanceHistoryWindow, 0, len(windowedHistory))
 			for _, window := range windowedHistory {
-				windows = append(windows, api.BalanceHistoryWindow{
+				windows = append(windows, apiv1models.BalanceHistoryWindow{
 					BalanceAtStart: window.BalanceAtStart,
-					Period: api.Period{
+					Period: apiv1models.Period{
 						From: window.From,
 						To:   window.To,
 					},
@@ -337,18 +337,18 @@ func (h *meteredEntitlementHandler) GetEntitlementBalanceHistory() GetEntitlemen
 			}
 
 			segments := burndownHistory.Segments()
-			burndown := make([]api.GrantBurnDownHistorySegment, 0, len(segments))
+			burndown := make([]apiv1models.GrantBurnDownHistorySegment, 0, len(segments))
 
 			for _, segment := range segments {
-				usages := make([]api.GrantUsageRecord, 0, len(segment.GrantUsages))
+				usages := make([]apiv1models.GrantUsageRecord, 0, len(segment.GrantUsages))
 				for _, usage := range segment.GrantUsages {
-					usages = append(usages, api.GrantUsageRecord{
+					usages = append(usages, apiv1models.GrantUsageRecord{
 						GrantId: usage.GrantID,
 						Usage:   usage.Usage,
 					})
 				}
 
-				burndown = append(burndown, api.GrantBurnDownHistorySegment{
+				burndown = append(burndown, apiv1models.GrantBurnDownHistorySegment{
 					BalanceAtEnd:         segment.ApplyUsage().Balance(),
 					BalanceAtStart:       segment.BalanceAtStart.Balance(),
 					GrantBalancesAtEnd:   (map[string]float64)(segment.ApplyUsage()),
@@ -356,19 +356,19 @@ func (h *meteredEntitlementHandler) GetEntitlementBalanceHistory() GetEntitlemen
 					GrantUsages:          usages,
 					Overage:              segment.Overage,
 					Usage:                segment.TotalUsage,
-					Period: api.Period{
+					Period: apiv1models.Period{
 						From: segment.From,
 						To:   segment.To,
 					},
 				})
 			}
 
-			return api.WindowedBalanceHistory{
+			return apiv1models.WindowedBalanceHistory{
 				WindowedHistory: windows,
 				BurndownHistory: burndown,
 			}, err
 		},
-		commonhttp.JSONResponseEncoder[api.WindowedBalanceHistory],
+		commonhttp.JSONResponseEncoder[apiv1models.WindowedBalanceHistory],
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithErrorEncoder(GetErrorEncoder()),
@@ -408,29 +408,29 @@ func (h *meteredEntitlementHandler) resolveCustomerFromSubject(ctx context.Conte
 	return cust, nil
 }
 
-func MapEntitlementGrantToAPI(grant *meteredentitlement.EntitlementGrant) api.EntitlementGrant {
-	apiGrant := api.EntitlementGrant{
+func MapEntitlementGrantToAPI(grant *meteredentitlement.EntitlementGrant) apiv1models.EntitlementGrant {
+	apiGrant := apiv1models.EntitlementGrant{
 		Amount:        grant.Amount,
 		CreatedAt:     grant.CreatedAt,
 		EffectiveAt:   grant.EffectiveAt,
 		Id:            grant.ID,
 		Metadata:      convert.MapToPointer(grant.Metadata),
-		Annotations:   (*api.Annotations)(convert.MapToPointer(grant.Annotations)),
+		Annotations:   (*apiv1models.Annotations)(convert.MapToPointer(grant.Annotations)),
 		Priority:      convert.ToPointer(grant.Priority),
 		UpdatedAt:     grant.UpdatedAt,
 		DeletedAt:     grant.DeletedAt,
 		EntitlementId: grant.EntitlementID,
-		Expiration: func() api.ExpirationPeriod {
+		Expiration: func() apiv1models.ExpirationPeriod {
 			if grant.Expiration == nil {
-				return api.ExpirationPeriod{
+				return apiv1models.ExpirationPeriod{
 					Count:    100,
-					Duration: api.ExpirationDuration("YEAR"),
+					Duration: apiv1models.ExpirationDuration("YEAR"),
 				}
 			}
 
-			return api.ExpirationPeriod{
+			return apiv1models.ExpirationPeriod{
 				Count:    grant.Expiration.Count,
-				Duration: api.ExpirationDuration(grant.Expiration.Duration),
+				Duration: apiv1models.ExpirationDuration(grant.Expiration.Duration),
 			}
 		}(),
 		ExpiresAt:         lo.ToPtr(lo.FromPtrOr(grant.ExpiresAt, clock.Now().AddDate(100, 0, 0))), // V1 API expects all grants to have an expiresAt so we'll artificially set a very far future date. This is a hack that our users were already doing to get this behavior and we will sunset it later...
@@ -441,7 +441,7 @@ func MapEntitlementGrantToAPI(grant *meteredentitlement.EntitlementGrant) api.En
 	}
 
 	if grant.Recurrence != nil {
-		apiGrant.Recurrence = &api.RecurringPeriod{
+		apiGrant.Recurrence = &apiv1models.RecurringPeriod{
 			Anchor:      grant.Recurrence.Anchor,
 			Interval:    MapRecurrenceToAPI(grant.Recurrence.Interval),
 			IntervalISO: grant.Recurrence.Interval.ISOString().String(),

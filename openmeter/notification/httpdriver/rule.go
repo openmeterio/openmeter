@@ -8,7 +8,7 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/notification/testevent"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -20,8 +20,8 @@ import (
 
 type (
 	ListRulesRequest  = notification.ListRulesInput
-	ListRulesResponse = api.NotificationRulePaginatedResponse
-	ListRulesParams   = api.ListNotificationRulesParams
+	ListRulesResponse = apiv1models.NotificationRulePaginatedResponse
+	ListRulesParams   = apiv1models.ListNotificationRulesParams
 	ListRulesHandler  httptransport.HandlerWithArgs[ListRulesRequest, ListRulesResponse, ListRulesParams]
 )
 
@@ -36,8 +36,8 @@ func (h *handler) ListRules() ListRulesHandler {
 			req := ListRulesRequest{
 				Namespace:       ns,
 				IncludeDisabled: lo.FromPtrOr(params.IncludeDisabled, notification.DefaultDisabled),
-				OrderBy:         notification.OrderBy(lo.FromPtrOr(params.OrderBy, api.NotificationRuleOrderById)),
-				Order:           sortx.Order(lo.FromPtrOr(params.Order, api.SortOrderASC)),
+				OrderBy:         notification.OrderBy(lo.FromPtrOr(params.OrderBy, apiv1models.NotificationRuleOrderById)),
+				Order:           sortx.Order(lo.FromPtrOr(params.Order, apiv1models.SortOrderASC)),
 				Page: pagination.Page{
 					PageSize:   lo.FromPtrOr(params.PageSize, notification.DefaultPageSize),
 					PageNumber: lo.FromPtrOr(params.Page, notification.DefaultPageNumber),
@@ -52,7 +52,7 @@ func (h *handler) ListRules() ListRulesHandler {
 				return ListRulesResponse{}, fmt.Errorf("failed to list rules: %w", err)
 			}
 
-			items := make([]api.NotificationRule, 0, len(resp.Items))
+			items := make([]apiv1models.NotificationRule, 0, len(resp.Items))
 
 			for _, rule := range resp.Items {
 				var item CreateRuleResponse
@@ -83,14 +83,14 @@ func (h *handler) ListRules() ListRulesHandler {
 
 type (
 	CreateRuleRequest  = notification.CreateRuleInput
-	CreateRuleResponse = api.NotificationRule
+	CreateRuleResponse = apiv1models.NotificationRule
 	CreateRuleHandler  httptransport.Handler[CreateRuleRequest, CreateRuleResponse]
 )
 
 func (h *handler) CreateRule() CreateRuleHandler {
 	return httptransport.NewHandler(
 		func(ctx context.Context, r *http.Request) (CreateRuleRequest, error) {
-			body := api.NotificationRuleCreateRequest{}
+			body := apiv1models.NotificationRuleCreateRequest{}
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
 				return CreateRuleRequest{}, fmt.Errorf("field to decode create rule request: %w", err)
 			}
@@ -108,13 +108,13 @@ func (h *handler) CreateRule() CreateRuleHandler {
 			var req CreateRuleRequest
 
 			switch v := value.(type) {
-			case api.NotificationRuleBalanceThresholdCreateRequest:
+			case apiv1models.NotificationRuleBalanceThresholdCreateRequest:
 				req = AsRuleBalanceThresholdCreateRequest(v, ns)
-			case api.NotificationRuleEntitlementResetCreateRequest:
+			case apiv1models.NotificationRuleEntitlementResetCreateRequest:
 				req = AsRuleEntitlementResetCreateRequest(v, ns)
-			case api.NotificationRuleInvoiceCreatedCreateRequest:
+			case apiv1models.NotificationRuleInvoiceCreatedCreateRequest:
 				req = AsRuleInvoiceCreatedCreateRequest(v, ns)
-			case api.NotificationRuleInvoiceUpdatedCreateRequest:
+			case apiv1models.NotificationRuleInvoiceUpdatedCreateRequest:
 				req = AsRuleInvoiceUpdatedCreateRequest(v, ns)
 			}
 
@@ -143,14 +143,14 @@ func (h *handler) CreateRule() CreateRuleHandler {
 
 type (
 	UpdateRuleRequest  = notification.UpdateRuleInput
-	UpdateRuleResponse = api.NotificationRule
+	UpdateRuleResponse = apiv1models.NotificationRule
 	UpdateRuleHandler  httptransport.HandlerWithArgs[UpdateRuleRequest, UpdateRuleResponse, string]
 )
 
 func (h *handler) UpdateRule() UpdateRuleHandler {
 	return httptransport.NewHandlerWithArgs(
 		func(ctx context.Context, r *http.Request, ruleID string) (UpdateRuleRequest, error) {
-			body := api.NotificationRuleCreateRequest{}
+			body := apiv1models.NotificationRuleCreateRequest{}
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
 				return UpdateRuleRequest{}, fmt.Errorf("field to decode update rule request: %w", err)
 			}
@@ -168,13 +168,13 @@ func (h *handler) UpdateRule() UpdateRuleHandler {
 			var req UpdateRuleRequest
 
 			switch v := value.(type) {
-			case api.NotificationRuleBalanceThresholdCreateRequest:
+			case apiv1models.NotificationRuleBalanceThresholdCreateRequest:
 				req = AsRuleBalanceThresholdUpdateRequest(v, ns, ruleID)
-			case api.NotificationRuleEntitlementResetCreateRequest:
+			case apiv1models.NotificationRuleEntitlementResetCreateRequest:
 				req = AsRuleEntitlementResetUpdateRequest(v, ns, ruleID)
-			case api.NotificationRuleInvoiceCreatedCreateRequest:
+			case apiv1models.NotificationRuleInvoiceCreatedCreateRequest:
 				req = AsRuleInvoiceCreatedUpdateRequest(v, ns, ruleID)
-			case api.NotificationRuleInvoiceUpdatedCreateRequest:
+			case apiv1models.NotificationRuleInvoiceUpdatedCreateRequest:
 				req = AsRuleInvoiceUpdatedUpdateRequest(v, ns, ruleID)
 			}
 
@@ -239,7 +239,7 @@ func (h *handler) DeleteRule() DeleteRuleHandler {
 
 type (
 	GetRuleRequest  = notification.GetRuleInput
-	GetRuleResponse = api.NotificationRule
+	GetRuleResponse = apiv1models.NotificationRule
 	GetRuleHandler  httptransport.HandlerWithArgs[GetRuleRequest, GetRuleResponse, string]
 )
 
@@ -285,7 +285,7 @@ type TestRuleRequest struct {
 }
 
 type (
-	TestRuleResponse = api.NotificationEvent
+	TestRuleResponse = apiv1models.NotificationEvent
 	TestRuleHandler  httptransport.HandlerWithArgs[TestRuleRequest, TestRuleResponse, string]
 )
 

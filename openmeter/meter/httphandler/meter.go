@@ -7,7 +7,7 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -21,8 +21,8 @@ import (
 const limit = 1000
 
 type (
-	ListMetersParams   = api.ListMetersParams
-	ListMetersResponse = []api.Meter
+	ListMetersParams   = apiv1models.ListMetersParams
+	ListMetersResponse = []apiv1models.Meter
 	ListMetersHandler  httptransport.HandlerWithArgs[ListMetersRequest, ListMetersResponse, ListMetersParams]
 )
 
@@ -48,8 +48,8 @@ func (h *handler) ListMeters() ListMetersHandler {
 				// TODO: update when meter pagination is implemented
 				page:           pagination.NewPage(1, limit),
 				includeDeleted: lo.FromPtrOr(params.IncludeDeleted, false),
-				orderBy:        meter.OrderBy(lo.FromPtrOr(params.OrderBy, api.MeterOrderByKey)),
-				order:          sortx.Order(lo.FromPtrOr(params.Order, api.SortOrderASC)),
+				orderBy:        meter.OrderBy(lo.FromPtrOr(params.OrderBy, apiv1models.MeterOrderByKey)),
+				order:          sortx.Order(lo.FromPtrOr(params.Order, apiv1models.SortOrderASC)),
 			}, nil
 		},
 		func(ctx context.Context, request ListMetersRequest) (ListMetersResponse, error) {
@@ -83,7 +83,7 @@ func (h *handler) ListMeters() ListMetersHandler {
 
 type (
 	GetMeterParams   = string
-	GetMeterResponse = api.Meter
+	GetMeterResponse = apiv1models.Meter
 	GetMeterHandler  httptransport.HandlerWithArgs[GetMeterRequest, GetMeterResponse, GetMeterParams]
 )
 
@@ -128,9 +128,9 @@ func (h *handler) GetMeter() GetMeterHandler {
 type (
 	CreateMeterRequest = struct {
 		Namespace string
-		api.MeterCreate
+		apiv1models.MeterCreate
 	}
-	CreateMeterResponse = api.Meter
+	CreateMeterResponse = apiv1models.Meter
 )
 
 type CreateMeterHandler = httptransport.Handler[CreateMeterRequest, CreateMeterResponse]
@@ -143,7 +143,7 @@ func (h handler) CreateMeter() CreateMeterHandler {
 				return CreateMeterRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
 			}
 
-			body := api.MeterCreate{}
+			body := apiv1models.MeterCreate{}
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
 				return CreateMeterRequest{}, fmt.Errorf("failed to decode create meter request: %w", err)
 			}
@@ -194,9 +194,9 @@ type (
 	UpdateMeterRequest = struct {
 		namespace string
 		idOrKey   string
-		api.MeterUpdate
+		apiv1models.MeterUpdate
 	}
-	UpdateMeterResponse = api.Meter
+	UpdateMeterResponse = apiv1models.Meter
 )
 
 type UpdateMeterHandler = httptransport.HandlerWithArgs[UpdateMeterRequest, UpdateMeterResponse, string]
@@ -209,7 +209,7 @@ func (h handler) UpdateMeter() UpdateMeterHandler {
 				return UpdateMeterRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
 			}
 
-			body := api.MeterUpdate{}
+			body := apiv1models.MeterUpdate{}
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
 				return UpdateMeterRequest{}, fmt.Errorf("failed to decode update meter request: %w", err)
 			}

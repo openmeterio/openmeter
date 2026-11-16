@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/meterevent"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
@@ -12,9 +12,9 @@ import (
 )
 
 type (
-	ListEventsV2Params   = api.ListEventsV2Params
+	ListEventsV2Params   = apiv1models.ListEventsV2Params
 	ListEventsV2Request  = meterevent.ListEventsV2Params
-	ListEventsV2Response = api.IngestedEventCursorPaginatedResponse
+	ListEventsV2Response = apiv1models.IngestedEventCursorPaginatedResponse
 	ListEventsV2Handler  httptransport.HandlerWithArgs[ListEventsV2Request, ListEventsV2Response, ListEventsV2Params]
 )
 

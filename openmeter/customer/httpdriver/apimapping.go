@@ -3,7 +3,7 @@ package httpdriver
 import (
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/customer/apiconvert"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
@@ -29,7 +29,7 @@ type CustomerAccessV2 struct {
 	Entitlements map[string]EntitlementValueV2 `json:"entitlements"`
 }
 
-func MapCustomerCreate(body api.CustomerCreate) customer.CustomerMutate {
+func MapCustomerCreate(body apiv1models.CustomerCreate) customer.CustomerMutate {
 	var metadata *models.Metadata
 
 	if body.Metadata != nil {
@@ -55,7 +55,7 @@ func MapCustomerCreate(body api.CustomerCreate) customer.CustomerMutate {
 	return mut
 }
 
-func MapCustomerReplaceUpdate(body api.CustomerReplaceUpdate) customer.CustomerMutate {
+func MapCustomerReplaceUpdate(body apiv1models.CustomerReplaceUpdate) customer.CustomerMutate {
 	var metadata *models.Metadata
 
 	if body.Metadata != nil {
@@ -89,7 +89,7 @@ func mapCurrency(apiCurrency *string) *currencyx.Code {
 	return lo.ToPtr(currencyx.Code(*apiCurrency))
 }
 
-func MapAddress(apiAddress *api.Address) *models.Address {
+func MapAddress(apiAddress *apiv1models.Address) *models.Address {
 	if apiAddress == nil {
 		return nil
 	}
@@ -110,16 +110,16 @@ func MapAddress(apiAddress *api.Address) *models.Address {
 	return &address
 }
 
-func FromMetadata(metadata models.Metadata) *api.Metadata {
+func FromMetadata(metadata models.Metadata) *apiv1models.Metadata {
 	return apiconvert.ToAPIMetadata(metadata)
 }
 
-func FromAnnotations(annotations models.Annotations) *api.Annotations {
+func FromAnnotations(annotations models.Annotations) *apiv1models.Annotations {
 	return apiconvert.ToAPIAnnotations(annotations)
 }
 
 // CustomerToAPI converts a Customer to an API Customer
-func CustomerToAPI(c customer.Customer, subscriptions []subscription.Subscription, expand customer.Expands) (api.Customer, error) {
+func CustomerToAPI(c customer.Customer, subscriptions []subscription.Subscription, expand customer.Expands) (apiv1models.Customer, error) {
 	apiCustomer := apiconvert.ToAPICustomer(c)
 
 	// Map the subscriptions to the API Subscriptions
@@ -130,7 +130,7 @@ func CustomerToAPI(c customer.Customer, subscriptions []subscription.Subscriptio
 
 		// Map the subscriptions to the API Subscriptions if the expand is set
 		if lo.Contains(expand, customer.ExpandSubscriptions) {
-			apiCustomer.Subscriptions = lo.ToPtr(lo.Map(subscriptions, func(s subscription.Subscription, _ int) api.Subscription {
+			apiCustomer.Subscriptions = lo.ToPtr(lo.Map(subscriptions, func(s subscription.Subscription, _ int) apiv1models.Subscription {
 				return subscriptionhttp.MapSubscriptionToAPI(s)
 			}))
 		}
@@ -139,19 +139,19 @@ func CustomerToAPI(c customer.Customer, subscriptions []subscription.Subscriptio
 	return apiCustomer, nil
 }
 
-func MapAccessToAPI(access entitlement.Access) (api.CustomerAccess, error) {
-	entitlements := make(map[string]api.EntitlementValue)
+func MapAccessToAPI(access entitlement.Access) (apiv1models.CustomerAccess, error) {
+	entitlements := make(map[string]apiv1models.EntitlementValue)
 
 	for fKey, v := range access.Entitlements {
 		apiVal, err := entitlementdriver.MapEntitlementValueToAPI(v.Value)
 		if err != nil {
-			return api.CustomerAccess{}, err
+			return apiv1models.CustomerAccess{}, err
 		}
 
 		entitlements[fKey] = apiVal
 	}
 
-	return api.CustomerAccess{
+	return apiv1models.CustomerAccess{
 		Entitlements: entitlements,
 	}, nil
 }

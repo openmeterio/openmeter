@@ -6,8 +6,8 @@ import (
 
 	"github.com/samber/lo"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -32,7 +32,7 @@ func (h *handler) ResendNotificationEvent() ResendNotificationEventHandler {
 				return ResendNotificationEventRequest{}, err
 			}
 
-			body := api.ResendBillingNotificationEventRequest{}
+			body := apiv3models.ResendBillingNotificationEventRequest{}
 			if err := request.ParseBody(r, &body); err != nil {
 				return ResendNotificationEventRequest{}, err
 			}
@@ -42,7 +42,7 @@ func (h *handler) ResendNotificationEvent() ResendNotificationEventHandler {
 					Namespace: ns,
 					ID:        eventID,
 				},
-				Channels: lo.Map(lo.FromPtr(body.Channels), func(ref api.NotificationChannelReference, _ int) string { return ref.Id }),
+				Channels: lo.Map(lo.FromPtr(body.Channels), func(ref apiv3models.NotificationChannelReference, _ int) string { return ref.Id }),
 			}, nil
 		},
 		func(ctx context.Context, req ResendNotificationEventRequest) (ResendNotificationEventResponse, error) {

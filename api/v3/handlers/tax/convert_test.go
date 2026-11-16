@@ -7,8 +7,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/handlers/tax"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -41,7 +41,7 @@ func TestToAPITaxCodeConfig(t *testing.T) {
 
 		require.NotNil(t, result)
 		require.NotNil(t, result.Behavior)
-		assert.Equal(t, api.BillingTaxBehaviorInclusive, *result.Behavior)
+		assert.Equal(t, apiv3models.BillingTaxBehaviorInclusive, *result.Behavior)
 	})
 
 	t.Run("maps behavior-only config without code", func(t *testing.T) {
@@ -52,7 +52,7 @@ func TestToAPITaxCodeConfig(t *testing.T) {
 		require.NotNil(t, result)
 		assert.Nil(t, result.Code)
 		require.NotNil(t, result.Behavior)
-		assert.Equal(t, api.BillingTaxBehaviorExclusive, *result.Behavior)
+		assert.Equal(t, apiv3models.BillingTaxBehaviorExclusive, *result.Behavior)
 	})
 }
 
@@ -64,8 +64,8 @@ func TestFromAPITaxCodeConfig(t *testing.T) {
 	})
 
 	t.Run("maps tax code ID", func(t *testing.T) {
-		result, err := tax.FromAPITaxCodeConfig(&api.TaxCodeConfig{
-			Code: &api.TaxCodeReference{Id: "01TAXCODE000"},
+		result, err := tax.FromAPITaxCodeConfig(&apiv3models.TaxCodeConfig{
+			Code: &apiv3models.TaxCodeReference{Id: "01TAXCODE000"},
 		})
 
 		require.NoError(t, err)
@@ -75,9 +75,9 @@ func TestFromAPITaxCodeConfig(t *testing.T) {
 	})
 
 	t.Run("maps behavior", func(t *testing.T) {
-		result, err := tax.FromAPITaxCodeConfig(&api.TaxCodeConfig{
-			Code:     &api.TaxCodeReference{Id: "01TAXCODE000"},
-			Behavior: lo.ToPtr(api.BillingTaxBehaviorInclusive),
+		result, err := tax.FromAPITaxCodeConfig(&apiv3models.TaxCodeConfig{
+			Code:     &apiv3models.TaxCodeReference{Id: "01TAXCODE000"},
+			Behavior: lo.ToPtr(apiv3models.BillingTaxBehaviorInclusive),
 		})
 
 		require.NoError(t, err)
@@ -87,8 +87,8 @@ func TestFromAPITaxCodeConfig(t *testing.T) {
 	})
 
 	t.Run("maps behavior-only config", func(t *testing.T) {
-		result, err := tax.FromAPITaxCodeConfig(&api.TaxCodeConfig{
-			Behavior: lo.ToPtr(api.BillingTaxBehaviorInclusive),
+		result, err := tax.FromAPITaxCodeConfig(&apiv3models.TaxCodeConfig{
+			Behavior: lo.ToPtr(apiv3models.BillingTaxBehaviorInclusive),
 		})
 
 		require.NoError(t, err)
@@ -99,8 +99,8 @@ func TestFromAPITaxCodeConfig(t *testing.T) {
 	})
 
 	t.Run("rejects empty code ID", func(t *testing.T) {
-		result, err := tax.FromAPITaxCodeConfig(&api.TaxCodeConfig{
-			Code: &api.TaxCodeReference{Id: ""},
+		result, err := tax.FromAPITaxCodeConfig(&apiv3models.TaxCodeConfig{
+			Code: &apiv3models.TaxCodeReference{Id: ""},
 		})
 
 		require.Error(t, err)
@@ -109,9 +109,9 @@ func TestFromAPITaxCodeConfig(t *testing.T) {
 	})
 
 	t.Run("rejects empty code ID even with behavior", func(t *testing.T) {
-		result, err := tax.FromAPITaxCodeConfig(&api.TaxCodeConfig{
-			Code:     &api.TaxCodeReference{Id: ""},
-			Behavior: lo.ToPtr(api.BillingTaxBehaviorInclusive),
+		result, err := tax.FromAPITaxCodeConfig(&apiv3models.TaxCodeConfig{
+			Code:     &apiv3models.TaxCodeReference{Id: ""},
+			Behavior: lo.ToPtr(apiv3models.BillingTaxBehaviorInclusive),
 		})
 
 		require.Error(t, err)
@@ -120,7 +120,7 @@ func TestFromAPITaxCodeConfig(t *testing.T) {
 	})
 
 	t.Run("rejects empty tax config", func(t *testing.T) {
-		result, err := tax.FromAPITaxCodeConfig(&api.TaxCodeConfig{})
+		result, err := tax.FromAPITaxCodeConfig(&apiv3models.TaxCodeConfig{})
 
 		require.Error(t, err)
 		assert.Nil(t, result)

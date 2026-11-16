@@ -5,7 +5,7 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/notification/internal/eventpayload"
 	"github.com/openmeterio/openmeter/pkg/convert"
@@ -13,9 +13,9 @@ import (
 )
 
 // FromAPINotificationChannelType keeps the legacy uppercase spelling at the V1 boundary.
-func FromAPINotificationChannelType(value api.NotificationChannelType) (notification.ChannelType, error) {
+func FromAPINotificationChannelType(value apiv1models.NotificationChannelType) (notification.ChannelType, error) {
 	switch value {
-	case api.NotificationChannelTypeWebhook:
+	case apiv1models.NotificationChannelTypeWebhook:
 		return notification.ChannelTypeWebhook, nil
 	default:
 		return "", models.NewGenericValidationError(fmt.Errorf("invalid channel type: %s", value))
@@ -23,17 +23,17 @@ func FromAPINotificationChannelType(value api.NotificationChannelType) (notifica
 }
 
 // ToAPINotificationChannelType preserves V1 channel references in Rule and Event responses.
-func ToAPINotificationChannelType(value notification.ChannelType) api.NotificationChannelType {
+func ToAPINotificationChannelType(value notification.ChannelType) apiv1models.NotificationChannelType {
 	switch value {
 	case notification.ChannelTypeWebhook:
-		return api.NotificationChannelTypeWebhook
+		return apiv1models.NotificationChannelTypeWebhook
 	default:
-		return api.NotificationChannelType(value)
+		return apiv1models.NotificationChannelType(value)
 	}
 }
 
-func FromChannel(c notification.Channel) (api.NotificationChannel, error) {
-	var channel api.NotificationChannel
+func FromChannel(c notification.Channel) (apiv1models.NotificationChannel, error) {
+	var channel apiv1models.NotificationChannel
 
 	switch c.Type {
 	case notification.ChannelTypeWebhook:
@@ -45,8 +45,8 @@ func FromChannel(c notification.Channel) (api.NotificationChannel, error) {
 	return channel, nil
 }
 
-func FromChannelWebhook(c notification.Channel) api.NotificationChannelWebhook {
-	return api.NotificationChannelWebhook{
+func FromChannelWebhook(c notification.Channel) apiv1models.NotificationChannelWebhook {
+	return apiv1models.NotificationChannelWebhook{
 		CreatedAt: c.CreatedAt,
 		CustomHeaders: convert.SafeDeRef(&c.Config.WebHook.CustomHeaders, func(m map[string]string) *map[string]string {
 			if len(m) > 0 {
@@ -59,7 +59,7 @@ func FromChannelWebhook(c notification.Channel) api.NotificationChannelWebhook {
 		Id:            c.ID,
 		Name:          c.Name,
 		SigningSecret: lo.ToPtr(c.Config.WebHook.SigningSecret),
-		Type:          api.NotificationChannelWebhookTypeWEBHOOK,
+		Type:          apiv1models.NotificationChannelWebhookTypeWEBHOOK,
 		UpdatedAt:     c.UpdatedAt,
 		Url:           c.Config.WebHook.URL,
 		DeletedAt:     c.DeletedAt,
@@ -68,24 +68,24 @@ func FromChannelWebhook(c notification.Channel) api.NotificationChannelWebhook {
 	}
 }
 
-func FromAnnotations(a models.Annotations) api.Annotations {
+func FromAnnotations(a models.Annotations) apiv1models.Annotations {
 	if a == nil {
 		return nil
 	}
 
-	return api.Annotations(a)
+	return apiv1models.Annotations(a)
 }
 
-func FromMetadata(m models.Metadata) api.Metadata {
+func FromMetadata(m models.Metadata) apiv1models.Metadata {
 	if m == nil {
 		return nil
 	}
 
-	return api.Metadata(m)
+	return apiv1models.Metadata(m)
 }
 
-func AsChannelWebhookCreateRequest(r api.NotificationChannelWebhookCreateRequest, namespace string) (notification.CreateChannelInput, error) {
-	channelType, err := FromAPINotificationChannelType(api.NotificationChannelType(r.Type))
+func AsChannelWebhookCreateRequest(r apiv1models.NotificationChannelWebhookCreateRequest, namespace string) (notification.CreateChannelInput, error) {
+	channelType, err := FromAPINotificationChannelType(apiv1models.NotificationChannelType(r.Type))
 	if err != nil {
 		return notification.CreateChannelInput{}, err
 	}
@@ -111,7 +111,7 @@ func AsChannelWebhookCreateRequest(r api.NotificationChannelWebhookCreateRequest
 	}, nil
 }
 
-func AsMetadata(m *api.Metadata) models.Metadata {
+func AsMetadata(m *apiv1models.Metadata) models.Metadata {
 	if m == nil {
 		return nil
 	}
@@ -119,8 +119,8 @@ func AsMetadata(m *api.Metadata) models.Metadata {
 	return *m
 }
 
-func AsChannelWebhookUpdateRequest(r api.NotificationChannelWebhookCreateRequest, namespace, channelID string) (notification.UpdateChannelInput, error) {
-	channelType, err := FromAPINotificationChannelType(api.NotificationChannelType(r.Type))
+func AsChannelWebhookUpdateRequest(r apiv1models.NotificationChannelWebhookCreateRequest, namespace, channelID string) (notification.UpdateChannelInput, error) {
+	channelType, err := FromAPINotificationChannelType(apiv1models.NotificationChannelType(r.Type))
 	if err != nil {
 		return notification.UpdateChannelInput{}, err
 	}
@@ -147,7 +147,7 @@ func AsChannelWebhookUpdateRequest(r api.NotificationChannelWebhookCreateRequest
 	}, nil
 }
 
-func AsRuleBalanceThresholdCreateRequest(r api.NotificationRuleBalanceThresholdCreateRequest, namespace string) notification.CreateRuleInput {
+func AsRuleBalanceThresholdCreateRequest(r apiv1models.NotificationRuleBalanceThresholdCreateRequest, namespace string) notification.CreateRuleInput {
 	return notification.CreateRuleInput{
 		NamespacedModel: models.NamespacedModel{
 			Namespace: namespace,
@@ -169,7 +169,7 @@ func AsRuleBalanceThresholdCreateRequest(r api.NotificationRuleBalanceThresholdC
 	}
 }
 
-func AsRuleBalanceThresholdUpdateRequest(r api.NotificationRuleBalanceThresholdCreateRequest, namespace, ruleID string) notification.UpdateRuleInput {
+func AsRuleBalanceThresholdUpdateRequest(r apiv1models.NotificationRuleBalanceThresholdCreateRequest, namespace, ruleID string) notification.UpdateRuleInput {
 	return notification.UpdateRuleInput{
 		NamespacedID: models.NamespacedID{
 			Namespace: namespace,
@@ -192,7 +192,7 @@ func AsRuleBalanceThresholdUpdateRequest(r api.NotificationRuleBalanceThresholdC
 	}
 }
 
-func AsRuleEntitlementResetCreateRequest(r api.NotificationRuleEntitlementResetCreateRequest, namespace string) notification.CreateRuleInput {
+func AsRuleEntitlementResetCreateRequest(r apiv1models.NotificationRuleEntitlementResetCreateRequest, namespace string) notification.CreateRuleInput {
 	return notification.CreateRuleInput{
 		NamespacedModel: models.NamespacedModel{
 			Namespace: namespace,
@@ -213,7 +213,7 @@ func AsRuleEntitlementResetCreateRequest(r api.NotificationRuleEntitlementResetC
 	}
 }
 
-func AsRuleEntitlementResetUpdateRequest(r api.NotificationRuleEntitlementResetCreateRequest, namespace, ruleID string) notification.UpdateRuleInput {
+func AsRuleEntitlementResetUpdateRequest(r apiv1models.NotificationRuleEntitlementResetCreateRequest, namespace, ruleID string) notification.UpdateRuleInput {
 	return notification.UpdateRuleInput{
 		NamespacedID: models.NamespacedID{
 			Namespace: namespace,
@@ -235,7 +235,7 @@ func AsRuleEntitlementResetUpdateRequest(r api.NotificationRuleEntitlementResetC
 	}
 }
 
-func AsRuleInvoiceCreatedCreateRequest(r api.NotificationRuleInvoiceCreatedCreateRequest, namespace string) notification.CreateRuleInput {
+func AsRuleInvoiceCreatedCreateRequest(r apiv1models.NotificationRuleInvoiceCreatedCreateRequest, namespace string) notification.CreateRuleInput {
 	return notification.CreateRuleInput{
 		NamespacedModel: models.NamespacedModel{
 			Namespace: namespace,
@@ -254,7 +254,7 @@ func AsRuleInvoiceCreatedCreateRequest(r api.NotificationRuleInvoiceCreatedCreat
 	}
 }
 
-func AsRuleInvoiceCreatedUpdateRequest(r api.NotificationRuleInvoiceCreatedCreateRequest, namespace, ruleID string) notification.UpdateRuleInput {
+func AsRuleInvoiceCreatedUpdateRequest(r apiv1models.NotificationRuleInvoiceCreatedCreateRequest, namespace, ruleID string) notification.UpdateRuleInput {
 	return notification.UpdateRuleInput{
 		NamespacedID: models.NamespacedID{
 			Namespace: namespace,
@@ -274,7 +274,7 @@ func AsRuleInvoiceCreatedUpdateRequest(r api.NotificationRuleInvoiceCreatedCreat
 	}
 }
 
-func AsRuleInvoiceUpdatedCreateRequest(r api.NotificationRuleInvoiceUpdatedCreateRequest, namespace string) notification.CreateRuleInput {
+func AsRuleInvoiceUpdatedCreateRequest(r apiv1models.NotificationRuleInvoiceUpdatedCreateRequest, namespace string) notification.CreateRuleInput {
 	return notification.CreateRuleInput{
 		NamespacedModel: models.NamespacedModel{
 			Namespace: namespace,
@@ -293,7 +293,7 @@ func AsRuleInvoiceUpdatedCreateRequest(r api.NotificationRuleInvoiceUpdatedCreat
 	}
 }
 
-func AsRuleInvoiceUpdatedUpdateRequest(r api.NotificationRuleInvoiceUpdatedCreateRequest, namespace, ruleID string) notification.UpdateRuleInput {
+func AsRuleInvoiceUpdatedUpdateRequest(r apiv1models.NotificationRuleInvoiceUpdatedCreateRequest, namespace, ruleID string) notification.UpdateRuleInput {
 	return notification.UpdateRuleInput{
 		NamespacedID: models.NamespacedID{
 			Namespace: namespace,
@@ -313,9 +313,9 @@ func AsRuleInvoiceUpdatedUpdateRequest(r api.NotificationRuleInvoiceUpdatedCreat
 	}
 }
 
-func FromRule(r notification.Rule) (api.NotificationRule, error) {
+func FromRule(r notification.Rule) (apiv1models.NotificationRule, error) {
 	var (
-		rule api.NotificationRule
+		rule apiv1models.NotificationRule
 		err  error
 	)
 
@@ -347,16 +347,16 @@ func FromRule(r notification.Rule) (api.NotificationRule, error) {
 	return rule, nil
 }
 
-func FromRuleBalanceThreshold(r notification.Rule) api.NotificationRuleBalanceThreshold {
-	channels := make([]api.NotificationChannelMeta, 0, len(r.Channels))
+func FromRuleBalanceThreshold(r notification.Rule) apiv1models.NotificationRuleBalanceThreshold {
+	channels := make([]apiv1models.NotificationChannelMeta, 0, len(r.Channels))
 	for _, channel := range r.Channels {
-		channels = append(channels, api.NotificationChannelMeta{
+		channels = append(channels, apiv1models.NotificationChannelMeta{
 			Id:   channel.ID,
 			Type: ToAPINotificationChannelType(channel.Type),
 		})
 	}
 
-	return api.NotificationRuleBalanceThreshold{
+	return apiv1models.NotificationRuleBalanceThreshold{
 		Channels:  channels,
 		CreatedAt: r.CreatedAt,
 		Disabled:  lo.ToPtr(r.Disabled),
@@ -377,25 +377,25 @@ func FromRuleBalanceThreshold(r notification.Rule) api.NotificationRuleBalanceTh
 		Id:         r.ID,
 		Name:       r.Name,
 		Thresholds: r.Config.BalanceThreshold.Thresholds,
-		Type:       api.NotificationRuleBalanceThresholdTypeEntitlementsBalanceThreshold,
+		Type:       apiv1models.NotificationRuleBalanceThresholdTypeEntitlementsBalanceThreshold,
 		UpdatedAt:  r.UpdatedAt,
 		DeletedAt:  r.DeletedAt,
 
-		Annotations: lo.EmptyableToPtr(api.Annotations(r.Annotations)),
-		Metadata:    lo.EmptyableToPtr(api.Metadata(r.Metadata)),
+		Annotations: lo.EmptyableToPtr(apiv1models.Annotations(r.Annotations)),
+		Metadata:    lo.EmptyableToPtr(apiv1models.Metadata(r.Metadata)),
 	}
 }
 
-func FromRuleEntitlementReset(r notification.Rule) api.NotificationRuleEntitlementReset {
-	channels := make([]api.NotificationChannelMeta, 0, len(r.Channels))
+func FromRuleEntitlementReset(r notification.Rule) apiv1models.NotificationRuleEntitlementReset {
+	channels := make([]apiv1models.NotificationChannelMeta, 0, len(r.Channels))
 	for _, channel := range r.Channels {
-		channels = append(channels, api.NotificationChannelMeta{
+		channels = append(channels, apiv1models.NotificationChannelMeta{
 			Id:   channel.ID,
 			Type: ToAPINotificationChannelType(channel.Type),
 		})
 	}
 
-	return api.NotificationRuleEntitlementReset{
+	return apiv1models.NotificationRuleEntitlementReset{
 		Channels:  channels,
 		CreatedAt: r.CreatedAt,
 		Disabled:  lo.ToPtr(r.Disabled),
@@ -415,72 +415,72 @@ func FromRuleEntitlementReset(r notification.Rule) api.NotificationRuleEntitleme
 		}),
 		Id:        r.ID,
 		Name:      r.Name,
-		Type:      api.NotificationRuleEntitlementResetTypeEntitlementsReset,
+		Type:      apiv1models.NotificationRuleEntitlementResetTypeEntitlementsReset,
 		UpdatedAt: r.UpdatedAt,
 		DeletedAt: r.DeletedAt,
 
-		Annotations: lo.EmptyableToPtr(api.Annotations(r.Annotations)),
-		Metadata:    lo.EmptyableToPtr(api.Metadata(r.Metadata)),
+		Annotations: lo.EmptyableToPtr(apiv1models.Annotations(r.Annotations)),
+		Metadata:    lo.EmptyableToPtr(apiv1models.Metadata(r.Metadata)),
 	}
 }
 
-func FromRuleInvoiceCreated(r notification.Rule) api.NotificationRuleInvoiceCreated {
-	channels := make([]api.NotificationChannelMeta, 0, len(r.Channels))
+func FromRuleInvoiceCreated(r notification.Rule) apiv1models.NotificationRuleInvoiceCreated {
+	channels := make([]apiv1models.NotificationChannelMeta, 0, len(r.Channels))
 	for _, channel := range r.Channels {
-		channels = append(channels, api.NotificationChannelMeta{
+		channels = append(channels, apiv1models.NotificationChannelMeta{
 			Id:   channel.ID,
 			Type: ToAPINotificationChannelType(channel.Type),
 		})
 	}
 
-	return api.NotificationRuleInvoiceCreated{
+	return apiv1models.NotificationRuleInvoiceCreated{
 		Channels:  channels,
 		CreatedAt: r.CreatedAt,
 		Disabled:  lo.ToPtr(r.Disabled),
 		Id:        r.ID,
 		Name:      r.Name,
-		Type:      api.NotificationRuleInvoiceCreatedTypeInvoiceCreated,
+		Type:      apiv1models.NotificationRuleInvoiceCreatedTypeInvoiceCreated,
 		UpdatedAt: r.UpdatedAt,
 		DeletedAt: r.DeletedAt,
 
-		Annotations: lo.EmptyableToPtr(api.Annotations(r.Annotations)),
-		Metadata:    lo.EmptyableToPtr(api.Metadata(r.Metadata)),
+		Annotations: lo.EmptyableToPtr(apiv1models.Annotations(r.Annotations)),
+		Metadata:    lo.EmptyableToPtr(apiv1models.Metadata(r.Metadata)),
 	}
 }
 
-func FromRuleInvoiceUpdated(r notification.Rule) api.NotificationRuleInvoiceUpdated {
-	channels := make([]api.NotificationChannelMeta, 0, len(r.Channels))
+func FromRuleInvoiceUpdated(r notification.Rule) apiv1models.NotificationRuleInvoiceUpdated {
+	channels := make([]apiv1models.NotificationChannelMeta, 0, len(r.Channels))
 	for _, channel := range r.Channels {
-		channels = append(channels, api.NotificationChannelMeta{
+		channels = append(channels, apiv1models.NotificationChannelMeta{
 			Id:   channel.ID,
 			Type: ToAPINotificationChannelType(channel.Type),
 		})
 	}
 
-	return api.NotificationRuleInvoiceUpdated{
+	return apiv1models.NotificationRuleInvoiceUpdated{
 		Channels:  channels,
 		CreatedAt: r.CreatedAt,
 		Disabled:  lo.ToPtr(r.Disabled),
 		Id:        r.ID,
 		Name:      r.Name,
-		Type:      api.NotificationRuleInvoiceUpdatedTypeInvoiceUpdated,
+		Type:      apiv1models.NotificationRuleInvoiceUpdatedTypeInvoiceUpdated,
 		UpdatedAt: r.UpdatedAt,
 		DeletedAt: r.DeletedAt,
 
-		Annotations: lo.EmptyableToPtr(api.Annotations(r.Annotations)),
-		Metadata:    lo.EmptyableToPtr(api.Metadata(r.Metadata)),
+		Annotations: lo.EmptyableToPtr(apiv1models.Annotations(r.Annotations)),
+		Metadata:    lo.EmptyableToPtr(apiv1models.Metadata(r.Metadata)),
 	}
 }
 
-func FromEvent(e notification.Event) (api.NotificationEvent, error) {
+func FromEvent(e notification.Event) (apiv1models.NotificationEvent, error) {
 	var (
 		err  error
-		rule api.NotificationRule
+		rule apiv1models.NotificationRule
 	)
 
 	rule, err = FromRule(e.Rule)
 	if err != nil {
-		return api.NotificationEvent{}, fmt.Errorf("failed to cast notification rule: %w", err)
+		return apiv1models.NotificationEvent{}, fmt.Errorf("failed to cast notification rule: %w", err)
 	}
 
 	// Populate ChannelMeta in EventDeliveryStatus from Even.Rule.Channels as we only store Channel.ID in database
@@ -490,21 +490,21 @@ func FromEvent(e notification.Event) (api.NotificationEvent, error) {
 		channelsByID[channel.ID] = channel
 	}
 
-	deliveryStatuses := make([]api.NotificationEventDeliveryStatus, 0, len(e.DeliveryStatus))
+	deliveryStatuses := make([]apiv1models.NotificationEventDeliveryStatus, 0, len(e.DeliveryStatus))
 	for _, deliveryStatus := range e.DeliveryStatus {
-		status := api.NotificationEventDeliveryStatus{
-			Annotations: lo.EmptyableToPtr(api.Annotations(deliveryStatus.Annotations)),
+		status := apiv1models.NotificationEventDeliveryStatus{
+			Annotations: lo.EmptyableToPtr(apiv1models.Annotations(deliveryStatus.Annotations)),
 			Attempts:    AsEventDeliveryAttempts(deliveryStatus.Attempts),
-			Channel: api.NotificationChannelMeta{
+			Channel: apiv1models.NotificationChannelMeta{
 				Id: deliveryStatus.ChannelID,
 			},
 			NextAttempt: deliveryStatus.NextAttempt,
 			Reason:      deliveryStatus.Reason,
-			State:       api.NotificationEventDeliveryStatusState(deliveryStatus.State),
+			State:       apiv1models.NotificationEventDeliveryStatusState(deliveryStatus.State),
 			UpdatedAt:   deliveryStatus.UpdatedAt,
 		}
 		if channel, ok := channelsByID[deliveryStatus.ChannelID]; ok {
-			status.Channel = api.NotificationChannelMeta{
+			status.Channel = apiv1models.NotificationChannelMeta{
 				Id:   deliveryStatus.ChannelID,
 				Type: ToAPINotificationChannelType(channel.Type),
 			}
@@ -513,12 +513,12 @@ func FromEvent(e notification.Event) (api.NotificationEvent, error) {
 		deliveryStatuses = append(deliveryStatuses, status)
 	}
 
-	event := api.NotificationEvent{
+	event := apiv1models.NotificationEvent{
 		CreatedAt:      e.CreatedAt,
 		DeliveryStatus: deliveryStatuses,
 		Id:             e.ID,
 		Rule:           rule,
-		Annotations:    lo.EmptyableToPtr(api.Annotations(e.Annotations)),
+		Annotations:    lo.EmptyableToPtr(apiv1models.Annotations(e.Annotations)),
 	}
 
 	event.Type, err = FromEventType(e.Type)
@@ -574,20 +574,20 @@ func FromEvent(e notification.Event) (api.NotificationEvent, error) {
 	return event, nil
 }
 
-func AsEventDeliveryAttempts(attempts []notification.EventDeliveryAttempt) []api.NotificationEventDeliveryAttempt {
-	result := make([]api.NotificationEventDeliveryAttempt, 0, len(attempts))
+func AsEventDeliveryAttempts(attempts []notification.EventDeliveryAttempt) []apiv1models.NotificationEventDeliveryAttempt {
+	result := make([]apiv1models.NotificationEventDeliveryAttempt, 0, len(attempts))
 
 	notification.SortEventDeliveryAttemptsInDescOrder(attempts)
 
 	for _, attempt := range attempts {
-		result = append(result, api.NotificationEventDeliveryAttempt{
-			Response: api.EventDeliveryAttemptResponse{
+		result = append(result, apiv1models.NotificationEventDeliveryAttempt{
+			Response: apiv1models.EventDeliveryAttemptResponse{
 				Body:       attempt.Response.Body,
 				StatusCode: attempt.Response.StatusCode,
 				Url:        attempt.Response.URL,
 				DurationMs: int(attempt.Response.Duration.Milliseconds()),
 			},
-			State:     api.NotificationEventDeliveryStatusState(attempt.State),
+			State:     apiv1models.NotificationEventDeliveryStatusState(attempt.State),
 			Timestamp: attempt.Timestamp,
 		})
 	}
@@ -595,33 +595,33 @@ func AsEventDeliveryAttempts(attempts []notification.EventDeliveryAttempt) []api
 	return result
 }
 
-func FromEventType(t notification.EventType) (api.NotificationEventType, error) {
+func FromEventType(t notification.EventType) (apiv1models.NotificationEventType, error) {
 	switch t {
 	case notification.EventTypeBalanceThreshold:
-		return api.NotificationEventTypeEntitlementsBalanceThreshold, nil
+		return apiv1models.NotificationEventTypeEntitlementsBalanceThreshold, nil
 	case notification.EventTypeEntitlementReset:
-		return api.NotificationEventTypeEntitlementsReset, nil
+		return apiv1models.NotificationEventTypeEntitlementsReset, nil
 	case notification.EventTypeInvoiceCreated:
-		return api.NotificationEventTypeInvoiceCreated, nil
+		return apiv1models.NotificationEventTypeInvoiceCreated, nil
 	case notification.EventTypeInvoiceUpdated:
-		return api.NotificationEventTypeInvoiceUpdated, nil
+		return apiv1models.NotificationEventTypeInvoiceUpdated, nil
 	default:
 		return "", fmt.Errorf("invalid notification event type: %s", t)
 	}
 }
 
-func FromEventAsBalanceThresholdPayload(e notification.Event) (api.NotificationEventBalanceThresholdPayload, error) {
+func FromEventAsBalanceThresholdPayload(e notification.Event) (apiv1models.NotificationEventBalanceThresholdPayload, error) {
 	return eventpayload.ToAPINotificationEventBalanceThresholdPayload(e)
 }
 
-func FromEventAsEntitlementResetPayload(e notification.Event) (api.NotificationEventResetPayload, error) {
+func FromEventAsEntitlementResetPayload(e notification.Event) (apiv1models.NotificationEventResetPayload, error) {
 	return eventpayload.ToAPINotificationEventResetPayload(e)
 }
 
-func FromEventAsInvoiceCreatedPayload(e notification.Event) (api.NotificationEventInvoiceCreatedPayload, error) {
+func FromEventAsInvoiceCreatedPayload(e notification.Event) (apiv1models.NotificationEventInvoiceCreatedPayload, error) {
 	return eventpayload.ToAPINotificationEventInvoiceCreatedPayload(e)
 }
 
-func FromEventAsInvoiceUpdatedPayload(e notification.Event) (api.NotificationEventInvoiceUpdatedPayload, error) {
+func FromEventAsInvoiceUpdatedPayload(e notification.Event) (apiv1models.NotificationEventInvoiceUpdatedPayload, error) {
 	return eventpayload.ToAPINotificationEventInvoiceUpdatedPayload(e)
 }

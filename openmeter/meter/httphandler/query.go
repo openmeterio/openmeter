@@ -8,7 +8,7 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -79,19 +79,19 @@ func (h *handler) ListSubjects() ListSubjectsHandler {
 }
 
 type (
-	QueryMeterResponse = *api.MeterQueryResult
+	QueryMeterResponse = *apiv1models.MeterQueryResult
 	QueryMeterHandler  httptransport.HandlerWithArgs[QueryMeterRequest, QueryMeterResponse, QueryMeterParams]
 )
 
 type QueryMeterParams struct {
-	api.QueryMeterParams
+	apiv1models.QueryMeterParams
 	IdOrSlug string
 }
 
 type QueryMeterRequest struct {
 	namespace string
 	idOrSlug  string
-	params    api.QueryMeterParams
+	params    apiv1models.QueryMeterParams
 }
 
 // QueryMeter returns a handler for query meter.
@@ -148,7 +148,7 @@ func (h *handler) QueryMeter() QueryMeterHandler {
 type QueryMeterPostRequest struct {
 	namespace string
 	idOrSlug  string
-	params    api.QueryMeterPostJSONRequestBody
+	params    apiv1models.QueryMeterPostJSONRequestBody
 }
 
 type (
@@ -166,7 +166,7 @@ func (h *handler) QueryMeterPost() QueryMeterPostHandler {
 				return QueryMeterPostRequest{}, err
 			}
 
-			var request api.QueryMeterPostJSONRequestBody
+			var request apiv1models.QueryMeterPostJSONRequestBody
 			if err := commonhttp.JSONRequestBodyDecoder(r, &request); err != nil {
 				return QueryMeterPostRequest{}, fmt.Errorf("failed to decode request body: %w", err)
 			}

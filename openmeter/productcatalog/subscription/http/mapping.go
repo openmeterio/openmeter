@@ -8,7 +8,7 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	entitlementdriver "github.com/openmeterio/openmeter/openmeter/entitlement/driver"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -28,14 +28,14 @@ import (
 
 // MapAPISubscriptionEditOperationToPatch maps a v1 edit operation to a patch. Legacy stripe.code
 // values on added items are resolved to Tax Codes through the resolver, which may create them.
-func MapAPISubscriptionEditOperationToPatch(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver, namespace string, apiPatch api.SubscriptionEditOperation) (subscription.Patch, error) {
+func MapAPISubscriptionEditOperationToPatch(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver, namespace string, apiPatch apiv1models.SubscriptionEditOperation) (subscription.Patch, error) {
 	disc, err := apiPatch.Discriminator()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get discriminator: %w", err)
 	}
 
 	switch disc {
-	case string(api.EditSubscriptionAddItemOpAddItem):
+	case string(apiv1models.EditSubscriptionAddItemOpAddItem):
 		apiP, err := apiPatch.AsEditSubscriptionAddItem()
 		if err != nil {
 			return nil, fmt.Errorf("failed to cast to EditSubscriptionAddItem: %w", err)
@@ -65,7 +65,7 @@ func MapAPISubscriptionEditOperationToPatch(ctx context.Context, resolver produc
 		}
 
 		return p, nil
-	case string(api.EditSubscriptionRemoveItemOpRemoveItem):
+	case string(apiv1models.EditSubscriptionRemoveItemOpRemoveItem):
 		apiP, err := apiPatch.AsEditSubscriptionRemoveItem()
 		if err != nil {
 			return nil, fmt.Errorf("failed to cast to EditSubscriptionRemoveItem: %w", err)
@@ -77,7 +77,7 @@ func MapAPISubscriptionEditOperationToPatch(ctx context.Context, resolver produc
 		}
 
 		return p, nil
-	case string(api.EditSubscriptionAddPhaseOpAddPhase):
+	case string(apiv1models.EditSubscriptionAddPhaseOpAddPhase):
 		apiP, err := apiPatch.AsEditSubscriptionAddPhase()
 		if err != nil {
 			return nil, fmt.Errorf("failed to cast to EditSubscriptionAddPhase: %w", err)
@@ -119,7 +119,7 @@ func MapAPISubscriptionEditOperationToPatch(ctx context.Context, resolver produc
 		}
 
 		return p, nil
-	case string(api.EditSubscriptionRemovePhaseOpRemovePhase):
+	case string(apiv1models.EditSubscriptionRemovePhaseOpRemovePhase):
 		apiP, err := apiPatch.AsEditSubscriptionRemovePhase()
 		if err != nil {
 			return nil, fmt.Errorf("failed to cast to EditSubscriptionRemovePhase: %w", err)
@@ -128,9 +128,9 @@ func MapAPISubscriptionEditOperationToPatch(ctx context.Context, resolver produc
 		var shift subscription.RemoveSubscriptionPhaseShifting
 
 		switch apiP.Shift {
-		case api.RemovePhaseShiftingNext:
+		case apiv1models.RemovePhaseShiftingNext:
 			shift = subscription.RemoveSubscriptionPhaseShiftNext
-		case api.RemovePhaseShiftingPrev:
+		case apiv1models.RemovePhaseShiftingPrev:
 			shift = subscription.RemoveSubscriptionPhaseShiftPrev
 		default:
 			return nil, fmt.Errorf("unknown shift value: %s", apiP.Shift)
@@ -144,7 +144,7 @@ func MapAPISubscriptionEditOperationToPatch(ctx context.Context, resolver produc
 		}
 
 		return p, nil
-	case string(api.EditSubscriptionStretchPhaseOpStretchPhase):
+	case string(apiv1models.EditSubscriptionStretchPhaseOpStretchPhase):
 		apiP, err := apiPatch.AsEditSubscriptionStretchPhase()
 		if err != nil {
 			return nil, fmt.Errorf("failed to cast to EditSubscriptionStretchPhase: %w", err)
@@ -162,7 +162,7 @@ func MapAPISubscriptionEditOperationToPatch(ctx context.Context, resolver produc
 		}
 
 		return p, nil
-	case string(api.EditSubscriptionUnscheduleEditOpUnscheduleEdit):
+	case string(apiv1models.EditSubscriptionUnscheduleEditOpUnscheduleEdit):
 		p := patch.PatchUnscheduleEdit{}
 		return p, nil
 	default:
@@ -170,75 +170,75 @@ func MapAPISubscriptionEditOperationToPatch(ctx context.Context, resolver produc
 	}
 }
 
-func MapSubscriptionToAPI(sub subscription.Subscription) api.Subscription {
-	var ref *api.PlanReference
+func MapSubscriptionToAPI(sub subscription.Subscription) apiv1models.Subscription {
+	var ref *apiv1models.PlanReference
 
 	if sub.PlanRef != nil {
-		ref = &api.PlanReference{
+		ref = &apiv1models.PlanReference{
 			Id:      sub.PlanRef.Id,
 			Key:     sub.PlanRef.Key,
 			Version: sub.PlanRef.Version,
 		}
 	}
 
-	var annotations *api.Annotations
+	var annotations *apiv1models.Annotations
 	if len(sub.Annotations) > 0 {
-		annotations = lo.ToPtr(api.Annotations(sub.Annotations))
+		annotations = lo.ToPtr(apiv1models.Annotations(sub.Annotations))
 	}
 
-	costBasisPins := make([]api.SubscriptionCostBasisPin, 0, len(sub.CostBasisPins))
+	costBasisPins := make([]apiv1models.SubscriptionCostBasisPin, 0, len(sub.CostBasisPins))
 	for _, pin := range sub.CostBasisPins {
-		costBasisPins = append(costBasisPins, api.SubscriptionCostBasisPin{
+		costBasisPins = append(costBasisPins, apiv1models.SubscriptionCostBasisPin{
 			CustomCurrencyId: pin.CustomCurrencyID,
 			InvoiceCurrency:  pin.InvoiceCurrency.String(),
 			CostBasisId:      pin.CostBasis.ID,
 		})
 	}
 
-	return api.Subscription{
+	return apiv1models.Subscription{
 		Id:         sub.ID,
 		ActiveFrom: sub.ActiveFrom,
 		ActiveTo:   sub.ActiveTo,
 		CustomerId: sub.CustomerId,
 		Currency:   sub.InvoiceCurrency.String(),
-		CostBasisMode: api.SubscriptionCostBasisMode(
+		CostBasisMode: apiv1models.SubscriptionCostBasisMode(
 			sub.CostBasisMode.OrDefault(),
 		),
 		CostBasisPins: costBasisPins,
 		Description:   sub.Description,
 		Name:          sub.Name,
-		Status:        api.SubscriptionStatus(sub.GetStatusAt(clock.Now())),
+		Status:        apiv1models.SubscriptionStatus(sub.GetStatusAt(clock.Now())),
 		Plan:          ref,
-		Metadata:      lo.EmptyableToPtr(api.Metadata(sub.Metadata)),
+		Metadata:      lo.EmptyableToPtr(apiv1models.Metadata(sub.Metadata)),
 		Annotations:   annotations,
 		CreatedAt:     sub.CreatedAt,
 		UpdatedAt:     sub.UpdatedAt,
 		DeletedAt:     sub.DeletedAt,
-		Alignment: &api.Alignment{
+		Alignment: &apiv1models.Alignment{
 			BillablesMustAlign: lo.ToPtr(true), // TODO(OM-1249): this field is deprecated on API, we'll get rid of it eventually
 		},
 		BillingCadence: sub.BillingCadence.String(),
 		BillingAnchor:  sub.BillingAnchor,
-		ProRatingConfig: &api.ProRatingConfig{
+		ProRatingConfig: &apiv1models.ProRatingConfig{
 			Enabled: sub.ProRatingConfig.Enabled,
-			Mode:    api.ProRatingMode(sub.ProRatingConfig.Mode),
+			Mode:    apiv1models.ProRatingMode(sub.ProRatingConfig.Mode),
 		},
-		SettlementMode: api.BillingSettlementMode(sub.SettlementMode),
+		SettlementMode: apiv1models.BillingSettlementMode(sub.SettlementMode),
 	}
 }
 
 // MapSubscriptionItemToAPI maps an item to its v1 shape. taxCodes must hold every Tax Code the
 // items reference: a missing entry is an error.
-func MapSubscriptionItemToAPI(item subscription.SubscriptionItemView, taxCodes map[string]*taxcode.TaxCode) (api.SubscriptionItem, error) {
-	var included *api.SubscriptionItemIncluded
+func MapSubscriptionItemToAPI(item subscription.SubscriptionItemView, taxCodes map[string]*taxcode.TaxCode) (apiv1models.SubscriptionItem, error) {
+	var included *apiv1models.SubscriptionItemIncluded
 
 	if item.Feature != nil {
 		feature, err := productcatalogdriver.MapFeatureToResponse(*item.Feature)
 		if err != nil {
-			return api.SubscriptionItem{}, fmt.Errorf("failed to map feature to API: %w", err)
+			return apiv1models.SubscriptionItem{}, fmt.Errorf("failed to map feature to API: %w", err)
 		}
 
-		included = &api.SubscriptionItemIncluded{
+		included = &apiv1models.SubscriptionItemIncluded{
 			Feature: feature,
 		}
 	}
@@ -246,29 +246,29 @@ func MapSubscriptionItemToAPI(item subscription.SubscriptionItemView, taxCodes m
 	if included != nil && item.Entitlement != nil {
 		apiEnt, err := entitlementdriver.Parser.ToAPIGeneric(&item.Entitlement.Entitlement)
 		if err != nil {
-			return api.SubscriptionItem{}, err
+			return apiv1models.SubscriptionItem{}, err
 		}
 
 		included.Entitlement = apiEnt
 	}
 
-	var tx *api.TaxConfig
+	var tx *apiv1models.TaxConfig
 
 	if item.SubscriptionItem.RateCard.AsMeta().TaxConfig != nil {
 		txv, err := productcataloghttp.ToAPITaxConfig(*item.SubscriptionItem.RateCard.AsMeta().TaxConfig, taxCodes)
 		if err != nil {
-			return api.SubscriptionItem{}, err
+			return apiv1models.SubscriptionItem{}, err
 		}
 
 		tx = &txv
 	}
 
-	var pr *api.RateCardUsageBasedPrice
+	var pr *apiv1models.RateCardUsageBasedPrice
 
 	if item.SubscriptionItem.RateCard.AsMeta().Price != nil {
 		prc, err := productcataloghttp.FromRateCardUsageBasedPrice(*item.SubscriptionItem.RateCard.AsMeta().Price)
 		if err != nil {
-			return api.SubscriptionItem{}, err
+			return apiv1models.SubscriptionItem{}, err
 		}
 
 		pr = &prc
@@ -279,7 +279,7 @@ func MapSubscriptionItemToAPI(item subscription.SubscriptionItemView, taxCodes m
 		featureKey = feature.Key
 	}
 
-	result := api.SubscriptionItem{
+	result := apiv1models.SubscriptionItem{
 		ActiveFrom:     item.SubscriptionItem.ActiveFrom,
 		ActiveTo:       item.SubscriptionItem.ActiveTo,
 		BillingCadence: (*string)(item.SubscriptionItem.RateCard.GetBillingCadence().ISOStringPtrOrNil()),
@@ -290,7 +290,7 @@ func MapSubscriptionItemToAPI(item subscription.SubscriptionItemView, taxCodes m
 		Included:       included,
 		Key:            item.SubscriptionItem.Key,
 		FeatureKey:     featureKey,
-		Metadata:       lo.EmptyableToPtr(api.Metadata(item.SubscriptionItem.Metadata)),
+		Metadata:       lo.EmptyableToPtr(apiv1models.Metadata(item.SubscriptionItem.Metadata)),
 		Name:           item.SubscriptionItem.Name,
 		Price:          pr,
 		Discounts:      productcataloghttp.FromDiscounts(item.SubscriptionItem.RateCard.AsMeta().Discounts),
@@ -305,7 +305,7 @@ func MapSubscriptionItemToAPI(item subscription.SubscriptionItemView, taxCodes m
 	return result, nil
 }
 
-func MapAPITimingToTiming(apiTiming api.SubscriptionTiming) (subscription.Timing, error) {
+func MapAPITimingToTiming(apiTiming apiv1models.SubscriptionTiming) (subscription.Timing, error) {
 	var res subscription.Timing
 
 	t, err := apiTiming.AsSubscriptionTiming1()
@@ -327,7 +327,7 @@ func MapAPITimingToTiming(apiTiming api.SubscriptionTiming) (subscription.Timing
 // - for the current phase, the API will only return the active item for each key
 // - for past phases, the API will return the last item for each key
 // - for future phases, the API will return the first version
-func MapSubscriptionPhaseToAPI(subView subscription.SubscriptionView, phaseView subscription.SubscriptionPhaseView, taxCodes map[string]*taxcode.TaxCode) (api.SubscriptionPhaseExpanded, error) {
+func MapSubscriptionPhaseToAPI(subView subscription.SubscriptionView, phaseView subscription.SubscriptionPhaseView, taxCodes map[string]*taxcode.TaxCode) (apiv1models.SubscriptionPhaseExpanded, error) {
 	var endOfPhase *time.Time
 	if dur, err := subView.Spec.GetPhaseCadence(phaseView.SubscriptionPhase.Key); err == nil {
 		endOfPhase = dur.ActiveTo
@@ -337,9 +337,9 @@ func MapSubscriptionPhaseToAPI(subView subscription.SubscriptionView, phaseView 
 	currPhase, currExists := subView.Spec.GetCurrentPhaseAt(now)
 
 	flatItems := lo.Flatten(lo.Values(phaseView.ItemsByKey))
-	apiItems := make([]api.SubscriptionItem, 0, len(flatItems))
+	apiItems := make([]apiv1models.SubscriptionItem, 0, len(flatItems))
 
-	apiItemTimelines := make(map[string][]api.SubscriptionItem)
+	apiItemTimelines := make(map[string][]apiv1models.SubscriptionItem)
 
 	var relativePhaseTime string
 
@@ -353,16 +353,16 @@ func MapSubscriptionPhaseToAPI(subView subscription.SubscriptionView, phaseView 
 
 	for key, items := range phaseView.ItemsByKey {
 		// Let's add the items to the timeline
-		timeline, err := slicesx.MapWithErr(items, func(item subscription.SubscriptionItemView) (api.SubscriptionItem, error) {
+		timeline, err := slicesx.MapWithErr(items, func(item subscription.SubscriptionItemView) (apiv1models.SubscriptionItem, error) {
 			apiItem, err := MapSubscriptionItemToAPI(item, taxCodes)
 			if err != nil {
-				return api.SubscriptionItem{}, err
+				return apiv1models.SubscriptionItem{}, err
 			}
 
 			return apiItem, nil
 		})
 		if err != nil {
-			return api.SubscriptionPhaseExpanded{}, err
+			return apiv1models.SubscriptionPhaseExpanded{}, err
 		}
 
 		apiItemTimelines[key] = timeline
@@ -379,7 +379,7 @@ func MapSubscriptionPhaseToAPI(subView subscription.SubscriptionView, phaseView 
 			if curr != -1 {
 				apiItem, err := MapSubscriptionItemToAPI(items[curr], taxCodes)
 				if err != nil {
-					return api.SubscriptionPhaseExpanded{}, err
+					return apiv1models.SubscriptionPhaseExpanded{}, err
 				}
 
 				apiItems = append(apiItems, apiItem)
@@ -391,7 +391,7 @@ func MapSubscriptionPhaseToAPI(subView subscription.SubscriptionView, phaseView 
 			if len(items) > 0 {
 				apiItem, err := MapSubscriptionItemToAPI(items[0], taxCodes)
 				if err != nil {
-					return api.SubscriptionPhaseExpanded{}, err
+					return apiv1models.SubscriptionPhaseExpanded{}, err
 				}
 
 				apiItems = append(apiItems, apiItem)
@@ -404,7 +404,7 @@ func MapSubscriptionPhaseToAPI(subView subscription.SubscriptionView, phaseView 
 			if len(items) > 0 {
 				apiItem, err := MapSubscriptionItemToAPI(items[len(items)-1], taxCodes)
 				if err != nil {
-					return api.SubscriptionPhaseExpanded{}, err
+					return apiv1models.SubscriptionPhaseExpanded{}, err
 				}
 
 				apiItems = append(apiItems, apiItem)
@@ -412,11 +412,11 @@ func MapSubscriptionPhaseToAPI(subView subscription.SubscriptionView, phaseView 
 
 			continue
 		default:
-			return api.SubscriptionPhaseExpanded{}, fmt.Errorf("no logical branch enetered: %s", relativePhaseTime)
+			return apiv1models.SubscriptionPhaseExpanded{}, fmt.Errorf("no logical branch enetered: %s", relativePhaseTime)
 		}
 	}
 
-	return api.SubscriptionPhaseExpanded{
+	return apiv1models.SubscriptionPhaseExpanded{
 		ActiveFrom:    phaseView.SubscriptionPhase.ActiveFrom,
 		ActiveTo:      endOfPhase,
 		CreatedAt:     phaseView.SubscriptionPhase.CreatedAt,
@@ -428,16 +428,16 @@ func MapSubscriptionPhaseToAPI(subView subscription.SubscriptionView, phaseView 
 		Items:         apiItems,
 		ItemTimelines: apiItemTimelines,
 		Key:           phaseView.SubscriptionPhase.Key,
-		Metadata:      lo.EmptyableToPtr(api.Metadata(phaseView.SubscriptionPhase.Metadata)),
+		Metadata:      lo.EmptyableToPtr(apiv1models.Metadata(phaseView.SubscriptionPhase.Metadata)),
 		Name:          phaseView.SubscriptionPhase.Name,
 	}, nil
 }
 
 // MapSubscriptionViewToAPI maps a view to its v1 shape. taxCodes must hold every Tax Code
 // the view's items reference (see taxCodesForView): a missing entry is an error.
-func MapSubscriptionViewToAPI(view subscription.SubscriptionView, taxCodes map[string]*taxcode.TaxCode) (api.SubscriptionExpanded, error) {
+func MapSubscriptionViewToAPI(view subscription.SubscriptionView, taxCodes map[string]*taxcode.TaxCode) (apiv1models.SubscriptionExpanded, error) {
 	apiSub := MapSubscriptionToAPI(view.Subscription)
-	alg := api.SubscriptionAlignment{
+	alg := apiv1models.SubscriptionAlignment{
 		BillablesMustAlign: lo.ToPtr(true), // this field is deprecated on API, we'll get rid of it eventually
 	}
 
@@ -445,17 +445,17 @@ func MapSubscriptionViewToAPI(view subscription.SubscriptionView, taxCodes map[s
 		period, err := view.Spec.GetAlignedBillingPeriodAt(clock.Now())
 		if err != nil {
 			if !subscription.IsErrSubscriptionBillingPeriodQueriedBeforeSubscriptionStart(err) {
-				return api.SubscriptionExpanded{}, err
+				return apiv1models.SubscriptionExpanded{}, err
 			}
 		} else {
-			alg.CurrentAlignedBillingPeriod = &api.Period{
+			alg.CurrentAlignedBillingPeriod = &apiv1models.Period{
 				From: period.From,
 				To:   period.To,
 			}
 		}
 	}
 
-	base := api.SubscriptionExpanded{
+	base := apiv1models.SubscriptionExpanded{
 		ActiveFrom:      apiSub.ActiveFrom,
 		ActiveTo:        apiSub.ActiveTo,
 		CreatedAt:       apiSub.CreatedAt,
@@ -480,7 +480,7 @@ func MapSubscriptionViewToAPI(view subscription.SubscriptionView, taxCodes map[s
 		SettlementMode:  apiSub.SettlementMode,
 	}
 
-	phases := make([]api.SubscriptionPhaseExpanded, 0, len(view.Phases))
+	phases := make([]apiv1models.SubscriptionPhaseExpanded, 0, len(view.Phases))
 	for _, phase := range view.Phases {
 		phaseAPI, err := MapSubscriptionPhaseToAPI(view, phase, taxCodes)
 		if err != nil {
@@ -497,7 +497,7 @@ func MapSubscriptionViewToAPI(view subscription.SubscriptionView, taxCodes map[s
 
 // CustomPlanToCreatePlanRequest maps a v1 custom plan to a plan create request. Legacy stripe.code
 // values are resolved to Tax Codes through resolver, which may create them.
-func CustomPlanToCreatePlanRequest(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver, a api.CustomPlanInput, namespace string) (plandriver.CreatePlanRequest, error) {
+func CustomPlanToCreatePlanRequest(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver, a apiv1models.CustomPlanInput, namespace string) (plandriver.CreatePlanRequest, error) {
 	var err error
 
 	settlementMode := productcatalog.SettlementMode(lo.FromPtr(a.SettlementMode))
@@ -550,7 +550,7 @@ func CustomPlanToCreatePlanRequest(ctx context.Context, resolver productcatalog.
 }
 
 // asProRatingConfig converts API ProRatingConfig to domain ProRatingConfig
-func asProRatingConfig(p *api.ProRatingConfig) productcatalog.ProRatingConfig {
+func asProRatingConfig(p *apiv1models.ProRatingConfig) productcatalog.ProRatingConfig {
 	if p == nil {
 		// Return default configuration when not provided
 		return productcatalog.ProRatingConfig{

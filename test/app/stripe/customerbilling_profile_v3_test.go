@@ -8,7 +8,7 @@ import (
 	"github.com/oapi-codegen/nullable"
 	"github.com/stretchr/testify/require"
 
-	api "github.com/openmeterio/openmeter/api/v3"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
@@ -46,9 +46,9 @@ func TestCustomerBillingProfileV3(t *testing.T) {
 			path := "/openmeter/customers/" + cus.ID + "/billing"
 			rec := doJSONRequest(router, http.MethodPut, path+"/profile", `{"billing_profile":{"id":"`+pinnedProfile.ID+`"}}`)
 			require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
-			var pinned api.BillingCustomerProfile
+			var pinned apiv3models.BillingCustomerProfile
 			require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &pinned))
-			require.Equal(t, nullable.NewNullableWithValue(api.BillingProfileReference{Id: pinnedProfile.ID}), pinned.BillingProfile)
+			require.Equal(t, nullable.NewNullableWithValue(apiv3models.BillingProfileReference{Id: pinnedProfile.ID}), pinned.BillingProfile)
 			require.Equal(t, pinnedProfile.ID, pinned.EffectiveBillingProfile.Id)
 
 			// when clearing the selection twice
@@ -57,13 +57,13 @@ func TestCustomerBillingProfileV3(t *testing.T) {
 
 				// then the operation is idempotent and GET agrees with its response
 				require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
-				var cleared api.BillingCustomerProfile
+				var cleared apiv3models.BillingCustomerProfile
 				require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &cleared))
 				require.False(t, cleared.BillingProfile.IsSpecified())
 				require.Equal(t, defaultProfile.ID, cleared.EffectiveBillingProfile.Id)
 				get := doJSONRequest(router, http.MethodGet, path, "")
 				require.Equal(t, http.StatusOK, get.Code, get.Body.String())
-				var got api.BillingCustomerData
+				var got apiv3models.BillingCustomerData
 				require.NoError(t, json.Unmarshal(get.Body.Bytes(), &got))
 				require.Equal(t, cleared.BillingProfile, got.BillingProfile)
 				require.Equal(t, cleared.EffectiveBillingProfile, got.EffectiveBillingProfile)
@@ -184,7 +184,7 @@ func TestCustomerBillingProfileV3(t *testing.T) {
 
 			// then no assignment is created and the effective default is returned
 			require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
-			var cleared api.BillingCustomerProfile
+			var cleared apiv3models.BillingCustomerProfile
 			require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &cleared))
 			require.False(t, cleared.BillingProfile.IsSpecified())
 			require.Equal(t, defaultProfile.ID, cleared.EffectiveBillingProfile.Id)
@@ -232,21 +232,21 @@ func TestCustomerBillingProfileV3(t *testing.T) {
 		require.NoError(t, err)
 		get := doJSONRequest(router, http.MethodGet, path, "")
 		require.Equal(t, http.StatusOK, get.Code, get.Body.String())
-		var pinned api.BillingCustomerData
+		var pinned apiv3models.BillingCustomerData
 		require.NoError(t, json.Unmarshal(get.Body.Bytes(), &pinned))
 		require.Equal(t, defaultProfile.ID, pinned.EffectiveBillingProfile.Id)
 
 		// then clearing uses the new default and subsequent default changes are dynamic
 		rec = doJSONRequest(router, http.MethodPut, path+"/profile", `{}`)
 		require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
-		var cleared api.BillingCustomerProfile
+		var cleared apiv3models.BillingCustomerProfile
 		require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &cleared))
 		require.Equal(t, nextDefault.ID, cleared.EffectiveBillingProfile.Id)
 		latestDefault, err := env.Billing().CreateProfile(t.Context(), newTestProfileInput(namespace, defaultApp.GetID(), "Latest Default", true))
 		require.NoError(t, err)
 		get = doJSONRequest(router, http.MethodGet, path, "")
 		require.Equal(t, http.StatusOK, get.Code, get.Body.String())
-		var dynamic api.BillingCustomerData
+		var dynamic apiv3models.BillingCustomerData
 		require.NoError(t, json.Unmarshal(get.Body.Bytes(), &dynamic))
 		require.False(t, dynamic.BillingProfile.IsSpecified())
 		require.Equal(t, latestDefault.ID, dynamic.EffectiveBillingProfile.Id)

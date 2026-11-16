@@ -3,15 +3,15 @@ package http
 import (
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-func FromMetadata(metadata models.Metadata) *api.Metadata {
-	return lo.ToPtr(api.Metadata(metadata))
+func FromMetadata(metadata models.Metadata) *apiv1models.Metadata {
+	return lo.ToPtr(apiv1models.Metadata(metadata))
 }
 
-func AsMetadata(metadata *api.Metadata) models.Metadata {
+func AsMetadata(metadata *apiv1models.Metadata) models.Metadata {
 	if metadata == nil {
 		return nil
 	}

@@ -7,9 +7,9 @@ import (
 
 	"github.com/samber/lo"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/filters"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/api/v3/response"
 	"github.com/openmeterio/openmeter/openmeter/notification"
@@ -20,8 +20,8 @@ import (
 
 type (
 	ListNotificationRulesRequest  = notification.ListRulesInput
-	ListNotificationRulesResponse = response.PagePaginationResponse[api.BillingNotificationRule]
-	ListNotificationRulesParams   = api.ListBillingNotificationRulesParams
+	ListNotificationRulesResponse = response.PagePaginationResponse[apiv3models.BillingNotificationRule]
+	ListNotificationRulesParams   = apiv3models.ListBillingNotificationRulesParams
 	ListNotificationRulesHandler  = httptransport.HandlerWithArgs[ListNotificationRulesRequest, ListNotificationRulesResponse, ListNotificationRulesParams]
 )
 
@@ -92,7 +92,7 @@ func (h *handler) ListNotificationRules() ListNotificationRulesHandler {
 				return ListNotificationRulesResponse{}, fmt.Errorf("failed to list notification rules: %w", err)
 			}
 
-			items, err := lo.MapErr(result.Items, func(item notification.RuleView, _ int) (api.BillingNotificationRule, error) {
+			items, err := lo.MapErr(result.Items, func(item notification.RuleView, _ int) (apiv3models.BillingNotificationRule, error) {
 				return ToAPIBillingNotificationRule(item)
 			})
 			if err != nil {
@@ -115,7 +115,7 @@ func (h *handler) ListNotificationRules() ListNotificationRulesHandler {
 	)
 }
 
-func applyAPIRuleFilters(ctx context.Context, req *ListNotificationRulesRequest, params api.ListNotificationRulesParamsFilter) error {
+func applyAPIRuleFilters(ctx context.Context, req *ListNotificationRulesRequest, params apiv3models.ListNotificationRulesParamsFilter) error {
 	badRequest := func(field string, err error) error {
 		return apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
 			{Field: field, Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},

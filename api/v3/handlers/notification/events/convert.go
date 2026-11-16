@@ -7,9 +7,9 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
-	v1api "github.com/openmeterio/openmeter/api"
-	api "github.com/openmeterio/openmeter/api/v3"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -31,35 +31,35 @@ func FromAPIEventSortField(ctx context.Context, field string) (notification.Orde
 
 // The v3 wire value is lowercase ("failed") while the column keeps the uppercase value
 // written by v1 ("FAILED").
-func FromAPIBillingNotificationEventDeliveryState(v api.BillingNotificationEventDeliveryState) (notification.EventDeliveryStatusState, error) {
+func FromAPIBillingNotificationEventDeliveryState(v apiv3models.BillingNotificationEventDeliveryState) (notification.EventDeliveryStatusState, error) {
 	switch v {
-	case api.BillingNotificationEventDeliveryStateSuccess:
+	case apiv3models.BillingNotificationEventDeliveryStateSuccess:
 		return notification.EventDeliveryStatusStateSuccess, nil
-	case api.BillingNotificationEventDeliveryStateFailed:
+	case apiv3models.BillingNotificationEventDeliveryStateFailed:
 		return notification.EventDeliveryStatusStateFailed, nil
-	case api.BillingNotificationEventDeliveryStateSending:
+	case apiv3models.BillingNotificationEventDeliveryStateSending:
 		return notification.EventDeliveryStatusStateSending, nil
-	case api.BillingNotificationEventDeliveryStatePending:
+	case apiv3models.BillingNotificationEventDeliveryStatePending:
 		return notification.EventDeliveryStatusStatePending, nil
-	case api.BillingNotificationEventDeliveryStateResending:
+	case apiv3models.BillingNotificationEventDeliveryStateResending:
 		return notification.EventDeliveryStatusStateResending, nil
 	default:
 		return "", models.NewGenericValidationError(fmt.Errorf("invalid notification event delivery state: %s", v))
 	}
 }
 
-func ToAPIBillingNotificationEventDeliveryState(v notification.EventDeliveryStatusState) (api.BillingNotificationEventDeliveryState, error) {
+func ToAPIBillingNotificationEventDeliveryState(v notification.EventDeliveryStatusState) (apiv3models.BillingNotificationEventDeliveryState, error) {
 	switch v {
 	case notification.EventDeliveryStatusStateSuccess:
-		return api.BillingNotificationEventDeliveryStateSuccess, nil
+		return apiv3models.BillingNotificationEventDeliveryStateSuccess, nil
 	case notification.EventDeliveryStatusStateFailed:
-		return api.BillingNotificationEventDeliveryStateFailed, nil
+		return apiv3models.BillingNotificationEventDeliveryStateFailed, nil
 	case notification.EventDeliveryStatusStateSending:
-		return api.BillingNotificationEventDeliveryStateSending, nil
+		return apiv3models.BillingNotificationEventDeliveryStateSending, nil
 	case notification.EventDeliveryStatusStatePending:
-		return api.BillingNotificationEventDeliveryStatePending, nil
+		return apiv3models.BillingNotificationEventDeliveryStatePending, nil
 	case notification.EventDeliveryStatusStateResending:
-		return api.BillingNotificationEventDeliveryStateResending, nil
+		return apiv3models.BillingNotificationEventDeliveryStateResending, nil
 	default:
 		return "", fmt.Errorf("invalid notification event delivery state: %s", v)
 	}
@@ -68,41 +68,41 @@ func ToAPIBillingNotificationEventDeliveryState(v notification.EventDeliveryStat
 // The stored value is the v1 API model, where `NUMBER` and `PERCENT` are deprecated
 // aliases of `usage_value` and `usage_percentage`; events written before the rename
 // must not leak the legacy spelling.
-func ToAPIBillingNotificationBalanceThresholdType(v v1api.NotificationRuleBalanceThresholdValueType) (api.BillingNotificationBalanceThresholdType, error) {
+func ToAPIBillingNotificationBalanceThresholdType(v apiv1models.NotificationRuleBalanceThresholdValueType) (apiv3models.BillingNotificationBalanceThresholdType, error) {
 	switch v {
-	case v1api.NotificationRuleBalanceThresholdValueTypeBalanceValue:
-		return api.BillingNotificationBalanceThresholdTypeBalanceValue, nil
-	case v1api.NotificationRuleBalanceThresholdValueTypeUsagePercentage,
-		v1api.NotificationRuleBalanceThresholdValueTypePercent:
-		return api.BillingNotificationBalanceThresholdTypeUsagePercentage, nil
-	case v1api.NotificationRuleBalanceThresholdValueTypeUsageValue,
-		v1api.NotificationRuleBalanceThresholdValueTypeNumber:
-		return api.BillingNotificationBalanceThresholdTypeUsageValue, nil
+	case apiv1models.NotificationRuleBalanceThresholdValueTypeBalanceValue:
+		return apiv3models.BillingNotificationBalanceThresholdTypeBalanceValue, nil
+	case apiv1models.NotificationRuleBalanceThresholdValueTypeUsagePercentage,
+		apiv1models.NotificationRuleBalanceThresholdValueTypePercent:
+		return apiv3models.BillingNotificationBalanceThresholdTypeUsagePercentage, nil
+	case apiv1models.NotificationRuleBalanceThresholdValueTypeUsageValue,
+		apiv1models.NotificationRuleBalanceThresholdValueTypeNumber:
+		return apiv3models.BillingNotificationBalanceThresholdTypeUsageValue, nil
 	default:
 		return "", fmt.Errorf("invalid notification balance threshold type: %s", v)
 	}
 }
 
-func ToAPIBillingNotificationEvent(e notification.Event) (api.BillingNotificationEvent, error) {
+func ToAPIBillingNotificationEvent(e notification.Event) (apiv3models.BillingNotificationEvent, error) {
 	deliveryStatus, err := ToAPIBillingNotificationEventDeliveryStatuses(e.DeliveryStatus)
 	if err != nil {
-		return api.BillingNotificationEvent{}, err
+		return apiv3models.BillingNotificationEvent{}, err
 	}
 
-	event := api.BillingNotificationEvent{
+	event := apiv3models.BillingNotificationEvent{
 		Id:        e.ID,
-		Type:      api.BillingNotificationEventType(e.Type),
+		Type:      apiv3models.BillingNotificationEventType(e.Type),
 		CreatedAt: e.CreatedAt,
-		Rule: api.BillingNotificationRuleReference{
+		Rule: apiv3models.BillingNotificationRuleReference{
 			Id:   e.Rule.ID,
-			Type: api.BillingNotificationEventType(e.Rule.Type),
+			Type: apiv3models.BillingNotificationEventType(e.Rule.Type),
 			Name: e.Rule.Name,
 		},
 		DeliveryStatus: deliveryStatus,
 	}
 
 	if err := setAPIEventPayload(&event, e); err != nil {
-		return api.BillingNotificationEvent{}, err
+		return apiv3models.BillingNotificationEvent{}, err
 	}
 
 	return event, nil
@@ -110,8 +110,8 @@ func ToAPIBillingNotificationEvent(e notification.Event) (api.BillingNotificatio
 
 // Unlike v1, the channel is reported by id only, so a channel that has since been
 // disabled or deleted is still reported.
-func ToAPIBillingNotificationEventDeliveryStatuses(statuses []notification.EventDeliveryStatus) ([]api.BillingNotificationEventDeliveryStatus, error) {
-	result := make([]api.BillingNotificationEventDeliveryStatus, 0, len(statuses))
+func ToAPIBillingNotificationEventDeliveryStatuses(statuses []notification.EventDeliveryStatus) ([]apiv3models.BillingNotificationEventDeliveryStatus, error) {
+	result := make([]apiv3models.BillingNotificationEventDeliveryStatus, 0, len(statuses))
 
 	for _, status := range statuses {
 		state, err := ToAPIBillingNotificationEventDeliveryState(status.State)
@@ -124,7 +124,7 @@ func ToAPIBillingNotificationEventDeliveryStatuses(statuses []notification.Event
 			return nil, err
 		}
 
-		result = append(result, api.BillingNotificationEventDeliveryStatus{
+		result = append(result, apiv3models.BillingNotificationEventDeliveryStatus{
 			ChannelId:   status.ChannelID,
 			State:       state,
 			Reason:      status.Reason,
@@ -137,10 +137,10 @@ func ToAPIBillingNotificationEventDeliveryStatuses(statuses []notification.Event
 	return result, nil
 }
 
-func ToAPIBillingNotificationEventDeliveryAttempts(attempts []notification.EventDeliveryAttempt) ([]api.BillingNotificationEventDeliveryAttempt, error) {
+func ToAPIBillingNotificationEventDeliveryAttempts(attempts []notification.EventDeliveryAttempt) ([]apiv3models.BillingNotificationEventDeliveryAttempt, error) {
 	notification.SortEventDeliveryAttemptsInDescOrder(attempts)
 
-	result := make([]api.BillingNotificationEventDeliveryAttempt, 0, len(attempts))
+	result := make([]apiv3models.BillingNotificationEventDeliveryAttempt, 0, len(attempts))
 
 	for _, attempt := range attempts {
 		state, err := ToAPIBillingNotificationEventDeliveryState(attempt.State)
@@ -153,10 +153,10 @@ func ToAPIBillingNotificationEventDeliveryAttempts(attempts []notification.Event
 			statusCode = lo.ToPtr(int32(*attempt.Response.StatusCode))
 		}
 
-		result = append(result, api.BillingNotificationEventDeliveryAttempt{
+		result = append(result, apiv3models.BillingNotificationEventDeliveryAttempt{
 			State:     state,
 			Timestamp: attempt.Timestamp,
-			Response: api.BillingNotificationEventDeliveryAttemptResponse{
+			Response: apiv3models.BillingNotificationEventDeliveryAttemptResponse{
 				StatusCode: statusCode,
 				Body:       attempt.Response.Body,
 				DurationMs: attempt.Response.Duration.Milliseconds(),
@@ -170,7 +170,7 @@ func ToAPIBillingNotificationEventDeliveryAttempts(attempts []notification.Event
 
 // The stored payload holds v1 API models; only the identifiers and scalars the v3
 // surface exposes are extracted, never the v1 shapes.
-func setAPIEventPayload(event *api.BillingNotificationEvent, e notification.Event) error {
+func setAPIEventPayload(event *apiv3models.BillingNotificationEvent, e notification.Event) error {
 	switch e.Type {
 	case notification.EventTypeBalanceThreshold:
 		if e.Payload.BalanceThreshold == nil {
@@ -182,20 +182,20 @@ func setAPIEventPayload(event *api.BillingNotificationEvent, e notification.Even
 			return err
 		}
 
-		return event.Payload.FromBillingNotificationEventBalanceThresholdPayload(api.BillingNotificationEventBalanceThresholdPayload{
+		return event.Payload.FromBillingNotificationEventBalanceThresholdPayload(apiv3models.BillingNotificationEventBalanceThresholdPayload{
 			Id:        e.ID,
-			Type:      api.BillingNotificationEventBalanceThresholdPayloadTypeEntitlementsBalanceThreshold,
+			Type:      apiv3models.BillingNotificationEventBalanceThresholdPayloadTypeEntitlementsBalanceThreshold,
 			Timestamp: e.CreatedAt,
-			Data: api.BillingNotificationEventBalanceThresholdData{
+			Data: apiv3models.BillingNotificationEventBalanceThresholdData{
 				EntitlementId: e.Payload.BalanceThreshold.Entitlement.Id,
-				Feature: api.BillingNotificationEventFeatureReference{
+				Feature: apiv3models.BillingNotificationEventFeatureReference{
 					Id:  e.Payload.BalanceThreshold.Feature.Id,
 					Key: e.Payload.BalanceThreshold.Feature.Key,
 				},
 				SubjectKey: e.Payload.BalanceThreshold.Subject.Key,
 				CustomerId: lo.EmptyableToPtr(e.Payload.BalanceThreshold.Customer.Id),
 				Value:      toAPIEntitlementValue(e.Payload.BalanceThreshold.Feature.Key, e.Payload.BalanceThreshold.Value),
-				Threshold: api.BillingNotificationBalanceThreshold{
+				Threshold: apiv3models.BillingNotificationBalanceThreshold{
 					Type:  thresholdType,
 					Value: e.Payload.BalanceThreshold.Threshold.Value,
 				},
@@ -207,13 +207,13 @@ func setAPIEventPayload(event *api.BillingNotificationEvent, e notification.Even
 			return fmt.Errorf("missing entitlement reset payload on notification event %s", e.ID)
 		}
 
-		return event.Payload.FromBillingNotificationEventResetPayload(api.BillingNotificationEventResetPayload{
+		return event.Payload.FromBillingNotificationEventResetPayload(apiv3models.BillingNotificationEventResetPayload{
 			Id:        e.ID,
-			Type:      api.BillingNotificationEventResetPayloadTypeEntitlementsReset,
+			Type:      apiv3models.BillingNotificationEventResetPayloadTypeEntitlementsReset,
 			Timestamp: e.CreatedAt,
-			Data: api.BillingNotificationEventEntitlementData{
+			Data: apiv3models.BillingNotificationEventEntitlementData{
 				EntitlementId: e.Payload.EntitlementReset.Entitlement.Id,
-				Feature: api.BillingNotificationEventFeatureReference{
+				Feature: apiv3models.BillingNotificationEventFeatureReference{
 					Id:  e.Payload.EntitlementReset.Feature.Id,
 					Key: e.Payload.EntitlementReset.Feature.Key,
 				},
@@ -228,9 +228,9 @@ func setAPIEventPayload(event *api.BillingNotificationEvent, e notification.Even
 			return fmt.Errorf("missing invoice payload on notification event %s", e.ID)
 		}
 
-		return event.Payload.FromBillingNotificationEventInvoiceCreatedPayload(api.BillingNotificationEventInvoiceCreatedPayload{
+		return event.Payload.FromBillingNotificationEventInvoiceCreatedPayload(apiv3models.BillingNotificationEventInvoiceCreatedPayload{
 			Id:        e.ID,
-			Type:      api.BillingNotificationEventInvoiceCreatedPayloadTypeInvoiceCreated,
+			Type:      apiv3models.BillingNotificationEventInvoiceCreatedPayloadTypeInvoiceCreated,
 			Timestamp: e.CreatedAt,
 			Data:      toAPIInvoiceData(e.Payload.Invoice.Invoice),
 		})
@@ -240,9 +240,9 @@ func setAPIEventPayload(event *api.BillingNotificationEvent, e notification.Even
 			return fmt.Errorf("missing invoice payload on notification event %s", e.ID)
 		}
 
-		return event.Payload.FromBillingNotificationEventInvoiceUpdatedPayload(api.BillingNotificationEventInvoiceUpdatedPayload{
+		return event.Payload.FromBillingNotificationEventInvoiceUpdatedPayload(apiv3models.BillingNotificationEventInvoiceUpdatedPayload{
 			Id:        e.ID,
-			Type:      api.BillingNotificationEventInvoiceUpdatedPayloadTypeInvoiceUpdated,
+			Type:      apiv3models.BillingNotificationEventInvoiceUpdatedPayloadTypeInvoiceUpdated,
 			Timestamp: e.CreatedAt,
 			Data:      toAPIInvoiceData(e.Payload.Invoice.Invoice),
 		})
@@ -252,26 +252,26 @@ func setAPIEventPayload(event *api.BillingNotificationEvent, e notification.Even
 	}
 }
 
-func toAPIEntitlementValue(featureKey string, v v1api.EntitlementValue) api.BillingEntitlementValueResult {
-	return api.BillingEntitlementValueResult{
-		Type:       api.BillingEntitlementTypeMetered,
+func toAPIEntitlementValue(featureKey string, v apiv1models.EntitlementValue) apiv3models.BillingEntitlementValueResult {
+	return apiv3models.BillingEntitlementValueResult{
+		Type:       apiv3models.BillingEntitlementTypeMetered,
 		FeatureKey: featureKey,
 		HasAccess:  v.HasAccess,
 		Config:     v.Config,
-		Value: &api.BillingEntitlementAccessValue{
+		Value: &apiv3models.BillingEntitlementAccessValue{
 			Balance:                   alpacadecimal.NewFromFloat(lo.FromPtr(v.Balance)).String(),
 			Usage:                     alpacadecimal.NewFromFloat(lo.FromPtr(v.Usage)).String(),
 			Overage:                   alpacadecimal.NewFromFloat(lo.FromPtr(v.Overage)).String(),
 			TotalAvailableGrantAmount: alpacadecimal.NewFromFloat(lo.FromPtr(v.TotalAvailableGrantAmount)).String(),
 			// keep it empty to satisfy the api contract
-			GrantBalances: make(map[string]api.Numeric),
+			GrantBalances: make(map[string]apiv3models.Numeric),
 		},
 	}
 }
 
-func toAPIInvoiceData(invoice v1api.Invoice) api.BillingNotificationEventInvoiceData {
-	return api.BillingNotificationEventInvoiceData{
-		Invoice: api.BillingNotificationEventInvoiceReference{
+func toAPIInvoiceData(invoice apiv1models.Invoice) apiv3models.BillingNotificationEventInvoiceData {
+	return apiv3models.BillingNotificationEventInvoiceData{
+		Invoice: apiv3models.BillingNotificationEventInvoiceReference{
 			Id:     invoice.Id,
 			Number: invoice.Number,
 		},

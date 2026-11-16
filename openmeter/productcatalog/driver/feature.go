@@ -8,7 +8,7 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/llmcost"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
@@ -57,7 +57,7 @@ func NewFeatureHandler(
 
 type (
 	GetFeatureHandlerRequest  = models.NamespacedID
-	GetFeatureHandlerResponse = api.Feature
+	GetFeatureHandlerResponse = apiv1models.Feature
 	GetFeatureHandlerParams   = string
 )
 
@@ -79,12 +79,12 @@ func (h *featureHandlers) GetFeature() GetFeatureHandler {
 		func(ctx context.Context, featureId GetFeatureHandlerRequest) (GetFeatureHandlerResponse, error) {
 			feat, err := h.connector.GetFeature(ctx, featureId.Namespace, featureId.ID, feature.IncludeArchivedFeatureFalse)
 			if err != nil {
-				return api.Feature{}, err
+				return apiv1models.Feature{}, err
 			}
 
 			resp, err := MapFeatureToResponse(*feat)
 			if err != nil {
-				return api.Feature{}, err
+				return apiv1models.Feature{}, err
 			}
 
 			// Resolve LLM pricing if the feature has LLM unit cost
@@ -108,7 +108,7 @@ func (h *featureHandlers) GetFeature() GetFeatureHandler {
 
 type (
 	CreateFeatureHandlerRequest  = feature.CreateFeatureInputs
-	CreateFeatureHandlerResponse = api.Feature
+	CreateFeatureHandlerResponse = apiv1models.Feature
 )
 
 type CreateFeatureHandler httptransport.Handler[CreateFeatureHandlerRequest, CreateFeatureHandlerResponse]
@@ -116,7 +116,7 @@ type CreateFeatureHandler httptransport.Handler[CreateFeatureHandlerRequest, Cre
 func (h *featureHandlers) CreateFeature() CreateFeatureHandler {
 	return httptransport.NewHandler(
 		func(ctx context.Context, r *http.Request) (feature.CreateFeatureInputs, error) {
-			parsedBody := api.CreateFeatureJSONRequestBody{}
+			parsedBody := apiv1models.CreateFeatureJSONRequestBody{}
 			emptyFeature := feature.CreateFeatureInputs{}
 			if err := commonhttp.JSONRequestBodyDecoder(r, &parsedBody); err != nil {
 				return emptyFeature, err
@@ -143,15 +143,15 @@ func (h *featureHandlers) CreateFeature() CreateFeatureHandler {
 
 			return MapFeatureCreateInputsRequest(ns, parsedBody, meterID)
 		},
-		func(ctx context.Context, feature feature.CreateFeatureInputs) (api.Feature, error) {
+		func(ctx context.Context, feature feature.CreateFeatureInputs) (apiv1models.Feature, error) {
 			createdFeature, err := h.connector.CreateFeature(ctx, feature)
 			if err != nil {
-				return api.Feature{}, err
+				return apiv1models.Feature{}, err
 			}
 
 			return MapFeatureToResponse(createdFeature)
 		},
-		commonhttp.JSONResponseEncoderWithStatus[api.Feature](http.StatusCreated),
+		commonhttp.JSONResponseEncoderWithStatus[apiv1models.Feature](http.StatusCreated),
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("createFeature"),
@@ -162,8 +162,8 @@ func (h *featureHandlers) CreateFeature() CreateFeatureHandler {
 
 type (
 	ListFeaturesHandlerRequest  = feature.ListFeaturesParams
-	ListFeaturesHandlerResponse = commonhttp.Union[[]api.Feature, pagination.Result[api.Feature]]
-	ListFeaturesHandlerParams   = api.ListFeaturesParams
+	ListFeaturesHandlerResponse = commonhttp.Union[[]apiv1models.Feature, pagination.Result[apiv1models.Feature]]
+	ListFeaturesHandlerParams   = apiv1models.ListFeaturesParams
 )
 
 type ListFeaturesHandler httptransport.HandlerWithArgs[ListFeaturesHandlerRequest, ListFeaturesHandlerResponse, ListFeaturesHandlerParams]
@@ -187,9 +187,9 @@ func (h *featureHandlers) ListFeatures() ListFeaturesHandler {
 				Offset: defaultx.WithDefault(apiParams.Offset, 0),
 				OrderBy: feature.FeatureOrderBy(
 					// Go enum value has a snake_case name, so we need to convert it
-					strcase.CamelToSnake(string(lo.FromPtrOr(apiParams.OrderBy, api.FeatureOrderByKey))),
+					strcase.CamelToSnake(string(lo.FromPtrOr(apiParams.OrderBy, apiv1models.FeatureOrderByKey))),
 				),
-				Order:      sortx.Order(lo.FromPtrOr(apiParams.Order, api.SortOrderASC)),
+				Order:      sortx.Order(lo.FromPtrOr(apiParams.Order, apiv1models.SortOrderASC)),
 				MeterSlugs: convert.DerefHeaderPtr[string](apiParams.MeterSlug),
 			}
 
@@ -210,8 +210,8 @@ func (h *featureHandlers) ListFeatures() ListFeaturesHandler {
 		},
 		func(ctx context.Context, params ListFeaturesHandlerRequest) (ListFeaturesHandlerResponse, error) {
 			response := ListFeaturesHandlerResponse{
-				Option1: &[]api.Feature{},
-				Option2: &pagination.Result[api.Feature]{},
+				Option1: &[]apiv1models.Feature{},
+				Option2: &pagination.Result[apiv1models.Feature]{},
 			}
 
 			paged, err := h.connector.ListFeatures(ctx, params)
@@ -219,7 +219,7 @@ func (h *featureHandlers) ListFeatures() ListFeaturesHandler {
 				return response, err
 			}
 
-			mapped := make([]api.Feature, 0, len(paged.Items))
+			mapped := make([]apiv1models.Feature, 0, len(paged.Items))
 			for _, f := range paged.Items {
 				resp, err := MapFeatureToResponse(f)
 				if err != nil {
@@ -233,7 +233,7 @@ func (h *featureHandlers) ListFeatures() ListFeaturesHandler {
 				response.Option1 = &mapped
 			} else {
 				response.Option1 = nil
-				response.Option2 = &pagination.Result[api.Feature]{
+				response.Option2 = &pagination.Result[apiv1models.Feature]{
 					Items:      mapped,
 					TotalCount: paged.TotalCount,
 					Page:       paged.Page,

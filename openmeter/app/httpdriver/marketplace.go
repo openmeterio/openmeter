@@ -7,7 +7,7 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appconvert "github.com/openmeterio/openmeter/openmeter/app/apiconvert"
 	"github.com/openmeterio/openmeter/openmeter/app/billingprofile"
@@ -19,8 +19,8 @@ import (
 // ListMarketplaceListingsHandler is a handler for listing marketplace listings
 type (
 	ListMarketplaceListingsRequest  = app.MarketplaceListInput
-	ListMarketplaceListingsResponse = api.MarketplaceListingPaginatedResponse
-	ListMarketplaceListingsParams   = api.ListMarketplaceListingsParams
+	ListMarketplaceListingsResponse = apiv1models.MarketplaceListingPaginatedResponse
+	ListMarketplaceListingsParams   = apiv1models.ListMarketplaceListingsParams
 	ListMarketplaceListingsHandler  httptransport.HandlerWithArgs[ListMarketplaceListingsRequest, ListMarketplaceListingsResponse, ListMarketplaceListingsParams]
 )
 
@@ -45,7 +45,7 @@ func (h *handler) ListMarketplaceListings() ListMarketplaceListingsHandler {
 				Page:       result.Page.PageNumber,
 				PageSize:   result.Page.PageSize,
 				TotalCount: result.TotalCount,
-				Items: lo.Map(result.Items, func(item app.RegistryItem, _ int) api.MarketplaceListing {
+				Items: lo.Map(result.Items, func(item app.RegistryItem, _ int) apiv1models.MarketplaceListing {
 					return appconvert.ToAPIMarketplaceListing(item.Listing)
 				}),
 			}, nil
@@ -61,14 +61,14 @@ func (h *handler) ListMarketplaceListings() ListMarketplaceListingsHandler {
 // GetMarketplaceListingHandler is a handler to get a marketplace listing
 type (
 	GetMarketplaceListingRequest  = app.MarketplaceGetInput
-	GetMarketplaceListingResponse = api.MarketplaceListing
-	GetMarketplaceListingHandler  httptransport.HandlerWithArgs[GetMarketplaceListingRequest, GetMarketplaceListingResponse, api.AppType]
+	GetMarketplaceListingResponse = apiv1models.MarketplaceListing
+	GetMarketplaceListingHandler  httptransport.HandlerWithArgs[GetMarketplaceListingRequest, GetMarketplaceListingResponse, apiv1models.AppType]
 )
 
 // GetMarketplaceListing returns a handler for listing marketplace listings
 func (h *handler) GetMarketplaceListing() GetMarketplaceListingHandler {
 	return httptransport.NewHandlerWithArgs(
-		func(ctx context.Context, r *http.Request, appType api.AppType) (GetMarketplaceListingRequest, error) {
+		func(ctx context.Context, r *http.Request, appType apiv1models.AppType) (GetMarketplaceListingRequest, error) {
 			return GetMarketplaceListingRequest{
 				Type: app.AppType(appType),
 			}, nil
@@ -90,8 +90,8 @@ func (h *handler) GetMarketplaceListing() GetMarketplaceListingHandler {
 }
 
 type (
-	MarketplaceAppAPIKeyInstallResponse = api.MarketplaceInstallResponse
-	MarketplaceAppAPIKeyInstallHandler  httptransport.HandlerWithArgs[MarketplaceAppAPIKeyInstallRequest, MarketplaceAppAPIKeyInstallResponse, api.AppType]
+	MarketplaceAppAPIKeyInstallResponse = apiv1models.MarketplaceInstallResponse
+	MarketplaceAppAPIKeyInstallHandler  httptransport.HandlerWithArgs[MarketplaceAppAPIKeyInstallRequest, MarketplaceAppAPIKeyInstallResponse, apiv1models.AppType]
 )
 
 type MarketplaceAppAPIKeyInstallRequest struct {
@@ -101,8 +101,8 @@ type MarketplaceAppAPIKeyInstallRequest struct {
 // MarketplaceAppAPIKeyInstall returns a handler for installing an app type with an API key
 func (h *handler) MarketplaceAppAPIKeyInstall() MarketplaceAppAPIKeyInstallHandler {
 	return httptransport.NewHandlerWithArgs(
-		func(ctx context.Context, r *http.Request, appType api.AppType) (MarketplaceAppAPIKeyInstallRequest, error) {
-			body := api.MarketplaceAppAPIKeyInstallJSONBody{}
+		func(ctx context.Context, r *http.Request, appType apiv1models.AppType) (MarketplaceAppAPIKeyInstallRequest, error) {
+			body := apiv1models.MarketplaceAppAPIKeyInstallJSONBody{}
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
 				return MarketplaceAppAPIKeyInstallRequest{}, fmt.Errorf("field to decode marketplace app install request: %w", err)
 			}
@@ -127,7 +127,7 @@ func (h *handler) MarketplaceAppAPIKeyInstall() MarketplaceAppAPIKeyInstallHandl
 		},
 		func(ctx context.Context, request MarketplaceAppAPIKeyInstallRequest) (MarketplaceAppAPIKeyInstallResponse, error) {
 			resp := MarketplaceAppAPIKeyInstallResponse{
-				DefaultForCapabilityTypes: []api.AppCapabilityType{},
+				DefaultForCapabilityTypes: []apiv1models.AppCapabilityType{},
 			}
 
 			// make the billing profile provisioning transactional
@@ -148,8 +148,8 @@ func (h *handler) MarketplaceAppAPIKeyInstall() MarketplaceAppAPIKeyInstallHandl
 			}
 
 			resp.App = apiApp
-			resp.DefaultForCapabilityTypes = lo.Map(installedApp.DefaultCapabilies, func(c app.CapabilityType, _ int) api.AppCapabilityType {
-				return api.AppCapabilityType(c)
+			resp.DefaultForCapabilityTypes = lo.Map(installedApp.DefaultCapabilies, func(c app.CapabilityType, _ int) apiv1models.AppCapabilityType {
+				return apiv1models.AppCapabilityType(c)
 			})
 
 			return resp, nil
@@ -163,8 +163,8 @@ func (h *handler) MarketplaceAppAPIKeyInstall() MarketplaceAppAPIKeyInstallHandl
 }
 
 type (
-	MarketplaceAppInstallResponse = api.MarketplaceInstallResponse
-	MarketplaceAppInstallHandler  httptransport.HandlerWithArgs[MarketplaceAppInstallRequest, MarketplaceAppInstallResponse, api.AppType]
+	MarketplaceAppInstallResponse = apiv1models.MarketplaceInstallResponse
+	MarketplaceAppInstallHandler  httptransport.HandlerWithArgs[MarketplaceAppInstallRequest, MarketplaceAppInstallResponse, apiv1models.AppType]
 )
 
 type MarketplaceAppInstallRequest struct {
@@ -174,8 +174,8 @@ type MarketplaceAppInstallRequest struct {
 // MarketplaceAppInstall returns a handler for installing an app type
 func (h *handler) MarketplaceAppInstall() MarketplaceAppInstallHandler {
 	return httptransport.NewHandlerWithArgs(
-		func(ctx context.Context, r *http.Request, appType api.AppType) (MarketplaceAppInstallRequest, error) {
-			body := api.MarketplaceInstallRequestPayload{}
+		func(ctx context.Context, r *http.Request, appType apiv1models.AppType) (MarketplaceAppInstallRequest, error) {
+			body := apiv1models.MarketplaceInstallRequestPayload{}
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
 				return MarketplaceAppInstallRequest{}, fmt.Errorf("field to decode marketplace app install request: %w", err)
 			}
@@ -199,7 +199,7 @@ func (h *handler) MarketplaceAppInstall() MarketplaceAppInstallHandler {
 		},
 		func(ctx context.Context, request MarketplaceAppInstallRequest) (MarketplaceAppInstallResponse, error) {
 			resp := MarketplaceAppInstallResponse{
-				DefaultForCapabilityTypes: []api.AppCapabilityType{},
+				DefaultForCapabilityTypes: []apiv1models.AppCapabilityType{},
 			}
 
 			// make the billing profile provisioning transactional
@@ -220,8 +220,8 @@ func (h *handler) MarketplaceAppInstall() MarketplaceAppInstallHandler {
 			}
 
 			resp.App = apiApp
-			resp.DefaultForCapabilityTypes = lo.Map(installedApp.DefaultCapabilies, func(c app.CapabilityType, _ int) api.AppCapabilityType {
-				return api.AppCapabilityType(c)
+			resp.DefaultForCapabilityTypes = lo.Map(installedApp.DefaultCapabilies, func(c app.CapabilityType, _ int) apiv1models.AppCapabilityType {
+				return apiv1models.AppCapabilityType(c)
 			})
 
 			return resp, nil

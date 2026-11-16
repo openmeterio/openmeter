@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	api "github.com/openmeterio/openmeter/api/v3"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingcharges "github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
@@ -36,14 +36,14 @@ func TestConvertAPIChargesExpand(t *testing.T) {
 	// The API tokens and the domain enum diverge on purpose for
 	// realization.detailed_lines; every supported token must map, and unknown
 	// tokens must error so the handler can 400.
-	want := map[api.BillingChargesExpand]meta.Expand{
-		api.BillingChargesExpandRealTimeUsage:            meta.ExpandRealtimeUsage,
-		api.BillingChargesExpandCustomer:                 meta.ExpandCustomer,
-		api.BillingChargesExpandFeature:                  meta.ExpandFeature,
-		api.BillingChargesExpandSubscription:             meta.ExpandSubscription,
-		api.BillingChargesExpandRealizationInvoice:       meta.ExpandRealizationInvoice,
-		api.BillingChargesExpandRealizationTotals:        meta.ExpandRealizationTotals,
-		api.BillingChargesExpandRealizationDetailedLines: meta.ExpandDetailedLines,
+	want := map[apiv3models.BillingChargesExpand]meta.Expand{
+		apiv3models.BillingChargesExpandRealTimeUsage:            meta.ExpandRealtimeUsage,
+		apiv3models.BillingChargesExpandCustomer:                 meta.ExpandCustomer,
+		apiv3models.BillingChargesExpandFeature:                  meta.ExpandFeature,
+		apiv3models.BillingChargesExpandSubscription:             meta.ExpandSubscription,
+		apiv3models.BillingChargesExpandRealizationInvoice:       meta.ExpandRealizationInvoice,
+		apiv3models.BillingChargesExpandRealizationTotals:        meta.ExpandRealizationTotals,
+		apiv3models.BillingChargesExpandRealizationDetailedLines: meta.ExpandDetailedLines,
 	}
 
 	for token, expected := range want {
@@ -52,7 +52,7 @@ func TestConvertAPIChargesExpand(t *testing.T) {
 		require.Equal(t, expected, got, "token %s", token)
 	}
 
-	_, err := convertAPIChargesExpand(api.BillingChargesExpand("bogus"))
+	_, err := convertAPIChargesExpand(apiv3models.BillingChargesExpand("bogus"))
 	require.ErrorContains(t, err, "unsupported expand")
 }
 
@@ -102,7 +102,7 @@ func TestConvertExpandedUnionBranches(t *testing.T) {
 
 		ref, err := out.AsBillingSubscriptionReference()
 		require.NoError(t, err)
-		require.Equal(t, api.ULID("sub-1"), ref.Id)
+		require.Equal(t, apiv3models.ULID("sub-1"), ref.Id)
 
 		none, err := convertChargeSubscriptionToAPI(nil, nil)
 		require.NoError(t, err)
@@ -143,7 +143,7 @@ func TestConvertDetailedLinesToAPI(t *testing.T) {
 		require.Equal(t, "dl-1", line.Id)
 		require.Equal(t, "4", line.Quantity)
 		require.Equal(t, "2.5", line.UnitPrice)
-		require.Equal(t, api.BillingChargeRealizationDetailedLineCategory("regular"), line.Category)
+		require.Equal(t, apiv3models.BillingChargeRealizationDetailedLineCategory("regular"), line.Category)
 
 		require.NotNil(t, line.CreditsApplied)
 		credits := *line.CreditsApplied
@@ -181,7 +181,7 @@ func TestConvertTaxCodeConfigToAPI(t *testing.T) {
 	tests := []struct {
 		name  string
 		input productcatalog.TaxCodeConfig
-		want  *api.BillingTaxConfig
+		want  *apiv3models.BillingTaxConfig
 	}{
 		{
 			name:  "empty config returns nil",
@@ -193,9 +193,9 @@ func TestConvertTaxCodeConfigToAPI(t *testing.T) {
 			input: productcatalog.TaxCodeConfig{
 				TaxCodeID: "01JTEST00000000000000000001",
 			},
-			want: &api.BillingTaxConfig{
-				TaxCode:   &api.TaxCodeReference{Id: "01JTEST00000000000000000001"},
-				TaxCodeId: lo.ToPtr(api.ULID("01JTEST00000000000000000001")),
+			want: &apiv3models.BillingTaxConfig{
+				TaxCode:   &apiv3models.TaxCodeReference{Id: "01JTEST00000000000000000001"},
+				TaxCodeId: lo.ToPtr(apiv3models.ULID("01JTEST00000000000000000001")),
 			},
 		},
 		{
@@ -204,10 +204,10 @@ func TestConvertTaxCodeConfigToAPI(t *testing.T) {
 				Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
 				TaxCodeID: "01JTEST00000000000000000002",
 			},
-			want: &api.BillingTaxConfig{
-				Behavior:  lo.ToPtr(api.BillingTaxBehaviorExclusive),
-				TaxCode:   &api.TaxCodeReference{Id: "01JTEST00000000000000000002"},
-				TaxCodeId: lo.ToPtr(api.ULID("01JTEST00000000000000000002")),
+			want: &apiv3models.BillingTaxConfig{
+				Behavior:  lo.ToPtr(apiv3models.BillingTaxBehaviorExclusive),
+				TaxCode:   &apiv3models.TaxCodeReference{Id: "01JTEST00000000000000000002"},
+				TaxCodeId: lo.ToPtr(apiv3models.ULID("01JTEST00000000000000000002")),
 			},
 		},
 		{
@@ -215,8 +215,8 @@ func TestConvertTaxCodeConfigToAPI(t *testing.T) {
 			input: productcatalog.TaxCodeConfig{
 				Behavior: lo.ToPtr(productcatalog.InclusiveTaxBehavior),
 			},
-			want: &api.BillingTaxConfig{
-				Behavior: lo.ToPtr(api.BillingTaxBehaviorInclusive),
+			want: &apiv3models.BillingTaxConfig{
+				Behavior: lo.ToPtr(apiv3models.BillingTaxBehaviorInclusive),
 			},
 		},
 	}
@@ -280,12 +280,12 @@ func TestToAPIBillingChargeUsageBasedSystemIntentMapsLegacyDynamicPrice(t *testi
 
 	price, err := systemIntent.Price.AsBillingPriceUnit()
 	require.NoError(t, err)
-	assert.Equal(t, api.Numeric("1"), price.Amount)
+	assert.Equal(t, apiv3models.Numeric("1"), price.Amount)
 	require.NotNil(t, systemIntent.Commitments)
-	assert.Equal(t, lo.ToPtr(api.Numeric("10")), systemIntent.Commitments.MinimumAmount)
+	assert.Equal(t, lo.ToPtr(apiv3models.Numeric("10")), systemIntent.Commitments.MinimumAmount)
 	require.NotNil(t, systemIntent.UnitConfig)
-	assert.Equal(t, api.BillingUnitConfigOperationMultiply, systemIntent.UnitConfig.Operation)
-	assert.Equal(t, api.Numeric("1.2"), systemIntent.UnitConfig.ConversionFactor)
+	assert.Equal(t, apiv3models.BillingUnitConfigOperationMultiply, systemIntent.UnitConfig.Operation)
+	assert.Equal(t, apiv3models.Numeric("1.2"), systemIntent.UnitConfig.ConversionFactor)
 }
 
 func TestConvertUsageBasedChargeToAPIMapsLegacyPackagePrice(t *testing.T) {
@@ -335,13 +335,13 @@ func TestConvertUsageBasedChargeToAPIMapsLegacyPackagePrice(t *testing.T) {
 
 	price, err := result.Price.AsBillingPriceUnit()
 	require.NoError(t, err)
-	assert.Equal(t, api.Numeric("10"), price.Amount)
+	assert.Equal(t, apiv3models.Numeric("10"), price.Amount)
 	require.NotNil(t, result.Commitments)
-	assert.Equal(t, lo.ToPtr(api.Numeric("100")), result.Commitments.MaximumAmount)
+	assert.Equal(t, lo.ToPtr(apiv3models.Numeric("100")), result.Commitments.MaximumAmount)
 	require.NotNil(t, result.UnitConfig)
-	assert.Equal(t, api.BillingUnitConfigOperationDivide, result.UnitConfig.Operation)
-	assert.Equal(t, api.Numeric("1000"), result.UnitConfig.ConversionFactor)
-	assert.Equal(t, lo.ToPtr(api.BillingUnitConfigRoundingModeCeiling), result.UnitConfig.Rounding)
+	assert.Equal(t, apiv3models.BillingUnitConfigOperationDivide, result.UnitConfig.Operation)
+	assert.Equal(t, apiv3models.Numeric("1000"), result.UnitConfig.ConversionFactor)
+	assert.Equal(t, lo.ToPtr(apiv3models.BillingUnitConfigRoundingModeCeiling), result.UnitConfig.Rounding)
 }
 
 func TestToAPIBillingUsageBasedRatingConfigurationPreservesStoredUnitConfig(t *testing.T) {
@@ -368,49 +368,49 @@ func TestToAPIBillingUsageBasedRatingConfigurationPreservesStoredUnitConfig(t *t
 
 	price, err := result.Price.AsBillingPriceUnit()
 	require.NoError(t, err)
-	assert.Equal(t, api.Numeric("0.25"), price.Amount)
+	assert.Equal(t, apiv3models.Numeric("0.25"), price.Amount)
 	require.NotNil(t, result.Commitments)
-	assert.Equal(t, lo.ToPtr(api.Numeric("5")), result.Commitments.MinimumAmount)
+	assert.Equal(t, lo.ToPtr(apiv3models.Numeric("5")), result.Commitments.MinimumAmount)
 	require.NotNil(t, result.UnitConfig)
-	assert.Equal(t, api.BillingUnitConfigOperationDivide, result.UnitConfig.Operation)
-	assert.Equal(t, api.Numeric("1000"), result.UnitConfig.ConversionFactor)
-	assert.Equal(t, lo.ToPtr(api.BillingUnitConfigRoundingModeHalfUp), result.UnitConfig.Rounding)
+	assert.Equal(t, apiv3models.BillingUnitConfigOperationDivide, result.UnitConfig.Operation)
+	assert.Equal(t, apiv3models.Numeric("1000"), result.UnitConfig.ConversionFactor)
+	assert.Equal(t, lo.ToPtr(apiv3models.BillingUnitConfigRoundingModeHalfUp), result.UnitConfig.Rounding)
 	assert.Equal(t, lo.ToPtr(2), result.UnitConfig.Precision)
 	assert.Equal(t, &displayUnit, result.UnitConfig.DisplayUnit)
 }
 
 func TestFromAPICreateChargeUsageBasedRequestMapsRatingConfiguration(t *testing.T) {
 	now := time.Date(2026, 7, 6, 10, 0, 0, 0, time.UTC)
-	period := api.ClosedPeriod{
+	period := apiv3models.ClosedPeriod{
 		From: now,
 		To:   now.Add(time.Hour),
 	}
 
-	var price api.BillingPriceUsageBased
-	require.NoError(t, price.FromBillingPriceUnit(api.BillingPriceUnit{
+	var price apiv3models.BillingPriceUsageBased
+	require.NoError(t, price.FromBillingPriceUnit(apiv3models.BillingPriceUnit{
 		Amount: "0.25",
-		Type:   api.BillingPriceUnitTypeUnit,
+		Type:   apiv3models.BillingPriceUnitTypeUnit,
 	}))
 
-	input, err := fromAPICreateChargeUsageBasedRequest("namespace", "customer-id", api.CreateChargeUsageBasedRequest{
-		Commitments: &api.BillingSpendCommitments{
-			MaximumAmount: lo.ToPtr(api.Numeric("50")),
-			MinimumAmount: lo.ToPtr(api.Numeric("5")),
+	input, err := fromAPICreateChargeUsageBasedRequest("namespace", "customer-id", apiv3models.CreateChargeUsageBasedRequest{
+		Commitments: &apiv3models.BillingSpendCommitments{
+			MaximumAmount: lo.ToPtr(apiv3models.Numeric("50")),
+			MinimumAmount: lo.ToPtr(apiv3models.Numeric("5")),
 		},
-		Currency: api.CurrencyCode("USD"),
-		Feature: api.FeatureReference{
+		Currency: apiv3models.CurrencyCode("USD"),
+		Feature: apiv3models.FeatureReference{
 			Id: "feature-id",
 		},
 		InvoiceAt:      now,
 		Name:           "usage charge",
 		Price:          price,
 		ServicePeriod:  period,
-		SettlementMode: api.BillingSettlementModeCreditThenInvoice,
-		Type:           api.CreateChargeUsageBasedRequestTypeUsageBased,
-		UnitConfig: &api.BillingUnitConfig{
-			Operation:        api.BillingUnitConfigOperationDivide,
+		SettlementMode: apiv3models.BillingSettlementModeCreditThenInvoice,
+		Type:           apiv3models.CreateChargeUsageBasedRequestTypeUsageBased,
+		UnitConfig: &apiv3models.BillingUnitConfig{
+			Operation:        apiv3models.BillingUnitConfigOperationDivide,
 			ConversionFactor: "1000",
-			Rounding:         lo.ToPtr(api.BillingUnitConfigRoundingModeCeiling),
+			Rounding:         lo.ToPtr(apiv3models.BillingUnitConfigRoundingModeCeiling),
 		},
 	})
 	require.NoError(t, err)
@@ -522,9 +522,9 @@ func TestConvertChargeToAPIReadsFeatureIDFromState(t *testing.T) {
 		featureRef, err := out.Feature.AsFeatureReference()
 		assert.NoError(t, err)
 		assert.Equal(t, "flat-fee-feature-version-id", featureRef.Id)
-		assert.Equal(t, api.BillingPriceFlat{
+		assert.Equal(t, apiv3models.BillingPriceFlat{
 			Amount: "10",
-			Type:   api.BillingPriceFlatTypeFlat,
+			Type:   apiv3models.BillingPriceFlatTypeFlat,
 		}, out.Price)
 	})
 }
@@ -573,7 +573,7 @@ func TestConvertFlatFeeChargeToAPIMapsDetailedStatus(t *testing.T) {
 	}, meta.ExpandNone)
 
 	assert.NoError(t, err)
-	assert.Equal(t, api.BillingChargeStatusActive, out.Status)
+	assert.Equal(t, apiv3models.BillingChargeStatusActive, out.Status)
 }
 
 // The converter maps the resolved realization view the facade attaches:
@@ -654,32 +654,32 @@ func TestConvertUsageBasedRealizationsToAPI(t *testing.T) {
 	require.Len(t, out, 4)
 
 	assert.Equal(t, lo.ToPtr("run-1"), out[0].Id)
-	assert.Equal(t, api.ClosedPeriod{From: now, To: now.Add(30 * time.Minute)}, out[0].ServicePeriod)
+	assert.Equal(t, apiv3models.ClosedPeriod{From: now, To: now.Add(30 * time.Minute)}, out[0].ServicePeriod)
 	assert.Equal(t, lo.ToPtr("10"), out[0].Usage)
-	assert.Equal(t, api.BillingChargeRealizationTypePartialInvoice, out[0].Type)
+	assert.Equal(t, apiv3models.BillingChargeRealizationTypePartialInvoice, out[0].Type)
 	assert.Nil(t, out[0].Invoice)
 	assert.Nil(t, out[0].Payment)
 	assert.Nil(t, out[0].DetailedLines, "detailed lines stay unset without the expand")
 	assert.Nil(t, out[0].Totals, "totals stay unset without the expand")
 
 	assert.Equal(t, lo.ToPtr("run-2"), out[1].Id)
-	assert.Equal(t, api.ClosedPeriod{From: now.Add(30 * time.Minute), To: now.Add(time.Hour)}, out[1].ServicePeriod)
+	assert.Equal(t, apiv3models.ClosedPeriod{From: now.Add(30 * time.Minute), To: now.Add(time.Hour)}, out[1].ServicePeriod)
 	assert.Equal(t, lo.ToPtr("15"), out[1].Usage, "usage reports the run's own quantity, not the cumulative one")
 	assert.Equal(t, lo.ToPtr("line-2"), out[1].LineId)
 	require.NotNil(t, out[1].Payment)
-	assert.Equal(t, api.BillingChargeRealizationPaymentStatus("settled"), out[1].Payment.Status)
+	assert.Equal(t, apiv3models.BillingChargeRealizationPaymentStatus("settled"), out[1].Payment.Status)
 	require.NotNil(t, out[1].Invoice)
 	invoiceRef, err := out[1].Invoice.AsChargeRealizationInvoiceReference()
 	require.NoError(t, err)
 	assert.Equal(t, "invoice-2", invoiceRef.Id)
 
 	assert.Equal(t, lo.ToPtr("run-deleted"), out[2].Id)
-	assert.Equal(t, api.BillingChargeRealizationTypeVoided, out[2].Type, "voided history is marked, not hidden")
-	assert.Equal(t, api.ClosedPeriod{From: now.Add(time.Hour), To: now.Add(90 * time.Minute)}, out[2].ServicePeriod)
+	assert.Equal(t, apiv3models.BillingChargeRealizationTypeVoided, out[2].Type, "voided history is marked, not hidden")
+	assert.Equal(t, apiv3models.ClosedPeriod{From: now.Add(time.Hour), To: now.Add(90 * time.Minute)}, out[2].ServicePeriod)
 
 	assert.Nil(t, out[3].Id, "the outstanding projection is not a persisted run")
-	assert.Equal(t, api.BillingChargeRealizationTypeOutstanding, out[3].Type)
-	assert.Equal(t, api.ClosedPeriod{From: now.Add(time.Hour), To: period.To}, out[3].ServicePeriod,
+	assert.Equal(t, apiv3models.BillingChargeRealizationTypeOutstanding, out[3].Type)
+	assert.Equal(t, apiv3models.ClosedPeriod{From: now.Add(time.Hour), To: period.To}, out[3].ServicePeriod,
 		"outstanding starts at the last live run's end; voided history does not cover the period")
 	assert.Nil(t, out[3].Usage)
 	assert.Nil(t, out[3].Invoice)
@@ -778,8 +778,8 @@ func TestConvertFlatFeeRealizationsToAPI(t *testing.T) {
 		require.Len(t, out, 2)
 		assert.Equal(t, lo.ToPtr("run-1"), out[0].Id)
 		assert.Nil(t, out[0].Usage, "a flat fee is not metered, so its realizations carry no usage")
-		assert.Equal(t, api.BillingChargeRealizationTypeOutstanding, out[1].Type)
-		assert.Equal(t, api.ClosedPeriod{From: now.Add(time.Hour), To: period.To}, out[1].ServicePeriod)
+		assert.Equal(t, apiv3models.BillingChargeRealizationTypeOutstanding, out[1].Type)
+		assert.Equal(t, apiv3models.ClosedPeriod{From: now.Add(time.Hour), To: period.To}, out[1].ServicePeriod)
 		assert.Nil(t, out[1].Usage, "the outstanding projection of a flat fee carries no usage either")
 	})
 
@@ -802,7 +802,7 @@ func TestConvertFlatFeeRealizationsToAPI(t *testing.T) {
 		require.Len(t, out, 2)
 		assert.Equal(t, lo.ToPtr("run-1"), out[0].Id)
 		assert.Equal(t, lo.ToPtr("run-2"), out[1].Id)
-		assert.Equal(t, api.BillingChargeRealizationTypeFinalRealization, out[1].Type)
+		assert.Equal(t, apiv3models.BillingChargeRealizationTypeFinalRealization, out[1].Type)
 	})
 }
 
@@ -884,7 +884,7 @@ func TestToAPIChargeResolvedCostBasis(t *testing.T) {
 			ResolvedAt:  resolvedAt,
 		})
 		require.NoError(t, err)
-		require.Equal(t, &api.BillingChargeResolvedCostBasis{
+		require.Equal(t, &apiv3models.BillingChargeResolvedCostBasis{
 			FiatCurrency: "USD",
 			Rate:         "1.5",
 			CostBasisId:  lo.ToPtr("cb-1"),
@@ -1013,12 +1013,12 @@ func TestConvertCustomCurrencyChargeWithInvoiceExpand(t *testing.T) {
 		require.NoError(t, err)
 
 		// then the charge currency is the custom currency
-		assert.Equal(t, api.CurrencyCode("TOKENS"), out.Currency)
+		assert.Equal(t, apiv3models.CurrencyCode("TOKENS"), out.Currency)
 
 		// and the resolved cost basis carries the fiat currency, unaffected by
 		// the charge's own custom currency
 		require.NotNil(t, out.ResolvedCostBasis)
-		assert.Equal(t, api.CurrencyCode("USD"), out.ResolvedCostBasis.FiatCurrency)
+		assert.Equal(t, apiv3models.CurrencyCode("USD"), out.ResolvedCostBasis.FiatCurrency)
 		assert.Equal(t, "0.5", out.ResolvedCostBasis.Rate)
 
 		// and the expanded realization invoice is denominated in its own fiat
@@ -1027,7 +1027,7 @@ func TestConvertCustomCurrencyChargeWithInvoiceExpand(t *testing.T) {
 		require.NotNil(t, out.Realizations[0].Invoice)
 		expandedInvoice, err := out.Realizations[0].Invoice.AsBillingChargeRealizationInvoice()
 		require.NoError(t, err)
-		assert.Equal(t, api.CurrencyCode("USD"), expandedInvoice.Currency)
+		assert.Equal(t, apiv3models.CurrencyCode("USD"), expandedInvoice.Currency)
 
 		// and the detailed line amounts stay in TOKENS, untouched by the cost
 		// basis rate
@@ -1116,13 +1116,13 @@ func TestConvertCustomCurrencyChargeWithInvoiceExpand(t *testing.T) {
 
 		// then the charge currency and the after-proration amount stay in the
 		// custom currency
-		assert.Equal(t, api.CurrencyCode("TOKENS"), out.Currency)
-		assert.Equal(t, api.BillingCurrencyCode("TOKENS"), out.AmountAfterProration.Currency)
+		assert.Equal(t, apiv3models.CurrencyCode("TOKENS"), out.Currency)
+		assert.Equal(t, apiv3models.BillingCurrencyCode("TOKENS"), out.AmountAfterProration.Currency)
 
 		// and the resolved cost basis carries the fiat currency, unaffected by
 		// the charge's own custom currency
 		require.NotNil(t, out.ResolvedCostBasis)
-		assert.Equal(t, api.CurrencyCode("USD"), out.ResolvedCostBasis.FiatCurrency)
+		assert.Equal(t, apiv3models.CurrencyCode("USD"), out.ResolvedCostBasis.FiatCurrency)
 		assert.Equal(t, "0.5", out.ResolvedCostBasis.Rate)
 
 		// and the expanded realization invoice is denominated in its own fiat
@@ -1131,7 +1131,7 @@ func TestConvertCustomCurrencyChargeWithInvoiceExpand(t *testing.T) {
 		require.NotNil(t, out.Realizations[0].Invoice)
 		expandedInvoice, err := out.Realizations[0].Invoice.AsBillingChargeRealizationInvoice()
 		require.NoError(t, err)
-		assert.Equal(t, api.CurrencyCode("USD"), expandedInvoice.Currency)
+		assert.Equal(t, apiv3models.CurrencyCode("USD"), expandedInvoice.Currency)
 
 		// and the detailed line amounts stay in TOKENS, untouched by the cost
 		// basis rate
@@ -1148,29 +1148,29 @@ func TestConvertCustomCurrencyChargeWithInvoiceExpand(t *testing.T) {
 func TestFromAPICreateChargeUsageBasedRequestMapsCostBasis(t *testing.T) {
 	now := time.Date(2026, 7, 6, 10, 0, 0, 0, time.UTC)
 
-	var price api.BillingPriceUsageBased
-	require.NoError(t, price.FromBillingPriceUnit(api.BillingPriceUnit{
+	var price apiv3models.BillingPriceUsageBased
+	require.NoError(t, price.FromBillingPriceUnit(apiv3models.BillingPriceUnit{
 		Amount: "2",
-		Type:   api.BillingPriceUnitTypeUnit,
+		Type:   apiv3models.BillingPriceUnitTypeUnit,
 	}))
 
-	var costBasis api.BillingChargeCostBasis
-	require.NoError(t, costBasis.FromBillingChargeCostBasisManual(api.BillingChargeCostBasisManual{
-		Type:         api.BillingChargeCostBasisManualTypeManual,
+	var costBasis apiv3models.BillingChargeCostBasis
+	require.NoError(t, costBasis.FromBillingChargeCostBasisManual(apiv3models.BillingChargeCostBasisManual{
+		Type:         apiv3models.BillingChargeCostBasisManualTypeManual,
 		FiatCurrency: lo.ToPtr("USD"),
 		Rate:         "0.5",
 	}))
 
-	input, err := fromAPICreateChargeUsageBasedRequest("namespace", "customer-id", api.CreateChargeUsageBasedRequest{
+	input, err := fromAPICreateChargeUsageBasedRequest("namespace", "customer-id", apiv3models.CreateChargeUsageBasedRequest{
 		CostBasis:      &costBasis,
-		Currency:       api.CurrencyCode("TOKENS"),
-		Feature:        api.FeatureReference{Id: "feature-id"},
+		Currency:       apiv3models.CurrencyCode("TOKENS"),
+		Feature:        apiv3models.FeatureReference{Id: "feature-id"},
 		InvoiceAt:      now,
 		Name:           "usage charge",
 		Price:          price,
-		ServicePeriod:  api.ClosedPeriod{From: now, To: now.Add(time.Hour)},
-		SettlementMode: api.BillingSettlementModeCreditThenInvoice,
-		Type:           api.CreateChargeUsageBasedRequestTypeUsageBased,
+		ServicePeriod:  apiv3models.ClosedPeriod{From: now, To: now.Add(time.Hour)},
+		SettlementMode: apiv3models.BillingSettlementModeCreditThenInvoice,
+		Type:           apiv3models.CreateChargeUsageBasedRequestTypeUsageBased,
 	})
 	require.NoError(t, err)
 	require.NotNil(t, input.CostBasis)

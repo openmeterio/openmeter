@@ -7,7 +7,7 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
@@ -26,7 +26,7 @@ type (
 		SubscriptionID models.NamespacedID
 		AddonInput     subscriptionworkflow.AddAddonWorkflowInput
 	}
-	CreateSubscriptionAddonResponse = api.SubscriptionAddon
+	CreateSubscriptionAddonResponse = apiv1models.SubscriptionAddon
 	CreateSubscriptionAddonHandler  = httptransport.HandlerWithArgs[CreateSubscriptionAddonRequest, CreateSubscriptionAddonResponse, CreateSubscriptionAddonParams]
 )
 
@@ -38,7 +38,7 @@ func (h *handler) CreateSubscriptionAddon() CreateSubscriptionAddonHandler {
 				return CreateSubscriptionAddonRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
 			}
 
-			var body api.CreateSubscriptionAddonJSONRequestBody
+			var body apiv1models.CreateSubscriptionAddonJSONRequestBody
 
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
 				return CreateSubscriptionAddonRequest{}, err

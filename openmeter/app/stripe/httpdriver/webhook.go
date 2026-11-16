@@ -13,7 +13,7 @@ import (
 	"github.com/stripe/stripe-go/v80"
 	"github.com/stripe/stripe-go/v80/webhook"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
@@ -35,7 +35,7 @@ type AppStripeWebhookRequest struct {
 }
 
 type (
-	AppStripeWebhookResponse = api.StripeWebhookResponse
+	AppStripeWebhookResponse = apiv1models.StripeWebhookResponse
 	AppStripeWebhookHandler  httptransport.HandlerWithArgs[AppStripeWebhookRequest, AppStripeWebhookResponse, AppStripeWebhookParams]
 )
 

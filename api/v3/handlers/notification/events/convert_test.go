@@ -8,8 +8,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	v1api "github.com/openmeterio/openmeter/api"
-	api "github.com/openmeterio/openmeter/api/v3"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -48,13 +48,13 @@ func TestFromAPIEventSortField(t *testing.T) {
 // what lets ToAPIBillingNotificationEvent cast between the two types instead of mapping them.
 func TestEventTypeWireEqualsDomain(t *testing.T) {
 	testCases := []struct {
-		wire   api.BillingNotificationEventType
+		wire   apiv3models.BillingNotificationEventType
 		domain notification.EventType
 	}{
-		{api.BillingNotificationEventTypeEntitlementsBalanceThreshold, notification.EventTypeBalanceThreshold},
-		{api.BillingNotificationEventTypeEntitlementsReset, notification.EventTypeEntitlementReset},
-		{api.BillingNotificationEventTypeInvoiceCreated, notification.EventTypeInvoiceCreated},
-		{api.BillingNotificationEventTypeInvoiceUpdated, notification.EventTypeInvoiceUpdated},
+		{apiv3models.BillingNotificationEventTypeEntitlementsBalanceThreshold, notification.EventTypeBalanceThreshold},
+		{apiv3models.BillingNotificationEventTypeEntitlementsReset, notification.EventTypeEntitlementReset},
+		{apiv3models.BillingNotificationEventTypeInvoiceCreated, notification.EventTypeInvoiceCreated},
+		{apiv3models.BillingNotificationEventTypeInvoiceUpdated, notification.EventTypeInvoiceUpdated},
 	}
 
 	for _, tc := range testCases {
@@ -66,14 +66,14 @@ func TestEventTypeWireEqualsDomain(t *testing.T) {
 
 func TestDeliveryStateCasing(t *testing.T) {
 	testCases := []struct {
-		wire   api.BillingNotificationEventDeliveryState
+		wire   apiv3models.BillingNotificationEventDeliveryState
 		domain notification.EventDeliveryStatusState
 	}{
-		{api.BillingNotificationEventDeliveryStateSuccess, notification.EventDeliveryStatusStateSuccess},
-		{api.BillingNotificationEventDeliveryStateFailed, notification.EventDeliveryStatusStateFailed},
-		{api.BillingNotificationEventDeliveryStateSending, notification.EventDeliveryStatusStateSending},
-		{api.BillingNotificationEventDeliveryStatePending, notification.EventDeliveryStatusStatePending},
-		{api.BillingNotificationEventDeliveryStateResending, notification.EventDeliveryStatusStateResending},
+		{apiv3models.BillingNotificationEventDeliveryStateSuccess, notification.EventDeliveryStatusStateSuccess},
+		{apiv3models.BillingNotificationEventDeliveryStateFailed, notification.EventDeliveryStatusStateFailed},
+		{apiv3models.BillingNotificationEventDeliveryStateSending, notification.EventDeliveryStatusStateSending},
+		{apiv3models.BillingNotificationEventDeliveryStatePending, notification.EventDeliveryStatusStatePending},
+		{apiv3models.BillingNotificationEventDeliveryStateResending, notification.EventDeliveryStatusStateResending},
 	}
 
 	for _, tc := range testCases {
@@ -89,21 +89,21 @@ func TestDeliveryStateCasing(t *testing.T) {
 	}
 
 	t.Run("uppercase wire value is rejected", func(t *testing.T) {
-		_, err := FromAPIBillingNotificationEventDeliveryState(api.BillingNotificationEventDeliveryState("FAILED"))
+		_, err := FromAPIBillingNotificationEventDeliveryState(apiv3models.BillingNotificationEventDeliveryState("FAILED"))
 		require.Error(t, err)
 	})
 }
 
 func TestToAPIBillingNotificationBalanceThresholdType(t *testing.T) {
 	testCases := []struct {
-		in   v1api.NotificationRuleBalanceThresholdValueType
-		want api.BillingNotificationBalanceThresholdType
+		in   apiv1models.NotificationRuleBalanceThresholdValueType
+		want apiv3models.BillingNotificationBalanceThresholdType
 	}{
-		{v1api.NotificationRuleBalanceThresholdValueTypeBalanceValue, api.BillingNotificationBalanceThresholdTypeBalanceValue},
-		{v1api.NotificationRuleBalanceThresholdValueTypeUsagePercentage, api.BillingNotificationBalanceThresholdTypeUsagePercentage},
-		{v1api.NotificationRuleBalanceThresholdValueTypeUsageValue, api.BillingNotificationBalanceThresholdTypeUsageValue},
-		{v1api.NotificationRuleBalanceThresholdValueTypePercent, api.BillingNotificationBalanceThresholdTypeUsagePercentage},
-		{v1api.NotificationRuleBalanceThresholdValueTypeNumber, api.BillingNotificationBalanceThresholdTypeUsageValue},
+		{apiv1models.NotificationRuleBalanceThresholdValueTypeBalanceValue, apiv3models.BillingNotificationBalanceThresholdTypeBalanceValue},
+		{apiv1models.NotificationRuleBalanceThresholdValueTypeUsagePercentage, apiv3models.BillingNotificationBalanceThresholdTypeUsagePercentage},
+		{apiv1models.NotificationRuleBalanceThresholdValueTypeUsageValue, apiv3models.BillingNotificationBalanceThresholdTypeUsageValue},
+		{apiv1models.NotificationRuleBalanceThresholdValueTypePercent, apiv3models.BillingNotificationBalanceThresholdTypeUsagePercentage},
+		{apiv1models.NotificationRuleBalanceThresholdValueTypeNumber, apiv3models.BillingNotificationBalanceThresholdTypeUsageValue},
 	}
 
 	for _, tc := range testCases {
@@ -115,7 +115,7 @@ func TestToAPIBillingNotificationBalanceThresholdType(t *testing.T) {
 	}
 
 	t.Run("unknown value is rejected", func(t *testing.T) {
-		_, err := ToAPIBillingNotificationBalanceThresholdType(v1api.NotificationRuleBalanceThresholdValueType("nonsense"))
+		_, err := ToAPIBillingNotificationBalanceThresholdType(apiv1models.NotificationRuleBalanceThresholdValueType("nonsense"))
 		require.Error(t, err)
 	})
 }
@@ -136,11 +136,11 @@ func TestToAPIBillingNotificationEvent_BalanceThreshold(t *testing.T) {
 			EventPayloadMeta: notification.EventPayloadMeta{Type: notification.EventTypeBalanceThreshold},
 			BalanceThreshold: &notification.BalanceThresholdPayload{
 				EntitlementValuePayloadBase: notification.EntitlementValuePayloadBase{
-					Entitlement: v1api.EntitlementMetered{Id: "01ARZ3NDEKTSV4RRFFQ69G5FAX"},
-					Feature:     v1api.Feature{Id: "01ARZ3NDEKTSV4RRFFQ69G5FAY", Key: "gpt4_tokens"},
-					Subject:     v1api.Subject{Key: "customer-1"},
-					Customer:    v1api.Customer{Id: "01ARZ3NDEKTSV4RRFFQ69G5FAZ"},
-					Value: v1api.EntitlementValue{
+					Entitlement: apiv1models.EntitlementMetered{Id: "01ARZ3NDEKTSV4RRFFQ69G5FAX"},
+					Feature:     apiv1models.Feature{Id: "01ARZ3NDEKTSV4RRFFQ69G5FAY", Key: "gpt4_tokens"},
+					Subject:     apiv1models.Subject{Key: "customer-1"},
+					Customer:    apiv1models.Customer{Id: "01ARZ3NDEKTSV4RRFFQ69G5FAZ"},
+					Value: apiv1models.EntitlementValue{
 						HasAccess: true,
 						Balance:   lo.ToPtr(100.0),
 						Usage:     lo.ToPtr(900.0),
@@ -148,8 +148,8 @@ func TestToAPIBillingNotificationEvent_BalanceThreshold(t *testing.T) {
 					},
 				},
 				// The legacy PERCENT spelling must normalize to usage_percentage.
-				Threshold: v1api.NotificationRuleBalanceThresholdValue{
-					Type:  v1api.NotificationRuleBalanceThresholdValueTypePercent,
+				Threshold: apiv1models.NotificationRuleBalanceThresholdValue{
+					Type:  apiv1models.NotificationRuleBalanceThresholdValueTypePercent,
 					Value: 90,
 				},
 			},
@@ -160,11 +160,11 @@ func TestToAPIBillingNotificationEvent_BalanceThreshold(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, event.ID, got.Id)
-	assert.Equal(t, api.BillingNotificationEventTypeEntitlementsBalanceThreshold, got.Type)
+	assert.Equal(t, apiv3models.BillingNotificationEventTypeEntitlementsBalanceThreshold, got.Type)
 	assert.Equal(t, createdAt, got.CreatedAt)
 	assert.Equal(t, event.Rule.ID, got.Rule.Id)
 	assert.Equal(t, "threshold rule", got.Rule.Name)
-	assert.Equal(t, api.BillingNotificationEventTypeEntitlementsBalanceThreshold, got.Rule.Type)
+	assert.Equal(t, apiv3models.BillingNotificationEventTypeEntitlementsBalanceThreshold, got.Rule.Type)
 
 	payload, err := got.Payload.AsBillingNotificationEventBalanceThresholdPayload()
 	require.NoError(t, err)
@@ -176,19 +176,19 @@ func TestToAPIBillingNotificationEvent_BalanceThreshold(t *testing.T) {
 	assert.Equal(t, "gpt4_tokens", payload.Data.Feature.Key)
 	assert.Equal(t, "customer-1", payload.Data.SubjectKey)
 	assert.Equal(t, "01ARZ3NDEKTSV4RRFFQ69G5FAZ", lo.FromPtr(payload.Data.CustomerId))
-	assert.Equal(t, api.BillingEntitlementValueResult{
-		Type:       api.BillingEntitlementTypeMetered,
+	assert.Equal(t, apiv3models.BillingEntitlementValueResult{
+		Type:       apiv3models.BillingEntitlementTypeMetered,
 		FeatureKey: "gpt4_tokens",
 		HasAccess:  true,
-		Value: &api.BillingEntitlementAccessValue{
+		Value: &apiv3models.BillingEntitlementAccessValue{
 			Balance:                   "100",
 			Usage:                     "900",
 			Overage:                   "0",
 			TotalAvailableGrantAmount: "0",
-			GrantBalances:             map[string]api.Numeric{},
+			GrantBalances:             map[string]apiv3models.Numeric{},
 		},
 	}, payload.Data.Value)
-	assert.Equal(t, api.BillingNotificationBalanceThresholdTypeUsagePercentage, payload.Data.Threshold.Type)
+	assert.Equal(t, apiv3models.BillingNotificationBalanceThresholdTypeUsagePercentage, payload.Data.Threshold.Type)
 	assert.Equal(t, 90.0, payload.Data.Threshold.Value)
 }
 
@@ -204,10 +204,10 @@ func TestToAPIBillingNotificationEvent_EntitlementReset(t *testing.T) {
 		Payload: notification.EventPayload{
 			EventPayloadMeta: notification.EventPayloadMeta{Type: notification.EventTypeEntitlementReset},
 			EntitlementReset: &notification.EntitlementResetPayload{
-				Entitlement: v1api.EntitlementMetered{Id: "01ARZ3NDEKTSV4RRFFQ69G5FAX"},
-				Feature:     v1api.Feature{Id: "01ARZ3NDEKTSV4RRFFQ69G5FAY", Key: "gpt4_tokens"},
-				Subject:     v1api.Subject{Key: "customer-1"},
-				Value:       v1api.EntitlementValue{HasAccess: true},
+				Entitlement: apiv1models.EntitlementMetered{Id: "01ARZ3NDEKTSV4RRFFQ69G5FAX"},
+				Feature:     apiv1models.Feature{Id: "01ARZ3NDEKTSV4RRFFQ69G5FAY", Key: "gpt4_tokens"},
+				Subject:     apiv1models.Subject{Key: "customer-1"},
+				Value:       apiv1models.EntitlementValue{HasAccess: true},
 			},
 		},
 	}
@@ -218,7 +218,7 @@ func TestToAPIBillingNotificationEvent_EntitlementReset(t *testing.T) {
 	payload, err := got.Payload.AsBillingNotificationEventResetPayload()
 	require.NoError(t, err)
 
-	assert.Equal(t, api.BillingNotificationEventResetPayloadTypeEntitlementsReset, payload.Type)
+	assert.Equal(t, apiv3models.BillingNotificationEventResetPayloadTypeEntitlementsReset, payload.Type)
 	assert.Equal(t, "01ARZ3NDEKTSV4RRFFQ69G5FAX", payload.Data.EntitlementId)
 	assert.Equal(t, "gpt4_tokens", payload.Data.Feature.Key)
 	// The customer is absent on this payload, so the optional field must stay unset
@@ -238,15 +238,15 @@ func TestToAPIBillingNotificationEvent_InvoiceCreated(t *testing.T) {
 		Payload: notification.EventPayload{
 			EventPayloadMeta: notification.EventPayloadMeta{Type: notification.EventTypeInvoiceCreated},
 			Invoice: &notification.InvoicePayload{
-				Invoice: v1api.Invoice{
+				Invoice: apiv1models.Invoice{
 					Id:       "01ARZ3NDEKTSV4RRFFQ69G5FB0",
 					Number:   "INV-2024-0001",
 					Currency: "USD",
-					Status:   v1api.InvoiceStatusDraft,
-					Customer: v1api.BillingInvoiceCustomerExtendedDetails{
+					Status:   apiv1models.InvoiceStatusDraft,
+					Customer: apiv1models.BillingInvoiceCustomerExtendedDetails{
 						Id: lo.ToPtr("01ARZ3NDEKTSV4RRFFQ69G5FB1"),
 					},
-					Totals: v1api.InvoiceTotals{Total: "123.45"},
+					Totals: apiv1models.InvoiceTotals{Total: "123.45"},
 				},
 			},
 		},
@@ -258,12 +258,12 @@ func TestToAPIBillingNotificationEvent_InvoiceCreated(t *testing.T) {
 	payload, err := got.Payload.AsBillingNotificationEventInvoiceCreatedPayload()
 	require.NoError(t, err)
 
-	assert.Equal(t, api.BillingNotificationEventInvoiceCreatedPayloadTypeInvoiceCreated, payload.Type)
+	assert.Equal(t, apiv3models.BillingNotificationEventInvoiceCreatedPayloadTypeInvoiceCreated, payload.Type)
 	assert.Equal(t, "01ARZ3NDEKTSV4RRFFQ69G5FB0", payload.Data.Invoice.Id)
 	assert.Equal(t, "INV-2024-0001", payload.Data.Invoice.Number)
 	assert.Equal(t, "01ARZ3NDEKTSV4RRFFQ69G5FB1", lo.FromPtr(payload.Data.CustomerId))
 	assert.Equal(t, "USD", payload.Data.Currency)
-	assert.Equal(t, string(v1api.InvoiceStatusDraft), payload.Data.Status)
+	assert.Equal(t, string(apiv1models.InvoiceStatusDraft), payload.Data.Status)
 	assert.Equal(t, "123.45", payload.Data.Total)
 }
 
@@ -323,7 +323,7 @@ func TestToAPIBillingNotificationEventDeliveryStatuses(t *testing.T) {
 
 	status := got[0]
 	assert.Equal(t, "01ARZ3NDEKTSV4RRFFQ69G5FAV", status.ChannelId)
-	assert.Equal(t, api.BillingNotificationEventDeliveryStateFailed, status.State)
+	assert.Equal(t, apiv3models.BillingNotificationEventDeliveryStateFailed, status.State)
 	assert.Equal(t, "connection refused", status.Reason)
 	assert.Equal(t, newer, status.UpdatedAt)
 	assert.Equal(t, nextAttempt, lo.FromPtr(status.NextAttempt))

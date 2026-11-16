@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
@@ -63,7 +63,7 @@ func TestListAddonsResolvesTaxCodesOnce(t *testing.T) {
 
 	// when: the add-ons are listed
 	rec := httptest.NewRecorder()
-	handler.ListAddons().With(api.ListAddonsParams{}).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
+	handler.ListAddons().With(apiv1models.ListAddonsParams{}).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
 	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
 
 	// then: the Tax Codes are looked up once, with each ID once

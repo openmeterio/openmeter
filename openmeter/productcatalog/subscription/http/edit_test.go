@@ -13,7 +13,7 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
@@ -150,10 +150,10 @@ func TestV1EditSubscriptionResolvesLegacyStripeTaxCodes(t *testing.T) {
 			ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
 		require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
 
-		var got api.SubscriptionExpanded
+		var got apiv1models.SubscriptionExpanded
 		require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &got))
 
-		item, ok := lo.Find(got.Phases[0].Items, func(item api.SubscriptionItem) bool { return item.Key == "taxed" })
+		item, ok := lo.Find(got.Phases[0].Items, func(item apiv1models.SubscriptionItem) bool { return item.Key == "taxed" })
 		require.True(t, ok)
 		require.NotNil(t, item.TaxConfig)
 		require.NotNil(t, item.TaxConfig.Stripe)

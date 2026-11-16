@@ -9,7 +9,7 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
@@ -23,8 +23,8 @@ import (
 
 type (
 	ListEntitlementsHandlerRequest  = entitlement.ListEntitlementsParams
-	ListEntitlementsHandlerResponse = pagination.Result[api.EntitlementV2]
-	ListEntitlementsHandlerParams   = api.ListEntitlementsV2Params
+	ListEntitlementsHandlerResponse = pagination.Result[apiv1models.EntitlementV2]
+	ListEntitlementsHandlerParams   = apiv1models.ListEntitlementsV2Params
 )
 
 type ListEntitlementsHandler httptransport.HandlerWithArgs[ListEntitlementsHandlerRequest, ListEntitlementsHandlerResponse, ListEntitlementsHandlerParams]
@@ -72,7 +72,7 @@ func (h *entitlementHandler) ListEntitlements() ListEntitlementsHandler {
 
 					return orderBy
 				}(),
-				Order:            commonhttp.GetSortOrder(api.SortOrderASC, params.Order),
+				Order:            commonhttp.GetSortOrder(apiv1models.SortOrderASC, params.Order),
 				CustomerIDs:      convert.DerefHeaderPtr[string](params.CustomerIds),
 				CustomerKeys:     convert.DerefHeaderPtr[string](params.CustomerKeys),
 				FeatureIDsOrKeys: convert.DerefHeaderPtr[string](params.Feature),
@@ -103,10 +103,10 @@ func (h *entitlementHandler) ListEntitlements() ListEntitlementsHandler {
 				return ListEntitlementsHandlerResponse{}, err
 			}
 
-			return pagination.MapResultErr(paged.Entitlements, func(e entitlement.Entitlement) (api.EntitlementV2, error) {
+			return pagination.MapResultErr(paged.Entitlements, func(e entitlement.Entitlement) (apiv1models.EntitlementV2, error) {
 				cust, ok := paged.CustomersByID[models.NamespacedID{Namespace: e.Namespace, ID: e.CustomerID}]
 				if !ok {
-					return api.EntitlementV2{}, models.NewGenericPreConditionFailedError(fmt.Errorf("customer not found [namespace=%s customer.id=%s]", e.Namespace, e.CustomerID))
+					return apiv1models.EntitlementV2{}, models.NewGenericPreConditionFailedError(fmt.Errorf("customer not found [namespace=%s customer.id=%s]", e.Namespace, e.CustomerID))
 				}
 
 				r, err := ParserV2.ToAPIGenericV2(&e, cust.ID, cust.Key)
@@ -128,7 +128,7 @@ type GetEntitlementHandlerRequest struct {
 	Namespace     string
 }
 type (
-	GetEntitlementHandlerResponse = *api.EntitlementV2
+	GetEntitlementHandlerResponse = *apiv1models.EntitlementV2
 	GetEntitlementHandlerParams   struct {
 		EntitlementId string
 	}

@@ -8,7 +8,7 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
@@ -25,9 +25,9 @@ type (
 	// CreateSubscriptionHandlerRequest.
 	ChangeSubscriptionHandlerRequest struct {
 		ChangeSubscriptionRequest
-		CustomPlan *api.CustomPlanInput
+		CustomPlan *apiv1models.CustomPlanInput
 	}
-	ChangeSubscriptionResponse = api.SubscriptionChangeResponseBody
+	ChangeSubscriptionResponse = apiv1models.SubscriptionChangeResponseBody
 	ChangeSubscriptionParams   = struct {
 		ID string
 	}
@@ -37,7 +37,7 @@ type (
 func (h *handler) ChangeSubscription() ChangeSubscriptionHandler {
 	return httptransport.NewHandlerWithArgs(
 		func(ctx context.Context, r *http.Request, params ChangeSubscriptionParams) (ChangeSubscriptionHandlerRequest, error) {
-			var body api.ChangeSubscriptionJSONRequestBody
+			var body apiv1models.ChangeSubscriptionJSONRequestBody
 
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
 				return ChangeSubscriptionHandlerRequest{}, err

@@ -7,7 +7,7 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/portal"
 	"github.com/openmeterio/openmeter/pkg/filter"
@@ -18,8 +18,8 @@ import (
 )
 
 type (
-	ListTokensParams   = api.ListPortalTokensParams
-	ListTokensResponse = []api.PortalToken
+	ListTokensParams   = apiv1models.ListPortalTokensParams
+	ListTokensResponse = []apiv1models.PortalToken
 	ListTokensHandler  httptransport.HandlerWithArgs[ListTokensRequest, ListTokensResponse, ListTokensParams]
 )
 
@@ -72,7 +72,7 @@ func (h *handler) ListTokens() ListTokensHandler {
 
 type (
 	CreateTokenRequest  = portal.CreateTokenInput
-	CreateTokenResponse = *api.PortalToken
+	CreateTokenResponse = *apiv1models.PortalToken
 	CreateTokenHandler  httptransport.Handler[CreateTokenRequest, CreateTokenResponse]
 )
 
@@ -80,7 +80,7 @@ type (
 func (h *handler) CreateToken() CreateTokenHandler {
 	return httptransport.NewHandler(
 		func(ctx context.Context, r *http.Request) (CreateTokenRequest, error) {
-			body := api.CreatePortalTokenJSONRequestBody{}
+			body := apiv1models.CreatePortalTokenJSONRequestBody{}
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
 				return CreateTokenRequest{}, fmt.Errorf("field to decode create token request: %w", err)
 			}
@@ -161,7 +161,7 @@ type (
 func (h *handler) InvalidateToken() InvalidateTokenHandler {
 	return httptransport.NewHandler(
 		func(ctx context.Context, r *http.Request) (InvalidateTokenRequest, error) {
-			body := api.InvalidatePortalTokensJSONBody{}
+			body := apiv1models.InvalidatePortalTokensJSONBody{}
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
 				return InvalidateTokenRequest{}, fmt.Errorf("field to decode create token request: %w", err)
 			}

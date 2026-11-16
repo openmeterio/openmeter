@@ -7,9 +7,9 @@ import (
 
 	"github.com/samber/lo"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/filters"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/api/v3/response"
 	"github.com/openmeterio/openmeter/openmeter/notification"
@@ -21,8 +21,8 @@ import (
 
 type (
 	ListNotificationEventsRequest  = notification.ListEventsInput
-	ListNotificationEventsResponse = response.PagePaginationResponse[api.BillingNotificationEvent]
-	ListNotificationEventsParams   = api.ListBillingNotificationEventsParams
+	ListNotificationEventsResponse = response.PagePaginationResponse[apiv3models.BillingNotificationEvent]
+	ListNotificationEventsParams   = apiv3models.ListBillingNotificationEventsParams
 	ListNotificationEventsHandler  = httptransport.HandlerWithArgs[ListNotificationEventsRequest, ListNotificationEventsResponse, ListNotificationEventsParams]
 )
 
@@ -96,7 +96,7 @@ func (h *handler) ListNotificationEvents() ListNotificationEventsHandler {
 				return ListNotificationEventsResponse{}, fmt.Errorf("failed to list notification events: %w", err)
 			}
 
-			items, err := lo.MapErr(result.Items, func(item notification.Event, _ int) (api.BillingNotificationEvent, error) {
+			items, err := lo.MapErr(result.Items, func(item notification.Event, _ int) (apiv3models.BillingNotificationEvent, error) {
 				return ToAPIBillingNotificationEvent(item)
 			})
 			if err != nil {
@@ -118,7 +118,7 @@ func (h *handler) ListNotificationEvents() ListNotificationEventsHandler {
 	)
 }
 
-func applyAPIEventFilters(ctx context.Context, req *ListNotificationEventsRequest, params api.ListNotificationEventsParamsFilter) error {
+func applyAPIEventFilters(ctx context.Context, req *ListNotificationEventsRequest, params apiv3models.ListNotificationEventsParamsFilter) error {
 	badRequest := func(field string, err error) error {
 		return apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
 			{Field: field, Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
@@ -175,7 +175,7 @@ func applyAPIEventFilters(ctx context.Context, req *ListNotificationEventsReques
 	}
 
 	deliveryStatus, err = deliveryStatus.Map(func(v string) (string, error) {
-		domain, err := FromAPIBillingNotificationEventDeliveryState(api.BillingNotificationEventDeliveryState(v))
+		domain, err := FromAPIBillingNotificationEventDeliveryState(apiv3models.BillingNotificationEventDeliveryState(v))
 		return string(domain), err
 	})
 	if err != nil {

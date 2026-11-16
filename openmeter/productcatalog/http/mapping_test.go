@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	productcataloghttp "github.com/openmeterio/openmeter/openmeter/productcatalog/http"
@@ -46,7 +46,7 @@ func TestFromAPITaxConfig(t *testing.T) {
 
 	tests := []struct {
 		name        string
-		in          api.TaxConfig
+		in          apiv1models.TaxConfig
 		resolverErr error
 		want        *productcatalog.TaxCodeConfig
 		wantCalls   []productcatalog.ResolveOrBackfillTaxCodeInput
@@ -54,43 +54,43 @@ func TestFromAPITaxConfig(t *testing.T) {
 	}{
 		{
 			name: "empty input",
-			in:   api.TaxConfig{},
+			in:   apiv1models.TaxConfig{},
 		},
 		{
 			name: "empty stripe code",
-			in:   api.TaxConfig{Stripe: &api.StripeTaxConfig{}},
+			in:   apiv1models.TaxConfig{Stripe: &apiv1models.StripeTaxConfig{}},
 		},
 		{
 			name: "behavior only",
-			in:   api.TaxConfig{Behavior: lo.ToPtr(api.TaxBehaviorInclusive)},
+			in:   apiv1models.TaxConfig{Behavior: lo.ToPtr(apiv1models.TaxBehaviorInclusive)},
 			want: &productcatalog.TaxCodeConfig{Behavior: lo.ToPtr(productcatalog.InclusiveTaxBehavior)},
 		},
 		{
 			name: "tax code ID wins over stripe code",
-			in: api.TaxConfig{
+			in: apiv1models.TaxConfig{
 				TaxCodeId: lo.ToPtr(inputID),
-				Stripe:    &api.StripeTaxConfig{Code: stripeCode},
-				Behavior:  lo.ToPtr(api.TaxBehaviorExclusive),
+				Stripe:    &apiv1models.StripeTaxConfig{Code: stripeCode},
+				Behavior:  lo.ToPtr(apiv1models.TaxBehaviorExclusive),
 			},
 			want: &productcatalog.TaxCodeConfig{TaxCodeID: inputID, Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)},
 		},
 		{
 			name:      "stripe code is resolved to a tax code",
-			in:        api.TaxConfig{Stripe: &api.StripeTaxConfig{Code: stripeCode}},
+			in:        apiv1models.TaxConfig{Stripe: &apiv1models.StripeTaxConfig{Code: stripeCode}},
 			want:      &productcatalog.TaxCodeConfig{TaxCodeID: resolvedID},
 			wantCalls: []productcatalog.ResolveOrBackfillTaxCodeInput{{Namespace: namespace, StripeCode: stripeCode}},
 		},
 		{
 			name: "invalid stripe code is a validation error",
-			in:   api.TaxConfig{Stripe: &api.StripeTaxConfig{Code: "invalid"}},
+			in:   apiv1models.TaxConfig{Stripe: &apiv1models.StripeTaxConfig{Code: "invalid"}},
 			wantErr: func(t *testing.T, err error) {
 				assert.True(t, models.IsGenericValidationError(err), "expected validation error, got: %v", err)
 			},
 		},
 		{
 			name: "empty tax code ID is a validation error, not a fallback to the stripe code",
-			in: api.TaxConfig{
-				Stripe:    &api.StripeTaxConfig{Code: stripeCode},
+			in: apiv1models.TaxConfig{
+				Stripe:    &apiv1models.StripeTaxConfig{Code: stripeCode},
 				TaxCodeId: lo.ToPtr(""),
 			},
 			wantErr: func(t *testing.T, err error) {
@@ -99,7 +99,7 @@ func TestFromAPITaxConfig(t *testing.T) {
 		},
 		{
 			name:        "resolver failure is not a validation error",
-			in:          api.TaxConfig{Stripe: &api.StripeTaxConfig{Code: stripeCode}},
+			in:          apiv1models.TaxConfig{Stripe: &apiv1models.StripeTaxConfig{Code: stripeCode}},
 			resolverErr: resolverErr,
 			wantCalls:   []productcatalog.ResolveOrBackfillTaxCodeInput{{Namespace: namespace, StripeCode: stripeCode}},
 			wantErr: func(t *testing.T, err error) {
@@ -147,16 +147,16 @@ func TestToAPITaxConfig(t *testing.T) {
 		name     string
 		cfg      productcatalog.TaxCodeConfig
 		taxCodes map[string]*taxcode.TaxCode
-		want     api.TaxConfig
+		want     apiv1models.TaxConfig
 		wantErr  bool
 	}{
 		{
 			name:     "stripe code from the referenced tax code",
 			cfg:      productcatalog.TaxCodeConfig{TaxCodeID: id, Behavior: lo.ToPtr(productcatalog.InclusiveTaxBehavior)},
 			taxCodes: taxCodes,
-			want: api.TaxConfig{
-				Behavior:  lo.ToPtr(api.TaxBehaviorInclusive),
-				Stripe:    &api.StripeTaxConfig{Code: "txcd_10000000"},
+			want: apiv1models.TaxConfig{
+				Behavior:  lo.ToPtr(apiv1models.TaxBehaviorInclusive),
+				Stripe:    &apiv1models.StripeTaxConfig{Code: "txcd_10000000"},
 				TaxCodeId: lo.ToPtr(id),
 			},
 		},
@@ -171,13 +171,13 @@ func TestToAPITaxConfig(t *testing.T) {
 			taxCodes: map[string]*taxcode.TaxCode{
 				id: {NamespacedID: models.NamespacedID{Namespace: "ns", ID: id}},
 			},
-			want: api.TaxConfig{TaxCodeId: lo.ToPtr(id)},
+			want: apiv1models.TaxConfig{TaxCodeId: lo.ToPtr(id)},
 		},
 		{
 			name:     "behavior only",
 			cfg:      productcatalog.TaxCodeConfig{Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)},
 			taxCodes: taxCodes,
-			want:     api.TaxConfig{Behavior: lo.ToPtr(api.TaxBehaviorExclusive)},
+			want:     apiv1models.TaxConfig{Behavior: lo.ToPtr(apiv1models.TaxBehaviorExclusive)},
 		},
 	}
 

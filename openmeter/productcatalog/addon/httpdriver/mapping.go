@@ -6,7 +6,7 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
@@ -18,15 +18,15 @@ import (
 
 // FromAddon maps an add-on to its v1 shape. taxCodes must hold every Tax Code the add-on's
 // rate cards reference: a missing entry is an error.
-func FromAddon(a addon.Addon, taxCodes map[string]*taxcode.TaxCode) (api.Addon, error) {
+func FromAddon(a addon.Addon, taxCodes map[string]*taxcode.TaxCode) (apiv1models.Addon, error) {
 	validationIssues, _ := a.AsProductCatalogAddon().ValidationErrors()
 
-	resp := api.Addon{
+	resp := apiv1models.Addon{
 		CreatedAt:        a.CreatedAt,
 		Currency:         a.Currency.GetCode().String(),
 		DeletedAt:        a.DeletedAt,
 		Description:      a.Description,
-		InstanceType:     api.AddonInstanceType(a.InstanceType),
+		InstanceType:     apiv1models.AddonInstanceType(a.InstanceType),
 		EffectiveFrom:    a.EffectiveFrom,
 		EffectiveTo:      a.EffectiveTo,
 		Id:               a.ID,
@@ -39,7 +39,7 @@ func FromAddon(a addon.Addon, taxCodes map[string]*taxcode.TaxCode) (api.Addon, 
 		ValidationErrors: http.FromValidationErrors(validationIssues),
 	}
 
-	resp.RateCards = make([]api.RateCard, 0, len(a.RateCards))
+	resp.RateCards = make([]apiv1models.RateCard, 0, len(a.RateCards))
 	for _, rateCard := range a.RateCards.AsProductCatalogRateCards() {
 		rc, err := http.FromRateCard(rateCard, taxCodes)
 		if err != nil {
@@ -51,11 +51,11 @@ func FromAddon(a addon.Addon, taxCodes map[string]*taxcode.TaxCode) (api.Addon, 
 
 	switch a.Status() {
 	case productcatalog.AddonStatusDraft:
-		resp.Status = api.AddonStatusDraft
+		resp.Status = apiv1models.AddonStatusDraft
 	case productcatalog.AddonStatusActive:
-		resp.Status = api.AddonStatusActive
+		resp.Status = apiv1models.AddonStatusActive
 	case productcatalog.AddonStatusArchived:
-		resp.Status = api.AddonStatusArchived
+		resp.Status = apiv1models.AddonStatusArchived
 	default:
 		return resp, fmt.Errorf("invalid add-on status: %s", a.Status())
 	}
@@ -63,7 +63,7 @@ func FromAddon(a addon.Addon, taxCodes map[string]*taxcode.TaxCode) (api.Addon, 
 	return resp, nil
 }
 
-func AsCreateAddonRequest(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver, a api.AddonCreate, namespace string) (CreateAddonRequest, error) {
+func AsCreateAddonRequest(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver, a apiv1models.AddonCreate, namespace string) (CreateAddonRequest, error) {
 	var err error
 
 	req := CreateAddonRequest{
@@ -97,7 +97,7 @@ func AsCreateAddonRequest(ctx context.Context, resolver productcatalog.TaxCodeBa
 	return req, nil
 }
 
-func AsUpdateAddonRequest(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver, a api.AddonReplaceUpdate, namespace string, addonID string) (UpdateAddonRequest, error) {
+func AsUpdateAddonRequest(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver, a apiv1models.AddonReplaceUpdate, namespace string, addonID string) (UpdateAddonRequest, error) {
 	req := UpdateAddonRequest{
 		NamespacedID: models.NamespacedID{
 			Namespace: namespace,
