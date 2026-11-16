@@ -39,11 +39,18 @@ func EagerLoadRulesWithActiveChannels(at time.Time) func(query *entdb.Notificati
 	}
 }
 
+func (a *adapter) eventQuery(expand *notification.EventExpand) *entdb.NotificationEventQuery {
+	q := a.db.NotificationEvent.Query().WithRules(EagerLoadRulesWithActiveChannels(clock.Now()))
+	if expand != nil && expand.DeliveryStatus {
+		q.WithDeliveryStatuses()
+	}
+
+	return q
+}
+
 func (a *adapter) ListEvents(ctx context.Context, params notification.ListEventsInput) (pagination.Result[notification.Event], error) {
 	fn := func(ctx context.Context, a *adapter) (pagination.Result[notification.Event], error) {
-		query := a.db.NotificationEvent.Query().
-			WithRules(EagerLoadRulesWithActiveChannels(clock.Now())).
-			WithDeliveryStatuses()
+		query := a.eventQuery(params.Expand)
 
 		if len(params.Namespaces) > 0 {
 			query = query.Where(eventdb.NamespaceIn(params.Namespaces...))
@@ -153,11 +160,7 @@ func (a *adapter) ListEvents(ctx context.Context, params notification.ListEvents
 
 func (a *adapter) GetEvent(ctx context.Context, params notification.GetEventInput) (*notification.Event, error) {
 	fn := func(ctx context.Context, a *adapter) (*notification.Event, error) {
-		query := a.db.NotificationEvent.Query().
-			Where(eventdb.Namespace(params.Namespace)).
-			Where(eventdb.ID(params.ID)).
-			WithDeliveryStatuses().
-			WithRules(EagerLoadRulesWithActiveChannels(clock.Now()))
+		query := a.eventQuery(params.Expand).Where(eventdb.NamespaceEQ(params.Namespace), eventdb.IDEQ(params.ID))
 
 		eventRow, err := query.First(ctx)
 		if err != nil {

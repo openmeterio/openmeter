@@ -33,6 +33,7 @@ func (h *handler) ListEvents() ListEventsHandler {
 			}
 
 			req := ListEventsRequest{
+				Expand:     &notification.EventExpand{DeliveryStatus: true},
 				Namespaces: []string{ns},
 				Order:      sortx.Order(lo.FromPtrOr(params.Order, api.SortOrderDESC)),
 				OrderBy:    notification.OrderBy(lo.FromPtrOr(params.OrderBy, api.NotificationEventOrderByCreatedAt)),
@@ -100,6 +101,7 @@ func (h *handler) GetEvent() GetEventHandler {
 			}
 
 			req := GetEventRequest{
+				Expand:    &notification.EventExpand{DeliveryStatus: true},
 				Namespace: ns,
 				ID:        eventID,
 			}

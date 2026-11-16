@@ -323,6 +323,7 @@ func TestListEvents_Filters(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			input := tc.input
+			input.Expand = &notification.EventExpand{DeliveryStatus: true}
 			input.Namespaces = []string{ns}
 			input.Page = pagination.NewPage(1, 20)
 
@@ -400,6 +401,48 @@ func TestListEvents_BalanceEventDeduplicationHashes(t *testing.T) {
 
 			require.Len(t, result.Items, 1)
 			assert.Equal(t, tt.latest, result.Items[0].ID)
+			assert.Empty(t, result.Items[0].DeliveryStatus)
+		})
+	}
+}
+
+func TestEventReads_ExpandDeliveryStatus(t *testing.T) {
+	env := newEventTestEnv(t)
+	ns := ulid.Make().String()
+	rule := seedRule(t, env, ns, notification.EventTypeBalanceThreshold, seedChannel(t, env, ns).ID)
+	at := clock.Now().UTC().Truncate(time.Second)
+	event := seedEvent(t, env, ns, rule, at, nil)
+
+	for _, tt := range []struct {
+		name   string
+		expand *notification.EventExpand
+		count  int
+	}{
+		{name: "omitted"},
+		{name: "empty", expand: &notification.EventExpand{}},
+		{name: "requested", expand: &notification.EventExpand{DeliveryStatus: true}, count: 1},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := env.adapter.GetEvent(t.Context(), notification.GetEventInput{
+				Namespace: ns,
+				ID:        event.ID,
+				Expand:    tt.expand,
+			})
+			require.NoError(t, err)
+			require.NotNil(t, got)
+			assert.Len(t, got.DeliveryStatus, tt.count)
+
+			// The filter must still match pending deliveries even when the caller omits the edge.
+			page, err := env.adapter.ListEvents(t.Context(), notification.ListEventsInput{
+				Namespaces:     []string{ns},
+				Expand:         tt.expand,
+				DeliveryStatus: &filter.FilterString{Eq: new(string(notification.EventDeliveryStatusStatePending))},
+			})
+			require.NoError(t, err)
+			require.Len(t, page.Items, 1)
+			assert.Equal(t, 1, page.TotalCount)
+			assert.Equal(t, event.ID, page.Items[0].ID)
+			assert.Len(t, page.Items[0].DeliveryStatus, tt.count)
 		})
 	}
 }
@@ -641,7 +684,7 @@ func TestEventChannelConfigCompatibility(t *testing.T) {
 			require.NoError(t, err)
 
 			// when: reading the event with its nested channels
-			item, getErr := env.adapter.GetEvent(t.Context(), notification.GetEventInput(created.NamespacedID))
+			item, getErr := env.adapter.GetEvent(t.Context(), notification.GetEventInput{Namespace: created.Namespace, ID: created.ID})
 			listed, listErr := env.adapter.ListEvents(t.Context(), notification.ListEventsInput{
 				Namespaces: []string{created.Namespace}, Page: pagination.NewPage(1, 20),
 			})
@@ -709,7 +752,7 @@ func TestEventRuleConfigCompatibility(t *testing.T) {
 				Namespace: rule.Namespace,
 				Page:      pagination.NewPage(1, 20),
 			})
-			item, getErr := env.adapter.GetEvent(t.Context(), notification.GetEventInput(created.NamespacedID))
+			item, getErr := env.adapter.GetEvent(t.Context(), notification.GetEventInput{Namespace: created.Namespace, ID: created.ID})
 			listed, listErr := env.adapter.ListEvents(t.Context(), notification.ListEventsInput{
 				Namespaces: []string{created.Namespace},
 				Page:       pagination.NewPage(1, 20),
@@ -824,7 +867,7 @@ func TestEventTypeStorageCompatibility(t *testing.T) {
 			assert.Equal(t, tt.name, storedType)
 			assert.JSONEq(t, string(expectedPayload), storedPayload)
 
-			fetched, err := env.adapter.GetEvent(t.Context(), notification.GetEventInput(created.NamespacedID))
+			fetched, err := env.adapter.GetEvent(t.Context(), notification.GetEventInput{Namespace: created.Namespace, ID: created.ID})
 			require.NoError(t, err)
 			require.NotNil(t, fetched)
 
@@ -947,7 +990,11 @@ func TestEventPayloadStorageCompatibility(t *testing.T) {
 					})
 					require.NoError(t, err)
 
-					before, err := env.adapter.GetEvent(t.Context(), notification.GetEventInput(created.NamespacedID))
+					before, err := env.adapter.GetEvent(t.Context(), notification.GetEventInput{
+						Namespace: created.Namespace,
+						ID:        created.ID,
+						Expand:    &notification.EventExpand{DeliveryStatus: true},
+					})
 					require.NoError(t, err)
 
 					// when: storing JSON with fields unknown to the current domain model
@@ -983,7 +1030,11 @@ func TestEventPayloadStorageCompatibility(t *testing.T) {
 
 					assert.Equal(t, json.RawMessage(stored), entity.Payload)
 
-					fetched, err := env.adapter.GetEvent(t.Context(), notification.GetEventInput(created.NamespacedID))
+					fetched, err := env.adapter.GetEvent(t.Context(), notification.GetEventInput{
+						Namespace: created.Namespace,
+						ID:        created.ID,
+						Expand:    &notification.EventExpand{DeliveryStatus: true},
+					})
 					require.NoError(t, err)
 
 					listed, err := env.adapter.ListEvents(t.Context(), notification.ListEventsInput{
@@ -1073,7 +1124,7 @@ func TestEventPayloadReadErrors(t *testing.T) {
 			require.NoError(t, err)
 
 			// when: reading through either adapter entry point
-			_, err = env.adapter.GetEvent(t.Context(), notification.GetEventInput(created.NamespacedID))
+			_, err = env.adapter.GetEvent(t.Context(), notification.GetEventInput{Namespace: created.Namespace, ID: created.ID})
 			require.ErrorContains(t, err, tt.wantErr)
 
 			_, err = env.adapter.ListEvents(t.Context(), notification.ListEventsInput{
@@ -1178,7 +1229,7 @@ func TestEventRuleReferenceStorage(t *testing.T) {
 			err = dbClient.NotificationRule.DeleteOneID(rule.ID).Exec(t.Context())
 			require.ErrorContains(t, err, "notification_events_notification_rules_events")
 
-			fetched, err := adapter.GetEvent(t.Context(), notification.GetEventInput(legacy.NamespacedID))
+			fetched, err := adapter.GetEvent(t.Context(), notification.GetEventInput{Namespace: legacy.Namespace, ID: legacy.ID})
 			require.NoError(t, err)
 
 			assert.Equal(t, legacy.ID, fetched.ID)
@@ -1299,7 +1350,11 @@ func TestEventRuleSnapshotStorage(t *testing.T) {
 					})
 					require.NoError(t, err)
 
-					fetched, err := adapter.GetEvent(t.Context(), notification.GetEventInput{Namespace: namespace, ID: entity.ID})
+					fetched, err := adapter.GetEvent(t.Context(), notification.GetEventInput{
+						Namespace: namespace,
+						ID:        entity.ID,
+						Expand:    &notification.EventExpand{DeliveryStatus: true},
+					})
 					require.NoError(t, err)
 
 					listed, err := adapter.ListEvents(t.Context(), notification.ListEventsInput{
@@ -1436,7 +1491,11 @@ func TestEventProviderDataPreservation(t *testing.T) {
 					})
 					require.NoError(t, err)
 
-					fetched, err := adapter.GetEvent(t.Context(), notification.GetEventInput(event.NamespacedID))
+					fetched, err := adapter.GetEvent(t.Context(), notification.GetEventInput{
+						Namespace: event.Namespace,
+						ID:        event.ID,
+						Expand:    &notification.EventExpand{DeliveryStatus: true},
+					})
 					require.NoError(t, err)
 
 					listed, err := adapter.ListEvents(t.Context(), notification.ListEventsInput{

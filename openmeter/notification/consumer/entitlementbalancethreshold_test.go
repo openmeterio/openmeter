@@ -1,11 +1,13 @@
 package consumer
 
 import (
+	"context"
 	"testing"
 	"time"
 
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	apimodels "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
@@ -14,7 +16,10 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/subject"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	pkgmodels "github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/sortx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -885,4 +890,70 @@ func Test_BalanceEventDedupHash(t *testing.T) {
 			assert.Equalf(t, test.ExpectedV2, h.V2(), "generated v2 version must be equal")
 		})
 	}
+}
+
+type eventListRecorder struct {
+	notification.Service
+	event  notification.Event
+	inputs []notification.ListEventsInput
+}
+
+func (r *eventListRecorder) ListEvents(_ context.Context, in notification.ListEventsInput) (notification.ListEventsResult, error) {
+	r.inputs = append(r.inputs, in)
+
+	return notification.ListEventsResult{Items: []notification.Event{r.event}, TotalCount: 1}, nil
+}
+
+func TestEntitlementSnapshotEventLookups(t *testing.T) {
+	start := time.Date(2026, 11, 1, 0, 0, 0, 0, time.UTC)
+	period := timeutil.ClosedPeriod{From: start, To: start.AddDate(0, 1, 0)}
+	event := snapshot.SnapshotEvent{
+		Namespace: models.NamespaceID{ID: "namespace"},
+		Value: &snapshot.EntitlementValue{
+			Balance:                   new(40.0),
+			Usage:                     new(60.0),
+			TotalAvailableGrantAmount: new(100.0),
+		},
+	}
+	event.Entitlement.CurrentUsagePeriod = &period
+	wantInput := notification.ListEventsInput{
+		Page:       pagination.NewPage(1, 1),
+		Namespaces: []string{event.Namespace.ID},
+		CreatedAt:  filter.NewFilterTime(&period.From, &period.To),
+		OrderBy:    notification.OrderByCreatedAt,
+		Order:      sortx.OrderDesc,
+	}
+
+	t.Run("balance compares the latest matching threshold across both hash versions", func(t *testing.T) {
+		threshold := newUsageValueThreshold(50)
+		var rule notification.Rule
+		rule.ID = "rule"
+		rule.Config.BalanceThreshold = &notification.BalanceThresholdRuleConfig{Thresholds: []notification.BalanceThreshold{threshold}}
+
+		hash, err := NewBalanceEventDedupHash(event, rule.ID, threshold)
+		require.NoError(t, err)
+
+		var latest notification.Event
+		latest.Payload.Type = notification.EventTypeBalanceThreshold
+		latest.Payload.BalanceThreshold = &notification.BalanceThresholdPayload{
+			EntitlementValuePayloadBase: notification.EntitlementValuePayloadBase{Value: apimodels.EntitlementValue(*event.Value)},
+			Threshold:                   threshold,
+		}
+
+		recorder := &eventListRecorder{event: latest}
+		handler := EntitlementSnapshotHandler{Notification: recorder}
+		require.NoError(t, handler.handleRule(t.Context(), event, rule))
+
+		want := wantInput
+		want.DeduplicationHashes = []string{hash.V1(), hash.V2()}
+		require.Equal(t, []notification.ListEventsInput{want}, recorder.inputs)
+	})
+
+	t.Run("reset skips creation when any Event exists in the namespace and period", func(t *testing.T) {
+		recorder := &eventListRecorder{}
+		handler := EntitlementSnapshotHandler{Notification: recorder}
+		require.NoError(t, handler.handleResetRule(t.Context(), event, notification.Rule{}))
+
+		require.Equal(t, []notification.ListEventsInput{wantInput}, recorder.inputs)
+	})
 }

@@ -142,7 +142,11 @@ func createWebhookEventSending(t *testing.T, ctx context.Context, repo notificat
 
 	// Re-fetch: CreateEvent's response does not eager load Rule.Channels the same way GetEvent does,
 	// and reconcileWebhookEvent relies on event.Rule.Channels to know the channel type.
-	refetched, err := repo.GetEvent(ctx, notification.GetEventInput{Namespace: namespace, ID: event.ID})
+	refetched, err := repo.GetEvent(ctx, notification.GetEventInput{
+		Namespace: namespace,
+		ID:        event.ID,
+		Expand:    &notification.EventExpand{DeliveryStatus: true},
+	})
 	require.NoError(t, err)
 
 	refetchedStatus, err := repo.GetEventDeliveryStatus(ctx, notification.GetEventDeliveryStatusInput{
