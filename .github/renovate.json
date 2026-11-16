@@ -11,7 +11,11 @@
     "benthos-collector.Dockerfile",
     "api/client/python/pyproject.toml",
     "api/client/python/examples/pyproject.toml",
-    "api/client/javascript/package.json"
+    "api/client/javascript/package.json",
+    "api/spec/package.json",
+    "api/spec/packages/*/package.json",
+    "api/spec/pnpm-workspace.yaml",
+    "api/spec/pnpm-lock.yaml"
   ],
   "minimumReleaseAge": "7 days",
   "separateMinorPatch": true,
@@ -235,6 +239,11 @@
       },
       {
         "matchPackageNames": ["eslint", "eslint-formatter-pretty"],
+        "enabled": false
+      },
+      {
+        "description": "Only update the TypeSpec workspace when GitHub reports a vulnerability.",
+        "matchFileNames": ["api/spec/**"],
         "enabled": false
       }
     ]
