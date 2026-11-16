@@ -47,7 +47,8 @@ func ChannelFromDBEntity(e db.NotificationChannel) (*notification.Channel, error
 }
 
 func RuleFromDBEntity(e db.NotificationRule) (*notification.Rule, error) {
-	config, err := fromDBRuleConfig(e.Type, e.Config)
+	eventType := fromDBEventType(e.Type)
+	config, err := fromDBRuleConfig(eventType, e.Config)
 	if err != nil {
 		return nil, fmt.Errorf("invalid notification rule config [namespace=%s rule.id=%s]: %w", e.Namespace, e.ID, err)
 	}
@@ -86,7 +87,7 @@ func RuleFromDBEntity(e db.NotificationRule) (*notification.Rule, error) {
 				return &deletedAt
 			}(),
 		},
-		Type:     e.Type,
+		Type:     eventType,
 		Name:     e.Name,
 		Disabled: e.Disabled,
 		Config:   config,
@@ -135,7 +136,7 @@ func EventFromDBEntity(e db.NotificationEvent) (*notification.Event, error) {
 			Namespace: e.Namespace,
 			ID:        e.ID,
 		},
-		Type:           e.Type,
+		Type:           fromDBEventType(e.Type),
 		CreatedAt:      e.CreatedAt.UTC(),
 		Payload:        payload,
 		Rule:           *rule,

@@ -57,7 +57,10 @@ func (a *adapter) ListEvents(ctx context.Context, params notification.ListEvents
 		}
 
 		query = filter.ApplyToQuery(query, params.ID, eventdb.FieldID)
-		query = filter.ApplyToQuery(query, params.Type, eventdb.FieldType)
+		if params.Type != nil && !params.Type.IsEmpty() {
+			query = query.Where(eventTypePredicate(eventdb.FieldType, params.Type))
+		}
+
 		query = filter.ApplyToQuery(query, params.CreatedAt, eventdb.FieldCreatedAt)
 		query = filter.ApplyToQuery(query, params.RuleID, eventdb.FieldRuleID)
 
@@ -109,16 +112,18 @@ func (a *adapter) ListEvents(ctx context.Context, params notification.ListEvents
 			))
 		}
 
-		order := entutils.GetOrdering(sortx.OrderDesc)
+		sortOrder := sortx.OrderDesc
 		if !params.Order.IsDefaultValue() {
-			order = entutils.GetOrdering(params.Order)
+			sortOrder = params.Order
 		}
+
+		order := entutils.GetOrdering(sortOrder)
 
 		switch params.OrderBy {
 		case notification.OrderByCreatedAt:
 			query = query.Order(eventdb.ByCreatedAt(order...))
 		case notification.OrderByType:
-			query = query.Order(eventdb.ByType(order...))
+			query = query.Order(byLegacyEventType(eventdb.FieldType, sortOrder), eventdb.ByID(order...))
 		case notification.OrderByID:
 			fallthrough
 		default:

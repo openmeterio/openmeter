@@ -70,12 +70,24 @@ can read the final format. Temporary storage mappings remain until all writers
 and rows have converged. Already-lowercase rows are readable by the new adapter;
 this does not make those rows readable by an old backend.
 
-## Rule type storage compatibility
+## Rule and Event type storage compatibility
 
-Rule types use an Ent string field with the existing `EventType` validation.
-Phase 1 retains the unversioned names, immutable Rule type, configuration
-envelope, and routing. Canonical versioned names and data conversion remain
-deferred until their contracts and compatibility mappings are agreed.
+During Phase 1, Rule and Event reads accept both names in each row below.
+Writes, V1/V3 responses, webhook messages, and JSON discriminators use the
+legacy name. A Rule update preserves the existing type column.
+
+| V1/V3 name | Versioned storage alias |
+| --- | --- |
+| `entitlements.balance.threshold` | `v1.entitlement.balance_threshold.triggered` |
+| `entitlements.reset` | `v1.entitlement.usage_period.reset` |
+| `invoice.created` | `v1.billing.invoice.created` |
+| `invoice.updated` | `v1.billing.invoice.updated` |
+
+V3 Rule and Event filters accept legacy names. Exact comparisons match either
+stored spelling, and exclusions exclude both. Type sorting uses the V3 name
+and then the resource ID in the same direction before pagination. The aliases
+apply to type columns only. Switching writers and migrating payload or config
+contracts require a separate cutover after all readers are compatible.
 
 Ent exposes Rule config as `json.RawMessage`; the adapter decodes the legacy
 envelope first, then the unwrapped existing contract using the Rule's type.
@@ -84,12 +96,7 @@ invoice configs. Reads do not rewrite rows or revalidate historical conditions.
 Writes retain the existing config validation and legacy envelope. Decode errors
 propagate through Rule reads and nested Event reads.
 
-## Event type storage compatibility
-
-Event types use an Ent string field with the existing `EventType` validation.
-Phase 1 preserves unversioned values, immutable types, payload representation,
-and required Rule references. Existing API and routing behavior stay unchanged;
-canonical versioned names and data conversion remain deferred.
+## Event storage compatibility
 
 Ent exposes Event payloads as `json.RawMessage`; the adapter continues writing
 and decoding the existing typed JSON format, including invoice payload version
