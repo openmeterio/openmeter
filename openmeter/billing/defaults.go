@@ -17,6 +17,7 @@ var DefaultWorkflowConfig = WorkflowConfig{
 		DueAfter:                     lo.Must(datetime.ISODurationString("P30D").Parse()),
 		ProgressiveBilling:           true,
 		SubscriptionEndProrationMode: SubscriptionEndProrationModeBillActualPeriod,
+		EmptyInvoiceMode:             EmptyInvoiceModeCreate,
 		DefaultTaxConfig:             nil,
 	},
 	Payment: PaymentConfig{

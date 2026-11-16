@@ -242,6 +242,7 @@ func ToAPIBillingWorkflow(config billing.WorkflowConfig) (apiv3models.BillingWor
 		DraftPeriod:                  lo.ToPtr(config.Invoicing.DraftPeriod.String()),
 		ProgressiveBilling:           lo.ToPtr(config.Invoicing.ProgressiveBilling),
 		SubscriptionEndProrationMode: lo.ToPtr(apiv3models.BillingWorkflowInvoicingSubscriptionEndProrationMode(config.Invoicing.SubscriptionEndProrationMode)),
+		EmptyInvoiceMode:             lo.ToPtr(apiv3models.BillingWorkflowInvoicingEmptyInvoiceMode(config.Invoicing.EmptyInvoiceMode)),
 	}
 
 	// Tax settings
@@ -403,6 +404,7 @@ func fromAPIBillingWorkflow(workflow apiv3models.BillingWorkflow, defaultSubscri
 			DueAfter:                     dueAfter,
 			ProgressiveBilling:           lo.FromPtrOr(workflow.Invoicing.ProgressiveBilling, def.Invoicing.ProgressiveBilling),
 			SubscriptionEndProrationMode: subscriptionEndProrationMode,
+			EmptyInvoiceMode:             billing.EmptyInvoiceMode(lo.FromPtr(workflow.Invoicing.EmptyInvoiceMode)),
 			DefaultTaxConfig:             defaultTaxConfig,
 		},
 		Payment: billing.PaymentConfig{

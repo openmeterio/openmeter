@@ -1948,6 +1948,24 @@ func (e BillingWorkflowCollectionAlignmentSubscriptionType) Valid() bool {
 	}
 }
 
+// Defines values for BillingWorkflowInvoicingEmptyInvoiceMode.
+const (
+	BillingWorkflowInvoicingEmptyInvoiceModeCreate BillingWorkflowInvoicingEmptyInvoiceMode = "create"
+	BillingWorkflowInvoicingEmptyInvoiceModeOmit   BillingWorkflowInvoicingEmptyInvoiceMode = "omit"
+)
+
+// Valid indicates whether the value is a known member of the BillingWorkflowInvoicingEmptyInvoiceMode enum.
+func (e BillingWorkflowInvoicingEmptyInvoiceMode) Valid() bool {
+	switch e {
+	case BillingWorkflowInvoicingEmptyInvoiceModeCreate:
+		return true
+	case BillingWorkflowInvoicingEmptyInvoiceModeOmit:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for BillingWorkflowInvoicingSubscriptionEndProrationMode.
 const (
 	BillingWorkflowInvoicingSubscriptionEndProrationModeBillActualPeriod BillingWorkflowInvoicingSubscriptionEndProrationMode = "bill_actual_period"
@@ -8143,6 +8161,9 @@ type BillingWorkflowCollectionSettings struct {
 	Interval *string `json:"interval,omitempty"`
 }
 
+// BillingWorkflowInvoicingEmptyInvoiceMode Billing workflow empty invoice mode.
+type BillingWorkflowInvoicingEmptyInvoiceMode string
+
 // BillingWorkflowInvoicingSettings Invoice settings for a billing workflow.
 type BillingWorkflowInvoicingSettings struct {
 	// AutoAdvance Whether to automatically issue the invoice after the draftPeriod has passed.
@@ -8150,6 +8171,10 @@ type BillingWorkflowInvoicingSettings struct {
 
 	// DraftPeriod The period for the invoice to be kept in draft status for manual reviews.
 	DraftPeriod *string `json:"draft_period,omitempty"`
+
+	// EmptyInvoiceMode Controls whether empty invoices are created in the invoicing app. An invoice is
+	// empty when it has no line items or its total is zero.
+	EmptyInvoiceMode *BillingWorkflowInvoicingEmptyInvoiceMode `json:"empty_invoice_mode,omitempty"`
 
 	// ProgressiveBilling Should progressive billing be allowed for this workflow?
 	ProgressiveBilling *bool `json:"progressive_billing,omitempty"`

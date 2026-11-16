@@ -47,6 +47,8 @@ const (
 	FieldInvoiceProgressiveBilling = "invoice_progressive_billing"
 	// FieldSubscriptionEndProrationMode holds the string denoting the subscription_end_proration_mode field in the database.
 	FieldSubscriptionEndProrationMode = "subscription_end_proration_mode"
+	// FieldEmptyInvoiceMode holds the string denoting the empty_invoice_mode field in the database.
+	FieldEmptyInvoiceMode = "empty_invoice_mode"
 	// FieldInvoiceDefaultTaxSettings holds the string denoting the invoice_default_tax_settings field in the database.
 	FieldInvoiceDefaultTaxSettings = "invoice_default_tax_settings"
 	// FieldTaxEnabled holds the string denoting the tax_enabled field in the database.
@@ -102,6 +104,7 @@ var Columns = []string{
 	FieldInvoiceCollectionMethod,
 	FieldInvoiceProgressiveBilling,
 	FieldSubscriptionEndProrationMode,
+	FieldEmptyInvoiceMode,
 	FieldInvoiceDefaultTaxSettings,
 	FieldTaxEnabled,
 	FieldTaxEnforced,
@@ -173,6 +176,18 @@ func SubscriptionEndProrationModeValidator(sepm billing.SubscriptionEndProration
 		return nil
 	default:
 		return fmt.Errorf("billingworkflowconfig: invalid enum value for subscription_end_proration_mode field: %q", sepm)
+	}
+}
+
+const DefaultEmptyInvoiceMode billing.EmptyInvoiceMode = "create"
+
+// EmptyInvoiceModeValidator is a validator for the "empty_invoice_mode" field enum values. It is called by the builders before save.
+func EmptyInvoiceModeValidator(eim billing.EmptyInvoiceMode) error {
+	switch eim {
+	case "create", "omit":
+		return nil
+	default:
+		return fmt.Errorf("billingworkflowconfig: invalid enum value for empty_invoice_mode field: %q", eim)
 	}
 }
 
@@ -252,6 +267,11 @@ func ByInvoiceProgressiveBilling(opts ...sql.OrderTermOption) OrderOption {
 // BySubscriptionEndProrationMode orders the results by the subscription_end_proration_mode field.
 func BySubscriptionEndProrationMode(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldSubscriptionEndProrationMode, opts...).ToFunc()
+}
+
+// ByEmptyInvoiceMode orders the results by the empty_invoice_mode field.
+func ByEmptyInvoiceMode(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldEmptyInvoiceMode, opts...).ToFunc()
 }
 
 // ByTaxEnabled orders the results by the tax_enabled field.

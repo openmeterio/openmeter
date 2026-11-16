@@ -356,6 +356,7 @@ func (s *ProfileTestSuite) TestProfileFieldSetting() {
 				DraftPeriod:                  datetime.MustParseDuration(t, "PT1H"),
 				DueAfter:                     datetime.MustParseDuration(t, "PT24H"),
 				SubscriptionEndProrationMode: billing.SubscriptionEndProrationModeBillActualPeriod,
+				EmptyInvoiceMode:             billing.EmptyInvoiceModeCreate,
 			},
 			Payment: billing.PaymentConfig{
 				CollectionMethod: billing.CollectionMethodSendInvoice,
@@ -458,6 +459,7 @@ func (s *ProfileTestSuite) TestProfileUpdates() {
 				DraftPeriod:                  datetime.MustParseDuration(s.T(), "PT1H"),
 				DueAfter:                     datetime.MustParseDuration(s.T(), "PT24H"),
 				SubscriptionEndProrationMode: billing.SubscriptionEndProrationModeBillActualPeriod,
+				EmptyInvoiceMode:             billing.EmptyInvoiceModeCreate,
 			},
 			Payment: billing.PaymentConfig{
 				CollectionMethod: billing.CollectionMethodSendInvoice,
@@ -514,6 +516,7 @@ func (s *ProfileTestSuite) TestProfileUpdates() {
 					DraftPeriod:                  datetime.MustParseDuration(s.T(), "PT2H"),
 					DueAfter:                     datetime.MustParseDuration(s.T(), "PT48H"),
 					SubscriptionEndProrationMode: billing.SubscriptionEndProrationModeBillActualPeriod,
+					EmptyInvoiceMode:             billing.EmptyInvoiceModeCreate,
 				},
 				Payment: billing.PaymentConfig{
 					CollectionMethod: billing.CollectionMethodChargeAutomatically,
@@ -589,6 +592,52 @@ func (s *ProfileTestSuite) TestProfileSubscriptionAlignmentPersists() {
 
 	require.Equal(s.T(), billing.AlignmentKindSubscription, fetched.WorkflowConfig.Collection.Alignment)
 	require.Nil(s.T(), fetched.WorkflowConfig.Collection.AnchoredAlignmentDetail)
+}
+
+func (s *ProfileTestSuite) TestProfileEmptyInvoiceMode() {
+	ctx := s.T().Context()
+	ns := "test_profile_empty_invoice_mode"
+
+	sandboxApp := s.InstallSandboxApp(s.T(), ns)
+
+	// given: a profile created without an empty invoice mode
+	input := MinimalCreateProfileInputTemplate(sandboxApp.GetID())
+	input.Namespace = ns
+	input.WorkflowConfig.Invoicing.EmptyInvoiceMode = ""
+
+	profile, err := s.BillingService.CreateProfile(ctx, input)
+	s.Require().NoError(err)
+	s.Require().NotNil(profile)
+
+	// then: it defaults to creating empty invoices
+	s.Equal(billing.EmptyInvoiceModeCreate, profile.WorkflowConfig.Invoicing.EmptyInvoiceMode)
+
+	// when: the mode is set to omit
+	updateInput := toUpdateProfileInput(*profile)
+	updateInput.WorkflowConfig.Invoicing.EmptyInvoiceMode = billing.EmptyInvoiceModeOmit
+
+	_, err = s.BillingService.UpdateProfile(ctx, updateInput)
+	s.Require().NoError(err)
+
+	// then: it is persisted
+	fetched, err := s.BillingService.GetProfile(ctx, billing.GetProfileInput{
+		Profile: profile.ProfileID(),
+		Expand:  billing.ProfileExpandAll,
+	})
+	s.Require().NoError(err)
+	s.Require().NotNil(fetched)
+	s.Equal(billing.EmptyInvoiceModeOmit, fetched.WorkflowConfig.Invoicing.EmptyInvoiceMode)
+
+	// when: a client that does not know the field updates the profile
+	updateInput = toUpdateProfileInput(*fetched)
+	updateInput.WorkflowConfig.Invoicing.EmptyInvoiceMode = ""
+
+	updated, err := s.BillingService.UpdateProfile(ctx, updateInput)
+	s.Require().NoError(err)
+	s.Require().NotNil(updated)
+
+	// then: the stored mode is kept
+	s.Equal(billing.EmptyInvoiceModeOmit, updated.WorkflowConfig.Invoicing.EmptyInvoiceMode)
 }
 
 func toUpdateProfileInput(profile billing.Profile) billing.UpdateProfileInput {

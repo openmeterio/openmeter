@@ -79,6 +79,7 @@ type InvoicingConfig struct {
 	DueAfter                     datetime.ISODuration         `json:"dueAfter,omitempty"`
 	ProgressiveBilling           bool                         `json:"progressiveBilling,omitempty"`
 	SubscriptionEndProrationMode SubscriptionEndProrationMode `json:"subscriptionEndProrationMode,omitempty"`
+	EmptyInvoiceMode             EmptyInvoiceMode             `json:"emptyInvoiceMode,omitempty"`
 	DefaultTaxConfig             *productcatalog.TaxConfig    `json:"defaultTaxConfig,omitempty"`
 }
 
@@ -113,6 +114,38 @@ func (c *InvoicingConfig) Validate() error {
 
 	if err := c.SubscriptionEndProrationMode.Validate(); err != nil {
 		return fmt.Errorf("invalid subscription end proration mode: %w", err)
+	}
+
+	if c.EmptyInvoiceMode == "" {
+		return models.NewGenericValidationError(errors.New("empty invoice mode is required"))
+	}
+
+	if err := c.EmptyInvoiceMode.Validate(); err != nil {
+		return fmt.Errorf("empty invoice mode: %w", err)
+	}
+
+	return nil
+}
+
+// EmptyInvoiceMode says whether an invoice with no lines or a zero total is
+// still created in the invoicing app.
+type EmptyInvoiceMode string
+
+const (
+	EmptyInvoiceModeCreate EmptyInvoiceMode = "create"
+	EmptyInvoiceModeOmit   EmptyInvoiceMode = "omit"
+)
+
+func (m EmptyInvoiceMode) Values() []string {
+	return []string{
+		string(EmptyInvoiceModeCreate),
+		string(EmptyInvoiceModeOmit),
+	}
+}
+
+func (m EmptyInvoiceMode) Validate() error {
+	if !slices.Contains(m.Values(), string(m)) {
+		return models.NewGenericValidationError(fmt.Errorf("invalid empty invoice mode: %s", m))
 	}
 
 	return nil

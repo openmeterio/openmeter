@@ -2522,6 +2522,11 @@ export interface WorkflowInvoicingSettings {
   progressiveBilling: boolean
   /** Controls how subscription-ending shortened service periods are billed. */
   subscriptionEndProrationMode: 'bill_full_period' | 'bill_actual_period'
+  /**
+   * Controls whether empty invoices are created in the invoicing app. An invoice is
+   * empty when it has no line items or its total is zero.
+   */
+  emptyInvoiceMode: 'create' | 'omit'
 }
 
 /** Filter options for listing currencies. */
@@ -8655,6 +8660,11 @@ export interface WorkflowInvoicingSettingsInput {
   progressiveBilling?: boolean
   /** Controls how subscription-ending shortened service periods are billed. */
   subscriptionEndProrationMode?: 'bill_full_period' | 'bill_actual_period'
+  /**
+   * Controls whether empty invoices are created in the invoicing app. An invoice is
+   * empty when it has no line items or its total is zero.
+   */
+  emptyInvoiceMode?: 'create' | 'omit'
 }
 
 /** Query to evaluate feature access for a list of customers. */

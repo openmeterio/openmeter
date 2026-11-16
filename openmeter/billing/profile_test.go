@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func TestInvoicingConfigValidateSubscriptionEndProrationMode(t *testing.T) {
@@ -49,6 +50,50 @@ func TestInvoicingConfigValidateSubscriptionEndProrationMode(t *testing.T) {
 			err := config.Validate()
 			if tt.wantErr {
 				require.ErrorContains(t, err, tt.errContains)
+				return
+			}
+
+			require.NoError(t, err)
+		})
+	}
+}
+
+func TestInvoicingConfigValidateEmptyInvoiceMode(t *testing.T) {
+	tests := []struct {
+		name        string
+		mode        EmptyInvoiceMode
+		errContains string
+	}{
+		{
+			name:        "missing mode is invalid",
+			mode:        "",
+			errContains: "empty invoice mode is required",
+		},
+		{
+			name: "create is valid",
+			mode: EmptyInvoiceModeCreate,
+		},
+		{
+			name: "omit is valid",
+			mode: EmptyInvoiceModeOmit,
+		},
+		{
+			name:        "unknown mode is invalid",
+			mode:        EmptyInvoiceMode("unknown"),
+			errContains: "invalid empty invoice mode",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			config := DefaultWorkflowConfig.Invoicing
+			config.EmptyInvoiceMode = tt.mode
+
+			err := config.Validate()
+			if tt.errContains != "" {
+				require.ErrorContains(t, err, tt.errContains)
+				require.True(t, models.IsGenericValidationError(err))
+
 				return
 			}
 
