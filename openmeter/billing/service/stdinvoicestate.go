@@ -906,13 +906,22 @@ func (m *InvoiceStateMachine) syncDraftInvoice(ctx context.Context) error {
 // invoices and the app reports this one as empty. It returns false when the invoice has to be
 // synced as usual.
 func (m *InvoiceStateMachine) omitEmptyInvoice(ctx context.Context, app billing.InvoicingApp, invoice billing.StandardInvoice) (bool, error) {
-	if invoice.Workflow.Config.Invoicing.EmptyInvoiceMode != billing.EmptyInvoiceModeOmit {
-		return false, nil
+	empty := false
+
+	if invoice.Workflow.Config.Invoicing.EmptyInvoiceMode == billing.EmptyInvoiceModeOmit {
+		var err error
+
+		empty, err = app.WouldStandardInvoiceBeEmpty(invoice)
+		if err != nil {
+			return false, err
+		}
 	}
 
-	empty, err := app.WouldStandardInvoiceBeEmpty(invoice)
-	if err != nil || !empty {
-		return false, err
+	if !empty {
+		// An omitted draft can get something to bill again, and then it is no longer skipped.
+		m.Invoice.InvoicingAppStatus = billing.InvoicingAppStatus{}
+
+		return false, nil
 	}
 
 	if err := app.DeleteStandardInvoice(ctx, invoice); err != nil {
@@ -920,11 +929,11 @@ func (m *InvoiceStateMachine) omitEmptyInvoice(ctx context.Context, app billing.
 		return false, billing.WrapAsValidationIssue(err)
 	}
 
-	if err := m.Service.adapter.ClearInvoiceLineInvoicingAppReferences(ctx, m.Invoice.GetInvoiceID()); err != nil {
-		return false, fmt.Errorf("clearing line invoicing app references: %w", err)
-	}
-
 	m.Invoice.ClearInvoicingAppReferences()
+	m.Invoice.InvoicingAppStatus = billing.InvoicingAppStatus{
+		Outcome: billing.InvoicingAppOutcomeSkipped,
+		Reason:  billing.InvoicingAppOutcomeReasonEmptyInvoice,
+	}
 
 	return true, nil
 }
@@ -985,11 +994,6 @@ func (m *InvoiceStateMachine) finalizeInvoice(ctx context.Context) error {
 		}
 
 		if omitted {
-			m.Invoice.InvoicingAppStatus = billing.InvoicingAppStatus{
-				Outcome: billing.InvoicingAppOutcomeSkipped,
-				Reason:  billing.InvoicingAppOutcomeReasonEmptyInvoice,
-			}
-
 			return nil, nil
 		}
 

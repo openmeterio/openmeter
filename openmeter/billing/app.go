@@ -241,7 +241,7 @@ type InvoicingAppAsyncSyncer interface {
 type InvoicingAppOutcome string
 
 const (
-	// InvoicingAppOutcomeSkipped means the invoice was issued without an invoice in the invoicing app.
+	// InvoicingAppOutcomeSkipped means the invoice has no counterpart in the invoicing app.
 	InvoicingAppOutcomeSkipped InvoicingAppOutcome = "skipped"
 )
 
@@ -279,8 +279,8 @@ func (r InvoicingAppOutcomeReason) Validate() error {
 	return nil
 }
 
-// InvoicingAppStatus records how issuing ended in the invoicing app when the app did not issue the
-// invoice. It stays empty for invoices that follow the normal issuing flow.
+// InvoicingAppStatus records why the invoice is not in the invoicing app. It stays empty for invoices
+// that are synced and issued there as usual.
 type InvoicingAppStatus struct {
 	Outcome InvoicingAppOutcome       `json:"outcome,omitempty"`
 	Reason  InvoicingAppOutcomeReason `json:"reason,omitempty"`

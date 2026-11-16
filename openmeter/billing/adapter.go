@@ -55,7 +55,6 @@ type CustomerSynchronizationAdapter interface {
 type InvoiceLineAdapter interface {
 	UpsertInvoiceLines(ctx context.Context, input UpsertInvoiceLinesAdapterInput) ([]*StandardLine, error)
 	ListInvoiceLines(ctx context.Context, input ListInvoiceLinesAdapterInput) ([]*StandardLine, error)
-	ClearInvoiceLineInvoicingAppReferences(ctx context.Context, invoiceID InvoiceID) error
 }
 
 type InvoiceAdapter interface {

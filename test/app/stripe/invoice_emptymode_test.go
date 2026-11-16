@@ -84,10 +84,15 @@ func (s *StripeInvoiceTestSuite) TestEmptyInvoiceModeDraftSync() {
 				// then: the empty invoice still gets a Stripe invoice
 				s.StripeAppClient.AssertNumberOfCalls(s.T(), "CreateInvoice", 1)
 				s.Equal(emptyInvoiceModeStripeInvoiceID, invoice.ExternalIDs.Invoicing)
+				s.Empty(invoice.InvoicingAppStatus)
 			case billing.EmptyInvoiceModeOmit:
-				// then: no Stripe invoice is created and the invoice has no Stripe reference
+				// then: no Stripe invoice is created, the invoice has no Stripe reference and is marked as skipped
 				s.StripeAppClient.AssertNumberOfCalls(s.T(), "CreateInvoice", 0)
 				s.Empty(invoice.ExternalIDs.Invoicing)
+				s.Equal(billing.InvoicingAppStatus{
+					Outcome: billing.InvoicingAppOutcomeSkipped,
+					Reason:  billing.InvoicingAppOutcomeReasonEmptyInvoice,
+				}, invoice.InvoicingAppStatus)
 			}
 		})
 	}
@@ -202,13 +207,18 @@ func (s *StripeInvoiceTestSuite) TestEmptyInvoiceModeDraftEdit() {
 				})
 				s.StripeAppClient.AssertNumberOfCalls(s.T(), "DeleteInvoice", 0)
 				s.Equal(emptyInvoiceModeStripeInvoiceID, invoice.ExternalIDs.Invoicing)
+				s.Empty(invoice.InvoicingAppStatus)
 			case billing.EmptyInvoiceModeOmit:
-				// then: the Stripe invoice is deleted and its reference is removed from the invoice
+				// then: the Stripe invoice is deleted, its reference is removed and the invoice is marked as skipped
 				s.StripeAppClient.AssertCalled(s.T(), "DeleteInvoice", stripeclient.DeleteInvoiceInput{
 					StripeInvoiceID: emptyInvoiceModeStripeInvoiceID,
 				})
 				s.StripeAppClient.AssertNumberOfCalls(s.T(), "DeleteInvoice", 1)
 				s.Empty(invoice.ExternalIDs.Invoicing)
+				s.Equal(billing.InvoicingAppStatus{
+					Outcome: billing.InvoicingAppOutcomeSkipped,
+					Reason:  billing.InvoicingAppOutcomeReasonEmptyInvoice,
+				}, invoice.InvoicingAppStatus)
 			}
 		})
 	}
@@ -287,11 +297,15 @@ func (s *StripeInvoiceTestSuite) TestEmptyInvoiceModeOmitSyncsAgainAfterEdit() {
 	})
 	s.Require().NoError(err)
 
-	// then: the Stripe invoice is deleted and nothing points at it anymore
+	// then: the Stripe invoice is deleted, nothing points at it anymore and the invoice is marked as skipped
 	s.StripeAppClient.AssertNumberOfCalls(s.T(), "DeleteInvoice", 1)
 	s.Require().Equal(billing.StandardInvoiceStatusDraftManualApprovalNeeded, invoice.Status)
 	s.Require().Empty(invoice.ExternalIDs.Invoicing)
 	s.Require().Empty(s.emptyInvoiceModeStripeLineReferences(namespace))
+	s.Equal(billing.InvoicingAppStatus{
+		Outcome: billing.InvoicingAppOutcomeSkipped,
+		Reason:  billing.InvoicingAppOutcomeReasonEmptyInvoice,
+	}, invoice.InvoicingAppStatus)
 
 	// when: a later edit adds a $20 fee, so there is something to bill again
 	invoice, err = s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
@@ -367,6 +381,84 @@ func (s *StripeInvoiceTestSuite) TestEmptyInvoiceModeOmitSyncsAgainAfterEdit() {
 	s.Equal(billing.StandardInvoiceStatusPaymentProcessingPending, invoice.Status)
 	s.Equal(emptyInvoiceModeStripeInvoiceID, invoice.ExternalIDs.Invoicing)
 	s.Empty(invoice.InvoicingAppStatus)
+}
+
+func (s *StripeInvoiceTestSuite) TestEmptyInvoiceModeOmitEditKeepsLineReferences() {
+	ctx := s.T().Context()
+	namespace := "ns-empty-invoice-mode-edit-keeps-references"
+	period := emptyInvoiceModeServicePeriod()
+
+	clock.FreezeTime(period.To.Add(time.Minute))
+	defer clock.UnFreeze()
+
+	cust := s.setupEmptyInvoiceModeCustomer(ctx, namespace, billing.EmptyInvoiceModeOmit)
+	defer s.StripeAppClient.Restore()
+
+	var addInvoiceLines *mock.Call
+	addInvoiceLines = s.StripeAppClient.
+		On("AddInvoiceLines", mock.Anything).
+		Run(func(args mock.Arguments) {
+			input := args.Get(0).(stripeclient.AddInvoiceLinesInput)
+
+			addInvoiceLines.ReturnArguments = mock.Arguments{
+				lo.Map(input.Lines, func(line *stripe.InvoiceItemParams, _ int) stripeclient.StripeInvoiceItemWithLineID {
+					return stripeclient.StripeInvoiceItemWithLineID{
+						InvoiceItem: &stripe.InvoiceItem{ID: "ii_1", Metadata: line.Metadata},
+						LineID:      "il_1",
+					}
+				}),
+				nil,
+			}
+		}).
+		Once()
+
+	// given: a draft with a $10 flat fee, synced to Stripe
+	invoice := s.createEmptyInvoiceModeDraft(ctx, cust, emptyInvoiceModeFlatFeeLine(namespace, period, 10))
+	s.Require().Equal([]string{"il_1"}, s.emptyInvoiceModeStripeLineReferences(namespace))
+
+	s.StripeAppClient.
+		On("UpdateInvoice", mock.Anything).
+		Return(&stripe.Invoice{
+			ID:       emptyInvoiceModeStripeInvoiceID,
+			Customer: &stripe.Customer{ID: defaultStripeCustomerID},
+			Currency: "USD",
+			Lines:    &stripe.InvoiceLineItemList{Data: []*stripe.InvoiceLineItem{}},
+		}, nil)
+	s.StripeAppClient.
+		On("ListInvoiceLineItems", emptyInvoiceModeStripeInvoiceID).
+		Return([]*stripe.InvoiceLineItem{{ID: "il_1", InvoiceItem: &stripe.InvoiceItem{ID: "ii_1"}}}, nil)
+	s.StripeAppClient.
+		On("UpdateInvoiceLines", mock.Anything).
+		Return([]*stripe.InvoiceItem{}, nil)
+
+	// when: the fee is repriced to $15, which rates the line again
+	invoice, err := s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
+		Invoice:      invoice.GetInvoiceID(),
+		ChangeSource: billing.ChangeSourceAPIRequest,
+		EditFn: func(i *billing.StandardInvoice) error {
+			flatFee, found := lo.Find(i.Lines.OrEmpty(), func(line *billing.StandardLine) bool {
+				return line.Name == emptyInvoiceModeFlatFeeName
+			})
+			if !found {
+				return errors.New("flat fee line not found")
+			}
+
+			flatFee.UsageBased.Price = productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      alpacadecimal.NewFromInt(15),
+				PaymentTerm: productcatalog.InArrearsPaymentTerm,
+			})
+
+			return nil
+		},
+	})
+	s.Require().NoError(err)
+	s.Require().Equal(float64(15), invoice.Totals.Total.InexactFloat64())
+
+	// then: the existing Stripe line item is updated and still referenced. AddInvoiceLines and
+	// RemoveInvoiceLines have no stub left, so replacing the line item would fail the test.
+	s.StripeAppClient.AssertNumberOfCalls(s.T(), "UpdateInvoiceLines", 1)
+	s.Equal(emptyInvoiceModeStripeInvoiceID, invoice.ExternalIDs.Invoicing)
+	s.Equal([]string{"il_1"}, s.emptyInvoiceModeStripeLineReferences(namespace))
 }
 
 func (s *StripeInvoiceTestSuite) TestEmptyInvoiceModeIssuing() {
@@ -573,27 +665,28 @@ func (s *StripeInvoiceTestSuite) TestEmptyInvoiceModeOmitIssuingClearsLineRefere
 	s.Require().NoError(err)
 	s.Require().Equal(billing.StandardInvoiceStatusPaid, invoice.Status)
 
-	// then: no Stripe reference is left, not even on the removed line
+	// then: nothing that is still part of the invoice points at Stripe. The removed line is no longer
+	// loaded with the invoice, so it keeps its reference.
 	lines, err = s.DBClient.BillingInvoiceLine.Query().
-		Where(billinginvoiceline.Namespace(namespace), billinginvoiceline.InvoicingAppExternalIDNotNil()).
+		Where(billinginvoiceline.Namespace(namespace), billinginvoiceline.DeletedAtIsNil(), billinginvoiceline.InvoicingAppExternalIDNotNil()).
 		Count(ctx)
 	s.Require().NoError(err)
 	s.Zero(lines)
 
 	usageDiscounts, err = s.DBClient.BillingInvoiceLineUsageDiscount.Query().
-		Where(billinginvoicelineusagediscount.Namespace(namespace), billinginvoicelineusagediscount.InvoicingAppExternalIDNotNil()).
+		Where(billinginvoicelineusagediscount.Namespace(namespace), billinginvoicelineusagediscount.DeletedAtIsNil(), billinginvoicelineusagediscount.InvoicingAppExternalIDNotNil()).
 		Count(ctx)
 	s.Require().NoError(err)
 	s.Zero(usageDiscounts)
 
 	detailedLines, err = s.DBClient.BillingStandardInvoiceDetailedLine.Query().
-		Where(billingstandardinvoicedetailedline.Namespace(namespace), billingstandardinvoicedetailedline.InvoicingAppExternalIDNotNil()).
+		Where(billingstandardinvoicedetailedline.Namespace(namespace), billingstandardinvoicedetailedline.DeletedAtIsNil(), billingstandardinvoicedetailedline.InvoicingAppExternalIDNotNil()).
 		Count(ctx)
 	s.Require().NoError(err)
 	s.Zero(detailedLines)
 
 	amountDiscounts, err = s.DBClient.BillingStandardInvoiceDetailedLineAmountDiscount.Query().
-		Where(billingstandardinvoicedetailedlineamountdiscount.Namespace(namespace), billingstandardinvoicedetailedlineamountdiscount.InvoicingAppExternalIDNotNil()).
+		Where(billingstandardinvoicedetailedlineamountdiscount.Namespace(namespace), billingstandardinvoicedetailedlineamountdiscount.DeletedAtIsNil(), billingstandardinvoicedetailedlineamountdiscount.InvoicingAppExternalIDNotNil()).
 		Count(ctx)
 	s.Require().NoError(err)
 	s.Zero(amountDiscounts)
@@ -683,6 +776,7 @@ func (s *StripeInvoiceTestSuite) emptyInvoiceModeStripeLineReferences(namespace 
 	detailedLines, err := s.DBClient.BillingStandardInvoiceDetailedLine.Query().
 		Where(
 			billingstandardinvoicedetailedline.Namespace(namespace),
+			billingstandardinvoicedetailedline.DeletedAtIsNil(),
 			billingstandardinvoicedetailedline.InvoicingAppExternalIDNotNil(),
 		).
 		All(s.T().Context())

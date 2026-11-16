@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/externalid"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -155,6 +156,40 @@ func TestExistingLineOverrideApplyStandardLineDoesNotMutateOriginalUsageBasedPri
 	require.NoError(t, err)
 	require.True(t, overridePrice.Equal(updatedStandardLine.UsageBased.Price))
 	require.NotSame(t, overridePrice, updatedStandardLine.UsageBased.Price)
+}
+
+func TestStandardLineWithTargetStateKeepsInvoicingReferences(t *testing.T) {
+	// given: a synced line with a detailed line, and a target state that knows nothing about the invoicing app
+	existing := validStandardLineForValidation()
+	existing.ExternalIDs.Invoicing = "il_line"
+	existing.DetailedLines = DetailedLines{
+		{
+			DetailedLineBase: DetailedLineBase{Base: stddetailedline.Base{
+				ManagedResource:        models.ManagedResource{ID: "detailed_123"},
+				ChildUniqueReferenceID: "flat-price",
+				ExternalIDs:            externalid.LineExternalIDs{Invoicing: "il_detailed"},
+			}},
+		},
+	}
+
+	target := validStandardLineForValidation()
+	target.DetailedLines = DetailedLines{
+		{
+			DetailedLineBase: DetailedLineBase{Base: stddetailedline.Base{ChildUniqueReferenceID: "flat-price"}},
+		},
+	}
+
+	// when: the target state is applied to the synced line
+	merged, err := existing.AsGenericLine().WithTargetState(target.AsGenericLine())
+	require.NoError(t, err)
+
+	// then: the line and the reused detailed line still point at their objects in the invoicing app
+	mergedLine, err := merged.AsInvoiceLine().AsStandardLine()
+	require.NoError(t, err)
+	require.Equal(t, "il_line", mergedLine.ExternalIDs.Invoicing)
+	require.Len(t, mergedLine.DetailedLines, 1)
+	require.Equal(t, "detailed_123", mergedLine.DetailedLines[0].ID)
+	require.Equal(t, "il_detailed", mergedLine.DetailedLines[0].ExternalIDs.Invoicing)
 }
 
 func TestStandardLineDoesNotExposeInvoiceAtAccessor(t *testing.T) {

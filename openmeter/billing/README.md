@@ -321,12 +321,13 @@ invoice. With `omit`, billing asks the invoicing app whether the invoice would
 be empty there. Stripe reports invoices without line items or with a zero total;
 the sandbox and custom invoicing apps never report one. For an empty
 invoice, draft synchronization and issuing delete the app's invoice instead of
-upserting it and clear the invoicing references of the invoice, its lines and
-their discounts, removed lines included.
-A later edit that gives the invoice something to bill syncs it again. Issuing
-additionally records the invoicing app outcome as skipped with the reason
-`empty_invoice`, never calls the app's finalization, and still runs line
-finalization and charge booking. Because no payment event can arrive for an
+upserting it, clear the invoicing references of the invoice, its lines and
+their discounts, and record the invoicing app outcome as skipped with the
+reason `empty_invoice`. Lines and discounts that were already removed keep
+their reference as history. A later edit that gives a draft something to bill
+syncs it again and resets the outcome. Issuing never calls the app's
+finalization for a skipped invoice, and still runs line finalization and charge
+booking. Because no payment event can arrive for an
 invoice the app never issued, billing then books authorization and settlement
 itself and the invoice ends as `paid`.
 
