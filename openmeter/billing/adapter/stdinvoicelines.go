@@ -395,6 +395,57 @@ func (a *adapter) upsertUsageBasedConfig(ctx context.Context, lineDiffs entitydi
 	})
 }
 
+// The line upserts keep the stored reference when a line arrives without one, so clearing needs its own update.
+func (a *adapter) ClearInvoiceLineInvoicingAppReferences(ctx context.Context, invoiceID billing.InvoiceID) error {
+	if err := invoiceID.Validate(); err != nil {
+		return billing.ValidationError{
+			Err: err,
+		}
+	}
+
+	return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error {
+		lineOfInvoice := billinginvoiceline.And(
+			billinginvoiceline.Namespace(invoiceID.Namespace),
+			billinginvoiceline.InvoiceID(invoiceID.ID),
+		)
+
+		detailedLineOfInvoice := billingstandardinvoicedetailedline.And(
+			billingstandardinvoicedetailedline.Namespace(invoiceID.Namespace),
+			billingstandardinvoicedetailedline.InvoiceID(invoiceID.ID),
+		)
+
+		if err := tx.db.BillingInvoiceLine.Update().
+			Where(lineOfInvoice).
+			ClearInvoicingAppExternalID().
+			Exec(ctx); err != nil {
+			return fmt.Errorf("clearing line references: %w", err)
+		}
+
+		if err := tx.db.BillingInvoiceLineUsageDiscount.Update().
+			Where(billinginvoicelineusagediscount.HasBillingInvoiceLineWith(lineOfInvoice)).
+			ClearInvoicingAppExternalID().
+			Exec(ctx); err != nil {
+			return fmt.Errorf("clearing usage discount references: %w", err)
+		}
+
+		if err := tx.db.BillingStandardInvoiceDetailedLine.Update().
+			Where(detailedLineOfInvoice).
+			ClearInvoicingAppExternalID().
+			Exec(ctx); err != nil {
+			return fmt.Errorf("clearing detailed line references: %w", err)
+		}
+
+		if err := tx.db.BillingStandardInvoiceDetailedLineAmountDiscount.Update().
+			Where(billingstandardinvoicedetailedlineamountdiscount.HasDetailedLineWith(detailedLineOfInvoice)).
+			ClearInvoicingAppExternalID().
+			Exec(ctx); err != nil {
+			return fmt.Errorf("clearing detailed line amount discount references: %w", err)
+		}
+
+		return nil
+	})
+}
+
 // TODO[OM-982]: Add pagination
 func (a *adapter) ListInvoiceLines(ctx context.Context, input billing.ListInvoiceLinesAdapterInput) ([]*billing.StandardLine, error) {
 	if err := input.Validate(); err != nil {
