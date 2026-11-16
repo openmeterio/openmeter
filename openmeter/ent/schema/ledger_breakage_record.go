@@ -18,7 +18,7 @@ type LedgerBreakageRecord struct {
 	ent.Schema
 }
 
-// Ledger-reference FKs are deferred by tools/migrate/deferred_constraints.sql:
+// Ledger-reference FKs are deferred by tools/migrate/supplemental_schema.sql:
 // bookkeeping is written before the journal group in the same transaction.
 func (LedgerBreakageRecord) Mixin() []ent.Mixin {
 	return []ent.Mixin{
