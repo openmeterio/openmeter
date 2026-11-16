@@ -17,10 +17,21 @@ type SyncStateV2Adapter interface {
 
 type SyncStateV2State string
 
-const SyncStateV2StateSubscriptionDeleted SyncStateV2State = "subscription_deleted"
+const (
+	// SyncStateV2StateSubscriptionDeleted records successful reconciliation against
+	// an empty billing target because the subscription has a non-nil DeletedAt.
+	SyncStateV2StateSubscriptionDeleted SyncStateV2State = "subscription_deleted"
+	// SyncStateV2StateCustomerDeletedBefore records successful reconciliation against
+	// an empty billing target because the customer was deleted at or before the
+	// non-deleted subscription's ActiveFrom.
+	SyncStateV2StateCustomerDeletedBefore SyncStateV2State = "customer_deleted_before"
+)
 
 func (SyncStateV2State) Values() []string {
-	return []string{string(SyncStateV2StateSubscriptionDeleted)}
+	return []string{
+		string(SyncStateV2StateSubscriptionDeleted),
+		string(SyncStateV2StateCustomerDeletedBefore),
+	}
 }
 
 func (s SyncStateV2State) Validate() error {

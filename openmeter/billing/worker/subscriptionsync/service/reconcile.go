@@ -23,6 +23,8 @@ type buildSyncPlanInput struct {
 }
 
 // buildSyncPlan builds a sync plan for a subscription. If the subscription is deleted, SubscriptionView should be nil.
+// Note: SubscriptionView should also be nil when the customer was deleted at or before
+// the subscription start, so reconciliation removes the subscription's billing artifacts.
 func (s *Service) buildSyncPlan(ctx context.Context, input buildSyncPlanInput) (*reconciler.Plan, error) {
 	span := tracex.Start[*reconciler.Plan](ctx, s.tracer, "billing.worker.subscription.sync.buildSyncPlan")
 

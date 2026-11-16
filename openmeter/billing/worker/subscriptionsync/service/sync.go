@@ -16,7 +16,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/clock"
-	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/tracex"
@@ -144,10 +143,35 @@ func (s *Service) synchronizeSubscription(ctx context.Context, in synchronizeSub
 				return nil, err
 			}
 
-			// Intentionally differs from IsDeleted(); see "Race between billing collection and subscription deletion cleanup" in ../README.md.
-			subscriptionDeleted := subs.DeletedAt != nil
+			customerProfile, err := s.billingService.GetCustomerBillingProfile(ctx, billing.GetCustomerBillingProfileInput{
+				Customer: customerID,
+				Expand: billing.CustomerBillingProfileExpand{
+					Customer: true,
+				},
+			})
+			if err != nil {
+				return nil, fmt.Errorf("getting billing profile: %w", err)
+			}
+
+			if customerProfile.Customer == nil {
+				return nil, errors.New("customer not found in billing profile")
+			}
+
+			customer := customerProfile.Customer
+
+			var cleanupState subscriptionsync.SyncStateV2State
+			switch {
+			case subs.DeletedAt != nil:
+				// Intentionally differs from IsDeleted(); see "Race between billing collection and subscription deletion cleanup" in ../README.md.
+				cleanupState = subscriptionsync.SyncStateV2StateSubscriptionDeleted
+			case customer.DeletedAt != nil && !subs.ActiveFrom.Before(*customer.DeletedAt):
+				// This subscription cannot provide service to the deleted customer. Remove
+				// any lines generated before deletion so billing collection cannot invoice them.
+				cleanupState = subscriptionsync.SyncStateV2StateCustomerDeletedBefore
+			}
+
 			var subsView *subscription.SubscriptionView
-			if !subscriptionDeleted {
+			if cleanupState == "" {
 				view, err := s.subscriptionService.GetView(ctx, subscriptionID)
 				if err != nil {
 					return nil, fmt.Errorf("getting subscription view: %w", err)
@@ -158,47 +182,7 @@ func (s *Service) synchronizeSubscription(ctx context.Context, in synchronizeSub
 
 			res := &synchronizeSubscriptionResult{
 				CustomerID:                customerID,
-				ShouldInvoicePendingLines: !subscriptionDeleted,
-			}
-
-			var customerDeletedAt *time.Time
-			var subscriptionEndProrationMode billing.SubscriptionEndProrationMode
-			if subsView != nil && subsView.Spec.HasBillables() {
-				// TODO[later]: Right now we are getting the billing profile as a validation step, but later if we allow more collection
-				// alignment settings, we should use the collection settings from here to determine the generation end (overriding asof).
-				customerOverride, err := s.billingService.GetCustomerBillingProfile(ctx, billing.GetCustomerBillingProfileInput{
-					Customer: customerID,
-					Expand: billing.CustomerBillingProfileExpand{
-						Customer: true,
-					},
-				})
-				if err != nil {
-					return nil, fmt.Errorf("getting billing profile: %w", err)
-				}
-
-				if customerOverride.Customer != nil {
-					customerDeletedAt = convert.SafeToUTC(customerOverride.Customer.GetDeletedAt())
-				}
-
-				subscriptionEndProrationMode = customerOverride.EffectiveProfile.WorkflowConfig.Invoicing.SubscriptionEndProrationMode
-
-				if customerOverride.Customer != nil && customerOverride.Customer.DeletedAt != nil && !customerOverride.Customer.DeletedAt.After(subsView.Spec.ActiveFrom) {
-					if options.DryRun {
-						return res, nil
-					}
-
-					if err := s.updateSyncState(ctx, updateSyncStateInput{
-						SubscriptionID: subscriptionID,
-						// Prevent deleted customers from continuing to be scheduled for sync.
-						PreventFurtherSyncs: true,
-					}); err != nil {
-						return nil, fmt.Errorf("updating sync state: %w", err)
-					}
-
-					s.logger.WarnContext(ctx, "customer deleted before subscription start, skipping sync", "subscription_id", subscriptionID.ID, "customer_id", customerID.ID)
-
-					return res, nil
-				}
+				ShouldInvoicePendingLines: cleanupState == "",
 			}
 
 			cur, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
@@ -213,16 +197,16 @@ func (s *Service) synchronizeSubscription(ctx context.Context, in synchronizeSub
 				Subscription:                 subs,
 				SubscriptionView:             subsView,
 				AsOf:                         asOf,
-				CustomerDeletedAt:            customerDeletedAt,
-				SubscriptionEndProrationMode: subscriptionEndProrationMode,
+				CustomerDeletedAt:            customer.DeletedAt,
+				SubscriptionEndProrationMode: customerProfile.EffectiveProfile.WorkflowConfig.Invoicing.SubscriptionEndProrationMode,
 				Currency:                     cur,
 			})
 			if err != nil {
 				return nil, err
 			}
 
-			// If we have a view, we can use it to determine if the subscription has billables, if the
-			// subscription is deleted (no view), let's set hasBillables to false, so that we prevent further syncs.
+			// An empty cleanup target must stop periodic scheduling even if the
+			// subscription's spec still contains billable items.
 			hasBillables := false
 			if subsView != nil {
 				hasBillables = subsView.Spec.HasBillables()
@@ -256,15 +240,15 @@ func (s *Service) synchronizeSubscription(ctx context.Context, in synchronizeSub
 				return nil, fmt.Errorf("updating sync state: %w", err)
 			}
 
-			if subscriptionDeleted {
-				// Record cleanup in the billing transaction, including when no artifacts
-				// remained. Failed cleanup must stay eligible for periodic reconciliation.
+			if cleanupState != "" {
+				// Record cleanup even when no artifacts remained. The result must commit
+				// together with artifact deletion and the legacy scheduling update.
 				if err := s.subscriptionSyncAdapter.UpsertSyncStateV2(ctx, subscriptionsync.UpsertSyncStateV2Input{
 					SubscriptionID:   subscriptionID,
-					LastSuccessState: subscriptionsync.SyncStateV2StateSubscriptionDeleted,
+					LastSuccessState: cleanupState,
 					LastSuccessAt:    clock.Now().UTC(),
 				}); err != nil {
-					return nil, fmt.Errorf("recording subscription deletion reconciliation: %w", err)
+					return nil, fmt.Errorf("recording subscription cleanup reconciliation: %w", err)
 				}
 			}
 
@@ -312,7 +296,6 @@ func (s *Service) getSubscription(ctx context.Context, subscriptionID models.Nam
 type updateSyncStateInput struct {
 	SubscriptionID         models.NamespacedID
 	MaxGenerationTimeLimit time.Time
-	PreventFurtherSyncs    bool
 	HasBillables           bool
 }
 
@@ -323,14 +306,7 @@ func (s *Service) updateSyncState(ctx context.Context, in updateSyncStateInput) 
 	))
 
 	return span.Wrap(func(ctx context.Context) error {
-		hasBillables := in.HasBillables
-		if in.PreventFurtherSyncs {
-			// We are using the hasBillables flag to prevent further syncs, this is used when the customer is
-			// deleted etc.
-			hasBillables = false
-		}
-
-		if !hasBillables {
+		if !in.HasBillables {
 			return s.subscriptionSyncAdapter.UpsertSyncState(ctx, subscriptionsync.UpsertSyncStateInput{
 				SubscriptionID: in.SubscriptionID,
 				HasBillables:   false,

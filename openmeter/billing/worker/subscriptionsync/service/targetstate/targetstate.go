@@ -74,7 +74,7 @@ func (b Builder) Build(ctx context.Context, input BuildInput) (State, error) {
 		}
 
 		if input.SubscriptionView == nil {
-			// If the subscription is deleted, we return an empty state to force reconciliation to delete any depending objects.
+			// Deletion cleanup uses an empty target to remove the subscription's billing artifacts.
 			return State{
 				MaxGenerationTimeLimit: input.AsOf,
 			}, nil
