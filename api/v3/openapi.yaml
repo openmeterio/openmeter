@@ -12016,16 +12016,19 @@ components:
         tax:
           allOf:
             - $ref: '#/components/schemas/BillingNotificationEventV1App'
+          nullable: true
           description: The tax app used for this workflow
           readOnly: true
         invoicing:
           allOf:
             - $ref: '#/components/schemas/BillingNotificationEventV1App'
+          nullable: true
           description: The invoicing app used for this workflow
           readOnly: true
         payment:
           allOf:
             - $ref: '#/components/schemas/BillingNotificationEventV1App'
+          nullable: true
           description: The payment app used for this workflow
           readOnly: true
       additionalProperties: false
@@ -12455,6 +12458,7 @@ components:
           type: array
           items:
             type: string
+          nullable: true
           minItems: 0
           description: |-
             The subjects that are attributed to the customer. Can be empty when no subjects

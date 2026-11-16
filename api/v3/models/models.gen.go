@@ -7263,13 +7263,13 @@ type BillingNotificationEventV1BillingPartyTaxIdentity struct {
 // BillingNotificationEventV1BillingProfileApps BillingProfileApps represents the applications used by a billing profile
 type BillingNotificationEventV1BillingProfileApps struct {
 	// Invoicing The invoicing app used for this workflow
-	Invoicing BillingNotificationEventV1App `json:"invoicing"`
+	Invoicing nullable.Nullable[BillingNotificationEventV1App] `json:"invoicing"`
 
 	// Payment The payment app used for this workflow
-	Payment BillingNotificationEventV1App `json:"payment"`
+	Payment nullable.Nullable[BillingNotificationEventV1App] `json:"payment"`
 
 	// Tax The tax app used for this workflow
-	Tax BillingNotificationEventV1App `json:"tax"`
+	Tax nullable.Nullable[BillingNotificationEventV1App] `json:"tax"`
 }
 
 // BillingNotificationEventV1BillingSettlementMode The settlement mode of a plan. It determines how the billing system generates
@@ -7528,7 +7528,7 @@ type BillingNotificationEventV1Customer struct {
 type BillingNotificationEventV1CustomerUsageAttribution struct {
 	// SubjectKeys The subjects that are attributed to the customer. Can be empty when no subjects
 	// are associated with the customer.
-	SubjectKeys []string `json:"subject_keys"`
+	SubjectKeys nullable.Nullable[[]string] `json:"subject_keys"`
 }
 
 // BillingNotificationEventV1DiscountReasonMaximumSpend The reason for the discount is a maximum spend.

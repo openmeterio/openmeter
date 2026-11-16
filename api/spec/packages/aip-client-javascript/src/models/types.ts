@@ -613,7 +613,7 @@ export interface NotificationEventV1CustomerUsageAttribution {
    * The subjects that are attributed to the customer. Can be empty when no subjects
    * are associated with the customer.
    */
-  subjectKeys: string[]
+  subjectKeys: string[] | null
 }
 
 /** Alignment configuration for a plan or subscription. */
@@ -8011,11 +8011,11 @@ export interface NotificationEventV1InvoiceUsageBasedRateCard {
 /** BillingProfileApps represents the applications used by a billing profile */
 export interface NotificationEventV1BillingProfileApps {
   /** The tax app used for this workflow */
-  tax: NotificationEventV1App
+  tax: NotificationEventV1App | null
   /** The invoicing app used for this workflow */
-  invoicing: NotificationEventV1App
+  invoicing: NotificationEventV1App | null
   /** The payment app used for this workflow */
-  payment: NotificationEventV1App
+  payment: NotificationEventV1App | null
 }
 
 /**

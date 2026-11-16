@@ -817,11 +817,11 @@ type NotificationEventV1BillingPartyTaxIdentity struct {
 // BillingProfileApps represents the applications used by a billing profile
 type NotificationEventV1BillingProfileApps struct {
 	// The tax app used for this workflow
-	Tax NotificationEventV1App `json:"tax"`
+	Tax Nullable[NotificationEventV1App] `json:"tax"`
 	// The invoicing app used for this workflow
-	Invoicing NotificationEventV1App `json:"invoicing"`
+	Invoicing Nullable[NotificationEventV1App] `json:"invoicing"`
 	// The payment app used for this workflow
-	Payment NotificationEventV1App `json:"payment"`
+	Payment Nullable[NotificationEventV1App] `json:"payment"`
 }
 
 // The settlement mode of a plan. It determines how the billing system generates
@@ -1140,7 +1140,7 @@ type NotificationEventV1Customer struct {
 type NotificationEventV1CustomerUsageAttribution struct {
 	// The subjects that are attributed to the customer. Can be empty when no subjects
 	// are associated with the customer.
-	SubjectKeys []string `json:"subject_keys"`
+	SubjectKeys Nullable[[]string] `json:"subject_keys"`
 }
 
 // The reason for the discount is a maximum spend.

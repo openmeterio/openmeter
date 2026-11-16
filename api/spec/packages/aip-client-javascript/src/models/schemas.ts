@@ -1617,6 +1617,7 @@ export const notificationEventV1CustomerUsageAttribution = z
   .object({
     subjectKeys: z
       .array(z.string())
+      .nullable()
 
       .describe(
         'The subjects that are attributed to the customer. Can be empty when no subjects are associated with the customer.',
@@ -9189,9 +9190,15 @@ export const notificationEventV1InvoiceUsageBasedRateCard = z
 
 export const notificationEventV1BillingProfileApps = z
   .object({
-    tax: notificationEventV1App,
-    invoicing: notificationEventV1App,
-    payment: notificationEventV1App,
+    tax: notificationEventV1App
+      .nullable()
+      .describe('The tax app used for this workflow'),
+    invoicing: notificationEventV1App
+      .nullable()
+      .describe('The invoicing app used for this workflow'),
+    payment: notificationEventV1App
+      .nullable()
+      .describe('The payment app used for this workflow'),
   })
 
   .describe(
@@ -13622,6 +13629,7 @@ export const notificationEventV1CustomerUsageAttributionWire = z
   .strictObject({
     subject_keys: z
       .array(z.string())
+      .nullable()
 
       .describe(
         'The subjects that are attributed to the customer. Can be empty when no subjects are associated with the customer.',
@@ -21244,9 +21252,15 @@ export const notificationEventV1InvoiceUsageBasedRateCardWire = z
 
 export const notificationEventV1BillingProfileAppsWire = z
   .strictObject({
-    tax: notificationEventV1AppWire,
-    invoicing: notificationEventV1AppWire,
-    payment: notificationEventV1AppWire,
+    tax: notificationEventV1AppWire
+      .nullable()
+      .describe('The tax app used for this workflow'),
+    invoicing: notificationEventV1AppWire
+      .nullable()
+      .describe('The invoicing app used for this workflow'),
+    payment: notificationEventV1AppWire
+      .nullable()
+      .describe('The payment app used for this workflow'),
   })
 
   .describe(

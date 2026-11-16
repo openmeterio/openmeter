@@ -373,17 +373,17 @@ model V1BillingProfileApps {
   /**
    * The tax app used for this workflow
    */
-  @visibility(Lifecycle.Read) tax: V1App;
+  @visibility(Lifecycle.Read) tax: V1App | null;
 
   /**
    * The invoicing app used for this workflow
    */
-  @visibility(Lifecycle.Read) invoicing: V1App;
+  @visibility(Lifecycle.Read) invoicing: V1App | null;
 
   /**
    * The payment app used for this workflow
    */
-  @visibility(Lifecycle.Read) payment: V1App;
+  @visibility(Lifecycle.Read) payment: V1App | null;
 }
 
 /**
@@ -855,7 +855,7 @@ model V1CustomerUsageAttribution {
    * The subjects that are attributed to the customer. Can be empty when no subjects
    * are associated with the customer.
    */
-  @minItems(0) @summary("SubjectKeys") subject_keys: string[];
+  @minItems(0) @summary("SubjectKeys") subject_keys: string[] | null;
 }
 
 /**
