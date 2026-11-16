@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alpacahq/alpacadecimal"
 	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/getkin/kin-openapi/routers"
 	"github.com/go-chi/chi/v5"
@@ -33,6 +34,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/notification/consumer"
 	notificationhttpdriver "github.com/openmeterio/openmeter/openmeter/notification/httpdriver"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/subject"
 	"github.com/openmeterio/openmeter/pkg/convert"
@@ -402,13 +404,39 @@ func (s *LegacyEventV3TestSuite) TestBalanceThresholdAndReset(ctx context.Contex
 }
 
 func (s *LegacyEventV3TestSuite) TestInvoiceCreated(ctx context.Context, t *testing.T) {
+	newCustomer := func(usageAttribution *customer.CustomerUsageAttribution) billing.InvoiceCustomer {
+		return billing.NewInvoiceCustomer(customer.Customer{
+			ManagedResource:  models.ManagedResource{NamespacedModel: models.NamespacedModel{Namespace: s.namespace}, ID: NewTestULID(t), Name: "Invoiced"},
+			Key:              lo.ToPtr("invoiced-customer"),
+			UsageAttribution: usageAttribution,
+		})
+	}
+
 	scenarios := []struct {
-		name             string
-		usageAttribution *customer.CustomerUsageAttribution
+		name     string
+		customer billing.InvoiceCustomer
+		withApps bool
+		withLine bool
 	}{
-		{name: "attributed customer", usageAttribution: &customer.CustomerUsageAttribution{SubjectKeys: []string{"invoiced-subject"}}},
-		// A customer without subject keys must have a key; its invoice gets empty subject keys.
-		{name: "key only"},
+		{
+			name:     "attributed customer",
+			customer: newCustomer(&customer.CustomerUsageAttribution{SubjectKeys: []string{"invoiced-subject"}}),
+			withApps: true,
+		},
+		{
+			// A customer without subject keys must have a key; its invoice gets empty subject keys.
+			name:     "key only",
+			customer: newCustomer(nil),
+			withApps: true,
+		},
+		{
+			// Invoices can be stored without usage attribution and events can miss app
+			// snapshots; the v1 mapper sends both as null. The line has no detailed
+			// lines.
+			name:     "historical invoice",
+			customer: billing.InvoiceCustomer{CustomerID: NewTestULID(t), Name: "Historical"},
+			withLine: true,
+		},
 	}
 
 	for _, sc := range scenarios {
@@ -424,11 +452,7 @@ func (s *LegacyEventV3TestSuite) TestInvoiceCreated(ctx context.Context, t *test
 					Status:    billing.StandardInvoiceStatusDraftCreated,
 					CreatedAt: time.Now().UTC(),
 					UpdatedAt: time.Now().UTC(),
-					Customer: billing.NewInvoiceCustomer(customer.Customer{
-						ManagedResource:  models.ManagedResource{NamespacedModel: models.NamespacedModel{Namespace: s.namespace}, ID: NewTestULID(t), Name: "Invoiced"},
-						Key:              lo.ToPtr("invoiced-customer"),
-						UsageAttribution: sc.usageAttribution,
-					}),
+					Customer:  sc.customer,
 					Supplier: billing.SupplierContact{
 						Name:    "Supplier",
 						Address: models.Address{Country: lo.ToPtr(models.CountryCode("US"))},
@@ -451,25 +475,45 @@ func (s *LegacyEventV3TestSuite) TestInvoiceCreated(ctx context.Context, t *test
 				},
 			}
 
-			sandboxApp := app.EventApp{
-				AppBase: app.AppBase{
-					ManagedResource: models.ManagedResource{
-						NamespacedModel: models.NamespacedModel{Namespace: s.namespace},
-						ID:              NewTestULID(t),
-						ManagedModel:    models.ManagedModel{CreatedAt: time.Now().UTC(), UpdatedAt: time.Now().UTC()},
-						Name:            "Sandbox",
+			if sc.withLine {
+				period := timeutil.ClosedPeriod{From: time.Now().UTC().Add(-time.Hour), To: time.Now().UTC()}
+				invoice.Lines = billing.NewStandardInvoiceLines([]*billing.StandardLine{
+					billing.NewFlatFeeLine(billing.NewFlatFeeLineInput{
+						ID:            NewTestULID(t),
+						Namespace:     s.namespace,
+						Name:          "Storage",
+						InvoiceID:     invoice.ID,
+						Currency:      invoice.Currency,
+						CreatedAt:     time.Now().UTC(),
+						UpdatedAt:     time.Now().UTC(),
+						InvoiceAt:     period.To,
+						Period:        period,
+						PerUnitAmount: alpacadecimal.NewFromFloat(12.50),
+						PaymentTerm:   productcatalog.InAdvancePaymentTerm,
+					}),
+				})
+			}
+
+			var apps billing.InvoiceApps
+			if sc.withApps {
+				sandboxApp := app.EventApp{
+					AppBase: app.AppBase{
+						ManagedResource: models.ManagedResource{
+							NamespacedModel: models.NamespacedModel{Namespace: s.namespace},
+							ID:              NewTestULID(t),
+							ManagedModel:    models.ManagedModel{CreatedAt: time.Now().UTC(), UpdatedAt: time.Now().UTC()},
+							Name:            "Sandbox",
+						},
+						Type:    app.AppTypeSandbox,
+						Status:  app.AppStatusReady,
+						Listing: appsandbox.MarketplaceListing,
 					},
-					Type:    app.AppTypeSandbox,
-					Status:  app.AppStatusReady,
-					Listing: appsandbox.MarketplaceListing,
-				},
+				}
+				apps = billing.InvoiceApps{Tax: sandboxApp, Payment: sandboxApp, Invoicing: sandboxApp}
 			}
 
 			// when the real invoice consumer handles the event
-			require.NoError(t, s.invoice.Handle(ctx, billing.EventStandardInvoice{
-				Invoice: invoice,
-				Apps:    billing.InvoiceApps{Tax: sandboxApp, Payment: sandboxApp, Invoicing: sandboxApp},
-			}, notification.EventTypeInvoiceCreated))
+			require.NoError(t, s.invoice.Handle(ctx, billing.EventStandardInvoice{Invoice: invoice, Apps: apps}, notification.EventTypeInvoiceCreated))
 
 			// then both APIs return the same content and v3 matches the spec
 			_, v3Payload := s.readEvent(t, s.newestEventID(ctx, t, notification.EventTypeInvoiceCreated), notification.EventTypeInvoiceCreated)
