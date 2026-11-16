@@ -65,14 +65,14 @@
       }
     ],
     "totals": {
-      "amount": "key_1",
-      "chargesTotal": "key_1",
-      "discountsTotal": "key_1",
-      "creditsTotal": "key_1",
-      "taxesInclusiveTotal": "key_1",
-      "taxesExclusiveTotal": "key_1",
-      "taxesTotal": "key_1",
-      "total": "key_1"
+      "amount": "1",
+      "chargesTotal": "1",
+      "discountsTotal": "1",
+      "creditsTotal": "1",
+      "taxesInclusiveTotal": "1",
+      "taxesExclusiveTotal": "1",
+      "taxesTotal": "1",
+      "total": "1"
     },
     "status": "gathering",
     "statusDetails": {
@@ -98,9 +98,7 @@
         "void": {
           "resultingState": "resultingState"
         },
-        "invoice": {
-          "someKey": "value"
-        }
+        "invoice": {}
       }
     },
     "issuedAt": "2023-01-01T01:01:01.001Z",
@@ -275,7 +273,7 @@
                 "invoicing": "invoicing",
                 "tax": "tax"
               },
-              "amount": "key_1"
+              "amount": "1"
             }
           ],
           "usage": [
@@ -292,14 +290,14 @@
                 "invoicing": "invoicing",
                 "tax": "tax"
               },
-              "quantity": "key_1",
-              "preLinePeriodQuantity": "key_1"
+              "quantity": "1",
+              "preLinePeriodQuantity": "1"
             }
           ]
         },
         "creditAllocations": [
           {
-            "amount": "key_1",
+            "amount": "1",
             "description": "description"
           }
         ],
@@ -321,7 +319,7 @@
               "taxCodeId": "01G65Z755AFWAKHE12NY0CQ9FH"
             },
             "percent": 50,
-            "surcharge": "key_1",
+            "surcharge": "1",
             "behavior": "inclusive"
           }
         ],
@@ -336,14 +334,14 @@
           "taxCodeId": "01G65Z755AFWAKHE12NY0CQ9FH"
         },
         "totals": {
-          "amount": "key_1",
-          "chargesTotal": "key_1",
-          "discountsTotal": "key_1",
-          "creditsTotal": "key_1",
-          "taxesInclusiveTotal": "key_1",
-          "taxesExclusiveTotal": "key_1",
-          "taxesTotal": "key_1",
-          "total": "key_1"
+          "amount": "1",
+          "chargesTotal": "1",
+          "discountsTotal": "1",
+          "creditsTotal": "1",
+          "taxesInclusiveTotal": "1",
+          "taxesExclusiveTotal": "1",
+          "taxesTotal": "1",
+          "total": "1"
         },
         "period": {
           "from": "2023-01-01T01:01:01.001Z",
@@ -372,7 +370,7 @@
         "type": "usage_based",
         "price": {
           "type": "flat",
-          "amount": "key_1",
+          "amount": "1",
           "paymentTerm": "in_advance"
         },
         "featureKey": "key_1",
@@ -404,7 +402,7 @@
                     "invoicing": "invoicing",
                     "tax": "tax"
                   },
-                  "amount": "key_1"
+                  "amount": "1"
                 }
               ],
               "usage": [
@@ -421,14 +419,14 @@
                     "invoicing": "invoicing",
                     "tax": "tax"
                   },
-                  "quantity": "key_1",
-                  "preLinePeriodQuantity": "key_1"
+                  "quantity": "1",
+                  "preLinePeriodQuantity": "1"
                 }
               ]
             },
             "creditAllocations": [
               {
-                "amount": "key_1",
+                "amount": "1",
                 "description": "description"
               }
             ],
@@ -450,7 +448,7 @@
                   "taxCodeId": "01G65Z755AFWAKHE12NY0CQ9FH"
                 },
                 "percent": 50,
-                "surcharge": "key_1",
+                "surcharge": "1",
                 "behavior": "inclusive"
               }
             ],
@@ -465,14 +463,14 @@
               "taxCodeId": "01G65Z755AFWAKHE12NY0CQ9FH"
             },
             "totals": {
-              "amount": "key_1",
-              "chargesTotal": "key_1",
-              "discountsTotal": "key_1",
-              "creditsTotal": "key_1",
-              "taxesInclusiveTotal": "key_1",
-              "taxesExclusiveTotal": "key_1",
-              "taxesTotal": "key_1",
-              "total": "key_1"
+              "amount": "1",
+              "chargesTotal": "1",
+              "discountsTotal": "1",
+              "creditsTotal": "1",
+              "taxesInclusiveTotal": "1",
+              "taxesExclusiveTotal": "1",
+              "taxesTotal": "1",
+              "total": "1"
             },
             "period": {
               "from": "2023-01-01T01:01:01.001Z",
@@ -499,9 +497,9 @@
             },
             "invoiceAt": "2023-01-01T01:01:01.001Z",
             "type": "flat_fee",
-            "perUnitAmount": "key_1",
+            "perUnitAmount": "1",
             "paymentTerm": "in_advance",
-            "quantity": "key_1",
+            "quantity": "1",
             "rateCard": {
               "taxConfig": {
                 "behavior": "inclusive",
@@ -515,17 +513,17 @@
               },
               "price": {
                 "type": "flat",
-                "amount": "key_1",
+                "amount": "1",
                 "paymentTerm": "in_advance"
               },
-              "quantity": "key_1",
+              "quantity": "1",
               "discounts": {
                 "percentage": {
                   "percentage": 50,
                   "correlationId": "01G65Z755AFWAKHE12NY0CQ9FH"
                 },
                 "usage": {
-                  "quantity": "key_1",
+                  "quantity": "1",
                   "correlationId": "01G65Z755AFWAKHE12NY0CQ9FH"
                 }
               }
@@ -547,7 +545,7 @@
           },
           "price": {
             "type": "flat",
-            "amount": "key_1",
+            "amount": "1",
             "paymentTerm": "in_advance"
           },
           "discounts": {
@@ -556,15 +554,15 @@
               "correlationId": "01G65Z755AFWAKHE12NY0CQ9FH"
             },
             "usage": {
-              "quantity": "key_1",
+              "quantity": "1",
               "correlationId": "01G65Z755AFWAKHE12NY0CQ9FH"
             }
           }
         },
-        "quantity": "key_1",
-        "meteredQuantity": "key_1",
-        "preLinePeriodQuantity": "key_1",
-        "meteredPreLinePeriodQuantity": "key_1"
+        "quantity": "1",
+        "meteredQuantity": "1",
+        "preLinePeriodQuantity": "1",
+        "meteredPreLinePeriodQuantity": "1"
       }
     ],
     "payment": {
@@ -617,7 +615,7 @@
       },
       "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
       "subjectKey": "customer-1",
-      "featureKey": "example-feature-key",
+      "featureKey": "example_feature_key",
       "featureId": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
       "lastReset": "2023-01-01T01:01:01.001Z",
       "currentUsagePeriod": {
@@ -673,7 +671,7 @@
       },
       "unitCost": {
         "type": "manual",
-        "amount": "key_1"
+        "amount": "1"
       },
       "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV"
     },
@@ -801,7 +799,7 @@
       },
       "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
       "subjectKey": "customer-1",
-      "featureKey": "example-feature-key",
+      "featureKey": "example_feature_key",
       "featureId": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
       "lastReset": "2023-01-01T01:01:01.001Z",
       "currentUsagePeriod": {
@@ -857,7 +855,7 @@
       },
       "unitCost": {
         "type": "manual",
-        "amount": "key_1"
+        "amount": "1"
       },
       "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV"
     },
@@ -1026,14 +1024,14 @@
       }
     ],
     "totals": {
-      "amount": "key_1",
-      "chargesTotal": "key_1",
-      "discountsTotal": "key_1",
-      "creditsTotal": "key_1",
-      "taxesInclusiveTotal": "key_1",
-      "taxesExclusiveTotal": "key_1",
-      "taxesTotal": "key_1",
-      "total": "key_1"
+      "amount": "1",
+      "chargesTotal": "1",
+      "discountsTotal": "1",
+      "creditsTotal": "1",
+      "taxesInclusiveTotal": "1",
+      "taxesExclusiveTotal": "1",
+      "taxesTotal": "1",
+      "total": "1"
     },
     "status": "gathering",
     "statusDetails": {
@@ -1059,9 +1057,7 @@
         "void": {
           "resultingState": "resultingState"
         },
-        "invoice": {
-          "someKey": "value"
-        }
+        "invoice": {}
       }
     },
     "issuedAt": "2023-01-01T01:01:01.001Z",
@@ -1233,7 +1229,7 @@
                 "invoicing": "invoicing",
                 "tax": "tax"
               },
-              "amount": "key_1"
+              "amount": "1"
             }
           ],
           "usage": [
@@ -1252,14 +1248,14 @@
                 "invoicing": "invoicing",
                 "tax": "tax"
               },
-              "quantity": "key_1",
-              "preLinePeriodQuantity": "key_1"
+              "quantity": "1",
+              "preLinePeriodQuantity": "1"
             }
           ]
         },
         "creditAllocations": [
           {
-            "amount": "key_1",
+            "amount": "1",
             "description": "description"
           }
         ],
@@ -1281,7 +1277,7 @@
               "taxCodeId": "01G65Z755AFWAKHE12NY0CQ9FH"
             },
             "percent": 50,
-            "surcharge": "key_1",
+            "surcharge": "1",
             "behavior": "inclusive"
           }
         ],
@@ -1296,14 +1292,14 @@
           "taxCodeId": "01G65Z755AFWAKHE12NY0CQ9FH"
         },
         "totals": {
-          "amount": "key_1",
-          "chargesTotal": "key_1",
-          "discountsTotal": "key_1",
-          "creditsTotal": "key_1",
-          "taxesInclusiveTotal": "key_1",
-          "taxesExclusiveTotal": "key_1",
-          "taxesTotal": "key_1",
-          "total": "key_1"
+          "amount": "1",
+          "chargesTotal": "1",
+          "discountsTotal": "1",
+          "creditsTotal": "1",
+          "taxesInclusiveTotal": "1",
+          "taxesExclusiveTotal": "1",
+          "taxesTotal": "1",
+          "total": "1"
         },
         "period": {
           "from": "2023-01-01T01:01:01.001Z",
@@ -1332,9 +1328,9 @@
         "type": "usage_based",
         "price": {
           "type": "unit",
-          "amount": "key_1",
-          "minimumAmount": "key_1",
-          "maximumAmount": "key_1"
+          "amount": "1",
+          "minimumAmount": "1",
+          "maximumAmount": "1"
         },
         "featureKey": "key_1",
         "children": [
@@ -1367,7 +1363,7 @@
                     "invoicing": "invoicing",
                     "tax": "tax"
                   },
-                  "amount": "key_1"
+                  "amount": "1"
                 }
               ],
               "usage": [
@@ -1386,14 +1382,14 @@
                     "invoicing": "invoicing",
                     "tax": "tax"
                   },
-                  "quantity": "key_1",
-                  "preLinePeriodQuantity": "key_1"
+                  "quantity": "1",
+                  "preLinePeriodQuantity": "1"
                 }
               ]
             },
             "creditAllocations": [
               {
-                "amount": "key_1",
+                "amount": "1",
                 "description": "description"
               }
             ],
@@ -1415,7 +1411,7 @@
                   "taxCodeId": "01G65Z755AFWAKHE12NY0CQ9FH"
                 },
                 "percent": 50,
-                "surcharge": "key_1",
+                "surcharge": "1",
                 "behavior": "inclusive"
               }
             ],
@@ -1430,14 +1426,14 @@
               "taxCodeId": "01G65Z755AFWAKHE12NY0CQ9FH"
             },
             "totals": {
-              "amount": "key_1",
-              "chargesTotal": "key_1",
-              "discountsTotal": "key_1",
-              "creditsTotal": "key_1",
-              "taxesInclusiveTotal": "key_1",
-              "taxesExclusiveTotal": "key_1",
-              "taxesTotal": "key_1",
-              "total": "key_1"
+              "amount": "1",
+              "chargesTotal": "1",
+              "discountsTotal": "1",
+              "creditsTotal": "1",
+              "taxesInclusiveTotal": "1",
+              "taxesExclusiveTotal": "1",
+              "taxesTotal": "1",
+              "total": "1"
             },
             "period": {
               "from": "2023-01-01T01:01:01.001Z",
@@ -1464,9 +1460,9 @@
             },
             "invoiceAt": "2023-01-01T01:01:01.001Z",
             "type": "flat_fee",
-            "perUnitAmount": "key_1",
+            "perUnitAmount": "1",
             "paymentTerm": "in_advance",
-            "quantity": "key_1",
+            "quantity": "1",
             "rateCard": {
               "taxConfig": {
                 "behavior": "inclusive",
@@ -1480,17 +1476,17 @@
               },
               "price": {
                 "type": "flat",
-                "amount": "key_1",
+                "amount": "1",
                 "paymentTerm": "in_advance"
               },
-              "quantity": "key_1",
+              "quantity": "1",
               "discounts": {
                 "percentage": {
                   "percentage": 50,
                   "correlationId": "01G65Z755AFWAKHE12NY0CQ9FH"
                 },
                 "usage": {
-                  "quantity": "key_1",
+                  "quantity": "1",
                   "correlationId": "01G65Z755AFWAKHE12NY0CQ9FH"
                 }
               }
@@ -1512,9 +1508,9 @@
           },
           "price": {
             "type": "unit",
-            "amount": "key_1",
-            "minimumAmount": "key_1",
-            "maximumAmount": "key_1"
+            "amount": "1",
+            "minimumAmount": "1",
+            "maximumAmount": "1"
           },
           "discounts": {
             "percentage": {
@@ -1522,15 +1518,15 @@
               "correlationId": "01G65Z755AFWAKHE12NY0CQ9FH"
             },
             "usage": {
-              "quantity": "key_1",
+              "quantity": "1",
               "correlationId": "01G65Z755AFWAKHE12NY0CQ9FH"
             }
           }
         },
-        "quantity": "key_1",
-        "meteredQuantity": "key_1",
-        "preLinePeriodQuantity": "key_1",
-        "meteredPreLinePeriodQuantity": "key_1"
+        "quantity": "1",
+        "meteredQuantity": "1",
+        "preLinePeriodQuantity": "1",
+        "meteredPreLinePeriodQuantity": "1"
       }
     ],
     "payment": {
@@ -1542,7 +1538,7 @@
           {
             "dueAt": "2023-01-01T01:01:01.001Z",
             "notes": "notes",
-            "amount": "key_1",
+            "amount": "1",
             "percent": 50,
             "currency": "USD"
           }
@@ -1592,7 +1588,7 @@
       },
       "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
       "subjectKey": "customer-1",
-      "featureKey": "example-feature-key",
+      "featureKey": "example_feature_key",
       "featureId": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
       "lastReset": "2023-01-01T01:01:01.001Z",
       "currentUsagePeriod": {
@@ -1655,11 +1651,11 @@
         "tokenTypeProperty": "tokenTypeProperty",
         "tokenType": "tokenType",
         "pricing": {
-          "inputPerToken": "key_1",
-          "outputPerToken": "key_1",
-          "cacheReadPerToken": "key_1",
-          "reasoningPerToken": "key_1",
-          "cacheWritePerToken": "key_1"
+          "inputPerToken": "1",
+          "outputPerToken": "1",
+          "cacheReadPerToken": "1",
+          "reasoningPerToken": "1",
+          "cacheWritePerToken": "1"
         }
       },
       "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV"
@@ -1788,7 +1784,7 @@
       },
       "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
       "subjectKey": "customer-1",
-      "featureKey": "example-feature-key",
+      "featureKey": "example_feature_key",
       "featureId": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
       "lastReset": "2023-01-01T01:01:01.001Z",
       "currentUsagePeriod": {
@@ -1851,11 +1847,11 @@
         "tokenTypeProperty": "tokenTypeProperty",
         "tokenType": "tokenType",
         "pricing": {
-          "inputPerToken": "key_1",
-          "outputPerToken": "key_1",
-          "cacheReadPerToken": "key_1",
-          "reasoningPerToken": "key_1",
-          "cacheWritePerToken": "key_1"
+          "inputPerToken": "1",
+          "outputPerToken": "1",
+          "cacheReadPerToken": "1",
+          "reasoningPerToken": "1",
+          "cacheWritePerToken": "1"
         }
       },
       "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV"
@@ -2025,14 +2021,14 @@
       }
     ],
     "totals": {
-      "amount": "key_1",
-      "chargesTotal": "key_1",
-      "discountsTotal": "key_1",
-      "creditsTotal": "key_1",
-      "taxesInclusiveTotal": "key_1",
-      "taxesExclusiveTotal": "key_1",
-      "taxesTotal": "key_1",
-      "total": "key_1"
+      "amount": "1",
+      "chargesTotal": "1",
+      "discountsTotal": "1",
+      "creditsTotal": "1",
+      "taxesInclusiveTotal": "1",
+      "taxesExclusiveTotal": "1",
+      "taxesTotal": "1",
+      "total": "1"
     },
     "status": "gathering",
     "statusDetails": {
@@ -2058,9 +2054,7 @@
         "void": {
           "resultingState": "resultingState"
         },
-        "invoice": {
-          "someKey": "value"
-        }
+        "invoice": {}
       }
     },
     "issuedAt": "2023-01-01T01:01:01.001Z",
@@ -2226,7 +2220,7 @@
               "id": "01G65Z755AFWAKHE12NY0CQ9FH",
               "reason": {
                 "type": "ratecard_usage",
-                "quantity": "key_1",
+                "quantity": "1",
                 "correlationId": "01G65Z755AFWAKHE12NY0CQ9FH"
               },
               "description": "description",
@@ -2234,7 +2228,7 @@
                 "invoicing": "invoicing",
                 "tax": "tax"
               },
-              "amount": "key_1"
+              "amount": "1"
             }
           ],
           "usage": [
@@ -2245,7 +2239,7 @@
               "id": "01G65Z755AFWAKHE12NY0CQ9FH",
               "reason": {
                 "type": "ratecard_usage",
-                "quantity": "key_1",
+                "quantity": "1",
                 "correlationId": "01G65Z755AFWAKHE12NY0CQ9FH"
               },
               "description": "description",
@@ -2253,14 +2247,14 @@
                 "invoicing": "invoicing",
                 "tax": "tax"
               },
-              "quantity": "key_1",
-              "preLinePeriodQuantity": "key_1"
+              "quantity": "1",
+              "preLinePeriodQuantity": "1"
             }
           ]
         },
         "creditAllocations": [
           {
-            "amount": "key_1",
+            "amount": "1",
             "description": "description"
           }
         ],
@@ -2282,7 +2276,7 @@
               "taxCodeId": "01G65Z755AFWAKHE12NY0CQ9FH"
             },
             "percent": 50,
-            "surcharge": "key_1",
+            "surcharge": "1",
             "behavior": "inclusive"
           }
         ],
@@ -2297,14 +2291,14 @@
           "taxCodeId": "01G65Z755AFWAKHE12NY0CQ9FH"
         },
         "totals": {
-          "amount": "key_1",
-          "chargesTotal": "key_1",
-          "discountsTotal": "key_1",
-          "creditsTotal": "key_1",
-          "taxesInclusiveTotal": "key_1",
-          "taxesExclusiveTotal": "key_1",
-          "taxesTotal": "key_1",
-          "total": "key_1"
+          "amount": "1",
+          "chargesTotal": "1",
+          "discountsTotal": "1",
+          "creditsTotal": "1",
+          "taxesInclusiveTotal": "1",
+          "taxesExclusiveTotal": "1",
+          "taxesTotal": "1",
+          "total": "1"
         },
         "period": {
           "from": "2023-01-01T01:01:01.001Z",
@@ -2336,19 +2330,19 @@
           "mode": "volume",
           "tiers": [
             {
-              "upToAmount": "key_1",
+              "upToAmount": "1",
               "flatPrice": {
                 "type": "flat",
-                "amount": "key_1"
+                "amount": "1"
               },
               "unitPrice": {
                 "type": "unit",
-                "amount": "key_1"
+                "amount": "1"
               }
             }
           ],
-          "minimumAmount": "key_1",
-          "maximumAmount": "key_1"
+          "minimumAmount": "1",
+          "maximumAmount": "1"
         },
         "featureKey": "key_1",
         "children": [
@@ -2373,7 +2367,7 @@
                   "id": "01G65Z755AFWAKHE12NY0CQ9FH",
                   "reason": {
                     "type": "ratecard_usage",
-                    "quantity": "key_1",
+                    "quantity": "1",
                     "correlationId": "01G65Z755AFWAKHE12NY0CQ9FH"
                   },
                   "description": "description",
@@ -2381,7 +2375,7 @@
                     "invoicing": "invoicing",
                     "tax": "tax"
                   },
-                  "amount": "key_1"
+                  "amount": "1"
                 }
               ],
               "usage": [
@@ -2392,7 +2386,7 @@
                   "id": "01G65Z755AFWAKHE12NY0CQ9FH",
                   "reason": {
                     "type": "ratecard_usage",
-                    "quantity": "key_1",
+                    "quantity": "1",
                     "correlationId": "01G65Z755AFWAKHE12NY0CQ9FH"
                   },
                   "description": "description",
@@ -2400,14 +2394,14 @@
                     "invoicing": "invoicing",
                     "tax": "tax"
                   },
-                  "quantity": "key_1",
-                  "preLinePeriodQuantity": "key_1"
+                  "quantity": "1",
+                  "preLinePeriodQuantity": "1"
                 }
               ]
             },
             "creditAllocations": [
               {
-                "amount": "key_1",
+                "amount": "1",
                 "description": "description"
               }
             ],
@@ -2429,7 +2423,7 @@
                   "taxCodeId": "01G65Z755AFWAKHE12NY0CQ9FH"
                 },
                 "percent": 50,
-                "surcharge": "key_1",
+                "surcharge": "1",
                 "behavior": "inclusive"
               }
             ],
@@ -2444,14 +2438,14 @@
               "taxCodeId": "01G65Z755AFWAKHE12NY0CQ9FH"
             },
             "totals": {
-              "amount": "key_1",
-              "chargesTotal": "key_1",
-              "discountsTotal": "key_1",
-              "creditsTotal": "key_1",
-              "taxesInclusiveTotal": "key_1",
-              "taxesExclusiveTotal": "key_1",
-              "taxesTotal": "key_1",
-              "total": "key_1"
+              "amount": "1",
+              "chargesTotal": "1",
+              "discountsTotal": "1",
+              "creditsTotal": "1",
+              "taxesInclusiveTotal": "1",
+              "taxesExclusiveTotal": "1",
+              "taxesTotal": "1",
+              "total": "1"
             },
             "period": {
               "from": "2023-01-01T01:01:01.001Z",
@@ -2478,9 +2472,9 @@
             },
             "invoiceAt": "2023-01-01T01:01:01.001Z",
             "type": "flat_fee",
-            "perUnitAmount": "key_1",
+            "perUnitAmount": "1",
             "paymentTerm": "in_advance",
-            "quantity": "key_1",
+            "quantity": "1",
             "rateCard": {
               "taxConfig": {
                 "behavior": "inclusive",
@@ -2494,17 +2488,17 @@
               },
               "price": {
                 "type": "flat",
-                "amount": "key_1",
+                "amount": "1",
                 "paymentTerm": "in_advance"
               },
-              "quantity": "key_1",
+              "quantity": "1",
               "discounts": {
                 "percentage": {
                   "percentage": 50,
                   "correlationId": "01G65Z755AFWAKHE12NY0CQ9FH"
                 },
                 "usage": {
-                  "quantity": "key_1",
+                  "quantity": "1",
                   "correlationId": "01G65Z755AFWAKHE12NY0CQ9FH"
                 }
               }
@@ -2529,19 +2523,19 @@
             "mode": "volume",
             "tiers": [
               {
-                "upToAmount": "key_1",
+                "upToAmount": "1",
                 "flatPrice": {
                   "type": "flat",
-                  "amount": "key_1"
+                  "amount": "1"
                 },
                 "unitPrice": {
                   "type": "unit",
-                  "amount": "key_1"
+                  "amount": "1"
                 }
               }
             ],
-            "minimumAmount": "key_1",
-            "maximumAmount": "key_1"
+            "minimumAmount": "1",
+            "maximumAmount": "1"
           },
           "discounts": {
             "percentage": {
@@ -2549,15 +2543,15 @@
               "correlationId": "01G65Z755AFWAKHE12NY0CQ9FH"
             },
             "usage": {
-              "quantity": "key_1",
+              "quantity": "1",
               "correlationId": "01G65Z755AFWAKHE12NY0CQ9FH"
             }
           }
         },
-        "quantity": "key_1",
-        "meteredQuantity": "key_1",
-        "preLinePeriodQuantity": "key_1",
-        "meteredPreLinePeriodQuantity": "key_1"
+        "quantity": "1",
+        "meteredQuantity": "1",
+        "preLinePeriodQuantity": "1",
+        "meteredPreLinePeriodQuantity": "1"
       }
     ],
     "payment": {
@@ -2655,14 +2649,14 @@
       }
     ],
     "totals": {
-      "amount": "key_1",
-      "chargesTotal": "key_1",
-      "discountsTotal": "key_1",
-      "creditsTotal": "key_1",
-      "taxesInclusiveTotal": "key_1",
-      "taxesExclusiveTotal": "key_1",
-      "taxesTotal": "key_1",
-      "total": "key_1"
+      "amount": "1",
+      "chargesTotal": "1",
+      "discountsTotal": "1",
+      "creditsTotal": "1",
+      "taxesInclusiveTotal": "1",
+      "taxesExclusiveTotal": "1",
+      "taxesTotal": "1",
+      "total": "1"
     },
     "status": "gathering",
     "statusDetails": {
@@ -2688,9 +2682,7 @@
         "void": {
           "resultingState": "resultingState"
         },
-        "invoice": {
-          "someKey": "value"
-        }
+        "invoice": {}
       }
     },
     "issuedAt": "2023-01-01T01:01:01.001Z",
@@ -2869,7 +2861,7 @@
                 "invoicing": "invoicing",
                 "tax": "tax"
               },
-              "amount": "key_1"
+              "amount": "1"
             }
           ],
           "usage": [
@@ -2886,14 +2878,14 @@
                 "invoicing": "invoicing",
                 "tax": "tax"
               },
-              "quantity": "key_1",
-              "preLinePeriodQuantity": "key_1"
+              "quantity": "1",
+              "preLinePeriodQuantity": "1"
             }
           ]
         },
         "creditAllocations": [
           {
-            "amount": "key_1",
+            "amount": "1",
             "description": "description"
           }
         ],
@@ -2915,7 +2907,7 @@
               "taxCodeId": "01G65Z755AFWAKHE12NY0CQ9FH"
             },
             "percent": 50,
-            "surcharge": "key_1",
+            "surcharge": "1",
             "behavior": "inclusive"
           }
         ],
@@ -2930,14 +2922,14 @@
           "taxCodeId": "01G65Z755AFWAKHE12NY0CQ9FH"
         },
         "totals": {
-          "amount": "key_1",
-          "chargesTotal": "key_1",
-          "discountsTotal": "key_1",
-          "creditsTotal": "key_1",
-          "taxesInclusiveTotal": "key_1",
-          "taxesExclusiveTotal": "key_1",
-          "taxesTotal": "key_1",
-          "total": "key_1"
+          "amount": "1",
+          "chargesTotal": "1",
+          "discountsTotal": "1",
+          "creditsTotal": "1",
+          "taxesInclusiveTotal": "1",
+          "taxesExclusiveTotal": "1",
+          "taxesTotal": "1",
+          "total": "1"
         },
         "period": {
           "from": "2023-01-01T01:01:01.001Z",
@@ -2966,9 +2958,9 @@
         "type": "usage_based",
         "price": {
           "type": "dynamic",
-          "multiplier": "key_1",
-          "minimumAmount": "key_1",
-          "maximumAmount": "key_1"
+          "multiplier": "1",
+          "minimumAmount": "1",
+          "maximumAmount": "1"
         },
         "featureKey": "key_1",
         "children": [
@@ -2999,7 +2991,7 @@
                     "invoicing": "invoicing",
                     "tax": "tax"
                   },
-                  "amount": "key_1"
+                  "amount": "1"
                 }
               ],
               "usage": [
@@ -3016,14 +3008,14 @@
                     "invoicing": "invoicing",
                     "tax": "tax"
                   },
-                  "quantity": "key_1",
-                  "preLinePeriodQuantity": "key_1"
+                  "quantity": "1",
+                  "preLinePeriodQuantity": "1"
                 }
               ]
             },
             "creditAllocations": [
               {
-                "amount": "key_1",
+                "amount": "1",
                 "description": "description"
               }
             ],
@@ -3045,7 +3037,7 @@
                   "taxCodeId": "01G65Z755AFWAKHE12NY0CQ9FH"
                 },
                 "percent": 50,
-                "surcharge": "key_1",
+                "surcharge": "1",
                 "behavior": "inclusive"
               }
             ],
@@ -3060,14 +3052,14 @@
               "taxCodeId": "01G65Z755AFWAKHE12NY0CQ9FH"
             },
             "totals": {
-              "amount": "key_1",
-              "chargesTotal": "key_1",
-              "discountsTotal": "key_1",
-              "creditsTotal": "key_1",
-              "taxesInclusiveTotal": "key_1",
-              "taxesExclusiveTotal": "key_1",
-              "taxesTotal": "key_1",
-              "total": "key_1"
+              "amount": "1",
+              "chargesTotal": "1",
+              "discountsTotal": "1",
+              "creditsTotal": "1",
+              "taxesInclusiveTotal": "1",
+              "taxesExclusiveTotal": "1",
+              "taxesTotal": "1",
+              "total": "1"
             },
             "period": {
               "from": "2023-01-01T01:01:01.001Z",
@@ -3094,9 +3086,9 @@
             },
             "invoiceAt": "2023-01-01T01:01:01.001Z",
             "type": "flat_fee",
-            "perUnitAmount": "key_1",
+            "perUnitAmount": "1",
             "paymentTerm": "in_advance",
-            "quantity": "key_1",
+            "quantity": "1",
             "rateCard": {
               "taxConfig": {
                 "behavior": "inclusive",
@@ -3110,17 +3102,17 @@
               },
               "price": {
                 "type": "flat",
-                "amount": "key_1",
+                "amount": "1",
                 "paymentTerm": "in_advance"
               },
-              "quantity": "key_1",
+              "quantity": "1",
               "discounts": {
                 "percentage": {
                   "percentage": 50,
                   "correlationId": "01G65Z755AFWAKHE12NY0CQ9FH"
                 },
                 "usage": {
-                  "quantity": "key_1",
+                  "quantity": "1",
                   "correlationId": "01G65Z755AFWAKHE12NY0CQ9FH"
                 }
               }
@@ -3142,9 +3134,9 @@
           },
           "price": {
             "type": "dynamic",
-            "multiplier": "key_1",
-            "minimumAmount": "key_1",
-            "maximumAmount": "key_1"
+            "multiplier": "1",
+            "minimumAmount": "1",
+            "maximumAmount": "1"
           },
           "discounts": {
             "percentage": {
@@ -3152,15 +3144,15 @@
               "correlationId": "01G65Z755AFWAKHE12NY0CQ9FH"
             },
             "usage": {
-              "quantity": "key_1",
+              "quantity": "1",
               "correlationId": "01G65Z755AFWAKHE12NY0CQ9FH"
             }
           }
         },
-        "quantity": "key_1",
-        "meteredQuantity": "key_1",
-        "preLinePeriodQuantity": "key_1",
-        "meteredPreLinePeriodQuantity": "key_1"
+        "quantity": "1",
+        "meteredQuantity": "1",
+        "preLinePeriodQuantity": "1",
+        "meteredPreLinePeriodQuantity": "1"
       }
     ],
     "payment": {
@@ -3172,7 +3164,7 @@
           {
             "dueAt": "2023-01-01T01:01:01.001Z",
             "notes": "notes",
-            "amount": "key_1",
+            "amount": "1",
             "percent": 50,
             "currency": "USD"
           }
@@ -3267,14 +3259,14 @@
       }
     ],
     "totals": {
-      "amount": "key_1",
-      "chargesTotal": "key_1",
-      "discountsTotal": "key_1",
-      "creditsTotal": "key_1",
-      "taxesInclusiveTotal": "key_1",
-      "taxesExclusiveTotal": "key_1",
-      "taxesTotal": "key_1",
-      "total": "key_1"
+      "amount": "1",
+      "chargesTotal": "1",
+      "discountsTotal": "1",
+      "creditsTotal": "1",
+      "taxesInclusiveTotal": "1",
+      "taxesExclusiveTotal": "1",
+      "taxesTotal": "1",
+      "total": "1"
     },
     "status": "gathering",
     "statusDetails": {
@@ -3300,9 +3292,7 @@
         "void": {
           "resultingState": "resultingState"
         },
-        "invoice": {
-          "someKey": "value"
-        }
+        "invoice": {}
       }
     },
     "issuedAt": "2023-01-01T01:01:01.001Z",
@@ -3470,7 +3460,7 @@
                 "invoicing": "invoicing",
                 "tax": "tax"
               },
-              "amount": "key_1"
+              "amount": "1"
             }
           ],
           "usage": [
@@ -3489,14 +3479,14 @@
                 "invoicing": "invoicing",
                 "tax": "tax"
               },
-              "quantity": "key_1",
-              "preLinePeriodQuantity": "key_1"
+              "quantity": "1",
+              "preLinePeriodQuantity": "1"
             }
           ]
         },
         "creditAllocations": [
           {
-            "amount": "key_1",
+            "amount": "1",
             "description": "description"
           }
         ],
@@ -3518,7 +3508,7 @@
               "taxCodeId": "01G65Z755AFWAKHE12NY0CQ9FH"
             },
             "percent": 50,
-            "surcharge": "key_1",
+            "surcharge": "1",
             "behavior": "inclusive"
           }
         ],
@@ -3533,14 +3523,14 @@
           "taxCodeId": "01G65Z755AFWAKHE12NY0CQ9FH"
         },
         "totals": {
-          "amount": "key_1",
-          "chargesTotal": "key_1",
-          "discountsTotal": "key_1",
-          "creditsTotal": "key_1",
-          "taxesInclusiveTotal": "key_1",
-          "taxesExclusiveTotal": "key_1",
-          "taxesTotal": "key_1",
-          "total": "key_1"
+          "amount": "1",
+          "chargesTotal": "1",
+          "discountsTotal": "1",
+          "creditsTotal": "1",
+          "taxesInclusiveTotal": "1",
+          "taxesExclusiveTotal": "1",
+          "taxesTotal": "1",
+          "total": "1"
         },
         "period": {
           "from": "2023-01-01T01:01:01.001Z",
@@ -3569,10 +3559,10 @@
         "type": "usage_based",
         "price": {
           "type": "package",
-          "amount": "key_1",
-          "quantityPerPackage": "key_1",
-          "minimumAmount": "key_1",
-          "maximumAmount": "key_1"
+          "amount": "1",
+          "quantityPerPackage": "1",
+          "minimumAmount": "1",
+          "maximumAmount": "1"
         },
         "featureKey": "key_1",
         "children": [
@@ -3605,7 +3595,7 @@
                     "invoicing": "invoicing",
                     "tax": "tax"
                   },
-                  "amount": "key_1"
+                  "amount": "1"
                 }
               ],
               "usage": [
@@ -3624,14 +3614,14 @@
                     "invoicing": "invoicing",
                     "tax": "tax"
                   },
-                  "quantity": "key_1",
-                  "preLinePeriodQuantity": "key_1"
+                  "quantity": "1",
+                  "preLinePeriodQuantity": "1"
                 }
               ]
             },
             "creditAllocations": [
               {
-                "amount": "key_1",
+                "amount": "1",
                 "description": "description"
               }
             ],
@@ -3653,7 +3643,7 @@
                   "taxCodeId": "01G65Z755AFWAKHE12NY0CQ9FH"
                 },
                 "percent": 50,
-                "surcharge": "key_1",
+                "surcharge": "1",
                 "behavior": "inclusive"
               }
             ],
@@ -3668,14 +3658,14 @@
               "taxCodeId": "01G65Z755AFWAKHE12NY0CQ9FH"
             },
             "totals": {
-              "amount": "key_1",
-              "chargesTotal": "key_1",
-              "discountsTotal": "key_1",
-              "creditsTotal": "key_1",
-              "taxesInclusiveTotal": "key_1",
-              "taxesExclusiveTotal": "key_1",
-              "taxesTotal": "key_1",
-              "total": "key_1"
+              "amount": "1",
+              "chargesTotal": "1",
+              "discountsTotal": "1",
+              "creditsTotal": "1",
+              "taxesInclusiveTotal": "1",
+              "taxesExclusiveTotal": "1",
+              "taxesTotal": "1",
+              "total": "1"
             },
             "period": {
               "from": "2023-01-01T01:01:01.001Z",
@@ -3702,9 +3692,9 @@
             },
             "invoiceAt": "2023-01-01T01:01:01.001Z",
             "type": "flat_fee",
-            "perUnitAmount": "key_1",
+            "perUnitAmount": "1",
             "paymentTerm": "in_advance",
-            "quantity": "key_1",
+            "quantity": "1",
             "rateCard": {
               "taxConfig": {
                 "behavior": "inclusive",
@@ -3718,17 +3708,17 @@
               },
               "price": {
                 "type": "flat",
-                "amount": "key_1",
+                "amount": "1",
                 "paymentTerm": "in_advance"
               },
-              "quantity": "key_1",
+              "quantity": "1",
               "discounts": {
                 "percentage": {
                   "percentage": 50,
                   "correlationId": "01G65Z755AFWAKHE12NY0CQ9FH"
                 },
                 "usage": {
-                  "quantity": "key_1",
+                  "quantity": "1",
                   "correlationId": "01G65Z755AFWAKHE12NY0CQ9FH"
                 }
               }
@@ -3750,10 +3740,10 @@
           },
           "price": {
             "type": "package",
-            "amount": "key_1",
-            "quantityPerPackage": "key_1",
-            "minimumAmount": "key_1",
-            "maximumAmount": "key_1"
+            "amount": "1",
+            "quantityPerPackage": "1",
+            "minimumAmount": "1",
+            "maximumAmount": "1"
           },
           "discounts": {
             "percentage": {
@@ -3761,15 +3751,15 @@
               "correlationId": "01G65Z755AFWAKHE12NY0CQ9FH"
             },
             "usage": {
-              "quantity": "key_1",
+              "quantity": "1",
               "correlationId": "01G65Z755AFWAKHE12NY0CQ9FH"
             }
           }
         },
-        "quantity": "key_1",
-        "meteredQuantity": "key_1",
-        "preLinePeriodQuantity": "key_1",
-        "meteredPreLinePeriodQuantity": "key_1"
+        "quantity": "1",
+        "meteredQuantity": "1",
+        "preLinePeriodQuantity": "1",
+        "meteredPreLinePeriodQuantity": "1"
       }
     ],
     "payment": {
@@ -3867,14 +3857,14 @@
       }
     ],
     "totals": {
-      "amount": "key_1",
-      "chargesTotal": "key_1",
-      "discountsTotal": "key_1",
-      "creditsTotal": "key_1",
-      "taxesInclusiveTotal": "key_1",
-      "taxesExclusiveTotal": "key_1",
-      "taxesTotal": "key_1",
-      "total": "key_1"
+      "amount": "1",
+      "chargesTotal": "1",
+      "discountsTotal": "1",
+      "creditsTotal": "1",
+      "taxesInclusiveTotal": "1",
+      "taxesExclusiveTotal": "1",
+      "taxesTotal": "1",
+      "total": "1"
     },
     "status": "gathering",
     "statusDetails": {
@@ -3900,9 +3890,7 @@
         "void": {
           "resultingState": "resultingState"
         },
-        "invoice": {
-          "someKey": "value"
-        }
+        "invoice": {}
       }
     },
     "issuedAt": "2023-01-01T01:01:01.001Z",
@@ -4072,7 +4060,7 @@
               "id": "01G65Z755AFWAKHE12NY0CQ9FH",
               "reason": {
                 "type": "ratecard_usage",
-                "quantity": "key_1",
+                "quantity": "1",
                 "correlationId": "01G65Z755AFWAKHE12NY0CQ9FH"
               },
               "description": "description",
@@ -4080,7 +4068,7 @@
                 "invoicing": "invoicing",
                 "tax": "tax"
               },
-              "amount": "key_1"
+              "amount": "1"
             }
           ],
           "usage": [
@@ -4091,7 +4079,7 @@
               "id": "01G65Z755AFWAKHE12NY0CQ9FH",
               "reason": {
                 "type": "ratecard_usage",
-                "quantity": "key_1",
+                "quantity": "1",
                 "correlationId": "01G65Z755AFWAKHE12NY0CQ9FH"
               },
               "description": "description",
@@ -4099,14 +4087,14 @@
                 "invoicing": "invoicing",
                 "tax": "tax"
               },
-              "quantity": "key_1",
-              "preLinePeriodQuantity": "key_1"
+              "quantity": "1",
+              "preLinePeriodQuantity": "1"
             }
           ]
         },
         "creditAllocations": [
           {
-            "amount": "key_1",
+            "amount": "1",
             "description": "description"
           }
         ],
@@ -4128,7 +4116,7 @@
               "taxCodeId": "01G65Z755AFWAKHE12NY0CQ9FH"
             },
             "percent": 50,
-            "surcharge": "key_1",
+            "surcharge": "1",
             "behavior": "inclusive"
           }
         ],
@@ -4143,14 +4131,14 @@
           "taxCodeId": "01G65Z755AFWAKHE12NY0CQ9FH"
         },
         "totals": {
-          "amount": "key_1",
-          "chargesTotal": "key_1",
-          "discountsTotal": "key_1",
-          "creditsTotal": "key_1",
-          "taxesInclusiveTotal": "key_1",
-          "taxesExclusiveTotal": "key_1",
-          "taxesTotal": "key_1",
-          "total": "key_1"
+          "amount": "1",
+          "chargesTotal": "1",
+          "discountsTotal": "1",
+          "creditsTotal": "1",
+          "taxesInclusiveTotal": "1",
+          "taxesExclusiveTotal": "1",
+          "taxesTotal": "1",
+          "total": "1"
         },
         "period": {
           "from": "2023-01-01T01:01:01.001Z",
@@ -4179,7 +4167,7 @@
         "type": "usage_based",
         "price": {
           "type": "flat",
-          "amount": "key_1",
+          "amount": "1",
           "paymentTerm": "in_advance"
         },
         "featureKey": "key_1",
@@ -4205,7 +4193,7 @@
                   "id": "01G65Z755AFWAKHE12NY0CQ9FH",
                   "reason": {
                     "type": "ratecard_usage",
-                    "quantity": "key_1",
+                    "quantity": "1",
                     "correlationId": "01G65Z755AFWAKHE12NY0CQ9FH"
                   },
                   "description": "description",
@@ -4213,7 +4201,7 @@
                     "invoicing": "invoicing",
                     "tax": "tax"
                   },
-                  "amount": "key_1"
+                  "amount": "1"
                 }
               ],
               "usage": [
@@ -4224,7 +4212,7 @@
                   "id": "01G65Z755AFWAKHE12NY0CQ9FH",
                   "reason": {
                     "type": "ratecard_usage",
-                    "quantity": "key_1",
+                    "quantity": "1",
                     "correlationId": "01G65Z755AFWAKHE12NY0CQ9FH"
                   },
                   "description": "description",
@@ -4232,14 +4220,14 @@
                     "invoicing": "invoicing",
                     "tax": "tax"
                   },
-                  "quantity": "key_1",
-                  "preLinePeriodQuantity": "key_1"
+                  "quantity": "1",
+                  "preLinePeriodQuantity": "1"
                 }
               ]
             },
             "creditAllocations": [
               {
-                "amount": "key_1",
+                "amount": "1",
                 "description": "description"
               }
             ],
@@ -4261,7 +4249,7 @@
                   "taxCodeId": "01G65Z755AFWAKHE12NY0CQ9FH"
                 },
                 "percent": 50,
-                "surcharge": "key_1",
+                "surcharge": "1",
                 "behavior": "inclusive"
               }
             ],
@@ -4276,14 +4264,14 @@
               "taxCodeId": "01G65Z755AFWAKHE12NY0CQ9FH"
             },
             "totals": {
-              "amount": "key_1",
-              "chargesTotal": "key_1",
-              "discountsTotal": "key_1",
-              "creditsTotal": "key_1",
-              "taxesInclusiveTotal": "key_1",
-              "taxesExclusiveTotal": "key_1",
-              "taxesTotal": "key_1",
-              "total": "key_1"
+              "amount": "1",
+              "chargesTotal": "1",
+              "discountsTotal": "1",
+              "creditsTotal": "1",
+              "taxesInclusiveTotal": "1",
+              "taxesExclusiveTotal": "1",
+              "taxesTotal": "1",
+              "total": "1"
             },
             "period": {
               "from": "2023-01-01T01:01:01.001Z",
@@ -4310,9 +4298,9 @@
             },
             "invoiceAt": "2023-01-01T01:01:01.001Z",
             "type": "flat_fee",
-            "perUnitAmount": "key_1",
+            "perUnitAmount": "1",
             "paymentTerm": "in_advance",
-            "quantity": "key_1",
+            "quantity": "1",
             "rateCard": {
               "taxConfig": {
                 "behavior": "inclusive",
@@ -4326,17 +4314,17 @@
               },
               "price": {
                 "type": "flat",
-                "amount": "key_1",
+                "amount": "1",
                 "paymentTerm": "in_advance"
               },
-              "quantity": "key_1",
+              "quantity": "1",
               "discounts": {
                 "percentage": {
                   "percentage": 50,
                   "correlationId": "01G65Z755AFWAKHE12NY0CQ9FH"
                 },
                 "usage": {
-                  "quantity": "key_1",
+                  "quantity": "1",
                   "correlationId": "01G65Z755AFWAKHE12NY0CQ9FH"
                 }
               }
@@ -4358,7 +4346,7 @@
           },
           "price": {
             "type": "flat",
-            "amount": "key_1",
+            "amount": "1",
             "paymentTerm": "in_advance"
           },
           "discounts": {
@@ -4367,15 +4355,15 @@
               "correlationId": "01G65Z755AFWAKHE12NY0CQ9FH"
             },
             "usage": {
-              "quantity": "key_1",
+              "quantity": "1",
               "correlationId": "01G65Z755AFWAKHE12NY0CQ9FH"
             }
           }
         },
-        "quantity": "key_1",
-        "meteredQuantity": "key_1",
-        "preLinePeriodQuantity": "key_1",
-        "meteredPreLinePeriodQuantity": "key_1"
+        "quantity": "1",
+        "meteredQuantity": "1",
+        "preLinePeriodQuantity": "1",
+        "meteredPreLinePeriodQuantity": "1"
       }
     ],
     "payment": {
@@ -4387,7 +4375,7 @@
           {
             "dueAt": "2023-01-01T01:01:01.001Z",
             "notes": "notes",
-            "amount": "key_1",
+            "amount": "1",
             "percent": 50,
             "currency": "USD"
           }
