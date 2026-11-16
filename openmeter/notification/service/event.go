@@ -77,6 +77,7 @@ func (s Service) ResendEvent(ctx context.Context, params notification.ResendEven
 
 	fn := func(ctx context.Context) error {
 		event, err := s.adapter.GetEvent(ctx, notification.GetEventInput{
+			Expand:    &notification.EventExpand{DeliveryStatus: true},
 			Namespace: params.Namespace,
 			ID:        params.ID,
 		})

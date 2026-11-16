@@ -337,11 +337,16 @@ func TestDeliveryStatusAttemptsStorageCompatibility(t *testing.T) {
 			require.NoError(t, err)
 			require.Len(t, listed.Items, 1)
 
-			fetchedEvent, err := env.adapter.GetEvent(t.Context(), notification.GetEventInput(event.NamespacedID))
+			fetchedEvent, err := env.adapter.GetEvent(t.Context(), notification.GetEventInput{
+				Namespace: event.Namespace,
+				ID:        event.ID,
+				Expand:    &notification.EventExpand{DeliveryStatus: true},
+			})
 			require.NoError(t, err)
 			require.Len(t, fetchedEvent.DeliveryStatus, 1)
 
 			listedEvents, err := env.adapter.ListEvents(t.Context(), notification.ListEventsInput{
+				Expand:     &notification.EventExpand{DeliveryStatus: true},
 				Namespaces: []string{namespace},
 				Page:       pagination.NewPage(1, 20),
 			})
@@ -428,10 +433,15 @@ func TestDeliveryStatusInvalidAttempts(t *testing.T) {
 			})
 			require.ErrorContains(t, err, "invalid notification event delivery attempts")
 
-			_, err = env.adapter.GetEvent(t.Context(), notification.GetEventInput(event.NamespacedID))
+			_, err = env.adapter.GetEvent(t.Context(), notification.GetEventInput{
+				Namespace: event.Namespace,
+				ID:        event.ID,
+				Expand:    &notification.EventExpand{DeliveryStatus: true},
+			})
 			require.ErrorContains(t, err, "invalid notification event delivery attempts")
 
 			_, err = env.adapter.ListEvents(t.Context(), notification.ListEventsInput{
+				Expand:     &notification.EventExpand{DeliveryStatus: true},
 				Namespaces: []string{namespace},
 				Page:       pagination.NewPage(1, 20),
 			})
@@ -601,7 +611,11 @@ func TestDeliveryStatusProviderDataPreservation(t *testing.T) {
 						require.NoError(t, err)
 						require.Len(t, listed.Items, 1)
 
-						fetchedEvent, err := adapter.GetEvent(t.Context(), notification.GetEventInput(event.NamespacedID))
+						fetchedEvent, err := adapter.GetEvent(t.Context(), notification.GetEventInput{
+							Namespace: event.Namespace,
+							ID:        event.ID,
+							Expand:    &notification.EventExpand{DeliveryStatus: true},
+						})
 						require.NoError(t, err)
 						require.Len(t, fetchedEvent.DeliveryStatus, 1)
 

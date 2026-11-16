@@ -28,6 +28,7 @@ func (h *handler) GetNotificationEvent() GetNotificationEventHandler {
 			}
 
 			return GetNotificationEventRequest{
+				Expand:    &notification.EventExpand{DeliveryStatus: true},
 				Namespace: ns,
 				ID:        eventID,
 			}, nil

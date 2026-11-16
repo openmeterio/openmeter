@@ -53,6 +53,7 @@ func (h *handler) ListNotificationEvents() ListNotificationEventsHandler {
 			}
 
 			req := ListNotificationEventsRequest{
+				Expand:     &notification.EventExpand{DeliveryStatus: true},
 				Namespaces: []string{ns},
 				Page:       page,
 				// The adapter falls back to ordering by id, but v1 lists events newest

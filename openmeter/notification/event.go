@@ -67,6 +67,10 @@ type Event struct {
 	HandlerDeduplicationHash string `json:"-"`
 }
 
+type EventExpand struct {
+	DeliveryStatus bool
+}
+
 var (
 	_ models.Validator                        = (*ListEventsInput)(nil)
 	_ models.CustomValidator[ListEventsInput] = (*ListEventsInput)(nil)
@@ -74,6 +78,7 @@ var (
 
 type ListEventsInput struct {
 	pagination.Page
+	Expand *EventExpand `json:"-"`
 
 	Namespaces []string `json:"namespaces,omitempty"`
 
@@ -233,7 +238,11 @@ var (
 	_ models.CustomValidator[GetEventInput] = (*GetEventInput)(nil)
 )
 
-type GetEventInput models.NamespacedID
+type GetEventInput struct {
+	Namespace string       `json:"namespace"`
+	ID        string       `json:"id"`
+	Expand    *EventExpand `json:"-"`
+}
 
 func (i GetEventInput) ValidateWith(validators ...models.ValidatorFunc[GetEventInput]) error {
 	return models.Validate(i, validators...)

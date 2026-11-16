@@ -91,7 +91,8 @@ func (h *Handler) Reconcile(ctx context.Context) error {
 
 		for {
 			out, err := h.repo.ListEvents(ctx, notification.ListEventsInput{
-				Page: page,
+				Expand: &notification.EventExpand{DeliveryStatus: true},
+				Page:   page,
 				DeliveryStatus: &filter.FilterString{
 					In: lo.ToPtr([]string{
 						string(notification.EventDeliveryStatusStatePending),
