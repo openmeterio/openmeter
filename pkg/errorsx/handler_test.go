@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -15,6 +16,27 @@ import (
 
 	"github.com/openmeterio/openmeter/pkg/models"
 )
+
+func TestSlogHandlerCaller(t *testing.T) {
+	var output bytes.Buffer
+	handler := NewSlogHandler(slog.New(slog.NewJSONHandler(&output, &slog.HandlerOptions{AddSource: true})))
+	err := errors.New("test failure")
+
+	_, file, handleLine, _ := runtime.Caller(0)
+	handler.Handle(err)
+	_, _, contextLine, _ := runtime.Caller(0)
+	handler.HandleContext(t.Context(), NewWarnError(err))
+
+	decoder := json.NewDecoder(&output)
+	for _, line := range []int{handleLine + 1, contextLine + 1} {
+		var record struct {
+			Source slog.Source `json:"source"`
+		}
+		require.NoError(t, decoder.Decode(&record))
+		require.Equal(t, file, record.Source.File)
+		require.Equal(t, line, record.Source.Line)
+	}
+}
 
 func TestSlogHandlerCancellation(t *testing.T) {
 	for _, test := range []struct {
