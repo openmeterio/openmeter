@@ -13,13 +13,16 @@ pull. Resolving a fact does not activate keys.
 | Customer or subscription lifecycle | That customer’s credit balances and metered entitlements |
 | Feature or meter lifecycle | Metered entitlements using the feature and credit balances for matching usage-based charges |
 
-Ingest routing uses the customer key or an active subject mapping and follows the meter to its
-features. For metered entitlements, usage counts from the measurement start until deletion. The
+Ingest routing uses the customer key or an active subject mapping. It finds meters by the raw
+event types and the reported slugs, then follows those meters to their features. The sink caches
+meter definitions, so a notification can omit the slug of a meter that already counts the usage.
+
+For metered entitlements, usage counts from the measurement start until deletion. The
 by-ID balance calculation includes usage after the entitlement’s scheduled activity end. For
 credits, usage must fall within the charge’s effective service period. Credit candidates
 require an open usage charge settled by credit, the matching currency, and a compatible portfolio
-or feature scope. The batch carries a set of meter slugs and raw event times, so selectors can
-conservatively include extra work. A selector establishes that the result *may* have changed.
+or feature scope. A batch can span several meters and occurrence times, so selectors can include
+extra work. A selector establishes that the result *may* have changed.
 
 Use occurrence time for period matching. A batch stored today can carry yesterday’s usage.
 Discarding it because an event with a later occurrence time was already seen can leave a balance

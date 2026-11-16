@@ -234,8 +234,9 @@ func (s *RTELiveProcessSuite) TestDemandAndSourceChangesAcrossProcessBoundary() 
 		s.Require().Equal(float64(25), storedUsage, "persisted production meter must see inserted usage")
 		s.T().Logf("inserted usage=%g meter=%s aggregation=%s eventType=%s topic=%s",
 			storedUsage, definition.Key, definition.Aggregation, definition.EventType, live.conf.Events.IngestEvents.Topic)
+		// The sink can store this usage before its meter cache picks up the new meter.
 		notification := ingestevents.EventBatchedIngest{
-			Namespace: eventmodels.NamespaceID{ID: ns}, SubjectKey: subjectKey, MeterSlugs: []string{"api-requests-total"}, StoredAt: storedAt,
+			Namespace: eventmodels.NamespaceID{ID: ns}, SubjectKey: subjectKey, StoredAt: storedAt,
 			RawEvents: []serializer.CloudEventsKafkaPayload{{Id: raw.ID, Type: raw.Type, Source: raw.Source, Subject: raw.Subject, Time: eventTime.Unix(), Data: raw.Data}},
 		}
 		msg, err := live.bus.Marshaler().Marshal(notification)
