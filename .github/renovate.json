@@ -14,6 +14,14 @@
     "api/client/javascript/package.json"
   ],
   "minimumReleaseAge": "7 days",
+  "separateMinorPatch": true,
+  "packageRules": [
+    {
+      "matchUpdateTypes": ["patch"],
+      "automerge": true,
+      "automergeType": "pr"
+    }
+  ],
   "prConcurrentLimit": 10,
   "prHourlyLimit": 0,
   "semanticCommits": "enabled",
