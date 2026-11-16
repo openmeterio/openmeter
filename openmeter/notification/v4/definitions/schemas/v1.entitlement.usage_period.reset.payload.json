@@ -1,0 +1,1259 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "v1.entitlement.usage_period.reset.payload",
+    "type": "object",
+    "properties": {
+        "entitlement": {
+            "$ref": "#/$defs/V1EntitlementMetered",
+            "description": "Entitlement.",
+            "title": "Entitlement"
+        },
+        "feature": {
+            "$ref": "#/$defs/V1Feature",
+            "description": "Feature.",
+            "title": "Feature"
+        },
+        "subject": {
+            "$ref": "#/$defs/V1Subject",
+            "description": "Subject.",
+            "title": "Subject"
+        },
+        "value": {
+            "$ref": "#/$defs/V1EntitlementValue",
+            "description": "Entitlement Value.",
+            "title": "Entitlement Value"
+        },
+        "customer": {
+            "$ref": "#/$defs/V1Customer",
+            "description": "Customer.",
+            "title": "Customer"
+        }
+    },
+    "required": [
+        "entitlement",
+        "feature",
+        "subject",
+        "value"
+    ],
+    "unevaluatedProperties": {
+        "not": {}
+    },
+    "description": "Payload of `v1.entitlement.usage_period.reset`, the legacy `entitlements.reset`\nEvent type.",
+    "$defs": {
+        "V1EntitlementMetered": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "const": "metered",
+                    "description": "type."
+                },
+                "is_soft_limit": {
+                    "type": "boolean",
+                    "description": "If softLimit=true the subject can use the feature even if the entitlement is\nexhausted, hasAccess will always be true.",
+                    "title": "Soft limit"
+                },
+                "is_unlimited": {
+                    "type": "boolean",
+                    "description": "Deprecated, ignored by the backend. Please use isSoftLimit instead; this field\nwill be removed in the future.",
+                    "deprecated": true
+                },
+                "issue_after_reset": {
+                    "type": "number",
+                    "minimum": 0,
+                    "description": "You can grant usage automatically alongside the entitlement, the example\nscenario would be creating a starting balance. If an amount is specified here, a\ngrant will be created alongside the entitlement with the specified amount. That\ngrant will have it's rollover settings configured in a way that after each reset\noperation, the balance will return the original amount specified here. Manually\ncreating such a grant would mean having the \"amount\", \"minRolloverAmount\", and\n\"maxRolloverAmount\" fields all be the same.",
+                    "title": "Initial grant amount"
+                },
+                "issue_after_reset_priority": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 255,
+                    "description": "Defines the grant priority for the default grant.",
+                    "title": "Issue grant after reset priority"
+                },
+                "preserve_overage_at_reset": {
+                    "type": "boolean",
+                    "description": "If true, the overage is preserved at reset. If false, the usage is reset to 0.",
+                    "title": "Preserve overage at reset"
+                },
+                "created_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Timestamp of when the resource was created.",
+                    "title": "Creation Time"
+                },
+                "updated_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Timestamp of when the resource was last updated.",
+                    "title": "Last Update Time"
+                },
+                "deleted_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Timestamp of when the resource was permanently deleted.",
+                    "title": "Deletion Time"
+                },
+                "metadata": {
+                    "$ref": "#/$defs/V1Metadata",
+                    "description": "Additional metadata for the feature."
+                },
+                "active_from": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "The cadence start of the resource."
+                },
+                "active_to": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "The cadence end of the resource."
+                },
+                "annotations": {
+                    "$ref": "#/$defs/V1Annotations",
+                    "description": "The annotations of the entitlement."
+                },
+                "id": {
+                    "type": "string",
+                    "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$",
+                    "description": "Readonly unique ULID identifier."
+                },
+                "subject_key": {
+                    "type": "string",
+                    "description": "The identifier key unique to the subject. NOTE: Subjects are being deprecated,\nplease use the new customer APIs."
+                },
+                "feature_key": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9]+(?:_[a-z0-9]+)*$",
+                    "description": "The feature the subject is entitled to use."
+                },
+                "feature_id": {
+                    "type": "string",
+                    "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$",
+                    "description": "The feature the subject is entitled to use."
+                },
+                "last_reset": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "The time the last reset happened."
+                },
+                "current_usage_period": {
+                    "$ref": "#/$defs/V1Period",
+                    "description": "The current usage period."
+                },
+                "measure_usage_from": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "The time from which usage is measured. If not specified on creation, defaults to\nentitlement creation time."
+                },
+                "usage_period": {
+                    "$ref": "#/$defs/V1RecurringPeriod",
+                    "description": "THe usage period of the entitlement."
+                }
+            },
+            "required": [
+                "type",
+                "created_at",
+                "updated_at",
+                "active_from",
+                "id",
+                "subject_key",
+                "feature_key",
+                "feature_id",
+                "last_reset",
+                "current_usage_period",
+                "measure_usage_from",
+                "usage_period"
+            ],
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "Metered entitlements are useful for many different use cases, from setting up\nusage based access to implementing complex credit systems. Access is determined\nbased on feature usage using a balance calculation (the \"usage allowance\"\nprovided by the issued grants is \"burnt down\" by the usage).",
+            "deprecated": true
+        },
+        "V1Feature": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Timestamp of when the resource was created.",
+                    "title": "Creation Time"
+                },
+                "updated_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Timestamp of when the resource was last updated.",
+                    "title": "Last Update Time"
+                },
+                "deleted_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Timestamp of when the resource was permanently deleted.",
+                    "title": "Deletion Time"
+                },
+                "archived_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Timestamp of when the resource was archived.",
+                    "title": "Archival Time"
+                },
+                "key": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9]+(?:_[a-z0-9]+)*$",
+                    "description": "A key is a unique string that is used to identify a resource.",
+                    "title": "The unique key of the feature"
+                },
+                "name": {
+                    "type": "string",
+                    "description": "The human-readable name of the feature.",
+                    "title": "The human-readable name of the feature"
+                },
+                "metadata": {
+                    "$ref": "#/$defs/V1Metadata",
+                    "description": "Optional metadata.",
+                    "title": "Optional metadata"
+                },
+                "meter_slug": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "A key is a unique string that is used to identify a resource.",
+                    "title": "Meter slug"
+                },
+                "meter_group_by_filters": {
+                    "$ref": "#/$defs/RecordString",
+                    "description": "Optional meter group by filters. Useful if the meter scope is broader than what\nfeature tracks. Example scenario would be a meter tracking all token use with\ngroupBy fields for the model, then the feature could filter for model=gpt-4.\n\n⚠️ **Deprecated**: Use advancedMeterGroupByFilters instead",
+                    "title": "Meter group by filters",
+                    "deprecated": true
+                },
+                "advanced_meter_group_by_filters": {
+                    "$ref": "#/$defs/RecordV1FilterString",
+                    "description": "Optional advanced meter group by filters. You can use this to filter for values\nof the meter groupBy fields.",
+                    "title": "Advanced meter group by filters"
+                },
+                "unit_cost": {
+                    "$ref": "#/$defs/V1FeatureUnitCost",
+                    "description": "Optional per-unit cost configuration. Use \"manual\" for a fixed per-unit cost, or\n\"llm\" to look up cost from the LLM cost database based on meter group-by\nproperties.",
+                    "title": "Unit cost"
+                },
+                "id": {
+                    "type": "string",
+                    "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$",
+                    "description": "Readonly unique ULID identifier."
+                }
+            },
+            "required": [
+                "created_at",
+                "updated_at",
+                "key",
+                "name",
+                "id"
+            ],
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "Represents a feature that can be enabled or disabled for a plan. Used both for\nproduct catalog and entitlements."
+        },
+        "V1Subject": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Timestamp of when the resource was created.",
+                    "title": "Creation Time"
+                },
+                "updated_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Timestamp of when the resource was last updated.",
+                    "title": "Last Update Time"
+                },
+                "deleted_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Timestamp of when the resource was permanently deleted.",
+                    "title": "Deletion Time"
+                },
+                "id": {
+                    "type": "string",
+                    "description": "A unique identifier for the subject."
+                },
+                "key": {
+                    "type": "string",
+                    "description": "A unique, human-readable identifier for the subject. This is typically a\ndatabase ID or a customer key."
+                },
+                "display_name": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "description": "A human-readable display name for the subject."
+                },
+                "metadata": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/RecordUnknown"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "description": "Metadata for the subject."
+                },
+                "current_period_start": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "The start of the current period for the subject.",
+                    "deprecated": true
+                },
+                "current_period_end": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "The end of the current period for the subject.",
+                    "deprecated": true
+                },
+                "stripe_customer_id": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "description": "The Stripe customer ID for the subject.",
+                    "deprecated": true
+                }
+            },
+            "required": [
+                "created_at",
+                "updated_at",
+                "id",
+                "key"
+            ],
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "A subject is a unique identifier for a usage attribution by its key. Subjects\nonly exist in the concept of metering. Subjects are optional to create and work\nas an enrichment for the subject key like displayName, metadata, etc. Subjects\nare useful when you are reporting usage events with your own database ID but\nwant to enrich the subject with a human-readable name or metadata. For most use\ncases, a subject is equivalent to a customer.\n\n⚠️ **Deprecated**: Subjects as managable entities are being depracated, use\ncustomers with subject key usage attribution instead.",
+            "deprecated": true
+        },
+        "V1EntitlementValue": {
+            "type": "object",
+            "properties": {
+                "has_access": {
+                    "type": "boolean",
+                    "description": "Whether the subject has access to the feature. Shared accross all entitlement\ntypes."
+                },
+                "balance": {
+                    "type": "number",
+                    "description": "Only available for metered entitlements. Metered entitlements are built around a\nbalance calculation where feature usage is deducted from the issued grants.\nBalance represents the remaining balance of the entitlement, it's value never\nturns negative."
+                },
+                "usage": {
+                    "type": "number",
+                    "description": "Only available for metered entitlements. Returns the total feature usage in the\ncurrent period."
+                },
+                "overage": {
+                    "type": "number",
+                    "description": "Only available for metered entitlements. Overage represents the usage that\nwasn't covered by grants, e.g. if the subject had a total feature usage of 100\nin the period but they were only granted 80, there would be 20 overage."
+                },
+                "total_available_grant_amount": {
+                    "type": "number",
+                    "description": "Only available for metered entitlements. The summed amount of all grant active\nat query time PLUS the used amount of since inactive grants."
+                },
+                "config": {
+                    "type": "string",
+                    "description": "Only available for static entitlements. The JSON parsable config of the\nentitlement."
+                }
+            },
+            "required": [
+                "has_access"
+            ],
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "Entitlements are the core of OpenMeter access management. They define access to\nfeatures for subjects. Entitlements can be metered, boolean, or static."
+        },
+        "V1Customer": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "description": "A unique identifier for the resource.",
+                    "title": "ID"
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 256,
+                    "description": "Human-readable name for the resource. Between 1 and 256 characters.",
+                    "title": "Display name"
+                },
+                "description": {
+                    "type": "string",
+                    "maxLength": 1024,
+                    "description": "Optional description of the resource. Maximum 1024 characters.",
+                    "title": "Description"
+                },
+                "metadata": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/V1Metadata"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "description": "Additional metadata for the resource.",
+                    "title": "Metadata"
+                },
+                "created_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Timestamp of when the resource was created.",
+                    "title": "Creation Time"
+                },
+                "updated_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Timestamp of when the resource was last updated.",
+                    "title": "Last Update Time"
+                },
+                "deleted_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Timestamp of when the resource was permanently deleted.",
+                    "title": "Deletion Time"
+                },
+                "key": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256,
+                    "description": "An optional unique key of the customer. Either key or\nusageAttribution.subjectKeys must be provided. Useful to reference the customer\nin external systems. For example, your database ID.",
+                    "title": "Key"
+                },
+                "usage_attribution": {
+                    "$ref": "#/$defs/V1CustomerUsageAttribution",
+                    "description": "Mapping to attribute metered usage to the customer Either key or\nusageAttribution.subjectKeys must be provided.",
+                    "title": "Usage Attribution"
+                },
+                "primary_email": {
+                    "type": "string",
+                    "description": "The primary email address of the customer.",
+                    "title": "Primary Email"
+                },
+                "currency": {
+                    "$ref": "#/$defs/V1CurrencyCode",
+                    "description": "Currency of the customer. Used for billing, tax and invoicing.",
+                    "title": "Currency"
+                },
+                "billing_address": {
+                    "$ref": "#/$defs/V1Address",
+                    "description": "The billing address of the customer. Used for tax and invoicing.",
+                    "title": "Billing Address"
+                },
+                "current_subscription_id": {
+                    "type": "string",
+                    "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$",
+                    "description": "The ID of the Subscription if the customer has one.",
+                    "title": "Current Subscription ID"
+                },
+                "subscriptions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/V1Subscription"
+                    },
+                    "description": "The subscriptions of the customer. Only with the `subscriptions` expand option.",
+                    "title": "Subscriptions"
+                },
+                "annotations": {
+                    "$ref": "#/$defs/V1Annotations",
+                    "description": "Set of key-value pairs managed by the system. Cannot be modified by user.",
+                    "title": "Annotations"
+                }
+            },
+            "required": [
+                "id",
+                "name",
+                "created_at",
+                "updated_at"
+            ],
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "A customer object."
+        },
+        "V1Metadata": {
+            "type": "object",
+            "properties": {},
+            "unevaluatedProperties": {
+                "type": "string"
+            },
+            "description": "Set of key-value pairs. Metadata can be used to store additional information\nabout a resource."
+        },
+        "V1Annotations": {
+            "type": "object",
+            "properties": {},
+            "unevaluatedProperties": {},
+            "description": "Set of key-value pairs managed by the system. Cannot be modified by user."
+        },
+        "V1Period": {
+            "type": "object",
+            "properties": {
+                "from": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Period start time."
+                },
+                "to": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Period end time."
+                }
+            },
+            "required": [
+                "from",
+                "to"
+            ],
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "A period with a start and end time."
+        },
+        "V1RecurringPeriod": {
+            "type": "object",
+            "properties": {
+                "interval": {
+                    "$ref": "#/$defs/V1RecurringPeriodInterval",
+                    "description": "The unit of time for the interval. Heuristically maps ISO duraitons to enum\nvalues or returns the ISO duration.",
+                    "title": "Interval"
+                },
+                "anchor": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "A date-time anchor to base the recurring period on.",
+                    "title": "Anchor time"
+                },
+                "interval_iso": {
+                    "type": "string",
+                    "format": "duration",
+                    "description": "The unit of time for the interval in ISO8601 format."
+                }
+            },
+            "required": [
+                "interval",
+                "anchor",
+                "interval_iso"
+            ],
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "Recurring period with an interval and an anchor.",
+            "deprecated": true
+        },
+        "RecordString": {
+            "type": "object",
+            "properties": {},
+            "unevaluatedProperties": {
+                "type": "string"
+            }
+        },
+        "RecordV1FilterString": {
+            "type": "object",
+            "properties": {},
+            "unevaluatedProperties": {
+                "$ref": "#/$defs/V1FilterString"
+            }
+        },
+        "V1FeatureUnitCost": {
+            "anyOf": [
+                {
+                    "$ref": "#/$defs/V1FeatureManualUnitCost",
+                    "description": "manual."
+                },
+                {
+                    "$ref": "#/$defs/V1FeatureLLMUnitCost",
+                    "description": "llm."
+                }
+            ],
+            "description": "Per-unit cost configuration for a feature. Either a fixed manual amount or a\ndynamic LLM cost lookup."
+        },
+        "RecordUnknown": {
+            "type": "object",
+            "properties": {},
+            "unevaluatedProperties": {}
+        },
+        "V1CustomerUsageAttribution": {
+            "type": "object",
+            "properties": {
+                "subject_keys": {
+                    "anyOf": [
+                        {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "minItems": 0,
+                    "description": "The subjects that are attributed to the customer. Can be empty when no subjects\nare associated with the customer.",
+                    "title": "SubjectKeys"
+                }
+            },
+            "required": [
+                "subject_keys"
+            ],
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "Mapping to attribute metered usage to the customer. One customer can have zero\nor more subjects, but one subject can only belong to one customer."
+        },
+        "V1CurrencyCode": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 3,
+            "pattern": "^[A-Z]{3}$",
+            "description": "Three-letter [ISO4217](https://www.iso.org/iso-4217-currency-codes.html)\ncurrency code. Custom three-letter currency codes are also supported for\nconvenience."
+        },
+        "V1Address": {
+            "type": "object",
+            "properties": {
+                "country": {
+                    "$ref": "#/$defs/V1CountryCode",
+                    "description": "Country code in [ISO 3166-1](https://www.iso.org/iso-3166-country-codes.html)\nalpha-2 format."
+                },
+                "postal_code": {
+                    "type": "string",
+                    "description": "Postal code."
+                },
+                "state": {
+                    "type": "string",
+                    "description": "State or province."
+                },
+                "city": {
+                    "type": "string",
+                    "description": "City."
+                },
+                "line1": {
+                    "type": "string",
+                    "description": "First line of the address."
+                },
+                "line2": {
+                    "type": "string",
+                    "description": "Second line of the address."
+                },
+                "phone_number": {
+                    "type": "string",
+                    "description": "Phone number."
+                }
+            },
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "Address"
+        },
+        "V1Subscription": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$",
+                    "description": "A unique identifier for the resource.",
+                    "title": "ID"
+                },
+                "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256,
+                    "description": "Human-readable name for the resource. Between 1 and 256 characters.",
+                    "title": "Display name"
+                },
+                "description": {
+                    "type": "string",
+                    "maxLength": 1024,
+                    "description": "Optional description of the resource. Maximum 1024 characters.",
+                    "title": "Description"
+                },
+                "metadata": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/V1Metadata"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "description": "Additional metadata for the resource.",
+                    "title": "Metadata"
+                },
+                "created_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Timestamp of when the resource was created.",
+                    "title": "Creation Time"
+                },
+                "updated_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Timestamp of when the resource was last updated.",
+                    "title": "Last Update Time"
+                },
+                "deleted_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Timestamp of when the resource was permanently deleted.",
+                    "title": "Deletion Time"
+                },
+                "active_from": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "The cadence start of the resource."
+                },
+                "active_to": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "The cadence end of the resource."
+                },
+                "annotations": {
+                    "$ref": "#/$defs/V1Annotations",
+                    "description": "Set of key-value pairs managed by the system. Cannot be modified by user.",
+                    "title": "Annotations"
+                },
+                "alignment": {
+                    "$ref": "#/$defs/V1Alignment",
+                    "description": "Alignment configuration for the plan."
+                },
+                "status": {
+                    "$ref": "#/$defs/V1SubscriptionStatus",
+                    "description": "The status of the subscription."
+                },
+                "customer_id": {
+                    "type": "string",
+                    "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$",
+                    "description": "The customer ID of the subscription."
+                },
+                "plan": {
+                    "$ref": "#/$defs/V1PlanReference",
+                    "description": "The plan of the subscription."
+                },
+                "currency": {
+                    "$ref": "#/$defs/V1CurrencyCode",
+                    "description": "The fiat currency in which the subscription is invoiced.",
+                    "title": "Currency"
+                },
+                "cost_basis_mode": {
+                    "$ref": "#/$defs/V1SubscriptionCostBasisMode",
+                    "description": "Controls whether custom-currency cost bases are resolved dynamically or pinned\nwhen their currency pair is introduced to the subscription.",
+                    "title": "Cost basis mode"
+                },
+                "cost_basis_pins": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/V1SubscriptionCostBasisPin"
+                    },
+                    "description": "Cost bases pinned to custom-currency pairs for this subscription.",
+                    "title": "Pinned cost bases"
+                },
+                "billing_cadence": {
+                    "type": "string",
+                    "format": "duration",
+                    "description": "The billing cadence for the subscriptions. Defines how often customers are\nbilled using ISO8601 duration format. Examples: \"P1M\" (monthly), \"P3M\"\n(quarterly), \"P1Y\" (annually).",
+                    "title": "Billing cadence"
+                },
+                "pro_rating_config": {
+                    "$ref": "#/$defs/V1ProRatingConfig",
+                    "description": "The pro-rating configuration for the subscriptions.",
+                    "title": "Pro-rating configuration"
+                },
+                "billing_anchor": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "The normalizedbilling anchor of the subscription.",
+                    "title": "Billing anchor"
+                },
+                "settlement_mode": {
+                    "$ref": "#/$defs/V1BillingSettlementMode",
+                    "description": "The settlement mode of the subscription.\n\n- credit_then_invoice: credits from the previous billing period are applied\nfirst, then the remaining balance is invoiced.\n- credit_only: only credits from the previous billing period are generated and\napplied. No invoices are generated for the subscription. This is the default\nand most common settlement mode.",
+                    "title": "Settlement mode"
+                }
+            },
+            "required": [
+                "id",
+                "name",
+                "created_at",
+                "updated_at",
+                "active_from",
+                "status",
+                "customer_id",
+                "currency",
+                "cost_basis_mode",
+                "cost_basis_pins",
+                "billing_cadence",
+                "billing_anchor",
+                "settlement_mode"
+            ],
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "Subscription is an exact subscription instance."
+        },
+        "V1RecurringPeriodInterval": {
+            "anyOf": [
+                {
+                    "type": "string"
+                },
+                {
+                    "$ref": "#/$defs/V1RecurringPeriodIntervalEnum"
+                }
+            ],
+            "description": "Period duration for the recurrence"
+        },
+        "V1FilterString": {
+            "type": "object",
+            "properties": {
+                "$eq": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "description": "The field must be equal to the provided value."
+                },
+                "$ne": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "description": "The field must not be equal to the provided value."
+                },
+                "$in": {
+                    "anyOf": [
+                        {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "description": "The field must be in the provided list of values."
+                },
+                "$nin": {
+                    "anyOf": [
+                        {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "description": "The field must not be in the provided list of values."
+                },
+                "$like": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "description": "The field must match the provided value."
+                },
+                "$nlike": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "description": "The field must not match the provided value."
+                },
+                "$ilike": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "description": "The field must match the provided value, ignoring case."
+                },
+                "$nilike": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "description": "The field must not match the provided value, ignoring case."
+                },
+                "$gt": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "description": "The field must be greater than the provided value."
+                },
+                "$gte": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "description": "The field must be greater than or equal to the provided value."
+                },
+                "$lt": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "description": "The field must be less than the provided value."
+                },
+                "$lte": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "description": "The field must be less than or equal to the provided value."
+                },
+                "$and": {
+                    "anyOf": [
+                        {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/$defs/V1FilterString"
+                            }
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "description": "Provide a list of filters to be combined with a logical AND."
+                },
+                "$or": {
+                    "anyOf": [
+                        {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/$defs/V1FilterString"
+                            }
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "description": "Provide a list of filters to be combined with a logical OR."
+                }
+            },
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "A filter for a string field."
+        },
+        "V1FeatureManualUnitCost": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "const": "manual",
+                    "description": "type."
+                },
+                "amount": {
+                    "$ref": "#/$defs/V1Numeric",
+                    "description": "Fixed per-unit cost amount in USD."
+                }
+            },
+            "required": [
+                "type",
+                "amount"
+            ],
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "A fixed per-unit cost amount."
+        },
+        "V1FeatureLLMUnitCost": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "const": "llm",
+                    "description": "type."
+                },
+                "provider_property": {
+                    "type": "string",
+                    "description": "Meter group-by property that holds the LLM provider. Use this when the meter has\na group-by dimension for provider. Mutually exclusive with `provider`.",
+                    "title": "Provider property"
+                },
+                "provider": {
+                    "type": "string",
+                    "description": "Static LLM provider value (e.g., \"openai\", \"anthropic\"). Use this when the\nfeature tracks a single provider. Mutually exclusive with `providerProperty`.",
+                    "title": "Provider"
+                },
+                "model_property": {
+                    "type": "string",
+                    "description": "Meter group-by property that holds the model ID. Use this when the meter has a\ngroup-by dimension for model. Mutually exclusive with `model`.",
+                    "title": "Model property"
+                },
+                "model": {
+                    "type": "string",
+                    "description": "Static model ID value (e.g., \"gpt-4\", \"claude-3-5-sonnet\"). Use this when the\nfeature tracks a single model. Mutually exclusive with `modelProperty`.",
+                    "title": "Model"
+                },
+                "token_type_property": {
+                    "type": "string",
+                    "description": "Meter group-by property that holds the token type. Use this when the meter has a\ngroup-by dimension for token type. Mutually exclusive with `tokenType`.",
+                    "title": "Token type property"
+                },
+                "token_type": {
+                    "type": "string",
+                    "description": "Static token type value. Use this when the feature tracks a single token type\n(e.g., only input tokens). Expected values: input, output, cache_read,\nreasoning, cache_write, request, response. `request` is an alias for `input`,\n`response` is an alias for `output`. Mutually exclusive with\n`tokenTypeProperty`.",
+                    "title": "Token type"
+                },
+                "pricing": {
+                    "$ref": "#/$defs/V1FeatureLLMUnitCostPricing",
+                    "description": "Resolved per-token pricing from the LLM cost database. Only populated in\nresponses when the feature's meter group-by filters specify exact provider and\nmodel values.",
+                    "title": "Resolved pricing"
+                }
+            },
+            "required": [
+                "type"
+            ],
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "LLM cost lookup configuration. Maps meter group-by dimensions to LLM cost\ndatabase fields."
+        },
+        "V1CountryCode": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 2,
+            "pattern": "^[A-Z]{2}$",
+            "description": "[ISO 3166-1](https://www.iso.org/iso-3166-country-codes.html) alpha-2 country\ncode. Custom two-letter country codes are also supported for convenience."
+        },
+        "V1Alignment": {
+            "type": "object",
+            "properties": {
+                "billables_must_align": {
+                    "type": "boolean",
+                    "description": "Whether all Billable items and RateCards must align. Alignment means the Price's\nBillingCadence must align for both duration and anchor time.",
+                    "deprecated": true
+                }
+            },
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "Alignment configuration for a plan or subscription.",
+            "deprecated": true
+        },
+        "V1SubscriptionStatus": {
+            "type": "string",
+            "enum": [
+                "active",
+                "inactive",
+                "canceled",
+                "scheduled"
+            ],
+            "description": "Subscription status."
+        },
+        "V1PlanReference": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$",
+                    "description": "The plan ID."
+                },
+                "key": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9]+(?:_[a-z0-9]+)*$",
+                    "description": "The plan key."
+                },
+                "version": {
+                    "type": "integer",
+                    "description": "The plan version."
+                }
+            },
+            "required": [
+                "id",
+                "key",
+                "version"
+            ],
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "References an exact plan."
+        },
+        "V1SubscriptionCostBasisMode": {
+            "type": "string",
+            "enum": [
+                "dynamic",
+                "pinned"
+            ],
+            "description": "Controls how custom-currency cost bases are selected for the subscription."
+        },
+        "V1SubscriptionCostBasisPin": {
+            "type": "object",
+            "properties": {
+                "custom_currency_id": {
+                    "type": "string",
+                    "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$",
+                    "description": "The managed custom currency ID."
+                },
+                "invoice_currency": {
+                    "$ref": "#/$defs/V1CurrencyCode",
+                    "description": "The fiat currency in which the subscription is invoiced."
+                },
+                "cost_basis_id": {
+                    "type": "string",
+                    "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$",
+                    "description": "The pinned cost basis resource ID."
+                }
+            },
+            "required": [
+                "custom_currency_id",
+                "invoice_currency",
+                "cost_basis_id"
+            ],
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "A cost basis pinned to a custom-currency pair for the subscription."
+        },
+        "V1ProRatingConfig": {
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean",
+                    "description": "Whether pro-rating is enabled for this plan.",
+                    "title": "Enable pro-rating"
+                },
+                "mode": {
+                    "$ref": "#/$defs/V1ProRatingMode",
+                    "description": "How to handle pro-rating for billing period changes.",
+                    "title": "Pro-rating mode"
+                }
+            },
+            "required": [
+                "enabled",
+                "mode"
+            ],
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "Configuration for pro-rating behavior."
+        },
+        "V1BillingSettlementMode": {
+            "type": "string",
+            "enum": [
+                "credit_then_invoice",
+                "credit_only"
+            ],
+            "description": "The settlement mode of a plan. It determines how the billing system generates\ninvoices and credits for the subscriptions using this plan.\n\n- credit_then_invoice: credits from the previous billing period are applied\nfirst, then the remaining balance is invoiced. This is the default and most\ncommon settlement mode.\n- credit_only: only credits from the previous billing period are generated and\napplied. No invoices are generated for the subscription."
+        },
+        "V1RecurringPeriodIntervalEnum": {
+            "type": "string",
+            "enum": [
+                "DAY",
+                "WEEK",
+                "MONTH",
+                "YEAR"
+            ],
+            "description": "The unit of time for the interval. One of: `day`, `week`, `month`, or `year`."
+        },
+        "V1Numeric": {
+            "type": "string",
+            "pattern": "^\\-?[0-9]+(\\.[0-9]+)?$",
+            "description": "Numeric represents an arbitrary precision number."
+        },
+        "V1FeatureLLMUnitCostPricing": {
+            "type": "object",
+            "properties": {
+                "input_per_token": {
+                    "$ref": "#/$defs/V1Numeric",
+                    "description": "Cost per input token in USD.",
+                    "title": "Input per token"
+                },
+                "output_per_token": {
+                    "$ref": "#/$defs/V1Numeric",
+                    "description": "Cost per output token in USD.",
+                    "title": "Output per token"
+                },
+                "cache_read_per_token": {
+                    "$ref": "#/$defs/V1Numeric",
+                    "description": "Cost per cache read token in USD.",
+                    "title": "Cache read per token"
+                },
+                "reasoning_per_token": {
+                    "$ref": "#/$defs/V1Numeric",
+                    "description": "Cost per reasoning token in USD.",
+                    "title": "Reasoning per token"
+                },
+                "cache_write_per_token": {
+                    "$ref": "#/$defs/V1Numeric",
+                    "description": "Cost per cache write token in USD.",
+                    "title": "Cache write per token"
+                }
+            },
+            "required": [
+                "input_per_token",
+                "output_per_token"
+            ],
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "Resolved per-token pricing from the LLM cost database."
+        },
+        "V1ProRatingMode": {
+            "type": "string",
+            "enum": [
+                "prorate_prices"
+            ],
+            "description": "Pro-rating mode options for handling billing period changes."
+        }
+    }
+}

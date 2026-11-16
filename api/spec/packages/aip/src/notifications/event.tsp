@@ -214,7 +214,7 @@ model NotificationEventBalanceThresholdPayload {
    * The entities and threshold the event refers to.
    */
   @visibility(Lifecycle.Read)
-  data: LegacyV1.V1NotificationEventBalanceThresholdPayloadData;
+  data: LegacyV1.BalanceThresholdTriggeredV1Payload;
 }
 
 /**
@@ -244,7 +244,7 @@ model NotificationEventResetPayload {
    * The entities the event refers to.
    */
   @visibility(Lifecycle.Read)
-  data: LegacyV1.V1NotificationEventEntitlementValuePayloadBase;
+  data: LegacyV1.UsagePeriodResetV1Payload;
 }
 
 /**
@@ -274,7 +274,7 @@ model NotificationEventInvoiceCreatedPayload {
    * The invoice the event refers to.
    */
   @visibility(Lifecycle.Read)
-  data: LegacyV1.V1Invoice;
+  data: LegacyV1.InvoiceCreatedV1Payload;
 }
 
 /**
@@ -304,7 +304,7 @@ model NotificationEventInvoiceUpdatedPayload {
    * The invoice the event refers to.
    */
   @visibility(Lifecycle.Read)
-  data: LegacyV1.V1Invoice;
+  data: LegacyV1.InvoiceUpdatedV1Payload;
 }
 
 /**

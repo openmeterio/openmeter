@@ -173,7 +173,7 @@ var WidgetThingHappenedV1EventType = v4.EventType{
 var WidgetThingHappenedV1PayloadJSONSchema []byte
 
 // WidgetThingHappenedV1RuleConfigJSONSchema is the JSON Schema (draft 2020-12) of
-// apiv3models.WidgetThingHappenedV1RuleConfig, the Rule configuration of v1.widget.thing.happened.
+// WidgetThingHappenedV1RuleConfig, the Rule configuration of v1.widget.thing.happened.
 //
 //go:embed schemas/v1.widget.thing.happened.rule_config.json
 var WidgetThingHappenedV1RuleConfigJSONSchema []byte

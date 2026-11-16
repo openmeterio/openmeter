@@ -266,6 +266,14 @@ When changing the copies:
   would add the `openmeter_` prefix to annotation keys. Keys of these maps are
   user data and keep their case.
 
+The `data` of each legacy payload is also the payload of the versioned Event
+type in the table above, and the type-specific fields of the v3 Rule are its
+Rule configuration. [`legacy-v1-event-types.tsp`](../../api/spec/packages/aip/src/notifications/legacy-v1-event-types.tsp)
+declares these v1 contracts, and their definitions are generated into
+[`notification/v4/definitions`](v4/definitions). A changed copy therefore
+changes a contract and fails the `definitions.sum` check. The v3 handler tests
+validate every legacy fixture against its contract.
+
 [`event_v3.go`](../../test/notification/event_v3.go) runs the real consumers,
 reads the Events through both APIs and validates the v3 responses against the
 spec. When a producer can send a new shape, add a case there.

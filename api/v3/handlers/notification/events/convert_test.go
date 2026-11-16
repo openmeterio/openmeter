@@ -4,6 +4,7 @@ import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"strings"
 	"testing"
 	"time"
@@ -16,6 +17,8 @@ import (
 	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/notification/httpdriver"
+	v4 "github.com/openmeterio/openmeter/openmeter/notification/v4"
+	"github.com/openmeterio/openmeter/openmeter/notification/v4/definitions"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -192,6 +195,48 @@ func TestToAPIBillingNotificationEventPayloadMatchesV1(t *testing.T) {
 				typedJSON, err := json.Marshal(typed)
 				require.NoError(t, err)
 				assert.JSONEq(t, string(v3JSON), string(typedJSON))
+			})
+		}
+	}
+}
+
+// The data of each legacy payload, as the v3 API returns it, is the payload of
+// the v1 Event type that replaces the legacy type.
+func TestToAPIBillingNotificationEventPayloadMatchesV1Contract(t *testing.T) {
+	registry, err := v4.NewEventRegistry(v4.EventRegistryConfig{
+		Logger:      slog.New(slog.DiscardHandler),
+		Definitions: definitions.All(),
+	})
+	require.NoError(t, err)
+
+	contracts := map[notification.EventType]v4.EventType{
+		notification.EventTypeInvoiceCreated:   definitions.BillingInvoiceCreatedV1EventType,
+		notification.EventTypeInvoiceUpdated:   definitions.BillingInvoiceUpdatedV1EventType,
+		notification.EventTypeBalanceThreshold: definitions.EntitlementBalanceThresholdTriggeredV1EventType,
+		notification.EventTypeEntitlementReset: definitions.EntitlementUsagePeriodResetV1EventType,
+	}
+
+	var fixtures map[string]json.RawMessage
+	require.NoError(t, json.Unmarshal(legacyPayloadFixtures, &fixtures))
+
+	for name, raw := range fixtures {
+		for _, event := range legacyFixtureEvents(t, name, raw) {
+			t.Run(name+"/"+string(event.Type), func(t *testing.T) {
+				validate, err := registry.PayloadValidator(contracts[event.Type])
+				require.NoError(t, err)
+
+				got, err := ToAPIBillingNotificationEvent(event)
+				require.NoError(t, err)
+
+				body, err := json.Marshal(got.Payload)
+				require.NoError(t, err)
+
+				var payload struct {
+					Data json.RawMessage `json:"data"`
+				}
+				require.NoError(t, json.Unmarshal(body, &payload))
+
+				require.NoError(t, validate(t.Context(), "default", payload.Data))
 			})
 		}
 	}

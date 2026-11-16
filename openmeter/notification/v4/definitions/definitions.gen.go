@@ -8,7 +8,120 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/notification/v4"
 )
 
+// BillingInvoiceCreatedV1EventType is v1.billing.invoice.created.
+var BillingInvoiceCreatedV1EventType = v4.EventType{
+	Name:    "billing.invoice.created",
+	Version: 1,
+}
+
+// BillingInvoiceCreatedV1PayloadJSONSchema is the JSON Schema (draft 2020-12) of
+// apiv3models.BillingInvoiceCreatedV1Payload.
+//
+//go:embed schemas/v1.billing.invoice.created.payload.json
+var BillingInvoiceCreatedV1PayloadJSONSchema []byte
+
+// BillingInvoiceCreatedV1RuleConfigJSONSchema is the JSON Schema (draft 2020-12) of
+// BillingInvoiceCreatedV1RuleConfig, the Rule configuration of v1.billing.invoice.created.
+//
+//go:embed schemas/v1.billing.invoice.created.rule_config.json
+var BillingInvoiceCreatedV1RuleConfigJSONSchema []byte
+
+// BillingInvoiceCreatedV1Definition is the definition of v1.billing.invoice.created.
+var BillingInvoiceCreatedV1Definition = v4.EventTypeDefinition{
+	EventType:         BillingInvoiceCreatedV1EventType,
+	PayloadJSONSchema: BillingInvoiceCreatedV1PayloadJSONSchema,
+	Rule: &v4.RuleConfigDefinition{
+		JSONSchema: BillingInvoiceCreatedV1RuleConfigJSONSchema,
+	},
+}
+
+// BillingInvoiceUpdatedV1EventType is v1.billing.invoice.updated.
+var BillingInvoiceUpdatedV1EventType = v4.EventType{
+	Name:    "billing.invoice.updated",
+	Version: 1,
+}
+
+// BillingInvoiceUpdatedV1PayloadJSONSchema is the JSON Schema (draft 2020-12) of
+// apiv3models.BillingInvoiceUpdatedV1Payload.
+//
+//go:embed schemas/v1.billing.invoice.updated.payload.json
+var BillingInvoiceUpdatedV1PayloadJSONSchema []byte
+
+// BillingInvoiceUpdatedV1RuleConfigJSONSchema is the JSON Schema (draft 2020-12) of
+// BillingInvoiceUpdatedV1RuleConfig, the Rule configuration of v1.billing.invoice.updated.
+//
+//go:embed schemas/v1.billing.invoice.updated.rule_config.json
+var BillingInvoiceUpdatedV1RuleConfigJSONSchema []byte
+
+// BillingInvoiceUpdatedV1Definition is the definition of v1.billing.invoice.updated.
+var BillingInvoiceUpdatedV1Definition = v4.EventTypeDefinition{
+	EventType:         BillingInvoiceUpdatedV1EventType,
+	PayloadJSONSchema: BillingInvoiceUpdatedV1PayloadJSONSchema,
+	Rule: &v4.RuleConfigDefinition{
+		JSONSchema: BillingInvoiceUpdatedV1RuleConfigJSONSchema,
+	},
+}
+
+// EntitlementBalanceThresholdTriggeredV1EventType is v1.entitlement.balance_threshold.triggered.
+var EntitlementBalanceThresholdTriggeredV1EventType = v4.EventType{
+	Name:    "entitlement.balance_threshold.triggered",
+	Version: 1,
+}
+
+// EntitlementBalanceThresholdTriggeredV1PayloadJSONSchema is the JSON Schema (draft 2020-12) of
+// apiv3models.EntitlementBalanceThresholdTriggeredV1Payload.
+//
+//go:embed schemas/v1.entitlement.balance_threshold.triggered.payload.json
+var EntitlementBalanceThresholdTriggeredV1PayloadJSONSchema []byte
+
+// EntitlementBalanceThresholdTriggeredV1RuleConfigJSONSchema is the JSON Schema (draft 2020-12) of
+// EntitlementBalanceThresholdTriggeredV1RuleConfig, the Rule configuration of v1.entitlement.balance_threshold.triggered.
+//
+//go:embed schemas/v1.entitlement.balance_threshold.triggered.rule_config.json
+var EntitlementBalanceThresholdTriggeredV1RuleConfigJSONSchema []byte
+
+// EntitlementBalanceThresholdTriggeredV1Definition is the definition of v1.entitlement.balance_threshold.triggered.
+var EntitlementBalanceThresholdTriggeredV1Definition = v4.EventTypeDefinition{
+	EventType:         EntitlementBalanceThresholdTriggeredV1EventType,
+	PayloadJSONSchema: EntitlementBalanceThresholdTriggeredV1PayloadJSONSchema,
+	Rule: &v4.RuleConfigDefinition{
+		JSONSchema: EntitlementBalanceThresholdTriggeredV1RuleConfigJSONSchema,
+	},
+}
+
+// EntitlementUsagePeriodResetV1EventType is v1.entitlement.usage_period.reset.
+var EntitlementUsagePeriodResetV1EventType = v4.EventType{
+	Name:    "entitlement.usage_period.reset",
+	Version: 1,
+}
+
+// EntitlementUsagePeriodResetV1PayloadJSONSchema is the JSON Schema (draft 2020-12) of
+// apiv3models.EntitlementUsagePeriodResetV1Payload.
+//
+//go:embed schemas/v1.entitlement.usage_period.reset.payload.json
+var EntitlementUsagePeriodResetV1PayloadJSONSchema []byte
+
+// EntitlementUsagePeriodResetV1RuleConfigJSONSchema is the JSON Schema (draft 2020-12) of
+// EntitlementUsagePeriodResetV1RuleConfig, the Rule configuration of v1.entitlement.usage_period.reset.
+//
+//go:embed schemas/v1.entitlement.usage_period.reset.rule_config.json
+var EntitlementUsagePeriodResetV1RuleConfigJSONSchema []byte
+
+// EntitlementUsagePeriodResetV1Definition is the definition of v1.entitlement.usage_period.reset.
+var EntitlementUsagePeriodResetV1Definition = v4.EventTypeDefinition{
+	EventType:         EntitlementUsagePeriodResetV1EventType,
+	PayloadJSONSchema: EntitlementUsagePeriodResetV1PayloadJSONSchema,
+	Rule: &v4.RuleConfigDefinition{
+		JSONSchema: EntitlementUsagePeriodResetV1RuleConfigJSONSchema,
+	},
+}
+
 // All returns the definition of every Notification Event type.
 func All() []v4.EventTypeDefinition {
-	return []v4.EventTypeDefinition{}
+	return []v4.EventTypeDefinition{
+		BillingInvoiceCreatedV1Definition,
+		BillingInvoiceUpdatedV1Definition,
+		EntitlementBalanceThresholdTriggeredV1Definition,
+		EntitlementUsagePeriodResetV1Definition,
+	}
 }

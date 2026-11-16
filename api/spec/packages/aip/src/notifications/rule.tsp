@@ -2,6 +2,7 @@ import "../shared/index.tsp";
 import "../features/index.tsp";
 import "./channel.tsp";
 import "./event.tsp";
+import "./legacy-v1-event-types.tsp";
 
 namespace Notifications;
 
@@ -80,21 +81,7 @@ model NotificationRuleBase<T extends NotificationEventType> {
 @friendlyName("BillingNotificationRuleBalanceThreshold")
 model NotificationRuleBalanceThreshold {
   ...NotificationRuleBase<NotificationEventType.EntitlementsBalanceThreshold>;
-
-  /**
-   * The thresholds that generate an event when crossed.
-   */
-  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  @minItems(1)
-  @maxItems(10)
-  thresholds: Array<NotificationBalanceThreshold>;
-
-  /**
-   * The features the rule applies to. When omitted, the rule applies to every
-   * feature.
-   */
-  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  features?: Array<Shared.ResourceReference<Features.Feature>>;
+  ...LegacyV1.BalanceThresholdTriggeredV1RuleConfig;
 }
 
 /**
@@ -103,13 +90,7 @@ model NotificationRuleBalanceThreshold {
 @friendlyName("BillingNotificationRuleEntitlementReset")
 model NotificationRuleEntitlementReset {
   ...NotificationRuleBase<NotificationEventType.EntitlementsReset>;
-
-  /**
-   * The features the rule applies to. When omitted, the rule applies to every
-   * feature.
-   */
-  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  features?: Array<Shared.ResourceReference<Features.Feature>>;
+  ...LegacyV1.UsagePeriodResetV1RuleConfig;
 }
 
 /**

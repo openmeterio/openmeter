@@ -1,0 +1,2747 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "v1.billing.invoice.created.payload",
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": "string",
+            "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$",
+            "description": "A unique identifier for the resource.",
+            "title": "ID"
+        },
+        "description": {
+            "type": "string",
+            "maxLength": 1024,
+            "description": "Optional description of the resource. Maximum 1024 characters.",
+            "title": "Description"
+        },
+        "metadata": {
+            "anyOf": [
+                {
+                    "$ref": "#/$defs/V1Metadata"
+                },
+                {
+                    "type": "null"
+                }
+            ],
+            "description": "Additional metadata for the resource.",
+            "title": "Metadata"
+        },
+        "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Timestamp of when the resource was created.",
+            "title": "Creation Time"
+        },
+        "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Timestamp of when the resource was last updated.",
+            "title": "Last Update Time"
+        },
+        "deleted_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Timestamp of when the resource was permanently deleted.",
+            "title": "Deletion Time"
+        },
+        "type": {
+            "$ref": "#/$defs/V1InvoiceType",
+            "description": "Type of the invoice.\n\nThe type of invoice determines the purpose of the invoice and how it should be\nhandled.\n\nSupported types:\n\n- standard: A regular commercial invoice document between a supplier and\ncustomer.\n- credit_note: Reflects a refund either partial or complete of the preceding\ndocument. A credit note effectively _extends_ the previous document."
+        },
+        "supplier": {
+            "$ref": "#/$defs/V1BillingParty",
+            "description": "The taxable entity supplying the goods or services."
+        },
+        "customer": {
+            "$ref": "#/$defs/V1BillingInvoiceCustomerExtendedDetails",
+            "description": "Legal entity receiving the goods or services."
+        },
+        "number": {
+            "$ref": "#/$defs/V1InvoiceNumber",
+            "description": "Number specifies the human readable key used to reference this Invoice.\n\nThe invoice number can change in the draft phases, as we are allocating\ntemporary draft invoice numbers, but it's final as soon as the invoice gets\nfinalized (issued state).\n\nPlease note that the number is (depending on the upstream settings) either\nunique for the whole organization or unique for the customer, or in multi\n(stripe) account setups unique for the account."
+        },
+        "currency": {
+            "$ref": "#/$defs/V1CurrencyCode",
+            "description": "Currency for all invoice line items.\n\nMulti currency invoices are not supported yet."
+        },
+        "preceding": {
+            "type": "array",
+            "items": {
+                "$ref": "#/$defs/V1InvoiceDocumentRef"
+            },
+            "description": "Key information regarding previous invoices and potentially details as to why\nthey were corrected."
+        },
+        "totals": {
+            "$ref": "#/$defs/V1InvoiceTotals",
+            "description": "Summary of all the invoice totals, including taxes (calculated)."
+        },
+        "status": {
+            "$ref": "#/$defs/V1InvoiceStatus",
+            "description": "The status of the invoice.\n\nThis field only conatins a simplified status, for more detailed information use\nthe statusDetails field."
+        },
+        "status_details": {
+            "$ref": "#/$defs/V1InvoiceStatusDetails",
+            "description": "The details of the current invoice status."
+        },
+        "issued_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The time the invoice was issued.\n\nDepending on the status of the invoice this can mean multiple things:\n\n- draft, gathering: The time the invoice will be issued based on the workflow\nsettings.\n- issued: The time the invoice was issued."
+        },
+        "draft_until": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The time until the invoice is in draft status.\n\nOn draft invoice creation it is calculated from the workflow settings.\n\nIf manual approval is required, the draftUntil time is set."
+        },
+        "quantity_snapshoted_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The time when the quantity snapshots on the invoice lines were taken."
+        },
+        "collection_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The time when the invoice will be/has been collected."
+        },
+        "due_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Due time of the fulfillment of the invoice (if available)."
+        },
+        "period": {
+            "$ref": "#/$defs/V1Period",
+            "description": "The period the invoice covers. If the invoice has no line items, it's not set."
+        },
+        "voided_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The time the invoice was voided.\n\nIf the invoice was voided, this field will be set to the time the invoice was\nvoided."
+        },
+        "sent_to_customer_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The time the invoice was sent to customer."
+        },
+        "workflow": {
+            "$ref": "#/$defs/V1InvoiceWorkflowSettings",
+            "description": "The workflow associated with the invoice.\n\nIt is always a snapshot of the workflow settings at the time of invoice\ncreation. The field is optional as it should be explicitly requested with expand\noptions."
+        },
+        "lines": {
+            "type": "array",
+            "items": {
+                "$ref": "#/$defs/V1InvoiceLine"
+            },
+            "description": "List of invoice lines representing each of the items sold to the customer."
+        },
+        "payment": {
+            "$ref": "#/$defs/V1InvoicePaymentTerms",
+            "description": "Information on when, how, and to whom the invoice should be paid."
+        },
+        "validation_issues": {
+            "type": "array",
+            "items": {
+                "$ref": "#/$defs/V1ValidationIssue"
+            },
+            "description": "Validation issues reported by the invoice workflow."
+        },
+        "external_ids": {
+            "$ref": "#/$defs/V1InvoiceAppExternalIds",
+            "description": "External IDs of the invoice in other apps such as Stripe."
+        }
+    },
+    "required": [
+        "id",
+        "created_at",
+        "updated_at",
+        "type",
+        "supplier",
+        "customer",
+        "number",
+        "currency",
+        "totals",
+        "status",
+        "status_details",
+        "workflow"
+    ],
+    "unevaluatedProperties": {
+        "not": {}
+    },
+    "description": "Payload of `v1.billing.invoice.created`, the legacy `invoice.created` Event\ntype: the invoice as it was created.",
+    "$defs": {
+        "V1Metadata": {
+            "type": "object",
+            "properties": {},
+            "unevaluatedProperties": {
+                "type": "string"
+            },
+            "description": "Set of key-value pairs. Metadata can be used to store additional information\nabout a resource."
+        },
+        "V1InvoiceType": {
+            "type": "string",
+            "enum": [
+                "standard",
+                "credit_note"
+            ],
+            "description": "InvoiceType represents the type of invoice.\n\nThe type of invoice determines the purpose of the invoice and how it should be\nhandled."
+        },
+        "V1BillingParty": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "description": "Unique identifier for the party (if available)"
+                },
+                "key": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256,
+                    "description": "An optional unique key of the party (if available)",
+                    "title": "Key"
+                },
+                "name": {
+                    "type": "string",
+                    "description": "Legal name or representation of the organization."
+                },
+                "tax_id": {
+                    "$ref": "#/$defs/V1BillingPartyTaxIdentity",
+                    "description": "The entity's legal ID code used for tax purposes. They may have other numbers,\nbut we're only interested in those valid for tax purposes."
+                },
+                "addresses": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/V1Address"
+                    },
+                    "maxItems": 1,
+                    "description": "Regular post addresses for where information should be sent if needed."
+                }
+            },
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "Party represents a person or business entity."
+        },
+        "V1BillingInvoiceCustomerExtendedDetails": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "description": "Unique identifier for the party (if available)"
+                },
+                "key": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256,
+                    "description": "An optional unique key of the party (if available)",
+                    "title": "Key"
+                },
+                "name": {
+                    "type": "string",
+                    "description": "Legal name or representation of the organization."
+                },
+                "tax_id": {
+                    "$ref": "#/$defs/V1BillingPartyTaxIdentity",
+                    "description": "The entity's legal ID code used for tax purposes. They may have other numbers,\nbut we're only interested in those valid for tax purposes."
+                },
+                "addresses": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/V1Address"
+                    },
+                    "maxItems": 1,
+                    "description": "Regular post addresses for where information should be sent if needed."
+                },
+                "usage_attribution": {
+                    "$ref": "#/$defs/V1CustomerUsageAttribution",
+                    "description": "Mapping to attribute metered usage to the customer",
+                    "title": "Usage Attribution"
+                }
+            },
+            "required": [
+                "usage_attribution"
+            ],
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "BillingInvoiceCustomerExtendedDetails is a collection of fields that are used to\nextend the billing party details for invoices.\n\nThese fields contain the OpenMeter specific details for the customer, that are\nnot strictly required for the invoice itself."
+        },
+        "V1InvoiceNumber": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "description": "InvoiceNumber is a unique identifier for the invoice, generated by the invoicing\napp.\n\nThe uniqueness depends on a lot of factors:\n\n- app setting (unique per app or unique per customer)\n- multiple app scenarios (multiple apps generating invoices with the same\nprefix)"
+        },
+        "V1CurrencyCode": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 3,
+            "pattern": "^[A-Z]{3}$",
+            "description": "Three-letter [ISO4217](https://www.iso.org/iso-4217-currency-codes.html)\ncurrency code. Custom three-letter currency codes are also supported for\nconvenience."
+        },
+        "V1InvoiceDocumentRef": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "$ref": "#/$defs/V1InvoiceDocumentRefType",
+                    "description": "Type of the document referenced."
+                },
+                "reason": {
+                    "type": "string",
+                    "description": "Human readable description on why this reference is here or needs to be used."
+                },
+                "description": {
+                    "type": "string",
+                    "description": "Additional details about the document."
+                }
+            },
+            "required": [
+                "type"
+            ],
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "InvoiceDocumentRef is used to describe a reference to an existing document\n(invoice).\n\nThe v1 schema describes credit note references with issued_at, number and url,\nbut the v1 API only ever sends the generic fields below."
+        },
+        "V1InvoiceTotals": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "$ref": "#/$defs/V1Numeric",
+                    "description": "The total value of the line before taxes, discounts and commitments."
+                },
+                "charges_total": {
+                    "$ref": "#/$defs/V1Numeric",
+                    "description": "The amount of value of the line that are due to additional charges."
+                },
+                "discounts_total": {
+                    "$ref": "#/$defs/V1Numeric",
+                    "description": "The amount of value of the line that are due to discounts."
+                },
+                "credits_total": {
+                    "$ref": "#/$defs/V1Numeric",
+                    "description": "The amount of value of the line that are due to credits."
+                },
+                "taxes_inclusive_total": {
+                    "$ref": "#/$defs/V1Numeric",
+                    "description": "The total amount of taxes that are included in the line."
+                },
+                "taxes_exclusive_total": {
+                    "$ref": "#/$defs/V1Numeric",
+                    "description": "The total amount of taxes that are added on top of amount from the line."
+                },
+                "taxes_total": {
+                    "$ref": "#/$defs/V1Numeric",
+                    "description": "The total amount of taxes for this line."
+                },
+                "total": {
+                    "$ref": "#/$defs/V1Numeric",
+                    "description": "The total amount value of the line after taxes, discounts and commitments."
+                }
+            },
+            "required": [
+                "amount",
+                "charges_total",
+                "discounts_total",
+                "credits_total",
+                "taxes_inclusive_total",
+                "taxes_exclusive_total",
+                "taxes_total",
+                "total"
+            ],
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "Totals contains the summaries of all calculations for the invoice."
+        },
+        "V1InvoiceStatus": {
+            "type": "string",
+            "enum": [
+                "gathering",
+                "draft",
+                "issuing",
+                "issued",
+                "payment_processing",
+                "overdue",
+                "paid",
+                "uncollectible",
+                "voided"
+            ],
+            "description": "InvoiceStatus describes the status of an invoice."
+        },
+        "V1InvoiceStatusDetails": {
+            "type": "object",
+            "properties": {
+                "immutable": {
+                    "type": "boolean",
+                    "description": "Is the invoice editable?"
+                },
+                "failed": {
+                    "type": "boolean",
+                    "description": "Is the invoice in a failed state?"
+                },
+                "extended_status": {
+                    "type": "string",
+                    "description": "Extended status information for the invoice."
+                },
+                "available_actions": {
+                    "$ref": "#/$defs/V1InvoiceAvailableActions",
+                    "description": "The actions that can be performed on the invoice."
+                }
+            },
+            "required": [
+                "immutable",
+                "failed",
+                "extended_status",
+                "available_actions"
+            ],
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "InvoiceStatusDetails represents the details of the invoice status.\n\nAPI users are encouraged to rely on the immutable/failed/avaliableActions fields\nto determine the next steps of the invoice instead of the extendedStatus field."
+        },
+        "V1Period": {
+            "type": "object",
+            "properties": {
+                "from": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Period start time."
+                },
+                "to": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Period end time."
+                }
+            },
+            "required": [
+                "from",
+                "to"
+            ],
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "A period with a start and end time."
+        },
+        "V1InvoiceWorkflowSettings": {
+            "type": "object",
+            "properties": {
+                "apps": {
+                    "$ref": "#/$defs/V1BillingProfileApps",
+                    "description": "The apps that will be used to orchestrate the invoice's workflow.\n\nThe v1 schema allows app references here too, but the v1 Event payloads always\ncarry the full apps."
+                },
+                "source_billing_profile_id": {
+                    "type": "string",
+                    "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$",
+                    "description": "sourceBillingProfileID is the billing profile on which the workflow was based\non.\n\nThe profile is snapshotted on invoice creation, after which it can be altered\nindependently of the profile itself."
+                },
+                "workflow": {
+                    "$ref": "#/$defs/V1BillingWorkflow",
+                    "description": "The workflow details used by this invoice."
+                }
+            },
+            "required": [
+                "source_billing_profile_id",
+                "workflow"
+            ],
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "InvoiceWorkflowSettings represents the workflow settings used by the invoice.\n\nThis is a clone of the billing profile's workflow settings at the time of\ninvoice creation with customer overrides considered."
+        },
+        "V1InvoiceLine": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256,
+                    "description": "Human-readable name for the resource. Between 1 and 256 characters.",
+                    "title": "Display name"
+                },
+                "description": {
+                    "type": "string",
+                    "maxLength": 1024,
+                    "description": "Optional description of the resource. Maximum 1024 characters.",
+                    "title": "Description"
+                },
+                "metadata": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/V1Metadata"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "description": "Additional metadata for the resource.",
+                    "title": "Metadata"
+                },
+                "created_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Timestamp of when the resource was created.",
+                    "title": "Creation Time"
+                },
+                "updated_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Timestamp of when the resource was last updated.",
+                    "title": "Last Update Time"
+                },
+                "deleted_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Timestamp of when the resource was permanently deleted.",
+                    "title": "Deletion Time"
+                },
+                "id": {
+                    "type": "string",
+                    "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$",
+                    "description": "ID of the line."
+                },
+                "managed_by": {
+                    "$ref": "#/$defs/V1InvoiceLineManagedBy",
+                    "description": "managedBy specifies if the line is manually added via the api or managed by\nOpenMeter."
+                },
+                "status": {
+                    "$ref": "#/$defs/V1InvoiceLineStatus",
+                    "description": "Status of the line.\n\nExternal calls always create valid lines, other line types are managed by the\nbilling engine of OpenMeter."
+                },
+                "discounts": {
+                    "$ref": "#/$defs/V1InvoiceLineDiscounts",
+                    "description": "Discounts detailes applied to this line.\n\nNew discounts can be added via the invoice's discounts API, to facilitate\ndiscounts that are affecting multiple lines."
+                },
+                "credit_allocations": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/V1InvoiceLineCreditAllocation"
+                    },
+                    "description": "Credit allocations applied to this line.\n\nCredits are deducted from the line total before taxes are applied."
+                },
+                "invoice": {
+                    "$ref": "#/$defs/V1InvoiceReference",
+                    "description": "The invoice this item belongs to."
+                },
+                "currency": {
+                    "$ref": "#/$defs/V1CurrencyCode",
+                    "description": "The currency of this line."
+                },
+                "taxes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/V1InvoiceLineTaxItem"
+                    },
+                    "description": "Taxes applied to the invoice totals."
+                },
+                "tax_config": {
+                    "$ref": "#/$defs/V1TaxConfig",
+                    "description": "Tax config specify the tax configuration for this line.",
+                    "deprecated": true
+                },
+                "totals": {
+                    "$ref": "#/$defs/V1InvoiceTotals",
+                    "description": "Totals for this line."
+                },
+                "period": {
+                    "$ref": "#/$defs/V1Period",
+                    "description": "Period of the line item applies to for revenue recognition pruposes.\n\nBilling always treats periods as start being inclusive and end being exclusive."
+                },
+                "invoice_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "The time this line item should be invoiced."
+                },
+                "external_ids": {
+                    "$ref": "#/$defs/V1InvoiceLineAppExternalIds",
+                    "description": "External IDs of the invoice in other apps such as Stripe."
+                },
+                "subscription": {
+                    "$ref": "#/$defs/V1InvoiceLineSubscriptionReference",
+                    "description": "Subscription are the references to the subscritpions that this line is related\nto."
+                },
+                "type": {
+                    "type": "string",
+                    "const": "usage_based",
+                    "description": "Type of the line.",
+                    "deprecated": true
+                },
+                "price": {
+                    "$ref": "#/$defs/V1RateCardUsageBasedPrice",
+                    "description": "Price of the usage-based item being sold.",
+                    "deprecated": true
+                },
+                "feature_key": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9]+(?:_[a-z0-9]+)*$",
+                    "description": "The feature that the usage is based on.",
+                    "deprecated": true
+                },
+                "children": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/V1InvoiceDetailedLine"
+                    },
+                    "description": "The lines detailing the item or service sold."
+                },
+                "rate_card": {
+                    "$ref": "#/$defs/V1InvoiceUsageBasedRateCard",
+                    "description": "The rate card that is used for this line.\n\nThe rate card captures the intent of the price and discounts for the usage-based\nitem."
+                },
+                "quantity": {
+                    "$ref": "#/$defs/V1Numeric",
+                    "description": "The quantity of the item being sold.\n\nAny usage discounts applied previously are deducted from this quantity."
+                },
+                "metered_quantity": {
+                    "$ref": "#/$defs/V1Numeric",
+                    "description": "The quantity of the item that has been metered for the period before any\ndiscounts were applied."
+                },
+                "pre_line_period_quantity": {
+                    "$ref": "#/$defs/V1Numeric",
+                    "description": "The quantity of the item used before this line's period.\n\nIt is non-zero in case of progressive billing, when this shows how much of the\nusage was already billed.\n\nAny usage discounts applied previously are deducted from this quantity."
+                },
+                "metered_pre_line_period_quantity": {
+                    "$ref": "#/$defs/V1Numeric",
+                    "description": "The metered quantity of the item used in before this line's period without any\ndiscounts applied.\n\nIt is non-zero in case of progressive billing, when this shows how much of the\nusage was already billed."
+                }
+            },
+            "required": [
+                "name",
+                "created_at",
+                "updated_at",
+                "id",
+                "managed_by",
+                "status",
+                "currency",
+                "totals",
+                "period",
+                "invoice_at",
+                "type"
+            ],
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "InvoiceUsageBasedLine represents a line item that is sold to the customer based\non usage."
+        },
+        "V1InvoicePaymentTerms": {
+            "type": "object",
+            "properties": {
+                "terms": {
+                    "$ref": "#/$defs/V1PaymentTerms",
+                    "description": "The terms of payment for the invoice."
+                }
+            },
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "Payment contains details as to how the invoice should be paid."
+        },
+        "V1ValidationIssue": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Timestamp of when the resource was created.",
+                    "title": "Creation Time"
+                },
+                "updated_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Timestamp of when the resource was last updated.",
+                    "title": "Last Update Time"
+                },
+                "deleted_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Timestamp of when the resource was permanently deleted.",
+                    "title": "Deletion Time"
+                },
+                "id": {
+                    "type": "string",
+                    "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$",
+                    "description": "ID of the charge or discount."
+                },
+                "severity": {
+                    "$ref": "#/$defs/V1ValidationIssueSeverity",
+                    "description": "The severity of the issue."
+                },
+                "field": {
+                    "type": "string",
+                    "description": "The field that the issue is related to, if available in JSON path format."
+                },
+                "code": {
+                    "type": "string",
+                    "description": "Machine indentifiable code for the issue, if available."
+                },
+                "component": {
+                    "type": "string",
+                    "description": "Component reporting the issue."
+                },
+                "message": {
+                    "type": "string",
+                    "description": "A human-readable description of the issue."
+                },
+                "metadata": {
+                    "$ref": "#/$defs/V1Metadata",
+                    "description": "Additional context for the issue."
+                }
+            },
+            "required": [
+                "created_at",
+                "updated_at",
+                "id",
+                "severity",
+                "component",
+                "message"
+            ],
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "ValidationIssue captures any validation issues related to the invoice.\n\nIssues with severity \"critical\" will prevent the invoice from being issued."
+        },
+        "V1InvoiceAppExternalIds": {
+            "type": "object",
+            "properties": {
+                "invoicing": {
+                    "type": "string",
+                    "description": "The external ID of the invoice in the invoicing app if available."
+                },
+                "tax": {
+                    "type": "string",
+                    "description": "The external ID of the invoice in the tax app if available."
+                },
+                "payment": {
+                    "type": "string",
+                    "description": "The external ID of the invoice in the payment app if available."
+                }
+            },
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "InvoiceAppExternalIds contains the external IDs of the invoice in other apps\nsuch as Stripe."
+        },
+        "V1BillingPartyTaxIdentity": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "$ref": "#/$defs/V1BillingTaxIdentificationCode",
+                    "description": "Normalized tax code shown on the original identity document."
+                }
+            },
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "Identity stores the details required to identify an entity for tax purposes in a\nspecific country."
+        },
+        "V1Address": {
+            "type": "object",
+            "properties": {
+                "country": {
+                    "$ref": "#/$defs/V1CountryCode",
+                    "description": "Country code in [ISO 3166-1](https://www.iso.org/iso-3166-country-codes.html)\nalpha-2 format."
+                },
+                "postal_code": {
+                    "type": "string",
+                    "description": "Postal code."
+                },
+                "state": {
+                    "type": "string",
+                    "description": "State or province."
+                },
+                "city": {
+                    "type": "string",
+                    "description": "City."
+                },
+                "line1": {
+                    "type": "string",
+                    "description": "First line of the address."
+                },
+                "line2": {
+                    "type": "string",
+                    "description": "Second line of the address."
+                },
+                "phone_number": {
+                    "type": "string",
+                    "description": "Phone number."
+                }
+            },
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "Address"
+        },
+        "V1CustomerUsageAttribution": {
+            "type": "object",
+            "properties": {
+                "subject_keys": {
+                    "anyOf": [
+                        {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "minItems": 0,
+                    "description": "The subjects that are attributed to the customer. Can be empty when no subjects\nare associated with the customer.",
+                    "title": "SubjectKeys"
+                }
+            },
+            "required": [
+                "subject_keys"
+            ],
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "Mapping to attribute metered usage to the customer. One customer can have zero\nor more subjects, but one subject can only belong to one customer."
+        },
+        "V1InvoiceDocumentRefType": {
+            "type": "string",
+            "enum": [
+                "credit_note_original_invoice"
+            ],
+            "description": "InvoiceDocumentRefType defines the type of document that is being referenced."
+        },
+        "V1Numeric": {
+            "type": "string",
+            "pattern": "^\\-?[0-9]+(\\.[0-9]+)?$",
+            "description": "Numeric represents an arbitrary precision number."
+        },
+        "V1InvoiceAvailableActions": {
+            "type": "object",
+            "properties": {
+                "advance": {
+                    "$ref": "#/$defs/V1InvoiceAvailableActionDetails",
+                    "description": "Advance the invoice to the next status."
+                },
+                "approve": {
+                    "$ref": "#/$defs/V1InvoiceAvailableActionDetails",
+                    "description": "Approve an invoice that requires manual approval."
+                },
+                "delete": {
+                    "$ref": "#/$defs/V1InvoiceAvailableActionDetails",
+                    "description": "Delete the invoice (only non-issued invoices can be deleted)."
+                },
+                "retry": {
+                    "$ref": "#/$defs/V1InvoiceAvailableActionDetails",
+                    "description": "Retry an invoice issuing step that failed."
+                },
+                "snapshot_quantities": {
+                    "$ref": "#/$defs/V1InvoiceAvailableActionDetails",
+                    "description": "Snapshot quantities for usage based line items."
+                },
+                "void": {
+                    "$ref": "#/$defs/V1InvoiceAvailableActionDetails",
+                    "description": "Void an already issued invoice."
+                },
+                "invoice": {
+                    "$ref": "#/$defs/V1InvoiceAvailableActionInvoiceDetails",
+                    "description": "Invoice a gathering invoice"
+                }
+            },
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "InvoiceAvailableActions represents the actions that can be performed on the\ninvoice."
+        },
+        "V1BillingProfileApps": {
+            "type": "object",
+            "properties": {
+                "tax": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/V1App"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "description": "The tax app used for this workflow"
+                },
+                "invoicing": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/V1App"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "description": "The invoicing app used for this workflow"
+                },
+                "payment": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/V1App"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "description": "The payment app used for this workflow"
+                }
+            },
+            "required": [
+                "tax",
+                "invoicing",
+                "payment"
+            ],
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "BillingProfileApps represents the applications used by a billing profile"
+        },
+        "V1BillingWorkflow": {
+            "type": "object",
+            "properties": {
+                "collection": {
+                    "$ref": "#/$defs/V1BillingWorkflowCollectionSettings",
+                    "description": "The collection settings for this workflow"
+                },
+                "invoicing": {
+                    "$ref": "#/$defs/V1BillingWorkflowInvoicingSettings",
+                    "description": "The invoicing settings for this workflow"
+                },
+                "payment": {
+                    "$ref": "#/$defs/V1BillingWorkflowPaymentSettings",
+                    "description": "The payment settings for this workflow"
+                },
+                "tax": {
+                    "$ref": "#/$defs/V1BillingWorkflowTaxSettings",
+                    "description": "The tax settings for this workflow"
+                }
+            },
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "BillingWorkflow represents the settings for a billing workflow."
+        },
+        "V1InvoiceLineManagedBy": {
+            "type": "string",
+            "enum": [
+                "subscription",
+                "system",
+                "manual"
+            ],
+            "description": "InvoiceLineManagedBy specifies who manages the line."
+        },
+        "V1InvoiceLineStatus": {
+            "type": "string",
+            "enum": [
+                "valid",
+                "detailed",
+                "split"
+            ],
+            "description": "Line status specifies the status of the line."
+        },
+        "V1InvoiceLineDiscounts": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/V1InvoiceLineAmountDiscount"
+                    },
+                    "description": "Amount based discounts applied to the line.\n\nAmount based discounts are deduced from the total price of the line."
+                },
+                "usage": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/V1InvoiceLineUsageDiscount"
+                    },
+                    "description": "Usage based discounts applied to the line.\n\nUsage based discounts are deduced from the usage of the line before price\ncalculations are applied."
+                }
+            },
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "InvoiceLineDiscounts represents the discounts applied to the invoice line by\ntype."
+        },
+        "V1InvoiceLineCreditAllocation": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "$ref": "#/$defs/V1Numeric",
+                    "description": "Amount allocated from credits.",
+                    "title": "Amount in the currency of the invoice"
+                },
+                "description": {
+                    "type": "string",
+                    "description": "Text description as to why the credit was allocated."
+                }
+            },
+            "required": [
+                "amount"
+            ],
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "InvoiceLineCreditAllocation represents a credit amount allocated to the line\nbefore taxes are applied."
+        },
+        "V1InvoiceReference": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$",
+                    "description": "The ID of the invoice."
+                },
+                "number": {
+                    "$ref": "#/$defs/V1InvoiceNumber",
+                    "description": "The number of the invoice."
+                }
+            },
+            "required": [
+                "id"
+            ],
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "Reference to an invoice."
+        },
+        "V1InvoiceLineTaxItem": {
+            "type": "object",
+            "properties": {
+                "config": {
+                    "$ref": "#/$defs/V1TaxConfig",
+                    "description": "Tax provider configuration."
+                },
+                "percent": {
+                    "$ref": "#/$defs/V1Percentage",
+                    "description": "Percent defines the percentage set manually or determined from the rate key\n(calculated if rate present). A nil percent implies that this tax combo is\n**exempt** from tax.\")"
+                },
+                "surcharge": {
+                    "$ref": "#/$defs/V1Numeric",
+                    "description": "Some countries require an additional surcharge (calculated if rate present)."
+                },
+                "behavior": {
+                    "$ref": "#/$defs/V1InvoiceLineTaxBehavior",
+                    "description": "Is the tax item inclusive or exclusive of the base amount."
+                }
+            },
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "TaxConfig stores the configuration for a tax line relative to an invoice line."
+        },
+        "V1TaxConfig": {
+            "type": "object",
+            "properties": {
+                "behavior": {
+                    "$ref": "#/$defs/V1TaxBehavior",
+                    "description": "Tax behavior.\n\nIf not specified the billing profile is used to determine the tax behavior. If\nnot specified in the billing profile, the provider's default behavior is used.",
+                    "title": "Tax behavior"
+                },
+                "stripe": {
+                    "$ref": "#/$defs/V1StripeTaxConfig",
+                    "description": "Stripe tax config.",
+                    "title": "Stripe tax config",
+                    "deprecated": true
+                },
+                "custom_invoicing": {
+                    "$ref": "#/$defs/V1CustomInvoicingTaxConfig",
+                    "description": "Custom invoicing tax config.",
+                    "title": "Custom invoicing tax config",
+                    "deprecated": true
+                },
+                "tax_code_id": {
+                    "type": "string",
+                    "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$",
+                    "description": "Tax code reference.\n\nWhen both `taxCodeId` and `stripe.code` are provided, `taxCodeId` takes\nprecedence: the referenced tax code entity is used and `stripe.code` is ignored.",
+                    "title": "Tax code ID"
+                }
+            },
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "Set of provider specific tax configs."
+        },
+        "V1InvoiceLineAppExternalIds": {
+            "type": "object",
+            "properties": {
+                "invoicing": {
+                    "type": "string",
+                    "description": "The external ID of the invoice in the invoicing app if available."
+                },
+                "tax": {
+                    "type": "string",
+                    "description": "The external ID of the invoice in the tax app if available."
+                }
+            },
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "InvoiceLineAppExternalIds contains the external IDs of the invoice in other apps\nsuch as Stripe."
+        },
+        "V1InvoiceLineSubscriptionReference": {
+            "type": "object",
+            "properties": {
+                "subscription": {
+                    "$ref": "#/$defs/V1IDResource",
+                    "description": "The subscription."
+                },
+                "phase": {
+                    "$ref": "#/$defs/V1IDResource",
+                    "description": "The phase of the subscription."
+                },
+                "item": {
+                    "$ref": "#/$defs/V1IDResource",
+                    "description": "The item this line is related to."
+                },
+                "billing_period": {
+                    "$ref": "#/$defs/V1Period",
+                    "description": "The billing period of the subscription. In case the subscription item's billing\nperiod is different from the subscription's billing period, this field will\ncontain the billing period of the subscription itself.\n\nFor example, in case of:\n\n- A monthly billed subscription anchored to 2025-01-01\n- A subscription item billed daily\n\nAn example line would have the period of 2025-01-02 to 2025-01-03 as the item is\nbilled daily, but the subscription's billing period will be 2025-01-01 to\n2025-01-31."
+                }
+            },
+            "required": [
+                "subscription",
+                "phase",
+                "item",
+                "billing_period"
+            ],
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "InvoiceLineSubscriptionReference contains the references to the subscription\nthat this line is related to."
+        },
+        "V1RateCardUsageBasedPrice": {
+            "anyOf": [
+                {
+                    "$ref": "#/$defs/V1FlatPriceWithPaymentTerm",
+                    "description": "flat."
+                },
+                {
+                    "$ref": "#/$defs/V1UnitPriceWithCommitments",
+                    "description": "unit."
+                },
+                {
+                    "$ref": "#/$defs/V1TieredPriceWithCommitments",
+                    "description": "tiered."
+                },
+                {
+                    "$ref": "#/$defs/V1DynamicPriceWithCommitments",
+                    "description": "dynamic."
+                },
+                {
+                    "$ref": "#/$defs/V1PackagePriceWithCommitments",
+                    "description": "package."
+                }
+            ],
+            "description": "The price of the usage based rate card."
+        },
+        "V1InvoiceDetailedLine": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256,
+                    "description": "Human-readable name for the resource. Between 1 and 256 characters.",
+                    "title": "Display name"
+                },
+                "description": {
+                    "type": "string",
+                    "maxLength": 1024,
+                    "description": "Optional description of the resource. Maximum 1024 characters.",
+                    "title": "Description"
+                },
+                "metadata": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/V1Metadata"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "description": "Additional metadata for the resource.",
+                    "title": "Metadata"
+                },
+                "created_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Timestamp of when the resource was created.",
+                    "title": "Creation Time"
+                },
+                "updated_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Timestamp of when the resource was last updated.",
+                    "title": "Last Update Time"
+                },
+                "deleted_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Timestamp of when the resource was permanently deleted.",
+                    "title": "Deletion Time"
+                },
+                "id": {
+                    "type": "string",
+                    "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$",
+                    "description": "ID of the line."
+                },
+                "managed_by": {
+                    "$ref": "#/$defs/V1InvoiceLineManagedBy",
+                    "description": "managedBy specifies if the line is manually added via the api or managed by\nOpenMeter."
+                },
+                "status": {
+                    "$ref": "#/$defs/V1InvoiceLineStatus",
+                    "description": "Status of the line.\n\nExternal calls always create valid lines, other line types are managed by the\nbilling engine of OpenMeter."
+                },
+                "discounts": {
+                    "$ref": "#/$defs/V1InvoiceLineDiscounts",
+                    "description": "Discounts detailes applied to this line.\n\nNew discounts can be added via the invoice's discounts API, to facilitate\ndiscounts that are affecting multiple lines."
+                },
+                "credit_allocations": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/V1InvoiceLineCreditAllocation"
+                    },
+                    "description": "Credit allocations applied to this line.\n\nCredits are deducted from the line total before taxes are applied."
+                },
+                "invoice": {
+                    "$ref": "#/$defs/V1InvoiceReference",
+                    "description": "The invoice this item belongs to."
+                },
+                "currency": {
+                    "$ref": "#/$defs/V1CurrencyCode",
+                    "description": "The currency of this line."
+                },
+                "taxes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/V1InvoiceLineTaxItem"
+                    },
+                    "description": "Taxes applied to the invoice totals."
+                },
+                "tax_config": {
+                    "$ref": "#/$defs/V1TaxConfig",
+                    "description": "Tax config specify the tax configuration for this line.",
+                    "deprecated": true
+                },
+                "totals": {
+                    "$ref": "#/$defs/V1InvoiceTotals",
+                    "description": "Totals for this line."
+                },
+                "period": {
+                    "$ref": "#/$defs/V1Period",
+                    "description": "Period of the line item applies to for revenue recognition pruposes.\n\nBilling always treats periods as start being inclusive and end being exclusive."
+                },
+                "external_ids": {
+                    "$ref": "#/$defs/V1InvoiceLineAppExternalIds",
+                    "description": "External IDs of the invoice in other apps such as Stripe."
+                },
+                "subscription": {
+                    "$ref": "#/$defs/V1InvoiceLineSubscriptionReference",
+                    "description": "Subscription are the references to the subscritpions that this line is related\nto."
+                },
+                "invoice_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "The time this line item should be invoiced.",
+                    "deprecated": true
+                },
+                "type": {
+                    "type": "string",
+                    "const": "flat_fee",
+                    "description": "Type of the line.",
+                    "deprecated": true
+                },
+                "per_unit_amount": {
+                    "$ref": "#/$defs/V1Numeric",
+                    "description": "Price of the item being sold.",
+                    "deprecated": true
+                },
+                "payment_term": {
+                    "$ref": "#/$defs/V1PricePaymentTerm",
+                    "description": "Payment term of the line.",
+                    "deprecated": true
+                },
+                "quantity": {
+                    "$ref": "#/$defs/V1Numeric",
+                    "description": "Quantity of the item being sold.",
+                    "deprecated": true
+                },
+                "rate_card": {
+                    "$ref": "#/$defs/V1InvoiceDetailedLineRateCard",
+                    "description": "The rate card that is used for this line."
+                },
+                "category": {
+                    "$ref": "#/$defs/V1InvoiceDetailedLineCostCategory",
+                    "description": "Category of the flat fee."
+                }
+            },
+            "required": [
+                "name",
+                "created_at",
+                "updated_at",
+                "id",
+                "managed_by",
+                "status",
+                "currency",
+                "totals",
+                "period",
+                "invoice_at",
+                "type"
+            ],
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "InvoiceDetailedLine represents a line item that is sold to the customer as a\nmanually added fee."
+        },
+        "V1InvoiceUsageBasedRateCard": {
+            "type": "object",
+            "properties": {
+                "feature_key": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9]+(?:_[a-z0-9]+)*$",
+                    "description": "The feature the customer is entitled to use.",
+                    "title": "Feature key"
+                },
+                "tax_config": {
+                    "$ref": "#/$defs/V1TaxConfig",
+                    "description": "The tax config of the rate card. When undefined, the tax config of the feature\nor the default tax config of the plan is used.",
+                    "title": "Tax config"
+                },
+                "price": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/V1RateCardUsageBasedPrice"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "description": "The price of the rate card. When null, the feature or service is free."
+                },
+                "discounts": {
+                    "$ref": "#/$defs/V1BillingDiscounts",
+                    "description": "The discounts that are applied to the line.",
+                    "deprecated": true
+                }
+            },
+            "required": [
+                "price"
+            ],
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "InvoiceUsageBasedRateCard represents the rate card (intent) for an usage-based\nline."
+        },
+        "V1PaymentTerms": {
+            "anyOf": [
+                {
+                    "$ref": "#/$defs/V1PaymentTermInstant"
+                },
+                {
+                    "$ref": "#/$defs/V1PaymentTermDueDate"
+                }
+            ],
+            "description": "PaymentTerms defines the terms for payment."
+        },
+        "V1ValidationIssueSeverity": {
+            "type": "string",
+            "enum": [
+                "critical",
+                "warning"
+            ],
+            "description": "ValidationIssueSeverity describes the severity of a validation issue.\n\nIssues with severity \"critical\" will prevent the invoice from being issued."
+        },
+        "V1BillingTaxIdentificationCode": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32,
+            "description": "TaxIdentificationCode is a normalized tax code shown on the original identity\ndocument."
+        },
+        "V1CountryCode": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 2,
+            "pattern": "^[A-Z]{2}$",
+            "description": "[ISO 3166-1](https://www.iso.org/iso-3166-country-codes.html) alpha-2 country\ncode. Custom two-letter country codes are also supported for convenience."
+        },
+        "V1InvoiceAvailableActionDetails": {
+            "type": "object",
+            "properties": {
+                "resulting_state": {
+                    "type": "string",
+                    "description": "The state the invoice will reach if the action is activated and all intermediate\nsteps are successful.\n\nFor example advancing a draft_created invoice will result in a\ndraft_manual_approval_needed invoice."
+                }
+            },
+            "required": [
+                "resulting_state"
+            ],
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "InvoiceAvailableActionInvoiceDetails represents the details of the invoice\naction for non-gathering invoices."
+        },
+        "V1InvoiceAvailableActionInvoiceDetails": {
+            "type": "object",
+            "properties": {},
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "InvoiceAvailableActionInvoiceDetails represents the details of the invoice\naction for gathering invoices."
+        },
+        "V1App": {
+            "anyOf": [
+                {
+                    "$ref": "#/$defs/V1StripeApp",
+                    "description": "stripe."
+                },
+                {
+                    "$ref": "#/$defs/V1SandboxApp",
+                    "description": "sandbox."
+                },
+                {
+                    "$ref": "#/$defs/V1CustomInvoicingApp",
+                    "description": "custom_invoicing."
+                }
+            ],
+            "description": "App. One of: stripe"
+        },
+        "V1BillingWorkflowCollectionSettings": {
+            "type": "object",
+            "properties": {
+                "alignment": {
+                    "$ref": "#/$defs/V1BillingWorkflowCollectionAlignment",
+                    "description": "The alignment for collecting the pending line items into an invoice."
+                },
+                "interval": {
+                    "type": "string",
+                    "format": "ISO8601",
+                    "description": "This grace period can be used to delay the collection of the pending line items\nspecified in alignment.\n\nThis is useful, in case of multiple subscriptions having slightly different\nbilling periods."
+                }
+            },
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "Workflow collection specifies how to collect the pending line items for an\ninvoice"
+        },
+        "V1BillingWorkflowInvoicingSettings": {
+            "type": "object",
+            "properties": {
+                "auto_advance": {
+                    "type": "boolean",
+                    "description": "Whether to automatically issue the invoice after the draftPeriod has passed."
+                },
+                "draft_period": {
+                    "type": "string",
+                    "format": "ISO8601",
+                    "description": "The period for the invoice to be kept in draft status for manual reviews."
+                },
+                "due_after": {
+                    "type": "string",
+                    "format": "ISO8601",
+                    "description": "The period after which the invoice is due. With some payment solutions it's only\napplicable for manual collection method."
+                },
+                "progressive_billing": {
+                    "type": "boolean",
+                    "description": "Should progressive billing be allowed for this workflow?"
+                },
+                "subscription_end_proration_mode": {
+                    "$ref": "#/$defs/V1BillingWorkflowInvoicingSubscriptionEndProrationMode",
+                    "description": "Controls how subscription-ending shortened service periods are billed."
+                },
+                "default_tax_config": {
+                    "$ref": "#/$defs/V1TaxConfig",
+                    "description": "Default tax configuration to apply to the invoices.\n\nSetting a tax code (`stripe.code` / `taxCodeId`) on a profile's default tax\nconfig is deprecated and can no longer be added or changed: the organization\ndefault tax code is used instead. Existing tax-code values may still be removed,\nand `behavior` remains fully supported."
+                }
+            },
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "BillingWorkflowInvoicingSettings represents the invoice settings for a billing\nworkflow",
+            "title": "Workflow invoice settings"
+        },
+        "V1BillingWorkflowPaymentSettings": {
+            "type": "object",
+            "properties": {
+                "collection_method": {
+                    "$ref": "#/$defs/V1CollectionMethod",
+                    "description": "The payment method for the invoice."
+                }
+            },
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "BillingWorkflowPaymentSettings represents the payment settings for a billing\nworkflow",
+            "title": "Workflow payment settings"
+        },
+        "V1BillingWorkflowTaxSettings": {
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean",
+                    "description": "Enable automatic tax calculation when tax is supported by the app. For example,\nwith Stripe Invoicing when enabled, tax is calculated via Stripe Tax."
+                },
+                "enforced": {
+                    "type": "boolean",
+                    "description": "Enforce tax calculation when tax is supported by the app. When enabled,\nOpenMeter will not allow to create an invoice without tax calculation.\nEnforcement is different per apps, for example, Stripe app requires customer to\nhave a tax location when starting a paid subscription."
+                }
+            },
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "BillingWorkflowTaxSettings represents the tax settings for a billing workflow",
+            "title": "Workflow tax settings"
+        },
+        "V1InvoiceLineAmountDiscount": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Timestamp of when the resource was created.",
+                    "title": "Creation Time"
+                },
+                "updated_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Timestamp of when the resource was last updated.",
+                    "title": "Last Update Time"
+                },
+                "deleted_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Timestamp of when the resource was permanently deleted.",
+                    "title": "Deletion Time"
+                },
+                "id": {
+                    "type": "string",
+                    "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$",
+                    "description": "ID of the charge or discount."
+                },
+                "reason": {
+                    "$ref": "#/$defs/V1BillingDiscountReason",
+                    "description": "Reason code."
+                },
+                "description": {
+                    "type": "string",
+                    "description": "Text description as to why the discount was applied."
+                },
+                "external_ids": {
+                    "$ref": "#/$defs/V1InvoiceLineAppExternalIds",
+                    "description": "External IDs of the invoice in other apps such as Stripe."
+                },
+                "amount": {
+                    "$ref": "#/$defs/V1Numeric",
+                    "description": "Fixed discount amount to apply (calculated if percent present).",
+                    "title": "Amount in the currency of the invoice"
+                }
+            },
+            "required": [
+                "created_at",
+                "updated_at",
+                "id",
+                "reason",
+                "amount"
+            ],
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "InvoiceLineAmountDiscount represents an amount deducted from the line, and will\nbe applied before taxes."
+        },
+        "V1InvoiceLineUsageDiscount": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Timestamp of when the resource was created.",
+                    "title": "Creation Time"
+                },
+                "updated_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Timestamp of when the resource was last updated.",
+                    "title": "Last Update Time"
+                },
+                "deleted_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Timestamp of when the resource was permanently deleted.",
+                    "title": "Deletion Time"
+                },
+                "id": {
+                    "type": "string",
+                    "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$",
+                    "description": "ID of the charge or discount."
+                },
+                "reason": {
+                    "$ref": "#/$defs/V1BillingDiscountReason",
+                    "description": "Reason code."
+                },
+                "description": {
+                    "type": "string",
+                    "description": "Text description as to why the discount was applied."
+                },
+                "external_ids": {
+                    "$ref": "#/$defs/V1InvoiceLineAppExternalIds",
+                    "description": "External IDs of the invoice in other apps such as Stripe."
+                },
+                "quantity": {
+                    "$ref": "#/$defs/V1Numeric",
+                    "description": "The usage to apply.",
+                    "title": "Usage quantity in the unit of the underlying meter"
+                },
+                "pre_line_period_quantity": {
+                    "$ref": "#/$defs/V1Numeric",
+                    "description": "The usage discount already applied to the previous split lines.\n\nOnly set if progressive billing is enabled and the line is a split line.",
+                    "title": "Usage quantity in the unit of the underlying meter"
+                }
+            },
+            "required": [
+                "created_at",
+                "updated_at",
+                "id",
+                "reason",
+                "quantity"
+            ],
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "InvoiceLineUsageDiscount represents an usage-based discount applied to the line.\n\nThe deduction is done before the pricing algorithm is applied."
+        },
+        "V1Percentage": {
+            "type": "number",
+            "description": "Numeric representation of a percentage\n\n50% is represented as 50"
+        },
+        "V1InvoiceLineTaxBehavior": {
+            "type": "string",
+            "enum": [
+                "inclusive",
+                "exclusive"
+            ],
+            "description": "InvoiceLineTaxBehavior details how the tax item is applied to the base amount.\n\nInclusive means the tax is included in the base amount. Exclusive means the tax\nis added to the base amount."
+        },
+        "V1TaxBehavior": {
+            "type": "string",
+            "enum": [
+                "inclusive",
+                "exclusive"
+            ],
+            "description": "Tax behavior.\n\nThis enum is used to specify whether tax is included in the price or excluded\nfrom the price."
+        },
+        "V1StripeTaxConfig": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string",
+                    "pattern": "^txcd_\\d{8}$",
+                    "description": "Product tax code.\n\nSee: https://docs.stripe.com/tax/tax-codes",
+                    "title": "Tax code"
+                }
+            },
+            "required": [
+                "code"
+            ],
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "The tax config for Stripe."
+        },
+        "V1CustomInvoicingTaxConfig": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string",
+                    "description": "Tax code.\n\nThe tax code should be interpreted by the custom invoicing provider.",
+                    "title": "Tax code"
+                }
+            },
+            "required": [
+                "code"
+            ],
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "Custom invoicing tax config."
+        },
+        "V1IDResource": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$",
+                    "description": "A unique identifier for the resource.",
+                    "title": "ID"
+                }
+            },
+            "required": [
+                "id"
+            ],
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "IDResource is a resouce with an ID."
+        },
+        "V1FlatPriceWithPaymentTerm": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "const": "flat",
+                    "description": "The type of the price."
+                },
+                "amount": {
+                    "$ref": "#/$defs/V1Numeric",
+                    "description": "The amount of the flat price."
+                },
+                "payment_term": {
+                    "$ref": "#/$defs/V1PricePaymentTerm",
+                    "description": "The payment term of the flat price. Defaults to in advance."
+                }
+            },
+            "required": [
+                "type",
+                "amount"
+            ],
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "Flat price with payment term."
+        },
+        "V1UnitPriceWithCommitments": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "const": "unit",
+                    "description": "The type of the price."
+                },
+                "amount": {
+                    "$ref": "#/$defs/V1Numeric",
+                    "description": "The amount of the unit price."
+                },
+                "minimum_amount": {
+                    "$ref": "#/$defs/V1Numeric",
+                    "description": "The customer is committed to spend at least the amount.",
+                    "title": "Minimum amount"
+                },
+                "maximum_amount": {
+                    "$ref": "#/$defs/V1Numeric",
+                    "description": "The customer is limited to spend at most the amount.",
+                    "title": "Maximum amount"
+                }
+            },
+            "required": [
+                "type",
+                "amount"
+            ],
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "Unit price with spend commitments."
+        },
+        "V1TieredPriceWithCommitments": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "const": "tiered",
+                    "description": "The type of the price.\n\nOne of: flat, unit, or tiered."
+                },
+                "mode": {
+                    "$ref": "#/$defs/V1TieredPriceMode",
+                    "description": "Defines if the tiering mode is volume-based or graduated:\n\n- In `volume`-based tiering, the maximum quantity within a period determines the\nper unit price.\n- In `graduated` tiering, pricing can change as the quantity grows.",
+                    "title": "Mode"
+                },
+                "tiers": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/V1PriceTier"
+                    },
+                    "minItems": 1,
+                    "description": "The tiers of the tiered price. At least one price component is required in each\ntier.",
+                    "title": "Tiers"
+                },
+                "minimum_amount": {
+                    "$ref": "#/$defs/V1Numeric",
+                    "description": "The customer is committed to spend at least the amount.",
+                    "title": "Minimum amount"
+                },
+                "maximum_amount": {
+                    "$ref": "#/$defs/V1Numeric",
+                    "description": "The customer is limited to spend at most the amount.",
+                    "title": "Maximum amount"
+                }
+            },
+            "required": [
+                "type",
+                "mode",
+                "tiers"
+            ],
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "Tiered price with spend commitments."
+        },
+        "V1DynamicPriceWithCommitments": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "const": "dynamic",
+                    "description": "The type of the price."
+                },
+                "multiplier": {
+                    "$ref": "#/$defs/V1Numeric",
+                    "description": "The multiplier to apply to the base price to get the dynamic price.\n\nExamples:\n\n- 0.0: the price is zero\n- 0.5: the price is 50% of the base price\n- 1.0: the price is the same as the base price\n- 1.5: the price is 150% of the base price",
+                    "title": "The multiplier to apply to the base price to get the dynamic price"
+                },
+                "minimum_amount": {
+                    "$ref": "#/$defs/V1Numeric",
+                    "description": "The customer is committed to spend at least the amount.",
+                    "title": "Minimum amount"
+                },
+                "maximum_amount": {
+                    "$ref": "#/$defs/V1Numeric",
+                    "description": "The customer is limited to spend at most the amount.",
+                    "title": "Maximum amount"
+                }
+            },
+            "required": [
+                "type"
+            ],
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "Dynamic price with spend commitments."
+        },
+        "V1PackagePriceWithCommitments": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "const": "package",
+                    "description": "The type of the price."
+                },
+                "amount": {
+                    "$ref": "#/$defs/V1Numeric",
+                    "description": "The price of one package.",
+                    "title": "Amount"
+                },
+                "quantity_per_package": {
+                    "$ref": "#/$defs/V1Numeric",
+                    "description": "The quantity per package.",
+                    "title": "Quantity per package"
+                },
+                "minimum_amount": {
+                    "$ref": "#/$defs/V1Numeric",
+                    "description": "The customer is committed to spend at least the amount.",
+                    "title": "Minimum amount"
+                },
+                "maximum_amount": {
+                    "$ref": "#/$defs/V1Numeric",
+                    "description": "The customer is limited to spend at most the amount.",
+                    "title": "Maximum amount"
+                }
+            },
+            "required": [
+                "type",
+                "amount",
+                "quantity_per_package"
+            ],
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "Package price with spend commitments."
+        },
+        "V1PricePaymentTerm": {
+            "type": "string",
+            "enum": [
+                "in_advance",
+                "in_arrears"
+            ],
+            "description": "The payment term of a flat price. One of: in_advance or in_arrears."
+        },
+        "V1InvoiceDetailedLineRateCard": {
+            "type": "object",
+            "properties": {
+                "tax_config": {
+                    "$ref": "#/$defs/V1TaxConfig",
+                    "description": "The tax config of the rate card. When undefined, the tax config of the feature\nor the default tax config of the plan is used.",
+                    "title": "Tax config"
+                },
+                "price": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/V1FlatPriceWithPaymentTerm"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "description": "The price of the rate card. When null, the feature or service is free.",
+                    "title": "Price"
+                },
+                "quantity": {
+                    "$ref": "#/$defs/V1Numeric",
+                    "description": "Quantity of the item being sold.\n\nDefault: 1"
+                },
+                "discounts": {
+                    "$ref": "#/$defs/V1BillingDiscounts",
+                    "description": "The discounts that are applied to the line."
+                }
+            },
+            "required": [
+                "price"
+            ],
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "InvoiceDetailedLineRateCard represents the rate card (intent) for a flat fee\nline."
+        },
+        "V1InvoiceDetailedLineCostCategory": {
+            "type": "string",
+            "enum": [
+                "regular",
+                "commitment"
+            ],
+            "description": "InvoiceDetailedLineCostCategory determines if the flat fee is a regular fee due\nto use due to a commitment."
+        },
+        "V1BillingDiscounts": {
+            "type": "object",
+            "properties": {
+                "percentage": {
+                    "$ref": "#/$defs/V1BillingDiscountPercentage",
+                    "description": "The percentage discount."
+                },
+                "usage": {
+                    "$ref": "#/$defs/V1BillingDiscountUsage",
+                    "description": "The usage discount."
+                }
+            },
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "A discount by type."
+        },
+        "V1PaymentTermInstant": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "const": "instant",
+                    "description": "Type of terms to be applied."
+                },
+                "detail": {
+                    "type": "string",
+                    "description": "Text detail of the chosen payment terms."
+                },
+                "notes": {
+                    "type": "string",
+                    "description": "Description of the conditions for payment."
+                }
+            },
+            "required": [
+                "type"
+            ],
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "PaymentTermInstant defines the terms for payment on receipt of invoice."
+        },
+        "V1PaymentTermDueDate": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "const": "due_date",
+                    "description": "Type of terms to be applied."
+                },
+                "detail": {
+                    "type": "string",
+                    "description": "Text detail of the chosen payment terms."
+                },
+                "notes": {
+                    "type": "string",
+                    "description": "Description of the conditions for payment."
+                },
+                "due_at": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/V1PaymentDueDate"
+                    },
+                    "minItems": 1,
+                    "description": "When the payment is due."
+                }
+            },
+            "required": [
+                "type",
+                "due_at"
+            ],
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "PaymentTermDueDate defines the terms for payment on a specific date."
+        },
+        "V1StripeApp": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$",
+                    "description": "A unique identifier for the resource.",
+                    "title": "ID"
+                },
+                "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256,
+                    "description": "Human-readable name for the resource. Between 1 and 256 characters.",
+                    "title": "Display name"
+                },
+                "description": {
+                    "type": "string",
+                    "maxLength": 1024,
+                    "description": "Optional description of the resource. Maximum 1024 characters.",
+                    "title": "Description"
+                },
+                "metadata": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/V1Metadata"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "description": "Additional metadata for the resource.",
+                    "title": "Metadata"
+                },
+                "created_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Timestamp of when the resource was created.",
+                    "title": "Creation Time"
+                },
+                "updated_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Timestamp of when the resource was last updated.",
+                    "title": "Last Update Time"
+                },
+                "deleted_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Timestamp of when the resource was permanently deleted.",
+                    "title": "Deletion Time"
+                },
+                "listing": {
+                    "$ref": "#/$defs/V1MarketplaceListing",
+                    "description": "The marketplace listing that this installed app is based on."
+                },
+                "status": {
+                    "$ref": "#/$defs/V1AppStatus",
+                    "description": "Status of the app connection."
+                },
+                "type": {
+                    "type": "string",
+                    "const": "stripe",
+                    "description": "The app's type is Stripe."
+                },
+                "stripe_account_id": {
+                    "type": "string",
+                    "description": "The Stripe account ID."
+                },
+                "livemode": {
+                    "type": "boolean",
+                    "description": "Livemode, true if the app is in production mode."
+                },
+                "masked_api_key": {
+                    "type": "string",
+                    "description": "The masked API key. Only shows the first 8 and last 3 characters."
+                }
+            },
+            "required": [
+                "id",
+                "name",
+                "created_at",
+                "updated_at",
+                "listing",
+                "status",
+                "type",
+                "stripe_account_id",
+                "livemode",
+                "masked_api_key"
+            ],
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "A installed Stripe app object."
+        },
+        "V1SandboxApp": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$",
+                    "description": "A unique identifier for the resource.",
+                    "title": "ID"
+                },
+                "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256,
+                    "description": "Human-readable name for the resource. Between 1 and 256 characters.",
+                    "title": "Display name"
+                },
+                "description": {
+                    "type": "string",
+                    "maxLength": 1024,
+                    "description": "Optional description of the resource. Maximum 1024 characters.",
+                    "title": "Description"
+                },
+                "metadata": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/V1Metadata"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "description": "Additional metadata for the resource.",
+                    "title": "Metadata"
+                },
+                "created_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Timestamp of when the resource was created.",
+                    "title": "Creation Time"
+                },
+                "updated_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Timestamp of when the resource was last updated.",
+                    "title": "Last Update Time"
+                },
+                "deleted_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Timestamp of when the resource was permanently deleted.",
+                    "title": "Deletion Time"
+                },
+                "listing": {
+                    "$ref": "#/$defs/V1MarketplaceListing",
+                    "description": "The marketplace listing that this installed app is based on."
+                },
+                "status": {
+                    "$ref": "#/$defs/V1AppStatus",
+                    "description": "Status of the app connection."
+                },
+                "type": {
+                    "type": "string",
+                    "const": "sandbox",
+                    "description": "The app's type is Sandbox."
+                }
+            },
+            "required": [
+                "id",
+                "name",
+                "created_at",
+                "updated_at",
+                "listing",
+                "status",
+                "type"
+            ],
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "Sandbox app can be used for testing OpenMeter features.\n\nThe app is not creating anything in external systems, thus it is safe to use for\nverifying OpenMeter features."
+        },
+        "V1CustomInvoicingApp": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$",
+                    "description": "A unique identifier for the resource.",
+                    "title": "ID"
+                },
+                "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256,
+                    "description": "Human-readable name for the resource. Between 1 and 256 characters.",
+                    "title": "Display name"
+                },
+                "description": {
+                    "type": "string",
+                    "maxLength": 1024,
+                    "description": "Optional description of the resource. Maximum 1024 characters.",
+                    "title": "Description"
+                },
+                "metadata": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/V1Metadata"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "description": "Additional metadata for the resource.",
+                    "title": "Metadata"
+                },
+                "created_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Timestamp of when the resource was created.",
+                    "title": "Creation Time"
+                },
+                "updated_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Timestamp of when the resource was last updated.",
+                    "title": "Last Update Time"
+                },
+                "deleted_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Timestamp of when the resource was permanently deleted.",
+                    "title": "Deletion Time"
+                },
+                "listing": {
+                    "$ref": "#/$defs/V1MarketplaceListing",
+                    "description": "The marketplace listing that this installed app is based on."
+                },
+                "status": {
+                    "$ref": "#/$defs/V1AppStatus",
+                    "description": "Status of the app connection."
+                },
+                "type": {
+                    "type": "string",
+                    "const": "custom_invoicing",
+                    "description": "The app's type is CustomInvoicing."
+                },
+                "enable_draft_sync_hook": {
+                    "type": "boolean",
+                    "description": "Enable draft.sync hook.\n\nIf the hook is not enabled, the invoice will be progressed to the next state\nautomatically."
+                },
+                "enable_issuing_sync_hook": {
+                    "type": "boolean",
+                    "description": "Enable issuing.sync hook.\n\nIf the hook is not enabled, the invoice will be progressed to the next state\nautomatically."
+                }
+            },
+            "required": [
+                "id",
+                "name",
+                "created_at",
+                "updated_at",
+                "listing",
+                "status",
+                "type",
+                "enable_draft_sync_hook",
+                "enable_issuing_sync_hook"
+            ],
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "Custom Invoicing app can be used for interface with any invoicing or payment\nsystem.\n\nThis app provides ways to manipulate invoices and payments, however the\nintegration must rely on Notifications API to get notified about invoice\nchanges."
+        },
+        "V1BillingWorkflowCollectionAlignment": {
+            "anyOf": [
+                {
+                    "$ref": "#/$defs/V1BillingWorkflowCollectionAlignmentSubscription",
+                    "description": "subscription."
+                },
+                {
+                    "$ref": "#/$defs/V1BillingWorkflowCollectionAlignmentAnchored",
+                    "description": "anchored."
+                }
+            ],
+            "description": "The alignment for collecting the pending line items into an invoice.\n\nDefaults to subscription, which means that we are to create a new invoice every\ntime the a subscription period starts (for in advance items) or ends (for in\narrears items)."
+        },
+        "V1BillingWorkflowInvoicingSubscriptionEndProrationMode": {
+            "type": "string",
+            "enum": [
+                "bill_full_period",
+                "bill_actual_period"
+            ],
+            "description": "Billing workflow subscription end proration mode."
+        },
+        "V1CollectionMethod": {
+            "type": "string",
+            "enum": [
+                "charge_automatically",
+                "send_invoice"
+            ],
+            "description": "CollectionMethod specifies how the invoice should be collected (automatic vs\nmanual)",
+            "title": "Collection method"
+        },
+        "V1BillingDiscountReason": {
+            "anyOf": [
+                {
+                    "$ref": "#/$defs/V1DiscountReasonMaximumSpend",
+                    "description": "maximum_spend."
+                },
+                {
+                    "$ref": "#/$defs/V1DiscountReasonRatecardPercentage",
+                    "description": "ratecard_percentage."
+                },
+                {
+                    "$ref": "#/$defs/V1DiscountReasonRatecardUsage",
+                    "description": "ratecard_usage."
+                }
+            ],
+            "description": "The reason for the discount."
+        },
+        "V1TieredPriceMode": {
+            "type": "string",
+            "enum": [
+                "volume",
+                "graduated"
+            ],
+            "description": "The mode of the tiered price."
+        },
+        "V1PriceTier": {
+            "type": "object",
+            "properties": {
+                "up_to_amount": {
+                    "$ref": "#/$defs/V1Numeric",
+                    "description": "Up to and including to this quantity will be contained in the tier. If null, the\ntier is open-ended.",
+                    "title": "Up to quantity"
+                },
+                "flat_price": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/V1FlatPrice"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "description": "The flat price component of the tier.",
+                    "title": "Flat price component"
+                },
+                "unit_price": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/V1UnitPrice"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "description": "The unit price component of the tier.",
+                    "title": "Unit price component"
+                }
+            },
+            "required": [
+                "flat_price",
+                "unit_price"
+            ],
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "A price tier. At least one price component is required in each tier."
+        },
+        "V1BillingDiscountPercentage": {
+            "type": "object",
+            "properties": {
+                "percentage": {
+                    "$ref": "#/$defs/V1Percentage",
+                    "minimum": 0,
+                    "maximum": 100,
+                    "description": "The percentage of the discount.",
+                    "title": "Percentage"
+                },
+                "correlation_id": {
+                    "type": "string",
+                    "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$",
+                    "description": "Correlation ID for the discount.\n\nThis is used to link discounts across different invoices (progressive billing\nuse case).\n\nIf not provided, the invoicing engine will auto-generate one. When editing an\ninvoice line, please make sure to keep the same correlation ID of the discount\nor in progressive billing setups the discount amounts might be incorrect."
+                }
+            },
+            "required": [
+                "percentage"
+            ],
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "A percentage discount."
+        },
+        "V1BillingDiscountUsage": {
+            "type": "object",
+            "properties": {
+                "quantity": {
+                    "$ref": "#/$defs/V1Numeric",
+                    "description": "The quantity of the usage discount.\n\nMust be positive.",
+                    "title": "Usage"
+                },
+                "correlation_id": {
+                    "type": "string",
+                    "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$",
+                    "description": "Correlation ID for the discount.\n\nThis is used to link discounts across different invoices (progressive billing\nuse case).\n\nIf not provided, the invoicing engine will auto-generate one. When editing an\ninvoice line, please make sure to keep the same correlation ID of the discount\nor in progressive billing setups the discount amounts might be incorrect."
+                }
+            },
+            "required": [
+                "quantity"
+            ],
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "A usage discount."
+        },
+        "V1PaymentDueDate": {
+            "type": "object",
+            "properties": {
+                "due_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "When the payment is due."
+                },
+                "notes": {
+                    "type": "string",
+                    "description": "Other details to take into account for the due date."
+                },
+                "amount": {
+                    "$ref": "#/$defs/V1Numeric",
+                    "description": "How much needs to be paid by the date."
+                },
+                "percent": {
+                    "$ref": "#/$defs/V1Percentage",
+                    "description": "Percentage of the total that should be paid by the date."
+                },
+                "currency": {
+                    "$ref": "#/$defs/V1CurrencyCode",
+                    "description": "If different from the parent document's base currency."
+                }
+            },
+            "required": [
+                "due_at",
+                "amount"
+            ],
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "PaymentDueDate contains an amount that should be paid by the given date."
+        },
+        "V1MarketplaceListing": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "$ref": "#/$defs/V1AppType",
+                    "description": "The app's type"
+                },
+                "name": {
+                    "type": "string",
+                    "description": "The app's name."
+                },
+                "description": {
+                    "type": "string",
+                    "description": "The app's description."
+                },
+                "capabilities": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/V1AppCapability"
+                    },
+                    "description": "The app's capabilities."
+                },
+                "install_methods": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/V1InstallMethod"
+                    },
+                    "description": "Install methods.\n\nList of methods to install the app."
+                }
+            },
+            "required": [
+                "type",
+                "name",
+                "description",
+                "capabilities",
+                "install_methods"
+            ],
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "A marketplace listing. Represent an available app in the app marketplace that\ncan be installed to the organization.\n\nMarketplace apps only exist in config so they don't extend the Resource model."
+        },
+        "V1AppStatus": {
+            "type": "string",
+            "enum": [
+                "ready",
+                "unauthorized"
+            ],
+            "description": "App installed status."
+        },
+        "V1BillingWorkflowCollectionAlignmentSubscription": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "const": "subscription",
+                    "description": "The type of alignment."
+                }
+            },
+            "required": [
+                "type"
+            ],
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "BillingWorkflowCollectionAlignmentSubscription specifies the alignment for\ncollecting the pending line items into an invoice."
+        },
+        "V1BillingWorkflowCollectionAlignmentAnchored": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "const": "anchored",
+                    "description": "The type of alignment."
+                },
+                "recurring_period": {
+                    "$ref": "#/$defs/V1RecurringPeriodV2",
+                    "description": "The recurring period for the alignment."
+                }
+            },
+            "required": [
+                "type",
+                "recurring_period"
+            ],
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "BillingWorkflowCollectionAlignmentAnchored specifies the alignment for\ncollecting the pending line items into an invoice."
+        },
+        "V1DiscountReasonMaximumSpend": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "const": "maximum_spend",
+                    "description": "type."
+                }
+            },
+            "required": [
+                "type"
+            ],
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "The reason for the discount is a maximum spend."
+        },
+        "V1DiscountReasonRatecardPercentage": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "const": "ratecard_percentage",
+                    "description": "type."
+                },
+                "percentage": {
+                    "$ref": "#/$defs/V1Percentage",
+                    "minimum": 0,
+                    "maximum": 100,
+                    "description": "The percentage of the discount.",
+                    "title": "Percentage"
+                },
+                "correlation_id": {
+                    "type": "string",
+                    "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$",
+                    "description": "Correlation ID for the discount.\n\nThis is used to link discounts across different invoices (progressive billing\nuse case).\n\nIf not provided, the invoicing engine will auto-generate one. When editing an\ninvoice line, please make sure to keep the same correlation ID of the discount\nor in progressive billing setups the discount amounts might be incorrect."
+                }
+            },
+            "required": [
+                "type",
+                "percentage"
+            ],
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "The reason for the discount is a ratecard percentage."
+        },
+        "V1DiscountReasonRatecardUsage": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "const": "ratecard_usage",
+                    "description": "type."
+                },
+                "quantity": {
+                    "$ref": "#/$defs/V1Numeric",
+                    "description": "The quantity of the usage discount.\n\nMust be positive.",
+                    "title": "Usage"
+                },
+                "correlation_id": {
+                    "type": "string",
+                    "pattern": "^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$",
+                    "description": "Correlation ID for the discount.\n\nThis is used to link discounts across different invoices (progressive billing\nuse case).\n\nIf not provided, the invoicing engine will auto-generate one. When editing an\ninvoice line, please make sure to keep the same correlation ID of the discount\nor in progressive billing setups the discount amounts might be incorrect."
+                }
+            },
+            "required": [
+                "type",
+                "quantity"
+            ],
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "The reason for the discount is a ratecard usage."
+        },
+        "V1FlatPrice": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "const": "flat",
+                    "description": "The type of the price."
+                },
+                "amount": {
+                    "$ref": "#/$defs/V1Numeric",
+                    "description": "The amount of the flat price."
+                }
+            },
+            "required": [
+                "type",
+                "amount"
+            ],
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "Flat price."
+        },
+        "V1UnitPrice": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "const": "unit",
+                    "description": "The type of the price."
+                },
+                "amount": {
+                    "$ref": "#/$defs/V1Numeric",
+                    "description": "The amount of the unit price."
+                }
+            },
+            "required": [
+                "type",
+                "amount"
+            ],
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "Unit price."
+        },
+        "V1AppType": {
+            "type": "string",
+            "enum": [
+                "stripe",
+                "sandbox",
+                "custom_invoicing"
+            ],
+            "description": "Type of the app."
+        },
+        "V1AppCapability": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "$ref": "#/$defs/V1AppCapabilityType",
+                    "description": "The capability type."
+                },
+                "key": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9]+(?:_[a-z0-9]+)*$",
+                    "description": "Key"
+                },
+                "name": {
+                    "type": "string",
+                    "description": "The capability name."
+                },
+                "description": {
+                    "type": "string",
+                    "description": "The capability description."
+                }
+            },
+            "required": [
+                "type",
+                "key",
+                "name",
+                "description"
+            ],
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "App capability.\n\nCapabilities only exist in config so they don't extend the Resource model."
+        },
+        "V1InstallMethod": {
+            "type": "string",
+            "enum": [
+                "with_oauth2",
+                "with_api_key",
+                "no_credentials_required"
+            ],
+            "description": "Install method of the application."
+        },
+        "V1RecurringPeriodV2": {
+            "type": "object",
+            "properties": {
+                "interval": {
+                    "$ref": "#/$defs/V1RecurringPeriodInterval",
+                    "description": "The unit of time for the interval. Heuristically maps ISO duraitons to enum\nvalues or returns the ISO duration.",
+                    "title": "Interval"
+                },
+                "anchor": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "A date-time anchor to base the recurring period on.",
+                    "title": "Anchor time"
+                }
+            },
+            "required": [
+                "interval",
+                "anchor"
+            ],
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "Recurring period with an interval and an anchor."
+        },
+        "V1AppCapabilityType": {
+            "type": "string",
+            "enum": [
+                "reportUsage",
+                "reportEvents",
+                "calculateTax",
+                "invoiceCustomers",
+                "collectPayments"
+            ],
+            "description": "App capability type."
+        },
+        "V1RecurringPeriodInterval": {
+            "anyOf": [
+                {
+                    "type": "string"
+                },
+                {
+                    "$ref": "#/$defs/V1RecurringPeriodIntervalEnum"
+                }
+            ],
+            "description": "Period duration for the recurrence"
+        },
+        "V1RecurringPeriodIntervalEnum": {
+            "type": "string",
+            "enum": [
+                "DAY",
+                "WEEK",
+                "MONTH",
+                "YEAR"
+            ],
+            "description": "The unit of time for the interval. One of: `day`, `week`, `month`, or `year`."
+        }
+    }
+}
