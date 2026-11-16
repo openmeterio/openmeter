@@ -21,6 +21,7 @@ import (
 
 	apiv3 "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/handlers/notification/events"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/oasmiddleware"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appsandbox "github.com/openmeterio/openmeter/openmeter/app/sandbox"
@@ -173,7 +174,7 @@ func (s *LegacyEventV3TestSuite) newV3Router(t *testing.T, service notification.
 		RouteFilterHook: func(*routers.Route) bool { return true },
 	}))
 	router.Get("/openmeter/notification/events", func(w http.ResponseWriter, r *http.Request) {
-		handler.ListNotificationEvents().With(apiv3.ListBillingNotificationEventsParams{}).ServeHTTP(w, r)
+		handler.ListNotificationEvents().With(apiv3models.ListBillingNotificationEventsParams{}).ServeHTTP(w, r)
 	})
 	router.Get("/openmeter/notification/events/{eventId}", func(w http.ResponseWriter, r *http.Request) {
 		handler.GetNotificationEvent().With(chi.URLParam(r, "eventId")).ServeHTTP(w, r)
