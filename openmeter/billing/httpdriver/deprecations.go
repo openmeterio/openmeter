@@ -7,7 +7,7 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	productcataloghttp "github.com/openmeterio/openmeter/openmeter/productcatalog/http"
@@ -16,11 +16,11 @@ import (
 // Deprecation handlers for invoice line's rateCard
 
 type invoiceLineRateCardItems struct {
-	RateCard *api.InvoiceUsageBasedRateCard
+	RateCard *apiv1models.InvoiceUsageBasedRateCard
 
 	// Deprecated fields
-	Price      *api.RateCardUsageBasedPrice
-	TaxConfig  *api.TaxConfig
+	Price      *apiv1models.RateCardUsageBasedPrice
+	TaxConfig  *apiv1models.TaxConfig
 	FeatureKey *string
 }
 
@@ -37,7 +37,7 @@ func (i *invoiceLineRateCardItems) ValidateDeprecatedFields() error {
 		errs = append(errs, fmt.Errorf("failed to parse price: %w", err))
 	}
 
-	if i.FeatureKey == nil && priceType != string(api.FlatPriceTypeFlat) {
+	if i.FeatureKey == nil && priceType != string(apiv1models.FlatPriceTypeFlat) {
 		errs = append(errs, errors.New("featureKey is required"))
 	}
 
@@ -81,7 +81,7 @@ func (i *invoiceLineRateCardItems) ValidateRateCard() error {
 		errs = append(errs, fmt.Errorf("failed to parse rateCard.price: %w", err))
 	}
 
-	if i.RateCard.FeatureKey == nil && priceType != string(api.FlatPriceTypeFlat) {
+	if i.RateCard.FeatureKey == nil && priceType != string(apiv1models.FlatPriceTypeFlat) {
 		errs = append(errs, errors.New("featureKey is required"))
 	}
 

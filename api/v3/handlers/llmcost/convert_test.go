@@ -7,13 +7,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	api "github.com/openmeterio/openmeter/api/v3"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 )
 
 func TestFilterSourceInListPricesParams(t *testing.T) {
 	// Compile-time assertion that the generated API type includes the Source field.
-	filter := &api.ListLLMCostPricesParamsFilter{
-		Source: &api.StringFieldFilter{
+	filter := &apiv3models.ListLLMCostPricesParamsFilter{
+		Source: &apiv3models.StringFieldFilter{
 			Eq: lo.ToPtr("system"),
 		},
 	}

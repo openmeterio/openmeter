@@ -6,8 +6,8 @@ import (
 
 	"github.com/samber/lo"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
@@ -19,8 +19,8 @@ type (
 	ResetCustomerEntitlementUsageRequest  = entitlement.ResetCustomerEntitlementUsageInput
 	ResetCustomerEntitlementUsageResponse = interface{}
 	ResetCustomerEntitlementUsageParams   struct {
-		CustomerID    api.ULID
-		EntitlementID api.ULID
+		CustomerID    apiv3models.ULID
+		EntitlementID apiv3models.ULID
 	}
 	ResetCustomerEntitlementUsageHandler = httptransport.HandlerWithArgs[ResetCustomerEntitlementUsageRequest, ResetCustomerEntitlementUsageResponse, ResetCustomerEntitlementUsageParams]
 )
@@ -33,7 +33,7 @@ func (h *handler) ResetCustomerEntitlementUsage() ResetCustomerEntitlementUsageH
 				return ResetCustomerEntitlementUsageRequest{}, err
 			}
 
-			var body api.ResetCustomerEntitlementUsageRequest
+			var body apiv3models.ResetCustomerEntitlementUsageRequest
 			if err := request.ParseOptionalBody(r, &body); err != nil {
 				return ResetCustomerEntitlementUsageRequest{}, err
 			}

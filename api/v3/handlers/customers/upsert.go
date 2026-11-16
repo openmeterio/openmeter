@@ -5,8 +5,8 @@ import (
 	"errors"
 	"net/http"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -20,7 +20,7 @@ type (
 		CustomerMutate customer.CustomerMutate
 	}
 	UpsertCustomerParams   = string
-	UpsertCustomerResponse = api.BillingCustomer
+	UpsertCustomerResponse = apiv3models.BillingCustomer
 	UpsertCustomerHandler  httptransport.HandlerWithArgs[UpsertCustomerRequest, UpsertCustomerResponse, UpsertCustomerParams]
 )
 
@@ -28,7 +28,7 @@ type (
 func (h *handler) UpsertCustomer() UpsertCustomerHandler {
 	return httptransport.NewHandlerWithArgs(
 		func(ctx context.Context, r *http.Request, customerID UpsertCustomerParams) (UpsertCustomerRequest, error) {
-			body := api.UpsertCustomerRequest{}
+			body := apiv3models.UpsertCustomerRequest{}
 			if err := request.ParseBody(r, &body); err != nil {
 				return UpsertCustomerRequest{}, err
 			}
@@ -46,7 +46,7 @@ func (h *handler) UpsertCustomer() UpsertCustomerHandler {
 			req := UpsertCustomerRequest{
 				Namespace:  ns,
 				CustomerID: customerID,
-				// Key cannot be updated according to api.UpsertCustomerRequest.
+				// Key cannot be updated according to apiv3models.UpsertCustomerRequest.
 				// Therefore, at this point we don't have a key yet. It is ignored in this conversion.
 				CustomerMutate: customerMutate,
 			}

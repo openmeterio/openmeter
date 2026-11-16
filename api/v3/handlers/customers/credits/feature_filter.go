@@ -7,13 +7,13 @@ import (
 
 	"github.com/samber/mo"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/ledger/customerbalance"
 )
 
-func fromAPICustomerCreditFeatureFilter(f *api.StringFieldFilter) (mo.Option[creditpurchase.FeatureFilters], error) {
+func fromAPICustomerCreditFeatureFilter(f *apiv3models.StringFieldFilter) (mo.Option[creditpurchase.FeatureFilters], error) {
 	if f == nil {
 		return customerbalance.AllFeatureFilter(), nil
 	}
@@ -49,7 +49,7 @@ func fromAPICustomerCreditFeatureFilter(f *api.StringFieldFilter) (mo.Option[cre
 	return featureFilter, nil
 }
 
-func unsupportedCustomerCreditFeatureKeyOperator(f *api.StringFieldFilter) string {
+func unsupportedCustomerCreditFeatureKeyOperator(f *apiv3models.StringFieldFilter) string {
 	switch {
 	case f.Neq != nil:
 		return "neq"
@@ -84,7 +84,7 @@ func newFeatureKeyFilterBadRequest(ctx context.Context, err error) error {
 
 // Grant listings can select multiple features because they return grants, not an
 // additive balance that would double-count credit shared between features.
-func fromAPICreditGrantFeatureFilters(f *api.StringFieldFilter) (mo.Option[creditpurchase.FeatureFilters], error) {
+func fromAPICreditGrantFeatureFilters(f *apiv3models.StringFieldFilter) (mo.Option[creditpurchase.FeatureFilters], error) {
 	if f == nil {
 		return customerbalance.AllFeatureFilter(), nil
 	}

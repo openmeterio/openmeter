@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	api "github.com/openmeterio/openmeter/api/v3"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -19,8 +19,8 @@ import (
 // ChannelType would otherwise reach ChannelConfig.Validate()'s type switch and fail
 // deep inside domain validation with a confusing error instead of a clear one here.
 func TestFromAPICreateChannelRequest_TypeCasing(t *testing.T) {
-	baseBody := func(channelType api.BillingNotificationChannelType) api.CreateNotificationChannelRequest {
-		return api.CreateNotificationChannelRequest{
+	baseBody := func(channelType apiv3models.BillingNotificationChannelType) apiv3models.CreateNotificationChannelRequest {
+		return apiv3models.CreateNotificationChannelRequest{
 			Name: "test channel",
 			Type: channelType,
 			Url:  "https://example.com/hook",
@@ -28,7 +28,7 @@ func TestFromAPICreateChannelRequest_TypeCasing(t *testing.T) {
 	}
 
 	t.Run("lowercase wire value maps to lowercase domain value", func(t *testing.T) {
-		result, err := FromAPICreateChannelRequest("ns1", baseBody(api.BillingNotificationChannelTypeWebhook))
+		result, err := FromAPICreateChannelRequest("ns1", baseBody(apiv3models.BillingNotificationChannelTypeWebhook))
 		require.NoError(t, err)
 		assert.Equal(t, notification.ChannelTypeWebhook, result.Type)
 		assert.Equal(t, notification.ChannelType("webhook"), result.Type)
@@ -60,10 +60,10 @@ func TestFromAPICreateChannelRequest_TypeCasing(t *testing.T) {
 // signing_secret maps to the empty string — which the service layer treats as "keep
 // the current secret", never as clearing the credential.
 func TestFromAPIUpdateChannelRequest(t *testing.T) {
-	baseBody := func() api.UpdateBillingNotificationChannelRequest {
-		return api.UpdateBillingNotificationChannelRequest{
+	baseBody := func() apiv3models.UpdateBillingNotificationChannelRequest {
+		return apiv3models.UpdateBillingNotificationChannelRequest{
 			Name: "updated channel",
-			Type: api.BillingNotificationChannelTypeWebhook,
+			Type: apiv3models.BillingNotificationChannelTypeWebhook,
 			Url:  "https://example.com/hook",
 		}
 	}
@@ -119,8 +119,8 @@ func TestToAPIChannel_TypeCasing(t *testing.T) {
 
 		result, err := ToAPIChannel(channel)
 		require.NoError(t, err)
-		assert.Equal(t, api.BillingNotificationChannelTypeWebhook, result.Type)
-		assert.Equal(t, api.BillingNotificationChannelType("webhook"), result.Type)
+		assert.Equal(t, apiv3models.BillingNotificationChannelTypeWebhook, result.Type)
+		assert.Equal(t, apiv3models.BillingNotificationChannelType("webhook"), result.Type)
 	})
 
 	t.Run("unknown domain type errors instead of leaking the raw value", func(t *testing.T) {
@@ -256,10 +256,10 @@ func TestToAPIChannel_LabelsRoundTrip(t *testing.T) {
 
 	// Metadata-derived labels round-trip cleanly: resubmitting just the metadata
 	// portion of the API labels reconstructs the same domain Metadata.
-	metadataOnly := api.Labels{"env": (*apiChannel.Labels)["env"]}
-	created, err := FromAPICreateChannelRequest("ns1", api.CreateNotificationChannelRequest{
+	metadataOnly := apiv3models.Labels{"env": (*apiChannel.Labels)["env"]}
+	created, err := FromAPICreateChannelRequest("ns1", apiv3models.CreateNotificationChannelRequest{
 		Name:   "test",
-		Type:   api.BillingNotificationChannelTypeWebhook,
+		Type:   apiv3models.BillingNotificationChannelTypeWebhook,
 		Url:    "https://example.com/hook",
 		Labels: &metadataOnly,
 	})
@@ -275,9 +275,9 @@ func TestToAPIChannel_LabelsRoundTrip(t *testing.T) {
 	// validation error, not a no-op update. This is pre-existing shared-package
 	// behavior (see api/v3/labels/convert_test.go), not specific to this handler, so
 	// it is documented here rather than treated as a defect of FromAPIUpdateChannelRequest.
-	_, err = FromAPICreateChannelRequest("ns1", api.CreateNotificationChannelRequest{
+	_, err = FromAPICreateChannelRequest("ns1", apiv3models.CreateNotificationChannelRequest{
 		Name:   "test",
-		Type:   api.BillingNotificationChannelTypeWebhook,
+		Type:   apiv3models.BillingNotificationChannelTypeWebhook,
 		Url:    "https://example.com/hook",
 		Labels: apiChannel.Labels,
 	})

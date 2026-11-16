@@ -8,12 +8,12 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	v3 "github.com/openmeterio/openmeter/api/v3"
+	apiv3 "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/models"
 )
 
 type meterServer struct {
-	v3.Unimplemented
+	apiv3.Unimplemented
 	params models.ListMetersParams
 }
 
@@ -29,7 +29,7 @@ func TestListMetersBindsModelFilter(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/openmeter/meters?"+query.Encode(), nil)
 	resp := httptest.NewRecorder()
 
-	v3.Handler(server).ServeHTTP(resp, req)
+	apiv3.Handler(server).ServeHTTP(resp, req)
 
 	require.Equal(t, http.StatusNoContent, resp.Code)
 	require.Equal(t, &models.ListMetersParamsFilter{Key: &models.StringFieldFilter{Eq: &key}}, server.params.Filter)

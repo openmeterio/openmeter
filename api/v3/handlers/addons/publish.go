@@ -7,8 +7,8 @@ import (
 
 	"github.com/samber/lo"
 
-	apiv3 "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -19,7 +19,7 @@ import (
 
 type (
 	PublishAddonRequest  = addon.PublishAddonInput
-	PublishAddonResponse = apiv3.Addon
+	PublishAddonResponse = apiv3models.Addon
 	PublishAddonParams   = string
 	PublishAddonHandler  httptransport.HandlerWithArgs[PublishAddonRequest, PublishAddonResponse, string]
 )

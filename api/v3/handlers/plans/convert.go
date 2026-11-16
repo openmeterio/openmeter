@@ -8,10 +8,10 @@ import (
 	decimal "github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/handlers/tax"
 	"github.com/openmeterio/openmeter/api/v3/labels"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -40,10 +40,10 @@ func FromAPIPlanSortField(ctx context.Context, field string) (plan.OrderBy, erro
 	}
 }
 
-func ToAPIBillingPlan(p plan.Plan) (api.BillingPlan, error) {
+func ToAPIBillingPlan(p plan.Plan) (apiv3models.BillingPlan, error) {
 	validationIssues, _ := p.AsProductCatalogPlan().ValidationErrors()
 
-	resp := api.BillingPlan{
+	resp := apiv3models.BillingPlan{
 		BillingCadence:   p.BillingCadence.String(),
 		CreatedAt:        p.CreatedAt,
 		Currency:         p.Currency.GetCode().String(),
@@ -58,27 +58,27 @@ func ToAPIBillingPlan(p plan.Plan) (api.BillingPlan, error) {
 		UpdatedAt:        p.UpdatedAt,
 		Version:          p.Version,
 		ProRatingEnabled: lo.ToPtr(p.ProRatingConfig.Enabled),
-		SettlementMode:   api.BillingSettlementMode(p.SettlementMode),
+		SettlementMode:   apiv3models.BillingSettlementMode(p.SettlementMode),
 		ValidationErrors: ToAPIProductCatalogValidationErrors(validationIssues),
 	}
 
-	var status api.BillingPlanStatus
+	var status apiv3models.BillingPlanStatus
 	switch p.Status() {
 	case productcatalog.PlanStatusDraft:
-		status = api.BillingPlanStatusDraft
+		status = apiv3models.BillingPlanStatusDraft
 	case productcatalog.PlanStatusActive:
-		status = api.BillingPlanStatusActive
+		status = apiv3models.BillingPlanStatusActive
 	case productcatalog.PlanStatusArchived:
-		status = api.BillingPlanStatusArchived
+		status = apiv3models.BillingPlanStatusArchived
 	case productcatalog.PlanStatusScheduled:
-		status = api.BillingPlanStatusScheduled
+		status = apiv3models.BillingPlanStatusScheduled
 	default:
 		return resp, fmt.Errorf("invalid PlanStatus: %s", p.Status())
 	}
 
 	resp.Status = status
 
-	resp.Phases = make([]api.BillingPlanPhase, 0, len(p.Phases))
+	resp.Phases = make([]apiv3models.BillingPlanPhase, 0, len(p.Phases))
 	for _, phase := range p.Phases {
 		billingPhase, err := ToAPIBillingPlanPhase(phase)
 		if err != nil {
@@ -91,14 +91,14 @@ func ToAPIBillingPlan(p plan.Plan) (api.BillingPlan, error) {
 	return resp, nil
 }
 
-func ToAPIBillingPlanPhase(p plan.Phase) (api.BillingPlanPhase, error) {
-	phase := api.BillingPlanPhase{
+func ToAPIBillingPlanPhase(p plan.Phase) (apiv3models.BillingPlanPhase, error) {
+	phase := apiv3models.BillingPlanPhase{
 		Description: p.Description,
-		Duration:    (*api.ISO8601Duration)(p.Duration.ISOStringPtrOrNil()),
+		Duration:    (*apiv3models.ISO8601Duration)(p.Duration.ISOStringPtrOrNil()),
 		Key:         p.Key,
 		Labels:      labels.FromMetadata(p.Metadata),
 		Name:        p.Name,
-		RateCards:   make([]api.BillingRateCard, 0, len(p.RateCards)),
+		RateCards:   make([]apiv3models.BillingRateCard, 0, len(p.RateCards)),
 	}
 
 	for _, rc := range p.RateCards {
@@ -113,10 +113,10 @@ func ToAPIBillingPlanPhase(p plan.Phase) (api.BillingPlanPhase, error) {
 	return phase, nil
 }
 
-func ToAPIBillingRateCard(rc productcatalog.RateCard) (api.BillingRateCard, error) {
+func ToAPIBillingRateCard(rc productcatalog.RateCard) (apiv3models.BillingRateCard, error) {
 	meta := rc.AsMeta()
 
-	result := api.BillingRateCard{
+	result := apiv3models.BillingRateCard{
 		Key:         meta.Key,
 		Labels:      labels.FromMetadata(meta.Metadata),
 		Name:        meta.Name,
@@ -130,7 +130,7 @@ func ToAPIBillingRateCard(rc productcatalog.RateCard) (api.BillingRateCard, erro
 	}
 
 	if meta.Feature != nil && meta.Feature.ID != nil {
-		result.Feature = &api.FeatureReference{
+		result.Feature = &apiv3models.FeatureReference{
 			Id: *meta.Feature.ID,
 		}
 	}
@@ -147,7 +147,7 @@ func ToAPIBillingRateCard(rc productcatalog.RateCard) (api.BillingRateCard, erro
 				return result, fmt.Errorf("failed to read flat price: %w", err)
 			}
 
-			result.PaymentTerm = lo.ToPtr(api.BillingPricePaymentTerm(flatPrice.PaymentTerm))
+			result.PaymentTerm = lo.ToPtr(apiv3models.BillingPricePaymentTerm(flatPrice.PaymentTerm))
 		}
 
 	case productcatalog.UsageBasedRateCardType:
@@ -204,8 +204,8 @@ func ToAPIBillingRateCard(rc productcatalog.RateCard) (api.BillingRateCard, erro
 	return result, nil
 }
 
-func ToAPIBillingRateCardEntitlement(t *productcatalog.EntitlementTemplate) (*api.BillingRateCardEntitlement, error) {
-	out := &api.BillingRateCardEntitlement{}
+func ToAPIBillingRateCardEntitlement(t *productcatalog.EntitlementTemplate) (*apiv3models.BillingRateCardEntitlement, error) {
+	out := &apiv3models.BillingRateCardEntitlement{}
 
 	switch t.Type() {
 	case entitlement.EntitlementTypeMetered:
@@ -214,7 +214,7 @@ func ToAPIBillingRateCardEntitlement(t *productcatalog.EntitlementTemplate) (*ap
 			return nil, fmt.Errorf("failed to read metered entitlement template: %w", err)
 		}
 
-		apiMetered := api.BillingRateCardMeteredEntitlement{
+		apiMetered := apiv3models.BillingRateCardMeteredEntitlement{
 			Type:        "metered",
 			IsSoftLimit: lo.ToPtr(metered.IsSoftLimit),
 			Limit:       metered.IssueAfterReset,
@@ -245,7 +245,7 @@ func ToAPIBillingRateCardEntitlement(t *productcatalog.EntitlementTemplate) (*ap
 			}
 		}
 
-		if err := out.FromBillingRateCardStaticEntitlement(api.BillingRateCardStaticEntitlement{
+		if err := out.FromBillingRateCardStaticEntitlement(apiv3models.BillingRateCardStaticEntitlement{
 			Type:   "static",
 			Config: config,
 		}); err != nil {
@@ -253,7 +253,7 @@ func ToAPIBillingRateCardEntitlement(t *productcatalog.EntitlementTemplate) (*ap
 		}
 
 	case entitlement.EntitlementTypeBoolean:
-		if err := out.FromBillingRateCardBooleanEntitlement(api.BillingRateCardBooleanEntitlement{
+		if err := out.FromBillingRateCardBooleanEntitlement(apiv3models.BillingRateCardBooleanEntitlement{
 			Type: "boolean",
 		}); err != nil {
 			return nil, fmt.Errorf("failed to set boolean entitlement template: %w", err)
@@ -270,7 +270,7 @@ func ToAPIBillingRateCardEntitlement(t *productcatalog.EntitlementTemplate) (*ap
 // package price. v3 does not surface dynamic or package prices directly; instead
 // they are rendered as a unit price paired with a unit config that describes the
 // conversion that v1 applied implicitly.
-func ToAPIBillingUnitConfigFromLegacyPrice(p *productcatalog.Price) (*api.BillingUnitConfig, error) {
+func ToAPIBillingUnitConfigFromLegacyPrice(p *productcatalog.Price) (*apiv3models.BillingUnitConfig, error) {
 	if p == nil {
 		return nil, nil
 	}
@@ -282,8 +282,8 @@ func ToAPIBillingUnitConfigFromLegacyPrice(p *productcatalog.Price) (*api.Billin
 			return nil, fmt.Errorf("failed to read dynamic price: %w", err)
 		}
 
-		return &api.BillingUnitConfig{
-			Operation:        api.BillingUnitConfigOperationMultiply,
+		return &apiv3models.BillingUnitConfig{
+			Operation:        apiv3models.BillingUnitConfigOperationMultiply,
 			ConversionFactor: dynamic.Multiplier.String(),
 		}, nil
 
@@ -293,10 +293,10 @@ func ToAPIBillingUnitConfigFromLegacyPrice(p *productcatalog.Price) (*api.Billin
 			return nil, fmt.Errorf("failed to read package price: %w", err)
 		}
 
-		return &api.BillingUnitConfig{
-			Operation:        api.BillingUnitConfigOperationDivide,
+		return &apiv3models.BillingUnitConfig{
+			Operation:        apiv3models.BillingUnitConfigOperationDivide,
 			ConversionFactor: pkg.QuantityPerPackage.String(),
-			Rounding:         lo.ToPtr(api.BillingUnitConfigRoundingModeCeiling),
+			Rounding:         lo.ToPtr(apiv3models.BillingUnitConfigRoundingModeCeiling),
 		}, nil
 
 	default:
@@ -307,15 +307,15 @@ func ToAPIBillingUnitConfigFromLegacyPrice(p *productcatalog.Price) (*api.Billin
 // ToAPIBillingUnitConfig maps a stored domain unit config to its API
 // representation. Rounding and Precision are omitted when no rounding is applied,
 // mirroring the domain semantics where both are inert for the "none" mode.
-func ToAPIBillingUnitConfig(uc productcatalog.UnitConfig) api.BillingUnitConfig {
-	out := api.BillingUnitConfig{
-		Operation:        api.BillingUnitConfigOperation(uc.Operation),
+func ToAPIBillingUnitConfig(uc productcatalog.UnitConfig) apiv3models.BillingUnitConfig {
+	out := apiv3models.BillingUnitConfig{
+		Operation:        apiv3models.BillingUnitConfigOperation(uc.Operation),
 		ConversionFactor: uc.ConversionFactor.String(),
 		DisplayUnit:      uc.DisplayUnit,
 	}
 
 	if !uc.Rounding.IsNone() {
-		out.Rounding = lo.ToPtr(api.BillingUnitConfigRoundingMode(uc.Rounding))
+		out.Rounding = lo.ToPtr(apiv3models.BillingUnitConfigRoundingMode(uc.Rounding))
 		out.Precision = lo.ToPtr(uc.Precision)
 	}
 
@@ -326,7 +326,7 @@ func ToAPIBillingUnitConfig(uc productcatalog.UnitConfig) api.BillingUnitConfig 
 // values are identical across the two layers, so operation and rounding are direct
 // casts; UnitConfig.Validate (run via RateCardMeta.Validate) rejects unknown enum
 // values and a non-positive conversion factor.
-func FromAPIBillingUnitConfig(uc api.BillingUnitConfig) (*productcatalog.UnitConfig, error) {
+func FromAPIBillingUnitConfig(uc apiv3models.BillingUnitConfig) (*productcatalog.UnitConfig, error) {
 	conversionFactor, err := decimal.NewFromString(uc.ConversionFactor)
 	if err != nil {
 		return nil, fmt.Errorf("invalid conversion factor: %w", err)
@@ -352,12 +352,12 @@ func FromAPIBillingUnitConfig(uc api.BillingUnitConfig) (*productcatalog.UnitCon
 	return out, nil
 }
 
-func ToAPIBillingPrice(p *productcatalog.Price) (api.BillingPrice, error) {
-	var result api.BillingPrice
+func ToAPIBillingPrice(p *productcatalog.Price) (apiv3models.BillingPrice, error) {
+	var result apiv3models.BillingPrice
 
 	if p == nil {
-		if err := result.FromBillingPriceFree(api.BillingPriceFree{
-			Type: api.BillingPriceFreeType("free"),
+		if err := result.FromBillingPriceFree(apiv3models.BillingPriceFree{
+			Type: apiv3models.BillingPriceFreeType("free"),
 		}); err != nil {
 			return result, fmt.Errorf("failed to set free price: %w", err)
 		}
@@ -372,9 +372,9 @@ func ToAPIBillingPrice(p *productcatalog.Price) (api.BillingPrice, error) {
 			return result, fmt.Errorf("failed to read flat price: %w", err)
 		}
 
-		if err = result.FromBillingPriceFlat(api.BillingPriceFlat{
+		if err = result.FromBillingPriceFlat(apiv3models.BillingPriceFlat{
 			Amount: flat.Amount.String(),
-			Type:   api.BillingPriceFlatType("flat"),
+			Type:   apiv3models.BillingPriceFlatType("flat"),
 		}); err != nil {
 			return result, fmt.Errorf("failed to set flat price: %w", err)
 		}
@@ -385,9 +385,9 @@ func ToAPIBillingPrice(p *productcatalog.Price) (api.BillingPrice, error) {
 			return result, fmt.Errorf("failed to read unit price: %w", err)
 		}
 
-		if err = result.FromBillingPriceUnit(api.BillingPriceUnit{
+		if err = result.FromBillingPriceUnit(apiv3models.BillingPriceUnit{
 			Amount: unit.Amount.String(),
-			Type:   api.BillingPriceUnitType("unit"),
+			Type:   apiv3models.BillingPriceUnitType("unit"),
 		}); err != nil {
 			return result, fmt.Errorf("failed to set unit price: %w", err)
 		}
@@ -402,17 +402,17 @@ func ToAPIBillingPrice(p *productcatalog.Price) (api.BillingPrice, error) {
 
 		switch tiered.Mode {
 		case productcatalog.GraduatedTieredPrice:
-			if err = result.FromBillingPriceGraduated(api.BillingPriceGraduated{
+			if err = result.FromBillingPriceGraduated(apiv3models.BillingPriceGraduated{
 				Tiers: tiers,
-				Type:  api.BillingPriceGraduatedType("graduated"),
+				Type:  apiv3models.BillingPriceGraduatedType("graduated"),
 			}); err != nil {
 				return result, fmt.Errorf("failed to set graduated price: %w", err)
 			}
 
 		case productcatalog.VolumeTieredPrice:
-			if err = result.FromBillingPriceVolume(api.BillingPriceVolume{
+			if err = result.FromBillingPriceVolume(apiv3models.BillingPriceVolume{
 				Tiers: tiers,
-				Type:  api.BillingPriceVolumeType("volume"),
+				Type:  apiv3models.BillingPriceVolumeType("volume"),
 			}); err != nil {
 				return result, fmt.Errorf("failed to set volume price: %w", err)
 			}
@@ -424,9 +424,9 @@ func ToAPIBillingPrice(p *productcatalog.Price) (api.BillingPrice, error) {
 	case productcatalog.DynamicPriceType:
 		// Dynamic prices are surfaced in v3 as a unit price of amount 1; the
 		// multiplier is carried separately on the rate card's unit config.
-		if err := result.FromBillingPriceUnit(api.BillingPriceUnit{
+		if err := result.FromBillingPriceUnit(apiv3models.BillingPriceUnit{
 			Amount: "1",
-			Type:   api.BillingPriceUnitType("unit"),
+			Type:   apiv3models.BillingPriceUnitType("unit"),
 		}); err != nil {
 			return result, fmt.Errorf("failed to set unit price for dynamic price: %w", err)
 		}
@@ -439,9 +439,9 @@ func ToAPIBillingPrice(p *productcatalog.Price) (api.BillingPrice, error) {
 			return result, fmt.Errorf("failed to read package price: %w", err)
 		}
 
-		if err = result.FromBillingPriceUnit(api.BillingPriceUnit{
+		if err = result.FromBillingPriceUnit(apiv3models.BillingPriceUnit{
 			Amount: pkg.Amount.String(),
-			Type:   api.BillingPriceUnitType("unit"),
+			Type:   apiv3models.BillingPriceUnitType("unit"),
 		}); err != nil {
 			return result, fmt.Errorf("failed to set unit price for package price: %w", err)
 		}
@@ -456,8 +456,8 @@ func ToAPIBillingPrice(p *productcatalog.Price) (api.BillingPrice, error) {
 // ToAPIBillingPriceUsageBased maps a domain usage price to the public
 // unit/graduated/volume union. Legacy dynamic and package prices are normalized
 // by ToAPIBillingPrice to their v3 unit-price representation.
-func ToAPIBillingPriceUsageBased(p *productcatalog.Price) (api.BillingPriceUsageBased, error) {
-	var result api.BillingPriceUsageBased
+func ToAPIBillingPriceUsageBased(p *productcatalog.Price) (apiv3models.BillingPriceUsageBased, error) {
+	var result apiv3models.BillingPriceUsageBased
 
 	price, err := ToAPIBillingPrice(p)
 	if err != nil {
@@ -504,27 +504,27 @@ func ToAPIBillingPriceUsageBased(p *productcatalog.Price) (api.BillingPriceUsage
 	return result, nil
 }
 
-func ToAPIBillingPriceTiers(tiers []productcatalog.PriceTier) []api.BillingPriceTier {
-	result := make([]api.BillingPriceTier, 0, len(tiers))
+func ToAPIBillingPriceTiers(tiers []productcatalog.PriceTier) []apiv3models.BillingPriceTier {
+	result := make([]apiv3models.BillingPriceTier, 0, len(tiers))
 
 	for _, t := range tiers {
-		tier := api.BillingPriceTier{}
+		tier := apiv3models.BillingPriceTier{}
 
 		if t.UpToAmount != nil {
 			tier.UpToAmount = lo.ToPtr(t.UpToAmount.String())
 		}
 
 		if t.FlatPrice != nil {
-			tier.FlatPrice = &api.BillingPriceFlat{
+			tier.FlatPrice = &apiv3models.BillingPriceFlat{
 				Amount: t.FlatPrice.Amount.String(),
-				Type:   api.BillingPriceFlatType("flat"),
+				Type:   apiv3models.BillingPriceFlatType("flat"),
 			}
 		}
 
 		if t.UnitPrice != nil {
-			tier.UnitPrice = &api.BillingPriceUnit{
+			tier.UnitPrice = &apiv3models.BillingPriceUnit{
 				Amount: t.UnitPrice.Amount.String(),
-				Type:   api.BillingPriceUnitType("unit"),
+				Type:   apiv3models.BillingPriceUnitType("unit"),
 			}
 		}
 
@@ -534,12 +534,12 @@ func ToAPIBillingPriceTiers(tiers []productcatalog.PriceTier) []api.BillingPrice
 	return result
 }
 
-func ToAPIBillingRateCardDiscount(d productcatalog.Discounts) *api.BillingRateCardDiscounts {
+func ToAPIBillingRateCardDiscount(d productcatalog.Discounts) *apiv3models.BillingRateCardDiscounts {
 	if d.Percentage == nil && d.Usage == nil {
 		return nil
 	}
 
-	result := &api.BillingRateCardDiscounts{}
+	result := &apiv3models.BillingRateCardDiscounts{}
 
 	if d.Percentage != nil {
 		pct := float32(d.Percentage.Percentage.InexactFloat64())
@@ -553,12 +553,12 @@ func ToAPIBillingRateCardDiscount(d productcatalog.Discounts) *api.BillingRateCa
 	return result
 }
 
-func ToAPIBillingSpendCommitments(c productcatalog.Commitments) *api.BillingSpendCommitments {
+func ToAPIBillingSpendCommitments(c productcatalog.Commitments) *apiv3models.BillingSpendCommitments {
 	if c.MinimumAmount == nil && c.MaximumAmount == nil {
 		return nil
 	}
 
-	result := &api.BillingSpendCommitments{}
+	result := &apiv3models.BillingSpendCommitments{}
 
 	if c.MinimumAmount != nil {
 		result.MinimumAmount = lo.ToPtr(c.MinimumAmount.String())
@@ -571,14 +571,14 @@ func ToAPIBillingSpendCommitments(c productcatalog.Commitments) *api.BillingSpen
 	return result
 }
 
-func ToAPIProductCatalogValidationErrors(issues models.ValidationIssues) *[]api.ProductCatalogValidationError {
+func ToAPIProductCatalogValidationErrors(issues models.ValidationIssues) *[]apiv3models.ProductCatalogValidationError {
 	if len(issues) == 0 {
 		return nil
 	}
 
-	result := make([]api.ProductCatalogValidationError, 0, len(issues))
+	result := make([]apiv3models.ProductCatalogValidationError, 0, len(issues))
 	for _, issue := range issues {
-		result = append(result, api.ProductCatalogValidationError{
+		result = append(result, apiv3models.ProductCatalogValidationError{
 			Code:    string(issue.Code()),
 			Field:   issue.Field().JSONPath(),
 			Message: issue.Message(),
@@ -588,7 +588,7 @@ func ToAPIProductCatalogValidationErrors(issues models.ValidationIssues) *[]api.
 	return &result
 }
 
-func FromAPIUpsertPlanRequest(ns string, planID string, body api.UpsertPlanRequest) (plan.UpdatePlanInput, error) {
+func FromAPIUpsertPlanRequest(ns string, planID string, body apiv3models.UpsertPlanRequest) (plan.UpdatePlanInput, error) {
 	req := plan.UpdatePlanInput{
 		NamespacedID: models.NamespacedID{
 			Namespace: ns,
@@ -629,7 +629,7 @@ func FromAPIUpsertPlanRequest(ns string, planID string, body api.UpsertPlanReque
 	return req, nil
 }
 
-func FromAPICreatePlanRequest(ns string, body api.CreatePlanRequest) (plan.CreatePlanInput, error) {
+func FromAPICreatePlanRequest(ns string, body apiv3models.CreatePlanRequest) (plan.CreatePlanInput, error) {
 	meta, err := labels.ToMetadata(body.Labels)
 	if err != nil {
 		return plan.CreatePlanInput{}, fmt.Errorf("failed to convert label metadata: %w", err)
@@ -689,7 +689,7 @@ func ToProRatingConfig(enabled *bool) productcatalog.ProRatingConfig {
 	}
 }
 
-func FromAPIBillingPlanPhase(p api.BillingPlanPhase) (productcatalog.Phase, error) {
+func FromAPIBillingPlanPhase(p apiv3models.BillingPlanPhase) (productcatalog.Phase, error) {
 	meta, labelErr := labels.ToMetadata(p.Labels)
 
 	if labelErr != nil {
@@ -728,7 +728,7 @@ func FromAPIBillingPlanPhase(p api.BillingPlanPhase) (productcatalog.Phase, erro
 	return phase, nil
 }
 
-func FromAPIBillingRateCard(rc api.BillingRateCard) (productcatalog.RateCard, error) {
+func FromAPIBillingRateCard(rc apiv3models.BillingRateCard) (productcatalog.RateCard, error) {
 	priceType, err := rc.Price.Discriminator()
 	if err != nil {
 		return nil, fmt.Errorf("failed to read price type: %w", err)
@@ -848,7 +848,7 @@ func FromAPIBillingRateCard(rc api.BillingRateCard) (productcatalog.RateCard, er
 	}
 }
 
-func FromAPIBillingRateCardEntitlement(e api.BillingRateCardEntitlement, billingCadence *datetime.ISODuration) (*productcatalog.EntitlementTemplate, error) {
+func FromAPIBillingRateCardEntitlement(e apiv3models.BillingRateCardEntitlement, billingCadence *datetime.ISODuration) (*productcatalog.EntitlementTemplate, error) {
 	disc, err := e.Discriminator()
 	if err != nil {
 		return nil, fmt.Errorf("failed to read entitlement type: %w", err)
@@ -923,7 +923,7 @@ func FromAPIBillingRateCardEntitlement(e api.BillingRateCardEntitlement, billing
 	}
 }
 
-func FromAPIBillingPrice(p api.BillingPrice, paymentTerm *api.BillingPricePaymentTerm) (*productcatalog.Price, error) {
+func FromAPIBillingPrice(p apiv3models.BillingPrice, paymentTerm *apiv3models.BillingPricePaymentTerm) (*productcatalog.Price, error) {
 	disc, err := p.Discriminator()
 	if err != nil {
 		return nil, fmt.Errorf("failed to read price type: %w", err)
@@ -959,7 +959,7 @@ func FromAPIBillingPrice(p api.BillingPrice, paymentTerm *api.BillingPricePaymen
 	}
 }
 
-func FromAPIBillingPriceWithCommitments(p api.BillingPrice, commitments *api.BillingSpendCommitments) (*productcatalog.Price, error) {
+func FromAPIBillingPriceWithCommitments(p apiv3models.BillingPrice, commitments *apiv3models.BillingSpendCommitments) (*productcatalog.Price, error) {
 	disc, err := p.Discriminator()
 	if err != nil {
 		return nil, fmt.Errorf("failed to read price type: %w", err)
@@ -1028,8 +1028,8 @@ func FromAPIBillingPriceWithCommitments(p api.BillingPrice, commitments *api.Bil
 
 // FromAPIBillingPriceUsageBased maps the public unit/graduated/volume union and
 // its sibling commitments into the domain price representation.
-func FromAPIBillingPriceUsageBased(p api.BillingPriceUsageBased, commitments *api.BillingSpendCommitments) (*productcatalog.Price, error) {
-	var price api.BillingPrice
+func FromAPIBillingPriceUsageBased(p apiv3models.BillingPriceUsageBased, commitments *apiv3models.BillingSpendCommitments) (*productcatalog.Price, error) {
+	var price apiv3models.BillingPrice
 
 	discriminator, err := p.Discriminator()
 	if err != nil {
@@ -1071,7 +1071,7 @@ func FromAPIBillingPriceUsageBased(p api.BillingPriceUsageBased, commitments *ap
 	return FromAPIBillingPriceWithCommitments(price, commitments)
 }
 
-func ParseCommitments(c *api.BillingSpendCommitments) (productcatalog.Commitments, error) {
+func ParseCommitments(c *apiv3models.BillingSpendCommitments) (productcatalog.Commitments, error) {
 	if c == nil {
 		return productcatalog.Commitments{}, nil
 	}
@@ -1099,7 +1099,7 @@ func ParseCommitments(c *api.BillingSpendCommitments) (productcatalog.Commitment
 	return result, nil
 }
 
-func FromAPIBillingPriceTiers(tiers []api.BillingPriceTier) ([]productcatalog.PriceTier, error) {
+func FromAPIBillingPriceTiers(tiers []apiv3models.BillingPriceTier) ([]productcatalog.PriceTier, error) {
 	result := make([]productcatalog.PriceTier, 0, len(tiers))
 
 	for _, t := range tiers {
@@ -1138,7 +1138,7 @@ func FromAPIBillingPriceTiers(tiers []api.BillingPriceTier) ([]productcatalog.Pr
 	return result, nil
 }
 
-func FromAPIBillingRateCardDiscounts(d api.BillingRateCardDiscounts) (productcatalog.Discounts, error) {
+func FromAPIBillingRateCardDiscounts(d apiv3models.BillingRateCardDiscounts) (productcatalog.Discounts, error) {
 	result := productcatalog.Discounts{}
 
 	if d.Percentage != nil {

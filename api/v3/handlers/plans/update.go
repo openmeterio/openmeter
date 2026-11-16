@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
@@ -18,7 +18,7 @@ import (
 
 type (
 	UpdatePlanRequest  = plan.UpdatePlanInput
-	UpdatePlanResponse = api.BillingPlan
+	UpdatePlanResponse = apiv3models.BillingPlan
 	UpdatePlanParams   = string
 	UpdatePlanHandler  httptransport.HandlerWithArgs[UpdatePlanRequest, UpdatePlanResponse, UpdatePlanParams]
 )
@@ -26,7 +26,7 @@ type (
 func (h *handler) UpdatePlan() UpdatePlanHandler {
 	return httptransport.NewHandlerWithArgs(
 		func(ctx context.Context, r *http.Request, planID UpdatePlanParams) (UpdatePlanRequest, error) {
-			body := api.UpsertPlanRequest{}
+			body := apiv3models.UpsertPlanRequest{}
 			if err := request.ParseBody(r, &body); err != nil {
 				return UpdatePlanRequest{}, err
 			}

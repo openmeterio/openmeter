@@ -5,14 +5,14 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	planhttpdriver "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/httpdriver"
 	"github.com/openmeterio/openmeter/pkg/featuregate"
 )
 
 // List plans
 // (GET /api/v1/plans)
-func (a *Router) ListPlans(w http.ResponseWriter, r *http.Request, params api.ListPlansParams) {
+func (a *Router) ListPlans(w http.ResponseWriter, r *http.Request, params apiv1models.ListPlansParams) {
 	a.planHandler.ListPlans().With(params).ServeHTTP(w, r)
 }
 
@@ -34,7 +34,7 @@ func (a *Router) DeletePlan(w http.ResponseWriter, r *http.Request, planId strin
 
 // Get plan
 // (GET /api/v1/plans/{planId})
-func (a *Router) GetPlan(w http.ResponseWriter, r *http.Request, planIdOrKey string, params api.GetPlanParams) {
+func (a *Router) GetPlan(w http.ResponseWriter, r *http.Request, planIdOrKey string, params apiv1models.GetPlanParams) {
 	a.planHandler.GetPlan().With(planhttpdriver.GetPlanRequestParams{
 		IDOrKey:       planIdOrKey,
 		IncludeLatest: lo.FromPtrOr(params.IncludeLatest, false),

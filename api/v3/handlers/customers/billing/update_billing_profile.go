@@ -8,8 +8,8 @@ import (
 
 	"github.com/samber/lo"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -22,7 +22,7 @@ type (
 		Customer  customer.CustomerID
 		ProfileID *string
 	}
-	UpdateCustomerBillingProfileResponse = api.BillingCustomerProfile
+	UpdateCustomerBillingProfileResponse = apiv3models.BillingCustomerProfile
 	UpdateCustomerBillingProfileParams   = string
 	UpdateCustomerBillingProfileHandler  = httptransport.HandlerWithArgs[UpdateCustomerBillingProfileRequest, UpdateCustomerBillingProfileResponse, UpdateCustomerBillingProfileParams]
 )
@@ -30,7 +30,7 @@ type (
 func (h *handler) UpdateCustomerBillingProfile() UpdateCustomerBillingProfileHandler {
 	return httptransport.NewHandlerWithArgs(
 		func(ctx context.Context, r *http.Request, customerID UpdateCustomerBillingProfileParams) (UpdateCustomerBillingProfileRequest, error) {
-			var body api.UpsertCustomerBillingProfileRequest
+			var body apiv3models.UpsertCustomerBillingProfileRequest
 			if err := request.ParseBody(r, &body); err != nil {
 				return UpdateCustomerBillingProfileRequest{}, err
 			}

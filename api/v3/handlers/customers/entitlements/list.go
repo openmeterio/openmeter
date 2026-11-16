@@ -7,9 +7,9 @@ import (
 
 	"github.com/samber/lo"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/filters"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/api/v3/response"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -23,10 +23,10 @@ import (
 
 type (
 	ListCustomerEntitlementsRequest  = entitlement.ListCustomerEntitlementsInput
-	ListCustomerEntitlementsResponse = response.PagePaginationResponse[api.BillingEntitlement]
+	ListCustomerEntitlementsResponse = response.PagePaginationResponse[apiv3models.BillingEntitlement]
 	ListCustomerEntitlementsParams   struct {
-		CustomerID api.ULID
-		Params     api.ListCustomerEntitlementsParams
+		CustomerID apiv3models.ULID
+		Params     apiv3models.ListCustomerEntitlementsParams
 	}
 	ListCustomerEntitlementsHandler = httptransport.HandlerWithArgs[ListCustomerEntitlementsRequest, ListCustomerEntitlementsResponse, ListCustomerEntitlementsParams]
 )
@@ -98,7 +98,7 @@ func (h *handler) ListCustomerEntitlements() ListCustomerEntitlementsHandler {
 				return ListCustomerEntitlementsResponse{}, err
 			}
 
-			items, err := slicesx.MapWithErr(result.Items, func(ent entitlement.Entitlement) (api.BillingEntitlement, error) {
+			items, err := slicesx.MapWithErr(result.Items, func(ent entitlement.Entitlement) (apiv3models.BillingEntitlement, error) {
 				return ToAPIBillingEntitlement(&ent)
 			})
 			if err != nil {

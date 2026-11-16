@@ -6,8 +6,8 @@ import (
 
 	"github.com/samber/lo"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -17,7 +17,7 @@ import (
 type (
 	CustomerID                            = string
 	ListCustomerEntitlementAccessRequest  = entitlement.ListCustomerEntitlementAccessInput
-	ListCustomerEntitlementAccessResponse = api.ListCustomerEntitlementAccessResponseData
+	ListCustomerEntitlementAccessResponse = apiv3models.ListCustomerEntitlementAccessResponseData
 	ListCustomerEntitlementAccessHandler  httptransport.HandlerWithArgs[ListCustomerEntitlementAccessRequest, ListCustomerEntitlementAccessResponse, CustomerID]
 )
 
@@ -42,7 +42,7 @@ func (h *handler) ListCustomerEntitlementAccess() ListCustomerEntitlementAccessH
 				return ListCustomerEntitlementAccessResponse{}, err
 			}
 
-			data, err := lo.MapErr(items, func(item entitlement.CustomerEntitlementAccess, _ int) (api.BillingEntitlementValueResult, error) {
+			data, err := lo.MapErr(items, func(item entitlement.CustomerEntitlementAccess, _ int) (apiv3models.BillingEntitlementValueResult, error) {
 				return mapEntitlementAccessToAPI(item)
 			})
 			if err != nil {

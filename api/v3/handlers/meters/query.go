@@ -4,9 +4,9 @@ import (
 	"context"
 	"net/http"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/handlers/meters/query"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -17,9 +17,9 @@ import (
 type (
 	QueryMeterRequest struct {
 		models.NamespacedID
-		Body api.MeterQueryRequest
+		Body apiv3models.MeterQueryRequest
 	}
-	QueryMeterResponse = api.MeterQueryResult
+	QueryMeterResponse = apiv3models.MeterQueryResult
 	QueryMeterParams   = string
 	QueryMeterHandler  httptransport.HandlerWithArgs[QueryMeterRequest, QueryMeterResponse, QueryMeterParams]
 )
@@ -32,7 +32,7 @@ func (h *handler) QueryMeter() QueryMeterHandler {
 				return QueryMeterRequest{}, err
 			}
 
-			var body api.MeterQueryRequest
+			var body apiv3models.MeterQueryRequest
 			if err := request.ParseBody(r, &body); err != nil {
 				return QueryMeterRequest{}, err
 			}

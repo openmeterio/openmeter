@@ -7,7 +7,7 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 
-	v3 "github.com/openmeterio/openmeter/api/v3"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -18,7 +18,7 @@ import (
 
 type (
 	CreateCostBasisRequest  = currencies.CreateCostBasisInput
-	CreateCostBasisResponse = v3.BillingCostBasis
+	CreateCostBasisResponse = apiv3models.BillingCostBasis
 	CreateCostBasisHandler  = httptransport.HandlerWithArgs[CreateCostBasisRequest, CreateCostBasisResponse, string]
 )
 
@@ -34,7 +34,7 @@ func (h *handler) CreateCostBasis() CreateCostBasisHandler {
 				return CreateCostBasisRequest{}, err
 			}
 
-			var body v3.CreateCostBasisRequest
+			var body apiv3models.CreateCostBasisRequest
 			if err = request.ParseBody(r, &body); err != nil {
 				return CreateCostBasisRequest{}, err
 			}

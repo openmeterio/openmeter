@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
@@ -14,8 +14,8 @@ import (
 
 type (
 	GetAppCatalogRequest  = app.GetOauth2InstallURLInput
-	GetAppCatalogParam    = api.BillingAppType
-	GetAppCatalogResponse = api.BillingAppCatalogItem
+	GetAppCatalogParam    = apiv3models.BillingAppType
+	GetAppCatalogResponse = apiv3models.BillingAppCatalogItem
 	GetAppCatalogHandler  httptransport.HandlerWithArgs[GetAppCatalogRequest, GetAppCatalogResponse, GetAppCatalogParam]
 )
 

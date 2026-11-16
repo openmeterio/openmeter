@@ -4,8 +4,8 @@ import (
 	"context"
 	"net/http"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -15,7 +15,7 @@ import (
 
 type (
 	MigrateSubscriptionRequest  = plansubscription.MigrateSubscriptionRequest
-	MigrateSubscriptionResponse = api.BillingSubscriptionMigrateResponse
+	MigrateSubscriptionResponse = apiv3models.BillingSubscriptionMigrateResponse
 	MigrateSubscriptionParams   = string
 	MigrateSubscriptionHandler  httptransport.HandlerWithArgs[MigrateSubscriptionRequest, MigrateSubscriptionResponse, MigrateSubscriptionParams]
 )
@@ -23,7 +23,7 @@ type (
 func (h *handler) MigrateSubscription() MigrateSubscriptionHandler {
 	return httptransport.NewHandlerWithArgs(
 		func(ctx context.Context, r *http.Request, subscriptionID MigrateSubscriptionParams) (MigrateSubscriptionRequest, error) {
-			var body api.BillingSubscriptionMigrate
+			var body apiv3models.BillingSubscriptionMigrate
 			if err := request.ParseBody(r, &body); err != nil {
 				return MigrateSubscriptionRequest{}, err
 			}

@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"time"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -15,11 +15,11 @@ import (
 
 type (
 	GetCustomerEntitlementHistoryRequest  = entitlement.GetCustomerEntitlementHistoryInput
-	GetCustomerEntitlementHistoryResponse = api.BillingEntitlementHistory
+	GetCustomerEntitlementHistoryResponse = apiv3models.BillingEntitlementHistory
 	GetCustomerEntitlementHistoryParams   struct {
-		CustomerID    api.ULID
-		EntitlementID api.ULID
-		Params        api.GetCustomerEntitlementHistoryParams
+		CustomerID    apiv3models.ULID
+		EntitlementID apiv3models.ULID
+		Params        apiv3models.GetCustomerEntitlementHistoryParams
 	}
 	GetCustomerEntitlementHistoryHandler = httptransport.HandlerWithArgs[GetCustomerEntitlementHistoryRequest, GetCustomerEntitlementHistoryResponse, GetCustomerEntitlementHistoryParams]
 )

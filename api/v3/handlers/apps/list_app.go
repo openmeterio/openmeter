@@ -7,9 +7,9 @@ import (
 
 	"github.com/samber/lo"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/filters"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/api/v3/response"
 	"github.com/openmeterio/openmeter/openmeter/app"
@@ -21,8 +21,8 @@ import (
 // ListAppsHandler is a handler for listing apps
 type (
 	ListAppsRequest  = app.ListAppInput
-	ListAppsResponse = api.AppPagePaginatedResponse
-	ListAppsParams   = api.ListAppsParams
+	ListAppsResponse = apiv3models.AppPagePaginatedResponse
+	ListAppsParams   = apiv3models.ListAppsParams
 	ListAppsHandler  httptransport.HandlerWithArgs[ListAppsRequest, ListAppsResponse, ListAppsParams]
 )
 

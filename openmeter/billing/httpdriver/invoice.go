@@ -9,7 +9,7 @@ import (
 	"github.com/samber/lo"
 	"github.com/samber/mo"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingconvert "github.com/openmeterio/openmeter/openmeter/billing/apiconvert"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -29,8 +29,8 @@ var _ InvoiceHandler = (*handler)(nil)
 
 type (
 	ListInvoicesRequest  = billing.ListInvoicesInput
-	ListInvoicesResponse = api.InvoicePaginatedResponse
-	ListInvoicesParams   = api.ListInvoicesParams
+	ListInvoicesResponse = apiv1models.InvoicePaginatedResponse
+	ListInvoicesParams   = apiv1models.ListInvoicesParams
 	ListInvoicesHandler  httptransport.HandlerWithArgs[ListInvoicesRequest, ListInvoicesResponse, ListInvoicesParams]
 )
 
@@ -47,7 +47,7 @@ func (h *handler) ListInvoices() ListInvoicesHandler {
 
 				Statuses: lo.Map(
 					lo.FromPtr(input.Statuses),
-					func(status api.InvoiceStatus, _ int) string {
+					func(status apiv1models.InvoiceStatus, _ int) string {
 						return string(status)
 					},
 				),
@@ -65,7 +65,7 @@ func (h *handler) ListInvoices() ListInvoicesHandler {
 				Expand: mapInvoiceExpandsToEntity(lo.FromPtr(input.Expand)).
 					With(billing.InvoiceExpandCalculateGatheringInvoiceWithLiveData),
 
-				Order:   sortx.Order(lo.FromPtrOr(input.Order, api.InvoiceOrderByOrderingOrder(sortx.OrderDefault))),
+				Order:   sortx.Order(lo.FromPtrOr(input.Order, apiv1models.InvoiceOrderByOrderingOrder(sortx.OrderDefault))),
 				OrderBy: lo.FromPtr(input.OrderBy),
 
 				IncludeDeleted: lo.FromPtrOr(input.IncludeDeleted, false),
@@ -94,7 +94,7 @@ func (h *handler) ListInvoices() ListInvoicesHandler {
 			}
 
 			res := ListInvoicesResponse{
-				Items:      make([]api.Invoice, 0, len(invoices.Items)),
+				Items:      make([]apiv1models.Invoice, 0, len(invoices.Items)),
 				Page:       invoices.Page.PageNumber,
 				PageSize:   invoices.Page.PageSize,
 				TotalCount: invoices.TotalCount,
@@ -125,14 +125,14 @@ type (
 		billing.InvoicePendingLinesInput
 		Options []billing.InvoicePendingLinesOption
 	}
-	InvoicePendingLinesActionResponse = []api.Invoice
+	InvoicePendingLinesActionResponse = []apiv1models.Invoice
 	InvoicePendingLinesActionHandler  httptransport.Handler[InvoicePendingLinesActionRequest, InvoicePendingLinesActionResponse]
 )
 
 func (h *handler) InvoicePendingLinesAction() InvoicePendingLinesActionHandler {
 	return httptransport.NewHandler(
 		func(ctx context.Context, r *http.Request) (InvoicePendingLinesActionRequest, error) {
-			body := api.InvoicePendingLinesActionInput{}
+			body := apiv1models.InvoicePendingLinesActionInput{}
 
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
 				return InvoicePendingLinesActionRequest{}, err
@@ -179,7 +179,7 @@ func (h *handler) InvoicePendingLinesAction() InvoicePendingLinesActionHandler {
 				return nil, err
 			}
 
-			out := make([]api.Invoice, 0, len(invoices))
+			out := make([]apiv1models.Invoice, 0, len(invoices))
 
 			for _, invoice := range invoices {
 				invoice, err := MapStandardInvoiceToAPI(invoice)
@@ -203,10 +203,10 @@ func (h *handler) InvoicePendingLinesAction() InvoicePendingLinesActionHandler {
 
 type (
 	GetInvoiceRequest  = billing.GetInvoiceByIdInput
-	GetInvoiceResponse = api.Invoice
+	GetInvoiceResponse = apiv1models.Invoice
 	GetInvoiceParams   struct {
 		InvoiceID           string
-		Expand              []api.InvoiceExpand
+		Expand              []apiv1models.InvoiceExpand
 		IncludeDeletedLines bool
 	}
 	GetInvoiceHandler httptransport.HandlerWithArgs[GetInvoiceRequest, GetInvoiceResponse, GetInvoiceParams]
@@ -221,7 +221,7 @@ func (h *handler) GetInvoice() GetInvoiceHandler {
 			}
 
 			if len(params.Expand) == 0 {
-				params.Expand = []api.InvoiceExpand{api.InvoiceExpandLines}
+				params.Expand = []apiv1models.InvoiceExpand{apiv1models.InvoiceExpandLines}
 			}
 
 			return GetInvoiceRequest{
@@ -279,7 +279,7 @@ type (
 	ProgressInvoiceRequest struct {
 		Invoice billing.InvoiceID
 	}
-	ProgressInvoiceResponse = api.Invoice
+	ProgressInvoiceResponse = apiv1models.Invoice
 	ProgressInvoiceParams   struct {
 		InvoiceID string
 	}
@@ -426,7 +426,7 @@ func (h *handler) deleteStandardInvoice(ctx context.Context, request DeleteInvoi
 
 type (
 	SimulateInvoiceRequest  = billing.SimulateInvoiceInput
-	SimulateInvoiceResponse = api.Invoice
+	SimulateInvoiceResponse = apiv1models.Invoice
 	SimulateInvoiceParams   struct {
 		CustomerID string
 	}
@@ -441,7 +441,7 @@ func (h *handler) SimulateInvoice() SimulateInvoiceHandler {
 				return SimulateInvoiceRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
 			}
 
-			body := api.InvoiceSimulationInput{}
+			body := apiv1models.InvoiceSimulationInput{}
 
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
 				return SimulateInvoiceRequest{}, err
@@ -483,9 +483,9 @@ func (h *handler) SimulateInvoice() SimulateInvoiceHandler {
 type (
 	UpdateInvoiceRequest struct {
 		InvoiceID billing.InvoiceID
-		Input     api.InvoiceReplaceUpdate
+		Input     apiv1models.InvoiceReplaceUpdate
 	}
-	UpdateInvoiceResponse = api.Invoice
+	UpdateInvoiceResponse = apiv1models.Invoice
 	UpdateInvoiceParams   struct {
 		InvoiceID string
 	}
@@ -500,7 +500,7 @@ func (h *handler) UpdateInvoice() UpdateInvoiceHandler {
 				return UpdateInvoiceRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
 			}
 
-			body := api.InvoiceReplaceUpdate{}
+			body := apiv1models.InvoiceReplaceUpdate{}
 
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
 				return UpdateInvoiceRequest{}, err
@@ -633,19 +633,19 @@ func (h *handler) updateStandardInvoice(ctx context.Context, invoice billing.Inv
 	return billing.NewInvoice(updatedStandardInvoice), nil
 }
 
-func (h *handler) MapInvoiceToAPI(ctx context.Context, invoice billing.Invoice) (api.Invoice, error) {
+func (h *handler) MapInvoiceToAPI(ctx context.Context, invoice billing.Invoice) (apiv1models.Invoice, error) {
 	switch invoice.Type() {
 	case billing.InvoiceTypeStandard:
 		standardInvoice, err := invoice.AsStandardInvoice()
 		if err != nil {
-			return api.Invoice{}, fmt.Errorf("converting invoice to standard invoice: %w", err)
+			return apiv1models.Invoice{}, fmt.Errorf("converting invoice to standard invoice: %w", err)
 		}
 
 		return MapStandardInvoiceToAPI(standardInvoice)
 	case billing.InvoiceTypeGathering:
 		gatheringInvoice, err := invoice.AsGatheringInvoice()
 		if err != nil {
-			return api.Invoice{}, fmt.Errorf("converting invoice to gathering invoice: %w", err)
+			return apiv1models.Invoice{}, fmt.Errorf("converting invoice to gathering invoice: %w", err)
 		}
 
 		// TODO: For the V3 api let's make sure that we don't return gathering invoice customer data (or even gathering invoices)
@@ -662,28 +662,28 @@ func (h *handler) MapInvoiceToAPI(ctx context.Context, invoice billing.Invoice) 
 
 		return MapGatheringInvoiceToAPI(gatheringInvoice, mergedProfile.Customer, mergedProfile.EffectiveProfile)
 	default:
-		return api.Invoice{}, fmt.Errorf("invalid invoice type: %s", invoice.Type())
+		return apiv1models.Invoice{}, fmt.Errorf("invalid invoice type: %s", invoice.Type())
 	}
 }
 
-func MapStandardInvoiceToAPI(invoice billing.StandardInvoice) (api.Invoice, error) {
+func MapStandardInvoiceToAPI(invoice billing.StandardInvoice) (apiv1models.Invoice, error) {
 	return billingconvert.ToAPIStandardInvoice(invoice)
 }
 
-func MapEventInvoiceToAPI(event billing.EventStandardInvoice) (api.Invoice, error) {
+func MapEventInvoiceToAPI(event billing.EventStandardInvoice) (apiv1models.Invoice, error) {
 	return billingconvert.ToAPIEventInvoice(event)
 }
 
-func mapInvoiceExpandsToEntity(expand []api.InvoiceExpand) billing.InvoiceExpands {
+func mapInvoiceExpandsToEntity(expand []apiv1models.InvoiceExpand) billing.InvoiceExpands {
 	if len(expand) == 0 {
 		return nil
 	}
 
 	return billing.InvoiceExpands{}.
-		SetOrUnsetIf(slices.Contains(expand, api.InvoiceExpandLines), billing.InvoiceExpandLines)
+		SetOrUnsetIf(slices.Contains(expand, apiv1models.InvoiceExpandLines), billing.InvoiceExpandLines)
 }
 
-func mergeInvoiceSupplierFromAPI(existing billing.SupplierContact, updatedSupplier api.BillingPartyReplaceUpdate) billing.SupplierContact {
+func mergeInvoiceSupplierFromAPI(existing billing.SupplierContact, updatedSupplier apiv1models.BillingPartyReplaceUpdate) billing.SupplierContact {
 	existing.Name = lo.FromPtr(updatedSupplier.Name)
 
 	if updatedSupplier.Addresses == nil || len(*updatedSupplier.Addresses) == 0 {
@@ -702,7 +702,7 @@ func mergeInvoiceSupplierFromAPI(existing billing.SupplierContact, updatedSuppli
 	return existing
 }
 
-func mergeInvoiceCustomerFromAPI(existing billing.InvoiceCustomer, updatedCustomer api.BillingPartyReplaceUpdate) billing.InvoiceCustomer {
+func mergeInvoiceCustomerFromAPI(existing billing.InvoiceCustomer, updatedCustomer apiv1models.BillingPartyReplaceUpdate) billing.InvoiceCustomer {
 	existing.Name = lo.FromPtr(updatedCustomer.Name)
 
 	if updatedCustomer.Addresses == nil || len(*updatedCustomer.Addresses) == 0 {
@@ -715,7 +715,7 @@ func mergeInvoiceCustomerFromAPI(existing billing.InvoiceCustomer, updatedCustom
 	return existing
 }
 
-func mergeInvoiceWorkflowFromAPI(existing billing.InvoiceWorkflow, updatedWorkflow api.InvoiceWorkflowReplaceUpdate) (billing.InvoiceWorkflow, error) {
+func mergeInvoiceWorkflowFromAPI(existing billing.InvoiceWorkflow, updatedWorkflow apiv1models.InvoiceWorkflowReplaceUpdate) (billing.InvoiceWorkflow, error) {
 	existing.Config.Invoicing.AutoAdvance = lo.FromPtrOr(
 		updatedWorkflow.Workflow.Invoicing.AutoAdvance,
 		billing.DefaultWorkflowConfig.Invoicing.AutoAdvance)

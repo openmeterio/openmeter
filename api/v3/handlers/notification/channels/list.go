@@ -7,9 +7,9 @@ import (
 
 	"github.com/samber/lo"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/filters"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/api/v3/response"
 	"github.com/openmeterio/openmeter/openmeter/notification"
@@ -20,8 +20,8 @@ import (
 
 type (
 	ListNotificationChannelsRequest  = notification.ListChannelsInput
-	ListNotificationChannelsResponse = response.PagePaginationResponse[api.BillingNotificationChannel]
-	ListNotificationChannelsParams   = api.ListBillingNotificationChannelsParams
+	ListNotificationChannelsResponse = response.PagePaginationResponse[apiv3models.BillingNotificationChannel]
+	ListNotificationChannelsParams   = apiv3models.ListBillingNotificationChannelsParams
 	ListNotificationChannelsHandler  = httptransport.HandlerWithArgs[ListNotificationChannelsRequest, ListNotificationChannelsResponse, ListNotificationChannelsParams]
 )
 
@@ -149,7 +149,7 @@ func (h *handler) ListNotificationChannels() ListNotificationChannelsHandler {
 				return ListNotificationChannelsResponse{}, fmt.Errorf("failed to list notification channels: %w", err)
 			}
 
-			items := make([]api.BillingNotificationChannel, 0, len(result.Items))
+			items := make([]apiv3models.BillingNotificationChannel, 0, len(result.Items))
 			for _, item := range result.Items {
 				apiChannel, err := ToAPIChannel(item)
 				if err != nil {

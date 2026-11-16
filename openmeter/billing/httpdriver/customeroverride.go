@@ -8,7 +8,7 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customerhttpdriver "github.com/openmeterio/openmeter/openmeter/customer/httpdriver"
@@ -21,8 +21,8 @@ import (
 
 type (
 	ListCustomerOverridesRequest  = billing.ListCustomerBillingProfilesInput
-	ListCustomerOverridesResponse = api.BillingProfileCustomerOverrideWithDetailsPaginatedResponse
-	ListCustomerOverridesParams   = api.ListBillingProfileCustomerOverridesParams
+	ListCustomerOverridesResponse = apiv1models.BillingProfileCustomerOverrideWithDetailsPaginatedResponse
+	ListCustomerOverridesParams   = apiv1models.ListBillingProfileCustomerOverridesParams
 	ListCustomerOverridesHandler  httptransport.HandlerWithArgs[ListCustomerOverridesRequest, ListCustomerOverridesResponse, ListCustomerOverridesParams]
 )
 
@@ -50,8 +50,8 @@ func (h *handler) ListCustomerOverrides() ListCustomerOverridesHandler {
 				CustomerPrimaryEmail:          lo.FromPtr(input.CustomerPrimaryEmail),
 
 				Expand:  expand,
-				OrderBy: billing.CustomerBillingProfileOrderBy(lo.FromPtrOr(input.OrderBy, api.BillingProfileCustomerOverrideOrderByOrderingOrderBy(billing.DefaultCustomerBillingProfileOrderBy))),
-				Order:   sortx.Order(lo.FromPtrOr(input.Order, api.SortOrderDESC)),
+				OrderBy: billing.CustomerBillingProfileOrderBy(lo.FromPtrOr(input.OrderBy, apiv1models.BillingProfileCustomerOverrideOrderByOrderingOrderBy(billing.DefaultCustomerBillingProfileOrderBy))),
+				Order:   sortx.Order(lo.FromPtrOr(input.Order, apiv1models.SortOrderDESC)),
 
 				Page: pagination.Page{
 					PageSize:   lo.FromPtr(input.PageSize),
@@ -66,7 +66,7 @@ func (h *handler) ListCustomerOverrides() ListCustomerOverridesHandler {
 			}
 
 			res := ListCustomerOverridesResponse{
-				Items:      make([]api.BillingProfileCustomerOverrideWithDetails, 0, len(overrides.Items)),
+				Items:      make([]apiv1models.BillingProfileCustomerOverrideWithDetails, 0, len(overrides.Items)),
 				Page:       overrides.Page.PageNumber,
 				PageSize:   overrides.Page.PageSize,
 				TotalCount: overrides.TotalCount,
@@ -94,10 +94,10 @@ func (h *handler) ListCustomerOverrides() ListCustomerOverridesHandler {
 
 type (
 	GetCustomerOverrideRequest  = billing.GetCustomerBillingProfileInput
-	GetCustomerOverrideResponse = api.BillingProfileCustomerOverrideWithDetails
+	GetCustomerOverrideResponse = apiv1models.BillingProfileCustomerOverrideWithDetails
 	GetCustomerOverrideParams   struct {
 		CustomerId string `json:"customerId"`
-		Expand     *api.BillingProfileListCustomerOverridesParamsExpand
+		Expand     *apiv1models.BillingProfileListCustomerOverridesParamsExpand
 	}
 	GetCustomerOverrideHandler httptransport.HandlerWithArgs[GetCustomerOverrideRequest, GetCustomerOverrideResponse, GetCustomerOverrideParams]
 )
@@ -150,7 +150,7 @@ type (
 		Customer  customer.CustomerID
 		ProfileID *string
 	}
-	UpsertCustomerOverrideResponse = api.BillingProfileCustomerOverrideWithDetails
+	UpsertCustomerOverrideResponse = apiv1models.BillingProfileCustomerOverrideWithDetails
 	UpsertCustomerOverrideParams   struct {
 		CustomerId string `json:"customerId"`
 	}
@@ -165,7 +165,7 @@ func (h *handler) UpsertCustomerOverride() UpsertCustomerOverrideHandler {
 				return UpsertCustomerOverrideRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
 			}
 
-			body := api.BillingProfileCustomerOverrideCreate{}
+			body := apiv1models.BillingProfileCustomerOverrideCreate{}
 
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
 				return UpsertCustomerOverrideRequest{}, err
@@ -255,7 +255,7 @@ func (h *handler) DeleteCustomerOverride() DeleteCustomerOverrideHandler {
 	)
 }
 
-func (h *handler) mapCustomerBillingProfileExpandToEntity(in *api.BillingProfileListCustomerOverridesParamsExpand) (billing.CustomerBillingProfileExpand, error) {
+func (h *handler) mapCustomerBillingProfileExpandToEntity(in *apiv1models.BillingProfileListCustomerOverridesParamsExpand) (billing.CustomerBillingProfileExpand, error) {
 	if in == nil {
 		return billing.CustomerBillingProfileExpand{}, nil
 	}
@@ -264,9 +264,9 @@ func (h *handler) mapCustomerBillingProfileExpandToEntity(in *api.BillingProfile
 
 	for _, e := range *in {
 		switch e {
-		case api.BillingProfileCustomerOverrideExpandApps:
+		case apiv1models.BillingProfileCustomerOverrideExpandApps:
 			expand.Apps = true
-		case api.BillingProfileCustomerOverrideExpandCustomer:
+		case apiv1models.BillingProfileCustomerOverrideExpandCustomer:
 			expand.Customer = true
 		default:
 			return billing.CustomerBillingProfileExpand{}, models.NewGenericValidationError(fmt.Errorf("invalid expand: %s", e))
@@ -276,11 +276,11 @@ func (h *handler) mapCustomerBillingProfileExpandToEntity(in *api.BillingProfile
 	return expand, nil
 }
 
-func (h *handler) mapCustomerOverrideToAPI(ctx context.Context, in billing.CustomerBillingProfile) (api.BillingProfileCustomerOverrideWithDetails, error) {
-	res := api.BillingProfileCustomerOverrideWithDetails{}
+func (h *handler) mapCustomerOverrideToAPI(ctx context.Context, in billing.CustomerBillingProfile) (apiv1models.BillingProfileCustomerOverrideWithDetails, error) {
+	res := apiv1models.BillingProfileCustomerOverrideWithDetails{}
 
 	if in.AssignedProfile != nil {
-		res.CustomerOverride = &api.BillingProfileCustomerOverride{
+		res.CustomerOverride = &apiv1models.BillingProfileCustomerOverride{
 			BillingProfileId: &in.AssignedProfile.ProfileID,
 			CustomerId:       in.CustomerID.ID,
 			CreatedAt:        in.AssignedProfile.CreatedAt,
@@ -309,13 +309,13 @@ func (h *handler) mapCustomerOverrideToAPI(ctx context.Context, in billing.Custo
 	return res, nil
 }
 
-func (h *handler) mapCustomerProfileToAPI(ctx context.Context, in billing.Profile) (api.BillingCustomerProfile, error) {
+func (h *handler) mapCustomerProfileToAPI(ctx context.Context, in billing.Profile) (apiv1models.BillingCustomerProfile, error) {
 	profile, err := h.MapProfileToApi(ctx, &in)
 	if err != nil {
-		return api.BillingCustomerProfile{}, err
+		return apiv1models.BillingCustomerProfile{}, err
 	}
 
-	return api.BillingCustomerProfile{
+	return apiv1models.BillingCustomerProfile{
 		Supplier: profile.Supplier,
 		Workflow: profile.Workflow,
 		Apps:     profile.Apps,

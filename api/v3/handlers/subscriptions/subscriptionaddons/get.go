@@ -5,7 +5,7 @@ import (
 	"errors"
 	"net/http"
 
-	apiv3 "github.com/openmeterio/openmeter/api/v3"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
@@ -18,7 +18,7 @@ type (
 		SubscriptionID      string
 		SubscriptionAddonID string
 	}
-	GetSubscriptionAddonResponse = apiv3.SubscriptionAddon
+	GetSubscriptionAddonResponse = apiv3models.SubscriptionAddon
 	GetSubscriptionAddonHandler  httptransport.HandlerWithArgs[GetSubscriptionAddonRequest, GetSubscriptionAddonResponse, GetSubscriptionAddonParams]
 )
 

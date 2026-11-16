@@ -7,8 +7,8 @@ import (
 
 	"github.com/samber/lo"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -18,27 +18,27 @@ import (
 
 type (
 	GetCustomerEntitlementValueParams struct {
-		CustomerID    api.ULID
+		CustomerID    apiv3models.ULID
 		EntitlementID string
-		Expand        []api.BillingEntitlementAccessExpand
+		Expand        []apiv3models.BillingEntitlementAccessExpand
 		At            *time.Time
 	}
-	GetCustomerEntitlementValueResponse = api.BillingEntitlementValueResult
+	GetCustomerEntitlementValueResponse = apiv3models.BillingEntitlementValueResult
 	GetCustomerEntitlementValueHandler  httptransport.HandlerWithArgs[GetCustomerEntitlementValueRequest, GetCustomerEntitlementValueResponse, GetCustomerEntitlementValueParams]
 
 	GetCustomerEntitlementValueByFeatureKeyParams struct {
-		CustomerID api.ULID
+		CustomerID apiv3models.ULID
 		FeatureKey string
-		Expand     []api.BillingEntitlementAccessExpand
+		Expand     []apiv3models.BillingEntitlementAccessExpand
 		At         *time.Time
 	}
-	GetCustomerEntitlementValueByFeatureKeyResponse = api.BillingEntitlementFeatureValueResult
+	GetCustomerEntitlementValueByFeatureKeyResponse = apiv3models.BillingEntitlementFeatureValueResult
 	GetCustomerEntitlementValueByFeatureKeyHandler  httptransport.HandlerWithArgs[GetCustomerEntitlementValueRequest, GetCustomerEntitlementValueByFeatureKeyResponse, GetCustomerEntitlementValueByFeatureKeyParams]
 )
 
 type GetCustomerEntitlementValueRequest struct {
 	entitlement.GetCustomerEntitlementAccessInput
-	Expands []api.BillingEntitlementAccessExpand
+	Expands []apiv3models.BillingEntitlementAccessExpand
 }
 
 func (h *handler) GetCustomerEntitlementValue() GetCustomerEntitlementValueHandler {

@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	apiv3 "github.com/openmeterio/openmeter/api/v3"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -18,12 +18,12 @@ import (
 
 func TestFromAPICreateSubscriptionAddonRequest(t *testing.T) {
 	t.Run("maps immediate timing and labels", func(t *testing.T) {
-		var timing apiv3.BillingSubscriptionEditTiming
-		require.NoError(t, timing.FromBillingSubscriptionEditTimingEnum(apiv3.BillingSubscriptionEditTimingEnum("immediate")))
+		var timing apiv3models.BillingSubscriptionEditTiming
+		require.NoError(t, timing.FromBillingSubscriptionEditTimingEnum(apiv3models.BillingSubscriptionEditTimingEnum("immediate")))
 
-		labels := apiv3.Labels{"team": "billing"}
-		req := apiv3.CreateSubscriptionAddonRequest{
-			Addon:    apiv3.AddonReference{Id: "01J8GFKQ0000000000000000"},
+		labels := apiv3models.Labels{"team": "billing"}
+		req := apiv3models.CreateSubscriptionAddonRequest{
+			Addon:    apiv3models.AddonReference{Id: "01J8GFKQ0000000000000000"},
 			Labels:   &labels,
 			Quantity: 2,
 			Timing:   timing,
@@ -40,11 +40,11 @@ func TestFromAPICreateSubscriptionAddonRequest(t *testing.T) {
 	})
 
 	t.Run("maps next_billing_cycle timing", func(t *testing.T) {
-		var timing apiv3.BillingSubscriptionEditTiming
-		require.NoError(t, timing.FromBillingSubscriptionEditTimingEnum(apiv3.BillingSubscriptionEditTimingEnum("next_billing_cycle")))
+		var timing apiv3models.BillingSubscriptionEditTiming
+		require.NoError(t, timing.FromBillingSubscriptionEditTimingEnum(apiv3models.BillingSubscriptionEditTimingEnum("next_billing_cycle")))
 
-		req := apiv3.CreateSubscriptionAddonRequest{
-			Addon:    apiv3.AddonReference{Id: "addon-id"},
+		req := apiv3models.CreateSubscriptionAddonRequest{
+			Addon:    apiv3models.AddonReference{Id: "addon-id"},
 			Quantity: 1,
 			Timing:   timing,
 		}
@@ -57,11 +57,11 @@ func TestFromAPICreateSubscriptionAddonRequest(t *testing.T) {
 	})
 
 	t.Run("fails on invalid timing string", func(t *testing.T) {
-		var timing apiv3.BillingSubscriptionEditTiming
-		require.NoError(t, timing.FromBillingSubscriptionEditTimingEnum(apiv3.BillingSubscriptionEditTimingEnum("sometime_later")))
+		var timing apiv3models.BillingSubscriptionEditTiming
+		require.NoError(t, timing.FromBillingSubscriptionEditTimingEnum(apiv3models.BillingSubscriptionEditTimingEnum("sometime_later")))
 
-		req := apiv3.CreateSubscriptionAddonRequest{
-			Addon:    apiv3.AddonReference{Id: "addon-id"},
+		req := apiv3models.CreateSubscriptionAddonRequest{
+			Addon:    apiv3models.AddonReference{Id: "addon-id"},
 			Quantity: 1,
 			Timing:   timing,
 		}

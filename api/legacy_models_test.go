@@ -7,17 +7,17 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1 "github.com/openmeterio/openmeter/api"
 	cloud "github.com/openmeterio/openmeter/api/client/go"
 	"github.com/openmeterio/openmeter/api/models"
 )
 
 type invoiceListHandler struct {
-	api.Unimplemented
+	apiv1.Unimplemented
 	params models.ListInvoicesParams
 }
 
-func (h *invoiceListHandler) ListInvoices(w http.ResponseWriter, _ *http.Request, params api.ListInvoicesParams) {
+func (h *invoiceListHandler) ListInvoices(w http.ResponseWriter, _ *http.Request, params apiv1.ListInvoicesParams) {
 	h.params = params
 	w.WriteHeader(http.StatusNoContent)
 }
@@ -30,9 +30,9 @@ func TestLegacyInvoiceParamsAcrossTransports(t *testing.T) {
 
 	handler := &invoiceListHandler{}
 	resp := httptest.NewRecorder()
-	api.Handler(handler).ServeHTTP(resp, req)
+	apiv1.Handler(handler).ServeHTTP(resp, req)
 
 	require.Equal(t, http.StatusNoContent, resp.Code)
 	require.NotNil(t, handler.params.OrderBy)
-	require.Equal(t, api.InvoiceOrderByCreatedAt, *handler.params.OrderBy)
+	require.Equal(t, apiv1.InvoiceOrderByCreatedAt, *handler.params.OrderBy)
 }

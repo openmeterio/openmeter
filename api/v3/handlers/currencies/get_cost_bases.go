@@ -6,8 +6,8 @@ import (
 
 	"github.com/samber/lo"
 
-	v3 "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/response"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -18,8 +18,8 @@ import (
 
 type (
 	ListCostBasesRequest  = currencies.ListCostBasesInput
-	ListCostBasesResponse = response.PagePaginationResponse[v3.BillingCostBasis]
-	ListCostBasesParams   = v3.ListCostBasesParams
+	ListCostBasesResponse = response.PagePaginationResponse[apiv3models.BillingCostBasis]
+	ListCostBasesParams   = apiv3models.ListCostBasesParams
 	ListCostBasesHandler  = httptransport.HandlerWithArgs[ListCostBasesRequest, ListCostBasesResponse, ListCostBasesArgs]
 )
 
@@ -69,7 +69,7 @@ func (h *handler) ListCostBases() ListCostBasesHandler {
 				return ListCostBasesResponse{}, err
 			}
 
-			items := lo.Map(result.Items, func(cb currencies.CostBasis, _ int) v3.BillingCostBasis {
+			items := lo.Map(result.Items, func(cb currencies.CostBasis, _ int) apiv3models.BillingCostBasis {
 				return ToAPIBillingCostBasis(cb)
 			})
 

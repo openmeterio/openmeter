@@ -8,7 +8,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -28,7 +28,7 @@ var _ InvoiceLineHandler = (*handler)(nil)
 
 type (
 	CreatePendingLineRequest  = billing.CreatePendingInvoiceLinesInput
-	CreatePendingLineResponse = api.InvoicePendingLineCreateResponse
+	CreatePendingLineResponse = apiv1models.InvoicePendingLineCreateResponse
 	CreatePendingLineParams   struct {
 		CustomerID string
 	}
@@ -43,7 +43,7 @@ const (
 func (h *handler) CreatePendingLine() CreatePendingLineHandler {
 	return httptransport.NewHandlerWithArgs(
 		func(ctx context.Context, r *http.Request, params CreatePendingLineParams) (CreatePendingLineRequest, error) {
-			req := api.InvoicePendingLineCreateInput{}
+			req := apiv1models.InvoicePendingLineCreateInput{}
 
 			if err := commonhttp.JSONRequestBodyDecoder(r, &req); err != nil {
 				return CreatePendingLineRequest{}, fmt.Errorf("failed to decode request body: %w", err)
@@ -62,7 +62,7 @@ func (h *handler) CreatePendingLine() CreatePendingLineHandler {
 				}
 			}
 
-			lineEntities, err := slicesx.MapWithErr(req.Lines, func(line api.InvoicePendingLineCreate) (billing.GatheringLine, error) {
+			lineEntities, err := slicesx.MapWithErr(req.Lines, func(line apiv1models.InvoicePendingLineCreate) (billing.GatheringLine, error) {
 				return mapCreateGatheringLineToEntity(line, ns)
 			})
 			if err != nil {
@@ -160,7 +160,7 @@ func (h *handler) shouldCreatePendingLinesWithCharges(namespace string) (bool, e
 	return h.featureGate.Enabled(namespace, h.featureGate.Flags.Credits())
 }
 
-func mapCreateLineToEntity(line api.InvoicePendingLineCreate, ns string) (*billing.StandardLine, error) {
+func mapCreateLineToEntity(line apiv1models.InvoicePendingLineCreate, ns string) (*billing.StandardLine, error) {
 	rateCardParsed, err := mapAndValidateInvoiceLineRateCardDeprecatedFields(invoiceLineRateCardItems{
 		RateCard:   line.RateCard,
 		Price:      line.Price,
@@ -199,7 +199,7 @@ func mapCreateLineToEntity(line api.InvoicePendingLineCreate, ns string) (*billi
 	}, nil
 }
 
-func mapCreateGatheringLineToEntity(line api.InvoicePendingLineCreate, ns string) (billing.GatheringLine, error) {
+func mapCreateGatheringLineToEntity(line apiv1models.InvoicePendingLineCreate, ns string) (billing.GatheringLine, error) {
 	rateCardParsed, err := mapAndValidateInvoiceLineRateCardDeprecatedFields(invoiceLineRateCardItems{
 		RateCard:   line.RateCard,
 		Price:      line.Price,
@@ -240,7 +240,7 @@ func mapCreateGatheringLineToEntity(line api.InvoicePendingLineCreate, ns string
 	}, nil
 }
 
-func mapTaxConfigToEntity(tc *api.TaxConfig) *productcatalog.TaxConfig {
+func mapTaxConfigToEntity(tc *apiv1models.TaxConfig) *productcatalog.TaxConfig {
 	if tc == nil {
 		return nil
 	}
@@ -248,7 +248,7 @@ func mapTaxConfigToEntity(tc *api.TaxConfig) *productcatalog.TaxConfig {
 	return lo.ToPtr(productcataloghttp.AsTaxConfig(*tc))
 }
 
-func mapSimulationLineToEntity(line api.InvoiceSimulationLine) (*billing.StandardLine, error) {
+func mapSimulationLineToEntity(line apiv1models.InvoiceSimulationLine) (*billing.StandardLine, error) {
 	rateCardParsed, err := mapAndValidateInvoiceLineRateCardDeprecatedFields(invoiceLineRateCardItems{
 		RateCard:   line.RateCard,
 		Price:      line.Price,
@@ -314,7 +314,7 @@ func mapSimulationLineToEntity(line api.InvoiceSimulationLine) (*billing.Standar
 	}, nil
 }
 
-func standardLineFromInvoiceLineReplaceUpdate(line api.InvoiceLineReplaceUpdate, invoice *billing.StandardInvoice) (*billing.StandardLine, error) {
+func standardLineFromInvoiceLineReplaceUpdate(line apiv1models.InvoiceLineReplaceUpdate, invoice *billing.StandardInvoice) (*billing.StandardLine, error) {
 	rateCardParsed, err := mapAndValidateInvoiceLineRateCardDeprecatedFields(invoiceLineRateCardItems{
 		RateCard:   line.RateCard,
 		Price:      line.Price,
@@ -356,7 +356,7 @@ func standardLineFromInvoiceLineReplaceUpdate(line api.InvoiceLineReplaceUpdate,
 	}, nil
 }
 
-func gatheringLineFromInvoiceLineReplaceUpdate(line api.InvoiceLineReplaceUpdate, invoice *billing.GatheringInvoice) (billing.GatheringLine, error) {
+func gatheringLineFromInvoiceLineReplaceUpdate(line apiv1models.InvoiceLineReplaceUpdate, invoice *billing.GatheringInvoice) (billing.GatheringLine, error) {
 	rateCardParsed, err := mapAndValidateInvoiceLineRateCardDeprecatedFields(invoiceLineRateCardItems{
 		RateCard:   line.RateCard,
 		Price:      line.Price,
@@ -400,7 +400,7 @@ func gatheringLineFromInvoiceLineReplaceUpdate(line api.InvoiceLineReplaceUpdate
 	}, nil
 }
 
-func mergeStandardLineFromInvoiceLineReplaceUpdate(existing *billing.StandardLine, line api.InvoiceLineReplaceUpdate) (*billing.StandardLine, error) {
+func mergeStandardLineFromInvoiceLineReplaceUpdate(existing *billing.StandardLine, line apiv1models.InvoiceLineReplaceUpdate) (*billing.StandardLine, error) {
 	rateCardParsed, err := mapAndValidateInvoiceLineRateCardDeprecatedFields(invoiceLineRateCardItems{
 		RateCard:   line.RateCard,
 		Price:      line.Price,
@@ -413,7 +413,7 @@ func mergeStandardLineFromInvoiceLineReplaceUpdate(existing *billing.StandardLin
 		}
 	}
 
-	existing.Metadata = lo.FromPtrOr(line.Metadata, api.Metadata(existing.Metadata))
+	existing.Metadata = lo.FromPtrOr(line.Metadata, apiv1models.Metadata(existing.Metadata))
 	existing.Name = line.Name
 	existing.Description = line.Description
 
@@ -429,7 +429,7 @@ func mergeStandardLineFromInvoiceLineReplaceUpdate(existing *billing.StandardLin
 	return existing, nil
 }
 
-func mergeGatheringLineFromInvoiceLineReplaceUpdate(existing billing.GatheringLine, line api.InvoiceLineReplaceUpdate) (billing.GatheringLine, error) {
+func mergeGatheringLineFromInvoiceLineReplaceUpdate(existing billing.GatheringLine, line apiv1models.InvoiceLineReplaceUpdate) (billing.GatheringLine, error) {
 	rateCardParsed, err := mapAndValidateInvoiceLineRateCardDeprecatedFields(invoiceLineRateCardItems{
 		RateCard:   line.RateCard,
 		Price:      line.Price,
@@ -448,7 +448,7 @@ func mergeGatheringLineFromInvoiceLineReplaceUpdate(existing billing.GatheringLi
 		}
 	}
 
-	existing.Metadata = lo.FromPtrOr(line.Metadata, api.Metadata(existing.Metadata))
+	existing.Metadata = lo.FromPtrOr(line.Metadata, apiv1models.Metadata(existing.Metadata))
 	existing.Name = line.Name
 	existing.Description = line.Description
 
@@ -464,7 +464,7 @@ func mergeGatheringLineFromInvoiceLineReplaceUpdate(existing billing.GatheringLi
 	return existing, nil
 }
 
-func (h *handler) mergeStandardInvoiceLinesFromAPI(_ context.Context, invoice *billing.StandardInvoice, updatedLines []api.InvoiceLineReplaceUpdate) (billing.StandardInvoiceLines, error) {
+func (h *handler) mergeStandardInvoiceLinesFromAPI(_ context.Context, invoice *billing.StandardInvoice, updatedLines []apiv1models.InvoiceLineReplaceUpdate) (billing.StandardInvoiceLines, error) {
 	linesByID, _ := slicesx.UniqueGroupBy(invoice.Lines.OrEmpty(), func(line *billing.StandardLine) string {
 		return line.ID
 	})
@@ -512,7 +512,7 @@ func (h *handler) mergeStandardInvoiceLinesFromAPI(_ context.Context, invoice *b
 	return billing.NewStandardInvoiceLines(out), nil
 }
 
-func (h *handler) mergeGatheringInvoiceLinesFromAPI(ctx context.Context, invoice *billing.GatheringInvoice, updatedLines []api.InvoiceLineReplaceUpdate) (billing.GatheringInvoiceLines, error) {
+func (h *handler) mergeGatheringInvoiceLinesFromAPI(ctx context.Context, invoice *billing.GatheringInvoice, updatedLines []apiv1models.InvoiceLineReplaceUpdate) (billing.GatheringInvoiceLines, error) {
 	linesByID, _ := slicesx.UniqueGroupBy(invoice.Lines.OrEmpty(), func(line billing.GatheringLine) string {
 		return line.ID
 	})

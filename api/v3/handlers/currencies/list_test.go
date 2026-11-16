@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	v3 "github.com/openmeterio/openmeter/api/v3"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -32,17 +32,17 @@ func (s *listCurrenciesService) ListCurrencies(_ context.Context, input currenci
 func TestListCurrenciesFilterByType(t *testing.T) {
 	testCases := []struct {
 		name         string
-		apiType      v3.BillingCurrencyType
+		apiType      apiv3models.BillingCurrencyType
 		currencyType currencyx.CurrencyType
 	}{
 		{
 			name:         "custom",
-			apiType:      v3.BillingCurrencyTypeCustom,
+			apiType:      apiv3models.BillingCurrencyTypeCustom,
 			currencyType: currencyx.CurrencyTypeCustom,
 		},
 		{
 			name:         "fiat",
-			apiType:      v3.BillingCurrencyTypeFiat,
+			apiType:      apiv3models.BillingCurrencyTypeFiat,
 			currencyType: currencyx.CurrencyTypeFiat,
 		},
 	}
@@ -61,8 +61,8 @@ func TestListCurrenciesFilterByType(t *testing.T) {
 
 			// when:
 			// - the v3 list handler decodes the generated API parameters
-			handler.ListCurrencies().With(v3.ListCurrenciesParams{
-				Filter: &v3.ListCurrenciesParamsFilter{
+			handler.ListCurrencies().With(apiv3models.ListCurrenciesParams{
+				Filter: &apiv3models.ListCurrenciesParamsFilter{
 					Type: &testCase.apiType,
 				},
 			}).ServeHTTP(response, request)
@@ -79,12 +79,12 @@ func TestListCurrenciesFilterByType(t *testing.T) {
 func TestListCurrenciesExpandCostBasis(t *testing.T) {
 	testCases := []struct {
 		name              string
-		expand            *[]v3.BillingCurrencyExpand
+		expand            *[]apiv3models.BillingCurrencyExpand
 		expectedCostBasis bool
 	}{
 		{
 			name:              "cost_basis requested",
-			expand:            &[]v3.BillingCurrencyExpand{v3.BillingCurrencyExpandCostBasis},
+			expand:            &[]apiv3models.BillingCurrencyExpand{apiv3models.BillingCurrencyExpandCostBasis},
 			expectedCostBasis: true,
 		},
 		{
@@ -108,7 +108,7 @@ func TestListCurrenciesExpandCostBasis(t *testing.T) {
 
 			// when:
 			// - the v3 list handler decodes the generated API parameters
-			handler.ListCurrencies().With(v3.ListCurrenciesParams{
+			handler.ListCurrencies().With(apiv3models.ListCurrenciesParams{
 				Expand: testCase.expand,
 			}).ServeHTTP(response, request)
 

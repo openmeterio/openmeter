@@ -4,8 +4,8 @@ import (
 	"context"
 	"net/http"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
@@ -13,7 +13,7 @@ import (
 
 type (
 	GetMeterRequest  = meter.GetMeterInput
-	GetMeterResponse = api.Meter
+	GetMeterResponse = apiv3models.Meter
 	GetMeterParams   = string
 	GetMeterHandler  httptransport.HandlerWithArgs[GetMeterRequest, GetMeterResponse, GetMeterParams]
 )

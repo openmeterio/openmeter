@@ -8,8 +8,8 @@ import (
 
 	"github.com/samber/lo"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -22,7 +22,7 @@ import (
 
 type (
 	CreateSubscriptionRequest  = plansubscription.CreateSubscriptionRequest
-	CreateSubscriptionResponse = api.BillingSubscription
+	CreateSubscriptionResponse = apiv3models.BillingSubscription
 	CreateSubscriptionHandler  = httptransport.Handler[CreateSubscriptionRequest, CreateSubscriptionResponse]
 )
 
@@ -31,7 +31,7 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 	return httptransport.NewHandler(
 		func(ctx context.Context, r *http.Request) (plansubscription.CreateSubscriptionRequest, error) {
 			// Parse the request body
-			body := api.BillingSubscriptionCreate{}
+			body := apiv3models.BillingSubscriptionCreate{}
 			if err := request.ParseBody(r, &body); err != nil {
 				return CreateSubscriptionRequest{}, err
 			}

@@ -6,7 +6,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api/v3/labels"
-	api "github.com/openmeterio/openmeter/api/v3/models"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -27,25 +27,25 @@ import (
 // goverter:extend ConvertMetadataToLabels
 // goverter:extend ConvertLabelsToMetadata
 var (
-	ToAPIAddress                     func(address models.Address) api.Address
-	FromAPIAddress                   func(address api.Address) models.Address
-	ToAPIBillingProfileAppReferences func(refs *billing.ProfileAppReferences) api.BillingProfileAppReferences
+	ToAPIAddress                     func(address models.Address) apiv3models.Address
+	FromAPIAddress                   func(address apiv3models.Address) models.Address
+	ToAPIBillingProfileAppReferences func(refs *billing.ProfileAppReferences) apiv3models.BillingProfileAppReferences
 	// goverter:context namespace
-	FromAPIBillingProfileAppReferences func(namespace string, refs api.BillingProfileAppReferences) billing.ProfileAppReferences
+	FromAPIBillingProfileAppReferences func(namespace string, refs apiv3models.BillingProfileAppReferences) billing.ProfileAppReferences
 	// goverter:context namespace
 	// goverter:map Namespace | NamespaceFromContext
-	FromAPIBillingAppReferenceToAppID func(namespace string, ref api.BillingAppReference) app.AppID
-	ToAPIBillingAppReferenceFromAppID func(appID app.AppID) api.BillingAppReference
+	FromAPIBillingAppReferenceToAppID func(namespace string, ref apiv3models.BillingAppReference) app.AppID
+	ToAPIBillingAppReferenceFromAppID func(appID app.AppID) apiv3models.BillingAppReference
 	// goverter:autoMap BaseProfile
 	// goverter:map BaseProfile.Metadata Labels
 	// goverter:map BaseProfile.WorkflowConfig Workflow
-	ToAPIBillingProfile  func(profile billing.Profile) (api.BillingProfile, error)
-	ToAPIBillingProfiles func(profiles []billing.Profile) ([]api.BillingProfile, error)
+	ToAPIBillingProfile  func(profile billing.Profile) (apiv3models.BillingProfile, error)
+	ToAPIBillingProfiles func(profiles []billing.Profile) ([]apiv3models.BillingProfile, error)
 	// goverter:context namespace
 	// goverter:map Namespace | NamespaceFromContext
 	// goverter:map Labels Metadata | ConvertLabelsToMetadata
 	// goverter:map Workflow WorkflowConfig | FromAPIBillingWorkflowCreate
-	FromAPICreateBillingProfileRequest func(namespace string, req api.CreateBillingProfileRequest) (billing.CreateProfileInput, error)
+	FromAPICreateBillingProfileRequest func(namespace string, req apiv3models.CreateBillingProfileRequest) (billing.CreateProfileInput, error)
 	// goverter:context namespacedID
 	// goverter:map Namespace | ResolveNamespaceFromContext
 	// goverter:map ID | ResolveIDFromContext
@@ -55,26 +55,26 @@ var (
 	// goverter:ignore UpdatedAt
 	// goverter:ignore DeletedAt
 	// goverter:ignore AppReferences
-	FromAPIUpsertBillingProfileRequest func(namespacedID models.NamespacedID, req api.UpsertBillingProfileRequest) (billing.UpdateProfileInput, error)
+	FromAPIUpsertBillingProfileRequest func(namespacedID models.NamespacedID, req apiv3models.UpsertBillingProfileRequest) (billing.UpdateProfileInput, error)
 	// goverter:enum:unknown @error
 	// goverter:enum:map InclusiveTaxBehavior BillingTaxBehaviorInclusive
 	// goverter:enum:map ExclusiveTaxBehavior BillingTaxBehaviorExclusive
-	ToAPIBillingTaxBehavior func(behavior productcatalog.TaxBehavior) (api.BillingTaxBehavior, error)
+	ToAPIBillingTaxBehavior func(behavior productcatalog.TaxBehavior) (apiv3models.BillingTaxBehavior, error)
 	// goverter:enum:unknown @error
 	// goverter:enum:map BillingTaxBehaviorInclusive InclusiveTaxBehavior
 	// goverter:enum:map BillingTaxBehaviorExclusive ExclusiveTaxBehavior
-	FromAPIBillingTaxBehavior func(behavior api.BillingTaxBehavior) (productcatalog.TaxBehavior, error)
+	FromAPIBillingTaxBehavior func(behavior apiv3models.BillingTaxBehavior) (productcatalog.TaxBehavior, error)
 	// goverter:map Stripe ExternalInvoicing
 	// goverter:map Stripe Stripe
 	// goverter:ignore TaxCode
-	ToAPIBillingTaxConfig func(config *productcatalog.TaxConfig) (*api.BillingTaxConfig, error)
+	ToAPIBillingTaxConfig func(config *productcatalog.TaxConfig) (*apiv3models.BillingTaxConfig, error)
 	// goverter:map Stripe Stripe
-	FromAPIBillingTaxConfig func(config *api.BillingTaxConfig) (*productcatalog.TaxConfig, error)
+	FromAPIBillingTaxConfig func(config *apiv3models.BillingTaxConfig) (*productcatalog.TaxConfig, error)
 )
 
 var (
 	ConvertMetadataToLabels = labels.FromMetadata[billing.Metadata]
-	ConvertLabelsToMetadata = func(l *api.Labels) (billing.Metadata, error) {
+	ConvertLabelsToMetadata = func(l *apiv3models.Labels) (billing.Metadata, error) {
 		m, err := labels.ToMetadata(l)
 
 		return billing.Metadata(m), err
@@ -93,14 +93,14 @@ func IDFromContext(id string) string {
 
 // toAPIBillingTaxConfigFull wraps the goverter ToAPIBillingTaxConfig and also populates
 // TaxCode from TaxCodeId so the new and deprecated fields are both set on responses.
-func toAPIBillingTaxConfigFull(config *productcatalog.TaxConfig) (*api.BillingTaxConfig, error) {
+func toAPIBillingTaxConfigFull(config *productcatalog.TaxConfig) (*apiv3models.BillingTaxConfig, error) {
 	result, err := ToAPIBillingTaxConfig(config)
 	if err != nil || result == nil {
 		return result, err
 	}
 
 	if result.TaxCodeId != nil {
-		result.TaxCode = &api.TaxCodeReference{Id: *result.TaxCodeId}
+		result.TaxCode = &apiv3models.TaxCodeReference{Id: *result.TaxCodeId}
 	}
 
 	return result, nil
@@ -108,7 +108,7 @@ func toAPIBillingTaxConfigFull(config *productcatalog.TaxConfig) (*api.BillingTa
 
 // FromAPIBillingTaxConfigFull wraps the goverter FromAPIBillingTaxConfig and additionally reads
 // TaxCode.Id (new field) which takes precedence over the deprecated TaxCodeId.
-func FromAPIBillingTaxConfigFull(config *api.BillingTaxConfig) (*productcatalog.TaxConfig, error) {
+func FromAPIBillingTaxConfigFull(config *apiv3models.BillingTaxConfig) (*productcatalog.TaxConfig, error) {
 	result, err := FromAPIBillingTaxConfig(config)
 	if err != nil || result == nil {
 		return result, err
@@ -132,15 +132,15 @@ func ResolveIDFromContext(namespacedID models.NamespacedID) string {
 }
 
 // ToAPIBillingAppReference converts app.App to API BillingAppReference
-func ToAPIBillingAppReference(app app.App) api.BillingAppReference {
-	return api.BillingAppReference{
+func ToAPIBillingAppReference(app app.App) apiv3models.BillingAppReference {
+	return apiv3models.BillingAppReference{
 		Id: app.GetID().ID,
 	}
 }
 
 // ToAPIBillingParty converts billing.SupplierContact to API BillingParty
-func ToAPIBillingParty(supplier billing.SupplierContact) api.BillingParty {
-	party := api.BillingParty{
+func ToAPIBillingParty(supplier billing.SupplierContact) apiv3models.BillingParty {
+	party := apiv3models.BillingParty{
 		Id:   &supplier.ID,
 		Name: &supplier.Name,
 	}
@@ -151,13 +151,13 @@ func ToAPIBillingParty(supplier billing.SupplierContact) api.BillingParty {
 	addr := supplier.Address
 	if addr.Country != nil || addr.PostalCode != nil || addr.State != nil ||
 		addr.City != nil || addr.Line1 != nil || addr.Line2 != nil || addr.PhoneNumber != nil {
-		party.Addresses = &api.BillingPartyAddresses{
+		party.Addresses = &apiv3models.BillingPartyAddresses{
 			BillingAddress: ToAPIAddress(supplier.Address),
 		}
 	}
 
 	if supplier.TaxCode != nil {
-		party.TaxId = &api.BillingPartyTaxIdentity{
+		party.TaxId = &apiv3models.BillingPartyTaxIdentity{
 			Code: supplier.TaxCode,
 		}
 	}
@@ -167,10 +167,10 @@ func ToAPIBillingParty(supplier billing.SupplierContact) api.BillingParty {
 
 // ToAPIBillingSupplier converts billing.SupplierContact to the invoice's
 // BillingSupplier snapshot, a read-only subset of BillingParty.
-func ToAPIBillingSupplier(supplier billing.SupplierContact) api.BillingSupplier {
+func ToAPIBillingSupplier(supplier billing.SupplierContact) apiv3models.BillingSupplier {
 	party := ToAPIBillingParty(supplier)
 
-	return api.BillingSupplier{
+	return apiv3models.BillingSupplier{
 		Id:        party.Id,
 		Name:      party.Name,
 		TaxId:     party.TaxId,
@@ -179,7 +179,7 @@ func ToAPIBillingSupplier(supplier billing.SupplierContact) api.BillingSupplier 
 }
 
 // FromAPIBillingParty converts API BillingParty to billing.SupplierContact
-func FromAPIBillingParty(party api.BillingParty) billing.SupplierContact {
+func FromAPIBillingParty(party apiv3models.BillingParty) billing.SupplierContact {
 	supplier := billing.SupplierContact{
 		ID:   lo.FromPtrOr(party.Id, ""),
 		Name: lo.FromPtrOr(party.Name, ""),
@@ -198,38 +198,38 @@ func FromAPIBillingParty(party api.BillingParty) billing.SupplierContact {
 }
 
 // ToAPIBillingWorkflow converts billing.WorkflowConfig to API BillingWorkflow
-func ToAPIBillingWorkflow(config billing.WorkflowConfig) (api.BillingWorkflow, error) {
-	workflow := api.BillingWorkflow{}
+func ToAPIBillingWorkflow(config billing.WorkflowConfig) (apiv3models.BillingWorkflow, error) {
+	workflow := apiv3models.BillingWorkflow{}
 
 	// Collection settings
-	workflow.Collection = &api.BillingWorkflowCollectionSettings{
+	workflow.Collection = &apiv3models.BillingWorkflowCollectionSettings{
 		Interval: lo.ToPtr(config.Collection.Interval.String()),
 	}
 
 	// Convert alignment
 	switch config.Collection.Alignment {
 	case billing.AlignmentKindSubscription:
-		alignment := api.BillingWorkflowCollectionAlignment{}
-		err := alignment.FromBillingWorkflowCollectionAlignmentSubscription(api.BillingWorkflowCollectionAlignmentSubscription{
+		alignment := apiv3models.BillingWorkflowCollectionAlignment{}
+		err := alignment.FromBillingWorkflowCollectionAlignmentSubscription(apiv3models.BillingWorkflowCollectionAlignmentSubscription{
 			Type: "subscription",
 		})
 		if err != nil {
-			return api.BillingWorkflow{}, err
+			return apiv3models.BillingWorkflow{}, err
 		}
 
 		workflow.Collection.Alignment = &alignment
 	case billing.AlignmentKindAnchored:
 		if config.Collection.AnchoredAlignmentDetail != nil {
-			alignment := api.BillingWorkflowCollectionAlignment{}
-			err := alignment.FromBillingWorkflowCollectionAlignmentAnchored(api.BillingWorkflowCollectionAlignmentAnchored{
+			alignment := apiv3models.BillingWorkflowCollectionAlignment{}
+			err := alignment.FromBillingWorkflowCollectionAlignmentAnchored(apiv3models.BillingWorkflowCollectionAlignmentAnchored{
 				Type: "anchored",
-				RecurringPeriod: api.RecurringPeriod{
+				RecurringPeriod: apiv3models.RecurringPeriod{
 					Anchor:   config.Collection.AnchoredAlignmentDetail.Anchor,
 					Interval: config.Collection.AnchoredAlignmentDetail.Interval.String(),
 				},
 			})
 			if err != nil {
-				return api.BillingWorkflow{}, err
+				return apiv3models.BillingWorkflow{}, err
 			}
 
 			workflow.Collection.Alignment = &alignment
@@ -237,20 +237,20 @@ func ToAPIBillingWorkflow(config billing.WorkflowConfig) (api.BillingWorkflow, e
 	}
 
 	// Invoicing settings
-	workflow.Invoicing = &api.BillingWorkflowInvoicingSettings{
+	workflow.Invoicing = &apiv3models.BillingWorkflowInvoicingSettings{
 		AutoAdvance:                  lo.ToPtr(config.Invoicing.AutoAdvance),
 		DraftPeriod:                  lo.ToPtr(config.Invoicing.DraftPeriod.String()),
 		ProgressiveBilling:           lo.ToPtr(config.Invoicing.ProgressiveBilling),
-		SubscriptionEndProrationMode: lo.ToPtr(api.BillingWorkflowInvoicingSubscriptionEndProrationMode(config.Invoicing.SubscriptionEndProrationMode)),
+		SubscriptionEndProrationMode: lo.ToPtr(apiv3models.BillingWorkflowInvoicingSubscriptionEndProrationMode(config.Invoicing.SubscriptionEndProrationMode)),
 	}
 
 	// Tax settings
 	defaultTaxConfig, err := toAPIBillingTaxConfigFull(config.Invoicing.DefaultTaxConfig)
 	if err != nil {
-		return api.BillingWorkflow{}, err
+		return apiv3models.BillingWorkflow{}, err
 	}
 
-	workflow.Tax = &api.BillingWorkflowTaxSettings{
+	workflow.Tax = &apiv3models.BillingWorkflowTaxSettings{
 		Enabled:          lo.ToPtr(config.Tax.Enabled),
 		Enforced:         lo.ToPtr(config.Tax.Enforced),
 		DefaultTaxConfig: defaultTaxConfig,
@@ -259,23 +259,23 @@ func ToAPIBillingWorkflow(config billing.WorkflowConfig) (api.BillingWorkflow, e
 	// Payment settings
 	switch config.Payment.CollectionMethod {
 	case billing.CollectionMethodChargeAutomatically:
-		payment := api.BillingWorkflowPaymentSettings{}
-		err := payment.FromBillingWorkflowPaymentChargeAutomaticallySettings(api.BillingWorkflowPaymentChargeAutomaticallySettings{
+		payment := apiv3models.BillingWorkflowPaymentSettings{}
+		err := payment.FromBillingWorkflowPaymentChargeAutomaticallySettings(apiv3models.BillingWorkflowPaymentChargeAutomaticallySettings{
 			CollectionMethod: "charge_automatically",
 		})
 		if err != nil {
-			return api.BillingWorkflow{}, err
+			return apiv3models.BillingWorkflow{}, err
 		}
 
 		workflow.Payment = &payment
 	case billing.CollectionMethodSendInvoice:
-		payment := api.BillingWorkflowPaymentSettings{}
-		err := payment.FromBillingWorkflowPaymentSendInvoiceSettings(api.BillingWorkflowPaymentSendInvoiceSettings{
+		payment := apiv3models.BillingWorkflowPaymentSettings{}
+		err := payment.FromBillingWorkflowPaymentSendInvoiceSettings(apiv3models.BillingWorkflowPaymentSendInvoiceSettings{
 			CollectionMethod: "send_invoice",
 			DueAfter:         lo.ToPtr(config.Invoicing.DueAfter.String()),
 		})
 		if err != nil {
-			return api.BillingWorkflow{}, err
+			return apiv3models.BillingWorkflow{}, err
 		}
 
 		workflow.Payment = &payment
@@ -285,34 +285,34 @@ func ToAPIBillingWorkflow(config billing.WorkflowConfig) (api.BillingWorkflow, e
 }
 
 // FromAPIBillingWorkflow converts API BillingWorkflow to billing.WorkflowConfig
-func FromAPIBillingWorkflow(workflow api.BillingWorkflow) (billing.WorkflowConfig, error) {
+func FromAPIBillingWorkflow(workflow apiv3models.BillingWorkflow) (billing.WorkflowConfig, error) {
 	return fromAPIBillingWorkflow(workflow, "")
 }
 
 // FromAPIBillingWorkflowCreate converts API BillingWorkflow to billing.WorkflowConfig for profile creation.
-func FromAPIBillingWorkflowCreate(workflow api.BillingWorkflow) (billing.WorkflowConfig, error) {
+func FromAPIBillingWorkflowCreate(workflow apiv3models.BillingWorkflow) (billing.WorkflowConfig, error) {
 	return fromAPIBillingWorkflow(workflow, billing.DefaultWorkflowConfig.Invoicing.SubscriptionEndProrationMode)
 }
 
-func fromAPIBillingWorkflow(workflow api.BillingWorkflow, defaultSubscriptionEndProrationMode billing.SubscriptionEndProrationMode) (billing.WorkflowConfig, error) {
+func fromAPIBillingWorkflow(workflow apiv3models.BillingWorkflow, defaultSubscriptionEndProrationMode billing.SubscriptionEndProrationMode) (billing.WorkflowConfig, error) {
 	// Start with default configuration
 	def := billing.DefaultWorkflowConfig
 
 	// Ensure workflow sections are initialized
 	if workflow.Collection == nil {
-		workflow.Collection = &api.BillingWorkflowCollectionSettings{}
+		workflow.Collection = &apiv3models.BillingWorkflowCollectionSettings{}
 	}
 
 	if workflow.Invoicing == nil {
-		workflow.Invoicing = &api.BillingWorkflowInvoicingSettings{}
+		workflow.Invoicing = &apiv3models.BillingWorkflowInvoicingSettings{}
 	}
 
 	if workflow.Payment == nil {
-		workflow.Payment = &api.BillingWorkflowPaymentSettings{}
+		workflow.Payment = &apiv3models.BillingWorkflowPaymentSettings{}
 	}
 
 	if workflow.Tax == nil {
-		workflow.Tax = &api.BillingWorkflowTaxSettings{}
+		workflow.Tax = &apiv3models.BillingWorkflowTaxSettings{}
 	}
 
 	// Parse collection interval with default fallback

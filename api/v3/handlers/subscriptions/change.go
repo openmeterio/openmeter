@@ -6,8 +6,8 @@ import (
 
 	"github.com/samber/lo"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
@@ -26,7 +26,7 @@ type (
 		StartingPhase  *string
 		SettlementMode *productcatalog.SettlementMode
 	}
-	ChangeSubscriptionResponse = api.BillingSubscriptionChangeResponse
+	ChangeSubscriptionResponse = apiv3models.BillingSubscriptionChangeResponse
 	ChangeSubscriptionParams   = string
 	ChangeSubscriptionHandler  httptransport.HandlerWithArgs[ChangeSubscriptionRequest, ChangeSubscriptionResponse, ChangeSubscriptionParams]
 )
@@ -35,7 +35,7 @@ func (h *handler) ChangeSubscription() ChangeSubscriptionHandler {
 	return httptransport.NewHandlerWithArgs(
 		func(ctx context.Context, r *http.Request, subscriptionID ChangeSubscriptionParams) (ChangeSubscriptionRequest, error) {
 			// Parse body
-			body := api.BillingSubscriptionChange{}
+			body := apiv3models.BillingSubscriptionChange{}
 			if err := request.ParseBody(r, &body); err != nil {
 				return ChangeSubscriptionRequest{}, err
 			}

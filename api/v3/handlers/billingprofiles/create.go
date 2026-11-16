@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -15,14 +15,14 @@ import (
 
 type (
 	CreateBillingProfileRequest  = billing.CreateProfileInput
-	CreateBillingProfileResponse = api.BillingProfile
+	CreateBillingProfileResponse = apiv3models.BillingProfile
 	CreateBillingProfileHandler  httptransport.Handler[CreateBillingProfileRequest, CreateBillingProfileResponse]
 )
 
 func (h *handler) CreateBillingProfile() CreateBillingProfileHandler {
 	return httptransport.NewHandler(
 		func(ctx context.Context, r *http.Request) (CreateBillingProfileRequest, error) {
-			body := api.CreateBillingProfileRequest{}
+			body := apiv3models.CreateBillingProfileRequest{}
 			if err := request.ParseBody(r, &body); err != nil {
 				return CreateBillingProfileRequest{}, err
 			}

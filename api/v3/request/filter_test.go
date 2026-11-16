@@ -7,14 +7,14 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	api "github.com/openmeterio/openmeter/api/v3"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/pkg/filter"
 )
 
 func TestConvertQueryFilterString(t *testing.T) {
 	t.Run("maps direct operators", func(t *testing.T) {
-		in := api.QueryFilterString{
+		in := apiv3models.QueryFilterString{
 			Eq:  lo.ToPtr("eq"),
 			Neq: lo.ToPtr("ne"),
 			In:  &[]string{"a", "b"},
@@ -32,7 +32,7 @@ func TestConvertQueryFilterString(t *testing.T) {
 	})
 
 	t.Run("maps contains operators", func(t *testing.T) {
-		in := api.QueryFilterString{
+		in := apiv3models.QueryFilterString{
 			Contains:  lo.ToPtr("abc"),
 			Ncontains: lo.ToPtr("xyz"),
 		}
@@ -46,7 +46,7 @@ func TestConvertQueryFilterString(t *testing.T) {
 	})
 
 	t.Run("escapes like metacharacters in contains operators", func(t *testing.T) {
-		in := api.QueryFilterString{
+		in := apiv3models.QueryFilterString{
 			Contains:  lo.ToPtr(`100%\path_name`),
 			Ncontains: lo.ToPtr(`a_b\c%d`),
 		}
@@ -60,12 +60,12 @@ func TestConvertQueryFilterString(t *testing.T) {
 	})
 
 	t.Run("maps and or recursively", func(t *testing.T) {
-		in := api.QueryFilterString{
-			And: &[]api.QueryFilterString{
+		in := apiv3models.QueryFilterString{
+			And: &[]apiv3models.QueryFilterString{
 				{Eq: lo.ToPtr("a")},
 				{Contains: lo.ToPtr("b")},
 			},
-			Or: &[]api.QueryFilterString{
+			Or: &[]apiv3models.QueryFilterString{
 				{Neq: lo.ToPtr("c")},
 				{Ncontains: lo.ToPtr("d")},
 			},
@@ -86,10 +86,10 @@ func TestConvertQueryFilterString(t *testing.T) {
 	})
 
 	t.Run("maps deeply nested and or", func(t *testing.T) {
-		in := api.QueryFilterString{
-			And: &[]api.QueryFilterString{
+		in := apiv3models.QueryFilterString{
+			And: &[]apiv3models.QueryFilterString{
 				{
-					Or: &[]api.QueryFilterString{
+					Or: &[]apiv3models.QueryFilterString{
 						{Eq: lo.ToPtr("nested")},
 					},
 				},
@@ -116,7 +116,7 @@ func TestConvertQueryFilterStringPtr(t *testing.T) {
 	})
 
 	t.Run("non nil pointer", func(t *testing.T) {
-		in := &api.QueryFilterString{Contains: lo.ToPtr(`abc\_%`)}
+		in := &apiv3models.QueryFilterString{Contains: lo.ToPtr(`abc\_%`)}
 
 		got := request.ConvertQueryFilterStringPtr(in)
 		require.NotNil(t, got)

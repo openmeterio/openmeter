@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	api "github.com/openmeterio/openmeter/api/v3"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
@@ -50,8 +50,8 @@ func TestToAPIBillingSubscriptionCurrencySemantics(t *testing.T) {
 func TestFromAPIBillingSubscriptionCreateCostBasisMode(t *testing.T) {
 	// given:
 	// - a v3 create request explicitly selecting pinned cost bases
-	mode := api.BillingSubscriptionCostBasisMode("pinned")
-	request := api.BillingSubscriptionCreate{CostBasisMode: &mode}
+	mode := apiv3models.BillingSubscriptionCostBasisMode("pinned")
+	request := apiv3models.BillingSubscriptionCreate{CostBasisMode: &mode}
 
 	// when:
 	// - the request is mapped to the subscription workflow input
@@ -76,13 +76,13 @@ func TestFromAPIBillingSubscriptionCreateCostBasisMode(t *testing.T) {
 func TestFromAPIBillingSubscriptionCreateTiming(t *testing.T) {
 	customerID := customer.CustomerID{ID: "customer_1", Namespace: "default"}
 
-	mapTiming := func(t *testing.T, timing *api.BillingSubscriptionCreateTiming) subscription.Timing {
+	mapTiming := func(t *testing.T, timing *apiv3models.BillingSubscriptionCreateTiming) subscription.Timing {
 		t.Helper()
 		result, err := FromAPIBillingSubscriptionCreate(
 			"default",
 			customerID,
 			"Subscription",
-			api.BillingSubscriptionCreate{Timing: timing},
+			apiv3models.BillingSubscriptionCreate{Timing: timing},
 		)
 		require.NoError(t, err)
 
@@ -97,8 +97,8 @@ func TestFromAPIBillingSubscriptionCreateTiming(t *testing.T) {
 	})
 
 	t.Run("maps the immediate enum", func(t *testing.T) {
-		var timing api.BillingSubscriptionCreateTiming
-		require.NoError(t, timing.FromBillingSubscriptionCreateTimingEnum(api.BillingSubscriptionCreateTimingEnumImmediate))
+		var timing apiv3models.BillingSubscriptionCreateTiming
+		require.NoError(t, timing.FromBillingSubscriptionCreateTimingEnum(apiv3models.BillingSubscriptionCreateTimingEnumImmediate))
 
 		got := mapTiming(t, &timing)
 		require.NotNil(t, got.Enum)
@@ -108,7 +108,7 @@ func TestFromAPIBillingSubscriptionCreateTiming(t *testing.T) {
 
 	t.Run("maps a custom timestamp to a scheduled start", func(t *testing.T) {
 		at := testutils.GetRFC3339Time(t, "2026-01-01T00:00:00Z")
-		var timing api.BillingSubscriptionCreateTiming
+		var timing apiv3models.BillingSubscriptionCreateTiming
 		require.NoError(t, timing.FromDateTime(at))
 
 		got := mapTiming(t, &timing)

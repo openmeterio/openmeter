@@ -10,14 +10,14 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	api "github.com/openmeterio/openmeter/api/v3"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 const testGrantID = "01K4WAQ0J99ZZ0MD75HXR112HA"
 
-func serveVoidGrant(t *testing.T, svc fakeService, params api.VoidGrantParams) *httptest.ResponseRecorder {
+func serveVoidGrant(t *testing.T, svc fakeService, params apiv3models.VoidGrantParams) *httptest.ResponseRecorder {
 	t.Helper()
 
 	response := httptest.NewRecorder()
@@ -40,7 +40,7 @@ func TestVoidGrantHandler(t *testing.T) {
 				received = input
 				return nil
 			},
-		}, api.VoidGrantParams{VoidedAt: &voidedAt})
+		}, apiv3models.VoidGrantParams{VoidedAt: &voidedAt})
 
 		require.Equal(t, http.StatusNoContent, response.Code, response.Body.String())
 		require.Empty(t, response.Body.String())
@@ -61,7 +61,7 @@ func TestVoidGrantHandler(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			response := serveVoidGrant(t, fakeService{
 				voidGrant: func(context.Context, entitlement.VoidGrantInput) error { return tc.err },
-			}, api.VoidGrantParams{})
+			}, apiv3models.VoidGrantParams{})
 
 			require.Equal(t, tc.status, response.Code, response.Body.String())
 		})

@@ -12,7 +12,7 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
-	api "github.com/openmeterio/openmeter/api/v3"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/credit/balance"
 	"github.com/openmeterio/openmeter/openmeter/credit/engine"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
@@ -21,7 +21,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
-func serveGetCustomerEntitlementHistory(t *testing.T, svc fakeService, params api.GetCustomerEntitlementHistoryParams) *httptest.ResponseRecorder {
+func serveGetCustomerEntitlementHistory(t *testing.T, svc fakeService, params apiv3models.GetCustomerEntitlementHistoryParams) *httptest.ResponseRecorder {
 	t.Helper()
 
 	h := New(func(context.Context) (string, error) { return testNamespace, nil }, svc)
@@ -66,10 +66,10 @@ func TestGetCustomerEntitlementHistoryHandler(t *testing.T) {
 					Burndown: burndown,
 				}, nil
 			},
-		}, api.GetCustomerEntitlementHistoryParams{
+		}, apiv3models.GetCustomerEntitlementHistoryParams{
 			From:       &from,
 			To:         &to,
-			WindowSize: api.BillingEntitlementHistoryWindowSizeP1D,
+			WindowSize: apiv3models.BillingEntitlementHistoryWindowSizeP1D,
 			TimeZone:   lo.ToPtr("Europe/Budapest"),
 		})
 
@@ -82,23 +82,23 @@ func TestGetCustomerEntitlementHistoryHandler(t *testing.T) {
 		require.Equal(t, meter.WindowSizeDay, received.WindowSize)
 		require.Equal(t, "Europe/Budapest", received.TimeZone.String())
 
-		var body api.BillingEntitlementHistory
+		var body apiv3models.BillingEntitlementHistory
 		require.NoError(t, json.Unmarshal(response.Body.Bytes(), &body))
-		require.Equal(t, api.BillingEntitlementHistory{
-			WindowedHistory: []api.BillingEntitlementHistoryWindow{
-				{Period: api.ClosedPeriod{From: from, To: from.Add(time.Hour)}, Usage: "1", BalanceAtStart: "10"},
-				{Period: api.ClosedPeriod{From: from.Add(time.Hour), To: to}, Usage: "2", BalanceAtStart: "9"},
+		require.Equal(t, apiv3models.BillingEntitlementHistory{
+			WindowedHistory: []apiv3models.BillingEntitlementHistoryWindow{
+				{Period: apiv3models.ClosedPeriod{From: from, To: from.Add(time.Hour)}, Usage: "1", BalanceAtStart: "10"},
+				{Period: apiv3models.ClosedPeriod{From: from.Add(time.Hour), To: to}, Usage: "2", BalanceAtStart: "9"},
 			},
-			BurndownHistory: []api.BillingEntitlementBurndownSegment{{
-				Period:  api.ClosedPeriod{From: from, To: to},
+			BurndownHistory: []apiv3models.BillingEntitlementBurndownSegment{{
+				Period:  apiv3models.ClosedPeriod{From: from, To: to},
 				Usage:   "3",
 				Overage: "0",
-				Balance: api.BillingEntitlementBurndownBalance{Start: "10", End: "7"},
-				GrantBalances: api.BillingEntitlementBurndownGrantBalances{
-					Start: map[string]api.Numeric{"grant-1": "10"},
-					End:   map[string]api.Numeric{"grant-1": "7"},
+				Balance: apiv3models.BillingEntitlementBurndownBalance{Start: "10", End: "7"},
+				GrantBalances: apiv3models.BillingEntitlementBurndownGrantBalances{
+					Start: map[string]apiv3models.Numeric{"grant-1": "10"},
+					End:   map[string]apiv3models.Numeric{"grant-1": "7"},
 				},
-				GrantUsages: []api.BillingEntitlementGrantUsage{{GrantId: "grant-1", Usage: "3"}},
+				GrantUsages: []apiv3models.BillingEntitlementGrantUsage{{GrantId: "grant-1", Usage: "3"}},
 			}},
 		}, body)
 	})
@@ -111,7 +111,7 @@ func TestGetCustomerEntitlementHistoryHandler(t *testing.T) {
 				received = input
 				return entitlement.CustomerEntitlementHistory{}, nil
 			},
-		}, api.GetCustomerEntitlementHistoryParams{WindowSize: api.BillingEntitlementHistoryWindowSizePT1H})
+		}, apiv3models.GetCustomerEntitlementHistoryParams{WindowSize: apiv3models.BillingEntitlementHistoryWindowSizePT1H})
 
 		require.Equal(t, http.StatusOK, response.Code)
 		require.Equal(t, meter.WindowSizeHour, received.WindowSize)
@@ -125,8 +125,8 @@ func TestGetCustomerEntitlementHistoryHandler(t *testing.T) {
 				t.Fatal("service must not be called")
 				return entitlement.CustomerEntitlementHistory{}, nil
 			},
-		}, api.GetCustomerEntitlementHistoryParams{
-			WindowSize: api.BillingEntitlementHistoryWindowSizePT1H,
+		}, apiv3models.GetCustomerEntitlementHistoryParams{
+			WindowSize: apiv3models.BillingEntitlementHistoryWindowSizePT1H,
 			TimeZone:   lo.ToPtr("Mars/Olympus"),
 		})
 
@@ -135,8 +135,8 @@ func TestGetCustomerEntitlementHistoryHandler(t *testing.T) {
 	})
 
 	t.Run("rejects an unknown window size", func(t *testing.T) {
-		response := serveGetCustomerEntitlementHistory(t, fakeService{}, api.GetCustomerEntitlementHistoryParams{
-			WindowSize: api.BillingEntitlementHistoryWindowSize("PT1M"),
+		response := serveGetCustomerEntitlementHistory(t, fakeService{}, apiv3models.GetCustomerEntitlementHistoryParams{
+			WindowSize: apiv3models.BillingEntitlementHistoryWindowSize("PT1M"),
 		})
 
 		require.Equal(t, http.StatusBadRequest, response.Code)
@@ -151,7 +151,7 @@ func TestGetCustomerEntitlementHistoryHandler(t *testing.T) {
 		}
 	}
 
-	params := api.GetCustomerEntitlementHistoryParams{WindowSize: api.BillingEntitlementHistoryWindowSizePT1H}
+	params := apiv3models.GetCustomerEntitlementHistoryParams{WindowSize: apiv3models.BillingEntitlementHistoryWindowSizePT1H}
 
 	t.Run("maps a missing customer to 404", func(t *testing.T) {
 		response := serveGetCustomerEntitlementHistory(t, failing(models.NewGenericNotFoundError(errors.New("customer not found"))), params)

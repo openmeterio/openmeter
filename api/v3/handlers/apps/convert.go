@@ -8,7 +8,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api/v3/labels"
-	api "github.com/openmeterio/openmeter/api/v3/models"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/response"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appcustominvoicing "github.com/openmeterio/openmeter/openmeter/app/custominvoicing"
@@ -26,33 +26,33 @@ import (
 // goverter:extend ToAPIBillingApp
 // goverter:enum:unknown @error
 var (
-	ToAPIAppPagePaginatedResponse func(source response.PagePaginationResponse[api.BillingApp]) api.AppPagePaginatedResponse
+	ToAPIAppPagePaginatedResponse func(source response.PagePaginationResponse[apiv3models.BillingApp]) apiv3models.AppPagePaginatedResponse
 
-	ToAPIBillingAppCatalogItem func(source app.MarketplaceListing) (api.BillingAppCatalogItem, error)
+	ToAPIBillingAppCatalogItem func(source app.MarketplaceListing) (apiv3models.BillingAppCatalogItem, error)
 
 	// goverter:enum:map AppTypeStripe BillingAppTypeStripe
 	// goverter:enum:map AppTypeSandbox BillingAppTypeSandbox
 	// goverter:enum:map AppTypeCustomInvoicing BillingAppTypeExternalInvoicing
-	ToAPIBillingAppTypeFromDomain func(source app.AppType) (api.BillingAppType, error)
+	ToAPIBillingAppTypeFromDomain func(source app.AppType) (apiv3models.BillingAppType, error)
 
 	// goverter:enum:map BillingAppTypeStripe AppTypeStripe
 	// goverter:enum:map BillingAppTypeSandbox AppTypeSandbox
 	// goverter:enum:map BillingAppTypeExternalInvoicing AppTypeCustomInvoicing
-	ToDomainAppTypeFromAPIBillingAppType func(source api.BillingAppType) (app.AppType, error)
+	ToDomainAppTypeFromAPIBillingAppType func(source apiv3models.BillingAppType) (app.AppType, error)
 
 	// goverter:enum:map CapabilityTypeReportUsage BillingAppCapabilityTypeReportUsage
 	// goverter:enum:map CapabilityTypeReportEvents BillingAppCapabilityTypeReportEvents
 	// goverter:enum:map CapabilityTypeCalculateTax BillingAppCapabilityTypeCalculateTax
 	// goverter:enum:map CapabilityTypeInvoiceCustomers BillingAppCapabilityTypeInvoiceCustomers
 	// goverter:enum:map CapabilityTypeCollectPayments BillingAppCapabilityTypeCollectPayments
-	ToAPIBillingAppCapabilityTypeFromCapabilityType func(source app.CapabilityType) (api.BillingAppCapabilityType, error)
+	ToAPIBillingAppCapabilityTypeFromCapabilityType func(source app.CapabilityType) (apiv3models.BillingAppCapabilityType, error)
 
 	// goverter:enum:map InstallMethodOAuth2 BillingAppInstallMethodsWithOauth2
 	// goverter:enum:map InstallMethodAPIKey BillingAppInstallMethodsWithApiKey
 	// goverter:enum:map InstallMethodNoCredentials BillingAppInstallMethodsNoCredentialsRequired
-	ToAPIBillingAppInstallMethodsFromInstallMethod func(source app.InstallMethod) (api.BillingAppInstallMethods, error)
+	ToAPIBillingAppInstallMethodsFromInstallMethod func(source app.InstallMethod) (apiv3models.BillingAppInstallMethods, error)
 
-	ToAPIBillingApps func(source []app.App) ([]api.BillingApp, error)
+	ToAPIBillingApps func(source []app.App) ([]apiv3models.BillingApp, error)
 )
 
 func IntToFloat32(i int) float32 {
@@ -60,24 +60,24 @@ func IntToFloat32(i int) float32 {
 }
 
 // ToAPIBillingApp maps an app to a v3 API app
-func ToAPIBillingApp(item app.App) (api.BillingApp, error) {
+func ToAPIBillingApp(item app.App) (apiv3models.BillingApp, error) {
 	if item == nil {
-		return api.BillingApp{}, errors.New("invalid app: nil")
+		return apiv3models.BillingApp{}, errors.New("invalid app: nil")
 	}
 
 	switch item.GetType() {
 	case app.AppTypeStripe:
 		stripeApp, ok := item.(appstripe.App)
 		if !ok {
-			return api.BillingApp{}, fmt.Errorf("expected stripe app, got %T", item)
+			return apiv3models.BillingApp{}, fmt.Errorf("expected stripe app, got %T", item)
 		}
 
 		billingAppStripe, err := toAPIBillingAppStripe(stripeApp.Meta)
 		if err != nil {
-			return api.BillingApp{}, fmt.Errorf("failed to map stripe app to API: %w", err)
+			return apiv3models.BillingApp{}, fmt.Errorf("failed to map stripe app to API: %w", err)
 		}
 
-		billingApp := api.BillingApp{}
+		billingApp := apiv3models.BillingApp{}
 		if err := billingApp.FromBillingAppStripe(billingAppStripe); err != nil {
 			return billingApp, err
 		}
@@ -86,15 +86,15 @@ func ToAPIBillingApp(item app.App) (api.BillingApp, error) {
 	case app.AppTypeSandbox:
 		sandboxApp, ok := item.(appsandbox.App)
 		if !ok {
-			return api.BillingApp{}, fmt.Errorf("expected sandbox app, got %T", item)
+			return apiv3models.BillingApp{}, fmt.Errorf("expected sandbox app, got %T", item)
 		}
 
 		billingAppSandbox, err := toAPIBillingAppSandbox(sandboxApp.Meta)
 		if err != nil {
-			return api.BillingApp{}, fmt.Errorf("failed to map sandbox app to API: %w", err)
+			return apiv3models.BillingApp{}, fmt.Errorf("failed to map sandbox app to API: %w", err)
 		}
 
-		billingApp := api.BillingApp{}
+		billingApp := apiv3models.BillingApp{}
 		if err := billingApp.FromBillingAppSandbox(billingAppSandbox); err != nil {
 			return billingApp, err
 		}
@@ -103,31 +103,31 @@ func ToAPIBillingApp(item app.App) (api.BillingApp, error) {
 	case app.AppTypeCustomInvoicing:
 		customInvoicingApp, ok := item.(appcustominvoicing.App)
 		if !ok {
-			return api.BillingApp{}, fmt.Errorf("expected custom invoicing app, got %T", item)
+			return apiv3models.BillingApp{}, fmt.Errorf("expected custom invoicing app, got %T", item)
 		}
 
 		billingAppExternalInvoicing, err := toAPIBillingAppExternalInvoicing(customInvoicingApp.Meta)
 		if err != nil {
-			return api.BillingApp{}, fmt.Errorf("failed to map custom invoicing app to API: %w", err)
+			return apiv3models.BillingApp{}, fmt.Errorf("failed to map custom invoicing app to API: %w", err)
 		}
 
-		billingApp := api.BillingApp{}
+		billingApp := apiv3models.BillingApp{}
 		if err := billingApp.FromBillingAppExternalInvoicing(billingAppExternalInvoicing); err != nil {
 			return billingApp, err
 		}
 
 		return billingApp, nil
 	default:
-		return api.BillingApp{}, fmt.Errorf("unsupported app type: %s", item.GetType())
+		return apiv3models.BillingApp{}, fmt.Errorf("unsupported app type: %s", item.GetType())
 	}
 }
 
-func ToAPIBillingInstallAppResponse(item app.App, defaultForCapabilityTypes []api.BillingAppCapabilityType) (api.BillingInstallAppResponse, error) {
+func ToAPIBillingInstallAppResponse(item app.App, defaultForCapabilityTypes []apiv3models.BillingAppCapabilityType) (apiv3models.BillingInstallAppResponse, error) {
 	if item == nil {
-		return api.BillingInstallAppResponse{}, errors.New("invalid app: nil")
+		return apiv3models.BillingInstallAppResponse{}, errors.New("invalid app: nil")
 	}
 
-	response := api.BillingInstallAppResponse{}
+	response := apiv3models.BillingInstallAppResponse{}
 
 	switch item.GetType() {
 	case app.AppTypeStripe:
@@ -141,9 +141,9 @@ func ToAPIBillingInstallAppResponse(item app.App, defaultForCapabilityTypes []ap
 			return response, fmt.Errorf("failed to map stripe app to API: %w", err)
 		}
 
-		if err := response.FromBillingInstalledAppStripe(api.BillingInstalledAppStripe{
+		if err := response.FromBillingInstalledAppStripe(apiv3models.BillingInstalledAppStripe{
 			Id:          base.Id,
-			Type:        api.BillingInstalledAppStripeTypeStripe,
+			Type:        apiv3models.BillingInstalledAppStripeTypeStripe,
 			Name:        base.Name,
 			Status:      base.Status,
 			Definition:  base.Definition,
@@ -174,9 +174,9 @@ func ToAPIBillingInstallAppResponse(item app.App, defaultForCapabilityTypes []ap
 			return response, fmt.Errorf("failed to map sandbox app to API: %w", err)
 		}
 
-		if err := response.FromBillingInstalledAppSandbox(api.BillingInstalledAppSandbox{
+		if err := response.FromBillingInstalledAppSandbox(apiv3models.BillingInstalledAppSandbox{
 			Id:          base.Id,
-			Type:        api.BillingInstalledAppSandboxTypeSandbox,
+			Type:        apiv3models.BillingInstalledAppSandboxTypeSandbox,
 			Name:        base.Name,
 			Status:      base.Status,
 			Definition:  base.Definition,
@@ -203,9 +203,9 @@ func ToAPIBillingInstallAppResponse(item app.App, defaultForCapabilityTypes []ap
 			return response, fmt.Errorf("failed to map custom invoicing app to API: %w", err)
 		}
 
-		if err := response.FromBillingInstalledAppExternalInvoicing(api.BillingInstalledAppExternalInvoicing{
+		if err := response.FromBillingInstalledAppExternalInvoicing(apiv3models.BillingInstalledAppExternalInvoicing{
 			Id:          base.Id,
-			Type:        api.BillingInstalledAppExternalInvoicingTypeExternalInvoicing,
+			Type:        apiv3models.BillingInstalledAppExternalInvoicingTypeExternalInvoicing,
 			Name:        base.Name,
 			Status:      base.Status,
 			Definition:  base.Definition,
@@ -229,17 +229,17 @@ func ToAPIBillingInstallAppResponse(item app.App, defaultForCapabilityTypes []ap
 	}
 }
 
-func toAPIBillingAppSandbox(sandboxApp appsandbox.Meta) (api.BillingAppSandbox, error) {
+func toAPIBillingAppSandbox(sandboxApp appsandbox.Meta) (apiv3models.BillingAppSandbox, error) {
 	definition, err := ToAPIBillingAppCatalogItem(sandboxApp.GetListing())
 	if err != nil {
-		return api.BillingAppSandbox{}, err
+		return apiv3models.BillingAppSandbox{}, err
 	}
 
-	return api.BillingAppSandbox{
+	return apiv3models.BillingAppSandbox{
 		Id:          sandboxApp.GetID().ID,
-		Type:        api.BillingAppSandboxTypeSandbox,
+		Type:        apiv3models.BillingAppSandboxTypeSandbox,
 		Name:        sandboxApp.GetName(),
-		Status:      api.BillingAppStatus(sandboxApp.GetStatus()),
+		Status:      apiv3models.BillingAppStatus(sandboxApp.GetStatus()),
 		Definition:  definition,
 		Labels:      labels.FromMetadata(sandboxApp.GetMetadata()),
 		Description: sandboxApp.GetDescription(),
@@ -250,15 +250,15 @@ func toAPIBillingAppSandbox(sandboxApp appsandbox.Meta) (api.BillingAppSandbox, 
 	}, nil
 }
 
-func toAPIBillingAppActions(item interface{ Actions() []app.AppAction }) *[]api.BillingAppAction {
+func toAPIBillingAppActions(item interface{ Actions() []app.AppAction }) *[]apiv3models.BillingAppAction {
 	actions := item.Actions()
 	if len(actions) == 0 {
 		return nil
 	}
 
-	return lo.ToPtr(lo.Map(actions, func(action app.AppAction, _ int) api.BillingAppAction {
-		return api.BillingAppAction{
-			Type:        api.BillingAppActionType(action.Type),
+	return lo.ToPtr(lo.Map(actions, func(action app.AppAction, _ int) apiv3models.BillingAppAction {
+		return apiv3models.BillingAppAction{
+			Type:        apiv3models.BillingAppActionType(action.Type),
 			Description: action.Description,
 		}
 	}))
@@ -266,17 +266,17 @@ func toAPIBillingAppActions(item interface{ Actions() []app.AppAction }) *[]api.
 
 func toAPIBillingAppStripe(
 	stripeApp appstripe.Meta,
-) (api.BillingAppStripe, error) {
+) (apiv3models.BillingAppStripe, error) {
 	definition, err := ToAPIBillingAppCatalogItem(stripeApp.GetListing())
 	if err != nil {
-		return api.BillingAppStripe{}, err
+		return apiv3models.BillingAppStripe{}, err
 	}
 
-	apiStripeApp := api.BillingAppStripe{
+	apiStripeApp := apiv3models.BillingAppStripe{
 		Id:          stripeApp.GetID().ID,
-		Type:        api.BillingAppStripeType(stripeApp.GetType()),
+		Type:        apiv3models.BillingAppStripeType(stripeApp.GetType()),
 		Name:        stripeApp.Name,
-		Status:      api.BillingAppStatus(stripeApp.GetStatus()),
+		Status:      apiv3models.BillingAppStatus(stripeApp.GetStatus()),
 		Definition:  definition,
 		Labels:      labels.FromMetadata(stripeApp.GetMetadata()),
 		Description: stripeApp.GetDescription(),
@@ -293,17 +293,17 @@ func toAPIBillingAppStripe(
 	return apiStripeApp, nil
 }
 
-func toAPIBillingAppExternalInvoicing(customInvoicingApp appcustominvoicing.Meta) (api.BillingAppExternalInvoicing, error) {
+func toAPIBillingAppExternalInvoicing(customInvoicingApp appcustominvoicing.Meta) (apiv3models.BillingAppExternalInvoicing, error) {
 	definition, err := ToAPIBillingAppCatalogItem(customInvoicingApp.GetListing())
 	if err != nil {
-		return api.BillingAppExternalInvoicing{}, err
+		return apiv3models.BillingAppExternalInvoicing{}, err
 	}
 
-	return api.BillingAppExternalInvoicing{
+	return apiv3models.BillingAppExternalInvoicing{
 		Id:          customInvoicingApp.GetID().ID,
-		Type:        api.BillingAppExternalInvoicingTypeExternalInvoicing,
+		Type:        apiv3models.BillingAppExternalInvoicingTypeExternalInvoicing,
 		Name:        customInvoicingApp.GetName(),
-		Status:      api.BillingAppStatus(customInvoicingApp.GetStatus()),
+		Status:      apiv3models.BillingAppStatus(customInvoicingApp.GetStatus()),
 		Definition:  definition,
 		Labels:      labels.FromMetadata(customInvoicingApp.GetMetadata()),
 		Description: customInvoicingApp.GetDescription(),

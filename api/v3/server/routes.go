@@ -5,7 +5,7 @@ import (
 
 	"github.com/samber/lo"
 
-	api "github.com/openmeterio/openmeter/api/v3"
+	apiv3 "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/handlers/billinginvoices"
 	currencieshandler "github.com/openmeterio/openmeter/api/v3/handlers/currencies"
 	chargeshandler "github.com/openmeterio/openmeter/api/v3/handlers/customers/charges"
@@ -598,7 +598,7 @@ func (s *Server) DeletePlanAddon(w http.ResponseWriter, r *http.Request, planId 
 
 // Credits
 
-var unimplemented = api.Unimplemented{}
+var unimplemented = apiv3.Unimplemented{}
 
 func (s *Server) GetCustomerCreditBalance(w http.ResponseWriter, r *http.Request, customerId apimodels.ULID, params apimodels.GetCustomerCreditBalanceParams) {
 	if !s.Credits.Enabled || s.customersCreditsHandler == nil {

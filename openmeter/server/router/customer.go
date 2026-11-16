@@ -3,7 +3,7 @@ package router
 import (
 	"net/http"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	apphttpdriver "github.com/openmeterio/openmeter/openmeter/app/httpdriver"
 	customerhttpdriver "github.com/openmeterio/openmeter/openmeter/customer/httpdriver"
 	subscriptionhttpdriver "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription/http"
@@ -11,7 +11,7 @@ import (
 
 // List customers
 // (GET /api/v1/customer/customers)
-func (a *Router) ListCustomers(w http.ResponseWriter, r *http.Request, params api.ListCustomersParams) {
+func (a *Router) ListCustomers(w http.ResponseWriter, r *http.Request, params apiv1models.ListCustomersParams) {
 	a.customerHandler.ListCustomers().With(params).ServeHTTP(w, r)
 }
 
@@ -29,7 +29,7 @@ func (a *Router) DeleteCustomer(w http.ResponseWriter, r *http.Request, customer
 
 // Get customer
 // (GET /api/v1/customer/customers/{customerId})
-func (a *Router) GetCustomer(w http.ResponseWriter, r *http.Request, customerIDOrKey string, params api.GetCustomerParams) {
+func (a *Router) GetCustomer(w http.ResponseWriter, r *http.Request, customerIDOrKey string, params apiv1models.GetCustomerParams) {
 	a.customerHandler.GetCustomer().With(customerhttpdriver.GetCustomerParams{
 		CustomerIDOrKey:   customerIDOrKey,
 		GetCustomerParams: params,
@@ -44,7 +44,7 @@ func (a *Router) UpdateCustomer(w http.ResponseWriter, r *http.Request, customer
 
 // List customer apps
 // (GET /api/v1/customer/customers/{customerId}/apps)
-func (a *Router) ListCustomerAppData(w http.ResponseWriter, r *http.Request, customerIdOrKey string, params api.ListCustomerAppDataParams) {
+func (a *Router) ListCustomerAppData(w http.ResponseWriter, r *http.Request, customerIdOrKey string, params apiv1models.ListCustomerAppDataParams) {
 	a.appHandler.ListCustomerData().With(apphttpdriver.ListCustomerDataParams{
 		ListCustomerAppDataParams: params,
 		CustomerIdOrKey:           customerIdOrKey,
@@ -70,7 +70,7 @@ func (a *Router) DeleteCustomerAppData(w http.ResponseWriter, r *http.Request, c
 
 // List customer subscriptions
 // (GET /api/v1/customer/customers/{customerId}/subscriptions)
-func (a *Router) ListCustomerSubscriptions(w http.ResponseWriter, r *http.Request, customerIDOrKey string, params api.ListCustomerSubscriptionsParams) {
+func (a *Router) ListCustomerSubscriptions(w http.ResponseWriter, r *http.Request, customerIDOrKey string, params apiv1models.ListCustomerSubscriptionsParams) {
 	a.subscriptionHandler.ListCustomerSubscriptions().With(subscriptionhttpdriver.ListCustomerSubscriptionsParams{
 		CustomerIDOrKey: customerIDOrKey,
 		Params:          params,

@@ -4,8 +4,8 @@ import (
 	"context"
 	"net/http"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -15,7 +15,7 @@ import (
 
 type (
 	UpdateTaxCodeRequest  = taxcode.UpdateTaxCodeInput
-	UpdateTaxCodeResponse = api.BillingTaxCode
+	UpdateTaxCodeResponse = apiv3models.BillingTaxCode
 	UpdateTaxCodeParams   = string
 	UpdateTaxCodeHandler  = httptransport.HandlerWithArgs[UpdateTaxCodeRequest, UpdateTaxCodeResponse, UpdateTaxCodeParams]
 )
@@ -24,7 +24,7 @@ type (
 func (h *handler) UpdateTaxCode() UpdateTaxCodeHandler {
 	return httptransport.NewHandlerWithArgs(
 		func(ctx context.Context, r *http.Request, taxCodeID UpdateTaxCodeParams) (UpdateTaxCodeRequest, error) {
-			body := api.UpsertTaxCodeRequest{}
+			body := apiv3models.UpsertTaxCodeRequest{}
 			if err := request.ParseBody(r, &body); err != nil {
 				return UpdateTaxCodeRequest{}, err
 			}

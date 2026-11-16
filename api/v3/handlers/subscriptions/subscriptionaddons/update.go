@@ -4,9 +4,9 @@ import (
 	"context"
 	"net/http"
 
-	apiv3 "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/handlers/subscriptions"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -23,7 +23,7 @@ type (
 		SubscriptionID      string
 		SubscriptionAddonID string
 	}
-	UpdateSubscriptionAddonResponse = apiv3.SubscriptionAddon
+	UpdateSubscriptionAddonResponse = apiv3models.SubscriptionAddon
 	UpdateSubscriptionAddonHandler  = httptransport.HandlerWithArgs[UpdateSubscriptionAddonRequest, UpdateSubscriptionAddonResponse, UpdateSubscriptionAddonParams]
 )
 
@@ -33,7 +33,7 @@ type (
 func (h *handler) UpdateSubscriptionAddon() UpdateSubscriptionAddonHandler {
 	return httptransport.NewHandlerWithArgs(
 		func(ctx context.Context, r *http.Request, params UpdateSubscriptionAddonParams) (UpdateSubscriptionAddonRequest, error) {
-			body := apiv3.UpdateSubscriptionAddonJSONRequestBody{}
+			body := apiv3models.UpdateSubscriptionAddonJSONRequestBody{}
 			if err := request.ParseBody(r, &body); err != nil {
 				return UpdateSubscriptionAddonRequest{}, err
 			}

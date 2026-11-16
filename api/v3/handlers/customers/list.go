@@ -7,9 +7,9 @@ import (
 
 	"github.com/samber/lo"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/filters"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/api/v3/response"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -21,8 +21,8 @@ import (
 
 type (
 	ListCustomersRequest  = customer.ListCustomersInput
-	ListCustomersResponse = response.PagePaginationResponse[api.BillingCustomer]
-	ListCustomersParams   = api.ListCustomersParams
+	ListCustomersResponse = response.PagePaginationResponse[apiv3models.BillingCustomer]
+	ListCustomersParams   = apiv3models.ListCustomersParams
 	ListCustomersHandler  httptransport.HandlerWithArgs[ListCustomersRequest, ListCustomersResponse, ListCustomersParams]
 )
 
@@ -140,7 +140,7 @@ func (h *handler) ListCustomers() ListCustomersHandler {
 				return ListCustomersResponse{}, fmt.Errorf("failed to list customers: %w", err)
 			}
 
-			customers := lo.Map(resp.Items, func(item customer.Customer, _ int) api.BillingCustomer {
+			customers := lo.Map(resp.Items, func(item customer.Customer, _ int) apiv3models.BillingCustomer {
 				return ToAPIBillingCustomer(item)
 			})
 

@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	api "github.com/openmeterio/openmeter/api/v3"
+	apiv3 "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -65,7 +65,7 @@ func invalidParametersFromGeneratedRouterError(err error) (InvalidParameters, bo
 	// Note: those errors do not carry the parameter location (query/path/header) except for the
 	// dedicated "required header" variant, so we default to "query" where ambiguous. This is still
 	// a major improvement over returning an empty error response.
-	var invalidFormat *api.InvalidParamFormatError
+	var invalidFormat *apiv3.InvalidParamFormatError
 	if errors.As(err, &invalidFormat) {
 		field := enrichFieldFromBindError(invalidFormat.ParamName, invalidFormat.Err.Error())
 
@@ -79,7 +79,7 @@ func invalidParametersFromGeneratedRouterError(err error) (InvalidParameters, bo
 		}, true
 	}
 
-	var requiredParam *api.RequiredParamError
+	var requiredParam *apiv3.RequiredParamError
 	if errors.As(err, &requiredParam) {
 		return InvalidParameters{
 			{
@@ -91,7 +91,7 @@ func invalidParametersFromGeneratedRouterError(err error) (InvalidParameters, bo
 		}, true
 	}
 
-	var requiredHeader *api.RequiredHeaderError
+	var requiredHeader *apiv3.RequiredHeaderError
 	if errors.As(err, &requiredHeader) {
 		return InvalidParameters{
 			{
@@ -103,7 +103,7 @@ func invalidParametersFromGeneratedRouterError(err error) (InvalidParameters, bo
 		}, true
 	}
 
-	var tooMany *api.TooManyValuesForParamError
+	var tooMany *apiv3.TooManyValuesForParamError
 	if errors.As(err, &tooMany) {
 		return InvalidParameters{
 			{
@@ -115,7 +115,7 @@ func invalidParametersFromGeneratedRouterError(err error) (InvalidParameters, bo
 		}, true
 	}
 
-	var unmarshal *api.UnmarshalingParamError
+	var unmarshal *apiv3.UnmarshalingParamError
 	if errors.As(err, &unmarshal) {
 		return InvalidParameters{
 			{
@@ -127,7 +127,7 @@ func invalidParametersFromGeneratedRouterError(err error) (InvalidParameters, bo
 		}, true
 	}
 
-	var unescapedCookie *api.UnescapedCookieParamError
+	var unescapedCookie *apiv3.UnescapedCookieParamError
 	if errors.As(err, &unescapedCookie) {
 		return InvalidParameters{
 			{

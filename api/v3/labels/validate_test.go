@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	api "github.com/openmeterio/openmeter/api/v3"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 )
 
 func TestValidateLabel(t *testing.T) {
@@ -162,7 +162,7 @@ func TestValidateLabel(t *testing.T) {
 func TestValidateLabels(t *testing.T) {
 	tests := []struct {
 		name    string
-		labels  api.Labels
+		labels  apiv3models.Labels
 		wantErr bool
 	}{
 		{
@@ -172,12 +172,12 @@ func TestValidateLabels(t *testing.T) {
 		},
 		{
 			name:    "empty labels",
-			labels:  api.Labels{},
+			labels:  apiv3models.Labels{},
 			wantErr: false,
 		},
 		{
 			name: "all valid",
-			labels: api.Labels{
+			labels: apiv3models.Labels{
 				"env":     "production",
 				"team":    "platform",
 				"version": "v1",
@@ -186,7 +186,7 @@ func TestValidateLabels(t *testing.T) {
 		},
 		{
 			name: "one invalid key",
-			labels: api.Labels{
+			labels: apiv3models.Labels{
 				"_bad": "value",
 				"good": "value",
 			},
@@ -194,21 +194,21 @@ func TestValidateLabels(t *testing.T) {
 		},
 		{
 			name: "one invalid value",
-			labels: api.Labels{
+			labels: apiv3models.Labels{
 				"good": "bad_",
 			},
 			wantErr: true,
 		},
 		{
 			name: "both key and value invalid in same entry",
-			labels: api.Labels{
+			labels: apiv3models.Labels{
 				"_bad": "bad_",
 			},
 			wantErr: true,
 		},
 		{
 			name: "multiple invalid keys",
-			labels: api.Labels{
+			labels: apiv3models.Labels{
 				"_bad1": "good",
 				"_bad2": "good",
 			},
@@ -216,7 +216,7 @@ func TestValidateLabels(t *testing.T) {
 		},
 		{
 			name: "reserved prefix key",
-			labels: api.Labels{
+			labels: apiv3models.Labels{
 				"openmeter_key": "value",
 			},
 			wantErr: true,

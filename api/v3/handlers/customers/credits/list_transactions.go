@@ -8,8 +8,8 @@ import (
 	"github.com/oapi-codegen/nullable"
 	"github.com/samber/lo"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger/customerbalance"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -19,10 +19,10 @@ import (
 
 type (
 	ListCreditTransactionsRequest  = customerbalance.ListCreditTransactionsInput
-	ListCreditTransactionsResponse = api.CreditTransactionPaginatedResponse
+	ListCreditTransactionsResponse = apiv3models.CreditTransactionPaginatedResponse
 	ListCreditTransactionsParams   struct {
-		CustomerID api.ULID
-		Params     api.ListCreditTransactionsParams
+		CustomerID apiv3models.ULID
+		Params     apiv3models.ListCreditTransactionsParams
 	}
 	ListCreditTransactionsHandler httptransport.HandlerWithArgs[ListCreditTransactionsRequest, ListCreditTransactionsResponse, ListCreditTransactionsParams]
 )
@@ -119,8 +119,8 @@ func (h *handler) ListCreditTransactions() ListCreditTransactionsHandler {
 			// We intentionally expose opaque cursor tokens instead of URI links.
 			// This endpoint reuses the shared cursor metadata schema, but still emits
 			// opaque token values rather than fully qualified URLs.
-			meta := api.CursorMeta{
-				Page: api.CursorMetaPage{
+			meta := apiv3models.CursorMeta{
+				Page: apiv3models.CursorMetaPage{
 					Next:     nullable.NewNullNullable[string](),
 					Previous: nullable.NewNullNullable[string](),
 					Size:     float32(request.Limit),
@@ -145,7 +145,7 @@ func (h *handler) ListCreditTransactions() ListCreditTransactionsHandler {
 				meta.Page.Previous = nullable.NewNullableWithValue(previous)
 			}
 
-			return api.CreditTransactionPaginatedResponse{
+			return apiv3models.CreditTransactionPaginatedResponse{
 				Data: toAPIBillingCreditTransactions(result.Items),
 				Meta: meta,
 			}, nil

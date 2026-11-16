@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
@@ -17,14 +17,14 @@ import (
 
 type (
 	CreateFeatureRequest  = feature.CreateFeatureInputs
-	CreateFeatureResponse = api.Feature
+	CreateFeatureResponse = apiv3models.Feature
 	CreateFeatureHandler  httptransport.Handler[CreateFeatureRequest, CreateFeatureResponse]
 )
 
 func (h *handler) CreateFeature() CreateFeatureHandler {
 	return httptransport.NewHandler(
 		func(ctx context.Context, r *http.Request) (CreateFeatureRequest, error) {
-			body := api.CreateFeatureRequest{}
+			body := apiv3models.CreateFeatureRequest{}
 			if err := request.ParseBody(r, &body); err != nil {
 				return CreateFeatureRequest{}, err
 			}
@@ -84,7 +84,7 @@ func (h *handler) CreateFeature() CreateFeatureHandler {
 // validateMeterFilters validates that filter keys exist in the meter's dimensions.
 // The single-operator invariant on each filter value is enforced downstream by
 // feature.MeterGroupByFilters.Validate.
-func validateMeterFilters(filters map[string]api.QueryFilterStringMapItem, m meter.Meter) error {
+func validateMeterFilters(filters map[string]apiv3models.QueryFilterStringMapItem, m meter.Meter) error {
 	for k := range filters {
 		if _, ok := m.GroupBy[k]; !ok {
 			return models.NewGenericValidationError(

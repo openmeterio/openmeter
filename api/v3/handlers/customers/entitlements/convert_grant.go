@@ -9,9 +9,9 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/labels"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -39,8 +39,8 @@ func FromAPIEntitlementGrantSortField(ctx context.Context, field string) (grant.
 
 // ToAPIEntitlementGrant maps a grant owned by an entitlement. The next recurrence
 // is calculated at now, the same way the legacy grant listing reports it.
-func ToAPIEntitlementGrant(g grant.Grant, now time.Time) (api.BillingEntitlementGrant, error) {
-	out := api.BillingEntitlementGrant{
+func ToAPIEntitlementGrant(g grant.Grant, now time.Time) (apiv3models.BillingEntitlementGrant, error) {
+	out := apiv3models.BillingEntitlementGrant{
 		Id:                g.ID,
 		EntitlementId:     g.OwnerID,
 		CustomerId:        g.CustomerID,
@@ -67,7 +67,7 @@ func ToAPIEntitlementGrant(g grant.Grant, now time.Time) (api.BillingEntitlement
 	}
 
 	if g.Recurrence != nil {
-		out.Recurrence = &api.RecurringPeriod{
+		out.Recurrence = &apiv3models.RecurringPeriod{
 			Anchor:   g.Recurrence.Anchor,
 			Interval: g.Recurrence.Interval.ISOString().String(),
 		}

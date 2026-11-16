@@ -6,8 +6,8 @@ import (
 
 	"github.com/samber/lo"
 
-	apiv3 "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/api/v3/response"
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
@@ -18,8 +18,8 @@ import (
 )
 
 type ListSubscriptionAddonsParams struct {
-	SubscriptionID apiv3.ULID
-	Params         apiv3.ListSubscriptionAddonsParams
+	SubscriptionID apiv3models.ULID
+	Params         apiv3models.ListSubscriptionAddonsParams
 }
 
 type listSubscriptionAddonsRequest struct {
@@ -29,7 +29,7 @@ type listSubscriptionAddonsRequest struct {
 
 type (
 	ListSubscriptionAddonsRequest  = listSubscriptionAddonsRequest
-	ListSubscriptionAddonsResponse = response.PagePaginationResponse[apiv3.SubscriptionAddon]
+	ListSubscriptionAddonsResponse = response.PagePaginationResponse[apiv3models.SubscriptionAddon]
 	ListSubscriptionAddonsHandler  = httptransport.HandlerWithArgs[ListSubscriptionAddonsRequest, ListSubscriptionAddonsResponse, ListSubscriptionAddonsParams]
 )
 
@@ -89,7 +89,7 @@ func (h *handler) ListSubscriptionAddons() ListSubscriptionAddonsHandler {
 			}
 
 			if len(res.Items) == 0 {
-				return response.NewPagePaginationResponse([]apiv3.SubscriptionAddon{}, response.PageMetaPage{
+				return response.NewPagePaginationResponse([]apiv3models.SubscriptionAddon{}, response.PageMetaPage{
 					Size:   req.Input.Page.PageSize,
 					Number: req.Input.Page.PageNumber,
 					Total:  lo.ToPtr(res.TotalCount),
@@ -101,7 +101,7 @@ func (h *handler) ListSubscriptionAddons() ListSubscriptionAddonsHandler {
 				return ListSubscriptionAddonsResponse{}, err
 			}
 
-			items, err := lo.MapErr(res.Items, func(item subscriptionaddon.SubscriptionAddon, _ int) (apiv3.SubscriptionAddon, error) {
+			items, err := lo.MapErr(res.Items, func(item subscriptionaddon.SubscriptionAddon, _ int) (apiv3models.SubscriptionAddon, error) {
 				return toAPISubscriptionAddon(view, item)
 			})
 			if err != nil {

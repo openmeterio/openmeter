@@ -5,13 +5,13 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	addonhttpdriver "github.com/openmeterio/openmeter/openmeter/productcatalog/addon/httpdriver"
 )
 
 // List addons
 // (GET /api/v1/addons)
-func (a *Router) ListAddons(w http.ResponseWriter, r *http.Request, params api.ListAddonsParams) {
+func (a *Router) ListAddons(w http.ResponseWriter, r *http.Request, params apiv1models.ListAddonsParams) {
 	a.addonHandler.ListAddons().With(params).ServeHTTP(w, r)
 }
 
@@ -29,7 +29,7 @@ func (a *Router) DeleteAddon(w http.ResponseWriter, r *http.Request, addonId str
 
 // Get addon
 // (GET /api/v1/addons/{addonId})
-func (a *Router) GetAddon(w http.ResponseWriter, r *http.Request, addonId string, params api.GetAddonParams) {
+func (a *Router) GetAddon(w http.ResponseWriter, r *http.Request, addonId string, params apiv1models.GetAddonParams) {
 	a.addonHandler.GetAddon().With(addonhttpdriver.GetAddonRequestParams{
 		IDOrKey:       addonId,
 		IncludeLatest: lo.FromPtrOr(params.IncludeLatest, false),

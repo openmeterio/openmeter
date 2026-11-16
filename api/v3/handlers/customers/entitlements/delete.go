@@ -4,8 +4,8 @@ import (
 	"context"
 	"net/http"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -16,8 +16,8 @@ type (
 	DeleteCustomerEntitlementRequest  = entitlement.DeleteCustomerEntitlementInput
 	DeleteCustomerEntitlementResponse = interface{}
 	DeleteCustomerEntitlementParams   struct {
-		CustomerID    api.ULID
-		EntitlementID api.ULID
+		CustomerID    apiv3models.ULID
+		EntitlementID apiv3models.ULID
 	}
 	DeleteCustomerEntitlementHandler = httptransport.HandlerWithArgs[DeleteCustomerEntitlementRequest, DeleteCustomerEntitlementResponse, DeleteCustomerEntitlementParams]
 )

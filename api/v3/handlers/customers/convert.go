@@ -8,7 +8,7 @@ import (
 
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/labels"
-	api "github.com/openmeterio/openmeter/api/v3/models"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/response"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -40,7 +40,7 @@ var (
 	// goverter:context namespace
 	// goverter:map Namespace | NamespaceFromContext
 	// goverter:map . CustomerMutate
-	FromAPICreateCustomerRequest func(namespace string, createCustomerRequest api.CreateCustomerRequest) (customer.CreateCustomerInput, error)
+	FromAPICreateCustomerRequest func(namespace string, createCustomerRequest apiv3models.CreateCustomerRequest) (customer.CreateCustomerInput, error)
 	// goverter:map . Labels | ConvertMetadataAnnotationsToLabels
 	// goverter:map ManagedResource.ID Id
 	// goverter:map ManagedResource.Description Description
@@ -48,18 +48,18 @@ var (
 	// goverter:map ManagedResource.ManagedModel.CreatedAt CreatedAt
 	// goverter:map ManagedResource.ManagedModel.UpdatedAt UpdatedAt
 	// goverter:map ManagedResource.ManagedModel.DeletedAt DeletedAt
-	ToAPIBillingCustomer func(customer.Customer) api.BillingCustomer
+	ToAPIBillingCustomer func(customer.Customer) apiv3models.BillingCustomer
 	// goverter:map Labels Metadata
 	// goverter:ignore Annotation
-	FromAPICreateCustomerRequestToMutate func(createCustomerRequest api.CreateCustomerRequest) (customer.CustomerMutate, error)
+	FromAPICreateCustomerRequestToMutate func(createCustomerRequest apiv3models.CreateCustomerRequest) (customer.CustomerMutate, error)
 	// goverter:map Labels Metadata
 	// goverter:ignore Annotation
 	// goverter:ignore Key
-	FromAPIUpsertCustomerRequest       func(updateCustomerRequest api.UpsertCustomerRequest) (customer.CustomerMutate, error)
-	ToAPICustomerPagePaginatedResponse func(customers response.PagePaginationResponse[customer.Customer]) api.CustomerPagePaginatedResponse
+	FromAPIUpsertCustomerRequest       func(updateCustomerRequest apiv3models.UpsertCustomerRequest) (customer.CustomerMutate, error)
+	ToAPICustomerPagePaginatedResponse func(customers response.PagePaginationResponse[customer.Customer]) apiv3models.CustomerPagePaginatedResponse
 )
 
-func ConvertLabelsToMetadata(l *api.Labels) (*models.Metadata, error) {
+func ConvertLabelsToMetadata(l *apiv3models.Labels) (*models.Metadata, error) {
 	m, err := labels.ToMetadata(l)
 
 	return &m, err
@@ -74,6 +74,6 @@ func IntToFloat32(i int) float32 {
 	return float32(i)
 }
 
-func ConvertMetadataAnnotationsToLabels(source customer.Customer) *api.Labels {
+func ConvertMetadataAnnotationsToLabels(source customer.Customer) *apiv3models.Labels {
 	return labels.FromMetadataAnnotations(lo.FromPtr(source.Metadata), lo.FromPtr(source.Annotation))
 }

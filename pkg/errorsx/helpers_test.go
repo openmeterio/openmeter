@@ -7,12 +7,12 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	api "github.com/openmeterio/openmeter/api"
+	apiv1 "github.com/openmeterio/openmeter/api"
 	apiv3 "github.com/openmeterio/openmeter/api/v3"
 )
 
 func TestIsAPIError(t *testing.T) {
-	apiErr := &api.InvalidParamFormatError{
+	apiErr := &apiv1.InvalidParamFormatError{
 		ParamName: "page",
 		Err:       errors.New("invalid syntax"),
 	}
@@ -39,7 +39,7 @@ func TestIsAPIError(t *testing.T) {
 		},
 		{
 			name: "different generated api error type",
-			err:  &api.RequiredParamError{ParamName: "page"},
+			err:  &apiv1.RequiredParamError{ParamName: "page"},
 			want: true,
 		},
 		{

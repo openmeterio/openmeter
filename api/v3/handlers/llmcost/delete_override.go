@@ -4,8 +4,8 @@ import (
 	"context"
 	"net/http"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/llmcost"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
@@ -14,12 +14,12 @@ import (
 type (
 	DeleteOverrideRequest  = llmcost.DeleteOverrideInput
 	DeleteOverrideResponse = interface{}
-	DeleteOverrideHandler  = httptransport.HandlerWithArgs[DeleteOverrideRequest, DeleteOverrideResponse, api.ULID]
+	DeleteOverrideHandler  = httptransport.HandlerWithArgs[DeleteOverrideRequest, DeleteOverrideResponse, apiv3models.ULID]
 )
 
 func (h *handler) DeleteOverride() DeleteOverrideHandler {
 	return httptransport.NewHandlerWithArgs(
-		func(ctx context.Context, r *http.Request, overrideID api.ULID) (DeleteOverrideRequest, error) {
+		func(ctx context.Context, r *http.Request, overrideID apiv3models.ULID) (DeleteOverrideRequest, error) {
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
 				return DeleteOverrideRequest{}, err

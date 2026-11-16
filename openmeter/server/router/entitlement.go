@@ -3,7 +3,7 @@ package router
 import (
 	"net/http"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	customerdriver "github.com/openmeterio/openmeter/openmeter/customer/httpdriver"
 	entitlementdriver "github.com/openmeterio/openmeter/openmeter/entitlement/driver"
 	entitlementdriverv2 "github.com/openmeterio/openmeter/openmeter/entitlement/driver/v2"
@@ -15,7 +15,7 @@ import (
 
 // List entitlements
 // (GET /api/v1/entitlements)
-func (a *Router) ListEntitlements(w http.ResponseWriter, r *http.Request, params api.ListEntitlementsParams) {
+func (a *Router) ListEntitlements(w http.ResponseWriter, r *http.Request, params apiv1models.ListEntitlementsParams) {
 	a.entitlementHandler.ListEntitlements().With(params).ServeHTTP(w, r)
 }
 
@@ -39,7 +39,7 @@ func (a *Router) CreateEntitlement(w http.ResponseWriter, r *http.Request, subje
 
 // List entitlements
 // (GET /api/v1/subjects/{subjectIdOrKey}/entitlements)
-func (a *Router) ListSubjectEntitlements(w http.ResponseWriter, r *http.Request, subjectIdOrKey string, params api.ListSubjectEntitlementsParams) {
+func (a *Router) ListSubjectEntitlements(w http.ResponseWriter, r *http.Request, subjectIdOrKey string, params apiv1models.ListSubjectEntitlementsParams) {
 	a.entitlementHandler.GetEntitlementsOfSubjectHandler().With(entitlementdriver.GetEntitlementsOfSubjectHandlerParams{
 		SubjectIdOrKey: subjectIdOrKey,
 		Params:         params,
@@ -48,7 +48,7 @@ func (a *Router) ListSubjectEntitlements(w http.ResponseWriter, r *http.Request,
 
 // Get the value of a specific entitlement.
 // (GET /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/value)
-func (a *Router) GetEntitlementValue(w http.ResponseWriter, r *http.Request, subjectIdOrKey string, entitlementIdOrFeatureKey string, params api.GetEntitlementValueParams) {
+func (a *Router) GetEntitlementValue(w http.ResponseWriter, r *http.Request, subjectIdOrKey string, entitlementIdOrFeatureKey string, params apiv1models.GetEntitlementValueParams) {
 	a.entitlementHandler.GetEntitlementValue().With(entitlementdriver.GetEntitlementValueHandlerParams{
 		SubjectKey:                subjectIdOrKey,
 		EntitlementIdOrFeatureKey: entitlementIdOrFeatureKey,
@@ -67,7 +67,7 @@ func (a *Router) CreateGrant(w http.ResponseWriter, r *http.Request, subjectIdOr
 
 // List grants for an entitlement
 // (GET /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/grants)
-func (a *Router) ListEntitlementGrants(w http.ResponseWriter, r *http.Request, subjectIdOrKey string, entitlementIdOrFeatureKey string, params api.ListEntitlementGrantsParams) {
+func (a *Router) ListEntitlementGrants(w http.ResponseWriter, r *http.Request, subjectIdOrKey string, entitlementIdOrFeatureKey string, params apiv1models.ListEntitlementGrantsParams) {
 	a.meteredEntitlementHandler.ListEntitlementGrants().With(entitlementdriver.ListEntitlementGrantsHandlerParams{
 		SubjectKey:                subjectIdOrKey,
 		EntitlementIdOrFeatureKey: entitlementIdOrFeatureKey,
@@ -85,7 +85,7 @@ func (a *Router) ResetEntitlementUsage(w http.ResponseWriter, r *http.Request, s
 
 // Get the balance history of a specific entitlement.
 // (GET /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}/history)
-func (a *Router) GetEntitlementHistory(w http.ResponseWriter, r *http.Request, subjectIdOrKey string, entitlementId string, params api.GetEntitlementHistoryParams) {
+func (a *Router) GetEntitlementHistory(w http.ResponseWriter, r *http.Request, subjectIdOrKey string, entitlementId string, params apiv1models.GetEntitlementHistoryParams) {
 	a.meteredEntitlementHandler.GetEntitlementBalanceHistory().With(entitlementdriver.GetEntitlementBalanceHistoryHandlerParams{
 		EntitlementID: entitlementId,
 		SubjectKey:    subjectIdOrKey,
@@ -124,7 +124,7 @@ func (a *Router) OverrideEntitlement(w http.ResponseWriter, r *http.Request, sub
 
 // Get entitlement value
 // (GET /api/v1/customers/{customerId}/entitlements/{featureKey}/value)
-func (a *Router) GetCustomerEntitlementValue(w http.ResponseWriter, r *http.Request, customerIdOrKey string, featureKey string, params api.GetCustomerEntitlementValueParams) {
+func (a *Router) GetCustomerEntitlementValue(w http.ResponseWriter, r *http.Request, customerIdOrKey string, featureKey string, params apiv1models.GetCustomerEntitlementValueParams) {
 	a.customerHandler.GetCustomerEntitlementValue().With(customerdriver.GetCustomerEntitlementValueParams{
 		CustomerIDOrKey: customerIdOrKey,
 		FeatureKey:      featureKey,
@@ -143,7 +143,7 @@ func (a *Router) GetCustomerAccess(w http.ResponseWriter, r *http.Request, custo
 // Entitlement APIs (V2)
 // ------------------------------------------------------------
 
-func (a *Router) ListEntitlementsV2(w http.ResponseWriter, r *http.Request, params api.ListEntitlementsV2Params) {
+func (a *Router) ListEntitlementsV2(w http.ResponseWriter, r *http.Request, params apiv1models.ListEntitlementsV2Params) {
 	a.entitlementV2Handler.ListEntitlements().With(params).ServeHTTP(w, r)
 }
 
@@ -159,13 +159,13 @@ func (a *Router) GetEntitlementByIdV2(w http.ResponseWriter, r *http.Request, en
 
 // Create customer entitlement
 // (POST /api/v2/customers/{customerIdOrKey}/entitlements)
-func (a *Router) CreateCustomerEntitlementV2(w http.ResponseWriter, r *http.Request, customerIdOrKey api.ULIDOrExternalKey) {
+func (a *Router) CreateCustomerEntitlementV2(w http.ResponseWriter, r *http.Request, customerIdOrKey apiv1models.ULIDOrExternalKey) {
 	a.entitlementV2Handler.CreateCustomerEntitlement().With(customerIdOrKey).ServeHTTP(w, r)
 }
 
 // List customer entitlements
 // (GET /api/v2/customers/{customerIdOrKey}/entitlements)
-func (a *Router) ListCustomerEntitlementsV2(w http.ResponseWriter, r *http.Request, customerIdOrKey api.ULIDOrExternalKey, params api.ListCustomerEntitlementsV2Params) {
+func (a *Router) ListCustomerEntitlementsV2(w http.ResponseWriter, r *http.Request, customerIdOrKey apiv1models.ULIDOrExternalKey, params apiv1models.ListCustomerEntitlementsV2Params) {
 	a.entitlementV2Handler.ListCustomerEntitlements().With(entitlementdriverv2.ListCustomerEntitlementsHandlerParams{
 		CustomerIdOrKey: customerIdOrKey,
 		Params:          params,
@@ -201,7 +201,7 @@ func (a *Router) OverrideCustomerEntitlementV2(w http.ResponseWriter, r *http.Re
 
 // List customer entitlement grants
 // (GET /api/v2/customers/{customerIdOrKey}/entitlements/{featureKey}/grants)
-func (a *Router) ListCustomerEntitlementGrantsV2(w http.ResponseWriter, r *http.Request, customerIdOrKey string, featureKey string, params api.ListCustomerEntitlementGrantsV2Params) {
+func (a *Router) ListCustomerEntitlementGrantsV2(w http.ResponseWriter, r *http.Request, customerIdOrKey string, featureKey string, params apiv1models.ListCustomerEntitlementGrantsV2Params) {
 	a.entitlementV2Handler.ListCustomerEntitlementGrants().With(entitlementdriverv2.ListCustomerEntitlementGrantsHandlerParams{
 		CustomerIDOrKey:           customerIdOrKey,
 		EntitlementIdOrFeatureKey: featureKey,
@@ -220,7 +220,7 @@ func (a *Router) CreateCustomerEntitlementGrantV2(w http.ResponseWriter, r *http
 
 // Get entitlement value
 // (GET /api/v2/customers/{customerId}/entitlements/{featureKey}/value)
-func (a *Router) GetCustomerEntitlementValueV2(w http.ResponseWriter, r *http.Request, customerIdOrKey string, featureKey string, params api.GetCustomerEntitlementValueV2Params) {
+func (a *Router) GetCustomerEntitlementValueV2(w http.ResponseWriter, r *http.Request, customerIdOrKey string, featureKey string, params apiv1models.GetCustomerEntitlementValueV2Params) {
 	a.customerHandler.GetCustomerEntitlementValueV2().With(customerdriver.GetCustomerEntitlementValueParams{
 		CustomerIDOrKey: customerIdOrKey,
 		FeatureKey:      featureKey,
@@ -230,7 +230,7 @@ func (a *Router) GetCustomerEntitlementValueV2(w http.ResponseWriter, r *http.Re
 
 // Get entitlement history
 // (GET /api/v2/customers/{customerId}/entitlements/{featureKey}/history)
-func (a *Router) GetCustomerEntitlementHistoryV2(w http.ResponseWriter, r *http.Request, customerIdOrKey string, featureKey string, params api.GetCustomerEntitlementHistoryV2Params) {
+func (a *Router) GetCustomerEntitlementHistoryV2(w http.ResponseWriter, r *http.Request, customerIdOrKey string, featureKey string, params apiv1models.GetCustomerEntitlementHistoryV2Params) {
 	a.entitlementV2Handler.GetCustomerEntitlementHistory().With(entitlementdriverv2.GetCustomerEntitlementHistoryHandlerParams{
 		CustomerIDOrKey:           customerIdOrKey,
 		EntitlementIdOrFeatureKey: featureKey,

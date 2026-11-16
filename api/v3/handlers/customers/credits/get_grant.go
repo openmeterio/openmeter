@@ -4,8 +4,8 @@ import (
 	"context"
 	"net/http"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/billing/creditgrant"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
@@ -13,10 +13,10 @@ import (
 
 type (
 	GetCreditGrantRequest  = creditgrant.GetInput
-	GetCreditGrantResponse = api.BillingCreditGrant
+	GetCreditGrantResponse = apiv3models.BillingCreditGrant
 	GetCreditGrantParams   struct {
-		CustomerID    api.ULID
-		CreditGrantID api.ULID
+		CustomerID    apiv3models.ULID
+		CreditGrantID apiv3models.ULID
 	}
 	GetCreditGrantHandler httptransport.HandlerWithArgs[GetCreditGrantRequest, GetCreditGrantResponse, GetCreditGrantParams]
 )

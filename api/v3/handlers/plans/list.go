@@ -6,9 +6,9 @@ import (
 
 	"github.com/samber/lo"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/filters"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/api/v3/response"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -20,8 +20,8 @@ import (
 
 type (
 	ListPlansRequest  = plan.ListPlansInput
-	ListPlansResponse = response.PagePaginationResponse[api.BillingPlan]
-	ListPlansParams   = api.ListPlansParams
+	ListPlansResponse = response.PagePaginationResponse[apiv3models.BillingPlan]
+	ListPlansParams   = apiv3models.ListPlansParams
 	ListPlansHandler  httptransport.HandlerWithArgs[ListPlansRequest, ListPlansResponse, ListPlansParams]
 )
 
@@ -119,7 +119,7 @@ func (h *handler) ListPlans() ListPlansHandler {
 				return ListPlansResponse{}, err
 			}
 
-			items := make([]api.BillingPlan, 0, len(result.Items))
+			items := make([]apiv3models.BillingPlan, 0, len(result.Items))
 			for _, p := range result.Items {
 				billingPlan, err := ToAPIBillingPlan(p)
 				if err != nil {

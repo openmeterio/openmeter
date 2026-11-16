@@ -9,7 +9,7 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingconvert "github.com/openmeterio/openmeter/openmeter/billing/apiconvert"
@@ -27,14 +27,14 @@ var _ ProfileHandler = (*handler)(nil)
 
 type (
 	CreateProfileRequest  = billing.CreateProfileInput
-	CreateProfileResponse = api.BillingProfile
+	CreateProfileResponse = apiv1models.BillingProfile
 	CreateProfileHandler  httptransport.Handler[CreateProfileRequest, CreateProfileResponse]
 )
 
 func (h *handler) CreateProfile() CreateProfileHandler {
 	return httptransport.NewHandler(
 		func(ctx context.Context, r *http.Request) (CreateProfileRequest, error) {
-			body := api.BillingProfileCreate{}
+			body := apiv1models.BillingProfileCreate{}
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
 				return CreateProfileRequest{}, fmt.Errorf("failed to decode request body: %w", err)
 			}
@@ -98,10 +98,10 @@ func (h *handler) CreateProfile() CreateProfileHandler {
 type (
 	GetProfileParams struct {
 		ID     string
-		Expand []api.BillingProfileExpand
+		Expand []apiv1models.BillingProfileExpand
 	}
 	GetProfileRequest  = billing.GetProfileInput
-	GetProfileResponse = api.BillingProfile
+	GetProfileResponse = apiv1models.BillingProfile
 	GetProfileHandler  httptransport.HandlerWithArgs[GetProfileRequest, GetProfileResponse, GetProfileParams]
 )
 
@@ -175,14 +175,14 @@ func (h *handler) DeleteProfile() DeleteProfileHandler {
 
 type (
 	UpdateProfileRequest  = billing.UpdateProfileInput
-	UpdateProfileResponse = api.BillingProfile
+	UpdateProfileResponse = apiv1models.BillingProfile
 	UpdateProfileHandler  httptransport.HandlerWithArgs[UpdateProfileRequest, UpdateProfileResponse, string]
 )
 
 func (h *handler) UpdateProfile() UpdateProfileHandler {
 	return httptransport.NewHandlerWithArgs(
 		func(ctx context.Context, r *http.Request, id string) (UpdateProfileRequest, error) {
-			body := api.BillingProfileReplaceUpdateWithWorkflow{}
+			body := apiv1models.BillingProfileReplaceUpdateWithWorkflow{}
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
 				return UpdateProfileRequest{}, fmt.Errorf("failed to decode request body: %w", err)
 			}
@@ -232,18 +232,18 @@ func (h *handler) UpdateProfile() UpdateProfileHandler {
 
 type (
 	ListProfilesRequest  = billing.ListProfilesInput
-	ListProfilesResponse = api.BillingProfilePaginatedResponse
-	ListProfilesParams   = api.ListBillingProfilesParams
+	ListProfilesResponse = apiv1models.BillingProfilePaginatedResponse
+	ListProfilesParams   = apiv1models.ListBillingProfilesParams
 	ListProfilesHandler  httptransport.HandlerWithArgs[ListProfilesRequest, ListProfilesResponse, ListProfilesParams]
 )
 
-func mapProfileOrderBy(orderBy api.BillingProfileOrderBy) billing.ProfileOrderBy {
+func mapProfileOrderBy(orderBy apiv1models.BillingProfileOrderBy) billing.ProfileOrderBy {
 	switch orderBy {
-	case api.BillingProfileOrderByName:
+	case apiv1models.BillingProfileOrderByName:
 		return billing.ProfileOrderByName
-	case api.BillingProfileOrderByUpdatedAt:
+	case apiv1models.BillingProfileOrderByUpdatedAt:
 		return billing.ProfileOrderByUpdatedAt
-	case api.BillingProfileOrderByDefault:
+	case apiv1models.BillingProfileOrderByDefault:
 		return billing.ProfileOrderByDefault
 	default:
 		return billing.ProfileOrderByCreatedAt
@@ -261,8 +261,8 @@ func (h *handler) ListProfiles() ListProfilesHandler {
 			return ListProfilesRequest{
 				Namespace:       ns,
 				IncludeArchived: lo.FromPtrOr(params.IncludeArchived, DefaultIncludeArchived),
-				OrderBy:         mapProfileOrderBy(lo.FromPtrOr(params.OrderBy, api.BillingProfileOrderByCreatedAt)),
-				Order:           sortx.Order(lo.FromPtrOr(params.Order, api.SortOrderDESC)),
+				OrderBy:         mapProfileOrderBy(lo.FromPtrOr(params.OrderBy, apiv1models.BillingProfileOrderByCreatedAt)),
+				Order:           sortx.Order(lo.FromPtrOr(params.Order, apiv1models.SortOrderDESC)),
 
 				Page: pagination.Page{
 					PageSize:   defaultx.WithDefault(params.PageSize, DefaultPageSize),
@@ -277,7 +277,7 @@ func (h *handler) ListProfiles() ListProfilesHandler {
 			}
 
 			out := ListProfilesResponse{
-				Items:      make([]api.BillingProfile, 0, len(profiles.Items)),
+				Items:      make([]apiv1models.BillingProfile, 0, len(profiles.Items)),
 				Page:       profiles.Page.PageNumber,
 				PageSize:   profiles.Page.PageSize,
 				TotalCount: profiles.TotalCount,
@@ -303,7 +303,7 @@ func (h *handler) ListProfiles() ListProfilesHandler {
 	)
 }
 
-func apiBillingPartyCreateToSupplierContact(c api.BillingParty) billing.SupplierContact {
+func apiBillingPartyCreateToSupplierContact(c apiv1models.BillingParty) billing.SupplierContact {
 	out := billing.SupplierContact{
 		Name: lo.FromPtr(c.Name),
 	}
@@ -331,7 +331,7 @@ func apiBillingPartyCreateToSupplierContact(c api.BillingParty) billing.Supplier
 	return out
 }
 
-func apiBillingPartyToSupplierContact(c api.BillingParty) billing.SupplierContact {
+func apiBillingPartyToSupplierContact(c apiv1models.BillingParty) billing.SupplierContact {
 	out := billing.SupplierContact{
 		Name: lo.FromPtr(c.Name),
 	}
@@ -359,27 +359,27 @@ func apiBillingPartyToSupplierContact(c api.BillingParty) billing.SupplierContac
 	return out
 }
 
-func fromAPIBillingWorkflow(i api.BillingWorkflow) (billing.WorkflowConfig, error) {
+func fromAPIBillingWorkflow(i apiv1models.BillingWorkflow) (billing.WorkflowConfig, error) {
 	return fromAPIBillingWorkflowWithSubscriptionEndProrationModeDefault(i, "")
 }
 
-func fromAPIBillingWorkflowWithSubscriptionEndProrationModeDefault(i api.BillingWorkflow, defaultSubscriptionEndProrationMode billing.SubscriptionEndProrationMode) (billing.WorkflowConfig, error) {
+func fromAPIBillingWorkflowWithSubscriptionEndProrationModeDefault(i apiv1models.BillingWorkflow, defaultSubscriptionEndProrationMode billing.SubscriptionEndProrationMode) (billing.WorkflowConfig, error) {
 	def := billing.DefaultWorkflowConfig
 
 	if i.Collection == nil {
-		i.Collection = &api.BillingWorkflowCollectionSettings{}
+		i.Collection = &apiv1models.BillingWorkflowCollectionSettings{}
 	}
 
 	if i.Invoicing == nil {
-		i.Invoicing = &api.BillingWorkflowInvoicingSettings{}
+		i.Invoicing = &apiv1models.BillingWorkflowInvoicingSettings{}
 	}
 
 	if i.Payment == nil {
-		i.Payment = &api.BillingWorkflowPaymentSettings{}
+		i.Payment = &apiv1models.BillingWorkflowPaymentSettings{}
 	}
 
 	if i.Tax == nil {
-		i.Tax = &api.BillingWorkflowTaxSettings{}
+		i.Tax = &apiv1models.BillingWorkflowTaxSettings{}
 	}
 
 	collInterval, err := parseDurationPtr(i.Collection.Interval, def.Collection.Interval)
@@ -428,9 +428,9 @@ func fromAPIBillingWorkflowWithSubscriptionEndProrationModeDefault(i api.Billing
 	}, nil
 }
 
-func fromAPIBillingWorkflowCreate(i api.BillingWorkflowCreate) (billing.WorkflowConfig, error) {
+func fromAPIBillingWorkflowCreate(i apiv1models.BillingWorkflowCreate) (billing.WorkflowConfig, error) {
 	return fromAPIBillingWorkflowWithSubscriptionEndProrationModeDefault(
-		api.BillingWorkflow(i),
+		apiv1models.BillingWorkflow(i),
 		billing.DefaultWorkflowConfig.Invoicing.SubscriptionEndProrationMode,
 	)
 }
@@ -443,17 +443,17 @@ func parseDurationPtr(d *string, defaultDuration datetime.ISODuration) (datetime
 	return datetime.ISODurationString(*d).Parse()
 }
 
-func (h *handler) MapProfileToApi(ctx context.Context, p *billing.Profile) (api.BillingProfile, error) {
+func (h *handler) MapProfileToApi(ctx context.Context, p *billing.Profile) (apiv1models.BillingProfile, error) {
 	if p == nil {
-		return api.BillingProfile{}, errors.New("profile is nil")
+		return apiv1models.BillingProfile{}, errors.New("profile is nil")
 	}
 
 	workflowConfig, err := billingconvert.ToAPIBillingWorkflow(p.WorkflowConfig)
 	if err != nil {
-		return api.BillingProfile{}, fmt.Errorf("failed to map workflow config to API: %w", err)
+		return apiv1models.BillingProfile{}, fmt.Errorf("failed to map workflow config to API: %w", err)
 	}
 
-	out := api.BillingProfile{
+	out := apiv1models.BillingProfile{
 		Id:        p.ID,
 		CreatedAt: p.CreatedAt,
 		UpdatedAt: p.UpdatedAt,
@@ -471,7 +471,7 @@ func (h *handler) MapProfileToApi(ctx context.Context, p *billing.Profile) (api.
 	if p.Apps != nil {
 		apps, err := billingconvert.ToAPIBillingProfileApps(p.Apps)
 		if err != nil {
-			return api.BillingProfile{}, fmt.Errorf("failed to map profile apps: %w", err)
+			return apiv1models.BillingProfile{}, fmt.Errorf("failed to map profile apps: %w", err)
 		}
 
 		if apps != nil {
@@ -480,7 +480,7 @@ func (h *handler) MapProfileToApi(ctx context.Context, p *billing.Profile) (api.
 	} else {
 		apps, err := billingconvert.ToAPIBillingProfileAppReferences(p.AppReferences)
 		if err != nil {
-			return api.BillingProfile{}, fmt.Errorf("failed to map profile app references: %w", err)
+			return apiv1models.BillingProfile{}, fmt.Errorf("failed to map profile app references: %w", err)
 		}
 
 		if apps != nil {
@@ -491,12 +491,12 @@ func (h *handler) MapProfileToApi(ctx context.Context, p *billing.Profile) (api.
 	return out, nil
 }
 
-func mapProfileExpandToEntity(expand []api.BillingProfileExpand) billing.ProfileExpand {
+func mapProfileExpandToEntity(expand []apiv1models.BillingProfileExpand) billing.ProfileExpand {
 	if len(expand) == 0 {
 		return billing.ProfileExpand{}
 	}
 
 	return billing.ProfileExpand{
-		Apps: slices.Contains(expand, api.BillingProfileExpandApps),
+		Apps: slices.Contains(expand, apiv1models.BillingProfileExpandApps),
 	}
 }

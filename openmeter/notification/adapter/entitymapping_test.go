@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 )
 
@@ -18,7 +18,7 @@ func TestEventPayloadFromJSON_V1Invoice(t *testing.T) {
 			Version: notification.EventPayloadVersionCurrent,
 		},
 		Invoice: &notification.InvoicePayload{
-			Invoice: api.Invoice{
+			Invoice: apiv1models.Invoice{
 				Id:       "test-invoice-id",
 				Currency: "USD",
 			},
@@ -64,7 +64,7 @@ func TestEventPayloadFromJSON_NonInvoiceType(t *testing.T) {
 	assert.Nil(t, payload.Invoice)
 }
 
-// TestEventPayloadV1JSONShape verifies that a v1 EventPayload serializes with api.Invoice
+// TestEventPayloadV1JSONShape verifies that a v1 EventPayload serializes with apiv1models.Invoice
 // fields directly under the "invoice" key — not nested under an extra "Invoice" wrapper.
 // This guards against embedding/tag regressions that would silently corrupt the stored JSONB.
 func TestEventPayloadV1JSONShape(t *testing.T) {
@@ -74,7 +74,7 @@ func TestEventPayloadV1JSONShape(t *testing.T) {
 			Version: notification.EventPayloadVersionCurrent,
 		},
 		Invoice: &notification.InvoicePayload{
-			Invoice: api.Invoice{
+			Invoice: apiv1models.Invoice{
 				Id:       "shape-test-id",
 				Currency: "USD",
 			},
@@ -90,12 +90,12 @@ func TestEventPayloadV1JSONShape(t *testing.T) {
 	// Top-level "version" must be present and correct
 	assert.EqualValues(t, notification.EventPayloadVersionCurrent, raw["version"])
 
-	// "invoice" must be a flat object containing api.Invoice fields directly
+	// "invoice" must be a flat object containing apiv1models.Invoice fields directly
 	invoiceRaw, ok := raw["invoice"].(map[string]any)
 	require.True(t, ok, "expected \"invoice\" to be a JSON object")
 
-	assert.Equal(t, "shape-test-id", invoiceRaw["id"], "api.Invoice.Id should be at invoice.id")
-	assert.Equal(t, "USD", invoiceRaw["currency"], "api.Invoice.Currency should be at invoice.currency")
+	assert.Equal(t, "shape-test-id", invoiceRaw["id"], "apiv1models.Invoice.Id should be at invoice.id")
+	assert.Equal(t, "USD", invoiceRaw["currency"], "apiv1models.Invoice.Currency should be at invoice.currency")
 
 	// Must NOT have an extra nesting level (e.g. invoice.Invoice or invoice.invoice)
 	assert.NotContains(t, invoiceRaw, "Invoice", "invoice object must not have an extra \"Invoice\" wrapper")

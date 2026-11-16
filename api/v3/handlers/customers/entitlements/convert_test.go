@@ -8,17 +8,17 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
-	api "github.com/openmeterio/openmeter/api/v3"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 )
 
-func parseCreateBody(t *testing.T, body string) api.CreateEntitlementRequest {
+func parseCreateBody(t *testing.T, body string) apiv3models.CreateEntitlementRequest {
 	t.Helper()
 
-	var req api.CreateEntitlementRequest
+	var req apiv3models.CreateEntitlementRequest
 	require.NoError(t, json.Unmarshal([]byte(body), &req))
 
 	return req

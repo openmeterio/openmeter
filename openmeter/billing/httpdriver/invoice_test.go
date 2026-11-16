@@ -17,7 +17,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
@@ -382,21 +382,21 @@ func (s *InvoicingTestSuite) TestSimulateInvoiceHTTP() {
 
 	s.ProvisionBillingProfile(ctx, namespace, appSandbox.GetID())
 
-	price := api.RateCardUsageBasedPrice{}
-	s.NoError(price.FromFlatPriceWithPaymentTerm(api.FlatPriceWithPaymentTerm{
+	price := apiv1models.RateCardUsageBasedPrice{}
+	s.NoError(price.FromFlatPriceWithPaymentTerm(apiv1models.FlatPriceWithPaymentTerm{
 		Amount: "10",
-		Type:   api.FlatPriceWithPaymentTermTypeFlat,
+		Type:   apiv1models.FlatPriceWithPaymentTermTypeFlat,
 	}))
 
 	period := invoiceLineTestPeriod()
-	body, err := json.Marshal(api.InvoiceSimulationInput{
-		Currency: api.CurrencyCode(currency.USD),
-		Lines: []api.InvoiceSimulationLine{
+	body, err := json.Marshal(apiv1models.InvoiceSimulationInput{
+		Currency: apiv1models.CurrencyCode(currency.USD),
+		Lines: []apiv1models.InvoiceSimulationLine{
 			{
 				Name:      "simulated flat fee",
-				Period:    api.Period(period),
+				Period:    apiv1models.Period(period),
 				InvoiceAt: period.To,
-				RateCard:  &api.InvoiceUsageBasedRateCard{Price: &price},
+				RateCard:  &apiv1models.InvoiceUsageBasedRateCard{Price: &price},
 			},
 		},
 	})
@@ -417,7 +417,7 @@ func (s *InvoicingTestSuite) TestSimulateInvoiceHTTP() {
 	// - the service rates the line through the invoicing engine and returns the simulated invoice
 	s.Require().Equal(http.StatusOK, w.Code, w.Body.String())
 
-	var invoice api.Invoice
+	var invoice apiv1models.Invoice
 	s.NoError(json.Unmarshal(w.Body.Bytes(), &invoice))
 	s.Len(lo.FromPtr(invoice.Lines), 1)
 	s.Equal(10.0, alpacadecimal.RequireFromString(invoice.Totals.Total).InexactFloat64())

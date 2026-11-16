@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	api "github.com/openmeterio/openmeter/api/v3"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	booleanentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/boolean"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
@@ -32,24 +32,24 @@ func TestMapEntitlementAccessToAPI(t *testing.T) {
 	t.Run("metered without expand omits the value", func(t *testing.T) {
 		result, err := mapEntitlementAccessToAPI(metered)
 		require.NoError(t, err)
-		require.Equal(t, api.BillingEntitlementValueResult{
+		require.Equal(t, apiv3models.BillingEntitlementValueResult{
 			FeatureKey: "tokens",
-			Type:       api.BillingEntitlementTypeMetered,
+			Type:       apiv3models.BillingEntitlementTypeMetered,
 			HasAccess:  true,
 		}, result)
 	})
 
 	t.Run("metered with the value expand maps balances as decimal strings", func(t *testing.T) {
-		result, err := mapEntitlementAccessToAPI(metered, api.BillingEntitlementAccessExpandValue)
+		result, err := mapEntitlementAccessToAPI(metered, apiv3models.BillingEntitlementAccessExpandValue)
 		require.NoError(t, err)
-		require.Equal(t, api.BillingEntitlementTypeMetered, result.Type)
+		require.Equal(t, apiv3models.BillingEntitlementTypeMetered, result.Type)
 		require.True(t, result.HasAccess)
-		require.Equal(t, &api.BillingEntitlementAccessValue{
+		require.Equal(t, &apiv3models.BillingEntitlementAccessValue{
 			Balance:                   "100.5",
 			Usage:                     "50",
 			Overage:                   "0",
 			TotalAvailableGrantAmount: "150.5",
-			GrantBalances:             map[string]api.Numeric{"grant-1": "100.5", "grant-2": "0"},
+			GrantBalances:             map[string]apiv3models.Numeric{"grant-1": "100.5", "grant-2": "0"},
 		}, result.Value)
 	})
 
@@ -58,10 +58,10 @@ func TestMapEntitlementAccessToAPI(t *testing.T) {
 			FeatureKey: "tokens",
 			Type:       entitlement.EntitlementTypeMetered,
 			Value:      &meteredentitlement.MeteredEntitlementValue{Balance: 0, UsageInPeriod: 10, Overage: 2},
-		}, api.BillingEntitlementAccessExpandValue)
+		}, apiv3models.BillingEntitlementAccessExpandValue)
 		require.NoError(t, err)
 		require.False(t, result.HasAccess)
-		require.Equal(t, api.Numeric("2"), result.Value.Overage)
+		require.Equal(t, apiv3models.Numeric("2"), result.Value.Overage)
 	})
 
 	t.Run("static carries the config and ignores the value expand", func(t *testing.T) {
@@ -71,11 +71,11 @@ func TestMapEntitlementAccessToAPI(t *testing.T) {
 			FeatureKey: "models",
 			Type:       entitlement.EntitlementTypeStatic,
 			Value:      &staticentitlement.StaticEntitlementValue{Config: config},
-		}, api.BillingEntitlementAccessExpandValue)
+		}, apiv3models.BillingEntitlementAccessExpandValue)
 		require.NoError(t, err)
-		require.Equal(t, api.BillingEntitlementValueResult{
+		require.Equal(t, apiv3models.BillingEntitlementValueResult{
 			FeatureKey: "models",
-			Type:       api.BillingEntitlementTypeStatic,
+			Type:       apiv3models.BillingEntitlementTypeStatic,
 			HasAccess:  true,
 			Config:     &config,
 		}, result)
@@ -88,9 +88,9 @@ func TestMapEntitlementAccessToAPI(t *testing.T) {
 			Value:      &booleanentitlement.BooleanEntitlementValue{},
 		})
 		require.NoError(t, err)
-		require.Equal(t, api.BillingEntitlementValueResult{
+		require.Equal(t, apiv3models.BillingEntitlementValueResult{
 			FeatureKey: "sso",
-			Type:       api.BillingEntitlementTypeBoolean,
+			Type:       apiv3models.BillingEntitlementTypeBoolean,
 			HasAccess:  true,
 		}, result)
 	})
@@ -100,11 +100,11 @@ func TestMapEntitlementAccessToAPI(t *testing.T) {
 			FeatureKey: "tokens",
 			Type:       entitlement.EntitlementTypeMetered,
 			Value:      &entitlement.NoAccessValue{},
-		}, api.BillingEntitlementAccessExpandValue)
+		}, apiv3models.BillingEntitlementAccessExpandValue)
 		require.NoError(t, err)
-		require.Equal(t, api.BillingEntitlementValueResult{
+		require.Equal(t, apiv3models.BillingEntitlementValueResult{
 			FeatureKey: "tokens",
-			Type:       api.BillingEntitlementTypeMetered,
+			Type:       apiv3models.BillingEntitlementTypeMetered,
 			HasAccess:  false,
 		}, result)
 	})
@@ -125,7 +125,7 @@ func TestMapEntitlementAccessCheckToAPI(t *testing.T) {
 			Value:      &entitlement.NoAccessValue{},
 		})
 		require.NoError(t, err)
-		require.Equal(t, api.BillingEntitlementAccessCheckResult{HasAccess: false}, result)
+		require.Equal(t, apiv3models.BillingEntitlementAccessCheckResult{HasAccess: false}, result)
 	})
 
 	t.Run("inactive entitlement keeps its type", func(t *testing.T) {
@@ -134,7 +134,7 @@ func TestMapEntitlementAccessCheckToAPI(t *testing.T) {
 			Value: &entitlement.NoAccessValue{},
 		})
 		require.NoError(t, err)
-		require.Equal(t, api.BillingEntitlementTypeMetered, *result.Type)
+		require.Equal(t, apiv3models.BillingEntitlementTypeMetered, *result.Type)
 		require.False(t, result.HasAccess)
 	})
 

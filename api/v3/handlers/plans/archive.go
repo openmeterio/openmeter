@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -16,7 +16,7 @@ import (
 
 type (
 	ArchivePlanRequest  = plan.ArchivePlanInput
-	ArchivePlanResponse = api.BillingPlan
+	ArchivePlanResponse = apiv3models.BillingPlan
 	ArchivePlanParams   = string
 	ArchivePlanHandler  httptransport.HandlerWithArgs[ArchivePlanRequest, ArchivePlanResponse, ArchivePlanParams]
 )

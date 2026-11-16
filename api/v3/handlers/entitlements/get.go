@@ -4,9 +4,9 @@ import (
 	"context"
 	"net/http"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	customersentitlements "github.com/openmeterio/openmeter/api/v3/handlers/customers/entitlements"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
@@ -14,9 +14,9 @@ import (
 
 type (
 	GetEntitlementRequest  = entitlement.GetEntitlementByIDInput
-	GetEntitlementResponse = api.BillingEntitlement
+	GetEntitlementResponse = apiv3models.BillingEntitlement
 	GetEntitlementParams   struct {
-		EntitlementID api.ULID
+		EntitlementID apiv3models.ULID
 	}
 	GetEntitlementHandler = httptransport.HandlerWithArgs[GetEntitlementRequest, GetEntitlementResponse, GetEntitlementParams]
 )

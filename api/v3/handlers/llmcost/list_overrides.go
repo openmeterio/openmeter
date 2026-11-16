@@ -7,9 +7,9 @@ import (
 
 	"github.com/samber/lo"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/filters"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/response"
 	"github.com/openmeterio/openmeter/openmeter/llmcost"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -19,8 +19,8 @@ import (
 
 type (
 	ListOverridesRequest  = llmcost.ListOverridesInput
-	ListOverridesResponse = response.PagePaginationResponse[api.LLMCostPrice]
-	ListOverridesParams   = api.ListLlmCostOverridesParams
+	ListOverridesResponse = response.PagePaginationResponse[apiv3models.LLMCostPrice]
+	ListOverridesParams   = apiv3models.ListLlmCostOverridesParams
 	ListOverridesHandler  = httptransport.HandlerWithArgs[ListOverridesRequest, ListOverridesResponse, ListOverridesParams]
 )
 
@@ -96,7 +96,7 @@ func (h *handler) ListOverrides() ListOverridesHandler {
 				return ListOverridesResponse{}, fmt.Errorf("failed to list llm cost overrides: %w", err)
 			}
 
-			items := lo.Map(result.Items, func(item llmcost.Price, _ int) api.LLMCostPrice {
+			items := lo.Map(result.Items, func(item llmcost.Price, _ int) apiv3models.LLMCostPrice {
 				return domainPriceToAPI(item)
 			})
 

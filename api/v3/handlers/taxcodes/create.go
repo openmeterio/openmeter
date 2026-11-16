@@ -4,8 +4,8 @@ import (
 	"context"
 	"net/http"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -14,7 +14,7 @@ import (
 
 type (
 	CreateTaxCodeRequest  = taxcode.CreateTaxCodeInput
-	CreateTaxCodeResponse = api.BillingTaxCode
+	CreateTaxCodeResponse = apiv3models.BillingTaxCode
 	CreateTaxCodeHandler  httptransport.Handler[CreateTaxCodeRequest, CreateTaxCodeResponse]
 )
 
@@ -22,7 +22,7 @@ type (
 func (h *handler) CreateTaxCode() CreateTaxCodeHandler {
 	return httptransport.NewHandler(
 		func(ctx context.Context, r *http.Request) (CreateTaxCodeRequest, error) {
-			body := api.CreateTaxCodeRequest{}
+			body := apiv3models.CreateTaxCodeRequest{}
 			if err := request.ParseBody(r, &body); err != nil {
 				return CreateTaxCodeRequest{}, err
 			}

@@ -6,22 +6,22 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 )
 
 func TestFromAPIBillingWorkflowSubscriptionEndProrationModeDefaults(t *testing.T) {
-	createConfig, err := fromAPIBillingWorkflowCreate(api.BillingWorkflowCreate{})
+	createConfig, err := fromAPIBillingWorkflowCreate(apiv1models.BillingWorkflowCreate{})
 	require.NoError(t, err)
 	require.Equal(t, billing.SubscriptionEndProrationModeBillActualPeriod, createConfig.Invoicing.SubscriptionEndProrationMode)
 
-	updateConfig, err := fromAPIBillingWorkflow(api.BillingWorkflow{})
+	updateConfig, err := fromAPIBillingWorkflow(apiv1models.BillingWorkflow{})
 	require.NoError(t, err)
 	require.Empty(t, updateConfig.Invoicing.SubscriptionEndProrationMode)
 
-	explicitMode := api.BillingWorkflowInvoicingSubscriptionEndProrationModeBillFullPeriod
-	explicitConfig, err := fromAPIBillingWorkflowCreate(api.BillingWorkflowCreate{
-		Invoicing: &api.BillingWorkflowInvoicingSettings{
+	explicitMode := apiv1models.BillingWorkflowInvoicingSubscriptionEndProrationModeBillFullPeriod
+	explicitConfig, err := fromAPIBillingWorkflowCreate(apiv1models.BillingWorkflowCreate{
+		Invoicing: &apiv1models.BillingWorkflowInvoicingSettings{
 			SubscriptionEndProrationMode: lo.ToPtr(explicitMode),
 		},
 	})

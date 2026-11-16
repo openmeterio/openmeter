@@ -7,8 +7,8 @@ import (
 
 	"github.com/samber/lo"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	app "github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
@@ -17,8 +17,8 @@ import (
 
 type (
 	ListAppCatalogRequest  = app.MarketplaceListInput
-	ListAppCatalogResponse = api.AppCatalogItemPagePaginatedResponse
-	ListAppCatalogParams   = api.ListAppCatalogParams
+	ListAppCatalogResponse = apiv3models.AppCatalogItemPagePaginatedResponse
+	ListAppCatalogParams   = apiv3models.ListAppCatalogParams
 	ListAppCatalogHandler  httptransport.HandlerWithArgs[ListAppCatalogRequest, ListAppCatalogResponse, ListAppCatalogParams]
 )
 
@@ -53,7 +53,7 @@ func (h *handler) ListAppCatalog() ListAppCatalogHandler {
 				return ListAppCatalogResponse{}, fmt.Errorf("failed to list apps catalog: %w", err)
 			}
 
-			data, err := lo.MapErr(result.Items, func(item app.RegistryItem, _ int) (api.BillingAppCatalogItem, error) {
+			data, err := lo.MapErr(result.Items, func(item app.RegistryItem, _ int) (apiv3models.BillingAppCatalogItem, error) {
 				return ToAPIBillingAppCatalogItem(item.Listing)
 			})
 			if err != nil {
@@ -62,8 +62,8 @@ func (h *handler) ListAppCatalog() ListAppCatalogHandler {
 
 			return ListAppCatalogResponse{
 				Data: data,
-				Meta: api.PaginatedMeta{
-					Page: api.PageMeta{
+				Meta: apiv3models.PaginatedMeta{
+					Page: apiv3models.PageMeta{
 						Size:   float32(request.Page.PageSize),
 						Number: float32(request.Page.PageNumber),
 						Total:  float32(result.TotalCount),

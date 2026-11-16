@@ -7,7 +7,7 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	productcataloghttp "github.com/openmeterio/openmeter/openmeter/productcatalog/http"
@@ -18,17 +18,17 @@ import (
 
 func TestMapSimulationLinePreservesPriorUsageAndSuppliedIdentity(t *testing.T) {
 	// Given ordinary HTTP simulation input with a prior-usage offset and supplied ID.
-	price := api.RateCardUsageBasedPrice{}
-	require.NoError(t, price.FromUnitPriceWithCommitments(api.UnitPriceWithCommitments{Amount: "1"}))
+	price := apiv1models.RateCardUsageBasedPrice{}
+	require.NoError(t, price.FromUnitPriceWithCommitments(apiv1models.UnitPriceWithCommitments{Amount: "1"}))
 	period := invoiceLineTestPeriod()
-	input := api.InvoiceSimulationLine{
+	input := apiv1models.InvoiceSimulationLine{
 		Id:                    lo.ToPtr("supplied-line-id"),
 		Name:                  "simulated usage",
-		Period:                api.Period(period),
+		Period:                apiv1models.Period(period),
 		InvoiceAt:             period.To,
 		Quantity:              "20",
 		PreLinePeriodQuantity: lo.ToPtr("40"),
-		RateCard: &api.InvoiceUsageBasedRateCard{
+		RateCard: &apiv1models.InvoiceUsageBasedRateCard{
 			Price:      &price,
 			FeatureKey: lo.ToPtr("api-requests"),
 		},
@@ -54,8 +54,8 @@ func TestMapSimulationLinePreservesPriorUsageAndSuppliedIdentity(t *testing.T) {
 }
 
 func TestMergeStandardLineFromInvoiceLineReplaceUpdateOverwritesTaxConfig(t *testing.T) {
-	price := api.RateCardUsageBasedPrice{}
-	require.NoError(t, price.FromUnitPriceWithCommitments(api.UnitPriceWithCommitments{
+	price := apiv1models.RateCardUsageBasedPrice{}
+	require.NoError(t, price.FromUnitPriceWithCommitments(apiv1models.UnitPriceWithCommitments{
 		Amount: "1",
 	}))
 
@@ -63,7 +63,7 @@ func TestMergeStandardLineFromInvoiceLineReplaceUpdateOverwritesTaxConfig(t *tes
 	require.NoError(t, err)
 
 	taxCodeID := "tax-code-id"
-	taxBehavior := api.TaxBehaviorExclusive
+	taxBehavior := apiv1models.TaxBehaviorExclusive
 	productCatalogTaxBehavior := productcatalog.ExclusiveTaxBehavior
 	period := timeutil.ClosedPeriod{
 		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
@@ -101,20 +101,20 @@ func TestMergeStandardLineFromInvoiceLineReplaceUpdateOverwritesTaxConfig(t *tes
 		},
 	}
 
-	mergedLine, err := mergeStandardLineFromInvoiceLineReplaceUpdate(line, api.InvoiceLineReplaceUpdate{
+	mergedLine, err := mergeStandardLineFromInvoiceLineReplaceUpdate(line, apiv1models.InvoiceLineReplaceUpdate{
 		Name:      line.Name,
-		Period:    api.Period(period),
+		Period:    apiv1models.Period(period),
 		InvoiceAt: period.To,
 		Price:     &price,
-		RateCard: &api.InvoiceUsageBasedRateCard{
+		RateCard: &apiv1models.InvoiceUsageBasedRateCard{
 			FeatureKey: &featureKey,
 			Price:      &price,
-			TaxConfig: &api.TaxConfig{
+			TaxConfig: &apiv1models.TaxConfig{
 				Behavior:  &taxBehavior,
 				TaxCodeId: &taxCodeID,
 			},
 		},
-		TaxConfig: &api.TaxConfig{
+		TaxConfig: &apiv1models.TaxConfig{
 			Behavior:  &taxBehavior,
 			TaxCodeId: &taxCodeID,
 		},
@@ -145,9 +145,9 @@ func TestMergeStandardLineFromInvoiceLineReplaceUpdateLeavesProviderDefaultOmiss
 		},
 	}
 
-	taxBehavior := api.TaxBehaviorExclusive
-	mergedLine, err := mergeStandardLineFromInvoiceLineReplaceUpdate(line, invoiceLineReplaceUpdateForMergeTest(t, period, line.UsageBased.FeatureKey, "1", func(update *api.InvoiceLineReplaceUpdate) {
-		update.RateCard.TaxConfig = &api.TaxConfig{
+	taxBehavior := apiv1models.TaxBehaviorExclusive
+	mergedLine, err := mergeStandardLineFromInvoiceLineReplaceUpdate(line, invoiceLineReplaceUpdateForMergeTest(t, period, line.UsageBased.FeatureKey, "1", func(update *apiv1models.InvoiceLineReplaceUpdate) {
+		update.RateCard.TaxConfig = &apiv1models.TaxConfig{
 			Behavior: &taxBehavior,
 		}
 		update.TaxConfig = update.RateCard.TaxConfig
@@ -178,9 +178,9 @@ func TestMergeStandardLineFromInvoiceLineReplaceUpdateDoesNotPreserveExplicitTax
 		},
 	}
 
-	taxBehavior := api.TaxBehaviorExclusive
-	mergedLine, err := mergeStandardLineFromInvoiceLineReplaceUpdate(line, invoiceLineReplaceUpdateForMergeTest(t, period, line.UsageBased.FeatureKey, "1", func(update *api.InvoiceLineReplaceUpdate) {
-		update.RateCard.TaxConfig = &api.TaxConfig{
+	taxBehavior := apiv1models.TaxBehaviorExclusive
+	mergedLine, err := mergeStandardLineFromInvoiceLineReplaceUpdate(line, invoiceLineReplaceUpdateForMergeTest(t, period, line.UsageBased.FeatureKey, "1", func(update *apiv1models.InvoiceLineReplaceUpdate) {
+		update.RateCard.TaxConfig = &apiv1models.TaxConfig{
 			Behavior: &taxBehavior,
 		}
 		update.TaxConfig = update.RateCard.TaxConfig
@@ -212,9 +212,9 @@ func TestMergeStandardLineFromInvoiceLineReplaceUpdateDropsResolvedTaxCodeWhenTa
 	}
 
 	newTaxCodeID := "new-tax-code-id"
-	newTaxBehavior := api.TaxBehaviorInclusive
-	mergedLine, err := mergeStandardLineFromInvoiceLineReplaceUpdate(line, invoiceLineReplaceUpdateForMergeTest(t, period, line.UsageBased.FeatureKey, "1", func(update *api.InvoiceLineReplaceUpdate) {
-		update.RateCard.TaxConfig = &api.TaxConfig{
+	newTaxBehavior := apiv1models.TaxBehaviorInclusive
+	mergedLine, err := mergeStandardLineFromInvoiceLineReplaceUpdate(line, invoiceLineReplaceUpdateForMergeTest(t, period, line.UsageBased.FeatureKey, "1", func(update *apiv1models.InvoiceLineReplaceUpdate) {
+		update.RateCard.TaxConfig = &apiv1models.TaxConfig{
 			Behavior:  &newTaxBehavior,
 			TaxCodeId: &newTaxCodeID,
 		}
@@ -236,9 +236,9 @@ func TestMergeStandardLineFromInvoiceLineReplaceUpdatePreservesDiscountCorrelati
 		},
 	}
 
-	mergedLine, err := mergeStandardLineFromInvoiceLineReplaceUpdate(line, invoiceLineReplaceUpdateForMergeTest(t, period, line.UsageBased.FeatureKey, "1", func(update *api.InvoiceLineReplaceUpdate) {
-		update.RateCard.Discounts = &api.BillingDiscounts{
-			Percentage: &api.BillingDiscountPercentage{
+	mergedLine, err := mergeStandardLineFromInvoiceLineReplaceUpdate(line, invoiceLineReplaceUpdateForMergeTest(t, period, line.UsageBased.FeatureKey, "1", func(update *apiv1models.InvoiceLineReplaceUpdate) {
+		update.RateCard.Discounts = &apiv1models.BillingDiscounts{
+			Percentage: &apiv1models.BillingDiscountPercentage{
 				Percentage:    models.NewPercentage(20),
 				CorrelationId: lo.ToPtr("client-supplied-correlation-id"),
 			},
@@ -253,7 +253,7 @@ func TestMergeGatheringLineFromInvoiceLineReplaceUpdateAcceptsRateCardOnlyPrice(
 	period := invoiceLineTestPeriod()
 	line := gatheringInvoiceLineForMergeTest(t, period)
 
-	mergedLine, err := mergeGatheringLineFromInvoiceLineReplaceUpdate(line, invoiceLineReplaceUpdateForMergeTest(t, period, line.FeatureKey, "2", func(update *api.InvoiceLineReplaceUpdate) {
+	mergedLine, err := mergeGatheringLineFromInvoiceLineReplaceUpdate(line, invoiceLineReplaceUpdateForMergeTest(t, period, line.FeatureKey, "2", func(update *apiv1models.InvoiceLineReplaceUpdate) {
 		update.Price = nil
 		update.FeatureKey = nil
 		update.TaxConfig = nil
@@ -278,8 +278,8 @@ func TestMergeStandardInvoiceLinesFromAPITombstonesOmittedLines(t *testing.T) {
 		Lines: billing.NewStandardInvoiceLines([]*billing.StandardLine{keptLine, deletedLine}),
 	}
 
-	mergedLines, err := (&handler{}).mergeStandardInvoiceLinesFromAPI(t.Context(), invoice, []api.InvoiceLineReplaceUpdate{
-		invoiceLineReplaceUpdateForMergeTest(t, period, keptLine.UsageBased.FeatureKey, "1", func(update *api.InvoiceLineReplaceUpdate) {
+	mergedLines, err := (&handler{}).mergeStandardInvoiceLinesFromAPI(t.Context(), invoice, []apiv1models.InvoiceLineReplaceUpdate{
+		invoiceLineReplaceUpdateForMergeTest(t, period, keptLine.UsageBased.FeatureKey, "1", func(update *apiv1models.InvoiceLineReplaceUpdate) {
 			update.Id = lo.ToPtr(keptLine.ID)
 		}),
 	})
@@ -352,17 +352,17 @@ func gatheringInvoiceLineForMergeTest(t *testing.T, period timeutil.ClosedPeriod
 	}
 }
 
-func invoiceLineReplaceUpdateForMergeTest(t *testing.T, period timeutil.ClosedPeriod, featureKey string, amount string, edits ...func(*api.InvoiceLineReplaceUpdate)) api.InvoiceLineReplaceUpdate {
+func invoiceLineReplaceUpdateForMergeTest(t *testing.T, period timeutil.ClosedPeriod, featureKey string, amount string, edits ...func(*apiv1models.InvoiceLineReplaceUpdate)) apiv1models.InvoiceLineReplaceUpdate {
 	t.Helper()
 
 	price := apiPriceForMergeTest(t, amount)
-	out := api.InvoiceLineReplaceUpdate{
+	out := apiv1models.InvoiceLineReplaceUpdate{
 		Name:       "line",
-		Period:     api.Period(period),
+		Period:     apiv1models.Period(period),
 		InvoiceAt:  period.To,
 		FeatureKey: &featureKey,
 		Price:      &price,
-		RateCard: &api.InvoiceUsageBasedRateCard{
+		RateCard: &apiv1models.InvoiceUsageBasedRateCard{
 			FeatureKey: &featureKey,
 			Price:      &price,
 		},
@@ -375,11 +375,11 @@ func invoiceLineReplaceUpdateForMergeTest(t *testing.T, period timeutil.ClosedPe
 	return out
 }
 
-func apiPriceForMergeTest(t *testing.T, amount string) api.RateCardUsageBasedPrice {
+func apiPriceForMergeTest(t *testing.T, amount string) apiv1models.RateCardUsageBasedPrice {
 	t.Helper()
 
-	price := api.RateCardUsageBasedPrice{}
-	require.NoError(t, price.FromUnitPriceWithCommitments(api.UnitPriceWithCommitments{
+	price := apiv1models.RateCardUsageBasedPrice{}
+	require.NoError(t, price.FromUnitPriceWithCommitments(apiv1models.UnitPriceWithCommitments{
 		Amount: amount,
 	}))
 

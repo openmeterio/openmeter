@@ -3,7 +3,7 @@ package request
 import (
 	"github.com/samber/lo"
 
-	api "github.com/openmeterio/openmeter/api/v3/models"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/pkg/filter"
 )
 
@@ -15,7 +15,7 @@ func convertContainsOperator(value *string) *string {
 	return lo.ToPtr(filter.ContainsPattern(*value))
 }
 
-func convertQueryFilterStringList(source *[]api.QueryFilterString) *[]filter.FilterString {
+func convertQueryFilterStringList(source *[]apiv3models.QueryFilterString) *[]filter.FilterString {
 	if source == nil {
 		return nil
 	}
@@ -29,7 +29,7 @@ func convertQueryFilterStringList(source *[]api.QueryFilterString) *[]filter.Fil
 }
 
 // ConvertQueryFilterString converts an API QueryFilterString to internal filter.FilterString.
-func ConvertQueryFilterString(source api.QueryFilterString) filter.FilterString {
+func ConvertQueryFilterString(source apiv3models.QueryFilterString) filter.FilterString {
 	return filter.FilterString{
 		Eq:    source.Eq,
 		Ne:    source.Neq,
@@ -43,7 +43,7 @@ func ConvertQueryFilterString(source api.QueryFilterString) filter.FilterString 
 }
 
 // ConvertQueryFilterStringPtr converts an API QueryFilterString pointer to internal filter.FilterString pointer.
-func ConvertQueryFilterStringPtr(source *api.QueryFilterString) *filter.FilterString {
+func ConvertQueryFilterStringPtr(source *apiv3models.QueryFilterString) *filter.FilterString {
 	if source == nil {
 		return nil
 	}
@@ -52,7 +52,7 @@ func ConvertQueryFilterStringPtr(source *api.QueryFilterString) *filter.FilterSt
 }
 
 // ConvertQueryFilterStringMapItem converts an API string query filter to internal filter.FilterString.
-func ConvertQueryFilterStringMapItem(source api.QueryFilterStringMapItem) filter.FilterString {
+func ConvertQueryFilterStringMapItem(source apiv3models.QueryFilterStringMapItem) filter.FilterString {
 	return filter.FilterString{
 		Exists: source.Exists,
 		Eq:     source.Eq,

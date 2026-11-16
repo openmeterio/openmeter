@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -15,7 +15,7 @@ import (
 
 type (
 	UpdateNotificationChannelRequest  = notification.UpdateChannelInput
-	UpdateNotificationChannelResponse = api.BillingNotificationChannel
+	UpdateNotificationChannelResponse = apiv3models.BillingNotificationChannel
 	UpdateNotificationChannelParams   = string
 	UpdateNotificationChannelHandler  = httptransport.HandlerWithArgs[UpdateNotificationChannelRequest, UpdateNotificationChannelResponse, UpdateNotificationChannelParams]
 )
@@ -24,7 +24,7 @@ type (
 func (h *handler) UpdateNotificationChannel() UpdateNotificationChannelHandler {
 	return httptransport.NewHandlerWithArgs(
 		func(ctx context.Context, r *http.Request, channelID UpdateNotificationChannelParams) (UpdateNotificationChannelRequest, error) {
-			body := api.UpdateBillingNotificationChannelRequest{}
+			body := apiv3models.UpdateBillingNotificationChannelRequest{}
 			if err := request.ParseBody(r, &body); err != nil {
 				return UpdateNotificationChannelRequest{}, err
 			}

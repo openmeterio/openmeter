@@ -12,7 +12,7 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
-	api "github.com/openmeterio/openmeter/api/v3"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/featureresolver"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	pcservice "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription/service"
@@ -27,17 +27,17 @@ func TestFromAPIBillingSubscriptionMigrate(t *testing.T) {
 	id := models.NamespacedID{Namespace: "test", ID: "subscription"}
 
 	t.Run("omitted fields retain domain defaults and allow unit config", func(t *testing.T) {
-		got, err := FromAPIBillingSubscriptionMigrate(id, api.BillingSubscriptionMigrate{})
+		got, err := FromAPIBillingSubscriptionMigrate(id, apiv3models.BillingSubscriptionMigrate{})
 		require.NoError(t, err)
 		require.Equal(t, plansubscription.MigrateSubscriptionRequest{ID: id}, got)
 	})
 
 	t.Run("maps version, phase, anchor and next cycle", func(t *testing.T) {
 		anchor := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
-		var timing api.BillingSubscriptionEditTiming
-		require.NoError(t, timing.FromBillingSubscriptionEditTimingEnum(api.BillingSubscriptionEditTimingEnumNextBillingCycle))
+		var timing apiv3models.BillingSubscriptionEditTiming
+		require.NoError(t, timing.FromBillingSubscriptionEditTimingEnum(apiv3models.BillingSubscriptionEditTimingEnumNextBillingCycle))
 
-		got, err := FromAPIBillingSubscriptionMigrate(id, api.BillingSubscriptionMigrate{
+		got, err := FromAPIBillingSubscriptionMigrate(id, apiv3models.BillingSubscriptionMigrate{
 			TargetVersion: lo.ToPtr(2), StartingPhase: lo.ToPtr("paid"), BillingAnchor: &anchor, Timing: &timing,
 		})
 		require.NoError(t, err)
@@ -49,10 +49,10 @@ func TestFromAPIBillingSubscriptionMigrate(t *testing.T) {
 
 	t.Run("maps custom timing", func(t *testing.T) {
 		at := time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC)
-		var timing api.BillingSubscriptionEditTiming
+		var timing apiv3models.BillingSubscriptionEditTiming
 		require.NoError(t, timing.FromDateTime(at))
 
-		got, err := FromAPIBillingSubscriptionMigrate(id, api.BillingSubscriptionMigrate{Timing: &timing})
+		got, err := FromAPIBillingSubscriptionMigrate(id, apiv3models.BillingSubscriptionMigrate{Timing: &timing})
 		require.NoError(t, err)
 		require.Equal(t, &subscription.Timing{Custom: &at}, got.Timing)
 	})
@@ -100,7 +100,7 @@ func TestMigrateSubscriptionHandler(t *testing.T) {
 	require.Equal(t, http.StatusOK, writer.Code, writer.Body.String())
 
 	// then current remains the original snapshot and next contains the amended view
-	var result api.BillingSubscriptionMigrateResponse
+	var result apiv3models.BillingSubscriptionMigrateResponse
 	require.NoError(t, json.Unmarshal(writer.Body.Bytes(), &result))
 	require.Equal(t, before.Subscription.ID, result.Current.Id)
 	require.Equal(t, result.Current.Id, result.Next.Id)

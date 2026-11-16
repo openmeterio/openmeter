@@ -5,13 +5,13 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/billing/httpdriver"
 )
 
 // List customer overrides
 // (GET /api/v1/billing/customer)
-func (a *Router) ListBillingProfileCustomerOverrides(w http.ResponseWriter, r *http.Request, params api.ListBillingProfileCustomerOverridesParams) {
+func (a *Router) ListBillingProfileCustomerOverrides(w http.ResponseWriter, r *http.Request, params apiv1models.ListBillingProfileCustomerOverridesParams) {
 	a.billingHandler.ListCustomerOverrides().With(params).ServeHTTP(w, r)
 }
 
@@ -25,7 +25,7 @@ func (a *Router) DeleteBillingProfileCustomerOverride(w http.ResponseWriter, r *
 
 // Get a customer override
 // (GET /api/v1/billing/customer/{customerId})
-func (a *Router) GetBillingProfileCustomerOverride(w http.ResponseWriter, r *http.Request, customerId string, params api.GetBillingProfileCustomerOverrideParams) {
+func (a *Router) GetBillingProfileCustomerOverride(w http.ResponseWriter, r *http.Request, customerId string, params apiv1models.GetBillingProfileCustomerOverrideParams) {
 	a.billingHandler.GetCustomerOverride().With(httpdriver.GetCustomerOverrideParams{
 		CustomerId: customerId,
 		Expand:     params.Expand,
@@ -42,7 +42,7 @@ func (a *Router) UpsertBillingProfileCustomerOverride(w http.ResponseWriter, r *
 
 // List invoices
 // (GET /api/v1/billing/invoices)
-func (a *Router) ListInvoices(w http.ResponseWriter, r *http.Request, params api.ListInvoicesParams) {
+func (a *Router) ListInvoices(w http.ResponseWriter, r *http.Request, params apiv1models.ListInvoicesParams) {
 	a.billingHandler.ListInvoices().With(params).ServeHTTP(w, r)
 }
 
@@ -62,7 +62,7 @@ func (a *Router) DeleteInvoice(w http.ResponseWriter, r *http.Request, invoiceId
 
 // Get an invoice
 // (GET /api/v1/billing/invoices/{invoiceId})
-func (a *Router) GetInvoice(w http.ResponseWriter, r *http.Request, invoiceId string, params api.GetInvoiceParams) {
+func (a *Router) GetInvoice(w http.ResponseWriter, r *http.Request, invoiceId string, params apiv1models.GetInvoiceParams) {
 	a.billingHandler.GetInvoice().With(httpdriver.GetInvoiceParams{
 		InvoiceID:           invoiceId,
 		Expand:              lo.FromPtr(params.Expand),
@@ -143,7 +143,7 @@ func (a *Router) CreatePendingInvoiceLine(w http.ResponseWriter, r *http.Request
 }
 
 // (GET /api/v1/billing/profile)
-func (a *Router) ListBillingProfiles(w http.ResponseWriter, r *http.Request, params api.ListBillingProfilesParams) {
+func (a *Router) ListBillingProfiles(w http.ResponseWriter, r *http.Request, params apiv1models.ListBillingProfilesParams) {
 	a.billingHandler.ListProfiles().With(params).ServeHTTP(w, r)
 }
 
@@ -161,7 +161,7 @@ func (a *Router) DeleteBillingProfile(w http.ResponseWriter, r *http.Request, id
 
 // Get a billing profile by ID
 // (GET /api/v1/billing/profile/{id})
-func (a *Router) GetBillingProfile(w http.ResponseWriter, r *http.Request, id string, params api.GetBillingProfileParams) {
+func (a *Router) GetBillingProfile(w http.ResponseWriter, r *http.Request, id string, params apiv1models.GetBillingProfileParams) {
 	a.billingHandler.GetProfile().With(httpdriver.GetProfileParams{
 		ID:     id,
 		Expand: lo.FromPtr(params.Expand),

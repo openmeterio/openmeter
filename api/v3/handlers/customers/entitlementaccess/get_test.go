@@ -12,7 +12,7 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
-	api "github.com/openmeterio/openmeter/api/v3"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	booleanentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/boolean"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
@@ -105,10 +105,10 @@ func TestGetCustomerEntitlementAccessHandler(t *testing.T) {
 		require.Equal(t, testNamespace, received.CustomerID.Namespace)
 		require.Equal(t, testCustomerID, received.CustomerID.ID)
 
-		var body api.BillingEntitlementAccessCheckResult
+		var body apiv3models.BillingEntitlementAccessCheckResult
 		require.NoError(t, json.Unmarshal(response.Body.Bytes(), &body))
-		require.Equal(t, api.BillingEntitlementAccessCheckResult{
-			Type:      lo.ToPtr(api.BillingEntitlementTypeBoolean),
+		require.Equal(t, apiv3models.BillingEntitlementAccessCheckResult{
+			Type:      lo.ToPtr(apiv3models.BillingEntitlementTypeBoolean),
 			HasAccess: true,
 		}, body)
 	})
@@ -173,18 +173,18 @@ func TestGetCustomerEntitlementAccessHandler(t *testing.T) {
 		response := serveGetCustomerEntitlementValue(t, metered, GetCustomerEntitlementValueParams{
 			CustomerID:    testCustomerID,
 			EntitlementID: testEntitlementID,
-			Expand:        []api.BillingEntitlementAccessExpand{api.BillingEntitlementAccessExpandValue},
+			Expand:        []apiv3models.BillingEntitlementAccessExpand{apiv3models.BillingEntitlementAccessExpandValue},
 		})
 
 		require.Equal(t, http.StatusOK, response.Code)
 
-		var body api.BillingEntitlementValueResult
+		var body apiv3models.BillingEntitlementValueResult
 		require.NoError(t, json.Unmarshal(response.Body.Bytes(), &body))
 		require.NotNil(t, body.Value)
-		require.Equal(t, api.Numeric("25"), body.Value.Balance)
-		require.Equal(t, api.Numeric("75"), body.Value.Usage)
-		require.Equal(t, api.Numeric("100"), body.Value.TotalAvailableGrantAmount)
-		require.Equal(t, map[string]api.Numeric{"grant-1": "25"}, body.Value.GrantBalances)
+		require.Equal(t, apiv3models.Numeric("25"), body.Value.Balance)
+		require.Equal(t, apiv3models.Numeric("75"), body.Value.Usage)
+		require.Equal(t, apiv3models.Numeric("100"), body.Value.TotalAvailableGrantAmount)
+		require.Equal(t, map[string]apiv3models.Numeric{"grant-1": "25"}, body.Value.GrantBalances)
 	})
 
 	failing := func(err error) fakeEntitlementService {
@@ -258,10 +258,10 @@ func TestGetCustomerEntitlementValueByFeatureKeyHandler(t *testing.T) {
 		require.Empty(t, received.EntitlementID)
 		require.Equal(t, now, received.At)
 
-		var body api.BillingEntitlementFeatureValueResult
+		var body apiv3models.BillingEntitlementFeatureValueResult
 		require.NoError(t, json.Unmarshal(response.Body.Bytes(), &body))
 		require.Equal(t, testFeatureKey, body.FeatureKey)
-		require.Equal(t, lo.ToPtr(api.BillingEntitlementTypeMetered), body.Type)
+		require.Equal(t, lo.ToPtr(apiv3models.BillingEntitlementTypeMetered), body.Type)
 		require.True(t, body.HasAccess)
 		require.Nil(t, body.Value)
 	})
@@ -281,18 +281,18 @@ func TestGetCustomerEntitlementValueByFeatureKeyHandler(t *testing.T) {
 			CustomerID: testCustomerID,
 			FeatureKey: testFeatureKey,
 			At:         &at,
-			Expand:     []api.BillingEntitlementAccessExpand{api.BillingEntitlementAccessExpandValue},
+			Expand:     []apiv3models.BillingEntitlementAccessExpand{apiv3models.BillingEntitlementAccessExpandValue},
 		})
 
 		require.Equal(t, http.StatusOK, response.Code)
 		require.Equal(t, at, received.At)
 
-		var body api.BillingEntitlementFeatureValueResult
+		var body apiv3models.BillingEntitlementFeatureValueResult
 		require.NoError(t, json.Unmarshal(response.Body.Bytes(), &body))
 		require.NotNil(t, body.Value)
-		require.Equal(t, api.Numeric("25"), body.Value.Balance)
-		require.Equal(t, api.Numeric("75"), body.Value.Usage)
-		require.Equal(t, map[string]api.Numeric{"grant-1": "25"}, body.Value.GrantBalances)
+		require.Equal(t, apiv3models.Numeric("25"), body.Value.Balance)
+		require.Equal(t, apiv3models.Numeric("75"), body.Value.Usage)
+		require.Equal(t, map[string]apiv3models.Numeric{"grant-1": "25"}, body.Value.GrantBalances)
 	})
 
 	t.Run("missing entitlement omits type and value", func(t *testing.T) {
@@ -304,7 +304,7 @@ func TestGetCustomerEntitlementValueByFeatureKeyHandler(t *testing.T) {
 		}}, GetCustomerEntitlementValueByFeatureKeyParams{
 			CustomerID: testCustomerID,
 			FeatureKey: testFeatureKey,
-			Expand:     []api.BillingEntitlementAccessExpand{api.BillingEntitlementAccessExpandValue},
+			Expand:     []apiv3models.BillingEntitlementAccessExpand{apiv3models.BillingEntitlementAccessExpandValue},
 		})
 
 		require.Equal(t, http.StatusOK, response.Code)

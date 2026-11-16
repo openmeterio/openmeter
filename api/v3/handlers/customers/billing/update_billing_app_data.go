@@ -5,8 +5,8 @@ import (
 	"errors"
 	"net/http"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -17,9 +17,9 @@ import (
 type (
 	UpdateCustomerBillingAppDataRequest struct {
 		CustomerID customer.CustomerID
-		Data       api.UpsertAppCustomerDataRequest
+		Data       apiv3models.UpsertAppCustomerDataRequest
 	}
-	UpdateCustomerBillingAppDataResponse = api.BillingAppCustomerData
+	UpdateCustomerBillingAppDataResponse = apiv3models.BillingAppCustomerData
 	UpdateCustomerBillingAppDataParams   = string
 	UpdateCustomerBillingAppDataHandler  httptransport.HandlerWithArgs[UpdateCustomerBillingAppDataRequest, UpdateCustomerBillingAppDataResponse, UpdateCustomerBillingAppDataParams]
 )
@@ -27,7 +27,7 @@ type (
 func (h *handler) UpdateCustomerBillingAppData() UpdateCustomerBillingAppDataHandler {
 	return httptransport.NewHandlerWithArgs(
 		func(ctx context.Context, r *http.Request, customerID UpdateCustomerBillingAppDataParams) (UpdateCustomerBillingAppDataRequest, error) {
-			body := api.UpsertAppCustomerDataRequest{}
+			body := apiv3models.UpsertAppCustomerDataRequest{}
 			if err := request.ParseBody(r, &body); err != nil {
 				return UpdateCustomerBillingAppDataRequest{}, err
 			}
@@ -78,7 +78,7 @@ func (h *handler) UpdateCustomerBillingAppData() UpdateCustomerBillingAppDataHan
 
 			// TODO: Only one app ID can be in the billing profile right now.
 			// We pick the payment app for now.
-			appData, err := h.applyAppCustomerData(ctx, override.EffectiveProfile.Apps.Payment, request.CustomerID, api.BillingAppCustomerData(request.Data))
+			appData, err := h.applyAppCustomerData(ctx, override.EffectiveProfile.Apps.Payment, request.CustomerID, apiv3models.BillingAppCustomerData(request.Data))
 			if err != nil {
 				return resp, err
 			}

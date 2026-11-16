@@ -6,8 +6,8 @@ import (
 
 	"github.com/samber/lo"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/response"
 	taxcode "github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -17,8 +17,8 @@ import (
 
 type (
 	ListTaxCodesRequest  = taxcode.ListTaxCodesInput
-	ListTaxCodesResponse = response.PagePaginationResponse[api.BillingTaxCode]
-	ListTaxCodesParams   = api.ListTaxCodesParams
+	ListTaxCodesResponse = response.PagePaginationResponse[apiv3models.BillingTaxCode]
+	ListTaxCodesParams   = apiv3models.ListTaxCodesParams
 	ListTaxCodesHandler  = httptransport.HandlerWithArgs[ListTaxCodesRequest, ListTaxCodesResponse, ListTaxCodesParams]
 )
 
@@ -62,7 +62,7 @@ func (h *handler) ListTaxCodes() ListTaxCodesHandler {
 				return ListTaxCodesResponse{}, err
 			}
 
-			taxcodes := make([]api.BillingTaxCode, 0, len(resp.Items))
+			taxcodes := make([]apiv3models.BillingTaxCode, 0, len(resp.Items))
 			for _, item := range resp.Items {
 				apiTaxCode, err := ToAPIBillingTaxCode(item)
 				if err != nil {

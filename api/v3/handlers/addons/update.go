@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
-	apiv3 "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -16,7 +16,7 @@ import (
 
 type (
 	UpdateAddonRequest  = addon.UpdateAddonInput
-	UpdateAddonResponse = apiv3.Addon
+	UpdateAddonResponse = apiv3models.Addon
 	UpdateAddonParams   = string
 	UpdateAddonHandler  httptransport.HandlerWithArgs[UpdateAddonRequest, UpdateAddonResponse, string]
 )
@@ -24,7 +24,7 @@ type (
 func (h *handler) UpdateAddon() UpdateAddonHandler {
 	return httptransport.NewHandlerWithArgs(
 		func(ctx context.Context, r *http.Request, addonID UpdateAddonParams) (UpdateAddonRequest, error) {
-			body := apiv3.UpsertAddonRequest{}
+			body := apiv3models.UpsertAddonRequest{}
 			if err := request.ParseBody(r, &body); err != nil {
 				return UpdateAddonRequest{}, err
 			}

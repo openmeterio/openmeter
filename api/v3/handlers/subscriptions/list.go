@@ -6,9 +6,9 @@ import (
 
 	"github.com/samber/lo"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/filters"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/api/v3/response"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
@@ -19,8 +19,8 @@ import (
 
 type (
 	ListSubscriptionsRequest  = subscription.ListSubscriptionsInput
-	ListSubscriptionsResponse = response.PagePaginationResponse[api.BillingSubscription]
-	ListSubscriptionsParams   = api.ListSubscriptionsParams
+	ListSubscriptionsResponse = response.PagePaginationResponse[apiv3models.BillingSubscription]
+	ListSubscriptionsParams   = apiv3models.ListSubscriptionsParams
 	ListSubscriptionsHandler  = httptransport.HandlerWithArgs[ListSubscriptionsRequest, ListSubscriptionsResponse, ListSubscriptionsParams]
 )
 
@@ -135,7 +135,7 @@ func (h *handler) ListSubscriptions() ListSubscriptionsHandler {
 				return ListSubscriptionsResponse{}, err
 			}
 
-			subscriptions := make([]api.BillingSubscription, 0, len(resp.Items))
+			subscriptions := make([]apiv3models.BillingSubscription, 0, len(resp.Items))
 			for _, view := range resp.Items {
 				sub, err := ToAPIBillingSubscription(view)
 				if err != nil {

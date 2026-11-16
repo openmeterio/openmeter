@@ -7,9 +7,9 @@ import (
 
 	"github.com/samber/lo"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/filters"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/api/v3/response"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
@@ -24,10 +24,10 @@ import (
 
 type (
 	ListCreditGrantsRequest  = creditgrant.ListInput
-	ListCreditGrantsResponse = response.PagePaginationResponse[api.BillingCreditGrant]
+	ListCreditGrantsResponse = response.PagePaginationResponse[apiv3models.BillingCreditGrant]
 	ListCreditGrantsParams   struct {
-		CustomerID api.ULID
-		Params     api.ListCreditGrantsParams
+		CustomerID apiv3models.ULID
+		Params     apiv3models.ListCreditGrantsParams
 	}
 	ListCreditGrantsHandler httptransport.HandlerWithArgs[ListCreditGrantsRequest, ListCreditGrantsResponse, ListCreditGrantsParams]
 )
@@ -129,7 +129,7 @@ func (h *handler) ListCreditGrants() ListCreditGrantsHandler {
 				return ListCreditGrantsResponse{}, fmt.Errorf("list credit grants: %w", err)
 			}
 
-			grants, err := slicesx.MapWithErr(result.Items, func(item creditpurchase.Charge) (api.BillingCreditGrant, error) {
+			grants, err := slicesx.MapWithErr(result.Items, func(item creditpurchase.Charge) (apiv3models.BillingCreditGrant, error) {
 				return toAPIBillingCreditGrant(item)
 			})
 			if err != nil {

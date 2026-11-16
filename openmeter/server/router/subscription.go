@@ -3,7 +3,7 @@ package router
 import (
 	"net/http"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	subscriptionhttpdriver "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription/http"
 	"github.com/openmeterio/openmeter/pkg/featuregate"
 )
@@ -30,7 +30,7 @@ func (a *Router) ChangeSubscription(w http.ResponseWriter, r *http.Request, subs
 }
 
 // (GET /api/v1/subscriptions/{subscriptionId})
-func (a *Router) GetSubscription(w http.ResponseWriter, r *http.Request, subscriptionId string, params api.GetSubscriptionParams) {
+func (a *Router) GetSubscription(w http.ResponseWriter, r *http.Request, subscriptionId string, params apiv1models.GetSubscriptionParams) {
 	a.subscriptionHandler.GetSubscription().With(subscriptionhttpdriver.GetSubscriptionParams{
 		Query: params,
 		ID:    subscriptionId,

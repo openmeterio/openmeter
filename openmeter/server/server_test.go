@@ -23,8 +23,8 @@ import (
 	metricnoop "go.opentelemetry.io/otel/metric/noop"
 	"go.opentelemetry.io/otel/trace/noop"
 
-	"github.com/openmeterio/openmeter/api"
-	apiv3 "github.com/openmeterio/openmeter/api/v3"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appcustominvoicing "github.com/openmeterio/openmeter/openmeter/app/custominvoicing"
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
@@ -168,7 +168,7 @@ func TestRoutes(t *testing.T) {
 				method:      http.MethodPost,
 				path:        "/api/v1/events",
 				contentType: "application/cloudevents+json",
-				body: func() *api.Event {
+				body: func() *apiv1models.Event {
 					e := event.New()
 					e.SetID("test-1")
 					e.SetType("type")
@@ -191,7 +191,7 @@ func TestRoutes(t *testing.T) {
 			},
 			res: testResponse{
 				status: http.StatusOK,
-				body: []api.IngestedEvent{
+				body: []apiv1models.IngestedEvent{
 					{
 						Event: mockEvent,
 						// empty string customer id because it's not set on the mock
@@ -211,7 +211,7 @@ func TestRoutes(t *testing.T) {
 			},
 			res: testResponse{
 				status: http.StatusOK,
-				body: []api.Meter{
+				body: []apiv1models.Meter{
 					meterhttphandler.ToAPIMeter(mockMeters[0]),
 					meterhttphandler.ToAPIMeter(mockMeters[1]),
 				},
@@ -238,9 +238,9 @@ func TestRoutes(t *testing.T) {
 			res: testResponse{
 				status: http.StatusOK,
 				body: struct {
-					Data []api.MeterQueryRow `json:"data"`
+					Data []apiv1models.MeterQueryRow `json:"data"`
 				}{
-					Data: []api.MeterQueryRow{
+					Data: []apiv1models.MeterQueryRow{
 						{WindowStart: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC), WindowEnd: time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC), Value: 300},
 					},
 				},
@@ -252,12 +252,12 @@ func TestRoutes(t *testing.T) {
 				method:      http.MethodPost,
 				contentType: "application/json",
 				path:        "/api/v3/openmeter/meters/" + mockMeters[0].ID + "/query",
-				body:        apiv3.MeterQueryRequest{},
+				body:        apiv3models.MeterQueryRequest{},
 			},
 			res: testResponse{
 				status: http.StatusOK,
-				body: apiv3.MeterQueryResult{
-					Data: []apiv3.MeterQueryRow{
+				body: apiv3models.MeterQueryResult{
+					Data: []apiv3models.MeterQueryRow{
 						{
 							Value:      "300",
 							From:       time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
@@ -285,7 +285,7 @@ func TestRoutes(t *testing.T) {
 				method:      http.MethodPost,
 				contentType: "application/json",
 				path:        "/api/v3/openmeter/meters/" + mockMeters[0].ID + "/query",
-				body: apiv3.MeterQueryRequest{
+				body: apiv3models.MeterQueryRequest{
 					GroupByDimensions: &[]string{"path", "method"},
 				},
 			},
@@ -315,7 +315,7 @@ func TestRoutes(t *testing.T) {
 				method:      http.MethodPost,
 				contentType: "application/json",
 				path:        "/api/v3/openmeter/meters/" + mockMeters[0].ID + "/query",
-				body: apiv3.MeterQueryRequest{
+				body: apiv3models.MeterQueryRequest{
 					GroupByDimensions: &[]string{"subject"},
 				},
 			},
@@ -334,9 +334,9 @@ func TestRoutes(t *testing.T) {
 				method:      http.MethodPost,
 				contentType: "application/json",
 				path:        "/api/v3/openmeter/meters/" + mockMeters[0].ID + "/query",
-				body: apiv3.MeterQueryRequest{
-					Filters: &apiv3.MeterQueryFilters{
-						Dimensions: &map[string]apiv3.QueryFilterStringMapItem{
+				body: apiv3models.MeterQueryRequest{
+					Filters: &apiv3models.MeterQueryFilters{
+						Dimensions: &map[string]apiv3models.QueryFilterStringMapItem{
 							"customer_id": {
 								Eq: lo.ToPtr("customer-1"),
 							},
@@ -372,7 +372,7 @@ func TestRoutes(t *testing.T) {
 				method:      http.MethodPost,
 				contentType: "application/json",
 				path:        "/api/v3/openmeter/meters/" + mockMeters[0].ID + "/query",
-				body: apiv3.MeterQueryRequest{
+				body: apiv3models.MeterQueryRequest{
 					GroupByDimensions: &[]string{"foo"},
 				},
 			},
@@ -390,9 +390,9 @@ func TestRoutes(t *testing.T) {
 			res: testResponse{
 				status: http.StatusOK,
 				body: struct {
-					Data []api.MeterQueryRow `json:"data"`
+					Data []apiv1models.MeterQueryRow `json:"data"`
 				}{
-					Data: []api.MeterQueryRow{
+					Data: []apiv1models.MeterQueryRow{
 						{Subject: mockQueryValue.Subject, WindowStart: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC), WindowEnd: time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC), Value: 300},
 					},
 				},
@@ -404,9 +404,9 @@ func TestRoutes(t *testing.T) {
 				method:      http.MethodPost,
 				contentType: "application/json",
 				path:        "/api/v3/openmeter/meters/" + mockMeters[0].ID + "/query",
-				body: apiv3.MeterQueryRequest{
-					Filters: &apiv3.MeterQueryFilters{
-						Dimensions: &map[string]apiv3.QueryFilterStringMapItem{
+				body: apiv3models.MeterQueryRequest{
+					Filters: &apiv3models.MeterQueryFilters{
+						Dimensions: &map[string]apiv3models.QueryFilterStringMapItem{
 							"subject": {
 								Eq: lo.ToPtr("s1"),
 							},
@@ -416,8 +416,8 @@ func TestRoutes(t *testing.T) {
 			},
 			res: testResponse{
 				status: http.StatusOK,
-				body: apiv3.MeterQueryResult{
-					Data: []apiv3.MeterQueryRow{
+				body: apiv3models.MeterQueryResult{
+					Data: []apiv3models.MeterQueryRow{
 						{
 							Value: "300",
 							From:  time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
@@ -445,9 +445,9 @@ func TestRoutes(t *testing.T) {
 			res: testResponse{
 				status: http.StatusOK,
 				body: struct {
-					Data []api.MeterQueryRow `json:"data"`
+					Data []apiv1models.MeterQueryRow `json:"data"`
 				}{
-					Data: []api.MeterQueryRow{
+					Data: []apiv1models.MeterQueryRow{
 						{WindowStart: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC), WindowEnd: time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC), Value: 300},
 					},
 				},
@@ -459,9 +459,9 @@ func TestRoutes(t *testing.T) {
 				method:      http.MethodPost,
 				contentType: "application/json",
 				path:        "/api/v3/openmeter/meters/" + mockMeters[0].ID + "/query",
-				body: apiv3.MeterQueryRequest{
-					Filters: &apiv3.MeterQueryFilters{
-						Dimensions: &map[string]apiv3.QueryFilterStringMapItem{
+				body: apiv3models.MeterQueryRequest{
+					Filters: &apiv3models.MeterQueryFilters{
+						Dimensions: &map[string]apiv3models.QueryFilterStringMapItem{
 							"method": {
 								Eq: lo.ToPtr("GET"),
 							},
@@ -471,8 +471,8 @@ func TestRoutes(t *testing.T) {
 			},
 			res: testResponse{
 				status: http.StatusOK,
-				body: apiv3.MeterQueryResult{
-					Data: []apiv3.MeterQueryRow{
+				body: apiv3models.MeterQueryResult{
+					Data: []apiv3models.MeterQueryRow{
 						{
 							Value:      "300",
 							From:       time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
@@ -509,9 +509,9 @@ func TestRoutes(t *testing.T) {
 				method:      http.MethodPost,
 				contentType: "application/json",
 				path:        "/api/v3/openmeter/meters/" + mockMeters[0].ID + "/query",
-				body: apiv3.MeterQueryRequest{
-					Filters: &apiv3.MeterQueryFilters{
-						Dimensions: &map[string]apiv3.QueryFilterStringMapItem{
+				body: apiv3models.MeterQueryRequest{
+					Filters: &apiv3models.MeterQueryFilters{
+						Dimensions: &map[string]apiv3models.QueryFilterStringMapItem{
 							"invalid": {
 								Eq: lo.ToPtr("abcd"),
 							},
@@ -592,7 +592,7 @@ func TestRoutes(t *testing.T) {
 				method:      http.MethodPost,
 				path:        "/api/v1/portal/tokens",
 				contentType: "application/json",
-				body: api.PortalToken{
+				body: apiv1models.PortalToken{
 					Subject: "customer-1",
 				},
 			},
@@ -617,7 +617,7 @@ func TestRoutes(t *testing.T) {
 				method:      http.MethodPut,
 				contentType: "application/json",
 				path:        "/api/v3/openmeter/meters/" + mockMeters[0].ID,
-				body:        apiv3.UpdateMeterRequest{},
+				body:        apiv3models.UpdateMeterRequest{},
 			},
 			res: testResponse{
 				status: http.StatusOK,
@@ -650,7 +650,7 @@ func TestRoutes(t *testing.T) {
 				method:      http.MethodPost,
 				contentType: "application/json",
 				path:        "/api/v3/openmeter/customers/01ARZ3NDEKTSV4RRFFQ69G5FAV/entitlements/01ARZ3NDEKTSV4RRFFQ69G5FAW/reset",
-				body:        apiv3.ResetCustomerEntitlementUsageRequest{},
+				body:        apiv3models.ResetCustomerEntitlementUsageRequest{},
 			},
 			res: testResponse{
 				status: http.StatusNoContent,
@@ -717,7 +717,7 @@ func TestRoutes(t *testing.T) {
 				method:      http.MethodPost,
 				contentType: "application/json",
 				path:        "/api/v3/openmeter/customers/01ARZ3NDEKTSV4RRFFQ69G5FAV/entitlements/01ARZ3NDEKTSV4RRFFQ69G5FAW/grants",
-				body: apiv3.BillingEntitlementGrantCreateRequest{
+				body: apiv3models.BillingEntitlementGrantCreateRequest{
 					Amount:      "100",
 					EffectiveAt: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
 				},

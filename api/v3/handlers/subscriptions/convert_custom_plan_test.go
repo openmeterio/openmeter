@@ -7,25 +7,25 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	api "github.com/openmeterio/openmeter/api/v3"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
 func TestFromAPIBillingSubscriptionCustomPlan(t *testing.T) {
 	// given:
 	// - an inline custom plan priced in a CUSTOM currency
-	body := api.BillingSubscriptionCustomPlan{
+	body := apiv3models.BillingSubscriptionCustomPlan{
 		Name:             "Inline plan",
 		Description:      lo.ToPtr("inline description"),
 		Currency:         "CREDITS",
 		BillingCadence:   "P1M",
 		ProRatingEnabled: lo.ToPtr(true),
-		Phases: []api.BillingPlanPhase{
+		Phases: []apiv3models.BillingPlanPhase{
 			{
 				Key:       "first",
 				Name:      "First",
-				Duration:  lo.ToPtr(api.ISO8601Duration("P1M")),
-				RateCards: []api.BillingRateCard{},
+				Duration:  lo.ToPtr(apiv3models.ISO8601Duration("P1M")),
+				RateCards: []apiv3models.BillingRateCard{},
 			},
 		},
 	}
