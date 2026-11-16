@@ -19,14 +19,12 @@ type resolveTaxCodesInput struct {
 	ReadOnly bool
 }
 
-// resolveTaxCodes prepares the tax inputs of invoice calculation: it batch-resolves all unique
-// Stripe tax codes referenced in the invoice's lines into a TaxCodes map keyed by Stripe code, and
-// renders the invoice's default tax config in the legacy line shape.
+// resolveTaxCodes prepares the tax inputs of invoice calculation: the invoice's default tax config
+// in the legacy line shape, the default's Tax Code by ID, and the Tax Codes of the other Stripe codes
+// the lines reference, keyed by Stripe code.
 //
-// The default only stores a Tax Code ID, so its Tax Code is looked up by ID (deleted ones
-// included: the invoice may still reference one) and its Stripe code comes from that Tax Code's
-// mapping. That way lines inheriting the default still end up with the Stripe code, Tax Code and
-// Tax Code ID they always got. The default never creates a Tax Code.
+// The default is loaded by ID only, deleted included: the invoice inherited it from the profile.
+// Resolving it by Stripe mapping would skip the deleted code and create or pick another one.
 func (s *Service) resolveTaxCodes(ctx context.Context, in resolveTaxCodesInput) (invoicecalc.StandardInvoiceCalculatorDependencies, error) {
 	namespace := in.Namespace
 	invoice := in.Invoice
@@ -53,31 +51,26 @@ func (s *Service) resolveTaxCodes(ctx context.Context, in resolveTaxCodesInput) 
 			if defaultTaxCodes[cfg.TaxCodeID] == nil {
 				return deps, taxcode.NewTaxCodeNotFoundError(cfg.TaxCodeID)
 			}
+
+			deps.DefaultTaxCode = defaultTaxCodes[cfg.TaxCodeID]
 		}
 
 		legacyDefault := cfg.ToLegacyTaxConfig(defaultTaxCodes)
 		deps.DefaultTaxConfig = billing.FromProductCatalog(&legacyDefault)
-
-		// The default's Tax Code is stamped onto the lines that use its Stripe code. A deleted one
-		// isn't: those Stripe codes resolve by mapping to a live Tax Code, as lines carrying the
-		// code themselves always did.
-		if legacyDefault.Stripe != nil {
-			if tc := defaultTaxCodes[cfg.TaxCodeID]; !tc.IsDeleted() {
-				result[legacyDefault.Stripe.Code] = *tc
-			} else {
-				seen[legacyDefault.Stripe.Code] = struct{}{}
-			}
-		}
 	}
 
 	for _, line := range invoice.Lines.OrEmpty() {
-		if line.TaxConfig != nil && line.TaxConfig.Stripe != nil && line.TaxConfig.Stripe.Code != "" {
-			if _, ok := result[line.TaxConfig.Stripe.Code]; ok {
-				continue
-			}
-
-			seen[line.TaxConfig.Stripe.Code] = struct{}{}
+		cfg := line.TaxConfig
+		if cfg == nil || cfg.Stripe == nil || cfg.Stripe.Code == "" {
+			continue
 		}
+
+		// Lines that already inherited the default get its Tax Code by ID.
+		if deps.DefaultTaxCode != nil && cfg.TaxCodeID != nil && *cfg.TaxCodeID == deps.DefaultTaxCode.ID {
+			continue
+		}
+
+		seen[cfg.Stripe.Code] = struct{}{}
 	}
 
 	for stripeCode := range seen {

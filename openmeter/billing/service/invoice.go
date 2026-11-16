@@ -258,16 +258,8 @@ func (s *Service) calculateGatheringInvoiceAsStandardInvoice(ctx context.Context
 	out.QuantitySnapshotedAt = lo.ToPtr(now)
 	out.Lines = billing.NewStandardInvoiceLines(inScopeLines)
 
-	calculatorDeps, err := s.resolveTaxCodes(ctx, resolveTaxCodesInput{
-		Namespace: invoice.Namespace,
-		Invoice:   out,
-		ReadOnly:  true,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("resolving tax codes: %w", err)
-	}
-
-	if err := s.invoiceCalculator.CalculateGatheringInvoiceWithLiveData(out, calculatorDeps); err != nil {
+	// No tax inputs: tax config is only snapshotted into lines of standard invoices, never gathering.
+	if err := s.invoiceCalculator.CalculateGatheringInvoiceWithLiveData(out, invoicecalc.StandardInvoiceCalculatorDependencies{}); err != nil {
 		return nil, fmt.Errorf("calculating invoice: %w", err)
 	}
 

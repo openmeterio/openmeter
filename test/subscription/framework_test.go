@@ -46,7 +46,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/featureresolver"
 	pcsubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	pcsubscriptionservice "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription/service"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/taxcoderesolver"
 	subscription "github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/subscription/testutils"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
@@ -150,9 +149,6 @@ func setup(t *testing.T, config setupConfig) testDeps {
 	})
 	require.NoError(t, err)
 
-	taxCodeResolver, err := taxcoderesolver.New(deps.TaxCodeEnv.Service)
-	require.NoError(t, err)
-
 	billingService, err := billingservice.New(billingservice.Config{
 		Adapter:                 billingAdapter,
 		SequenceService:         billingSequenceService,
@@ -164,7 +160,7 @@ func setup(t *testing.T, config setupConfig) testDeps {
 		Publisher:               publisher,
 		AdvancementStrategy:     billing.ForegroundAdvancementStrategy,
 		TaxCodeService:          deps.TaxCodeEnv.Service,
-		TaxCodeResolver:         taxCodeResolver,
+		TaxCodeResolver:         deps.TaxCodeResolver,
 	})
 	require.NoError(t, err)
 

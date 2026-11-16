@@ -1,6 +1,7 @@
 package billing
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"slices"
@@ -136,4 +137,32 @@ func MergeTaxConfigs(base, overrides *TaxConfig) *TaxConfig {
 	}
 
 	return nil
+}
+
+// ValidateTaxCodeID rejects a missing or deleted Tax Code. Use it for authored references only:
+// a reference copied from stored data may point at a Tax Code deleted since, and that is fine.
+func ValidateTaxCodeID(ctx context.Context, resolver productcatalog.TaxCodeResolver, namespace, id string) error {
+	if id == "" {
+		return nil
+	}
+
+	taxCodes, err := resolver.BatchResolve(ctx, namespace, id)
+	if err != nil {
+		return fmt.Errorf("resolving tax code %s: %w", id, err)
+	}
+
+	issue := ErrTaxCodeNotFound
+
+	tc := taxCodes[id]
+	switch {
+	case tc == nil:
+	case tc.IsDeleted():
+		issue = ErrTaxCodeDeleted
+	default:
+		return nil
+	}
+
+	issue.Message = fmt.Sprintf("%s [tax_code.id=%s]", issue.Message, id)
+
+	return issue
 }

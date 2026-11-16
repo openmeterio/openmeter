@@ -2,6 +2,7 @@ package invoicecalc
 
 import (
 	"testing"
+	"time"
 
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
@@ -96,6 +97,8 @@ func newSnapshotTestLine(tc *productcatalog.TaxConfig) *billing.StandardLine {
 	}
 }
 
+// SnapshotTaxConfigIntoLines merges the default into each line and stamps the Tax Code the line's
+// ID points at: the default's by ID, others by Stripe code, never one with a different ID.
 func TestSnapshotTaxConfigIntoLines(t *testing.T) {
 	tc1 := taxcode.TaxCode{
 		NamespacedID: models.NamespacedID{Namespace: "ns", ID: "tc-1"},
@@ -107,6 +110,14 @@ func TestSnapshotTaxConfigIntoLines(t *testing.T) {
 		NamespacedID: models.NamespacedID{Namespace: "ns", ID: "tc-2"},
 		AppMappings: taxcode.TaxCodeAppMappings{
 			{AppType: app.AppTypeStripe, TaxCode: "txcd_20000000"},
+		},
+	}
+	// Same Stripe mapping as tc1, but deleted.
+	deletedDefault := taxcode.TaxCode{
+		NamespacedID: models.NamespacedID{Namespace: "ns", ID: "tc-deleted"},
+		ManagedModel: models.ManagedModel{DeletedAt: lo.ToPtr(time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC))},
+		AppMappings: taxcode.TaxCodeAppMappings{
+			{AppType: app.AppTypeStripe, TaxCode: "txcd_10000000"},
 		},
 	}
 
@@ -148,21 +159,91 @@ func TestSnapshotTaxConfigIntoLines(t *testing.T) {
 			wantNoErr: true,
 		},
 		{
-			name: "preserves existing TaxCodeID but still stamps TaxCode entity",
+			// The line points at X, but its Stripe code maps to Y (e.g. X was deleted and Y is the
+			// live code with the same mapping): Y must not be stamped onto a line referencing X.
+			name: "line whose Stripe code maps to another Tax Code gets no entity",
 			invoice: newSnapshotTestInvoice(
 				billing.StandardInvoiceStatusDraftCollecting,
 				newSnapshotTestLine(&productcatalog.TaxConfig{
 					Stripe:    &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
-					TaxCodeID: lo.ToPtr("already-set"),
+					TaxCodeID: lo.ToPtr("tc-x"),
 				}),
 			),
 			deps: StandardInvoiceCalculatorDependencies{TaxCodes: TaxCodes{"txcd_10000000": tc1}},
 			wantTC: &billing.TaxConfig{
 				TaxConfig: productcatalog.TaxConfig{
 					Stripe:    &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
-					TaxCodeID: lo.ToPtr("already-set"),
+					TaxCodeID: lo.ToPtr("tc-x"),
 				},
-				TaxCode: &tc1,
+			},
+			wantNoErr: true,
+		},
+		{
+			name: "stale entity not matching the line's TaxCodeID is cleared",
+			invoice: newSnapshotTestInvoice(
+				billing.StandardInvoiceStatusDraftCollecting,
+				&billing.StandardLine{StandardLineBase: billing.StandardLineBase{TaxConfig: &billing.TaxConfig{
+					TaxConfig: productcatalog.TaxConfig{
+						Stripe:    &productcatalog.StripeTaxConfig{Code: "txcd_20000000"},
+						TaxCodeID: lo.ToPtr("tc-x"),
+					},
+					TaxCode: &tc1,
+				}}},
+			),
+			deps: StandardInvoiceCalculatorDependencies{},
+			wantTC: &billing.TaxConfig{
+				TaxConfig: productcatalog.TaxConfig{
+					Stripe:    &productcatalog.StripeTaxConfig{Code: "txcd_20000000"},
+					TaxCodeID: lo.ToPtr("tc-x"),
+				},
+			},
+			wantNoErr: true,
+		},
+		{
+			// The default's Tax Code is never in TaxCodes; a deleted one would map to another code.
+			name: "line inheriting a deleted default gets the default's Tax Code by ID",
+			invoice: newSnapshotTestInvoice(
+				billing.StandardInvoiceStatusDraftCollecting,
+				newSnapshotTestLine(nil),
+			),
+			deps: StandardInvoiceCalculatorDependencies{
+				TaxCodes: TaxCodes{"txcd_10000000": tc1},
+				DefaultTaxConfig: billing.FromProductCatalog(&productcatalog.TaxConfig{
+					Stripe:    &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
+					TaxCodeID: lo.ToPtr(deletedDefault.ID),
+				}),
+				DefaultTaxCode: &deletedDefault,
+			},
+			wantTC: &billing.TaxConfig{
+				TaxConfig: productcatalog.TaxConfig{
+					Stripe:    &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
+					TaxCodeID: lo.ToPtr(deletedDefault.ID),
+				},
+				TaxCode: &deletedDefault,
+			},
+			wantNoErr: true,
+		},
+		{
+			name: "line with its own TaxCodeID equal to the default's gets the default's Tax Code",
+			invoice: newSnapshotTestInvoice(
+				billing.StandardInvoiceStatusDraftCollecting,
+				newSnapshotTestLine(&productcatalog.TaxConfig{
+					Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
+					Stripe:    &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
+					TaxCodeID: lo.ToPtr(deletedDefault.ID),
+				}),
+			),
+			deps: StandardInvoiceCalculatorDependencies{
+				TaxCodes:       TaxCodes{"txcd_10000000": tc1},
+				DefaultTaxCode: &deletedDefault,
+			},
+			wantTC: &billing.TaxConfig{
+				TaxConfig: productcatalog.TaxConfig{
+					Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
+					Stripe:    &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
+					TaxCodeID: lo.ToPtr(deletedDefault.ID),
+				},
+				TaxCode: &deletedDefault,
 			},
 			wantNoErr: true,
 		},

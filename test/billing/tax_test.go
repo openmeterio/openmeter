@@ -18,6 +18,7 @@ import (
 	billinghttpdriver "github.com/openmeterio/openmeter/openmeter/billing/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	billinginvoicelinedb "github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
+	taxcodedb "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
@@ -139,7 +140,7 @@ func (s *InvoicingTaxTestSuite) TestDefaultTaxConfigProfileSnapshotting() {
 				return nil
 			},
 		})
-		s.ErrorContains(err, "not found")
+		s.ErrorIs(err, billing.ErrTaxCodeNotFound)
 
 		// let's update the invoice
 		editedTaxCode := s.TaxCodeForStripeCode(ctx, namespace, "txcd_30000000")
@@ -220,7 +221,7 @@ func (s *InvoicingTaxTestSuite) TestInvoiceDefaultTaxCodeFrozenOnStripeRemap() {
 		s.Require().NoError(err)
 		s.Equal(wantDefault, reread.Workflow.Config.Invoicing.DefaultTaxConfig)
 
-		// v1 shows the tax code's current mapping for the default (accepted, see the ADR).
+		// v1 shows the tax code's current mapping for the default.
 		taxCodes, err := billingconvert.ResolveWorkflowTaxCodes(ctx, s.TaxCodeResolver, namespace, reread.Workflow.Config)
 		s.Require().NoError(err)
 
@@ -235,11 +236,15 @@ func (s *InvoicingTaxTestSuite) TestInvoiceDefaultTaxCodeFrozenOnStripeRemap() {
 	})
 }
 
+// A deleted profile default is inherited by the invoices created from it. Calculation stamps the
+// deleted Tax Code itself onto the lines by ID: it must not look the default up by its Stripe
+// mapping, which would create a new Tax Code and attach it to lines pointing at the deleted one.
 func (s *InvoicingTaxTestSuite) TestDeletedDefaultTaxCodeIsCopiedIntoInvoices() {
 	ctx := s.T().Context()
 	namespace := s.GetUniqueNamespace("ns-tax-default-deleted")
 
-	// given: a profile default whose tax code was deleted afterwards
+	// given: a profile default whose tax code was deleted afterwards, and no live tax code with
+	// its Stripe mapping
 	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
 	cust := s.CreateTestCustomer(namespace, "test")
 	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), namespace)
@@ -248,18 +253,143 @@ func (s *InvoicingTaxTestSuite) TestDeletedDefaultTaxCodeIsCopiedIntoInvoices() 
 	s.SeedProfileDefaultTaxConfigViaAdapter(ctx, profile.ProfileID(), &productcatalog.TaxCodeConfig{TaxCodeID: deleted.ID})
 	s.Require().NoError(s.TaxCodeEnv.Service.DeleteTaxCode(ctx, taxcode.DeleteTaxCodeInput{NamespacedID: deleted.NamespacedID}))
 
-	// when: an invoice is created from it
+	taxCodesBefore := s.countTaxCodes(ctx, namespace)
+
+	var invoice billing.StandardInvoice
+
+	s.Run("when: an invoice is created from the profile", func() {
+		invoice = s.generateDraftInvoice(ctx, cust)
+	})
+
+	s.Run("then: the invoice inherits the deleted default and its lines reference it", func() {
+		s.Equal(deleted.ID, invoice.Workflow.Config.Invoicing.DefaultTaxCodeID())
+		s.requireLinesReferenceTaxCode(invoice, deleted.ID)
+
+		lines := invoice.Lines.OrEmpty()
+		s.Equal(&productcatalog.StripeTaxConfig{Code: "txcd_10000000"}, lines[0].TaxConfig.Stripe)
+
+		s.Equal(taxCodesBefore, s.countTaxCodes(ctx, namespace), "calculation must not create a tax code")
+	})
+
+	s.Run("then: the reloaded invoice and the stored rows reference the deleted tax code", func() {
+		reloaded, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
+			Invoice: invoice.GetInvoiceID(),
+			Expand:  billing.StandardInvoiceExpandAll,
+		})
+		s.Require().NoError(err)
+		s.requireLinesReferenceTaxCode(reloaded, deleted.ID)
+		s.requirePersistedLinesReferenceTaxCode(ctx, invoice, deleted.ID)
+	})
+
+	// A system edit recalculates without the API edit diff, which still rejects lines holding a
+	// deleted Tax Code (ticket 08 owns that rule).
+	s.Run("when: the invoice is recalculated without touching the default", func() {
+		edited, err := s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
+			Invoice:      invoice.GetInvoiceID(),
+			ChangeSource: billing.ChangeSourceSystem,
+			EditFn: func(invoice *billing.StandardInvoice) error {
+				invoice.Description = lo.ToPtr("recalculated")
+
+				return nil
+			},
+		})
+
+		// then: the inherited deleted default passes and recalculation creates no tax code either
+		s.Require().NoError(err)
+		s.requireLinesReferenceTaxCode(edited, deleted.ID)
+		s.requirePersistedLinesReferenceTaxCode(ctx, edited, deleted.ID)
+		s.Equal(taxCodesBefore, s.countTaxCodes(ctx, namespace), "recalculation must not create a tax code")
+	})
+
+	s.Run("when: an edit sets the default to another deleted tax code", func() {
+		otherDeleted := s.TaxCodeForStripeCode(ctx, namespace, "txcd_20000000")
+		s.Require().NoError(s.TaxCodeEnv.Service.DeleteTaxCode(ctx, taxcode.DeleteTaxCodeInput{NamespacedID: otherDeleted.NamespacedID}))
+
+		_, err := s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
+			Invoice:      invoice.GetInvoiceID(),
+			ChangeSource: billing.ChangeSourceAPIRequest,
+			EditFn: func(invoice *billing.StandardInvoice) error {
+				invoice.Workflow.Config.Invoicing.DefaultTaxConfig = &productcatalog.TaxCodeConfig{TaxCodeID: otherDeleted.ID}
+
+				return nil
+			},
+		})
+
+		// then: the authored deleted reference is rejected
+		s.ErrorIs(err, billing.ErrTaxCodeDeleted)
+	})
+}
+
+// After the 2026-06 dedupe, a deleted Tax Code can share its Stripe mapping with a live one.
+// Lines inheriting the deleted default must keep the deleted Tax Code, not get the live one.
+func (s *InvoicingTaxTestSuite) TestDeletedDefaultTaxCodeIsNotSwappedForLiveMapping() {
+	ctx := s.T().Context()
+	namespace := s.GetUniqueNamespace("ns-tax-default-deleted-remapped")
+
+	// given: a deleted profile default and a live tax code with the same Stripe mapping
+	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
+	cust := s.CreateTestCustomer(namespace, "test")
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), namespace)
+	profile := s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
+	deleted := s.TaxCodeForStripeCode(ctx, namespace, "txcd_10000000")
+	s.SeedProfileDefaultTaxConfigViaAdapter(ctx, profile.ProfileID(), &productcatalog.TaxCodeConfig{TaxCodeID: deleted.ID})
+	s.Require().NoError(s.TaxCodeEnv.Service.DeleteTaxCode(ctx, taxcode.DeleteTaxCodeInput{NamespacedID: deleted.NamespacedID}))
+
+	live := s.TaxCodeForStripeCode(ctx, namespace, "txcd_10000000")
+	s.Require().NotEqual(deleted.ID, live.ID)
+
+	// when: an invoice is created from the profile
 	invoice := s.generateDraftInvoice(ctx, cust)
 
-	// then: invoice creation doesn't fail; the invoice keeps the deleted ID as its default, and
-	// lines inheriting it get its ID and Stripe code
-	s.Equal(deleted.ID, invoice.Workflow.Config.Invoicing.DefaultTaxCodeID())
+	// then: its lines keep the deleted tax code, also in the stored snapshot
+	s.requireLinesReferenceTaxCode(invoice, deleted.ID)
+	s.requirePersistedLinesReferenceTaxCode(ctx, invoice, deleted.ID)
+}
+
+// requireLinesReferenceTaxCode requires every line to point at the Tax Code by ID and carry that
+// same Tax Code, the rule the adapter applies on read.
+func (s *InvoicingTaxTestSuite) requireLinesReferenceTaxCode(invoice billing.StandardInvoice, taxCodeID string) {
+	s.T().Helper()
 
 	lines := invoice.Lines.OrEmpty()
-	s.Require().Len(lines, 1)
-	s.Require().NotNil(lines[0].TaxConfig)
-	s.Equal(&productcatalog.StripeTaxConfig{Code: "txcd_10000000"}, lines[0].TaxConfig.Stripe)
-	s.Equal(lo.ToPtr(deleted.ID), lines[0].TaxConfig.TaxCodeID)
+	s.Require().NotEmpty(lines)
+
+	for _, line := range lines {
+		s.Require().NotNil(line.TaxConfig)
+		s.Equal(lo.ToPtr(taxCodeID), line.TaxConfig.TaxCodeID)
+		s.Require().NotNil(line.TaxConfig.TaxCode)
+		s.Equal(taxCodeID, line.TaxConfig.TaxCode.ID)
+	}
+}
+
+// requirePersistedLinesReferenceTaxCode checks the stored rows directly: the service returns lines
+// re-read through the adapter, which drops a mismatching Tax Code, so only the row shows what
+// calculation wrote.
+func (s *InvoicingTaxTestSuite) requirePersistedLinesReferenceTaxCode(ctx context.Context, invoice billing.StandardInvoice, taxCodeID string) {
+	s.T().Helper()
+
+	for _, line := range invoice.Lines.OrEmpty() {
+		dbLine, err := s.DBClient.BillingInvoiceLine.Query().
+			Where(billinginvoicelinedb.ID(line.ID)).
+			Only(ctx)
+		s.Require().NoError(err)
+
+		s.Equal(lo.ToPtr(taxCodeID), dbLine.TaxCodeID)
+		s.Require().NotNil(dbLine.TaxConfig)
+		s.Equal(lo.ToPtr(taxCodeID), dbLine.TaxConfig.TaxCodeID)
+		s.Require().NotNil(dbLine.TaxConfig.TaxCode)
+		s.Equal(taxCodeID, dbLine.TaxConfig.TaxCode.ID)
+	}
+}
+
+// countTaxCodes counts the namespace's Tax Codes, deleted ones included.
+func (s *InvoicingTaxTestSuite) countTaxCodes(ctx context.Context, namespace string) int {
+	s.T().Helper()
+
+	count, err := s.DBClient.TaxCode.Query().Where(taxcodedb.Namespace(namespace)).Count(ctx)
+	s.Require().NoError(err)
+
+	return count
 }
 
 func (s *InvoicingTaxTestSuite) TestLineSplittingRetainsTaxConfig() {

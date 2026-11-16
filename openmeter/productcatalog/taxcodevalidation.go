@@ -129,22 +129,3 @@ func ValidateAddonWithTaxCodes(ctx context.Context, resolver TaxCodeResolver, na
 		return checkRateCardTaxCodes(a.RateCards, taxCodes, nil)
 	}
 }
-
-// ValidateTaxCodeID checks that a single Tax Code reference exists in the namespace and isn't
-// deleted.
-func ValidateTaxCodeID(ctx context.Context, resolver TaxCodeResolver, namespace string, id string) error {
-	if id == "" {
-		return nil
-	}
-
-	taxCodes, err := resolver.BatchResolve(ctx, namespace, id)
-	if err != nil {
-		return fmt.Errorf("failed to resolve tax codes: %w", err)
-	}
-
-	if tc := taxCodes[id]; tc == nil || tc.IsDeleted() {
-		return models.NewGenericValidationError(fmt.Errorf("tax code %s not found", id))
-	}
-
-	return nil
-}

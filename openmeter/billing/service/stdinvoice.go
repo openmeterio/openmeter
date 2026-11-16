@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
@@ -37,7 +36,7 @@ func (s *Service) UpdateStandardInvoice(ctx context.Context, input billing.Updat
 			// The original default was copied from the billing profile and isn't re-checked (its Tax
 			// Code may have been deleted since); only a newly referenced one needs checking.
 			if editedTaxCodeID := sm.Invoice.Workflow.Config.Invoicing.DefaultTaxCodeID(); editedTaxCodeID != originalInvoice.Workflow.Config.Invoicing.DefaultTaxCodeID() {
-				if err := productcatalog.ValidateTaxCodeID(ctx, s.taxCodeResolver, input.Invoice.Namespace, editedTaxCodeID); err != nil {
+				if err := billing.ValidateTaxCodeID(ctx, s.taxCodeResolver, input.Invoice.Namespace, editedTaxCodeID); err != nil {
 					return fmt.Errorf("validating edited invoice default tax code: %w", err)
 				}
 			}
