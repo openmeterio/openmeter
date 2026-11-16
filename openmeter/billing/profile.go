@@ -117,11 +117,11 @@ func (c *InvoicingConfig) Validate() error {
 	}
 
 	if c.EmptyInvoiceMode == "" {
-		return errors.New("empty invoice mode is required")
+		return models.NewGenericValidationError(errors.New("empty invoice mode is required"))
 	}
 
 	if err := c.EmptyInvoiceMode.Validate(); err != nil {
-		return fmt.Errorf("invalid empty invoice mode: %w", err)
+		return fmt.Errorf("empty invoice mode: %w", err)
 	}
 
 	return nil
@@ -145,7 +145,7 @@ func (m EmptyInvoiceMode) Values() []string {
 
 func (m EmptyInvoiceMode) Validate() error {
 	if !slices.Contains(m.Values(), string(m)) {
-		return fmt.Errorf("invalid empty invoice mode: %s", m)
+		return models.NewGenericValidationError(fmt.Errorf("invalid empty invoice mode: %s", m))
 	}
 
 	return nil
