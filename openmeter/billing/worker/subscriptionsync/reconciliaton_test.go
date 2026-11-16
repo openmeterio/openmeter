@@ -687,17 +687,17 @@ func (s *ReconciliationTestSuite) TestEndedSubscriptionSyncResult() {
 			name:          "recently ended subscription",
 			syncOffset:    24 * time.Hour,
 			horizonOffset: 24 * time.Hour,
-			wantState:     subscriptionsync.SyncStateV2StateSubscriptionEnded,
+			wantState:     subscriptionsync.SyncStateV2StateEnded,
 		},
 		{
 			name:      "worker clock and horizon equal subscription end",
-			wantState: subscriptionsync.SyncStateV2StateSubscriptionEnded,
+			wantState: subscriptionsync.SyncStateV2StateEnded,
 		},
 		{
 			name:          "exactly thirty days old still reconciles",
 			syncOffset:    30 * 24 * time.Hour,
 			horizonOffset: 30 * 24 * time.Hour,
-			wantState:     subscriptionsync.SyncStateV2StateSubscriptionEnded,
+			wantState:     subscriptionsync.SyncStateV2StateEnded,
 		},
 		{
 			name:          "future horizon does not mark future cancellation ended",
@@ -760,7 +760,7 @@ func (s *ReconciliationTestSuite) TestOldSubscriptionSyncSkipped() {
 
 	// Then only the intentional skip is recorded; artifacts and legacy scheduling remain unchanged.
 	state := s.recordedSyncResult(subs.NamespacedID)
-	s.Equal(subscriptionsync.SyncStateV2StateSubscriptionSkipped, state.LastSuccessState)
+	s.Equal(subscriptionsync.SyncStateV2StateTooOld, state.LastSuccessState)
 	s.Equal(now, state.LastSuccessAt)
 	s.Equal(state.CurrentSubsRevision, state.LastSyncedSubsRevision)
 	s.Equal(invoice.Lines.OrEmpty(), s.gatheringInvoice().Lines.OrEmpty())
@@ -781,14 +781,14 @@ func (s *ReconciliationTestSuite) TestForceResyncOldSubscription() {
 	defer clock.UnFreeze()
 	s.Require().NoError(s.Service.SyncByID(ctx, subs.NamespacedID, now))
 	before := s.recordedSyncResult(subs.NamespacedID)
-	s.Require().Equal(subscriptionsync.SyncStateV2StateSubscriptionSkipped, before.LastSuccessState)
+	s.Require().Equal(subscriptionsync.SyncStateV2StateTooOld, before.LastSuccessState)
 
 	// When the caller explicitly overrides the thirty-day cutoff.
 	s.Require().NoError(s.Service.SyncByID(ctx, subs.NamespacedID, now, subscriptionsync.WithForceResyncOldSubscriptions()))
 
 	// Then normal billing reconciliation replaces the skip with an ended result.
 	after := s.recordedSyncResult(subs.NamespacedID)
-	s.Equal(subscriptionsync.SyncStateV2StateSubscriptionEnded, after.LastSuccessState)
+	s.Equal(subscriptionsync.SyncStateV2StateEnded, after.LastSuccessState)
 	s.Equal(before.CurrentSubsRevision, after.CurrentSubsRevision)
 	s.Equal(after.CurrentSubsRevision, after.LastSyncedSubsRevision)
 	s.requireReconciledSubscriptionEnd(subs)
@@ -829,12 +829,12 @@ func (s *ReconciliationTestSuite) TestForcedPeriodicResyncOldSubscription() {
 	// Widening selection and forcing billing deadlines does not override the age cutoff.
 	input.Lookback = 90 * 24 * time.Hour
 	s.Require().NoError(periodic.All(ctx, input))
-	s.Equal(subscriptionsync.SyncStateV2StateSubscriptionSkipped, s.recordedSyncResult(subs.NamespacedID).LastSuccessState)
+	s.Equal(subscriptionsync.SyncStateV2StateTooOld, s.recordedSyncResult(subs.NamespacedID).LastSuccessState)
 
 	// The separate old-subscription override, also enabled by CLI --force-all, reaches sync.
 	input.ForceResyncOldSubscriptions = true
 	s.Require().NoError(periodic.All(ctx, input))
-	s.Equal(subscriptionsync.SyncStateV2StateSubscriptionEnded, s.recordedSyncResult(subs.NamespacedID).LastSuccessState)
+	s.Equal(subscriptionsync.SyncStateV2StateEnded, s.recordedSyncResult(subs.NamespacedID).LastSuccessState)
 	s.requireReconciledSubscriptionEnd(subs)
 }
 
@@ -931,7 +931,7 @@ func (s *ReconciliationTestSuite) TestTerminalSyncResultRollback() {
 			s.Require().NoError(s.DBClient.SubscriptionSyncStateV2.Create().
 				SetNamespace(s.Namespace).
 				SetSubscriptionID(subs.ID).
-				SetLastSuccessState(subscriptionsync.SyncStateV2StateSubscriptionSkipped).
+				SetLastSuccessState(subscriptionsync.SyncStateV2StateTooOld).
 				SetLastSuccessAt(now.Add(-time.Hour)).
 				SetLastSyncedSubsRevision(ulid.Make().String()).
 				SetCurrentSubsRevision(ulid.Make().String()).Exec(ctx))

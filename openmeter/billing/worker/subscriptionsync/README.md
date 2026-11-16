@@ -164,8 +164,8 @@ The separate v2 sync-state table stores completed sync outcomes and their time:
 
 - `subscription_deleted`: an empty billing target was reconciled for a deleted subscription.
 - `customer_deleted_before`: an empty target was reconciled because the customer was deleted at or before subscription start.
-- `subscription_ended`: normal billing reconciliation succeeded after `ActiveTo`, with a requested horizon covering that end.
-- `subscription_skipped`: billing reconciliation was deliberately skipped because `ActiveTo` is more than 30 days before the worker clock. This outcome does not establish that billing artifacts were reconciled.
+- `ended`: normal billing reconciliation succeeded after `ActiveTo`, with a requested horizon covering that end.
+- `too_old`: billing reconciliation was deliberately skipped because `ActiveTo` is more than 30 days before the worker clock. This outcome does not establish that billing artifacts were reconciled.
 
 Deletion cleanup takes precedence over the age cutoff, with subscription deletion
 checked before customer deletion. Cleanup still stops legacy periodic scheduling

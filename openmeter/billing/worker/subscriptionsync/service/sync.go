@@ -195,7 +195,7 @@ func (s *Service) synchronizeSubscription(ctx context.Context, in synchronizeSub
 				if !options.DryRun {
 					if err := s.subscriptionSyncAdapter.RecordSyncResultV2(ctx, subscriptionsync.RecordSyncResultV2Input{
 						SubscriptionID:         subscriptionID,
-						LastSuccessState:       subscriptionsync.SyncStateV2StateSubscriptionSkipped,
+						LastSuccessState:       subscriptionsync.SyncStateV2StateTooOld,
 						LastSuccessAt:          clock.Now().UTC(),
 						LastSyncedSubsRevision: subsRevision,
 					}); err != nil {
@@ -215,10 +215,10 @@ func (s *Service) synchronizeSubscription(ctx context.Context, in synchronizeSub
 				}
 
 				subsView = &view
-				// Record subscription_ended only when the worker clock has reached ActiveTo
+				// Record ended only when the worker clock has reached ActiveTo
 				// and AsOf includes billing through ActiveTo.
 				if view.Spec.ActiveTo != nil && !view.Spec.ActiveTo.After(now) && !view.Spec.ActiveTo.After(asOf) {
-					resultState = subscriptionsync.SyncStateV2StateSubscriptionEnded
+					resultState = subscriptionsync.SyncStateV2StateEnded
 				}
 			}
 

@@ -128,7 +128,7 @@ func TestOldSubscriptionSkipUsesStateAfterBillingLock(t *testing.T) {
 	require.False(t, reconciler.planCalled)
 	require.Empty(t, syncAdapter.upserts)
 	require.Len(t, syncAdapter.recordedResultsV2, 1)
-	require.Equal(t, subscriptionsync.SyncStateV2StateSubscriptionSkipped, syncAdapter.recordedResultsV2[0].LastSuccessState)
+	require.Equal(t, subscriptionsync.SyncStateV2StateTooOld, syncAdapter.recordedResultsV2[0].LastSuccessState)
 	require.Equal(t, observedRevision, syncAdapter.recordedResultsV2[0].LastSyncedSubsRevision)
 }
 

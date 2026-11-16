@@ -25,20 +25,20 @@ const (
 	// an empty billing target because the customer was deleted at or before the
 	// non-deleted subscription's ActiveFrom.
 	SyncStateV2StateCustomerDeletedBefore SyncStateV2State = "customer_deleted_before"
-	// SyncStateV2StateSubscriptionEnded records successful billing reconciliation
+	// SyncStateV2StateEnded records successful billing reconciliation
 	// after ActiveTo, with a sync horizon that covers the subscription end.
-	SyncStateV2StateSubscriptionEnded SyncStateV2State = "subscription_ended"
-	// SyncStateV2StateSubscriptionSkipped records an intentional skip of billing
+	SyncStateV2StateEnded SyncStateV2State = "ended"
+	// SyncStateV2StateTooOld records an intentional skip of billing
 	// reconciliation because ActiveTo is more than 30 days before the worker clock.
-	SyncStateV2StateSubscriptionSkipped SyncStateV2State = "subscription_skipped"
+	SyncStateV2StateTooOld SyncStateV2State = "too_old"
 )
 
 func (SyncStateV2State) Values() []string {
 	return []string{
 		string(SyncStateV2StateSubscriptionDeleted),
 		string(SyncStateV2StateCustomerDeletedBefore),
-		string(SyncStateV2StateSubscriptionEnded),
-		string(SyncStateV2StateSubscriptionSkipped),
+		string(SyncStateV2StateEnded),
+		string(SyncStateV2StateTooOld),
 	}
 }
 
