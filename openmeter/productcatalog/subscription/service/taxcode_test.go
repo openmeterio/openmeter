@@ -244,22 +244,31 @@ func TestCreateFromPlanRefTaxCodeDeleted(t *testing.T) {
 	// Deleting a Tax Code checks it isn't an organization default, so the defaults must exist.
 	deps.TaxCodeEnv.ProvisionDefaultTaxCodes(t, subscriptiontestutils.ExampleNamespace)
 
-	planInput := subscriptiontestutils.GetExamplePlanInput(t, taxConfig)
-	published := deps.PlanHelper.CreatePlan(t, planInput)
+	draft, err := deps.PlanService.CreatePlan(t.Context(), subscriptiontestutils.GetExamplePlanInput(t, taxConfig))
+	require.NoError(t, err)
+
+	// The clock keeps running, so publish ahead of it and move past that instant: publishing at
+	// the current time could land after the clock is moved, leaving the plan not yet active.
+	publishAt := clock.Now().Add(time.Minute)
+	_, err = deps.PlanService.PublishPlan(t.Context(), plan.PublishPlanInput{
+		NamespacedID: draft.NamespacedID,
+		EffectivePeriod: productcatalog.EffectivePeriod{
+			EffectiveFrom: &publishAt,
+		},
+	})
+	require.NoError(t, err)
 
 	require.NoError(t, deps.TaxCodeEnv.Service.DeleteTaxCode(t.Context(), taxcode.DeleteTaxCodeInput{
 		NamespacedID: doomedTaxCode.NamespacedID,
 	}))
 
-	// The plan is published with EffectiveFrom at its creation time, which is only active
-	// strictly after that instant.
-	clock.SetTime(now.Add(time.Second))
+	clock.SetTime(publishAt.Add(time.Second))
 
 	// when: the subscription is created from the plan reference
 	refPlan := plansubscription.PlanInput{}
 	refPlan.FromRef(&plansubscription.PlanRefInput{
-		Key:     published.ToCreateSubscriptionPlanInput().Plan.Key,
-		Version: &published.ToCreateSubscriptionPlanInput().Plan.Version,
+		Key:     draft.Key,
+		Version: &draft.Version,
 	})
 
 	sub, err := svc.Create(t.Context(), plansubscription.CreateSubscriptionRequest{
