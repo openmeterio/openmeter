@@ -19,7 +19,7 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
-	api "github.com/openmeterio/openmeter/api/v3"
+	apiv3 "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/handlers/notification/events"
 	"github.com/openmeterio/openmeter/api/v3/oasmiddleware"
 	"github.com/openmeterio/openmeter/openmeter/app"
@@ -151,7 +151,7 @@ func (s *LegacyEventV3TestSuite) newV1Router(service notification.Service) http.
 func (s *LegacyEventV3TestSuite) newV3Router(t *testing.T, service notification.Service) http.Handler {
 	t.Helper()
 
-	doc, err := api.GetSpec()
+	doc, err := apiv3.GetSpec()
 	require.NoError(t, err)
 
 	validationRouter, err := oasmiddleware.NewValidationRouter(t.Context(), doc, &oasmiddleware.ValidationRouterOpts{
@@ -173,7 +173,7 @@ func (s *LegacyEventV3TestSuite) newV3Router(t *testing.T, service notification.
 		RouteFilterHook: func(*routers.Route) bool { return true },
 	}))
 	router.Get("/openmeter/notification/events", func(w http.ResponseWriter, r *http.Request) {
-		handler.ListNotificationEvents().With(api.ListBillingNotificationEventsParams{}).ServeHTTP(w, r)
+		handler.ListNotificationEvents().With(apiv3.ListBillingNotificationEventsParams{}).ServeHTTP(w, r)
 	})
 	router.Get("/openmeter/notification/events/{eventId}", func(w http.ResponseWriter, r *http.Request) {
 		handler.GetNotificationEvent().With(chi.URLParam(r, "eventId")).ServeHTTP(w, r)
