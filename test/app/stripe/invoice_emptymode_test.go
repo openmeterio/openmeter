@@ -3,6 +3,7 @@ package appstripe
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
@@ -14,6 +15,7 @@ import (
 	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicelineusagediscount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingstandardinvoicedetailedline"
@@ -210,6 +212,161 @@ func (s *StripeInvoiceTestSuite) TestEmptyInvoiceModeDraftEdit() {
 			}
 		})
 	}
+}
+
+func (s *StripeInvoiceTestSuite) TestEmptyInvoiceModeOmitSyncsAgainAfterEdit() {
+	ctx := s.T().Context()
+	namespace := "ns-empty-invoice-mode-resync"
+	period := emptyInvoiceModeServicePeriod()
+	addedFeeName := "Added fee"
+
+	clock.FreezeTime(period.To.Add(time.Minute))
+	defer clock.UnFreeze()
+
+	cust := s.setupEmptyInvoiceModeCustomer(ctx, namespace, billing.EmptyInvoiceModeOmit)
+	defer s.StripeAppClient.Restore()
+
+	apiRequestsTotal := s.SetupApiRequestsTotalFeature(ctx, namespace)
+	defer apiRequestsTotal.Cleanup()
+
+	// Stripe gives every added line a new line item ID: il_1 for the first one, il_2 for the next.
+	addedStripeLines := 0
+
+	var addInvoiceLines *mock.Call
+	addInvoiceLines = s.StripeAppClient.
+		On("AddInvoiceLines", mock.Anything).
+		Run(func(args mock.Arguments) {
+			input := args.Get(0).(stripeclient.AddInvoiceLinesInput)
+
+			addInvoiceLines.ReturnArguments = mock.Arguments{
+				lo.Map(input.Lines, func(line *stripe.InvoiceItemParams, _ int) stripeclient.StripeInvoiceItemWithLineID {
+					addedStripeLines++
+
+					return stripeclient.StripeInvoiceItemWithLineID{
+						InvoiceItem: &stripe.InvoiceItem{
+							ID:       fmt.Sprintf("ii_%d", addedStripeLines),
+							Metadata: line.Metadata,
+						},
+						LineID: fmt.Sprintf("il_%d", addedStripeLines),
+					}
+				}),
+				nil,
+			}
+		})
+
+	s.StripeAppClient.
+		On("DeleteInvoice", mock.Anything).
+		Return(nil)
+
+	// given: a draft with a $10 flat fee and a usage line without usage, synced to Stripe
+	invoice := s.createEmptyInvoiceModeDraft(ctx, cust,
+		emptyInvoiceModeFlatFeeLine(namespace, period, 10),
+		emptyInvoiceModeUsageLine(period, apiRequestsTotal.Feature.Key),
+	)
+	s.Require().Equal(emptyInvoiceModeStripeInvoiceID, invoice.ExternalIDs.Invoicing)
+	s.StripeAppClient.AssertNumberOfCalls(s.T(), "CreateInvoice", 1)
+	s.StripeAppClient.AssertNumberOfCalls(s.T(), "AddInvoiceLines", 1)
+	s.Require().Equal([]string{"il_1"}, s.emptyInvoiceModeStripeLineReferences(namespace))
+
+	// when: the flat fee is removed, leaving nothing to pay
+	invoice, err := s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
+		Invoice:      invoice.GetInvoiceID(),
+		ChangeSource: billing.ChangeSourceAPIRequest,
+		EditFn: func(i *billing.StandardInvoice) error {
+			flatFee, found := lo.Find(i.Lines.OrEmpty(), func(line *billing.StandardLine) bool {
+				return line.Name == emptyInvoiceModeFlatFeeName
+			})
+			if !found {
+				return errors.New("flat fee line not found")
+			}
+
+			flatFee.DeletedAt = lo.ToPtr(clock.Now())
+
+			return nil
+		},
+	})
+	s.Require().NoError(err)
+
+	// then: the Stripe invoice is deleted and nothing points at it anymore
+	s.StripeAppClient.AssertNumberOfCalls(s.T(), "DeleteInvoice", 1)
+	s.Require().Equal(billing.StandardInvoiceStatusDraftManualApprovalNeeded, invoice.Status)
+	s.Require().Empty(invoice.ExternalIDs.Invoicing)
+	s.Require().Empty(s.emptyInvoiceModeStripeLineReferences(namespace))
+
+	// when: a later edit adds a $20 fee, so there is something to bill again
+	invoice, err = s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
+		Invoice:      invoice.GetInvoiceID(),
+		ChangeSource: billing.ChangeSourceAPIRequest,
+		EditFn: func(i *billing.StandardInvoice) error {
+			i.Lines.Append(billing.NewFlatFeeLine(billing.NewFlatFeeLineInput{
+				Namespace:     namespace,
+				InvoiceID:     i.ID,
+				Period:        period,
+				InvoiceAt:     period.To,
+				ManagedBy:     billing.ManuallyManagedLine,
+				Name:          addedFeeName,
+				PerUnitAmount: alpacadecimal.NewFromInt(20),
+				Currency:      currencyx.FiatCode(currency.USD),
+				PaymentTerm:   productcatalog.InArrearsPaymentTerm,
+			}))
+
+			return nil
+		},
+	})
+	s.Require().NoError(err)
+
+	// then: a new Stripe invoice is created with only the added fee, and the invoice points at it.
+	// UpdateInvoice has no stub, so reaching the update path of the deleted invoice would fail the test.
+	s.StripeAppClient.AssertNumberOfCalls(s.T(), "CreateInvoice", 2)
+	s.StripeAppClient.AssertNumberOfCalls(s.T(), "AddInvoiceLines", 2)
+	s.StripeAppClient.AssertNumberOfCalls(s.T(), "DeleteInvoice", 1)
+
+	lastAddInvoiceLines := s.StripeAppClient.Calls[len(s.StripeAppClient.Calls)-1]
+	s.Require().Equal("AddInvoiceLines", lastAddInvoiceLines.Method)
+
+	addedLines := lastAddInvoiceLines.Arguments.Get(0).(stripeclient.AddInvoiceLinesInput)
+	s.Equal(emptyInvoiceModeStripeInvoiceID, addedLines.StripeInvoiceID)
+	s.Require().Len(addedLines.Lines, 1)
+	s.Equal(addedFeeName, lo.FromPtr(addedLines.Lines[0].Description))
+	s.Equal(int64(2000), lo.FromPtr(addedLines.Lines[0].Amount))
+
+	s.Equal(billing.StandardInvoiceStatusDraftManualApprovalNeeded, invoice.Status)
+	s.Equal(emptyInvoiceModeStripeInvoiceID, invoice.ExternalIDs.Invoicing)
+	s.Equal(float64(20), invoice.Totals.Total.InexactFloat64())
+	s.Empty(invoice.InvoicingAppStatus)
+	s.Equal([]string{"il_2"}, s.emptyInvoiceModeStripeLineReferences(namespace))
+
+	// when: the invoice is approved
+	stripeInvoice := &stripe.Invoice{
+		ID:       emptyInvoiceModeStripeInvoiceID,
+		Customer: &stripe.Customer{ID: defaultStripeCustomerID},
+		Number:   "INV-123",
+		Currency: "USD",
+		Lines:    &stripe.InvoiceLineItemList{Data: []*stripe.InvoiceLineItem{}},
+	}
+
+	s.StripeAppClient.
+		On("UpdateInvoice", mock.Anything).
+		Return(stripeInvoice, nil)
+	s.StripeAppClient.
+		On("ListInvoiceLineItems", emptyInvoiceModeStripeInvoiceID).
+		Return([]*stripe.InvoiceLineItem{{ID: "il_2", InvoiceItem: &stripe.InvoiceItem{ID: "ii_2"}}}, nil)
+	s.StripeAppClient.
+		On("UpdateInvoiceLines", mock.Anything).
+		Return([]*stripe.InvoiceItem{}, nil)
+	s.StripeAppClient.
+		On("FinalizeInvoice", mock.Anything).
+		Return(stripeInvoice, nil)
+
+	invoice, err = s.BillingService.ApproveInvoice(ctx, invoice.GetInvoiceID())
+	s.Require().NoError(err)
+
+	// then: it is issued in Stripe like any other invoice
+	s.StripeAppClient.AssertNumberOfCalls(s.T(), "FinalizeInvoice", 1)
+	s.StripeAppClient.AssertNumberOfCalls(s.T(), "DeleteInvoice", 1)
+	s.Equal(billing.StandardInvoiceStatusPaymentProcessingPending, invoice.Status)
+	s.Equal(emptyInvoiceModeStripeInvoiceID, invoice.ExternalIDs.Invoicing)
+	s.Empty(invoice.InvoicingAppStatus)
 }
 
 func (s *StripeInvoiceTestSuite) TestEmptyInvoiceModeIssuing() {
@@ -518,6 +675,22 @@ func (s *StripeInvoiceTestSuite) stubEmptyInvoiceModeIssuingCalls() {
 	s.StripeAppClient.
 		On("DeleteInvoice", mock.Anything).
 		Return(nil)
+}
+
+func (s *StripeInvoiceTestSuite) emptyInvoiceModeStripeLineReferences(namespace string) []string {
+	s.T().Helper()
+
+	detailedLines, err := s.DBClient.BillingStandardInvoiceDetailedLine.Query().
+		Where(
+			billingstandardinvoicedetailedline.Namespace(namespace),
+			billingstandardinvoicedetailedline.InvoicingAppExternalIDNotNil(),
+		).
+		All(s.T().Context())
+	s.Require().NoError(err)
+
+	return lo.Map(detailedLines, func(line *db.BillingStandardInvoiceDetailedLine, _ int) string {
+		return lo.FromPtr(line.InvoicingAppExternalID)
+	})
 }
 
 // setupEmptyInvoiceModeCustomer creates a Stripe-billed customer whose profile uses the given
