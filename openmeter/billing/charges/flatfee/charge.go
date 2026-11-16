@@ -333,8 +333,11 @@ func (i Intent) CalculateAmountAfterProration() (alpacadecimal.Decimal, error) {
 		return i.AmountBeforeProration, nil
 	}
 
-	percentage := alpacadecimal.NewFromInt(servicePeriodDuration).Div(alpacadecimal.NewFromInt(fullServicePeriodDuration))
-	amount := i.AmountBeforeProration.Mul(percentage)
+	// Multiply before dividing so the intermediate ratio (e.g. 25/30) is not truncated
+	// before the single final rounding to the currency precision.
+	amount := i.AmountBeforeProration.
+		Mul(alpacadecimal.NewFromInt(servicePeriodDuration)).
+		Div(alpacadecimal.NewFromInt(fullServicePeriodDuration))
 
 	if err := i.Currency.Validate(); err != nil {
 		return alpacadecimal.Decimal{}, fmt.Errorf("currency: %w", err)

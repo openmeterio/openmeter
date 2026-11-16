@@ -368,6 +368,25 @@ func TestCalculateAmountAfterProration(t *testing.T) {
 		assert.True(t, result.Equal(expected), "expected %s, got %s", expected, result)
 	})
 
+	t.Run("rounds once after multiplying by the period ratio", func(t *testing.T) {
+		// 0.03 * 25/30 = 0.025 exactly, which must round to 0.03 (not 0.02 via a truncated 25/30).
+		intent := baseIntent()
+		intent.AmountBeforeProration = alpacadecimal.RequireFromString("0.03")
+		intent.FullServicePeriod = timeutil.ClosedPeriod{From: fullMonthStart, To: fullMonthStart.AddDate(0, 0, 30)}
+		intent.ServicePeriod = timeutil.ClosedPeriod{From: fullMonthStart, To: fullMonthStart.AddDate(0, 0, 25)}
+
+		result, err := intent.CalculateAmountAfterProration()
+		require.NoError(t, err)
+		expected := alpacadecimal.RequireFromString("0.03")
+		assert.True(t, result.Equal(expected), "expected %s, got %s", expected, result)
+
+		intent.AmountBeforeProration = alpacadecimal.RequireFromString("-0.03")
+		result, err = intent.CalculateAmountAfterProration()
+		require.NoError(t, err)
+		expected = alpacadecimal.RequireFromString("-0.03")
+		assert.True(t, result.Equal(expected), "negative: expected %s, got %s", expected, result)
+	})
+
 	t.Run("zero length service period returns full amount", func(t *testing.T) {
 		intent := baseIntent()
 		intent.ServicePeriod = timeutil.ClosedPeriod{
