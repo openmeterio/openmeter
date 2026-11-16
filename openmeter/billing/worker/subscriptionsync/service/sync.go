@@ -145,13 +145,10 @@ func (s *Service) synchronizeSubscription(ctx context.Context, in synchronizeSub
 			// Capture the revision before reading billing intent. A change committed
 			// during cleanup must remain different from the revision acknowledged below.
 			var subsRevision string
-			if len(syncStates) > 0 {
-				// TODO[later]: Require CurrentSubsRevision on existing v2 rows instead of defaulting NULL to an empty string.
-				subsRevision = lo.FromPtr(syncStates[0].CurrentSubsRevision)
-			}
-
-			if subsRevision == "" {
+			if len(syncStates) == 0 {
 				subsRevision = ulid.Make().String()
+			} else {
+				subsRevision = syncStates[0].CurrentSubsRevision
 			}
 
 			// A sync waiting for the billing lock must observe any deletion cleanup
@@ -261,7 +258,7 @@ func (s *Service) synchronizeSubscription(ctx context.Context, in synchronizeSub
 			if cleanupState != "" {
 				// Record cleanup even when no artifacts remained. The result must commit
 				// together with artifact deletion and the legacy scheduling update.
-				if err := s.subscriptionSyncAdapter.UpsertSyncStateV2(ctx, subscriptionsync.UpsertSyncStateV2Input{
+				if err := s.subscriptionSyncAdapter.RecordSyncResultV2(ctx, subscriptionsync.RecordSyncResultV2Input{
 					SubscriptionID:         subscriptionID,
 					LastSuccessState:       cleanupState,
 					LastSuccessAt:          clock.Now().UTC(),

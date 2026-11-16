@@ -6021,8 +6021,8 @@ var (
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
 		{Name: "last_success_state", Type: field.TypeEnum, Enums: []string{"subscription_deleted", "customer_deleted_before"}},
 		{Name: "last_success_at", Type: field.TypeTime},
-		{Name: "last_synced_subs_revision", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
-		{Name: "current_subs_revision", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "last_synced_subs_revision", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "current_subs_revision", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "subscription_id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// SubscriptionSyncStatesV2Table holds the schema information for the "subscription_sync_states_v2" table.

@@ -34,9 +34,9 @@ type SubscriptionSyncStateV2 struct {
 	// LastSuccessAt holds the value of the "last_success_at" field.
 	LastSuccessAt time.Time `json:"last_success_at,omitempty"`
 	// LastSyncedSubsRevision holds the value of the "last_synced_subs_revision" field.
-	LastSyncedSubsRevision *string `json:"last_synced_subs_revision,omitempty"`
+	LastSyncedSubsRevision string `json:"last_synced_subs_revision,omitempty"`
 	// CurrentSubsRevision holds the value of the "current_subs_revision" field.
-	CurrentSubsRevision *string `json:"current_subs_revision,omitempty"`
+	CurrentSubsRevision string `json:"current_subs_revision,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the SubscriptionSyncStateV2Query when eager-loading is set.
 	Edges        SubscriptionSyncStateV2Edges `json:"edges"`
@@ -140,15 +140,13 @@ func (_m *SubscriptionSyncStateV2) assignValues(columns []string, values []any) 
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field last_synced_subs_revision", values[i])
 			} else if value.Valid {
-				_m.LastSyncedSubsRevision = new(string)
-				*_m.LastSyncedSubsRevision = value.String
+				_m.LastSyncedSubsRevision = value.String
 			}
 		case subscriptionsyncstatev2.FieldCurrentSubsRevision:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field current_subs_revision", values[i])
 			} else if value.Valid {
-				_m.CurrentSubsRevision = new(string)
-				*_m.CurrentSubsRevision = value.String
+				_m.CurrentSubsRevision = value.String
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
@@ -214,15 +212,11 @@ func (_m *SubscriptionSyncStateV2) String() string {
 	builder.WriteString("last_success_at=")
 	builder.WriteString(_m.LastSuccessAt.Format(time.ANSIC))
 	builder.WriteString(", ")
-	if v := _m.LastSyncedSubsRevision; v != nil {
-		builder.WriteString("last_synced_subs_revision=")
-		builder.WriteString(*v)
-	}
+	builder.WriteString("last_synced_subs_revision=")
+	builder.WriteString(_m.LastSyncedSubsRevision)
 	builder.WriteString(", ")
-	if v := _m.CurrentSubsRevision; v != nil {
-		builder.WriteString("current_subs_revision=")
-		builder.WriteString(*v)
-	}
+	builder.WriteString("current_subs_revision=")
+	builder.WriteString(_m.CurrentSubsRevision)
 	builder.WriteByte(')')
 	return builder.String()
 }

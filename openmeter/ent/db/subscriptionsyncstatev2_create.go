@@ -97,25 +97,9 @@ func (_c *SubscriptionSyncStateV2Create) SetLastSyncedSubsRevision(v string) *Su
 	return _c
 }
 
-// SetNillableLastSyncedSubsRevision sets the "last_synced_subs_revision" field if the given value is not nil.
-func (_c *SubscriptionSyncStateV2Create) SetNillableLastSyncedSubsRevision(v *string) *SubscriptionSyncStateV2Create {
-	if v != nil {
-		_c.SetLastSyncedSubsRevision(*v)
-	}
-	return _c
-}
-
 // SetCurrentSubsRevision sets the "current_subs_revision" field.
 func (_c *SubscriptionSyncStateV2Create) SetCurrentSubsRevision(v string) *SubscriptionSyncStateV2Create {
 	_c.mutation.SetCurrentSubsRevision(v)
-	return _c
-}
-
-// SetNillableCurrentSubsRevision sets the "current_subs_revision" field if the given value is not nil.
-func (_c *SubscriptionSyncStateV2Create) SetNillableCurrentSubsRevision(v *string) *SubscriptionSyncStateV2Create {
-	if v != nil {
-		_c.SetCurrentSubsRevision(*v)
-	}
 	return _c
 }
 
@@ -222,10 +206,16 @@ func (_c *SubscriptionSyncStateV2Create) check() error {
 	if _, ok := _c.mutation.LastSuccessAt(); !ok {
 		return &ValidationError{Name: "last_success_at", err: errors.New(`db: missing required field "SubscriptionSyncStateV2.last_success_at"`)}
 	}
+	if _, ok := _c.mutation.LastSyncedSubsRevision(); !ok {
+		return &ValidationError{Name: "last_synced_subs_revision", err: errors.New(`db: missing required field "SubscriptionSyncStateV2.last_synced_subs_revision"`)}
+	}
 	if v, ok := _c.mutation.LastSyncedSubsRevision(); ok {
 		if err := subscriptionsyncstatev2.LastSyncedSubsRevisionValidator(v); err != nil {
 			return &ValidationError{Name: "last_synced_subs_revision", err: fmt.Errorf(`db: validator failed for field "SubscriptionSyncStateV2.last_synced_subs_revision": %w`, err)}
 		}
+	}
+	if _, ok := _c.mutation.CurrentSubsRevision(); !ok {
+		return &ValidationError{Name: "current_subs_revision", err: errors.New(`db: missing required field "SubscriptionSyncStateV2.current_subs_revision"`)}
 	}
 	if v, ok := _c.mutation.CurrentSubsRevision(); ok {
 		if err := subscriptionsyncstatev2.CurrentSubsRevisionValidator(v); err != nil {
@@ -297,11 +287,11 @@ func (_c *SubscriptionSyncStateV2Create) createSpec() (*SubscriptionSyncStateV2,
 	}
 	if value, ok := _c.mutation.LastSyncedSubsRevision(); ok {
 		_spec.SetField(subscriptionsyncstatev2.FieldLastSyncedSubsRevision, field.TypeString, value)
-		_node.LastSyncedSubsRevision = &value
+		_node.LastSyncedSubsRevision = value
 	}
 	if value, ok := _c.mutation.CurrentSubsRevision(); ok {
 		_spec.SetField(subscriptionsyncstatev2.FieldCurrentSubsRevision, field.TypeString, value)
-		_node.CurrentSubsRevision = &value
+		_node.CurrentSubsRevision = value
 	}
 	if nodes := _c.mutation.SubscriptionIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -438,12 +428,6 @@ func (u *SubscriptionSyncStateV2Upsert) UpdateLastSyncedSubsRevision() *Subscrip
 	return u
 }
 
-// ClearLastSyncedSubsRevision clears the value of the "last_synced_subs_revision" field.
-func (u *SubscriptionSyncStateV2Upsert) ClearLastSyncedSubsRevision() *SubscriptionSyncStateV2Upsert {
-	u.SetNull(subscriptionsyncstatev2.FieldLastSyncedSubsRevision)
-	return u
-}
-
 // SetCurrentSubsRevision sets the "current_subs_revision" field.
 func (u *SubscriptionSyncStateV2Upsert) SetCurrentSubsRevision(v string) *SubscriptionSyncStateV2Upsert {
 	u.Set(subscriptionsyncstatev2.FieldCurrentSubsRevision, v)
@@ -453,12 +437,6 @@ func (u *SubscriptionSyncStateV2Upsert) SetCurrentSubsRevision(v string) *Subscr
 // UpdateCurrentSubsRevision sets the "current_subs_revision" field to the value that was provided on create.
 func (u *SubscriptionSyncStateV2Upsert) UpdateCurrentSubsRevision() *SubscriptionSyncStateV2Upsert {
 	u.SetExcluded(subscriptionsyncstatev2.FieldCurrentSubsRevision)
-	return u
-}
-
-// ClearCurrentSubsRevision clears the value of the "current_subs_revision" field.
-func (u *SubscriptionSyncStateV2Upsert) ClearCurrentSubsRevision() *SubscriptionSyncStateV2Upsert {
-	u.SetNull(subscriptionsyncstatev2.FieldCurrentSubsRevision)
 	return u
 }
 
@@ -596,13 +574,6 @@ func (u *SubscriptionSyncStateV2UpsertOne) UpdateLastSyncedSubsRevision() *Subsc
 	})
 }
 
-// ClearLastSyncedSubsRevision clears the value of the "last_synced_subs_revision" field.
-func (u *SubscriptionSyncStateV2UpsertOne) ClearLastSyncedSubsRevision() *SubscriptionSyncStateV2UpsertOne {
-	return u.Update(func(s *SubscriptionSyncStateV2Upsert) {
-		s.ClearLastSyncedSubsRevision()
-	})
-}
-
 // SetCurrentSubsRevision sets the "current_subs_revision" field.
 func (u *SubscriptionSyncStateV2UpsertOne) SetCurrentSubsRevision(v string) *SubscriptionSyncStateV2UpsertOne {
 	return u.Update(func(s *SubscriptionSyncStateV2Upsert) {
@@ -614,13 +585,6 @@ func (u *SubscriptionSyncStateV2UpsertOne) SetCurrentSubsRevision(v string) *Sub
 func (u *SubscriptionSyncStateV2UpsertOne) UpdateCurrentSubsRevision() *SubscriptionSyncStateV2UpsertOne {
 	return u.Update(func(s *SubscriptionSyncStateV2Upsert) {
 		s.UpdateCurrentSubsRevision()
-	})
-}
-
-// ClearCurrentSubsRevision clears the value of the "current_subs_revision" field.
-func (u *SubscriptionSyncStateV2UpsertOne) ClearCurrentSubsRevision() *SubscriptionSyncStateV2UpsertOne {
-	return u.Update(func(s *SubscriptionSyncStateV2Upsert) {
-		s.ClearCurrentSubsRevision()
 	})
 }
 
@@ -925,13 +889,6 @@ func (u *SubscriptionSyncStateV2UpsertBulk) UpdateLastSyncedSubsRevision() *Subs
 	})
 }
 
-// ClearLastSyncedSubsRevision clears the value of the "last_synced_subs_revision" field.
-func (u *SubscriptionSyncStateV2UpsertBulk) ClearLastSyncedSubsRevision() *SubscriptionSyncStateV2UpsertBulk {
-	return u.Update(func(s *SubscriptionSyncStateV2Upsert) {
-		s.ClearLastSyncedSubsRevision()
-	})
-}
-
 // SetCurrentSubsRevision sets the "current_subs_revision" field.
 func (u *SubscriptionSyncStateV2UpsertBulk) SetCurrentSubsRevision(v string) *SubscriptionSyncStateV2UpsertBulk {
 	return u.Update(func(s *SubscriptionSyncStateV2Upsert) {
@@ -943,13 +900,6 @@ func (u *SubscriptionSyncStateV2UpsertBulk) SetCurrentSubsRevision(v string) *Su
 func (u *SubscriptionSyncStateV2UpsertBulk) UpdateCurrentSubsRevision() *SubscriptionSyncStateV2UpsertBulk {
 	return u.Update(func(s *SubscriptionSyncStateV2Upsert) {
 		s.UpdateCurrentSubsRevision()
-	})
-}
-
-// ClearCurrentSubsRevision clears the value of the "current_subs_revision" field.
-func (u *SubscriptionSyncStateV2UpsertBulk) ClearCurrentSubsRevision() *SubscriptionSyncStateV2UpsertBulk {
-	return u.Update(func(s *SubscriptionSyncStateV2Upsert) {
-		s.ClearCurrentSubsRevision()
 	})
 }
 

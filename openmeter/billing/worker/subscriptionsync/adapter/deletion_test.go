@@ -75,10 +75,11 @@ func (s *DeletedSubscriptionsToReconcileSuite) createSubscription(customerID mod
 func (s *DeletedSubscriptionsToReconcileSuite) recordDeletionCleanup(subscriptionID models.NamespacedID) {
 	s.T().Helper()
 
-	s.Require().NoError(s.adapter.UpsertSyncStateV2(s.T().Context(), subscriptionsync.UpsertSyncStateV2Input{
-		SubscriptionID:   subscriptionID,
-		LastSuccessState: subscriptionsync.SyncStateV2StateSubscriptionDeleted,
-		LastSuccessAt:    s.now,
+	s.Require().NoError(s.adapter.RecordSyncResultV2(s.T().Context(), subscriptionsync.RecordSyncResultV2Input{
+		SubscriptionID:         subscriptionID,
+		LastSuccessState:       subscriptionsync.SyncStateV2StateSubscriptionDeleted,
+		LastSuccessAt:          s.now,
+		LastSyncedSubsRevision: ulid.Make().String(),
 	}))
 }
 
@@ -172,10 +173,11 @@ func (s *DeletedSubscriptionsToReconcileSuite) TestDifferentV2ResultStillRequire
 	// given: a deleted subscription with a v2 result for work other than deletion
 	sub := s.createSubscription(s.customerID)
 	s.Require().NoError(s.db.Subscription.UpdateOneID(sub.ID).SetDeletedAt(s.now).Exec(ctx))
-	s.Require().NoError(s.adapter.UpsertSyncStateV2(ctx, subscriptionsync.UpsertSyncStateV2Input{
-		SubscriptionID:   sub.NamespacedID,
-		LastSuccessState: subscriptionsync.SyncStateV2StateCustomerDeletedBefore,
-		LastSuccessAt:    s.now,
+	s.Require().NoError(s.adapter.RecordSyncResultV2(ctx, subscriptionsync.RecordSyncResultV2Input{
+		SubscriptionID:         sub.NamespacedID,
+		LastSuccessState:       subscriptionsync.SyncStateV2StateCustomerDeletedBefore,
+		LastSuccessAt:          s.now,
+		LastSyncedSubsRevision: ulid.Make().String(),
 	}))
 
 	// when: the worker selects cleanup candidates

@@ -172,11 +172,10 @@ Dry runs and failed syncs do not record completion.
 Each sync reads v2 state after acquiring the customer billing lock and before
 reading the subscription view. `current_subs_revision` identifies the subscription
 revision to reconcile; `last_synced_subs_revision` records the revision observed
-at the start of the last successful cleanup. Both columns are nullable while
-existing records are upgraded. Sync generates a ULID when there is no current
-revision, and successful cleanup inserts that same value into both columns.
-On conflict, it acknowledges the captured revision and initializes a NULL current
-revision, but preserves any current revision another writer has already set.
+at the start of the last successful cleanup. Both revisions are required on every
+v2 row. Sync generates a ULID when there is no v2 row, and successful cleanup
+inserts that same value into both columns. On conflict, it updates only the last
+synced revision; the current revision is never overwritten by cleanup.
 Ordinary syncs read v2 state without writing it. Revisions do not yet change periodic
 scheduling or suppress reconciliation.
 
