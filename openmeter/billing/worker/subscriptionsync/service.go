@@ -25,8 +25,17 @@ type SyncStateService interface {
 }
 
 type SynchronizeSubscriptionOptions struct {
-	DryRun              bool
-	InvoicePendingLines bool
+	DryRun                      bool
+	InvoicePendingLines         bool
+	ForceResyncOldSubscriptions bool
+}
+
+// WithForceResyncOldSubscriptions reconciles billing artifacts even when the
+// subscription ended more than 30 days ago.
+func WithForceResyncOldSubscriptions() SynchronizeSubscriptionOption {
+	return func(o *SynchronizeSubscriptionOptions) {
+		o.ForceResyncOldSubscriptions = true
+	}
 }
 
 // WithInvoicePendingLines collects the customer's pending lines after a successful

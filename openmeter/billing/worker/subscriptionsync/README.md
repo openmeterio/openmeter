@@ -154,30 +154,40 @@ scheduling. It uses the deletion timestamp even when it is ahead of the worker
 clock, so collection cannot invoice those lines while cleanup waits. Customer
 deletion after subscription start still allows reconciliation of earlier service.
 
-Sync state is written only after the plan has been applied. `HasBillables`
+Legacy sync state is written only after the plan has been applied. `HasBillables`
 prevents needless future scheduling; `NextSyncAfter` is the end of the
 generated horizon. Errors remain retryable through the event handler or
 periodic reconciler. Dry-run builds the same plan but only logs it and does not
 write artifacts or sync state.
 
-The separate v2 sync-state table stores the last successful reconciliation
-result and its completion time: `subscription_deleted` for a deleted subscription,
-or `customer_deleted_before` when its customer was deleted at or before subscription
-start. Subscription deletion takes precedence when both conditions hold. A missing
-row means no successful v2 reconciliation has been recorded. Sync writes the result
-in the same transaction as billing cleanup, even when there are no artifacts left,
-and stops legacy periodic scheduling with `HasBillables=false` and no next deadline.
-Dry runs and failed syncs do not record completion.
+The separate v2 sync-state table stores completed sync outcomes and their time:
+
+- `subscription_deleted`: an empty billing target was reconciled for a deleted subscription.
+- `customer_deleted_before`: an empty target was reconciled because the customer was deleted at or before subscription start.
+- `ended`: normal billing reconciliation succeeded after `ActiveTo`, with a requested horizon covering that end.
+- `too_old`: billing reconciliation was deliberately skipped because `ActiveTo` is more than 30 days before the worker clock. This outcome does not establish that billing artifacts were reconciled.
+
+Deletion cleanup takes precedence over the age cutoff, with subscription deletion
+checked before customer deletion. Cleanup still stops legacy periodic scheduling
+with `HasBillables=false` and no next deadline. An age skip leaves billing artifacts
+and legacy scheduling unchanged, skips pending-line collection, and records only
+the v2 outcome without loading the subscription view or billing artifacts.
+Exactly 30 days old remains eligible for normal reconciliation.
+
+Sync writes reconciliation outcomes in the same transaction as billing changes
+and legacy scheduling, even when the plan was empty. A missing v2 row means no
+outcome has been recorded. Dry runs and failed syncs do not record outcomes.
 
 Each sync reads v2 state after acquiring the customer billing lock and before
 reading the subscription view. `current_subs_revision` identifies the subscription
 revision to reconcile; `last_synced_subs_revision` records the revision observed
-at the start of the last successful cleanup. Both revisions are required on every
-v2 row. Sync generates a ULID when there is no v2 row, and successful cleanup
-inserts that same value into both columns. On conflict, it updates only the last
-synced revision; the current revision is never overwritten by cleanup.
-Ordinary syncs read v2 state without writing it. Revisions do not yet change periodic
-scheduling or suppress reconciliation.
+at the start of the recorded sync outcome, including intentional age skips.
+Both revisions are required on every v2 row. Sync generates a ULID when there is
+no v2 row, and recording the outcome inserts that same value into both columns.
+On conflict, it updates only the last synced revision; the current revision is
+never overwritten by sync. Syncs without a cleanup, ended, or age-skip outcome
+leave v2 unchanged. Revisions do not yet change periodic scheduling or suppress
+reconciliation.
 
 The regular periodic list requires `DeletedAt` to be nil. A separate cleanup
 query selects all subscriptions with non-nil `DeletedAt` whose v2 result is not
@@ -189,9 +199,12 @@ subscriptions. The list loads v2 state only for deleted subscriptions.
 deleted subscriptions and legacy billing deadlines for other subscriptions. It
 also catches cleanup completed between candidate selection and state loading.
 
-Forced periodic reconciliation bypasses billing deadlines, but still excludes
-deleted subscriptions with a successful v2 cleanup result. To put one back in
-the periodic cleanup queue, delete its `subscription_sync_states_v2` entry.
+The CLI's `--f` flag bypasses billing deadlines. `--force-all` also enables
+`ForceResyncOldSubscriptions` to reconcile subscriptions older than the 30-day
+cutoff. The `--l` lookback still limits selection and defaults to 24 hours;
+resyncing older history also requires a wider lookback. Forced reconciliation
+still excludes deleted subscriptions with a successful v2 cleanup result. To put
+one back in the periodic cleanup queue, delete its `subscription_sync_states_v2` entry.
 
 ## Race between billing collection and subscription deletion cleanup
 
