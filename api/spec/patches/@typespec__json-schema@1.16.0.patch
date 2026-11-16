@@ -1,0 +1,56 @@
+diff --git a/dist/src/json-schema-emitter.js b/dist/src/json-schema-emitter.js
+index 9899a1259e4bf4da217b496eb74906375c8f8684..61fa85bb66e6e5c9e4141b2effcbc466f856622c 100644
+--- a/dist/src/json-schema-emitter.js
++++ b/dist/src/json-schema-emitter.js
+@@ -1,5 +1,5 @@
+ import { ArrayBuilder, Declaration, ObjectBuilder, Placeholder, TypeEmitter, setProperty, } from "@typespec/asset-emitter";
+-import { compilerAssert, emitFile, explainStringTemplateNotSerializable, getDeprecated, getDirectoryPath, getDiscriminator, getDoc, getExamples, getFormat, getMaxItems, getMaxLength, getMaxValue, getMaxValueExclusive, getMinItems, getMinLength, getMinValue, getMinValueExclusive, getPattern, getRelativePathFromDirectory, getSummary, isStringType, isType, joinPaths, sanitizePathSegment, serializeValueAsJson, } from "@typespec/compiler";
++import { compilerAssert, emitFile, explainStringTemplateNotSerializable, getDeprecated, getDirectoryPath, getDiscriminator, getDoc, getExamples, getFormat, getMaxItems, getMaxLength, getMaxValue, getMaxValueExclusive, getMinItems, getMinLength, getMinValue, getMinValueExclusive, getPattern, getRelativePathFromDirectory, getSummary, resolveEncodedName, isStringType, isType, joinPaths, sanitizePathSegment, serializeValueAsJson, } from "@typespec/compiler";
+ import { DuplicateTracker } from "@typespec/compiler/utils";
+ import { stringify } from "yaml";
+ import { findBaseUri, getContains, getContentEncoding, getContentMediaType, getContentSchema, getExtensions, getId, getMaxContains, getMaxProperties, getMinContains, getMinProperties, getMultipleOf, getPrefixItems, getUniqueItems, isJsonSchemaDeclaration, isOneOf, } from "./index.js";
+@@ -92,7 +92,7 @@ export class JsonSchemaEmitter extends TypeEmitter {
+         const requiredProps = [];
+         for (const prop of model.properties.values()) {
+             if (!prop.optional) {
+-                requiredProps.push(prop.name);
++                requiredProps.push(resolveEncodedName(this.emitter.getProgram(), prop, "application/json"));
+             }
+         }
+         // Add discriminator property to required if model has @discriminator decorator and property is not already defined
+@@ -116,8 +116,9 @@ export class JsonSchemaEmitter extends TypeEmitter {
+             }
+             // Then collect from this model
+             for (const prop of m.properties.values()) {
+-                if (!prop.optional && !requiredProps.includes(prop.name)) {
+-                    requiredProps.push(prop.name);
++                const encodedName = resolveEncodedName(this.emitter.getProgram(), prop, "application/json");
++                if (!prop.optional && !requiredProps.includes(encodedName)) {
++                    requiredProps.push(encodedName);
+                 }
+             }
+             // Add discriminator property if defined on this model
+@@ -144,9 +145,9 @@ export class JsonSchemaEmitter extends TypeEmitter {
+                 collectProperties(m.baseModel);
+             }
+             // Then collect from this model (overriding base if needed)
+-            for (const [name, prop] of m.properties) {
++            for (const prop of m.properties.values()) {
+                 const result = this.emitter.emitModelProperty(prop);
+-                setProperty(props, name, result);
++                setProperty(props, resolveEncodedName(this.emitter.getProgram(), prop, "application/json"), result);
+             }
+             // Add discriminator property if defined on this model and not already added
+             const discriminator = getDiscriminator(this.emitter.getProgram(), m);
+@@ -162,9 +163,9 @@ export class JsonSchemaEmitter extends TypeEmitter {
+     }
+     modelProperties(model) {
+         const props = new ObjectBuilder();
+-        for (const [name, prop] of model.properties) {
++        for (const prop of model.properties.values()) {
+             const result = this.emitter.emitModelProperty(prop);
+-            setProperty(props, name, result);
++            setProperty(props, resolveEncodedName(this.emitter.getProgram(), prop, "application/json"), result);
+         }
+         // Add discriminator property if model has @discriminator decorator and property is not already defined
+         const discriminator = getDiscriminator(this.emitter.getProgram(), model);
