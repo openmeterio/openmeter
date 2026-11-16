@@ -222,7 +222,7 @@ func (w *worker) processDemand(ctx context.Context) {
 			w.logger.ErrorContext(ctx, "process demanded calculation", "error", err)
 		}
 
-		if processed && err == nil {
+		if processed {
 			continue
 		}
 

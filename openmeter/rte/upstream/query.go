@@ -107,6 +107,7 @@ func (q ingestQuery) SQL() (string, []any) {
 
 	// Do not compare StoredAt to previous source timestamps. A late event can
 	// change an earlier charge or the entitlement's resumable balance history.
+	// The by-ID entitlement calculator includes usage after active_to.
 	return `WITH customers_by_subject AS (
  SELECT c.id FROM customers c WHERE c.namespace = $1
  AND (c.deleted_at IS NULL OR c.deleted_at > $2)
@@ -126,7 +127,6 @@ WHERE d.namespace = $1 AND ` + activeDemand + ` AND (
    WHERE e.namespace = d.namespace AND e.id = d.owner_id AND e.entitlement_type = 'metered'
    AND EXISTS (SELECT 1 FROM unnest($5::timestamptz[]) AS t(at)
      WHERE t.at >= COALESCE(e.measure_usage_from, e.active_from, e.created_at)
-     AND (e.active_to IS NULL OR t.at < e.active_to)
      AND (e.deleted_at IS NULL OR t.at < e.deleted_at)))) OR
  (d.kind = 'credit_balance' AND EXISTS (
    SELECT 1 FROM charge_usage_based c

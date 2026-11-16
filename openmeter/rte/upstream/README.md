@@ -14,8 +14,9 @@ pull. Resolving a fact does not activate keys.
 | Feature or meter lifecycle | Metered entitlements using the feature and credit balances for matching usage-based charges |
 
 Ingest routing uses the customer key or an active subject mapping and follows the meter to its
-features. A usage timestamp must fall on or after the entitlement’s measurement start and before
-its end/deletion, or within an eligible charge’s effective service period. Credit candidates
+features. For metered entitlements, usage counts from the measurement start until deletion. The
+by-ID balance calculation includes usage after the entitlement’s scheduled activity end. For
+credits, usage must fall within the charge’s effective service period. Credit candidates
 require an open usage charge settled by credit, the matching currency, and a compatible portfolio
 or feature scope. The batch carries a set of meter slugs and raw event times, so selectors can
 conservatively include extra work. A selector establishes that the result *may* have changed.

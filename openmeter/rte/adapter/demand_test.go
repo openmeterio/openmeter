@@ -3,6 +3,7 @@ package adapter_test
 import (
 	"bytes"
 	"context"
+	stdsql "database/sql"
 	"errors"
 	"testing"
 	"time"
@@ -30,6 +31,7 @@ import (
 type demandFixture struct {
 	repository rte.DemandRepository
 	client     *db.Client
+	pool       *stdsql.DB
 	store      rte.Store[creditbalance.Key, creditbalance.Balance]
 	key        creditbalance.Key
 	target     rte.CalculationTarget
@@ -49,7 +51,7 @@ func newDemandFixture(t *testing.T) demandFixture {
 	event, err := rte.NewCalculationRequestedEvent(key)
 	require.NoError(t, err)
 
-	return demandFixture{repository: repository, client: config.Client, store: store, key: key, target: event.CalculationTarget, input: rte.ProcessDemandInput{CalculationTimeout: time.Second, RetryMinDelay: time.Minute, RetryMaxDelay: time.Hour}}
+	return demandFixture{repository: repository, client: config.Client, pool: database.PGDriver.DB(), store: store, key: key, target: event.CalculationTarget, input: rte.ProcessDemandInput{CalculationTimeout: time.Second, RetryMinDelay: time.Minute, RetryMaxDelay: time.Hour}}
 }
 
 func TestDemandRegistrationCanonicalizesAndRepairsWireKey(t *testing.T) {
@@ -453,11 +455,7 @@ func TestPullRenewalSeesConcurrentInvalidation(t *testing.T) {
 
 	// When an invalidation holds the row lock, a pull must wait for its dirty version.
 	pull.PullTTL = 2 * time.Hour
-	type renewal struct {
-		clean bool
-		err   error
-	}
-	done := make(chan renewal, 1)
+	var done <-chan pullResult
 	err = transaction.RunWithNoValue(ctx, f.repository.(transaction.Creator), func(txCtx context.Context) error {
 		marked, err := f.repository.Invalidate(txCtx, rte.InvalidateInput{
 			Source: "ledger", EventID: "during-renewal",
@@ -466,25 +464,8 @@ func TestPullRenewalSeesConcurrentInvalidation(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, 1, marked.Matched)
 
-		go func() {
-			clean, err := f.repository.EnsurePull(ctx, pull)
-			done <- renewal{clean, err}
-		}()
-
-		// This fixture has its own database. Wait for PostgreSQL to confirm the
-		// competing update is blocked before allowing the invalidation to commit.
-		require.EventuallyWithT(t, func(collect *assert.CollectT) {
-			rows, err := f.client.QueryContext(ctx, `SELECT EXISTS (
-				SELECT FROM pg_stat_activity WHERE datname = current_database()
-				AND wait_event_type = 'Lock' AND query LIKE '%rte_demands%'
-			)`)
-			require.NoError(collect, err)
-			defer rows.Close()
-
-			waiting, err := sql.ScanBool(rows)
-			require.NoError(collect, err)
-			require.True(collect, waiting)
-		}, 5*time.Second, 10*time.Millisecond)
+		done = f.startPull(ctx, pull)
+		waitForDemandLock(t, ctx, f.client)
 
 		return nil
 	})
@@ -509,6 +490,142 @@ func TestPullRenewalSeesConcurrentInvalidation(t *testing.T) {
 	clean, err = f.repository.EnsurePull(ctx, pull)
 	require.NoError(t, err)
 	require.True(t, clean)
+}
+
+func TestPullRenewalRechecksTimeAfterWaiting(t *testing.T) {
+	for _, test := range []struct {
+		name       string
+		initialTTL time.Duration
+		maxAge     time.Duration
+	}{
+		{name: "lease expires and a fact is missed", initialTTL: time.Minute},
+		{name: "calculation exceeds maximum age", initialTTL: time.Hour, maxAge: time.Minute},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			// Given a calculation has finished but its transaction still holds the demand row.
+			f := newDemandFixture(t)
+			ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+			defer cancel()
+			start := clock.Now().UTC().Truncate(time.Second)
+			clock.FreezeTime(start)
+			defer clock.UnFreeze()
+
+			_, err := f.repository.EnsurePull(ctx, rte.EnsureFreshInput{Target: f.target, PullTTL: test.initialTTL})
+			require.NoError(t, err)
+			targeted := f.input
+			targeted.Target = &f.target
+			pull := rte.EnsureFreshInput{Target: f.target, PullTTL: 2 * time.Hour, MaxAge: test.maxAge}
+			var renewal <-chan pullResult
+			releasedAt := start.Add(65 * time.Second)
+			err = transaction.RunWithNoValue(ctx, f.repository.(transaction.Creator), func(txCtx context.Context) error {
+				result, err := f.repository.Process(txCtx, targeted, func(context.Context, rte.CalculationTarget) error { return nil })
+				require.NoError(t, err)
+				require.True(t, result.Processed)
+
+				// When a pull arrives before either deadline and waits across it.
+				clock.FreezeTime(start.Add(45 * time.Second))
+				renewal = f.startPull(ctx, pull)
+				waitForDemandLock(t, ctx, f.client)
+				clock.FreezeTime(releasedAt)
+				if releasedAt.After(start.Add(test.initialTTL)) {
+					marked, err := f.repository.Invalidate(ctx, rte.InvalidateInput{
+						Source: "ledger", EventID: "while-interest-expired",
+						Selectors: []rte.DemandSelector{{Namespace: f.key.CustomerID.Namespace, Kind: f.target.Kind, Targets: []rte.CalculationTarget{f.target}}},
+					})
+					require.NoError(t, err)
+					require.Zero(t, marked.Matched)
+				}
+
+				return nil
+			})
+			require.NoError(t, err)
+			got := <-renewal
+			require.NoError(t, got.err)
+			require.False(t, got.clean)
+
+			// Then a new calculation is due and the full lease starts after the wait.
+			row, err := f.client.RTEDemand.Query().Only(ctx)
+			require.NoError(t, err)
+			require.Greater(t, row.DirtyVersion, row.CompletedVersion)
+			require.True(t, row.PullUntil.Equal(releasedAt.Add(pull.PullTTL)))
+		})
+	}
+}
+
+func waitForDemandLock(t *testing.T, ctx context.Context, client *db.Client) {
+	t.Helper()
+
+	// Each fixture has its own database, so a lock wait on this table belongs
+	// to the competing pull. Let it reach PostgreSQL before advancing the clock.
+	require.EventuallyWithT(t, func(collect *assert.CollectT) {
+		rows, err := client.QueryContext(ctx, `SELECT EXISTS (
+			SELECT FROM pg_stat_activity WHERE datname = current_database()
+			AND wait_event_type = 'Lock' AND query LIKE '%rte_demands%'
+		)`)
+		require.NoError(collect, err)
+		defer rows.Close()
+
+		waiting, err := sql.ScanBool(rows)
+		require.NoError(collect, err)
+		require.True(collect, waiting)
+	}, 5*time.Second, 10*time.Millisecond)
+}
+
+func TestPullRenewalRechecksTimeAfterConnectionWait(t *testing.T) {
+	// Given a clean key and the only database connection is in use.
+	f := newDemandFixture(t)
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
+	start := clock.Now().UTC().Truncate(time.Second)
+	clock.FreezeTime(start)
+	defer clock.UnFreeze()
+
+	pull := rte.EnsureFreshInput{Target: f.target, PullTTL: time.Minute}
+	_, err := f.repository.EnsurePull(ctx, pull)
+	require.NoError(t, err)
+	targeted := f.input
+	targeted.Target = &f.target
+	result, err := f.repository.Process(ctx, targeted, func(context.Context, rte.CalculationTarget) error { return nil })
+	require.NoError(t, err)
+	require.True(t, result.Processed)
+
+	f.pool.SetMaxOpenConns(1)
+	conn, err := f.pool.Conn(ctx)
+	require.NoError(t, err)
+	defer conn.Close()
+	waits := f.pool.Stats().WaitCount
+
+	// When a pull starts during the lease but cannot reach PostgreSQL before expiry.
+	clock.FreezeTime(start.Add(45 * time.Second))
+	renewal := f.startPull(ctx, pull)
+	require.Eventually(t, func() bool { return f.pool.Stats().WaitCount > waits }, 5*time.Second, 10*time.Millisecond)
+	releasedAt := start.Add(65 * time.Second)
+	clock.FreezeTime(releasedAt)
+	require.NoError(t, conn.Close())
+
+	// Then it must calculate and track the full TTL from its renewed lease.
+	got := <-renewal
+	require.NoError(t, got.err)
+	require.False(t, got.clean)
+	row, err := f.client.RTEDemand.Query().Only(ctx)
+	require.NoError(t, err)
+	require.Greater(t, row.DirtyVersion, row.CompletedVersion)
+	require.True(t, row.PullUntil.Equal(releasedAt.Add(pull.PullTTL)))
+}
+
+type pullResult struct {
+	clean bool
+	err   error
+}
+
+func (f demandFixture) startPull(ctx context.Context, pull rte.EnsureFreshInput) <-chan pullResult {
+	done := make(chan pullResult, 1)
+	go func() {
+		clean, err := f.repository.EnsurePull(ctx, pull)
+		done <- pullResult{clean: clean, err: err}
+	}()
+
+	return done
 }
 
 func TestDemandReceiptRetentionBoundsDeletionAndAllowsSafeReplay(t *testing.T) {

@@ -30,7 +30,6 @@ WHERE d.namespace = $1 AND d.deleted_at IS NULL AND (d.push_enabled OR d.pull_un
    WHERE e.namespace = d.namespace AND e.id = d.owner_id AND e.entitlement_type = 'metered'
    AND EXISTS (SELECT 1 FROM unnest($5::timestamptz[]) AS t(at)
      WHERE t.at >= COALESCE(e.measure_usage_from, e.active_from, e.created_at)
-     AND (e.active_to IS NULL OR t.at < e.active_to)
      AND (e.deleted_at IS NULL OR t.at < e.deleted_at)))) OR
  (d.kind = 'credit_balance' AND EXISTS (
    SELECT 1 FROM charge_usage_based c

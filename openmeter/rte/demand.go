@@ -16,6 +16,7 @@ type DemandService interface {
 	EnsureFresh(context.Context, EnsureFreshInput) error
 	Deactivate(context.Context, CalculationTarget) error
 	Invalidate(context.Context, InvalidateInput) error
+	// Process reports whether a ready key was handled, including a durably deferred failure.
 	Process(context.Context) (bool, error)
 }
 
@@ -134,6 +135,7 @@ func (i ProcessDemandInput) Validate() error {
 
 type DemandWorkResult struct {
 	Processed        bool
+	Retired          bool
 	CalculationError error
 }
 
