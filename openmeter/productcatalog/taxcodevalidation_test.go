@@ -360,3 +360,36 @@ func TestValidateAddonWithTaxCodesLookupError(t *testing.T) {
 	assert.False(t, models.IsGenericValidationError(err), "resolver failures must not become validation errors")
 	assert.ErrorIs(t, err, resolverErr)
 }
+
+func TestValidateTaxCodeID(t *testing.T) {
+	const (
+		namespace = "ns"
+		liveID    = "01JTAXCODE00000000000000000"
+		deletedID = "01JTAXCODE00000000000000001"
+		missingID = "01JTAXCODE00000000000000002"
+	)
+
+	resolver := &stubTaxCodeResolver{taxCodes: map[string]*taxcode.TaxCode{
+		liveID: {NamespacedID: models.NamespacedID{Namespace: namespace, ID: liveID}},
+		deletedID: {
+			NamespacedID: models.NamespacedID{Namespace: namespace, ID: deletedID},
+			ManagedModel: models.ManagedModel{DeletedAt: lo.ToPtr(clock.Now().Add(-1))},
+		},
+	}}
+
+	require.NoError(t, productcatalog.ValidateTaxCodeID(t.Context(), resolver, namespace, liveID))
+	require.NoError(t, productcatalog.ValidateTaxCodeID(t.Context(), resolver, namespace, ""))
+
+	for _, id := range []string{deletedID, missingID} {
+		err := productcatalog.ValidateTaxCodeID(t.Context(), resolver, namespace, id)
+		assert.True(t, models.IsGenericValidationError(err), "id=%s: %v", id, err)
+	}
+
+	// The empty ID never hits the resolver.
+	assert.Len(t, resolver.calls, 3)
+
+	resolver.err = errors.New("db down")
+	err := productcatalog.ValidateTaxCodeID(t.Context(), resolver, namespace, liveID)
+	require.Error(t, err)
+	assert.False(t, models.IsGenericValidationError(err), "lookup failures aren't validation errors")
+}

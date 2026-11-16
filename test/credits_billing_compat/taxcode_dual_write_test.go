@@ -47,9 +47,9 @@ func (s *TaxCodeDualWriteTestSuite) TestSnapshotTaxCodeIntoLinesOnAdvance() {
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
 
 	profile := s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
-	s.SeedProfileDefaultTaxConfigViaAdapter(ctx, profile.ProfileID(), &productcatalog.TaxConfig{
-		Behavior: lo.ToPtr(productcatalog.InclusiveTaxBehavior),
-		Stripe:   &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
+	s.SeedProfileDefaultTaxConfigViaAdapter(ctx, profile.ProfileID(), &productcatalog.TaxCodeConfig{
+		Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
+		TaxCodeID: s.TaxCodeForStripeCode(ctx, ns, "txcd_10000000").ID,
 	})
 	cust := s.CreateTestCustomer(ns, "test")
 	s.SetupAccounts(ns, cust.ID)
@@ -96,8 +96,8 @@ func (s *TaxCodeDualWriteTestSuite) TestSnapshotLineOwnCodeTakesPrecedence() {
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
 
 	profile := s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
-	s.SeedProfileDefaultTaxConfigViaAdapter(ctx, profile.ProfileID(), &productcatalog.TaxConfig{
-		Stripe: &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
+	s.SeedProfileDefaultTaxConfigViaAdapter(ctx, profile.ProfileID(), &productcatalog.TaxCodeConfig{
+		TaxCodeID: s.TaxCodeForStripeCode(ctx, ns, "txcd_10000000").ID,
 	})
 	cust := s.CreateTestCustomer(ns, "test")
 	s.SetupAccounts(ns, cust.ID)
@@ -152,11 +152,11 @@ func (s *TaxCodeDualWriteTestSuite) TestSnapshotPreservesExistingTaxCodeID() {
 
 	// Seed a profile with the Stripe code via the adapter to materialize the TaxCode entity.
 	profile := s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
-	seeded := s.SeedProfileDefaultTaxConfigViaAdapter(ctx, profile.ProfileID(), &productcatalog.TaxConfig{
-		Stripe: &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
+	seeded := s.SeedProfileDefaultTaxConfigViaAdapter(ctx, profile.ProfileID(), &productcatalog.TaxCodeConfig{
+		TaxCodeID: s.TaxCodeForStripeCode(ctx, ns, "txcd_10000000").ID,
 	})
 
-	existingID := seeded.WorkflowConfig.Invoicing.DefaultTaxConfig.TaxCodeID
+	existingID := lo.EmptyableToPtr(seeded.WorkflowConfig.Invoicing.DefaultTaxCodeID())
 	s.Require().NotNil(existingID)
 
 	cust := s.CreateTestCustomer(ns, "test")

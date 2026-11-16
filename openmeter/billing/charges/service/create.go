@@ -75,10 +75,7 @@ func (s *service) applyDefaultTaxCodes(ctx context.Context, namespace string, in
 					return charges.CreateChargeIntent{}, fmt.Errorf("getting customer billing profile: %w", err)
 				}
 
-				profileTaxConfig := customerOverride.EffectiveProfile.WorkflowConfig.Invoicing.DefaultTaxConfig
-				if profileTaxConfig != nil && lo.FromPtr(profileTaxConfig.TaxCodeID) != "" {
-					profileTaxCodeID = profileTaxConfig.TaxCodeID
-				}
+				profileTaxCodeID = lo.EmptyableToPtr(customerOverride.EffectiveProfile.WorkflowConfig.Invoicing.DefaultTaxCodeID())
 
 				profileTaxCodeIDs[customerID] = profileTaxCodeID
 			}

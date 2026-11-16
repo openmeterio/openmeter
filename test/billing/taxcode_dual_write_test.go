@@ -13,8 +13,10 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	billinginvoicedb "github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	taxcodedb "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -26,17 +28,6 @@ type TaxCodeDualWriteTestSuite struct {
 
 func TestTaxCodeDualWrite(t *testing.T) {
 	suite.Run(t, new(TaxCodeDualWriteTestSuite))
-}
-
-// assertTaxConfigHasStripeCode verifies that a TaxConfig has a non-nil TaxCodeID and the
-// correct Stripe code. Used for profile/override assertions where only the FK + JSONB
-// fields (not the entity snapshot) are populated.
-func (s *TaxCodeDualWriteTestSuite) assertTaxConfigHasStripeCode(cfg *productcatalog.TaxConfig, wantCode string) {
-	s.T().Helper()
-	s.Require().NotNil(cfg)
-	s.Require().NotNil(cfg.TaxCodeID, "TaxCodeID must be set via BackfillTaxConfig")
-	s.Require().NotNil(cfg.Stripe, "Stripe must be populated via BackfillTaxConfig")
-	s.Equal(wantCode, cfg.Stripe.Code)
 }
 
 // assertInvoiceLineTaxCode verifies that an invoice line has a fully-stamped TaxCode: both
@@ -53,16 +44,16 @@ func (s *TaxCodeDualWriteTestSuite) assertInvoiceLineTaxCode(line *billing.Stand
 	s.Equal(wantCode, mapping.TaxCode)
 }
 
-// ── Group A: Profile dual-write / dual-read ─────────────────────────────────
+// ── Group A: Profile tax code ID gate and storage ──────────────────────────
 
-// A2: Creating a profile with behavior-only (no Stripe code) does NOT create a TaxCode entity.
+// A2: Creating a profile with behavior-only stores no Tax Code.
 func (s *TaxCodeDualWriteTestSuite) TestProfileCreateBehaviorOnlyNoFK() {
-	ctx := context.Background()
+	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("ns-taxcode-dw")
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
 
 	s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID(), WithBillingProfileEditFn(func(p *billing.CreateProfileInput) {
-		p.WorkflowConfig.Invoicing.DefaultTaxConfig = &productcatalog.TaxConfig{
+		p.WorkflowConfig.Invoicing.DefaultTaxConfig = &productcatalog.TaxCodeConfig{
 			Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
 		}
 	}))
@@ -70,17 +61,14 @@ func (s *TaxCodeDualWriteTestSuite) TestProfileCreateBehaviorOnlyNoFK() {
 	readBack, err := s.BillingService.GetDefaultProfile(ctx, billing.GetDefaultProfileInput{Namespace: ns})
 	s.NoError(err)
 
-	cfg := readBack.WorkflowConfig.Invoicing.DefaultTaxConfig
-	s.Require().NotNil(cfg)
-	s.Require().NotNil(cfg.Behavior)
-	s.Equal(productcatalog.ExclusiveTaxBehavior, *cfg.Behavior)
-	s.Nil(cfg.TaxCodeID, "no TaxCode entity should be created for behavior-only config")
-	s.Nil(cfg.Stripe, "Stripe must remain nil when no code was given")
+	s.Equal(&productcatalog.TaxCodeConfig{
+		Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
+	}, readBack.WorkflowConfig.Invoicing.DefaultTaxConfig)
 }
 
 // A3: Creating a profile with no DefaultTaxConfig stores nothing.
 func (s *TaxCodeDualWriteTestSuite) TestProfileCreateNilTaxConfigNoFK() {
-	ctx := context.Background()
+	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("ns-taxcode-dw")
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
 
@@ -93,14 +81,15 @@ func (s *TaxCodeDualWriteTestSuite) TestProfileCreateNilTaxConfigNoFK() {
 
 // A3b: Creating a profile with a tax code is rejected by the deprecation gate; nothing is persisted.
 func (s *TaxCodeDualWriteTestSuite) TestProfileCreateWithTaxCodeRejected() {
-	ctx := context.Background()
+	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("ns-taxcode-dw")
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
+	tc := s.TaxCodeForStripeCode(ctx, ns, "txcd_10000000")
 
 	input := MinimalCreateProfileInputTemplate(sandboxApp.GetID())
 	input.Namespace = ns
-	input.WorkflowConfig.Invoicing.DefaultTaxConfig = &productcatalog.TaxConfig{
-		Stripe: &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
+	input.WorkflowConfig.Invoicing.DefaultTaxConfig = &productcatalog.TaxCodeConfig{
+		TaxCodeID: tc.ID,
 	}
 
 	_, err := s.BillingService.CreateProfile(ctx, input)
@@ -108,30 +97,24 @@ func (s *TaxCodeDualWriteTestSuite) TestProfileCreateWithTaxCodeRejected() {
 
 	var validationErr billing.ValidationError
 	s.Require().True(errors.As(err, &validationErr), "error must be a billing.ValidationError, got: %v", err)
+	s.ErrorContains(err, "deprecated")
 
-	// The rejected create must not have persisted a default profile...
 	readBack, err := s.BillingService.GetDefaultProfile(ctx, billing.GetDefaultProfileInput{Namespace: ns})
 	s.NoError(err)
 	s.Nil(readBack, "no default profile should be persisted after a rejected create")
-
-	// ...nor a TaxCode entity.
-	count, err := s.DBClient.TaxCode.Query().
-		Where(taxcodedb.Namespace(ns)).
-		Count(ctx)
-	s.NoError(err)
-	s.Equal(0, count, "no TaxCode entity should be persisted after a rejected create")
 }
 
 // A3c: Adding a tax code to a profile that has none on update is rejected by the deprecation gate.
 func (s *TaxCodeDualWriteTestSuite) TestProfileUpdateAddTaxCodeRejected() {
-	ctx := context.Background()
+	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("ns-taxcode-dw")
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
+	tc := s.TaxCodeForStripeCode(ctx, ns, "txcd_10000000")
 
 	profile := s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
 
-	profile.WorkflowConfig.Invoicing.DefaultTaxConfig = &productcatalog.TaxConfig{
-		Stripe: &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
+	profile.WorkflowConfig.Invoicing.DefaultTaxConfig = &productcatalog.TaxCodeConfig{
+		TaxCodeID: tc.ID,
 	}
 	profile.AppReferences = nil
 	_, err := s.BillingService.UpdateProfile(ctx, billing.UpdateProfileInput(profile.BaseProfile))
@@ -140,37 +123,90 @@ func (s *TaxCodeDualWriteTestSuite) TestProfileUpdateAddTaxCodeRejected() {
 	var validationErr billing.ValidationError
 	s.Require().True(errors.As(err, &validationErr), "error must be a billing.ValidationError, got: %v", err)
 
-	// The stored profile must still have no tax code.
 	readBack, err := s.BillingService.GetDefaultProfile(ctx, billing.GetDefaultProfileInput{Namespace: ns})
 	s.NoError(err)
 	s.Nil(readBack.WorkflowConfig.Invoicing.DefaultTaxConfig, "rejected update must not persist a tax code")
-
-	// ...nor a TaxCode entity.
-	count, err := s.DBClient.TaxCode.Query().
-		Where(taxcodedb.Namespace(ns)).
-		Count(ctx)
-	s.NoError(err)
-	s.Equal(0, count, "no TaxCode entity should be persisted after a rejected update")
 }
 
-// A4: Updating a profile to remove the Stripe code clears the TaxCode FK (stale-FK regression).
-// The tax code is seeded via the adapter to simulate a legacy row predating the deprecation gate.
-func (s *TaxCodeDualWriteTestSuite) TestProfileUpdateClearsTaxCodeFK() {
-	ctx := context.Background()
+// A3d: Only the stored Tax Code ID can be echoed back; a different one is rejected even if it exists.
+func (s *TaxCodeDualWriteTestSuite) TestProfileUpdateChangeTaxCodeRejected() {
+	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("ns-taxcode-dw")
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
+	stored := s.TaxCodeForStripeCode(ctx, ns, "txcd_10000000")
+	other := s.TaxCodeForStripeCode(ctx, ns, "txcd_20000000")
 
 	profile := s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
-	seeded := s.SeedProfileDefaultTaxConfigViaAdapter(ctx, profile.ProfileID(), &productcatalog.TaxConfig{
-		Stripe: &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
+	seeded := s.SeedProfileDefaultTaxConfigViaAdapter(ctx, profile.ProfileID(), &productcatalog.TaxCodeConfig{
+		TaxCodeID: stored.ID,
 	})
 
-	// Confirm TaxCodeID is set after seeding.
-	s.assertTaxConfigHasStripeCode(seeded.WorkflowConfig.Invoicing.DefaultTaxConfig, "txcd_10000000")
-
-	// Update: switch to behavior-only (no Stripe code) — must clear the FK.
 	update := seeded.BaseProfile
-	update.WorkflowConfig.Invoicing.DefaultTaxConfig = &productcatalog.TaxConfig{
+	update.WorkflowConfig.Invoicing.DefaultTaxConfig = &productcatalog.TaxCodeConfig{TaxCodeID: other.ID}
+	update.AppReferences = nil
+	_, err := s.BillingService.UpdateProfile(ctx, billing.UpdateProfileInput(update))
+
+	var validationErr billing.ValidationError
+	s.Require().ErrorAs(err, &validationErr)
+
+	readBack, err := s.BillingService.GetDefaultProfile(ctx, billing.GetDefaultProfileInput{Namespace: ns})
+	s.NoError(err)
+	s.Equal(stored.ID, readBack.WorkflowConfig.Invoicing.DefaultTaxCodeID())
+}
+
+// A3e: Echoing the stored Tax Code ID passes the gate without re-checking the Tax Code, so a
+// profile whose default Tax Code was deleted since can still be edited.
+func (s *TaxCodeDualWriteTestSuite) TestProfileUpdateEchoesDeletedTaxCode() {
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("ns-taxcode-dw")
+	sandboxApp := s.InstallSandboxApp(s.T(), ns)
+	// Deleting a tax code checks it isn't an organization default, which needs the defaults set.
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
+	stored := s.TaxCodeForStripeCode(ctx, ns, "txcd_10000000")
+
+	profile := s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
+	seeded := s.SeedProfileDefaultTaxConfigViaAdapter(ctx, profile.ProfileID(), &productcatalog.TaxCodeConfig{
+		TaxCodeID: stored.ID,
+	})
+
+	s.Require().NoError(s.TaxCodeEnv.Service.DeleteTaxCode(ctx, taxcode.DeleteTaxCodeInput{
+		NamespacedID: stored.NamespacedID,
+	}))
+
+	update := seeded.BaseProfile
+	update.Name = "renamed"
+	update.WorkflowConfig.Invoicing.DefaultTaxConfig = &productcatalog.TaxCodeConfig{
+		Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
+		TaxCodeID: stored.ID,
+	}
+	update.AppReferences = nil
+	_, err := s.BillingService.UpdateProfile(ctx, billing.UpdateProfileInput(update))
+	s.Require().NoError(err)
+
+	readBack, err := s.BillingService.GetDefaultProfile(ctx, billing.GetDefaultProfileInput{Namespace: ns})
+	s.NoError(err)
+	s.Equal("renamed", readBack.Name)
+	s.Equal(&productcatalog.TaxCodeConfig{
+		Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
+		TaxCodeID: stored.ID,
+	}, readBack.WorkflowConfig.Invoicing.DefaultTaxConfig)
+}
+
+// A4: Updating a profile to behavior-only clears the Tax Code.
+func (s *TaxCodeDualWriteTestSuite) TestProfileUpdateClearsTaxCodeFK() {
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("ns-taxcode-dw")
+	sandboxApp := s.InstallSandboxApp(s.T(), ns)
+	tc := s.TaxCodeForStripeCode(ctx, ns, "txcd_10000000")
+
+	profile := s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
+	seeded := s.SeedProfileDefaultTaxConfigViaAdapter(ctx, profile.ProfileID(), &productcatalog.TaxCodeConfig{
+		TaxCodeID: tc.ID,
+	})
+	s.Equal(tc.ID, seeded.WorkflowConfig.Invoicing.DefaultTaxCodeID())
+
+	update := seeded.BaseProfile
+	update.WorkflowConfig.Invoicing.DefaultTaxConfig = &productcatalog.TaxCodeConfig{
 		Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
 	}
 	update.AppReferences = nil
@@ -179,62 +215,22 @@ func (s *TaxCodeDualWriteTestSuite) TestProfileUpdateClearsTaxCodeFK() {
 
 	readBack, err := s.BillingService.GetDefaultProfile(ctx, billing.GetDefaultProfileInput{Namespace: ns})
 	s.NoError(err)
-
-	cfg := readBack.WorkflowConfig.Invoicing.DefaultTaxConfig
-	s.Require().NotNil(cfg)
-	s.Require().NotNil(cfg.Behavior)
-	s.Equal(productcatalog.ExclusiveTaxBehavior, *cfg.Behavior)
-	s.Nil(cfg.Stripe, "BackfillTaxConfig must not resurrect Stripe from a cleared FK")
-	s.Nil(cfg.TaxCodeID, "FK must be cleared by SetOrClearTaxCodeID")
-}
-
-// A4b: Round-trip clear — fetch the profile (TaxCodeID populated), clear only Stripe in-place,
-// then update; dropping stripe.code while echoing the stored TaxCodeID unchanged is a removal
-// of the whole pair, so the deprecation gate clears TaxCodeID too. Behavior is kept non-nil so
-// that DefaultTaxConfig is not normalized to nil by the adapter.
-func (s *TaxCodeDualWriteTestSuite) TestProfileUpdateClearStripeAlsoClearsTaxCodeID() {
-	ctx := context.Background()
-	ns := s.GetUniqueNamespace("ns-taxcode-dw")
-	sandboxApp := s.InstallSandboxApp(s.T(), ns)
-
-	profile := s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
-	s.SeedProfileDefaultTaxConfigViaAdapter(ctx, profile.ProfileID(), &productcatalog.TaxConfig{
+	s.Equal(&productcatalog.TaxCodeConfig{
 		Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
-		Stripe:   &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
-	})
-
-	// Real read-modify-write: fetch first so TaxCodeID is populated, then clear Stripe in-place.
-	// The echoed TaxCodeID matches the stored one, so the gate treats this as a permitted
-	// removal of the stripe code and normalizes the pair away instead of keeping the tax code.
-	fetched, err := s.BillingService.GetDefaultProfile(ctx, billing.GetDefaultProfileInput{Namespace: ns})
-	s.NoError(err)
-	s.assertTaxConfigHasStripeCode(fetched.WorkflowConfig.Invoicing.DefaultTaxConfig, "txcd_10000000")
-
-	fetched.WorkflowConfig.Invoicing.DefaultTaxConfig.Stripe = nil
-	fetched.AppReferences = nil
-	_, err = s.BillingService.UpdateProfile(ctx, billing.UpdateProfileInput(fetched.BaseProfile))
-	s.NoError(err)
-
-	readBack, err := s.BillingService.GetDefaultProfile(ctx, billing.GetDefaultProfileInput{Namespace: ns})
-	s.NoError(err)
-
-	cfg := readBack.WorkflowConfig.Invoicing.DefaultTaxConfig
-	s.Require().NotNil(cfg)
-	s.Nil(cfg.Stripe, "dropping stripe.code must clear the Stripe config")
-	s.Nil(cfg.TaxCodeID, "dropping stripe.code must clear the echoed TaxCodeID too")
-	s.Require().NotNil(cfg.Behavior)
-	s.Equal(productcatalog.ExclusiveTaxBehavior, *cfg.Behavior, "behavior must be preserved")
+	}, readBack.WorkflowConfig.Invoicing.DefaultTaxConfig)
 }
 
 // A5: Updating a profile to nil DefaultTaxConfig clears both the FK and the behavior column.
 func (s *TaxCodeDualWriteTestSuite) TestProfileUpdateToNilClearsBothColumns() {
-	ctx := context.Background()
+	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("ns-taxcode-dw")
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
+	tc := s.TaxCodeForStripeCode(ctx, ns, "txcd_10000000")
 
 	profile := s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
-	seeded := s.SeedProfileDefaultTaxConfigViaAdapter(ctx, profile.ProfileID(), &productcatalog.TaxConfig{
-		Stripe: &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
+	seeded := s.SeedProfileDefaultTaxConfigViaAdapter(ctx, profile.ProfileID(), &productcatalog.TaxCodeConfig{
+		Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
+		TaxCodeID: tc.ID,
 	})
 
 	update := seeded.BaseProfile
@@ -246,146 +242,92 @@ func (s *TaxCodeDualWriteTestSuite) TestProfileUpdateToNilClearsBothColumns() {
 	readBack, err := s.BillingService.GetDefaultProfile(ctx, billing.GetDefaultProfileInput{Namespace: ns})
 	s.NoError(err)
 	s.Nil(readBack.WorkflowConfig.Invoicing.DefaultTaxConfig)
+
+	dbWC, err := s.DBClient.BillingWorkflowConfig.Get(ctx, seeded.WorkflowConfigID)
+	s.NoError(err)
+	s.Nil(dbWC.TaxCodeID)
+	s.Nil(dbWC.TaxBehavior)
+	s.Empty(dbWC.InvoiceDefaultTaxSettings)
 }
 
-// A6: Using the same Stripe code on two profiles in the same namespace reuses the same TaxCode entity.
-// Both tax codes are seeded via the adapter to simulate legacy rows predating the deprecation gate.
-func (s *TaxCodeDualWriteTestSuite) TestProfileTaxCodeIdempotent() {
-	ctx := context.Background()
+// A6: The adapter reads only the tax_code_id / tax_behavior columns and writes a minimal JSON
+// copy (tax_code_id + behavior, no Stripe code), so older binaries reading the JSON see the same
+// default and the CHECK constraints hold.
+func (s *TaxCodeDualWriteTestSuite) TestWorkflowConfigWritesMinimalJSONCopy() {
+	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("ns-taxcode-dw")
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
-
-	profileA := s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
-	seededA := s.SeedProfileDefaultTaxConfigViaAdapter(ctx, profileA.ProfileID(), &productcatalog.TaxConfig{
-		Stripe: &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
-	})
-
-	// Create a second non-default profile and seed the same Stripe code.
-	inputB := MinimalCreateProfileInputTemplate(sandboxApp.GetID())
-	inputB.Namespace = ns
-	inputB.Default = false
-	inputB.Name = "Profile B"
-	profileB, err := s.BillingService.CreateProfile(ctx, inputB)
-	s.NoError(err)
-	seededB := s.SeedProfileDefaultTaxConfigViaAdapter(ctx, profileB.ProfileID(), &productcatalog.TaxConfig{
-		Stripe: &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
-	})
-
-	idA := seededA.WorkflowConfig.Invoicing.DefaultTaxConfig.TaxCodeID
-	idB := seededB.WorkflowConfig.Invoicing.DefaultTaxConfig.TaxCodeID
-	s.Require().NotNil(idA)
-	s.Require().NotNil(idB)
-	s.Equal(*idA, *idB, "GetOrCreateByAppMapping must return the same TaxCode entity for the same Stripe code")
-}
-
-// ── Group B: Customer override dual-write / dual-read ──────────────────────
-
-// B1: Upserting a customer override with a Stripe code creates a TaxCode entity and stamps TaxCodeID.
-func (s *TaxCodeDualWriteTestSuite) TestEmptyStripeCodeIsNoOp() {
-	ctx := context.Background()
-	ns := s.GetUniqueNamespace("ns-taxcode-dw")
-	sandboxApp := s.InstallSandboxApp(s.T(), ns)
-
-	// Empty Stripe.Code must pass validation (Validate only rejects non-empty invalid codes).
-	s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID(), WithBillingProfileEditFn(func(p *billing.CreateProfileInput) {
-		p.WorkflowConfig.Invoicing.DefaultTaxConfig = &productcatalog.TaxConfig{
-			Behavior: lo.ToPtr(productcatalog.InclusiveTaxBehavior),
-			Stripe:   &productcatalog.StripeTaxConfig{Code: ""},
-		}
-	}))
-
-	readBack, err := s.BillingService.GetDefaultProfile(ctx, billing.GetDefaultProfileInput{Namespace: ns})
-	s.NoError(err)
-
-	cfg := readBack.WorkflowConfig.Invoicing.DefaultTaxConfig
-	s.Require().NotNil(cfg)
-	s.Nil(cfg.TaxCodeID, "empty Stripe code must not create a TaxCode entity")
-
-	// No TaxCode entity must have been persisted for this namespace.
-	count, err := s.DBClient.TaxCode.Query().
-		Where(taxcodedb.Namespace(ns)).
-		Count(ctx)
-	s.NoError(err)
-	s.Equal(0, count)
-}
-
-// C2: Updating a profile echoing the same Stripe code is idempotent — no duplicate TaxCode
-// entity. Echoing the stored code unchanged passes the deprecation gate as a no-op.
-func (s *TaxCodeDualWriteTestSuite) TestResolveDefaultTaxCodeIdempotentOnUpdate() {
-	ctx := context.Background()
-	ns := s.GetUniqueNamespace("ns-taxcode-dw")
-	sandboxApp := s.InstallSandboxApp(s.T(), ns)
+	tc := s.TaxCodeForStripeCode(ctx, ns, "txcd_10000000")
 
 	profile := s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
-	seeded := s.SeedProfileDefaultTaxConfigViaAdapter(ctx, profile.ProfileID(), &productcatalog.TaxConfig{
-		Stripe: &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
-	})
-
-	firstID := seeded.WorkflowConfig.Invoicing.DefaultTaxConfig.TaxCodeID
-	s.Require().NotNil(firstID)
-
-	// Update with the same Stripe code.
-	update := seeded.BaseProfile
-	update.WorkflowConfig.Invoicing.DefaultTaxConfig = &productcatalog.TaxConfig{
-		Stripe: &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
-	}
-	update.AppReferences = nil
-	_, err := s.BillingService.UpdateProfile(ctx, billing.UpdateProfileInput(update))
-	s.NoError(err)
-
-	readBack, err := s.BillingService.GetDefaultProfile(ctx, billing.GetDefaultProfileInput{Namespace: ns})
-	s.NoError(err)
-
-	secondID := readBack.WorkflowConfig.Invoicing.DefaultTaxConfig.TaxCodeID
-	s.Require().NotNil(secondID)
-	s.Equal(*firstID, *secondID, "GetOrCreateByAppMapping must be idempotent across updates")
-
-	// Exactly one TaxCode entity should exist in the namespace.
-	count, err := s.DBClient.TaxCode.Query().
-		Where(taxcodedb.Namespace(ns)).
-		Count(ctx)
-	s.NoError(err)
-	s.Equal(1, count)
-}
-
-// C4: Round-trip with a bare TaxCodeID (no Stripe block) echoing the stored value. Under the
-// deprecation gate this shape is the "stripe dropped, taxCodeId echoed" removal — the gate
-// clears the whole pair, including the FK column. Behavior is kept non-nil so DefaultTaxConfig
-// is not normalized to nil by the adapter.
-func (s *TaxCodeDualWriteTestSuite) TestProfileUpdateBareTaxCodeIDClearsPair() {
-	ctx := context.Background()
-	ns := s.GetUniqueNamespace("ns-taxcode-dw")
-	sandboxApp := s.InstallSandboxApp(s.T(), ns)
-
-	profile := s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
-	seeded := s.SeedProfileDefaultTaxConfigViaAdapter(ctx, profile.ProfileID(), &productcatalog.TaxConfig{
-		Behavior: lo.ToPtr(productcatalog.InclusiveTaxBehavior),
-		Stripe:   &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
-	})
-
-	firstID := seeded.WorkflowConfig.Invoicing.DefaultTaxConfig.TaxCodeID
-	s.Require().NotNil(firstID)
-
-	// The caller echoes the stored TaxCodeID but drops the Stripe block. The gate treats this
-	// as a permitted removal of the deprecated pair and clears both columns.
-	update := seeded.BaseProfile
-	update.WorkflowConfig.Invoicing.DefaultTaxConfig = &productcatalog.TaxConfig{
+	seeded := s.SeedProfileDefaultTaxConfigViaAdapter(ctx, profile.ProfileID(), &productcatalog.TaxCodeConfig{
 		Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
-		TaxCodeID: firstID,
-	}
-	update.AppReferences = nil
-	_, err := s.BillingService.UpdateProfile(ctx, billing.UpdateProfileInput(update))
-	s.NoError(err)
+		TaxCodeID: tc.ID,
+	})
+
+	dbWC, err := s.DBClient.BillingWorkflowConfig.Get(ctx, seeded.WorkflowConfigID)
+	s.Require().NoError(err)
+	s.Equal(productcatalog.TaxConfig{
+		Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
+		TaxCodeID: lo.ToPtr(tc.ID),
+	}, dbWC.InvoiceDefaultTaxSettings)
+	s.Equal(lo.ToPtr(tc.ID), dbWC.TaxCodeID)
+	s.Equal(lo.ToPtr(productcatalog.InclusiveTaxBehavior), dbWC.TaxBehavior)
+
+	// Columns are the source of truth on read: a legacy Stripe code left in the JSON is ignored.
+	_, err = s.DBClient.BillingWorkflowConfig.UpdateOneID(seeded.WorkflowConfigID).
+		SetInvoiceDefaultTaxSettings(productcatalog.TaxConfig{
+			Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
+			TaxCodeID: lo.ToPtr(tc.ID),
+			Stripe:    &productcatalog.StripeTaxConfig{Code: "txcd_99999999"},
+		}).
+		Save(ctx)
+	s.Require().NoError(err)
 
 	readBack, err := s.BillingService.GetDefaultProfile(ctx, billing.GetDefaultProfileInput{Namespace: ns})
-	s.NoError(err)
+	s.Require().NoError(err)
+	s.Equal(&productcatalog.TaxCodeConfig{
+		Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
+		TaxCodeID: tc.ID,
+	}, readBack.WorkflowConfig.Invoicing.DefaultTaxConfig)
 
-	cfg := readBack.WorkflowConfig.Invoicing.DefaultTaxConfig
-	s.Require().NotNil(cfg)
-	s.Nil(cfg.Stripe, "BackfillTaxConfig must not resurrect Stripe from a cleared FK")
-	s.Nil(cfg.TaxCodeID, "FK column must be cleared along with the dropped Stripe code")
-	s.Require().NotNil(cfg.Behavior)
-	s.Equal(productcatalog.InclusiveTaxBehavior, *cfg.Behavior, "behavior must be preserved")
+	// The invoice's cloned workflow config gets the same minimal copy.
+	cust := s.CreateTestCustomer(ns, "test")
+	now := time.Now().Truncate(time.Microsecond).UTC()
+
+	_, err = s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
+		Customer: cust.GetID(),
+		Currency: currencyx.FiatCode(currency.USD),
+		Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
+			billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
+				Namespace:     ns,
+				Period:        timeutil.ClosedPeriod{From: now, To: now.Add(time.Hour * 24)},
+				InvoiceAt:     now,
+				ManagedBy:     billing.ManuallyManagedLine,
+				Name:          "line",
+				PerUnitAmount: alpacadecimal.NewFromFloat(100),
+				PaymentTerm:   productcatalog.InAdvancePaymentTerm,
+			}),
+		}),
+	})
+	s.Require().NoError(err)
+
+	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		Customer: cust.GetID(),
+		AsOf:     &now,
+	})
+	s.Require().NoError(err)
+	s.Require().Len(invoices, 1)
+
+	dbInvoice, err := s.DBClient.BillingInvoice.Query().
+		Where(billinginvoicedb.ID(invoices[0].ID)).
+		WithBillingWorkflowConfig().
+		Only(ctx)
+	s.Require().NoError(err)
+	s.Equal(productcatalog.TaxConfig{
+		Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
+		TaxCodeID: lo.ToPtr(tc.ID),
+	}, dbInvoice.Edges.BillingWorkflowConfig.InvoiceDefaultTaxSettings)
 }
 
 // ── Group D: Invoice snapshotting (end-to-end) ────────────────────────────
@@ -397,9 +339,9 @@ func (s *TaxCodeDualWriteTestSuite) TestSnapshotTaxCodeIntoLinesOnAdvance() {
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
 
 	profile := s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
-	s.SeedProfileDefaultTaxConfigViaAdapter(ctx, profile.ProfileID(), &productcatalog.TaxConfig{
-		Behavior: lo.ToPtr(productcatalog.InclusiveTaxBehavior),
-		Stripe:   &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
+	s.SeedProfileDefaultTaxConfigViaAdapter(ctx, profile.ProfileID(), &productcatalog.TaxCodeConfig{
+		Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
+		TaxCodeID: s.TaxCodeForStripeCode(ctx, ns, "txcd_10000000").ID,
 	})
 	cust := s.CreateTestCustomer(ns, "test")
 
@@ -444,8 +386,8 @@ func (s *TaxCodeDualWriteTestSuite) TestSnapshotLineOwnCodeTakesPrecedence() {
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
 
 	profile := s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
-	s.SeedProfileDefaultTaxConfigViaAdapter(ctx, profile.ProfileID(), &productcatalog.TaxConfig{
-		Stripe: &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
+	s.SeedProfileDefaultTaxConfigViaAdapter(ctx, profile.ProfileID(), &productcatalog.TaxCodeConfig{
+		TaxCodeID: s.TaxCodeForStripeCode(ctx, ns, "txcd_10000000").ID,
 	})
 	cust := s.CreateTestCustomer(ns, "test")
 
@@ -498,11 +440,11 @@ func (s *TaxCodeDualWriteTestSuite) TestSnapshotPreservesExistingTaxCodeID() {
 
 	// Seed a profile with the Stripe code via the adapter to materialize the TaxCode entity.
 	profile := s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
-	seeded := s.SeedProfileDefaultTaxConfigViaAdapter(ctx, profile.ProfileID(), &productcatalog.TaxConfig{
-		Stripe: &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
+	seeded := s.SeedProfileDefaultTaxConfigViaAdapter(ctx, profile.ProfileID(), &productcatalog.TaxCodeConfig{
+		TaxCodeID: s.TaxCodeForStripeCode(ctx, ns, "txcd_10000000").ID,
 	})
 
-	existingID := seeded.WorkflowConfig.Invoicing.DefaultTaxConfig.TaxCodeID
+	existingID := lo.EmptyableToPtr(seeded.WorkflowConfig.Invoicing.DefaultTaxCodeID())
 	s.Require().NotNil(existingID)
 
 	cust := s.CreateTestCustomer(ns, "test")
@@ -596,9 +538,3 @@ func (s *TaxCodeDualWriteTestSuite) TestSimulateInvoiceReadOnly() {
 	s.NoError(err)
 	s.Equal(0, count, "SimulateInvoice must not write TaxCode entities to the DB")
 }
-
-// ── Group E: Profile.Merge TaxCodeID propagation ─────────────────────────
-
-// E1: When both profile and override have Stripe codes, MergeTaxConfigs gives the profile's
-// code precedence (profile is the second/overrides arg in the call site). Both TaxCode
-// entities are created; the merged config references the profile's entity.

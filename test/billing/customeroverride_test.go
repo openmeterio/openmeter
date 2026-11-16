@@ -695,7 +695,7 @@ func (s *CustomerBillingProfileTestSuite) TestLegacyPUTSetsAndClearsPin() {
 	profile := s.ProvisionBillingProfile(ctx, ns, s.InstallSandboxApp(s.T(), ns).GetID())
 	cust := s.CreateTestCustomer(ns, "customer")
 	handler := billinghttpdriver.New(testutils.NewDiscardLogger(s.T()), namespacedriver.StaticNamespaceDecoder(ns),
-		config.BillingFeatureSwitchesConfiguration{}, s.BillingService, s.AppService, nil, nil, config.CreditsConfiguration{}, nil)
+		config.BillingFeatureSwitchesConfiguration{}, s.BillingService, s.AppService, nil, nil, config.CreditsConfiguration{}, nil, s.TaxCodeResolver)
 
 	// when: an explicit reference pins the default, then omission clears it twice.
 	cases := []struct {
@@ -746,7 +746,7 @@ func (s *CustomerBillingProfileTestSuite) TestLegacyPUTMissingDefaultPreservesPi
 	})
 	s.Require().NoError(err)
 	handler := billinghttpdriver.New(testutils.NewDiscardLogger(s.T()), namespacedriver.StaticNamespaceDecoder(ns),
-		config.BillingFeatureSwitchesConfiguration{}, s.BillingService, s.AppService, nil, nil, config.CreditsConfiguration{}, nil)
+		config.BillingFeatureSwitchesConfiguration{}, s.BillingService, s.AppService, nil, nil, config.CreditsConfiguration{}, nil, s.TaxCodeResolver)
 
 	// when: PUT clears the pin but cannot resolve a profile for its response.
 	request := httptest.NewRequest(http.MethodPut, "/api/v1/billing/customers/"+cust.ID, strings.NewReader(`{}`))
