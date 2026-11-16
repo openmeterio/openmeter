@@ -71,6 +71,7 @@ var ListCmd = func() *cobra.Command {
 
 var AllCmd = func() *cobra.Command {
 	var force bool
+	var forceAll bool
 
 	cmd := &cobra.Command{
 		Use:   "all",
@@ -82,7 +83,8 @@ var AllCmd = func() *cobra.Command {
 					Customers:  customerIDs,
 					Lookback:   lookback,
 				},
-				Force: force,
+				Force:                       force || forceAll,
+				ForceResyncOldSubscriptions: forceAll,
 			})
 		},
 	}
@@ -91,6 +93,7 @@ var AllCmd = func() *cobra.Command {
 	cmd.PersistentFlags().StringSliceVar(&customerIDs, "c", nil, "filter by customer ids")
 	cmd.PersistentFlags().DurationVar(&lookback, "l", defaultLookback, "lookback period")
 	cmd.PersistentFlags().BoolVar(&force, "f", false, "force reconciliation regardless of billing deadlines; skips deleted subscriptions with completed cleanup (delete their v2 sync-state entry to retry)")
+	cmd.PersistentFlags().BoolVar(&forceAll, "force-all", false, "force reconciliation regardless of billing deadlines or subscription end age; lookback still limits selection; skips deleted subscriptions with completed cleanup (delete their v2 sync-state entry to retry)")
 
 	return cmd
 }

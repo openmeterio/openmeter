@@ -278,19 +278,25 @@ func (r *Reconciler) mapToSubscriptionWithSyncState(ctx context.Context, subs []
 	}), nil
 }
 
-func (r *Reconciler) ReconcileSubscription(ctx context.Context, subsID models.NamespacedID) error {
-	return r.subscriptionSync.SyncByID(ctx, subsID, time.Now())
+func (r *Reconciler) ReconcileSubscription(ctx context.Context, subsID models.NamespacedID, opts ...subscriptionsync.SynchronizeSubscriptionOption) error {
+	return r.subscriptionSync.SyncByID(ctx, subsID, clock.Now(), opts...)
 }
 
 type ReconcilerAllInput struct {
 	ReconcilerListSubscriptionsInput
-	Force bool
+	Force                       bool
+	ForceResyncOldSubscriptions bool
 }
 
 func (r *Reconciler) All(ctx context.Context, in ReconcilerAllInput) error {
 	subscriptions, err := r.ListSubscriptions(ctx, in.ReconcilerListSubscriptionsInput)
 	if err != nil {
 		return fmt.Errorf("failed to list subscriptions: %w", err)
+	}
+
+	var syncOptions []subscriptionsync.SynchronizeSubscriptionOption
+	if in.ForceResyncOldSubscriptions {
+		syncOptions = append(syncOptions, subscriptionsync.WithForceResyncOldSubscriptions())
 	}
 
 	var outErr error
@@ -300,7 +306,7 @@ func (r *Reconciler) All(ctx context.Context, in ReconcilerAllInput) error {
 			continue
 		}
 
-		if err := r.ReconcileSubscription(ctx, subscription.NamespacedID); err != nil {
+		if err := r.ReconcileSubscription(ctx, subscription.NamespacedID, syncOptions...); err != nil {
 			r.logger.ErrorContext(ctx, "failed to reconcile subscription", "error", err)
 
 			outErr = errors.Join(outErr, fmt.Errorf("failed to reconcile subscription: %w", err))

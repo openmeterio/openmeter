@@ -93,7 +93,7 @@ var (
 // LastSuccessStateValidator is a validator for the "last_success_state" field enum values. It is called by the builders before save.
 func LastSuccessStateValidator(lss subscriptionsync.SyncStateV2State) error {
 	switch lss {
-	case "subscription_deleted", "customer_deleted_before":
+	case "subscription_deleted", "customer_deleted_before", "subscription_ended", "subscription_skipped":
 		return nil
 	default:
 		return fmt.Errorf("subscriptionsyncstatev2: invalid enum value for last_success_state field: %q", lss)

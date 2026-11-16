@@ -25,12 +25,20 @@ const (
 	// an empty billing target because the customer was deleted at or before the
 	// non-deleted subscription's ActiveFrom.
 	SyncStateV2StateCustomerDeletedBefore SyncStateV2State = "customer_deleted_before"
+	// SyncStateV2StateSubscriptionEnded records successful billing reconciliation
+	// after ActiveTo, with a sync horizon that covers the subscription end.
+	SyncStateV2StateSubscriptionEnded SyncStateV2State = "subscription_ended"
+	// SyncStateV2StateSubscriptionSkipped records an intentional skip of billing
+	// reconciliation because ActiveTo is more than 30 days before the worker clock.
+	SyncStateV2StateSubscriptionSkipped SyncStateV2State = "subscription_skipped"
 )
 
 func (SyncStateV2State) Values() []string {
 	return []string{
 		string(SyncStateV2StateSubscriptionDeleted),
 		string(SyncStateV2StateCustomerDeletedBefore),
+		string(SyncStateV2StateSubscriptionEnded),
+		string(SyncStateV2StateSubscriptionSkipped),
 	}
 }
 
@@ -42,15 +50,15 @@ func (s SyncStateV2State) Validate() error {
 	return nil
 }
 
-// SyncStateV2 keeps the last successful cleanup and the subscription revisions
-// needed to detect changes after that cleanup.
+// SyncStateV2 keeps the last completed sync outcome, including intentional age
+// skips, and the subscription revisions needed to detect subsequent edits.
 type SyncStateV2 struct {
 	SubscriptionID   models.NamespacedID
 	LastSuccessState SyncStateV2State
 	LastSuccessAt    time.Time
-	// LastSyncedSubsRevision is the current revision observed before the last successful cleanup.
+	// LastSyncedSubsRevision is the current revision observed before the recorded sync outcome.
 	LastSyncedSubsRevision string
-	// CurrentSubsRevision may change while cleanup is running; success must not overwrite it.
+	// CurrentSubsRevision may change while sync is running; recording its result must not overwrite it.
 	CurrentSubsRevision string
 }
 
@@ -84,7 +92,7 @@ type RecordSyncResultV2Input struct {
 	SubscriptionID   models.NamespacedID
 	LastSuccessState SyncStateV2State
 	LastSuccessAt    time.Time
-	// CurrentSubsRevision is deliberately absent: cleanup can acknowledge its
+	// CurrentSubsRevision is deliberately absent: sync can acknowledge its
 	// observed revision but cannot replace a newer one.
 	LastSyncedSubsRevision string
 }

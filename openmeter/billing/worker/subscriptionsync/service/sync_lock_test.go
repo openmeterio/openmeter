@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -80,11 +81,63 @@ func TestSyncReloadsDeletionAfterBillingLock(t *testing.T) {
 	require.False(t, syncAdapter.upserts[0].HasBillables)
 }
 
+func TestOldSubscriptionSkipUsesStateAfterBillingLock(t *testing.T) {
+	now := time.Date(2026, 11, 16, 12, 0, 0, 0, time.UTC)
+	clock.FreezeTime(now)
+	defer clock.UnFreeze()
+
+	// Given a subscription end and revision change committed while sync waits for the billing lock.
+	end := now.Add(-31 * 24 * time.Hour)
+	observedRevision := ulid.Make().String()
+	subscriptionService := &subscriptionServiceSpy{view: subscription.SubscriptionView{
+		Subscription: subscription.Subscription{
+			NamespacedID: models.NamespacedID{Namespace: "namespace", ID: "subscription-id"},
+			CustomerId:   "customer-id",
+		},
+	}}
+	syncAdapter := &subscriptionSyncAdapterSpy{
+		statesV2: []subscriptionsync.SyncStateV2Managed{{
+			SyncStateV2: subscriptionsync.SyncStateV2{CurrentSubsRevision: ulid.Make().String()},
+		}},
+	}
+	billingService := &billingServiceSpy{
+		beforeLock: func() {
+			subscriptionService.view.Subscription.ActiveTo = &end
+			syncAdapter.statesV2[0].CurrentSubsRevision = observedRevision
+		},
+	}
+	reconciler := &syncReconcilerSpy{}
+	service := &Service{
+		billingService:          billingService,
+		reconciler:              reconciler,
+		subscriptionService:     subscriptionService,
+		subscriptionSyncAdapter: syncAdapter,
+		logger:                  testutils.NewDiscardLogger(t),
+		tracer:                  noop.NewTracerProvider().Tracer("test"),
+	}
+
+	// When sync resumes, it uses the reloaded end to skip old billing work.
+	err := service.SyncByID(t.Context(), subscriptionService.view.Subscription.NamespacedID, now, subscriptionsync.WithInvoicePendingLines())
+	require.NoError(t, err)
+
+	// Then only the observed revision's skipped result is written, without loading billing artifacts.
+	require.True(t, billingService.withLockCalled)
+	require.Zero(t, subscriptionService.getViewCalls)
+	require.Zero(t, billingService.getLinesCalls)
+	require.Zero(t, billingService.invoicePendingLinesCalls)
+	require.False(t, reconciler.planCalled)
+	require.Empty(t, syncAdapter.upserts)
+	require.Len(t, syncAdapter.recordedResultsV2, 1)
+	require.Equal(t, subscriptionsync.SyncStateV2StateSubscriptionSkipped, syncAdapter.recordedResultsV2[0].LastSuccessState)
+	require.Equal(t, observedRevision, syncAdapter.recordedResultsV2[0].LastSyncedSubsRevision)
+}
+
 type billingServiceSpy struct {
 	billing.Service
 	beforeLock               func()
 	withLockCalled           bool
 	invoicePendingLinesCalls int
+	getLinesCalls            int
 }
 
 func (s *billingServiceSpy) GetCustomerBillingProfile(ctx context.Context, input billing.GetCustomerBillingProfileInput) (billing.CustomerBillingProfile, error) {
@@ -114,14 +167,17 @@ func (s *billingServiceSpy) WithLock(ctx context.Context, customerID customer.Cu
 }
 
 func (s *billingServiceSpy) GetStandardLinesForSubscription(context.Context, billing.GetLinesForSubscriptionInput) (billing.StandardLines, error) {
+	s.getLinesCalls++
 	return nil, nil
 }
 
 func (s *billingServiceSpy) GetGatheringLinesForSubscription(context.Context, billing.GetLinesForSubscriptionInput) (billing.GatheringLines, error) {
+	s.getLinesCalls++
 	return nil, nil
 }
 
 func (s *billingServiceSpy) GetSplitLineGroupsForSubscription(context.Context, billing.GetLinesForSubscriptionInput) ([]billing.SplitLineHierarchy, error) {
+	s.getLinesCalls++
 	return nil, nil
 }
 

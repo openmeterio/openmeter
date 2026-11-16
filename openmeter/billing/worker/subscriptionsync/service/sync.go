@@ -26,6 +26,7 @@ import (
 
 const (
 	SubscriptionSyncComponentName billing.ComponentName = "subscription-sync"
+	oldSubscriptionSyncThreshold                        = 30 * 24 * time.Hour
 )
 
 func (s *Service) invoicePendingLines(ctx context.Context, customer customer.CustomerID) error {
@@ -143,7 +144,7 @@ func (s *Service) synchronizeSubscription(ctx context.Context, in synchronizeSub
 			}
 
 			// Capture the revision before reading billing intent. A change committed
-			// during cleanup must remain different from the revision acknowledged below.
+			// during sync must remain different from the revision acknowledged below.
 			var subsRevision string
 			if len(syncStates) == 0 {
 				subsRevision = ulid.Make().String()
@@ -185,6 +186,27 @@ func (s *Service) synchronizeSubscription(ctx context.Context, in synchronizeSub
 				cleanupState = subscriptionsync.SyncStateV2StateCustomerDeletedBefore
 			}
 
+			now := clock.Now().UTC()
+			res := &synchronizeSubscriptionResult{CustomerID: customerID}
+			// Avoid loading billing artifacts for subscriptions that ended more than 30 days ago.
+			// Forced resyncs and deletion cleanup bypass this cutoff.
+			if cleanupState == "" && !options.ForceResyncOldSubscriptions && subs.ActiveTo != nil && subs.ActiveTo.Before(now.Add(-oldSubscriptionSyncThreshold)) {
+				s.logger.InfoContext(ctx, "skipping subscription sync because it ended more than 30 days ago", "subscription_id", subscriptionID.ID, "active_to", *subs.ActiveTo)
+				if !options.DryRun {
+					if err := s.subscriptionSyncAdapter.RecordSyncResultV2(ctx, subscriptionsync.RecordSyncResultV2Input{
+						SubscriptionID:         subscriptionID,
+						LastSuccessState:       subscriptionsync.SyncStateV2StateSubscriptionSkipped,
+						LastSuccessAt:          clock.Now().UTC(),
+						LastSyncedSubsRevision: subsRevision,
+					}); err != nil {
+						return nil, fmt.Errorf("recording skipped subscription sync: %w", err)
+					}
+				}
+
+				return res, nil
+			}
+
+			resultState := cleanupState
 			var subsView *subscription.SubscriptionView
 			if cleanupState == "" {
 				view, err := s.subscriptionService.GetView(ctx, subscriptionID)
@@ -193,12 +215,14 @@ func (s *Service) synchronizeSubscription(ctx context.Context, in synchronizeSub
 				}
 
 				subsView = &view
+				// Record subscription_ended only when the worker clock has reached ActiveTo
+				// and AsOf includes billing through ActiveTo.
+				if view.Spec.ActiveTo != nil && !view.Spec.ActiveTo.After(now) && !view.Spec.ActiveTo.After(asOf) {
+					resultState = subscriptionsync.SyncStateV2StateSubscriptionEnded
+				}
 			}
 
-			res := &synchronizeSubscriptionResult{
-				CustomerID:                customerID,
-				ShouldInvoicePendingLines: cleanupState == "",
-			}
+			res.ShouldInvoicePendingLines = cleanupState == ""
 
 			cur, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
 				WithCode(subs.InvoiceCurrency).
@@ -255,16 +279,16 @@ func (s *Service) synchronizeSubscription(ctx context.Context, in synchronizeSub
 				return nil, fmt.Errorf("updating sync state: %w", err)
 			}
 
-			if cleanupState != "" {
-				// Record cleanup even when no artifacts remained. The result must commit
-				// together with artifact deletion and the legacy scheduling update.
+			if resultState != "" {
+				// Record completion even when the plan was empty. The result must commit
+				// together with billing changes and the legacy scheduling update.
 				if err := s.subscriptionSyncAdapter.RecordSyncResultV2(ctx, subscriptionsync.RecordSyncResultV2Input{
 					SubscriptionID:         subscriptionID,
-					LastSuccessState:       cleanupState,
+					LastSuccessState:       resultState,
 					LastSuccessAt:          clock.Now().UTC(),
 					LastSyncedSubsRevision: subsRevision,
 				}); err != nil {
-					return nil, fmt.Errorf("recording subscription cleanup reconciliation: %w", err)
+					return nil, fmt.Errorf("recording subscription sync result: %w", err)
 				}
 			}
 
