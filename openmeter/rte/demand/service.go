@@ -105,8 +105,14 @@ func (s *service) EnsureFresh(ctx context.Context, input rte.EnsureFreshInput) e
 		return err
 	}
 
-	if err := s.config.Repository.EnsurePull(ctx, input); err != nil {
+	clean, err := s.config.Repository.EnsurePull(ctx, input)
+	if err != nil {
 		return err
+	}
+
+	if clean {
+		s.record(ctx, "pull", "cache_hit")
+		return nil
 	}
 
 	processed, err := s.process(ctx, &input.Target)

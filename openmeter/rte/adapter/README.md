@@ -23,6 +23,10 @@ names, so PostgreSQL can match currency and feature scope even when a caller use
 casing. Registering a key again repairs a previously misencoded row and marks it dirty to
 cover changes it may have missed. The worker decodes the stored key after a restart.
 
+For an active pull-only key with `MaxAge=0`, one update extends interest and checks the
+versions under the row lock. A clean result skips the work check. An expired key goes
+through registration because it may have missed an invalidation.
+
 The repository keeps a demand row locked through the callback, including external usage reads.
 Background workers skip locked keys. An explicit pull for the same target waits for the owner.
 Always propagate the callback context into the calculation so the result, update outbox record and

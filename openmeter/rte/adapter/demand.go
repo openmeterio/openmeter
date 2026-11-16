@@ -57,12 +57,14 @@ func (r *demandRepository) Activate(ctx context.Context, input rte.ActivateDeman
 		return err
 	}
 
-	return r.ensure(ctx, ensureDemandInput{Target: input.Target, PushEnabled: true, RefreshInterval: input.RefreshInterval})
+	_, err := r.ensure(ctx, ensureDemandInput{Target: input.Target, PushEnabled: true, RefreshInterval: input.RefreshInterval})
+
+	return err
 }
 
-func (r *demandRepository) EnsurePull(ctx context.Context, input rte.EnsureFreshInput) error {
+func (r *demandRepository) EnsurePull(ctx context.Context, input rte.EnsureFreshInput) (bool, error) {
 	if err := input.Validate(); err != nil {
-		return err
+		return false, err
 	}
 
 	until := clock.Now().Add(input.PullTTL)
@@ -92,27 +94,53 @@ func (i ensureDemandInput) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-func (r *demandRepository) ensure(ctx context.Context, input ensureDemandInput) error {
+func (r *demandRepository) ensure(ctx context.Context, input ensureDemandInput) (bool, error) {
 	if err := input.Validate(); err != nil {
-		return err
+		return false, err
 	}
 
 	identity, condition, err := demandIdentity(input.Target)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	key, err := input.Target.DecodeKey()
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	encodedKey, err := json.Marshal(key)
 	if err != nil {
-		return fmt.Errorf("encode demand key: %w", err)
+		return false, fmt.Errorf("encode demand key: %w", err)
 	}
 
-	return transaction.RunWithNoValue(ctx, r, func(ctx context.Context) error {
+	if input.PullUntil != nil && input.MaxAge == 0 {
+		clean, err := entutils.TransactingRepo(ctx, r.adapter, func(ctx context.Context, a *adapter) (bool, error) {
+			// Read the versions under the same row lock that renews interest. A later
+			// invalidation can then advance the dirty version for the next pull.
+			const query = `UPDATE rte_demands
+				SET pull_until = GREATEST(pull_until, $1), updated_at = $2
+				WHERE namespace = $3 AND kind = $4 AND key_hash = $5 AND key = $6::jsonb
+				  AND deleted_at IS NULL AND NOT push_enabled AND pull_until > $2
+				RETURNING completed_version = dirty_version`
+
+			rows, err := a.db.QueryContext(ctx, query, *input.PullUntil, clock.Now(), identity.Namespace, string(input.Target.Kind), identity.KeyHash, string(encodedKey))
+			if err != nil {
+				return false, err
+			}
+			defer rows.Close()
+
+			return sql.ScanBool(rows)
+		})
+		switch {
+		case err == nil:
+			return clean, nil
+		case !errors.Is(err, stdsql.ErrNoRows):
+			return false, fmt.Errorf("renew pull demand: %w", err)
+		}
+	}
+
+	return false, transaction.RunWithNoValue(ctx, r, func(ctx context.Context) error {
 		return entutils.TransactingRepoWithNoValue(ctx, r.adapter, func(ctx context.Context, a *adapter) error {
 			now := clock.Now()
 			err := a.db.RTEDemand.Create().SetNamespace(identity.Namespace).SetKind(string(input.Target.Kind)).SetOwnerID(identity.OwnerID).
